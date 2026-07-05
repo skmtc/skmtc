@@ -73,15 +73,6 @@ Deno.test('toGqlOperationEntry - toPreviewModule is undefined when not provided'
   assertEquals(entry.toPreviewModule, undefined)
 })
 
-Deno.test('toGqlOperationEntry - toMappingModule is undefined when not provided', () => {
-  const entry = toGqlOperationEntry({
-    id: 'test-operation',
-    transform: () => {},
-    toEnrichmentSchema: () => emptyEnrichmentSchema
-  })
-
-  assertEquals(entry.toMappingModule, undefined)
-})
 
 Deno.test('toGqlOperationEntry - toEnrichmentSchema is passed through from config', () => {
   const enrichmentSchemaFn = () => emptyEnrichmentSchema
@@ -123,25 +114,6 @@ Deno.test('toGqlOperationEntry - includes toPreviewModule when provided', () => 
   assertEquals(entry.toPreviewModule, previewFn)
 })
 
-Deno.test('toGqlOperationEntry - includes toMappingModule when provided', () => {
-  const mappingFn = () => ({
-    name: 'mapping',
-    exportPath: './mapping.ts',
-    itemType: 'input' as const,
-    schema: {} as any,
-    group: 'forms' as const,
-    items: []
-  })
-
-  const entry = toGqlOperationEntry({
-    id: 'test-operation',
-    transform: () => {},
-    toEnrichmentSchema: () => emptyEnrichmentSchema,
-    toMappingModule: mappingFn
-  })
-
-  assertEquals(entry.toMappingModule, mappingFn)
-})
 
 Deno.test('toGqlOperationEntry - includes all optional functions when provided', () => {
   const transformFn = () => {}
@@ -152,14 +124,6 @@ Deno.test('toGqlOperationEntry - includes all optional functions when provided',
     title: 'Test',
     description: 'Test'
   })
-  const mappingFn = () => ({
-    name: 'mapping',
-    exportPath: './mapping.ts',
-    itemType: 'input' as const,
-    schema: {} as any,
-    group: 'forms' as const,
-    items: []
-  })
   const isSupportedFn = () => true
   const enrichmentRequestFn = () => undefined
 
@@ -168,7 +132,6 @@ Deno.test('toGqlOperationEntry - includes all optional functions when provided',
     transform: transformFn,
     toEnrichmentSchema: () => emptyEnrichmentSchema,
     toPreviewModule: previewFn,
-    toMappingModule: mappingFn,
     isSupported: isSupportedFn,
     toEnrichmentRequest: enrichmentRequestFn
   })
@@ -177,6 +140,5 @@ Deno.test('toGqlOperationEntry - includes all optional functions when provided',
   assertEquals(entry.type, 'gqlOperation')
   assertEquals(entry.transform, transformFn)
   assertEquals(entry.toPreviewModule, previewFn)
-  assertEquals(entry.toMappingModule, mappingFn)
   assertEquals(entry.toEnrichmentRequest, enrichmentRequestFn)
 })

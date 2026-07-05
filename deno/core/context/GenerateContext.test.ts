@@ -267,7 +267,6 @@ Deno.test('GenerateContext - Artifact Generation', async t => {
 
     assertExists(result.files)
     assertExists(result.previews)
-    assertExists(result.mappings)
     assertEquals(result.files instanceof Map, true)
   })
 

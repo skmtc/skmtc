@@ -77,9 +77,7 @@ import type {
   GqlOperationSource,
   ModelSource,
   Preview,
-  PreviewModule,
-  MappingModule,
-  Mapping
+  PreviewModule
 } from '@/types/Preview.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
@@ -262,7 +260,6 @@ const isEnrichmentLeaf = (value: unknown): value is EnrichmentDefaultsLeaf =>
 export class GenerateContext implements GenerateContextType {
   #files: Map<string, FileBase>
   #previews: Record<string, Preview>
-  #mappings: Record<string, Mapping>
   /**
    * Parsed source document, wrapped in the {@link SkmtcParsedDocument}
    * discriminated union. Canonical representation; both protocol-neutral
@@ -299,7 +296,6 @@ export class GenerateContext implements GenerateContextType {
     this.logger = logger
     this.#files = new Map()
     this.#previews = {}
-    this.#mappings = {}
     this.document = document
     this.settings = settings
     this.captureCurrentResult = captureCurrentResult
@@ -420,8 +416,7 @@ export class GenerateContext implements GenerateContextType {
 
     return {
       files: this.#files,
-      previews: this.#previews,
-      mappings: this.#mappings
+      previews: this.#previews
     }
   }
 
@@ -754,11 +749,6 @@ export class GenerateContext implements GenerateContextType {
                 generatorConfig.toPreviewModule?.({ context: this, operation, variant })
               )
 
-              this.#addMapping(
-                source,
-                generatorConfig.toMappingModule?.({ context: this, operation, variant })
-              )
-
               this.captureCurrentResult('success', st)
             } catch (error) {
               this.logger.error(error)
@@ -854,11 +844,6 @@ export class GenerateContext implements GenerateContextType {
                 generatorConfig.toPreviewModule?.({ context: this, webhook, variant })
               )
 
-              this.#addMapping(
-                source,
-                generatorConfig.toMappingModule?.({ context: this, webhook, variant })
-              )
-
               this.captureCurrentResult('success', st)
             } catch (error) {
               this.logger.error(error)
@@ -919,11 +904,6 @@ export class GenerateContext implements GenerateContextType {
               this.#addPreview(
                 source,
                 generatorConfig.toPreviewModule?.({ context: this, operation, variant })
-              )
-
-              this.#addMapping(
-                source,
-                generatorConfig.toMappingModule?.({ context: this, operation, variant })
               )
 
               this.captureCurrentResult('success', st)
@@ -1016,11 +996,6 @@ export class GenerateContext implements GenerateContextType {
                 generatorConfig.toPreviewModule?.({ context: this, refName, variant })
               )
 
-              this.#addMapping(
-                source,
-                generatorConfig.toMappingModule?.({ context: this, refName, variant })
-              )
-
               this.captureCurrentResult('success', st)
             } catch (error) {
               this.logger.error(error)
@@ -1050,23 +1025,6 @@ export class GenerateContext implements GenerateContextType {
     }
   }
 
-  #addMapping(
-    source: OasOperationSource | WebhookSource | GqlOperationSource | ModelSource,
-    module: MappingModule | undefined
-  ) {
-    if (!module) {
-      return
-    }
-
-    if (this.#mappings[module.name]) {
-      throw new Error(`Cannot override mapping module "${module.name}"`)
-    }
-
-    this.#mappings[module.name] = {
-      module,
-      source
-    }
-  }
 
   /**
    * Look up an already-registered file by path, or `undefined` if none

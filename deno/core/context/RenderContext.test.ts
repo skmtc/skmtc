@@ -10,7 +10,7 @@ import type { ResultType } from '@/types/Results.ts'
 import type * as log from '@std/log'
 import { toGenerateContext } from '@/test/toGenerateContext.ts'
 import { toGeneratorOnlyKey } from '@/dsl/GeneratorKeys.ts'
-import type { Preview, Mapping } from '@/types/Preview.ts'
+import type { Preview } from '@/types/Preview.ts'
 
 // Mock logger
 const mockLogger: log.Logger = {
@@ -41,14 +41,12 @@ Deno.test('RenderContext', async t => {
     await t.step('should initialize with all required parameters', () => {
       const files = new Map<string, FileBase>()
       const previews = {}
-      const mappings = {}
       const basePath = './src'
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
       const context = new RenderContext({
         files,
         previews,
-        mappings,
         basePath,
         logger: mockLogger,
         captureCurrentResult
@@ -56,7 +54,6 @@ Deno.test('RenderContext', async t => {
 
       assertEquals(context.files, files)
       assertEquals(context.previews, previews)
-      assertEquals(context.mappings, mappings)
       assertEquals(context.basePath, basePath)
       assertEquals(context.logger, mockLogger)
       assertEquals(context.captureCurrentResult, captureCurrentResult)
@@ -69,7 +66,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -87,13 +83,11 @@ Deno.test('RenderContext', async t => {
       files.set('test.ts', file)
 
       const previews = {}
-      const mappings = {}
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
       const context = new RenderContext({
         files,
         previews,
-        mappings,
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -104,11 +98,10 @@ Deno.test('RenderContext', async t => {
 
       assertEquals(typeof result.artifacts['test.ts'], 'string')
       assertEquals(result.previews, previews)
-      assertEquals(result.mappings, mappings)
       assertEquals(result.files['test.ts'].destinationPath, 'test.ts')
     })
 
-    await t.step('should include previews and mappings in result', () => {
+    await t.step('should include previews in result', () => {
       const files = new Map<string, FileBase>()
       const previews: Record<string, Preview> = {
         test: {
@@ -122,24 +115,11 @@ Deno.test('RenderContext', async t => {
           }
         }
       }
-      const mappings: Record<string, Mapping> = {
-        test: {
-          module: { name: 'test', exportPath: 'test', schema: 'test' },
-          source: {
-            type: 'oasOperation',
-            generatorId: 'test',
-            operationPath: 'test',
-            operationMethod: 'get',
-            variant: 'main'
-          }
-        }
-      }
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
       const context = new RenderContext({
         files,
         previews,
-        mappings,
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -149,7 +129,6 @@ Deno.test('RenderContext', async t => {
       const result = context.render(stackTrail)
 
       assertEquals(result.previews, previews)
-      assertEquals(result.mappings, mappings)
     })
   })
 
@@ -169,7 +148,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -197,7 +175,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -220,7 +197,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -244,7 +220,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: './src/generated',
         logger: mockLogger,
         captureCurrentResult
@@ -268,7 +243,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -293,7 +267,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -317,7 +290,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult: captureSpy
@@ -343,7 +315,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -369,7 +340,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -390,7 +360,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -411,7 +380,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -431,7 +399,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -464,7 +431,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -489,7 +455,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -510,7 +475,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -541,7 +505,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -580,7 +543,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult
@@ -620,13 +582,11 @@ Deno.test('RenderContext', async t => {
       files.set('models/Post.ts', file2)
 
       const previews = {}
-      const mappings = {}
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
       const context = new RenderContext({
         files,
         previews,
-        mappings,
         basePath: './src/generated',
         logger: mockLogger,
         captureCurrentResult
@@ -641,9 +601,8 @@ Deno.test('RenderContext', async t => {
       // Verify metadata
       assertEquals(Object.keys(result.files).length, 2)
 
-      // Verify previews and mappings
+      // Verify previews
       assertEquals(result.previews, previews)
-      assertEquals(result.mappings, mappings)
     })
 
     await t.step('should handle mixed File and JsonFile types', () => {
@@ -668,7 +627,6 @@ Deno.test('RenderContext', async t => {
       const context = new RenderContext({
         files,
         previews: {},
-        mappings: {},
         basePath: undefined,
         logger: mockLogger,
         captureCurrentResult

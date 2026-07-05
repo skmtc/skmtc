@@ -74,7 +74,6 @@ Deno.test('toArtifacts', async (t) => {
 
       assertExists(manifest.files)
       assertExists(manifest.previews)
-      assertExists(manifest.mappings)
       assertExists(manifest.results)
       assertExists(manifest.traceId)
       assertExists(manifest.spanId)
@@ -98,7 +97,6 @@ Deno.test('toArtifacts', async (t) => {
 
       assertEquals(typeof result.manifest.files, 'object')
       assertEquals(typeof result.manifest.previews, 'object')
-      assertEquals(typeof result.manifest.mappings, 'object')
       assertEquals(typeof result.manifest.results, 'object')
     })
   })

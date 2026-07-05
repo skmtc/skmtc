@@ -1,7 +1,7 @@
 import { assertEquals } from '@std/assert'
 import * as v from 'valibot'
 import { moduleExport } from '@/types/ModuleExport.ts'
-import { lensInputSlot, moduleSelect } from '@/types/ModuleSelect.ts'
+import { lensInputModuleType, moduleSelect } from '@/types/ModuleSelect.ts'
 import { schemaPath } from '@/types/SchemaPath.ts'
 import {
   toEnrichmentDescriptor,
@@ -251,30 +251,30 @@ Deno.test('toEnrichmentDescriptor — surfaces an entry that declares variant su
   assertEquals(toEnrichmentDescriptor(entry).supportsVariant, true)
 })
 
-Deno.test('toEnrichmentFields — moduleSelect registers with its declared slot (lensInputSlot)', () => {
-  const schema = v.object({ moduleSelect: v.optional(moduleSelect({ slot: lensInputSlot })) })
+Deno.test('toEnrichmentFields — moduleSelect registers with its declared moduleType (lensInputModuleType)', () => {
+  const schema = v.object({ moduleSelect: v.optional(moduleSelect(lensInputModuleType)) })
   assertEquals(toEnrichmentFields(schema), [
     {
       key: 'moduleSelect',
       label: 'Module Select',
       optional: true,
       type: 'moduleSelect',
-      slot: lensInputSlot
+      moduleType: lensInputModuleType
     }
   ])
 })
 
-Deno.test('toEnrichmentFields — moduleSelect carries a custom slot', () => {
-  const slot = `export type CellSlot<F> = (props: { value: F }) => unknown`
-  const schema = v.object({ moduleSelect: moduleSelect({ slot }) })
+Deno.test('toEnrichmentFields — moduleSelect carries a custom moduleType', () => {
+  const cellModuleType = `export type CellModule<F> = (props: { value: F }) => unknown`
+  const schema = v.object({ moduleSelect: moduleSelect(cellModuleType) })
   assertEquals(toEnrichmentFields(schema), [
-    { key: 'moduleSelect', label: 'Module Select', optional: false, type: 'moduleSelect', slot }
+    { key: 'moduleSelect', label: 'Module Select', optional: false, type: 'moduleSelect', moduleType: cellModuleType }
   ])
 })
 
 Deno.test('toEnrichmentFields — v.title on a piped moduleSelect becomes the label, identity kept', () => {
   const schema = v.object({
-    moduleSelect: v.optional(v.pipe(moduleSelect({ slot: lensInputSlot }), v.title('Input')))
+    moduleSelect: v.optional(v.pipe(moduleSelect(lensInputModuleType), v.title('Input')))
   })
   assertEquals(toEnrichmentFields(schema), [
     {
@@ -282,7 +282,7 @@ Deno.test('toEnrichmentFields — v.title on a piped moduleSelect becomes the la
       label: 'Input',
       optional: true,
       type: 'moduleSelect',
-      slot: lensInputSlot
+      moduleType: lensInputModuleType
     }
   ])
 })
@@ -296,7 +296,7 @@ Deno.test('toEnrichmentFields — v.title labels a plain field', () => {
 
 Deno.test('toEnrichmentDescriptor — moduleSelect-era form leaf (no id, no sibling path/input)', () => {
   const formFieldItem = v.object({
-    moduleSelect: v.optional(v.pipe(moduleSelect({ slot: lensInputSlot }), v.title('Input'))),
+    moduleSelect: v.optional(v.pipe(moduleSelect(lensInputModuleType), v.title('Input'))),
     label: v.optional(v.string()),
     placeholder: v.optional(v.string())
   })
@@ -324,7 +324,7 @@ Deno.test('toEnrichmentDescriptor — moduleSelect-era form leaf (no id, no sibl
       label: 'Input',
       optional: true,
       type: 'moduleSelect',
-      slot: lensInputSlot
+      moduleType: lensInputModuleType
     },
     { key: 'label', label: 'Label', optional: true, type: 'text' },
     { key: 'placeholder', label: 'Placeholder', optional: true, type: 'text' }

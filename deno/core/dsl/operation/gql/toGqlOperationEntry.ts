@@ -7,7 +7,7 @@ import type {
   ToGqlOperationMappingArgs,
   TransformGqlOperationArgs
 } from './types.ts'
-import type { MappingModule, PreviewModule } from '@/types/Preview.ts'
+import type { PreviewModule } from '@/types/Preview.ts'
 
 /**
  * Configuration arguments for creating GraphQL operation generator entries.
@@ -28,7 +28,6 @@ export type ToGqlOperationConfigArgs<EnrichmentType = undefined> = {
    */
   supportsVariant?: () => boolean
   toPreviewModule?: ({ context, operation }: ToGqlOperationPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, operation }: ToGqlOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: GqlOperation
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
@@ -42,7 +41,6 @@ export type GqlOperationEntry<EnrichmentType = undefined> = {
   isSupported: (args: IsSupportedGqlOperationArgs) => boolean
   supportsVariant: () => boolean
   toPreviewModule?: ({ context, operation }: ToGqlOperationPreviewModuleArgs) => PreviewModule
-  toMappingModule?: ({ context, operation }: ToGqlOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
     operation: GqlOperation
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
@@ -66,7 +64,6 @@ export const toGqlOperationEntry = <EnrichmentType = undefined>({
   isSupported,
   supportsVariant,
   toPreviewModule,
-  toMappingModule,
   toEnrichmentRequest
 }: ToGqlOperationConfigArgs<EnrichmentType>): GqlOperationEntry<EnrichmentType> => {
   return {
@@ -77,7 +74,6 @@ export const toGqlOperationEntry = <EnrichmentType = undefined>({
     isSupported: isSupported ?? (() => true),
     supportsVariant: supportsVariant ?? (() => false),
     toPreviewModule,
-    toMappingModule,
     toEnrichmentRequest
   }
 }

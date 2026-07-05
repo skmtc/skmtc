@@ -72,7 +72,7 @@
  */
 
 import { resultsItem, type ResultsItem } from './Results.ts'
-import { preview, type Preview, type Mapping, mapping } from './Preview.ts'
+import { preview, type Preview } from './Preview.ts'
 import type { ParseIssue } from '@/context/ParseIssue.ts'
 import { oasIssueType } from '@/context/generateTypes.ts'
 import { gqlIssueType } from '@/context/ParseIssue.ts'
@@ -165,7 +165,6 @@ export type ManifestContent = {
   region?: string
   files: Record<string, ManifestEntry>
   previews: Record<string, Preview>
-  mappings?: Record<string, Mapping>
   results: ResultsItem
   /**
    * Issues recorded during the parse phase — both protocol-agnostic
@@ -185,7 +184,6 @@ export const manifestContent: v.GenericSchema<ManifestContent> = v.object({
   region: v.optional(v.string()),
   files: v.record(v.string(), manifestEntry),
   previews: v.record(v.string(), preview),
-  mappings: v.optional(v.record(v.string(), mapping)),
   results: resultsItem,
   parseIssues: v.array(parseIssue),
   startAt: v.number(),

@@ -35,72 +35,66 @@ export type ModuleSelect = {
 }
 
 /**
- * Per-declaration configuration for {@link moduleSelect}.
- *
- * `slot` is the TypeScript source of the field's binding contract — a single
- * `export type X<F> = …` the editor's matcher checks candidates against
- * (`typeof Candidate extends X<FieldType>`). It is REQUIRED so the contract
- * is always explicit in the declaration — there is no hidden editor-side
- * default. For the common lens/input case pass {@link lensInputSlot}; only
- * generators with a genuinely custom contract write their own source.
- */
-export type ModuleSelectConfig = {
-  /** TS source of the binding contract (`export type X<F> = …`). */
-  slot: string
-}
-
-/**
- * The standard lens/input binding contract: a candidate fits a field when it
- * accepts `{ lens: Lens<Normalize<FieldType>> }` (react-hook-form lenses).
+ * The standard lens/input module type: a candidate module fits a field when
+ * it accepts `{ lens: Lens<Normalize<FieldType>> }` (react-hook-form lenses).
  * `__SlotNormalize` mirrors what generated form code does with
  * `lens.focus(path).defined()` — optional/nullable wrappers are stripped on
  * primitives and made recursively optional on objects — so an optional
  * `string | undefined` field still matches a `Lens<string>` input.
  *
- * Pass as `moduleSelect({ slot: lensInputSlot })`. Generators with a custom
+ * Pass as `moduleSelect(lensInputModuleType)`. Generators with a custom
  * binding (e.g. a table cell renderer taking `{ value: F }`) declare their
- * own `export type X<F> = …` source instead.
+ * own `export type XModule<F> = …` source instead.
  */
-export const lensInputSlot: string = `import type { Lens } from '@hookform/lenses'
+export const lensInputModuleType: string = `import type { Lens } from '@hookform/lenses'
 type __SlotPrimitive = string | number | boolean | bigint | symbol | null | undefined | Date
 type __SlotNormalize<T> = [T] extends [__SlotPrimitive] ? NonNullable<T> : T extends ReadonlyArray<infer U> ? Array<__SlotNormalize<U>> : { [K in keyof T]?: __SlotNormalize<NonNullable<T[K]>> }
-export type InputSlot<F> = (props: { lens: Lens<__SlotNormalize<F>> }) => unknown`
+export type InputModule<F> = (props: { lens: Lens<__SlotNormalize<F>> }) => unknown`
 
 // Factory-created schemas can't be reference-compared to a singleton (unlike
 // `moduleExport`), so the descriptor walker recognises them — and reads their
-// per-declaration config — through this registry.
-const moduleSelectConfigs = new WeakMap<object, ModuleSelectConfig>()
+// declared module type — through this registry.
+const moduleTypes = new WeakMap<object, string>()
 
 /**
  * Declare a `moduleSelect` enrichment field: the `{ schemaPath, module? }`
  * binding validated as one value. The enrichment editor renders it as a
  * single composite control (path picker + type-matched component picker,
  * the component gated on the path), and `toEnrichmentDescriptor` projects
- * it as `type: 'moduleSelect'` carrying the declared `slot`.
+ * it as `type: 'moduleSelect'` carrying the declared `moduleType`.
+ *
+ * `moduleType` is the TypeScript source of the contract a chosen module
+ * must satisfy for the field — a single `export type XModule<F> = …` the
+ * editor's matcher checks candidates against
+ * (`typeof Candidate extends XModule<FieldType>`). It is a required part of
+ * the declaration, so the contract is always explicit — there is no hidden
+ * editor-side default. For the common lens/input case pass
+ * {@link lensInputModuleType}; only generators with a genuinely custom
+ * binding write their own source.
  *
  * ```ts
- * import { lensInputSlot, moduleSelect } from '@skmtc/core'
+ * import { lensInputModuleType, moduleSelect } from '@skmtc/core'
  *
  * export const formFieldItem = v.object({
- *   moduleSelect: v.optional(v.pipe(moduleSelect({ slot: lensInputSlot }), v.title('Input'))),
+ *   moduleSelect: v.optional(v.pipe(moduleSelect(lensInputModuleType), v.title('Input'))),
  *   label: v.optional(v.string())
  * })
  * ```
  */
-export const moduleSelect = (config: ModuleSelectConfig): v.GenericSchema<ModuleSelect> => {
+export const moduleSelect = (moduleType: string): v.GenericSchema<ModuleSelect> => {
   const schema: v.GenericSchema<ModuleSelect> = v.object({
     schemaPath,
     module: v.optional(moduleExport)
   })
-  moduleSelectConfigs.set(schema, config)
+  moduleTypes.set(schema, moduleType)
   return schema
 }
 
 /**
- * The {@link ModuleSelectConfig} a schema was declared with, or `undefined`
- * when the schema is not a {@link moduleSelect}. Callers pass the schema as
- * observed at runtime (the descriptor walker's structural view), so the
- * parameter is deliberately `unknown`.
+ * The module type a schema was declared with, or `undefined` when the schema
+ * is not a {@link moduleSelect}. Callers pass the schema as observed at
+ * runtime (the descriptor walker's structural view), so the parameter is
+ * deliberately `unknown`.
  */
-export const moduleSelectConfigOf = (schema: unknown): ModuleSelectConfig | undefined =>
-  typeof schema === 'object' && schema !== null ? moduleSelectConfigs.get(schema) : undefined
+export const moduleTypeOf = (schema: unknown): string | undefined =>
+  typeof schema === 'object' && schema !== null ? moduleTypes.get(schema) : undefined

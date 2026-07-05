@@ -262,7 +262,6 @@ Deno.test('CoreContext - toArtifacts() executes complete pipeline', () => {
   assertExists(result.artifacts)
   assertExists(result.files)
   assertExists(result.previews)
-  assertExists(result.mappings)
   assertExists(result.results)
 })
 
@@ -285,7 +284,6 @@ Deno.test('CoreContext - toArtifacts() returns RenderResult structure', () => {
   assertEquals(typeof result.artifacts, 'object')
   assertEquals(typeof result.files, 'object')
   assertEquals(typeof result.previews, 'object')
-  assertEquals(typeof result.mappings, 'object')
   assertExists(result.results)
 })
 
@@ -520,7 +518,6 @@ Deno.test('CoreContext - error in toArtifacts() returns empty artifacts', () => 
   assertEquals(Object.keys(result.artifacts).length, 0)
   assertEquals(Object.keys(result.files).length, 0)
   assertEquals(Object.keys(result.previews).length, 0)
-  assertEquals(Object.keys(result.mappings).length, 0)
 })
 
 Deno.test('CoreContext - error in toArtifacts() still includes results tree', () => {

@@ -23,6 +23,5 @@ Deno.test('toWebhookEntry - forwards optional preview/mapping/enrichment hooks',
 
   // No optional hooks configured → all undefined (mirrors the operation entry).
   assertEquals(entry.toPreviewModule, undefined)
-  assertEquals(entry.toMappingModule, undefined)
   assertEquals(entry.toEnrichmentDefaults, undefined)
 })

@@ -169,11 +169,11 @@ Deno.test('webhooks - webhook and operation generators stay isolated', () => {
   assertEquals(opTransform.calls[0].args[0].operation.path, '/pets')
 })
 
-Deno.test('webhooks - toPreviewModule / toMappingModule are paired with a WebhookSource', () => {
+Deno.test('webhooks - toPreviewModule is paired with a WebhookSource', () => {
   // The dispatcher computes `toWebhookSource({ webhook, generatorId, variant })`
-  // after `transform` and pairs it with the entry's preview/mapping modules.
-  // A no-op transform still produces previews/mappings — they flow from the
-  // entry hooks, not the rendered output.
+  // after `transform` and pairs it with the entry's preview module. A no-op
+  // transform still produces previews — they flow from the entry hooks, not
+  // the rendered output.
   const { context } = buildContext({
     document: makeDoc({ webhooks: [{ name: 'newPet', method: 'post' }] }),
     settings: { skip: [] },
@@ -187,16 +187,11 @@ Deno.test('webhooks - toPreviewModule / toMappingModule are paired with a Webhoo
           name: `${webhook.name}Preview`,
           exportPath: `@/webhooks/${webhook.name}.generated.ts`
         }),
-        toMappingModule: ({ webhook }: { webhook: OasWebhook }) => ({
-          name: `${webhook.name}Mapping`,
-          exportPath: `@/webhooks/${webhook.name}.generated.ts`,
-          schema: webhook.name
-        })
       }
     }
   })
 
-  const { previews, mappings } = context.toArtifacts(new StackTrail(['test']))
+  const { previews } = context.toArtifacts(new StackTrail(['test']))
 
   const preview = previews['newPetPreview']
   assertExists(preview, 'expected a preview keyed by the module name')
@@ -208,18 +203,6 @@ Deno.test('webhooks - toPreviewModule / toMappingModule are paired with a Webhoo
     webhookMethod: 'post',
     variant: 'main'
   })
-
-  const mapping = mappings['newPetMapping']
-  assertExists(mapping, 'expected a mapping keyed by the module name')
-  assertEquals(mapping.module.name, 'newPetMapping')
-  // Narrow the source union on its `type` discriminator — webhook sources
-  // carry `webhookName` / `webhookMethod` (not `path` / `method`).
-  assertEquals(mapping.source.type, 'webhook')
-  if (mapping.source.type === 'webhook') {
-    assertEquals(mapping.source.webhookName, 'newPet')
-    assertEquals(mapping.source.webhookMethod, 'post')
-    assertEquals(mapping.source.variant, 'main')
-  }
 })
 
 Deno.test('webhooks - per-(name, method, variant) skip removes only the matched webhook variant', () => {

@@ -75,15 +75,6 @@ Deno.test('toModelEntry - toPreviewModule is undefined when not provided', () =>
   assertEquals(entry.toPreviewModule, undefined)
 })
 
-Deno.test('toModelEntry - toMappingModule is undefined when not provided', () => {
-  const entry = toModelEntry({
-    id: 'test-model',
-    transform: () => {},
-    toEnrichmentSchema: () => emptyEnrichmentSchema
-  })
-
-  assertEquals(entry.toMappingModule, undefined)
-})
 
 Deno.test('toModelEntry - includes provided toEnrichmentSchema', () => {
   const schemaFn = () => emptyEnrichmentSchema
@@ -125,25 +116,6 @@ Deno.test('toModelEntry - includes toPreviewModule when provided', () => {
   assertEquals(entry.toPreviewModule, previewFn)
 })
 
-Deno.test('toModelEntry - includes toMappingModule when provided', () => {
-  const mappingFn = () => ({
-    name: 'mapping',
-    exportPath: './mapping.ts',
-    itemType: 'input' as const,
-    schema: {} as any,
-    group: 'forms' as const,
-    items: []
-  })
-
-  const entry = toModelEntry({
-    id: 'test-model',
-    transform: () => {},
-    toEnrichmentSchema: () => emptyEnrichmentSchema,
-    toMappingModule: mappingFn
-  })
-
-  assertEquals(entry.toMappingModule, mappingFn)
-})
 
 Deno.test('toModelEntry - includes all optional functions when provided', () => {
   const transformFn = () => {}
@@ -154,14 +126,6 @@ Deno.test('toModelEntry - includes all optional functions when provided', () => 
     title: 'Test',
     description: 'Test'
   })
-  const mappingFn = () => ({
-    name: 'mapping',
-    exportPath: './mapping.ts',
-    itemType: 'input' as const,
-    schema: {} as any,
-    group: 'forms' as const,
-    items: []
-  })
   const enrichmentSchemaFn = () => emptyEnrichmentSchema
   const enrichmentRequestFn = () => undefined
   const isSupportedFn = () => true
@@ -171,7 +135,6 @@ Deno.test('toModelEntry - includes all optional functions when provided', () => 
     transform: transformFn,
     isSupported: isSupportedFn,
     toPreviewModule: previewFn,
-    toMappingModule: mappingFn,
     toEnrichmentSchema: enrichmentSchemaFn,
     toEnrichmentRequest: enrichmentRequestFn
   })
@@ -180,7 +143,6 @@ Deno.test('toModelEntry - includes all optional functions when provided', () => 
   assertEquals(entry.type, 'model')
   assertEquals(entry.transform, transformFn)
   assertEquals(entry.toPreviewModule, previewFn)
-  assertEquals(entry.toMappingModule, mappingFn)
   assertEquals(entry.toEnrichmentSchema, enrichmentSchemaFn)
   assertEquals(entry.toEnrichmentRequest, enrichmentRequestFn)
 })

@@ -1,5 +1,5 @@
 import * as v from 'valibot'
-import { moduleSelectConfigOf } from '@/types/ModuleSelect.ts'
+import { moduleTypeOf } from '@/types/ModuleSelect.ts'
 
 /**
  * Widget type for one enrichment field — the rendered control in the
@@ -47,13 +47,14 @@ export type EnrichmentField = {
   /** For `type: 'object'` — the nested object's fields. */
   fields?: EnrichmentField[]
   /**
-   * For `type: 'moduleSelect'` — the TS source of the field's binding
-   * contract (a single `export type X<F> = …` the editor's matcher checks
-   * candidates against). Always present on a moduleSelect field: the
-   * contract is explicit in the declaration (`lensInputSlot` for the
-   * common lens/input case), never an editor-side default.
+   * For `type: 'moduleSelect'` — the TS source of the contract a chosen
+   * module must satisfy for this field (a single `export type XModule<F> = …`
+   * the editor's matcher checks candidates against). Always present on a
+   * moduleSelect field: the module type is explicit in the declaration
+   * (`lensInputModuleType` for the common lens/input case), never an
+   * editor-side default.
    */
-  slot?: string
+  moduleType?: string
 }
 
 /** Which subject type a generator enriches — operations, webhooks, or models. */
@@ -183,12 +184,12 @@ const toLabel = (key: string): string => {
 }
 
 type FieldTypeShape = Pick<EnrichmentField, 'type'> &
-  Partial<Pick<EnrichmentField, 'options' | 'item' | 'fields' | 'slot'>>
+  Partial<Pick<EnrichmentField, 'options' | 'item' | 'fields' | 'moduleType'>>
 
 const typeFor = (schema: ValibotSchemaShape): FieldTypeShape => {
-  const moduleSelectConfig = moduleSelectConfigOf(schema) ?? moduleSelectConfigOf(baseOf(schema))
-  if (moduleSelectConfig) {
-    return { type: 'moduleSelect', slot: moduleSelectConfig.slot }
+  const moduleType = moduleTypeOf(schema) ?? moduleTypeOf(baseOf(schema))
+  if (moduleType !== undefined) {
+    return { type: 'moduleSelect', moduleType }
   }
 
   switch (schema.type) {
