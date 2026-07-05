@@ -116,7 +116,7 @@ When `--no-input` or `--json` is set:
 
 ```jsonc
 {
-  "kind": "published",
+  "type": "published",
   "projectName": "my-api",
   "bundlePath": ".skmtc/my-api/server.js",
   "bundleBytes": 1228801,
@@ -136,7 +136,7 @@ are addressed by semver.
 
 ```jsonc
 {
-  "kind": "failed",
+  "type": "failed",
   "projectName": "my-api",
   "reason": "version 3.0.1 is already published for ada/my-api — versions are immutable. ...",
   "stage": "publish"

@@ -123,7 +123,7 @@ already holds config:
 
 ```jsonc
 {
-  "kind": "pushed",
+  "type": "pushed",
   "projectName": "my-api",
   "project": { "account": "acme-org", "slug": "petstore-client" },
   "origin": "https://api.skmtc.dev",
@@ -137,13 +137,13 @@ already holds config:
 ### Aborted (overwrite declined)
 
 ```jsonc
-{ "kind": "aborted", "projectName": "my-api", "project": { "account": "acme-org", "slug": "petstore-client" } }
+{ "type": "aborted", "projectName": "my-api", "project": { "account": "acme-org", "slug": "petstore-client" } }
 ```
 
 ### Failure
 
 ```jsonc
-{ "kind": "failed", "projectName": "my-api", "reason": "...", "stage": "push" }
+{ "type": "failed", "projectName": "my-api", "reason": "...", "stage": "push" }
 ```
 
 Possible `stage` values:

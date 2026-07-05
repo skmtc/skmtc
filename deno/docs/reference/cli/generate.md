@@ -151,7 +151,7 @@ The manifest is overwritten on every run. See
 
 ```jsonc
 {
-  "kind": "generated",
+  "type": "generated",
   "projectName": "my-api",
   "basePath": "mobile-app/src",            // or null if not configured
   "manifestPath": ".skmtc/my-api/.settings/manifest.json",
@@ -182,7 +182,7 @@ The manifest is overwritten on every run. See
     }
   ],
   "typecheck": {                           // only present with --typecheck
-    "kind": "passed",
+    "type": "passed",
     "tsconfig": ".../tsconfig.json",
     "filesChecked": 42
   }
@@ -191,7 +191,7 @@ The manifest is overwritten on every run. See
 
 ### Field reference
 
-- **`kind`**: always `"generated"` on success.
+- **`type`**: always `"generated"` on success.
 - **`projectName`**: echoed from the argument.
 - **`basePath`**: the resolved `basePath` from `client.json` (string)
   or `null` if not configured.
@@ -215,19 +215,19 @@ The manifest is overwritten on every run. See
 
 ### `--typecheck` output shape
 
-Discriminated on `kind`:
+Discriminated on `type`:
 
 ```jsonc
 // All good
 {
-  "kind": "passed",
+  "type": "passed",
   "tsconfig": ".../tsconfig.json",
   "filesChecked": 42
 }
 
 // Errors in this run's files
 {
-  "kind": "failed",
+  "type": "failed",
   "tsconfig": "...",
   "filesChecked": 42,
   "diagnostics": [
@@ -243,13 +243,13 @@ Discriminated on `kind`:
 }
 
 // Couldn't find a tsconfig walking up from basePath
-{ "kind": "no-tsconfig", "message": "...", "hint": "..." }
+{ "type": "no-tsconfig", "message": "...", "hint": "..." }
 
 // tsc command itself failed (no npx, no tsc installed, etc.)
-{ "kind": "tsc-error", "message": "...", "hint": "..." }
+{ "type": "tsc-error", "message": "...", "hint": "..." }
 
 // Nothing to check (no files written)
-{ "kind": "skipped", "reason": "no-files", "message": "..." }
+{ "type": "skipped", "reason": "no-files", "message": "..." }
 ```
 
 Only `kind: "failed"` causes exit 1. The other outcomes are

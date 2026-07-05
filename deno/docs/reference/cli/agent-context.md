@@ -118,12 +118,12 @@ diagnostics-level failures but that an agent might want to surface:
 {
   "anomalies": [
     {
-      "kind": "stale-bundle",
+      "type": "stale-bundle",
       "project": "my-api",
       "detail": "bundle.js older than src/my-form/"
     },
     {
-      "kind": "missing-operationId",
+      "type": "missing-operationId",
       "project": "my-api",
       "detail": "12 operations in spec have no operationId"
     }
