@@ -101,7 +101,6 @@ Stock generators on JSR (under `@skmtc/`):
 - **Mocks** — `gen-msw`
 - **Backend** — `gen-supabase-hono`, `gen-express`
 - **GraphQL** — `gen-graphql-operation`, `gen-graphql-typed-document-node`
-- **Reapit-flavoured variants** — `gen-reapit-form`, `gen-reapit-graphql-client`, `gen-reapit-multi-select`, `gen-reapit-searchable-dropdown`
 
 The full set lives at https://github.com/skmtc/skmtc-generators
 and on JSR at https://jsr.io/@skmtc.

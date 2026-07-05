@@ -133,10 +133,10 @@ the next `generate`/`dev` cycle overwrites it.
   "trace-1778185255674": {
     "span-1778185255674": {
       "generate": {
-        "@skmtc/gen-reapit-form": {
-          "query_GetApplicants":      "notSupported",
-          "query_GetApplicantById":   "success",
-          "mutation_CreateApplicant": "error"
+        "@skmtc/gen-shadcn-form": {
+          "get_Applicants":        "notSupported",
+          "get_ApplicantById":     "success",
+          "post_CreateApplicant":  "error"
         },
         "@skmtc/gen-zod": {
           "ApplicantModel": "success"
@@ -187,7 +187,7 @@ M=<root>/.skmtc/<project>/.settings/manifest.json
 jq '[.. | strings] | group_by(.) | map({status: .[0], n: length})' "$M"
 
 # All non-success identifiers under a specific generator:
-jq '.results[][].generate["@skmtc/gen-reapit-form"]
+jq '.results[][].generate["@skmtc/gen-shadcn-form"]
     | to_entries | map(select(.value != "success"))' "$M"
 
 # Files written by output subdirectory:

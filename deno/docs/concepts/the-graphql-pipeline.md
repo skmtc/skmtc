@@ -268,20 +268,18 @@ before hand-rolling an args-to-schema translator.
 
 ## Operation generator patterns
 
-The remaining stock GraphQL generator
-(`@skmtc/gen-reapit-graphql-client`) uses the **class-based** pattern
+GraphQL operation generators use the **class-based** pattern
 — a `GqlOperationProjectionBase` subclass with `toIdentifier` /
 `toExportPath` static methods, exactly like the OAS-side
 `OasOperationProjectionBase` users.
 
 ```ts
-// gen-reapit-graphql-client/src/base.ts
-export const ReapitGraphqlClientBase = toTsGqlOperationProjectionBase<EnrichmentSchema>({
+// gen-graphql-client/src/base.ts
+export const GraphqlClientBase = toTsGqlOperationProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
   toEnrichmentSchema,
   toIdentifier({ operation }) {
-    const verb = operation.rootKind === 'query' ? 'use' : 'use'
-    return createVariable(`${verb}${capitalize(operation.fieldName)}`)
+    return createVariable(`use${capitalize(operation.fieldName)}`)
   },
   toExportPath({ operation, enrichments }) {
     const { name } = this.toIdentifier({ operation, enrichments })
@@ -289,12 +287,12 @@ export const ReapitGraphqlClientBase = toTsGqlOperationProjectionBase<Enrichment
   }
 })
 
-// gen-reapit-graphql-client/src/mod.ts
-export const reapitGraphqlClientEntry = toGqlOperationEntry({
+// gen-graphql-client/src/mod.ts
+export const graphqlClientEntry = toGqlOperationEntry({
   id: denoJson.name,
   isSupported: ({ operation }) => synthesizeArgsObject(operation) !== undefined,
   transform: ({ context, operation, acc }) => {
-    context.insertOperation({ projection: ReapitGraphqlClient, operation })
+    context.insertOperation({ projection: GraphqlClient, operation })
     return acc
   },
   toEnrichmentSchema
@@ -308,8 +306,7 @@ packages that used it — `@skmtc/gen-graphql-operation` and
 2026-05-13 after a zero-consumer audit confirmed neither had real
 `.ts` consumers anywhere in the workspace. Both were thin wrappers
 that delegated to `TsProjection` for the bulk of their work. New
-GraphQL operation generators should follow the class-based pattern
-used by `gen-reapit-graphql-client`.
+GraphQL operation generators should follow the class-based pattern.
 
 ### When to use the class-based pattern instead
 
@@ -538,6 +535,4 @@ A few:
   the operational guide for authoring a GraphQL generator
 - [API: GraphQL document model](../reference/api/gql-document.md) —
   full class reference
-- [Reference: gen-reapit-graphql-client](../reference/stock-generators/gen-reapit-graphql-client.md) —
-  the surviving stock GraphQL generator after the 2026-05-13 cleanup
 - [Reference: error codes](../reference/error-codes.md) — `GqlIssueType` enum

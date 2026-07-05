@@ -29,7 +29,7 @@ Plus factory functions:
 |---|---|---|
 | `ModelProjectionBase` | A schema component (`refName`) | Generators that produce one file per type / schema (gen-typescript, gen-zod) |
 | `OasOperationProjectionBase` | An OAS operation (path + method) | Generators that produce one file per endpoint (gen-shadcn-form, gen-tanstack-query) |
-| `GqlOperationProjectionBase` | A GraphQL operation | GraphQL-side generators (`gen-reapit-graphql-client`) |
+| `GqlOperationProjectionBase` | A GraphQL operation | GraphQL-side generators |
 
 All three extend `SnippetBase`, so Projections are technically
 Snippets — but with substantial additional structure (static

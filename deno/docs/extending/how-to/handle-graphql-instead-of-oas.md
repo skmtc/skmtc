@@ -177,15 +177,11 @@ class GqlOperation {
 
 GraphQL types are normalized to the same `OasSchema` family used
 for OAS schemas — that's how the same TypeScript-producing code
-works for both ecosystems. See
-[gen-reapit-graphql-client](../../reference/stock-generators/gen-reapit-graphql-client.md)
-for a real example.
+works for both ecosystems.
 
 ### Compose with peer GraphQL generators
 
-The remaining stock GraphQL generator is
-`@skmtc/gen-reapit-graphql-client` — it produces React Query hooks
-per Query/Mutation. New GraphQL generator authors typically reach
+New GraphQL generator authors typically reach
 for `TsProjection` from `@skmtc/gen-typescript` for typing
 operations' arguments and return values. The parsed types are
 interoperable across OAS and GraphQL because of the shared
@@ -229,7 +225,6 @@ result type as expected.
   mapping rules, scalar handling, operation generator patterns
 - [The GraphQL asymmetry](../../explanation/the-graphql-asymmetry.md) —
   why GraphQL parses inside the worker
-- [gen-reapit-graphql-client reference](../../reference/stock-generators/gen-reapit-graphql-client.md) — the surviving stock GraphQL generator after the 2026-05-13 cleanup
 - [API: Projection bases](../../reference/api/projection-bases.md) —
   including `toGqlOperationProjectionBase`
 - [API: GraphQL document model](../../reference/api/gql-document.md) —
