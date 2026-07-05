@@ -2,30 +2,9 @@ import type * as v from 'valibot'
 import { moduleTypeOf } from '@/types/ModuleSelect.ts'
 
 /**
- * Widget type for one enrichment field — the rendered control in the
- * enrichment-editor UI. Mirrors the `EnrichmentFieldType` enum in the
- * skmtc-hub TypeSpec contract.
- *
- * There are deliberately NO standalone `module` / `schemaPath` widget
- * types: a component reference is only meaningful WITH the path that gives
- * it a type, so the pair is declared as one `moduleSelect` field. A
- * generator that uses the raw `moduleExport` / `schemaPath` schemas
- * standalone degrades to the generic object/array widgets.
+ * Properties shared by every enrichment-field variant.
  */
-export type EnrichmentFieldType =
-  | 'text'
-  | 'textarea'
-  | 'toggle'
-  | 'select'
-  | 'moduleSelect'
-  | 'array'
-  | 'object'
-
-/**
- * One node of a serialised enrichment-schema descriptor — the
- * form-renderable projection of a generator's enrichment schema.
- */
-export type EnrichmentField = {
+export type EnrichmentFieldBase = {
   /** Key written into the enrichment values object. */
   key: string
   /** Human label, derived from the key when no metadata is supplied. */
@@ -33,29 +12,60 @@ export type EnrichmentField = {
   description?: string
   /** Whether the schema marks this field optional. */
   optional: boolean
-  type: EnrichmentFieldType
-  /** Choices for a `select` field. */
-  options?: string[]
-  /**
-   * For `type: 'array'` — a one-element list describing the item shape.
-   * If the item is an object, the synthesised field carries the nested
-   * `fields`; if it is a primitive, the synthesised field carries the
-   * appropriate primitive type. The single-element convention matches
-   * the contract's `EnrichmentField[]` shape.
-   */
-  item?: EnrichmentField[]
-  /** For `type: 'object'` — the nested object's fields. */
-  fields?: EnrichmentField[]
-  /**
-   * For `type: 'moduleSelect'` — the TS source of the contract a chosen
-   * module must satisfy for this field (a single `export type XModule<F> = …`
-   * the editor's matcher checks candidates against). Always present on a
-   * moduleSelect field: the module type is explicit in the declaration
-   * (`lensInputModuleType` for the common lens/input case), never an
-   * editor-side default.
-   */
-  moduleType?: string
 }
+
+/**
+ * The variant-specific part of one enrichment field — the widget `type`
+ * discriminant plus exactly the payload that widget carries. Mirrors the
+ * `EnrichmentField` union in the skmtc-hub TypeSpec contract.
+ *
+ * There are deliberately NO standalone `module` / `schemaPath` widget
+ * types: a component reference is only meaningful WITH the path that gives
+ * it a type, so the pair is declared as one `moduleSelect` field. A
+ * generator that uses the raw `moduleExport` / `schemaPath` schemas
+ * standalone degrades to the generic object/array widgets.
+ */
+export type EnrichmentFieldShape =
+  | { type: 'text' }
+  | { type: 'textarea' }
+  | { type: 'toggle' }
+  | {
+    type: 'select'
+    /** The selectable choices. */
+    options: string[]
+  }
+  | {
+    type: 'moduleSelect'
+    /**
+     * The TS source of the contract a chosen module must satisfy for this
+     * field (a single `export type XModule<F> = …` the editor's matcher
+     * checks candidates against). Always present: the module type is
+     * explicit in the declaration (`lensInputModuleType` for the common
+     * lens/input case), never an editor-side default.
+     */
+    moduleType: string
+  }
+  | {
+    type: 'array'
+    /** Shape of each item. */
+    item: EnrichmentField
+  }
+  | {
+    type: 'object'
+    /** The nested object's fields. */
+    fields: EnrichmentField[]
+  }
+
+/**
+ * One node of a serialised enrichment-schema descriptor — the
+ * form-renderable projection of a generator's enrichment schema,
+ * discriminated on `type`. Recursive: `array` fields carry a single
+ * `item` shape, `object` fields carry nested `fields`.
+ */
+export type EnrichmentField = EnrichmentFieldBase & EnrichmentFieldShape
+
+/** The widget-type discriminant values of {@link EnrichmentField}. */
+export type EnrichmentFieldType = EnrichmentField['type']
 
 /** Which subject type a generator enriches — operations, webhooks, or models. */
 export type SubjectType = 'operation' | 'model' | 'webhook'
@@ -183,10 +193,7 @@ const toLabel = (key: string): string => {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1)
 }
 
-type FieldTypeShape = Pick<EnrichmentField, 'type'> &
-  Partial<Pick<EnrichmentField, 'options' | 'item' | 'fields' | 'moduleType'>>
-
-const typeFor = (schema: ValibotSchemaShape): FieldTypeShape => {
+const typeFor = (schema: ValibotSchemaShape): EnrichmentFieldShape => {
   const moduleType = moduleTypeOf(schema) ?? moduleTypeOf(baseOf(schema))
   if (moduleType !== undefined) {
     return { type: 'moduleSelect', moduleType }
@@ -212,9 +219,11 @@ const typeFor = (schema: ValibotSchemaShape): FieldTypeShape => {
     }
     case 'array': {
       if (isValibotSchema(schema.item)) {
-        return { type: 'array', item: [walkFromShape('', schema.item)] }
+        return { type: 'array', item: walkFromShape('', schema.item) }
       }
-      return { type: 'array', item: [] }
+      // An unrecognisable item schema degrades to a text item — consistent
+      // with the walker's default posture for unknown leaves.
+      return { type: 'array', item: { key: '', label: '', optional: false, type: 'text' } }
     }
     default:
       return { type: 'text' }
