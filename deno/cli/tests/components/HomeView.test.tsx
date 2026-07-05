@@ -1,7 +1,7 @@
 import { render } from 'ink-testing-library'
 import { assertExists, assertStringIncludes, assertEquals } from '@std/assert'
 import { HomeView } from '@/components/HomeView.tsx'
-import { SkmtcProvider, SkmtcState } from '@/components/SkmtcContext.tsx'
+import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 
 Deno.test('HomeView - renders without errors', () => {

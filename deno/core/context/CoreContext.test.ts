@@ -1,5 +1,4 @@
 import { assertEquals, assert, assertExists } from '@std/assert'
-import { spy, assertSpyCalls } from '@std/testing/mock'
 import { CoreContext, skmtcFormatter, skmtcJsonFormatter } from './CoreContext.ts'
 import { StackTrail } from './StackTrail.ts'
 import type { OpenAPIV3 } from 'openapi-types'

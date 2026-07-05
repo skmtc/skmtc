@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useTask } from '@/components/TaskContext.tsx'
 import { BooleanTask } from './BooleanTask.tsx'
 import { tasksToState } from '@/components/TaskContext.tsx'

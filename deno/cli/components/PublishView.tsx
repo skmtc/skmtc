@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Box, Text } from "ink";
 import { Spinner } from "@/components/Spinner.tsx";
 import { TaskBox } from "@/components/TaskBox.tsx";

@@ -1,11 +1,10 @@
 import { render } from 'ink-testing-library'
-import { assertExists, assertEquals, assertStringIncludes } from '@std/assert'
+import { assertExists, assertStringIncludes } from '@std/assert'
 import { TaskContainer } from '@/components/TaskContainer.tsx'
 import { TaskProvider } from '@/components/TaskContext.tsx'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import React from 'react'
 import { Text } from 'ink'
 
 Deno.test('TaskContainer - renders with prompt and children', () => {

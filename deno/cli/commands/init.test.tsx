@@ -1,4 +1,4 @@
-import React from 'react'
+import type React from 'react'
 import { assertEquals } from '@std/assert/equals'
 import { assertStringIncludes } from '@std/assert/string-includes'
 import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'

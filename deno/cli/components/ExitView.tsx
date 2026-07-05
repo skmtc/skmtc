@@ -1,4 +1,3 @@
-import React from 'react'
 import { Box } from 'ink'
 import { useEffect } from 'react'
 import { useSkmtc } from './SkmtcContext.tsx'

@@ -1,4 +1,3 @@
-import React from 'react'
 import SelectInput from 'ink-select-input'
 import { useState } from 'react'
 import { TaskContainer } from '@/components/TaskContainer.tsx'

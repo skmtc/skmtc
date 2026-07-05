@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from '@std/assert'
 import { spy } from '@std/testing/mock'
-import * as log from '@std/log'
+import type * as log from '@std/log'
 
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'

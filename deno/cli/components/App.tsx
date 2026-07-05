@@ -1,4 +1,3 @@
-import React from 'react'
 import { Box } from 'ink'
 import { HomeView } from '@/components/HomeView.tsx'
 import { ProjectView } from '@/components/ProjectView.tsx'

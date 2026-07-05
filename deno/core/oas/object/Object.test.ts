@@ -1,4 +1,4 @@
-import { assert, assertEquals, assertStrictEquals, assertThrows } from '@std/assert'
+import { assert, assertEquals, assertStrictEquals } from '@std/assert'
 import { OasObject, type OasObjectFields, type AddPropertyArgs } from './Object.ts'
 import { OasString } from '../string/String.ts'
 import { OasNumber } from '../number/Number.ts'

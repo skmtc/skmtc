@@ -1,4 +1,3 @@
-import React from 'react'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import type { Project } from '@/lib/project.ts'
 import { useEffect, useState } from 'react'

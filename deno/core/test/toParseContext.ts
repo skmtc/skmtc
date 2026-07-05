@@ -1,4 +1,4 @@
-import { ParseContext, StackTrail } from '@skmtc/core'
+import { ParseContext, type StackTrail } from '@skmtc/core'
 import type { OpenAPIV3 } from 'openapi-types'
 import * as log from 'jsr:@std/log@^0.224.0'
 

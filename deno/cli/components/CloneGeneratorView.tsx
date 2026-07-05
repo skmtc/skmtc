@@ -1,4 +1,3 @@
-import React from 'react'
 import { type ViewStateCloneGenerator, useSkmtc } from '@/components/SkmtcContext.tsx'
 import type { Project } from '@/lib/project.ts'
 import { Box, Text } from 'ink'

@@ -2,7 +2,7 @@ import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import { assertEquals } from '@std/assert/equals'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
-import { emptyEnrichmentSchema, Enrichments } from '@/types/Enrichments.ts'
+import { emptyEnrichmentSchema, type Enrichments } from '@/types/Enrichments.ts'
 
 Deno.test('toOperationEntry - returns object with id and type oasOperation', () => {
   const entry = toOasOperationEntry({

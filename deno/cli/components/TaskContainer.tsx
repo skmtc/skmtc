@@ -1,4 +1,4 @@
-import React from 'react'
+import type React from 'react'
 import { useShortcut } from './useShortcut.tsx'
 import { tasksToState, useTask } from './TaskContext.tsx'
 import { useProjectName } from './SkmtcContext.tsx'

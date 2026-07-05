@@ -1,5 +1,4 @@
 import '@/tests/setup.ts'
-import React from 'react'
 import { render } from 'ink-testing-library'
 import { assertEquals } from '@std/assert'
 import { AddGeneratorView } from './AddGeneratorView.tsx'

@@ -1,4 +1,3 @@
-import React from 'react'
 import { TextInput } from '@inkjs/ui'
 import { useState } from 'react'
 import { useTask } from './TaskContext.tsx'

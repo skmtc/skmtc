@@ -1,4 +1,3 @@
-import React from 'react'
 import { Box, Text } from 'ink'
 import { MultiSelect } from '@inkjs/ui'
 import { useState } from 'react'

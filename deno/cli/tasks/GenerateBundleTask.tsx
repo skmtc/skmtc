@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTask } from '@/components/TaskContext.tsx'
 import type { Project } from '@/lib/project.ts'
 import { createBundle } from '@/lib/create-bundle.ts'

@@ -1,4 +1,4 @@
-import React from 'react'
+import type React from 'react'
 import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { printCloneResult, renderClone } from './clone.tsx'

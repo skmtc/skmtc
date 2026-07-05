@@ -2,8 +2,8 @@ import { mockParseContext } from '@/test/mockParseContext.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { toArray } from './toArray.ts'
 import { assertEquals, assertExists } from '@std/assert'
-import { OasArray } from '@/oas/array/Array.ts'
-import { OasUnknown } from '@/oas/unknown/Unknown.ts'
+import type { OasArray } from '@/oas/array/Array.ts'
+import type { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 
 Deno.test('toArray', async (t) => {

@@ -1,4 +1,4 @@
-import * as v from 'valibot'
+import type * as v from 'valibot'
 import { moduleTypeOf } from '@/types/ModuleSelect.ts'
 
 /**

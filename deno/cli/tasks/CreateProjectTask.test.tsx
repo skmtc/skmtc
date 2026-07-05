@@ -1,7 +1,5 @@
-import React from 'react'
 import { render } from 'ink-testing-library'
-import { stub, spy, assertSpyCalls, assertSpyCall, returnsNext } from '@std/testing/mock'
-import { assertEquals } from '@std/assert'
+import { stub, spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { CreateProjectTask } from './CreateProjectTask.tsx'
 import { Project } from '@/lib/project.ts'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'

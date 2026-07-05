@@ -1,4 +1,3 @@
-import React from 'react'
 import { useTask } from './TaskContext.tsx'
 import { Box } from 'ink'
 import { useSkmtc } from './SkmtcContext.tsx'
