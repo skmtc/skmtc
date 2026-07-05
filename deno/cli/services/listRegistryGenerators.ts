@@ -1,13 +1,13 @@
-import { z } from 'zod'
+import * as v from 'valibot'
 import { toJsrUrl } from '@/lib/jsr-registry.ts'
 import type { Generator } from '@/types/generator.ts'
 
-const registryPackages = z.object({
-  items: z.array(
-    z.object({
-      scope: z.string(),
-      name: z.string(),
-      latestVersion: z.string().nullable()
+const registryPackages = v.object({
+  items: v.array(
+    v.object({
+      scope: v.string(),
+      name: v.string(),
+      latestVersion: v.nullable(v.string())
     })
   )
 })
@@ -26,7 +26,7 @@ export const listRegistryGenerators = async (): Promise<Generator[]> => {
     throw new Error(`Failed to list packages from JSR registry (HTTP ${res.status})`)
   }
 
-  const { items } = registryPackages.parse(await res.json())
+  const { items } = v.parse(registryPackages, await res.json())
 
   return items
     .filter(({ name, latestVersion }) => name.startsWith('gen-') && latestVersion !== null)
