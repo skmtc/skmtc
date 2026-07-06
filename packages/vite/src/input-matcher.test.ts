@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import ts from 'typescript'
 import {
   classify,
   renderProbe,
@@ -6,6 +7,31 @@ import {
   type MatcherSubject,
   type ProbeLayout
 } from './input-matcher.ts'
+
+// Type-check a self-contained probe string and return its error messages —
+// lib files come from disk (ts.sys), only the probe file is served in-memory.
+const typeErrorsOf = (source: string): string[] => {
+  const fileName = '/probe.ts'
+  const options: ts.CompilerOptions = {
+    noEmit: true,
+    strict: true,
+    skipLibCheck: true,
+    target: ts.ScriptTarget.ES2020
+  }
+  const host = ts.createCompilerHost(options)
+  const getSourceFile = host.getSourceFile.bind(host)
+  host.getSourceFile = (name, languageVersion, onError, shouldCreate) =>
+    name === fileName
+      ? ts.createSourceFile(fileName, source, ts.ScriptTarget.ES2020, true)
+      : getSourceFile(name, languageVersion, onError, shouldCreate)
+  host.fileExists = (name) => name === fileName || ts.sys.fileExists(name)
+  host.readFile = (name) => (name === fileName ? source : ts.sys.readFile(name))
+  const program = ts.createProgram([fileName], options, host)
+  return ts
+    .getPreEmitDiagnostics(program)
+    .filter((diagnostic) => diagnostic.file?.fileName === fileName)
+    .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'))
+}
 
 const operation = (path: string, method: string): MatcherSubject => ({
   type: 'operation',
@@ -213,11 +239,33 @@ describe('renderProbe', () => {
     })
     const lines = layout.text.split('\n')
     expect(lines).toContain(`type __D0 = ApplicantModelPagedResult['_embedded']`)
+    // The `items` fallback is a STRUCTURAL `extends { items }` check, never an
+    // indexed access — see the compile test below for why.
     expect(lines).toContain(
-      `type __D1 = NonNullable<__D0> extends ReadonlyArray<infer __El1> ? __El1 : NonNullable<__D0>['items']`
+      `type __D1 = NonNullable<__D0> extends ReadonlyArray<infer __El1> ? __El1 : NonNullable<__D0> extends { items: infer __It1 } ? __It1 : never`
     )
     expect(lines).toContain(`type __D2 = NonNullable<__D1>['name']`)
     expect(layout.text).toContain('type __F = __D2')
+  })
+
+  it('the `items` probe COMPILES against an array element (regression)', () => {
+    // Guards the real bug: an indexed-access fallback `SomeArray['items']` in the
+    // conditional's non-taken branch is still type-checked by TS and errors,
+    // breaking every list column. A string check alone missed it — compile it.
+    const layout = renderProbe({
+      modelName: 'Envelope',
+      modelImportPath: './fixture',
+      moduleTypeSource: 'export type S<F> = F',
+      moduleTypeName: 'S',
+      segments: ['_embedded', 'items', 'name'],
+      candidates: []
+    })
+    // Swap the import for an inline model so the probe is self-contained.
+    const source = layout.text.replace(
+      /^import type .*$/m,
+      'type Envelope = { _embedded?: Array<{ name: string }> | null }'
+    )
+    expect(typeErrorsOf(source)).toEqual([])
   })
 
   it('escapes quotes and backslashes in property segments', () => {

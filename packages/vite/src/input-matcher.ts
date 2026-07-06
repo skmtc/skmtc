@@ -193,12 +193,16 @@ export const renderProbe = (input: ProbeInput): ProbeLayout => {
   segments.forEach((segment, index) => {
     segmentLines.push(lines.length)
     const base = index === 0 ? modelName : `NonNullable<__D${index - 1}>`
-    // `items` steps into the array's element. The conditional keeps it correct
-    // even if a real object property is literally named `items` — only the
-    // array branch fires when the base actually is an array.
+    // `items` steps into the array's element — OR, if a real object property is
+    // literally named `items`, into that property (e.g. `/worksOrders/{id}`).
+    // The fallback MUST be a structural `extends { items }` check, NOT an
+    // indexed access `${base}['items']`: TS eagerly type-checks the non-taken
+    // conditional branch, and `SomeArray['items']` is an error (arrays have no
+    // `items`), which would break the common array case. `extends { items }`
+    // resolves to `never` instead of erroring.
     lines.push(
       segment === ARRAY_ITEM_SEGMENT
-        ? `type __D${index} = ${base} extends ReadonlyArray<infer __El${index}> ? __El${index} : ${base}['items']`
+        ? `type __D${index} = ${base} extends ReadonlyArray<infer __El${index}> ? __El${index} : ${base} extends { items: infer __It${index} } ? __It${index} : never`
         : `type __D${index} = ${base}['${escapeSegment(segment)}']`
     )
   })
