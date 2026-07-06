@@ -5,17 +5,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ### Build and Development
+
+Releasing is normally automatic: bump the version with `deno task bump core`
+from `deno/` and merge to main — the `Publish` workflow ships `@skmtc/core` to
+**both** JSR (via the cascade) and npm. The tasks below are the underlying
+pieces, mostly for local/manual use.
+
 ```bash
-# Build the project
+# Build the npm package (dnt → ../../packages/core)
 deno task build
 
-# Publish to both Deno (JSR) and NPM
-deno task publish
-
-# Publish to JSR only
+# Publish to JSR only (this is what `publish` and the release cascade run)
+deno task publish        # == publish:deno
 deno task publish:deno
 
-# Publish to NPM only (from ../../packages/core)
+# Build + publish to npm only, but *skip* when npm already has the current
+# version (registry-truth). This is what CI runs after the JSR cascade.
+deno task publish:npm-if-needed
+
+# Publish the already-built package to npm unconditionally (from ../../packages/core)
 deno task publish:npm
 ```
 

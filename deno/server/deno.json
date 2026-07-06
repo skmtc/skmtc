@@ -1,13 +1,13 @@
 {
   "name": "@skmtc/server",
-  "version": "0.2.56",
+  "version": "0.2.57",
   "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts"
   },
   "imports": {
     "hono": "npm:hono@4.7.2",
-    "@skmtc/core": "jsr:@skmtc/core@0.25.0",
+    "@skmtc/core": "jsr:@skmtc/core@0.26.0",
     "@skmtc/convert": "jsr:@skmtc/convert@0.1.17"
   },
   "tasks": {

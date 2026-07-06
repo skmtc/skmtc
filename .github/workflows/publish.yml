@@ -1,5 +1,7 @@
 # Release via the cascade script, publishing to public jsr.io
-# authenticated with GitHub OIDC (no registry token).
+# authenticated with GitHub OIDC (no registry token). `@skmtc/core` is
+# additionally published to npm in the same job (also via OIDC — npm
+# Trusted Publishing).
 #
 # Runs automatically on every merge to main: the cascade publishes any
 # workspace package whose deno.json version isn't yet on the registry
@@ -13,9 +15,14 @@
 # cascade but never published — publish those manually to the local
 # mirror when needed.
 #
-# OIDC requires the `id-token: write` permission below AND each
+# OIDC requires the `id-token: write` permission below AND, for JSR, each
 # published @skmtc/* package on jsr.io to be linked to this GitHub
-# repository in its package settings.
+# repository in its package settings. For npm, `@skmtc/core` must list
+# this repo + this workflow (publish.yml) as a Trusted Publisher in its
+# npmjs.com package settings — configure that BEFORE merging a core
+# version bump, or the npm step fails after the JSR release has already
+# shipped. Once npm holds the current core version the step self-skips
+# (registry-truth), so re-runs and no-bump merges are safe.
 
 name: Publish
 
@@ -46,3 +53,24 @@ jobs:
       - name: Release via cascade to jsr.io
         working-directory: deno
         run: deno task release
+
+      # --- npm publish for @skmtc/core (OIDC / Trusted Publishing) ---
+      # dnt builds the npm package with pnpm; node/npm publish it. npm
+      # Trusted Publishing needs npm >= 11.5.1, newer than what ships with
+      # setup-node, so we upgrade npm globally before publishing.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm (dnt build)
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Upgrade npm for Trusted Publishing (OIDC)
+        run: npm install -g npm@latest
+
+      - name: Publish @skmtc/core to npm (if behind)
+        working-directory: deno/core
+        run: deno task publish:npm-if-needed
