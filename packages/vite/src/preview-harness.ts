@@ -1,13 +1,17 @@
 // Serve the browser-side client modules (the in-iframe render harness and the
 // editor shell) through the consumer app's Vite as virtual modules, so THAT Vite
 // transforms them — sharing the app's React and giving them `import.meta.hot`.
-// We pre-transform TSX → JS with Vite's esbuild (the virtual ids carry no `.tsx`
-// extension); Vite still post-processes — resolving the bare `react` imports
-// against the app's copy and injecting the HMR context.
+// We pre-transform TSX → JS with Vite's oxc transform (the virtual ids carry no
+// `.tsx` extension); Vite still post-processes — resolving the bare `react`
+// imports against the app's copy and injecting the HMR context.
+//
+// Vite 8 dropped the bundled esbuild: `transformWithEsbuild` now throws unless
+// esbuild is installed separately, so we use `transformWithOxc` (Vite's built-in
+// oxc-backed transform) instead.
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { transformWithEsbuild } from 'vite'
+import { transformWithOxc } from 'vite'
 
 // virtual id → source file (relative to this module). Only the HARNESS is a
 // virtual module (it must be transformed by the CONSUMER's Vite to share the
@@ -23,15 +27,15 @@ const HARNESS_ID = 'virtual:skmtc-preview-harness'
 export const resolveClientModule = (id: string): string | undefined =>
   id in CLIENT_MODULES ? `\0${id}` : undefined
 
-/** Vite `load` for the client virtual modules — TSX → JS via esbuild. */
+/** Vite `load` for the client virtual modules — TSX → JS via oxc. */
 export const loadClientModule = async (id: string): Promise<string | undefined> => {
   if (!id.startsWith('\0')) return undefined
   const relative = CLIENT_MODULES[id.slice(1)]
   if (!relative) return undefined
   const sourcePath = fileURLToPath(new URL(relative, import.meta.url))
-  const result = await transformWithEsbuild(readFileSync(sourcePath, 'utf8'), sourcePath, {
-    loader: 'tsx',
-    jsx: 'automatic'
+  const result = await transformWithOxc(readFileSync(sourcePath, 'utf8'), sourcePath, {
+    lang: 'tsx',
+    jsx: { runtime: 'automatic' }
   })
   return result.code
 }
