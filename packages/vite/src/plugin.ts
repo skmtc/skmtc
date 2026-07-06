@@ -174,6 +174,30 @@ const requireToken =
     handler(request, response, next)
   }
 
+// The desktop shell obtains the token WITHOUT any env var or repo-path knowledge
+// via an ungated `/__skmtc/handshake` that authorizes purely by network
+// locality: the request must arrive on a loopback socket AND carry none of the
+// headers that betray a proxy/tunnel or a browser fetch. A tunnelled caller
+// (cloudflared sets `x-forwarded-for`) is refused, so a public dev server never
+// leaks the token; a browser page — same- or cross-origin — always attaches
+// `Origin`, so it is refused too (belt-and-braces on top of the response
+// carrying no CORS headers). Only a same-machine, non-browser process (the Deno
+// shell, whose server-side `fetch` sends none of these) is trusted.
+const LOOPBACK_ADDRESSES = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1'])
+const NON_LOCAL_HEADERS = [
+  'x-forwarded-for',
+  'forwarded',
+  'cf-connecting-ip',
+  'x-real-ip',
+  'origin'
+]
+
+const isLocalRequest = (request: IncomingMessage): boolean => {
+  const address = request.socket.remoteAddress
+  if (address === undefined || !LOOPBACK_ADDRESSES.has(address)) return false
+  return NON_LOCAL_HEADERS.every((header) => request.headers[header] === undefined)
+}
+
 const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error)
 
@@ -228,10 +252,11 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       return loadClientModule(id)
     },
     configureServer(server) {
-      // Gate every `/__skmtc/*` route (except the static iframe bootstrap) with a
-      // per-session bearer token — the dev server may be tunnelled to the public
-      // web. The token is logged for the browser-fallback case; the desktop app
-      // reads it from the env var it launched with, or the handshake file.
+      // Gate every `/__skmtc/*` route (except the static iframe bootstrap and the
+      // loopback handshake) with a per-session bearer token — the dev server may
+      // be tunnelled to the public web. The desktop app obtains the token
+      // automatically over `/__skmtc/handshake` (loopback-only); the token is
+      // also logged for the env-var and handshake-file fallbacks.
       const auth = ensurePreviewToken(root, options.project)
       server.config.logger.info(
         `\n  skmtc preview auth enabled\n  token: ${auth.token}\n  handshake file: ${auth.tokenFile}\n`
@@ -482,6 +507,20 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
         respondJson(response, generate.ok ? 200 : 500, { generate })
       }
 
+      // Ungated handshake: hands the per-session token to a genuinely-local
+      // caller (the desktop shell) so it needs no env var or handshake-file
+      // access. `isLocalRequest` is the whole authorization — a tunnelled or
+      // browser caller is refused. No CORS headers are set, so even a same-
+      // machine browser page (which is already refused by the `origin` guard)
+      // could not read the response body.
+      const handshakeHandler: Connect.NextHandleFunction = (request, response) => {
+        if (!isLocalRequest(request)) {
+          respondJson(response, 403, { error: 'preview handshake is loopback-only' })
+          return
+        }
+        respondJson(response, 200, { token: auth.token })
+      }
+
       // The preview iframe document — served fully static; it imports the harness
       // (a virtual module the consumer's Vite transforms) via a runtime dynamic
       // import and inlines the HMR preambles itself (see IFRAME_HTML).
@@ -512,9 +551,12 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       )
       server.middlewares.use('/__skmtc/edit', methodGuard('POST', gated(editHandler)))
       server.middlewares.use('/__skmtc/regenerate', methodGuard('POST', gated(regenerateHandler)))
-      // Ungated: the iframe bootstrap is loaded via iframe navigation (which
-      // can't carry an Authorization header) and is static, non-sensitive HTML —
-      // it calls no control route; the editor does that over fetch, with the token.
+      // Ungated: the handshake authorizes by loopback locality (see
+      // `handshakeHandler`); the iframe bootstrap is loaded via iframe navigation
+      // (which can't carry an Authorization header) and is static, non-sensitive
+      // HTML — it calls no control route; the editor does that over fetch, with
+      // the token.
+      server.middlewares.use('/__skmtc/handshake', methodGuard('GET', handshakeHandler))
       server.middlewares.use('/__skmtc/preview', methodGuard('GET', previewHtmlHandler))
     }
   }
