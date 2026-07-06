@@ -96,13 +96,26 @@ const forwardConsoleToParent = (): void => {
 }
 forwardConsoleToParent()
 
+const isApiTokenMessage = (data: unknown): data is { token: string } =>
+  typeof data === 'object' &&
+  data !== null &&
+  'source' in data &&
+  data.source === 'skmtc-editor' &&
+  'type' in data &&
+  data.type === 'api-token' &&
+  'token' in data &&
+  typeof data.token === 'string'
+
 // Mark this surface as the preview and inject the API token the way the consumer
 // app expects. The generated app's fetch wrapper reads `__SKMTC_PREVIEW__` (to use
 // the injected token instead of an OAuth browser session, which would redirect the
 // iframe away) and `__SKMTC_PREVIEW_API_TOKEN__` (the bearer token). The token is
-// the one the user sets in the editor's "API token" tab, shared via same-origin
-// localStorage. Data queries already ran (and failed) without a token, so reload
-// on change to refetch with it.
+// the one the user sets in the editor's "API token" tab, delivered either via
+// same-origin localStorage + its `storage` event, OR — the usual case, since the
+// editor (desktop shell / :4820) and this iframe (the plugin origin) are DIFFERENT
+// origins where localStorage never crosses — via a postMessage from the editor.
+// Data queries already ran (and failed) without a token, so reload on change to
+// refetch with it.
 const applyApiToken = (): void => {
   const KEY = 'skmtc-api-token'
   const read = (): string => {
@@ -112,16 +125,38 @@ const applyApiToken = (): void => {
       return ''
     }
   }
+  const write = (token: string): void => {
+    try {
+      if (token) localStorage.setItem(KEY, token)
+      else localStorage.removeItem(KEY)
+    } catch {
+      // ignore (private mode, quota, …)
+    }
+  }
   const globals = window as unknown as {
     __SKMTC_PREVIEW__?: boolean
     __SKMTC_PREVIEW_API_TOKEN__?: string
   }
   globals.__SKMTC_PREVIEW__ = true
   globals.__SKMTC_PREVIEW_API_TOKEN__ = read() || undefined
+
+  // Adopt a token and refetch. Persist it to THIS origin's store FIRST so it
+  // survives the reload — otherwise a postMessage-fed token is lost on reload,
+  // the iframe restarts tokenless, and the editor's re-post loops forever.
+  const adopt = (token: string): void => {
+    const next = token || undefined
+    write(token)
+    if (globals.__SKMTC_PREVIEW_API_TOKEN__ === next) return
+    globals.__SKMTC_PREVIEW_API_TOKEN__ = next
+    window.location.reload()
+  }
+
   window.addEventListener('storage', (event) => {
     if (event.key !== KEY) return
-    globals.__SKMTC_PREVIEW_API_TOKEN__ = read() || undefined
-    window.location.reload()
+    adopt(read())
+  })
+  window.addEventListener('message', (event) => {
+    if (isApiTokenMessage(event.data)) adopt(event.data.token)
   })
 }
 applyApiToken()
