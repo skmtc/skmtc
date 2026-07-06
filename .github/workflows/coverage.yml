@@ -15,11 +15,12 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
 
-    env:
-      # Workspace `jsr:@skmtc/*` pins (and @std/*) resolve against the
-      # skmtc registry, not public jsr.io — the @skmtc versions only
-      # exist there. Deno honors JSR_URL for `jsr:` import resolution.
-      JSR_URL: https://jsr.skmtc.co.uk/
+    # No JSR_URL override: everything resolves from public jsr.io.
+    # @skmtc/* has published there since 2026-07-05 (the publish
+    # workflow), and every pinned version in deno.lock exists there
+    # (verified with a cold cache). The old jsr.skmtc.co.uk override
+    # made CI silently depend on a dev-machine tunnel being up — 530s
+    # whenever it wasn't.
 
     steps:
     - name: Checkout repository
