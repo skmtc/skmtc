@@ -63,10 +63,10 @@ jobs:
         with:
           node-version: 22
 
+      # Version comes from the root package.json `packageManager` field;
+      # setting it here too would conflict (ERR_PNPM_BAD_PM_VERSION).
       - name: Setup pnpm (dnt build)
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Upgrade npm for Trusted Publishing (OIDC)
         run: npm install -g npm@latest
