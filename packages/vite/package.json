@@ -1,0 +1,35 @@
+{
+  "name": "@skmtc/vite",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "src"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./enrichment-leaf": "./src/enrichment-leaf.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ts-pattern": "^5.9.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.3",
+    "vitest": "^4.1.10"
+  },
+  "peerDependencies": {
+    "vite": "^8.1.3"
+  }
+}

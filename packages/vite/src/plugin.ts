@@ -1,0 +1,521 @@
+// The skmtc preview Vite plugin: a thin local backend that turns the consumer
+// app's own dev server into the preview surface. It serves the project's
+// `describe` metadata and on-disk `client.json`, applies enrichment edits to the
+// file, and spawns `skmtc generate` so the generated code lands in `basePath`
+// and Vite HMR repaints it. No container, no R2, no flat config — the working
+// tree is the contract.
+
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { randomBytes, timingSafeEqual } from 'node:crypto'
+import { join } from 'node:path'
+import type { IncomingMessage, ServerResponse } from 'node:http'
+import type { Connect, Plugin } from 'vite'
+import { runDescribe, runGenerate, type CliResult } from './skmtc-cli.ts'
+import {
+  applyEditToClientJson,
+  clientJsonPath,
+  enrichmentEditSchema,
+  inputMatchesSchema,
+  readClientJson,
+  writeClientJson
+} from './client-json.ts'
+import { SourceState } from './source-state.ts'
+import { moduleTypeFromDescribe } from './descriptors.ts'
+import {
+  HARNESS_RESOLVED_ID,
+  HARNESS_SOURCE_PATH,
+  IFRAME_HTML,
+  loadClientModule,
+  resolveClientModule
+} from './preview-harness.ts'
+import { readPreviews } from './manifest.ts'
+import { readArtifactContent, readArtifacts } from './artifacts.ts'
+import { filtersWriteSchema, fromFilterEntries, toFilterEntries } from './filters.ts'
+import { readSource } from './project-sources.ts'
+
+// --- optimizeDeps closure (ported from apps/preview/container/vite.config.ts) -
+// Vite's LAZY dep-discovery re-optimizes mid-load when the preview imports a dep
+// the app hasn't yet, invalidating chunks the harness already fetched → a 504
+// "Outdated Optimize Dep" that wedges the preview. The fix is `noDiscovery` plus
+// an eager `include` of the app's whole runtime-dependency closure.
+const REACT_CORE = [
+  'react',
+  'react-dom',
+  'react-dom/client',
+  'react/jsx-runtime',
+  'react/jsx-dev-runtime'
+]
+const isBuildOnlyDep = (name: string): boolean =>
+  name === 'vite' ||
+  name === 'tailwindcss' ||
+  name === 'typescript' ||
+  name.startsWith('@types/') ||
+  name.startsWith('@vitejs/') ||
+  name.includes('vite-plugin')
+const isRecordValue = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object'
+const readConsumerDeps = (root: string): string[] => {
+  try {
+    const pkg: unknown = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
+    if (!isRecordValue(pkg) || !isRecordValue(pkg.dependencies)) return []
+    return Object.keys(pkg.dependencies).filter((name) => !isBuildOnlyDep(name))
+  } catch {
+    return []
+  }
+}
+// Subpath specifiers skmtc generators emit — bare-package includes don't cover
+// them, and with `noDiscovery` nothing is optimized lazily.
+const knownSubpaths = (deps: string[]): string[] => [
+  ...(deps.includes('@hookform/resolvers') ? ['@hookform/resolvers/zod'] : []),
+  ...(deps.includes('@hookform/lenses') ? ['@hookform/lenses/rhf'] : [])
+]
+
+export type SkmtcPreviewOptions = {
+  /** The skmtc project under `.skmtc/<project>/` to preview. */
+  project: string
+  /** SKMTC root (the directory containing `.skmtc/`). Defaults to the Vite
+   *  config root — for a locally-onboarded app that's the app root itself. */
+  root?: string
+}
+
+const readJsonBody = (request: IncomingMessage): Promise<unknown> =>
+  new Promise((resolvePromise, rejectPromise) => {
+    const chunks: Buffer[] = []
+    request.on('data', (chunk: Buffer) => chunks.push(chunk))
+    request.on('end', () => {
+      try {
+        resolvePromise(JSON.parse(Buffer.concat(chunks).toString('utf8')))
+      } catch (error) {
+        rejectPromise(error)
+      }
+    })
+    request.on('error', rejectPromise)
+  })
+
+const respondJson = (response: ServerResponse, status: number, body: unknown): void => {
+  response.statusCode = status
+  response.setHeader('content-type', 'application/json')
+  response.end(JSON.stringify(body))
+}
+
+const methodGuard =
+  (method: string, handler: Connect.NextHandleFunction): Connect.NextHandleFunction =>
+  (request, response, next) => {
+    if (request.method !== method) {
+      next()
+      return
+    }
+    handler(request, response, next)
+  }
+
+// --- Auth ---------------------------------------------------------------------
+// The dev server is often exposed on the public web via a tunnel, so every
+// `/__skmtc/*` control + metadata route is gated by a per-session bearer token.
+// The legitimate caller is a LOCAL client (the desktop app, occasionally a
+// browser) — it obtains the token through a channel a web attacker can't reach:
+// the `SKMTC_PREVIEW_TOKEN` env var (when the desktop app spawns the dev server)
+// or the handshake file under `node_modules/.cache` (readable only on this
+// machine). See `ensurePreviewToken`.
+
+type PreviewAuth = { token: string; tokenFile: string }
+
+/** Resolve the preview token — env (desktop-launched) → existing handshake file
+ *  (stable across restarts) → freshly generated — and always (re)write the file
+ *  so a connect-only desktop client can read it regardless of who launched the
+ *  server. `node_modules/.cache` is universally gitignored, so the token never
+ *  risks being committed and needs no consumer-side ignore rule. */
+const ensurePreviewToken = (root: string, project: string): PreviewAuth => {
+  const dir = join(root, 'node_modules', '.cache', 'skmtc-preview')
+  const tokenFile = join(dir, `${project}.token`)
+  const fromEnv = process.env.SKMTC_PREVIEW_TOKEN?.trim()
+  const fromFile = ((): string | null => {
+    try {
+      return readFileSync(tokenFile, 'utf8').trim() || null
+    } catch {
+      return null
+    }
+  })()
+  const token = fromEnv || fromFile || randomBytes(32).toString('base64url')
+  try {
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(tokenFile, token, { mode: 0o600 })
+  } catch {
+    // A read-only / unwritable tree: an env token (if set) still gates requests;
+    // a connect-only desktop just can't read the handshake file here.
+  }
+  return { token, tokenFile }
+}
+
+const bearerToken = (request: IncomingMessage): string | null => {
+  const header = request.headers.authorization
+  const matched = typeof header === 'string' ? /^Bearer (.+)$/.exec(header) : null
+  return matched ? matched[1] : null
+}
+
+// Constant-time compare; the length guard is required because `timingSafeEqual`
+// throws on differing lengths. The token is high-entropy, so this is belt-and-
+// braces rather than load-bearing.
+const tokensMatch = (provided: string, expected: string): boolean => {
+  const a = Buffer.from(provided)
+  const b = Buffer.from(expected)
+  return a.length === b.length && timingSafeEqual(a, b)
+}
+
+/** Gate a handler behind the preview bearer token. Reject BEFORE the body is
+ *  read, so an unauthenticated caller never triggers a request-body read. */
+const requireToken =
+  (token: string, handler: Connect.NextHandleFunction): Connect.NextHandleFunction =>
+  (request, response, next) => {
+    const provided = bearerToken(request)
+    if (provided === null || !tokensMatch(provided, token)) {
+      respondJson(response, 401, { error: 'missing or invalid preview token' })
+      return
+    }
+    handler(request, response, next)
+  }
+
+const messageOf = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error)
+
+/** `skmtcPreview({ project })` — add to a consumer app's `vite.config` (dev). */
+export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
+  let root = options.root ?? process.cwd()
+
+  // describe is a pure function of (schema, bundle) — cache it, invalidate on a
+  // bundle change.
+  let describeCache: Promise<CliResult> | null = null
+  const describe = (): Promise<CliResult> => {
+    describeCache ??= runDescribe(root, options.project)
+    return describeCache
+  }
+
+  // Serialize edit→write→generate so concurrent rail edits never spawn parallel
+  // generates or race the client.json write; each runs against the latest file.
+  let chain: Promise<unknown> = Promise.resolve()
+  const enqueue = <T>(task: () => Promise<T>): Promise<T> => {
+    const result = chain.then(task)
+    chain = result.then(
+      () => undefined,
+      () => undefined
+    )
+    return result
+  }
+
+  return {
+    name: 'skmtc-preview',
+    // Eagerly optimize the app's dep closure + disable lazy discovery, so the
+    // preview never hits a mid-load re-optimize (the 504 "Outdated Optimize Dep"
+    // wedge). Mirrors the container's vite.config.
+    config(userConfig) {
+      const configRoot = options.root ?? userConfig.root ?? process.cwd()
+      const deps = readConsumerDeps(configRoot)
+      return {
+        optimizeDeps: {
+          include: [...new Set([...REACT_CORE, ...deps, ...knownSubpaths(deps)])],
+          noDiscovery: true
+        }
+      }
+    },
+    configResolved(config) {
+      root = options.root ?? config.root
+    },
+    // The browser client modules (render harness + editor) are virtual modules
+    // so the CONSUMER's Vite transforms them (shared React + `import.meta.hot`).
+    resolveId(id) {
+      return resolveClientModule(id)
+    },
+    load(id) {
+      return loadClientModule(id)
+    },
+    configureServer(server) {
+      // Gate every `/__skmtc/*` route (except the static iframe bootstrap) with a
+      // per-session bearer token — the dev server may be tunnelled to the public
+      // web. The token is logged for the browser-fallback case; the desktop app
+      // reads it from the env var it launched with, or the handshake file.
+      const auth = ensurePreviewToken(root, options.project)
+      server.config.logger.info(
+        `\n  skmtc preview auth enabled\n  token: ${auth.token}\n  handshake file: ${auth.tokenFile}\n`
+      )
+
+      // The watcher-driven cache layer behind the matcher (TS service, schema
+      // snapshot, candidates, gen-map, match memo). The matcher's contract for
+      // a field comes off the generator's moduleSelect declaration, read from
+      // the (cached) describe descriptors.
+      const state = new SourceState(root, options.project, {
+        resolveModuleType: async (generator) => {
+          if (generator === undefined) return undefined
+          const result = await describe()
+          return result.ok ? moduleTypeFromDescribe(result.data, generator) : undefined
+        }
+      })
+      state.attach(server.watcher)
+
+      const bundlePath = join(root, '.skmtc', options.project, 'bundle.js')
+      const clientJsonFile = clientJsonPath(root, options.project)
+      server.watcher.add(bundlePath)
+      server.watcher.add(HARNESS_SOURCE_PATH)
+      server.watcher.add(clientJsonFile)
+
+      // describe is a function of the bundle AND the schema, so also invalidate
+      // it when the local schema file changes (a URL source can't be watched).
+      // `client.json#source` can itself move mid-session (the user repoints it),
+      // so re-derive the watch whenever client.json changes, invalidating
+      // describe only when the source ACTUALLY moved — an enrichment edit
+      // rewrites client.json on every keystroke but leaves `source` alone.
+      let schemaPath: string | null = null
+      let watchedSource: string | null = null
+      const refreshSchemaWatch = async (): Promise<void> => {
+        const clientJson = await readClientJson(root, options.project).catch(() => null)
+        if (!clientJson) return
+        const source = typeof clientJson.source === 'string' ? clientJson.source : null
+        if (source === watchedSource) return
+        watchedSource = source
+        if (schemaPath) server.watcher.unwatch(schemaPath)
+        schemaPath = source && !/^https?:\/\//.test(source) ? join(root, source) : null
+        if (schemaPath) server.watcher.add(schemaPath)
+        describeCache = null
+      }
+      void refreshSchemaWatch()
+
+      server.watcher.on('change', (file) => {
+        if (file === bundlePath || file === schemaPath) describeCache = null
+        if (file === clientJsonFile) void refreshSchemaWatch()
+        // Harness source changed → invalidate its cached virtual module + reload.
+        // Only the preview iframe carries `/@vite/client`, so this reloads the
+        // iframe (re-importing the fresh harness), not the static editor SPA.
+        if (file === HARNESS_SOURCE_PATH) {
+          const harness = server.moduleGraph.getModuleById(HARNESS_RESOLVED_ID)
+          if (harness) server.moduleGraph.invalidateModule(harness)
+          server.ws.send({ type: 'full-reload' })
+        }
+      })
+
+      // Read-only metadata: subjects + descriptors + defaults (cached).
+      const describeHandler: Connect.NextHandleFunction = async (_request, response) => {
+        const result = await describe()
+        respondJson(
+          response,
+          result.ok ? 200 : 500,
+          result.ok ? result.data : { error: result.message }
+        )
+      }
+
+      // The on-disk client.json — the nested enrichment store the editor reads.
+      const configHandler: Connect.NextHandleFunction = async (_request, response) => {
+        try {
+          respondJson(response, 200, await readClientJson(root, options.project))
+        } catch (error) {
+          respondJson(response, 500, { error: messageOf(error) })
+        }
+      }
+
+      // Apply one enrichment edit → write client.json → regenerate. Serialized.
+      const editHandler: Connect.NextHandleFunction = async (request, response) => {
+        let edit
+        try {
+          edit = enrichmentEditSchema.parse(await readJsonBody(request))
+        } catch (error) {
+          respondJson(response, 400, { error: `invalid edit: ${messageOf(error)}` })
+          return
+        }
+        const generate = await enqueue(async () => {
+          const next = applyEditToClientJson(await readClientJson(root, options.project), edit)
+          await writeClientJson(root, options.project, next)
+          return runGenerate(root, options.project)
+        }).catch((error): CliResult => ({ ok: false, code: 1, message: messageOf(error) }))
+        // The generate rewrote the source the matcher type-checks against —
+        // bump the state's file versions + drop its generate-derived caches.
+        if (generate.ok) state.onGenerateSuccess()
+        respondJson(response, generate.ok ? 200 : 500, { generate })
+      }
+
+      // Regenerate without an edit (initial render / manual refresh). Pass anchors
+      // here so the gen-map (`.maps`) is (re)populated on render — the edit loop
+      // skips it (heavy + the model→file map is stable across enrichment edits).
+      const regenerateHandler: Connect.NextHandleFunction = async (_request, response) => {
+        const generate = await enqueue(() => runGenerate(root, options.project, true))
+        if (generate.ok) state.onGenerateSuccess()
+        respondJson(response, generate.ok ? 200 : 500, { generate })
+      }
+
+      // Type-aware input matcher: adjudicate the picker candidates against the
+      // field at the given schemaPath. Responds with a MatchOutcome — a named
+      // verdict (fits / path-broken / model-missing / unavailable), never a
+      // fallback list.
+      const inputMatchesHandler: Connect.NextHandleFunction = async (request, response) => {
+        let body
+        try {
+          body = inputMatchesSchema.parse(await readJsonBody(request))
+        } catch (error) {
+          respondJson(response, 400, { error: `invalid request: ${messageOf(error)}` })
+          return
+        }
+        try {
+          respondJson(response, 200, await state.match(body))
+        } catch (error) {
+          respondJson(response, 500, { error: messageOf(error) })
+        }
+      }
+
+      // The renderable previews from the last generate manifest (module + subject).
+      const previewsHandler: Connect.NextHandleFunction = async (_request, response) => {
+        try {
+          respondJson(response, 200, await readPreviews(root, options.project))
+        } catch (error) {
+          respondJson(response, 500, { error: messageOf(error) })
+        }
+      }
+
+      // The OpenAPI document (client.json#source) — for schemaPath resolution
+      // in the editor. Served from the state's snapshot (refreshed on generate
+      // or a local schema-file change), matching what the matcher checks against.
+      const schemaHandler: Connect.NextHandleFunction = async (_request, response) => {
+        try {
+          const clientJson = await readClientJson(root, options.project)
+          const source = clientJson.source
+          if (typeof source !== 'string') {
+            respondJson(response, 404, { error: 'client.json has no `source` schema reference' })
+            return
+          }
+          respondJson(response, 200, await state.schemaDoc(source))
+        } catch (error) {
+          respondJson(response, 500, { error: messageOf(error) })
+        }
+      }
+
+      // The project's input/field component source (client.json#settings.inputDirs)
+      // — the type universe the matcher (Phase 11) compiles candidates against.
+      const sourceHandler: Connect.NextHandleFunction = async (_request, response) => {
+        try {
+          const clientJson = await readClientJson(root, options.project)
+          const inputDirs = Array.isArray(clientJson.settings.inputDirs)
+            ? clientJson.settings.inputDirs.filter((dir): dir is string => typeof dir === 'string')
+            : []
+          respondJson(response, 200, { inputDirs, files: await readSource(root, inputDirs) })
+        } catch (error) {
+          respondJson(response, 500, { error: messageOf(error) })
+        }
+      }
+
+      // The module-picker candidates: value exports from inputDirs (unfiltered;
+      // the type-aware matcher adjudicates them per field). `filePath` is a
+      // server-side detail — only the alias form goes over the wire.
+      const candidatesHandler: Connect.NextHandleFunction = async (_request, response) => {
+        try {
+          const clientJson = await readClientJson(root, options.project)
+          const inputDirs = Array.isArray(clientJson.settings.inputDirs)
+            ? clientJson.settings.inputDirs.filter((dir): dir is string => typeof dir === 'string')
+            : []
+          const basePath =
+            typeof clientJson.settings.basePath === 'string' ? clientJson.settings.basePath : 'src'
+          const candidates = await state.candidates(inputDirs, basePath)
+          respondJson(response, 200, {
+            candidates: candidates.map(({ exportName, exportPath }) => ({
+              exportName,
+              exportPath
+            }))
+          })
+        } catch (error) {
+          respondJson(response, 500, { error: messageOf(error) })
+        }
+      }
+
+      // The generated artifacts from the last generate manifest. Without a
+      // `path` query: the file list (for the code view's tree). With one: that
+      // file's contents — the path must be a manifest `files` key, so nothing
+      // outside the last generate's output is readable.
+      const artifactsHandler: Connect.NextHandleFunction = async (request, response) => {
+        try {
+          const path = new URL(request.url ?? '/', 'http://localhost').searchParams.get('path')
+          if (path === null) {
+            respondJson(response, 200, { files: await readArtifacts(root, options.project) })
+            return
+          }
+          const content = await readArtifactContent(root, options.project, path)
+          if (content === null) {
+            respondJson(response, 404, { error: `not a generated file: ${path}` })
+            return
+          }
+          respondJson(response, 200, { path, content })
+        } catch (error) {
+          respondJson(response, 500, { error: messageOf(error) })
+        }
+      }
+
+      // The include/skip generator filters, edited FLAT (the hub's
+      // `GeneratorFilter[]` rows). GET folds the on-disk nested form to rows;
+      // POST folds rows back to the nested form, writes client.json and
+      // regenerates. Serialized with the enrichment edits.
+      const filtersReadHandler: Connect.NextHandleFunction = async (_request, response) => {
+        try {
+          const clientJson = await readClientJson(root, options.project)
+          respondJson(response, 200, {
+            include: fromFilterEntries(clientJson.settings.include),
+            skip: fromFilterEntries(clientJson.settings.skip)
+          })
+        } catch (error) {
+          respondJson(response, 500, { error: messageOf(error) })
+        }
+      }
+
+      const filtersWriteHandler: Connect.NextHandleFunction = async (request, response) => {
+        let filters
+        try {
+          filters = filtersWriteSchema.parse(await readJsonBody(request))
+        } catch (error) {
+          respondJson(response, 400, { error: `invalid filters: ${messageOf(error)}` })
+          return
+        }
+        const generate = await enqueue(async () => {
+          const clientJson = await readClientJson(root, options.project)
+          await writeClientJson(root, options.project, {
+            ...clientJson,
+            settings: {
+              ...clientJson.settings,
+              include: toFilterEntries(filters.include),
+              skip: toFilterEntries(filters.skip)
+            }
+          })
+          return runGenerate(root, options.project)
+        }).catch((error): CliResult => ({ ok: false, code: 1, message: messageOf(error) }))
+        if (generate.ok) state.onGenerateSuccess()
+        respondJson(response, generate.ok ? 200 : 500, { generate })
+      }
+
+      // The preview iframe document — served fully static; it imports the harness
+      // (a virtual module the consumer's Vite transforms) via a runtime dynamic
+      // import and inlines the HMR preambles itself (see IFRAME_HTML).
+      const previewHtmlHandler: Connect.NextHandleFunction = (_request, response) => {
+        response.statusCode = 200
+        response.setHeader('content-type', 'text/html')
+        response.end(IFRAME_HTML)
+      }
+
+      // Token-gated: metadata reads leak the project's schema + source, and the
+      // mutating routes write client.json / spawn generate. `requireToken` wraps
+      // the handler INSIDE `methodGuard`, so a wrong-method request still falls
+      // through to the next middleware rather than 401-ing.
+      const gated = (handler: Connect.NextHandleFunction): Connect.NextHandleFunction =>
+        requireToken(auth.token, handler)
+      server.middlewares.use('/__skmtc/describe', methodGuard('GET', gated(describeHandler)))
+      server.middlewares.use('/__skmtc/config', methodGuard('GET', gated(configHandler)))
+      server.middlewares.use('/__skmtc/previews', methodGuard('GET', gated(previewsHandler)))
+      server.middlewares.use('/__skmtc/schema', methodGuard('GET', gated(schemaHandler)))
+      server.middlewares.use('/__skmtc/source', methodGuard('GET', gated(sourceHandler)))
+      server.middlewares.use('/__skmtc/candidates', methodGuard('GET', gated(candidatesHandler)))
+      server.middlewares.use('/__skmtc/artifacts', methodGuard('GET', gated(artifactsHandler)))
+      server.middlewares.use('/__skmtc/filters', methodGuard('GET', gated(filtersReadHandler)))
+      server.middlewares.use('/__skmtc/filters', methodGuard('POST', gated(filtersWriteHandler)))
+      server.middlewares.use(
+        '/__skmtc/input-matches',
+        methodGuard('POST', gated(inputMatchesHandler))
+      )
+      server.middlewares.use('/__skmtc/edit', methodGuard('POST', gated(editHandler)))
+      server.middlewares.use('/__skmtc/regenerate', methodGuard('POST', gated(regenerateHandler)))
+      // Ungated: the iframe bootstrap is loaded via iframe navigation (which
+      // can't carry an Authorization header) and is static, non-sensitive HTML —
+      // it calls no control route; the editor does that over fetch, with the token.
+      server.middlewares.use('/__skmtc/preview', methodGuard('GET', previewHtmlHandler))
+    }
+  }
+}

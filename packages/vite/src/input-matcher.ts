@@ -1,0 +1,452 @@
+// Server-side type-aware input matcher. Decides which input/field components
+// (each accepting a `lens: Lens<T>`) can bind to a given form field, by running
+// the project's OWN TypeScript over a synthesised probe file. No browser, no
+// ATA, no OAS→TS synthesis: field types are read as indexed-access on the
+// generated model type, candidate types from the real component props, and the
+// project's compiler decides assignability.
+//
+// The probe gives every question its own line, so a diagnostic's LINE is its
+// classification: model import → model-missing; module-type source → unavailable;
+// segment alias → path-broken at exactly that segment; a candidate's import →
+// that candidate unresolved; a candidate's cell → that candidate misfits.
+// There is no fallback list: every outcome is a named verdict (`MatchOutcome`).
+
+import { join } from 'node:path'
+import { match, P } from 'ts-pattern'
+import type * as TS from 'typescript'
+
+export type MatcherSubject =
+  | { type: 'operation'; path: string; method: string }
+  | { type: 'model'; refName: string }
+
+/** The wire shape stored in enrichments and shown in the picker. */
+export type MatcherCandidate = { exportName: string; exportPath: string }
+
+/** A candidate plus the root-relative on-disk path the walker found it at —
+ *  the probe imports by `filePath` (relative, alias-free). */
+export type MatcherCandidateSource = MatcherCandidate & { filePath: string }
+
+type Doc = Record<string, unknown>
+
+const isRecord = (value: unknown): value is Doc =>
+  value !== null && typeof value === 'object' && !Array.isArray(value)
+
+// --- OAS: resolve the field's root model NAME (not a synthesised type) --------
+
+const refNameOf = (schema: unknown): string | undefined =>
+  isRecord(schema) && typeof schema.$ref === 'string' ? schema.$ref.split('/').pop() : undefined
+
+const operationAt = (doc: Doc, path: string, method: string): Doc | undefined => {
+  const paths = isRecord(doc.paths) ? doc.paths : undefined
+  const item = paths && isRecord(paths[path]) ? paths[path] : undefined
+  const operation = item?.[method.toLowerCase()]
+  return isRecord(operation) ? operation : undefined
+}
+
+const firstContentSchema = (content: unknown): unknown => {
+  if (!isRecord(content)) return undefined
+  const entry = Object.values(content).find(isRecord)
+  return isRecord(entry) && isRecord(entry.schema) ? entry.schema : undefined
+}
+
+const requestBodyRoot = (operation: Doc): unknown => {
+  if (Array.isArray(operation.parameters)) {
+    const body = operation.parameters.find((p) => isRecord(p) && p.in === 'body')
+    if (isRecord(body) && isRecord(body.schema)) return body.schema // Swagger 2.0
+  }
+  if (isRecord(operation.requestBody)) return firstContentSchema(operation.requestBody.content) // OAS 3
+  return undefined
+}
+
+// Follow a `$ref` chain to the dereferenced schema (or the input if inline).
+const deref = (doc: Doc, schema: unknown, seen: Set<string> = new Set()): Doc | undefined => {
+  if (!isRecord(schema)) return undefined
+  const name = refNameOf(schema)
+  if (name === undefined) return schema
+  if (seen.has(name)) return undefined
+  seen.add(name)
+  const definitions = isRecord(doc.definitions) ? doc.definitions : undefined
+  const components =
+    isRecord(doc.components) && isRecord(doc.components.schemas)
+      ? doc.components.schemas
+      : undefined
+  return deref(doc, definitions?.[name] ?? components?.[name], seen)
+}
+
+const successResponseSchema = (operation: Doc): unknown => {
+  if (!isRecord(operation.responses)) return undefined
+  const code =
+    Object.keys(operation.responses).find((entry) => /^2\d\d$/.test(entry)) ??
+    (isRecord(operation.responses.default) ? 'default' : undefined)
+  if (code === undefined) return undefined
+  const response = operation.responses[code]
+  if (!isRecord(response)) return undefined
+  return isRecord(response.schema) ? response.schema : firstContentSchema(response.content)
+}
+
+// The row `$ref` name inside an object envelope's first array property (e.g.
+// `_embedded`/`data`), or undefined.
+const arrayPropertyRowName = (doc: Doc, properties: Doc): string | undefined => {
+  for (const property of Object.values(properties)) {
+    const resolved = deref(doc, property)
+    if (isRecord(resolved) && resolved.type === 'array') {
+      const rowName = refNameOf(resolved.items)
+      if (rowName) return rowName
+    }
+  }
+  return undefined
+}
+
+// The row model NAME for a success response — unwrap the list envelope to the
+// row's `$ref`, keeping the name (deref would lose it): a bare array, an object
+// with an array property, else the single-object response's own `$ref`.
+const successResponseRowName = (doc: Doc, operation: Doc): string | undefined => {
+  const schema = successResponseSchema(operation)
+  const resolved = deref(doc, schema)
+  if (!isRecord(resolved)) return undefined
+  return match(resolved)
+    .with({ type: 'array', items: P.when(isRecord) }, ({ items }) => refNameOf(items))
+    .with(
+      { properties: P.when(isRecord) },
+      ({ properties }) => arrayPropertyRowName(doc, properties) ?? refNameOf(schema)
+    )
+    .otherwise(() => refNameOf(schema))
+}
+
+/**
+ * The generated model type NAME for an schemaPath root: the request-body model
+ * (form `input` fields), the response row model (table `formatter` fields —
+ * unwrapping the list envelope), or the model subject itself. The matcher then
+ * narrows by whatever module type the field's generator declares (the built-in
+ * lens contract if none) — so a table column's formatter narrows against the row model's type.
+ */
+export const rootModelNameForSchemaPath = (
+  doc: Doc,
+  subject: MatcherSubject,
+  targetToken: string
+): string | undefined =>
+  match({ subject, targetToken })
+    .with({ subject: { type: 'model' } }, ({ subject }) => subject.refName)
+    .with({ subject: { type: 'operation' }, targetToken: 'RequestBody' }, ({ subject }) => {
+      const operation = operationAt(doc, subject.path, subject.method)
+      return operation ? refNameOf(requestBodyRoot(operation)) : undefined
+    })
+    .with({ subject: { type: 'operation' }, targetToken: 'SuccessResponse' }, ({ subject }) => {
+      const operation = operationAt(doc, subject.path, subject.method)
+      return operation ? successResponseRowName(doc, operation) : undefined
+    })
+    .otherwise(() => undefined)
+
+// --- The probe ----------------------------------------------------------------
+
+const stripExt = (path: string): string => path.replace(/\.(tsx?|jsx?)$/, '')
+
+// Segments are interpolated into single-quoted index strings.
+const escapeSegment = (segment: string): string =>
+  segment.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+
+// The built-in default contract (the common lens/input case), used when a
+// subject's generator declares no moduleType (mirrors core's
+// `lensInputModuleType`, self-contained so this package has no core dep).
+const BUILTIN_MODULE_TYPE = `import type { Lens } from '@hookform/lenses'
+type __SlotPrimitive = string | number | boolean | bigint | symbol | null | undefined | Date
+type __SlotNormalize<T> = [T] extends [__SlotPrimitive] ? NonNullable<T> : T extends ReadonlyArray<infer U> ? Array<__SlotNormalize<U>> : { [K in keyof T]?: __SlotNormalize<NonNullable<T[K]>> }
+export type InputModule<F> = (props: { lens: Lens<__SlotNormalize<F>> }) => unknown`
+
+/**
+ * The module-type SOURCE to inline into the probe + its exported type name.
+ * The probe checks `typeof Candidate extends <ModuleType><FieldType>`; the
+ * generator owns the binding contract by declaring it on its moduleSelect
+ * field (read back off the describe descriptors). Each source declares
+ * exactly one exported type — its name parses out.
+ */
+const moduleTypeHeader = (moduleType: string | undefined): { source: string; name: string } => {
+  const source = moduleType ?? BUILTIN_MODULE_TYPE
+  return { source, name: source.match(/export type (\w+)\s*</)?.[1] ?? 'InputModule' }
+}
+
+/** One probe candidate: the export name + the RELATIVE import path. */
+export type ProbeCandidate = { exportName: string; importPath: string }
+
+export type ProbeInput = {
+  modelName: string
+  /** Relative (`./src/…`) — never the consumer's `@/` alias. */
+  modelImportPath: string
+  moduleTypeSource: string
+  moduleTypeName: string
+  /** Property names under the root (the schemaPath minus its target token). */
+  segments: string[]
+  candidates: ProbeCandidate[]
+}
+
+/** The probe text plus the line index of every question it asks. */
+export type ProbeLayout = {
+  text: string
+  modelLine: number
+  moduleTypeStartLine: number
+  moduleTypeEndLine: number
+  segmentLines: number[]
+  /** Offset of the `__F` alias name — where quickInfo reads the field type. */
+  fieldTypeOffset: number
+  importLines: number[]
+  cellLines: number[]
+}
+
+/**
+ * Render the probe so every concern owns its own line and a diagnostic's line
+ * classifies itself. The drill is a chain of type aliases, one per schemaPath
+ * segment, `NonNullable`-wrapped past the first so optional intermediate
+ * objects don't trip null-checks; each candidate gets one import line and one
+ * cell line (`typeof C extends Slot<__F> ? true : false` assigned to `true`).
+ */
+export const renderProbe = (input: ProbeInput): ProbeLayout => {
+  const { modelName, modelImportPath, moduleTypeSource, moduleTypeName, segments, candidates } =
+    input
+  const lines: string[] = []
+
+  const modelLine = lines.length
+  lines.push(`import type { ${modelName} } from '${modelImportPath}'`)
+
+  const moduleTypeStartLine = lines.length
+  lines.push(...moduleTypeSource.split('\n'))
+  const moduleTypeEndLine = lines.length - 1
+
+  const segmentLines: number[] = []
+  segments.forEach((segment, index) => {
+    segmentLines.push(lines.length)
+    lines.push(
+      index === 0
+        ? `type __D0 = ${modelName}['${escapeSegment(segment)}']`
+        : `type __D${index} = NonNullable<__D${index - 1}>['${escapeSegment(segment)}']`
+    )
+  })
+
+  const fieldTypeLine = lines.length
+  lines.push(`type __F = ${segments.length > 0 ? `__D${segments.length - 1}` : modelName}`)
+
+  const importLines: number[] = []
+  candidates.forEach((candidate, index) => {
+    importLines.push(lines.length)
+    lines.push(`import { ${candidate.exportName} as __C${index} } from '${candidate.importPath}'`)
+  })
+
+  const cellLines: number[] = []
+  candidates.forEach((_, index) => {
+    cellLines.push(lines.length)
+    lines.push(
+      `const __m${index}: true = (null as unknown as (typeof __C${index} extends ${moduleTypeName}<__F> ? true : false));`
+    )
+  })
+
+  lines.push('export {}')
+
+  const fieldTypeLineStart = lines
+    .slice(0, fieldTypeLine)
+    .reduce((total, line) => total + line.length + 1, 0)
+  return {
+    text: lines.join('\n'),
+    modelLine,
+    moduleTypeStartLine,
+    moduleTypeEndLine,
+    segmentLines,
+    fieldTypeOffset: fieldTypeLineStart + 'type '.length,
+    importLines,
+    cellLines
+  }
+}
+
+export type CandidateVerdict = 'fit' | 'misfit' | 'unresolved'
+
+export type ProbeClassification =
+  | { type: 'model-import-error' }
+  | { type: 'module-type-error' }
+  | { type: 'path-broken'; segmentIndex: number }
+  | { type: 'verdicts'; verdicts: CandidateVerdict[] }
+
+/**
+ * Map the probe's error lines to a verdict, in strict precedence order: a
+ * failed structural line (model import → module type → first broken segment) voids
+ * everything downstream, so candidate lines are only read when the field type
+ * actually resolved.
+ */
+export const classify = (
+  errorLines: ReadonlySet<number>,
+  layout: ProbeLayout
+): ProbeClassification => {
+  if (errorLines.has(layout.modelLine)) return { type: 'model-import-error' }
+  for (let line = layout.moduleTypeStartLine; line <= layout.moduleTypeEndLine; line++) {
+    if (errorLines.has(line)) return { type: 'module-type-error' }
+  }
+  const broken = layout.segmentLines.findIndex((line) => errorLines.has(line))
+  if (broken !== -1) return { type: 'path-broken', segmentIndex: broken }
+  const verdicts = layout.importLines.map((importLine, index): CandidateVerdict => {
+    if (errorLines.has(importLine)) return 'unresolved'
+    return errorLines.has(layout.cellLines[index]) ? 'misfit' : 'fit'
+  })
+  return { type: 'verdicts', verdicts }
+}
+
+// --- The match ------------------------------------------------------------------
+
+/**
+ * Every match resolves to a NAMED outcome — there is no fallback candidate
+ * list. `fits` is the only selectable set; `path-broken` pinpoints the exact
+ * stale segment (distinct from "resolved and nothing fits", which is `fits`
+ * with an empty `fits` array); `model-missing` / `unavailable` are explicit
+ * failures the UI surfaces as errors.
+ */
+export type MatchOutcome =
+  | {
+      type: 'fits'
+      /** The resolved field type, printed by the project's compiler. */
+      fieldType: string
+      fits: MatcherCandidate[]
+      misfits: MatcherCandidate[]
+      unresolved: MatcherCandidate[]
+    }
+  | { type: 'path-broken'; modelName: string; brokenAt: { index: number; segment: string } }
+  | { type: 'model-missing'; modelName: string | null; detail: string }
+  | { type: 'unavailable'; reason: string }
+
+/** What the matcher needs from the (stateful) TypeScript service. */
+export type MatcherService = {
+  check: (probeContent: string) => readonly TS.Diagnostic[]
+  /** Printed type at a probe offset (the `__F` alias), '' when unknown. */
+  fieldTypeAt: (offset: number) => string
+  fileExists: (path: string) => boolean
+}
+
+export type MatchArgs = {
+  root: string
+  basePath: string
+  /** The OpenAPI / Swagger document (parsed). */
+  schema: unknown
+  subject: MatcherSubject
+  /** Full schemaPath: a target token (`RequestBody`/`SuccessResponse`/`Model`)
+   *  then property names. */
+  schemaPath: string[]
+  candidates: MatcherCandidateSource[]
+  /** The moduleType contract (TS source) declared by the field's generator,
+   *  read from the describe descriptors. Omit for the built-in lens/input
+   *  default (generators that haven't adopted moduleSelect). */
+  moduleType?: string
+  /** Model type name → import path, from the gen-map (`skmtc generate
+   *  --anchors`). The sole source of a model's import — a missing entry yields a
+   *  `model-missing` outcome, never a guessed path. */
+  modelImports: Map<string, string>
+  service: MatcherService
+}
+
+const toWire = ({ exportName, exportPath }: MatcherCandidateSource): MatcherCandidate => ({
+  exportName,
+  exportPath
+})
+
+/**
+ * Adjudicate `candidates` against the field at `schemaPath` and return a
+ * `MatchOutcome`. One compiler pass answers every question: is the path valid
+ * (and where does it break), does each candidate resolve, does each fit.
+ */
+export const matchInputs = (args: MatchArgs): MatchOutcome => {
+  const { root, basePath, schema, subject, schemaPath, candidates, moduleType, modelImports } = args
+  const { service } = args
+  if (!isRecord(schema)) {
+    return { type: 'unavailable', reason: 'The schema document could not be read.' }
+  }
+  if (schemaPath.length === 0) {
+    return { type: 'unavailable', reason: 'The schemaPath is empty.' }
+  }
+  const [targetToken, ...segments] = schemaPath
+  const modelName = rootModelNameForSchemaPath(schema, subject, targetToken)
+  if (!modelName) {
+    return {
+      type: 'model-missing',
+      modelName: null,
+      detail: `No named model backs ${targetToken} for this subject — the schema may use an inline (unnamed) type.`
+    }
+  }
+
+  // The model's import comes from the gen-map (`name → file`, from `skmtc
+  // generate --anchors`) — the authoritative, convention-free source. We do NOT
+  // guess a path: each project can lay out and name generated files differently,
+  // so a guessed convention would resolve to the wrong file (or a phantom) and
+  // silently mismatch. A miss is a real problem to diagnose, not to paper over.
+  const alias = modelImports.get(modelName)
+  if (alias === undefined) {
+    return {
+      type: 'model-missing',
+      modelName,
+      detail:
+        modelImports.size === 0
+          ? `No gen-map (.maps/_map.ndjson) to resolve the ${modelName} import — regenerate the project so its anchors are emitted.`
+          : `The gen-map has no import entry for ${modelName} — it was not emitted by the last generate. Regenerate the project.`
+    }
+  }
+  // The probe imports the RELATIVE on-disk path, never the consumer's `@/` alias.
+  const modelRelativePath = (alias.startsWith('@/') ? join(basePath, alias.slice(2)) : alias)
+    .split('\\')
+    .join('/')
+  const modelFileBase = join(root, modelRelativePath)
+  if (!service.fileExists(`${modelFileBase}.ts`) && !service.fileExists(`${modelFileBase}.tsx`)) {
+    return {
+      type: 'model-missing',
+      modelName,
+      detail: `No generated file at ${modelRelativePath}.ts — regenerate the project.`
+    }
+  }
+
+  const moduleTypePart = moduleTypeHeader(moduleType)
+  const layout = renderProbe({
+    modelName,
+    modelImportPath: `./${modelRelativePath}`,
+    moduleTypeSource: moduleTypePart.source,
+    moduleTypeName: moduleTypePart.name,
+    segments,
+    candidates: candidates.map((candidate) => ({
+      exportName: candidate.exportName,
+      importPath: `./${stripExt(candidate.filePath)}`
+    }))
+  })
+
+  const errorLines = new Set<number>()
+  for (const diagnostic of service.check(layout.text)) {
+    if (diagnostic.start === undefined || !diagnostic.file) continue
+    errorLines.add(diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start).line)
+  }
+
+  return match(classify(errorLines, layout))
+    .with(
+      { type: 'model-import-error' },
+      (): MatchOutcome => ({
+        type: 'model-missing',
+        modelName,
+        detail: `${modelRelativePath} does not export ${modelName} — regenerate the project.`
+      })
+    )
+    .with(
+      { type: 'module-type-error' },
+      (): MatchOutcome => ({
+        type: 'unavailable',
+        reason: `The ${moduleTypePart.name} module-type contract failed to compile — a generator bug.`
+      })
+    )
+    .with(
+      { type: 'path-broken' },
+      ({ segmentIndex }): MatchOutcome => ({
+        type: 'path-broken',
+        modelName,
+        brokenAt: { index: segmentIndex, segment: segments[segmentIndex] }
+      })
+    )
+    .with(
+      { type: 'verdicts' },
+      ({ verdicts }): MatchOutcome => ({
+        type: 'fits',
+        fieldType: service.fieldTypeAt(layout.fieldTypeOffset),
+        fits: candidates.filter((_, index) => verdicts[index] === 'fit').map(toWire),
+        misfits: candidates.filter((_, index) => verdicts[index] === 'misfit').map(toWire),
+        unresolved: candidates.filter((_, index) => verdicts[index] === 'unresolved').map(toWire)
+      })
+    )
+    .exhaustive()
+}
