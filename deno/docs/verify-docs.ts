@@ -20,6 +20,13 @@
  *      identifier-factory names, and the value-protocol exports in
  *      `lang-kotlin` source must all appear in the skmtc-lang-kotlin
  *      skill (catches "six-type" wording and missing-protocol drift).
+ *   4. DOCS-WRITING TREE SYNC — the docs-writing skill's §3 Diátaxis
+ *      mapping names every content directory that exists on disk, and
+ *      extending/ mirrors using/'s subdirectory trio.
+ *   5. FILLER-WORD GUARD — "simply"/"easily"/"obviously"/"as of this
+ *      writing" (banned by docs-writing §4) must not appear in the
+ *      reader-facing tree (using/extending/reference/concepts/
+ *      explanation).
  *
  *   exit 0 — all checks hold.
  *   exit 1 — one or more failed; each failure names file + expectation.
@@ -30,33 +37,33 @@
  * `deno task verify-docs`.
  */
 
-import { dirname, fromFileUrl, join } from 'jsr:@std/path@^1'
+import { dirname, fromFileUrl, join } from "jsr:@std/path@^1";
 
-const docsDir = dirname(fromFileUrl(import.meta.url))
-const denoDir = join(docsDir, '..')
+const docsDir = dirname(fromFileUrl(import.meta.url));
+const denoDir = join(docsDir, "..");
 
-let failures = 0
+let failures = 0;
 
 const fail = (message: string): void => {
-  failures++
-  console.log(`FAIL  ${message}`)
-}
+  failures++;
+  console.log(`FAIL  ${message}`);
+};
 
 const pass = (message: string): void => {
-  console.log(`ok    ${message}`)
-}
+  console.log(`ok    ${message}`);
+};
 
 const numberWords: Record<number, string> = {
-  2: 'two',
-  3: 'three',
-  4: 'four',
-  5: 'five',
-  6: 'six',
-  7: 'seven',
-  8: 'eight',
-  9: 'nine',
-  10: 'ten'
-}
+  2: "two",
+  3: "three",
+  4: "four",
+  5: "five",
+  6: "six",
+  7: "seven",
+  8: "eight",
+  9: "nine",
+  10: "ten",
+};
 
 // ---------------------------------------------------------------------
 // 1. Fact-list sync: skmtc-generator SKILL.md §1 ↔ llms.md "Read this
@@ -64,68 +71,82 @@ const numberWords: Record<number, string> = {
 //    match its own list length.
 // ---------------------------------------------------------------------
 
-type FactList = { headerWord: string | undefined; count: number }
+type FactList = { headerWord: string | undefined; count: number };
 
-const parseFactList = (text: string, headerPattern: RegExp): FactList | undefined => {
-  const lines = text.split('\n')
-  const start = lines.findIndex(line => headerPattern.test(line))
+const parseFactList = (
+  text: string,
+  headerPattern: RegExp,
+): FactList | undefined => {
+  const lines = text.split("\n");
+  const start = lines.findIndex((line) => headerPattern.test(line));
 
   if (start === -1) {
-    return undefined
+    return undefined;
   }
 
   const headerWord = lines[start].match(
-    new RegExp(`(${Object.values(numberWords).join('|')}) facts`, 'i')
-  )?.[1]?.toLowerCase()
+    new RegExp(`(${Object.values(numberWords).join("|")}) facts`, "i"),
+  )?.[1]?.toLowerCase();
 
-  let count = 0
+  let count = 0;
   for (const line of lines.slice(start + 1)) {
-    if (/^## /.test(line)) break
-    if (/^\d+\. \*\*/.test(line)) count++
+    if (/^## /.test(line)) break;
+    if (/^\d+\. \*\*/.test(line)) count++;
   }
 
-  return { headerWord, count }
-}
+  return { headerWord, count };
+};
 
-const llmsPath = join(docsDir, 'llms.md')
-const generatorSkillPath = join(docsDir, 'skills', 'skmtc-generator', 'SKILL.md')
+const llmsPath = join(docsDir, "llms.md");
+const generatorSkillPath = join(
+  docsDir,
+  "skills",
+  "skmtc-generator",
+  "SKILL.md",
+);
 
 const llmsFacts = parseFactList(
   await Deno.readTextFile(llmsPath),
-  /^## Read this first/
-)
+  /^## Read this first/,
+);
 const skillFacts = parseFactList(
   await Deno.readTextFile(generatorSkillPath),
-  /^## 1\. The \w+ facts/
-)
+  /^## 1\. The \w+ facts/,
+);
 
 if (!llmsFacts) {
-  fail('llms.md: "Read this first" section not found')
+  fail('llms.md: "Read this first" section not found');
 } else if (!skillFacts) {
-  fail('skmtc-generator SKILL.md: "§1 The <n> facts" section not found')
+  fail('skmtc-generator SKILL.md: "§1 The <n> facts" section not found');
 } else {
   if (llmsFacts.count !== skillFacts.count) {
     fail(
       `fact-list drift: llms.md has ${llmsFacts.count} facts, ` +
         `skmtc-generator SKILL.md §1 has ${skillFacts.count} — re-sync them ` +
-        `(the generator skill mirrors llms.md; the other skills tune their own lists)`
-    )
+        `(the generator skill mirrors llms.md; the other skills tune their own lists)`,
+    );
   } else {
-    pass(`fact-list sync: llms.md and generator skill both list ${llmsFacts.count} facts`)
+    pass(
+      `fact-list sync: llms.md and generator skill both list ${llmsFacts.count} facts`,
+    );
   }
 
-  for (const [name, facts] of [
-    ['llms.md', llmsFacts],
-    ['skmtc-generator SKILL.md', skillFacts]
-  ] as const) {
-    const expected = numberWords[facts.count]
+  for (
+    const [name, facts] of [
+      ["llms.md", llmsFacts],
+      ["skmtc-generator SKILL.md", skillFacts],
+    ] as const
+  ) {
+    const expected = numberWords[facts.count];
     if (facts.headerWord !== expected) {
       fail(
-        `${name}: header says "${facts.headerWord ?? '<no number word>'} facts" ` +
-          `but the list has ${facts.count} items (expected "${expected}")`
-      )
+        `${name}: header says "${
+          facts.headerWord ?? "<no number word>"
+        } facts" ` +
+          `but the list has ${facts.count} items (expected "${expected}")`,
+      );
     } else {
-      pass(`${name}: header word matches list length`)
+      pass(`${name}: header word matches list length`);
     }
   }
 }
@@ -137,60 +158,71 @@ if (!llmsFacts) {
 // ---------------------------------------------------------------------
 
 const deadModelPatterns: { name: string; pattern: RegExp }[] = [
-  { name: 'resolveLang', pattern: /resolveLang/ },
+  { name: "resolveLang", pattern: /resolveLang/ },
   { name: "engine-start lang error", pattern: /declares no 'lang'/ },
-  { name: 'required lang field', pattern: /required\*?\*? `lang` field/ },
-  { name: 'lang declared on the entry', pattern: /entry declares (?:a|the generator's) `?lang`?/ },
-  { name: 'lang resolved by generatorId', pattern: /resolv\w+ (?:it|the language) by `?generatorId`?/ }
-]
+  { name: "required lang field", pattern: /required\*?\*? `lang` field/ },
+  {
+    name: "lang declared on the entry",
+    pattern: /entry declares (?:a|the generator's) `?lang`?/,
+  },
+  {
+    name: "lang resolved by generatorId",
+    pattern: /resolv\w+ (?:it|the language) by `?generatorId`?/,
+  },
+];
 
 const historicalMarkers =
-  /no longer|deleted|superseded|unwound|there is no|gone|incorrect|pre-0\.8|0\.7\.x|interim|historical|was the/i
+  /no longer|deleted|superseded|unwound|there is no|gone|incorrect|pre-0\.8|0\.7\.x|interim|historical|was the/i;
 
-const surfaceFiles: string[] = [llmsPath]
+const surfaceFiles: string[] = [llmsPath];
 
 const collect = async (dir: string, suffixes: string[]): Promise<void> => {
   for await (const entry of Deno.readDir(dir)) {
-    const path = join(dir, entry.name)
+    const path = join(dir, entry.name);
     if (entry.isDirectory) {
-      await collect(path, suffixes)
-    } else if (suffixes.some(suffix => entry.name.endsWith(suffix))) {
-      surfaceFiles.push(path)
+      await collect(path, suffixes);
+    } else if (suffixes.some((suffix) => entry.name.endsWith(suffix))) {
+      surfaceFiles.push(path);
     }
   }
-}
+};
 
-await collect(join(docsDir, 'concepts'), ['.md'])
-await collect(join(docsDir, 'reference'), ['.md'])
-for await (const entry of Deno.readDir(join(docsDir, 'skills'))) {
-  if (!entry.isDirectory) continue
-  const skillFile = join(docsDir, 'skills', entry.name, 'SKILL.md')
+await collect(join(docsDir, "concepts"), [".md"]);
+await collect(join(docsDir, "reference"), [".md"]);
+for await (const entry of Deno.readDir(join(docsDir, "skills"))) {
+  if (!entry.isDirectory) continue;
+  const skillFile = join(docsDir, "skills", entry.name, "SKILL.md");
   try {
-    await Deno.stat(skillFile)
-    surfaceFiles.push(skillFile)
+    await Deno.stat(skillFile);
+    surfaceFiles.push(skillFile);
   } catch {
     // skill dir without SKILL.md — nothing to check
   }
 }
-await collect(join(docsDir, 'skills', 'skmtc-generator', 'eval'), ['.md', '.json'])
+await collect(join(docsDir, "skills", "skmtc-generator", "eval"), [
+  ".md",
+  ".json",
+]);
 
-let deadModelHits = 0
+let deadModelHits = 0;
 for (const file of surfaceFiles) {
-  const lines = (await Deno.readTextFile(file)).split('\n')
+  const lines = (await Deno.readTextFile(file)).split("\n");
   lines.forEach((line, index) => {
     for (const { name, pattern } of deadModelPatterns) {
       if (pattern.test(line) && !historicalMarkers.test(line)) {
-        deadModelHits++
+        deadModelHits++;
         fail(
           `dead-model claim (${name}) without a historical marker: ` +
-            `${file.replace(denoDir + '/', '')}:${index + 1}`
-        )
+            `${file.replace(denoDir + "/", "")}:${index + 1}`,
+        );
       }
     }
-  })
+  });
 }
 if (deadModelHits === 0) {
-  pass(`dead-model guard: no affirmative 0.7.x interim-model claims across ${surfaceFiles.length} files`)
+  pass(
+    `dead-model guard: no affirmative 0.7.x interim-model claims across ${surfaceFiles.length} files`,
+  );
 }
 
 // ---------------------------------------------------------------------
@@ -198,51 +230,200 @@ if (deadModelHits === 0) {
 // ---------------------------------------------------------------------
 
 const languageSyncTargets = [
-  { packageDirectory: 'lang-kotlin', skillName: 'skmtc-lang-kotlin', guardPrefix: 'isKt' },
-  { packageDirectory: 'lang-csharp', skillName: 'skmtc-lang-csharp', guardPrefix: 'isCs' }
-]
+  {
+    packageDirectory: "lang-kotlin",
+    skillName: "skmtc-lang-kotlin",
+    guardPrefix: "isKt",
+  },
+  {
+    packageDirectory: "lang-csharp",
+    skillName: "skmtc-lang-csharp",
+    guardPrefix: "isCs",
+  },
+];
 
-for (const { packageDirectory, skillName, guardPrefix } of languageSyncTargets) {
-  const skillPath = join(docsDir, 'skills', skillName, 'SKILL.md')
-  const skill = await Deno.readTextFile(skillPath)
+for (
+  const { packageDirectory, skillName, guardPrefix } of languageSyncTargets
+) {
+  const skillPath = join(docsDir, "skills", skillName, "SKILL.md");
+  const skill = await Deno.readTextFile(skillPath);
   const factories = await Deno.readTextFile(
-    join(denoDir, packageDirectory, 'src', 'createIdentifier.ts')
-  )
-  const packageMod = await Deno.readTextFile(join(denoDir, packageDirectory, 'mod.ts'))
+    join(denoDir, packageDirectory, "src", "createIdentifier.ts"),
+  );
+  const packageMod = await Deno.readTextFile(
+    join(denoDir, packageDirectory, "mod.ts"),
+  );
 
   const factoryNames = [
-    ...new Set([...factories.matchAll(/export const (create[A-Z]\w+)/g)].map(m => m[1]))
-  ]
+    ...new Set(
+      [...factories.matchAll(/export const (create[A-Z]\w+)/g)].map((m) =>
+        m[1]
+      ),
+    ),
+  ];
 
-  const kindWord = numberWords[factoryNames.length]
+  const kindWord = numberWords[factoryNames.length];
   if (!skill.includes(`${kindWord} entity kinds`)) {
     fail(
       `${skillName} SKILL.md: expected "${kindWord} entity kinds" ` +
-        `(${packageDirectory} exports ${factoryNames.length} identifier factories: ${factoryNames.join(', ')})`
-    )
+        `(${packageDirectory} exports ${factoryNames.length} identifier factories: ${
+          factoryNames.join(", ")
+        })`,
+    );
   } else {
-    pass(`${packageDirectory} type vocabulary: skill says "${kindWord} entity kinds" matching ${factoryNames.length} factories`)
+    pass(
+      `${packageDirectory} type vocabulary: skill says "${kindWord} entity kinds" matching ${factoryNames.length} factories`,
+    );
   }
 
   for (const factory of factoryNames) {
     if (!skill.includes(factory)) {
-      fail(`${skillName} SKILL.md: identifier factory ${factory} is exported but never mentioned`)
+      fail(
+        `${skillName} SKILL.md: identifier factory ${factory} is exported but never mentioned`,
+      );
     }
   }
 
-  const guardPattern = new RegExp(`\\b(${guardPrefix}[A-Z]\\w+)`, 'g')
-  const protocolGuards = [...new Set([...packageMod.matchAll(guardPattern)].map(m => m[1]))]
+  const guardPattern = new RegExp(`\\b(${guardPrefix}[A-Z]\\w+)`, "g");
+  const protocolGuards = [
+    ...new Set([...packageMod.matchAll(guardPattern)].map((m) => m[1])),
+  ];
   for (const guard of protocolGuards) {
     if (!skill.includes(guard)) {
-      fail(`${skillName} SKILL.md: value-protocol guard ${guard} is exported but never mentioned`)
+      fail(
+        `${skillName} SKILL.md: value-protocol guard ${guard} is exported but never mentioned`,
+      );
     }
   }
-  if (protocolGuards.every(guard => skill.includes(guard))) {
-    pass(`${packageDirectory} protocols: all ${protocolGuards.length} exported guards (${protocolGuards.join(', ')}) appear in the skill`)
+  if (protocolGuards.every((guard) => skill.includes(guard))) {
+    pass(
+      `${packageDirectory} protocols: all ${protocolGuards.length} exported guards (${
+        protocolGuards.join(", ")
+      }) appear in the skill`,
+    );
   }
 }
 
 // ---------------------------------------------------------------------
+// 4. Docs-writing tree sync — the docs-writing skill's §3 parenthetical
+//    maps Diátaxis onto this tree's directory names. The v0.1.0 mapping
+//    had already drifted (recipes/ existed but wasn't mentioned), so
+//    both directions are checked: every content directory on disk is
+//    named in the skill, and extending/ mirrors using/'s trio (the
+//    skill claims "same trio").
+// ---------------------------------------------------------------------
 
-console.log(`\n${failures === 0 ? 'All doc-sync checks hold.' : `${failures} check(s) failed.`}`)
-Deno.exit(failures > 0 ? 1 : 0)
+const docsWritingSkillPath = join(
+  docsDir,
+  "skills",
+  "docs-writing",
+  "SKILL.md",
+);
+const docsWritingSkill = await Deno.readTextFile(docsWritingSkillPath);
+
+const listSubdirectories = async (dir: string): Promise<string[]> => {
+  const names: string[] = [];
+  for await (const entry of Deno.readDir(dir)) {
+    if (entry.isDirectory) names.push(entry.name);
+  }
+  return names.sort();
+};
+
+const usingSubdirectories = await listSubdirectories(join(docsDir, "using"));
+const extendingSubdirectories = await listSubdirectories(
+  join(docsDir, "extending"),
+);
+
+let treeSyncFailures = 0;
+
+for (const name of usingSubdirectories) {
+  if (!docsWritingSkill.includes(`using/${name}/`)) {
+    treeSyncFailures++;
+    fail(
+      `docs-writing SKILL.md: docs/using/${name}/ exists but the §3 tree mapping doesn't name \`using/${name}/\``,
+    );
+  }
+}
+
+if (usingSubdirectories.join(",") !== extendingSubdirectories.join(",")) {
+  treeSyncFailures++;
+  fail(
+    `docs-writing SKILL.md claims extending/ mirrors using/'s trio, but ` +
+      `using/ has [${usingSubdirectories.join(", ")}] and extending/ has [${
+        extendingSubdirectories.join(", ")
+      }]`,
+  );
+}
+
+for (const name of ["extending/", "reference/", "concepts/", "explanation/"]) {
+  if (!docsWritingSkill.includes(`\`${name}\``)) {
+    treeSyncFailures++;
+    fail(`docs-writing SKILL.md: §3 tree mapping doesn't name \`${name}\``);
+  }
+}
+
+if (treeSyncFailures === 0) {
+  pass(
+    `docs-writing tree sync: skill names all ${usingSubdirectories.length} using/ subdirectories ` +
+      `+ the top-level content dirs; extending/ mirrors using/`,
+  );
+}
+
+// ---------------------------------------------------------------------
+// 5. Filler-word guard — the docs-writing skill (§4) bans "simply",
+//    "easily", "obviously", and "as of this writing" as filler that
+//    condescends when the step isn't easy for the reader. Enforced
+//    zero-tolerance across the reader-facing tree. Deliberately NOT
+//    checked: "just" and "currently" — both have too many legitimate
+//    uses here ("just-in-time", version-scoped capability statements
+//    like "does not currently retry"); those stay a review concern.
+//    skills/ is excluded: the docs-writing skill quotes the banned
+//    words as counter-examples.
+// ---------------------------------------------------------------------
+
+const fillerPattern = /\b(simply|easily|obviously)\b|as of this writing/i;
+
+const readerFacingFiles: string[] = [];
+for (
+  const dir of ["using", "extending", "reference", "concepts", "explanation"]
+) {
+  const collectMarkdown = async (root: string): Promise<void> => {
+    for await (const entry of Deno.readDir(root)) {
+      const path = join(root, entry.name);
+      if (entry.isDirectory) await collectMarkdown(path);
+      else if (entry.name.endsWith(".md")) readerFacingFiles.push(path);
+    }
+  };
+  await collectMarkdown(join(docsDir, dir));
+}
+
+let fillerHits = 0;
+for (const file of readerFacingFiles) {
+  const lines = (await Deno.readTextFile(file)).split("\n");
+  lines.forEach((line, index) => {
+    const match = line.match(fillerPattern);
+    if (match) {
+      fillerHits++;
+      fail(
+        `filler word "${match[0]}" (banned by docs-writing §4): ` +
+          `${file.replace(denoDir + "/", "")}:${index + 1}`,
+      );
+    }
+  });
+}
+if (fillerHits === 0) {
+  pass(
+    `filler-word guard: no simply/easily/obviously across ${readerFacingFiles.length} reader-facing files`,
+  );
+}
+
+// ---------------------------------------------------------------------
+
+console.log(
+  `\n${
+    failures === 0
+      ? "All doc-sync checks hold."
+      : `${failures} check(s) failed.`
+  }`,
+);
+Deno.exit(failures > 0 ? 1 : 0);
