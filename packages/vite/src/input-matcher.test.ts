@@ -79,27 +79,9 @@ describe('rootModelNameForSchemaPath', () => {
     ).toBe('PropertyModel')
   })
 
-  it('SuccessResponse: unwraps a bare-array envelope to the row $ref name', () => {
-    const doc = {
-      definitions: { PropertyModel: { type: 'object', properties: {} } },
-      paths: {
-        '/properties': {
-          get: {
-            responses: {
-              '200': {
-                schema: { type: 'array', items: { $ref: '#/definitions/PropertyModel' } }
-              }
-            }
-          }
-        }
-      }
-    }
-    expect(
-      rootModelNameForSchemaPath(doc, operation('/properties', 'get'), 'SuccessResponse')
-    ).toBe('PropertyModel')
-  })
-
-  it('SuccessResponse: unwraps an object envelope (_embedded-style array property) to the row', () => {
+  it('SuccessResponse: resolves an object envelope to the WHOLE response $ref (not the row)', () => {
+    // The schemaPath navigates into the array explicitly (`_embedded` → `items`),
+    // so the root is the envelope model, consistent with RequestBody.
     const doc = {
       definitions: {
         PropertyModelPagedResult: {
@@ -123,7 +105,27 @@ describe('rootModelNameForSchemaPath', () => {
     }
     expect(
       rootModelNameForSchemaPath(doc, operation('/properties', 'get'), 'SuccessResponse')
-    ).toBe('PropertyModel')
+    ).toBe('PropertyModelPagedResult')
+  })
+
+  it('SuccessResponse: an inline bare-array response has no named root model', () => {
+    const doc = {
+      definitions: { PropertyModel: { type: 'object', properties: {} } },
+      paths: {
+        '/properties': {
+          get: {
+            responses: {
+              '200': {
+                schema: { type: 'array', items: { $ref: '#/definitions/PropertyModel' } }
+              }
+            }
+          }
+        }
+      }
+    }
+    expect(
+      rootModelNameForSchemaPath(doc, operation('/properties', 'get'), 'SuccessResponse')
+    ).toBeUndefined()
   })
 
   it('returns undefined for a missing operation', () => {
@@ -196,6 +198,26 @@ describe('renderProbe', () => {
     })
     expect(layout.segmentLines).toEqual([])
     expect(layout.text).toContain('type __F = M')
+  })
+
+  it('drills an `items` segment as array-element access', () => {
+    // `["SuccessResponse","_embedded","items","name"]` → the envelope model, its
+    // `_embedded` array, the array's element, then `name`.
+    const layout = renderProbe({
+      modelName: 'ApplicantModelPagedResult',
+      modelImportPath: './src/types/applicantModelPagedResult.generated',
+      moduleTypeSource: 'export type S<F> = F',
+      moduleTypeName: 'S',
+      segments: ['_embedded', 'items', 'name'],
+      candidates: []
+    })
+    const lines = layout.text.split('\n')
+    expect(lines).toContain(`type __D0 = ApplicantModelPagedResult['_embedded']`)
+    expect(lines).toContain(
+      `type __D1 = NonNullable<__D0> extends ReadonlyArray<infer __El1> ? __El1 : NonNullable<__D0>['items']`
+    )
+    expect(lines).toContain(`type __D2 = NonNullable<__D1>['name']`)
+    expect(layout.text).toContain('type __F = __D2')
   })
 
   it('escapes quotes and backslashes in property segments', () => {

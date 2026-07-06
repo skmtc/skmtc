@@ -12,7 +12,7 @@
 // There is no fallback list: every outcome is a named verdict (`MatchOutcome`).
 
 import { join } from 'node:path'
-import { match, P } from 'ts-pattern'
+import { match } from 'ts-pattern'
 import type * as TS from 'typescript'
 
 export type MatcherSubject =
@@ -84,41 +84,14 @@ const successResponseSchema = (operation: Doc): unknown => {
   return isRecord(response.schema) ? response.schema : firstContentSchema(response.content)
 }
 
-// The row `$ref` name inside an object envelope's first array property (e.g.
-// `_embedded`/`data`), or undefined.
-const arrayPropertyRowName = (doc: Doc, properties: Doc): string | undefined => {
-  for (const property of Object.values(properties)) {
-    const resolved = deref(doc, property)
-    if (isRecord(resolved) && resolved.type === 'array') {
-      const rowName = refNameOf(resolved.items)
-      if (rowName) return rowName
-    }
-  }
-  return undefined
-}
-
-// The row model NAME for a success response — unwrap the list envelope to the
-// row's `$ref`, keeping the name (deref would lose it): a bare array, an object
-// with an array property, else the single-object response's own `$ref`.
-const successResponseRowName = (doc: Doc, operation: Doc): string | undefined => {
-  const schema = successResponseSchema(operation)
-  const resolved = deref(doc, schema)
-  if (!isRecord(resolved)) return undefined
-  return match(resolved)
-    .with({ type: 'array', items: P.when(isRecord) }, ({ items }) => refNameOf(items))
-    .with(
-      { properties: P.when(isRecord) },
-      ({ properties }) => arrayPropertyRowName(doc, properties) ?? refNameOf(schema)
-    )
-    .otherwise(() => refNameOf(schema))
-}
-
 /**
- * The generated model type NAME for an schemaPath root: the request-body model
- * (form `input` fields), the response row model (table `formatter` fields —
- * unwrapping the list envelope), or the model subject itself. The matcher then
- * narrows by whatever module type the field's generator declares (the built-in
- * lens contract if none) — so a table column's formatter narrows against the row model's type.
+ * The generated model type NAME for a schemaPath root: the request-body model
+ * (form `input` fields), the WHOLE success-response model (table/select fields),
+ * or the model subject itself. `SuccessResponse` is NOT unwrapped to the row —
+ * the schemaPath navigates into the list array explicitly (`_embedded` then an
+ * `items` element step; see `renderProbe`), so it refers to the entire response
+ * object, consistent with how `RequestBody` refers to the whole body. The
+ * matcher then narrows by whatever module type the field's generator declares.
  */
 export const rootModelNameForSchemaPath = (
   doc: Doc,
@@ -133,7 +106,7 @@ export const rootModelNameForSchemaPath = (
     })
     .with({ subject: { type: 'operation' }, targetToken: 'SuccessResponse' }, ({ subject }) => {
       const operation = operationAt(doc, subject.path, subject.method)
-      return operation ? successResponseRowName(doc, operation) : undefined
+      return operation ? refNameOf(successResponseSchema(operation)) : undefined
     })
     .otherwise(() => undefined)
 
@@ -144,6 +117,11 @@ const stripExt = (path: string): string => path.replace(/\.(tsx?|jsx?)$/, '')
 // Segments are interpolated into single-quoted index strings.
 const escapeSegment = (segment: string): string =>
   segment.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+
+// The schemaPath segment that steps into an array's element — JSON Schema's own
+// `items` keyword. A shared convention with the schema-path walker and the
+// generators: object → property name, array → `items`.
+const ARRAY_ITEM_SEGMENT = 'items'
 
 // The built-in default contract (the common lens/input case), used when a
 // subject's generator declares no moduleType (mirrors core's
@@ -214,10 +192,14 @@ export const renderProbe = (input: ProbeInput): ProbeLayout => {
   const segmentLines: number[] = []
   segments.forEach((segment, index) => {
     segmentLines.push(lines.length)
+    const base = index === 0 ? modelName : `NonNullable<__D${index - 1}>`
+    // `items` steps into the array's element. The conditional keeps it correct
+    // even if a real object property is literally named `items` — only the
+    // array branch fires when the base actually is an array.
     lines.push(
-      index === 0
-        ? `type __D0 = ${modelName}['${escapeSegment(segment)}']`
-        : `type __D${index} = NonNullable<__D${index - 1}>['${escapeSegment(segment)}']`
+      segment === ARRAY_ITEM_SEGMENT
+        ? `type __D${index} = ${base} extends ReadonlyArray<infer __El${index}> ? __El${index} : ${base}['items']`
+        : `type __D${index} = ${base}['${escapeSegment(segment)}']`
     )
   })
 
