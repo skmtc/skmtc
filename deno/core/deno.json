@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/core",
-  "version": "0.25.0",
+  "version": "0.26.0",
   "license": "Apache-2.0",
   "nodeModulesDir": "auto",
   "imports": {
@@ -53,6 +53,7 @@
     "publish": "deno task publish:deno",
     "build": "deno run -A .scripts/build-node.ts",
     "publish:npm": "cd ../../packages/core && npm publish",
+    "publish:npm-if-needed": "deno run --allow-read --allow-env --allow-net --allow-run .scripts/publish-npm.ts",
     "publish:deno": "deno publish --allow-slow-types --allow-dirty",
     "docs": "deno doc --html --name=\"My library\" ./mod.ts",
     "docs:json": "deno doc --json --name=\"My library\" ./mod.ts > ../docs/src/docs.json",
@@ -67,7 +68,7 @@
   },
   "test": {
     "exclude": [
-      ".scripts/"
+      ".scripts/build-node.ts"
     ]
   }
 }
