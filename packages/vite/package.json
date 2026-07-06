@@ -1,0 +1,48 @@
+{
+  "name": "@skmtc/vite",
+  "version": "0.1.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./enrichment-leaf": {
+      "types": "./dist/enrichment-leaf.d.mts",
+      "default": "./dist/enrichment-leaf.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ts-pattern": "^5.9.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tsdown": "^0.22.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.3",
+    "vitest": "^4.1.10"
+  },
+  "peerDependencies": {
+    "react": ">= 18",
+    "react-dom": ">= 18",
+    "vite": ">= 6"
+  }
+}

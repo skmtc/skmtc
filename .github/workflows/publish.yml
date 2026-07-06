@@ -1,7 +1,8 @@
 # Release via the cascade script, publishing to public jsr.io
-# authenticated with GitHub OIDC (no registry token). `@skmtc/core` is
-# additionally published to npm in the same job (also via OIDC — npm
-# Trusted Publishing).
+# authenticated with GitHub OIDC (no registry token). `@skmtc/core` and
+# `@skmtc/vite` are additionally published to npm in the same job (also via
+# OIDC — npm Trusted Publishing). `@skmtc/vite` is a pnpm/node package (not
+# dnt): its step installs deps, builds `dist/` with tsdown, then publishes.
 #
 # Runs automatically on every merge to main: the cascade publishes any
 # workspace package whose deno.json version isn't yet on the registry
@@ -17,12 +18,14 @@
 #
 # OIDC requires the `id-token: write` permission below AND, for JSR, each
 # published @skmtc/* package on jsr.io to be linked to this GitHub
-# repository in its package settings. For npm, `@skmtc/core` must list
-# this repo + this workflow (publish.yml) as a Trusted Publisher in its
-# npmjs.com package settings — configure that BEFORE merging a core
-# version bump, or the npm step fails after the JSR release has already
-# shipped. Once npm holds the current core version the step self-skips
-# (registry-truth), so re-runs and no-bump merges are safe.
+# repository in its package settings. For npm, both `@skmtc/core` and
+# `@skmtc/vite` must list this repo + this workflow (publish.yml) as a
+# Trusted Publisher in their npmjs.com package settings — configure that
+# BEFORE merging a version bump, or the npm step fails after the JSR release
+# has already shipped. Each npm step self-skips once npm holds the current
+# package.json version (registry-truth), so re-runs and no-bump merges are
+# safe. (`@skmtc/vite`'s version is its `package.json` version, independent
+# of the JSR cascade.)
 
 name: Publish
 
@@ -74,3 +77,24 @@ jobs:
       - name: Publish @skmtc/core to npm (if behind)
         working-directory: deno/core
         run: deno task publish:npm-if-needed
+
+      # --- npm publish for @skmtc/vite (OIDC / Trusted Publishing) ---
+      # The Vite preview plugin is a pnpm/node package: install its deps, build
+      # dist/ with tsdown (ESM + d.ts; the browser render harness ships as
+      # source), then publish only when npm is behind. package.json `version`
+      # is the source of truth — the step self-skips when npm already has it.
+      - name: Install @skmtc/vite deps
+        run: pnpm install --filter @skmtc/vite --frozen-lockfile
+
+      - name: Publish @skmtc/vite to npm (if behind)
+        working-directory: packages/vite
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "$NAME@$VERSION" version 2>/dev/null | grep -q .; then
+            echo "$NAME@$VERSION already on npm — nothing to publish."
+          else
+            echo "npm is behind — building and publishing $NAME@$VERSION..."
+            pnpm build
+            npm publish --access public --provenance
+          fi
