@@ -67,3 +67,7 @@ deno/cli/tests/.fixtures/
 notes/*
 
 todo.txt
+# Doc-test extraction dir (docs/doc-test.ts regenerates it per run)
+# and scaffold-compile test temp dirs.
+deno/docs/.doc-test/
+deno/.scaffold-check-*/

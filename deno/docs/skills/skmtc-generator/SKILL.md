@@ -612,7 +612,7 @@ export default MyGenEntry
 
 Two shape differences from the OAS version above:
 
-```ts
+```ts fragment
 import { toGqlOperationEntry, synthesizeArgsObject } from '@skmtc/core'
 
 export const MyGqlEntry = toGqlOperationEntry<EnrichmentSchema>({
@@ -658,7 +658,7 @@ Background: [`concepts/the-graphql-pipeline.md`](../../concepts/the-graphql-pipe
 
 ### Scaffold C variant: Model entry (`toModelEntry`)
 
-```ts
+```ts fragment
 import { toModelEntry } from '@skmtc/core'
 
 export const MyModelEntry = toModelEntry<EnrichmentSchema>({
@@ -1215,7 +1215,7 @@ specifically gating `isSupported` itself on enrichment presence.
 
 ### Passing `lang` as a config field — or expecting a destinationPath fallback
 
-```ts
+```ts fragment
 // ❌ WRONG — nothing takes a lang config field: not the projection-base
 //   factories, not the entries, not snippets
 toTsModelProjectionBase({ id, lang: typescript, toIdentifierName, toIdentifierType, toExportPath })
@@ -1241,7 +1241,7 @@ can never silently land content in the wrong file.
 
 ### Shared file-scope export built as `defineAndRegister`-of-a-Snippet
 
-```ts
+```ts fragment
 // ❌ WRONG — peers can't reach this Definition
 import { defineAndRegister } from '@skmtc/lang-typescript'
 
@@ -1350,7 +1350,7 @@ through.
 
 ### Variants-aware `toIdentifierName` that ignores `variant`
 
-```ts
+```ts fragment
 // ❌ WRONG — collision on the second variant
 toIdentifierName({ operation, variant }) {
   return `${toName(operation)}Form`
@@ -1640,7 +1640,7 @@ the per-operation Projection isn't the artifact — it contributes
 
 Shape (`gen-msw/src/mod.ts`):
 
-```ts
+```ts fragment
 import { defineAndRegister } from '@skmtc/lang-typescript'
 
 transform: ({ context, operation }) => {

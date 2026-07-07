@@ -317,7 +317,7 @@ analog to the OAS form generator), use your language package's
 `toTsGqlOperationProjectionBase` veneer to declare a Projection class.
 The factory mirrors `toTsOasOperationProjectionBase`:
 
-```ts
+```ts fragment
 import { toTsGqlOperationProjectionBase } from '@skmtc/lang-typescript'
 
 export const MyGqlFormBase = toTsGqlOperationProjectionBase<EnrichmentSchema>({

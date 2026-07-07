@@ -81,7 +81,7 @@ piece. The boundary rule, worth internalizing first:
 
 ### Wiring — the import graph declares the language
 
-```ts
+```ts fragment
 // gen-x/src/base.ts — the language enters HERE, through the import
 import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 

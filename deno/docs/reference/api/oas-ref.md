@@ -267,7 +267,7 @@ type ToJsonSchemaOptions = {
 
 ### Basic resolution
 
-```ts
+```ts fragment
 import { OasRef } from '@skmtc/core'
 
 // Constructed during parse; you typically receive one

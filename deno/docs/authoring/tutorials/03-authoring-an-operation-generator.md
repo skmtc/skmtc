@@ -85,7 +85,7 @@ config fields on that call — not free-standing exports:
 
 ```ts
 // src/base.ts
-import { toEndpointName } from '@skmtc/core'
+import { emptyEnrichmentSchema, toEndpointName } from '@skmtc/core'
 import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import type { TsIdentifierType } from '@skmtc/lang-typescript'
 import { join } from '@std/path/join'
@@ -102,13 +102,18 @@ export const CurlCmdBase = toTsOasOperationProjectionBase({
   toExportPath({ operation }): string {
     const tag = operation.tags?.[0] ?? 'misc'
     return join('@', tag, `${toEndpointName(operation)}.curl.ts`)
-  }
+  },
+
+  toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 ```
 
 `toEndpointName` is the canonical helper from `@skmtc/core` for
 deriving a JS-safe name from `operationId` (with fallback to
-path+method).
+path+method). `toEnrichmentSchema` is required; this generator takes
+no user configuration, so it passes core's `emptyEnrichmentSchema` —
+see [how to add enrichment options](../how-to/add-enrichment-options.md)
+for a generator that declares its own.
 
 ## Step 4: Implement the Projection class
 
@@ -171,7 +176,7 @@ Once `toString()` gets long, extract pieces into Snippet classes.
 A Snippet is a `SnippetBase` subclass with its own `toString()`
 that gets interpolated:
 
-```ts
+```ts fragment
 // src/UrlTemplate.ts
 import { SnippetBase, type OasParameter } from '@skmtc/core'
 

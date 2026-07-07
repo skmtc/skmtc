@@ -92,7 +92,7 @@ object — useful when the consumer needs more than the name (the
 the language subclass — the declaration `type`) for an import
 registration:
 
-```ts
+```ts fragment
 import { TsIdentifier, isTypeOnly } from '@skmtc/lang-typescript'
 
 const identifier = inserted.toIdentifier()

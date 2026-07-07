@@ -52,7 +52,7 @@ technically Snippets — but with substantial additional structure
 
 Generator code calls the single-argument veneer:
 
-```ts
+```ts fragment
 import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 
 export const MyBase = toTsModelProjectionBase<EnrichmentSchema>(config)

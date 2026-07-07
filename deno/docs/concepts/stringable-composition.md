@@ -209,7 +209,7 @@ and per-format helpers.
 
 A Snippet looks like:
 
-```ts
+```ts fragment
 import { TsSnippet } from '@skmtc/lang-typescript'
 
 export class StringInput extends TsSnippet {
@@ -438,7 +438,7 @@ separated content.
 
 ### Composing into a definition
 
-```ts
+```ts fragment
 import { defineAndRegister, createVariable } from '@skmtc/lang-typescript'
 
 defineAndRegister(context, {

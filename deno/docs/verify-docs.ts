@@ -28,6 +28,19 @@
  *      writing" (banned by docs-writing §4) must not appear in the
  *      reader-facing tree (using/authoring/reference/concepts/
  *      explanation).
+ *   6. CLI COMMAND-SURFACE SYNC — every top-level command registered
+ *      in cli/mod.ts is mentioned in the skmtc-cli skill and has a
+ *      reference/cli/<command>.md page; every reference/cli page and
+ *      every row of the skill's command table names a command that is
+ *      still registered.
+ *   7. PARSE-ISSUE SYNC — every member of the OasIssueType and
+ *      GqlIssueType unions has a `### \`CODE\`` entry in
+ *      reference/error-codes.md, every documented code is still in a
+ *      union, and every issue level the source emits is documented.
+ *   8. CLIENT-SETTINGS SYNC — every key of the clientSettings and
+ *      skmtcClientConfig valibot schemas appears in
+ *      reference/settings/client-json-schema.md (the page claims
+ *      "the complete shape").
  *
  *   exit 0 — all checks hold.
  *   exit 1 — one or more failed; each failure names file + expectation.
@@ -412,6 +425,259 @@ if (fillerHits === 0) {
   pass(
     `filler-word guard: no simply/easily/obviously across ${readerFacingFiles.length} reader-facing files`,
   );
+}
+
+// ---------------------------------------------------------------------
+// 6. CLI command-surface sync — cli/mod.ts is the source of truth for
+//    the registered command surface. Registrations before the final
+//    `await new Command()` chain are nested subcommands (project
+//    create/rm, migrate variants); registrations after it are the
+//    top-level surface. Both the skmtc-cli skill and the per-command
+//    reference pages must track it, in both directions.
+// ---------------------------------------------------------------------
+
+const cliModText = await Deno.readTextFile(join(denoDir, "cli", "mod.ts"));
+const rootChainIndex = cliModText.indexOf("await new Command()");
+
+const commandRegistrations = [
+  ...cliModText.matchAll(/\.command\('([a-z][a-z-]*)', \w+Command\)/g),
+];
+const topLevelCommands = commandRegistrations
+  .filter((match) => (match.index ?? 0) > rootChainIndex)
+  .map((match) => match[1]);
+
+if (rootChainIndex === -1 || topLevelCommands.length === 0) {
+  fail(
+    "cli/mod.ts: could not locate the root `await new Command()` chain — " +
+      "the command-surface parser needs updating",
+  );
+} else {
+  const cliSkillText = await Deno.readTextFile(
+    join(docsDir, "skills", "skmtc-cli", "SKILL.md"),
+  );
+
+  let commandSurfaceFailures = 0;
+
+  for (const command of topLevelCommands) {
+    if (!cliSkillText.includes("`" + command)) {
+      commandSurfaceFailures++;
+      fail(
+        `skmtc-cli SKILL.md: registered command \`${command}\` is never mentioned`,
+      );
+    }
+
+    try {
+      await Deno.stat(join(docsDir, "reference", "cli", `${command}.md`));
+    } catch {
+      commandSurfaceFailures++;
+      fail(
+        `reference/cli/${command}.md: registered command \`${command}\` has no reference page`,
+      );
+    }
+  }
+
+  for await (const entry of Deno.readDir(join(docsDir, "reference", "cli"))) {
+    if (
+      !entry.name.endsWith(".md") ||
+      entry.name === "overview.md" ||
+      entry.name === "CLAUDE.md"
+    ) continue;
+    const documented = entry.name.replace(/\.md$/, "");
+    if (!topLevelCommands.includes(documented)) {
+      commandSurfaceFailures++;
+      fail(
+        `reference/cli/${entry.name}: documents \`${documented}\`, which is not ` +
+          `a registered top-level command in cli/mod.ts`,
+      );
+    }
+  }
+
+  const commandTableSection = cliSkillText.match(
+    /^## \d+\. Command surface[\s\S]*?(?=^## )/m,
+  );
+  if (!commandTableSection) {
+    commandSurfaceFailures++;
+    fail('skmtc-cli SKILL.md: "Command surface" section not found');
+  } else {
+    for (
+      const row of commandTableSection[0].matchAll(/^\| `([a-z][a-z-]*)/gm)
+    ) {
+      if (!topLevelCommands.includes(row[1])) {
+        commandSurfaceFailures++;
+        fail(
+          `skmtc-cli SKILL.md command table: \`${row[1]}\` is not a registered ` +
+            `top-level command in cli/mod.ts`,
+        );
+      }
+    }
+  }
+
+  if (commandSurfaceFailures === 0) {
+    pass(
+      `CLI command-surface sync: all ${topLevelCommands.length} registered commands ` +
+        `are in the skill + have reference pages; no stale entries`,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------
+// 7. Parse-issue sync — the OasIssueType and GqlIssueType unions are
+//    the source of truth for issue codes; the levels the source emits
+//    are the source of truth for severity levels. error-codes.md
+//    claims to be the canonical catalog, so both directions must hold.
+// ---------------------------------------------------------------------
+
+const parseUnionMembers = (text: string, typeName: string): string[] => {
+  const lines = text.split("\n");
+  const start = lines.findIndex((line) =>
+    line.startsWith(`export type ${typeName} =`)
+  );
+  if (start === -1) return [];
+
+  const members: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    const member = line.match(/^\s*\| '([A-Z_]+)'/);
+    if (!member) break;
+    members.push(member[1]);
+  }
+  return members;
+};
+
+const oasIssueMembers = parseUnionMembers(
+  await Deno.readTextFile(join(denoDir, "core", "context", "generateTypes.ts")),
+  "OasIssueType",
+);
+const parseIssueText = await Deno.readTextFile(
+  join(denoDir, "core", "context", "ParseIssue.ts"),
+);
+const gqlIssueMembers = parseUnionMembers(parseIssueText, "GqlIssueType");
+
+const errorCodesText = await Deno.readTextFile(
+  join(docsDir, "reference", "error-codes.md"),
+);
+
+if (oasIssueMembers.length === 0 || gqlIssueMembers.length === 0) {
+  fail(
+    "issue-type unions: could not parse OasIssueType or GqlIssueType from " +
+      "core — the union parser needs updating",
+  );
+} else {
+  let issueSyncFailures = 0;
+  const unionMembers = new Set([...oasIssueMembers, ...gqlIssueMembers]);
+
+  for (const code of unionMembers) {
+    if (!errorCodesText.includes(`### \`${code}\``)) {
+      issueSyncFailures++;
+      fail(
+        `reference/error-codes.md: issue type ${code} is in the source union ` +
+          `but has no \`### ${code}\` entry`,
+      );
+    }
+  }
+
+  for (const heading of errorCodesText.matchAll(/^### `([A-Z_]+)`/gm)) {
+    if (!unionMembers.has(heading[1])) {
+      issueSyncFailures++;
+      fail(
+        `reference/error-codes.md: documents ${heading[1]}, which is in ` +
+          `neither OasIssueType nor GqlIssueType`,
+      );
+    }
+  }
+
+  const sourceLevels = [
+    ...new Set(
+      [...parseIssueText.matchAll(/level: '(\w+)'/g)].map((match) => match[1]),
+    ),
+  ];
+  const levelsSection = errorCodesText.match(
+    /^## Issue levels[\s\S]*?(?=^## )/m,
+  );
+  for (const level of sourceLevels) {
+    if (!levelsSection || !levelsSection[0].includes(`\`${level}\``)) {
+      issueSyncFailures++;
+      fail(
+        `reference/error-codes.md "Issue levels": source emits level '${level}' ` +
+          `(core/context/ParseIssue.ts) but the section doesn't document it`,
+      );
+    }
+  }
+
+  if (issueSyncFailures === 0) {
+    pass(
+      `parse-issue sync: all ${unionMembers.size} issue codes and ` +
+        `${sourceLevels.length} levels match error-codes.md, no stale entries`,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------
+// 8. Client-settings sync — the clientSettings and skmtcClientConfig
+//    valibot schemas in core/types/Settings.ts define the client.json
+//    surface. reference/settings/client-json-schema.md claims "the
+//    complete shape", so every schema key must appear there (as a
+//    `"key"` in a JSONC block or as backticked prose).
+// ---------------------------------------------------------------------
+
+const parseSchemaKeys = (text: string, constName: string): string[] => {
+  const lines = text.split("\n");
+  const start = lines.findIndex((line) =>
+    line.startsWith(`export const ${constName}`)
+  );
+  if (start === -1) return [];
+
+  const keys: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    if (/^\}\)/.test(line)) break;
+    const key = line.match(/^  (\w+):/);
+    if (key) keys.push(key[1]);
+  }
+  return keys;
+};
+
+const settingsText = await Deno.readTextFile(
+  join(denoDir, "core", "types", "Settings.ts"),
+);
+const clientJsonDocText = await Deno.readTextFile(
+  join(docsDir, "reference", "settings", "client-json-schema.md"),
+);
+
+const settingsKeys = parseSchemaKeys(settingsText, "clientSettings");
+const configKeys = parseSchemaKeys(settingsText, "skmtcClientConfig");
+
+if (settingsKeys.length === 0 || configKeys.length === 0) {
+  fail(
+    "core/types/Settings.ts: could not parse clientSettings or " +
+      "skmtcClientConfig keys — the schema parser needs updating",
+  );
+} else {
+  let settingsSyncFailures = 0;
+  for (
+    const [owner, keys] of [
+      ["clientSettings", settingsKeys],
+      ["skmtcClientConfig", configKeys],
+    ] as const
+  ) {
+    for (const key of keys) {
+      const documented = clientJsonDocText.includes(`"${key}"`) ||
+        clientJsonDocText.includes(`\`${key}\``) ||
+        clientJsonDocText.includes(`.${key}\``);
+      if (!documented) {
+        settingsSyncFailures++;
+        fail(
+          `reference/settings/client-json-schema.md: ${owner} key ` +
+            `\`${key}\` (core/types/Settings.ts) is not documented`,
+        );
+      }
+    }
+  }
+
+  if (settingsSyncFailures === 0) {
+    pass(
+      `client-settings sync: all ${settingsKeys.length + configKeys.length} ` +
+        `schema keys appear in client-json-schema.md`,
+    );
+  }
 }
 
 // ---------------------------------------------------------------------
