@@ -72,7 +72,7 @@ look for `src/generated/<Tag>/<operation>.generated.ts`.
   `@skmtc/gen-zod@^0.0.55` to the same install. Typos surface as
   this error.
 - **No output for the new generator** — Run `skmtc generate
-  my-project --json | jq '.diagnostics'`. The generator may have
+  my-project --json | jq '.manifest.parseIssues'`. The generator may have
   `isSupported` filters that skip your operations (e.g.,
   `gen-shadcn-form` only handles POST/PUT/PATCH with object
   bodies).

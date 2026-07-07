@@ -81,7 +81,7 @@ of artifacts.
   has `enrichments` keyed by an operation that no longer exists,
   the engine silently ignores them. Cleanup is optional but
   reduces `client.json` clutter.
-- **Generated output is wildly different** — Check `manifest.diagnostics`
+- **Generated output is wildly different** — Check `manifest.parseIssues`
   for parse errors on the new spec. A spec update may introduce
   parse issues that prune dependent operations.
 

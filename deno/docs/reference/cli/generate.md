@@ -270,7 +270,7 @@ Discriminated on `type`:
 { "type": "skipped", "reason": "no-files", "message": "..." }
 ```
 
-Only `kind: "failed"` causes exit 1. The other outcomes are
+Only `type: "failed"` causes exit 1. The other outcomes are
 informational.
 
 ## Examples
@@ -317,7 +317,7 @@ No schema argument needed.
 | Code | Meaning |
 |---|---|
 | `0` | Success — no fatal parse issues, typecheck (if requested) passed |
-| `1` | Fatal parseIssue at level `error`, OR `--typecheck` returned `kind: "failed"`, OR worker error |
+| `1` | Fatal parseIssue at level `error`, OR `--typecheck` returned `type: "failed"`, OR worker error |
 | `2` | Required argument missing (recipe error on stderr), OR `--json` and `--watch` both passed, OR bundle freshness gate triggered |
 
 ## Worker-side failures

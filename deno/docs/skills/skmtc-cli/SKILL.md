@@ -398,7 +398,7 @@ specific variants of a multi-variant operation.
 
 ## 8. Common JSON output shapes
 
-Agents drive on these shapes. Discriminator field is usually `kind`.
+Agents drive on these shapes. Discriminator field is usually `type`.
 
 ### `install`
 
@@ -406,13 +406,13 @@ Agents drive on these shapes. Discriminator field is usually `kind`.
 {
   "projectName": "my-api",
   "installed": ["@skmtc/gen-zod"],
-  "bundle": { "kind": "bundled", "projectName": "my-api", "bundlePath": "..." },
+  "bundle": { "type": "bundled", "projectName": "my-api", "bundlePath": "..." },
   "verifyWith": "cat .skmtc/my-api/deno.json"
 }
 ```
 
 The post-install rebundle runs for every project — remote-only and
-hybrid alike — so `bundle.kind` is always `"bundled"`.
+hybrid alike — so `bundle.type` is always `"bundled"`.
 
 ### `clone`
 
@@ -422,7 +422,7 @@ hybrid alike — so `bundle.kind` is always `"bundled"`.
   "cloned": [
     { "moduleName": "@skmtc/gen-typescript", "version": "0.0.55" }
   ],
-  "bundle": { "kind": "bundled", "projectName": "my-api", "bundlePath": "..." },
+  "bundle": { "type": "bundled", "projectName": "my-api", "bundlePath": "..." },
   "verifyWith": "ls .skmtc/my-api/"
 }
 ```
@@ -437,14 +437,14 @@ refuses with exit 2 before any state mutation. `--force` overrides
 ```jsonc
 // Wrote bundle.js — the only outcome; every project (remote-only
 // included) builds a local bundle, since `generate` loads it:
-{ "kind": "bundled", "projectName": "my-api", "bundlePath": "..." }
+{ "type": "bundled", "projectName": "my-api", "bundlePath": "..." }
 ```
 
 ### `generate`
 
 ```jsonc
 {
-  "kind": "generated",
+  "type": "generated",
   "projectName": "my-api",
   "basePath": "mobile-app/src",
   "manifestPath": ".skmtc/my-api/.settings/manifest.json",
@@ -463,7 +463,7 @@ refuses with exit 2 before any state mutation. `--force` overrides
 }
 ```
 
-With `--typecheck`, gains a `typecheck` field (`{ kind: "passed" | "failed" | "no-tsconfig" | "tsc-error" | "skipped", ... }`).
+With `--typecheck`, gains a `typecheck` field (`{ type: "passed" | "failed" | "no-tsconfig" | "tsc-error" | "skipped", ... }`).
 A `failed` typecheck → exit 1; generated files stay on disk.
 
 **`--watch` and `--json` are mutually exclusive.** `--json` writes a
@@ -476,7 +476,7 @@ both → exit 2 with a recipe error.
 // Success — a StackVersion was published. No deploymentId/shortId:
 // versions are addressed by semver.
 {
-  "kind": "published",
+  "type": "published",
   "projectName": "my-api",
   "bundlePath": ".skmtc/my-api/server.js",
   "bundleBytes": 1228801,
@@ -497,7 +497,7 @@ both → exit 2 with a recipe error.
 //                is already published; versions are immutable — bump
 //                and re-publish)
 {
-  "kind": "failed",
+  "type": "failed",
   "projectName": "my-api",
   "reason": "version 3.0.1 is already published for ada/my-api — ...",
   "stage": "publish"
@@ -557,7 +557,7 @@ Inspect `errors` and `parseIssues` for any non-success outcomes.
 skmtc install @skmtc/gen-<name> <project> --json
 ```
 
-If `installed` is non-empty and `bundle.kind === "bundled"` → ready
+If `installed` is non-empty and `bundle.type === "bundled"` → ready
 to `generate`; the rebundle ran automatically (remote-only and
 hybrid projects alike).
 
@@ -769,11 +769,11 @@ Then, **by hand**, write under `.skmtc/lab/`:
    pass it as the `generate` positional). `basePath` is set by `init`.
 
 ```bash
-skmtc bundle lab --json   # → { kind: "bundled", bundlePath } — writes worker.ts AND bundle.js
+skmtc bundle lab --json   # → { type: "bundled", bundlePath } — writes worker.ts AND bundle.js
 skmtc generate lab <schema> --json --typecheck
 ```
 
-`bundle` returns `kind: "bundled"` for every project. To confirm the
+`bundle` returns `type: "bundled"` for every project. To confirm the
 step-2 wiring took, check the generated `worker.ts` imports the
 local `@<scope>/gen-<name>` id — a missing entry means the import
 key isn't a `gen-*` entry in `deno.json#imports`.

@@ -206,7 +206,7 @@ slowing Worker spawn.
 
 **Mitigation:** measure the bundle on disk —
 `wc -c "$(skmtc bundle <project> --json | jq -r .bundlePath)"`.
-`bundle --json` itself returns only `{ kind, projectName, bundlePath }`;
+`bundle --json` itself returns only `{ type, projectName, bundlePath }`;
 the size has to come from `stat`/`wc -c` against the path. If the bundle is
 unreasonably large, remove unused generators.
 

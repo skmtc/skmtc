@@ -108,7 +108,7 @@ run.
 ```
 
 There is no no-op outcome: a successful run always writes
-`bundle.js`. (The former `kind: "noop", reason: "remote-only"` result
+`bundle.js`. (The former `type: "noop", reason: "remote-only"` result
 was removed along with the remote-only special case.)
 
 ## Examples
@@ -128,7 +128,7 @@ skmtc bundle my-api --json --no-input
 ### Verify success
 
 ```bash
-skmtc bundle my-api --json | jq '.kind'
+skmtc bundle my-api --json | jq '.type'
 # "bundled"
 ```
 
