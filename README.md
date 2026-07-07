@@ -21,12 +21,16 @@
 ### Install Skmtc
 
 ```bash
-deno install -g -A --unstable-worker-options jsr:@skmtc/cli@0.0.405 -n skmtc -f
+curl -fsSL https://skm.tc/install | sh
 ```
 
-**Skmtc** runs on [Deno](https://deno.com). You can install it using 
-- `curl -fsSL https://deno.land/install.sh | sh` on MacOS/Linux
-- `irm https://deno.land/install.ps1 | iex` on Windows
+This installs the latest `skmtc` CLI, bootstrapping [Deno](https://deno.com)
+(its runtime) automatically if it isn't already installed. To pin a specific
+version, set `SKMTC_VERSION`:
+
+```bash
+SKMTC_VERSION=0.9.26 curl -fsSL https://skm.tc/install | sh
+```
 
 ### Create project and generate artifacts using TUI
 

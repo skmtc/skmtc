@@ -3,7 +3,7 @@
 Generate idiomatic TypeScript source code from an OpenAPI v3 or GraphQL schema. Types, validators, query hooks, mocks, forms, and server routes — all from one schema, in one run, all consistent with each other.
 
 ```bash
-deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli
+curl -fsSL https://skm.tc/install | sh
 skmtc init my-api ./
 skmtc install @skmtc/gen-typescript @skmtc/gen-zod @skmtc/gen-tanstack-query-fetch-zod my-api
 skmtc generate my-api ./openapi.json
@@ -77,7 +77,7 @@ See [`explanation/comparison-to-other-tools.md`](explanation/comparison-to-other
 
 ## Quick start
 
-1. Install the CLI: `deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli`
+1. Install the CLI: `curl -fsSL https://skm.tc/install | sh`
 2. Create a project: `skmtc init my-api ./`
 3. Install generators: `skmtc install @skmtc/gen-typescript @skmtc/gen-zod my-api`
 4. Configure a schema source in `.skmtc/my-api/.settings/client.json`
