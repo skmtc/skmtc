@@ -427,7 +427,7 @@ they're often needed elsewhere: in `transform`, in `isSupported`, in an
 accumulator snippet. From those contexts (anywhere holding a `context`), read
 them with the helper readers from `@skmtc/core`:
 
-```ts
+```ts fragment
 import { toGeneratorEnrichment, toStackEnrichment } from "@skmtc/core";
 
 // generator-scoped leaf — context.settings.enrichments[id]._generator

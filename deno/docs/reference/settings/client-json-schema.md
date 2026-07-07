@@ -25,6 +25,14 @@ individual fields.
   // When set, `skmtc generate <project>` works without a schema arg.
   "source": "./openapi.json",
 
+  // Optional hub bindings (see the top-level field entries below):
+  // `project` is the `skmtc push`/`pull` destination, `api` the
+  // registered hub schema, `serverUrl` switches `generate` to run
+  // against a deployed stack instead of the local bundle.
+  "project": "@acme/mobile-api",
+  "api": "@acme/orders",
+  "serverUrl": "https://stack.example.dev",
+
   "settings": {
     // Required. The on-disk root for generated output AND the
     // bundler @ alias root. Must be relative.
@@ -42,7 +50,13 @@ individual fields.
     "enrichments": {},
 
     // Optional. Advanced — for multi-package outputs.
-    "packages": []
+    "packages": [],
+
+    // Optional. Gen-maps (provenance sidecars) — off unless enabled.
+    "anchors": { "enabled": true, "out": ".maps" },
+
+    // Optional. Preview/hub concern; ignored by the engine.
+    "inputDirs": ["src/fields"]
   }
 }
 ```
@@ -72,6 +86,34 @@ Supported file types:
 
 The file type is inferred from the URL extension first, then the
 `Content-Type` response header for URLs, then content sniffing.
+
+### `project` (top-level, optional)
+
+skmtc-hub push destination in `@<account>/<slug>` form (the account
+may be a user or an org) — analogous to a git remote. Consumed by
+`skmtc push` and `skmtc pull` as the default destination when the
+`--project` flag is absent. Ignored by `skmtc generate`.
+
+### `api` (top-level, optional)
+
+skmtc-hub API binding in `@<account>/<slug>` form — the registered
+hub schema this project's `source` maps to. Recorded by
+`skmtc project create` (the schema-register write-back) so a re-run
+versions the same API instead of creating a duplicate. Ignored by
+`skmtc generate`.
+
+### `serverUrl` (top-level, optional)
+
+URL of a deployed stack server. When set, `skmtc generate` runs
+**remotely** against that stack instead of the local bundle — the
+local bundle-freshness gate is skipped, since there is no local
+bundle in play. Leave unset for normal local generation.
+
+### `projectKey` (top-level, optional)
+
+Accepted by the validator (`core/types/Settings.ts`'s
+`skmtcClientConfig` schema) but not currently read by the CLI or
+engine. Vestigial; safe to omit.
 
 ### `settings.basePath` (required at init; optional in runtime parse)
 
@@ -224,6 +266,36 @@ packages). Each entry maps a path prefix to a package name; the
 engine uses this when rendering cross-package imports.
 
 Most projects don't need this. Default: `[]`.
+
+### `settings.anchors` (optional)
+
+Gen-maps (provenance) configuration. Two fields:
+
+- **`enabled`** (boolean) — master switch. `true` emits a sidecar per
+  generated source file plus a project-level generation map; `false`
+  or omitted runs generation as if gen-maps didn't exist, with zero
+  overhead.
+- **`out`** (string, optional) — output directory for sidecars and
+  the generation map, relative to `.skmtc/<project>/`. Defaults to
+  `".maps"`. The `skmtc init` template gitignores the `.maps` subtree
+  by default, since sidecars are build output, not source.
+
+See [attribution and gen-maps concept](../../concepts/attribution-and-gen-maps.md).
+
+### `settings.inputDirs` (optional)
+
+Preview input-matcher discovery directories, project-root relative
+(for example `"src/fields"`, `"src/inputs"`). A preview/hub concern:
+the generation engine ignores it. Declared in the schema so the CLI
+preserves it when reading `client.json` and carries it through
+`skmtc push` to the hub.
+
+### `settings.schemaSource` (accepted, unused)
+
+Accepted by the validator (`core/types/Settings.ts`'s
+`clientSettings` schema) but not read by the CLI or engine — the
+schema source lives at the **top-level** `source` field. Vestigial;
+safe to omit.
 
 ## Examples
 

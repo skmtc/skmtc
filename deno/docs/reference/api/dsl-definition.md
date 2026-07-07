@@ -118,7 +118,7 @@ constants object, a default-values map), use the lang package's
 `defineAndRegister` function — it builds the `TsDefinition` and
 registers it in one step:
 
-```ts
+```ts fragment
 import { defineAndRegister, createVariable } from '@skmtc/lang-typescript'
 
 defineAndRegister(context, {

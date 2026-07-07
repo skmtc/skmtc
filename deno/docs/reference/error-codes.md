@@ -10,13 +10,19 @@ This file is the lookup reference for specific codes.
 
 ## Issue levels
 
-Two levels in the parse-issue stream:
+Three levels in the parse-issue stream:
 
 - **`error`** — fatal for the affected item. The item is dropped from
   output; consumers of failed refs are cascade-pruned. The CLI exits
   with code 1 when any error-level issue is present.
-- **`warning`** — informational. Output is still produced; the
-  warning is logged for diagnosis. The CLI exit code is unaffected.
+- **`warning`** — a real deviation that was handled. Output is still
+  produced; the warning is logged for diagnosis. The CLI exit code is
+  unaffected.
+- **`debug`** — informational. The parser handled the input
+  gracefully and recorded what it assumed or dropped
+  (spec-legal-but-lossy or dialect-benign cases). Recorded on the
+  manifest like the other levels, but consumers filter `debug` out of
+  the default view. The CLI exit code is unaffected.
 
 ## OAS parse-issue types
 
@@ -37,6 +43,11 @@ OpenAPI document. The cause is typically:
 - Empty `oneOf` / `anyOf` arrays
 - Missing `items` on an array schema
 - Cycle in `allOf` references
+
+**Warning-level variant:** an array schema with no `items` logs
+`INVALID_SCHEMA` at level `warning` instead — the parse fails open,
+treating the items as unknown values — with the message `Array
+schema has no "items" — treating as an array of unknown values`.
 
 ### `INVALID_DEPENDENCY_REF` — error
 
@@ -59,14 +70,15 @@ hop). `Comment` would fail later (at generate time) with a
 `Ref "..." not found` exception — see the generate-time errors
 below.
 
-### `MISSING_OBJECT_TYPE` — warning
+### `MISSING_OBJECT_TYPE` — debug
 
-**When:** A schema has `properties` but no `type: 'object'`. SKMTC
-infers the type as `object` and proceeds; the warning surfaces the
-inference.
+**When:** An OAS 3.0 schema has `properties` but no `type: 'object'`.
+SKMTC infers the type as `object` and proceeds; the debug issue
+records the inference. Fires from the 3.0 parser only — type-less
+schemas are valid in 3.1, so the 3.1 parser is silent here.
 
-**Typical message:** `Schema has 'properties' but no 'type' field;
-inferring 'object'`.
+**Typical message:** `Object has "properties" property, but is
+missing type="object" property`.
 
 **Remediation:** Add `type: object` to the schema in the OpenAPI
 source. The output is still produced correctly, but explicit typing
@@ -103,7 +115,8 @@ sources are vendor extensions written without the conventional
 
 **When:** A path operation (`tryParseAt`-wrapped per-method parser)
 threw. The single `(path, method)` pair is dropped; the rest of the
-document continues to parse.
+document continues to parse. Webhook operations fire the same code
+through the same isolation.
 
 **Remediation:** Read the operation at the indicated location.
 Causes mirror `INVALID_SCHEMA` (bad `requestBody`, malformed
@@ -122,6 +135,16 @@ generate-time `Ref ... not found`.
 failed to parse via `tryParseAt`. The single `(status, response)`
 pair is dropped.
 
+### `INVALID_SECURITY_SCHEME` — error
+
+**When:** A security scheme under `components.securitySchemes`
+failed to parse via `tryParseAt`. The single scheme is dropped; the
+rest of the record continues to parse.
+
+**Remediation:** Read the security scheme at the indicated location.
+The scheme must be a valid OAS `http` / `apiKey` / `oauth2` /
+`openIdConnect` object.
+
 ### `INVALID_EXAMPLE` — warning
 
 **When:** An `example` value doesn't conform to its declared schema
@@ -135,18 +158,21 @@ declared type (e.g., a string default on an enum that has no
 matching member, or a non-array default on an array schema). The
 default is dropped; the schema is otherwise unchanged.
 
-### `INVALID_FORMAT` — warning
+### `INVALID_FORMAT` — debug
 
-**When:** A numeric or integer schema's `format` isn't a recognized
-OAS numeric format. The format is dropped; the type proceeds
-without it.
+**When:** A number or integer schema's `format` isn't one the
+internal representation can hold (`format` is an open vocabulary —
+for example `decimal`). The format hint is dropped; the type
+proceeds without it. Recorded at `debug` because the dropped hint is
+informational, not a correctness issue.
 
-### `UNEXPECTED_FORMAT` — warning
+**Typical message:** `Invalid format: <format>`.
 
-**When:** A string schema's `format` isn't a recognized OAS string
-format (`date`, `date-time`, `byte`, `binary`, `password`, `email`,
-`uri`, `uuid`, etc.). The format is preserved but flagged; user
-code may need to handle the custom format.
+### `UNEXPECTED_FORMAT` — reserved
+
+Declared in the `OasIssueType` union but not currently logged from
+any parser. Reserved; if you encounter this in a manifest, it's from
+a build of `@skmtc/core` newer than this doc.
 
 ### `INVALID_NULLABLE` — warning
 
@@ -160,11 +186,16 @@ type). SKMTC degrades gracefully and produces a warning.
 `examples` (plural, OAS 3.1) at the same node. SKMTC picks one
 deterministically (singular wins) and warns.
 
-### `INVALID_ENUM` — reserved
+### `INVALID_ENUM` — warning
 
-Declared in the `OasIssueType` union but not currently logged from
-any parser. Reserved for future use; if you encounter this in a
-manifest, it's from a build of `@skmtc/core` newer than this doc.
+**When:** An `enum` member doesn't conform to the schema's declared
+type (for example a numeric member on a `type: string` schema; a
+`null` member is tolerated when the schema is nullable). The whole
+enum list is dropped; the schema proceeds without the enum
+constraint.
+
+**Remediation:** Fix the offending enum member in the OpenAPI source
+so every member matches the schema's type.
 
 ## GraphQL parse-issue types
 

@@ -3,6 +3,8 @@ import { assertStringIncludes } from '@std/assert/string-includes'
 import { OperationGenerator } from '@/lib/operation-generator.ts'
 import { Generator } from '@/lib/generator.ts'
 import { join } from '@std/path/join'
+import { dirname } from '@std/path/dirname'
+import { fromFileUrl } from '@std/path/from-file-url'
 
 Deno.test('OperationGenerator - toOperationMod generates correct mod.ts content', () => {
   const generator = Generator.create({
@@ -15,10 +17,11 @@ Deno.test('OperationGenerator - toOperationMod generates correct mod.ts content'
   const operationGenerator = new OperationGenerator(generator)
   const result = operationGenerator.toOperationMod('UserOperations')
 
-  assertStringIncludes(result, "import { toOasOperationEntry } from '@skmtc/core'")
+  assertStringIncludes(result, "import { emptyEnrichmentSchema, toOasOperationEntry } from '@skmtc/core'")
   assertStringIncludes(result, "import { UserOperations } from './UserOperations.ts'")
   assertStringIncludes(result, 'export const UserOperationsEntry = toOasOperationEntry({')
   assertStringIncludes(result, "id: '@test/user-operations'")
+  assertStringIncludes(result, 'toEnrichmentSchema: () => emptyEnrichmentSchema')
   assertStringIncludes(result, 'isSupported({ operation })')
   assertStringIncludes(result, 'return true')
   assertStringIncludes(
@@ -43,9 +46,13 @@ Deno.test('OperationGenerator - toOasOperationProjectionBase generates correct b
   assertStringIncludes(result, 'toIdentifierName({ operation }): string')
   assertStringIncludes(result, 'toIdentifierType(): TsIdentifierType')
   assertStringIncludes(result, 'toExportPath({ operation, enrichments, variant }): string')
-  assertStringIncludes(result, "import { camelCase, capitalize, toMethodVerb } from '@skmtc/core'")
+  assertStringIncludes(
+    result,
+    "import { camelCase, capitalize, emptyEnrichmentSchema, toMethodVerb } from '@skmtc/core'"
+  )
   assertStringIncludes(result, "import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'")
   assertStringIncludes(result, "import { join } from '@std/path/join'")
+  assertStringIncludes(result, 'toEnrichmentSchema: () => emptyEnrichmentSchema')
 })
 
 Deno.test('OperationGenerator - toOperationMainModule generates correct main module content', () => {
@@ -189,4 +196,42 @@ Deno.test('OperationGenerator - toOasOperationProjectionBase includes identifier
   assertStringIncludes(result, 'const verb = capitalize(toMethodVerb(operation.method))')
   assertStringIncludes(result, 'return `${verb}${camelCase(operation.path, { upperFirst: true })}`')
   assertStringIncludes(result, "toIdentifierType(): TsIdentifierType")
+})
+
+Deno.test('OperationGenerator - scaffolded base.ts typechecks against the workspace', async () => {
+  const generator = Generator.create({
+    projectName: 'compile-probe',
+    scopeName: '@local',
+    packageName: 'curl-cmd',
+    version: '0.0.1'
+  })
+
+  // base.ts is the only scaffolded file that is self-contained — the Entry
+  // (mod.ts) and Projection reference a value module the user authors, so
+  // they can't compile standalone. This catches `toTsOasOperationProjectionBase`
+  // config drift (e.g. the required `toEnrichmentSchema`); the Entry's own
+  // required fields are guarded by the string assertions above. The temp file
+  // must live inside the deno workspace so `@skmtc/core` /
+  // `@skmtc/lang-typescript` resolve to the workspace members — the same
+  // resolution a generated project gets via its pins.
+  const workspaceDir = join(dirname(fromFileUrl(import.meta.url)), '..', '..')
+  const tempDir = await Deno.makeTempDir({ dir: workspaceDir, prefix: '.scaffold-check-' })
+
+  try {
+    const basePath = join(tempDir, 'base.ts')
+    await Deno.writeTextFile(basePath, new OperationGenerator(generator).toOasOperationProjectionBase('CurlCmd'))
+
+    const check = await new Deno.Command('deno', {
+      args: ['check', '--quiet', basePath],
+      cwd: workspaceDir,
+      env: { NO_COLOR: '1' },
+      stdout: 'piped',
+      stderr: 'piped'
+    }).output()
+
+    const output = new TextDecoder().decode(check.stderr)
+    assertEquals(check.code, 0, `scaffolded operation base.ts does not typecheck:\n${output}`)
+  } finally {
+    await Deno.remove(tempDir, { recursive: true })
+  }
 })

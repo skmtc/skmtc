@@ -247,7 +247,7 @@ Fix: a real snippet — extend the language's snippet base (`TsSnippet` from
 `@skmtc/lang-typescript`, which carries `register`) with its `register` calls
 in the constructor.
 
-```ts
+```ts fragment
 import { TsSnippet } from "@skmtc/lang-typescript";
 
 class FormRow extends TsSnippet {
@@ -303,7 +303,7 @@ Because Snippets don't have their own `exportPath`, they can't register imports
 against their own file — they need to know where their parent is going to land.
 The convention: the parent passes `destinationPath` as a constructor argument.
 
-```ts
+```ts fragment
 import { TsSnippet } from "@skmtc/lang-typescript";
 
 class StringInput extends TsSnippet {
