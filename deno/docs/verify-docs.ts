@@ -16,16 +16,17 @@
  *      `declares no 'lang'`) are banned across the doc surfaces; a
  *      mention is allowed only on a line that marks it as historical
  *      ("no longer", "deleted", "superseded", …).
- *   3. LANG-KOTLIN SOURCE↔SKILL SYNC — the type vocabulary count, the
- *      identifier-factory names, and the value-protocol exports in
- *      `lang-kotlin` source must all appear in the skmtc-lang-kotlin
- *      skill (catches "six-type" wording and missing-protocol drift).
+ *   3. LANG SOURCE↔SKILL SYNC — for each shipped language layer with a
+ *      skill, the type vocabulary count, identifier-factory names, and
+ *      value-protocol exports in the lang package must all appear in
+ *      its skill. Currently a no-op: every non-TypeScript layer is
+ *      pre-alpha and their skills are deleted until they ship.
  *   4. DOCS-WRITING TREE SYNC — the docs-writing skill's §3 Diátaxis
  *      mapping names every content directory that exists on disk, and
- *      extending/ mirrors using/'s subdirectory trio.
+ *      authoring/ mirrors using/'s subdirectory trio.
  *   5. FILLER-WORD GUARD — "simply"/"easily"/"obviously"/"as of this
  *      writing" (banned by docs-writing §4) must not appear in the
- *      reader-facing tree (using/extending/reference/concepts/
+ *      reader-facing tree (using/authoring/reference/concepts/
  *      explanation).
  *
  *   exit 0 — all checks hold.
@@ -229,18 +230,14 @@ if (deadModelHits === 0) {
 // 3. lang-<X> source ↔ skill sync — one block per shipped language.
 // ---------------------------------------------------------------------
 
-const languageSyncTargets = [
-  {
-    packageDirectory: "lang-kotlin",
-    skillName: "skmtc-lang-kotlin",
-    guardPrefix: "isKt",
-  },
-  {
-    packageDirectory: "lang-csharp",
-    skillName: "skmtc-lang-csharp",
-    guardPrefix: "isCs",
-  },
-];
+// Empty while every non-TypeScript language layer is pre-alpha: their
+// skills were deleted (2026-07-07) and will be recreated — one entry
+// here per language — when a layer ships and its skill returns.
+const languageSyncTargets: {
+  packageDirectory: string;
+  skillName: string;
+  guardPrefix: string;
+}[] = [];
 
 for (
   const { packageDirectory, skillName, guardPrefix } of languageSyncTargets
@@ -309,7 +306,7 @@ for (
 //    maps Diátaxis onto this tree's directory names. The v0.1.0 mapping
 //    had already drifted (recipes/ existed but wasn't mentioned), so
 //    both directions are checked: every content directory on disk is
-//    named in the skill, and extending/ mirrors using/'s trio (the
+//    named in the skill, and authoring/ mirrors using/'s trio (the
 //    skill claims "same trio").
 // ---------------------------------------------------------------------
 
@@ -330,8 +327,8 @@ const listSubdirectories = async (dir: string): Promise<string[]> => {
 };
 
 const usingSubdirectories = await listSubdirectories(join(docsDir, "using"));
-const extendingSubdirectories = await listSubdirectories(
-  join(docsDir, "extending"),
+const authoringSubdirectories = await listSubdirectories(
+  join(docsDir, "authoring"),
 );
 
 let treeSyncFailures = 0;
@@ -345,17 +342,17 @@ for (const name of usingSubdirectories) {
   }
 }
 
-if (usingSubdirectories.join(",") !== extendingSubdirectories.join(",")) {
+if (usingSubdirectories.join(",") !== authoringSubdirectories.join(",")) {
   treeSyncFailures++;
   fail(
-    `docs-writing SKILL.md claims extending/ mirrors using/'s trio, but ` +
-      `using/ has [${usingSubdirectories.join(", ")}] and extending/ has [${
-        extendingSubdirectories.join(", ")
+    `docs-writing SKILL.md claims authoring/ mirrors using/'s trio, but ` +
+      `using/ has [${usingSubdirectories.join(", ")}] and authoring/ has [${
+        authoringSubdirectories.join(", ")
       }]`,
   );
 }
 
-for (const name of ["extending/", "reference/", "concepts/", "explanation/"]) {
+for (const name of ["authoring/", "reference/", "concepts/", "explanation/"]) {
   if (!docsWritingSkill.includes(`\`${name}\``)) {
     treeSyncFailures++;
     fail(`docs-writing SKILL.md: §3 tree mapping doesn't name \`${name}\``);
@@ -365,7 +362,7 @@ for (const name of ["extending/", "reference/", "concepts/", "explanation/"]) {
 if (treeSyncFailures === 0) {
   pass(
     `docs-writing tree sync: skill names all ${usingSubdirectories.length} using/ subdirectories ` +
-      `+ the top-level content dirs; extending/ mirrors using/`,
+      `+ the top-level content dirs; authoring/ mirrors using/`,
   );
 }
 
@@ -385,7 +382,7 @@ const fillerPattern = /\b(simply|easily|obviously)\b|as of this writing/i;
 
 const readerFacingFiles: string[] = [];
 for (
-  const dir of ["using", "extending", "reference", "concepts", "explanation"]
+  const dir of ["using", "authoring", "reference", "concepts", "explanation"]
 ) {
   const collectMarkdown = async (root: string): Promise<void> => {
     for await (const entry of Deno.readDir(root)) {

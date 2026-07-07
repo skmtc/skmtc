@@ -30,12 +30,12 @@ deterministic. For GitHub Actions:
 ### Install the CLI in CI
 
 ```bash
-deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli@<version>/mod.ts
+SKMTC_VERSION=<version> curl -fsSL https://skm.tc/install | sh
 ```
 
-Pin to a specific CLI version. The CLI itself doesn't appear in
-your project's `deno.json` (it's a global install) — pin via the
-JSR specifier.
+Pin to a specific CLI version with `SKMTC_VERSION`. The CLI itself
+doesn't appear in your project's `deno.json` (it's a global
+install) — the pin keeps CI runs reproducible.
 
 `--unstable-worker-options` is required: the worker uses Deno's
 `Worker.deno.permissions` API, which is gated behind this flag on

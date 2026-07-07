@@ -52,8 +52,12 @@ The CLI features a React/Ink-based interactive interface:
 ### Authentication
 
 The only credential is a skmtc-hub personal access token (PAT), used by
-`skmtc publish` via `--token` or `$SKMTC_HUB_TOKEN`. There is no
-interactive login and no stored session.
+the hub commands (`publish`, `push`, `pull`, `project`). Resolution
+order: `--token`, then `$SKMTC_HUB_TOKEN`, then the store written by
+`skmtc login` (`~/.skmtc/auth.json`, mode 0600). `skmtc login` validates
+and stores a pasted PAT (`--with-token` reads it from stdin); `skmtc
+logout` deletes it. There is no OAuth browser flow — login is
+paste-a-PAT only.
 
 ### Generator System
 

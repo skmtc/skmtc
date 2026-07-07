@@ -37,11 +37,14 @@ keeps the cache small and the authoring ergonomics natural.
 
 The full-citizen class for unit-of-output:
 
-- Subclasses one of three projection bases: `ModelProjectionBase`,
-  `OasOperationProjectionBase`, or `GqlOperationProjectionBase`
+- Extends a projection base *built by a factory*: the language veneer's
+  `toTsModelProjectionBase(config)`, `toTsOasOperationProjectionBase(config)`,
+  or `toTsGqlOperationProjectionBase(config)` (from `@skmtc/lang-typescript`)
+  returns the class the generator subclasses. Core's underlying factories
+  (`toModelProjectionBase(base, config)` and siblings) do the assembly.
 - Has a class-level `id` (the generator package name)
-- Has static methods on the class: `toIdentifier`, `toExportPath`,
-  `toEnrichments`, `toEnrichmentSchema`
+- Has static methods on the class: `toIdentifierName`, `toIdentifierType`,
+  `toExportPath`, `toEnrichments`, `toEnrichmentSchema`
 - Has instance properties: `settings: ContentSettings` (= identifier +
   exportPath + enrichments), plus `context` and `generatorKey`
 - Has instance methods inherited from the base: `insertOperation`,
@@ -63,16 +66,21 @@ just the VALUE; the wrapping is automatic.
   `export const useCreateUser = (args) => ...`
 
 Each is a class that extends an operation or model projection base. Each has the
-static `toIdentifier` / `toExportPath` pair that makes it addressable in the
+static `toIdentifierName` / `toExportPath` pair that makes it addressable in the
 cache.
 
-### The three projection bases
+### The three projection-base factories
 
-| Base                         | Source unit                           | When                                             |
-| ---------------------------- | ------------------------------------- | ------------------------------------------------ |
-| `ModelProjectionBase`        | An OAS schema component (a `refName`) | Generators that produce one file per type/schema |
-| `OasOperationProjectionBase` | An OAS operation (path + method)      | Generators that produce one file per endpoint    |
-| `GqlOperationProjectionBase` | A GraphQL operation                   | GraphQL-side generators                          |
+| Factory (lang veneer)              | Source unit                           | When                                             |
+| ---------------------------------- | ------------------------------------- | ------------------------------------------------ |
+| `toTsModelProjectionBase`          | An OAS schema component (a `refName`) | Generators that produce one file per type/schema |
+| `toTsOasOperationProjectionBase`   | An OAS operation (path + method)      | Generators that produce one file per endpoint    |
+| `toTsGqlOperationProjectionBase`   | A GraphQL operation                   | GraphQL-side generators                          |
+
+Each factory takes the generator's config (`id`, `toIdentifierName`,
+`toIdentifierType`, `toExportPath`, `toEnrichmentSchema`, …) and returns the
+class to extend — there is no subclassable `ModelProjectionBase` class to
+import.
 
 Each base provides the `insertOperation` / `insertModel` /
 `insertNormalizedModel` methods with `destinationPath` auto-filled from
@@ -83,8 +91,9 @@ on `context` directly.
 
 The anonymous fragment class:
 
-- Extends `SnippetBase` directly (or a subclass that doesn't introduce
-  projection mechanics)
+- Extends the language's snippet base directly (`TsSnippet` from
+  `@skmtc/lang-typescript`, which carries `register`) — or core's language-blind
+  `SnippetBase` when it never registers anything
 - No required static methods
 - No `settings` property
 - Receives constructor arguments like `destinationPath` from the parent that
@@ -192,7 +201,7 @@ class FormValuesSnippet extends SnippetBase {
   }
 }
 
-context.defineAndRegister({
+defineAndRegister(context, {
   identifier: createType(`${name}Values`),
   value: new FormValuesSnippet({ context }),
   destinationPath: settings.exportPath,
@@ -204,13 +213,13 @@ File. It also fails on three framework guarantees:
 
 | Guarantee                                                                          | Why it fails                                                                                                                                                                                                                                                                     |
 | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Cache-key identity is `(Producer.toIdentifier(op), Producer.toExportPath(op))`** | A Snippet has no static `toIdentifier` / `toExportPath`. The Definition is keyed by whatever name string the caller built. `context.findDefinition({ name, exportPath })` works only for callers who know the exact name string — there's no Producer class to drive the lookup. |
+| **Cache-key identity is `(Producer.toIdentifierName(op), Producer.toExportPath(op))`** | A Snippet has no static `toIdentifierName` / `toExportPath`. The Definition is keyed by whatever name string the caller built. `context.findDefinition({ name, exportPath })` works only for callers who know the exact name string — there's no Producer class to drive the lookup. |
 | **`insertOperation(Producer, op)` requires a Projection class as the first arg**   | There is no class to pass. The Definition is unreachable through the operation-reference protocol; future generators that want this same type must re-derive the name string at their own call site.                                                                             |
-| **Rename safety**                                                                  | The identifier name lives at the caller (`${name}Values`). Renaming the convention means editing every caller plus every consumer reading by that name. A Projection's `toIdentifier` is one site.                                                                               |
+| **Rename safety**                                                                  | The identifier name lives at the caller (`${name}Values`). Renaming the convention means editing every caller plus every consumer reading by that name. A Projection's `toIdentifierName` is one site.                                                                               |
 
 Fix: extend the appropriate projection base.
 `class FormValuesType
-extends MyFormBase { static override toIdentifier(...) {...} override
+extends MyFormBase { static override toIdentifierName(...) {...} override
 toString() {...} }`,
 then `insertOperation(FormValuesType, op)`. The mechanics now match the rest of
 cross-generator composition.
@@ -234,11 +243,14 @@ interpolated. It also lacks every framework affordance a real Snippet provides:
 | **`generatorKey`**                                                            | The integrity machinery (`affirmDefinition`, `findDefinition`'s mismatch detection) operates on values carrying a `generatorKey`. The duck-typed object has none, so it's invisible to the integrity layer if it ever ends up wrapped in a Definition. |
 | **`instanceof SnippetBase`**                                                  | Generic code that operates on "SnippetBase or its descendants" can't treat the duck-typed object as a member of the family.                                                                                                                            |
 
-Fix: a real `SnippetBase` descendant with its `register` calls in the
-constructor.
+Fix: a real snippet — extend the language's snippet base (`TsSnippet` from
+`@skmtc/lang-typescript`, which carries `register`) with its `register` calls
+in the constructor.
 
 ```ts
-class FormRow extends SnippetBase {
+import { TsSnippet } from "@skmtc/lang-typescript";
+
+class FormRow extends TsSnippet {
   constructor({ context, cols, inner, destinationPath }) {
     super({ context });
     this.cols = cols;
@@ -292,7 +304,9 @@ against their own file — they need to know where their parent is going to land
 The convention: the parent passes `destinationPath` as a constructor argument.
 
 ```ts
-class StringInput extends SnippetBase {
+import { TsSnippet } from "@skmtc/lang-typescript";
+
+class StringInput extends TsSnippet {
   constructor({ context, name, destinationPath }) {
     super({ context });
     this.name = name;
@@ -337,10 +351,14 @@ Snippets that compose generators are unusual but not forbidden.
 
 ### Why isn't `register` on Projections only?
 
-`register` is defined on `SnippetBase` because both layers need it. Snippets
-register imports for themselves (against the parent's file). Projections
-register imports and definitions for their target file. The same primitive
-serves both — only `destinationPath` differs.
+`register` lives on the language's snippet base — `TsSnippet` in
+`@skmtc/lang-typescript` — because both layers need it and both are built on
+that base: Snippets register imports for themselves (against the parent's
+file), and Projections (whose bases are built on `TsSnippet` by the veneer
+factories) register imports and definitions for their target file. Core's
+`SnippetBase` is language-blind and has **no** `register` — register
+ergonomics are typed by each language's concise vocabulary, which core can't
+name. The same primitive serves both layers — only `destinationPath` differs.
 
 ### Is `Definition` really a Snippet?
 
@@ -353,10 +371,10 @@ touch `Definition` directly.
 
 ### Can I have multiple Projections in one file?
 
-Yes. Each Projection has its own `Definition`; the `File` holds a
-`Map<name, Definition>`. Multiple Projections targeting the same `exportPath`
-add their entries to the same File's `definitions` map. The file's `toString()`
-joins them with blank lines.
+Yes. Each Projection has its own `Definition`; the file holds a
+definitions map keyed by the identifier's declaration slot. Multiple
+Projections targeting the same `exportPath` add their entries to the same
+file's `definitions` map. The file's `toString()` joins them with blank lines.
 
 ### What if I want a named export but not a full Projection?
 

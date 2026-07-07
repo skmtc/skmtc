@@ -49,9 +49,9 @@ the new doc text should pass the check, not show the original claim.
 - [ ] `using/tutorials/*` (CLI syntax in tutorials) *(03-customize-with-enrichments touched under DISC-001)*
 - [ ] `using/how-to/*` *(configure-enrichments, debug-failing-generation touched)*
 - [ ] `using/recipes/*` *(multi-project-monorepo touched under DISC-002)*
-- [ ] `extending/tutorials/*` *(01, 02, 03 all touched under DISC-002 / DISC-005 / BULK-008)*
-- [ ] `extending/how-to/*` *(add-enrichment-options, change-export-paths, change-identifier-conventions, compose-with-another-generator, handle-graphql-instead-of-oas touched)*
-- [ ] `extending/recipes/*` *(design-system-across-many-apis, custom-form-field-renderer touched)*
+- [ ] `authoring/tutorials/*` *(01, 02, 03 all touched under DISC-002 / DISC-005 / BULK-008)*
+- [ ] `authoring/how-to/*` *(add-enrichment-options, change-export-paths, change-identifier-conventions, compose-with-another-generator, handle-graphql-instead-of-oas touched)*
+- [ ] `authoring/recipes/*` *(design-system-across-many-apis, custom-form-field-renderer touched)*
 - [ ] `reference/settings/*` *(client-json-schema, enrichments-shape touched)*
 
 The unchecked boxes reflect docs not yet *systematically swept* for novel discrepancies, NOT unfixed known issues — every catalogued discrepancy has a per-entry Fix status below.
@@ -64,7 +64,7 @@ The unchecked boxes reflect docs not yet *systematically swept* for novel discre
 
 ### DISC-001: Enrichment routing key path is wrong across all docs
 
-**Doc(s):** `concepts/enrichments.md`, `reference/settings/enrichments-shape.md`, `reference/settings/client-json-schema.md`, `using/how-to/configure-enrichments.md`, `using/tutorials/03-customize-with-enrichments.md`, `extending/how-to/add-enrichment-options.md`, plus multiple recipe docs and 2 glossary entries
+**Doc(s):** `concepts/enrichments.md`, `reference/settings/enrichments-shape.md`, `reference/settings/client-json-schema.md`, `using/how-to/configure-enrichments.md`, `using/tutorials/03-customize-with-enrichments.md`, `authoring/how-to/add-enrichment-options.md`, plus multiple recipe docs and 2 glossary entries
 **Severity:** catastrophic
 **Category:** structural-shape
 
@@ -105,7 +105,7 @@ get(context.settings, `enrichments.${config.id}.${operation.rootKind}.${operatio
 
 **Fix sketch (NOT YET APPLIED):** rewrite enrichments docs to document three routing shapes (one per projection-base factory). Each `client.json` example must be regenerated using the actual key path. Glossary entries "Projection key" and "Projection kind" should be deleted or rewritten.
 
-**Fix status:** verified-fixed 2026-05-12 — rewrote `reference/settings/enrichments-shape.md`, `concepts/enrichments.md`, `using/how-to/configure-enrichments.md`, `using/tutorials/03-customize-with-enrichments.md`, `extending/how-to/add-enrichment-options.md`, `reference/settings/client-json-schema.md`, `reference/glossary.md` (dropped "Projection key" and "Projection kind"), `reference/api/content-settings.md`, `llms.md`, `skills/skmtc-cli/SKILL.md`, `skills/skmtc-cli/design.md`, `skills/skmtc-generator/SKILL.md`, `reference/stock-generators/gen-shadcn-form.md`, `extending/recipes/design-system-across-many-apis.md`. Also flattened `gen-shadcn-form/src/enrichments.ts` to drop the `form: { ... }` wrap so the schema's root IS the payload directly (consumer reads `this.settings.enrichments?.title` instead of `this.settings.enrichments?.form?.title`).
+**Fix status:** verified-fixed 2026-05-12 — rewrote `reference/settings/enrichments-shape.md`, `concepts/enrichments.md`, `using/how-to/configure-enrichments.md`, `using/tutorials/03-customize-with-enrichments.md`, `authoring/how-to/add-enrichment-options.md`, `reference/settings/client-json-schema.md`, `reference/glossary.md` (dropped "Projection key" and "Projection kind"), `reference/api/content-settings.md`, `llms.md`, `skills/skmtc-cli/SKILL.md`, `skills/skmtc-cli/design.md`, `skills/skmtc-generator/SKILL.md`, `reference/stock-generators/gen-shadcn-form.md`, `authoring/recipes/design-system-across-many-apis.md`. Also flattened `gen-shadcn-form/src/enrichments.ts` to drop the `form: { ... }` wrap so the schema's root IS the payload directly (consumer reads `this.settings.enrichments?.title` instead of `this.settings.enrichments?.form?.title`).
 
 **Source note (2026-06-18):** the enrichment-defaults refactor changed subject access in these three files from a dotted template string to a key-path array — e.g. `['enrichments', config.id, operation.path, operation.method, variant]` (OAS), `['enrichments', config.id, refName, variant]` (model), `['enrichments', config.id, operation.rootKind, operation.fieldName, variant]` (GQL) — and added the core-owned `variant` level. The routing key path is otherwise unchanged, so DISC-001 stays verified-fixed; the verification command now greps the `'enrichments'` array literal in the same three files (the "Actual (verbatim)" snapshot above is the 2026-05-12 form, kept as the historical record).
 
@@ -113,11 +113,11 @@ get(context.settings, `enrichments.${config.id}.${operation.rootKind}.${operatio
 
 ### DISC-002: `skmtc clone` syntax — generators are a `-g` flag, not positional args
 
-**Doc(s):** `extending/tutorials/01-cloning-a-generator.md`, `extending/recipes/design-system-across-many-apis.md`, `extending/recipes/custom-form-field-renderer.md`, `using/recipes/multi-project-monorepo.md`, plus several how-to docs that show cloning in passing
+**Doc(s):** `authoring/tutorials/01-cloning-a-generator.md`, `authoring/recipes/design-system-across-many-apis.md`, `authoring/recipes/custom-form-field-renderer.md`, `using/recipes/multi-project-monorepo.md`, plus several how-to docs that show cloning in passing
 **Severity:** high
 **Category:** cli-flag
 
-**Claim (verbatim — from `extending/tutorials/01-cloning-a-generator.md`):**
+**Claim (verbatim — from `authoring/tutorials/01-cloning-a-generator.md`):**
 
 > ```bash
 > skmtc clone @skmtc/gen-zod my-project
@@ -148,7 +148,7 @@ const cloneCommand = new Command()
 
 **Fix sketch (NOT YET APPLIED):** rewrite to `skmtc clone my-project -g @skmtc/gen-zod` (single) or `skmtc clone my-project -g @skmtc/gen-zod -g @skmtc/gen-typescript` (multiple).
 
-**Fix status:** verified-fixed 2026-05-12 — corrected syntax in `extending/tutorials/01-cloning-a-generator.md`, `extending/recipes/design-system-across-many-apis.md`, `extending/recipes/custom-form-field-renderer.md`, `concepts/clone-vs-install.md`, `concepts/generators-as-packages.md`, `README.md`, `llms.md` (two places). Final grep for `skmtc clone @skmtc` returns no hits outside friction-log.
+**Fix status:** verified-fixed 2026-05-12 — corrected syntax in `authoring/tutorials/01-cloning-a-generator.md`, `authoring/recipes/design-system-across-many-apis.md`, `authoring/recipes/custom-form-field-renderer.md`, `concepts/clone-vs-install.md`, `concepts/generators-as-packages.md`, `README.md`, `llms.md` (two places). Final grep for `skmtc clone @skmtc` returns no hits outside friction-log.
 
 ---
 
@@ -232,7 +232,7 @@ export type ModelProjectionArgs<EnrichmentType = undefined> = {
 
 ### DISC-005: `reference/cli/create.md` scaffolded files list is wrong
 
-**Doc(s):** `reference/cli/create.md`, `extending/tutorials/02-authoring-a-model-generator.md`, `extending/tutorials/03-authoring-an-operation-generator.md`
+**Doc(s):** `reference/cli/create.md`, `authoring/tutorials/02-authoring-a-model-generator.md`, `authoring/tutorials/03-authoring-an-operation-generator.md`
 **Severity:** high
 **Category:** behavior
 
@@ -280,9 +280,9 @@ async createModelFiles(generatorPath: string) {
 
 The operation-generator path (`cli/lib/operation-generator.ts:23`) writes `${mainModule}.ts` (no `Projection` suffix). So model and operation scaffolds use different naming.
 
-**Fix sketch (NOT YET APPLIED):** rewrite the scaffold tree per actual filenames. Verify and document the top-level `deno.json` scaffolding separately. Update `extending/tutorials/02` and `03` to match.
+**Fix sketch (NOT YET APPLIED):** rewrite the scaffold tree per actual filenames. Verify and document the top-level `deno.json` scaffolding separately. Update `authoring/tutorials/02` and `03` to match.
 
-**Fix status:** verified-fixed 2026-05-12 — `reference/cli/create.md` now shows the two distinct scaffold trees (model vs operation, with the `<MainModule>Projection.ts` vs `<MainModule>.ts` asymmetry called out) and notes `enrichments.ts` is not scaffolded; also documents the top-level `deno.json` and `mod.ts` written by `Generator.createFiles`. `extending/tutorials/02-authoring-a-model-generator.md` rewritten to extend `SchemaMetaBase = toModelProjectionBase({...})` rather than the abstract `ModelProjectionBase` directly, and to resolve the schema inside the constructor via `context.resolveSchemaRefOnce(refName, baseId)` instead of accessing `this.schema`. `extending/tutorials/03-authoring-an-operation-generator.md` rewritten with the same factory-extends pattern and the enrichment example flattened (no wrapper key) to match the DISC-001 flattened convention.
+**Fix status:** verified-fixed 2026-05-12 — `reference/cli/create.md` now shows the two distinct scaffold trees (model vs operation, with the `<MainModule>Projection.ts` vs `<MainModule>.ts` asymmetry called out) and notes `enrichments.ts` is not scaffolded; also documents the top-level `deno.json` and `mod.ts` written by `Generator.createFiles`. `authoring/tutorials/02-authoring-a-model-generator.md` rewritten to extend `SchemaMetaBase = toModelProjectionBase({...})` rather than the abstract `ModelProjectionBase` directly, and to resolve the schema inside the constructor via `context.resolveSchemaRefOnce(refName, baseId)` instead of accessing `this.schema`. `authoring/tutorials/03-authoring-an-operation-generator.md` rewritten with the same factory-extends pattern and the enrichment example flattened (no wrapper key) to match the DISC-001 flattened convention.
 
 ---
 
@@ -362,7 +362,7 @@ JSON examples in `doctor.md` that use `"status": "warn"` or `"status": "fail"` w
 
 ### DISC-008: `reference/cli/clone.md` documents `--force` flag that isn't wired in `cli/mod.ts`
 
-**Doc(s):** `reference/cli/clone.md`, mentioned in `extending/tutorials/01-cloning-a-generator.md`
+**Doc(s):** `reference/cli/clone.md`, mentioned in `authoring/tutorials/01-cloning-a-generator.md`
 **Severity:** medium (depends on follow-up)
 **Category:** cli-flag
 
@@ -543,9 +543,9 @@ Affected lines (10 instances across 7 docs):
 - `llms.md:244, 523`
 - `concepts/clone-vs-install.md:78`
 - `concepts/generators-as-packages.md:235`
-- `extending/tutorials/01-cloning-a-generator.md:24`
-- `extending/recipes/custom-form-field-renderer.md:23`
-- `extending/recipes/design-system-across-many-apis.md:45, 46, 47`
+- `authoring/tutorials/01-cloning-a-generator.md:24`
+- `authoring/recipes/custom-form-field-renderer.md:23`
+- `authoring/recipes/design-system-across-many-apis.md:45, 46, 47`
 
 **Bulk fix:** each line rewrites to `skmtc clone <project> -g <gen-id>`. The three lines in `design-system-across-many-apis.md` can be condensed to one invocation with three `-g` flags.
 
@@ -641,7 +641,7 @@ Affected lines (~12 instances across 8 docs):
 - `using/tutorials/03-customize-with-enrichments.md:84`
 - `using/how-to/configure-enrichments.md:36`
 - `concepts/enrichments.md:7, 74, 310`
-- `extending/how-to/add-enrichment-options.md:58`
+- `authoring/how-to/add-enrichment-options.md:58`
 - `reference/settings/enrichments-shape.md:4, 12, 316`
 - `reference/settings/client-json-schema.md:160`
 - `reference/api/content-settings.md:91`
@@ -663,7 +663,7 @@ Affected lines (~12 instances across 6 docs):
 
 - `using/how-to/configure-enrichments.md:50`
 - `concepts/enrichments.md:51, 248, 267, 318, 348`
-- `extending/recipes/design-system-across-many-apis.md:118`
+- `authoring/recipes/design-system-across-many-apis.md:118`
 - `skills/skmtc-cli/SKILL.md:202`
 - `reference/settings/client-json-schema.md:174, 231`
 - `reference/settings/enrichments-shape.md:182, 200`
@@ -683,8 +683,8 @@ grep -rn '/models/.*\.generated\|models/<refName>\|models/\${refName}' docs/ --i
 Affected lines (~9 instances across 4 docs):
 
 - `explanation/how-idempotency-works.md:54, 130, 140, 144, 156, 163`
-- `extending/how-to/change-export-paths.md:33`
-- `extending/tutorials/01-cloning-a-generator.md:71`
+- `authoring/how-to/change-export-paths.md:33`
+- `authoring/tutorials/01-cloning-a-generator.md:71`
 - `reference/api/content-settings.md:128`
 
 **Bulk fix:** actual default paths for stock generators:
@@ -705,8 +705,8 @@ No stock generator writes to `/models/`. The original bulk-fix paths sketch is c
 
 **Fix status:** verified-fixed 2026-05-13 — all 8 sites updated:
 - `explanation/how-idempotency-works.md` — 5 occurrences of `/models/User.generated.ts` → `@/types/user.generated.ts`; `User.generated.ts` filename references → `user.generated.ts` (matches gen-zod's `decapitalize(camelCase(refName))` derivation).
-- `extending/how-to/change-export-paths.md:33` — "Default" example rewritten to show the actual gen-zod/gen-typescript stock default (`join('@', 'types', decapitalize(name) + '.generated.ts')`) instead of the fictional `/models/` form.
-- `extending/tutorials/01-cloning-a-generator.md:74` — "before" example aligned with `gen-zod/src/base.ts:23` actual code (signature `({ refName, enrichments })`, body uses `decapitalize(name)` with `@/types/` prefix).
+- `authoring/how-to/change-export-paths.md:33` — "Default" example rewritten to show the actual gen-zod/gen-typescript stock default (`join('@', 'types', decapitalize(name) + '.generated.ts')`) instead of the fictional `/models/` form.
+- `authoring/tutorials/01-cloning-a-generator.md:74` — "before" example aligned with `gen-zod/src/base.ts:23` actual code (signature `({ refName, enrichments })`, body uses `decapitalize(name)` with `@/types/` prefix).
 - `reference/api/content-settings.md:128` — illustrative `exportPath` value changed from `/models/User.generated.ts` to `@/types/userBody.generated.ts` (matches the identifier `userBody` in the same example).
 
 ### BULK-008 — `class X extends ModelProjectionBase` etc. (links to DISC-005)
@@ -721,10 +721,10 @@ Affected lines (~12 instances across 9 docs):
 
 - `explanation/how-idempotency-works.md:48`
 - `concepts/cross-generator-coordination.md:224`
-- `extending/tutorials/02-authoring-a-model-generator.md:92`
-- `extending/tutorials/03-authoring-an-operation-generator.md:91`
-- `extending/how-to/compose-with-another-generator.md:44`
-- `extending/how-to/handle-graphql-instead-of-oas.md:49`
+- `authoring/tutorials/02-authoring-a-model-generator.md:92`
+- `authoring/tutorials/03-authoring-an-operation-generator.md:91`
+- `authoring/how-to/compose-with-another-generator.md:44`
+- `authoring/how-to/handle-graphql-instead-of-oas.md:49`
 - `reference/api/generate-context.md:283`
 - `reference/api/dsl-snippet-base.md:148` (in a prose comment — may be benign)
 - `reference/api/content-settings.md:157, 225, 249, 300`
@@ -736,13 +736,13 @@ Affected lines (~12 instances across 9 docs):
 - `gen-zod/src/ZodProjection.ts:20` — `export class ZodProjection extends ZodBase` (extends factory result, NOT `ModelProjectionBase` directly)
 - `gen-typescript/src/TsProjection.ts:14` — `export class TsProjection extends TypescriptBase` (same pattern)
 
-DISC-005 fix already rewrote `extending/tutorials/02-…` and `03-…` to use the correct pattern. The remaining 9 sites in 7 docs (`how-idempotency-works.md:48`, `cross-generator-coordination.md:232`, `compose-with-another-generator.md:44`, `handle-graphql-instead-of-oas.md`, `generate-context.md:276`, `content-settings.md:157,225,247,298`, `dsl-snippet-base.md:148`) still show the direct-extends pattern.
+DISC-005 fix already rewrote `authoring/tutorials/02-…` and `03-…` to use the correct pattern. The remaining 9 sites in 7 docs (`how-idempotency-works.md:48`, `cross-generator-coordination.md:232`, `compose-with-another-generator.md:44`, `handle-graphql-instead-of-oas.md`, `generate-context.md:276`, `content-settings.md:157,225,247,298`, `dsl-snippet-base.md:148`) still show the direct-extends pattern.
 
 **Fix status:** verified-fixed 2026-05-13 — 8 code-example sites updated to the factory-extends pattern (`class XProjection extends XBase` where `XBase = toX...ProjectionBase({...})` in `base.ts`):
 - `concepts/how-generators-produce-output.md:158` — narrative rewritten to "extends MyBase" with factory note.
 - `concepts/cross-generator-coordination.md:232` — code example shows base in `base.ts` + class extending it.
-- `extending/how-to/compose-with-another-generator.md:44` — `class TanstackQuery extends TanstackQueryBase` with comment.
-- `extending/how-to/handle-graphql-instead-of-oas.md:49` — already clean (catalog reference was stale; line drift).
+- `authoring/how-to/compose-with-another-generator.md:44` — `class TanstackQuery extends TanstackQueryBase` with comment.
+- `authoring/how-to/handle-graphql-instead-of-oas.md:49` — already clean (catalog reference was stale; line drift).
 - `reference/api/generate-context.md:276` — example rewritten to `MyBase` then `class MyProjection extends MyBase`.
 - `reference/api/content-settings.md:157,225,247,298` — all 4 sites rewritten with their own `XBase` factory result + extending class.
 
@@ -1002,8 +1002,8 @@ grep -rn 'first writer wins\|first-writer-wins\|first-write-wins\|silently disca
 Affected lines (~7 instances across 6 docs):
 
 - `llms.md:416` — mentions `Set.add` and "first-write-wins" — partly accurate
-- `extending/how-to/change-identifier-conventions.md:58` — "silently — first writer wins" (wrong for cross-generator case)
-- `extending/how-to/change-export-paths.md:100` — "first-writer-wins discards" (wrong for cross-generator case)
+- `authoring/how-to/change-identifier-conventions.md:58` — "silently — first writer wins" (wrong for cross-generator case)
+- `authoring/how-to/change-export-paths.md:100` — "first-writer-wins discards" (wrong for cross-generator case)
 - `explanation/status-and-roadmap.md:171` — "first writer wins. The second is silently discarded"
 - `concepts/the-three-phases.md:320` — distinguishes the two cases — **this one is correct**
 - `reference/api/generate-context.md:133` — "definitions first-write-wins" (correct for the `register` path)
@@ -1018,8 +1018,8 @@ Affected lines (~7 instances across 6 docs):
 **Fix status:** verified-fixed 2026-05-13 — all 5 remaining sites updated with the Driver-throws / bare-register distinction:
 - `explanation/status-and-roadmap.md:168+` — section rewritten to list both paths with the specific `Registered definition mismatch` error format for the Driver case.
 - `explanation/how-idempotency-works.md:202+` — "Same-name collisions across generators" section now opens with the two-path framing and cites the three Driver line numbers.
-- `extending/how-to/change-identifier-conventions.md:56+` — uniqueness paragraph now states the Driver detects mismatched `generatorKey` per operation and throws.
-- `extending/how-to/change-export-paths.md:103+` — Troubleshooting bullet now explicitly mentions Driver-throws-on-collision vs bare-register-silent-discard.
+- `authoring/how-to/change-identifier-conventions.md:56+` — uniqueness paragraph now states the Driver detects mismatched `generatorKey` per operation and throws.
+- `authoring/how-to/change-export-paths.md:103+` — Troubleshooting bullet now explicitly mentions Driver-throws-on-collision vs bare-register-silent-discard.
 - `using/how-to/debug-failing-generation.md:93+` — "Same-name collision" heading retitled to "Driver throws; bare register silent"; section rewritten with both paths and their respective symptoms.
 
 Verification: `affirmDefinition` location and key-comparison logic re-confirmed at `ModelDriver.ts:124-141`, `OasOperationDriver.ts:116-136`, `GqlOperationDriver.ts:116-136`. Tests at `*.test.ts:818,779,591,928` exercise the throw path. `core/context/GenerateContext.ts:697-705` confirms bare-register silent first-write-wins.
@@ -1383,7 +1383,7 @@ The package merger + single-base refinement fixed the symptom in this one case, 
 |---|---|
 | `docs/concepts/cross-generator-coordination.md` | Add a section ("Location independence and package boundaries") with the rule, the Driver-mediated alternative, and the worked example from this case. Reference back to this catalog entry. |
 | `docs/concepts/generators-as-packages.md` | Add a "When to make one generator vs many" subsection with the boundary heuristic. The current doc covers package structure; missing is the *judgment* about when to split. |
-| `docs/extending/how-to/compose-with-another-generator.md` | Add a "Anti-pattern: importing a peer generator's naming helpers" warning callout. The doc currently shows the correct pattern; missing is an explicit don't-do-this counter-example. |
+| `docs/authoring/how-to/compose-with-another-generator.md` | Add a "Anti-pattern: importing a peer generator's naming helpers" warning callout. The doc currently shows the correct pattern; missing is an explicit don't-do-this counter-example. |
 | `docs/skills/skmtc-generator/SKILL.md` | Add to the generator-authoring principles section: "Generators are location-independent. Cross-generator references go through `this.insertModel` / `this.insertOperation`, never through imported helpers." Possibly add a short fixture in the skill's red-flags table. |
 | `docs/skills/skmtc-generator/design.md` (if it exists) or equivalent | Reference back to the worked example as a case study. |
 

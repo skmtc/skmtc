@@ -44,16 +44,17 @@ my-monorepo/
 ### Initialize multiple projects
 
 ```bash
-skmtc init customer-api
-skmtc init admin-api
+skmtc init customer-api packages/customer-api/src/generated
+skmtc init admin-api packages/admin-api/src/generated
 ```
 
 Each gets its own `.skmtc/<project>/` directory with its own
 `deno.json` (generator imports) and `client.json` (settings).
 
-### Configure separate basePaths
+### Configure each project's source
 
-Each project's `client.json` points at its own output directory:
+`init` already wrote each project's `basePath`. Add the `source` so each
+`client.json` reads:
 
 ```jsonc
 // .skmtc/customer-api/.settings/client.json
@@ -137,7 +138,7 @@ Updating one API regenerates one project; the other is untouched.
   customized generator, clone it once at the workspace root and
   symlink (or just use the same path in each project's
   `deno.json#imports`). See [recipe: design system across many
-  APIs](../../extending/recipes/design-system-across-many-apis.md).
+  APIs](../../authoring/recipes/design-system-across-many-apis.md).
 - **CI per-project triggering.** Use a path-filter in CI (only
   regenerate `customer-api` when the customer spec changes) to
   avoid noise on unrelated changes.

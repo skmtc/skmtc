@@ -107,12 +107,17 @@ Three channels on `GenerateContext`, all called via side effect:
 ### `context.register({ destinationPath, imports?, definitions?, reExports? })`
 
 The lowest-level registration API
-(`core/context/GenerateContext.ts:659-708`). Mutates the file map
-at `destinationPath`:
+(`core/context/GenerateContext.ts:1133`). Takes pure data
+(`imports: ImportBase[]`, `reExports: ReExportBase[]`,
+`definitions`) and mutates the file at `destinationPath` — which
+must already exist; `register` never creates files and throws on a
+miss (callers pre-create through their language, e.g. the
+lang-typescript register function):
 
-- `definitions` are added to `currentFile.definitions: Map<name, Definition>`
-- `imports` are merged into `currentFile.imports: Map<module, Set<name>>`
-- `reExports` are merged into `currentFile.reExports`
+- `definitions` are added via the file's `addDefinition`
+  (first-write-wins per declaration slot)
+- `imports` are merged via the file's `addImports` (per-module merge)
+- `reExports` are merged via the file's `addReExports`
 
 A generator that needs full control can build a `Definition`
 itself and register it directly. Stock generators rarely do this
@@ -127,8 +132,8 @@ class (`OasOperationDriver`, `GqlOperationDriver`, `ModelDriver`)
 that:
 
 1. Computes `settings = { identifier, exportPath, enrichments }`
-   from the Projection's static `toIdentifier` / `toExportPath` /
-   `toEnrichments` methods.
+   from the Projection's static `toIdentifierName` / `toIdentifierType` /
+   `toExportPath` / `toEnrichments` methods.
 2. Looks up `(identifier.name, exportPath)` in the
    `currentFile.definitions` cache.
 3. **On cache miss:** constructs `new MyProjection({ context,
@@ -244,7 +249,7 @@ dependencies in its constructor.
 
 ### "Definition appears twice in the same file"
 
-Probably a non-pure `toIdentifier` or `toExportPath` — same input
+Probably a non-pure `toIdentifierName` or `toExportPath` — same input
 producing different output across calls. The cache splits into two
 entries. See [cross-generator-coordination.md](cross-generator-coordination.md#identifier-and-exportpath-are-pure-functions).
 
@@ -343,7 +348,7 @@ into whatever `transform` called it — and is caught by
 ```
 transform({ context, operation, acc }) {
   context.insertOperation(MyProjection, op)
-    └─ Driver computes settings (calls projection.toIdentifier, toExportPath)
+    └─ Driver computes settings (calls projection.toIdentifierName, toExportPath)
        └─ Cache lookup on (name, exportPath)
           └─ MISS: new MyProjection({ context, operation, settings, destinationPath })
              └─ Projection constructor runs; may call insertNormalizedModel,
@@ -403,7 +408,7 @@ wants.
 - [The manifest](the-manifest.md) — where `toArtifacts`'s per-item
   `results` and the generators' `previews` / `mappings` land for
   tooling
-- [Recipe: composing multi-generator stacks](../extending/recipes/composing-multi-generator-stacks.md)
+- [Recipe: composing multi-generator stacks](../authoring/recipes/composing-multi-generator-stacks.md)
   — the pattern walked end-to-end via `gen-shadcn-form` and
   `gen-shadcn-table`
 - [API: GenerateContext](../reference/api/generate-context.md) —

@@ -59,7 +59,8 @@ class TsImport extends ImportBase {
   boundary.
 - **`fromIdentifier`** builds the cross-file import a Driver registers
   when a generator references a peer's Definition; the identifier's
-  `kind` drives `typeOnly` (`kind === 'type'` → `import { type X }`).
+  `type` drives `typeOnly` (`isTypeOnly(type)` — `'type'` and
+  `'interface'` → `import { type X }`).
 - **`merge`** dedups on the rendered specifier (matching the engine's
   legacy `Set<string>` semantics, where `type Foo` and `Foo` are
   distinct entries).
@@ -71,9 +72,9 @@ class TsImport extends ImportBase {
 type ImportNameArg =
   | string                                            // 'X' — plain value import
   | { [name: string]: string }                        // { merge: 'lodashMerge' } — rename form
-  | { name: string; alias?: string; type?: TsEntityKind }  // full form
+  | { name: string; alias?: string; type?: TsEntityType }  // full form
 
-type TsEntityKind = 'variable' | 'type'
+type TsEntityType = 'variable' | 'type' | 'class' | 'interface' | 'namespace'
 ```
 
 Owned by `@skmtc/lang-typescript` (each language defines its own

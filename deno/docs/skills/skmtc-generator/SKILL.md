@@ -96,9 +96,9 @@ important for authoring:
    (`List`, …), and `sanitizePropertyName`** (all moved out of core —
    F5/F6, landed; core's `Identifier` is neutral data, `EntityType` is
    gone). For TypeScript-output specifics, load the
-   `skmtc-lang-typescript` skill; for Kotlin-output specifics
-   (`@skmtc/lang-kotlin` — gen-kotlin / gen-kotlin-spring), load
-   `skmtc-lang-kotlin`.
+   `skmtc-lang-typescript` skill. Other language layers (Kotlin, C#, …)
+   are pre-alpha and have no skills yet — read their lang package
+   source directly.
 
 ## 2. The DSL: Projection vs Snippet
 
@@ -1697,12 +1697,9 @@ If unresolved → hand off to `skmtc-debug` with verify-first stance.
 - **skmtc-lang-typescript**: the TypeScript target-language layer —
   what the *emitted* code looks like (type-only imports, syntax
   helpers, sanitization, the `typescript` Lang object's surface). Load
-  it alongside this skill for any TypeScript-emitting generator.
-- **skmtc-lang-kotlin**: the Kotlin counterpart (package directives,
-  symbol-level imports, the seven-kind vocabulary, the four value
-  protocols, backtick sanitization). Load it for Kotlin-emitting
-  generators (`gen-kotlin`, `gen-kotlin-spring`, or new ones); future
-  `skmtc-lang-<X>` skills follow the same template.
+  it alongside this skill for any TypeScript-emitting generator. It is
+  the template for future `skmtc-lang-<X>` skills; other language
+  layers are pre-alpha and have no skills yet.
 - **skmtc-cli**: install / clone / bundle / dev commands. This skill
   picks up once you're editing generator source.
 - **skmtc-debug**: when output is broken. Verify-first stance takes
@@ -1720,9 +1717,9 @@ something is broken*, hand off to `skmtc-debug`.
 - Language seam: the `skmtc-lang-typescript` skill (sibling directory); design + open items in `notes/lang/` (`16` is the target architecture, now landed; `checklist.md` tracks the remaining F5/F6)
 - API reference: [`reference/api/`](../../reference/api/) — full DSL surface
 - Per-generator clone seams: [`reference/stock-generators/`](../../reference/stock-generators/)
-- Tutorials: [`extending/tutorials/`](../../extending/tutorials/)
-- How-tos: [`extending/how-to/`](../../extending/how-to/)
-- Recipes: [`extending/recipes/`](../../extending/recipes/)
+- Tutorials: [`authoring/tutorials/`](../../authoring/tutorials/)
+- How-tos: [`authoring/how-to/`](../../authoring/how-to/)
+- Recipes: [`authoring/recipes/`](../../authoring/recipes/)
 - Design philosophy: [`explanation/design-philosophy.md`](../../explanation/design-philosophy.md), [`explanation/why-clone-to-customize.md`](../../explanation/why-clone-to-customize.md)
 - Consolidated LLM reference: [`llms.md`](../../llms.md) — the operational principles in §4 are mirrored from `llms.md`'s canonical version
 

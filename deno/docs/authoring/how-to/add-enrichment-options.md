@@ -53,7 +53,8 @@ export type EnrichmentSchema = v.InferOutput<typeof schema>
 export const toEnrichmentSchema = () => schema
 ```
 
-`gen-zod` is built on `toModelProjectionBase`, so the routing
+`gen-zod` is built on `toTsModelProjectionBase` (the
+lang-typescript veneer), so the routing
 path is `enrichments[generatorId][refName]`. Users supply
 enrichments like:
 
@@ -67,7 +68,7 @@ enrichments like:
 }
 ```
 
-For OAS operation generators built on `toOasOperationProjectionBase`,
+For OAS operation generators built on `toTsOasOperationProjectionBase`,
 the path would instead be `enrichments[generatorId][path][method]`;
 for GraphQL it's `enrichments[generatorId][rootKind][fieldName]`.
 See [enrichments shape](../../reference/settings/enrichments-shape.md)

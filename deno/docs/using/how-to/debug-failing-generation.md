@@ -66,6 +66,28 @@ or `skipped`. Skipped operations are usually filtered by
 
 ### Cases
 
+#### Missing unstable-worker-options flag
+
+The first `skmtc generate` on a machine exits at runtime with:
+
+```
+Unstable API 'Worker.deno.permissions'. The --unstable-worker-options
+flag must be provided.
+```
+
+`@skmtc/worker` constructs each per-project Worker via the Deno-specific
+`Worker.deno.permissions` API, which sits behind the
+`--unstable-worker-options` flag. The flag is baked into the `skmtc`
+binary at install time, so a binary installed without it fails here.
+
+Fix: reinstall the CLI with the flag. The `curl` installer
+(`curl -fsSL https://skm.tc/install | sh`) includes it; if you installed
+with a bare `deno install`, overwrite the binary:
+
+```bash
+deno install -gAf --unstable-worker-options --name skmtc jsr:@skmtc/cli
+```
+
 #### No output for an operation
 
 Check, in order:
@@ -89,7 +111,7 @@ Projection produced. If it's wrong:
 
 - **Hardcoded values?** The generator's source has hardcoded peer
   imports, paths, or other values. Those are clone seams — see
-  [tutorial: cloning a generator](../../extending/tutorials/01-cloning-a-generator.md).
+  [tutorial: cloning a generator](../../authoring/tutorials/01-cloning-a-generator.md).
 - **Missing fields?** The schema model may not have what you
   expect. Inspect via `skmtc generate --json` and look at how
   the parser interpreted your spec.

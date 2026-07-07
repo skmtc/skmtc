@@ -19,9 +19,9 @@ one directory.
 ### Open `gen-x/src/base.ts`
 
 `toExportPath` lives there for stock generators. For
-model generators it takes `{ schema, refName }`; for operation
-generators it takes `{ operation, enrichments }` (and similar
-for GraphQL).
+model generators it takes `{ refName, enrichments, variant }`;
+for operation generators it takes `{ operation, enrichments,
+variant }` (and similar for GraphQL).
 
 ### Edit `toExportPath`
 

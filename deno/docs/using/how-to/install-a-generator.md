@@ -6,16 +6,17 @@
 
 You want a stock generator's output as-is. If you'll need to
 modify the generator's behavior, see [tutorial: cloning a
-generator](../../extending/tutorials/01-cloning-a-generator.md)
+generator](../../authoring/tutorials/01-cloning-a-generator.md)
 instead.
 
 ## Prerequisites
 
-- The `skmtc` CLI installed with `--unstable-worker-options`:
+- The `skmtc` CLI:
   ```bash
-  deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli
+  curl -fsSL https://skm.tc/install | sh
   ```
-  The flag is required so the per-project Worker can use Deno's
+  The installer bootstraps Deno if needed and bakes in the
+  `--unstable-worker-options` flag. The flag is required so the per-project Worker can use Deno's
   `Worker.deno.permissions` API. Without it, `skmtc generate` fails at
   runtime with `Unstable API 'Worker.deno.permissions'`. If you
   already installed without the flag, rerun the install with `-f`.

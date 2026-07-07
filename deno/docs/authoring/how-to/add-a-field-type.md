@@ -1,7 +1,7 @@
 # How to add a field type
 
 > Add a new field renderer to a cloned form generator (e.g.,
-> `gen-shadcn-form`, `gen-daisyui-form`).
+> `gen-shadcn-form`).
 
 ## When to use this
 
@@ -25,8 +25,8 @@ Snippet per field type:
 
 ```ts
 // src/fields/DatePickerInput.ts
-import { SnippetBase } from '@skmtc/core'
 import type { GenerateContextType } from '@skmtc/core'
+import { TsSnippet } from '@skmtc/lang-typescript'
 
 type Args = {
   context: GenerateContextType
@@ -34,7 +34,7 @@ type Args = {
   fieldName: string
 }
 
-export class DatePickerInput extends SnippetBase {
+export class DatePickerInput extends TsSnippet {
   #fieldName: string
 
   constructor(args: Args) {

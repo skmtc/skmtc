@@ -46,25 +46,22 @@ config fields supplied to the projection-base factory. From the
 stock `gen-zod/src/base.ts`:
 
 ```ts
-import {
-  camelCase,
-  decapitalize,
-  Identifier,
-  toModelProjectionBase,
-} from '@skmtc/core'
+import { camelCase, decapitalize } from '@skmtc/core'
+import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 import { join } from '@std/path'
 import denoJson from '../deno.json' with { type: 'json' }
 
-export const ZodBase = toModelProjectionBase({
+export const ZodBase = toTsModelProjectionBase({
   id: denoJson.name,
 
-  toIdentifier({ refName }): Identifier {
-    const name = decapitalize(camelCase(refName))
-    return createVariable(name)
+  toIdentifierName({ refName }): string {
+    return decapitalize(camelCase(refName))
   },
 
-  toExportPath({ refName, enrichments }): string {
-    const { name } = this.toIdentifier({ refName, enrichments })
+  toIdentifierType: () => ({ type: 'variable' }),
+
+  toExportPath({ refName, enrichments, variant }): string {
+    const name = this.toIdentifierName({ refName, enrichments, variant })
     return join('@', 'types', `${decapitalize(name)}.generated.ts`)
   },
 })
@@ -72,16 +69,16 @@ export const ZodBase = toModelProjectionBase({
 
 `ZodProjection` (in a separate file) extends `ZodBase` — the
 factory result — and provides the per-instance `toString()`. The
-factory wires `toIdentifier` and `toExportPath` onto the class
+factory wires `toIdentifierName` and `toExportPath` onto the class
 as statics so the cache key can be computed without
 instantiating.
 
-`toIdentifier` and `toExportPath` are **pure functions** of
+`toIdentifierName` and `toExportPath` are **pure functions** of
 their inputs. Given the same `refName`, they return identical
 identifier names and paths. No mutation, no random suffixes, no
 timestamps.
 
-This is the load-bearing property. If `toIdentifier` were
+This is the load-bearing property. If `toIdentifierName` were
 non-deterministic — say, by including a timestamp or a random
 ID — the cache would never hit. Each call would produce a fresh
 key; each entry would be unique; the file would accumulate
@@ -89,7 +86,7 @@ duplicates.
 
 The purity invariant is enforced by convention, not by the type
 system. A generator author *could* write a non-pure
-`toIdentifier`. Doing so would silently break idempotency.
+`toIdentifierName`. Doing so would silently break idempotency.
 
 ### Cache key uses both deterministically
 
@@ -248,7 +245,7 @@ schemas to components.
 
 ### Pure functions that aren't really pure
 
-A generator's `toIdentifier` could depend on context state
+A generator's `toIdentifierName` could depend on context state
 (e.g., reading `this.context.someState`), accidentally violating
 purity. The cache would then miss inconsistently — sometimes
 hitting, sometimes missing, depending on what state had been
@@ -256,7 +253,7 @@ mutated when.
 
 Anti-pattern; the operational principles in
 [`llms.md`](../llms.md) call this out explicitly. Generator
-authors should treat `toIdentifier` and `toExportPath` as pure
+authors should treat `toIdentifierName` and `toExportPath` as pure
 functions of their inputs.
 
 ### Memoization can't work if `toString()` is non-pure

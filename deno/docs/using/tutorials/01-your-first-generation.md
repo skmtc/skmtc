@@ -19,32 +19,31 @@ If you don't have one handy, use the canonical Petstore spec:
 ## Step 1: Install the CLI
 
 ```bash
-deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli/mod.ts
+curl -fsSL https://skm.tc/install | sh
 ```
 
-Verify: `skmtc --version`.
+The installer bootstraps Deno if it isn't already on your machine and
+bakes in the required `--unstable-worker-options` flag.
 
-The `--unstable-worker-options` flag is required because `@skmtc/worker`
-constructs each per-project Worker with `new Worker(..., { deno: {
-permissions: {...} } })` — the Deno-specific `Worker.deno.permissions`
-API. As of Deno 2.7, that API sits behind this flag. Without it, the
-first `skmtc generate` exits at runtime with `Unstable API
-'Worker.deno.permissions'. The --unstable-worker-options flag must be
-provided.` The flag has to be passed at install time — `deno install`
-bakes the flags into the `skmtc` binary at `~/.deno/bin/skmtc`. If you
-already installed without it, reinstall with `-f` to overwrite the
-binary.
+Confirm it's ready:
+
+```bash
+skmtc --help
+```
+
+You should see the list of `skmtc` commands.
 
 ## Step 2: Create a project
 
-In an empty directory:
+In an empty directory, pass a project name and a `basePath` — the
+directory generated files are written to, relative to here:
 
 ```bash
-skmtc init petstore
+skmtc init petstore src/generated
 ```
 
-This scaffolds `.skmtc/petstore/` with default `deno.json` and
-`client.json` files.
+This scaffolds `.skmtc/petstore/`: a `deno.json` for generator imports
+and a `.settings/client.json` pre-filled with your `basePath`.
 
 ## Step 3: Install a generator
 
@@ -58,7 +57,9 @@ command does in detail.
 
 ## Step 4: Configure the schema source
 
-Edit `.skmtc/petstore/.settings/client.json`:
+`init` already wrote `basePath` into
+`.skmtc/petstore/.settings/client.json`. Add a top-level `source` so the
+file reads:
 
 ```jsonc
 {
@@ -84,15 +85,16 @@ component, and writes the artifacts to `src/generated/`.
 ## Step 6: Read the output
 
 ```bash
-ls src/generated/
-cat src/generated/Pet.generated.ts
+ls src/generated/types/
+cat src/generated/types/pet.generated.ts
 ```
 
 Each schema component (`Pet`, `Order`, `User`, etc.) is now a
-`zod` schema you can import:
+`zod` schema under `types/` (gen-zod's export path), one file per
+schema, named after the decapitalized schema name. Import it:
 
 ```ts
-import { pet } from './src/generated/Pet.generated.ts'
+import { pet } from './src/generated/types/pet.generated.ts'
 
 const validated = pet.parse(someApiResponse)
 ```

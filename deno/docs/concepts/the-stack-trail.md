@@ -171,7 +171,7 @@ When a parser encounters a `$ref`, it calls `registerRef` to record
 "this position pointed at that ref":
 
 ```ts
-// core/oas/ref/toRefV31.ts:26
+// core/parse/v3-{0,1}/ref/toRefV31.ts:33
 context.registerRef(stackTrail.clone(), $ref)
 ```
 

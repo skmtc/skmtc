@@ -28,9 +28,9 @@ renderer registry, and no `lang` config field anywhere.
   per-language `kind`.
 - Rendering lives on each DSL object's own `toString()` in its
   language subclass — there is no central renderer or visitor.
-- **Production languages: TypeScript, Kotlin, and C#.** The other
-  lang packages (Go, Rust, PHP; Python/Java unspiked) are render-only
-  spikes.
+- **TypeScript is the production language.** The Kotlin and C# lang
+  packages exist but are private/pre-alpha; the other lang packages
+  (Go, Rust, PHP; Python/Java unspiked) are render-only spikes.
 - One composition must resolve exactly ONE copy of each lang package
   (see "The dual-copy hazard" below).
 
@@ -41,7 +41,7 @@ own equivalents of each piece:
 
 | Piece | TypeScript | Kotlin | C# |
 |---|---|---|---|
-| The `Lang` object (three neutral factories Drivers call: `createFile` / `toDefinition` / `toImport`) | `typescript` | `kotlin` | `csharp` |
+| The `Lang` object (four neutral factories Drivers call: `createFile` / `toDefinition` / `toImport` / `toIdentifier`) | `typescript` | `kotlin` | `csharp` |
 | Snippet base (where the language enters the hierarchy; keyless `register`) | `TsSnippet` | `KtSnippet` | `CsSnippet` |
 | Projection-base veneers (over core's `toModelProjectionBase` et al., which keep their names; the veneer pre-binds the snippet base as the positional first arg) | `toTsModelProjectionBase` / `toTsOasOperationProjectionBase` / `toTsGqlOperationProjectionBase` | `toKtModelProjectionBase` / `toKtOasOperationProjectionBase` (Spring is accumulator-style and uses neither) | `toCsModelProjectionBase` (operation veneers are demand-driven — gen-csharp-aspnet is accumulator-style) |
 | Register family (functions + concise vocabulary) | `register` / `defineAndRegister`, `TsRegisterArgs` (`imports` / `reExports` / `definitions`) | same, `KtRegisterArgs` — deliberately **no `reExports`** (Kotlin has none; the absence is compile-time) | same, `CsRegisterArgs` — also no `reExports` |
@@ -162,5 +162,6 @@ template instantiation).
   — the register path end to end
 - [stringable-composition.md](stringable-composition.md) — why
   rendering lives on `toString()`
-- The `skmtc-lang-typescript`, `skmtc-lang-kotlin`, and
-  `skmtc-lang-csharp` skills — the per-language operational answers
+- The `skmtc-lang-typescript` skill — the per-language operational
+  answers for the one stable language layer (other languages are
+  pre-alpha and have no skills yet)

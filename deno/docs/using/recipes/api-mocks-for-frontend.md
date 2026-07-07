@@ -20,7 +20,7 @@ fixtures by hand.
 ## Setup
 
 ```bash
-skmtc init my-frontend
+skmtc init my-frontend src/generated
 skmtc install @skmtc/gen-typescript my-frontend
 skmtc install @skmtc/gen-zod my-frontend
 skmtc install @skmtc/gen-msw my-frontend

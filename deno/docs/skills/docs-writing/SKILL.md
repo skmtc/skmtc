@@ -174,7 +174,7 @@ study-vs-work, never by difficulty.
 
 Navigation should mirror the split: Getting Started → Guides → Reference →
 Concepts. The SKMTC docs tree instantiates this as `using/tutorials/` +
-`using/how-to/` + `using/recipes/`, `extending/` (same trio), `reference/`, and
+`using/how-to/` + `using/recipes/`, `authoring/` (same trio), `reference/`, and
 `concepts/` + `explanation/`. **Recipes are how-to guides in recipe form** — the
 recipe is Diátaxis's own model for the type (assumes competence, answers one
 specific question, no teaching). The four types classify _needs_, not directory

@@ -33,7 +33,7 @@ The canonical layout for `gen-x`:
 ├── mod.ts                    ← top-level re-export
 └── src/
     ├── mod.ts                ← entry function (toOasOperationEntry, etc.)
-    ├── base.ts               ← toIdentifier, toExportPath (the customization seams)
+    ├── base.ts               ← toIdentifierName, toExportPath (the customization seams)
     ├── enrichments.ts        ← Valibot schema for user options
     ├── <MainProjection>.ts   ← the Projection class
     └── <Snippet>.ts          ← supporting Snippet classes (optional, multiple)
@@ -165,12 +165,12 @@ acc semantics, enrichment routing paths — is in the
 
 ### `src/base.ts` (projection base)
 
-The `toIdentifier` / `toExportPath` factory — these are the
+The `toIdentifierName` / `toExportPath` factory — these are the
 customization seams when the generator is cloned:
 
 ```ts
 // gen-x/src/base.ts
-import { Identifier, capitalize, camelCase } from '@skmtc/core'
+import { capitalize, camelCase } from '@skmtc/core'
 import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import { join } from '@std/path'
 import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
@@ -180,23 +180,24 @@ export const MyGenBase = toTsOasOperationProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
   toEnrichmentSchema,
 
-  toIdentifier({ operation }): Identifier {
+  toIdentifierName({ operation }): string {
     // The generator's identifier-naming convention.
     // Hardcoded here on purpose — this is the seam users edit
     // (in a clone) to change names.
-    const name = `${capitalize(operation.method)}${camelCase(operation.path, { upperFirst: true })}`
-    return createVariable(name)
+    return `${capitalize(operation.method)}${camelCase(operation.path, { upperFirst: true })}`
   },
 
-  toExportPath({ operation, enrichments }): string {
+  toIdentifierType: () => ({ type: 'variable' }),
+
+  toExportPath({ operation, enrichments, variant }): string {
     // Where output files land. Must align with consumer's @ alias.
-    const { name } = this.toIdentifier({ operation, enrichments })
+    const name = this.toIdentifierName({ operation, enrichments, variant })
     return join('@', 'my-gen', `${name}.generated.ts`)
   }
 })
 ```
 
-The hardcoded values in `toIdentifier` and `toExportPath` are
+The hardcoded values in `toIdentifierName` and `toExportPath` are
 deliberately literal. They're the *primary* clone seams.
 
 ### `src/enrichments.ts`

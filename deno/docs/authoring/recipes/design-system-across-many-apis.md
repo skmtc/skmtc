@@ -52,24 +52,34 @@ This creates a `.skmtc/shared/` project with three cloned
 generators. The "shared" project isn't a real consumer — it's a
 holding area for the customized source.
 
-### Encode house style in `toIdentifier` and `toExportPath`
+### Encode house style in `toIdentifierName` and `toExportPath`
 
 Open each cloned generator's `src/base.ts` and apply your house
-style:
+style. The naming and path functions are config fields on the
+`toTsModelProjectionBase({...})` call — not free-standing
+exports:
 
 ```ts
 // .skmtc/shared/gen-zod/src/base.ts
-import { Identifier, capitalize } from '@skmtc/core'
+import { capitalize } from '@skmtc/core'
+import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
+import type { TsIdentifierType } from '@skmtc/lang-typescript'
+import denoJson from '../deno.json' with { type: 'json' }
 
-// House style: PascalCase with "Schema" suffix
-export const toIdentifier = ({ refName }) =>
-  createVariable(`${capitalize(refName)}Schema`)
+export const ZodBase = toTsModelProjectionBase({
+  id: denoJson.name,
 
-// House style: per-domain subdirectories
-export const toExportPath = ({ refName }) => {
-  const domain = inferDomain(refName)
-  return `/${domain}/${refName}.schema.ts`
-}
+  // House style: PascalCase with "Schema" suffix
+  toIdentifierName: ({ refName }) => `${capitalize(refName)}Schema`,
+
+  toIdentifierType: (): TsIdentifierType => ({ type: 'variable' }),
+
+  // House style: per-domain subdirectories
+  toExportPath: ({ refName }) => {
+    const domain = inferDomain(refName)
+    return `/${domain}/${refName}.schema.ts`
+  }
+})
 
 function inferDomain(refName: string): string {
   if (refName.startsWith('User') || refName.startsWith('Auth')) return 'identity'

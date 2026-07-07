@@ -109,16 +109,16 @@ progresses** — when `User` finishes parsing, it's added to
 calls `someRef.resolve()`, the document is fully populated.
 
 ```ts
-// core/oas/ref/toRefV31.ts:26-34
+// core/parse/v3-{0,1}/ref/toRefV31.ts:33-37
 context.registerRef(stackTrail.clone(), $ref)
 
-return new OasRef(
-  { refType, $ref },
-  context.parsedDocument  // ← reference to mutable document
+return context.withStackTrail(stackTrail, () =>
+  new OasRef({ refType, $ref, nullable }, context)
 )
 ```
 
-The `OasRef` instance holds a live reference to `parsedDocument`.
+The `OasRef` constructor stores `context.parsedDocument`, so the
+instance holds a live reference to the parsed document.
 Mutation of the document by later parser code is visible through
 this reference.
 

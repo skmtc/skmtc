@@ -18,32 +18,35 @@ conventions instead of the stock generator's defaults.
 
 ### Open `gen-x/src/base.ts`
 
-`toIdentifier` lives there. It returns an `Identifier` (not a
-plain string) carrying both the name AND the entity-type marker.
+The naming convention lives there, split across two config fields
+on the `toTsModelProjectionBase({...})` (or operation-equivalent)
+call: `toIdentifierName` returns the name string, and
+`toIdentifierType` declares whether the name is a variable
+(a `const` declaration) or a type declaration.
 
-### Edit `toIdentifier`
-
-Always use `createVariable` or `createType` (imported from
-`@skmtc/lang-typescript`)
-— **never** return a raw string.
+### Edit `toIdentifierName`
 
 ```ts
-import { Identifier } from '@skmtc/core'
-
 // gen-zod default
-toIdentifier: ({ refName }) => createVariable(decapitalize(refName))
+toIdentifierName: ({ refName }) => decapitalize(refName)
 // → "user", "order", "pet"
 
 // Your house style: PascalCase with suffix
-toIdentifier: ({ refName }) => createVariable(`${refName}Schema`)
+toIdentifierName: ({ refName }) => `${refName}Schema`
 // → "UserSchema", "OrderSchema", "PetSchema"
+```
 
-// For a type generator
-toIdentifier: ({ refName }) => createType(refName)
+For a type generator, have `toIdentifierType` return
+`{ type: 'type' }` instead of `{ type: 'variable' }`:
+
+```ts
+import type { TsIdentifierType } from '@skmtc/lang-typescript'
+
+toIdentifierType: (): TsIdentifierType => ({ type: 'type' })
 // → rendered as `export type User = ...` and imports as `import { type User }`
 ```
 
-The `createVariable` vs `createType` choice determines:
+The `variable` vs `type` choice determines:
 
 - The declaration shape (`export const` vs `export type`)
 - The import shape under `verbatimModuleSyntax: true`
@@ -88,14 +91,10 @@ it via `insertModel(...).toName()`, not by hardcoded reference.
 
 ## Troubleshooting
 
-- **`createVariable is not a function`** — you might be
-  using `new Identifier({...})` directly. The factory methods are
-  the recommended path. Direct construction works but is rarer
-  (and easier to get wrong).
-- **Imports break under `verbatimModuleSyntax`** — A `type`
-  identifier registered as `createVariable` (or vice versa) causes
-  TS errors. Audit which generators produce values vs types and
-  make sure each is right.
+- **Imports break under `verbatimModuleSyntax`** — A type
+  declaration whose `toIdentifierType` returns `{ type: 'variable' }`
+  (or vice versa) causes TS errors. Audit which generators produce
+  values vs types and make sure each is right.
 - **Same identifier name across operations** — naming function
   isn't unique enough. Common bug: derivation from `operation.summary`
   rather than `operationId` (summaries are free text and not

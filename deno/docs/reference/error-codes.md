@@ -236,8 +236,8 @@ to register the same identifier at the same `exportPath`. The
 strict Driver-path integrity check (`affirmDefinition`) caught the
 collision.
 
-**Example:** generator A's `toIdentifier` for a `POST /users`
-operation produces `useCreateUsers`. Generator B's `toIdentifier`
+**Example:** generator A's `toIdentifierName` for a `POST /users`
+operation produces `useCreateUsers`. Generator B's `toIdentifierName`
 for the same operation also produces `useCreateUsers`. Both want
 the same `exportPath`. Collision.
 
@@ -246,7 +246,7 @@ the same `exportPath`. Collision.
 - Identify the two generators by their `generatorKey` values in the
   message.
 - Clone one of them.
-- Edit its `toIdentifier` to add a discriminating prefix or suffix
+- Edit its `toIdentifierName` to add a discriminating prefix or suffix
   (e.g., `useCreateUsers` → `useCreateUsersMutation`).
 
 ### `Max lookups reached`

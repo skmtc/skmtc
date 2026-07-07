@@ -131,6 +131,6 @@ you didn't (for other operations), the `??` defaults kicked in.
   targeted reference for adding more enrichment entries
 - [Enrichments concept](../../concepts/enrichments.md) — the
   mental model
-- [Tutorial: Cloning a generator](../../extending/tutorials/01-cloning-a-generator.md) —
+- [Tutorial: Cloning a generator](../../authoring/tutorials/01-cloning-a-generator.md) —
   when enrichments aren't enough and you need source-level
   customization

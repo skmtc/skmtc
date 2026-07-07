@@ -160,4 +160,4 @@ references the concept doc for depth rather than being trimmed away.
 experimental. As the SaaS infrastructure this skill targets is built
 out, §11 ("Building infrastructure around SKMTC") will need to track
 what becomes real — and may eventually split into its own
-`extending/` or `platform/` documentation tree.
+`authoring/` or `platform/` documentation tree.

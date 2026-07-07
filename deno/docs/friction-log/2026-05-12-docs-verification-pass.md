@@ -1,7 +1,7 @@
 # Docs verification pass against skmtc-generators source
 
 **Date:** 2026-05-12
-**Session:** verification of just-written `using/` and `extending/` task docs against `skmtc-generators/` and `cli/lib/` source code.
+**Session:** verification of just-written `using/` and `authoring/` task docs against `skmtc-generators/` and `cli/lib/` source code.
 **Triggering question:** "Could you please verify docs against contents of Skmtc-generators? I am curious if you think that following docs would likely produce same results."
 
 ## Index
@@ -36,15 +36,15 @@ headings (`Critical:` / `High:` / `Medium:` / `Low:` / `CRITICAL:`).
 
 **Confidence by doc kind:**
 - **Concepts, explanation, reference (api/cli/settings):** Mostly accurate — these were written with more verification against source.
-- **Tutorials (extending/):** Significantly inaccurate. Following them produces code that won't compile against the actual scaffold.
-- **How-tos (extending/):** Patterns are roughly correct but several specifics (default paths, default identifier transforms, scaffold file names) are wrong.
+- **Tutorials (authoring/):** Significantly inaccurate. Following them produces code that won't compile against the actual scaffold.
+- **How-tos (authoring/):** Patterns are roughly correct but several specifics (default paths, default identifier transforms, scaffold file names) are wrong.
 - **Stock-generator reference docs:** Mostly correct on broad strokes, missing a few hardcoded peer imports.
 
 ## Discrepancies
 
 ### Critical: Projection-base inheritance pattern
 
-**Where:** `extending/tutorials/02-authoring-a-model-generator.md`, `extending/tutorials/03-authoring-an-operation-generator.md`, and indirectly in compose-with-another-generator.md.
+**Where:** `authoring/tutorials/02-authoring-a-model-generator.md`, `authoring/tutorials/03-authoring-an-operation-generator.md`, and indirectly in compose-with-another-generator.md.
 
 **What I claimed:**
 ```ts
@@ -80,7 +80,7 @@ export class SchemaMetaProjection extends SchemaMetaBase {
 
 ### Critical: Scaffold file names and contents
 
-**Where:** `extending/tutorials/02-authoring-a-model-generator.md` and `03-authoring-an-operation-generator.md`.
+**Where:** `authoring/tutorials/02-authoring-a-model-generator.md` and `03-authoring-an-operation-generator.md`.
 
 **What I claimed `skmtc create` produces:**
 ```
@@ -104,7 +104,7 @@ export class SchemaMetaProjection extends SchemaMetaBase {
 
 ### Critical: Constructor signature for model projections
 
-**Where:** `extending/tutorials/02-authoring-a-model-generator.md`, and implied elsewhere.
+**Where:** `authoring/tutorials/02-authoring-a-model-generator.md`, and implied elsewhere.
 
 **What I claimed:**
 ```ts
@@ -143,7 +143,7 @@ export class SchemaMetaProjection extends SchemaMetaBase {
 
 ### High: Default export paths cited from stock generators
 
-**Where:** `extending/how-to/change-export-paths.md`, `extending/tutorials/01-cloning-a-generator.md`.
+**Where:** `authoring/how-to/change-export-paths.md`, `authoring/tutorials/01-cloning-a-generator.md`.
 
 **What I claimed:**
 ```ts
@@ -164,7 +164,7 @@ toExportPath: ({ refName }) => `/models/${refName}.generated.ts`
 
 ### High: `gen-shadcn-form` has *two* hardcoded peer imports, not one
 
-**Where:** `reference/stock-generators/gen-shadcn-form.md`, `extending/how-to/swap-a-peer-dependency.md`.
+**Where:** `reference/stock-generators/gen-shadcn-form.md`, `authoring/how-to/swap-a-peer-dependency.md`.
 
 **What I claimed:** `gen-shadcn-form/src/ShadcnForm.ts:1` hardcodes `import { TanstackQuery } from '@skmtc/gen-tanstack-query-supabase-zod'`.
 
@@ -188,7 +188,7 @@ import ShadcnSelectInput from '@skmtc/gen-shadcn-select'
 
 ### Medium: `decapitalize(camelCase(...))` vs `decapitalize(...)`
 
-**Where:** `extending/how-to/change-identifier-conventions.md`, multiple tutorials.
+**Where:** `authoring/how-to/change-identifier-conventions.md`, multiple tutorials.
 
 **What I claimed:**
 ```ts
@@ -208,7 +208,7 @@ toIdentifier({ refName }): Identifier {
 
 ### Medium: `gen-shadcn-form`'s `toIdentifier` doesn't use `toEndpointName`
 
-**Where:** `extending/tutorials/03-authoring-an-operation-generator.md`.
+**Where:** `authoring/tutorials/03-authoring-an-operation-generator.md`.
 
 **What I claimed (and implied as the canonical pattern):**
 ```ts
@@ -246,7 +246,7 @@ Uses `toMethodVerb` + `camelCase(path, { upperFirst: true })`, not `toEndpointNa
 
 ### Low: `toGqlOperationProjectionBase` was mentioned but I didn't show it in use
 
-**Where:** `extending/how-to/handle-graphql-instead-of-oas.md`.
+**Where:** `authoring/how-to/handle-graphql-instead-of-oas.md`.
 
 **Status:** The factory exists (`core/dsl/operation/gql/toGqlOperationProjectionBase.ts:3`) but my how-to doesn't show the full `toGqlOperationProjectionBase({...})` pattern — it shows the user extending `GqlOperationProjectionBase` directly, same misconception as for model projections.
 
@@ -389,7 +389,7 @@ Given the status-value discrepancy, the JSON examples in `doctor.md` are likely 
 
 ### Calibrated probability estimate
 
-The first verification pass (extending/ tutorials and stock-generator refs) found ~7 substantive errors in ~25 docs.
+The first verification pass (authoring/ tutorials and stock-generator refs) found ~7 substantive errors in ~25 docs.
 
 The second pass (mechanical API/CLI claims) found ~3 errors in ~11 claims.
 
@@ -410,7 +410,7 @@ This pass went after CLI command flag sets (claimed exhaustively in `reference/c
 
 ### CRITICAL: `skmtc clone` syntax is wrong throughout the docs
 
-**What I claimed everywhere (`extending/tutorials/01-cloning-a-generator.md`, `reference/cli/clone.md`, all recipes that show cloning):**
+**What I claimed everywhere (`authoring/tutorials/01-cloning-a-generator.md`, `reference/cli/clone.md`, all recipes that show cloning):**
 
 ```bash
 skmtc clone @skmtc/gen-zod my-project
@@ -432,10 +432,10 @@ skmtc clone my-project --generator @skmtc/gen-zod
 skmtc clone my-project -g @skmtc/gen-zod -g @skmtc/gen-typescript
 ```
 
-This is the most-cited CLI command in `extending/` docs and **every single citation has the wrong argument shape**. Affects:
-- `extending/tutorials/01-cloning-a-generator.md`
-- `extending/recipes/design-system-across-many-apis.md`
-- `extending/recipes/custom-form-field-renderer.md`
+This is the most-cited CLI command in `authoring/` docs and **every single citation has the wrong argument shape**. Affects:
+- `authoring/tutorials/01-cloning-a-generator.md`
+- `authoring/recipes/design-system-across-many-apis.md`
+- `authoring/recipes/custom-form-field-renderer.md`
 - `using/recipes/multi-project-monorepo.md`
 - `reference/cli/clone.md` (the canonical reference)
 - Several how-to docs that mention cloning in passing
@@ -487,7 +487,7 @@ export type OasOperationProjectionConstructorArgs<EnrichmentType = undefined> = 
 }
 ```
 
-Three fields. My `extending/tutorials/03-authoring-an-operation-generator.md` imports this type, so it's correct via reference. Good.
+Three fields. My `authoring/tutorials/03-authoring-an-operation-generator.md` imports this type, so it's correct via reference. Good.
 
 ### `ModelProjectionArgs` shape: confirms earlier finding
 
@@ -808,7 +808,7 @@ get(context.settings, `enrichments.${config.id}.${operation.rootKind}.${operatio
 - For OAS operations, `operationOrRefId` isn't `operationId` — it's the literal `operation.path` (`"/customers"`, `"/orders/{id}"`).
 - Models use a 2-level path keyed by `refName`, not 4-level.
 
-**Affects:** `concepts/enrichments.md`, `reference/settings/enrichments-shape.md`, `reference/settings/client-json-schema.md` (examples), `using/how-to/configure-enrichments.md`, `using/tutorials/03-customize-with-enrichments.md`, `extending/how-to/add-enrichment-options.md`, all recipe docs that show enrichments JSON.
+**Affects:** `concepts/enrichments.md`, `reference/settings/enrichments-shape.md`, `reference/settings/client-json-schema.md` (examples), `using/how-to/configure-enrichments.md`, `using/tutorials/03-customize-with-enrichments.md`, `authoring/how-to/add-enrichment-options.md`, all recipe docs that show enrichments JSON.
 
 **Every JSON enrichment example in the docs is wrong.** A user following any current doc to add enrichments would put them where the engine doesn't look (Valibot strips unknown keys silently).
 

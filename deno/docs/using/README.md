@@ -4,9 +4,9 @@
 
 ## Who this is for
 
-You have an OpenAPI v3 or GraphQL schema and want code generated from it. You may install stock generators and configure them via enrichments, but you don't need to author or edit generator source code.
+You have an OpenAPI v3 or GraphQL schema and want code generated from it. Everything in this tree works with installed generators and JSON configuration — using SKMTC never requires writing or reading generator source code.
 
-If you find yourself wanting to change a hardcoded value in a generator, see [`extending/`](../extending/).
+If you find yourself wanting to change a hardcoded value in a generator, that's the one thing configuration can't do: see [`authoring/`](../authoring/) (authoring generators) when you get there.
 
 ## The flow
 
@@ -48,7 +48,7 @@ Complete worked examples.
 
 ## Shared resources
 
-- [Concepts](../concepts/) — mental models that apply to both using and extending
+- [Concepts](../concepts/) — mental models that apply to both using and authoring
 - [CLI reference](../reference/cli/) — every command, every flag
 - [Settings reference](../reference/settings/) — `client.json` schema and enrichment shape
 - [Stock generators reference](../reference/stock-generators/) — per-generator capabilities and enrichments

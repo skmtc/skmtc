@@ -17,7 +17,7 @@ generators range from **stable** (gen-typescript, gen-zod,
 gen-msw, gen-shadcn-form) through **active** (the
 tanstack-query-* family, gen-shadcn-select/table) to
 **experimental** (GraphQL generators, gen-arktype, gen-supabase-
-hono, gen-express, gen-daisyui-form).
+hono, gen-express).
 
 The project is **locally developed** — there's no
 external-contribution flow yet. Breaking changes are managed by
@@ -94,8 +94,6 @@ specific projects but expect more frequent shape changes.
   base than gen-zod; some edge cases may be undercovered.
 - **`@skmtc/gen-valibot`** — Valibot validation. Similar maturity
   to gen-arktype.
-- **`@skmtc/gen-daisyui-form`** — DaisyUI form variant. Newer
-  than gen-shadcn-form.
 - **`@skmtc/gen-express`** — Express route stubs. Demonstrates
   the shared-singleton pattern; specific output style still
   evolving.

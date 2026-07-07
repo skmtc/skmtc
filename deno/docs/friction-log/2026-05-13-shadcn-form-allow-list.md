@@ -385,7 +385,7 @@ free via `insertOperation` + same destinationPath.
 
 **Version anchor:** `@skmtc/core@0.4.4`, `@skmtc/gen-shadcn-form@0.0.1`
 
-**Status:** open — pattern observation from one generator (N=1 by friction-log methodology, which intentionally doesn't re-report). Not codified in `concepts/projections-and-snippets.md` or elsewhere; deferred because the observation is real but generalizing it to a doc-level rule from one generator's design is speculative. Consider as candidate content for `extending/recipes/` if another generator exhibits the same split (next observation will confirm).
+**Status:** open — pattern observation from one generator (N=1 by friction-log methodology, which intentionally doesn't re-report). Not codified in `concepts/projections-and-snippets.md` or elsewhere; deferred because the observation is real but generalizing it to a doc-level rule from one generator's design is speculative. Consider as candidate content for `authoring/recipes/` if another generator exhibits the same split (next observation will confirm).
 
 ---
 
@@ -432,4 +432,4 @@ use the validated view.
 
 **Version anchor:** `@skmtc/core@0.4.4`, `@skmtc/gen-shadcn-form@0.0.1`
 
-**Status:** open — same as #7: single-generator observation, deferred until a second instance confirms the pattern generalizes. Candidate content for `extending/recipes/` if `gen-shadcn-form`'s pattern recurs elsewhere.
+**Status:** open — same as #7: single-generator observation, deferred until a second instance confirms the pattern generalizes. Candidate content for `authoring/recipes/` if `gen-shadcn-form`'s pattern recurs elsewhere.

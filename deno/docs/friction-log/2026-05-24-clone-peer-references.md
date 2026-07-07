@@ -22,7 +22,7 @@ authoring layer, and the consumer app.
 | K1 | `skmtc clone` writes JSR URLs (`jsr:@skmtc/X@x.y.z`) directly into source files instead of bare specifiers, even though the clone's deno.json has an import map that would resolve bare specifiers correctly. Canonical generators (`skmtc-generators/gen-*/`) use bare specifiers. | CLI behaviour change — `skmtc clone` should match canonical pattern. |
 | K2 | Even with bare specifiers, a fresh `skmtc clone` pins peer generators to JSR. When multiple peers are cloned side-by-side in the same project, they don't pick each other up locally — edits to one clone's source require republishing to be visible to its siblings. The fix is to rewrite the cloned deno.json so `@skmtc/gen-*` peers map to `../sibling/mod.ts`. | CLI behaviour change — clone should default to local mapping when sibling clones exist. |
 | K3 | The release script's cascade is **intra-workspace only**. `skmtc/deno` and `skmtc-generators/` are separate workspaces; bumping `@skmtc/core` in the former doesn't trigger any republishes in the latter, because generators pin core as a JSR external. Cross-workspace coordination is manual. | Release script enhancement or explicit how-to. |
-| K4 | Per-item resource lookup via the by-id endpoint paired with React Query dedup is the correct pattern for resolving foreign-key columns, not list-fetch with a high `pageSize`. The §3.5 operation-reference protocol composes naturally with this: enrichment names the list path (`/offices/`), generator resolves the sibling by-id path (`/offices/{id}`), inserts that endpoint's `TanstackQuery`, and emits per-row wrapper components in the same file. | Recipe under `extending/recipes/` — "resolving foreign-key columns via per-item lookup". |
+| K4 | Per-item resource lookup via the by-id endpoint paired with React Query dedup is the correct pattern for resolving foreign-key columns, not list-fetch with a high `pageSize`. The §3.5 operation-reference protocol composes naturally with this: enrichment names the list path (`/offices/`), generator resolves the sibling by-id path (`/offices/{id}`), inserts that endpoint's `TanstackQuery`, and emits per-row wrapper components in the same file. | Recipe under `authoring/recipes/` — "resolving foreign-key columns via per-item lookup". |
 | K5 | Reapit's live API returns `null` for unset optional fields even though the OAS schema only declares them `required: false`, not `nullable: true`. Generators that emit strict `.optional()` zod schemas reject those responses. Mitigation: coerce `nullable = !required` in the `applyModifiers` of both `gen-zod` and `gen-typescript`. | Either generator-level convention (Reapit-specific enrichment) or a general "nullable-by-default" mode that's selectable. |
 | K6 | The generated `queryFn` in `gen-tanstack-query-fetch-zod` destructured all query parameters into the hook signature but never appended them to the URL, so `pageNumber`/`pageSize`/etc. were silently dropped from outgoing requests. Pagination state changed → React Query re-keyed → no behavioural change. | SKMTC code gap (already fixed in this session). |
 | K7 | `OasTag.externalDocs` is silently dropped by the parser — there's even a commented-out `// externalDocs: externalDocs.optional()` line in `tag-types.ts`. The helpers (`toExternalDocs`, `ExternalDocs`, the Valibot schema) already exist. | Wire-up; already done in this session. |
@@ -275,7 +275,7 @@ endpoints.
 **Possible fixes:** unresolved — candidates: (1) extend the skill's
 §3.5 with a "two flavours" subsection (per-item via by-id endpoint vs
 whole-list via list endpoint); (2) add a recipe under
-`extending/recipes/` with the two-component pattern (inner that calls
+`authoring/recipes/` with the two-component pattern (inner that calls
 the hook, outer that dispatches over null/array/scalar) shown above.
 
 **Version anchor:** `@skmtc/core@0.6.4`, `@skmtc/gen-shadcn-table@0.0.61`
@@ -505,7 +505,7 @@ was popular.
 **Possible fixes:** Resolved for this project by editing the cloned
 generators. Generalizable as a generator-level "treat optional as
 nullable" enrichment knob — could be opt-in per project. Probably
-worth a recipe under `extending/recipes/` titled "handling APIs that
+worth a recipe under `authoring/recipes/` titled "handling APIs that
 return null for missing optionals".
 
 **Version anchor:** `@skmtc/gen-zod@0.0.60`, `@skmtc/gen-typescript@0.0.62`

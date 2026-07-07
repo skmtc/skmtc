@@ -1,12 +1,12 @@
-# Extending SKMTC
+# Authoring generators
 
-> Clone, customize, and author SKMTC generators.
+> Clone, customize, and write SKMTC generators.
 
 ## Who this is for
 
-You want generator behavior beyond what enrichments expose, or you're authoring a new generator from scratch. You'll be reading and writing TypeScript in `.skmtc/<project>/<gen-name>/src/`.
+You want generator behavior beyond what enrichments expose, or you're writing a new generator from scratch. You'll be reading and writing TypeScript in `.skmtc/<project>/<gen-name>/src/`.
 
-If you haven't used SKMTC as a consumer yet, start with [`using/`](../using/) — extending makes more sense once you've felt the customization limits.
+None of this is required to use SKMTC — if you haven't used it as a consumer yet, start with [`using/`](../using/). Authoring makes more sense once you've felt the customization limits, and it's more approachable than it sounds: generators build output with template literals (not ASTs) and compose with each other, so most authoring work is editing recognizable TypeScript. The [Authoring generators section of the docs front page](../README.md#authoring-generators) shows both ideas in real generator code.
 
 ## The customization gradient
 

@@ -138,8 +138,8 @@ The TypeScript-level utility types and interfaces.
 
 | Type | Purpose |
 |------|---------|
-| `Identifier.kind` | opaque per-language declaration discriminant — TypeScript's vocabulary (`TsEntityKind`, `'variable' \| 'type'`) and its keyword mapping live in `@skmtc/lang-typescript` |
-| `ImportNameArg` | `string \| { name, alias?, isType? }` — input to `register({ imports })` |
+| `IdentifierType` | `{ type: string; typeName?; exported? }` — the non-name identifier parts `toIdentifierType` returns; the per-language declaration vocabulary (`TsEntityType`, `'variable' \| 'type' \| 'class' \| 'interface' \| 'namespace'`) and its keyword mapping live in `@skmtc/lang-typescript` |
+| `ImportNameArg` | `string \| { name, alias?, type? }` — input to `register({ imports })` |
 | `GeneratedValue` | Base structural type for what `Definition` wraps |
 | `Method` | HTTP method literal type |
 | `OasParameterLocation` | `'path' \| 'query' \| 'header' \| 'cookie'` |

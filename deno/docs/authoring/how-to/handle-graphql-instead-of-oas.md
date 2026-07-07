@@ -21,21 +21,23 @@ differ.
 
 The factory is the GraphQL counterpart. Use the class-based
 projection pattern — the same shape as OAS operation generators:
-extend `toGqlOperationProjectionBase`, then dispatch the class
+extend `toTsGqlOperationProjectionBase`, then dispatch the class
 from the entry's `transform`.
 
 ```ts
 // src/base.ts
-import { toGqlOperationProjectionBase, Identifier, capitalize } from '@skmtc/core'
+import { capitalize } from '@skmtc/core'
+import { toTsGqlOperationProjectionBase } from '@skmtc/lang-typescript'
+import type { TsIdentifierType } from '@skmtc/lang-typescript'
 import { join } from '@std/path'
 import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
 import denoJson from '../deno.json' with { type: 'json' }
 
-export const MyGqlBase = toGqlOperationProjectionBase<EnrichmentSchema>({
+export const MyGqlBase = toTsGqlOperationProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
   toEnrichmentSchema,
-  toIdentifier: ({ operation }) =>
-    createVariable(`use${capitalize(operation.fieldName)}`),
+  toIdentifierName: ({ operation }) => `use${capitalize(operation.fieldName)}`,
+  toIdentifierType: (): TsIdentifierType => ({ type: 'variable' }),
   toExportPath: ({ operation }) =>
     join('@', 'graphql', `use${capitalize(operation.fieldName)}.generated.ts`)
 })
@@ -226,6 +228,6 @@ result type as expected.
 - [The GraphQL asymmetry](../../explanation/the-graphql-asymmetry.md) —
   why GraphQL parses inside the worker
 - [API: Projection bases](../../reference/api/projection-bases.md) —
-  including `toGqlOperationProjectionBase`
+  including `toTsGqlOperationProjectionBase`
 - [API: GraphQL document model](../../reference/api/gql-document.md) —
   `GqlDocument`, `GqlRegistry`, `GqlOperation`, `GqlArgument`

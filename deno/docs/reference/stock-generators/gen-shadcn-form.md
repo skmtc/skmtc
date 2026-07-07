@@ -95,8 +95,6 @@ export const CreateUserForm = () => {
 
 ## See also
 
-- [gen-daisyui-form](gen-daisyui-form.md) — close sibling; DaisyUI
-  primitives instead of shadcn/ui
 - [gen-zod](gen-zod.md) — composes with this generator
 - [gen-tanstack-query-supabase-zod](gen-tanstack-query-supabase-zod.md) —
   hardcoded peer in stock

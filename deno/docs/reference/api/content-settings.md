@@ -1,10 +1,11 @@
 # ContentSettings
 
-> The per-Projection settings object: `identifier`, `exportPath`, and
-> `enrichments`. Computed by Drivers from a Projection's static
-> methods (`toIdentifier`, `toExportPath`, `toEnrichmentSchema`) and
-> passed to the Projection constructor as `args.settings`. Available
-> at runtime as `this.settings`.
+> The per-Projection settings object: `identifier`, `exportPath`,
+> `enrichments`, and `variant`. Computed by Drivers from a
+> Projection's static methods (`toIdentifierName` /
+> `toIdentifierType`, `toExportPath`, `toEnrichments`) and passed to
+> the Projection constructor as `args.settings`. Available at
+> runtime as `this.settings`.
 
 `ContentSettings` is the smallest yet most load-bearing class in the
 DSL. It's the **only** thing connecting a Projection instance to its
@@ -20,28 +21,32 @@ Drivers compute it before construction; Projections consume it during
 
 ```ts
 class ContentSettings<E = undefined> {
-  identifier: Identifier
+  identifier: IdentifierBase
   exportPath: string
   enrichments: E
+  variant: string
 
   constructor(args: {
-    identifier: Identifier
+    identifier: IdentifierBase
     exportPath: string
     enrichments: E
+    variant: string
   })
 
   static empty(args: {
-    identifier: Identifier
+    identifier: IdentifierBase
     exportPath: string
+    variant?: string            // defaults to 'main'
   }): ContentSettings<undefined>
 }
 ```
 
 ```ts
 new ContentSettings({
-  identifier: Identifier,        // the name + entityType
+  identifier: IdentifierBase,    // the assembled identifier (name + lang-typed parts)
   exportPath: string,            // the file path this Projection lands in
-  enrichments: E                 // the validated enrichment payload (or undefined)
+  enrichments: E,                // the validated enrichment payload (or undefined)
+  variant: string                // 'main' for variants-unaware Projections
 })
 ```
 
@@ -62,9 +67,11 @@ The Projection's name and entity-type marker. Used in two ways:
    generators producing the same name in the same file converge on
    one entry.
 
-See [API: Identifier](dsl-identifier.md) for the entity-type semantics
-(`'variable'` vs `'type'` — the discriminator values; the rendered
-declaration keyword for `'variable'` is `const`) and factory methods.
+See [API: Identifier](dsl-identifier.md) for the entity-type
+semantics (`TsEntityType`:
+`'variable' | 'type' | 'class' | 'interface' | 'namespace'`; the
+rendered declaration keyword for `'variable'` is `const`) and the
+factory functions.
 
 ### `exportPath`
 
@@ -139,9 +146,13 @@ Projection constructor:
 
 ```ts
 const settings = new ContentSettings({
-  identifier: projection.toIdentifier({ operation }),
-  exportPath: projection.toExportPath({ operation }),
-  enrichments: routedEnrichments
+  identifier: lang.toIdentifier({
+    name: projection.toIdentifierName({ operation, enrichments, variant }),
+    ...projection.toIdentifierType(operation, context)
+  }),
+  exportPath: projection.toExportPath({ operation, enrichments, variant }),
+  enrichments,
+  variant
 })
 
 const instance = new projection({
@@ -181,24 +192,26 @@ compute `ContentSettings` by calling the projection's static methods.
 The flow:
 
 ```ts
-// In OasOperationDriver
-const identifier = projection.toIdentifier({ operation })
-const exportPath = projection.toExportPath({ operation })
-const enrichments = this.routeEnrichments(operation, projection)
-
-const settings = new ContentSettings({
-  identifier,
-  exportPath,
-  enrichments
+// In OasOperationDriver (conceptually)
+const enrichments = projection.toEnrichments({ operation, context, variant })
+const name = projection.toIdentifierName({ operation, enrichments, variant })
+const identifier = lang.toIdentifier({
+  name,
+  ...projection.toIdentifierType(operation, context)
 })
+const exportPath = projection.toExportPath({ operation, enrichments, variant })
+
+const settings = new ContentSettings({ identifier, exportPath, enrichments, variant })
 
 const instance = new projection({ context, operation, settings })
 ```
 
-The static methods are pure functions of the operation (or schema).
-Two calls with the same operation produce the same settings — which
-is why the cache key `(identifier.name, exportPath)` is stable across
-generator iterations.
+`toIdentifierName` and `toExportPath` are pure functions of
+`(operation, enrichments, variant)`. Two calls with the same inputs
+produce the same name and path — which is why the cache key
+`(identifier.name, exportPath)` is stable across generator
+iterations. (`toIdentifierType` is context-aware and runs only on
+cache-miss.)
 
 ### In the cache key
 
@@ -333,14 +346,11 @@ constructor.
 
 ```ts
 class ContentSettings<E = undefined> {
-  identifier: Identifier
+  identifier: IdentifierBase
   exportPath: string
   enrichments: E
+  variant: string
 }
-
-// Convenience aliases (used in projection-base type parameters)
-type OperationContentSettings<E> = ContentSettings<E>
-type ModelContentSettings<E> = ContentSettings<E>
 ```
 
 ## See also
