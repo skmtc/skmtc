@@ -188,7 +188,7 @@ under `gen-shadcn-form`:
    a 4-segment string with the variant as the trailing segment.
 
 The model arm is structurally identical with two substitutions:
-`#runModelGenerator` reads `enrichments[id][refName]`,
+`#runModelGenerator` reads `enrichments[id][refName][variant]`,
 `context.toModelContentSettings({refName, projection, variant})`
 builds the settings, and the registered `generatorKey` is
 `toModelGeneratorKey({generatorId, refName, variant})` — a 3-segment

@@ -54,10 +54,10 @@ export const CreateUserForm = () => {
   `OperationReferenceField`, etc.). New input types are added by
   extending the dispatch.
 - **Rich enrichments.** Per-operation `title`, `submitLabel`,
-  per-field `fields[].label`, `.placeholder`, `.input` (custom
-  renderer), `.references` (operation-reference dispatch for
-  searchable dropdowns). Routed by
-  `enrichments[generatorId][operation.path][operation.method]`.
+  per-field `fields[].label`, `.placeholder`, `fields[].moduleSelect`
+  (field binding + custom renderer), `.references` (operation-reference
+  dispatch for searchable dropdowns), under the `subject` scope. Routed
+  by `enrichments[generatorId][operation.path][operation.method][variant]`.
 
 ## What to learn from it
 

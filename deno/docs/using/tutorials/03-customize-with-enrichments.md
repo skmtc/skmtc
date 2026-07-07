@@ -62,16 +62,20 @@ Edit `.skmtc/petstore/.settings/client.json`:
       "@skmtc/gen-shadcn-form": {
         "/pet": {
           "post": {
-            "title": "Add a new pet",
-            "submitLabel": "Add to inventory",
-            "fields": [
-              { "id": "name", "label": "Pet name", "placeholder": "Fluffy" },
-              { "id": "category", "label": "Category" }
-            ]
+            "main": {
+              "title": "Add a new pet",
+              "submitLabel": "Add to inventory",
+              "fields": [
+                { "moduleSelect": { "schemaPath": ["name"] }, "label": "Pet name", "placeholder": "Fluffy" },
+                { "moduleSelect": { "schemaPath": ["category"] }, "label": "Category" }
+              ]
+            }
           },
           "put": {
-            "title": "Edit pet details",
-            "submitLabel": "Save changes"
+            "main": {
+              "title": "Edit pet details",
+              "submitLabel": "Save changes"
+            }
           }
         }
       }
@@ -80,8 +84,9 @@ Edit `.skmtc/petstore/.settings/client.json`:
 }
 ```
 
-The routing path is `[generatorId][path][method]` for OAS
-operation generators. See
+The routing path is `[generatorId][path][method][variant]` for OAS
+operation generators — the override sits under the `variant` key
+(`main` by default). See
 [enrichments shape reference](../../reference/settings/enrichments-shape.md)
 for all three routing shapes.
 
@@ -112,10 +117,12 @@ name". Other operations use the form generator's defaults
 `client.json#settings.enrichments` is read by the engine and
 routed to each generator instance. The `toOasOperationProjectionBase`
 factory looks up
-`enrichments[generatorId][operation.path][operation.method]` for
-the current operation and validates the result against the
-generator's Valibot schema. The validated value lands on the
-Projection as `this.settings.enrichments`:
+`enrichments[generatorId][operation.path][operation.method][variant]`
+for the current operation and validates the result against the
+generator's Valibot schema. The validated `{ subject, generator,
+stack }` umbrella lands on the Projection as
+`this.settings.enrichments` — read your per-operation config off its
+`subject` scope:
 
 ```ts
 const { title, submitLabel } = this.settings.enrichments.subject ?? {}
