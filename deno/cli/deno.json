@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.9.26",
+  "version": "0.9.27",
   "license": "Apache-2.0",
   "exports": "./mod.ts",
   "imports": {

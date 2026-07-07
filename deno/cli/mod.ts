@@ -1,6 +1,7 @@
 import { Command, EnumType } from '@cliffy/command'
 import { assertJsrReachable, JsrRegistryUnreachableError } from '@/lib/jsr-registry.ts'
 import { getCommandDescriptor } from '@/lib/cli-schema.ts'
+import denoJson from './deno.json' with { type: 'json' }
 
 // Sentry.init({
 //   dsn: 'https://9904234a7aabfeff2145622ccb0824e3@o4508018789646336.ingest.de.sentry.io/4509532871262288'
@@ -31,6 +32,9 @@ const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
 ])
 
 const shouldSkipRegistryCheck = (args: readonly string[]): boolean => {
+  // `skmtc --version` / `-v` prints a local constant — it must stay
+  // instant and work offline, so never gate it behind the JSR check.
+  if (args[0] === '--version' || args[0] === '-v') return true
   const firstArg = args.find(arg => !arg.startsWith('-'))
   if (!firstArg) return false
   return COMMANDS_THAT_SKIP_REGISTRY_CHECK.has(firstArg)
@@ -544,6 +548,16 @@ const run = async () => {
 
   await new Command()
     .description('Generate code from an OpenAPI or GraphQL schema')
+    // Root-local (not global) so it never clashes with `publish
+    // --version <v>`. `standalone` means it can't be combined with a
+    // subcommand; the action prints the version and exits.
+    .option('-v, --version', 'Show the SKMTC CLI version and exit.', {
+      standalone: true,
+      action: () => {
+        console.log(denoJson.version)
+        Deno.exit(0)
+      }
+    })
     .action(async _flags => {
       const { runPrompt } = await import('@/prompt/run-prompt.tsx')
       await runPrompt()
