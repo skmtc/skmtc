@@ -350,10 +350,12 @@ Detail: [`concepts/the-manifest.md`](../../concepts/the-manifest.md),
 
 ## 9. Provenance — the attribution / gen-maps subsystem
 
-`core/anchors/` is the **provenance layer**. It is **opt-in**: pass
-`attribution: { enabled: true, postPass?: {...} }` to `toArtifacts`.
-When on, the run produces two extra artifact types alongside the
-code:
+`core/anchors/` is the **provenance layer**. Capture is always on;
+**emission is opt-in**: pass `attribution: { postPass: {...} }` to
+`toArtifacts` (the engine-level `AttributionState` has no `enabled`
+field — the `client.json#settings.anchors.enabled` switch is the
+user-facing toggle). When emission is on, the run produces two extra
+artifact types alongside the code:
 
 - **Sidecar** (`<file>.skm.json`) — one per generated file. A
   pooled, position-indexed map: byte ranges in the rendered file →
