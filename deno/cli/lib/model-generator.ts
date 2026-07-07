@@ -27,11 +27,13 @@ export class ModelGenerator {
   }
 
   toModelMod(mainModule: string) {
-    return `import { toModelEntry } from '@skmtc/core'
+    return `import { emptyEnrichmentSchema, toModelEntry } from '@skmtc/core'
 import { ${mainModule}Projection } from './${mainModule}Projection.ts'
 
-export const ${this.generator.packageName}Entry = toModelEntry({
+export const ${camelCase(this.generator.packageName)}Entry = toModelEntry({
   id: '${this.generator.toModuleName()}',
+
+  toEnrichmentSchema: () => emptyEnrichmentSchema,
 
   transform({ context, refName }) {
     context.insertModel(${mainModule}Projection, refName)
@@ -40,7 +42,7 @@ export const ${this.generator.packageName}Entry = toModelEntry({
   }
 
   toModelProjectionBase(mainModule: string) {
-    return `import { decapitalize, camelCase } from '@skmtc/core'
+    return `import { decapitalize, camelCase, emptyEnrichmentSchema } from '@skmtc/core'
 import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 import type { TsIdentifierType } from '@skmtc/lang-typescript'
 import { join } from '@std/path/join'
@@ -60,7 +62,9 @@ export const ${mainModule}Base = toTsModelProjectionBase({
     const name = this.toIdentifierName({ refName, enrichments, variant })
 
     return join('@', 'types', \`\${decapitalize(name)}.generated.tsx\`)
-  }
+  },
+
+  toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 `
   }

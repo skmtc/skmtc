@@ -27,10 +27,12 @@ export class OperationGenerator {
   }
 
   toOperationMod(mainModule: string) {
-    return `import { toOasOperationEntry } from '@skmtc/core'
+    return `import { emptyEnrichmentSchema, toOasOperationEntry } from '@skmtc/core'
 import { ${mainModule} } from './${mainModule}.ts'
 export const ${mainModule}Entry = toOasOperationEntry({
   id: '${this.generator.toModuleName()}',
+
+  toEnrichmentSchema: () => emptyEnrichmentSchema,
 
   isSupported({ operation }) {
     return true
@@ -43,7 +45,7 @@ export const ${mainModule}Entry = toOasOperationEntry({
   }
 
   toOasOperationProjectionBase(mainModule: string) {
-    return `import { camelCase, capitalize, toMethodVerb } from '@skmtc/core'
+    return `import { camelCase, capitalize, emptyEnrichmentSchema, toMethodVerb } from '@skmtc/core'
 import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import type { TsIdentifierType } from '@skmtc/lang-typescript'
 import { join } from '@std/path/join'
@@ -65,7 +67,9 @@ export const ${mainModule}Base = toTsOasOperationProjectionBase({
     const name = this.toIdentifierName({ operation, enrichments, variant })
 
     return join('@', \`\${name}.generated.tsx\`)
-  }
+  },
+
+  toEnrichmentSchema: () => emptyEnrichmentSchema
 })`
   }
 
