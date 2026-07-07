@@ -5,7 +5,7 @@
 // and Vite HMR repaints it. No container, no R2, no flat config — the working
 // tree is the contract.
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { join, resolve } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
@@ -91,10 +91,13 @@ type PreviewAuth = { token: string; tokenFile: string }
 /** Resolve the preview token — env (desktop-launched) → existing handshake file
  *  (stable across restarts) → freshly generated — and always (re)write the file
  *  so a connect-only desktop client can read it regardless of who launched the
- *  server. `node_modules/.cache` is universally gitignored, so the token never
- *  risks being committed and needs no consumer-side ignore rule. */
-const ensurePreviewToken = (root: string, project: string): PreviewAuth => {
-  const dir = join(root, 'node_modules', '.cache', 'skmtc-preview')
+ *  server. Anchored at the VITE root (the dev server's home, whose
+ *  `node_modules` always exists), not the skmtc root — in a monorepo the repo
+ *  root's `node_modules` is a coincidence of the workspace layout.
+ *  `node_modules/.cache` is universally gitignored, so the token never risks
+ *  being committed and needs no consumer-side ignore rule. */
+const ensurePreviewToken = (viteRoot: string, project: string): PreviewAuth => {
+  const dir = join(viteRoot, 'node_modules', '.cache', 'skmtc-preview')
   const tokenFile = join(dir, `${project}.token`)
   const fromEnv = process.env.SKMTC_PREVIEW_TOKEN?.trim()
   const fromFile = ((): string | null => {
@@ -244,7 +247,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       // be tunnelled to the public web. The desktop app obtains the token
       // automatically over `/__skmtc/handshake` (loopback-only); the token is
       // also logged for the env-var and handshake-file fallbacks.
-      const auth = ensurePreviewToken(root, options.project)
+      const auth = ensurePreviewToken(viteRoot, options.project)
       server.config.logger.info(
         `\n  skmtc preview auth enabled\n  token: ${auth.token}\n  handshake file: ${auth.tokenFile}\n`
       )
@@ -253,7 +256,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       // snapshot, candidates, gen-map, match memo). The matcher's contract for
       // a field comes off the generator's moduleSelect declaration, read from
       // the (cached) describe descriptors.
-      const state = new SourceState(root, options.project, {
+      const state = new SourceState(root, viteRoot, options.project, {
         resolveModuleType: async (generator) => {
           if (generator === undefined) return undefined
           const result = await describe()
@@ -267,6 +270,18 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       server.watcher.add(bundlePath)
       server.watcher.add(HARNESS_SOURCE_PATH)
       server.watcher.add(clientJsonFile)
+
+      // The gen-map (`.maps/_map.ndjson`) resolves a model name to its generated
+      // file for the input matcher; only `--anchors` generates emit it. The
+      // regenerate path always anchors, but edit/filters don't (the map is heavy
+      // and stable across enrichment edits) — so a project only ever generated
+      // without `--anchors` (a repo `generate` script that omits it, or an
+      // edit-only session) has NO map, and every field picker reports
+      // `model-missing`. Bootstrap it exactly once, when it's absent, on any
+      // generate path and lazily before the first match — then the fast no-anchor
+      // path takes over.
+      const genMapPath = join(root, '.skmtc', options.project, '.maps', '_map.ndjson')
+      const genMapMissing = (): boolean => !existsSync(genMapPath)
 
       // describe is a function of the bundle AND the schema, so also invalidate
       // it when the local schema file changes (a URL source can't be watched).
@@ -351,7 +366,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
         const generate = await enqueue(async () => {
           const next = applyEditToClientJson(await readClientJson(root, options.project), edit)
           await writeClientJson(root, options.project, next)
-          return runGenerate(root, options.project)
+          return runGenerate(root, options.project, genMapMissing())
         }).catch((error): CliResult => ({ ok: false, code: 1, message: messageOf(error) }))
         // The generate rewrote the source the matcher type-checks against —
         // bump the state's file versions + drop its generate-derived caches.
@@ -379,6 +394,15 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
         } catch (error) {
           respondJson(response, 400, { error: `invalid request: ${messageOf(error)}` })
           return
+        }
+        // The matcher needs the gen-map to resolve a model's import. If the
+        // project was only ever generated without `--anchors`, bootstrap it once
+        // now — lazily, on genuine picker use — so the field editor works from
+        // first open without the user first hitting Regenerate. A plain
+        // `vite dev` user who never opens the editor never triggers this.
+        if (genMapMissing()) {
+          const generate = await enqueue(() => runGenerate(root, options.project, true))
+          if (generate.ok) state.onGenerateSuccess()
         }
         try {
           respondJson(response, 200, await state.match(body))
@@ -509,7 +533,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
               skip: toFilterEntries(filters.skip)
             }
           })
-          return runGenerate(root, options.project)
+          return runGenerate(root, options.project, genMapMissing())
         }).catch((error): CliResult => ({ ok: false, code: 1, message: messageOf(error) }))
         if (generate.ok) state.onGenerateSuccess()
         respondJson(response, generate.ok ? 200 : 500, { generate })
