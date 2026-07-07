@@ -20,68 +20,90 @@ configuration passed from `client.json` to the Projection.
 
 ### Edit `gen-x/src/enrichments.ts`
 
-The file declares a Valibot schema. The shape becomes the
-contract for what keys `client.json` can carry under this
-generator's ID.
+The file declares a Valibot schema via `toEnrichmentSchema`. The
+schema is the **three-scope enrichment umbrella** — an object with
+`subject`, `generator`, and `stack` keys — not a flat object of your
+fields. Your per-item options live under `subject`; the two
+run-constant scopes (`generator`, `stack`) are declared
+`v.undefined()` when you don't use them.
 
 ```ts
-// Stock gen-zod (minimal):
-import * as v from 'valibot'
-export const schema = v.optional(v.object({}))
-export type EnrichmentSchema = v.InferOutput<typeof schema>
-export const toEnrichmentSchema = () => schema
+// Stock gen-zod (no enrichments): re-exports core's empty umbrella.
+import { emptyEnrichmentSchema, type EmptyEnrichments } from '@skmtc/core'
+export const toEnrichmentSchema = () => emptyEnrichmentSchema
+export type EnrichmentSchema = EmptyEnrichments
 ```
 
-### Add Valibot fields
+`emptyEnrichmentSchema` is the umbrella with all three scopes
+`v.undefined()`. `toEnrichmentSchema` is a **required** field on both
+the entry config and the projection-base config — the derived static
+`toEnrichments` calls it to parse the umbrella, so it can never be
+omitted.
 
-Add the fields you want. Use `v.optional(...)` for fields that
-users can omit. The schema's *root* is what arrives at the lookup
-target, so put the fields directly on the root object — don't wrap
-them in an extra named object:
+### Add Valibot fields under `subject`
+
+Put the fields users can set per item under `subject`. Use
+`v.optional(...)` for fields they can omit. Keep `generator` and
+`stack` as `v.undefined()` unless you use those scopes:
 
 ```ts
 import * as v from 'valibot'
 
-export const schema = v.optional(
+// The per-item leaf — what a user writes for one model/operation.
+export const zodSubject = v.optional(
   v.object({
     description: v.optional(v.string()),
     strict: v.optional(v.boolean())
   })
 )
 
-export type EnrichmentSchema = v.InferOutput<typeof schema>
-export const toEnrichmentSchema = () => schema
+// The three-scope umbrella. This generator only reads `subject`.
+export const enrichmentSchema = v.object({
+  subject: zodSubject,
+  generator: v.undefined(),
+  stack: v.undefined()
+})
+
+export type EnrichmentSchema = v.InferOutput<typeof enrichmentSchema>
+export const toEnrichmentSchema = () => enrichmentSchema
 ```
 
-`gen-zod` is built on `toTsModelProjectionBase` (the
-lang-typescript veneer), so the routing
-path is `enrichments[generatorId][refName]`. Users supply
-enrichments like:
+`gen-zod` is built on `toTsModelProjectionBase`, so the subject
+routing path is `enrichments[generatorId][refName][variant]`. The
+trailing `variant` level is `'main'` by default and **must be present**
+whenever any variant is declared. Users write the subject leaf
+directly under the variant key:
 
 ```jsonc
 {
   "enrichments": {
     "@skmtc/gen-zod": {
-      "User": { "description": "A user account", "strict": true }
+      "User": {
+        "main": { "description": "A user account", "strict": true }
+      }
     }
   }
 }
 ```
 
-For OAS operation generators built on `toTsOasOperationProjectionBase`,
-the path would instead be `enrichments[generatorId][path][method]`;
-for GraphQL it's `enrichments[generatorId][rootKind][fieldName]`.
-See [enrichments shape](../../reference/settings/enrichments-shape.md)
+For OAS operation generators (`toTsOasOperationProjectionBase`) the
+subject path is `enrichments[generatorId][path][method][variant]`; for
+GraphQL (`toTsGqlOperationProjectionBase`) it's
+`enrichments[generatorId][rootKind][fieldName][variant]`. The two
+run-constant scopes, when used, live at `enrichments[generatorId]._generator`
+and the top-level `enrichments._stack`. See
+[enrichments shape](../../reference/settings/enrichments-shape.md)
 for the routing details.
 
-### Consume in the Projection constructor
+### Consume in the Projection
 
-The validated enrichment is at `this.settings.enrichments`:
+`this.settings.enrichments` is the parsed umbrella. Read your per-item
+options off its `subject` scope:
 
 ```ts
 // In ZodProjection.ts
 override toString(): string {
-  const { description, strict } = this.settings.enrichments ?? {}
+  const { description, strict } = this.settings.enrichments.subject ?? {}
 
   const objectCall = strict ? 'z.strictObject' : 'z.object'
   const jsdoc = description ? `/** ${description} */\n` : ''
@@ -90,7 +112,9 @@ override toString(): string {
 }
 ```
 
-Default to a sensible fallback when the enrichment is absent.
+Default to a sensible fallback when the enrichment is absent. (The
+`generator` and `stack` scopes, if you declared them, read the same
+way — `this.settings.enrichments.generator` / `.stack`.)
 
 ### Document for users
 
@@ -111,14 +135,17 @@ verify the output reflects them.
 
 ## Verification
 
-Set an enrichment in `.skmtc/<project>/.settings/client.json`:
+Set an enrichment in `.skmtc/<project>/.settings/client.json` (the
+subject leaf under the `main` variant):
 
 ```jsonc
 {
   "settings": {
     "enrichments": {
       "@skmtc/gen-zod": {
-        "User": { "description": "test description" }
+        "User": {
+          "main": { "description": "test description" }
+        }
       }
     }
   }
@@ -131,8 +158,10 @@ appear above the declaration.
 ## Troubleshooting
 
 - **Enrichment silently ignored** — Unknown keys are stripped by
-  Valibot. Most common cause: schema-key typo, or `toEnrichmentSchema`
-  not properly wired in the Entry.
+  Valibot. Most common causes: schema-key typo; the fields declared on
+  the umbrella root instead of under `subject`; or the `main` variant
+  key omitted in `client.json` (the value must sit under
+  `[…][variant]`, not directly under the item key).
 - **Valibot validation throws** — A required field is missing or a
   type doesn't match. Use `v.optional(...)` for everything that
   can reasonably default.

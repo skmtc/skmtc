@@ -174,12 +174,13 @@ something close to:
 
 ```ts
 // src/mod.ts
-import { toModelEntry } from '@skmtc/core'
+import { emptyEnrichmentSchema, toModelEntry } from '@skmtc/core'
 import { SchemaMetaProjection } from './SchemaMetaProjection.ts'
 import denoJson from '../deno.json' with { type: 'json' }
 
 const schemaMetaEntry = toModelEntry({
   id: denoJson.name,
+  toEnrichmentSchema: () => emptyEnrichmentSchema,
   transform({ context, refName }) {
     context.insertModel(SchemaMetaProjection, refName)
   }
@@ -217,9 +218,11 @@ filter inside `transform` — but `isSupported` makes the capability
 explicit, surfaces the refName as `notSupported` rather than a silent
 no-op, and lets peers probe it via `insertModel`.
 
-If you later need user-facing options, add `toEnrichmentSchema` to
-the Entry config and pass the typed enrichment through. The full
-config surface — including `toPreviewModule`, `toMappingModule`,
+`toEnrichmentSchema` is **required** — the scaffold wires it to core's
+`emptyEnrichmentSchema` (no user options). When you need user-facing
+options, replace it with your own three-scope umbrella schema; see
+[how to add enrichment options](../how-to/add-enrichment-options.md).
+The rest of the config surface — `toPreviewModule`, `toMappingModule`,
 and the rarely-used `toEnrichmentRequest` — is documented in the
 [entry-factories reference](../../reference/api/entry-factories.md).
 

@@ -260,7 +260,7 @@ template:
 
 ```ts
 override toString(): string {
-  const { title, description, submitLabel } = this.settings.enrichments ?? {}
+  const { title, description, submitLabel } = this.settings.enrichments.subject ?? {}
   return `(${this.parameter}) => {
     const form = useForm<Required<${this.tsRequestBodyName}>>({
       resolver: zodResolver(${this.zodRequestBodyName}.required()),
@@ -388,9 +388,14 @@ via enrichments, not via `insert*`. A user can supply a
     "@skmtc/gen-shadcn-form": {
       "/contacts": {
         "post": {
-          "fields": [
-            { "id": "officeIds", "references": "GetOffices" }
-          ]
+          "main": {
+            "fields": [
+              {
+                "moduleSelect": { "schemaPath": ["officeIds"] },
+                "references": "GetOffices"
+              }
+            ]
+          }
         }
       }
     }

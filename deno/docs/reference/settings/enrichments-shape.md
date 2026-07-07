@@ -230,7 +230,7 @@ The validated, routed payload is available at `this.settings.enrichments`:
 ```ts
 // gen-shadcn-form/src/ShadcnForm.ts
 override toString(): string {
-  const { title, description, submitLabel } = this.settings.enrichments ?? {}
+  const { title, description, submitLabel } = this.settings.enrichments.subject ?? {}
 
   return `(${this.parameter}) => {
     return (
@@ -294,7 +294,8 @@ values via constructor arguments:
 new MyFieldSnippet({
   context,
   name,
-  label: parent.settings.enrichments?.fields?.find(f => f.id === name)?.label,
+  label: parent.settings.enrichments.subject?.fields
+    ?.find(f => f.moduleSelect.schemaPath.at(-1) === name)?.label,
   destinationPath
 })
 ```

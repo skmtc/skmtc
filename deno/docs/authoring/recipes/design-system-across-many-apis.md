@@ -126,7 +126,9 @@ fields:
     "enrichments": {
       "@local/gen-shadcn-form": {
         "/users": {
-          "post": { "title": "Sign up" }
+          "post": {
+            "main": { "title": "Sign up" }
+          }
         }
       }
     }

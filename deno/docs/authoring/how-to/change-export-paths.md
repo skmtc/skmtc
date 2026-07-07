@@ -54,16 +54,22 @@ breaks because the cache key includes `exportPath`.
 For per-operation path control, add an enrichment field:
 
 ```ts
-// In enrichments.ts
-export const schema = v.optional(
+// In enrichments.ts — the per-operation override lives under `subject`.
+export const pathsSubject = v.optional(
   v.object({
     paths: v.optional(v.object({ override: v.optional(v.string()) }))
   })
 )
+export const enrichmentSchema = v.object({
+  subject: pathsSubject,
+  generator: v.undefined(),
+  stack: v.undefined()
+})
+export const toEnrichmentSchema = () => enrichmentSchema
 
-// In base.ts
+// In base.ts — toExportPath receives the parsed umbrella; read `subject`.
 toExportPath: ({ operation, enrichments }) => {
-  const override = enrichments?.paths?.override
+  const override = enrichments?.subject?.paths?.override
   if (override) return override
   return `/api/${toEndpointName(operation)}.ts`
 }

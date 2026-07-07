@@ -118,7 +118,7 @@ generator's Valibot schema. The validated value lands on the
 Projection as `this.settings.enrichments`:
 
 ```ts
-const { title, submitLabel } = this.settings.enrichments ?? {}
+const { title, submitLabel } = this.settings.enrichments.subject ?? {}
 return `<Form><h2>${title ?? defaultTitle}</h2>...<Button>${submitLabel ?? 'Submit'}</Button></Form>`
 ```
 
