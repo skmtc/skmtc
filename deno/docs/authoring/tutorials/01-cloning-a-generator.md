@@ -2,7 +2,7 @@
 
 > Clone a stock generator into your project, make a visible
 > change, and regenerate. The on-ramp for everything else in
-> `extending/`.
+> `authoring/`.
 
 ## What you'll build
 

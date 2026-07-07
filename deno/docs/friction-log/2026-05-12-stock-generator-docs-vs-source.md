@@ -1538,7 +1538,7 @@ each time.
 
 ### 23. `change-identifier-conventions.md` example for "gen-zod default" omits `camelCase` — fails for non-camelCase refNames [friction]
 
-`extending/how-to/change-identifier-conventions.md` lines 32–34.
+`authoring/how-to/change-identifier-conventions.md` lines 32–34.
 
 **What happened:** Doc says:
 
@@ -1593,18 +1593,18 @@ detail that matters.
 - Verification command:
   ```bash
   diff <(grep -A3 "toIdentifier" skmtc-generators/gen-zod/src/base.ts) \
-       <(grep -A1 "gen-zod default" skmtc/deno/docs/extending/how-to/change-identifier-conventions.md)
+       <(grep -A1 "gen-zod default" skmtc/deno/docs/authoring/how-to/change-identifier-conventions.md)
   ```
 
 **Version anchor:** `@skmtc/gen-zod@0.0.57`
 
-**Status:** verified-fixed 2026-05-12 — `extending/how-to/change-identifier-conventions.md` lines 29-43 rewritten: the gen-zod default now shows `decapitalize(camelCase(refName))` (matching the real `gen-zod/src/base.ts:14-18`); the PascalCase-with-suffix example and type-generator example now also route through `camelCase` so kebab/snake-case refNames produce valid JS identifiers. Added an explicit prose note: "Always normalize through `camelCase` first. OpenAPI components often have hyphenated or snake_case names (`User-Profile`, `pet_owner`). `decapitalize` alone preserves separators, leaving you with `"user-profile"` — not a valid JS identifier."
+**Status:** verified-fixed 2026-05-12 — `authoring/how-to/change-identifier-conventions.md` lines 29-43 rewritten: the gen-zod default now shows `decapitalize(camelCase(refName))` (matching the real `gen-zod/src/base.ts:14-18`); the PascalCase-with-suffix example and type-generator example now also route through `camelCase` so kebab/snake-case refNames produce valid JS identifiers. Added an explicit prose note: "Always normalize through `camelCase` first. OpenAPI components often have hyphenated or snake_case names (`User-Profile`, `pet_owner`). `decapitalize` alone preserves separators, leaving you with `"user-profile"` — not a valid JS identifier."
 
 ---
 
 ### 24. `compose-with-another-generator.md` invents a `@local/` namespace for cloned peers that doesn't exist [friction]
 
-`extending/how-to/compose-with-another-generator.md` lines 32–37.
+`authoring/how-to/compose-with-another-generator.md` lines 32–37.
 
 **What happened:** Doc says:
 
@@ -1676,7 +1676,7 @@ and obvious one, but the doc obscures it by inventing this namespace.
 
 **Version anchor:** `@skmtc/cli@0.0.57`
 
-**Status:** verified-fixed 2026-05-12 — `extending/how-to/compose-with-another-generator.md` "if the peer is a sibling clone" block rewritten. The fictional `@local/gen-zod/src/ZodProjection.ts` import path replaced with the actual behaviour: the import specifier is **the same whether the peer is installed or cloned** (`import { ZodProjection } from '@skmtc/gen-zod'`). Cloning swaps the mapping in `deno.json#imports` from a JSR URL to a relative local path; the import statement in generator source stays unchanged. Added an explanatory paragraph naming this as the whole point of the `deno.json#imports` indirection, and explicitly noting there is no separate `@local/` namespace.
+**Status:** verified-fixed 2026-05-12 — `authoring/how-to/compose-with-another-generator.md` "if the peer is a sibling clone" block rewritten. The fictional `@local/gen-zod/src/ZodProjection.ts` import path replaced with the actual behaviour: the import specifier is **the same whether the peer is installed or cloned** (`import { ZodProjection } from '@skmtc/gen-zod'`). Cloning swaps the mapping in `deno.json#imports` from a JSR URL to a relative local path; the import statement in generator source stays unchanged. Added an explanatory paragraph naming this as the whole point of the `deno.json#imports` indirection, and explicitly noting there is no separate `@local/` namespace.
 
 ---
 
@@ -2263,7 +2263,7 @@ the same incomplete `init` syntax).
 
 ### 31. `recipes/custom-form-field-renderer.md` references files in `gen-shadcn-form/src/fields/` that don't exist [friction]
 
-`extending/recipes/custom-form-field-renderer.md` lines 36–46 and 175.
+`authoring/recipes/custom-form-field-renderer.md` lines 36–46 and 175.
 
 **What happened:** The recipe's "Source layout" section claims:
 
@@ -2344,13 +2344,13 @@ implementation worked.
 
 **Version anchor:** `@skmtc/gen-shadcn-form@0.0.57`
 
-**Status:** verified-fixed 2026-05-12 — `extending/recipes/custom-form-field-renderer.md` "Source layout" tree rewritten to match the actual `gen-shadcn-form/src/fields/` listing: `CheckboxInput.ts`, `IntegerInput.ts`, `NumberInput.ts`, `ObjectInput.ts`, `SelectInput.ts`, `StringInput.ts`, `Table.ts`. Added explicit notes: no `BooleanInput.ts` (booleans render via `CheckboxInput.ts`); no `ReferenceField.ts` (operation-reference protocol lives inside `SelectInput.ts` paired with `gen-shadcn-select`). Also added the surrounding files (`FormLabel.ts`, `base.ts`, `enrichments.ts`, `mod.ts`) so the layout matches a real clone. Verification step path corrected from `forms/CreateEvent.generated.tsx` to `forms/PostEventsForm.generated.tsx` (verb-derived per gen-shadcn-form's `toIdentifier`).
+**Status:** verified-fixed 2026-05-12 — `authoring/recipes/custom-form-field-renderer.md` "Source layout" tree rewritten to match the actual `gen-shadcn-form/src/fields/` listing: `CheckboxInput.ts`, `IntegerInput.ts`, `NumberInput.ts`, `ObjectInput.ts`, `SelectInput.ts`, `StringInput.ts`, `Table.ts`. Added explicit notes: no `BooleanInput.ts` (booleans render via `CheckboxInput.ts`); no `ReferenceField.ts` (operation-reference protocol lives inside `SelectInput.ts` paired with `gen-shadcn-select`). Also added the surrounding files (`FormLabel.ts`, `base.ts`, `enrichments.ts`, `mod.ts`) so the layout matches a real clone. Verification step path corrected from `forms/CreateEvent.generated.tsx` to `forms/PostEventsForm.generated.tsx` (verb-derived per gen-shadcn-form's `toIdentifier`).
 
 ---
 
 ### 32. `recipes/design-system-across-many-apis.md` example code uses free-standing exports for `toIdentifier`/`toExportPath`; actual API requires them as config fields on the factory call [blocker]
 
-`extending/recipes/design-system-across-many-apis.md` lines 60–79.
+`authoring/recipes/design-system-across-many-apis.md` lines 60–79.
 
 **What happened:** Doc shows this customization template:
 
@@ -2465,13 +2465,13 @@ sabotages that.
 
 **Version anchor:** `@skmtc/core@0.4.2`, `@skmtc/gen-zod@0.0.57`
 
-**Status:** verified-fixed 2026-05-12 — `extending/recipes/design-system-across-many-apis.md` example rewritten to use the actual factory pattern: `export const ZodBase = toModelProjectionBase({ id: denoJson.name, toIdentifier({ refName }) { ... }, toExportPath({ refName }) { ... } })` matching `gen-zod/src/base.ts:9-23`. `toIdentifier` and `toExportPath` are now config fields on the factory call, not free-standing exports. Added an explicit "These functions are *config fields* on the factory" note plus a pointer to tutorial 02 for the surrounding files (`mod.ts`, `ZodProjection.ts`). The `interface` vs `type` claim was corrected — it's not a base-level edit but a `TsObject.ts` `toString()` rewrite; the doc now says so explicitly.
+**Status:** verified-fixed 2026-05-12 — `authoring/recipes/design-system-across-many-apis.md` example rewritten to use the actual factory pattern: `export const ZodBase = toModelProjectionBase({ id: denoJson.name, toIdentifier({ refName }) { ... }, toExportPath({ refName }) { ... } })` matching `gen-zod/src/base.ts:9-23`. `toIdentifier` and `toExportPath` are now config fields on the factory call, not free-standing exports. Added an explicit "These functions are *config fields* on the factory" note plus a pointer to tutorial 02 for the surrounding files (`mod.ts`, `ZodProjection.ts`). The `interface` vs `type` claim was corrected — it's not a base-level edit but a `TsObject.ts` `toString()` rewrite; the doc now says so explicitly.
 
 ---
 
 ### 33. `add-a-field-type.md` example dispatch uses `switch (true) { case ... }` + fictional `BooleanInput`/`EmailInput` files; actual is `if`-chain with `CheckboxInput`/`StringInput` [friction]
 
-`extending/how-to/add-a-field-type.md` lines 82–96.
+`authoring/how-to/add-a-field-type.md` lines 82–96.
 
 **What happened:** Doc shows the schemaToField dispatch as:
 
@@ -2579,13 +2579,13 @@ strongly suggests they were both written without opening
 
 **Version anchor:** `@skmtc/gen-shadcn-form@0.0.57`
 
-**Status:** verified-fixed 2026-05-12 — `extending/how-to/add-a-field-type.md` "Add a dispatch branch in `schemaToField`" example rewritten as the actual `if`-chain idiom (not `switch (true)`); fictional `BooleanInput`/`EmailInput` removed; replaced with `CheckboxInput` (the real boolean handler) and an explicit note that email-format fields fall through to the generic `StringInput`. The DatePicker branch placement is now correctly described as "before the more-general fallbacks". Verification path corrected from `forms/CreateEvent.generated.tsx` to `forms/PostEventsForm.generated.tsx` (verb-derived per gen-shadcn-form's `toIdentifier`).
+**Status:** verified-fixed 2026-05-12 — `authoring/how-to/add-a-field-type.md` "Add a dispatch branch in `schemaToField`" example rewritten as the actual `if`-chain idiom (not `switch (true)`); fictional `BooleanInput`/`EmailInput` removed; replaced with `CheckboxInput` (the real boolean handler) and an explicit note that email-format fields fall through to the generic `StringInput`. The DatePicker branch placement is now correctly described as "before the more-general fallbacks". Verification path corrected from `forms/CreateEvent.generated.tsx` to `forms/PostEventsForm.generated.tsx` (verb-derived per gen-shadcn-form's `toIdentifier`).
 
 ---
 
 ### 34. `add-enrichment-options.md` "Stock gen-zod (minimal)" example doesn't match actual gen-zod `enrichments.ts` [polish]
 
-`extending/how-to/add-enrichment-options.md` lines 27–33.
+`authoring/how-to/add-enrichment-options.md` lines 27–33.
 
 **What happened:** Doc shows:
 
@@ -2667,7 +2667,7 @@ label undermines confidence in other doc claims. Trust budget.
 
 ### 35. `handle-graphql-instead-of-oas.md` recommends a class-extending-`GqlOperationProjectionBase` pattern that neither stock GraphQL generator uses [friction]
 
-`extending/how-to/handle-graphql-instead-of-oas.md` lines 42–57.
+`authoring/how-to/handle-graphql-instead-of-oas.md` lines 42–57.
 
 **What happened:** The how-to teaches a class-based pattern for
 authoring GraphQL generators:

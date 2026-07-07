@@ -71,7 +71,7 @@ These assertions are the ones you would most likely get wrong by extrapolating f
 
 5. **The variant axis fans out at the engine, not the generator.** A single source item can produce N Definitions via named variants under `enrichments[id][path][method]` (OAS), `[id][rootKind][fieldName]` (GQL), or `[id][refName]` (model). `'main'` is always present — the engine throws at start if a consumer wrote variants without it. Variants flow through `ContentSettings.variant`, the `GeneratorKey`'s trailing segment, and the per-call `variant` arg in every projection static method and entry callback. Cross-generator `insertOperation` / `insertModel` defaults to `'main'`; passing a non-`'main'` variant the peer doesn't declare throws at the Driver (`assertPeerVariantExists`). See [concepts/variants.md](concepts/variants.md).
 
-6. **The engine is language-blind; the import graph declares the language.** A generator imports its projection-base factories and snippet base from its language package (e.g. `toModelProjectionBase` / `TsSnippet` from `@skmtc/lang-typescript`) — language enters the DSL class hierarchy at the lang package's snippet base, and the engine's Drivers read it off the projection class's inherited static (`projection.lang`) when creating files and building `Definition`s. Entries (`toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry`) carry **no `lang` field**; `register` passes plain data (no `Lang`, no `createFile`, no `generatorId`). The lang package also owns the identifier factories (`createVariable` / `createType`), the TS syntax helpers (`List`, `FunctionParameter`, …), and `sanitizePropertyName` (moved from core under F5/F6 — note `17`); core's `Identifier` is neutral data (`name`, opaque `kind`, `exported`, opaque `typeName`) and `EntityType` no longer exists. TypeScript and Kotlin (`@skmtc/lang-kotlin`) are the production languages. See [concepts/languages.md](concepts/languages.md).
+6. **The engine is language-blind; the import graph declares the language.** A generator imports its projection-base factories and snippet base from its language package (e.g. `toTsModelProjectionBase` / `TsSnippet` from `@skmtc/lang-typescript`) — language enters the DSL class hierarchy at the lang package's snippet base, and the engine's Drivers read it off the projection class's inherited static (`projection.lang`) when creating files and building `Definition`s. Entries (`toOasOperationEntry` / `toGqlOperationEntry` / `toModelEntry`) carry **no `lang` field**; `register` passes plain data (no `Lang`, no `createFile`, no `generatorId`). The lang package also owns the identifier factories (`createVariable` / `createType`), the TS syntax helpers (`List`, `FunctionParameter`, …), and `sanitizePropertyName` (moved from core under F5/F6 — note `17`); core's `Identifier` is neutral data (`name`, opaque `kind`, `exported`, opaque `typeName`) and `EntityType` no longer exists. TypeScript (`@skmtc/lang-typescript`) is the production language; the other lang packages (Kotlin, C#, …) are pre-alpha. See [concepts/languages.md](concepts/languages.md).
 
 ---
 
@@ -101,18 +101,18 @@ These overrides exist because well-intentioned TS conventions frequently break S
 | Read another generator's rendered source | Coordinate by *identifier name*, not source text | Use `insertOperation(Other, op).toName()` |
 | Return content from `transform({ context, operation })` | Use `register({ definitions, ... })` or `insertOperation` | `transform` returns `void` — the engine ignores any return; output flows through registration only |
 | Write `import` statements inside template literals | Register imports via `this.register({ imports })` (own file) or `this.registerInto(path, { imports })` (cross-file) | Bypasses dedup; lands inside file body not header |
-| Declare the language via a `lang` config field (entry, base, or snippet) | Import your factories and snippet base from the lang package (`toModelProjectionBase` / `TsSnippet` from `@skmtc/lang-typescript`) — the import graph declares the language; entries carry no `lang` | Language enters the class hierarchy at the lang snippet base; Drivers read it off the projection class's inherited static |
+| Declare the language via a `lang` config field (entry, base, or snippet) | Import your factories and snippet base from the lang package (`toTsModelProjectionBase` / `TsSnippet` from `@skmtc/lang-typescript`) — the import graph declares the language; entries carry no `lang` | Language enters the class hierarchy at the lang snippet base; Drivers read it off the projection class's inherited static |
 | Thread an `acc` accumulator through `transform` | Transforms return `void` — the `Acc` accumulator is removed (F11). Accumulate via the gen-msw definition pattern (`findDefinition` + the lang package's `defineAndRegister` function) or module-scope state | The engine no longer threads an accumulator; a fresh Worker per run makes module-scope state per-run-safe |
 | Give a Projection custom constructor args | Projections receive a fixed `{ context, operation/refName, settings }` from the Driver — re-resolve dependencies inside the constructor | The Driver never passes custom args; the memoization cache makes re-resolution free |
 | Add a `BaseSchema` class to share schema behavior | Schema variants are sibling classes, not subclasses | Duck-typed `.isRef()` + discriminator narrowing is intentional |
 | Use `Deno.writeFileSync` from a generator constructor | Use `register({ definitions, ... })` | Direct writes bypass `context.#files`; invisible to coordination and persistence |
 | Mock a database in tests | Use real Supabase / real DB | Project convention — mocked tests previously masked production bugs |
-| Hardcode generator-internal identifier names | Derive from operation/refName via `toIdentifier` | Hardcodes break the `(name, exportPath)` cache-key uniqueness |
+| Hardcode generator-internal identifier names | Derive from operation/refName via `toIdentifierName` | Hardcodes break the `(name, exportPath)` cache-key uniqueness |
 | Suggest "make generation order deterministic" | It already is; coordinate via `insertOperation` | Order is structurally irrelevant; deterministic by construction |
 | Add `@override` decorators or runtime type checks | Use TypeScript's structural typing + discriminated unions | Runtime overhead unnecessary; types catch this at compile time |
 | Reach into `OasOperation` properties directly without `.resolve()` | Call `.resolve()` on `OasRef`-typed values; check `.isRef()` | The common parameter type is `OasSchema \| OasRef<'schema'>`; resolution is lazy |
-| Look up a peer's emitted name with `Producer.toIdentifier(op).name` | Call `insertOperation(Producer, op).toName()` instead | Static lookup returns the name but skips four framework side effects: Definition registration, cross-File import registration, insertion order, and refactor re-resolution. The static call's emitted reference can fail to resolve at consumer compile time, fail to import at consumer compile time, hit TDZ at consumer runtime, or stop following a producer rename — none of those failures appear at the generator's typecheck. See [cross-generator-coordination § Why call `insertOperation`](concepts/cross-generator-coordination.md#why-call-insertoperation-instead-of-producertoidentifieropname) |
-| Emit a file-scope export by calling `defineAndRegister` with a Snippet value | Make it a Projection, dispatch via `insertOperation` | A `defineAndRegister`'d Snippet is keyed by the caller-chosen name string, not by `(Producer.toIdentifier(op), Producer.toExportPath(op))`. Other generators cannot reach it via `insertOperation` (no class to pass); the identifier name lives at the caller, so a rename changes two sites instead of one |
+| Look up a peer's emitted name with `Producer.toIdentifierName(...)` | Call `insertOperation(Producer, op).toName()` instead | Static lookup returns the name but skips four framework side effects: Definition registration, cross-File import registration, insertion order, and refactor re-resolution. The static call's emitted reference can fail to resolve at consumer compile time, fail to import at consumer compile time, hit TDZ at consumer runtime, or stop following a producer rename — none of those failures appear at the generator's typecheck. See [cross-generator-coordination § Why call `insertOperation`](concepts/cross-generator-coordination.md#why-call-insertoperation-instead-of-producertoidentifieropname) |
+| Emit a file-scope export by calling `defineAndRegister` with a Snippet value | Make it a Projection, dispatch via `insertOperation` | A `defineAndRegister`'d Snippet is keyed by the caller-chosen name string, not by `(Producer.toIdentifierName(...), Producer.toExportPath(...))`. Other generators cannot reach it via `insertOperation` (no class to pass); the identifier name lives at the caller, so a rename changes two sites instead of one |
 | Return a duck-typed `{ toString: () => '...' }` from a helper function in a render path | Make it a `SnippetBase` descendant class | The duck-typed object has no `context` (so `register({ imports, destinationPath })` is unavailable), no `generatorKey` (invisible to `affirmDefinition`), and isn't `instanceof SnippetBase` (rejected by generic code over the family) |
 | Expose a sole-caller-hardcoded value as a Snippet constructor parameter | Inline it in the Snippet's `toString()` template | Each parameter that all callers pass identically still adds call-site verbosity, typing surface, and an invitation for a mismatched-value bug — for zero gain |
 | Use casual codegen verbs like *emit*, *dispatch*, *dispatcher*, *stitch* | Name the SKMTC primitive: `register`, `insertOperation`, `insertModel`, `insertNormalizedModel`, `defineAndRegister`, `findDefinition` | These words map to no exported surface in `@skmtc/core`. Using them in code or prose fabricates a mental model that doesn't connect to the API. See [glossary § SKMTC vocabulary](reference/glossary.md#skmtc-vocabulary--load-bearing-terms) |
@@ -136,11 +136,11 @@ Before stating any architectural claim from this document, verify against the ci
 |---|---|---|
 | "Render runs Prettier" | It doesn't — no formatter in the pipeline | `grep -r prettier core/` returns zero hits |
 | "OasSchema has a base class" | It's a union type | `core/oas/schema/Schema.ts` |
-| "insertNormalizedModel always integrity-checks" | Fallback-name path doesn't (`#SKM-47`) | `GenerateContext.ts:752-798` |
-| "anyOf/oneOf preserve sibling properties when length 1" | They don't — siblings discarded | `toSchemasV3.ts:113` |
+| "insertNormalizedModel always integrity-checks" | Fallback-name path doesn't (`#SKM-47`) | `GenerateContext.ts:1247-1303` |
+| "anyOf/oneOf discard sibling properties when length 1" | They don't — `collapseSingleMember` merges the wrapper's siblings into the member (`{ ...value, ...member }`); only a bare `$ref` member drops them (3.0 ref semantics) | `core/parse/v3-1/schema/toSchemasV3.ts` (`collapseSingleMember`) |
 | "Generators can run in any order safely" | True for Driver paths; not for the `insertNormalizedModel` fallback | Both `insertNormalizedModel` branches |
-| "The worker is reused across runs" | One-shot per run; `terminate()` after each | `cli/lib/generate-worker.ts:101` |
-| "GraphQL is parsed host-side" | No, worker-side; OAS is host-side | `cli/lib/generate-worker.ts:42-60` |
+| "The worker is reused across runs" | One-shot per run; `terminate()` after each | `cli/lib/generate-worker.ts:75` |
+| "GraphQL is parsed host-side" | No, worker-side; OAS is host-side | `cli/lib/generate-worker.ts:62` |
 | "Workers can make network requests" | `net: false` by default | `cli/lib/generate-worker.ts:75` |
 
 **If you find a discrepancy between this document and the code, the code is canonical.** Flag the drift in your response so the docs can be updated.
@@ -149,7 +149,7 @@ Before stating any architectural claim from this document, verify against the ci
 
 ## What SKMTC is
 
-A code generator. Input: an OpenAPI v3 document or a GraphQL SDL string. Output: a tree of source files (TypeScript types, Zod schemas, React hooks, MSW mocks, forms, server routes) determined by installed generators. Generated files are idiomatic TypeScript committed to the consumer's repo.
+A code generator. Input: an OpenAPI v3 document or a GraphQL SDL string. Output: a tree of source files (TypeScript types, Zod schemas, React hooks, MSW mocks, forms, server routes) determined by installed generators. Generated files are idiomatic source code committed to the consumer's repo — TypeScript from the published stock generators; the language is set per generator by its lang package (see fact 6).
 
 Engine = `@skmtc/core`. CLI = `@skmtc/cli`. Stock generators = `@skmtc/gen-*`.
 
@@ -159,7 +159,7 @@ Engine = `@skmtc/core`. CLI = `@skmtc/cli`. Stock generators = `@skmtc/gen-*`.
 - **Not a templating engine.** Template literals inside TS classes, not Mustache/Handlebars/EJS files.
 - **Not a plugin framework with a registry.** Generators are JSR packages or local TS files listed in `deno.json#imports`.
 - **Not configurable like most codegen tools.** Customization model is *clone the source*, not *pass a flag*.
-- **Not multi-language.** Stock generators produce TS/TSX.
+- **Not TypeScript-only at the engine level.** The engine is language-blind; language enters via lang packages (fact 6). All *published* stock generators produce TS/TSX today — Kotlin and C# generators exist in-repo but are private/pre-alpha.
 - **Not always local.** `GenerateArtifacts.generateWithSandboxApi` posts to a remote service; default is local Worker.
 
 ---
@@ -170,17 +170,17 @@ Engine = `@skmtc/core`. CLI = `@skmtc/cli`. Stock generators = `@skmtc/gen-*`.
 
 | Phase | Entry | Input | Output | Mechanism |
 |---|---|---|---|---|
-| **Parse** | `ParseContext.parse` (`core/context/ParseContext.ts:221`) | `SkmtcDocumentInput` | `SkmtcParsedDocument` + `ParseIssue[]` | Recursive descent; per-item isolation via `tryParseAt`; cascade pruning via `removeErroredItems` |
-| **Generate** | `GenerateContext.toArtifacts` (`core/context/GenerateContext.ts:275`) | parsed doc + settings + generators | `Map<path, File>` | Two nested loops; Driver-based memoization; recursive constructor calls |
-| **Render** | `RenderContext.collate` (`core/context/RenderContext.ts:176`) | `Map<path, File>` | `{ artifacts, files, manifest }` | Pure serialization; `file.toString()` joins reExports + imports + definitions |
+| **Parse** | `ParseContext.parse` (`core/context/ParseContext.ts:232`) | `SkmtcDocumentInput` | `SkmtcParsedDocument` + `ParseIssue[]` | Recursive descent; per-item isolation via `tryParseAt`; cascade pruning via `removeErroredItems` |
+| **Generate** | `GenerateContext.toArtifacts` (`core/context/GenerateContext.ts:320`) | parsed doc + settings + generators | `Map<path, File>` | Two nested loops; Driver-based memoization; recursive constructor calls |
+| **Render** | `RenderContext.collate` (`core/context/RenderContext.ts:292`) | `Map<path, File>` | `{ artifacts, files, manifest }` | Pure serialization; `file.toString()` joins reExports + imports + definitions |
 
 ### Orchestration phases (CLI)
 
 | Phase | Location | Action |
 |---|---|---|
 | **Bootstrap** | `cli/commands/generate-switch.ts` | Load client.json; locate schema; locate bundle; check freshness |
-| **Pre-parse** | `cli/lib/generate-worker.ts:42-60` | OAS → v3 (clone-safe); GraphQL stays SDL string |
-| **Spawn worker** | `cli/lib/generate-worker.ts:70-81` | `new Worker(bundle, { permissions: {...} })` |
+| **Pre-parse** | `cli/lib/generate-worker.ts:62` | OAS → v3 (clone-safe); GraphQL stays SDL string |
+| **Spawn worker** | `cli/lib/generate-worker.ts:43-51` | `new Worker(bundle, { permissions: {...} })` |
 | **Message protocol** | `cli/lib/generate-worker.ts:83-122` | `READY` → `GENERATE` → `RESULT` (+ `ERROR` on throw) |
 | **Persist** | `cli/lib/write-generated-files.ts` | Write artifacts under `basePath`; write `manifest.json` |
 | **Exit** | `cli/commands/generate-switch.ts:144-152` | Exit 1 if fatal `parseIssue` or `--typecheck` failed |
@@ -200,8 +200,8 @@ Both descend from `SnippetBase` (`core/dsl/SnippetBase.ts`). The differentiator:
 
 | | Projection | Snippet |
 |---|---|---|
-| Base class | A class built by the lang package's projection-base veneers (`toModelProjectionBase`, `toOasOperationProjectionBase`, `toGqlOperationProjectionBase` from `@skmtc/lang-typescript`) | `TsSnippet` (the lang snippet base) when it registers; `SnippetBase` directly for pure value fragments |
-| Static methods required | `id`, `type`, `toIdentifier`, `toExportPath`, `isSupported`, `toEnrichments` | None |
+| Base class | A class built by the lang package's projection-base veneers (`toTsModelProjectionBase`, `toTsOasOperationProjectionBase`, `toTsGqlOperationProjectionBase` from `@skmtc/lang-typescript`) | `TsSnippet` (the lang snippet base) when it registers; `SnippetBase` directly for pure value fragments |
+| Static methods required | `id`, `type`, `toIdentifierName`, `toIdentifierType`, `toExportPath`, `isSupported`, `toEnrichments` | None |
 | Instance has | `settings: ContentSettings` | `context`, optional `generatorKey` / `stackTrail` (attribution), `register()` (from `TsSnippet`, keyless) |
 | Wrapped in `Definition` | Yes (by Driver) | No |
 | Cached by | `(identifier.name, exportPath)` | Not cached |
@@ -222,9 +222,9 @@ See [`concepts/projections-and-snippets.md`](concepts/projections-and-snippets.m
 **Code path** (for `ShadcnForm.constructor` calling `this.insertOperation(TanstackQuery, operation)`):
 
 1. The projection base's `insertOperation` (built by the factory — `core/dsl/operation/oas/toOasOperationProjectionBase.ts:144`) auto-fills `destinationPath`, delegates to `context.insertOperation`.
-2. `GenerateContext.insertOperation` (`core/context/GenerateContext.ts:859`) instantiates `new OasOperationDriver(...)`.
+2. `GenerateContext.insertOperation` (`core/context/GenerateContext.ts:1188`) instantiates `new OasOperationDriver(...)`.
 3. Driver computes `settings = context.toOperationContentSettings({ projection, operation })`.
-4. Driver calls `getDefinition({ identifier, exportPath })` (`OasOperationDriver.ts:85-114`):
+4. Driver calls `getDefinition({ identifier, exportPath })` (`OasOperationDriver.ts:133-163`):
    - Cache hit + `affirmDefinition` passes: return cached.
    - Cache hit + generatorKey mismatch: throw `"Registered definition mismatch"`.
    - Miss: `new projection({...})` runs; wrap value in `Definition`; register in target file.
@@ -261,7 +261,7 @@ See [`concepts/projections-and-snippets.md`](concepts/projections-and-snippets.m
 | Seam | Location pattern | Customize by |
 |---|---|---|
 | Export path | `gen-x/src/base.ts` → `toExportPath` | Edit the `join('@', ...)` call |
-| Identifier shape | `gen-x/src/base.ts` → `toIdentifier` | Edit the name-building expression |
+| Identifier shape | `gen-x/src/base.ts` → `toIdentifierName` | Edit the name-building expression |
 | Peer dependency | `gen-x/src/<Main>.ts` top-level imports | Swap the import target |
 | Consumer-side component path | `gen-x/src/fields/<X>.ts` register | Change the import key |
 | Capability gate | `gen-x/src/mod.ts` → `isSupported` | Change the predicate |
@@ -283,7 +283,7 @@ Need to change identifier naming, export paths, peer deps, or output shape?
 
 ```
 Need its own name at file scope (export const X = ...)?
-├── Yes → Projection (extends a lang projection base, has static toIdentifier/toExportPath)
+├── Yes → Projection (extends a lang projection base, has static toIdentifierName/toIdentifierType/toExportPath)
 └── No  → Snippet   (extends TsSnippet — or SnippetBase if it never registers —
                      anonymous, embedded via ${this.x})
 ```
@@ -376,7 +376,7 @@ Order: `isSupported` (capability) → `include` (allow) → `skip` (deny).
 | Parse issue types | `context/ParseIssue.ts` |
 | Settings types | `types/Settings.ts` |
 | Manifest types | `types/Manifest.ts` |
-| OAS schema routing | `oas/schema/toSchemasV3.ts` |
+| OAS schema routing | `parse/v3-0/schema/toSchemasV3.ts` + `parse/v3-1/schema/toSchemasV3.ts` |
 | OAS schema variants | `oas/{object,array,union,string,integer,number,boolean,unknown}/<Name>.ts` |
 | OAS ref class | `oas/ref/Ref.ts` |
 | OAS document model | `oas/document/Document.ts` |
@@ -432,14 +432,14 @@ Reference example: `skmtc-generators/gen-shadcn-form/src/`.
 | # | Invariant | Mechanism | Code |
 |---|---|---|---|
 | 1 | Identifier and exportPath are pure functions of input | Static methods take `{ operation, enrichments }`; no `this`, no async | `toOasOperationProjectionBase.ts` (factory) |
-| 2 | Generate side effects are idempotent | `register({ imports })` uses `Set.add`; `register({ definitions })` first-write-wins | `GenerateContext.ts:659-708` |
+| 2 | Generate side effects are idempotent | `register({ imports })` uses `Set.add`; `register({ definitions })` first-write-wins | `GenerateContext.ts:1133+` |
 | 3 | Parse never throws to caller | `tryParseAt` wraps every per-item parser | `tryParseAt.ts:72-100` |
 | 4 | `OasRef.resolve()` returns a typed-correct target | `resolveOnce` checks `oasType` matches expected | `Ref.ts:198-225` |
 | 5 | Render does not modify file content | `renderFile` simply assembles `{ content: file.toString(), ... }` | `core/context/RenderContext.ts` (`renderFile` body) |
-| 6 | Cross-generator coordination is order-independent | Cache by `(name, exportPath)`; deterministic identifiers | `OasOperationDriver.ts:85-114` |
-| 7 | Worker is sandboxed | Deno permissions: `net: false`, `run: false` | `generate-worker.ts:70-81` |
-| 8 | One worker per generate run | `worker.terminate()` after RESULT or ERROR | `generate-worker.ts:101` |
-| 9 | OAS converted to v3 before worker | `toDocumentInput` calls `@skmtc/convert` for OAS | `generate-worker.ts:42-60` |
+| 6 | Cross-generator coordination is order-independent | Cache by `(name, exportPath)`; deterministic identifiers | `OasOperationDriver.ts:133-163` |
+| 7 | Worker is sandboxed | Deno permissions: `net: false`, `run: false` | `generate-worker.ts:43-51` |
+| 8 | One worker per generate run | `worker.terminate()` after RESULT or ERROR | `generate-worker.ts:75` |
+| 9 | OAS converted to v3 before worker | `toDocumentInput` calls `@skmtc/convert` for OAS | `generate-worker.ts:62` |
 | 10 | Manifest is canonical run record | `manifest.parseIssues` populated; exit code from issue levels | `generate-local.ts:46-65` |
 
 ---
@@ -484,7 +484,7 @@ Self-contained playbooks. Read only the one you need.
 
 #### Setting up SKMTC in a project
 
-1. `deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli` (requires Deno). The `--unstable-worker-options` flag must be passed at install time — `@skmtc/worker` uses Deno's `Worker.deno.permissions` API, which sits behind this flag. Without it the first `skmtc generate` exits at runtime with `Unstable API 'Worker.deno.permissions'`.
+1. Install the CLI: `curl -fsSL https://skm.tc/install | sh` — bootstraps Deno if needed and pins a version via `SKMTC_VERSION=<version>`. The script bakes in the required `--unstable-worker-options` flag (`@skmtc/worker` uses Deno's `Worker.deno.permissions` API, which sits behind it); a hand-rolled `deno install` without that flag makes the first `skmtc generate` exit with `Unstable API 'Worker.deno.permissions'`.
 2. `skmtc init <project-name> ./` creates `.skmtc/<project>/`.
 3. `skmtc install @skmtc/gen-typescript @skmtc/gen-zod <project>` to add generators.
 4. Edit `.skmtc/<project>/.settings/client.json` to set `source` and `settings.basePath`.
@@ -533,7 +533,7 @@ Self-contained playbooks. Read only the one you need.
 #### Using SKMTC in CI
 
 1. Pin Deno version.
-2. Install CLI in CI: `deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli`. The flag is required (see "Setting up SKMTC in a project" above).
+2. Install CLI in CI: `SKMTC_VERSION=<version> curl -fsSL https://skm.tc/install | sh` — the pin keeps runs reproducible.
 3. `skmtc bundle <project>` once at CI setup (only if generators are cloned).
 4. `skmtc generate <project> --no-input --json --typecheck`.
 5. Archive `manifest.json` as a CI artifact.
@@ -588,8 +588,8 @@ If you see `Registered definition mismatch: 'X' in file 'Y'`:
 
 1. Two generators are producing the same identifier at the same exportPath.
 2. Read the two `generatorKey` values from the error.
-3. **Both stock:** clone one and change `toIdentifier`.
-4. **One yours:** make `toIdentifier` more specific (verb prefix, kind suffix, etc.).
+3. **Both stock:** clone one and change `toIdentifierName`.
+4. **One yours:** make `toIdentifierName` more specific (verb prefix, kind suffix, etc.).
 
 #### Debugging a generator producing wrong output
 

@@ -1,7 +1,7 @@
 # How to add a field type
 
 > Add a new field renderer to a cloned form generator (e.g.,
-> `gen-shadcn-form`, `gen-daisyui-form`).
+> `gen-shadcn-form`).
 
 ## When to use this
 

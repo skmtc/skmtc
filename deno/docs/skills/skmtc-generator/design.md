@@ -21,7 +21,7 @@ load-bearing section.
 
 ## Audience
 
-Authors in the `extending/` doc tree. Specifically:
+Authors in the `authoring/` doc tree. Specifically:
 
 - Someone cloning a stock generator to customize it
 - Someone authoring a new generator from scratch
@@ -81,12 +81,12 @@ Should NOT auto-load on:
 - Full DSL API reference (every method, every parameter, every type)
   → `reference/api/`
 - Per-generator clone seam reference → `reference/stock-generators/<gen>.md`
-- Authoring tutorials → `extending/tutorials/`
+- Authoring tutorials → `authoring/tutorials/`
 - Full design philosophy → `explanation/design-philosophy.md`
 - Comparison to other codegen DSLs → `explanation/comparison-to-other-tools.md`
 - Full anti-pattern catalog (both pattern-level and SKMTC-specific) →
   `llms.md`
-- Detailed worked examples → `extending/recipes/`
+- Detailed worked examples → `authoring/recipes/`
 
 ### Boundary with adjacent skills
 
@@ -207,9 +207,9 @@ The 5–7 most common authoring tasks:
 
 ### 11. Cross-references
 
-- Authoring tutorials: `extending/tutorials/01-cloning-a-generator.md`, etc.
-- How-tos: `extending/how-to/*`
-- Recipes: `extending/recipes/*`
+- Authoring tutorials: `authoring/tutorials/01-cloning-a-generator.md`, etc.
+- How-tos: `authoring/how-to/*`
+- Recipes: `authoring/recipes/*`
 - API reference: `reference/api/`
 - Concepts: `concepts/projections-and-snippets.md`,
   `concepts/cross-generator-coordination.md`,

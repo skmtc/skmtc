@@ -531,7 +531,7 @@ A few:
   against GraphQL documents)
 - [Cross-generator coordination](cross-generator-coordination.md) —
   works the same for both protocols
-- [How to handle GraphQL instead of OAS](../extending/how-to/handle-graphql-instead-of-oas.md) —
+- [How to handle GraphQL instead of OAS](../authoring/how-to/handle-graphql-instead-of-oas.md) —
   the operational guide for authoring a GraphQL generator
 - [API: GraphQL document model](../reference/api/gql-document.md) —
   full class reference

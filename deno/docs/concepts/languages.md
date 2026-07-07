@@ -162,5 +162,6 @@ template instantiation).
   — the register path end to end
 - [stringable-composition.md](stringable-composition.md) — why
   rendering lives on `toString()`
-- The `skmtc-lang-typescript`, `skmtc-lang-kotlin`, and
-  `skmtc-lang-csharp` skills — the per-language operational answers
+- The `skmtc-lang-typescript` skill — the per-language operational
+  answers for the one stable language layer (other languages are
+  pre-alpha and have no skills yet)

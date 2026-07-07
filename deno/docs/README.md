@@ -11,10 +11,8 @@ skmtc generate my-api ./openapi.json
 
 ## Where to start
 
-Two paths through SKMTC, depending on what you're trying to do:
-
-- **[Using SKMTC](using/)** — installing generators, configuring projects, running generation, integrating with CI. This is the right path for most people.
-- **[Extending SKMTC](extending/)** — cloning, customizing, or authoring generators. This is the right path when stock defaults don't match your conventions.
+- **[Using SKMTC](using/)** — install generators, configure a project, generate. **Start here.** Using SKMTC never requires writing a generator: you install generators the way you install packages, and configure them with JSON. Most teams stop there.
+- **[Authoring generators](authoring/)** — clone, customize, or write generators. A deeper topic, and entirely optional — reach for it when stock defaults don't match your conventions. The [Authoring generators](#authoring-generators) section below shows what makes it tractable when you do.
 
 If you're not sure which applies, keep reading this page for the overview, then pick a tree.
 
@@ -118,16 +116,62 @@ Same philosophy as shadcn/ui: not a configurable dependency, but vendored source
 
 ---
 
+## Authoring generators
+
+You don't need this section to use SKMTC — stock generators cover the common stacks, and configuration goes a long way. But generators are designed to be written, not just used, and two ideas make that practical.
+
+**Generators are string templates, not ASTs.** A generator builds its output with ordinary template literals inside a TypeScript class — no AST node factories, no printer configuration. This is the real code that renders each query hook in `gen-tanstack-query-fetch-zod` (abridged from [`QueryFn.ts`](https://github.com/skmtc/skmtc-generators/blob/main/gen-tanstack-query-fetch-zod/src/QueryFn.ts)):
+
+```typescript
+override toString(): string {
+  const { path, method } = this.operation
+
+  return `async () => {
+    const res = await fetch(\`${toPathTemplate(path)}\`, {
+      method: '${method.toUpperCase()}'
+    })
+
+    if (!res.ok) {
+      const error = await res.text()
+      throw new Error(error)
+    }
+
+    const data = await res.json()
+
+    return ${this.zodResponseName}.parse(data)
+  }`
+}
+```
+
+The generated file reads like handwritten code because the template *is* handwritten code, with holes. Editing a generator means editing recognizable TypeScript, and the type checker sees every interpolated value.
+
+**Generators compose.** That `${this.zodResponseName}` above isn't produced by `gen-tanstack-query-fetch-zod` — it's a Zod schema produced by `gen-zod`. The same class asks for it in its constructor, and the engine takes care of where the schema lives, what it's named, and the import between the two files:
+
+```typescript
+const zodResponse = this.insertNormalizedModel(ZodProjection, {
+  schema: operation.toSuccessResponse()?.resolve().toSchema() ?? OasVoid.empty(),
+  fallbackName: `${decapitalize(settings.identifier.name)}Response`
+})
+
+this.zodResponseName = zodResponse.identifier.name
+```
+
+Composition is why one schema can fan out into types, validators, hooks, forms, and mocks that all agree with each other: the form generator inserts hooks from the query generator, which inserts validators from the Zod generator, which inserts types from the TypeScript generator.
+
+For the details — cloning your first generator, authoring model and operation generators, composition patterns — see [`authoring/`](authoring/).
+
+---
+
 ## Documentation
 
 Pick the tree that matches your role; the shared layers work for both.
 
 ### Role-specific trees
 
-- **[`using/`](using/)** — installing, configuring, running, integrating
+- **[`using/`](using/)** — installing, configuring, running, integrating; no generator code involved
   - [Tutorials](using/tutorials/) · [How-to](using/how-to/) · [Recipes](using/recipes/)
-- **[`extending/`](extending/)** — cloning, customizing, authoring
-  - [Tutorials](extending/tutorials/) · [How-to](extending/how-to/) · [Recipes](extending/recipes/)
+- **[`authoring/`](authoring/)** — authoring generators: cloning, customizing, writing new ones
+  - [Tutorials](authoring/tutorials/) · [How-to](authoring/how-to/) · [Recipes](authoring/recipes/)
 
 ### Shared layers
 
@@ -151,7 +195,6 @@ Pick the tree that matches your role; the shared layers work for both.
 | `@skmtc/gen-shadcn-form` | React forms (shadcn) | gen-zod, gen-tanstack-query-* |
 | `@skmtc/gen-shadcn-select` | React select fields | gen-shadcn-form |
 | `@skmtc/gen-shadcn-table` | React data tables | gen-tanstack-query-* |
-| `@skmtc/gen-daisyui-form` | React forms (DaisyUI) | gen-zod |
 | `@skmtc/gen-express` | Express route handlers | gen-typescript, gen-zod |
 | `@skmtc/gen-supabase-hono` | Hono routes for Supabase | gen-typescript, gen-zod |
 
@@ -201,6 +244,6 @@ See [`explanation/status-and-roadmap.md`](explanation/status-and-roadmap.md).
 
 ## License
 
-The engine (`@skmtc/core`), CLI (`@skmtc/cli`), and other `skmtc/` packages are licensed under **Apache 2.0**. See [`../LICENSE`](../LICENSE).
+The engine (`@skmtc/core`), CLI (`@skmtc/cli`), and other `skmtc/` packages are licensed under **Apache 2.0**. See [`../../LICENSE.md`](../../LICENSE.md).
 
 Stock generators (`skmtc-generators/gen-*`) are licensed under **MIT**. See [`../../../skmtc-generators/LICENSE.md`](../../../skmtc-generators/LICENSE.md).

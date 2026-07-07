@@ -89,7 +89,7 @@ Projection produced. If it's wrong:
 
 - **Hardcoded values?** The generator's source has hardcoded peer
   imports, paths, or other values. Those are clone seams — see
-  [tutorial: cloning a generator](../../extending/tutorials/01-cloning-a-generator.md).
+  [tutorial: cloning a generator](../../authoring/tutorials/01-cloning-a-generator.md).
 - **Missing fields?** The schema model may not have what you
   expect. Inspect via `skmtc generate --json` and look at how
   the parser interpreted your spec.

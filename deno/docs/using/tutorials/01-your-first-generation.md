@@ -19,8 +19,10 @@ If you don't have one handy, use the canonical Petstore spec:
 ## Step 1: Install the CLI
 
 ```bash
-deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli/mod.ts
+curl -fsSL https://skm.tc/install | sh
 ```
+
+The installer bootstraps Deno if it isn't already on your machine.
 
 Verify: `skmtc --version`.
 

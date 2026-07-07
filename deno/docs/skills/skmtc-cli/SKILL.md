@@ -6,7 +6,8 @@ description: |
   from JSR, configure schema sources and enrichments, and produce code
   artifacts from an OpenAPI v3 or GraphQL SDL schema. Covers the
   command surface (`init`, `create`, `clone`, `install`, `list`,
-  `remove`, `generate`, `bundle`, `dev`, `publish`, `login`, `logout`,
+  `remove`, `generate`, `describe`, `bundle`, `clean`, `dev`,
+  `publish`, `push`, `pull`, `project`, `migrate`, `login`, `logout`,
   `doctor`, `agent-context`), the `<root>/.skmtc/<project>/` workspace layout, the
   `.settings/client.json` shape (basePath, source, enrichments, skip,
   include), and the agent-native operation modes
@@ -148,11 +149,15 @@ follow-up command the agent can run to fetch the candidate set. No
 | `list [project]` | Show installed generators | Project required |
 | `remove [project] [generator]` | Remove a generator | Both required |
 | `generate <project> [schema]` | Run the pipeline | Project required; schema falls back to `client.json#source` |
+| `describe [project] [schema]` | Summarize a schema's operations and models | Project optional (recipe error with discovery hint if missing); `--json` |
 | `bundle [project]` | Compile local generators without generating | Project required |
 | `clean [project]` | Delete a project's generated files + manifest, pruning emptied dirs | Project required; `--dry-run`, `--verbose`; no Ink variant |
 | `dev <project> [schema]` | Watch + rebundle + regenerate on change | Project required; no `--json` (long-running) |
 | `publish <project>` | Build + publish an immutable stack version to skmtc-hub | Project + a token required — `--token`, `$SKMTC_HUB_TOKEN`, or the `skmtc login` store, in that order; version from `deno.json#version` or `--version` |
 | `push <project>` | Push a project's `client.json` (config + enrichments) to its hub project | Project required; destination from `--project @account/slug` or `client.json#project`; token like `publish` |
+| `pull <project>` | Pull a hub project's config down into the local project | Project required; token like `publish` |
+| `project create <name>` / `project rm <name>` | Create or delete a hub project from the local setup | Bare `skmtc project` prints subcommand usage, exit 2 |
+| `migrate variants <project>` | One-shot migration of `client.json` to the variant-aware shape (core 0.5.0+) | Idempotent; `--json`; bare `skmtc migrate` prints usage, exit 2 |
 | `login` | Validate + store a hub PAT (paste-a-PAT; `~/.skmtc/auth.json`, 0600) | `--with-token` reads the PAT from stdin; plain `login` with a stored token reports the handle (the `whoami`) |
 | `logout` | Delete the stored hub credential | No args; idempotent, always exit 0 |
 | `doctor` | Diagnose project setup | No args; always strict |
@@ -776,8 +781,9 @@ key isn't a `gen-*` entry in `deno.json#imports`.
 ### Card: Using SKMTC in CI
 
 ```bash
-# Setup (once per CI run):
-deno install --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir -g --unstable-worker-options -n skmtc jsr:@skmtc/cli@<version>
+# Setup (once per CI run) — the installer bootstraps Deno if needed;
+# SKMTC_VERSION pins the CLI so runs are reproducible:
+SKMTC_VERSION=<version> curl -fsSL https://skm.tc/install | sh
 # Build the project's bundle.js (required for every project unless a
 # fresh one is committed/cached):
 skmtc bundle <project>

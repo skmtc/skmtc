@@ -9,7 +9,7 @@ You want different output for specific operations (e.g., a
 custom title on a specific form, or a different label for a
 field on the `CreateUser` form) without modifying the generator.
 If the generator's enrichment schema doesn't expose what you need,
-see [tutorial: cloning a generator](../../extending/tutorials/01-cloning-a-generator.md)
+see [tutorial: cloning a generator](../../authoring/tutorials/01-cloning-a-generator.md)
 instead.
 
 ## Prerequisites
@@ -116,7 +116,7 @@ either:
 - **Unknown enrichment keys** — Unknown keys are silently
   stripped (Valibot default). If the field you want isn't in the
   generator's schema, clone the generator and add it (see
-  [add enrichment options](../../extending/how-to/add-enrichment-options.md)).
+  [add enrichment options](../../authoring/how-to/add-enrichment-options.md)).
 
 ## Related
 

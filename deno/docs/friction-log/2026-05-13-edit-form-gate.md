@@ -122,7 +122,7 @@ inside toString; when identifier varies, use separate Projections").
 
 **Version anchor:** `@skmtc/core@^0.3.x`, custom `gen-shadcn-form`
 
-**Status:** open — single-generator observation (N=1 by friction-log methodology). The pattern is real but generalizing "vary toString when external name stays the same; new Projection when name varies" to a doc-level rule from one design choice is speculative. Deferred until a second generator exhibits the same pattern; then consider as content for `extending/recipes/` or `concepts/projections-and-snippets.md` § When to use which.
+**Status:** open — single-generator observation (N=1 by friction-log methodology). The pattern is real but generalizing "vary toString when external name stays the same; new Projection when name varies" to a doc-level rule from one design choice is speculative. Deferred until a second generator exhibits the same pattern; then consider as content for `authoring/recipes/` or `concepts/projections-and-snippets.md` § When to use which.
 
 ---
 

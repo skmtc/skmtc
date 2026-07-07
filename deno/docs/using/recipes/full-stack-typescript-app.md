@@ -159,13 +159,11 @@ const worker = setupWorker(...toRoutesList({ store: yourMockStore }))
 
 - **Swap fetch transport.** Clone `gen-tanstack-query-fetch-zod`
   to use your team's `apiFetch` wrapper. See [how to swap a peer
-  dependency](../../extending/how-to/swap-a-peer-dependency.md).
+  dependency](../../authoring/how-to/swap-a-peer-dependency.md).
 - **Supabase backend.** Use
   `@skmtc/gen-tanstack-query-supabase-zod` instead of the fetch
   variant. Add `gen-shadcn-select` and `gen-shadcn-table` for the
   search/list UI components that pair with it.
-- **DaisyUI instead of shadcn/ui.** Swap `gen-shadcn-form` for
-  `gen-daisyui-form` — same enrichments, different CSS classes.
 - **Add a table.** Install `@skmtc/gen-shadcn-table` for list-GET
   operations.
 

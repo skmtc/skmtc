@@ -97,7 +97,7 @@ file by default" consequence + how to opt out, (b) drop the `.bind(config)`
 in the factory (would change behaviour: subclass `toIdentifier` would
 propagate via inherited `toExportPath`, making per-sibling exportPath
 the default — possibly desirable, possibly breaking), (c) a `static
-override toExportPath` example in `extending/recipes/`.
+override toExportPath` example in `authoring/recipes/`.
 
 **Version anchor:** `@skmtc/core@0.6.5`, `@skmtc/gen-elemental-select@0.0.60`
 
@@ -284,6 +284,6 @@ three-element pattern.
 
 | Rank | Entry | Why it matters | Action path |
 |------|-------|----------------|-------------|
-| 1 | #1 — Factory binds static methods to `config`, not `this` | The binding behaviour is load-bearing for the sibling-Projection pattern (`Select` + `SelectField` + `MultiSelectField` co-locating in one file) but invisible from outside. An author who wants sibling Projections in **separate** files will silently produce a (name, exportPath) collision when only `toIdentifier` is overridden. | Generator skill update — add a §"sibling projections" subsection covering the binding behaviour, the "all siblings share exportPath by default" consequence, and how to opt into per-sibling exportPath. Possibly also a recipe under `extending/recipes/`. |
+| 1 | #1 — Factory binds static methods to `config`, not `this` | The binding behaviour is load-bearing for the sibling-Projection pattern (`Select` + `SelectField` + `MultiSelectField` co-locating in one file) but invisible from outside. An author who wants sibling Projections in **separate** files will silently produce a (name, exportPath) collision when only `toIdentifier` is overridden. | Generator skill update — add a §"sibling projections" subsection covering the binding behaviour, the "all siblings share exportPath by default" consequence, and how to opt into per-sibling exportPath. Possibly also a recipe under `authoring/recipes/`. |
 | 2 | K2 + #2 — Cross-gen imports via `@skmtc/gen-peer` (no deno.json entry needed) | The relative-path antipattern propagates via cloning — every `skmtc clone` user repeats it. Workspace resolution is the canonical mechanism but isn't documented in the generator skill. Empirically verified this session that the pattern is safe (no per-generator deno.json entry needed). | Two-part: (a) generator skill §"cross-generator imports" rule, (b) audit `skmtc-generators/gen-*/` for the relative-path antipattern at source so clones inherit the correct pattern. |
 | 3 | #4 — Preview-app symlink convention is undocumented | The `src/manifest.json` → `../.skmtc/<project>/.settings/manifest.json` symlink is the load-bearing wiring between SKMTC's manifest and a consumer Vite preview app, but exists only as tribal convention. Any project relocation silently breaks it. | A how-to doc for the preview-app pattern, OR a `skmtc doctor` check that validates symlinks pointing at the manifest. The how-to is higher-leverage if the pattern is going to be recommended; the doctor check is the defensive fallback. |

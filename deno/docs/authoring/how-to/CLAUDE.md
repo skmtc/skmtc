@@ -17,7 +17,7 @@
 | #20908 | 1:40 PM | ✅ | SKMTC documentation improvements - error handling philosophy and project layout corrections | ~900 |
 | #20906 | 1:37 PM | ✅ | Generator customization how-to - change export paths guide complete | ~938 |
 | #20732 | 10:19 AM | ✅ | LLM-specific documentation enhanced with operational principles table | ~688 |
-| #20687 | 10:00 AM | ✅ | Documentation structure - extending/how-to guide for adding field types | ~498 |
+| #20687 | 10:00 AM | ✅ | Documentation structure - authoring/how-to guide for adding field types | ~498 |
 | #20686 | " | ✅ | Generator authoring how-to guides - identifier conventions skeleton created | ~499 |
 | #20685 | " | ✅ | Documentation scaffolding - enrichment options how-to guide | ~448 |
 | #20684 | " | ✅ | How-to guide skeleton created for changing generator export paths | ~455 |

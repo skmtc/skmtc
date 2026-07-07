@@ -75,7 +75,7 @@ On the OAS side, there's no `gen-oas-operation` providing "shared request/respon
 
 **Version anchor:** `@skmtc/core@0.4.4`, `@skmtc/gen-graphql-operation@0.0.1` through `0.0.63` (deleted)
 
-**Status:** partially addressed 2026-05-13 — historical mention added to `concepts/the-graphql-pipeline.md` § Operation generator patterns (documents the deletion and why the functional pattern is no longer the recommended shape) and `extending/how-to/handle-graphql-instead-of-oas.md` § Why the class-based pattern, not a functional `transform`?. The pattern test ("`transform` dominated by `context.insertNormalizedModel(TsProjection, …)` delegation, no `<40` lines of routing, no `.ts` consumers") is in the latter doc as future-detection guidance. **Periodic audit procedure** (the zero-consumer + thin-wrapper trace) not yet codified as a recipe in `extending/recipes/` — defer until a second deletion uses the same playbook (see entry #5).
+**Status:** partially addressed 2026-05-13 — historical mention added to `concepts/the-graphql-pipeline.md` § Operation generator patterns (documents the deletion and why the functional pattern is no longer the recommended shape) and `authoring/how-to/handle-graphql-instead-of-oas.md` § Why the class-based pattern, not a functional `transform`?. The pattern test ("`transform` dominated by `context.insertNormalizedModel(TsProjection, …)` delegation, no `<40` lines of routing, no `.ts` consumers") is in the latter doc as future-detection guidance. **Periodic audit procedure** (the zero-consumer + thin-wrapper trace) not yet codified as a recipe in `authoring/recipes/` — defer until a second deletion uses the same playbook (see entry #5).
 
 ---
 
@@ -166,7 +166,7 @@ Combined with [[feedback_skmtc_generator_location_independence]], this gives a c
 
 **Version anchor:** procedure used against `@skmtc/gen-graphql-typed-document-node@0.0.60` and `@skmtc/gen-graphql-operation@0.0.63`
 
-**Status:** open — procedure used twice in one session against related packages (N=1 by session, N=2 by deletion), but not yet codified as a recipe in `extending/recipes/`. Defer until a third use confirms the procedure generalizes beyond the graphql-cleanup context, then add `extending/recipes/auditing-a-generator-for-deletion.md` with the three bash commands (ts-import grep, user-project deno.json scan, generator-pin grep) and the three-outcome decision tree. Brief reference to the deletion already exists in `concepts/the-graphql-pipeline.md` § Operation generator patterns and `extending/how-to/handle-graphql-instead-of-oas.md` § Why the class-based pattern.
+**Status:** open — procedure used twice in one session against related packages (N=1 by session, N=2 by deletion), but not yet codified as a recipe in `authoring/recipes/`. Defer until a third use confirms the procedure generalizes beyond the graphql-cleanup context, then add `authoring/recipes/auditing-a-generator-for-deletion.md` with the three bash commands (ts-import grep, user-project deno.json scan, generator-pin grep) and the three-outcome decision tree. Brief reference to the deletion already exists in `concepts/the-graphql-pipeline.md` § Operation generator patterns and `authoring/how-to/handle-graphql-instead-of-oas.md` § Why the class-based pattern.
 
 ---
 
@@ -229,7 +229,7 @@ Neither check takes more than a couple of minutes. Both should be earlier moves 
 
 **Version anchor:** observed across `@skmtc/gen-graphql-operation@0.0.59` through `0.0.63`
 
-**Status:** open — the broader procedural lesson ("audit existence before refactoring structure") and the two diagnostics (zero-consumer audit + delegation trace) are not yet a checkpoint in the `skmtc-generator` skill or in the proposed `extending/recipes/auditing-a-generator-for-deletion.md`. Defer with entry #5 — same deferral reason: codify after a second instance of the procedure being used.
+**Status:** open — the broader procedural lesson ("audit existence before refactoring structure") and the two diagnostics (zero-consumer audit + delegation trace) are not yet a checkpoint in the `skmtc-generator` skill or in the proposed `authoring/recipes/auditing-a-generator-for-deletion.md`. Defer with entry #5 — same deferral reason: codify after a second instance of the procedure being used.
 
 ---
 
@@ -259,4 +259,4 @@ Generalisable rule: **a deprecation shim with zero real consumers is not a kindn
 
 **Version anchor:** `@skmtc/gen-graphql-typed-document-node@0.0.60` (the shim version, since deleted)
 
-**Status:** open — the broader rule (deprecation shim with zero real consumers is debt, skip it and delete directly) deferred for codification alongside the zero-consumer-audit recipe (entries #5 and #7). Brief historical reference exists in `concepts/the-graphql-pipeline.md` § Operation generator patterns ("packages that used it ... were deleted on 2026-05-13") and `extending/how-to/handle-graphql-instead-of-oas.md` § Why the class-based pattern (which mentions the cross-package coupling that delegated to a peer). The "skip the shim if zero consumers" checkbox is not yet a recipe item.
+**Status:** open — the broader rule (deprecation shim with zero real consumers is debt, skip it and delete directly) deferred for codification alongside the zero-consumer-audit recipe (entries #5 and #7). Brief historical reference exists in `concepts/the-graphql-pipeline.md` § Operation generator patterns ("packages that used it ... were deleted on 2026-05-13") and `authoring/how-to/handle-graphql-instead-of-oas.md` § Why the class-based pattern (which mentions the cross-package coupling that delegated to a peer). The "skip the shim if zero consumers" checkbox is not yet a recipe item.

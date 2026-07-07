@@ -403,7 +403,7 @@ wants.
 - [The manifest](the-manifest.md) — where `toArtifacts`'s per-item
   `results` and the generators' `previews` / `mappings` land for
   tooling
-- [Recipe: composing multi-generator stacks](../extending/recipes/composing-multi-generator-stacks.md)
+- [Recipe: composing multi-generator stacks](../authoring/recipes/composing-multi-generator-stacks.md)
   — the pattern walked end-to-end via `gen-shadcn-form` and
   `gen-shadcn-table`
 - [API: GenerateContext](../reference/api/generate-context.md) —

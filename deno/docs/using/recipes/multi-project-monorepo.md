@@ -137,7 +137,7 @@ Updating one API regenerates one project; the other is untouched.
   customized generator, clone it once at the workspace root and
   symlink (or just use the same path in each project's
   `deno.json#imports`). See [recipe: design system across many
-  APIs](../../extending/recipes/design-system-across-many-apis.md).
+  APIs](../../authoring/recipes/design-system-across-many-apis.md).
 - **CI per-project triggering.** Use a path-filter in CI (only
   regenerate `customer-api` when the customer spec changes) to
   avoid noise on unrelated changes.

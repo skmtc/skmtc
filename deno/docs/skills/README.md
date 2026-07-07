@@ -17,19 +17,18 @@ This directory is the canonical home for skills. The previous location
 | Skill                                              | Purpose                                                                                                                                                                                  | Audience                | Status                                                                                                                                                            |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`skmtc-architecture/`](skmtc-architecture/)       | System mental model — what SKMTC is, how the engine works, how to build infrastructure around it                                                                                         | Infrastructure builders | **SKILL.md authored** (v0.1.0)                                                                                                                                    |
-| [`skmtc-cli/`](skmtc-cli/)                         | Guide CLI usage — install, configure, run, integrate                                                                                                                                     | Users (`using/`)        | **SKILL.md authored** (v0.2.0); pulled from legacy + new content                                                                                                  |
-| [`skmtc-generator/`](skmtc-generator/)             | Guide generator authoring and editing                                                                                                                                                    | Authors (`extending/`)  | **SKILL.md authored** (full: operational principles, scaffolds, task cards, variants)                                                                             |
+| [`skmtc-cli/`](skmtc-cli/)                         | Guide CLI usage — install, configure, run, integrate                                                                                                                                     | Users (`using/`)        | **SKILL.md authored** (v0.4.0); pulled from legacy + new content                                                                                                  |
+| [`skmtc-generator/`](skmtc-generator/)             | Guide generator authoring and editing                                                                                                                                                    | Authors (`authoring/`)  | **SKILL.md authored** (full: operational principles, scaffolds, task cards, variants)                                                                             |
 | [`skmtc-debug/`](skmtc-debug/)                     | Diagnose failures — no output, wrong output, errors                                                                                                                                      | Anyone debugging        | **SKILL.md authored** (verify-first stance)                                                                                                                       |
 | [`skmtc-retro/`](skmtc-retro/)                     | Capture session friction/wins to friction log                                                                                                                                            | Anyone (end of session) | Authored (v0.1.0); includes `/skmtc-retro` slash command                                                                                                          |
-| [`skmtc-lang-typescript/`](skmtc-lang-typescript/) | The TypeScript target-language layer — the shape of emitted TS                                                                                                                           | Generator authors       | Authored; the TEMPLATE for `skmtc-lang-<X>` skills                                                                                                                |
-| [`skmtc-lang-kotlin/`](skmtc-lang-kotlin/)         | The Kotlin target-language layer — the shape of emitted Kotlin                                                                                                                           | Generator authors       | **SKILL.md authored** (v0.2.0; production through the milestone arc — lang-kotlin 0.5.0, gen-kotlin + gen-kotlin-spring)                                          |
-| [`skmtc-lang-csharp/`](skmtc-lang-csharp/)         | The C# target-language layer — the shape of emitted C#                                                                                                                                   | Generator authors       | **SKILL.md authored** (CS-A; lang-csharp 0.1.0 + gen-csharp 0.0.1)                                                                                                |
+| [`skmtc-retro-review/`](skmtc-retro-review/)       | Aggregate friction logs across sessions into patterns, priorities, and convergence metrics                                                                                               | Anyone (periodic)       | Authored; includes `/skmtc-retro-review` slash command                                                                                                            |
+| [`skmtc-lang-typescript/`](skmtc-lang-typescript/) | The TypeScript target-language layer — the shape of emitted TS                                                                                                                           | Generator authors       | Authored; the TEMPLATE for future `skmtc-lang-<X>` skills (other language layers are pre-alpha — no skills until they stabilize)                                  |
 | [`docs-writing/`](docs-writing/)                   | Documentation craft — audience, Diátaxis content types + compass, style/word rules, procedures, structure for humans + AI, API docs, page templates, mechanical enforcement, maintenance | Anyone writing docs     | **SKILL.md authored** (v0.2.0; Mintlify + Diátaxis + Google/Microsoft style guides + EPPO + WTD + Docs for Developers; companions `templates.md`, `mechanics.md`) |
 
-All four skills now live in this directory. The retro skill was moved here from
-`skmtc-platform/packages/skmtc-retro-skill/`. The cli skill was authored anew
-(content distilled from the legacy 1096-line file); generator and debug skills
-are skeletal stubs awaiting fuller content.
+All skills live in this directory. The retro skill was moved here from
+`skmtc-platform/packages/skmtc-retro-skill/`; the cli skill was authored anew
+(content distilled from the legacy 1096-line file). Every skill in the table
+has a fully authored `SKILL.md`.
 
 ## How skills relate to docs
 
@@ -118,20 +117,20 @@ generator or debug?), the principle is: **whichever skill's operational stance
 the LLM should be in.** "My generator's output is wrong" → debug, because the
 verify-first stance is required.
 
-## How outlines (this directory) relate to live skills
+## How design docs relate to live skills
 
-Each outline file in this directory describes what the corresponding `SKILL.md`
-file in `skmtc-platform/packages/<skill-name>/` should contain. The outline is
-the _design document_; the SKILL.md is the _implementation_.
+Each skill directory holds both artifacts: `design.md` is the _design
+document_ (what the skill should contain and why those boundaries), and
+`SKILL.md` is the _implementation_ that gets loaded.
 
-When the implementation diverges from the outline, one of them is wrong:
+When the implementation diverges from the design doc, one of them is wrong:
 
-- If the outline is wrong, update it to match the implementation.
-- If the implementation is wrong, update the skill to match the outline.
+- If the design doc is wrong, update it to match the implementation.
+- If the implementation is wrong, update the skill to match the design doc.
 
-Either way, drift between outline and skill should be a noticed condition, not a
-quiet one. The friction log is the venue for surfacing "the skill said X but the
-outline says Y" observations.
+Either way, drift between design doc and skill should be a noticed condition,
+not a quiet one. The friction log is the venue for surfacing "the skill said X
+but the design doc says Y" observations.
 
 ## Open questions across all skills
 
