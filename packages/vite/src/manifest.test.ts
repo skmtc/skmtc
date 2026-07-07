@@ -2,10 +2,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { readPreviews } from './manifest.ts'
+import { readPreviews, toModuleUrl } from './manifest.ts'
 
 describe('readPreviews', () => {
   const project = 'demo'
+  const basePath = 'src'
   let root: string
 
   // One preview backed by an emitted file (renderable) and one phantom: a
@@ -46,17 +47,25 @@ describe('readPreviews', () => {
   })
 
   it('drops phantom previews whose module was never written to disk', async () => {
-    const previews = await readPreviews(root, project)
+    const previews = await readPreviews(root, project, basePath)
     expect(previews.map((preview) => preview.name)).toEqual(['EnquiryTypeMultiSelectField'])
   })
 
+  it('resolves each preview to a Vite-servable /@fs/ module url', async () => {
+    const [preview] = await readPreviews(root, project, basePath)
+    expect(preview.module.url).toBe(
+      `/@fs${join(root, basePath, 'inputs/enums/EnquiryTypeMultiSelectField.generated.tsx')}`
+    )
+  })
+
   it('returns [] when the manifest is missing', async () => {
-    expect(await readPreviews(join(root, 'nope'), project)).toEqual([])
+    expect(await readPreviews(join(root, 'nope'), project, basePath)).toEqual([])
   })
 })
 
 describe('readPreviews — monorepo basePath', () => {
   const project = 'lighthouse-ui'
+  const basePath = 'apps/lighthouse-ui/src'
   let root: string
 
   // Monorepo layout: the skmtc project lives at the repo root but the app is
@@ -94,7 +103,36 @@ describe('readPreviews — monorepo basePath', () => {
   })
 
   it('keeps previews when files keys are basePath-prefixed but destinationPath is @/-aliased', async () => {
-    const previews = await readPreviews(root, project)
+    const previews = await readPreviews(root, project, basePath)
     expect(previews.map((preview) => preview.name)).toEqual(['ContactsTable'])
+  })
+
+  // Symptom 2: the module url must be an absolute /@fs/ path (Vite-root-
+  // independent), NOT the basePath-rooted `/apps/lighthouse-ui/src/…` that the
+  // nested app's Vite can't serve (SPA fallback → text/html → rejected as JS).
+  it('resolves the module url via /@fs/ absolute path, not a basePath-rooted url', async () => {
+    const [preview] = await readPreviews(root, project, basePath)
+    expect(preview.module.url).toBe(
+      `/@fs${join(root, basePath, 'tables/ContactsTable.generated.tsx')}`
+    )
+    // Absolute (/@fs/…), so it survives the Vite-root/skmtc-root split; NOT the
+    // bare basePath-rooted `/apps/lighthouse-ui/src/…` the nested app can't serve.
+    expect(preview.module.url.startsWith('/@fs/')).toBe(true)
+    expect(preview.module.url.startsWith('/apps/')).toBe(false)
+  })
+})
+
+describe('toModuleUrl', () => {
+  it('addresses the file via /@fs/ regardless of basePath depth', () => {
+    expect(toModuleUrl('/repo', 'apps/x/src', '@/tables/Foo.generated.tsx')).toBe(
+      '/@fs/repo/apps/x/src/tables/Foo.generated.tsx'
+    )
+    expect(toModuleUrl('/repo', 'src', '@/tables/Foo.generated.tsx')).toBe(
+      '/@fs/repo/src/tables/Foo.generated.tsx'
+    )
+  })
+
+  it('returns a non-alias path unchanged (nothing to resolve)', () => {
+    expect(toModuleUrl('/repo', 'src', '/already/absolute.tsx')).toBe('/already/absolute.tsx')
   })
 })

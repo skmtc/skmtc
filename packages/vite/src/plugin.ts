@@ -385,7 +385,10 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       // The renderable previews from the last generate manifest (module + subject).
       const previewsHandler: Connect.NextHandleFunction = async (_request, response) => {
         try {
-          respondJson(response, 200, await readPreviews(root, options.project))
+          const clientJson = await readClientJson(root, options.project)
+          const basePath =
+            typeof clientJson.settings.basePath === 'string' ? clientJson.settings.basePath : 'src'
+          respondJson(response, 200, await readPreviews(root, options.project, basePath))
         } catch (error) {
           respondJson(response, 500, { error: messageOf(error) })
         }
