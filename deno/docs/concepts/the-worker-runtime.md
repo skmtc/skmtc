@@ -127,21 +127,21 @@ generated file — the CLI templates it from `deno.json#imports`:
 
 ```ts
 // .skmtc/<project>/worker.ts (templated)
-import { worker } from '@skmtc/worker'
+import toWorker from '@skmtc/worker'
 import gen1 from '@skmtc/gen-zod'
 import gen2 from '@skmtc/gen-typescript'
 import gen3 from './gen-shadcn-form/mod.ts'  // local clone
 
-worker({
-  generators: [gen1, gen2, gen3]
-})
+export default toWorker(() =>
+  Object.fromEntries([gen1, gen2, gen3].map(g => [g.id, g]))
+)
 ```
 
 The template:
 
-- Imports `worker` from `@skmtc/worker` (the engine wrapper)
+- Default-imports `toWorker` from `@skmtc/worker` (the engine wrapper)
 - Imports each installed generator (JSR or local path)
-- Calls `worker` with the generator list
+- `export default toWorker(() => …)` with the generators keyed by `g.id`
 
 `deno bundle` then resolves all imports (JSR + local) into a single
 JS file. This is what the Worker spawns.

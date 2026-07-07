@@ -1,14 +1,15 @@
 # Attribution and gen-maps
 
-> SKMTC's opt-in **provenance** subsystem. When attribution is
-> enabled, a generation run produces — alongside the code — a
-> **sidecar** per file that maps byte ranges in the generated output
-> back to the generator, schema location, and variant that produced
-> them, plus a project-level **generation map** for reverse queries
-> ("which files came from `User`?", "which files did `gen-zod`
-> produce?"). It is a source map for provenance: generated code ↔
-> schema position ↔ generator. It lives in `core/anchors/`, is off
-> by default, and costs nothing when off.
+> SKMTC's **provenance** subsystem. When emission is enabled, a
+> generation run produces — alongside the code — a **sidecar** per
+> file that maps byte ranges in the generated output back to the
+> generator, schema location, and variant that produced them, plus a
+> project-level **generation map** for reverse queries ("which files
+> came from `User`?", "which files did `gen-zod` produce?"). It is a
+> source map for provenance: generated code ↔ schema position ↔
+> generator. It lives in `core/anchors/`. Capture is always on and
+> cheap; emission of the on-disk artifacts is opt-in and off by
+> default.
 
 This page explains what the subsystem produces, why it exists, how
 the four stages of the mechanism work, and the format of the
@@ -23,8 +24,9 @@ runs *alongside* (but is not part of), see
 text, *which generator, which schema location, and which variant
 produced it*. **Gen-maps** are the two on-disk artifacts that record
 those decisions: a per-file **sidecar** and a per-project
-**generation map**. The whole subsystem is gated behind a single
-opt-in flag and adds zero cost to a run when that flag is off.
+**generation map**. Attribution *capture* is always on and
+unconditional; only **emission** of the on-disk artifacts is opt-in
+(supply a `postPass` config to the run).
 
 ## Why it exists
 
@@ -84,34 +86,31 @@ concatenates them.
 
 ## Turning it on: `AttributionState` and `client.json`
 
-Attribution is **opt-in at two levels**, both off by default.
+Capture is **always on** and needs no configuration — it is intrinsic
+to the pipeline (see Stages 1–2 below). What you opt into is
+**emission**: the on-disk sidecars and generation map.
 
-The engine-level switch is `AttributionState`
-(`core/types/AttributionState.ts`), threaded into `toArtifacts`:
+The engine-level config is `AttributionState`
+(`core/types/AttributionState.ts`), threaded into `toArtifacts`. It
+has a single field — the post-pass config:
 
 ```ts
 type AttributionState = {
-  enabled: boolean
   postPass?: {
     parser?: ParserAdapter          // AST landmark/path resolution
     schemaSrc: string               // e.g. 'openapi.json' → sidecar.src
-    generatorMeta?: GeneratorMetaLookup  // genId → { version, registry }
+    generatorMeta?: GeneratorMetaLookup  // generatorId → { version, registry }
   }
 }
 ```
 
-There are **two opt-in tiers**:
-
-- `enabled: true` **alone** installs the render-time instrumentation
-  (Stage 2 below) but produces **no on-disk output**. This tier
-  exists for callers that want the producer tree captured but will
-  do their own post-processing.
-- `enabled: true` **with a `postPass` block** activates the full
-  post-render pass and surfaces `sidecars` + `generationMap` on the
-  `toArtifacts` result.
+- **No `postPass`** (or no `attribution` at all): capture still
+  happens, but nothing is emitted — the run produces no sidecars.
+- **With a `postPass` block**: the post-render pass runs and surfaces
+  `sidecars` + `generationMap` on the `toArtifacts` result.
 
 For a CLI user the switch is `client.json#settings.anchors`
-(`core/types/Settings.ts:167`):
+(`core/types/Settings.ts`):
 
 ```jsonc
 { "settings": { "anchors": { "enabled": true, "out": ".maps" } } }
@@ -124,110 +123,88 @@ into the worker's `SerializableAttribution` payload.
 
 ## How it works
 
-The mechanism has four stages. They map onto the engine pipeline as:
-a Parse-phase concern, a Generate-phase concern, a stage that runs
-*between Generate and Render*, and a host-side stage after the
-Worker returns. (The `core/anchors/` source comments label these
-Phase A–D, referencing the original gen-maps plan.)
+The mechanism has four stages: two always-on capture concerns (in
+Parse and Generate), an emission pass folded into Render, and a
+host-side write after the Worker returns. (The `core/anchors/` source
+comments label these Phase A–D, referencing the original gen-maps
+plan.)
 
 ```
-PARSE ───────▶ GENERATE ─────────▶ [POST-PASS] ─────▶ RENDER ──▶ host
-  │               │                    │
-Stage 1         Stage 2              Stage 3          (unchanged)  Stage 4
-location      producer-tree       resolve spans,                 write
-capture       instrumentation     build sidecars                 .maps/
+PARSE ───────▶ GENERATE ─────────▶ RENDER ──────────────▶ host
+  │               │                  │  └─ [post-pass]      │
+Stage 1         Stage 2            Stage 3                Stage 4
+location      producer-tree      resolve spans,          write
+capture       instrumentation    build sidecars          .maps/
+(always on)   (always on)        (when postPass set)
 ```
 
 ### Stage 1 — location capture during Parse
 
-When `attribution` is enabled, the Parse phase records where each
-parsed node sits in the source schema. Each parsed OAS / GraphQL
-node can report its location as a JSON Pointer (via the
-`OasBase.toLocation()` family). A Snippet later built from a schema
-fragment carries that pointer forward as its `srcPtr` field — the
-*fine-grained* schema pointer for an individual span. When a Snippet
-has no `srcPtr` of its own, attribution falls back to a coarse
-pointer derived from the producer's `generatorKey` (see
-[the attribution tuple](#the-attribution-tuple-and-srcptr)).
+Capture is unconditional. Every parsed OAS / GraphQL node snapshots
+the visitor's `StackTrail` into its `OasBase` base at construction —
+`toLocation()` renders it as a JSON Pointer. This runs on every parse,
+whether or not emission is configured. A producer's schema pointer is
+later derived from that trail (`stackTrail.toSchemaPointer()`); a
+producer with no trail of its own falls back to a coarse pointer
+derived from its `generatorKey` (see
+[the attribution tuple](#the-attribution-tuple)).
 
 ### Stage 2 — producer-tree instrumentation during Generate
 
-Every DSL element extends `SnippetBase`. When `context.attribution`
-is set, the `SnippetBase` **constructor installs a shadow
-`toString`** (`core/dsl/SnippetBase.ts:98-137`):
+Every DSL element extends `SnippetBase`. The constructor installs a
+capturing `toString` **unconditionally**
+(`core/dsl/SnippetBase.ts`) — there is no attribution flag to check at
+construction time. The wrapper is a no-op *at call time* unless the
+capture interval is active, gated by `this.context.captureSink`:
 
 ```ts
-if (context.attribution) {
-  const subclassToString = this.toString
-  this.toString = function instrumented(this: SnippetBase): string {
-    if (this._rendered !== undefined) return this._rendered
-    // ...cycle guard...
-    const parent = renderStack[renderStack.length - 1]
-    if (parent) (parent._children ??= []).push(this)
-    renderStack.push(this)
-    try {
-      this._rendered = subclassToString.call(this)
-      return this._rendered
-    } finally {
-      renderStack.pop()
-    }
-  }
+const capturingToString = function (this: SnippetBase): string {
+  const sink = this.context.captureSink // undefined outside the capture interval
+  // outside capture: just delegate to the subclass toString
+  // inside capture: push onto the render stack, record parent/child
+  //                 edges + byte spans into the sink, then delegate
+  // ...
 }
 ```
 
-This does two things as a side effect of normal rendering:
+The capture interval is opened by Render (Stage 3) around the single
+capture render. While it is open, the sink records which producer is
+rendering and the parent/child edges as a parent's `toString`
+interpolates a child (via `${...}`) — building the tree of every
+producer that contributed to the file, and the byte span each one
+occupies. Outside the interval the wrapper adds nothing observable.
+Subclass authors write nothing different either way; the
+instrumentation is transparent.
 
-- **Builds the producer tree.** A module-level `renderStack` tracks
-  which Snippet is currently rendering. When a parent's `toString`
-  interpolates a child (via `${...}`), the child registers itself in
-  the parent's `_children`. The result is a tree of every producer
-  that contributed to the file.
-- **Caches each producer's rendered text** in `_rendered`, so the
-  post-pass can locate each producer's substring inside the file.
+### Stage 3 — the post-pass (folded into Render)
 
-When attribution is off, no shadow is installed — **zero cost, no
-closure, no allocation**. Subclass authors write nothing different
-either way; the instrumentation is transparent.
+There is no separate pass between Generate and Render. Render is a
+single capture pass: `RenderContext` renders each file once with the
+capture interval open, and — *when the run supplies
+`attribution.postPass`* — immediately runs the post-pass over that
+file's resolved spans. `postPass` (`core/anchors/postPass.ts`) is a
+pure function over a file's text + spans; per code `File` (JSON
+artifacts have no producer tree and are skipped) it:
 
-### Stage 3 — the post-pass (between Generate and Render)
-
-After Generate completes — when every `File` is fully populated with
-instrumented `_children` / `_rendered` — and *before* Render,
-`CoreContext.toArtifacts` runs the post-pass
-(`core/context/CoreContext.ts:444-452`):
-
-```ts
-const postPassOutput = stackTrail.trace('post-pass', () =>
-  runPostPassForFiles(files, attribution)
-)
-```
-
-For each code `File` (JsonFile artifacts are skipped — they have no
-producer tree), `postPass` (`core/anchors/postPass.ts:86`) does:
-
-1. **`resolveSpansForFile(file)`** — render the file once, then walk
-   the producer tree, locating each producer's `_rendered` substring
-   inside its parent's text with a moving cursor. This yields a flat
-   list of `{ from, to, producer }` byte spans. Identical sibling
-   text (two `z.string()` calls) resolves correctly by document
-   order; a producer whose text the parent reshaped is dropped
-   rather than mis-attributed.
-2. **`attribute(span.producer)`** — derive the
-   `{ genId, srcPtr, variant, defName }` tuple for each span (see
-   below).
+1. Takes the byte spans the capture sink resolved from the occurrence
+   tree — `{ from, to, producer }` for every contributing Definition /
+   Snippet, in document order.
+2. **`attribute(span.producer)`** — derives the
+   `{ generatorId, schemaPointer, variant, definitionName, producerName }`
+   tuple for each span (see below).
 3. **Landmark + AST path resolution** — *if* a `ParserAdapter` is
-   present, ascend each span to its enclosing top-level export
-   (the **landmark**) and record the AST child-index **path** down
+   present, ascends each span to its enclosing top-level export
+   (the **landmark**) and records the AST child-index **path** down
    to the span. If no parser is present (the default — see [the
    worker boundary](#the-worker-boundary--why-the-parser-is-omitted)),
    the landmark is the enclosing `Definition`'s identifier name and
    the path is empty.
-4. **`buildSidecar(...)`** — pool and intern everything into the
+4. **`buildSidecar(...)`** — pools and interns everything into the
    Sidecar v2 object.
 
-Render then runs normally and is **completely unchanged** by
-attribution — it re-`toString()`s the files, hitting the `_rendered`
-caches the post-pass already populated.
+`runPostPassForFiles` does not exist — the post-pass is not a distinct
+whole-run stage; it runs inline in `RenderContext.render`, once per
+File.
 
 ### Stage 4 — disk persistence on the host
 
@@ -260,13 +237,15 @@ const sidecarSchema = v.object({
   f: v.string(),         // file path, relative to basePath
   src: v.string(),       // schema source (e.g. 'openapi.json')
   parser: v.string(),    // "<id>@<version>" or 'none'
-  R: v.array(registryEntry),   // registry pool  { host, kind }
+  R: v.array(registryEntry),   // registry pool  { host, type }
   G: v.array(generatorEntry),  // generator pool { name, version, r }
   S: v.array(v.string()),      // schema-pointer pool
   V: v.array(v.string()),      // variant pool
   L: v.array(v.string()),      // landmark pool
   P: v.array(v.string()),      // AST-path pool ('.'-joined)
-  A: v.array(anchorRow)        // the anchor table
+  A: v.array(anchorRow),       // the anchor table
+  N: v.optional(v.array(v.string())),  // producer-name pool (optional)
+  An: v.optional(v.array(v.number()))  // A[i]'s producer → N (optional)
 })
 ```
 
@@ -292,9 +271,9 @@ worker-side (no AST parser):
   "f": "src/types/User.generated.ts",
   "src": "openapi.json",
   "parser": "none",
-  "R": [{ "host": "jsr.io", "kind": "jsr" }],
+  "R": [{ "host": "jsr.io", "type": "jsr" }],
   "G": [{ "name": "@skmtc/gen-typescript", "version": "", "r": 0 }],
-  "S": ["oas:#/components/schemas/User"],
+  "S": ["#/components/schemas/User"],
   "V": ["main"],
   "L": ["User"],
   "P": [""],
@@ -318,36 +297,43 @@ The format is frozen at **v2** and validated by Valibot
 boundary and on disk. Format evolution bumps `v` and ships an
 adapter in the consumer.
 
-## The attribution tuple and `srcPtr`
+## The attribution tuple
 
-`attribute()` (`core/anchors/attribute.ts:31`) is a pure function
+`attribute()` (`core/anchors/attribute.ts`) is a pure function
 over a producer that yields:
 
 ```ts
 type Attribution = {
-  genId: string                 // generator id, from the generatorKey
-  srcPtr: string | undefined    // schema pointer
-  variant: string               // defaults to 'main'
-  defName: string | undefined   // set for Definition producers
+  generatorId: string                 // from the generatorKey; '<unknown>' if none
+  schemaPointer: string               // document-relative schema pointer ('' if none)
+  variant: string                     // from the key; defaults to 'main'
+  definitionName: string | undefined  // identifier name, for Definition producers
+  producerName: string                // the producer's class name
 }
 ```
 
-`genId` and `variant` come from parsing the producer's
+`generatorId` and `variant` come from parsing the producer's
 `generatorKey` (see [generators-as-packages.md](generators-as-packages.md)
-for the key shapes). `srcPtr` is resolved in priority order:
+for the key shapes). `schemaPointer` is resolved in priority order:
 
-1. The producer's own `srcPtr` field — the **fine-grained** pointer
-   set during Stage 1 from the schema fragment the Snippet was built
-   from.
-2. Otherwise, a **coarse** fallback derived from the `generatorKey`:
-   - OAS operation → `oas:#/paths/<escaped-path>/<method>`
-   - GraphQL operation → `gql:<rootKind>.<fieldName>`
-   - Model → `oas:#/components/schemas/<refName>`
-   - Generator-only → `undefined` (no schema location)
+1. The producer's **own position** — `stackTrail.toSchemaPointer()`
+   when its `StackTrail` is non-empty (the fine-grained pointer
+   captured in Stage 1). `toSchemaPointer()` strips the run's
+   operational prefix so the pointer is document-relative.
+2. Otherwise, a **coarse** fallback derived from the `generatorKey`.
+   Pointers are **protocol-agnostic** — no `oas:` / `gql:` prefix;
+   the protocol is a property of the run's input schema, not of each
+   pointer:
+   - OAS operation → `#/paths/<escaped-path>/<method>`
+   - GraphQL operation → `<rootKind>.<fieldName>`
+   - Model → `#/components/schemas/<refName>`
+   - Generator-only / no key → `''` (empty — no schema location)
 
 Path segments are RFC 6901 JSON-Pointer escaped (`~`→`~0`,
 `/`→`~1`). A producer with no `generatorKey` (a test double or a
-runtime-orphaned Snippet) gets `genId: '<unknown>'`.
+runtime-orphaned Snippet) gets `generatorId: '<unknown>'`.
+`producerName` is the producer's class name (e.g. `TsObject`),
+carried in the sidecar's optional `N` / `An` pools.
 
 ## The worker boundary — why the parser is omitted
 
@@ -416,18 +402,21 @@ enabled:
 
 ## Cost model
 
-Attribution is **zero-cost when off**. The entire subsystem is
-gated by `if (context.attribution)` checks:
+Capture is always on, but it is cheap; the real cost is emission,
+which you opt into.
 
-- Off → the `SnippetBase` constructor installs no shadow `toString`;
-  Parse records no locations; the post-pass returns `undefined`
-  early; nothing is written.
-- `enabled: true` only → the render-time instrumentation runs (an
-  extra closure and a `_children`/`_rendered` field per producer)
-  but no post-pass, no disk I/O.
-- `enabled: true` + `postPass` → one extra `file.toString()` per
-  file (cached, so Render does not pay it again), the span walk, and
-  the disk write.
+- **Capture (always on).** Parse snapshots each node's `StackTrail`
+  into its `OasBase` — the trail is already carried through parse, so
+  this is a reference, not new work. Every `SnippetBase` gets the
+  capturing `toString`, but outside the capture interval
+  (`context.captureSink` unset) it delegates straight to the subclass
+  `toString` — no stack pushes, no allocation.
+- **Emission (opt-in via `postPass`).** Rendering opens the capture
+  interval, so the wrapper now records parent/child edges and byte
+  spans; then the post-pass resolves spans, attributes each, and
+  builds the sidecar, and the host writes `.maps/`. This is where the
+  cost lives, and it runs only when the run supplies
+  `attribution.postPass`.
 
 There is no cross-run state — like every SKMTC run, an
 attribution-enabled run is from cold (see
@@ -552,7 +541,7 @@ the map.
 - [The manifest](the-manifest.md) — the run record, and the
   lighter-weight `previews` / `mappings` provenance channel
 - [Generators as packages](generators-as-packages.md) — `generatorKey`
-  shapes, which `attribute()` parses for `genId` / `variant`
+  shapes, which `attribute()` parses for `generatorId` / `variant`
 - [The StackTrail](the-stack-trail.md) — the parse-phase position
   stack behind Stage 1 location capture
 - [`skmtc-architecture` skill §9](../skills/skmtc-architecture/SKILL.md)
