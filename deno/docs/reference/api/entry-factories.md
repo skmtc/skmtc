@@ -2,31 +2,35 @@
 
 > The three factories that produce a generator's pipeline entry —
 > `toOasOperationEntry`, `toGqlOperationEntry`, and `toModelEntry`.
-> Each takes a config object and returns a `*Config` value whose
+> Each takes a config object and returns a `*Entry` value whose
 > `type` discriminator routes it through the dispatcher's matching
 > per-protocol loop.
 
 A generator's `src/mod.ts` calls one of these factories and exports
-the result as the package default. The exported config is what the
+the result as the package default. The exported entry is what the
 pipeline iterates over: for every operation (OAS or GQL) or every
-schema component (model) it visits, the dispatcher invokes the
-config's `transform` callback and folds the return into `acc`.
+schema component (model) it visits — per variant, for
+variants-aware generators — the dispatcher invokes the entry's
+`transform` callback.
 
 Output is produced by side effects inside `transform`, not by the
-return value — see
+return value (`transform` returns `void`) — see
 [how-generators-produce-output](../../concepts/how-generators-produce-output.md).
 
 ## Source
 
-- `skmtc/deno/core/dsl/operation/oas/toOasOperationEntry.ts`
-- `skmtc/deno/core/dsl/operation/gql/toGqlOperationEntry.ts`
-- `skmtc/deno/core/dsl/model/toModelEntry.ts`
+- `skmtc/deno/core/dsl/operation/oas/toOasOperationEntry.ts` — `OasOperationEntry`
+- `skmtc/deno/core/dsl/operation/gql/toGqlOperationEntry.ts` — `GqlOperationEntry`
+- `skmtc/deno/core/dsl/model/toModelEntry.ts` — `ModelEntry`
 
-Type files:
+Argument-shape type files:
 
-- `skmtc/deno/core/dsl/operation/oas/types.ts` — `OasOperationConfig`
-- `skmtc/deno/core/dsl/operation/gql/types.ts` — `GqlOperationConfig`
-- `skmtc/deno/core/dsl/model/types.ts` — `ModelConfig`
+- `skmtc/deno/core/dsl/operation/oas/types.ts`
+- `skmtc/deno/core/dsl/operation/gql/types.ts`
+- `skmtc/deno/core/dsl/model/types.ts`
+
+(A fourth flavor, `toWebhookEntry` in `core/dsl/webhook/`, follows
+the same shape.)
 
 ## The three factories at a glance
 
@@ -34,17 +38,15 @@ Type files:
 |---|---|---|---|
 | **Iterates** | OAS operations (`oasDocument.operations`) | GQL operations (`gqlDocument.operations`) | Schema components (refNames) |
 | **`type` discriminator** | `'oasOperation'` | `'gqlOperation'` | `'model'` |
-| **`transform` second arg** | `operation: OasOperation` | `operation: GqlOperation` | `refName: RefName` |
-| **`acc` semantics** | Threaded but typically ignored; safe to omit `return acc` | Threaded and **must be returned** | Threaded but typically ignored |
+| **`transform` subject arg** | `operation: OasOperation` | `operation: GqlOperation` | `refName: RefName` |
+| **`transform` return** | `void` | `void` | `void` |
 | **`isSupported`** | Optional; default `() => true` | Optional; default `() => true` | Optional; default `() => true` (predicate gets `refName`, no `operation`) |
-| **Enrichment routing path** | `enrichments.<id>.<operation.path>.<operation.method>.<variant>` | `enrichments.<id>.<operation.rootKind>.<operation.fieldName>.<variant>` | `enrichments.<id>.<refName>.<variant>` |
-| **`isSupported` enrichments pre-resolved** | Yes, via Valibot parse | Yes, via Valibot parse | Yes, via Valibot parse |
-| **Companion projection-base factory** | `toOasOperationProjectionBase` | `toGqlOperationProjectionBase` | `toModelProjectionBase` |
+| **Enrichment routing path (projection-base `toEnrichments`)** | `enrichments.<id>.<operation.path>.<operation.method>.<variant>` | `enrichments.<id>.<operation.rootKind>.<operation.fieldName>.<variant>` | `enrichments.<id>.<refName>.<variant>` |
+| **Companion projection-base factory (veneer)** | `toTsOasOperationProjectionBase` | `toTsGqlOperationProjectionBase` | `toTsModelProjectionBase` |
 
 The three factories share the same backbone; the differences are
 small but consequential. The rest of this page enumerates the
-config surface, calls out the GQL-specific contract, and documents
-the model asymmetry.
+config surface and documents the model asymmetry.
 
 ## Common config fields
 
@@ -68,31 +70,32 @@ This `id` is what consumers reference under
 `client.json#settings.enrichments[id]` and what appears in the
 manifest. It's the lookup key for enrichment routing.
 
-### `transform: ({ context, <operation|refName>, acc }) => Acc` (required)
+### `transform: ({ context, <operation|refName>, variant }) => void` (required)
 
 The per-item callback. The dispatcher calls it once for every
-operation (OAS, GQL) or every schema component (model) the engine
-visits. Output is produced **only** through side effects on `context`
-(`register`, `insertOperation`, `insertModel`,
-`insertNormalizedModel`) — the return value is folded into `acc` for
-the next iteration but never persisted as artifacts.
+operation (OAS, GQL) or every schema component (model) — and, for
+variants-aware generators, once per declared variant — that the
+engine visits. Output is produced **only** through side effects on
+`context` (`insertOperation`, `insertModel`,
+`insertNormalizedModel`, the lang `register` function) — the return
+type is `void` in all three factories.
 
 ```ts
-transform({ context, operation }) {
-  context.insertOperation({ projection: MyProjection, operation })
+transform({ context, operation, variant }) {
+  context.insertOperation({ projection: MyProjection, operation, variant })
 }
 ```
 
-- **OAS**: return value ignored in practice; omit `return acc` freely.
-- **GQL**: **must** return `acc` to keep the accumulator threaded — see [`acc` contract](#the-gql-acc-return-contract) below.
-- **Model**: return value ignored in practice.
+Thread `variant` into the insert call when the generator is
+variants-aware; omitting it constructs everything as `'main'`.
 
-### `toEnrichmentSchema?: () => v.GenericSchema<EnrichmentType>` (optional)
+### `toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>` (required)
 
 A factory returning the Valibot schema for this generator's
-enrichment payload. Omit when the generator has no enrichments — the
-factory defaults to `v.undefined()` and any payload parses as
-`undefined`. See [enrichments](../../concepts/enrichments.md).
+`{ subject, generator, stack }` enrichment umbrella. Required (not
+optional) — a generator with no enrichments passes
+`emptyEnrichmentSchema` from `@skmtc/core`. See
+[enrichments](../../concepts/enrichments.md).
 
 ```ts
 import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
@@ -104,8 +107,18 @@ toModelEntry<EnrichmentSchema>({
 })
 ```
 
-The schema's root **is** the enrichment payload — don't wrap it in
-an extra named object.
+### `supportsVariant?: () => boolean` (optional)
+
+Whether this generator entry supports variants. Defaults to
+`() => false` when omitted.
+
+### `toEnrichmentDefaults?: ({ context, <operation|refName>, variant }) => EnrichmentType | undefined` (optional)
+
+Compute the DEFAULT enrichment values for an item from its schema —
+the seed the CMS persists and the user then edits. Typically a thin
+forward to the projection base's static of the same name
+(`toEnrichmentDefaults: MyProjection.toEnrichmentDefaults`) so the
+logic has a single home in `base.ts`.
 
 ### `toPreviewModule?: ({ context, <operation|refName> }) => PreviewModule` (optional)
 
@@ -116,19 +129,18 @@ infrastructure generators), include for those that produce a
 preview-worthy artifact (forms, tables, types).
 
 ```ts
-toPreviewModule: ({ operation, enrichments }) => ({
-  name: MyProjection.toIdentifier({ operation, enrichments }).name,
-  exportPath: MyProjection.toExportPath({ operation, enrichments }),
-  group: 'forms'
-})
+toPreviewModule: ({ context, operation, variant }) => {
+  const enrichments = MyProjection.toEnrichments({ operation, context, variant })
+
+  return {
+    name: MyProjection.toIdentifierName({ operation, enrichments, variant }),
+    exportPath: MyProjection.toExportPath({ operation, enrichments, variant })
+  }
+}
 ```
 
-### `toMappingModule?: ({ context, <operation|refName> }) => MappingModule` (optional)
-
-Generates an entry for the manifest's `mappings` section.
-[Mappings](../glossary.md#mapping) link generator output back to
-source schemas for tooling purposes. Stock generators mostly omit
-this; supply it when integrating with an external mapping consumer.
+`toIdentifierName` returns the name string directly; `PreviewModule`
+is `{ name: string; exportPath: string }`.
 
 ### `toEnrichmentRequest?: <R extends EnrichmentType>(operation|refName) => EnrichmentRequest<R> | undefined` (optional)
 
@@ -144,8 +156,8 @@ don't use this. See
 isSupported?: ({
   context,
   operation,
-  enrichments
-}: IsSupportedOasOperationConfigArgs<EnrichmentType>) => boolean
+  variant
+}: IsSupportedOasOperationArgs) => boolean
 ```
 
 The capability gate. Returns `true` for operations this generator can
@@ -166,12 +178,14 @@ Three rules:
    enrichment *presence* — the right opt-in/opt-out lever is
    `client.json#settings.skip` / `.include`, applied outside the
    generator.
-2. **`enrichments` is already Valibot-parsed.** Both the OAS and GQL
-   factories wrap your `isSupported` to pre-parse the routed
-   enrichment payload before invoking it. So `enrichments` here is
-   typed as `EnrichmentType`, not raw input.
-3. **Other generators can probe it.** The user's `isSupported` is
-   re-exposed as a static on the projection-base class
+2. **The predicate receives no enrichments.** The args are
+   `{ context, operation, variant }` (models:
+   `{ context, refName, variant }`) — a gate that needs
+   already-authored enrichment values reads them via the projection
+   base's `toEnrichments({ operation, context, variant })`.
+3. **Other generators can probe it.** The generator's `isSupported`
+   is also declared on the projection-base config and re-exposed as
+   a static on the projection-base class
    (`MyProjection.isSupported`), so peers can ask "would *that*
    generator handle this operation?" — the foundation of the
    [operation-reference protocol](../../concepts/cross-generator-coordination.md#operation-reference-protocol).
@@ -179,10 +193,10 @@ Three rules:
 **Model entries have an optional `isSupported`, symmetric with
 operations.** The three rules above all apply, with one shape
 difference: the model predicate receives `{ context, refName,
-enrichments, variant }` (no `operation`) — resolve the schema yourself
-when the gate needs it. When omitted it defaults to `() => true`, so
-every refName is dispatched. The user's predicate is re-exposed as
-`MyProjection.isSupported` and probed by `insertModel` (peer
+variant }` (no `operation`) — resolve the schema yourself when the
+gate needs it. When omitted it defaults to `() => true`, so every
+refName is dispatched. The projection-base static
+`MyProjection.isSupported` is probed by `insertModel` (peer
 capability), exactly as the operation static is by `insertOperation`.
 
 ```ts
@@ -192,72 +206,57 @@ isSupported({ context, refName }) {
 }
 ```
 
-## The GQL `acc`-return contract
+## The GQL `acc`-return contract (removed)
 
-OAS and model `transform` callbacks may omit `return acc` without
-harm — the engine folds `undefined` into the next iteration and
-nothing depends on it.
-
-**GQL `transform` must return `acc`.** Forgetting this is one of the
-most common GQL authoring bugs:
-
-```ts
-// ❌ WRONG — downstream operations see stale acc
-transform({ context, operation, acc }) {
-  if (operation.rootKind !== 'mutation') return  // ← drops acc
-  context.insertOperation({ projection: MyGen, operation })
-}
-
-// ✅ RIGHT — acc threaded through every branch
-transform({ context, operation, acc }) {
-  if (operation.rootKind !== 'mutation') return acc
-  context.insertOperation({ projection: MyGen, operation })
-  return acc
-}
-```
-
-The asymmetry is historical, not principled — see
+Older cores threaded an accumulator (`acc`) through GQL `transform`
+calls and required every branch to `return acc`. That asymmetry is
+gone: all three factories now type `transform` as
+`({ context, <operation|refName>, variant }) => void` — there is no
+accumulator to thread and nothing to return. Historical background:
 [the-graphql-asymmetry](../../explanation/the-graphql-asymmetry.md).
-Until that's resolved, the contract holds.
 
 ## What the factory returns
 
-Each factory returns a `*Config` value with the same shape as the
+Each factory returns a `*Entry` value with the same shape as the
 config you handed in, plus:
 
 - `type: 'oasOperation' | 'gqlOperation' | 'model'` — the
   discriminator the dispatcher reads to route to the right
   per-protocol loop.
-- `isSupported` — all three factories wrap it to pre-parse enrichments;
-  on a built config it is always present (defaulted to `() => true`).
+- `isSupported` — always present on a built entry (defaulted to
+  `() => true` when omitted).
+- `supportsVariant` — always present (defaulted to `() => false`).
 
 The returned shape (from the source types):
 
 ```ts
-// OAS — operation/oas/types.ts
-type OasOperationConfig<E = undefined> = {
+// OAS — operation/oas/toOasOperationEntry.ts
+type OasOperationEntry<E = undefined> = {
   id: string
   type: 'oasOperation'
-  transform: <Acc = void>(args: TransformOasOperationArgs<Acc>) => Acc
-  toEnrichmentSchema?: () => v.GenericSchema<E>
+  transform: (args: TransformOasOperationArgs) => void
+  toEnrichmentSchema: () => v.GenericSchema<E>
   isSupported: (args: IsSupportedOasOperationArgs) => boolean
+  supportsVariant: () => boolean
   toPreviewModule?: (args: ToOasOperationPreviewModuleArgs) => PreviewModule
-  toMappingModule?: (args: ToOasOperationMappingArgs) => MappingModule
   toEnrichmentRequest?: <R extends E>(op: OasOperation) => EnrichmentRequest<R> | undefined
+  toEnrichmentDefaults?: (args: ToOasOperationEnrichmentsArgs) => E | undefined
 }
 
-// GQL — operation/gql/types.ts (identical structure, GqlOperation types)
+// GQL — operation/gql/toGqlOperationEntry.ts
+// GqlOperationEntry: identical structure, GqlOperation types
 
-// Model — dsl/model/types.ts
-type ModelConfig<E = undefined> = {
+// Model — dsl/model/toModelEntry.ts
+type ModelEntry<E = undefined> = {
   id: string
   type: 'model'
-  transform: <Acc = void>(args: TransformModelArgs<Acc>) => Acc
-  toEnrichmentSchema?: () => v.BaseSchema<E, E, v.BaseIssue<unknown>>
-  toPreviewModule?: (args: ToModelPreviewModuleArgs) => PreviewModule
-  toMappingModule?: (args: ToModelMappingArgs) => MappingModule
-  toEnrichmentRequest?: <R extends E>(refName: RefName) => EnrichmentRequest<R> | undefined
+  transform: (args: TransformModelArgs) => void
+  toEnrichmentSchema: () => v.GenericSchema<E>
   isSupported: (args: IsSupportedModelArgs) => boolean   // subject is refName, not operation
+  supportsVariant: () => boolean
+  toPreviewModule?: (args: ToModelPreviewModuleArgs) => PreviewModule
+  toEnrichmentRequest?: <R extends E>(refName: RefName) => EnrichmentRequest<R> | undefined
+  toEnrichmentDefaults?: (args: ToModelEnrichmentsArgs) => E | undefined
 }
 ```
 
@@ -284,11 +283,14 @@ const curlEntry = toOasOperationEntry<EnrichmentSchema>({
     context.insertOperation({ projection: CurlCmd, operation })
   },
 
-  toPreviewModule: ({ operation, enrichments }) => ({
-    name: CurlCmd.toIdentifier({ operation, enrichments }).name,
-    exportPath: CurlCmd.toExportPath({ operation, enrichments }),
-    group: 'curl'
-  })
+  toPreviewModule: ({ context, operation, variant }) => {
+    const enrichments = CurlCmd.toEnrichments({ operation, context, variant })
+
+    return {
+      name: CurlCmd.toIdentifierName({ operation, enrichments, variant }),
+      exportPath: CurlCmd.toExportPath({ operation, enrichments, variant })
+    }
+  }
 })
 
 export default curlEntry
@@ -312,10 +314,9 @@ const gqlMutationEntry = toGqlOperationEntry<EnrichmentSchema>({
       synthesizeArgsObject(operation) !== undefined
   },
 
-  transform({ context, operation, acc }) {
-    if (operation.rootKind !== 'mutation') return acc
+  transform({ context, operation }) {
+    if (operation.rootKind !== 'mutation') return
     context.insertOperation({ projection: GqlMutation, operation })
-    return acc  // ← required for GQL; threading acc downstream
   }
 })
 
@@ -367,8 +368,9 @@ export const toTypescriptEntry = (options: TypescriptEntryOptions = {}) => {
   if (options.scalars !== undefined) {
     setCustomScalars(options.scalars, { replace: options.replaceScalars })
   }
-  return toModelEntry({
+  return toModelEntry<EnrichmentSchema>({
     id: denoJson.name,
+    toEnrichmentSchema,
     transform({ context, refName }) {
       context.insertModel(TsProjection, refName)
     }
@@ -394,18 +396,20 @@ are two different factory calls with overlapping config:
 | `transform` | yes | — |
 | `isSupported` | yes (all three) | yes (all three) |
 | `toEnrichmentSchema` | yes | yes (must match) |
-| `toIdentifier` | — | yes |
+| `toIdentifierName` | — | yes |
+| `toIdentifierType` | — | yes |
 | `toExportPath` | — | yes |
 | `toPreviewModule` | yes | — |
-| `toMappingModule` | yes | — |
 | `toEnrichmentRequest` | yes | — |
+| `toEnrichmentDefaults` | yes (typically forwards the base's static) | yes (model and OAS) |
+| `supportsVariant` | yes | — |
 
 The two factories don't share code. Both need the `id` and
 `toEnrichmentSchema`, so the convention is to declare them once at
 the package level (in `deno.json` and `src/enrichments.ts`) and
-re-use them. If they drift, the projection-base's enrichment parsing
-won't align with the entry's `isSupported` enrichment parsing — a
-silent bug.
+re-use them. If they drift, the projection base's `toEnrichments`
+parsing won't align with the enrichment block the entry's `id`
+routes to — a silent bug.
 
 See [projection-bases](projection-bases.md).
 
@@ -440,28 +444,28 @@ under `client.json#settings.enrichments[id]`. Both must match for
 enrichment routing to work end-to-end. Most generators import
 `denoJson.name` in both places.
 
-### Why does `toOasOperationEntry` wrap `isSupported` to pre-parse enrichments, but `transform` doesn't get parsed enrichments?
+### How do `isSupported` and `transform` read enrichments?
 
-`isSupported` is a fast filter — the engine wants the parsed
-enrichments available as an argument so the predicate doesn't have
-to do its own Valibot parse. `transform` may need to read multiple
-fields, dispatch to sub-Projections, or branch on raw input; it
-gets the unparsed enrichments via `context.settings.enrichments[id]`
-and either ignores them or parses on demand. The projection
-constructor receives parsed enrichments on `this.settings.enrichments`
-when its Projection is constructed by the Driver.
+Neither receives an enrichment argument — both get
+`{ context, <operation|refName>, variant }`. Code that needs the
+parsed `{ subject, generator, stack }` umbrella calls the projection
+base's static
+`MyProjection.toEnrichments({ operation, context, variant })`
+(Valibot-parsed against `toEnrichmentSchema`). The Projection
+constructor receives the parsed umbrella on
+`this.settings.enrichments` when the Driver constructs it.
 
 ### What happens when `transform` throws?
 
-The dispatcher catches it
-(`GenerateContext.ts:428-432`), logs to `logger.error`, and marks
-the item `'error'` in the manifest. Siblings continue. Throws never
+The dispatcher catches it, logs to `logger.error`, and marks the
+item `'error'` in the manifest. Siblings continue. Throws never
 propagate out of the generator's pass.
 
 ### Can `transform` be async?
 
-No. The dispatcher's `reduce` is synchronous. Any async work must
-happen pre-Generate (typically at config time, or via the
+No. `transform` is typed `(...) => void` and the dispatcher invokes
+it synchronously (nothing is awaited). Any async work must happen
+pre-Generate (typically at config time, or via the
 enrichment-request system).
 
 ### Does `toEnrichmentRequest` actually fire?

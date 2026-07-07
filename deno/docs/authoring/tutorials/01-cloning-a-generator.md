@@ -55,7 +55,7 @@ Typical model-generator layout:
 ├── mod.ts                      # exports the Entry (`zodEntry`)
 └── src/
     ├── mod.ts                  # the Entry function
-    ├── base.ts                 # toIdentifier + toExportPath
+    ├── base.ts                 # toIdentifierName/toIdentifierType + toExportPath
     ├── ZodProjection.ts        # the main Projection class
     ├── Zod*.ts                 # per-OasSchema-variant classes
     ├── enrichments.ts          # Valibot schema (often empty for gen-zod)
@@ -71,8 +71,8 @@ Open `src/base.ts`. Find `toExportPath` — it'll look something
 like:
 
 ```ts
-toExportPath({ refName, enrichments }): string {
-  const { name } = this.toIdentifier({ refName, enrichments })
+toExportPath({ refName, enrichments, variant }): string {
+  const name = this.toIdentifierName({ refName, enrichments, variant })
   return join('@', 'types', `${decapitalize(name)}.generated.ts`)
 }
 ```

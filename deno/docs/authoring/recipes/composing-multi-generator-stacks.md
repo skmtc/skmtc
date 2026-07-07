@@ -356,7 +356,8 @@ export const schemaToField = ({ isRequired, schema, ... }) => {
 }
 ```
 
-Each branch returns a Snippet (extends `SnippetBase`) whose
+Each branch returns a registering Snippet (extends `TsSnippet`
+from `@skmtc/lang-typescript`) whose
 constructor registers its own consumer-side component import
 (e.g., `StringInput` registers `import { StringField } from
 '@/components/fields/string-field'`) and whose `toString()`
@@ -433,15 +434,16 @@ exports: `import { TsProjection } from '@skmtc/gen-typescript'`.
 
 Three options:
 
-- `toOasOperationProjectionBase` — one artifact per
+- `toTsOasOperationProjectionBase` — one artifact per
   `(path, method)`. The form and table both use this.
-- `toModelProjectionBase` — one artifact per schema. Used by
+- `toTsModelProjectionBase` — one artifact per schema. Used by
   `gen-typescript`, `gen-zod`, etc.
-- `toGqlOperationProjectionBase` — one artifact per root field.
+- `toTsGqlOperationProjectionBase` — one artifact per root field.
   Used by GraphQL-side generators.
 
-Your `base.ts` declares `id`, `toIdentifier`, `toExportPath`,
-`toEnrichmentSchema` and exports the resulting base class.
+Your `base.ts` declares `id`, `toIdentifierName`,
+`toIdentifierType`, `toExportPath`, `toEnrichmentSchema` and
+exports the resulting base class.
 
 ### 3. Author the Projection class
 

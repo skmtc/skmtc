@@ -33,7 +33,7 @@ Note: `operation`, not `model`. The factory used internally is
 `toOasOperationEntry`. See [`skmtc create` reference](../../reference/cli/create.md).
 
 The scaffold writes three files in `src/`: `mod.ts` (the Entry),
-`base.ts` (the `toOasOperationProjectionBase({...})` factory
+`base.ts` (the `toTsOasOperationProjectionBase({...})` factory
 call), and `CurlCmd.ts` (the Projection class). The class file
 matches `<MainModule>.ts` — no `Projection` suffix on operation
 scaffolds (model scaffolds add the suffix).
@@ -76,24 +76,28 @@ The flag is also available as a static on the projection-base
 class (`CurlCmdBase.isSupported`), so other generators can probe
 it through the operation-reference protocol.
 
-## Step 3: Implement `toIdentifier` and `toExportPath` in `base.ts`
+## Step 3: Implement `toIdentifierName`, `toIdentifierType`, and `toExportPath` in `base.ts`
 
-`base.ts` calls `toOasOperationProjectionBase({...})` and exports
-the resulting class. The pure naming functions are config fields
-on that call — not free-standing exports:
+`base.ts` calls `toTsOasOperationProjectionBase({...})` (the
+TypeScript projection-base veneer from `@skmtc/lang-typescript`)
+and exports the resulting class. The pure naming functions are
+config fields on that call — not free-standing exports:
 
 ```ts
 // src/base.ts
-import { Identifier, toEndpointName, toOasOperationProjectionBase } from '@skmtc/core'
+import { toEndpointName } from '@skmtc/core'
+import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import type { TsIdentifierType } from '@skmtc/lang-typescript'
 import { join } from '@std/path/join'
 
-export const CurlCmdBase = toOasOperationProjectionBase({
+export const CurlCmdBase = toTsOasOperationProjectionBase({
   id: '@local/curl-cmd',
 
-  toIdentifier({ operation }): Identifier {
-    const name = `${toEndpointName(operation)}Curl`
-    return createVariable(name)
+  toIdentifierName({ operation }): string {
+    return `${toEndpointName(operation)}Curl`
   },
+
+  toIdentifierType: (): TsIdentifierType => ({ type: 'variable' }),
 
   toExportPath({ operation }): string {
     const tag = operation.tags?.[0] ?? 'misc'
@@ -257,9 +261,9 @@ have:
    pushing sub-parts into Snippet classes.
 
 The model-generator pattern from [tutorial 02](02-authoring-a-model-generator.md)
-still applies underneath — `toIdentifier` and `toExportPath` are
-still pure, the cache key is still `(name, exportPath)`, the
-register/insertion APIs are the same.
+still applies underneath — `toIdentifierName`, `toIdentifierType`,
+and `toExportPath` are still pure, the cache key is still
+`(name, exportPath)`, the register/insertion APIs are the same.
 
 ## Next steps
 

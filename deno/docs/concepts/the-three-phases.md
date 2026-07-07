@@ -87,7 +87,7 @@ protocol-specific parse always happens worker-side.)
 
 ### Mechanism
 
-The walk is recursive descent. `core/oas/document/toDocumentFieldsV3.ts`
+The walk is recursive descent. `core/parse/v3-{0,1}/document/toDocumentFieldsV3.ts`
 destructures the OAS document and traces each top-level field (`info`, `paths`,
 `components`, …) into a child parser. Each child parser does the same for its
 sub-fields. The accumulated location is carried in a `StackTrail`:
@@ -114,7 +114,7 @@ run.
 wrapped:
 
 ```ts
-// core/oas/schema/toSchemasV3.ts
+// core/parse/v3-{0,1}/schema/toSchemasV3.ts
 for (const [key, schema] of entries) {
   const value = tryParseAt({
     stackTrail,
@@ -170,7 +170,7 @@ fact that `resolve()` on a now-missing ref will throw at generate time, which
 
 ### Type-inference fallbacks
 
-`toSchemaV3` (`core/oas/schema/toSchemasV3.ts:75-252`) dispatches on
+`toSchemaV3` (`core/parse/v3-{0,1}/schema/toSchemasV3.ts`) dispatches on
 `schema.type`. But OAS documents in the wild often omit `type` for object-shaped
 schemas. Rather than failing, SKMTC infers:
 
@@ -192,12 +192,16 @@ this without a two-pass scheme by giving each `OasRef` a live reference to the
 in-progress document:
 
 ```ts
-// core/oas/ref/toRefV31.ts
-context.registerRef(stackTrail.clone(), $ref);
-return new OasRef({ refType, $ref }, context.parsedDocument);
+// core/parse/v3-{0,1}/ref/toRefV31.ts
+context.registerRef(stackTrail.clone(), $ref)
+
+return context.withStackTrail(stackTrail, () =>
+  new OasRef({ refType, $ref, nullable }, context)
+)
 ```
 
-`context.parsedDocument` returns a `SkmtcParsedDocument` wrapping the _same
+The `OasRef` constructor stores `context.parsedDocument` — a
+`SkmtcParsedDocument` wrapping the _same
 mutable_ `OasDocument` instance that the rest of the parse is filling in. The
 `OasRef`'s `.resolve()` looks up its target at call time. Resolution succeeds as
 long as the target has been populated by the time anyone resolves — which is
@@ -225,7 +229,7 @@ an in-memory map of files-to-render.
 **Input:** `SkmtcParsedDocument`, `ClientSettings`, `toGeneratorConfigMap()`
 (provides the registered generators).
 
-**Output:** `{ files: Map<path, File | JsonFile>, previews, mappings }`.
+**Output:** `{ files: Map<string, FileBase>, previews, mappings }`.
 
 **Where it runs:** Inside the Worker.
 
@@ -267,8 +271,8 @@ When `transform` calls `context.insertOperation(TanstackQuery, operation)`:
    (`core/dsl/operation/oas/OasOperationDriver.ts`).
 2. Driver computes
    `settings = context.toOperationContentSettings({ projection, operation })`,
-   which calls the Projection's static `toIdentifier`, `toExportPath`, and
-   `toEnrichments`.
+   which calls the Projection's static `toIdentifierName`, `toIdentifierType`,
+   `toExportPath`, and `toEnrichments`.
 3. Driver looks up
    `context.findDefinition({ name: settings.identifier.name, exportPath: settings.exportPath })`.
 4. **Cache hit + `affirmDefinition` passes:** Driver returns the cached
@@ -291,8 +295,8 @@ When `transform` calls `context.insertOperation(TanstackQuery, operation)`:
 This is the single most important property of the Generate phase. Two facts
 combine to make it work:
 
-1. `toIdentifier` and `toExportPath` are _pure functions_ of
-   `(operation, enrichments)`. Same inputs → same outputs.
+1. `toIdentifierName` and `toExportPath` are _pure functions_ of
+   `(operation, enrichments, variant)`. Same inputs → same outputs.
 2. The cache key is `(identifier.name, exportPath)`.
 
 So whichever generator's `transform` runs first for a given
@@ -306,13 +310,15 @@ property, not a feature you have to maintain.
 
 ### Output structure
 
-`context.#files: Map<string, File | JsonFile>`. Each `File` contains:
+`context.#files: Map<string, FileBase>`. The concrete code file class comes
+from the language package (`TsFile` in `@skmtc/lang-typescript`); each one
+contains:
 
-- `imports: Map<module, Set<importName>>` — populated by
-  `register({ imports })`. The `Set` is what dedupes.
-- `reExports: Map<module, { [entityType]: Set<name> }>` — populated by
+- `imports: Map<module, TsImport>` — populated by
+  `register({ imports })`. The per-module merge is what dedupes.
+- `reExports: Map<module, TsReExport>` — populated by
   `register({ reExports })`.
-- `definitions: Map<name, Definition>` — populated by
+- `definitions: Map<declarationKey, TsDefinition>` — populated by
   `register({ definitions })`. First-write-wins.
 
 The `JsonFile` variant is used when the path ends in `.json`; instead of
@@ -326,7 +332,7 @@ map is what's handed to Render.
 **Purpose:** Serialize the files map to a `Record<path, content>` artifacts
 payload.
 
-**Input:** `Map<string, File | JsonFile>` from Generate.
+**Input:** `Map<string, FileBase>` from Generate.
 
 **Output:**
 `{ artifacts: Record<path, string>, files: Record<path, metadata> }`.
@@ -350,17 +356,20 @@ const fileObjects: FileObject[] = fileEntries.map(([destinationPath, file]) => {
 });
 ```
 
-`File.toString()` (`core/dsl/File.ts:181`) joins three sections:
+Rendering a code file is language-specific: core declares the abstract
+`FileBase`, and the language's file class owns `toString()`.
+`TsFile.toString()` (`lang-typescript/src/TsFile.ts:142-179`) joins three
+sections:
 
 ```ts
-return [reExports, imports, definitions]
-  .filter((section) => Boolean(section.length))
-  .map((section) => section.join("\n"))
-  .join("\n\n");
+const body = [reExports, imports, definitions.map(definition => definition.toString())]
+  .filter(section => Boolean(section.length))
+  .map(section => section.join('\n'))
+  .join('\n\n')
 ```
 
-That's the entire transformation. Imports get assembled from the
-`Map<module, Set<name>>`. Definitions get stringified via their own `toString()`
+That's the entire transformation. Imports get assembled from the per-module
+import map. Definitions get stringified via their own `toString()`
 (which produces `export const X = VALUE;` via the `Definition` wrapper). The
 sections are joined with blank lines. No formatting, no analysis, no
 transformation.

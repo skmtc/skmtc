@@ -37,7 +37,7 @@ An empty stdin fails with a recipe error (exit 2).
 
 ### `--origin <url>`
 
-Hub origin (base URL) to validate against. Defaults to `$SKMTC_ORIGIN`,
+Hub origin (base URL) to validate against. Defaults to `$SKMTC_API_ORIGIN`,
 then `https://api.skmtc.dev`. The URL is stored alongside the token
 as `host` — `publish` / `push` later use it as the default origin
 whenever the token comes from the stored file, so a token minted
@@ -79,7 +79,7 @@ through one helper with this precedence:
 3. `~/.skmtc/auth.json` (this command's output)
 
 When the token resolves from the stored file, the file's `host` also
-becomes the default origin (explicit `--origin` / `$SKMTC_ORIGIN`
+becomes the default origin (explicit `--origin` / `$SKMTC_API_ORIGIN`
 still win).
 
 ## Exit codes

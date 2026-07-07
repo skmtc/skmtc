@@ -23,7 +23,7 @@ project first".
 ## Synopsis
 
 ```
-skmtc push <project> [--project <@account/slug>] [--origin <url>] [--token <pat>] [--base-files] [--force] [--json] [--no-input]
+skmtc push <project> [--project <@account/slug>] [--origin <url>] [--token <pat>] [--base-files | --base-files-only] [--force] [--json] [--no-input]
 ```
 
 ## Arguments
@@ -57,7 +57,7 @@ you; the hub authorizes the write against the **destination** account
 
 ### `--origin <url>`
 
-Hub origin (base URL). Defaults to `$SKMTC_ORIGIN`; then — only when
+Hub origin (base URL). Defaults to `$SKMTC_API_ORIGIN`; then — only when
 the token came from the stored `skmtc login` file — the `host` recorded
 there; then `https://api.skmtc.dev`.
 
@@ -72,6 +72,12 @@ gitignore-style methodology as `publish` (built-in defaults + the app root's
 `.skmtcignore`), always excluding `.skmtc/` (the stack, published separately)
 and the **manifest-recorded generated files** (regenerated in the preview).
 Curate what's included with `.skmtcignore`.
+
+### `--base-files-only`
+
+Push **only** the base files; leave the hub project's `client.json` config
+untouched. Mutually exclusive with overwriting config. Same collection rules
+as `--base-files`.
 
 ### `--force`
 
@@ -177,7 +183,7 @@ Pushed "my-api" → acme-org/petstore-client
 | Variable | Purpose | Equivalent flag |
 |---|---|---|
 | `SKMTC_HUB_TOKEN` | Default PAT | `--token` |
-| `SKMTC_ORIGIN` | Default hub origin (base URL) | `--origin` |
+| `SKMTC_API_ORIGIN` | Default hub origin (base URL) | `--origin` |
 
 ## Exit codes
 

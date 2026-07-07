@@ -9,7 +9,7 @@ the manifest.
 ## Synopsis
 
 ```
-skmtc generate <project> [schema] [--watch] [--typecheck] [--tsconfig <path>] [--tsc-cmd <cmd>] [--json] [--no-input]
+skmtc generate <project> [schema] [--watch] [--typecheck] [--tsconfig <path>] [--tsc-cmd <cmd>] [--anchors | --no-anchors] [--debug [--auto]] [--json] [--no-input]
 ```
 
 ## Arguments
@@ -65,6 +65,24 @@ projects using pnpm/bun:
 skmtc generate my-api --typecheck --tsc-cmd "pnpm exec tsc"
 skmtc generate my-api --typecheck --tsc-cmd "bunx tsc"
 ```
+
+### `--anchors` / `--no-anchors`
+
+Force gen-maps (attribution) output on or off, overriding
+`client.json#settings.anchors.enabled`. When on, the run writes
+sidecars plus a generation map under `.skmtc/<project>/.maps/`.
+
+### `--debug`
+
+Run generation under the V8 inspector in source mode (not the
+bundle), so a debugger can pause on breakpoints in generator code
+and inspect the live files map at each stop. Pairs with the SKMTC
+Debug VS Code extension. Routes to a separate debug code path.
+
+### `--auto`
+
+With `--debug`, run generation immediately instead of waiting for a
+debugger to attach.
 
 ### `--json`
 

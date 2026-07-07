@@ -50,7 +50,8 @@ Projection's constructor body.
 
 The two generators export Projections with the **same shape**:
 
-- A `static toIdentifier` method returning an `Identifier`
+- A `static toIdentifierName` method returning the identifier
+  name string
 - A `static toExportPath` method returning a path
 - A constructor accepting `{ context, operation, settings }`
 - A `toString()` returning the generated value
@@ -59,7 +60,7 @@ For stock peers in the same family (the two tanstack-query
 variants are designed as siblings), compatibility is guaranteed.
 For unrelated peers, audit the shape before swapping.
 
-If the peer's `toIdentifier` produces different names (e.g.,
+If the peer's `toIdentifierName` produces different names (e.g.,
 `useCreateUser` vs `useUserCreateMutation`), the import in your
 output will follow — usually fine, occasionally surprising.
 
@@ -94,7 +95,7 @@ of the Supabase client.
 - **Compile error: "Cannot find module ..."** — Either the peer
   isn't installed, or you're importing from a clone path that
   doesn't exist. Run `skmtc list <project>` to confirm the peer.
-- **Different identifier shape** — If the peer's `toIdentifier`
+- **Different identifier shape** — If the peer's `toIdentifierName`
   produces a different name shape, your output references the
   new name. Consumer code may break. Audit and update.
 - **Both peers produce competing output** — If you have both

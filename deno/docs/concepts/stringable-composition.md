@@ -119,8 +119,11 @@ generator author works with most often, grouped by role.
 
 `SnippetBase` is the abstract root for **Projections** (named,
 file-scope artifacts wrapped in `Definition`) and **Snippets**
-(anonymous, embedded fragments). Both inherit `register()`; both
-implement their own `toString()` to define how they render.
+(anonymous, embedded fragments). Both implement their own
+`toString()` to define how they render. `register()` is not on
+`SnippetBase` — it lives on each language package's snippet base
+(`TsSnippet` from `@skmtc/lang-typescript`), which both layers are
+built on.
 
 `TsDefinition` (from `@skmtc/lang-typescript`) is the file-scope
 wrapper that produces `export const ... = ...;` or
@@ -138,7 +141,7 @@ doesn't have a structured DSL representation
 |---|---|
 | `Identifier` | Neutral naming data: a name + opaque per-language `kind`. `toString()` returns the name. |
 
-`Identifier` (`core/dsl/Identifier.ts`) is created via the language
+`Identifier` (`core/dsl/IdentifierBase.ts`) is created via the language
 package's factory functions: `createVariable(name)` or
 `createType(name)` from `@skmtc/lang-typescript`. The `kind` they
 write (`'variable'` / `'type'`) travels with the identifier and is
@@ -196,16 +199,20 @@ empty Lists. Use it instead of falsy checks (`!v`) which treat
 
 ### The Snippet roster
 
-Snippets are anonymous classes that extend `SnippetBase` and
-implement `toString()`. Stock generators ship many of them —
-field renderers (`StringInput`, `SelectInput`, `DatePickerInput`),
-parameter helpers (`PathParams`, `ReactRouterPathParams`,
-`FunctionParameter`, `toPathTemplate`), and per-format helpers.
+Snippets are anonymous classes that extend the language's snippet
+base — `TsSnippet` from `@skmtc/lang-typescript`, which carries
+`register` — and implement `toString()`. Stock generators ship
+many of them — field renderers (`StringInput`, `SelectInput`,
+`DatePickerInput`), parameter helpers (`PathParams`,
+`ReactRouterPathParams`, `FunctionParameter`, `toPathTemplate`),
+and per-format helpers.
 
 A Snippet looks like:
 
 ```ts
-export class StringInput extends SnippetBase {
+import { TsSnippet } from '@skmtc/lang-typescript'
+
+export class StringInput extends TsSnippet {
   #fieldName: string
 
   constructor({ context, destinationPath, fieldName }: Args) {
@@ -303,7 +310,7 @@ Why the split:
 
 So the rule of thumb is: **anything inside the file's body
 composes through template literals; anything at the file header
-goes through `context.register({ imports })`.**
+goes through `register({ imports })`.**
 
 This is why a Snippet's constructor typically calls `register`
 for its dependencies — registering imports is a side effect that
@@ -316,7 +323,7 @@ A simplified `ShadcnForm` snippet that composes Inputs into a
 `form.handleSubmit` block:
 
 ```ts
-class ShadcnForm extends SnippetBase {
+class ShadcnForm extends TsSnippet {
   #fields: SnippetBase[]
   #submitFn: Identifier
 

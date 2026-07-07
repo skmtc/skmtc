@@ -54,7 +54,7 @@ hub authorizes the read against the **source** project (`read:catalog`;
 
 ### `--origin <url>`
 
-Hub origin (base URL). Defaults to `$SKMTC_ORIGIN`; then — only when the
+Hub origin (base URL). Defaults to `$SKMTC_API_ORIGIN`; then — only when the
 token came from the stored `skmtc login` file — the `host` recorded there;
 then `https://api.skmtc.dev`.
 
@@ -186,7 +186,7 @@ An in-sync pull prints `Already up to date — "my-api" matches acme-org/petstor
 | Variable | Purpose | Equivalent flag |
 |---|---|---|
 | `SKMTC_HUB_TOKEN` | Default PAT | `--token` |
-| `SKMTC_ORIGIN` | Default hub origin (base URL) | `--origin` |
+| `SKMTC_API_ORIGIN` | Default hub origin (base URL) | `--origin` |
 
 ## Exit codes
 

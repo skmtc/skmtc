@@ -44,16 +44,17 @@ my-monorepo/
 ### Initialize multiple projects
 
 ```bash
-skmtc init customer-api
-skmtc init admin-api
+skmtc init customer-api packages/customer-api/src/generated
+skmtc init admin-api packages/admin-api/src/generated
 ```
 
 Each gets its own `.skmtc/<project>/` directory with its own
 `deno.json` (generator imports) and `client.json` (settings).
 
-### Configure separate basePaths
+### Configure each project's source
 
-Each project's `client.json` points at its own output directory:
+`init` already wrote each project's `basePath`. Add the `source` so each
+`client.json` reads:
 
 ```jsonc
 // .skmtc/customer-api/.settings/client.json

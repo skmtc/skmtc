@@ -24,11 +24,11 @@ the wire-level Valibot schema, see
 ## The one-line definition
 
 A `ManifestContent` is a discriminated record of `{ files, results,
-previews, mappings, parseIssues, deploymentId, traceId, spanId,
+previews, parseIssues, deploymentId, traceId, spanId,
 startAt, endAt }`. Each section is populated by a different point
 in the pipeline: parsers contribute to `parseIssues`,
 `GenerateContext.toArtifacts` contributes to `results`, generators
-contribute to `previews` and `mappings`, the host contributes to
+contribute to `previews`, the host contributes to
 `files`. The
 manifest is what lands at
 `.skmtc/<project>/.settings/manifest.json` after every
@@ -45,7 +45,6 @@ type ManifestContent = {
   region?: string              // present only for hosted Sandbox API runs
   files: Record<string, ManifestEntry>          // every file written
   previews: Record<string, Preview>             // tooling-facing UI metadata
-  mappings?: Record<string, Mapping>            // tooling-facing data mappings
   results: ResultsItem                          // nested tree of per-item outcomes
   parseIssues: ParseIssue[]                     // all parse-time diagnostics
   startAt: number                               // unix ms
@@ -148,26 +147,28 @@ Two mental models worth keeping clear:
   `'notSupported'` for it. This is the expected shape, not a
   failure.
 
-## `previews` and `mappings` — for tooling
+## `previews` — for tooling
 
 ```ts
 // core/types/Preview.ts
 type Preview = { module: PreviewModule; source: Source }
-type Mapping = { module: MappingModule; source: Source }
 
 type PreviewModule = { name: string; exportPath: string }
-type MappingModule = { name: string; exportPath: string; schema: string }
 
 type Source =
-  | { type: 'oasOperation'; generatorId: string; operationPath: string; operationMethod: Method }
-  | { type: 'gqlOperation'; generatorId: string; rootKind: GqlRootKind; fieldName: string }
-  | { type: 'model'; generatorId: string; refName: string }
+  | { type: 'oasOperation'; generatorId: string; operationPath: string; operationMethod: Method; variant: string }
+  | { type: 'webhook'; generatorId: string; webhookName: string; webhookMethod: Method; variant: string }
+  | { type: 'gqlOperation'; generatorId: string; rootKind: GqlRootKind; fieldName: string; variant: string }
+  | { type: 'model'; generatorId: string; refName: string; variant: string }
 ```
 
-Both maps are populated by `toArtifacts` after each per-item
+Every arm carries the `variant` the artifact was emitted for —
+`'main'` for variants-unaware generators, the consumer-named
+variant key otherwise (see [variants.md](variants.md)).
+
+The map is populated by `toArtifacts` after each per-item
 `transform` call. `toArtifacts` invokes the generator's optional
-`toPreviewModule({ context, operation })` and
-`toMappingModule({ context, operation })` (or the model/gql
+`toPreviewModule({ context, operation })` (or the model/gql
 variants) and pairs the returned module with a source descriptor
 identifying which `(generator, item)` produced it.
 
@@ -219,7 +220,7 @@ is achieved by logging an error-level parse issue.
 2. Parse phase runs                      → context.issues fills with
                                             ParseIssue entries
 3. Generate phase runs                   → toArtifacts captures results
-                                            and previews/mappings
+                                            and previews
 4. Worker returns                        → host receives files +
                                             manifest scaffolding
 5. Host writes artifacts                 → host fills `files` map
@@ -261,7 +262,7 @@ jq '.results | .. | objects | to_entries[] | select(.value == "error")' \
 
 ### IDE plugins / SKMTC UI
 
-The UI reads `previews` and `mappings` to render "this form was
+The UI reads `previews` to render "this form was
 generated from `POST /contacts`." Each preview's `source` field
 tells it the operation; each module's `exportPath` tells it where
 the generated artifact lives.
@@ -321,10 +322,10 @@ sorting by either makes sense.
 Only set for runs that went through the hosted Sandbox API. The
 local-worker path leaves it `undefined`.
 
-### Are `previews` and `mappings` required?
+### Is `previews` required?
 
-No. A generator without `toPreviewModule` / `toMappingModule`
-contributes nothing to those maps. The tooling layer just doesn't
+No. A generator without `toPreviewModule`
+contributes nothing to the map. The tooling layer just doesn't
 get UI metadata for that generator's output. File generation and
 exit codes are unaffected.
 

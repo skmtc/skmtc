@@ -189,7 +189,7 @@ the consumer's `File`, and returns the producer's name via `.toName()`.
 All four happen synchronously inside the Driver before the call
 returns.
 
-The contrast is the "pure" name lookup, `Producer.toIdentifier(op).name`.
+The contrast is the "pure" name lookup, `Producer.toIdentifierName(...)`.
 It exists and returns the same string. SKMTC ships it because some
 callers — for example, static methods on a *consumer's* own Projection
 class, where `this` doesn't exist — have no constructor to
@@ -202,7 +202,7 @@ time (`Cannot access 'X' before initialization`, from arbitrary
 serialization order within a single File).
 
 Mechanical details of each failure mode: see
-[cross-generator-coordination § Why call `insertOperation` instead of `Producer.toIdentifier(op).name`?](../concepts/cross-generator-coordination.md#why-call-insertoperation-instead-of-producertoidentifieropname).
+[cross-generator-coordination § Why call `insertOperation` instead of `Producer.toIdentifier(op).name`?](../concepts/cross-generator-coordination.md#why-call-insertoperation-instead-of-producertoidentifiernameop).
 
 #### Consequences
 
@@ -215,7 +215,7 @@ Mechanical details of each failure mode: see
   Projection constructor on miss, registers the Definition, and
   registers the import.
 - Skipping the bundled call has no compile-time signal — the types
-  permit `Producer.toIdentifier(op).name` everywhere it's syntactically
+  permit `Producer.toIdentifierName(...)` everywhere it's syntactically
   valid. Discipline has to be taught. The failure mode surfaces only
   at consumer-app build time, or — for the order-of-initialization
   case — at consumer-app runtime.

@@ -12,26 +12,27 @@
 
 ```ts
 class RenderContext {
-  files: Map<string, File | JsonFile>
+  files: Map<string, FileBase>
   previews: Record<string, Preview>
-  mappings: Record<string, Mapping>
   basePath: string | undefined
   logger: Logger
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
+  attribution: AttributionState | undefined
 
   constructor(args: {
-    files: Map<string, File | JsonFile>
+    files: Map<string, FileBase>
     previews: Record<string, Preview>
-    mappings: Record<string, Mapping>
     basePath: string | undefined
     logger: Logger
     captureCurrentResult: ...
+    attribution?: AttributionState     // gen-maps emission config
+    captureChannel?: CaptureChannel    // shared with GenerateContext
   })
 
-  render(stackTrail: StackTrail): Omit<RenderResult, 'results'>
+  render(stackTrail: StackTrail): RenderPhaseResult
   collate(stackTrail: StackTrail): FilesRenderResult
-  getFile(filePath: string): File | JsonFile
-  pick(args: PickArgs): Definition | undefined
+  getFile(filePath: string): FileBase
+  pick(args: PickArgs): DefinitionBase | undefined
 }
 ```
 
@@ -65,16 +66,17 @@ by generators.
 
 ## Properties
 
-### `files: Map<string, File | JsonFile>`
+### `files: Map<string, FileBase>`
 
 The file map produced by GenerateContext. Keys are unresolved
-destination paths (before `basePath` application). Values are
-`File` or `JsonFile` instances depending on extension.
+destination paths (before `basePath` application). Values are the
+concrete `FileBase` subclasses — the language code files (`TsFile`),
+`JsonFile`, `MarkdownFile`.
 
-### `previews: Record<string, Preview>`, `mappings: Record<string, Mapping>`
+### `previews: Record<string, Preview>`
 
-Per-Projection preview and mapping metadata, forwarded from the
-Generate phase. Render passes these through unchanged.
+Per-Projection preview metadata, forwarded from the Generate phase.
+Render passes it through unchanged.
 
 ### `basePath: string | undefined`
 
@@ -94,10 +96,10 @@ happened in Generate.
 
 ## Methods
 
-### `render(stackTrail: StackTrail): Omit<RenderResult, 'results'>`
+### `render(stackTrail: StackTrail): RenderPhaseResult`
 
 The Render-phase entry point. Calls `collate`, packages the result
-with `previews` and `mappings`. Returns:
+with `previews`. Returns:
 
 ```ts
 type RenderResult = {
@@ -108,11 +110,18 @@ type RenderResult = {
     characters: number
   }>
   previews: Record<string, Preview>
-  mappings: Record<string, Mapping>
+  results: ResultsItem
+}
+
+type RenderPhaseResult = Omit<RenderResult, 'results'> & {
+  sidecars?: Record<string, Sidecar>          // attribution runs only
+  generationMap?: GenerationMapEntry[]        // attribution runs only
 }
 ```
 
-(The omitted `results` field comes from the manifest layer above.)
+(The omitted `results` field comes from the manifest layer above.
+`sidecars` / `generationMap` appear only when the run configured
+`attribution.postPass`.)
 
 ### `collate(stackTrail: StackTrail): FilesRenderResult`
 
@@ -131,7 +140,7 @@ Each file is stringified independently. There's no cross-file
 operation in Render — by the time Render runs, every file's content
 is fully determined by `file.toString()`.
 
-### `getFile(filePath: string): File | JsonFile`
+### `getFile(filePath: string): FileBase`
 
 Look up a file by its (normalized) destination path. Throws if the
 file isn't in the map.
@@ -141,7 +150,7 @@ const file = renderContext.getFile('./src/types/User.ts')
 console.log(file.toString())  // the rendered content
 ```
 
-### `pick({ name, exportPath }: PickArgs): Definition | undefined`
+### `pick({ name, exportPath }: PickArgs): DefinitionBase | undefined`
 
 Look up a specific Definition by name within a file. Convenience
 for inspecting generated content from outside the standard flow.
@@ -226,15 +235,16 @@ No — by design. If you want to inject content, do it during
 Generate via `register({ ... })` calls. Render reads the file map
 and serializes; it doesn't accept new contributions.
 
-### How does `JsonFile` differ from `File`?
+### How does `JsonFile` differ from the code files?
 
-`JsonFile` is used for paths ending in `.json`. Its `toString()`
-returns `JSON.stringify(content, null, 2)` rather than the
+`JsonFile` is used for JSON output. Its `toString()` returns
+`JSON.stringify(content, null, 2)` rather than the
 `reExports + imports + definitions` join. Generators register JSON
 content via `registerJson` rather than `register`.
 
-`File` is the default for everything else (`.ts`, `.tsx`, `.js`,
-etc.).
+Code paths (`.ts`, `.tsx`) hold the language's concrete code file
+(`TsFile` from `@skmtc/lang-typescript`), created by the lang
+package's `register` function on first write.
 
 ## Related types
 

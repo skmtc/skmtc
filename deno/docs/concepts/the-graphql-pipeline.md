@@ -269,20 +269,21 @@ before hand-rolling an args-to-schema translator.
 ## Operation generator patterns
 
 GraphQL operation generators use the **class-based** pattern
-— a `GqlOperationProjectionBase` subclass with `toIdentifier` /
-`toExportPath` static methods, exactly like the OAS-side
-`OasOperationProjectionBase` users.
+— a subclass of the base returned by `toTsGqlOperationProjectionBase`,
+with `toIdentifierName` / `toExportPath` static methods, exactly like
+the OAS-side `toTsOasOperationProjectionBase` users.
 
 ```ts
 // gen-graphql-client/src/base.ts
 export const GraphqlClientBase = toTsGqlOperationProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
   toEnrichmentSchema,
-  toIdentifier({ operation }) {
-    return createVariable(`use${capitalize(operation.fieldName)}`)
+  toIdentifierName({ operation }) {
+    return `use${capitalize(operation.fieldName)}`
   },
-  toExportPath({ operation, enrichments }) {
-    const { name } = this.toIdentifier({ operation, enrichments })
+  toIdentifierType: () => ({ type: 'variable' }),
+  toExportPath({ operation, enrichments, variant }) {
+    const name = this.toIdentifierName({ operation, enrichments, variant })
     return join('@', 'graphql', `${name}.generated.ts`)
   }
 })
@@ -321,9 +322,9 @@ import { toTsGqlOperationProjectionBase } from '@skmtc/lang-typescript'
 
 export const MyGqlFormBase = toTsGqlOperationProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
-  toIdentifier: ({ operation }) => createVariable(
-    `${capitalize(operation.fieldName)}Form`
-  ),
+  toIdentifierName: ({ operation }) =>
+    `${capitalize(operation.fieldName)}Form`,
+  toIdentifierType: () => ({ type: 'variable' }),
   toExportPath: ({ operation }) => join('@', 'forms', `${operation.fieldName}.tsx`),
   toEnrichmentSchema,
   isSupported: () => true

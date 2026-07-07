@@ -15,7 +15,7 @@ likely don't have a referent in the code.
 | **Pipeline phases** | Parse, Generate, Render — the three phases `CoreContext` runs in order |
 | **Primitive methods on `GenerateContext`** | `register`, `insertOperation`, `insertModel`, `insertNormalizedModel`, `defineAndRegister`, `findDefinition` |
 | **DSL nouns** | `File`, `Definition`, `Identifier`, `Snippet`, `Projection`, `Inserted`, `ContentSettings`, `Stringable` |
-| **Static-method contracts on projection classes** | `toIdentifier`, `toExportPath`, `toEnrichmentSchema`, `toEnrichments`, `isSupported` |
+| **Static-method contracts on projection classes** | `toIdentifierName`, `toIdentifierType`, `toExportPath`, `toEnrichments`, `isSupported` |
 | **Driver orchestration classes** | `OasOperationDriver`, `GqlOperationDriver`, `ModelDriver` |
 
 ### Avoid: words that map to no SKMTC surface
@@ -92,8 +92,8 @@ strict-mode `generate`. The `skmtc doctor` check
 
 The `(identifier.name, exportPath)` pair used to look up a
 `Definition` in `File.definitions`. Both halves are pure
-functions of `(operation, enrichments)` via the Projection's
-static `toIdentifier` and `toExportPath`. Decides *whether* to
+functions of `(operation, enrichments, variant)` via the Projection's
+static `toIdentifierName` and `toExportPath`. Decides *whether* to
 reuse a cached Definition. Distinct from the [Generator key](#generator-key),
 which decides *that* reuse is safe. See
 [cross-generator-coordination](../concepts/cross-generator-coordination.md)
@@ -205,15 +205,18 @@ that would validate a user-authored value — the AI path doesn't
 bypass validation, it just defers the author. See
 [enrichments §AI-driven enrichments](../concepts/enrichments.md#ai-driven-enrichments--enrichmentrequest).
 
-### Entity kind (`Identifier.kind`)
+### Entity type (`TsIdentifier.type`)
 
-The opaque per-language declaration discriminant on `Identifier`.
-Each language package owns its vocabulary — TypeScript's
-(`TsEntityKind`) is `'variable'` (declares `const`, imports
-`import { X }`) vs `'type'` (declares `type`, imports
-`import { type X }` under `verbatimModuleSyntax`). The old core
-`EntityType` class is gone (F6); `toTsKeyword` in
-`@skmtc/lang-typescript` maps `kind` to the keyword. See
+The per-language declaration discriminant on a language package's
+identifier subclass — core's `IdentifierBase` carries no
+declaration-type field at all. Each language owns its vocabulary —
+TypeScript's (`TsEntityType`) is
+`'variable' | 'type' | 'class' | 'interface' | 'namespace'`:
+`'variable'` declares `const` and imports `import { X }`; `'type'`
+declares `type` and imports `import { type X }` under
+`verbatimModuleSyntax`. The old core `EntityType` class is gone
+(F6); `toTsKeyword` in `@skmtc/lang-typescript` maps `type` to the
+keyword. See
 [stringable-composition](../concepts/stringable-composition.md#identifier-and-entity-kinds).
 
 ### `exportPath`
@@ -390,22 +393,21 @@ Heavy-use composition primitive across stock generators. See
 `manifest.json` — the canonical record of every SKMTC generation
 run. Written to `.skmtc/<project>/.settings/manifest.json` after
 each `generate` and overwritten per run. Carries `files`,
-`results`, `previews`, `mappings`, `parseIssues`, and run-
+`results`, `previews`, `parseIssues`, timestamps (`startAt`,
+`endAt`), and run-
 correlation IDs (`deploymentId`, `traceId`, `spanId`). The CLI
 exit code derives from `parseIssues`. See
 [the-manifest concept](../concepts/the-manifest.md) for what each
 section is for; [manifest-format reference](manifest-format.md)
 for the Valibot schema.
 
-### Mapping (manifest)
+### Mapping (manifest) — removed
 
-A manifest entry pairing a `MappingModule`
-(`{ name, exportPath, schema }`) with a source descriptor
-(`OasOperationSource | GqlOperationSource | ModelSource`).
-Produced by a generator's optional `toMappingModule` hook;
-consumed by SKMTC UI / IDE tooling to declare input adapters or
-formatters tied to a specific schema type. See
-[the-manifest](../concepts/the-manifest.md#previews-and-mappings--for-tooling).
+Manifests no longer carry a `mappings` section, and the
+`toMappingModule` entry hook is gone from the entry factories.
+`ManifestContent` (`core/types/Manifest.ts`) has no `mappings`
+field. The tooling seam that survives is
+[Preview](#preview-manifest) / `toPreviewModule`.
 
 ### `MAX_LOOKUPS`
 

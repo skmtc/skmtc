@@ -45,7 +45,7 @@ Open the scaffolded files. The skeleton is intentionally minimal:
 ├── mod.ts
 └── src/
     ├── mod.ts                     # the Entry (toModelEntry)
-    ├── base.ts                    # toModelProjectionBase({...}) — the base factory call
+    ├── base.ts                    # toTsModelProjectionBase({...}) — the base factory call
     └── SchemaMetaProjection.ts    # the Projection class extending the base
 ```
 
@@ -57,25 +57,29 @@ Note the scaffold does **not** create `enrichments.ts`. Add it
 manually if your generator needs enrichments — see
 [how to add enrichment options](../how-to/add-enrichment-options.md).
 
-## Step 2: Implement `toIdentifier` and `toExportPath` in `base.ts`
+## Step 2: Implement `toIdentifierName`, `toIdentifierType`, and `toExportPath` in `base.ts`
 
-`base.ts` calls `toModelProjectionBase({...})` and exports the
-resulting class. The pure `toIdentifier` / `toExportPath`
-functions are *config fields* on that call — not free-standing
-exports:
+`base.ts` calls `toTsModelProjectionBase({...})` (the
+TypeScript projection-base veneer from `@skmtc/lang-typescript`)
+and exports the resulting class. The pure `toIdentifierName` /
+`toIdentifierType` / `toExportPath` functions are *config fields*
+on that call — not free-standing exports:
 
 ```ts
 // src/base.ts
-import { Identifier, toModelProjectionBase, camelCase, decapitalize } from '@skmtc/core'
+import { camelCase, decapitalize } from '@skmtc/core'
+import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
+import type { TsIdentifierType } from '@skmtc/lang-typescript'
 import { join } from '@std/path/join'
 
-export const SchemaMetaBase = toModelProjectionBase({
+export const SchemaMetaBase = toTsModelProjectionBase({
   id: '@local/schema-meta',
 
-  toIdentifier({ refName }): Identifier {
-    const name = decapitalize(camelCase(refName))
-    return createVariable(`${name}Meta`)
+  toIdentifierName({ refName }): string {
+    return `${decapitalize(camelCase(refName))}Meta`
   },
+
+  toIdentifierType: (): TsIdentifierType => ({ type: 'variable' }),
 
   toExportPath({ refName }): string {
     return join('@', 'meta', `${refName}.meta.ts`)
@@ -83,11 +87,14 @@ export const SchemaMetaBase = toModelProjectionBase({
 })
 ```
 
-`createVariable` marks this as a runtime value (not a
-type). Under `verbatimModuleSyntax: true`, this distinction is
-load-bearing — see [the Identifier reference](../../reference/api/dsl-identifier.md).
+`toIdentifierName` returns the name string. `toIdentifierType`
+declares what kind of declaration that name gets: `{ type:
+'variable' }` produces a `const` declaration (a runtime value),
+`{ type: 'type' }` a type declaration. Under
+`verbatimModuleSyntax: true`, this distinction is load-bearing —
+see [the Identifier reference](../../reference/api/dsl-identifier.md).
 
-**Both functions must be pure** — same input → same output, no
+**These functions must be pure** — same input → same output, no
 side effects. This is the load-bearing property that makes
 [cross-generator coordination](../../concepts/cross-generator-coordination.md)
 work.
@@ -95,7 +102,7 @@ work.
 ## Step 3: Implement the Projection class
 
 Open `src/SchemaMetaProjection.ts`. The class extends the base
-returned by `toModelProjectionBase` (not the abstract
+returned by `toTsModelProjectionBase` (not the abstract
 `ModelProjectionBase` directly):
 
 ```ts
@@ -247,9 +254,9 @@ You created a model generator from scratch. The structure:
 
 - **`src/mod.ts`** exports the `Entry` — `toModelEntry({ id,
   transform({ context, refName }) { context.insertModel(SchemaMetaProjection, refName) } })`
-- **`src/base.ts`** holds the `toModelProjectionBase({...})`
-  factory call. The pure `toIdentifier` / `toExportPath` are
-  config fields on that call.
+- **`src/base.ts`** holds the `toTsModelProjectionBase({...})`
+  factory call. The pure `toIdentifierName` / `toIdentifierType` /
+  `toExportPath` are config fields on that call.
 - **`src/SchemaMetaProjection.ts`** holds the Projection class
   that extends the base returned by the factory, resolves its
   schema inside the constructor, and renders via `toString()`.

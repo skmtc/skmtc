@@ -60,7 +60,7 @@ any network call) with a recipe-style error.
 
 ### `--origin <url>`
 
-Hub origin (base URL). Defaults to `$SKMTC_ORIGIN`; then — only when the
+Hub origin (base URL). Defaults to `$SKMTC_API_ORIGIN`; then — only when the
 token came from the stored `skmtc login` file — the `host` recorded
 in that file; then `https://api.skmtc.dev`. The stored-host step
 keeps token and destination coherent: a token minted against a local
@@ -213,7 +213,7 @@ All errors use the uniform `ApiError` envelope (`{ code, message, … }`):
 | Variable | Purpose | Equivalent flag |
 |---|---|---|
 | `SKMTC_HUB_TOKEN` | Default PAT | `--token` |
-| `SKMTC_ORIGIN` | Default hub origin (base URL) | `--origin` |
+| `SKMTC_API_ORIGIN` | Default hub origin (base URL) | `--origin` |
 
 CLI flags always win over env vars; env vars win over the stored
 `skmtc login` credential (so CI can override a developer login).

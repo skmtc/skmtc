@@ -12,10 +12,13 @@ so agents can consume it programmatically.
 
 ```
 skmtc <command> [args...] [--json] [--no-input]
+skmtc -v | --version
 ```
 
-The CLI is installed via Deno's `install` mechanism, then invoked as `skmtc`
-from any shell. The entry point is `skmtc/deno/cli/mod.ts`.
+Install the CLI with `curl -fsSL https://skm.tc/install | sh` (bootstraps Deno
+if needed), then invoke it as `skmtc` from any shell. The entry point is
+`skmtc/deno/cli/mod.ts`. The top-level `-v` / `--version` flag prints the CLI
+version and exits.
 
 ## Command list
 
@@ -38,6 +41,13 @@ from any shell. The entry point is `skmtc/deno/cli/mod.ts`.
 | `bundle`   | Rebuild the project's `bundle.js` (worker payload)                  | [bundle](bundle.md)     |
 | `clean`    | Delete a project's generated files + manifest, pruning emptied dirs | [clean](clean.md)       |
 | `dev`      | Watch mode for iterative generator development                      | [dev](dev.md)           |
+| `describe` | Report a project's preview metadata (supported subjects, enrichment descriptors) by running its bundle read-only | [describe](describe.md) |
+
+### Maintenance
+
+| Command            | Purpose                                                                     | Reference             |
+| ------------------ | --------------------------------------------------------------------------- | --------------------- |
+| `migrate variants` | One-shot migration of `client.json` to the variant-aware shape (idempotent) | [migrate](migrate.md) |
 
 ### Publish
 

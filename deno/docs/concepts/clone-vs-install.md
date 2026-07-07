@@ -86,7 +86,7 @@ flags — they're the places you edit when you clone.
 | Seam | Location | What you change |
 |---|---|---|
 | Export path | `gen-x/src/base.ts` → `toExportPath` | Where generated files land on disk (must match your bundler's `@` alias) |
-| Identifier naming | `gen-x/src/base.ts` → `toIdentifier` | What generated symbols are called |
+| Identifier naming | `gen-x/src/base.ts` → `toIdentifierName` | What generated symbols are called |
 | Peer dependency | `gen-x/src/<Main>.ts` top-level imports | Which other generators are pulled in (e.g., HTTP layer for forms) |
 | Consumer-side component path | `gen-x/src/fields/<X>.ts` `register` call | What the generated output imports against |
 | Capability gate | `gen-x/src/mod.ts` → `isSupported` | Which operations this generator handles |
@@ -230,11 +230,11 @@ by a value that the author *could* have made configurable but
 chose to hardcode. The hardcode is the seam: editing the hardcoded
 value (in your clone) is the customization.
 
-Example: in `gen-shadcn-form/src/base.ts:18-22`:
+Example: in `gen-shadcn-form/src/base.ts:26-30`:
 
 ```ts
-toExportPath({ operation, enrichments }): string {
-  const { name } = this.toIdentifier({ operation, enrichments })
+toExportPath({ operation, enrichments, variant }): string {
+  const name = this.toIdentifierName({ operation, enrichments, variant })
   return join('@', 'forms', `${name}.generated.tsx`)
 }
 ```

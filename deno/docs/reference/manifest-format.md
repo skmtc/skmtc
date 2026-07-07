@@ -33,8 +33,11 @@ artifacts.
 
 ## Top-level shape
 
+The type is `ManifestContent` (`core/types/Manifest.ts`, with a
+companion Valibot schema `manifestContent`):
+
 ```ts
-type Manifest = {
+type ManifestContent = {
   /** Unique identifier for this run */
   deploymentId: string
 
@@ -58,9 +61,6 @@ type Manifest = {
 
   /** Per-Projection preview metadata for UI surfaces */
   previews: Record<string, Preview>
-
-  /** Optional per-Projection mapping data */
-  mappings?: Record<string, Mapping>
 
   /** Per-(generator × item) outcome — see "results" below */
   results: ResultsItem
@@ -106,17 +106,18 @@ To get the list of files this run produced:
 jq '.files | keys' manifest.json
 ```
 
-### `previews` and `mappings`
+### `previews`
 
-Per-Projection metadata for UI surfaces (dashboard, editor previews).
-Most generators populate one preview entry per Projection (the
-identifier name, exportPath, and any preview-specific data). `mappings`
-is similar but for any project that needs to track origin
-relationships.
+Per-Projection metadata for UI surfaces (dashboard, editor
+previews). Each `Preview` pairs a `module` (`{ name, exportPath }` —
+the identifier name and export path of the previewable artifact)
+with a `source` descriptor pointing back at the operation, webhook,
+or model it was generated from. Populated only by entries that
+supply `toPreviewModule`.
 
-These fields are most useful to tooling that wraps SKMTC (the
-Sandbox API dashboard, for example). For everyday agent work, they
-can be ignored.
+This field is most useful to tooling that wraps SKMTC (the Sandbox
+API dashboard, for example). For everyday agent work, it can be
+ignored.
 
 ### `results`
 
@@ -221,26 +222,30 @@ Array of parse-time diagnostics. **Always present** in the
 manifest — an empty array means no parse issues, not "old core
 version".
 
-`ParseIssue` is a discriminated union of four shapes, keyed by
-`(protocol, level)`:
+`ParseIssue` is a discriminated union of six shapes, keyed by
+`(protocol, level)` — two protocols (`'oas'`, `'gql'`) × three
+levels (`'error'`, `'warning'`, `'debug'`):
 
 ```ts
 type ParseIssue =
-  | { protocol: 'oas'; level: 'error';   type: OasIssueType; location: string; message: string; cause: unknown }
+  | { protocol: 'oas'; level: 'error';   type: OasIssueType; location: string; message: string; cause?: unknown }
   | { protocol: 'oas'; level: 'warning'; type: OasIssueType; location: string; message: string }
-  | { protocol: 'gql'; level: 'error';   type: GqlIssueType; location: string; message: string; cause: unknown }
+  | { protocol: 'oas'; level: 'debug';   type: OasIssueType; location: string; message: string }
+  | { protocol: 'gql'; level: 'error';   type: GqlIssueType; location: string; message: string; cause?: unknown }
   | { protocol: 'gql'; level: 'warning'; type: GqlIssueType; location: string; message: string }
+  | { protocol: 'gql'; level: 'debug';   type: GqlIssueType; location: string; message: string }
 ```
 
-Note that `cause` is present **only** on `level: 'error'`
-shapes — it's truly absent on warnings, not just optional. The
-`type` field is constrained to the protocol's `OasIssueType` or
-`GqlIssueType` literal union — see
+Note that `cause` exists **only** on `level: 'error'` shapes (and
+is optional there) — warnings and debug entries never carry it.
+`debug` is informational: the parser handled the input gracefully
+and is recording what it did. The `type` field is constrained to
+the protocol's `OasIssueType` or `GqlIssueType` literal union — see
 [reference/error-codes.md](error-codes.md) for the full lists.
 
 The CLI exits with code `1` when any `parseIssues[].level ===
-'error'` is present; an array containing only warnings (or an
-empty array) exits cleanly.
+'error'` is present; an array containing only warnings and debug
+entries (or an empty array) exits cleanly.
 
 ## Diagnostic workflow against the manifest
 

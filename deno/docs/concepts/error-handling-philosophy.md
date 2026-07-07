@@ -33,7 +33,7 @@ run.
 Every per-item parser is wrapped in `tryParseAt`:
 
 ```ts
-// core/oas/schema/toSchemasV3.ts
+// core/parse/v3-{0,1}/schema/toSchemasV3.ts
 for (const [key, schema] of entries) {
   const value = tryParseAt({
     stackTrail,
@@ -114,9 +114,12 @@ they are what makes the model true rather than aspirational.
 holds a reference to `context.parsedDocument`, which wraps that same instance:
 
 ```ts
-// core/oas/ref/toRefV31.ts:26-34
-context.registerRef(stackTrail.clone(), $ref);
-return new OasRef({ refType, $ref }, context.parsedDocument);
+// core/parse/v3-{0,1}/ref/toRefV31.ts:33-37
+context.registerRef(stackTrail.clone(), $ref)
+
+return context.withStackTrail(stackTrail, () =>
+  new OasRef({ refType, $ref, nullable }, context)
+)
 ```
 
 `OasDocument.#fields` is `undefined` at this point — every getter throws

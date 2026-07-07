@@ -29,7 +29,7 @@ class Inserted<V extends GeneratedValue, EnrichmentType = undefined> {
   })
 
   toName(): string
-  toIdentifier(): Identifier
+  toIdentifier(): IdentifierBase
   toExportPath(): string
   toValue(): V
 }
@@ -58,7 +58,7 @@ site without manual annotation.
 ### `settings: ContentSettings<EnrichmentType>`
 
 The peer's content settings — the bundle of
-`{ identifier, exportPath, enrichments }` computed by the Driver
+`{ identifier, exportPath, enrichments, variant }` computed by the Driver
 from the Projection's static methods. Same instance as the one on
 the Projection class (`peerProjection.settings`).
 
@@ -84,19 +84,23 @@ const inserted = context.insertOperation({
 return `<Form onSubmit={form.handleSubmit(${inserted.toName()})} />`
 ```
 
-### `toIdentifier(): Identifier`
+### `toIdentifier(): IdentifierBase`
 
-Returns `this.settings.identifier`. The full `Identifier` object —
-useful when the consumer needs the `kind` for an import
+Returns `this.settings.identifier`. The full `IdentifierBase`
+object — useful when the consumer needs more than the name (the
+`typeName` annotation or `exported` flag, or — after narrowing to
+the language subclass — the declaration `type`) for an import
 registration:
 
 ```ts
+import { TsIdentifier, isTypeOnly } from '@skmtc/lang-typescript'
+
 const identifier = inserted.toIdentifier()
 
 this.register({
   imports: {
     [inserted.toExportPath()]: [
-      identifier.kind === 'type'
+      identifier instanceof TsIdentifier && isTypeOnly(identifier.type)
         ? { name: identifier.name, type: 'type' }
         : identifier.name
     ]

@@ -26,7 +26,7 @@ import { TsProjection } from '@skmtc/gen-typescript'
 ```
 
 You import the **class** (with its static methods like
-`toIdentifier` and `toExportPath`), not its rendered output. The
+`toIdentifierName` and `toExportPath`), not its rendered output. The
 class is what the engine uses as a cache key.
 
 If the peer is a sibling clone in your project, import via the
@@ -41,7 +41,7 @@ import { ZodProjection } from '@local/gen-zod/src/ZodProjection.ts'
 In your Projection's constructor, declare what you need:
 
 ```ts
-// TanstackQueryBase = toOasOperationProjectionBase({...}) in your base.ts
+// TanstackQueryBase = toTsOasOperationProjectionBase({...}) in your base.ts
 
 class TanstackQuery extends TanstackQueryBase {
   constructor(args) {
@@ -82,8 +82,8 @@ const zodName = this.requestZod.toName()
 // → e.g., "createUserBody"
 ```
 
-`toName()` returns the string the peer Projection's Identifier
-resolved to.
+`toName()` returns the name string the peer Projection's
+`toIdentifierName` produced.
 
 ### Reference the name in your template
 

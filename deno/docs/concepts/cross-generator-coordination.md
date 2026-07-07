@@ -54,8 +54,12 @@ map, exportPath identifies which file's map.
 Both halves of the key are computed by **static methods on the
 Projection class**:
 
-- `toIdentifier({ operation, enrichments })` → `Identifier` with a `name`
-- `toExportPath({ operation, enrichments })` → string path
+- `toIdentifierName({ operation, enrichments, variant })` → the name string
+- `toExportPath({ operation, enrichments, variant })` → string path
+
+(A third static, `toIdentifierType`, supplies the non-name parts of
+the identifier — entity type, exportedness — and runs only on cache
+miss. It is not part of the cache key.)
 
 These methods are required to be **pure functions** of their inputs.
 No `this`-side state. No environmental reads. No async.
@@ -73,14 +77,18 @@ From `gen-shadcn-form/src/base.ts`:
 export const ShadcnFormBase = toTsOasOperationProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
 
-  toIdentifier({ operation }): Identifier {
+  toEnrichmentSchema,
+
+  toIdentifierName({ operation, variant }): string {
     const verb = capitalize(toMethodVerb(operation.method))
-    const name = `${verb}${camelCase(operation.path, { upperFirst: true })}Form`
-    return createVariable(name)
+    const base = `${verb}${camelCase(operation.path, { upperFirst: true })}Form`
+    return withVariant(base, variant)
   },
 
-  toExportPath({ operation, enrichments }): string {
-    const { name } = this.toIdentifier({ operation, enrichments })
+  toIdentifierType: () => ({ type: 'variable' }),
+
+  toExportPath({ operation, enrichments, variant }): string {
+    const name = this.toIdentifierName({ operation, enrichments, variant })
     return join('@', 'forms', `${name}.generated.tsx`)
   }
 })
@@ -108,8 +116,9 @@ calls out the purity requirement.
 When code calls `context.insertOperation(MyProjection, op)` (or the
 projection-base wrapper that auto-fills `destinationPath`):
 
-1. **Compute settings.** Driver calls `MyProjection.toIdentifier(...)`
-   and `MyProjection.toExportPath(...)` to produce the cache key.
+1. **Compute settings.** Driver calls `MyProjection.toIdentifierName(...)`
+   and `MyProjection.toExportPath(...)` to produce the cache key
+   (`toIdentifierType` fills in the rest of the identifier).
 
 2. **Look up cache.** Driver calls
    `context.findDefinition({ name, exportPath })`.
@@ -224,21 +233,21 @@ text would couple the consumer to formatting choices and force
 re-parsing. Coordination by name keeps the interfaces clean and the
 peer free to change its template internally.
 
-## Why call `insertOperation` instead of `Producer.toIdentifier(op).name`?
+## Why call `insertOperation` instead of `Producer.toIdentifierName(op)`?
 
-Static `Producer.toIdentifier(op).name` returns the same string as
+Static `Producer.toIdentifierName(op)` returns the same string as
 `insertOperation(Producer, op).toName()`. It's tempting to prefer the
 static call — it looks lighter, doesn't allocate, and the name is what
 the consumer's `toString()` actually needs. Don't. The static call
 computes the name; `insertOperation` *also* runs the four side effects
 the framework needs to make that name resolve at render time.
 
-| What `insertOperation(Producer, op)` does | What static `Producer.toIdentifier(op).name` skips |
+| What `insertOperation(Producer, op)` does | What static `Producer.toIdentifierName(op)` skips |
 |---|---|
 | **Registers the producer's `Definition`** at `Producer.toExportPath(op)`. On a cache miss, the Driver instantiates `new Producer(...)`, wraps the value, and writes it into the target `File`'s `definitions` map. | If no Driver path ever runs the producer for `op`, the producer's value is never wrapped in a `Definition` and never lands in any `File`. The consumer's rendered code references an identifier no `File` exports. |
 | **Registers the cross-File import.** When `consumer.settings.exportPath !== Producer.toExportPath(op)`, the Driver calls `register({ imports, destinationPath })` so the consumer's File has an `import { ProducerName } from 'producer/path'` entry. | The consumer's File contains the name string but no import line for it. The consumer app fails to resolve the symbol at TypeScript-compile time as `Cannot find name 'ProducerName'`. |
 | **Establishes Definition registration order within a File.** The Driver writes the producer's Definition into `File.definitions` before returning control to the consumer's constructor — so when the File is later serialized, the producer's `export const` appears before the consumer's. | When the consumer's `toString()` produces an eager top-level expression that reads the producer's value at module load — e.g., `export const X = { ...PRODUCER_CONST }` — the producer can land *after* the consumer in the same File's serialization order. Result: `Cannot access 'PRODUCER_CONST' before initialization` (TDZ) at consumer-app runtime. The error is silent at TypeScript-compile time; it surfaces only when the generated code executes. |
-| **Re-resolves the producer on every cache miss.** The Driver re-evaluates `Producer.toIdentifier`, `Producer.toExportPath`, and (on miss) runs the constructor — including any nested `insertOperation` / `insertModel` calls. Refactors to the producer (rename, move, new transitive imports, new variant) follow through every consumer automatically. | The static call returns whatever the producer's `toIdentifier` currently produces, but contributes nothing to import wiring, dependency Definition registration, or transitive composition. If the producer's `exportPath` moves, every static call site keeps returning the right name string while *no* call site updates the consumer File's import to point at the new location. |
+| **Re-resolves the producer on every cache miss.** The Driver re-evaluates `Producer.toIdentifierName`, `Producer.toExportPath`, and (on miss) runs the constructor — including any nested `insertOperation` / `insertModel` calls. Refactors to the producer (rename, move, new transitive imports, new variant) follow through every consumer automatically. | The static call returns whatever the producer's `toIdentifierName` currently produces, but contributes nothing to import wiring, dependency Definition registration, or transitive composition. If the producer's `exportPath` moves, every static call site keeps returning the right name string while *no* call site updates the consumer File's import to point at the new location. |
 
 Default: call `insertOperation(Producer, op)` and use `.toName()`. The
 static form is justified only inside a static method on the
@@ -294,7 +303,9 @@ at the consumer app's compile time, which is what
 
 ```ts
 // In base.ts
-const MyBase = toTsOasOperationProjectionBase<EnrichmentSchema>({ id, toIdentifier, toExportPath })
+const MyBase = toTsOasOperationProjectionBase<EnrichmentSchema>({
+  id, toIdentifierName, toIdentifierType, toExportPath, toEnrichmentSchema
+})
 
 // In MyProjection.ts
 class MyProjection extends MyBase {
@@ -409,7 +420,7 @@ The four meeting points between consumer and producer:
 |---|---|
 | The reference string (tag / fieldName / path) | Consumer's enrichment payload, declared in the consumer's `enrichments.ts` |
 | `isSupported(op)` predicate | Producer's `mod.ts` |
-| `toIdentifier(op)` / `toExportPath(op)` | Producer's `base.ts` (the content-addressed identity) |
+| `toIdentifierName(op)` / `toExportPath(op)` | Producer's `base.ts` (the content-addressed identity) |
 | `insertOperation` call | Consumer's Projection / Snippet constructor |
 
 The consumer imports the producer's Projection as a *type-level
@@ -432,9 +443,9 @@ instead.
 No — the Driver path will throw `"Registered definition mismatch"`.
 The cache is a uniqueness invariant. If two generators legitimately
 need the same name in the same place, one of them needs to
-disambiguate (e.g., by adding a prefix in its `toIdentifier`).
+disambiguate (e.g., by adding a prefix in its `toIdentifierName`).
 
-### What if my Projection has a non-pure `toIdentifier`?
+### What if my Projection has a non-pure `toIdentifierName`?
 
 The system will still run, but you lose the order-independence
 guarantee. Cache lookups can be inconsistent, you may see duplicate

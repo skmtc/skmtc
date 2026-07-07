@@ -20,7 +20,7 @@ component model.
   - Model:  `enrichments[generatorId][refName][variantName]`
 - `'main'` is always present. If the consumer writes any variants at
   all without `'main'`, the engine throws at start.
-- A generator becomes **variants-aware** when its `toIdentifier`
+- A generator becomes **variants-aware** when its `toIdentifierName`
   reads `variant` and folds it into the returned name (typically via
   `withVariant(base, variant)`). Variants-unaware generators destructure
   the arg and ignore it.
@@ -50,7 +50,7 @@ might naturally produce *both* a strict zod schema (for JSON bodies)
 schema, two emitted modules.
 
 The 1:1 leaked across three layers — the enrichment shape, the
-`toIdentifier` / `toExportPath` cache key, and the engine's
+`toIdentifierName` / `toExportPath` cache key, and the engine's
 per-item dispatch — and meant everything past the first artifact
 stayed hand-coded.
 
@@ -65,7 +65,7 @@ The variant flows through:
   a nested `reduce` over the variants declared for that item.
 - **`ContentSettings.variant`** — every Projection's settings bag
   carries the variant it was constructed for.
-- **`toIdentifier`, `toExportPath`, `toEnrichments`,
+- **`toIdentifierName`, `toExportPath`, `toEnrichments`,
   `transform`, `isSupported`, `toPreviewModule`, `toMappingModule`**
   — every callback that runs per `(item, variant)` receives the
   variant string. Models' `transform`/`toPreviewModule`/
@@ -117,7 +117,7 @@ is added to `GeneratorKey` (the trailing segment), not to the cache
 key.
 
 This is deliberate. A variants-aware generator that forgets to fold
-`variant` into `toIdentifier` produces TWO Definitions with the same
+`variant` into `toIdentifierName` produces TWO Definitions with the same
 `(name, exportPath)` cache key — the second variant's `findDefinition`
 hits the cached entry from the first variant, and the Driver's
 `affirmDefinition` integrity check compares `generatorKey`s, sees the
@@ -176,7 +176,8 @@ under `gen-shadcn-form`:
    block), and calls `context.toOperationContentSettings({operation,
    projection, variant})`.
 5. **Context** calls the projection's static `toEnrichments`,
-   `toIdentifier`, `toExportPath` with the variant, builds a
+   `toIdentifierName` (plus `toIdentifierType` for the non-name
+   identifier parts), and `toExportPath` with the variant, builds a
    `ContentSettings` carrying it, and returns it to the Driver.
 6. **Projection constructor** runs with `args.settings.variant`
    already populated. Internal sibling Projections derive their
@@ -305,11 +306,12 @@ zod schema for the same component model.
 }
 ```
 
-**Generator `toIdentifier` / `toExportPath` (variants-aware):**
+**Generator `toIdentifierName` / `toExportPath` (variants-aware):**
 
 ```ts
-toIdentifier: ({ refName, variant }) =>
-  createVariable(withVariant(`${refName}Schema`, variant)),
+toIdentifierName: ({ refName, variant }) =>
+  withVariant(`${refName}Schema`, variant),
+toIdentifierType: () => ({ type: 'variable' }),
 toExportPath: ({ refName, variant }) =>
   join('@', 'schemas', `${withVariant(refName, variant)}.generated.ts`)
 ```
@@ -352,7 +354,7 @@ Each invariant above maps to one or more executable specs:
 | Variant-bound `fallbackName` (the `ShadcnForm` pattern) | `GenerateContext.normalized-model-variants.test.ts` |
 | `GeneratorKey` carries variant end-to-end | `GenerateContext.end-to-end.test.ts`; `dsl/GeneratorKeys.test.ts` round-trip tests |
 | Driver throws on peer-variant mismatch | `dsl/operation/oas/OasOperationDriver.test.ts` → "Variant validation" |
-| Variants-aware `toIdentifier` ignoring variant collides | `dsl/operation/oas/OasOperationDriver.test.ts` → "forgets to vary toIdentifier collides on second variant" |
+| Variants-aware `toIdentifierName` ignoring variant collides | `dsl/operation/oas/OasOperationDriver.test.ts` → the "collides on second variant" test |
 | Per-variant skip/include filtering | `GenerateContext.variants.test.ts` → "skip with…"/"include with…"; `GenerateContext.model-variants.test.ts` (model arm) |
 | Per-variant `StackTrail` nesting | `GenerateContext.variants.test.ts` → "nests the variant frame inside the operation frame" |
 | Bit-identical formatted output | `run/toArtifacts.regression.test.ts` |

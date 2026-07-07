@@ -202,7 +202,7 @@ once:
 
 ```ts
 // skmtc-generators/gen-typescript/src/TsString.ts
-export class TsString extends SnippetBase {
+export class TsString extends TsSnippet {
   type = 'string' as const          // ← satisfies TypeSystemString
   format: string | undefined         // ← satisfies TypeSystemString
   enums: string[] | undefined        // ← satisfies TypeSystemString
@@ -414,7 +414,7 @@ breaks the cycle with a per-`(generatorId, refName)` counter on
 `GenerateContext`:
 
 ```ts
-// core/context/GenerateContext.ts:248
+// core/context/GenerateContext.ts:279
 modelDepth: Record<string, number>
 ```
 
@@ -428,7 +428,7 @@ Projection's constructor asks for its schema:
        ▼
 2.  new ModelDriver({ projection: ZodProjection, refName: 'User', ... })
        │
-       ├─ ModelDriver.ts:64  →  modelDepth['@skmtc/gen-zod:User'] = 0
+       ├─ ModelDriver.ts:79  →  modelDepth['@skmtc/gen-zod:User'] = 0
        │
        │   (cache miss path)
        ▼
@@ -437,7 +437,7 @@ Projection's constructor asks for its schema:
        ▼
 4.  context.resolveSchemaRefOnce('User', '@skmtc/gen-zod')
        │
-       │   GenerateContext.ts:902  →  modelDepth['@skmtc/gen-zod:User']++
+       │   GenerateContext.ts:1467  →  modelDepth['@skmtc/gen-zod:User']++
        │                                                          (now 1)
        ▼
 5.  toZodValue({ schema, ... })   ← walks the User schema
@@ -461,7 +461,7 @@ Projection's constructor asks for its schema:
 7.  ZodProjection constructor returns
        │
        ▼
-8.  ModelDriver.ts:69  →  modelDepth['@skmtc/gen-zod:User'] = 0  (cleanup)
+8.  ModelDriver.ts:93  →  modelDepth['@skmtc/gen-zod:User'] = 0  (cleanup)
 ```
 
 The depth counter is, in practice, **binary** — always 0 or 1.
@@ -541,8 +541,8 @@ arrays-of-self type evaluation, in extreme cases).
 
 ### Why `ModelDriver` does the bracketing, not the Projection
 
-The two `modelDepth = 0` assignments in `ModelDriver.ts:64` and
-`ModelDriver.ts:69` bracket the entire Projection-construction
+The two `modelDepth = 0` assignments in `ModelDriver.ts:79` and
+`ModelDriver.ts:93` bracket the entire Projection-construction
 window. They run regardless of whether the inner Projection
 constructor throws.
 
