@@ -11,7 +11,7 @@
 // that candidate unresolved; a candidate's cell → that candidate misfits.
 // There is no fallback list: every outcome is a named verdict (`MatchOutcome`).
 
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { match } from 'ts-pattern'
 import type * as TS from 'typescript'
 
@@ -113,6 +113,17 @@ export const rootModelNameForSchemaPath = (
 // --- The probe ----------------------------------------------------------------
 
 const stripExt = (path: string): string => path.replace(/\.(tsx?|jsx?)$/, '')
+
+// A relative-import specifier from `fromDir` to `toFile` (both absolute), posix,
+// always explicitly relative (`./…` or `../…`). The probe file lives at the Vite
+// root while the model + candidate files are found under the skmtc root, so
+// their absolute on-disk paths are re-based here onto the probe's location. In a
+// single-package app fromDir === skmtcRoot and this reduces to the old
+// `./<basePath-relative>` form.
+export const toRelativeSpecifier = (fromDir: string, toFile: string): string => {
+  const rel = relative(fromDir, toFile).split('\\').join('/')
+  return rel.startsWith('.') ? rel : `./${rel}`
+}
 
 // Segments are interpolated into single-quoted index strings.
 const escapeSegment = (segment: string): string =>
@@ -303,7 +314,12 @@ export type MatcherService = {
 }
 
 export type MatchArgs = {
-  root: string
+  /** Anchors the on-disk model/candidate paths (both stored relative to it) —
+   *  the repo root that holds `.skmtc/` in a monorepo. */
+  skmtcRoot: string
+  /** Anchors the probe's import specifiers — the Vite root where the probe file
+   *  lives and its imports resolve. Equals `skmtcRoot` in a single-package app. */
+  viteRoot: string
   basePath: string
   /** The OpenAPI / Swagger document (parsed). */
   schema: unknown
@@ -334,8 +350,8 @@ const toWire = ({ exportName, exportPath }: MatcherCandidateSource): MatcherCand
  * (and where does it break), does each candidate resolve, does each fit.
  */
 export const matchInputs = (args: MatchArgs): MatchOutcome => {
-  const { root, basePath, schema, subject, schemaPath, candidates, moduleType, modelImports } = args
-  const { service } = args
+  const { skmtcRoot, viteRoot, basePath, schema, subject, schemaPath, candidates, moduleType } = args
+  const { modelImports, service } = args
   if (!isRecord(schema)) {
     return { type: 'unavailable', reason: 'The schema document could not be read.' }
   }
@@ -368,11 +384,15 @@ export const matchInputs = (args: MatchArgs): MatchOutcome => {
           : `The gen-map has no import entry for ${modelName} — it was not emitted by the last generate. Regenerate the project.`
     }
   }
-  // The probe imports the RELATIVE on-disk path, never the consumer's `@/` alias.
+  // The model + candidate files live under the skmtc root (their paths are
+  // stored relative to it); the probe imports them by a specifier relative to
+  // its own location at the Vite root, never the consumer's `@/` alias. On-disk
+  // existence is checked at the skmtc-rooted absolute path; the import specifier
+  // is re-based onto the Vite root.
   const modelRelativePath = (alias.startsWith('@/') ? join(basePath, alias.slice(2)) : alias)
     .split('\\')
     .join('/')
-  const modelFileBase = join(root, modelRelativePath)
+  const modelFileBase = join(skmtcRoot, modelRelativePath)
   if (!service.fileExists(`${modelFileBase}.ts`) && !service.fileExists(`${modelFileBase}.tsx`)) {
     return {
       type: 'model-missing',
@@ -384,13 +404,13 @@ export const matchInputs = (args: MatchArgs): MatchOutcome => {
   const moduleTypePart = moduleTypeHeader(moduleType)
   const layout = renderProbe({
     modelName,
-    modelImportPath: `./${modelRelativePath}`,
+    modelImportPath: toRelativeSpecifier(viteRoot, modelFileBase),
     moduleTypeSource: moduleTypePart.source,
     moduleTypeName: moduleTypePart.name,
     segments,
     candidates: candidates.map((candidate) => ({
       exportName: candidate.exportName,
-      importPath: `./${stripExt(candidate.filePath)}`
+      importPath: stripExt(toRelativeSpecifier(viteRoot, join(skmtcRoot, candidate.filePath)))
     }))
   })
 
@@ -413,7 +433,7 @@ export const matchInputs = (args: MatchArgs): MatchOutcome => {
       { type: 'module-type-error' },
       (): MatchOutcome => ({
         type: 'unavailable',
-        reason: `The ${moduleTypePart.name} module-type contract failed to compile — a generator bug.`
+        reason: `The ${moduleTypePart.name} module-type contract did not type-check against this project — its declared contract has an error, or a type it imports (for example the lens library) is not installed or resolvable here.`
       })
     )
     .with(

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { join } from 'node:path'
 import ts from 'typescript'
 import {
   classify,
   renderProbe,
   rootModelNameForSchemaPath,
+  toRelativeSpecifier,
   type MatcherSubject,
   type ProbeLayout
 } from './input-matcher.ts'
@@ -167,6 +169,33 @@ describe('rootModelNameForSchemaPath', () => {
       }
     }
     expect(rootModelNameForSchemaPath(doc, operation('/x', 'post'), 'RequestBody')).toBeUndefined()
+  })
+})
+
+// The probe file lives at the Vite root; the model + candidate files are found
+// under the skmtc root. In a nested monorepo those differ, so the probe's import
+// specifiers are re-based from the on-disk (skmtc-rooted) path onto the Vite
+// root. Getting this wrong is how §8's picker broke.
+describe('toRelativeSpecifier', () => {
+  const skmtcRoot = '/repo'
+  const viteRoot = '/repo/apps/x'
+
+  it('re-bases a skmtc-rooted file onto the nested Vite root', () => {
+    expect(toRelativeSpecifier(viteRoot, join(skmtcRoot, 'apps/x/src/types/Model'))).toBe(
+      './src/types/Model'
+    )
+  })
+
+  it('reduces to the plain ./ form when the roots coincide (single-package app)', () => {
+    expect(toRelativeSpecifier(skmtcRoot, join(skmtcRoot, 'src/types/Model'))).toBe(
+      './src/types/Model'
+    )
+  })
+
+  it('steps out with ../ when the target sits outside the Vite root', () => {
+    expect(toRelativeSpecifier(viteRoot, join(skmtcRoot, 'packages/shared/src/Model'))).toBe(
+      '../../packages/shared/src/Model'
+    )
   })
 })
 

@@ -59,7 +59,15 @@ const readCompilerOptions = (ts: typeof TS, root: string): TS.CompilerOptions =>
 }
 
 export class SourceState {
-  #root: string
+  // TWO roots, deliberately distinct (they coincide only in a single-package
+  // app). `#skmtcRoot` anchors every `.skmtc/…` read — client.json, manifest,
+  // gen-map, schema, the inputDir walk — all stored relative to it. `#viteRoot`
+  // anchors the TypeScript probe: the app's `typescript`, `tsconfig`,
+  // `node_modules`, and `@/*` aliases live there, NOT at the repo root in a
+  // monorepo. Using the skmtc root for the probe was the §8 bug: `typescript`
+  // and contract deps like `@hookform/lenses` don't resolve from the repo root.
+  #skmtcRoot: string
+  #viteRoot: string
   #project: string
 
   // File freshness for the language service: versions bumped by watcher events;
@@ -79,28 +87,34 @@ export class SourceState {
 
   #resolveModuleType: SourceStateOptions['resolveModuleType']
 
-  constructor(root: string, project: string, options: SourceStateOptions = {}) {
-    this.#root = root
+  constructor(
+    skmtcRoot: string,
+    viteRoot: string,
+    project: string,
+    options: SourceStateOptions = {}
+  ) {
+    this.#skmtcRoot = skmtcRoot
+    this.#viteRoot = viteRoot
     this.#project = project
     this.#resolveModuleType = options.resolveModuleType
   }
 
   get #clientJsonPath(): string {
-    return join(this.#root, '.skmtc', this.#project, '.settings', 'client.json')
+    return join(this.#skmtcRoot, '.skmtc', this.#project, '.settings', 'client.json')
   }
   get #mapsPath(): string {
-    return join(this.#root, '.skmtc', this.#project, '.maps', '_map.ndjson')
+    return join(this.#skmtcRoot, '.skmtc', this.#project, '.maps', '_map.ndjson')
   }
 
   /** Subscribe to the dev server's watcher; also watch the project's own
    *  `.skmtc/<project>` tree (manifest, gen-map, client.json). */
   attach(watcher: WatcherLike): void {
-    watcher.add(join(this.#root, '.skmtc', this.#project))
+    watcher.add(join(this.#skmtcRoot, '.skmtc', this.#project))
     watcher.on('all', (_eventName, file) => this.#onFileEvent(file))
   }
 
   #onFileEvent(file: string): void {
-    if (!file.startsWith(this.#root + sep)) return
+    if (!file.startsWith(this.#skmtcRoot + sep)) return
     if (file.includes(`${sep}node_modules${sep}`) || file.includes(`${sep}.git${sep}`)) return
     this.#fileVersions.set(file, (this.#fileVersions.get(file) ?? 0) + 1)
     this.#memo.clear()
@@ -129,8 +143,8 @@ export class SourceState {
    *  generate succeeds (or, for a local file, until the file itself changes). */
   schemaDoc(source: string): Promise<unknown> {
     if (this.#schemaCache?.source === source) return this.#schemaCache.value
-    this.#schemaFile = /^https?:\/\//.test(source) ? null : join(this.#root, source)
-    const value = readSchema(this.#root, source)
+    this.#schemaFile = /^https?:\/\//.test(source) ? null : join(this.#skmtcRoot, source)
+    const value = readSchema(this.#skmtcRoot, source)
     this.#schemaCache = { source, value }
     return value
   }
@@ -139,15 +153,15 @@ export class SourceState {
    *  (inputDirs + basePath), invalidated by watcher events under any inputDir. */
   candidates(inputDirs: string[], basePath: string): Promise<Candidate[]> {
     const key = JSON.stringify([inputDirs, basePath])
-    this.#inputDirPrefixes = inputDirs.map((dir) => join(this.#root, dir) + sep)
+    this.#inputDirPrefixes = inputDirs.map((dir) => join(this.#skmtcRoot, dir) + sep)
     if (this.#candidatesCache?.key === key) return this.#candidatesCache.value
-    const value = readCandidates(this.#root, inputDirs, basePath)
+    const value = readCandidates(this.#skmtcRoot, inputDirs, basePath)
     this.#candidatesCache = { key, value }
     return value
   }
 
   modelImports(): Promise<Map<string, string>> {
-    this.#modelImportsCache ??= readModelImports(this.#root, this.#project)
+    this.#modelImportsCache ??= readModelImports(this.#skmtcRoot, this.#project)
     return this.#modelImportsCache
   }
 
@@ -166,7 +180,12 @@ export class SourceState {
   }
 
   #createService(): MatcherService {
-    const root = this.#root
+    // The probe is the app's TypeScript, run in the app's directory: load `ts`,
+    // read `tsconfig`, place the probe file, and resolve its imports all at the
+    // VITE root. In a monorepo that's `apps/x`, where `typescript`, the app's
+    // tsconfig (its `moduleResolution`/`jsx`/`@/*` paths), and `node_modules`
+    // live — not the repo root that holds `.skmtc/`.
+    const root = this.#viteRoot
     const ts = loadTs(root)
     const options: TS.CompilerOptions = {
       ...readCompilerOptions(ts, root),
@@ -228,7 +247,7 @@ export class SourceState {
     const memoized = this.#memo.get(key)
     if (memoized) return memoized
 
-    const clientJson = await readClientJson(this.#root, this.#project)
+    const clientJson = await readClientJson(this.#skmtcRoot, this.#project)
     const source = clientJson.source
     if (typeof source !== 'string') {
       return { type: 'unavailable', reason: 'client.json has no `source` schema reference.' }
@@ -248,7 +267,8 @@ export class SourceState {
         this.modelImports()
       ])
       outcome = matchInputs({
-        root: this.#root,
+        skmtcRoot: this.#skmtcRoot,
+        viteRoot: this.#viteRoot,
         basePath,
         schema,
         subject: request.subject,
