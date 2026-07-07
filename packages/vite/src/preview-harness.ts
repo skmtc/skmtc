@@ -9,8 +9,9 @@
 // esbuild is installed separately, so we use `transformWithOxc` (Vite's built-in
 // oxc-backed transform) instead.
 
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { transformWithOxc } from 'vite'
 
 // virtual id → source file (relative to this module). Only the HARNESS is a
@@ -42,6 +43,34 @@ export const loadClientModule = async (id: string): Promise<string | undefined> 
 
 /** The URL Vite serves the harness virtual module at (`\0` → `__x00__`). */
 const HARNESS_URL = `/@id/__x00__${HARNESS_ID}`
+
+// --- preview providers ---------------------------------------------------------
+// The consumer's optional provider wrapper (React Query client, theme, global
+// CSS) around every previewed artifact. The harness imports the VIRTUAL id; the
+// plugin resolves it server-side to the consumer's file when it exists and to a
+// pass-through otherwise. (The harness used to probe `/src/preview-providers.tsx`
+// from the browser and catch the failure — but an absent file came back as the
+// SPA's index.html, logging a scary "Failed to load module script … text/html"
+// on every preview. Existence is the server's knowledge, not the browser's.)
+
+export const PROVIDERS_ID = 'virtual:skmtc-preview-providers'
+export const PROVIDERS_RESOLVED_ID = `\0${PROVIDERS_ID}`
+
+/** The consumer file, tried in order under `<viteRoot>/src/`. */
+export const PROVIDERS_CANDIDATES = [
+  'preview-providers.tsx',
+  'preview-providers.ts',
+  'preview-providers.jsx',
+  'preview-providers.js'
+]
+
+/** The consumer's providers file, or undefined when the app has none. */
+export const findProvidersFile = (viteRoot: string): string | undefined =>
+  PROVIDERS_CANDIDATES.map((name) => join(viteRoot, 'src', name)).find((file) => existsSync(file))
+
+/** Served for the virtual id when the app has no providers file. */
+export const PASSTHROUGH_PROVIDERS_MODULE =
+  'export const PreviewProviders = (props) => props.children\n'
 
 /** The harness source file on disk — the plugin watches it to invalidate the
  *  cached virtual module on change, so harness edits go live without an app

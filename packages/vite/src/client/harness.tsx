@@ -171,13 +171,15 @@ const ErrorView = ({ message }: { message: string }) => (
 )
 
 // Optional project provider wrapper. Generated components run with the app's
-// context (React Query, theme, …); the app may export `PreviewProviders` from
-// `/src/preview-providers.tsx`. Absent → render bare.
-const PROVIDERS_MODULE = '/src/preview-providers.tsx'
-
+// context (React Query, theme, global CSS, …); the app may export
+// `PreviewProviders` from `src/preview-providers.tsx`. The specifier is a
+// VIRTUAL id the plugin resolves server-side — to the consumer's file when it
+// exists, to a pass-through when it doesn't — so an absent file never logs a
+// browser module-load error. Static specifier, no `@vite-ignore`: Vite's import
+// analysis must rewrite it. The catch guards a providers file that throws.
 const loadProviders = async (): Promise<ComponentType<{ children: ReactNode }>> => {
   try {
-    const loaded: Record<string, unknown> = await import(/* @vite-ignore */ PROVIDERS_MODULE)
+    const loaded: Record<string, unknown> = await import('virtual:skmtc-preview-providers')
     const candidate = loaded.PreviewProviders ?? loaded.default
     return isWrapper(candidate) ? candidate : PassThrough
   } catch {
@@ -307,7 +309,14 @@ const ArtifactView = () => {
         schedule()
       }
     }
-    const onBeforeFullReload = (payload: { path?: string }): void => {
+    // Cancel only FILE-CHANGE full reloads (they carry `triggeredBy`) and swap
+    // the artifact in place instead. Reloads without `triggeredBy` — above all
+    // the optimizer's after a newly discovered dep re-bundles the dep chunks —
+    // must proceed: the shared chunks' hashes changed, so re-importing just the
+    // artifact would load a SECOND React copy against the harness's stale one
+    // ("Cannot read properties of null (reading 'useRef')").
+    const onBeforeFullReload = (payload: { path?: string; triggeredBy?: string }): void => {
+      if (payload.triggeredBy === undefined) return
       if (!payload.path || !payload.path.endsWith('.html')) {
         payload.path = '/__skmtc_no_reload.html'
         schedule()

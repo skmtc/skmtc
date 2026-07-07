@@ -7,7 +7,7 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Connect, Plugin } from 'vite'
 import { runDescribe, runGenerate, type CliResult } from './skmtc-cli.ts'
@@ -25,50 +25,19 @@ import {
   HARNESS_RESOLVED_ID,
   HARNESS_SOURCE_PATH,
   IFRAME_HTML,
+  PASSTHROUGH_PROVIDERS_MODULE,
+  PROVIDERS_CANDIDATES,
+  PROVIDERS_ID,
+  PROVIDERS_RESOLVED_ID,
+  findProvidersFile,
   loadClientModule,
   resolveClientModule
 } from './preview-harness.ts'
 import { readPreviews } from './manifest.ts'
+import { previewOptimizeDeps } from './optimize-deps.ts'
 import { readArtifactContent, readArtifacts } from './artifacts.ts'
 import { filtersWriteSchema, fromFilterEntries, toFilterEntries } from './filters.ts'
 import { readSource } from './project-sources.ts'
-
-// --- optimizeDeps closure (ported from apps/preview/container/vite.config.ts) -
-// Vite's LAZY dep-discovery re-optimizes mid-load when the preview imports a dep
-// the app hasn't yet, invalidating chunks the harness already fetched → a 504
-// "Outdated Optimize Dep" that wedges the preview. The fix is `noDiscovery` plus
-// an eager `include` of the app's whole runtime-dependency closure.
-const REACT_CORE = [
-  'react',
-  'react-dom',
-  'react-dom/client',
-  'react/jsx-runtime',
-  'react/jsx-dev-runtime'
-]
-const isBuildOnlyDep = (name: string): boolean =>
-  name === 'vite' ||
-  name === 'tailwindcss' ||
-  name === 'typescript' ||
-  name.startsWith('@types/') ||
-  name.startsWith('@vitejs/') ||
-  name.includes('vite-plugin')
-const isRecordValue = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === 'object'
-const readConsumerDeps = (root: string): string[] => {
-  try {
-    const pkg: unknown = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
-    if (!isRecordValue(pkg) || !isRecordValue(pkg.dependencies)) return []
-    return Object.keys(pkg.dependencies).filter((name) => !isBuildOnlyDep(name))
-  } catch {
-    return []
-  }
-}
-// Subpath specifiers skmtc generators emit — bare-package includes don't cover
-// them, and with `noDiscovery` nothing is optimized lazily.
-const knownSubpaths = (deps: string[]): string[] => [
-  ...(deps.includes('@hookform/resolvers') ? ['@hookform/resolvers/zod'] : []),
-  ...(deps.includes('@hookform/lenses') ? ['@hookform/lenses/rhf'] : [])
-]
 
 export type SkmtcPreviewOptions = {
   /** The skmtc project under `.skmtc/<project>/` to preview. */
@@ -204,6 +173,7 @@ const messageOf = (error: unknown): string =>
 /** `skmtcPreview({ project })` — add to a consumer app's `vite.config` (dev). */
 export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
   let root = options.root ?? process.cwd()
+  let viteRoot = process.cwd()
 
   // describe is a pure function of (schema, bundle) — cache it, invalidate on a
   // bundle change.
@@ -227,28 +197,45 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
 
   return {
     name: 'skmtc-preview',
-    // Eagerly optimize the app's dep closure + disable lazy discovery, so the
-    // preview never hits a mid-load re-optimize (the 504 "Outdated Optimize Dep"
-    // wedge). Mirrors the container's vite.config.
+    // Dev-server surface only (middleware, virtual modules, optimizer entries)
+    // — provably inert in production builds.
+    apply: 'serve',
+    // Run BEFORE Worker-runtime plugins: @cloudflare/vite-plugin registers its
+    // request-routing middleware with `enforce: 'pre'`, and a later-registered
+    // `/__skmtc/*` handler would lose the ungated handshake to the Worker's
+    // SPA/404. Vite keeps ARRAY order within the `pre` class, so consumers must
+    // also list `skmtcPreview` before such plugins in `plugins: []`.
+    enforce: 'pre',
+    // Contribute the generated tree as extra optimizer scan entries, so every
+    // dep a preview can pull in is optimized up front and a preview load never
+    // triggers a mid-load re-optimize (the 504 "Outdated Optimize Dep" wedge).
+    // Additive only — Vite's own discovery and interop stay in charge (see
+    // optimize-deps.ts for why overriding them breaks monorepos and CJS deps).
     config(userConfig) {
-      const configRoot = options.root ?? userConfig.root ?? process.cwd()
-      const deps = readConsumerDeps(configRoot)
+      const viteRoot = resolve(process.cwd(), userConfig.root ?? '.')
       return {
-        optimizeDeps: {
-          include: [...new Set([...REACT_CORE, ...deps, ...knownSubpaths(deps)])],
-          noDiscovery: true
-        }
+        optimizeDeps: previewOptimizeDeps({
+          viteRoot,
+          skmtcRoot: options.root ?? viteRoot,
+          project: options.project
+        })
       }
     },
     configResolved(config) {
+      viteRoot = config.root
       root = options.root ?? config.root
     },
     // The browser client modules (render harness + editor) are virtual modules
     // so the CONSUMER's Vite transforms them (shared React + `import.meta.hot`).
+    // The providers id resolves to the consumer's file when one exists, else to
+    // a served pass-through — existence is decided here, server-side, so an
+    // absent file never surfaces as a browser-console module-load error.
     resolveId(id) {
+      if (id === PROVIDERS_ID) return findProvidersFile(viteRoot) ?? PROVIDERS_RESOLVED_ID
       return resolveClientModule(id)
     },
     load(id) {
+      if (id === PROVIDERS_RESOLVED_ID) return PASSTHROUGH_PROVIDERS_MODULE
       return loadClientModule(id)
     },
     configureServer(server) {
@@ -314,6 +301,24 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
           server.ws.send({ type: 'full-reload' })
         }
       })
+
+      // The providers resolution is baked into the harness's transformed import
+      // at resolve time, so a providers file APPEARING or DISAPPEARING needs a
+      // re-resolve: invalidate both modules and reload the iframe. (Edits to an
+      // existing providers file are ordinary HMR and need nothing from us.)
+      const providersFiles = new Set(
+        PROVIDERS_CANDIDATES.map((name) => join(viteRoot, 'src', name))
+      )
+      const onProvidersFileEvent = (file: string): void => {
+        if (!providersFiles.has(file)) return
+        for (const id of [PROVIDERS_RESOLVED_ID, HARNESS_RESOLVED_ID]) {
+          const module = server.moduleGraph.getModuleById(id)
+          if (module) server.moduleGraph.invalidateModule(module)
+        }
+        server.ws.send({ type: 'full-reload' })
+      }
+      server.watcher.on('add', onProvidersFileEvent)
+      server.watcher.on('unlink', onProvidersFileEvent)
 
       // Read-only metadata: subjects + descriptors + defaults (cached).
       const describeHandler: Connect.NextHandleFunction = async (_request, response) => {
