@@ -398,7 +398,7 @@ specific variants of a multi-variant operation.
 
 ## 8. Common JSON output shapes
 
-Agents drive on these shapes. Discriminator field is usually `kind`.
+Agents drive on these shapes. Discriminator field is usually `type`.
 
 ### `install`
 
@@ -406,7 +406,7 @@ Agents drive on these shapes. Discriminator field is usually `kind`.
 {
   "projectName": "my-api",
   "installed": ["@skmtc/gen-zod"],
-  "bundle": { "kind": "bundled", "projectName": "my-api", "bundlePath": "..." },
+  "bundle": { "type": "bundled", "projectName": "my-api", "bundlePath": "..." },
   "verifyWith": "cat .skmtc/my-api/deno.json"
 }
 ```
@@ -422,7 +422,7 @@ hybrid alike — so `bundle.kind` is always `"bundled"`.
   "cloned": [
     { "moduleName": "@skmtc/gen-typescript", "version": "0.0.55" }
   ],
-  "bundle": { "kind": "bundled", "projectName": "my-api", "bundlePath": "..." },
+  "bundle": { "type": "bundled", "projectName": "my-api", "bundlePath": "..." },
   "verifyWith": "ls .skmtc/my-api/"
 }
 ```
@@ -437,7 +437,7 @@ refuses with exit 2 before any state mutation. `--force` overrides
 ```jsonc
 // Wrote bundle.js — the only outcome; every project (remote-only
 // included) builds a local bundle, since `generate` loads it:
-{ "kind": "bundled", "projectName": "my-api", "bundlePath": "..." }
+{ "type": "bundled", "projectName": "my-api", "bundlePath": "..." }
 ```
 
 ### `generate`
@@ -557,7 +557,7 @@ Inspect `errors` and `parseIssues` for any non-success outcomes.
 skmtc install @skmtc/gen-<name> <project> --json
 ```
 
-If `installed` is non-empty and `bundle.kind === "bundled"` → ready
+If `installed` is non-empty and `bundle.type === "bundled"` → ready
 to `generate`; the rebundle ran automatically (remote-only and
 hybrid projects alike).
 

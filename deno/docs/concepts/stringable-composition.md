@@ -90,7 +90,7 @@ TsFile.toString()
 └─ joins file.imports → "import { ... } from '...'"
 └─ joins file.definitions, each calls TsDefinition.toString()
    TsDefinition.toString()         // lang-typescript/src/TsDefinition.ts
-   ├─ toTsKeyword(this.identifier.kind)  → "type"
+   ├─ toTsKeyword(this.identifier.type)  → "type"
    ├─ ${this.identifier.name}            → "User"
    └─ ${this.value}                      → Snippet.toString()
                                            └─ uses a ListObject of properties

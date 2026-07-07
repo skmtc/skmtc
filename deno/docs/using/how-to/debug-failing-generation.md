@@ -44,7 +44,7 @@ related logs to know about:
 ### Inspect parseIssues
 
 ```bash
-jq '.manifest.diagnostics' generate-output.json
+jq '.manifest.parseIssues' generate-output.json
 ```
 
 Parse issues are non-fatal but indicate the schema model is
@@ -213,7 +213,7 @@ After the fix, regenerate and confirm:
 ## Troubleshooting
 
 - **`skmtc generate` exits non-zero but artifacts look fine** —
-  Likely a parse warning at error severity. Check `manifest.diagnostics`.
+  Likely a parse warning at error severity. Check `manifest.parseIssues`.
 - **Different output on each run** — Should be impossible; the
   engine is deterministic. If you see this, file an issue —
   likely a memoization or impurity bug.

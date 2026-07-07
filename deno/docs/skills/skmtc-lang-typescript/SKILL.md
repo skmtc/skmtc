@@ -214,7 +214,7 @@ this.register({
 // ✅ ALSO RIGHT — derive the tag from an Identifier you hold
 this.register({
   imports: { './types': [
-    identifier.kind === 'type'
+    identifier.type === 'type'
       ? { name: identifier.name, type: 'type' }
       : identifier.name
   ] }
@@ -226,7 +226,7 @@ true` (modern Vite, Next.js strict) reject bare value imports of types
 with TS1484. (For peer Definitions inserted via
 `insertOperation` / `insertModel`, the Driver already registers the
 import with the right form — `TsImport.fromIdentifier` reads the
-identifier's `kind`; you only hand-tag imports you register yourself.)
+identifier's `type`; you only hand-tag imports you register yourself.)
 Note this is a **target-language** failure: the generator compiles
 fine; the *consumer's* build breaks.
 

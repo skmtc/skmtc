@@ -68,10 +68,10 @@ downstream verification.
 Pipe to `jq` for any post-checks you need:
 
 ```bash
-fails=$(jq '.manifest.diagnostics | map(select(.level == "error")) | length' generate-output.json)
+fails=$(jq '.manifest.parseIssues | map(select(.level == "error")) | length' generate-output.json)
 if [ "$fails" -gt 0 ]; then
   echo "Generation produced $fails errors"
-  jq '.manifest.diagnostics' generate-output.json
+  jq '.manifest.parseIssues' generate-output.json
   exit 1
 fi
 ```

@@ -128,7 +128,7 @@ skmtc bundle my-api --json --no-input
 ### Verify success
 
 ```bash
-skmtc bundle my-api --json | jq '.kind'
+skmtc bundle my-api --json | jq '.type'
 # "bundled"
 ```
 

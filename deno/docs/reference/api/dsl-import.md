@@ -129,7 +129,7 @@ this.register({
 this.register({
   imports: {
     '@/generated/User': [
-      identifier.kind === 'type'
+      identifier.type === 'type'
         ? { name: identifier.name, type: 'type' }
         : identifier.name
     ]
