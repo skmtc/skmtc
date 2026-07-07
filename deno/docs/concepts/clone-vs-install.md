@@ -67,7 +67,7 @@ Identical to cloned: `skmtc bundle` regenerates `worker.ts` from
 specifiers through the project's import map. A project with only
 installed generators still needs its `bundle.js` — it is the only
 artifact `generate` loads. (Older CLI versions no-op'd here with
-`{ kind: 'noop', reason: 'remote-only' }`; that special case is
+`{ type: 'noop', reason: 'remote-only' }`; that special case is
 gone.)
 
 ### Bundle behavior when cloned

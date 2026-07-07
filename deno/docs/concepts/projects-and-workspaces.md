@@ -243,9 +243,9 @@ one — generators run independently per project anyway.
 1. Creates `.skmtc/<projectName>/`
 2. Writes `deno.json` with the core peer-dep pin and an empty imports list
 3. Writes `.settings/client.json` with `basePath` and no source
-4. Returns `{ kind: 'created', projectName, basePath, nextStep: 'skmtc install ...' }`
+4. Returns `{ type: 'created', projectName, basePath }`
 
-If the project already exists, `init` returns `{ kind: 'existed' }`
+If the project already exists, `init` returns `{ type: 'existed' }`
 and exits cleanly — it's idempotent.
 
 The `basePath` argument:

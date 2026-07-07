@@ -4,7 +4,7 @@
 
 Creates `.skmtc/<projectName>/` with `deno.json` and
 `.settings/client.json`. Idempotent — re-running on an existing
-project is a no-op (returns `kind: "existed"` in JSON mode).
+project is a no-op (returns `type: "existed"` in JSON mode).
 
 ## Synopsis
 

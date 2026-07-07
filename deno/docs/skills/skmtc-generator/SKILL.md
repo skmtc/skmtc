@@ -467,7 +467,7 @@ export const MyGenBase = toTsOasOperationProjectionBase<EnrichmentSchema>({
   //   `typeName`, `exported`). Runs only on cache-miss. The `kind` drives
   //   declaration keywords and import forms in the language layer —
   //   `'variable'` for `export const`, `'type'` for `export type`.
-  toIdentifierType: () => ({ kind: 'variable' }),
+  toIdentifierType: () => ({ type: 'variable' }),
 
   // ⬇ Customize: where does the generated file land?
   toExportPath({ operation, enrichments, variant }): string {
