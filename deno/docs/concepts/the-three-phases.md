@@ -254,13 +254,13 @@ generators.forEach(generatorConfig => {
 })
 ```
 
-Inside each `#run*Generator`, the per-item loop iterates operations or refNames,
-applies item-level filters, calls the generator's `isSupported({ operation })`
-capability gate, then calls
-`generatorConfig.transform({ context, operation, acc })`. The transform is where
-the generator produces its output — but not by returning strings (its return
-value is discarded). Instead, the transform calls
-`context.insertOperation(MyProjection, op)` or
+Inside each `#run*Generator`, the per-item loop iterates operations or refNames
+(and each item's variants), applies item-level filters, calls the generator's
+`isSupported({ operation })` capability gate, then calls
+`generatorConfig.transform({ context, operation, variant })`. The transform is
+where the generator produces its output — but not by returning strings (it
+returns `void`). Instead, the transform calls
+`context.insertOperation({ projection: MyProjection, operation })` or
 `context.insertNormalizedModel(MyProjection, args)`, which delegate to Drivers.
 
 ### The Driver lifecycle

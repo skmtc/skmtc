@@ -683,13 +683,13 @@ front. Failures produce recipe errors on stderr.
 ### `transform`
 
 The per-item hook in a generator's `mod.ts` entry. Called once per
-matched operation/model by `GenerateContext`'s iteration. The return value is
-folded into the `acc` accumulator threaded between iterations and
-discarded after the final iteration. **Output must be produced via
-side effects** — `context.register`, `context.insertOperation`,
-`context.insertModel`, or `context.insertNormalizedModel`.
-Returning a `Definition` from `transform` produces no output. See
-[how-generators-produce-output](../concepts/how-generators-produce-output.md#why-transforms-return-is-folded-but-discarded).
+matched `(operation | model, variant)` by `GenerateContext`'s
+iteration. It returns `void`; any return value is ignored.
+**Output must be produced via side effects** —
+`context.register`, `context.insertOperation`, `context.insertModel`,
+or `context.insertNormalizedModel`. Returning a `Definition` from
+`transform` produces no output. See
+[how-generators-produce-output](../concepts/how-generators-produce-output.md#why-transform-returns-nothing).
 
 ### `tryParseAt`
 

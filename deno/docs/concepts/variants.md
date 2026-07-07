@@ -163,10 +163,10 @@ under `gen-shadcn-form`:
 1. **Engine** (`GenerateContext.#runOasOperationGenerator`) reads
    `enrichments[id][path][method]`, computes the variant list via
    `toVariantList` (`['main', 'customer']`), and runs an inner
-   `reduce` over them.
+   `forEach` over them.
 2. For each variant, the engine pushes a `variant: <name>` frame to
    the `StackTrail`, then invokes the generator's `transform({
-   context, operation, acc, variant })`.
+   context, operation, variant })`.
 3. `transform` typically calls `context.insertOperation({ projection:
    ShadcnForm, operation, variant })`. The variant flows into the
    Driver.

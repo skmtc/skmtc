@@ -96,30 +96,27 @@ export const myGqlEntry = toGqlOperationEntry({
   // don't want to process.
   isSupported: ({ operation }) => synthesizeArgsObject(operation) !== undefined,
 
-  // GQL transform must return acc.
-  transform: ({ context, operation, acc }) => {
+  transform: ({ context, operation }) => {
     context.insertOperation({ projection: MyGqlHook, operation })
-    return acc
   }
 })
 
 export default myGqlEntry
 ```
 
-Three GraphQL-specific shape differences vs OAS:
+The GraphQL entry is mostly symmetric with OAS — same
+`({ context, operation, variant }) => void` transform, same
+pre-resolved enrichments, same Driver / cache model. Two
+GraphQL-specific differences:
 
-1. **`transform` is `({ context, operation, acc }) => acc`.** The
-   accumulator threads through every operation `GenerateContext`
-   visits in the GraphQL document. Dropping `acc` (or forgetting to
-   return it) breaks downstream operations that rely on accumulated
-   state.
+1. **Routing keys are `[rootKind][fieldName]`, not `[path][method]`.**
+   The cache key and the enrichment lookup path key on these. (The
+   projection base's `toEnrichments` resolves
+   `['enrichments', id, rootKind, fieldName, variant]`, mirroring the
+   OAS `[…, path, method, variant]` — you don't walk enrichments
+   yourself.)
 
-2. **Enrichments are not pre-resolved.** OAS pre-resolves by
-   `[path][method]`; GQL hands you the raw operation. Walk
-   `context.settings.enrichments[id][operation.identifier]` yourself
-   (`operation.identifier` is `<rootKind>_<fieldName>`).
-
-3. **Mutation args come via `synthesizeArgsObject(operation)`.** GQL
+2. **Mutation args come via `synthesizeArgsObject(operation)`.** GQL
    has no `requestBody`. `synthesizeArgsObject` turns the field's
    typed argument list into an `OasObject` so the same
    `insertNormalizedModel(TsProjection, …)` path that OAS uses for

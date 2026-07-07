@@ -127,6 +127,6 @@ Projection `register({ imports, definitions })` writes **only** to the projectio
 
 Snippet `register({ imports, destinationPath })` requires `destinationPath` (snippets have no exportPath) and is **keyless** — `generatorKey` is an optional attribution (gen-maps) input, never a registration requirement (F7 closed by construction in the 0.8.0 convergence). A registering snippet must extend the lang snippet base (`TsSnippet` / `KtSnippet`); a raw `SnippetBase` subclass has no `register` at all — the correct fix for that compile error is extending the lang snippet base, not `try/catch`, not `Deno.writeFileSync`, not hardcoding the import into the template string.
 
-## 14. `acc` threading is uniform across the three entry factories
+## 14. `transform` returns `void`
 
-All three entries have `transform({ context, operation|refName, acc, variant }) => Acc` with `Acc = void` by default. It is NOT a GQL-only mechanism. With the default `Acc = void` there is nothing to return (output is produced via `register` / `insertX`, never via the return value). A generator that declares a non-void `Acc` must return `acc` — dropping it leaves downstream calls reading stale state. GQL stock generators conventionally declare an `Acc`.
+All three entry factories type `transform` as `({ context, operation|refName, variant }) => void`, uniformly across OAS, GQL, and model entries. Output is produced only via side effects — `register` / `insertOperation` / `insertModel` / `insertNormalizedModel`; a value returned from `transform` is ignored.
