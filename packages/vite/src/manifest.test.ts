@@ -54,3 +54,47 @@ describe('readPreviews', () => {
     expect(await readPreviews(join(root, 'nope'), project)).toEqual([])
   })
 })
+
+describe('readPreviews — monorepo basePath', () => {
+  const project = 'lighthouse-ui'
+  let root: string
+
+  // Monorepo layout: the skmtc project lives at the repo root but the app is
+  // nested (`basePath: apps/lighthouse-ui/src`), so `files` keys are full
+  // on-disk paths (`apps/…`). The `@/…` `destinationPath` — not the key — is
+  // what a preview's `exportPath` matches. Building the emitted set from the
+  // raw keys treats every preview as a phantom → 0 previews (the bug).
+  const monorepoManifest = {
+    files: {
+      'apps/lighthouse-ui/src/tables/ContactsTable.generated.tsx': {
+        lines: 1,
+        destinationPath: '@/tables/ContactsTable.generated.tsx'
+      }
+    },
+    previews: {
+      ContactsTable: {
+        name: 'ContactsTable',
+        module: {
+          name: 'ContactsTable',
+          exportPath: '@/tables/ContactsTable.generated.tsx'
+        },
+        source: { type: 'model', refName: 'Contacts' }
+      }
+    }
+  }
+
+  beforeAll(async () => {
+    root = await mkdtemp(join(tmpdir(), 'skmtc-previews-monorepo-'))
+    const dir = join(root, '.skmtc', project, '.settings')
+    await mkdir(dir, { recursive: true })
+    await writeFile(join(dir, 'manifest.json'), JSON.stringify(monorepoManifest))
+  })
+  afterAll(async () => {
+    await rm(root, { recursive: true, force: true })
+  })
+
+  it('keeps previews when files keys are basePath-prefixed but destinationPath is @/-aliased', async () => {
+    const previews = await readPreviews(root, project)
+    expect(previews.map((preview) => preview.name)).toEqual(['ContactsTable'])
+  })
+})

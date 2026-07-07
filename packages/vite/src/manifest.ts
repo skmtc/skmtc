@@ -19,10 +19,21 @@ const manifestPath = (root: string, project: string): string =>
   join(root, '.skmtc', project, '.settings', 'manifest.json')
 
 // Normalize an artifact path to a key comparable across the manifest's two
-// representations: `previews` use the `@/…` export-path alias, `files` use the
-// `src/…` on-disk path. Strip the leading root so a preview can be matched to
-// the file that actually backs it.
+// representations: `previews` use the `@/…` export-path alias, `files` entries
+// carry a matching `@/…` `destinationPath`. Strip the leading root so a preview
+// can be matched to the file that actually backs it.
 const artifactKey = (path: string): string => path.replace(/^(?:@\/|src\/|\.\/)/, '')
+
+// The `@/…`-aliased path a `files` entry writes to, which is what previews
+// reference. Prefer `destinationPath` over the object key: the key is the raw
+// on-disk path, so in a monorepo (`basePath: apps/x/src`) it carries an
+// `apps/…` prefix `artifactKey` can't strip and never matches a preview's
+// `@/…` exportPath. `destinationPath` is `@/…` in both single-package and
+// monorepo layouts. Fall back to the key when an entry has no destinationPath.
+const emittedKey = (key: string, entry: unknown): string =>
+  artifactKey(
+    isRecord(entry) && typeof entry.destinationPath === 'string' ? entry.destinationPath : key
+  )
 
 /** Read the manifest's previews as a flat list. Returns `[]` when the project
  *  hasn't been generated yet (no manifest) or the file is malformed.
@@ -43,7 +54,7 @@ export async function readPreviews(root: string, project: string): Promise<Previ
   if (!isRecord(parsed) || !isRecord(parsed.previews)) return []
 
   const emitted = isRecord(parsed.files)
-    ? new Set(Object.keys(parsed.files).map(artifactKey))
+    ? new Set(Object.entries(parsed.files).map(([key, entry]) => emittedKey(key, entry)))
     : undefined
 
   const previews: Preview[] = []
