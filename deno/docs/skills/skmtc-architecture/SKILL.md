@@ -245,7 +245,7 @@ dependency graph and no topological sort.** Coordination is
 **memoization**:
 
 - A generator that needs a peer's output calls
-  `context.insertOperation(PeerProjection, op)` (or `insertModel` /
+  `this.insertOperation(PeerProjection, op)` (or `insertModel` /
   `insertNormalizedModel`).
 - A **Driver** (`OasOperationDriver`, `GqlOperationDriver`,
   `ModelDriver`) computes a cache key `(identifier.name, exportPath)`

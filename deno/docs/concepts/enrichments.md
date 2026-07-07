@@ -293,8 +293,8 @@ Specifically:
 - **Model generators** route by `(refName, variant)` — the component name as it
   appears under `components.schemas`, plus variant name.
 - **GraphQL operation generators** route by `(rootKind, fieldName, variant)` —
-  `"Query" | "Mutation" | "Subscription"`, the operation field, and variant
-  name.
+  `"query" | "mutation" | "subscription"` (lowercase), the operation field, and
+  variant name.
 
 The trailing `variant` level defaults to `'main'` when the consumer declares no
 variants. Whenever any variant is declared, `'main'` MUST be present (the engine
@@ -316,12 +316,12 @@ member describes the leaf at that scope; unused scopes are declared
 ```ts
 // gen-shadcn-form/src/enrichments.ts
 import * as v from "valibot";
-import { moduleExport } from "@skmtc/core";
+import { lensInputModuleType, moduleSelect } from "@skmtc/core";
 
 export const formFieldItem = v.object({
-  id: v.string(),
-  accessorPath: v.optional(v.array(v.string())),
-  input: v.optional(moduleExport),
+  // `moduleSelect` is the field binding: `schemaPath` (the join key) plus an
+  // optional consumer component bound to the field's lens.
+  moduleSelect: v.pipe(moduleSelect(lensInputModuleType), v.title("Input")),
   label: v.optional(v.string()),
   placeholder: v.optional(v.string()),
   references: v.optional(v.string()),

@@ -260,7 +260,7 @@ template:
 
 ```ts
 override toString(): string {
-  const { title, description, submitLabel } = this.settings.enrichments ?? {}
+  const { title, description, submitLabel } = this.settings.enrichments.subject ?? {}
   return `(${this.parameter}) => {
     const form = useForm<Required<${this.tsRequestBodyName}>>({
       resolver: zodResolver(${this.zodRequestBodyName}.required()),
@@ -388,9 +388,14 @@ via enrichments, not via `insert*`. A user can supply a
     "@skmtc/gen-shadcn-form": {
       "/contacts": {
         "post": {
-          "fields": [
-            { "id": "officeIds", "references": "GetOffices" }
-          ]
+          "main": {
+            "fields": [
+              {
+                "moduleSelect": { "schemaPath": ["officeIds"] },
+                "references": "GetOffices"
+              }
+            ]
+          }
         }
       }
     }
@@ -498,7 +503,7 @@ they produced output — verify the `files` map).
 
 - **Operation generator depending on multiple model generators.**
   Pull in each via `insertNormalizedModel(MyModelProjection,
-  schema, fallbackName)`. The pattern scales —
+  { schema, fallbackName })`. The pattern scales —
   `gen-shadcn-form` pulls in three TS types (request body, props,
   path params) plus a Zod validator.
 - **Model generator depending on another model generator.**

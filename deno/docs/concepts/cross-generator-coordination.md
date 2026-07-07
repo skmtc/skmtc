@@ -113,8 +113,9 @@ calls out the purity requirement.
 
 ## The Driver flow
 
-When code calls `context.insertOperation(MyProjection, op)` (or the
-projection-base wrapper that auto-fills `destinationPath`):
+When code calls `context.insertOperation({ projection: MyProjection, operation })`
+(or the positional projection-base wrapper `this.insertOperation(MyProjection, operation)`
+that auto-fills `destinationPath`):
 
 1. **Compute settings.** Driver calls `MyProjection.toIdentifierName(...)`
    and `MyProjection.toExportPath(...)` to produce the cache key

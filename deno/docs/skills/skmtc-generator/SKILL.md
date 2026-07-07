@@ -731,7 +731,7 @@ operational details — committing this table to memory saves time:
 | `transform` return | `void` — the `acc` accumulator is removed (F11) | same | same |
 | `isSupported` field | optional, default `() => true` | optional, default `() => true` | optional, default `() => true` (predicate gets `refName`, no schema) |
 | Enrichment routing | `enrichments.<id>.<path>.<method>.<variant>` | `enrichments.<id>.<rootKind>.<fieldName>.<variant>` | `enrichments.<id>.<refName>.<variant>` |
-| Compose with | `context.insertOperation(P, op, { variant? })` | `context.insertOperation(P, op, { variant? })` | `context.insertModel(P, refName, { variant? })` |
+| Compose with | `this.insertOperation(P, op, { variant? })` | `this.insertOperation(P, op, { variant? })` | `this.insertModel(P, refName, { variant? })` |
 | Companion base factory (from `@skmtc/lang-typescript`) | `toTsOasOperationProjectionBase` | `toTsGqlOperationProjectionBase` | `toTsModelProjectionBase` |
 | `GeneratorKey` shape | `id\|path\|method\|variant` | `id\|rootKind\|fieldName\|variant` | `id\|refName\|variant` |
 

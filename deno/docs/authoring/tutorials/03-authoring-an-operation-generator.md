@@ -204,40 +204,52 @@ implicitly. See [projections-and-snippets concept](../../concepts/projections-an
 ## Step 6: Wire enrichments
 
 The scaffold does not create `src/enrichments.ts`. Add it
-yourself when you need user-configurable behavior. The Valibot
-schema's root **is** the enrichment payload — don't wrap it in
-an extra named object:
+yourself when you need user-configurable behavior. The schema is
+the **three-scope umbrella** — `v.object({ subject, generator, stack })`.
+Your per-operation options go under `subject`; leave the run-constant
+scopes `v.undefined()` when unused:
 
 ```ts
 // src/enrichments.ts
 import * as v from 'valibot'
 
-export const curlSchema = v.optional(
+// The per-operation leaf.
+export const curlSubject = v.optional(
   v.object({
     baseUrl: v.optional(v.string())
   })
 )
 
-export type EnrichmentSchema = v.InferOutput<typeof curlSchema>
-export const toEnrichmentSchema = () => curlSchema
+export const enrichmentSchema = v.object({
+  subject: curlSubject,
+  generator: v.undefined(),
+  stack: v.undefined()
+})
+
+export type EnrichmentSchema = v.InferOutput<typeof enrichmentSchema>
+export const toEnrichmentSchema = () => enrichmentSchema
 ```
 
 Wire it through the entry config and projection-base config (both
-take a `toEnrichmentSchema` field), then read in the Projection:
+take the required `toEnrichmentSchema` field), then read the `subject`
+scope in the Projection:
 
 ```ts
-const baseUrl = this.settings.enrichments?.baseUrl ?? 'https://api.example.com'
+const baseUrl = this.settings.enrichments.subject?.baseUrl ?? 'https://api.example.com'
 ```
 
 Users set `baseUrl` per operation in `client.json` under the OAS
-operation routing path `enrichments[generatorId][path][method]`:
+operation routing path `enrichments[generatorId][path][method][variant]`
+— the subject leaf sits under the variant key (`main` by default):
 
 ```jsonc
 {
   "enrichments": {
     "@local/curl-cmd": {
       "/users": {
-        "get": { "baseUrl": "https://staging.example.com" }
+        "get": {
+          "main": { "baseUrl": "https://staging.example.com" }
+        }
       }
     }
   }

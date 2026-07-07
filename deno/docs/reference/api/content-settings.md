@@ -169,7 +169,7 @@ Inside the Projection, the settings are available as `this.settings`:
 
 class ShadcnForm extends ShadcnFormBase {
   override toString(): string {
-    const { title, submitLabel } = this.settings.enrichments ?? {}
+    const { title, submitLabel } = this.settings.enrichments.subject ?? {}
 
     return `
       <Form>
@@ -265,7 +265,7 @@ const settings = new ContentSettings<EnrichmentSchema>({
 
 class ShadcnForm extends ShadcnFormBase {
   override toString(): string {
-    const { title, submitLabel } = this.settings.enrichments ?? {}
+    const { title, submitLabel } = this.settings.enrichments.subject ?? {}
     return `<Form><h2>${title}</h2>...<Button>${submitLabel}</Button></Form>`
   }
 }
