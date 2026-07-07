@@ -15,11 +15,13 @@
 
 ## 🚀 Quick Start
 
-Skmtc is a Deno CLI. Install it from JSR:
+Skmtc is a Deno CLI. Install the latest version with:
 
 ```bash
-deno install -g -A --unstable-worker-options jsr:@skmtc/cli -n skmtc -f
+curl -fsSL https://skm.tc/install | sh
 ```
+
+This bootstraps [Deno](https://deno.com) (the runtime) automatically if needed.
 
 ### Running code generators
 
@@ -125,10 +127,11 @@ Yes! The generated code is framework-agnostic TypeScript that works with any bui
 
 ## 🛠️ Local development
 
-For day-to-day work the published JSR install is the right choice:
+For day-to-day work the published install is the right choice — pin a version
+with `SKMTC_VERSION`:
 
 ```bash
-deno install -g -A --unstable-worker-options jsr:@skmtc/cli@<version> -n skmtc -f
+SKMTC_VERSION=<version> curl -fsSL https://skm.tc/install | sh
 ```
 
 To install a binary that tracks your **local checkout** instead, use `deno compile` rather than `deno install`:

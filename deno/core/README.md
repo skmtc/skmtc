@@ -13,11 +13,13 @@
 
 ## 🚀 Quick Start
 
-Skmtc is a Deno CLI. Install it from JSR:
+Skmtc is a Deno CLI. Install the latest version with:
 
 ```bash
-deno install -g -A --unstable-worker-options jsr:@skmtc/cli -n skmtc -f
+curl -fsSL https://skm.tc/install | sh
 ```
+
+This bootstraps [Deno](https://deno.com) (the runtime) automatically if needed.
 
 ### Running code generators
 
