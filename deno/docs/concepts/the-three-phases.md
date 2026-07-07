@@ -265,7 +265,7 @@ returns `void`). Instead, the transform calls
 
 ### The Driver lifecycle
 
-When `transform` calls `context.insertOperation(TanstackQuery, operation)`:
+When `transform` calls `context.insertOperation({ projection: TanstackQuery, operation })`:
 
 1. `new OasOperationDriver(...)` runs
    (`core/dsl/operation/oas/OasOperationDriver.ts`).

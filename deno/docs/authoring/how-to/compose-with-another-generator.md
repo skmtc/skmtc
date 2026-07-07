@@ -61,8 +61,9 @@ class TanstackQuery extends TanstackQueryBase {
 
 `this.insertNormalizedModel` is the canonical entry point for
 "materialize this schema as a Zod definition" (or any peer
-Projection). The engine returns an `Inserted` describing the
-existing or newly-created definition.
+Projection). It returns the peer's `Definition` — read its name off
+`.identifier.name`. (`insertModel` and `insertOperation` instead
+return an `Inserted`, whose `.toName()` gives the same string.)
 
 For model-by-refName composition, use `insertModel`:
 
@@ -75,14 +76,14 @@ projection-base methods (`this.x`) that wrap the underlying
 `GenerateContext` methods (`this.context.x`). The projection-base
 versions auto-fill `destinationPath` from `this.settings`.
 
-### Use the returned `Inserted` to get the identifier name
+### Use the returned `Definition` to get the identifier name
 
 ```ts
-const zodName = this.requestZod.toName()
+const zodName = this.requestZod.identifier.name
 // → e.g., "createUserBody"
 ```
 
-`toName()` returns the name string the peer Projection's
+`identifier.name` is the name string the peer Projection's
 `toIdentifierName` produced.
 
 ### Reference the name in your template
@@ -93,7 +94,7 @@ override toString(): string {
     export const useCreateUser = () => useMutation({
       mutationFn: (body) => fetch('/users', {
         method: 'POST',
-        body: JSON.stringify(${this.requestZod.toName()}.parse(body))
+        body: JSON.stringify(${this.requestZod.identifier.name}.parse(body))
       }).then(r => r.json())
     })
   `
@@ -138,16 +139,15 @@ two ways:
    consumer carries its own copy.
 
 By-name composition sidesteps both. You declare the peer
-contribution (via `insertNormalizedModel`), receive an
-`Inserted`-handle to the peer's identifier, and reference the
-identifier in your template. The engine handles the file
-materialization and import injection.
+contribution (via `insertNormalizedModel`), receive the peer's
+`Definition`, and reference its `identifier.name` in your template.
+The engine handles the file materialization and import injection.
 
 See [how idempotency works](../../explanation/how-idempotency-works.md).
 
 ## Troubleshooting
 
-- **`toName()` returns undefined** — The peer Projection wasn't
+- **`identifier.name` is undefined** — The peer Projection wasn't
   created. Check the peer's `isSupported` filter — your call may
   have been gated out.
 - **Import line not in output** — Confirm the

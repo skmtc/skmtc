@@ -498,7 +498,7 @@ they produced output — verify the `files` map).
 
 - **Operation generator depending on multiple model generators.**
   Pull in each via `insertNormalizedModel(MyModelProjection,
-  schema, fallbackName)`. The pattern scales —
+  { schema, fallbackName })`. The pattern scales —
   `gen-shadcn-form` pulls in three TS types (request body, props,
   path params) plus a Zod validator.
 - **Model generator depending on another model generator.**
