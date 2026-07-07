@@ -21,23 +21,26 @@ There are three:
 Source: `core/dsl/operation/oas/toOasOperationProjectionBase.ts`:
 
 ```ts
-get(context.settings, `enrichments.${config.id}.${operation.path}.${operation.method}`)
+get(context.settings, ['enrichments', config.id, operation.path, operation.method, variant])
 ```
 
-Three levels:
+Four levels — the subject leaf sits under a trailing `variant` key:
 
 ```
 enrichments
-  └── [generatorId]      e.g., "@skmtc/gen-shadcn-form"
-       └── [path]        e.g., "/customers" or "/orders/{id}"
-            └── [method] e.g., "post", "get", "put"
-                 └── { ...enrichment payload }
+  └── [generatorId]       e.g., "@skmtc/gen-shadcn-form"
+       └── [path]         e.g., "/customers" or "/orders/{id}"
+            └── [method]  e.g., "post", "get", "put"
+                 └── [variant]  "main" by default
+                      └── { ...subject leaf }
 ```
 
 `path` is the literal OpenAPI path string (including curly-brace
-parameters). `method` is the lowercase HTTP verb.
+parameters). `method` is the lowercase HTTP verb. `variant` is
+`"main"` unless the generator declares extra variants (and `"main"`
+must be present whenever any variant is).
 
-Example `client.json` fragment. The leaf payload's internal shape
+Example `client.json` fragment. The subject leaf's internal shape
 is defined by the generator's Valibot schema:
 
 ```jsonc
@@ -46,10 +49,14 @@ is defined by the generator's Valibot schema:
     "enrichments": {
       "@skmtc/gen-shadcn-form": {
         "/customers": {
-          "post": { "title": "Create Customer", "submitLabel": "Save" }
+          "post": {
+            "main": { "title": "Create Customer", "submitLabel": "Save" }
+          }
         },
         "/orders/{id}": {
-          "put":  { "title": "Edit Order",      "submitLabel": "Update" }
+          "put": {
+            "main": { "title": "Edit Order", "submitLabel": "Update" }
+          }
         }
       }
     }
@@ -119,17 +126,18 @@ Example (multi-variant — variants-aware model generator):
 Source: `core/dsl/operation/gql/toGqlOperationProjectionBase.ts`:
 
 ```ts
-get(context.settings, `enrichments.${config.id}.${operation.rootKind}.${operation.fieldName}`)
+get(context.settings, ['enrichments', config.id, operation.rootKind, operation.fieldName, variant])
 ```
 
-Three levels:
+Four levels — the subject leaf sits under a trailing `variant` key:
 
 ```
 enrichments
-  └── [generatorId]      e.g., "@skmtc/gen-graphql-x"
-       └── [rootKind]    "Query" | "Mutation" | "Subscription"
+  └── [generatorId]       e.g., "@skmtc/gen-graphql-x"
+       └── [rootKind]     "query" | "mutation" | "subscription" (lowercase)
             └── [fieldName]
-                 └── { ...enrichment payload }
+                 └── [variant]  "main" by default
+                      └── { ...subject leaf }
 ```
 
 Example:
@@ -139,11 +147,11 @@ Example:
   "settings": {
     "enrichments": {
       "@skmtc/gen-graphql-x": {
-        "Mutation": {
-          "createUser": { "title": "Create User" }
+        "mutation": {
+          "createUser": { "main": { "title": "Create User" } }
         },
-        "Query": {
-          "user": { "label": "User detail" }
+        "query": {
+          "user": { "main": { "label": "User detail" } }
         }
       }
     }
@@ -154,24 +162,27 @@ Example:
 ## Per-generator declaration
 
 Each generator declares its accepted enrichment shape via Valibot in
-`gen-x/src/enrichments.ts`. The Valibot schema describes the
-**leaf payload** — what arrives at the lookup target — not the
-routing keys above it:
+`gen-x/src/enrichments.ts`. `toEnrichmentSchema` returns the
+**three-scope umbrella** — `v.object({ subject, generator, stack })` —
+not a flat payload. The per-item leaf (what a user writes for one
+operation/model, under the `variant` key above) lives under
+`subject`; the two run-constant scopes are declared `v.undefined()`
+when unused:
 
 ```ts
 // gen-shadcn-form/src/enrichments.ts
 import * as v from 'valibot'
-import { moduleExport } from '@skmtc/core'
+import { lensInputModuleType, moduleSelect } from '@skmtc/core'
 
 export const formFieldItem = v.object({
-  id: v.string(),
-  accessorPath: v.optional(v.array(v.string())),
-  input: v.optional(moduleExport),
+  // `moduleSelect.schemaPath` is the join key (no separate `id`).
+  moduleSelect: v.pipe(moduleSelect(lensInputModuleType), v.title('Input')),
   label: v.optional(v.string()),
   placeholder: v.optional(v.string()),
   references: v.optional(v.string())
 })
 
+// The subject-scoped leaf — the per-operation form override.
 export const formSchema = v.optional(
   v.object({
     title: v.optional(v.string()),
@@ -181,11 +192,19 @@ export const formSchema = v.optional(
   })
 )
 
-export type EnrichmentSchema = v.InferOutput<typeof formSchema>
-export const toEnrichmentSchema = () => formSchema
+// The three-scope umbrella. This generator only reads `subject`.
+export const enrichmentSchema = v.object({
+  subject: formSchema,
+  generator: v.undefined(),
+  stack: v.undefined()
+})
+
+export type EnrichmentSchema = v.InferOutput<typeof enrichmentSchema>
+export const toEnrichmentSchema = () => enrichmentSchema
 ```
 
-The schema is registered via the generator's entry function:
+The schema is registered via the generator's entry function
+(`toEnrichmentSchema` is a **required** config field):
 
 ```ts
 // gen-shadcn-form/src/mod.ts
@@ -197,11 +216,13 @@ export const ShadcnFormEntry = toOasOperationEntry<EnrichmentSchema>({
 ```
 
 **The Valibot schema is the canonical source of truth for what
-the enrichment payload accepts.** To know what to put in
-`client.json` under the routing keys, read the generator's
-`enrichments.ts`. The schema's *root* is what arrives at the
-lookup target — for `gen-shadcn-form` above that's the object
-with `title`, `description`, `submitLabel`, `fields`.
+the enrichment payload accepts.** To know what a user writes in
+`client.json` under the routing keys, read the `subject` member of
+the generator's `enrichmentSchema` — for `gen-shadcn-form` above
+that's the object with `title`, `description`, `submitLabel`,
+`fields`. A no-enrichment generator passes core's
+`emptyEnrichmentSchema` (the umbrella with all three scopes
+`v.undefined()`).
 
 ## Validation behavior
 

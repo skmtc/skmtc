@@ -37,9 +37,13 @@ The routing keys depend on the generator's projection-base kind:
 
 | Factory | Key path |
 |---|---|
-| OAS operation | `enrichments[generatorId][operation.path][operation.method]` |
-| Model | `enrichments[generatorId][refName]` |
-| GraphQL operation | `enrichments[generatorId][rootKind][fieldName]` |
+| OAS operation | `enrichments[generatorId][operation.path][operation.method][variant]` |
+| Model | `enrichments[generatorId][refName][variant]` |
+| GraphQL operation | `enrichments[generatorId][rootKind][fieldName][variant]` |
+
+The trailing `variant` key is `"main"` by default. Write your override
+under it; whenever you declare any variant for an item, `"main"` must
+be one of them.
 
 Example for `gen-shadcn-form` (OAS operation) on `POST /users`:
 
@@ -50,11 +54,13 @@ Example for `gen-shadcn-form` (OAS operation) on `POST /users`:
       "@skmtc/gen-shadcn-form": {
         "/users": {
           "post": {
-            "title": "Create a user",
-            "submitLabel": "Create",
-            "fields": [
-              { "id": "name", "label": "Full name" }
-            ]
+            "main": {
+              "title": "Create a user",
+              "submitLabel": "Create",
+              "fields": [
+                { "moduleSelect": { "schemaPath": ["name"] }, "label": "Full name" }
+              ]
+            }
           }
         }
       }
@@ -70,7 +76,9 @@ Example for `gen-zod` (model) on `UserModel`:
   "settings": {
     "enrichments": {
       "@skmtc/gen-zod": {
-        "UserModel": { "description": "A user account" }
+        "UserModel": {
+          "main": { "description": "A user account" }
+        }
       }
     }
   }
