@@ -17,15 +17,14 @@ no-output bugs no error message will ever explain.
 
 ## The one-line definition
 
-`GenerateContext.toArtifacts` iterates `(generator × item)` pairs
+`GenerateContext.toArtifacts` walks `(generator × item × variant)`
 and calls `generatorConfig.transform({ context, operation | refName,
-acc })` on each. **The return value is folded into `acc` for the
-next iteration; nothing else is done with it.** All artifact
-production happens through side effects on `context` — `register`,
-`insertOperation`, `insertModel`, `insertNormalizedModel`. A
-Projection class is instantiated only when one of the `insert*`
-calls reaches its Driver; a Projection that nobody asks for is
-never constructed.
+variant })` on each. **`transform` returns `void` — the engine does
+nothing with a return value.** All artifact production happens through
+side effects on `context` — `register`, `insertOperation`,
+`insertModel`, `insertNormalizedModel`. A Projection class is
+instantiated only when one of the `insert*` calls reaches its Driver;
+a Projection that nobody asks for is never constructed.
 
 ## What `GenerateContext.toArtifacts` actually does
 
@@ -37,68 +36,57 @@ routes by `type` to one of three per-generator loops:
 - `#runGqlOperationGenerator` (line 437) — over `gqlDocument.operations`
 - `#runModelGenerator` (line 472) — over schema refNames
 
-Each loop is a `reduce` that calls `transform` per item:
+Each loop is a nested `forEach` — over items, then over each item's
+variants — that calls `transform` per `(item, variant)`:
 
 ```ts
-// core/context/GenerateContext.ts:383-434 (OAS variant, simplified)
-oasDocument.operations.reduce((acc, operation) => {
-  return stackTrail.trace(`${operation.path}:${operation.method}`, st => {
-    try {
-      if (!isSupported(...)) {
-        this.captureCurrentResult('notSupported', st)
-        return acc
+// core/context/GenerateContext.ts (OAS variant, simplified)
+oasDocument.operations.forEach(operation => {
+  const variants = toVariantList({ context: this, id, operation })
+  variants.forEach(variant => {
+    stackTrail.trace(`${operation.path}:${operation.method}`, st => {
+      try {
+        if (!isSupported(...)) {
+          this.captureCurrentResult('notSupported', st)
+          return
+        }
+        if (filteredByInclude || filteredBySkip) {
+          this.captureCurrentResult('skipped', st)
+          return
+        }
+        generatorConfig.transform({ context: this, operation, variant })
+        // ... preview/mapping hooks
+        this.captureCurrentResult('success', st)
+      } catch (error) {
+        this.logger.error(error)
+        this.captureCurrentResult('error', st)
       }
-      if (filteredByInclude || filteredBySkip) {
-        this.captureCurrentResult('skipped', st)
-        return acc
-      }
-      const result = generatorConfig.transform({ context: this, operation, acc })
-      // ... preview/mapping hooks
-      this.captureCurrentResult('success', st)
-      return result
-    } catch (error) {
-      this.logger.error(error)
-      this.captureCurrentResult('error', st)
-    }
+    })
   })
-}, undefined)
+})
 ```
 
 Notice what is **not** here:
 
 - The iteration never constructs a Projection. There is no
   `new SomeProjection(...)` anywhere in this loop.
-- The iteration does not look at what `transform` returned, except
-  to fold it into the next iteration's `acc`.
-- The terminal `acc` (what `reduce` returns) is discarded — the
-  outer function returns `void`.
+- The iteration does not look at what `transform` returned. `transform`
+  is typed to return `void`; the loop captures only a per-item
+  *result status* (`'success'` / `'skipped'` / …), never a value.
 
 Output is whatever `transform` did to `context` during its
 execution. If `transform` didn't call `register` or `insert*`,
 nothing is produced. The item is still marked `'success'` in the
 manifest — successful execution, no artifact.
 
-## Why `transform`'s return is folded but discarded
+## Why `transform` returns nothing
 
-`acc` is a real fold accumulator threaded between siblings in
-iteration order. It is occasionally useful for cross-item state —
-counting, last-result-references, etc. — within a single
-generator's pass.
-
-But two limits make `acc` unsuitable for output:
-
-1. **The terminal `acc` is thrown away.** Whatever the last iteration
-   returned is not persisted anywhere. There is no "and then write
-   the result to disk."
-2. **Iteration order is not part of the public contract.** Don't
-   build accumulators whose meaning depends on a specific
-   ordering across operations or models.
-
-In practice, `acc` is rarely used. Most generators ignore it and
-just `return acc` (or `return undefined`) from `transform`. The
-fact that the type signature *looks like* a transform pipeline is
-the misleading bit — the shape is map-fold, the behavior is
-fire-and-forget side-effect.
+`transform` is typed `(...) => void`. If you have written generators
+for map/fold-shaped tools, the instinct is to *return* your output and
+let the engine write it — here, nothing you `return` reaches the
+output. Everything a generator produces, it produces by calling
+`register` / `insert*` on `context`. Cross-item state, if a generator
+needs it, lives on the generator's own module scope or on `context`.
 
 ## Where output actually comes from
 
@@ -125,7 +113,10 @@ for primary artifacts — they go through the projection-base
 wrappers — but they often register raw `imports` for peer
 dependencies.
 
-### `context.insertOperation(MyProjection, op)` and `context.insertModel(MyProjection, refName)`
+### `context.insertOperation({ projection, operation })` and `context.insertModel(MyProjection, refName)`
+
+(`insertOperation` takes a single object argument; `insertModel` is
+positional — `insertModel(projection, refName, options?)`.)
 
 The cross-generator coordination APIs. Both delegate to a Driver
 class (`OasOperationDriver`, `GqlOperationDriver`, `ModelDriver`)
@@ -146,9 +137,11 @@ that:
 5. Stitches an import into `destinationPath` if it differs from
    `settings.exportPath`.
 
-Returns an `Inserted` carrying `settings` and `definition`. The
+Both return an `Inserted` carrying `settings` and `definition`. The
 calling generator typically uses `inserted.toName()` to splice the
-peer's identifier name into its own template.
+peer's identifier name into its own template. (`insertNormalizedModel`,
+below, returns the underlying `Definition` instead — it has
+`.identifier` / `.value`, not `.toName()`.)
 
 ### `context.insertNormalizedModel(MyProjection, { schema, fallbackName, destinationPath })`
 
@@ -173,14 +166,14 @@ doesn't ask for the Projection, the constructor never runs:
 // In your generator's mod.ts
 export default toOasOperationEntry({
   id: '@my/gen-thing',
-  transform: ({ context, operation, acc }) => {
+  toEnrichmentSchema: () => emptyEnrichmentSchema,
+  transform: ({ context, operation, variant }) => {
     // This call is what causes MyProjection's constructor to fire.
     // Without it, MyProjection is a class that the engine never instantiates.
     context.insertOperation({
       projection: MyProjection,
       operation
     })
-    return acc
   }
 })
 ```
@@ -188,10 +181,10 @@ export default toOasOperationEntry({
 The same Projection class can be instantiated from multiple
 directions:
 
-- Your own `transform` calls `insertOperation(MyProjection, op)`.
-- A *peer* generator's `transform` calls `insertOperation(MyProjection, op)`
+- Your own `transform` calls `insertOperation({ projection: MyProjection, operation })`.
+- A *peer* generator's `transform` calls `insertOperation({ projection: MyProjection, operation })`
   because it needs your output (cross-generator coordination).
-- Another Projection's constructor calls `this.insertOperation(MyProjection, op)`
+- Another Projection's constructor calls `this.insertOperation({ projection: MyProjection, operation })`
   recursively.
 
 Whichever call is *first* hits the cache miss and triggers the
@@ -219,13 +212,13 @@ is almost always the cause.
 ### "I returned the Definition from transform and got no output"
 
 ```ts
-transform: ({ context, operation, acc }) => {
+transform: ({ context, operation, variant }) => {
   return new TsDefinition({ ... })  // ← discarded
 }
 ```
 
-The return value is folded into `acc` and not used for output.
-Replace with `register({ definitions: [...], destinationPath: ... })`
+`transform` returns `void`; the return value is ignored, not used for
+output. Replace with `register({ definitions: [...], destinationPath: ... })`
 or `insertOperation(...)`.
 
 ### "Imports show up in the file body, not at the top"
@@ -346,8 +339,8 @@ into whatever `transform` called it — and is caught by
 ### What's the order of operations within one `transform` call?
 
 ```
-transform({ context, operation, acc }) {
-  context.insertOperation(MyProjection, op)
+transform({ context, operation, variant }) {
+  context.insertOperation({ projection: MyProjection, operation })
     └─ Driver computes settings (calls projection.toIdentifierName, toExportPath)
        └─ Cache lookup on (name, exportPath)
           └─ MISS: new MyProjection({ context, operation, settings, destinationPath })
@@ -358,7 +351,7 @@ transform({ context, operation, acc }) {
           └─ HIT: affirmDefinition integrity check, return cached
        └─ If destinationPath !== exportPath, stitch an import into destinationPath
     └─ Returns Inserted<V, EnrichmentType>
-  return acc
+  // nothing returned — output was produced by the insertOperation side effect
 }
 ```
 
@@ -368,7 +361,7 @@ registers its own dependencies (peer Projections, peer imports).
 
 ### Does `transform` need to be synchronous?
 
-Yes. `toArtifacts`'s `reduce` is synchronous. Generators that
+Yes. `toArtifacts`'s generate loop is synchronous. Generators that
 need async work (e.g., HTTP enrichment fetches) must complete
 before the Generate phase — typically by pre-computing enrichments
 at config time. The Worker boundary is also synchronous-message;

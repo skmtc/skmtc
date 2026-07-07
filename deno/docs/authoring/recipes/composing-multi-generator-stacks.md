@@ -473,9 +473,8 @@ export const myEntry = toOasOperationEntry<EnrichmentSchema>({
   id: denoJson.name,
   isSupported,                  // pick which operations apply
   toEnrichmentSchema,           // accept user enrichments
-  transform: ({ context, operation, acc }) => {
+  transform: ({ context, operation }) => {
     context.insertOperation({ projection: MyProjection, operation })
-    return acc
   }
 })
 export default myEntry

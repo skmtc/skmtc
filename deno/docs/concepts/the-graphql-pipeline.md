@@ -292,9 +292,8 @@ export const GraphqlClientBase = toTsGqlOperationProjectionBase<EnrichmentSchema
 export const graphqlClientEntry = toGqlOperationEntry({
   id: denoJson.name,
   isSupported: ({ operation }) => synthesizeArgsObject(operation) !== undefined,
-  transform: ({ context, operation, acc }) => {
+  transform: ({ context, operation }) => {
     context.insertOperation({ projection: GraphqlClient, operation })
-    return acc
   },
   toEnrichmentSchema
 })
@@ -351,32 +350,21 @@ because no stock GraphQL generator currently needs the
 cross-generator coordination layer. The class-based pattern is
 available when you do.
 
-### Authoring asymmetries vs OAS
+### Authoring differences vs OAS
 
-The pipelines share substrate, but the operation-entry shape isn't
-identical. Three differences trip up authors who carry OAS habits
-into a GraphQL generator:
+The pipelines share substrate, and the operation-entry shape is
+largely symmetric: `transform` has the same `({ context, operation,
+variant }) => void` signature, enrichments are pre-resolved the same
+way (the projection base's static `toEnrichments` reads
+`['enrichments', id, rootKind, fieldName, variant]`, mirroring OAS's
+`[…, path, method, variant]`), and the Driver / cache / integrity
+model is identical. Two genuine differences trip up authors carrying
+OAS habits:
 
 | | OAS (`toOasOperationEntry`) | GraphQL (`toGqlOperationEntry`) |
 |---|---|---|
-| `transform` signature | `({ context, operation }) => void` — return value discarded | `({ context, operation, acc }) => acc` — **must return `acc`** |
-| Enrichment delivery | `toArtifacts` pre-resolves enrichment via `lodash.get` on `[path][method]` and hands it to `transform` / Projection constructor | Hands you the raw operation; you walk `context.settings.enrichments[id][operation.identifier]` yourself (`operation.identifier` is `<rootKind>_<fieldName>`) |
+| Routing keys | `[path][method]` | `[rootKind][fieldName]` — the cache key and enrichment path key on these instead |
 | Body for mutations | `operation.toRequestBody(({ schema }) => schema)` | `synthesizeArgsObject(operation)` — turns the field's arguments into an object schema you can feed to `insertNormalizedModel` |
-
-The first asymmetry is a footgun: dropping `acc` from a GQL
-`transform` doesn't break that operation, but it breaks every
-operation that follows in `toArtifacts`'s iteration, because the
-accumulator is reset. The class-based pattern hides this — the
-Projection's constructor is the side-effect surface and the
-top-level `transform` is just a one-liner that returns `acc`:
-
-```ts
-transform({ context, operation, acc }) {
-  if (!shouldRun(operation)) return acc
-  context.insertOperation({ projection: MyForm, operation })
-  return acc
-}
-```
 
 The second asymmetry is why the same operation-reference protocol
 (see [cross-generator-coordination](cross-generator-coordination.md#pattern-operation-reference-consumer-chosen-peer))

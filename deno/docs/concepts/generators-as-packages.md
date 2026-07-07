@@ -119,8 +119,8 @@ export default MyGenEntry
 `isSupported` is the capability gate; `transform` is the per-item
 hook. Output happens through side effects on `context` —
 `register`, `insertOperation`, `insertModel`,
-`insertNormalizedModel`. The return value is folded into `acc` but
-never persisted as artifacts. See
+`insertNormalizedModel`. `transform` returns `void`; any return value
+is ignored. See
 [how-generators-produce-output](how-generators-produce-output.md).
 
 **Model entry** — same skeleton with two differences (no
@@ -140,9 +140,8 @@ Model entries are called once for every refName in the document —
 there's no capability gate at the Entry level. Filter inside
 `transform` if needed.
 
-**GraphQL operation entry** — same skeleton with one critical
-difference (`transform` must return `acc` to keep the accumulator
-threaded):
+**GraphQL operation entry** — same skeleton, keyed on `rootKind` /
+`fieldName` instead of `path` / `method`:
 
 ```ts
 const MyGqlEntry = toGqlOperationEntry<EnrichmentSchema>({
@@ -151,16 +150,15 @@ const MyGqlEntry = toGqlOperationEntry<EnrichmentSchema>({
   isSupported({ operation }) {
     return operation.rootKind === 'mutation'
   },
-  transform({ context, operation, acc }) {
-    if (operation.rootKind !== 'mutation') return acc
+  transform({ context, operation }) {
+    if (operation.rootKind !== 'mutation') return
     context.insertOperation({ projection: MyGen, operation })
-    return acc  // ← required for GQL
   }
 })
 ```
 
-A side-by-side comparison of the three factories — config fields,
-acc semantics, enrichment routing paths — is in the
+A side-by-side comparison of the three factories — config fields and
+enrichment routing paths — is in the
 [entry-factories reference](../reference/api/entry-factories.md#the-three-factories-at-a-glance).
 
 ### `src/base.ts` (projection base)

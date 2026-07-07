@@ -190,8 +190,8 @@ export default schemaMetaEntry
 
 Two things to internalize:
 
-1. **`transform` is fire-and-forget.** Its return value is folded
-   into `acc` but never persisted as output. The way artifacts get
+1. **`transform` is fire-and-forget.** It returns `void`; any return
+   value is ignored, never persisted as output. The way artifacts get
    produced is the side-effect `context.insertModel(...)` call —
    that's what triggers the Driver to construct your Projection (if
    not already cached), wrap the result in a `Definition`, and
