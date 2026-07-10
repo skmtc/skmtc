@@ -13,6 +13,7 @@ import type { Connect, Plugin } from 'vite'
 import { runDescribe, runGenerate, type CliResult } from './skmtc-cli.ts'
 import {
   applyEditToClientJson,
+  basePathOf,
   clientJsonPath,
   enrichmentEditSchema,
   inputMatchesSchema,
@@ -36,6 +37,7 @@ import {
 import { readPreviews } from './manifest.ts'
 import { previewOptimizeDeps } from './optimize-deps.ts'
 import { readArtifactContent, readArtifacts } from './artifacts.ts'
+import { readGenMap } from './gen-map.ts'
 import { filtersWriteSchema, fromFilterEntries, toFilterEntries } from './filters.ts'
 import { readSource } from './project-sources.ts'
 
@@ -271,15 +273,15 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       server.watcher.add(HARNESS_SOURCE_PATH)
       server.watcher.add(clientJsonFile)
 
-      // The gen-map (`.maps/_map.ndjson`) resolves a model name to its generated
-      // file for the input matcher; only `--anchors` generates emit it. The
-      // regenerate path always anchors, but edit/filters don't (the map is heavy
-      // and stable across enrichment edits) — so a project only ever generated
-      // without `--anchors` (a repo `generate` script that omits it, or an
-      // edit-only session) has NO map, and every field picker reports
-      // `model-missing`. Bootstrap it exactly once, when it's absent, on any
-      // generate path and lazily before the first match — then the fast no-anchor
-      // path takes over.
+      // The gen-map (`.maps/`) serves two consumers: `_map.ndjson` resolves a
+      // model name to its generated file for the input matcher, and the
+      // per-file span sidecars (`*.skm.json`) drive the code panel's
+      // attribution overlay. Only `--anchors` generates emit them — and span
+      // sidecars go stale on EVERY content change (spans shift), so every
+      // generate path passes `--anchors` now (measured: the full reapit
+      // generate with anchors is ~270 ms; the old "heavy, skip on edits"
+      // assumption predates measurement). `genMapMissing` remains only as the
+      // lazy bootstrap trigger for a project never generated with anchors.
       const genMapPath = join(root, '.skmtc', options.project, '.maps', '_map.ndjson')
       const genMapMissing = (): boolean => !existsSync(genMapPath)
 
@@ -366,7 +368,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
         const generate = await enqueue(async () => {
           const next = applyEditToClientJson(await readClientJson(root, options.project), edit)
           await writeClientJson(root, options.project, next)
-          return runGenerate(root, options.project, genMapMissing())
+          return runGenerate(root, options.project)
         }).catch((error): CliResult => ({ ok: false, code: 1, message: messageOf(error) }))
         // The generate rewrote the source the matcher type-checks against —
         // bump the state's file versions + drop its generate-derived caches.
@@ -374,11 +376,9 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
         respondJson(response, generate.ok ? 200 : 500, { generate })
       }
 
-      // Regenerate without an edit (initial render / manual refresh). Pass anchors
-      // here so the gen-map (`.maps`) is (re)populated on render — the edit loop
-      // skips it (heavy + the model→file map is stable across enrichment edits).
+      // Regenerate without an edit (initial render / manual refresh).
       const regenerateHandler: Connect.NextHandleFunction = async (_request, response) => {
-        const generate = await enqueue(() => runGenerate(root, options.project, true))
+        const generate = await enqueue(() => runGenerate(root, options.project))
         if (generate.ok) state.onGenerateSuccess()
         respondJson(response, generate.ok ? 200 : 500, { generate })
       }
@@ -401,7 +401,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
         // first open without the user first hitting Regenerate. A plain
         // `vite dev` user who never opens the editor never triggers this.
         if (genMapMissing()) {
-          const generate = await enqueue(() => runGenerate(root, options.project, true))
+          const generate = await enqueue(() => runGenerate(root, options.project))
           if (generate.ok) state.onGenerateSuccess()
         }
         try {
@@ -415,8 +415,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       const previewsHandler: Connect.NextHandleFunction = async (_request, response) => {
         try {
           const clientJson = await readClientJson(root, options.project)
-          const basePath =
-            typeof clientJson.settings.basePath === 'string' ? clientJson.settings.basePath : 'src'
+          const basePath = basePathOf(clientJson)
           respondJson(response, 200, await readPreviews(root, options.project, basePath))
         } catch (error) {
           respondJson(response, 500, { error: messageOf(error) })
@@ -463,8 +462,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
           const inputDirs = Array.isArray(clientJson.settings.inputDirs)
             ? clientJson.settings.inputDirs.filter((dir): dir is string => typeof dir === 'string')
             : []
-          const basePath =
-            typeof clientJson.settings.basePath === 'string' ? clientJson.settings.basePath : 'src'
+          const basePath = basePathOf(clientJson)
           const candidates = await state.candidates(inputDirs, basePath)
           respondJson(response, 200, {
             candidates: candidates.map(({ exportName, exportPath }) => ({
@@ -494,6 +492,20 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
             return
           }
           respondJson(response, 200, { path, content })
+        } catch (error) {
+          respondJson(response, 500, { error: messageOf(error) })
+        }
+      }
+
+      // The attribution gen-map from the last `--anchors` generate: every
+      // sidecar span decoded to a flat entry (the hub's `GenMapEntry` shape,
+      // plus `variant`), with formatter-drifted files reported as stale
+      // instead of decorated wrongly. Drives the code panel's overlay.
+      const genMapHandler: Connect.NextHandleFunction = async (_request, response) => {
+        try {
+          const clientJson = await readClientJson(root, options.project)
+          const basePath = basePathOf(clientJson)
+          respondJson(response, 200, await readGenMap(root, options.project, basePath))
         } catch (error) {
           respondJson(response, 500, { error: messageOf(error) })
         }
@@ -533,7 +545,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
               skip: toFilterEntries(filters.skip)
             }
           })
-          return runGenerate(root, options.project, genMapMissing())
+          return runGenerate(root, options.project)
         }).catch((error): CliResult => ({ ok: false, code: 1, message: messageOf(error) }))
         if (generate.ok) state.onGenerateSuccess()
         respondJson(response, generate.ok ? 200 : 500, { generate })
@@ -575,6 +587,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       server.middlewares.use('/__skmtc/source', methodGuard('GET', gated(sourceHandler)))
       server.middlewares.use('/__skmtc/candidates', methodGuard('GET', gated(candidatesHandler)))
       server.middlewares.use('/__skmtc/artifacts', methodGuard('GET', gated(artifactsHandler)))
+      server.middlewares.use('/__skmtc/gen-map', methodGuard('GET', gated(genMapHandler)))
       server.middlewares.use('/__skmtc/filters', methodGuard('GET', gated(filtersReadHandler)))
       server.middlewares.use('/__skmtc/filters', methodGuard('POST', gated(filtersWriteHandler)))
       server.middlewares.use(
