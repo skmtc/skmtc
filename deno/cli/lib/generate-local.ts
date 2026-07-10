@@ -79,6 +79,13 @@ export type GenerateLocalResult = {
    * post-pass actually ran. Mirrored to the `--json` output.
    */
   anchors?: GenerateLocalAnchorsStats
+  /**
+   * Artifact paths the run left untouched because their on-disk
+   * content has manual edits (see `WriteGeneratedFilesResult`).
+   * Surfaced structurally for `--json` consumers; the human-readable
+   * warning already landed on stderr.
+   */
+  protectedPaths: string[]
 }
 
 export const generateLocal = async ({
@@ -109,11 +116,12 @@ export const generateLocal = async ({
         stackUrl
       })
 
-    writeGeneratedFiles({
+    const { protectedPaths } = writeGeneratedFiles({
       manifestPath,
       artifacts,
       manifest,
-      clientSettings
+      clientSettings,
+      projectPath
     })
 
     let anchorsStats: GenerateLocalAnchorsStats | undefined
@@ -138,7 +146,8 @@ export const generateLocal = async ({
       stats,
       parseIssues: manifest.parseIssues,
       filePaths: Object.keys(artifacts),
-      anchors: anchorsStats
+      anchors: anchorsStats,
+      protectedPaths
     }
   } catch (error) {
     console.error(error instanceof Error ? error : 'Failed to generate artifacts')

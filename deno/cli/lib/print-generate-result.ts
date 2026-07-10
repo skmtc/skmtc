@@ -51,6 +51,11 @@ export const printGenerateResult = ({
           totalTimeMs: result.stats.totalTime
         },
         files: result.filePaths,
+        // Generated files left untouched because they carry manual
+        // edits — the human-readable warning already landed on stderr;
+        // this is the structured mirror. Always present (empty when
+        // nothing was protected) so consumers can pin to it.
+        protectedFiles: result.protectedPaths,
         errors: result.stats.errors,
         // Pass through ParseIssue verbatim — the shape is stable and
         // documented in `@skmtc/core` as part of the manifest schema.

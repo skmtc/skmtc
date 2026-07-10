@@ -9,7 +9,101 @@ import type { ClientSettings } from '@skmtc/core/Settings'
 import * as v from 'valibot'
 import { toRootPath, toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { pruneEmptyDirs, toAnchorDirs } from '@/lib/prune-empty-dirs.ts'
-import type { GenerateResponse } from '@/types/generateResponse.ts'
+import {
+  type GeneratedLockContent,
+  type GeneratedLockEntry,
+  readGeneratedLock,
+  toContentHash,
+  toGeneratedLockPath,
+  writeGeneratedLock
+} from '@/lib/generated-lock.ts'
+import {
+  readBaseline,
+  removeBaseline,
+  toBaselinePath,
+  toBaselinesDir,
+  writeBaseline
+} from '@/lib/baseline-store.ts'
+import { formatContent, runFormatter } from '@/lib/formatter.ts'
+
+/**
+ * Everything edit detection needs to classify one on-disk artifact.
+ * Bundled once per run by `writeGeneratedFiles` and threaded through
+ * both the overwrite path and the stale-artifact prune so the two
+ * enforce the same invariant: a hand-edited generated file is never
+ * overwritten and never deleted.
+ */
+type EditDetectionContext = {
+  lock: GeneratedLockContent | null
+  /** From `client.json#settings.formatter`; absent → raw comparison only. */
+  formatterCommand: string | undefined
+  /** Absent when the caller didn't supply a `projectPath` (baselines disabled). */
+  baselinesDir: string | null
+  /** App root — cwd for formatter runs. */
+  appRoot: string
+}
+
+type ClassifyResult = {
+  edited: boolean
+  diskHash: string
+  /**
+   * Set when the mismatch was explained by a formatter-config change
+   * (re-formatting the stored baseline under the current config
+   * reproduces the disk content). The caller records this as the
+   * file's new `formattedHash` so the next run compares cheaply.
+   */
+  driftResolvedFormattedHash?: string
+}
+
+/**
+ * Decides whether the file at `absolutePath` was hand-edited since the
+ * run recorded in `lockEntry`:
+ *
+ * 1. Disk matches `formattedHash` → untouched.
+ * 2. Otherwise, re-format the canonical baseline under the *current*
+ *    formatter config; if that reproduces the disk content, only the
+ *    formatting moved (config change) — untouched.
+ * 3. Otherwise: edited.
+ */
+const classifyDiskFile = ({
+  artifactPath,
+  absolutePath,
+  lockEntry,
+  detection
+}: {
+  artifactPath: string
+  absolutePath: string
+  lockEntry: GeneratedLockEntry
+  detection: EditDetectionContext
+}): ClassifyResult => {
+  const diskContent = Deno.readTextFileSync(absolutePath)
+  const diskHash = toContentHash(diskContent)
+
+  if (diskHash === lockEntry.formattedHash) {
+    return { edited: false, diskHash }
+  }
+
+  const { formatterCommand, baselinesDir, appRoot } = detection
+
+  if (formatterCommand && baselinesDir) {
+    const baseline = readBaseline(baselinesDir, artifactPath)
+
+    if (baseline !== null) {
+      const formattedBaseline = formatContent({
+        command: formatterCommand,
+        absolutePath,
+        content: baseline,
+        cwd: appRoot
+      })
+
+      if (formattedBaseline !== null && toContentHash(formattedBaseline) === diskHash) {
+        return { edited: false, diskHash, driftResolvedFormattedHash: diskHash }
+      }
+    }
+  }
+
+  return { edited: true, diskHash }
+}
 
 type DeletePreviousArtifactsArgs = {
   skmtcRootPath: string
@@ -19,14 +113,25 @@ type DeletePreviousArtifactsArgs = {
    *  empty-dir prune that follows file deletion. When absent (no
    *  basePath, or called without settings), dirs aren't pruned. */
   clientSettings?: ClientSettings
+  /**
+   * Edit-detection context. When absent (legacy callers), pruning
+   * behaves as before: every stale manifest path is deleted. When
+   * present, a stale file classified as hand-edited is left in place
+   * and reported through `onProtected`.
+   */
+  detection?: EditDetectionContext
+  /** Receives the artifact path of every stale-but-edited file spared from deletion. */
+  onProtected?: (artifactPath: string) => void
 }
 
 export const deletePreviousArtifacts = ({
   skmtcRootPath,
   incomingPaths,
   manifestPath,
-  clientSettings
-}: DeletePreviousArtifactsArgs) => {
+  clientSettings,
+  detection,
+  onProtected
+}: DeletePreviousArtifactsArgs): void => {
   if (!existsSync(manifestPath)) {
     return
   }
@@ -47,19 +152,42 @@ export const deletePreviousArtifacts = ({
 
   const deletedAbsPaths: string[] = []
 
-  paths.forEach(path => {
+  for (const path of paths) {
     try {
-      if (!incomingPaths.includes(path)) {
-        const absolutePath = join(skmtcRootPath, '..', path)
+      if (incomingPaths.includes(path)) {
+        continue
+      }
 
-        Deno.removeSync(absolutePath)
-        deletedAbsPaths.push(absolutePath)
+      const absolutePath = join(skmtcRootPath, '..', path)
+
+      // A stale artifact the user has edited is theirs now — deleting
+      // it would destroy their work. Leave it and let the caller report.
+      const lockEntry = detection?.lock?.files[path]
+      if (detection && lockEntry && existsSync(absolutePath)) {
+        const { edited } = classifyDiskFile({
+          artifactPath: path,
+          absolutePath,
+          lockEntry,
+          detection
+        })
+
+        if (edited) {
+          onProtected?.(path)
+          continue
+        }
+      }
+
+      Deno.removeSync(absolutePath)
+      deletedAbsPaths.push(absolutePath)
+
+      if (detection?.baselinesDir) {
+        removeBaseline(detection.baselinesDir, path)
       }
     } catch (_error) {
       // Ignore
       // console.error(`Failed to delete artifact: "${error}"`)
     }
-  })
+  }
 
   // Prune any directories the stale-artifact deletion emptied, bounded
   // by the output anchors so the walk can never remove basePath or a
@@ -107,50 +235,202 @@ type WriteGeneratedFilesArgs = {
   artifacts: Record<string, string>
   manifest: ManifestContent
   /** Output anchors from the run's client.json — forwarded to the
-   *  stale-artifact prune so it can clean up emptied directories. */
+   *  stale-artifact prune so it can clean up emptied directories.
+   *  Also supplies the `formatter` command for post-write formatting
+   *  and formatter-aware edit detection. */
   clientSettings?: ClientSettings
+  /**
+   * Filesystem path of the project — `.skmtc/<project>/`. Enables the
+   * canonical-content baseline store (`<projectPath>/.baselines/`),
+   * which is what lets edit detection tell a formatter-config change
+   * apart from a hand edit. Omitted → baselines are disabled and only
+   * lock-hash comparison runs.
+   */
+  projectPath?: string
+}
+
+export type WriteGeneratedFilesResult = {
+  manifest: ManifestContent
+  artifacts: Record<string, string>
+  /**
+   * Artifact paths that were NOT written (or deleted) this run because
+   * the on-disk file no longer matches what the previous run produced —
+   * i.e. the user hand-edited it. The prime invariant: `generate`
+   * never destroys a hand edit.
+   */
+  protectedPaths: string[]
 }
 
 export const writeGeneratedFiles = ({
   manifestPath,
   artifacts,
   manifest,
-  clientSettings
-}: WriteGeneratedFilesArgs): GenerateResponse => {
+  clientSettings,
+  projectPath
+}: WriteGeneratedFilesArgs): WriteGeneratedFilesResult => {
   const skmtcRootPath = toRootPath()
+  const appRoot = resolve(skmtcRootPath, '..')
+
+  const lockPath = toGeneratedLockPath(manifestPath)
+  const lock = readGeneratedLock(lockPath)
+  const baselinesDir = projectPath ? toBaselinesDir(projectPath) : null
+
+  const detection: EditDetectionContext = {
+    lock,
+    formatterCommand: clientSettings?.formatter,
+    baselinesDir,
+    appRoot
+  }
+
+  const protectedPaths: string[] = []
 
   deletePreviousArtifacts({
     incomingPaths: Object.keys(artifacts ?? {}),
     manifestPath,
     skmtcRootPath,
-    clientSettings
+    clientSettings,
+    detection,
+    onProtected: path => protectedPaths.push(path)
   })
 
   ensureFileSync(manifestPath)
 
   Deno.writeTextFileSync(manifestPath, JSON.stringify(manifest, null, 2))
 
-  Object.entries(artifacts ?? {}).forEach(([artifactPath, artifactContent]) => {
+  const nextLockFiles: Record<string, GeneratedLockEntry> = {}
+  const pendingWrites: Array<{
+    artifactPath: string
+    absolutePath: string
+    canonicalHash: string
+    content: string
+  }> = []
+
+  for (const [artifactPath, artifactContent] of Object.entries(artifacts ?? {})) {
     const content = String(artifactContent)
     const absolutePath = join(skmtcRootPath, '..', artifactPath)
+    const canonicalHash = toContentHash(content)
 
-    // Changed-only write: skip files already byte-identical on disk. Render
-    // output is deterministic, so most files are unchanged between runs;
-    // rewriting them all churns mtimes and makes file-watch consumers
-    // (Vite HMR under the preview harness, `skmtc dev`) re-process every file on
-    // every regenerate. existsSync + read is cheap next to a needless write and
-    // the downstream rebuild it triggers. (Stale files are still deleted above
-    // by deletePreviousArtifacts — this only suppresses no-op rewrites.)
-    if (existsSync(absolutePath) && Deno.readTextFileSync(absolutePath) === content) {
-      return
+    if (!existsSync(absolutePath)) {
+      const { dir } = parse(absolutePath)
+      ensureDirSync(dir)
+      Deno.writeTextFileSync(absolutePath, content)
+      pendingWrites.push({ artifactPath, absolutePath, canonicalHash, content })
+      continue
     }
 
-    const { dir } = parse(absolutePath)
+    const lockEntry = lock?.files[artifactPath]
 
-    ensureDirSync(dir)
+    if (!lockEntry) {
+      // Untracked file (first run with edit detection, or a fresh
+      // clone without the lock): preserve the pre-lock behavior —
+      // changed-only overwrite — and seed a lock entry so the NEXT
+      // run can tell edits apart. Render output is deterministic, so
+      // skipping byte-identical rewrites also keeps mtimes stable for
+      // file-watch consumers (Vite HMR, `skmtc dev`).
+      const diskContent = Deno.readTextFileSync(absolutePath)
 
+      if (diskContent === content) {
+        nextLockFiles[artifactPath] = { canonicalHash, formattedHash: canonicalHash }
+        if (baselinesDir) {
+          writeBaseline(baselinesDir, artifactPath, content)
+        }
+        continue
+      }
+
+      Deno.writeTextFileSync(absolutePath, content)
+      pendingWrites.push({ artifactPath, absolutePath, canonicalHash, content })
+      continue
+    }
+
+    const { edited, driftResolvedFormattedHash } = classifyDiskFile({
+      artifactPath,
+      absolutePath,
+      lockEntry,
+      detection
+    })
+
+    if (edited) {
+      // The prime invariant: never destroy a hand edit. Keep the old
+      // lock entry and baseline — they are what the user's edit was
+      // made against, and what a future eject/merge resolves from.
+      protectedPaths.push(artifactPath)
+      nextLockFiles[artifactPath] = lockEntry
+      continue
+    }
+
+    if (canonicalHash === lockEntry.canonicalHash) {
+      // Unchanged render output on a clean file → no write (keeps
+      // mtimes stable). Record the drift-resolved formatted hash when
+      // a formatter-config change was detected so subsequent runs
+      // compare cheaply again.
+      nextLockFiles[artifactPath] = {
+        canonicalHash: lockEntry.canonicalHash,
+        formattedHash: driftResolvedFormattedHash ?? lockEntry.formattedHash
+      }
+      if (baselinesDir && toBaselinePath(baselinesDir, artifactPath) !== null) {
+        const existingBaseline = readBaseline(baselinesDir, artifactPath)
+        if (existingBaseline === null) {
+          writeBaseline(baselinesDir, artifactPath, content)
+        }
+      }
+      continue
+    }
+
+    // Changed render output on a clean file → overwrite.
     Deno.writeTextFileSync(absolutePath, content)
-  })
+    pendingWrites.push({ artifactPath, absolutePath, canonicalHash, content })
+  }
 
-  return { manifest, artifacts }
+  // Post-write formatting: run the consumer's formatter over exactly
+  // the files this run wrote, then record the formatted content's hash
+  // so edit detection compares against what is actually on disk.
+  const formatterCommand = clientSettings?.formatter
+
+  if (formatterCommand && pendingWrites.length > 0) {
+    const result = runFormatter({
+      command: formatterCommand,
+      filePaths: pendingWrites.map(({ absolutePath }) => absolutePath),
+      cwd: appRoot
+    })
+
+    if (!result.ok) {
+      console.error(
+        `Warning: formatter command failed (${result.error}); ` +
+          `generated files were written unformatted.`
+      )
+    }
+  }
+
+  for (const { artifactPath, absolutePath, canonicalHash, content } of pendingWrites) {
+    const onDisk = Deno.readTextFileSync(absolutePath)
+    nextLockFiles[artifactPath] = {
+      canonicalHash,
+      formattedHash: toContentHash(onDisk)
+    }
+    if (baselinesDir) {
+      writeBaseline(baselinesDir, artifactPath, content)
+    }
+  }
+
+  // Stale-but-edited files spared by the prune keep their lock entry so
+  // future runs can still classify them.
+  for (const path of protectedPaths) {
+    const previousEntry = lock?.files[path]
+    if (previousEntry && !nextLockFiles[path]) {
+      nextLockFiles[path] = previousEntry
+    }
+  }
+
+  writeGeneratedLock(lockPath, { version: 1, files: nextLockFiles })
+
+  if (protectedPaths.length > 0) {
+    console.error(
+      `Warning: ${protectedPaths.length} generated file(s) have manual edits and were left ` +
+        `untouched:\n${protectedPaths.map(path => `  ${path}`).join('\n')}\n` +
+        `Generated files are overwritten on each run — move lasting changes into enrichments ` +
+        `or hand-written modules, or revert the files to resume generation for them.`
+    )
+  }
+
+  return { manifest, artifacts, protectedPaths }
 }

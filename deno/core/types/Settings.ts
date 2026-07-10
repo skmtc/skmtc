@@ -233,6 +233,7 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   skip: v.optional(v.array(skip)),
   anchors: v.optional(anchorsSettings),
   inputDirs: v.optional(v.array(v.string())),
+  formatter: v.optional(v.string()),
 });
 
 /**
@@ -531,6 +532,16 @@ export type ClientSettings = {
    * and carries it through `skmtc push` to the hub.
    */
   inputDirs?: string[];
+  /**
+   * Shell command the CLI runs over freshly written artifacts after each
+   * generate, e.g. `"npx prettier --write"` or `"deno fmt"`. Written file
+   * paths are appended (shell-quoted) and the command runs via `sh -c`
+   * from the app root. A host concern: the generation engine itself never
+   * formats (render output stays canonical); this hook exists so on-disk
+   * files match the consumer's own code style and so edit detection can
+   * compare through the formatter instead of being defeated by it.
+   */
+  formatter?: string;
 };
 
 /**

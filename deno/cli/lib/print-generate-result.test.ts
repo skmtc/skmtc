@@ -17,7 +17,8 @@ const baseResult: GenerateLocalResult = {
     'src/types/User.generated.ts',
     'src/types/Customer.generated.ts',
     'src/services/useCustomer.generated.ts'
-  ]
+  ],
+  protectedPaths: []
 }
 
 Deno.test('printGenerateResult - text format includes basePath in summary', async () => {
