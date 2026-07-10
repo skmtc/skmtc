@@ -168,6 +168,13 @@ type WriteGeneratedFilesArgs = {
    * lock-hash comparison runs.
    */
   projectPath?: string
+  /**
+   * Suppress the multi-line stderr warning for protected files. Watch
+   * mode sets this — re-announcing the same protected files on every
+   * rebuild is alarm fatigue; `dev` prints its own one-line status
+   * instead. Protection itself is unaffected.
+   */
+  warnOnProtected?: boolean
 }
 
 export type WriteGeneratedFilesResult = {
@@ -187,7 +194,8 @@ export const writeGeneratedFiles = ({
   artifacts,
   manifest,
   clientSettings,
-  projectPath
+  projectPath,
+  warnOnProtected = true
 }: WriteGeneratedFilesArgs): WriteGeneratedFilesResult => {
   const skmtcRootPath = toRootPath()
   const appRoot = resolve(skmtcRootPath, '..')
@@ -344,7 +352,7 @@ export const writeGeneratedFiles = ({
 
   writeGeneratedLock(lockPath, { version: 1, files: nextLockFiles })
 
-  if (protectedPaths.length > 0) {
+  if (warnOnProtected && protectedPaths.length > 0) {
     console.error(
       `Warning: ${protectedPaths.length} generated file(s) have manual edits and were left ` +
         `untouched:\n${protectedPaths.map(path => `  ${path}`).join('\n')}\n` +

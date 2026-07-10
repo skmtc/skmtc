@@ -759,3 +759,35 @@ Deno.test('writeGeneratedFiles - formatter failure degrades gracefully', async (
     await Deno.remove(tempDir, { recursive: true })
   }
 })
+
+Deno.test('writeGeneratedFiles - warnOnProtected: false protects silently', async () => {
+  const tempDir = await Deno.makeTempDir()
+  const originalCwd = Deno.cwd()
+  try {
+    Deno.chdir(tempDir)
+    await withCapturedErrors(errors => {
+      const manifestPath = join(tempDir, 'manifest.json')
+      const artifactPath = join(tempDir, 'out.ts')
+      const manifest = manifestFor('out.ts')
+
+      writeGeneratedFiles({ manifestPath, artifacts: { 'out.ts': 'export const a = 1\n' }, manifest })
+      Deno.writeTextFileSync(artifactPath, 'export const a = 1 // mine\n')
+
+      // Watch mode: protection still applies, but the multi-line stderr
+      // warning is suppressed — dev prints its own one-line status.
+      const result = writeGeneratedFiles({
+        manifestPath,
+        artifacts: { 'out.ts': 'export const a = 2\n' },
+        manifest,
+        warnOnProtected: false
+      })
+
+      assertEquals(result.protectedPaths, ['out.ts'])
+      assertEquals(Deno.readTextFileSync(artifactPath), 'export const a = 1 // mine\n')
+      assertEquals(errors.filter(msg => msg.includes('manual edits')), [])
+    })
+  } finally {
+    Deno.chdir(originalCwd)
+    await Deno.remove(tempDir, { recursive: true })
+  }
+})

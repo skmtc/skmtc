@@ -66,18 +66,25 @@ export const dev = async ({ projectName, schemaSourceString }: DevArgs) => {
 
       const generateStart = performance.now()
       const schemaContents = await toSchemaContents(schemaSource)
-      const { stats } = await generateLocal({
+      const { stats, protectedPaths } = await generateLocal({
         bundlePath,
         manifestPath,
         projectPath,
         schemaContents: schemaContents.contents,
         fileType: schemaContents.fileType,
         clientSettings: project.clientJson.contents?.settings,
-        schemaSource
+        schemaSource,
+        // Watch mode: protect silently and keep the summary to one
+        // line — re-printing the writer's multi-line warning on every
+        // rebuild is alarm fatigue.
+        warnOnProtected: false
       })
       const generateMs = Math.round(performance.now() - generateStart)
       const errorSuffix = stats.errors.length ? ` · ${stats.errors.length} errors` : ''
-      log(`generated ${stats.files} files in ${generateMs}ms${errorSuffix}`)
+      const protectedSuffix = protectedPaths.length
+        ? ` · ${protectedPaths.length} protected (hand-edited — see \`skmtc status\`)`
+        : ''
+      log(`generated ${stats.files} files in ${generateMs}ms${errorSuffix}${protectedSuffix}`)
     } catch (error) {
       log(`error: ${error instanceof Error ? error.message : String(error)}`)
     } finally {

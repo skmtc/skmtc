@@ -40,6 +40,12 @@ type GenerateLocalArgs = {
    * - `undefined` (default) — use the config value
    */
   anchorsFlag?: boolean
+  /**
+   * Forwarded to `writeGeneratedFiles`. Watch mode passes `false` and
+   * prints its own one-line protected-file status per rebuild instead
+   * of the writer's multi-line stderr warning.
+   */
+  warnOnProtected?: boolean
 }
 
 /**
@@ -97,7 +103,8 @@ export const generateLocal = async ({
   manifestPath,
   projectPath,
   schemaSource,
-  anchorsFlag
+  anchorsFlag,
+  warnOnProtected
 }: GenerateLocalArgs): Promise<GenerateLocalResult> => {
   try {
     const attribution = toAttributionPayload({
@@ -121,7 +128,8 @@ export const generateLocal = async ({
       artifacts,
       manifest,
       clientSettings,
-      projectPath
+      projectPath,
+      warnOnProtected
     })
 
     let anchorsStats: GenerateLocalAnchorsStats | undefined
