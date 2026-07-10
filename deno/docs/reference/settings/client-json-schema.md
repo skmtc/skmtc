@@ -395,11 +395,42 @@ Per-operation form titles and submit labels for the contact CRUD.
 }
 ```
 
+## Compact on-disk form
+
+`client.json` has two on-disk forms. The forms above are the
+**expanded** (human-readable) form. The **compact** form is a
+machine-focused alternative — minified, with every string (object keys
+and values alike) interned once into a shared pool and referenced by
+index. It is gated by a top-level `compact: true` flag:
+
+```jsonc
+{
+  "compact": true,   // discriminator — present only on compact files
+  "cv": 1,           // compact format version
+  "pool": ["project", "@acme/api", "source", "settings", "basePath", "..."],
+  "doc": [5, ["..."]]  // the whole document, strings replaced by pool indices
+}
+```
+
+The compact form is ~5–6× smaller than expanded on an enrichment-heavy
+project (for example, 650 KB → ~115 KB). The saving is on the
+**uncompressed** at-rest bytes; under gzip the two forms are about
+equal, because gzip already captures the string repetition that
+interning removes.
+
+The forms are interchangeable and lossless. Every command expands a
+compact file in memory before validating it against the shape below, so
+both forms validate the same and every command behaves identically on
+either. Convert between them with [`skmtc compact`](../cli/compact.md)
+(`--expand` restores the expanded form). The codec lives in
+`@skmtc/core/ClientJsonCompact`.
+
 ## Validation
 
 `client.json` is parsed as JSON (strict — no comments allowed in the
-actual file; JSONC isn't supported). The top-level shape is then
-validated by the engine before generation.
+actual file; JSONC isn't supported). A compact file is expanded first;
+the resulting top-level shape is then validated by the engine before
+generation.
 
 Validation errors at parse time:
 
@@ -428,6 +459,9 @@ Some workflows that touch `client.json`:
   pinning. `install`, `clone`, `create`, and `remove` do **not**
   modify `client.json` — they only mutate `deno.json#imports` (and
   delete local source dirs in the case of `remove`).
+- **`skmtc compact`** rewrites the file in the compact on-disk form
+  (`--expand` restores the human-readable form). To hand-edit a compact
+  file, `--expand` it first — it is not human-readable.
 
 After editing, the next `skmtc generate` picks up the new config.
 No rebundle needed — `client.json` is runtime config, not bundle
@@ -435,6 +469,7 @@ code.
 
 ## See also
 
+- [`skmtc compact` reference](../cli/compact.md) — the compact on-disk form + how to toggle it
 - [enrichments-shape reference](enrichments-shape.md) — the routing structure
 - [source-resolution reference](source-resolution.md) — how `source` is resolved
 - [enrichments concept](../../concepts/enrichments.md) — mental model

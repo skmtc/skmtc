@@ -24,6 +24,11 @@
  */
 
 import { join } from '@std/path/join'
+import {
+  encodeCompact,
+  expandClientJson,
+  isCompactClientJson
+} from '@skmtc/core/ClientJsonCompact'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 
 const HTTP_METHODS: ReadonlySet<string> = new Set([
@@ -134,8 +139,13 @@ export const migrateVariantsHeadless = async ({
 
   const source = await Deno.readTextFile(clientJsonPath)
   const beforeBytes = new TextEncoder().encode(source).length
+  const parsedJson = JSON.parse(source)
+  // Migrate against the expanded settings; re-emit in the same on-disk
+  // form the file was read in (compact stays compact, expanded stays
+  // expanded) so the migration never silently changes the file's format.
+  const wasCompact = isCompactClientJson(parsedJson)
   // deno-lint-ignore no-explicit-any — JSON shape is validated downstream
-  const data = JSON.parse(source) as any
+  const data = expandClientJson(parsedJson) as any
 
   const settings = data?.settings as Record<string, unknown> | undefined
   if (!settings) {
@@ -162,7 +172,9 @@ export const migrateVariantsHeadless = async ({
 
   const alreadyMigrated = wrapped.length === 0 && skipCount === 0 && includeCount === 0
 
-  const next = JSON.stringify(data, null, 2) + '\n'
+  const next = wasCompact
+    ? JSON.stringify(encodeCompact(data))
+    : JSON.stringify(data, null, 2) + '\n'
 
   if (!alreadyMigrated) {
     await Deno.writeTextFile(clientJsonPath, next)

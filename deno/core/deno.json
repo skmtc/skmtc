@@ -31,6 +31,7 @@
     "./RefName": "./types/RefName.ts",
     "./Results": "./types/Results.ts",
     "./Settings": "./types/Settings.ts",
+    "./ClientJsonCompact": "./types/ClientJsonCompact.ts",
     "./DenoJson": "./types/DenoJson.ts",
     "./parseModuleName": "./helpers/parseModuleName.ts",
     "./Enrichments": "./types/Enrichments.ts",

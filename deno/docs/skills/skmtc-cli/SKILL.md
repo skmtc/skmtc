@@ -1,16 +1,17 @@
 ---
 name: skmtc-cli
-version: 0.4.0
+version: 0.5.0
 description: |
   Use the SKMTC CLI to scaffold projects, install or clone generators
   from JSR, configure schema sources and enrichments, and produce code
   artifacts from an OpenAPI v3 or GraphQL SDL schema. Covers the
   command surface (`init`, `create`, `clone`, `install`, `list`,
   `remove`, `generate`, `describe`, `bundle`, `clean`, `dev`,
-  `publish`, `push`, `pull`, `project`, `migrate`, `login`, `logout`,
-  `doctor`, `agent-context`), the `<root>/.skmtc/<project>/` workspace layout, the
-  `.settings/client.json` shape (basePath, source, enrichments, skip,
-  include), and the agent-native operation modes
+  `publish`, `push`, `pull`, `project`, `migrate`, `compact`, `login`,
+  `logout`, `doctor`, `agent-context`), the `<root>/.skmtc/<project>/`
+  workspace layout, the `.settings/client.json` shape (basePath, source,
+  enrichments, skip, include) and its compact on-disk form, and the
+  agent-native operation modes
   (interactive / strict text / strict JSON) with their exit codes and
   recipe-error contract.
 
@@ -18,8 +19,8 @@ description: |
   from an OpenAPI schema", "install a skmtc generator", "scaffold a
   skmtc project", "watch a skmtc project", "configure enrichments",
   "publish a stack", "deploy to skmtc-hub" (the command is `publish`;
-  there is no `deploy`), "skmtc in CI", or invokes any of the CLI
-  subcommands. For *authoring*
+  there is no `deploy`), "skmtc in CI", "compact a client.json", or
+  invokes any of the CLI subcommands. For *authoring*
   a generator package (Projections, Snippets, transform functions),
   defer to `skmtc-generator`. When something is broken (no output,
   wrong output, error messages, stale bundle), defer to `skmtc-debug`
@@ -158,6 +159,7 @@ follow-up command the agent can run to fetch the candidate set. No
 | `pull <project>` | Pull a hub project's config down into the local project | Project required; token like `publish` |
 | `project create <name>` / `project rm <name>` | Create or delete a hub project from the local setup | Bare `skmtc project` prints subcommand usage, exit 2 |
 | `migrate variants <project>` | One-shot migration of `client.json` to the variant-aware shape (core 0.5.0+) | Idempotent; `--json`; bare `skmtc migrate` prints usage, exit 2 |
+| `compact <project>` | Rewrite `client.json` in the compact (minified + string-interned) on-disk form; `--expand` restores the human-readable form | Project required; `--json`; lossless + idempotent. See §6 |
 | `login` | Validate + store a hub PAT (paste-a-PAT; `~/.skmtc/auth.json`, 0600) | `--with-token` reads the PAT from stdin; plain `login` with a stored token reports the handle (the `whoami`) |
 | `logout` | Delete the stored hub credential | No args; idempotent, always exit 0 |
 | `doctor` | Diagnose project setup | No args; always strict |
@@ -336,6 +338,39 @@ generator's `toExportPath` — is a plain forward path. A `..` segment
 in `basePath` or any `rootPath` is rejected at config load: it means
 `basePath` is too deep, and hand-counting `../` segments is the
 silent-misplacement footgun the forward-path rule removes.
+
+### Compact on-disk form
+
+`client.json` has two on-disk forms; the top-level `compact` flag is the
+discriminator:
+
+| Form | Shape | Written by |
+|---|---|---|
+| **Expanded** (default) | The human-readable object above; no `compact` key | `init`, and every command that writes an expanded file |
+| **Compact** | `{ "compact": true, "cv": 1, "pool": [...], "doc": [...] }` — minified, with every string (keys and values) interned once into `pool` | `skmtc compact` |
+
+The compact form is a machine-focused representation for large,
+enrichment-heavy projects — ~5–6× smaller than expanded (e.g. 650 KB → ~115
+KB). The saving is on the **uncompressed** at-rest bytes; under gzip the two
+forms are about equal, because gzip already captures the string repetition
+that interning removes.
+
+**Reads are transparent.** Every command expands a compact file in memory
+before validating it against the same schema, so `generate`, `push`, `doctor`,
+and the rest behave identically on either form. A command that reads a compact
+file and writes it back keeps it compact.
+
+Toggle the form with `skmtc compact`:
+
+```bash
+skmtc compact <project> --json            # rewrite in compact form
+skmtc compact <project> --expand --json   # restore the human-readable form
+```
+
+The `--json` result reports `beforeBytes`, `afterBytes`, and `changed`. The
+conversion is lossless and idempotent — re-running on a file already in the
+target form is a no-op (`changed: false`). Do not hand-edit a compact file: it
+is not human-readable. Run `--expand` first, edit, then re-compact.
 
 ## 7. Skip and include filters
 

@@ -521,6 +521,20 @@ const run = async () => {
     .command('create', projectCreateCommand)
     .command('rm', projectRmCommand)
 
+  const compactCommand = new Command()
+    .description(
+      "Rewrite a project's client.json in the compact (minified + string-interned) " +
+        'on-disk form. Use --expand to restore the human-readable form. The CLI reads ' +
+        'either form transparently; the conversion is lossless.'
+    )
+    .arguments('<project:string>')
+    .option('--expand', 'Restore the human-readable (expanded) form instead of compacting.')
+    .option('--json', 'Emit structured JSON output.')
+    .action(async ({ expand, json }, projectName) => {
+      const { renderCompact } = await import('@/commands/compact.ts')
+      await renderCompact({ projectName, expandFlag: expand, jsonFlag: json })
+    })
+
   const migrateVariantsCommand = new Command()
     .description(
       "Migrate a project's client.json to the variant-aware shape introduced in @skmtc/core@0.5.0. " +
@@ -581,6 +595,7 @@ const run = async () => {
     .command('dev', devCommand)
     .command('doctor', doctorCommand)
     .command('agent-context', agentContextCommand)
+    .command('compact', compactCommand)
     .command('migrate', migrateCommand)
     .parse(Deno.args)
 }

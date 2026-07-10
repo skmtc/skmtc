@@ -48,6 +48,7 @@ version and exits.
 | Command            | Purpose                                                                     | Reference             |
 | ------------------ | --------------------------------------------------------------------------- | --------------------- |
 | `migrate variants` | One-shot migration of `client.json` to the variant-aware shape (idempotent) | [migrate](migrate.md) |
+| `compact`          | Rewrite `client.json` in the compact (minified + string-interned) on-disk form; `--expand` restores it | [compact](compact.md) |
 
 ### Publish
 

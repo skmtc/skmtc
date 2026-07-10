@@ -15,6 +15,7 @@ import { join } from '@std/path/join'
 import { existsSync } from '@std/fs/exists'
 import * as v from 'valibot'
 import { anchorsSettings, type AnchorsSettings } from '@skmtc/core/Settings'
+import { expandClientJson } from '@skmtc/core/ClientJsonCompact'
 import { manifestContent } from '@skmtc/core/Manifest'
 import { Manifest } from '@/lib/manifest.ts'
 import type { Check } from '@/lib/doctor-headless.ts'
@@ -42,7 +43,7 @@ export const checkAnchorsConfig = (
   }
   let parsed: unknown
   try {
-    parsed = JSON.parse(Deno.readTextFileSync(clientJsonPath))
+    parsed = expandClientJson(JSON.parse(Deno.readTextFileSync(clientJsonPath)))
   } catch {
     return {
       id: `anchors-config/${projectName}`,
@@ -230,8 +231,8 @@ const readAnchorsConfig = (projectPath: string): AnchorsSettings | undefined => 
   const clientJsonPath = join(projectPath, '.settings', 'client.json')
   if (!existsSync(clientJsonPath)) return undefined
   try {
-    const parsed = JSON.parse(Deno.readTextFileSync(clientJsonPath))
-    const raw: unknown = parsed?.settings?.anchors
+    const parsed: unknown = expandClientJson(JSON.parse(Deno.readTextFileSync(clientJsonPath)))
+    const raw: unknown = (parsed as { settings?: { anchors?: unknown } })?.settings?.anchors
     if (raw === undefined) return undefined
     const result = v.safeParse(anchorsSettings, raw)
     return result.success ? result.output : undefined

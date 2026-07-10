@@ -329,6 +329,24 @@ TS fragment not in OAS?   → new CustomValue({ context, value: '...' })
 }
 ```
 
+### Compact on-disk form
+
+`client.json` has two on-disk forms. The shape above is the **expanded**
+(human-readable) form. The **compact** form is minified with every string
+(keys and values) interned once into a shared pool, gated by a top-level
+`compact: true` flag:
+
+```json
+{ "compact": true, "cv": 1, "pool": ["source", "settings", "..."], "doc": [5, ["..."]] }
+```
+
+~5–6× smaller than expanded on an enrichment-heavy project (≈650 KB →
+≈115 KB), on the **uncompressed** at-rest bytes — under gzip the two are
+about equal. Reads are transparent: every command expands a compact file
+in memory before validating, so both forms behave identically. Toggle with
+`skmtc compact <project>` / `skmtc compact <project> --expand` (lossless,
+idempotent). Codec: `@skmtc/core/ClientJsonCompact`.
+
 ### Enrichment routing
 
 Routing keys are hardcoded per projection-base factory:

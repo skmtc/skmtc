@@ -14,6 +14,7 @@ import { isAbsolute } from '@std/path/is-absolute'
 import { existsSync } from '@std/fs/exists'
 import * as v from 'valibot'
 import { manifestContent } from '@skmtc/core/Manifest'
+import { expandClientJson } from '@skmtc/core/ClientJsonCompact'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { toBundleFsPath } from '@/lib/to-bundle-path.ts'
@@ -468,8 +469,8 @@ const checkProjectBasePath = (projectName: string, clientJsonPath: string): Chec
     }
   }
   try {
-    const parsed = JSON.parse(Deno.readTextFileSync(clientJsonPath))
-    const basePath: unknown = parsed?.settings?.basePath
+    const parsed: unknown = expandClientJson(JSON.parse(Deno.readTextFileSync(clientJsonPath)))
+    const basePath: unknown = (parsed as { settings?: { basePath?: unknown } })?.settings?.basePath
     if (typeof basePath !== 'string') {
       return {
         id: `project-base-path/${projectName}`,
