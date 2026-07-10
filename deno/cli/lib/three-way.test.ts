@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert'
-import { classifyThreeWay, mergeThreeWay, toChangedBaseRanges } from '@/lib/three-way.ts'
+import { classifyThreeWay, isLineDiffable, mergeThreeWay, toChangedBaseRanges } from '@/lib/three-way.ts'
 
 const base = ['const a = 1', 'const b = 2', 'const c = 3', 'const d = 4', 'const e = 5'].join('\n')
 
@@ -103,4 +103,37 @@ Deno.test('mergeThreeWay - one unchanged side returns the other verbatim', () =>
   assertEquals(result.ok, true)
   if (!result.ok) return
   assertEquals(result.merged, theirs)
+})
+
+Deno.test('mergeThreeWay - identical changes on both sides are not conflicts', () => {
+  // The user hand-applied the generator's exact update.
+  const both = base.replace('const c = 3', 'const c = 300')
+
+  const identical = mergeThreeWay({ base, ours: both, theirs: both })
+  assertEquals(identical.ok, true)
+  if (!identical.ok) return
+  assertEquals(identical.merged, both)
+
+  // Identical change on one region + a distinct user edit elsewhere:
+  // the shared region is applied once, the edit survives.
+  const oursPlus = both.replace('const a = 1', 'const a = 100 // mine')
+  const mixed = mergeThreeWay({ base, ours: oursPlus, theirs: both })
+  assertEquals(mixed.ok, true)
+  if (!mixed.ok) return
+  assertEquals(
+    mixed.merged,
+    ['const a = 100 // mine', 'const b = 2', 'const c = 300', 'const d = 4', 'const e = 5'].join(
+      '\n'
+    )
+  )
+})
+
+Deno.test('isLineDiffable - bounds the LCS table size', () => {
+  const small = 'a\nb\nc'
+  assertEquals(isLineDiffable(small, small), true)
+
+  // Two ~3,000-line sides exceed MAX_DIFF_CELLS (4M).
+  const large = Array.from({ length: 3000 }, (_, index) => `line ${index}`).join('\n')
+  assertEquals(isLineDiffable(large, large), false)
+  assertEquals(isLineDiffable(small, large), true)
 })

@@ -148,17 +148,25 @@ export const statusHeadless = async ({
     counts[status] += 1
   }
 
-  // Ejected files the last generate reported as stale don't appear in
-  // the manifest (nothing produces them) — surface them separately.
-  const manifestPathSetForStale = new Set(manifestPaths)
-  const staleEjections = Object.entries(ejectionState.files)
-    .filter(([path, state]) => state.state === 'stale' && !manifestPathSetForStale.has(path))
-    .map(([path]) => path)
-
   const manifestPathSet = new Set(manifestPaths)
 
+  // Ejected files the last generate reported as stale don't appear in
+  // the manifest (nothing produces them) — surface them separately.
+  const staleEjections = Object.entries(ejectionState.files)
+    .filter(([path, state]) => state.state === 'stale' && !manifestPathSet.has(path))
+    .map(([path]) => path)
+
+  // A stale ejection also matches every condition below (its lock entry
+  // is deliberately carried forward, nothing produces it, and it exists
+  // on disk) — but it is user-owned and informational, not dirty.
+  // Excluding the ejected set here keeps it out of `orphaned` and
+  // therefore out of the `--check` gate.
   const orphaned = Object.keys(lock?.files ?? {}).filter(path => {
-    return !manifestPathSet.has(path) && existsSync(join(skmtcRootPath, '..', path))
+    return (
+      !manifestPathSet.has(path) &&
+      !ejectedArtifactPaths.has(path) &&
+      existsSync(join(skmtcRootPath, '..', path))
+    )
   })
 
   return {

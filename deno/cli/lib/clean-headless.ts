@@ -22,6 +22,9 @@ import { Manifest } from '@/lib/manifest.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import { pruneEmptyDirs, toAnchorDirs } from '@/lib/prune-empty-dirs.ts'
 import { toEjectedArtifactPaths } from '@/lib/write-generated-files.ts'
+import { readGeneratedLock, toGeneratedLockPath } from '@/lib/generated-lock.ts'
+import { toBaselinesDir } from '@/lib/baseline-store.ts'
+import { classifyDiskFile, type EditDetectionContext } from '@/lib/edit-detection.ts'
 
 type CleanHeadlessArgs = {
   projectName: string
@@ -49,6 +52,12 @@ export type CleanHeadlessResult = {
   skipped: string[]
   /** Ejected (user-owned) paths — never deleted, listed for visibility. */
   ejected: string[]
+  /**
+   * Deleted paths that carried manual edits (per the generated lock) —
+   * `clean` removes the full generated set including these, but a hand
+   * edit the system knows about must never be destroyed *silently*.
+   */
+  modified: string[]
   /** Directories removed (or, on a dry run, that would be removed)
    *  because deleting the files left them empty. App-root-relative. */
   removedDirs: string[]
@@ -80,6 +89,7 @@ export const cleanHeadless = async ({
       missing: [],
       skipped: [],
       ejected: [],
+      modified: [],
       removedDirs: [],
       manifestRemoved: false,
       noManifest: true
@@ -90,8 +100,17 @@ export const cleanHeadless = async ({
   const missing: string[] = []
   const skipped: string[] = []
   const ejected: string[] = []
+  const modified: string[] = []
   const deletedAbsPaths: string[] = []
   const ejectedArtifactPaths = toEjectedArtifactPaths(clientSettings)
+
+  const lock = readGeneratedLock(toGeneratedLockPath(manifestPath))
+  const detection: EditDetectionContext = {
+    lock,
+    formatterCommand: clientSettings?.formatter,
+    baselinesDir: toBaselinesDir(join(skmtcRootPath, projectName)),
+    appRoot
+  }
 
   for (const [path, entry] of Object.entries(manifest.contents.files)) {
     const absolutePath = join(skmtcRootPath, '..', path)
@@ -116,6 +135,14 @@ export const cleanHeadless = async ({
     if (!existsSync(absolutePath)) {
       missing.push(path)
       continue
+    }
+
+    // Deleted either way (clean removes the FULL generated set), but a
+    // file the lock knows is hand-edited is reported, never destroyed
+    // silently. Use --dry-run to see these before a real run.
+    const lockEntry = lock?.files[path]
+    if (lockEntry && classifyDiskFile({ artifactPath: path, absolutePath, lockEntry, detection }).edited) {
+      modified.push(path)
     }
 
     if (!dryRun) {
@@ -158,6 +185,7 @@ export const cleanHeadless = async ({
     missing,
     skipped,
     ejected,
+    modified,
     removedDirs,
     manifestRemoved,
     noManifest: false

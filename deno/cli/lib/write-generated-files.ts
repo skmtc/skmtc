@@ -36,7 +36,7 @@ import {
   toEjectionStatePath,
   writeEjectionState
 } from '@/lib/ejection-state.ts'
-import { classifyThreeWay } from '@/lib/three-way.ts'
+import { classifyThreeWay, isThreeWayDiffable } from '@/lib/three-way.ts'
 import { toCommittedBaselinePath, toPristinePath } from '@/lib/baseline-store.ts'
 import { dirname } from '@std/path/dirname'
 
@@ -636,8 +636,13 @@ const toEjectionReport = ({
         ? Deno.readTextFileSync(toCommittedBaselinePath(projectPath, ownedArtifactPath))
         : undefined
 
+    // Skip classification (leaving "overlap unknown") when any side is
+    // too large for the line diff — the O(n·m) LCS would stall the
+    // generate. See MAX_DIFF_CELLS.
     const classification =
-      baselineContent !== undefined && diskContent !== undefined
+      baselineContent !== undefined &&
+      diskContent !== undefined &&
+      isThreeWayDiffable({ base: baselineContent, ours: diskContent, theirs: pristine })
         ? classifyThreeWay({ base: baselineContent, ours: diskContent, theirs: pristine })
         : undefined
 

@@ -319,3 +319,47 @@ Deno.test('statusHeadless - ejected files carry drift state from the last genera
     await Deno.remove(tempDir, { recursive: true })
   }
 })
+
+Deno.test('statusHeadless - stale ejections stay out of orphaned and keep --check clean', async () => {
+  const { tempDir, skmtcRootPath, projectPath, manifestPath } = await toWorkspace('my-api')
+  const originalCwd = Deno.cwd()
+  try {
+    Deno.chdir(tempDir)
+    await silenced(async () => {
+      const clientSettings = { ejected: ['@/src/owned.ts'] }
+
+      // Seed: a generate tracking the ejected file, then a stale run
+      // (nothing produces it anymore). The writer deliberately carries
+      // the ejected lock entry forward — the exact combination that
+      // previously leaked the file into `orphaned` and flipped --check.
+      writeGeneratedFiles({
+        manifestPath,
+        artifacts: { 'src/owned.ts': 'export const owned = 1\n' },
+        manifest: toManifest(['src/owned.ts']),
+        clientSettings,
+        projectPath
+      })
+      writeGeneratedFiles({
+        manifestPath,
+        artifacts: { 'src/other.generated.ts': 'export const other = 1\n' },
+        manifest: toManifest(['src/other.generated.ts']),
+        clientSettings,
+        projectPath
+      })
+
+      const result = await statusHeadless({
+        projectName: 'my-api',
+        clientSettings,
+        skmtcRootPath
+      })
+
+      assertEquals(result.staleEjections, ['src/owned.ts'])
+      assertEquals(result.orphaned, [])
+      // Stale ejections are informational — the --check gate stays green.
+      assertEquals(result.clean, true)
+    })
+  } finally {
+    Deno.chdir(originalCwd)
+    await Deno.remove(tempDir, { recursive: true })
+  }
+})

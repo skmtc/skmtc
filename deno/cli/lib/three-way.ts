@@ -71,6 +71,38 @@ export const toChangedBaseRanges = (base: string, changed: string): LineRange[] 
   return toChangedRegions(base, changed).map(({ start, end }) => ({ start, end }))
 }
 
+/**
+ * Upper bound on the LCS DP table, in cells
+ * (`(baseLines + 1) × (changedLines + 1)`). The table is O(n·m) time
+ * and memory, so a pair of ~10,000-line files would allocate on the
+ * order of a gigabyte. 4M cells (~2,000 × 2,000 lines) keeps the
+ * allocation in the tens of megabytes; callers must check
+ * {@link isLineDiffable} / {@link isThreeWayDiffable} and degrade
+ * (skip classification, refuse merge) above it. An O(ND) Myers diff
+ * would lift the limit — noted as a follow-up.
+ */
+export const MAX_DIFF_CELLS = 4_000_000
+
+const countLines = (text: string): number => {
+  let count = 1
+  for (let index = 0; index < text.length; index++) {
+    if (text[index] === '\n') {
+      count++
+    }
+  }
+  return count
+}
+
+/** Whether a base/changed pair is small enough for the line diff. */
+export const isLineDiffable = (base: string, changed: string): boolean => {
+  return (countLines(base) + 1) * (countLines(changed) + 1) <= MAX_DIFF_CELLS
+}
+
+/** Whether all three sides are small enough to classify or merge. */
+export const isThreeWayDiffable = ({ base, ours, theirs }: ClassifyThreeWayArgs): boolean => {
+  return isLineDiffable(base, ours) && isLineDiffable(base, theirs)
+}
+
 /** Standard dynamic-programming LCS over lines, returning matched index pairs. */
 const toLcsMatches = (baseLines: string[], changedLines: string[]): Array<[number, number]> => {
   const baseCount = baseLines.length
@@ -160,6 +192,15 @@ export type MergeThreeWayResult =
  * ranges) rather than producing conflict markers: a merged file is
  * written whole or not at all.
  */
+const isSameRegion = (a: ChangedRegion, b: ChangedRegion): boolean => {
+  return (
+    a.start === b.start &&
+    a.end === b.end &&
+    a.replacement.length === b.replacement.length &&
+    a.replacement.every((line, index) => line === b.replacement[index])
+  )
+}
+
 export const mergeThreeWay = ({
   base,
   ours,
@@ -171,6 +212,12 @@ export const mergeThreeWay = ({
   const collisions: LineRange[] = []
   for (const ourRegion of ourRegions) {
     for (const theirRegion of theirRegions) {
+      // Identical changes on both sides are not a conflict (git
+      // merge-file semantics): the user hand-applying the generator's
+      // update must not make `merge` refuse.
+      if (isSameRegion(ourRegion, theirRegion)) {
+        continue
+      }
       if (rangesTouch(ourRegion, theirRegion)) {
         collisions.push({
           start: Math.min(ourRegion.start, theirRegion.start),
@@ -184,10 +231,15 @@ export const mergeThreeWay = ({
     return { ok: false, collisions }
   }
 
-  // Disjoint regions: splice both sides into the base, back to front so
-  // earlier indices stay valid.
+  // Splice both sides into the base, back to front so earlier indices
+  // stay valid. Regions identical on both sides are applied once.
   const merged = base.split('\n')
-  const allRegions = [...ourRegions, ...theirRegions].sort((a, b) => b.start - a.start)
+  const allRegions = [
+    ...ourRegions,
+    ...theirRegions.filter(theirRegion =>
+      !ourRegions.some(ourRegion => isSameRegion(ourRegion, theirRegion))
+    )
+  ].sort((a, b) => b.start - a.start)
 
   for (const region of allRegions) {
     merged.splice(region.start, region.end - region.start, ...region.replacement)

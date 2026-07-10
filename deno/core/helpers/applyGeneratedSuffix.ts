@@ -34,6 +34,34 @@ export const DEFAULT_GENERATED_SUFFIX = '.generated'
  * - No extension → the suffix is appended (`Makefile` →
  *   `Makefile.generated`).
  */
+export const applyGeneratedSuffix = (path: string, suffix: string): string => {
+  if (suffix === '') {
+    return path
+  }
+
+  const dottedSuffix = suffix.startsWith('.') ? suffix : `.${suffix}`
+
+  const extension = extname(path)
+
+  // A trailing suffix IS the extension for extension-less names that
+  // were already suffixed (`Makefile.generated`).
+  if (extension === dottedSuffix) {
+    return path
+  }
+
+  if (extension === '') {
+    return `${path}${dottedSuffix}`
+  }
+
+  const stem = path.slice(0, -extension.length)
+
+  if (stem.endsWith(dottedSuffix)) {
+    return path
+  }
+
+  return `${stem}${dottedSuffix}${extension}`
+}
+
 /**
  * The inverse of {@link applyGeneratedSuffix}: removes the
  * generated-file suffix from an export path
@@ -65,32 +93,4 @@ export const removeGeneratedSuffix = (path: string, suffix: string): string => {
   }
 
   return path
-}
-
-export const applyGeneratedSuffix = (path: string, suffix: string): string => {
-  if (suffix === '') {
-    return path
-  }
-
-  const dottedSuffix = suffix.startsWith('.') ? suffix : `.${suffix}`
-
-  const extension = extname(path)
-
-  // A trailing suffix IS the extension for extension-less names that
-  // were already suffixed (`Makefile.generated`).
-  if (extension === dottedSuffix) {
-    return path
-  }
-
-  if (extension === '') {
-    return `${path}${dottedSuffix}`
-  }
-
-  const stem = path.slice(0, -extension.length)
-
-  if (stem.endsWith(dottedSuffix)) {
-    return path
-  }
-
-  return `${stem}${dottedSuffix}${extension}`
 }

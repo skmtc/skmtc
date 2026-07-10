@@ -35,7 +35,7 @@ import type { ClientSettings } from '@skmtc/core/Settings'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import { toContentHash } from '@/lib/generated-lock.ts'
 import { formatContent, runFormatter } from '@/lib/formatter.ts'
-import { mergeThreeWay, type LineRange } from '@/lib/three-way.ts'
+import { isThreeWayDiffable, mergeThreeWay, type LineRange } from '@/lib/three-way.ts'
 import { toCommittedBaselinePath, toPristinePath } from '@/lib/baseline-store.ts'
 import { readEjections, toEjectionsPath, writeEjections } from '@/lib/ejections.ts'
 import {
@@ -156,10 +156,52 @@ export const mergeHeadless = ({
     )
   }
 
+  const comparableBase = toComparable(baseline)
+  const comparableTheirs = toComparable(pristine)
+
+  // Advance the baseline: the generator's changes are folded in (or
+  // already present on disk), so future drift compares against THIS
+  // render. The reviewed hash is cleared — there is no outstanding
+  // drift to stay quiet about.
+  const advanceBaseline = (): void => {
+    ensureDirSync(dirname(committedBaselinePath))
+    Deno.writeTextFileSync(committedBaselinePath, pristine)
+
+    if (record) {
+      record.baselineHash = pristineHash
+      delete record.reviewedPristineHash
+      writeEjections(ejectionsPath, ejections)
+    }
+
+    const statePath = toEjectionStatePath(projectPath)
+    const state = readEjectionState(statePath)
+    state.files[ownedArtifactPath] = { state: 'quiet', pristineHash }
+    writeEjectionState(statePath, state)
+  }
+
+  // The user already hand-applied the generator's changes (disk equals
+  // the formatted pristine render): nothing to reconcile — advance the
+  // baseline without touching the file.
+  if (comparableTheirs === disk) {
+    advanceBaseline()
+    return { ok: true, projectName, ownedArtifactPath, upToDate: false }
+  }
+
+  if (!isThreeWayDiffable({ base: comparableBase, ours: disk, theirs: comparableTheirs })) {
+    return {
+      ok: false,
+      reason:
+        `"${ownedArtifactPath}" is too large to merge mechanically (the line diff is ` +
+        `bounded — see MAX_DIFF_CELLS). Fold the changes by hand from the pristine render ` +
+        `at ${pristinePath}, then acknowledge the drift by setting reviewedPristineHash ` +
+        `in .settings/ejections.json.`
+    }
+  }
+
   const merged = mergeThreeWay({
-    base: toComparable(baseline),
+    base: comparableBase,
     ours: disk,
-    theirs: toComparable(pristine)
+    theirs: comparableTheirs
   })
 
   if (!merged.ok) {
@@ -186,22 +228,7 @@ export const mergeHeadless = ({
     }
   }
 
-  // Advance the baseline: the generator's changes are folded in, so
-  // future drift compares against THIS render. The reviewed hash is
-  // cleared — there is no outstanding drift to stay quiet about.
-  ensureDirSync(dirname(committedBaselinePath))
-  Deno.writeTextFileSync(committedBaselinePath, pristine)
-
-  if (record) {
-    record.baselineHash = pristineHash
-    delete record.reviewedPristineHash
-    writeEjections(ejectionsPath, ejections)
-  }
-
-  const statePath = toEjectionStatePath(projectPath)
-  const state = readEjectionState(statePath)
-  state.files[ownedArtifactPath] = { state: 'quiet', pristineHash }
-  writeEjectionState(statePath, state)
+  advanceBaseline()
 
   return { ok: true, projectName, ownedArtifactPath, upToDate: false }
 }

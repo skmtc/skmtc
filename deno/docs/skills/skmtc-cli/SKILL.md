@@ -7,7 +7,7 @@ description: |
   artifacts from an OpenAPI v3 or GraphQL SDL schema. Covers the
   command surface (`init`, `create`, `clone`, `install`, `list`,
   `remove`, `generate`, `describe`, `bundle`, `clean`, `status`,
-  `eject`, `adopt`, `dev`,
+  `eject`, `adopt`, `merge`, `dev`,
   `publish`, `push`, `pull`, `project`, `migrate`, `login`, `logout`,
   `doctor`, `agent-context`), the `<root>/.skmtc/<project>/` workspace layout, the
   `.settings/client.json` shape (basePath, source, enrichments, skip,

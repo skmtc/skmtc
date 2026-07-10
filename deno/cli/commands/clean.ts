@@ -132,6 +132,16 @@ export const printCleanResult = (
         )
       }
 
+      if (result.modified.length > 0) {
+        const verb = result.dryRun ? 'would be deleted' : 'were deleted'
+        console.log(
+          `  Warning: ${result.modified.length} file(s) carried manual edits and ${verb}:`
+        )
+        for (const path of result.modified) {
+          console.log(`    M ${path}`)
+        }
+      }
+
       if (result.dryRun) {
         console.log(`\nDry run — nothing was deleted. Re-run without --dry-run to apply.`)
       } else if (result.manifestRemoved) {
