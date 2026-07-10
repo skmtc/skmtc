@@ -37,6 +37,7 @@ import {
 } from '@skmtc/core'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { Manifest } from '@/lib/manifest.ts'
+import { toCommittedBaselinePath } from '@/lib/baseline-store.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import { readGeneratedLock, toGeneratedLockPath, writeGeneratedLock } from '@/lib/generated-lock.ts'
 import {
@@ -45,8 +46,6 @@ import {
   toEjectionsPath,
   writeEjections
 } from '@/lib/ejections.ts'
-
-const committedBaselinesDirName = 'baselines'
 
 type EjectHeadlessArgs = {
   projectName: string
@@ -164,12 +163,7 @@ export const ejectHeadless = async ({
   // 4. Copy the canonical baseline into the committed store, so drift
   //    detection and merge work on fresh clones and in CI.
   const cachedBaselinePath = join(projectPath, '.baselines', artifactPath)
-  const committedBaselinePath = join(
-    projectPath,
-    '.settings',
-    committedBaselinesDirName,
-    ownedArtifactPath
-  )
+  const committedBaselinePath = toCommittedBaselinePath(projectPath, ownedArtifactPath)
   let baselineRecorded = false
   if (existsSync(cachedBaselinePath)) {
     ensureDirSync(dirname(committedBaselinePath))
@@ -307,12 +301,7 @@ export const adoptHeadless = ({
   delete ejections.files[ownedExportPath]
   writeEjections(ejectionsPath, ejections)
 
-  const committedBaselinePath = join(
-    projectPath,
-    '.settings',
-    committedBaselinesDirName,
-    ownedArtifactPath
-  )
+  const committedBaselinePath = toCommittedBaselinePath(projectPath, ownedArtifactPath)
   try {
     Deno.removeSync(committedBaselinePath)
   } catch (_error) {

@@ -101,12 +101,12 @@ export const printStatusResult = (
           `${counts.missing} missing, ${counts.unverified} unverified${ejectedSegment}.`
       )
 
-      const listed = result.files.filter(({ status }) =>
-        verbose ? true : status === 'modified'
+      const listed = result.files.filter(({ status, ejection }) =>
+        verbose ? true : status === 'modified' || (ejection && ejection.state !== 'quiet')
       )
 
-      for (const { path, status } of listed) {
-        console.log(`  ${toStatusGlyph(status)} ${path}`)
+      for (const { path, status, ejection } of listed) {
+        console.log(`  ${toStatusGlyph(status)} ${path}${toEjectionNote(ejection)}`)
       }
 
       if (counts.modified > 0) {
@@ -114,6 +114,16 @@ export const printStatusResult = (
           `\nModified files carry manual edits — \`generate\` will leave them untouched. ` +
             `Move lasting changes into enrichments or hand-written modules, or revert to resume generation.`
         )
+      }
+
+      if (result.staleEjections.length > 0) {
+        console.log(
+          `\n${result.staleEjections.length} ejected file(s) no longer produced by any ` +
+            `generator (the schema item was removed or renamed; the files stay yours):`
+        )
+        for (const path of result.staleEjections) {
+          console.log(`  E ${path}`)
+        }
       }
 
       if (result.orphaned.length > 0) {
@@ -136,6 +146,36 @@ export const printStatusResult = (
     default: {
       const _exhaustive: never = format
       throw new Error(`Unhandled output format: ${JSON.stringify(_exhaustive)}`)
+    }
+  }
+}
+
+const toEjectionNote = (
+  ejection: StatusHeadlessResult['files'][number]['ejection']
+): string => {
+  if (!ejection) {
+    return ''
+  }
+
+  switch (ejection.state) {
+    case 'quiet':
+      return ''
+    case 're-adoptable':
+      return ' (matches generated output — `skmtc adopt` to resume generation)'
+    case 'drifted': {
+      const overlap = ejection.classification === 'collision'
+        ? 'the generator changes collide with your edits'
+        : ejection.classification === 'non-overlapping'
+          ? "the generator changes don't touch your edits"
+          : 'overlap unknown'
+      const reviewed = ejection.reviewed ? '; reviewed' : ''
+      return ` (drifted — ${overlap}${reviewed})`
+    }
+    case 'stale':
+      return ' (no longer produced by any generator)'
+    default: {
+      const _exhaustive: never = ejection.state
+      throw new Error(`Unhandled ejection state: ${JSON.stringify(_exhaustive)}`)
     }
   }
 }

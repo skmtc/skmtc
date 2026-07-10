@@ -28,6 +28,19 @@ export const toBaselinesDir = (projectPath: string): string => {
 }
 
 /**
+ * The *committed* baseline copy for an ejected file, written at eject
+ * time under `.settings/baselines/` (unlike the gitignored cache
+ * above, this must survive fresh clones — it is the merge/drift base
+ * for a file the user owns).
+ */
+export const toCommittedBaselinePath = (
+  projectPath: string,
+  ownedArtifactPath: string
+): string => {
+  return join(projectPath, '.settings', 'baselines', ownedArtifactPath)
+}
+
+/**
  * Maps an artifact path (app-root relative, the manifest/lock key) to
  * its baseline file. Returns `null` for paths that would escape the
  * baseline dir — same containment stance as `clean`'s guard.

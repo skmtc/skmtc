@@ -1,6 +1,9 @@
 import { join } from '@std/path'
 import { GenerateArtifacts } from '@/lib/generate-artifacts.ts'
-import { writeGeneratedFiles } from '@/lib/write-generated-files.ts'
+import {
+  writeGeneratedFiles,
+  type WriteGeneratedFilesResult
+} from '@/lib/write-generated-files.ts'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { writeSidecars } from '@skmtc/core/Anchors'
 import { toGenerationStats, type GenerationStats } from '@/lib/generationStats.ts'
@@ -92,6 +95,11 @@ export type GenerateLocalResult = {
    * warning already landed on stderr.
    */
   protectedPaths: string[]
+  /**
+   * Drift report for ejected files (see `WriteGeneratedFilesResult`).
+   * Present only when the project has ejected files.
+   */
+  ejections?: WriteGeneratedFilesResult['ejections']
 }
 
 export const generateLocal = async ({
@@ -123,7 +131,7 @@ export const generateLocal = async ({
         stackUrl
       })
 
-    const { protectedPaths } = writeGeneratedFiles({
+    const { protectedPaths, ejections } = writeGeneratedFiles({
       manifestPath,
       artifacts,
       manifest,
@@ -155,7 +163,8 @@ export const generateLocal = async ({
       parseIssues: manifest.parseIssues,
       filePaths: Object.keys(artifacts),
       anchors: anchorsStats,
-      protectedPaths
+      protectedPaths,
+      ...(ejections ? { ejections } : {})
     }
   } catch (error) {
     console.error(error instanceof Error ? error : 'Failed to generate artifacts')

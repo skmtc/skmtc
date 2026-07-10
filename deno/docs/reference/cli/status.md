@@ -78,6 +78,27 @@ overall `clean` boolean. Logs and warnings go to stderr.
   generated output, never overwritten or deleted; does not count as
   dirty for `--check`. See [eject](./eject.md) / [adopt](./adopt.md).
 
+### Drift state for ejected files
+
+Each `ejected` entry also carries the drift state the last `generate`
+run computed (generate holds all three versions: the baseline at eject
+time, the fresh pristine render, and the disk file — `status` itself
+runs without the engine and reads the persisted state):
+
+- **`quiet`** — the generator's output hasn't moved since eject.
+- **`drifted`** — the generator now produces something different from
+  the baseline the edits were made against, annotated with whether the
+  generator's changes **collide** with the user's edits or are
+  **non-overlapping** (line-based three-way analysis), and whether the
+  drift was already reviewed. Acknowledge a drift by setting
+  `reviewedPristineHash` in `.settings/ejections.json` to the current
+  pristine hash — it stays quiet until the output moves again.
+- **`re-adoptable`** — the disk file matches current generated output
+  (edit reverted, or the generator caught up): run `skmtc adopt`.
+- **`stale`** — no generator produces the file anymore (schema item
+  removed or renamed). Stale ejections that left the manifest are
+  listed separately.
+
 ### Orphaned files
 
 Lock-tracked paths that the manifest no longer records: stale files a

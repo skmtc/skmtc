@@ -35,12 +35,23 @@ import { readGeneratedLock, toGeneratedLockPath } from '@/lib/generated-lock.ts'
 import { toBaselinesDir } from '@/lib/baseline-store.ts'
 import { classifyDiskFile, type EditDetectionContext } from '@/lib/edit-detection.ts'
 import { toEjectedArtifactPaths } from '@/lib/write-generated-files.ts'
+import {
+  type EjectionFileState,
+  readEjectionState,
+  toEjectionStatePath
+} from '@/lib/ejection-state.ts'
 
 export type FileStatus = 'clean' | 'modified' | 'missing' | 'unverified' | 'ejected'
 
 export type StatusFileEntry = {
   path: string
   status: FileStatus
+  /**
+   * For `ejected` files: the drift state from the last generate run
+   * (read from the gitignored ejection-state file the writer emits).
+   * Absent when no generate has run since ejecting.
+   */
+  ejection?: EjectionFileState
 }
 
 export type StatusHeadlessResult = {
@@ -53,6 +64,13 @@ export type StatusHeadlessResult = {
    * files a previous generate spared from pruning.
    */
   orphaned: string[]
+  /**
+   * Ejected files no longer produced by any generator (from the last
+   * generate's ejection state) — the schema item was removed or
+   * renamed. The files stay the user's; listed so they aren't
+   * forgotten.
+   */
+  staleEjections: string[]
   counts: Record<FileStatus, number>
   /** True when nothing needs attention (no modified, no orphaned). */
   clean: boolean
@@ -92,6 +110,7 @@ export const statusHeadless = async ({
       noManifest: true,
       files: [],
       orphaned: [],
+      staleEjections: [],
       counts: emptyCounts,
       clean: true
     }
@@ -109,6 +128,7 @@ export const statusHeadless = async ({
   const files: StatusFileEntry[] = []
   const counts = { ...emptyCounts }
   const ejectedArtifactPaths = toEjectedArtifactPaths(clientSettings)
+  const ejectionState = readEjectionState(toEjectionStatePath(projectPath))
 
   const manifestPaths = Object.keys(manifest.contents.files)
 
@@ -118,14 +138,22 @@ export const statusHeadless = async ({
     // Ejected files are user-owned by declaration — expected to differ
     // from generated output, so they get their own status instead of
     // reading as `modified`.
-    const status =
-      manifest.contents.files[path].ejected || ejectedArtifactPaths.has(path)
-        ? 'ejected'
-        : toFileStatus({ path, absolutePath, detection })
+    const isEjected: boolean =
+      manifest.contents.files[path].ejected === true || ejectedArtifactPaths.has(path)
+    const status = isEjected ? 'ejected' : toFileStatus({ path, absolutePath, detection })
 
-    files.push({ path, status })
+    const ejection = isEjected ? ejectionState.files[path] : undefined
+
+    files.push({ path, status, ...(ejection ? { ejection } : {}) })
     counts[status] += 1
   }
+
+  // Ejected files the last generate reported as stale don't appear in
+  // the manifest (nothing produces them) — surface them separately.
+  const manifestPathSetForStale = new Set(manifestPaths)
+  const staleEjections = Object.entries(ejectionState.files)
+    .filter(([path, state]) => state.state === 'stale' && !manifestPathSetForStale.has(path))
+    .map(([path]) => path)
 
   const manifestPathSet = new Set(manifestPaths)
 
@@ -138,6 +166,7 @@ export const statusHeadless = async ({
     noManifest: false,
     files,
     orphaned,
+    staleEjections,
     counts,
     clean: counts.modified === 0 && orphaned.length === 0
   }

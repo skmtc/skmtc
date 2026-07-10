@@ -3,7 +3,7 @@ import { join } from '@std/path/join'
 import * as v from 'valibot'
 import { manifestContent, type ManifestContent } from '@skmtc/core/Manifest'
 import { writeGeneratedFiles } from '@/lib/write-generated-files.ts'
-import { toGeneratedLockPath } from '@/lib/generated-lock.ts'
+import { toContentHash, toGeneratedLockPath } from '@/lib/generated-lock.ts'
 import { statusHeadless } from '@/lib/status-headless.ts'
 
 // statusHeadless reads the same workspace layout `generate` writes:
@@ -254,6 +254,65 @@ Deno.test('statusHeadless - ejected files get their own status, not modified', a
       assertEquals(result.counts.ejected, 1)
       assertEquals(result.counts.modified, 0)
       assertEquals(result.clean, true)
+    })
+  } finally {
+    Deno.chdir(originalCwd)
+    await Deno.remove(tempDir, { recursive: true })
+  }
+})
+
+Deno.test('statusHeadless - ejected files carry drift state from the last generate', async () => {
+  const { tempDir, skmtcRootPath, projectPath, manifestPath } = await toWorkspace('my-api')
+  const originalCwd = Deno.cwd()
+  try {
+    Deno.chdir(tempDir)
+    await silenced(async () => {
+      const clientSettings = { ejected: ['@/src/owned.ts'] }
+
+      // A generate run with a drifted ejected file: seed the committed
+      // baseline + metadata the writer's drift pass reads.
+      Deno.mkdirSync(join(projectPath, '.settings', 'baselines', 'src'), { recursive: true })
+      Deno.writeTextFileSync(
+        join(projectPath, '.settings', 'baselines', 'src', 'owned.ts'),
+        'export const owned = 1\n'
+      )
+      Deno.writeTextFileSync(
+        join(projectPath, '.settings', 'ejections.json'),
+        JSON.stringify({
+          version: 1,
+          files: {
+            '@/src/owned.ts': {
+              reason: 'explicit',
+              ejectedAt: '2026-07-10T00:00:00.000Z',
+              generatedExportPath: '@/src/owned.generated.ts',
+              items: [],
+              baselineHash: toContentHash('export const owned = 1\n')
+            }
+          }
+        })
+      )
+      Deno.mkdirSync(join(tempDir, 'src'), { recursive: true })
+      Deno.writeTextFileSync(join(tempDir, 'src/owned.ts'), 'export const owned = 42 // mine\n')
+
+      writeGeneratedFiles({
+        manifestPath,
+        artifacts: { 'src/owned.ts': 'export const owned = 2\n' },
+        manifest: toManifest(['src/owned.ts']),
+        clientSettings,
+        projectPath
+      })
+
+      const result = await statusHeadless({
+        projectName: 'my-api',
+        clientSettings,
+        skmtcRootPath
+      })
+
+      const owned = result.files.find(({ path }) => path === 'src/owned.ts')
+      assertEquals(owned?.status, 'ejected')
+      assertEquals(owned?.ejection?.state, 'drifted')
+      assertEquals(owned?.ejection?.classification, 'collision')
+      assertEquals(result.staleEjections, [])
     })
   } finally {
     Deno.chdir(originalCwd)

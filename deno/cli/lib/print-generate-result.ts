@@ -56,6 +56,9 @@ export const printGenerateResult = ({
         // this is the structured mirror. Always present (empty when
         // nothing was protected) so consumers can pin to it.
         protectedFiles: result.protectedPaths,
+        // Ejected-file drift report — present only when the project
+        // has ejected files, so the field's presence is the signal.
+        ...(result.ejections ? { ejections: result.ejections } : {}),
         errors: result.stats.errors,
         // Pass through ParseIssue verbatim — the shape is stable and
         // documented in `@skmtc/core` as part of the manifest schema.
