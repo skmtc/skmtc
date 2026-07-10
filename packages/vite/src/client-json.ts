@@ -24,6 +24,21 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  *  `settings.enrichments` subtree; every other field passes through untouched. */
 export type ClientJson = Record<string, unknown> & { settings: Record<string, unknown> }
 
+/** The engine's own fallback when `settings.basePath` is absent (it is
+ *  `v.optional` in `@skmtc/core` Settings): generated files land relative to
+ *  the project root — `skmtc` cli `project-headless.ts` `basePath ?? "."`.
+ *  Must stay identical, or path resolution here disagrees with where the
+ *  engine actually wrote files. */
+const ENGINE_DEFAULT_BASE_PATH = '.'
+
+/** `settings.basePath`, with the engine's `'.'` fallback. `ClientJson` is
+ *  deliberately loose (`settings` values are `unknown`), so the narrowing
+ *  lives here rather than inline at every consumer. */
+export const basePathOf = (clientJson: ClientJson): string =>
+  typeof clientJson.settings.basePath === 'string'
+    ? clientJson.settings.basePath
+    : ENGINE_DEFAULT_BASE_PATH
+
 const subjectRefSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('operation'), path: z.string(), method: z.string() }),
   z.object({ type: z.literal('model'), refName: z.string() })

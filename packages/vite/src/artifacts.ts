@@ -16,7 +16,10 @@ export type ArtifactEntry = { path: string; lines?: number; characters?: number 
 const manifestPath = (root: string, project: string): string =>
   join(root, '.skmtc', project, '.settings', 'manifest.json')
 
-const readManifestFiles = async (
+/** The manifest `files` map (`path -> { lines, characters }`), `{}` when the
+ *  project hasn't been generated. Shared with the gen-map reader, which uses
+ *  membership as its path guard and `characters` for span-alignment checks. */
+export const readManifestFiles = async (
   root: string,
   project: string
 ): Promise<Record<string, unknown>> => {

@@ -83,7 +83,8 @@ export const runDescribe = (root: string, project: string): Promise<CliResult> =
 
 /** `skmtc generate <project> --json` — writes generated files to `basePath` and
  *  returns the manifest summary (files, stats, errors, parseIssues). `anchors`
- *  adds `--anchors` to also emit the gen-map (`.maps/_map.ndjson`) — used on the
- *  regenerate (not edit) path, since the gen-map is heavy + stable across edits. */
+ *  adds `--anchors` to also emit the gen-map (`.maps/_map.ndjson` + the span
+ *  sidecars the attribution overlay reads) — every generate path passes it, so
+ *  spans stay aligned with the regenerated files. */
 export const runGenerate = (root: string, project: string, anchors = false): Promise<CliResult> =>
   runJson(root, ['generate', project, ...(anchors ? ['--anchors'] : []), '--json'], 120_000)
