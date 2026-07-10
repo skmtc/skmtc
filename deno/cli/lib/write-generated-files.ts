@@ -455,6 +455,18 @@ export const writeGeneratedFiles = ({
     }
   }
 
+  // Ejected files keep their lock entry even when no generator produced
+  // them this run (a stale ejection): the in-loop carry-forward only
+  // sees incoming artifact paths. Without this, a stale run drops the
+  // entry, a later adopt has nothing to re-key, and the post-adopt
+  // generate treats the user's file as untracked — overwriting it.
+  for (const path of ejectedArtifactPaths) {
+    const previousEntry = lock?.files[path]
+    if (previousEntry && !nextLockFiles[path]) {
+      nextLockFiles[path] = previousEntry
+    }
+  }
+
   writeGeneratedLock(lockPath, { version: 1, files: nextLockFiles })
 
   const ejections = toEjectionReport({

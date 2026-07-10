@@ -7,7 +7,7 @@ import { writeGeneratedFiles } from '@/lib/write-generated-files.ts'
 import { ejectHeadless } from '@/lib/eject-headless.ts'
 import { readEjections, toEjectionsPath, writeEjections } from '@/lib/ejections.ts'
 import { readEjectionState, toEjectionStatePath } from '@/lib/ejection-state.ts'
-import { toContentHash } from '@/lib/generated-lock.ts'
+import { readGeneratedLock, toContentHash, toGeneratedLockPath } from '@/lib/generated-lock.ts'
 
 // Drift lifecycle: run 1 generates (seeding lock + baseline cache), the
 // user edits and ejects (committing the baseline), then subsequent runs
@@ -302,6 +302,35 @@ Deno.test('drift - a suffixed twin from a version-skewed engine is blocked', asy
       assertEquals(existsSync(join(tempDir, 'src/user.generated.ts')), false)
       assertStringIncludes(errors.join('\n'), 'refused to write')
       assertEquals(Deno.readTextFileSync(join(tempDir, 'src/user.ts')), edited)
+    })
+  } finally {
+    Deno.chdir(originalCwd)
+    await Deno.remove(tempDir, { recursive: true })
+  }
+})
+
+Deno.test('drift - a stale run preserves the ejected lock entry (adopt safety net)', async () => {
+  const originalCwd = Deno.cwd()
+  const edited = BASE.replace('export const a = 1', 'export const a = 100 // mine')
+  const { tempDir, skmtcRootPath, projectPath, manifestPath } = await toEjectedWorkspace(edited)
+  try {
+    await withCapturedErrors(() => {
+      // Stale run: no generator produces the ejected file.
+      writeGeneratedFiles({
+        manifestPath,
+        artifacts: { 'src/other.generated.ts': 'export const other = 1\n' },
+        manifest: toManifest({ 'src/other.generated.ts': '@/src/other.generated.ts' }),
+        clientSettings: EJECTED_SETTINGS,
+        projectPath
+      })
+
+      // The lock entry for the ejected file survives — it is what a
+      // later adopt re-keys, and what post-adopt edit detection uses.
+      // Regression: found by live E2E — dropping it here made the
+      // post-adopt generate treat the user's file as untracked and
+      // overwrite the edit.
+      const lock = readGeneratedLock(toGeneratedLockPath(manifestPath))
+      assertEquals(typeof lock?.files['src/user.ts']?.canonicalHash, 'string')
     })
   } finally {
     Deno.chdir(originalCwd)

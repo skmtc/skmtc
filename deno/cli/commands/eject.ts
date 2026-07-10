@@ -58,6 +58,12 @@ export const renderEject = async ({
 
   printEjectResult(result, resolveOutputFormat({ jsonFlag }))
 
+  // ejectHeadless wrote settings.ejected to client.json directly; the
+  // manager's cleanup below write-backs the project's IN-MEMORY copy,
+  // which predates that write and would silently clobber it. Refresh
+  // from disk first.
+  await project.clientJson.refresh()
+
   await skmtcRoot.manager.cleanup()
 
   Deno.exit(result.ok ? 0 : 1)
@@ -151,6 +157,11 @@ export const renderAdopt = async ({
   })
 
   printAdoptResult(result, resolveOutputFormat({ jsonFlag }))
+
+  // Same write-back hazard as renderEject: adoptHeadless updated
+  // client.json on disk; refresh the in-memory copy before the
+  // manager's cleanup writes it back.
+  await project.clientJson.refresh()
 
   await skmtcRoot.manager.cleanup()
 
