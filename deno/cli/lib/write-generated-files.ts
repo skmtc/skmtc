@@ -10,7 +10,6 @@ import * as v from 'valibot'
 import { toRootPath, toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { pruneEmptyDirs, toAnchorDirs } from '@/lib/prune-empty-dirs.ts'
 import {
-  type GeneratedLockContent,
   type GeneratedLockEntry,
   readGeneratedLock,
   toContentHash,
@@ -24,86 +23,8 @@ import {
   toBaselinesDir,
   writeBaseline
 } from '@/lib/baseline-store.ts'
-import { formatContent, runFormatter } from '@/lib/formatter.ts'
-
-/**
- * Everything edit detection needs to classify one on-disk artifact.
- * Bundled once per run by `writeGeneratedFiles` and threaded through
- * both the overwrite path and the stale-artifact prune so the two
- * enforce the same invariant: a hand-edited generated file is never
- * overwritten and never deleted.
- */
-type EditDetectionContext = {
-  lock: GeneratedLockContent | null
-  /** From `client.json#settings.formatter`; absent → raw comparison only. */
-  formatterCommand: string | undefined
-  /** Absent when the caller didn't supply a `projectPath` (baselines disabled). */
-  baselinesDir: string | null
-  /** App root — cwd for formatter runs. */
-  appRoot: string
-}
-
-type ClassifyResult = {
-  edited: boolean
-  diskHash: string
-  /**
-   * Set when the mismatch was explained by a formatter-config change
-   * (re-formatting the stored baseline under the current config
-   * reproduces the disk content). The caller records this as the
-   * file's new `formattedHash` so the next run compares cheaply.
-   */
-  driftResolvedFormattedHash?: string
-}
-
-/**
- * Decides whether the file at `absolutePath` was hand-edited since the
- * run recorded in `lockEntry`:
- *
- * 1. Disk matches `formattedHash` → untouched.
- * 2. Otherwise, re-format the canonical baseline under the *current*
- *    formatter config; if that reproduces the disk content, only the
- *    formatting moved (config change) — untouched.
- * 3. Otherwise: edited.
- */
-const classifyDiskFile = ({
-  artifactPath,
-  absolutePath,
-  lockEntry,
-  detection
-}: {
-  artifactPath: string
-  absolutePath: string
-  lockEntry: GeneratedLockEntry
-  detection: EditDetectionContext
-}): ClassifyResult => {
-  const diskContent = Deno.readTextFileSync(absolutePath)
-  const diskHash = toContentHash(diskContent)
-
-  if (diskHash === lockEntry.formattedHash) {
-    return { edited: false, diskHash }
-  }
-
-  const { formatterCommand, baselinesDir, appRoot } = detection
-
-  if (formatterCommand && baselinesDir) {
-    const baseline = readBaseline(baselinesDir, artifactPath)
-
-    if (baseline !== null) {
-      const formattedBaseline = formatContent({
-        command: formatterCommand,
-        absolutePath,
-        content: baseline,
-        cwd: appRoot
-      })
-
-      if (formattedBaseline !== null && toContentHash(formattedBaseline) === diskHash) {
-        return { edited: false, diskHash, driftResolvedFormattedHash: diskHash }
-      }
-    }
-  }
-
-  return { edited: true, diskHash }
-}
+import { runFormatter } from '@/lib/formatter.ts'
+import { classifyDiskFile, type EditDetectionContext } from '@/lib/edit-detection.ts'
 
 type DeletePreviousArtifactsArgs = {
   skmtcRootPath: string

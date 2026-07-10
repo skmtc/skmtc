@@ -136,6 +136,24 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     agentMode: 'json-only'
   },
   {
+    name: 'status',
+    description:
+      'Classify every generated file against the generated lock: clean / modified (hand-edited, protected from overwrite) / missing / unverified, plus orphaned files spared from pruning. Read-only.',
+    args: ['<project>'],
+    flags: [
+      { flag: '--json', description: 'Emit structured JSON output.' },
+      {
+        flag: '--check',
+        description: 'Exit 1 when any generated file is modified or orphaned (CI gate).'
+      },
+      {
+        flag: '--verbose',
+        description: 'List every file with its status, not just modified ones.'
+      }
+    ],
+    agentMode: 'json-only'
+  },
+  {
     name: 'describe',
     description:
       "Report a project's preview metadata by running its bundle read-only: supported subjects (operations / models) per generator, the form-renderable enrichment descriptors, and the schema-derived enrichment defaults.",
