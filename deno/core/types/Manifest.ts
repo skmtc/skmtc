@@ -140,12 +140,21 @@ export type ManifestEntry = {
   lines: number
   characters: number
   destinationPath: string
+  /**
+   * True when the file is ejected (`client.json#settings.ejected`) —
+   * the user owns it. The item still generated in memory (its content
+   * is drift detection's input) but the CLI did not write it to disk
+   * and will never delete it. Annotated by the CLI writer, not the
+   * engine.
+   */
+  ejected?: boolean
 }
 
 export const manifestEntry: v.GenericSchema<ManifestEntry> = v.object({
   lines: v.number(),
   characters: v.number(),
-  destinationPath: v.string()
+  destinationPath: v.string(),
+  ejected: v.optional(v.boolean())
 })
 
 export type PreviewItem = {

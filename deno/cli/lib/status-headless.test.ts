@@ -97,7 +97,7 @@ Deno.test('statusHeadless - classifies clean, modified, and missing files', asyn
       })
 
       assertEquals(result.noManifest, false)
-      assertEquals(result.counts, { clean: 1, modified: 1, missing: 1, unverified: 0 })
+      assertEquals(result.counts, { clean: 1, modified: 1, missing: 1, unverified: 0, ejected: 0 })
       assertEquals(
         result.files.find(({ path }) => path === 'src/clean.ts')?.status,
         'clean'
@@ -177,7 +177,7 @@ Deno.test('statusHeadless - edited files spared from pruning surface as orphaned
       })
 
       assertEquals(result.orphaned, ['src/old.ts'])
-      assertEquals(result.counts, { clean: 1, modified: 0, missing: 0, unverified: 0 })
+      assertEquals(result.counts, { clean: 1, modified: 0, missing: 0, unverified: 0, ejected: 0 })
       assertEquals(result.clean, false)
     })
   } finally {
@@ -210,7 +210,49 @@ Deno.test('statusHeadless - formatter-config drift reads as clean, not modified'
         skmtcRootPath
       })
 
-      assertEquals(result.counts, { clean: 1, modified: 0, missing: 0, unverified: 0 })
+      assertEquals(result.counts, { clean: 1, modified: 0, missing: 0, unverified: 0, ejected: 0 })
+      assertEquals(result.clean, true)
+    })
+  } finally {
+    Deno.chdir(originalCwd)
+    await Deno.remove(tempDir, { recursive: true })
+  }
+})
+
+Deno.test('statusHeadless - ejected files get their own status, not modified', async () => {
+  const { tempDir, skmtcRootPath, projectPath, manifestPath } = await toWorkspace('my-api')
+  const originalCwd = Deno.cwd()
+  try {
+    Deno.chdir(tempDir)
+    await silenced(async () => {
+      const clientSettings = { ejected: ['@/src/owned.ts'] }
+
+      writeGeneratedFiles({
+        manifestPath,
+        artifacts: {
+          'src/owned.ts': 'export const owned = 1\n',
+          'src/normal.ts': 'export const normal = 1\n'
+        },
+        manifest: toManifest(['src/owned.ts', 'src/normal.ts']),
+        clientSettings,
+        projectPath
+      })
+
+      // The user's edits to the ejected file are expected — not dirty.
+      Deno.writeTextFileSync(join(tempDir, 'src/owned.ts'), 'export const owned = 42\n')
+
+      const result = await statusHeadless({
+        projectName: 'my-api',
+        clientSettings,
+        skmtcRootPath
+      })
+
+      assertEquals(
+        result.files.find(({ path }) => path === 'src/owned.ts')?.status,
+        'ejected'
+      )
+      assertEquals(result.counts.ejected, 1)
+      assertEquals(result.counts.modified, 0)
       assertEquals(result.clean, true)
     })
   } finally {

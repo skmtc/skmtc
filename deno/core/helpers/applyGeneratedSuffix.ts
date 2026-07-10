@@ -34,6 +34,39 @@ export const DEFAULT_GENERATED_SUFFIX = '.generated'
  * - No extension → the suffix is appended (`Makefile` →
  *   `Makefile.generated`).
  */
+/**
+ * The inverse of {@link applyGeneratedSuffix}: removes the
+ * generated-file suffix from an export path
+ * (`@/forms/CreateForm.generated.tsx` → `@/forms/CreateForm.tsx`).
+ * A path without the suffix is returned unchanged. Used by the eject
+ * flow to compute the owned name of a generated file.
+ */
+export const removeGeneratedSuffix = (path: string, suffix: string): string => {
+  if (suffix === '') {
+    return path
+  }
+
+  const dottedSuffix = suffix.startsWith('.') ? suffix : `.${suffix}`
+
+  const extension = extname(path)
+
+  if (extension === dottedSuffix) {
+    return path.slice(0, -dottedSuffix.length)
+  }
+
+  if (extension === '') {
+    return path
+  }
+
+  const stem = path.slice(0, -extension.length)
+
+  if (stem.endsWith(dottedSuffix)) {
+    return `${stem.slice(0, -dottedSuffix.length)}${extension}`
+  }
+
+  return path
+}
+
 export const applyGeneratedSuffix = (path: string, suffix: string): string => {
   if (suffix === '') {
     return path

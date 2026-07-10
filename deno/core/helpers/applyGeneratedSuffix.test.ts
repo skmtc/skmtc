@@ -1,6 +1,7 @@
 import { assertEquals } from '@std/assert'
 import {
   applyGeneratedSuffix,
+  removeGeneratedSuffix,
   DEFAULT_GENERATED_SUFFIX
 } from '@/helpers/applyGeneratedSuffix.ts'
 
@@ -63,4 +64,30 @@ Deno.test('applyGeneratedSuffix - suffix without a leading dot is dot-normalized
   // The dot-normalization prevents false positives on stems that merely
   // end with the letters of the suffix.
   assertEquals(applyGeneratedSuffix('@/types/oxygen.ts', 'gen'), '@/types/oxygen.gen.ts')
+})
+
+Deno.test('removeGeneratedSuffix - inverse of applyGeneratedSuffix', () => {
+  assertEquals(
+    removeGeneratedSuffix('@/forms/CreateForm.generated.tsx', DEFAULT_GENERATED_SUFFIX),
+    '@/forms/CreateForm.tsx'
+  )
+  assertEquals(
+    removeGeneratedSuffix('@/Makefile.generated', DEFAULT_GENERATED_SUFFIX),
+    '@/Makefile'
+  )
+  // No suffix present → unchanged.
+  assertEquals(
+    removeGeneratedSuffix('@/forms/CreateForm.tsx', DEFAULT_GENERATED_SUFFIX),
+    '@/forms/CreateForm.tsx'
+  )
+  // Empty suffix (injection disabled) → unchanged.
+  assertEquals(removeGeneratedSuffix('@/forms/CreateForm.tsx', ''), '@/forms/CreateForm.tsx')
+  // Round-trip.
+  assertEquals(
+    removeGeneratedSuffix(
+      applyGeneratedSuffix('@/types/user.model.tsx', DEFAULT_GENERATED_SUFFIX),
+      DEFAULT_GENERATED_SUFFIX
+    ),
+    '@/types/user.model.tsx'
+  )
 })

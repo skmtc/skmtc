@@ -336,6 +336,23 @@ generate). Changing it mid-project renames every generated file on the
 next run — the stale-artifact prune removes the old names and imports
 regenerate, but expect a large diff.
 
+### `settings.ejected` (optional)
+
+Export paths of generated files the user has taken ownership of, in
+their owned, suffix-less form — for example `"@/types/user.tsx"`. This
+is the authoritative ejected set: for each member, the engine stores
+the owned path into `ContentSettings` instead of the suffixed one (so
+definition cache keys, peer import specifiers, previews, and the
+manifest all reference the owned file), and the CLI never writes or
+deletes the file — not during generate's stale-artifact prune and not
+during `skmtc clean`. The item still renders in memory; its content is
+the input for drift detection.
+
+Maintained by [`skmtc eject`](../cli/eject.md) /
+[`skmtc adopt`](../cli/adopt.md), which also perform the rename and
+record provenance metadata in `.settings/ejections.json`. A hand-added
+entry is honored identically (it just has no recorded metadata).
+
 ### `settings.schemaSource` (accepted, unused)
 
 Accepted by the validator (`core/types/Settings.ts`'s

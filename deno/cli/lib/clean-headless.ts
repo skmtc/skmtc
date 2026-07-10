@@ -21,6 +21,7 @@ import type { ClientSettings } from '@skmtc/core/Settings'
 import { Manifest } from '@/lib/manifest.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import { pruneEmptyDirs, toAnchorDirs } from '@/lib/prune-empty-dirs.ts'
+import { toEjectedArtifactPaths } from '@/lib/write-generated-files.ts'
 
 type CleanHeadlessArgs = {
   projectName: string
@@ -46,6 +47,8 @@ export type CleanHeadlessResult = {
   /** Manifest-recorded paths that resolved outside the app root and
    *  were refused as a safety guard. Empty in normal operation. */
   skipped: string[]
+  /** Ejected (user-owned) paths — never deleted, listed for visibility. */
+  ejected: string[]
   /** Directories removed (or, on a dry run, that would be removed)
    *  because deleting the files left them empty. App-root-relative. */
   removedDirs: string[]
@@ -76,6 +79,7 @@ export const cleanHeadless = async ({
       deleted: [],
       missing: [],
       skipped: [],
+      ejected: [],
       removedDirs: [],
       manifestRemoved: false,
       noManifest: true
@@ -85,10 +89,20 @@ export const cleanHeadless = async ({
   const deleted: string[] = []
   const missing: string[] = []
   const skipped: string[] = []
+  const ejected: string[] = []
   const deletedAbsPaths: string[] = []
+  const ejectedArtifactPaths = toEjectedArtifactPaths(clientSettings)
 
-  for (const path of Object.keys(manifest.contents.files)) {
+  for (const [path, entry] of Object.entries(manifest.contents.files)) {
     const absolutePath = join(skmtcRootPath, '..', path)
+
+    // Ejected files are the user's — `clean` removes generated output,
+    // and these are no longer generated output. Belt and braces: honor
+    // both the manifest annotation and the client.json ejected set.
+    if (entry.ejected || ejectedArtifactPaths.has(path)) {
+      ejected.push(path)
+      continue
+    }
 
     // Containment guard: generated files always live under the app
     // root. A manifest key that escapes it (a stray `..` segment) is
@@ -143,6 +157,7 @@ export const cleanHeadless = async ({
     deleted,
     missing,
     skipped,
+    ejected,
     removedDirs,
     manifestRemoved,
     noManifest: false

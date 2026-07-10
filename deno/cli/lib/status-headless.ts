@@ -12,6 +12,10 @@
  *   - `unverified` — no lock entry (pre-lock project or fresh clone
  *                    without the lock); edit detection can't classify
  *                    it until a generate run seeds the lock
+ *   - `ejected`    — user-owned by declaration
+ *                    (`client.json#settings.ejected`); expected to
+ *                    differ from generated output, never overwritten
+ *                    or deleted
  *
  * `orphaned` lists lock entries for files the manifest no longer
  * tracks — stale-but-edited files a previous generate spared from
@@ -30,8 +34,9 @@ import { toRootPath } from '@/lib/to-root-path.ts'
 import { readGeneratedLock, toGeneratedLockPath } from '@/lib/generated-lock.ts'
 import { toBaselinesDir } from '@/lib/baseline-store.ts'
 import { classifyDiskFile, type EditDetectionContext } from '@/lib/edit-detection.ts'
+import { toEjectedArtifactPaths } from '@/lib/write-generated-files.ts'
 
-export type FileStatus = 'clean' | 'modified' | 'missing' | 'unverified'
+export type FileStatus = 'clean' | 'modified' | 'missing' | 'unverified' | 'ejected'
 
 export type StatusFileEntry = {
   path: string
@@ -77,7 +82,8 @@ export const statusHeadless = async ({
     clean: 0,
     modified: 0,
     missing: 0,
-    unverified: 0
+    unverified: 0,
+    ejected: 0
   }
 
   if (manifest.contents === null) {
@@ -102,13 +108,20 @@ export const statusHeadless = async ({
 
   const files: StatusFileEntry[] = []
   const counts = { ...emptyCounts }
+  const ejectedArtifactPaths = toEjectedArtifactPaths(clientSettings)
 
   const manifestPaths = Object.keys(manifest.contents.files)
 
   for (const path of manifestPaths) {
     const absolutePath = join(skmtcRootPath, '..', path)
 
-    const status = toFileStatus({ path, absolutePath, detection })
+    // Ejected files are user-owned by declaration — expected to differ
+    // from generated output, so they get their own status instead of
+    // reading as `modified`.
+    const status =
+      manifest.contents.files[path].ejected || ejectedArtifactPaths.has(path)
+        ? 'ejected'
+        : toFileStatus({ path, absolutePath, detection })
 
     files.push({ path, status })
     counts[status] += 1

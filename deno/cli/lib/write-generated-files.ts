@@ -6,6 +6,7 @@ import { ensureFileSync } from '@std/fs/ensure-file'
 import { existsSync } from '@std/fs/exists'
 import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 import type { ClientSettings } from '@skmtc/core/Settings'
+import { toResolvedArtifactPath } from '@skmtc/core'
 import * as v from 'valibot'
 import { toRootPath, toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { pruneEmptyDirs, toAnchorDirs } from '@/lib/prune-empty-dirs.ts'
@@ -26,6 +27,21 @@ import {
 import { runFormatter } from '@/lib/formatter.ts'
 import { classifyDiskFile, type EditDetectionContext } from '@/lib/edit-detection.ts'
 
+/**
+ * Artifact-space keys of the project's ejected files: each
+ * `settings.ejected` entry (a suffix-less export path like
+ * `@/types/user.tsx`) resolved the same way the engine resolves
+ * artifact keys, so membership can be tested directly against the
+ * incoming `artifacts` map and manifest keys.
+ */
+export const toEjectedArtifactPaths = (clientSettings?: ClientSettings): Set<string> => {
+  return new Set(
+    (clientSettings?.ejected ?? []).map(destinationPath =>
+      toResolvedArtifactPath({ basePath: clientSettings?.basePath, destinationPath })
+    )
+  )
+}
+
 type DeletePreviousArtifactsArgs = {
   skmtcRootPath: string
   manifestPath: string
@@ -43,6 +59,12 @@ type DeletePreviousArtifactsArgs = {
   detection?: EditDetectionContext
   /** Receives the artifact path of every stale-but-edited file spared from deletion. */
   onProtected?: (artifactPath: string) => void
+  /**
+   * Artifact-space paths of ejected (user-owned) files — never
+   * deleted, regardless of manifest state. Defaults to the set derived
+   * from `clientSettings.ejected`.
+   */
+  ejectedArtifactPaths?: Set<string>
 }
 
 export const deletePreviousArtifacts = ({
@@ -51,7 +73,8 @@ export const deletePreviousArtifacts = ({
   manifestPath,
   clientSettings,
   detection,
-  onProtected
+  onProtected,
+  ejectedArtifactPaths = toEjectedArtifactPaths(clientSettings)
 }: DeletePreviousArtifactsArgs): void => {
   if (!existsSync(manifestPath)) {
     return
@@ -76,6 +99,12 @@ export const deletePreviousArtifacts = ({
   for (const path of paths) {
     try {
       if (incomingPaths.includes(path)) {
+        continue
+      }
+
+      // Ejected files are the user's — never deleted, even when no
+      // generator produces them anymore.
+      if (ejectedArtifactPaths.has(path)) {
         continue
       }
 
@@ -212,6 +241,7 @@ export const writeGeneratedFiles = ({
   }
 
   const protectedPaths: string[] = []
+  const ejectedArtifactPaths = toEjectedArtifactPaths(clientSettings)
 
   deletePreviousArtifacts({
     incomingPaths: Object.keys(artifacts ?? {}),
@@ -221,6 +251,15 @@ export const writeGeneratedFiles = ({
     detection,
     onProtected: path => protectedPaths.push(path)
   })
+
+  // Mark ejected entries before the manifest lands on disk, so every
+  // manifest consumer (clean, status, agents reading --json) can tell
+  // user-owned files apart without re-deriving the ejected set.
+  for (const path of Object.keys(manifest.files)) {
+    if (ejectedArtifactPaths.has(path)) {
+      manifest.files[path].ejected = true
+    }
+  }
 
   ensureFileSync(manifestPath)
 
@@ -238,6 +277,18 @@ export const writeGeneratedFiles = ({
     const content = String(artifactContent)
     const absolutePath = join(skmtcRootPath, '..', artifactPath)
     const canonicalHash = toContentHash(content)
+
+    if (ejectedArtifactPaths.has(artifactPath)) {
+      // Ejected: the user owns this file. The engine still rendered it
+      // (that content is drift detection's input) but the host never
+      // writes it. The lock entry carries forward untouched — it is
+      // the base a future adopt/merge resolves from.
+      const previousEntry = lock?.files[artifactPath]
+      if (previousEntry) {
+        nextLockFiles[artifactPath] = previousEntry
+      }
+      continue
+    }
 
     if (!existsSync(absolutePath)) {
       const { dir } = parse(absolutePath)

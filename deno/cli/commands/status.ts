@@ -93,10 +93,12 @@ export const printStatusResult = (
 
       const { counts } = result
 
+      const ejectedSegment = counts.ejected > 0 ? `, ${counts.ejected} ejected` : ''
+
       console.log(
         `${result.files.length} generated file(s) in "${result.projectName}": ` +
           `${counts.clean} clean, ${counts.modified} modified, ` +
-          `${counts.missing} missing, ${counts.unverified} unverified.`
+          `${counts.missing} missing, ${counts.unverified} unverified${ejectedSegment}.`
       )
 
       const listed = result.files.filter(({ status }) =>
@@ -138,7 +140,9 @@ export const printStatusResult = (
   }
 }
 
-const toStatusGlyph = (status: 'clean' | 'modified' | 'missing' | 'unverified'): string => {
+const toStatusGlyph = (
+  status: 'clean' | 'modified' | 'missing' | 'unverified' | 'ejected'
+): string => {
   switch (status) {
     case 'clean':
       return '✓'
@@ -148,6 +152,8 @@ const toStatusGlyph = (status: 'clean' | 'modified' | 'missing' | 'unverified'):
       return '?'
     case 'unverified':
       return '~'
+    case 'ejected':
+      return 'E'
     default: {
       const _exhaustive: never = status
       throw new Error(`Unhandled status: ${JSON.stringify(_exhaustive)}`)

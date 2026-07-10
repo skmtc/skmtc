@@ -154,6 +154,22 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     agentMode: 'json-only'
   },
   {
+    name: 'eject',
+    description:
+      'Take ownership of a generated file: rename it to drop the generated suffix, add it to settings.ejected, and record provenance. Generators stop writing it, peer imports follow the owned path on the next generate, and it is never overwritten or deleted.',
+    args: ['<project>', '<file>'],
+    flags: [{ flag: '--json', description: 'Emit structured JSON output.' }],
+    agentMode: 'json-only'
+  },
+  {
+    name: 'adopt',
+    description:
+      'Return an ejected file to generation: rename it back to its generated name and remove it from settings.ejected. The next generate resumes writing it; a file still carrying manual edits is protected, never overwritten.',
+    args: ['<project>', '<file>'],
+    flags: [{ flag: '--json', description: 'Emit structured JSON output.' }],
+    agentMode: 'json-only'
+  },
+  {
     name: 'describe',
     description:
       "Report a project's preview metadata by running its bundle read-only: supported subjects (operations / models) per generator, the form-renderable enrichment descriptors, and the schema-derived enrichment defaults.",

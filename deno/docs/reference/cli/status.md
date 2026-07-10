@@ -73,6 +73,10 @@ overall `clean` boolean. Logs and warnings go to stderr.
   detection, or a fresh clone without the lock). Run
   `skmtc generate` once to seed the lock; classification activates
   from the following run.
+- **`ejected`** — user-owned by declaration
+  (`client.json#settings.ejected`, glyph `E`). Expected to differ from
+  generated output, never overwritten or deleted; does not count as
+  dirty for `--check`. See [eject](./eject.md) / [adopt](./adopt.md).
 
 ### Orphaned files
 

@@ -791,3 +791,61 @@ Deno.test('writeGeneratedFiles - warnOnProtected: false protects silently', asyn
     await Deno.remove(tempDir, { recursive: true })
   }
 })
+
+// --- writeGeneratedFiles: ejected files ------------------------------------
+// An ejected file (client.json#settings.ejected, suffix-less export
+// paths) is user-owned: the engine still renders it (drift input), but
+// the host never writes it, never deletes it, and marks it in the
+// manifest. Distinct from `protected` — ejection is declared intent,
+// not a detected edit.
+
+Deno.test('writeGeneratedFiles - never writes or deletes an ejected file', async () => {
+  const tempDir = await Deno.makeTempDir()
+  const originalCwd = Deno.cwd()
+  try {
+    Deno.chdir(tempDir)
+    await withCapturedErrors(errors => {
+      const manifestPath = join(tempDir, 'manifest.json')
+      const artifactPath = join(tempDir, 'out.ts')
+      const manifest = manifestFor('out.ts')
+
+      // Run 1: normal generation seeds disk + lock.
+      writeGeneratedFiles({ manifestPath, artifacts: { 'out.ts': 'export const a = 1\n' }, manifest })
+
+      // The user edits and ejects the file.
+      Deno.writeTextFileSync(artifactPath, 'export const a = 1 // mine now\n')
+      const clientSettings = { ejected: ['@/out.ts'] }
+
+      // Run 2: the engine still renders the item (new content), but the
+      // host must not touch the user's file — and this is ejection, not
+      // protection, so no protect warning fires.
+      const result = writeGeneratedFiles({
+        manifestPath,
+        artifacts: { 'out.ts': 'export const a = 2\n' },
+        manifest: manifestFor('out.ts'),
+        clientSettings
+      })
+
+      assertEquals(Deno.readTextFileSync(artifactPath), 'export const a = 1 // mine now\n')
+      assertEquals(result.protectedPaths, [])
+      assertEquals(errors.filter(msg => msg.includes('manual edits')), [])
+
+      // The manifest on disk marks the entry as ejected.
+      const manifestOnDisk = JSON.parse(Deno.readTextFileSync(manifestPath))
+      assertEquals(manifestOnDisk.files['out.ts'].ejected, true)
+
+      // Run 3: the item vanishes from the artifacts entirely (generator
+      // removed) — the prune must still spare the user's file.
+      writeGeneratedFiles({
+        manifestPath,
+        artifacts: { 'other.ts': 'export const b = 1\n' },
+        manifest: manifestFor('other.ts'),
+        clientSettings
+      })
+      assertEquals(Deno.readTextFileSync(artifactPath), 'export const a = 1 // mine now\n')
+    })
+  } finally {
+    Deno.chdir(originalCwd)
+    await Deno.remove(tempDir, { recursive: true })
+  }
+})

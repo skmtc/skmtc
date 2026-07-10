@@ -126,6 +126,12 @@ export const printCleanResult = (
         )
       }
 
+      if (result.ejected.length > 0) {
+        console.log(
+          `  (${result.ejected.length} ejected — user-owned, never deleted)`
+        )
+      }
+
       if (result.dryRun) {
         console.log(`\nDry run — nothing was deleted. Re-run without --dry-run to apply.`)
       } else if (result.manifestRemoved) {

@@ -235,6 +235,7 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   inputDirs: v.optional(v.array(v.string())),
   formatter: v.optional(v.string()),
   generatedSuffix: v.optional(v.string()),
+  ejected: v.optional(v.array(v.string())),
 });
 
 /**
@@ -554,6 +555,19 @@ export type ClientSettings = {
    * rename a file when the user takes ownership of it.
    */
   generatedSuffix?: string;
+  /**
+   * Export paths of generated files the user has taken ownership of
+   * (ejected), in their owned, suffix-less form — e.g.
+   * `"@/types/user.tsx"`. For a member, the engine stores the ejected
+   * path into `ContentSettings` instead of the suffixed one, so
+   * definition cache keys, import specifiers, previews, sidecars, and
+   * the manifest all reference the file the user actually owns. The
+   * item still generates in memory (its rendered content is the input
+   * for drift detection); the CLI suppresses the disk write.
+   * Maintained by `skmtc eject` / `skmtc adopt`; metadata (reason,
+   * contributing items, baseline) lives in `.settings/ejections.json`.
+   */
+  ejected?: string[];
 };
 
 /**
