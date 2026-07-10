@@ -16,7 +16,7 @@
  * share a boundary line, because a merge would have to order them.
  */
 
-type LineRange = {
+export type LineRange = {
   /** Inclusive start line index in the BASE text. */
   start: number
   /** Exclusive end line index in the BASE text. An insertion has start === end. */
@@ -24,18 +24,26 @@ type LineRange = {
 }
 
 /**
- * Changed regions of `base`, expressed as base-line ranges, computed
- * from an LCS alignment of base against `changed`. Insertions in
- * `changed` appear as empty ranges anchored at the base line they
- * precede.
+ * A changed region of `base`: the base-line range it replaces and the
+ * lines from the changed side that replace it (empty for a deletion;
+ * an insertion has `start === end`).
  */
-export const toChangedBaseRanges = (base: string, changed: string): LineRange[] => {
+export type ChangedRegion = LineRange & {
+  replacement: string[]
+}
+
+/**
+ * Changed regions of `base`, computed from an LCS alignment of base
+ * against `changed`. Insertions in `changed` appear as empty ranges
+ * anchored at the base line they precede.
+ */
+export const toChangedRegions = (base: string, changed: string): ChangedRegion[] => {
   const baseLines = base.split('\n')
   const changedLines = changed.split('\n')
 
   const matches = toLcsMatches(baseLines, changedLines)
 
-  const ranges: LineRange[] = []
+  const regions: ChangedRegion[] = []
   let basePosition = 0
   let changedPosition = 0
 
@@ -44,14 +52,23 @@ export const toChangedBaseRanges = (base: string, changed: string): LineRange[] 
     const changedGap = changedIndex > changedPosition
 
     if (baseGap || changedGap) {
-      ranges.push({ start: basePosition, end: baseIndex })
+      regions.push({
+        start: basePosition,
+        end: baseIndex,
+        replacement: changedLines.slice(changedPosition, changedIndex)
+      })
     }
 
     basePosition = baseIndex + 1
     changedPosition = changedIndex + 1
   }
 
-  return ranges
+  return regions
+}
+
+/** The ranges-only view of {@link toChangedRegions}, for classification. */
+export const toChangedBaseRanges = (base: string, changed: string): LineRange[] => {
+  return toChangedRegions(base, changed).map(({ start, end }) => ({ start, end }))
 }
 
 /** Standard dynamic-programming LCS over lines, returning matched index pairs. */
@@ -126,4 +143,55 @@ export const classifyThreeWay = ({
   }
 
   return 'non-overlapping'
+}
+
+export type MergeThreeWayResult =
+  | { ok: true; merged: string }
+  | {
+      ok: false
+      /** Base-line ranges where the two sides' changes touch. */
+      collisions: LineRange[]
+    }
+
+/**
+ * Applies both sides' changes to the base when they don't overlap —
+ * the mechanical half of drift resolution: keep the user's edits, take
+ * the generator's updates. Refuses (returning the colliding base
+ * ranges) rather than producing conflict markers: a merged file is
+ * written whole or not at all.
+ */
+export const mergeThreeWay = ({
+  base,
+  ours,
+  theirs
+}: ClassifyThreeWayArgs): MergeThreeWayResult => {
+  const ourRegions = toChangedRegions(base, ours)
+  const theirRegions = toChangedRegions(base, theirs)
+
+  const collisions: LineRange[] = []
+  for (const ourRegion of ourRegions) {
+    for (const theirRegion of theirRegions) {
+      if (rangesTouch(ourRegion, theirRegion)) {
+        collisions.push({
+          start: Math.min(ourRegion.start, theirRegion.start),
+          end: Math.max(ourRegion.end, theirRegion.end)
+        })
+      }
+    }
+  }
+
+  if (collisions.length > 0) {
+    return { ok: false, collisions }
+  }
+
+  // Disjoint regions: splice both sides into the base, back to front so
+  // earlier indices stay valid.
+  const merged = base.split('\n')
+  const allRegions = [...ourRegions, ...theirRegions].sort((a, b) => b.start - a.start)
+
+  for (const region of allRegions) {
+    merged.splice(region.start, region.end - region.start, ...region.replacement)
+  }
+
+  return { ok: true, merged: merged.join('\n') }
 }

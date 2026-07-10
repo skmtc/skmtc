@@ -37,7 +37,8 @@ import {
   writeEjectionState
 } from '@/lib/ejection-state.ts'
 import { classifyThreeWay } from '@/lib/three-way.ts'
-import { toCommittedBaselinePath } from '@/lib/baseline-store.ts'
+import { toCommittedBaselinePath, toPristinePath } from '@/lib/baseline-store.ts'
+import { dirname } from '@std/path/dirname'
 
 /**
  * Artifact-space keys of the project's ejected files: each
@@ -567,7 +568,22 @@ const toEjectionReport = ({
     if (pristine === undefined) {
       stale.push(ownedArtifactPath)
       stateFiles[ownedArtifactPath] = { state: 'stale' }
+      if (projectPath) {
+        try {
+          Deno.removeSync(toPristinePath(projectPath, ownedArtifactPath))
+        } catch (_error) {
+          // Absent — nothing to clear.
+        }
+      }
       continue
+    }
+
+    // Persist this run's pristine render — the "theirs" side a later
+    // `skmtc merge` needs, since merge runs without the engine.
+    if (projectPath) {
+      const pristinePath = toPristinePath(projectPath, ownedArtifactPath)
+      ensureDirSync(dirname(pristinePath))
+      Deno.writeTextFileSync(pristinePath, pristine)
     }
 
     const pristineHash = toContentHash(pristine)

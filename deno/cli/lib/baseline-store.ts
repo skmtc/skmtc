@@ -41,6 +41,17 @@ export const toCommittedBaselinePath = (
 }
 
 /**
+ * The last pristine render of an ejected file, persisted by the writer
+ * each generate (ejected items still render in memory). This is what
+ * lets `skmtc merge` run offline — the "theirs" side of the three-way
+ * — without re-running the engine. Derived output: gitignored,
+ * rewritten each generate.
+ */
+export const toPristinePath = (projectPath: string, ownedArtifactPath: string): string => {
+  return join(projectPath, baselinesDirName, 'pristine', ownedArtifactPath)
+}
+
+/**
  * Maps an artifact path (app-root relative, the manifest/lock key) to
  * its baseline file. Returns `null` for paths that would escape the
  * baseline dir — same containment stance as `clean`'s guard.

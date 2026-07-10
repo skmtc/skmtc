@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert'
-import { classifyThreeWay, toChangedBaseRanges } from '@/lib/three-way.ts'
+import { classifyThreeWay, mergeThreeWay, toChangedBaseRanges } from '@/lib/three-way.ts'
 
 const base = ['const a = 1', 'const b = 2', 'const c = 3', 'const d = 4', 'const e = 5'].join('\n')
 
@@ -51,4 +51,56 @@ Deno.test('classifyThreeWay - unchanged sides never collide', () => {
 
   assertEquals(classifyThreeWay({ base, ours: base, theirs }), 'non-overlapping')
   assertEquals(classifyThreeWay({ base, ours: theirs, theirs: base }), 'non-overlapping')
+})
+
+Deno.test('mergeThreeWay - splices both sides into the base', () => {
+  const ours = base.replace('const a = 1', 'const a = 100 // mine')
+  const theirs = base.replace('const e = 5', 'const e = 50')
+
+  const result = mergeThreeWay({ base, ours, theirs })
+
+  assertEquals(result.ok, true)
+  if (!result.ok) return
+  assertEquals(
+    result.merged,
+    ['const a = 100 // mine', 'const b = 2', 'const c = 3', 'const d = 4', 'const e = 50'].join(
+      '\n'
+    )
+  )
+})
+
+Deno.test('mergeThreeWay - handles insertions and deletions on both sides', () => {
+  // Ours inserts after line a; theirs deletes line e.
+  const ours = base.replace('const a = 1', 'const a = 1\nconst mine = true')
+  const theirs = ['const a = 1', 'const b = 2', 'const c = 3', 'const d = 4'].join('\n')
+
+  const result = mergeThreeWay({ base, ours, theirs })
+
+  assertEquals(result.ok, true)
+  if (!result.ok) return
+  assertEquals(
+    result.merged,
+    ['const a = 1', 'const mine = true', 'const b = 2', 'const c = 3', 'const d = 4'].join('\n')
+  )
+})
+
+Deno.test('mergeThreeWay - refuses collisions with the touching base ranges', () => {
+  const ours = base.replace('const c = 3', 'const c = 3.14 // mine')
+  const theirs = base.replace('const c = 3', 'const c = 300')
+
+  const result = mergeThreeWay({ base, ours, theirs })
+
+  assertEquals(result.ok, false)
+  if (result.ok) return
+  assertEquals(result.collisions, [{ start: 2, end: 3 }])
+})
+
+Deno.test('mergeThreeWay - one unchanged side returns the other verbatim', () => {
+  const theirs = base.replace('const b = 2', 'const b = 20')
+
+  const result = mergeThreeWay({ base, ours: base, theirs })
+
+  assertEquals(result.ok, true)
+  if (!result.ok) return
+  assertEquals(result.merged, theirs)
 })
