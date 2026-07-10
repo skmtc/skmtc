@@ -82,9 +82,10 @@ export const runDescribe = (root: string, project: string): Promise<CliResult> =
   runJson(root, ['describe', project, '--json'], 60_000)
 
 /** `skmtc generate <project> --json` — writes generated files to `basePath` and
- *  returns the manifest summary (files, stats, errors, parseIssues). `anchors`
- *  adds `--anchors` to also emit the gen-map (`.maps/_map.ndjson` + the span
- *  sidecars the attribution overlay reads) — every generate path passes it, so
- *  spans stay aligned with the regenerated files. */
-export const runGenerate = (root: string, project: string, anchors = false): Promise<CliResult> =>
-  runJson(root, ['generate', project, ...(anchors ? ['--anchors'] : []), '--json'], 120_000)
+ *  returns the manifest summary (files, stats, errors, parseIssues). Always
+ *  passes `--anchors` so the gen-map (`.maps/_map.ndjson` + the span sidecars
+ *  the attribution overlay reads) stays aligned with the regenerated files —
+ *  spans shift on every content change, so a generate without anchors would
+ *  silently stale the whole overlay. */
+export const runGenerate = (root: string, project: string): Promise<CliResult> =>
+  runJson(root, ['generate', project, '--anchors', '--json'], 120_000)

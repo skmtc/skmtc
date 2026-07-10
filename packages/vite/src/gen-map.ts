@@ -45,7 +45,10 @@ export type GenMapResult = {
   entries: GenMapEntry[]
   /** Manifest files whose on-disk length no longer matches the engine render
    *  (`manifest.characters`) — their spans are stale (e.g. the project ran a
-   *  formatter after generate) and must not be decorated. */
+   *  formatter after generate) and must not be decorated. Length equality is
+   *  a HEURISTIC, not content-exact: a rewrite that preserves character count
+   *  (balanced quote-style flips, tab/space swaps) escapes detection. It is
+   *  the best signal the manifest offers (`lines`/`characters` only). */
   staleFiles: string[]
 }
 
@@ -64,6 +67,15 @@ const asGeneratorNames = (value: unknown): string[] =>
 const asNumberArray = (value: unknown): number[] =>
   Array.isArray(value) ? value.map((entry) => (typeof entry === 'number' ? entry : -1)) : []
 
+/** One well-formed anchor row `[Li, Pi, gi, si, vi, from, to]`, paired with
+ *  its producer-name pool index. The sidecar's `An` array is parallel to the
+ *  RAW `A`, so the pairing must happen BEFORE malformed rows are dropped —
+ *  filtering first would shift every later row's producer attribution. */
+type AnchorRow = { row: number[]; producerIndex: number | undefined }
+
+const isWellFormedRow = (row: unknown): row is number[] =>
+  Array.isArray(row) && row.length >= 7 && row.every((n) => typeof n === 'number')
+
 type SidecarLike = {
   /** `@/`-aliased artifact path the sidecar describes. */
   f: string
@@ -71,18 +83,18 @@ type SidecarLike = {
   S: string[]
   V: string[]
   L: string[]
-  /** Anchor rows: `[Li, Pi, gi, si, vi, from, to]`. */
-  A: number[][]
+  anchors: AnchorRow[]
   N: string[]
-  /** Parallel to `A` — `An[i]` indexes into `N` for `A[i]`. */
-  An: number[]
 }
 
 const toSidecar = (value: unknown): SidecarLike | null => {
   if (!isRecord(value) || typeof value.f !== 'string') return null
+  const producerIndices = asNumberArray(value.An)
+  // Truncated or non-numeric rows are dropped entirely — they must not
+  // materialize as zero-width entries at position 0.
   const anchors = Array.isArray(value.A)
-    ? value.A.filter(
-        (row): row is number[] => Array.isArray(row) && row.every((n) => typeof n === 'number')
+    ? value.A.flatMap((row, index): AnchorRow[] =>
+        isWellFormedRow(row) ? [{ row, producerIndex: producerIndices[index] }] : []
       )
     : []
   return {
@@ -91,9 +103,8 @@ const toSidecar = (value: unknown): SidecarLike | null => {
     S: asStringArray(value.S),
     V: asStringArray(value.V),
     L: asStringArray(value.L),
-    A: anchors,
-    N: asStringArray(value.N),
-    An: asNumberArray(value.An)
+    anchors,
+    N: asStringArray(value.N)
   }
 }
 
@@ -109,9 +120,8 @@ const resolveAliasPath = (path: string, basePath: string): string => {
 }
 
 const sidecarToEntries = (sidecar: SidecarLike, artifactPath: string): GenMapEntry[] =>
-  sidecar.A.map((row, index) => {
+  sidecar.anchors.map(({ row, producerIndex }) => {
     const [li, , gi, si, vi, from, to] = row
-    const producerIndex = sidecar.An[index]
     return {
       artifactPath,
       artifactSpan: [from ?? 0, to ?? 0],
@@ -151,7 +161,13 @@ const sidecarPaths = async (dir: string): Promise<string[]> => {
  * artifacts read uses — `.maps` accumulates sidecars for renamed/removed
  * artifacts and older generates). Files whose on-disk length differs from the
  * manifest's `characters` land in `staleFiles` with their entries EXCLUDED —
- * a stale span is worse than no span.
+ * a stale span is worse than no span (and see {@link GenMapResult} for why
+ * length equality is a heuristic).
+ *
+ * One sidecar wins per artifact: `.maps` accumulation means two files can
+ * declare the same `f` (e.g. a lingering copy at a stale mirror path). The
+ * sidecar at the canonical mirror path (`.maps/<f>.skm.json`) is preferred;
+ * ties fall to the lexicographically first path — deterministic either way.
  */
 export const readGenMap = async (
   root: string,
@@ -159,17 +175,30 @@ export const readGenMap = async (
   basePath: string
 ): Promise<GenMapResult> => {
   const manifestFiles = await readManifestFiles(root, project)
+  const dir = mapsDir(root, project)
+
+  const decoded: { path: string; sidecar: SidecarLike }[] = []
+  for (const path of await sidecarPaths(dir)) {
+    try {
+      const sidecar = toSidecar(JSON.parse(await readFile(path, 'utf8')))
+      if (sidecar !== null) decoded.push({ path, sidecar })
+    } catch {
+      // malformed JSON — skip
+    }
+  }
+  const isMirror = (candidate: { path: string; sidecar: SidecarLike }): boolean =>
+    candidate.path === join(dir, `${candidate.sidecar.f}.skm.json`)
+  decoded.sort(
+    (a, b) => Number(isMirror(b)) - Number(isMirror(a)) || a.path.localeCompare(b.path)
+  )
+
+  const seenArtifacts = new Set<string>()
   const entries: GenMapEntry[] = []
   const staleFiles: string[] = []
-  for (const path of await sidecarPaths(mapsDir(root, project))) {
-    let sidecar: SidecarLike | null
-    try {
-      sidecar = toSidecar(JSON.parse(await readFile(path, 'utf8')))
-    } catch {
-      continue
-    }
-    if (sidecar === null) continue
+  for (const { sidecar } of decoded) {
     const artifactPath = resolveAliasPath(sidecar.f, basePath)
+    if (seenArtifacts.has(artifactPath)) continue
+    seenArtifacts.add(artifactPath)
     const meta = manifestFiles[artifactPath]
     if (meta === undefined) continue
     const characters = isRecord(meta) && typeof meta.characters === 'number' ? meta.characters : null

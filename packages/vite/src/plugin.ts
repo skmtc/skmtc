@@ -368,7 +368,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
         const generate = await enqueue(async () => {
           const next = applyEditToClientJson(await readClientJson(root, options.project), edit)
           await writeClientJson(root, options.project, next)
-          return runGenerate(root, options.project, true)
+          return runGenerate(root, options.project)
         }).catch((error): CliResult => ({ ok: false, code: 1, message: messageOf(error) }))
         // The generate rewrote the source the matcher type-checks against —
         // bump the state's file versions + drop its generate-derived caches.
@@ -378,7 +378,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
 
       // Regenerate without an edit (initial render / manual refresh).
       const regenerateHandler: Connect.NextHandleFunction = async (_request, response) => {
-        const generate = await enqueue(() => runGenerate(root, options.project, true))
+        const generate = await enqueue(() => runGenerate(root, options.project))
         if (generate.ok) state.onGenerateSuccess()
         respondJson(response, generate.ok ? 200 : 500, { generate })
       }
@@ -401,7 +401,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
         // first open without the user first hitting Regenerate. A plain
         // `vite dev` user who never opens the editor never triggers this.
         if (genMapMissing()) {
-          const generate = await enqueue(() => runGenerate(root, options.project, true))
+          const generate = await enqueue(() => runGenerate(root, options.project))
           if (generate.ok) state.onGenerateSuccess()
         }
         try {
@@ -545,7 +545,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
               skip: toFilterEntries(filters.skip)
             }
           })
-          return runGenerate(root, options.project, true)
+          return runGenerate(root, options.project)
         }).catch((error): CliResult => ({ ok: false, code: 1, message: messageOf(error) }))
         if (generate.ok) state.onGenerateSuccess()
         respondJson(response, generate.ok ? 200 : 500, { generate })
