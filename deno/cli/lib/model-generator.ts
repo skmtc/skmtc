@@ -61,7 +61,9 @@ export const ${mainModule}Base = toTsModelProjectionBase({
   toExportPath({ refName, enrichments, variant }): string {
     const name = this.toIdentifierName({ refName, enrichments, variant })
 
-    return join('@', 'types', \`\${decapitalize(name)}.generated.tsx\`)
+    // The engine injects the generated-file suffix (settings.generatedSuffix,
+    // default '.generated') when this result is stored into ContentSettings.
+    return join('@', 'types', \`\${decapitalize(name)}.tsx\`)
   },
 
   toEnrichmentSchema: () => emptyEnrichmentSchema

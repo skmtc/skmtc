@@ -233,6 +233,9 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   skip: v.optional(v.array(skip)),
   anchors: v.optional(anchorsSettings),
   inputDirs: v.optional(v.array(v.string())),
+  formatter: v.optional(v.string()),
+  generatedSuffix: v.optional(v.string()),
+  ejected: v.optional(v.array(v.string())),
 });
 
 /**
@@ -531,6 +534,40 @@ export type ClientSettings = {
    * and carries it through `skmtc push` to the hub.
    */
   inputDirs?: string[];
+  /**
+   * Shell command the CLI runs over freshly written artifacts after each
+   * generate, e.g. `"npx prettier --write"` or `"deno fmt"`. Written file
+   * paths are appended (shell-quoted) and the command runs via `sh -c`
+   * from the app root. A host concern: the generation engine itself never
+   * formats (render output stays canonical); this hook exists so on-disk
+   * files match the consumer's own code style and so edit detection can
+   * compare through the formatter instead of being defeated by it.
+   */
+  formatter?: string;
+  /**
+   * Filename suffix the engine injects into every projection export
+   * path, before the extension (`CreateForm.tsx` →
+   * `CreateForm.generated.tsx`). Defaults to `'.generated'`; set `''`
+   * to disable injection. Injection is idempotent, so generators that
+   * hardcode the suffix in `toExportPath` keep producing identical
+   * paths. The suffix marks a file as engine-owned — overwritten on
+   * every generate — and is the seam the override/eject flow uses to
+   * rename a file when the user takes ownership of it.
+   */
+  generatedSuffix?: string;
+  /**
+   * Export paths of generated files the user has taken ownership of
+   * (ejected), in their owned, suffix-less form — e.g.
+   * `"@/types/user.tsx"`. For a member, the engine stores the ejected
+   * path into `ContentSettings` instead of the suffixed one, so
+   * definition cache keys, import specifiers, previews, sidecars, and
+   * the manifest all reference the file the user actually owns. The
+   * item still generates in memory (its rendered content is the input
+   * for drift detection); the CLI suppresses the disk write.
+   * Maintained by `skmtc eject` / `skmtc adopt`; metadata (reason,
+   * contributing items, baseline) lives in `.settings/ejections.json`.
+   */
+  ejected?: string[];
 };
 
 /**

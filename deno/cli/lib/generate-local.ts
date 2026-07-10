@@ -1,6 +1,9 @@
 import { join } from '@std/path'
 import { GenerateArtifacts } from '@/lib/generate-artifacts.ts'
-import { writeGeneratedFiles } from '@/lib/write-generated-files.ts'
+import {
+  writeGeneratedFiles,
+  type WriteGeneratedFilesResult
+} from '@/lib/write-generated-files.ts'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { writeSidecars } from '@skmtc/core/Anchors'
 import { toGenerationStats, type GenerationStats } from '@/lib/generationStats.ts'
@@ -40,6 +43,12 @@ type GenerateLocalArgs = {
    * - `undefined` (default) — use the config value
    */
   anchorsFlag?: boolean
+  /**
+   * Forwarded to `writeGeneratedFiles`. Watch mode passes `false` and
+   * prints its own one-line protected-file status per rebuild instead
+   * of the writer's multi-line stderr warning.
+   */
+  warnOnProtected?: boolean
 }
 
 /**
@@ -79,6 +88,18 @@ export type GenerateLocalResult = {
    * post-pass actually ran. Mirrored to the `--json` output.
    */
   anchors?: GenerateLocalAnchorsStats
+  /**
+   * Artifact paths the run left untouched because their on-disk
+   * content has manual edits (see `WriteGeneratedFilesResult`).
+   * Surfaced structurally for `--json` consumers; the human-readable
+   * warning already landed on stderr.
+   */
+  protectedPaths: string[]
+  /**
+   * Drift report for ejected files (see `WriteGeneratedFilesResult`).
+   * Present only when the project has ejected files.
+   */
+  ejections?: WriteGeneratedFilesResult['ejections']
 }
 
 export const generateLocal = async ({
@@ -90,7 +111,8 @@ export const generateLocal = async ({
   manifestPath,
   projectPath,
   schemaSource,
-  anchorsFlag
+  anchorsFlag,
+  warnOnProtected
 }: GenerateLocalArgs): Promise<GenerateLocalResult> => {
   try {
     const attribution = toAttributionPayload({
@@ -109,11 +131,13 @@ export const generateLocal = async ({
         stackUrl
       })
 
-    writeGeneratedFiles({
+    const { protectedPaths, ejections } = writeGeneratedFiles({
       manifestPath,
       artifacts,
       manifest,
-      clientSettings
+      clientSettings,
+      projectPath,
+      warnOnProtected
     })
 
     let anchorsStats: GenerateLocalAnchorsStats | undefined
@@ -138,7 +162,9 @@ export const generateLocal = async ({
       stats,
       parseIssues: manifest.parseIssues,
       filePaths: Object.keys(artifacts),
-      anchors: anchorsStats
+      anchors: anchorsStats,
+      protectedPaths,
+      ...(ejections ? { ejections } : {})
     }
   } catch (error) {
     console.error(error instanceof Error ? error : 'Failed to generate artifacts')

@@ -271,8 +271,8 @@ Deno.test(
 
     assertEquals(main.toName(), 'Customer')
     assertEquals(coercive.toName(), 'CustomerCoercive')
-    assertEquals(main.settings.exportPath, '@/schemas/Customer.ts')
-    assertEquals(coercive.settings.exportPath, '@/schemas/CustomerCoercive.ts')
+    assertEquals(main.settings.exportPath, '@/schemas/Customer.generated.ts')
+    assertEquals(coercive.settings.exportPath, '@/schemas/CustomerCoercive.generated.ts')
     // Distinct Definitions.
     assertEquals(main.definition === coercive.definition, false)
   }

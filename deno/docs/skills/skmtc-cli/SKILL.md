@@ -6,7 +6,8 @@ description: |
   from JSR, configure schema sources and enrichments, and produce code
   artifacts from an OpenAPI v3 or GraphQL SDL schema. Covers the
   command surface (`init`, `create`, `clone`, `install`, `list`,
-  `remove`, `generate`, `describe`, `bundle`, `clean`, `dev`,
+  `remove`, `generate`, `describe`, `bundle`, `clean`, `status`,
+  `eject`, `adopt`, `merge`, `dev`,
   `publish`, `push`, `pull`, `project`, `migrate`, `login`, `logout`,
   `doctor`, `agent-context`), the `<root>/.skmtc/<project>/` workspace layout, the
   `.settings/client.json` shape (basePath, source, enrichments, skip,
@@ -151,7 +152,11 @@ follow-up command the agent can run to fetch the candidate set. No
 | `generate <project> [schema]` | Run the pipeline | Project required; schema falls back to `client.json#source` |
 | `describe [project] [schema]` | Summarize a schema's operations and models | Project optional (recipe error with discovery hint if missing); `--json` |
 | `bundle [project]` | Compile local generators without generating | Project required |
-| `clean [project]` | Delete a project's generated files + manifest, pruning emptied dirs | Project required; `--dry-run`, `--verbose`; no Ink variant |
+| `clean [project]` | Delete a project's generated files + manifest, pruning emptied dirs | Project required; `--dry-run`, `--verbose`; no Ink variant; never deletes ejected files |
+| `status [project]` | Classify every generated file against the generated lock: clean / modified (hand-edited, protected) / missing / unverified / ejected, plus orphaned files | Project required; `--check` exits 1 when dirty (CI gate); `--verbose`; read-only, no Ink variant |
+| `eject [project] [file]` | Take ownership of a generated file: rename to drop the generated suffix, record in `settings.ejected`; peer imports follow on the next generate | Both args required; `--json`; no Ink variant |
+| `adopt [project] [file]` | Return an ejected file to generation (inverse of `eject`); a file still carrying edits is protected, never overwritten | Both args required; `--json`; no Ink variant |
+| `merge [project] [file]` | Resolve drift on an ejected file: three-way merge keeping your edits + the generator's changes, advancing the baseline; refuses whole on collisions | Both args required; `--json`; no Ink variant |
 | `dev <project> [schema]` | Watch + rebundle + regenerate on change | Project required; no `--json` (long-running) |
 | `publish <project>` | Build + publish an immutable stack version to skmtc-hub | Project + a token required — `--token`, `$SKMTC_HUB_TOKEN`, or the `skmtc login` store, in that order; version from `deno.json#version` or `--version` |
 | `push <project>` | Push a project's `client.json` (config + enrichments) to its hub project | Project required; destination from `--project @account/slug` or `client.json#project`; token like `publish` |

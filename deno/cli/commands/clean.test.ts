@@ -23,6 +23,8 @@ const baseResult: CleanHeadlessResult = {
   deleted: ['src/gen/User.ts', 'src/gen/api.ts'],
   missing: [],
   skipped: [],
+  ejected: [],
+  modified: [],
   removedDirs: [],
   manifestRemoved: true,
   noManifest: false
@@ -71,7 +73,7 @@ Deno.test('printCleanResult - dry run says nothing was deleted', () => {
 
 Deno.test('printCleanResult - noManifest prints a no-op message', () => {
   const result: CleanHeadlessResult = {
-    projectName: 'my-api', dryRun: false, deleted: [], missing: [], skipped: [],
+    projectName: 'my-api', dryRun: false, deleted: [], missing: [], skipped: [], ejected: [], modified: [],
     removedDirs: [], manifestRemoved: false, noManifest: true
   }
   const logs = captureLogs(() => printCleanResult(result, { format: 'text', verbose: false }))

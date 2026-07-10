@@ -50,6 +50,10 @@ const DEFAULT_IGNORE = [
   '/server.js',
   '/bundle.js',
   '/worker.ts',
+  // Derived per-run output: gen-maps sidecars and the edit-detection
+  // baseline cache. Both are rebuilt by `skmtc generate`.
+  '.maps/',
+  '.baselines/',
   '.git/',
   'node_modules/',
   '.DS_Store',

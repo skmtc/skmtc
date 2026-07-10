@@ -16,6 +16,14 @@ const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
   'doctor',
   'agent-context',
   'clean',
+  // status is read-only against the local manifest + lock; never
+  // touches JSR.
+  'status',
+  // eject/adopt/merge move files between engine and user ownership and
+  // resolve drift — pure local filesystem + config operations.
+  'eject',
+  'adopt',
+  'merge',
   // describe runs the project's local bundle to read generator
   // capabilities; it never touches JSR. (generate --debug is covered by
   // 'generate' above — it runs the local worker.ts source.)
@@ -264,6 +272,54 @@ const run = async () => {
         dryRunFlag: dryRun,
         verboseFlag: verbose
       })
+    })
+
+  const statusCommand = new Command()
+    .description(getCommandDescriptor('status').description)
+    // Optional in Cliffy so a missing project routes to the recipe
+    // error (with the `ls .skmtc/` discovery hint) instead of Cliffy's
+    // terse "Missing argument(s)" — matches `clean` / `list`.
+    .arguments('[project:string]')
+    .option('--json', 'Emit structured JSON output.')
+    .option('--check', 'Exit 1 when any generated file is modified or orphaned (CI gate).')
+    .option('--verbose', 'List every file with its status, not just modified ones.')
+    .action(async ({ json, check, verbose }, projectName) => {
+      const { renderStatus } = await import('@/commands/status.ts')
+      await renderStatus({
+        projectName,
+        jsonFlag: json,
+        checkFlag: check,
+        verboseFlag: verbose
+      })
+    })
+
+  const ejectCommand = new Command()
+    .description(getCommandDescriptor('eject').description)
+    // Optional in Cliffy so missing args route to the recipe error
+    // (with discovery hints) — matches `clean` / `status`.
+    .arguments('[project:string] [file:string]')
+    .option('--json', 'Emit structured JSON output.')
+    .action(async ({ json }, projectName, file) => {
+      const { renderEject } = await import('@/commands/eject.ts')
+      await renderEject({ projectName, file, jsonFlag: json })
+    })
+
+  const adoptCommand = new Command()
+    .description(getCommandDescriptor('adopt').description)
+    .arguments('[project:string] [file:string]')
+    .option('--json', 'Emit structured JSON output.')
+    .action(async ({ json }, projectName, file) => {
+      const { renderAdopt } = await import('@/commands/eject.ts')
+      await renderAdopt({ projectName, file, jsonFlag: json })
+    })
+
+  const mergeCommand = new Command()
+    .description(getCommandDescriptor('merge').description)
+    .arguments('[project:string] [file:string]')
+    .option('--json', 'Emit structured JSON output.')
+    .action(async ({ json }, projectName, file) => {
+      const { renderMerge } = await import('@/commands/merge.ts')
+      await renderMerge({ projectName, file, jsonFlag: json })
     })
 
   const describeCommand = new Command()
@@ -571,6 +627,10 @@ const run = async () => {
     .command('generate', generateCommand)
     .command('bundle', bundleCommand)
     .command('clean', cleanCommand)
+    .command('status', statusCommand)
+    .command('eject', ejectCommand)
+    .command('adopt', adoptCommand)
+    .command('merge', mergeCommand)
     .command('describe', describeCommand)
     .command('publish', publishCommand)
     .command('push', pushCommand)

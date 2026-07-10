@@ -290,6 +290,69 @@ the generation engine ignores it. Declared in the schema so the CLI
 preserves it when reading `client.json` and carries it through
 `skmtc push` to the hub.
 
+### `settings.formatter` (optional)
+
+Shell command the CLI runs over freshly written artifacts after each
+`generate`, for example `"npx prettier --write"` or `"deno fmt"`. The
+written file paths are appended (shell-quoted) and the command runs
+via `sh -c` from the app root, so project-local configs and binaries
+resolve normally.
+
+A host concern: the generation engine itself never formats — render
+output stays canonical. The hook exists so on-disk files match the
+consumer's own code style, and so edit detection can compare *through*
+the formatter: the writer records the formatted content's hash in
+`generated.lock.json`, and a formatter-config change is resolved by
+re-formatting the stored canonical baseline under the current config
+rather than being misread as a hand edit.
+
+Guard rails: a crashing or missing formatter is never destructive —
+files land unformatted, a warning goes to stderr, and comparison
+degrades to raw content.
+
+### `settings.generatedSuffix` (optional)
+
+Filename suffix the engine injects into every projection export path,
+before the extension: a `toExportPath` returning `@/forms/CreateForm.tsx`
+produces `@/forms/CreateForm.generated.tsx`. Defaults to
+`".generated"`; set `""` to disable injection entirely.
+
+Injection happens when the `toExportPath` result is stored into
+`ContentSettings` (the single place export paths enter the engine),
+so definition cache keys, import specifiers, previews, and the
+manifest all carry the suffix consistently. It is idempotent —
+generators that hardcode the suffix in `toExportPath` keep producing
+identical paths — which is also the migration path: existing
+generators are unaffected, new generators omit the suffix and let the
+engine inject it.
+
+Explicit `destinationPath` arguments (`register`, `registerInto`,
+`registerJson`) are **not** suffixed — they name real files verbatim,
+so a generator emitting `package.json` or a hand-named barrel is never
+renamed.
+
+The suffix marks a file as engine-owned (overwritten on every
+generate). Changing it mid-project renames every generated file on the
+next run — the stale-artifact prune removes the old names and imports
+regenerate, but expect a large diff.
+
+### `settings.ejected` (optional)
+
+Export paths of generated files the user has taken ownership of, in
+their owned, suffix-less form — for example `"@/types/user.tsx"`. This
+is the authoritative ejected set: for each member, the engine stores
+the owned path into `ContentSettings` instead of the suffixed one (so
+definition cache keys, peer import specifiers, previews, and the
+manifest all reference the owned file), and the CLI never writes or
+deletes the file — not during generate's stale-artifact prune and not
+during `skmtc clean`. The item still renders in memory; its content is
+the input for drift detection.
+
+Maintained by [`skmtc eject`](../cli/eject.md) /
+[`skmtc adopt`](../cli/adopt.md), which also perform the rename and
+record provenance metadata in `.settings/ejections.json`. A hand-added
+entry is honored identically (it just has no recorded metadata).
+
 ### `settings.schemaSource` (accepted, unused)
 
 Accepted by the validator (`core/types/Settings.ts`'s

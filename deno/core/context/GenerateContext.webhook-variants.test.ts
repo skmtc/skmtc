@@ -107,8 +107,8 @@ Deno.test('webhook variants - variants-aware handler emits a distinct file per d
 
   const { files } = context.toArtifacts(new StackTrail(['test']))
 
-  const mainFile = files.get('@/webhooks/NewPetHandler.ts')
-  const customerFile = files.get('@/webhooks/NewPetHandlerCustomer.ts')
+  const mainFile = files.get('@/webhooks/NewPetHandler.generated.ts')
+  const customerFile = files.get('@/webhooks/NewPetHandlerCustomer.generated.ts')
 
   assertExists(mainFile, 'main-variant file should exist')
   assertExists(customerFile, 'customer-variant file should exist')
@@ -208,9 +208,9 @@ Deno.test('webhook variants - inserted peer webhook is deduped and imported into
 
   const { files } = context.toArtifacts(new StackTrail(['test']))
 
-  const peerFile = files.get('@/webhooks/shared/NewPetAck.ts')
-  const mainFile = files.get('@/webhooks/NewPetHandler.ts')
-  const customerFile = files.get('@/webhooks/NewPetHandlerCustomer.ts')
+  const peerFile = files.get('@/webhooks/shared/NewPetAck.generated.ts')
+  const mainFile = files.get('@/webhooks/NewPetHandler.generated.ts')
+  const customerFile = files.get('@/webhooks/NewPetHandlerCustomer.generated.ts')
 
   assertExists(peerFile, 'peer webhook file should exist')
   assertExists(mainFile, 'main-variant caller file should exist')
@@ -234,14 +234,14 @@ Deno.test('webhook variants - inserted peer webhook is deduped and imported into
   assertInstanceOf(mainFile, CodeFileBase)
   assertStringIncludes(
     mainFile.toString(),
-    `import type {NewPetAck} from '@/webhooks/shared/NewPetAck.ts'`,
+    `import type {NewPetAck} from '@/webhooks/shared/NewPetAck.generated.ts'`,
     'main-variant file should import the peer webhook'
   )
 
   assertInstanceOf(customerFile, CodeFileBase)
   assertStringIncludes(
     customerFile.toString(),
-    `import type {NewPetAck} from '@/webhooks/shared/NewPetAck.ts'`,
+    `import type {NewPetAck} from '@/webhooks/shared/NewPetAck.generated.ts'`,
     'customer-variant file should import the peer webhook'
   )
 })

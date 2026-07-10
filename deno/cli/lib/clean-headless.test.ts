@@ -166,3 +166,72 @@ Deno.test('cleanHeadless - skips dir pruning when basePath is absent', async () 
     await Deno.remove(appRoot, { recursive: true })
   }
 })
+
+// --- ejected + modified handling (override/eject arc) -----------------------
+
+Deno.test('cleanHeadless - spares ejected files and reports modified ones', async () => {
+  const { writeGeneratedFiles } = await import('@/lib/write-generated-files.ts')
+  const { cleanHeadless } = await import('@/lib/clean-headless.ts')
+  const { join } = await import('@std/path/join')
+  const { existsSync } = await import('@std/fs/exists')
+  const v = await import('valibot')
+  const { manifestContent } = await import('@skmtc/core/Manifest')
+
+  const tempDir = await Deno.makeTempDir()
+  const originalCwd = Deno.cwd()
+  const originalError = console.error
+  console.error = () => {}
+  try {
+    Deno.chdir(tempDir)
+    const skmtcRootPath = join(tempDir, '.skmtc')
+    const projectPath = join(skmtcRootPath, 'my-api')
+    const manifestPath = join(projectPath, '.settings', 'manifest.json')
+    const clientSettings = { ejected: ['@/src/owned.ts'] }
+
+    writeGeneratedFiles({
+      manifestPath,
+      artifacts: {
+        'src/owned.ts': 'export const owned = 1\n',
+        'src/edited.generated.ts': 'export const edited = 1\n',
+        'src/plain.generated.ts': 'export const plain = 1\n'
+      },
+      manifest: v.parse(manifestContent, {
+        deploymentId: 't', traceId: 't', spanId: 't',
+        files: {
+          'src/owned.ts': { lines: 1, characters: 1, destinationPath: '@/src/owned.ts' },
+          'src/edited.generated.ts': { lines: 1, characters: 1, destinationPath: '@/src/edited.generated.ts' },
+          'src/plain.generated.ts': { lines: 1, characters: 1, destinationPath: '@/src/plain.generated.ts' }
+        },
+        previews: {}, parseIssues: [], results: {}, startAt: Date.now(), endAt: Date.now()
+      }),
+      clientSettings,
+      projectPath
+    })
+
+    Deno.writeTextFileSync(join(tempDir, 'src/edited.generated.ts'), 'export const edited = 1 // mine\n')
+
+    // The writer never writes ejected files — on disk it exists because
+    // the eject flow renamed it there. Simulate that.
+    Deno.writeTextFileSync(join(tempDir, 'src/owned.ts'), 'export const owned = 1 // mine\n')
+
+    const result = await cleanHeadless({
+      projectName: 'my-api',
+      dryRun: false,
+      clientSettings,
+      skmtcRootPath
+    })
+
+    // The ejected file is spared; the modified file is deleted but
+    // reported; the plain file is deleted quietly.
+    assertEquals(result.ejected, ['src/owned.ts'])
+    assertEquals(result.modified, ['src/edited.generated.ts'])
+    assertEquals(existsSync(join(tempDir, 'src/owned.ts')), true)
+    assertEquals(existsSync(join(tempDir, 'src/edited.generated.ts')), false)
+    assertEquals(existsSync(join(tempDir, 'src/plain.generated.ts')), false)
+    assertEquals(result.deleted.sort(), ['src/edited.generated.ts', 'src/plain.generated.ts'])
+  } finally {
+    console.error = originalError
+    Deno.chdir(originalCwd)
+    await Deno.remove(tempDir, { recursive: true })
+  }
+})
