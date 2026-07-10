@@ -79,6 +79,30 @@ Deno.test(
 )
 
 Deno.test(
+  'runDoctor - reads basePath from a compact client.json',
+  async () => {
+    const { encodeCompact } = await import('@skmtc/core/ClientJsonCompact')
+    await withTempSkmtcRoot(async tempRoot => {
+      const projectPath = join(tempRoot, '.skmtc', 'compact-base-path')
+      await ensureDir(join(projectPath, '.settings'))
+      await Deno.writeTextFile(join(projectPath, 'deno.json'), JSON.stringify({ imports: {} }))
+      // Compact on-disk form — doctor must expand it to read basePath.
+      await Deno.writeTextFile(
+        join(projectPath, '.settings', 'client.json'),
+        JSON.stringify(encodeCompact({ settings: { basePath: './src' } }))
+      )
+
+      const result = await runDoctor({ cliVersion: '0.1.5' })
+      const basePathCheck = result.checks.find(
+        c => c.id === 'project-base-path/compact-base-path'
+      )
+      assertEquals(basePathCheck?.status, 'ok')
+      assertStringIncludes(basePathCheck?.message ?? '', 'src')
+    })
+  }
+)
+
+Deno.test(
   'runDoctor - warns on stale-schema manifest (friction #26)',
   async () => {
     await withTempSkmtcRoot(async tempRoot => {

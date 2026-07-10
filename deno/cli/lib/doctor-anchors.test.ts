@@ -127,6 +127,22 @@ Deno.test('checkAnchorsConfig - anchors enabled with custom out → ok', async (
   })
 })
 
+Deno.test('checkAnchorsConfig - reads the anchors block from a compact client.json', async () => {
+  const { encodeCompact } = await import('@skmtc/core/ClientJsonCompact')
+  await withTempSkmtcRoot(async tempRoot => {
+    // setupProject serializes the object as-is, so a compact envelope
+    // lands on disk in compact form — the check must expand it.
+    const projectPath = await setupProject(
+      tempRoot,
+      'p',
+      encodeCompact({ settings: { anchors: { enabled: true, out: '.gen-maps' } } })
+    )
+    const check = checkAnchorsConfig('p', projectPath)
+    assertEquals(check.status, 'ok')
+    assertEquals(check.data?.out, '.gen-maps')
+  })
+})
+
 Deno.test('checkAnchorsConfig - malformed anchors block → warning', async () => {
   await withTempSkmtcRoot(async tempRoot => {
     const projectPath = await setupProject(tempRoot, 'p', {
