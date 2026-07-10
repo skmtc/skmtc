@@ -1,4 +1,8 @@
 import { normalize } from '@std/path/normalize'
+import {
+  applyGeneratedSuffix,
+  DEFAULT_GENERATED_SUFFIX
+} from '@/helpers/applyGeneratedSuffix.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
@@ -1020,9 +1024,30 @@ export class GenerateContext implements GenerateContextType {
     }
 
     this.#previews[module.name] = {
-      module,
+      // Preview export paths are hand-assembled in `toPreviewModule`
+      // (generators call the static `toExportPath` directly), so they
+      // bypass the ContentSettings construction path — run them through the same
+      // suffix injection or previews point at files that don't exist.
+      module: { ...module, exportPath: this.#toSuffixedExportPath(module.exportPath) },
       source
     }
+  }
+
+  /**
+   * The single point where a projection-declared export path becomes
+   * an engine path: injects the project's generated-file suffix
+   * (`client.json#settings.generatedSuffix`, default `'.generated'`)
+   * before the extension. Idempotent, so generators that still
+   * hardcode the suffix are unaffected. Explicit `destinationPath`
+   * arguments elsewhere are deliberately NOT run through this —
+   * `register`/`registerInto`/`registerJson` name real files verbatim
+   * (a JSON config or a hand-named barrel must not be renamed).
+   */
+  #toSuffixedExportPath(exportPath: string): string {
+    return applyGeneratedSuffix(
+      exportPath,
+      this.settings?.generatedSuffix ?? DEFAULT_GENERATED_SUFFIX
+    )
   }
 
 
@@ -1364,11 +1389,13 @@ export class GenerateContext implements GenerateContextType {
           }),
           ...args.projection.toIdentifierType(args.operation, this)
         }),
-        exportPath: args.projection.toExportPath({
-          operation: args.operation,
-          enrichments,
-          variant
-        }),
+        exportPath: this.#toSuffixedExportPath(
+          args.projection.toExportPath({
+            operation: args.operation,
+            enrichments,
+            variant
+          })
+        ),
         enrichments,
         variant
       })
@@ -1388,11 +1415,13 @@ export class GenerateContext implements GenerateContextType {
         }),
         ...args.projection.toIdentifierType(args.operation, this)
       }),
-      exportPath: args.projection.toExportPath({
-        operation: args.operation,
-        enrichments,
-        variant
-      }),
+      exportPath: this.#toSuffixedExportPath(
+        args.projection.toExportPath({
+          operation: args.operation,
+          enrichments,
+          variant
+        })
+      ),
       enrichments,
       variant
     })
@@ -1422,11 +1451,13 @@ export class GenerateContext implements GenerateContextType {
         }),
         ...args.projection.toIdentifierType(args.webhook, this)
       }),
-      exportPath: args.projection.toExportPath({
-        webhook: args.webhook,
-        enrichments,
-        variant
-      }),
+      exportPath: this.#toSuffixedExportPath(
+        args.projection.toExportPath({
+          webhook: args.webhook,
+          enrichments,
+          variant
+        })
+      ),
       enrichments,
       variant
     })
@@ -1451,7 +1482,9 @@ export class GenerateContext implements GenerateContextType {
         name: projection.toIdentifierName({ refName, enrichments, variant }),
         ...projection.toIdentifierType(refName, this)
       }),
-      exportPath: projection.toExportPath({ refName, enrichments, variant }),
+      exportPath: this.#toSuffixedExportPath(
+        projection.toExportPath({ refName, enrichments, variant })
+      ),
       enrichments,
       variant
     })

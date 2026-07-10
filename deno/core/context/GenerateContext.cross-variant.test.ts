@@ -153,9 +153,9 @@ Deno.test('cross-variant - peer Definition is registered exactly once across two
   const { files } = context.toArtifacts(new StackTrail(['test']))
 
   // Three files registered: the peer file plus one per variant.
-  const peerFile = files.get('@/services/usePatchQuote.ts')
-  const mainFile = files.get('@/forms/EditQuotesForm.tsx')
-  const customerFile = files.get('@/forms/EditQuotesFormCustomer.tsx')
+  const peerFile = files.get('@/services/usePatchQuote.generated.ts')
+  const mainFile = files.get('@/forms/EditQuotesForm.generated.tsx')
+  const customerFile = files.get('@/forms/EditQuotesFormCustomer.generated.tsx')
 
   assertExists(peerFile, 'Peer file should exist')
   assertExists(mainFile, 'main-variant form file should exist')
@@ -216,8 +216,8 @@ Deno.test('cross-variant - both form variants import from the shared peer file',
 
   const { files } = context.toArtifacts(new StackTrail(['test']))
 
-  const mainFile = files.get('@/forms/EditQuotesForm.tsx')
-  const customerFile = files.get('@/forms/EditQuotesFormCustomer.tsx')
+  const mainFile = files.get('@/forms/EditQuotesForm.generated.tsx')
+  const customerFile = files.get('@/forms/EditQuotesFormCustomer.generated.tsx')
   assertExists(mainFile)
   assertExists(customerFile)
 
@@ -227,14 +227,14 @@ Deno.test('cross-variant - both form variants import from the shared peer file',
   assertInstanceOf(mainFile, CodeFileBase)
   assertStringIncludes(
     mainFile.toString(),
-    `import {usePatchQuote} from '@/services/usePatchQuote.ts'`,
+    `import {usePatchQuote} from '@/services/usePatchQuote.generated.ts'`,
     'main-variant file should import from peer file'
   )
 
   assertInstanceOf(customerFile, CodeFileBase)
   assertStringIncludes(
     customerFile.toString(),
-    `import {usePatchQuote} from '@/services/usePatchQuote.ts'`,
+    `import {usePatchQuote} from '@/services/usePatchQuote.generated.ts'`,
     'customer-variant file should import from peer file'
   )
 })

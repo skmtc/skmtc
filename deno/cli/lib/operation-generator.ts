@@ -66,7 +66,9 @@ export const ${mainModule}Base = toTsOasOperationProjectionBase({
   toExportPath({ operation, enrichments, variant }): string {
     const name = this.toIdentifierName({ operation, enrichments, variant })
 
-    return join('@', \`\${name}.generated.tsx\`)
+    // The engine injects the generated-file suffix (settings.generatedSuffix,
+    // default '.generated') when this result is stored into ContentSettings.
+    return join('@', \`\${name}.tsx\`)
   },
 
   toEnrichmentSchema: () => emptyEnrichmentSchema

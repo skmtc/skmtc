@@ -234,6 +234,7 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   anchors: v.optional(anchorsSettings),
   inputDirs: v.optional(v.array(v.string())),
   formatter: v.optional(v.string()),
+  generatedSuffix: v.optional(v.string()),
 });
 
 /**
@@ -542,6 +543,17 @@ export type ClientSettings = {
    * compare through the formatter instead of being defeated by it.
    */
   formatter?: string;
+  /**
+   * Filename suffix the engine injects into every projection export
+   * path, before the extension (`CreateForm.tsx` →
+   * `CreateForm.generated.tsx`). Defaults to `'.generated'`; set `''`
+   * to disable injection. Injection is idempotent, so generators that
+   * hardcode the suffix in `toExportPath` keep producing identical
+   * paths. The suffix marks a file as engine-owned — overwritten on
+   * every generate — and is the seam the override/eject flow uses to
+   * rename a file when the user takes ownership of it.
+   */
+  generatedSuffix?: string;
 };
 
 /**

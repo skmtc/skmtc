@@ -111,7 +111,7 @@ Deno.test('end-to-end - main-only variant: generatorKey carries `main`, output l
   const context = buildContext({ main: {} })
   const { files } = context.toArtifacts(new StackTrail(['test']))
 
-  const file = files.get('@/forms/PatchQuoteForm.tsx')
+  const file = files.get('@/forms/PatchQuoteForm.generated.tsx')
   assertExists(file)
 
   assertInstanceOf(file, CodeFileBase)
@@ -125,9 +125,9 @@ Deno.test('end-to-end - multi-variant: each Definition carries the right variant
   const context = buildContext({ main: {}, customer: {}, location: {} })
   const { files } = context.toArtifacts(new StackTrail(['test']))
 
-  const mainFile = files.get('@/forms/PatchQuoteForm.tsx')
-  const customerFile = files.get('@/forms/PatchQuoteFormCustomer.tsx')
-  const locationFile = files.get('@/forms/PatchQuoteFormLocation.tsx')
+  const mainFile = files.get('@/forms/PatchQuoteForm.generated.tsx')
+  const customerFile = files.get('@/forms/PatchQuoteFormCustomer.generated.tsx')
+  const locationFile = files.get('@/forms/PatchQuoteFormLocation.generated.tsx')
 
   assertExists(mainFile)
   assertExists(customerFile)
@@ -158,7 +158,7 @@ Deno.test('end-to-end - kebab-case variant flows through to generatorKey untouch
   const context = buildContext({ main: {}, 'line-items': {} })
   const { files } = context.toArtifacts(new StackTrail(['test']))
 
-  const lineItemsFile = files.get('@/forms/PatchQuoteFormLineItems.tsx')
+  const lineItemsFile = files.get('@/forms/PatchQuoteFormLineItems.generated.tsx')
   assertExists(lineItemsFile)
 
   assertInstanceOf(lineItemsFile, CodeFileBase)

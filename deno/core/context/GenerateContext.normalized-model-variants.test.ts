@@ -139,8 +139,8 @@ Deno.test('variant-bound fallbackName - each variant produces a distinct body De
 
   const { files } = context.toArtifacts(new StackTrail(['test']))
 
-  const mainFile = files.get('@/forms/EditQuotesForm.tsx')
-  const customerFile = files.get('@/forms/EditQuotesFormCustomer.tsx')
+  const mainFile = files.get('@/forms/EditQuotesForm.generated.tsx')
+  const customerFile = files.get('@/forms/EditQuotesFormCustomer.generated.tsx')
 
   assertExists(mainFile, 'main-variant file should exist')
   assertExists(customerFile, 'customer-variant file should exist')
