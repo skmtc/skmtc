@@ -6,10 +6,6 @@ A model generator (one Projection per schema component). Produces
 `type` aliases — not interfaces, not classes — so the output
 composes cleanly with structural-typing-heavy codebases.
 
-## Source
-
-`skmtc-generators/gen-typescript/src/`
-
 ## What it generates
 
 For a `User` schema:
@@ -26,6 +22,10 @@ Per OAS-schema-variant TS classes (`TsObject`, `TsArray`,
 `TsString`, etc.) handle the dispatch. The `toTsValue` function in
 `src/Ts.ts` is the central switch from `OasSchema.type` to the
 right TS class.
+
+## Source
+
+`skmtc-generators/gen-typescript/src/`
 
 ## Key decisions
 

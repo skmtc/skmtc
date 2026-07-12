@@ -6,10 +6,6 @@ An operation generator. The Hono-and-Supabase counterpart to
 `gen-express`. Same shared-singleton pattern, different framework
 and runtime target.
 
-## Source
-
-`skmtc-generators/gen-supabase-hono/src/`
-
 ## What it generates
 
 A Hono app with per-operation routes:
@@ -31,6 +27,10 @@ app.post('/users', async (c) => {
   return c.json({ ...body, id: 'TODO' }, 201)
 })
 ```
+
+## Source
+
+`skmtc-generators/gen-supabase-hono/src/`
 
 ## Key decisions
 

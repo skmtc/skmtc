@@ -67,9 +67,7 @@
     "reference/settings/enrichments-shape.md|link-to-internal-layer": 2,
     "reference/settings/source-resolution.md|line-number-citation": 1,
     "reference/settings/source-resolution.md|link-to-internal-layer": 1,
-    "reference/stock-generators/overview.md|link-to-internal-layer": 1,
-    "using/how-to/debug-failing-generation.md|line-number-citation": 1,
-    "using/how-to/debug-failing-generation.md|link-to-internal-layer": 1
+    "reference/stock-generators/overview.md|link-to-internal-layer": 1
   },
   "orphans": [
     "concepts/languages.md",

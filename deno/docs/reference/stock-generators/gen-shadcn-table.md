@@ -8,10 +8,6 @@ filter (GET + list response), different output (table rather than
 select dropdown). Use for inventory-style screens that display
 many items.
 
-## Source
-
-`skmtc-generators/gen-shadcn-table/src/`
-
 ## What it generates
 
 Per supported operation, a table component:
@@ -41,6 +37,10 @@ export const UsersTable = () => {
   )
 }
 ```
+
+## Source
+
+`skmtc-generators/gen-shadcn-table/src/`
 
 ## Key decisions
 

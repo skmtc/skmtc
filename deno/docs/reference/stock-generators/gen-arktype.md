@@ -6,10 +6,6 @@ A model generator. The ArkType analog of `gen-zod` and `gen-valibot`.
 Use when your project prefers ArkType's TypeScript-syntax-mirroring
 DSL over method chains or pipes.
 
-## Source
-
-`skmtc-generators/gen-arktype/src/`
-
 ## What it generates
 
 For a `User` schema:
@@ -34,6 +30,10 @@ export const arktypeEntry = toModelEntry({
   }
 })
 ```
+
+## Source
+
+`skmtc-generators/gen-arktype/src/`
 
 ## Key decisions
 
