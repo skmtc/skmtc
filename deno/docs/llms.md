@@ -628,3 +628,19 @@ Use this as the first read when an agent enters a SKMTC project cold.
 - **StackTrail** — the location-tracking accumulator threaded through parse and generate.
 - **Stringable** — anything with a `toString()` method; the common interface for DSL composition.
 - **clone-to-customize** — the design philosophy: stock generators are opinionated; non-default behavior comes from editing cloned source.
+
+### Avoid: words that map to no SKMTC surface
+
+When writing about SKMTC, do not use these generic-codegen verbs — each sounds like a SKMTC primitive but maps to no exported surface in `@skmtc/core`; name the actual method or class instead.
+
+| Don't write | Write instead (context-dependent) |
+|---|---|
+| **emit** / **emission** / **emitted** | `register` / Definition registration / `insert`-family call / rendered output |
+| **dispatch** (as a SKMTC verb) | `insertOperation` / `insertModel` / `insertNormalizedModel` — name the method |
+| **dispatcher** (referring to the engine loop) | `GenerateContext`'s iteration over `(generator × item)` pairs — name the actual class and what it iterates |
+| **dispatch on `.type`** (TypeScript discriminator usage) | switch on `.type` / narrow on `.type` |
+| **field-type dispatch** (referring to `schemaToField`-style code) | field-type routing |
+| **stitch** / **stitched** / **stitching** (referring to import wiring) | `register({ imports, destinationPath })` — name the actual call |
+| **weave** / **graft** / **thread** (any cross-File composition) | `insertOperation` / `insertModel` — name the call and what it side-effects |
+
+The mechanical reason: when a reader sees "the dispatcher emits a Definition," no clause of that sentence maps to an entry point in the code. When they see "`GenerateContext` iterates and a generator's `transform` calls `context.insertOperation`, which constructs an `OasOperationDriver` that registers a `Definition`," every noun and verb is greppable.
