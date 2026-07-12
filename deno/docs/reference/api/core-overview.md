@@ -66,11 +66,11 @@ The building blocks generators use to produce code.
 | Class | Role | Reference |
 |-------|------|-----------|
 | `SnippetBase` | Root class for Snippets (anonymous helpers) and Projections | [SnippetBase](dsl-snippet-base.md) |
-| `Definition` | Wraps a Projection's value into `export const NAME =` | [Definition](dsl-definition.md) |
-| `Identifier` | Name + entity-type marker (`'variable'` vs `'type'`); the discriminator maps to `const` vs `type` declaration keywords | [Identifier](dsl-identifier.md) |
-| `Import` | Rendered `import { X } from '...'` statement | [Import](dsl-import.md) |
+| `DefinitionBase` | Wraps a producer's value with its identifier and generator key; rendering lives in the lang subclass (`TsDefinition`) | [Definition](dsl-definition.md) |
+| `IdentifierBase` | Neutral identifier data (name, typeName, exported); the per-language declaration type lives on the lang subclass (`TsIdentifier`) | [Identifier](dsl-identifier.md) |
+| `ImportBase` | Neutral import data; the rendered `import { X } from '...'` statement is the lang subclass (`TsImport`) | [Import](dsl-import.md) |
 | `ContentSettings` | Per-Projection bundle (identifier, exportPath, enrichments) | [ContentSettings](content-settings.md) |
-| `File` | Output file with imports, definitions, and metadata | [File](dsl-file.md) |
+| `FileBase` | Neutral output-file base (`CodeFileBase` for code files; the concrete `TsFile` lives in the lang package) | [File](dsl-file.md) |
 | `JsonFile` | Variant of File for JSON output | [JsonFile](dsl-file.md) |
 | `CustomValue` | Wraps raw strings as DSL values | [CustomValue](dsl-custom-value.md) |
 | `Inserted` | Marker class returned by `insertNormalizedModel` etc. | [Inserted](dsl-inserted.md) |
@@ -126,7 +126,6 @@ not a BaseSchema" discussion.
 | `GqlDocument` | Parsed GraphQL schema | [GqlDocument](gql-document.md) |
 | `GqlRegistry` | Looks up GraphQL types by name | [GqlDocument](gql-document.md) |
 | `GqlOperation` | A single GraphQL operation | [GqlDocument](gql-document.md) |
-| `GqlType` (union) | Set of GraphQL types (object, scalar, enum, etc.) | [GqlDocument](gql-document.md) |
 
 GraphQL parsing happens **worker-side** (unlike OAS, which is
 host-side). See [the worker runtime concept](../../concepts/the-worker-runtime.md)
@@ -139,8 +138,7 @@ The TypeScript-level utility types and interfaces.
 | Type | Purpose |
 |------|---------|
 | `IdentifierType` | `{ type: string; typeName?; exported? }` — the non-name identifier parts `toIdentifierType` returns; the per-language declaration vocabulary (`TsEntityType`, `'variable' \| 'type' \| 'class' \| 'interface' \| 'namespace'`) and its keyword mapping live in `@skmtc/lang-typescript` |
-| `ImportNameArg` | `string \| { name, alias?, type? }` — input to `register({ imports })` |
-| `GeneratedValue` | Base structural type for what `Definition` wraps |
+| `GeneratedValue` | Base structural type for what `DefinitionBase` wraps |
 | `Method` | HTTP method literal type |
 | `OasParameterLocation` | `'path' \| 'query' \| 'header' \| 'cookie'` |
 | `OasComponentType` | Union of all top-level OAS component classes |
@@ -162,7 +160,7 @@ The TypeScript-level utility types and interfaces.
 | Helper | Purpose |
 |--------|---------|
 | `tryParseAt(ctx, key, valibotSchema, value)` | Lenient parse with fail-open behavior — see [error handling philosophy](../../concepts/error-handling-philosophy.md) |
-| `removeErroredItems` | One-hop pruning of items whose dependencies failed to parse |
+| `removeErroredItems()` (method on `ParseContext`) | One-hop pruning of items whose dependencies failed to parse |
 
 ## Stack trail and tracing
 
