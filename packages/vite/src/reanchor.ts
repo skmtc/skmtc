@@ -36,7 +36,8 @@ const isAstNode = (value: unknown): value is OxcNode =>
 const isFormattingArtifact = (node: OxcNode): boolean =>
   node.type === 'JSXText' && typeof node.value === 'string' && node.value.trim() === ''
 
-const childrenOf = (node: OxcNode): OxcNode[] => {
+/** Raw structural children — only `childrenOf`/`unwrapParens` call this. */
+const directChildren = (node: OxcNode): OxcNode[] => {
   const out: OxcNode[] = []
   for (const key of Object.keys(node)) {
     if (key === 'type' || key === 'start' || key === 'end') continue
@@ -48,8 +49,23 @@ const childrenOf = (node: OxcNode): OxcNode[] => {
       }
     }
   }
-  return out.filter(child => !isFormattingArtifact(child))
+  return out
 }
+
+/** Parens are pure formatting (freely added/dropped, e.g. around a JSX
+ *  return reflowed to multiple lines); oxc materializes each pair as a
+ *  `ParenthesizedExpression` level that would shift recorded paths.
+ *  Treat them as transparent — must match the core adapter exactly. */
+const unwrapParens = (node: OxcNode): OxcNode => {
+  if (node.type !== 'ParenthesizedExpression') return node
+  const inner = directChildren(node)[0]
+  return inner === undefined ? node : unwrapParens(inner)
+}
+
+const childrenOf = (node: OxcNode): OxcNode[] =>
+  directChildren(node)
+    .map(unwrapParens)
+    .filter(child => !isFormattingArtifact(child))
 
 const nameOf = (idNode: unknown): string | undefined => {
   if (!isAstNode(idNode)) return undefined
