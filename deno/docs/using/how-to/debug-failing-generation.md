@@ -59,6 +59,18 @@ incomplete. Common sources: missing required fields, unresolvable
 If `diagnostics` is empty, the parse phase succeeded — the issue
 is downstream.
 
+### Check enrichment warnings
+
+```bash
+jq '.manifest.enrichmentWarnings' generate-output.json
+```
+
+If a customization silently didn't land, this is where the engine
+says why: typo'd routing keys, unknown enrichment keys (with
+nearest-key suggestions), and entries orphaned by schema changes all
+surface here. See the
+[enrichment warnings reference](../../reference/error-codes.md#enrichment-warnings).
+
 ### Check per-operation results in the manifest
 
 ```bash

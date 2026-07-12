@@ -18,6 +18,7 @@ This file is the lookup reference for specific codes.
 | Thrown on stderr during generate | `Max lookups reached` | [Max lookups reached](#max-lookups-reached) |
 | Thrown on stderr during generate | `Ref "<$ref>" not found` / `Ref type mismatch for "<$ref>"` | [Ref not found](#ref-ref-not-found) · [Ref type mismatch](#ref-type-mismatch-for-ref) |
 | During `skmtc bundle` or the bundle step of generate | `bundle.js is out of sync with deno.json` / `No matching export … for import` | [Generate-time errors](#generate-time-errors) |
+| `manifest.enrichmentWarnings[].type` or the "Enrichment warnings" output block | `UNCONSUMED_ENRICHMENT`, `UNKNOWN_ENRICHMENT_KEY`, … | [Enrichment warnings](#enrichment-warnings) |
 | Shell `$?` after a run | exit code `0` / `1` / `2` | [CLI exit codes](#cli-exit-codes) |
 | A location string like `paths:/users:post:…` | decoding where an issue occurred | [Issue location strings](#issue-location-strings) |
 
@@ -293,6 +294,12 @@ the same `exportPath`. Collision.
 - Edit its `toIdentifierName` to add a discriminating prefix or suffix
   (e.g., `useCreateUsers` → `useCreateUsersMutation`).
 
+A configuration cause to check before debugging generator code: a
+stray variant key beside `main` in the enrichments block (for
+example a misspelled variant name) fans out an extra variant, and on
+a generator whose naming ignores the variant this surfaces as a key
+mismatch. Check `client.json` variant keys first.
+
 ### `Max lookups reached`
 
 **Full message:** `Max lookups reached`
@@ -365,6 +372,45 @@ skmtc doctor --json
 
 The `project-core-pin/<project>` check identifies the mismatch and
 provides the canonical fix in its `hint` field.
+
+## Enrichment warnings
+
+Reported on `manifest.enrichmentWarnings` (and as an "Enrichment
+warnings" block in CLI output) after every run — the audit of
+enrichment config that did not do what you intended. Warn-level and
+fail-open: output is never affected. Each entry carries a `path` (the
+routing key sequence under `client.json#settings.enrichments`), a
+message, and — for near-miss key typos — a `suggestion`.
+
+### `UNCONSUMED_ENRICHMENT` — warning
+
+A configured routing path that no engine lookup consumed: a typo'd
+path, method, or model name, or an entry orphaned when the schema
+evolved. Remediation: fix the routing key, or delete the entry if the
+subject no longer exists.
+
+### `UNKNOWN_GENERATOR_ID` — warning
+
+A top-level enrichments key that matches no generator in the run.
+Remediation: fix the id, or install the generator it targets.
+
+### `UNKNOWN_ENRICHMENT_KEY` — warning
+
+A leaf key the generator's enrichment schema does not declare — the
+schema strips it before the generator sees it. The message suggests
+the nearest declared key when one is close. Remediation: fix the
+spelling, or check the generator's reference page for the declared
+shape.
+
+### `SKIPPED_SUBJECT_ENRICHMENT` — info
+
+The entry is addressed correctly, but its operation or model is
+excluded by `skip`/`include`. Legitimate during temporary skips;
+delete the entry if the skip is permanent.
+
+### `SKIPPED_GENERATOR_ENRICHMENT` — info
+
+The whole generator is skipped while enrichments for it exist.
 
 ## CLI exit codes
 
