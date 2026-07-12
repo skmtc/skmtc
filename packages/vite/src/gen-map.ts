@@ -18,7 +18,7 @@ import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { match } from 'ts-pattern'
 import { readManifestFiles } from './artifacts.ts'
-import { parseForReanchor } from './reanchor.ts'
+import { parseForReanchor, REANCHOR_PARSER_ID } from './reanchor.ts'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -81,6 +81,10 @@ const isWellFormedRow = (row: unknown): row is number[] =>
 type SidecarLike = {
   /** `@/`-aliased artifact path the sidecar describes. */
   f: string
+  /** Parser id that resolved the landmarks + paths (`oxc@<version>`,
+   *  or `'none'` from a worker-degraded sidecar). Paths are only safe
+   *  to descend when it matches this package's pinned parser. */
+  parser: string
   G: string[]
   S: string[]
   V: string[]
@@ -104,6 +108,7 @@ const toSidecar = (value: unknown): SidecarLike | null => {
     : []
   return {
     f: value.f,
+    parser: typeof value.parser === 'string' ? value.parser : '',
     G: asGeneratorNames(value.G),
     S: asStringArray(value.S),
     V: asStringArray(value.V),
@@ -162,18 +167,25 @@ const sidecarToEntries = (sidecar: SidecarLike, artifactPath: string): GenMapEnt
  * snippet spans collapse into their Definition until the next generate
  * runs the host-side post-pass.
  */
-const reanchoredEntries = (
+const reanchoredEntries = async (
   sidecar: SidecarLike,
   artifactPath: string,
   content: string
-): GenMapEntry[] | undefined => {
-  const parsed = parseForReanchor(artifactPath, content)
+): Promise<GenMapEntry[] | undefined> => {
+  const parsed = await parseForReanchor(artifactPath, content)
   if (parsed === undefined) return undefined
+  // Paths recorded by a different parser version may index a
+  // differently-keyed AST and descend to the WRONG node — worse than
+  // stale. Trust them only on an exact parser-id match; otherwise fall
+  // back to landmark-only resolution (empty path = the landmark
+  // statement itself), the same coarse-but-correct behavior
+  // worker-degraded sidecars get.
+  const pathsTrusted = sidecar.parser === REANCHOR_PARSER_ID
   return sidecar.anchors.flatMap(anchor => {
     const [li, pi] = anchor.row
     const landmark = (li !== undefined ? sidecar.L[li] : undefined) ?? ''
     if (landmark === '') return []
-    const pathText = (pi !== undefined ? sidecar.P[pi] : undefined) ?? ''
+    const pathText = pathsTrusted ? ((pi !== undefined ? sidecar.P[pi] : undefined) ?? '') : ''
     const path = pathText === '' ? [] : pathText.split('.').map(Number)
     return match(parsed.reanchor(landmark, path))
       .returnType<GenMapEntry[]>()
@@ -259,7 +271,7 @@ export const readGenMap = async (
       continue
     }
     if (characters !== null && characters !== content.length) {
-      const reanchored = reanchoredEntries(sidecar, artifactPath, content)
+      const reanchored = await reanchoredEntries(sidecar, artifactPath, content)
       if (reanchored === undefined || reanchored.length === 0) {
         staleFiles.push(artifactPath)
         continue

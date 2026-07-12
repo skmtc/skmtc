@@ -13,7 +13,13 @@
 // (`oxc@0.41.0`): a version drift can reorder AST keys and silently break
 // recorded paths, so keep the pin and the adapter in lockstep.
 
-import { parseSync } from 'oxc-parser'
+/** The parser id this module can trust recorded AST paths from — must
+ *  match both the pinned `oxc-parser` dependency version and the id
+ *  `@skmtc/core`'s adapter stamps into `sidecar.parser`. Paths from any
+ *  other parser (or the worker's `'none'`) may index a differently-keyed
+ *  AST and descend to the WRONG node, so consumers must fall back to
+ *  landmark-only resolution for them. */
+export const REANCHOR_PARSER_ID = 'oxc@0.41.0'
 
 type OxcNode = {
   type: string
@@ -120,16 +126,34 @@ export type ReanchorFile = {
  *  without a unit conversion (not yet built — such files stay stale). */
 const isAscii = (text: string): boolean => /^[\x00-\x7F]*$/.test(text)
 
+/** `oxc-parser` is a napi native package — on a platform where the
+ *  binding didn't install (pruned optionalDependencies, unsupported
+ *  arch) a static import would crash the whole plugin at load time.
+ *  Import lazily on the first drift-path hit and degrade to stale-file
+ *  behavior when unavailable. */
+type OxcParserModule = typeof import('oxc-parser')
+let oxcModulePromise: Promise<OxcParserModule | undefined> | undefined
+const loadOxcParser = (): Promise<OxcParserModule | undefined> => {
+  oxcModulePromise ??= import('oxc-parser').catch(() => undefined)
+  return oxcModulePromise
+}
+
 /**
  * Parse a formatted artifact for re-anchoring. `undefined` when the file
- * can't support it (non-ASCII, or the parse produced no usable program) —
- * the caller reports the file stale, exactly as before re-anchoring existed.
+ * can't support it (non-ASCII, the native parser isn't available on this
+ * platform, or the parse produced no usable program) — the caller reports
+ * the file stale, exactly as before re-anchoring existed.
  */
-export const parseForReanchor = (filePath: string, source: string): ReanchorFile | undefined => {
+export const parseForReanchor = async (
+  filePath: string,
+  source: string
+): Promise<ReanchorFile | undefined> => {
   if (!isAscii(source)) return undefined
+  const oxc = await loadOxcParser()
+  if (oxc === undefined) return undefined
   let program: unknown
   try {
-    program = parseSync(filePath, source).program
+    program = oxc.parseSync(filePath, source).program
   } catch {
     return undefined
   }

@@ -62,6 +62,17 @@ const fmtSidecar = {
   An: [0, 1, 0]
 }
 
+// Same drifted file but stamped by a DIFFERENT parser version: recorded
+// paths must not be trusted (AST key order can differ), so resolution
+// falls back to landmark-only spans.
+const skewSidecar = {
+  ...fmtSidecar,
+  f: '@/models/skew.generated.ts',
+  parser: 'oxc@9.9.9',
+  A: [[0, 1, 0, 0, 0, 18, 34]],
+  An: [1]
+}
+
 // Length-drifted file containing non-ASCII text: UTF-16 sidecar spans can't
 // be aligned with oxc's UTF-8 offsets, so re-anchoring must refuse and the
 // file stays stale.
@@ -104,6 +115,7 @@ const manifest = {
     'src/models/rows.generated.ts': { lines: 1, characters: rowsSource.length },
     // Raw-render lengths; the on-disk copies are longer (formatter ran).
     'src/models/fmt.generated.ts': { lines: 1, characters: petSource.length },
+    'src/models/skew.generated.ts': { lines: 1, characters: petSource.length },
     'src/models/unicode.generated.ts': { lines: 1, characters: 20 }
   }
 }
@@ -125,6 +137,7 @@ describe('readGenMap', () => {
     await writeFile(join(maps, 'rows.generated.ts.skm.json'), JSON.stringify(rowsSidecar))
     await writeFile(join(maps, 'broken.generated.ts.skm.json'), '{not json')
     await writeFile(join(maps, 'fmt.generated.ts.skm.json'), JSON.stringify(fmtSidecar))
+    await writeFile(join(maps, 'skew.generated.ts.skm.json'), JSON.stringify(skewSidecar))
     await writeFile(join(maps, 'unicode.generated.ts.skm.json'), JSON.stringify(unicodeSidecar))
     // A stale duplicate for pet at a NON-mirror path (sorts before the mirror
     // copy lexicographically — '_' < 'p' — so mirror preference, not order,
@@ -136,6 +149,7 @@ describe('readGenMap', () => {
     // bar on disk is LONGER than the manifest render — a formatter ran.
     await writeFile(join(root, 'src', 'models', 'bar.generated.ts'), 'x'.repeat(24))
     await writeFile(join(root, 'src', 'models', 'fmt.generated.ts'), fmtFormatted)
+    await writeFile(join(root, 'src', 'models', 'skew.generated.ts'), fmtFormatted)
     await writeFile(join(root, 'src', 'models', 'unicode.generated.ts'), unicodeSource)
   })
   afterAll(async () => {
@@ -188,6 +202,21 @@ describe('readGenMap', () => {
     expect(sliceOf(statementEntry.artifactSpan)).toBe(fmtStatement)
     expect(sliceOf(literalEntry.artifactSpan)).toBe(fmtTypeLiteral)
     expect(literalEntry.producerName).toBe('CustomValue')
+  })
+
+  it('falls back to landmark-only spans on a parser-version mismatch', async () => {
+    const { entries, staleFiles } = await readGenMap(root, project, 'src')
+    expect(staleFiles).not.toContain('src/models/skew.generated.ts')
+    const skewEntries = entries.filter(
+      entry => entry.artifactPath === 'src/models/skew.generated.ts'
+    )
+    // The recorded path pointed at the type literal, but the sidecar was
+    // stamped by a different parser — the entry resolves to the whole
+    // landmark statement instead of descending an untrusted path.
+    expect(skewEntries).toHaveLength(1)
+    expect(fmtFormatted.slice(skewEntries[0].artifactSpan[0], skewEntries[0].artifactSpan[1])).toBe(
+      fmtStatement
+    )
   })
 
   it('keeps a drifted non-ASCII file stale (span-unit skew)', async () => {
