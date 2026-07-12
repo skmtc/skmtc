@@ -1,12 +1,12 @@
 // Read/write the project's `client.json` and apply enrichment edits to it. The
 // nested `settings.enrichments` tree is the single source of truth (no flat
 // representation); an edit is a positional write via the enrichment-leaf
-// adapter, validated at the boundary with zod.
+// adapter, validated at the boundary with valibot.
 
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { match } from 'ts-pattern'
-import { z } from 'zod'
+import * as v from 'valibot'
 import {
   addVariant,
   removeVariant,
@@ -39,83 +39,83 @@ export const basePathOf = (clientJson: ClientJson): string =>
     ? clientJson.settings.basePath
     : ENGINE_DEFAULT_BASE_PATH
 
-const subjectRefSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('operation'), path: z.string(), method: z.string() }),
-  z.object({ type: z.literal('model'), refName: z.string() })
+const subjectRefSchema = v.variant('type', [
+  v.object({ type: v.literal('operation'), path: v.string(), method: v.string() }),
+  v.object({ type: v.literal('model'), refName: v.string() })
 ])
 
 /** Body of `POST /__skmtc/input-matches`: which inputs fit one field.
  *  `generator` scopes the slot-contract lookup to the generator whose module
  *  field is being edited (two generators can map the same subject). */
-export const inputMatchesSchema = z.object({
+export const inputMatchesSchema = v.object({
   subject: subjectRefSchema,
-  schemaPath: z.array(z.string()).min(1),
-  generator: z.string().optional()
+  schemaPath: v.pipe(v.array(v.string()), v.minLength(1)),
+  generator: v.optional(v.string())
 })
-const valuesSchema = z.record(z.string(), z.unknown())
-const describedKeysSchema = z.array(z.string())
+const valuesSchema = v.record(v.string(), v.unknown())
+const describedKeysSchema = v.array(v.string())
 
 /**
  * One enrichment edit, validated at the HTTP boundary. The shape mirrors the
  * enrichment-leaf adapter ops; `EnrichmentEdit` is inferred from this schema so
  * the validator is the single source of truth.
  */
-export const enrichmentEditSchema = z.discriminatedUnion('op', [
-  z.object({
-    op: z.literal('writeLeaf'),
-    generator: z.string(),
+export const enrichmentEditSchema = v.variant('op', [
+  v.object({
+    op: v.literal('writeLeaf'),
+    generator: v.string(),
     subject: subjectRefSchema,
-    variant: z.string(),
+    variant: v.string(),
     values: valuesSchema,
     describedKeys: describedKeysSchema
   }),
-  z.object({
-    op: z.literal('writeGeneratorScope'),
-    generator: z.string(),
+  v.object({
+    op: v.literal('writeGeneratorScope'),
+    generator: v.string(),
     values: valuesSchema,
     describedKeys: describedKeysSchema
   }),
-  z.object({
-    op: z.literal('writeStackScope'),
+  v.object({
+    op: v.literal('writeStackScope'),
     values: valuesSchema,
     describedKeys: describedKeysSchema
   }),
-  z.object({
-    op: z.literal('addVariant'),
-    generator: z.string(),
+  v.object({
+    op: v.literal('addVariant'),
+    generator: v.string(),
     subject: subjectRefSchema,
-    variant: z.string()
+    variant: v.string()
   }),
-  z.object({
-    op: z.literal('removeVariant'),
-    generator: z.string(),
+  v.object({
+    op: v.literal('removeVariant'),
+    generator: v.string(),
     subject: subjectRefSchema,
-    variant: z.string()
+    variant: v.string()
   }),
-  z.object({
-    op: z.literal('renameVariant'),
-    generator: z.string(),
+  v.object({
+    op: v.literal('renameVariant'),
+    generator: v.string(),
     subject: subjectRefSchema,
-    from: z.string(),
-    to: z.string()
+    from: v.string(),
+    to: v.string()
   })
 ])
 
-export type EnrichmentEdit = z.infer<typeof enrichmentEditSchema>
+export type EnrichmentEdit = v.InferOutput<typeof enrichmentEditSchema>
 
 /** Apply one edit to an enrichments tree — pure dispatch over the adapter. */
 export function applyEdit(tree: EnrichmentTree, edit: EnrichmentEdit): EnrichmentTree {
   return match(edit)
-    .with({ op: 'writeLeaf' }, (e) =>
+    .with({ op: 'writeLeaf' }, e =>
       writeLeaf(tree, e.generator, e.subject, e.variant, e.values, e.describedKeys)
     )
-    .with({ op: 'writeGeneratorScope' }, (e) =>
+    .with({ op: 'writeGeneratorScope' }, e =>
       writeGeneratorScope(tree, e.generator, e.values, e.describedKeys)
     )
-    .with({ op: 'writeStackScope' }, (e) => writeStackScope(tree, e.values, e.describedKeys))
-    .with({ op: 'addVariant' }, (e) => addVariant(tree, e.generator, e.subject, e.variant))
-    .with({ op: 'removeVariant' }, (e) => removeVariant(tree, e.generator, e.subject, e.variant))
-    .with({ op: 'renameVariant' }, (e) => renameVariant(tree, e.generator, e.subject, e.from, e.to))
+    .with({ op: 'writeStackScope' }, e => writeStackScope(tree, e.values, e.describedKeys))
+    .with({ op: 'addVariant' }, e => addVariant(tree, e.generator, e.subject, e.variant))
+    .with({ op: 'removeVariant' }, e => removeVariant(tree, e.generator, e.subject, e.variant))
+    .with({ op: 'renameVariant' }, e => renameVariant(tree, e.generator, e.subject, e.from, e.to))
     .exhaustive()
 }
 

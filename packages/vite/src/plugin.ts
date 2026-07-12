@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { join, resolve } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import * as v from 'valibot'
 import type { Connect, Plugin } from 'vite'
 import { runDescribe, runGenerate, type CliResult } from './skmtc-cli.ts'
 import {
@@ -169,7 +170,7 @@ const NON_LOCAL_HEADERS = [
 const isLocalRequest = (request: IncomingMessage): boolean => {
   const address = request.socket.remoteAddress
   if (address === undefined || !LOOPBACK_ADDRESSES.has(address)) return false
-  return NON_LOCAL_HEADERS.every((header) => request.headers[header] === undefined)
+  return NON_LOCAL_HEADERS.every(header => request.headers[header] === undefined)
 }
 
 const messageOf = (error: unknown): string =>
@@ -259,7 +260,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       // a field comes off the generator's moduleSelect declaration, read from
       // the (cached) describe descriptors.
       const state = new SourceState(root, viteRoot, options.project, {
-        resolveModuleType: async (generator) => {
+        resolveModuleType: async generator => {
           if (generator === undefined) return undefined
           const result = await describe()
           return result.ok ? moduleTypeFromDescribe(result.data, generator) : undefined
@@ -306,7 +307,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       }
       void refreshSchemaWatch()
 
-      server.watcher.on('change', (file) => {
+      server.watcher.on('change', file => {
         if (file === bundlePath || file === schemaPath) describeCache = null
         if (file === clientJsonFile) void refreshSchemaWatch()
         // Harness source changed → invalidate its cached virtual module + reload.
@@ -323,9 +324,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       // at resolve time, so a providers file APPEARING or DISAPPEARING needs a
       // re-resolve: invalidate both modules and reload the iframe. (Edits to an
       // existing providers file are ordinary HMR and need nothing from us.)
-      const providersFiles = new Set(
-        PROVIDERS_CANDIDATES.map((name) => join(viteRoot, 'src', name))
-      )
+      const providersFiles = new Set(PROVIDERS_CANDIDATES.map(name => join(viteRoot, 'src', name)))
       const onProvidersFileEvent = (file: string): void => {
         if (!providersFiles.has(file)) return
         for (const id of [PROVIDERS_RESOLVED_ID, HARNESS_RESOLVED_ID]) {
@@ -360,7 +359,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       const editHandler: Connect.NextHandleFunction = async (request, response) => {
         let edit
         try {
-          edit = enrichmentEditSchema.parse(await readJsonBody(request))
+          edit = v.parse(enrichmentEditSchema, await readJsonBody(request))
         } catch (error) {
           respondJson(response, 400, { error: `invalid edit: ${messageOf(error)}` })
           return
@@ -390,7 +389,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       const inputMatchesHandler: Connect.NextHandleFunction = async (request, response) => {
         let body
         try {
-          body = inputMatchesSchema.parse(await readJsonBody(request))
+          body = v.parse(inputMatchesSchema, await readJsonBody(request))
         } catch (error) {
           respondJson(response, 400, { error: `invalid request: ${messageOf(error)}` })
           return
@@ -530,7 +529,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       const filtersWriteHandler: Connect.NextHandleFunction = async (request, response) => {
         let filters
         try {
-          filters = filtersWriteSchema.parse(await readJsonBody(request))
+          filters = v.parse(filtersWriteSchema, await readJsonBody(request))
         } catch (error) {
           respondJson(response, 400, { error: `invalid filters: ${messageOf(error)}` })
           return
