@@ -2,6 +2,15 @@
 
 > Install, configure, and run SKMTC to generate code from your schemas.
 
+SKMTC generates TypeScript from an OpenAPI v3 or GraphQL schema — types,
+validators, query hooks, forms, mocks, and server routes, all from one
+schema in one run, all consistent with each other. Add a field to the
+schema, regenerate, and every artifact updates together. The output is
+ordinary source code you commit; nothing SKMTC-specific runs in your
+app. Deciding whether SKMTC fits your project at all? Start with the
+[project README](../README.md) — its "When to use SKMTC" section is the
+honest fit test.
+
 ## Who this is for
 
 You have an OpenAPI v3 or GraphQL schema and want code generated from it. Everything in this tree works with installed generators and JSON configuration — using SKMTC never requires writing or reading generator source code.

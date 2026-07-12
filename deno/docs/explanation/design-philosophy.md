@@ -4,7 +4,17 @@
 
 ## The core bet
 
-[One-paragraph essence statement summarizing the four most load-bearing principles: clone-to-customize, idempotency by construction, lenient parsing with strict diagnostics, and output as source code rather than a runtime library. The paragraph should be re-quotable on its own.]
+SKMTC bets that generated code should be ordinary source code — committed,
+readable, reviewable — and that customization should be ordinary source
+code too. Generation is idempotent by construction, so any set of
+generators converges on the same output in any order; parsing is lenient
+and diagnostics are strict, so one bad schema narrows the output instead
+of killing the run; and when stock output isn't what you want, you clone
+the generator and edit recognizable TypeScript instead of negotiating
+with a configuration surface. Everything else in this page is a
+consequence of those four commitments: output as source, idempotency by
+construction, lenient input with strict diagnostics, and
+clone-to-customize.
 
 ## The principles
 
@@ -15,6 +25,13 @@ Each principle is **contestable** — a choice SKMTC makes that another reasonab
 > Customization lives in source code you own, not in configuration flags you set.
 
 #### What it means in practice
+
+A stock generator's hardcoded export path or naming convention is not a
+missing feature — it is the seam you edit after `skmtc clone`. The cloned
+source lives in your project, the CLI bundles it like any installed
+generator, and your customization is a diff you own rather than a flag
+the maintainer supports forever. Enrichments remain for per-instance
+values (a label, a placeholder); changes to *behavior* are edits.
 
 #### Consequences
 
@@ -34,6 +51,14 @@ See [Why clone-to-customize](why-clone-to-customize.md).
 
 #### What it means in practice
 
+Generators never declare dependencies on each other and never run in a
+declared order. When one generator needs a peer's output it inserts it:
+the engine constructs the peer's Projection on the first request and
+returns the registered definition on every request after, so whichever
+generator asks first, the file map converges to the same content.
+Reordering generators in `client.json` is a no-op by construction, not
+by testing discipline.
+
 #### Consequences
 
 - No dependency graph between generators; no topological sort
@@ -50,6 +75,13 @@ See [How idempotency works](how-idempotency-works.md).
 > One bad schema doesn't kill the run. Downstream generators receive a smaller-than-expected document. Diagnostics are exhaustive even when output is partial.
 
 #### What it means in practice
+
+Every schema item parses inside its own guard: a failed item becomes a
+`ParseIssue` rather than an exception, and everything that depended on
+the failed item is pruned so downstream generators see a smaller — but
+internally valid — document. The manifest then accounts for every issue
+exhaustively, so partial output always arrives with a complete record of
+what is missing and why.
 
 #### Consequences
 
@@ -68,6 +100,13 @@ See [Error handling philosophy](../concepts/error-handling-philosophy.md).
 
 #### What it means in practice
 
+A generated file has no runtime dependency on SKMTC — no import, no
+wrapper, no client object. It imports the same libraries the equivalent
+handwritten file would (zod, Tanstack Query, React) and nothing else.
+You commit it, review schema changes as ordinary diffs in pull requests,
+and refactor or grep it with the tools you already use. SKMTC's
+involvement ends when the files are written.
+
 #### Consequences
 
 - Drift between schema and output is detectable via `git diff`
@@ -77,13 +116,21 @@ See [Error handling philosophy](../concepts/error-handling-philosophy.md).
 
 #### Deeper discussion
 
-[Cross-reference to a `recipes/` or `concepts/` doc when written.]
+See [Use SKMTC in CI/CD](../using/how-to/use-in-ci-cd.md) — the drift
+check that this principle makes possible.
 
 ### 5. TypeScript-native templates, not template files
 
 > Templates are template literals inside TS classes, composed with `${...}` interpolation. No Mustache, Handlebars, or EJS.
 
 #### What it means in practice
+
+A generator's output template is a template literal inside a class:
+`toString()` returns real TypeScript with `${...}` holes, and every
+interpolated value is a typed field the compiler checks. There is no
+template file to load, no helper registry, and no second language to
+learn — editing a generator is editing TypeScript, with rename-symbol
+and go-to-definition working across the template boundary.
 
 #### Consequences
 
@@ -102,6 +149,13 @@ See [Projections and Snippets](../concepts/projections-and-snippets.md).
 
 #### What it means in practice
 
+SKMTC ships no bundler, no sandbox, and no package format of its own.
+`deno bundle` produces the generator bundle, a Worker with network and
+subprocess permissions disabled is the sandbox, and JSR is how
+generators are published and versioned. The engine's job is codegen;
+the platform's job is everything else — which keeps the engine small
+enough to read.
+
 #### Consequences
 
 - The engine is small because most platform-level concerns are delegated
@@ -112,123 +166,6 @@ See [Projections and Snippets](../concepts/projections-and-snippets.md).
 #### Deeper discussion
 
 See [The worker runtime](../concepts/the-worker-runtime.md) and [The GraphQL asymmetry](the-graphql-asymmetry.md).
-
-### 7. Types and runtime validators stay in lockstep via compile-time drift checks
-
-> Every TS union with a paired Valibot schema gets a compile-time
-> binding that fails if the two diverge. Adding a variant to one
-> without the other is a type error.
-
-SKMTC uses Valibot for runtime validation of the manifest, parse
-issues, settings, and generator configs. Each Valibot schema has
-a TypeScript counterpart (a discriminated union or literal type)
-that consumers narrow against. The two must agree — a runtime
-schema rejecting a value the TS type permits is a silent corruption
-of the manifest contract; the reverse is dead branches in code.
-
-The pattern: an unread binding asserts the schema satisfies the
-type.
-
-```ts
-// core/context/generateTypes.ts:208-209
-const _oasIssueTypeDriftCheck: v.GenericSchema<OasIssueType> = oasIssueType
-void _oasIssueTypeDriftCheck
-```
-
-The `_oasIssueTypeDriftCheck` variable is never read. Its only
-purpose is to fail compile if `OasIssueType` (the TS union) and
-`oasIssueType` (the Valibot schema) drift. Adding a variant to
-one without the other produces a type error at this line.
-
-#### Where it appears
-
-- `OasIssueType` ↔ `oasIssueType` (`generateTypes.ts:208-209`)
-- `GqlIssueType` ↔ `gqlIssueType` (`ParseIssue.ts:72-73`)
-- The Manifest schema and its TS counterparts
-- The Settings schema and its TS counterparts
-- The Preview / Mapping source-descriptor unions
-
-#### What this means for contributors
-
-An "unused" `_driftCheck` binding is not unused. Removing one
-breaks the contract that lets the manifest validate. AI agents in
-particular are prone to "tidying up" unused bindings; the comment
-on each `_driftCheck` calls out the role to discourage that.
-
-When adding a new variant to a Valibot schema *or* to the TS type
-it pairs with, look for the drift-check binding and update both
-sides. The compile error at the drift-check line is the surface
-that catches the omission.
-
-#### Consequences
-
-- Manifest validation cannot silently corrupt — schema and type
-  stay aligned.
-- New issue types, settings fields, or preview kinds need
-  coordinated edits to both sides (small friction, big payoff).
-- Reading SKMTC code, expect to see paired `someType` (TS) /
-  `someTypeSchema` (Valibot) / `_someTypeDriftCheck` (unread
-  binding) trios. The trio is the unit.
-
-### 8. Primitives bundle their side effects, on purpose
-
-> Every cross-Projection primitive — `insertOperation`, `insertModel`,
-> `insertNormalizedModel` — bundles four things into one call: name
-> retrieval, producer construction on cache miss, Definition
-> registration at the producer's `exportPath`, and cross-File import
-> registration on the consumer's File. The bundling is the design;
-> separating the steps is what produces silent drift.
-
-#### What it means in practice
-
-A consumer that needs a peer's identifier name doesn't compute it from
-scratch — it calls `insertOperation(Producer, op)`. That single call
-constructs the producer on cache miss, registers its `Definition`
-into the producer's target `File`, registers the cross-File import on
-the consumer's `File`, and returns the producer's name via `.toName()`.
-All four happen synchronously inside the Driver before the call
-returns.
-
-The contrast is the "pure" name lookup, `Producer.toIdentifierName(...)`.
-It exists and returns the same string. SKMTC ships it because some
-callers — for example, static methods on a *consumer's* own Projection
-class, where `this` doesn't exist — have no constructor to
-side-effect through. But the pure call does *only* the name
-computation. Substituting it for `insertOperation` produces emitted
-code that references a name no `File` exports (no Definition
-registered), or a name with no matching import line (no import
-registered), or a name that hasn't been initialized at module-load
-time (`Cannot access 'X' before initialization`, from arbitrary
-serialization order within a single File).
-
-Mechanical details of each failure mode: see
-[cross-generator-coordination § Why call `insertOperation` instead of `Producer.toIdentifier(op).name`?](../concepts/cross-generator-coordination.md#why-call-insertoperation-instead-of-producertoidentifiernameop).
-
-#### Consequences
-
-- API surface biases toward bundled-side-effect calls. Pure name
-  lookups exist but aren't the default; the verification checklist in
-  the `skmtc-generator` skill calls out `insertOperation` as the
-  default for cross-Projection composition.
-- `OasOperationDriver`, `ModelDriver`, and `GqlOperationDriver` own
-  the bundling. The same Driver computes the cache key, runs the
-  Projection constructor on miss, registers the Definition, and
-  registers the import.
-- Skipping the bundled call has no compile-time signal — the types
-  permit `Producer.toIdentifierName(...)` everywhere it's syntactically
-  valid. Discipline has to be taught. The failure mode surfaces only
-  at consumer-app build time, or — for the order-of-initialization
-  case — at consumer-app runtime.
-
-#### Deeper discussion
-
-The trade-off is discoverability against purity. A purely functional
-surface — `getName(op)`, `getExportPath(op)`, `getImports(op)`,
-`registerDefinition(...)` — would give the same power but require the
-author to remember every step. SKMTC bundles the steps because the
-commonly-needed combination is "name plus the side effects that make
-the name resolve at render time," and a single call eliminates a
-class of bugs where one of the four steps is forgotten.
 
 ## Tradeoffs accepted
 
