@@ -101,6 +101,136 @@ Deno.test('runDoctor - warns on stale-schema manifest (friction #26)', async () 
     const manifestCheck = result.checks.find(c => c.id === 'project-manifest/stale-manifest')
     assertEquals(manifestCheck?.status, 'warning')
     assertStringIncludes(manifestCheck?.message ?? '', "doesn't match the current")
+
+    // The enrichment check must not double-report a broken manifest —
+    // it defers to project-manifest and skips.
+    const enrichmentCheck = result.checks.find(c => c.id === 'project-enrichments/stale-manifest')
+    assertEquals(enrichmentCheck?.status, 'skipped')
+  })
+})
+
+/**
+ * A minimal manifest that passes the current `manifestContent` schema.
+ * `enrichmentWarnings` is spread in per test — absent models a manifest
+ * written by a pre-0.28 core.
+ */
+const validManifest = (extra: Record<string, unknown> = {}): string =>
+  JSON.stringify({
+    deploymentId: 'run-1',
+    traceId: 'trace-1',
+    spanId: 'span-1',
+    files: {},
+    previews: {},
+    results: {},
+    parseIssues: [],
+    startAt: 0,
+    endAt: 0,
+    ...extra
+  })
+
+const writeProjectWithManifest = async (
+  tempRoot: string,
+  projectName: string,
+  manifestJson: string
+): Promise<void> => {
+  const projectPath = join(tempRoot, '.skmtc', projectName)
+  await ensureDir(join(projectPath, '.settings'))
+  await Deno.writeTextFile(join(projectPath, 'deno.json'), JSON.stringify({ imports: {} }))
+  await Deno.writeTextFile(
+    join(projectPath, '.settings', 'client.json'),
+    JSON.stringify({ settings: { basePath: './src' } })
+  )
+  await Deno.writeTextFile(join(projectPath, '.settings', 'manifest.json'), manifestJson)
+}
+
+Deno.test('runDoctor - surfaces warning-level enrichment warnings from the last manifest', async () => {
+  await withTempSkmtcRoot(async tempRoot => {
+    await writeProjectWithManifest(
+      tempRoot,
+      'enrichment-warn',
+      validManifest({
+        enrichmentWarnings: [
+          {
+            level: 'warning',
+            type: 'UNCONSUMED_ENRICHMENT',
+            path: ['@skmtc/gen-shadcn-form', '/pet', 'post'],
+            message:
+              "enrichment entry '@skmtc/gen-shadcn-form → /pet → post' was never consumed — no matching generator or subject in this run (did you mean '/pets'?)",
+            suggestion: '/pets'
+          },
+          {
+            level: 'info',
+            type: 'SKIPPED_GENERATOR_ENRICHMENT',
+            path: ['@skmtc/gen-msw'],
+            message:
+              "generator '@skmtc/gen-msw' is skipped in this run — its enrichments were not applied"
+          }
+        ]
+      })
+    )
+
+    const result = await runDoctor({ cliVersion: '0.1.5' })
+    const check = result.checks.find(c => c.id === 'project-enrichments/enrichment-warn')
+    assertEquals(check?.status, 'warning')
+    assertStringIncludes(check?.message ?? '', '1 enrichment warning(s)')
+    assertStringIncludes(check?.message ?? '', "did you mean '/pets'?")
+    assertStringIncludes(check?.hint ?? '', 'settings.enrichments')
+    // The full list (including info entries) rides `data` for agents.
+    const data = check?.data?.enrichmentWarnings
+    assertEquals(Array.isArray(data) && data.length === 2, true)
+  })
+})
+
+Deno.test('runDoctor - clean enrichmentWarnings reports ok', async () => {
+  await withTempSkmtcRoot(async tempRoot => {
+    await writeProjectWithManifest(
+      tempRoot,
+      'enrichment-clean',
+      validManifest({ enrichmentWarnings: [] })
+    )
+
+    const result = await runDoctor({ cliVersion: '0.1.5' })
+    const check = result.checks.find(c => c.id === 'project-enrichments/enrichment-clean')
+    assertEquals(check?.status, 'ok')
+  })
+})
+
+Deno.test('runDoctor - info-only enrichmentWarnings reports ok with a note', async () => {
+  await withTempSkmtcRoot(async tempRoot => {
+    await writeProjectWithManifest(
+      tempRoot,
+      'enrichment-info',
+      validManifest({
+        enrichmentWarnings: [
+          {
+            level: 'info',
+            type: 'SKIPPED_SUBJECT_ENRICHMENT',
+            path: ['@skmtc/gen-shadcn-form', '/pets', 'post', 'main'],
+            message:
+              "enrichment at '@skmtc/gen-shadcn-form → /pets → post → main' targets a skipped item — it was not applied in this run"
+          }
+        ]
+      })
+    )
+
+    const result = await runDoctor({ cliVersion: '0.1.5' })
+    const check = result.checks.find(c => c.id === 'project-enrichments/enrichment-info')
+    assertEquals(check?.status, 'ok')
+    assertStringIncludes(check?.message ?? '', '1 info note(s)')
+  })
+})
+
+Deno.test('runDoctor - manifest without enrichmentWarnings skips with a regenerate hint', async () => {
+  await withTempSkmtcRoot(async tempRoot => {
+    // No `enrichmentWarnings` at all — a manifest written by a core
+    // older than 0.28.0. The field is optional in the schema, so the
+    // manifest still validates; the check must say why it can't run.
+    await writeProjectWithManifest(tempRoot, 'enrichment-old-core', validManifest())
+
+    const result = await runDoctor({ cliVersion: '0.1.5' })
+    const check = result.checks.find(c => c.id === 'project-enrichments/enrichment-old-core')
+    assertEquals(check?.status, 'skipped')
+    assertStringIncludes(check?.message ?? '', 'predates enrichment warnings')
   })
 })
 
