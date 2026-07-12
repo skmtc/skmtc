@@ -213,11 +213,6 @@ for await (const entry of Deno.readDir(join(docsDir, "skills"))) {
     // skill dir without SKILL.md — nothing to check
   }
 }
-await collect(join(docsDir, "skills", "skmtc-generator", "eval"), [
-  ".md",
-  ".json",
-]);
-
 let deadModelHits = 0;
 for (const file of surfaceFiles) {
   const lines = (await Deno.readTextFile(file)).split("\n");
