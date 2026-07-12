@@ -9,8 +9,6 @@ import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { toGqlOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
-// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
-import get from 'lodash-es/get'
 
 type CreateGqlOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
   context: GenerateContextType
@@ -210,8 +208,7 @@ const assertPeerVariantExists = ({
     return
   }
 
-  const opEnrichments: unknown = get(context.settings, [
-    'enrichments',
+  const opEnrichments: unknown = context.readEnrichment([
     generatorId,
     operation.rootKind,
     operation.fieldName

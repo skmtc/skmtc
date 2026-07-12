@@ -87,6 +87,8 @@ import type { OasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.
 import type { GqlOperationEntry } from '@/dsl/operation/gql/toGqlOperationEntry.ts'
 import type { ModelEntry } from '@/dsl/model/toModelEntry.ts'
 import type { ModelProjection } from '@/dsl/model/types.ts'
+import { EnrichmentAudit, hasVariantEnrichment } from '@/enrichments/EnrichmentAudit.ts'
+import { formatEnrichmentPath, type EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
 
 type ConstructorArgs = {
   /**
@@ -286,6 +288,12 @@ export class GenerateContext implements GenerateContextType {
   /** Shared attribution capture channel (see {@link ConstructorArgs}). */
   #captureChannel: CaptureChannel | undefined
 
+  /**
+   * Records every enrichment lookup during the walk; finalized into
+   * `enrichmentWarnings` at the end of {@link toArtifacts}.
+   */
+  #enrichmentAudit: EnrichmentAudit
+
   constructor({
     document,
     settings,
@@ -303,6 +311,49 @@ export class GenerateContext implements GenerateContextType {
     this.toGeneratorConfigMap = toGeneratorConfigMap
     this.modelDepth = {}
     this.#captureChannel = captureChannel
+    this.#enrichmentAudit = new EnrichmentAudit()
+  }
+
+  /**
+   * The recording enrichment accessor — the single choke point every
+   * enrichment lookup routes through (dispatch loops, projection-base
+   * `toEnrichments`, the Drivers' peer-variant guards). Segments are
+   * literal keys (the array form of `get` keeps dotted paths intact);
+   * the read is recorded so the post-walk consumption audit can flag
+   * configured entries no lookup ever touched.
+   */
+  readEnrichment(segments: readonly string[]): unknown {
+    // Recording only matters when there is config to audit — on the common
+    // no-enrichment run, skip the bookkeeping entirely (finalize would
+    // early-return anyway, so the consumed sets would be pure waste).
+    if (this.settings?.enrichments !== undefined) {
+      this.#enrichmentAudit.consume(segments)
+    }
+    return get(this.settings, ['enrichments', ...segments])
+  }
+
+  /** Add a warning to this run's enrichment audit (deduplicated). */
+  reportEnrichmentWarning(warning: EnrichmentWarning): void {
+    this.#enrichmentAudit.report(warning)
+  }
+
+  /**
+   * Emit the `SKIPPED_SUBJECT_ENRICHMENT` info line when a skip/include
+   * filter excludes an item the consumer wrote an enrichment for. Info,
+   * not warning: the entry is addressed correctly, and a temporary skip
+   * must not read as dead config.
+   */
+  #reportSkippedEnrichment(block: unknown, variant: string, path: readonly string[]): void {
+    if (!hasVariantEnrichment(block, variant)) return
+
+    this.#enrichmentAudit.report({
+      level: 'info',
+      type: 'SKIPPED_SUBJECT_ENRICHMENT',
+      path,
+      message:
+        `enrichment at '${formatEnrichmentPath(path)}' targets a skipped item — ` +
+        `it was not applied in this run`
+    })
   }
 
   /**
@@ -415,9 +466,22 @@ export class GenerateContext implements GenerateContextType {
       })
     })
 
+    // Post-walk consumption audit: every enrichment lookup above was
+    // recorded; configured paths no lookup touched are dead config —
+    // typo'd ids / paths / methods / model names, or entries orphaned by
+    // spec evolution. Warn-level, fail-open.
+    const enrichmentWarnings = this.#enrichmentAudit.finalize({
+      enrichments: this.settings?.enrichments,
+      generators: generators.map(({ id, type }) => ({ id, type })),
+      skippedGeneratorIds: (this.settings?.skip ?? []).filter(
+        (entry): entry is string => typeof entry === 'string'
+      )
+    })
+
     return {
       files: this.#files,
-      previews: this.#previews
+      previews: this.#previews,
+      enrichmentWarnings
     }
   }
 
@@ -679,8 +743,7 @@ export class GenerateContext implements GenerateContextType {
         //     at config-load time once it lands)
         //   - present, object → enumerate keys; 'main' must be among
         //     them or we throw (loud beats silent zero-output)
-        const opEnrichments: unknown = get(this.settings, [
-          'enrichments',
+        const opEnrichments: unknown = this.readEnrichment([
           generatorConfig.id,
           operation.path,
           operation.method
@@ -717,6 +780,12 @@ export class GenerateContext implements GenerateContextType {
                   variant
                 })
               ) {
+                this.#reportSkippedEnrichment(opEnrichments, variant, [
+                  generatorConfig.id,
+                  operation.path,
+                  operation.method,
+                  variant
+                ])
                 this.captureCurrentResult('skipped', st)
                 return
               }
@@ -729,6 +798,12 @@ export class GenerateContext implements GenerateContextType {
                   variant
                 })
               ) {
+                this.#reportSkippedEnrichment(opEnrichments, variant, [
+                  generatorConfig.id,
+                  operation.path,
+                  operation.method,
+                  variant
+                ])
                 this.captureCurrentResult('skipped', st)
                 return
               }
@@ -775,8 +850,7 @@ export class GenerateContext implements GenerateContextType {
         // the webhook analogue of the operation routing. `toVariantList`
         // handles absent / non-object / object enrichment blocks and
         // enforces the `'main'`-must-be-present rule.
-        const webhookEnrichments: unknown = get(this.settings, [
-          'enrichments',
+        const webhookEnrichments: unknown = this.readEnrichment([
           generatorConfig.id,
           webhook.name,
           webhook.method
@@ -812,6 +886,12 @@ export class GenerateContext implements GenerateContextType {
                   variant
                 })
               ) {
+                this.#reportSkippedEnrichment(webhookEnrichments, variant, [
+                  generatorConfig.id,
+                  webhook.name,
+                  webhook.method,
+                  variant
+                ])
                 this.captureCurrentResult('skipped', st)
                 return
               }
@@ -824,6 +904,12 @@ export class GenerateContext implements GenerateContextType {
                   variant
                 })
               ) {
+                this.#reportSkippedEnrichment(webhookEnrichments, variant, [
+                  generatorConfig.id,
+                  webhook.name,
+                  webhook.method,
+                  variant
+                ])
                 this.captureCurrentResult('skipped', st)
                 return
               }
@@ -866,8 +952,7 @@ export class GenerateContext implements GenerateContextType {
       stackTrail.trace(operation.identifier, opTrail => {
         // GraphQL enrichment routing key is
         // `[generatorId][rootKind][fieldName][variant]`.
-        const opEnrichments: unknown = get(this.settings, [
-          'enrichments',
+        const opEnrichments: unknown = this.readEnrichment([
           generatorConfig.id,
           operation.rootKind,
           operation.fieldName
@@ -943,11 +1028,7 @@ export class GenerateContext implements GenerateContextType {
         //     at config-load time once it lands)
         //   - present, object → enumerate keys; 'main' must be among
         //     them or we throw (loud beats silent zero-output)
-        const modelEnrichments: unknown = get(this.settings, [
-          'enrichments',
-          generatorConfig.id,
-          refName
-        ])
+        const modelEnrichments: unknown = this.readEnrichment([generatorConfig.id, refName])
 
         const variants = toVariantList({
           opEnrichments: modelEnrichments,
@@ -971,11 +1052,21 @@ export class GenerateContext implements GenerateContextType {
               // array on a refName means "every variant of this refName"; a
               // populated array names the variants the entry applies to.
               if (include !== undefined && !matchesRefFilter({ refs: include, refName, variant })) {
+                this.#reportSkippedEnrichment(modelEnrichments, variant, [
+                  generatorConfig.id,
+                  refName,
+                  variant
+                ])
                 this.captureCurrentResult('skipped', st)
                 return
               }
 
               if (matchesRefFilter({ refs: skip, refName, variant })) {
+                this.#reportSkippedEnrichment(modelEnrichments, variant, [
+                  generatorConfig.id,
+                  refName,
+                  variant
+                ])
                 this.captureCurrentResult('skipped', st)
                 return
               }

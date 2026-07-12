@@ -17,6 +17,7 @@ import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import type { Method } from '@/types/Method.ts'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
+import { toEnrichmentReaders } from '@/test/toEnrichmentsContext.ts'
 
 // ============================================================================
 // Test Helpers
@@ -55,7 +56,10 @@ const createMockContext = (options?: {
     // The Driver pre-ensures destination files caller-side through the
     // projection's static lang: file-miss → `addFile(lang.createFile(...))`.
     getFile: spy(() => undefined),
-    addFile: spy(() => {})
+    addFile: spy(() => {}),
+    // Lazy read off the mock's own `settings` so tests that assign it
+    // after construction still hit the fresh value.
+    ...toEnrichmentReaders(() => (mockContext as { settings?: unknown }).settings)
   } as unknown as GenerateContextType
 
   return {

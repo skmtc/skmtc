@@ -1,5 +1,12 @@
 import type * as v from 'valibot'
 import { moduleTypeOf } from '@/types/ModuleSelect.ts'
+import {
+  baseOf,
+  isEntriesRecord,
+  isValibotSchema,
+  unwrap,
+  type ValibotSchemaShape
+} from '@/enrichments/valibotShape.ts'
 
 /**
  * Properties shared by every enrichment-field variant.
@@ -109,52 +116,7 @@ export type EnrichmentSource = {
   readonly supportsVariant: () => boolean
 }
 
-/**
- * Structural view of a Valibot schema as observed at runtime. Valibot's
- * declared `GenericSchema` is opaque (intentionally a black box for
- * parse calls) but the runtime objects expose tagged-union shape via
- * `type` plus the wrapper / container properties below. The walker
- * narrows into this view via {@link isValibotSchema} once at each
- * entry point and stays inside it for traversal.
- */
-type ValibotSchemaShape = {
-  readonly type: string
-  readonly wrapped?: unknown
-  readonly entries?: unknown
-  readonly item?: unknown
-  readonly options?: unknown
-  readonly pipe?: unknown
-}
-
-const isValibotSchema = (input: unknown): input is ValibotSchemaShape =>
-  typeof input === 'object' &&
-  input !== null &&
-  'type' in input &&
-  typeof (input as { type: unknown }).type === 'string'
-
-const isEntriesRecord = (input: unknown): input is Record<string, v.GenericSchema> =>
-  typeof input === 'object' && input !== null
-
 const isOptionsArray = (input: unknown): input is readonly unknown[] => Array.isArray(input)
-
-const WRAPPER_TYPES = new Set(['optional', 'nullable', 'nullish'])
-
-const unwrap = (schema: ValibotSchemaShape): { inner: ValibotSchemaShape; optional: boolean } => {
-  if (WRAPPER_TYPES.has(schema.type) && isValibotSchema(schema.wrapped)) {
-    return { inner: schema.wrapped, optional: true }
-  }
-  return { inner: schema, optional: false }
-}
-
-/**
- * A `v.pipe(base, …actions)` schema spreads `base` and adds a `pipe` array
- * whose first element IS the original base schema. The `moduleSelect`
- * registry lookup must therefore also check the pipe's base, or piping a
- * moduleSelect through metadata (`v.title(…)`) would silently demote it to
- * a generic object widget.
- */
-const baseOf = (schema: ValibotSchemaShape): ValibotSchemaShape =>
-  Array.isArray(schema.pipe) && isValibotSchema(schema.pipe[0]) ? schema.pipe[0] : schema
 
 /** The `v.title(…)` metadata riding a piped schema, if any — the field label. */
 const titleOf = (schema: ValibotSchemaShape): string | undefined => {

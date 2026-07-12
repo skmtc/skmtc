@@ -63,6 +63,10 @@ export const printGenerateResult = ({
         // Pass through ParseIssue verbatim — the shape is stable and
         // documented in `@skmtc/core` as part of the manifest schema.
         parseIssues: result.parseIssues,
+        // Enrichment addressing / unknown-key warnings, verbatim from
+        // the manifest. Always present (empty when clean) so consumers
+        // can pin to it.
+        enrichmentWarnings: result.enrichmentWarnings,
         ...(typecheck ? { typecheck } : {}),
         // Gen-maps summary — present only when the post-pass ran
         // (anchors enabled via config + flag resolution). Omitted
@@ -87,6 +91,7 @@ export const printGenerateResult = ({
         toGenerateMessageString({
           stats: result.stats,
           parseIssues: result.parseIssues,
+          enrichmentWarnings: result.enrichmentWarnings,
           basePath
         })
       )

@@ -7,7 +7,7 @@ import { oxcAdapter } from '@skmtc/core/Anchors/oxc'
 import { toResolvedArtifactPath } from '@skmtc/core'
 import { type GenerationStats, toGenerationStats } from '@/lib/generationStats.ts'
 import type { FileType } from '@/lib/types.ts'
-import type { ParseIssue } from '@skmtc/core'
+import type { EnrichmentWarning, ParseIssue } from '@skmtc/core'
 import { toAttributionPayload } from '@/lib/to-attribution-payload.ts'
 
 type GenerateLocalArgs = {
@@ -75,6 +75,13 @@ export type GenerateLocalResult = {
    * summary doesn't have to re-dig into the manifest.
    */
   parseIssues: ParseIssue[]
+  /**
+   * Enrichment addressing / unknown-key warnings for this run. Sourced
+   * from `manifest.enrichmentWarnings`; empty when the run was clean —
+   * or when the worker's bundled core predates the field (it is
+   * optional in the manifest schema for exactly that skew).
+   */
+  enrichmentWarnings: EnrichmentWarning[]
   /**
    * Paths of every file the run wrote, relative to the SKMTC root.
    * Surfaced so `--json` consumers (and agents) can see exactly where
@@ -218,6 +225,7 @@ export const generateLocal = async ({
     return {
       stats,
       parseIssues: manifest.parseIssues,
+      enrichmentWarnings: manifest.enrichmentWarnings ?? [],
       filePaths: Object.keys(artifacts),
       anchors: anchorsStats,
       protectedPaths,

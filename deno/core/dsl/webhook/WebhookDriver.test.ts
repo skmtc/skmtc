@@ -27,6 +27,7 @@ import { toWebhookGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import type { Method } from '@/types/Method.ts'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
+import { toEnrichmentReaders } from '@/test/toEnrichmentsContext.ts'
 
 // ============================================================================
 // Test Helpers
@@ -71,7 +72,10 @@ const createMockContext = (options?: {
     findDefinition: findDefinitionSpy,
     register: registerSpy,
     getFile: spy(() => undefined),
-    addFile: spy(() => {})
+    addFile: spy(() => {}),
+    // Lazy read off the mock's own `settings` so tests that assign it
+    // after construction still hit the fresh value.
+    ...toEnrichmentReaders(() => (mockContext as { settings?: unknown }).settings)
   } as unknown as GenerateContextType
 
   return {

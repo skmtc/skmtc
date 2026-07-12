@@ -409,24 +409,27 @@ export class CoreContext {
       // render. One object per run wires the two phases together.
       const captureChannel: CaptureChannel = { sink: undefined }
 
-      const { files, previews, inspection } = stackTrail.trace('generate', st => {
-        const generatePhase = this.#setupGeneratePhase({
-          toGeneratorConfigMap,
-          document: parsedDocument,
-          settings,
-          captureChannel
-        })
-        this.#phase = generatePhase
+      const { files, previews, inspection, enrichmentWarnings } = stackTrail.trace(
+        'generate',
+        st => {
+          const generatePhase = this.#setupGeneratePhase({
+            toGeneratorConfigMap,
+            document: parsedDocument,
+            settings,
+            captureChannel
+          })
+          this.#phase = generatePhase
 
-        const generated = generatePhase.context.toArtifacts(st)
+          const generated = generatePhase.context.toArtifacts(st)
 
-        // Opt-in snapshot of the live files graph, taken after generate populates
-        // it and before render replaces the phase. Off unless `inspect` is set.
-        return {
-          ...generated,
-          inspection: inspect ? toInspection(generatePhase.context.inspectedFiles) : undefined
+          // Opt-in snapshot of the live files graph, taken after generate populates
+          // it and before render replaces the phase. Off unless `inspect` is set.
+          return {
+            ...generated,
+            inspection: inspect ? toInspection(generatePhase.context.inspectedFiles) : undefined
+          }
         }
-      })
+      )
 
       // Render is a single capture pass: it renders each File once and,
       // when `attribution.postPass` is configured, simultaneously captures
@@ -450,6 +453,7 @@ export class CoreContext {
         ...renderOutput,
         results: this.#results.toTree(),
         parseIssues: phase.context.issues,
+        enrichmentWarnings,
         inspection
       }
     } catch (error) {
@@ -487,7 +491,8 @@ export class CoreContext {
         files: {},
         previews: {},
         results: this.#results.toTree(),
-        parseIssues: [...priorIssues, fatalIssue]
+        parseIssues: [...priorIssues, fatalIssue],
+        enrichmentWarnings: []
       }
     } finally {
       this.logger.handlers.forEach(handler => {

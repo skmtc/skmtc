@@ -1,4 +1,5 @@
 import { toGqlOperationProjectionBase } from './toGqlOperationProjectionBase.ts'
+import { toEnrichmentsContext } from '@/test/toEnrichmentsContext.ts'
 import { assertEquals } from '@std/assert/equals'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { GqlOperation } from '@/gql/operation/GqlOperation.ts'
@@ -123,7 +124,7 @@ Deno.test('toGqlOperationProjectionBase - toEnrichments yields the empty umbrell
 
   const enrichments = OperationClass.toEnrichments({
     operation: mockOperation,
-    context: { settings: {} } as GenerateContextType,
+    context: toEnrichmentsContext({}) as unknown as GenerateContextType,
     variant: 'main'
   })
 
@@ -143,7 +144,7 @@ Deno.test('toGqlOperationProjectionBase - toEnrichments yields the empty umbrell
 
   const enrichments = OperationClass.toEnrichments({
     operation: mockOperation,
-    context: { settings: {} } as GenerateContextType,
+    context: toEnrichmentsContext({}) as unknown as GenerateContextType,
     variant: 'main'
   })
 
@@ -293,22 +294,20 @@ Deno.test('toGqlOperationProjectionBase - toEnrichments validates with schema', 
 
   const mockOperation = createMockGqlOperation()
 
-  const mockContext = {
-    settings: {
-      enrichments: {
-        'graphql-client': {
-          query: {
-            getUsers: {
-              main: {
-                enabled: true,
-                timeout: 5000
-              }
+  const mockContext = toEnrichmentsContext({
+    enrichments: {
+      'graphql-client': {
+        query: {
+          getUsers: {
+            main: {
+              enabled: true,
+              timeout: 5000
             }
           }
         }
       }
     }
-  } as any
+  }) as any
 
   const enrichments = OperationClass.toEnrichments({
     operation: mockOperation,
@@ -348,17 +347,15 @@ Deno.test('toGqlOperationProjectionBase - toEnrichments retrieves from correct n
     fieldName: 'updateProduct'
   })
 
-  const mockContext = {
-    settings: {
-      enrichments: {
-        'graphql-api': {
-          mutation: {
-            updateProduct: { main: { customValue: 'found-it', flag: true } }
-          }
+  const mockContext = toEnrichmentsContext({
+    enrichments: {
+      'graphql-api': {
+        mutation: {
+          updateProduct: { main: { customValue: 'found-it', flag: true } }
         }
       }
     }
-  } as any
+  }) as any
 
   const enrichments = OperationClass.toEnrichments({
     operation: mockOperation,
