@@ -27,8 +27,23 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
 
   await project.createWorker()
 
+  // --minimum-dependency-age=0 disables the dependency-age holdback
+  // (enforced by default from Deno 2.9) for the bundle's own
+  // resolution. @skmtc/* publishes on every merge, so the newest
+  // generator/worker versions are always younger than the default
+  // cutoff — without the flag, `deno bundle` on Deno ≥ 2.9 rejects a
+  // freshly released stack with the misleading
+  // `Do not know how to load path: deno:jsr:…`. Same rationale as the
+  // installer's flag on `deno install` (skmtc-hub/apps/install).
+  // The flag parses from Deno 2.6 (a no-op before the 2.9 gate) and is
+  // an unknown-argument error on ≤ 2.5, so gate on the running Deno's
+  // version — the subprocess resolves `deno` from PATH, the same
+  // binary running this code in the supported setups.
+  const [major, minor] = Deno.version.deno.split('.').map(Number)
+  const ageArgs = major > 2 || (major === 2 && minor >= 6) ? ['--minimum-dependency-age=0'] : []
+
   const command = new Deno.Command('deno', {
-    args: ['bundle', '-o', fileName, 'worker.ts'],
+    args: ['bundle', ...ageArgs, '-o', fileName, 'worker.ts'],
     cwd: projectPath,
     stdout: 'piped',
     stderr: 'piped'
