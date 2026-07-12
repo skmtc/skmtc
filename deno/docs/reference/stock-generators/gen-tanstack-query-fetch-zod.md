@@ -10,22 +10,39 @@ are almost always team-specific.
 
 ## What it generates
 
-Per operation:
+Per query operation (real output, abridged):
 
 ```ts
-export const useGetUser = (args: { id: string }) =>
-  useQuery({
-    queryKey: ['getUser', args],
-    queryFn: () => fetch(`/users/${args.id}`).then(r => r.json()).then(user.parse)
+import {pet} from '@/types/pet.generated.ts'
+import {useQuery} from '@tanstack/react-query'
+
+export type UseGetApiPetPetIdArgs = {petId: number};
+
+export const useGetApiPetPetId = ({petId}: UseGetApiPetPetIdArgs) => {
+  const result = useQuery({
+    queryKey: ['pet', petId],
+    queryFn: async () => {
+      const res = await fetch(`/pet/${petId}`, {
+        method: 'GET'
+      })
+
+      if (!res.ok) {
+        const error = await res.text()
+        throw new Error(error)
+      }
+
+      const data = await res.json()
+      return pet.parse(data)
+    }
   })
 
-export const useCreateUser = () =>
-  useMutation({
-    mutationFn: (body: User) =>
-      fetch('/users', { method: 'POST', body: JSON.stringify(userBody.parse(body)) })
-        .then(r => r.json()).then(user.parse)
-  })
+  return result
+};
 ```
+
+Mutation operations get a `useMutation` hook with query-client
+invalidation wired to `onSuccess`, typed mutation variables, and the
+same response-side `parse`.
 
 The `user`/`userBody` Zod schemas come from `gen-zod` via
 `insertNormalizedModel` — both generators share a single registered
@@ -48,9 +65,9 @@ schema.
   generated code calls `fetch` directly. This is the canonical
   customization seam: clone and replace with your own wrapper
   (`axios`, custom `apiFetch`, etc.).
-- **Hardcoded request validation.** Request bodies are validated
-  with `<schema>.parse(body)` before send. Errors throw at call
-  time, not at hook setup.
+- **Response-side validation.** Responses are parsed with the shared
+  Zod schema (`<schema>.parse(data)`) so bad payloads throw at the
+  query boundary; request bodies are serialized as-is.
 
 ## What to learn from it
 

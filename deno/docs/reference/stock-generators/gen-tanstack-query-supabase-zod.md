@@ -10,15 +10,41 @@ client calls instead of `fetch`).
 
 ## What it generates
 
-Per operation, hooks that call the Supabase Postgrest client:
+Per operation, hooks that call the API through Supabase **Edge
+Functions** (`supabase.functions.invoke`), parsing the response with
+the shared Zod schema (real output, abridged):
 
 ```ts
-export const useGetUsers = () =>
-  useQuery({
-    queryKey: ['getUsers'],
-    queryFn: () => supabase.from('users').select('*').then(({ data }) => userListSchema.parse(data))
+import {pet} from '@/types/pet.generated.ts'
+import {supabase} from '@/lib/supabase'
+import {useQuery, keepPreviousData} from '@tanstack/react-query'
+
+export type UseGetApiPetPetIdArgs = {petId: number};
+
+export const useGetApiPetPetId = ({petId}: UseGetApiPetPetIdArgs) => {
+  const result = useQuery({
+    queryKey: ['pet', petId],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke(`/pet/${petId}`, {
+        method: 'GET',
+      })
+
+      if (error) {
+        throw error
+      }
+
+      return pet.parse(data)
+    },
+    placeholderData: keepPreviousData
   })
+
+  return result
+};
 ```
+
+The `supabase` client comes from the consumer-owned `@/lib/supabase`
+module; the transport is `functions.invoke` against the operation's
+path, not PostgREST table queries.
 
 ## Source
 

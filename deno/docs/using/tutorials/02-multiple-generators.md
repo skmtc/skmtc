@@ -52,11 +52,11 @@ skmtc generate petstore
 The engine runs all three generators against the same parsed
 document. New files appear in `src/generated/`:
 
-- `Pet.generated.ts` — now contains both `export const pet =
+- `types/pet.generated.ts` — now contains both `export const pet =
   z.object({...})` (from gen-zod) **and** `export type Pet = {...}`
   (from gen-typescript). One file per schema component, both
   generators contributing.
-- `pet/useGetPetById.generated.ts` (or similar) — the hook file,
+- `services/useGetApiPetPetId.generated.ts` — the hook file,
   importing `pet` and `Pet` from the schema file above.
 
 ## Step 4: Verify the cross-generator coordination
@@ -64,13 +64,31 @@ document. New files appear in `src/generated/`:
 Look inside a hook file:
 
 ```ts
-import { pet, type Pet } from '../Pet.generated.ts'
+import {pet} from '@/types/pet.generated.ts'
+import {useQuery} from '@tanstack/react-query'
 
-export const useGetPetById = (args: { petId: number }) =>
-  useQuery({
-    queryKey: ['getPetById', args],
-    queryFn: () => fetch(`/pet/${args.petId}`).then(r => r.json()).then(pet.parse)
+export type UseGetApiPetPetIdArgs = {petId: number};
+
+export const useGetApiPetPetId = ({petId}: UseGetApiPetPetIdArgs) => {
+  const result = useQuery({
+    queryKey: ['pet', petId],
+    queryFn: async () => {
+      const res = await fetch(`/pet/${petId}`, {
+        method: 'GET'
+      })
+
+      if (!res.ok) {
+        const error = await res.text()
+        throw new Error(error)
+      }
+
+      const data = await res.json()
+      return pet.parse(data)
+    }
   })
+
+  return result
+};
 ```
 
 The `pet` import is the same `pet` that `gen-zod` registered — not a

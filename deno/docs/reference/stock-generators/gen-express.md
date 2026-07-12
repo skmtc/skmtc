@@ -9,26 +9,39 @@ narrowing.
 
 ## What it generates
 
-Per operation, a registration on a shared `app` Projection:
+Per tag, a `<tag>/routes.generated.ts` file registering every
+operation on a shared `Router`, delegating each handler to a service
+function you implement (real output, abridged):
 
 ```ts
-import express from 'express'
+import {Router, Request, Response, NextFunction} from 'express'
+import {getPetFindByStatusService, getPetPetIdService} from '@/pet/services.ts'
 
-export const app = express()
+export const app = Router()
 
-app.get('/users/:id', (req, res) => {
-  // TODO: implement handler
-  res.json({ id: req.params.id, name: 'TODO', email: 'TODO' })
-})
+app.get('/pet/findByStatus',  async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const {status} = req.query
 
-app.post('/users', (req, res) => {
-  const body = userBody.parse(req.body)
-  // TODO: implement handler
-  res.status(201).json({ ...body, id: 'TODO' })
+    const result = await getPetFindByStatusService({params: {status}})()
+
+    if (!result) {
+      return res.status(404).send()
+    }
+
+    res.json(result)
+  } catch (error) {
+    next(error)
+  }
 })
 ```
 
-All routes accumulate on a single `app` instance per output file.
+The generated routes never contain business logic: each handler
+extracts the operation's parameters, calls the matching
+`<operation>Service` function, sends `404` on a falsy result, and
+forwards thrown errors to `next`. The `@/<tag>/services.ts` module is
+the consumer-owned seam — you write the service implementations; the
+generator wires the HTTP layer around them.
 
 ## Source
 

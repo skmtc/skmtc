@@ -10,33 +10,50 @@ many items.
 
 ## What it generates
 
-Per supported operation, a table component:
+Per supported list operation, a `tables/<Operation>Table.generated.tsx`
+module of TanStack Table column definitions. **Columns come entirely
+from the enrichment** — `subject.table.columns` in `client.json`, each
+entry binding a response-item property (`moduleSelect.schemaPath`) to
+a header label; with no enrichment the module renders an empty
+`columns` array. Real output for two configured columns:
 
 ```tsx
-export const UsersTable = () => {
-  const { data } = useGetUsers()
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>ID</TableHead>
-          <TableHead>Name</TableHead>
-          <TableHead>Email</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {data.map(user => (
-          <TableRow key={user.id}>
-            <TableCell>{user.id}</TableCell>
-            <TableCell>{user.name}</TableCell>
-            <TableCell>{user.email}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
+import type {Pet} from '@/types/pet.generated.ts'
+import {createColumnHelper} from '@tanstack/react-table'
+import {DataTableColumnHeader} from '@/components/data-table/data-table-column-header'
+
+const columnHelper = createColumnHelper<Pet>();
+
+const columns = [
+  columnHelper.accessor('name', {header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />}),
+  columnHelper.accessor('status', {header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />}
+)];
+```
+
+The enrichment that produced it:
+
+```jsonc
+{
+  "@skmtc/gen-shadcn-table": {
+    "/pet/findByStatus": {
+      "get": {
+        "main": {
+          "table": {
+            "columns": [
+              { "moduleSelect": { "schemaPath": ["name"] }, "label": "Name" },
+              { "moduleSelect": { "schemaPath": ["status"] }, "label": "Status" }
+            ]
+          }
+        }
+      }
+    }
+  }
 }
 ```
+
+An optional `module` on a column's `moduleSelect` points the cell at a
+consumer-side formatter component; without it the cell renders the raw
+value.
 
 ## Source
 
