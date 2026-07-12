@@ -203,7 +203,6 @@ The CLI normalizes all three forms.
 
 ## See also
 
-- [skmtc-cli skill](../../skills/skmtc-cli/SKILL.md) — operational digest
   covering the common workflows
 - [Reference: client.json schema](../settings/client-json-schema.md) — the
   per-project settings file

@@ -212,6 +212,6 @@ catches obvious mistakes like missing or absolute paths).
 ## See also
 
 - [`skmtc install`](install.md) — typical next step after init
-- [`skmtc-cli` skill §6](../../skills/skmtc-cli/SKILL.md) — `client.json` shape
+- [client.json schema](../settings/client-json-schema.md) — the full `client.json` shape
 - [projects-and-workspaces concept](../../concepts/projects-and-workspaces.md) — the directory layout
 - [client.json schema](../settings/client-json-schema.md) — full field reference

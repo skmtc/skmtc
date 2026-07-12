@@ -246,7 +246,6 @@ the literal *is* the configurability surface.
 
 - [Generators as packages](generators-as-packages.md) — the JSR distribution layer
 - [Why clone-to-customize](../explanation/why-clone-to-customize.md) — design rationale
-- [Customization seams (skmtc-generator skill §7)](../skills/skmtc-generator/SKILL.md) — operational guide
-- [skmtc-cli skill §9](../skills/skmtc-cli/SKILL.md) — install vs clone decision tree
+- [Anatomy of a generator](../authoring/anatomy-of-a-generator.md) — the seams (`base.ts`) and the parts you edit after cloning
 - [`skmtc clone` reference](../reference/cli/clone.md)
 - [`skmtc install` reference](../reference/cli/install.md)

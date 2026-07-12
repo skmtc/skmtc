@@ -344,4 +344,4 @@ but Render doesn't touch it.
 - [The type system](the-type-system.md) — how a model generator's `schemaToValueFn` handles `OasRef<'schema'>` alongside the schema variants
 - [API reference: oas-ref](../reference/api/oas-ref.md) — full method signatures
 - [API reference: oas-schema-variants](../reference/api/oas-schema-variants.md) — the schema union
-- [`skmtc-debug` skill](../skills/skmtc-debug/SKILL.md) — operational diagnosis of ref failures
+- [Error codes](../reference/error-codes.md) — the ref-failure messages and their remediations

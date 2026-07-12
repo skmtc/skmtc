@@ -278,5 +278,5 @@ the system.
   how generators are installed and updated
 - [Design philosophy](design-philosophy.md) — "build on the
   substrate" as it applies to Deno permissions
-- [skmtc-debug skill](../skills/skmtc-debug/SKILL.md) — operational
-  guidance including the manifest-as-forensic-record pattern
+- [Manifest format](../reference/manifest-format.md) — the
+  manifest-as-forensic-record surface

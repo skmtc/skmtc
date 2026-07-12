@@ -407,5 +407,5 @@ nested snippet.
 - [API reference: projection-bases](../reference/api/projection-bases.md)
 - [API reference: dsl-snippet-base](../reference/api/dsl-snippet-base.md)
 - [API reference: dsl-definition](../reference/api/dsl-definition.md)
-- [`skmtc-generator` skill](../skills/skmtc-generator/SKILL.md) — operational
-  guidance for authoring
+- [Anatomy of a generator](../authoring/anatomy-of-a-generator.md) — the
+  authoring orientation

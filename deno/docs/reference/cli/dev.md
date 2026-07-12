@@ -174,4 +174,4 @@ continues.
 - [`skmtc bundle`](bundle.md) — what `dev` does on each cycle
 - [`skmtc generate`](generate.md) — non-watch generation; `--watch` for schema-source watching
 - [`skmtc clone`](clone.md) — typical entry to `dev` workflow
-- [`skmtc-generator` skill](../../skills/skmtc-generator/SKILL.md) — authoring guidance
+- [Anatomy of a generator](../../authoring/anatomy-of-a-generator.md) — authoring orientation

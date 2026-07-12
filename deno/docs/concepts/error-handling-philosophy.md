@@ -444,7 +444,7 @@ rather than a recoverable diagnostic.
   Valibot schema
 - [Error codes reference](../reference/error-codes.md) — the full list of issue
   types
-- [`skmtc-debug` skill](../skills/skmtc-debug/SKILL.md) — operational diagnosis
+- [How to debug a failing generation](../using/how-to/debug-failing-generation.md) — the diagnosis workflow
   using the manifest
 - [Design philosophy: lenient input, strict diagnostics](../explanation/design-philosophy.md)
   — the broader rationale

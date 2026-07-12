@@ -672,7 +672,7 @@ id.
   lives
 - [Settings reference: client.json schema](../reference/settings/client-json-schema.md)
 - [Settings reference: enrichments shape](../reference/settings/enrichments-shape.md)
-- [`skmtc-cli` skill §6](../skills/skmtc-cli/SKILL.md) — operational guidance
+- [How to configure enrichments](../using/how-to/configure-enrichments.md) — the task-level guide
   for configuring enrichments
-- [`skmtc-generator` skill](../skills/skmtc-generator/SKILL.md) — how to declare
+- [Add enrichment options](../authoring/how-to/add-enrichment-options.md) — how to declare
   a new enrichment in your generator

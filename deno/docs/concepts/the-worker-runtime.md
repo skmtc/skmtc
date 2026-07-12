@@ -318,4 +318,4 @@ generation always goes through the Worker.
 - [Projects and workspaces](projects-and-workspaces.md) — where `bundle.js` and `worker.ts` live
 - [Generators as packages](generators-as-packages.md) — how bundles are built
 - [API reference: to-artifacts](../reference/api/to-artifacts.md) — the engine entry point
-- [`skmtc-cli` skill](../skills/skmtc-cli/SKILL.md) — operational guidance including bundle freshness
+- [`skmtc bundle` reference](../reference/cli/bundle.md) — bundle freshness and the rebundle workflow

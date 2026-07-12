@@ -485,4 +485,4 @@ local generations don't use it. See
 - [Explanation: The GraphQL asymmetry](../../explanation/the-graphql-asymmetry.md) — why GQL `transform` is different
 - [Tutorial 02: Authoring a model generator](../../authoring/tutorials/02-authoring-a-model-generator.md)
 - [Tutorial 03: Authoring an operation generator](../../authoring/tutorials/03-authoring-an-operation-generator.md)
-- [`skmtc-generator` skill scaffolds](../../skills/skmtc-generator/SKILL.md#6-code-scaffolds) — copy-ready templates
+- [Tutorial: authoring a model generator](../../authoring/tutorials/02-authoring-a-model-generator.md) — building an entry end to end

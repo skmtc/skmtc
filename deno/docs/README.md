@@ -242,10 +242,10 @@ See [`explanation/status-and-roadmap.md`](explanation/status-and-roadmap.md).
 
 - **Source:** https://github.com/skmtc/skmtc *(placeholder)*
 - **Issues & discussions:** GitHub
-- **Contributing:** [`CONTRIBUTING.md`](../CONTRIBUTING.md)
+- **Contributing:** [`CONTRIBUTING.md`](../../CONTRIBUTING.md)
 
 ## License
 
 The engine (`@skmtc/core`), CLI (`@skmtc/cli`), and other `skmtc/` packages are licensed under **Apache 2.0**. See [`../../LICENSE.md`](../../LICENSE.md).
 
-Stock generators (`skmtc-generators/gen-*`) are licensed under **MIT**. See [`../../../skmtc-generators/LICENSE.md`](../../../skmtc-generators/LICENSE.md).
+Stock generators (`skmtc-generators/gen-*`) are licensed under **MIT**. See the [skmtc-generators license](https://github.com/skmtc/skmtc-generators/blob/main/LICENSE.md).

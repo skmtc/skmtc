@@ -236,7 +236,7 @@ scaffold remains on disk; fix the compile error and re-run
 - [`skmtc list`](list.md) — verify the generator was added
 - [Projection bases reference](../api/projection-bases.md) — what
   the scaffolded base extends
-- [skmtc-generator skill](../../skills/skmtc-generator/SKILL.md) —
-  operational guide for authoring generators
+- [Anatomy of a generator](../../authoring/anatomy-of-a-generator.md) —
+  the parts you just scaffolded
 - [Clone vs install concept](../../concepts/clone-vs-install.md) —
   decision tree for which command to use

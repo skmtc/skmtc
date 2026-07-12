@@ -244,5 +244,5 @@ its target user.
   package shape and lifecycle
 - [Comparison to other tools](comparison-to-other-tools.md) — how SKMTC's
   position compares against the codegen landscape
-- [`skmtc-generator` skill](../skills/skmtc-generator/SKILL.md) — operational
-  guide for cloning and authoring
+- [Anatomy of a generator](../authoring/anatomy-of-a-generator.md) — what
+  you are editing once you clone

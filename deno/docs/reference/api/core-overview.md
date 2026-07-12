@@ -78,8 +78,8 @@ The building blocks generators use to produce code.
 The DSL classes form a small set of well-defined primitives. The
 operational principle: **use them, don't bypass them** — raw strings
 in identifier positions break the import-rendering story under
-`verbatimModuleSyntax`. See [the skmtc-generator skill](../../skills/skmtc-generator/SKILL.md)
-for the full anti-patterns table.
+`verbatimModuleSyntax`. See [Identifier](dsl-identifier.md)
+for the factory surface.
 
 ## Projection bases (factories)
 
@@ -212,4 +212,4 @@ they adapt to API additions.
 - [Cross-generator coordination concept](../../concepts/cross-generator-coordination.md) — how DSL primitives compose
 - [The worker runtime concept](../../concepts/the-worker-runtime.md) — how the engine is hosted
 - [Reference: glossary](../glossary.md) — terminology
-- [skmtc-generator skill](../../skills/skmtc-generator/SKILL.md) — operational distillation for generator authoring
+- [Anatomy of a generator](../../authoring/anatomy-of-a-generator.md) — the authoring orientation

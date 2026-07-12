@@ -502,4 +502,4 @@ code.
 - [source-resolution reference](source-resolution.md) — how `source` is resolved
 - [enrichments concept](../../concepts/enrichments.md) — mental model
 - [projects-and-workspaces concept](../../concepts/projects-and-workspaces.md) — where this file lives
-- [`skmtc-cli` skill §6](../../skills/skmtc-cli/SKILL.md) — operational guidance
+- [How to configure enrichments](../../using/how-to/configure-enrichments.md) — task-level guidance

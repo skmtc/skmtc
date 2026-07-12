@@ -518,4 +518,4 @@ type ToOasOperationExportPathArgs<E = undefined> = {
 - [API: ContentSettings](content-settings.md) — what `settings` carries
 - [Projections and Snippets concept](../../concepts/projections-and-snippets.md) — the two-level model
 - [Cross-generator coordination concept](../../concepts/cross-generator-coordination.md) — pure functions and the cache
-- [`skmtc-generator` skill scaffolds](../../skills/skmtc-generator/SKILL.md) — concrete templates A, B, C, D
+- [Authoring tutorials](../../authoring/tutorials/02-authoring-a-model-generator.md) — building on these bases end to end

@@ -463,5 +463,5 @@ work; the engine accepts the resolved form.
 - [The worker runtime concept](../../concepts/the-worker-runtime.md) — why OAS is host-parsed and GraphQL is worker-parsed
 - [The three phases concept](../../concepts/the-three-phases.md) — where source resolution sits in the lifecycle (it's the step *before* Parse)
 - [Refs and resolution concept](../../concepts/refs-and-resolution.md) — internal `$ref` handling (distinct from external $ref bundling discussed here)
-- [`skmtc-debug` skill](../../skills/skmtc-debug/SKILL.md) — diagnosing source resolution failures
+- [How to debug a failing generation](../../using/how-to/debug-failing-generation.md) — diagnosing source failures
 - [Glossary: schema, OAS, SDL, structuredClone](../glossary.md)

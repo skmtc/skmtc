@@ -92,7 +92,7 @@ SKMTC-native vocabulary, because the analogues miss important details.
 
 ## Cross-references
 
-- Skill: [`../skills/skmtc-generator/SKILL.md`](../skills/skmtc-generator/SKILL.md) — operational principles for authoring.
+- [Anatomy of a generator](../authoring/anatomy-of-a-generator.md) — the authoring orientation in these terms.
 - Concept: [`projections-and-snippets.md`](./projections-and-snippets.md) — the DSL vocabulary in depth.
 - Concept: [`variants.md`](./variants.md) — the variant axis.
 - Reference: [`../reference/glossary.md`](../reference/glossary.md) — formal definitions.

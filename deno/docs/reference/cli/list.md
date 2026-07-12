@@ -180,5 +180,5 @@ SKMTC workspace at all. Check the current directory and the workspace
   generator set
 - [`skmtc agent-context`](agent-context.md) — for structured
   source-classified output (`.projects[].generators.{remote,local}`)
-- [skmtc-cli skill](../../skills/skmtc-cli/SKILL.md) — workflow
+- [CLI overview](overview.md) — workflow
   context

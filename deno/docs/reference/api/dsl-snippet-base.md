@@ -322,4 +322,4 @@ type GeneratorKey = string & { __brand: 'GeneratorKey' }
 - [API: Definition](dsl-definition.md) — what `register({ definitions })` accepts
 - [API: Identifier](dsl-identifier.md) — what `reExports` and import names use
 - [API: Projection bases](projection-bases.md) — what extends SnippetBase via the projection layer
-- [`skmtc-generator` skill §6](../../skills/skmtc-generator/SKILL.md) — Snippet scaffold (Pattern A)
+- [Tutorial: authoring an operation generator](../../authoring/tutorials/03-authoring-an-operation-generator.md) — building Snippets in context

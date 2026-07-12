@@ -669,5 +669,5 @@ keeps the side effects co-located with the rendering.
 - [Reference: projection-bases](../reference/api/projection-bases.md)
   — the `ModelProjection` factory the static `schemaToValueFn`
   hangs off
-- [`skmtc-generator` skill](../skills/skmtc-generator/SKILL.md) —
-  operational guidance for authoring and cloning generators
+- [Anatomy of a generator](../authoring/anatomy-of-a-generator.md) —
+  orientation for authoring and cloning generators

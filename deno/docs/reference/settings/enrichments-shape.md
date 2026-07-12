@@ -328,5 +328,5 @@ result.
 
 - [enrichments concept](../../concepts/enrichments.md) — full mental model
 - [client.json schema reference](client-json-schema.md) — the broader settings shape
-- [skmtc-cli skill §6](../../skills/skmtc-cli/SKILL.md) — operational configuration
-- [skmtc-generator skill §10 card "Adding enrichment options"](../../skills/skmtc-generator/SKILL.md) — authoring perspective
+- [How to configure enrichments](../../using/how-to/configure-enrichments.md) — the task-level guide
+- [Add enrichment options](../../authoring/how-to/add-enrichment-options.md) — the authoring perspective

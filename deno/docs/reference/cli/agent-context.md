@@ -247,7 +247,7 @@ included — needs a `bundle.js` to generate; run
 
 - [`skmtc doctor`](doctor.md) — pass/fail health checks
 - [`skmtc list`](list.md) — focused generator inventory
-- [`skmtc-debug` skill](../../skills/skmtc-debug/SKILL.md) — how to
-  use `agent-context` during debugging sessions
-- [`skmtc-cli` skill](../../skills/skmtc-cli/SKILL.md) — broader
+- [How to debug a failing generation](../../using/how-to/debug-failing-generation.md) — where
+  `agent-context` fits in a debugging session
+- [CLI overview](overview.md) — broader
   CLI workflow

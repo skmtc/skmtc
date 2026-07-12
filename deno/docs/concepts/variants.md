@@ -335,17 +335,16 @@ that variant for the requested refName.
 
 ## Authoring a variants-aware generator
 
-See the [`skmtc-generator`](../skills/skmtc-generator/SKILL.md) skill,
-specifically the §10 task card "Authoring a variants-aware generator".
+Fold the variant axis into `toIdentifierName` / `toExportPath` — each
+variant needs its own cache key, and the Driver throws on a mismatch —
+and read the per-variant leaf off `this.settings.enrichments`.
 The canonical implementation is
 [`skmtc-generators/gen-shadcn-form`](../../../skmtc-generators/gen-shadcn-form/)
 post-`@skmtc/core@0.5.0`.
 
 ## Cross-references
 
-- Skill: [`skills/skmtc-generator/SKILL.md`](../skills/skmtc-generator/SKILL.md) — authoring variants-aware generators (§10 task card; §4 tripwire rows; §8 anti-patterns).
-- Skill: [`skills/skmtc-cli/SKILL.md`](../skills/skmtc-cli/SKILL.md) §6 + §7 — variant level in `client.json` and skip/include shape.
-- Skill: [`skills/skmtc-debug/SKILL.md`](../skills/skmtc-debug/SKILL.md) Scenarios F + G — the two variant-related runtime throws.
+- How-to: [skip or include operations](../using/how-to/skip-or-include-operations.md) — the per-variant skip/include shape.
 - Concept: [`cross-generator-coordination.md`](./cross-generator-coordination.md) — how peers default to `'main'`.
 - Concept: [`projections-and-snippets.md`](./projections-and-snippets.md) — `ContentSettings.variant`.
 - Reference: `reference/settings/enrichments-shape.md` — the variant level in the routing diagram.

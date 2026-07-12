@@ -6,7 +6,7 @@
 > to OAS `$ref` strings.
 
 For the design rationale and the patterns that compose around this
-class, see [the-stack-trail.md](../../concepts/the-stack-trail.md).
+class, see [refs-and-resolution.md](../../concepts/refs-and-resolution.md).
 This page is the API-level reference.
 
 ## Source
@@ -205,7 +205,7 @@ to auto-populate `#refErrors`. Combined with
 `ParseContext.registerRefError`'s no-op-on-`undefined` behavior,
 the result is that errors at component positions feed cascade
 pruning while errors elsewhere stay scoped to the issue log. See
-[the-stack-trail.md](../../concepts/the-stack-trail.md#tostackref-the-address-bridge).
+[refs-and-resolution.md](../../concepts/refs-and-resolution.md).
 
 ## Examples
 
@@ -307,7 +307,6 @@ operation- or component-level by design.
 
 ## See also
 
-- [Concept: the StackTrail](../../concepts/the-stack-trail.md) — the design rationale
 - [Concept: error handling philosophy](../../concepts/error-handling-philosophy.md) — the cascade-pruning algorithm that uses trails as addresses
 - [Concept: refs and resolution](../../concepts/refs-and-resolution.md) — the partner concept (ref-string addressing)
 - [API: ParseContext](parse-context.md) — the issue-logging surface that builds on trails
