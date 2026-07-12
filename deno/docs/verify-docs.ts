@@ -41,11 +41,33 @@
  *      skmtcClientConfig valibot schemas appears in
  *      reference/settings/client-json-schema.md (the page claims
  *      "the complete shape").
+ *   9. READER-LINT — internal-provenance guard over the reader-facing
+ *      tree (using/authoring/concepts/explanation/reference + root
+ *      README.md, CLAUDE.md files excluded). Content that answers
+ *      "what did we learn" instead of "what does the reader need" has
+ *      a mechanical fingerprint: links into the agent/internal layers
+ *      (skills/, friction-log/), notes/ paths, internal ticket ids,
+ *      refactor-batch tags, DRAFT banners, the maintainer's name,
+ *      code-review citations, file:line citations (cite symbols —
+ *      line numbers rot), and unfilled bracket placeholders. Known
+ *      pre-existing hits are pinned per file+pattern in
+ *      reader-lint-baseline.json; a count above its pin fails
+ *      (regression), a count below fails too (ratchet — shrink the
+ *      baseline).
+ *  10. ORPHAN CHECK — every reader-facing page must be reachable by
+ *      following markdown links from the entry points (README.md,
+ *      using/README.md, authoring/README.md). A page no journey can
+ *      route a reader to is orphaned knowledge. Known orphans are
+ *      pinned in reader-lint-baseline.json with the same
+ *      regression/ratchet contract.
  *
  *   exit 0 — all checks hold.
  *   exit 1 — one or more failed; each failure names file + expectation.
  *
  * Usage:  deno run --allow-read deno/docs/verify-docs.ts
+ *         deno run --allow-read --allow-write deno/docs/verify-docs.ts \
+ *           --update-reader-baseline   # rewrite reader-lint-baseline.json
+ *                                      # to the current violation set
  * Companion: `friction-log/verify-catalog.ts` (re-runs the discrepancy
  * catalog's pinned verification commands). CI runs both via
  * `deno task verify-docs`.
@@ -708,6 +730,273 @@ if (settingsKeys.length === 0 || configKeys.length === 0) {
       `client-settings sync: all ${settingsKeys.length + configKeys.length} ` +
         `schema keys appear in client-json-schema.md`,
     );
+  }
+}
+
+// ---------------------------------------------------------------------
+// 9. Reader-lint — internal-provenance guard. The reader-facing tree
+//    must not carry internal-engineering artifacts: agent-layer links,
+//    private-notes paths, ticket ids, refactor tags, DRAFT banners,
+//    the maintainer's name, review citations, file:line citations, or
+//    unfilled placeholders. Pre-existing hits are pinned per
+//    file+pattern in reader-lint-baseline.json (ratchet: counts may
+//    only shrink, and shrinking requires shrinking the baseline too).
+// ---------------------------------------------------------------------
+
+type ReaderLintPattern = {
+  name: string;
+  explain: string;
+  matches: (line: string) => boolean;
+};
+
+const regexLint = (
+  name: string,
+  explain: string,
+  regex: RegExp,
+): ReaderLintPattern => ({
+  name,
+  explain,
+  matches: (line) => regex.test(line),
+});
+
+const readerLintPatterns: ReaderLintPattern[] = [
+  regexLint(
+    "link-to-internal-layer",
+    "reader page links into skills/, friction-log/, or evals/ (agent/internal layers)",
+    /\]\((?:\.{1,2}\/)*(?:skills|friction-log|evals)\//,
+  ),
+  regexLint(
+    "notes-path",
+    "reference to the private notes/ tree",
+    /\bnotes\/[\w-]+\//,
+  ),
+  regexLint("internal-ticket", "internal ticket id", /#SKM-\d+/),
+  regexLint(
+    "refactor-batch-tag",
+    "internal refactor-batch shorthand (F5/F6-style)",
+    /\bF[0-9]\b/,
+  ),
+  regexLint("draft-banner", "DRAFT banner on a shipped page", /\bDRAFT\b/),
+  regexLint(
+    "maintainer-name",
+    "maintainer name in reader-facing prose",
+    /Dmitri/,
+  ),
+  regexLint(
+    "corpus-citation",
+    "code-review evidence citation",
+    /\bcorpus:/,
+  ),
+  regexLint(
+    "line-number-citation",
+    "file:line citation — line numbers rot; cite symbols",
+    /\b[A-Za-z][\w./-]*\.tsx?:\d+/,
+  ),
+  {
+    name: "bracket-placeholder",
+    explain: "unfilled bracket placeholder prose",
+    matches: (line) =>
+      /^\[[A-Z]/.test(line.trim()) && !line.includes("]("),
+  },
+];
+
+const readerLintFiles: string[] = [join(docsDir, "README.md")];
+const collectReaderFacing = async (root: string): Promise<void> => {
+  for await (const entry of Deno.readDir(root)) {
+    const path = join(root, entry.name);
+    if (entry.isDirectory) await collectReaderFacing(path);
+    else if (entry.name.endsWith(".md") && entry.name !== "CLAUDE.md") {
+      readerLintFiles.push(path);
+    }
+  }
+};
+for (
+  const dir of ["using", "authoring", "concepts", "explanation", "reference"]
+) {
+  await collectReaderFacing(join(docsDir, dir));
+}
+
+const toDocsRelative = (path: string): string =>
+  path.replace(docsDir + "/", "");
+
+const readerFileTexts = new Map<string, string>();
+for (const file of readerLintFiles) {
+  readerFileTexts.set(toDocsRelative(file), await Deno.readTextFile(file));
+}
+
+const readerLintCounts = new Map<string, number>();
+const readerLintFirstHit = new Map<string, string>();
+for (const [relPath, text] of readerFileTexts) {
+  text.split("\n").forEach((line, index) => {
+    for (const pattern of readerLintPatterns) {
+      if (pattern.matches(line)) {
+        const key = `${relPath}|${pattern.name}`;
+        readerLintCounts.set(key, (readerLintCounts.get(key) ?? 0) + 1);
+        if (!readerLintFirstHit.has(key)) {
+          readerLintFirstHit.set(key, `${relPath}:${index + 1}`);
+        }
+      }
+    }
+  });
+}
+
+// ---------------------------------------------------------------------
+// 10. Orphan check — BFS over relative markdown links from the entry
+//     points. Directory links (`](using/)`) resolve to the directory's
+//     README.md when one exists.
+// ---------------------------------------------------------------------
+
+const orphanEntryPoints = ["README.md", "using/README.md", "authoring/README.md"];
+
+const resolveDocsLink = (fromRelPath: string, target: string): string =>
+  join(dirname(join(docsDir, fromRelPath)), target).replace(
+    docsDir + "/",
+    "",
+  );
+
+const reachable = new Set<string>();
+const queue = orphanEntryPoints.filter((entry) => readerFileTexts.has(entry));
+for (const entry of queue) reachable.add(entry);
+
+while (queue.length > 0) {
+  const current = queue.shift();
+  if (current === undefined) break;
+  const text = readerFileTexts.get(current);
+  if (text === undefined) continue;
+
+  for (const match of text.matchAll(/\]\(([^)\s]+?)(?:#[^)]*)?\)/g)) {
+    const target = match[1];
+    if (/^[a-z][a-z+]*:/.test(target)) continue; // absolute URL scheme
+
+    const candidates = target.endsWith(".md")
+      ? [resolveDocsLink(current, target)]
+      : target.endsWith("/")
+      ? [resolveDocsLink(current, target + "README.md")]
+      : [];
+
+    for (const candidate of candidates) {
+      if (readerFileTexts.has(candidate) && !reachable.has(candidate)) {
+        reachable.add(candidate);
+        queue.push(candidate);
+      }
+    }
+  }
+}
+
+const currentOrphans = [...readerFileTexts.keys()]
+  .filter((relPath) => !reachable.has(relPath))
+  .sort();
+
+// ---------------------------------------------------------------------
+// Baseline compare (checks 9 + 10 share reader-lint-baseline.json).
+// ---------------------------------------------------------------------
+
+type ReaderLintBaseline = {
+  patterns: Record<string, number>;
+  orphans: string[];
+};
+
+const readerBaselinePath = join(docsDir, "reader-lint-baseline.json");
+const updateReaderBaseline = Deno.args.includes("--update-reader-baseline");
+
+if (updateReaderBaseline) {
+  const nextBaseline: ReaderLintBaseline = {
+    patterns: Object.fromEntries(
+      [...readerLintCounts.entries()].sort(([a], [b]) => a.localeCompare(b)),
+    ),
+    orphans: currentOrphans,
+  };
+  await Deno.writeTextFile(
+    readerBaselinePath,
+    JSON.stringify(nextBaseline, null, 2) + "\n",
+  );
+  pass(
+    `reader-lint baseline rewritten: ${readerLintCounts.size} file+pattern pins, ` +
+      `${currentOrphans.length} orphan(s) — review the diff before committing`,
+  );
+} else {
+  const readerBaseline = await (async (): Promise<
+    ReaderLintBaseline | undefined
+  > => {
+    try {
+      return JSON.parse(
+        await Deno.readTextFile(readerBaselinePath),
+      ) as ReaderLintBaseline;
+    } catch {
+      fail(
+        "reader-lint: docs/reader-lint-baseline.json missing or unreadable — " +
+          "regenerate with --update-reader-baseline (needs --allow-write)",
+      );
+      return undefined;
+    }
+  })();
+
+  if (readerBaseline) {
+    const patternExplanations = new Map(
+      readerLintPatterns.map((pattern) => [pattern.name, pattern.explain]),
+    );
+
+    const allKeys = new Set([
+      ...readerLintCounts.keys(),
+      ...Object.keys(readerBaseline.patterns),
+    ]);
+    const readerLintProblems = [...allKeys].sort().flatMap((key) => {
+      const current = readerLintCounts.get(key) ?? 0;
+      const pinned = readerBaseline.patterns[key] ?? 0;
+      const patternName = key.split("|")[1];
+
+      if (current > pinned) {
+        return [
+          `reader-lint: ${key} — ${current} hit(s), baseline pins ${pinned} ` +
+          `(${patternExplanations.get(patternName) ?? patternName}; ` +
+          `first hit ${readerLintFirstHit.get(key) ?? "?"})`,
+        ];
+      }
+      if (current < pinned) {
+        return [
+          `reader-lint ratchet: ${key} — improved to ${current} from ${pinned}; ` +
+          `shrink the baseline (rerun with --update-reader-baseline)`,
+        ];
+      }
+      return [];
+    });
+    readerLintProblems.forEach(fail);
+
+    if (readerLintProblems.length === 0) {
+      pass(
+        `reader-lint: no new internal-provenance leaks across ${readerLintFiles.length} ` +
+          `reader-facing files (${readerLintCounts.size} baselined pins)`,
+      );
+    }
+
+    const baselinedOrphans = new Set(readerBaseline.orphans);
+    const newOrphans = currentOrphans.filter((orphan) =>
+      !baselinedOrphans.has(orphan)
+    );
+    const staleOrphanPins = readerBaseline.orphans.filter((orphan) =>
+      !currentOrphans.includes(orphan)
+    );
+
+    newOrphans.forEach((orphan) =>
+      fail(
+        `orphan check: ${orphan} is unreachable from the entry points ` +
+          `(README.md, using/README.md, authoring/README.md) — link it from a ` +
+          `journey or don't ship it`,
+      )
+    );
+    staleOrphanPins.forEach((orphan) =>
+      fail(
+        `orphan-check ratchet: ${orphan} is no longer orphaned (or no longer ` +
+          `exists); shrink the baseline (rerun with --update-reader-baseline)`,
+      )
+    );
+
+    if (newOrphans.length + staleOrphanPins.length === 0) {
+      pass(
+        `orphan check: all reachable except ${currentOrphans.length} baselined ` +
+          `orphan(s) across ${readerFileTexts.size} pages`,
+      );
+    }
   }
 }
 
