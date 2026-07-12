@@ -7,3 +7,4 @@ export {
   type EnrichmentEdit
 } from './client-json.ts'
 export type { CliResult } from './skmtc-cli.ts'
+export * from './wire.ts'

@@ -14,13 +14,16 @@
 import { join, relative } from 'node:path'
 import { match, P } from 'ts-pattern'
 import type * as TS from 'typescript'
+import type { MatcherCandidate, MatchOutcome, MisfitCandidate, MisfitReason } from './wire.ts'
+
+// The wire shapes (MatchOutcome, misfit reasons, candidates) are defined ONCE
+// as valibot schemas in wire.ts — shared with the desktop via the
+// `@skmtc/vite/wire` subpath — and re-exported here for in-package consumers.
+export type { MatcherCandidate, MatchOutcome, MisfitCandidate, MisfitReason } from './wire.ts'
 
 export type MatcherSubject =
   | { type: 'operation'; path: string; method: string }
   | { type: 'model'; refName: string }
-
-/** The wire shape stored in enrichments and shown in the picker. */
-export type MatcherCandidate = { exportName: string; exportPath: string }
 
 /** A candidate plus the root-relative on-disk path the walker found it at —
  *  the probe imports by `filePath` (relative, alias-free). */
@@ -300,22 +303,6 @@ export const classify = (
 
 // --- Misfit reasons ---------------------------------------------------------------
 
-/**
- * A misfit's WHY, as structured data (never a pre-rendered blob): the
- * diagnostic's top message plus its nested elaboration chain, outermost first —
- * the UI decides how to lay them out (headline, expected/received split,
- * "why" list).
- */
-export type MisfitReason = {
-  /** The TS diagnostic code of the failed assignment (e.g. 2322). */
-  code: number
-  /** The top-level message — `Type 'X' is not assignable to type 'Y'.` */
-  headline: string
-  /** The nested elaborations, depth-first: each step of the compiler's
-   *  reasoning down to the leaf cause. */
-  reasons: string[]
-}
-
 const flattenChain = (chain: TS.DiagnosticMessageChain, into: string[]): void => {
   into.push(chain.messageText)
   chain.next?.forEach(next => flattenChain(next, into))
@@ -349,29 +336,6 @@ export const toMisfitReason = (
     })
 
 // --- The match ------------------------------------------------------------------
-
-/** A rejected candidate plus (when the compiler elaborated one) its reason. */
-export type MisfitCandidate = MatcherCandidate & { reason?: MisfitReason }
-
-/**
- * Every match resolves to a NAMED outcome — there is no fallback candidate
- * list. `fits` is the only selectable set; `path-broken` pinpoints the exact
- * stale segment (distinct from "resolved and nothing fits", which is `fits`
- * with an empty `fits` array); `model-missing` / `unavailable` are explicit
- * failures the UI surfaces as errors.
- */
-export type MatchOutcome =
-  | {
-      type: 'fits'
-      /** The resolved field type, printed by the project's compiler. */
-      fieldType: string
-      fits: MatcherCandidate[]
-      misfits: MisfitCandidate[]
-      unresolved: MatcherCandidate[]
-    }
-  | { type: 'path-broken'; modelName: string; brokenAt: { index: number; segment: string } }
-  | { type: 'model-missing'; modelName: string | null; detail: string }
-  | { type: 'unavailable'; reason: string }
 
 /** What the matcher needs from the (stateful) TypeScript service. */
 export type MatcherService = {

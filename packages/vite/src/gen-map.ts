@@ -19,42 +19,15 @@ import { join } from 'node:path'
 import { match } from 'ts-pattern'
 import { readManifestFiles } from './artifacts.ts'
 import { parseForReanchor, REANCHOR_PARSER_ID } from './reanchor.ts'
+// The GenMapEntry/GenMapResult wire shapes are defined ONCE as valibot
+// schemas in wire.ts (shared with the desktop via `@skmtc/vite/wire`); this
+// module produces values of those types and re-exports them for in-package
+// consumers.
+import type { GenMapEntry, GenMapResult } from './wire.ts'
+export type { GenMapEntry, GenMapResult } from './wire.ts'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
-
-/** One attributed span — the hub's contract `GenMapEntry`, plus `variant`. */
-export type GenMapEntry = {
-  /** Manifest-keyed artifact path (`src/...`), realigned from the sidecar's
-   *  `@/`-aliased form. */
-  artifactPath: string
-  /** `[from, to)` span in UTF-16 code units — CodeMirror positions. */
-  artifactSpan: [number, number]
-  /** Enclosing Projection/Definition name (the `L` pool). */
-  projectionName: string
-  /** Exact emitting Projection/Snippet class (the `N` pool). */
-  producerName: string
-  /** Generator package name (the `G` pool) — `''`/`<unknown>` when the
-   *  snippet didn't thread its generator. */
-  generatorRef: string
-  /** JSON pointer into the source schema; `''` when not captured. */
-  schemaPointer: string
-  /** Enrichment variant the span belongs to (the `V` pool); `'main'` default. */
-  variant: string
-}
-
-export type GenMapResult = {
-  entries: GenMapEntry[]
-  /** Manifest files whose spans could not be aligned to the on-disk text.
-   *  Length drift vs the engine render (`manifest.characters`) triggers
-   *  RE-ANCHORING (landmark + AST path resolution against the current
-   *  text), so a formatter pass alone no longer lands a file here — only
-   *  files that defeat re-anchoring do: unreadable, unparseable, non-ASCII
-   *  (UTF-16 span units vs oxc's UTF-8 offsets), or hand-mangled past all
-   *  landmarks. Length equality remains a HEURISTIC trigger: an
-   *  equal-length rewrite escapes detection and serves raw spans. */
-  staleFiles: string[]
-}
 
 const asStringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.map(entry => (typeof entry === 'string' ? entry : '')) : []

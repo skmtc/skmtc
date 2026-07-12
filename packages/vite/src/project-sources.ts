@@ -5,8 +5,9 @@
 
 import { readFile, readdir } from 'node:fs/promises'
 import { join, relative } from 'node:path'
-
-export type SourceFile = { path: string; content: string }
+// Wire shape shared with the desktop via `@skmtc/vite/wire`.
+import type { SourceFile } from './wire.ts'
+export type { SourceFile } from './wire.ts'
 
 const SOURCE_EXTENSIONS = ['.ts', '.tsx']
 const isSourceFile = (name: string): boolean =>

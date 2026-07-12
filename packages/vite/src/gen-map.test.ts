@@ -2,7 +2,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import * as v from 'valibot'
 import { readGenMap } from './gen-map.ts'
+import { genMapResultSchema } from './wire.ts'
 
 // A minimal v2 sidecar: pools + anchor rows `[Li, Pi, gi, si, vi, from, to]`.
 // Two anchors — an attributed outer definition and an unattributed inner
@@ -179,6 +181,15 @@ describe('readGenMap', () => {
         variant: 'main'
       }
     ])
+  })
+
+  it('round-trips a real result through the wire schema (JSON-serialized)', async () => {
+    // Static types catch most producer drift, but dropped-`undefined`
+    // serialization behavior only shows up on an actual wire round-trip.
+    const result = await readGenMap(root, project, 'src')
+    expect(result.entries.length).toBeGreaterThan(0)
+    const parsed = v.parse(genMapResultSchema, JSON.parse(JSON.stringify(result)))
+    expect(parsed).toEqual(result)
   })
 
   it('reports a drifted file with no resolvable landmarks as stale, entries excluded', async () => {

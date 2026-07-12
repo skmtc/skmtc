@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/vite",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "homepage": "https://skm.tc",
   "bugs": "https://github.com/skmtc/skmtc/issues",
   "license": "Apache-2.0",
@@ -25,6 +25,10 @@
     "./enrichment-leaf": {
       "types": "./dist/enrichment-leaf.d.mts",
       "default": "./dist/enrichment-leaf.mjs"
+    },
+    "./wire": {
+      "types": "./dist/wire.d.mts",
+      "default": "./dist/wire.mjs"
     }
   },
   "scripts": {
