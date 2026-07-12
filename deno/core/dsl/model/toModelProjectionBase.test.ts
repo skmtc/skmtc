@@ -1,4 +1,5 @@
 import { toModelProjectionBase } from './toModelProjectionBase.ts'
+import { toEnrichmentsContext } from '@/test/toEnrichmentsContext.ts'
 import { assertEquals } from '@std/assert/equals'
 import type { RefName } from '@/types/RefName.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
@@ -121,7 +122,7 @@ Deno.test('toModelProjectionBase - toEnrichments returns the empty umbrella with
 
   const enrichments = ModelClass.toEnrichments({
     refName: 'User' as RefName,
-    context: { settings: {} } as GenerateContextType,
+    context: toEnrichmentsContext({}) as unknown as GenerateContextType,
     variant: 'main'
   })
 
@@ -139,7 +140,7 @@ Deno.test('toModelProjectionBase - toEnrichments returns the empty umbrella when
 
   const enrichments = ModelClass.toEnrichments({
     refName: 'User' as RefName,
-    context: { settings: {} } as GenerateContextType,
+    context: toEnrichmentsContext({}) as unknown as GenerateContextType,
     variant: 'main'
   })
 
@@ -331,20 +332,18 @@ Deno.test('toModelProjectionBase - toEnrichments validates with schema', () => {
       })
   })
 
-  const mockContext = {
-    settings: {
-      enrichments: {
-        'typescript-interfaces': {
-          User: {
-            main: {
-              readonly: true,
-              nullable: false
-            }
+  const mockContext = toEnrichmentsContext({
+    enrichments: {
+      'typescript-interfaces': {
+        User: {
+          main: {
+            readonly: true,
+            nullable: false
           }
         }
       }
     }
-  } as any
+  }) as any
 
   const enrichments = ModelClass.toEnrichments({
     refName: 'User' as RefName,
@@ -382,17 +381,15 @@ Deno.test('toModelProjectionBase - toEnrichments retrieves from correct nested p
   })
 
   // Place enrichments at path: enrichments.{id}.{refName}.{variant}
-  const mockContext = {
-    settings: {
-      enrichments: {
-        'zod-schemas': {
-          Product: {
-            main: { strictMode: true, customRule: 'validate-stock' }
-          }
+  const mockContext = toEnrichmentsContext({
+    enrichments: {
+      'zod-schemas': {
+        Product: {
+          main: { strictMode: true, customRule: 'validate-stock' }
         }
       }
     }
-  } as any
+  }) as any
 
   const enrichments = ModelClass.toEnrichments({
     refName: 'Product' as RefName,
@@ -425,18 +422,16 @@ Deno.test('toModelProjectionBase - toEnrichments resolves per-variant payloads i
       })
   })
 
-  const mockContext = {
-    settings: {
-      enrichments: {
-        '@scope/gen-zod-variants': {
-          Customer: {
-            main: { coerce: false },
-            coercive: { coerce: true }
-          }
+  const mockContext = toEnrichmentsContext({
+    enrichments: {
+      '@scope/gen-zod-variants': {
+        Customer: {
+          main: { coerce: false },
+          coercive: { coerce: true }
         }
       }
     }
-  } as any
+  }) as any
 
   const main = ModelClass.toEnrichments({
     refName: 'Customer' as RefName,

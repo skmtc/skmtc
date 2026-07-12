@@ -1,5 +1,5 @@
 import type { GenerationStats } from '@/lib/generationStats.ts'
-import type { ParseIssue } from '@skmtc/core'
+import type { EnrichmentWarning, ParseIssue } from '@skmtc/core'
 
 const formatNumber = (value: number, locales: Intl.LocalesArgument = 'en-US'): string => {
   return value.toLocaleString(locales, {
@@ -11,6 +11,11 @@ const formatNumber = (value: number, locales: Intl.LocalesArgument = 'en-US'): s
 type ToGenerateMessageStringArgs = {
   stats: GenerationStats
   parseIssues?: ParseIssue[]
+  /**
+   * Enrichment addressing / unknown-key warnings from the manifest.
+   * Defaults to `[]` so existing callers need no change.
+   */
+  enrichmentWarnings?: EnrichmentWarning[]
   /**
    * Resolved basePath from client.json — used to tell the caller where
    * the generated files actually landed. Friction-#14: agents and humans
@@ -31,6 +36,7 @@ type ToGenerateMessageStringArgs = {
 export const toGenerateMessageString = ({
   stats,
   parseIssues = [],
+  enrichmentWarnings = [],
   basePath
 }: ToGenerateMessageStringArgs): string => {
   const { files, tokens, totalTime, errors } = stats
@@ -51,6 +57,13 @@ export const toGenerateMessageString = ({
       lines.push(
         ` - [${issue.protocol}/${issue.level}] ${issue.location}: ${issue.message} (${issue.type})`
       )
+    }
+  }
+
+  if (enrichmentWarnings.length) {
+    lines.push(`\nEnrichment warnings (${enrichmentWarnings.length}):`)
+    for (const warning of enrichmentWarnings) {
+      lines.push(` - [${warning.level}] ${warning.message} (${warning.type})`)
     }
   }
 

@@ -74,6 +74,7 @@
 import { resultsItem, type ResultsItem } from './Results.ts'
 import { preview, type Preview } from './Preview.ts'
 import type { ParseIssue } from '@/context/ParseIssue.ts'
+import { enrichmentWarning, type EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
 import { oasIssueType } from '@/context/generateTypes.ts'
 import { gqlIssueType } from '@/context/ParseIssue.ts'
 import * as v from 'valibot'
@@ -182,6 +183,14 @@ export type ManifestContent = {
    * it from `.settings/manifest.json` without re-running.
    */
   parseIssues: ParseIssue[]
+  /**
+   * Enrichment addressing / unknown-key warnings recorded during the
+   * generate phase — dead config the engine never consumed, keys the
+   * generator's schema dropped, and info lines for enrichments on
+   * skipped items. Empty for a clean run; optional so manifests written
+   * by older cores still parse.
+   */
+  enrichmentWarnings?: EnrichmentWarning[]
   startAt: number
   endAt: number
 }
@@ -195,6 +204,7 @@ export const manifestContent: v.GenericSchema<ManifestContent> = v.object({
   previews: v.record(v.string(), preview),
   results: resultsItem,
   parseIssues: v.array(parseIssue),
+  enrichmentWarnings: v.optional(v.array(enrichmentWarning)),
   startAt: v.number(),
   endAt: v.number()
 })

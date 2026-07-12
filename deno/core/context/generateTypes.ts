@@ -28,6 +28,7 @@ import type { GqlOperationProjection } from '@/dsl/operation/gql/types.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type { AttributionState } from '@/types/AttributionState.ts'
+import type { EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
 import type { CaptureSink } from '@/anchors/CaptureSink.ts'
 import type { Sidecar } from '@/anchors/sidecar.ts'
 import type { GenerationMapEntry } from '@/anchors/generationMap.ts'
@@ -176,6 +177,13 @@ export type RenderResult = {
 export type ToArtifactsResult = RenderResult & {
   parseIssues: ParseIssue[]
   /**
+   * Generate-phase enrichment warnings (see
+   * {@link GenerateResult.enrichmentWarnings}). Collected one phase after
+   * parse issues, so they live beside them here rather than on
+   * `RenderResult`.
+   */
+  enrichmentWarnings: EnrichmentWarning[]
+  /**
    * Per-file gen-maps sidecars. Populated only when
    * `attribution.postPass` was configured on `ToArtifactsArgs`;
    * otherwise omitted. Keys are the original file paths (the CLI
@@ -267,6 +275,13 @@ void _oasIssueTypeDriftCheck
 export type GenerateResult = {
   files: Map<string, FileBase>
   previews: Record<string, Preview>
+  /**
+   * Enrichment addressing / unknown-key warnings gathered during the
+   * generate walk and finalized by the post-walk consumption audit.
+   * Empty for a clean run. Warn-level and fail-open — never affects the
+   * generated output.
+   */
+  enrichmentWarnings: EnrichmentWarning[]
 }
 
 /**
@@ -553,4 +568,20 @@ export type GenerateContextType = {
   }: BuildModelSettingsArgs<V, EnrichmentType>) => ContentSettings<EnrichmentType>
   resolveSchemaRefOnce: (refName: RefName, generatorId: string) => OasSchema | OasRef<'schema'>
   findDefinition: ({ name, exportPath }: PickArgs) => DefinitionBase | undefined
+  /**
+   * The recording enrichment accessor — the single choke point every
+   * enrichment lookup routes through. Reads the node at
+   * `settings.enrichments[...segments]` (segments are literal keys, never
+   * dotted lodash paths) and records the read for the post-walk
+   * consumption audit, so configured-but-never-read entries surface as
+   * `UNCONSUMED_ENRICHMENT` warnings.
+   */
+  readEnrichment: (segments: readonly string[]) => unknown
+  /**
+   * Add an enrichment warning to this run's audit, deduplicated on
+   * `(type, path)`. Used by `parseEnrichmentUmbrella` for
+   * `UNKNOWN_ENRICHMENT_KEY` reports; the warnings surface on
+   * `GenerateResult.enrichmentWarnings` and ride the manifest.
+   */
+  reportEnrichmentWarning: (warning: EnrichmentWarning) => void
 }

@@ -23,11 +23,9 @@ import type {
   ToGqlOperationExportPathArgs
 } from './types.ts'
 import { toGqlOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
-import * as v from 'valibot'
-// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
-import get from 'lodash-es/get'
+import type * as v from 'valibot'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
-import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichments.ts'
+import { parseEnrichmentUmbrella } from '@/enrichments/parseEnrichmentUmbrella.ts'
 
 /**
  * Configuration for {@link toGqlOperationProjectionBase}.
@@ -120,19 +118,14 @@ export const toGqlOperationProjectionBase = <
       // and the variant axis is core-owned; generator and stack are
       // run-constants (`[id][_generator]`, `[_stack]`). The required composite
       // schema parses the raw umbrella once — typed, cast-free.
-      const raw = {
-        subject: get(context.settings, [
-          'enrichments',
-          config.id,
-          operation.rootKind,
-          operation.fieldName,
-          variant
-        ]),
-        generator: get(context.settings, ['enrichments', config.id, GENERATOR_ENRICHMENT_KEY]),
-        stack: get(context.settings, ['enrichments', STACK_ENRICHMENT_KEY])
-      }
-
-      return v.parse(config.toEnrichmentSchema(), raw)
+      // The helper routes the reads through the recording accessor
+      // (consumption audit) and reports schema-dropped keys.
+      return parseEnrichmentUmbrella({
+        context,
+        generatorId: config.id,
+        subjectSegments: [operation.rootKind, operation.fieldName, variant],
+        schema: config.toEnrichmentSchema()
+      })
     }
 
     settings: ContentSettings<EnrichmentType>

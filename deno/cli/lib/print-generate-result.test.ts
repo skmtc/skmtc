@@ -13,6 +13,7 @@ const baseResult: GenerateLocalResult = {
     files: 3
   },
   parseIssues: [],
+  enrichmentWarnings: [],
   filePaths: [
     'src/types/User.generated.ts',
     'src/types/Customer.generated.ts',
@@ -125,6 +126,64 @@ Deno.test('printGenerateResult - json format passes parseIssues through verbatim
   assertEquals(parsed.parseIssues.length, 1)
   assertEquals(parsed.parseIssues[0].protocol, 'oas')
   assertEquals(parsed.parseIssues[0].type, 'MISSING_OBJECT_TYPE')
+})
+
+Deno.test('printGenerateResult - json format passes enrichmentWarnings through verbatim', async () => {
+  // EnrichmentWarning is a documented core type — same shape as
+  // `manifest.enrichmentWarnings`. Always present (empty when clean).
+  const resultWithWarnings: GenerateLocalResult = {
+    ...baseResult,
+    enrichmentWarnings: [
+      {
+        level: 'warning',
+        type: 'UNCONSUMED_ENRICHMENT',
+        path: ['@skmtc/gen-shadcn-form', '/pet', 'post'],
+        message:
+          "enrichment entry '@skmtc/gen-shadcn-form → /pet → post' was never consumed — no matching generator or subject in this run (did you mean '/pets'?)",
+        suggestion: '/pets'
+      }
+    ]
+  }
+  const logs = await captureStdout(async () => {
+    printGenerateResult({
+      result: resultWithWarnings,
+      projectName: 'my-api',
+      basePath: './src',
+      manifestPath: '/m.json',
+      format: 'json'
+    })
+  })
+  const parsed = JSON.parse(logs[0])
+  assertEquals(parsed.enrichmentWarnings.length, 1)
+  assertEquals(parsed.enrichmentWarnings[0].type, 'UNCONSUMED_ENRICHMENT')
+  assertEquals(parsed.enrichmentWarnings[0].suggestion, '/pets')
+})
+
+Deno.test('printGenerateResult - text format lists enrichment warnings after the summary', async () => {
+  const resultWithWarnings: GenerateLocalResult = {
+    ...baseResult,
+    enrichmentWarnings: [
+      {
+        level: 'warning',
+        type: 'UNKNOWN_ENRICHMENT_KEY',
+        path: ['@skmtc/gen-shadcn-form', '/pets', 'post', 'main', 'submitLabl'],
+        message:
+          "unknown enrichment key 'submitLabl' at '@skmtc/gen-shadcn-form → /pets → post → main' — ignored (did you mean 'submitLabel'?)",
+        suggestion: 'submitLabel'
+      }
+    ]
+  }
+  const logs = await captureStdout(async () => {
+    printGenerateResult({
+      result: resultWithWarnings,
+      projectName: 'my-api',
+      basePath: './src',
+      manifestPath: '/m.json',
+      format: 'text'
+    })
+  })
+  assertStringIncludes(logs[0], 'Enrichment warnings (1):')
+  assertStringIncludes(logs[0], "did you mean 'submitLabel'?")
 })
 
 Deno.test('printGenerateResult - json omits `anchors` field when post-pass did not run', async () => {

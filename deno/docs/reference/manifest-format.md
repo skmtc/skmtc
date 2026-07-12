@@ -67,6 +67,9 @@ type ManifestContent = {
 
   /** Parse-time diagnostics. Always present; empty array means no parse issues. */
   parseIssues: ParseIssue[]
+
+  /** Generate-phase enrichment config warnings. Optional (older cores omit it). */
+  enrichmentWarnings?: EnrichmentWarning[]
 }
 ```
 
@@ -246,6 +249,47 @@ the protocol's `OasIssueType` or `GqlIssueType` literal union — see
 The CLI exits with code `1` when any `parseIssues[].level ===
 'error'` is present; an array containing only warnings and debug
 entries (or an empty array) exits cleanly.
+
+### `enrichmentWarnings`
+
+Generate-phase warnings about enrichment config that did not do what
+the consumer intended. Three loud checks precede this surface
+(structural config validation at load, the per-leaf schema parse, the
+missing-`main` variant throw); `enrichmentWarnings` covers what those
+cannot see — *addressing*. The engine records every enrichment lookup
+it performs during the walk and flags configured entries no lookup
+consumed, plus leaf keys the generator's schema silently drops.
+
+The field is **optional**: manifests written by cores older than the
+feature omit it. New cores always write it (empty array for a clean
+run). Warnings never affect generation output or the exit code —
+the surface is fail-open by design.
+
+```ts
+type EnrichmentWarning = {
+  level: 'warning' | 'info'
+  type:
+    | 'UNCONSUMED_ENRICHMENT'        // routing path never consumed (typo'd path/method/model name, or orphaned by spec evolution)
+    | 'UNKNOWN_GENERATOR_ID'         // top-level key matches no generator in the run
+    | 'UNKNOWN_ENRICHMENT_KEY'       // leaf key the generator's schema doesn't declare (silently dropped)
+    | 'SKIPPED_SUBJECT_ENRICHMENT'   // info: enrichment targets a skip/include-excluded item
+    | 'SKIPPED_GENERATOR_ENRICHMENT' // info: whole generator skipped while enrichments exist
+  /** Routing key sequence under client.json#settings.enrichments */
+  path: string[]
+  message: string
+  /** Nearest known key, when a close match exists (e.g. 'submitLabel' for 'submitLabl') */
+  suggestion?: string
+}
+```
+
+Addressing mistakes are `level: 'warning'` — the entry is dead
+config. Enrichments on skipped items are `level: 'info'` — the entry
+is addressed correctly and a temporary skip is legitimate. To list
+only the actionable ones:
+
+```bash
+jq '.enrichmentWarnings // [] | map(select(.level == "warning"))' manifest.json
+```
 
 ## Diagnostic workflow against the manifest
 

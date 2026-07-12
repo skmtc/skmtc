@@ -8,6 +8,7 @@ import type {
   ToOasOperationExportPathArgs
 } from '@/dsl/operation/oas/types.ts'
 import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
+import { toEnrichmentsContext } from '@/test/toEnrichmentsContext.ts'
 import type { Enrichments } from '@/types/Enrichments.ts'
 import * as v from 'valibot'
 
@@ -139,7 +140,7 @@ Deno.test('toOasOperationProjectionBase - toEnrichments returns an all-undefined
 
   const enrichments = OperationClass.toEnrichments({
     operation: mockOperation,
-    context: { settings: {} } as GenerateContextType,
+    context: toEnrichmentsContext({}) as unknown as GenerateContextType,
     variant: 'main'
   })
 
@@ -165,7 +166,7 @@ Deno.test('toOasOperationProjectionBase - toEnrichments returns an all-undefined
 
   const enrichments = OperationClass.toEnrichments({
     operation: mockOperation,
-    context: { settings: {} } as GenerateContextType,
+    context: toEnrichmentsContext({}) as unknown as GenerateContextType,
     variant: 'main'
   })
 
@@ -350,22 +351,20 @@ Deno.test('toOasOperationProjectionBase - toEnrichments validates with schema', 
     responses: {}
   })
 
-  const mockContext = {
-    settings: {
-      enrichments: {
-        'api-client': {
-          '/users': {
-            get: {
-              main: {
-                enabled: true,
-                timeout: 5000
-              }
+  const mockContext = toEnrichmentsContext({
+    enrichments: {
+      'api-client': {
+        '/users': {
+          get: {
+            main: {
+              enabled: true,
+              timeout: 5000
             }
           }
         }
       }
     }
-  } as any
+  }) as any
 
   const enrichments = OperationClass.toEnrichments({
     operation: mockOperation,
@@ -411,17 +410,15 @@ Deno.test('toOasOperationProjectionBase - toEnrichments retrieves from correct n
   })
 
   // Place enrichments at the specific nested path that should be retrieved
-  const mockContext = {
-    settings: {
-      enrichments: {
-        'rest-api': {
-          '/products/{id}': {
-            put: { main: { customValue: 'found-it', flag: true } }
-          }
+  const mockContext = toEnrichmentsContext({
+    enrichments: {
+      'rest-api': {
+        '/products/{id}': {
+          put: { main: { customValue: 'found-it', flag: true } }
         }
       }
     }
-  } as any
+  }) as any
 
   const enrichments = OperationClass.toEnrichments({
     operation: mockOperation,
@@ -452,7 +449,7 @@ Deno.test('toOasOperationProjectionBase - toEnrichmentDefaults returns undefined
 
   const defaults = OperationClass.toEnrichmentDefaults({
     operation: mockOperation,
-    context: { settings: {} } as GenerateContextType,
+    context: toEnrichmentsContext({}) as unknown as GenerateContextType,
     variant: 'main'
   })
 
@@ -493,7 +490,7 @@ Deno.test('toOasOperationProjectionBase - toEnrichmentDefaults returns the compu
 
   const defaults = OperationClass.toEnrichmentDefaults({
     operation: mockOperation,
-    context: { settings: {} } as GenerateContextType,
+    context: toEnrichmentsContext({}) as unknown as GenerateContextType,
     variant: 'main'
   })
 

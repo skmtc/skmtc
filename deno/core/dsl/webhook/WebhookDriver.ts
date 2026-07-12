@@ -9,8 +9,6 @@ import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { toWebhookGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
-// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
-import get from 'lodash-es/get'
 
 type CreateWebhookArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
   context: GenerateContextType
@@ -201,8 +199,7 @@ const assertPeerVariantExists = ({
     return
   }
 
-  const webhookEnrichments: unknown = get(context.settings, [
-    'enrichments',
+  const webhookEnrichments: unknown = context.readEnrichment([
     generatorId,
     webhook.name,
     webhook.method

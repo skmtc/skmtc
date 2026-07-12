@@ -19,11 +19,9 @@ import type {
   ToModelIdentifierNameArgs,
   ToModelExportPathArgs
 } from '@/dsl/model/types.ts'
-import * as v from 'valibot'
+import type * as v from 'valibot'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
-import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichments.ts'
-// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
-import get from 'lodash-es/get'
+import { parseEnrichmentUmbrella } from '@/enrichments/parseEnrichmentUmbrella.ts'
 
 /**
  * Arguments accepted by classes generated via {@link toModelProjectionBase}.
@@ -134,13 +132,14 @@ export const toModelProjectionBase = <
       // engine has already asserted `'main'` exists; generator and stack are
       // run-constants (`[id][_generator]`, `[_stack]`). The required composite
       // schema parses the raw umbrella once — typed, cast-free.
-      const raw = {
-        subject: get(context.settings, ['enrichments', config.id, refName, variant]),
-        generator: get(context.settings, ['enrichments', config.id, GENERATOR_ENRICHMENT_KEY]),
-        stack: get(context.settings, ['enrichments', STACK_ENRICHMENT_KEY])
-      }
-
-      return v.parse(config.toEnrichmentSchema(), raw)
+      // The helper routes the reads through the recording accessor
+      // (consumption audit) and reports schema-dropped keys.
+      return parseEnrichmentUmbrella({
+        context,
+        generatorId: config.id,
+        subjectSegments: [refName, variant],
+        schema: config.toEnrichmentSchema()
+      })
     }
 
     /**

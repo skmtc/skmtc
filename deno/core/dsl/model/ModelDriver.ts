@@ -9,8 +9,6 @@ import type { GeneratedValue } from '../GeneratedValue.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { toModelGeneratorKey } from '../GeneratorKeys.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
-// @deno-types="npm:@types/lodash-es@4.17.12/get.d.ts"
-import get from 'lodash-es/get'
 
 type CreateModelArgs<V extends GeneratedValue, EnrichmentType> = {
   context: GenerateContextType
@@ -220,7 +218,7 @@ const assertPeerVariantExists = ({
     return
   }
 
-  const modelEnrichments: unknown = get(context.settings, ['enrichments', generatorId, refName])
+  const modelEnrichments: unknown = context.readEnrichment([generatorId, refName])
 
   if (modelEnrichments === null || modelEnrichments === undefined) {
     throw new Error(
