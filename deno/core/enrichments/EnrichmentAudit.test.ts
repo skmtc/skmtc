@@ -78,6 +78,21 @@ Deno.test('EnrichmentAudit - consumption is prefix-closed', () => {
   assertEquals(warnings, [])
 })
 
+Deno.test('EnrichmentAudit - zero-subject generator with only a _generator key stays silent', () => {
+  // The generator consumed nothing (no subjects of its type in the
+  // document) but its slot holds only the reserved run-constant key —
+  // there is no subject entry to be dead, so no warning.
+  const audit = new EnrichmentAudit()
+
+  const warnings = audit.finalize({
+    enrichments: { 'form-gen': { _generator: { basePackage: 'com.example' } } },
+    generators: [OPERATION_GEN],
+    skippedGeneratorIds: []
+  })
+
+  assertEquals(warnings, [])
+})
+
 Deno.test('EnrichmentAudit - malformed (non-record) generator slice is left to structural validation', () => {
   const audit = new EnrichmentAudit()
   audit.consume(['form-gen', '/pets', 'post'])

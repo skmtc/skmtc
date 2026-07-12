@@ -72,7 +72,7 @@ export const enrichmentWarningType: v.GenericSchema<EnrichmentWarningType> = v.p
 export type EnrichmentWarning = {
   level: 'warning' | 'info'
   type: EnrichmentWarningType
-  path: string[]
+  path: readonly string[]
   message: string
   suggestion?: string
 }

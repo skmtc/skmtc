@@ -126,7 +126,7 @@ export class EnrichmentAudit {
     return undefined
   }
 
-  #checkBlock(path: string[]): void {
+  #checkBlock(path: readonly string[]): void {
     if (this.#isConsumed(path)) return
 
     const suggestion = this.#divergenceSuggestion(path)
@@ -197,6 +197,25 @@ export class EnrichmentAudit {
       }
 
       if (!isRecord(slot)) continue
+
+      // The generator is in the run but consumed nothing at all — the
+      // document has no subjects of its type (or the wrong protocol).
+      // Per-entry warnings would fall back to cross-generator siblings for
+      // their "did you mean …?" and could name an unrelated generator, so
+      // collapse to one generator-level warning that says what happened.
+      const hasSubjectEntries = Object.keys(slot).some(key => !isReservedEnrichmentKey(key))
+
+      if (!this.#isConsumed([generatorId]) && hasSubjectEntries) {
+        this.report({
+          level: 'warning',
+          type: 'UNCONSUMED_ENRICHMENT',
+          path: [generatorId],
+          message:
+            `enrichments are configured for '${generatorId}' but it matched ` +
+            `no subjects in this run — its enrichments were never read`
+        })
+        continue
+      }
 
       // Block depth per entry type: `[refName]` for models,
       // `[path][method]` / `[name][method]` / `[rootKind][fieldName]`

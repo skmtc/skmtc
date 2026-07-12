@@ -60,10 +60,16 @@ export const toGenerateMessageString = ({
     }
   }
 
-  if (enrichmentWarnings.length) {
-    lines.push(`\nEnrichment warnings (${enrichmentWarnings.length}):`)
-    for (const warning of enrichmentWarnings) {
-      lines.push(` - [${warning.level}] ${warning.message} (${warning.type})`)
+  // Only `warning`-level entries are actionable — `info` lines (enrichments
+  // on deliberately skipped items) are a routine, legitimate state and would
+  // read as noise on every run. They still ride `--json` and
+  // `manifest.enrichmentWarnings` for tooling.
+  const actionableWarnings = enrichmentWarnings.filter(warning => warning.level === 'warning')
+
+  if (actionableWarnings.length) {
+    lines.push(`\nEnrichment warnings (${actionableWarnings.length}):`)
+    for (const warning of actionableWarnings) {
+      lines.push(` - ${warning.message} (${warning.type})`)
     }
   }
 

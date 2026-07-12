@@ -323,7 +323,12 @@ export class GenerateContext implements GenerateContextType {
    * configured entries no lookup ever touched.
    */
   readEnrichment(segments: readonly string[]): unknown {
-    this.#enrichmentAudit.consume(segments)
+    // Recording only matters when there is config to audit — on the common
+    // no-enrichment run, skip the bookkeeping entirely (finalize would
+    // early-return anyway, so the consumed sets would be pure waste).
+    if (this.settings?.enrichments !== undefined) {
+      this.#enrichmentAudit.consume(segments)
+    }
     return get(this.settings, ['enrichments', ...segments])
   }
 
@@ -338,7 +343,7 @@ export class GenerateContext implements GenerateContextType {
    * not warning: the entry is addressed correctly, and a temporary skip
    * must not read as dead config.
    */
-  #reportSkippedEnrichment(block: unknown, variant: string, path: string[]): void {
+  #reportSkippedEnrichment(block: unknown, variant: string, path: readonly string[]): void {
     if (!hasVariantEnrichment(block, variant)) return
 
     this.#enrichmentAudit.report({

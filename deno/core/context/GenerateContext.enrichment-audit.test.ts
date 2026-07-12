@@ -252,6 +252,45 @@ Deno.test('enrichment audit - entry for an operation removed from the document w
   assertEquals(enrichmentWarnings[0].path, ['form-gen', '/v1/quotes', 'post'])
 })
 
+Deno.test('enrichment audit - generator with zero matching subjects collapses to one generator-level warning', () => {
+  // The generator is configured and runs, but the document has no
+  // subjects of its type — per-entry warnings would fall back to
+  // cross-generator "did you mean …?" suggestions, so the audit emits a
+  // single generator-level warning with no suggestion instead.
+  const context = buildContext({
+    document: makeOasDoc({ schemaNames: ['User'] }),
+    settings: {
+      enrichments: {
+        'form-gen': {
+          '/pets': { post: { main: { title: 'New Pet' } } }
+        },
+        'model-gen': {
+          User: { main: { readonly: true } }
+        }
+      }
+    },
+    generators: {
+      // A close sibling id that must NOT surface as a suggestion.
+      'form-gem': makeOperationGen('form-gem'),
+      'form-gen': makeOperationGen('form-gen'),
+      'model-gen': makeModelGen('model-gen')
+    }
+  })
+
+  const { enrichmentWarnings } = context.toArtifacts(new StackTrail(['test']))
+
+  assertEquals(enrichmentWarnings.length, 1)
+  const [warning] = enrichmentWarnings
+  assertEquals(warning.type, 'UNCONSUMED_ENRICHMENT')
+  assertEquals(warning.path, ['form-gen'])
+  assertEquals(warning.suggestion, undefined)
+  assertEquals(
+    warning.message,
+    "enrichments are configured for 'form-gen' but it matched no subjects in this run — " +
+      'its enrichments were never read'
+  )
+})
+
 // ─── 5. Skip semantics: consumed-with-info ──────────────────────────
 
 Deno.test('enrichment audit - enrichment on a skipped operation is info, not a warning', () => {
