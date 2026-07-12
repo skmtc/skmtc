@@ -93,24 +93,17 @@ The output is **identical**. Generator order doesn't matter — see
 
 ## What just happened
 
-Each generator's `transform` function ran against the same parsed
-`OasDocument`. Internally:
+Three generators ran against the same schema, two of them needed the
+same shared pieces — and each shared piece exists exactly once,
+referenced by imports. Nothing was deduplicated after the fact: every
+generator either created a definition or reused one that was already
+registered, so a duplicate never existed in the first place. The same
+mechanism is why the rerun was byte-identical and why reordering the
+generators changed nothing.
 
-- `gen-zod` called `insertModel(ZodProjection, refName)` for each
-  schema → produced `Pet.generated.ts` with `export const pet =
-  ...`
-- `gen-typescript` called `insertModel(TsProjection, refName)` for
-  each schema → produced `export type Pet = ...` in the same file
-- `gen-tanstack-query-fetch-zod` ran per operation, and its
-  Projection's `toString()` called `insertNormalizedModel` for the
-  request/response schemas. Both calls landed on the same cache
-  key `(name, exportPath)` as the standalone generators — the
-  engine returned the existing definitions without creating
-  duplicates.
-
-Output is what each generator registered; nothing was deduplicated
-*after the fact*. The cache key made duplicates structurally
-impossible.
+How that works — files as keyed maps, insert as create-or-reuse — is
+one short page:
+[Definitions and files](../../concepts/definitions-and-files.md).
 
 ## Next steps
 
@@ -118,5 +111,7 @@ impossible.
   add per-operation overrides via `client.json`
 - [Recipe: Full-stack TypeScript app](../recipes/full-stack-typescript-app.md) —
   add forms, mocks, and tables on top of this stack
+- [Definitions and files](../../concepts/definitions-and-files.md) —
+  why this worked: the create-or-reuse mechanism
 - [Cross-generator coordination concept](../../concepts/cross-generator-coordination.md) —
   the deeper mechanism

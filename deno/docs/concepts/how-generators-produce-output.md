@@ -7,6 +7,10 @@
 > class does not, by itself, cause it to run). Output is produced by
 > side-effect through `context.register` and `context.insert*`.
 
+The whole mechanism in one page:
+[Definitions and files](definitions-and-files.md). This page deepens
+its producer side.
+
 If you have written generators for other tools (orval,
 openapi-generator, kubb, graphql-codegen) you probably expect the
 following: the engine walks the schema, calls your transform for
