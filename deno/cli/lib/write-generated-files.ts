@@ -538,19 +538,37 @@ export const writeGeneratedFiles = ({
     )
   }
 
-  // On-disk drift vs the raw render. Read AFTER the formatter step so a
-  // just-formatted file is captured; covers unwritten (unchanged-render)
-  // files too — their on-disk copy stays formatted from a previous run.
+  // On-disk drift vs the raw render, for the sidecar/manifest realignment
+  // in generate-local. Only FORMATTER-attributable drift qualifies:
+  // - collected only when `settings.formatter` is configured (no formatter
+  //   → nothing legitimate can have drifted, and skipping the scan avoids
+  //   re-reading the whole corpus per generate);
+  // - hand-edited files (`protectedPaths` — both the stale-spared and the
+  //   incoming-write-skipped kinds) are excluded: realigning attribution
+  //   onto user-owned text and silencing the reader's drift trigger for it
+  //   would serve confidently wrong spans.
+  // Read AFTER the formatter step so a just-formatted file is captured;
+  // covers unwritten (unchanged-render) files too — their on-disk copy
+  // stays formatted from a previous run.
   const onDiskDrift: Record<string, string> = {}
-  for (const [artifactPath, artifactContent] of Object.entries(artifacts ?? {})) {
-    if (twinArtifactPaths.has(artifactPath) || ejectedArtifactPaths.has(artifactPath)) continue
-    try {
-      const onDisk = Deno.readTextFileSync(join(skmtcRootPath, '..', artifactPath))
-      if (onDisk !== String(artifactContent)) {
-        onDiskDrift[artifactPath] = onDisk
+  if (formatterCommand) {
+    const protectedSet = new Set(protectedPaths)
+    for (const [artifactPath, artifactContent] of Object.entries(artifacts ?? {})) {
+      if (
+        twinArtifactPaths.has(artifactPath) ||
+        ejectedArtifactPaths.has(artifactPath) ||
+        protectedSet.has(artifactPath)
+      ) {
+        continue
       }
-    } catch {
-      // unreadable → nothing to realign against; raw coordinates stand
+      try {
+        const onDisk = Deno.readTextFileSync(join(skmtcRootPath, '..', artifactPath))
+        if (onDisk !== String(artifactContent)) {
+          onDiskDrift[artifactPath] = onDisk
+        }
+      } catch {
+        // unreadable → nothing to realign against; raw coordinates stand
+      }
     }
   }
 
