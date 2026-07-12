@@ -358,5 +358,5 @@ If you need end-to-end CLI wall-time, measure it externally.
   full Valibot schema and field-by-field documentation
 - [Reference: error codes](../reference/error-codes.md) — the
   `parseIssue.type` enum values
-- [`skmtc-debug` skill](../skills/skmtc-debug/SKILL.md) —
-  operational diagnosis using the manifest
+- [How to debug a failing generation](../using/how-to/debug-failing-generation.md) —
+  diagnosis using the manifest

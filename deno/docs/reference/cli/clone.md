@@ -227,8 +227,8 @@ The cloned source is now your code. Common next steps:
    output shape
 3. Run `skmtc dev <project>` for the rebundle-and-regenerate loop
 
-See [`skmtc-generator` skill](../../skills/skmtc-generator/SKILL.md)
-for authoring guidance.
+See [anatomy of a generator](../../authoring/anatomy-of-a-generator.md)
+for what you are editing.
 
 ## Exit codes
 
@@ -244,5 +244,5 @@ for authoring guidance.
 - [`skmtc bundle`](bundle.md) — rebuilds after editing cloned source
 - [`skmtc dev`](dev.md) — auto-rebundle on file changes
 - [clone-vs-install concept](../../concepts/clone-vs-install.md)
-- [`skmtc-generator` skill](../../skills/skmtc-generator/SKILL.md) — authoring guidance
+- [Tutorial: cloning a generator](../../authoring/tutorials/01-cloning-a-generator.md) — the guided first edit
 - [generators-as-packages concept](../../concepts/generators-as-packages.md)

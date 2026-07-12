@@ -432,4 +432,4 @@ each run processes only one protocol.
 - [Error handling philosophy](../concepts/error-handling-philosophy.md) — the two-tier model
 - [Refs and resolution](../concepts/refs-and-resolution.md) — how ref errors work
 - [Manifest format](manifest-format.md) — the `parseIssues` array structure
-- [`skmtc-debug` skill](../skills/skmtc-debug/SKILL.md) — operational diagnostic workflows
+- [How to debug a failing generation](../using/how-to/debug-failing-generation.md) — the diagnostic workflow

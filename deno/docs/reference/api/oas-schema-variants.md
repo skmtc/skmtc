@@ -54,9 +54,10 @@ class." SKMTC's design rejects this for specific reasons:
    `{ type: 'object'; ... } | { type: 'array'; ... }` discriminated
    unions work elsewhere in TypeScript.
 
-The [skmtc-generator skill's operational principles](../../skills/skmtc-generator/SKILL.md)
-explicitly forbids adding a `BaseSchema` class. Don't "clean up"
-this union into a hierarchy.
+Don't "clean up" this union into a hierarchy or add a `BaseSchema`
+class — the flat union is deliberate, and every generator consumes it
+with an exhaustive switch (see
+[the type system](../../concepts/the-type-system.md)).
 
 ## Shared interface across variants
 
@@ -415,5 +416,5 @@ type OasComponentType =
 - [API: OasDocument model](oas-document-model.md) — broader OAS model
 - [Refs and resolution concept](../../concepts/refs-and-resolution.md) — how refs interact with schemas
 - [Projections and Snippets concept](../../concepts/projections-and-snippets.md) — what generators do with schemas
-- [`skmtc-generator` skill anti-patterns](../../skills/skmtc-generator/SKILL.md) — the "no BaseSchema" rule
+- [The type system](../../concepts/the-type-system.md) — the union every generator consumes with an exhaustive switch
 - [Glossary: OasSchema, OasRef, oasType](../glossary.md)

@@ -385,4 +385,4 @@ dependencies or no dependencies where possible.
 - [Projections and Snippets](projections-and-snippets.md) — the DSL the generator implements
 - [`skmtc install` reference](../reference/cli/install.md)
 - [`skmtc clone` reference](../reference/cli/clone.md)
-- [`skmtc-generator` skill](../skills/skmtc-generator/SKILL.md) — operational authoring guidance
+- [Anatomy of a generator](../authoring/anatomy-of-a-generator.md) — the authoring orientation

@@ -295,5 +295,5 @@ and `toExportPath` are still pure, the cache key is still
   the GraphQL equivalent of this tutorial
 - [API: OAS document model](../../reference/api/oas-document-model.md) —
   the parsed types you're reading from
-- [skmtc-generator skill](../../skills/skmtc-generator/SKILL.md) —
-  ongoing operational guide
+- [Anatomy of a generator](../anatomy-of-a-generator.md) —
+  the parts map and the habits that keep a generator maintainable

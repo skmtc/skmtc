@@ -418,4 +418,4 @@ type GenerateResult = {
 - [API: RenderContext](render-context.md) — what runs after
 - [API: Projection bases](projection-bases.md) — what wraps `insertOperation` etc.
 - [API: Definition](dsl-definition.md) — what `register({ definitions })` accepts
-- [`skmtc-generator` skill](../../skills/skmtc-generator/SKILL.md) — operational guidance
+- [How generators produce output](../../concepts/how-generators-produce-output.md) — the operational model over this API

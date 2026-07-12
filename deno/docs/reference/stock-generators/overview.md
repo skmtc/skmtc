@@ -140,5 +140,5 @@ source is authoritative.
   the underlying DSL
 - [Cross-generator coordination concept](../../concepts/cross-generator-coordination.md) —
   how the composition cases work
-- [`skmtc-generator` skill](../../skills/skmtc-generator/SKILL.md) —
-  operational guide for authoring or cloning
+- [Anatomy of a generator](../../authoring/anatomy-of-a-generator.md) —
+  orientation for authoring or cloning

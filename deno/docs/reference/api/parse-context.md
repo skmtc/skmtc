@@ -451,4 +451,4 @@ type GqlParseOptions = {
 - [The three phases concept](../../concepts/the-three-phases.md) — pipeline context
 - [Error codes reference](../error-codes.md) — parseIssue types
 - [API: GenerateContext](generate-context.md) — what runs after ParseContext
-- [`skmtc-debug` skill](../../skills/skmtc-debug/SKILL.md) — operational use of parseIssues
+- [Error codes](../error-codes.md) — every parseIssue type with its remediation

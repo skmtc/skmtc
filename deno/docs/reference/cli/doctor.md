@@ -277,5 +277,5 @@ on the next run. Run `skmtc generate <project>` to rewrite it.
 - [`skmtc bundle`](bundle.md) — rebuild `bundle.js` when `project-bundle/<project>` warns
 - [Reference: client.json schema](../settings/client-json-schema.md) —
   the schema `project-base-path` reads `settings.basePath` from
-- [skmtc-debug skill](../../skills/skmtc-debug/SKILL.md) — broader
+- [How to debug a failing generation](../../using/how-to/debug-failing-generation.md) — broader
   debugging workflow for engine failures

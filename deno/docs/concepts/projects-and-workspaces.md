@@ -336,4 +336,4 @@ In practice, one SKMTC root per repository is the convention.
 - [Settings reference: client.json schema](../reference/settings/client-json-schema.md)
 - [`skmtc init` reference](../reference/cli/init.md)
 - [`skmtc doctor` reference](../reference/cli/doctor.md)
-- [`skmtc-cli` skill](../skills/skmtc-cli/SKILL.md)
+- [CLI overview](../reference/cli/overview.md)

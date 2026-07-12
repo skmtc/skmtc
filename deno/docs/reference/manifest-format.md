@@ -364,6 +364,6 @@ the CLI's output stream.
 
 - [Error handling philosophy](../concepts/error-handling-philosophy.md) — why the manifest is canonical
 - [Error codes](error-codes.md) — full list of `parseIssue.type` values
-- [`skmtc-debug` skill](../skills/skmtc-debug/SKILL.md) — operational diagnostic workflows
+- [How to debug a failing generation](../using/how-to/debug-failing-generation.md) — diagnostic workflows over this format
 - [`skmtc generate` reference](cli/generate.md) — the command that writes the manifest
-- [`skmtc-cli` skill §10 (CI task card)](../skills/skmtc-cli/SKILL.md) — archiving the manifest in CI
+- [Use SKMTC in CI/CD](../using/how-to/use-in-ci-cd.md) — archiving the manifest in CI

@@ -61,7 +61,7 @@ Mismatch throws "Registered definition mismatch". See
 The three modes every state-touching CLI command supports: **interactive**
 (TTY + Ink UI), **strict text** (non-TTY, plain stdout), **strict JSON**
 (`--json` flag, single JSON object on stdout). See
-[skmtc-cli skill §3](../skills/skmtc-cli/SKILL.md).
+[CLI overview](cli/overview.md).
 
 ## B
 
@@ -104,7 +104,7 @@ and [files-and-dedup](../concepts/files-and-dedup.md#cache-key-vs-integrity-key)
 A generator's `isSupported({ operation })` predicate that decides
 whether the generator handles a given operation/model. Returning
 `false` results in a `notSupported` outcome in the manifest. See
-[skmtc-generator skill §6 scaffold C](../skills/skmtc-generator/SKILL.md).
+[anatomy of a generator](../authoring/anatomy-of-a-generator.md).
 
 ### Cascade pruning
 
@@ -302,7 +302,7 @@ allow-lists and deny-lists. Each accepts three entry shapes:
 whole-generator (string), per-operation (object with paths +
 methods), or per-model (object with refNames). Order:
 `isSupported` → `include` → `skip`. See
-[skmtc-cli skill §7](../skills/skmtc-cli/SKILL.md).
+[skip or include operations](../using/how-to/skip-or-include-operations.md).
 
 ### `insertModel`
 
@@ -741,7 +741,6 @@ function.
 ## Cross-references
 
 - [Concept docs](../concepts/) — fuller treatment of most terms here
-- [Skills](../skills/) — operational guidance using these terms
 - [llms.md](../llms.md) — consolidated operational reference
 - [Manifest format](manifest-format.md)
 - [Error codes](error-codes.md)

@@ -339,5 +339,5 @@ exists and the operator can inspect `parseIssues` for the cause.
 - [`skmtc doctor`](doctor.md) — diagnose setup before generating
 - [manifest format](../manifest-format.md) — what the run produced
 - [error codes](../error-codes.md) — interpret `parseIssues`
-- [`skmtc-cli` skill](../../skills/skmtc-cli/SKILL.md) — operational guidance
-- [`skmtc-debug` skill](../../skills/skmtc-debug/SKILL.md) — when generation fails
+- [CLI overview](overview.md) — shared conventions and workflow
+- [How to debug a failing generation](../../using/how-to/debug-failing-generation.md) — when generation fails

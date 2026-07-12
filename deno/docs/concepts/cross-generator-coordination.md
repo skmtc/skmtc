@@ -506,4 +506,4 @@ local clone) so its source can be bundled into `worker.ts`.
 - [Projections and Snippets](projections-and-snippets.md) — the DSL layer
 - [How idempotency works](../explanation/how-idempotency-works.md) — the design rationale
 - [API reference: generate-context](../reference/api/generate-context.md)
-- [`skmtc-generator` skill §3](../skills/skmtc-generator/SKILL.md) — operational guidance
+- [How to compose with another generator](../authoring/how-to/compose-with-another-generator.md) — the task-level guide

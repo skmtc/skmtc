@@ -139,5 +139,5 @@ automatically via cross-generator coordination.
 - [Stock generators catalog](../../reference/stock-generators/) —
   see what other generators look like; they all share the same
   source layout
-- [skmtc-generator skill](../../skills/skmtc-generator/SKILL.md) —
-  operational guide for ongoing extending work
+- [Anatomy of a generator](../anatomy-of-a-generator.md) —
+  the parts map for ongoing extending work
