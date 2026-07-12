@@ -45,7 +45,7 @@
     "test:coverage": "deno test --allow-all --coverage=coverage",
     "coverage:report": "deno coverage coverage --lcov > coverage.lcov",
     "coverage:html": "deno coverage coverage --html",
-    "verify-docs": "deno run --allow-read docs/verify-docs.ts && deno run --allow-read --allow-run docs/friction-log/verify-catalog.ts && deno run --allow-read --allow-write --allow-run --allow-env docs/doc-test.ts"
+    "verify-docs": "deno run --allow-read --allow-run=deno docs/verify-docs.ts && deno run --allow-read --allow-run docs/friction-log/verify-catalog.ts && deno run --allow-read --allow-write --allow-run --allow-env docs/doc-test.ts"
   },
   "minimumDependencyAge": "0"
 }

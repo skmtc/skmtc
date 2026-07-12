@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-read
+#!/usr/bin/env -S deno run --allow-read --allow-run=deno
 /**
  * Mechanical doc/skill-chain sync checks — the regression guard for the
  * drift class the friction reviews keep finding (old C8 → C15: the
@@ -61,10 +61,22 @@
  *      pinned in reader-lint-baseline.json with the same
  *      regression/ratchet contract.
  *
+ *  11. CORE-EXPORT SYNC — every symbol named in the first column of a
+ *      reference/api/core-overview.md table row must be a real export
+ *      of core/mod.ts (resolved via `deno doc --json`, so wildcard
+ *      re-exports count). Catches the rename/delete drift class
+ *      (pre-0.8 names like `Definition` surviving in the index).
+ *      One-directional by design: the overview is a curated index,
+ *      not an exhaustive export list.
+ *  12. STOCK-GENERATOR SURFACE SYNC — the three doc surfaces that list
+ *      stock generators (root README table, stock-generators
+ *      overview catalog, per-generator gen-*.md pages) must agree on
+ *      the set.
+ *
  *   exit 0 — all checks hold.
  *   exit 1 — one or more failed; each failure names file + expectation.
  *
- * Usage:  deno run --allow-read deno/docs/verify-docs.ts
+ * Usage:  deno run --allow-read --allow-run=deno deno/docs/verify-docs.ts
  *         deno run --allow-read --allow-write deno/docs/verify-docs.ts \
  *           --update-reader-baseline   # rewrite reader-lint-baseline.json
  *                                      # to the current violation set
@@ -889,6 +901,148 @@ if (updateReaderBaseline) {
       )
     }
   }
+}
+
+// ---------------------------------------------------------------------
+// 11. Core-export sync — table-leading symbols in core-overview.md must
+//     be real exports of core/mod.ts. `deno doc --json` resolves the
+//     wildcard re-exports; the extraction walks every `symbols` array
+//     so minor format shifts across deno versions stay survivable.
+// ---------------------------------------------------------------------
+
+const coreDocCommand = new Deno.Command("deno", {
+  args: ["doc", "--json", join(denoDir, "core", "mod.ts")],
+  stdout: "piped",
+  stderr: "piped",
+});
+const coreDocResult = await coreDocCommand.output();
+
+if (!coreDocResult.success) {
+  fail(
+    "core-export sync: `deno doc --json core/mod.ts` failed — " +
+      new TextDecoder().decode(coreDocResult.stderr).slice(0, 200),
+  );
+} else {
+  const collectSymbolNames = (value: unknown, into: Set<string>): void => {
+    if (Array.isArray(value)) {
+      for (const item of value) collectSymbolNames(item, into);
+      return;
+    }
+    if (value === null || typeof value !== "object") return;
+    const record = value as Record<string, unknown>;
+    if (Array.isArray(record.symbols)) {
+      for (const symbol of record.symbols) {
+        const name = (symbol as Record<string, unknown>).name;
+        if (typeof name === "string") into.add(name);
+      }
+    }
+    for (const child of Object.values(record)) {
+      collectSymbolNames(child, into);
+    }
+  };
+
+  const coreExports = new Set<string>();
+  collectSymbolNames(
+    JSON.parse(new TextDecoder().decode(coreDocResult.stdout)),
+    coreExports,
+  );
+
+  if (coreExports.size === 0) {
+    fail(
+      "core-export sync: extracted zero symbols from `deno doc --json` — " +
+        "the extraction needs updating for this deno version",
+    );
+  } else {
+    const coreOverviewText = await Deno.readTextFile(
+      join(docsDir, "reference", "api", "core-overview.md"),
+    );
+    const staleRows = [
+      ...coreOverviewText.matchAll(/^\| `([A-Za-z][A-Za-z0-9_]*)`/gm),
+    ]
+      .map((match) => match[1])
+      .filter((name) => !coreExports.has(name));
+
+    staleRows.forEach((name) =>
+      fail(
+        `core-export sync: core-overview.md table row names \`${name}\`, ` +
+          `which core/mod.ts does not export — rename the row to the ` +
+          `current symbol or remove it`,
+      )
+    );
+    if (staleRows.length === 0) {
+      pass(
+        `core-export sync: all core-overview table symbols exist among ` +
+          `${coreExports.size} core/mod.ts exports`,
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------
+// 12. Stock-generator surface sync — the root README table, the
+//     stock-generators overview catalog, and the per-generator pages
+//     must list the same generator set.
+// ---------------------------------------------------------------------
+
+const rootReadmeText = await Deno.readTextFile(join(docsDir, "README.md"));
+const stockOverviewText = await Deno.readTextFile(
+  join(docsDir, "reference", "stock-generators", "overview.md"),
+);
+
+const readmeGenerators = new Set(
+  [...rootReadmeText.matchAll(/^\| `@skmtc\/(gen-[a-z-]+)`/gm)].map((m) =>
+    m[1]
+  ),
+);
+const overviewGenerators = new Set(
+  [...stockOverviewText.matchAll(/\((gen-[a-z-]+)\.md\)/g)].map((m) => m[1]),
+);
+const generatorPages = new Set<string>();
+for await (
+  const entry of Deno.readDir(join(docsDir, "reference", "stock-generators"))
+) {
+  const match = entry.name.match(/^(gen-[a-z-]+)\.md$/);
+  if (match) generatorPages.add(match[1]);
+}
+
+const surfaceProblems: string[] = [];
+for (const generator of generatorPages) {
+  if (!readmeGenerators.has(generator)) {
+    surfaceProblems.push(
+      `stock-generator sync: ${generator} has a reference page but is ` +
+        `missing from the root README stock-generators table`,
+    );
+  }
+  if (!overviewGenerators.has(generator)) {
+    surfaceProblems.push(
+      `stock-generator sync: ${generator} has a reference page but is ` +
+        `missing from stock-generators/overview.md`,
+    );
+  }
+}
+for (const generator of readmeGenerators) {
+  if (!generatorPages.has(generator)) {
+    surfaceProblems.push(
+      `stock-generator sync: root README lists ${generator} but ` +
+        `reference/stock-generators/${generator}.md does not exist`,
+    );
+  }
+}
+for (const generator of overviewGenerators) {
+  if (!generatorPages.has(generator)) {
+    surfaceProblems.push(
+      `stock-generator sync: overview.md links ${generator}.md, which ` +
+        `does not exist`,
+    );
+  }
+}
+
+surfaceProblems.forEach(fail);
+if (surfaceProblems.length === 0) {
+  pass(
+    `stock-generator surface sync: README table, overview catalog, and ` +
+      `${generatorPages.size} reference pages agree`,
+  );
 }
 
 // ---------------------------------------------------------------------
