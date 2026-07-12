@@ -23,24 +23,16 @@ file upload, etc.).
 Form generators have a `src/fields/` subdirectory with one
 Snippet per field type:
 
-```ts
-// src/fields/DatePickerInput.ts
-import type { GenerateContextType } from '@skmtc/core'
-import { TsSnippet } from '@skmtc/lang-typescript'
-
-type Args = {
-  context: GenerateContextType
-  destinationPath: string
-  fieldName: string
-}
-
+```ts fragment
+// src/fields/DatePickerInput.ts — the shape every field Snippet follows
 export class DatePickerInput extends TsSnippet {
   #fieldName: string
 
   constructor(args: Args) {
     super({ context: args.context })
     this.#fieldName = args.fieldName
-
+    // the Snippet registers its OWN import — presence of the field
+    // implies presence of the import
     this.register({
       destinationPath: args.destinationPath,
       imports: { '@/components/DatePicker': ['DatePicker'] }
@@ -52,6 +44,10 @@ export class DatePickerInput extends TsSnippet {
   }
 }
 ```
+
+The complete class — imports, `Args` type, and the dispatch wiring —
+is in the [custom form field renderer recipe](../recipes/custom-form-field-renderer.md),
+which walks this exact example end to end.
 
 The Snippet's `toString()` produces just the JSX for one field.
 

@@ -83,8 +83,7 @@ target).
 The Render phase notably does **not** run Prettier or any other
 formatter. The pipeline renders unformatted (but syntactically
 valid) TypeScript; consumers run their own formatter as a
-post-generation step. (See [the operational principles in
-llms.md](../llms.md) for the load-bearing fact.)
+post-generation step.
 
 ## What's lost by combining phases
 

@@ -243,27 +243,7 @@ for that address-bridging step.
 
 ## Cascade pruning
 
-At end-of-parse, `removeErroredItems` walks both maps:
-
-```ts
-for (const [refKey, errors] of this.#refErrors) {
-  for (const error of errors) {
-    const consumers = this.#refConsumers.get(refKey) ?? []
-    for (const stackTrail of consumers) {
-      const removed = oasState.oasDocument.removeItem(stackTrail)
-      if (removed) {
-        this.issues.push({
-          type: 'INVALID_DEPENDENCY_REF',
-          level: 'error',
-          location: stackTrail.toString(),
-          ...
-        })
-      }
-    }
-  }
-}
-```
-
+At end-of-parse, `removeErroredItems` walks both maps together.
 For each failed schema, every consumer (anything that `$ref`-ed it)
 is pruned from the parsed document. Each pruning logs an
 `INVALID_DEPENDENCY_REF` issue at the consumer's location.
