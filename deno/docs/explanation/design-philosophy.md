@@ -264,4 +264,3 @@ The asymmetry encodes the model: engine is the *platform* (stable, contributor-f
 - [The GraphQL asymmetry](the-graphql-asymmetry.md) — building on the structuredClone substrate
 - [Security model](security-model.md) — worker sandboxing
 - [Comparison to other tools](comparison-to-other-tools.md) — how these principles differ from other codegen tools
-- [Operational principles in `llms.md`](../llms.md#operational-principles-for-proposing-changes) — the LLM-facing condensation of these principles as anti-pattern overrides

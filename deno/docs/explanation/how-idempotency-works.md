@@ -251,10 +251,9 @@ purity. The cache would then miss inconsistently — sometimes
 hitting, sometimes missing, depending on what state had been
 mutated when.
 
-Anti-pattern; the operational principles in
-[`llms.md`](../llms.md) call this out explicitly. Generator
-authors should treat `toIdentifierName` and `toExportPath` as pure
-functions of their inputs.
+This is an anti-pattern: generator authors should treat
+`toIdentifierName` and `toExportPath` as pure functions of their
+inputs.
 
 ### Memoization can't work if `toString()` is non-pure
 

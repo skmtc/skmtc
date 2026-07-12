@@ -212,14 +212,10 @@ The CLI:
    `{ type: 'gql', sdl: '...' }`
 4. The worker parses the SDL using the GraphQL runtime
 
-The reason: `graphql.parse()` produces an AST with class instances
-that **`structuredClone` cannot transfer**. Cloning a parsed AST
-across the worker boundary would either strip prototypes (breaking
-the AST) or throw. Keeping the SDL as a string sidesteps the issue
-— parsing happens *inside* the worker where the AST stays.
-
-See [the worker runtime concept](../../concepts/the-worker-runtime.md)
-for the broader reasoning.
+The reason — GraphQL's parsed AST carries class instances that
+`structuredClone` cannot transfer, so the SDL crosses as a string and
+parsing happens inside the worker — is covered in full in
+[the GraphQL asymmetry](../../explanation/the-graphql-asymmetry.md).
 
 ## Remote sources
 

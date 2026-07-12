@@ -134,39 +134,14 @@ A throw inside `toSchemaV3` becomes a `level: 'error'` `ParseIssue`, and the key
 is skipped in the output map.
 
 **Tier 2 — cascade pruning via `removeErroredItems`.** During the walk, every
-`$ref` consumer is recorded in `ParseContext.#refConsumers`. When a parse error
-happens at a component position, the error is recorded in
-`ParseContext.#refErrors` keyed by the same ref. After the walk finishes:
-
-```ts
-for (const [refKey, errors] of this.#refErrors) {
-  for (const error of errors) {
-    const consumers = this.#refConsumers.get(refKey) ?? []
-    for (const stackTrail of consumers) {
-      const removed = oasState.oasDocument.removeItem(stackTrail)
-      if (removed) {
-        this.issues.push({
-          protocol: 'oas',
-          level: 'error',
-          type: 'INVALID_DEPENDENCY_REF',
-          location: stackTrail.toString(),
-          ...
-        })
-      }
-    }
-  }
-}
-```
-
-So if `User` fails to parse and `Operation X` referenced `User`, `Operation X`
-is removed from `oasDocument.operations` with an `INVALID_DEPENDENCY_REF` issue.
-The downstream Generate phase sees a smaller document with all surviving items
-guaranteed valid.
-
-The cascade is one hop deep by current design — transitive pruning of
-consumers-of-pruned-consumers is a known limitation, partially mitigated by the
-fact that `resolve()` on a now-missing ref will throw at generate time, which
-`#runOasOperationGenerator` catches as a per-operation error.
+`$ref` consumer is recorded; when a component fails to parse, everything that
+referenced it is pruned from the document with an `INVALID_DEPENDENCY_REF`
+issue at the consumer's location. The downstream Generate phase sees a smaller
+document with all surviving items guaranteed valid. The cascade is one hop
+deep by design; a transitive consumer fails later, at generate time, as a
+per-operation error. The mechanism in full — the two maps, the pruning walk,
+and the implementation choices it rests on — is in
+[error handling philosophy](../explanation/error-handling-philosophy.md#tier-2-cross-ref-via-removeerroreditems).
 
 ### Type-inference fallbacks
 

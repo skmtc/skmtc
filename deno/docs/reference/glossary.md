@@ -741,6 +741,5 @@ function.
 
 - [Vocabulary cheat-sheet](../concepts/vocabulary-cheat-sheet.md) — the analogue table for core terms
 - [The three phases](../concepts/the-three-phases.md) — fuller treatment of most terms here
-- [llms.md](../llms.md) — consolidated operational reference
 - [Manifest format](manifest-format.md)
 - [Error codes](error-codes.md)
