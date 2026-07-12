@@ -76,19 +76,14 @@ export const toWorkspaceDep = (
 
 /** Rewrite the version in a `jsr:@scope/name@x[/sub]` import value. */
 export const rewriteDepVersion = (importValue: string, newVersion: string): string =>
-  importValue.replace(
-    /^(jsr:@[^@/\s]+\/[^@/\s]+)@[^/\s]+(\/.*)?$/,
-    `$1@${newVersion}$2`
-  )
+  importValue.replace(/^(jsr:@[^@/\s]+\/[^@/\s]+)@[^/\s]+(\/.*)?$/, `$1@${newVersion}$2`)
 
 /**
  * Dependency-first order over the full workspace — a package always
  * appears after every workspace package it depends on. Throws on a
  * dependency cycle.
  */
-export const toDependencyOrder = (
-  packages: WorkspacePackage[]
-): WorkspacePackage[] => {
+export const toDependencyOrder = (packages: WorkspacePackage[]): WorkspacePackage[] => {
   const pending = new Map(packages.map(p => [p.name, p]))
   const ordered: WorkspacePackage[] = []
 
@@ -98,9 +93,7 @@ export const toDependencyOrder = (
       .sort((a, b) => a.name.localeCompare(b.name))
 
     if (ready.length === 0) {
-      throw new Error(
-        `Dependency cycle among: ${[...pending.keys()].join(', ')}`
-      )
+      throw new Error(`Dependency cycle among: ${[...pending.keys()].join(', ')}`)
     }
 
     for (const pkg of ready) {
@@ -205,9 +198,7 @@ export const assertNoPrivateDeps = (packages: WorkspacePackage[]): void => {
 }
 
 /** Discover every named + versioned workspace package and its intra-workspace deps. */
-export const discoverWorkspace = async (
-  rootDir: string
-): Promise<WorkspacePackage[]> => {
+export const discoverWorkspace = async (rootDir: string): Promise<WorkspacePackage[]> => {
   const root = await readDenoJson(join(rootDir, 'deno.json'))
   if (!root.workspace) {
     throw new Error('No `workspace` array in root deno.json')
@@ -266,20 +257,14 @@ export const applyPlan = async (
 }
 
 /** Whether `name@version` is already published on the registry. */
-const isPublished = async (
-  jsrUrl: string,
-  name: string,
-  version: string
-): Promise<boolean> => {
+const isPublished = async (jsrUrl: string, name: string, version: string): Promise<boolean> => {
   const res = await fetch(`${jsrUrl}${name}/meta.json`)
   if (res.status === 404) {
     await res.body?.cancel()
     return false
   }
   if (!res.ok) {
-    throw new Error(
-      `Registry lookup for ${name} failed: ${res.status} ${res.statusText}`
-    )
+    throw new Error(`Registry lookup for ${name} failed: ${res.status} ${res.statusText}`)
   }
   const meta = (await res.json()) as { versions?: Record<string, unknown> }
   return Boolean(meta.versions?.[version])
@@ -420,9 +405,7 @@ const printReinstallHint = (
     `  JSR_URL=${jsrUrl} deno install ${SKMTC_PERMS_STR} -g --unstable-worker-options -n skmtc -f jsr:@skmtc/cli@${version}`
   )
   if (mode !== 'none') {
-    console.error(
-      `(mode "${mode}" was attempted but failed — defer to the manual commands above.)`
-    )
+    console.error(`(mode "${mode}" was attempted but failed — defer to the manual commands above.)`)
   }
 }
 
@@ -457,9 +440,8 @@ export const release = async (): Promise<void> => {
   console.log('\nRelease plan (dependency order):')
   for (const pkg of order) {
     const planned = plan.get(pkg.name) as PlannedRelease
-    const type = pkg.version === planned.version
-      ? 'direct'
-      : `cascade ${pkg.version} -> ${planned.version}`
+    const type =
+      pkg.version === planned.version ? 'direct' : `cascade ${pkg.version} -> ${planned.version}`
     const suffix = pkg.private ? ', private — bump only' : ''
     console.log(`  ${pkg.name}@${planned.version}  (${type}${suffix})`)
   }

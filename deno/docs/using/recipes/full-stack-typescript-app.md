@@ -4,6 +4,12 @@
 > one OpenAPI document — the standard SKMTC combination for a
 > TypeScript/React app.
 
+This recipe exists for one moment: add a field to the schema,
+regenerate, and watch the type, the validator, and the form update
+together while everything that imports them stays consistent. The
+last section stages that moment; the rest builds the stack that
+makes it possible.
+
 ## What you'll build
 
 A `src/generated/` tree containing:
@@ -171,6 +177,25 @@ const worker = setupWorker(...toRoutesList({ store: yourMockStore }))
   search/list UI components that pair with it.
 - **Add a table.** Install `@skmtc/gen-shadcn-table` for list-GET
   operations.
+
+## The payoff: change the schema
+
+Add one field to a schema component in your OpenAPI document — say
+`nickname: { type: string }` on `Pet` — and regenerate:
+
+```bash
+skmtc generate <project>
+git diff --stat src/generated/
+```
+
+The diff touches every file that spells out `Pet`'s shape: the type
+gains a field, the validator gains a rule, the form gains an input.
+The hooks and mocks that import those definitions stay consistent
+without changing, because they reference the shared artifacts rather
+than duplicating them (see
+[cross-generator coordination](../../concepts/cross-generator-coordination.md)).
+One schema edit, one regenerate, a fully consistent stack — this
+property is what the recipe exists to demonstrate.
 
 ## Source
 

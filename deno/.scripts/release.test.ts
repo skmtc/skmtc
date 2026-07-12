@@ -125,7 +125,10 @@ Deno.test('planRelease - a directly-bumped dependent keeps its own version', () 
 Deno.test('assertNoPrivateDeps - a private package may depend on publishable ones', () => {
   assertNoPrivateDeps([
     wp('@skmtc/core', '1.0.0'),
-    { ...wp('@skmtc/lang-java', '0.0.1', { '@skmtc/core': 'jsr:@skmtc/core@1.0.0' }), private: true }
+    {
+      ...wp('@skmtc/lang-java', '0.0.1', { '@skmtc/core': 'jsr:@skmtc/core@1.0.0' }),
+      private: true
+    }
   ])
 })
 

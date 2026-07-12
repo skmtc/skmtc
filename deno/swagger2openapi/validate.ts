@@ -22,7 +22,7 @@ import {
   isRef,
   isString,
   type JsonObject,
-  type JsonValue,
+  type JsonValue
 } from './json.ts'
 import { hasDuplicates, parameterTypeProperties, resolveInternal } from './common.ts'
 import { resolveExternal } from './io.ts'
@@ -61,14 +61,14 @@ function assert(condition: boolean, options: ValidateOptions, message: string): 
 function assertObject(
   value: JsonValue | undefined,
   options: ValidateOptions,
-  message: string,
+  message: string
 ): asserts value is JsonObject {
   if (!isJsonObject(value)) fail(options, message)
 }
 function assertString(
   value: JsonValue | undefined,
   options: ValidateOptions,
-  message: string,
+  message: string
 ): asserts value is string {
   if (!isString(value)) fail(options, message)
 }
@@ -102,14 +102,17 @@ const validateUrl = (
   url: string,
   contextServers: JsonValue[],
   context: string,
-  options: ValidateOptions,
+  options: ValidateOptions
 ): boolean => {
   if (!options.laxurls) assert(url !== '', options, 'Invalid empty URL ' + context)
   let base = options.origin || 'http://localhost/'
   if (contextServers.length) {
     const servers = contextServers[0]
     if (
-      isJsonArray(servers) && servers.length && isJsonObject(servers[0]) && isString(servers[0].url)
+      isJsonArray(servers) &&
+      servers.length &&
+      isJsonObject(servers[0]) &&
+      isString(servers[0].url)
     ) {
       base = servers[0].url
     }
@@ -171,7 +174,7 @@ const SCHEMA_KEYWORDS = new Set([
   'nullable',
   'minProperties',
   'maxProperties',
-  'multipleOf',
+  'multipleOf'
 ])
 
 const SCHEMA_TYPES = ['integer', 'number', 'string', 'boolean', 'object', 'array']
@@ -187,7 +190,7 @@ const STRING_FORMATS = [
   'byte',
   'binary',
   'date',
-  'password',
+  'password'
 ]
 
 const checkSubSchema = (
@@ -195,7 +198,7 @@ const checkSubSchema = (
   parent: JsonObject,
   state: WalkSchemaState,
   openapi: JsonObject,
-  options: ValidateOptions,
+  options: ValidateOptions
 ): void => {
   const prop = typeof state.property === 'string' ? state.property : undefined
   if (prop) contextAppend(options, prop)
@@ -232,7 +235,7 @@ const checkSubSchema = (
     assert(
       isNumber(schema.multipleOf) && schema.multipleOf > 0,
       options,
-      'multipleOf must be a number > 0',
+      'multipleOf must be a number > 0'
     )
   }
   numeric('maximum')
@@ -255,14 +258,14 @@ const checkSubSchema = (
     assert(
       isBoolean(schema.additionalItems) || isJsonObject(schema.additionalItems),
       options,
-      'additionalItems must be a boolean or schema',
+      'additionalItems must be a boolean or schema'
     )
   }
   if (schema.additionalProperties) {
     assert(
       isBoolean(schema.additionalProperties) || isJsonObject(schema.additionalProperties),
       options,
-      'additionalProperties must be a boolean or schema',
+      'additionalProperties must be a boolean or schema'
     )
   }
   numericGtMinusOne('maxItems')
@@ -324,7 +327,7 @@ const checkSubSchema = (
     assert(
       typeof schema.type !== 'undefined',
       options,
-      'a schema with a default should have a type',
+      'a schema with a default should have a type'
     )
     let realType: string = typeof schema.default
     let schemaType = schema.type
@@ -343,7 +346,7 @@ const checkSubSchema = (
           assert(
             schema.type === 'integer',
             options,
-            `format ${schema.format} requires type integer`,
+            `format ${schema.format} requires type integer`
           )
         }
       }
@@ -360,7 +363,7 @@ const checkSubSchema = (
     assert(
       typeof schema.writeOnly === 'undefined',
       options,
-      'schema cannot be both readOnly and writeOnly',
+      'schema cannot be both readOnly and writeOnly'
     )
   }
   if (typeof schema.writeOnly !== 'undefined') {
@@ -368,7 +371,7 @@ const checkSubSchema = (
     assert(
       typeof schema.readOnly === 'undefined',
       options,
-      'schema cannot be both readOnly and writeOnly',
+      'schema cannot be both readOnly and writeOnly'
     )
   }
   booleanProp('deprecated')
@@ -378,7 +381,7 @@ const checkSubSchema = (
     assert(
       Boolean(parent.oneOf || parent.anyOf || parent.allOf),
       options,
-      'discriminator requires oneOf, anyOf or allOf in parent schema',
+      'discriminator requires oneOf, anyOf or allOf in parent schema'
     )
   }
   if (typeof schema.xml !== 'undefined') {
@@ -399,7 +402,7 @@ const checkSchema = (
   parent: JsonObject,
   prop: string,
   openapi: JsonObject,
-  options: ValidateOptions,
+  options: ValidateOptions
 ): void => {
   const state = getDefaultState()
   state.property = prop
@@ -414,7 +417,7 @@ const checkExample = (
   ex: JsonObject,
   contextServers: JsonValue[],
   _openapi: JsonObject,
-  options: ValidateOptions,
+  options: ValidateOptions
 ): void => {
   assert(!isJsonArray(ex), options, 'example must be an object, not an array')
   if (typeof ex.summary !== 'undefined') {
@@ -427,7 +430,7 @@ const checkExample = (
     assert(
       typeof ex.externalValue === 'undefined',
       options,
-      'example cannot have both value and externalValue',
+      'example cannot have both value and externalValue'
     )
   }
   if (typeof ex.externalValue !== 'undefined') {
@@ -435,7 +438,7 @@ const checkExample = (
     assert(
       typeof ex.value === 'undefined',
       options,
-      'example cannot have both value and externalValue',
+      'example cannot have both value and externalValue'
     )
     validateUrl(ex.externalValue, contextServers, 'examples..externalValue', options)
   }
@@ -444,7 +447,7 @@ const checkExample = (
       assert(
         EXAMPLE_KEYWORDS.includes(k),
         options,
-        'Example object cannot have additionalProperty: ' + k,
+        'Example object cannot have additionalProperty: ' + k
       )
     }
   }
@@ -457,7 +460,7 @@ const checkContent = (
   content: JsonObject,
   contextServers: JsonValue[],
   openapi: JsonObject,
-  options: ValidateOptions,
+  options: ValidateOptions
 ): void => {
   contextAppend(options, 'content')
   for (const ct of Object.keys(content)) {
@@ -473,7 +476,7 @@ const checkContent = (
       assert(
         typeof contentType.examples === 'undefined',
         options,
-        'content cannot have both example and examples',
+        'content cannot have both example and examples'
       )
     }
     if (isJsonObject(contentType.examples)) {
@@ -481,7 +484,7 @@ const checkContent = (
       assert(
         typeof contentType.example === 'undefined',
         options,
-        'content cannot have both example and examples',
+        'content cannot have both example and examples'
       )
       for (const e of Object.keys(contentType.examples)) {
         const ex = contentType.examples[e]
@@ -509,7 +512,7 @@ const checkServer = (server: JsonObject, options: ValidateOptions): void => {
       assert(
         isJsonObject(server.variables) && m[1] in server.variables,
         options,
-        'server variable ' + m[1] + ' not found',
+        'server variable ' + m[1] + ' not found'
       )
     }
   }
@@ -540,7 +543,7 @@ const checkServer = (server: JsonObject, options: ValidateOptions): void => {
     assert(
       Object.keys(server.variables).length === serverVars,
       options,
-      'server variable count mismatch',
+      'server variable count mismatch'
     )
     contextPop(options)
   }
@@ -561,7 +564,7 @@ const checkLink = (link: JsonObject, options: ValidateOptions): void => {
     assert(
       typeof link.operationId === 'undefined',
       options,
-      'link cannot have both operationRef and operationId',
+      'link cannot have both operationRef and operationId'
     )
   } else {
     assert('operationId' in link, options, 'link requires operationId or operationRef')
@@ -571,7 +574,7 @@ const checkLink = (link: JsonObject, options: ValidateOptions): void => {
     assert(
       typeof link.operationRef === 'undefined',
       options,
-      'link cannot have both operationRef and operationId',
+      'link cannot have both operationRef and operationId'
     )
   } else {
     assert('operationRef' in link, options, 'link requires operationId or operationRef')
@@ -590,7 +593,7 @@ const checkHeader = (
   headerArg: JsonValue,
   contextServers: JsonValue[],
   openapi: JsonObject,
-  options: ValidateOptions,
+  options: ValidateOptions
 ): void => {
   let header = headerArg
   if (isJsonObject(header) && isRef(header, '$ref')) {
@@ -601,7 +604,7 @@ const checkHeader = (
     assert(
       resolved !== false && isJsonObject(resolved),
       options,
-      'Could not resolve reference ' + ref,
+      'Could not resolve reference ' + ref
     )
     if (isJsonObject(resolved)) header = resolved
   }
@@ -645,7 +648,7 @@ const checkResponse = (
   responseArg: JsonValue,
   contextServers: JsonValue[],
   openapi: JsonObject,
-  options: ValidateOptions,
+  options: ValidateOptions
 ): void => {
   let response = responseArg
   if (isJsonObject(response) && isRef(response, '$ref')) {
@@ -656,7 +659,7 @@ const checkResponse = (
     assert(
       resolved !== false && isJsonObject(resolved),
       options,
-      'Could not resolve reference ' + ref,
+      'Could not resolve reference ' + ref
     )
     if (isJsonObject(resolved)) response = resolved
   }
@@ -702,7 +705,7 @@ const checkParam = (
   path: string,
   contextServers: JsonValue[],
   openapi: JsonObject,
-  options: ValidateOptions,
+  options: ValidateOptions
 ): JsonObject => {
   contextAppend(options, index)
   let param = paramArg
@@ -714,7 +717,7 @@ const checkParam = (
     assert(
       resolved !== false && isJsonObject(resolved),
       options,
-      'Could not resolve reference ' + ref,
+      'Could not resolve reference ' + ref
     )
     if (isJsonObject(resolved)) param = resolved
   }
@@ -726,7 +729,7 @@ const checkParam = (
   assert(
     ['query', 'header', 'path', 'cookie'].includes(param.in),
     options,
-    'parameter in must be query, header, path or cookie',
+    'parameter in must be query, header, path or cookie'
   )
   if (param.in === 'path') {
     assert('required' in param, options, 'Path parameters must have an explicit required:true')
@@ -735,7 +738,7 @@ const checkParam = (
       assert(
         path.indexOf('{' + param.name + '}') >= 0,
         options,
-        'path parameters must appear in the path',
+        'path parameters must appear in the path'
       )
     }
   }
@@ -783,7 +786,7 @@ const checkParam = (
     assert(
       isJsonObject(param.content) && Object.keys(param.content).length === 1,
       options,
-      'Parameter content must have only one entry',
+      'Parameter content must have only one entry'
     )
     if (isJsonObject(param.content)) checkContent(param.content, contextServers, openapi, options)
   }
@@ -826,7 +829,7 @@ const checkPathItem = (
   pathItem: JsonObject,
   path: string,
   openapi: JsonObject,
-  options: ValidateOptions,
+  options: ValidateOptions
 ): boolean => {
   const contextServers: JsonValue[] = []
   contextServers.push(openapi.servers)
@@ -895,14 +898,14 @@ const checkPathItem = (
           assertString(
             op.requestBody.description,
             options,
-            'requestBody.description must be a string',
+            'requestBody.description must be a string'
           )
         }
         if (typeof op.requestBody.required !== 'undefined') {
           assert(
             isBoolean(op.requestBody.required),
             options,
-            'requestBody.required must be a boolean',
+            'requestBody.required must be a boolean'
           )
         }
         if (isJsonObject(op.requestBody.content)) {
@@ -939,7 +942,7 @@ const checkPathItem = (
           assert(
             Boolean(contextParameters['path:' + m[1]]),
             options,
-            'Templated parameter ' + m[1] + ' not found',
+            'Templated parameter ' + m[1] + ' not found'
           )
         }
         contextPop(options)
@@ -980,7 +983,7 @@ const checkPathItem = (
 const checkSecurity = (
   security: JsonValue,
   openapi: JsonObject,
-  options: ValidateOptions,
+  options: ValidateOptions
 ): void => {
   contextAppend(options, 'security')
   assert(isJsonArray(security), options, 'security must be an array')
@@ -993,13 +996,13 @@ const checkSecurity = (
         assert(
           sec !== false && isJsonObject(sec),
           options,
-          'Could not dereference securityScheme ' + i,
+          'Could not dereference securityScheme ' + i
         )
         if (isJsonObject(sec) && sec.type !== 'oauth2') {
           assert(
             isJsonArray(sr[i]) && sr[i].length === 0,
             options,
-            'non-oauth2 security requirement must have empty scopes',
+            'non-oauth2 security requirement must have empty scopes'
           )
         }
       }
@@ -1018,7 +1021,7 @@ const OPENAPI_KEYWORDS = [
   'externalDocs',
   'tags',
   'paths',
-  'components',
+  'components'
 ]
 
 const setupOptions = (options: ValidateOptions): void => {
@@ -1045,19 +1048,17 @@ export const validateSync = (openapi: JsonValue, options: ValidateOptions): bool
   assert('openapi' in openapi, options, 'document requires an openapi version')
   assertString(openapi.openapi, options, 'openapi version must be a string')
   assert(openapi.openapi.startsWith('3.0.'), options, 'Must be an OpenAPI 3.0.x document')
-  for (
-    const forbidden of [
-      'host',
-      'basePath',
-      'schemes',
-      'definitions',
-      'parameters',
-      'responses',
-      'securityDefinitions',
-      'produces',
-      'consumes',
-    ]
-  ) {
+  for (const forbidden of [
+    'host',
+    'basePath',
+    'schemes',
+    'definitions',
+    'parameters',
+    'responses',
+    'securityDefinitions',
+    'produces',
+    'consumes'
+  ]) {
     assert(!(forbidden in openapi), options, 'OpenAPI object cannot have ' + forbidden)
   }
   for (const k of Object.keys(openapi)) {
@@ -1065,7 +1066,7 @@ export const validateSync = (openapi: JsonValue, options: ValidateOptions): bool
       assert(
         OPENAPI_KEYWORDS.includes(k),
         options,
-        'OpenAPI object cannot have additionalProperty: ' + k,
+        'OpenAPI object cannot have additionalProperty: ' + k
       )
     }
   }
@@ -1108,7 +1109,7 @@ export const validateSync = (openapi: JsonValue, options: ValidateOptions): bool
       assert(
         openapi.info.contact.email.indexOf('@') >= 0,
         options,
-        'Contact email must be a valid email address',
+        'Contact email must be a valid email address'
       )
     }
     runLinter('contact', openapi.info.contact, options)
@@ -1165,7 +1166,7 @@ export const validateSync = (openapi: JsonValue, options: ValidateOptions): bool
 
   if (!validateOpenAPI3(openapi)) {
     throw new ValidationError(
-      'Failed OpenAPI3 schema validation: ' + JSON.stringify(validateOpenAPI3.errors, null, 2),
+      'Failed OpenAPI3 schema validation: ' + JSON.stringify(validateOpenAPI3.errors, null, 2)
     )
   }
 
@@ -1209,7 +1210,7 @@ const checkPaths = (openapi: JsonObject, options: ValidateOptions): void => {
         assert(
           templateCheck.indexOf('{') < 0 && templateCheck.indexOf('}') < 0,
           options,
-          'Mismatched {} in path template',
+          'Mismatched {} in path template'
         )
         const pathItem = openapi.paths[p]
         if (isJsonObject(pathItem)) checkPathItem(pathItem, p, openapi, options)
@@ -1231,7 +1232,7 @@ const checkPaths = (openapi: JsonObject, options: ValidateOptions): void => {
 const validateComponents = (
   openapi: JsonObject,
   contextServers: JsonValue[],
-  options: ValidateOptions,
+  options: ValidateOptions
 ): void => {
   const components = openapi.components
   if (!isJsonObject(components)) return
@@ -1247,18 +1248,24 @@ const validateComponents = (
   }
 
   const sections: Array<[string, (value: JsonObject) => void]> = [
-    ['parameters', (value) => checkParam(value, '', '', contextServers, openapi, options)],
-    ['schemas', (value) => checkSchema(value, { anyOf: {} }, '', openapi, options)],
-    ['responses', (value) => checkResponse(value, contextServers, openapi, options)],
-    ['headers', (value) => checkHeader(value, contextServers, openapi, options)],
-    ['examples', (value) => {
-      if (isRef(value, '$ref')) runLinter('reference', value, options)
-      else checkExample(value, openapi.servers ? [openapi.servers] : [], openapi, options)
-    }],
-    ['links', (value) => {
-      if (isRef(value, '$ref')) runLinter('reference', value, options)
-      else checkLink(value, options)
-    }],
+    ['parameters', value => checkParam(value, '', '', contextServers, openapi, options)],
+    ['schemas', value => checkSchema(value, { anyOf: {} }, '', openapi, options)],
+    ['responses', value => checkResponse(value, contextServers, openapi, options)],
+    ['headers', value => checkHeader(value, contextServers, openapi, options)],
+    [
+      'examples',
+      value => {
+        if (isRef(value, '$ref')) runLinter('reference', value, options)
+        else checkExample(value, openapi.servers ? [openapi.servers] : [], openapi, options)
+      }
+    ],
+    [
+      'links',
+      value => {
+        if (isRef(value, '$ref')) runLinter('reference', value, options)
+        else checkLink(value, options)
+      }
+    ]
   ]
 
   for (const [section, check] of sections) {
@@ -1324,7 +1331,7 @@ const validateComponents = (
 const checkSecurityScheme = (
   scheme: JsonObject,
   contextServers: JsonValue[],
-  options: ValidateOptions,
+  options: ValidateOptions
 ): void => {
   assert('type' in scheme, options, 'securityScheme requires type')
   assertString(scheme.type, options, 'securityScheme type must be a string')
@@ -1332,7 +1339,7 @@ const checkSecurityScheme = (
   assert(
     ['apiKey', 'http', 'oauth2', 'openIdConnect'].includes(scheme.type),
     options,
-    'securityScheme type must be apiKey, http, oauth2 or openIdConnect',
+    'securityScheme type must be apiKey, http, oauth2 or openIdConnect'
   )
   if (scheme.type === 'http') {
     assert('scheme' in scheme, options, 'http securityScheme requires scheme')
@@ -1352,7 +1359,7 @@ const checkSecurityScheme = (
     assert(
       ['query', 'header', 'cookie'].includes(scheme.in),
       options,
-      'apiKey in must be query, header or cookie',
+      'apiKey in must be query, header or cookie'
     )
   } else {
     assert(!('name' in scheme), options, 'name only valid for apiKey securityScheme')
@@ -1373,7 +1380,7 @@ const checkSecurityScheme = (
           assert(
             !('authorizationUrl' in flow),
             options,
-            f + ' flow should not have authorizationUrl',
+            f + ' flow should not have authorizationUrl'
           )
         }
         if (f === 'password' || f === 'clientCredentials' || f === 'authorizationCode') {
@@ -1396,7 +1403,7 @@ const checkSecurityScheme = (
     assert(
       'openIdConnectUrl' in scheme,
       options,
-      'openIdConnect securityScheme requires openIdConnectUrl',
+      'openIdConnect securityScheme requires openIdConnectUrl'
     )
     assertString(scheme.openIdConnectUrl, options, 'openIdConnectUrl must be a string')
     validateUrl(scheme.openIdConnectUrl, contextServers, 'openIdConnectUrl', options)
@@ -1404,7 +1411,7 @@ const checkSecurityScheme = (
     assert(
       !('openIdConnectUrl' in scheme),
       options,
-      'openIdConnectUrl only valid for openIdConnect securityScheme',
+      'openIdConnectUrl only valid for openIdConnect securityScheme'
     )
   }
 }
@@ -1413,7 +1420,7 @@ const findExternalRefs = (
   master: JsonValue,
   options: ValidateOptions,
   externals: External[],
-  actions: Promise<JsonValue>[],
+  actions: Promise<JsonValue>[]
 ): JsonValue => {
   recurse(master, {}, (container, key, state: RecurseState) => {
     if (!isJsonObject(container)) return
@@ -1422,12 +1429,12 @@ const findExternalRefs = (
     if (!isString(ref) || ref.startsWith('#')) return
     contextStack(options).push(state.path)
     actions.push(
-      resolveExternal(master, ref, options, (data) => {
+      resolveExternal(master, ref, options, data => {
         const parent = state.parent
         const resolved = findExternalRefs(data, options, externals, actions)
         if (isJsonObject(parent)) parent[state.pkey] = resolved
         else if (isJsonArray(parent)) parent[Number(state.pkey)] = resolved
-      }),
+      })
     )
     contextPop(options)
   })

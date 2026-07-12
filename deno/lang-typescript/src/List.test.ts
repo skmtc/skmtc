@@ -256,7 +256,7 @@ Deno.test('List - fromEntries with undefined record returns empty EntryList', ()
 
 Deno.test('List - KeyList toObject with custom mapFn', () => {
   const keyList = List.fromKeys({ a: 1, b: 2, c: 3 })
-  const result = keyList.toObject((key) => `value_${key}`)
+  const result = keyList.toObject(key => `value_${key}`)
   const str = result.toString()
   assertEquals(str.includes('value_a'), true)
   assertEquals(str.includes('value_b'), true)
@@ -272,7 +272,7 @@ Deno.test('List - KeyList toObject with complex value mapping', () => {
 })
 
 Deno.test('List - KeyList toObjectPlain with special characters', () => {
-  const keyList = List.fromKeys({ 'foo-bar': 1, 'baz_qux': 2 })
+  const keyList = List.fromKeys({ 'foo-bar': 1, baz_qux: 2 })
   const result = keyList.toObjectPlain()
   const str = result.toString()
   assertEquals(str.includes('foo-bar'), true)
@@ -281,7 +281,7 @@ Deno.test('List - KeyList toObjectPlain with special characters', () => {
 
 Deno.test('List - KeyList toLines with custom mapFn', () => {
   const keyList = List.fromKeys({ a: 1, b: 2 })
-  const result = keyList.toLines((key) => `const ${key} = value`)
+  const result = keyList.toLines(key => `const ${key} = value`)
   assertEquals(result.toString(), 'const a = value\nconst b = value')
 })
 
@@ -306,7 +306,7 @@ Deno.test('List - KeyList toLinesPlain with empty KeyList', () => {
 
 Deno.test('List - KeyList toObject with skipEmpty option', () => {
   const keyList = List.fromKeys({})
-  const result = keyList.toObject((key) => key, { skipEmpty: true })
+  const result = keyList.toObject(key => key, { skipEmpty: true })
   assertEquals(result.toString(), '')
 })
 
@@ -320,7 +320,7 @@ Deno.test('List - KeyList with large number of keys', () => {
 })
 
 Deno.test('List - KeyList with Unicode keys', () => {
-  const keyList = List.fromKeys({ '日本語': 1, 'emoji😀': 2, 'Ελληνικά': 3 })
+  const keyList = List.fromKeys({ 日本語: 1, 'emoji😀': 2, Ελληνικά: 3 })
   const result = keyList.toObjectPlain()
   const str = result.toString()
   assertEquals(str.includes('日本語'), true)
@@ -344,7 +344,7 @@ Deno.test('List - EntryList toObject with value transformation', () => {
 
 Deno.test('List - EntryList toObject with undefined filtering', () => {
   const entryList = List.fromEntries({ a: 'A', b: 'B', c: 'C' })
-  const result = entryList.toObject(([key, value]) => key === 'b' ? undefined : value)
+  const result = entryList.toObject(([key, value]) => (key === 'b' ? undefined : value))
   assertEquals(result.toString(), '{A, C}')
 })
 
@@ -610,7 +610,7 @@ Deno.test('List - toLines with nested structures', () => {
 
 Deno.test('List - fromKeys to toObject to toString chain', () => {
   const result = List.fromKeys({ x: 1, y: 2 })
-    .toObject((key) => `val_${key}`)
+    .toObject(key => `val_${key}`)
     .toString()
   assertEquals(result.includes('val_x'), true)
   assertEquals(result.includes('val_y'), true)
@@ -640,7 +640,10 @@ Deno.test('List - real-world use case: function parameters', () => {
     'options?: RequestOptions',
     'callback?: (result: T) => void'
   ])
-  assertEquals(params.toString(), '(id: string, options?: RequestOptions, callback?: (result: T) => void)')
+  assertEquals(
+    params.toString(),
+    '(id: string, options?: RequestOptions, callback?: (result: T) => void)'
+  )
 })
 
 // ===== Edge Cases & Error Conditions =====

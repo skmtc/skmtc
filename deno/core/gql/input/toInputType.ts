@@ -31,11 +31,7 @@ export type ToInputTypeArgs = {
  * the field as well, which is preserved on the inner schema's
  * `default` slot when present.
  */
-export const toInputType = ({
-  inputType,
-  context,
-  stackTrail
-}: ToInputTypeArgs): OasObject => {
+export const toInputType = ({ inputType, context, stackTrail }: ToInputTypeArgs): OasObject => {
   recordAppliedDirectives({ astNode: inputType.astNode, stackTrail, context })
 
   const fields = inputType.getFields()
@@ -57,15 +53,17 @@ export const toInputType = ({
     })
   }
 
-  return context.withStackTrail(stackTrail, () =>
-    new OasObject(
-      {
-        title: inputType.name,
-        description: inputType.description ?? undefined,
-        properties,
-        required: required.length > 0 ? required : undefined
-      },
-      context
-    )
+  return context.withStackTrail(
+    stackTrail,
+    () =>
+      new OasObject(
+        {
+          title: inputType.name,
+          description: inputType.description ?? undefined,
+          properties,
+          required: required.length > 0 ? required : undefined
+        },
+        context
+      )
   )
 }

@@ -103,7 +103,7 @@ function deleteAt(tree: EnrichmentTree, path: string[]): EnrichmentTree {
 export function cleanEnrichmentValues(value: unknown): unknown {
   if (value === undefined || value === '') return undefined
   if (Array.isArray(value)) {
-    const items = value.map(cleanEnrichmentValues).filter((item) => item !== undefined)
+    const items = value.map(cleanEnrichmentValues).filter(item => item !== undefined)
     return items.length > 0 ? items : undefined
   }
   if (isRecord(value)) {
@@ -150,7 +150,7 @@ export function listVariants(
   subject: SubjectRef
 ): string[] {
   const node = getAt(tree, subjectPath(generator, subject))
-  const named = isRecord(node) ? Object.keys(node).filter((key) => key !== MAIN_VARIANT) : []
+  const named = isRecord(node) ? Object.keys(node).filter(key => key !== MAIN_VARIANT) : []
   return [MAIN_VARIANT, ...[...new Set(named)].sort((a, b) => a.localeCompare(b))]
 }
 
@@ -181,7 +181,7 @@ export function readStackScope(tree: EnrichmentTree): Leaf {
 
 function hasNamedVariants(tree: EnrichmentTree, generator: string, subject: SubjectRef): boolean {
   const node = getAt(tree, subjectPath(generator, subject))
-  return isRecord(node) && Object.keys(node).some((key) => key !== MAIN_VARIANT)
+  return isRecord(node) && Object.keys(node).some(key => key !== MAIN_VARIANT)
 }
 
 /**

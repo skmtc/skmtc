@@ -19,7 +19,11 @@ const realContext = (): ParseContext =>
   new ParseContext({
     input: {
       type: 'oas',
-      value: { openapi: '3.1.0', info: { title: 't', version: '1' }, paths: {} } as OpenAPIV3.Document
+      value: {
+        openapi: '3.1.0',
+        info: { title: 't', version: '1' },
+        paths: {}
+      } as OpenAPIV3.Document
     },
     logger: new log.Logger('test', 'ERROR'),
     silent: true
@@ -979,9 +983,7 @@ Deno.test('toSchemaV3 - OpenAPI 3.1 native null members', async t => {
   await t.step('oneOf:[{$ref},{type:null}] stamps nullable on the OasRef', () => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])
-    const schema = JSON.parse(
-      '{"oneOf": [{"$ref": "#/components/schemas/Foo"}, {"type": "null"}]}'
-    )
+    const schema = JSON.parse('{"oneOf": [{"$ref": "#/components/schemas/Foo"}, {"type": "null"}]}')
 
     const result = toSchemaV3({ schema, stackTrail, context })
 

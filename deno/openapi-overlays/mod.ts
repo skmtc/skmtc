@@ -35,6 +35,6 @@ export type {
   JsonValue,
   Overlay,
   OverlayAction,
-  OverlayFormat,
+  OverlayFormat
 } from './overlay.ts'
 export { type PathMatch, queryPaths } from './jsonpath.ts'

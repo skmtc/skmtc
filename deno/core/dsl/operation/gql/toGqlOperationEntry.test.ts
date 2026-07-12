@@ -73,7 +73,6 @@ Deno.test('toGqlOperationEntry - toPreviewModule is undefined when not provided'
   assertEquals(entry.toPreviewModule, undefined)
 })
 
-
 Deno.test('toGqlOperationEntry - toEnrichmentSchema is passed through from config', () => {
   const enrichmentSchemaFn = () => emptyEnrichmentSchema
   const entry = toGqlOperationEntry({
@@ -113,7 +112,6 @@ Deno.test('toGqlOperationEntry - includes toPreviewModule when provided', () => 
 
   assertEquals(entry.toPreviewModule, previewFn)
 })
-
 
 Deno.test('toGqlOperationEntry - includes all optional functions when provided', () => {
   const transformFn = () => {}

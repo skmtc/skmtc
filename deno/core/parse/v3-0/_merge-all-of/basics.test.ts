@@ -8,9 +8,9 @@ const mockGetRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
     return {
       type: 'string',
       description: 'Mock resolved reference'
-    };
+    }
   }
-  throw new Error(`Unknown ref: ${JSON.stringify(ref)}`);
+  throw new Error(`Unknown ref: ${JSON.stringify(ref)}`)
 }
 
 Deno.test('mergeAllOf - basic property merging', () => {

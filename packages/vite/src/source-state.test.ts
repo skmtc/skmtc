@@ -62,9 +62,7 @@ describe('SourceState.match in a nested monorepo', () => {
     // The nested Vite app: typescript + the lens contract are APP deps (not at
     // the repo root), the app owns the tsconfig, and the generated code lives
     // here. `typescript` is symlinked from this package's own install.
-    const tsPackageDir = dirname(
-      createRequire(import.meta.url).resolve('typescript/package.json')
-    )
+    const tsPackageDir = dirname(createRequire(import.meta.url).resolve('typescript/package.json'))
     await mkdir(join(viteRoot, 'node_modules'), { recursive: true })
     await symlink(tsPackageDir, join(viteRoot, 'node_modules', 'typescript'), 'dir')
     await write(join(viteRoot, 'package.json'), JSON.stringify({ name: 'x' }))
@@ -124,8 +122,8 @@ describe('SourceState.match in a nested monorepo', () => {
     expect(outcome.type).toBe('fits')
     if (outcome.type !== 'fits') return
     expect(outcome.fieldType).toContain('string[]')
-    expect(outcome.fits.map((c) => c.exportName)).toEqual(['OfficeSelect'])
-    expect(outcome.misfits.map((c) => c.exportName)).toEqual(['TextInput'])
+    expect(outcome.fits.map(c => c.exportName)).toEqual(['OfficeSelect'])
+    expect(outcome.misfits.map(c => c.exportName)).toEqual(['TextInput'])
   })
 
   it('rooting the probe at the skmtc root (the pre-fix bug) makes it unavailable', async () => {

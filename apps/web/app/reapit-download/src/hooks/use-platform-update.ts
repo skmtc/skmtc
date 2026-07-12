@@ -6,7 +6,7 @@ import {
   handleReapitError,
   NETWORK_ERROR,
   RC_SESSION_MISSING_ERROR,
-  StringMap,
+  StringMap
 } from './utils'
 import { useMutation } from '@tanstack/react-query'
 import axios, { AxiosError, AxiosResponseHeaders } from 'axios'
@@ -17,7 +17,7 @@ export type ReapitUpdateState<ParamsType, DataType> = [
   boolean,
   DataType | null,
   boolean,
-  boolean,
+  boolean
 ]
 
 type AcceptedMethod = 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'GET'
@@ -39,13 +39,17 @@ export const usePlatformUpdate = <ParamsType, DataType>({
   shouldReturnRecord = false,
   headers = {},
   errorMessage,
-  successMessage,
+  successMessage
 }: ReapitUpdate): ReapitUpdateState<ParamsType, DataType> => {
   const { error: errorSnack, success: successSnack } = useSnack()
   const navigate = useNavigate()
   const url = useMemo(getUrl(path), [path])
 
-  const { mutateAsync, data, isSuccess, isError, isPending } = useMutation<DataType, AxiosError<any>, ParamsType>({
+  const { mutateAsync, data, isSuccess, isError, isPending } = useMutation<
+    DataType,
+    AxiosError<any>,
+    ParamsType
+  >({
     mutationKey: [url],
     mutationFn: async (data: ParamsType) => {
       const updateHeaders = await getMergedHeaders(headers)
@@ -55,7 +59,7 @@ export const usePlatformUpdate = <ParamsType, DataType>({
       const res = await axios<DataType>(url, {
         method,
         headers: updateHeaders,
-        data,
+        data
       })
 
       if (!shouldReturnRecord) return true
@@ -65,11 +69,13 @@ export const usePlatformUpdate = <ParamsType, DataType>({
 
       if (!location) throw new Error('Location was not returned by server')
 
-      const locationUrl = location.includes('.prod.paas') ? location.replace('.prod.paas', '') : location
+      const locationUrl = location.includes('.prod.paas')
+        ? location.replace('.prod.paas', '')
+        : location
 
       const locationRes = await axios(locationUrl, {
         method: 'GET',
-        headers: updateHeaders,
+        headers: updateHeaders
       })
 
       return locationRes.data
@@ -88,10 +94,11 @@ export const usePlatformUpdate = <ParamsType, DataType>({
       const errorString = !isRcError ? handleReapitError(error, errorMessage) : null
       if (errorString) errorSnack(errorString, 5000)
       console.error(errorString)
-    },
+    }
   })
 
-  const updateFunction: UpdateFunction<ParamsType, DataType> = (data: ParamsType) => mutateAsync(data)
+  const updateFunction: UpdateFunction<ParamsType, DataType> = (data: ParamsType) =>
+    mutateAsync(data)
   const returnData = data ?? null
 
   return [updateFunction, isPending, returnData, isSuccess, isError]

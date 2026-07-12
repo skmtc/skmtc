@@ -26,11 +26,7 @@ export type ToUnionTypeArgs = {
  * if a member type fails to parse, the union's reference to it can be
  * pruned at the end of parsing.
  */
-export const toUnionType = ({
-  unionType,
-  context,
-  stackTrail
-}: ToUnionTypeArgs): OasUnion => {
+export const toUnionType = ({ unionType, context, stackTrail }: ToUnionTypeArgs): OasUnion => {
   recordAppliedDirectives({ astNode: unionType.astNode, stackTrail, context })
 
   const members: OasRef<'schema'>[] = stackTrail.trace('members', membersStack =>
@@ -42,15 +38,17 @@ export const toUnionType = ({
     )
   )
 
-  return context.withStackTrail(stackTrail, () =>
-    new OasUnion(
-      {
-        title: unionType.name,
-        description: unionType.description ?? undefined,
-        members,
-        discriminator: new OasDiscriminator({ propertyName: '__typename' })
-      },
-      context
-    )
+  return context.withStackTrail(
+    stackTrail,
+    () =>
+      new OasUnion(
+        {
+          title: unionType.name,
+          description: unionType.description ?? undefined,
+          members,
+          discriminator: new OasDiscriminator({ propertyName: '__typename' })
+        },
+        context
+      )
   )
 }

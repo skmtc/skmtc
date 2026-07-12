@@ -1,10 +1,5 @@
 import { normalize } from '@std/path/normalize'
-import type {
-  DefinitionBase,
-  GenerateContextType,
-  GeneratedValue,
-  Stringable
-} from '@skmtc/core'
+import type { DefinitionBase, GenerateContextType, GeneratedValue, Stringable } from '@skmtc/core'
 import { TsFile } from './TsFile.ts'
 import { TsImport, type ImportNameArg } from './TsImport.ts'
 import { TsReExport } from './TsReExport.ts'
@@ -98,9 +93,23 @@ export type TsDefineAndRegisterArgs<Value extends GeneratedValue> = {
  */
 export const defineAndRegister = <Value extends GeneratedValue>(
   context: GenerateContextType,
-  { identifier, value, destinationPath, description, leadingComment, noExport }: TsDefineAndRegisterArgs<Value>
+  {
+    identifier,
+    value,
+    destinationPath,
+    description,
+    leadingComment,
+    noExport
+  }: TsDefineAndRegisterArgs<Value>
 ): TsDefinition<Value> => {
-  const definition = new TsDefinition({ context, identifier, value, description, leadingComment, noExport })
+  const definition = new TsDefinition({
+    context,
+    identifier,
+    value,
+    description,
+    leadingComment,
+    noExport
+  })
 
   register(context, { definitions: [definition], destinationPath })
 

@@ -76,8 +76,7 @@ const FormBase = toTsOasOperationProjectionBase({
   id: '@test/form-gen',
   toIdentifierName: ({ variant }) => withVariant('PatchQuoteForm', variant),
   toIdentifierType: () => ({ type: 'variable' }),
-  toExportPath: ({ variant }) =>
-    `@/forms/${withVariant('PatchQuoteForm', variant)}.generated.tsx`,
+  toExportPath: ({ variant }) => `@/forms/${withVariant('PatchQuoteForm', variant)}.generated.tsx`,
   toEnrichmentSchema: () => variantEnrichmentSchema
 })
 
@@ -152,7 +151,7 @@ const runFixture = (variants: Record<string, unknown>) => {
     captureCurrentResult: () => {},
     toGeneratorConfigMap: () =>
       // deno-lint-ignore no-explicit-any
-      ({ '@test/form-gen': formEntry, '@test/hook-gen': hookEntry } as any)
+      ({ '@test/form-gen': formEntry, '@test/hook-gen': hookEntry }) as any
   })
 
   return context.toArtifacts(new StackTrail(['test']))

@@ -15,7 +15,7 @@ export const mockContactModelPagedResult: ContactModelPagedResult = {
       identityCheck: 'unchecked',
       source: {
         id: 'SRC157',
-        type: 'source',
+        type: 'source'
       },
       homePhone: '234234234',
       workPhone: '2342342344',
@@ -31,7 +31,7 @@ export const mockContactModelPagedResult: ContactModelPagedResult = {
         line3: 'Foo',
         line4: 'Bar',
         postcode: 'Foo',
-        countryId: 'GB',
+        countryId: 'GB'
       },
       secondaryAddress: {
         type: 'primary',
@@ -42,7 +42,7 @@ export const mockContactModelPagedResult: ContactModelPagedResult = {
         line3: 'Foo',
         line4: 'Bar',
         postcode: 'Foo',
-        countryId: 'GB',
+        countryId: 'GB'
       },
       workAddress: {
         type: 'primary',
@@ -53,7 +53,7 @@ export const mockContactModelPagedResult: ContactModelPagedResult = {
         line3: 'Foo',
         line4: 'Bar',
         postcode: 'Foo',
-        countryId: 'GB',
+        countryId: 'GB'
       },
       officeIds: ['LEA'],
       negotiatorIds: ['MRLN'],
@@ -66,34 +66,34 @@ export const mockContactModelPagedResult: ContactModelPagedResult = {
       _eTag: '"997FDB9A176B6E8E07927EBA27E1A8F6"',
       _links: {
         self: {
-          href: '/contacts/MKT23007375',
+          href: '/contacts/MKT23007375'
         },
         documents: {
-          href: '/documents/?associatedType=contact&associatedId=MKT23007375',
+          href: '/documents/?associatedType=contact&associatedId=MKT23007375'
         },
         identityChecks: {
-          href: '/identityChecks/?contactId=MKT23007375',
+          href: '/identityChecks/?contactId=MKT23007375'
         },
         offices: {
-          href: '/offices/?id=LEA',
+          href: '/offices/?id=LEA'
         },
         negotiators: {
-          href: '/negotiators/?id=MRLN',
+          href: '/negotiators/?id=MRLN'
         },
         categories: {
-          href: '/configuration/contactCategories/?id=XLY',
+          href: '/configuration/contactCategories/?id=XLY'
         },
         relationships: {
-          href: '/contacts/MKT23007375/relationships',
+          href: '/contacts/MKT23007375/relationships'
         },
         subscriptions: {
-          href: '/contacts/MKT23007375/subscriptions',
+          href: '/contacts/MKT23007375/subscriptions'
         },
         source: {
-          href: '/sources/SRC157',
-        },
+          href: '/sources/SRC157'
+        }
       },
-      metadata: {},
+      metadata: {}
     },
     {
       id: 'MKT23007374',
@@ -108,7 +108,7 @@ export const mockContactModelPagedResult: ContactModelPagedResult = {
       identityCheck: 'unchecked',
       source: {
         id: 'SRC157',
-        type: 'source',
+        type: 'source'
       },
       homePhone: '234234234',
       workPhone: '2342342344',
@@ -124,7 +124,7 @@ export const mockContactModelPagedResult: ContactModelPagedResult = {
         line3: 'Foo',
         line4: 'Bar',
         postcode: 'Foo',
-        countryId: 'GB',
+        countryId: 'GB'
       },
       secondaryAddress: {
         type: 'secondary',
@@ -135,7 +135,7 @@ export const mockContactModelPagedResult: ContactModelPagedResult = {
         line3: 'Foo',
         line4: 'Bar',
         postcode: 'Foo',
-        countryId: 'GB',
+        countryId: 'GB'
       },
       workAddress: {
         type: 'work',
@@ -146,7 +146,7 @@ export const mockContactModelPagedResult: ContactModelPagedResult = {
         line3: 'Foo',
         line4: 'Bar',
         postcode: 'Foo',
-        countryId: 'GB',
+        countryId: 'GB'
       },
       officeIds: ['LEA'],
       negotiatorIds: ['MRLN'],
@@ -159,35 +159,35 @@ export const mockContactModelPagedResult: ContactModelPagedResult = {
       _eTag: '"9A61974D882B5838D2C8F434DDAE383F"',
       _links: {
         self: {
-          href: '/contacts/MKT23007374',
+          href: '/contacts/MKT23007374'
         },
         documents: {
-          href: '/documents/?associatedType=contact&associatedId=MKT23007374',
+          href: '/documents/?associatedType=contact&associatedId=MKT23007374'
         },
         identityChecks: {
-          href: '/identityChecks/?contactId=MKT23007374',
+          href: '/identityChecks/?contactId=MKT23007374'
         },
         offices: {
-          href: '/offices/?id=LEA',
+          href: '/offices/?id=LEA'
         },
         negotiators: {
-          href: '/negotiators/?id=MRLN',
+          href: '/negotiators/?id=MRLN'
         },
         categories: {
-          href: '/configuration/contactCategories/?id=XLY',
+          href: '/configuration/contactCategories/?id=XLY'
         },
         relationships: {
-          href: '/contacts/MKT23007374/relationships',
+          href: '/contacts/MKT23007374/relationships'
         },
         subscriptions: {
-          href: '/contacts/MKT23007374/subscriptions',
+          href: '/contacts/MKT23007374/subscriptions'
         },
         source: {
-          href: '/sources/SRC157',
-        },
+          href: '/sources/SRC157'
+        }
       },
-      metadata: {},
-    },
+      metadata: {}
+    }
   ],
   pageNumber: 1,
   pageSize: 12,
@@ -196,12 +196,12 @@ export const mockContactModelPagedResult: ContactModelPagedResult = {
   totalCount: 2,
   _links: {
     self: {
-      href: '/contacts/?PageNumber=1&PageSize=12&name=foo bar',
+      href: '/contacts/?PageNumber=1&PageSize=12&name=foo bar'
     },
     first: {
-      href: '/contacts/?PageNumber=1&PageSize=12&name=foo bar',
-    },
-  },
+      href: '/contacts/?PageNumber=1&PageSize=12&name=foo bar'
+    }
+  }
 }
 
 export const mockContactModel: ContactModel = {
@@ -217,7 +217,7 @@ export const mockContactModel: ContactModel = {
   identityCheck: 'unchecked',
   source: {
     id: 'SRC157',
-    type: 'source',
+    type: 'source'
   },
   homePhone: '234234234',
   workPhone: '2342342344',
@@ -233,7 +233,7 @@ export const mockContactModel: ContactModel = {
     line3: 'Foo',
     line4: 'Bar',
     postcode: 'Foo',
-    countryId: 'GB',
+    countryId: 'GB'
   },
   secondaryAddress: {
     type: 'primary',
@@ -244,7 +244,7 @@ export const mockContactModel: ContactModel = {
     line3: 'Foo',
     line4: 'Bar',
     postcode: 'Foo',
-    countryId: 'GB',
+    countryId: 'GB'
   },
   workAddress: {
     type: 'primary',
@@ -255,7 +255,7 @@ export const mockContactModel: ContactModel = {
     line3: 'Foo',
     line4: 'Bar',
     postcode: 'Foo',
-    countryId: 'GB',
+    countryId: 'GB'
   },
   officeIds: ['LEA'],
   negotiatorIds: ['MRLN'],
@@ -267,32 +267,32 @@ export const mockContactModel: ContactModel = {
   _eTag: '"997FDB9A176B6E8E07927EBA27E1A8F6"',
   _links: {
     self: {
-      href: '/contacts/MKT23007375',
+      href: '/contacts/MKT23007375'
     },
     documents: {
-      href: '/documents/?associatedType=contact&associatedId=MKT23007375',
+      href: '/documents/?associatedType=contact&associatedId=MKT23007375'
     },
     identityChecks: {
-      href: '/identityChecks/?contactId=MKT23007375',
+      href: '/identityChecks/?contactId=MKT23007375'
     },
     offices: {
-      href: '/offices/?id=LEA',
+      href: '/offices/?id=LEA'
     },
     negotiators: {
-      href: '/negotiators/?id=MRLN',
+      href: '/negotiators/?id=MRLN'
     },
     categories: {
-      href: '/configuration/contactCategories/?id=XLY',
+      href: '/configuration/contactCategories/?id=XLY'
     },
     relationships: {
-      href: '/contacts/MKT23007375/relationships',
+      href: '/contacts/MKT23007375/relationships'
     },
     subscriptions: {
-      href: '/contacts/MKT23007375/subscriptions',
+      href: '/contacts/MKT23007375/subscriptions'
     },
     source: {
-      href: '/sources/SRC157',
-    },
+      href: '/sources/SRC157'
+    }
   },
   metadata: {},
   _embedded: {
@@ -313,14 +313,14 @@ export const mockContactModel: ContactModel = {
         _eTag: '"93E3A22E2258AD53312B8AE4E28C851E"',
         _links: {
           self: {
-            href: '/negotiators/MRLN',
+            href: '/negotiators/MRLN'
           },
           office: {
-            href: '/offices/TLE',
-          },
+            href: '/offices/TLE'
+          }
         },
-        _embedded: null,
-      },
+        _embedded: null
+      }
     ],
     offices: [
       {
@@ -338,7 +338,7 @@ export const mockContactModel: ContactModel = {
           line3: 'West Midlands',
           line4: '',
           postcode: 'B91 2BD',
-          countryId: 'GB',
+          countryId: 'GB'
         },
         additionalContactDetails: [],
         workPhone: '01234 567890',
@@ -348,14 +348,14 @@ export const mockContactModel: ContactModel = {
         extrasField: {},
         _links: {
           self: {
-            href: '/offices/LEA',
+            href: '/offices/LEA'
           },
           negotiators: {
-            href: '/negotiators/?officeId=LEA',
-          },
+            href: '/negotiators/?officeId=LEA'
+          }
         },
-        _embedded: null,
-      },
+        _embedded: null
+      }
     ],
     source: {
       id: 'SRC157',
@@ -368,10 +368,10 @@ export const mockContactModel: ContactModel = {
       _eTag: '"A14777181529994196E3CDA0E05335ED"',
       _links: {
         self: {
-          href: '/sources/SRC157',
-        },
+          href: '/sources/SRC157'
+        }
       },
-      _embedded: null,
-    },
-  },
+      _embedded: null
+    }
+  }
 }

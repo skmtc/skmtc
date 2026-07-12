@@ -33,10 +33,7 @@ export const toBaselinesDir = (projectPath: string): string => {
  * above, this must survive fresh clones — it is the merge/drift base
  * for a file the user owns).
  */
-export const toCommittedBaselinePath = (
-  projectPath: string,
-  ownedArtifactPath: string
-): string => {
+export const toCommittedBaselinePath = (projectPath: string, ownedArtifactPath: string): string => {
   return join(projectPath, '.settings', 'baselines', ownedArtifactPath)
 }
 

@@ -32,10 +32,7 @@ import { parseGqlDocument } from '@/gql/document/parseGqlDocument.ts'
 import type { Logger } from '@/types/Logger.ts'
 export type { AttributionState } from '@/types/AttributionState.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
-import type {
-  SkmtcDocumentInput,
-  SkmtcParsedDocument
-} from '@/types/SkmtcDocument.ts'
+import type { SkmtcDocumentInput, SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type {
   GqlParseOptions,
   LogAtArgs,
@@ -87,7 +84,6 @@ type GqlProtocolState = {
 
 type ProtocolState = OasProtocolState | GqlProtocolState
 
-
 type ConstructorArgs = {
   input: SkmtcDocumentInput
   logger: Logger
@@ -133,8 +129,7 @@ export class ParseContext {
         break
       }
       case 'gql': {
-        const schema =
-          typeof input.value === 'string' ? buildSchema(input.value) : input.value
+        const schema = typeof input.value === 'string' ? buildSchema(input.value) : input.value
         this.protocol = {
           type: 'gql',
           schema,
@@ -442,9 +437,7 @@ export class ParseContext {
   // -- OAS-flavored surface (StackTrail-based) ---------------------
 
   logIssue({ key, parent, type, stackTrail, ...issue }: LogIssueArgs): void {
-    stackTrail.trace(key, st =>
-      this.logIssueNoKey({ parent, type, stackTrail: st, ...issue })
-    )
+    stackTrail.trace(key, st => this.logIssueNoKey({ parent, type, stackTrail: st, ...issue }))
   }
 
   logIssueNoKey({ parent, type, stackTrail, ...issue }: LogIssueNoKeyArgs): void {
@@ -565,4 +558,3 @@ export class ParseContext {
     })
   }
 }
-

@@ -37,10 +37,7 @@ Deno.test('GoStruct lowercases unexported fields (visibility via casing)', () =>
 
   assertEquals(
     struct.toString(),
-    'struct {\n' +
-      '\tId string `json:"id"`\n' +
-      '\tsecret string `json:"secret"`\n' +
-      '}'
+    'struct {\n' + '\tId string `json:"id"`\n' + '\tsecret string `json:"secret"`\n' + '}'
   )
 })
 

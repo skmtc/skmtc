@@ -20,9 +20,7 @@
   "paths": {
     "/organizations/{organizationId}": {
       "get": {
-        "tags": [
-          "organization"
-        ],
+        "tags": ["organization"],
         "summary": "Get organization details",
         "operationId": "get_organization",
         "parameters": [
@@ -83,9 +81,7 @@
     },
     "/organizations/{organizationId}/analytics": {
       "get": {
-        "tags": [
-          "organization"
-        ],
+        "tags": ["organization"],
         "summary": "Retrieve organization analytics",
         "description": "This API returns analytics for the specified organization.\nThe analytics are returned as time series data in 15 minute intervals, with\nthe `time` field representing the start of the interval.",
         "operationId": "get_organization_analytics",
@@ -169,9 +165,7 @@
     },
     "/organizations/{organizationId}/projects": {
       "get": {
-        "tags": [
-          "project"
-        ],
+        "tags": ["project"],
         "summary": "List projects of an organization",
         "description": "This API returns a list of projects belonging to the specified organization\nin a pagenated manner.\nThe URLs for the next, previous, first, and last page are returned in the\n`Link` header of the response, if any.",
         "operationId": "list_projects",
@@ -296,9 +290,7 @@
         }
       },
       "post": {
-        "tags": [
-          "project"
-        ],
+        "tags": ["project"],
         "summary": "Create a project",
         "description": "This API allows you to create a new project under the specified\norganization.\nThe project name is optional; if not provided, a random name will be\ngenerated.",
         "operationId": "create_project",
@@ -370,9 +362,7 @@
     },
     "/organizations/{organizationId}/databases": {
       "get": {
-        "tags": [
-          "database"
-        ],
+        "tags": ["database"],
         "summary": "List KV databases of an organization",
         "description": "This API returns a list of KV databases belonging to the specified organization\nin a pagenated manner.\nThe URLs for the next, previous, first, and last page are returned in the\n`Link` header of the response, if any.",
         "operationId": "list_kv_databases",
@@ -497,9 +487,7 @@
         }
       },
       "post": {
-        "tags": [
-          "database"
-        ],
+        "tags": ["database"],
         "summary": "Create a KV database",
         "description": "This API allows you to create a new KV database under the specified\norganization. You will then be able to associate the created KV database\nwith a new deployment by specifying the KV database ID in the \"Create a\ndeployment\" API call.",
         "operationId": "create_kv_database",
@@ -571,9 +559,7 @@
     },
     "/databases/{databaseId}": {
       "patch": {
-        "tags": [
-          "database"
-        ],
+        "tags": ["database"],
         "summary": "Update KV database details",
         "operationId": "update_kv_database",
         "parameters": [
@@ -644,9 +630,7 @@
     },
     "/databases/{databaseId}/database_backups": {
       "post": {
-        "tags": [
-          "databaseBackup"
-        ],
+        "tags": ["databaseBackup"],
         "summary": "Enable a database backup",
         "description": "This API allows you to enable a backup for a KV database. The backup can be\nstored in your S3 bucket.\n\nCurrently, only one backup can be enabled per database. When a second backup\nis being configured, the API will return a `409 Conflict` error.",
         "operationId": "enable_kv_backup",
@@ -736,9 +720,7 @@
         }
       },
       "get": {
-        "tags": [
-          "databaseBackup"
-        ],
+        "tags": ["databaseBackup"],
         "summary": "List database backups of a database",
         "description": "This API returns a list of backups of the specified KV database.\n\nNote that currently more than one backups are not supported for a single\ndatabase. So this API will return either an empty list or a list with a\nsingle item.",
         "operationId": "list_kv_backups",
@@ -803,9 +785,7 @@
     },
     "/database_backups/{databaseBackupId}": {
       "get": {
-        "tags": [
-          "databaseBackup"
-        ],
+        "tags": ["databaseBackup"],
         "summary": "Get database backup details",
         "description": "This API returns the details of the specified database backup.",
         "operationId": "get_kv_backup",
@@ -865,9 +845,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "databaseBackup"
-        ],
+        "tags": ["databaseBackup"],
         "summary": "Disable a database backup",
         "description": "This API allows you to disable a backup for a KV database.",
         "operationId": "disable_kv_backup",
@@ -939,9 +917,7 @@
     },
     "/projects/{projectId}": {
       "get": {
-        "tags": [
-          "project"
-        ],
+        "tags": ["project"],
         "summary": "Get project details",
         "operationId": "get_project",
         "parameters": [
@@ -1000,9 +976,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "project"
-        ],
+        "tags": ["project"],
         "summary": "Update project details",
         "operationId": "update_project",
         "parameters": [
@@ -1071,9 +1045,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "project"
-        ],
+        "tags": ["project"],
         "summary": "Delete a project",
         "operationId": "delete_project",
         "parameters": [
@@ -1127,9 +1099,7 @@
     },
     "/projects/{projectId}/analytics": {
       "get": {
-        "tags": [
-          "project"
-        ],
+        "tags": ["project"],
         "summary": "Retrieve project analytics",
         "description": "This API returns analytics for the specified project.\nThe analytics are returned as time series data in 15 minute intervals, with\nthe `time` field representing the start of the interval.",
         "operationId": "get_project_analytics",
@@ -1213,9 +1183,7 @@
     },
     "/projects/{projectId}/deployments": {
       "get": {
-        "tags": [
-          "deployment"
-        ],
+        "tags": ["deployment"],
         "summary": "List deployments of a project",
         "description": "This API returns a list of deployments belonging to the specified project in\na pagenated manner.\n\nThe URLs for the next, previous, first, and last page are returned in the\n`Link` header of the response, if any.",
         "operationId": "list_deployments",
@@ -1340,9 +1308,7 @@
         }
       },
       "post": {
-        "tags": [
-          "deployment"
-        ],
+        "tags": ["deployment"],
         "summary": "Create a deployment",
         "description": "This API initiates a build process for a new deployment.\n\nNote that this process is asynchronous; the completion of this API doesn't\nmean the deployment is ready. In order to keep track of the progress of the\nbuild, call the \"Get build logs of a deployment\" API or the \"Get deployment\ndetails\" API.",
         "operationId": "create_deployment",
@@ -1414,9 +1380,7 @@
     },
     "/deployments/{deploymentId}/redeploy": {
       "post": {
-        "tags": [
-          "deployment"
-        ],
+        "tags": ["deployment"],
         "summary": "Redeploy a deployment with different configuration",
         "operationId": "redeploy_deployment",
         "parameters": [
@@ -1486,9 +1450,7 @@
     },
     "/deployments/{deploymentId}": {
       "get": {
-        "tags": [
-          "deployment"
-        ],
+        "tags": ["deployment"],
         "summary": "Get deployment details",
         "operationId": "get_deployment",
         "parameters": [
@@ -1546,9 +1508,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "deployment"
-        ],
+        "tags": ["deployment"],
         "summary": "Delete a deployment",
         "operationId": "delete_deployment",
         "parameters": [
@@ -1601,9 +1561,7 @@
     },
     "/deployments/{deploymentId}/build_logs": {
       "get": {
-        "tags": [
-          "deployment"
-        ],
+        "tags": ["deployment"],
         "summary": "Get build logs of a deployment",
         "description": "This API returns build logs of the specified deployment. It's useful to watch\nthe build progress, figure out what went wrong in case of a build failure,\nand so on.\n\nThe response format can be controlled by the `Accept` header; if\n`application/x-ndjson` is specified, the response will be a stream of\nnewline-delimited JSON objects. Otherwise it will be a JSON array of\nobjects.",
         "operationId": "get_build_logs",
@@ -1672,9 +1630,7 @@
     },
     "/deployments/{deploymentId}/app_logs": {
       "get": {
-        "tags": [
-          "deployment"
-        ],
+        "tags": ["deployment"],
         "summary": "Get execution logs of a deployment",
         "description": "This API can return either past logs or real-time logs depending on the\npresence of the since and until query parameters; if at least one of them\nis provided, past logs are returned, otherwise real-time logs are returned.\n\nAlso, the response format can be controlled by the `Accept` header; if\n`application/x-ndjson` is specified, the response will be a stream of\nnewline-delimited JSON objects. Otherwise it will be a JSON array of\nobjects.",
         "operationId": "get_app_logs",
@@ -1859,9 +1815,7 @@
     },
     "/deployments/{deploymentId}/domains/{domain}": {
       "put": {
-        "tags": [
-          "deployment"
-        ],
+        "tags": ["deployment"],
         "summary": "Attach a domain to a deployment",
         "description": "This API allows you to attach a domain to an existing deployment. Once\nattached, the deployment will become accessible via that domain.\n\nIf the specified domain is already attached to another deployment, it will\nbe detached from the current deployment and attached to the new one.",
         "operationId": "attach_domain_to_deployment",
@@ -1930,9 +1884,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "deployment"
-        ],
+        "tags": ["deployment"],
         "summary": "Detach a domain from a deployment",
         "description": "This API disassociates a domain from a deployment. Once this operation is\ncompleted, the deployment will no longer be accessible via that domain.",
         "operationId": "detach_domain_from_deployment",
@@ -1995,9 +1947,7 @@
     },
     "/organizations/{organizationId}/domains": {
       "get": {
-        "tags": [
-          "domain"
-        ],
+        "tags": ["domain"],
         "summary": "List domains of an organization",
         "description": "This API returns a list of domains belonging to the specified organization\nin a pagenated manner.\n\nThe URLs for the next, previous, first, and last page are returned in the\n`Link` header of the response, if any.",
         "operationId": "list_domains",
@@ -2122,9 +2072,7 @@
         }
       },
       "post": {
-        "tags": [
-          "domain"
-        ],
+        "tags": ["domain"],
         "summary": "Add a domain to an organization",
         "description": "This API allows you to add a new domain to the specified organization.\n\n### Steps to make the added domain available for actual use\n\nIn order to make the added domain available for actual use, you first need\nto verify that you are the owner of the domain by calling\n[the verify ownership of a domain endpoint](#post-/domains/-domainId-/verify)\nafter properly setting up the DNS records for the domain as specified in the\n`dnsRecords` field of the response of this API.\n\nYou then also need to have TLS certificates ready for the domain, either by\n[enabling auto-provision](#post-/domains/-domainId-/certificates/provision)\nor by [uploading them manually](#post-/domains/-domainId-/certificates).",
         "operationId": "create_domain",
@@ -2196,9 +2144,7 @@
     },
     "/domains/{domainId}": {
       "get": {
-        "tags": [
-          "domain"
-        ],
+        "tags": ["domain"],
         "summary": "Get domain details",
         "operationId": "get_domain",
         "parameters": [
@@ -2257,9 +2203,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "domain"
-        ],
+        "tags": ["domain"],
         "summary": "Associate a domain with a deployment",
         "description": "This API allows you to either:\n\n1. associate a domain with a deployment, or\n2. disassociate a domain from a deployment\n\nDomain association is required in order to serve the deployment on the\ndomain.\n\nIf the ownership of the domain is not verified yet, this API will trigger\nthe verification process before associating the domain with the deployment.\n\nThe same functionality is provided by [Attach a domain to a deployment] with\nmore flexibility. Consider using that API instead.\n\n[Attach a domain to a deployment]: #put-/deployments/-deploymentId-/domains/-domain-",
         "operationId": "update_domain_association",
@@ -2323,9 +2267,7 @@
         "deprecated": true
       },
       "delete": {
-        "tags": [
-          "domain"
-        ],
+        "tags": ["domain"],
         "summary": "Delete a domain",
         "operationId": "delete_domain",
         "parameters": [
@@ -2379,9 +2321,7 @@
     },
     "/domains/{domainId}/verify": {
       "post": {
-        "tags": [
-          "domain"
-        ],
+        "tags": ["domain"],
         "summary": "Verify ownership of a domain",
         "description": "This API triggers the ownership verification of a domain. It should be\ncalled after necessary DNS records that appear in the `dnsRecords` field\nof the response of [add a domain](#post-/organizations/-organizationId-/domains)\nare set up.\n\n### Domain reactivation\n\nIf a previously vefified domain, owned by the same organization, was deleted\nand then re-added, deployments associated with the domain will become\naccessible via the domain once the verification is successfully completed.\n\nFor example, if the domain `*.example.com` was owned and verified by\n`example-org` and `foo.example.com` was attached to `example-deployment`,\nthe deployment was accessible via `foo.example.com`. However, if the domain\nis deleted from the organization, access to the deployment via\n`foo.example.com` is lost, which we refer to as domain deactivation.\n\nSubsequently, if `*.example.com` (or even `foo.example.com`) is re-added to\nthe organization and verified, the deployment becomes accessible via\n`foo.example.com` again without any further steps, i.e. the domain is\nreactivated.",
         "operationId": "verify_domain",
@@ -2436,9 +2376,7 @@
     },
     "/domains/{domainId}/certificates": {
       "post": {
-        "tags": [
-          "domain"
-        ],
+        "tags": ["domain"],
         "summary": "Upload TLS certificate for a domain",
         "description": "This API allows you to upload a TLS certificate for a domain.\n\nIf the ownership of the domain is not verified yet, this API will trigger\nthe verification process before storing the certificate.",
         "operationId": "add_domain_certificate",
@@ -2503,9 +2441,7 @@
     },
     "/domains/{domainId}/certificates/provision": {
       "post": {
-        "tags": [
-          "domain"
-        ],
+        "tags": ["domain"],
         "summary": "Provision TLS certificates for a domain",
         "description": "This API begins the provisioning of TLS certificates for a domain.\n\nNote that a call to this API may take a while, up to a minute or so.\n\nIf the ownership of the domain is not verified yet, this API will trigger\nthe verification process before provisioning the certificate.",
         "operationId": "provision_domain_certificates",
@@ -2563,10 +2499,7 @@
     "schemas": {
       "AddDomainCertificateRequest": {
         "type": "object",
-        "required": [
-          "privateKey",
-          "certificateChain"
-        ],
+        "required": ["privateKey", "certificateChain"],
         "properties": {
           "privateKey": {
             "type": "string",
@@ -2584,10 +2517,7 @@
       "Analytics": {
         "type": "object",
         "description": "Project analytics data",
-        "required": [
-          "fields",
-          "values"
-        ],
+        "required": ["fields", "values"],
         "properties": {
           "fields": {
             "type": "array",
@@ -2658,21 +2588,11 @@
             }
           ],
           "values": [
-            [
-              "2023-08-01T00:00:00Z",
-              111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111],
-            [
-              "2023-08-01T00:15:00Z",
-              222, 222, 222, 222, 222, 222, 222, 222, 222, 222, 222],
-            [
-              "2023-08-01T00:30:00Z",
-              333, 333, 333, 333, 333, 333, 333, 333, 333, 333, 333],
-            [
-              "2023-08-01T00:45:00Z",
-              444, 444, 444, 444, 444, 444, 444, 444, 444, 444, 444],
-            [
-              "2023-08-01T01:00:00Z",
-              555, 555, 555, 555, 555, 555, 555, 555, 555, 555, 555]
+            ["2023-08-01T00:00:00Z", 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111],
+            ["2023-08-01T00:15:00Z", 222, 222, 222, 222, 222, 222, 222, 222, 222, 222, 222],
+            ["2023-08-01T00:30:00Z", 333, 333, 333, 333, 333, 333, 333, 333, 333, 333, 333],
+            ["2023-08-01T00:45:00Z", 444, 444, 444, 444, 444, 444, 444, 444, 444, 444, 444],
+            ["2023-08-01T01:00:00Z", 555, 555, 555, 555, 555, 555, 555, 555, 555, 555, 555]
           ]
         }
       },
@@ -2692,17 +2612,12 @@
           {
             "type": "boolean"
           },
-          {
-
-          }
+          {}
         ]
       },
       "AnalyticsFieldSchema": {
         "type": "object",
-        "required": [
-          "name",
-          "type"
-        ],
+        "required": ["name", "type"],
         "properties": {
           "name": {
             "type": "string"
@@ -2716,22 +2631,11 @@
       "AnalyticsFieldType": {
         "type": "string",
         "description": "A data type that analytic data can be represented in.\n\nInspired by Grafana's data types defined at:\nhttps://github.com/grafana/grafana/blob/e3288834b37b9aac10c1f43f0e621b35874c1f8a/packages/grafana-data/src/types/dataFrame.ts#L11-L23",
-        "enum": [
-          "time",
-          "number",
-          "string",
-          "boolean",
-          "other"
-        ]
+        "enum": ["time", "number", "string", "boolean", "other"]
       },
       "AppLogsResponseEntry": {
         "type": "object",
-        "required": [
-          "time",
-          "level",
-          "message",
-          "region"
-        ],
+        "required": ["time", "level", "message", "region"],
         "properties": {
           "time": {
             "type": "string",
@@ -2761,15 +2665,11 @@
               },
               {
                 "type": "object",
-                "required": [
-                  "kind"
-                ],
+                "required": ["kind"],
                 "properties": {
                   "kind": {
                     "type": "string",
-                    "enum": [
-                      "file"
-                    ]
+                    "enum": ["file"]
                   }
                 }
               }
@@ -2782,15 +2682,11 @@
               },
               {
                 "type": "object",
-                "required": [
-                  "kind"
-                ],
+                "required": ["kind"],
                 "properties": {
                   "kind": {
                     "type": "string",
-                    "enum": [
-                      "symlink"
-                    ]
+                    "enum": ["symlink"]
                   }
                 }
               }
@@ -2810,9 +2706,7 @@
       },
       "AttachDomainResponse": {
         "type": "object",
-        "required": [
-          "domain"
-        ],
+        "required": ["domain"],
         "properties": {
           "domain": {
             "type": "string",
@@ -2827,10 +2721,7 @@
       },
       "BuildLogsResponseEntry": {
         "type": "object",
-        "required": [
-          "level",
-          "message"
-        ],
+        "required": ["level", "message"],
         "properties": {
           "level": {
             "type": "string",
@@ -2885,11 +2776,7 @@
       },
       "CreateDeploymentRequest": {
         "type": "object",
-        "required": [
-          "entryPointUrl",
-          "assets",
-          "envVars"
-        ],
+        "required": ["entryPointUrl", "assets", "envVars"],
         "properties": {
           "entryPointUrl": {
             "type": "string",
@@ -3002,21 +2889,14 @@
           },
           "requestTimeout": 10000,
           "permissions": {
-            "net": [
-              "example.com",
-              "34.120.54.55",
-              "[2600:1901:0:6d85::]",
-              "*"
-            ]
+            "net": ["example.com", "34.120.54.55", "[2600:1901:0:6d85::]", "*"]
           },
           "description": "My first deployment"
         }
       },
       "CreateDomainRequest": {
         "type": "object",
-        "required": [
-          "domain"
-        ],
+        "required": ["domain"],
         "properties": {
           "domain": {
             "type": "string",
@@ -3064,14 +2944,7 @@
       },
       "Deployment": {
         "type": "object",
-        "required": [
-          "id",
-          "projectId",
-          "status",
-          "databases",
-          "createdAt",
-          "updatedAt"
-        ],
+        "required": ["id", "projectId", "status", "databases", "createdAt", "updatedAt"],
         "properties": {
           "id": {
             "$ref": "#/components/schemas/DeploymentId"
@@ -3095,9 +2968,7 @@
             "items": {
               "type": "string"
             },
-            "example": [
-              "example.com"
-            ],
+            "example": ["example.com"],
             "nullable": true
           },
           "databases": {
@@ -3155,12 +3026,7 @@
               "type": "string"
             },
             "description": "A list of IP addresses that the deployment is allowed to make outbound\nnetwork requests to.\n\nEach element must be a valid IPv4, IPv6, or a hostname like `example.com`\nalthough outbound network requests using IPv6 are not supported yet in\nDeno Deploy regardless.\nIn addition to these, a special value `*` can be used, which means all\naccesses are allowed. Also note the following:\n\n- If omitted, all accesses will be allowed.\n- If an empty list is provided, all accesses will be **denied**.",
-            "example": [
-              "example.com",
-              "34.120.54.55",
-              "[2600:1901:0:6d85::]",
-              "*"
-            ],
+            "example": ["example.com", "34.120.54.55", "[2600:1901:0:6d85::]", "*"],
             "nullable": true
           }
         },
@@ -3176,12 +3042,7 @@
               "type": "string"
             },
             "description": "A list of IP addresses that the deployment is allowed to make outbound\nnetwork requests to.\n\nEach element must be a valid IPv4, IPv6, or a hostname like `example.com`\nalthough outbound network requests using IPv6 are not supported yet in\nDeno Deploy regardless.\nIn addition to these, a special value `*` can be used, which means all\naccesses are allowed. Also note the following:\n\n- If omitted, no update will happen to the existing permissions.\n- If an empty list is provided, all accesses will be **denied**.",
-            "example": [
-              "example.com",
-              "34.120.54.55",
-              "[2600:1901:0:6d85::]",
-              "*"
-            ],
+            "example": ["example.com", "34.120.54.55", "[2600:1901:0:6d85::]", "*"],
             "nullable": true
           }
         },
@@ -3190,11 +3051,7 @@
       "DeploymentStatus": {
         "type": "string",
         "description": "The status of a deployment.",
-        "enum": [
-          "failed",
-          "pending",
-          "success"
-        ],
+        "enum": ["failed", "pending", "success"],
         "example": "success"
       },
       "DisableKvDatabaseBackupResponse": {
@@ -3202,11 +3059,7 @@
       },
       "DnsRecord": {
         "type": "object",
-        "required": [
-          "type",
-          "name",
-          "content"
-        ],
+        "required": ["type", "name", "content"],
         "properties": {
           "type": {
             "type": "string",
@@ -3307,12 +3160,7 @@
       },
       "DomainCertificate": {
         "type": "object",
-        "required": [
-          "cipher",
-          "expiresAt",
-          "createdAt",
-          "updatedAt"
-        ],
+        "required": ["cipher", "expiresAt", "createdAt", "updatedAt"],
         "properties": {
           "cipher": {
             "$ref": "#/components/schemas/TlsCipher"
@@ -3380,9 +3228,7 @@
               },
               "kind": {
                 "type": "string",
-                "enum": [
-                  "s3"
-                ]
+                "enum": ["s3"]
               }
             }
           }
@@ -3393,9 +3239,7 @@
       },
       "EnableKvDatabaseBackupResponse": {
         "type": "object",
-        "required": [
-          "id"
-        ],
+        "required": ["id"],
         "properties": {
           "id": {
             "type": "string",
@@ -3405,17 +3249,11 @@
       },
       "Encoding": {
         "type": "string",
-        "enum": [
-          "utf-8",
-          "base64"
-        ]
+        "enum": ["utf-8", "base64"]
       },
       "ErrorBody": {
         "type": "object",
-        "required": [
-          "code",
-          "message"
-        ],
+        "required": ["code", "message"],
         "properties": {
           "code": {
             "type": "string",
@@ -3431,9 +3269,7 @@
         "oneOf": [
           {
             "type": "object",
-            "required": [
-              "content"
-            ],
+            "required": ["content"],
             "properties": {
               "content": {
                 "type": "string"
@@ -3445,9 +3281,7 @@
           },
           {
             "type": "object",
-            "required": [
-              "gitSha1"
-            ],
+            "required": ["gitSha1"],
             "properties": {
               "gitSha1": {
                 "type": "string"
@@ -3458,13 +3292,7 @@
       },
       "KvDatabase": {
         "type": "object",
-        "required": [
-          "id",
-          "organizationId",
-          "description",
-          "updatedAt",
-          "createdAt"
-        ],
+        "required": ["id", "organizationId", "description", "updatedAt", "createdAt"],
         "properties": {
           "id": {
             "type": "string",
@@ -3500,10 +3328,7 @@
           },
           {
             "type": "object",
-            "required": [
-              "id",
-              "status"
-            ],
+            "required": ["id", "status"],
             "properties": {
               "id": {
                 "type": "string",
@@ -3521,39 +3346,28 @@
         "oneOf": [
           {
             "type": "object",
-            "required": [
-              "code"
-            ],
+            "required": ["code"],
             "properties": {
               "code": {
                 "type": "string",
-                "enum": [
-                  "pending"
-                ]
+                "enum": ["pending"]
               }
             }
           },
           {
             "type": "object",
-            "required": [
-              "code"
-            ],
+            "required": ["code"],
             "properties": {
               "code": {
                 "type": "string",
-                "enum": [
-                  "active"
-                ]
+                "enum": ["active"]
               }
             }
           },
           {
             "type": "object",
             "description": "An error occurred during the backup operation. One example is when the\nprovided S3 credentials are not correct.\n\nIf this status is set, the backup has failed permanently and needs to be\nreconfigured by deleting and creating a new one using [disable a database backup](#delete-/database_backups/-databaseBackupId-)\nand [enable a database backup](#post-/databases/-databaseId-/database_backups).",
-            "required": [
-              "message",
-              "code"
-            ],
+            "required": ["message", "code"],
             "properties": {
               "message": {
                 "type": "string",
@@ -3562,9 +3376,7 @@
               },
               "code": {
                 "type": "string",
-                "enum": [
-                  "failed"
-                ]
+                "enum": ["failed"]
               }
             }
           }
@@ -3581,14 +3393,7 @@
         "oneOf": [
           {
             "type": "object",
-            "required": [
-              "endpoint",
-              "bucketName",
-              "bucketRegion",
-              "accessKeyId",
-              "prefix",
-              "kind"
-            ],
+            "required": ["endpoint", "bucketName", "bucketRegion", "accessKeyId", "prefix", "kind"],
             "properties": {
               "endpoint": {
                 "type": "string",
@@ -3617,9 +3422,7 @@
               },
               "kind": {
                 "type": "string",
-                "enum": [
-                  "s3"
-                ]
+                "enum": ["s3"]
               }
             }
           }
@@ -3630,21 +3433,11 @@
       },
       "LogLevel": {
         "type": "string",
-        "enum": [
-          "error",
-          "warning",
-          "info",
-          "debug"
-        ]
+        "enum": ["error", "warning", "info", "debug"]
       },
       "Organization": {
         "type": "object",
-        "required": [
-          "id",
-          "name",
-          "createdAt",
-          "updatedAt"
-        ],
+        "required": ["id", "name", "createdAt", "updatedAt"],
         "properties": {
           "id": {
             "type": "string",
@@ -3677,13 +3470,7 @@
       },
       "Project": {
         "type": "object",
-        "required": [
-          "id",
-          "name",
-          "description",
-          "createdAt",
-          "updatedAt"
-        ],
+        "required": ["id", "name", "description", "createdAt", "updatedAt"],
         "properties": {
           "id": {
             "type": "string",
@@ -3716,61 +3503,44 @@
         "oneOf": [
           {
             "type": "object",
-            "required": [
-              "code"
-            ],
+            "required": ["code"],
             "properties": {
               "code": {
                 "type": "string",
-                "enum": [
-                  "success"
-                ]
+                "enum": ["success"]
               }
             }
           },
           {
             "type": "object",
-            "required": [
-              "message",
-              "code"
-            ],
+            "required": ["message", "code"],
             "properties": {
               "message": {
                 "type": "string"
               },
               "code": {
                 "type": "string",
-                "enum": [
-                  "failed"
-                ]
+                "enum": ["failed"]
               }
             }
           },
           {
             "type": "object",
-            "required": [
-              "code"
-            ],
+            "required": ["code"],
             "properties": {
               "code": {
                 "type": "string",
-                "enum": [
-                  "pending"
-                ]
+                "enum": ["pending"]
               }
             }
           },
           {
             "type": "object",
-            "required": [
-              "code"
-            ],
+            "required": ["code"],
             "properties": {
               "code": {
                 "type": "string",
-                "enum": [
-                  "manual"
-                ]
+                "enum": ["manual"]
               }
             }
           }
@@ -3874,9 +3644,7 @@
       },
       "Symlink": {
         "type": "object",
-        "required": [
-          "target"
-        ],
+        "required": ["target"],
         "properties": {
           "target": {
             "type": "string"
@@ -3886,10 +3654,7 @@
       },
       "TlsCipher": {
         "type": "string",
-        "enum": [
-          "rsa",
-          "ec"
-        ]
+        "enum": ["rsa", "ec"]
       },
       "UpdateDomainAssociationRequest": {
         "type": "object",

@@ -92,13 +92,11 @@ const FormBase = toTsOasOperationProjectionBase({
 class FormProjection extends FormBase {
   peerName: string
 
-  constructor(
-    args: {
-      context: GenerateContextType
-      operation: OasOperation
-      settings: ConstructorParameters<typeof FormBase>[0]['settings']
-    }
-  ) {
+  constructor(args: {
+    context: GenerateContextType
+    operation: OasOperation
+    settings: ConstructorParameters<typeof FormBase>[0]['settings']
+  }) {
     super(args)
 
     // Compose with the variants-unaware peer. No `variant` argument
@@ -116,7 +114,9 @@ Deno.test('cross-variant - peer Definition is registered exactly once across two
   const doc = new OasDocument({
     openapi: '3.0.0',
     info: new OasInfo({ title: 'Test', version: '1.0.0' }),
-    operations: [new OasOperation({ path: PATH, method: METHOD, pathItem: undefined, responses: {} })]
+    operations: [
+      new OasOperation({ path: PATH, method: METHOD, pathItem: undefined, responses: {} })
+    ]
   })
 
   const formEntry = toOasOperationEntry({
@@ -147,7 +147,7 @@ Deno.test('cross-variant - peer Definition is registered exactly once across two
     captureCurrentResult: () => {},
     toGeneratorConfigMap: () =>
       // deno-lint-ignore no-explicit-any
-      ({ '@test/form-gen': formEntry, '@test/peer-gen': peerEntry } as any)
+      ({ '@test/form-gen': formEntry, '@test/peer-gen': peerEntry }) as any
   })
 
   const { files } = context.toArtifacts(new StackTrail(['test']))
@@ -180,7 +180,9 @@ Deno.test('cross-variant - both form variants import from the shared peer file',
   const doc = new OasDocument({
     openapi: '3.0.0',
     info: new OasInfo({ title: 'Test', version: '1.0.0' }),
-    operations: [new OasOperation({ path: PATH, method: METHOD, pathItem: undefined, responses: {} })]
+    operations: [
+      new OasOperation({ path: PATH, method: METHOD, pathItem: undefined, responses: {} })
+    ]
   })
 
   const formEntry = toOasOperationEntry({
@@ -211,7 +213,7 @@ Deno.test('cross-variant - both form variants import from the shared peer file',
     captureCurrentResult: () => {},
     toGeneratorConfigMap: () =>
       // deno-lint-ignore no-explicit-any
-      ({ '@test/form-gen': formEntry, '@test/peer-gen': peerEntry } as any)
+      ({ '@test/form-gen': formEntry, '@test/peer-gen': peerEntry }) as any
   })
 
   const { files } = context.toArtifacts(new StackTrail(['test']))

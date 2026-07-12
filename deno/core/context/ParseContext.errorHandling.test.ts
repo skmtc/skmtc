@@ -65,9 +65,7 @@ const docWithUserResponseAt = (path: string): OpenAPIV3.Document => ({
   }
 })
 
-const makeOasContext = (
-  documentObject: OpenAPIV3.Document = docWithUserResponseAt('/users')
-) =>
+const makeOasContext = (documentObject: OpenAPIV3.Document = docWithUserResponseAt('/users')) =>
   new ParseContext({
     input: { type: 'oas', value: documentObject },
     logger: mockLogger,
@@ -89,10 +87,7 @@ Deno.test('ParseContext (oas) - registerRefError with undefined refKey is a deli
   // list, so nothing observable). The real signal is that no
   // INVALID_DEPENDENCY_REF issue ever appears.
   ctx.parse(new StackTrail([]))
-  assertEquals(
-    ctx.issues.filter(i => i.type === 'INVALID_DEPENDENCY_REF').length,
-    0
-  )
+  assertEquals(ctx.issues.filter(i => i.type === 'INVALID_DEPENDENCY_REF').length, 0)
 })
 
 Deno.test('ParseContext (oas) - logIssueNoKey at a components location auto-registers a refError', () => {
@@ -146,11 +141,7 @@ Deno.test('ParseContext (oas) - end-to-end: errored component prunes its consume
   ctx.removeErroredItems()
 
   // The operation should have been removed.
-  assertEquals(
-    ctx.oasDocument.operations.length,
-    0,
-    'consumer operation should be pruned'
-  )
+  assertEquals(ctx.oasDocument.operations.length, 0, 'consumer operation should be pruned')
 
   const depRefIssues = ctx.issues.filter(i => i.type === 'INVALID_DEPENDENCY_REF')
   assertEquals(depRefIssues.length, 1, 'one consumer kicked out → one issue')

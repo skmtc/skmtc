@@ -5,12 +5,12 @@ import { OasNumber } from '../number/Number.ts'
 import { OasMediaType } from '../mediaType/MediaType.ts'
 import { OasExample } from '../example/Example.ts'
 
-Deno.test('OasHeader', async (t) => {
-  await t.step('constructor and property initialization', async (t) => {
+Deno.test('OasHeader', async t => {
+  await t.step('constructor and property initialization', async t => {
     await t.step('should initialize with all properties provided', () => {
       const schema = new OasString({ minLength: 1, maxLength: 100 })
       const examples = {
-        example1: new OasExample({ value: 'Bearer token123', summary: 'Auth token' }),
+        example1: new OasExample({ value: 'Bearer token123', summary: 'Auth token' })
       }
       const extensionFields = { 'x-custom': 'value' }
 
@@ -20,7 +20,7 @@ Deno.test('OasHeader', async (t) => {
         deprecated: false,
         schema,
         examples,
-        extensionFields,
+        extensionFields
       })
 
       assertEquals(header.oasType, 'header')
@@ -49,7 +49,7 @@ Deno.test('OasHeader', async (t) => {
     await t.step('should handle optional properties correctly', () => {
       const header = new OasHeader({
         description: 'Test header',
-        required: false,
+        required: false
       })
 
       assertEquals(header.description, 'Test header')
@@ -67,7 +67,7 @@ Deno.test('OasHeader', async (t) => {
       const extensionFields = {
         'x-rate-limit': 100,
         'x-custom-field': 'custom value',
-        'x-nested': { deep: { property: true } },
+        'x-nested': { deep: { property: true } }
       }
 
       const header = new OasHeader({ extensionFields })
@@ -83,15 +83,15 @@ Deno.test('OasHeader', async (t) => {
         full: new OasExample({
           value: '100',
           summary: 'Maximum rate limit',
-          description: 'The maximum number of requests per hour',
-        }),
+          description: 'The maximum number of requests per hour'
+        })
       }
 
       const content = {
         'application/json': new OasMediaType({
           mediaType: 'application/json',
-          schema: new OasNumber({ minimum: 1, maximum: 1000 }),
-        }),
+          schema: new OasNumber({ minimum: 1, maximum: 1000 })
+        })
       }
 
       const header = new OasHeader({ examples, content })
@@ -101,11 +101,11 @@ Deno.test('OasHeader', async (t) => {
     })
   })
 
-  await t.step('isRef() method', async (t) => {
+  await t.step('isRef() method', async t => {
     await t.step('should return false for OasHeader instance (not a reference)', () => {
       const header = new OasHeader({
         description: 'Test header',
-        schema: new OasString(),
+        schema: new OasString()
       })
 
       assertEquals(header.isRef(), false)
@@ -126,21 +126,21 @@ Deno.test('OasHeader', async (t) => {
         new OasHeader({}),
         new OasHeader({ description: 'Test' }),
         new OasHeader({ schema: new OasString(), required: true }),
-        new OasHeader({ deprecated: true, extensionFields: { 'x-test': 1 } }),
+        new OasHeader({ deprecated: true, extensionFields: { 'x-test': 1 } })
       ]
 
-      headers.forEach((header) => {
+      headers.forEach(header => {
         assertEquals(header.isRef(), false)
       })
     })
   })
 
-  await t.step('resolve() method', async (t) => {
+  await t.step('resolve() method', async t => {
     await t.step('should return self when called on OasHeader instance', () => {
       const header = new OasHeader({
         description: 'Authorization header',
         required: true,
-        schema: new OasString(),
+        schema: new OasString()
       })
 
       const resolved = header.resolve()
@@ -166,7 +166,7 @@ Deno.test('OasHeader', async (t) => {
         deprecated: true,
         schema,
         examples,
-        extensionFields: { 'x-custom': 'value' },
+        extensionFields: { 'x-custom': 'value' }
       })
 
       const resolved = header.resolve()
@@ -180,11 +180,11 @@ Deno.test('OasHeader', async (t) => {
     })
   })
 
-  await t.step('resolveOnce() method', async (t) => {
+  await t.step('resolveOnce() method', async t => {
     await t.step('should return self when called on OasHeader instance', () => {
       const header = new OasHeader({
         description: 'Test header',
-        schema: new OasNumber(),
+        schema: new OasNumber()
       })
 
       const resolved = header.resolveOnce()
@@ -197,7 +197,7 @@ Deno.test('OasHeader', async (t) => {
       const header = new OasHeader({
         description: 'Compare methods',
         required: true,
-        deprecated: false,
+        deprecated: false
       })
 
       const resolved = header.resolve()
@@ -211,14 +211,14 @@ Deno.test('OasHeader', async (t) => {
       const content = {
         'text/plain': new OasMediaType({
           mediaType: 'text/plain',
-          schema: new OasString(),
-        }),
+          schema: new OasString()
+        })
       }
 
       const header = new OasHeader({
         description: 'Content header',
         content,
-        extensionFields: { 'x-test': 123 },
+        extensionFields: { 'x-test': 123 }
       })
 
       const resolved = header.resolveOnce()
@@ -229,7 +229,7 @@ Deno.test('OasHeader', async (t) => {
     })
   })
 
-  await t.step('toSchema() method', async (t) => {
+  await t.step('toSchema() method', async t => {
     await t.step('should return schema when schema property is defined', () => {
       const schema = new OasString({ minLength: 5 })
       const header = new OasHeader({ schema })
@@ -245,25 +245,28 @@ Deno.test('OasHeader', async (t) => {
       assertThrows(
         () => header.toSchema(),
         Error,
-        'Schema not found for media type application/json',
+        'Schema not found for media type application/json'
       )
     })
 
-    await t.step('should extract schema from content with default media type (application/json)', () => {
-      const jsonSchema = new OasNumber({ minimum: 0 })
-      const header = new OasHeader({
-        content: {
-          'application/json': new OasMediaType({
-            mediaType: 'application/json',
-            schema: jsonSchema,
-          }),
-        },
-      })
+    await t.step(
+      'should extract schema from content with default media type (application/json)',
+      () => {
+        const jsonSchema = new OasNumber({ minimum: 0 })
+        const header = new OasHeader({
+          content: {
+            'application/json': new OasMediaType({
+              mediaType: 'application/json',
+              schema: jsonSchema
+            })
+          }
+        })
 
-      const result = header.toSchema()
+        const result = header.toSchema()
 
-      assertEquals(result, jsonSchema)
-    })
+        assertEquals(result, jsonSchema)
+      }
+    )
 
     await t.step('should extract schema from content with custom media type', () => {
       const xmlSchema = new OasString({ pattern: '<.*>' })
@@ -271,9 +274,9 @@ Deno.test('OasHeader', async (t) => {
         content: {
           'application/xml': new OasMediaType({
             mediaType: 'application/xml',
-            schema: xmlSchema,
-          }),
-        },
+            schema: xmlSchema
+          })
+        }
       })
 
       const result = header.toSchema('application/xml')
@@ -290,17 +293,17 @@ Deno.test('OasHeader', async (t) => {
         content: {
           'application/json': new OasMediaType({
             mediaType: 'application/json',
-            schema: jsonSchema,
+            schema: jsonSchema
           }),
           'application/xml': new OasMediaType({
             mediaType: 'application/xml',
-            schema: xmlSchema,
+            schema: xmlSchema
           }),
           'text/plain': new OasMediaType({
             mediaType: 'text/plain',
-            schema: textSchema,
-          }),
-        },
+            schema: textSchema
+          })
+        }
       })
 
       assertEquals(header.toSchema('application/json'), jsonSchema)
@@ -317,9 +320,9 @@ Deno.test('OasHeader', async (t) => {
         content: {
           'application/json': new OasMediaType({
             mediaType: 'application/json',
-            schema: contentSchema,
-          }),
-        },
+            schema: contentSchema
+          })
+        }
       })
 
       const result = header.toSchema()
@@ -333,15 +336,15 @@ Deno.test('OasHeader', async (t) => {
         content: {
           'application/xml': new OasMediaType({
             mediaType: 'application/xml',
-            schema: new OasString(),
-          }),
-        },
+            schema: new OasString()
+          })
+        }
       })
 
       assertThrows(
         () => header.toSchema('application/json'),
         Error,
-        'Schema not found for media type application/json',
+        'Schema not found for media type application/json'
       )
     })
 
@@ -349,28 +352,28 @@ Deno.test('OasHeader', async (t) => {
       const header = new OasHeader({
         content: {
           'application/json': new OasMediaType({
-            mediaType: 'application/json',
+            mediaType: 'application/json'
             // No schema provided
-          }),
-        },
+          })
+        }
       })
 
       assertThrows(
         () => header.toSchema('application/json'),
         Error,
-        'Schema not found for media type application/json',
+        'Schema not found for media type application/json'
       )
     })
   })
 
-  await t.step('toJsonSchema() method', async (t) => {
+  await t.step('toJsonSchema() method', async t => {
     await t.step('should convert header to OpenAPI v3 JSON format', () => {
       const schema = new OasString()
       const header = new OasHeader({
         description: 'Test header',
         required: true,
         deprecated: false,
-        schema,
+        schema
       })
 
       const result = header.toJsonSchema({ resolve: false })
@@ -386,7 +389,7 @@ Deno.test('OasHeader', async (t) => {
         description: 'Authorization token',
         required: true,
         deprecated: true,
-        schema: new OasString({ pattern: '^Bearer .+$' }),
+        schema: new OasString({ pattern: '^Bearer .+$' })
       })
 
       const result = header.toJsonSchema({ resolve: false })
@@ -411,12 +414,12 @@ Deno.test('OasHeader', async (t) => {
     await t.step('should include examples when present', () => {
       const examples = {
         low: new OasExample({ value: 10, summary: 'Low limit' }),
-        high: new OasExample({ value: 1000, summary: 'High limit' }),
+        high: new OasExample({ value: 1000, summary: 'High limit' })
       }
 
       const header = new OasHeader({
         schema: new OasNumber(),
-        examples,
+        examples
       })
 
       const result = header.toJsonSchema({ resolve: false })
@@ -429,7 +432,7 @@ Deno.test('OasHeader', async (t) => {
     await t.step('should default required and deprecated to false when undefined', () => {
       const header = new OasHeader({
         description: 'Optional header',
-        schema: new OasString(),
+        schema: new OasString()
       })
 
       const result = header.toJsonSchema({ resolve: false })
@@ -441,7 +444,7 @@ Deno.test('OasHeader', async (t) => {
     await t.step('should handle header with no schema', () => {
       const header = new OasHeader({
         description: 'Header without schema',
-        required: false,
+        required: false
       })
 
       const result = header.toJsonSchema({ resolve: false })
@@ -453,7 +456,7 @@ Deno.test('OasHeader', async (t) => {
     })
   })
 
-  await t.step('property handling', async (t) => {
+  await t.step('property handling', async t => {
     await t.step('should handle required flag correctly', () => {
       const requiredHeader = new OasHeader({ required: true })
       const optionalHeader = new OasHeader({ required: false })
@@ -477,12 +480,15 @@ Deno.test('OasHeader', async (t) => {
     await t.step('should handle description field', () => {
       const header1 = new OasHeader({ description: 'Short description' })
       const header2 = new OasHeader({
-        description: 'A very long description that explains the header in detail',
+        description: 'A very long description that explains the header in detail'
       })
       const header3 = new OasHeader({})
 
       assertEquals(header1.description, 'Short description')
-      assertEquals(header2.description, 'A very long description that explains the header in detail')
+      assertEquals(
+        header2.description,
+        'A very long description that explains the header in detail'
+      )
       assertEquals(header3.description, undefined)
     })
 
@@ -490,13 +496,13 @@ Deno.test('OasHeader', async (t) => {
       const stringSchema = new OasString({
         minLength: 1,
         maxLength: 255,
-        pattern: '^[a-zA-Z0-9-]+$',
+        pattern: '^[a-zA-Z0-9-]+$'
       })
 
       const numberSchema = new OasNumber({
         minimum: 0,
         maximum: 1000,
-        multipleOf: 10,
+        multipleOf: 10
       })
 
       const header1 = new OasHeader({ schema: stringSchema })
@@ -510,17 +516,17 @@ Deno.test('OasHeader', async (t) => {
       const examples = {
         minimal: new OasExample({
           value: 'Bearer abc123',
-          summary: 'Minimal token',
+          summary: 'Minimal token'
         }),
         standard: new OasExample({
           value: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0',
           summary: 'Standard JWT token',
-          description: 'A typical JWT bearer token',
+          description: 'A typical JWT bearer token'
         }),
         withExternal: new OasExample({
           value: 'Bearer token',
-          externalValue: 'https://example.com/token.txt',
-        }),
+          externalValue: 'https://example.com/token.txt'
+        })
       }
 
       const header = new OasHeader({ examples })
@@ -530,7 +536,7 @@ Deno.test('OasHeader', async (t) => {
     })
   })
 
-  await t.step('edge cases and integration', async (t) => {
+  await t.step('edge cases and integration', async t => {
     await t.step('should handle empty header object', () => {
       const header = new OasHeader({})
 
@@ -548,8 +554,8 @@ Deno.test('OasHeader', async (t) => {
       const header = new OasHeader({
         extensionFields: {
           'x-custom-1': 'value1',
-          'x-custom-2': { nested: true },
-        },
+          'x-custom-2': { nested: true }
+        }
       })
 
       assertEquals(header.extensionFields?.['x-custom-1'], 'value1')
@@ -563,7 +569,7 @@ Deno.test('OasHeader', async (t) => {
       const authHeader = new OasHeader({
         description: 'Bearer token for API authentication',
         required: true,
-        schema: new OasString({ pattern: '^Bearer [A-Za-z0-9-._~+/]+=*$' }),
+        schema: new OasString({ pattern: '^Bearer [A-Za-z0-9-._~+/]+=*$' })
       })
 
       // Rate limit header
@@ -573,8 +579,8 @@ Deno.test('OasHeader', async (t) => {
         schema: new OasNumber({ minimum: 0 }),
         examples: {
           normal: new OasExample({ value: 95 }),
-          limited: new OasExample({ value: 5 }),
-        },
+          limited: new OasExample({ value: 5 })
+        }
       })
 
       // Content-Type header
@@ -584,8 +590,8 @@ Deno.test('OasHeader', async (t) => {
         schema: new OasString({ pattern: '^[a-z]+/[a-z0-9.+-]+$' }),
         examples: {
           json: new OasExample({ value: 'application/json' }),
-          xml: new OasExample({ value: 'application/xml' }),
-        },
+          xml: new OasExample({ value: 'application/xml' })
+        }
       })
 
       assertEquals(authHeader.required, true)
@@ -602,9 +608,9 @@ Deno.test('OasHeader', async (t) => {
         content: {
           'application/json': new OasMediaType({
             mediaType: 'application/json',
-            schema: contentSchema,
-          }),
-        },
+            schema: contentSchema
+          })
+        }
       })
 
       // Schema should take priority

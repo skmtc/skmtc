@@ -253,17 +253,14 @@ Deno.test('generateWithWorker - rejects on ERROR message from worker', async () 
   } as unknown as typeof Worker
 
   try {
-    await assertRejects(
-      async () => {
-        await generateWithWorker({
-          schemaContents: createMockSchemaContents(),
-          clientSettings: createMockClientSettings(),
-      fileType: 'json' as const,
-          bundlePath: './worker.ts'
-        })
-      },
-      Error
-    )
+    await assertRejects(async () => {
+      await generateWithWorker({
+        schemaContents: createMockSchemaContents(),
+        clientSettings: createMockClientSettings(),
+        fileType: 'json' as const,
+        bundlePath: './worker.ts'
+      })
+    }, Error)
   } finally {
     globalThis.Worker = OriginalWorker
   }
@@ -288,7 +285,7 @@ Deno.test('generateWithWorker - rejects on worker.onerror', async () => {
       await generateWithWorker({
         schemaContents: createMockSchemaContents(),
         clientSettings: createMockClientSettings(),
-      fileType: 'json' as const,
+        fileType: 'json' as const,
         bundlePath: './worker.ts'
       })
     })
@@ -371,7 +368,7 @@ Deno.test('generateWithWorker - terminates worker after error', async () => {
       await generateWithWorker({
         schemaContents: createMockSchemaContents(),
         clientSettings: createMockClientSettings(),
-      fileType: 'json' as const,
+        fileType: 'json' as const,
         bundlePath: './worker.ts'
       })
     })

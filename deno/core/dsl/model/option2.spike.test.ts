@@ -15,7 +15,13 @@
  * 3. A snippet with NO `generatorKey` can register — the F7 bug does not
  *    exist in this model.
  */
-import { TsFile, TsSnippet, createVariable, toTsModelProjectionBase, typescript } from '@skmtc/lang-typescript'
+import {
+  TsFile,
+  TsSnippet,
+  createVariable,
+  toTsModelProjectionBase,
+  typescript
+} from '@skmtc/lang-typescript'
 import { toGenerateContext } from '../../test/toGenerateContext.ts'
 import type { ModelProjectionArgs } from '@/dsl/model/toModelProjectionBase.ts'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'

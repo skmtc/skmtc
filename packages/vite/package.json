@@ -1,19 +1,19 @@
 {
   "name": "@skmtc/vite",
-  "version": "0.7.0",
-  "type": "module",
-  "license": "Apache-2.0",
+  "version": "0.8.0",
   "homepage": "https://skm.tc",
+  "bugs": "https://github.com/skmtc/skmtc/issues",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/skmtc/skmtc.git",
     "directory": "packages/vite"
   },
-  "bugs": "https://github.com/skmtc/skmtc/issues",
-  "sideEffects": false,
   "files": [
     "dist"
   ],
+  "type": "module",
+  "sideEffects": false,
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
@@ -38,6 +38,7 @@
     "types": "tsc --noEmit"
   },
   "dependencies": {
+    "oxc-parser": "0.41.0",
     "ts-pattern": "^5.9.0",
     "valibot": "^1.1.0"
   },

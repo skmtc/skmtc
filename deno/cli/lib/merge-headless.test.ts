@@ -43,10 +43,7 @@ type Workspace = {
 }
 
 /** Generate → edit → eject → regenerate with `pristine` (persisting the render). */
-const toDriftedWorkspace = async (
-  editedContent: string,
-  pristine: string
-): Promise<Workspace> => {
+const toDriftedWorkspace = async (editedContent: string, pristine: string): Promise<Workspace> => {
   const tempDir = await Deno.makeTempDir()
   const skmtcRootPath = join(tempDir, '.skmtc')
   const projectPath = join(skmtcRootPath, 'my-api')

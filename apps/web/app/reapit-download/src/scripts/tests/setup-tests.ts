@@ -11,8 +11,8 @@ Object.defineProperty(process, 'env', {
     CONNECT_OAUTH_URL: 'MOCK_ID',
     CONNECT_USER_POOL_ID: 'MOCK_ID',
     PLATFORM_API_URL: 'MOCK_ID',
-    NODE_ENV: 'test',
-  },
+    NODE_ENV: 'test'
+  }
 })
 
 fetchMock.enableMocks()

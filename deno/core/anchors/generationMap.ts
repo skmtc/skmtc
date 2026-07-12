@@ -67,9 +67,7 @@ export const entriesForSidecar = (sidecar: Sidecar): GenerationMapEntry[] => {
     if (pathStr !== '') {
       // Defer — keep scanning in case a path-empty row for the same
       // landmark exists later.
-      const hasOuter = sidecar.A.some(
-        ([Lj, Pj]) => Lj === Li && sidecar.P[Pj] === ''
-      )
+      const hasOuter = sidecar.A.some(([Lj, Pj]) => Lj === Li && sidecar.P[Pj] === '')
       if (hasOuter) continue
     }
 

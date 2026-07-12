@@ -77,7 +77,6 @@ Deno.test('declaration keyword follows the opaque Identifier.type', () => {
   assertEquals(asStruct.toString().startsWith('pub struct Thing '), true)
   assertEquals(asEnum.toString().startsWith('pub enum Thing '), true)
   assertEquals(asAlias.toString(), 'pub type Thing = String;')
-
 })
 
 Deno.test('exported renders as the `pub` keyword, name untouched (contrast Go casing)', () => {
@@ -117,8 +116,5 @@ Deno.test('RsFile assembles use imports + definitions', () => {
     })
   )
 
-  assertEquals(
-    file.toString(),
-    'use serde::Serialize;\n\npub struct User {\n\tpub id: String,\n}'
-  )
+  assertEquals(file.toString(), 'use serde::Serialize;\n\npub struct User {\n\tpub id: String,\n}')
 })

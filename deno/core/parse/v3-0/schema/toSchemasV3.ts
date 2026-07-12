@@ -147,7 +147,13 @@ export const toSchemaV3 = ({
         const [member] = members
 
         if (isRef(member) && value.nullable) {
-          return toRefV31({ ref: member, refType: 'schema', nullable: true, stackTrail: st, context })
+          return toRefV31({
+            ref: member,
+            refType: 'schema',
+            nullable: true,
+            stackTrail: st,
+            context
+          })
         }
 
         return toSchemaV3({
@@ -163,7 +169,7 @@ export const toSchemaV3 = ({
       })
 
       return toSchemaV3({ schema: merged, stackTrail: st, context })
-    });
+    })
   }
 
   if ('oneOf' in schema && Array.isArray(schema.oneOf)) {
@@ -213,7 +219,7 @@ export const toSchemaV3 = ({
       }
 
       return toUnion({ value, members, parentType: 'oneOf', stackTrail: st, context })
-    });
+    })
   }
 
   if ('anyOf' in schema && Array.isArray(schema.anyOf)) {
@@ -263,23 +269,23 @@ export const toSchemaV3 = ({
       }
 
       return toUnion({ value, members, parentType: 'anyOf', stackTrail: st, context })
-    });
+    })
   }
 
   if ('type' in schema) {
     switch (schema.type) {
       case 'object':
-        return toObject({ value: schema, stackTrail, context });
+        return toObject({ value: schema, stackTrail, context })
       case 'array':
-        return toArray({ value: schema, stackTrail, context });
+        return toArray({ value: schema, stackTrail, context })
       case 'integer':
-        return toInteger({ value: schema, stackTrail, context });
+        return toInteger({ value: schema, stackTrail, context })
       case 'number':
-        return toNumber({ value: schema, stackTrail, context });
+        return toNumber({ value: schema, stackTrail, context })
       case 'boolean':
-        return toBoolean({ value: schema, stackTrail, context });
+        return toBoolean({ value: schema, stackTrail, context })
       case 'string':
-        return toString({ value: schema, stackTrail, context });
+        return toString({ value: schema, stackTrail, context })
     }
   }
 

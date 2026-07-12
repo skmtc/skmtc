@@ -172,7 +172,7 @@ function parsePath(expression: string): Step[] {
       if (name === '') throw new Error(`Empty JSONPath segment in: ${expression}`)
       steps.push({
         descendant,
-        selector: name === '*' ? { type: 'wildcard' } : { type: 'name', name },
+        selector: name === '*' ? { type: 'wildcard' } : { type: 'name', name }
       })
     }
   }
@@ -242,7 +242,7 @@ function splitUnion(body: string): string[] {
   }
   parts.push(current)
 
-  return parts.map((part) => part.trim()).filter((part) => part.length > 0)
+  return parts.map(part => part.trim()).filter(part => part.length > 0)
 }
 
 function parseKey(token: string): string | number {
@@ -260,8 +260,23 @@ function parseKey(token: string): string | number {
 
 type Token =
   | {
-    t: '@' | '.' | '[' | ']' | '(' | ')' | '==' | '!=' | '<' | '<=' | '>' | '>=' | '&&' | '||' | '!'
-  }
+      t:
+        | '@'
+        | '.'
+        | '['
+        | ']'
+        | '('
+        | ')'
+        | '=='
+        | '!='
+        | '<'
+        | '<='
+        | '>'
+        | '>='
+        | '&&'
+        | '||'
+        | '!'
+    }
   | { t: 'str' | 'num' | 'ident'; v: string }
 
 type ValueEval = (node: JsonValue) => JsonValue | undefined
@@ -305,7 +320,12 @@ function tokenizeFilter(expression: string): Token[] {
 
     const two = expression.slice(i, i + 2)
     if (
-      two === '==' || two === '!=' || two === '<=' || two === '>=' || two === '&&' || two === '||'
+      two === '==' ||
+      two === '!=' ||
+      two === '<=' ||
+      two === '>=' ||
+      two === '&&' ||
+      two === '||'
     ) {
       tokens.push({ t: two })
       i += 2
@@ -313,7 +333,12 @@ function tokenizeFilter(expression: string): Token[] {
     }
 
     if (
-      char === '@' || char === '.' || char === '[' || char === ']' || char === '(' || char === ')'
+      char === '@' ||
+      char === '.' ||
+      char === '[' ||
+      char === ']' ||
+      char === '(' ||
+      char === ')'
     ) {
       tokens.push({ t: char })
       i++
@@ -367,7 +392,7 @@ function isTruthy(value: JsonValue | undefined): boolean {
 
 function resolveFilterPath(
   node: JsonValue,
-  segments: Array<string | number>,
+  segments: Array<string | number>
 ): JsonValue | undefined {
   let current: JsonValue | undefined = node
   for (const segment of segments) {
@@ -376,7 +401,8 @@ function resolveFilterPath(
       if (Array.isArray(current) && segment >= 0 && segment < current.length) {
         current = current[segment]
       } else if (
-        isObject(current) && Object.prototype.hasOwnProperty.call(current, String(segment))
+        isObject(current) &&
+        Object.prototype.hasOwnProperty.call(current, String(segment))
       ) {
         current = current[String(segment)]
       } else {
@@ -403,38 +429,38 @@ function compileFilter(expression: string): (node: JsonValue) => boolean {
     if (!token || token.t !== t) throw new Error(`Expected '${t}' in filter: ${expression}`)
   }
 
-  const parseOr = (): (node: JsonValue) => boolean => {
+  const parseOr = (): ((node: JsonValue) => boolean) => {
     let left = parseAnd()
     while (peek()?.t === '||') {
       advance()
       const right = parseAnd()
       const previous = left
-      left = (node) => previous(node) || right(node)
+      left = node => previous(node) || right(node)
     }
     return left
   }
 
-  const parseAnd = (): (node: JsonValue) => boolean => {
+  const parseAnd = (): ((node: JsonValue) => boolean) => {
     let left = parseUnary()
     while (peek()?.t === '&&') {
       advance()
       const right = parseUnary()
       const previous = left
-      left = (node) => previous(node) && right(node)
+      left = node => previous(node) && right(node)
     }
     return left
   }
 
-  const parseUnary = (): (node: JsonValue) => boolean => {
+  const parseUnary = (): ((node: JsonValue) => boolean) => {
     if (peek()?.t === '!') {
       advance()
       const operand = parseUnary()
-      return (node) => !operand(node)
+      return node => !operand(node)
     }
     return parseComparison()
   }
 
-  const parseComparison = (): (node: JsonValue) => boolean => {
+  const parseComparison = (): ((node: JsonValue) => boolean) => {
     if (peek()?.t === '(') {
       advance()
       const inner = parseOr()
@@ -445,12 +471,16 @@ function compileFilter(expression: string): (node: JsonValue) => boolean {
     const left = parseValue()
     const operator = peek()?.t
     if (
-      operator === '==' || operator === '!=' || operator === '<' ||
-      operator === '<=' || operator === '>' || operator === '>='
+      operator === '==' ||
+      operator === '!=' ||
+      operator === '<' ||
+      operator === '<=' ||
+      operator === '>' ||
+      operator === '>='
     ) {
       advance()
       const right = parseValue()
-      return (node) => {
+      return node => {
         const a = left(node)
         const b = right(node)
         if (operator === '==') return looseEqual(a, b)
@@ -459,7 +489,7 @@ function compileFilter(expression: string): (node: JsonValue) => boolean {
       }
     }
 
-    return (node) => isTruthy(left(node))
+    return node => isTruthy(left(node))
   }
 
   const parseValue = (): ValueEval => {
@@ -486,7 +516,7 @@ function compileFilter(expression: string): (node: JsonValue) => boolean {
           expect(']')
         }
       }
-      return (node) => resolveFilterPath(node, segments)
+      return node => resolveFilterPath(node, segments)
     }
 
     if (token.t === 'str') {

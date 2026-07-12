@@ -150,11 +150,19 @@ export const stringToSchema = (schema: string): AnyOasDocument => {
  * @throws {Error} If the document version is not recognized or supported
  */
 export const toV3Document = async (schema: AnyOasDocument): Promise<OpenAPIV3.Document> => {
-  if ('openapi' in schema && typeof schema.openapi === 'string' && schema.openapi.startsWith('3.0')) {
+  if (
+    'openapi' in schema &&
+    typeof schema.openapi === 'string' &&
+    schema.openapi.startsWith('3.0')
+  ) {
     return schema as OpenAPIV3.Document
   }
 
-  if ('openapi' in schema && typeof schema.openapi === 'string' && schema.openapi.startsWith('3.1')) {
+  if (
+    'openapi' in schema &&
+    typeof schema.openapi === 'string' &&
+    schema.openapi.startsWith('3.1')
+  ) {
     // SKMTC parses OpenAPI 3.1 natively (core/parse/v3-1), so 3.1 documents
     // pass through unchanged — no down-convert. The native parser reads the
     // 3.1 idioms directly (type arrays, const, {type:'null'}, numeric
@@ -163,7 +171,11 @@ export const toV3Document = async (schema: AnyOasDocument): Promise<OpenAPIV3.Do
     return schema as OpenAPIV3.Document
   }
 
-  if ('swagger' in schema && typeof schema.swagger === 'string' && schema.swagger.startsWith('2.0')) {
+  if (
+    'swagger' in schema &&
+    typeof schema.swagger === 'string' &&
+    schema.swagger.startsWith('2.0')
+  ) {
     // Import the converter-only subpath, NOT the package root: the root
     // (`mod.ts`) re-exports the ajv-based validator, whose `ajv-draft-04`
     // CJS deep-requires bloat the bundle and trip stricter bundlers. The

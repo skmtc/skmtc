@@ -17,7 +17,7 @@ export const mockOfficeModelPagedResult: OfficeModelPagedResult = {
         line3: 'West Midlands',
         line4: '',
         postcode: 'B91 2BD',
-        countryId: 'GB',
+        countryId: 'GB'
       },
       additionalContactDetails: [],
       workPhone: '01234 567890',
@@ -26,14 +26,14 @@ export const mockOfficeModelPagedResult: OfficeModelPagedResult = {
       extrasField: {},
       _links: {
         self: {
-          href: '/offices/LEA',
+          href: '/offices/LEA'
         },
         negotiators: {
-          href: '/negotiators/?officeId=LEA',
-        },
+          href: '/negotiators/?officeId=LEA'
+        }
       },
-      metadata: {},
-    },
+      metadata: {}
+    }
   ],
   pageNumber: 1,
   pageSize: 25,
@@ -42,10 +42,10 @@ export const mockOfficeModelPagedResult: OfficeModelPagedResult = {
   totalCount: 1,
   _links: {
     self: {
-      href: '/offices/?PageNumber=1&PageSize=25&id=LEA',
+      href: '/offices/?PageNumber=1&PageSize=25&id=LEA'
     },
     first: {
-      href: '/offices/?PageNumber=1&PageSize=25&id=LEA',
-    },
-  },
+      href: '/offices/?PageNumber=1&PageSize=25&id=LEA'
+    }
+  }
 }

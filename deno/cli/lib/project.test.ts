@@ -115,4 +115,3 @@ Deno.test('getDependencyIds - skips generators not in initial set', () => {
   assertEquals(result.has('@skmtc/generator-one'), true)
   assertEquals(result.has('@skmtc/generator-two'), false)
 })
-

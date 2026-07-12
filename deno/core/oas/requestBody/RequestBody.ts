@@ -22,28 +22,28 @@ export type RequestBodyFields = {
 
 /**
  * Represents a Request Body Object in the OpenAPI Specification.
- * 
+ *
  * The `OasRequestBody` class encapsulates the definition of a request body that
  * can be sent with HTTP operations. It supports multiple content types, schema
  * validation, and can be marked as required or optional. Request bodies are
  * commonly used with POST, PUT, PATCH, and sometimes DELETE operations.
- * 
+ *
  * This class provides comprehensive support for request body definitions with
  * typed content, multiple media type representations, and proper validation.
- * 
+ *
  * ## Key Features
- * 
+ *
  * - **Multiple Content Types**: Support for JSON, XML, form data, binary, and more
  * - **Schema Validation**: Typed request bodies through schema definitions
  * - **Required/Optional**: Control whether the request body is mandatory
  * - **Reference Support**: Can reference reusable request body components
  * - **Documentation**: Rich description support for API documentation
  * - **Media Type Flexibility**: Different schemas for different content types
- * 
+ *
  * @example Basic JSON request body
  * ```typescript
  * import { OasRequestBody, OasMediaType, OasObject, OasString } from '@skmtc/core';
- * 
+ *
  * const createUserRequest = new OasRequestBody({
  *   description: 'User data for creating a new user account',
  *   required: true,
@@ -51,18 +51,18 @@ export type RequestBodyFields = {
  *     'application/json': new OasMediaType({
  *       schema: new OasObject({
  *         properties: {
- *           name: new OasString({ 
+ *           name: new OasString({
  *             description: 'Full name',
  *             minLength: 1,
- *             maxLength: 100 
+ *             maxLength: 100
  *           }),
- *           email: new OasString({ 
+ *           email: new OasString({
  *             format: 'email',
- *             description: 'Email address' 
+ *             description: 'Email address'
  *           }),
- *           password: new OasString({ 
+ *           password: new OasString({
  *             minLength: 8,
- *             description: 'Account password' 
+ *             description: 'Account password'
  *           })
  *         },
  *         required: ['name', 'email', 'password']
@@ -71,7 +71,7 @@ export type RequestBodyFields = {
  *   }
  * });
  * ```
- * 
+ *
  * @example Multiple content types
  * ```typescript
  * const multiFormatRequest = new OasRequestBody({
@@ -100,7 +100,7 @@ export type RequestBodyFields = {
  *   }
  * });
  * ```
- * 
+ *
  * @example File upload request body
  * ```typescript
  * const fileUploadRequest = new OasRequestBody({
@@ -138,7 +138,7 @@ export type RequestBodyFields = {
  *   }
  * });
  * ```
- * 
+ *
  * @example Optional request body for updates
  * ```typescript
  * const updateUserRequest = new OasRequestBody({
@@ -149,9 +149,9 @@ export type RequestBodyFields = {
  *       schema: new OasObject({
  *         properties: {
  *           name: new OasString({ description: 'Updated name' }),
- *           email: new OasString({ 
+ *           email: new OasString({
  *             format: 'email',
- *             description: 'Updated email' 
+ *             description: 'Updated email'
  *           }),
  *           bio: new OasString({ description: 'User biography' }),
  *           preferences: new OasObject({
@@ -167,7 +167,7 @@ export type RequestBodyFields = {
  *   }
  * });
  * ```
- * 
+ *
  * @example Complex nested data structures
  * ```typescript
  * const orderRequest = new OasRequestBody({
@@ -213,7 +213,7 @@ export type RequestBodyFields = {
  *   }
  * });
  * ```
- * 
+ *
  * @example Form data with validation
  * ```typescript
  * const registrationForm = new OasRequestBody({
@@ -249,7 +249,7 @@ export type RequestBodyFields = {
  *   }
  * });
  * ```
- * 
+ *
  * @example Using in operation definitions
  * ```typescript
  * const createProductOperation = new OasOperation({

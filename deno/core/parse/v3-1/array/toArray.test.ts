@@ -6,8 +6,8 @@ import type { OasArray } from '@/oas/array/Array.ts'
 import type { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 
-Deno.test('toArray', async (t) => {
-  await t.step('basic array parsing', async (t) => {
+Deno.test('toArray', async t => {
+  await t.step('basic array parsing', async t => {
     await t.step('should parse basic array with empty items', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = { type: 'array', items: {} }
@@ -19,25 +19,28 @@ Deno.test('toArray', async (t) => {
       assertEquals(oasArray.items.type, 'unknown')
     })
 
-    await t.step('should fail open on a missing items field (invalid OAS): unknown items + logged issue', () => {
-      // Real-world regression: the Sequence API schema declares a query
-      // parameter as `{ "type": "array" }` with NO items — invalid per
-      // the spec, but it must produce a parse issue, not a TypeError
-      // ("Cannot use 'in' operator to search for 'allOf' in undefined").
-      const stackTrail = new StackTrail(['TEST'])
-      const schema = { type: 'array' } as OpenAPIV3.ArraySchemaObject
-      const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
+    await t.step(
+      'should fail open on a missing items field (invalid OAS): unknown items + logged issue',
+      () => {
+        // Real-world regression: the Sequence API schema declares a query
+        // parameter as `{ "type": "array" }` with NO items — invalid per
+        // the spec, but it must produce a parse issue, not a TypeError
+        // ("Cannot use 'in' operator to search for 'allOf' in undefined").
+        const stackTrail = new StackTrail(['TEST'])
+        const schema = { type: 'array' } as OpenAPIV3.ArraySchemaObject
+        const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
-      assertEquals(oasArray.type, 'array')
-      assertExists(oasArray.items)
-      assertEquals(oasArray.items.type, 'unknown')
-    })
+        assertEquals(oasArray.type, 'array')
+        assertExists(oasArray.items)
+        assertEquals(oasArray.items.type, 'unknown')
+      }
+    )
 
     await t.step('should parse array with string items', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
-        items: { type: 'string' },
+        items: { type: 'string' }
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -50,7 +53,7 @@ Deno.test('toArray', async (t) => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
-        items: { type: 'number' },
+        items: { type: 'number' }
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -67,9 +70,9 @@ Deno.test('toArray', async (t) => {
           type: 'object',
           properties: {
             id: { type: 'number' },
-            name: { type: 'string' },
-          },
-        },
+            name: { type: 'string' }
+          }
+        }
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -79,13 +82,13 @@ Deno.test('toArray', async (t) => {
     })
   })
 
-  await t.step('nullable handling', async (t) => {
+  await t.step('nullable handling', async t => {
     await t.step('should handle nullable: true', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        nullable: true,
+        nullable: true
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -97,7 +100,7 @@ Deno.test('toArray', async (t) => {
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        nullable: false,
+        nullable: false
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -108,7 +111,7 @@ Deno.test('toArray', async (t) => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
-        items: { type: 'string' },
+        items: { type: 'string' }
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -121,7 +124,7 @@ Deno.test('toArray', async (t) => {
         type: 'array',
         items: { type: 'string' },
         nullable: true,
-        example: null,
+        example: null
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -130,13 +133,13 @@ Deno.test('toArray', async (t) => {
     })
   })
 
-  await t.step('example validation', async (t) => {
+  await t.step('example validation', async t => {
     await t.step('should parse valid array example', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        example: ['value1', 'value2', 'value3'],
+        example: ['value1', 'value2', 'value3']
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -149,7 +152,7 @@ Deno.test('toArray', async (t) => {
         type: 'array',
         items: { type: 'number' },
         nullable: true,
-        example: null,
+        example: null
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -161,7 +164,7 @@ Deno.test('toArray', async (t) => {
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        example: [],
+        example: []
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -175,14 +178,14 @@ Deno.test('toArray', async (t) => {
         items: { type: 'object' },
         example: [
           { id: 1, name: 'Alice' },
-          { id: 2, name: 'Bob' },
-        ],
+          { id: 2, name: 'Bob' }
+        ]
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
       assertEquals(oasArray.example, [
         { id: 1, name: 'Alice' },
-        { id: 2, name: 'Bob' },
+        { id: 2, name: 'Bob' }
       ])
     })
 
@@ -191,7 +194,7 @@ Deno.test('toArray', async (t) => {
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        example: 'not-an-array' as unknown as unknown[],
+        example: 'not-an-array' as unknown as unknown[]
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -203,7 +206,7 @@ Deno.test('toArray', async (t) => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
-        items: { type: 'string' },
+        items: { type: 'string' }
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -211,17 +214,25 @@ Deno.test('toArray', async (t) => {
     })
   })
 
-  await t.step('enum validation', async (t) => {
+  await t.step('enum validation', async t => {
     await t.step('should parse valid enum with array values', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'number' },
-        enum: [[1, 2], [3, 4], [5, 6]],
+        enum: [
+          [1, 2],
+          [3, 4],
+          [5, 6]
+        ]
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
-      assertEquals(oasArray.enums, [[1, 2], [3, 4], [5, 6]])
+      assertEquals(oasArray.enums, [
+        [1, 2],
+        [3, 4],
+        [5, 6]
+      ])
     })
 
     await t.step('should handle enum with null when nullable is true', () => {
@@ -230,7 +241,7 @@ Deno.test('toArray', async (t) => {
         type: 'array',
         items: { type: 'string' },
         nullable: true,
-        enum: [['a', 'b'], null, ['c', 'd']],
+        enum: [['a', 'b'], null, ['c', 'd']]
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -242,7 +253,7 @@ Deno.test('toArray', async (t) => {
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        enum: [],
+        enum: []
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -254,7 +265,7 @@ Deno.test('toArray', async (t) => {
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'number' },
-        enum: [[1, 2], 'invalid' as unknown as unknown[], [3, 4]],
+        enum: [[1, 2], 'invalid' as unknown as unknown[], [3, 4]]
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -266,7 +277,7 @@ Deno.test('toArray', async (t) => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
-        items: { type: 'string' },
+        items: { type: 'string' }
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -274,13 +285,13 @@ Deno.test('toArray', async (t) => {
     })
   })
 
-  await t.step('default value validation', async (t) => {
+  await t.step('default value validation', async t => {
     await t.step('should parse valid array default value', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        default: ['default1', 'default2'],
+        default: ['default1', 'default2']
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -293,7 +304,7 @@ Deno.test('toArray', async (t) => {
         type: 'array',
         items: { type: 'number' },
         nullable: true,
-        default: null,
+        default: null
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -305,7 +316,7 @@ Deno.test('toArray', async (t) => {
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        default: [],
+        default: []
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -317,7 +328,7 @@ Deno.test('toArray', async (t) => {
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        default: 'not-an-array' as unknown as unknown[],
+        default: 'not-an-array' as unknown as unknown[]
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -330,7 +341,7 @@ Deno.test('toArray', async (t) => {
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        default: null as unknown as unknown[],
+        default: null as unknown as unknown[]
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -342,7 +353,7 @@ Deno.test('toArray', async (t) => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
-        items: { type: 'string' },
+        items: { type: 'string' }
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -350,14 +361,14 @@ Deno.test('toArray', async (t) => {
     })
   })
 
-  await t.step('array-specific properties', async (t) => {
+  await t.step('array-specific properties', async t => {
     await t.step('should parse title and description', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
         title: 'Tags Array',
-        description: 'An array of tag strings',
+        description: 'An array of tag strings'
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -370,7 +381,7 @@ Deno.test('toArray', async (t) => {
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        uniqueItems: true,
+        uniqueItems: true
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -383,7 +394,7 @@ Deno.test('toArray', async (t) => {
         type: 'array',
         items: { type: 'number' },
         minItems: 1,
-        maxItems: 10,
+        maxItems: 10
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -396,7 +407,7 @@ Deno.test('toArray', async (t) => {
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        readOnly: true,
+        readOnly: true
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -408,7 +419,7 @@ Deno.test('toArray', async (t) => {
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        writeOnly: true,
+        writeOnly: true
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -420,7 +431,7 @@ Deno.test('toArray', async (t) => {
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        deprecated: true,
+        deprecated: true
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -437,7 +448,7 @@ Deno.test('toArray', async (t) => {
         maxItems: 5,
         uniqueItems: true,
         readOnly: false,
-        deprecated: false,
+        deprecated: false
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -450,14 +461,14 @@ Deno.test('toArray', async (t) => {
     })
   })
 
-  await t.step('extension fields and skipped fields', async (t) => {
+  await t.step('extension fields and skipped fields', async t => {
     await t.step('should handle custom x-* extension properties', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema = {
         type: 'array',
         items: { type: 'string' },
         'x-custom-field': 'custom-value',
-        'x-priority': 'high',
+        'x-priority': 'high'
       } as OpenAPIV3.ArraySchemaObject
 
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
@@ -474,7 +485,7 @@ Deno.test('toArray', async (t) => {
         items: { type: 'number' },
         'x-field1': 'value1',
         'x-field2': { nested: 'value' },
-        'x-field3': [1, 2, 3],
+        'x-field3': [1, 2, 3]
       } as OpenAPIV3.ArraySchemaObject
 
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
@@ -489,7 +500,7 @@ Deno.test('toArray', async (t) => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
-        items: { type: 'string' },
+        items: { type: 'string' }
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -497,7 +508,7 @@ Deno.test('toArray', async (t) => {
     })
   })
 
-  await t.step('integration and edge cases', async (t) => {
+  await t.step('integration and edge cases', async t => {
     await t.step('should parse complex array with all properties', () => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {
@@ -514,7 +525,7 @@ Deno.test('toArray', async (t) => {
         default: ['default'],
         readOnly: false,
         writeOnly: false,
-        deprecated: false,
+        deprecated: false
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -538,7 +549,7 @@ Deno.test('toArray', async (t) => {
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'boolean' },
-        example: [true, false, true],
+        example: [true, false, true]
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -552,7 +563,7 @@ Deno.test('toArray', async (t) => {
         type: 'array',
         items: { type: 'integer' },
         minItems: 0,
-        maxItems: 100,
+        maxItems: 100
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -565,7 +576,7 @@ Deno.test('toArray', async (t) => {
       const stackTrail = new StackTrail(['TEST'])
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
-        items: { type: 'string' },
+        items: { type: 'string' }
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -588,7 +599,7 @@ Deno.test('toArray', async (t) => {
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        minItems: 0,
+        minItems: 0
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -596,7 +607,7 @@ Deno.test('toArray', async (t) => {
     })
   })
 
-  await t.step('realistic API scenarios', async (t) => {
+  await t.step('realistic API scenarios', async t => {
     await t.step('should handle paginated results array', () => {
       const stackTrail = new StackTrail(['components', 'schemas', 'UserList'])
       const schema: OpenAPIV3.ArraySchemaObject = {
@@ -606,16 +617,16 @@ Deno.test('toArray', async (t) => {
           properties: {
             id: { type: 'integer' },
             name: { type: 'string' },
-            email: { type: 'string' },
-          },
+            email: { type: 'string' }
+          }
         },
         description: 'Paginated list of users',
         minItems: 0,
         maxItems: 50,
         example: [
           { id: 1, name: 'Alice', email: 'alice@example.com' },
-          { id: 2, name: 'Bob', email: 'bob@example.com' },
-        ],
+          { id: 2, name: 'Bob', email: 'bob@example.com' }
+        ]
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -635,7 +646,7 @@ Deno.test('toArray', async (t) => {
         uniqueItems: true,
         minItems: 1,
         maxItems: 10,
-        example: ['typescript', 'deno', 'openapi'],
+        example: ['typescript', 'deno', 'openapi']
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -651,7 +662,7 @@ Deno.test('toArray', async (t) => {
         type: 'array',
         items: { type: 'object' },
         description: 'Read-only results',
-        readOnly: true,
+        readOnly: true
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -667,7 +678,7 @@ Deno.test('toArray', async (t) => {
         nullable: true,
         description: 'Array that may be null',
         example: null,
-        default: null,
+        default: null
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
@@ -681,12 +692,8 @@ Deno.test('toArray', async (t) => {
       const schema: OpenAPIV3.ArraySchemaObject = {
         type: 'array',
         items: { type: 'string' },
-        enum: [
-          ['option1', 'option2'],
-          ['option3', 'option4'],
-          ['option5'],
-        ],
-        description: 'One of the predefined array combinations',
+        enum: [['option1', 'option2'], ['option3', 'option4'], ['option5']],
+        description: 'One of the predefined array combinations'
       }
       const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 

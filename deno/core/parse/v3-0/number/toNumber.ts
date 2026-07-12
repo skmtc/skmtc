@@ -124,28 +124,30 @@ const toParsedNumber = <Nullable extends boolean | undefined>({
     parentType: 'schema:number'
   })
 
-  return context.withStackTrail(stackTrail, () =>
-    new OasNumber<Nullable>(
-      {
-        title,
-        description,
-        nullable,
-        default: defaultValue,
-        extensionFields,
-        example,
-        enums,
-        format,
-        multipleOf,
-        maximum,
-        exclusiveMaximum,
-        minimum,
-        readOnly,
-        writeOnly,
-        exclusiveMinimum,
-        deprecated
-      },
-      context
-    )
+  return context.withStackTrail(
+    stackTrail,
+    () =>
+      new OasNumber<Nullable>(
+        {
+          title,
+          description,
+          nullable,
+          default: defaultValue,
+          extensionFields,
+          example,
+          enums,
+          format,
+          multipleOf,
+          maximum,
+          exclusiveMaximum,
+          minimum,
+          readOnly,
+          writeOnly,
+          exclusiveMinimum,
+          deprecated
+        },
+        context
+      )
   )
 }
 

@@ -98,16 +98,13 @@ Deno.test('SkmtcRoot.upgradeCheck - does not log when up to date', async () => {
   const skmtcRoot = new SkmtcRoot([], manager)
 
   // Mock Jsr to return same version
-  const jsrStub = stub(
-    Jsr,
-    'getLatestMeta',
-    () =>
-      Promise.resolve({
-        latest: '0.0.1',
-        scope: 'skmtc',
-        name: 'cli',
-        versions: {}
-      })
+  const jsrStub = stub(Jsr, 'getLatestMeta', () =>
+    Promise.resolve({
+      latest: '0.0.1',
+      scope: 'skmtc',
+      name: 'cli',
+      versions: {}
+    })
   )
 
   // Mock console.log to verify it's not called
@@ -129,16 +126,13 @@ Deno.test('SkmtcRoot.upgradeCheck - logs when upgrade available', async () => {
   const skmtcRoot = new SkmtcRoot([], manager)
 
   // Mock Jsr to return newer version
-  const jsrStub = stub(
-    Jsr,
-    'getLatestMeta',
-    () =>
-      Promise.resolve({
-        latest: '99.99.99',
-        scope: 'skmtc',
-        name: 'cli',
-        versions: {}
-      })
+  const jsrStub = stub(Jsr, 'getLatestMeta', () =>
+    Promise.resolve({
+      latest: '99.99.99',
+      scope: 'skmtc',
+      name: 'cli',
+      versions: {}
+    })
   )
 
   // Mock console.log to capture message
@@ -165,11 +159,7 @@ Deno.test('SkmtcRoot.createProject - creates project and adds to projects array'
 
   const mockProject = { name: 'new-project' } as Project
 
-  const projectCreateStub = stub(
-    Project,
-    'create',
-    () => Promise.resolve(mockProject)
-  )
+  const projectCreateStub = stub(Project, 'create', () => Promise.resolve(mockProject))
 
   try {
     const result = await skmtcRoot.createProject({
@@ -197,11 +187,7 @@ Deno.test('SkmtcRoot.createProject - calls manager.cleanup after creation', asyn
   const skmtcRoot = new SkmtcRoot([], manager)
 
   const mockProject = { name: 'new-project' } as Project
-  const projectCreateStub = stub(
-    Project,
-    'create',
-    () => Promise.resolve(mockProject)
-  )
+  const projectCreateStub = stub(Project, 'create', () => Promise.resolve(mockProject))
 
   try {
     await skmtcRoot.createProject({
@@ -236,29 +222,17 @@ Deno.test('SkmtcRoot.open - loads projects from directory', async () => {
   const mockProject2 = { name: 'project2' } as Project
 
   // Stub checkRootExists to return true so the test proceeds
-  const existsStub = stub(
-    SkmtcRoot,
-    'checkRootExists',
-    () => Promise.resolve(true)
-  )
+  const existsStub = stub(SkmtcRoot, 'checkRootExists', () => Promise.resolve(true))
 
-  const readDirStub = stub(
-    Deno,
-    'readDirSync',
-    function* () {
-      yield* mockDirEntries
-    }
-  )
+  const readDirStub = stub(Deno, 'readDirSync', function* () {
+    yield* mockDirEntries
+  })
 
-  const projectOpenStub = stub(
-    Project,
-    'open',
-    (name: string) => {
-      if (name === 'project1') return Promise.resolve(mockProject1)
-      if (name === 'project2') return Promise.resolve(mockProject2)
-      throw new Error('Unexpected project name')
-    }
-  )
+  const projectOpenStub = stub(Project, 'open', (name: string) => {
+    if (name === 'project1') return Promise.resolve(mockProject1)
+    if (name === 'project2') return Promise.resolve(mockProject2)
+    throw new Error('Unexpected project name')
+  })
 
   try {
     const result = await SkmtcRoot.open(manager)
@@ -286,25 +260,13 @@ Deno.test('SkmtcRoot.open - filters out @ prefixed directories', async () => {
   const mockProject = { name: 'valid-project' } as Project
 
   // Stub checkRootExists to return true so the test proceeds
-  const existsStub = stub(
-    SkmtcRoot,
-    'checkRootExists',
-    () => Promise.resolve(true)
-  )
+  const existsStub = stub(SkmtcRoot, 'checkRootExists', () => Promise.resolve(true))
 
-  const readDirStub = stub(
-    Deno,
-    'readDirSync',
-    function* () {
-      yield* mockDirEntries
-    }
-  )
+  const readDirStub = stub(Deno, 'readDirSync', function* () {
+    yield* mockDirEntries
+  })
 
-  const projectOpenStub = stub(
-    Project,
-    'open',
-    () => Promise.resolve(mockProject)
-  )
+  const projectOpenStub = stub(Project, 'open', () => Promise.resolve(mockProject))
 
   try {
     const result = await SkmtcRoot.open(manager)

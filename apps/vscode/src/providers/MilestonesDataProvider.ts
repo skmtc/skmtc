@@ -1,9 +1,9 @@
-import { Event, EventEmitter, ProviderResult, TreeDataProvider, TreeItem } from 'vscode';
-import {  toMilestonesNodes } from '../milestones/toMilestonesNodes';
-import { MilestonesNode } from '../milestones/MileStonesNode';
+import { Event, EventEmitter, ProviderResult, TreeDataProvider, TreeItem } from 'vscode'
+import { toMilestonesNodes } from '../milestones/toMilestonesNodes'
+import { MilestonesNode } from '../milestones/MileStonesNode'
 
 // A custom type to keep the code below more tidy
-type TreeDataOnChangeEvent = MilestonesNode | undefined | null | void;
+type TreeDataOnChangeEvent = MilestonesNode | undefined | null | void
 
 /**
  * An implementation of the TreeDataProvider interface.
@@ -16,38 +16,38 @@ type TreeDataOnChangeEvent = MilestonesNode | undefined | null | void;
  */
 
 export class MilestonesDataProvider implements TreeDataProvider<MilestonesNode> {
-  private _onDidChangeTreeData = new EventEmitter<TreeDataOnChangeEvent>();
-  readonly onDidChangeTreeData: Event<TreeDataOnChangeEvent> = this._onDidChangeTreeData.event;
+  private _onDidChangeTreeData = new EventEmitter<TreeDataOnChangeEvent>()
+  readonly onDidChangeTreeData: Event<TreeDataOnChangeEvent> = this._onDidChangeTreeData.event
 
-  data: MilestonesNode[];
-  itemsById: Record<string, MilestonesNode> = {};
+  data: MilestonesNode[]
+  itemsById: Record<string, MilestonesNode> = {}
 
   constructor() {
-    this.data = toMilestonesNodes();
+    this.data = toMilestonesNodes()
   }
 
   refresh(): void {
-    this.data = toMilestonesNodes();
+    this.data = toMilestonesNodes()
 
-    this._onDidChangeTreeData.fire();
+    this._onDidChangeTreeData.fire()
   }
 
   getTreeItem(element: MilestonesNode): TreeItem | Thenable<TreeItem> {
-    return element;
+    return element
   }
 
   getChildren(element: MilestonesNode): ProviderResult<MilestonesNode[]> {
     if (element === undefined) {
-      return this.data;
+      return this.data
     }
-    return element.children;
+    return element.children
   }
 
   getParent() {
-    return null;
+    return null
   }
 
   lookupTreeItemBy(args: { id: string }): MilestonesNode | undefined {
-    return this.data.find((node) => node.id === args.id);
+    return this.data.find(node => node.id === args.id)
   }
 }

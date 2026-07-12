@@ -59,7 +59,12 @@ Deno.test('TsProperty renders the modifier matrix', async testContext => {
     },
     {
       name: 'static + readonly + value',
-      property: new TsProperty({ name: 'DEFAULT_TIMEOUT', value: '600000', static: true, readonly: true }),
+      property: new TsProperty({
+        name: 'DEFAULT_TIMEOUT',
+        value: '600000',
+        static: true,
+        readonly: true
+      }),
       expected: 'static readonly DEFAULT_TIMEOUT = 600000;'
     },
     {
@@ -210,7 +215,10 @@ Deno.test('TsHeritage renders the extends + implements clauses', () => {
   const render = (clauses: { extends?: TsHeritageSymbol; implements?: TsHeritageSymbol[] }) =>
     new TsHeritage({ context, destinationPath, ...clauses }).toString()
 
-  assertEquals(render({ extends: here('Base'), implements: [here('A'), here('B')] }), 'extends Base implements A, B ')
+  assertEquals(
+    render({ extends: here('Base'), implements: [here('A'), here('B')] }),
+    'extends Base implements A, B '
+  )
   // Either clause alone, or none.
   assertEquals(render({ extends: here('Base') }), 'extends Base ')
   assertEquals(render({ implements: [here('A')] }), 'implements A ')
@@ -258,8 +266,7 @@ Deno.test('OpenAI: the Models resource class is byte-exact (resources/models.ts)
       name: 'retrieve',
       parameters: ['model: string', 'options?: RequestOptions'],
       returnType: 'APIPromise<Model>',
-      body:
-        "return this._client.get(path`/models/${model}`, { ...options, __security: { bearerAuth: true } });",
+      body: 'return this._client.get(path`/models/${model}`, { ...options, __security: { bearerAuth: true } });',
       description:
         'Retrieves a model instance, providing basic information about the model such as\n' +
         'the owner and permissioning.'
@@ -270,8 +277,7 @@ Deno.test('OpenAI: the Models resource class is byte-exact (resources/models.ts)
       name: 'list',
       parameters: ['options?: RequestOptions'],
       returnType: 'PagePromise<ModelsPage, Model>',
-      body:
-        "return this._client.getAPIList('/models', Page<Model>, { ...options, __security: { bearerAuth: true } });",
+      body: "return this._client.getAPIList('/models', Page<Model>, { ...options, __security: { bearerAuth: true } });",
       description:
         'Lists the currently available models, and provides basic information about each\n' +
         'one such as the owner and availability.'
@@ -282,8 +288,7 @@ Deno.test('OpenAI: the Models resource class is byte-exact (resources/models.ts)
       name: 'delete',
       parameters: ['model: string', 'options?: RequestOptions'],
       returnType: 'APIPromise<ModelDeleted>',
-      body:
-        "return this._client.delete(path`/models/${model}`, { ...options, __security: { bearerAuth: true } });",
+      body: 'return this._client.delete(path`/models/${model}`, { ...options, __security: { bearerAuth: true } });',
       description:
         'Delete a fine-tuned model. You must have the Owner role in your organization to\n' +
         'delete a model.'

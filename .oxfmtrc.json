@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "useTabs": false,
+  "tabWidth": 2,
+  "printWidth": 100,
+  "singleQuote": true,
+  "jsxSingleQuote": false,
+  "quoteProps": "as-needed",
+  "trailingComma": "none",
+  "semi": false,
+  "arrowParens": "avoid",
+  "bracketSameLine": false,
+  "bracketSpacing": true,
+  "ignorePatterns": [
+    "**/dist/",
+    "**/node_modules/",
+    "**/coverage/",
+    "**/pnpm-lock.yaml",
+    "**/deno.lock",
+    "**/*.md",
+    "**/.claude/",
+    "**/*.skm.json",
+    "deno/core/context/temp.json"
+  ]
+}

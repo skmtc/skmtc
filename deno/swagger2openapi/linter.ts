@@ -29,7 +29,7 @@ const toLinterRule = (value: JsonValue): LinterRule | undefined => {
     name: value.name,
     description: value.description,
     object: objects,
-    enabled: value.enabled === true,
+    enabled: value.enabled === true
   }
   const truthy = asStringArray(value.truthy)
   if (truthy) rule.truthy = truthy
@@ -39,13 +39,15 @@ const toLinterRule = (value: JsonValue): LinterRule | undefined => {
   const xor = asStringArray(value.xor)
   if (xor) rule.xor = xor
   if (
-    isJsonObject(value.pattern) && isString(value.pattern.property) && isString(value.pattern.value)
+    isJsonObject(value.pattern) &&
+    isString(value.pattern.property) &&
+    isString(value.pattern.value)
   ) {
     rule.pattern = {
       property: value.pattern.property,
       value: value.pattern.value,
       split: isString(value.pattern.split) ? value.pattern.split : undefined,
-      omit: isString(value.pattern.omit) ? value.pattern.omit : undefined,
+      omit: isString(value.pattern.omit) ? value.pattern.omit : undefined
     }
   }
   if (isJsonObject(value.notContain)) {
@@ -99,7 +101,7 @@ export const lint: Linter = (objectName, object, options) => {
     violations.push({
       rule: rule.name,
       description: message ?? rule.description,
-      pointer: currentPointer(options),
+      pointer: currentPointer(options)
     })
   }
 
@@ -118,7 +120,7 @@ export const lint: Linter = (objectName, object, options) => {
       if (Object.keys(object).length !== rule.properties) record(rule)
     }
     if (rule.or) {
-      if (!rule.or.some((property) => typeof object[property] !== 'undefined')) record(rule)
+      if (!rule.or.some(property => typeof object[property] !== 'undefined')) record(rule)
     }
     if (rule.xor) {
       let found = false
@@ -133,11 +135,12 @@ export const lint: Linter = (objectName, object, options) => {
     }
     if (rule.pattern) {
       const source = object[rule.pattern.property]
-      const components = rule.pattern.split && isString(source)
-        ? source.split(rule.pattern.split)
-        : isString(source)
-        ? [source]
-        : []
+      const components =
+        rule.pattern.split && isString(source)
+          ? source.split(rule.pattern.split)
+          : isString(source)
+            ? [source]
+            : []
       const regex = new RegExp(rule.pattern.value)
       for (let component of components) {
         if (rule.pattern.omit) component = component.split(rule.pattern.omit).join('')

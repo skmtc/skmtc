@@ -111,7 +111,10 @@ Deno.test('drift - unchanged generator output is quiet', async () => {
         stale: [],
         twinBlocked: []
       })
-      assertEquals(errors.filter(msg => msg.includes('drifted')), [])
+      assertEquals(
+        errors.filter(msg => msg.includes('drifted')),
+        []
+      )
 
       const state = readEjectionState(toEjectionStatePath(projectPath))
       assertEquals(state.files['src/user.ts']?.state, 'quiet')
@@ -204,7 +207,10 @@ Deno.test('drift - acknowledged drift stays quiet until output moves again', asy
       })
 
       assertEquals(acknowledged.ejections?.drifted, [])
-      assertEquals(errors.filter(msg => msg.includes('drifted')), [])
+      assertEquals(
+        errors.filter(msg => msg.includes('drifted')),
+        []
+      )
       const state = readEjectionState(toEjectionStatePath(projectPath))
       assertEquals(state.files['src/user.ts']?.reviewed, true)
 

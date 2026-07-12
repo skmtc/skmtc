@@ -34,8 +34,7 @@ Deno.test('parameters render visibility after annotations (Kotlin modifier order
 
   assertEquals(
     parameters.toString(),
-    '    private val service: UsersService,\n' +
-      '    @SerialName("t") internal val tagged: String'
+    '    private val service: UsersService,\n' + '    @SerialName("t") internal val tagged: String'
   )
 })
 
@@ -47,8 +46,5 @@ Deno.test('no trailing comma after the last parameter (formatter territory)', ()
 
 Deno.test('KtAnnotation renders bare and with args', () => {
   assertEquals(new KtAnnotation('Serializable').toString(), '@Serializable')
-  assertEquals(
-    new KtAnnotation('SerialName', ['"user_id"']).toString(),
-    '@SerialName("user_id")'
-  )
+  assertEquals(new KtAnnotation('SerialName', ['"user_id"']).toString(), '@SerialName("user_id")')
 })

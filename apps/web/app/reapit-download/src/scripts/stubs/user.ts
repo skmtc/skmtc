@@ -26,20 +26,20 @@ export const mockUserModel: UserModel = {
     'MarketplaceAdmin',
     'FoundationsDeveloperAdmin',
     'ReapitEmployeeFoundationsAdmin',
-    'ReapitUserAdmin',
+    'ReapitUserAdmin'
   ],
   userClaims: [],
   organisationClaims: [
     {
       claim: 'agencyCloudId',
       value: 'SBOX',
-      includeInToken: true,
-    },
+      includeInToken: true
+    }
   ],
   products: [
     {
       id: 'agencyCloud',
-      organisationId: 'MOCK_ORG_ID',
-    },
-  ],
+      organisationId: 'MOCK_ORG_ID'
+    }
+  ]
 }

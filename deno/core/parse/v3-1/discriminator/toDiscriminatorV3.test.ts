@@ -5,14 +5,14 @@ import { assertEquals, assertExists } from '@std/assert'
 import { OasDiscriminator } from '@/oas/discriminator/Discriminator.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 
-Deno.test('toDiscriminatorV3', async (t) => {
-  await t.step('input handling', async (t) => {
+Deno.test('toDiscriminatorV3', async t => {
+  await t.step('input handling', async t => {
     await t.step('should return undefined when discriminator is undefined', () => {
       const stackTrail = new StackTrail(['TEST'])
       const result = toDiscriminatorV3({
         discriminator: undefined,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result, undefined)
@@ -21,12 +21,12 @@ Deno.test('toDiscriminatorV3', async (t) => {
     await t.step('should handle discriminator with only propertyName', () => {
       const stackTrail = new StackTrail(['TEST'])
       const discriminator: OpenAPIV3.DiscriminatorObject = {
-        propertyName: 'type',
+        propertyName: 'type'
       }
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result, new OasDiscriminator({ propertyName: 'type' }))
@@ -35,12 +35,12 @@ Deno.test('toDiscriminatorV3', async (t) => {
     await t.step('should handle discriminator with propertyName as empty string', () => {
       const stackTrail = new StackTrail(['TEST'])
       const discriminator: OpenAPIV3.DiscriminatorObject = {
-        propertyName: '',
+        propertyName: ''
       }
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -49,19 +49,19 @@ Deno.test('toDiscriminatorV3', async (t) => {
     })
   })
 
-  await t.step('discriminator with mapping', async (t) => {
+  await t.step('discriminator with mapping', async t => {
     await t.step('should handle discriminator with single mapping entry', () => {
       const stackTrail = new StackTrail(['TEST'])
       const discriminator: OpenAPIV3.DiscriminatorObject = {
         propertyName: 'petType',
         mapping: {
-          'dog': '#/components/schemas/Dog',
-        },
+          dog: '#/components/schemas/Dog'
+        }
       }
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(
@@ -69,8 +69,8 @@ Deno.test('toDiscriminatorV3', async (t) => {
         new OasDiscriminator({
           propertyName: 'petType',
           mapping: {
-            'dog': '#/components/schemas/Dog',
-          },
+            dog: '#/components/schemas/Dog'
+          }
         })
       )
     })
@@ -80,15 +80,15 @@ Deno.test('toDiscriminatorV3', async (t) => {
       const discriminator: OpenAPIV3.DiscriminatorObject = {
         propertyName: 'petType',
         mapping: {
-          'cat': '#/components/schemas/Cat',
-          'dog': '#/components/schemas/Dog',
-          'bird': '#/components/schemas/Bird',
-        },
+          cat: '#/components/schemas/Cat',
+          dog: '#/components/schemas/Dog',
+          bird: '#/components/schemas/Bird'
+        }
       }
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -103,12 +103,12 @@ Deno.test('toDiscriminatorV3', async (t) => {
       const stackTrail = new StackTrail(['TEST'])
       const discriminator: OpenAPIV3.DiscriminatorObject = {
         propertyName: 'type',
-        mapping: {},
+        mapping: {}
       }
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -120,17 +120,17 @@ Deno.test('toDiscriminatorV3', async (t) => {
     await t.step('should preserve mapping exactly as provided', () => {
       const stackTrail = new StackTrail(['TEST'])
       const mapping = {
-        'typeA': '#/components/schemas/TypeA',
-        'typeB': '#/components/schemas/TypeB',
+        typeA: '#/components/schemas/TypeA',
+        typeB: '#/components/schemas/TypeB'
       }
       const discriminator: OpenAPIV3.DiscriminatorObject = {
         propertyName: 'type',
-        mapping,
+        mapping
       }
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -143,15 +143,15 @@ Deno.test('toDiscriminatorV3', async (t) => {
       const discriminator: OpenAPIV3.DiscriminatorObject = {
         propertyName: 'objectType',
         mapping: {
-          'user': '#/components/schemas/User',
-          'admin': '#/components/schemas/Administrator',
-          'guest': '#/components/schemas/GuestUser',
-        },
+          user: '#/components/schemas/User',
+          admin: '#/components/schemas/Administrator',
+          guest: '#/components/schemas/GuestUser'
+        }
       }
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -161,19 +161,19 @@ Deno.test('toDiscriminatorV3', async (t) => {
     })
   })
 
-  await t.step('skipped fields handling', async (t) => {
+  await t.step('skipped fields handling', async t => {
     await t.step('should identify unknown/extra fields as skipped', () => {
       const stackTrail = new StackTrail(['TEST'])
       const discriminator = {
         propertyName: 'type',
         'x-custom': 'value',
-        'extra': 123,
+        extra: 123
       } as OpenAPIV3.DiscriminatorObject
 
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -186,16 +186,16 @@ Deno.test('toDiscriminatorV3', async (t) => {
       const discriminator = {
         propertyName: 'vehicleType',
         mapping: {
-          'car': '#/components/schemas/Car',
+          car: '#/components/schemas/Car'
         },
         'x-discriminator-description': 'Type of vehicle',
-        'x-enum-values': ['car', 'truck', 'motorcycle'],
+        'x-enum-values': ['car', 'truck', 'motorcycle']
       } as OpenAPIV3.DiscriminatorObject
 
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -209,14 +209,14 @@ Deno.test('toDiscriminatorV3', async (t) => {
       const discriminator: OpenAPIV3.DiscriminatorObject = {
         propertyName: 'status',
         mapping: {
-          'active': '#/components/schemas/ActiveStatus',
-        },
+          active: '#/components/schemas/ActiveStatus'
+        }
       }
 
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -231,13 +231,13 @@ Deno.test('toDiscriminatorV3', async (t) => {
         'x-field1': 'value1',
         'x-field2': 'value2',
         'x-field3': 'value3',
-        'unknownField': true,
+        unknownField: true
       } as OpenAPIV3.DiscriminatorObject
 
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -246,19 +246,19 @@ Deno.test('toDiscriminatorV3', async (t) => {
     })
   })
 
-  await t.step('field preservation', async (t) => {
+  await t.step('field preservation', async t => {
     await t.step('should correctly extract propertyName field', () => {
       const stackTrail = new StackTrail(['TEST'])
       const propertyNames = ['type', 'type', 'discriminatorField', '@type', 'object_type']
 
-      propertyNames.forEach((name) => {
+      propertyNames.forEach(name => {
         const discriminator: OpenAPIV3.DiscriminatorObject = {
-          propertyName: name,
+          propertyName: name
         }
         const result = toDiscriminatorV3({
           discriminator,
           stackTrail,
-          context: mockParseContext,
+          context: mockParseContext
         })
 
         assertExists(result)
@@ -271,14 +271,14 @@ Deno.test('toDiscriminatorV3', async (t) => {
       const discriminator: OpenAPIV3.DiscriminatorObject = {
         propertyName: 'type',
         mapping: {
-          'option1': '#/components/schemas/Option1',
-          'option2': '#/components/schemas/Option2',
-        },
+          option1: '#/components/schemas/Option1',
+          option2: '#/components/schemas/Option2'
+        }
       }
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -289,11 +289,11 @@ Deno.test('toDiscriminatorV3', async (t) => {
     await t.step('should not mutate original input object', () => {
       const stackTrail = new StackTrail(['TEST'])
       const originalMapping = {
-        'value1': '#/components/schemas/Schema1',
+        value1: '#/components/schemas/Schema1'
       }
       const discriminator: OpenAPIV3.DiscriminatorObject = {
         propertyName: 'field',
-        mapping: originalMapping,
+        mapping: originalMapping
       }
 
       // Make a copy to compare later
@@ -303,7 +303,7 @@ Deno.test('toDiscriminatorV3', async (t) => {
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       // Verify original object is unchanged
@@ -317,21 +317,21 @@ Deno.test('toDiscriminatorV3', async (t) => {
     })
   })
 
-  await t.step('complex scenarios', async (t) => {
+  await t.step('complex scenarios', async t => {
     await t.step('should handle realistic OpenAPI discriminator with oneOf', () => {
       const stackTrail = new StackTrail(['components', 'schemas', 'Pet'])
       const discriminator: OpenAPIV3.DiscriminatorObject = {
         propertyName: 'petType',
         mapping: {
-          'cat': 'Cat',
-          'dog': 'Dog',
-          'lizard': '#/components/schemas/Lizard',
-        },
+          cat: 'Cat',
+          dog: 'Dog',
+          lizard: '#/components/schemas/Lizard'
+        }
       }
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -348,15 +348,15 @@ Deno.test('toDiscriminatorV3', async (t) => {
         propertyName: 'type',
         mapping: {
           'type-a': '#/components/schemas/TypeA',
-          'type_b': '#/components/schemas/TypeB',
+          type_b: '#/components/schemas/TypeB',
           'type.c': '#/components/schemas/TypeC',
-          'type:d': '#/components/schemas/TypeD',
-        },
+          'type:d': '#/components/schemas/TypeD'
+        }
       }
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -371,16 +371,16 @@ Deno.test('toDiscriminatorV3', async (t) => {
       const discriminator: OpenAPIV3.DiscriminatorObject = {
         propertyName: 'shapeType',
         mapping: {
-          'circle': '#/components/schemas/Circle',
-          'square': '#/components/schemas/Square',
-          'triangle': '#/components/schemas/Triangle',
-          'rectangle': '#/components/schemas/Rectangle',
-        },
+          circle: '#/components/schemas/Circle',
+          square: '#/components/schemas/Square',
+          triangle: '#/components/schemas/Triangle',
+          rectangle: '#/components/schemas/Rectangle'
+        }
       }
       const result = toDiscriminatorV3({
         discriminator,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)

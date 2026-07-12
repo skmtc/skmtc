@@ -143,7 +143,11 @@ const GenerateTask = ({ project }: GenerateTaskProps) => {
       schemaSourceString={schemaLocation}
     />
   ) : (
-    <RunGenerateTask project={project} bundlePath={bundlePath} schemaSourceString={schemaLocation} />
+    <RunGenerateTask
+      project={project}
+      bundlePath={bundlePath}
+      schemaSourceString={schemaLocation}
+    />
   )
 }
 

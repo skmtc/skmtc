@@ -56,7 +56,9 @@ export const traverseSchema = (
       }
 
       if (property.type === 'custom') {
-        throw new Error(`Schema path segment "${segment}" is a custom value and cannot be traversed`)
+        throw new Error(
+          `Schema path segment "${segment}" is a custom value and cannot be traversed`
+        )
       }
 
       return traverseSchema(property, rest)
@@ -145,7 +147,9 @@ const selectUnionMember = (union: OasUnion, segment: string): OasSchema | OasRef
     const member = findMemberByRefName(union, segment.slice(1))
 
     if (!member) {
-      const refNames = union.members.filter(member => member.isRef()).map(member => member.toRefName())
+      const refNames = union.members
+        .filter(member => member.isRef())
+        .map(member => member.toRefName())
       throw new Error(
         `Schema path segment "${segment}" does not match a union member refName (available: ${
           refNames.map(name => `$${name}`).join(', ') || 'none — use "[index]" for inline members'

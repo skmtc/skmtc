@@ -3,8 +3,8 @@ import type { OpenAPIV3 } from 'openapi-types'
 import { OasArray } from './Array.ts'
 import { OasUnknown } from '@/oas/unknown/Unknown.ts'
 
-Deno.test('OasArray', async (t) => {
-  await t.step('constructor and property initialization', async (t) => {
+Deno.test('OasArray', async t => {
+  await t.step('constructor and property initialization', async t => {
     await t.step('should initialize with all properties provided', () => {
       const items = new OasUnknown()
       const array = new OasArray({
@@ -21,7 +21,7 @@ Deno.test('OasArray', async (t) => {
         defaultValue: [{ id: 0 }],
         readOnly: true,
         writeOnly: false,
-        deprecated: false,
+        deprecated: false
       })
 
       assertEquals(array.oasType, 'schema')
@@ -69,7 +69,7 @@ Deno.test('OasArray', async (t) => {
       const array = new OasArray({
         items,
         title: 'String Array',
-        maxItems: 10,
+        maxItems: 10
       })
 
       assertEquals(array.items, items)
@@ -91,12 +91,12 @@ Deno.test('OasArray', async (t) => {
       const extensionFields = {
         'x-category': 'collection',
         'x-priority': 'high',
-        'x-metadata': { nested: { deep: 'value' } },
+        'x-metadata': { nested: { deep: 'value' } }
       }
 
       const array = new OasArray({
         items: new OasUnknown(),
-        extensionFields,
+        extensionFields
       })
 
       assertEquals(array.extensionFields, extensionFields)
@@ -108,7 +108,7 @@ Deno.test('OasArray', async (t) => {
       const array = new OasArray({
         items: new OasUnknown(),
         nullable: true,
-        example: null,
+        example: null
       })
 
       assertEquals(array.nullable, true)
@@ -118,18 +118,18 @@ Deno.test('OasArray', async (t) => {
     await t.step('should handle uniqueItems constraint', () => {
       const array = new OasArray({
         items: new OasUnknown(),
-        uniqueItems: true,
+        uniqueItems: true
       })
 
       assertEquals(array.uniqueItems, true)
     })
   })
 
-  await t.step('isRef() method', async (t) => {
+  await t.step('isRef() method', async t => {
     await t.step('should return false for OasArray instance (not a reference)', () => {
       const array = new OasArray({
         items: new OasUnknown(),
-        title: 'Test Array',
+        title: 'Test Array'
       })
 
       assertEquals(array.isRef(), false)
@@ -150,21 +150,21 @@ Deno.test('OasArray', async (t) => {
         new OasArray({ items: new OasUnknown() }),
         new OasArray({ items: new OasUnknown(), title: 'Array' }),
         new OasArray({ items: new OasUnknown(), nullable: true }),
-        new OasArray({ items: new OasUnknown(), maxItems: 10, minItems: 1 }),
+        new OasArray({ items: new OasUnknown(), maxItems: 10, minItems: 1 })
       ]
 
-      arrays.forEach((array) => {
+      arrays.forEach(array => {
         assertEquals(array.isRef(), false)
       })
     })
   })
 
-  await t.step('resolve() method', async (t) => {
+  await t.step('resolve() method', async t => {
     await t.step('should return self when called on OasArray instance', () => {
       const array = new OasArray({
         items: new OasUnknown(),
         title: 'Items Array',
-        description: 'Array of items',
+        description: 'Array of items'
       })
 
       const resolved = array.resolve()
@@ -189,7 +189,7 @@ Deno.test('OasArray', async (t) => {
         uniqueItems: true,
         maxItems: 50,
         minItems: 5,
-        extensionFields: { 'x-version': '2.0' },
+        extensionFields: { 'x-version': '2.0' }
       })
 
       const resolved = array.resolve()
@@ -204,11 +204,11 @@ Deno.test('OasArray', async (t) => {
     })
   })
 
-  await t.step('resolveOnce() method', async (t) => {
+  await t.step('resolveOnce() method', async t => {
     await t.step('should return self when called on OasArray instance', () => {
       const array = new OasArray({
         items: new OasUnknown(),
-        example: [1, 2, 3],
+        example: [1, 2, 3]
       })
 
       const resolved = array.resolveOnce()
@@ -221,7 +221,7 @@ Deno.test('OasArray', async (t) => {
       const array = new OasArray({
         items: new OasUnknown(),
         title: 'Test Array',
-        description: 'Test description',
+        description: 'Test description'
       })
 
       const resolved = array.resolve()
@@ -238,7 +238,7 @@ Deno.test('OasArray', async (t) => {
         description: 'Array of tags',
         example: ['tag1', 'tag2', 'tag3'],
         uniqueItems: true,
-        extensionFields: { 'x-tags': ['meta', 'collection'] },
+        extensionFields: { 'x-tags': ['meta', 'collection'] }
       })
 
       const resolved = array.resolveOnce()
@@ -251,12 +251,12 @@ Deno.test('OasArray', async (t) => {
     })
   })
 
-  await t.step('toJsonSchema() method', async (t) => {
+  await t.step('toJsonSchema() method', async t => {
     await t.step('should convert array to OpenAPI v3 JSON format', () => {
       const array = new OasArray({
         items: new OasUnknown(),
         title: 'Simple Array',
-        description: 'A simple array',
+        description: 'A simple array'
       })
 
       const result = array.toJsonSchema({ resolve: false })
@@ -280,7 +280,7 @@ Deno.test('OasArray', async (t) => {
         enums: [[{ a: 1 }], [{ b: 2 }]],
         defaultValue: [{ default: true }],
         readOnly: true,
-        writeOnly: false,
+        writeOnly: false
       })
 
       const result = array.toJsonSchema({ resolve: false })
@@ -303,7 +303,7 @@ Deno.test('OasArray', async (t) => {
       const itemsSchema = new OasUnknown({ title: 'User', description: 'User object' })
       const array = new OasArray({
         items: itemsSchema,
-        title: 'Users',
+        title: 'Users'
       })
 
       const result = array.toJsonSchema({ resolve: false })
@@ -329,7 +329,7 @@ Deno.test('OasArray', async (t) => {
     await t.step('should handle nullable arrays', () => {
       const array = new OasArray({
         items: new OasUnknown(),
-        nullable: true,
+        nullable: true
       })
 
       const result = array.toJsonSchema({ resolve: false })
@@ -340,7 +340,7 @@ Deno.test('OasArray', async (t) => {
     await t.step('should handle example values', () => {
       const array = new OasArray({
         items: new OasUnknown(),
-        example: ['value1', 'value2', 'value3'],
+        example: ['value1', 'value2', 'value3']
       })
 
       const result = array.toJsonSchema({ resolve: false })
@@ -351,18 +351,26 @@ Deno.test('OasArray', async (t) => {
     await t.step('should handle enum arrays', () => {
       const array = new OasArray({
         items: new OasUnknown(),
-        enums: [['a', 'b'], ['c', 'd'], ['e', 'f']],
+        enums: [
+          ['a', 'b'],
+          ['c', 'd'],
+          ['e', 'f']
+        ]
       })
 
       const result = array.toJsonSchema({ resolve: false })
 
-      assertEquals(result.enum, [['a', 'b'], ['c', 'd'], ['e', 'f']])
+      assertEquals(result.enum, [
+        ['a', 'b'],
+        ['c', 'd'],
+        ['e', 'f']
+      ])
     })
 
     await t.step('should handle default values', () => {
       const array = new OasArray({
         items: new OasUnknown(),
-        defaultValue: ['default1', 'default2'],
+        defaultValue: ['default1', 'default2']
       })
 
       const result = array.toJsonSchema({ resolve: false })
@@ -374,7 +382,7 @@ Deno.test('OasArray', async (t) => {
       const array = new OasArray({
         items: new OasUnknown(),
         minItems: 1,
-        maxItems: 10,
+        maxItems: 10
       })
 
       const result = array.toJsonSchema({ resolve: false })
@@ -386,12 +394,12 @@ Deno.test('OasArray', async (t) => {
     await t.step('should handle readOnly, writeOnly, and deprecated flags', () => {
       const readOnlyArray = new OasArray({
         items: new OasUnknown(),
-        readOnly: true,
+        readOnly: true
       })
 
       const writeOnlyArray = new OasArray({
         items: new OasUnknown(),
-        writeOnly: true,
+        writeOnly: true
       })
 
       const result1 = readOnlyArray.toJsonSchema({ resolve: false })
@@ -404,7 +412,7 @@ Deno.test('OasArray', async (t) => {
     await t.step('should handle uniqueItems constraint', () => {
       const array = new OasArray({
         items: new OasUnknown(),
-        uniqueItems: true,
+        uniqueItems: true
       })
 
       const result = array.toJsonSchema({ resolve: false })
@@ -414,7 +422,7 @@ Deno.test('OasArray', async (t) => {
 
     await t.step('should handle undefined optional fields', () => {
       const array = new OasArray({
-        items: new OasUnknown(),
+        items: new OasUnknown()
       })
 
       const result = array.toJsonSchema({ resolve: false })
@@ -428,7 +436,7 @@ Deno.test('OasArray', async (t) => {
     })
   })
 
-  await t.step('property handling and edge cases', async (t) => {
+  await t.step('property handling and edge cases', async t => {
     await t.step('should handle items with OasUnknown schema', () => {
       const items = new OasUnknown({ title: 'Unknown Type' })
       const array = new OasArray({ items })
@@ -440,7 +448,7 @@ Deno.test('OasArray', async (t) => {
     await t.step('should handle empty example array', () => {
       const array = new OasArray({
         items: new OasUnknown(),
-        example: [],
+        example: []
       })
 
       assertEquals(array.example, [])
@@ -449,7 +457,7 @@ Deno.test('OasArray', async (t) => {
     await t.step('should handle empty enums array', () => {
       const array = new OasArray({
         items: new OasUnknown(),
-        enums: [],
+        enums: []
       })
 
       assertEquals(array.enums, [])
@@ -458,7 +466,7 @@ Deno.test('OasArray', async (t) => {
     await t.step('should handle empty defaultValue array', () => {
       const array = new OasArray({
         items: new OasUnknown(),
-        defaultValue: [],
+        defaultValue: []
       })
 
       assertEquals(array.defaultValue, [])
@@ -467,7 +475,7 @@ Deno.test('OasArray', async (t) => {
     await t.step('should handle zero minItems', () => {
       const array = new OasArray({
         items: new OasUnknown(),
-        minItems: 0,
+        minItems: 0
       })
 
       assertEquals(array.minItems, 0)
@@ -477,7 +485,7 @@ Deno.test('OasArray', async (t) => {
       const array = new OasArray({
         items: new OasUnknown(),
         minItems: 5,
-        maxItems: 5,
+        maxItems: 5
       })
 
       assertEquals(array.minItems, 5)
@@ -488,7 +496,7 @@ Deno.test('OasArray', async (t) => {
       const array = new OasArray({
         items: new OasUnknown(),
         nullable: true,
-        enums: [['a'], null, ['b']],
+        enums: [['a'], null, ['b']]
       })
 
       assertEquals(array.nullable, true)
@@ -499,7 +507,7 @@ Deno.test('OasArray', async (t) => {
       const array = new OasArray({
         items: new OasUnknown(),
         nullable: true,
-        defaultValue: null,
+        defaultValue: null
       })
 
       assertEquals(array.nullable, true)
@@ -509,7 +517,7 @@ Deno.test('OasArray', async (t) => {
     await t.step('should handle deprecated flag', () => {
       const array = new OasArray({
         items: new OasUnknown(),
-        deprecated: true,
+        deprecated: true
       })
 
       assertEquals(array.deprecated, true)
@@ -523,29 +531,26 @@ Deno.test('OasArray', async (t) => {
             nested: {
               deeply: {
                 value: 'test',
-                array: [1, 2, 3],
-              },
-            },
-          },
-        },
+                array: [1, 2, 3]
+              }
+            }
+          }
+        }
       })
 
       assertExists(array.extensionFields)
-      assertEquals(
-        array.extensionFields['x-custom'],
-        {
-          nested: {
-            deeply: {
-              value: 'test',
-              array: [1, 2, 3],
-            },
-          },
+      assertEquals(array.extensionFields['x-custom'], {
+        nested: {
+          deeply: {
+            value: 'test',
+            array: [1, 2, 3]
+          }
         }
-      )
+      })
     })
   })
 
-  await t.step('realistic API scenarios', async (t) => {
+  await t.step('realistic API scenarios', async t => {
     await t.step('should handle array of strings with constraints', () => {
       const array = new OasArray({
         items: new OasUnknown(),
@@ -554,7 +559,7 @@ Deno.test('OasArray', async (t) => {
         minItems: 1,
         maxItems: 10,
         uniqueItems: true,
-        example: ['typescript', 'deno', 'openapi'],
+        example: ['typescript', 'deno', 'openapi']
       })
 
       assertEquals(array.title, 'Tags')
@@ -571,7 +576,7 @@ Deno.test('OasArray', async (t) => {
         minItems: 0,
         maxItems: 100,
         example: [95, 87, 92, 88],
-        defaultValue: [],
+        defaultValue: []
       })
 
       assertEquals(array.title, 'Scores')
@@ -586,8 +591,8 @@ Deno.test('OasArray', async (t) => {
         description: 'List of user objects',
         example: [
           { id: 1, name: 'Alice' },
-          { id: 2, name: 'Bob' },
-        ],
+          { id: 2, name: 'Bob' }
+        ]
       })
 
       const result = array.toJsonSchema({ resolve: false })
@@ -598,7 +603,7 @@ Deno.test('OasArray', async (t) => {
       assertEquals(items.title, 'User')
       assertEquals(result.example, [
         { id: 1, name: 'Alice' },
-        { id: 2, name: 'Bob' },
+        { id: 2, name: 'Bob' }
       ])
     })
 
@@ -607,7 +612,7 @@ Deno.test('OasArray', async (t) => {
         items: new OasUnknown(),
         title: 'Results',
         description: 'Read-only results array',
-        readOnly: true,
+        readOnly: true
       })
 
       const result = array.toJsonSchema({ resolve: false })
@@ -621,7 +626,7 @@ Deno.test('OasArray', async (t) => {
         items: new OasUnknown(),
         title: 'Permissions',
         description: 'Write-only permissions array',
-        writeOnly: true,
+        writeOnly: true
       })
 
       const result = array.toJsonSchema({ resolve: false })
@@ -636,7 +641,7 @@ Deno.test('OasArray', async (t) => {
         title: 'Optional Items',
         description: 'Array that can be null',
         nullable: true,
-        example: null,
+        example: null
       })
 
       const result = array.toJsonSchema({ resolve: false })
@@ -652,7 +657,7 @@ Deno.test('OasArray', async (t) => {
         description: 'Paginated array of items',
         minItems: 0,
         maxItems: 50,
-        example: [{ id: 1 }, { id: 2 }, { id: 3 }],
+        example: [{ id: 1 }, { id: 2 }, { id: 3 }]
       })
 
       assertEquals(array.minItems, 0)

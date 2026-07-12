@@ -319,9 +319,7 @@ const findManifestEntry = (
   const normalized = normalize(file)
 
   return Object.entries(files).find(([artifactPath, entry]) => {
-    return (
-      normalize(artifactPath) === normalized || normalize(entry.destinationPath) === normalized
-    )
+    return normalize(artifactPath) === normalized || normalize(entry.destinationPath) === normalized
   })
 }
 

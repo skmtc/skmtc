@@ -18,19 +18,11 @@ Deno.test('toRefName - extracts name from parameter reference', () => {
 })
 
 Deno.test('toRefName - throws error for invalid reference', () => {
-  assertThrows(
-    () => toRefName('invalid/ref/'),
-    Error,
-    'Invalid reference'
-  )
+  assertThrows(() => toRefName('invalid/ref/'), Error, 'Invalid reference')
 })
 
 Deno.test('toRefName - throws error for empty reference', () => {
-  assertThrows(
-    () => toRefName('#/components/schemas/'),
-    Error,
-    'Invalid reference'
-  )
+  assertThrows(() => toRefName('#/components/schemas/'), Error, 'Invalid reference')
 })
 
 Deno.test('isRef - returns true for valid reference object', () => {

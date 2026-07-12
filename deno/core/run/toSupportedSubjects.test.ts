@@ -14,46 +14,45 @@ const doc: OpenAPIV3.Document = {
   paths: {
     '/pets': {
       get: { responses: { '200': { description: 'ok' } } },
-      post: { responses: { '200': { description: 'ok' } } },
+      post: { responses: { '200': { description: 'ok' } } }
     },
     '/owners': {
-      get: { responses: { '200': { description: 'ok' } } },
-    },
+      get: { responses: { '200': { description: 'ok' } } }
+    }
   },
-  components: { schemas: { Pet: { type: 'object' }, Owner: { type: 'object' } } },
+  components: { schemas: { Pet: { type: 'object' }, Owner: { type: 'object' } } }
 }
 
-const generators = <E = undefined>(): GeneratorsMapContainer<E> =>
-  ({
-    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
-    'gets-only': toOasOperationEntry({
-      id: 'gets-only',
-      toEnrichmentSchema: () => emptyEnrichmentSchema,
-      isSupported: ({ operation }) => operation.method === 'get',
-      transform: () => {},
-    }),
-    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
-    'all-ops': toOasOperationEntry({
-      id: 'all-ops',
-      toEnrichmentSchema: () => emptyEnrichmentSchema,
-      transform: () => {},
-    }),
-    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
-    models: toModelEntry({
-      id: 'models',
-      toEnrichmentSchema: () => emptyEnrichmentSchema,
-      transform: () => {},
-    }),
-    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
-    'pet-only-models': toModelEntry({
-      id: 'pet-only-models',
-      toEnrichmentSchema: () => emptyEnrichmentSchema,
-      isSupported: ({ refName }) => refName === 'Pet',
-      transform: () => {},
-    }),
+const generators = <E = undefined>(): GeneratorsMapContainer<E> => ({
+  // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+  'gets-only': toOasOperationEntry({
+    id: 'gets-only',
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
+    isSupported: ({ operation }) => operation.method === 'get',
+    transform: () => {}
+  }),
+  // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+  'all-ops': toOasOperationEntry({
+    id: 'all-ops',
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
+    transform: () => {}
+  }),
+  // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+  models: toModelEntry({
+    id: 'models',
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
+    transform: () => {}
+  }),
+  // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+  'pet-only-models': toModelEntry({
+    id: 'pet-only-models',
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
+    isSupported: ({ refName }) => refName === 'Pet',
+    transform: () => {}
   })
+})
 
-Deno.test('toSupportedSubjects', async (t) => {
+Deno.test('toSupportedSubjects', async t => {
   const result = toSupportedSubjects({
     traceId: 'trace',
     spanId: 'span',
@@ -61,7 +60,7 @@ Deno.test('toSupportedSubjects', async (t) => {
     settings: undefined,
     toGeneratorConfigMap: generators,
     stackTrail: new StackTrail(['TEST']),
-    silent: true,
+    silent: true
   })
 
   await t.step('parses without issues', () => {
@@ -76,8 +75,8 @@ Deno.test('toSupportedSubjects', async (t) => {
         gen.operations.sort((a, b) => a.path.localeCompare(b.path)),
         [
           { path: '/owners', method: 'get' },
-          { path: '/pets', method: 'get' },
-        ],
+          { path: '/pets', method: 'get' }
+        ]
       )
     }
   })
@@ -117,28 +116,27 @@ const webhookDoc: OpenAPIV3.Document & {
   paths: {},
   webhooks: {
     newPet: { post: { responses: { '200': { description: 'ok' } } } },
-    petUpdated: { put: { responses: { '200': { description: 'ok' } } } },
-  },
+    petUpdated: { put: { responses: { '200': { description: 'ok' } } } }
+  }
 }
 
-const webhookGenerators = <E = undefined>(): GeneratorsMapContainer<E> =>
-  ({
-    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
-    'post-only-webhooks': toWebhookEntry({
-      id: 'post-only-webhooks',
-      toEnrichmentSchema: () => emptyEnrichmentSchema,
-      isSupported: ({ webhook }) => webhook.method === 'post',
-      transform: () => {},
-    }),
-    // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
-    'all-webhooks': toWebhookEntry({
-      id: 'all-webhooks',
-      toEnrichmentSchema: () => emptyEnrichmentSchema,
-      transform: () => {},
-    }),
+const webhookGenerators = <E = undefined>(): GeneratorsMapContainer<E> => ({
+  // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+  'post-only-webhooks': toWebhookEntry({
+    id: 'post-only-webhooks',
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
+    isSupported: ({ webhook }) => webhook.method === 'post',
+    transform: () => {}
+  }),
+  // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+  'all-webhooks': toWebhookEntry({
+    id: 'all-webhooks',
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
+    transform: () => {}
   })
+})
 
-Deno.test('toSupportedSubjects - webhook arm', async (t) => {
+Deno.test('toSupportedSubjects - webhook arm', async t => {
   const result = toSupportedSubjects({
     traceId: 'trace',
     spanId: 'span',
@@ -146,7 +144,7 @@ Deno.test('toSupportedSubjects - webhook arm', async (t) => {
     settings: undefined,
     toGeneratorConfigMap: webhookGenerators,
     stackTrail: new StackTrail(['TEST']),
-    silent: true,
+    silent: true
   })
 
   await t.step('parses without issues', () => {
@@ -169,8 +167,8 @@ Deno.test('toSupportedSubjects - webhook arm', async (t) => {
         gen.webhooks.toSorted((a, b) => a.name.localeCompare(b.name)),
         [
           { name: 'newPet', method: 'post' },
-          { name: 'petUpdated', method: 'put' },
-        ],
+          { name: 'petUpdated', method: 'put' }
+        ]
       )
     }
   })

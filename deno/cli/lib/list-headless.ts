@@ -22,10 +22,7 @@ export type ListHeadlessResult = {
   generators: string[]
 }
 
-export const listHeadless = ({
-  skmtcRoot,
-  projectName
-}: ListHeadlessArgs): ListHeadlessResult => {
+export const listHeadless = ({ skmtcRoot, projectName }: ListHeadlessArgs): ListHeadlessResult => {
   const project = skmtcRoot.findProject(projectName)
   return {
     projectName,

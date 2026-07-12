@@ -8,10 +8,6 @@ An operation generator. The Supabase-transport variant of
 the variation is in the Projection's `toString()` (Supabase
 client calls instead of `fetch`).
 
-## Source
-
-`skmtc-generators/gen-tanstack-query-supabase-zod/src/`
-
 ## What it generates
 
 Per operation, hooks that call the Supabase Postgrest client:
@@ -23,6 +19,10 @@ export const useGetUsers = () =>
     queryFn: () => supabase.from('users').select('*').then(({ data }) => userListSchema.parse(data))
   })
 ```
+
+## Source
+
+`skmtc-generators/gen-tanstack-query-supabase-zod/src/`
 
 ## Key decisions
 

@@ -49,27 +49,27 @@ export type ComponentsFields = {
 
 /**
  * Represents the OpenAPI Components Object in the SKMTC OAS processing system.
- * 
+ *
  * The `OasComponents` class manages the reusable components section of an OpenAPI
  * document, providing centralized access to shared schemas, responses, parameters,
  * and other reusable elements that can be referenced throughout the API specification.
- * 
+ *
  * This class serves as the central registry for all reusable components, enabling
  * efficient reference resolution and reducing duplication in OpenAPI documents.
- * 
+ *
  * ## Key Features
- * 
+ *
  * - **Schema Management**: Central repository for reusable data schemas
  * - **Response Reuse**: Common response definitions for consistent API responses
  * - **Parameter Standardization**: Shared parameter definitions across operations
  * - **Reference Resolution**: Support for internal references ($ref) to components
  * - **Type Safety**: Strongly typed access to different component categories
  * - **Extension Support**: Custom OpenAPI extension field handling
- * 
+ *
  * @example Basic component access
  * ```typescript
  * import { OasComponents } from '@skmtc/core';
- * 
+ *
  * // Typically created during document parsing
  * const components = new OasComponents({
  *   schemas: {
@@ -92,30 +92,30 @@ export type ComponentsFields = {
  *     })
  *   }
  * });
- * 
+ *
  * // Access schemas
  * const userSchema = components.schemas?.['User'];
  * const productSchema = components.schemas?.['Product'];
- * 
+ *
  * // Access responses
  * const notFoundResponse = components.responses?.['NotFound'];
  * ```
- * 
+ *
  * @example Schema management
  * ```typescript
  * // Get all schema reference names
  * const schemaNames = components.toSchemasRefNames();
  * console.log(schemaNames); // ['User', 'Product', 'Order']
- * 
+ *
  * // Remove a schema (useful for processing)
  * const removedSchema = components.removeSchema('ObsoleteSchema');
  * console.log('Removed:', removedSchema);
- * 
+ *
  * // Check remaining schemas
  * const remainingSchemas = components.toSchemasRefNames();
  * console.log('Remaining:', remainingSchemas);
  * ```
- * 
+ *
  * @example Parameter reuse
  * ```typescript
  * const components = new OasComponents({
@@ -132,12 +132,12 @@ export type ComponentsFields = {
  *     })
  *   }
  * });
- * 
+ *
  * // These parameters can be referenced in operations:
  * // $ref: '#/components/parameters/PageSize'
  * // $ref: '#/components/parameters/PageNumber'
  * ```
- * 
+ *
  * @example Response standardization
  * ```typescript
  * const components = new OasComponents({
@@ -172,17 +172,17 @@ export type ComponentsFields = {
  *     })
  *   }
  * });
- * 
+ *
  * // Standardized responses across all operations
  * ```
- * 
+ *
  * @example Processing components in generators
  * ```typescript
  * class ComponentProcessor {
  *   processDocument(document: OasDocument) {
  *     const components = document.components;
  *     if (!components) return;
- * 
+ *
  *     // Process all schemas
  *     if (components.schemas) {
  *       Object.entries(components.schemas).forEach(([name, schema]) => {
@@ -193,7 +193,7 @@ export type ComponentsFields = {
  *         }
  *       });
  *     }
- * 
+ *
  *     // Process parameters
  *     if (components.parameters) {
  *       Object.keys(components.parameters).forEach(paramName => {
@@ -212,9 +212,9 @@ export class OasComponents {
 
   /**
    * Creates a new OasComponents instance.
-   * 
+   *
    * @param fields - Component definitions (defaults to empty object)
-   * 
+   *
    * @example
    * ```typescript
    * const components = new OasComponents({
@@ -234,13 +234,13 @@ export class OasComponents {
 
   /**
    * Gets all schema reference names.
-   * 
+   *
    * This method extracts the keys from the schemas object and returns them
    * as an array of RefName types. Useful for iterating over all available
    * schemas or checking schema availability.
-   * 
+   *
    * @returns Array of reference names for all schemas
-   * 
+   *
    * @example
    * ```typescript
    * const components = new OasComponents({
@@ -250,10 +250,10 @@ export class OasComponents {
    *     Order: orderSchema
    *   }
    * });
-   * 
+   *
    * const schemaNames = components.toSchemasRefNames();
    * console.log(schemaNames); // ['User', 'Product', 'Order']
-   * 
+   *
    * // Use for processing
    * schemaNames.forEach(name => {
    *   const schema = components.schemas?.[name];
@@ -272,16 +272,16 @@ export class OasComponents {
 
   /**
    * Removes a schema from the components and returns it.
-   * 
+   *
    * This method permanently removes a schema from the components object
    * and returns the removed schema. This is useful during processing when
    * you need to extract and handle specific schemas separately.
-   * 
+   *
    * @param refName - The reference name of the schema to remove
    * @returns The removed schema object or reference
-   * 
+   *
    * @throws {Error} When the schema doesn't exist or schemas object is undefined
-   * 
+   *
    * @example
    * ```typescript
    * const components = new OasComponents({
@@ -291,15 +291,15 @@ export class OasComponents {
    *     Internal: internalSchema
    *   }
    * });
-   * 
+   *
    * // Remove internal schema that shouldn't be exposed
    * const internalSchema = components.removeSchema('Internal');
    * console.log('Removed internal schema');
-   * 
+   *
    * // Check remaining schemas
    * const remainingSchemas = components.toSchemasRefNames();
    * console.log(remainingSchemas); // ['User', 'Product']
-   * 
+   *
    * // Process removed schema separately
    * if (!internalSchema.isRef()) {
    *   console.log('Processing internal schema privately');

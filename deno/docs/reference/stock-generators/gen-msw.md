@@ -6,10 +6,6 @@ An operation generator that demonstrates the **shared-aggregate
 pattern**: one Projection per operation contributes a route, and
 all routes converge into a single `routesList` Projection per file.
 
-## Source
-
-`skmtc-generators/gen-msw/src/`
-
 ## What it generates
 
 Per operation, a `MockRoute`:
@@ -30,6 +26,10 @@ export const toRoutesList = (deps: { ... }) => [
 
 The `toRoutesList` factory accepts dependencies (typically your
 mock data store) and returns the array MSW expects.
+
+## Source
+
+`skmtc-generators/gen-msw/src/`
 
 ## Key decisions
 

@@ -44,7 +44,7 @@ const runGenerate = (doc: unknown) => {
     // over EnrichmentType; a concrete entry's enrichment type can't unify
     // with the open generic, so the map is widened (the codebase convention
     // for test harnesses, e.g. GenerateContext.end-to-end.test.ts).
-    toGeneratorConfigMap: () => ({ [tsWebhookEntry.id]: tsWebhookEntry } as any),
+    toGeneratorConfigMap: () => ({ [tsWebhookEntry.id]: tsWebhookEntry }) as any,
     silent: true,
     stackTrail: new StackTrail(['gen'])
   })
@@ -172,7 +172,10 @@ Deno.test('gen-ts-webhook - identifier and export path follow the <Name>WebhookH
   // Export path: `@/webhooks/<PascalName>.generated.ts` (basePath `src`).
   const exportPath = 'src/webhooks/NewPet.generated.ts'
   const generated = result.artifacts[exportPath]
-  assert(generated, `expected the handler at ${exportPath}, got: ${Object.keys(result.artifacts).join(', ')}`)
+  assert(
+    generated,
+    `expected the handler at ${exportPath}, got: ${Object.keys(result.artifacts).join(', ')}`
+  )
 
   // Identifier: `<PascalName>WebhookHandler`, emitted as `export type`.
   assertStringIncludes(generated, 'export type NewPetWebhookHandler')

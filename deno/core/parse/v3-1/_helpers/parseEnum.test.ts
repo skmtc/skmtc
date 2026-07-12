@@ -5,8 +5,8 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 
-Deno.test('parseEnum', async (t) => {
-  await t.step('non-array inputs', async (t) => {
+Deno.test('parseEnum', async t => {
+  await t.step('non-array inputs', async t => {
     await t.step('should return undefined for non-array values', () => {
       const stackTrail = new StackTrail(['TEST'])
 
@@ -15,9 +15,9 @@ Deno.test('parseEnum', async (t) => {
         value: 'not-an-array',
         nullable: false,
         parent: {},
-        check: (item) => typeof item === 'string',
-        toMessage: (item) => `Invalid: ${item}`,
-        context: mockParseContext,
+        check: item => typeof item === 'string',
+        toMessage: item => `Invalid: ${item}`,
+        context: mockParseContext
       })
 
       assertEquals(result, undefined)
@@ -31,9 +31,9 @@ Deno.test('parseEnum', async (t) => {
         value: null,
         nullable: false,
         parent: {},
-        check: (item) => typeof item === 'string',
-        toMessage: (item) => `Invalid: ${item}`,
-        context: mockParseContext,
+        check: item => typeof item === 'string',
+        toMessage: item => `Invalid: ${item}`,
+        context: mockParseContext
       })
 
       assertEquals(result, undefined)
@@ -47,9 +47,9 @@ Deno.test('parseEnum', async (t) => {
         value: undefined,
         nullable: false,
         parent: {},
-        check: (item) => typeof item === 'string',
-        toMessage: (item) => `Invalid: ${item}`,
-        context: mockParseContext,
+        check: item => typeof item === 'string',
+        toMessage: item => `Invalid: ${item}`,
+        context: mockParseContext
       })
 
       assertEquals(result, undefined)
@@ -63,16 +63,16 @@ Deno.test('parseEnum', async (t) => {
         value: { key: 'value' },
         nullable: false,
         parent: {},
-        check: (item) => typeof item === 'string',
-        toMessage: (item) => `Invalid: ${item}`,
-        context: mockParseContext,
+        check: item => typeof item === 'string',
+        toMessage: item => `Invalid: ${item}`,
+        context: mockParseContext
       })
 
       assertEquals(result, undefined)
     })
   })
 
-  await t.step('valid array inputs', async (t) => {
+  await t.step('valid array inputs', async t => {
     await t.step('should return array when all items are valid', () => {
       const stackTrail = new StackTrail(['TEST'])
       const validArray = ['one', 'two', 'three']
@@ -82,9 +82,9 @@ Deno.test('parseEnum', async (t) => {
         value: validArray,
         nullable: false,
         parent: {},
-        check: (item) => typeof item === 'string',
-        toMessage: (item) => `Invalid: ${item}`,
-        context: mockParseContext,
+        check: item => typeof item === 'string',
+        toMessage: item => `Invalid: ${item}`,
+        context: mockParseContext
       })
 
       assertEquals(result, validArray)
@@ -99,9 +99,9 @@ Deno.test('parseEnum', async (t) => {
         value: emptyArray,
         nullable: false,
         parent: {},
-        check: (item) => typeof item === 'string',
-        toMessage: (item) => `Invalid: ${item}`,
-        context: mockParseContext,
+        check: item => typeof item === 'string',
+        toMessage: item => `Invalid: ${item}`,
+        context: mockParseContext
       })
 
       assertEquals(result, emptyArray)
@@ -116,16 +116,16 @@ Deno.test('parseEnum', async (t) => {
         value: singleItemArray,
         nullable: false,
         parent: {},
-        check: (item) => typeof item === 'number',
-        toMessage: (item) => `Invalid: ${item}`,
-        context: mockParseContext,
+        check: item => typeof item === 'number',
+        toMessage: item => `Invalid: ${item}`,
+        context: mockParseContext
       })
 
       assertEquals(result, singleItemArray)
     })
   })
 
-  await t.step('nullable handling', async (t) => {
+  await t.step('nullable handling', async t => {
     await t.step('should accept null items when nullable is true', () => {
       const stackTrail = new StackTrail(['TEST'])
       const arrayWithNull = ['one', null, 'three']
@@ -135,9 +135,9 @@ Deno.test('parseEnum', async (t) => {
         value: arrayWithNull,
         nullable: true,
         parent: {},
-        check: (item) => typeof item === 'string',
-        toMessage: (item) => `Invalid: ${item}`,
-        context: mockParseContext,
+        check: item => typeof item === 'string',
+        toMessage: item => `Invalid: ${item}`,
+        context: mockParseContext
       })
 
       assertEquals(result, arrayWithNull)
@@ -155,22 +155,24 @@ Deno.test('parseEnum', async (t) => {
         value: arrayWithNull,
         nullable: false,
         parent,
-        check: (item) => typeof item === 'string',
-        toMessage: (item) => `Invalid item: ${item}`,
-        context: mockParseContext as ParseContextType,
+        check: item => typeof item === 'string',
+        toMessage: item => `Invalid item: ${item}`,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(result, undefined)
       assertSpyCalls(contextSpy, 1)
       assertSpyCall(contextSpy, 0, {
-        args: [{
-          key: 'enum',
-          level: 'warning',
-          message: 'Invalid item: null',
-          parent,
-          stackTrail,
-          type: 'INVALID_ENUM',
-        }],
+        args: [
+          {
+            key: 'enum',
+            level: 'warning',
+            message: 'Invalid item: null',
+            parent,
+            stackTrail,
+            type: 'INVALID_ENUM'
+          }
+        ]
       })
 
       contextSpy.restore()
@@ -185,9 +187,9 @@ Deno.test('parseEnum', async (t) => {
         value: arrayWithNulls,
         nullable: true,
         parent: {},
-        check: (item) => typeof item === 'string',
-        toMessage: (item) => `Invalid: ${item}`,
-        context: mockParseContext,
+        check: item => typeof item === 'string',
+        toMessage: item => `Invalid: ${item}`,
+        context: mockParseContext
       })
 
       assertEquals(result, arrayWithNulls)
@@ -205,9 +207,9 @@ Deno.test('parseEnum', async (t) => {
         value: arrayWithNull,
         nullable: undefined,
         parent,
-        check: (item) => typeof item === 'string',
-        toMessage: (item) => `Invalid item: ${item}`,
-        context: mockParseContext as ParseContextType,
+        check: item => typeof item === 'string',
+        toMessage: item => `Invalid item: ${item}`,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(result, undefined)
@@ -217,7 +219,7 @@ Deno.test('parseEnum', async (t) => {
     })
   })
 
-  await t.step('invalid items handling', async (t) => {
+  await t.step('invalid items handling', async t => {
     await t.step('should log issue and return undefined for invalid item', () => {
       const stackTrail = new StackTrail(['TEST'])
       const parent = {}
@@ -230,22 +232,24 @@ Deno.test('parseEnum', async (t) => {
         value: arrayWithInvalid,
         nullable: false,
         parent,
-        check: (item) => typeof item === 'string',
-        toMessage: (item) => `Expected string, got: ${typeof item}`,
-        context: mockParseContext as ParseContextType,
+        check: item => typeof item === 'string',
+        toMessage: item => `Expected string, got: ${typeof item}`,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(result, undefined)
       assertSpyCalls(contextSpy, 1)
       assertSpyCall(contextSpy, 0, {
-        args: [{
-          key: 'enum',
-          level: 'warning',
-          message: 'Expected string, got: number',
-          parent,
-          stackTrail,
-          type: 'INVALID_ENUM',
-        }],
+        args: [
+          {
+            key: 'enum',
+            level: 'warning',
+            message: 'Expected string, got: number',
+            parent,
+            stackTrail,
+            type: 'INVALID_ENUM'
+          }
+        ]
       })
 
       contextSpy.restore()
@@ -263,9 +267,9 @@ Deno.test('parseEnum', async (t) => {
         value: arrayWithMultipleInvalid,
         nullable: false,
         parent,
-        check: (item) => typeof item === 'string',
-        toMessage: (item) => `Invalid: ${item}`,
-        context: mockParseContext as ParseContextType,
+        check: item => typeof item === 'string',
+        toMessage: item => `Invalid: ${item}`,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(result, undefined)
@@ -287,34 +291,36 @@ Deno.test('parseEnum', async (t) => {
         value: arrayWithInvalid,
         nullable: false,
         parent,
-        check: (item) => typeof item === 'number',
-        toMessage: (item) => `Custom error for: ${JSON.stringify(item)}`,
-        context: mockParseContext as ParseContextType,
+        check: item => typeof item === 'number',
+        toMessage: item => `Custom error for: ${JSON.stringify(item)}`,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(result, undefined)
       assertSpyCalls(contextSpy, 1)
       assertSpyCall(contextSpy, 0, {
-        args: [{
-          key: 'enum',
-          level: 'warning',
-          message: 'Custom error for: "invalid"',
-          parent,
-          stackTrail,
-          type: 'INVALID_ENUM',
-        }],
+        args: [
+          {
+            key: 'enum',
+            level: 'warning',
+            message: 'Custom error for: "invalid"',
+            parent,
+            stackTrail,
+            type: 'INVALID_ENUM'
+          }
+        ]
       })
 
       contextSpy.restore()
     })
   })
 
-  await t.step('complex check functions', async (t) => {
+  await t.step('complex check functions', async t => {
     await t.step('should work with complex object validation', () => {
       const stackTrail = new StackTrail(['TEST'])
       const validObjects = [
         { type: 'A', value: 1 },
-        { type: 'B', value: 2 },
+        { type: 'B', value: 2 }
       ]
 
       const result = parseEnum({
@@ -322,13 +328,10 @@ Deno.test('parseEnum', async (t) => {
         value: validObjects,
         nullable: false,
         parent: {},
-        check: (item) =>
-          typeof item === 'object' &&
-          item !== null &&
-          'type' in item &&
-          'value' in item,
-        toMessage: (item) => `Invalid object: ${JSON.stringify(item)}`,
-        context: mockParseContext,
+        check: item =>
+          typeof item === 'object' && item !== null && 'type' in item && 'value' in item,
+        toMessage: item => `Invalid object: ${JSON.stringify(item)}`,
+        context: mockParseContext
       })
 
       assertEquals(result, validObjects)
@@ -343,11 +346,9 @@ Deno.test('parseEnum', async (t) => {
         value: validEnums,
         nullable: false,
         parent: {},
-        check: (item) =>
-          typeof item === 'string' &&
-          ['active', 'inactive', 'pending'].includes(item),
-        toMessage: (item) => `Invalid status: ${item}`,
-        context: mockParseContext,
+        check: item => typeof item === 'string' && ['active', 'inactive', 'pending'].includes(item),
+        toMessage: item => `Invalid status: ${item}`,
+        context: mockParseContext
       })
 
       assertEquals(result, validEnums)
@@ -365,11 +366,9 @@ Deno.test('parseEnum', async (t) => {
         value: invalidEnums,
         nullable: false,
         parent,
-        check: (item) =>
-          typeof item === 'string' &&
-          ['active', 'inactive', 'pending'].includes(item),
-        toMessage: (item) => `Invalid status: ${item}`,
-        context: mockParseContext as ParseContextType,
+        check: item => typeof item === 'string' && ['active', 'inactive', 'pending'].includes(item),
+        toMessage: item => `Invalid status: ${item}`,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(result, undefined)

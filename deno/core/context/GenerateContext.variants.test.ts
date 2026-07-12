@@ -51,8 +51,7 @@ const makeOasDoc = (ops: Array<{ path: string; method: 'get' | 'post' | 'put' | 
     openapi: '3.0.0',
     info: new OasInfo({ title: 'Test', version: '1.0.0' }),
     operations: ops.map(
-      ({ path, method }) =>
-        new OasOperation({ path, method, pathItem: undefined, responses: {} })
+      ({ path, method }) => new OasOperation({ path, method, pathItem: undefined, responses: {} })
     )
   })
 
@@ -92,10 +91,7 @@ const buildContext = (args: {
  */
 type VariantResult = { path: string; method: string; variant: string; result: ResultType }
 
-const toVariantResults = (
-  captures: CaptureEntry[],
-  generatorId: string
-): VariantResult[] => {
+const toVariantResults = (captures: CaptureEntry[], generatorId: string): VariantResult[] => {
   const out: VariantResult[] = []
   for (const c of captures) {
     const segments = c.trail.split(':')
@@ -186,7 +182,10 @@ Deno.test('variants - multi-variant enrichment fans out one transform per declar
 
   const variantNames = results.map(r => r.variant).sort()
   assertEquals(variantNames, ['customer', 'location', 'main'])
-  assertEquals(results.every(r => r.result === 'success'), true)
+  assertEquals(
+    results.every(r => r.result === 'success'),
+    true
+  )
 
   // `transform` was called exactly three times. Variant names are
   // threaded as the `variant` arg in the order keys appear in the
@@ -375,12 +374,8 @@ Deno.test('variants - a generator with no enrichments configured still receives 
   // never forces them to opt into the variant axis. This is the
   // contract that lets gen-zod / gen-typescript / etc. coexist with
   // a variants-aware gen-shadcn-form in the same project.
-  const txZod: Spy<undefined, [TransformArgs], unknown> = spy(
-    (_args: TransformArgs) => undefined
-  )
-  const txForm: Spy<undefined, [TransformArgs], unknown> = spy(
-    (_args: TransformArgs) => undefined
-  )
+  const txZod: Spy<undefined, [TransformArgs], unknown> = spy((_args: TransformArgs) => undefined)
+  const txForm: Spy<undefined, [TransformArgs], unknown> = spy((_args: TransformArgs) => undefined)
 
   const { context } = buildContext({
     document: makeOasDoc([{ path: '/quotes/{id}', method: 'patch' }]),

@@ -13,9 +13,7 @@
     "singleQuote": true,
     "semiColons": false,
     "lineWidth": 100,
-    "exclude": [
-      "fixtures/"
-    ]
+    "exclude": ["fixtures/"]
   },
   "tasks": {
     "overlay": "deno run --allow-read cli.ts",
@@ -25,9 +23,6 @@
     "publish:dry": "deno publish --dry-run --allow-dirty"
   },
   "publish": {
-    "exclude": [
-      "**/*.test.ts",
-      "fixtures/"
-    ]
+    "exclude": ["**/*.test.ts", "fixtures/"]
   }
 }

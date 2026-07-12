@@ -49,8 +49,7 @@ const FormBase = toTsOasOperationProjectionBase({
   id: '@test/e2e-form',
   toIdentifierName: ({ variant }) => withVariant('PatchQuoteForm', variant),
   toIdentifierType: () => ({ type: 'variable' }),
-  toExportPath: ({ variant }) =>
-    `@/forms/${withVariant('PatchQuoteForm', variant)}.tsx`,
+  toExportPath: ({ variant }) => `@/forms/${withVariant('PatchQuoteForm', variant)}.tsx`,
   toEnrichmentSchema: () => variantEnrichmentSchema
 })
 
@@ -103,7 +102,7 @@ const buildContext = (variants: Record<string, unknown>) => {
     logger: mockLogger,
     captureCurrentResult: () => {},
     // deno-lint-ignore no-explicit-any
-    toGeneratorConfigMap: () => ({ '@test/e2e-form': entry } as any)
+    toGeneratorConfigMap: () => ({ '@test/e2e-form': entry }) as any
   })
 }
 

@@ -2,7 +2,11 @@ import '@/tests/setup.ts'
 import { render } from 'ink-testing-library'
 import { assertEquals } from '@std/assert'
 import { RemoveGeneratorView } from './RemoveGeneratorView.tsx'
-import { SkmtcProvider, type SkmtcState, type ViewStateRemoveGenerator } from '@/components/SkmtcContext.tsx'
+import {
+  SkmtcProvider,
+  type SkmtcState,
+  type ViewStateRemoveGenerator
+} from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 

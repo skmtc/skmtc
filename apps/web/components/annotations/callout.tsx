@@ -1,8 +1,8 @@
 // from: https://codehike.org/docs/code/callout
-import { InlineAnnotation, AnnotationHandler } from "codehike/code"
+import { InlineAnnotation, AnnotationHandler } from 'codehike/code'
 
 export const callout: AnnotationHandler = {
-  name: "callout",
+  name: 'callout',
   transform: (annotation: InlineAnnotation) => {
     const { name, query, lineNumber, fromColumn, toColumn, data } = annotation
     return {
@@ -10,7 +10,7 @@ export const callout: AnnotationHandler = {
       query,
       fromLineNumber: lineNumber,
       toLineNumber: lineNumber,
-      data: { ...data, column: (fromColumn + toColumn) / 2 },
+      data: { ...data, column: (fromColumn + toColumn) / 2 }
     }
   },
   Block: ({ annotation, children }) => {
@@ -30,5 +30,5 @@ export const callout: AnnotationHandler = {
         </div>
       </>
     )
-  },
+  }
 }

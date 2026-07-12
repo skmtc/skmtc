@@ -19,7 +19,11 @@ const realContext = (): ParseContext =>
   new ParseContext({
     input: {
       type: 'oas',
-      value: { openapi: '3.0.0', info: { title: 't', version: '1' }, paths: {} } as OpenAPIV3.Document
+      value: {
+        openapi: '3.0.0',
+        info: { title: 't', version: '1' },
+        paths: {}
+      } as OpenAPIV3.Document
     },
     logger: new log.Logger('test', 'ERROR'),
     silent: true

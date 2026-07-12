@@ -87,23 +87,23 @@ export const toResponseV3 = ({
   const parsedHeaders = stackTrail.trace('headers', st =>
     toHeadersV3({ headers, stackTrail: st, context })
   )
-  const parsedLinks = stackTrail.trace('links', st =>
-    toLinksV3({ links, stackTrail: st, context })
-  )
+  const parsedLinks = stackTrail.trace('links', st => toLinksV3({ links, stackTrail: st, context }))
   const parsedContent = stackTrail.trace('content', st =>
     toOptionalMediaTypeItemsV3({ content, stackTrail: st, context })
   )
 
-  return context.withStackTrail(stackTrail, () =>
-    new OasResponse(
-      {
-        description,
-        headers: parsedHeaders,
-        links: parsedLinks,
-        content: parsedContent,
-        extensionFields
-      },
-      context
-    )
+  return context.withStackTrail(
+    stackTrail,
+    () =>
+      new OasResponse(
+        {
+          description,
+          headers: parsedHeaders,
+          links: parsedLinks,
+          content: parsedContent,
+          extensionFields
+        },
+        context
+      )
   )
 }

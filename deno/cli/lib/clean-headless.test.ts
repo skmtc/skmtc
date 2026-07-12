@@ -29,14 +29,19 @@ const setup = async (
     files[rel] = { lines: 1, characters: 1, destinationPath: rel }
   }
   const manifest = {
-    deploymentId: 'd', traceId: 't', spanId: 's', region: 'r',
-    files, previews: {}, mappings: {}, parseIssues: [], results: {},
-    startAt: 0, endAt: 0
+    deploymentId: 'd',
+    traceId: 't',
+    spanId: 's',
+    region: 'r',
+    files,
+    previews: {},
+    mappings: {},
+    parseIssues: [],
+    results: {},
+    startAt: 0,
+    endAt: 0
   }
-  await Deno.writeTextFile(
-    join(settingsDir, 'manifest.json'),
-    JSON.stringify(manifest)
-  )
+  await Deno.writeTextFile(join(settingsDir, 'manifest.json'), JSON.stringify(manifest))
 
   return { appRoot, skmtcRootPath, manifestPath: join(settingsDir, 'manifest.json') }
 }
@@ -44,15 +49,22 @@ const setup = async (
 const SETTINGS: ClientSettings = { basePath: 'src' }
 
 Deno.test('cleanHeadless - deletes recorded files, prunes emptied dirs, removes manifest', async () => {
-  const { appRoot, skmtcRootPath, manifestPath } = await setup('demo', {
-    'src/generated/types/User.ts': 'x',
-    'src/generated/api.ts': 'x'
-  }, {
-    'src/generated/keep.ts': 'hand-written'
-  })
+  const { appRoot, skmtcRootPath, manifestPath } = await setup(
+    'demo',
+    {
+      'src/generated/types/User.ts': 'x',
+      'src/generated/api.ts': 'x'
+    },
+    {
+      'src/generated/keep.ts': 'hand-written'
+    }
+  )
   try {
     const result = await cleanHeadless({
-      projectName: 'demo', dryRun: false, clientSettings: SETTINGS, skmtcRootPath
+      projectName: 'demo',
+      dryRun: false,
+      clientSettings: SETTINGS,
+      skmtcRootPath
     })
 
     assertEquals(result.deleted.sort(), ['src/generated/api.ts', 'src/generated/types/User.ts'])
@@ -78,7 +90,10 @@ Deno.test('cleanHeadless - dry run touches nothing', async () => {
   })
   try {
     const result = await cleanHeadless({
-      projectName: 'demo', dryRun: true, clientSettings: SETTINGS, skmtcRootPath
+      projectName: 'demo',
+      dryRun: true,
+      clientSettings: SETTINGS,
+      skmtcRootPath
     })
 
     assertEquals(result.dryRun, true)
@@ -101,7 +116,10 @@ Deno.test('cleanHeadless - no manifest is a no-op', async () => {
   await Deno.mkdir(join(skmtcRootPath, 'demo', '.settings'), { recursive: true })
   try {
     const result = await cleanHeadless({
-      projectName: 'demo', dryRun: false, clientSettings: SETTINGS, skmtcRootPath
+      projectName: 'demo',
+      dryRun: false,
+      clientSettings: SETTINGS,
+      skmtcRootPath
     })
     assertEquals(result.noManifest, true)
     assertEquals(result.deleted, [])
@@ -121,7 +139,10 @@ Deno.test('cleanHeadless - reports already-absent files under missing', async ()
   Deno.removeSync(join(appRoot, 'src/gen/Gone.ts'))
   try {
     const result = await cleanHeadless({
-      projectName: 'demo', dryRun: false, clientSettings: SETTINGS, skmtcRootPath
+      projectName: 'demo',
+      dryRun: false,
+      clientSettings: SETTINGS,
+      skmtcRootPath
     })
     assertEquals(result.deleted, ['src/gen/Present.ts'])
     assertEquals(result.missing, ['src/gen/Gone.ts'])
@@ -137,11 +158,18 @@ Deno.test('cleanHeadless - refuses to delete files resolving outside the app roo
   // Hand-inject an escaping path into the manifest.
   const manifestPath = join(skmtcRootPath, 'demo', '.settings', 'manifest.json')
   const raw = JSON.parse(await Deno.readTextFile(manifestPath))
-  raw.files['../../../etc/evil.ts'] = { lines: 1, characters: 1, destinationPath: '../../../etc/evil.ts' }
+  raw.files['../../../etc/evil.ts'] = {
+    lines: 1,
+    characters: 1,
+    destinationPath: '../../../etc/evil.ts'
+  }
   await Deno.writeTextFile(manifestPath, JSON.stringify(raw))
   try {
     const result = await cleanHeadless({
-      projectName: 'demo', dryRun: false, clientSettings: SETTINGS, skmtcRootPath
+      projectName: 'demo',
+      dryRun: false,
+      clientSettings: SETTINGS,
+      skmtcRootPath
     })
     assertEquals(result.deleted, ['src/gen/Safe.ts'])
     assertEquals(result.skipped, ['../../../etc/evil.ts'])
@@ -156,7 +184,10 @@ Deno.test('cleanHeadless - skips dir pruning when basePath is absent', async () 
   })
   try {
     const result = await cleanHeadless({
-      projectName: 'demo', dryRun: false, clientSettings: undefined, skmtcRootPath
+      projectName: 'demo',
+      dryRun: false,
+      clientSettings: undefined,
+      skmtcRootPath
     })
     // File still deleted, but no dir pruning without an anchor.
     assertEquals(result.deleted, ['src/gen/User.ts'])
@@ -196,19 +227,36 @@ Deno.test('cleanHeadless - spares ejected files and reports modified ones', asyn
         'src/plain.generated.ts': 'export const plain = 1\n'
       },
       manifest: v.parse(manifestContent, {
-        deploymentId: 't', traceId: 't', spanId: 't',
+        deploymentId: 't',
+        traceId: 't',
+        spanId: 't',
         files: {
           'src/owned.ts': { lines: 1, characters: 1, destinationPath: '@/src/owned.ts' },
-          'src/edited.generated.ts': { lines: 1, characters: 1, destinationPath: '@/src/edited.generated.ts' },
-          'src/plain.generated.ts': { lines: 1, characters: 1, destinationPath: '@/src/plain.generated.ts' }
+          'src/edited.generated.ts': {
+            lines: 1,
+            characters: 1,
+            destinationPath: '@/src/edited.generated.ts'
+          },
+          'src/plain.generated.ts': {
+            lines: 1,
+            characters: 1,
+            destinationPath: '@/src/plain.generated.ts'
+          }
         },
-        previews: {}, parseIssues: [], results: {}, startAt: Date.now(), endAt: Date.now()
+        previews: {},
+        parseIssues: [],
+        results: {},
+        startAt: Date.now(),
+        endAt: Date.now()
       }),
       clientSettings,
       projectPath
     })
 
-    Deno.writeTextFileSync(join(tempDir, 'src/edited.generated.ts'), 'export const edited = 1 // mine\n')
+    Deno.writeTextFileSync(
+      join(tempDir, 'src/edited.generated.ts'),
+      'export const edited = 1 // mine\n'
+    )
 
     // The writer never writes ejected files — on disk it exists because
     // the eject flow renamed it there. Simulate that.

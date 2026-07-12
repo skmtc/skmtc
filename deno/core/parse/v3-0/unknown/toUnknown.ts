@@ -21,16 +21,18 @@ export const toUnknown = ({ value, stackTrail, context }: ToUnknownArgs): OasUnk
     parentType: 'schema:unknown'
   })
 
-  return context.withStackTrail(stackTrail, () =>
-    new OasUnknown(
-      {
-        title,
-        description,
-        nullable,
-        extensionFields,
-        example
-      },
-      context
-    )
+  return context.withStackTrail(
+    stackTrail,
+    () =>
+      new OasUnknown(
+        {
+          title,
+          description,
+          nullable,
+          extensionFields,
+          example
+        },
+        context
+      )
   )
 }

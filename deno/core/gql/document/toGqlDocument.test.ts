@@ -37,7 +37,9 @@ Deno.test('toGqlDocument - non-null fields go into required', () => {
       name: String!
       bio: String
     }
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
   const doc = toGqlDocument(sdl)
   const user = doc.registry.schemas[refName('User')] as OasObject
@@ -50,7 +52,9 @@ Deno.test('toGqlDocument - list type maps to OasArray with correct nullability a
       tags: [String!]!
       maybeTags: [String]
     }
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
   const doc = toGqlDocument(sdl)
   const user = doc.registry.schemas[refName('User')] as OasObject
@@ -75,7 +79,9 @@ Deno.test('toGqlDocument - cross-type reference becomes an OasRef', () => {
     type User {
       posts: [Post!]!
     }
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
   const doc = toGqlDocument(sdl)
   const user = doc.registry.schemas[refName('User')] as OasObject
@@ -98,7 +104,9 @@ Deno.test('toGqlDocument - input types register under their own name', () => {
     input UserInput {
       name: String!
     }
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
   const doc = toGqlDocument(sdl)
   assertExists(doc.registry.schemas[refName('User')])
@@ -107,8 +115,13 @@ Deno.test('toGqlDocument - input types register under their own name', () => {
 
 Deno.test('toGqlDocument - enum types register as OasString with values', () => {
   const sdl = /* GraphQL */ `
-    enum Role { ADMIN USER }
-    type Query { _: Boolean }
+    enum Role {
+      ADMIN
+      USER
+    }
+    type Query {
+      _: Boolean
+    }
   `
   const doc = toGqlDocument(sdl)
   const role = doc.registry.schemas[refName('Role')] as OasString
@@ -118,10 +131,16 @@ Deno.test('toGqlDocument - enum types register as OasString with values', () => 
 
 Deno.test('toGqlDocument - union types register with __typename discriminator', () => {
   const sdl = /* GraphQL */ `
-    type User { id: ID! }
-    type Admin { id: ID! }
+    type User {
+      id: ID!
+    }
+    type Admin {
+      id: ID!
+    }
     union Account = User | Admin
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
   const doc = toGqlDocument(sdl)
   const account = doc.registry.schemas[refName('Account')] as OasUnion
@@ -142,7 +161,9 @@ Deno.test('toGqlDocument - interface emits both base object and union of impleme
     type Post implements Node {
       id: ID!
     }
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
   const doc = toGqlDocument(sdl)
   // base interface as object
@@ -162,7 +183,9 @@ Deno.test('toGqlDocument - synthesizeInterfaceUnions=false suppresses the union 
     type User implements Node {
       id: ID!
     }
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
   const doc = toGqlDocument(sdl, { synthesizeInterfaceUnions: false })
   assertExists(doc.registry.schemas[refName('Node')])
@@ -194,10 +217,18 @@ Deno.test('toGqlDocument - root Query fields become operations', () => {
 
 Deno.test('toGqlDocument - mutation and subscription root fields surface', () => {
   const sdl = /* GraphQL */ `
-    type User { id: ID! }
-    type Query { _: Boolean }
-    type Mutation { createUser(name: String!): User }
-    type Subscription { userCreated: User }
+    type User {
+      id: ID!
+    }
+    type Query {
+      _: Boolean
+    }
+    type Mutation {
+      createUser(name: String!): User
+    }
+    type Subscription {
+      userCreated: User
+    }
   `
   const doc = toGqlDocument(sdl)
   const kinds = doc.operations.map(o => o.rootKind).sort()
@@ -221,8 +252,12 @@ Deno.test('toGqlDocument - root type names are not registered as schemas', () =>
 
 Deno.test('toGqlDocument - Int field becomes OasInteger int32', () => {
   const sdl = /* GraphQL */ `
-    type Counter { count: Int! }
-    type Query { _: Boolean }
+    type Counter {
+      count: Int!
+    }
+    type Query {
+      _: Boolean
+    }
   `
   const doc = toGqlDocument(sdl)
   const counter = doc.registry.schemas[refName('Counter')] as OasObject
@@ -237,7 +272,9 @@ Deno.test('toGqlDocument - custom scalars register with their name as format', (
     type Event {
       at: DateTime!
     }
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
   const doc = toGqlDocument(sdl)
   const dt = doc.registry.schemas[refName('DateTime')] as OasString
@@ -251,7 +288,9 @@ Deno.test('toGqlDocument - custom scalars register with their name as format', (
 
 Deno.test('toGqlDocument - argument default values are preserved', () => {
   const sdl = /* GraphQL */ `
-    type User { id: ID! }
+    type User {
+      id: ID!
+    }
     type Query {
       listUsers(limit: Int = 10): [User!]!
     }

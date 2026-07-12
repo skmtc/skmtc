@@ -14,8 +14,7 @@ import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { RefName } from '@/types/RefName.ts'
 
-const stubContext = (): GenerateContextType =>
-  ({}) as unknown as GenerateContextType
+const stubContext = (): GenerateContextType => ({}) as unknown as GenerateContextType
 
 class TestProducer extends SnippetBase {
   constructor(generatorKey?: GeneratorKey, stackTrail?: StackTrail) {

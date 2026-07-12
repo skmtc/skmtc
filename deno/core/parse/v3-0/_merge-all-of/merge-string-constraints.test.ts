@@ -6,150 +6,150 @@ import type { GetRefFn } from './types.ts'
 
 const getRef: GetRefFn = () => ({})
 
-Deno.test('mergeStringConstraints', async (t) => {
-  await t.step('minLength merging', async (t) => {
+Deno.test('mergeStringConstraints', async t => {
+  await t.step('minLength merging', async t => {
     await t.step('should take max of both minLength values', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        minLength: 0,
+        minLength: 0
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        minLength: 5,
+        minLength: 5
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
-        minLength: 5,
+        minLength: 5
       })
     })
 
     await t.step('should handle minLength only in first schema', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        minLength: 3,
+        minLength: 3
       }
       const b: OpenAPIV3.SchemaObject = {
-        type: 'string',
+        type: 'string'
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
-        minLength: 3,
+        minLength: 3
       })
     })
 
     await t.step('should handle minLength only in second schema', () => {
       const a: OpenAPIV3.SchemaObject = {
-        type: 'string',
+        type: 'string'
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        minLength: 7,
+        minLength: 7
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
-        minLength: 7,
+        minLength: 7
       })
     })
 
     await t.step('should handle both undefined (no minLength)', () => {
       const a: OpenAPIV3.SchemaObject = {
-        type: 'string',
+        type: 'string'
       }
       const b: OpenAPIV3.SchemaObject = {
-        type: 'string',
+        type: 'string'
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
-        type: 'string',
+        type: 'string'
       })
     })
 
     await t.step('should treat undefined as 0', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        minLength: 0,
+        minLength: 0
       }
       const b: OpenAPIV3.SchemaObject = {
-        type: 'string',
+        type: 'string'
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result.minLength, 0)
     })
   })
 
-  await t.step('maxLength merging', async (t) => {
+  await t.step('maxLength merging', async t => {
     await t.step('should take min of both maxLength values', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        maxLength: 10,
+        maxLength: 10
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        maxLength: 5,
+        maxLength: 5
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
-        maxLength: 5,
+        maxLength: 5
       })
     })
 
     await t.step('should handle maxLength only in first schema', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        maxLength: 15,
+        maxLength: 15
       }
       const b: OpenAPIV3.SchemaObject = {
-        type: 'string',
+        type: 'string'
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
-        maxLength: 15,
+        maxLength: 15
       })
     })
 
     await t.step('should handle maxLength only in second schema', () => {
       const a: OpenAPIV3.SchemaObject = {
-        type: 'string',
+        type: 'string'
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        maxLength: 20,
+        maxLength: 20
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
-        maxLength: 20,
+        maxLength: 20
       })
     })
 
     await t.step('should handle both undefined (no maxLength)', () => {
       const a: OpenAPIV3.SchemaObject = {
-        type: 'string',
+        type: 'string'
       }
       const b: OpenAPIV3.SchemaObject = {
-        type: 'string',
+        type: 'string'
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
-        type: 'string',
+        type: 'string'
       })
     })
   })
 
-  await t.step('pattern merging', async (t) => {
+  await t.step('pattern merging', async t => {
     await t.step('should throw on conflicting patterns', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        pattern: '^[a-z]+$',
+        pattern: '^[a-z]+$'
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        pattern: '^[a-z0-9]+$',
+        pattern: '^[a-z0-9]+$'
       }
       assertThrows(
         () => mergeStringConstraints(a, b, getRef),
@@ -161,123 +161,119 @@ Deno.test('mergeStringConstraints', async (t) => {
     await t.step('should merge when both have same pattern', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        pattern: '^[a-z]+$',
+        pattern: '^[a-z]+$'
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        pattern: '^[a-z]+$',
+        pattern: '^[a-z]+$'
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
-        pattern: '^[a-z]+$',
+        pattern: '^[a-z]+$'
       })
     })
 
     await t.step('should take pattern from first schema when second has none', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        pattern: '^test$',
+        pattern: '^test$'
       }
       const b: OpenAPIV3.SchemaObject = {
-        type: 'string',
+        type: 'string'
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
-        pattern: '^test$',
+        pattern: '^test$'
       })
     })
 
     await t.step('should take pattern from second schema when first has none', () => {
       const a: OpenAPIV3.SchemaObject = {
-        type: 'string',
+        type: 'string'
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        pattern: '^example$',
+        pattern: '^example$'
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
-        pattern: '^example$',
+        pattern: '^example$'
       })
     })
   })
 
-  await t.step('format merging', async (t) => {
+  await t.step('format merging', async t => {
     await t.step('should throw on conflicting formats', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        format: 'email',
+        format: 'email'
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        format: 'uri',
+        format: 'uri'
       }
-      assertThrows(
-        () => mergeStringConstraints(a, b, getRef),
-        Error,
-        'Incompatible string formats'
-      )
+      assertThrows(() => mergeStringConstraints(a, b, getRef), Error, 'Incompatible string formats')
     })
 
     await t.step('should merge when both have same format', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        format: 'email',
+        format: 'email'
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        format: 'email',
+        format: 'email'
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
-        format: 'email',
+        format: 'email'
       })
     })
 
     await t.step('should take format from first schema when second has none', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        format: 'uuid',
+        format: 'uuid'
       }
       const b: OpenAPIV3.SchemaObject = {
-        type: 'string',
+        type: 'string'
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
-        format: 'uuid',
+        format: 'uuid'
       })
     })
 
     await t.step('should take format from second schema when first has none', () => {
       const a: OpenAPIV3.SchemaObject = {
-        type: 'string',
+        type: 'string'
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        format: 'date-time',
+        format: 'date-time'
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
-        format: 'date-time',
+        format: 'date-time'
       })
     })
 
     await t.step('should handle common string formats', () => {
       const formats = ['email', 'uri', 'uuid', 'date', 'date-time', 'password', 'byte', 'binary']
 
-      formats.forEach((format) => {
+      formats.forEach(format => {
         const a: OpenAPIV3.SchemaObject = {
           type: 'string',
-          format,
+          format
         }
         const b: OpenAPIV3.SchemaObject = {
-          type: 'string',
+          type: 'string'
         }
         const result = mergeStringConstraints(a, b, getRef)
         assertEquals(result.format, format)
@@ -285,20 +281,20 @@ Deno.test('mergeStringConstraints', async (t) => {
     })
   })
 
-  await t.step('enum merging', async (t) => {
+  await t.step('enum merging', async t => {
     await t.step('should intersect enum values when both schemas have enums', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        enum: ['a', 'b', 'c'],
+        enum: ['a', 'b', 'c']
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        enum: ['b', 'c', 'd'],
+        enum: ['b', 'c', 'd']
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
-        enum: ['b', 'c'],
+        enum: ['b', 'c']
       })
     })
 
@@ -306,36 +302,36 @@ Deno.test('mergeStringConstraints', async (t) => {
       const a: OpenAPIV3.SchemaObject = { type: 'string' }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        enum: ['a', 'b', 'c'],
+        enum: ['a', 'b', 'c']
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
-        enum: ['a', 'b', 'c'],
+        enum: ['a', 'b', 'c']
       })
     })
 
     await t.step('should take enum from first schema when second has no enum', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        enum: ['a', 'b', 'c'],
+        enum: ['a', 'b', 'c']
       }
       const b: OpenAPIV3.SchemaObject = { type: 'string' }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
-        enum: ['a', 'b', 'c'],
+        enum: ['a', 'b', 'c']
       })
     })
 
     await t.step('should throw when enum intersection is empty', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        enum: ['a', 'b', 'c'],
+        enum: ['a', 'b', 'c']
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        enum: ['d', 'e', 'f'],
+        enum: ['d', 'e', 'f']
       }
       assertThrows(
         () => mergeStringConstraints(a, b, getRef),
@@ -345,57 +341,57 @@ Deno.test('mergeStringConstraints', async (t) => {
     })
   })
 
-  await t.step('combined constraints', async (t) => {
+  await t.step('combined constraints', async t => {
     await t.step('should merge minLength and maxLength together', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
         minLength: 5,
-        maxLength: 20,
+        maxLength: 20
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
         minLength: 3,
-        maxLength: 15,
+        maxLength: 15
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
         minLength: 5,
-        maxLength: 15,
+        maxLength: 15
       })
     })
 
     await t.step('should merge minLength with pattern', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        minLength: 3,
+        minLength: 3
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        pattern: '^[a-z]+$',
+        pattern: '^[a-z]+$'
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
         minLength: 3,
-        pattern: '^[a-z]+$',
+        pattern: '^[a-z]+$'
       })
     })
 
     await t.step('should merge maxLength with format', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        maxLength: 100,
+        maxLength: 100
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        format: 'email',
+        format: 'email'
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
         maxLength: 100,
-        format: 'email',
+        format: 'email'
       })
     })
 
@@ -404,14 +400,14 @@ Deno.test('mergeStringConstraints', async (t) => {
         type: 'string',
         minLength: 5,
         maxLength: 50,
-        pattern: '^[a-zA-Z0-9]+$',
+        pattern: '^[a-zA-Z0-9]+$'
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
         minLength: 3,
         maxLength: 30,
         pattern: '^[a-zA-Z0-9]+$',
-        format: 'password',
+        format: 'password'
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
@@ -419,7 +415,7 @@ Deno.test('mergeStringConstraints', async (t) => {
         minLength: 5,
         maxLength: 30,
         pattern: '^[a-zA-Z0-9]+$',
-        format: 'password',
+        format: 'password'
       })
     })
 
@@ -427,19 +423,19 @@ Deno.test('mergeStringConstraints', async (t) => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
         minLength: 2,
-        enum: ['ab', 'abc', 'abcd'],
+        enum: ['ab', 'abc', 'abcd']
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
         maxLength: 3,
-        enum: ['abc', 'abcd', 'abcde'],
+        enum: ['abc', 'abcd', 'abcde']
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
         minLength: 2,
         maxLength: 3,
-        enum: ['abc', 'abcd'],
+        enum: ['abc', 'abcd']
       })
     })
 
@@ -447,31 +443,31 @@ Deno.test('mergeStringConstraints', async (t) => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
         pattern: '^[a-z]+@[a-z]+\\.[a-z]+$',
-        format: 'email',
+        format: 'email'
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
         pattern: '^[a-z]+@[a-z]+\\.[a-z]+$',
-        format: 'email',
+        format: 'email'
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result, {
         type: 'string',
         pattern: '^[a-z]+@[a-z]+\\.[a-z]+$',
-        format: 'email',
+        format: 'email'
       })
     })
   })
 
-  await t.step('type handling', async (t) => {
+  await t.step('type handling', async t => {
     await t.step('should throw error on conflicting types', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        minLength: 5,
+        minLength: 5
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'number',
-        minimum: 0,
+        minimum: 0
       }
       assertThrows(
         () => mergeStringConstraints(a, b, getRef),
@@ -490,10 +486,10 @@ Deno.test('mergeStringConstraints', async (t) => {
     await t.step('should handle one schema with type, other without', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        minLength: 5,
+        minLength: 5
       }
       const b: OpenAPIV3.SchemaObject = {
-        maxLength: 10,
+        maxLength: 10
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result.type, 'string')
@@ -502,15 +498,15 @@ Deno.test('mergeStringConstraints', async (t) => {
     })
   })
 
-  await t.step('edge cases', async (t) => {
+  await t.step('edge cases', async t => {
     await t.step('should handle zero minLength', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        minLength: 0,
+        minLength: 0
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        minLength: 0,
+        minLength: 0
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result.minLength, 0)
@@ -519,11 +515,11 @@ Deno.test('mergeStringConstraints', async (t) => {
     await t.step('should handle very large maxLength', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        maxLength: 999999,
+        maxLength: 999999
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        maxLength: 1000000,
+        maxLength: 1000000
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result.maxLength, 999999)
@@ -532,11 +528,11 @@ Deno.test('mergeStringConstraints', async (t) => {
     await t.step('should handle empty string pattern', () => {
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        pattern: '',
+        pattern: ''
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        pattern: '',
+        pattern: ''
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result.pattern, '')
@@ -546,11 +542,11 @@ Deno.test('mergeStringConstraints', async (t) => {
       const pattern = '^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$'
       const a: OpenAPIV3.SchemaObject = {
         type: 'string',
-        pattern,
+        pattern
       }
       const b: OpenAPIV3.SchemaObject = {
         type: 'string',
-        pattern,
+        pattern
       }
       const result = mergeStringConstraints(a, b, getRef)
       assertEquals(result.pattern, pattern)

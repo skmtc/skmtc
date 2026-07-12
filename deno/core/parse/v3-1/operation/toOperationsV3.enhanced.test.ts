@@ -319,7 +319,7 @@ Deno.test('toOperationV3 - operation with security requirements', () => {
   const operation: OpenAPIV3.OperationObject = {
     security: [
       {
-        'api_key': []
+        api_key: []
       }
     ],
     responses: {}
@@ -495,7 +495,7 @@ Deno.test('toOperationsV3 - operation with all optional fields', () => {
       '400': { description: 'Bad Request' }
     },
     deprecated: true,
-    security: [{ 'api_key': [] }],
+    security: [{ api_key: [] }],
     externalDocs: {
       url: 'https://example.com/docs'
     },

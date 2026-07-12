@@ -24,28 +24,28 @@ export type MediaTypeFields = {
 
 /**
  * Represents a Media Type Object in the OpenAPI Specification.
- * 
+ *
  * The `OasMediaType` class encapsulates the definition of content for different
  * media types in request bodies and responses. It defines the structure, format,
  * and validation rules for content using schemas and provides examples for
  * documentation and testing purposes.
- * 
+ *
  * This class supports various content types including JSON, XML, form data,
  * file uploads, and binary content, making it essential for describing API
  * request and response payloads.
- * 
+ *
  * ## Key Features
- * 
+ *
  * - **Schema Validation**: Define content structure through OpenAPI schemas
  * - **Multiple Examples**: Rich example support for documentation and testing
  * - **Encoding Support**: Handle multipart and form data encoding
  * - **Content Type Support**: JSON, XML, binary, form data, and more
  * - **Reference Integration**: Work seamlessly with schema references
- * 
+ *
  * @example JSON content type
  * ```typescript
  * import { OasMediaType, OasObject, OasString } from '@skmtc/core';
- * 
+ *
  * const jsonContent = new OasMediaType({
  *   mediaType: 'application/json',
  *   schema: new OasObject({
@@ -62,7 +62,7 @@ export type MediaTypeFields = {
  *   }
  * });
  * ```
- * 
+ *
  * @example File upload with multipart form data
  * ```typescript
  * const fileUpload = new OasMediaType({
@@ -81,7 +81,7 @@ export type MediaTypeFields = {
  *   }
  * });
  * ```
- * 
+ *
  * @example XML content with namespace
  * ```typescript
  * const xmlContent = new OasMediaType({
@@ -114,7 +114,7 @@ export class OasMediaType extends OasBase {
   encoding?: Record<string, unknown> | undefined
   /**
    * Creates a new OasMediaType instance.
-   * 
+   *
    * @param fields - Media type configuration including content schema, examples, and encoding
    */
   constructor(fields: MediaTypeFields, context?: ParseContextType) {
@@ -128,7 +128,7 @@ export class OasMediaType extends OasBase {
 
   /**
    * Converts this OAS media type to an OpenAPI v3 JSON schema representation.
-   * 
+   *
    * @param options - Conversion options including reference handling and formatting preferences
    * @returns OpenAPI v3 media type object with schema and examples
    */

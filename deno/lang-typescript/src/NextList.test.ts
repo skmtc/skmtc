@@ -21,8 +21,14 @@ Deno.test('NextList - toParams renders a parameter list', () => {
 })
 
 Deno.test('NextList - toLines renders newline-separated content', () => {
-  const list = NextList.toLines(['import { useState } from "react"', 'import { useEffect } from "react"'])
-  assertEquals(list.toString(), 'import { useState } from "react"\nimport { useEffect } from "react"')
+  const list = NextList.toLines([
+    'import { useState } from "react"',
+    'import { useEffect } from "react"'
+  ])
+  assertEquals(
+    list.toString(),
+    'import { useState } from "react"\nimport { useEffect } from "react"'
+  )
 })
 
 Deno.test('NextList - toKeyValue renders a single colon-separated pair', () => {
@@ -178,10 +184,7 @@ Deno.test('NextList - addAll appends multiple values, dropping undefined', () =>
 })
 
 Deno.test('NextList - add is chainable', () => {
-  const list = NextList.toLines<string>([])
-    .add('first')
-    .add('second')
-    .add('third')
+  const list = NextList.toLines<string>([]).add('first').add('second').add('third')
   assertEquals(list.toString(), 'first\nsecond\nthird')
 })
 
@@ -219,8 +222,8 @@ Deno.test('NextKeyList - toObjectPlain projects keys as a shorthand object', () 
 
 Deno.test('NextKeyList - toObject maps keys via mapFn', () => {
   // Build an object where each key maps to a Zod field.
-  const fields = NextList.fromKeys({ id: 1, name: 1 }).toObject(
-    key => NextList.toKeyValue(key, 'z.string()')
+  const fields = NextList.fromKeys({ id: 1, name: 1 }).toObject(key =>
+    NextList.toKeyValue(key, 'z.string()')
   )
   assertEquals(fields.toString(), '{id: z.string(), name: z.string()}')
 })
@@ -255,14 +258,11 @@ Deno.test('NextEntryList - toLines maps entries into a multi-line snippet', () =
   }
 
   // Stand-in for `${name}: <Input lens={lens.focus('${name}').defined()} />`.
-  const lines = NextList.fromEntries(properties).toLines(([name, schema]) =>
-    `${name}: <Input type="${schema.type}" />`
+  const lines = NextList.fromEntries(properties).toLines(
+    ([name, schema]) => `${name}: <Input type="${schema.type}" />`
   )
 
-  assertEquals(
-    lines.toString(),
-    'name: <Input type="string" />\nage: <Input type="number" />'
-  )
+  assertEquals(lines.toString(), 'name: <Input type="string" />\nage: <Input type="number" />')
 })
 
 Deno.test('NextEntryList - toObject builds an object from entries', () => {

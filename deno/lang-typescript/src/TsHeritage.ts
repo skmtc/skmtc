@@ -59,7 +59,10 @@ export class TsHeritage extends TsSnippet {
     // file (already in scope), so no same-file check here. One register per
     // symbol; `TsFile.addImports` merges any that share a module.
     if (this.superclass !== undefined) {
-      this.register({ imports: { [this.superclass.exportPath]: [this.superclass.name] }, destinationPath })
+      this.register({
+        imports: { [this.superclass.exportPath]: [this.superclass.name] },
+        destinationPath
+      })
     }
 
     for (const { name, exportPath } of this.interfaces) {

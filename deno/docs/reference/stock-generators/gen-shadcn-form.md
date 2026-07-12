@@ -8,14 +8,6 @@ The most architecturally interesting stock generator. Demonstrates
 references Zod schemas (from `gen-zod`), a mutation hook (from
 `gen-tanstack-query-*-zod`), and select/table sub-components.
 
-## Source
-
-`skmtc-generators/gen-shadcn-form/src/`
-
-Key files: `ShadcnForm.ts` (the main Projection), `schemaToField.ts`
-(per-schema-shape field-component dispatch), `FormFields.ts`,
-`FormLabel.ts`, `fields/` (per-input-type renderers).
-
 ## What it generates
 
 Per supported operation (POST/PUT/PATCH with object request body):
@@ -35,6 +27,14 @@ export const CreateUserForm = () => {
   )
 }
 ```
+
+## Source
+
+`skmtc-generators/gen-shadcn-form/src/`
+
+Key files: `ShadcnForm.ts` (the main Projection), `schemaToField.ts`
+(per-schema-shape field-component dispatch), `FormFields.ts`,
+`FormLabel.ts`, `fields/` (per-input-type renderers).
 
 ## Key decisions
 

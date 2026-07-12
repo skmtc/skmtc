@@ -66,7 +66,7 @@ export const PROVIDERS_CANDIDATES = [
 
 /** The consumer's providers file, or undefined when the app has none. */
 export const findProvidersFile = (viteRoot: string): string | undefined =>
-  PROVIDERS_CANDIDATES.map((name) => join(viteRoot, 'src', name)).find((file) => existsSync(file))
+  PROVIDERS_CANDIDATES.map(name => join(viteRoot, 'src', name)).find(file => existsSync(file))
 
 /** Served for the virtual id when the app has no providers file. */
 export const PASSTHROUGH_PROVIDERS_MODULE =

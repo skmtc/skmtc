@@ -19,9 +19,7 @@ import {
   checkAnchorsStaleness
 } from '@/lib/doctor-anchors.ts'
 
-const withTempSkmtcRoot = async (
-  fn: (tempRoot: string) => Promise<void>
-): Promise<void> => {
+const withTempSkmtcRoot = async (fn: (tempRoot: string) => Promise<void>): Promise<void> => {
   const { homedir } = await import('node:os')
   const tempRoot = await Deno.makeTempDir({ dir: homedir(), prefix: 'doctor-anchors-' })
   await ensureDir(join(tempRoot, '.skmtc'))

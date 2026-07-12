@@ -1,10 +1,5 @@
 import { CodeFileBase, matchDefinitions } from '@skmtc/core'
-import type {
-  ClientSettings,
-  DefinitionBase,
-  ImportBase,
-  ReExportBase
-} from '@skmtc/core'
+import type { ClientSettings, DefinitionBase, ImportBase, ReExportBase } from '@skmtc/core'
 import { CsImport } from './CsImport.ts'
 import { CsIdentifier } from './CsIdentifier.ts'
 import type { CsEntityType } from './createIdentifier.ts'
@@ -94,13 +89,12 @@ export class CsFile extends CodeFileBase {
     }
   }
 
-  override findDefinitions(
-    query?: { name?: string; type?: CsEntityType }
-  ): DefinitionBase[] | undefined {
-    return matchDefinitions(
-      [...this.definitions.values()],
-      query,
-      identifier => (identifier instanceof CsIdentifier ? identifier.type : undefined)
+  override findDefinitions(query?: {
+    name?: string
+    type?: CsEntityType
+  }): DefinitionBase[] | undefined {
+    return matchDefinitions([...this.definitions.values()], query, identifier =>
+      identifier instanceof CsIdentifier ? identifier.type : undefined
     )
   }
 

@@ -5,7 +5,6 @@ import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 
 Deno.test('HomeView - renders without errors', () => {
-
   const mockExit = () => {}
 
   const mockSkmtcRoot = {

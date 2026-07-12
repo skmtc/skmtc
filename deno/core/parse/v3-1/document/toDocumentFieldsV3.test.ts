@@ -34,7 +34,11 @@ Deno.test('toDocumentFieldsV3 - flattens webhooks into OasWebhook[]', () => {
     }
   }
   const stackTrail = new StackTrail(['TEST'])
-  const documentFields = toDocumentFieldsV3({ stackTrail, documentObject, context: mockParseContext })
+  const documentFields = toDocumentFieldsV3({
+    stackTrail,
+    documentObject,
+    context: mockParseContext
+  })
 
   const webhooks = documentFields.webhooks ?? []
   assertEquals(documentFields.operations, [])
@@ -58,7 +62,11 @@ Deno.test('toDocumentFieldsV3 - operations and webhooks stay separate; webhooks 
     }
   }
   const stackTrail = new StackTrail(['TEST'])
-  const documentFields = toDocumentFieldsV3({ stackTrail, documentObject, context: mockParseContext })
+  const documentFields = toDocumentFieldsV3({
+    stackTrail,
+    documentObject,
+    context: mockParseContext
+  })
   const webhooks = documentFields.webhooks ?? []
 
   // operations holds only the path operation

@@ -30,31 +30,31 @@ export type EnrichmentFieldShape =
   | { type: 'textarea' }
   | { type: 'toggle' }
   | {
-    type: 'select'
-    /** The selectable choices. */
-    options: string[]
-  }
+      type: 'select'
+      /** The selectable choices. */
+      options: string[]
+    }
   | {
-    type: 'moduleSelect'
-    /**
-     * The TS source of the contract a chosen module must satisfy for this
-     * field (a single `export type XModule<F> = …` the editor's matcher
-     * checks candidates against). Always present: the module type is
-     * explicit in the declaration (`lensInputModuleType` for the common
-     * lens/input case), never an editor-side default.
-     */
-    moduleType: string
-  }
+      type: 'moduleSelect'
+      /**
+       * The TS source of the contract a chosen module must satisfy for this
+       * field (a single `export type XModule<F> = …` the editor's matcher
+       * checks candidates against). Always present: the module type is
+       * explicit in the declaration (`lensInputModuleType` for the common
+       * lens/input case), never an editor-side default.
+       */
+      moduleType: string
+    }
   | {
-    type: 'array'
-    /** Shape of each item. */
-    item: EnrichmentField
-  }
+      type: 'array'
+      /** Shape of each item. */
+      item: EnrichmentField
+    }
   | {
-    type: 'object'
-    /** The nested object's fields. */
-    fields: EnrichmentField[]
-  }
+      type: 'object'
+      /** The nested object's fields. */
+      fields: EnrichmentField[]
+    }
 
 /**
  * One node of a serialised enrichment-schema descriptor — the

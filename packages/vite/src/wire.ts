@@ -108,12 +108,14 @@ export type GenMapEntry = v.InferOutput<typeof genMapEntrySchema>
 
 export const genMapResultSchema = v.object({
   entries: v.array(genMapEntrySchema),
-  /** Manifest files whose on-disk length no longer matches the engine render
-   *  (`manifest.characters`) — their spans are stale (e.g. the project ran a
-   *  formatter after generate) and must not be decorated. Length equality is
-   *  a HEURISTIC, not content-exact: a rewrite that preserves character count
-   *  (balanced quote-style flips, tab/space swaps) escapes detection. It is
-   *  the best signal the manifest offers (`lines`/`characters` only). */
+  /** Manifest files whose spans could not be aligned to the on-disk text.
+   *  Length drift vs the engine render (`manifest.characters`) triggers
+   *  RE-ANCHORING (landmark + AST path resolution against the current
+   *  text), so a formatter pass alone no longer lands a file here — only
+   *  files that defeat re-anchoring do: unreadable, unparseable, non-ASCII
+   *  (UTF-16 span units vs oxc's UTF-8 offsets), or hand-mangled past all
+   *  landmarks. Length equality remains a HEURISTIC trigger: an
+   *  equal-length rewrite escapes detection and serves raw spans. */
   staleFiles: v.array(v.string())
 })
 export type GenMapResult = v.InferOutput<typeof genMapResultSchema>

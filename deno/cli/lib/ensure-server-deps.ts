@@ -1,8 +1,5 @@
 import type { RootDenoJson } from '@/lib/root-deno-json.ts'
-import {
-  readCliCorePin,
-  readCliServerPin
-} from '@/lib/doctor-headless.ts'
+import { readCliCorePin, readCliServerPin } from '@/lib/doctor-headless.ts'
 
 /**
  * Ensure a project's deno.json pins the peer packages that the

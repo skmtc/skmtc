@@ -2,7 +2,7 @@ import * as v from 'valibot'
 
 /**
  * Valibot schema for root-level deno.json configuration files.
- * 
+ *
  * Validates workspace-level deno.json files that manage multiple packages
  * and define workspace-wide imports and exports.
  */
@@ -14,7 +14,7 @@ export const rootDenoJson: v.GenericSchema<RootDenoJson> = v.looseObject({
 
 /**
  * Type definition for root-level deno.json configuration.
- * 
+ *
  * Represents the structure of workspace-level deno.json files that coordinate
  * multiple packages within a Deno workspace.
  */
@@ -26,7 +26,7 @@ export type RootDenoJson = {
 
 /**
  * Valibot schema for package-level deno.json configuration files.
- * 
+ *
  * Validates individual package deno.json files that define package-specific
  * metadata, dependencies, and export configurations.
  */
@@ -39,7 +39,7 @@ export const packageDenoJson: v.GenericSchema<PackageDenoJson> = v.looseObject({
 
 /**
  * Type definition for package-level deno.json configuration.
- * 
+ *
  * Represents the structure of individual package deno.json files with
  * required name/version fields and optional import/export configurations.
  */

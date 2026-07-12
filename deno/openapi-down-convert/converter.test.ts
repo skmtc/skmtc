@@ -8,7 +8,7 @@ import {
   assertExists,
   assertFalse,
   assertStringIncludes,
-  assertThrows,
+  assertThrows
 } from '@std/assert'
 import { parse as parseYaml } from '@std/yaml/parse'
 import { Converter, type ConverterOptions } from './converter.ts'
@@ -19,7 +19,7 @@ console.warn = () => {}
 console.error = () => {}
 
 const scopeDescriptions = parseYaml(
-  Deno.readTextFileSync(new URL('./fixtures/scopes.yaml', import.meta.url)),
+  Deno.readTextFileSync(new URL('./fixtures/scopes.yaml', import.meta.url))
 ) as Record<string, string>
 
 Deno.test('Converter - changes openapi 3.1.x to 3.0.x', () => {
@@ -35,10 +35,10 @@ Deno.test('Converter - $ref keeps siblings by default, becomes allOf with allOfT
         b: {
           description: 'a B string based on components/schemas/a',
           title: 'a B string',
-          $ref: '#/components/schemas/a',
-        },
-      },
-    },
+          $ref: '#/components/schemas/a'
+        }
+      }
+    }
   }
 
   // Default: allOfTransform = false.
@@ -65,17 +65,15 @@ Deno.test('Converter - non-schema $ref with siblings is simplified to a JSON Ref
     paths: {
       '/things/{thingId}': {
         get: {
-          parameters: [
-            { description: 'a thing', $ref: '#/components/parameters/thingIdPathParam' },
-          ],
-        },
+          parameters: [{ description: 'a thing', $ref: '#/components/parameters/thingIdPathParam' }]
+        }
       },
       components: {
         parameters: {
-          thingIdPathParam: { in: 'path', type: 'string' },
-        },
-      },
-    },
+          thingIdPathParam: { in: 'path', type: 'string' }
+        }
+      }
+    }
   }
   const converted = new Converter(input).convert() as any
   const getParam0 = converted.paths['/things/{thingId}'].get.parameters[0]
@@ -90,37 +88,37 @@ Deno.test('Converter - converts openIdConnect security schemes to oauth2', () =>
         get: {
           security: [
             { accessToken1: ['thing/read', 'profile/read'], apiKey: [] },
-            { accessToken2: ['foo/read'] },
-          ],
+            { accessToken2: ['foo/read'] }
+          ]
         },
         put: {
           security: [
             { accessToken1: ['thing/write', 'profile/write'], apiKey: [] },
-            { accessToken2: ['foo/write'] },
-          ],
-        },
-      },
+            { accessToken2: ['foo/write'] }
+          ]
+        }
+      }
     },
     components: {
       securitySchemes: {
         accessToken1: {
           type: 'openIdConnect',
           description: 'OpenID Connect #1 - Authorization Code Flow',
-          openIdConnectUrl: 'https://www.example.com/oidc-1/.well-known/openid-configuration',
+          openIdConnectUrl: 'https://www.example.com/oidc-1/.well-known/openid-configuration'
         },
         accessToken2: {
           type: 'openIdConnect',
           description: 'OpenID Connect #2 - Authorization Code Flow',
-          openIdConnectUrl: 'https://www.example.com/oidc-2/.well-known/openid-configuration',
-        },
-      },
-    },
+          openIdConnectUrl: 'https://www.example.com/oidc-2/.well-known/openid-configuration'
+        }
+      }
+    }
   }
   const options: ConverterOptions = {
     authorizationUrl: 'https://www.example.com/test/authorize',
     tokenUrl: 'https://www.example.com/test/token',
     scopeDescriptions,
-    convertOpenIdConnectToOAuth2: true,
+    convertOpenIdConnectToOAuth2: true
   }
   const converted = new Converter(input, options).convert() as any
 
@@ -130,7 +128,7 @@ Deno.test('Converter - converts openIdConnect security schemes to oauth2', () =>
     assertEquals(accessToken1.type, 'oauth2')
     assertStringIncludes(
       accessToken1.description,
-      'https://www.example.com/oidc-1/.well-known/openid-configuration',
+      'https://www.example.com/oidc-1/.well-known/openid-configuration'
     )
     const scopes1 = accessToken1.flows.authorizationCode.scopes
     assertExists(scopes1)
@@ -150,7 +148,7 @@ Deno.test('Converter - converts openIdConnect security schemes to oauth2', () =>
     assertEquals(accessToken2.type, 'oauth2')
     assertStringIncludes(
       accessToken2.description,
-      'https://www.example.com/oidc-2/.well-known/openid-configuration',
+      'https://www.example.com/oidc-2/.well-known/openid-configuration'
     )
     const scopes2 = accessToken2.flows.authorizationCode.scopes
     assertExists(scopes2)
@@ -172,15 +170,15 @@ Deno.test('Converter - replaces schema examples with a single example', () => {
           type: 'object',
           properties: {
             c: { type: 'string', examples: ['a', 'b'] },
-            d: { type: 'object', examples: [{ id: 'a', x: 'b' }] },
-          },
-        },
-      },
-    },
+            d: { type: 'object', examples: [{ id: 'a', x: 'b' }] }
+          }
+        }
+      }
+    }
   }
   const converted = new Converter(input, {
     allOfTransform: true,
-    deleteExampleWithId: true,
+    deleteExampleWithId: true
   }).convert() as any
 
   const a = converted.components.schemas.a
@@ -205,18 +203,18 @@ Deno.test('Converter - issue #37: property description preserved alongside descr
           description: 'X (schema)',
           type: 'string',
           minLength: 0,
-          maxLength: 16,
+          maxLength: 16
         },
         thing: {
           title: 'Thing',
           description: 'A thing',
           type: 'object',
           properties: {
-            x: { description: 'x (property)', $ref: '#/components/schemas/x' },
-          },
-        },
-      },
-    },
+            x: { description: 'x (property)', $ref: '#/components/schemas/x' }
+          }
+        }
+      }
+    }
   }
   const expected = {
     x: {
@@ -224,7 +222,7 @@ Deno.test('Converter - issue #37: property description preserved alongside descr
       description: 'X (schema)',
       type: 'string',
       minLength: 0,
-      maxLength: 16,
+      maxLength: 16
     },
     thing: {
       title: 'Thing',
@@ -233,14 +231,14 @@ Deno.test('Converter - issue #37: property description preserved alongside descr
       properties: {
         x: {
           description: 'x (property)',
-          allOf: [{ $ref: '#/components/schemas/x' }],
-        },
-      },
-    },
+          allOf: [{ $ref: '#/components/schemas/x' }]
+        }
+      }
+    }
   }
   const converted = new Converter(input, {
     allOfTransform: true,
-    deleteExampleWithId: true,
+    deleteExampleWithId: true
   }).convert() as any
   assertEquals(converted.components.schemas, expected)
 })
@@ -255,10 +253,10 @@ Deno.test('Converter - resolves $ref schema examples to a single example', () =>
           description: 'a B string based on components/schemas/a',
           title: 'a B string',
           $ref: '#/components/schemas/a',
-          examples: ['Foo', 'Bar'],
-        },
-      },
-    },
+          examples: ['Foo', 'Bar']
+        }
+      }
+    }
   }
   const converted = new Converter(input, { allOfTransform: true }).convert() as any
 
@@ -279,14 +277,14 @@ Deno.test('Converter - removes $id and $schema keywords', () => {
         a: {
           $id: 'http://www.example.com/schemas/a',
           $schema: 'https://json-schema.org/draft/2020-12/schema',
-          type: 'string',
-        },
-      },
-    },
+          type: 'string'
+        }
+      }
+    }
   }
   const expected = {
     openapi: '3.0.3',
-    components: { schemas: { a: { type: 'string' } } },
+    components: { schemas: { a: { type: 'string' } } }
   }
   const converted = new Converter(input, { verbose: true }).convert() as any
   assertEquals(converted, expected)
@@ -296,9 +294,9 @@ Deno.test('Converter - converts schema $comment to x-comment when requested', ()
   const input = {
     components: {
       schemas: {
-        a: { type: 'string', $comment: 'This is a comment.' },
-      },
-    },
+        a: { type: 'string', $comment: 'This is a comment.' }
+      }
+    }
   }
   const converted = new Converter(input, { convertSchemaComments: true }).convert() as any
 
@@ -319,12 +317,12 @@ Deno.test('Converter - removes unevaluatedProperties keywords', () => {
             b: {
               type: 'object',
               unevaluatedProperties: false,
-              properties: { s: { type: 'string' } },
-            },
-          },
-        },
-      },
-    },
+              properties: { s: { type: 'string' } }
+            }
+          }
+        }
+      }
+    }
   }
   const expected = {
     openapi: '3.0.3',
@@ -333,11 +331,11 @@ Deno.test('Converter - removes unevaluatedProperties keywords', () => {
         a: {
           type: 'object',
           properties: {
-            b: { type: 'object', properties: { s: { type: 'string' } } },
-          },
-        },
-      },
-    },
+            b: { type: 'object', properties: { s: { type: 'string' } } }
+          }
+        }
+      }
+    }
   }
   const converted = new Converter(input, { verbose: true }).convert() as any
   assertEquals(converted, expected)
@@ -355,20 +353,20 @@ Deno.test('Converter - removes patternProperties keywords', () => {
             '^[a-z{2}-[A-Z]{2,3}]$': {
               type: 'object',
               unevaluatedProperties: false,
-              properties: { t: { type: 'string' } },
-            },
-          },
-        },
-      },
-    },
+              properties: { t: { type: 'string' } }
+            }
+          }
+        }
+      }
+    }
   }
   const expected = {
     openapi: '3.0.3',
     components: {
       schemas: {
-        a: { type: 'object', properties: { s: { type: 'string' } } },
-      },
-    },
+        a: { type: 'object', properties: { s: { type: 'string' } } }
+      }
+    }
   }
   const converted = new Converter(input, { verbose: true }).convert() as any
   assertEquals(converted, expected)
@@ -382,18 +380,18 @@ Deno.test('Converter - removes propertyNames keywords', () => {
         a: {
           type: 'object',
           propertyNames: { pattern: '^[A-Za-z_][A-Za-z0-9_]*$' },
-          additionalProperties: { type: 'string' },
-        },
-      },
-    },
+          additionalProperties: { type: 'string' }
+        }
+      }
+    }
   }
   const expected = {
     openapi: '3.0.3',
     components: {
       schemas: {
-        a: { type: 'object', additionalProperties: { type: 'string' } },
-      },
-    },
+        a: { type: 'object', additionalProperties: { type: 'string' } }
+      }
+    }
   }
   const converted = new Converter(input, { verbose: true }).convert() as any
   assertEquals(converted, expected)
@@ -408,11 +406,11 @@ Deno.test('Converter - removes contentMediaType keywords', () => {
           type: 'object',
           unevaluatedProperties: false,
           properties: {
-            b: { type: 'string', contentMediaType: 'application/pdf', maxLength: 5000000 },
-          },
-        },
-      },
-    },
+            b: { type: 'string', contentMediaType: 'application/pdf', maxLength: 5000000 }
+          }
+        }
+      }
+    }
   }
   const expected = {
     openapi: '3.0.3',
@@ -420,10 +418,10 @@ Deno.test('Converter - removes contentMediaType keywords', () => {
       schemas: {
         a: {
           type: 'object',
-          properties: { b: { type: 'string', maxLength: 5000000 } },
-        },
-      },
-    },
+          properties: { b: { type: 'string', maxLength: 5000000 } }
+        }
+      }
+    }
   }
   const converted = new Converter(input, { verbose: true }).convert() as any
   assertEquals(converted, expected)
@@ -439,16 +437,16 @@ Deno.test('Converter - removes the webhooks object', () => {
             description: 'Information about a new thing in the system',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/newThing' },
-              },
-            },
+                schema: { $ref: '#/components/schemas/newThing' }
+              }
+            }
           },
           responses: {
-            200: { description: 'Return a 200 status to indicate success' },
-          },
-        },
-      },
-    },
+            200: { description: 'Return a 200 status to indicate success' }
+          }
+        }
+      }
+    }
   }
   const expected = { openapi: '3.0.3' }
   const converted = new Converter(input, { verbose: true }).convert() as any
@@ -470,18 +468,18 @@ Deno.test('Converter - retains the webhooks object when retainWebhooks is set, 3
                     // 3.1 nullable form — the schema passes run over webhook
                     // PathItems too (before the delete), so this must be
                     // normalized to the 3.0 `nullable: true` form.
-                    name: { type: ['string', 'null'] },
-                  },
-                },
-              },
-            },
+                    name: { type: ['string', 'null'] }
+                  }
+                }
+              }
+            }
           },
           responses: {
-            200: { description: 'Return a 200 status to indicate success' },
-          },
-        },
-      },
-    },
+            200: { description: 'Return a 200 status to indicate success' }
+          }
+        }
+      }
+    }
   }
 
   const converted = new Converter(input, { retainWebhooks: true }).convert() as any
@@ -507,13 +505,13 @@ Deno.test('Converter - renames $comment to x-comment when requested', () => {
               type: 'object',
               $comment: 'A comment on a.b',
               properties: {
-                s: { type: 'string', $comment: 'A comment on a.b.s' },
-              },
-            },
-          },
-        },
-      },
-    },
+                s: { type: 'string', $comment: 'A comment on a.b.s' }
+              }
+            }
+          }
+        }
+      }
+    }
   }
   const expected = {
     openapi: '3.0.3',
@@ -527,17 +525,17 @@ Deno.test('Converter - renames $comment to x-comment when requested', () => {
               type: 'object',
               'x-comment': 'A comment on a.b',
               properties: {
-                s: { type: 'string', 'x-comment': 'A comment on a.b.s' },
-              },
-            },
-          },
-        },
-      },
-    },
+                s: { type: 'string', 'x-comment': 'A comment on a.b.s' }
+              }
+            }
+          }
+        }
+      }
+    }
   }
   const converted = new Converter(input, {
     verbose: true,
-    convertSchemaComments: true,
+    convertSchemaComments: true
   }).convert() as any
   assertEquals(converted, expected)
 })
@@ -555,13 +553,13 @@ Deno.test('Converter - deletes $comment by default', () => {
               type: 'object',
               $comment: 'A comment on a.b',
               properties: {
-                s: { type: 'string', $comment: 'A comment on a.b.s' },
-              },
-            },
-          },
-        },
-      },
-    },
+                s: { type: 'string', $comment: 'A comment on a.b.s' }
+              }
+            }
+          }
+        }
+      }
+    }
   }
   const expected = {
     openapi: '3.0.3',
@@ -570,11 +568,11 @@ Deno.test('Converter - deletes $comment by default', () => {
         a: {
           type: 'object',
           properties: {
-            b: { type: 'object', properties: { s: { type: 'string' } } },
-          },
-        },
-      },
-    },
+            b: { type: 'object', properties: { s: { type: 'string' } } }
+          }
+        }
+      }
+    }
   }
   const converted = new Converter(input, { verbose: true }).convert() as any
   assertEquals(converted, expected)
@@ -582,11 +580,11 @@ Deno.test('Converter - deletes $comment by default', () => {
 
 Deno.test('Converter - converts a nullable type array to nullable: true', () => {
   const input = {
-    components: { schemas: { a: { type: ['string', 'null'] } } },
+    components: { schemas: { a: { type: ['string', 'null'] } } }
   }
   const expected = {
     openapi: '3.0.3',
-    components: { schemas: { a: { type: 'string', nullable: true } } },
+    components: { schemas: { a: { type: 'string', nullable: true } } }
   }
   const converted = new Converter(input, { verbose: true }).convert() as any
   assertEquals(converted, expected)
@@ -604,10 +602,10 @@ Deno.test('Converter - folds a null oneOf member into nullable: true', () => {
     components: {
       schemas: {
         maybeUser: {
-          oneOf: [{ $ref: '#/components/schemas/user' }, { type: 'null' }],
-        },
-      },
-    },
+          oneOf: [{ $ref: '#/components/schemas/user' }, { type: 'null' }]
+        }
+      }
+    }
   }
   const expected = {
     openapi: '3.0.3',
@@ -615,10 +613,10 @@ Deno.test('Converter - folds a null oneOf member into nullable: true', () => {
       schemas: {
         maybeUser: {
           oneOf: [{ $ref: '#/components/schemas/user' }],
-          nullable: true,
-        },
-      },
-    },
+          nullable: true
+        }
+      }
+    }
   }
   const converted = new Converter(input, { verbose: true }).convert() as any
   assertEquals(converted, expected)
@@ -629,10 +627,10 @@ Deno.test('Converter - folds a null anyOf member into nullable: true, keeping re
     components: {
       schemas: {
         maybeId: {
-          anyOf: [{ $ref: '#/components/schemas/id' }, { type: 'string' }, { type: 'null' }],
-        },
-      },
-    },
+          anyOf: [{ $ref: '#/components/schemas/id' }, { type: 'string' }, { type: 'null' }]
+        }
+      }
+    }
   }
   const expected = {
     openapi: '3.0.3',
@@ -640,10 +638,10 @@ Deno.test('Converter - folds a null anyOf member into nullable: true, keeping re
       schemas: {
         maybeId: {
           anyOf: [{ $ref: '#/components/schemas/id' }, { type: 'string' }],
-          nullable: true,
-        },
-      },
-    },
+          nullable: true
+        }
+      }
+    }
   }
   const converted = new Converter(input, { verbose: true }).convert() as any
   assertEquals(converted, expected)
@@ -654,10 +652,10 @@ Deno.test('Converter - folds an enum-of-null union member into nullable: true', 
     components: {
       schemas: {
         maybeUser: {
-          oneOf: [{ $ref: '#/components/schemas/user' }, { enum: [null] }],
-        },
-      },
-    },
+          oneOf: [{ $ref: '#/components/schemas/user' }, { enum: [null] }]
+        }
+      }
+    }
   }
   const expected = {
     openapi: '3.0.3',
@@ -665,10 +663,10 @@ Deno.test('Converter - folds an enum-of-null union member into nullable: true', 
       schemas: {
         maybeUser: {
           oneOf: [{ $ref: '#/components/schemas/user' }],
-          nullable: true,
-        },
-      },
-    },
+          nullable: true
+        }
+      }
+    }
   }
   const converted = new Converter(input, { verbose: true }).convert() as any
   assertEquals(converted, expected)
@@ -682,12 +680,12 @@ Deno.test('Converter - folds null union members in nested schemas', () => {
           type: 'object',
           properties: {
             owner: {
-              anyOf: [{ $ref: '#/components/schemas/user' }, { type: 'null' }],
-            },
-          },
-        },
-      },
-    },
+              anyOf: [{ $ref: '#/components/schemas/user' }, { type: 'null' }]
+            }
+          }
+        }
+      }
+    }
   }
   const expected = {
     openapi: '3.0.3',
@@ -698,12 +696,12 @@ Deno.test('Converter - folds null union members in nested schemas', () => {
           properties: {
             owner: {
               anyOf: [{ $ref: '#/components/schemas/user' }],
-              nullable: true,
-            },
-          },
-        },
-      },
-    },
+              nullable: true
+            }
+          }
+        }
+      }
+    }
   }
   const converted = new Converter(input, { verbose: true }).convert() as any
   assertEquals(converted, expected)
@@ -713,14 +711,14 @@ Deno.test('Converter - throws when a union contains only null members', () => {
   const input = {
     components: {
       schemas: {
-        alwaysNull: { oneOf: [{ type: 'null' }] },
-      },
-    },
+        alwaysNull: { oneOf: [{ type: 'null' }] }
+      }
+    }
   }
   assertThrows(
     () => new Converter(input).convert(),
     Error,
-    'Cannot down convert this OpenAPI definition.',
+    'Cannot down convert this OpenAPI definition.'
   )
 })
 
@@ -737,21 +735,21 @@ Deno.test('Converter - converts const to a single-value enum, including nested s
                 type: 'object',
                 properties: {
                   type: { const: 's' },
-                  value: { type: 'string' },
-                },
+                  value: { type: 'string' }
+                }
               },
               {
                 type: 'object',
                 properties: {
                   type: { const: 'n' },
-                  value: { type: 'number' },
-                },
-              },
-            ],
-          },
-        },
-      },
-    },
+                  value: { type: 'number' }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
   }
   const expected = {
     version: { type: 'string', enum: ['1.0.0'] },
@@ -763,19 +761,19 @@ Deno.test('Converter - converts const to a single-value enum, including nested s
             type: 'object',
             properties: {
               type: { enum: ['s'] },
-              value: { type: 'string' },
-            },
+              value: { type: 'string' }
+            }
           },
           {
             type: 'object',
             properties: {
               type: { enum: ['n'] },
-              value: { type: 'number' },
-            },
-          },
-        ],
-      },
-    },
+              value: { type: 'number' }
+            }
+          }
+        ]
+      }
+    }
   }
   const converted = new Converter(input, { allOfTransform: true }).convert() as any
   assertEquals(converted.components.schemas, expected)
@@ -784,11 +782,11 @@ Deno.test('Converter - converts const to a single-value enum, including nested s
 Deno.test('Converter - removes info.license.identifier', () => {
   const input = {
     openapi: '3.1.0',
-    info: { license: { name: 'MIT', identifier: 'MIT' } },
+    info: { license: { name: 'MIT', identifier: 'MIT' } }
   }
   const expected = {
     openapi: '3.0.3',
-    info: { license: { name: 'MIT' } },
+    info: { license: { name: 'MIT' } }
   }
   const converted = new Converter(input, { verbose: true }).convert() as any
   assertEquals(converted, expected)
@@ -802,14 +800,14 @@ Deno.test('Converter - converts the larger example document', () => {
   const options: ConverterOptions = {
     verbose: true,
     deleteExampleWithId: true,
-    scopeDescriptions,
+    scopeDescriptions
   }
   const converted = new Converter(input, options).convert() as any
 
   const appIdPathParam = converted.components.parameters.appIdPathParam
   assertEquals(
     Object.keys(appIdPathParam).sort(),
-    ['name', 'description', 'in', 'required', 'schema'].sort(),
+    ['name', 'description', 'in', 'required', 'schema'].sort()
   )
 
   const scopes = converted.components.securitySchemes.accessToken.flows.authorizationCode.scopes
@@ -828,10 +826,10 @@ Deno.test('Converter - throws on contentEncoding base64 with a conflicting forma
         binaryEncodedDataWithExistingBinaryFormat: {
           type: 'string',
           format: 'binary',
-          contentEncoding: 'base64',
-        },
-      },
-    },
+          contentEncoding: 'base64'
+        }
+      }
+    }
   }
   assertThrows(() => new Converter(input).convert())
 })
@@ -844,18 +842,18 @@ Deno.test('Converter - keeps format: byte when contentEncoding base64 agrees', (
         binaryEncodedDataWithByteFormat: {
           type: 'string',
           format: 'byte',
-          contentEncoding: 'base64',
-        },
-      },
-    },
+          contentEncoding: 'base64'
+        }
+      }
+    }
   }
   const expected = {
     openapi: '3.0.3',
     components: {
       schemas: {
-        binaryEncodedDataWithByteFormat: { type: 'string', format: 'byte' },
-      },
-    },
+        binaryEncodedDataWithByteFormat: { type: 'string', format: 'byte' }
+      }
+    }
   }
   const converted = new Converter(input).convert() as any
   assertEquals(converted, expected)
@@ -866,17 +864,17 @@ Deno.test('Converter - converts contentEncoding base64 to format: byte', () => {
     openapi: '3.1.0',
     components: {
       schemas: {
-        binaryEncodedDataWithNoFormat: { type: 'string', contentEncoding: 'base64' },
-      },
-    },
+        binaryEncodedDataWithNoFormat: { type: 'string', contentEncoding: 'base64' }
+      }
+    }
   }
   const expected = {
     openapi: '3.0.3',
     components: {
       schemas: {
-        binaryEncodedDataWithNoFormat: { type: 'string', format: 'byte' },
-      },
-    },
+        binaryEncodedDataWithNoFormat: { type: 'string', format: 'byte' }
+      }
+    }
   }
   const converted = new Converter(input).convert() as any
   assertEquals(converted, expected)
@@ -890,18 +888,18 @@ Deno.test('Converter - keeps format: binary when contentMediaType agrees', () =>
         binaryData: {
           type: 'string',
           contentMediaType: 'application/octet-stream',
-          format: 'binary',
-        },
-      },
-    },
+          format: 'binary'
+        }
+      }
+    }
   }
   const expected = {
     openapi: '3.0.3',
     components: {
       schemas: {
-        binaryData: { type: 'string', format: 'binary' },
-      },
-    },
+        binaryData: { type: 'string', format: 'binary' }
+      }
+    }
   }
   const converted = new Converter(input).convert() as any
   assertEquals(converted, expected)
@@ -912,17 +910,17 @@ Deno.test('Converter - converts contentMediaType octet-stream to format: binary'
     openapi: '3.1.0',
     components: {
       schemas: {
-        binaryData: { type: 'string', contentMediaType: 'application/octet-stream' },
-      },
-    },
+        binaryData: { type: 'string', contentMediaType: 'application/octet-stream' }
+      }
+    }
   }
   const expected = {
     openapi: '3.0.3',
     components: {
       schemas: {
-        binaryData: { type: 'string', format: 'binary' },
-      },
-    },
+        binaryData: { type: 'string', format: 'binary' }
+      }
+    }
   }
   const converted = new Converter(input).convert() as any
   assertEquals(converted, expected)
@@ -936,10 +934,10 @@ Deno.test('Converter - throws on contentMediaType octet-stream with a conflictin
         binaryData: {
           type: 'string',
           contentMediaType: 'application/octet-stream',
-          format: 'byte',
-        },
-      },
-    },
+          format: 'byte'
+        }
+      }
+    }
   }
   assertThrows(() => new Converter(input).convert())
 })

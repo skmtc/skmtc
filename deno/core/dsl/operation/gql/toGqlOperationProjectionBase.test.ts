@@ -4,10 +4,7 @@ import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import { TsSnippet, createVariable } from '@skmtc/lang-typescript'
 import { OasString } from '@/oas/string/String.ts'
-import type {
-  ToGqlOperationIdentifierNameArgs,
-  ToGqlOperationExportPathArgs
-} from './types.ts'
+import type { ToGqlOperationIdentifierNameArgs, ToGqlOperationExportPathArgs } from './types.ts'
 import { emptyEnrichmentSchema, type EmptyEnrichments } from '@/types/Enrichments.ts'
 import * as v from 'valibot'
 
@@ -76,9 +73,16 @@ Deno.test('toGqlOperationProjectionBase - sets static toIdentifierName from conf
 
   const mockOperation = createMockGqlOperation()
 
-  const name = OperationClass.toIdentifierName({ operation: mockOperation, enrichments: { subject: undefined, generator: undefined, stack: undefined }, variant: 'main' })
+  const name = OperationClass.toIdentifierName({
+    operation: mockOperation,
+    enrichments: { subject: undefined, generator: undefined, stack: undefined },
+    variant: 'main'
+  })
   assertEquals(name, 'getUsers')
-  assertEquals(OperationClass.toIdentifierType(mockOperation, {} as GenerateContextType).type, 'variable')
+  assertEquals(
+    OperationClass.toIdentifierType(mockOperation, {} as GenerateContextType).type,
+    'variable'
+  )
 })
 
 Deno.test('toGqlOperationProjectionBase - sets static toExportPath from config', () => {
@@ -98,55 +102,53 @@ Deno.test('toGqlOperationProjectionBase - sets static toExportPath from config',
     fieldName: 'createUser'
   })
 
-  const exportPath = OperationClass.toExportPath({ operation: mockOperation, enrichments: { subject: undefined, generator: undefined, stack: undefined }, variant: 'main' })
+  const exportPath = OperationClass.toExportPath({
+    operation: mockOperation,
+    enrichments: { subject: undefined, generator: undefined, stack: undefined },
+    variant: 'main'
+  })
   assertEquals(exportPath, './generated/createUser.ts')
 })
 
-Deno.test(
-  'toGqlOperationProjectionBase - toEnrichments yields the empty umbrella with the empty schema',
-  () => {
-    const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
-      id: 'test-operation',
-      toIdentifierName: ({ operation }) => operation.fieldName,
+Deno.test('toGqlOperationProjectionBase - toEnrichments yields the empty umbrella with the empty schema', () => {
+  const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
+    id: 'test-operation',
+    toIdentifierName: ({ operation }) => operation.fieldName,
     toIdentifierType: () => ({ type: 'variable' }),
-      toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`,
-      toEnrichmentSchema: () => emptyEnrichmentSchema
-    })
+    toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  })
 
-    const mockOperation = createMockGqlOperation()
+  const mockOperation = createMockGqlOperation()
 
-    const enrichments = OperationClass.toEnrichments({
-      operation: mockOperation,
-      context: { settings: {} } as GenerateContextType,
+  const enrichments = OperationClass.toEnrichments({
+    operation: mockOperation,
+    context: { settings: {} } as GenerateContextType,
     variant: 'main'
-    })
+  })
 
-    assertEquals(enrichments, { subject: undefined, generator: undefined, stack: undefined })
-  }
-)
+  assertEquals(enrichments, { subject: undefined, generator: undefined, stack: undefined })
+})
 
-Deno.test(
-  'toGqlOperationProjectionBase - toEnrichments yields the empty umbrella when no enrichments in context',
-  () => {
-    const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
-      id: 'test-operation',
-      toIdentifierName: ({ operation }) => operation.fieldName,
+Deno.test('toGqlOperationProjectionBase - toEnrichments yields the empty umbrella when no enrichments in context', () => {
+  const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
+    id: 'test-operation',
+    toIdentifierName: ({ operation }) => operation.fieldName,
     toIdentifierType: () => ({ type: 'variable' }),
-      toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`,
-      toEnrichmentSchema: () => emptyEnrichmentSchema
-    })
+    toExportPath: ({ operation }) => `./operations/${operation.fieldName}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  })
 
-    const mockOperation = createMockGqlOperation()
+  const mockOperation = createMockGqlOperation()
 
-    const enrichments = OperationClass.toEnrichments({
-      operation: mockOperation,
-      context: { settings: {} } as GenerateContextType,
+  const enrichments = OperationClass.toEnrichments({
+    operation: mockOperation,
+    context: { settings: {} } as GenerateContextType,
     variant: 'main'
-    })
+  })
 
-    assertEquals(enrichments, { subject: undefined, generator: undefined, stack: undefined })
-  }
-)
+  assertEquals(enrichments, { subject: undefined, generator: undefined, stack: undefined })
+})
 
 Deno.test('toGqlOperationProjectionBase - toIdentifierName works with different operations', () => {
   const OperationClass = toGqlOperationProjectionBase(TsSnippet, {
@@ -158,14 +160,22 @@ Deno.test('toGqlOperationProjectionBase - toIdentifierName works with different 
   })
 
   const queryOperation = createMockGqlOperation({ rootKind: 'query', fieldName: 'Users' })
-  const queryName = OperationClass.toIdentifierName({ operation: queryOperation, enrichments: { subject: undefined, generator: undefined, stack: undefined }, variant: 'main' })
+  const queryName = OperationClass.toIdentifierName({
+    operation: queryOperation,
+    enrichments: { subject: undefined, generator: undefined, stack: undefined },
+    variant: 'main'
+  })
   assertEquals(queryName, 'queryUsers')
 
   const mutationOperation = createMockGqlOperation({
     rootKind: 'mutation',
     fieldName: 'Product'
   })
-  const mutationName = OperationClass.toIdentifierName({ operation: mutationOperation, enrichments: { subject: undefined, generator: undefined, stack: undefined }, variant: 'main' })
+  const mutationName = OperationClass.toIdentifierName({
+    operation: mutationOperation,
+    enrichments: { subject: undefined, generator: undefined, stack: undefined },
+    variant: 'main'
+  })
   assertEquals(mutationName, 'mutationProduct')
 })
 
@@ -179,13 +189,27 @@ Deno.test('toGqlOperationProjectionBase - toExportPath works with different oper
   })
 
   const queryOperation = createMockGqlOperation({ rootKind: 'query', fieldName: 'users' })
-  assertEquals(OperationClass.toExportPath({ operation: queryOperation, enrichments: { subject: undefined, generator: undefined, stack: undefined }, variant: 'main' }), './types/query-users.d.ts')
+  assertEquals(
+    OperationClass.toExportPath({
+      operation: queryOperation,
+      enrichments: { subject: undefined, generator: undefined, stack: undefined },
+      variant: 'main'
+    }),
+    './types/query-users.d.ts'
+  )
 
   const mutationOperation = createMockGqlOperation({
     rootKind: 'mutation',
     fieldName: 'product'
   })
-  assertEquals(OperationClass.toExportPath({ operation: mutationOperation, enrichments: { subject: undefined, generator: undefined, stack: undefined }, variant: 'main' }), './types/mutation-product.d.ts')
+  assertEquals(
+    OperationClass.toExportPath({
+      operation: mutationOperation,
+      enrichments: { subject: undefined, generator: undefined, stack: undefined },
+      variant: 'main'
+    }),
+    './types/mutation-product.d.ts'
+  )
 })
 
 Deno.test('toGqlOperationProjectionBase - constructor creates correct generatorKey', () => {

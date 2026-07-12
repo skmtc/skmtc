@@ -49,13 +49,12 @@ export class PhpFile extends CodeFileBase {
     throw new Error('PhpFile does not support re-exports.')
   }
 
-  override findDefinitions(
-    query?: { name?: string; type?: PhpEntityType }
-  ): DefinitionBase[] | undefined {
-    return matchDefinitions(
-      [...this.definitions.values()],
-      query,
-      identifier => (identifier instanceof PhpIdentifier ? identifier.type : undefined)
+  override findDefinitions(query?: {
+    name?: string
+    type?: PhpEntityType
+  }): DefinitionBase[] | undefined {
+    return matchDefinitions([...this.definitions.values()], query, identifier =>
+      identifier instanceof PhpIdentifier ? identifier.type : undefined
     )
   }
 

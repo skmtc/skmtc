@@ -1,6 +1,10 @@
 import { mockParseContext } from '@/test/mockParseContext.ts'
 import type { OpenAPIV3 } from 'openapi-types'
-import { toServerVariableV3, toServerVariablesV3, toOptionalServerVariablesV3 } from './toServerVariableV3.ts'
+import {
+  toServerVariableV3,
+  toServerVariablesV3,
+  toOptionalServerVariablesV3
+} from './toServerVariableV3.ts'
 import { assertEquals } from '@std/assert/equals'
 import type { OasServerVariable } from '@/oas/serverVariable/ServerVariable.ts'
 import { StackTrail } from '@/context/StackTrail.ts'

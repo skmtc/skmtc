@@ -15,10 +15,7 @@ import ts from 'npm:typescript@5.6.3'
 import { walk } from '@std/fs'
 import { resolve } from '@std/path'
 
-const DEFAULT_CORPUS = resolve(
-  Deno.cwd(),
-  '../../openapi-codegen-benchmarks'
-)
+const DEFAULT_CORPUS = resolve(Deno.cwd(), '../../openapi-codegen-benchmarks')
 
 type FileRecord = { path: string; bytes: number; lines: number; source: string }
 
@@ -91,22 +88,30 @@ function summarise(label: string, results: ParseBench[]) {
   console.log(`  total parse:  ${total.parseMs.toFixed(1)} ms`)
   console.log(`  total walk:   ${total.resolveMs.toFixed(1)} ms`)
   console.log(`  total combined: ${(total.parseMs + total.resolveMs).toFixed(1)} ms`)
-  console.log(`  bytes/sec:    ${((total.bytes / (total.parseMs + total.resolveMs)) * 1000).toLocaleString(undefined, { maximumFractionDigits: 0 })}`)
+  console.log(
+    `  bytes/sec:    ${((total.bytes / (total.parseMs + total.resolveMs)) * 1000).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+  )
   console.log(`  p50:          ${(p50.parseMs + p50.resolveMs).toFixed(2)} ms (${p50.bytes} bytes)`)
   console.log(`  p95:          ${(p95.parseMs + p95.resolveMs).toFixed(2)} ms (${p95.bytes} bytes)`)
-  console.log(`  max:          ${(max.parseMs + max.resolveMs).toFixed(2)} ms (${max.bytes} bytes) — ${max.file.split('/').slice(-2).join('/')}`)
+  console.log(
+    `  max:          ${(max.parseMs + max.resolveMs).toFixed(2)} ms (${max.bytes} bytes) — ${max.file.split('/').slice(-2).join('/')}`
+  )
 }
 
 async function main() {
   const corpusDir = Deno.args[0] ?? DEFAULT_CORPUS
   const anyTs = Deno.args.includes('--any-ts')
-  console.log(`Loading corpus from: ${corpusDir}${anyTs ? ' (all .ts/.tsx)' : ' (.generated.* only)'}`)
+  console.log(
+    `Loading corpus from: ${corpusDir}${anyTs ? ' (all .ts/.tsx)' : ' (.generated.* only)'}`
+  )
   const corpus = await loadCorpus(corpusDir, anyTs)
   if (corpus.length === 0) {
     console.error(`No .generated.ts/tsx files found in ${corpusDir}`)
     Deno.exit(2)
   }
-  console.log(`Loaded ${corpus.length} files, total ${corpus.reduce((s, r) => s + r.bytes, 0).toLocaleString()} bytes`)
+  console.log(
+    `Loaded ${corpus.length} files, total ${corpus.reduce((s, r) => s + r.bytes, 0).toLocaleString()} bytes`
+  )
 
   // Warm-up: parse each file once (JIT, module init)
   for (const record of corpus) benchTsc(record)
@@ -117,7 +122,9 @@ async function main() {
     runs.push(corpus.map(benchTsc))
   }
   const median = corpus.map((_, idx) => {
-    const samples = runs.map((r) => r[idx]).sort((a, b) => a.parseMs + a.resolveMs - (b.parseMs + b.resolveMs))
+    const samples = runs
+      .map(r => r[idx])
+      .sort((a, b) => a.parseMs + a.resolveMs - (b.parseMs + b.resolveMs))
     return samples[1] // median of 3
   })
 
@@ -159,7 +166,9 @@ async function main() {
             const resolveMs = performance.now() - walkStart
             round.push({ file: record.path, bytes: record.bytes, parseMs, resolveMs, nodes })
           } catch (e) {
-            console.error(`oxc parse failed for ${record.path}: ${e instanceof Error ? e.message : e}`)
+            console.error(
+              `oxc parse failed for ${record.path}: ${e instanceof Error ? e.message : e}`
+            )
           }
         }
         oxcRuns.push(round)
@@ -167,7 +176,7 @@ async function main() {
       if (oxcRuns[0].length > 0) {
         const oxcMedian = oxcRuns[0].map((_, idx) => {
           const samples = oxcRuns
-            .map((r) => r[idx])
+            .map(r => r[idx])
             .filter(Boolean)
             .sort((a, b) => a.parseMs + a.resolveMs - (b.parseMs + b.resolveMs))
           return samples[Math.floor(samples.length / 2)]
@@ -186,7 +195,9 @@ async function main() {
   // post-pass is fine.
   console.log('\n--- decision input ---')
   console.log('Inline post-pass acceptable if total parse+walk < 10% of `skmtc generate` runtime.')
-  console.log('If above 10%, Phase D should ship `--anchors-async` writing sidecars after the JSON response.')
+  console.log(
+    'If above 10%, Phase D should ship `--anchors-async` writing sidecars after the JSON response.'
+  )
 }
 
 if (import.meta.main) {

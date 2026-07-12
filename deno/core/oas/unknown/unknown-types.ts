@@ -2,7 +2,7 @@ import * as v from 'valibot'
 
 /**
  * Valibot schema for validating OpenAPI unknown data objects.
- * 
+ *
  * Validates unknown/unspecified schemas used as fallbacks when
  * schema types cannot be determined or for flexible data handling.
  */
@@ -16,7 +16,7 @@ export const oasUnknownData: v.GenericSchema<OasUnknownData> = v.object({
 
 /**
  * Data type for OpenAPI unknown schema objects.
- * 
+ *
  * Represents schemas with unspecified or flexible types, used as
  * fallbacks when schema types cannot be determined or when maximum
  * flexibility is required in the API specification.

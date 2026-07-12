@@ -25,7 +25,9 @@ Deno.test('ParseContext (gql) - records nested-list fallback as a NESTED_LIST_LO
     type Matrix {
       cells: [[Int]]
     }
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
   const ctx = makeGqlContext(sdl)
   runParse(ctx)
@@ -65,13 +67,21 @@ Deno.test('ParseContext (gql) - records skipped non-root field arguments', () =>
   const locations = skipped.map(i => i.location).sort()
   assertEquals(locations, ['User:posts:limit', 'User:posts:offset'])
   const messages = skipped.map(i => i.message).sort()
-  assertEquals(messages.some(m => m.includes("'limit'")), true)
-  assertEquals(messages.some(m => m.includes("'offset'")), true)
+  assertEquals(
+    messages.some(m => m.includes("'limit'")),
+    true
+  )
+  assertEquals(
+    messages.some(m => m.includes("'offset'")),
+    true
+  )
 })
 
 Deno.test('ParseContext (gql) - root-field arguments are NOT logged as skipped', () => {
   const sdl = /* GraphQL */ `
-    type User { id: ID! }
+    type User {
+      id: ID!
+    }
     type Query {
       getUser(id: ID!): User
     }
@@ -91,7 +101,9 @@ Deno.test('ParseContext (gql) - records custom directives as DROPPED_DIRECTIVE w
     type User {
       id: ID!
     }
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
   const ctx = makeGqlContext(sdl)
   runParse(ctx)
@@ -108,7 +120,9 @@ Deno.test('ParseContext (gql) - built-in directives (@skip, @include, @deprecate
       id: ID!
       legacyName: String @deprecated(reason: "use name")
     }
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
   const ctx = makeGqlContext(sdl)
   runParse(ctx)
@@ -123,8 +137,12 @@ Deno.test('ParseContext (gql) - silent=false mirrors warnings to the logger', ()
   // are the right hook now. We're not testing the std-log handler
   // wiring here, just confirming the path runs without throwing.
   const sdl = /* GraphQL */ `
-    type Matrix { cells: [[Int]] }
-    type Query { _: Boolean }
+    type Matrix {
+      cells: [[Int]]
+    }
+    type Query {
+      _: Boolean
+    }
   `
   const ctx = makeGqlContext(sdl, { silent: false })
   runParse(ctx)
@@ -141,7 +159,9 @@ Deno.test('ParseContext (gql) - field-level applied directives are recorded with
       secret: String @auth(role: "admin")
       expensive: Int @cost(value: 100)
     }
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
   const ctx = makeGqlContext(sdl)
   runParse(ctx)
@@ -162,14 +182,14 @@ Deno.test('ParseContext (gql) - type-level applied directives are recorded with 
     type User @entity {
       id: ID!
     }
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
   const ctx = makeGqlContext(sdl)
   runParse(ctx)
 
-  const typeLevel = ctx.issues.filter(
-    i => i.type === 'DROPPED_DIRECTIVE' && i.location === 'User'
-  )
+  const typeLevel = ctx.issues.filter(i => i.type === 'DROPPED_DIRECTIVE' && i.location === 'User')
   assertEquals(typeLevel.length, 1)
   assertEquals(typeLevel[0].message.includes("'@entity'"), true)
 })
@@ -177,7 +197,9 @@ Deno.test('ParseContext (gql) - type-level applied directives are recorded with 
 Deno.test('ParseContext (gql) - root-field applied directives are recorded with operation location', () => {
   const sdl = /* GraphQL */ `
     directive @auth(role: String!) on FIELD_DEFINITION
-    type User { id: ID! }
+    type User {
+      id: ID!
+    }
     type Query {
       me: User! @auth(role: "user")
     }
@@ -197,7 +219,9 @@ Deno.test('ParseContext (gql) - applied @deprecated is NOT recorded (its reason 
       id: ID!
       legacyName: String @deprecated(reason: "use name")
     }
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
   const ctx = makeGqlContext(sdl)
   runParse(ctx)

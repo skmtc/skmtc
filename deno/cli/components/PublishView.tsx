@@ -1,26 +1,23 @@
-import { useEffect, useState } from "react";
-import { Box, Text } from "ink";
-import { Spinner } from "@/components/Spinner.tsx";
-import { TaskBox } from "@/components/TaskBox.tsx";
-import type { Project } from "@/lib/project.ts";
-import type { ViewStatePublish } from "@/components/SkmtcContext.tsx";
-import { useSkmtc } from "@/components/SkmtcContext.tsx";
-import {
-  publishHeadless,
-  type PublishHeadlessResult,
-} from "@/lib/publish-headless.ts";
-import { resolveHubAuth } from "@/lib/hub-token.ts";
+import { useEffect, useState } from 'react'
+import { Box, Text } from 'ink'
+import { Spinner } from '@/components/Spinner.tsx'
+import { TaskBox } from '@/components/TaskBox.tsx'
+import type { Project } from '@/lib/project.ts'
+import type { ViewStatePublish } from '@/components/SkmtcContext.tsx'
+import { useSkmtc } from '@/components/SkmtcContext.tsx'
+import { publishHeadless, type PublishHeadlessResult } from '@/lib/publish-headless.ts'
+import { resolveHubAuth } from '@/lib/hub-token.ts'
 
 type PublishViewProps = {
-  project: Project;
-  view: ViewStatePublish;
-};
+  project: Project
+  view: ViewStatePublish
+}
 
 type Stage =
-  | { type: "validating" }
-  | { type: "running" }
-  | { type: "done"; result: PublishHeadlessResult }
-  | { type: "misconfigured"; missing: string[] };
+  | { type: 'validating' }
+  | { type: 'running' }
+  | { type: 'done'; result: PublishHeadlessResult }
+  | { type: 'misconfigured'; missing: string[] }
 
 /**
  * Interactive Ink path for `skmtc publish`. Strict / `--json` /
@@ -35,103 +32,102 @@ type Stage =
  *      the failure stage + reason.
  */
 export const PublishView = ({ project, view }: PublishViewProps) => {
-  const { state, dispatch, dispatchMessage, exit } = useSkmtc();
-  const [stage, setStage] = useState<Stage>({ type: "validating" });
+  const { state, dispatch, dispatchMessage, exit } = useSkmtc()
+  const [stage, setStage] = useState<Stage>({ type: 'validating' })
 
   useEffect(() => {
     const { token, origin } = resolveHubAuth({
       tokenFlag: view.token,
-      originFlag: view.origin,
-    });
+      originFlag: view.origin
+    })
 
     if (!token) {
       setStage({
-        type: "misconfigured",
-        missing: ["--token <pat> (or $SKMTC_HUB_TOKEN, or `skmtc login`)"],
-      });
-      dispatchMessage({ error: "Publish is missing required arguments" });
-      if (!state.interactive) exit();
-      return;
+        type: 'misconfigured',
+        missing: ['--token <pat> (or $SKMTC_HUB_TOKEN, or `skmtc login`)']
+      })
+      dispatchMessage({ error: 'Publish is missing required arguments' })
+      if (!state.interactive) exit()
+      return
     }
 
-    setStage({ type: "running" });
+    setStage({ type: 'running' })
     const run = async () => {
       const result = await publishHeadless({
         skmtcRoot: state.skmtcRoot,
         projectName: project.name,
         token,
         origin,
-        version: view.version,
-      });
+        version: view.version
+      })
 
-      setStage({ type: "done", result });
+      setStage({ type: 'done', result })
 
-      if (result.type === "published") {
+      if (result.type === 'published') {
         dispatchMessage({
-          success:
-            `Published ${result.stack.account}/${result.stack.slug}@${result.version}`,
-        });
+          success: `Published ${result.stack.account}/${result.stack.slug}@${result.version}`
+        })
       } else {
         dispatchMessage({
-          error: `Publish failed at ${result.stage}: ${result.reason}`,
-        });
+          error: `Publish failed at ${result.stage}: ${result.reason}`
+        })
       }
 
       if (state.interactive) {
         dispatch({
-          type: "set-view",
-          payload: { page: "project", projectName: project.name },
-        });
+          type: 'set-view',
+          payload: { page: 'project', projectName: project.name }
+        })
       } else {
-        exit();
+        exit()
       }
-    };
+    }
 
-    run();
-  }, []);
+    run()
+  }, [])
 
   switch (stage.type) {
-    case "validating":
+    case 'validating':
       return (
         <TaskBox active>
           <Spinner label="Validating publish inputs..." />
         </TaskBox>
-      );
-    case "misconfigured":
+      )
+    case 'misconfigured':
       return (
         <Box flexDirection="column">
           <Text color="red">Missing required publish arguments:</Text>
-          {stage.missing.map((m) => <Text key={m}>- {m}</Text>)}
-          <Text dimColor>
-            Example: skmtc publish {project.name} --token $SKMTC_HUB_TOKEN
-          </Text>
+          {stage.missing.map(m => (
+            <Text key={m}>- {m}</Text>
+          ))}
+          <Text dimColor>Example: skmtc publish {project.name} --token $SKMTC_HUB_TOKEN</Text>
         </Box>
-      );
-    case "running":
+      )
+    case 'running':
       return (
         <TaskBox active>
           <Spinner label={`Publishing ${project.name}...`} />
         </TaskBox>
-      );
-    case "done": {
-      const result = stage.result;
-      if (result.type === "published") {
+      )
+    case 'done': {
+      const result = stage.result
+      if (result.type === 'published') {
         return (
           <Box flexDirection="column">
             <Text color="green">
-              ✓ Published {result.projectName} →{" "}
-              {result.stack.account}/{result.stack.slug}@{result.version}
+              ✓ Published {result.projectName} → {result.stack.account}/{result.stack.slug}@
+              {result.version}
             </Text>
             <Text>bundle: {result.bundlePath}</Text>
             <Text>bytes: {result.bundleBytes.toLocaleString()}</Text>
             <Text>sha256: {result.bundleSha256.slice(0, 16)}...</Text>
             <Text>
-              source: {result.sourceFileCount} files,{" "}
-              {result.sourceTotalBytes.toLocaleString()} bytes
+              source: {result.sourceFileCount} files, {result.sourceTotalBytes.toLocaleString()}{' '}
+              bytes
             </Text>
             <Text>version: {result.versionUrl}</Text>
           </Box>
-        );
+        )
       }
       return (
         <Box flexDirection="column">
@@ -140,7 +136,7 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
           </Text>
           <Text>{result.reason}</Text>
         </Box>
-      );
+      )
     }
   }
-};
+}

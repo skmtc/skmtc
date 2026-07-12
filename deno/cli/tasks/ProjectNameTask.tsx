@@ -21,7 +21,10 @@ export const ProjectNameTask = () => {
           return
         }
 
-        dispatch({ type: 'set-task-state', payload: { taskKey: 'project-name', state: result.value } })
+        dispatch({
+          type: 'set-task-state',
+          payload: { taskKey: 'project-name', state: result.value }
+        })
       }}
     />
   )

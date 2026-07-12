@@ -6,10 +6,6 @@ A model generator. Produces `export const userBody = z.object({...})`
 runtime schemas — the validation counterpart to `gen-typescript`'s
 static types. Most production setups run them together.
 
-## Source
-
-`skmtc-generators/gen-zod/src/`
-
 ## What it generates
 
 For a `User` schema:
@@ -28,6 +24,10 @@ Per-variant classes (`ZodObject`, `ZodArray`, `ZodString`,
 `ZodInteger`, `ZodNumber`, `ZodBoolean`, `ZodUnion`, `ZodVoid`,
 `ZodUnknown`) handle the dispatch. The recursive structure mirrors
 `OasSchema`.
+
+## Source
+
+`skmtc-generators/gen-zod/src/`
 
 ## Key decisions
 

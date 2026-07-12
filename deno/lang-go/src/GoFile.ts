@@ -48,13 +48,12 @@ export class GoFile extends CodeFileBase {
     throw new Error('GoFile does not support re-exports.')
   }
 
-  override findDefinitions(
-    query?: { name?: string; type?: GoEntityType }
-  ): DefinitionBase[] | undefined {
-    return matchDefinitions(
-      [...this.definitions.values()],
-      query,
-      identifier => (identifier instanceof GoIdentifier ? identifier.type : undefined)
+  override findDefinitions(query?: {
+    name?: string
+    type?: GoEntityType
+  }): DefinitionBase[] | undefined {
+    return matchDefinitions([...this.definitions.values()], query, identifier =>
+      identifier instanceof GoIdentifier ? identifier.type : undefined
     )
   }
 

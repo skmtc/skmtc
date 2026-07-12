@@ -2,7 +2,7 @@ import * as v from 'valibot'
 
 /**
  * Data type for HTTP authentication security schemes.
- * 
+ *
  * Represents HTTP authentication mechanisms like Basic, Bearer,
  * and other HTTP authentication schemes as defined in RFC 7235.
  */
@@ -29,7 +29,7 @@ export const oasHttpSecuritySchemeData = v.object({
 
 /**
  * Data type for API key authentication security schemes.
- * 
+ *
  * Represents API key authentication where the key is passed
  * via header, query parameter, or cookie.
  */
@@ -56,7 +56,7 @@ export const oasApiKeySecuritySchemeData = v.object({
 
 /**
  * Data type for OAuth2 implicit flow configuration.
- * 
+ *
  * Represents the implicit OAuth2 flow where tokens are obtained
  * directly from the authorization endpoint without client authentication.
  */
@@ -80,7 +80,7 @@ export const oasImplicitOAuth2FlowData = v.object({
 
 /**
  * Data type for OAuth2 authorization code flow configuration.
- * 
+ *
  * Represents the authorization code OAuth2 flow, the most secure
  * flow suitable for server-side applications with client authentication.
  */
@@ -107,7 +107,7 @@ export const oasAuthorizationCodeOAuth2FlowData = v.object({
 
 /**
  * Data type for OAuth2 client credentials flow configuration.
- * 
+ *
  * Represents the client credentials OAuth2 flow used for
  * server-to-server authentication without user involvement.
  */

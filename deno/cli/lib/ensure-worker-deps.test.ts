@@ -18,10 +18,7 @@ Deno.test('ensureWorkerDeps', async t => {
       denoJson.contents.imports?.['@skmtc/worker'],
       `jsr:@skmtc/worker@${readCliWorkerPin()}`
     )
-    assertEquals(
-      denoJson.contents.imports?.['@skmtc/core'],
-      `jsr:@skmtc/core@${readCliCorePin()}`
-    )
+    assertEquals(denoJson.contents.imports?.['@skmtc/core'], `jsr:@skmtc/core@${readCliCorePin()}`)
   })
 
   await t.step('never overwrites an existing pin (e.g. a local-checkout override)', () => {

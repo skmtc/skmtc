@@ -177,19 +177,19 @@ export type ToStyleArgs = {
 const toStyle = ({ style, location, stackTrail }: ToStyleArgs): OasParameterStyle => {
   const parsed = v.parse(v.optional(oasParameterStyle), style)
   if (parsed !== undefined) {
-    return parsed;
+    return parsed
   }
 
   switch (location) {
     case 'path':
     case 'header':
-      return 'simple';
+      return 'simple'
     case 'query':
     case 'cookie':
-      return 'form';
+      return 'form'
     default: {
-      const _exhaustive: never = location;
-      throw new Error(`Unhandled location: ${_exhaustive}`);
+      const _exhaustive: never = location
+      throw new Error(`Unhandled location: ${_exhaustive}`)
     }
   }
 }
@@ -202,13 +202,13 @@ export type ToExplodeArgs = {
 
 const toExplode = ({ explode, style, stackTrail }: ToExplodeArgs): boolean => {
   if (explode !== undefined) {
-    return explode;
+    return explode
   }
 
   switch (style) {
     case 'form':
-      return true;
+      return true
     default:
-      return false;
+      return false
   }
 }

@@ -1,1 +1,1 @@
-declare module 'can-ndjson-stream';
+declare module 'can-ndjson-stream'

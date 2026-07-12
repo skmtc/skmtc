@@ -96,9 +96,7 @@ export const printCleanResult = (
         return
       }
 
-      console.log(
-        `${verb} ${result.deleted.length} generated file(s) for "${result.projectName}".`
-      )
+      console.log(`${verb} ${result.deleted.length} generated file(s) for "${result.projectName}".`)
 
       if (verbose) {
         for (const path of result.deleted) {
@@ -121,15 +119,11 @@ export const printCleanResult = (
       }
 
       if (result.skipped.length > 0) {
-        console.log(
-          `  (${result.skipped.length} refused — resolved outside the app root)`
-        )
+        console.log(`  (${result.skipped.length} refused — resolved outside the app root)`)
       }
 
       if (result.ejected.length > 0) {
-        console.log(
-          `  (${result.ejected.length} ejected — user-owned, never deleted)`
-        )
+        console.log(`  (${result.ejected.length} ejected — user-owned, never deleted)`)
       }
 
       if (result.modified.length > 0) {

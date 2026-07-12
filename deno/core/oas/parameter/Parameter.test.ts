@@ -253,11 +253,7 @@ Deno.test('OasParameter - toSchema() throws error when schema not found', () => 
     location: 'query'
   })
 
-  assertThrows(
-    () => param.toSchema(),
-    Error,
-    'Schema not found for media type application/json'
-  )
+  assertThrows(() => param.toSchema(), Error, 'Schema not found for media type application/json')
 })
 
 Deno.test('OasParameter - toSchema() prioritizes direct schema over content', () => {
@@ -456,10 +452,30 @@ Deno.test('OasParameter - different parameter locations', () => {
 })
 
 Deno.test('OasParameter - different styles and explode combinations', () => {
-  const simpleParam = new OasParameter({ name: 'id', location: 'path', style: 'simple', explode: false })
-  const formParam = new OasParameter({ name: 'page', location: 'query', style: 'form', explode: true })
-  const matrixParam = new OasParameter({ name: 'coords', location: 'path', style: 'matrix', explode: false })
-  const labelParam = new OasParameter({ name: 'label', location: 'path', style: 'label', explode: true })
+  const simpleParam = new OasParameter({
+    name: 'id',
+    location: 'path',
+    style: 'simple',
+    explode: false
+  })
+  const formParam = new OasParameter({
+    name: 'page',
+    location: 'query',
+    style: 'form',
+    explode: true
+  })
+  const matrixParam = new OasParameter({
+    name: 'coords',
+    location: 'path',
+    style: 'matrix',
+    explode: false
+  })
+  const labelParam = new OasParameter({
+    name: 'label',
+    location: 'path',
+    style: 'label',
+    explode: true
+  })
 
   assertEquals(simpleParam.style, 'simple')
   assertEquals(simpleParam.explode, false)

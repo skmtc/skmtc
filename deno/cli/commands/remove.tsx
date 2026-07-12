@@ -4,11 +4,7 @@ import { render } from 'ink'
 import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
-import {
-  failWithRecipe,
-  resolveInputMode,
-  resolveOutputFormat
-} from '@/lib/strict-mode.ts'
+import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { removeHeadless, type RemoveHeadlessResult } from '@/lib/remove-headless.ts'
 
 type RenderRemoveArgs = {

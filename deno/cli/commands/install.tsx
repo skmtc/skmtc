@@ -4,11 +4,7 @@ import { render } from 'ink'
 import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '../components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
-import {
-  failWithRecipe,
-  resolveInputMode,
-  resolveOutputFormat
-} from '@/lib/strict-mode.ts'
+import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { installHeadless, type InstallHeadlessResult } from '@/lib/install-headless.ts'
 
 type RenderInstallArgs = {
@@ -108,9 +104,7 @@ export const printInstallResult = (
       return
     }
     case 'text': {
-      console.log(
-        `Installed ${result.installed.length} generator(s) in "${result.projectName}":`
-      )
+      console.log(`Installed ${result.installed.length} generator(s) in "${result.projectName}":`)
       for (const id of result.installed) {
         console.log(`  - ${id}`)
       }

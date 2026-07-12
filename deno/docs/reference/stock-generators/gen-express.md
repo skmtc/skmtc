@@ -7,10 +7,6 @@ server stub that matches your spec. Demonstrates the
 **shared-singleton pattern** with `tiny-invariant` for instance
 narrowing.
 
-## Source
-
-`skmtc-generators/gen-express/src/`
-
 ## What it generates
 
 Per operation, a registration on a shared `app` Projection:
@@ -33,6 +29,10 @@ app.post('/users', (req, res) => {
 ```
 
 All routes accumulate on a single `app` instance per output file.
+
+## Source
+
+`skmtc-generators/gen-express/src/`
 
 ## Key decisions
 

@@ -403,6 +403,44 @@ for '<METHOD> <path>' — peer has no enrichments configured. Only
    `core/dsl/operation/oas/OasOperationDriver.test.ts` →
    "Variant validation".
 
+### Scenario H: `TypeError: this.context.X is not a function` (workspace fallback to JSR)
+
+**Symptom:** a runtime exception like `TypeError:
+this.context.insertNormalizedModel is not a function` (any context
+method) during `skmtc generate`, while `bundle.js` visibly contains a
+similar-but-differently-spelled method (`insertNormalisedModel` vs
+`insertNormalizedModel`, `toRefName` vs `getRefName`).
+
+**Cause:** two `@skmtc/core` versions in one bundle — a workspace
+member silently fell back to the JSR-published version:
+
+1. `@skmtc/worker` pins `@skmtc/core` with an exact version (for
+   example `@skmtc/core@0.4.0`).
+2. The local workspace member declares a different version (for
+   example `0.4.4`).
+3. Deno's workspace resolution rejects the mismatch and silently
+   fetches the worker's exact-pinned core from JSR. The bundle then
+   contains one `GenerateContext` from the worker's core and another
+   from the generators' core; at runtime `this.context` is the wrong
+   one.
+
+**Diagnostic path:**
+
+```bash
+grep -i "Workspace member" .skmtc/<project>/.settings/error-logs.txt
+```
+
+The fallback emits `Warning: Workspace member '@skmtc/core@X' was not
+used because it did not match '@skmtc/core@Y'` — and it surfaces ONLY
+in `error-logs.txt`: bundle doesn't print it, generate doesn't
+mention it, `doctor` doesn't currently flag it. The log file is the
+authoritative diagnostic.
+
+**Fix:** align the worker's expected `@skmtc/core` version with the
+workspace — upgrade the worker to a ranged pin (`^0.4`) or pin the
+workspace member to the worker's exact version. One core copy in the
+bundle → the method exists at runtime.
+
 ## 7. Anti-patterns specific to debugging
 
 The defaults to override when in debug mode:

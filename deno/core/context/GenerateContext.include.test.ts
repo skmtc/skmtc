@@ -48,8 +48,7 @@ const makeOasDoc = (
     openapi: '3.0.0',
     info: new OasInfo({ title: 'Test', version: '1.0.0' }),
     operations: ops.map(
-      ({ path, method }) =>
-        new OasOperation({ path, method, pathItem: undefined, responses: {} })
+      ({ path, method }) => new OasOperation({ path, method, pathItem: undefined, responses: {} })
     ),
     components:
       schemaNames.length > 0
@@ -329,7 +328,10 @@ Deno.test('include - hybrid entries: string for one gen, object for another', ()
   // gen-A: every op succeeds (string form, no per-op filter).
   const a = toOpResults(captures, 'gen-A')
   assertEquals(a.length, 4)
-  assertEquals(a.every(r => r.result === 'success'), true)
+  assertEquals(
+    a.every(r => r.result === 'success'),
+    true
+  )
 
   // gen-B: only POST /customers succeeds; the other 3 are skipped.
   const b = toOpResults(captures, 'gen-B')
@@ -341,7 +343,10 @@ Deno.test('include - hybrid entries: string for one gen, object for another', ()
   // `include` is per-generator; omission does not exclude.
   const c = toOpResults(captures, 'gen-C')
   assertEquals(c.length, 4)
-  assertEquals(c.every(r => r.result === 'success'), true)
+  assertEquals(
+    c.every(r => r.result === 'success'),
+    true
+  )
 })
 
 // ─── Case 9: empty per-op dict → everything skipped for that gen ─
@@ -372,7 +377,7 @@ Deno.test('include - per-model filter restricts emission to listed refNames', ()
   const doc = makeOasDoc([], ['User', 'Order', 'Product'])
   const { context, captures } = buildContext({
     document: doc,
-    settings: { include: [{ 'ts-gen': { 'User': [], 'Product': [] } }] },
+    settings: { include: [{ 'ts-gen': { User: [], Product: [] } }] },
     generators: { 'ts-gen': makeModelGen('ts-gen') }
   })
   context.toArtifacts(new StackTrail(['test']))
@@ -385,58 +390,52 @@ Deno.test('include - per-model filter restricts emission to listed refNames', ()
 
 // ─── Case 11: wrong shape → forgiving (no per-model filter active) ─
 
-Deno.test(
-  'include - operations-shape entry on a model generator does not activate per-model filter',
-  () => {
-    // Edge: user wrote an operations-shaped entry (`{ 'ts-gen': {...} }`)
-    // but `ts-gen` is a model generator. `toIncludeModels` returns
-    // undefined (not an array), so no per-model filter is applied —
-    // the generator is admitted by the whole-generator gate and emits
-    // for every refName. Forgiving interpretation matches existing
-    // skip behavior.
-    const doc = makeOasDoc([], ['User', 'Order'])
-    const { context, captures } = buildContext({
-      document: doc,
-      settings: { include: [{ 'ts-gen': { '/users': { get: [] } } }] },
-      generators: { 'ts-gen': makeModelGen('ts-gen') }
-    })
-    context.toArtifacts(new StackTrail(['test']))
+Deno.test('include - operations-shape entry on a model generator does not activate per-model filter', () => {
+  // Edge: user wrote an operations-shaped entry (`{ 'ts-gen': {...} }`)
+  // but `ts-gen` is a model generator. `toIncludeModels` returns
+  // undefined (not an array), so no per-model filter is applied —
+  // the generator is admitted by the whole-generator gate and emits
+  // for every refName. Forgiving interpretation matches existing
+  // skip behavior.
+  const doc = makeOasDoc([], ['User', 'Order'])
+  const { context, captures } = buildContext({
+    document: doc,
+    settings: { include: [{ 'ts-gen': { '/users': { get: [] } } }] },
+    generators: { 'ts-gen': makeModelGen('ts-gen') }
+  })
+  context.toArtifacts(new StackTrail(['test']))
 
-    const byRef = toModelResults(captures, 'ts-gen')
-    // Both refNames emit success — no per-model filter active.
-    assertEquals(byRef['User'], 'success')
-    assertEquals(byRef['Order'], 'success')
-  }
-)
+  const byRef = toModelResults(captures, 'ts-gen')
+  // Both refNames emit success — no per-model filter active.
+  assertEquals(byRef['User'], 'success')
+  assertEquals(byRef['Order'], 'success')
+})
 
 // ─── Case 12: isSupported still wins (notSupported, not skipped) ─
 
-Deno.test(
-  'include - isSupported runs first; unsupported ops emit notSupported even if included',
-  () => {
-    // The operation is in the include allow-list, but `isSupported`
-    // returns false. We must see `notSupported`, NOT `skipped` —
-    // include should not mask capability rejection.
-    const transform = spy(() => undefined)
-    const { context, captures } = buildContext({
-      document: makeOasDoc([{ path: '/customers', method: 'post' }]),
-      settings: { include: [{ 'form-gen': { '/customers': { post: [] } } }] },
-      generators: {
-        'form-gen': {
-          id: 'form-gen',
-          type: 'oasOperation' as const,
-          transform,
-          isSupported: () => false
-        }
+Deno.test('include - isSupported runs first; unsupported ops emit notSupported even if included', () => {
+  // The operation is in the include allow-list, but `isSupported`
+  // returns false. We must see `notSupported`, NOT `skipped` —
+  // include should not mask capability rejection.
+  const transform = spy(() => undefined)
+  const { context, captures } = buildContext({
+    document: makeOasDoc([{ path: '/customers', method: 'post' }]),
+    settings: { include: [{ 'form-gen': { '/customers': { post: [] } } }] },
+    generators: {
+      'form-gen': {
+        id: 'form-gen',
+        type: 'oasOperation' as const,
+        transform,
+        isSupported: () => false
       }
-    })
-    context.toArtifacts(new StackTrail(['test']))
+    }
+  })
+  context.toArtifacts(new StackTrail(['test']))
 
-    const results = toOpResults(captures, 'form-gen')
-    assertEquals(results.length, 1)
-    assertEquals(results[0].result, 'notSupported')
-  }
-)
+  const results = toOpResults(captures, 'form-gen')
+  assertEquals(results.length, 1)
+  assertEquals(results[0].result, 'notSupported')
+})
 
 // ─── Bonus: include array with a GQL generator does not crash ─────
 

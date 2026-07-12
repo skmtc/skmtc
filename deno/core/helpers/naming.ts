@@ -94,10 +94,10 @@ export const toArgsName = (operation: OasOperation): string => {
 export const toMethodVerb = (method: Method): string => {
   switch (method) {
     case 'post':
-      return 'Create';
+      return 'Create'
     case 'put':
-      return 'Update';
+      return 'Update'
     default:
-      return capitalize(method);
+      return capitalize(method)
   }
 }

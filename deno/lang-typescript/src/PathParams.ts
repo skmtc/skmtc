@@ -23,28 +23,28 @@ type ConstructorArgs = {
 
 /**
  * Manages path parameter type definitions and function parameters for API endpoints.
- * 
+ *
  * `PathParams` is a utility class that combines type generation, function parameter
  * handling, and path templating for OpenAPI path parameters. It creates TypeScript
  * type definitions for path parameters and generates the corresponding function
  * parameters that can be used in API client methods.
- * 
+ *
  * This class is essential for generating type-safe API clients where path parameters
  * are properly typed and validated at compile time. It handles both destructured
  * parameters (when no argument name is provided) and named parameters.
- * 
+ *
  * ## Key Features
- * 
+ *
  * - **Type Definition Generation**: Creates TypeScript types for path parameters
  * - **Function Parameter Integration**: Generates properly typed function parameters
  * - **Path Template Processing**: Converts OpenAPI paths to template literals
  * - **Destructuring Support**: Handles both named and destructured parameter patterns
  * - **Context Integration**: Fully integrated with the SKMTC generation pipeline
- * 
+ *
  * @example Basic path parameters with destructuring
  * ```typescript
  * import { PathParams } from '@skmtc/lang-typescript';
- * 
+ *
  * const pathParams = new PathParams({
  *   context: generateContext,
  *   typeName: 'GetUserParams',
@@ -59,10 +59,10 @@ type ConstructorArgs = {
  *   },
  *   pathTemplate: '/users/{id}'
  * });
- * 
+ *
  * console.log(pathParams.path); // '/users/${id}'
  * ```
- * 
+ *
  * @example Named parameter usage
  * ```typescript
  * const namedPathParams = new PathParams({
@@ -80,10 +80,10 @@ type ConstructorArgs = {
  *   },
  *   pathTemplate: '/users/{userId}/projects/{projectId}'
  * });
- * 
+ *
  * console.log(pathParams.path); // '/users/${params.userId}/projects/${params.projectId}'
  * ```
- * 
+ *
  * @example API client method generation
  * ```typescript
  * class ApiMethodGenerator {
@@ -95,7 +95,7 @@ type ConstructorArgs = {
  *       typeValue: parameters,
  *       pathTemplate: operationPath
  *     });
- *     
+ *
  *     return `
  * async getData(${pathParams.parameter.toString()}) {
  *   const url = \`${pathParams.path}\`;
@@ -103,14 +103,14 @@ type ConstructorArgs = {
  * }`;
  *   }
  * }
- * 
+ *
  * // Generates:
  * // async getData(pathParams: PathParameters) {
  * //   const url = `/users/${pathParams.userId}/projects/${pathParams.projectId}`;
  * //   return this.client.get(url);
  * // }
  * ```
- * 
+ *
  * @example With destructured parameters
  * ```typescript
  * const destructuredParams = new PathParams({
@@ -128,11 +128,11 @@ type ConstructorArgs = {
  *   },
  *   pathTemplate: '/customers/{customerId}/orders/{orderId}'
  * });
- * 
+ *
  * // Function parameter will be: { orderId, customerId }: OrderParams
  * // Path template will be: '/customers/${customerId}/orders/${orderId}'
  * ```
- * 
+ *
  * @example Complex nested path parameters
  * ```typescript
  * const complexPathParams = new PathParams({
@@ -152,16 +152,16 @@ type ConstructorArgs = {
  *   },
  *   pathTemplate: '/orgs/{orgId}/projects/{projectId}/issues/{issueId}/comments/{commentId}'
  * });
- * 
+ *
  * // Generates path: '/orgs/${pathData.orgId}/projects/${pathData.projectId}/issues/${pathData.issueId}/comments/${pathData.commentId}'
  * ```
- * 
+ *
  * @example Integration with operation generation
  * ```typescript
  * class MyOasOperationGenerator {
  *   generateOperation(operation: OasOperation) {
  *     const pathParameters = this.extractPathParameters(operation);
- *     
+ *
  *     if (pathParameters.length > 0) {
  *       const pathParams = new PathParams({
  *         context: this.context,
@@ -169,10 +169,10 @@ type ConstructorArgs = {
  *         typeValue: this.buildParametersType(pathParameters),
  *         pathTemplate: operation.path
  *       });
- *       
+ *
  *       return this.generateMethodWithPathParams(operation, pathParams);
  *     }
- *     
+ *
  *     return this.generateSimpleMethod(operation);
  *   }
  * }
@@ -181,26 +181,26 @@ type ConstructorArgs = {
 export class PathParams {
   /** The generation context used for type registration and imports */
   context: GenerateContext
-  
+
   /** The TypeScript type definition for the path parameters */
   typeDefinition: TsDefinition<TypeSystemObject>
-  
+
   /** The function parameter representation for method signatures */
   parameter: FunctionParameter
-  
+
   /** The processed path template with parameter substitutions */
   path: string
 
   /**
    * Creates a new PathParams instance with type definitions and path processing.
-   * 
+   *
    * The constructor sets up the complete parameter handling pipeline:
    * 1. Creates a TypeScript type definition for the parameters
    * 2. Generates a function parameter (either named or destructured)
    * 3. Processes the path template for runtime interpolation
-   * 
+   *
    * @param args - Configuration for path parameter generation
-   * 
+   *
    * @example
    * ```typescript
    * const pathParams = new PathParams({
@@ -220,13 +220,7 @@ export class PathParams {
    * });
    * ```
    */
-  constructor({
-    context,
-    argName,
-    typeName,
-    typeValue,
-    pathTemplate
-  }: ConstructorArgs) {
+  constructor({ context, argName, typeName, typeValue, pathTemplate }: ConstructorArgs) {
     this.context = context
 
     this.typeDefinition = new TsDefinition<TypeSystemObject>({
@@ -243,9 +237,7 @@ export class PathParams {
     })
 
     const queryArg =
-      this.parameter.properties.type === 'regular'
-        ? this.parameter.properties.name
-        : undefined
+      this.parameter.properties.type === 'regular' ? this.parameter.properties.name : undefined
 
     // @TODO Reconcile pathTemplate with params
     this.path = toPathTemplate(pathTemplate, queryArg)

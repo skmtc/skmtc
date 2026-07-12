@@ -1220,7 +1220,9 @@
         "dependencies": [
           "jsr:@std/assert@^1.0.10",
           "jsr:@std/fmt@1",
+          "jsr:@std/fs@^1.0.7",
           "jsr:@std/log@~0.224.6",
+          "jsr:@std/path@^1.0.9",
           "jsr:@std/testing@^1.0.15",
           "npm:@types/lodash-es@4.17.12",
           "npm:graphql@^16.9.0",

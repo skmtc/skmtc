@@ -1,8 +1,8 @@
-import { join } from 'node:path';
-import { toRootPath } from './getRootPath';
+import { join } from 'node:path'
+import { toRootPath } from './getRootPath'
 
 export const toSettingsPath = () => {
-  const rootPath = toRootPath();
+  const rootPath = toRootPath()
 
-  return join(rootPath, '.codesquared', '.settings');
-};
+  return join(rootPath, '.codesquared', '.settings')
+}

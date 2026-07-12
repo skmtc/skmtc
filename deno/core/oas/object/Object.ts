@@ -480,11 +480,11 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
       enum: this.enums,
       additionalProperties: (() => {
         if (this.additionalProperties === null || this.additionalProperties === undefined) {
-          return false;
+          return false
         } else if (typeof this.additionalProperties === 'boolean') {
-          return this.additionalProperties;
+          return this.additionalProperties
         } else {
-          return this.additionalProperties.toJsonSchema(options);
+          return this.additionalProperties.toJsonSchema(options)
         }
       })(),
       readOnly: this.readOnly,

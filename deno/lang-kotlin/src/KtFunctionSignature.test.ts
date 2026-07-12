@@ -21,7 +21,11 @@ Deno.test('parameter renders nullable types and inline annotations', () => {
 })
 
 Deno.test('signature renders the abstract-method form with no parameters', () => {
-  const signature = new KtFunctionSignature({ name: 'listUsers', parameters: [], returnType: 'List<User>' })
+  const signature = new KtFunctionSignature({
+    name: 'listUsers',
+    parameters: [],
+    returnType: 'List<User>'
+  })
 
   assertEquals(signature.toString(), '    fun listUsers(): List<User>')
 })
@@ -71,7 +75,10 @@ Deno.test('signature renders an expression body, with and without a return type'
     body: 'service.deleteUsersId(id)'
   })
 
-  assertEquals(delegating.toString(), '    fun getUsersId(id: String): User = service.getUsersId(id)')
+  assertEquals(
+    delegating.toString(),
+    '    fun getUsersId(id: String): User = service.getUsersId(id)'
+  )
   assertEquals(
     unitDelegating.toString(),
     '    fun deleteUsersId(id: String) = service.deleteUsersId(id)'
@@ -81,9 +88,14 @@ Deno.test('signature renders an expression body, with and without a return type'
 Deno.test('signature renders multiple above-annotations one per line', () => {
   const signature = new KtFunctionSignature({
     name: 'postUsers',
-    parameters: [{ name: 'body', type: 'CreateUserBody', annotations: [new KtAnnotation('RequestBody')] }],
+    parameters: [
+      { name: 'body', type: 'CreateUserBody', annotations: [new KtAnnotation('RequestBody')] }
+    ],
     returnType: 'User',
-    annotations: [new KtAnnotation('PostMapping', ['"/users"']), new KtAnnotation('Deprecated', ['"use v2"'])]
+    annotations: [
+      new KtAnnotation('PostMapping', ['"/users"']),
+      new KtAnnotation('Deprecated', ['"use v2"'])
+    ]
   })
 
   assertEquals(

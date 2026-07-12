@@ -16,8 +16,8 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary>
           <Component />
-        </ErrorBoundary>,
-      ),
+        </ErrorBoundary>
+      )
     ).toMatchSnapshot()
   })
 
@@ -26,8 +26,8 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary>
           <DangerousComponent />
-        </ErrorBoundary>,
-      ),
+        </ErrorBoundary>
+      )
     ).toMatchSnapshot()
   })
 })

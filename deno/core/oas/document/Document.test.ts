@@ -57,8 +57,8 @@ const createFullFields = (): DocumentFields => ({
   ],
   components: new OasComponents({
     schemas: {
-      'User': new OasObject({ title: 'User' }),
-      'Post': new OasObject({ title: 'Post' })
+      User: new OasObject({ title: 'User' }),
+      Post: new OasObject({ title: 'Post' })
     } as Record<RefName, OasObject>
   }),
   tags: [
@@ -77,10 +77,7 @@ const createFullFields = (): DocumentFields => ({
 // Helper to create a document with security (security needs document reference)
 const createDocumentWithSecurity = (): OasDocument => {
   const document = new OasDocument(createFullFields())
-  const securityRequirement = new OasSecurityRequirement(
-    { requirement: { 'api_key': [] } },
-    document
-  )
+  const securityRequirement = new OasSecurityRequirement({ requirement: { api_key: [] } }, document)
   document.fields = {
     ...createFullFields(),
     security: [securityRequirement]
@@ -88,8 +85,8 @@ const createDocumentWithSecurity = (): OasDocument => {
   return document
 }
 
-Deno.test('OasDocument', async (t) => {
-  await t.step('constructor and oasType', async (t) => {
+Deno.test('OasDocument', async t => {
+  await t.step('constructor and oasType', async t => {
     await t.step('should initialize with fields provided', () => {
       const fields = createMinimalFields()
       const document = new OasDocument(fields)
@@ -114,7 +111,7 @@ Deno.test('OasDocument', async (t) => {
     })
   })
 
-  await t.step('fields setter', async (t) => {
+  await t.step('fields setter', async t => {
     await t.step('should set fields after construction', () => {
       const document = new OasDocument()
       const fields = createMinimalFields()
@@ -136,75 +133,47 @@ Deno.test('OasDocument', async (t) => {
     })
   })
 
-  await t.step('getter methods - error cases before fields set', async (t) => {
+  await t.step('getter methods - error cases before fields set', async t => {
     await t.step('openapi throws before fields are set', () => {
       const document = new OasDocument()
 
-      assertThrows(
-        () => document.openapi,
-        Error,
-        "Accessing 'openapi' before fields are set"
-      )
+      assertThrows(() => document.openapi, Error, "Accessing 'openapi' before fields are set")
     })
 
     await t.step('info throws before fields are set', () => {
       const document = new OasDocument()
 
-      assertThrows(
-        () => document.info,
-        Error,
-        "Accessing 'info' before fields are set"
-      )
+      assertThrows(() => document.info, Error, "Accessing 'info' before fields are set")
     })
 
     await t.step('servers throws before fields are set', () => {
       const document = new OasDocument()
 
-      assertThrows(
-        () => document.servers,
-        Error,
-        "Accessing 'servers' before fields are set"
-      )
+      assertThrows(() => document.servers, Error, "Accessing 'servers' before fields are set")
     })
 
     await t.step('operations throws before fields are set', () => {
       const document = new OasDocument()
 
-      assertThrows(
-        () => document.operations,
-        Error,
-        "Accessing 'operations' before fields are set"
-      )
+      assertThrows(() => document.operations, Error, "Accessing 'operations' before fields are set")
     })
 
     await t.step('components throws before fields are set', () => {
       const document = new OasDocument()
 
-      assertThrows(
-        () => document.components,
-        Error,
-        "Accessing 'components' before fields are set"
-      )
+      assertThrows(() => document.components, Error, "Accessing 'components' before fields are set")
     })
 
     await t.step('tags throws before fields are set', () => {
       const document = new OasDocument()
 
-      assertThrows(
-        () => document.tags,
-        Error,
-        "Accessing 'tags' before fields are set"
-      )
+      assertThrows(() => document.tags, Error, "Accessing 'tags' before fields are set")
     })
 
     await t.step('security throws before fields are set', () => {
       const document = new OasDocument()
 
-      assertThrows(
-        () => document.security,
-        Error,
-        "Accessing 'security' before fields are set"
-      )
+      assertThrows(() => document.security, Error, "Accessing 'security' before fields are set")
     })
 
     await t.step('extensionFields throws before fields are set', () => {
@@ -228,7 +197,7 @@ Deno.test('OasDocument', async (t) => {
     })
   })
 
-  await t.step('getter methods - success cases after fields set', async (t) => {
+  await t.step('getter methods - success cases after fields set', async t => {
     await t.step('openapi returns version string', () => {
       const document = new OasDocument(createFullFields())
 
@@ -304,7 +273,7 @@ Deno.test('OasDocument', async (t) => {
     })
   })
 
-  await t.step('removeItem() - operations removal', async (t) => {
+  await t.step('removeItem() - operations removal', async t => {
     await t.step('should remove existing operation by path and method', () => {
       const document = new OasDocument(createFullFields())
       const stackTrail = new StackTrail(['paths', '/users', 'post'])
@@ -371,7 +340,7 @@ Deno.test('OasDocument', async (t) => {
     })
   })
 
-  await t.step('removeItem() - components removal', async (t) => {
+  await t.step('removeItem() - components removal', async t => {
     await t.step('should remove existing schema from components', () => {
       const document = new OasDocument(createFullFields())
       const stackTrail = new StackTrail(['components', 'schemas', 'User'])
@@ -394,11 +363,7 @@ Deno.test('OasDocument', async (t) => {
       const document = new OasDocument(createFullFields())
       const stackTrail = new StackTrail(['components', 'schemas', 123 as any])
 
-      assertThrows(
-        () => document.removeItem(stackTrail),
-        Error,
-        'RefName cannot be a number: 123'
-      )
+      assertThrows(() => document.removeItem(stackTrail), Error, 'RefName cannot be a number: 123')
     })
 
     await t.step('should handle removal from components', () => {
@@ -422,41 +387,30 @@ Deno.test('OasDocument', async (t) => {
     })
   })
 
-  await t.step('removeItem() - error cases', async (t) => {
+  await t.step('removeItem() - error cases', async t => {
     await t.step('should throw error for invalid first element', () => {
       const document = new OasDocument(createFullFields())
       const stackTrail = new StackTrail(['invalid', 'path', 'element'])
 
-      assertThrows(
-        () => document.removeItem(stackTrail),
-        Error,
-        'Unexpected stack trail'
-      )
+      assertThrows(() => document.removeItem(stackTrail), Error, 'Unexpected stack trail')
     })
 
     await t.step('should include stack trail in error message', () => {
       const document = new OasDocument(createFullFields())
       const stackTrail = new StackTrail(['unknown', 'test', 'path'])
 
-      assertThrows(
-        () => document.removeItem(stackTrail),
-        Error,
-        'unknown'
-      )
+      assertThrows(() => document.removeItem(stackTrail), Error, 'unknown')
     })
 
     await t.step('should handle edge case stack trails', () => {
       const document = new OasDocument(createFullFields())
       const stackTrail = new StackTrail(['info'])
 
-      assertThrows(
-        () => document.removeItem(stackTrail),
-        Error
-      )
+      assertThrows(() => document.removeItem(stackTrail), Error)
     })
   })
 
-  await t.step('toJSON() method', async (t) => {
+  await t.step('toJSON() method', async t => {
     await t.step('should return object with all required fields', () => {
       const document = new OasDocument(createMinimalFields())
 
@@ -516,7 +470,7 @@ Deno.test('OasDocument', async (t) => {
     })
   })
 
-  await t.step('integration tests', async (t) => {
+  await t.step('integration tests', async t => {
     await t.step('complete document lifecycle', () => {
       // Create empty document
       const document = new OasDocument()

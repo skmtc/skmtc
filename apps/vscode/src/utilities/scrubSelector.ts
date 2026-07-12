@@ -5,5 +5,5 @@ export const scrubSelector = (selector: string) => {
     .replaceAll(':', '-')
     .replaceAll(' ', '')
     .replaceAll('{', '')
-    .replaceAll('}', '');
-};
+    .replaceAll('}', '')
+}

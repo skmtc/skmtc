@@ -87,27 +87,29 @@ export const toOperationV3 = ({
     toOptionalServersV3({ servers, stackTrail: st, context })
   )
 
-  return context.withStackTrail(stackTrail, () =>
-    new OasOperation(
-      {
-        pathItem,
-        path,
-        method,
-        operationId,
-        summary,
-        tags,
-        description,
-        parameters: parsedParameters,
-        requestBody: parsedRequestBody,
-        responses: parsedResponses,
-        deprecated,
-        security: parsedSecurity,
-        externalDocs: parsedExternalDocs,
-        servers: parsedServers,
-        extensionFields
-      },
-      context
-    )
+  return context.withStackTrail(
+    stackTrail,
+    () =>
+      new OasOperation(
+        {
+          pathItem,
+          path,
+          method,
+          operationId,
+          summary,
+          tags,
+          description,
+          parameters: parsedParameters,
+          requestBody: parsedRequestBody,
+          responses: parsedResponses,
+          deprecated,
+          security: parsedSecurity,
+          externalDocs: parsedExternalDocs,
+          servers: parsedServers,
+          extensionFields
+        },
+        context
+      )
   )
 }
 

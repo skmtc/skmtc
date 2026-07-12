@@ -14,7 +14,9 @@
     "openapi-types": "npm:openapi-types@^12.1.3",
     "graphql": "npm:graphql@^16.9.0",
     "valibot": "npm:valibot@1.1.0",
-    "oxc-parser": "npm:oxc-parser@0.41.0"
+    "oxc-parser": "npm:oxc-parser@0.41.0",
+    "@std/fs": "jsr:@std/fs@^1.0.7",
+    "@std/path": "jsr:@std/path@^1.0.9"
   },
   "exports": {
     ".": "./mod.ts",
@@ -66,8 +68,9 @@
     "noImplicitAny": true
   },
   "test": {
-    "exclude": [
-      ".scripts/build-node.ts"
-    ]
+    "exclude": [".scripts/build-node.ts"]
+  },
+  "publish": {
+    "exclude": ["anchors/spike-reanchor.ts", "anchors/spike-descend.ts"]
   }
 }

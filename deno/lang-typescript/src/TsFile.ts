@@ -105,11 +105,12 @@ export class TsFile extends CodeFileBase {
    * name) plus the generator/test inspection surface
    * (`findDefinitions({ type: 'class' })`).
    */
-  override findDefinitions(query?: { name?: string; type?: TsEntityType }): DefinitionBase[] | undefined {
-    return matchDefinitions(
-      [...this.definitions.values()],
-      query,
-      identifier => (identifier instanceof TsIdentifier ? identifier.type : undefined)
+  override findDefinitions(query?: {
+    name?: string
+    type?: TsEntityType
+  }): DefinitionBase[] | undefined {
+    return matchDefinitions([...this.definitions.values()], query, identifier =>
+      identifier instanceof TsIdentifier ? identifier.type : undefined
     )
   }
 

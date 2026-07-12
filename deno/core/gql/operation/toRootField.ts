@@ -45,23 +45,25 @@ export const toRootField = ({
         stackTrail: argStack
       })
 
-      return context.withStackTrail(argStack, () =>
-        new GqlArgument(
-          {
-            name: arg.name,
-            schema,
-            required: isNonNullType(arg.type),
-            // graphql-js's `GraphQLType.toString()` produces SDL syntax
-            // (`'ID!'`, `'[String!]'`). Stash it for downstream generators
-            // that need to reconstruct an SDL fragment.
-            gqlType: arg.type.toString(),
-            defaultValue: arg.defaultValue,
-            description: arg.description ?? undefined,
-            deprecated: arg.deprecationReason !== null && arg.deprecationReason !== undefined,
-            deprecationReason: arg.deprecationReason ?? undefined
-          },
-          context
-        )
+      return context.withStackTrail(
+        argStack,
+        () =>
+          new GqlArgument(
+            {
+              name: arg.name,
+              schema,
+              required: isNonNullType(arg.type),
+              // graphql-js's `GraphQLType.toString()` produces SDL syntax
+              // (`'ID!'`, `'[String!]'`). Stash it for downstream generators
+              // that need to reconstruct an SDL fragment.
+              gqlType: arg.type.toString(),
+              defaultValue: arg.defaultValue,
+              description: arg.description ?? undefined,
+              deprecated: arg.deprecationReason !== null && arg.deprecationReason !== undefined,
+              deprecationReason: arg.deprecationReason ?? undefined
+            },
+            context
+          )
       )
     })
   )
@@ -74,20 +76,21 @@ export const toRootField = ({
     })
   )
 
-  return context.withStackTrail(stackTrail, () =>
-    new GqlOperation(
-      {
-        rootKind,
-        fieldName: field.name,
-        arguments: args,
-        returnType,
-        returnTypeString: field.type.toString(),
-        description: field.description ?? undefined,
-        deprecated:
-          field.deprecationReason !== null && field.deprecationReason !== undefined,
-        deprecationReason: field.deprecationReason ?? undefined
-      },
-      context
-    )
+  return context.withStackTrail(
+    stackTrail,
+    () =>
+      new GqlOperation(
+        {
+          rootKind,
+          fieldName: field.name,
+          arguments: args,
+          returnType,
+          returnTypeString: field.type.toString(),
+          description: field.description ?? undefined,
+          deprecated: field.deprecationReason !== null && field.deprecationReason !== undefined,
+          deprecationReason: field.deprecationReason ?? undefined
+        },
+        context
+      )
   )
 }

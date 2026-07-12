@@ -18,7 +18,7 @@ import {
   isString,
   type JsonObject,
   type JsonValue,
-  toJson,
+  toJson
 } from './json.ts'
 import { clone, jptr, recurse, type RecurseState } from './reftools.ts'
 import { ConvertError, main, parseInput, prepare, toResult } from './converter.ts'
@@ -49,7 +49,7 @@ export const resolveExternal = async (
   _root: JsonValue,
   pointer: string,
   options: ResolveOptions,
-  callback: ResolveCallback,
+  callback: ResolveCallback
 ): Promise<JsonValue> => {
   const cache = options.cache ?? (options.cache = {})
   const source = (options.source ?? '').split('\\').join('/')
@@ -71,10 +71,10 @@ export const resolveExternal = async (
   const resolvedTarget = pointerIsHttp
     ? target
     : sourceIsHttp
-    ? new URL(target, base + '/').toString()
-    : base
-    ? joinPath(base, target)
-    : target
+      ? new URL(target, base + '/').toString()
+      : base
+        ? joinPath(base, target)
+        : target
 
   const deliver = (data: JsonValue): JsonValue => {
     const resolved = fragment ? resolveValue(data, fragment) : data
@@ -97,9 +97,10 @@ export const resolveExternal = async (
     return data
   }
 
-  const text = pointerIsHttp || sourceIsHttp
-    ? await (await fetch(resolvedTarget)).text()
-    : await Deno.readTextFile(resolvedTarget)
+  const text =
+    pointerIsHttp || sourceIsHttp
+      ? await (await fetch(resolvedTarget)).text()
+      : await Deno.readTextFile(resolvedTarget)
 
   const parsed = tryParse(text)
   if (typeof parsed === 'undefined') {
@@ -115,7 +116,7 @@ const findExternalRefs = (
   master: JsonValue,
   options: ConvertOptions,
   externals: External[],
-  actions: Promise<JsonValue>[],
+  actions: Promise<JsonValue>[]
 ): void => {
   recurse(master, null, (container, key, state: RecurseState) => {
     if (!isJsonObject(container)) return
@@ -129,7 +130,7 @@ const findExternalRefs = (
           $ref: ref,
           original: clone(data),
           updated: data,
-          source,
+          source
         })
         const localOptions: ConvertOptions = { ...options, source }
         findExternalRefs(data, localOptions, externals, actions)
@@ -142,7 +143,7 @@ const findExternalRefs = (
           if (isJsonObject(parent)) parent[state.pkey] = data
           else if (isJsonArray(parent)) parent[Number(state.pkey)] = data
         }
-      }),
+      })
     )
   })
 }
@@ -150,7 +151,7 @@ const findExternalRefs = (
 const resolveExternalRefs = async (
   openapi: JsonObject,
   options: ConvertOptions,
-  externals: External[],
+  externals: External[]
 ): Promise<void> => {
   const actions: Promise<JsonValue>[] = []
   findExternalRefs(openapi, options, externals, actions)
@@ -162,7 +163,7 @@ const resolveExternalRefs = async (
 /** Like `convertObj`, but resolves external `$ref`s first (asynchronous). */
 export const convertObjResolve = async (
   swagger: JsonValue,
-  options: ConvertOptions = {},
+  options: ConvertOptions = {}
 ): Promise<ConvertResult> => {
   if (!isJsonObject(swagger)) throw new ConvertError('Document must be an object')
   const externals: External[] = []
@@ -182,7 +183,7 @@ const convertStrResolve = async (str: string, options: ConvertOptions): Promise<
 /** Reads, parses, and converts a local file (resolving external `$ref`s when requested). */
 export const convertFile = async (
   filename: string,
-  options: ConvertOptions = {},
+  options: ConvertOptions = {}
 ): Promise<ConvertResult> => {
   const text = await Deno.readTextFile(filename)
   if (!options.source) options.source = filename
@@ -192,7 +193,7 @@ export const convertFile = async (
 /** Fetches, parses, and converts a remote document (resolving external `$ref`s when requested). */
 export const convertUrl = async (
   url: string,
-  options: ConvertOptions = {},
+  options: ConvertOptions = {}
 ): Promise<ConvertResult> => {
   if (!options.origin) options.origin = url
   if (options.verbose) console.log('GET ' + url)
@@ -205,7 +206,7 @@ export const convertUrl = async (
 /** Drains a readable stream, then parses and converts its contents. */
 export const convertStream = async (
   readable: ReadableStream<Uint8Array>,
-  options: ConvertOptions = {},
+  options: ConvertOptions = {}
 ): Promise<ConvertResult> => {
   const text = await new Response(readable).text()
   return await convertStrResolve(text, options)

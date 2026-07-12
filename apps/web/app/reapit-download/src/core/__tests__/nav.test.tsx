@@ -5,10 +5,10 @@ jest.mock('@reapit/connect-session', () => ({
   useReapitConnect: () => ({
     connectSession: {
       loginIdentity: {
-        name: 'MOCK_NAME',
-      },
-    },
-  }),
+        name: 'MOCK_NAME'
+      }
+    }
+  })
 }))
 
 jest.mock('../connect-session')
@@ -25,15 +25,15 @@ describe('getDefaultNavIndex', () => {
   const routes = [
     {
       route: '/contacts',
-      index: 1,
+      index: 1
     },
     {
       route: '/random-route',
-      index: 0,
-    },
+      index: 0
+    }
   ]
 
-  routes.forEach((route) => {
+  routes.forEach(route => {
     it(`should correctly return the default nav index for ${route.route}`, () => {
       expect(getDefaultNavIndex(route.route)).toEqual(route.index)
     })

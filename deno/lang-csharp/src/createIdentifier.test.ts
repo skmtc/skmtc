@@ -1,10 +1,5 @@
 import { assertEquals, assertThrows } from '@std/assert'
-import {
-  createAbstractRecord,
-  createEnum,
-  createRecord,
-  toCsKeyword
-} from './createIdentifier.ts'
+import { createAbstractRecord, createEnum, createRecord, toCsKeyword } from './createIdentifier.ts'
 
 Deno.test('createRecord writes the record type', () => {
   const identifier = createRecord('User')

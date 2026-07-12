@@ -29,7 +29,11 @@ type TestWrapperProps = {
   interactive?: boolean
 }
 
-const TestWrapper = ({ children, view = { page: 'home' }, interactive = true }: TestWrapperProps) => {
+const TestWrapper = ({
+  children,
+  view = { page: 'home' },
+  interactive = true
+}: TestWrapperProps) => {
   const skmtcRoot = {
     manager: {}
   } as unknown as SkmtcRoot

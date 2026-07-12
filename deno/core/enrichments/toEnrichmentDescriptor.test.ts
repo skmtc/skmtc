@@ -49,7 +49,13 @@ Deno.test('toEnrichmentFields — picklist becomes select with options', () => {
     layout: v.picklist(['stacked', 'inline'])
   })
   assertEquals(toEnrichmentFields(schema), [
-    { key: 'layout', label: 'Layout', optional: false, type: 'select', options: ['stacked', 'inline'] }
+    {
+      key: 'layout',
+      label: 'Layout',
+      optional: false,
+      type: 'select',
+      options: ['stacked', 'inline']
+    }
   ])
 })
 
@@ -143,11 +149,12 @@ Deno.test('toEnrichmentDescriptor — surfaces the subject scope of the umbrella
     id: '@skmtc/gen-shadcn-form',
     type: 'oasOperation',
     supportsVariant: () => false,
-    toEnrichmentSchema: () => v.object({
-      subject: v.optional(v.object({ title: v.optional(v.string()) })),
-      generator: v.undefined(),
-      stack: v.undefined()
-    })
+    toEnrichmentSchema: () =>
+      v.object({
+        subject: v.optional(v.object({ title: v.optional(v.string()) })),
+        generator: v.undefined(),
+        stack: v.undefined()
+      })
   }
   assertEquals(toEnrichmentDescriptor(entry), {
     generator: '@skmtc/gen-shadcn-form',
@@ -170,11 +177,12 @@ Deno.test('toEnrichmentDescriptor — collapses gqlOperation to operation', () =
     id: '@skmtc/gen-reapit-form',
     type: 'gqlOperation',
     supportsVariant: () => false,
-    toEnrichmentSchema: () => v.object({
-      subject: v.optional(v.object({ title: v.optional(v.string()) })),
-      generator: v.undefined(),
-      stack: v.undefined()
-    })
+    toEnrichmentSchema: () =>
+      v.object({
+        subject: v.optional(v.object({ title: v.optional(v.string()) })),
+        generator: v.undefined(),
+        stack: v.undefined()
+      })
   }
   const descriptor = toEnrichmentDescriptor(entry)
   assertEquals(descriptor.subjectType, 'operation')
@@ -188,11 +196,12 @@ Deno.test('toEnrichmentDescriptor — maps webhook to its own subject type', () 
     id: '@skmtc/gen-ts-webhook',
     type: 'webhook',
     supportsVariant: () => false,
-    toEnrichmentSchema: () => v.object({
-      subject: v.optional(v.object({ title: v.optional(v.string()) })),
-      generator: v.undefined(),
-      stack: v.undefined()
-    })
+    toEnrichmentSchema: () =>
+      v.object({
+        subject: v.optional(v.object({ title: v.optional(v.string()) })),
+        generator: v.undefined(),
+        stack: v.undefined()
+      })
   }
   const descriptor = toEnrichmentDescriptor(entry)
   assertEquals(descriptor.subjectType, 'webhook')
@@ -203,11 +212,12 @@ Deno.test('toEnrichmentDescriptor — surfaces subject + generator scopes (model
     id: '@skmtc/gen-kotlin',
     type: 'model',
     supportsVariant: () => false,
-    toEnrichmentSchema: () => v.object({
-      subject: v.optional(v.object({ description: v.optional(v.string()) })),
-      generator: v.object({ basePackage: v.string() }),
-      stack: v.undefined()
-    })
+    toEnrichmentSchema: () =>
+      v.object({
+        subject: v.optional(v.object({ description: v.optional(v.string()) })),
+        generator: v.object({ basePackage: v.string() }),
+        stack: v.undefined()
+      })
   }
   assertEquals(toEnrichmentDescriptor(entry), {
     generator: '@skmtc/gen-kotlin',
@@ -288,7 +298,13 @@ Deno.test('toEnrichmentFields — moduleSelect carries a custom moduleType', () 
   const cellModuleType = `export type CellModule<F> = (props: { value: F }) => unknown`
   const schema = v.object({ moduleSelect: moduleSelect(cellModuleType) })
   assertEquals(toEnrichmentFields(schema), [
-    { key: 'moduleSelect', label: 'Module Select', optional: false, type: 'moduleSelect', moduleType: cellModuleType }
+    {
+      key: 'moduleSelect',
+      label: 'Module Select',
+      optional: false,
+      type: 'moduleSelect',
+      moduleType: cellModuleType
+    }
   ])
 })
 
@@ -324,16 +340,17 @@ Deno.test('toEnrichmentDescriptor — moduleSelect-era form leaf (no id, no sibl
     id: '@skmtc/gen-shadcn-form',
     type: 'oasOperation',
     supportsVariant: () => true,
-    toEnrichmentSchema: () => v.object({
-      subject: v.optional(
-        v.object({
-          title: v.optional(v.string()),
-          fields: v.optional(v.array(formFieldItem))
-        })
-      ),
-      generator: v.undefined(),
-      stack: v.undefined()
-    })
+    toEnrichmentSchema: () =>
+      v.object({
+        subject: v.optional(
+          v.object({
+            title: v.optional(v.string()),
+            fields: v.optional(v.array(formFieldItem))
+          })
+        ),
+        generator: v.undefined(),
+        stack: v.undefined()
+      })
   }
   const descriptor = toEnrichmentDescriptor(entry)
   const subjectFields = fieldsOf(descriptor.fields[0])
@@ -367,18 +384,19 @@ Deno.test('toEnrichmentDescriptor — legacy sibling-key leaf degrades to generi
     id: '@skmtc/gen-shadcn-form',
     type: 'oasOperation',
     supportsVariant: () => false,
-    toEnrichmentSchema: () => v.object({
-      subject: v.optional(
-        v.object({
-          title: v.optional(v.string()),
-          description: v.optional(v.string()),
-          submitLabel: v.optional(v.string()),
-          fields: v.optional(v.array(formFieldItem))
-        })
-      ),
-      generator: v.undefined(),
-      stack: v.undefined()
-    })
+    toEnrichmentSchema: () =>
+      v.object({
+        subject: v.optional(
+          v.object({
+            title: v.optional(v.string()),
+            description: v.optional(v.string()),
+            submitLabel: v.optional(v.string()),
+            fields: v.optional(v.array(formFieldItem))
+          })
+        ),
+        generator: v.undefined(),
+        stack: v.undefined()
+      })
   }
   const descriptor = toEnrichmentDescriptor(entry)
 

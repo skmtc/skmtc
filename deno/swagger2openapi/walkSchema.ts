@@ -25,14 +25,14 @@ export const getDefaultState = (): WalkSchemaState => ({
   depth: 0,
   seen: new WeakMap(),
   top: true,
-  combine: false,
+  combine: false
 })
 
 /** Callback invoked for the schema and each sub-schema. */
 export type WalkSchemaCallback = (
   schema: JsonObject,
   parent: JsonObject,
-  state: WalkSchemaState,
+  state: WalkSchemaState
 ) => void
 
 const combineSingle = (schema: JsonObject, keyword: string): JsonObject => {
@@ -50,7 +50,7 @@ const descend = (
   state: WalkSchemaState,
   callback: WalkSchemaCallback,
   property: string,
-  child: JsonValue,
+  child: JsonValue
 ): void => {
   if (isJsonObject(child)) {
     state.property = property
@@ -62,7 +62,7 @@ const descendMap = (
   schema: JsonObject,
   state: WalkSchemaState,
   callback: WalkSchemaCallback,
-  keyword: string,
+  keyword: string
 ): void => {
   const map = schema[keyword]
   if (isJsonObject(map)) {
@@ -76,7 +76,7 @@ const descendList = (
   schema: JsonObject,
   state: WalkSchemaState,
   callback: WalkSchemaCallback,
-  keyword: string,
+  keyword: string
 ): void => {
   const list = schema[keyword]
   if (isJsonArray(list)) {
@@ -90,7 +90,7 @@ const walk = (
   schema: JsonObject,
   parent: JsonObject,
   state: WalkSchemaState,
-  callback: WalkSchemaCallback,
+  callback: WalkSchemaCallback
 ): JsonObject => {
   if (typeof schema.$ref !== 'undefined') {
     const temp: JsonObject = { $ref: schema.$ref }
@@ -130,13 +130,16 @@ export const walkSchema = (
   schema: JsonObject,
   parent: JsonObject,
   state: Partial<WalkSchemaState>,
-  callback: WalkSchemaCallback,
+  callback: WalkSchemaCallback
 ): JsonObject => {
-  const fullState: WalkSchemaState = typeof state.depth === 'undefined' ? getDefaultState() : {
-    ...getDefaultState(),
-    ...state,
-    depth: state.depth,
-    seen: state.seen ?? new WeakMap(),
-  }
+  const fullState: WalkSchemaState =
+    typeof state.depth === 'undefined'
+      ? getDefaultState()
+      : {
+          ...getDefaultState(),
+          ...state,
+          depth: state.depth,
+          seen: state.seen ?? new WeakMap()
+        }
   return walk(schema, parent, fullState, callback)
 }

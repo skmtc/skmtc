@@ -1,9 +1,5 @@
 import { normalize } from '@std/path/normalize'
-import type {
-  DefinitionBase,
-  GenerateContextType,
-  GeneratedValue
-} from '@skmtc/core'
+import type { DefinitionBase, GenerateContextType, GeneratedValue } from '@skmtc/core'
 import { CsFile } from './CsFile.ts'
 import { CsImport, type CsImportNameArg } from './CsImport.ts'
 import { CsDefinition } from './CsDefinition.ts'

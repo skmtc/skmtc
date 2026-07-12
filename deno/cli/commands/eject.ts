@@ -69,10 +69,7 @@ export const renderEject = async ({
   Deno.exit(result.ok ? 0 : 1)
 }
 
-export const printEjectResult = (
-  result: EjectHeadlessResult,
-  format: 'text' | 'json'
-): void => {
+export const printEjectResult = (result: EjectHeadlessResult, format: 'text' | 'json'): void => {
   switch (format) {
     case 'json': {
       console.log(JSON.stringify(result, null, 2))
@@ -168,10 +165,7 @@ export const renderAdopt = async ({
   Deno.exit(result.ok ? 0 : 1)
 }
 
-export const printAdoptResult = (
-  result: AdoptHeadlessResult,
-  format: 'text' | 'json'
-): void => {
+export const printAdoptResult = (result: AdoptHeadlessResult, format: 'text' | 'json'): void => {
   switch (format) {
     case 'json': {
       console.log(JSON.stringify(result, null, 2))

@@ -34,7 +34,7 @@ const lazyRetry = <T extends ComponentType<unknown>>(
       const prefix = 'Failed to fetch dynamically imported module: '
       if (!message.startsWith(prefix)) throw error
       for (let attempt = 0; attempt < 5; attempt += 1) {
-        await new Promise((resolveDelay) => setTimeout(resolveDelay, 1000 * 2 ** attempt))
+        await new Promise(resolveDelay => setTimeout(resolveDelay, 1000 * 2 ** attempt))
         const url = new URL(message.slice(prefix.length).trim())
         url.searchParams.set('t', `${Date.now()}`)
         try {
@@ -71,7 +71,7 @@ const forwardConsoleToParent = (): void => {
     )
   const serialize = (args: unknown[]): string =>
     args
-      .map((arg) => {
+      .map(arg => {
         if (typeof arg === 'string') return arg
         try {
           return JSON.stringify(arg)
@@ -87,10 +87,10 @@ const forwardConsoleToParent = (): void => {
       original(...args)
     }
   }
-  window.addEventListener('error', (event) => {
+  window.addEventListener('error', event => {
     post('error', `${event.message}${event.filename ? ` (${event.filename}:${event.lineno})` : ''}`)
   })
-  window.addEventListener('unhandledrejection', (event) => {
+  window.addEventListener('unhandledrejection', event => {
     post('error', event.reason instanceof Error ? event.reason.message : String(event.reason))
   })
 }
@@ -151,11 +151,11 @@ const applyApiToken = (): void => {
     window.location.reload()
   }
 
-  window.addEventListener('storage', (event) => {
+  window.addEventListener('storage', event => {
     if (event.key !== KEY) return
     adopt(read())
   })
-  window.addEventListener('message', (event) => {
+  window.addEventListener('message', event => {
     if (isApiTokenMessage(event.data)) adopt(event.data.token)
   })
 }
@@ -279,12 +279,12 @@ const ArtifactView = () => {
             )
           if (!transient || attempt === 5) {
             if (alive && mine === seq) {
-              setState((current) => ({ ...current, error: message }))
+              setState(current => ({ ...current, error: message }))
               postStatus({ source: 'skmtc-preview', kind: 'error', message })
             }
             return
           }
-          await new Promise((resolve) => setTimeout(resolve, 150 * 2 ** attempt))
+          await new Promise(resolve => setTimeout(resolve, 150 * 2 ** attempt))
         }
       }
     }
@@ -304,7 +304,7 @@ const ArtifactView = () => {
     }): void => {
       const updates = payload.updates ?? []
       if (
-        updates.some((entry) => touchesArtifact(entry.path) || touchesArtifact(entry.acceptedPath))
+        updates.some(entry => touchesArtifact(entry.path) || touchesArtifact(entry.acceptedPath))
       ) {
         schedule()
       }
