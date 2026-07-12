@@ -1,0 +1,24 @@
+{
+  "raw": "export const Widget = () => {\n  return <div>{items.map(item => <b key={item}>{item}</b>)}</div>\n}\nconst columnHelper = createColumnHelper<Row>()\nexport type Props = { size?: (number | null) | undefined }",
+  "formatted": "export const Widget = () => {\n  return (\n    <div>\n      {items.map((item) => (\n        <b key={item}>\n          {item}\n        </b>\n      ))}\n    </div>\n  );\n};\nconst columnHelper = createColumnHelper<Row>();\nexport type Props = { size?: (number | null) | undefined };",
+  "anchors": [
+    {
+      "target": "{items.map(",
+      "landmark": "Widget",
+      "path": [0, 0, 1, 1, 0, 0, 2],
+      "formattedSlice": "{items.map((item) => (\n        <b key={item}>\n          {item}\n        </b>\n      ))}"
+    },
+    {
+      "target": "createColumnHelper<Row>()",
+      "landmark": "columnHelper",
+      "path": [0, 1],
+      "formattedSlice": "createColumnHelper<Row>()"
+    },
+    {
+      "target": "(number | null) | undefined",
+      "landmark": "Props",
+      "path": [0, 1, 0, 1, 0],
+      "formattedSlice": "(number | null) | undefined"
+    }
+  ]
+}
