@@ -1,55 +1,60 @@
-import { join } from '@std/path'
-import { GenerateArtifacts } from '@/lib/generate-artifacts.ts'
+import { join } from "@std/path";
+import { GenerateArtifacts } from "@/lib/generate-artifacts.ts";
 import {
   writeGeneratedFiles,
-  type WriteGeneratedFilesResult
-} from '@/lib/write-generated-files.ts'
-import type { ClientSettings } from '@skmtc/core/Settings'
-import { writeSidecars } from '@skmtc/core/Anchors'
-import { toGenerationStats, type GenerationStats } from '@/lib/generationStats.ts'
-import type { FileType } from '@/lib/types.ts'
-import type { ParseIssue } from '@skmtc/core'
-import { toAttributionPayload } from '@/lib/to-attribution-payload.ts'
+  type WriteGeneratedFilesResult,
+} from "@/lib/write-generated-files.ts";
+import type { ClientSettings } from "@skmtc/core/Settings";
+import { upgradeSidecar, writeSidecars } from "@skmtc/core/Anchors";
+import { oxcAdapter } from "@skmtc/core/Anchors/oxc";
+import { toResolvedArtifactPath } from "@skmtc/core";
+import {
+  type GenerationStats,
+  toGenerationStats,
+} from "@/lib/generationStats.ts";
+import type { FileType } from "@/lib/types.ts";
+import type { ParseIssue } from "@skmtc/core";
+import { toAttributionPayload } from "@/lib/to-attribution-payload.ts";
 
 type GenerateLocalArgs = {
-  bundlePath: string
-  schemaContents: string
+  bundlePath: string;
+  schemaContents: string;
   /**
    * File type of the schema source. Determines whether the worker
    * receives an OpenAPI document object or raw GraphQL SDL.
    */
-  fileType: FileType
-  clientSettings: ClientSettings | undefined
+  fileType: FileType;
+  clientSettings: ClientSettings | undefined;
   /**
    * When set (from `client.json#serverUrl`), generate against this deployed
    * stack server over HTTP instead of the local `bundle.js`.
    */
-  stackUrl?: string
-  manifestPath: string
+  stackUrl?: string;
+  manifestPath: string;
   /**
    * Filesystem path of the project — `.skmtc/<project>/`. Used to
    * resolve the `anchors.out` subdirectory for sidecar writes.
    */
-  projectPath: string
+  projectPath: string;
   /**
    * Source identifier for the schema (URL or path). Lands on each
    * sidecar's `src` field. Optional — degrades to `''` when missing.
    */
-  schemaSource: string | undefined
+  schemaSource: string | undefined;
   /**
    * CLI flag override for the `anchors.enabled` config field.
    * - `true` from `--anchors` — force on regardless of config
    * - `false` from `--no-anchors` — force off regardless of config
    * - `undefined` (default) — use the config value
    */
-  anchorsFlag?: boolean
+  anchorsFlag?: boolean;
   /**
    * Forwarded to `writeGeneratedFiles`. Watch mode passes `false` and
    * prints its own one-line protected-file status per rebuild instead
    * of the writer's multi-line stderr warning.
    */
-  warnOnProtected?: boolean
-}
+  warnOnProtected?: boolean;
+};
 
 /**
  * Per-run summary of gen-maps output. Populated only when the
@@ -58,49 +63,49 @@ type GenerateLocalArgs = {
  */
 export type GenerateLocalAnchorsStats = {
   /** Absolute path of the `.maps` subtree on disk. */
-  outDir: string
+  outDir: string;
   /** Number of sidecars (and the rollup file) written. */
-  filesWritten: number
+  filesWritten: number;
   /** Total bytes written across all sidecars + the generation map. */
-  totalBytes: number
+  totalBytes: number;
   /** Number of Definition entries in the generation map. */
-  generationMapEntries: number
-}
+  generationMapEntries: number;
+};
 
 export type GenerateLocalResult = {
-  stats: GenerationStats
+  stats: GenerationStats;
   /**
    * Parse-time issues for this run. Sourced from `manifest.parseIssues`
    * (the manifest is now the persistent record of every run-level
    * diagnostic); surfaced separately here for convenience so the CLI
    * summary doesn't have to re-dig into the manifest.
    */
-  parseIssues: ParseIssue[]
+  parseIssues: ParseIssue[];
   /**
    * Paths of every file the run wrote, relative to the SKMTC root.
    * Surfaced so `--json` consumers (and agents) can see exactly where
    * the output landed without re-parsing the manifest — closes
    * friction #14 in structured form.
    */
-  filePaths: string[]
+  filePaths: string[];
   /**
    * Gen-maps summary. Present only when anchors were enabled and the
    * post-pass actually ran. Mirrored to the `--json` output.
    */
-  anchors?: GenerateLocalAnchorsStats
+  anchors?: GenerateLocalAnchorsStats;
   /**
    * Artifact paths the run left untouched because their on-disk
    * content has manual edits (see `WriteGeneratedFilesResult`).
    * Surfaced structurally for `--json` consumers; the human-readable
    * warning already landed on stderr.
    */
-  protectedPaths: string[]
+  protectedPaths: string[];
   /**
    * Drift report for ejected files (see `WriteGeneratedFilesResult`).
    * Present only when the project has ejected files.
    */
-  ejections?: WriteGeneratedFilesResult['ejections']
-}
+  ejections?: WriteGeneratedFilesResult["ejections"];
+};
 
 export const generateLocal = async ({
   bundlePath,
@@ -112,14 +117,14 @@ export const generateLocal = async ({
   projectPath,
   schemaSource,
   anchorsFlag,
-  warnOnProtected
+  warnOnProtected,
 }: GenerateLocalArgs): Promise<GenerateLocalResult> => {
   try {
     const attribution = toAttributionPayload({
       anchors: clientSettings?.anchors,
       schemaSource,
-      flagOverride: anchorsFlag
-    })
+      flagOverride: anchorsFlag,
+    });
 
     const { artifacts, manifest, sidecars, generationMap } =
       await GenerateArtifacts.generateWithWorker({
@@ -128,8 +133,8 @@ export const generateLocal = async ({
         fileType,
         clientSettings,
         attribution,
-        stackUrl
-      })
+        stackUrl,
+      });
 
     const { protectedPaths, ejections } = writeGeneratedFiles({
       manifestPath,
@@ -137,26 +142,46 @@ export const generateLocal = async ({
       manifest,
       clientSettings,
       projectPath,
-      warnOnProtected
-    })
+      warnOnProtected,
+    });
 
-    let anchorsStats: GenerateLocalAnchorsStats | undefined
+    let anchorsStats: GenerateLocalAnchorsStats | undefined;
     if (sidecars && generationMap) {
-      const outDir = join(projectPath, clientSettings?.anchors?.out ?? '.maps')
+      // Host-side post-pass: the worker built these sidecars without a
+      // parser (empty AST paths — not re-anchorable after a formatter
+      // reshapes the file). Re-resolve landmarks + paths against the
+      // raw render with the real oxc adapter before writing. Artifacts
+      // are keyed by resolved path; sidecar `f` is `@/`-aliased.
+      const upgradedSidecars = Object.fromEntries(
+        Object.entries(sidecars).map(([filePath, sidecar]) => {
+          const artifactKey = toResolvedArtifactPath({
+            basePath: clientSettings?.basePath,
+            destinationPath: sidecar.f,
+          });
+          const source = artifacts[artifactKey];
+          return [
+            filePath,
+            typeof source === "string"
+              ? upgradeSidecar({ sidecar, source, parser: oxcAdapter })
+              : sidecar,
+          ];
+        }),
+      );
+      const outDir = join(projectPath, clientSettings?.anchors?.out ?? ".maps");
       const { written, totalBytes } = await writeSidecars({
-        sidecars,
+        sidecars: upgradedSidecars,
         generationMap,
-        outDir
-      })
+        outDir,
+      });
       anchorsStats = {
         outDir,
         filesWritten: written.length,
         totalBytes,
-        generationMapEntries: generationMap.length
-      }
+        generationMapEntries: generationMap.length,
+      };
     }
 
-    const stats = toGenerationStats({ manifest, artifacts })
+    const stats = toGenerationStats({ manifest, artifacts });
 
     return {
       stats,
@@ -164,11 +189,13 @@ export const generateLocal = async ({
       filePaths: Object.keys(artifacts),
       anchors: anchorsStats,
       protectedPaths,
-      ...(ejections ? { ejections } : {})
-    }
+      ...(ejections ? { ejections } : {}),
+    };
   } catch (error) {
-    console.error(error instanceof Error ? error : 'Failed to generate artifacts')
+    console.error(
+      error instanceof Error ? error : "Failed to generate artifacts",
+    );
 
-    throw error
+    throw error;
   }
-}
+};
