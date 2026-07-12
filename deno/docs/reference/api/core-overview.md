@@ -159,7 +159,7 @@ The TypeScript-level utility types and interfaces.
 
 | Helper | Purpose |
 |--------|---------|
-| `tryParseAt(ctx, key, valibotSchema, value)` | Lenient parse with fail-open behavior — see [error handling philosophy](../../concepts/error-handling-philosophy.md) |
+| `tryParseAt(ctx, key, valibotSchema, value)` | Lenient parse with fail-open behavior — see [error handling philosophy](../../explanation/error-handling-philosophy.md) |
 | `removeErroredItems()` (method on `ParseContext`) | One-hop pruning of items whose dependencies failed to parse |
 
 ## Stack trail and tracing

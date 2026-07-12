@@ -146,7 +146,7 @@ A **derived file** — overwritten every `skmtc generate` run. Contains
 the canonical record of the last run: parse issues, per-(generator,
 operation) results, file metadata, timing.
 
-See [error handling philosophy](error-handling-philosophy.md#the-manifest-as-canonical-run-record)
+See [error handling philosophy](../explanation/error-handling-philosophy.md#the-manifest-as-canonical-run-record)
 for the structure and `manifest-format.md` reference for the full
 schema.
 
@@ -328,12 +328,64 @@ root, run the CLI from a directory outside the inner root.
 
 In practice, one SKMTC root per repository is the convention.
 
+## Multi-package output
+
+### How a file is routed
+
+Two resolutions — **where the file lands on disk** and **how an import to it
+renders**.
+
+**On disk.** `toResolvedArtifactPath` is `join(basePath, exportPath)`. A
+generator targeting a package returns a `toExportPath` that is a forward path
+under that package's `rootPath` (e.g. `packages/models/src/User.ts`); joined
+onto `basePath` it lands in the right place. No `..`.
+
+**In imports.** `normalizeModuleName` (`dsl/File.ts`) resolves a cross-file
+import three ways:
+
+- importer and target in the **same package** → intra-package `@/…` (the
+  target's `exportPath` with the package `rootPath` replaced by `@`);
+- importer and target in **different packages** → the target package's
+  `moduleName`;
+- **no package match** → the raw `exportPath`.
+
+So `@` is **per-package**, not a single global alias: a file under
+`packages/models/src` sees `@/` rooted at that package; a file in another
+package importing it gets `@skmtc/models`.
+
+### Barrels: a re-export-only file
+
+A package usually wants one entry point that re-exports everything it generated.
+A barrel does **not** need an accumulator class — it is a `File` populated only
+with re-exports:
+
+```ts
+context.register({
+  reExports: { [modelExportPath]: [settings.identifier] },
+  destinationPath: barrelPath,
+});
+```
+
+`reExports` is `Record<string, Identifier[]>` (module → identifiers); each
+identifier's entity type selects `export { x }` vs `export type { x }`. Multiple
+generators may `register` re-exports into the same `destinationPath` — the
+`File.reExports` map merges them. A `File` with only `reExports` (no
+`Definition`s) is a valid emitted artifact: there is no shared _value_, just a
+shared file accumulating re-export entries.
+
+### See also
+
+- [`projects-and-workspaces.md`](./projects-and-workspaces.md) — the
+  single-`basePath` model
+- [`files-and-dedup.md`](./files-and-dedup.md) — the `File` model and import
+  normalisation
+- `skmtc-cli` skill §6 — the `client.json` shape
+
 ## Further reading
 
 - [Clone vs install](clone-vs-install.md) — what changes in the project directory when cloning
 - [Enrichments](enrichments.md) — the `client.json#settings.enrichments` structure
 - [The Worker runtime](the-worker-runtime.md) — how `worker.ts` and `bundle.js` get used
-- [Multi-package output](multi-package-output.md) — routing generated files into monorepo packages
 - [Settings reference: client.json schema](../reference/settings/client-json-schema.md)
 - [`skmtc init` reference](../reference/cli/init.md)
 - [`skmtc doctor` reference](../reference/cli/doctor.md)

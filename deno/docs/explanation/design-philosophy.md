@@ -92,7 +92,7 @@ what is missing and why.
 
 #### Deeper discussion
 
-See [Error handling philosophy](../concepts/error-handling-philosophy.md).
+See [Error handling philosophy](error-handling-philosophy.md).
 
 ### 4. Output as source code, not a runtime library
 

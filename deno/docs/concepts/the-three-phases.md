@@ -503,7 +503,7 @@ the Driver path.
   boundary.
 - [Cross-generator coordination](cross-generator-coordination.md) — the cache
   mechanism in depth.
-- [Error handling philosophy](error-handling-philosophy.md) — the manifest as
+- [Error handling philosophy](../explanation/error-handling-philosophy.md) — the manifest as
   canonical run record.
 - [`reference/api/parse-context.md`](../reference/api/parse-context.md) — Parse
   API surface.

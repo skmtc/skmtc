@@ -67,7 +67,7 @@ parse have a stable resolution target, then populates
 `gqlDocument.fields = { ... }` at the end. See
 [refs-and-resolution.md](../../concepts/refs-and-resolution.md#the-forward-ref-problem)
 and
-[error-handling-philosophy.md](../../concepts/error-handling-philosophy.md#1-empty-parsed-document-issued-at-construction-mutated-in-place).
+[error-handling-philosophy.md](../../explanation/error-handling-philosophy.md#1-empty-parsed-document-issued-at-construction-mutated-in-place).
 
 ### `removeItem(stackTrail)`
 
@@ -290,7 +290,7 @@ For running the full pipeline against GraphQL, see
   — why GraphQL is parsed worker-side
 - [Concept: refs and resolution](../../concepts/refs-and-resolution.md)
   — how `OasRef` resolves through `GqlRegistry`'s mirror
-- [Concept: error handling philosophy](../../concepts/error-handling-philosophy.md)
+- [Concept: error handling philosophy](../../explanation/error-handling-philosophy.md)
   — the cascade-pruning machinery `GqlDocument.removeItem`
   participates in
 - [API: OAS document model](oas-document-model.md) — the OAS-side

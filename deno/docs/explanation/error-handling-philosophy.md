@@ -433,12 +433,12 @@ rather than a recoverable diagnostic.
 
 ## Further reading
 
-- [The three phases](the-three-phases.md) — where Parse-time errors get isolated
-- [Refs and resolution](refs-and-resolution.md) — how the ref-error cascade
+- [The three phases](../concepts/the-three-phases.md) — where Parse-time errors get isolated
+- [Refs and resolution](../concepts/refs-and-resolution.md) — how the ref-error cascade
   works
 - [StackTrail reference](../reference/api/stack-trail.md) — the mutable position-stack that
   addresses, locates, and bridges to `$ref` strings
-- [The manifest](the-manifest.md) — the structured run record `parseIssues`
+- [The manifest](../concepts/the-manifest.md) — the structured run record `parseIssues`
   lives in, plus the `results` tree and `previews` / `mappings`
 - [Manifest format reference](../reference/manifest-format.md) — the full
   Valibot schema
@@ -446,5 +446,5 @@ rather than a recoverable diagnostic.
   types
 - [How to debug a failing generation](../using/how-to/debug-failing-generation.md) — the diagnosis workflow
   using the manifest
-- [Design philosophy: lenient input, strict diagnostics](../explanation/design-philosophy.md)
+- [Design philosophy: lenient input, strict diagnostics](design-philosophy.md)
   — the broader rationale

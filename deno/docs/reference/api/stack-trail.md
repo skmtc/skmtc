@@ -307,7 +307,7 @@ operation- or component-level by design.
 
 ## See also
 
-- [Concept: error handling philosophy](../../concepts/error-handling-philosophy.md) — the cascade-pruning algorithm that uses trails as addresses
+- [Concept: error handling philosophy](../../explanation/error-handling-philosophy.md) — the cascade-pruning algorithm that uses trails as addresses
 - [Concept: refs and resolution](../../concepts/refs-and-resolution.md) — the partner concept (ref-string addressing)
 - [API: ParseContext](parse-context.md) — the issue-logging surface that builds on trails
 - [API: OAS document model](oas-document-model.md) — `removeItem` and the parsed document

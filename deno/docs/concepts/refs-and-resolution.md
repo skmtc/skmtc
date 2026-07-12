@@ -131,7 +131,7 @@ inputs. Together they are what makes lazy resolution work without
 requiring two parse passes or strict topological ordering of
 components.
 
-See [error-handling-philosophy.md](error-handling-philosophy.md#1-empty-parsed-document-issued-at-construction-mutated-in-place)
+See [error-handling-philosophy.md](../explanation/error-handling-philosophy.md#1-empty-parsed-document-issued-at-construction-mutated-in-place)
 for the symmetric `GqlDocument` application and the related
 implementation choices.
 
@@ -272,7 +272,7 @@ This cascade is **one-hop deep**. Transitive consumers
 (consumers-of-consumers) are not pruned at this stage. They may
 fail at generate time when the now-missing ref is resolved.
 
-See [error handling philosophy](error-handling-philosophy.md#tier-2-cross-ref-via-removeerroreditems)
+See [error handling philosophy](../explanation/error-handling-philosophy.md#tier-2-cross-ref-via-removeerroreditems)
 for more on the cascade model.
 
 ## Common questions
@@ -339,7 +339,7 @@ but Render doesn't touch it.
 ## Further reading
 
 - [The three phases](the-three-phases.md) — where refs are constructed and resolved
-- [Error handling philosophy](error-handling-philosophy.md) — the cascade-pruning model
+- [Error handling philosophy](../explanation/error-handling-philosophy.md) — the cascade-pruning model
 - [StackTrail reference](../reference/api/stack-trail.md) — the position-stack that addresses ref consumers and bridges to `$ref` strings
 - [The type system](the-type-system.md) — how a model generator's `schemaToValueFn` handles `OasRef<'schema'>` alongside the schema variants
 - [API reference: oas-ref](../reference/api/oas-ref.md) — full method signatures
