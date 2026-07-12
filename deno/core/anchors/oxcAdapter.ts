@@ -84,7 +84,7 @@ const attachParents = (root: OxcNode): void => {
  * reflow (one line ↔ many) inserts or removes them, shifting every
  * sibling's child index. Child-index paths must survive a formatter
  * pass (the whole point of re-anchoring), so traversal indexes over
- * semantic children only. Validated against the full skmtc-reapit
+ * semantic children only. Validated against a full consumer-project
  * corpus in `spike-reanchor.ts` — unfiltered indices broke a
  * systematic cluster of JSX anchors under oxfmt.
  */
@@ -169,7 +169,7 @@ const collectLandmarks: ParserAdapter['collectLandmarks'] = file => {
     // Both `export const X = ...` and bare top-level `const X = ...`
     // are landmarks: generated files carry non-exported module-level
     // declarations (`const columnHelper = ...`) that spans live
-    // under — export-only landmarks stranded 7.4% of the reapit
+    // under — export-only landmarks stranded 7.4% of a consumer
     // corpus's anchors (spike-reanchor.ts). The landmark handle is
     // the top-level statement either way, so recorded paths descend
     // from the same node shape.

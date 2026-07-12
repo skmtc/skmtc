@@ -72,7 +72,7 @@ Deno.test('paths survive a formatter JSX reflow (whitespace JSXText filtered)', 
   ].join('\n')
   // The same file after a formatter reflows the <span> body across
   // lines — introducing whitespace-only JSXText children around the
-  // expression container (the exact shape oxfmt produced on reapit).
+  // expression container (the exact shape oxfmt produces).
   const formatted = [
     'export const Widget = () => {',
     '  return (',

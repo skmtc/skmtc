@@ -63,7 +63,7 @@ export interface ParserAdapter {
    * so subsequent `landmarkFor` calls run in constant time per span.
    * Non-exported declarations are landmarks too: generated files
    * carry module-level consts that spans live under (export-only
-   * indexing stranded 7.4% of the reapit corpus's anchors).
+   * indexing stranded 7.4% of a real consumer corpus's anchors).
    */
   collectLandmarks(file: ParsedFile): Map<string, NodeHandle>
 

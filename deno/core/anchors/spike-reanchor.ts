@@ -17,11 +17,11 @@
  * Usage:
  *   deno run -A spike-reanchor.ts <mapsDir> <rawRoot> <formattedRoot> [limit]
  *
- * e.g. against skmtc-reapit with the raw snapshot in the scratchpad:
+ * e.g. against a consumer app with a raw-render snapshot kept aside:
  *   deno run -A deno/core/anchors/spike-reanchor.ts \
- *     ~/workspace/skmtc-root/skmtc-reapit/.skmtc/skmtc-reapit/.maps \
- *     /tmp/.../scratchpad/raw-src \
- *     ~/workspace/skmtc-root/skmtc-reapit/src
+ *     <app>/.skmtc/<project>/.maps \
+ *     <raw-snapshot-dir> \
+ *     <app>/src
  */
 
 import { walk } from '@std/fs/walk'
