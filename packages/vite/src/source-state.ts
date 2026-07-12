@@ -122,7 +122,7 @@ export class SourceState {
     if (file === this.#mapsPath) this.#modelImportsCache = null
     if (
       file === this.#clientJsonPath ||
-      this.#inputDirPrefixes.some((prefix) => file.startsWith(prefix))
+      this.#inputDirPrefixes.some(prefix => file.startsWith(prefix))
     ) {
       this.#candidatesCache = null
     }
@@ -153,7 +153,7 @@ export class SourceState {
    *  (inputDirs + basePath), invalidated by watcher events under any inputDir. */
   candidates(inputDirs: string[], basePath: string): Promise<Candidate[]> {
     const key = JSON.stringify([inputDirs, basePath])
-    this.#inputDirPrefixes = inputDirs.map((dir) => join(this.#skmtcRoot, dir) + sep)
+    this.#inputDirPrefixes = inputDirs.map(dir => join(this.#skmtcRoot, dir) + sep)
     if (this.#candidatesCache?.key === key) return this.#candidatesCache.value
     const value = readCandidates(this.#skmtcRoot, inputDirs, basePath)
     this.#candidatesCache = { key, value }
@@ -204,9 +204,9 @@ export class SourceState {
       getScriptFileNames: () => [probePath],
       // The probe bumps per check; project files carry watcher-driven versions,
       // so a hand-edit to an input component is re-read on the next match.
-      getScriptVersion: (file) =>
+      getScriptVersion: file =>
         file === probePath ? `p${probeVersion}` : String(this.#fileVersions.get(file) ?? 0),
-      getScriptSnapshot: (file) => {
+      getScriptSnapshot: file => {
         if (file === probePath) return ts.ScriptSnapshot.fromString(probeContent)
         const text = ts.sys.readFile(file)
         if (text === undefined) return undefined
@@ -217,8 +217,8 @@ export class SourceState {
       },
       getCurrentDirectory: () => root,
       getCompilationSettings: () => options,
-      getDefaultLibFileName: (o) => ts.getDefaultLibFilePath(o),
-      fileExists: (file) => (file === probePath ? true : ts.sys.fileExists(file)),
+      getDefaultLibFileName: o => ts.getDefaultLibFilePath(o),
+      fileExists: file => (file === probePath ? true : ts.sys.fileExists(file)),
       readFile: ts.sys.readFile,
       readDirectory: ts.sys.readDirectory,
       directoryExists: ts.sys.directoryExists,
@@ -226,17 +226,17 @@ export class SourceState {
     }
     const service = ts.createLanguageService(host, ts.createDocumentRegistry())
     return {
-      check: (content) => {
+      check: content => {
         probeContent = content
         probeVersion++
         return service.getSemanticDiagnostics(probePath)
       },
-      fieldTypeAt: (offset) => {
+      fieldTypeAt: offset => {
         const info = service.getQuickInfoAtPosition(probePath, offset)
         if (!info) return ''
         return ts.displayPartsToString(info.displayParts).replace(/^type __F = /, '')
       },
-      fileExists: (file) => ts.sys.fileExists(file)
+      fileExists: file => ts.sys.fileExists(file)
     }
   }
 

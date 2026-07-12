@@ -37,7 +37,10 @@ import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichme
  * `toIdentifierType`'s return tightens to that language's `type` vocabulary —
  * no recast.
  */
-export type OasOperationProjectionBaseConfig<EnrichmentType = undefined, IdType extends IdentifierType = IdentifierType> = {
+export type OasOperationProjectionBaseConfig<
+  EnrichmentType = undefined,
+  IdType extends IdentifierType = IdentifierType
+> = {
   id: string
   /** Pure: the cache-key name (the cache-check path runs this). */
   toIdentifierName: (args: ToOasOperationIdentifierNameArgs<EnrichmentType>) => string
@@ -102,7 +105,10 @@ type ToEnrichmentsArgs = {
  * `OasOperationProjectionBase` lives here now, because the base class is no
  * longer statically known.
  */
-export const toOasOperationProjectionBase = <EnrichmentType = undefined, IdType extends IdentifierType = IdentifierType>(
+export const toOasOperationProjectionBase = <
+  EnrichmentType = undefined,
+  IdType extends IdentifierType = IdentifierType
+>(
   base: LangSnippetConstructor,
   config: OasOperationProjectionBaseConfig<EnrichmentType, IdType>
 ) => {
@@ -116,11 +122,7 @@ export const toOasOperationProjectionBase = <EnrichmentType = undefined, IdType 
 
     static isSupported = config.isSupported ?? (() => true)
 
-    static toEnrichments = ({
-      operation,
-      context,
-      variant
-    }: ToEnrichmentsArgs): EnrichmentType => {
+    static toEnrichments = ({ operation, context, variant }: ToEnrichmentsArgs): EnrichmentType => {
       // The three enrichment scopes assembled into the umbrella a generator
       // reads off `this.settings.enrichments`. Subject is per-item
       // (`[id][path][method][variant]`) — the variant axis is core-owned, and

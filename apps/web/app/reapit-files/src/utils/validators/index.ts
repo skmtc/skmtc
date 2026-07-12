@@ -4,10 +4,13 @@ export const specialCharsTest = {
   test: (value?: string | null) => {
     if (!value) return true
 
-    if (/^[\w\-\s£$@%&*()?!%/=+'"~^,.#;:]+$/.test(value) && /^((?!javascript).)*$/.test(value.toLowerCase())) {
+    if (
+      /^[\w\-\s£$@%&*()?!%/=+'"~^,.#;:]+$/.test(value) &&
+      /^((?!javascript).)*$/.test(value.toLowerCase())
+    ) {
       return true
     }
 
     return false
-  },
+  }
 }

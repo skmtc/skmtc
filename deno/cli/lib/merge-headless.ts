@@ -38,11 +38,7 @@ import { formatContent, runFormatter } from '@/lib/formatter.ts'
 import { isThreeWayDiffable, mergeThreeWay, type LineRange } from '@/lib/three-way.ts'
 import { toCommittedBaselinePath, toPristinePath } from '@/lib/baseline-store.ts'
 import { readEjections, toEjectionsPath, writeEjections } from '@/lib/ejections.ts'
-import {
-  readEjectionState,
-  toEjectionStatePath,
-  writeEjectionState
-} from '@/lib/ejection-state.ts'
+import { readEjectionState, toEjectionStatePath, writeEjectionState } from '@/lib/ejection-state.ts'
 
 type MergeHeadlessArgs = {
   projectName: string

@@ -44,9 +44,7 @@ export const fetchNpmPackument = async (
     return null
   }
   if (!res.ok) {
-    throw new Error(
-      `npm registry lookup for ${name} failed: ${res.status} ${res.statusText}`
-    )
+    throw new Error(`npm registry lookup for ${name} failed: ${res.status} ${res.statusText}`)
   }
   return (await res.json()) as Packument
 }

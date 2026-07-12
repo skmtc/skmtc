@@ -26,28 +26,28 @@ export type ResponseFields = {
 
 /**
  * Represents a Response Object in the OpenAPI Specification.
- * 
+ *
  * The `OasResponse` class encapsulates the definition of a single HTTP response,
  * including its description, headers, and content for different media types.
  * Responses describe the possible outcomes of API operations and can include
  * both successful and error scenarios.
- * 
+ *
  * This class provides comprehensive support for response definitions with typed
  * content, custom headers, and multiple media type representations.
- * 
+ *
  * ## Key Features
- * 
+ *
  * - **Content Types**: Support for multiple media types (JSON, XML, HTML, etc.)
  * - **Header Definitions**: Custom response headers with validation
  * - **Schema Integration**: Typed response bodies through schema definitions
  * - **Reference Support**: Can reference reusable response components
  * - **Documentation**: Rich description support for API documentation
  * - **JSON Schema**: Converts to standard JSON Schema format for validation
- * 
+ *
  * @example Basic JSON response
  * ```typescript
  * import { OasResponse, OasMediaType, OasObject, OasString } from '@skmtc/core';
- * 
+ *
  * const successResponse = new OasResponse({
  *   description: 'User retrieved successfully',
  *   content: {
@@ -63,7 +63,7 @@ export type ResponseFields = {
  *   }
  * });
  * ```
- * 
+ *
  * @example Response with custom headers
  * ```typescript
  * const paginatedResponse = new OasResponse({
@@ -91,7 +91,7 @@ export type ResponseFields = {
  *   }
  * });
  * ```
- * 
+ *
  * @example Multiple content types
  * ```typescript
  * const multiFormatResponse = new OasResponse({
@@ -116,7 +116,7 @@ export type ResponseFields = {
  *   }
  * });
  * ```
- * 
+ *
  * @example Error responses
  * ```typescript
  * const errorResponse = new OasResponse({
@@ -142,7 +142,7 @@ export type ResponseFields = {
  *   }
  * });
  * ```
- * 
+ *
  * @example File download response
  * ```typescript
  * const fileDownloadResponse = new OasResponse({
@@ -173,7 +173,7 @@ export type ResponseFields = {
  *   }
  * });
  * ```
- * 
+ *
  * @example No content response
  * ```typescript
  * const noContentResponse = new OasResponse({
@@ -181,7 +181,7 @@ export type ResponseFields = {
  *   // No content or headers - represents HTTP 204 No Content
  * });
  * ```
- * 
+ *
  * @example Using in operation definitions
  * ```typescript
  * const getUserOperation = new OasOperation({

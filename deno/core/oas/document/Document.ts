@@ -216,7 +216,7 @@ export class OasDocument {
 
         const [removed] = this.#fields!.operations.splice(index, 1)
 
-        return removed;
+        return removed
       }
 
       case 'webhooks': {
@@ -226,9 +226,7 @@ export class OasDocument {
           return undefined
         }
 
-        const index = webhooks.findIndex(
-          ({ name, method }) => name === second && method === third
-        )
+        const index = webhooks.findIndex(({ name, method }) => name === second && method === third)
 
         if (index === -1) {
           return undefined
@@ -236,7 +234,7 @@ export class OasDocument {
 
         const [removed] = webhooks.splice(index, 1)
 
-        return removed;
+        return removed
       }
 
       case 'components': {
@@ -244,11 +242,11 @@ export class OasDocument {
           throw new Error(`RefName cannot be a number: ${third}`)
         }
 
-        return this.#fields!.components!.removeSchema(third as RefName);
+        return this.#fields!.components!.removeSchema(third as RefName)
       }
 
       default:
-        throw new Error(`Unexpected stack trail: ${stackTrail}`);
+        throw new Error(`Unexpected stack trail: ${stackTrail}`)
     }
   }
 

@@ -4,7 +4,7 @@ import { toSchemaContents } from '@/lib/to-schema-contents.ts'
 import { SchemaFile } from '@/lib/schema-file.ts'
 import type { FileType, SchemaSource } from '@/lib/types.ts'
 
-Deno.test('toSchemaContents', async (t) => {
+Deno.test('toSchemaContents', async t => {
   await t.step('should handle remote schema sources with JSON', async () => {
     let getFromSourceStub: Stub | undefined
 
@@ -16,15 +16,12 @@ Deno.test('toSchemaContents', async (t) => {
       }
       const mockFileType: FileType = 'json'
 
-      getFromSourceStub = stub(
-        SchemaFile,
-        'getFromSource',
-        () =>
-          Promise.resolve({
-            contents: mockContents,
-            schemaSource: mockSchemaSource,
-            fileType: mockFileType
-          })
+      getFromSourceStub = stub(SchemaFile, 'getFromSource', () =>
+        Promise.resolve({
+          contents: mockContents,
+          schemaSource: mockSchemaSource,
+          fileType: mockFileType
+        })
       )
 
       const result = await toSchemaContents('https://api.example.com/openapi.json')
@@ -48,15 +45,12 @@ Deno.test('toSchemaContents', async (t) => {
       }
       const mockFileType: FileType = 'yaml'
 
-      getFromSourceStub = stub(
-        SchemaFile,
-        'getFromSource',
-        () =>
-          Promise.resolve({
-            contents: mockContents,
-            schemaSource: mockSchemaSource,
-            fileType: mockFileType
-          })
+      getFromSourceStub = stub(SchemaFile, 'getFromSource', () =>
+        Promise.resolve({
+          contents: mockContents,
+          schemaSource: mockSchemaSource,
+          fileType: mockFileType
+        })
       )
 
       const result = await toSchemaContents('https://api.example.com/openapi.yaml')
@@ -81,15 +75,12 @@ Deno.test('toSchemaContents', async (t) => {
       }
       const mockFileType: FileType = 'json'
 
-      getFromSourceStub = stub(
-        SchemaFile,
-        'getFromSource',
-        () =>
-          Promise.resolve({
-            contents: mockContents,
-            schemaSource: mockSchemaSource,
-            fileType: mockFileType
-          })
+      getFromSourceStub = stub(SchemaFile, 'getFromSource', () =>
+        Promise.resolve({
+          contents: mockContents,
+          schemaSource: mockSchemaSource,
+          fileType: mockFileType
+        })
       )
 
       const result = await toSchemaContents(absolutePath)
@@ -114,24 +105,20 @@ Deno.test('toSchemaContents', async (t) => {
       const mockFileType: FileType = 'json'
 
       // Mock will receive the converted absolute path
-      getFromSourceStub = stub(
-        SchemaFile,
-        'getFromSource',
-        (schemaSource: SchemaSource) => {
-          // Verify that the path was converted to absolute
-          if (schemaSource.type === 'local') {
-            // Path should now be absolute (starts with /)
-            assertEquals(schemaSource.path.startsWith('/'), true)
-            assertEquals(schemaSource.path.includes(relativePath), true)
-          }
-
-          return Promise.resolve({
-            contents: mockContents,
-            schemaSource,
-            fileType: mockFileType
-          })
+      getFromSourceStub = stub(SchemaFile, 'getFromSource', (schemaSource: SchemaSource) => {
+        // Verify that the path was converted to absolute
+        if (schemaSource.type === 'local') {
+          // Path should now be absolute (starts with /)
+          assertEquals(schemaSource.path.startsWith('/'), true)
+          assertEquals(schemaSource.path.includes(relativePath), true)
         }
-      )
+
+        return Promise.resolve({
+          contents: mockContents,
+          schemaSource,
+          fileType: mockFileType
+        })
+      })
 
       const result = await toSchemaContents(relativePath)
 
@@ -160,15 +147,12 @@ Deno.test('toSchemaContents', async (t) => {
       }
       const mockFileType: FileType = 'yaml'
 
-      getFromSourceStub = stub(
-        SchemaFile,
-        'getFromSource',
-        () =>
-          Promise.resolve({
-            contents: mockContents,
-            schemaSource: mockSchemaSource,
-            fileType: mockFileType
-          })
+      getFromSourceStub = stub(SchemaFile, 'getFromSource', () =>
+        Promise.resolve({
+          contents: mockContents,
+          schemaSource: mockSchemaSource,
+          fileType: mockFileType
+        })
       )
 
       const result = await toSchemaContents(absolutePath)
@@ -186,10 +170,8 @@ Deno.test('toSchemaContents', async (t) => {
     try {
       const errorMessage = 'Failed to fetch schema'
 
-      getFromSourceStub = stub(
-        SchemaFile,
-        'getFromSource',
-        () => Promise.reject(new Error(errorMessage))
+      getFromSourceStub = stub(SchemaFile, 'getFromSource', () =>
+        Promise.reject(new Error(errorMessage))
       )
 
       await assertRejects(
@@ -213,15 +195,12 @@ Deno.test('toSchemaContents', async (t) => {
       }
       const mockFileType: FileType = 'json'
 
-      getFromSourceStub = stub(
-        SchemaFile,
-        'getFromSource',
-        () =>
-          Promise.resolve({
-            contents: mockContents,
-            schemaSource: mockSchemaSource,
-            fileType: mockFileType
-          })
+      getFromSourceStub = stub(SchemaFile, 'getFromSource', () =>
+        Promise.resolve({
+          contents: mockContents,
+          schemaSource: mockSchemaSource,
+          fileType: mockFileType
+        })
       )
 
       const result = await toSchemaContents('http://api.example.com/openapi.json')
@@ -243,17 +222,13 @@ Deno.test('toSchemaContents', async (t) => {
       const mockContents = JSON.stringify({ openapi: '3.0.0' })
       const mockFileType: FileType = 'json'
 
-      getFromSourceStub = stub(
-        SchemaFile,
-        'getFromSource',
-        (schemaSource: SchemaSource) => {
-          return Promise.resolve({
-            contents: mockContents,
-            schemaSource,
-            fileType: mockFileType
-          })
-        }
-      )
+      getFromSourceStub = stub(SchemaFile, 'getFromSource', (schemaSource: SchemaSource) => {
+        return Promise.resolve({
+          contents: mockContents,
+          schemaSource,
+          fileType: mockFileType
+        })
+      })
 
       const result = await toSchemaContents(relativePath)
 

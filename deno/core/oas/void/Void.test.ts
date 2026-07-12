@@ -145,7 +145,10 @@ Deno.test('OasVoid - typical usage for HTTP 204 No Content response', () => {
 
   assertEquals(noContentResponse.type, 'void')
   assertEquals(noContentResponse.title, 'No Content')
-  assertEquals(noContentResponse.description, 'Operation completed successfully with no response body')
+  assertEquals(
+    noContentResponse.description,
+    'Operation completed successfully with no response body'
+  )
   assertEquals(noContentResponse.isRef(), false)
 })
 

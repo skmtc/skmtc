@@ -1,6 +1,6 @@
 /**
  * Constructor fields for {@link OasContact}.
- * 
+ *
  * Defines the configuration options for creating contact information,
  * including name, URL, email, and extension fields.
  */
@@ -13,21 +13,21 @@ export type ContactFields = {
 
 /**
  * Represents a Contact Object in the OpenAPI Specification.
- * 
+ *
  * The `OasContact` class encapsulates contact information for the API,
  * providing details about who to contact for support, questions, or issues.
  * This information is typically displayed in API documentation.
- * 
+ *
  * @example Basic contact information
  * ```typescript
  * import { OasContact } from '@skmtc/core';
- * 
+ *
  * const contact = new OasContact({
  *   name: 'API Support Team',
  *   email: 'support@example.com'
  * });
  * ```
- * 
+ *
  * @example Complete contact details
  * ```typescript
  * const fullContact = new OasContact({
@@ -52,7 +52,7 @@ export class OasContact {
 
   /**
    * Creates a new OasContact instance.
-   * 
+   *
    * @param fields - Contact information fields including name, URL, and email
    */
   constructor(fields: ContactFields = {}) {

@@ -72,7 +72,10 @@ Deno.test('ModelGenerator - scaffolded base.ts typechecks against the workspace'
 
   try {
     const basePath = join(tempDir, 'base.ts')
-    await Deno.writeTextFile(basePath, new ModelGenerator(generator).toModelProjectionBase('SchemaMeta'))
+    await Deno.writeTextFile(
+      basePath,
+      new ModelGenerator(generator).toModelProjectionBase('SchemaMeta')
+    )
 
     const check = await new Deno.Command('deno', {
       args: ['check', '--quiet', basePath],
@@ -100,7 +103,10 @@ Deno.test('ModelGenerator - toModelProjection generates correct projection conte
   const modelGenerator = new ModelGenerator(generator)
   const result = modelGenerator.toModelProjection('OrderModel')
 
-  assertStringIncludes(result, "import type { TypeSystemValue, GenerateContext, RefName, ContentSettings } from '@skmtc/core'")
+  assertStringIncludes(
+    result,
+    "import type { TypeSystemValue, GenerateContext, RefName, ContentSettings } from '@skmtc/core'"
+  )
   assertStringIncludes(result, "import { toOrderModelValue } from './OrderModel.ts'")
   assertStringIncludes(result, "import { OrderModelBase } from './base.ts'")
   assertStringIncludes(result, 'export class OrderModelProjection extends OrderModelBase')
@@ -126,9 +132,15 @@ Deno.test('ModelGenerator - createModelFiles creates correct file structure', as
 
     // Verify files were created
     const srcPath = join(generatorPath, 'src')
-    const modExists = await Deno.stat(join(srcPath, 'mod.ts')).then(() => true).catch(() => false)
-    const baseExists = await Deno.stat(join(srcPath, 'base.ts')).then(() => true).catch(() => false)
-    const projectionExists = await Deno.stat(join(srcPath, 'TestModelProjection.ts')).then(() => true).catch(() => false)
+    const modExists = await Deno.stat(join(srcPath, 'mod.ts'))
+      .then(() => true)
+      .catch(() => false)
+    const baseExists = await Deno.stat(join(srcPath, 'base.ts'))
+      .then(() => true)
+      .catch(() => false)
+    const projectionExists = await Deno.stat(join(srcPath, 'TestModelProjection.ts'))
+      .then(() => true)
+      .catch(() => false)
 
     assertEquals(modExists, true)
     assertEquals(baseExists, true)

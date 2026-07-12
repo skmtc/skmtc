@@ -49,7 +49,8 @@ export class KtParameterList {
           ? parameter.annotations.map(annotation => `${annotation} `).join('')
           : ''
         const nullable = parameter.nullable ? '?' : ''
-        const defaultValue = parameter.defaultValue !== undefined ? ` = ${parameter.defaultValue}` : ''
+        const defaultValue =
+          parameter.defaultValue !== undefined ? ` = ${parameter.defaultValue}` : ''
 
         return `    ${annotations}${visibility}val ${parameter.name}: ${parameter.type}${nullable}${defaultValue}`
       })

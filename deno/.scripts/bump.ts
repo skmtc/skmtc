@@ -115,9 +115,7 @@ export const resolveTarget = (
   const byDir = packages.filter(p => basename(p.dir) === token)
   if (byDir.length === 1) return byDir[0]
   if (byDir.length > 1) {
-    throw new Error(
-      `Ambiguous package "${token}": matches ${byDir.map(p => p.name).join(', ')}`
-    )
+    throw new Error(`Ambiguous package "${token}": matches ${byDir.map(p => p.name).join(', ')}`)
   }
 
   const available = packages.map(p => `${basename(p.dir)} (${p.name})`).join(', ')
@@ -154,9 +152,7 @@ export const parseBumpArgs = (args: readonly string[]): BumpArgs => {
   }
 
   if (tokens.length === 0) {
-    throw new Error(
-      'Usage: deno task bump <package...> [--patch|--minor|--major] [--dry-run]'
-    )
+    throw new Error('Usage: deno task bump <package...> [--patch|--minor|--major] [--dry-run]')
   }
 
   return { tokens, level, dryRun }

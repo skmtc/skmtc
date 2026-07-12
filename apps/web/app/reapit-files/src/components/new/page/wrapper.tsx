@@ -9,10 +9,10 @@ export const Wrapper: FC = () => {
         hasMaxWidth
         pageTitle={{
           children: 'New Page',
-          hasBoldText: true,
+          hasBoldText: true
         }}
         pageSubtitle={{
-          children: 'This is a new page - add your content here',
+          children: 'This is a new page - add your content here'
         }}
       />
       <FlexContainer hasMaxWidth isFlexColumn>

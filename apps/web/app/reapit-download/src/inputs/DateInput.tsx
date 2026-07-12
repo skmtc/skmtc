@@ -4,7 +4,7 @@ import { FieldValues, useFormContext } from 'react-hook-form'
 
 export const DateInput = <Model extends FieldValues, Key extends KeyPath<Model>>({
   fieldName,
-  fieldConfig,
+  fieldConfig
 }: ContextInputProps<Model, Key>) => {
   const { icon, label, placeholder } = fieldConfig
 

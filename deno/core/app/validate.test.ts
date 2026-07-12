@@ -37,19 +37,31 @@ Deno.test('checkProjectName - empty string', () => {
 
 // Character validation
 Deno.test('checkProjectName - uppercase letters not allowed', () => {
-  assertEquals(checkProjectName('MyProject'), 'Name must only contain lowercase letters, numbers and hyphens')
+  assertEquals(
+    checkProjectName('MyProject'),
+    'Name must only contain lowercase letters, numbers and hyphens'
+  )
 })
 
 Deno.test('checkProjectName - spaces not allowed', () => {
-  assertEquals(checkProjectName('my project'), 'Name must only contain lowercase letters, numbers and hyphens')
+  assertEquals(
+    checkProjectName('my project'),
+    'Name must only contain lowercase letters, numbers and hyphens'
+  )
 })
 
 Deno.test('checkProjectName - underscores not allowed', () => {
-  assertEquals(checkProjectName('my_project'), 'Name must only contain lowercase letters, numbers and hyphens')
+  assertEquals(
+    checkProjectName('my_project'),
+    'Name must only contain lowercase letters, numbers and hyphens'
+  )
 })
 
 Deno.test('checkProjectName - special characters not allowed', () => {
-  assertEquals(checkProjectName('my@project'), 'Name must only contain lowercase letters, numbers and hyphens')
+  assertEquals(
+    checkProjectName('my@project'),
+    'Name must only contain lowercase letters, numbers and hyphens'
+  )
 })
 
 // Hyphen position validation

@@ -172,9 +172,12 @@ export class TsConstructor {
   toString(): string {
     const prefix = toModifierPrefix([this.accessibility])
 
-    return withDescription(`${prefix}constructor${List.toParams(this.parameters)}${toBodyBlock(this.body)}`, {
-      description: this.description
-    })
+    return withDescription(
+      `${prefix}constructor${List.toParams(this.parameters)}${toBodyBlock(this.body)}`,
+      {
+        description: this.description
+      }
+    )
   }
 }
 

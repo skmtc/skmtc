@@ -15,9 +15,7 @@ const fixture: OpenAPIV3.Document = {
     '/users/{id}': {
       get: {
         operationId: 'getUser',
-        parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
-        ],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
         responses: {
           '200': {
             description: 'ok',

@@ -22,12 +22,12 @@
  * inside; they pass handles through {@link ParserAdapter} operations
  * that take care of the adapter-specific shape.
  */
-export type NodeHandle = unknown;
+export type NodeHandle = unknown
 
 /**
  * Parsed file handle. Same opacity story as {@link NodeHandle}.
  */
-export type ParsedFile = unknown;
+export type ParsedFile = unknown
 
 /**
  * Landmark name + AST path tuple. `landmark` is the top-level export
@@ -38,9 +38,9 @@ export type ParsedFile = unknown;
  * skip.
  */
 export type LandmarkLocation = {
-  landmark: string;
-  path: number[];
-};
+  landmark: string
+  path: number[]
+}
 
 /**
  * Adapter contract. Implementations stay pure — no I/O, no global
@@ -52,10 +52,10 @@ export interface ParserAdapter {
    * on the sidecar's `parser` field so re-anchor consumers can warn
    * on mismatch.
    */
-  readonly id: string;
+  readonly id: string
 
   /** Parse a source string. Throws on syntax errors. */
-  parse(filePath: string, source: string): ParsedFile;
+  parse(filePath: string, source: string): ParsedFile
 
   /**
    * Index every named top-level declaration — exported or not
@@ -65,14 +65,14 @@ export interface ParserAdapter {
    * carry module-level consts that spans live under (export-only
    * indexing stranded 7.4% of the reapit corpus's anchors).
    */
-  collectLandmarks(file: ParsedFile): Map<string, NodeHandle>;
+  collectLandmarks(file: ParsedFile): Map<string, NodeHandle>
 
   /**
    * Descend through children to the smallest AST node whose byte
    * range fully encloses `[from, to)`. Returns the file's root if
    * nothing more specific contains the range.
    */
-  smallestEnclosing(file: ParsedFile, from: number, to: number): NodeHandle;
+  smallestEnclosing(file: ParsedFile, from: number, to: number): NodeHandle
 
   /**
    * Walk up from `node` to the nearest landmark (by entry in the
@@ -82,10 +82,7 @@ export interface ParserAdapter {
    * If no landmark is found in the ancestor chain, returns
    * `{ landmark: '', path: [] }` — sentinel "outside any landmark".
    */
-  ascendToLandmark(
-    node: NodeHandle,
-    landmarks: Map<string, NodeHandle>,
-  ): LandmarkLocation;
+  ascendToLandmark(node: NodeHandle, landmarks: Map<string, NodeHandle>): LandmarkLocation
 
   /**
    * Inverse of {@link ascendToLandmark}: descend a recorded
@@ -96,9 +93,9 @@ export interface ParserAdapter {
    * name in the CURRENT parse, descend the recorded path, read the
    * node's span via {@link spanOf}.
    */
-  descendPath(landmark: NodeHandle, path: number[]): NodeHandle | undefined;
+  descendPath(landmark: NodeHandle, path: number[]): NodeHandle | undefined
 
   /** The `[start, end)` source range of a node (same units the
    *  adapter's parse produced — UTF-16 code units for oxc). */
-  spanOf(node: NodeHandle): { start: number; end: number };
+  spanOf(node: NodeHandle): { start: number; end: number }
 }

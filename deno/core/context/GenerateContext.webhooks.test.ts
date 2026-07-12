@@ -186,7 +186,7 @@ Deno.test('webhooks - toPreviewModule is paired with a WebhookSource', () => {
         toPreviewModule: ({ webhook }: { webhook: OasWebhook }) => ({
           name: `${webhook.name}Preview`,
           exportPath: `@/webhooks/${webhook.name}.generated.ts`
-        }),
+        })
       }
     }
   })

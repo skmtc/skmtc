@@ -144,15 +144,19 @@ Deno.test('OpenApiSchema - handles JSON content', async () => {
 
   try {
     const filePath = join(tempDir, 'openapi.json')
-    const jsonContents = JSON.stringify({
-      openapi: '3.0.0',
-      info: { title: 'Test API', version: '1.0.0' },
-      paths: {
-        '/users': {
-          get: { summary: 'Get users' }
+    const jsonContents = JSON.stringify(
+      {
+        openapi: '3.0.0',
+        info: { title: 'Test API', version: '1.0.0' },
+        paths: {
+          '/users': {
+            get: { summary: 'Get users' }
+          }
         }
-      }
-    }, null, 2)
+      },
+      null,
+      2
+    )
 
     await Deno.writeTextFile(filePath, jsonContents)
 

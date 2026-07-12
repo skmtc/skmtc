@@ -4,11 +4,7 @@ import { render } from 'ink'
 import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
-import {
-  failWithRecipe,
-  resolveInputMode,
-  resolveOutputFormat
-} from '@/lib/strict-mode.ts'
+import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { cloneHeadless, type CloneHeadlessResult } from '@/lib/clone-headless.ts'
 import { CorePinMismatchError } from '@/lib/generator.ts'
 
@@ -49,8 +45,7 @@ export const renderClone = async ({
       command: 'clone',
       arg: '<project>',
       usage: 'skmtc clone <project> --generator <id>... [--generator <id>...]',
-      example:
-        'skmtc clone my-api --generator @skmtc/gen-typescript --generator @skmtc/gen-zod',
+      example: 'skmtc clone my-api --generator @skmtc/gen-typescript --generator @skmtc/gen-zod',
       discover: 'ls .skmtc/  (list existing projects)'
     })
   }
@@ -63,10 +58,8 @@ export const renderClone = async ({
         command: 'clone',
         arg: '--generator',
         usage: 'skmtc clone <project> --generator <id> [--generator <id>...]',
-        example:
-          'skmtc clone my-api --generator @skmtc/gen-typescript --generator @skmtc/gen-zod',
-        discover:
-          'skmtc list <project>  (shows installed generators that can be cloned locally)'
+        example: 'skmtc clone my-api --generator @skmtc/gen-typescript --generator @skmtc/gen-zod',
+        discover: 'skmtc list <project>  (shows installed generators that can be cloned locally)'
       })
     }
 
@@ -132,9 +125,7 @@ export const printCloneResult = (
       return
     }
     case 'text': {
-      console.log(
-        `Cloned ${result.cloned.length} generator(s) into "${result.projectName}":`
-      )
+      console.log(`Cloned ${result.cloned.length} generator(s) into "${result.projectName}":`)
       for (const { moduleName, version } of result.cloned) {
         console.log(`  - ${moduleName}@${version}`)
       }

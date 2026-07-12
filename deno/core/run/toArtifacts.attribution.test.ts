@@ -64,7 +64,7 @@ const oasDoc: OpenAPIV3.Document = {
 
 const buildGenerators = <EnrichmentType = undefined>(): GeneratorsMapContainer<EnrichmentType> =>
   // deno-lint-ignore no-explicit-any
-  ({ '@test/gen-model': modelEntry } as any)
+  ({ '@test/gen-model': modelEntry }) as any
 
 Deno.test('toArtifacts - no attribution config → no sidecars / generation map in result', () => {
   const result = toArtifacts({
@@ -177,7 +177,7 @@ Deno.test('toArtifacts - generatorMeta lookup flows through to sidecar entries',
       postPass: {
         parser: oxcAdapter,
         schemaSrc: 'openapi.json',
-        generatorMeta: (genId) => ({
+        generatorMeta: genId => ({
           version: genId === '@test/gen-model' ? '1.2.3' : '',
           registry: { host: 'jsr.skmtc.dev', type: 'jsr-private' }
         })

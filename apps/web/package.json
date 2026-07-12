@@ -11,9 +11,6 @@
     "test": "vitest",
     "build-deployment-files": "tsx scripts/build-deployment-files.ts"
   },
-  "engines": {
-    "node": "22.x"
-  },
   "dependencies": {
     "@headlessui/react": "^2.1.8",
     "@heroicons/react": "^2.1.5",
@@ -89,6 +86,9 @@
     "tsx": "^4.19.2",
     "typescript": "5.7.2",
     "vitest": "^3.0.4"
+  },
+  "engines": {
+    "node": "22.x"
   },
   "packageManager": "yarn@4.6.0"
 }

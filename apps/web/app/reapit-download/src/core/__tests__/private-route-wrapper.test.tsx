@@ -11,21 +11,21 @@ jest.mock('@reapit/connect-session', () => ({
   useReapitConnect: jest.fn(() => ({
     connectSession: {
       loginIdentity: {
-        name: 'MOCK_NAME',
-      },
+        name: 'MOCK_NAME'
+      }
     },
-    connectInternalRedirect: '',
-  })),
+    connectInternalRedirect: ''
+  }))
 }))
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
-  redirect: jest.fn(),
+  redirect: jest.fn()
 }))
 
 const mockUseReapitConnect = useReapitConnect as jest.Mock
 const queryClient = new QueryClient()
 
-const createWrapper = (children) => {
+const createWrapper = children => {
   return (
     <QueryClientProvider client={queryClient}>
       <SnackProvider>
@@ -50,9 +50,9 @@ describe('PrivateRouteWrapper', () => {
         createWrapper(
           <PrivateRouteWrapper>
             <div />
-          </PrivateRouteWrapper>,
-        ),
-      ),
+          </PrivateRouteWrapper>
+        )
+      )
     ).toMatchSnapshot()
   })
 
@@ -63,9 +63,9 @@ describe('PrivateRouteWrapper', () => {
         createWrapper(
           <PrivateRouteWrapper>
             <div />
-          </PrivateRouteWrapper>,
-        ),
-      ),
+          </PrivateRouteWrapper>
+        )
+      )
     ).toMatchSnapshot()
   })
 
@@ -73,16 +73,16 @@ describe('PrivateRouteWrapper', () => {
     mockUseReapitConnect.mockReturnValueOnce({
       connectInternalRedirect: '/foo',
       connectSession: {
-        loginIdentity: {},
-      },
+        loginIdentity: {}
+      }
     })
 
     render(
       createWrapper(
         <PrivateRouteWrapper>
           <div />
-        </PrivateRouteWrapper>,
-      ),
+        </PrivateRouteWrapper>
+      )
     )
 
     expect(redirect).toHaveBeenCalledWith('/foo')

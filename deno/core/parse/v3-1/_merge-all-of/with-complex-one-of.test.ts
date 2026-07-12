@@ -1,210 +1,210 @@
-import type { OpenAPIV3 } from "openapi-types";
-import { mergeIntersection } from "./merge-intersection.ts";
-import { assertEquals } from "@std/assert/equals";
-import { mergeUnion } from "./merge-union.ts";
+import type { OpenAPIV3 } from 'openapi-types'
+import { mergeIntersection } from './merge-intersection.ts'
+import { assertEquals } from '@std/assert/equals'
+import { mergeUnion } from './merge-union.ts'
 
 const getRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
-  if (ref.$ref === "#/components/schemas/File") {
+  if (ref.$ref === '#/components/schemas/File') {
     return {
       oneOf: [
         {
-          type: "object",
-          required: ["content"],
+          type: 'object',
+          required: ['content'],
           properties: {
             content: {
-              type: "string",
+              type: 'string'
             },
             encoding: {
-              $ref: "#/components/schemas/Encoding",
-            },
-          },
+              $ref: '#/components/schemas/Encoding'
+            }
+          }
         },
         {
-          type: "object",
-          required: ["gitSha1"],
+          type: 'object',
+          required: ['gitSha1'],
           properties: {
             gitSha1: {
-              type: "string",
-            },
-          },
-        },
-      ],
-    };
+              type: 'string'
+            }
+          }
+        }
+      ]
+    }
   }
-  if (ref.$ref === "#/components/schemas/Encoding") {
+  if (ref.$ref === '#/components/schemas/Encoding') {
     return {
-      type: "string",
-      enum: ["utf-8", "base64"],
-    };
+      type: 'string',
+      enum: ['utf-8', 'base64']
+    }
   }
-  if (ref.$ref === "#/components/schemas/Symlink") {
+  if (ref.$ref === '#/components/schemas/Symlink') {
     return {
-      type: "object",
-      required: ["target"],
+      type: 'object',
+      required: ['target'],
       properties: {
         target: {
-          type: "string",
-        },
+          type: 'string'
+        }
       },
-      additionalProperties: false,
-    };
+      additionalProperties: false
+    }
   }
-  throw new Error(`Unknown ref: ${JSON.stringify(ref)}`);
-};
+  throw new Error(`Unknown ref: ${JSON.stringify(ref)}`)
+}
 
-Deno.test("mergeAllOf - complex oneOf", () => {
+Deno.test('mergeAllOf - complex oneOf', () => {
   const input: OpenAPIV3.SchemaObject = {
     allOf: [
       {
-        $ref: "#/components/schemas/File",
+        $ref: '#/components/schemas/File'
       },
       {
-        type: "object",
-        required: ["type"],
+        type: 'object',
+        required: ['type'],
         properties: {
           type: {
-            type: "string",
-            enum: ["file"],
-          },
-        },
-      },
-    ],
-  };
+            type: 'string',
+            enum: ['file']
+          }
+        }
+      }
+    ]
+  }
 
   const expected: OpenAPIV3.SchemaObject = {
     oneOf: [
       {
-        type: "object",
-        required: ["content", "type"],
+        type: 'object',
+        required: ['content', 'type'],
         properties: {
           type: {
-            type: "string",
-            enum: ["file"],
+            type: 'string',
+            enum: ['file']
           },
           content: {
-            type: "string",
+            type: 'string'
           },
           encoding: {
-            $ref: "#/components/schemas/Encoding",
-          },
-        },
+            $ref: '#/components/schemas/Encoding'
+          }
+        }
       },
       {
-        type: "object",
-        required: ["gitSha1", "type"],
+        type: 'object',
+        required: ['gitSha1', 'type'],
         properties: {
           type: {
-            type: "string",
-            enum: ["file"],
+            type: 'string',
+            enum: ['file']
           },
           gitSha1: {
-            type: "string",
-          },
-        },
-      },
-    ],
-  };
+            type: 'string'
+          }
+        }
+      }
+    ]
+  }
 
-  const result = mergeIntersection({ schema: input, getRef });
+  const result = mergeIntersection({ schema: input, getRef })
 
-  assertEquals(result, expected);
-});
+  assertEquals(result, expected)
+})
 
-Deno.test("mergeAllOf - even more complex oneOf", () => {
+Deno.test('mergeAllOf - even more complex oneOf', () => {
   const input: OpenAPIV3.SchemaObject = {
     oneOf: [
       {
         allOf: [
           {
-            $ref: "#/components/schemas/File",
+            $ref: '#/components/schemas/File'
           },
           {
-            type: "object",
-            required: ["type"],
+            type: 'object',
+            required: ['type'],
             properties: {
               type: {
-                type: "string",
-                enum: ["file"],
-              },
-            },
-          },
-        ],
+                type: 'string',
+                enum: ['file']
+              }
+            }
+          }
+        ]
       },
       {
         allOf: [
           {
-            $ref: "#/components/schemas/Symlink",
+            $ref: '#/components/schemas/Symlink'
           },
           {
-            type: "object",
-            required: ["type"],
+            type: 'object',
+            required: ['type'],
             properties: {
               type: {
-                type: "string",
-                enum: ["symlink"],
-              },
-            },
-          },
-        ],
-      },
+                type: 'string',
+                enum: ['symlink']
+              }
+            }
+          }
+        ]
+      }
     ],
     discriminator: {
-      propertyName: "type",
-    },
-  };
+      propertyName: 'type'
+    }
+  }
 
   const expected: OpenAPIV3.SchemaObject = {
     oneOf: [
       {
-        type: "object",
-        required: ["content", "type"],
+        type: 'object',
+        required: ['content', 'type'],
         properties: {
           content: {
-            type: "string",
+            type: 'string'
           },
           encoding: {
-            $ref: "#/components/schemas/Encoding",
+            $ref: '#/components/schemas/Encoding'
           },
           type: {
-            type: "string",
-            enum: ["file"],
-          },
-        },
+            type: 'string',
+            enum: ['file']
+          }
+        }
       },
       {
-        type: "object",
-        required: ["gitSha1", "type"],
+        type: 'object',
+        required: ['gitSha1', 'type'],
         properties: {
           gitSha1: {
-            type: "string",
+            type: 'string'
           },
           type: {
-            type: "string",
-            enum: ["file"],
-          },
-        },
+            type: 'string',
+            enum: ['file']
+          }
+        }
       },
       {
-        type: "object",
-        required: ["target", "type"],
+        type: 'object',
+        required: ['target', 'type'],
         properties: {
           target: {
-            type: "string",
+            type: 'string'
           },
           type: {
-            type: "string",
-            enum: ["symlink"],
-          },
+            type: 'string',
+            enum: ['symlink']
+          }
         },
-        additionalProperties: false,
-      },
+        additionalProperties: false
+      }
     ],
     discriminator: {
-      propertyName: "type",
-    },
-  };
+      propertyName: 'type'
+    }
+  }
 
-  const result = mergeUnion({ schema: input, getRef, groupType: "oneOf" });
+  const result = mergeUnion({ schema: input, getRef, groupType: 'oneOf' })
 
-  assertEquals(result, expected);
-});
+  assertEquals(result, expected)
+})

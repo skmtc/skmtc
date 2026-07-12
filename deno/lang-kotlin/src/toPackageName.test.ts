@@ -53,7 +53,10 @@ Deno.test('multi-package mode strips the owning rootPath before deriving', () =>
 Deno.test('multi-package mode picks the LONGEST matching rootPath', () => {
   const packages = [{ rootPath: 'sdk' }, { rootPath: 'sdk/core/src/main/kotlin' }]
 
-  assertEquals(toPackageName('sdk/core/src/main/kotlin/com/example/User.kt', packages), 'com.example')
+  assertEquals(
+    toPackageName('sdk/core/src/main/kotlin/com/example/User.kt', packages),
+    'com.example'
+  )
 })
 
 Deno.test('multi-package mode leaves non-matching and @/ paths on single-package behavior', () => {

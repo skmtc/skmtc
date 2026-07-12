@@ -1,17 +1,17 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { toRootPath } from './getRootPath';
+import * as fs from 'fs'
+import * as path from 'path'
+import { toRootPath } from './getRootPath'
 
 export const readPrettierFile = () => {
-  const rootPath = toRootPath();
+  const rootPath = toRootPath()
 
-  const prettierFilePath = path.resolve(rootPath, '.codesquared', '.prettierrc.json');
+  const prettierFilePath = path.resolve(rootPath, '.codesquared', '.prettierrc.json')
 
   if (!fs.existsSync(prettierFilePath)) {
-    return;
+    return
   }
 
-  const prettierString = fs.readFileSync(prettierFilePath, 'utf-8');
+  const prettierString = fs.readFileSync(prettierFilePath, 'utf-8')
 
-  return JSON.parse(prettierString);
-};
+  return JSON.parse(prettierString)
+}

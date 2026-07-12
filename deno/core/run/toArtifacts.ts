@@ -154,24 +154,16 @@ export const toArtifacts = ({
 } => {
   const context = new CoreContext({ spanId, logsPath, silent })
 
-  const {
-    artifacts,
-    files,
-    previews,
-    results,
-    parseIssues,
-    sidecars,
-    generationMap,
-    inspection
-  } = context.toArtifacts({
-    settings,
-    toGeneratorConfigMap,
-    document,
-    stackTrail,
-    silent,
-    attribution,
-    inspect
-  })
+  const { artifacts, files, previews, results, parseIssues, sidecars, generationMap, inspection } =
+    context.toArtifacts({
+      settings,
+      toGeneratorConfigMap,
+      document,
+      stackTrail,
+      silent,
+      attribution,
+      inspect
+    })
 
   const manifest: ManifestContent = {
     files,

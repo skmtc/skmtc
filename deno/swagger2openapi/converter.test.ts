@@ -34,7 +34,7 @@ Deno.test('convertObj - sets the target OpenAPI version and drops swagger fields
     host: 'example.com',
     basePath: '/v1',
     schemes: ['https'],
-    paths: {},
+    paths: {}
   })
   const doc = obj(openapi)
   assertEquals(doc.openapi, targetVersion)
@@ -54,9 +54,9 @@ Deno.test('convertObj - basic securityDefinitions become securitySchemes', () =>
         type: 'oauth2',
         flow: 'implicit',
         authorizationUrl: 'https://example.com/auth',
-        scopes: { 'read:pets': 'read your pets' },
-      },
-    },
+        scopes: { 'read:pets': 'read your pets' }
+      }
+    }
   })
   const components = obj(obj(openapi).components)
   const schemes = obj(components.securitySchemes)
@@ -69,7 +69,7 @@ Deno.test('convertObj - passes through an OpenAPI 3.x document unchanged in vers
   const { openapi } = convertObj({
     openapi: '3.0.1',
     info: { title: 't', version: '1' },
-    paths: {},
+    paths: {}
   })
   assertEquals(obj(openapi).openapi, '3.0.1')
 })
@@ -78,7 +78,7 @@ Deno.test('convertObj - throws on an unsupported version', () => {
   assertThrows(
     () => convertObj({ swagger: '1.2', info: { title: 't', version: '1' }, paths: {} }),
     ConvertError,
-    'Unsupported',
+    'Unsupported'
   )
 })
 
@@ -86,7 +86,7 @@ Deno.test('convertObj - non-patchable missing info throws; patch repairs it', ()
   assertThrows(
     () => convertObj({ swagger: '2.0', paths: {} }),
     ConvertError,
-    'info object is mandatory',
+    'info object is mandatory'
   )
   const { openapi } = convertObj({ swagger: '2.0', paths: {} }, { patch: true })
   assertExists(obj(openapi).info)
@@ -95,17 +95,20 @@ Deno.test('convertObj - non-patchable missing info throws; patch repairs it', ()
 Deno.test('convertObj - rejects options.resolve (use convertObjResolve instead)', () => {
   assertThrows(
     () =>
-      convertObj({ swagger: '2.0', info: { title: 't', version: '1' }, paths: {} }, {
-        resolve: true,
-      }),
+      convertObj(
+        { swagger: '2.0', info: { title: 't', version: '1' }, paths: {} },
+        {
+          resolve: true
+        }
+      ),
     ConvertError,
-    'convertObjResolve',
+    'convertObjResolve'
   )
 })
 
 Deno.test('convertStr - parses JSON and reports sourceYaml false', () => {
   const result = convertStr(
-    JSON.stringify({ swagger: '2.0', info: { title: 't', version: '1' }, paths: {} }),
+    JSON.stringify({ swagger: '2.0', info: { title: 't', version: '1' }, paths: {} })
   )
   assertEquals(result.sourceYaml, false)
   assertEquals(obj(result.openapi).openapi, targetVersion)
@@ -132,16 +135,18 @@ Deno.test('convertObj - body parameter becomes a requestBody', () => {
       '/pets': {
         post: {
           operationId: 'addPet',
-          parameters: [{
-            name: 'body',
-            in: 'body',
-            required: true,
-            schema: { type: 'object' },
-          }],
-          responses: { '200': { description: 'ok' } },
-        },
-      },
-    },
+          parameters: [
+            {
+              name: 'body',
+              in: 'body',
+              required: true,
+              schema: { type: 'object' }
+            }
+          ],
+          responses: { '200': { description: 'ok' } }
+        }
+      }
+    }
   })
   const post = obj(obj(obj(obj(openapi).paths)['/pets']).post)
   assertExists(post.requestBody)
@@ -177,10 +182,10 @@ Deno.test('convertObj - formData parameter migrates to urlencoded requestBody', 
         post: {
           operationId: 'upload',
           parameters: [{ name: 'field', in: 'formData', type: 'string' }],
-          responses: { '200': { description: 'ok' } },
-        },
-      },
-    },
+          responses: { '200': { description: 'ok' } }
+        }
+      }
+    }
   })
   const post = obj(obj(obj(obj(openapi).paths)['/upload']).post)
   const content = obj(obj(post.requestBody).content)

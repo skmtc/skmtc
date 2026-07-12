@@ -508,10 +508,10 @@ export class CoreContext {
     settings,
     toGeneratorConfigMap,
     stackTrail
-  }: Pick<
-    ToArtifactsArgs,
-    'document' | 'settings' | 'toGeneratorConfigMap' | 'stackTrail'
-  >): { subjects: SupportedSubjects; parseIssues: ParseIssue[] } {
+  }: Pick<ToArtifactsArgs, 'document' | 'settings' | 'toGeneratorConfigMap' | 'stackTrail'>): {
+    subjects: SupportedSubjects
+    parseIssues: ParseIssue[]
+  } {
     try {
       const phase = this.#setupParsePhase(document)
       this.#phase = phase
@@ -570,10 +570,10 @@ export class CoreContext {
     settings,
     toGeneratorConfigMap,
     stackTrail
-  }: Pick<
-    ToArtifactsArgs,
-    'document' | 'settings' | 'toGeneratorConfigMap' | 'stackTrail'
-  >): { enrichmentDefaults: EnrichmentDefaults; parseIssues: ParseIssue[] } {
+  }: Pick<ToArtifactsArgs, 'document' | 'settings' | 'toGeneratorConfigMap' | 'stackTrail'>): {
+    enrichmentDefaults: EnrichmentDefaults
+    parseIssues: ParseIssue[]
+  } {
     try {
       const phase = this.#setupParsePhase(document)
       this.#phase = phase

@@ -33,7 +33,11 @@ import { OasOperation } from '@/oas/operation/Operation.ts'
 import { withVariant } from '@/helpers/withVariant.ts'
 import * as v from 'valibot'
 import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
-import { createType, defineAndRegister, toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import {
+  createType,
+  defineAndRegister,
+  toTsOasOperationProjectionBase
+} from '@skmtc/lang-typescript'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 
@@ -134,7 +138,7 @@ Deno.test('variant-bound fallbackName - each variant produces a distinct body De
     logger: mockLogger,
     captureCurrentResult: () => {},
     // deno-lint-ignore no-explicit-any
-    toGeneratorConfigMap: () => ({ '@test/form': entry } as any)
+    toGeneratorConfigMap: () => ({ '@test/form': entry }) as any
   })
 
   const { files } = context.toArtifacts(new StackTrail(['test']))

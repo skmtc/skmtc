@@ -144,9 +144,7 @@ describe('readGenMap', () => {
 
   it('decodes anchor rows into entries with realigned paths', async () => {
     const { entries } = await readGenMap(root, project, 'src')
-    const petEntries = entries.filter(
-      (entry) => entry.artifactPath === 'src/models/pet.generated.ts'
-    )
+    const petEntries = entries.filter(entry => entry.artifactPath === 'src/models/pet.generated.ts')
     expect(petEntries).toEqual([
       {
         artifactPath: 'src/models/pet.generated.ts',
@@ -174,15 +172,13 @@ describe('readGenMap', () => {
     // fails wholesale and the pre-re-anchor behavior is preserved.
     const { entries, staleFiles } = await readGenMap(root, project, 'src')
     expect(staleFiles).toContain('src/models/bar.generated.ts')
-    expect(entries.some((entry) => entry.artifactPath.includes('bar'))).toBe(false)
+    expect(entries.some(entry => entry.artifactPath.includes('bar'))).toBe(false)
   })
 
   it('re-anchors a formatted (length-drifted) file instead of dropping it', async () => {
     const { entries, staleFiles } = await readGenMap(root, project, 'src')
     expect(staleFiles).not.toContain('src/models/fmt.generated.ts')
-    const fmtEntries = entries.filter(
-      (entry) => entry.artifactPath === 'src/models/fmt.generated.ts'
-    )
+    const fmtEntries = entries.filter(entry => entry.artifactPath === 'src/models/fmt.generated.ts')
     // The landmark-renamed-away anchor is dropped individually; the other
     // two resolve. Empty path → the landmark statement itself; path '0.1'
     // → the type literal, both located in the FORMATTED text.
@@ -197,13 +193,13 @@ describe('readGenMap', () => {
   it('keeps a drifted non-ASCII file stale (span-unit skew)', async () => {
     const { entries, staleFiles } = await readGenMap(root, project, 'src')
     expect(staleFiles).toContain('src/models/unicode.generated.ts')
-    expect(entries.some((entry) => entry.artifactPath.includes('unicode'))).toBe(false)
+    expect(entries.some(entry => entry.artifactPath.includes('unicode'))).toBe(false)
   })
 
   it('drops malformed anchor rows without shifting producer attribution', async () => {
     const { entries } = await readGenMap(root, project, 'src')
     const rowsEntries = entries.filter(
-      (entry) => entry.artifactPath === 'src/models/rows.generated.ts'
+      entry => entry.artifactPath === 'src/models/rows.generated.ts'
     )
     // The truncated and non-numeric rows are gone; the surviving second good
     // row still pairs with An[3] → N[1] ('CustomValue'), not a shifted index.
@@ -217,21 +213,19 @@ describe('readGenMap', () => {
 
   it('one sidecar wins per artifact, preferring the mirror path', async () => {
     const { entries, staleFiles } = await readGenMap(root, project, 'src')
-    const petEntries = entries.filter(
-      (entry) => entry.artifactPath === 'src/models/pet.generated.ts'
-    )
+    const petEntries = entries.filter(entry => entry.artifactPath === 'src/models/pet.generated.ts')
     // The impostor at `_stale-pet.skm.json` sorts FIRST lexicographically, so
     // only mirror preference keeps the canonical two-anchor sidecar's entries
     // (the impostor has one anchor at [5, 9]).
     expect(petEntries).toHaveLength(2)
-    expect(petEntries.some((entry) => entry.artifactSpan[0] === 5)).toBe(false)
+    expect(petEntries.some(entry => entry.artifactSpan[0] === 5)).toBe(false)
     // And no artifact is reported stale twice.
     expect(new Set(staleFiles).size).toBe(staleFiles.length)
   })
 
   it('drops sidecars not in the manifest and malformed sidecars', async () => {
     const { entries, staleFiles } = await readGenMap(root, project, 'src')
-    const paths = new Set(entries.map((entry) => entry.artifactPath))
+    const paths = new Set(entries.map(entry => entry.artifactPath))
     expect(paths.has('src/models/gone.generated.ts')).toBe(false)
     expect(staleFiles.includes('src/models/gone.generated.ts')).toBe(false)
   })

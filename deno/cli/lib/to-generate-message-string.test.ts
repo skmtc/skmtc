@@ -16,7 +16,10 @@ Deno.test('toGenerateMessageString - includes basePath in summary when provided'
     basePath: './web/app/src/generated'
   })
 
-  assertStringIncludes(message, 'Generated 1,234 tokens, 7 files under ./web/app/src/generated in 180ms.')
+  assertStringIncludes(
+    message,
+    'Generated 1,234 tokens, 7 files under ./web/app/src/generated in 180ms.'
+  )
 })
 
 Deno.test('toGenerateMessageString - omits "under …" when basePath is absent', () => {

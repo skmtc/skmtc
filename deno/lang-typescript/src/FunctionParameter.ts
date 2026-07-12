@@ -237,16 +237,16 @@ export class FunctionParameter {
           type: 'destructured' as const,
           typeDefinition: args.typeDefinition as DefinitionBase<TypeSystemObject>,
           required: args.required
-        };
+        }
       } else if (typeof args.name === 'string') {
         this.properties = {
           type: 'regular' as const,
           name: args.name,
           typeDefinition: args.typeDefinition as DefinitionBase<TypeSystemObject>,
           required: args.required ?? false
-        };
+        }
       } else {
-        throw new Error('Invalid FunctionParameter');
+        throw new Error('Invalid FunctionParameter')
       }
     } else {
       this.properties = { type: 'void' }
@@ -284,22 +284,22 @@ export class FunctionParameter {
   hasProperty(name: string): boolean {
     switch (this.properties.type) {
       case 'void':
-        return false;
+        return false
 
       case 'regular': {
-        const { typeDefinition } = this.properties;
-        const { value } = typeDefinition;
-        return Boolean(value.type === 'object' && value.objectProperties?.properties[name]);
+        const { typeDefinition } = this.properties
+        const { value } = typeDefinition
+        return Boolean(value.type === 'object' && value.objectProperties?.properties[name])
       }
 
       case 'destructured': {
-        const { typeDefinition } = this.properties;
-        return Boolean(typeDefinition.value.objectProperties?.properties[name]);
+        const { typeDefinition } = this.properties
+        return Boolean(typeDefinition.value.objectProperties?.properties[name])
       }
 
       default: {
-        const _exhaustive: never = this.properties;
-        throw new Error(`Unhandled properties type: ${(_exhaustive as any).type}`);
+        const _exhaustive: never = this.properties
+        throw new Error(`Unhandled properties type: ${(_exhaustive as any).type}`)
       }
     }
   }
@@ -338,21 +338,21 @@ export class FunctionParameter {
   toPropertyList(): List {
     switch (this.properties.type) {
       case 'void':
-        return List.toEmpty();
+        return List.toEmpty()
 
       case 'regular': {
-        const { name } = this.properties;
-        return List.toSingle(name);
+        const { name } = this.properties
+        return List.toSingle(name)
       }
 
       case 'destructured': {
-        const { typeDefinition } = this.properties;
-        return List.fromKeys(typeDefinition.value.objectProperties?.properties).toObjectPlain();
+        const { typeDefinition } = this.properties
+        return List.fromKeys(typeDefinition.value.objectProperties?.properties).toObjectPlain()
       }
 
       default: {
-        const _exhaustive: never = this.properties;
-        throw new Error(`Unhandled properties type: ${(_exhaustive as any).type}`);
+        const _exhaustive: never = this.properties
+        throw new Error(`Unhandled properties type: ${(_exhaustive as any).type}`)
       }
     }
   }
@@ -389,21 +389,21 @@ export class FunctionParameter {
   toInbound(): string {
     switch (this.properties.type) {
       case 'void':
-        return '';
+        return ''
 
       case 'regular': {
-        const { name } = this.properties;
-        return `${name}`;
+        const { name } = this.properties
+        return `${name}`
       }
 
       case 'destructured': {
-        const { typeDefinition } = this.properties;
-        return toDestructured(typeDefinition, { skipEmpty: this.skipEmpty }).toString();
+        const { typeDefinition } = this.properties
+        return toDestructured(typeDefinition, { skipEmpty: this.skipEmpty }).toString()
       }
 
       default: {
-        const _exhaustive: never = this.properties;
-        throw new Error(`Unhandled properties type: ${(_exhaustive as any).type}`);
+        const _exhaustive: never = this.properties
+        throw new Error(`Unhandled properties type: ${(_exhaustive as any).type}`)
       }
     }
   }
@@ -447,30 +447,30 @@ export class FunctionParameter {
   toString(): string {
     switch (this.properties.type) {
       case 'void':
-        return '';
+        return ''
 
       case 'regular': {
-        const { name, typeDefinition, required } = this.properties;
-        return `${name}${required ? '' : '?'}: ${typeDefinition.identifier}`;
+        const { name, typeDefinition, required } = this.properties
+        return `${name}${required ? '' : '?'}: ${typeDefinition.identifier}`
       }
 
       case 'destructured': {
-        const { typeDefinition } = this.properties;
+        const { typeDefinition } = this.properties
         if (this.skipEmpty) {
           if (isEmpty(typeDefinition.value.objectProperties?.properties ?? {})) {
-            return '';
+            return ''
           }
         }
 
         return List.toKeyValue(
           toDestructured(typeDefinition, { skipEmpty: this.skipEmpty }).toString(),
           typeDefinition.identifier
-        ).toString();
+        ).toString()
       }
 
       default: {
-        const _exhaustive: never = this.properties;
-        throw new Error(`Unhandled properties type: ${(_exhaustive as any).type}`);
+        const _exhaustive: never = this.properties
+        throw new Error(`Unhandled properties type: ${(_exhaustive as any).type}`)
       }
     }
   }

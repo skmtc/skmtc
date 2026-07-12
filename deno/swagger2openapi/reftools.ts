@@ -12,7 +12,7 @@ import {
   isJsonObject,
   type JsonContainer,
   type JsonObject,
-  type JsonValue,
+  type JsonValue
 } from './json.ts'
 
 /** Deep-clones a JSON value (equivalent to a `JSON.parse(JSON.stringify(...))` round-trip). */
@@ -48,11 +48,7 @@ export interface RecurseState {
 }
 
 /** Callback invoked for every own member encountered by {@link recurse}. */
-export type RecurseCallback = (
-  container: JsonContainer,
-  key: string,
-  state: RecurseState,
-) => void
+export type RecurseCallback = (container: JsonContainer, key: string, state: RecurseState) => void
 
 const defaultState = (): RecurseState => ({
   path: '#',
@@ -62,7 +58,7 @@ const defaultState = (): RecurseState => ({
   payload: {},
   seen: new WeakMap(),
   identity: false,
-  identityDetection: false,
+  identityDetection: false
 })
 
 /**
@@ -72,11 +68,12 @@ const defaultState = (): RecurseState => ({
 export const recurse = (
   object: JsonValue,
   state: Partial<RecurseState> | null,
-  callback: RecurseCallback,
+  callback: RecurseCallback
 ): void => {
-  const current: RecurseState = !state || !state.depth
-    ? { ...defaultState(), ...(state ?? {}) }
-    : { ...defaultState(), ...state }
+  const current: RecurseState =
+    !state || !state.depth
+      ? { ...defaultState(), ...(state ?? {}) }
+      : { ...defaultState(), ...state }
 
   if (object === null || typeof object !== 'object') return
 
@@ -86,9 +83,8 @@ export const recurse = (
     const member = getMember(container, key)
     current.key = key
     current.path = current.path + '/' + jpescape(key)
-    const seenPath = member !== null && typeof member === 'object'
-      ? current.seen.get(member)
-      : undefined
+    const seenPath =
+      member !== null && typeof member === 'object' ? current.seen.get(member) : undefined
     current.identityPath = seenPath
     current.identity = typeof seenPath !== 'undefined'
     callback(container, key, current)
@@ -96,16 +92,20 @@ export const recurse = (
       if (current.identityDetection && !isJsonArray(member)) {
         current.seen.set(member, current.path)
       }
-      recurse(member, {
-        parent: container,
-        path: current.path,
-        depth: current.depth ? current.depth + 1 : 1,
-        pkey: key,
-        payload: current.payload,
-        seen: current.seen,
-        identity: false,
-        identityDetection: current.identityDetection,
-      }, callback)
+      recurse(
+        member,
+        {
+          parent: container,
+          path: current.path,
+          depth: current.depth ? current.depth + 1 : 1,
+          pkey: key,
+          payload: current.payload,
+          seen: current.seen,
+          identity: false,
+          identityDetection: current.identityDetection
+        },
+        callback
+      )
     }
     current.path = originalPath
   }
@@ -120,7 +120,7 @@ export const recurse = (
 export const jptr = (
   root: JsonValue | undefined,
   pointer: string,
-  newValue?: JsonValue,
+  newValue?: JsonValue
 ): JsonValue | false | undefined => {
   if (typeof root === 'undefined') return false
   if (!pointer || pointer === '#') return typeof newValue !== 'undefined' ? newValue : root
@@ -140,8 +140,8 @@ export const jptr = (
     const setAndLast = typeof newValue !== 'undefined' && i === components.length - 1
 
     let index = parseInt(components[i], 10)
-    const numericOnArray = isJsonArray(current) && !isNaN(index) &&
-      index.toString() === components[i]
+    const numericOnArray =
+      isJsonArray(current) && !isNaN(index) && index.toString() === components[i]
     if (!numericOnArray) {
       index = isJsonArray(current) && components[i] === '-' ? -2 : -1
     } else {
@@ -149,8 +149,8 @@ export const jptr = (
       components[i] = i > 0 ? components[i - 1] : ''
     }
 
-    const ownsKey = isJsonObject(current) &&
-      Object.prototype.hasOwnProperty.call(current, components[i])
+    const ownsKey =
+      isJsonObject(current) && Object.prototype.hasOwnProperty.call(current, components[i])
 
     if (index !== -1 || ownsKey) {
       if (index >= 0 && isJsonArray(current)) {

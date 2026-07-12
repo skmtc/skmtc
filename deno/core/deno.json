@@ -66,8 +66,6 @@
     "noImplicitAny": true
   },
   "test": {
-    "exclude": [
-      ".scripts/build-node.ts"
-    ]
+    "exclude": [".scripts/build-node.ts"]
   }
 }

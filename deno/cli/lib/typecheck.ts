@@ -152,10 +152,8 @@ export const runTypecheck = async ({
 
   const searchStart = tsconfigOverride
     ? dirname(resolve(tsconfigOverride))
-    : basePathAbs ?? Deno.cwd()
-  const tsconfig = tsconfigOverride
-    ? resolve(tsconfigOverride)
-    : findTsconfig(searchStart)
+    : (basePathAbs ?? Deno.cwd())
+  const tsconfig = tsconfigOverride ? resolve(tsconfigOverride) : findTsconfig(searchStart)
   if (tsconfig === null) {
     return {
       type: 'no-tsconfig',

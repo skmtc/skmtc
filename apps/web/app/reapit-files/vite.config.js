@@ -5,40 +5,45 @@ import EnvironmentPlugin from 'vite-plugin-environment'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), wyw({
-    include: ['**/*.{ts,tsx}'],
-    babelOptions: {
-      presets: ['@babel/preset-typescript', '@babel/preset-react'],
-    },
-  }), EnvironmentPlugin({
-    APP_ENV: 'local',
-    CONNECT_CLIENT_ID: '',
-    CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
-    CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
-    PLATFORM_API_URL: 'https://platform.reapit.cloud',
-  }), {
-    name: 'post-build',
-    buildStart() {
-      console.log('SKMTC BUILD START')
-    },
-    buildEnd(error) {
-      console.log('SKMTC BUILD END', error)
-    },
-    closeBundle() {
-      console.log('SKMTC CLOSE BUNDLE')
+  plugins: [
+    react(),
+    wyw({
+      include: ['**/*.{ts,tsx}'],
+      babelOptions: {
+        presets: ['@babel/preset-typescript', '@babel/preset-react']
+      }
+    }),
+    EnvironmentPlugin({
+      APP_ENV: 'local',
+      CONNECT_CLIENT_ID: '',
+      CONNECT_USER_POOL_ID: 'eu-west-2_eQ7dreNzJ',
+      CONNECT_OAUTH_URL: 'https://connect.reapit.cloud',
+      PLATFORM_API_URL: 'https://platform.reapit.cloud'
+    }),
+    {
+      name: 'post-build',
+      buildStart() {
+        console.log('SKMTC BUILD START')
+      },
+      buildEnd(error) {
+        console.log('SKMTC BUILD END', error)
+      },
+      closeBundle() {
+        console.log('SKMTC CLOSE BUNDLE')
+      }
     }
-  }],
+  ],
   resolve: {
     alias: {
-      '@': '/src',
-    },
+      '@': '/src'
+    }
   },
   build: {
     outDir: 'build',
     emptyOutDir: false,
     rollupOptions: {
       onLog(level, log, handler) {
-        handler(level, log);
+        handler(level, log)
       }
     }
   }

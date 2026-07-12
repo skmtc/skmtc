@@ -1,15 +1,15 @@
 {
   "name": "foundations-app",
   "version": "0.0.1",
-  "type": "module",
   "private": true,
   "description": "Description",
+  "license": "MIT",
+  "author": "Author",
   "repository": {
     "type": "git",
     "url": "git+git@github.com:reapit/apps.git"
   },
-  "license": "MIT",
-  "author": "Author",
+  "type": "module",
   "main": "./src/index.ts",
   "scripts": {
     "start": "node src/server.js",

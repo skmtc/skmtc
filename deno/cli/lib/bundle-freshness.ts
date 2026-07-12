@@ -91,11 +91,7 @@ const readProjectImports = (projectPath: string): Imports => {
 const toGeneratorIds = (imports: Imports): string[] =>
   Object.keys(imports).filter(id => parseModuleName(id).packageName.startsWith('gen-'))
 
-export const checkBundleFreshness = ({
-  projectName
-}: {
-  projectName: string
-}): BundleFreshness => {
+export const checkBundleFreshness = ({ projectName }: { projectName: string }): BundleFreshness => {
   const projectPath = toProjectPath(projectName)
   const imports = readProjectImports(projectPath)
   const currentIds = toGeneratorIds(imports)
@@ -110,8 +106,7 @@ export const checkBundleFreshness = ({
     return {
       type: 'missing-worker',
       workerPath,
-      message:
-        `Expected ${workerPath} to exist but it does not. Run \`skmtc bundle ${projectName}\` to build it.`
+      message: `Expected ${workerPath} to exist but it does not. Run \`skmtc bundle ${projectName}\` to build it.`
     }
   }
 
@@ -130,10 +125,8 @@ export const checkBundleFreshness = ({
     }
   }
 
-  const addedHint =
-    added.length > 0 ? `add: ${added.join(', ')}` : ''
-  const removedHint =
-    removed.length > 0 ? `remove: ${removed.join(', ')}` : ''
+  const addedHint = added.length > 0 ? `add: ${added.join(', ')}` : ''
+  const removedHint = removed.length > 0 ? `remove: ${removed.join(', ')}` : ''
   return {
     type: 'stale',
     currentIds,

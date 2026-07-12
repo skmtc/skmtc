@@ -2,12 +2,12 @@ name: Test Coverage
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'deno/**'
       - '.github/workflows/coverage.yml'
   pull_request:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'deno/**'
 
@@ -23,28 +23,28 @@ jobs:
     # whenever it wasn't.
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup Deno
-      uses: denoland/setup-deno@v2
-      with:
-        deno-version: v2.x
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
-    - name: Verify docs sync (skill chain + discrepancy catalog)
-      working-directory: deno
-      run: deno task verify-docs
+      - name: Verify docs sync (skill chain + discrepancy catalog)
+        working-directory: deno
+        run: deno task verify-docs
 
-    - name: Run tests with coverage
-      working-directory: deno
-      run: deno task test:coverage
+      - name: Run tests with coverage
+        working-directory: deno
+        run: deno task test:coverage
 
-    - name: Generate LCOV report
-      working-directory: deno
-      run: deno task coverage:report
+      - name: Generate LCOV report
+        working-directory: deno
+        run: deno task coverage:report
 
-    - name: Upload coverage to Coveralls
-      uses: coverallsapp/github-action@v2
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: deno/coverage.lcov
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: deno/coverage.lcov

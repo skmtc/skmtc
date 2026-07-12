@@ -13,8 +13,8 @@ describe('combineAddress', () => {
       country: 'GB',
       geolocation: {
         latitude: 52.1284,
-        longitude: -0.507145,
-      },
+        longitude: -0.507145
+      }
     }
     const result = combineAddress(address)
     const expected = '65 123 Lindsey Close Great Denham Bedford Bedfordshire MK40 4GT GB'
@@ -32,8 +32,8 @@ describe('combineAddress', () => {
       country: 'GB',
       geolocation: {
         latitude: 52.1284,
-        longitude: -0.507145,
-      },
+        longitude: -0.507145
+      }
     }
     const result = combineAddress(address)
     const expected = '65 Lindsey Close Great Denham Bedford Bedfordshire MK40 4GT GB'
@@ -51,8 +51,8 @@ describe('combineAddress', () => {
       country: 'GB',
       geolocation: {
         latitude: 52.1284,
-        longitude: -0.507145,
-      },
+        longitude: -0.507145
+      }
     }
     const result = combineAddress(address)
     const expected = ' 123 Lindsey Close Great Denham Bedford Bedfordshire MK40 4GT GB'
@@ -70,8 +70,8 @@ describe('combineAddress', () => {
       country: 'GB',
       geolocation: {
         latitude: 52.1284,
-        longitude: -0.507145,
-      },
+        longitude: -0.507145
+      }
     }
     const result = combineAddress(address)
     const expected = '65 123 Great Denham Bedford Bedfordshire MK40 4GT GB'
@@ -89,8 +89,8 @@ describe('combineAddress', () => {
       country: 'GB',
       geolocation: {
         latitude: 52.1284,
-        longitude: -0.507145,
-      },
+        longitude: -0.507145
+      }
     }
     const result = combineAddress(address)
     const expected = '65 123 Lindsey Close Bedford Bedfordshire MK40 4GT GB'
@@ -108,8 +108,8 @@ describe('combineAddress', () => {
       country: 'GB',
       geolocation: {
         latitude: 52.1284,
-        longitude: -0.507145,
-      },
+        longitude: -0.507145
+      }
     }
     const result = combineAddress(address)
     const expected = '65 123 Lindsey Close Great Denham Bedfordshire MK40 4GT GB'
@@ -127,8 +127,8 @@ describe('combineAddress', () => {
       country: 'GB',
       geolocation: {
         latitude: 52.1284,
-        longitude: -0.507145,
-      },
+        longitude: -0.507145
+      }
     }
     const result = combineAddress(address)
     const expected = '65 123 Lindsey Close Great Denham Bedford MK40 4GT GB'
@@ -146,8 +146,8 @@ describe('combineAddress', () => {
       country: 'GB',
       geolocation: {
         latitude: 52.1284,
-        longitude: -0.507145,
-      },
+        longitude: -0.507145
+      }
     }
     const result = combineAddress(address)
     const expected = '65 123 Lindsey Close Great Denham Bedford Bedfordshire GB'
@@ -165,8 +165,8 @@ describe('combineAddress', () => {
       postcode: 'MK40 4GT',
       geolocation: {
         latitude: 52.1284,
-        longitude: -0.507145,
-      },
+        longitude: -0.507145
+      }
     }
     const result = combineAddress(address)
     const expected = '65 123 Lindsey Close Great Denham Bedford Bedfordshire MK40 4GT'

@@ -3,7 +3,7 @@ import * as v from 'valibot'
 
 /**
  * Data type for OpenAPI schema reference objects.
- * 
+ *
  * Represents $ref references to schema objects in OpenAPI documents,
  * allowing for component reuse and circular reference handling.
  */
@@ -33,7 +33,7 @@ export const oasSchemaRefData: v.GenericSchema<OasSchemaRefData> = v.object({
 
 /**
  * Data type for OpenAPI response reference objects.
- * 
+ *
  * Represents $ref references to response objects in OpenAPI documents,
  * enabling response definition reuse across multiple operations.
  */
@@ -63,7 +63,7 @@ export const oasResponseRefData: v.GenericSchema<OasResponseRefData> = v.object(
 
 /**
  * Data type for OpenAPI parameter reference objects.
- * 
+ *
  * Represents $ref references to parameter objects in OpenAPI documents,
  * allowing parameter definitions to be reused across operations.
  */
@@ -93,7 +93,7 @@ export const oasParameterRefData: v.GenericSchema<OasParameterRefData> = v.objec
 
 /**
  * Data type for OpenAPI example reference objects.
- * 
+ *
  * Represents $ref references to example objects in OpenAPI documents,
  * enabling example reuse across multiple schema definitions and operations.
  */
@@ -118,7 +118,7 @@ export const oasExampleRefData: v.GenericSchema<OasExampleRefData> = v.object({
 
 /**
  * Data type for OpenAPI request body reference objects.
- * 
+ *
  * Represents $ref references to request body objects in OpenAPI documents,
  * allowing request body definitions to be reused across operations.
  */
@@ -142,7 +142,7 @@ export const oasRequestBodyRefData: v.GenericSchema<OasRequestBodyRefData> = v.o
 })
 /**
  * Data type for OpenAPI header reference objects.
- * 
+ *
  * Represents $ref references to header objects in OpenAPI documents,
  * enabling header definition reuse across operations and responses.
  */
@@ -167,7 +167,7 @@ export const oasHeaderRefData: v.GenericSchema<OasHeaderRefData> = v.object({
 
 /**
  * Data type for OpenAPI security scheme reference objects.
- * 
+ *
  * Represents $ref references to security scheme objects in OpenAPI documents,
  * allowing security scheme definitions to be reused across operations.
  */
@@ -221,7 +221,7 @@ export const oasLinkRefData: v.GenericSchema<OasLinkRefData> = v.object({
 
 /**
  * Union type representing all possible OpenAPI reference data types.
- * 
+ *
  * Encompasses all supported reference types in the OpenAPI specification,
  * providing type-safe handling of references to various component types.
  */
@@ -238,7 +238,7 @@ export type OasRefData =
 
 /**
  * Valibot schema for validating any OpenAPI reference data.
- * 
+ *
  * Union schema that validates all supported reference types,
  * ensuring type safety across the entire reference system.
  */

@@ -23,22 +23,11 @@
   },
   "permissions": {
     "default": {
-      "read": [
-        "*"
-      ],
-      "write": [
-        "*"
-      ],
-      "env": [
-        "*"
-      ],
-      "sys": [
-        "homedir"
-      ],
-      "net": [
-        "jsr.io",
-        "skm.tc"
-      ]
+      "read": ["*"],
+      "write": ["*"],
+      "env": ["*"],
+      "sys": ["homedir"],
+      "net": ["jsr.io", "skm.tc"]
     }
   },
   "compilerOptions": {

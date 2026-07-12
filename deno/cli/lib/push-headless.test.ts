@@ -1,372 +1,345 @@
-import { assertEquals, assertStringIncludes } from "@std/assert";
-import { pushHeadless } from "@/lib/push-headless.ts";
-import { parseScopedName } from "@/lib/scoped-name.ts";
-import type { SkmtcRoot } from "@/lib/skmtc-root.ts";
+import { assertEquals, assertStringIncludes } from '@std/assert'
+import { pushHeadless } from '@/lib/push-headless.ts'
+import { parseScopedName } from '@/lib/scoped-name.ts'
+import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 
-const originalFetch = globalThis.fetch;
+const originalFetch = globalThis.fetch
 
 /** Build a fake SkmtcRoot whose single project carries the given client.json. */
 const makeRoot = (
-  contents: Record<string, unknown>,
+  contents: Record<string, unknown>
 ): {
-  skmtcRoot: SkmtcRoot;
-  wrote: () => boolean;
-  contentsNow: () => Record<string, unknown>;
+  skmtcRoot: SkmtcRoot
+  wrote: () => boolean
+  contentsNow: () => Record<string, unknown>
 } => {
-  let wrote = false;
+  let wrote = false
   const clientJson = {
     contents,
     write: () => {
-      wrote = true;
-      return Promise.resolve();
-    },
-  };
-  const project = { name: "my-api", clientJson };
-  const skmtcRoot = { findProject: () => project } as unknown as SkmtcRoot;
+      wrote = true
+      return Promise.resolve()
+    }
+  }
+  const project = { name: 'my-api', clientJson }
+  const skmtcRoot = { findProject: () => project } as unknown as SkmtcRoot
   return {
     skmtcRoot,
     wrote: () => wrote,
-    contentsNow: () => clientJson.contents,
-  };
-};
+    contentsNow: () => clientJson.contents
+  }
+}
 
 type StubArgs = {
   /** Status for GET …/config (the overwrite pre-check). */
-  getStatus?: number;
-  getBody?: unknown;
+  getStatus?: number
+  getBody?: unknown
   /** ProjectConfig returned from PUT …/client-config. */
-  putBody?: unknown;
-};
+  putBody?: unknown
+}
 
-const stubFetch = (
-  { getStatus = 200, getBody = {}, putBody = {} }: StubArgs,
-) => {
-  const calls: { method: string; url: string; body?: unknown }[] = [];
-  globalThis.fetch = (
-    input: string | URL | Request,
-    init?: RequestInit,
-  ): Promise<Response> => {
-    const url = String(input);
-    const method = init?.method ?? "GET";
-    calls.push({ method, url, body: init?.body });
-    if (method === "GET" && url.endsWith("/config")) {
-      return Promise.resolve(
-        new Response(JSON.stringify(getBody), { status: getStatus }),
-      );
+const stubFetch = ({ getStatus = 200, getBody = {}, putBody = {} }: StubArgs) => {
+  const calls: { method: string; url: string; body?: unknown }[] = []
+  globalThis.fetch = (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+    const url = String(input)
+    const method = init?.method ?? 'GET'
+    calls.push({ method, url, body: init?.body })
+    if (method === 'GET' && url.endsWith('/config')) {
+      return Promise.resolve(new Response(JSON.stringify(getBody), { status: getStatus }))
     }
-    if (method === "PUT" && url.endsWith("/client-config")) {
-      return Promise.resolve(
-        new Response(JSON.stringify(putBody), { status: 200 }),
-      );
+    if (method === 'PUT' && url.endsWith('/client-config')) {
+      return Promise.resolve(new Response(JSON.stringify(putBody), { status: 200 }))
     }
-    throw new Error(`unexpected fetch ${method} ${url}`);
-  };
-  return calls;
-};
+    throw new Error(`unexpected fetch ${method} ${url}`)
+  }
+  return calls
+}
 
-Deno.test("parseScopedName - parses @account/slug", () => {
-  assertEquals(parseScopedName("@acme/petstore"), {
-    account: "acme",
-    slug: "petstore",
-  });
-  assertEquals(parseScopedName("  @acme/petstore  "), {
-    account: "acme",
-    slug: "petstore",
-  });
-});
+Deno.test('parseScopedName - parses @account/slug', () => {
+  assertEquals(parseScopedName('@acme/petstore'), {
+    account: 'acme',
+    slug: 'petstore'
+  })
+  assertEquals(parseScopedName('  @acme/petstore  '), {
+    account: 'acme',
+    slug: 'petstore'
+  })
+})
 
-Deno.test("parseScopedName - rejects missing @, missing slug, and extra segments", () => {
-  assertEquals(parseScopedName("acme/petstore"), null);
-  assertEquals(parseScopedName("@acme"), null);
-  assertEquals(parseScopedName("@acme/"), null);
-  assertEquals(parseScopedName("@acme/a/b"), null);
-});
+Deno.test('parseScopedName - rejects missing @, missing slug, and extra segments', () => {
+  assertEquals(parseScopedName('acme/petstore'), null)
+  assertEquals(parseScopedName('@acme'), null)
+  assertEquals(parseScopedName('@acme/'), null)
+  assertEquals(parseScopedName('@acme/a/b'), null)
+})
 
-Deno.test("pushHeadless - fails before any network call when there is no destination", async () => {
-  let fetchCalls = 0;
+Deno.test('pushHeadless - fails before any network call when there is no destination', async () => {
+  let fetchCalls = 0
   globalThis.fetch = () => {
-    fetchCalls += 1;
-    throw new Error("network must not be touched without a destination");
-  };
-  const { skmtcRoot } = makeRoot({ settings: { basePath: "src" } });
+    fetchCalls += 1
+    throw new Error('network must not be touched without a destination')
+  }
+  const { skmtcRoot } = makeRoot({ settings: { basePath: 'src' } })
 
   try {
     const result = await pushHeadless({
       skmtcRoot,
-      projectName: "my-api",
-      token: "pat",
-      origin: "https://hub.test",
-    });
-    assertEquals(result.type, "failed");
-    if (result.type !== "failed") throw new Error("expected failed");
-    assertEquals(result.stage, "destination");
-    assertEquals(fetchCalls, 0);
+      projectName: 'my-api',
+      token: 'pat',
+      origin: 'https://hub.test'
+    })
+    assertEquals(result.type, 'failed')
+    if (result.type !== 'failed') throw new Error('expected failed')
+    assertEquals(result.stage, 'destination')
+    assertEquals(fetchCalls, 0)
   } finally {
-    globalThis.fetch = originalFetch;
+    globalThis.fetch = originalFetch
   }
-});
+})
 
-Deno.test("pushHeadless - PUTs the client.json settings to the resolved destination", async () => {
+Deno.test('pushHeadless - PUTs the client.json settings to the resolved destination', async () => {
   const calls = stubFetch({
     getBody: {
-      basePath: "src",
+      basePath: 'src',
       packages: [],
       include: [],
       skip: [],
-      enrichments: [],
+      enrichments: []
     },
     putBody: {
-      basePath: "src",
+      basePath: 'src',
       packages: [],
       include: [],
       skip: [],
       enrichments: [
         {
-          generator: "@x/gen-zod",
-          scope: "model",
-          refName: "Customer",
-          variant: "main",
-          values: {},
-        },
-      ],
-    },
-  });
+          generator: '@x/gen-zod',
+          scope: 'model',
+          refName: 'Customer',
+          variant: 'main',
+          values: {}
+        }
+      ]
+    }
+  })
   const { skmtcRoot } = makeRoot({
-    project: "@acme/petstore",
-    source: "./openapi.json",
+    project: '@acme/petstore',
+    source: './openapi.json',
     settings: {
-      basePath: "src",
-      enrichments: { "@x/gen-zod": { Customer: { main: {} } } },
-    },
-  });
+      basePath: 'src',
+      enrichments: { '@x/gen-zod': { Customer: { main: {} } } }
+    }
+  })
 
   try {
     const result = await pushHeadless({
       skmtcRoot,
-      projectName: "my-api",
-      token: "pat",
-      origin: "https://hub.test",
-    });
+      projectName: 'my-api',
+      token: 'pat',
+      origin: 'https://hub.test'
+    })
 
-    assertEquals(result.type, "pushed");
-    if (result.type !== "pushed") throw new Error("expected pushed");
-    assertEquals(result.project, { account: "acme", slug: "petstore" });
-    assertEquals(result.enrichmentCount, 1);
-    assertEquals(result.overwroteExistingConfig, false);
-    assertEquals(result.remoteWritten, false);
+    assertEquals(result.type, 'pushed')
+    if (result.type !== 'pushed') throw new Error('expected pushed')
+    assertEquals(result.project, { account: 'acme', slug: 'petstore' })
+    assertEquals(result.enrichmentCount, 1)
+    assertEquals(result.overwroteExistingConfig, false)
+    assertEquals(result.remoteWritten, false)
 
-    const put = calls.find((c) => c.method === "PUT");
-    assertEquals(
-      put?.url,
-      "https://hub.test/v1/projects/acme/petstore/client-config",
-    );
-    const body = JSON.parse(String(put?.body));
-    assertEquals(body.settings.basePath, "src");
+    const put = calls.find(c => c.method === 'PUT')
+    assertEquals(put?.url, 'https://hub.test/v1/projects/acme/petstore/client-config')
+    const body = JSON.parse(String(put?.body))
+    assertEquals(body.settings.basePath, 'src')
     assertEquals(body.settings.enrichments, {
-      "@x/gen-zod": { Customer: { main: {} } },
-    });
+      '@x/gen-zod': { Customer: { main: {} } }
+    })
   } finally {
-    globalThis.fetch = originalFetch;
+    globalThis.fetch = originalFetch
   }
-});
+})
 
 Deno.test('pushHeadless - a 404 on the destination is a clear "create it first" failure', async () => {
-  stubFetch({ getStatus: 404, getBody: { message: "not found" } });
+  stubFetch({ getStatus: 404, getBody: { message: 'not found' } })
   const { skmtcRoot } = makeRoot({
-    project: "@acme/petstore",
-    settings: { basePath: "src" },
-  });
+    project: '@acme/petstore',
+    settings: { basePath: 'src' }
+  })
 
   try {
     const result = await pushHeadless({
       skmtcRoot,
-      projectName: "my-api",
-      token: "pat",
-      origin: "https://hub.test",
-    });
-    assertEquals(result.type, "failed");
-    if (result.type !== "failed") throw new Error("expected failed");
-    assertEquals(result.stage, "push");
-    assertStringIncludes(result.reason, "create it in the web app first");
+      projectName: 'my-api',
+      token: 'pat',
+      origin: 'https://hub.test'
+    })
+    assertEquals(result.type, 'failed')
+    if (result.type !== 'failed') throw new Error('expected failed')
+    assertEquals(result.stage, 'push')
+    assertStringIncludes(result.reason, 'create it in the web app first')
   } finally {
-    globalThis.fetch = originalFetch;
+    globalThis.fetch = originalFetch
   }
-});
+})
 
-Deno.test("pushHeadless - aborts when the overwrite confirm declines", async () => {
-  let putCalled = false;
-  globalThis.fetch = (
-    input: string | URL | Request,
-    init?: RequestInit,
-  ): Promise<Response> => {
-    const url = String(input);
-    const method = init?.method ?? "GET";
-    if (method === "PUT") putCalled = true;
-    if (method === "GET" && url.endsWith("/config")) {
+Deno.test('pushHeadless - aborts when the overwrite confirm declines', async () => {
+  let putCalled = false
+  globalThis.fetch = (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+    const url = String(input)
+    const method = init?.method ?? 'GET'
+    if (method === 'PUT') putCalled = true
+    if (method === 'GET' && url.endsWith('/config')) {
       return Promise.resolve(
         new Response(
           JSON.stringify({
-            enrichments: [{ scope: "stack", variant: "main", values: {} }],
+            enrichments: [{ scope: 'stack', variant: 'main', values: {} }]
           }),
-          { status: 200 },
-        ),
-      );
+          { status: 200 }
+        )
+      )
     }
-    return Promise.resolve(new Response("{}", { status: 200 }));
-  };
+    return Promise.resolve(new Response('{}', { status: 200 }))
+  }
   const { skmtcRoot } = makeRoot({
-    project: "@acme/petstore",
-    settings: { basePath: "src" },
-  });
+    project: '@acme/petstore',
+    settings: { basePath: 'src' }
+  })
 
   try {
     const result = await pushHeadless({
       skmtcRoot,
-      projectName: "my-api",
-      token: "pat",
-      origin: "https://hub.test",
-      confirmOverwrite: () => Promise.resolve(false),
-    });
-    assertEquals(result.type, "aborted");
-    assertEquals(putCalled, false);
+      projectName: 'my-api',
+      token: 'pat',
+      origin: 'https://hub.test',
+      confirmOverwrite: () => Promise.resolve(false)
+    })
+    assertEquals(result.type, 'aborted')
+    assertEquals(putCalled, false)
   } finally {
-    globalThis.fetch = originalFetch;
+    globalThis.fetch = originalFetch
   }
-});
+})
 
-Deno.test("pushHeadless - an explicit --project is written back into client.json", async () => {
-  stubFetch({ getBody: {}, putBody: { enrichments: [] } });
+Deno.test('pushHeadless - an explicit --project is written back into client.json', async () => {
+  stubFetch({ getBody: {}, putBody: { enrichments: [] } })
   const { skmtcRoot, wrote, contentsNow } = makeRoot({
-    settings: { basePath: "src" },
-  });
+    settings: { basePath: 'src' }
+  })
 
   try {
     const result = await pushHeadless({
       skmtcRoot,
-      projectName: "my-api",
-      token: "pat",
-      origin: "https://hub.test",
-      projectFlag: "@org/x",
-    });
-    assertEquals(result.type, "pushed");
-    if (result.type !== "pushed") throw new Error("expected pushed");
-    assertEquals(result.project, { account: "org", slug: "x" });
-    assertEquals(result.remoteWritten, true);
-    assertEquals(wrote(), true);
-    assertEquals(contentsNow().project, "@org/x");
+      projectName: 'my-api',
+      token: 'pat',
+      origin: 'https://hub.test',
+      projectFlag: '@org/x'
+    })
+    assertEquals(result.type, 'pushed')
+    if (result.type !== 'pushed') throw new Error('expected pushed')
+    assertEquals(result.project, { account: 'org', slug: 'x' })
+    assertEquals(result.remoteWritten, true)
+    assertEquals(wrote(), true)
+    assertEquals(contentsNow().project, '@org/x')
   } finally {
-    globalThis.fetch = originalFetch;
+    globalThis.fetch = originalFetch
   }
-});
+})
 
-Deno.test("pushHeadless - --base-files-only pushes base files without the client-config PUT", async () => {
-  const calls: { method: string; url: string }[] = [];
-  globalThis.fetch = (
-    input: string | URL | Request,
-    init?: RequestInit,
-  ): Promise<Response> => {
-    const url = String(input);
-    const method = init?.method ?? "GET";
-    calls.push({ method, url });
-    if (method === "GET" && url.endsWith("/config")) {
+Deno.test('pushHeadless - --base-files-only pushes base files without the client-config PUT', async () => {
+  const calls: { method: string; url: string }[] = []
+  globalThis.fetch = (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+    const url = String(input)
+    const method = init?.method ?? 'GET'
+    calls.push({ method, url })
+    if (method === 'GET' && url.endsWith('/config')) {
       // The hub already holds config; base-files-only must NOT overwrite it.
       return Promise.resolve(
         new Response(
           JSON.stringify({
-            enrichments: [{ scope: "stack", variant: "main", values: {} }],
+            enrichments: [{ scope: 'stack', variant: 'main', values: {} }]
           }),
-          { status: 200 },
-        ),
-      );
+          { status: 200 }
+        )
+      )
     }
-    if (method === "PUT" && url.endsWith("/preview/base-files")) {
-      return Promise.resolve(new Response("{}", { status: 200 }));
+    if (method === 'PUT' && url.endsWith('/preview/base-files')) {
+      return Promise.resolve(new Response('{}', { status: 200 }))
     }
-    throw new Error(`unexpected fetch ${method} ${url}`);
-  };
+    throw new Error(`unexpected fetch ${method} ${url}`)
+  }
   const { skmtcRoot } = makeRoot({
-    project: "@acme/petstore",
-    settings: { basePath: "src" },
-  });
+    project: '@acme/petstore',
+    settings: { basePath: 'src' }
+  })
 
   try {
     const result = await pushHeadless({
       skmtcRoot,
-      projectName: "my-api",
-      token: "pat",
-      origin: "https://hub.test",
-      baseFiles: { "package.json": "{}", "src/app.tsx": "x" },
-      baseFilesOnly: true,
-    });
+      projectName: 'my-api',
+      token: 'pat',
+      origin: 'https://hub.test',
+      baseFiles: { 'package.json': '{}', 'src/app.tsx': 'x' },
+      baseFilesOnly: true
+    })
 
-    assertEquals(result.type, "pushed");
-    if (result.type !== "pushed") throw new Error("expected pushed");
-    assertEquals(result.baseFilesPushed, 2);
+    assertEquals(result.type, 'pushed')
+    if (result.type !== 'pushed') throw new Error('expected pushed')
+    assertEquals(result.baseFilesPushed, 2)
     // Config was left untouched.
-    assertEquals(result.overwroteExistingConfig, false);
+    assertEquals(result.overwroteExistingConfig, false)
     // enrichmentCount reflects the EXISTING hub config from the pre-check GET.
-    assertEquals(result.enrichmentCount, 1);
+    assertEquals(result.enrichmentCount, 1)
     // The client-config endpoint was never PUT.
     assertEquals(
-      calls.some((c) => c.method === "PUT" && c.url.endsWith("/client-config")),
-      false,
-    );
+      calls.some(c => c.method === 'PUT' && c.url.endsWith('/client-config')),
+      false
+    )
     assertEquals(
-      calls.some((c) =>
-        c.method === "PUT" && c.url.endsWith("/preview/base-files")
-      ),
-      true,
-    );
+      calls.some(c => c.method === 'PUT' && c.url.endsWith('/preview/base-files')),
+      true
+    )
   } finally {
-    globalThis.fetch = originalFetch;
+    globalThis.fetch = originalFetch
   }
-});
+})
 
-Deno.test("pushHeadless - --base-files also PUTs to /preview/base-files", async () => {
-  const calls: { method: string; url: string }[] = [];
-  globalThis.fetch = (
-    input: string | URL | Request,
-    init?: RequestInit,
-  ): Promise<Response> => {
-    const url = String(input);
-    const method = init?.method ?? "GET";
-    calls.push({ method, url });
-    if (method === "GET" && url.endsWith("/config")) {
-      return Promise.resolve(new Response("{}", { status: 200 }));
+Deno.test('pushHeadless - --base-files also PUTs to /preview/base-files', async () => {
+  const calls: { method: string; url: string }[] = []
+  globalThis.fetch = (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+    const url = String(input)
+    const method = init?.method ?? 'GET'
+    calls.push({ method, url })
+    if (method === 'GET' && url.endsWith('/config')) {
+      return Promise.resolve(new Response('{}', { status: 200 }))
     }
-    if (method === "PUT" && url.endsWith("/client-config")) {
-      return Promise.resolve(
-        new Response(JSON.stringify({ enrichments: [] }), { status: 200 }),
-      );
+    if (method === 'PUT' && url.endsWith('/client-config')) {
+      return Promise.resolve(new Response(JSON.stringify({ enrichments: [] }), { status: 200 }))
     }
-    if (method === "PUT" && url.endsWith("/preview/base-files")) {
-      return Promise.resolve(new Response("{}", { status: 200 }));
+    if (method === 'PUT' && url.endsWith('/preview/base-files')) {
+      return Promise.resolve(new Response('{}', { status: 200 }))
     }
-    throw new Error(`unexpected fetch ${method} ${url}`);
-  };
+    throw new Error(`unexpected fetch ${method} ${url}`)
+  }
   const { skmtcRoot } = makeRoot({
-    project: "@acme/petstore",
-    settings: { basePath: "src" },
-  });
+    project: '@acme/petstore',
+    settings: { basePath: 'src' }
+  })
 
   try {
     const result = await pushHeadless({
       skmtcRoot,
-      projectName: "my-api",
-      token: "pat",
-      origin: "https://hub.test",
-      baseFiles: { "package.json": "{}", "src/app.tsx": "x" },
-    });
-    assertEquals(result.type, "pushed");
-    if (result.type !== "pushed") throw new Error("expected pushed");
-    assertEquals(result.baseFilesPushed, 2);
+      projectName: 'my-api',
+      token: 'pat',
+      origin: 'https://hub.test',
+      baseFiles: { 'package.json': '{}', 'src/app.tsx': 'x' }
+    })
+    assertEquals(result.type, 'pushed')
+    if (result.type !== 'pushed') throw new Error('expected pushed')
+    assertEquals(result.baseFilesPushed, 2)
     assertEquals(
-      calls.some((c) =>
-        c.method === "PUT" && c.url.endsWith("/preview/base-files")
-      ),
-      true,
-    );
+      calls.some(c => c.method === 'PUT' && c.url.endsWith('/preview/base-files')),
+      true
+    )
   } finally {
-    globalThis.fetch = originalFetch;
+    globalThis.fetch = originalFetch
   }
-});
+})

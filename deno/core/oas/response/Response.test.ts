@@ -17,7 +17,7 @@ const createMockOptions = (): ToJsonSchemaOptions => ({
   resolve: false
 })
 
-Deno.test('OasResponse - Constructor', async (t) => {
+Deno.test('OasResponse - Constructor', async t => {
   await t.step('should create response with all fields', () => {
     const response = new OasResponse({
       description: 'Success response',
@@ -78,7 +78,7 @@ Deno.test('OasResponse - Constructor', async (t) => {
   })
 })
 
-Deno.test('OasResponse - Type Methods', async (t) => {
+Deno.test('OasResponse - Type Methods', async t => {
   await t.step('isRef() should always return false', () => {
     const response = new OasResponse({ description: 'Test' })
     assertEquals(response.isRef(), false)
@@ -95,7 +95,7 @@ Deno.test('OasResponse - Type Methods', async (t) => {
   })
 })
 
-Deno.test('OasResponse - toSchema()', async (t) => {
+Deno.test('OasResponse - toSchema()', async t => {
   await t.step('should extract schema for default application/json media type', () => {
     const schema = new OasString({ description: 'Test schema' })
     const response = new OasResponse({
@@ -195,7 +195,7 @@ Deno.test('OasResponse - toSchema()', async (t) => {
   })
 })
 
-Deno.test('OasResponse - toJsonSchema()', async (t) => {
+Deno.test('OasResponse - toJsonSchema()', async t => {
   const options = createMockOptions()
 
   await t.step('should convert response with all fields to JSON', () => {
@@ -318,7 +318,7 @@ Deno.test('OasResponse - toJsonSchema()', async (t) => {
   })
 })
 
-Deno.test('OasResponse - Integration Tests', async (t) => {
+Deno.test('OasResponse - Integration Tests', async t => {
   const options = createMockOptions()
 
   await t.step('should handle response with headers containing OasRef', () => {

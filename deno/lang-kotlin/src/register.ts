@@ -1,9 +1,5 @@
 import { normalize } from '@std/path/normalize'
-import type {
-  DefinitionBase,
-  GenerateContextType,
-  GeneratedValue
-} from '@skmtc/core'
+import type { DefinitionBase, GenerateContextType, GeneratedValue } from '@skmtc/core'
 import { KtFile } from './KtFile.ts'
 import { KtImport, type KtImportNameArg } from './KtImport.ts'
 import { KtDefinition } from './KtDefinition.ts'

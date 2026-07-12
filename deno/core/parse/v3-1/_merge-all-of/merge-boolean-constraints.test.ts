@@ -18,21 +18,18 @@ Deno.test('mergeBooleanConstraints - takes type from second schema when defined'
   assertEquals(result.type, 'boolean')
 })
 
-Deno.test(
-  'mergeBooleanConstraints - preserves type from first schema when second has no type',
-  () => {
-    const getRef: GetRefFn = () => ({})
+Deno.test('mergeBooleanConstraints - preserves type from first schema when second has no type', () => {
+  const getRef: GetRefFn = () => ({})
 
-    const a: OpenAPIV3.SchemaObject = {
-      type: 'boolean'
-    }
-
-    const b: OpenAPIV3.SchemaObject = {}
-
-    const result = mergeBooleanConstraints(a, b, getRef)
-    assertEquals(result.type, 'boolean')
+  const a: OpenAPIV3.SchemaObject = {
+    type: 'boolean'
   }
-)
+
+  const b: OpenAPIV3.SchemaObject = {}
+
+  const result = mergeBooleanConstraints(a, b, getRef)
+  assertEquals(result.type, 'boolean')
+})
 
 Deno.test('mergeBooleanConstraints - takes type from second schema when first has no type', () => {
   const getRef: GetRefFn = () => ({})

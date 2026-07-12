@@ -9,18 +9,19 @@ const minimalOpenApiDoc: OpenAPIV3.Document = {
   openapi: '3.0.0',
   info: {
     title: 'Test API',
-    version: '1.0.0',
+    version: '1.0.0'
   },
-  paths: {},
+  paths: {}
 }
 
 // Simple generator map that returns empty results
 // Using generic function to match the expected signature
-const createEmptyGeneratorMap = <EnrichmentType = undefined>(): GeneratorsMapContainer<EnrichmentType> =>
-  ({} as GeneratorsMapContainer<EnrichmentType>)
+const createEmptyGeneratorMap = <
+  EnrichmentType = undefined
+>(): GeneratorsMapContainer<EnrichmentType> => ({}) as GeneratorsMapContainer<EnrichmentType>
 
-Deno.test('toArtifacts', async (t) => {
-  await t.step('basic pipeline execution', async (t) => {
+Deno.test('toArtifacts', async t => {
+  await t.step('basic pipeline execution', async t => {
     await t.step('should execute pipeline with minimal OpenAPI document', () => {
       const stackTrail = new StackTrail(['TEST'])
       const startAt = Date.now()
@@ -33,7 +34,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt,
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertExists(result)
@@ -51,7 +52,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertEquals(typeof result.artifacts, 'object')
@@ -67,7 +68,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       const manifest = result.manifest
@@ -92,7 +93,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertEquals(typeof result.manifest.files, 'object')
@@ -101,7 +102,7 @@ Deno.test('toArtifacts', async (t) => {
     })
   })
 
-  await t.step('settings and configuration', async (t) => {
+  await t.step('settings and configuration', async t => {
     await t.step('should handle undefined settings', () => {
       const stackTrail = new StackTrail(['TEST'])
       const result = toArtifacts({
@@ -112,7 +113,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertExists(result.artifacts)
@@ -126,12 +127,12 @@ Deno.test('toArtifacts', async (t) => {
         spanId: 'test-span',
         document: { type: 'oas', value: minimalOpenApiDoc },
         settings: {
-          basePath: './generated',
+          basePath: './generated'
         },
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertExists(result.artifacts)
@@ -150,7 +151,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertExists(silentResult.artifacts)
@@ -164,7 +165,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: false,
-        stackTrail,
+        stackTrail
       })
 
       assertExists(verboseResult.artifacts)
@@ -174,7 +175,7 @@ Deno.test('toArtifacts', async (t) => {
     // and would create actual files. This is tested in integration tests.
   })
 
-  await t.step('manifest metadata', async (t) => {
+  await t.step('manifest metadata', async t => {
     await t.step('should include traceId in manifest', () => {
       const stackTrail = new StackTrail(['TEST'])
       const traceId = 'custom-trace-id-12345'
@@ -187,7 +188,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertEquals(result.manifest.traceId, traceId)
@@ -205,7 +206,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertEquals(result.manifest.spanId, spanId)
@@ -223,7 +224,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt,
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertEquals(result.manifest.startAt, startAt)
@@ -241,7 +242,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt,
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertExists(result.manifest.endAt)
@@ -261,7 +262,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertExists(result.manifest.deploymentId)
@@ -279,7 +280,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       // region is either string or undefined depending on env
@@ -288,14 +289,14 @@ Deno.test('toArtifacts', async (t) => {
     })
   })
 
-  await t.step('OpenAPI document variations', async (t) => {
+  await t.step('OpenAPI document variations', async t => {
     await t.step('should handle OpenAPI doc with paths', () => {
       const stackTrail = new StackTrail(['TEST'])
       const docWithPaths: OpenAPIV3.Document = {
         openapi: '3.0.0',
         info: {
           title: 'Test API with Paths',
-          version: '1.0.0',
+          version: '1.0.0'
         },
         paths: {
           '/users': {
@@ -303,12 +304,12 @@ Deno.test('toArtifacts', async (t) => {
               summary: 'Get users',
               responses: {
                 '200': {
-                  description: 'Success',
-                },
-              },
-            },
-          },
-        },
+                  description: 'Success'
+                }
+              }
+            }
+          }
+        }
       }
 
       const result = toArtifacts({
@@ -319,7 +320,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertExists(result.artifacts)
@@ -332,7 +333,7 @@ Deno.test('toArtifacts', async (t) => {
         openapi: '3.0.0',
         info: {
           title: 'Test API with Components',
-          version: '1.0.0',
+          version: '1.0.0'
         },
         paths: {},
         components: {
@@ -341,11 +342,11 @@ Deno.test('toArtifacts', async (t) => {
               type: 'object',
               properties: {
                 id: { type: 'integer' },
-                name: { type: 'string' },
-              },
-            },
-          },
-        },
+                name: { type: 'string' }
+              }
+            }
+          }
+        }
       }
 
       const result = toArtifacts({
@@ -356,7 +357,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertExists(result.artifacts)
@@ -369,15 +370,15 @@ Deno.test('toArtifacts', async (t) => {
         openapi: '3.0.0',
         info: {
           title: 'Test API with Servers',
-          version: '1.0.0',
+          version: '1.0.0'
         },
         paths: {},
         servers: [
           {
             url: 'https://api.example.com/v1',
-            description: 'Production server',
-          },
-        ],
+            description: 'Production server'
+          }
+        ]
       }
 
       const result = toArtifacts({
@@ -388,7 +389,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertExists(result.artifacts)
@@ -396,7 +397,7 @@ Deno.test('toArtifacts', async (t) => {
     })
   })
 
-  await t.step('stack trail handling', async (t) => {
+  await t.step('stack trail handling', async t => {
     await t.step('should accept stack trail with single element', () => {
       const stackTrail = new StackTrail(['ROOT'])
 
@@ -408,7 +409,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertExists(result.artifacts)
@@ -426,7 +427,7 @@ Deno.test('toArtifacts', async (t) => {
         toGeneratorConfigMap: createEmptyGeneratorMap,
         startAt: Date.now(),
         silent: true,
-        stackTrail,
+        stackTrail
       })
 
       assertExists(result.artifacts)

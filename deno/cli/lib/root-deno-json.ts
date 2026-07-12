@@ -56,11 +56,7 @@ export class RootDenoJson {
 
     const contents = await Deno.readTextFile(path)
 
-    const parsed = parseOrExplain(
-      rootDenoJson,
-      JSON.parse(contents),
-      `deno.json at ${path}`
-    )
+    const parsed = parseOrExplain(rootDenoJson, JSON.parse(contents), `deno.json at ${path}`)
     const denoJson = new RootDenoJson({ projectName, contents: parsed })
 
     manager.cleanupActions.push(async () => await denoJson.write())

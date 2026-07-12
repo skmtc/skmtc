@@ -48,9 +48,7 @@ export const bundleHeadless = async ({
   // non-existent path — passing it here false-negatives on every
   // successful bundle.
   if (!(await exists(toBundleFsPath(project.toPath()), { isFile: true }))) {
-    throw new Error(
-      `bundle.js was expected at ${bundlePath} but wasn't written`
-    )
+    throw new Error(`bundle.js was expected at ${bundlePath} but wasn't written`)
   }
 
   return {

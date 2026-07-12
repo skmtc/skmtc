@@ -278,16 +278,15 @@ Deno.test('GenerateContext - Artifact Generation', async t => {
     })
 
     // Override toGeneratorConfigMap to return a test generator
-    context.toGeneratorConfigMap = () =>
-      ({
-        generator1: {
-          id: 'generator1',
-          type: 'model',
-          // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
-          toEnrichmentSchema: () => emptyEnrichmentSchema,
-          transform: () => {}
-        }
-      })
+    context.toGeneratorConfigMap = () => ({
+      generator1: {
+        id: 'generator1',
+        type: 'model',
+        // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+        toEnrichmentSchema: () => emptyEnrichmentSchema,
+        transform: () => {}
+      }
+    })
 
     const stackTrail = new StackTrail(['test'])
     context.toArtifacts(stackTrail)
@@ -499,17 +498,16 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
     const { context } = createTestContext()
     const transform = spy(() => undefined)
 
-    context.toGeneratorConfigMap = () =>
-      ({
-        'http-gen': {
-          id: 'http-gen',
-          type: 'oasOperation',
-          // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
-          toEnrichmentSchema: () => emptyEnrichmentSchema,
-          transform,
-          isSupported: () => true
-        }
-      })
+    context.toGeneratorConfigMap = () => ({
+      'http-gen': {
+        id: 'http-gen',
+        type: 'oasOperation',
+        // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+        toEnrichmentSchema: () => emptyEnrichmentSchema,
+        transform,
+        isSupported: () => true
+      }
+    })
 
     context.toArtifacts(new StackTrail(['test']))
     // Operations array on the OAS doc is empty in createTestContext, so
@@ -528,17 +526,16 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
     const { context } = createGqlContext([op])
     const transform = spy(() => undefined)
 
-    context.toGeneratorConfigMap = () =>
-      ({
-        'gql-gen': {
-          id: 'gql-gen',
-          type: 'gqlOperation',
-          // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
-          toEnrichmentSchema: () => emptyEnrichmentSchema,
-          transform,
-          isSupported: () => true
-        }
-      })
+    context.toGeneratorConfigMap = () => ({
+      'gql-gen': {
+        id: 'gql-gen',
+        type: 'gqlOperation',
+        // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+        toEnrichmentSchema: () => emptyEnrichmentSchema,
+        transform,
+        isSupported: () => true
+      }
+    })
 
     context.toArtifacts(new StackTrail(['test']))
     assertSpyCalls(transform, 1)
@@ -554,17 +551,16 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
     const { context } = createGqlContext([op])
     const transform = spy(() => undefined)
 
-    context.toGeneratorConfigMap = () =>
-      ({
-        'http-gen': {
-          id: 'http-gen',
-          type: 'oasOperation',
-          // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
-          toEnrichmentSchema: () => emptyEnrichmentSchema,
-          transform,
-          isSupported: () => true
-        }
-      })
+    context.toGeneratorConfigMap = () => ({
+      'http-gen': {
+        id: 'http-gen',
+        type: 'oasOperation',
+        // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+        toEnrichmentSchema: () => emptyEnrichmentSchema,
+        transform,
+        isSupported: () => true
+      }
+    })
 
     context.toArtifacts(new StackTrail(['test']))
     assertSpyCalls(transform, 0)
@@ -574,17 +570,16 @@ Deno.test('GenerateContext - protocol-routed operation dispatch', async t => {
     const { context } = createTestContext()
     const transform = spy(() => undefined)
 
-    context.toGeneratorConfigMap = () =>
-      ({
-        'gql-gen': {
-          id: 'gql-gen',
-          type: 'gqlOperation',
-          // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
-          toEnrichmentSchema: () => emptyEnrichmentSchema,
-          transform,
-          isSupported: () => true
-        }
-      })
+    context.toGeneratorConfigMap = () => ({
+      'gql-gen': {
+        id: 'gql-gen',
+        type: 'gqlOperation',
+        // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+        toEnrichmentSchema: () => emptyEnrichmentSchema,
+        transform,
+        isSupported: () => true
+      }
+    })
 
     context.toArtifacts(new StackTrail(['test']))
     assertSpyCalls(transform, 0)
@@ -616,16 +611,15 @@ Deno.test('GenerateContext - model dispatch is protocol-neutral', async t => {
 
     const transform = spy(() => undefined)
 
-    context.toGeneratorConfigMap = () =>
-      ({
-        'model-gen': {
-          id: 'model-gen',
-          type: 'model',
-          // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
-          toEnrichmentSchema: () => emptyEnrichmentSchema,
-          transform
-        }
-      })
+    context.toGeneratorConfigMap = () => ({
+      'model-gen': {
+        id: 'model-gen',
+        type: 'model',
+        // @ts-expect-error a concrete-E config can't satisfy toGeneratorConfigMap's generic <E>() field (NEXT #5)
+        toEnrichmentSchema: () => emptyEnrichmentSchema,
+        transform
+      }
+    })
 
     context.toArtifacts(new StackTrail(['test']))
     assertSpyCalls(transform, 1)

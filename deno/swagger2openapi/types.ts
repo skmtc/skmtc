@@ -23,7 +23,7 @@ export type ExternalHandler = (
   base: string,
   pointer: string,
   fragment: string,
-  options: ResolveOptions,
+  options: ResolveOptions
 ) => Promise<JsonValue>
 
 /** Options governing external `$ref` resolution, shared by converter and validator. */

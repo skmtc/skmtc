@@ -33,7 +33,9 @@ export type BooleanFields<Nullable extends boolean | undefined> = {
   /** Whether the boolean is deprecated */
   deprecated?: boolean
 }
-export class OasBoolean<Nullable extends boolean | undefined = boolean | undefined> extends OasBase {
+export class OasBoolean<
+  Nullable extends boolean | undefined = boolean | undefined
+> extends OasBase {
   /**
    * Object is part the 'schema' set which is used
    * to define data types in an OpenAPI document.

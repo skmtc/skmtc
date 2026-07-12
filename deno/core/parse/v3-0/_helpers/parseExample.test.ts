@@ -7,7 +7,7 @@ import type { ParseContextType } from '@/context/parseTypes.ts'
 
 const isString = (value: unknown): value is string => typeof value === 'string'
 
-Deno.test('parseExample', async (t) => {
+Deno.test('parseExample', async t => {
   await t.step('returns undefined when value is undefined', () => {
     const stackTrail = new StackTrail(['TEST'])
 
@@ -17,8 +17,8 @@ Deno.test('parseExample', async (t) => {
       nullable: false,
       parent: {},
       check: isString,
-      toMessage: (item) => `Invalid: ${item}`,
-      context: mockParseContext,
+      toMessage: item => `Invalid: ${item}`,
+      context: mockParseContext
     })
 
     assertEquals(result, undefined)
@@ -33,14 +33,14 @@ Deno.test('parseExample', async (t) => {
       nullable: false,
       parent: {},
       check: isString,
-      toMessage: (item) => `Invalid: ${item}`,
-      context: mockParseContext,
+      toMessage: item => `Invalid: ${item}`,
+      context: mockParseContext
     })
 
     assertEquals(result, 'hello')
   })
 
-  await t.step('nullable handling', async (t) => {
+  await t.step('nullable handling', async t => {
     await t.step('keeps null when nullable is true', () => {
       const stackTrail = new StackTrail(['TEST'])
       const contextSpy = spy(mockParseContext, 'logIssue')
@@ -51,8 +51,8 @@ Deno.test('parseExample', async (t) => {
         nullable: true,
         parent: {},
         check: isString,
-        toMessage: (item) => `Invalid: ${item}`,
-        context: mockParseContext as ParseContextType,
+        toMessage: item => `Invalid: ${item}`,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(result, null)
@@ -72,21 +72,23 @@ Deno.test('parseExample', async (t) => {
         nullable: false,
         parent,
         check: isString,
-        toMessage: (item) => `Removed invalid example. Expected "string", got: ${item}`,
-        context: mockParseContext as ParseContextType,
+        toMessage: item => `Removed invalid example. Expected "string", got: ${item}`,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(result, undefined)
       assertSpyCalls(contextSpy, 1)
       assertSpyCall(contextSpy, 0, {
-        args: [{
-          key: 'example',
-          level: 'warning',
-          message: 'Removed invalid example. Expected "string", got: null',
-          parent,
-          stackTrail,
-          type: 'INVALID_EXAMPLE',
-        }],
+        args: [
+          {
+            key: 'example',
+            level: 'warning',
+            message: 'Removed invalid example. Expected "string", got: null',
+            parent,
+            stackTrail,
+            type: 'INVALID_EXAMPLE'
+          }
+        ]
       })
 
       contextSpy.restore()
@@ -102,8 +104,8 @@ Deno.test('parseExample', async (t) => {
         nullable: undefined,
         parent: {},
         check: isString,
-        toMessage: (item) => `Invalid: ${item}`,
-        context: mockParseContext as ParseContextType,
+        toMessage: item => `Invalid: ${item}`,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(result, undefined)
@@ -113,7 +115,7 @@ Deno.test('parseExample', async (t) => {
     })
   })
 
-  await t.step('invalid value handling', async (t) => {
+  await t.step('invalid value handling', async t => {
     await t.step('rejects a wrong-typed value and logs INVALID_EXAMPLE', () => {
       const stackTrail = new StackTrail(['TEST'])
       const parent = {}
@@ -125,21 +127,23 @@ Deno.test('parseExample', async (t) => {
         nullable: false,
         parent,
         check: isString,
-        toMessage: (item) => `Removed invalid example. Expected "string", got: ${item}`,
-        context: mockParseContext as ParseContextType,
+        toMessage: item => `Removed invalid example. Expected "string", got: ${item}`,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(result, undefined)
       assertSpyCalls(contextSpy, 1)
       assertSpyCall(contextSpy, 0, {
-        args: [{
-          key: 'example',
-          level: 'warning',
-          message: 'Removed invalid example. Expected "string", got: 456',
-          parent,
-          stackTrail,
-          type: 'INVALID_EXAMPLE',
-        }],
+        args: [
+          {
+            key: 'example',
+            level: 'warning',
+            message: 'Removed invalid example. Expected "string", got: 456',
+            parent,
+            stackTrail,
+            type: 'INVALID_EXAMPLE'
+          }
+        ]
       })
 
       contextSpy.restore()

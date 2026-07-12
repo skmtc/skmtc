@@ -14,38 +14,38 @@ type CollatedExampleArgs = {
 
 /**
  * Recursively collates and builds example values from OpenAPI schemas.
- * 
+ *
  * This function traverses OpenAPI schema structures and generates comprehensive
  * example values based on the schema definitions and any explicit examples provided.
  * It handles complex nested structures including objects, arrays, unions, and
  * references while preventing infinite recursion through depth limiting.
- * 
+ *
  * The function prioritizes explicit examples when available and falls back to
  * generating examples from nested schemas. It's particularly useful for creating
  * realistic test data, API documentation examples, and mock responses.
- * 
+ *
  * @param args - Configuration for example collation
  * @param args.objectSchema - The schema to extract examples from
  * @param args.depth - Current recursion depth (prevents infinite loops)
  * @returns Collated example value matching the schema structure, or undefined if no examples
- * 
+ *
  * @throws {Error} When recursion depth exceeds 15 levels (prevents stack overflow)
- * 
+ *
  * @example Basic schema examples
  * ```typescript
  * import { collateExamples } from '@skmtc/core';
- * 
+ *
  * // String schema with example
  * const stringSchema = new OasString({ example: 'john.doe@example.com' });
  * const example = collateExamples({ objectSchema: stringSchema, depth: 0 });
  * console.log(example); // 'john.doe@example.com'
- * 
+ *
  * // Number schema with example
  * const numberSchema = new OasNumber({ example: 42 });
  * const numExample = collateExamples({ objectSchema: numberSchema, depth: 0 });
  * console.log(numExample); // 42
  * ```
- * 
+ *
  * @example Object schema examples
  * ```typescript
  * // Object schema with nested properties
@@ -57,7 +57,7 @@ type CollatedExampleArgs = {
  *     age: new OasInteger({ example: 30 })
  *   }
  * });
- * 
+ *
  * const userExample = collateExamples({ objectSchema: userSchema, depth: 0 });
  * console.log(userExample);
  * // {
@@ -67,7 +67,7 @@ type CollatedExampleArgs = {
  * //   age: 30
  * // }
  * ```
- * 
+ *
  * @example Array schema examples
  * ```typescript
  * // Array of objects
@@ -79,7 +79,7 @@ type CollatedExampleArgs = {
  *     }
  *   })
  * });
- * 
+ *
  * const arrayExample = collateExamples({ objectSchema: usersArraySchema, depth: 0 });
  * console.log(arrayExample);
  * // [
@@ -89,7 +89,7 @@ type CollatedExampleArgs = {
  * //   }
  * // ]
  * ```
- * 
+ *
  * @example Union schema examples
  * ```typescript
  * // Union of string and number
@@ -99,11 +99,11 @@ type CollatedExampleArgs = {
  *     new OasNumber({ example: 99 })
  *   ]
  * });
- * 
+ *
  * const unionExample = collateExamples({ objectSchema: unionSchema, depth: 0 });
  * console.log(unionExample); // 'text-value' (first member with example)
  * ```
- * 
+ *
  * @example Reference resolution
  * ```typescript
  * // Schema with reference to another schema
@@ -116,7 +116,7 @@ type CollatedExampleArgs = {
  *     }
  *   })
  * });
- * 
+ *
  * const refExample = collateExamples({ objectSchema: addressRef, depth: 0 });
  * console.log(refExample);
  * // {
@@ -124,7 +124,7 @@ type CollatedExampleArgs = {
  * //   city: 'Springfield'
  * // }
  * ```
- * 
+ *
  * @example Depth limiting and error handling
  * ```typescript
  * // Deep nesting detection
@@ -133,25 +133,25 @@ type CollatedExampleArgs = {
  * } catch (error) {
  *   console.error('Depth limit exceeded:', error.message); // 'Depth limit reached'
  * }
- * 
+ *
  * // Handling missing schemas
  * const emptyExample = collateExamples({ objectSchema: undefined, depth: 0 });
  * console.log(emptyExample); // undefined
  * ```
- * 
+ *
  * @example Using in API documentation generation
  * ```typescript
  * class ApiDocGenerator {
  *   generateExampleResponse(responseSchema: OasSchema) {
  *     const example = collateExamples({ objectSchema: responseSchema, depth: 0 });
- *     
+ *
  *     if (example) {
  *       return {
  *         description: 'Example response',
  *         value: example
  *       };
  *     }
- *     
+ *
  *     return { description: 'No example available' };
  *   }
  * }
@@ -171,12 +171,12 @@ export const collateExamples = ({ objectSchema, depth }: CollatedExampleArgs): u
       return collateExamples({
         objectSchema: objectSchema.resolve(),
         depth: depth + 1
-      });
+      })
     }
 
     case 'object': {
       if (objectSchema.example) {
-        return objectSchema.example;
+        return objectSchema.example
       }
 
       const output: Record<string, unknown> = {}
@@ -196,12 +196,12 @@ export const collateExamples = ({ objectSchema, depth }: CollatedExampleArgs): u
         }
       })
 
-      return isEmpty(output) ? undefined : output;
+      return isEmpty(output) ? undefined : output
     }
 
     case 'array': {
       if (objectSchema.example) {
-        return objectSchema.example;
+        return objectSchema.example
       }
 
       const itemsExample = collateExamples({
@@ -209,23 +209,23 @@ export const collateExamples = ({ objectSchema, depth }: CollatedExampleArgs): u
         depth: depth + 1
       })
 
-      return itemsExample ? [itemsExample] : undefined;
+      return itemsExample ? [itemsExample] : undefined
     }
 
     case 'string':
-      return objectSchema.example;
+      return objectSchema.example
 
     case 'number':
-      return objectSchema.example;
+      return objectSchema.example
 
     case 'integer':
-      return objectSchema.example;
+      return objectSchema.example
 
     case 'boolean':
-      return objectSchema.example;
+      return objectSchema.example
 
     case 'unknown':
-      return objectSchema.example;
+      return objectSchema.example
 
     case 'union': {
       for (const member of objectSchema.members) {
@@ -238,12 +238,12 @@ export const collateExamples = ({ objectSchema, depth }: CollatedExampleArgs): u
           return unionExample
         }
       }
-      return undefined;
+      return undefined
     }
 
     default: {
-      const _exhaustive: never = objectSchema;
-      throw new Error(`Unhandled schema type: ${(_exhaustive as any).type}`);
+      const _exhaustive: never = objectSchema
+      throw new Error(`Unhandled schema type: ${(_exhaustive as any).type}`)
     }
   }
 }

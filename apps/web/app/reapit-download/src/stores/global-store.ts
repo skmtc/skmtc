@@ -6,10 +6,10 @@ export interface GlobalStore {
   setGlobalState: (newState: Partial<GlobalState>) => void
 }
 
-export const useGlobalStore = create<GlobalStore>((set) => ({
+export const useGlobalStore = create<GlobalStore>(set => ({
   globalState: {},
   setGlobalState: (newState: Partial<GlobalState>) =>
-    set(({ globalState }) => ({ globalState: { ...globalState, ...newState } })),
+    set(({ globalState }) => ({ globalState: { ...globalState, ...newState } }))
 }))
 
 /**

@@ -35,7 +35,11 @@ const createContext = (): ParseContextType =>
   }) as unknown as ParseContextType
 
 const parse = (parser: typeof parseV30, schemaJson: string) =>
-  parser({ schema: JSON.parse(schemaJson), stackTrail: new StackTrail(['TEST']), context: createContext() })
+  parser({
+    schema: JSON.parse(schemaJson),
+    stackTrail: new StackTrail(['TEST']),
+    context: createContext()
+  })
 
 // Snapshot a non-ref schema's IR via its canonical JSON-schema form. (The
 // `toJsonSchema` signatures differ across the OasSchema|OasRef union, so reach

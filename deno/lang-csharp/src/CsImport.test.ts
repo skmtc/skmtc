@@ -17,10 +17,7 @@ Deno.test('aliased specifiers render the per-symbol alias-using form', () => {
     { name: 'Task', alias: 'AcmeTask' }
   ])
 
-  assertEquals(csImport.toLines(), [
-    'using Acme.Shared;',
-    'using AcmeTask = Acme.Shared.Task;'
-  ])
+  assertEquals(csImport.toLines(), ['using Acme.Shared;', 'using AcmeTask = Acme.Shared.Task;'])
 })
 
 Deno.test('an all-aliased import renders no plain using', () => {

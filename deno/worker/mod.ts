@@ -1,5 +1,10 @@
 import { type GeneratorsMapContainer, toArtifacts } from '@skmtc/core'
-import { StackTrail, toEnrichmentDefaults, toEnrichmentDescriptor, toSupportedSubjects } from '@skmtc/core'
+import {
+  StackTrail,
+  toEnrichmentDefaults,
+  toEnrichmentDescriptor,
+  toSupportedSubjects
+} from '@skmtc/core'
 import type { AttributionState } from '@skmtc/core/AttributionState'
 import type { SerializableAttribution, WorkerMessage } from './types.ts'
 

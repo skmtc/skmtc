@@ -189,12 +189,8 @@ Deno.test(
   { sanitizeResources: false, sanitizeOps: false },
   async () => {
     const mockProject = createMockProject(['@skmtc/gen-typescript'])
-    mockProject.cloneGenerator = ({
-      moduleName
-    }: {
-      moduleName: string
-      projectName: string
-    }) => Promise.resolve({ moduleName, version: '0.0.55' })
+    mockProject.cloneGenerator = ({ moduleName }: { moduleName: string; projectName: string }) =>
+      Promise.resolve({ moduleName, version: '0.0.55' })
 
     const initialState = createInitialState(mockProject)
 

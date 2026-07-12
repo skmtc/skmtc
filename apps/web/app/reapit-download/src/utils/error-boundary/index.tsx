@@ -7,7 +7,7 @@ export interface ErrorState {
 
 export class ErrorBoundary<T> extends Component<T & PropsWithChildren> {
   state = {
-    hasFailed: false,
+    hasFailed: false
   }
 
   constructor(props: T & PropsWithChildren) {
@@ -16,7 +16,7 @@ export class ErrorBoundary<T> extends Component<T & PropsWithChildren> {
 
   static getDerivedStateFromError() {
     return {
-      hasFailed: true,
+      hasFailed: true
     }
   }
 

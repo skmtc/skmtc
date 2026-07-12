@@ -73,240 +73,222 @@ const makeContext = (args: { document: OasDocument; settings: unknown }) => {
 
 // ─── assertPeerVariantExists ─────────────────────────────────────
 
-Deno.test(
-  'ModelDriver - insertModel with non-main variant for unconfigured peer throws',
-  () => {
-    const ZodVariants = class extends toTsModelProjectionBase({
-      id: '@scope/gen-zod-variants',
-      toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
-      toIdentifierType: () => ({ type: 'variable' }),
-      toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`,
-      toEnrichmentSchema: () => emptyEnrichmentSchema
-    }) {
-      // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
-      static schemaToValueFn: any = () => ({ toString: () => '' })
-      static createIdentifier = createVariable
-      override toString() {
-        return `z.object({})`
-      }
+Deno.test('ModelDriver - insertModel with non-main variant for unconfigured peer throws', () => {
+  const ZodVariants = class extends toTsModelProjectionBase({
+    id: '@scope/gen-zod-variants',
+    toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
+    toIdentifierType: () => ({ type: 'variable' }),
+    toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  }) {
+    // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
+    static schemaToValueFn: any = () => ({ toString: () => '' })
+    static createIdentifier = createVariable
+    override toString() {
+      return `z.object({})`
     }
-
-    const context = makeContext({
-      document: makeDoc(['Customer']),
-      settings: {} // No enrichments at all
-    })
-
-    assertThrows(
-      () => context.insertModel(ZodVariants, 'Customer' as RefName, { variant: 'coercive' }),
-      Error,
-      `Cannot insert variant 'coercive' for 'Customer'`
-    )
   }
-)
 
-Deno.test(
-  'ModelDriver - insertModel with non-main variant absent from peer enrichments throws',
-  () => {
-    const ZodVariants = class extends toTsModelProjectionBase({
-      id: '@scope/gen-zod-variants',
-      toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
-      toIdentifierType: () => ({ type: 'variable' }),
-      toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`,
-      toEnrichmentSchema: () => emptyEnrichmentSchema
-    }) {
-      // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
-      static schemaToValueFn: any = () => ({ toString: () => '' })
-      static createIdentifier = createVariable
-      override toString() {
-        return `z.object({})`
-      }
+  const context = makeContext({
+    document: makeDoc(['Customer']),
+    settings: {} // No enrichments at all
+  })
+
+  assertThrows(
+    () => context.insertModel(ZodVariants, 'Customer' as RefName, { variant: 'coercive' }),
+    Error,
+    `Cannot insert variant 'coercive' for 'Customer'`
+  )
+})
+
+Deno.test('ModelDriver - insertModel with non-main variant absent from peer enrichments throws', () => {
+  const ZodVariants = class extends toTsModelProjectionBase({
+    id: '@scope/gen-zod-variants',
+    toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
+    toIdentifierType: () => ({ type: 'variable' }),
+    toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  }) {
+    // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
+    static schemaToValueFn: any = () => ({ toString: () => '' })
+    static createIdentifier = createVariable
+    override toString() {
+      return `z.object({})`
     }
+  }
 
-    const context = makeContext({
-      document: makeDoc(['Customer']),
-      settings: {
-        enrichments: {
-          '@scope/gen-zod-variants': {
-            Customer: {
-              main: {} // 'coercive' not declared
-            }
+  const context = makeContext({
+    document: makeDoc(['Customer']),
+    settings: {
+      enrichments: {
+        '@scope/gen-zod-variants': {
+          Customer: {
+            main: {} // 'coercive' not declared
           }
         }
       }
-    })
-
-    assertThrows(
-      () => context.insertModel(ZodVariants, 'Customer' as RefName, { variant: 'coercive' }),
-      Error,
-      `Available variants: main`
-    )
-  }
-)
-
-Deno.test(
-  'ModelDriver - insertModel with main variant on a peer with no enrichments succeeds',
-  () => {
-    // `'main'` is universally safe — it's the canonical default and
-    // always permitted regardless of the peer's enrichment shape.
-    const ZodGen = class extends toTsModelProjectionBase({
-      id: '@scope/gen-zod',
-      toIdentifierName: ({ refName }) => refName,
-      toIdentifierType: () => ({ type: 'variable' }),
-      toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,
-      toEnrichmentSchema: () => emptyEnrichmentSchema
-    }) {
-      // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
-      static schemaToValueFn: any = () => ({ toString: () => '' })
-      static createIdentifier = createVariable
-      override toString() {
-        return `z.object({})`
-      }
     }
+  })
 
-    const context = makeContext({
-      document: makeDoc(['Customer']),
-      settings: {}
-    })
+  assertThrows(
+    () => context.insertModel(ZodVariants, 'Customer' as RefName, { variant: 'coercive' }),
+    Error,
+    `Available variants: main`
+  )
+})
 
-    // Should not throw.
-    const inserted = context.insertModel(ZodGen, 'Customer' as RefName)
-    assertEquals(inserted.toName(), 'Customer')
+Deno.test('ModelDriver - insertModel with main variant on a peer with no enrichments succeeds', () => {
+  // `'main'` is universally safe — it's the canonical default and
+  // always permitted regardless of the peer's enrichment shape.
+  const ZodGen = class extends toTsModelProjectionBase({
+    id: '@scope/gen-zod',
+    toIdentifierName: ({ refName }) => refName,
+    toIdentifierType: () => ({ type: 'variable' }),
+    toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  }) {
+    // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
+    static schemaToValueFn: any = () => ({ toString: () => '' })
+    static createIdentifier = createVariable
+    override toString() {
+      return `z.object({})`
+    }
   }
-)
+
+  const context = makeContext({
+    document: makeDoc(['Customer']),
+    settings: {}
+  })
+
+  // Should not throw.
+  const inserted = context.insertModel(ZodGen, 'Customer' as RefName)
+  assertEquals(inserted.toName(), 'Customer')
+})
 
 // ─── affirmDefinition / generatorKey collision ────────────────────
 
-Deno.test(
-  'ModelDriver - variants-aware Projection that forgets to vary toIdentifier collides on second variant',
-  () => {
-    // BROKEN: toIdentifier ignores `variant`. Two variants of the
-    // same refName produce the same identifier name and same export
-    // path, but their `generatorKey`s differ (Driver folds variant
-    // into the key). On the second insertion, `findDefinition` hits
-    // the cached entry for variant 'main' but the new generatorKey
-    // doesn't match — integrity check throws.
-    const BrokenZod = class extends toTsModelProjectionBase({
-      id: '@scope/gen-broken-zod',
-      toIdentifierName: ({ refName }) => refName, // ← ignores variant
-      toIdentifierType: () => ({ type: 'variable' }),
-      toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,         // ← ignores variant
-      toEnrichmentSchema: () => variantPlaceholderEnrichmentSchema
-    }) {
-      // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
-      static schemaToValueFn: any = () => ({ toString: () => '' })
-      static createIdentifier = createVariable
-      override toString() {
-        return `z.object({})`
-      }
+Deno.test('ModelDriver - variants-aware Projection that forgets to vary toIdentifier collides on second variant', () => {
+  // BROKEN: toIdentifier ignores `variant`. Two variants of the
+  // same refName produce the same identifier name and same export
+  // path, but their `generatorKey`s differ (Driver folds variant
+  // into the key). On the second insertion, `findDefinition` hits
+  // the cached entry for variant 'main' but the new generatorKey
+  // doesn't match — integrity check throws.
+  const BrokenZod = class extends toTsModelProjectionBase({
+    id: '@scope/gen-broken-zod',
+    toIdentifierName: ({ refName }) => refName, // ← ignores variant
+    toIdentifierType: () => ({ type: 'variable' }),
+    toExportPath: ({ refName }) => `@/schemas/${refName}.ts`, // ← ignores variant
+    toEnrichmentSchema: () => variantPlaceholderEnrichmentSchema
+  }) {
+    // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
+    static schemaToValueFn: any = () => ({ toString: () => '' })
+    static createIdentifier = createVariable
+    override toString() {
+      return `z.object({})`
     }
+  }
 
-    const context = makeContext({
-      document: makeDoc(['Customer']),
-      settings: {
-        enrichments: {
-          '@scope/gen-broken-zod': {
-            Customer: {
-              main: {},
-              coercive: {}
-            }
+  const context = makeContext({
+    document: makeDoc(['Customer']),
+    settings: {
+      enrichments: {
+        '@scope/gen-broken-zod': {
+          Customer: {
+            main: {},
+            coercive: {}
           }
         }
       }
-    })
-
-    // First insertion (main) succeeds and registers the Definition.
-    context.insertModel(BrokenZod, 'Customer' as RefName, { variant: 'main' })
-
-    // Second insertion (coercive) hits the cache for the same
-    // (name, exportPath) pair but its generatorKey ends in
-    // `|coercive` vs cached `|main` — affirmDefinition throws.
-    assertThrows(
-      () => context.insertModel(BrokenZod, 'Customer' as RefName, { variant: 'coercive' }),
-      Error,
-      'Registered definition mismatch'
-    )
-  }
-)
-
-Deno.test(
-  'ModelDriver - variants-aware Projection that varies toIdentifier produces distinct Definitions',
-  () => {
-    // CORRECT: toIdentifier folds variant into the name via
-    // `withVariant`, and toExportPath inherits the variant suffix.
-    // Two variants of the same refName produce distinct (name,
-    // exportPath) cache keys and therefore distinct Definitions.
-    const CorrectZod = class extends toTsModelProjectionBase({
-      id: '@scope/gen-correct-zod',
-      toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
-      toIdentifierType: () => ({ type: 'variable' }),
-      toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`,
-      toEnrichmentSchema: () => variantPlaceholderEnrichmentSchema
-    }) {
-      // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
-      static schemaToValueFn: any = () => ({ toString: () => '' })
-      static createIdentifier = createVariable
-      override toString() {
-        return `z.object({})`
-      }
     }
+  })
 
-    const context = makeContext({
-      document: makeDoc(['Customer']),
-      settings: {
-        enrichments: {
-          '@scope/gen-correct-zod': {
-            Customer: {
-              main: {},
-              coercive: {}
-            }
+  // First insertion (main) succeeds and registers the Definition.
+  context.insertModel(BrokenZod, 'Customer' as RefName, { variant: 'main' })
+
+  // Second insertion (coercive) hits the cache for the same
+  // (name, exportPath) pair but its generatorKey ends in
+  // `|coercive` vs cached `|main` — affirmDefinition throws.
+  assertThrows(
+    () => context.insertModel(BrokenZod, 'Customer' as RefName, { variant: 'coercive' }),
+    Error,
+    'Registered definition mismatch'
+  )
+})
+
+Deno.test('ModelDriver - variants-aware Projection that varies toIdentifier produces distinct Definitions', () => {
+  // CORRECT: toIdentifier folds variant into the name via
+  // `withVariant`, and toExportPath inherits the variant suffix.
+  // Two variants of the same refName produce distinct (name,
+  // exportPath) cache keys and therefore distinct Definitions.
+  const CorrectZod = class extends toTsModelProjectionBase({
+    id: '@scope/gen-correct-zod',
+    toIdentifierName: ({ refName, variant }) => withVariant(refName, variant),
+    toIdentifierType: () => ({ type: 'variable' }),
+    toExportPath: ({ refName, variant }) => `@/schemas/${withVariant(refName, variant)}.ts`,
+    toEnrichmentSchema: () => variantPlaceholderEnrichmentSchema
+  }) {
+    // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
+    static schemaToValueFn: any = () => ({ toString: () => '' })
+    static createIdentifier = createVariable
+    override toString() {
+      return `z.object({})`
+    }
+  }
+
+  const context = makeContext({
+    document: makeDoc(['Customer']),
+    settings: {
+      enrichments: {
+        '@scope/gen-correct-zod': {
+          Customer: {
+            main: {},
+            coercive: {}
           }
         }
       }
-    })
-
-    const main = context.insertModel(CorrectZod, 'Customer' as RefName, { variant: 'main' })
-    const coercive = context.insertModel(CorrectZod, 'Customer' as RefName, {
-      variant: 'coercive'
-    })
-
-    assertEquals(main.toName(), 'Customer')
-    assertEquals(coercive.toName(), 'CustomerCoercive')
-    assertEquals(main.settings.exportPath, '@/schemas/Customer.generated.ts')
-    assertEquals(coercive.settings.exportPath, '@/schemas/CustomerCoercive.generated.ts')
-    // Distinct Definitions.
-    assertEquals(main.definition === coercive.definition, false)
-  }
-)
-
-Deno.test(
-  'ModelDriver - same variant twice on a correct Projection hits the cache',
-  () => {
-    const Zod = class extends toTsModelProjectionBase({
-      id: '@scope/gen-cache-zod',
-      toIdentifierName: ({ refName }) => refName,
-      toIdentifierType: () => ({ type: 'variable' }),
-      toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,
-      toEnrichmentSchema: () => emptyEnrichmentSchema
-    }) {
-      // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
-      static schemaToValueFn: any = () => ({ toString: () => '' })
-      static createIdentifier = createVariable
-      override toString() {
-        return `z.object({})`
-      }
     }
+  })
 
-    const context = makeContext({
-      document: makeDoc(['Customer']),
-      settings: {}
-    })
+  const main = context.insertModel(CorrectZod, 'Customer' as RefName, { variant: 'main' })
+  const coercive = context.insertModel(CorrectZod, 'Customer' as RefName, {
+    variant: 'coercive'
+  })
 
-    const first = context.insertModel(Zod, 'Customer' as RefName)
-    const second = context.insertModel(Zod, 'Customer' as RefName)
-    // Same Definition reference.
-    assertEquals(first.definition === second.definition, true)
+  assertEquals(main.toName(), 'Customer')
+  assertEquals(coercive.toName(), 'CustomerCoercive')
+  assertEquals(main.settings.exportPath, '@/schemas/Customer.generated.ts')
+  assertEquals(coercive.settings.exportPath, '@/schemas/CustomerCoercive.generated.ts')
+  // Distinct Definitions.
+  assertEquals(main.definition === coercive.definition, false)
+})
+
+Deno.test('ModelDriver - same variant twice on a correct Projection hits the cache', () => {
+  const Zod = class extends toTsModelProjectionBase({
+    id: '@scope/gen-cache-zod',
+    toIdentifierName: ({ refName }) => refName,
+    toIdentifierType: () => ({ type: 'variable' }),
+    toExportPath: ({ refName }) => `@/schemas/${refName}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  }) {
+    // deno-lint-ignore no-explicit-any — test stub; insertNormalizedModel isn't exercised
+    static schemaToValueFn: any = () => ({ toString: () => '' })
+    static createIdentifier = createVariable
+    override toString() {
+      return `z.object({})`
+    }
   }
-)
+
+  const context = makeContext({
+    document: makeDoc(['Customer']),
+    settings: {}
+  })
+
+  const first = context.insertModel(Zod, 'Customer' as RefName)
+  const second = context.insertModel(Zod, 'Customer' as RefName)
+  // Same Definition reference.
+  assertEquals(first.definition === second.definition, true)
+})
 
 // ─── variants-unaware callers (pre-variants generators) ──────────
 

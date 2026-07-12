@@ -30,7 +30,10 @@ export type InitHeadlessResult =
   | { type: 'existed'; projectName: string }
 
 export class InvalidBasePathError extends Error {
-  constructor(public readonly basePath: string, message: string) {
+  constructor(
+    public readonly basePath: string,
+    message: string
+  ) {
     super(message)
     this.name = 'InvalidBasePathError'
   }

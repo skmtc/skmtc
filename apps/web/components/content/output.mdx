@@ -1,15 +1,15 @@
 <CodeWithTabs>
 
 ```js !!tabs getProducts.ts
-import { product } from '@/models/products';
-import { z } from 'zod';
+import { product } from '@/models/products'
+import { z } from 'zod'
 
-const productsResponse = z.array(product);
+const productsResponse = z.array(product)
 
 export const getProducts = async () => {
-  const response = await fetch('/products');
-  const data = await response.json();
-  return productsResponse.parse(data);
+  const response = await fetch('/products')
+  const data = await response.json()
+  return productsResponse.parse(data)
 }
 ```
 
@@ -25,4 +25,5 @@ export const CreateProductForm = () => (
   </Form>
 )
 ```
+
 </CodeWithTabs>

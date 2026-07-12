@@ -10,21 +10,21 @@ interface InkInputProps {
   onSubmit: (value: string) => void
 }
 
-export function InkInput({ 
-  message, 
-  defaultValue = '', 
-  suggestions = [], 
+export function InkInput({
+  message,
+  defaultValue = '',
+  suggestions = [],
   validate,
   list = false,
-  onSubmit 
+  onSubmit
 }: InkInputProps) {
   const { exit } = useApp()
   const [input, setInput] = useState(defaultValue)
   const [error, setError] = useState<string>('')
   const [suggestionIndex, setSuggestionIndex] = useState(-1)
 
-  const filteredSuggestions = list 
-    ? suggestions 
+  const filteredSuggestions = list
+    ? suggestions
     : suggestions.filter(s => s.toLowerCase().includes(input.toLowerCase()))
 
   useInput((inputChar, key) => {
@@ -80,7 +80,7 @@ export function InkInput({
       {list && filteredSuggestions.length > 0 && (
         <Box flexDirection="column" marginTop={1}>
           {filteredSuggestions.map((suggestion, index) => (
-            <Text 
+            <Text
               key={`suggestion-${index}`}
               color={index === suggestionIndex ? 'green' : 'gray'}
               dimColor={index !== suggestionIndex}
@@ -104,23 +104,23 @@ export const Input = {
     list?: boolean
   }): Promise<string> => {
     const { render } = await import('ink')
-    
-    return new Promise<string>((resolve) => {
+
+    return new Promise<string>(resolve => {
       let unmount: (() => void) | undefined
-      
+
       const handleSubmit = (value: string) => {
         unmount?.()
         resolve(value)
       }
 
       const result = render(
-        <InkInput 
+        <InkInput
           message={options.message}
           defaultValue={options.default}
           suggestions={options.suggestions}
           validate={options.validate}
           list={options.list}
-          onSubmit={handleSubmit} 
+          onSubmit={handleSubmit}
         />
       )
       unmount = result.unmount

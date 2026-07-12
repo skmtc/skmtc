@@ -1,5 +1,13 @@
 import { FC } from 'react'
-import { Button, ButtonGroup, Subtitle, FlexContainer, Icon, elMb7, BodyText } from '@reapit/elements'
+import {
+  Button,
+  ButtonGroup,
+  Subtitle,
+  FlexContainer,
+  Icon,
+  elMb7,
+  BodyText
+} from '@reapit/elements'
 import { LoginContainer, LoginContentWrapper } from './__styles__'
 import { reapitConnectBrowserSession } from '../../core/connect-session'
 

@@ -13,10 +13,10 @@ export const mockSourceModelPagedResult: SourceModelPagedResult = {
       _eTag: '"A14777181529994196E3CDA0E05335ED"',
       _links: {
         self: {
-          href: '/sources/SRC157',
-        },
-      },
-    },
+          href: '/sources/SRC157'
+        }
+      }
+    }
   ],
   pageNumber: 1,
   pageSize: 25,
@@ -25,10 +25,10 @@ export const mockSourceModelPagedResult: SourceModelPagedResult = {
   totalCount: 1,
   _links: {
     self: {
-      href: '/sources/?PageNumber=1&PageSize=25&id=SRC157',
+      href: '/sources/?PageNumber=1&PageSize=25&id=SRC157'
     },
     first: {
-      href: '/sources/?PageNumber=1&PageSize=25&id=SRC157',
-    },
-  },
+      href: '/sources/?PageNumber=1&PageSize=25&id=SRC157'
+    }
+  }
 }

@@ -1,15 +1,15 @@
 import { assertEquals } from '@std/assert'
 import { OasExample } from './Example.ts'
 
-Deno.test('OasExample', async (t) => {
-  await t.step('constructor and property initialization', async (t) => {
+Deno.test('OasExample', async t => {
+  await t.step('constructor and property initialization', async t => {
     await t.step('should initialize with all properties provided', () => {
       const example = new OasExample({
         value: { name: 'John Doe', age: 30 },
         summary: 'Example user',
         description: 'A typical user object with name and age',
         externalValue: 'https://example.com/user.json',
-        extensionFields: { 'x-custom': 'metadata' },
+        extensionFields: { 'x-custom': 'metadata' }
       })
 
       assertEquals(example.oasType, 'example')
@@ -34,7 +34,7 @@ Deno.test('OasExample', async (t) => {
     await t.step('should handle optional properties correctly', () => {
       const example = new OasExample({
         value: 42,
-        summary: 'Number example',
+        summary: 'Number example'
       })
 
       assertEquals(example.value, 42)
@@ -52,12 +52,12 @@ Deno.test('OasExample', async (t) => {
       const extensionFields = {
         'x-category': 'authentication',
         'x-priority': 'high',
-        'x-metadata': { nested: { deep: 'value' } },
+        'x-metadata': { nested: { deep: 'value' } }
       }
 
       const example = new OasExample({
         value: 'test',
-        extensionFields,
+        extensionFields
       })
 
       assertEquals(example.extensionFields, extensionFields)
@@ -69,7 +69,7 @@ Deno.test('OasExample', async (t) => {
       const example = new OasExample({
         value: { default: 'fallback' },
         externalValue: 'https://api.example.com/examples/user.json',
-        summary: 'User example with external reference',
+        summary: 'User example with external reference'
       })
 
       assertEquals(example.value, { default: 'fallback' })
@@ -78,11 +78,11 @@ Deno.test('OasExample', async (t) => {
     })
   })
 
-  await t.step('isRef() method', async (t) => {
+  await t.step('isRef() method', async t => {
     await t.step('should return false for OasExample instance (not a reference)', () => {
       const example = new OasExample({
         value: 'test value',
-        summary: 'Test example',
+        summary: 'Test example'
       })
 
       assertEquals(example.isRef(), false)
@@ -103,21 +103,21 @@ Deno.test('OasExample', async (t) => {
         new OasExample({ value: 'string' }),
         new OasExample({ value: 42, summary: 'Number' }),
         new OasExample({ value: { complex: 'object' }, description: 'Desc' }),
-        new OasExample({ value: [1, 2, 3], externalValue: 'https://example.com' }),
+        new OasExample({ value: [1, 2, 3], externalValue: 'https://example.com' })
       ]
 
-      examples.forEach((example) => {
+      examples.forEach(example => {
         assertEquals(example.isRef(), false)
       })
     })
   })
 
-  await t.step('resolve() method', async (t) => {
+  await t.step('resolve() method', async t => {
     await t.step('should return self when called on OasExample instance', () => {
       const example = new OasExample({
         value: 'Bearer token123',
         summary: 'Auth token example',
-        description: 'Example of a valid bearer token',
+        description: 'Example of a valid bearer token'
       })
 
       const resolved = example.resolve()
@@ -139,7 +139,7 @@ Deno.test('OasExample', async (t) => {
         summary: 'Admin user',
         description: 'Example of an administrator user object',
         externalValue: 'https://docs.example.com/admin.json',
-        extensionFields: { 'x-version': '2.0' },
+        extensionFields: { 'x-version': '2.0' }
       })
 
       const resolved = example.resolve()
@@ -152,11 +152,11 @@ Deno.test('OasExample', async (t) => {
     })
   })
 
-  await t.step('resolveOnce() method', async (t) => {
+  await t.step('resolveOnce() method', async t => {
     await t.step('should return self when called on OasExample instance', () => {
       const example = new OasExample({
         value: [1, 2, 3, 4, 5],
-        summary: 'Array example',
+        summary: 'Array example'
       })
 
       const resolved = example.resolveOnce()
@@ -169,7 +169,7 @@ Deno.test('OasExample', async (t) => {
       const example = new OasExample({
         value: true,
         summary: 'Boolean example',
-        description: 'Example of a boolean value',
+        description: 'Example of a boolean value'
       })
 
       const resolved = example.resolve()
@@ -184,7 +184,7 @@ Deno.test('OasExample', async (t) => {
         value: { status: 'active', count: 100 },
         summary: 'Status response',
         description: 'Example status response',
-        extensionFields: { 'x-tags': ['status', 'health'] },
+        extensionFields: { 'x-tags': ['status', 'health'] }
       })
 
       const resolved = example.resolveOnce()
@@ -196,12 +196,12 @@ Deno.test('OasExample', async (t) => {
     })
   })
 
-  await t.step('toJsonSchema() method', async (t) => {
+  await t.step('toJsonSchema() method', async t => {
     await t.step('should convert example to OpenAPI v3 JSON format', () => {
       const example = new OasExample({
         value: 'example value',
         summary: 'Simple example',
-        description: 'A simple string example',
+        description: 'A simple string example'
       })
 
       const result = example.toJsonSchema({ resolve: false })
@@ -215,7 +215,7 @@ Deno.test('OasExample', async (t) => {
       const example = new OasExample({
         value: { id: 123, name: 'Product A' },
         summary: 'Product example',
-        description: 'Example of a product object with ID and name',
+        description: 'Example of a product object with ID and name'
       })
 
       const result = example.toJsonSchema({ resolve: false })
@@ -241,7 +241,7 @@ Deno.test('OasExample', async (t) => {
         summary: 'Array of items',
         description: 'Example showing an array of string items',
         externalValue: 'https://example.com/items.json',
-        extensionFields: { 'x-source': 'database' },
+        extensionFields: { 'x-source': 'database' }
       })
 
       const result = example.toJsonSchema({ resolve: false })
@@ -255,7 +255,7 @@ Deno.test('OasExample', async (t) => {
     await t.step('should NOT include externalValue in output', () => {
       const example = new OasExample({
         value: 'test',
-        externalValue: 'https://example.com/external.json',
+        externalValue: 'https://example.com/external.json'
       })
 
       const result = example.toJsonSchema({ resolve: false })
@@ -267,7 +267,7 @@ Deno.test('OasExample', async (t) => {
 
     await t.step('should handle undefined summary and description', () => {
       const example = new OasExample({
-        value: { key: 'value' },
+        value: { key: 'value' }
       })
 
       const result = example.toJsonSchema({ resolve: false })
@@ -278,7 +278,7 @@ Deno.test('OasExample', async (t) => {
     })
   })
 
-  await t.step('property handling', async (t) => {
+  await t.step('property handling', async t => {
     await t.step('should handle value property with string type', () => {
       const example = new OasExample({ value: 'string value' })
       assertEquals(example.value, 'string value')
@@ -295,7 +295,7 @@ Deno.test('OasExample', async (t) => {
       const objectValue = {
         id: 1,
         name: 'Test',
-        nested: { deep: { property: 'value' } },
+        nested: { deep: { property: 'value' } }
       }
       const example = new OasExample({ value: objectValue })
 
@@ -307,7 +307,7 @@ Deno.test('OasExample', async (t) => {
       const arrayValue = [
         { id: 1, name: 'First' },
         { id: 2, name: 'Second' },
-        { id: 3, name: 'Third' },
+        { id: 3, name: 'Third' }
       ]
       const example = new OasExample({ value: arrayValue })
 
@@ -331,7 +331,7 @@ Deno.test('OasExample', async (t) => {
     await t.step('should handle externalValue for external reference URLs', () => {
       const example = new OasExample({
         value: 'placeholder',
-        externalValue: 'https://api.example.com/v1/examples/user-response.json',
+        externalValue: 'https://api.example.com/v1/examples/user-response.json'
       })
 
       assertEquals(example.externalValue, 'https://api.example.com/v1/examples/user-response.json')
@@ -340,32 +340,35 @@ Deno.test('OasExample', async (t) => {
     await t.step('should handle summary field', () => {
       const shortSummary = new OasExample({
         value: 'test',
-        summary: 'Short',
+        summary: 'Short'
       })
       const longSummary = new OasExample({
         value: 'test',
-        summary: 'A much longer summary that describes the example in detail',
+        summary: 'A much longer summary that describes the example in detail'
       })
 
       assertEquals(shortSummary.summary, 'Short')
-      assertEquals(longSummary.summary, 'A much longer summary that describes the example in detail')
+      assertEquals(
+        longSummary.summary,
+        'A much longer summary that describes the example in detail'
+      )
     })
 
     await t.step('should handle description field', () => {
       const example = new OasExample({
         value: 'test',
         description:
-          'This is a detailed description that provides extensive information about what this example represents and how it should be used in the API documentation.',
+          'This is a detailed description that provides extensive information about what this example represents and how it should be used in the API documentation.'
       })
 
       assertEquals(
         example.description,
-        'This is a detailed description that provides extensive information about what this example represents and how it should be used in the API documentation.',
+        'This is a detailed description that provides extensive information about what this example represents and how it should be used in the API documentation.'
       )
     })
   })
 
-  await t.step('edge cases and integration', async (t) => {
+  await t.step('edge cases and integration', async t => {
     await t.step('should handle example with only value', () => {
       const example = new OasExample({ value: 'minimal' })
 
@@ -380,7 +383,7 @@ Deno.test('OasExample', async (t) => {
       const example = new OasExample({
         value: undefined, // Still required in constructor
         externalValue: 'https://example.com/external-example.json',
-        summary: 'External example',
+        summary: 'External example'
       })
 
       assertEquals(example.value, undefined)
@@ -393,8 +396,8 @@ Deno.test('OasExample', async (t) => {
         value: 'value',
         extensionFields: {
           'x-custom-1': 'value1',
-          'x-custom-2': { complex: 'object' },
-        },
+          'x-custom-2': { complex: 'object' }
+        }
       })
 
       assertEquals(example.extensionFields?.['x-custom-1'], 'value1')
@@ -409,10 +412,10 @@ Deno.test('OasExample', async (t) => {
         value: {
           status: 200,
           data: { id: 123, name: 'John Doe', email: 'john@example.com' },
-          message: 'User retrieved successfully',
+          message: 'User retrieved successfully'
         },
         summary: 'Successful user retrieval',
-        description: 'Example of a successful GET /users/:id response',
+        description: 'Example of a successful GET /users/:id response'
       })
 
       // Error response example
@@ -420,10 +423,10 @@ Deno.test('OasExample', async (t) => {
         value: {
           status: 404,
           error: 'Not Found',
-          message: 'User with ID 999 not found',
+          message: 'User with ID 999 not found'
         },
         summary: 'User not found error',
-        description: 'Example of a 404 error response when user does not exist',
+        description: 'Example of a 404 error response when user does not exist'
       })
 
       // Pagination example
@@ -433,10 +436,10 @@ Deno.test('OasExample', async (t) => {
           page: 1,
           per_page: 10,
           total: 100,
-          total_pages: 10,
+          total_pages: 10
         },
         summary: 'Paginated results',
-        description: 'Example showing paginated list of users',
+        description: 'Example showing paginated list of users'
       })
 
       assertEquals(successExample.value !== null, true)
@@ -451,20 +454,20 @@ Deno.test('OasExample', async (t) => {
           name: 'Jane Smith',
           email: 'jane.smith@example.com',
           password: 'SecureP@ssw0rd!',
-          role: 'user',
+          role: 'user'
         },
         summary: 'Create user request',
-        description: 'Example payload for creating a new user',
+        description: 'Example payload for creating a new user'
       })
 
       // Update user request example
       const updateUserExample = new OasExample({
         value: {
           name: 'Jane Smith-Jones',
-          email: 'jane.jones@example.com',
+          email: 'jane.jones@example.com'
         },
         summary: 'Update user request',
-        description: 'Example payload for partially updating user information',
+        description: 'Example payload for partially updating user information'
       })
 
       assertEquals(typeof createUserExample.value, 'object')
@@ -479,7 +482,7 @@ Deno.test('OasExample', async (t) => {
               personal: {
                 firstName: 'John',
                 lastName: 'Doe',
-                dateOfBirth: '1990-01-01',
+                dateOfBirth: '1990-01-01'
               },
               contact: {
                 email: 'john@example.com',
@@ -488,23 +491,23 @@ Deno.test('OasExample', async (t) => {
                   street: '123 Main St',
                   city: 'Springfield',
                   country: 'USA',
-                  zipCode: '12345',
-                },
-              },
+                  zipCode: '12345'
+                }
+              }
             },
             preferences: {
               notifications: { email: true, sms: false, push: true },
-              privacy: { shareData: false, showProfile: true },
-            },
+              privacy: { shareData: false, showProfile: true }
+            }
           },
           metadata: {
             created: '2024-01-01T00:00:00Z',
             updated: '2024-01-15T10:30:00Z',
-            version: 2,
-          },
+            version: 2
+          }
         },
         summary: 'Complex user object',
-        description: 'Example showing a deeply nested user profile structure',
+        description: 'Example showing a deeply nested user profile structure'
       })
 
       assertEquals(typeof complexExample.value, 'object')

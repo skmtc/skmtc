@@ -112,6 +112,4 @@ export type Lang = {
  * it language-blind; each lang package's concrete declaration-type vocabulary
  * is a fixed fact of that package, never recovered through this type.
  */
-export type LangSnippetConstructor = (new (
-  args: SnippetBaseArgs
-) => SnippetBase) & { lang: Lang }
+export type LangSnippetConstructor = (new (args: SnippetBaseArgs) => SnippetBase) & { lang: Lang }

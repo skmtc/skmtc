@@ -48,7 +48,7 @@ describe('readPreviews', () => {
 
   it('drops phantom previews whose module was never written to disk', async () => {
     const previews = await readPreviews(root, project, basePath)
-    expect(previews.map((preview) => preview.name)).toEqual(['EnquiryTypeMultiSelectField'])
+    expect(previews.map(preview => preview.name)).toEqual(['EnquiryTypeMultiSelectField'])
   })
 
   it('resolves each preview to a Vite-servable /@fs/ module url', async () => {
@@ -104,7 +104,7 @@ describe('readPreviews — monorepo basePath', () => {
 
   it('keeps previews when files keys are basePath-prefixed but destinationPath is @/-aliased', async () => {
     const previews = await readPreviews(root, project, basePath)
-    expect(previews.map((preview) => preview.name)).toEqual(['ContactsTable'])
+    expect(previews.map(preview => preview.name)).toEqual(['ContactsTable'])
   })
 
   // Symptom 2: the module url must be an absolute /@fs/ path (Vite-root-

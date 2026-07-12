@@ -26,43 +26,38 @@
  *   `LandmarkLocation.path` requires for re-anchor stability.
  */
 
-import * as oxc from "oxc-parser";
-import type {
-  LandmarkLocation,
-  NodeHandle,
-  ParsedFile,
-  ParserAdapter,
-} from "./ParserAdapter.ts";
+import * as oxc from 'oxc-parser'
+import type { LandmarkLocation, NodeHandle, ParsedFile, ParserAdapter } from './ParserAdapter.ts'
 
 type OxcNode = {
-  type: string;
-  start: number;
-  end: number;
+  type: string
+  start: number
+  end: number
   // Parent edge populated by `attachParents` so `ascendToLandmark`
   // can walk upward. Non-enumerable to avoid showing up in child
   // traversals.
-  _parent?: OxcNode;
+  _parent?: OxcNode
   // Various AST-specific properties — we treat any nested object
   // with `type` as a child.
-  [key: string]: unknown;
-};
+  [key: string]: unknown
+}
 
 type ParsedHandle = {
-  program: OxcNode;
-};
+  program: OxcNode
+}
 
-const oxcVersion = "0.41.0";
+const oxcVersion = '0.41.0'
 
-const parse: ParserAdapter["parse"] = (filePath, source) => {
+const parse: ParserAdapter['parse'] = (filePath, source) => {
   // `parseSync` returns `{ program, module, comments, errors, magicString }`.
   // We only use `program`. Errors are ignored — the post-pass should
   // tolerate partially-parseable output so re-anchoring still works on
   // mostly-valid files.
-  const result = oxc.parseSync(filePath, source);
-  const program = result.program as unknown as OxcNode;
-  attachParents(program);
-  return { program } satisfies ParsedHandle;
-};
+  const result = oxc.parseSync(filePath, source)
+  const program = result.program as unknown as OxcNode
+  attachParents(program)
+  return { program } satisfies ParsedHandle
+}
 
 /**
  * Walk the program and stamp every node with a non-enumerable
@@ -72,17 +67,17 @@ const parse: ParserAdapter["parse"] = (filePath, source) => {
 const attachParents = (root: OxcNode): void => {
   const visit = (node: OxcNode, parent: OxcNode | undefined): void => {
     if (parent) {
-      Object.defineProperty(node, "_parent", {
+      Object.defineProperty(node, '_parent', {
         value: parent,
         enumerable: false,
         writable: true,
-        configurable: true,
-      });
+        configurable: true
+      })
     }
-    for (const child of childrenOf(node)) visit(child, node);
-  };
-  visit(root, undefined);
-};
+    for (const child of childrenOf(node)) visit(child, node)
+  }
+  visit(root, undefined)
+}
 
 /**
  * Whitespace-only JSXText nodes are formatting artifacts: a JSX
@@ -94,28 +89,25 @@ const attachParents = (root: OxcNode): void => {
  * systematic cluster of JSX anchors under oxfmt.
  */
 const isFormattingArtifact = (node: OxcNode): boolean =>
-  node.type === "JSXText" && typeof node.value === "string" &&
-  node.value.trim() === "";
+  node.type === 'JSXText' && typeof node.value === 'string' && node.value.trim() === ''
 
 /** Raw structural children — no formatting normalization. Only
  *  {@link childrenOf} and {@link unwrapParens} may call this. */
 const directChildren = (node: OxcNode): OxcNode[] => {
-  const out: OxcNode[] = [];
+  const out: OxcNode[] = []
   for (const key of Object.keys(node)) {
-    if (
-      key === "type" || key === "start" || key === "end" || key === "_parent"
-    ) continue;
-    const value = node[key];
+    if (key === 'type' || key === 'start' || key === 'end' || key === '_parent') continue
+    const value = node[key]
     if (isAstNode(value)) {
-      out.push(value);
+      out.push(value)
     } else if (Array.isArray(value)) {
       for (const item of value) {
-        if (isAstNode(item)) out.push(item);
+        if (isAstNode(item)) out.push(item)
       }
     }
   }
-  return out;
-};
+  return out
+}
 
 /**
  * Parentheses are pure formatting: a formatter freely adds them (e.g.
@@ -127,10 +119,10 @@ const directChildren = (node: OxcNode): OxcNode[] => {
  * record or the descend side.
  */
 const unwrapParens = (node: OxcNode): OxcNode => {
-  if (node.type !== "ParenthesizedExpression") return node;
-  const inner = directChildren(node)[0];
-  return inner === undefined ? node : unwrapParens(inner);
-};
+  if (node.type !== 'ParenthesizedExpression') return node
+  const inner = directChildren(node)[0]
+  return inner === undefined ? node : unwrapParens(inner)
+}
 
 /**
  * Iterate immediate AST children of `node`, normalized for formatting
@@ -144,18 +136,18 @@ const unwrapParens = (node: OxcNode): OxcNode => {
 const childrenOf = (node: OxcNode): OxcNode[] =>
   directChildren(node)
     .map(unwrapParens)
-    .filter((child) => !isFormattingArtifact(child));
+    .filter(child => !isFormattingArtifact(child))
 
 const isAstNode = (value: unknown): value is OxcNode => {
   return (
     value !== null &&
-    typeof value === "object" &&
-    "type" in value &&
-    typeof (value as { type: unknown }).type === "string" &&
-    "start" in value &&
-    typeof (value as { start: unknown }).start === "number"
-  );
-};
+    typeof value === 'object' &&
+    'type' in value &&
+    typeof (value as { type: unknown }).type === 'string' &&
+    'start' in value &&
+    typeof (value as { start: unknown }).start === 'number'
+  )
+}
 
 /**
  * Collect every top-level export's identifier-keyed handle.
@@ -169,10 +161,10 @@ const isAstNode = (value: unknown): value is OxcNode => {
  * Skipped: anonymous default exports, namespace re-exports, bare
  * `export { X } from './x'` clauses.
  */
-const collectLandmarks: ParserAdapter["collectLandmarks"] = (file) => {
-  const landmarks = new Map<string, NodeHandle>();
-  const { program } = file as ParsedHandle;
-  const body = (program.body as OxcNode[] | undefined) ?? [];
+const collectLandmarks: ParserAdapter['collectLandmarks'] = file => {
+  const landmarks = new Map<string, NodeHandle>()
+  const { program } = file as ParsedHandle
+  const body = (program.body as OxcNode[] | undefined) ?? []
   for (const stmt of body) {
     // Both `export const X = ...` and bare top-level `const X = ...`
     // are landmarks: generated files carry non-exported module-level
@@ -181,42 +173,40 @@ const collectLandmarks: ParserAdapter["collectLandmarks"] = (file) => {
     // corpus's anchors (spike-reanchor.ts). The landmark handle is
     // the top-level statement either way, so recorded paths descend
     // from the same node shape.
-    const declarationValue = stmt.type === "ExportNamedDeclaration"
-      ? stmt.declaration
-      : stmt;
-    if (!isAstNode(declarationValue)) continue;
-    const decl = declarationValue;
-    if (decl.type === "VariableDeclaration") {
+    const declarationValue = stmt.type === 'ExportNamedDeclaration' ? stmt.declaration : stmt
+    if (!isAstNode(declarationValue)) continue
+    const decl = declarationValue
+    if (decl.type === 'VariableDeclaration') {
       const declarations = Array.isArray(decl.declarations)
         ? decl.declarations.filter(isAstNode)
-        : [];
+        : []
       for (const declarator of declarations) {
-        const name = nameOf(declarator.id);
-        if (name && !landmarks.has(name)) landmarks.set(name, stmt);
+        const name = nameOf(declarator.id)
+        if (name && !landmarks.has(name)) landmarks.set(name, stmt)
       }
-      continue;
+      continue
     }
     if (
-      decl.type === "FunctionDeclaration" ||
-      decl.type === "ClassDeclaration" ||
-      decl.type === "TSTypeAliasDeclaration" ||
-      decl.type === "TSInterfaceDeclaration" ||
-      decl.type === "TSEnumDeclaration"
+      decl.type === 'FunctionDeclaration' ||
+      decl.type === 'ClassDeclaration' ||
+      decl.type === 'TSTypeAliasDeclaration' ||
+      decl.type === 'TSInterfaceDeclaration' ||
+      decl.type === 'TSEnumDeclaration'
     ) {
-      const name = nameOf(decl.id);
-      if (name && !landmarks.has(name)) landmarks.set(name, stmt);
+      const name = nameOf(decl.id)
+      if (name && !landmarks.has(name)) landmarks.set(name, stmt)
     }
   }
-  return landmarks;
-};
+  return landmarks
+}
 
 const nameOf = (idNode: unknown): string | undefined => {
-  if (!isAstNode(idNode)) return undefined;
-  if (idNode.type === "Identifier" && typeof idNode.name === "string") {
-    return idNode.name;
+  if (!isAstNode(idNode)) return undefined
+  if (idNode.type === 'Identifier' && typeof idNode.name === 'string') {
+    return idNode.name
   }
-  return undefined;
-};
+  return undefined
+}
 
 /**
  * Descend the AST to the smallest node whose byte range fully
@@ -224,65 +214,58 @@ const nameOf = (idNode: unknown): string | undefined => {
  * traversal order matches what `ascendToLandmark` later computes
  * the path from.
  */
-const smallestEnclosing: ParserAdapter["smallestEnclosing"] = (
-  file,
-  from,
-  to,
-) => {
-  const { program } = file as ParsedHandle;
-  let result: OxcNode = program;
+const smallestEnclosing: ParserAdapter['smallestEnclosing'] = (file, from, to) => {
+  const { program } = file as ParsedHandle
+  let result: OxcNode = program
   const visit = (node: OxcNode): void => {
     if (node.start <= from && node.end >= to) {
-      result = node;
-      for (const child of childrenOf(node)) visit(child);
+      result = node
+      for (const child of childrenOf(node)) visit(child)
     }
-  };
-  for (const child of childrenOf(program)) visit(child);
-  return result;
-};
+  }
+  for (const child of childrenOf(program)) visit(child)
+  return result
+}
 
 /**
  * Walk up from `node` to the nearest landmark via `_parent`. Builds
  * the child-index path bottom-up: each step finds the current node's
  * index in its parent's `childrenOf` ordering and prepends it.
  */
-const ascendToLandmark: ParserAdapter["ascendToLandmark"] = (
-  node,
-  landmarks,
-): LandmarkLocation => {
-  const reverseLookup = new Map<OxcNode, string>();
+const ascendToLandmark: ParserAdapter['ascendToLandmark'] = (node, landmarks): LandmarkLocation => {
+  const reverseLookup = new Map<OxcNode, string>()
   for (const [name, handle] of landmarks) {
-    reverseLookup.set(handle as OxcNode, name);
+    reverseLookup.set(handle as OxcNode, name)
   }
 
-  let current = node as OxcNode;
-  const path: number[] = [];
+  let current = node as OxcNode
+  const path: number[] = []
 
   while (current && !reverseLookup.has(current)) {
-    const parent = current._parent;
+    const parent = current._parent
     if (!parent) {
-      return { landmark: "", path: [] };
+      return { landmark: '', path: [] }
     }
-    const index = childIndex(parent, current);
+    const index = childIndex(parent, current)
     if (index === -1) {
-      return { landmark: "", path: [] };
+      return { landmark: '', path: [] }
     }
-    path.unshift(index);
-    current = parent;
+    path.unshift(index)
+    current = parent
   }
 
-  const landmarkName = reverseLookup.get(current);
-  if (!landmarkName) return { landmark: "", path: [] };
-  return { landmark: landmarkName, path };
-};
+  const landmarkName = reverseLookup.get(current)
+  if (!landmarkName) return { landmark: '', path: [] }
+  return { landmark: landmarkName, path }
+}
 
 const childIndex = (parent: OxcNode, target: OxcNode): number => {
-  const children = childrenOf(parent);
+  const children = childrenOf(parent)
   for (let i = 0; i < children.length; i++) {
-    if (children[i] === target) return i;
+    if (children[i] === target) return i
   }
-  return -1;
-};
+  return -1
+}
 
 /**
  * Inverse of {@link ascendToLandmark}: descend a recorded child-index
@@ -290,21 +273,21 @@ const childIndex = (parent: OxcNode, target: OxcNode): number => {
  * ordering the ascent indexed. `undefined` when an index no longer
  * fits — the structure genuinely changed since the path was recorded.
  */
-const descendPath: ParserAdapter["descendPath"] = (landmark, path) => {
-  if (!isAstNode(landmark)) return undefined;
-  let current = landmark;
+const descendPath: ParserAdapter['descendPath'] = (landmark, path) => {
+  if (!isAstNode(landmark)) return undefined
+  let current = landmark
   for (const index of path) {
-    const child = childrenOf(current)[index];
-    if (child === undefined) return undefined;
-    current = child;
+    const child = childrenOf(current)[index]
+    if (child === undefined) return undefined
+    current = child
   }
-  return current;
-};
+  return current
+}
 
-const spanOf: ParserAdapter["spanOf"] = (node) => {
-  if (!isAstNode(node)) return { start: 0, end: 0 };
-  return { start: node.start, end: node.end };
-};
+const spanOf: ParserAdapter['spanOf'] = node => {
+  if (!isAstNode(node)) return { start: 0, end: 0 }
+  return { start: node.start, end: node.end }
+}
 
 /**
  * Singleton adapter. Stateless — same instance is safe to share
@@ -317,12 +300,12 @@ export const oxcAdapter: ParserAdapter = {
   smallestEnclosing,
   ascendToLandmark,
   descendPath,
-  spanOf,
-};
+  spanOf
+}
 
 export const __testing = {
   collectLandmarks,
   smallestEnclosing,
   ascendToLandmark,
-  childrenOf,
-};
+  childrenOf
+}

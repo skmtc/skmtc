@@ -135,7 +135,10 @@ export type NakedWebhookGeneratorKey = `${string}|webhook|${string}|${Method}|${
  * encodes generator ID, API path, and HTTP method. See
  * {@link GqlOperationGeneratorKey} for the GraphQL counterpart.
  */
-export type OasOperationGeneratorKey = Brand<NakedOasOperationGeneratorKey, 'OasOperationGeneratorKey'>
+export type OasOperationGeneratorKey = Brand<
+  NakedOasOperationGeneratorKey,
+  'OasOperationGeneratorKey'
+>
 
 /**
  * Branded type for GraphQL operation generator keys.

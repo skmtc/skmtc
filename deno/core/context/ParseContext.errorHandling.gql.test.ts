@@ -47,10 +47,7 @@ Deno.test('ParseContext (gql) - registerRefError with undefined refKey is a no-o
   `)
   ctx.registerRefError(new Error('boom'), undefined)
   ctx.parse(new StackTrail([]))
-  assertEquals(
-    ctx.issues.filter(i => i.type === 'INVALID_DEPENDENCY_REF').length,
-    0
-  )
+  assertEquals(ctx.issues.filter(i => i.type === 'INVALID_DEPENDENCY_REF').length, 0)
 })
 
 Deno.test('ParseContext (gql) - registerRef during field parse records consumer location', () => {

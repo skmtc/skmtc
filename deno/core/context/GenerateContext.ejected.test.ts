@@ -112,7 +112,7 @@ const buildContext = (settings: ClientSettings | undefined) => {
     captureCurrentResult: () => {},
     toGeneratorConfigMap: () =>
       // deno-lint-ignore no-explicit-any
-      ({ '@test/hook-gen': hookEntry, '@test/view-gen': viewEntry } as any)
+      ({ '@test/hook-gen': hookEntry, '@test/view-gen': viewEntry }) as any
   })
 }
 
@@ -133,10 +133,7 @@ Deno.test('ejected - peer import specifiers follow the owned path automatically'
 
   const viewFile = files.get('@/views/PetsView.generated.tsx')
   assertExists(viewFile)
-  assertStringIncludes(
-    viewFile.toString(),
-    `import {useListPets} from '@/services/useListPets.ts'`
-  )
+  assertStringIncludes(viewFile.toString(), `import {useListPets} from '@/services/useListPets.ts'`)
 })
 
 Deno.test('ejected - without the setting the same project stays suffixed', () => {

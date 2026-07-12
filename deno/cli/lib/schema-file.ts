@@ -113,11 +113,7 @@ const toFileType = (path: string): FileType => {
     return 'json'
   } else if (path.endsWith('.yaml') || path.endsWith('.yml')) {
     return 'yaml'
-  } else if (
-    path.endsWith('.graphql') ||
-    path.endsWith('.gql') ||
-    path.endsWith('.graphqls')
-  ) {
+  } else if (path.endsWith('.graphql') || path.endsWith('.gql') || path.endsWith('.graphqls')) {
     return 'graphql'
   } else {
     throw new Error(

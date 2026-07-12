@@ -34,14 +34,17 @@ Deno.test('collectSourceFiles - keeps authored source, drops derived/secret/bina
     await write(root, 'node_modules/dep/index.js')
 
     const files = await collectSourceFiles(root)
-    assertEquals(files.map((file) => file.path), [
-      '.gitignore',
-      '.settings/client.json',
-      'deno.json',
-      'gen-foo/mod.ts',
-      'keep.txt',
-      'reapit-refs/mod.ts'
-    ])
+    assertEquals(
+      files.map(file => file.path),
+      [
+        '.gitignore',
+        '.settings/client.json',
+        'deno.json',
+        'gen-foo/mod.ts',
+        'keep.txt',
+        'reapit-refs/mod.ts'
+      ]
+    )
   } finally {
     await Deno.remove(root, { recursive: true })
   }
@@ -57,7 +60,10 @@ Deno.test('collectSourceFiles - .skmtcignore adds exclusions (files + dirs)', as
     await write(root, '.skmtcignore', 'scratch.txt\nsecrets/\n')
 
     const files = await collectSourceFiles(root)
-    assertEquals(files.map((file) => file.path), ['.skmtcignore', 'deno.json', 'keep.txt'])
+    assertEquals(
+      files.map(file => file.path),
+      ['.skmtcignore', 'deno.json', 'keep.txt']
+    )
   } finally {
     await Deno.remove(root, { recursive: true })
   }
@@ -71,7 +77,10 @@ Deno.test('collectSourceFiles - .skmtcignore can re-include a default-excluded p
     await write(root, '.skmtcignore', '!diagram.png\n')
 
     const files = await collectSourceFiles(root)
-    assertEquals(files.map((file) => file.path), ['.skmtcignore', 'deno.json', 'diagram.png'])
+    assertEquals(
+      files.map(file => file.path),
+      ['.skmtcignore', 'deno.json', 'diagram.png']
+    )
   } finally {
     await Deno.remove(root, { recursive: true })
   }

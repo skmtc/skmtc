@@ -1,23 +1,23 @@
-import { scrubSelector } from '../../utilities/scrubSelector';
+import { scrubSelector } from '../../utilities/scrubSelector'
 
 type CheckboxInputProps = {
-  label: string;
-  helperText?: string;
-  value?: boolean;
-  name: string;
-};
+  label: string
+  helperText?: string
+  value?: boolean
+  name: string
+}
 
 export class CheckboxInput {
-  label: string;
-  helperText?: string;
-  value?: boolean;
-  name: string;
+  label: string
+  helperText?: string
+  value?: boolean
+  name: string
 
   constructor({ label, helperText, value, name }: CheckboxInputProps) {
-    this.label = label;
-    this.helperText = helperText;
-    this.value = value;
-    this.name = name;
+    this.label = label
+    this.helperText = helperText
+    this.value = value
+    this.name = name
   }
 
   toString() {
@@ -30,6 +30,6 @@ export class CheckboxInput {
   ></vscode-checkbox>
   ${this.helperText ? `<vscode-form-helper><p>${this.helperText}</p></vscode-form-helper>` : ''}
 </vscode-form-group>
-`;
+`
   }
 }

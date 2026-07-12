@@ -5,9 +5,7 @@ import { ensureDir } from '@std/fs/ensure-dir'
 import { homedir } from 'node:os'
 import { runTypecheck } from '@/lib/typecheck.ts'
 
-const withTempCwd = async (
-  fn: (tempRoot: string) => Promise<void> | void
-) => {
+const withTempCwd = async (fn: (tempRoot: string) => Promise<void> | void) => {
   const tempRoot = await Deno.makeTempDir({
     prefix: 'skmtc-typecheck-',
     dir: homedir()
@@ -34,58 +32,52 @@ Deno.test('runTypecheck - skips with reason no-files when filePaths empty', asyn
   }
 })
 
-Deno.test(
-  'runTypecheck - reports no-tsconfig when none found walking up from basePath',
-  async () => {
-    // Use a temp dir that has no ancestor tsconfig.json. The search
-    // starts at the dir we point basePathAbs at and walks up; in a
-    // fresh subdir under HOME there should be none.
-    await withTempCwd(async tempRoot => {
-      const subdir = join(tempRoot, 'fresh')
-      await ensureDir(subdir)
+Deno.test('runTypecheck - reports no-tsconfig when none found walking up from basePath', async () => {
+  // Use a temp dir that has no ancestor tsconfig.json. The search
+  // starts at the dir we point basePathAbs at and walks up; in a
+  // fresh subdir under HOME there should be none.
+  await withTempCwd(async tempRoot => {
+    const subdir = join(tempRoot, 'fresh')
+    await ensureDir(subdir)
 
-      const result = await runTypecheck({
-        filePaths: ['src/foo.ts'],
-        basePathAbs: subdir
-      })
-
-      assertEquals(result.type, 'no-tsconfig')
+    const result = await runTypecheck({
+      filePaths: ['src/foo.ts'],
+      basePathAbs: subdir
     })
-  }
-)
 
-Deno.test(
-  'runTypecheck - discovers the nested app tsconfig by walking up from a monorepo basePath',
-  async () => {
-    // The nested-monorepo layout: the skmtc root (tempRoot) has NO tsconfig; the
-    // app under apps/x owns it, and basePath points at the app's src. Discovery
-    // walks up from basePath, so it must find the app's tsconfig — the app root,
-    // not the skmtc root, is where the consumer's TypeScript lives.
-    await withTempCwd(async tempRoot => {
-      const appDir = join(tempRoot, 'apps', 'x')
-      await ensureDir(join(appDir, 'src'))
-      await Deno.writeTextFile(
-        join(appDir, 'tsconfig.json'),
-        JSON.stringify({ compilerOptions: { noEmit: true, skipLibCheck: true } })
-      )
-      await Deno.writeTextFile(join(appDir, 'src', 'thing.ts'), 'export const thing = 1\n')
+    assertEquals(result.type, 'no-tsconfig')
+  })
+})
 
-      const result = await runTypecheck({
-        filePaths: ['apps/x/src/thing.ts'],
-        basePathAbs: join(appDir, 'src')
-      })
+Deno.test('runTypecheck - discovers the nested app tsconfig by walking up from a monorepo basePath', async () => {
+  // The nested-monorepo layout: the skmtc root (tempRoot) has NO tsconfig; the
+  // app under apps/x owns it, and basePath points at the app's src. Discovery
+  // walks up from basePath, so it must find the app's tsconfig — the app root,
+  // not the skmtc root, is where the consumer's TypeScript lives.
+  await withTempCwd(async tempRoot => {
+    const appDir = join(tempRoot, 'apps', 'x')
+    await ensureDir(join(appDir, 'src'))
+    await Deno.writeTextFile(
+      join(appDir, 'tsconfig.json'),
+      JSON.stringify({ compilerOptions: { noEmit: true, skipLibCheck: true } })
+    )
+    await Deno.writeTextFile(join(appDir, 'src', 'thing.ts'), 'export const thing = 1\n')
 
-      // Reaching past tsconfig-discovery (anything but `no-tsconfig`) proves the
-      // search walked up from basePath into the nested app and found the app's
-      // tsconfig — the only one in the tree. Whether tsc then runs depends on the
-      // environment; discovery succeeding is the monorepo behavior under test.
-      assertNotEquals(result.type, 'no-tsconfig')
+    const result = await runTypecheck({
+      filePaths: ['apps/x/src/thing.ts'],
+      basePathAbs: join(appDir, 'src')
     })
-  }
-)
+
+    // Reaching past tsconfig-discovery (anything but `no-tsconfig`) proves the
+    // search walked up from basePath into the nested app and found the app's
+    // tsconfig — the only one in the tree. Whether tsc then runs depends on the
+    // environment; discovery succeeding is the monorepo behavior under test.
+    assertNotEquals(result.type, 'no-tsconfig')
+  })
+})
 
 Deno.test(
-  'runTypecheck - reports passed when tsc reports no diagnostics in this run\'s files',
+  "runTypecheck - reports passed when tsc reports no diagnostics in this run's files",
   { ignore: !canRunTsc() },
   async () => {
     await withTempCwd(async tempRoot => {
@@ -103,10 +95,7 @@ Deno.test(
         })
       )
       await ensureDir(join(tempRoot, 'src'))
-      Deno.writeTextFileSync(
-        join(tempRoot, 'src', 'ok.ts'),
-        'export const x: number = 1\n'
-      )
+      Deno.writeTextFileSync(join(tempRoot, 'src', 'ok.ts'), 'export const x: number = 1\n')
 
       const result = await runTypecheck({
         filePaths: ['src/ok.ts'],
@@ -119,7 +108,7 @@ Deno.test(
 )
 
 Deno.test(
-  'runTypecheck - reports failed and filters diagnostics to this run\'s files',
+  "runTypecheck - reports failed and filters diagnostics to this run's files",
   { ignore: !canRunTsc() },
   async () => {
     await withTempCwd(async tempRoot => {

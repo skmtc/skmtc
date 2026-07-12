@@ -148,7 +148,7 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
       ({
         'synthetic-model': modelGenerator,
         'synthetic-gql-op': operationGenerator
-      } as any)
+      }) as any
   })
 
   const result = context.toArtifacts(new StackTrail(['integration']))

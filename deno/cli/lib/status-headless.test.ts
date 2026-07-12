@@ -98,14 +98,8 @@ Deno.test('statusHeadless - classifies clean, modified, and missing files', asyn
 
       assertEquals(result.noManifest, false)
       assertEquals(result.counts, { clean: 1, modified: 1, missing: 1, unverified: 0, ejected: 0 })
-      assertEquals(
-        result.files.find(({ path }) => path === 'src/clean.ts')?.status,
-        'clean'
-      )
-      assertEquals(
-        result.files.find(({ path }) => path === 'src/edited.ts')?.status,
-        'modified'
-      )
+      assertEquals(result.files.find(({ path }) => path === 'src/clean.ts')?.status, 'clean')
+      assertEquals(result.files.find(({ path }) => path === 'src/edited.ts')?.status, 'modified')
       assertEquals(result.files.find(({ path }) => path === 'src/gone.ts')?.status, 'missing')
       assertEquals(result.clean, false)
     })
@@ -247,10 +241,7 @@ Deno.test('statusHeadless - ejected files get their own status, not modified', a
         skmtcRootPath
       })
 
-      assertEquals(
-        result.files.find(({ path }) => path === 'src/owned.ts')?.status,
-        'ejected'
-      )
+      assertEquals(result.files.find(({ path }) => path === 'src/owned.ts')?.status, 'ejected')
       assertEquals(result.counts.ejected, 1)
       assertEquals(result.counts.modified, 0)
       assertEquals(result.clean, true)

@@ -23,8 +23,7 @@ const mockGenerators: Generator[] = [
 const createMockSkmtcRoot = (): SkmtcRoot =>
   ({
     projects: [],
-    manager: {
-    }
+    manager: {}
   }) as unknown as SkmtcRoot
 
 const createMockProject = (): Project =>

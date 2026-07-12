@@ -86,9 +86,7 @@ export class TsImport extends ImportBase {
    * identifier emits `import { type X }`).
    */
   static fromIdentifier(module: string, identifier: TsIdentifier): TsImport {
-    return new TsImport(module, [
-      { name: identifier.name, typeOnly: isTypeOnly(identifier.type) }
-    ])
+    return new TsImport(module, [{ name: identifier.name, typeOnly: isTypeOnly(identifier.type) }])
   }
 
   override mergeKey(): string {

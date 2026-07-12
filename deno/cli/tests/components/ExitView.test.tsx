@@ -6,7 +6,6 @@ import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { assertEquals } from '@std/assert/equals'
 
 Deno.test('ExitView - renders', () => {
-
   let exitCount = 0
   const mockExit = () => {
     exitCount++

@@ -9,8 +9,8 @@ import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 
 const mockOptions: ToJsonSchemaOptions = { resolve: false }
 
-Deno.test('OasObject', async (t) => {
-  await t.step('constructor and property initialization', async (t) => {
+Deno.test('OasObject', async t => {
+  await t.step('constructor and property initialization', async t => {
     await t.step('should initialize with all properties provided', () => {
       const obj = new OasObject({
         title: 'User',
@@ -181,7 +181,7 @@ Deno.test('OasObject', async (t) => {
     })
   })
 
-  await t.step('OasObject.empty() static factory', async (t) => {
+  await t.step('OasObject.empty() static factory', async t => {
     await t.step('should create proper empty object', () => {
       const obj = OasObject.empty()
 
@@ -206,7 +206,7 @@ Deno.test('OasObject', async (t) => {
     })
   })
 
-  await t.step('addProperty() method', async (t) => {
+  await t.step('addProperty() method', async t => {
     await t.step('should add property without required flag', () => {
       const obj = OasObject.empty()
       const result = obj.addProperty({
@@ -317,7 +317,7 @@ Deno.test('OasObject', async (t) => {
     })
   })
 
-  await t.step('removeProperty() method', async (t) => {
+  await t.step('removeProperty() method', async t => {
     await t.step('should remove existing property', () => {
       const obj = new OasObject({
         properties: {
@@ -407,7 +407,7 @@ Deno.test('OasObject', async (t) => {
     })
   })
 
-  await t.step('isRef() method', async (t) => {
+  await t.step('isRef() method', async t => {
     await t.step('should always return false', () => {
       const obj1 = OasObject.empty()
       const obj2 = new OasObject({ title: 'Test' })
@@ -429,7 +429,7 @@ Deno.test('OasObject', async (t) => {
     })
   })
 
-  await t.step('resolve() method', async (t) => {
+  await t.step('resolve() method', async t => {
     await t.step('should return itself', () => {
       const obj = new OasObject({ title: 'Test' })
       const result = obj.resolve()
@@ -452,7 +452,7 @@ Deno.test('OasObject', async (t) => {
     })
   })
 
-  await t.step('resolveOnce() method', async (t) => {
+  await t.step('resolveOnce() method', async t => {
     await t.step('should return itself', () => {
       const obj = new OasObject({ description: 'Test object' })
       const result = obj.resolveOnce()
@@ -477,7 +477,7 @@ Deno.test('OasObject', async (t) => {
     })
   })
 
-  await t.step('toJsonSchema() method', async (t) => {
+  await t.step('toJsonSchema() method', async t => {
     await t.step('should convert basic object with properties', () => {
       const obj = new OasObject({
         title: 'User',
@@ -601,10 +601,7 @@ Deno.test('OasObject', async (t) => {
 
     await t.step('should include enums', () => {
       const obj = new OasObject({
-        enums: [
-          { status: 'active' },
-          { status: 'inactive' }
-        ]
+        enums: [{ status: 'active' }, { status: 'inactive' }]
       })
 
       const json = obj.toJsonSchema(mockOptions)
@@ -660,7 +657,7 @@ Deno.test('OasObject', async (t) => {
     })
   })
 
-  await t.step('property handling', async (t) => {
+  await t.step('property handling', async t => {
     await t.step('should handle properties with various schema types', () => {
       const obj = new OasObject({
         properties: {
@@ -752,7 +749,7 @@ Deno.test('OasObject', async (t) => {
     })
   })
 
-  await t.step('nullable type support', async (t) => {
+  await t.step('nullable type support', async t => {
     await t.step('should allow null default when nullable=true', () => {
       const obj = new OasObject<true>({
         nullable: true,
@@ -817,7 +814,7 @@ Deno.test('OasObject', async (t) => {
     })
   })
 
-  await t.step('edge cases and integration', async (t) => {
+  await t.step('edge cases and integration', async t => {
     await t.step('should handle empty object with no properties', () => {
       const obj = new OasObject()
 

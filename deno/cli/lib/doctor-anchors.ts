@@ -28,10 +28,7 @@ import type { Check } from '@/lib/doctor-headless.ts'
  *  - `anchors.enabled: true` → `ok`
  *  - Malformed `anchors` block → `warning`
  */
-export const checkAnchorsConfig = (
-  projectName: string,
-  projectPath: string
-): Check => {
+export const checkAnchorsConfig = (projectName: string, projectPath: string): Check => {
   const clientJsonPath = join(projectPath, '.settings', 'client.json')
   if (!existsSync(clientJsonPath)) {
     return {
@@ -98,10 +95,7 @@ const COVERAGE_THRESHOLD = 0.95
  *  - Coverage < 95% → `warning`
  *  - No files at all → `skipped`
  */
-export const checkAnchorsCoverage = (
-  projectName: string,
-  projectPath: string
-): Check => {
+export const checkAnchorsCoverage = (projectName: string, projectPath: string): Check => {
   const anchorsCfg = readAnchorsConfig(projectPath)
   if (!anchorsCfg?.enabled) {
     return {
@@ -168,10 +162,7 @@ export const checkAnchorsCoverage = (
  *  - All fresh → `ok`
  *  - Any stale → `warning` with the offending file list
  */
-export const checkAnchorsStaleness = (
-  projectName: string,
-  projectPath: string
-): Check => {
+export const checkAnchorsStaleness = (projectName: string, projectPath: string): Check => {
   const anchorsCfg = readAnchorsConfig(projectPath)
   if (!anchorsCfg?.enabled) {
     return {
@@ -240,7 +231,9 @@ const readAnchorsConfig = (projectPath: string): AnchorsSettings | undefined => 
   }
 }
 
-const readManifest = (manifestPath: string): { files: Record<string, { destinationPath: string }> } | undefined => {
+const readManifest = (
+  manifestPath: string
+): { files: Record<string, { destinationPath: string }> } | undefined => {
   try {
     const parsedJson = JSON.parse(Deno.readTextFileSync(manifestPath))
     const result = v.safeParse(manifestContent, parsedJson)

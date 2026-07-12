@@ -19,16 +19,16 @@
  * landmark with an empty path.
  */
 
-import type { ParserAdapter } from "./ParserAdapter.ts";
-import type { AnchorRow, Sidecar } from "./sidecar.ts";
+import type { ParserAdapter } from './ParserAdapter.ts'
+import type { AnchorRow, Sidecar } from './sidecar.ts'
 
 export type UpgradeSidecarArgs = {
-  sidecar: Sidecar;
+  sidecar: Sidecar
   /** The artifact text the sidecar's spans index into — the RAW
    *  engine render, before any consumer formatter runs. */
-  source: string;
-  parser: ParserAdapter;
-};
+  source: string
+  parser: ParserAdapter
+}
 
 /**
  * Sink spans include the inter-statement whitespace the renderer
@@ -37,109 +37,91 @@ export type UpgradeSidecarArgs = {
  * and loses its landmark. Trim to the non-whitespace extent before
  * AST resolution. (Spike finding #3 — see `spike-reanchor.ts`.)
  */
-const trimSpan = (
-  text: string,
-  from: number,
-  to: number,
-): { from: number; to: number } => {
-  const slice = text.slice(from, to);
-  const leading = slice.length - slice.trimStart().length;
-  const trailing = slice.length - slice.trimEnd().length;
-  return { from: from + leading, to: to - trailing };
-};
+const trimSpan = (text: string, from: number, to: number): { from: number; to: number } => {
+  const slice = text.slice(from, to)
+  const leading = slice.length - slice.trimStart().length
+  const trailing = slice.length - slice.trimEnd().length
+  return { from: from + leading, to: to - trailing }
+}
 
 /** Sink spans are UTF-16 code units; oxc offsets are UTF-8 bytes.
  *  They coincide only for ASCII text, so a non-ASCII render can't be
  *  upgraded faithfully without a unit conversion (not yet built). */
-const isAscii = (text: string): boolean => /^[\x00-\x7F]*$/.test(text);
+const isAscii = (text: string): boolean => /^[\x00-\x7F]*$/.test(text)
 
 /**
  * Re-resolve every anchor's landmark + AST path against `source` and
  * return a sidecar whose `L`/`P` pools carry re-anchorable values and
  * whose `parser` field records the adapter that resolved them.
  */
-export const upgradeSidecar = (
-  { sidecar, source, parser }: UpgradeSidecarArgs,
-): Sidecar => {
-  if (sidecar.A.length === 0) return sidecar;
-  if (!isAscii(source)) return sidecar;
+export const upgradeSidecar = ({ sidecar, source, parser }: UpgradeSidecarArgs): Sidecar => {
+  if (sidecar.A.length === 0) return sidecar
+  if (!isAscii(source)) return sidecar
 
-  let parsed: unknown;
+  let parsed: unknown
   try {
-    parsed = parser.parse(sidecar.f, source);
+    parsed = parser.parse(sidecar.f, source)
   } catch {
-    return sidecar;
+    return sidecar
   }
-  const landmarks = parser.collectLandmarks(parsed);
+  const landmarks = parser.collectLandmarks(parsed)
 
-  const L: string[] = [];
-  const P: string[] = [];
-  const internedL = new Map<string, number>();
-  const internedP = new Map<string, number>();
-  const intern = (
-    pool: string[],
-    cache: Map<string, number>,
-    value: string,
-  ): number => {
-    const hit = cache.get(value);
-    if (hit !== undefined) return hit;
-    const index = pool.length;
-    pool.push(value);
-    cache.set(value, index);
-    return index;
-  };
+  const L: string[] = []
+  const P: string[] = []
+  const internedL = new Map<string, number>()
+  const internedP = new Map<string, number>()
+  const intern = (pool: string[], cache: Map<string, number>, value: string): number => {
+    const hit = cache.get(value)
+    if (hit !== undefined) return hit
+    const index = pool.length
+    pool.push(value)
+    cache.set(value, index)
+    return index
+  }
 
   const A = sidecar.A.map((row): AnchorRow => {
-    const [
-      oldLandmarkIndex,
-      ,
-      generatorIndex,
-      schemaIndex,
-      variantIndex,
-      from,
-      to,
-    ] = row;
-    const trimmed = trimSpan(source, from, to);
-    const node = parser.smallestEnclosing(parsed, trimmed.from, trimmed.to);
-    const location = parser.ascendToLandmark(node, landmarks);
-    if (location.landmark === "") {
+    const [oldLandmarkIndex, , generatorIndex, schemaIndex, variantIndex, from, to] = row
+    const trimmed = trimSpan(source, from, to)
+    const node = parser.smallestEnclosing(parsed, trimmed.from, trimmed.to)
+    const location = parser.ascendToLandmark(node, landmarks)
+    if (location.landmark === '') {
       // Nothing stable to descend from — keep the worker's landmark
       // (the enclosing Definition's name) so hover/pin flows still
       // group correctly; the empty path marks it non-re-anchorable.
-      const workerLandmark = sidecar.L[oldLandmarkIndex] ?? "";
+      const workerLandmark = sidecar.L[oldLandmarkIndex] ?? ''
       return [
         intern(L, internedL, workerLandmark),
-        intern(P, internedP, ""),
+        intern(P, internedP, ''),
         generatorIndex,
         schemaIndex,
         variantIndex,
         from,
-        to,
-      ];
+        to
+      ]
     }
     return [
       intern(L, internedL, location.landmark),
-      intern(P, internedP, location.path.join(".")),
+      intern(P, internedP, location.path.join('.')),
       generatorIndex,
       schemaIndex,
       variantIndex,
       from,
-      to,
-    ];
-  });
+      to
+    ]
+  })
 
-  return { ...sidecar, parser: parser.id, L, P, A };
-};
+  return { ...sidecar, parser: parser.id, L, P, A }
+}
 
 export type ReanchorSidecarArgs = {
   /** An upgraded sidecar (real landmarks + AST paths — run
    *  {@link upgradeSidecar} first). */
-  sidecar: Sidecar;
+  sidecar: Sidecar
   /** The artifact text as it now exists ON DISK — e.g. after the
    *  consumer's formatter ran over the raw render. */
-  source: string;
-  parser: ParserAdapter;
-};
+  source: string
+  parser: ParserAdapter
+}
 
 /**
  * Realign a sidecar's byte spans to a reshaped copy of its artifact by
@@ -155,45 +137,39 @@ export type ReanchorSidecarArgs = {
  * wrong spans silently. Individual anchors that fail to resolve are
  * dropped (their parallel `An` entries with them).
  */
-export const reanchorSidecar = (
-  { sidecar, source, parser }: ReanchorSidecarArgs,
-): Sidecar | undefined => {
-  if (sidecar.A.length === 0) return sidecar;
-  if (!isAscii(source)) return undefined;
+export const reanchorSidecar = ({
+  sidecar,
+  source,
+  parser
+}: ReanchorSidecarArgs): Sidecar | undefined => {
+  if (sidecar.A.length === 0) return sidecar
+  if (!isAscii(source)) return undefined
 
-  let parsed: unknown;
+  let parsed: unknown
   try {
-    parsed = parser.parse(sidecar.f, source);
+    parsed = parser.parse(sidecar.f, source)
   } catch {
-    return undefined;
+    return undefined
   }
-  const landmarks = parser.collectLandmarks(parsed);
+  const landmarks = parser.collectLandmarks(parsed)
 
-  const A: AnchorRow[] = [];
+  const A: AnchorRow[] = []
   // `An` is strictly parallel to `A` (or absent altogether) — a dropped
   // row must drop its producer entry too, and a sidecar without the
   // optional pool stays without it.
-  const producerIndices = sidecar.An;
-  const An: number[] | undefined = producerIndices === undefined
-    ? undefined
-    : [];
+  const producerIndices = sidecar.An
+  const An: number[] | undefined = producerIndices === undefined ? undefined : []
   sidecar.A.forEach((row, index) => {
-    const [
-      landmarkIndex,
-      pathIndex,
-      generatorIndex,
-      schemaIndex,
-      variantIndex,
-    ] = row;
-    const landmarkName = sidecar.L[landmarkIndex] ?? "";
-    if (landmarkName === "") return;
-    const landmark = landmarks.get(landmarkName);
-    if (landmark === undefined) return;
-    const pathText = sidecar.P[pathIndex] ?? "";
-    const path = pathText === "" ? [] : pathText.split(".").map(Number);
-    const node = parser.descendPath(landmark, path);
-    if (node === undefined) return;
-    const span = parser.spanOf(node);
+    const [landmarkIndex, pathIndex, generatorIndex, schemaIndex, variantIndex] = row
+    const landmarkName = sidecar.L[landmarkIndex] ?? ''
+    if (landmarkName === '') return
+    const landmark = landmarks.get(landmarkName)
+    if (landmark === undefined) return
+    const pathText = sidecar.P[pathIndex] ?? ''
+    const path = pathText === '' ? [] : pathText.split('.').map(Number)
+    const node = parser.descendPath(landmark, path)
+    if (node === undefined) return
+    const span = parser.spanOf(node)
     A.push([
       landmarkIndex,
       pathIndex,
@@ -201,11 +177,11 @@ export const reanchorSidecar = (
       schemaIndex,
       variantIndex,
       span.start,
-      span.end,
-    ]);
-    if (An !== undefined) An.push(producerIndices?.[index] ?? -1);
-  });
+      span.end
+    ])
+    if (An !== undefined) An.push(producerIndices?.[index] ?? -1)
+  })
 
-  if (A.length === 0) return undefined;
-  return An === undefined ? { ...sidecar, A } : { ...sidecar, A, An };
-};
+  if (A.length === 0) return undefined
+  return An === undefined ? { ...sidecar, A } : { ...sidecar, A, An }
+}

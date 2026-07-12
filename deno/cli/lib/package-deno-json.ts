@@ -36,11 +36,7 @@ export class PackageDenoJson {
 
     const contents = await Deno.readTextFile(path)
 
-    const parsed = parseOrExplain(
-      packageDenoJson,
-      JSON.parse(contents),
-      `deno.json at ${path}`
-    )
+    const parsed = parseOrExplain(packageDenoJson, JSON.parse(contents), `deno.json at ${path}`)
     const denoJson = new PackageDenoJson({ path, contents: parsed })
 
     manager.cleanupActions.push(async () => await denoJson.write())

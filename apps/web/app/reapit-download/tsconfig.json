@@ -4,7 +4,19 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "jsx": "react-jsx",
-    "lib": ["dom", "dom.iterable", "es2015", "es2017", "es2018", "es2019", "es2020", "es5", "es6", "es7", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "es2015",
+      "es2017",
+      "es2018",
+      "es2019",
+      "es2020",
+      "es5",
+      "es6",
+      "es7",
+      "esnext"
+    ],
     "module": "esnext",
     "moduleResolution": "bundler",
     "noEmit": true,
@@ -26,5 +38,11 @@
       "@/*": ["./*"]
     }
   },
-  "exclude": ["**/public/**/*", "**/dist/**/*", ".yarn/**/*", "**/node_modules/**/*", "**/coverage/**/*"]
+  "exclude": [
+    "**/public/**/*",
+    "**/dist/**/*",
+    ".yarn/**/*",
+    "**/node_modules/**/*",
+    "**/coverage/**/*"
+  ]
 }

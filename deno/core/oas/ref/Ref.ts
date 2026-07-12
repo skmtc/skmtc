@@ -26,31 +26,31 @@ const MAX_LOOKUPS = 10
 function refTypeToPluralPath(refType: OasRefData['refType']): string {
   switch (refType) {
     case 'schema':
-      return 'schemas';
+      return 'schemas'
     case 'requestBody':
-      return 'requestBodies';
+      return 'requestBodies'
     case 'parameter':
-      return 'parameters';
+      return 'parameters'
     case 'response':
-      return 'responses';
+      return 'responses'
     case 'example':
-      return 'examples';
+      return 'examples'
     case 'header':
-      return 'headers';
+      return 'headers'
     case 'securityScheme':
-      return 'securitySchemes';
+      return 'securitySchemes'
     case 'link':
-      return 'links';
+      return 'links'
     default: {
-      const _exhaustive: never = refType;
-      throw new Error(`Unhandled ref type: ${_exhaustive}`);
+      const _exhaustive: never = refType
+      throw new Error(`Unhandled ref type: ${_exhaustive}`)
     }
   }
 }
 
 /**
  * Field data for creating OAS reference objects.
- * 
+ *
  * @template T - The type of component being referenced (e.g., 'schema', 'response')
  */
 export type RefFields<T extends OasRefData['refType']> = {
@@ -71,36 +71,36 @@ export type RefFields<T extends OasRefData['refType']> = {
 
 /**
  * Represents an OpenAPI reference ($ref) in the SKMTC OAS processing system.
- * 
+ *
  * The `OasRef` class handles OpenAPI JSON Reference Objects that point to reusable
  * components within the same document. It provides type-safe reference resolution
  * with support for chained references and circular reference detection.
- * 
+ *
  * ## Key Features
- * 
+ *
  * - **Type Safety**: Generic parameter ensures resolved types match the reference type
  * - **Lazy Resolution**: References are resolved on-demand, not during construction
  * - **Chain Resolution**: Handles references that point to other references
  * - **Circular Detection**: Prevents infinite loops with maximum lookup limits
  * - **Type Validation**: Ensures resolved objects match expected reference types
- * 
+ *
  * @template T - The type of component this reference points to
- * 
+ *
  * @example Basic reference resolution
  * ```typescript
  * import { OasRef } from '@skmtc/core';
- * 
+ *
  * // Reference to a schema component
  * const userRef = new OasRef<'schema'>({
  *   refType: 'schema',
  *   $ref: '#/components/schemas/User'
  * }, document);
- * 
+ *
  * // Resolve the reference
  * const userSchema = userRef.resolve();
  * console.log(userSchema.properties); // Access resolved schema properties
  * ```
- * 
+ *
  * @example Working with different reference types
  * ```typescript
  * // Schema reference
@@ -108,20 +108,20 @@ export type RefFields<T extends OasRefData['refType']> = {
  *   refType: 'schema',
  *   $ref: '#/components/schemas/Product'
  * }, document);
- * 
+ *
  * // Response reference
  * const responseRef = new OasRef<'response'>({
  *   refType: 'response',
  *   $ref: '#/components/responses/ErrorResponse'
  * }, document);
- * 
+ *
  * // Parameter reference
  * const paramRef = new OasRef<'parameter'>({
  *   refType: 'parameter',
  *   $ref: '#/components/parameters/PageSize'
  * }, document);
  * ```
- * 
+ *
  * @example Reference checking and conditional resolution
  * ```typescript
  * function processSchemaOrRef(schema: OasSchema | OasRef<'schema'>) {
@@ -129,7 +129,7 @@ export type RefFields<T extends OasRefData['refType']> = {
  *     // Handle reference
  *     const refName = schema.toRefName();
  *     console.log(`Processing reference: ${refName}`);
- *     
+ *
  *     // Resolve only when needed
  *     const resolved = schema.resolve();
  *     return processed(resolved);
@@ -139,7 +139,7 @@ export type RefFields<T extends OasRefData['refType']> = {
  *   }
  * }
  * ```
- * 
+ *
  * @example Chained reference handling
  * ```typescript
  * // References can point to other references
@@ -147,10 +147,10 @@ export type RefFields<T extends OasRefData['refType']> = {
  *   refType: 'schema',
  *   $ref: '#/components/schemas/AliasToUser'
  * }, document);
- * 
+ *
  * // resolve() automatically follows the chain
  * const finalSchema = chainedRef.resolve(); // Follows chain to final schema
- * 
+ *
  * // resolveOnce() resolves only one step
  * const oneStep = chainedRef.resolveOnce(); // May still be a reference
  * ```
@@ -243,10 +243,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     return resolved as OasRef<T> | ResolvedRef<T>
   }
 
-  #resolveOasOnce(
-    document: OasDocument,
-    refName: RefName
-  ): ResolvedRef<T> | OasRef<T> | undefined {
+  #resolveOasOnce(document: OasDocument, refName: RefName): ResolvedRef<T> | OasRef<T> | undefined {
     const c = document.components
     const refType: OasRefData['refType'] = this.refType
     switch (refType) {
@@ -273,20 +270,14 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     }
   }
 
-  #resolveGqlOnce(
-    document: GqlDocument,
-    refName: RefName
-  ): ResolvedRef<T> | OasRef<T> | undefined {
+  #resolveGqlOnce(document: GqlDocument, refName: RefName): ResolvedRef<T> | OasRef<T> | undefined {
     // GraphQL only ever creates schema refs — there's no GQL concept
     // of a response/parameter/header/etc. ref. The refType field is
     // still typed by `T` for the OAS variants; on the GQL branch we
     // always do a schema lookup and let the post-lookup refType-vs-
     // oasType check catch any caller that constructed a non-schema
     // ref pointing at a GQL document.
-    return document.registry.schemas[refName] as
-      | ResolvedRef<T>
-      | OasRef<T>
-      | undefined
+    return document.registry.schemas[refName] as ResolvedRef<T> | OasRef<T> | undefined
   }
 
   toRefName(): RefName {
@@ -377,7 +368,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
 
 /**
  * Type representing the JSON schema result from resolving a reference.
- * 
+ *
  * @template T - The type of component being referenced
  */
 export type ResolvedRefJsonType<T extends OasRefData['refType']> = ReturnType<
@@ -386,7 +377,7 @@ export type ResolvedRefJsonType<T extends OasRefData['refType']> = ReturnType<
 
 /**
  * Union type of all OAS component types that can be referenced.
- * 
+ *
  * Includes all OpenAPI component types that support $ref resolution.
  */
 export type OasComponentType =
@@ -401,7 +392,7 @@ export type OasComponentType =
 
 /**
  * Type representing a resolved reference to a specific component type.
- * 
+ *
  * @template T - The type of component being referenced (e.g., 'schema', 'response')
  */
 export type ResolvedRef<T extends OasRefData['refType']> = Extract<OasComponentType, { oasType: T }>

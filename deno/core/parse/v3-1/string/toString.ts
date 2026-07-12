@@ -248,26 +248,28 @@ export const toParsedString = <Nullable extends boolean | undefined>({
   // `utc_datetime`) are spec-legal. The value is preserved on the OasString
   // below, so an unrecognised format is passed through, not warned.
 
-  return context.withStackTrail(stackTrail, () =>
-    new OasString<Nullable>(
-      {
-        title,
-        description,
-        enums,
-        nullable,
-        example,
-        format,
-        maxLength,
-        minLength,
-        pattern,
-        readOnly,
-        writeOnly,
-        default: defaultValue,
-        extensionFields,
-        deprecated
-      },
-      context
-    )
+  return context.withStackTrail(
+    stackTrail,
+    () =>
+      new OasString<Nullable>(
+        {
+          title,
+          description,
+          enums,
+          nullable,
+          example,
+          format,
+          maxLength,
+          minLength,
+          pattern,
+          readOnly,
+          writeOnly,
+          default: defaultValue,
+          extensionFields,
+          deprecated
+        },
+        context
+      )
   )
 }
 

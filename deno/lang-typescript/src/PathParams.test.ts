@@ -25,7 +25,9 @@ const mockNumberType = () => ({
 })
 
 // Helper to create a TypeSystemObject with properties
-const createTypeSystemObject = (properties: Record<string, TypeSystemString | ReturnType<typeof mockNumberType>>): TypeSystemObject => ({
+const createTypeSystemObject = (
+  properties: Record<string, TypeSystemString | ReturnType<typeof mockNumberType>>
+): TypeSystemObject => ({
   type: 'object',
   recordProperties: null,
   objectProperties: {

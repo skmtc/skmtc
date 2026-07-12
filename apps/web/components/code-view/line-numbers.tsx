@@ -2,7 +2,7 @@ import { AnnotationHandler, InnerLine } from 'codehike/code'
 
 export const lineNumbers: AnnotationHandler = {
   name: 'line-numbers',
-  Line: (props) => {
+  Line: props => {
     const width = props.totalLines.toString().length + 1
     return (
       <div className="flex">
@@ -12,5 +12,5 @@ export const lineNumbers: AnnotationHandler = {
         <InnerLine merge={props} className="flex-1 pl-2" />
       </div>
     )
-  },
+  }
 }

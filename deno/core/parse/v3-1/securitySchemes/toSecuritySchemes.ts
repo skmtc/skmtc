@@ -34,7 +34,7 @@ export const toSecuritySchemesV3 = ({
   stackTrail,
   context
 }: ToSecuritySchemesArgs): // 'http' | 'apiKey' | 'oauth2' | 'openIdConnect'
-Record<string, OasSecurityScheme | OasRef<'securityScheme'>> | undefined => {
+  Record<string, OasSecurityScheme | OasRef<'securityScheme'>> | undefined => {
   if (!securitySchemes) {
     return undefined
   }
@@ -103,7 +103,7 @@ const toSecuritySchemeV3 = ({
         description,
         scheme,
         bearerFormat
-      });
+      })
     }
 
     case 'apiKey': {
@@ -128,7 +128,7 @@ const toSecuritySchemeV3 = ({
         description,
         name,
         in: location
-      });
+      })
     }
 
     case 'oauth2': {
@@ -151,7 +151,7 @@ const toSecuritySchemeV3 = ({
       return new OasOAuth2SecurityScheme({
         description,
         flows
-      });
+      })
     }
 
     case 'openIdConnect': {
@@ -174,7 +174,7 @@ const toSecuritySchemeV3 = ({
       return new OasOpenIdSecurityScheme({
         description,
         openIdConnectUrl
-      });
+      })
     }
 
     default: {

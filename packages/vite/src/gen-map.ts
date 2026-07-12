@@ -57,19 +57,17 @@ export type GenMapResult = {
 }
 
 const asStringArray = (value: unknown): string[] =>
-  Array.isArray(value) ? value.map((entry) => (typeof entry === 'string' ? entry : '')) : []
+  Array.isArray(value) ? value.map(entry => (typeof entry === 'string' ? entry : '')) : []
 
 /** The `G` pool holds `{ name, version, r }` records; only `name` is used —
  *  locally it is the generator's real package name. */
 const asGeneratorNames = (value: unknown): string[] =>
   Array.isArray(value)
-    ? value.map((entry) =>
-        isRecord(entry) && typeof entry.name === 'string' ? entry.name : ''
-      )
+    ? value.map(entry => (isRecord(entry) && typeof entry.name === 'string' ? entry.name : ''))
     : []
 
 const asNumberArray = (value: unknown): number[] =>
-  Array.isArray(value) ? value.map((entry) => (typeof entry === 'number' ? entry : -1)) : []
+  Array.isArray(value) ? value.map(entry => (typeof entry === 'number' ? entry : -1)) : []
 
 /** One well-formed anchor row `[Li, Pi, gi, si, vi, from, to]`, paired with
  *  its producer-name pool index. The sidecar's `An` array is parallel to the
@@ -78,7 +76,7 @@ const asNumberArray = (value: unknown): number[] =>
 type AnchorRow = { row: number[]; producerIndex: number | undefined }
 
 const isWellFormedRow = (row: unknown): row is number[] =>
-  Array.isArray(row) && row.length >= 7 && row.every((n) => typeof n === 'number')
+  Array.isArray(row) && row.length >= 7 && row.every(n => typeof n === 'number')
 
 type SidecarLike = {
   /** `@/`-aliased artifact path the sidecar describes. */
@@ -185,8 +183,7 @@ const reanchoredEntries = (
   })
 }
 
-const mapsDir = (root: string, project: string): string =>
-  join(root, '.skmtc', project, '.maps')
+const mapsDir = (root: string, project: string): string => join(root, '.skmtc', project, '.maps')
 
 /** Every `*.skm.json` under `.maps`, recursively. `[]` when the tree is
  *  absent (the project has never generated with `--anchors`). */
@@ -198,7 +195,7 @@ const sidecarPaths = async (dir: string): Promise<string[]> => {
     return []
   }
   const nested = await Promise.all(
-    dirents.map((dirent) => {
+    dirents.map(dirent => {
       const path = join(dir, dirent.name)
       if (dirent.isDirectory()) return sidecarPaths(path)
       return Promise.resolve(dirent.name.endsWith('.skm.json') ? [path] : [])
@@ -243,9 +240,7 @@ export const readGenMap = async (
   }
   const isMirror = (candidate: { path: string; sidecar: SidecarLike }): boolean =>
     candidate.path === join(dir, `${candidate.sidecar.f}.skm.json`)
-  decoded.sort(
-    (a, b) => Number(isMirror(b)) - Number(isMirror(a)) || a.path.localeCompare(b.path)
-  )
+  decoded.sort((a, b) => Number(isMirror(b)) - Number(isMirror(a)) || a.path.localeCompare(b.path))
 
   const seenArtifacts = new Set<string>()
   const entries: GenMapEntry[] = []
@@ -256,7 +251,8 @@ export const readGenMap = async (
     seenArtifacts.add(artifactPath)
     const meta = manifestFiles[artifactPath]
     if (meta === undefined) continue
-    const characters = isRecord(meta) && typeof meta.characters === 'number' ? meta.characters : null
+    const characters =
+      isRecord(meta) && typeof meta.characters === 'number' ? meta.characters : null
     const content = await readFile(join(root, artifactPath), 'utf8').catch(() => null)
     if (content === null) {
       staleFiles.push(artifactPath)

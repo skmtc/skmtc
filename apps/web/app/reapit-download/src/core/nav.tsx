@@ -13,14 +13,15 @@ export const getDefaultNavIndex = (pathname: string) => {
   return 0
 }
 
-
 export const Nav: FC = () => {
-  const { connectLogoutRedirect, connectIsDesktop, connectSession } = useReapitConnect(reapitConnectBrowserSession)
+  const { connectLogoutRedirect, connectIsDesktop, connectSession } = useReapitConnect(
+    reapitConnectBrowserSession
+  )
   const navigate = useNavigate()
 
   const navOptions: NavResponsiveOption[] = [
     {
-      itemIndex: 0,
+      itemIndex: 0
     },
     {
       itemIndex: 1,
@@ -30,20 +31,20 @@ export const Nav: FC = () => {
         {
           itemIndex: 4,
           callback: navigateRoute(navigate, '/contacts/list'),
-          text: 'List',
+          text: 'List'
         },
         {
           itemIndex: 5,
           callback: navigateRoute(navigate, '/contacts/new'),
-          text: 'New',
-        },
-      ],
+          text: 'New'
+        }
+      ]
     },
     {
       itemIndex: 2,
       text: 'New Page',
-      callback: navigateRoute(navigate, Routes.NEW_HOME),
-    },
+      callback: navigateRoute(navigate, Routes.NEW_HOME)
+    }
   ]
 
   return (
@@ -54,13 +55,13 @@ export const Nav: FC = () => {
         {
           text: 'AppMarket',
           callback: openNewPage('https://marketplace.reapit.cloud'),
-          iconUrl: <Icon icon="reapitLogoSmall" />,
+          iconUrl: <Icon icon="reapitLogoSmall" />
         },
         {
           text: 'DevPortal',
           callback: openNewPage('https://developers.reapit.cloud'),
-          iconUrl: <Icon icon="reapitLogoSmall" />,
-        },
+          iconUrl: <Icon icon="reapitLogoSmall" />
+        }
       ]}
       avatarText={getAvatarInitials(connectSession)}
       avatarOptions={
@@ -68,8 +69,8 @@ export const Nav: FC = () => {
           ? [
               {
                 callback: connectLogoutRedirect,
-                text: 'Logout',
-              },
+                text: 'Logout'
+              }
             ]
           : undefined
       }

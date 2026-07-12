@@ -13,9 +13,7 @@ import { captureStdout } from '@/tests/strict-mode-helpers.test.ts'
  * dir inside $HOME (so `toRootPath` will pick it up) and build a
  * `.skmtc/<project>/` skeleton.
  */
-const withTempSkmtcRoot = async (
-  fn: (tempRoot: string) => Promise<void>
-): Promise<void> => {
+const withTempSkmtcRoot = async (fn: (tempRoot: string) => Promise<void>): Promise<void> => {
   const tempRoot = await Deno.makeTempDir({ dir: homedir(), prefix: 'agent-ctx-test-' })
   await ensureDir(join(tempRoot, '.skmtc'))
   const originalCwd = Deno.cwd()
@@ -46,81 +44,66 @@ Deno.test('runAgentContext - empty root returns no projects', async () => {
   })
 })
 
-Deno.test(
-  'runAgentContext - snapshots a project\'s basePath, schemaSource and generators',
-  async () => {
-    await withTempSkmtcRoot(async tempRoot => {
-      const projectPath = join(tempRoot, '.skmtc', 'demo')
-      await ensureDir(join(projectPath, '.settings'))
-      await Deno.writeTextFile(
-        join(projectPath, 'deno.json'),
-        JSON.stringify({
-          imports: {
-            '@skmtc/gen-zod': 'jsr:@skmtc/gen-zod@^0.0.45',
-            '@skmtc/gen-typescript': 'jsr:@skmtc/gen-typescript@^0.0.48',
-            '@scope/gen-local': './gen-local/mod.ts',
-            // Non-generator imports are filtered out.
-            '@std/path': 'jsr:@std/path@^1.1.2'
-          }
-        })
-      )
-      await Deno.writeTextFile(
-        join(projectPath, '.settings', 'client.json'),
-        JSON.stringify({
-          source: 'https://example.com/schema.json',
-          settings: { basePath: './src' }
-        })
-      )
+Deno.test("runAgentContext - snapshots a project's basePath, schemaSource and generators", async () => {
+  await withTempSkmtcRoot(async tempRoot => {
+    const projectPath = join(tempRoot, '.skmtc', 'demo')
+    await ensureDir(join(projectPath, '.settings'))
+    await Deno.writeTextFile(
+      join(projectPath, 'deno.json'),
+      JSON.stringify({
+        imports: {
+          '@skmtc/gen-zod': 'jsr:@skmtc/gen-zod@^0.0.45',
+          '@skmtc/gen-typescript': 'jsr:@skmtc/gen-typescript@^0.0.48',
+          '@scope/gen-local': './gen-local/mod.ts',
+          // Non-generator imports are filtered out.
+          '@std/path': 'jsr:@std/path@^1.1.2'
+        }
+      })
+    )
+    await Deno.writeTextFile(
+      join(projectPath, '.settings', 'client.json'),
+      JSON.stringify({
+        source: 'https://example.com/schema.json',
+        settings: { basePath: './src' }
+      })
+    )
 
-      const ctx = runAgentContext({ cliVersion: '0.1.5' })
-      assertEquals(ctx.projects.length, 1)
-      const project = ctx.projects[0]
-      assertEquals(project.name, 'demo')
-      assertEquals(project.basePath, './src')
-      assertEquals(project.schemaSource, 'https://example.com/schema.json')
-      assertEquals(project.generators.remote, [
-        '@skmtc/gen-typescript',
-        '@skmtc/gen-zod'
-      ])
-      assertEquals(project.generators.local, ['@scope/gen-local'])
-    })
-  }
-)
+    const ctx = runAgentContext({ cliVersion: '0.1.5' })
+    assertEquals(ctx.projects.length, 1)
+    const project = ctx.projects[0]
+    assertEquals(project.name, 'demo')
+    assertEquals(project.basePath, './src')
+    assertEquals(project.schemaSource, 'https://example.com/schema.json')
+    assertEquals(project.generators.remote, ['@skmtc/gen-typescript', '@skmtc/gen-zod'])
+    assertEquals(project.generators.local, ['@scope/gen-local'])
+  })
+})
 
-Deno.test(
-  'runAgentContext - missing client.json reports null basePath and schemaSource',
-  async () => {
-    await withTempSkmtcRoot(async tempRoot => {
-      const projectPath = join(tempRoot, '.skmtc', 'bare')
-      await ensureDir(projectPath)
-      await Deno.writeTextFile(
-        join(projectPath, 'deno.json'),
-        JSON.stringify({ imports: {} })
-      )
+Deno.test('runAgentContext - missing client.json reports null basePath and schemaSource', async () => {
+  await withTempSkmtcRoot(async tempRoot => {
+    const projectPath = join(tempRoot, '.skmtc', 'bare')
+    await ensureDir(projectPath)
+    await Deno.writeTextFile(join(projectPath, 'deno.json'), JSON.stringify({ imports: {} }))
 
-      const ctx = runAgentContext({ cliVersion: '0.1.5' })
-      assertEquals(ctx.projects[0].basePath, null)
-      assertEquals(ctx.projects[0].schemaSource, null)
-    })
-  }
-)
+    const ctx = runAgentContext({ cliVersion: '0.1.5' })
+    assertEquals(ctx.projects[0].basePath, null)
+    assertEquals(ctx.projects[0].schemaSource, null)
+  })
+})
 
-Deno.test(
-  'runAgentContext - malformed deno.json yields empty generator lists, doesn\'t throw',
-  async () => {
-    await withTempSkmtcRoot(async tempRoot => {
-      const projectPath = join(tempRoot, '.skmtc', 'broken')
-      await ensureDir(projectPath)
-      await Deno.writeTextFile(join(projectPath, 'deno.json'), '{not json')
+Deno.test("runAgentContext - malformed deno.json yields empty generator lists, doesn't throw", async () => {
+  await withTempSkmtcRoot(async tempRoot => {
+    const projectPath = join(tempRoot, '.skmtc', 'broken')
+    await ensureDir(projectPath)
+    await Deno.writeTextFile(join(projectPath, 'deno.json'), '{not json')
 
-      // Should NOT throw — agent-context is a passive snapshot, not
-      // a validator. Doctor's job is to flag broken state.
-      const ctx = runAgentContext({ cliVersion: '0.1.5' })
-      assertEquals(ctx.projects[0].generators.remote, [])
-      assertEquals(ctx.projects[0].generators.local, [])
-    })
-  }
-)
+    // Should NOT throw — agent-context is a passive snapshot, not
+    // a validator. Doctor's job is to flag broken state.
+    const ctx = runAgentContext({ cliVersion: '0.1.5' })
+    assertEquals(ctx.projects[0].generators.remote, [])
+    assertEquals(ctx.projects[0].generators.local, [])
+  })
+})
 
 Deno.test('runAgentContext - reports JSR_URL when env var is set', async () => {
   const originalJsrUrl = Deno.env.get('JSR_URL')
@@ -139,22 +122,19 @@ Deno.test('runAgentContext - reports JSR_URL when env var is set', async () => {
   }
 })
 
-Deno.test(
-  'runAgentContext - command list documents agent-mode classification',
-  async () => {
-    await withTempSkmtcRoot(async () => {
-      const ctx = runAgentContext({ cliVersion: '0.1.5' })
-      const list = ctx.commands.find(c => c.name === 'list')
-      assertEquals(list?.agentMode, 'full')
+Deno.test('runAgentContext - command list documents agent-mode classification', async () => {
+  await withTempSkmtcRoot(async () => {
+    const ctx = runAgentContext({ cliVersion: '0.1.5' })
+    const list = ctx.commands.find(c => c.name === 'list')
+    assertEquals(list?.agentMode, 'full')
 
-      const create = ctx.commands.find(c => c.name === 'create')
-      assertEquals(create?.agentMode, 'none')
+    const create = ctx.commands.find(c => c.name === 'create')
+    assertEquals(create?.agentMode, 'none')
 
-      const doctor = ctx.commands.find(c => c.name === 'doctor')
-      assertEquals(doctor?.agentMode, 'json-only')
-    })
-  }
-)
+    const doctor = ctx.commands.find(c => c.name === 'doctor')
+    assertEquals(doctor?.agentMode, 'json-only')
+  })
+})
 
 Deno.test('printAgentContext - json format is parseable and complete', async () => {
   const logs = await captureStdout(async () => {

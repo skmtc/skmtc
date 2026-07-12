@@ -3,7 +3,7 @@ import { exists } from '@std/fs/exists'
 import { join } from '@std/path/join'
 import { toBundleFsPath, toBundlePath } from '@/lib/to-bundle-path.ts'
 
-Deno.test('toBundlePath', async (t) => {
+Deno.test('toBundlePath', async t => {
   await t.step('should create file URL with bundle.js for absolute path', () => {
     const result = toBundlePath('/project')
 

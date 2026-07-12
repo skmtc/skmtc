@@ -4,7 +4,7 @@ import type { OasServerVariable } from '../serverVariable/ServerVariable.ts'
 
 /**
  * Constructor fields for {@link OasServer}.
- * 
+ *
  * Defines the configuration options available when creating server instances,
  * including URL, description, variables, and extension fields.
  */
@@ -17,12 +17,12 @@ export type ServerFields = {
 
 /**
  * Represents a Server Object in the OpenAPI Specification.
- * 
+ *
  * The `OasServer` class encapsulates server connectivity information, including
  * the server URL, optional description, and variable definitions for URL templating.
  * Servers are used to specify different environments (development, staging, production)
  * or different API versions that clients can connect to.
- * 
+ *
  * @example Basic server
  * ```typescript
  * const server = new OasServer({
@@ -30,7 +30,7 @@ export type ServerFields = {
  *   description: 'Production API server'
  * });
  * ```
- * 
+ *
  * @example Server with variables
  * ```typescript
  * const server = new OasServer({
@@ -63,7 +63,7 @@ export class OasServer {
   extensionFields: Record<string, unknown> | undefined
   /**
    * Creates a new OasServer instance.
-   * 
+   *
    * @param fields - Server configuration including URL, description, and variables
    */
   constructor(fields: ServerFields) {
@@ -75,7 +75,7 @@ export class OasServer {
 
   /**
    * Determines if this server is a reference object.
-   * 
+   *
    * @returns Always false since servers are not reference objects in OpenAPI
    */
   isRef(): boolean {
@@ -84,7 +84,7 @@ export class OasServer {
 
   /**
    * Resolves this server object.
-   * 
+   *
    * @returns The server instance itself since it's already a concrete object
    */
   resolve(): OasServer {
@@ -93,7 +93,7 @@ export class OasServer {
 
   /**
    * Resolves this server object one level.
-   * 
+   *
    * @returns The server instance itself since it's already a concrete object
    */
   resolveOnce(): OasServer {
@@ -102,7 +102,7 @@ export class OasServer {
 
   /**
    * Converts this OAS server to an OpenAPI v3 JSON schema representation.
-   * 
+   *
    * @param _options - Conversion options (currently unused for server objects)
    * @returns OpenAPI v3 server object with URL, description, and variables
    */

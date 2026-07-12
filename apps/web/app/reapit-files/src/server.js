@@ -9,11 +9,13 @@ import { mockServer } from './core/mock-server.generated.js'
 
 const app = new Hono()
 app.use(logger())
-app.use(cors({
-  origin: '*',
-  allowedHeaders: ['Authorization', 'api-version'],
-  credentials: true
-}))
+app.use(
+  cors({
+    origin: '*',
+    allowedHeaders: ['Authorization', 'api-version'],
+    credentials: true
+  })
+)
 
 app.route('/api', mockServer)
 
@@ -25,27 +27,26 @@ app.get('*', c => {
   try {
     const file = fs.readFileSync(resolvedPath, 'utf8')
 
-    if(resolvedPath.endsWith('.html')) {
+    if (resolvedPath.endsWith('.html')) {
       return c.html(file)
     }
 
-    if(resolvedPath.endsWith('.js')) {
+    if (resolvedPath.endsWith('.js')) {
       c.header('Content-Type', 'text/javascript')
       return c.text(file)
     }
 
-    if(resolvedPath.endsWith('.css')) {
+    if (resolvedPath.endsWith('.css')) {
       c.header('Content-Type', 'text/css')
       return c.text(file)
     }
 
-    if(resolvedPath.endsWith('.json')) {
+    if (resolvedPath.endsWith('.json')) {
       c.header('Content-Type', 'application/json')
       return c.json(file)
     }
 
     throw new Error(`Unknown file type: '${resolvedPath}'`)
-
   } catch (error) {
     return c.html(`<!doctype html>
       <html lang="en">
@@ -66,8 +67,4 @@ app.get('*', c => {
   }
 })
 
-serve({fetch: app.fetch,port: 3111})
-
-
-
-
+serve({ fetch: app.fetch, port: 3111 })

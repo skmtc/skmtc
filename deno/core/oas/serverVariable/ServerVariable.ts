@@ -3,7 +3,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 
 /**
  * Fields for configuring an OpenAPI server variable object.
- * 
+ *
  * Represents the configuration data needed to create a server variable,
  * including default values, enumeration constraints, and extensions.
  */
@@ -20,11 +20,11 @@ export type ServerVariableFields = {
 
 /**
  * Represents an OpenAPI server variable object.
- * 
+ *
  * Server variables provide parameterization for server URLs,
  * allowing dynamic server configuration with default values
  * and enumeration constraints.
- * 
+ *
  * @example Basic server variable
  * ```typescript
  * const serverVar = new OasServerVariable({
@@ -32,7 +32,7 @@ export type ServerVariableFields = {
  *   description: 'API version subdomain',
  *   enums: ['api', 'api-staging', 'api-dev']
  * });
- * 
+ *
  * console.log(serverVar.default); // 'api'
  * console.log(serverVar.enums);   // ['api', 'api-staging', 'api-dev']
  * ```

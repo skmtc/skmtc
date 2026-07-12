@@ -65,9 +65,8 @@ type ResolveOutputFormatArgs = {
  * helper so every command's strict branch reads the flag through the
  * same path.
  */
-export const resolveOutputFormat = ({
-  jsonFlag
-}: ResolveOutputFormatArgs = {}): OutputFormat => (jsonFlag ? 'json' : 'text')
+export const resolveOutputFormat = ({ jsonFlag }: ResolveOutputFormatArgs = {}): OutputFormat =>
+  jsonFlag ? 'json' : 'text'
 
 type MissingArgArgs = {
   command: string

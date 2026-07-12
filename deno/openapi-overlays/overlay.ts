@@ -43,7 +43,7 @@ function isJsonObject(value: JsonValue): value is JsonObject {
  */
 function deepMerge(target: JsonValue, source: JsonValue): JsonValue {
   if (Array.isArray(target) && Array.isArray(source)) {
-    return [...target, ...source].map((element) => structuredClone(element))
+    return [...target, ...source].map(element => structuredClone(element))
   }
 
   if (isJsonObject(target) && isJsonObject(source)) {
@@ -54,7 +54,8 @@ function deepMerge(target: JsonValue, source: JsonValue): JsonValue {
     for (const key of Object.keys(source)) {
       const incoming = source[key]
       const existing = result[key]
-      const mergeable = (isJsonObject(existing) && isJsonObject(incoming)) ||
+      const mergeable =
+        (isJsonObject(existing) && isJsonObject(incoming)) ||
         (Array.isArray(existing) && Array.isArray(incoming))
       result[key] = mergeable ? deepMerge(existing, incoming) : structuredClone(incoming)
     }
@@ -70,7 +71,7 @@ function deepMerge(target: JsonValue, source: JsonValue): JsonValue {
  * tool's behaviour for the "immutable" case.
  */
 function buildMerger(update: JsonValue): (chunk: JsonValue) => JsonValue {
-  return (chunk) => {
+  return chunk => {
     if (!isJsonObject(chunk) && !Array.isArray(chunk)) {
       throw new Error('Cannot apply an update to a non-object value')
     }
@@ -151,7 +152,7 @@ export type ApplyOverlayOptions = {
 export function applyOverlay(
   spec: JsonValue,
   overlay: Overlay,
-  options: ApplyOverlayOptions = {},
+  options: ApplyOverlayOptions = {}
 ): JsonValue {
   const actions = overlay.actions
   if (!Array.isArray(actions) || actions.length === 0) {
@@ -189,7 +190,7 @@ const OPENAPI_FIELD_ORDER = [
   'components',
   'description',
   'parameters',
-  'responses',
+  'responses'
 ]
 
 /** Output serialisation format for {@link stringifyDocument} and {@link overlayFiles}. */
@@ -246,7 +247,7 @@ export function stringifyDocument(document: JsonValue, format: OverlayFormat = '
 export async function overlayFiles(
   openapiPath: string,
   overlayPath: string,
-  options: { format?: OverlayFormat; strict?: boolean } = {},
+  options: { format?: OverlayFormat; strict?: boolean } = {}
 ): Promise<string> {
   // Casts sit at the parse boundary: @std/yaml returns `unknown`.
   const spec = parseYaml(await Deno.readTextFile(openapiPath)) as JsonValue

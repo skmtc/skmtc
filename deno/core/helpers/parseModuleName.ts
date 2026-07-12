@@ -1,10 +1,10 @@
 /**
  * Represents the parsed components of a module name.
- * 
+ *
  * This type breaks down a module name into its constituent parts,
  * supporting various formats used in different package managers
  * and registries (npm, JSR, Deno, etc.).
- * 
+ *
  * @example
  * ```typescript
  * // For 'jsr:@std/path@1.0.0'
@@ -29,24 +29,24 @@ export type ParsedModuleName = {
 
 /**
  * Parses a module name string into its component parts.
- * 
+ *
  * This utility function decomposes module names from various formats into
  * structured components, handling schemes, scopes, versions, and package names.
  * It supports formats used by npm, JSR, Deno, and other package managers.
- * 
+ *
  * The parser handles complex module name patterns including:
  * - Scheme prefixes (jsr:, npm:, https:)
  * - Scoped packages (@scope/package)
  * - Version specifiers (@version)
  * - Combinations of the above
- * 
+ *
  * @param moduleName - The module name string to parse
  * @returns Parsed components of the module name
- * 
+ *
  * @example Basic package names
  * ```typescript
  * import { parseModuleName } from '@skmtc/core';
- * 
+ *
  * // Simple package name
  * const simple = parseModuleName('lodash');
  * // {
@@ -55,7 +55,7 @@ export type ParsedModuleName = {
  * //   packageName: 'lodash',
  * //   version: null
  * // }
- * 
+ *
  * // Package with version
  * const versioned = parseModuleName('lodash@4.17.21');
  * // {
@@ -65,7 +65,7 @@ export type ParsedModuleName = {
  * //   version: '4.17.21'
  * // }
  * ```
- * 
+ *
  * @example Scoped packages
  * ```typescript
  * // Scoped package
@@ -76,7 +76,7 @@ export type ParsedModuleName = {
  * //   packageName: 'utils',
  * //   version: null
  * // }
- * 
+ *
  * // Scoped package with version
  * const scopedVersioned = parseModuleName('@company/utils@2.0.0');
  * // {
@@ -86,7 +86,7 @@ export type ParsedModuleName = {
  * //   version: '2.0.0'
  * // }
  * ```
- * 
+ *
  * @example Scheme-prefixed modules
  * ```typescript
  * // JSR module
@@ -97,7 +97,7 @@ export type ParsedModuleName = {
  * //   packageName: 'path',
  * //   version: '1.0.0'
  * // }
- * 
+ *
  * // npm module with scheme
  * const npmModule = parseModuleName('npm:lodash@^4.17.0');
  * // {
@@ -106,7 +106,7 @@ export type ParsedModuleName = {
  * //   packageName: 'lodash',
  * //   version: '^4.17.0'
  * // }
- * 
+ *
  * // HTTPS module
  * const httpsModule = parseModuleName('https:example.com/package@v1.2.3');
  * // {
@@ -116,7 +116,7 @@ export type ParsedModuleName = {
  * //   version: 'v1.2.3'
  * // }
  * ```
- * 
+ *
  * @example Complex parsing scenarios
  * ```typescript
  * // Multiple levels in package name
@@ -127,7 +127,7 @@ export type ParsedModuleName = {
  * //   packageName: 'plugin-transform-runtime',
  * //   version: '^7.0.0'
  * // }
- * 
+ *
  * // Version ranges and pre-release versions
  * const prerelease = parseModuleName('jsr:@deno/std@1.0.0-rc.1');
  * // {
@@ -137,37 +137,37 @@ export type ParsedModuleName = {
  * //   version: '1.0.0-rc.1'
  * // }
  * ```
- * 
+ *
  * @example Usage in dependency management
  * ```typescript
  * class DependencyManager {
  *   processDependency(moduleSpec: string) {
  *     const parsed = parseModuleName(moduleSpec);
- *     
+ *
  *     console.log(`Processing ${parsed.packageName}`);
- *     
+ *
  *     if (parsed.scheme) {
  *       console.log(`Using ${parsed.scheme} registry`);
  *     }
- *     
+ *
  *     if (parsed.scopeName) {
  *       console.log(`Scoped package: ${parsed.scopeName}/${parsed.packageName}`);
  *     }
- *     
+ *
  *     if (parsed.version) {
  *       console.log(`Version constraint: ${parsed.version}`);
  *     }
- *     
+ *
  *     return this.resolvePackage(parsed);
  *   }
  * }
  * ```
- * 
+ *
  * @example Building module URLs
  * ```typescript
  * function buildModuleUrl(moduleSpec: string): string {
  *   const parsed = parseModuleName(moduleSpec);
- *   
+ *
  *   switch (parsed.scheme) {
  *     case 'jsr':
  *       return `https://jsr.io/${parsed.scopeName}/${parsed.packageName}`;

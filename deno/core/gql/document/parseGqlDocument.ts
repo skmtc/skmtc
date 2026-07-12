@@ -115,7 +115,7 @@ export const parseGqlDocument = ({
   const rootTypes: GqlRootTypes = {}
 
   const collectRootOps = (
-    rootType: GraphQLNamedType & { getFields: () => Record<string, unknown> } | null | undefined,
+    rootType: (GraphQLNamedType & { getFields: () => Record<string, unknown> }) | null | undefined,
     rootKind: 'query' | 'mutation' | 'subscription',
     assignRootType: (name: RefName) => void
   ) => {

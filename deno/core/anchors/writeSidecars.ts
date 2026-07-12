@@ -64,7 +64,7 @@ export const writeSidecars = async ({
   // Wholly rewrite: nuke the existing tree first. `recursive: true`
   // skips errors if outDir didn't exist (first run after enabling
   // anchors).
-  await Deno.remove(outDir, { recursive: true }).catch((err) => {
+  await Deno.remove(outDir, { recursive: true }).catch(err => {
     if (!(err instanceof Deno.errors.NotFound)) throw err
   })
   await Deno.mkdir(outDir, { recursive: true })

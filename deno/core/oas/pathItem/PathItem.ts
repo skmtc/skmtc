@@ -17,26 +17,26 @@ export type PathItemFields = {
 
 /**
  * Represents a Path Item Object in the OpenAPI Specification.
- * 
+ *
  * The `OasPathItem` class describes operations available on a single API path.
  * It serves as a container for HTTP operations (GET, POST, PUT, DELETE, etc.)
  * and can define parameters that apply to all operations on the path.
- * 
+ *
  * This class provides path-level configuration and shared parameters that
  * reduce duplication across operations on the same endpoint.
- * 
+ *
  * ## Key Features
- * 
+ *
  * - **Operation Container**: Groups HTTP methods for a single path
  * - **Shared Parameters**: Path-level parameters for all operations
  * - **Documentation**: Summary and description for the path
  * - **Extension Support**: Custom fields for additional metadata
  * - **Parameter Inheritance**: Parameters shared across all operations
- * 
+ *
  * @example Basic path item with shared parameters
  * ```typescript
  * import { OasPathItem, OasParameter, OasString } from '@skmtc/core';
- * 
+ *
  * const userPathItem = new OasPathItem({
  *   summary: 'User operations',
  *   description: 'Operations for managing individual users',
@@ -51,7 +51,7 @@ export type PathItemFields = {
  *   ]
  * });
  * ```
- * 
+ *
  * @example Path with common headers
  * ```typescript
  * const apiPathItem = new OasPathItem({
@@ -75,7 +75,7 @@ export type PathItemFields = {
  *   ]
  * });
  * ```
- * 
+ *
  * @example RESTful resource path
  * ```typescript
  * const resourcePathItem = new OasPathItem({

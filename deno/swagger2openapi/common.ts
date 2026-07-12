@@ -29,7 +29,7 @@ export const hash = (s: string): number => {
   if (s.length === 0) return h
   for (let i = 0; i < s.length; i++) {
     const chr = s.charCodeAt(i)
-    h = ((h << 5) - h) + chr
+    h = (h << 5) - h + chr
     h |= 0 // convert to 32-bit integer
   }
   return h
@@ -57,16 +57,11 @@ export const parameterTypeProperties: readonly string[] = [
   'additionalProperties',
   'pattern',
   'enum',
-  'default',
+  'default'
 ]
 
 /** Array-only JSON-Schema keywords. */
-export const arrayProperties: readonly string[] = [
-  'items',
-  'minItems',
-  'maxItems',
-  'uniqueItems',
-]
+export const arrayProperties: readonly string[] = ['items', 'minItems', 'maxItems', 'uniqueItems']
 
 /** HTTP methods recognised as operations within a path item. */
 export const httpVerbs: readonly string[] = [
@@ -77,7 +72,7 @@ export const httpVerbs: readonly string[] = [
   'patch',
   'head',
   'options',
-  'trace',
+  'trace'
 ]
 
 /** Sanitises a component name, replacing illegal characters in its first path segment. */

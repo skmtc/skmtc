@@ -3,7 +3,7 @@ import { ComponentType } from 'react'
 export const catchChunkError = (
   fn: Function,
   retriesLeft = 3,
-  interval = 500,
+  interval = 500
 ): Promise<{ default: ComponentType<any> }> => {
   return new Promise((resolve, reject) => {
     fn()

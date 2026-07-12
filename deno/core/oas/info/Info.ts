@@ -23,34 +23,34 @@ export type InfoFields = {
 
 /**
  * Represents an Info Object in the OpenAPI Specification.
- * 
+ *
  * The `OasInfo` class encapsulates metadata about the API including its title,
  * version, description, and contact information. This information is displayed
  * in API documentation and helps developers understand what the API does and
  * how to use it effectively.
- * 
+ *
  * This class provides essential API metadata that appears at the top level
  * of OpenAPI documents and drives documentation generation and tooling.
- * 
+ *
  * ## Key Features
- * 
+ *
  * - **API Identification**: Title and version information for API tracking
  * - **Documentation**: Rich description support for API overview
  * - **Contact Information**: Developer contact details and support resources
  * - **Legal Information**: License and terms of service references
  * - **Extension Support**: Custom fields for additional metadata
- * 
+ *
  * @example Basic API information
  * ```typescript
  * import { OasInfo } from '@skmtc/core';
- * 
+ *
  * const apiInfo = new OasInfo({
  *   title: 'Pet Store API',
  *   version: '1.0.0',
  *   description: 'A sample API that uses a petstore as an example'
  * });
  * ```
- * 
+ *
  * @example Complete API metadata
  * ```typescript
  * const fullApiInfo = new OasInfo({
@@ -69,7 +69,7 @@ export type InfoFields = {
  *   })
  * });
  * ```
- * 
+ *
  * @example Versioned API with semantic versioning
  * ```typescript
  * const versionedInfo = new OasInfo({
@@ -91,7 +91,7 @@ export class OasInfo {
 
   /**
    * Creates a new OasInfo instance.
-   * 
+   *
    * @param fields - API information fields including title, version, description, and contact details
    */
   constructor(fields: InfoFields) {
@@ -100,7 +100,7 @@ export class OasInfo {
 
   /**
    * Gets the API title.
-   * 
+   *
    * @returns The title of the API
    */
   get title(): string {
@@ -109,7 +109,7 @@ export class OasInfo {
 
   /**
    * Gets the API description.
-   * 
+   *
    * @returns Optional detailed description of the API's purpose and functionality
    */
   get description(): string | undefined {
@@ -118,7 +118,7 @@ export class OasInfo {
 
   /**
    * Gets the terms of service URL.
-   * 
+   *
    * @returns Optional URL pointing to the API's terms of service
    */
   get termsOfService(): string | undefined {
@@ -127,7 +127,7 @@ export class OasInfo {
 
   /**
    * Gets the contact information.
-   * 
+   *
    * @returns Optional contact information for API support and inquiries
    */
   get contact(): OasContact | undefined {
@@ -136,7 +136,7 @@ export class OasInfo {
 
   /**
    * Gets the license information.
-   * 
+   *
    * @returns Optional license information governing API usage
    */
   get license(): OasLicense | undefined {
@@ -145,7 +145,7 @@ export class OasInfo {
 
   /**
    * Gets the API version.
-   * 
+   *
    * @returns The version string of the API (e.g., '1.0.0', '2.1.3')
    */
   get version(): string {

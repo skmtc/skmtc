@@ -17,17 +17,17 @@ Deno.test('OperationGenerator - toOperationMod generates correct mod.ts content'
   const operationGenerator = new OperationGenerator(generator)
   const result = operationGenerator.toOperationMod('UserOperations')
 
-  assertStringIncludes(result, "import { emptyEnrichmentSchema, toOasOperationEntry } from '@skmtc/core'")
+  assertStringIncludes(
+    result,
+    "import { emptyEnrichmentSchema, toOasOperationEntry } from '@skmtc/core'"
+  )
   assertStringIncludes(result, "import { UserOperations } from './UserOperations.ts'")
   assertStringIncludes(result, 'export const UserOperationsEntry = toOasOperationEntry({')
   assertStringIncludes(result, "id: '@test/user-operations'")
   assertStringIncludes(result, 'toEnrichmentSchema: () => emptyEnrichmentSchema')
   assertStringIncludes(result, 'isSupported({ operation })')
   assertStringIncludes(result, 'return true')
-  assertStringIncludes(
-    result,
-    'context.insertOperation({ projection: UserOperations, operation })'
-  )
+  assertStringIncludes(result, 'context.insertOperation({ projection: UserOperations, operation })')
 })
 
 Deno.test('OperationGenerator - toOasOperationProjectionBase generates correct base.ts content', () => {
@@ -50,7 +50,10 @@ Deno.test('OperationGenerator - toOasOperationProjectionBase generates correct b
     result,
     "import { camelCase, capitalize, emptyEnrichmentSchema, toMethodVerb } from '@skmtc/core'"
   )
-  assertStringIncludes(result, "import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'")
+  assertStringIncludes(
+    result,
+    "import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'"
+  )
   assertStringIncludes(result, "import { join } from '@std/path/join'")
   assertStringIncludes(result, 'toEnrichmentSchema: () => emptyEnrichmentSchema')
 })
@@ -66,10 +69,16 @@ Deno.test('OperationGenerator - toOperationMainModule generates correct main mod
   const operationGenerator = new OperationGenerator(generator)
   const result = operationGenerator.toOperationMainModule('OrderOps')
 
-  assertStringIncludes(result, "import type { OasOperationProjectionConstructorArgs } from '@skmtc/core'")
+  assertStringIncludes(
+    result,
+    "import type { OasOperationProjectionConstructorArgs } from '@skmtc/core'"
+  )
   assertStringIncludes(result, "import { OrderOpsBase } from './base.ts'")
   assertStringIncludes(result, 'export class OrderOps extends OrderOpsBase')
-  assertStringIncludes(result, 'constructor({ context, operation, settings }: OasOperationProjectionConstructorArgs)')
+  assertStringIncludes(
+    result,
+    'constructor({ context, operation, settings }: OasOperationProjectionConstructorArgs)'
+  )
   assertStringIncludes(result, 'super({ context, operation, settings })')
   assertStringIncludes(result, 'override toString()')
 })
@@ -92,9 +101,15 @@ Deno.test('OperationGenerator - createOperationFiles creates correct file struct
 
     // Verify files were created
     const srcPath = join(generatorPath, 'src')
-    const modExists = await Deno.stat(join(srcPath, 'mod.ts')).then(() => true).catch(() => false)
-    const baseExists = await Deno.stat(join(srcPath, 'base.ts')).then(() => true).catch(() => false)
-    const mainModuleExists = await Deno.stat(join(srcPath, 'TestOps.ts')).then(() => true).catch(() => false)
+    const modExists = await Deno.stat(join(srcPath, 'mod.ts'))
+      .then(() => true)
+      .catch(() => false)
+    const baseExists = await Deno.stat(join(srcPath, 'base.ts'))
+      .then(() => true)
+      .catch(() => false)
+    const mainModuleExists = await Deno.stat(join(srcPath, 'TestOps.ts'))
+      .then(() => true)
+      .catch(() => false)
 
     assertEquals(modExists, true)
     assertEquals(baseExists, true)
@@ -195,7 +210,7 @@ Deno.test('OperationGenerator - toOasOperationProjectionBase includes identifier
   // Verify identifier generation uses verb and camelCase
   assertStringIncludes(result, 'const verb = capitalize(toMethodVerb(operation.method))')
   assertStringIncludes(result, 'return `${verb}${camelCase(operation.path, { upperFirst: true })}`')
-  assertStringIncludes(result, "toIdentifierType(): TsIdentifierType")
+  assertStringIncludes(result, 'toIdentifierType(): TsIdentifierType')
 })
 
 Deno.test('OperationGenerator - scaffolded base.ts typechecks against the workspace', async () => {
@@ -219,7 +234,10 @@ Deno.test('OperationGenerator - scaffolded base.ts typechecks against the worksp
 
   try {
     const basePath = join(tempDir, 'base.ts')
-    await Deno.writeTextFile(basePath, new OperationGenerator(generator).toOasOperationProjectionBase('CurlCmd'))
+    await Deno.writeTextFile(
+      basePath,
+      new OperationGenerator(generator).toOasOperationProjectionBase('CurlCmd')
+    )
 
     const check = await new Deno.Command('deno', {
       args: ['check', '--quiet', basePath],

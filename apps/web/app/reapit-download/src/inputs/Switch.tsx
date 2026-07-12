@@ -4,7 +4,7 @@ import { FieldValues, useFormContext } from 'react-hook-form'
 
 export const Switch = <Model extends FieldValues, Key extends KeyPath<Model>>({
   fieldName,
-  fieldConfig,
+  fieldConfig
 }: ContextInputProps<Model, Key>) => {
   const { label } = fieldConfig
 

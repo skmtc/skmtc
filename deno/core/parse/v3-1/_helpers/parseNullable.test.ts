@@ -6,25 +6,25 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 
-Deno.test('parseNullable', async (t) => {
-  await t.step('valid boolean nullable values', async (t) => {
+Deno.test('parseNullable', async t => {
+  await t.step('valid boolean nullable values', async t => {
     await t.step('should return true when nullable is true', () => {
       const schema: OpenAPIV3.SchemaObject = {
         type: 'string',
         nullable: true,
-        description: 'A nullable string',
+        description: 'A nullable string'
       }
       const stackTrail = new StackTrail(['TEST'])
       const result = parseNullable({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result.nullable, true)
       assertEquals(result.value, {
         type: 'string',
-        description: 'A nullable string',
+        description: 'A nullable string'
       })
     })
 
@@ -32,45 +32,45 @@ Deno.test('parseNullable', async (t) => {
       const schema: OpenAPIV3.SchemaObject = {
         type: 'number',
         nullable: false,
-        minimum: 0,
+        minimum: 0
       }
 
       const stackTrail = new StackTrail(['TEST'])
       const result = parseNullable({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result.nullable, false)
       assertEquals(result.value, {
         type: 'number',
-        minimum: 0,
+        minimum: 0
       })
     })
 
     await t.step('should return undefined when nullable is not present', () => {
       const schema: OpenAPIV3.SchemaObject = {
         type: 'integer',
-        format: 'int32',
+        format: 'int32'
       }
 
       const stackTrail = new StackTrail(['TEST'])
       const result = parseNullable({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result.nullable, undefined)
       assertEquals(result.value, {
         type: 'integer',
-        format: 'int32',
+        format: 'int32'
       })
     })
   })
 
-  await t.step('schema property preservation', async (t) => {
+  await t.step('schema property preservation', async t => {
     await t.step('should preserve other schema properties', () => {
       const schema: OpenAPIV3.SchemaObject = {
         type: 'string',
@@ -79,14 +79,14 @@ Deno.test('parseNullable', async (t) => {
         maxLength: 100,
         pattern: '^[a-z]+$',
         description: 'A constrained string',
-        example: 'hello',
+        example: 'hello'
       }
 
       const stackTrail = new StackTrail(['TEST'])
       const result = parseNullable({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result.nullable, true)
@@ -96,20 +96,20 @@ Deno.test('parseNullable', async (t) => {
         maxLength: 100,
         pattern: '^[a-z]+$',
         description: 'A constrained string',
-        example: 'hello',
+        example: 'hello'
       })
     })
 
     await t.step('should handle schema with only nullable property', () => {
       const schema: OpenAPIV3.SchemaObject = {
-        nullable: false,
+        nullable: false
       }
 
       const stackTrail = new StackTrail(['TEST'])
       const result = parseNullable({
         stackTrail,
         value: schema,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result.nullable, false)
@@ -120,14 +120,14 @@ Deno.test('parseNullable', async (t) => {
       const schema: OpenAPIV3.SchemaObject = {
         type: 'string',
         nullable: true,
-        description: 'original',
+        description: 'original'
       }
 
       const stackTrail = new StackTrail(['TEST'])
       parseNullable({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       // Original schema should still have nullable
@@ -137,29 +137,29 @@ Deno.test('parseNullable', async (t) => {
     })
   })
 
-  await t.step('different schema types with nullable', async (t) => {
+  await t.step('different schema types with nullable', async t => {
     await t.step('should handle object schema with nullable', () => {
       const schema: OpenAPIV3.SchemaObject = {
         type: 'object',
         nullable: true,
         properties: {
           name: { type: 'string' },
-          age: { type: 'number' },
-        },
+          age: { type: 'number' }
+        }
       }
 
       const stackTrail = new StackTrail(['TEST'])
       const result = parseNullable({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result.nullable, true)
       assertEquals(result.value.type, 'object')
       assertEquals(result.value.properties, {
         name: { type: 'string' },
-        age: { type: 'number' },
+        age: { type: 'number' }
       })
     })
 
@@ -168,35 +168,35 @@ Deno.test('parseNullable', async (t) => {
         type: 'array',
         nullable: false,
         items: { type: 'string' },
-        minItems: 1,
+        minItems: 1
       }
 
       const stackTrail = new StackTrail(['TEST'])
       const result = parseNullable({
         stackTrail,
         value: schema,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result.nullable, false)
       assertEquals(result.value, {
         type: 'array',
         items: { type: 'string' },
-        minItems: 1,
+        minItems: 1
       })
     })
 
     await t.step('should handle boolean schema', () => {
       const schema: OpenAPIV3.SchemaObject = {
         type: 'boolean',
-        nullable: true,
+        nullable: true
       }
 
       const stackTrail = new StackTrail(['TEST'])
       const result = parseNullable({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result.nullable, true)
@@ -214,19 +214,19 @@ Deno.test('parseNullable', async (t) => {
               name: { type: 'string' },
               roles: {
                 type: 'array',
-                items: { type: 'string' },
-              },
-            },
-          },
+                items: { type: 'string' }
+              }
+            }
+          }
         },
-        required: ['user'],
+        required: ['user']
       }
 
       const stackTrail = new StackTrail(['TEST'])
       const result = parseNullable({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result.nullable, true)
@@ -235,12 +235,12 @@ Deno.test('parseNullable', async (t) => {
     })
   })
 
-  await t.step('invalid nullable values', async (t) => {
+  await t.step('invalid nullable values', async t => {
     await t.step('should handle string nullable value and log warning', () => {
       const schema = {
         type: 'string',
         nullable: 'yes',
-        description: 'Invalid nullable',
+        description: 'Invalid nullable'
       } as unknown as OpenAPIV3.SchemaObject
 
       const stackTrail = new StackTrail(['TEST'])
@@ -249,25 +249,27 @@ Deno.test('parseNullable', async (t) => {
       const result = parseNullable({
         value: schema,
         stackTrail,
-        context: mockParseContext as ParseContextType,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(result.nullable, undefined)
       assertEquals(result.value, {
         type: 'string',
-        description: 'Invalid nullable',
+        description: 'Invalid nullable'
       })
 
       assertSpyCalls(contextSpy, 1)
       assertSpyCall(contextSpy, 0, {
-        args: [{
-          key: 'nullable',
-          stackTrail,
-          parent: schema,
-          level: 'warning',
-          message: `Invalid nullable: ${schema}`,
-          type: 'INVALID_NULLABLE',
-        }],
+        args: [
+          {
+            key: 'nullable',
+            stackTrail,
+            parent: schema,
+            level: 'warning',
+            message: `Invalid nullable: ${schema}`,
+            type: 'INVALID_NULLABLE'
+          }
+        ]
       })
 
       contextSpy.restore()
@@ -276,7 +278,7 @@ Deno.test('parseNullable', async (t) => {
     await t.step('should handle number nullable value and log warning', () => {
       const schema = {
         type: 'number',
-        nullable: 1,
+        nullable: 1
       } as unknown as OpenAPIV3.SchemaObject
 
       const stackTrail = new StackTrail(['TEST'])
@@ -285,24 +287,26 @@ Deno.test('parseNullable', async (t) => {
       const result = parseNullable({
         value: schema,
         stackTrail,
-        context: mockParseContext as ParseContextType,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(result.nullable, undefined)
       assertEquals(result.value, {
-        type: 'number',
+        type: 'number'
       })
 
       assertSpyCalls(contextSpy, 1)
       assertSpyCall(contextSpy, 0, {
-        args: [{
-          key: 'nullable',
-          stackTrail,
-          parent: schema,
-          level: 'warning',
-          message: `Invalid nullable: ${schema}`,
-          type: 'INVALID_NULLABLE',
-        }],
+        args: [
+          {
+            key: 'nullable',
+            stackTrail,
+            parent: schema,
+            level: 'warning',
+            message: `Invalid nullable: ${schema}`,
+            type: 'INVALID_NULLABLE'
+          }
+        ]
       })
 
       contextSpy.restore()
@@ -311,7 +315,7 @@ Deno.test('parseNullable', async (t) => {
     await t.step('should handle object nullable value and log warning', () => {
       const schema = {
         type: 'string',
-        nullable: { value: true },
+        nullable: { value: true }
       } as unknown as OpenAPIV3.SchemaObject
 
       const stackTrail = new StackTrail(['TEST'])
@@ -320,12 +324,12 @@ Deno.test('parseNullable', async (t) => {
       const result = parseNullable({
         value: schema,
         stackTrail,
-        context: mockParseContext as ParseContextType,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(result.nullable, undefined)
       assertEquals(result.value, {
-        type: 'string',
+        type: 'string'
       })
 
       assertSpyCalls(contextSpy, 1)
@@ -336,7 +340,7 @@ Deno.test('parseNullable', async (t) => {
     await t.step('should handle array nullable value and log warning', () => {
       const schema = {
         type: 'string',
-        nullable: [true],
+        nullable: [true]
       } as unknown as OpenAPIV3.SchemaObject
 
       const stackTrail = new StackTrail(['TEST'])
@@ -345,12 +349,12 @@ Deno.test('parseNullable', async (t) => {
       const result = parseNullable({
         value: schema,
         stackTrail,
-        context: mockParseContext as ParseContextType,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(result.nullable, undefined)
       assertEquals(result.value, {
-        type: 'string',
+        type: 'string'
       })
 
       assertSpyCalls(contextSpy, 1)
@@ -361,7 +365,7 @@ Deno.test('parseNullable', async (t) => {
     await t.step('should handle null nullable value and log warning', () => {
       const schema = {
         type: 'string',
-        nullable: null,
+        nullable: null
       } as unknown as OpenAPIV3.SchemaObject
 
       const stackTrail = new StackTrail(['TEST'])
@@ -370,12 +374,12 @@ Deno.test('parseNullable', async (t) => {
       const result = parseNullable({
         value: schema,
         stackTrail,
-        context: mockParseContext as ParseContextType,
+        context: mockParseContext as ParseContextType
       })
 
       assertEquals(result.nullable, undefined)
       assertEquals(result.value, {
-        type: 'string',
+        type: 'string'
       })
 
       assertSpyCalls(contextSpy, 1)
@@ -384,7 +388,7 @@ Deno.test('parseNullable', async (t) => {
     })
   })
 
-  await t.step('edge cases', async (t) => {
+  await t.step('edge cases', async t => {
     await t.step('should handle empty schema object', () => {
       const schema: OpenAPIV3.SchemaObject = {}
 
@@ -392,7 +396,7 @@ Deno.test('parseNullable', async (t) => {
       const result = parseNullable({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result.nullable, undefined)
@@ -410,14 +414,14 @@ Deno.test('parseNullable', async (t) => {
         description: 'Email address',
         example: 'user@example.com',
         title: 'User Email',
-        default: 'default@example.com',
+        default: 'default@example.com'
       }
 
       const stackTrail = new StackTrail(['TEST'])
       const result = parseNullable({
         value: schema,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result.nullable, true)
@@ -428,28 +432,25 @@ Deno.test('parseNullable', async (t) => {
       assertEquals(result.value.description, 'Email address')
     })
 
-    await t.step(
-      'should preserve schema with no type but other properties',
-      () => {
-        const schema: OpenAPIV3.SchemaObject = {
-          nullable: false,
-          description: 'A schema without type',
-          example: 'example',
-        }
+    await t.step('should preserve schema with no type but other properties', () => {
+      const schema: OpenAPIV3.SchemaObject = {
+        nullable: false,
+        description: 'A schema without type',
+        example: 'example'
+      }
 
-        const stackTrail = new StackTrail(['TEST'])
-        const result = parseNullable({
-          value: schema,
-          stackTrail,
-          context: mockParseContext,
-        })
+      const stackTrail = new StackTrail(['TEST'])
+      const result = parseNullable({
+        value: schema,
+        stackTrail,
+        context: mockParseContext
+      })
 
-        assertEquals(result.nullable, false)
-        assertEquals(result.value, {
-          description: 'A schema without type',
-          example: 'example',
-        })
-      },
-    )
+      assertEquals(result.nullable, false)
+      assertEquals(result.value, {
+        description: 'A schema without type',
+        example: 'example'
+      })
+    })
   })
 })

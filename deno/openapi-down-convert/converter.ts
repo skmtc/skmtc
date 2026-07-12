@@ -9,7 +9,7 @@ import {
   type JsonObject,
   type RefObject,
   type SchemaObject,
-  type SchemaVisitor,
+  type SchemaVisitor
 } from './refVisitor.ts'
 
 /** Lightweight OAS document top-level fields. */
@@ -88,7 +88,7 @@ export class Converter {
     'patch',
     'post',
     'put',
-    'trace',
+    'trace'
   ]
 
   static tagObjectAsSchemaRef(schemaObj: JsonObject): void {
@@ -114,8 +114,8 @@ export class Converter {
     this.allOfTransform = Boolean(options?.allOfTransform)
     this.authorizationUrl = options?.authorizationUrl || 'https://www.example.com/oauth2/authorize'
     this.tokenUrl = options?.tokenUrl || 'https://www.example.com/oauth2/token'
-    this.convertOpenIdConnectToOAuth2 = options?.convertOpenIdConnectToOAuth2 ||
-      Boolean(options?.scopeDescriptions)
+    this.convertOpenIdConnectToOAuth2 =
+      options?.convertOpenIdConnectToOAuth2 || Boolean(options?.scopeDescriptions)
     if (options?.scopeDescriptions) {
       this.scopeDescriptions = options.scopeDescriptions
     }
@@ -214,7 +214,9 @@ export class Converter {
                 this.log(`Deleted schema example with \`id\` property:\n${this.json(examples)}`)
               } else {
                 schema['example'] = first
-                this.log(`Replaces examples with examples[0]. Old examples:\n${this.json(examples)}`)
+                this.log(
+                  `Replaces examples with examples[0]. Old examples:\n${this.json(examples)}`
+                )
               }
             }
           } else {
@@ -271,8 +273,18 @@ export class Converter {
    */
   convertExclusiveMinMax(): void {
     const schemaVisitor: SchemaVisitor = (schema: SchemaObject): SchemaObject => {
-      this.normaliseExclusiveBound(schema, 'minimum', 'exclusiveMinimum', /* exclusiveWinsOnEqual */ true)
-      this.normaliseExclusiveBound(schema, 'maximum', 'exclusiveMaximum', /* exclusiveWinsOnEqual */ true)
+      this.normaliseExclusiveBound(
+        schema,
+        'minimum',
+        'exclusiveMinimum',
+        /* exclusiveWinsOnEqual */ true
+      )
+      this.normaliseExclusiveBound(
+        schema,
+        'maximum',
+        'exclusiveMaximum',
+        /* exclusiveWinsOnEqual */ true
+      )
       return this.walkNestedSchemaObjects(schema, schemaVisitor)
     }
     visitSchemaObjects(this.openapi30, schemaVisitor)
@@ -282,7 +294,7 @@ export class Converter {
     schema: SchemaObject,
     inclusiveKey: 'minimum' | 'maximum',
     exclusiveKey: 'exclusiveMinimum' | 'exclusiveMaximum',
-    exclusiveWinsOnEqual: boolean,
+    exclusiveWinsOnEqual: boolean
   ): void {
     const exclusiveRaw = schema[exclusiveKey]
     // Already in 3.0 boolean-modifier form, or absent — nothing to do.
@@ -297,7 +309,7 @@ export class Converter {
       schema[inclusiveKey] = exclusiveRaw
       schema[exclusiveKey] = true
       this.log(
-        `Converted numeric ${exclusiveKey}: ${exclusiveRaw} to 3.0 ${inclusiveKey} + boolean ${exclusiveKey}`,
+        `Converted numeric ${exclusiveKey}: ${exclusiveRaw} to 3.0 ${inclusiveKey} + boolean ${exclusiveKey}`
       )
       return
     }
@@ -305,20 +317,21 @@ export class Converter {
     // Both present — pick the stricter bound. For minimum: stricter is the
     // LARGER value; for maximum: stricter is the SMALLER value.
     // `exclusiveWinsOnEqual` controls the tiebreak when values are equal.
-    const exclusiveStricter = inclusiveKey === 'minimum'
-      ? exclusiveRaw > inclusiveRaw || (exclusiveWinsOnEqual && exclusiveRaw === inclusiveRaw)
-      : exclusiveRaw < inclusiveRaw || (exclusiveWinsOnEqual && exclusiveRaw === inclusiveRaw)
+    const exclusiveStricter =
+      inclusiveKey === 'minimum'
+        ? exclusiveRaw > inclusiveRaw || (exclusiveWinsOnEqual && exclusiveRaw === inclusiveRaw)
+        : exclusiveRaw < inclusiveRaw || (exclusiveWinsOnEqual && exclusiveRaw === inclusiveRaw)
 
     if (exclusiveStricter) {
       schema[inclusiveKey] = exclusiveRaw
       schema[exclusiveKey] = true
       this.log(
-        `Merged ${exclusiveKey}:${exclusiveRaw} + ${inclusiveKey}:${inclusiveRaw} → exclusive form at ${exclusiveRaw}`,
+        `Merged ${exclusiveKey}:${exclusiveRaw} + ${inclusiveKey}:${inclusiveRaw} → exclusive form at ${exclusiveRaw}`
       )
     } else {
       delete schema[exclusiveKey]
       this.log(
-        `Merged ${exclusiveKey}:${exclusiveRaw} + ${inclusiveKey}:${inclusiveRaw} → kept inclusive ${inclusiveKey}:${inclusiveRaw}`,
+        `Merged ${exclusiveKey}:${exclusiveRaw} + ${inclusiveKey}:${inclusiveRaw} → kept inclusive ${inclusiveKey}:${inclusiveRaw}`
       )
     }
   }
@@ -337,13 +350,13 @@ export class Converter {
     const schemaVisitor: SchemaVisitor = (schema: SchemaObject): SchemaObject => {
       for (const groupType of ['oneOf', 'anyOf']) {
         const members = schema[groupType]
-        if (!Array.isArray(members) || !members.some((member) => this.isNullSchema(member))) {
+        if (!Array.isArray(members) || !members.some(member => this.isNullSchema(member))) {
           continue
         }
-        const remaining = members.filter((member) => !this.isNullSchema(member))
+        const remaining = members.filter(member => !this.isNullSchema(member))
         if (remaining.length === 0) {
           this.error(
-            `Unable to down-convert ${groupType} with only null members: ${JSON.stringify(schema)}`,
+            `Unable to down-convert ${groupType} with only null members: ${JSON.stringify(schema)}`
           )
           continue
         }
@@ -369,8 +382,12 @@ export class Converter {
       return true
     }
     const enumValues = schema['enum']
-    return !Object.hasOwn(schema, 'type') && Array.isArray(enumValues) &&
-      enumValues.length === 1 && enumValues[0] === null
+    return (
+      !Object.hasOwn(schema, 'type') &&
+      Array.isArray(enumValues) &&
+      enumValues.length === 1 &&
+      enumValues[0] === null
+    )
   }
 
   /**
@@ -382,7 +399,7 @@ export class Converter {
       if (Object.hasOwn(schema, 'type')) {
         const schemaType = schema['type']
         if (Array.isArray(schemaType) && schemaType.length === 2 && schemaType.includes('null')) {
-          const nonNull = schemaType.filter((entry) => entry !== 'null')[0]
+          const nonNull = schemaType.filter(entry => entry !== 'null')[0]
           schema['type'] = nonNull
           schema['nullable'] = true
           this.log(`Converted schema type array to nullable`)
@@ -412,10 +429,10 @@ export class Converter {
       'unevaluatedProperties',
       'contentMediaType',
       'patternProperties',
-      'propertyNames',
+      'propertyNames'
     ]
     const schemaVisitor: SchemaVisitor = (schema: SchemaObject): SchemaObject => {
-      keywordsToRemove.forEach((key) => {
+      keywordsToRemove.forEach(key => {
         if (Object.hasOwn(schema, key)) {
           delete schema[key]
           this.log(`Removed unsupported schema keyword ${key}`)
@@ -466,12 +483,12 @@ export class Converter {
         if (Object.hasOwn(schema, 'format')) {
           if (schema['format'] === 'binary') {
             this.log(
-              `Deleted schema contentMediaType: application/octet-stream (leaving format: binary)`,
+              `Deleted schema contentMediaType: application/octet-stream (leaving format: binary)`
             )
             delete schema['contentMediaType']
           } else {
             this.error(
-              `Unable to down-convert schema with contentMediaType: application/octet-stream to format: binary because the schema already has a format (${schema['format']})`,
+              `Unable to down-convert schema with contentMediaType: application/octet-stream to format: binary because the schema already has a format (${schema['format']})`
             )
           }
         } else {
@@ -504,7 +521,7 @@ export class Converter {
               delete schema['contentEncoding']
             } else {
               this.error(
-                `Unable to down-convert schema contentEncoding: base64 to format: byte because the schema already has a format (${schema['format']})`,
+                `Unable to down-convert schema contentEncoding: base64 to format: byte because the schema already has a format (${schema['format']})`
               )
             }
           } else {
@@ -545,8 +562,8 @@ export class Converter {
         }
         // Filter out path.{$ref, summary, description, parameters, servers}
         // and x-* specification extensions.
-        const methods = Object.keys(pathItem).filter((op) => Converter.HTTP_METHODS.includes(op))
-        methods.forEach((method) => {
+        const methods = Object.keys(pathItem).filter(op => Converter.HTTP_METHODS.includes(op))
+        methods.forEach(method => {
           const operation = pathItem[method]
           if (!isJsonObject(operation)) {
             return
@@ -555,7 +572,7 @@ export class Converter {
           if (!Array.isArray(security)) {
             return
           }
-          security.forEach((requirement) => {
+          security.forEach(requirement => {
             if (!isJsonObject(requirement)) {
               return
             }
@@ -563,7 +580,7 @@ export class Converter {
             if (!Array.isArray(requiredScopes)) {
               return
             }
-            requiredScopes.forEach((scope) => {
+            requiredScopes.forEach(scope => {
               if (typeof scope !== 'string') {
                 return
               }
@@ -597,8 +614,8 @@ to get the correct \`authorizationUrl\` and \`tokenUrl\`.`
           authorizationCode: {
             authorizationUrl: this.authorizationUrl,
             tokenUrl: this.tokenUrl,
-            scopes: oauth2Scopes(schemeName),
-          },
+            scopes: oauth2Scopes(schemeName)
+          }
         }
       }
     }
@@ -616,10 +633,12 @@ to get the correct \`authorizationUrl\` and \`tokenUrl\`.`
       } else if (Converter.objectTaggedAsSchemaRef(node)) {
         return node
       } else {
-        this.log(`Down convert reference object to JSON Reference:\n${JSON.stringify(node, null, 3)}`)
+        this.log(
+          `Down convert reference object to JSON Reference:\n${JSON.stringify(node, null, 3)}`
+        )
         Object.keys(node)
-          .filter((key) => key !== '$ref')
-          .forEach((key) => delete node[key])
+          .filter(key => key !== '$ref')
+          .forEach(key => delete node[key])
         return node
       }
     })

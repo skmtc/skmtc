@@ -236,8 +236,8 @@ export const mergeThreeWay = ({
   const merged = base.split('\n')
   const allRegions = [
     ...ourRegions,
-    ...theirRegions.filter(theirRegion =>
-      !ourRegions.some(ourRegion => isSameRegion(ourRegion, theirRegion))
+    ...theirRegions.filter(
+      theirRegion => !ourRegions.some(ourRegion => isSameRegion(ourRegion, theirRegion))
     )
   ].sort((a, b) => b.start - a.start)
 

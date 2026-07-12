@@ -36,9 +36,7 @@ const parseEntries = (catalog: string): Entry[] => {
   const entries: Entry[] = []
   for (const section of catalog.split(/^### /m).slice(1)) {
     const id = section.slice(0, section.indexOf('\n')).trim()
-    const cmd = section.match(
-      /\*\*Verification command:\*\*\s*\n```bash\n([\s\S]*?)\n```/
-    )
+    const cmd = section.match(/\*\*Verification command:\*\*\s*\n```bash\n([\s\S]*?)\n```/)
     if (!cmd) continue
     const fix = section.match(/\*\*Fix status:\*\*\s*(.+)/)
     entries.push({

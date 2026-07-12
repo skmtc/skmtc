@@ -3,18 +3,18 @@ import type { JsonValue } from './overlay.ts'
 import { type PathMatch, queryPaths } from './jsonpath.ts'
 
 function values(matches: PathMatch[]): JsonValue[] {
-  return matches.map((match) => match.value)
+  return matches.map(match => match.value)
 }
 
 const doc: JsonValue = {
   openapi: '3.1.0',
   servers: [
     { url: 'https://dev.example.com', description: 'Dev' },
-    { url: 'https://example.com', description: 'Prod' },
+    { url: 'https://example.com', description: 'Prod' }
   ],
   paths: {
     '/pets': { get: { summary: 'list', tags: ['a'] }, post: { summary: 'create' } },
-    '/dogs': { get: { summary: 'list dogs' } },
+    '/dogs': { get: { summary: 'list dogs' } }
   },
   components: {
     schemas: {
@@ -22,11 +22,11 @@ const doc: JsonValue = {
         properties: {
           id: { type: 'string' },
           age: { type: 'integer' },
-          name: { type: 'string', description: 'the name' },
-        },
-      },
-    },
-  },
+          name: { type: 'string', description: 'the name' }
+        }
+      }
+    }
+  }
 }
 
 Deno.test('queryPaths - member and bracket access', () => {
@@ -49,7 +49,7 @@ Deno.test('queryPaths - array index, negative index, and union', () => {
   assertEquals(values(queryPaths(doc, '$.servers[-1].description')), ['Prod'])
   assertEquals(values(queryPaths(doc, '$.servers[0,1].url')), [
     'https://dev.example.com',
-    'https://example.com',
+    'https://example.com'
   ])
 })
 
@@ -65,12 +65,9 @@ Deno.test('queryPaths - filter by string equality on an array', () => {
 })
 
 Deno.test('queryPaths - filter selects object property values', () => {
-  const matches = queryPaths(
-    doc,
-    "$.components.schemas.Pet.properties[?(@.type == 'string')]",
-  )
+  const matches = queryPaths(doc, "$.components.schemas.Pet.properties[?(@.type == 'string')]")
   assertEquals(matches.length, 2)
-  assertEquals(matches.map((m) => m.parentProperty).sort(), ['id', 'name'])
+  assertEquals(matches.map(m => m.parentProperty).sort(), ['id', 'name'])
 })
 
 Deno.test('queryPaths - recursive descent combined with a filter', () => {
@@ -80,7 +77,7 @@ Deno.test('queryPaths - recursive descent combined with a filter', () => {
 
 Deno.test('queryPaths - filter is null-safe (no throw on null/missing nodes)', () => {
   const withNulls: JsonValue = {
-    items: [null, { description: 'keep' }, { other: 1 }, 'a string', 42],
+    items: [null, { description: 'keep' }, { other: 1 }, 'a string', 42]
   }
   // jsonpath-plus 10.x throws on the `null` element here; ours simply skips it.
   const matches = queryPaths(withNulls, "$..[?(@.description == 'keep')]")
@@ -89,19 +86,12 @@ Deno.test('queryPaths - filter is null-safe (no throw on null/missing nodes)', (
 
 Deno.test('queryPaths - existence, negation, comparison, and boolean filters', () => {
   const data: JsonValue = {
-    rows: [
-      { n: 1, flag: true },
-      { n: 5 },
-      { n: 9, flag: false },
-    ],
+    rows: [{ n: 1, flag: true }, { n: 5 }, { n: 9, flag: false }]
   }
   assertEquals(values(queryPaths(data, '$.rows[?(@.flag)]')), [{ n: 1, flag: true }])
   assertEquals(values(queryPaths(data, '$.rows[?(!@.flag)]')), [{ n: 5 }, { n: 9, flag: false }])
   assertEquals(values(queryPaths(data, '$.rows[?(@.n >= 5)]')), [{ n: 5 }, { n: 9, flag: false }])
-  assertEquals(
-    values(queryPaths(data, '$.rows[?(@.n > 1 && @.n < 9)]')),
-    [{ n: 5 }],
-  )
+  assertEquals(values(queryPaths(data, '$.rows[?(@.n > 1 && @.n < 9)]')), [{ n: 5 }])
 })
 
 Deno.test('queryPaths - parent reference allows in-place mutation', () => {

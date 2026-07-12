@@ -34,15 +34,17 @@ export const toEnumType = ({
   stackTrail
 }: ToEnumTypeArgs): OasString => {
   const values = enumType.getValues().map(v => v.value as string)
-  return context.withStackTrail(stackTrail, () =>
-    new OasString(
-      {
-        title: enumType.name,
-        description: enumType.description ?? undefined,
-        enums: values,
-        nullable
-      },
-      context
-    )
+  return context.withStackTrail(
+    stackTrail,
+    () =>
+      new OasString(
+        {
+          title: enumType.name,
+          description: enumType.description ?? undefined,
+          enums: values,
+          nullable
+        },
+        context
+      )
   )
 }

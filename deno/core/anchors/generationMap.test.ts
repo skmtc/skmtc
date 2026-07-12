@@ -169,7 +169,8 @@ Deno.test('entriesForSidecar - missing generator entry yields empty g string', (
 })
 
 Deno.test('parseNdjson - tolerates extra blank lines between entries', () => {
-  const text = '{"f":"a.ts","name":"A","g":"g","s":"","v":"main"}\n\n{"f":"b.ts","name":"B","g":"g","s":"","v":"main"}\n'
+  const text =
+    '{"f":"a.ts","name":"A","g":"g","s":"","v":"main"}\n\n{"f":"b.ts","name":"B","g":"g","s":"","v":"main"}\n'
   const entries = parseNdjson(text)
   assertEquals(entries.length, 2)
   assert(entries[0].name === 'A' && entries[1].name === 'B')

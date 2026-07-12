@@ -21,8 +21,5 @@
       "description": "Description of the generator stack."
     }
   },
-  "required": [
-    "name",
-    "generators"
-  ]
+  "required": ["name", "generators"]
 }
