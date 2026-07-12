@@ -13,8 +13,11 @@ import { defineConfig } from 'tsdown'
 // `wire` is its own entry so browser consumers (the desktop SPA) can import
 // the wire schemas via `@skmtc/vite/wire` without pulling the node-only
 // plugin graph into their bundle.
+//
+// `matcher` is the inverse: the node-only matcher machinery for non-plugin
+// hosts (the preview container harness) — never for browsers.
 export default defineConfig({
-  entry: ['src/index.ts', 'src/enrichment-leaf.ts', 'src/wire.ts'],
+  entry: ['src/index.ts', 'src/enrichment-leaf.ts', 'src/wire.ts', 'src/matcher.ts'],
   format: 'esm',
   dts: true,
   clean: true,
