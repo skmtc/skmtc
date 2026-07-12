@@ -16,7 +16,9 @@
 
 import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
+import { match } from 'ts-pattern'
 import { readManifestFiles } from './artifacts.ts'
+import { parseForReanchor } from './reanchor.ts'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -43,12 +45,14 @@ export type GenMapEntry = {
 
 export type GenMapResult = {
   entries: GenMapEntry[]
-  /** Manifest files whose on-disk length no longer matches the engine render
-   *  (`manifest.characters`) — their spans are stale (e.g. the project ran a
-   *  formatter after generate) and must not be decorated. Length equality is
-   *  a HEURISTIC, not content-exact: a rewrite that preserves character count
-   *  (balanced quote-style flips, tab/space swaps) escapes detection. It is
-   *  the best signal the manifest offers (`lines`/`characters` only). */
+  /** Manifest files whose spans could not be aligned to the on-disk text.
+   *  Length drift vs the engine render (`manifest.characters`) triggers
+   *  RE-ANCHORING (landmark + AST path resolution against the current
+   *  text), so a formatter pass alone no longer lands a file here — only
+   *  files that defeat re-anchoring do: unreadable, unparseable, non-ASCII
+   *  (UTF-16 span units vs oxc's UTF-8 offsets), or hand-mangled past all
+   *  landmarks. Length equality remains a HEURISTIC trigger: an
+   *  equal-length rewrite escapes detection and serves raw spans. */
   staleFiles: string[]
 }
 
@@ -83,6 +87,9 @@ type SidecarLike = {
   S: string[]
   V: string[]
   L: string[]
+  /** AST child-index paths (dot-joined), parallel-pooled with `L` — filled
+   *  by the CLI's host-side post-pass; `''` on worker-degraded sidecars. */
+  P: string[]
   anchors: AnchorRow[]
   N: string[]
 }
@@ -103,6 +110,7 @@ const toSidecar = (value: unknown): SidecarLike | null => {
     S: asStringArray(value.S),
     V: asStringArray(value.V),
     L: asStringArray(value.L),
+    P: asStringArray(value.P),
     anchors,
     N: asStringArray(value.N)
   }
@@ -119,19 +127,63 @@ const resolveAliasPath = (path: string, basePath: string): string => {
   return `${trimmed}/${path.slice(2)}`
 }
 
+const rowToEntry = (
+  sidecar: SidecarLike,
+  artifactPath: string,
+  { row, producerIndex }: AnchorRow,
+  span: [number, number]
+): GenMapEntry => {
+  const [li, , gi, si, vi] = row
+  return {
+    artifactPath,
+    artifactSpan: span,
+    projectionName: (li !== undefined ? sidecar.L[li] : undefined) ?? '',
+    producerName: (producerIndex !== undefined ? sidecar.N[producerIndex] : undefined) ?? '',
+    generatorRef: (gi !== undefined ? sidecar.G[gi] : undefined) ?? '',
+    schemaPointer: (si !== undefined ? sidecar.S[si] : undefined) ?? '',
+    variant: (vi !== undefined ? sidecar.V[vi] : undefined) || 'main'
+  }
+}
+
 const sidecarToEntries = (sidecar: SidecarLike, artifactPath: string): GenMapEntry[] =>
-  sidecar.anchors.map(({ row, producerIndex }) => {
-    const [li, , gi, si, vi, from, to] = row
-    return {
-      artifactPath,
-      artifactSpan: [from ?? 0, to ?? 0],
-      projectionName: (li !== undefined ? sidecar.L[li] : undefined) ?? '',
-      producerName: (producerIndex !== undefined ? sidecar.N[producerIndex] : undefined) ?? '',
-      generatorRef: (gi !== undefined ? sidecar.G[gi] : undefined) ?? '',
-      schemaPointer: (si !== undefined ? sidecar.S[si] : undefined) ?? '',
-      variant: (vi !== undefined ? sidecar.V[vi] : undefined) || 'main'
-    }
+  sidecar.anchors.map(anchor =>
+    rowToEntry(sidecar, artifactPath, anchor, [anchor.row[5] ?? 0, anchor.row[6] ?? 0])
+  )
+
+/**
+ * Length drift means a formatter (or hand edit) reshaped the file after
+ * generate — raw byte spans are unusable, but each anchor's landmark +
+ * AST path still resolves against the CURRENT text. Entries whose anchor
+ * can't be resolved (landmark renamed away, structure changed) are
+ * dropped individually; `undefined` means the whole file can't be
+ * re-anchored (unparseable / non-ASCII) and should be reported stale.
+ *
+ * Worker-degraded sidecars (empty `P` paths, `parser: 'none'`) get the
+ * landmark-only fallback for free: an empty path resolves to the landmark
+ * statement itself, so whole-Definition spans still highlight — inner
+ * snippet spans collapse into their Definition until the next generate
+ * runs the host-side post-pass.
+ */
+const reanchoredEntries = (
+  sidecar: SidecarLike,
+  artifactPath: string,
+  content: string
+): GenMapEntry[] | undefined => {
+  const parsed = parseForReanchor(artifactPath, content)
+  if (parsed === undefined) return undefined
+  return sidecar.anchors.flatMap(anchor => {
+    const [li, pi] = anchor.row
+    const landmark = (li !== undefined ? sidecar.L[li] : undefined) ?? ''
+    if (landmark === '') return []
+    const pathText = (pi !== undefined ? sidecar.P[pi] : undefined) ?? ''
+    const path = pathText === '' ? [] : pathText.split('.').map(Number)
+    return match(parsed.reanchor(landmark, path))
+      .returnType<GenMapEntry[]>()
+      .with({ type: 'resolved' }, ({ span }) => [rowToEntry(sidecar, artifactPath, anchor, span)])
+      .with({ type: 'landmark-missing' }, { type: 'path-broken' }, () => [])
+      .exhaustive()
   })
+}
 
 const mapsDir = (root: string, project: string): string =>
   join(root, '.skmtc', project, '.maps')
@@ -160,9 +212,12 @@ const sidecarPaths = async (dir: string): Promise<string[]> => {
  * a manifest `files` key are included (the same membership guard the
  * artifacts read uses — `.maps` accumulates sidecars for renamed/removed
  * artifacts and older generates). Files whose on-disk length differs from the
- * manifest's `characters` land in `staleFiles` with their entries EXCLUDED —
- * a stale span is worse than no span (and see {@link GenMapResult} for why
- * length equality is a heuristic).
+ * manifest's `characters` (a formatter ran after generate) are RE-ANCHORED:
+ * each anchor's landmark + AST path is resolved against the current on-disk
+ * text and the entry served with fresh spans. `staleFiles` now holds only
+ * files that can't be re-anchored at all — unreadable, unparseable,
+ * non-ASCII (span-unit skew), or with no resolvable anchors left (see
+ * {@link GenMapResult}; length equality remains the drift trigger).
  *
  * One sidecar wins per artifact: `.maps` accumulation means two files can
  * declare the same `f` (e.g. a lingering copy at a stale mirror path). The
@@ -202,11 +257,18 @@ export const readGenMap = async (
     const meta = manifestFiles[artifactPath]
     if (meta === undefined) continue
     const characters = isRecord(meta) && typeof meta.characters === 'number' ? meta.characters : null
-    const onDiskLength = await readFile(join(root, artifactPath), 'utf8')
-      .then((content) => content.length)
-      .catch(() => null)
-    if (onDiskLength === null || (characters !== null && characters !== onDiskLength)) {
+    const content = await readFile(join(root, artifactPath), 'utf8').catch(() => null)
+    if (content === null) {
       staleFiles.push(artifactPath)
+      continue
+    }
+    if (characters !== null && characters !== content.length) {
+      const reanchored = reanchoredEntries(sidecar, artifactPath, content)
+      if (reanchored === undefined || reanchored.length === 0) {
+        staleFiles.push(artifactPath)
+        continue
+      }
+      entries.push(...reanchored)
       continue
     }
     entries.push(...sidecarToEntries(sidecar, artifactPath))

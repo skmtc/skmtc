@@ -34,6 +34,7 @@
     "types": "tsc --noEmit"
   },
   "dependencies": {
+    "oxc-parser": "0.41.0",
     "ts-pattern": "^5.9.0",
     "valibot": "^1.1.0"
   },
