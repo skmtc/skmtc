@@ -8,10 +8,6 @@ request/response validation. The most-cloned client generator —
 because the fetch wrapper, error handling, and base URL conventions
 are almost always team-specific.
 
-## Source
-
-`skmtc-generators/gen-tanstack-query-fetch-zod/src/`
-
 ## What it generates
 
 Per operation:
@@ -34,6 +30,10 @@ export const useCreateUser = () =>
 The `user`/`userBody` Zod schemas come from `gen-zod` via
 `insertNormalizedModel` — both generators share a single registered
 schema.
+
+## Source
+
+`skmtc-generators/gen-tanstack-query-fetch-zod/src/`
 
 ## Key decisions
 

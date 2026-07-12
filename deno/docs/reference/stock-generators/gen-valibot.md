@@ -6,10 +6,6 @@ A model generator. The Valibot analog of `gen-zod`. Same entry
 shape, different library. Use when your project standardizes on
 Valibot for its tree-shaking advantages or its functional API.
 
-## Source
-
-`skmtc-generators/gen-valibot/src/`
-
 ## What it generates
 
 For a `User` schema:
@@ -37,6 +33,10 @@ export const valibotEntry = toModelEntry({
 
 All variation lives in `ValibotProjection` and the per-variant
 classes.
+
+## Source
+
+`skmtc-generators/gen-valibot/src/`
 
 ## Key decisions
 

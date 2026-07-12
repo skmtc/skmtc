@@ -8,10 +8,6 @@ another resource (e.g., "office" on a contact form, sourced from
 `GET /offices`). Pairs with `gen-shadcn-form`'s
 `fields[].references` enrichment.
 
-## Source
-
-`skmtc-generators/gen-shadcn-select/src/`
-
 ## What it generates
 
 Per supported operation, a React select component:
@@ -26,6 +22,10 @@ export const OfficeSelect = ({ value, onChange }) => {
   )
 }
 ```
+
+## Source
+
+`skmtc-generators/gen-shadcn-select/src/`
 
 ## Key decisions
 
