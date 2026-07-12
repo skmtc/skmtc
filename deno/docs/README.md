@@ -178,7 +178,7 @@ Pick the tree that matches your role; the shared layers work for both.
 ### Shared layers
 
 - **[`concepts/`](concepts/)** — mental models (Projections, Snippets, the pipeline, refs, idempotency)
-- **[`reference/`](reference/)** — CLI commands, settings schema, API, stock generators
+- **Reference** — [CLI commands](reference/cli/overview.md) · [settings schema](reference/settings/client-json-schema.md) · [core API](reference/api/core-overview.md) · [stock generators](reference/stock-generators/overview.md)
 - **[`explanation/`](explanation/)** — design rationale, comparisons, security model, roadmap
 
 ---

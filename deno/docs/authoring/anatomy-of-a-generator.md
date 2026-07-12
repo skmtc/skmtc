@@ -168,3 +168,5 @@ big, not output that's genuinely unique.
   — the two-level DSL in depth
 - [Generators as packages](../concepts/generators-as-packages.md) —
   the packaging half: deno.json, peer pins, publishing, cloning
+- [Languages](../concepts/languages.md) — where TypeScript enters the
+  class hierarchy, and what a lang package owns

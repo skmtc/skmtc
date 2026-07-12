@@ -58,6 +58,6 @@ Complete worked examples.
 ## Shared resources
 
 - [Concepts](../concepts/) — mental models that apply to both using and authoring
-- [CLI reference](../reference/cli/) — every command, every flag
+- [CLI reference](../reference/cli/overview.md) — every command, every flag
 - [Settings reference](../reference/settings/) — `client.json` schema and enrichment shape
 - [Stock generators reference](../reference/stock-generators/) — per-generator capabilities and enrichments

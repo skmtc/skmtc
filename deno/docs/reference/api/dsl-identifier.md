@@ -4,8 +4,8 @@
 > `core/dsl/IdentifierType.ts` (the non-name identifier parts), and
 > `lang-typescript/src/createIdentifier.ts` +
 > `lang-typescript/src/TsIdentifier.ts` (the TypeScript subclass,
-> factories, and type vocabulary). The naming layer moved out of core
-> under F5/F6 — `notes/lang/17-naming-layer-and-helpers-move.md`.
+> factories, and type vocabulary). The naming layer lives in the
+> lang package; core carries only neutral identifier data.
 
 ## IdentifierBase (`@skmtc/core`) — neutral data
 
@@ -126,7 +126,7 @@ throws on a type outside the vocabulary — the loud signal that an
 identifier built for another language reached the TypeScript
 renderer.
 
-## Removed API (F6 — for readers of older code)
+## Removed API (for readers of older code)
 
 | Old (core 0.8.0 and earlier) | Now |
 |---|---|

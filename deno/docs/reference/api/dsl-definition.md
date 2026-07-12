@@ -13,9 +13,8 @@
 - `skmtc/deno/core/dsl/Definition.ts` — `DefinitionBase` (abstract)
 - `skmtc/deno/lang-typescript/src/TsDefinition.ts` — `TsDefinition`
 
-(Core's concrete TS-rendering `Definition` was deleted under F5/F6 —
-`notes/lang/17-naming-layer-and-helpers-move.md`. `TsDefinition`
-renders byte-identically to it.)
+(Core declares only the abstract `DefinitionBase`; the concrete
+rendering class is the lang package's `TsDefinition`.)
 
 ## DefinitionBase (`@skmtc/core`) — the coordination surface
 

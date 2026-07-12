@@ -333,6 +333,7 @@ In practice, one SKMTC root per repository is the convention.
 - [Clone vs install](clone-vs-install.md) — what changes in the project directory when cloning
 - [Enrichments](enrichments.md) — the `client.json#settings.enrichments` structure
 - [The Worker runtime](the-worker-runtime.md) — how `worker.ts` and `bundle.js` get used
+- [Multi-package output](multi-package-output.md) — routing generated files into monorepo packages
 - [Settings reference: client.json schema](../reference/settings/client-json-schema.md)
 - [`skmtc init` reference](../reference/cli/init.md)
 - [`skmtc doctor` reference](../reference/cli/doctor.md)

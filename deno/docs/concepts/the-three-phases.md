@@ -7,7 +7,7 @@ immutable artifact that the next consumes.
 This document explains what each phase does, why the boundaries are drawn where
 they are, and what invariants depend on the separation. It's organized for
 understanding, not lookup; for the API surface of each phase see
-[the reference docs](../reference/api/).
+[the API reference](../reference/api/core-overview.md).
 
 ## The shape of the pipeline
 
