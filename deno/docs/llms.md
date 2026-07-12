@@ -61,7 +61,7 @@ If unsure which role applies: read **Read this first** + **Verification protocol
 
 These assertions are the ones you would most likely get wrong by extrapolating from other codegen tools (orval, openapi-generator, kubb, graphql-codegen).
 
-1. **No plugin registry, no dependency graph, no topological sort.** Cross-generator coordination is a `Map<(name, exportPath), Definition>` cache. Generator order does not affect output.
+1. **No plugin registry, no dependency graph, no topological sort — generation is writing definition objects into file objects, and every producer creates its own dependencies.** A file is `{ imports, definitions }` (plus `reExports`), with `definitions` keyed by identifier, so the file map doubles as a cache: `insertOperation` / `insertModel` / `insertNormalizedModel` are create-or-reuse — a dependency already registered at `(name, exportPath)` is returned, not re-created; a miss constructs it on the spot, recursively. Cross-generator coordination is that `Map<(name, exportPath), Definition>` cache. Generator order does not affect output; never propose ordering, priorities, or a pre-generation pass.
 
 2. **Render does not run Prettier or Biome.** No formatter runs inside `@skmtc/core`. Output is whatever generators produced. Consumers format their own output as a post-generation step.
 

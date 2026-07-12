@@ -158,24 +158,9 @@ any project's docs.
   too many legitimate uses (version-scoped capability statements); those stay a
   review concern. The seven pre-existing filler hits were fixed when the guard
   landed.
-- **Eval coverage** — `docs/evals/tasks/rewrite-flawed-page.md`: a flawed how-to
-  page whose central fault is factual drift against a ground-truth CLI
-  (`--force` documented, `--overwrite` real), plus the §4/§5/§6 prose faults.
-  The llm-judge rubric is keyed to the §14 checklist; the fixture self-verifies
-  the tool's real behavior and the planted faults. Fails any rewrite that keeps
-  invented flags, however clean the prose.
-- **Baseline (2026-07-06, sonnet, 1 trial/arm)** — with-docs PASS (9 turns),
-  no-docs FAIL: clean discrimination. Calibration findings from the trial
-  rounds: (1) the `--force` fault does NOT discriminate — sonnet verifies a page
-  against adjacent source unprompted, docs or no docs; what discriminates is
-  **procedure structure** (§5) — the with-docs agent produces a numbered
-  single-action procedure with stated results, the no-docs agent writes prose
-  sections (twice, independently). (2) The task prompt must stay neutral
-  ("improve this page") — an earlier draft hinting "some of what it says is
-  wrong" handed verify-first to the control and erased the discrimination. (3)
-  Page-quality rubrics need the judge to see the artifacts: the llm-judge grader
-  gained a `files` option (rewritten page + ground-truth source inlined into the
-  judge prompt) because it otherwise grades only the agent's final chat message.
+- **Eval coverage** — removed 2026-07-12 along with the `docs/evals/` harness
+  (LLM-judge evals retired as unconvincing; the mechanical CI counterpart above
+  remains the verification loop).
 
 ## Open questions
 
