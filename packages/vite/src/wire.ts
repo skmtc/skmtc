@@ -6,12 +6,18 @@
 //
 // BROWSER-SAFE by construction: this module may import only valibot — no
 // node builtins, no plugin internals — because the desktop bundles it into
-// the SPA. Consumer-leniency decisions live HERE, on the producer, where the
-// shape is defined:
+// the SPA (pinned by the import-specifier test in wire.test.ts).
+// Consumer-leniency decisions live HERE, on the producer, where the shape is
+// defined:
 //   - a misfit's `reason` is decoration → v.fallback to absent on any
 //     malformed value (never fail the whole outcome parse);
 //   - tuples tolerate extra items (valibot semantics, kept deliberately) —
-//     a future plugin appending metadata must not break older desktops.
+//     a future plugin appending metadata must not break older desktops;
+//   - the outcome union is STRICT: `v.variant` rejects an unknown `type`, so
+//     ADDING a MatchOutcome variant is a BREAKING change for older desktops.
+//     Deliberate asymmetry — an unknown verdict is not safely ignorable the
+//     way extra tuple items are; ship new variants behind a major/minor bump
+//     with the desktop updated first.
 
 import * as v from 'valibot'
 
@@ -131,12 +137,34 @@ export const sourceFileSchema = v.object({
 export type SourceFile = v.InferOutput<typeof sourceFileSchema>
 
 /** GET /__skmtc/source — the input-dir sources the code pane can seed from.
- *  (`inputDirs` also rides along in the response; consumers that only need
- *  the files may parse with this schema, which ignores unknown keys.) */
+ *  `inputDirs` is optional so consumers that only need the files parse the
+ *  same response without asserting it. */
 export const sourceResponseSchema = v.object({
-  files: v.array(sourceFileSchema)
+  files: v.array(sourceFileSchema),
+  inputDirs: v.optional(v.array(v.string()))
 })
 export type SourceResponse = v.InferOutput<typeof sourceResponseSchema>
+
+/** GET /__skmtc/candidates — the selectable module exports. */
+export const candidatesResponseSchema = v.object({
+  candidates: v.array(candidateSchema)
+})
+export type CandidatesResponse = v.InferOutput<typeof candidatesResponseSchema>
+
+/** One generated artifact in the manifest listing — `lines`/`characters` are
+ *  the engine render's counts when the manifest carries them. */
+export const artifactEntrySchema = v.object({
+  path: v.string(),
+  lines: v.optional(v.number()),
+  characters: v.optional(v.number())
+})
+export type ArtifactEntry = v.InferOutput<typeof artifactEntrySchema>
+
+/** GET /__skmtc/artifacts — the generated-file listing. */
+export const artifactsResponseSchema = v.object({
+  files: v.array(artifactEntrySchema)
+})
+export type ArtifactsResponse = v.InferOutput<typeof artifactsResponseSchema>
 
 /** GET /__skmtc/artifacts?path=… — one generated file's content. */
 export const artifactContentSchema = v.object({ content: v.string() })

@@ -6,12 +6,12 @@
 
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+// Wire shape shared with the desktop via `@skmtc/vite/wire`.
+import type { ArtifactEntry } from './wire.ts'
+export type { ArtifactEntry } from './wire.ts'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
-
-/** One generated file as listed by the manifest. */
-export type ArtifactEntry = { path: string; lines?: number; characters?: number }
 
 const manifestPath = (root: string, project: string): string =>
   join(root, '.skmtc', project, '.settings', 'manifest.json')
