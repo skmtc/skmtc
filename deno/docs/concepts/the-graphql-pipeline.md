@@ -480,7 +480,7 @@ trail shapes:
   `OasObject.properties` on a registered type.
 
 Parallel to `OasDocument.removeItem`'s three-segment routing.
-See [error-handling-philosophy.md](error-handling-philosophy.md#tier-2-cross-ref-via-removeerroreditems)
+See [error-handling-philosophy.md](../explanation/error-handling-philosophy.md#tier-2-cross-ref-via-removeerroreditems)
 for the cascade-pruning algorithm.
 
 ### Are there OAS-side concepts that *don't* apply to GraphQL?

@@ -17,7 +17,7 @@ This page covers what's in it, how each part is produced during
 the pipeline, and what users do with it.
 
 For the runtime mechanism that produces parse-time entries, see
-[error-handling-philosophy.md](error-handling-philosophy.md). For
+[error-handling-philosophy.md](../explanation/error-handling-philosophy.md). For
 the wire-level Valibot schema, see
 [reference/manifest-format.md](../reference/manifest-format.md).
 
@@ -345,7 +345,7 @@ If you need end-to-end CLI wall-time, measure it externally.
 
 ## Further reading
 
-- [Error handling philosophy](error-handling-philosophy.md) —
+- [Error handling philosophy](../explanation/error-handling-philosophy.md) —
   parsers contribute to `parseIssues`; the philosophy that drives
   "parse fails open, manifest is canonical"
 - [How generators produce output](how-generators-produce-output.md)

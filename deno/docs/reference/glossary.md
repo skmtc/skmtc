@@ -111,7 +111,7 @@ whether the generator handles a given operation/model. Returning
 The mechanism in `removeErroredItems` whereby consumers of a failed
 `$ref` are pruned from the parsed document. One hop deep — transitive
 consumers fail later at generate time. See
-[error-handling-philosophy](../concepts/error-handling-philosophy.md#tier-2-cross-ref-via-removeerroreditems).
+[error-handling-philosophy](../explanation/error-handling-philosophy.md#tier-2-cross-ref-via-removeerroreditems).
 
 ### clone-to-customize
 
@@ -372,7 +372,7 @@ no dedup story like `File`'s. See
 The error-handling philosophy: parse fails open (one bad item
 doesn't kill the run), but every dropped item and every type
 inference is logged as a `ParseIssue`. See
-[error-handling-philosophy](../concepts/error-handling-philosophy.md).
+[error-handling-philosophy](../explanation/error-handling-philosophy.md).
 
 ### `List`
 
@@ -697,7 +697,7 @@ The per-item parse-isolation helper
 `stackTrail.trace(key, ...)`, catches throws, logs an error issue
 at the child position (via a re-trace), and returns `undefined` so
 the offending entry is silently omitted from the parent's output.
-See [error-handling-philosophy §Tier 1](../concepts/error-handling-philosophy.md#tier-1-per-item-isolation-via-tryparseat).
+See [error-handling-philosophy §Tier 1](../explanation/error-handling-philosophy.md#tier-1-per-item-isolation-via-tryparseat).
 
 ### `TypeSystemValue`
 

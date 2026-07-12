@@ -400,7 +400,7 @@ wants.
   two-level DSL: file-scoped artifacts vs embedded fragments
 - [The three phases](the-three-phases.md) — where the Generate
   phase sits in the pipeline
-- [Error handling philosophy](error-handling-philosophy.md) — how
+- [Error handling philosophy](../explanation/error-handling-philosophy.md) — how
   per-item throws become manifest entries, not crashes
 - [The manifest](the-manifest.md) — where `toArtifacts`'s per-item
   `results` and the generators' `previews` / `mappings` land for

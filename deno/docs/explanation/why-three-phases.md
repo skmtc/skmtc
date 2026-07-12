@@ -189,7 +189,7 @@ matters — it means SKMTC isn't locked to OAS+TS forever.
   mechanism that makes Generate's invariant hold
 - [The GraphQL asymmetry](the-graphql-asymmetry.md) — why one
   phase boundary is also a cross-process boundary
-- [Error handling philosophy](../concepts/error-handling-philosophy.md) —
+- [Error handling philosophy](error-handling-philosophy.md) —
   how Parse's leniency cascades into Generate
 - [Design philosophy](design-philosophy.md) — the broader
   principles

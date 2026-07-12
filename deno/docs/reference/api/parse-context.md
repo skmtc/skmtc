@@ -446,7 +446,7 @@ type GqlParseOptions = {
 
 ## See also
 
-- [Error handling philosophy concept](../../concepts/error-handling-philosophy.md) — the two-tier model
+- [Error handling philosophy concept](../../explanation/error-handling-philosophy.md) — the two-tier model
 - [Refs and resolution concept](../../concepts/refs-and-resolution.md) — how cascade pruning works
 - [The three phases concept](../../concepts/the-three-phases.md) — pipeline context
 - [Error codes reference](../error-codes.md) — parseIssue types

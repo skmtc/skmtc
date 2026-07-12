@@ -362,7 +362,7 @@ the CLI's output stream.
 
 ## Cross-references
 
-- [Error handling philosophy](../concepts/error-handling-philosophy.md) — why the manifest is canonical
+- [Error handling philosophy](../explanation/error-handling-philosophy.md) — why the manifest is canonical
 - [Error codes](error-codes.md) — full list of `parseIssue.type` values
 - [How to debug a failing generation](../using/how-to/debug-failing-generation.md) — diagnostic workflows over this format
 - [`skmtc generate` reference](cli/generate.md) — the command that writes the manifest

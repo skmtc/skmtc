@@ -5,7 +5,7 @@
 > and the typical remediation.
 
 The error model is described conceptually in
-[`concepts/error-handling-philosophy.md`](../concepts/error-handling-philosophy.md).
+[`concepts/error-handling-philosophy.md`](../explanation/error-handling-philosophy.md).
 This file is the lookup reference for specific codes.
 
 ## Find your error
@@ -429,7 +429,7 @@ each run processes only one protocol.
 
 ## Cross-references
 
-- [Error handling philosophy](../concepts/error-handling-philosophy.md) — the two-tier model
+- [Error handling philosophy](../explanation/error-handling-philosophy.md) — the two-tier model
 - [Refs and resolution](../concepts/refs-and-resolution.md) — how ref errors work
 - [Manifest format](manifest-format.md) — the `parseIssues` array structure
 - [How to debug a failing generation](../using/how-to/debug-failing-generation.md) — the diagnostic workflow
