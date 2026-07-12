@@ -17,6 +17,13 @@ Customize behavior → clone + edit source     ← extending starts here
 Author new         → write a new generator
 ```
 
+## Start here
+
+- [Anatomy of a generator](anatomy-of-a-generator.md) — the one-page
+  map of the parts (entry, base, enrichments, Projection, Snippets),
+  how they run, and what keeps a generator maintainable. Read it
+  before the tutorials.
+
 ## Tutorials
 
 Linear walkthroughs to learn by doing.
