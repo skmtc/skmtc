@@ -5,14 +5,15 @@ import {
   classify,
   renderProbe,
   rootModelNameForSchemaPath,
+  toMisfitReason,
   toRelativeSpecifier,
   type MatcherSubject,
   type ProbeLayout
 } from './input-matcher.ts'
 
-// Type-check a self-contained probe string and return its error messages —
+// Type-check a self-contained probe string and return its diagnostics —
 // lib files come from disk (ts.sys), only the probe file is served in-memory.
-const typeErrorsOf = (source: string): string[] => {
+const diagnosticsOf = (source: string): ts.Diagnostic[] => {
   const fileName = '/probe.ts'
   const options: ts.CompilerOptions = {
     noEmit: true,
@@ -26,13 +27,27 @@ const typeErrorsOf = (source: string): string[] => {
     name === fileName
       ? ts.createSourceFile(fileName, source, ts.ScriptTarget.ES2020, true)
       : getSourceFile(name, languageVersion, onError, shouldCreate)
-  host.fileExists = (name) => name === fileName || ts.sys.fileExists(name)
-  host.readFile = (name) => (name === fileName ? source : ts.sys.readFile(name))
+  host.fileExists = name => name === fileName || ts.sys.fileExists(name)
+  host.readFile = name => (name === fileName ? source : ts.sys.readFile(name))
   const program = ts.createProgram([fileName], options, host)
   return ts
     .getPreEmitDiagnostics(program)
-    .filter((diagnostic) => diagnostic.file?.fileName === fileName)
-    .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'))
+    .filter(diagnostic => diagnostic.file?.fileName === fileName)
+}
+
+const typeErrorsOf = (source: string): string[] =>
+  diagnosticsOf(source).map(diagnostic =>
+    ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')
+  )
+
+/** Diagnostic line numbers of a compiled probe, matcher-style (0-based). */
+const errorLinesOf = (diagnostics: ts.Diagnostic[]): Set<number> => {
+  const lines = new Set<number>()
+  for (const diagnostic of diagnostics) {
+    if (diagnostic.start === undefined || !diagnostic.file) continue
+    lines.add(diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start).line)
+  }
+  return lines
 }
 
 const operation = (path: string, method: string): MatcherSubject => ({
@@ -223,17 +238,21 @@ describe('renderProbe', () => {
     )
     expect(lines[layout.moduleTypeStartLine]).toContain('@hookform/lenses')
     expect(lines[layout.moduleTypeEndLine]).toContain('export type InputModule<F>')
-    expect(layout.segmentLines.map((line) => lines[line])).toEqual([
+    expect(layout.segmentLines.map(line => lines[line])).toEqual([
       `type __D0 = CreateApplicantModel['applicant']`,
       `type __D1 = NonNullable<__D0>['officeIds']`
     ])
-    expect(layout.importLines.map((line) => lines[line])).toEqual([
+    expect(layout.importLines.map(line => lines[line])).toEqual([
       `import { OfficeSelect as __C0 } from './src/inputs/OfficeSelect'`,
       `import { TextInput as __C1 } from './src/inputs/TextInput'`
     ])
-    expect(layout.cellLines.map((line) => lines[line])).toEqual([
+    expect(layout.cellLines.map(line => lines[line])).toEqual([
       `const __m0: true = (null as unknown as (typeof __C0 extends InputModule<__F> ? true : false));`,
       `const __m1: true = (null as unknown as (typeof __C1 extends InputModule<__F> ? true : false));`
+    ])
+    expect(layout.explainLines.map(line => lines[line])).toEqual([
+      `const __e0: InputModule<__F> = __C0;`,
+      `const __e1: InputModule<__F> = __C1;`
     ])
   })
 
@@ -354,5 +373,93 @@ describe('classify', () => {
       type: 'verdicts',
       verdicts: ['fit', 'unresolved']
     })
+  })
+
+  it('an explain-line error alone never changes a verdict', () => {
+    const layout = layoutFixture()
+    // Explain lines are for elaboration only — a diagnostic there without one
+    // on the boolean cell (e.g. the two formulations disagreeing on an `any`
+    // candidate) must not flip a fit to a misfit.
+    const errors = new Set([layout.explainLines[0]])
+    expect(classify(errors, layout)).toEqual({
+      type: 'verdicts',
+      verdicts: ['fit', 'fit']
+    })
+  })
+})
+
+// The whole point of the explain lines: the boolean cell's own diagnostic is
+// the useless `'false' is not assignable to 'true'`, while the explain line
+// carries the compiler's real elaboration — headline + nested WHY chain — as
+// structured data (no flattened blob, no probe-internal names).
+describe('misfit reasons', () => {
+  const misfitProbe = () => {
+    const layout = renderProbe({
+      modelName: 'M',
+      modelImportPath: './fixture',
+      moduleTypeSource: 'export type S<F> = (props: { value: F }) => unknown',
+      moduleTypeName: 'S',
+      segments: ['name'],
+      candidates: [{ exportName: 'NumberInput', importPath: './inputs/NumberInput' }]
+    })
+    // Swap the imports for inline declarations so the probe is self-contained:
+    // the model's `name` is a string, the candidate wants a number → misfit.
+    const source = layout.text
+      .replace(/^import type .*$/m, 'type M = { name: string }')
+      .replace(
+        /^import \{ NumberInput as __C0 \}.*$/m,
+        'const __C0 = (props: { value: number }): unknown => props.value'
+      )
+    return { layout, diagnostics: diagnosticsOf(source) }
+  }
+
+  it('classifies the candidate as a misfit and elaborates WHY on the explain line', () => {
+    const { layout, diagnostics } = misfitProbe()
+    expect(classify(errorLinesOf(diagnostics), layout)).toEqual({
+      type: 'verdicts',
+      verdicts: ['misfit']
+    })
+
+    const explainDiagnostic = diagnostics.find(
+      diagnostic =>
+        diagnostic.start !== undefined &&
+        diagnostic.file?.getLineAndCharacterOfPosition(diagnostic.start).line ===
+          layout.explainLines[0]
+    )
+    expect(explainDiagnostic).toBeDefined()
+    if (!explainDiagnostic) return
+
+    const sanitize = (text: string): string =>
+      text.replace(/__C0/g, 'NumberInput').replace(/\b__F\b/g, 'string')
+    const reason = toMisfitReason(explainDiagnostic, sanitize)
+
+    expect(reason.code).toBe(2322)
+    expect(reason.headline).toMatch(/is not assignable to type 'S<string>'/)
+    expect(reason.headline).not.toContain('__')
+    // The chain bottoms out at the actual cause.
+    expect(reason.reasons.at(-1)).toBe(`Type 'string' is not assignable to type 'number'.`)
+    expect(reason.reasons.join('\n')).not.toContain('__')
+  })
+
+  it('the boolean cell alone would explain nothing (the motivating gap)', () => {
+    const { layout, diagnostics } = misfitProbe()
+    const cellDiagnostic = diagnostics.find(
+      diagnostic =>
+        diagnostic.start !== undefined &&
+        diagnostic.file?.getLineAndCharacterOfPosition(diagnostic.start).line ===
+          layout.cellLines[0]
+    )
+    expect(cellDiagnostic).toBeDefined()
+    if (!cellDiagnostic) return
+    expect(ts.flattenDiagnosticMessageText(cellDiagnostic.messageText, '\n')).toBe(
+      `Type 'false' is not assignable to type 'true'.`
+    )
+  })
+
+  it('flattens a string-only diagnostic to a headline with no reasons', () => {
+    const [diagnostic] = diagnosticsOf(`const x: number = 'nope'\nexport {}`)
+    const reason = toMisfitReason(diagnostic, text => text)
+    expect(reason.headline).toBe(`Type 'string' is not assignable to type 'number'.`)
+    expect(reason.reasons).toEqual([])
   })
 })

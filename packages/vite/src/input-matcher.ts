@@ -12,7 +12,7 @@
 // There is no fallback list: every outcome is a named verdict (`MatchOutcome`).
 
 import { join, relative } from 'node:path'
-import { match } from 'ts-pattern'
+import { match, P } from 'ts-pattern'
 import type * as TS from 'typescript'
 
 export type MatcherSubject =
@@ -51,7 +51,7 @@ const firstContentSchema = (content: unknown): unknown => {
 
 const requestBodyRoot = (operation: Doc): unknown => {
   if (Array.isArray(operation.parameters)) {
-    const body = operation.parameters.find((p) => isRecord(p) && p.in === 'body')
+    const body = operation.parameters.find(p => isRecord(p) && p.in === 'body')
     if (isRecord(body) && isRecord(body.schema)) return body.schema // Swagger 2.0
   }
   if (isRecord(operation.requestBody)) return firstContentSchema(operation.requestBody.content) // OAS 3
@@ -76,7 +76,7 @@ const deref = (doc: Doc, schema: unknown, seen: Set<string> = new Set()): Doc | 
 const successResponseSchema = (operation: Doc): unknown => {
   if (!isRecord(operation.responses)) return undefined
   const code =
-    Object.keys(operation.responses).find((entry) => /^2\d\d$/.test(entry)) ??
+    Object.keys(operation.responses).find(entry => /^2\d\d$/.test(entry)) ??
     (isRecord(operation.responses.default) ? 'default' : undefined)
   if (code === undefined) return undefined
   const response = operation.responses[code]
@@ -179,6 +179,10 @@ export type ProbeLayout = {
   fieldTypeOffset: number
   importLines: number[]
   cellLines: number[]
+  /** One direct-assignment line per candidate. Its diagnostic (if any) carries
+   *  the WHY of a misfit as a structured message chain — the boolean cell line
+   *  stays the adjudicator, these lines are only ever read for explanation. */
+  explainLines: number[]
 }
 
 /**
@@ -235,6 +239,16 @@ export const renderProbe = (input: ProbeInput): ProbeLayout => {
     )
   })
 
+  // The boolean cell above reduces assignability to `false is not assignable to
+  // true` — correct for the verdict, useless as an explanation. A plain
+  // assignment makes the compiler elaborate the REAL reason chain ("types of
+  // property 'lens' are incompatible → …"), which `toMisfitReason` extracts.
+  const explainLines: number[] = []
+  candidates.forEach((_, index) => {
+    explainLines.push(lines.length)
+    lines.push(`const __e${index}: ${moduleTypeName}<__F> = __C${index};`)
+  })
+
   lines.push('export {}')
 
   const fieldTypeLineStart = lines
@@ -248,7 +262,8 @@ export const renderProbe = (input: ProbeInput): ProbeLayout => {
     segmentLines,
     fieldTypeOffset: fieldTypeLineStart + 'type '.length,
     importLines,
-    cellLines
+    cellLines,
+    explainLines
   }
 }
 
@@ -274,7 +289,7 @@ export const classify = (
   for (let line = layout.moduleTypeStartLine; line <= layout.moduleTypeEndLine; line++) {
     if (errorLines.has(line)) return { type: 'module-type-error' }
   }
-  const broken = layout.segmentLines.findIndex((line) => errorLines.has(line))
+  const broken = layout.segmentLines.findIndex(line => errorLines.has(line))
   if (broken !== -1) return { type: 'path-broken', segmentIndex: broken }
   const verdicts = layout.importLines.map((importLine, index): CandidateVerdict => {
     if (errorLines.has(importLine)) return 'unresolved'
@@ -283,7 +298,60 @@ export const classify = (
   return { type: 'verdicts', verdicts }
 }
 
+// --- Misfit reasons ---------------------------------------------------------------
+
+/**
+ * A misfit's WHY, as structured data (never a pre-rendered blob): the
+ * diagnostic's top message plus its nested elaboration chain, outermost first —
+ * the UI decides how to lay them out (headline, expected/received split,
+ * "why" list).
+ */
+export type MisfitReason = {
+  /** The TS diagnostic code of the failed assignment (e.g. 2322). */
+  code: number
+  /** The top-level message — `Type 'X' is not assignable to type 'Y'.` */
+  headline: string
+  /** The nested elaborations, depth-first: each step of the compiler's
+   *  reasoning down to the leaf cause. */
+  reasons: string[]
+}
+
+const flattenChain = (chain: TS.DiagnosticMessageChain, into: string[]): void => {
+  into.push(chain.messageText)
+  chain.next?.forEach(next => flattenChain(next, into))
+}
+
+/**
+ * Extract a `MisfitReason` from an explain-line diagnostic. The message chain
+ * is walked as DATA (no `flattenDiagnosticMessageText` blob), and every
+ * message is passed through `sanitize` so probe-internal names (`__C0`,
+ * `__F`) never leak into user-facing text.
+ */
+export const toMisfitReason = (
+  diagnostic: TS.Diagnostic,
+  sanitize: (text: string) => string
+): MisfitReason =>
+  match(diagnostic.messageText)
+    .returnType<MisfitReason>()
+    .with(P.string, text => ({
+      code: diagnostic.code,
+      headline: sanitize(text),
+      reasons: []
+    }))
+    .otherwise(chain => {
+      const reasons: string[] = []
+      chain.next?.forEach(next => flattenChain(next, reasons))
+      return {
+        code: chain.code,
+        headline: sanitize(chain.messageText),
+        reasons: reasons.map(sanitize)
+      }
+    })
+
 // --- The match ------------------------------------------------------------------
+
+/** A rejected candidate plus (when the compiler elaborated one) its reason. */
+export type MisfitCandidate = MatcherCandidate & { reason?: MisfitReason }
 
 /**
  * Every match resolves to a NAMED outcome — there is no fallback candidate
@@ -298,7 +366,7 @@ export type MatchOutcome =
       /** The resolved field type, printed by the project's compiler. */
       fieldType: string
       fits: MatcherCandidate[]
-      misfits: MatcherCandidate[]
+      misfits: MisfitCandidate[]
       unresolved: MatcherCandidate[]
     }
   | { type: 'path-broken'; modelName: string; brokenAt: { index: number; segment: string } }
@@ -350,7 +418,8 @@ const toWire = ({ exportName, exportPath }: MatcherCandidateSource): MatcherCand
  * (and where does it break), does each candidate resolve, does each fit.
  */
 export const matchInputs = (args: MatchArgs): MatchOutcome => {
-  const { skmtcRoot, viteRoot, basePath, schema, subject, schemaPath, candidates, moduleType } = args
+  const { skmtcRoot, viteRoot, basePath, schema, subject, schemaPath, candidates, moduleType } =
+    args
   const { modelImports, service } = args
   if (!isRecord(schema)) {
     return { type: 'unavailable', reason: 'The schema document could not be read.' }
@@ -408,16 +477,19 @@ export const matchInputs = (args: MatchArgs): MatchOutcome => {
     moduleTypeSource: moduleTypePart.source,
     moduleTypeName: moduleTypePart.name,
     segments,
-    candidates: candidates.map((candidate) => ({
+    candidates: candidates.map(candidate => ({
       exportName: candidate.exportName,
       importPath: stripExt(toRelativeSpecifier(viteRoot, join(skmtcRoot, candidate.filePath)))
     }))
   })
 
   const errorLines = new Set<number>()
+  const diagnosticAtLine = new Map<number, TS.Diagnostic>()
   for (const diagnostic of service.check(layout.text)) {
     if (diagnostic.start === undefined || !diagnostic.file) continue
-    errorLines.add(diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start).line)
+    const line = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start).line
+    errorLines.add(line)
+    if (!diagnosticAtLine.has(line)) diagnosticAtLine.set(line, diagnostic)
   }
 
   return match(classify(errorLines, layout))
@@ -444,15 +516,32 @@ export const matchInputs = (args: MatchArgs): MatchOutcome => {
         brokenAt: { index: segmentIndex, segment: segments[segmentIndex] }
       })
     )
-    .with(
-      { type: 'verdicts' },
-      ({ verdicts }): MatchOutcome => ({
+    .with({ type: 'verdicts' }, ({ verdicts }): MatchOutcome => {
+      const fieldType = service.fieldTypeAt(layout.fieldTypeOffset)
+      // Probe-internal names must not leak into user-facing text: `__C<n>` is
+      // the candidate's import alias, `__F` the field-type alias (it appears
+      // inside the printed target, e.g. `InputModule<__F>`).
+      const sanitize = (text: string): string =>
+        text
+          .replace(/__C(\d+)/g, (whole, digits: string) => {
+            const name = candidates[Number(digits)]?.exportName
+            return name ?? whole
+          })
+          .replace(/\b__F\b/g, fieldType === '' ? 'the field type' : fieldType)
+      const misfitAt = (index: number): MisfitCandidate => {
+        const diagnostic = diagnosticAtLine.get(layout.explainLines[index])
+        const wire = toWire(candidates[index])
+        return diagnostic ? { ...wire, reason: toMisfitReason(diagnostic, sanitize) } : wire
+      }
+      return {
         type: 'fits',
-        fieldType: service.fieldTypeAt(layout.fieldTypeOffset),
+        fieldType,
         fits: candidates.filter((_, index) => verdicts[index] === 'fit').map(toWire),
-        misfits: candidates.filter((_, index) => verdicts[index] === 'misfit').map(toWire),
+        misfits: verdicts.flatMap((verdict, index) =>
+          verdict === 'misfit' ? [misfitAt(index)] : []
+        ),
         unresolved: candidates.filter((_, index) => verdicts[index] === 'unresolved').map(toWire)
-      })
-    )
+      }
+    })
     .exhaustive()
 }
