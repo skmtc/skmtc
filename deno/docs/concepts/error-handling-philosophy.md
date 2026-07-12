@@ -168,7 +168,7 @@ between two different addressing schemes — tree positions (held by trails) and
 becomes eligible for cascade pruning; every other error stays in the issue log
 but doesn't fan out.
 
-See [the-stack-trail.md](the-stack-trail.md#tostackref-the-address-bridge) for
+See [the StackTrail reference](../reference/api/stack-trail.md) for
 the full address-bridge story.
 
 ### 3. `removeItem` reads only the first three trail segments
@@ -436,7 +436,7 @@ rather than a recoverable diagnostic.
 - [The three phases](the-three-phases.md) — where Parse-time errors get isolated
 - [Refs and resolution](refs-and-resolution.md) — how the ref-error cascade
   works
-- [The StackTrail](the-stack-trail.md) — the mutable position-stack that
+- [StackTrail reference](../reference/api/stack-trail.md) — the mutable position-stack that
   addresses, locates, and bridges to `$ref` strings
 - [The manifest](the-manifest.md) — the structured run record `parseIssues`
   lives in, plus the `results` tree and `previews` / `mappings`

@@ -389,7 +389,7 @@ its schema" tooling, build on this subsystem** (`Sidecar`,
 
 Full treatment — the four-stage mechanism, the Sidecar v2 format,
 the worker-side parser omission, the `doctor` checks:
-[`concepts/attribution-and-gen-maps.md`](../../concepts/attribution-and-gen-maps.md).
+[`attribution-and-gen-maps.md`](attribution-and-gen-maps.md).
 
 ## 10. The package graph and dependencies
 
@@ -536,10 +536,10 @@ run a command*, or *why a run is broken*, hand off.
 [`the-three-phases.md`](../../concepts/the-three-phases.md) ·
 [`the-worker-runtime.md`](../../concepts/the-worker-runtime.md) ·
 [`the-manifest.md`](../../concepts/the-manifest.md) ·
-[`the-stack-trail.md`](../../concepts/the-stack-trail.md) ·
+[`stack-trail.md` (reference)](../../reference/api/stack-trail.md) ·
 [`cross-generator-coordination.md`](../../concepts/cross-generator-coordination.md) ·
 [`generators-as-packages.md`](../../concepts/generators-as-packages.md) ·
-[`attribution-and-gen-maps.md`](../../concepts/attribution-and-gen-maps.md)
+[`attribution-and-gen-maps.md`](attribution-and-gen-maps.md)
 
 **Explanation** —
 [`design-philosophy.md`](../../explanation/design-philosophy.md) ·

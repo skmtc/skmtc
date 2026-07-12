@@ -205,7 +205,7 @@ For the full list of `type` values, see
 
 `location` is the StackTrail's `toString()` output — a
 colon-separated path to where the issue originated. See
-[the-stack-trail.md](the-stack-trail.md#tostring--colons-with-3a-escape).
+[the StackTrail reference](../reference/api/stack-trail.md).
 
 This array is the **exit-code source of truth**: the CLI returns
 exit 1 if `parseIssues.some(i => i.level === 'error')` is true,
@@ -350,7 +350,7 @@ If you need end-to-end CLI wall-time, measure it externally.
   "parse fails open, manifest is canonical"
 - [How generators produce output](how-generators-produce-output.md)
   — `GenerateContext.toArtifacts` contributes to `results`
-- [The StackTrail](the-stack-trail.md) — how `results` keys and
+- [StackTrail reference](../reference/api/stack-trail.md) — how `results` keys and
   `parseIssue.location` strings are produced
 - [Files, deduplication, and integrity](files-and-dedup.md) — how
   the file map (which becomes `files`) is built during Generate

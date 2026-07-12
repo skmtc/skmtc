@@ -280,7 +280,7 @@ Gen-maps (provenance) configuration. Two fields:
   `".maps"`. The `skmtc init` template gitignores the `.maps` subtree
   by default, since sidecars are build output, not source.
 
-See [attribution and gen-maps concept](../../concepts/attribution-and-gen-maps.md).
+The sidecar and generation-map formats are engine-internal; the keys above are the full user-facing surface.
 
 ### `settings.inputDirs` (optional)
 

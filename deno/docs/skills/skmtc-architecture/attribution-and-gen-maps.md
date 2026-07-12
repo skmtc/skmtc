@@ -14,9 +14,9 @@
 This page explains what the subsystem produces, why it exists, how
 the four stages of the mechanism work, and the format of the
 artifacts. For the engine pipeline it sits inside, see
-[the-three-phases.md](the-three-phases.md). For the run record it
+[the-three-phases.md](../../concepts/the-three-phases.md). For the run record it
 runs *alongside* (but is not part of), see
-[the-manifest.md](the-manifest.md).
+[the-manifest.md](../../concepts/the-manifest.md).
 
 ## The one-line definition
 
@@ -313,7 +313,7 @@ type Attribution = {
 ```
 
 `generatorId` and `variant` come from parsing the producer's
-`generatorKey` (see [generators-as-packages.md](generators-as-packages.md)
+`generatorKey` (see [generators-as-packages.md](../../concepts/generators-as-packages.md)
 for the key shapes). `schemaPointer` is resolved in priority order:
 
 1. The producer's **own position** — `stackTrail.toSchemaPointer()`
@@ -365,7 +365,7 @@ survives structured clone. The wire type `SerializableAttribution`
 (`worker/types.ts`) carries only plain data; `buildAttributionState`
 (`worker/mod.ts:35`) reconstitutes the state worker-side, omitting
 the parser by design and rebuilding `generatorMeta` from a plain
-`Record`. See [the-worker-runtime.md](the-worker-runtime.md) for the
+`Record`. See [the-worker-runtime.md](../../concepts/the-worker-runtime.md) for the
 boundary in general.
 
 A host-side post-pass that re-runs `postPass` with the real
@@ -420,7 +420,7 @@ which you opt into.
 
 There is no cross-run state — like every SKMTC run, an
 attribution-enabled run is from cold (see
-[the-worker-runtime.md](the-worker-runtime.md)).
+[the-worker-runtime.md](../../concepts/the-worker-runtime.md)).
 
 ## Public API surface
 
@@ -483,7 +483,7 @@ channels exist, by design:
 
 Use `previews` / `mappings` for "list what was generated and roughly
 where it came from"; use gen-maps for "trace this exact span of
-code." See [the-manifest.md](the-manifest.md#previews-and-mappings--for-tooling).
+code." See [the-manifest.md](../../concepts/the-manifest.md#previews-and-mappings--for-tooling).
 
 ## Common questions
 
@@ -534,17 +534,17 @@ the map.
 
 ## Further reading
 
-- [The three phases](the-three-phases.md) — the Parse / Generate /
+- [The three phases](../../concepts/the-three-phases.md) — the Parse / Generate /
   Render pipeline the post-pass sits between
-- [The worker runtime](the-worker-runtime.md) — the structured-clone
+- [The worker runtime](../../concepts/the-worker-runtime.md) — the structured-clone
   boundary that forces the parser-omitted worker-side post-pass
-- [The manifest](the-manifest.md) — the run record, and the
+- [The manifest](../../concepts/the-manifest.md) — the run record, and the
   lighter-weight `previews` / `mappings` provenance channel
-- [Generators as packages](generators-as-packages.md) — `generatorKey`
+- [Generators as packages](../../concepts/generators-as-packages.md) — `generatorKey`
   shapes, which `attribute()` parses for `generatorId` / `variant`
-- [The StackTrail](the-stack-trail.md) — the parse-phase position
+- [The StackTrail](../../reference/api/stack-trail.md) — the parse-phase position
   stack behind Stage 1 location capture
-- [`skmtc-architecture` skill §9](../skills/skmtc-architecture/SKILL.md)
+- [`skmtc-architecture` skill §9](SKILL.md)
   — the compressed mental model for infrastructure builders
 - Source: `core/anchors/` (the subsystem), `core/dsl/SnippetBase.ts`
   (instrumentation), `core/context/CoreContext.ts` (post-pass
