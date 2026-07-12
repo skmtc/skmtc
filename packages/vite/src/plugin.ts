@@ -9,7 +9,6 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { join, resolve } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import * as v from 'valibot'
 import type { Connect, Plugin } from 'vite'
 import { runDescribe, runGenerate, type CliResult } from './skmtc-cli.ts'
 import {
@@ -21,6 +20,7 @@ import {
   readClientJson,
   writeClientJson
 } from './client-json.ts'
+import { parseRequest } from './parse-request.ts'
 import { SourceState } from './source-state.ts'
 import { moduleTypeFromDescribe } from './descriptors.ts'
 import {
@@ -359,7 +359,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       const editHandler: Connect.NextHandleFunction = async (request, response) => {
         let edit
         try {
-          edit = v.parse(enrichmentEditSchema, await readJsonBody(request))
+          edit = parseRequest(enrichmentEditSchema, await readJsonBody(request))
         } catch (error) {
           respondJson(response, 400, { error: `invalid edit: ${messageOf(error)}` })
           return
@@ -389,7 +389,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       const inputMatchesHandler: Connect.NextHandleFunction = async (request, response) => {
         let body
         try {
-          body = v.parse(inputMatchesSchema, await readJsonBody(request))
+          body = parseRequest(inputMatchesSchema, await readJsonBody(request))
         } catch (error) {
           respondJson(response, 400, { error: `invalid request: ${messageOf(error)}` })
           return
@@ -529,7 +529,7 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       const filtersWriteHandler: Connect.NextHandleFunction = async (request, response) => {
         let filters
         try {
-          filters = v.parse(filtersWriteSchema, await readJsonBody(request))
+          filters = parseRequest(filtersWriteSchema, await readJsonBody(request))
         } catch (error) {
           respondJson(response, 400, { error: `invalid filters: ${messageOf(error)}` })
           return

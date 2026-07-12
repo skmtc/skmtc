@@ -342,7 +342,7 @@ export const toMisfitReason = (
       const reasons: string[] = []
       chain.next?.forEach(next => flattenChain(next, reasons))
       return {
-        code: chain.code,
+        code: diagnostic.code,
         headline: sanitize(chain.messageText),
         reasons: reasons.map(sanitize)
       }
@@ -484,12 +484,19 @@ export const matchInputs = (args: MatchArgs): MatchOutcome => {
   })
 
   const errorLines = new Set<number>()
+  // One diagnostic kept per line, for the explain-line reason extraction.
+  // When a line carries several, prefer the failed assignment (TS2322) — it
+  // holds the elaboration chain; whatever else shares the line does not.
+  const ASSIGNMENT_ERROR = 2322
   const diagnosticAtLine = new Map<number, TS.Diagnostic>()
   for (const diagnostic of service.check(layout.text)) {
     if (diagnostic.start === undefined || !diagnostic.file) continue
     const line = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start).line
     errorLines.add(line)
-    if (!diagnosticAtLine.has(line)) diagnosticAtLine.set(line, diagnostic)
+    const kept = diagnosticAtLine.get(line)
+    if (!kept || (kept.code !== ASSIGNMENT_ERROR && diagnostic.code === ASSIGNMENT_ERROR)) {
+      diagnosticAtLine.set(line, diagnostic)
+    }
   }
 
   return match(classify(errorLines, layout))
