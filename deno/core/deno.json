@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/core",
-  "version": "0.26.0",
+  "version": "0.27.0",
   "license": "Apache-2.0",
   "imports": {
     "@/": "./",
@@ -68,9 +68,14 @@
     "noImplicitAny": true
   },
   "test": {
-    "exclude": [".scripts/build-node.ts"]
+    "exclude": [
+      ".scripts/build-node.ts"
+    ]
   },
   "publish": {
-    "exclude": ["anchors/spike-reanchor.ts", "anchors/spike-descend.ts"]
+    "exclude": [
+      "anchors/spike-reanchor.ts",
+      "anchors/spike-descend.ts"
+    ]
   }
 }
