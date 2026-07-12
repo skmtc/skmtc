@@ -263,6 +263,8 @@ skmtc dev my-project
 ```
 
 Edit, save, watch output update. Verify with `cat src/generated/pets/getPetById.curl.ts`.
+Leave `dev` running whenever you're editing a generator — the
+edit-save-read loop is the normal way to work.
 
 ## What just happened
 

@@ -251,6 +251,10 @@ skmtc dev my-project
 Watch mode. Re-runs generation on each source change. Faster
 than `skmtc bundle && skmtc generate` for iteration.
 
+Leave it running for the rest of your authoring work — every save
+regenerates. This loop is how generator authoring is meant to feel:
+edit TypeScript, save, read the new output.
+
 Make a change to `SchemaMeta.toString()`, save, and watch the
 output update. Verify via:
 
