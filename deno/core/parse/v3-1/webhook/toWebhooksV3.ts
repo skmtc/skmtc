@@ -100,27 +100,29 @@ export const toWebhookV3 = ({
     toOptionalServersV3({ servers, stackTrail: st, context })
   )
 
-  return context.withStackTrail(stackTrail, () =>
-    new OasWebhook(
-      {
-        pathItem,
-        name,
-        method,
-        operationId,
-        summary,
-        tags,
-        description,
-        parameters: parsedParameters,
-        requestBody: parsedRequestBody,
-        responses: parsedResponses,
-        deprecated,
-        security: parsedSecurity,
-        externalDocs: parsedExternalDocs,
-        servers: parsedServers,
-        extensionFields
-      },
-      context
-    )
+  return context.withStackTrail(
+    stackTrail,
+    () =>
+      new OasWebhook(
+        {
+          pathItem,
+          name,
+          method,
+          operationId,
+          summary,
+          tags,
+          description,
+          parameters: parsedParameters,
+          requestBody: parsedRequestBody,
+          responses: parsedResponses,
+          deprecated,
+          security: parsedSecurity,
+          externalDocs: parsedExternalDocs,
+          servers: parsedServers,
+          extensionFields
+        },
+        context
+      )
   )
 }
 
@@ -137,11 +139,7 @@ export type ToWebhooksV3Args = {
  * The stack trail nests `webhooks` → `<name>` → `<method>` so
  * `OasDocument.removeItem` can locate a webhook by name.
  */
-export const toWebhooksV3 = ({
-  webhooks,
-  stackTrail,
-  context
-}: ToWebhooksV3Args): OasWebhook[] => {
+export const toWebhooksV3 = ({ webhooks, stackTrail, context }: ToWebhooksV3Args): OasWebhook[] => {
   if (!webhooks) {
     return []
   }

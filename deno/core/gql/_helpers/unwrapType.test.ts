@@ -1,10 +1,5 @@
 import { assertEquals } from '@std/assert'
-import {
-  GraphQLString,
-  GraphQLNonNull,
-  GraphQLList,
-  type GraphQLType
-} from 'graphql'
+import { GraphQLString, GraphQLNonNull, GraphQLList, type GraphQLType } from 'graphql'
 import { unwrapType } from '@/gql/_helpers/unwrapType.ts'
 
 Deno.test('unwrapType - bare nullable scalar', () => {

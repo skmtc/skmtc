@@ -84,34 +84,31 @@ Deno.test('toRootPath - the nearest .skmtc wins when a nested project shadows th
   }
 })
 
-Deno.test(
-  'toRootPath - does NOT walk up past the home-directory boundary (current limitation)',
-  async () => {
-    // Characterization test, not an endorsement: the walk-up loop only runs while
-    // inside $HOME, so a repo checked out OUTSIDE $HOME (common in CI, containers,
-    // /opt) never finds an ancestor `.skmtc` — it assumes one in cwd. This pins
-    // current behavior; if monorepo-outside-$HOME is to be supported, relax the
-    // boundary in `to-root-path.ts` and update this test deliberately.
-    const home = resolve(homedir())
-    const repoRoot = await Deno.realPath(
-      await Deno.makeTempDir({ prefix: 'skmtc-root-outside-home-' })
-    )
-    if (resolve(repoRoot).startsWith(home)) {
-      // The system temp dir happens to live under $HOME here, so the boundary
-      // can't be demonstrated — skip rather than assert a falsehood.
-      await Deno.remove(repoRoot, { recursive: true })
-      return
-    }
-    try {
-      await ensureDir(join(repoRoot, '.skmtc'))
-      const appDir = join(repoRoot, 'apps', 'x')
-      await ensureDir(appDir)
-      await withCwd(appDir, () => {
-        // Falls through to cwd/.skmtc rather than resolving the ancestor project.
-        assertEquals(resolve(toRootPath()), join(appDir, '.skmtc'))
-      })
-    } finally {
-      await Deno.remove(repoRoot, { recursive: true })
-    }
+Deno.test('toRootPath - does NOT walk up past the home-directory boundary (current limitation)', async () => {
+  // Characterization test, not an endorsement: the walk-up loop only runs while
+  // inside $HOME, so a repo checked out OUTSIDE $HOME (common in CI, containers,
+  // /opt) never finds an ancestor `.skmtc` — it assumes one in cwd. This pins
+  // current behavior; if monorepo-outside-$HOME is to be supported, relax the
+  // boundary in `to-root-path.ts` and update this test deliberately.
+  const home = resolve(homedir())
+  const repoRoot = await Deno.realPath(
+    await Deno.makeTempDir({ prefix: 'skmtc-root-outside-home-' })
+  )
+  if (resolve(repoRoot).startsWith(home)) {
+    // The system temp dir happens to live under $HOME here, so the boundary
+    // can't be demonstrated — skip rather than assert a falsehood.
+    await Deno.remove(repoRoot, { recursive: true })
+    return
   }
-)
+  try {
+    await ensureDir(join(repoRoot, '.skmtc'))
+    const appDir = join(repoRoot, 'apps', 'x')
+    await ensureDir(appDir)
+    await withCwd(appDir, () => {
+      // Falls through to cwd/.skmtc rather than resolving the ancestor project.
+      assertEquals(resolve(toRootPath()), join(appDir, '.skmtc'))
+    })
+  } finally {
+    await Deno.remove(repoRoot, { recursive: true })
+  }
+})

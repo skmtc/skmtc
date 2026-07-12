@@ -24,10 +24,7 @@ const formatIssue = (issue: v.BaseIssue<unknown>): string => {
   return lines.join('\n')
 }
 
-const formatMessage = (
-  context: string,
-  issues: ReadonlyArray<v.BaseIssue<unknown>>
-): string => {
+const formatMessage = (context: string, issues: ReadonlyArray<v.BaseIssue<unknown>>): string => {
   const count = issues.length
   const header = `${context}: validation failed (${count} issue${count === 1 ? '' : 's'})`
   const body = issues.map(formatIssue).join('\n')

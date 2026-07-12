@@ -57,9 +57,8 @@ export const printAgentContext = (ctx: AgentContext, { format }: PrintOptions): 
       console.log(`Commands (${ctx.commands.length}):`)
       for (const cmd of ctx.commands) {
         const argList = cmd.args.length > 0 ? ' ' + cmd.args.join(' ') : ''
-        const flagList = cmd.flags.length > 0
-          ? '   [' + cmd.flags.map(f => f.flag).join(' | ') + ']'
-          : ''
+        const flagList =
+          cmd.flags.length > 0 ? '   [' + cmd.flags.map(f => f.flag).join(' | ') + ']' : ''
         console.log(`  skmtc ${cmd.name}${argList}${flagList}`)
         console.log(`      ${cmd.description}  (agent-mode: ${cmd.agentMode})`)
       }

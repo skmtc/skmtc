@@ -54,10 +54,7 @@ Deno.test('same-package imports are suppressed (Kotlin needs no import for them)
     KtImport.fromConcise('@/com/example/models/Money.generated.kt', ['Money'])
   ])
 
-  assertEquals(
-    file.toString(),
-    'package com.example.api\n\nimport com.example.models.Money\n'
-  )
+  assertEquals(file.toString(), 'package com.example.api\n\nimport com.example.models.Money\n')
 })
 
 Deno.test('the Track 2 User-DTO worked example renders byte-for-byte (note 19 snapshot)', () => {
@@ -76,9 +73,7 @@ Deno.test('the Track 2 User-DTO worked example renders byte-for-byte (note 19 sn
 
   const file = new KtFile({ path: '@/com/example/api/User.generated.kt', settings: undefined })
 
-  file.addImports([
-    KtImport.fromConcise('kotlinx.serialization', ['Serializable', 'SerialName'])
-  ])
+  file.addImports([KtImport.fromConcise('kotlinx.serialization', ['Serializable', 'SerialName'])])
 
   file.definitions.set(
     'User',

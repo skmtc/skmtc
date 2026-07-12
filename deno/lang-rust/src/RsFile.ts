@@ -50,13 +50,12 @@ export class RsFile extends CodeFileBase {
     throw new Error('RsFile does not support re-exports yet (spike).')
   }
 
-  override findDefinitions(
-    query?: { name?: string; type?: RsEntityType }
-  ): DefinitionBase[] | undefined {
-    return matchDefinitions(
-      [...this.definitions.values()],
-      query,
-      identifier => (identifier instanceof RsIdentifier ? identifier.type : undefined)
+  override findDefinitions(query?: {
+    name?: string
+    type?: RsEntityType
+  }): DefinitionBase[] | undefined {
+    return matchDefinitions([...this.definitions.values()], query, identifier =>
+      identifier instanceof RsIdentifier ? identifier.type : undefined
     )
   }
 

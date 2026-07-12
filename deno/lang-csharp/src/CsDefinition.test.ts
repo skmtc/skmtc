@@ -4,7 +4,13 @@ import { IdentifierBase } from '@skmtc/core'
 import { CsAttribute } from './CsAttribute.ts'
 import { CsDefinition } from './CsDefinition.ts'
 import { CsPropertyList } from './CsPropertyList.ts'
-import { createAbstractRecord, createClass, createEnum, createInterface, createRecord } from './createIdentifier.ts'
+import {
+  createAbstractRecord,
+  createClass,
+  createEnum,
+  createInterface,
+  createRecord
+} from './createIdentifier.ts'
 
 // Construction only stores `context`; `toString()` never reads it (test-only cast).
 const context = {} as unknown as GenerateContextType
@@ -42,10 +48,7 @@ Deno.test('enum shell renders a brace body', () => {
     value: '    Active,\n\n    Archived'
   })
 
-  assertEquals(
-    definition.toString(),
-    'public enum Status\n{\n    Active,\n\n    Archived\n}'
-  )
+  assertEquals(definition.toString(), 'public enum Status\n{\n    Active,\n\n    Archived\n}')
 })
 
 Deno.test('BOTH visibility states render a keyword (the fifth exported behavior)', () => {
@@ -77,9 +80,7 @@ Deno.test('noExport restricts the same way as exported: false', () => {
 
 Deno.test('class-level attributes ride the CsAttributed protocol, one per line above the shell', () => {
   class AttributedValue {
-    attributes = [
-      new CsAttribute('JsonConverter', ['typeof(JsonStringEnumConverter)'])
-    ]
+    attributes = [new CsAttribute('JsonConverter', ['typeof(JsonStringEnumConverter)'])]
 
     toString(): string {
       return '    Active'
@@ -94,8 +95,7 @@ Deno.test('class-level attributes ride the CsAttributed protocol, one per line a
 
   assertEquals(
     definition.toString(),
-    '[JsonConverter(typeof(JsonStringEnumConverter))]\n' +
-      'public enum Status\n{\n    Active\n}'
+    '[JsonConverter(typeof(JsonStringEnumConverter))]\n' + 'public enum Status\n{\n    Active\n}'
   )
 })
 

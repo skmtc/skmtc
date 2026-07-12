@@ -6,10 +6,11 @@ import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Text } from 'ink'
 
-const createMockSkmtcRoot = (): SkmtcRoot => ({
-  projects: [],
-  manager: {}
-}) as unknown as SkmtcRoot
+const createMockSkmtcRoot = (): SkmtcRoot =>
+  ({
+    projects: [],
+    manager: {}
+  }) as unknown as SkmtcRoot
 
 const createMockTask = (
   taskKey: 'project-name' | 'generators' | 'base-path' | 'create-project' | 'generator-type-task',

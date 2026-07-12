@@ -73,9 +73,7 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
     runClones()
       .then(results => {
         const summary =
-          results.length > 0
-            ? results.map(r => `${r.moduleName}@${r.version}`).join(', ')
-            : ''
+          results.length > 0 ? results.map(r => `${r.moduleName}@${r.version}`).join(', ') : ''
         dispatchMessage({
           success:
             results.length === 0

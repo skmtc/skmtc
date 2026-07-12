@@ -41,7 +41,9 @@ export type EnrichmentValidationIssue = {
 const isRecord = (input: unknown): input is Record<string, unknown> =>
   typeof input === 'object' && input !== null && !Array.isArray(input)
 
-const firstKey = (path: ReadonlyArray<{ readonly key?: unknown }> | undefined): string | undefined =>
+const firstKey = (
+  path: ReadonlyArray<{ readonly key?: unknown }> | undefined
+): string | undefined =>
   path && path.length > 0 && path[0].key !== undefined ? String(path[0].key) : undefined
 
 const fieldPath = (
@@ -73,7 +75,10 @@ type SubjectLeaf = {
  * skipped; malformed nodes are skipped (they surface elsewhere, never here
  * as a value error).
  */
-const collectSubjectLeaves = (type: EnrichmentSource['type'], slot: Record<string, unknown>): SubjectLeaf[] => {
+const collectSubjectLeaves = (
+  type: EnrichmentSource['type'],
+  slot: Record<string, unknown>
+): SubjectLeaf[] => {
   const leaves: SubjectLeaf[] = []
 
   for (const [subjectKey, subjectValue] of Object.entries(slot)) {
@@ -224,7 +229,9 @@ export const validateConfig = (
 
     // Run-constant scopes — validated once per generator (each generator's
     // umbrella declares its own `generator` / `stack` member shape).
-    issues.push(...parseScope(schema, 'generator', slot[GENERATOR_ENRICHMENT_KEY], { generator: generatorId }))
+    issues.push(
+      ...parseScope(schema, 'generator', slot[GENERATOR_ENRICHMENT_KEY], { generator: generatorId })
+    )
     issues.push(...parseScope(schema, 'stack', stack, { generator: generatorId }))
 
     // Subject scope — one parse per (subject, variant) leaf.

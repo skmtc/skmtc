@@ -90,8 +90,7 @@ Deno.test('generateWithServer preserves a query string (e.g. ?preview=true) on t
 })
 
 Deno.test('generateWithServer throws on a non-2xx response', async () => {
-  globalThis.fetch = (): Promise<Response> =>
-    Promise.resolve(new Response('boom', { status: 404 }))
+  globalThis.fetch = (): Promise<Response> => Promise.resolve(new Response('boom', { status: 404 }))
   try {
     await assertRejects(
       () =>

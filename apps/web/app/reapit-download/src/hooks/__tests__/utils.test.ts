@@ -7,19 +7,20 @@ const stubError = {
     data: {
       errors: [
         { field: 'clientId', message: 'The value provided is in an invalid format' },
-        { field: 'approvedBy', message: 'The value provided is in an invalid format' },
+        { field: 'approvedBy', message: 'The value provided is in an invalid format' }
       ],
       statusCode: 422,
       dateTime: '2022-02-11T14:58:22.5343978Z',
-      description: 'One or more validation failures have occurred. Please refer to Errors list for details',
-    },
-  },
+      description:
+        'One or more validation failures have occurred. Please refer to Errors list for details'
+    }
+  }
 } as AxiosError<any>
 
 describe('handleReapitError', () => {
   it('should handle an error correctly', () => {
     expect(handleReapitError(stubError)).toEqual(
-      `${stubError.response?.data.description} "${stubError.response?.data.errors[0].field}: ${stubError.response?.data.errors[0].message}", "${stubError.response?.data.errors[1].field}: ${stubError.response?.data.errors[1].message}"`,
+      `${stubError.response?.data.description} "${stubError.response?.data.errors[0].field}: ${stubError.response?.data.errors[0].message}", "${stubError.response?.data.errors[1].field}: ${stubError.response?.data.errors[1].message}"`
     )
   })
 
@@ -29,7 +30,7 @@ describe('handleReapitError', () => {
 
   it('should handle an empty error', () => {
     expect(handleReapitError({} as AxiosError<any>)).toEqual(
-      'An unknown error has occurred, please refresh the page and try again. ',
+      'An unknown error has occurred, please refresh the page and try again. '
     )
   })
 })
@@ -48,10 +49,14 @@ describe('objectToQuery', () => {
     const object = {
       appId: ['MOCK_ID1', 'MOCK_ID2'],
       someOtherKey: 'FOO',
-      aNumericKey: 2,
+      aNumericKey: 2
     }
     const result = objectToQuery(object)
 
-    expect(result).toEqual({ appId: 'MOCK_ID1&appId=MOCK_ID2', someOtherKey: 'FOO', aNumericKey: '2' })
+    expect(result).toEqual({
+      appId: 'MOCK_ID1&appId=MOCK_ID2',
+      someOtherKey: 'FOO',
+      aNumericKey: '2'
+    })
   })
 })

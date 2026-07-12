@@ -3,14 +3,15 @@ title: Quick Start
 description: Generate your first TypeScript types from OpenAPI in 5 minutes
 ---
 
-import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs'
+import { Steps, Step } from 'fumadocs-ui/components/steps'
 
 Get up and running with Skmtc in just 5 minutes. This guide will walk you through generating TypeScript types from an OpenAPI specification.
 
 ## What you'll learn
 
 In this quick start, you'll:
+
 - Install Skmtc
 - Generate TypeScript types from an OpenAPI spec
 - Understand the generated output
@@ -29,28 +30,10 @@ In this quick start, you'll:
 ### Install Skmtc
 
 <Tabs items={['npm', 'yarn', 'pnpm', 'deno']}>
-<Tab value="npm">
-```bash
-npm install -g @skmtc/cli
-# Or use directly with npx
-npx skmtc
-```
-</Tab>
-<Tab value="yarn">
-```bash
-yarn global add @skmtc/cli
-```
-</Tab>
-<Tab value="pnpm">
-```bash
-pnpm add -g @skmtc/cli
-```
-</Tab>
-<Tab value="deno">
-```bash
-deno install -A -g jsr:@skmtc/cli
-```
-</Tab>
+  <Tab value="npm">```bash npm install -g @skmtc/cli # Or use directly with npx npx skmtc ```</Tab>
+  <Tab value="yarn">```bash yarn global add @skmtc/cli ```</Tab>
+  <Tab value="pnpm">```bash pnpm add -g @skmtc/cli ```</Tab>
+  <Tab value="deno">```bash deno install -A -g jsr:@skmtc/cli ```</Tab>
 </Tabs>
 
 </Step>
@@ -66,6 +49,7 @@ skmtc init
 ```
 
 This creates a `.skmtc` folder with your configuration. When prompted:
+
 - Choose "TypeScript" as your first generator
 - Select your output directory (default: `./generated`)
 - Choose your formatting preferences
@@ -109,18 +93,18 @@ Check your `generated` folder (or your configured output directory):
 ```typescript
 // generated/types/Pet.ts
 export interface Pet {
-  id?: number;
-  name: string;
-  category?: Category;
-  photoUrls: string[];
-  tags?: Tag[];
-  status?: 'available' | 'pending' | 'sold';
+  id?: number
+  name: string
+  category?: Category
+  photoUrls: string[]
+  tags?: Tag[]
+  status?: 'available' | 'pending' | 'sold'
 }
 
 // generated/types/Category.ts
 export interface Category {
-  id?: number;
-  name?: string;
+  id?: number
+  name?: string
 }
 ```
 
@@ -137,6 +121,7 @@ Skmtc processed your OpenAPI specification through three phases:
 3. **Render**: Formatted and wrote the files with proper styling
 
 The generated types are:
+
 - ✅ **Type-safe** - Full TypeScript support with proper optionals
 - ✅ **Clean** - Formatted with Prettier, following your conventions
 - ✅ **Modular** - Each type in its own file for better organization
@@ -147,13 +132,13 @@ The generated types are:
 Import and use the types in your application:
 
 ```typescript
-import { Pet } from './generated/types/Pet';
-import { Category } from './generated/types/Category';
+import { Pet } from './generated/types/Pet'
+import { Category } from './generated/types/Category'
 
 // Type-safe API response handling
 async function fetchPet(id: number): Promise<Pet> {
-  const response = await fetch(`/api/pets/${id}`);
-  return response.json() as Pet;
+  const response = await fetch(`/api/pets/${id}`)
+  return response.json() as Pet
 }
 
 // Type-safe data creation
@@ -161,20 +146,23 @@ const newPet: Pet = {
   name: 'Fluffy',
   photoUrls: ['https://example.com/fluffy.jpg'],
   status: 'available'
-};
+}
 ```
 
 ## Common questions
 
 ### Can I regenerate when my API changes?
+
 Yes! Run `skmtc generate` again anytime. Skmtc will regenerate all files. It will also
 remove any outdated files from previous generation that are not produced during latest
 generation.
 
 ### Does this work with existing projects?
+
 Absolutely. Skmtc generates standalone code that integrates with any TypeScript project.
 
 ### Can I customize the output?
+
 Yes, through configuration and custom generators. See our [configuration guide](/docs/using-generators/configuration).
 
 ## Need help?

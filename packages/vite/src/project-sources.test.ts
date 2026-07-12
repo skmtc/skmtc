@@ -25,14 +25,12 @@ describe('project-sources', () => {
 
   it('collects .ts/.tsx (relative paths), skipping node_modules + non-source', async () => {
     const files = await readSource(root, ['src/inputs'])
-    expect(files.map((file) => file.path).sort()).toEqual([
+    expect(files.map(file => file.path).sort()).toEqual([
       'src/inputs/A.tsx',
       'src/inputs/B.ts',
       'src/inputs/nested/C.tsx'
     ])
-    expect(files.find((file) => file.path === 'src/inputs/A.tsx')?.content).toBe(
-      'export const A = 1'
-    )
+    expect(files.find(file => file.path === 'src/inputs/A.tsx')?.content).toBe('export const A = 1')
   })
 
   it('skips a missing inputDir without throwing', async () => {

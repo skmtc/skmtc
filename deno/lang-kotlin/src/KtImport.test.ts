@@ -29,7 +29,10 @@ Deno.test('fromIdentifier builds the Driver cross-file import; type is ignored',
 })
 
 Deno.test('resolvedPackage passes dotted packages through and derives from paths', () => {
-  assertEquals(KtImport.fromConcise('kotlinx.serialization', ['X']).resolvedPackage(), 'kotlinx.serialization')
+  assertEquals(
+    KtImport.fromConcise('kotlinx.serialization', ['X']).resolvedPackage(),
+    'kotlinx.serialization'
+  )
   assertEquals(
     KtImport.fromConcise('@/com/example/api/User.generated.kt', ['User']).resolvedPackage(),
     'com.example.api'

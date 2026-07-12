@@ -231,10 +231,8 @@ Deno.test(
   { sanitizeResources: false, sanitizeOps: false },
   async () => {
     const mockProject = createMockProject()
-    const addGeneratorStub = stub(
-      mockProject,
-      'addGenerator',
-      () => Promise.reject(new Error('Generator creation failed'))
+    const addGeneratorStub = stub(mockProject, 'addGenerator', () =>
+      Promise.reject(new Error('Generator creation failed'))
     )
 
     const initialState = createInitialState(mockProject)
@@ -279,4 +277,3 @@ Deno.test(
     }
   }
 )
-

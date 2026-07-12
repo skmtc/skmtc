@@ -58,9 +58,7 @@ type RunAgentContextArgs = {
   cliVersion: string
 }
 
-export const runAgentContext = ({
-  cliVersion
-}: RunAgentContextArgs): AgentContext => {
+export const runAgentContext = ({ cliVersion }: RunAgentContextArgs): AgentContext => {
   const skmtcRootPath = toRootPath()
   const globalStateDir = join(homedir(), '.skmtc')
   const jsrUrl = Deno.env.get('JSR_URL') ?? 'https://jsr.io/'

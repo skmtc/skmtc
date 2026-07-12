@@ -22,7 +22,7 @@ import {
   type JsonContainer,
   type JsonObject,
   type JsonValue,
-  toJson,
+  toJson
 } from './json.ts'
 import {
   arrayProperties,
@@ -34,7 +34,7 @@ import {
   sanitiseAll,
   toCamelCase,
   uniqueOnly,
-  VERSION,
+  VERSION
 } from './common.ts'
 import { clone, jpescape, recurse } from './reftools.ts'
 import { walkSchema } from './walkSchema.ts'
@@ -79,7 +79,7 @@ const collectionFormats = ['csv', 'ssv', 'tsv', 'pipes', 'multi'] as const
 type CollectionFormat = (typeof collectionFormats)[number]
 
 const asCollectionFormat = (value: JsonValue | undefined): CollectionFormat | undefined =>
-  collectionFormats.find((format) => format === asStr(value))
+  collectionFormats.find(format => format === asStr(value))
 
 const childVal = (value: JsonValue | undefined, key: string): JsonValue | undefined =>
   isJsonObject(value) ? value[key] : undefined
@@ -216,45 +216,44 @@ interface ComponentNames {
   schemas: Record<string, string>
 }
 
-const makeFixupRefs = (
-  componentNames: ComponentNames,
-  options: ConvertOptions,
-) =>
-(container: JsonContainer, key: string): void => {
-  if (!isJsonObject(container)) return
+const makeFixupRefs =
+  (componentNames: ComponentNames, options: ConvertOptions) =>
+  (container: JsonContainer, key: string): void => {
+    if (!isJsonObject(container)) return
 
-  if (isRef(container, key)) {
-    const ref = asStr(container[key])
-    if (ref !== undefined) {
-      let value = ref
-      if (value.startsWith('#/definitions/')) {
-        const keys = value.replace('#/definitions/', '').split('/')
-        const newKey = componentNames.schemas[keys[0]]
-        if (!newKey) throwOrWarn('Could not resolve reference ' + value, container, options)
-        else keys[0] = newKey
-        value = '#/components/schemas/' + keys.join('/')
+    if (isRef(container, key)) {
+      const ref = asStr(container[key])
+      if (ref !== undefined) {
+        let value = ref
+        if (value.startsWith('#/definitions/')) {
+          const keys = value.replace('#/definitions/', '').split('/')
+          const newKey = componentNames.schemas[keys[0]]
+          if (!newKey) throwOrWarn('Could not resolve reference ' + value, container, options)
+          else keys[0] = newKey
+          value = '#/components/schemas/' + keys.join('/')
+        }
+        if (value.startsWith('#/parameters/')) {
+          value = '#/components/parameters/' + sanitise(value.replace('#/parameters/', ''))
+        }
+        if (value.startsWith('#/responses/')) {
+          value = '#/components/responses/' + sanitise(value.replace('#/responses/', ''))
+        }
+        container[key] = value
       }
-      if (value.startsWith('#/parameters/')) {
-        value = '#/components/parameters/' + sanitise(value.replace('#/parameters/', ''))
-      }
-      if (value.startsWith('#/responses/')) {
-        value = '#/components/responses/' + sanitise(value.replace('#/responses/', ''))
-      }
-      container[key] = value
+    }
+
+    if (key === 'x-ms-odata' && isString(container[key])) {
+      const original = container[key]
+      const keys = original
+        .replace('#/definitions/', '')
+        .replace('#/components/schemas/', '')
+        .split('/')
+      const newKey = componentNames.schemas[keys[0]]
+      if (!newKey) throwOrWarn('Could not resolve reference ' + original, container, options)
+      else keys[0] = newKey
+      container[key] = '#/components/schemas/' + keys.join('/')
     }
   }
-
-  if (key === 'x-ms-odata' && isString(container[key])) {
-    const original = container[key]
-    const keys = original.replace('#/definitions/', '').replace('#/components/schemas/', '').split(
-      '/',
-    )
-    const newKey = componentNames.schemas[keys[0]]
-    if (!newKey) throwOrWarn('Could not resolve reference ' + original, container, options)
-    else keys[0] = newKey
-    container[key] = '#/components/schemas/' + keys.join('/')
-  }
-}
 
 // --- security -------------------------------------------------------------------
 
@@ -399,10 +398,7 @@ const fixParamRef = (param: JsonObject, options: ConvertOptions): void => {
   }
 }
 
-const collectionFormatToStyle = (
-  param: JsonObject,
-  options: ConvertOptions,
-): void => {
+const collectionFormatToStyle = (param: JsonObject, options: ConvertOptions): void => {
   const value = asCollectionFormat(param.collectionFormat)
   const location = asStr(param.in)
   if (value === undefined) return
@@ -417,7 +413,7 @@ const collectionFormatToStyle = (
         throwOrWarn(
           'collectionFormat:ssv is no longer supported except for in:query parameters',
           param,
-          options,
+          options
         )
       }
       break
@@ -427,7 +423,7 @@ const collectionFormatToStyle = (
         throwOrWarn(
           'collectionFormat:pipes is no longer supported except for in:query parameters',
           param,
-          options,
+          options
         )
       }
       break
@@ -450,7 +446,7 @@ const processParameter = (
   _path: JsonObject | null,
   index: string,
   openapi: JsonObject,
-  options: ConvertOptions,
+  options: ConvertOptions
 ): JsonObject => {
   let param = paramArg
   const result: JsonObject = {}
@@ -521,8 +517,10 @@ const processParameter = (
     }
 
     if (
-      typeof param.type !== 'undefined' && param.type !== 'object' &&
-      param.type !== 'body' && param.in !== 'formData'
+      typeof param.type !== 'undefined' &&
+      param.type !== 'object' &&
+      param.type !== 'body' &&
+      param.in !== 'formData'
     ) {
       if (typeof param.items !== 'undefined' && typeof param.schema !== 'undefined') {
         throwOrWarn('parameter has array,items and schema', param, options)
@@ -649,12 +647,12 @@ const processParameter = (
         const existingForm = childObj(childObj(requestBody, 'content'), 'multipart/form-data')
         const existingUrlEncoded = childObj(
           childObj(requestBody, 'content'),
-          'application/x-www-form-urlencoded',
+          'application/x-www-form-urlencoded'
         )
         const resultForm = childObj(childObj(result, 'content'), 'multipart/form-data')
         const resultUrlEncoded = childObj(
           childObj(result, 'content'),
-          'application/x-www-form-urlencoded',
+          'application/x-www-form-urlencoded'
         )
         if (existingForm && resultForm) {
           mergeFormSchema(existingForm, resultForm)
@@ -665,7 +663,9 @@ const processParameter = (
           if (typeof requestBody['x-s2o-name'] === 'undefined') {
             const schemaRef = asStr(childVal(requestBody.schema, '$ref'))
             if (schemaRef !== undefined) {
-              requestBody['x-s2o-name'] = schemaRef.replace('#/components/schemas/', '').split('/')
+              requestBody['x-s2o-name'] = schemaRef
+                .replace('#/components/schemas/', '')
+                .split('/')
                 .join('')
             } else if (isString(op.operationId)) {
               requestBody['x-s2o-name'] = sanitiseAll(op.operationId)
@@ -696,10 +696,7 @@ const mergeFormSchema = (existing: JsonObject, incoming: JsonObject): void => {
   const existingProps = ensureObj(existingSchema, 'properties')
   const incomingProps = isJsonObject(incomingSchema.properties) ? incomingSchema.properties : {}
   existingSchema.properties = Object.assign(existingProps, incomingProps)
-  const required = [
-    ...stringList(existingSchema.required),
-    ...stringList(incomingSchema.required),
-  ]
+  const required = [...stringList(existingSchema.required), ...stringList(incomingSchema.required)]
   existingSchema.required = required
   if (required.length === 0) delete existingSchema.required
 }
@@ -716,24 +713,25 @@ const processResponse = (
   name: string,
   op: JsonObject | null,
   openapi: JsonObject,
-  options: ConvertOptions,
+  options: ConvertOptions
 ): void => {
   if (isString(response.$ref)) {
     if (response.$ref.indexOf('#/definitions/') >= 0) {
       throwOrWarn('definition used as response: ' + response.$ref, response, options)
     } else if (response.$ref.startsWith('#/responses/')) {
-      response.$ref = '#/components/responses/' +
-        sanitise(response.$ref.replace('#/responses/', ''))
+      response.$ref =
+        '#/components/responses/' + sanitise(response.$ref.replace('#/responses/', ''))
     }
     return
   }
 
   if (
-    typeof response.description === 'undefined' || response.description === null ||
+    typeof response.description === 'undefined' ||
+    response.description === null ||
     (response.description === '' && options.patch)
   ) {
     if (options.patch) {
-      const sc = statusCodes.find((entry) => entry.code === name)
+      const sc = statusCodes.find(entry => entry.code === name)
       response.description = sc ? sc.phrase : ''
     } else {
       throwError('(Patchable) response.description is mandatory')
@@ -744,8 +742,8 @@ const processResponse = (
     fixUpSchema(response.schema, options)
 
     if (isString(response.schema.$ref) && response.schema.$ref.startsWith('#/responses/')) {
-      response.schema.$ref = '#/components/responses/' +
-        sanitise(response.schema.$ref.replace('#/responses/', ''))
+      response.schema.$ref =
+        '#/components/responses/' + sanitise(response.schema.$ref.replace('#/responses/', ''))
     }
 
     const opProduces = op && isJsonArray(op.produces) ? op.produces : undefined
@@ -814,7 +812,7 @@ const processPaths = (
   containerName: string,
   options: ConvertOptions,
   requestBodyCache: Record<number, RequestBodyEntry>,
-  openapi: JsonObject,
+  openapi: JsonObject
 ): void => {
   for (const p of Object.keys(container)) {
     const path = container[p]
@@ -852,12 +850,16 @@ const processPaths = (
               if (isJsonObject(resolved)) param = resolved
             }
             const opParams = op.parameters
-            const matched = opParams.find((candidate) =>
-              isJsonObject(candidate) && candidate.name === param.name && candidate.in === param.in
+            const matched = opParams.find(
+              candidate =>
+                isJsonObject(candidate) &&
+                candidate.name === param.name &&
+                candidate.in === param.in
             )
             // NOTE: upstream operator precedence preserved: (!matched && formData) || body || file
             if (
-              (!matched && param.in === 'formData') || param.in === 'body' ||
+              (!matched && param.in === 'formData') ||
+              param.in === 'body' ||
               param.type === 'file'
             ) {
               processParameter(param, op, path, p, openapi, options)
@@ -930,9 +932,16 @@ const processPaths = (
         delete op.requestBody['x-s2o-name']
         const rbStr = JSON.stringify(op.requestBody)
         const rbHash = hash(rbStr)
-        const entry = requestBodyCache[rbHash] ??
+        const entry =
+          requestBodyCache[rbHash] ??
           (requestBodyCache[rbHash] = { name: rbName, body: op.requestBody, refs: [] })
-        const ptr = '#/' + containerName + '/' + encodeURIComponent(jpescape(p)) + '/' + method +
+        const ptr =
+          '#/' +
+          containerName +
+          '/' +
+          encodeURIComponent(jpescape(p)) +
+          '/' +
+          method +
           '/requestBody'
         entry.refs.push(ptr)
       }
@@ -953,7 +962,7 @@ const processXmsExamples = (
   op: JsonObject,
   path: JsonObject,
   openapi: JsonObject,
-  _options: ConvertOptions,
+  _options: ConvertOptions
 ): void => {
   const examples = op['x-ms-examples']
   if (!isJsonObject(examples)) return
@@ -1168,17 +1177,15 @@ export const main = (openapi: JsonObject, options: ConvertOptions): JsonObject =
 }
 
 const pruneEmptyComponents = (components: JsonObject, openapi: JsonObject): void => {
-  for (
-    const key of [
-      'responses',
-      'parameters',
-      'examples',
-      'requestBodies',
-      'securitySchemes',
-      'headers',
-      'schemas',
-    ]
-  ) {
+  for (const key of [
+    'responses',
+    'parameters',
+    'examples',
+    'requestBodies',
+    'securitySchemes',
+    'headers',
+    'schemas'
+  ]) {
     const value = components[key]
     if (isJsonObject(value) && Object.keys(value).length === 0) delete components[key]
   }
@@ -1253,8 +1260,8 @@ const recordOrigin = (openapi: JsonObject, swagger: JsonObject, origin: string):
     version: isString(swagger.swagger) ? swagger.swagger : '2.0',
     converter: {
       url: 'https://github.com/mermade/swagger2openapi',
-      version: VERSION,
-    },
+      version: VERSION
+    }
   })
 }
 
@@ -1282,8 +1289,8 @@ export const prepare = (swagger: JsonObject, options: ConvertOptions): Prepared 
     const version = isString(swagger.openapi)
       ? swagger.openapi
       : isString(swagger.swagger)
-      ? swagger.swagger
-      : String(swagger.swagger)
+        ? swagger.swagger
+        : String(swagger.swagger)
     throwError('Unsupported swagger/OpenAPI version: ' + version)
   }
 
@@ -1300,7 +1307,7 @@ export const prepare = (swagger: JsonObject, options: ConvertOptions): Prepared 
     for (const s of swagger.schemes) {
       if (!isString(s)) continue
       const server: JsonObject = {
-        url: s + '://' + swagger.host + (isString(swagger.basePath) ? swagger.basePath : '/'),
+        url: s + '://' + swagger.host + (isString(swagger.basePath) ? swagger.basePath : '/')
       }
       extractServerParameters(server)
       servers.push(server)
@@ -1322,7 +1329,7 @@ export const prepare = (swagger: JsonObject, options: ConvertOptions): Prepared 
     const xMsPHost = swagger['x-ms-parameterized-host']
     const server: JsonObject = {
       url: isString(xMsPHost.hostTemplate) ? xMsPHost.hostTemplate : '',
-      variables: {},
+      variables: {}
     }
     const variables = ensureObj(server, 'variables')
     if (isJsonObject(xMsPHost.parameters)) {
@@ -1388,11 +1395,11 @@ export const prepare = (swagger: JsonObject, options: ConvertOptions): Prepared 
 export const toResult = (
   openapi: JsonObject,
   externals: External[],
-  sourceYaml: boolean,
+  sourceYaml: boolean
 ): ConvertResult => ({
   openapi,
   externals,
-  sourceYaml,
+  sourceYaml
 })
 
 /**

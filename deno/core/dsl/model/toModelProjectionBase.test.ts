@@ -91,7 +91,8 @@ Deno.test('toModelProjectionBase - sets static toIdentifierType from config', ()
 })
 
 Deno.test('toModelProjectionBase - sets static toExportPath from config', () => {
-  const exportPathFn = ({ refName }: ToModelExportPathArgs<Enrichments>) => `./generated/${refName}.ts`
+  const exportPathFn = ({ refName }: ToModelExportPathArgs<Enrichments>) =>
+    `./generated/${refName}.ts`
 
   const ModelClass = toModelProjectionBase<Enrichments>(TsSnippet, {
     id: 'test-model',
@@ -213,7 +214,11 @@ Deno.test('toModelProjectionBase - toExportPath works with different refNames', 
   })
 
   assertEquals(
-    ModelClass.toExportPath({ refName: 'User' as RefName, enrichments: emptyEnrichments, variant: 'main' }),
+    ModelClass.toExportPath({
+      refName: 'User' as RefName,
+      enrichments: emptyEnrichments,
+      variant: 'main'
+    }),
     './types/user.d.ts'
   )
   assertEquals(

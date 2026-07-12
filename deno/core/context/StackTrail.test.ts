@@ -303,10 +303,7 @@ Deno.test('StackTrail - toSchemaPointer strips the run operational prefix', () =
     'properties',
     'name'
   ])
-  assertEquals(
-    trail.toSchemaPointer(),
-    '#/components/schemas/Pet/properties/name'
-  )
+  assertEquals(trail.toSchemaPointer(), '#/components/schemas/Pet/properties/name')
   // toJsonPointer keeps the raw (non-resolvable) trail.
   assertEquals(
     trail.toJsonPointer(),
@@ -322,14 +319,7 @@ Deno.test('StackTrail - toSchemaPointer leaves an already document-relative trai
 })
 
 Deno.test('StackTrail - toSchemaPointer for an operation path strips the prefix', () => {
-  const trail = new StackTrail([
-    'trace-1',
-    'span-1',
-    'parse',
-    'paths',
-    '/users/{id}',
-    'get'
-  ])
+  const trail = new StackTrail(['trace-1', 'span-1', 'parse', 'paths', '/users/{id}', 'get'])
   assertEquals(trail.toSchemaPointer(), '#/paths/~1users~1{id}/get')
 })
 
@@ -340,13 +330,6 @@ Deno.test('StackTrail - toSchemaPointer for empty trail returns document root', 
 Deno.test('StackTrail - toSchemaPointer matches the first phase frame, not a same-named document key', () => {
   // A schema literally named 'parse' sits after the operational phase
   // frame; only the operational one (earliest) is the boundary.
-  const trail = new StackTrail([
-    'trace-1',
-    'span-1',
-    'parse',
-    'components',
-    'schemas',
-    'parse'
-  ])
+  const trail = new StackTrail(['trace-1', 'span-1', 'parse', 'components', 'schemas', 'parse'])
   assertEquals(trail.toSchemaPointer(), '#/components/schemas/parse')
 })

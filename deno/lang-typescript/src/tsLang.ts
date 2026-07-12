@@ -13,7 +13,10 @@ import { toTsEntityType } from './createIdentifier.ts'
  * can annotate a definition without a dedicated engine hook.
  */
 const toValueDescription = (value: GeneratedValue): string | undefined =>
-  value && typeof value === 'object' && 'description' in value && typeof value.description === 'string'
+  value &&
+  typeof value === 'object' &&
+  'description' in value &&
+  typeof value.description === 'string'
     ? value.description
     : undefined
 

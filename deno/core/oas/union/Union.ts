@@ -35,27 +35,27 @@ export type UnionFields = {
 
 /**
  * Represents a union type schema in the OpenAPI Specification.
- * 
+ *
  * `OasUnion` handles both OpenAPI `oneOf` and `anyOf` constructs by mapping them
  * to TypeScript union types. While OpenAPI distinguishes between these concepts,
  * in TypeScript they both represent union types (A | B | C), making the distinction
  * less meaningful for code generation.
- * 
+ *
  * This class supports both simple unions and discriminated (tagged) unions through
  * the discriminator property, which enables more precise type narrowing in generated code.
- * 
+ *
  * ## Key Features
- * 
+ *
  * - **Union Types**: Represents multiple possible schema types as a single union
  * - **Tagged Unions**: Supports discriminator properties for type narrowing
  * - **Reference Resolution**: Handles references to other schemas within union members
  * - **Nullable Support**: Can represent nullable union types (A | B | null)
  * - **JSON Schema**: Converts to standard JSON Schema format for validation
- * 
+ *
  * @example Basic union type
  * ```typescript
  * import { OasUnion, OasString, OasInteger } from '@skmtc/core';
- * 
+ *
  * const stringOrNumber = new OasUnion({
  *   title: 'StringOrNumber',
  *   description: 'A value that can be either a string or number',
@@ -64,10 +64,10 @@ export type UnionFields = {
  *     new OasInteger({ title: 'Integer Value' })
  *   ]
  * });
- * 
+ *
  * // This represents: string | number
  * ```
- * 
+ *
  * @example Discriminated union (tagged union)
  * ```typescript
  * const shape = new OasUnion({
@@ -85,10 +85,10 @@ export type UnionFields = {
  *     new OasRef({ $ref: '#/components/schemas/Square' })
  *   ]
  * });
- * 
+ *
  * // This creates a tagged union that can be narrowed by the 'type' property
  * ```
- * 
+ *
  * @example Nullable union
  * ```typescript
  * const nullableStatus = new OasUnion({
@@ -100,10 +100,10 @@ export type UnionFields = {
  *   ],
  *   default: null
  * });
- * 
+ *
  * // This represents: ('active' | 'inactive' | 'pending' | 'suspended') | null
  * ```
- * 
+ *
  * @example Complex nested union
  * ```typescript
  * const apiResponse = new OasUnion({
@@ -126,10 +126,10 @@ export type UnionFields = {
  *     })
  *   ]
  * });
- * 
+ *
  * // This represents: { success: boolean; data: Record<string, any> } | { error: string; code: number }
  * ```
- * 
+ *
  * @example Using with references
  * ```typescript
  * const userOrAdmin = new OasUnion({
@@ -140,7 +140,7 @@ export type UnionFields = {
  *     new OasRef({ $ref: '#/components/schemas/Admin' })
  *   ]
  * });
- * 
+ *
  * // References will be resolved during processing
  * // This represents: User | Admin
  * ```

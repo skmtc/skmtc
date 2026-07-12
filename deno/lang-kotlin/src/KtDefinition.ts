@@ -48,7 +48,9 @@ export type KtDefinitionArgs<Value extends GeneratedValue> = {
  * renders as *nothing* when exported and `private ` (file-local) when
  * not — keyword only to restrict. `noExport` restricts the same way.
  */
-export class KtDefinition<Value extends GeneratedValue = GeneratedValue> extends DefinitionBase<Value> {
+export class KtDefinition<
+  Value extends GeneratedValue = GeneratedValue
+> extends DefinitionBase<Value> {
   description: string | undefined
   noExport: boolean | undefined
 

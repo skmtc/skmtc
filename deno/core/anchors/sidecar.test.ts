@@ -18,7 +18,13 @@ class TestProducer extends SnippetBase {
 
 const anchor = (overrides: Partial<ResolvedAnchor> = {}): ResolvedAnchor => ({
   span: { from: 0, to: 10, producer: new TestProducer() },
-  attribution: { generatorId: '@scope/gen-ts', schemaPointer: 'oas:#/components/schemas/User', variant: 'main', definitionName: 'User', producerName: 'TestProducer' },
+  attribution: {
+    generatorId: '@scope/gen-ts',
+    schemaPointer: 'oas:#/components/schemas/User',
+    variant: 'main',
+    definitionName: 'User',
+    producerName: 'TestProducer'
+  },
   landmark: 'User',
   path: [0],
   generatorVersion: '0.0.55',
@@ -84,12 +90,24 @@ Deno.test('buildSidecar - distinct registries pool independently and gi referenc
   const a1 = anchor({
     landmark: 'A',
     registry: { host: 'jsr.io', type: 'jsr' },
-    attribution: { generatorId: '@public/gen', schemaPointer: 'oas:#/components/schemas/A', variant: 'main', definitionName: 'A', producerName: 'GenA' }
+    attribution: {
+      generatorId: '@public/gen',
+      schemaPointer: 'oas:#/components/schemas/A',
+      variant: 'main',
+      definitionName: 'A',
+      producerName: 'GenA'
+    }
   })
   const a2 = anchor({
     landmark: 'B',
     registry: { host: 'jsr.skmtc.dev', type: 'jsr-private' },
-    attribution: { generatorId: '@private/gen', schemaPointer: 'oas:#/components/schemas/B', variant: 'main', definitionName: 'B', producerName: 'GenB' }
+    attribution: {
+      generatorId: '@private/gen',
+      schemaPointer: 'oas:#/components/schemas/B',
+      variant: 'main',
+      definitionName: 'B',
+      producerName: 'GenB'
+    }
   })
 
   const sidecar = buildSidecar({
@@ -146,7 +164,13 @@ Deno.test('buildSidecar - undefined srcPtr pools as empty string', () => {
     parser: 'tsc@5.6.3',
     anchors: [
       anchor({
-        attribution: { generatorId: '@scope/gen-utils', schemaPointer: '', variant: 'main', definitionName: undefined, producerName: 'GenUtils' }
+        attribution: {
+          generatorId: '@scope/gen-utils',
+          schemaPointer: '',
+          variant: 'main',
+          definitionName: undefined,
+          producerName: 'GenUtils'
+        }
       })
     ]
   })

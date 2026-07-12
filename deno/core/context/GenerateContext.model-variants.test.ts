@@ -94,10 +94,7 @@ type VariantResult = { refName: string; variant: string; result: ResultType }
  * — the inner `:` in the variant leaf gets URL-escaped to `%3A` since
  * `StackTrail.toString()` joins with `:`.
  */
-const toVariantResults = (
-  captures: CaptureEntry[],
-  generatorId: string
-): VariantResult[] => {
+const toVariantResults = (captures: CaptureEntry[], generatorId: string): VariantResult[] => {
   const out: VariantResult[] = []
   for (const c of captures) {
     const segments = c.trail.split(':')

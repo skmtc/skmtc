@@ -1,12 +1,11 @@
 import { join } from '@std/path'
 import { GenerateArtifacts } from '@/lib/generate-artifacts.ts'
-import {
-  writeGeneratedFiles,
-  type WriteGeneratedFilesResult
-} from '@/lib/write-generated-files.ts'
+import { writeGeneratedFiles, type WriteGeneratedFilesResult } from '@/lib/write-generated-files.ts'
 import type { ClientSettings } from '@skmtc/core/Settings'
-import { writeSidecars } from '@skmtc/core/Anchors'
-import { toGenerationStats, type GenerationStats } from '@/lib/generationStats.ts'
+import { reanchorSidecar, upgradeSidecar, writeSidecars } from '@skmtc/core/Anchors'
+import { oxcAdapter } from '@skmtc/core/Anchors/oxc'
+import { toResolvedArtifactPath } from '@skmtc/core'
+import { type GenerationStats, toGenerationStats } from '@/lib/generationStats.ts'
 import type { FileType } from '@/lib/types.ts'
 import type { ParseIssue } from '@skmtc/core'
 import { toAttributionPayload } from '@/lib/to-attribution-payload.ts'
@@ -131,7 +130,7 @@ export const generateLocal = async ({
         stackUrl
       })
 
-    const { protectedPaths, ejections } = writeGeneratedFiles({
+    const { protectedPaths, ejections, onDiskDrift } = writeGeneratedFiles({
       manifestPath,
       artifacts,
       manifest,
@@ -142,9 +141,49 @@ export const generateLocal = async ({
 
     let anchorsStats: GenerateLocalAnchorsStats | undefined
     if (sidecars && generationMap) {
+      // Host-side post-pass, two steps per sidecar:
+      // 1. `upgradeSidecar` — the worker built sidecars without a parser
+      //    (empty AST paths); re-resolve landmarks + paths against the
+      //    RAW render with the real oxc adapter.
+      // 2. `reanchorSidecar` — when the on-disk file drifted from the
+      //    render (the consumer's `settings.formatter` ran), realign the
+      //    spans to the FORMATTED text so the written sidecar describes
+      //    the file as it exists on disk.
+      // Artifacts are keyed by resolved path; sidecar `f` is `@/`-aliased.
+      const sidecarArtifacts = new Set<string>()
+      const realignedArtifacts = new Set<string>()
+      const upgradedSidecars = Object.fromEntries(
+        Object.entries(sidecars).map(([filePath, sidecar]) => {
+          const artifactKey = toResolvedArtifactPath({
+            basePath: clientSettings?.basePath,
+            destinationPath: sidecar.f
+          })
+          sidecarArtifacts.add(artifactKey)
+          const source = artifacts[artifactKey]
+          if (typeof source !== 'string') return [filePath, sidecar]
+          const upgraded = upgradeSidecar({
+            sidecar,
+            source,
+            parser: oxcAdapter
+          })
+          const onDisk = onDiskDrift[artifactKey]
+          if (onDisk === undefined) return [filePath, upgraded]
+          const realigned = reanchorSidecar({
+            sidecar: upgraded,
+            source: onDisk,
+            parser: oxcAdapter
+          })
+          // Realignment failed → keep raw coordinates; the manifest for
+          // this file stays raw too (below), so the reader's drift
+          // trigger still fires and re-anchors at read time.
+          if (realigned === undefined) return [filePath, upgraded]
+          realignedArtifacts.add(artifactKey)
+          return [filePath, realigned]
+        })
+      )
       const outDir = join(projectPath, clientSettings?.anchors?.out ?? '.maps')
       const { written, totalBytes } = await writeSidecars({
-        sidecars,
+        sidecars: upgradedSidecars,
         generationMap,
         outDir
       })
@@ -153,6 +192,24 @@ export const generateLocal = async ({
         filesWritten: written.length,
         totalBytes,
         generationMapEntries: generationMap.length
+      }
+
+      // Manifest realignment: `characters`/`lines` describe the file as
+      // written on disk — but ONLY where the sidecar spans agree (or the
+      // artifact has no sidecar, e.g. JSON). Updating the manifest
+      // without realigned spans would silence the reader's drift
+      // detection and serve stale spans as aligned.
+      const realignableDrift = Object.entries(onDiskDrift).filter(
+        ([artifactKey]) => !sidecarArtifacts.has(artifactKey) || realignedArtifacts.has(artifactKey)
+      )
+      if (realignableDrift.length > 0) {
+        for (const [artifactKey, content] of realignableDrift) {
+          const fileMeta = manifest.files[artifactKey]
+          if (fileMeta === undefined) continue
+          fileMeta.characters = content.length
+          fileMeta.lines = content.split('\n').length
+        }
+        Deno.writeTextFileSync(manifestPath, JSON.stringify(manifest, null, 2))
       }
     }
 

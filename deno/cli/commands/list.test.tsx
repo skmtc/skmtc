@@ -14,7 +14,6 @@ Deno.test('renderList - interactive mode mounts the Ink App with the expected st
   await withFakeTty(async () => {
     const manager = createMockManager()
 
-
     const skmtcRoot = createMockSkmtcRoot(manager)
 
     const testProjectName = 'test-project'
@@ -91,10 +90,7 @@ Deno.test('printListResult - json format emits a parseable single object', () =>
   const original = console.log
   console.log = (msg: string) => logs.push(msg)
   try {
-    printListResult(
-      { projectName: 'my-api', generators: ['@skmtc/gen-zod'] },
-      { format: 'json' }
-    )
+    printListResult({ projectName: 'my-api', generators: ['@skmtc/gen-zod'] }, { format: 'json' })
   } finally {
     console.log = original
   }
@@ -103,20 +99,17 @@ Deno.test('printListResult - json format emits a parseable single object', () =>
   assertEquals(parsed, { projectName: 'my-api', generators: ['@skmtc/gen-zod'] })
 })
 
-Deno.test(
-  'renderList - missing project name fails with a recipe error in strict mode',
-  async () => {
-    const { errors, exitCode } = await withCapturedExit(async () => {
-      await renderList({
-        projectName: undefined,
-        noInputFlag: true
-      })
+Deno.test('renderList - missing project name fails with a recipe error in strict mode', async () => {
+  const { errors, exitCode } = await withCapturedExit(async () => {
+    await renderList({
+      projectName: undefined,
+      noInputFlag: true
     })
+  })
 
-    assertEquals(exitCode, 2)
-    assertEquals(errors.length, 1)
-    assertStringIncludes(errors[0], 'missing required argument: <project>')
-    assertStringIncludes(errors[0], 'skmtc list <project>')
-    assertStringIncludes(errors[0], 'ls .skmtc/')
-  }
-)
+  assertEquals(exitCode, 2)
+  assertEquals(errors.length, 1)
+  assertStringIncludes(errors[0], 'missing required argument: <project>')
+  assertStringIncludes(errors[0], 'skmtc list <project>')
+  assertStringIncludes(errors[0], 'ls .skmtc/')
+})

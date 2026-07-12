@@ -69,8 +69,9 @@ export const toFieldSchema = ({
       message: `Nested list type collapsed to 'unknown' — v1 limitation`,
       type: 'NESTED_LIST_LOSSY'
     })
-    return context.withStackTrail(stackTrail, () =>
-      new OasUnknown({ nullable: outerNullable }, context)
+    return context.withStackTrail(
+      stackTrail,
+      () => new OasUnknown({ nullable: outerNullable }, context)
     )
   }
 
@@ -99,8 +100,9 @@ export const toFieldSchema = ({
       // the ref in a single-member OasUnion that carries the flag instead.
       const ref = context.registry.createRef(named.name as RefName, context)
       return innerNullable
-        ? context.withStackTrail(stackTrail, () =>
-            new OasUnion({ members: [ref], nullable: true }, context)
+        ? context.withStackTrail(
+            stackTrail,
+            () => new OasUnion({ members: [ref], nullable: true }, context)
           )
         : ref
     }
@@ -116,8 +118,9 @@ export const toFieldSchema = ({
       message: `Unknown GraphQL type kind for '${unrecognized.name ?? '<anon>'}' — fell back to 'unknown'`,
       type: 'UNKNOWN_TYPE_KIND'
     })
-    return context.withStackTrail(stackTrail, () =>
-      new OasUnknown({ nullable: innerNullable }, context)
+    return context.withStackTrail(
+      stackTrail,
+      () => new OasUnknown({ nullable: innerNullable }, context)
     )
   })()
 
@@ -125,13 +128,15 @@ export const toFieldSchema = ({
     return innerSchema
   }
 
-  return context.withStackTrail(stackTrail, () =>
-    new OasArray(
-      {
-        items: innerSchema,
-        nullable: outerNullable
-      },
-      context
-    )
+  return context.withStackTrail(
+    stackTrail,
+    () =>
+      new OasArray(
+        {
+          items: innerSchema,
+          nullable: outerNullable
+        },
+        context
+      )
   )
 }

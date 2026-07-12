@@ -129,10 +129,7 @@ export class Project {
 
     // Seed a default `.skmtcignore` so new stacks get the gitignore-style
     // upload filter (and a documented place to extend it) from day one.
-    await Deno.writeTextFile(
-      join(toProjectPath(name), SKMTC_IGNORE_FILE),
-      SKMTCIGNORE_TEMPLATE
-    )
+    await Deno.writeTextFile(join(toProjectPath(name), SKMTC_IGNORE_FILE), SKMTCIGNORE_TEMPLATE)
 
     skmtcRoot.projects.push(project)
 

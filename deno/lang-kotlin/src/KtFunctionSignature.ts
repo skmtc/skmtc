@@ -99,7 +99,14 @@ export class KtFunctionSignature {
   description: string | undefined
   body: Stringable | undefined
 
-  constructor({ name, parameters, returnType, annotations, description, body }: KtFunctionSignatureArgs) {
+  constructor({
+    name,
+    parameters,
+    returnType,
+    annotations,
+    description,
+    body
+  }: KtFunctionSignatureArgs) {
     this.name = name
     this.parameters = parameters.map(parameter => new KtFunctionParameter(parameter))
     this.returnType = returnType

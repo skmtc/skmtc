@@ -73,33 +73,33 @@
  * `deno task verify-docs`.
  */
 
-import { dirname, fromFileUrl, join } from "jsr:@std/path@^1";
+import { dirname, fromFileUrl, join } from 'jsr:@std/path@^1'
 
-const docsDir = dirname(fromFileUrl(import.meta.url));
-const denoDir = join(docsDir, "..");
+const docsDir = dirname(fromFileUrl(import.meta.url))
+const denoDir = join(docsDir, '..')
 
-let failures = 0;
+let failures = 0
 
 const fail = (message: string): void => {
-  failures++;
-  console.log(`FAIL  ${message}`);
-};
+  failures++
+  console.log(`FAIL  ${message}`)
+}
 
 const pass = (message: string): void => {
-  console.log(`ok    ${message}`);
-};
+  console.log(`ok    ${message}`)
+}
 
 const numberWords: Record<number, string> = {
-  2: "two",
-  3: "three",
-  4: "four",
-  5: "five",
-  6: "six",
-  7: "seven",
-  8: "eight",
-  9: "nine",
-  10: "ten",
-};
+  2: 'two',
+  3: 'three',
+  4: 'four',
+  5: 'five',
+  6: 'six',
+  7: 'seven',
+  8: 'eight',
+  9: 'nine',
+  10: 'ten'
+}
 
 // ---------------------------------------------------------------------
 // 1. Fact-list sync: skmtc-generator SKILL.md §1 ↔ llms.md "Read this
@@ -110,115 +110,100 @@ const numberWords: Record<number, string> = {
 // ---------------------------------------------------------------------
 
 type FactList = {
-  headerWord: string | undefined;
-  count: number;
-  leads: string[];
-};
+  headerWord: string | undefined
+  count: number
+  leads: string[]
+}
 
-const parseFactList = (
-  text: string,
-  headerPattern: RegExp,
-): FactList | undefined => {
-  const lines = text.split("\n");
-  const start = lines.findIndex((line) => headerPattern.test(line));
+const parseFactList = (text: string, headerPattern: RegExp): FactList | undefined => {
+  const lines = text.split('\n')
+  const start = lines.findIndex(line => headerPattern.test(line))
 
   if (start === -1) {
-    return undefined;
+    return undefined
   }
 
-  const headerWord = lines[start].match(
-    new RegExp(`(${Object.values(numberWords).join("|")}) facts`, "i"),
-  )?.[1]?.toLowerCase();
+  const headerWord = lines[start]
+    .match(new RegExp(`(${Object.values(numberWords).join('|')}) facts`, 'i'))?.[1]
+    ?.toLowerCase()
 
-  const items: string[] = [];
+  const items: string[] = []
   for (const line of lines.slice(start + 1)) {
-    if (/^## /.test(line)) break;
+    if (/^## /.test(line)) break
     if (/^\d+\. \*\*/.test(line)) {
-      items.push(line);
-    } else if (items.length > 0 && line.trim() !== "") {
-      items[items.length - 1] += ` ${line.trim()}`;
+      items.push(line)
+    } else if (items.length > 0 && line.trim() !== '') {
+      items[items.length - 1] += ` ${line.trim()}`
     }
   }
 
-  const leads = items.map((item) =>
-    item.replace(/\s+/g, " ").match(/\*\*(.+?)\*\*/)?.[1]?.trim() ?? ""
-  );
+  const leads = items.map(
+    item =>
+      item
+        .replace(/\s+/g, ' ')
+        .match(/\*\*(.+?)\*\*/)?.[1]
+        ?.trim() ?? ''
+  )
 
-  return { headerWord, count: items.length, leads };
-};
+  return { headerWord, count: items.length, leads }
+}
 
-const llmsPath = join(docsDir, "llms.md");
-const generatorSkillPath = join(
-  docsDir,
-  "skills",
-  "skmtc-generator",
-  "SKILL.md",
-);
+const llmsPath = join(docsDir, 'llms.md')
+const generatorSkillPath = join(docsDir, 'skills', 'skmtc-generator', 'SKILL.md')
 
-const llmsFacts = parseFactList(
-  await Deno.readTextFile(llmsPath),
-  /^## Read this first/,
-);
+const llmsFacts = parseFactList(await Deno.readTextFile(llmsPath), /^## Read this first/)
 const skillFacts = parseFactList(
   await Deno.readTextFile(generatorSkillPath),
-  /^## 1\. The \w+ facts/,
-);
+  /^## 1\. The \w+ facts/
+)
 
 if (!llmsFacts) {
-  fail('llms.md: "Read this first" section not found');
+  fail('llms.md: "Read this first" section not found')
 } else if (!skillFacts) {
-  fail('skmtc-generator SKILL.md: "§1 The <n> facts" section not found');
+  fail('skmtc-generator SKILL.md: "§1 The <n> facts" section not found')
 } else {
   if (llmsFacts.count !== skillFacts.count) {
     fail(
       `fact-list drift: llms.md has ${llmsFacts.count} facts, ` +
         `skmtc-generator SKILL.md §1 has ${skillFacts.count} — re-sync them ` +
-        `(the generator skill mirrors llms.md; the other skills tune their own lists)`,
-    );
+        `(the generator skill mirrors llms.md; the other skills tune their own lists)`
+    )
   } else {
-    pass(
-      `fact-list sync: llms.md and generator skill both list ${llmsFacts.count} facts`,
-    );
+    pass(`fact-list sync: llms.md and generator skill both list ${llmsFacts.count} facts`)
 
     const driftedLeads = llmsFacts.leads
       .map((lead, index) => ({
         fact: index + 1,
         llms: lead,
-        skill: skillFacts.leads[index] ?? "",
+        skill: skillFacts.leads[index] ?? ''
       }))
-      .filter((pair) => pair.llms !== pair.skill);
+      .filter(pair => pair.llms !== pair.skill)
 
     if (driftedLeads.length === 0) {
-      pass(
-        `fact-lead sync: all ${llmsFacts.count} bold lead sentences match pairwise`,
-      );
+      pass(`fact-lead sync: all ${llmsFacts.count} bold lead sentences match pairwise`)
     } else {
       for (const pair of driftedLeads) {
         fail(
           `fact-lead drift on fact ${pair.fact}:\n` +
             `  llms.md:  ${pair.llms}\n` +
-            `  SKILL.md: ${pair.skill}`,
-        );
+            `  SKILL.md: ${pair.skill}`
+        )
       }
     }
   }
 
-  for (
-    const [name, facts] of [
-      ["llms.md", llmsFacts],
-      ["skmtc-generator SKILL.md", skillFacts],
-    ] as const
-  ) {
-    const expected = numberWords[facts.count];
+  for (const [name, facts] of [
+    ['llms.md', llmsFacts],
+    ['skmtc-generator SKILL.md', skillFacts]
+  ] as const) {
+    const expected = numberWords[facts.count]
     if (facts.headerWord !== expected) {
       fail(
-        `${name}: header says "${
-          facts.headerWord ?? "<no number word>"
-        } facts" ` +
-          `but the list has ${facts.count} items (expected "${expected}")`,
-      );
+        `${name}: header says "${facts.headerWord ?? '<no number word>'} facts" ` +
+          `but the list has ${facts.count} items (expected "${expected}")`
+      )
     } else {
-      pass(`${name}: header word matches list length`);
+      pass(`${name}: header word matches list length`)
     }
   }
 }
@@ -230,66 +215,66 @@ if (!llmsFacts) {
 // ---------------------------------------------------------------------
 
 const deadModelPatterns: { name: string; pattern: RegExp }[] = [
-  { name: "resolveLang", pattern: /resolveLang/ },
-  { name: "engine-start lang error", pattern: /declares no 'lang'/ },
-  { name: "required lang field", pattern: /required\*?\*? `lang` field/ },
+  { name: 'resolveLang', pattern: /resolveLang/ },
+  { name: 'engine-start lang error', pattern: /declares no 'lang'/ },
+  { name: 'required lang field', pattern: /required\*?\*? `lang` field/ },
   {
-    name: "lang declared on the entry",
-    pattern: /entry declares (?:a|the generator's) `?lang`?/,
+    name: 'lang declared on the entry',
+    pattern: /entry declares (?:a|the generator's) `?lang`?/
   },
   {
-    name: "lang resolved by generatorId",
-    pattern: /resolv\w+ (?:it|the language) by `?generatorId`?/,
-  },
-];
+    name: 'lang resolved by generatorId',
+    pattern: /resolv\w+ (?:it|the language) by `?generatorId`?/
+  }
+]
 
 const historicalMarkers =
-  /no longer|deleted|superseded|unwound|there is no|gone|incorrect|pre-0\.8|0\.7\.x|interim|historical|was the/i;
+  /no longer|deleted|superseded|unwound|there is no|gone|incorrect|pre-0\.8|0\.7\.x|interim|historical|was the/i
 
-const surfaceFiles: string[] = [llmsPath];
+const surfaceFiles: string[] = [llmsPath]
 
 const collect = async (dir: string, suffixes: string[]): Promise<void> => {
   for await (const entry of Deno.readDir(dir)) {
-    const path = join(dir, entry.name);
+    const path = join(dir, entry.name)
     if (entry.isDirectory) {
-      await collect(path, suffixes);
-    } else if (suffixes.some((suffix) => entry.name.endsWith(suffix))) {
-      surfaceFiles.push(path);
+      await collect(path, suffixes)
+    } else if (suffixes.some(suffix => entry.name.endsWith(suffix))) {
+      surfaceFiles.push(path)
     }
   }
-};
+}
 
-await collect(join(docsDir, "concepts"), [".md"]);
-await collect(join(docsDir, "reference"), [".md"]);
-for await (const entry of Deno.readDir(join(docsDir, "skills"))) {
-  if (!entry.isDirectory) continue;
-  const skillFile = join(docsDir, "skills", entry.name, "SKILL.md");
+await collect(join(docsDir, 'concepts'), ['.md'])
+await collect(join(docsDir, 'reference'), ['.md'])
+for await (const entry of Deno.readDir(join(docsDir, 'skills'))) {
+  if (!entry.isDirectory) continue
+  const skillFile = join(docsDir, 'skills', entry.name, 'SKILL.md')
   try {
-    await Deno.stat(skillFile);
-    surfaceFiles.push(skillFile);
+    await Deno.stat(skillFile)
+    surfaceFiles.push(skillFile)
   } catch {
     // skill dir without SKILL.md — nothing to check
   }
 }
-let deadModelHits = 0;
+let deadModelHits = 0
 for (const file of surfaceFiles) {
-  const lines = (await Deno.readTextFile(file)).split("\n");
+  const lines = (await Deno.readTextFile(file)).split('\n')
   lines.forEach((line, index) => {
     for (const { name, pattern } of deadModelPatterns) {
       if (pattern.test(line) && !historicalMarkers.test(line)) {
-        deadModelHits++;
+        deadModelHits++
         fail(
           `dead-model claim (${name}) without a historical marker: ` +
-            `${file.replace(denoDir + "/", "")}:${index + 1}`,
-        );
+            `${file.replace(denoDir + '/', '')}:${index + 1}`
+        )
       }
     }
-  });
+  })
 }
 if (deadModelHits === 0) {
   pass(
-    `dead-model guard: no affirmative 0.7.x interim-model claims across ${surfaceFiles.length} files`,
-  );
+    `dead-model guard: no affirmative 0.7.x interim-model claims across ${surfaceFiles.length} files`
+  )
 }
 
 // ---------------------------------------------------------------------
@@ -300,70 +285,56 @@ if (deadModelHits === 0) {
 // skills were deleted (2026-07-07) and will be recreated — one entry
 // here per language — when a layer ships and its skill returns.
 const languageSyncTargets: {
-  packageDirectory: string;
-  skillName: string;
-  guardPrefix: string;
-}[] = [];
+  packageDirectory: string
+  skillName: string
+  guardPrefix: string
+}[] = []
 
-for (
-  const { packageDirectory, skillName, guardPrefix } of languageSyncTargets
-) {
-  const skillPath = join(docsDir, "skills", skillName, "SKILL.md");
-  const skill = await Deno.readTextFile(skillPath);
+for (const { packageDirectory, skillName, guardPrefix } of languageSyncTargets) {
+  const skillPath = join(docsDir, 'skills', skillName, 'SKILL.md')
+  const skill = await Deno.readTextFile(skillPath)
   const factories = await Deno.readTextFile(
-    join(denoDir, packageDirectory, "src", "createIdentifier.ts"),
-  );
-  const packageMod = await Deno.readTextFile(
-    join(denoDir, packageDirectory, "mod.ts"),
-  );
+    join(denoDir, packageDirectory, 'src', 'createIdentifier.ts')
+  )
+  const packageMod = await Deno.readTextFile(join(denoDir, packageDirectory, 'mod.ts'))
 
   const factoryNames = [
-    ...new Set(
-      [...factories.matchAll(/export const (create[A-Z]\w+)/g)].map((m) =>
-        m[1]
-      ),
-    ),
-  ];
+    ...new Set([...factories.matchAll(/export const (create[A-Z]\w+)/g)].map(m => m[1]))
+  ]
 
-  const kindWord = numberWords[factoryNames.length];
+  const kindWord = numberWords[factoryNames.length]
   if (!skill.includes(`${kindWord} entity kinds`)) {
     fail(
       `${skillName} SKILL.md: expected "${kindWord} entity kinds" ` +
-        `(${packageDirectory} exports ${factoryNames.length} identifier factories: ${
-          factoryNames.join(", ")
-        })`,
-    );
+        `(${packageDirectory} exports ${factoryNames.length} identifier factories: ${factoryNames.join(
+          ', '
+        )})`
+    )
   } else {
     pass(
-      `${packageDirectory} type vocabulary: skill says "${kindWord} entity kinds" matching ${factoryNames.length} factories`,
-    );
+      `${packageDirectory} type vocabulary: skill says "${kindWord} entity kinds" matching ${factoryNames.length} factories`
+    )
   }
 
   for (const factory of factoryNames) {
     if (!skill.includes(factory)) {
-      fail(
-        `${skillName} SKILL.md: identifier factory ${factory} is exported but never mentioned`,
-      );
+      fail(`${skillName} SKILL.md: identifier factory ${factory} is exported but never mentioned`)
     }
   }
 
-  const guardPattern = new RegExp(`\\b(${guardPrefix}[A-Z]\\w+)`, "g");
-  const protocolGuards = [
-    ...new Set([...packageMod.matchAll(guardPattern)].map((m) => m[1])),
-  ];
+  const guardPattern = new RegExp(`\\b(${guardPrefix}[A-Z]\\w+)`, 'g')
+  const protocolGuards = [...new Set([...packageMod.matchAll(guardPattern)].map(m => m[1]))]
   for (const guard of protocolGuards) {
     if (!skill.includes(guard)) {
-      fail(
-        `${skillName} SKILL.md: value-protocol guard ${guard} is exported but never mentioned`,
-      );
+      fail(`${skillName} SKILL.md: value-protocol guard ${guard} is exported but never mentioned`)
     }
   }
-  if (protocolGuards.every((guard) => skill.includes(guard))) {
+  if (protocolGuards.every(guard => skill.includes(guard))) {
     pass(
-      `${packageDirectory} protocols: all ${protocolGuards.length} exported guards (${
-        protocolGuards.join(", ")
-      }) appear in the skill`,
-    );
+      `${packageDirectory} protocols: all ${protocolGuards.length} exported guards (${protocolGuards.join(
+        ', '
+      )}) appear in the skill`
+    )
   }
 }
 
@@ -376,60 +347,53 @@ for (
 //    skill claims "same trio").
 // ---------------------------------------------------------------------
 
-const docsWritingSkillPath = join(
-  docsDir,
-  "skills",
-  "docs-writing",
-  "SKILL.md",
-);
-const docsWritingSkill = await Deno.readTextFile(docsWritingSkillPath);
+const docsWritingSkillPath = join(docsDir, 'skills', 'docs-writing', 'SKILL.md')
+const docsWritingSkill = await Deno.readTextFile(docsWritingSkillPath)
 
 const listSubdirectories = async (dir: string): Promise<string[]> => {
-  const names: string[] = [];
+  const names: string[] = []
   for await (const entry of Deno.readDir(dir)) {
-    if (entry.isDirectory) names.push(entry.name);
+    if (entry.isDirectory) names.push(entry.name)
   }
-  return names.sort();
-};
+  return names.sort()
+}
 
-const usingSubdirectories = await listSubdirectories(join(docsDir, "using"));
-const authoringSubdirectories = await listSubdirectories(
-  join(docsDir, "authoring"),
-);
+const usingSubdirectories = await listSubdirectories(join(docsDir, 'using'))
+const authoringSubdirectories = await listSubdirectories(join(docsDir, 'authoring'))
 
-let treeSyncFailures = 0;
+let treeSyncFailures = 0
 
 for (const name of usingSubdirectories) {
   if (!docsWritingSkill.includes(`using/${name}/`)) {
-    treeSyncFailures++;
+    treeSyncFailures++
     fail(
-      `docs-writing SKILL.md: docs/using/${name}/ exists but the §3 tree mapping doesn't name \`using/${name}/\``,
-    );
+      `docs-writing SKILL.md: docs/using/${name}/ exists but the §3 tree mapping doesn't name \`using/${name}/\``
+    )
   }
 }
 
-if (usingSubdirectories.join(",") !== authoringSubdirectories.join(",")) {
-  treeSyncFailures++;
+if (usingSubdirectories.join(',') !== authoringSubdirectories.join(',')) {
+  treeSyncFailures++
   fail(
     `docs-writing SKILL.md claims authoring/ mirrors using/'s trio, but ` +
-      `using/ has [${usingSubdirectories.join(", ")}] and authoring/ has [${
-        authoringSubdirectories.join(", ")
-      }]`,
-  );
+      `using/ has [${usingSubdirectories.join(', ')}] and authoring/ has [${authoringSubdirectories.join(
+        ', '
+      )}]`
+  )
 }
 
-for (const name of ["authoring/", "reference/", "concepts/", "explanation/"]) {
+for (const name of ['authoring/', 'reference/', 'concepts/', 'explanation/']) {
   if (!docsWritingSkill.includes(`\`${name}\``)) {
-    treeSyncFailures++;
-    fail(`docs-writing SKILL.md: §3 tree mapping doesn't name \`${name}\``);
+    treeSyncFailures++
+    fail(`docs-writing SKILL.md: §3 tree mapping doesn't name \`${name}\``)
   }
 }
 
 if (treeSyncFailures === 0) {
   pass(
     `docs-writing tree sync: skill names all ${usingSubdirectories.length} using/ subdirectories ` +
-      `+ the top-level content dirs; authoring/ mirrors using/`,
-  );
+      `+ the top-level content dirs; authoring/ mirrors using/`
+  )
 }
 
 // ---------------------------------------------------------------------
@@ -444,40 +408,38 @@ if (treeSyncFailures === 0) {
 //    words as counter-examples.
 // ---------------------------------------------------------------------
 
-const fillerPattern = /\b(simply|easily|obviously)\b|as of this writing/i;
+const fillerPattern = /\b(simply|easily|obviously)\b|as of this writing/i
 
-const readerFacingFiles: string[] = [];
-for (
-  const dir of ["using", "authoring", "reference", "concepts", "explanation"]
-) {
+const readerFacingFiles: string[] = []
+for (const dir of ['using', 'authoring', 'reference', 'concepts', 'explanation']) {
   const collectMarkdown = async (root: string): Promise<void> => {
     for await (const entry of Deno.readDir(root)) {
-      const path = join(root, entry.name);
-      if (entry.isDirectory) await collectMarkdown(path);
-      else if (entry.name.endsWith(".md")) readerFacingFiles.push(path);
+      const path = join(root, entry.name)
+      if (entry.isDirectory) await collectMarkdown(path)
+      else if (entry.name.endsWith('.md')) readerFacingFiles.push(path)
     }
-  };
-  await collectMarkdown(join(docsDir, dir));
+  }
+  await collectMarkdown(join(docsDir, dir))
 }
 
-let fillerHits = 0;
+let fillerHits = 0
 for (const file of readerFacingFiles) {
-  const lines = (await Deno.readTextFile(file)).split("\n");
+  const lines = (await Deno.readTextFile(file)).split('\n')
   lines.forEach((line, index) => {
-    const match = line.match(fillerPattern);
+    const match = line.match(fillerPattern)
     if (match) {
-      fillerHits++;
+      fillerHits++
       fail(
         `filler word "${match[0]}" (banned by docs-writing §4): ` +
-          `${file.replace(denoDir + "/", "")}:${index + 1}`,
-      );
+          `${file.replace(denoDir + '/', '')}:${index + 1}`
+      )
     }
-  });
+  })
 }
 if (fillerHits === 0) {
   pass(
-    `filler-word guard: no simply/easily/obviously across ${readerFacingFiles.length} reader-facing files`,
-  );
+    `filler-word guard: no simply/easily/obviously across ${readerFacingFiles.length} reader-facing files`
+  )
 }
 
 // ---------------------------------------------------------------------
@@ -489,78 +451,63 @@ if (fillerHits === 0) {
 //    reference pages must track it, in both directions.
 // ---------------------------------------------------------------------
 
-const cliModText = await Deno.readTextFile(join(denoDir, "cli", "mod.ts"));
-const rootChainIndex = cliModText.indexOf("await new Command()");
+const cliModText = await Deno.readTextFile(join(denoDir, 'cli', 'mod.ts'))
+const rootChainIndex = cliModText.indexOf('await new Command()')
 
-const commandRegistrations = [
-  ...cliModText.matchAll(/\.command\('([a-z][a-z-]*)', \w+Command\)/g),
-];
+const commandRegistrations = [...cliModText.matchAll(/\.command\('([a-z][a-z-]*)', \w+Command\)/g)]
 const topLevelCommands = commandRegistrations
-  .filter((match) => (match.index ?? 0) > rootChainIndex)
-  .map((match) => match[1]);
+  .filter(match => (match.index ?? 0) > rootChainIndex)
+  .map(match => match[1])
 
 if (rootChainIndex === -1 || topLevelCommands.length === 0) {
   fail(
-    "cli/mod.ts: could not locate the root `await new Command()` chain — " +
-      "the command-surface parser needs updating",
-  );
+    'cli/mod.ts: could not locate the root `await new Command()` chain — ' +
+      'the command-surface parser needs updating'
+  )
 } else {
-  const cliSkillText = await Deno.readTextFile(
-    join(docsDir, "skills", "skmtc-cli", "SKILL.md"),
-  );
+  const cliSkillText = await Deno.readTextFile(join(docsDir, 'skills', 'skmtc-cli', 'SKILL.md'))
 
-  let commandSurfaceFailures = 0;
+  let commandSurfaceFailures = 0
 
   for (const command of topLevelCommands) {
-    if (!cliSkillText.includes("`" + command)) {
-      commandSurfaceFailures++;
-      fail(
-        `skmtc-cli SKILL.md: registered command \`${command}\` is never mentioned`,
-      );
+    if (!cliSkillText.includes('`' + command)) {
+      commandSurfaceFailures++
+      fail(`skmtc-cli SKILL.md: registered command \`${command}\` is never mentioned`)
     }
 
     try {
-      await Deno.stat(join(docsDir, "reference", "cli", `${command}.md`));
+      await Deno.stat(join(docsDir, 'reference', 'cli', `${command}.md`))
     } catch {
-      commandSurfaceFailures++;
-      fail(
-        `reference/cli/${command}.md: registered command \`${command}\` has no reference page`,
-      );
+      commandSurfaceFailures++
+      fail(`reference/cli/${command}.md: registered command \`${command}\` has no reference page`)
     }
   }
 
-  for await (const entry of Deno.readDir(join(docsDir, "reference", "cli"))) {
-    if (
-      !entry.name.endsWith(".md") ||
-      entry.name === "overview.md" ||
-      entry.name === "CLAUDE.md"
-    ) continue;
-    const documented = entry.name.replace(/\.md$/, "");
+  for await (const entry of Deno.readDir(join(docsDir, 'reference', 'cli'))) {
+    if (!entry.name.endsWith('.md') || entry.name === 'overview.md' || entry.name === 'CLAUDE.md')
+      continue
+    const documented = entry.name.replace(/\.md$/, '')
     if (!topLevelCommands.includes(documented)) {
-      commandSurfaceFailures++;
+      commandSurfaceFailures++
       fail(
         `reference/cli/${entry.name}: documents \`${documented}\`, which is not ` +
-          `a registered top-level command in cli/mod.ts`,
-      );
+          `a registered top-level command in cli/mod.ts`
+      )
     }
   }
 
-  const commandTableSection = cliSkillText.match(
-    /^## \d+\. Command surface[\s\S]*?(?=^## )/m,
-  );
+  const commandTableSection = cliSkillText.match(/^## \d+\. Command surface[\s\S]*?(?=^## )/m)
   if (!commandTableSection) {
-    commandSurfaceFailures++;
-    fail('skmtc-cli SKILL.md: "Command surface" section not found');
+    commandSurfaceFailures++
+    fail('skmtc-cli SKILL.md: "Command surface" section not found')
   } else {
-    for (
-      const row of commandTableSection[0].matchAll(/^\| `([a-z][a-z-]*)/gm)
-    ) {
+    for (const row of commandTableSection[0].matchAll(/^\| `([a-z][a-z-]*)/gm)) {
       if (!topLevelCommands.includes(row[1])) {
-        commandSurfaceFailures++;
+        commandSurfaceFailures++
         fail(
           `skmtc-cli SKILL.md command table: \`${row[1]}\` is not a registered ` +
-            `top-level command in cli/mod.ts`,
-        );
+            `top-level command in cli/mod.ts`
+        )
       }
     }
   }
@@ -568,8 +515,8 @@ if (rootChainIndex === -1 || topLevelCommands.length === 0) {
   if (commandSurfaceFailures === 0) {
     pass(
       `CLI command-surface sync: all ${topLevelCommands.length} registered commands ` +
-        `are in the skill + have reference pages; no stale entries`,
-    );
+        `are in the skill + have reference pages; no stale entries`
+    )
   }
 }
 
@@ -581,86 +528,76 @@ if (rootChainIndex === -1 || topLevelCommands.length === 0) {
 // ---------------------------------------------------------------------
 
 const parseUnionMembers = (text: string, typeName: string): string[] => {
-  const lines = text.split("\n");
-  const start = lines.findIndex((line) =>
-    line.startsWith(`export type ${typeName} =`)
-  );
-  if (start === -1) return [];
+  const lines = text.split('\n')
+  const start = lines.findIndex(line => line.startsWith(`export type ${typeName} =`))
+  if (start === -1) return []
 
-  const members: string[] = [];
+  const members: string[] = []
   for (const line of lines.slice(start + 1)) {
-    const member = line.match(/^\s*\| '([A-Z_]+)'/);
-    if (!member) break;
-    members.push(member[1]);
+    const member = line.match(/^\s*\| '([A-Z_]+)'/)
+    if (!member) break
+    members.push(member[1])
   }
-  return members;
-};
+  return members
+}
 
 const oasIssueMembers = parseUnionMembers(
-  await Deno.readTextFile(join(denoDir, "core", "context", "generateTypes.ts")),
-  "OasIssueType",
-);
-const parseIssueText = await Deno.readTextFile(
-  join(denoDir, "core", "context", "ParseIssue.ts"),
-);
-const gqlIssueMembers = parseUnionMembers(parseIssueText, "GqlIssueType");
+  await Deno.readTextFile(join(denoDir, 'core', 'context', 'generateTypes.ts')),
+  'OasIssueType'
+)
+const parseIssueText = await Deno.readTextFile(join(denoDir, 'core', 'context', 'ParseIssue.ts'))
+const gqlIssueMembers = parseUnionMembers(parseIssueText, 'GqlIssueType')
 
-const errorCodesText = await Deno.readTextFile(
-  join(docsDir, "reference", "error-codes.md"),
-);
+const errorCodesText = await Deno.readTextFile(join(docsDir, 'reference', 'error-codes.md'))
 
 if (oasIssueMembers.length === 0 || gqlIssueMembers.length === 0) {
   fail(
-    "issue-type unions: could not parse OasIssueType or GqlIssueType from " +
-      "core — the union parser needs updating",
-  );
+    'issue-type unions: could not parse OasIssueType or GqlIssueType from ' +
+      'core — the union parser needs updating'
+  )
 } else {
-  let issueSyncFailures = 0;
-  const unionMembers = new Set([...oasIssueMembers, ...gqlIssueMembers]);
+  let issueSyncFailures = 0
+  const unionMembers = new Set([...oasIssueMembers, ...gqlIssueMembers])
 
   for (const code of unionMembers) {
     if (!errorCodesText.includes(`### \`${code}\``)) {
-      issueSyncFailures++;
+      issueSyncFailures++
       fail(
         `reference/error-codes.md: issue type ${code} is in the source union ` +
-          `but has no \`### ${code}\` entry`,
-      );
+          `but has no \`### ${code}\` entry`
+      )
     }
   }
 
   for (const heading of errorCodesText.matchAll(/^### `([A-Z_]+)`/gm)) {
     if (!unionMembers.has(heading[1])) {
-      issueSyncFailures++;
+      issueSyncFailures++
       fail(
         `reference/error-codes.md: documents ${heading[1]}, which is in ` +
-          `neither OasIssueType nor GqlIssueType`,
-      );
+          `neither OasIssueType nor GqlIssueType`
+      )
     }
   }
 
   const sourceLevels = [
-    ...new Set(
-      [...parseIssueText.matchAll(/level: '(\w+)'/g)].map((match) => match[1]),
-    ),
-  ];
-  const levelsSection = errorCodesText.match(
-    /^## Issue levels[\s\S]*?(?=^## )/m,
-  );
+    ...new Set([...parseIssueText.matchAll(/level: '(\w+)'/g)].map(match => match[1]))
+  ]
+  const levelsSection = errorCodesText.match(/^## Issue levels[\s\S]*?(?=^## )/m)
   for (const level of sourceLevels) {
     if (!levelsSection || !levelsSection[0].includes(`\`${level}\``)) {
-      issueSyncFailures++;
+      issueSyncFailures++
       fail(
         `reference/error-codes.md "Issue levels": source emits level '${level}' ` +
-          `(core/context/ParseIssue.ts) but the section doesn't document it`,
-      );
+          `(core/context/ParseIssue.ts) but the section doesn't document it`
+      )
     }
   }
 
   if (issueSyncFailures === 0) {
     pass(
       `parse-issue sync: all ${unionMembers.size} issue codes and ` +
-        `${sourceLevels.length} levels match error-codes.md, no stale entries`,
-    );
+        `${sourceLevels.length} levels match error-codes.md, no stale entries`
+    )
   }
 }
 
@@ -673,54 +610,49 @@ if (oasIssueMembers.length === 0 || gqlIssueMembers.length === 0) {
 // ---------------------------------------------------------------------
 
 const parseSchemaKeys = (text: string, constName: string): string[] => {
-  const lines = text.split("\n");
-  const start = lines.findIndex((line) =>
-    line.startsWith(`export const ${constName}`)
-  );
-  if (start === -1) return [];
+  const lines = text.split('\n')
+  const start = lines.findIndex(line => line.startsWith(`export const ${constName}`))
+  if (start === -1) return []
 
-  const keys: string[] = [];
+  const keys: string[] = []
   for (const line of lines.slice(start + 1)) {
-    if (/^\}\)/.test(line)) break;
-    const key = line.match(/^  (\w+):/);
-    if (key) keys.push(key[1]);
+    if (/^\}\)/.test(line)) break
+    const key = line.match(/^  (\w+):/)
+    if (key) keys.push(key[1])
   }
-  return keys;
-};
+  return keys
+}
 
-const settingsText = await Deno.readTextFile(
-  join(denoDir, "core", "types", "Settings.ts"),
-);
+const settingsText = await Deno.readTextFile(join(denoDir, 'core', 'types', 'Settings.ts'))
 const clientJsonDocText = await Deno.readTextFile(
-  join(docsDir, "reference", "settings", "client-json-schema.md"),
-);
+  join(docsDir, 'reference', 'settings', 'client-json-schema.md')
+)
 
-const settingsKeys = parseSchemaKeys(settingsText, "clientSettings");
-const configKeys = parseSchemaKeys(settingsText, "skmtcClientConfig");
+const settingsKeys = parseSchemaKeys(settingsText, 'clientSettings')
+const configKeys = parseSchemaKeys(settingsText, 'skmtcClientConfig')
 
 if (settingsKeys.length === 0 || configKeys.length === 0) {
   fail(
-    "core/types/Settings.ts: could not parse clientSettings or " +
-      "skmtcClientConfig keys — the schema parser needs updating",
-  );
+    'core/types/Settings.ts: could not parse clientSettings or ' +
+      'skmtcClientConfig keys — the schema parser needs updating'
+  )
 } else {
-  let settingsSyncFailures = 0;
-  for (
-    const [owner, keys] of [
-      ["clientSettings", settingsKeys],
-      ["skmtcClientConfig", configKeys],
-    ] as const
-  ) {
+  let settingsSyncFailures = 0
+  for (const [owner, keys] of [
+    ['clientSettings', settingsKeys],
+    ['skmtcClientConfig', configKeys]
+  ] as const) {
     for (const key of keys) {
-      const documented = clientJsonDocText.includes(`"${key}"`) ||
+      const documented =
+        clientJsonDocText.includes(`"${key}"`) ||
         clientJsonDocText.includes(`\`${key}\``) ||
-        clientJsonDocText.includes(`.${key}\``);
+        clientJsonDocText.includes(`.${key}\``)
       if (!documented) {
-        settingsSyncFailures++;
+        settingsSyncFailures++
         fail(
           `reference/settings/client-json-schema.md: ${owner} key ` +
-            `\`${key}\` (core/types/Settings.ts) is not documented`,
-        );
+            `\`${key}\` (core/types/Settings.ts) is not documented`
+        )
       }
     }
   }
@@ -728,8 +660,8 @@ if (settingsKeys.length === 0 || configKeys.length === 0) {
   if (settingsSyncFailures === 0) {
     pass(
       `client-settings sync: all ${settingsKeys.length + configKeys.length} ` +
-        `schema keys appear in client-json-schema.md`,
-    );
+        `schema keys appear in client-json-schema.md`
+    )
   }
 }
 
@@ -744,100 +676,76 @@ if (settingsKeys.length === 0 || configKeys.length === 0) {
 // ---------------------------------------------------------------------
 
 type ReaderLintPattern = {
-  name: string;
-  explain: string;
-  matches: (line: string) => boolean;
-};
+  name: string
+  explain: string
+  matches: (line: string) => boolean
+}
 
-const regexLint = (
-  name: string,
-  explain: string,
-  regex: RegExp,
-): ReaderLintPattern => ({
+const regexLint = (name: string, explain: string, regex: RegExp): ReaderLintPattern => ({
   name,
   explain,
-  matches: (line) => regex.test(line),
-});
+  matches: line => regex.test(line)
+})
 
 const readerLintPatterns: ReaderLintPattern[] = [
   regexLint(
-    "link-to-internal-layer",
-    "reader page links into skills/, friction-log/, or evals/ (agent/internal layers)",
-    /\]\((?:\.{1,2}\/)*(?:skills|friction-log|evals)\//,
+    'link-to-internal-layer',
+    'reader page links into skills/, friction-log/, or evals/ (agent/internal layers)',
+    /\]\((?:\.{1,2}\/)*(?:skills|friction-log|evals)\//
   ),
+  regexLint('notes-path', 'reference to the private notes/ tree', /\bnotes\/[\w-]+\//),
+  regexLint('internal-ticket', 'internal ticket id', /#SKM-\d+/),
+  regexLint('refactor-batch-tag', 'internal refactor-batch shorthand (F5/F6-style)', /\bF[0-9]\b/),
+  regexLint('draft-banner', 'DRAFT banner on a shipped page', /\bDRAFT\b/),
+  regexLint('maintainer-name', 'maintainer name in reader-facing prose', /Dmitri/),
+  regexLint('corpus-citation', 'code-review evidence citation', /\bcorpus:/),
   regexLint(
-    "notes-path",
-    "reference to the private notes/ tree",
-    /\bnotes\/[\w-]+\//,
-  ),
-  regexLint("internal-ticket", "internal ticket id", /#SKM-\d+/),
-  regexLint(
-    "refactor-batch-tag",
-    "internal refactor-batch shorthand (F5/F6-style)",
-    /\bF[0-9]\b/,
-  ),
-  regexLint("draft-banner", "DRAFT banner on a shipped page", /\bDRAFT\b/),
-  regexLint(
-    "maintainer-name",
-    "maintainer name in reader-facing prose",
-    /Dmitri/,
-  ),
-  regexLint(
-    "corpus-citation",
-    "code-review evidence citation",
-    /\bcorpus:/,
-  ),
-  regexLint(
-    "line-number-citation",
-    "file:line citation — line numbers rot; cite symbols",
-    /\b[A-Za-z][\w./-]*\.tsx?:\d+/,
+    'line-number-citation',
+    'file:line citation — line numbers rot; cite symbols',
+    /\b[A-Za-z][\w./-]*\.tsx?:\d+/
   ),
   {
-    name: "bracket-placeholder",
-    explain: "unfilled bracket placeholder prose",
-    matches: (line) =>
-      /^\[[A-Z]/.test(line.trim()) && !line.includes("]("),
-  },
-];
+    name: 'bracket-placeholder',
+    explain: 'unfilled bracket placeholder prose',
+    matches: line => /^\[[A-Z]/.test(line.trim()) && !line.includes('](')
+  }
+]
 
-const readerLintFiles: string[] = [join(docsDir, "README.md")];
+const readerLintFiles: string[] = [join(docsDir, 'README.md')]
 const collectReaderFacing = async (root: string): Promise<void> => {
   for await (const entry of Deno.readDir(root)) {
-    const path = join(root, entry.name);
-    if (entry.isDirectory) await collectReaderFacing(path);
-    else if (entry.name.endsWith(".md") && entry.name !== "CLAUDE.md") {
-      readerLintFiles.push(path);
+    const path = join(root, entry.name)
+    if (entry.isDirectory) await collectReaderFacing(path)
+    else if (entry.name.endsWith('.md') && entry.name !== 'CLAUDE.md') {
+      readerLintFiles.push(path)
     }
   }
-};
-for (
-  const dir of ["using", "authoring", "concepts", "explanation", "reference"]
-) {
-  await collectReaderFacing(join(docsDir, dir));
+}
+for (const dir of ['using', 'authoring', 'concepts', 'explanation', 'reference']) {
+  await collectReaderFacing(join(docsDir, dir))
 }
 
-const toDocsRelative = (path: string): string =>
-  path.replace(docsDir + "/", "");
+const toDocsRelative = (path: string): string => path.replace(docsDir + '/', '')
 
-const readerFileTexts = new Map<string, string>();
+const readerFileTexts = new Map<string, string>()
 for (const file of readerLintFiles) {
-  readerFileTexts.set(toDocsRelative(file), await Deno.readTextFile(file));
+  readerFileTexts.set(toDocsRelative(file), await Deno.readTextFile(file))
 }
 
-const readerLintCounts = new Map<string, number>();
-const readerLintFirstHit = new Map<string, string>();
+const readerLintCounts = new Map<string, number>()
+const readerLintFirstHit = new Map<string, string>()
 for (const [relPath, text] of readerFileTexts) {
-  text.split("\n").forEach((line, index) => {
+  text.split('\n').forEach((line, index) => {
     for (const pattern of readerLintPatterns) {
       if (pattern.matches(line)) {
-        const key = `${relPath}|${pattern.name}`;
-        readerLintCounts.set(key, (readerLintCounts.get(key) ?? 0) + 1);
+        const key = `${relPath}|${pattern.name}`
+        readerLintCounts.set(key, (readerLintCounts.get(key) ?? 0) + 1)
         if (!readerLintFirstHit.has(key)) {
-          readerLintFirstHit.set(key, `${relPath}:${index + 1}`);
+          readerLintFirstHit.set(key, `${relPath}:${index + 1}`)
         }
       }
     }
-  });
+  })
 }
 
 // ---------------------------------------------------------------------
@@ -846,167 +754,144 @@ for (const [relPath, text] of readerFileTexts) {
 //     README.md when one exists.
 // ---------------------------------------------------------------------
 
-const orphanEntryPoints = ["README.md", "using/README.md", "authoring/README.md"];
+const orphanEntryPoints = ['README.md', 'using/README.md', 'authoring/README.md']
 
 const resolveDocsLink = (fromRelPath: string, target: string): string =>
-  join(dirname(join(docsDir, fromRelPath)), target).replace(
-    docsDir + "/",
-    "",
-  );
+  join(dirname(join(docsDir, fromRelPath)), target).replace(docsDir + '/', '')
 
-const reachable = new Set<string>();
-const queue = orphanEntryPoints.filter((entry) => readerFileTexts.has(entry));
-for (const entry of queue) reachable.add(entry);
+const reachable = new Set<string>()
+const queue = orphanEntryPoints.filter(entry => readerFileTexts.has(entry))
+for (const entry of queue) reachable.add(entry)
 
 while (queue.length > 0) {
-  const current = queue.shift();
-  if (current === undefined) break;
-  const text = readerFileTexts.get(current);
-  if (text === undefined) continue;
+  const current = queue.shift()
+  if (current === undefined) break
+  const text = readerFileTexts.get(current)
+  if (text === undefined) continue
 
   for (const match of text.matchAll(/\]\(([^)\s]+?)(?:#[^)]*)?\)/g)) {
-    const target = match[1];
-    if (/^[a-z][a-z+]*:/.test(target)) continue; // absolute URL scheme
+    const target = match[1]
+    if (/^[a-z][a-z+]*:/.test(target)) continue // absolute URL scheme
 
-    const candidates = target.endsWith(".md")
+    const candidates = target.endsWith('.md')
       ? [resolveDocsLink(current, target)]
-      : target.endsWith("/")
-      ? [resolveDocsLink(current, target + "README.md")]
-      : [];
+      : target.endsWith('/')
+        ? [resolveDocsLink(current, target + 'README.md')]
+        : []
 
     for (const candidate of candidates) {
       if (readerFileTexts.has(candidate) && !reachable.has(candidate)) {
-        reachable.add(candidate);
-        queue.push(candidate);
+        reachable.add(candidate)
+        queue.push(candidate)
       }
     }
   }
 }
 
-const currentOrphans = [...readerFileTexts.keys()]
-  .filter((relPath) => !reachable.has(relPath))
-  .sort();
+const currentOrphans = [...readerFileTexts.keys()].filter(relPath => !reachable.has(relPath)).sort()
 
 // ---------------------------------------------------------------------
 // Baseline compare (checks 9 + 10 share reader-lint-baseline.json).
 // ---------------------------------------------------------------------
 
 type ReaderLintBaseline = {
-  patterns: Record<string, number>;
-  orphans: string[];
-};
+  patterns: Record<string, number>
+  orphans: string[]
+}
 
-const readerBaselinePath = join(docsDir, "reader-lint-baseline.json");
-const updateReaderBaseline = Deno.args.includes("--update-reader-baseline");
+const readerBaselinePath = join(docsDir, 'reader-lint-baseline.json')
+const updateReaderBaseline = Deno.args.includes('--update-reader-baseline')
 
 if (updateReaderBaseline) {
   const nextBaseline: ReaderLintBaseline = {
     patterns: Object.fromEntries(
-      [...readerLintCounts.entries()].sort(([a], [b]) => a.localeCompare(b)),
+      [...readerLintCounts.entries()].sort(([a], [b]) => a.localeCompare(b))
     ),
-    orphans: currentOrphans,
-  };
-  await Deno.writeTextFile(
-    readerBaselinePath,
-    JSON.stringify(nextBaseline, null, 2) + "\n",
-  );
+    orphans: currentOrphans
+  }
+  await Deno.writeTextFile(readerBaselinePath, JSON.stringify(nextBaseline, null, 2) + '\n')
   pass(
     `reader-lint baseline rewritten: ${readerLintCounts.size} file+pattern pins, ` +
-      `${currentOrphans.length} orphan(s) — review the diff before committing`,
-  );
+      `${currentOrphans.length} orphan(s) — review the diff before committing`
+  )
 } else {
-  const readerBaseline = await (async (): Promise<
-    ReaderLintBaseline | undefined
-  > => {
+  const readerBaseline = await (async (): Promise<ReaderLintBaseline | undefined> => {
     try {
-      return JSON.parse(
-        await Deno.readTextFile(readerBaselinePath),
-      ) as ReaderLintBaseline;
+      return JSON.parse(await Deno.readTextFile(readerBaselinePath)) as ReaderLintBaseline
     } catch {
       fail(
-        "reader-lint: docs/reader-lint-baseline.json missing or unreadable — " +
-          "regenerate with --update-reader-baseline (needs --allow-write)",
-      );
-      return undefined;
+        'reader-lint: docs/reader-lint-baseline.json missing or unreadable — ' +
+          'regenerate with --update-reader-baseline (needs --allow-write)'
+      )
+      return undefined
     }
-  })();
+  })()
 
   if (readerBaseline) {
     const patternExplanations = new Map(
-      readerLintPatterns.map((pattern) => [pattern.name, pattern.explain]),
-    );
+      readerLintPatterns.map(pattern => [pattern.name, pattern.explain])
+    )
 
-    const allKeys = new Set([
-      ...readerLintCounts.keys(),
-      ...Object.keys(readerBaseline.patterns),
-    ]);
-    const readerLintProblems = [...allKeys].sort().flatMap((key) => {
-      const current = readerLintCounts.get(key) ?? 0;
-      const pinned = readerBaseline.patterns[key] ?? 0;
-      const patternName = key.split("|")[1];
+    const allKeys = new Set([...readerLintCounts.keys(), ...Object.keys(readerBaseline.patterns)])
+    const readerLintProblems = [...allKeys].sort().flatMap(key => {
+      const current = readerLintCounts.get(key) ?? 0
+      const pinned = readerBaseline.patterns[key] ?? 0
+      const patternName = key.split('|')[1]
 
       if (current > pinned) {
         return [
           `reader-lint: ${key} — ${current} hit(s), baseline pins ${pinned} ` +
-          `(${patternExplanations.get(patternName) ?? patternName}; ` +
-          `first hit ${readerLintFirstHit.get(key) ?? "?"})`,
-        ];
+            `(${patternExplanations.get(patternName) ?? patternName}; ` +
+            `first hit ${readerLintFirstHit.get(key) ?? '?'})`
+        ]
       }
       if (current < pinned) {
         return [
           `reader-lint ratchet: ${key} — improved to ${current} from ${pinned}; ` +
-          `shrink the baseline (rerun with --update-reader-baseline)`,
-        ];
+            `shrink the baseline (rerun with --update-reader-baseline)`
+        ]
       }
-      return [];
-    });
-    readerLintProblems.forEach(fail);
+      return []
+    })
+    readerLintProblems.forEach(fail)
 
     if (readerLintProblems.length === 0) {
       pass(
         `reader-lint: no new internal-provenance leaks across ${readerLintFiles.length} ` +
-          `reader-facing files (${readerLintCounts.size} baselined pins)`,
-      );
+          `reader-facing files (${readerLintCounts.size} baselined pins)`
+      )
     }
 
-    const baselinedOrphans = new Set(readerBaseline.orphans);
-    const newOrphans = currentOrphans.filter((orphan) =>
-      !baselinedOrphans.has(orphan)
-    );
-    const staleOrphanPins = readerBaseline.orphans.filter((orphan) =>
-      !currentOrphans.includes(orphan)
-    );
+    const baselinedOrphans = new Set(readerBaseline.orphans)
+    const newOrphans = currentOrphans.filter(orphan => !baselinedOrphans.has(orphan))
+    const staleOrphanPins = readerBaseline.orphans.filter(
+      orphan => !currentOrphans.includes(orphan)
+    )
 
-    newOrphans.forEach((orphan) =>
+    newOrphans.forEach(orphan =>
       fail(
         `orphan check: ${orphan} is unreachable from the entry points ` +
           `(README.md, using/README.md, authoring/README.md) — link it from a ` +
-          `journey or don't ship it`,
+          `journey or don't ship it`
       )
-    );
-    staleOrphanPins.forEach((orphan) =>
+    )
+    staleOrphanPins.forEach(orphan =>
       fail(
         `orphan-check ratchet: ${orphan} is no longer orphaned (or no longer ` +
-          `exists); shrink the baseline (rerun with --update-reader-baseline)`,
+          `exists); shrink the baseline (rerun with --update-reader-baseline)`
       )
-    );
+    )
 
     if (newOrphans.length + staleOrphanPins.length === 0) {
       pass(
         `orphan check: all reachable except ${currentOrphans.length} baselined ` +
-          `orphan(s) across ${readerFileTexts.size} pages`,
-      );
+          `orphan(s) across ${readerFileTexts.size} pages`
+      )
     }
   }
 }
 
 // ---------------------------------------------------------------------
 
-console.log(
-  `\n${
-    failures === 0
-      ? "All doc-sync checks hold."
-      : `${failures} check(s) failed.`
-  }`,
-);
-Deno.exit(failures > 0 ? 1 : 0);
+console.log(`\n${failures === 0 ? 'All doc-sync checks hold.' : `${failures} check(s) failed.`}`)
+Deno.exit(failures > 0 ? 1 : 0)

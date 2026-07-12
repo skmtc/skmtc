@@ -1,45 +1,45 @@
-import { commands, TreeView, window } from 'vscode';
-import { readManifest } from '../utilities/readManifest';
-import { resolve } from 'node:path';
-import { toRootPath } from '../utilities/getRootPath';
-import { unlinkSync } from 'node:fs';
-import { ExtensionStore } from '../types/ExtensionStore';
-import { SettingsNode } from '../settings/SettingsNode';
-import { filesUpdated } from '../create/createWatchers';
+import { commands, TreeView, window } from 'vscode'
+import { readManifest } from '../utilities/readManifest'
+import { resolve } from 'node:path'
+import { toRootPath } from '../utilities/getRootPath'
+import { unlinkSync } from 'node:fs'
+import { ExtensionStore } from '../types/ExtensionStore'
+import { SettingsNode } from '../settings/SettingsNode'
+import { filesUpdated } from '../create/createWatchers'
 
 type RegisterDeleteArtifactsArgs = {
-  store: ExtensionStore;
-  settingsTreeView: TreeView<SettingsNode>;
-};
+  store: ExtensionStore
+  settingsTreeView: TreeView<SettingsNode>
+}
 
 export const registerDeleteArtifacts = ({
   store,
-  settingsTreeView,
+  settingsTreeView
 }: RegisterDeleteArtifactsArgs) => {
   return commands.registerCommand('skmtc-vscode.deleteArtifacts', async () => {
-    const manifest = readManifest();
+    const manifest = readManifest()
 
     if (!manifest) {
-      return;
+      return
     }
 
-    const paths = Object.keys(manifest.files).sort();
+    const paths = Object.keys(manifest.files).sort()
 
-    const rootPath = toRootPath();
+    const rootPath = toRootPath()
 
     const result = await window.showWarningMessage(
       `Delete ${paths.length} artifacts?`,
       {
         modal: true,
-        detail: paths.join('\n'),
+        detail: paths.join('\n')
       },
       'Delete'
-    );
+    )
 
     if (result === 'Delete') {
-      paths.forEach((path) => unlinkSync(resolve(rootPath, path)));
+      paths.forEach(path => unlinkSync(resolve(rootPath, path)))
     }
 
-    filesUpdated({ store, settingsTreeView });
-  });
-};
+    filesUpdated({ store, settingsTreeView })
+  })
+}

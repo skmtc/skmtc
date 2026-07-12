@@ -96,7 +96,7 @@ const buildContext = (settings: ClientSettings | undefined) => {
     logger: mockLogger,
     captureCurrentResult: () => {},
     // deno-lint-ignore no-explicit-any
-    toGeneratorConfigMap: () => ({ '@test/suffix-hook': entry } as any)
+    toGeneratorConfigMap: () => ({ '@test/suffix-hook': entry }) as any
   })
 }
 

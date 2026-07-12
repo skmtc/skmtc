@@ -250,91 +250,85 @@ Deno.test('deletePreviousArtifacts - handles nested directory paths', async () =
   }
 })
 
-Deno.test(
-  'deletePreviousArtifacts - skips cleanup gracefully when manifest is stale-schema',
-  async () => {
-    // Same tolerance contract as `Manifest.open` — a stale manifest
-    // shouldn't abort the generate run. Here we verify the
-    // sync-codepath version of that behavior: the function logs a
-    // warning on stderr and returns without throwing or deleting
-    // any user files.
-    const tempDir = await Deno.makeTempDir()
-    const errors: string[] = []
-    const originalError = console.error
-    console.error = (msg: string) => errors.push(msg)
+Deno.test('deletePreviousArtifacts - skips cleanup gracefully when manifest is stale-schema', async () => {
+  // Same tolerance contract as `Manifest.open` — a stale manifest
+  // shouldn't abort the generate run. Here we verify the
+  // sync-codepath version of that behavior: the function logs a
+  // warning on stderr and returns without throwing or deleting
+  // any user files.
+  const tempDir = await Deno.makeTempDir()
+  const errors: string[] = []
+  const originalError = console.error
+  console.error = (msg: string) => errors.push(msg)
 
-    try {
-      const skmtcDir = join(tempDir, 'skmtc')
-      await Deno.mkdir(skmtcDir)
+  try {
+    const skmtcDir = join(tempDir, 'skmtc')
+    await Deno.mkdir(skmtcDir)
 
-      const manifestPath = join(skmtcDir, 'manifest.json')
-      const oldFilePath = join(tempDir, 'old-file.ts')
-      await Deno.writeTextFile(oldFilePath, 'should not be touched')
+    const manifestPath = join(skmtcDir, 'manifest.json')
+    const oldFilePath = join(tempDir, 'old-file.ts')
+    await Deno.writeTextFile(oldFilePath, 'should not be touched')
 
-      // Stale-schema manifest: missing `parseIssues`.
-      await Deno.writeTextFile(
-        manifestPath,
-        JSON.stringify({
-          deploymentId: 'stale',
-          traceId: 'stale',
-          spanId: 'stale',
-          files: {
-            'old-file.ts': { lines: 1, characters: 1, destinationPath: 'old-file.ts' }
-          },
-          previews: {},
-          results: {},
-          startAt: 0,
-          endAt: 0
-        })
-      )
-
-      deletePreviousArtifacts({
-        skmtcRootPath: skmtcDir,
-        manifestPath,
-        incomingPaths: []
+    // Stale-schema manifest: missing `parseIssues`.
+    await Deno.writeTextFile(
+      manifestPath,
+      JSON.stringify({
+        deploymentId: 'stale',
+        traceId: 'stale',
+        spanId: 'stale',
+        files: {
+          'old-file.ts': { lines: 1, characters: 1, destinationPath: 'old-file.ts' }
+        },
+        previews: {},
+        results: {},
+        startAt: 0,
+        endAt: 0
       })
+    )
 
-      // File should NOT be deleted — we couldn't trust the manifest.
-      const stillExists = await Deno.stat(oldFilePath)
-        .then(() => true)
-        .catch(() => false)
-      assertEquals(stillExists, true)
-      assertEquals(errors.length, 1)
-    } finally {
-      console.error = originalError
-      await Deno.remove(tempDir, { recursive: true })
-    }
+    deletePreviousArtifacts({
+      skmtcRootPath: skmtcDir,
+      manifestPath,
+      incomingPaths: []
+    })
+
+    // File should NOT be deleted — we couldn't trust the manifest.
+    const stillExists = await Deno.stat(oldFilePath)
+      .then(() => true)
+      .catch(() => false)
+    assertEquals(stillExists, true)
+    assertEquals(errors.length, 1)
+  } finally {
+    console.error = originalError
+    await Deno.remove(tempDir, { recursive: true })
   }
-)
+})
 
-Deno.test(
-  'deletePreviousArtifacts - skips cleanup gracefully when manifest has malformed JSON',
-  async () => {
-    const tempDir = await Deno.makeTempDir()
-    const errors: string[] = []
-    const originalError = console.error
-    console.error = (msg: string) => errors.push(msg)
+Deno.test('deletePreviousArtifacts - skips cleanup gracefully when manifest has malformed JSON', async () => {
+  const tempDir = await Deno.makeTempDir()
+  const errors: string[] = []
+  const originalError = console.error
+  console.error = (msg: string) => errors.push(msg)
 
-    try {
-      const skmtcDir = join(tempDir, 'skmtc')
-      await Deno.mkdir(skmtcDir)
-      const manifestPath = join(skmtcDir, 'manifest.json')
-      await Deno.writeTextFile(manifestPath, '{not actually json')
+  try {
+    const skmtcDir = join(tempDir, 'skmtc')
+    await Deno.mkdir(skmtcDir)
+    const manifestPath = join(skmtcDir, 'manifest.json')
+    await Deno.writeTextFile(manifestPath, '{not actually json')
 
-      // Should not throw
-      deletePreviousArtifacts({
-        skmtcRootPath: skmtcDir,
-        manifestPath,
-        incomingPaths: []
-      })
+    // Should not throw
+    deletePreviousArtifacts({
+      skmtcRootPath: skmtcDir,
+      manifestPath,
+      incomingPaths: []
+    })
 
-      assertEquals(errors.length, 1)
-    } finally {
-      console.error = originalError
-      await Deno.remove(tempDir, { recursive: true })
-    }
+    assertEquals(errors.length, 1)
+  } finally {
+    console.error = originalError
+    await Deno.remove(tempDir, { recursive: true })
   }
-)
+})
 
 // --- writeGeneratedFiles: changed-only writes ------------------------------
 // Render output is deterministic, so most files are unchanged between runs.
@@ -432,7 +426,11 @@ Deno.test('writeGeneratedFiles - protects a hand-edited file from overwrite', as
       const artifactPath = join(tempDir, 'out.ts')
       const manifest = manifestFor('out.ts')
 
-      writeGeneratedFiles({ manifestPath, artifacts: { 'out.ts': 'export const a = 1\n' }, manifest })
+      writeGeneratedFiles({
+        manifestPath,
+        artifacts: { 'out.ts': 'export const a = 1\n' },
+        manifest
+      })
 
       // The user edits the generated file by hand.
       Deno.writeTextFileSync(artifactPath, 'export const a = 1 // patched by hand\n')
@@ -511,7 +509,11 @@ Deno.test('writeGeneratedFiles - reverting an edit resumes generation', async ()
       const artifactPath = join(tempDir, 'out.ts')
       const manifest = manifestFor('out.ts')
 
-      writeGeneratedFiles({ manifestPath, artifacts: { 'out.ts': 'export const a = 1\n' }, manifest })
+      writeGeneratedFiles({
+        manifestPath,
+        artifacts: { 'out.ts': 'export const a = 1\n' },
+        manifest
+      })
       Deno.writeTextFileSync(artifactPath, 'export const a = 99\n')
 
       const protectedRun = writeGeneratedFiles({
@@ -570,7 +572,10 @@ Deno.test('writeGeneratedFiles - seeds the lock for pre-existing untracked files
         manifest
       })
       assertEquals(second.protectedPaths, ['out.ts'])
-      assertEquals(Deno.readTextFileSync(artifactPath), 'export const a = 1 // edited after seeding\n')
+      assertEquals(
+        Deno.readTextFileSync(artifactPath),
+        'export const a = 1 // edited after seeding\n'
+      )
     })
   } finally {
     Deno.chdir(originalCwd)
@@ -600,7 +605,12 @@ Deno.test('writeGeneratedFiles - formats written files and stays quiet on unchan
       const manifest = manifestFor('out.ts')
       const clientSettings = { formatter: 'deno fmt' }
 
-      writeGeneratedFiles({ manifestPath, artifacts: { 'out.ts': canonical }, manifest, clientSettings })
+      writeGeneratedFiles({
+        manifestPath,
+        artifacts: { 'out.ts': canonical },
+        manifest,
+        clientSettings
+      })
       assertEquals(Deno.readTextFileSync(artifactPath), formattedDouble)
 
       // Rerun with identical canonical output: the formatted file must be
@@ -770,7 +780,11 @@ Deno.test('writeGeneratedFiles - warnOnProtected: false protects silently', asyn
       const artifactPath = join(tempDir, 'out.ts')
       const manifest = manifestFor('out.ts')
 
-      writeGeneratedFiles({ manifestPath, artifacts: { 'out.ts': 'export const a = 1\n' }, manifest })
+      writeGeneratedFiles({
+        manifestPath,
+        artifacts: { 'out.ts': 'export const a = 1\n' },
+        manifest
+      })
       Deno.writeTextFileSync(artifactPath, 'export const a = 1 // mine\n')
 
       // Watch mode: protection still applies, but the multi-line stderr
@@ -784,7 +798,10 @@ Deno.test('writeGeneratedFiles - warnOnProtected: false protects silently', asyn
 
       assertEquals(result.protectedPaths, ['out.ts'])
       assertEquals(Deno.readTextFileSync(artifactPath), 'export const a = 1 // mine\n')
-      assertEquals(errors.filter(msg => msg.includes('manual edits')), [])
+      assertEquals(
+        errors.filter(msg => msg.includes('manual edits')),
+        []
+      )
     })
   } finally {
     Deno.chdir(originalCwd)
@@ -810,7 +827,11 @@ Deno.test('writeGeneratedFiles - never writes or deletes an ejected file', async
       const manifest = manifestFor('out.ts')
 
       // Run 1: normal generation seeds disk + lock.
-      writeGeneratedFiles({ manifestPath, artifacts: { 'out.ts': 'export const a = 1\n' }, manifest })
+      writeGeneratedFiles({
+        manifestPath,
+        artifacts: { 'out.ts': 'export const a = 1\n' },
+        manifest
+      })
 
       // The user edits and ejects the file.
       Deno.writeTextFileSync(artifactPath, 'export const a = 1 // mine now\n')
@@ -828,7 +849,10 @@ Deno.test('writeGeneratedFiles - never writes or deletes an ejected file', async
 
       assertEquals(Deno.readTextFileSync(artifactPath), 'export const a = 1 // mine now\n')
       assertEquals(result.protectedPaths, [])
-      assertEquals(errors.filter(msg => msg.includes('manual edits')), [])
+      assertEquals(
+        errors.filter(msg => msg.includes('manual edits')),
+        []
+      )
 
       // The manifest on disk marks the entry as ejected.
       const manifestOnDisk = JSON.parse(Deno.readTextFileSync(manifestPath))

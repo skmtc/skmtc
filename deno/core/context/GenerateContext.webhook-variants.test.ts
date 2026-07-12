@@ -102,7 +102,7 @@ Deno.test('webhook variants - variants-aware handler emits a distinct file per d
     logger: mockLogger,
     captureCurrentResult: () => {},
     // deno-lint-ignore no-explicit-any
-    toGeneratorConfigMap: () => ({ '@test/fanout-webhook': entry } as any)
+    toGeneratorConfigMap: () => ({ '@test/fanout-webhook': entry }) as any
   })
 
   const { files } = context.toArtifacts(new StackTrail(['test']))
@@ -203,7 +203,7 @@ Deno.test('webhook variants - inserted peer webhook is deduped and imported into
     logger: mockLogger,
     captureCurrentResult: () => {},
     // deno-lint-ignore no-explicit-any
-    toGeneratorConfigMap: () => ({ '@test/caller-webhook': callerEntry } as any)
+    toGeneratorConfigMap: () => ({ '@test/caller-webhook': callerEntry }) as any
   })
 
   const { files } = context.toArtifacts(new StackTrail(['test']))

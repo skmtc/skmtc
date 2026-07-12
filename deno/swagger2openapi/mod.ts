@@ -45,7 +45,7 @@ export type {
   LinterRule,
   LintViolation,
   ResolveOptions,
-  ValidateOptions,
+  ValidateOptions
 } from './types.ts'
 
 export type { JsonObject, JsonValue } from './json.ts'

@@ -75,7 +75,6 @@ Deno.test('toModelEntry - toPreviewModule is undefined when not provided', () =>
   assertEquals(entry.toPreviewModule, undefined)
 })
 
-
 Deno.test('toModelEntry - includes provided toEnrichmentSchema', () => {
   const schemaFn = () => emptyEnrichmentSchema
   const entry = toModelEntry({
@@ -115,7 +114,6 @@ Deno.test('toModelEntry - includes toPreviewModule when provided', () => {
 
   assertEquals(entry.toPreviewModule, previewFn)
 })
-
 
 Deno.test('toModelEntry - includes all optional functions when provided', () => {
   const transformFn = () => {}

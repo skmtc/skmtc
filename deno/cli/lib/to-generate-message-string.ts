@@ -42,9 +42,7 @@ export const toGenerateMessageString = ({
   ]
 
   if (errors.length) {
-    lines.push(
-      ` - ${formatNumber(errors.length)} errors detected - view runtime logs for details`
-    )
+    lines.push(` - ${formatNumber(errors.length)} errors detected - view runtime logs for details`)
   }
 
   if (parseIssues.length) {

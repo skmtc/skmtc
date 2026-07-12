@@ -32,16 +32,11 @@ const withProject = async (
   Deno.chdir(tempRoot)
 
   const writeDenoJson = (imports: Record<string, string>) => {
-    Deno.writeTextFileSync(
-      join(projectPath, 'deno.json'),
-      JSON.stringify({ imports }, null, 2)
-    )
+    Deno.writeTextFileSync(join(projectPath, 'deno.json'), JSON.stringify({ imports }, null, 2))
   }
 
   const writeWorker = (generatorIds: string[]) => {
-    const importLines = generatorIds
-      .map((id, i) => `import gen${i} from '${id}'`)
-      .join('\n')
+    const importLines = generatorIds.map((id, i) => `import gen${i} from '${id}'`).join('\n')
     Deno.writeTextFileSync(
       join(projectPath, 'worker.ts'),
       `import toWorker from '@skmtc/worker'\n${importLines}\n\nexport default toWorker(() => ({}))`
@@ -137,22 +132,19 @@ Deno.test('checkBundleFreshness - returns stale when deno.json removes a generat
   })
 })
 
-Deno.test(
-  'checkBundleFreshness - filters non-generator imports from the comparison',
-  async () => {
-    await withProject(async ({ projectName, writeDenoJson, writeWorker }) => {
-      writeDenoJson({
-        '@skmtc/gen-typescript': './gen-typescript/mod.ts',
-        // Non-generator imports must not count toward freshness; they
-        // appear in deno.json (peer deps) but are not workspace
-        // members that would surface in worker.ts.
-        '@skmtc/core': 'jsr:@skmtc/core@0.3.7',
-        '@std/path/join': 'jsr:@std/path@^1.1.2/join'
-      })
-      writeWorker(['@skmtc/gen-typescript'])
-
-      const result = checkBundleFreshness({ projectName })
-      assertEquals(result.type, 'fresh')
+Deno.test('checkBundleFreshness - filters non-generator imports from the comparison', async () => {
+  await withProject(async ({ projectName, writeDenoJson, writeWorker }) => {
+    writeDenoJson({
+      '@skmtc/gen-typescript': './gen-typescript/mod.ts',
+      // Non-generator imports must not count toward freshness; they
+      // appear in deno.json (peer deps) but are not workspace
+      // members that would surface in worker.ts.
+      '@skmtc/core': 'jsr:@skmtc/core@0.3.7',
+      '@std/path/join': 'jsr:@std/path@^1.1.2/join'
     })
-  }
-)
+    writeWorker(['@skmtc/gen-typescript'])
+
+    const result = checkBundleFreshness({ projectName })
+    assertEquals(result.type, 'fresh')
+  })
+})

@@ -77,9 +77,10 @@ const wrapOperationEnrichments = (
         if (leaf === null || typeof leaf !== 'object' || Array.isArray(leaf)) continue
 
         const leafKeys = Object.keys(leaf as Record<string, unknown>)
-        if (leafKeys.includes('main')) continue // already migrated
+        if (leafKeys.includes('main'))
+          continue // already migrated
 
-        // Wrap.
+          // Wrap.
         ;(byInner as Record<string, unknown>)[innerName] = { main: leaf }
         wrapped.push({
           generatorId,

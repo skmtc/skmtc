@@ -18,7 +18,10 @@ export type WithDescriptionArgs = {
  * margin, so a formatter eats a content-leading `*` as decoration and
  * intra-line indentation is lost.
  */
-export const withDescription = (value: Stringable, { description }: WithDescriptionArgs): string => {
+export const withDescription = (
+  value: Stringable,
+  { description }: WithDescriptionArgs
+): string => {
   if (!description) {
     return `${value}`
   }

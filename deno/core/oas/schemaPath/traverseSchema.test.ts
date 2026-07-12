@@ -38,12 +38,20 @@ const schemaRef = ($ref: string, context: ParseContextType): OasRef<'schema'> =>
   new OasRef<'schema'>({ refType: 'schema', $ref }, context)
 
 const jsonResponse = (schema: OasSchema | OasRef<'schema'>) =>
-  new OasResponse({ description: 'ok', content: { 'application/json': new OasMediaType({ schema, mediaType: 'application/json' }) } })
+  new OasResponse({
+    description: 'ok',
+    content: { 'application/json': new OasMediaType({ schema, mediaType: 'application/json' }) }
+  })
 
 const jsonRequestBody = (schema: OasSchema | OasRef<'schema'>) =>
-  new OasRequestBody({ content: { 'application/json': new OasMediaType({ schema, mediaType: 'application/json' }) } })
+  new OasRequestBody({
+    content: { 'application/json': new OasMediaType({ schema, mediaType: 'application/json' }) }
+  })
 
-const operation = (fields: { responses?: OasOperation['responses']; requestBody?: OasRequestBody }) =>
+const operation = (fields: {
+  responses?: OasOperation['responses']
+  requestBody?: OasRequestBody
+}) =>
   new OasOperation({
     path: '/things',
     method: 'get',
@@ -85,7 +93,9 @@ Deno.test('traverseSchema: nested object -> array -> items', () => {
 
 Deno.test('traverseSchema: resolves a ref to descend, but leaves the final value a ref', () => {
   const context = toContext({ User: new OasObject({ properties: { name: new OasString() } }) })
-  const schema = new OasObject({ properties: { user: schemaRef('#/components/schemas/User', context) } })
+  const schema = new OasObject({
+    properties: { user: schemaRef('#/components/schemas/User', context) }
+  })
 
   // final value stays a ref (refName preserved)
   const target = traverseSchema(schema, ['user'])

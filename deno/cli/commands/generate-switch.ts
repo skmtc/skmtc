@@ -1,14 +1,12 @@
 import { toGenerateLocalArgs } from '@/lib/to-generate-local-args.ts'
 import { printGenerateResult } from '@/lib/print-generate-result.ts'
-import {
-  failWithRecipe,
-  resolveInputMode,
-  resolveOutputFormat
-} from '@/lib/strict-mode.ts'
+import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { toManifestPath } from '@/lib/to-manifest-path.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { checkBundleFreshness } from '@/lib/bundle-freshness.ts'
 import { runTypecheck } from '@/lib/typecheck.ts'
+import { detectFormatter, formatterHint } from '@/lib/detect-formatter.ts'
+import { toRootPath } from '@/lib/to-root-path.ts'
 import { resolve } from '@std/path'
 
 type GenerateSwitchArgs = {
@@ -61,7 +59,11 @@ export const generateSwitch = async ({
   }
 
   const mode = resolveInputMode({ noInputFlag, jsonFlag })
-  const generateLocalArgs = await toGenerateLocalArgs({ projectName, schemaSourceString, watch })
+  const generateLocalArgs = await toGenerateLocalArgs({
+    projectName,
+    schemaSourceString,
+    watch
+  })
 
   // Strict mode and `toGenerateLocalArgs` couldn't resolve everything
   // (no schema source given, none in `client.json#source`, or the
@@ -137,6 +139,15 @@ export const generateSwitch = async ({
       format
     })
 
+    // Human-facing nudge only (never in the agent-pinned JSON/strict
+    // output): when the app has a detectable formatter but
+    // `settings.formatter` isn't configured, suggest wiring it up so
+    // generated files come out formatted with attribution aligned.
+    if (format === 'text' && !generateLocalArgs.clientSettings?.formatter) {
+      const detected = detectFormatter(resolve(toRootPath(), '..'))
+      if (detected !== undefined) console.error(formatterHint(detected))
+    }
+
     // If any parseIssue came back at `error` level, the run isn't a
     // success even when the JSON payload has `type: "generated"`.
     // Core's CoreContext catches top-level failures and synthesizes
@@ -150,9 +161,7 @@ export const generateSwitch = async ({
     // issues" matches the original silent-success behavior for old
     // bundles; new bundles populate the field and get the proper
     // exit-1 signal.
-    const fatalParseIssue = (result.parseIssues ?? []).some(
-      issue => issue.level === 'error'
-    )
+    const fatalParseIssue = (result.parseIssues ?? []).some(issue => issue.level === 'error')
     // A failed typecheck is non-fatal-but-noticeable: signal exit 1
     // (the convention `parseIssues` already uses for "ran but found
     // problems"). The generated files stay on disk so the operator

@@ -240,10 +240,7 @@ type CheckProjectContext = {
   cliCorePin: string | null
 }
 
-const checkProject = (
-  projectName: string,
-  ctx: CheckProjectContext
-): Check[] => {
+const checkProject = (projectName: string, ctx: CheckProjectContext): Check[] => {
   const projectPath = toProjectPath(projectName)
   const denoJsonPath = join(projectPath, 'deno.json')
   const clientJsonPath = join(projectPath, '.settings', 'client.json')

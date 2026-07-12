@@ -16,7 +16,7 @@ const createMockOptions = (): ToJsonSchemaOptions => ({
   resolve: false
 })
 
-Deno.test('OasRequestBody - Constructor', async (t) => {
+Deno.test('OasRequestBody - Constructor', async t => {
   await t.step('should create request body with required content field', () => {
     const requestBody = new OasRequestBody({
       content: {
@@ -120,7 +120,7 @@ Deno.test('OasRequestBody - Constructor', async (t) => {
   })
 })
 
-Deno.test('OasRequestBody - Type Methods', async (t) => {
+Deno.test('OasRequestBody - Type Methods', async t => {
   await t.step('isRef() should always return false', () => {
     const requestBody = new OasRequestBody({
       content: {
@@ -158,7 +158,7 @@ Deno.test('OasRequestBody - Type Methods', async (t) => {
   })
 })
 
-Deno.test('OasRequestBody - toSchema()', async (t) => {
+Deno.test('OasRequestBody - toSchema()', async t => {
   await t.step('should extract schema for default application/json media type', () => {
     const schema = new OasString({ description: 'Test schema' })
     const requestBody = new OasRequestBody({
@@ -264,7 +264,7 @@ Deno.test('OasRequestBody - toSchema()', async (t) => {
   })
 })
 
-Deno.test('OasRequestBody - toJsonSchema()', async (t) => {
+Deno.test('OasRequestBody - toJsonSchema()', async t => {
   const options = createMockOptions()
 
   await t.step('should convert request body with all fields to JSON', () => {
@@ -389,7 +389,7 @@ Deno.test('OasRequestBody - toJsonSchema()', async (t) => {
   })
 })
 
-Deno.test('OasRequestBody - Integration Tests', async (t) => {
+Deno.test('OasRequestBody - Integration Tests', async t => {
   const options = createMockOptions()
 
   await t.step('should handle file upload with multipart/form-data', () => {

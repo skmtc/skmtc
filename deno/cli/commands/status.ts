@@ -150,9 +150,7 @@ export const printStatusResult = (
   }
 }
 
-const toEjectionNote = (
-  ejection: StatusHeadlessResult['files'][number]['ejection']
-): string => {
+const toEjectionNote = (ejection: StatusHeadlessResult['files'][number]['ejection']): string => {
   if (!ejection) {
     return ''
   }
@@ -163,11 +161,12 @@ const toEjectionNote = (
     case 're-adoptable':
       return ' (matches generated output — `skmtc adopt` to resume generation)'
     case 'drifted': {
-      const overlap = ejection.classification === 'collision'
-        ? 'the generator changes collide with your edits'
-        : ejection.classification === 'non-overlapping'
-          ? "the generator changes don't touch your edits"
-          : 'overlap unknown'
+      const overlap =
+        ejection.classification === 'collision'
+          ? 'the generator changes collide with your edits'
+          : ejection.classification === 'non-overlapping'
+            ? "the generator changes don't touch your edits"
+            : 'overlap unknown'
       const reviewed = ejection.reviewed ? '; reviewed' : ''
       return ` (drifted — ${overlap}${reviewed})`
     }

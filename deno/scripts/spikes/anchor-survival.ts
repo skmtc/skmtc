@@ -133,7 +133,7 @@ type Path = number[]
 
 function topLevelNames(sf: ts.SourceFile): Map<string, ts.Node> {
   const out = new Map<string, ts.Node>()
-  sf.forEachChild((stmt) => {
+  sf.forEachChild(stmt => {
     const name = topLevelName(stmt)
     if (name) out.set(name, stmt)
   })
@@ -159,7 +159,7 @@ function topLevelName(stmt: ts.Node): string | null {
 
 function realChildren(node: ts.Node): ts.Node[] {
   const out: ts.Node[] = []
-  node.forEachChild((c) => {
+  node.forEachChild(c => {
     out.push(c)
   })
   return out
@@ -225,8 +225,8 @@ function normalize(input: string): string {
   // logical content.
   return input
     .replace(/\s+/g, ' ')
-    .replace(/,(\s*[}\])])/g, '$1')   // ignore trailing commas
-    .replace(/;\s*$/g, '')             // ignore trailing semicolons
+    .replace(/,(\s*[}\])])/g, '$1') // ignore trailing commas
+    .replace(/;\s*$/g, '') // ignore trailing semicolons
     .trim()
 }
 
@@ -313,20 +313,26 @@ function resolveProbes(
 
 // ----- formatters -----
 
-type Formatter = { name: string; format: (source: string, parser: 'typescript' | 'babel') => Promise<string> }
+type Formatter = {
+  name: string
+  format: (source: string, parser: 'typescript' | 'babel') => Promise<string>
+}
 
 const formatters: Formatter[] = [
   {
     name: 'prettier-default',
-    format: async (source, parser) => prettier.format(source, { parser, semi: false, singleQuote: true })
+    format: async (source, parser) =>
+      prettier.format(source, { parser, semi: false, singleQuote: true })
   },
   {
     name: 'prettier-with-semi',
-    format: async (source, parser) => prettier.format(source, { parser, semi: true, singleQuote: false })
+    format: async (source, parser) =>
+      prettier.format(source, { parser, semi: true, singleQuote: false })
   },
   {
     name: 'prettier-wide',
-    format: async (source, parser) => prettier.format(source, { parser, printWidth: 200, semi: false })
+    format: async (source, parser) =>
+      prettier.format(source, { parser, printWidth: 200, semi: false })
   }
 ]
 
@@ -380,7 +386,7 @@ async function main() {
 
       // Surface failing examples (kind-mismatch and path-invalid are the
       // real failures; drift is informational).
-      const realFailures = failed.filter((f) => f.reason !== 'content-drift')
+      const realFailures = failed.filter(f => f.reason !== 'content-drift')
       if (realFailures.length > 0) {
         const sample = realFailures.slice(0, 3)
         for (const f of sample) {

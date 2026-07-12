@@ -3,5 +3,5 @@ info:
   title: Remove an example
   version: 1.0.0
 actions:
-- target: $..description
-  remove: true
+  - target: $..description
+    remove: true

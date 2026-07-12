@@ -109,7 +109,10 @@ export function visitRefObjects(node: JsonObject, refCallback: RefVisitor): Json
  * @param objectCallback the function to call on JSON objects
  * @returns the modified (annotated) node
  */
-export function walkObject(node: JsonObject | JsonValue[], objectCallback: ObjectVisitor): JsonNode {
+export function walkObject(
+  node: JsonObject | JsonValue[],
+  objectCallback: ObjectVisitor
+): JsonNode {
   if (Array.isArray(node)) {
     return walkArray(node)
   }

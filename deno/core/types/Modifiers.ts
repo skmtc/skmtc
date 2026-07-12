@@ -1,27 +1,27 @@
 /**
  * Type modifiers used throughout the SKMTC type system.
- * 
+ *
  * `Modifiers` represent additional metadata and constraints that can be
  * applied to type system values. These modifiers affect how types are
  * generated and used in the target language output.
- * 
+ *
  * @example Basic usage
  * ```typescript
  * import { Modifiers } from '@skmtc/core';
- * 
+ *
  * const stringModifiers: Modifiers = {
  *   required: true,
  *   nullable: false,
  *   description: 'User email address'
  * };
- * 
+ *
  * const optionalModifiers: Modifiers = {
  *   required: false,
  *   nullable: true,
  *   description: 'Optional user profile image URL'
  * };
  * ```
- * 
+ *
  * @example In type system values
  * ```typescript
  * const emailField: TypeSystemString = {
@@ -34,7 +34,7 @@
  *     description: 'Valid email address for account registration'
  *   }
  * };
- * 
+ *
  * const optionalNote: TypeSystemString = {
  *   type: 'string',
  *   format: undefined,
@@ -46,19 +46,19 @@
  *   }
  * };
  * ```
- * 
+ *
  * @example TypeScript generation
  * ```typescript
  * function generateTypeScript(type: TypeSystemValue): string {
  *   const baseType = generateBaseType(type);
  *   const optional = !type.modifiers.required ? '?' : '';
  *   const nullable = type.modifiers.nullable ? ' | null' : '';
- *   
+ *
  *   return `${baseType}${nullable}${optional}`;
  * }
- * 
+ *
  * // Required non-null string: 'string'
- * // Optional non-null string: 'string?'  
+ * // Optional non-null string: 'string?'
  * // Required nullable string: 'string | null'
  * // Optional nullable string: 'string | null?'
  * ```

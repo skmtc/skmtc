@@ -203,16 +203,16 @@ export class List<
 
     switch (this.bookends) {
       case '[]':
-        return `[${joined}]`;
+        return `[${joined}]`
       case '{}':
-        return `{${joined}}`;
+        return `{${joined}}`
       case '()':
-        return `(${joined})`;
+        return `(${joined})`
       case 'none':
-        return joined;
+        return joined
       default: {
-        const _exhaustive: never = this.bookends;
-        throw new Error(`Unhandled bookends type: ${_exhaustive}`);
+        const _exhaustive: never = this.bookends
+        throw new Error(`Unhandled bookends type: ${_exhaustive}`)
       }
     }
   }

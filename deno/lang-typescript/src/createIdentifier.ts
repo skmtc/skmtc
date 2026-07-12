@@ -207,5 +207,4 @@ export const isBlockType = (type: TsEntityType): boolean =>
  * type-level kinds `type` and `interface`. (`class` is a value; `namespace`
  * imports as a value for its `.Member` access.)
  */
-export const isTypeOnly = (type: TsEntityType): boolean =>
-  type === 'type' || type === 'interface'
+export const isTypeOnly = (type: TsEntityType): boolean => type === 'type' || type === 'interface'

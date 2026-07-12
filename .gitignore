@@ -71,3 +71,7 @@ todo.txt
 # and scaffold-compile test temp dirs.
 deno/docs/.doc-test/
 deno/.scaffold-check-*/
+
+# Design-hook caches (per-machine)
+.impeccable/
+**/.impeccable/

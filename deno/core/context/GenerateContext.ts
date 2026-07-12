@@ -1,8 +1,5 @@
 import { normalize } from '@std/path/normalize'
-import {
-  applyGeneratedSuffix,
-  DEFAULT_GENERATED_SUFFIX
-} from '@/helpers/applyGeneratedSuffix.ts'
+import { applyGeneratedSuffix, DEFAULT_GENERATED_SUFFIX } from '@/helpers/applyGeneratedSuffix.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
@@ -930,7 +927,7 @@ export class GenerateContext implements GenerateContextType {
   ) {
     const refNames =
       document.type === 'oas'
-        ? document.value.components?.toSchemasRefNames() ?? []
+        ? (document.value.components?.toSchemasRefNames() ?? [])
         : document.value.registry.toSchemasRefNames()
 
     refNames.forEach(refName => {
@@ -1083,7 +1080,6 @@ export class GenerateContext implements GenerateContextType {
 
   #ejectedBySuffixedPathCache: Map<string, string> | undefined
 
-
   /**
    * Look up an already-registered file by path, or `undefined` if none
    * exists. Neutral primitive: returns the abstract `FileBase` and never
@@ -1188,7 +1184,13 @@ export class GenerateContext implements GenerateContextType {
    *
    * @mutates this.files
    */
-  register({ imports = [], reExports = [], definitions, custom, destinationPath }: ContextRegisterArgs) {
+  register({
+    imports = [],
+    reExports = [],
+    definitions,
+    custom,
+    destinationPath
+  }: ContextRegisterArgs) {
     const normalizedPath = normalize(destinationPath)
 
     const currentFile = this.getFile(normalizedPath)

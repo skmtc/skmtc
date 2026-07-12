@@ -141,7 +141,10 @@ export const cleanHeadless = async ({
     // file the lock knows is hand-edited is reported, never destroyed
     // silently. Use --dry-run to see these before a real run.
     const lockEntry = lock?.files[path]
-    if (lockEntry && classifyDiskFile({ artifactPath: path, absolutePath, lockEntry, detection }).edited) {
+    if (
+      lockEntry &&
+      classifyDiskFile({ artifactPath: path, absolutePath, lockEntry, detection }).edited
+    ) {
       modified.push(path)
     }
 

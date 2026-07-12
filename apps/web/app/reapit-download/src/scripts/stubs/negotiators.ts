@@ -16,14 +16,14 @@ export const mockNegotiatorModelPagedResult: NegotiatorModelPagedResult = {
       _eTag: '"93E3A22E2258AD53312B8AE4E28C851E"',
       _links: {
         self: {
-          href: '/negotiators/MRLN',
+          href: '/negotiators/MRLN'
         },
         office: {
-          href: '/offices/TLE',
-        },
+          href: '/offices/TLE'
+        }
       },
-      metadata: {},
-    },
+      metadata: {}
+    }
   ],
   pageNumber: 1,
   pageSize: 25,
@@ -32,10 +32,10 @@ export const mockNegotiatorModelPagedResult: NegotiatorModelPagedResult = {
   totalCount: 1,
   _links: {
     self: {
-      href: '/negotiators/?PageNumber=1&PageSize=25&id=MRLN',
+      href: '/negotiators/?PageNumber=1&PageSize=25&id=MRLN'
     },
     first: {
-      href: '/negotiators/?PageNumber=1&PageSize=25&id=MRLN',
-    },
-  },
+      href: '/negotiators/?PageNumber=1&PageSize=25&id=MRLN'
+    }
+  }
 }

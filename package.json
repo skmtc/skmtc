@@ -1,16 +1,37 @@
 {
   "name": "skmtc",
-  "description": "Skmtc is a declarative code generation framework",
   "private": true,
+  "description": "Skmtc is a declarative code generation framework",
+  "keywords": [
+    "code generator",
+    "codegen",
+    "openapi",
+    "swagger",
+    "typescript"
+  ],
+  "homepage": "https://skm.tc",
+  "bugs": "https://github.com/skmtc/skmtc/issues",
+  "license": "Apache-2.0",
+  "author": "Skmtc Contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skmtc/skmtc.git"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
     "vscode:build": "turbo run vscode:build",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
   },
   "devDependencies": {
     "jsdom": "^25.0.1",
+    "oxfmt": "^0.58.0",
     "prettier": "^3.5.3",
     "turbo": "^2.3.3",
     "typescript": "5.7.2"
@@ -18,24 +39,5 @@
   "engines": {
     "node": ">=22.12.0"
   },
-  "license": "Apache-2.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/skmtc/skmtc.git"
-  },
-  "author": "Skmtc Contributors",
-  "bugs": "https://github.com/skmtc/skmtc/issues",
-  "homepage": "https://skm.tc",
-  "keywords": [
-    "openapi",
-    "swagger",
-    "typescript",
-    "codegen",
-    "code generator"
-  ],
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "packageManager": "pnpm@10.12.1+sha512.f0dda8580f0ee9481c5c79a1d927b9164f2c478e90992ad268bbb2465a736984391d6333d2c327913578b2804af33474ca554ba29c04a8b13060a717675ae3ac"
 }

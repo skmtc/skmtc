@@ -6,12 +6,12 @@ import { OasInteger } from '../integer/Integer.ts'
 import { OasObject } from '../object/Object.ts'
 import { OasDiscriminator } from '../discriminator/Discriminator.ts'
 
-Deno.test('OasUnion', async (t) => {
-  await t.step('constructor and property initialization', async (t) => {
+Deno.test('OasUnion', async t => {
+  await t.step('constructor and property initialization', async t => {
     await t.step('should initialize with all properties provided', () => {
       const discriminator = new OasDiscriminator({
         propertyName: 'type',
-        mapping: { string: '#/components/schemas/StringType' },
+        mapping: { string: '#/components/schemas/StringType' }
       })
 
       const union = new OasUnion({
@@ -22,7 +22,7 @@ Deno.test('OasUnion', async (t) => {
         members: [new OasString(), new OasNumber()],
         extensionFields: { 'x-custom': 'value' },
         example: 'example value',
-        default: 42,
+        default: 42
       })
 
       assertEquals(union.oasType, 'schema')
@@ -39,7 +39,7 @@ Deno.test('OasUnion', async (t) => {
 
     await t.step('should initialize with minimal required properties (just members array)', () => {
       const union = new OasUnion({
-        members: [new OasString(), new OasInteger()],
+        members: [new OasString(), new OasInteger()]
       })
 
       assertEquals(union.oasType, 'schema')
@@ -58,7 +58,7 @@ Deno.test('OasUnion', async (t) => {
       const union = new OasUnion({
         title: 'SimpleUnion',
         members: [new OasString(), new OasNumber()],
-        nullable: false,
+        nullable: false
       })
 
       assertEquals(union.title, 'SimpleUnion')
@@ -69,7 +69,7 @@ Deno.test('OasUnion', async (t) => {
 
     await t.step('should set oasType to schema and type to union', () => {
       const union = new OasUnion({
-        members: [new OasString()],
+        members: [new OasString()]
       })
 
       assertEquals(union.oasType, 'schema')
@@ -80,14 +80,14 @@ Deno.test('OasUnion', async (t) => {
       const discriminator = new OasDiscriminator({
         propertyName: 'type',
         mapping: {
-          'typeA': '#/components/schemas/TypeA',
-          'typeB': '#/components/schemas/TypeB',
-        },
+          typeA: '#/components/schemas/TypeA',
+          typeB: '#/components/schemas/TypeB'
+        }
       })
 
       const union = new OasUnion({
         discriminator,
-        members: [new OasObject(), new OasObject()],
+        members: [new OasObject(), new OasObject()]
       })
 
       assertEquals(union.discriminator, discriminator)
@@ -99,12 +99,12 @@ Deno.test('OasUnion', async (t) => {
       const extensionFields = {
         'x-tag': 'custom',
         'x-priority': 1,
-        'x-metadata': { nested: { value: true } },
+        'x-metadata': { nested: { value: true } }
       }
 
       const union = new OasUnion({
         members: [new OasString()],
-        extensionFields,
+        extensionFields
       })
 
       assertEquals(union.extensionFields, extensionFields)
@@ -115,16 +115,16 @@ Deno.test('OasUnion', async (t) => {
     await t.step('should handle both nullable and non-nullable unions', () => {
       const nullableUnion = new OasUnion({
         members: [new OasString(), new OasNumber()],
-        nullable: true,
+        nullable: true
       })
 
       const nonNullableUnion = new OasUnion({
         members: [new OasString(), new OasNumber()],
-        nullable: false,
+        nullable: false
       })
 
       const undefinedNullableUnion = new OasUnion({
-        members: [new OasString()],
+        members: [new OasString()]
       })
 
       assertEquals(nullableUnion.nullable, true)
@@ -133,11 +133,11 @@ Deno.test('OasUnion', async (t) => {
     })
   })
 
-  await t.step('isRef() method', async (t) => {
+  await t.step('isRef() method', async t => {
     await t.step('should return false for OasUnion instance (not a reference)', () => {
       const union = new OasUnion({
         title: 'StringOrNumber',
-        members: [new OasString(), new OasNumber()],
+        members: [new OasString(), new OasNumber()]
       })
 
       assertEquals(union.isRef(), false)
@@ -145,7 +145,7 @@ Deno.test('OasUnion', async (t) => {
 
     await t.step('should work correctly with type narrowing', () => {
       const union = new OasUnion({
-        members: [new OasInteger(), new OasString()],
+        members: [new OasInteger(), new OasString()]
       })
 
       if (!union.isRef()) {
@@ -162,22 +162,22 @@ Deno.test('OasUnion', async (t) => {
         new OasUnion({ members: [new OasString(), new OasNumber()], title: 'Union' }),
         new OasUnion({
           members: [new OasObject(), new OasString()],
-          discriminator: new OasDiscriminator({ propertyName: 'type' }),
+          discriminator: new OasDiscriminator({ propertyName: 'type' })
         }),
-        new OasUnion({ members: [new OasInteger()], nullable: true }),
+        new OasUnion({ members: [new OasInteger()], nullable: true })
       ]
 
-      unions.forEach((union) => {
+      unions.forEach(union => {
         assertEquals(union.isRef(), false)
       })
     })
   })
 
-  await t.step('resolve() method', async (t) => {
+  await t.step('resolve() method', async t => {
     await t.step('should return self when called on OasUnion instance', () => {
       const union = new OasUnion({
         title: 'ResponseType',
-        members: [new OasString(), new OasNumber()],
+        members: [new OasString(), new OasNumber()]
       })
 
       const resolved = union.resolve()
@@ -196,7 +196,7 @@ Deno.test('OasUnion', async (t) => {
     await t.step('should maintain all properties after resolve', () => {
       const discriminator = new OasDiscriminator({
         propertyName: 'type',
-        mapping: { 'a': '#/a', 'b': '#/b' },
+        mapping: { a: '#/a', b: '#/b' }
       })
 
       const union = new OasUnion({
@@ -207,7 +207,7 @@ Deno.test('OasUnion', async (t) => {
         members: [new OasString({ pattern: '^[A-Z]+$' }), new OasNumber({ minimum: 0 })],
         extensionFields: { 'x-tag': 'test' },
         example: 'TEST',
-        default: 0,
+        default: 0
       })
 
       const resolved = union.resolve()
@@ -223,10 +223,10 @@ Deno.test('OasUnion', async (t) => {
     })
   })
 
-  await t.step('resolveOnce() method', async (t) => {
+  await t.step('resolveOnce() method', async t => {
     await t.step('should return self when called on OasUnion instance', () => {
       const union = new OasUnion({
-        members: [new OasString(), new OasInteger()],
+        members: [new OasString(), new OasInteger()]
       })
 
       const resolved = union.resolveOnce()
@@ -239,7 +239,7 @@ Deno.test('OasUnion', async (t) => {
       const union = new OasUnion({
         title: 'TestUnion',
         members: [new OasString(), new OasNumber()],
-        nullable: false,
+        nullable: false
       })
 
       const resolved = union.resolve()
@@ -255,10 +255,10 @@ Deno.test('OasUnion', async (t) => {
         description: 'Union of status types',
         members: [
           new OasString({ enums: ['active', 'inactive'] }),
-          new OasString({ enums: ['pending', 'archived'] }),
+          new OasString({ enums: ['pending', 'archived'] })
         ],
         nullable: true,
-        extensionFields: { 'x-version': '1.0' },
+        extensionFields: { 'x-version': '1.0' }
       })
 
       const resolved = union.resolveOnce()
@@ -271,12 +271,12 @@ Deno.test('OasUnion', async (t) => {
     })
   })
 
-  await t.step('toJsonSchema() method', async (t) => {
+  await t.step('toJsonSchema() method', async t => {
     await t.step('should convert union to OpenAPI v3 JSON format with oneOf', () => {
       const union = new OasUnion({
         title: 'StringOrNumber',
         description: 'Either a string or number',
-        members: [new OasString(), new OasNumber()],
+        members: [new OasString(), new OasNumber()]
       })
 
       const result = union.toJsonSchema({ resolve: false })
@@ -292,7 +292,7 @@ Deno.test('OasUnion', async (t) => {
         title: 'NullableUnion',
         description: 'A nullable union type',
         nullable: true,
-        members: [new OasString(), new OasInteger()],
+        members: [new OasString(), new OasInteger()]
       })
 
       const result = union.toJsonSchema({ resolve: false })
@@ -304,10 +304,7 @@ Deno.test('OasUnion', async (t) => {
 
     await t.step('should handle simple union of two types', () => {
       const union = new OasUnion({
-        members: [
-          new OasString({ minLength: 1 }),
-          new OasNumber({ minimum: 0 }),
-        ],
+        members: [new OasString({ minLength: 1 }), new OasNumber({ minimum: 0 })]
       })
 
       const result = union.toJsonSchema({ resolve: false })
@@ -320,12 +317,7 @@ Deno.test('OasUnion', async (t) => {
     await t.step('should handle union of multiple types (3+)', () => {
       const union = new OasUnion({
         title: 'MultiType',
-        members: [
-          new OasString(),
-          new OasNumber(),
-          new OasInteger(),
-          new OasObject(),
-        ],
+        members: [new OasString(), new OasNumber(), new OasInteger(), new OasObject()]
       })
 
       const result = union.toJsonSchema({ resolve: false })
@@ -338,9 +330,9 @@ Deno.test('OasUnion', async (t) => {
       const union = new OasUnion({
         discriminator: new OasDiscriminator({
           propertyName: 'type',
-          mapping: { 'str': '#/string', 'num': '#/number' },
+          mapping: { str: '#/string', num: '#/number' }
         }),
-        members: [new OasString(), new OasNumber()],
+        members: [new OasString(), new OasNumber()]
       })
 
       const result = union.toJsonSchema({ resolve: false })
@@ -356,7 +348,7 @@ Deno.test('OasUnion', async (t) => {
       const numberSchema = new OasNumber({ minimum: 0, maximum: 100 })
 
       const union = new OasUnion({
-        members: [stringSchema, numberSchema],
+        members: [stringSchema, numberSchema]
       })
 
       const result = union.toJsonSchema({ resolve: false })
@@ -370,7 +362,7 @@ Deno.test('OasUnion', async (t) => {
       const union = new OasUnion({
         members: [new OasString(), new OasNumber()],
         example: 'example string',
-        default: 42,
+        default: 42
       })
 
       const result = union.toJsonSchema({ resolve: false })
@@ -383,7 +375,7 @@ Deno.test('OasUnion', async (t) => {
       const union = new OasUnion({
         members: [new OasString(), new OasInteger()],
         nullable: true,
-        default: null,
+        default: null
       })
 
       const result = union.toJsonSchema({ resolve: false })
@@ -394,10 +386,10 @@ Deno.test('OasUnion', async (t) => {
     })
   })
 
-  await t.step('members array handling', async (t) => {
+  await t.step('members array handling', async t => {
     await t.step('should handle union with two members', () => {
       const union = new OasUnion({
-        members: [new OasString(), new OasNumber()],
+        members: [new OasString(), new OasNumber()]
       })
 
       assertEquals(union.members.length, 2)
@@ -413,8 +405,8 @@ Deno.test('OasUnion', async (t) => {
           new OasInteger({ title: 'Type3' }),
           new OasString({ title: 'Type4', pattern: '^[A-Z]+$' }),
           new OasNumber({ title: 'Type5', minimum: 0 }),
-          new OasInteger({ title: 'Type6', maximum: 100 }),
-        ],
+          new OasInteger({ title: 'Type6', maximum: 100 })
+        ]
       })
 
       assertEquals(union.members.length, 6)
@@ -422,7 +414,7 @@ Deno.test('OasUnion', async (t) => {
 
     await t.step('should handle empty members array (edge case)', () => {
       const union = new OasUnion({
-        members: [],
+        members: []
       })
 
       assertEquals(union.members.length, 0)
@@ -438,10 +430,10 @@ Deno.test('OasUnion', async (t) => {
           new OasObject({
             properties: {
               id: new OasInteger(),
-              name: new OasString(),
-            },
-          }),
-        ],
+              name: new OasString()
+            }
+          })
+        ]
       })
 
       assertEquals(union.members.length, 4)
@@ -457,7 +449,7 @@ Deno.test('OasUnion', async (t) => {
       const third = new OasInteger({ title: 'Third' })
 
       const union = new OasUnion({
-        members: [first, second, third],
+        members: [first, second, third]
       })
 
       assertEquals(union.members[0], first)
@@ -467,7 +459,7 @@ Deno.test('OasUnion', async (t) => {
 
     await t.step('should handle single member (unusual but valid)', () => {
       const union = new OasUnion({
-        members: [new OasString({ pattern: '^test$' })],
+        members: [new OasString({ pattern: '^test$' })]
       })
 
       assertEquals(union.members.length, 1)
@@ -475,10 +467,10 @@ Deno.test('OasUnion', async (t) => {
     })
   })
 
-  await t.step('discriminator support', async (t) => {
+  await t.step('discriminator support', async t => {
     await t.step('should handle discriminated unions with propertyName', () => {
       const discriminator = new OasDiscriminator({
-        propertyName: 'type',
+        propertyName: 'type'
       })
 
       const union = new OasUnion({
@@ -487,16 +479,16 @@ Deno.test('OasUnion', async (t) => {
           new OasObject({
             properties: {
               type: new OasString({ enums: ['circle'] }),
-              radius: new OasNumber(),
-            },
+              radius: new OasNumber()
+            }
           }),
           new OasObject({
             properties: {
               type: new OasString({ enums: ['square'] }),
-              side: new OasNumber(),
-            },
-          }),
-        ],
+              side: new OasNumber()
+            }
+          })
+        ]
       })
 
       assertEquals(union.discriminator?.propertyName, 'type')
@@ -507,15 +499,15 @@ Deno.test('OasUnion', async (t) => {
       const discriminator = new OasDiscriminator({
         propertyName: 'type',
         mapping: {
-          'user': '#/components/schemas/User',
-          'admin': '#/components/schemas/Admin',
-          'guest': '#/components/schemas/Guest',
-        },
+          user: '#/components/schemas/User',
+          admin: '#/components/schemas/Admin',
+          guest: '#/components/schemas/Guest'
+        }
       })
 
       const union = new OasUnion({
         discriminator,
-        members: [new OasObject(), new OasObject(), new OasObject()],
+        members: [new OasObject(), new OasObject(), new OasObject()]
       })
 
       assertEquals(union.discriminator?.propertyName, 'type')
@@ -528,17 +520,17 @@ Deno.test('OasUnion', async (t) => {
       const discriminator = new OasDiscriminator({
         propertyName: 'eventType',
         mapping: {
-          'click': '#/components/schemas/ClickEvent',
-          'hover': '#/components/schemas/HoverEvent',
-          'scroll': '#/components/schemas/ScrollEvent',
-        },
+          click: '#/components/schemas/ClickEvent',
+          hover: '#/components/schemas/HoverEvent',
+          scroll: '#/components/schemas/ScrollEvent'
+        }
       })
 
       const union = new OasUnion({
         title: 'UIEvent',
         description: 'Different types of UI events',
         discriminator,
-        members: [new OasObject(), new OasObject(), new OasObject()],
+        members: [new OasObject(), new OasObject(), new OasObject()]
       })
 
       assertEquals(union.discriminator?.propertyName, 'eventType')
@@ -549,15 +541,15 @@ Deno.test('OasUnion', async (t) => {
       const discriminator = new OasDiscriminator({
         propertyName: 'status',
         mapping: {
-          'active': '#/components/schemas/ActiveStatus',
-          'inactive': '#/components/schemas/InactiveStatus',
-        },
+          active: '#/components/schemas/ActiveStatus',
+          inactive: '#/components/schemas/InactiveStatus'
+        }
       })
 
       const union = new OasUnion({
         discriminator,
         members: [new OasObject(), new OasObject()],
-        extensionFields: { 'x-discriminator-strategy': 'mapping' },
+        extensionFields: { 'x-discriminator-strategy': 'mapping' }
       })
 
       assertEquals(union.discriminator?.propertyName, 'status')
@@ -565,20 +557,20 @@ Deno.test('OasUnion', async (t) => {
     })
   })
 
-  await t.step('property handling', async (t) => {
+  await t.step('property handling', async t => {
     await t.step('should handle nullable property', () => {
       const nullableTrue = new OasUnion({
         members: [new OasString()],
-        nullable: true,
+        nullable: true
       })
 
       const nullableFalse = new OasUnion({
         members: [new OasString()],
-        nullable: false,
+        nullable: false
       })
 
       const nullableUndefined = new OasUnion({
-        members: [new OasString()],
+        members: [new OasString()]
       })
 
       assertEquals(nullableTrue.nullable, true)
@@ -590,31 +582,31 @@ Deno.test('OasUnion', async (t) => {
       const union = new OasUnion({
         title: 'PaymentMethod',
         description: 'Represents different payment methods: credit card, PayPal, or bank transfer',
-        members: [new OasString(), new OasObject(), new OasObject()],
+        members: [new OasString(), new OasObject(), new OasObject()]
       })
 
       assertEquals(union.title, 'PaymentMethod')
       assertEquals(
         union.description,
-        'Represents different payment methods: credit card, PayPal, or bank transfer',
+        'Represents different payment methods: credit card, PayPal, or bank transfer'
       )
     })
 
     await t.step('should handle default values', () => {
       const stringDefault = new OasUnion({
         members: [new OasString(), new OasNumber()],
-        default: 'default string',
+        default: 'default string'
       })
 
       const numberDefault = new OasUnion({
         members: [new OasString(), new OasNumber()],
-        default: 42,
+        default: 42
       })
 
       const nullDefault = new OasUnion({
         members: [new OasString()],
         nullable: true,
-        default: null,
+        default: null
       })
 
       assertEquals(stringDefault.default, 'default string')
@@ -625,12 +617,12 @@ Deno.test('OasUnion', async (t) => {
     await t.step('should handle example values', () => {
       const stringExample = new OasUnion({
         members: [new OasString(), new OasNumber()],
-        example: 'example value',
+        example: 'example value'
       })
 
       const objectExample = new OasUnion({
         members: [new OasObject(), new OasString()],
-        example: { id: 123, name: 'Test' },
+        example: { id: 123, name: 'Test' }
       })
 
       assertEquals(stringExample.example, 'example value')
@@ -646,7 +638,7 @@ Deno.test('OasUnion', async (t) => {
         members: [new OasString(), new OasNumber()],
         extensionFields: { 'x-custom': 'value' },
         example: 'test',
-        default: 0,
+        default: 0
       })
 
       assertEquals(union.title, 'CompleteUnion')
@@ -660,11 +652,11 @@ Deno.test('OasUnion', async (t) => {
     })
   })
 
-  await t.step('edge cases and integration', async (t) => {
+  await t.step('edge cases and integration', async t => {
     await t.step('should handle union of string and number (simple case)', () => {
       const union = new OasUnion({
         title: 'StringOrNumber',
-        members: [new OasString(), new OasNumber()],
+        members: [new OasString(), new OasNumber()]
       })
 
       assertEquals(union.members.length, 2)
@@ -677,9 +669,9 @@ Deno.test('OasUnion', async (t) => {
         title: 'SuccessResponse',
         properties: {
           success: new OasString({ enums: ['true'] }),
-          data: new OasObject({ additionalProperties: true }),
+          data: new OasObject({ additionalProperties: true })
         },
-        required: ['success', 'data'],
+        required: ['success', 'data']
       })
 
       const errorResponse = new OasObject({
@@ -687,15 +679,15 @@ Deno.test('OasUnion', async (t) => {
         properties: {
           error: new OasString(),
           code: new OasInteger(),
-          message: new OasString(),
+          message: new OasString()
         },
-        required: ['error', 'code'],
+        required: ['error', 'code']
       })
 
       const union = new OasUnion({
         title: 'ApiResponse',
         description: 'Either a success or error response',
-        members: [successResponse, errorResponse],
+        members: [successResponse, errorResponse]
       })
 
       assertEquals(union.members.length, 2)
@@ -710,28 +702,28 @@ Deno.test('OasUnion', async (t) => {
         discriminator: new OasDiscriminator({
           propertyName: 'shape',
           mapping: {
-            'circle': '#/components/schemas/Circle',
-            'square': '#/components/schemas/Square',
-          },
+            circle: '#/components/schemas/Circle',
+            square: '#/components/schemas/Square'
+          }
         }),
         members: [
           new OasObject({
             title: 'Circle',
             properties: {
               shape: new OasString({ enums: ['circle'] }),
-              radius: new OasNumber({ minimum: 0 }),
+              radius: new OasNumber({ minimum: 0 })
             },
-            required: ['shape', 'radius'],
+            required: ['shape', 'radius']
           }),
           new OasObject({
             title: 'Square',
             properties: {
               shape: new OasString({ enums: ['square'] }),
-              side: new OasNumber({ minimum: 0 }),
+              side: new OasNumber({ minimum: 0 })
             },
-            required: ['shape', 'side'],
-          }),
-        ],
+            required: ['shape', 'side']
+          })
+        ]
       })
 
       assertEquals(shapeUnion.discriminator?.propertyName, 'shape')
@@ -746,30 +738,30 @@ Deno.test('OasUnion', async (t) => {
         members: [
           new OasInteger({ enums: [200, 201, 204] }),
           new OasInteger({ enums: [400, 401, 403, 404] }),
-          new OasInteger({ enums: [500, 502, 503] }),
-        ],
+          new OasInteger({ enums: [500, 502, 503] })
+        ]
       })
 
       // Payment method union
       const paymentUnion = new OasUnion({
         title: 'PaymentMethod',
         discriminator: new OasDiscriminator({
-          propertyName: 'method',
+          propertyName: 'method'
         }),
         members: [
           new OasObject({
             properties: {
               method: new OasString({ enums: ['card'] }),
-              cardNumber: new OasString(),
-            },
+              cardNumber: new OasString()
+            }
           }),
           new OasObject({
             properties: {
               method: new OasString({ enums: ['paypal'] }),
-              email: new OasString(),
-            },
-          }),
-        ],
+              email: new OasString()
+            }
+          })
+        ]
       })
 
       assertEquals(statusUnion.members.length, 3)
@@ -779,10 +771,7 @@ Deno.test('OasUnion', async (t) => {
     await t.step('should handle unions with nullable members', () => {
       const union = new OasUnion({
         title: 'NullableMembers',
-        members: [
-          new OasString({ nullable: true }),
-          new OasNumber({ nullable: true }),
-        ],
+        members: [new OasString({ nullable: true }), new OasNumber({ nullable: true })]
       })
 
       assertEquals(union.members.length, 2)

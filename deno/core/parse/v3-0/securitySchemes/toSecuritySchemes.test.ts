@@ -5,21 +5,21 @@ import {
   OasHttpSecurityScheme,
   OasApiKeySecurityScheme,
   OasOAuth2SecurityScheme,
-  OasOpenIdSecurityScheme,
+  OasOpenIdSecurityScheme
 } from '@/oas/securitySchemes/SecurityScheme.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { spy, assertSpyCalls } from '@std/testing/mock'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 
-Deno.test('toSecuritySchemesV3', async (t) => {
-  await t.step('input handling', async (t) => {
+Deno.test('toSecuritySchemesV3', async t => {
+  await t.step('input handling', async t => {
     await t.step('should return undefined when securitySchemes is undefined', () => {
       const stackTrail = new StackTrail(['TEST'])
       const result = toSecuritySchemesV3({
         securitySchemes: undefined,
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result, undefined)
@@ -30,7 +30,7 @@ Deno.test('toSecuritySchemesV3', async (t) => {
       const result = toSecuritySchemesV3({
         securitySchemes: {},
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(Object.keys(result ?? {}).length, 0)
@@ -42,11 +42,11 @@ Deno.test('toSecuritySchemesV3', async (t) => {
         securitySchemes: {
           basicAuth: {
             type: 'http',
-            scheme: 'basic',
-          },
+            scheme: 'basic'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -60,12 +60,12 @@ Deno.test('toSecuritySchemesV3', async (t) => {
         securitySchemes: {
           basicAuth: {
             type: 'http',
-            scheme: 'basic',
+            scheme: 'basic'
           },
           apiKey: {
             type: 'apiKey',
             name: 'X-API-Key',
-            in: 'header',
+            in: 'header'
           },
           oauth: {
             type: 'oauth2',
@@ -73,13 +73,13 @@ Deno.test('toSecuritySchemesV3', async (t) => {
               authorizationCode: {
                 authorizationUrl: 'https://example.com/oauth/authorize',
                 tokenUrl: 'https://example.com/oauth/token',
-                scopes: {},
-              },
-            },
-          },
+                scopes: {}
+              }
+            }
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -90,24 +90,24 @@ Deno.test('toSecuritySchemesV3', async (t) => {
     })
   })
 
-  await t.step('HTTP security scheme', async (t) => {
+  await t.step('HTTP security scheme', async t => {
     await t.step('should convert HTTP basic auth scheme', () => {
       const stackTrail = new StackTrail(['TEST'])
       const result = toSecuritySchemesV3({
         securitySchemes: {
           basicAuth: {
             type: 'http',
-            scheme: 'basic',
-          },
+            scheme: 'basic'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result, {
         basicAuth: new OasHttpSecurityScheme({
-          scheme: 'basic',
-        }),
+          scheme: 'basic'
+        })
       })
     })
 
@@ -118,18 +118,18 @@ Deno.test('toSecuritySchemesV3', async (t) => {
           http: {
             type: 'http',
             scheme: 'bearer',
-            bearerFormat: 'JWT',
-          },
+            bearerFormat: 'JWT'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result, {
         http: new OasHttpSecurityScheme({
           scheme: 'bearer',
-          bearerFormat: 'JWT',
-        }),
+          bearerFormat: 'JWT'
+        })
       })
     })
 
@@ -141,17 +141,20 @@ Deno.test('toSecuritySchemesV3', async (t) => {
             type: 'http',
             scheme: 'digest',
             description: 'Digest authentication',
-            bearerFormat: undefined,
-          },
+            bearerFormat: undefined
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
       assertEquals(result.digestAuth.type, 'http')
       assertEquals((result.digestAuth as OasHttpSecurityScheme).scheme, 'digest')
-      assertEquals((result.digestAuth as OasHttpSecurityScheme).description, 'Digest authentication')
+      assertEquals(
+        (result.digestAuth as OasHttpSecurityScheme).description,
+        'Digest authentication'
+      )
     })
 
     await t.step('should handle HTTP scheme with minimal required fields', () => {
@@ -160,11 +163,11 @@ Deno.test('toSecuritySchemesV3', async (t) => {
         securitySchemes: {
           http: {
             type: 'http',
-            scheme: 'bearer',
-          },
+            scheme: 'bearer'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -181,14 +184,14 @@ Deno.test('toSecuritySchemesV3', async (t) => {
           http: {
             type: 'http',
             scheme: 'bearer',
-            'x-custom': 'value',
+            'x-custom': 'value'
           } as unknown as {
             type: 'http'
             scheme: string
-          },
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -196,7 +199,7 @@ Deno.test('toSecuritySchemesV3', async (t) => {
     })
   })
 
-  await t.step('API key security scheme', async (t) => {
+  await t.step('API key security scheme', async t => {
     await t.step('should convert API key in header location', () => {
       const stackTrail = new StackTrail(['TEST'])
       const result = toSecuritySchemesV3({
@@ -204,18 +207,18 @@ Deno.test('toSecuritySchemesV3', async (t) => {
           apiKey: {
             type: 'apiKey',
             name: 'X-API-Key',
-            in: 'header',
-          },
+            in: 'header'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result, {
         apiKey: new OasApiKeySecurityScheme({
           name: 'X-API-Key',
-          in: 'header',
-        }),
+          in: 'header'
+        })
       })
     })
 
@@ -226,11 +229,11 @@ Deno.test('toSecuritySchemesV3', async (t) => {
           queryApiKey: {
             type: 'apiKey',
             name: 'api_key',
-            in: 'query',
-          },
+            in: 'query'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -245,11 +248,11 @@ Deno.test('toSecuritySchemesV3', async (t) => {
           cookieApiKey: {
             type: 'apiKey',
             name: 'session_id',
-            in: 'cookie',
-          },
+            in: 'cookie'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -264,11 +267,11 @@ Deno.test('toSecuritySchemesV3', async (t) => {
           headerKey: {
             type: 'apiKey',
             name: 'Authorization',
-            in: 'header',
-          },
+            in: 'header'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -284,15 +287,18 @@ Deno.test('toSecuritySchemesV3', async (t) => {
             type: 'apiKey',
             name: 'X-API-Key',
             in: 'header',
-            description: 'API key for authentication',
-          },
+            description: 'API key for authentication'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
-      assertEquals((result.apiKey as OasApiKeySecurityScheme).description, 'API key for authentication')
+      assertEquals(
+        (result.apiKey as OasApiKeySecurityScheme).description,
+        'API key for authentication'
+      )
     })
 
     await t.step('should handle API key with minimal required fields', () => {
@@ -302,11 +308,11 @@ Deno.test('toSecuritySchemesV3', async (t) => {
           minimal: {
             type: 'apiKey',
             name: 'key',
-            in: 'query',
-          },
+            in: 'query'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -316,7 +322,7 @@ Deno.test('toSecuritySchemesV3', async (t) => {
     })
   })
 
-  await t.step('OAuth2 security scheme', async (t) => {
+  await t.step('OAuth2 security scheme', async t => {
     await t.step('should convert OAuth2 with authorizationCode flow', () => {
       const stackTrail = new StackTrail(['TEST'])
       const result = toSecuritySchemesV3({
@@ -328,22 +334,31 @@ Deno.test('toSecuritySchemesV3', async (t) => {
                 authorizationUrl: 'https://example.com/oauth/authorize',
                 tokenUrl: 'https://example.com/oauth/token',
                 scopes: {
-                  'read': 'Read access',
-                  'write': 'Write access',
-                },
-              },
-            },
-          },
+                  read: 'Read access',
+                  write: 'Write access'
+                }
+              }
+            }
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
       assertEquals(result.oauth2.type, 'oauth2')
-      assertEquals((result.oauth2 as OasOAuth2SecurityScheme).flows.authorizationCode?.authorizationUrl, 'https://example.com/oauth/authorize')
-      assertEquals((result.oauth2 as OasOAuth2SecurityScheme).flows.authorizationCode?.tokenUrl, 'https://example.com/oauth/token')
-      assertEquals((result.oauth2 as OasOAuth2SecurityScheme).flows.authorizationCode?.scopes.read, 'Read access')
+      assertEquals(
+        (result.oauth2 as OasOAuth2SecurityScheme).flows.authorizationCode?.authorizationUrl,
+        'https://example.com/oauth/authorize'
+      )
+      assertEquals(
+        (result.oauth2 as OasOAuth2SecurityScheme).flows.authorizationCode?.tokenUrl,
+        'https://example.com/oauth/token'
+      )
+      assertEquals(
+        (result.oauth2 as OasOAuth2SecurityScheme).flows.authorizationCode?.scopes.read,
+        'Read access'
+      )
     })
 
     await t.step('should convert OAuth2 with clientCredentials flow', () => {
@@ -356,19 +371,25 @@ Deno.test('toSecuritySchemesV3', async (t) => {
               clientCredentials: {
                 tokenUrl: 'https://example.com/oauth/token',
                 scopes: {
-                  'admin': 'Admin access',
-                },
-              },
-            },
-          },
+                  admin: 'Admin access'
+                }
+              }
+            }
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
-      assertEquals((result.oauth2 as OasOAuth2SecurityScheme).flows.clientCredentials?.tokenUrl, 'https://example.com/oauth/token')
-      assertEquals((result.oauth2 as OasOAuth2SecurityScheme).flows.clientCredentials?.scopes.admin, 'Admin access')
+      assertEquals(
+        (result.oauth2 as OasOAuth2SecurityScheme).flows.clientCredentials?.tokenUrl,
+        'https://example.com/oauth/token'
+      )
+      assertEquals(
+        (result.oauth2 as OasOAuth2SecurityScheme).flows.clientCredentials?.scopes.admin,
+        'Admin access'
+      )
     })
 
     await t.step('should convert OAuth2 with implicit flow', () => {
@@ -381,19 +402,25 @@ Deno.test('toSecuritySchemesV3', async (t) => {
               implicit: {
                 authorizationUrl: 'https://example.com/oauth/authorize',
                 scopes: {
-                  'profile': 'Profile access',
-                },
-              },
-            },
-          },
+                  profile: 'Profile access'
+                }
+              }
+            }
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
-      assertEquals((result.oauth2 as OasOAuth2SecurityScheme).flows.implicit?.authorizationUrl, 'https://example.com/oauth/authorize')
-      assertEquals((result.oauth2 as OasOAuth2SecurityScheme).flows.implicit?.scopes.profile, 'Profile access')
+      assertEquals(
+        (result.oauth2 as OasOAuth2SecurityScheme).flows.implicit?.authorizationUrl,
+        'https://example.com/oauth/authorize'
+      )
+      assertEquals(
+        (result.oauth2 as OasOAuth2SecurityScheme).flows.implicit?.scopes.profile,
+        'Profile access'
+      )
     })
 
     await t.step('should convert OAuth2 with password flow', () => {
@@ -406,19 +433,25 @@ Deno.test('toSecuritySchemesV3', async (t) => {
               password: {
                 tokenUrl: 'https://example.com/oauth/token',
                 scopes: {
-                  'user': 'User access',
-                },
-              },
-            },
-          },
+                  user: 'User access'
+                }
+              }
+            }
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
-      assertEquals((result.oauth2 as OasOAuth2SecurityScheme).flows.password?.tokenUrl, 'https://example.com/oauth/token')
-      assertEquals((result.oauth2 as OasOAuth2SecurityScheme).flows.password?.scopes.user, 'User access')
+      assertEquals(
+        (result.oauth2 as OasOAuth2SecurityScheme).flows.password?.tokenUrl,
+        'https://example.com/oauth/token'
+      )
+      assertEquals(
+        (result.oauth2 as OasOAuth2SecurityScheme).flows.password?.scopes.user,
+        'User access'
+      )
     })
 
     await t.step('should handle OAuth2 with multiple flows', () => {
@@ -431,17 +464,17 @@ Deno.test('toSecuritySchemesV3', async (t) => {
               authorizationCode: {
                 authorizationUrl: 'https://example.com/oauth/authorize',
                 tokenUrl: 'https://example.com/oauth/token',
-                scopes: { 'read': 'Read' },
+                scopes: { read: 'Read' }
               },
               implicit: {
                 authorizationUrl: 'https://example.com/oauth/authorize',
-                scopes: { 'profile': 'Profile' },
-              },
-            },
-          },
+                scopes: { profile: 'Profile' }
+              }
+            }
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -461,17 +494,22 @@ Deno.test('toSecuritySchemesV3', async (t) => {
               authorizationCode: {
                 authorizationUrl: 'https://example.com/oauth/authorize',
                 tokenUrl: 'https://example.com/oauth/token',
-                scopes: {},
-              },
-            },
-          },
+                scopes: {}
+              }
+            }
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
-      assertEquals(Object.keys((result.oauth2 as OasOAuth2SecurityScheme).flows.authorizationCode?.scopes ?? {}).length, 0)
+      assertEquals(
+        Object.keys(
+          (result.oauth2 as OasOAuth2SecurityScheme).flows.authorizationCode?.scopes ?? {}
+        ).length,
+        0
+      )
     })
 
     await t.step('should handle OAuth2 with multiple scopes', () => {
@@ -488,19 +526,27 @@ Deno.test('toSecuritySchemesV3', async (t) => {
                   'read:users': 'Read user information',
                   'write:users': 'Modify user information',
                   'delete:users': 'Delete users',
-                  'admin': 'Full administrative access',
-                },
-              },
-            },
-          },
+                  admin: 'Full administrative access'
+                }
+              }
+            }
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
-      assertEquals(Object.keys((result.oauth2 as OasOAuth2SecurityScheme).flows.authorizationCode?.scopes ?? {}).length, 4)
-      assertEquals((result.oauth2 as OasOAuth2SecurityScheme).flows.authorizationCode?.scopes['read:users'], 'Read user information')
+      assertEquals(
+        Object.keys(
+          (result.oauth2 as OasOAuth2SecurityScheme).flows.authorizationCode?.scopes ?? {}
+        ).length,
+        4
+      )
+      assertEquals(
+        (result.oauth2 as OasOAuth2SecurityScheme).flows.authorizationCode?.scopes['read:users'],
+        'Read user information'
+      )
     })
 
     await t.step('should handle OAuth2 with optional refreshUrl', () => {
@@ -514,9 +560,9 @@ Deno.test('toSecuritySchemesV3', async (t) => {
                 authorizationUrl: 'https://example.com/oauth/authorize',
                 tokenUrl: 'https://example.com/oauth/token',
                 refreshUrl: 'https://example.com/oauth/refresh',
-                scopes: {},
-              },
-            },
+                scopes: {}
+              }
+            }
           },
           oauth2WithoutRefresh: {
             type: 'oauth2',
@@ -524,39 +570,46 @@ Deno.test('toSecuritySchemesV3', async (t) => {
               authorizationCode: {
                 authorizationUrl: 'https://example.com/oauth/authorize',
                 tokenUrl: 'https://example.com/oauth/token',
-                scopes: {},
-              },
-            },
-          },
+                scopes: {}
+              }
+            }
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
-      assertEquals((result.oauth2WithRefresh as OasOAuth2SecurityScheme).flows.authorizationCode?.refreshUrl, 'https://example.com/oauth/refresh')
-      assertEquals((result.oauth2WithoutRefresh as OasOAuth2SecurityScheme).flows.authorizationCode?.refreshUrl, undefined)
+      assertEquals(
+        (result.oauth2WithRefresh as OasOAuth2SecurityScheme).flows.authorizationCode?.refreshUrl,
+        'https://example.com/oauth/refresh'
+      )
+      assertEquals(
+        (result.oauth2WithoutRefresh as OasOAuth2SecurityScheme).flows.authorizationCode
+          ?.refreshUrl,
+        undefined
+      )
     })
   })
 
-  await t.step('OpenID Connect security scheme', async (t) => {
+  await t.step('OpenID Connect security scheme', async t => {
     await t.step('should convert OpenID Connect with minimal required fields', () => {
       const stackTrail = new StackTrail(['TEST'])
       const result = toSecuritySchemesV3({
         securitySchemes: {
           openId: {
             type: 'openIdConnect',
-            openIdConnectUrl: 'https://example.com/.well-known/openid-configuration',
-          },
+            openIdConnectUrl: 'https://example.com/.well-known/openid-configuration'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertEquals(result, {
         openId: new OasOpenIdSecurityScheme({
-          openIdConnectUrl: 'https://example.com/.well-known/openid-configuration',
-        }),
+          openIdConnectUrl: 'https://example.com/.well-known/openid-configuration'
+        })
       })
     })
 
@@ -567,16 +620,22 @@ Deno.test('toSecuritySchemesV3', async (t) => {
           openId: {
             type: 'openIdConnect',
             openIdConnectUrl: 'https://example.com/.well-known/openid-configuration',
-            description: 'OpenID Connect authentication',
-          },
+            description: 'OpenID Connect authentication'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
-      assertEquals((result.openId as OasOpenIdSecurityScheme).openIdConnectUrl, 'https://example.com/.well-known/openid-configuration')
-      assertEquals((result.openId as OasOpenIdSecurityScheme).description, 'OpenID Connect authentication')
+      assertEquals(
+        (result.openId as OasOpenIdSecurityScheme).openIdConnectUrl,
+        'https://example.com/.well-known/openid-configuration'
+      )
+      assertEquals(
+        (result.openId as OasOpenIdSecurityScheme).description,
+        'OpenID Connect authentication'
+      )
     })
 
     await t.step('should handle OpenID Connect with all fields', () => {
@@ -586,24 +645,30 @@ Deno.test('toSecuritySchemesV3', async (t) => {
           oidc: {
             type: 'openIdConnect',
             openIdConnectUrl: 'https://auth.example.com/.well-known/openid-configuration',
-            description: 'Enterprise SSO via OpenID Connect',
-          },
+            description: 'Enterprise SSO via OpenID Connect'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
       assertEquals(result.oidc.type, 'openIdConnect')
-      assertEquals((result.oidc as OasOpenIdSecurityScheme).openIdConnectUrl, 'https://auth.example.com/.well-known/openid-configuration')
-      assertEquals((result.oidc as OasOpenIdSecurityScheme).description, 'Enterprise SSO via OpenID Connect')
+      assertEquals(
+        (result.oidc as OasOpenIdSecurityScheme).openIdConnectUrl,
+        'https://auth.example.com/.well-known/openid-configuration'
+      )
+      assertEquals(
+        (result.oidc as OasOpenIdSecurityScheme).description,
+        'Enterprise SSO via OpenID Connect'
+      )
     })
   })
 
   // Note: Reference handling tests require a full ParseContext with registerRef method
   // mockParseContext doesn't support references, so these tests are skipped
 
-  await t.step('field extraction and logging', async (t) => {
+  await t.step('field extraction and logging', async t => {
     await t.step('should extract known fields correctly', () => {
       const stackTrail = new StackTrail(['TEST'])
       const result = toSecuritySchemesV3({
@@ -612,11 +677,11 @@ Deno.test('toSecuritySchemesV3', async (t) => {
             type: 'http',
             scheme: 'bearer',
             bearerFormat: 'JWT',
-            description: 'Bearer token',
-          },
+            description: 'Bearer token'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -634,14 +699,14 @@ Deno.test('toSecuritySchemesV3', async (t) => {
             type: 'http',
             scheme: 'bearer',
             'x-unknown': 'value',
-            'extra': 123,
+            extra: 123
           } as unknown as {
             type: 'http'
             scheme: string
-          },
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -657,15 +722,15 @@ Deno.test('toSecuritySchemesV3', async (t) => {
             type: 'apiKey',
             name: 'key',
             in: 'header',
-            'x-custom-field': 'custom value',
+            'x-custom-field': 'custom value'
           } as unknown as {
             type: 'apiKey'
             name: string
             in: 'header'
-          },
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -679,11 +744,11 @@ Deno.test('toSecuritySchemesV3', async (t) => {
         securitySchemes: {
           basic: {
             type: 'http',
-            scheme: 'basic',
-          },
+            scheme: 'basic'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -691,29 +756,29 @@ Deno.test('toSecuritySchemesV3', async (t) => {
     })
   })
 
-  await t.step('complex scenarios', async (t) => {
+  await t.step('complex scenarios', async t => {
     await t.step('should handle mix of all security scheme types', () => {
       const stackTrail = new StackTrail(['TEST'])
       const result = toSecuritySchemesV3({
         securitySchemes: {
           basic: {
             type: 'http',
-            scheme: 'basic',
+            scheme: 'basic'
           },
           bearer: {
             type: 'http',
             scheme: 'bearer',
-            bearerFormat: 'JWT',
+            bearerFormat: 'JWT'
           },
           apiKeyHeader: {
             type: 'apiKey',
             name: 'X-API-Key',
-            in: 'header',
+            in: 'header'
           },
           apiKeyQuery: {
             type: 'apiKey',
             name: 'api_key',
-            in: 'query',
+            in: 'query'
           },
           oauth: {
             type: 'oauth2',
@@ -721,17 +786,17 @@ Deno.test('toSecuritySchemesV3', async (t) => {
               authorizationCode: {
                 authorizationUrl: 'https://example.com/oauth/authorize',
                 tokenUrl: 'https://example.com/oauth/token',
-                scopes: {},
-              },
-            },
+                scopes: {}
+              }
+            }
           },
           openId: {
             type: 'openIdConnect',
-            openIdConnectUrl: 'https://example.com/.well-known/openid-configuration',
-          },
+            openIdConnectUrl: 'https://example.com/.well-known/openid-configuration'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -750,25 +815,25 @@ Deno.test('toSecuritySchemesV3', async (t) => {
         securitySchemes: {
           http: {
             type: 'http',
-            scheme: 'bearer',
+            scheme: 'bearer'
           },
           apiKey: {
             type: 'apiKey',
             name: 'X-API-Key',
-            in: 'header',
+            in: 'header'
           },
           oauth: {
             type: 'oauth2',
             flows: {
               implicit: {
                 authorizationUrl: 'https://example.com/oauth/authorize',
-                scopes: {},
-              },
-            },
-          },
+                scopes: {}
+              }
+            }
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -786,13 +851,13 @@ Deno.test('toSecuritySchemesV3', async (t) => {
             type: 'http',
             scheme: 'bearer',
             bearerFormat: 'JWT',
-            description: 'JWT Bearer token authentication',
+            description: 'JWT Bearer token authentication'
           },
           ApiKeyAuth: {
             type: 'apiKey',
             name: 'X-API-KEY',
             in: 'header',
-            description: 'API key sent in custom header',
+            description: 'API key sent in custom header'
           },
           OAuth2: {
             type: 'oauth2',
@@ -805,19 +870,19 @@ Deno.test('toSecuritySchemesV3', async (t) => {
                 scopes: {
                   'read:users': 'Read user data',
                   'write:users': 'Modify user data',
-                  'admin': 'Administrative access',
-                },
-              },
-            },
+                  admin: 'Administrative access'
+                }
+              }
+            }
           },
           OpenID: {
             type: 'openIdConnect',
             openIdConnectUrl: 'https://auth.example.com/.well-known/openid-configuration',
-            description: 'OpenID Connect SSO',
-          },
+            description: 'OpenID Connect SSO'
+          }
         },
         stackTrail,
-        context: mockParseContext,
+        context: mockParseContext
       })
 
       assertExists(result)
@@ -835,15 +900,23 @@ Deno.test('toSecuritySchemesV3', async (t) => {
 
       // Verify OAuth2
       assertEquals(result.OAuth2.type, 'oauth2')
-      assertEquals(Object.keys((result.OAuth2 as OasOAuth2SecurityScheme).flows.authorizationCode?.scopes ?? {}).length, 3)
+      assertEquals(
+        Object.keys(
+          (result.OAuth2 as OasOAuth2SecurityScheme).flows.authorizationCode?.scopes ?? {}
+        ).length,
+        3
+      )
 
       // Verify OpenID
       assertEquals(result.OpenID.type, 'openIdConnect')
-      assertEquals((result.OpenID as OasOpenIdSecurityScheme).openIdConnectUrl, 'https://auth.example.com/.well-known/openid-configuration')
+      assertEquals(
+        (result.OpenID as OasOpenIdSecurityScheme).openIdConnectUrl,
+        'https://auth.example.com/.well-known/openid-configuration'
+      )
     })
   })
 
-  await t.step('error isolation', async (t) => {
+  await t.step('error isolation', async t => {
     await t.step('should skip a scheme with an unknown type and keep the rest', () => {
       const stackTrail = new StackTrail(['components', 'securitySchemes'])
       const contextSpy = spy(mockParseContext, 'logIssueNoKey')
@@ -851,10 +924,10 @@ Deno.test('toSecuritySchemesV3', async (t) => {
       const result = toSecuritySchemesV3({
         securitySchemes: {
           good: { type: 'http', scheme: 'basic' },
-          bad: { type: 'telepathy' },
+          bad: { type: 'telepathy' }
         } as unknown as Record<string, OpenAPIV3.SecuritySchemeObject>,
         stackTrail,
-        context: mockParseContext as ParseContextType,
+        context: mockParseContext as ParseContextType
       })
 
       assertExists(result)
@@ -878,10 +951,10 @@ Deno.test('toSecuritySchemesV3', async (t) => {
         // must be isolated to this one scheme.
         securitySchemes: {
           broken: { type: 'http' },
-          ok: { type: 'apiKey', name: 'X-API-Key', in: 'header' },
+          ok: { type: 'apiKey', name: 'X-API-Key', in: 'header' }
         } as unknown as Record<string, OpenAPIV3.SecuritySchemeObject>,
         stackTrail,
-        context: mockParseContext as ParseContextType,
+        context: mockParseContext as ParseContextType
       })
 
       assertExists(result)

@@ -18,8 +18,8 @@ import { OasMediaType } from '../mediaType/MediaType.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 
-Deno.test('OasRef', async (t) => {
-  await t.step('constructor and basic properties', async (t) => {
+Deno.test('OasRef', async t => {
+  await t.step('constructor and basic properties', async t => {
     await t.step('should initialize with schema refType', () => {
       const document = new OasDocument({
         openapi: '3.0.0',
@@ -27,10 +27,13 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/User'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/User'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       assertEquals(ref.refType, 'schema')
       assertEquals(ref.$ref, '#/components/schemas/User')
@@ -46,10 +49,13 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const ref = new OasRef({
-        refType: 'response',
-        $ref: '#/components/responses/ErrorResponse'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'response',
+          $ref: '#/components/responses/ErrorResponse'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       assertEquals(ref.refType, 'response')
       assertEquals(ref.$ref, '#/components/responses/ErrorResponse')
@@ -62,10 +68,13 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const ref = new OasRef({
-        refType: 'parameter',
-        $ref: '#/components/parameters/PageSize'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'parameter',
+          $ref: '#/components/parameters/PageSize'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       assertEquals(ref.refType, 'parameter')
       assertEquals(ref.$ref, '#/components/parameters/PageSize')
@@ -78,13 +87,24 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const refTypes = ['schema', 'response', 'parameter', 'requestBody', 'example', 'header', 'securityScheme'] as const
+      const refTypes = [
+        'schema',
+        'response',
+        'parameter',
+        'requestBody',
+        'example',
+        'header',
+        'securityScheme'
+      ] as const
 
       refTypes.forEach(refType => {
-        const ref = new OasRef({
-          refType,
-          $ref: `#/components/${refType}s/TestRef`
-        }, toRefParseContextStub({ type: 'oas', value: document }))
+        const ref = new OasRef(
+          {
+            refType,
+            $ref: `#/components/${refType}s/TestRef`
+          },
+          toRefParseContextStub({ type: 'oas', value: document })
+        )
 
         assertEquals(ref.refType, refType)
         assertEquals(ref.oasType, 'ref')
@@ -99,10 +119,13 @@ Deno.test('OasRef', async (t) => {
       })
 
       const refPath = '#/components/schemas/Product'
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: refPath
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: refPath
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       assertEquals(ref.$ref, refPath)
       assertEquals(ref.refType, 'schema')
@@ -110,7 +133,7 @@ Deno.test('OasRef', async (t) => {
     })
   })
 
-  await t.step('isRef() method', async (t) => {
+  await t.step('isRef() method', async t => {
     await t.step('should always return true', () => {
       const document = new OasDocument({
         openapi: '3.0.0',
@@ -118,10 +141,13 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/User'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/User'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       assertEquals(ref.isRef(), true)
     })
@@ -133,10 +159,13 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/User'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/User'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       if (ref.isRef()) {
         // TypeScript should know this is OasRef
@@ -145,7 +174,7 @@ Deno.test('OasRef', async (t) => {
     })
   })
 
-  await t.step('toRefName() method', async (t) => {
+  await t.step('toRefName() method', async t => {
     await t.step('should extract name from schema reference', () => {
       const document = new OasDocument({
         openapi: '3.0.0',
@@ -153,10 +182,13 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/User'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/User'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       assertEquals(ref.toRefName(), 'User')
     })
@@ -169,13 +201,28 @@ Deno.test('OasRef', async (t) => {
       })
 
       const refs = [
-        { refType: 'response' as const, $ref: '#/components/responses/NotFound', expected: 'NotFound' },
-        { refType: 'parameter' as const, $ref: '#/components/parameters/PageNum', expected: 'PageNum' },
-        { refType: 'requestBody' as const, $ref: '#/components/requestBodies/CreateUser', expected: 'CreateUser' }
+        {
+          refType: 'response' as const,
+          $ref: '#/components/responses/NotFound',
+          expected: 'NotFound'
+        },
+        {
+          refType: 'parameter' as const,
+          $ref: '#/components/parameters/PageNum',
+          expected: 'PageNum'
+        },
+        {
+          refType: 'requestBody' as const,
+          $ref: '#/components/requestBodies/CreateUser',
+          expected: 'CreateUser'
+        }
       ]
 
       refs.forEach(({ refType, $ref, expected }) => {
-        const ref = new OasRef({ refType, $ref }, toRefParseContextStub({ type: 'oas', value: document }))
+        const ref = new OasRef(
+          { refType, $ref },
+          toRefParseContextStub({ type: 'oas', value: document })
+        )
         assertEquals(ref.toRefName(), expected)
       })
     })
@@ -187,16 +234,19 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/ComplexName_v2.1-FINAL'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/ComplexName_v2.1-FINAL'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       assertEquals(ref.toRefName(), 'ComplexName_v2.1-FINAL')
     })
   })
 
-  await t.step('resolveOnce() - success cases', async (t) => {
+  await t.step('resolveOnce() - success cases', async t => {
     await t.step('should resolve schema reference', () => {
       const userSchema = new OasObject({
         properties: {
@@ -206,7 +256,7 @@ Deno.test('OasRef', async (t) => {
       })
 
       const components = new OasComponents({
-        schemas: { 'User': userSchema } as Record<RefName, OasSchema>
+        schemas: { User: userSchema } as Record<RefName, OasSchema>
       })
 
       const document = new OasDocument({
@@ -216,10 +266,13 @@ Deno.test('OasRef', async (t) => {
         components
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/User'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/User'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const resolved = ref.resolveOnce()
       assertEquals(resolved, userSchema)
@@ -232,7 +285,7 @@ Deno.test('OasRef', async (t) => {
       })
 
       const components = new OasComponents({
-        responses: { 'ErrorResponse': errorResponse } as Record<RefName, typeof errorResponse>
+        responses: { ErrorResponse: errorResponse } as Record<RefName, typeof errorResponse>
       })
 
       const document = new OasDocument({
@@ -242,10 +295,13 @@ Deno.test('OasRef', async (t) => {
         components
       })
 
-      const ref = new OasRef({
-        refType: 'response',
-        $ref: '#/components/responses/ErrorResponse'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'response',
+          $ref: '#/components/responses/ErrorResponse'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const resolved = ref.resolveOnce()
       assertEquals(resolved, errorResponse)
@@ -258,7 +314,7 @@ Deno.test('OasRef', async (t) => {
       })
 
       const components = new OasComponents({
-        parameters: { 'PageParam': pageParam } as Record<RefName, typeof pageParam>
+        parameters: { PageParam: pageParam } as Record<RefName, typeof pageParam>
       })
 
       const document = new OasDocument({
@@ -268,10 +324,13 @@ Deno.test('OasRef', async (t) => {
         components
       })
 
-      const ref = new OasRef({
-        refType: 'parameter',
-        $ref: '#/components/parameters/PageParam'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'parameter',
+          $ref: '#/components/parameters/PageParam'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const resolved = ref.resolveOnce()
       assertEquals(resolved, pageParam)
@@ -288,7 +347,7 @@ Deno.test('OasRef', async (t) => {
       })
 
       const components = new OasComponents({
-        requestBodies: { 'CreateUser': createUserBody } as Record<RefName, typeof createUserBody>
+        requestBodies: { CreateUser: createUserBody } as Record<RefName, typeof createUserBody>
       })
 
       const document = new OasDocument({
@@ -298,10 +357,13 @@ Deno.test('OasRef', async (t) => {
         components
       })
 
-      const ref = new OasRef({
-        refType: 'requestBody',
-        $ref: '#/components/requestBodies/CreateUser'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'requestBody',
+          $ref: '#/components/requestBodies/CreateUser'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const resolved = ref.resolveOnce()
       assertEquals(resolved, createUserBody)
@@ -313,7 +375,7 @@ Deno.test('OasRef', async (t) => {
       })
 
       const components = new OasComponents({
-        examples: { 'UserExample': userExample } as Record<RefName, typeof userExample>
+        examples: { UserExample: userExample } as Record<RefName, typeof userExample>
       })
 
       const document = new OasDocument({
@@ -323,10 +385,13 @@ Deno.test('OasRef', async (t) => {
         components
       })
 
-      const ref = new OasRef({
-        refType: 'example',
-        $ref: '#/components/examples/UserExample'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'example',
+          $ref: '#/components/examples/UserExample'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const resolved = ref.resolveOnce()
       assertEquals(resolved, userExample)
@@ -338,7 +403,7 @@ Deno.test('OasRef', async (t) => {
       })
 
       const components = new OasComponents({
-        headers: { 'ApiKeyHeader': apiKeyHeader } as Record<RefName, typeof apiKeyHeader>
+        headers: { ApiKeyHeader: apiKeyHeader } as Record<RefName, typeof apiKeyHeader>
       })
 
       const document = new OasDocument({
@@ -348,10 +413,13 @@ Deno.test('OasRef', async (t) => {
         components
       })
 
-      const ref = new OasRef({
-        refType: 'header',
-        $ref: '#/components/headers/ApiKeyHeader'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'header',
+          $ref: '#/components/headers/ApiKeyHeader'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const resolved = ref.resolveOnce()
       assertEquals(resolved, apiKeyHeader)
@@ -364,15 +432,18 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const targetRef = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/FinalSchema'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const targetRef = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/FinalSchema'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const components = new OasComponents({
         schemas: {
-          'AliasSchema': targetRef,
-          'FinalSchema': new OasString()
+          AliasSchema: targetRef,
+          FinalSchema: new OasString()
         } as Record<RefName, OasSchema | OasRef<'schema'>>
       })
 
@@ -381,10 +452,13 @@ Deno.test('OasRef', async (t) => {
         components
       }
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/AliasSchema'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/AliasSchema'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const resolved = ref.resolveOnce()
       assertEquals(resolved.isRef(), true)
@@ -392,7 +466,7 @@ Deno.test('OasRef', async (t) => {
     })
   })
 
-  await t.step('resolveOnce() - error cases', async (t) => {
+  await t.step('resolveOnce() - error cases', async t => {
     await t.step('should throw when reference not found', () => {
       const components = new OasComponents({
         schemas: {}
@@ -405,10 +479,13 @@ Deno.test('OasRef', async (t) => {
         components
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/NonExistent'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/NonExistent'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       assertThrows(
         () => ref.resolveOnce(),
@@ -424,16 +501,15 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/User'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
-
-      assertThrows(
-        () => ref.resolveOnce(),
-        Error,
-        'not found'
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/User'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
       )
+
+      assertThrows(() => ref.resolveOnce(), Error, 'not found')
     })
 
     await t.step('should throw on refType mismatch when target is ref', () => {
@@ -443,14 +519,17 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const wrongTypeRef = new OasRef({
-        refType: 'response',
-        $ref: '#/components/responses/Something'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const wrongTypeRef = new OasRef(
+        {
+          refType: 'response',
+          $ref: '#/components/responses/Something'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const components = new OasComponents({
         schemas: {
-          'WrongType': wrongTypeRef as unknown as OasSchema
+          WrongType: wrongTypeRef as unknown as OasSchema
         } as Record<RefName, OasSchema>
       })
 
@@ -459,16 +538,15 @@ Deno.test('OasRef', async (t) => {
         components
       }
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/WrongType'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
-
-      assertThrows(
-        () => ref.resolveOnce(),
-        Error,
-        'Ref type mismatch'
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/WrongType'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
       )
+
+      assertThrows(() => ref.resolveOnce(), Error, 'Ref type mismatch')
     })
 
     await t.step('should throw on oasType mismatch when target is resolved', () => {
@@ -478,7 +556,7 @@ Deno.test('OasRef', async (t) => {
 
       const components = new OasComponents({
         schemas: {
-          'WrongType': wrongTypeObject as unknown as OasSchema
+          WrongType: wrongTypeObject as unknown as OasSchema
         } as Record<RefName, OasSchema>
       })
 
@@ -489,21 +567,23 @@ Deno.test('OasRef', async (t) => {
         components
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/WrongType'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
-
-      assertThrows(
-        () => ref.resolveOnce(),
-        Error,
-        'Type mismatch'
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/WrongType'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
       )
+
+      assertThrows(() => ref.resolveOnce(), Error, 'Type mismatch')
     })
 
     await t.step('should throw when specific component collection is undefined', () => {
       const components = new OasComponents({
-        responses: { 'SomeResponse': new OasResponse({ description: 'test' }) } as Record<RefName, OasResponse>
+        responses: { SomeResponse: new OasResponse({ description: 'test' }) } as Record<
+          RefName,
+          OasResponse
+        >
         // Note: schemas is not defined
       })
 
@@ -514,25 +594,24 @@ Deno.test('OasRef', async (t) => {
         components
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/User'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
-
-      assertThrows(
-        () => ref.resolveOnce(),
-        Error,
-        'not found'
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/User'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
       )
+
+      assertThrows(() => ref.resolveOnce(), Error, 'not found')
     })
   })
 
-  await t.step('resolve() - success cases', async (t) => {
+  await t.step('resolve() - success cases', async t => {
     await t.step('should resolve direct reference', () => {
       const userSchema = new OasString()
 
       const components = new OasComponents({
-        schemas: { 'User': userSchema } as Record<RefName, OasSchema>
+        schemas: { User: userSchema } as Record<RefName, OasSchema>
       })
 
       const document = new OasDocument({
@@ -542,10 +621,13 @@ Deno.test('OasRef', async (t) => {
         components
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/User'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/User'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const resolved = ref.resolve()
       assertEquals(resolved, userSchema)
@@ -561,15 +643,18 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const secondRef = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/Final'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const secondRef = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/Final'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const components = new OasComponents({
         schemas: {
-          'First': secondRef,
-          'Final': finalSchema
+          First: secondRef,
+          Final: finalSchema
         } as Record<RefName, OasSchema | OasRef<'schema'>>
       })
 
@@ -578,10 +663,13 @@ Deno.test('OasRef', async (t) => {
         components
       }
 
-      const firstRef = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/First'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const firstRef = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/First'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const resolved = firstRef.resolve()
       assertEquals(resolved, finalSchema)
@@ -597,21 +685,27 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const thirdRef = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/Final'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const thirdRef = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/Final'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
-      const secondRef = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/Third'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const secondRef = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/Third'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const components = new OasComponents({
         schemas: {
-          'First': secondRef,
-          'Third': thirdRef,
-          'Final': finalSchema
+          First: secondRef,
+          Third: thirdRef,
+          Final: finalSchema
         } as Record<RefName, OasSchema | OasRef<'schema'>>
       })
 
@@ -620,10 +714,13 @@ Deno.test('OasRef', async (t) => {
         components
       }
 
-      const firstRef = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/First'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const firstRef = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/First'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const resolved = firstRef.resolve()
       assertEquals(resolved, finalSchema)
@@ -635,7 +732,7 @@ Deno.test('OasRef', async (t) => {
       })
 
       const components = new OasComponents({
-        responses: { 'Success': response } as Record<RefName, OasResponse>
+        responses: { Success: response } as Record<RefName, OasResponse>
       })
 
       const document = new OasDocument({
@@ -645,17 +742,20 @@ Deno.test('OasRef', async (t) => {
         components
       })
 
-      const ref = new OasRef({
-        refType: 'response',
-        $ref: '#/components/responses/Success'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'response',
+          $ref: '#/components/responses/Success'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const resolved = ref.resolve()
       assertEquals(resolved, response)
     })
   })
 
-  await t.step('resolve() - circular reference detection', async (t) => {
+  await t.step('resolve() - circular reference detection', async t => {
     await t.step('should detect simple circular reference', () => {
       const document = new OasDocument({
         openapi: '3.0.0',
@@ -663,20 +763,26 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const refA = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/B'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const refA = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/B'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
-      const refB = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/A'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const refB = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/A'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const components = new OasComponents({
         schemas: {
-          'A': refA,
-          'B': refB
+          A: refA,
+          B: refB
         } as Record<RefName, OasRef<'schema'>>
       })
 
@@ -685,11 +791,7 @@ Deno.test('OasRef', async (t) => {
         components
       }
 
-      assertThrows(
-        () => refA.resolve(),
-        Error,
-        'Max lookups reached'
-      )
+      assertThrows(() => refA.resolve(), Error, 'Max lookups reached')
     })
 
     await t.step('should detect three-way circular reference', () => {
@@ -699,26 +801,35 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const refA = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/B'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const refA = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/B'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
-      const refB = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/C'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const refB = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/C'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
-      const refC = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/A'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const refC = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/A'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const components = new OasComponents({
         schemas: {
-          'A': refA,
-          'B': refB,
-          'C': refC
+          A: refA,
+          B: refB,
+          C: refC
         } as Record<RefName, OasRef<'schema'>>
       })
 
@@ -727,11 +838,7 @@ Deno.test('OasRef', async (t) => {
         components
       }
 
-      assertThrows(
-        () => refA.resolve(),
-        Error,
-        'Max lookups reached'
-      )
+      assertThrows(() => refA.resolve(), Error, 'Max lookups reached')
     })
 
     await t.step('should throw at MAX_LOOKUPS (10 levels)', () => {
@@ -745,10 +852,13 @@ Deno.test('OasRef', async (t) => {
       const schemas: Record<string, OasRef<'schema'> | OasSchema> = {}
 
       for (let i = 0; i < 11; i++) {
-        schemas[`Schema${i}`] = new OasRef({
-          refType: 'schema',
-          $ref: `#/components/schemas/Schema${i + 1}`
-        }, toRefParseContextStub({ type: 'oas', value: document }))
+        schemas[`Schema${i}`] = new OasRef(
+          {
+            refType: 'schema',
+            $ref: `#/components/schemas/Schema${i + 1}`
+          },
+          toRefParseContextStub({ type: 'oas', value: document })
+        )
       }
 
       schemas['Schema11'] = new OasString()
@@ -764,11 +874,7 @@ Deno.test('OasRef', async (t) => {
 
       const firstRef = schemas['Schema0'] as OasRef<'schema'>
 
-      assertThrows(
-        () => firstRef.resolve(),
-        Error,
-        'Max lookups reached'
-      )
+      assertThrows(() => firstRef.resolve(), Error, 'Max lookups reached')
     })
 
     await t.step('should succeed with near-max lookups (9 levels)', () => {
@@ -782,10 +888,13 @@ Deno.test('OasRef', async (t) => {
       const schemas: Record<string, OasRef<'schema'> | OasSchema> = {}
 
       for (let i = 0; i < 9; i++) {
-        schemas[`Schema${i}`] = new OasRef({
-          refType: 'schema',
-          $ref: `#/components/schemas/Schema${i + 1}`
-        }, toRefParseContextStub({ type: 'oas', value: document }))
+        schemas[`Schema${i}`] = new OasRef(
+          {
+            refType: 'schema',
+            $ref: `#/components/schemas/Schema${i + 1}`
+          },
+          toRefParseContextStub({ type: 'oas', value: document })
+        )
       }
 
       const finalSchema = new OasString()
@@ -807,7 +916,7 @@ Deno.test('OasRef', async (t) => {
     })
   })
 
-  await t.step('toJsonSchema() method', async (t) => {
+  await t.step('toJsonSchema() method', async t => {
     await t.step('should return reference object when resolve=false', () => {
       const document = new OasDocument({
         openapi: '3.0.0',
@@ -815,10 +924,13 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/User'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/User'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const result = ref.toJsonSchema({ resolve: false })
 
@@ -845,10 +957,13 @@ Deno.test('OasRef', async (t) => {
       ]
 
       testCases.forEach(({ refType, expected }) => {
-        const ref = new OasRef({
-          refType,
-          $ref: `#/components/${expected}/TestName`
-        }, toRefParseContextStub({ type: 'oas', value: document }))
+        const ref = new OasRef(
+          {
+            refType,
+            $ref: `#/components/${expected}/TestName`
+          },
+          toRefParseContextStub({ type: 'oas', value: document })
+        )
 
         const result = ref.toJsonSchema({ resolve: false })
         assertEquals((result as any).$ref, `#/components/${expected}/TestName`)
@@ -864,7 +979,7 @@ Deno.test('OasRef', async (t) => {
       })
 
       const components = new OasComponents({
-        schemas: { 'User': userSchema } as Record<RefName, OasSchema>
+        schemas: { User: userSchema } as Record<RefName, OasSchema>
       })
 
       const document = new OasDocument({
@@ -874,10 +989,13 @@ Deno.test('OasRef', async (t) => {
         components
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/User'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/User'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const result = ref.toJsonSchema({ resolve: true })
       const expected = userSchema.toJsonSchema({ resolve: true })
@@ -894,15 +1012,18 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const secondRef = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/Final'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const secondRef = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/Final'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const components = new OasComponents({
         schemas: {
-          'First': secondRef,
-          'Final': finalSchema
+          First: secondRef,
+          Final: finalSchema
         } as Record<RefName, OasSchema | OasRef<'schema'>>
       })
 
@@ -911,10 +1032,13 @@ Deno.test('OasRef', async (t) => {
         components
       }
 
-      const firstRef = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/First'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const firstRef = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/First'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const result = firstRef.toJsonSchema({ resolve: true })
       const expected = finalSchema.toJsonSchema({ resolve: true })
@@ -923,7 +1047,7 @@ Deno.test('OasRef', async (t) => {
     })
   })
 
-  await t.step('toJSON() method', async (t) => {
+  await t.step('toJSON() method', async t => {
     await t.step('should return object with correct $ref format', () => {
       const document = new OasDocument({
         openapi: '3.0.0',
@@ -931,10 +1055,13 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/User'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/User'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const result = ref.toJSON()
 
@@ -950,15 +1077,21 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const responseRef = new OasRef({
-        refType: 'response',
-        $ref: '#/components/responses/NotFound'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const responseRef = new OasRef(
+        {
+          refType: 'response',
+          $ref: '#/components/responses/NotFound'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
-      const paramRef = new OasRef({
-        refType: 'parameter',
-        $ref: '#/components/parameters/PageSize'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const paramRef = new OasRef(
+        {
+          refType: 'parameter',
+          $ref: '#/components/parameters/PageSize'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       assertEquals(responseRef.toJSON(), {
         $ref: '#/components/responses/NotFound'
@@ -976,10 +1109,13 @@ Deno.test('OasRef', async (t) => {
         operations: []
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/User'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/User'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const result = ref.toJSON()
 
@@ -990,7 +1126,7 @@ Deno.test('OasRef', async (t) => {
     })
   })
 
-  await t.step('integration tests', async (t) => {
+  await t.step('integration tests', async t => {
     await t.step('should work with real document and multiple component types', () => {
       const userSchema = new OasObject({
         properties: {
@@ -1010,9 +1146,9 @@ Deno.test('OasRef', async (t) => {
       })
 
       const components = new OasComponents({
-        schemas: { 'User': userSchema } as Record<RefName, OasSchema>,
-        responses: { 'Error': errorResponse } as Record<RefName, OasResponse>,
-        parameters: { 'Page': pageParam } as Record<RefName, OasParameter>
+        schemas: { User: userSchema } as Record<RefName, OasSchema>,
+        responses: { Error: errorResponse } as Record<RefName, OasResponse>,
+        parameters: { Page: pageParam } as Record<RefName, OasParameter>
       })
 
       const document = new OasDocument({
@@ -1023,24 +1159,33 @@ Deno.test('OasRef', async (t) => {
       })
 
       // Test schema reference
-      const schemaRef = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/User'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const schemaRef = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/User'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
       assertEquals(schemaRef.resolve(), userSchema)
 
       // Test response reference
-      const responseRef = new OasRef({
-        refType: 'response',
-        $ref: '#/components/responses/Error'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const responseRef = new OasRef(
+        {
+          refType: 'response',
+          $ref: '#/components/responses/Error'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
       assertEquals(responseRef.resolve(), errorResponse)
 
       // Test parameter reference
-      const paramRef = new OasRef({
-        refType: 'parameter',
-        $ref: '#/components/parameters/Page'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const paramRef = new OasRef(
+        {
+          refType: 'parameter',
+          $ref: '#/components/parameters/Page'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
       assertEquals(paramRef.resolve(), pageParam)
     })
 
@@ -1048,7 +1193,7 @@ Deno.test('OasRef', async (t) => {
       const sharedSchema = new OasString()
 
       const components = new OasComponents({
-        schemas: { 'Shared': sharedSchema } as Record<RefName, OasSchema>
+        schemas: { Shared: sharedSchema } as Record<RefName, OasSchema>
       })
 
       const document = new OasDocument({
@@ -1058,15 +1203,21 @@ Deno.test('OasRef', async (t) => {
         components
       })
 
-      const ref1 = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/Shared'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref1 = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/Shared'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
-      const ref2 = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/Shared'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref2 = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/Shared'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const resolved1 = ref1.resolve()
       const resolved2 = ref2.resolve()
@@ -1092,10 +1243,13 @@ Deno.test('OasRef', async (t) => {
         components
       })
 
-      const ref = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/Schema.With-Special_Chars'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/Schema.With-Special_Chars'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       assertEquals(ref.toRefName(), 'Schema.With-Special_Chars')
       assertEquals(ref.resolve(), schema)
@@ -1114,17 +1268,20 @@ Deno.test('OasRef', async (t) => {
         properties: {
           id: new OasNumber(),
           name: new OasString(),
-          address: new OasRef({
-            refType: 'schema',
-            $ref: '#/components/schemas/Address'
-          }, toRefParseContextStub({ type: 'oas', value: {} as OasDocument })) // Will be set via document
+          address: new OasRef(
+            {
+              refType: 'schema',
+              $ref: '#/components/schemas/Address'
+            },
+            toRefParseContextStub({ type: 'oas', value: {} as OasDocument })
+          ) // Will be set via document
         }
       })
 
       const components = new OasComponents({
         schemas: {
-          'User': userSchema,
-          'Address': addressSchema
+          User: userSchema,
+          Address: addressSchema
         } as Record<RefName, OasSchema>
       })
 
@@ -1136,10 +1293,13 @@ Deno.test('OasRef', async (t) => {
       })
 
       // Update the reference with the document
-      const addressRef = new OasRef({
-        refType: 'schema',
-        $ref: '#/components/schemas/Address'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const addressRef = new OasRef(
+        {
+          refType: 'schema',
+          $ref: '#/components/schemas/Address'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       assertEquals(addressRef.resolve(), addressSchema)
     })
@@ -1152,7 +1312,7 @@ Deno.test('OasRef', async (t) => {
 
       const components = new OasComponents({
         securitySchemes: {
-          'ApiKey': apiKeyScheme
+          ApiKey: apiKeyScheme
         } as Record<string, typeof apiKeyScheme>
       })
 
@@ -1163,10 +1323,13 @@ Deno.test('OasRef', async (t) => {
         components
       })
 
-      const ref = new OasRef({
-        refType: 'securityScheme',
-        $ref: '#/components/securitySchemes/ApiKey'
-      }, toRefParseContextStub({ type: 'oas', value: document }))
+      const ref = new OasRef(
+        {
+          refType: 'securityScheme',
+          $ref: '#/components/securitySchemes/ApiKey'
+        },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
 
       const resolved = ref.resolve()
       assertEquals(resolved, apiKeyScheme)

@@ -76,10 +76,7 @@ export const readEjectionState = (statePath: string): EjectionStateContent => {
   }
 
   try {
-    const result = v.safeParse(
-      ejectionStateContent,
-      JSON.parse(Deno.readTextFileSync(statePath))
-    )
+    const result = v.safeParse(ejectionStateContent, JSON.parse(Deno.readTextFileSync(statePath)))
     return result.success ? result.output : { version: 1, files: {} }
   } catch (_error) {
     return { version: 1, files: {} }

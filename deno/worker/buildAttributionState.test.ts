@@ -95,8 +95,5 @@ Deno.test('buildAttributionState - payload round-trips through structured clone'
   }
   const cloned = JSON.parse(JSON.stringify(payload))
   const result = buildAttributionState(cloned)
-  assertEquals(
-    result?.postPass?.generatorMeta?.('@scope/gen-zod')?.version,
-    '0.0.55'
-  )
+  assertEquals(result?.postPass?.generatorMeta?.('@scope/gen-zod')?.version, '0.0.55')
 })

@@ -5,11 +5,11 @@ describe('uniqueArray', () => {
     const input = [
       { id: 1, name: 'John' },
       { id: 2, name: 'Jane' },
-      { id: 1, name: 'John' },
+      { id: 1, name: 'John' }
     ]
     const expectedOutput = [
       { id: 1, name: 'John' },
-      { id: 2, name: 'Jane' },
+      { id: 2, name: 'Jane' }
     ]
     const output = uniqueArray(input)
     expect(output).toEqual(expectedOutput)

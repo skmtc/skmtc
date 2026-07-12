@@ -24,7 +24,7 @@ Deno.test('validateSync - a freshly converted petstore is valid', async () => {
 Deno.test('validateSync - rejects a swagger 2.0 document', () => {
   assertThrows(
     () => validateSync({ swagger: '2.0', info: { title: 't', version: '1' }, paths: {} }, {}),
-    ValidationError,
+    ValidationError
   )
 })
 
@@ -32,66 +32,75 @@ Deno.test('validateSync - rejects a missing openapi version', () => {
   assertThrows(
     () => validateSync({ info: { title: 't', version: '1' }, paths: {} }, {}),
     ValidationError,
-    'requires an openapi version',
+    'requires an openapi version'
   )
 })
 
 Deno.test('validateSync - rejects a path parameter without required:true', () => {
   assertThrows(
     () =>
-      validateSync({
-        openapi: '3.0.0',
-        info: { title: 't', version: '1' },
-        paths: {
-          '/pets/{id}': {
-            get: {
-              parameters: [{ name: 'id', in: 'path', schema: { type: 'string' } }],
-              responses: { '200': { description: 'ok' } },
-            },
-          },
+      validateSync(
+        {
+          openapi: '3.0.0',
+          info: { title: 't', version: '1' },
+          paths: {
+            '/pets/{id}': {
+              get: {
+                parameters: [{ name: 'id', in: 'path', schema: { type: 'string' } }],
+                responses: { '200': { description: 'ok' } }
+              }
+            }
+          }
         },
-      }, {}),
+        {}
+      ),
     ValidationError,
-    'required:true',
+    'required:true'
   )
 })
 
 Deno.test('validateSync - lint mode collects violations without aborting', () => {
   const options: ValidateOptions = { lint: true }
-  const valid = validateSync({
-    openapi: '3.0.0',
-    info: { title: 't', version: '1' },
-    paths: {
-      '/pets': {
-        get: {
-          // no operationId, summary/description, or tags -> several lint rules fire
-          responses: { '200': { description: 'ok' } },
-        },
-      },
+  const valid = validateSync(
+    {
+      openapi: '3.0.0',
+      info: { title: 't', version: '1' },
+      paths: {
+        '/pets': {
+          get: {
+            // no operationId, summary/description, or tags -> several lint rules fire
+            responses: { '200': { description: 'ok' } }
+          }
+        }
+      }
     },
-  }, options)
+    options
+  )
   assertEquals(valid, true)
   assert((options.violations ?? []).length > 0, 'expected lint violations to be collected')
-  const ruleNames = (options.violations ?? []).map((v) => v.rule)
+  const ruleNames = (options.violations ?? []).map(v => v.rule)
   assert(ruleNames.includes('operation-operationId'), 'expected operationId rule violation')
 })
 
 Deno.test('validateSync - carries JSON-Pointer context on failure', () => {
   const error = assertThrows(
     () =>
-      validateSync({
-        openapi: '3.0.0',
-        info: { title: 't', version: '1' },
-        paths: {
-          '/pets': {
-            get: {
-              parameters: [{ name: 'q', in: 'invalid-location', schema: { type: 'string' } }],
-              responses: { '200': { description: 'ok' } },
-            },
-          },
+      validateSync(
+        {
+          openapi: '3.0.0',
+          info: { title: 't', version: '1' },
+          paths: {
+            '/pets': {
+              get: {
+                parameters: [{ name: 'q', in: 'invalid-location', schema: { type: 'string' } }],
+                responses: { '200': { description: 'ok' } }
+              }
+            }
+          }
         },
-      }, {}),
-    ValidationError,
+        {}
+      ),
+    ValidationError
   )
   assert(error instanceof ValidationError)
   assert(error.context.length > 0, 'expected a non-empty context stack')

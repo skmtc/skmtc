@@ -6,13 +6,9 @@ import { ensureFileSync } from '@std/fs/ensure-file'
 import { existsSync } from '@std/fs/exists'
 import { type ManifestContent, manifestContent } from '@skmtc/core/Manifest'
 import type { ClientSettings } from '@skmtc/core/Settings'
-import {
-  applyGeneratedSuffix,
-  DEFAULT_GENERATED_SUFFIX,
-  toResolvedArtifactPath
-} from '@skmtc/core'
+import { applyGeneratedSuffix, DEFAULT_GENERATED_SUFFIX, toResolvedArtifactPath } from '@skmtc/core'
 import * as v from 'valibot'
-import { toRootPath, toAbsoluteRootPath } from '@/lib/to-root-path.ts'
+import { toAbsoluteRootPath, toRootPath } from '@/lib/to-root-path.ts'
 import { pruneEmptyDirs, toAnchorDirs } from '@/lib/prune-empty-dirs.ts'
 import {
   type GeneratedLockEntry,
@@ -50,7 +46,10 @@ import { dirname } from '@std/path/dirname'
 export const toEjectedArtifactPaths = (clientSettings?: ClientSettings): Set<string> => {
   return new Set(
     (clientSettings?.ejected ?? []).map(destinationPath =>
-      toResolvedArtifactPath({ basePath: clientSettings?.basePath, destinationPath })
+      toResolvedArtifactPath({
+        basePath: clientSettings?.basePath,
+        destinationPath
+      })
     )
   )
 }
@@ -166,10 +165,7 @@ export const deletePreviousArtifacts = ({
  * would otherwise abort cleanup. Mirrors the tolerant behavior of
  * `Manifest.open` — see {@link lib/manifest.ts}.
  */
-const readManifestForCleanup = (
-  raw: string,
-  manifestPath: string
-): ManifestContent | null => {
+const readManifestForCleanup = (raw: string, manifestPath: string): ManifestContent | null => {
   let parsedJson: unknown
   try {
     parsedJson = JSON.parse(raw)
@@ -236,6 +232,15 @@ export type WriteGeneratedFilesResult = {
    * `reviewedPristineHash` in ejections.json matching the current
    * pristine hash — stays out until the output changes again).
    */
+  /**
+   * On-disk content per artifact whose file no longer matches the raw
+   * engine render at the end of the run — formatted by
+   * `settings.formatter` this run, or left formatted by a previous run
+   * when this run's render was unchanged. The sidecar/manifest
+   * realignment in `generate-local.ts` consumes this so attribution
+   * describes the file as it actually exists on disk.
+   */
+  onDiskDrift: Record<string, string>
   ejections?: {
     drifted: string[]
     reAdoptable: string[]
@@ -348,7 +353,12 @@ export const writeGeneratedFiles = ({
       const { dir } = parse(absolutePath)
       ensureDirSync(dir)
       Deno.writeTextFileSync(absolutePath, content)
-      pendingWrites.push({ artifactPath, absolutePath, canonicalHash, content })
+      pendingWrites.push({
+        artifactPath,
+        absolutePath,
+        canonicalHash,
+        content
+      })
       continue
     }
 
@@ -364,7 +374,10 @@ export const writeGeneratedFiles = ({
       const diskContent = Deno.readTextFileSync(absolutePath)
 
       if (diskContent === content) {
-        nextLockFiles[artifactPath] = { canonicalHash, formattedHash: canonicalHash }
+        nextLockFiles[artifactPath] = {
+          canonicalHash,
+          formattedHash: canonicalHash
+        }
         if (baselinesDir) {
           writeBaseline(baselinesDir, artifactPath, content)
         }
@@ -372,7 +385,12 @@ export const writeGeneratedFiles = ({
       }
 
       Deno.writeTextFileSync(absolutePath, content)
-      pendingWrites.push({ artifactPath, absolutePath, canonicalHash, content })
+      pendingWrites.push({
+        artifactPath,
+        absolutePath,
+        canonicalHash,
+        content
+      })
       continue
     }
 
@@ -520,7 +538,47 @@ export const writeGeneratedFiles = ({
     )
   }
 
-  return { manifest, artifacts, protectedPaths, ...(ejections ? { ejections } : {}) }
+  // On-disk drift vs the raw render, for the sidecar/manifest realignment
+  // in generate-local. Only FORMATTER-attributable drift qualifies:
+  // - collected only when `settings.formatter` is configured (no formatter
+  //   → nothing legitimate can have drifted, and skipping the scan avoids
+  //   re-reading the whole corpus per generate);
+  // - hand-edited files (`protectedPaths` — both the stale-spared and the
+  //   incoming-write-skipped kinds) are excluded: realigning attribution
+  //   onto user-owned text and silencing the reader's drift trigger for it
+  //   would serve confidently wrong spans.
+  // Read AFTER the formatter step so a just-formatted file is captured;
+  // covers unwritten (unchanged-render) files too — their on-disk copy
+  // stays formatted from a previous run.
+  const onDiskDrift: Record<string, string> = {}
+  if (formatterCommand) {
+    const protectedSet = new Set(protectedPaths)
+    for (const [artifactPath, artifactContent] of Object.entries(artifacts ?? {})) {
+      if (
+        twinArtifactPaths.has(artifactPath) ||
+        ejectedArtifactPaths.has(artifactPath) ||
+        protectedSet.has(artifactPath)
+      ) {
+        continue
+      }
+      try {
+        const onDisk = Deno.readTextFileSync(join(skmtcRootPath, '..', artifactPath))
+        if (onDisk !== String(artifactContent)) {
+          onDiskDrift[artifactPath] = onDisk
+        }
+      } catch {
+        // unreadable → nothing to realign against; raw coordinates stand
+      }
+    }
+  }
+
+  return {
+    manifest,
+    artifacts,
+    protectedPaths,
+    onDiskDrift,
+    ...(ejections ? { ejections } : {})
+  }
 }
 
 /**
@@ -601,9 +659,7 @@ const toEjectionReport = ({
     const pristineHash = toContentHash(pristine)
     const record = records.files[ejectedExportPath]
 
-    const diskContent = existsSync(absoluteOwned)
-      ? Deno.readTextFileSync(absoluteOwned)
-      : undefined
+    const diskContent = existsSync(absoluteOwned) ? Deno.readTextFileSync(absoluteOwned) : undefined
 
     const matchesGenerated =
       diskContent !== undefined &&
@@ -642,8 +698,16 @@ const toEjectionReport = ({
     const classification =
       baselineContent !== undefined &&
       diskContent !== undefined &&
-      isThreeWayDiffable({ base: baselineContent, ours: diskContent, theirs: pristine })
-        ? classifyThreeWay({ base: baselineContent, ours: diskContent, theirs: pristine })
+      isThreeWayDiffable({
+        base: baselineContent,
+        ours: diskContent,
+        theirs: pristine
+      })
+        ? classifyThreeWay({
+            base: baselineContent,
+            ours: diskContent,
+            theirs: pristine
+          })
         : undefined
 
     stateFiles[ownedArtifactPath] = {
@@ -659,7 +723,10 @@ const toEjectionReport = ({
   }
 
   if (projectPath) {
-    writeEjectionState(toEjectionStatePath(projectPath), { version: 1, files: stateFiles })
+    writeEjectionState(toEjectionStatePath(projectPath), {
+      version: 1,
+      files: stateFiles
+    })
   }
 
   return { drifted, reAdoptable, stale, twinBlocked }

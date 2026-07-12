@@ -10,60 +10,53 @@ import { assertEquals, assertStringIncludes } from '@std/assert'
 import type { RemoveHeadlessResult } from '@/lib/remove-headless.ts'
 import { withCapturedExit, withFakeTty } from '@/tests/strict-mode-helpers.test.ts'
 
-Deno.test(
-  'renderRemove - interactive mode mounts the Ink App with the expected state',
-  async () => {
-    await withFakeTty(async () => {
-      const manager = createMockManager()
+Deno.test('renderRemove - interactive mode mounts the Ink App with the expected state', async () => {
+  await withFakeTty(async () => {
+    const manager = createMockManager()
 
-      const skmtcRoot = createMockSkmtcRoot(manager)
-      const testProjectName = 'test-project'
-      const testGenerator = 'my-generator'
-      const renderSpy = spy((_element: React.ReactNode) => ({}) as Instance)
-      const AppSpy = (_props: AppProps): React.JSX.Element =>
-        'AppSpy' as unknown as React.JSX.Element
+    const skmtcRoot = createMockSkmtcRoot(manager)
+    const testProjectName = 'test-project'
+    const testGenerator = 'my-generator'
+    const renderSpy = spy((_element: React.ReactNode) => ({}) as Instance)
+    const AppSpy = (_props: AppProps): React.JSX.Element => 'AppSpy' as unknown as React.JSX.Element
 
-      await renderRemove({
-        skmtcRoot,
-        projectName: testProjectName,
-        generator: testGenerator,
-        renderFn: renderSpy as InkRenderFn,
-        AppComponent: AppSpy
-      })
-
-      assertSpyCalls(renderSpy, 1)
-      assertSpyCall(renderSpy, 0, {
-        args: [
-          // deno-lint-ignore jsx-key
-          <AppSpy
-            initialState={{
-              view: {
-                page: 'remove-generator',
-                projectName: testProjectName,
-                generatorName: testGenerator
-              },
-              skmtcRoot,
-              message: null,
-              interactive: false,
-              shortcuts: [],
-              generators: []
-            }}
-          />
-        ]
-      })
+    await renderRemove({
+      skmtcRoot,
+      projectName: testProjectName,
+      generator: testGenerator,
+      renderFn: renderSpy as InkRenderFn,
+      AppComponent: AppSpy
     })
-  }
-)
+
+    assertSpyCalls(renderSpy, 1)
+    assertSpyCall(renderSpy, 0, {
+      args: [
+        // deno-lint-ignore jsx-key
+        <AppSpy
+          initialState={{
+            view: {
+              page: 'remove-generator',
+              projectName: testProjectName,
+              generatorName: testGenerator
+            },
+            skmtcRoot,
+            message: null,
+            interactive: false,
+            shortcuts: [],
+            generators: []
+          }}
+        />
+      ]
+    })
+  })
+})
 
 Deno.test('printRemoveResult - text format reports removed id + verify hint', () => {
   const logs: string[] = []
   const original = console.log
   console.log = (msg: string) => logs.push(msg)
   try {
-    printRemoveResult(
-      { projectName: 'my-api', removed: '@skmtc/gen-zod' },
-      { format: 'text' }
-    )
+    printRemoveResult({ projectName: 'my-api', removed: '@skmtc/gen-zod' }, { format: 'text' })
   } finally {
     console.log = original
   }
@@ -78,10 +71,7 @@ Deno.test('printRemoveResult - json format emits a parseable object', () => {
   const original = console.log
   console.log = (msg: string) => logs.push(msg)
   try {
-    printRemoveResult(
-      { projectName: 'my-api', removed: '@skmtc/gen-zod' },
-      { format: 'json' }
-    )
+    printRemoveResult({ projectName: 'my-api', removed: '@skmtc/gen-zod' }, { format: 'json' })
   } finally {
     console.log = original
   }

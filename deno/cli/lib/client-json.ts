@@ -68,11 +68,7 @@ export class ClientJson {
 
     const contents = await Deno.readTextFile(path)
 
-    const parsed = parseOrExplain(
-      skmtcClientConfig,
-      JSON.parse(contents),
-      `client.json at ${path}`
-    )
+    const parsed = parseOrExplain(skmtcClientConfig, JSON.parse(contents), `client.json at ${path}`)
 
     const clientJson = new ClientJson({ path, contents: parsed })
 

@@ -29,9 +29,7 @@ const REACT_CORE = [
  *  the CLI's default `src`. */
 const readBasePath = (skmtcRoot: string, project: string): string => {
   try {
-    const parsed: unknown = JSON.parse(
-      readFileSync(clientJsonPath(skmtcRoot, project), 'utf8')
-    )
+    const parsed: unknown = JSON.parse(readFileSync(clientJsonPath(skmtcRoot, project), 'utf8'))
     if (parsed === null || typeof parsed !== 'object') return 'src'
     const settings = (parsed as Record<string, unknown>).settings
     if (settings === null || typeof settings !== 'object') return 'src'

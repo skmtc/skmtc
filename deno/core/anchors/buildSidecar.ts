@@ -17,12 +17,7 @@
  */
 
 import type { Span, Attribution } from './types.ts'
-import {
-  emptySidecar,
-  type Sidecar,
-  type RegistryEntry,
-  type GeneratorEntry
-} from './sidecar.ts'
+import { emptySidecar, type Sidecar, type RegistryEntry, type GeneratorEntry } from './sidecar.ts'
 
 /**
  * One (span, attribution, landmark) triple — the input unit for

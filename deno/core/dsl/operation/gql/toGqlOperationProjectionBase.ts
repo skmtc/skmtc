@@ -37,7 +37,10 @@ import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichme
  * `toIdentifierType`'s return tightens to that language's `type` vocabulary —
  * no recast.
  */
-export type GqlOperationProjectionBaseConfig<EnrichmentType = undefined, IdType extends IdentifierType = IdentifierType> = {
+export type GqlOperationProjectionBaseConfig<
+  EnrichmentType = undefined,
+  IdType extends IdentifierType = IdentifierType
+> = {
   id: string
   /** Pure: the cache-key name (the cache-check path runs this). */
   toIdentifierName: (args: ToGqlOperationIdentifierNameArgs<EnrichmentType>) => string
@@ -93,7 +96,10 @@ type ToEnrichmentsArgs = {
  * `GqlOperationProjectionBase` lives here now, because the base class is no
  * longer statically known.
  */
-export const toGqlOperationProjectionBase = <EnrichmentType = undefined, IdType extends IdentifierType = IdentifierType>(
+export const toGqlOperationProjectionBase = <
+  EnrichmentType = undefined,
+  IdType extends IdentifierType = IdentifierType
+>(
   base: LangSnippetConstructor,
   config: GqlOperationProjectionBaseConfig<EnrichmentType, IdType>
 ) => {
@@ -107,11 +113,7 @@ export const toGqlOperationProjectionBase = <EnrichmentType = undefined, IdType 
 
     static isSupported = config.isSupported ?? (() => true)
 
-    static toEnrichments = ({
-      operation,
-      context,
-      variant
-    }: ToEnrichmentsArgs): EnrichmentType => {
+    static toEnrichments = ({ operation, context, variant }: ToEnrichmentsArgs): EnrichmentType => {
       // The three enrichment scopes assembled into the umbrella a generator
       // reads off `this.settings.enrichments`. Subject is per-operation
       // (`[id][rootKind][fieldName][variant]`) — GraphQL has no path/method,
@@ -119,10 +121,13 @@ export const toGqlOperationProjectionBase = <EnrichmentType = undefined, IdType 
       // run-constants (`[id][_generator]`, `[_stack]`). The required composite
       // schema parses the raw umbrella once — typed, cast-free.
       const raw = {
-        subject: get(
-          context.settings,
-          ['enrichments', config.id, operation.rootKind, operation.fieldName, variant]
-        ),
+        subject: get(context.settings, [
+          'enrichments',
+          config.id,
+          operation.rootKind,
+          operation.fieldName,
+          variant
+        ]),
         generator: get(context.settings, ['enrichments', config.id, GENERATOR_ENRICHMENT_KEY]),
         stack: get(context.settings, ['enrichments', STACK_ENRICHMENT_KEY])
       }

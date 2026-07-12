@@ -61,7 +61,10 @@ Deno.test('printCleanResult - text reports dir, missing and skipped counts', () 
 
 Deno.test('printCleanResult - dry run says nothing was deleted', () => {
   const result: CleanHeadlessResult = {
-    ...baseResult, dryRun: true, manifestRemoved: false, removedDirs: ['src/gen/types']
+    ...baseResult,
+    dryRun: true,
+    manifestRemoved: false,
+    removedDirs: ['src/gen/types']
   }
   const logs = captureLogs(() => printCleanResult(result, { format: 'text', verbose: false }))
   const joined = logs.join('\n')
@@ -73,8 +76,16 @@ Deno.test('printCleanResult - dry run says nothing was deleted', () => {
 
 Deno.test('printCleanResult - noManifest prints a no-op message', () => {
   const result: CleanHeadlessResult = {
-    projectName: 'my-api', dryRun: false, deleted: [], missing: [], skipped: [], ejected: [], modified: [],
-    removedDirs: [], manifestRemoved: false, noManifest: true
+    projectName: 'my-api',
+    dryRun: false,
+    deleted: [],
+    missing: [],
+    skipped: [],
+    ejected: [],
+    modified: [],
+    removedDirs: [],
+    manifestRemoved: false,
+    noManifest: true
   }
   const logs = captureLogs(() => printCleanResult(result, { format: 'text', verbose: false }))
   assertEquals(logs.length, 1)

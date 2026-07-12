@@ -75,7 +75,6 @@ Deno.test('toOasOperationEntry - toPreviewModule is undefined when not provided'
   assertEquals(entry.toPreviewModule, undefined)
 })
 
-
 Deno.test('toOasOperationEntry - toEnrichmentSchema reflects the provided schema', () => {
   const enrichmentSchemaFn = () => emptyEnrichmentSchema
   const entry = toOasOperationEntry({
@@ -115,7 +114,6 @@ Deno.test('toOasOperationEntry - includes toPreviewModule when provided', () => 
 
   assertEquals(entry.toPreviewModule, previewFn)
 })
-
 
 Deno.test('toOasOperationEntry - includes all optional functions when provided', () => {
   const transformFn = () => {}

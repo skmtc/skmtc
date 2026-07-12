@@ -4,25 +4,25 @@ module.exports = {
     es6: true,
     node: true,
     amd: true,
-    jest: true,
+    jest: true
   },
   extends: [
     'eslint:recommended',
     'plugin:react/recommended',
     'plugin:@typescript-eslint/eslint-recommended',
-    'prettier',
+    'prettier'
   ],
   globals: {
     Atomics: 'readonly',
-    SharedArrayBuffer: 'readonly',
+    SharedArrayBuffer: 'readonly'
   },
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaFeatures: {
-      jsx: true,
+      jsx: true
     },
     ecmaVersion: 2020,
-    sourceType: 'module',
+    sourceType: 'module'
   },
   plugins: ['react', '@typescript-eslint', 'prettier', 'react-hooks'],
   ignorePatterns: [
@@ -36,7 +36,7 @@ module.exports = {
     'packages/*/build',
     'packages/*/dist',
     'packages/*/public/dist',
-    'chat-bot.js',
+    'chat-bot.js'
   ],
   rules: {
     quotes: ['error', 'single', { avoidEscape: true, allowTemplateLiterals: true }],
@@ -46,8 +46,8 @@ module.exports = {
     'prettier/prettier': [
       'warn',
       {
-        endOfLine: 'auto',
-      },
+        endOfLine: 'auto'
+      }
     ],
     // 'max-len': ['error', { code: 120, ignoreUrls: true, ignoreTemplateLiterals: true, ignoreStrings: true }],
     'no-confusing-arrow': ['error', { allowParens: false }],
@@ -58,9 +58,9 @@ module.exports = {
           ['&', '|', '^', '~', '<<', '>>', '>>>'],
           ['==', '!=', '===', '!==', '>', '>=', '<', '<='],
           ['&&', '||'],
-          ['in', 'instanceof'],
-        ],
-      },
+          ['in', 'instanceof']
+        ]
+      }
     ],
     'no-tabs': ['error', { allowIndentationTabs: true }],
     'no-unexpected-multiline': 'error',
@@ -71,11 +71,11 @@ module.exports = {
     'react/prop-types': 0,
     'react-hooks/rules-of-hooks': 0,
     'react-hooks/exhaustive-deps': 0,
-    'react/display-name': 0,
+    'react/display-name': 0
   },
   settings: {
     react: {
-      version: 'detect',
-    },
-  },
+      version: 'detect'
+    }
+  }
 }

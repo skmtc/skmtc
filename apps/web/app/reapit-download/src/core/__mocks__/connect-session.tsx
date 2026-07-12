@@ -18,15 +18,17 @@ export const mockBrowserSession: ReapitConnectSession = {
       'OrganisationAdmin',
       'ReapitUser',
       'ReapitDeveloper',
-      'ReapitDeveloperAdmin',
+      'ReapitDeveloperAdmin'
     ],
     offGroupIds: 'MKV',
     offGrouping: true,
     offGroupName: 'Cool Office Group',
     officeId: 'MVK',
     orgProduct: 'agencyCloud',
-    agencyCloudId: 'SOME_AC_ID',
-  },
+    agencyCloudId: 'SOME_AC_ID'
+  }
 }
 
-export const reapitConnectBrowserSession = { connectSession: () => Promise.resolve(mockBrowserSession) }
+export const reapitConnectBrowserSession = {
+  connectSession: () => Promise.resolve(mockBrowserSession)
+}

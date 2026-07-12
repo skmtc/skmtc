@@ -44,10 +44,7 @@ export const githubContentItem = v.object({
  * - A single object when the path points to a specific file
  * - An array of objects when the path points to a directory
  */
-export const githubContentsResponse = v.union([
-  githubContentItem,
-  v.array(githubContentItem)
-])
+export const githubContentsResponse = v.union([githubContentItem, v.array(githubContentItem)])
 
 /**
  * TypeScript type for a single GitHub content item (file or directory)

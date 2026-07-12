@@ -1,13 +1,21 @@
 import { assertEquals, assertThrows } from '@std/assert'
 import { createType } from './createIdentifier.ts'
 import { FunctionParameter } from './FunctionParameter.ts'
-import type { DefinitionBase, TypeSystemObject, TypeSystemVoid, TypeSystemString } from '@skmtc/core'
+import type {
+  DefinitionBase,
+  TypeSystemObject,
+  TypeSystemVoid,
+  TypeSystemString
+} from '@skmtc/core'
 
 // Mock helper to create a simple Definition-like object. FunctionParameter
 // only consumes the neutral `DefinitionBase` surface (`.value`), so the mock
 // ducks that shape; bridging a plain object onto the abstract class needs the
 // `unknown` hop (a test-only structural mock, not an identifier cast).
-const createMockDefinition = (value: TypeSystemObject | TypeSystemVoid, identifierName = 'MockType'): DefinitionBase<TypeSystemObject | TypeSystemVoid> => {
+const createMockDefinition = (
+  value: TypeSystemObject | TypeSystemVoid,
+  identifierName = 'MockType'
+): DefinitionBase<TypeSystemObject | TypeSystemVoid> => {
   return {
     identifier: createType(identifierName),
     value,
@@ -398,16 +406,19 @@ Deno.test('FunctionParameter - toString returns empty for void parameter', () =>
 
 // Test: toString returns correct syntax for required regular parameter
 Deno.test('FunctionParameter - toString returns correct syntax for required regular parameter', () => {
-  const objectDef = createMockDefinition({
-    type: 'object',
-    recordProperties: null,
-    objectProperties: {
-      properties: {
-        value: mockStringType()
-      }
+  const objectDef = createMockDefinition(
+    {
+      type: 'object',
+      recordProperties: null,
+      objectProperties: {
+        properties: {
+          value: mockStringType()
+        }
+      },
+      modifiers: { required: true, nullable: false }
     },
-    modifiers: { required: true, nullable: false }
-  }, 'UserType')
+    'UserType'
+  )
 
   const param = new FunctionParameter({
     name: 'userData',
@@ -420,16 +431,19 @@ Deno.test('FunctionParameter - toString returns correct syntax for required regu
 
 // Test: toString returns correct syntax for optional regular parameter
 Deno.test('FunctionParameter - toString returns correct syntax for optional regular parameter', () => {
-  const objectDef = createMockDefinition({
-    type: 'object',
-    recordProperties: null,
-    objectProperties: {
-      properties: {
-        value: mockStringType()
-      }
+  const objectDef = createMockDefinition(
+    {
+      type: 'object',
+      recordProperties: null,
+      objectProperties: {
+        properties: {
+          value: mockStringType()
+        }
+      },
+      modifiers: { required: true, nullable: false }
     },
-    modifiers: { required: true, nullable: false }
-  }, 'OptionsType')
+    'OptionsType'
+  )
 
   const param = new FunctionParameter({
     name: 'options',
@@ -442,17 +456,20 @@ Deno.test('FunctionParameter - toString returns correct syntax for optional regu
 
 // Test: toString returns correct syntax for destructured parameter
 Deno.test('FunctionParameter - toString returns correct syntax for destructured parameter', () => {
-  const objectDef = createMockDefinition({
-    type: 'object',
-    recordProperties: null,
-    objectProperties: {
-      properties: {
-        name: mockStringType(),
-        email: mockStringType()
-      }
+  const objectDef = createMockDefinition(
+    {
+      type: 'object',
+      recordProperties: null,
+      objectProperties: {
+        properties: {
+          name: mockStringType(),
+          email: mockStringType()
+        }
+      },
+      modifiers: { required: true, nullable: false }
     },
-    modifiers: { required: true, nullable: false }
-  }, 'UserParams')
+    'UserParams'
+  )
 
   const param = new FunctionParameter({
     typeDefinition: objectDef,
@@ -465,14 +482,17 @@ Deno.test('FunctionParameter - toString returns correct syntax for destructured 
 
 // Test: skipEmpty option works with destructured parameters
 Deno.test('FunctionParameter - skipEmpty option returns empty for empty object properties', () => {
-  const objectDef = createMockDefinition({
-    type: 'object',
-    recordProperties: null,
-    objectProperties: {
-      properties: {}
+  const objectDef = createMockDefinition(
+    {
+      type: 'object',
+      recordProperties: null,
+      objectProperties: {
+        properties: {}
+      },
+      modifiers: { required: true, nullable: false }
     },
-    modifiers: { required: true, nullable: false }
-  }, 'EmptyType')
+    'EmptyType'
+  )
 
   const param = new FunctionParameter({
     typeDefinition: objectDef,
@@ -486,16 +506,19 @@ Deno.test('FunctionParameter - skipEmpty option returns empty for empty object p
 
 // Test: skipEmpty option does not affect non-empty object properties
 Deno.test('FunctionParameter - skipEmpty option works correctly for non-empty properties', () => {
-  const objectDef = createMockDefinition({
-    type: 'object',
-    recordProperties: null,
-    objectProperties: {
-      properties: {
-        name: mockStringType()
-      }
+  const objectDef = createMockDefinition(
+    {
+      type: 'object',
+      recordProperties: null,
+      objectProperties: {
+        properties: {
+          name: mockStringType()
+        }
+      },
+      modifiers: { required: true, nullable: false }
     },
-    modifiers: { required: true, nullable: false }
-  }, 'NonEmptyType')
+    'NonEmptyType'
+  )
 
   const param = new FunctionParameter({
     typeDefinition: objectDef,
@@ -549,16 +572,19 @@ Deno.test('FunctionParameter - hasProperty returns false when objectProperties i
 
 // Test: Default required value when not specified
 Deno.test('FunctionParameter - defaults required to false when not specified for regular parameter', () => {
-  const objectDef = createMockDefinition({
-    type: 'object',
-    recordProperties: null,
-    objectProperties: {
-      properties: {
-        value: mockStringType()
-      }
+  const objectDef = createMockDefinition(
+    {
+      type: 'object',
+      recordProperties: null,
+      objectProperties: {
+        properties: {
+          value: mockStringType()
+        }
+      },
+      modifiers: { required: true, nullable: false }
     },
-    modifiers: { required: true, nullable: false }
-  }, 'SomeType')
+    'SomeType'
+  )
 
   const param = new FunctionParameter({
     name: 'param',
@@ -598,16 +624,19 @@ Deno.test('FunctionParameter - toInbound handles invalid identifiers in destruct
 
 // Test: toString with invalid identifiers in destructured params
 Deno.test('FunctionParameter - toString handles invalid identifiers in destructured params', () => {
-  const objectDef = createMockDefinition({
-    type: 'object',
-    recordProperties: null,
-    objectProperties: {
-      properties: {
-        'user-id': mockStringType()
-      }
+  const objectDef = createMockDefinition(
+    {
+      type: 'object',
+      recordProperties: null,
+      objectProperties: {
+        properties: {
+          'user-id': mockStringType()
+        }
+      },
+      modifiers: { required: true, nullable: false }
     },
-    modifiers: { required: true, nullable: false }
-  }, 'ParamsType')
+    'ParamsType'
+  )
 
   const param = new FunctionParameter({
     typeDefinition: objectDef,

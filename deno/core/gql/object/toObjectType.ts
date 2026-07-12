@@ -26,11 +26,7 @@ export type ToObjectTypeArgs = {
  * that carry arguments — those args aren't represented in the OAS
  * model so the user would otherwise have no signal that they exist.
  */
-export const toObjectType = ({
-  objectType,
-  context,
-  stackTrail
-}: ToObjectTypeArgs): OasObject => {
+export const toObjectType = ({ objectType, context, stackTrail }: ToObjectTypeArgs): OasObject => {
   // Type-level directives (`type User @entity { ... }`).
   recordAppliedDirectives({ astNode: objectType.astNode, stackTrail, context })
 
@@ -75,15 +71,17 @@ export const toObjectType = ({
     })
   }
 
-  return context.withStackTrail(stackTrail, () =>
-    new OasObject(
-      {
-        title: objectType.name,
-        description: objectType.description ?? undefined,
-        properties,
-        required: required.length > 0 ? required : undefined
-      },
-      context
-    )
+  return context.withStackTrail(
+    stackTrail,
+    () =>
+      new OasObject(
+        {
+          title: objectType.name,
+          description: objectType.description ?? undefined,
+          properties,
+          required: required.length > 0 ? required : undefined
+        },
+        context
+      )
   )
 }

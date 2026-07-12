@@ -3,16 +3,8 @@ import { Manager } from '@/lib/manager.ts'
 import { render } from 'ink'
 import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
-import {
-  failWithRecipe,
-  resolveInputMode,
-  resolveOutputFormat
-} from '@/lib/strict-mode.ts'
-import {
-  initHeadless,
-  InvalidBasePathError,
-  type InitHeadlessResult
-} from '@/lib/init-headless.ts'
+import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
+import { initHeadless, InvalidBasePathError, type InitHeadlessResult } from '@/lib/init-headless.ts'
 
 type RenderInitArgs = {
   skmtcRoot?: SkmtcRoot
@@ -53,7 +45,7 @@ export const renderInit = async ({
         usage: 'skmtc init <projectName> <basePath>',
         example: 'skmtc init my-api ./web/app/src',
         discover:
-          'basePath is relative to the SKMTC root (the directory containing .skmtc/). It must also equal what the `@` alias resolves to in your consumer app\'s bundler, since generators emit `@/<subdir>/...` paths.'
+          "basePath is relative to the SKMTC root (the directory containing .skmtc/). It must also equal what the `@` alias resolves to in your consumer app's bundler, since generators emit `@/<subdir>/...` paths."
       })
     }
 
@@ -109,9 +101,7 @@ export const printInitResult = (
       const payload = {
         ...result,
         nextStep:
-          result.type === 'created'
-            ? `skmtc install <generators...> ${result.projectName}`
-            : null
+          result.type === 'created' ? `skmtc install <generators...> ${result.projectName}` : null
       }
       console.log(JSON.stringify(payload, null, 2))
       return
@@ -119,7 +109,9 @@ export const printInitResult = (
     case 'text': {
       switch (result.type) {
         case 'created': {
-          console.log(`Initialized project "${result.projectName}" at .skmtc/${result.projectName}/`)
+          console.log(
+            `Initialized project "${result.projectName}" at .skmtc/${result.projectName}/`
+          )
           console.log(`  basePath: ${result.basePath}`)
           console.log(`\nNext: skmtc install <generators...> ${result.projectName}`)
           return

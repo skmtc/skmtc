@@ -1,9 +1,4 @@
-import {
-  type GraphQLType,
-  type GraphQLNamedType,
-  isNonNullType,
-  isListType
-} from 'graphql'
+import { type GraphQLType, type GraphQLNamedType, isNonNullType, isListType } from 'graphql'
 
 /**
  * Result of unwrapping a possibly list/non-null wrapped GraphQL type.

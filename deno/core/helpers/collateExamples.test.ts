@@ -161,11 +161,7 @@ Deno.test('collateExamples - returns undefined for array with no item example', 
 
 Deno.test('collateExamples - returns first union member with example', () => {
   const schema = new OasUnion({
-    members: [
-      new OasString({}),
-      new OasNumber({ example: 99 }),
-      new OasString({ example: 'text' })
-    ]
+    members: [new OasString({}), new OasNumber({ example: 99 }), new OasString({ example: 'text' })]
   })
 
   const result = collateExamples({ objectSchema: schema, depth: 0 })
@@ -175,10 +171,7 @@ Deno.test('collateExamples - returns first union member with example', () => {
 
 Deno.test('collateExamples - returns undefined for union with no examples', () => {
   const schema = new OasUnion({
-    members: [
-      new OasString({}),
-      new OasNumber({})
-    ]
+    members: [new OasString({}), new OasNumber({})]
   })
 
   const result = collateExamples({ objectSchema: schema, depth: 0 })
@@ -231,4 +224,3 @@ Deno.test('collateExamples - increments depth for nested structures', () => {
     }
   })
 })
-

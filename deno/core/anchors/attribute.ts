@@ -13,11 +13,7 @@
  * `denoJson.version`; this layer stays pure.
  */
 
-import {
-  fromGeneratorKey,
-  toGeneratorId,
-  type GeneratorKeyObject
-} from '@/dsl/GeneratorKeys.ts'
+import { fromGeneratorKey, toGeneratorId, type GeneratorKeyObject } from '@/dsl/GeneratorKeys.ts'
 import { DefinitionBase } from '@/dsl/Definition.ts'
 import type { SnippetBase } from '@/dsl/SnippetBase.ts'
 import type { Attribution } from './types.ts'

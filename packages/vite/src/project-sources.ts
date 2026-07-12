@@ -10,7 +10,7 @@ export type SourceFile = { path: string; content: string }
 
 const SOURCE_EXTENSIONS = ['.ts', '.tsx']
 const isSourceFile = (name: string): boolean =>
-  SOURCE_EXTENSIONS.some((extension) => name.endsWith(extension))
+  SOURCE_EXTENSIONS.some(extension => name.endsWith(extension))
 
 // Recursively collect .ts/.tsx files under a dir; paths are relative to `root`
 // so the browser matcher can resolve `@/…` imports against the same anchor.
@@ -71,10 +71,10 @@ export async function readCandidates(
   basePath: string
 ): Promise<Candidate[]> {
   const files = await readSource(root, dirs)
-  return files.flatMap((file) => {
+  return files.flatMap(file => {
     const filePath = file.path.split('\\').join('/')
     const exportPath = toExportPath(filePath, basePath)
-    return [...file.content.matchAll(EXPORT_RE)].map((match) => ({
+    return [...file.content.matchAll(EXPORT_RE)].map(match => ({
       exportName: match[1],
       exportPath,
       filePath

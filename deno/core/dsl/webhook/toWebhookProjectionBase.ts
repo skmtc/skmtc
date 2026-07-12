@@ -39,7 +39,10 @@ import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichme
  * (`WebhookProjectionBaseConfig<E, KtIdentifierType>`) so `toIdentifierType`'s
  * return tightens to that language's `type` vocabulary — no recast.
  */
-export type WebhookProjectionBaseConfig<EnrichmentType = undefined, IdType extends IdentifierType = IdentifierType> = {
+export type WebhookProjectionBaseConfig<
+  EnrichmentType = undefined,
+  IdType extends IdentifierType = IdentifierType
+> = {
   id: string
   /** Pure: the cache-key name (the cache-check path runs this). */
   toIdentifierName: (args: ToWebhookIdentifierNameArgs<EnrichmentType>) => string
@@ -92,7 +95,10 @@ type ToEnrichmentsArgs = {
  * Defines NO `register` / `registerInto` — those live in the language
  * package's projection-base veneer over this factory.
  */
-export const toWebhookProjectionBase = <EnrichmentType = undefined, IdType extends IdentifierType = IdentifierType>(
+export const toWebhookProjectionBase = <
+  EnrichmentType = undefined,
+  IdType extends IdentifierType = IdentifierType
+>(
   base: LangSnippetConstructor,
   config: WebhookProjectionBaseConfig<EnrichmentType, IdType>
 ) => {
@@ -106,11 +112,7 @@ export const toWebhookProjectionBase = <EnrichmentType = undefined, IdType exten
 
     static isSupported = config.isSupported ?? (() => true)
 
-    static toEnrichments = ({
-      webhook,
-      context,
-      variant
-    }: ToEnrichmentsArgs): EnrichmentType => {
+    static toEnrichments = ({ webhook, context, variant }: ToEnrichmentsArgs): EnrichmentType => {
       // The three enrichment scopes assembled into the umbrella a generator
       // reads off `this.settings.enrichments`. Subject is per-item
       // (`[id][name][method][variant]`) — the variant axis is core-owned, and

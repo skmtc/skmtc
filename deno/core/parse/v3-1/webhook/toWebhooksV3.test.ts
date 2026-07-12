@@ -54,10 +54,7 @@ Deno.test('toWebhooksV3 - a PathItem with multiple methods yields one OasWebhook
     webhooks.every(webhook => webhook.name === 'newPet'),
     true
   )
-  assertEquals(
-    webhooks.map(webhook => webhook.method).toSorted(),
-    ['get', 'post']
-  )
+  assertEquals(webhooks.map(webhook => webhook.method).toSorted(), ['get', 'post'])
 })
 
 Deno.test('toWebhooksV3 - multiple named webhooks each flatten independently', () => {
@@ -67,10 +64,10 @@ Deno.test('toWebhooksV3 - multiple named webhooks each flatten independently', (
   })
 
   assertEquals(webhooks.length, 2)
-  assertEquals(
-    webhooks.map(webhook => `${webhook.name}:${webhook.method}`).toSorted(),
-    ['newPet:post', 'petUpdated:put']
-  )
+  assertEquals(webhooks.map(webhook => `${webhook.name}:${webhook.method}`).toSorted(), [
+    'newPet:post',
+    'petUpdated:put'
+  ])
 })
 
 Deno.test('toWebhooksV3 - a webhook name with non-identifier characters is preserved raw', () => {

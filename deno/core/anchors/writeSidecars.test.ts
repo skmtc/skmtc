@@ -30,7 +30,7 @@ const withTempDir = async (fn: (dir: string) => Promise<void>): Promise<void> =>
 }
 
 Deno.test('writeSidecars - creates outDir + writes one .skm.json per sidecar', async () => {
-  await withTempDir(async (tmp) => {
+  await withTempDir(async tmp => {
     const outDir = join(tmp, '.maps')
     const result = await writeSidecars({
       sidecars: {
@@ -50,7 +50,7 @@ Deno.test('writeSidecars - creates outDir + writes one .skm.json per sidecar', a
 })
 
 Deno.test('writeSidecars - writes the generation map NDJSON alongside sidecars', async () => {
-  await withTempDir(async (tmp) => {
+  await withTempDir(async tmp => {
     const outDir = join(tmp, '.maps')
     const generationMap: GenerationMapEntry[] = [
       { f: 'a.ts', name: 'A', g: 'gen-x', s: 'oas:#/components/schemas/A', v: 'main' }
@@ -68,7 +68,7 @@ Deno.test('writeSidecars - writes the generation map NDJSON alongside sidecars',
 })
 
 Deno.test('writeSidecars - empty generation map still writes the file', async () => {
-  await withTempDir(async (tmp) => {
+  await withTempDir(async tmp => {
     const outDir = join(tmp, '.maps')
     await writeSidecars({
       sidecars: {},
@@ -76,13 +76,15 @@ Deno.test('writeSidecars - empty generation map still writes the file', async ()
       outDir
     })
 
-    const exists = await Deno.lstat(join(outDir, '_map.ndjson')).then(() => true).catch(() => false)
+    const exists = await Deno.lstat(join(outDir, '_map.ndjson'))
+      .then(() => true)
+      .catch(() => false)
     assert(exists, 'expected _map.ndjson to exist even when empty')
   })
 })
 
 Deno.test('writeSidecars - wholly rewrites the outDir (stale files removed)', async () => {
-  await withTempDir(async (tmp) => {
+  await withTempDir(async tmp => {
     const outDir = join(tmp, '.maps')
     // First run: write a stale sidecar.
     await writeSidecars({
@@ -113,7 +115,7 @@ Deno.test('writeSidecars - wholly rewrites the outDir (stale files removed)', as
 })
 
 Deno.test('writeSidecars - first run on a non-existent outDir succeeds', async () => {
-  await withTempDir(async (tmp) => {
+  await withTempDir(async tmp => {
     const outDir = join(tmp, 'never-existed', 'deeper', '.maps')
     const result = await writeSidecars({
       sidecars: { 'a.ts': baseSidecar({ f: 'a.ts' }) },
@@ -125,7 +127,7 @@ Deno.test('writeSidecars - first run on a non-existent outDir succeeds', async (
 })
 
 Deno.test('writeSidecars - creates nested directories for deep file paths', async () => {
-  await withTempDir(async (tmp) => {
+  await withTempDir(async tmp => {
     const outDir = join(tmp, '.maps')
     await writeSidecars({
       sidecars: {
@@ -142,7 +144,7 @@ Deno.test('writeSidecars - creates nested directories for deep file paths', asyn
 })
 
 Deno.test('writeSidecars - returns total bytes including generation map', async () => {
-  await withTempDir(async (tmp) => {
+  await withTempDir(async tmp => {
     const outDir = join(tmp, '.maps')
     const result = await writeSidecars({
       sidecars: { 'a.ts': baseSidecar({ f: 'a.ts' }) },

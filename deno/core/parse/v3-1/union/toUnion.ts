@@ -85,23 +85,25 @@ export const toUnion = ({
     ]
   }, [])
 
-  return context.withStackTrail(stackTrail, () =>
-    new OasUnion(
-      {
-        title,
-        description,
-        externalDocs: stackTrail.trace('externalDocs', st =>
-          toExternalDocs({ externalDocs, stackTrail: st, context })
-        ),
-        nullable,
-        default: defaultValue,
-        discriminator: discriminatorParsed,
-        members: membersParsed,
-        example,
-        extensionFields
-      },
-      context
-    )
+  return context.withStackTrail(
+    stackTrail,
+    () =>
+      new OasUnion(
+        {
+          title,
+          description,
+          externalDocs: stackTrail.trace('externalDocs', st =>
+            toExternalDocs({ externalDocs, stackTrail: st, context })
+          ),
+          nullable,
+          default: defaultValue,
+          discriminator: discriminatorParsed,
+          members: membersParsed,
+          example,
+          extensionFields
+        },
+        context
+      )
   )
 }
 

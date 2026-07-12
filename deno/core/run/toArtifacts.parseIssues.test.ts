@@ -16,7 +16,7 @@ import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 
 const emptyGenerators = <EnrichmentType = undefined>(): GeneratorsMapContainer<EnrichmentType> =>
-  ({} as GeneratorsMapContainer<EnrichmentType>)
+  ({}) as GeneratorsMapContainer<EnrichmentType>
 
 const oasDoc: OpenAPIV3.Document = {
   openapi: '3.0.0',
@@ -49,7 +49,9 @@ Deno.test('toArtifacts (gql) - runs through the same entry as oas and surfaces p
     type Matrix {
       cells: [[Int]]
     }
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
 
   const result = toArtifacts({

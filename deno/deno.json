@@ -17,10 +17,7 @@
     "valibot": "npm:valibot@1.1.0"
   },
   "nodeModulesDir": "auto",
-  "unstable": [
-    "kv",
-    "worker-options"
-  ],
+  "unstable": ["kv", "worker-options"],
   "workspace": [
     "./cli",
     "./convert",

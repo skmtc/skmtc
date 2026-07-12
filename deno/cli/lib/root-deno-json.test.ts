@@ -36,7 +36,10 @@ Deno.test('RootDenoJson - addImport adds new import to contents', () => {
 
   denoJson.addImport('@skmtc/gen-typescript', 'jsr:@skmtc/gen-typescript@^1.0.0')
 
-  assertEquals(denoJson.contents.imports?.['@skmtc/gen-typescript'], 'jsr:@skmtc/gen-typescript@^1.0.0')
+  assertEquals(
+    denoJson.contents.imports?.['@skmtc/gen-typescript'],
+    'jsr:@skmtc/gen-typescript@^1.0.0'
+  )
 })
 
 Deno.test('RootDenoJson - addWorkspace adds workspace path', () => {
@@ -76,7 +79,10 @@ Deno.test('RootDenoJson - write and open cycle works', async () => {
 
     const loaded = await RootDenoJson.open(projectName, manager)
 
-    assertEquals(loaded.contents.imports?.['@skmtc/gen-typescript'], 'jsr:@skmtc/gen-typescript@^1.0.0')
+    assertEquals(
+      loaded.contents.imports?.['@skmtc/gen-typescript'],
+      'jsr:@skmtc/gen-typescript@^1.0.0'
+    )
   } finally {
     RootDenoJson.toPath = originalToPath
     await Deno.remove(tempDir, { recursive: true })

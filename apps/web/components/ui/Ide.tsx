@@ -1,4 +1,4 @@
-import { ReactNode } from "react"
+import { ReactNode } from 'react'
 
 type IdeProps = {
   children: ReactNode
@@ -15,8 +15,6 @@ export const IdeWindow = ({ children, copyButton }: IdeProps) => (
       </div>
       {copyButton}
     </div>
-    <div className="bg-gray-50 border-t-0 w-full flex dark:bg-gray-700">
-      {children}
-    </div>
+    <div className="bg-gray-50 border-t-0 w-full flex dark:bg-gray-700">{children}</div>
   </div>
 )

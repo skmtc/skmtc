@@ -25,5 +25,11 @@
       "@/*": ["./*"]
     }
   },
-  "exclude": ["**/public/**/*", "**/dist/**/*", ".yarn/**/*", "**/node_modules/**/*", "**/coverage/**/*"]
+  "exclude": [
+    "**/public/**/*",
+    "**/dist/**/*",
+    ".yarn/**/*",
+    "**/node_modules/**/*",
+    "**/coverage/**/*"
+  ]
 }

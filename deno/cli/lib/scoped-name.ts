@@ -5,10 +5,8 @@
  * destination, from `client.json#project`) and `publish` (the stack identity,
  * from the project `deno.json#name`).
  */
-export const parseScopedName = (
-  spec: string,
-): { account: string; slug: string } | null => {
-  const match = /^@([^/\s]+)\/([^/\s]+)$/.exec(spec.trim());
-  if (!match) return null;
-  return { account: match[1], slug: match[2] };
-};
+export const parseScopedName = (spec: string): { account: string; slug: string } | null => {
+  const match = /^@([^/\s]+)\/([^/\s]+)$/.exec(spec.trim())
+  if (!match) return null
+  return { account: match[1], slug: match[2] }
+}

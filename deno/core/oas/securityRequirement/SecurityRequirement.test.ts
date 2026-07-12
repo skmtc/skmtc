@@ -1,6 +1,11 @@
 import { assertEquals, assertStrictEquals } from '@std/assert'
 import { OasSecurityRequirement } from './SecurityRequirement.ts'
-import { OasHttpSecurityScheme, OasApiKeySecurityScheme, OasOAuth2SecurityScheme, OasOpenIdSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
+import {
+  OasHttpSecurityScheme,
+  OasApiKeySecurityScheme,
+  OasOAuth2SecurityScheme,
+  OasOpenIdSecurityScheme
+} from '../securitySchemes/SecurityScheme.ts'
 import type { OasDocument } from '../document/Document.ts'
 
 // Helper function to create a mock OasDocument with security schemes
@@ -14,38 +19,47 @@ const createMockDocument = (securitySchemes?: Record<string, any>): OasDocument 
 
 Deno.test('OasSecurityRequirement - constructor with single security scheme and empty scopes', () => {
   const mockDoc = createMockDocument()
-  const securityReq = new OasSecurityRequirement({
-    requirement: {
-      'api_key': []
-    }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: {
+        api_key: []
+      }
+    },
+    mockDoc
+  )
 
   assertEquals(securityReq.oasType, 'securityRequirement')
-  assertEquals(securityReq.requirement, { 'api_key': [] })
+  assertEquals(securityReq.requirement, { api_key: [] })
 })
 
 Deno.test('OasSecurityRequirement - constructor with single scheme and multiple scopes', () => {
   const mockDoc = createMockDocument()
-  const securityReq = new OasSecurityRequirement({
-    requirement: {
-      'oauth2': ['read:users', 'write:users', 'delete:users']
-    }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: {
+        oauth2: ['read:users', 'write:users', 'delete:users']
+      }
+    },
+    mockDoc
+  )
 
   assertEquals(securityReq.requirement, {
-    'oauth2': ['read:users', 'write:users', 'delete:users']
+    oauth2: ['read:users', 'write:users', 'delete:users']
   })
 })
 
 Deno.test('OasSecurityRequirement - constructor with multiple security schemes', () => {
   const mockDoc = createMockDocument()
-  const securityReq = new OasSecurityRequirement({
-    requirement: {
-      'api_key': [],
-      'oauth2': ['read:users'],
-      'bearer': []
-    }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: {
+        api_key: [],
+        oauth2: ['read:users'],
+        bearer: []
+      }
+    },
+    mockDoc
+  )
 
   assertEquals(Object.keys(securityReq.requirement).length, 3)
   assertEquals(securityReq.requirement['api_key'], [])
@@ -55,9 +69,12 @@ Deno.test('OasSecurityRequirement - constructor with multiple security schemes',
 
 Deno.test('OasSecurityRequirement - constructor with empty requirement object', () => {
   const mockDoc = createMockDocument()
-  const securityReq = new OasSecurityRequirement({
-    requirement: {}
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: {}
+    },
+    mockDoc
+  )
 
   assertEquals(securityReq.requirement, {})
   assertEquals(Object.keys(securityReq.requirement).length, 0)
@@ -65,9 +82,12 @@ Deno.test('OasSecurityRequirement - constructor with empty requirement object', 
 
 Deno.test('OasSecurityRequirement - oasType property is always "securityRequirement"', () => {
   const mockDoc = createMockDocument()
-  const securityReq1 = new OasSecurityRequirement({ requirement: { 'api_key': [] } }, mockDoc)
+  const securityReq1 = new OasSecurityRequirement({ requirement: { api_key: [] } }, mockDoc)
   const securityReq2 = new OasSecurityRequirement({ requirement: {} }, mockDoc)
-  const securityReq3 = new OasSecurityRequirement({ requirement: { 'oauth2': ['read', 'write'] } }, mockDoc)
+  const securityReq3 = new OasSecurityRequirement(
+    { requirement: { oauth2: ['read', 'write'] } },
+    mockDoc
+  )
 
   assertEquals(securityReq1.oasType, 'securityRequirement')
   assertEquals(securityReq2.oasType, 'securityRequirement')
@@ -77,8 +97,8 @@ Deno.test('OasSecurityRequirement - oasType property is always "securityRequirem
 Deno.test('OasSecurityRequirement - requirement property returns correct mapping', () => {
   const mockDoc = createMockDocument()
   const requirement = {
-    'oauth2': ['read:users', 'write:users'],
-    'api_key': []
+    oauth2: ['read:users', 'write:users'],
+    api_key: []
   }
   const securityReq = new OasSecurityRequirement({ requirement }, mockDoc)
 
@@ -88,23 +108,32 @@ Deno.test('OasSecurityRequirement - requirement property returns correct mapping
 
 Deno.test('OasSecurityRequirement - multiple instances are independent', () => {
   const mockDoc = createMockDocument()
-  const securityReq1 = new OasSecurityRequirement({
-    requirement: { 'api_key': [] }
-  }, mockDoc)
-  const securityReq2 = new OasSecurityRequirement({
-    requirement: { 'oauth2': ['read'] }
-  }, mockDoc)
+  const securityReq1 = new OasSecurityRequirement(
+    {
+      requirement: { api_key: [] }
+    },
+    mockDoc
+  )
+  const securityReq2 = new OasSecurityRequirement(
+    {
+      requirement: { oauth2: ['read'] }
+    },
+    mockDoc
+  )
 
   assertEquals(securityReq1 !== securityReq2, true)
-  assertEquals(securityReq1.requirement, { 'api_key': [] })
-  assertEquals(securityReq2.requirement, { 'oauth2': ['read'] })
+  assertEquals(securityReq1.requirement, { api_key: [] })
+  assertEquals(securityReq2.requirement, { oauth2: ['read'] })
 })
 
 Deno.test('OasSecurityRequirement - toSecurityScheme() returns empty array when no schemes in document', () => {
   const mockDoc = createMockDocument()
-  const securityReq = new OasSecurityRequirement({
-    requirement: { 'api_key': [] }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: { api_key: [] }
+    },
+    mockDoc
+  )
 
   const schemes = securityReq.toSecurityScheme()
 
@@ -113,9 +142,12 @@ Deno.test('OasSecurityRequirement - toSecurityScheme() returns empty array when 
 
 Deno.test('OasSecurityRequirement - toSecurityScheme() returns empty array when document has no components', () => {
   const mockDoc = {} as OasDocument
-  const securityReq = new OasSecurityRequirement({
-    requirement: { 'api_key': [] }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: { api_key: [] }
+    },
+    mockDoc
+  )
 
   const schemes = securityReq.toSecurityScheme()
 
@@ -129,12 +161,15 @@ Deno.test('OasSecurityRequirement - toSecurityScheme() returns single security s
   })
 
   const mockDoc = createMockDocument({
-    'api_key': apiKeyScheme
+    api_key: apiKeyScheme
   })
 
-  const securityReq = new OasSecurityRequirement({
-    requirement: { 'api_key': [] }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: { api_key: [] }
+    },
+    mockDoc
+  )
 
   const schemes = securityReq.toSecurityScheme()
 
@@ -154,16 +189,19 @@ Deno.test('OasSecurityRequirement - toSecurityScheme() returns multiple security
   })
 
   const mockDoc = createMockDocument({
-    'api_key': apiKeyScheme,
-    'bearer': bearerScheme
+    api_key: apiKeyScheme,
+    bearer: bearerScheme
   })
 
-  const securityReq = new OasSecurityRequirement({
-    requirement: {
-      'api_key': [],
-      'bearer': []
-    }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: {
+        api_key: [],
+        bearer: []
+      }
+    },
+    mockDoc
+  )
 
   const schemes = securityReq.toSecurityScheme()
 
@@ -179,16 +217,19 @@ Deno.test('OasSecurityRequirement - toSecurityScheme() filters out undefined sch
   })
 
   const mockDoc = createMockDocument({
-    'api_key': apiKeyScheme
+    api_key: apiKeyScheme
     // 'missing_scheme' is not defined
   })
 
-  const securityReq = new OasSecurityRequirement({
-    requirement: {
-      'api_key': [],
-      'missing_scheme': []
-    }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: {
+        api_key: [],
+        missing_scheme: []
+      }
+    },
+    mockDoc
+  )
 
   const schemes = securityReq.toSecurityScheme()
 
@@ -202,9 +243,12 @@ Deno.test('OasSecurityRequirement - toSecurityScheme() handles missing securityS
     components: {}
   } as OasDocument
 
-  const securityReq = new OasSecurityRequirement({
-    requirement: { 'api_key': [] }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: { api_key: [] }
+    },
+    mockDoc
+  )
 
   const schemes = securityReq.toSecurityScheme()
 
@@ -218,12 +262,15 @@ Deno.test('OasSecurityRequirement - toSecurityScheme() calls resolve() on scheme
   })
 
   const mockDoc = createMockDocument({
-    'bearer': httpScheme
+    bearer: httpScheme
   })
 
-  const securityReq = new OasSecurityRequirement({
-    requirement: { 'bearer': [] }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: { bearer: [] }
+    },
+    mockDoc
+  )
 
   const schemes = securityReq.toSecurityScheme()
 
@@ -234,50 +281,62 @@ Deno.test('OasSecurityRequirement - toSecurityScheme() calls resolve() on scheme
 
 Deno.test('OasSecurityRequirement - toJsonSchema() with single scheme and empty scopes', () => {
   const mockDoc = createMockDocument()
-  const securityReq = new OasSecurityRequirement({
-    requirement: { 'api_key': [] }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: { api_key: [] }
+    },
+    mockDoc
+  )
 
   const jsonSchema = securityReq.toJsonSchema()
 
-  assertEquals(jsonSchema, { 'api_key': [] })
+  assertEquals(jsonSchema, { api_key: [] })
 })
 
 Deno.test('OasSecurityRequirement - toJsonSchema() with single scheme and multiple scopes', () => {
   const mockDoc = createMockDocument()
-  const securityReq = new OasSecurityRequirement({
-    requirement: { 'oauth2': ['read:users', 'write:users'] }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: { oauth2: ['read:users', 'write:users'] }
+    },
+    mockDoc
+  )
 
   const jsonSchema = securityReq.toJsonSchema()
 
-  assertEquals(jsonSchema, { 'oauth2': ['read:users', 'write:users'] })
+  assertEquals(jsonSchema, { oauth2: ['read:users', 'write:users'] })
 })
 
 Deno.test('OasSecurityRequirement - toJsonSchema() with multiple schemes', () => {
   const mockDoc = createMockDocument()
-  const securityReq = new OasSecurityRequirement({
-    requirement: {
-      'api_key': [],
-      'oauth2': ['read', 'write'],
-      'bearer': []
-    }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: {
+        api_key: [],
+        oauth2: ['read', 'write'],
+        bearer: []
+      }
+    },
+    mockDoc
+  )
 
   const jsonSchema = securityReq.toJsonSchema()
 
   assertEquals(jsonSchema, {
-    'api_key': [],
-    'oauth2': ['read', 'write'],
-    'bearer': []
+    api_key: [],
+    oauth2: ['read', 'write'],
+    bearer: []
   })
 })
 
 Deno.test('OasSecurityRequirement - toJsonSchema() with empty requirement', () => {
   const mockDoc = createMockDocument()
-  const securityReq = new OasSecurityRequirement({
-    requirement: {}
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: {}
+    },
+    mockDoc
+  )
 
   const jsonSchema = securityReq.toJsonSchema()
 
@@ -287,7 +346,7 @@ Deno.test('OasSecurityRequirement - toJsonSchema() with empty requirement', () =
 
 Deno.test('OasSecurityRequirement - toJsonSchema() returns correct OpenAPI v3 structure', () => {
   const mockDoc = createMockDocument()
-  const requirement = { 'petstore_auth': ['write:pets', 'read:pets'] }
+  const requirement = { petstore_auth: ['write:pets', 'read:pets'] }
   const securityReq = new OasSecurityRequirement({ requirement }, mockDoc)
 
   const jsonSchema = securityReq.toJsonSchema()
@@ -306,12 +365,15 @@ Deno.test('OasSecurityRequirement - integration with OasHttpSecurityScheme (bear
   })
 
   const mockDoc = createMockDocument({
-    'bearer': bearerScheme
+    bearer: bearerScheme
   })
 
-  const securityReq = new OasSecurityRequirement({
-    requirement: { 'bearer': [] }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: { bearer: [] }
+    },
+    mockDoc
+  )
 
   const schemes = securityReq.toSecurityScheme()
 
@@ -331,12 +393,15 @@ Deno.test('OasSecurityRequirement - integration with OasApiKeySecurityScheme (he
   })
 
   const mockDoc = createMockDocument({
-    'api_key': apiKeyScheme
+    api_key: apiKeyScheme
   })
 
-  const securityReq = new OasSecurityRequirement({
-    requirement: { 'api_key': [] }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: { api_key: [] }
+    },
+    mockDoc
+  )
 
   const schemes = securityReq.toSecurityScheme()
 
@@ -364,19 +429,22 @@ Deno.test('OasSecurityRequirement - integration with OasOAuth2SecurityScheme wit
   })
 
   const mockDoc = createMockDocument({
-    'oauth2': oauth2Scheme
+    oauth2: oauth2Scheme
   })
 
-  const securityReq = new OasSecurityRequirement({
-    requirement: { 'oauth2': ['read:users', 'write:users'] }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: { oauth2: ['read:users', 'write:users'] }
+    },
+    mockDoc
+  )
 
   const schemes = securityReq.toSecurityScheme()
   const jsonSchema = securityReq.toJsonSchema()
 
   assertEquals(schemes.length, 1)
   assertEquals(schemes[0].type, 'oauth2')
-  assertEquals(jsonSchema, { 'oauth2': ['read:users', 'write:users'] })
+  assertEquals(jsonSchema, { oauth2: ['read:users', 'write:users'] })
 })
 
 Deno.test('OasSecurityRequirement - integration with OasOpenIdSecurityScheme', () => {
@@ -386,12 +454,15 @@ Deno.test('OasSecurityRequirement - integration with OasOpenIdSecurityScheme', (
   })
 
   const mockDoc = createMockDocument({
-    'openid': openIdScheme
+    openid: openIdScheme
   })
 
-  const securityReq = new OasSecurityRequirement({
-    requirement: { 'openid': [] }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: { openid: [] }
+    },
+    mockDoc
+  )
 
   const schemes = securityReq.toSecurityScheme()
 
@@ -399,7 +470,10 @@ Deno.test('OasSecurityRequirement - integration with OasOpenIdSecurityScheme', (
   assertEquals(schemes[0].type, 'openIdConnect')
 
   const openIdSchemeResult = schemes[0] as OasOpenIdSecurityScheme
-  assertEquals(openIdSchemeResult.openIdConnectUrl, 'https://example.com/.well-known/openid-configuration')
+  assertEquals(
+    openIdSchemeResult.openIdConnectUrl,
+    'https://example.com/.well-known/openid-configuration'
+  )
 })
 
 Deno.test('OasSecurityRequirement - integration with all security scheme types', () => {
@@ -418,20 +492,23 @@ Deno.test('OasSecurityRequirement - integration with all security scheme types',
   })
 
   const mockDoc = createMockDocument({
-    'basic': httpScheme,
-    'api_key': apiKeyScheme,
-    'oauth2': oauth2Scheme,
-    'openid': openIdScheme
+    basic: httpScheme,
+    api_key: apiKeyScheme,
+    oauth2: oauth2Scheme,
+    openid: openIdScheme
   })
 
-  const securityReq = new OasSecurityRequirement({
-    requirement: {
-      'basic': [],
-      'api_key': [],
-      'oauth2': ['admin'],
-      'openid': []
-    }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: {
+        basic: [],
+        api_key: [],
+        oauth2: ['admin'],
+        openid: []
+      }
+    },
+    mockDoc
+  )
 
   const schemes = securityReq.toSecurityScheme()
 
@@ -444,9 +521,12 @@ Deno.test('OasSecurityRequirement - integration with all security scheme types',
 
 Deno.test('OasSecurityRequirement - empty requirement represents no authentication', () => {
   const mockDoc = createMockDocument()
-  const securityReq = new OasSecurityRequirement({
-    requirement: {}
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: {}
+    },
+    mockDoc
+  )
 
   assertEquals(securityReq.requirement, {})
   assertEquals(securityReq.toSecurityScheme(), [])
@@ -459,24 +539,27 @@ Deno.test('OasSecurityRequirement - OAuth2 with empty scopes array', () => {
       clientCredentials: {
         tokenUrl: 'https://example.com/token',
         scopes: {
-          'read': 'Read access',
-          'write': 'Write access'
+          read: 'Read access',
+          write: 'Write access'
         }
       }
     }
   })
 
   const mockDoc = createMockDocument({
-    'oauth2': oauth2Scheme
+    oauth2: oauth2Scheme
   })
 
   // Empty scopes array means access without specific scopes
-  const securityReq = new OasSecurityRequirement({
-    requirement: { 'oauth2': [] }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: { oauth2: [] }
+    },
+    mockDoc
+  )
 
-  assertEquals(securityReq.requirement, { 'oauth2': [] })
-  assertEquals(securityReq.toJsonSchema(), { 'oauth2': [] })
+  assertEquals(securityReq.requirement, { oauth2: [] })
+  assertEquals(securityReq.toJsonSchema(), { oauth2: [] })
 })
 
 Deno.test('OasSecurityRequirement - API key with empty scopes (standard pattern)', () => {
@@ -486,16 +569,19 @@ Deno.test('OasSecurityRequirement - API key with empty scopes (standard pattern)
   })
 
   const mockDoc = createMockDocument({
-    'api_key': apiKeyScheme
+    api_key: apiKeyScheme
   })
 
-  const securityReq = new OasSecurityRequirement({
-    requirement: { 'api_key': [] }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: { api_key: [] }
+    },
+    mockDoc
+  )
 
   // API key schemes always have empty scopes
-  assertEquals(securityReq.requirement, { 'api_key': [] })
-  assertEquals(securityReq.toJsonSchema(), { 'api_key': [] })
+  assertEquals(securityReq.requirement, { api_key: [] })
+  assertEquals(securityReq.toJsonSchema(), { api_key: [] })
   assertEquals(securityReq.toSecurityScheme().length, 1)
 })
 
@@ -510,36 +596,42 @@ Deno.test('OasSecurityRequirement - complex OAuth2 scopes scenario', () => {
           'write:users': 'Write users',
           'read:posts': 'Read posts',
           'write:posts': 'Write posts',
-          'admin': 'Admin access'
+          admin: 'Admin access'
         }
       }
     }
   })
 
   const mockDoc = createMockDocument({
-    'petstore_auth': oauth2Scheme
+    petstore_auth: oauth2Scheme
   })
 
-  const securityReq = new OasSecurityRequirement({
-    requirement: {
-      'petstore_auth': ['write:posts', 'read:posts']
-    }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: {
+        petstore_auth: ['write:posts', 'read:posts']
+      }
+    },
+    mockDoc
+  )
 
   assertEquals(securityReq.requirement, {
-    'petstore_auth': ['write:posts', 'read:posts']
+    petstore_auth: ['write:posts', 'read:posts']
   })
   assertEquals(securityReq.toJsonSchema(), {
-    'petstore_auth': ['write:posts', 'read:posts']
+    petstore_auth: ['write:posts', 'read:posts']
   })
 })
 
 Deno.test('OasSecurityRequirement - preserves scope order', () => {
   const mockDoc = createMockDocument()
   const scopes = ['scope1', 'scope2', 'scope3', 'scope4', 'scope5']
-  const securityReq = new OasSecurityRequirement({
-    requirement: { 'oauth2': scopes }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: { oauth2: scopes }
+    },
+    mockDoc
+  )
 
   assertEquals(securityReq.requirement['oauth2'], scopes)
   assertEquals(securityReq.toJsonSchema()['oauth2'], scopes)
@@ -547,7 +639,7 @@ Deno.test('OasSecurityRequirement - preserves scope order', () => {
 
 Deno.test('OasSecurityRequirement - toJsonSchema() creates new object (not reference)', () => {
   const mockDoc = createMockDocument()
-  const requirement = { 'api_key': [] }
+  const requirement = { api_key: [] }
   const securityReq = new OasSecurityRequirement({ requirement }, mockDoc)
 
   const jsonSchema1 = securityReq.toJsonSchema()
@@ -564,16 +656,19 @@ Deno.test('OasSecurityRequirement - scheme names are case-sensitive', () => {
   const scheme2 = new OasApiKeySecurityScheme({ name: 'key2', in: 'header' })
 
   const mockDoc = createMockDocument({
-    'ApiKey': scheme1,
-    'apikey': scheme2
+    ApiKey: scheme1,
+    apikey: scheme2
   })
 
-  const securityReq = new OasSecurityRequirement({
-    requirement: {
-      'ApiKey': [],
-      'apikey': []
-    }
-  }, mockDoc)
+  const securityReq = new OasSecurityRequirement(
+    {
+      requirement: {
+        ApiKey: [],
+        apikey: []
+      }
+    },
+    mockDoc
+  )
 
   const schemes = securityReq.toSecurityScheme()
 

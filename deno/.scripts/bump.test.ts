@@ -79,7 +79,10 @@ Deno.test('planBump - an explicitly named dependent uses its own level, not a ca
   ]
   const plan = planBump(
     packages,
-    new Map([['@skmtc/core', 'minor'], ['@skmtc/cli', 'major']])
+    new Map([
+      ['@skmtc/core', 'minor'],
+      ['@skmtc/cli', 'major']
+    ])
   )
 
   assertEquals(plan.get('@skmtc/core')?.version, '0.7.0')

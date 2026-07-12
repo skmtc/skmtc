@@ -81,7 +81,7 @@ Deno.test('Manifest - open tolerates a stale-schema manifest', async () => {
 
     assertEquals(manifest?.contents, null)
     assertEquals(warnings.length, 1)
-    assertStringIncludes(warnings[0], 'doesn\'t match the current schema')
+    assertStringIncludes(warnings[0], "doesn't match the current schema")
     assertStringIncludes(warnings[0], manifestPath)
   } finally {
     Manifest.toPath = originalToPath
@@ -165,7 +165,7 @@ Deno.test('Manifest - refresh also tolerates a stale-schema manifest', async () 
 
     assertEquals(manifest.contents, null)
     assertEquals(warnings.length, 1)
-    assertStringIncludes(warnings[0], 'doesn\'t match the current schema')
+    assertStringIncludes(warnings[0], "doesn't match the current schema")
   } finally {
     Manifest.toPath = originalToPath
     await Deno.remove(tempDir, { recursive: true })

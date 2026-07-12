@@ -39,9 +39,7 @@ export type CapturedExit = {
   exitCode: number | undefined
 }
 
-export const withCapturedExit = async (
-  fn: () => Promise<void>
-): Promise<CapturedExit> => {
+export const withCapturedExit = async (fn: () => Promise<void>): Promise<CapturedExit> => {
   const errors: string[] = []
   const originalError = console.error
   let exitCode: number | undefined

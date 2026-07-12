@@ -1,949 +1,946 @@
-import { assertEquals } from "@std/assert/equals";
-import { assertThrows } from "@std/assert/throws";
-import type { GetRefFn, ReferenceObject, SchemaObject } from "./types.ts";
-import { mergeIntersection } from "./merge-intersection.ts";
+import { assertEquals } from '@std/assert/equals'
+import { assertThrows } from '@std/assert/throws'
+import type { GetRefFn, ReferenceObject, SchemaObject } from './types.ts'
+import { mergeIntersection } from './merge-intersection.ts'
 // Mock getRef function for testing
 const mockGetRef: GetRefFn = () => {
   return {
-    type: "string",
-    description: "Mock resolved reference",
-  };
-};
+    type: 'string',
+    description: 'Mock resolved reference'
+  }
+}
 
-Deno.test("mergeAllOf - basic property merging", () => {
+Deno.test('mergeAllOf - basic property merging', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         properties: {
-          name: { type: "string" },
-        },
+          name: { type: 'string' }
+        }
       },
       {
-        type: "object",
+        type: 'object',
         properties: {
-          age: { type: "number" },
-        },
-      },
-    ],
-  };
+          age: { type: 'number' }
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
     properties: {
-      name: { type: "string" },
-      age: { type: "number" },
-    },
-  };
+      name: { type: 'string' },
+      age: { type: 'number' }
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - required fields combination", () => {
+Deno.test('mergeAllOf - required fields combination', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
-        required: ["name"],
+        type: 'object',
+        required: ['name'],
         properties: {
-          name: { type: "string" },
-        },
+          name: { type: 'string' }
+        }
       },
       {
-        type: "object",
-        required: ["age"],
+        type: 'object',
+        required: ['age'],
         properties: {
-          age: { type: "number" },
-        },
-      },
-    ],
-  };
+          age: { type: 'number' }
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
-    required: ["name", "age"],
+    type: 'object',
+    required: ['name', 'age'],
     properties: {
-      name: { type: "string" },
-      age: { type: "number" },
-    },
-  };
+      name: { type: 'string' },
+      age: { type: 'number' }
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - merge two objects", () => {
+Deno.test('mergeAllOf - merge two objects', () => {
   const schema: SchemaObject = {
     allOf: [
-      { type: "object", properties: { name: { type: "string" } } },
-      { type: "object", properties: { email: { type: "string" } } },
-    ],
-  };
+      { type: 'object', properties: { name: { type: 'string' } } },
+      { type: 'object', properties: { email: { type: 'string' } } }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
     properties: {
-      name: { type: "string" },
-      email: { type: "string" },
-    },
-  };
+      name: { type: 'string' },
+      email: { type: 'string' }
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
 // This can be handled when we go deeper into the schema later during parsing
-Deno.test("mergeAllOf - do not merge deeper allOf items", () => {
+Deno.test('mergeAllOf - do not merge deeper allOf items', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         properties: {
           user: {
             allOf: [
-              { type: "object", properties: { name: { type: "string" } } },
-              { type: "object", properties: { email: { type: "string" } } },
-            ],
-          },
-        },
-      },
-    ],
-  };
+              { type: 'object', properties: { name: { type: 'string' } } },
+              { type: 'object', properties: { email: { type: 'string' } } }
+            ]
+          }
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
     properties: {
       user: {
         allOf: [
-          { type: "object", properties: { name: { type: "string" } } },
-          { type: "object", properties: { email: { type: "string" } } },
-        ],
-      },
-    },
-  };
+          { type: 'object', properties: { name: { type: 'string' } } },
+          { type: 'object', properties: { email: { type: 'string' } } }
+        ]
+      }
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - reference resolution - leave single reference as is", () => {
+Deno.test('mergeAllOf - reference resolution - leave single reference as is', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         properties: {
-          user: { $ref: "#/components/schemas/User" },
-        },
-      },
-    ],
-  };
+          user: { $ref: '#/components/schemas/User' }
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
     properties: {
-      user: { $ref: "#/components/schemas/User" },
-    },
-  };
+      user: { $ref: '#/components/schemas/User' }
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - reference resolution - combine identical references", () => {
+Deno.test('mergeAllOf - reference resolution - combine identical references', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         properties: {
-          user: { $ref: "#/components/schemas/User" },
-        },
+          user: { $ref: '#/components/schemas/User' }
+        }
       },
       {
-        type: "object",
+        type: 'object',
         properties: {
-          user: { $ref: "#/components/schemas/User" },
-        },
-      },
-    ],
-  };
+          user: { $ref: '#/components/schemas/User' }
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
     properties: {
-      user: { $ref: "#/components/schemas/User" },
-    },
-  };
+      user: { $ref: '#/components/schemas/User' }
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - reference resolution - resolve reference when merging is needed", () => {
+Deno.test('mergeAllOf - reference resolution - resolve reference when merging is needed', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         properties: {
-          user: { $ref: "#/components/schemas/User" },
-        },
+          user: { $ref: '#/components/schemas/User' }
+        }
       },
       {
-        type: "object",
+        type: 'object',
         properties: {
           user: {
-            nullable: true,
-          },
-        },
-      },
-    ],
-  };
+            nullable: true
+          }
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
     properties: {
       user: {
-        type: "string",
-        description: "Mock resolved reference",
-        nullable: true,
-      },
-    },
-  };
+        type: 'string',
+        description: 'Mock resolved reference',
+        nullable: true
+      }
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test(
-  "mergeAllOf - reference resolution - resolve reference when merging is needed - reverse order",
-  () => {
-    const schema: SchemaObject = {
-      allOf: [
-        {
-          type: "object",
-          properties: {
-            user: {
-              nullable: true,
-            },
-          },
-        },
-        {
-          type: "object",
-          properties: {
-            user: { $ref: "#/components/schemas/User" },
-          },
-        },
-      ],
-    };
-
-    const expected: SchemaObject = {
-      type: "object",
-      properties: {
-        user: {
-          nullable: true,
-          type: "string",
-          description: "Mock resolved reference",
-        },
-      },
-    };
-
-    assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-  },
-);
-
-Deno.test("mergeAllOf - empty allOf array", () => {
-  const schema: SchemaObject = {
-    allOf: [],
-  };
-
-  const expected: SchemaObject = {};
-
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
-
-Deno.test("mergeAllOf - array concatenation", () => {
+Deno.test('mergeAllOf - reference resolution - resolve reference when merging is needed - reverse order', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         properties: {
-          tags: {
-            type: "array",
-            items: { type: "string" },
-          },
-        },
+          user: {
+            nullable: true
+          }
+        }
       },
       {
-        type: "object",
+        type: 'object',
         properties: {
-          tags: {
-            type: "array",
-            items: { type: "string" },
-          },
-        },
-      },
-    ],
-  };
+          user: { $ref: '#/components/schemas/User' }
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
+    properties: {
+      user: {
+        nullable: true,
+        type: 'string',
+        description: 'Mock resolved reference'
+      }
+    }
+  }
+
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
+
+Deno.test('mergeAllOf - empty allOf array', () => {
+  const schema: SchemaObject = {
+    allOf: []
+  }
+
+  const expected: SchemaObject = {}
+
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
+
+Deno.test('mergeAllOf - array concatenation', () => {
+  const schema: SchemaObject = {
+    allOf: [
+      {
+        type: 'object',
+        properties: {
+          tags: {
+            type: 'array',
+            items: { type: 'string' }
+          }
+        }
+      },
+      {
+        type: 'object',
+        properties: {
+          tags: {
+            type: 'array',
+            items: { type: 'string' }
+          }
+        }
+      }
+    ]
+  }
+
+  const expected: SchemaObject = {
+    type: 'object',
     properties: {
       tags: {
-        type: "array",
-        items: { type: "string" },
-      },
-    },
-  };
+        type: 'array',
+        items: { type: 'string' }
+      }
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - conflicting property descriptions", () => {
+Deno.test('mergeAllOf - conflicting property descriptions', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         properties: {
-          name: { type: "string", description: "First description" },
-        },
+          name: { type: 'string', description: 'First description' }
+        }
       },
       {
-        type: "object",
+        type: 'object',
         properties: {
-          name: { type: "string", description: "Second description" },
-        },
-      },
-    ],
-  };
+          name: { type: 'string', description: 'Second description' }
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
     properties: {
-      name: { type: "string", description: "Second description" },
-    },
-  };
+      name: { type: 'string', description: 'Second description' }
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - mixed type schemas", () => {
+Deno.test('mergeAllOf - mixed type schemas', () => {
   const schema: SchemaObject = {
-    allOf: [{ type: "string" }, {
-      type: "object",
-      properties: { name: { type: "string" } },
-    }],
-  };
+    allOf: [
+      { type: 'string' },
+      {
+        type: 'object',
+        properties: { name: { type: 'string' } }
+      }
+    ]
+  }
 
   assertThrows(
-    () =>
-      mergeIntersection({ schema, getRef: mockGetRef, throwOnConflict: true }),
+    () => mergeIntersection({ schema, getRef: mockGetRef, throwOnConflict: true }),
     Error,
-    `Cannot merge schemas: conflicting types 'string' and 'object'`,
-  );
-});
+    `Cannot merge schemas: conflicting types 'string' and 'object'`
+  )
+})
 
-Deno.test("mergeAllOf - nullable properties", () => {
+Deno.test('mergeAllOf - nullable properties', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         properties: {
-          value: { type: "string", nullable: true },
-        },
+          value: { type: 'string', nullable: true }
+        }
       },
       {
-        type: "object",
+        type: 'object',
         properties: {
-          value: { type: "string", nullable: false },
-        },
-      },
-    ],
-  };
+          value: { type: 'string', nullable: false }
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
     properties: {
-      value: { type: "string", nullable: false },
-    },
-  };
+      value: { type: 'string', nullable: false }
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - enum values", () => {
+Deno.test('mergeAllOf - enum values', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "string",
-        enum: ["A", "B"],
+        type: 'string',
+        enum: ['A', 'B']
       },
       {
-        type: "string",
-        enum: ["B", "C"],
-      },
-    ],
-  };
+        type: 'string',
+        enum: ['B', 'C']
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "string",
-    enum: ["B"],
-  };
+    type: 'string',
+    enum: ['B']
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - additionalProperties with pattern", () => {
+Deno.test('mergeAllOf - additionalProperties with pattern', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
-        additionalProperties: { type: "string" },
+        type: 'object',
+        additionalProperties: { type: 'string' }
       },
       {
-        type: "object",
-        additionalProperties: { type: "number" },
-      },
-    ],
-  };
+        type: 'object',
+        additionalProperties: { type: 'number' }
+      }
+    ]
+  }
 
   assertThrows(
-    () =>
-      mergeIntersection({ schema, getRef: mockGetRef, throwOnConflict: true }),
+    () => mergeIntersection({ schema, getRef: mockGetRef, throwOnConflict: true }),
     Error,
-    `Cannot merge schemas: conflicting types 'string' and 'number'`,
-  );
-});
+    `Cannot merge schemas: conflicting types 'string' and 'number'`
+  )
+})
 
-Deno.test("mergeAllOf - min/max properties", () => {
+Deno.test('mergeAllOf - min/max properties', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         minProperties: 2,
-        maxProperties: 4,
+        maxProperties: 4
       },
       {
-        type: "object",
+        type: 'object',
         minProperties: 3,
-        maxProperties: 5,
-      },
-    ],
-  };
+        maxProperties: 5
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
     minProperties: 3,
-    maxProperties: 4,
-  };
+    maxProperties: 4
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - array constraints", () => {
+Deno.test('mergeAllOf - array constraints', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "array",
-        items: { type: "string" },
+        type: 'array',
+        items: { type: 'string' },
         minItems: 2,
         maxItems: 4,
-        uniqueItems: true,
+        uniqueItems: true
       },
       {
-        type: "array",
-        items: { type: "string" },
+        type: 'array',
+        items: { type: 'string' },
         minItems: 3,
         maxItems: 5,
-        uniqueItems: false,
-      },
-    ],
-  };
+        uniqueItems: false
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "array",
-    items: { type: "string" },
+    type: 'array',
+    items: { type: 'string' },
     minItems: 3,
     maxItems: 4,
-    uniqueItems: true,
-  };
+    uniqueItems: true
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - number constraints", () => {
+Deno.test('mergeAllOf - number constraints', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "number",
+        type: 'number',
         minimum: 0,
         maximum: 10,
-        exclusiveMinimum: true,
+        exclusiveMinimum: true
       },
       {
-        type: "number",
+        type: 'number',
         minimum: 5,
         maximum: 15,
-        exclusiveMaximum: true,
-      },
-    ],
-  };
+        exclusiveMaximum: true
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "number",
+    type: 'number',
     minimum: 5,
     maximum: 10,
     exclusiveMinimum: true,
-    exclusiveMaximum: true,
-  };
+    exclusiveMaximum: true
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - string constraints", () => {
+Deno.test('mergeAllOf - string constraints', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "string",
+        type: 'string',
         minLength: 2,
         maxLength: 10,
-        pattern: "^[A-Z]",
+        pattern: '^[A-Z]'
       },
       {
-        type: "string",
+        type: 'string',
         minLength: 5,
         maxLength: 15,
-        pattern: "[0-9]$",
-      },
-    ],
-  };
+        pattern: '[0-9]$'
+      }
+    ]
+  }
 
   assertThrows(
     () => mergeIntersection({ schema, getRef: mockGetRef }),
     Error,
-    `Cannot merge schemas: conflicting patterns '^[A-Z]' and '[0-9]$'`,
-  );
-});
+    `Cannot merge schemas: conflicting patterns '^[A-Z]' and '[0-9]$'`
+  )
+})
 
-Deno.test("mergeAllOf - oneOf inside allOf", () => {
+Deno.test('mergeAllOf - oneOf inside allOf', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         properties: {
           value: {
-            oneOf: [{ type: "string" }, { type: "number" }],
-          },
-        },
+            oneOf: [{ type: 'string' }, { type: 'number' }]
+          }
+        }
       },
       {
-        type: "object",
+        type: 'object',
         properties: {
           value: {
-            oneOf: [{ type: "number" }, { type: "boolean" }],
-          },
-        },
-      },
-    ],
-  };
+            oneOf: [{ type: 'number' }, { type: 'boolean' }]
+          }
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
     properties: {
       value: {
-        oneOf: [{ type: "number" }],
-      },
-    },
-  };
+        oneOf: [{ type: 'number' }]
+      }
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - anyOf inside allOf", () => {
+Deno.test('mergeAllOf - anyOf inside allOf', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         properties: {
           value: {
-            anyOf: [{ type: "string" }, { type: "number" }],
-          },
-        },
+            anyOf: [{ type: 'string' }, { type: 'number' }]
+          }
+        }
       },
       {
-        type: "object",
+        type: 'object',
         properties: {
           value: {
-            anyOf: [{ type: "number" }, { type: "boolean" }],
-          },
-        },
-      },
-    ],
-  };
+            anyOf: [{ type: 'number' }, { type: 'boolean' }]
+          }
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
     properties: {
       value: {
-        anyOf: [{ type: "number" }],
-      },
-    },
-  };
+        anyOf: [{ type: 'number' }]
+      }
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - not keyword", () => {
+Deno.test('mergeAllOf - not keyword', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         not: {
           properties: {
-            forbidden: { type: "string" },
-          },
-        },
+            forbidden: { type: 'string' }
+          }
+        }
       },
       {
-        type: "object",
+        type: 'object',
         not: {
           properties: {
-            restricted: { type: "string" },
-          },
-        },
-      },
-    ],
-  };
+            restricted: { type: 'string' }
+          }
+        }
+      }
+    ]
+  }
 
   assertThrows(
     () => mergeIntersection({ schema, getRef: mockGetRef }),
     Error,
-    'Merging schemas with "not" keyword is not supported',
-  );
-});
+    'Merging schemas with "not" keyword is not supported'
+  )
+})
 
-Deno.test("mergeAllOf - readOnly and writeOnly conflict throws error", () => {
+Deno.test('mergeAllOf - readOnly and writeOnly conflict throws error', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         properties: {
-          value: { type: "string", readOnly: true },
-        },
+          value: { type: 'string', readOnly: true }
+        }
       },
       {
-        type: "object",
+        type: 'object',
         properties: {
-          value: { type: "string", writeOnly: true },
-        },
-      },
-    ],
-  };
+          value: { type: 'string', writeOnly: true }
+        }
+      }
+    ]
+  }
 
   // Should throw an error about conflicting readOnly/writeOnly flags
   assertThrows(
     () => mergeIntersection({ schema, getRef: mockGetRef }),
     Error,
-    "Cannot merge schemas: property cannot be both readOnly and writeOnly",
-  );
-});
+    'Cannot merge schemas: property cannot be both readOnly and writeOnly'
+  )
+})
 
-Deno.test("mergeAllOf - format conflict throws error", () => {
+Deno.test('mergeAllOf - format conflict throws error', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "string",
-        format: "email",
+        type: 'string',
+        format: 'email'
       },
       {
-        type: "string",
-        format: "uri",
-      },
-    ],
-  };
+        type: 'string',
+        format: 'uri'
+      }
+    ]
+  }
 
   // Should throw an error about conflicting formats
   assertThrows(
     () => mergeIntersection({ schema, getRef: mockGetRef }),
     Error,
-    "Cannot merge schemas: conflicting formats 'email' and 'uri'",
-  );
-});
+    "Cannot merge schemas: conflicting formats 'email' and 'uri'"
+  )
+})
 
-Deno.test("mergeAllOf - empty enum intersection throws error", () => {
+Deno.test('mergeAllOf - empty enum intersection throws error', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "string",
-        enum: ["A", "B"],
+        type: 'string',
+        enum: ['A', 'B']
       },
       {
-        type: "string",
-        enum: ["C", "D"],
-      },
-    ],
-  };
+        type: 'string',
+        enum: ['C', 'D']
+      }
+    ]
+  }
 
   // Should throw an error about empty enum intersection
   assertThrows(
     () => mergeIntersection({ schema, getRef: mockGetRef }),
     Error,
-    "Cannot merge schemas: enum values have no intersection",
-  );
-});
+    'Cannot merge schemas: enum values have no intersection'
+  )
+})
 
-Deno.test("mergeAllOf - incompatible number constraints throws error", () => {
+Deno.test('mergeAllOf - incompatible number constraints throws error', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "number",
+        type: 'number',
         minimum: 10,
-        maximum: 20,
+        maximum: 20
       },
       {
-        type: "number",
+        type: 'number',
         minimum: 30,
-        maximum: 40,
-      },
-    ],
-  };
+        maximum: 40
+      }
+    ]
+  }
 
   // Should throw an error about incompatible number ranges
   assertThrows(
     () => mergeIntersection({ schema, getRef: mockGetRef }),
     Error,
-    "Cannot merge schemas: incompatible number ranges [10,20] and [30,40]",
-  );
-});
+    'Cannot merge schemas: incompatible number ranges [10,20] and [30,40]'
+  )
+})
 
-Deno.test("mergeAllOf - array item type conflict throws error", () => {
+Deno.test('mergeAllOf - array item type conflict throws error', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "array",
-        items: { type: "string" },
+        type: 'array',
+        items: { type: 'string' }
       },
       {
-        type: "array",
-        items: { type: "number" },
-      },
-    ],
-  };
+        type: 'array',
+        items: { type: 'number' }
+      }
+    ]
+  }
 
   // Should throw an error about conflicting array item types
   assertThrows(
     () => mergeIntersection({ schema, getRef: mockGetRef }),
     Error,
-    "Cannot merge schemas: array items have conflicting types 'string' and 'number'",
-  );
-});
+    "Cannot merge schemas: array items have conflicting types 'string' and 'number'"
+  )
+})
 
-Deno.test("mergeAllOf - multipleOf", () => {
+Deno.test('mergeAllOf - multipleOf', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "number",
-        multipleOf: 2,
+        type: 'number',
+        multipleOf: 2
       },
       {
-        type: "number",
-        multipleOf: 3,
-      },
-    ],
-  };
+        type: 'number',
+        multipleOf: 3
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "number",
-    multipleOf: 6,
-  };
+    type: 'number',
+    multipleOf: 6
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - default values", () => {
+Deno.test('mergeAllOf - default values', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         properties: {
-          value: { type: "string", default: "first" },
-        },
+          value: { type: 'string', default: 'first' }
+        }
       },
       {
-        type: "object",
+        type: 'object',
         properties: {
-          value: { type: "string", default: "second" },
-        },
-      },
-    ],
-  };
+          value: { type: 'string', default: 'second' }
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
     properties: {
-      value: { type: "string", default: "second" },
-    },
-  };
+      value: { type: 'string', default: 'second' }
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - example values", () => {
+Deno.test('mergeAllOf - example values', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         properties: {
-          value: { type: "string", example: "first" },
-        },
+          value: { type: 'string', example: 'first' }
+        }
       },
       {
-        type: "object",
+        type: 'object',
         properties: {
-          value: { type: "string", example: "second" },
-        },
-      },
-    ],
-  };
+          value: { type: 'string', example: 'second' }
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
     properties: {
-      value: { type: "string", example: "second" },
-    },
-  };
+      value: { type: 'string', example: 'second' }
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - deprecated properties", () => {
+Deno.test('mergeAllOf - deprecated properties', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         properties: {
-          value: { type: "string", deprecated: false },
-        },
+          value: { type: 'string', deprecated: false }
+        }
       },
       {
-        type: "object",
+        type: 'object',
         properties: {
-          value: { type: "string", deprecated: true },
-        },
-      },
-    ],
-  };
+          value: { type: 'string', deprecated: true }
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
     properties: {
-      value: { type: "string", deprecated: true },
-    },
-  };
+      value: { type: 'string', deprecated: true }
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - externalDocs", () => {
+Deno.test('mergeAllOf - externalDocs', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         externalDocs: {
-          url: "https://example.com/first",
-          description: "First docs",
-        },
+          url: 'https://example.com/first',
+          description: 'First docs'
+        }
       },
       {
-        type: "object",
+        type: 'object',
         externalDocs: {
-          url: "https://example.com/second",
-          description: "Second docs",
-        },
-      },
-    ],
-  };
+          url: 'https://example.com/second',
+          description: 'Second docs'
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
+    type: 'object',
     externalDocs: {
-      url: "https://example.com/second",
-      description: "Second docs",
-    },
-  };
+      url: 'https://example.com/second',
+      description: 'Second docs'
+    }
+  }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected);
-});
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+})
 
-Deno.test("mergeAllOf - type conflict throws error", () => {
+Deno.test('mergeAllOf - type conflict throws error', () => {
   const schema: SchemaObject = {
     allOf: [
       {
-        type: "object",
+        type: 'object',
         properties: {
-          value: { type: "string" },
-        },
+          value: { type: 'string' }
+        }
       },
       {
-        type: "object",
+        type: 'object',
         properties: {
-          value: { type: "number" },
-        },
-      },
-    ],
-  };
+          value: { type: 'number' }
+        }
+      }
+    ]
+  }
 
   // Should throw an error about conflicting types
   assertThrows(
-    () =>
-      mergeIntersection({ schema, getRef: mockGetRef, throwOnConflict: true }),
+    () => mergeIntersection({ schema, getRef: mockGetRef, throwOnConflict: true }),
     Error,
-    "Cannot merge schemas: conflicting types 'string' and 'number'",
-  );
-});
+    "Cannot merge schemas: conflicting types 'string' and 'number'"
+  )
+})
 
-Deno.test("mergeAllOf - simpler allOf", () => {
+Deno.test('mergeAllOf - simpler allOf', () => {
   const getRef = (ref: ReferenceObject): SchemaObject => {
-    if (ref.$ref === "#/components/schemas/Symlink") {
+    if (ref.$ref === '#/components/schemas/Symlink') {
       return {
-        type: "object",
-        required: ["target"],
+        type: 'object',
+        required: ['target'],
         properties: {
           target: {
-            type: "string",
-          },
+            type: 'string'
+          }
         },
-        additionalProperties: false,
-      };
+        additionalProperties: false
+      }
     }
-    throw new Error(`Unknown ref: ${JSON.stringify(ref)}`);
-  };
+    throw new Error(`Unknown ref: ${JSON.stringify(ref)}`)
+  }
 
   const input: SchemaObject = {
     allOf: [
       {
-        $ref: "#/components/schemas/Symlink",
+        $ref: '#/components/schemas/Symlink'
       },
       {
-        type: "object",
-        required: ["type"],
+        type: 'object',
+        required: ['type'],
         properties: {
           type: {
-            type: "string",
-            enum: ["symlink"],
-          },
-        },
-      },
-    ],
-  };
+            type: 'string',
+            enum: ['symlink']
+          }
+        }
+      }
+    ]
+  }
 
   const expected: SchemaObject = {
-    type: "object",
-    required: ["target", "type"],
+    type: 'object',
+    required: ['target', 'type'],
     properties: {
       type: {
-        type: "string",
-        enum: ["symlink"],
+        type: 'string',
+        enum: ['symlink']
       },
       target: {
-        type: "string",
-      },
+        type: 'string'
+      }
     },
-    additionalProperties: false,
-  };
+    additionalProperties: false
+  }
 
-  const result = mergeIntersection({ schema: input, getRef });
-  assertEquals(result, expected);
-});
+  const result = mergeIntersection({ schema: input, getRef })
+  assertEquals(result, expected)
+})

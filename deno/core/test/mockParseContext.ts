@@ -64,9 +64,7 @@ export const mockParseContext = {
  * derives `document` from `context.parsedDocument`) without spinning
  * up a full ParseContext.
  */
-export const toRefParseContextStub = (
-  parsedDocument: SkmtcParsedDocument
-): ParseContextType =>
+export const toRefParseContextStub = (parsedDocument: SkmtcParsedDocument): ParseContextType =>
   ({
     parsedDocument,
     currentStackTrail: undefined

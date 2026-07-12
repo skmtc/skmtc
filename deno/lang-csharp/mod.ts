@@ -75,11 +75,7 @@ export {
 } from './src/toCsEnumMemberName.ts'
 
 export { CsFile, type CsFileArgs } from './src/CsFile.ts'
-export {
-  CsImport,
-  type CsImportNameArg,
-  type CsImportSpecifier
-} from './src/CsImport.ts'
+export { CsImport, type CsImportNameArg, type CsImportSpecifier } from './src/CsImport.ts'
 export { CsDefinition, type CsDefinitionArgs } from './src/CsDefinition.ts'
 export { CsPropertyList, type CsPropertyArgs } from './src/CsPropertyList.ts'
 export { CsAttribute, isCsAttributed, type CsAttributed } from './src/CsAttribute.ts'

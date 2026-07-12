@@ -32,10 +32,11 @@ const mockGeneratorInstance = {
 } as unknown as GeneratorClass
 
 // Helper to create a fresh mock project for each test
-const createMockProject = () => ({
-  name: 'test-project',
-  installGenerator: () => Promise.resolve(mockGeneratorInstance)
-} as unknown as Project)
+const createMockProject = () =>
+  ({
+    name: 'test-project',
+    installGenerator: () => Promise.resolve(mockGeneratorInstance)
+  }) as unknown as Project
 
 // Mock setup helpers
 const createMockSkmtcRoot = (includeProjects = true, project?: Project): SkmtcRoot => {
@@ -52,7 +53,10 @@ const createMockSkmtcRoot = (includeProjects = true, project?: Project): SkmtcRo
   } as unknown as SkmtcRoot
 }
 
-const createInitialState = (overrides: Partial<SkmtcState> = {}, project?: Project): SkmtcState => ({
+const createInitialState = (
+  overrides: Partial<SkmtcState> = {},
+  project?: Project
+): SkmtcState => ({
   view: { page: 'install-generator', projectName: undefined, generators: undefined },
   skmtcRoot: overrides.skmtcRoot || createMockSkmtcRoot(true, project),
   interactive: true,
@@ -69,7 +73,11 @@ type RenderInstallGeneratorProps = {
 }
 
 // Test helper to render component with context
-const renderInstallGenerator = ({ initialState, projectName, generators }: RenderInstallGeneratorProps) => {
+const renderInstallGenerator = ({
+  initialState,
+  projectName,
+  generators
+}: RenderInstallGeneratorProps) => {
   const mockExit = () => {}
 
   return render(
@@ -90,7 +98,9 @@ Deno.test('InstallGenerator - requests project selection and generators', async 
   using fetchStub = stubRegistryGenerators(mockGenerators)
 
   const mockProject = createMockProject()
-  const installStub = stub(mockProject, 'installGenerator', () => Promise.resolve(mockGeneratorInstance))
+  const installStub = stub(mockProject, 'installGenerator', () =>
+    Promise.resolve(mockGeneratorInstance)
+  )
 
   const initialState = createInitialState({}, mockProject)
 
@@ -145,14 +155,19 @@ Deno.test('InstallGenerator - requests project selection and generators', async 
   const installingFrame = lastFrame()
 
   // Check that it contains the key parts (spinner character varies)
-  const hasCorrectStructure = installingFrame &&
+  const hasCorrectStructure =
+    installingFrame &&
     installingFrame.includes('Select project') &&
     installingFrame.includes('test-project') &&
     installingFrame.includes('Select generators to install') &&
     installingFrame.includes('@skmtc/gen-zod') &&
     installingFrame.includes('Installing generators...')
 
-  assertEquals(hasCorrectStructure, true, `Expected installing frame to have correct structure, got:\n${installingFrame || 'undefined'}`)
+  assertEquals(
+    hasCorrectStructure,
+    true,
+    `Expected installing frame to have correct structure, got:\n${installingFrame || 'undefined'}`
+  )
 
   await new Promise(resolve => setTimeout(resolve, 250))
 
@@ -169,126 +184,148 @@ Deno.test('InstallGenerator - requests project selection and generators', async 
 })
 
 // Test 2: Project provided, select generators
-Deno.test('InstallGenerator - project provided, requests generators', { sanitizeResources: false, sanitizeOps: false }, async () => {
-  using fetchStub = stubRegistryGenerators(mockGenerators)
+Deno.test(
+  'InstallGenerator - project provided, requests generators',
+  { sanitizeResources: false, sanitizeOps: false },
+  async () => {
+    using fetchStub = stubRegistryGenerators(mockGenerators)
 
-  const mockProject = createMockProject()
-  const installStub = stub(mockProject, 'installGenerator', () => Promise.resolve(mockGeneratorInstance))
+    const mockProject = createMockProject()
+    const installStub = stub(mockProject, 'installGenerator', () =>
+      Promise.resolve(mockGeneratorInstance)
+    )
 
-  const initialState = createInitialState({}, mockProject)
+    const initialState = createInitialState({}, mockProject)
 
-  const { lastFrame, unmount, stdin } = renderInstallGenerator({
-    initialState,
-    projectName: 'test-project',
-    generators: undefined
-  })
+    const { lastFrame, unmount, stdin } = renderInstallGenerator({
+      initialState,
+      projectName: 'test-project',
+      generators: undefined
+    })
 
-  // Wait for generators to load
-  await new Promise(resolve => setTimeout(resolve, 250))
+    // Wait for generators to load
+    await new Promise(resolve => setTimeout(resolve, 250))
 
-  // Should skip project selection and go to generators
-  const generatorsPrompt = lastFrame()
+    // Should skip project selection and go to generators
+    const generatorsPrompt = lastFrame()
 
-  assertEquals(
-    generatorsPrompt,
-    `│  Select generators to install
+    assertEquals(
+      generatorsPrompt,
+      `│  Select generators to install
 │  ❯ @skmtc/gen-typescript
 │    @skmtc/gen-zod`
-  )
+    )
 
-  // Select TypeScript generator
-  stdin.write(' ')
+    // Select TypeScript generator
+    stdin.write(' ')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
+    await new Promise(resolve => setTimeout(resolve, 250))
 
-  stdin.write('\r')
+    stdin.write('\r')
 
-  await new Promise(resolve => setTimeout(resolve, 250))
+    await new Promise(resolve => setTimeout(resolve, 250))
 
-  // Should show installing spinner (spinner character may vary)
-  const installingFrame = lastFrame()
+    // Should show installing spinner (spinner character may vary)
+    const installingFrame = lastFrame()
 
-  const hasCorrectStructure = installingFrame &&
-    installingFrame.includes('Select generators to install') &&
-    installingFrame.includes('@skmtc/gen-typescript') &&
-    installingFrame.includes('Installing generators...')
+    const hasCorrectStructure =
+      installingFrame &&
+      installingFrame.includes('Select generators to install') &&
+      installingFrame.includes('@skmtc/gen-typescript') &&
+      installingFrame.includes('Installing generators...')
 
-  assertEquals(hasCorrectStructure, true, `Expected installing frame to have correct structure, got:\n${installingFrame || 'undefined'}`)
+    assertEquals(
+      hasCorrectStructure,
+      true,
+      `Expected installing frame to have correct structure, got:\n${installingFrame || 'undefined'}`
+    )
 
-  await new Promise(resolve => setTimeout(resolve, 250))
+    await new Promise(resolve => setTimeout(resolve, 250))
 
-  // Verify installGenerator was called with correct args
-  assertSpyCall(installStub, 0, {
-    args: [{ moduleName: 'jsr:@skmtc/gen-typescript' }]
-  })
+    // Verify installGenerator was called with correct args
+    assertSpyCall(installStub, 0, {
+      args: [{ moduleName: 'jsr:@skmtc/gen-typescript' }]
+    })
 
-  // Wait for any pending timers to complete
-  await new Promise(resolve => setTimeout(resolve, 100))
+    // Wait for any pending timers to complete
+    await new Promise(resolve => setTimeout(resolve, 100))
 
-  unmount()
-  installStub.restore()
-})
+    unmount()
+    installStub.restore()
+  }
+)
 
 // Test 3: All parameters provided (skip all prompts)
-Deno.test('InstallGenerator - all parameters provided, installs immediately', { sanitizeResources: false, sanitizeOps: false }, async () => {
-  const mockProject = createMockProject()
-  const installStub = stub(mockProject, 'installGenerator', () => Promise.resolve(mockGeneratorInstance))
+Deno.test(
+  'InstallGenerator - all parameters provided, installs immediately',
+  { sanitizeResources: false, sanitizeOps: false },
+  async () => {
+    const mockProject = createMockProject()
+    const installStub = stub(mockProject, 'installGenerator', () =>
+      Promise.resolve(mockGeneratorInstance)
+    )
 
-  const initialState = createInitialState({}, mockProject)
+    const initialState = createInitialState({}, mockProject)
 
-  const { lastFrame, unmount } = renderInstallGenerator({
-    initialState,
-    projectName: 'test-project',
-    generators: ['@skmtc/gen-typescript', '@skmtc/gen-zod']
-  })
+    const { lastFrame, unmount } = renderInstallGenerator({
+      initialState,
+      projectName: 'test-project',
+      generators: ['@skmtc/gen-typescript', '@skmtc/gen-zod']
+    })
 
-  await new Promise(resolve => setTimeout(resolve, 200))
+    await new Promise(resolve => setTimeout(resolve, 200))
 
-  // Should go directly to installing (spinner character may vary)
-  const installingFrame = lastFrame()
+    // Should go directly to installing (spinner character may vary)
+    const installingFrame = lastFrame()
 
-  const hasSpinner = installingFrame && installingFrame.includes('Installing generators...')
-  assertEquals(hasSpinner, true, `Expected installing spinner, got:\n${installingFrame || 'undefined'}`)
+    const hasSpinner = installingFrame && installingFrame.includes('Installing generators...')
+    assertEquals(
+      hasSpinner,
+      true,
+      `Expected installing spinner, got:\n${installingFrame || 'undefined'}`
+    )
 
-  // Wait for installation to complete
-  await new Promise(resolve => setTimeout(resolve, 1000))
+    // Wait for installation to complete
+    await new Promise(resolve => setTimeout(resolve, 1000))
 
-  // Verify both generators were installed
-  assertSpyCall(installStub, 0, {
-    args: [{ moduleName: 'jsr:@skmtc/gen-typescript' }]
-  })
-  assertSpyCall(installStub, 1, {
-    args: [{ moduleName: 'jsr:@skmtc/gen-zod' }]
-  })
+    // Verify both generators were installed
+    assertSpyCall(installStub, 0, {
+      args: [{ moduleName: 'jsr:@skmtc/gen-typescript' }]
+    })
+    assertSpyCall(installStub, 1, {
+      args: [{ moduleName: 'jsr:@skmtc/gen-zod' }]
+    })
 
-  unmount()
-  installStub.restore()
-})
+    unmount()
+    installStub.restore()
+  }
+)
 
 // Test 4: Edge case - No projects available
-Deno.test('InstallGenerator - no projects available shows message', { sanitizeResources: false, sanitizeOps: false }, async () => {
-  const initialState = createInitialState({
-    skmtcRoot: createMockSkmtcRoot(false)
-  })
+Deno.test(
+  'InstallGenerator - no projects available shows message',
+  { sanitizeResources: false, sanitizeOps: false },
+  async () => {
+    const initialState = createInitialState({
+      skmtcRoot: createMockSkmtcRoot(false)
+    })
 
-  const { lastFrame, unmount } = renderInstallGenerator({
-    initialState,
-    projectName: undefined,
-    generators: undefined
-  })
+    const { lastFrame, unmount } = renderInstallGenerator({
+      initialState,
+      projectName: undefined,
+      generators: undefined
+    })
 
-  await new Promise(resolve => setTimeout(resolve, 200))
+    await new Promise(resolve => setTimeout(resolve, 200))
 
-  // Should show "No projects found" message
-  const noProjectsFrame = lastFrame()
+    // Should show "No projects found" message
+    const noProjectsFrame = lastFrame()
 
-  assertEquals(
-    noProjectsFrame,
-    `│  No projects found`
-  )
+    assertEquals(noProjectsFrame, `│  No projects found`)
 
-  // Wait for any pending timers to complete
-  await new Promise(resolve => setTimeout(resolve, 800))
+    // Wait for any pending timers to complete
+    await new Promise(resolve => setTimeout(resolve, 800))
 
-  unmount()
-})
+    unmount()
+  }
+)

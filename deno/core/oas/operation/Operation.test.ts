@@ -13,11 +13,11 @@ import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 
 // Helper to create basic ToJsonSchemaOptions
 const createMockOptions = (): ToJsonSchemaOptions => ({
-  resolve: false,
+  resolve: false
 })
 
-Deno.test('OasOperation', async (t) => {
-  await t.step('constructor and property initialization', async (t) => {
+Deno.test('OasOperation', async t => {
+  await t.step('constructor and property initialization', async t => {
     await t.step('should initialize with all properties provided', () => {
       const operation = new OasOperation({
         path: '/users/{id}',
@@ -34,34 +34,34 @@ Deno.test('OasOperation', async (t) => {
             required: true,
             schema: new OasString(),
             style: 'simple',
-            explode: false,
-          }),
+            explode: false
+          })
         ],
         requestBody: new OasRequestBody({
           description: 'User data',
           content: {
             'application/json': new OasMediaType({
               mediaType: 'application/json',
-              schema: new OasObject(),
-            }),
-          },
+              schema: new OasObject()
+            })
+          }
         }),
         responses: {
           '200': new OasResponse({
-            description: 'Success',
-          }),
+            description: 'Success'
+          })
         },
         security: undefined,
         deprecated: false,
         externalDocs: new OasExternalDocs({
-          url: 'https://docs.example.com',
+          url: 'https://docs.example.com'
         }),
         extensionFields: { 'x-custom': 'value' },
         servers: [
           new OasServer({
-            url: 'https://api.example.com',
-          }),
-        ],
+            url: 'https://api.example.com'
+          })
+        ]
       })
 
       assertEquals(operation.oasType, 'operation')
@@ -81,30 +81,33 @@ Deno.test('OasOperation', async (t) => {
       assertEquals(operation.servers?.length, 1)
     })
 
-    await t.step('should initialize with minimal required properties (path, method, responses)', () => {
-      const operation = new OasOperation({
-        path: '/health',
-        method: 'get',
-        pathItem: undefined,
-        responses: {},
-      })
+    await t.step(
+      'should initialize with minimal required properties (path, method, responses)',
+      () => {
+        const operation = new OasOperation({
+          path: '/health',
+          method: 'get',
+          pathItem: undefined,
+          responses: {}
+        })
 
-      assertEquals(operation.oasType, 'operation')
-      assertEquals(operation.path, '/health')
-      assertEquals(operation.method, 'get')
-      assertEquals(operation.responses, {})
-      assertEquals(operation.operationId, undefined)
-      assertEquals(operation.summary, undefined)
-      assertEquals(operation.tags, undefined)
-      assertEquals(operation.description, undefined)
-      assertEquals(operation.parameters, undefined)
-      assertEquals(operation.requestBody, undefined)
-      assertEquals(operation.security, undefined)
-      assertEquals(operation.deprecated, undefined)
-      assertEquals(operation.externalDocs, undefined)
-      assertEquals(operation.extensionFields, undefined)
-      assertEquals(operation.servers, undefined)
-    })
+        assertEquals(operation.oasType, 'operation')
+        assertEquals(operation.path, '/health')
+        assertEquals(operation.method, 'get')
+        assertEquals(operation.responses, {})
+        assertEquals(operation.operationId, undefined)
+        assertEquals(operation.summary, undefined)
+        assertEquals(operation.tags, undefined)
+        assertEquals(operation.description, undefined)
+        assertEquals(operation.parameters, undefined)
+        assertEquals(operation.requestBody, undefined)
+        assertEquals(operation.security, undefined)
+        assertEquals(operation.deprecated, undefined)
+        assertEquals(operation.externalDocs, undefined)
+        assertEquals(operation.extensionFields, undefined)
+        assertEquals(operation.servers, undefined)
+      }
+    )
 
     await t.step('should handle optional properties correctly', () => {
       const operation = new OasOperation({
@@ -114,8 +117,8 @@ Deno.test('OasOperation', async (t) => {
         operationId: 'createProduct',
         summary: 'Create a product',
         responses: {
-          '201': new OasResponse({ description: 'Created' }),
-        },
+          '201': new OasResponse({ description: 'Created' })
+        }
       })
 
       assertEquals(operation.operationId, 'createProduct')
@@ -136,7 +139,7 @@ Deno.test('OasOperation', async (t) => {
             required: false,
             schema: new OasString(),
             style: 'form',
-            explode: true,
+            explode: true
           }),
           new OasParameter({
             name: 'limit',
@@ -144,12 +147,12 @@ Deno.test('OasOperation', async (t) => {
             required: false,
             schema: new OasInteger(),
             style: 'form',
-            explode: true,
-          }),
+            explode: true
+          })
         ],
         responses: {
-          '200': new OasResponse({ description: 'OK' }),
-        },
+          '200': new OasResponse({ description: 'OK' })
+        }
       })
 
       assertEquals(operation.parameters?.length, 2)
@@ -168,13 +171,13 @@ Deno.test('OasOperation', async (t) => {
           content: {
             'application/json': new OasMediaType({
               mediaType: 'application/json',
-              schema: new OasObject(),
-            }),
-          },
+              schema: new OasObject()
+            })
+          }
         }),
         responses: {
-          '201': new OasResponse({ description: 'Created' }),
-        },
+          '201': new OasResponse({ description: 'Created' })
+        }
       })
 
       assertExists(operation.requestBody)
@@ -190,8 +193,8 @@ Deno.test('OasOperation', async (t) => {
         responses: {
           '200': new OasResponse({ description: 'Success' }),
           '404': new OasResponse({ description: 'Not Found' }),
-          '500': new OasResponse({ description: 'Server Error' }),
-        },
+          '500': new OasResponse({ description: 'Server Error' })
+        }
       })
 
       assertEquals(Object.keys(operation.responses).length, 3)
@@ -207,8 +210,8 @@ Deno.test('OasOperation', async (t) => {
         pathItem: undefined,
         security: undefined,
         responses: {
-          '200': new OasResponse({ description: 'OK' }),
-        },
+          '200': new OasResponse({ description: 'OK' })
+        }
       })
 
       assertEquals(operation.security, undefined)
@@ -218,7 +221,7 @@ Deno.test('OasOperation', async (t) => {
       const extensionFields = {
         'x-rate-limit': 100,
         'x-category': 'user-management',
-        'x-metadata': { version: '1.0' },
+        'x-metadata': { version: '1.0' }
       }
 
       const operation = new OasOperation({
@@ -226,7 +229,7 @@ Deno.test('OasOperation', async (t) => {
         method: 'get',
         pathItem: undefined,
         extensionFields,
-        responses: {},
+        responses: {}
       })
 
       assertEquals(operation.extensionFields, extensionFields)
@@ -235,7 +238,7 @@ Deno.test('OasOperation', async (t) => {
     })
   })
 
-  await t.step('toSuccessResponse() method', async (t) => {
+  await t.step('toSuccessResponse() method', async t => {
     await t.step('should return lowest 2xx response (200 over 201, 204)', () => {
       const response200 = new OasResponse({ description: 'OK' })
       const response201 = new OasResponse({ description: 'Created' })
@@ -248,8 +251,8 @@ Deno.test('OasOperation', async (t) => {
         responses: {
           '204': response204,
           '200': response200,
-          '201': response201,
-        },
+          '201': response201
+        }
       })
 
       const successResponse = operation.toSuccessResponse()
@@ -264,8 +267,8 @@ Deno.test('OasOperation', async (t) => {
         responses: {
           '201': new OasResponse({ description: 'Created' }),
           '202': new OasResponse({ description: 'Accepted' }),
-          '204': new OasResponse({ description: 'No Content' }),
-        },
+          '204': new OasResponse({ description: 'No Content' })
+        }
       })
 
       const successResponse = operation.toSuccessResponse()
@@ -282,8 +285,8 @@ Deno.test('OasOperation', async (t) => {
         responses: {
           '400': new OasResponse({ description: 'Bad Request' }),
           '404': new OasResponse({ description: 'Not Found' }),
-          'default': defaultResponse,
-        },
+          default: defaultResponse
+        }
       })
 
       const successResponse = operation.toSuccessResponse()
@@ -297,8 +300,8 @@ Deno.test('OasOperation', async (t) => {
         pathItem: undefined,
         responses: {
           '404': new OasResponse({ description: 'Not Found' }),
-          '500': new OasResponse({ description: 'Server Error' }),
-        },
+          '500': new OasResponse({ description: 'Server Error' })
+        }
       })
 
       const successResponse = operation.toSuccessResponse()
@@ -314,8 +317,8 @@ Deno.test('OasOperation', async (t) => {
           '400': new OasResponse({ description: 'Bad Request' }),
           '401': new OasResponse({ description: 'Unauthorized' }),
           '403': new OasResponse({ description: 'Forbidden' }),
-          '500': new OasResponse({ description: 'Server Error' }),
-        },
+          '500': new OasResponse({ description: 'Server Error' })
+        }
       })
 
       const successResponse = operation.toSuccessResponse()
@@ -323,15 +326,15 @@ Deno.test('OasOperation', async (t) => {
     })
   })
 
-  await t.step('toSuccessResponseCode() method', async (t) => {
+  await t.step('toSuccessResponseCode() method', async t => {
     await t.step('should return lowest 2xx status code as string', () => {
       const operation = new OasOperation({
         path: '/test',
         method: 'get',
         pathItem: undefined,
         responses: {
-          '200': new OasResponse({ description: 'OK' }),
-        },
+          '200': new OasResponse({ description: 'OK' })
+        }
       })
 
       const code = operation.toSuccessResponseCode()
@@ -346,8 +349,8 @@ Deno.test('OasOperation', async (t) => {
         responses: {
           '204': new OasResponse({ description: 'No Content' }),
           '200': new OasResponse({ description: 'OK' }),
-          '201': new OasResponse({ description: 'Created' }),
-        },
+          '201': new OasResponse({ description: 'Created' })
+        }
       })
 
       const code = operation.toSuccessResponseCode()
@@ -361,8 +364,8 @@ Deno.test('OasOperation', async (t) => {
         pathItem: undefined,
         responses: {
           '400': new OasResponse({ description: 'Bad Request' }),
-          'default': new OasResponse({ description: 'Default' }),
-        },
+          default: new OasResponse({ description: 'Default' })
+        }
       })
 
       const code = operation.toSuccessResponseCode()
@@ -375,8 +378,8 @@ Deno.test('OasOperation', async (t) => {
         method: 'get',
         pathItem: undefined,
         responses: {
-          '404': new OasResponse({ description: 'Not Found' }),
-        },
+          '404': new OasResponse({ description: 'Not Found' })
+        }
       })
 
       const code = operation.toSuccessResponseCode()
@@ -392,8 +395,8 @@ Deno.test('OasOperation', async (t) => {
           '400': new OasResponse({ description: 'Bad Request' }),
           '404': new OasResponse({ description: 'Not Found' }),
           '500': new OasResponse({ description: 'Server Error' }),
-          '503': new OasResponse({ description: 'Service Unavailable' }),
-        },
+          '503': new OasResponse({ description: 'Service Unavailable' })
+        }
       })
 
       const code = operation.toSuccessResponseCode()
@@ -401,7 +404,7 @@ Deno.test('OasOperation', async (t) => {
     })
   })
 
-  await t.step('toRequestBody() method', async (t) => {
+  await t.step('toRequestBody() method', async t => {
     await t.step('should map request body schema using provided function', () => {
       const schema = new OasString({ minLength: 1 })
       const operation = new OasOperation({
@@ -412,11 +415,11 @@ Deno.test('OasOperation', async (t) => {
           content: {
             'application/json': new OasMediaType({
               mediaType: 'application/json',
-              schema,
-            }),
-          },
+              schema
+            })
+          }
         }),
-        responses: {},
+        responses: {}
       })
 
       const result = operation.toRequestBody(({ schema }) => {
@@ -436,11 +439,11 @@ Deno.test('OasOperation', async (t) => {
           content: {
             'application/json': new OasMediaType({
               mediaType: 'application/json',
-              schema,
-            }),
-          },
+              schema
+            })
+          }
         }),
-        responses: {},
+        responses: {}
       })
 
       const result = operation.toRequestBody(({ schema }) => {
@@ -460,11 +463,11 @@ Deno.test('OasOperation', async (t) => {
           content: {
             'application/xml': new OasMediaType({
               mediaType: 'application/xml',
-              schema,
-            }),
-          },
+              schema
+            })
+          }
         }),
-        responses: {},
+        responses: {}
       })
 
       const result = operation.toRequestBody(({ schema }) => {
@@ -480,9 +483,9 @@ Deno.test('OasOperation', async (t) => {
         content: {
           'application/json': new OasMediaType({
             mediaType: 'application/json',
-            schema,
-          }),
-        },
+            schema
+          })
+        }
       })
 
       const operation = new OasOperation({
@@ -490,7 +493,7 @@ Deno.test('OasOperation', async (t) => {
         method: 'post',
         pathItem: undefined,
         requestBody,
-        responses: {},
+        responses: {}
       })
 
       const result = operation.toRequestBody(({ requestBody }) => {
@@ -505,7 +508,7 @@ Deno.test('OasOperation', async (t) => {
         path: '/test',
         method: 'get',
         pathItem: undefined,
-        responses: {},
+        responses: {}
       })
 
       const result = operation.toRequestBody(({ schema }) => {
@@ -524,11 +527,11 @@ Deno.test('OasOperation', async (t) => {
           content: {
             'application/json': new OasMediaType({
               mediaType: 'application/json',
-              schema: new OasString(),
-            }),
-          },
+              schema: new OasString()
+            })
+          }
         }),
-        responses: {},
+        responses: {}
       })
 
       const result = operation.toRequestBody(({ schema }) => {
@@ -539,7 +542,7 @@ Deno.test('OasOperation', async (t) => {
     })
   })
 
-  await t.step('toParams() method', async (t) => {
+  await t.step('toParams() method', async t => {
     await t.step('should return all resolved parameters', () => {
       const operation = new OasOperation({
         path: '/users/{id}',
@@ -552,7 +555,7 @@ Deno.test('OasOperation', async (t) => {
             required: true,
             schema: new OasString(),
             style: 'simple',
-            explode: false,
+            explode: false
           }),
           new OasParameter({
             name: 'fields',
@@ -560,10 +563,10 @@ Deno.test('OasOperation', async (t) => {
             required: false,
             schema: new OasString(),
             style: 'form',
-            explode: true,
-          }),
+            explode: true
+          })
         ],
-        responses: {},
+        responses: {}
       })
 
       const params = operation.toParams()
@@ -584,7 +587,7 @@ Deno.test('OasOperation', async (t) => {
             required: true,
             schema: new OasString(),
             style: 'simple',
-            explode: false,
+            explode: false
           }),
           new OasParameter({
             name: 'limit',
@@ -592,7 +595,7 @@ Deno.test('OasOperation', async (t) => {
             required: false,
             schema: new OasInteger(),
             style: 'form',
-            explode: true,
+            explode: true
           }),
           new OasParameter({
             name: 'offset',
@@ -600,10 +603,10 @@ Deno.test('OasOperation', async (t) => {
             required: false,
             schema: new OasInteger(),
             style: 'form',
-            explode: true,
-          }),
+            explode: true
+          })
         ],
-        responses: {},
+        responses: {}
       })
 
       const params = operation.toParams(['query'])
@@ -624,7 +627,7 @@ Deno.test('OasOperation', async (t) => {
             required: true,
             schema: new OasString(),
             style: 'simple',
-            explode: false,
+            explode: false
           }),
           new OasParameter({
             name: 'Authorization',
@@ -632,7 +635,7 @@ Deno.test('OasOperation', async (t) => {
             required: true,
             schema: new OasString(),
             style: 'simple',
-            explode: false,
+            explode: false
           }),
           new OasParameter({
             name: 'limit',
@@ -640,10 +643,10 @@ Deno.test('OasOperation', async (t) => {
             required: false,
             schema: new OasInteger(),
             style: 'form',
-            explode: true,
-          }),
+            explode: true
+          })
         ],
-        responses: {},
+        responses: {}
       })
 
       const params = operation.toParams(['path', 'header'])
@@ -658,7 +661,7 @@ Deno.test('OasOperation', async (t) => {
         method: 'get',
         pathItem: undefined,
         parameters: [],
-        responses: {},
+        responses: {}
       })
 
       const params = operation.toParams()
@@ -671,7 +674,7 @@ Deno.test('OasOperation', async (t) => {
         path: '/health',
         method: 'get',
         pathItem: undefined,
-        responses: {},
+        responses: {}
       })
 
       const params = operation.toParams()
@@ -680,7 +683,7 @@ Deno.test('OasOperation', async (t) => {
     })
   })
 
-  await t.step('toParametersObject() method', async (t) => {
+  await t.step('toParametersObject() method', async t => {
     await t.step('should create OasObject from parameters', () => {
       const operation = new OasOperation({
         path: '/users/{id}',
@@ -693,7 +696,7 @@ Deno.test('OasOperation', async (t) => {
             required: true,
             schema: new OasString(),
             style: 'simple',
-            explode: false,
+            explode: false
           }),
           new OasParameter({
             name: 'fields',
@@ -701,10 +704,10 @@ Deno.test('OasOperation', async (t) => {
             required: false,
             schema: new OasString(),
             style: 'form',
-            explode: true,
-          }),
+            explode: true
+          })
         ],
-        responses: {},
+        responses: {}
       })
 
       const paramsObject = operation.toParametersObject()
@@ -726,7 +729,7 @@ Deno.test('OasOperation', async (t) => {
             required: true,
             schema: new OasString(),
             style: 'simple',
-            explode: false,
+            explode: false
           }),
           new OasParameter({
             name: 'optional',
@@ -734,10 +737,10 @@ Deno.test('OasOperation', async (t) => {
             required: false,
             schema: new OasString(),
             style: 'form',
-            explode: true,
-          }),
+            explode: true
+          })
         ],
-        responses: {},
+        responses: {}
       })
 
       const paramsObject = operation.toParametersObject()
@@ -757,7 +760,7 @@ Deno.test('OasOperation', async (t) => {
             required: true,
             schema: new OasString(),
             style: 'simple',
-            explode: false,
+            explode: false
           }),
           new OasParameter({
             name: 'limit',
@@ -765,10 +768,10 @@ Deno.test('OasOperation', async (t) => {
             required: false,
             schema: new OasInteger(),
             style: 'form',
-            explode: true,
-          }),
+            explode: true
+          })
         ],
-        responses: {},
+        responses: {}
       })
 
       const paramsObject = operation.toParametersObject(['query'])
@@ -782,7 +785,7 @@ Deno.test('OasOperation', async (t) => {
         method: 'get',
         pathItem: undefined,
         parameters: [],
-        responses: {},
+        responses: {}
       })
 
       const paramsObject = operation.toParametersObject()
@@ -802,7 +805,7 @@ Deno.test('OasOperation', async (t) => {
             required: true,
             schema: new OasString({ minLength: 1 }),
             style: 'form',
-            explode: true,
+            explode: true
           }),
           new OasParameter({
             name: 'page',
@@ -810,10 +813,10 @@ Deno.test('OasOperation', async (t) => {
             required: false,
             schema: new OasInteger({ minimum: 1 }),
             style: 'form',
-            explode: true,
-          }),
+            explode: true
+          })
         ],
-        responses: {},
+        responses: {}
       })
 
       const paramsObject = operation.toParametersObject()
@@ -822,7 +825,7 @@ Deno.test('OasOperation', async (t) => {
     })
   })
 
-  await t.step('toJsonSchema() method', async (t) => {
+  await t.step('toJsonSchema() method', async t => {
     await t.step('should convert to OpenAPI v3 OperationObject format', () => {
       const operation = new OasOperation({
         path: '/users',
@@ -833,8 +836,8 @@ Deno.test('OasOperation', async (t) => {
         description: 'Returns a list of all users in the system',
         tags: ['users'],
         responses: {
-          '200': new OasResponse({ description: 'OK' }),
-        },
+          '200': new OasResponse({ description: 'OK' })
+        }
       })
 
       const result = operation.toJsonSchema(createMockOptions())
@@ -857,8 +860,8 @@ Deno.test('OasOperation', async (t) => {
         tags: ['users'],
         deprecated: true,
         responses: {
-          '201': new OasResponse({ description: 'Created' }),
-        },
+          '201': new OasResponse({ description: 'Created' })
+        }
       })
 
       const result = operation.toJsonSchema(createMockOptions())
@@ -882,12 +885,12 @@ Deno.test('OasOperation', async (t) => {
             required: true,
             schema: new OasString(),
             style: 'simple',
-            explode: false,
-          }),
+            explode: false
+          })
         ],
         responses: {
-          '200': new OasResponse({ description: 'OK' }),
-        },
+          '200': new OasResponse({ description: 'OK' })
+        }
       })
 
       const result = operation.toJsonSchema(createMockOptions())
@@ -907,13 +910,13 @@ Deno.test('OasOperation', async (t) => {
           content: {
             'application/json': new OasMediaType({
               mediaType: 'application/json',
-              schema: new OasObject(),
-            }),
-          },
+              schema: new OasObject()
+            })
+          }
         }),
         responses: {
-          '201': new OasResponse({ description: 'Created' }),
-        },
+          '201': new OasResponse({ description: 'Created' })
+        }
       })
 
       const result = operation.toJsonSchema(createMockOptions())
@@ -930,8 +933,8 @@ Deno.test('OasOperation', async (t) => {
         responses: {
           '200': new OasResponse({ description: 'Success' }),
           '404': new OasResponse({ description: 'Not Found' }),
-          '500': new OasResponse({ description: 'Server Error' }),
-        },
+          '500': new OasResponse({ description: 'Server Error' })
+        }
       })
 
       const result = operation.toJsonSchema(createMockOptions())
@@ -950,11 +953,11 @@ Deno.test('OasOperation', async (t) => {
         pathItem: undefined,
         extensionFields: {
           'x-rate-limit': 100,
-          'x-scope': 'public',
+          'x-scope': 'public'
         },
         responses: {
-          '200': new OasResponse({ description: 'OK' }),
-        },
+          '200': new OasResponse({ description: 'OK' })
+        }
       })
 
       const result = operation.toJsonSchema(createMockOptions())
@@ -964,16 +967,16 @@ Deno.test('OasOperation', async (t) => {
     })
   })
 
-  await t.step('property handling', async (t) => {
+  await t.step('property handling', async t => {
     await t.step('should handle HTTP method variations', () => {
       const methods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace'] as const
 
-      methods.forEach((method) => {
+      methods.forEach(method => {
         const operation = new OasOperation({
           path: '/test',
           method,
           pathItem: undefined,
-          responses: {},
+          responses: {}
         })
 
         assertEquals(operation.method, method)
@@ -985,15 +988,15 @@ Deno.test('OasOperation', async (t) => {
         '/users/{id}',
         '/posts/{postId}/comments/{commentId}',
         '/api/v1/resources/{resourceId}',
-        '/organizations/{orgId}/projects/{projectId}/tasks/{taskId}',
+        '/organizations/{orgId}/projects/{projectId}/tasks/{taskId}'
       ]
 
-      paths.forEach((path) => {
+      paths.forEach(path => {
         const operation = new OasOperation({
           path,
           method: 'get',
           pathItem: undefined,
-          responses: {},
+          responses: {}
         })
 
         assertEquals(operation.path, path)
@@ -1006,7 +1009,7 @@ Deno.test('OasOperation', async (t) => {
         method: 'get',
         pathItem: undefined,
         tags: ['users', 'accounts', 'public'],
-        responses: {},
+        responses: {}
       })
 
       assertEquals(operation.tags?.length, 3)
@@ -1021,7 +1024,7 @@ Deno.test('OasOperation', async (t) => {
         method: 'get',
         pathItem: undefined,
         deprecated: true,
-        responses: {},
+        responses: {}
       })
 
       const activeOperation = new OasOperation({
@@ -1029,7 +1032,7 @@ Deno.test('OasOperation', async (t) => {
         method: 'get',
         pathItem: undefined,
         deprecated: false,
-        responses: {},
+        responses: {}
       })
 
       assertEquals(deprecatedOperation.deprecated, true)
@@ -1043,9 +1046,9 @@ Deno.test('OasOperation', async (t) => {
         pathItem: undefined,
         externalDocs: new OasExternalDocs({
           url: 'https://docs.example.com/users',
-          description: 'User API documentation',
+          description: 'User API documentation'
         }),
-        responses: {},
+        responses: {}
       })
 
       assertExists(operation.externalDocs)
@@ -1060,9 +1063,9 @@ Deno.test('OasOperation', async (t) => {
         pathItem: undefined,
         servers: [
           new OasServer({ url: 'https://api.example.com' }),
-          new OasServer({ url: 'https://api-staging.example.com' }),
+          new OasServer({ url: 'https://api-staging.example.com' })
         ],
-        responses: {},
+        responses: {}
       })
 
       assertEquals(operation.servers?.length, 2)
@@ -1071,15 +1074,15 @@ Deno.test('OasOperation', async (t) => {
     })
   })
 
-  await t.step('edge cases and integration', async (t) => {
+  await t.step('edge cases and integration', async t => {
     await t.step('should handle operation with no parameters or requestBody', () => {
       const operation = new OasOperation({
         path: '/health',
         method: 'get',
         pathItem: undefined,
         responses: {
-          '200': new OasResponse({ description: 'Healthy' }),
-        },
+          '200': new OasResponse({ description: 'Healthy' })
+        }
       })
 
       assertEquals(operation.parameters, undefined)
@@ -1094,8 +1097,8 @@ Deno.test('OasOperation', async (t) => {
         pathItem: undefined,
         security: undefined,
         responses: {
-          '200': new OasResponse({ description: 'OK' }),
-        },
+          '200': new OasResponse({ description: 'OK' })
+        }
       })
 
       assertEquals(operation.security, undefined)
@@ -1116,15 +1119,15 @@ Deno.test('OasOperation', async (t) => {
             location: 'query',
             schema: new OasInteger({ minimum: 1, default: 1 }),
             style: 'form',
-            explode: true,
+            explode: true
           }),
           new OasParameter({
             name: 'limit',
             location: 'query',
             schema: new OasInteger({ minimum: 1, maximum: 100, default: 20 }),
             style: 'form',
-            explode: true,
-          }),
+            explode: true
+          })
         ],
         responses: {
           '200': new OasResponse({
@@ -1132,11 +1135,11 @@ Deno.test('OasOperation', async (t) => {
             content: {
               'application/json': new OasMediaType({
                 mediaType: 'application/json',
-                schema: new OasObject(),
-              }),
-            },
-          }),
-        },
+                schema: new OasObject()
+              })
+            }
+          })
+        }
       })
 
       // POST operation with request body
@@ -1152,14 +1155,14 @@ Deno.test('OasOperation', async (t) => {
           content: {
             'application/json': new OasMediaType({
               mediaType: 'application/json',
-              schema: new OasObject(),
-            }),
-          },
+              schema: new OasObject()
+            })
+          }
         }),
         responses: {
           '201': new OasResponse({ description: 'User created' }),
-          '400': new OasResponse({ description: 'Invalid input' }),
-        },
+          '400': new OasResponse({ description: 'Invalid input' })
+        }
       })
 
       assertEquals(listOperation.toParams().length, 2)
@@ -1175,12 +1178,12 @@ Deno.test('OasOperation', async (t) => {
               profile: new OasObject({
                 properties: {
                   name: new OasString(),
-                  age: new OasInteger(),
-                },
-              }),
-            },
-          }),
-        },
+                  age: new OasInteger()
+                }
+              })
+            }
+          })
+        }
       })
 
       const operation = new OasOperation({
@@ -1191,13 +1194,13 @@ Deno.test('OasOperation', async (t) => {
           content: {
             'application/json': new OasMediaType({
               mediaType: 'application/json',
-              schema: complexSchema,
-            }),
-          },
+              schema: complexSchema
+            })
+          }
         }),
         responses: {
-          '201': new OasResponse({ description: 'Created' }),
-        },
+          '201': new OasResponse({ description: 'Created' })
+        }
       })
 
       const result = operation.toRequestBody(({ schema }) => {
@@ -1213,8 +1216,8 @@ Deno.test('OasOperation', async (t) => {
         method: 'get',
         pathItem: undefined,
         responses: {
-          '200': new OasResponse({ description: 'OK' }),
-        },
+          '200': new OasResponse({ description: 'OK' })
+        }
       })
 
       assertEquals(operation.pathItem, undefined)

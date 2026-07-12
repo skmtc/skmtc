@@ -19,9 +19,7 @@ Deno.test('toFieldSchema - nullable ref return wraps in nullable OasUnion', () =
     }
   `
   const doc = toGqlDocument(sdl)
-  const op = doc.operations.find(
-    (o: GqlOperation) => o.fieldName === 'getUser'
-  )!
+  const op = doc.operations.find((o: GqlOperation) => o.fieldName === 'getUser')!
   // Without the wrap fix this is a bare OasRef and the generator emits
   // `User` instead of the correct `User | null`.
   const ret = op.returnType as OasUnion
@@ -43,9 +41,7 @@ Deno.test('toFieldSchema - non-null ref return stays a bare OasRef', () => {
     }
   `
   const doc = toGqlDocument(sdl)
-  const op = doc.operations.find(
-    (o: GqlOperation) => o.fieldName === 'getUser'
-  )!
+  const op = doc.operations.find((o: GqlOperation) => o.fieldName === 'getUser')!
   const ret = op.returnType as OasRef<'schema'>
   assertInstanceOf(ret, OasRef)
   assertEquals(ret.toRefName(), refName('User'))
@@ -60,7 +56,9 @@ Deno.test('toFieldSchema - nullable ref field on an object wraps the same way', 
       id: ID!
       profile: Profile
     }
-    type Query { _: Boolean }
+    type Query {
+      _: Boolean
+    }
   `
   const doc = toGqlDocument(sdl)
   const user = doc.registry.schemas[refName('User')] as OasObject
@@ -82,9 +80,7 @@ Deno.test('toFieldSchema - list of nullable refs ([User]!) wraps the inner only'
     }
   `
   const doc = toGqlDocument(sdl)
-  const op = doc.operations.find(
-    (o: GqlOperation) => o.fieldName === 'maybeUsers'
-  )!
+  const op = doc.operations.find((o: GqlOperation) => o.fieldName === 'maybeUsers')!
   const arr = op.returnType as OasArray
   assertInstanceOf(arr, OasArray)
   assertEquals(arr.nullable, false)
@@ -106,9 +102,7 @@ Deno.test('toFieldSchema - list of non-null refs ([User!]) leaves items as bare 
     }
   `
   const doc = toGqlDocument(sdl)
-  const op = doc.operations.find(
-    (o: GqlOperation) => o.fieldName === 'users'
-  )!
+  const op = doc.operations.find((o: GqlOperation) => o.fieldName === 'users')!
   const arr = op.returnType as OasArray
   assertInstanceOf(arr, OasArray)
   assertEquals(arr.nullable, true)

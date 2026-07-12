@@ -200,7 +200,10 @@ Deno.test('OasOAuth2SecurityScheme - constructor with authorizationCode flow', (
   assertEquals(scheme.description, 'OAuth2 authorization code flow')
   assertEquals(scheme.type, 'oauth2')
   assertEquals(scheme.oasType, 'securityScheme')
-  assertEquals(scheme.flows.authorizationCode?.authorizationUrl, 'https://example.com/oauth/authorize')
+  assertEquals(
+    scheme.flows.authorizationCode?.authorizationUrl,
+    'https://example.com/oauth/authorize'
+  )
   assertEquals(scheme.flows.authorizationCode?.tokenUrl, 'https://example.com/oauth/token')
   assertEquals(scheme.flows.authorizationCode?.refreshUrl, 'https://example.com/oauth/refresh')
   assertEquals(scheme.flows.authorizationCode?.scopes, {
@@ -232,14 +235,14 @@ Deno.test('OasOAuth2SecurityScheme - constructor with implicit flow', () => {
       implicit: {
         authorizationUrl: 'https://example.com/oauth/authorize',
         scopes: {
-          'openid': 'OpenID Connect'
+          openid: 'OpenID Connect'
         }
       }
     }
   })
 
   assertEquals(scheme.flows.implicit?.authorizationUrl, 'https://example.com/oauth/authorize')
-  assertEquals(scheme.flows.implicit?.scopes, { 'openid': 'OpenID Connect' })
+  assertEquals(scheme.flows.implicit?.scopes, { openid: 'OpenID Connect' })
 })
 
 Deno.test('OasOAuth2SecurityScheme - constructor with password flow', () => {
@@ -262,17 +265,17 @@ Deno.test('OasOAuth2SecurityScheme - constructor with multiple flows', () => {
       authorizationCode: {
         authorizationUrl: 'https://example.com/oauth/authorize',
         tokenUrl: 'https://example.com/oauth/token',
-        scopes: { 'read': 'Read access' }
+        scopes: { read: 'Read access' }
       },
       clientCredentials: {
         tokenUrl: 'https://example.com/oauth/token',
-        scopes: { 'admin': 'Admin access' }
+        scopes: { admin: 'Admin access' }
       }
     }
   })
 
-  assertEquals(scheme.flows.authorizationCode?.scopes, { 'read': 'Read access' })
-  assertEquals(scheme.flows.clientCredentials?.scopes, { 'admin': 'Admin access' })
+  assertEquals(scheme.flows.authorizationCode?.scopes, { read: 'Read access' })
+  assertEquals(scheme.flows.clientCredentials?.scopes, { admin: 'Admin access' })
 })
 
 Deno.test('OasOAuth2SecurityScheme - isRef() returns false', () => {
@@ -323,7 +326,7 @@ Deno.test('OasOAuth2SecurityScheme - toJsonSchema() with single flow', () => {
       authorizationCode: {
         authorizationUrl: 'https://example.com/oauth/authorize',
         tokenUrl: 'https://example.com/oauth/token',
-        scopes: { 'read': 'Read' }
+        scopes: { read: 'Read' }
       }
     }
   })
@@ -337,7 +340,7 @@ Deno.test('OasOAuth2SecurityScheme - toJsonSchema() with single flow', () => {
       authorizationCode: {
         authorizationUrl: 'https://example.com/oauth/authorize',
         tokenUrl: 'https://example.com/oauth/token',
-        scopes: { 'read': 'Read' }
+        scopes: { read: 'Read' }
       },
       clientCredentials: undefined,
       implicit: undefined,

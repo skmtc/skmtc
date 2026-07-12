@@ -1,10 +1,5 @@
 import { CodeFileBase, matchDefinitions } from '@skmtc/core'
-import type {
-  ClientSettings,
-  DefinitionBase,
-  ImportBase,
-  ReExportBase
-} from '@skmtc/core'
+import type { ClientSettings, DefinitionBase, ImportBase, ReExportBase } from '@skmtc/core'
 import { KtImport } from './KtImport.ts'
 import { KtIdentifier } from './KtIdentifier.ts'
 import type { KtEntityType } from './createIdentifier.ts'
@@ -101,13 +96,12 @@ export class KtFile extends CodeFileBase {
     }
   }
 
-  override findDefinitions(
-    query?: { name?: string; type?: KtEntityType }
-  ): DefinitionBase[] | undefined {
-    return matchDefinitions(
-      [...this.definitions.values()],
-      query,
-      identifier => (identifier instanceof KtIdentifier ? identifier.type : undefined)
+  override findDefinitions(query?: {
+    name?: string
+    type?: KtEntityType
+  }): DefinitionBase[] | undefined {
+    return matchDefinitions([...this.definitions.values()], query, identifier =>
+      identifier instanceof KtIdentifier ? identifier.type : undefined
     )
   }
 

@@ -15,9 +15,6 @@
     "publish:dry": "deno publish --dry-run --allow-dirty"
   },
   "publish": {
-    "exclude": [
-      "**/*.test.ts",
-      "fixtures/"
-    ]
+    "exclude": ["**/*.test.ts", "fixtures/"]
   }
 }

@@ -51,7 +51,9 @@ export type CsDefinitionArgs<Value extends GeneratedValue> = {
  * fifth distinct `exported` behavior, spike-proved). `noExport`
  * restricts the same way.
  */
-export class CsDefinition<Value extends GeneratedValue = GeneratedValue> extends DefinitionBase<Value> {
+export class CsDefinition<
+  Value extends GeneratedValue = GeneratedValue
+> extends DefinitionBase<Value> {
   description: string | undefined
   noExport: boolean | undefined
 

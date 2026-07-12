@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { Copy, Check } from "lucide-react"
-import { useState } from "react"
+import { Copy, Check } from 'lucide-react'
+import { useState } from 'react'
 
 export const CopyButton = ({ text }: { text: string }) => {
   const [copied, setCopied] = useState(false)

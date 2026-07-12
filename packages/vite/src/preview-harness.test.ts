@@ -71,7 +71,7 @@ describe('virtual:skmtc-preview-providers resolution', () => {
     await mkdir(join(viteRoot, 'src'), { recursive: true })
   })
   afterAll(async () => {
-    await Promise.all(servers.map((server) => server.close()))
+    await Promise.all(servers.map(server => server.close()))
     await rm(viteRoot, { recursive: true, force: true })
   })
 
