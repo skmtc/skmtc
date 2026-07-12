@@ -1,39 +1,41 @@
-import { toGenerateLocalArgs } from '@/lib/to-generate-local-args.ts'
-import { printGenerateResult } from '@/lib/print-generate-result.ts'
+import { toGenerateLocalArgs } from "@/lib/to-generate-local-args.ts";
+import { printGenerateResult } from "@/lib/print-generate-result.ts";
 import {
   failWithRecipe,
   resolveInputMode,
-  resolveOutputFormat
-} from '@/lib/strict-mode.ts'
-import { toManifestPath } from '@/lib/to-manifest-path.ts'
-import { toProjectPath } from '@/lib/to-project-path.ts'
-import { checkBundleFreshness } from '@/lib/bundle-freshness.ts'
-import { runTypecheck } from '@/lib/typecheck.ts'
-import { resolve } from '@std/path'
+  resolveOutputFormat,
+} from "@/lib/strict-mode.ts";
+import { toManifestPath } from "@/lib/to-manifest-path.ts";
+import { toProjectPath } from "@/lib/to-project-path.ts";
+import { checkBundleFreshness } from "@/lib/bundle-freshness.ts";
+import { runTypecheck } from "@/lib/typecheck.ts";
+import { detectFormatter, formatterHint } from "@/lib/detect-formatter.ts";
+import { toRootPath } from "@/lib/to-root-path.ts";
+import { resolve } from "@std/path";
 
 type GenerateSwitchArgs = {
-  projectName: string
-  schemaSourceString: string | undefined
-  watch: boolean | undefined
-  jsonFlag?: boolean
-  noInputFlag?: boolean
+  projectName: string;
+  schemaSourceString: string | undefined;
+  watch: boolean | undefined;
+  jsonFlag?: boolean;
+  noInputFlag?: boolean;
   /**
    * When `true`, run `tsc --noEmit` against the consumer's
    * tsconfig after generating and surface diagnostics scoped to
    * the files this run wrote. Closes friction #10.
    */
-  typecheck?: boolean
+  typecheck?: boolean;
   /** Optional override for the tsconfig.json path used by `--typecheck`. */
-  tsconfig?: string
+  tsconfig?: string;
   /** Optional override for the `tsc` command (default: `npx tsc`). */
-  tscCmd?: string
+  tscCmd?: string;
   /**
    * Override for `client.json#settings.anchors.enabled`. `true` from
    * `--anchors`, `false` from `--no-anchors`, `undefined` (default)
    * to honour the config value.
    */
-  anchorsFlag?: boolean
-}
+  anchorsFlag?: boolean;
+};
 
 export const generateSwitch = async ({
   projectName,
@@ -44,41 +46,45 @@ export const generateSwitch = async ({
   typecheck,
   tsconfig,
   tscCmd,
-  anchorsFlag
+  anchorsFlag,
 }: GenerateSwitchArgs) => {
   // --json + --watch is incompatible: --json emits a single object
   // and exits, --watch is a stream. Fail loudly so the caller learns
   // to pick one.
   if (jsonFlag && watch) {
     console.error(
-      'Error: --json and --watch are mutually exclusive.\n\n' +
-        '--json emits a single structured result and exits; --watch is\n' +
-        'a long-running stream. Pick one:\n' +
-        '  - One-shot agent run: drop --watch\n' +
-        '  - Watch loop: drop --json (plain-text summaries per cycle)'
-    )
-    Deno.exit(2)
+      "Error: --json and --watch are mutually exclusive.\n\n" +
+        "--json emits a single structured result and exits; --watch is\n" +
+        "a long-running stream. Pick one:\n" +
+        "  - One-shot agent run: drop --watch\n" +
+        "  - Watch loop: drop --json (plain-text summaries per cycle)",
+    );
+    Deno.exit(2);
   }
 
-  const mode = resolveInputMode({ noInputFlag, jsonFlag })
-  const generateLocalArgs = await toGenerateLocalArgs({ projectName, schemaSourceString, watch })
+  const mode = resolveInputMode({ noInputFlag, jsonFlag });
+  const generateLocalArgs = await toGenerateLocalArgs({
+    projectName,
+    schemaSourceString,
+    watch,
+  });
 
   // Strict mode and `toGenerateLocalArgs` couldn't resolve everything
   // (no schema source given, none in `client.json#source`, or the
   // bundle / project state is missing). The Ink fallback exists for
   // human exploration — for agents we'd rather emit a recipe error
   // pointing at the missing input than mount a TUI they can't drive.
-  if (mode === 'strict' && !generateLocalArgs) {
+  if (mode === "strict" && !generateLocalArgs) {
     return failWithRecipe({
-      command: 'generate',
-      arg: '<schema>',
-      usage: 'skmtc generate <project> [schema]',
-      example: 'skmtc generate my-api ./schema.json',
+      command: "generate",
+      arg: "<schema>",
+      usage: "skmtc generate <project> [schema]",
+      example: "skmtc generate my-api ./schema.json",
       discover:
-        'If you want the schema source pinned, set `settings.source` in ' +
-        '.skmtc/<project>/.settings/client.json — then `skmtc generate <project>` ' +
-        'is enough.'
-    })
+        "If you want the schema source pinned, set `settings.source` in " +
+        ".skmtc/<project>/.settings/client.json — then `skmtc generate <project>` " +
+        "is enough.",
+    });
   }
 
   if (generateLocalArgs) {
@@ -93,19 +99,19 @@ export const generateSwitch = async ({
     // output and can recover; agents need the upfront refusal. Skipped
     // entirely for a REMOTE generate (`client.json#serverUrl` set) — there
     // is no local bundle to be fresh, generation runs on the stack server.
-    if (mode === 'strict' && !generateLocalArgs.stackUrl) {
-      const freshness = checkBundleFreshness({ projectName })
-      if (freshness.type === 'stale' || freshness.type === 'missing-worker') {
-        console.error(`Error: ${freshness.message}\n`)
-        if (freshness.type === 'stale') {
-          console.error(`${freshness.hint}\n`)
+    if (mode === "strict" && !generateLocalArgs.stackUrl) {
+      const freshness = checkBundleFreshness({ projectName });
+      if (freshness.type === "stale" || freshness.type === "missing-worker") {
+        console.error(`Error: ${freshness.message}\n`);
+        if (freshness.type === "stale") {
+          console.error(`${freshness.hint}\n`);
         }
-        Deno.exit(2)
+        Deno.exit(2);
       }
     }
 
-    const { generateLocal } = await import('@/lib/generate-local.ts')
-    const result = await generateLocal({ ...generateLocalArgs, anchorsFlag })
+    const { generateLocal } = await import("@/lib/generate-local.ts");
+    const result = await generateLocal({ ...generateLocalArgs, anchorsFlag });
 
     // Optional post-generate type-check pass. Runs the consumer's
     // tsc against the freshly-emitted files; diagnostics are scoped
@@ -113,20 +119,22 @@ export const generateSwitch = async ({
     // consumer app don't pollute the result. Friction #10.
     const typecheckResult = typecheck
       ? await runTypecheck({
-          filePaths: result.filePaths,
-          basePathAbs: generateLocalArgs.clientSettings?.basePath
-            ? resolve(generateLocalArgs.clientSettings.basePath)
-            : undefined,
-          tsconfigOverride: tsconfig,
-          tscCmd
-        })
-      : undefined
+        filePaths: result.filePaths,
+        basePathAbs: generateLocalArgs.clientSettings?.basePath
+          ? resolve(generateLocalArgs.clientSettings.basePath)
+          : undefined,
+        tsconfigOverride: tsconfig,
+        tscCmd,
+      })
+      : undefined;
 
     // Both `--json` and a non-TTY shell route to the structured path;
     // the Ink-free generate flow already wrote plain text, so for
     // strict-mode we just pick the format (text vs JSON) and reuse
     // the existing summary builder.
-    const format = mode === 'strict' ? resolveOutputFormat({ jsonFlag }) : 'text'
+    const format = mode === "strict"
+      ? resolveOutputFormat({ jsonFlag })
+      : "text";
 
     printGenerateResult({
       result,
@@ -134,8 +142,17 @@ export const generateSwitch = async ({
       basePath: generateLocalArgs.clientSettings?.basePath,
       manifestPath: toManifestPath(toProjectPath(projectName)),
       typecheck: typecheckResult,
-      format
-    })
+      format,
+    });
+
+    // Human-facing nudge only (never in the agent-pinned JSON/strict
+    // output): when the app has a detectable formatter but
+    // `settings.formatter` isn't configured, suggest wiring it up so
+    // generated files come out formatted with attribution aligned.
+    if (format === "text" && !generateLocalArgs.clientSettings?.formatter) {
+      const detected = detectFormatter(resolve(toRootPath(), ".."));
+      if (detected !== undefined) console.error(formatterHint(detected));
+    }
 
     // If any parseIssue came back at `error` level, the run isn't a
     // success even when the JSON payload has `type: "generated"`.
@@ -151,18 +168,18 @@ export const generateSwitch = async ({
     // bundles; new bundles populate the field and get the proper
     // exit-1 signal.
     const fatalParseIssue = (result.parseIssues ?? []).some(
-      issue => issue.level === 'error'
-    )
+      (issue) => issue.level === "error",
+    );
     // A failed typecheck is non-fatal-but-noticeable: signal exit 1
     // (the convention `parseIssues` already uses for "ran but found
     // problems"). The generated files stay on disk so the operator
     // can fix the generator and rerun.
-    const typecheckFailed = typecheckResult?.type === 'failed'
-    Deno.exit(fatalParseIssue || typecheckFailed ? 1 : 0)
+    const typecheckFailed = typecheckResult?.type === "failed";
+    Deno.exit(fatalParseIssue || typecheckFailed ? 1 : 0);
   }
 
   // Interactive mode + no resolvable args → mount Ink for the user
   // to fill in the gaps.
-  const { renderGenerate } = await import('@/commands/generate.tsx')
-  return await renderGenerate({ projectName, schemaSourceString, watch })
-}
+  const { renderGenerate } = await import("@/commands/generate.tsx");
+  return await renderGenerate({ projectName, schemaSourceString, watch });
+};

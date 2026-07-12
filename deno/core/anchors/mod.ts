@@ -49,7 +49,12 @@ export {
   postPass,
   type PostPassArgs,
 } from "./postPass.ts";
-export { upgradeSidecar, type UpgradeSidecarArgs } from "./upgradeSidecar.ts";
+export {
+  reanchorSidecar,
+  type ReanchorSidecarArgs,
+  upgradeSidecar,
+  type UpgradeSidecarArgs,
+} from "./upgradeSidecar.ts";
 export {
   writeSidecars,
   type WriteSidecarsArgs,

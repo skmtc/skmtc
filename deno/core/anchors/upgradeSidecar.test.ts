@@ -123,3 +123,96 @@ Deno.test("upgradeSidecar - non-ASCII source is left unchanged (unit skew)", () 
   assertEquals(upgraded, sidecar);
   assertEquals(upgraded.parser, "none");
 });
+
+// --- reanchorSidecar: realign spans to the formatted on-disk text -----------
+
+import { reanchorSidecar } from "./upgradeSidecar.ts";
+
+// What a consumer formatter makes of `source`: quote flips, semicolons,
+// JSX reflow — every raw byte span is invalidated.
+const formattedSource = [
+  'import { helper } from "./helper.ts";',
+  "const columnHelper = helper();",
+  "export const Widget = () => {",
+  "  return (",
+  "    <div>",
+  "      {columnHelper.render()}",
+  "    </div>",
+  "  );",
+  "};",
+  "",
+].join("\n");
+
+Deno.test("reanchorSidecar - realigns spans onto the formatted text", () => {
+  const statementFrom = source.indexOf("const columnHelper");
+  const statementTo = source.indexOf("export const Widget");
+  const containerFrom = source.indexOf("{columnHelper.render()}");
+  const containerTo = containerFrom + "{columnHelper.render()}".length;
+
+  const upgraded = upgradeSidecar({
+    sidecar: workerSidecar(source, [
+      [statementFrom, statementTo],
+      [containerFrom, containerTo],
+    ]),
+    source,
+    parser: oxcAdapter,
+  });
+  const realigned = reanchorSidecar({
+    sidecar: upgraded,
+    source: formattedSource,
+    parser: oxcAdapter,
+  });
+  if (realigned === undefined) throw new Error("expected realignment");
+
+  const [statementRow, containerRow] = realigned.A;
+  const sliceOf = (row: number[]): string =>
+    formattedSource.slice(row[5], row[6]);
+  assertEquals(sliceOf(statementRow), "const columnHelper = helper();");
+  assertEquals(sliceOf(containerRow), "{columnHelper.render()}");
+  // Pools + parser stamp carry over untouched.
+  assertEquals(realigned.parser, oxcAdapter.id);
+  assertEquals(realigned.An?.length, realigned.A.length);
+});
+
+Deno.test("reanchorSidecar - drops unresolvable rows, keeping An parallel", () => {
+  const containerFrom = source.indexOf("{columnHelper.render()}");
+  const containerTo = containerFrom + "{columnHelper.render()}".length;
+  // Row 1: an import-statement span — upgrade keeps the worker landmark
+  // 'WidgetDefinition' (no real landmark encloses it), which resolves to
+  // nothing in the formatted parse → dropped. Row 2 realigns.
+  const upgraded = upgradeSidecar({
+    sidecar: workerSidecar(source, [
+      [0, "import { helper } from './helper.ts'".length],
+      [containerFrom, containerTo],
+    ]),
+    source,
+    parser: oxcAdapter,
+  });
+  const realigned = reanchorSidecar({
+    sidecar: upgraded,
+    source: formattedSource,
+    parser: oxcAdapter,
+  });
+  if (realigned === undefined) throw new Error("expected realignment");
+  assertEquals(realigned.A.length, 1);
+  assertEquals(realigned.An?.length, 1);
+  assertEquals(
+    formattedSource.slice(realigned.A[0][5], realigned.A[0][6]),
+    "{columnHelper.render()}",
+  );
+});
+
+Deno.test("reanchorSidecar - refuses non-ASCII formatted text", () => {
+  const containerFrom = source.indexOf("{columnHelper.render()}");
+  const upgraded = upgradeSidecar({
+    sidecar: workerSidecar(source, [[containerFrom, containerFrom + 5]]),
+    source,
+    parser: oxcAdapter,
+  });
+  const realigned = reanchorSidecar({
+    sidecar: upgraded,
+    source: `// héllo\n${formattedSource}`,
+    parser: oxcAdapter,
+  });
+  assertEquals(realigned, undefined);
+});

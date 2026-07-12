@@ -97,14 +97,9 @@ const isFormattingArtifact = (node: OxcNode): boolean =>
   node.type === "JSXText" && typeof node.value === "string" &&
   node.value.trim() === "";
 
-/**
- * Iterate immediate AST children of `node`. A child is any nested
- * value (or array element) that is itself an object with a `type`
- * field, excluding whitespace-only JSXText (see
- * {@link isFormattingArtifact}). Traversal order is `Object.keys`
- * insertion order.
- */
-const childrenOf = (node: OxcNode): OxcNode[] => {
+/** Raw structural children — no formatting normalization. Only
+ *  {@link childrenOf} and {@link unwrapParens} may call this. */
+const directChildren = (node: OxcNode): OxcNode[] => {
   const out: OxcNode[] = [];
   for (const key of Object.keys(node)) {
     if (
@@ -119,8 +114,37 @@ const childrenOf = (node: OxcNode): OxcNode[] => {
       }
     }
   }
-  return out.filter((child) => !isFormattingArtifact(child));
+  return out;
 };
+
+/**
+ * Parentheses are pure formatting: a formatter freely adds them (e.g.
+ * around a JSX return it reflows to multiple lines) or drops them, and
+ * oxc materializes each pair as a `ParenthesizedExpression` node — an
+ * extra tree level that would shift every recorded path under it.
+ * Traversal treats them as transparent: a paren node is replaced by
+ * its inner expression, so paths never see paren levels on either the
+ * record or the descend side.
+ */
+const unwrapParens = (node: OxcNode): OxcNode => {
+  if (node.type !== "ParenthesizedExpression") return node;
+  const inner = directChildren(node)[0];
+  return inner === undefined ? node : unwrapParens(inner);
+};
+
+/**
+ * Iterate immediate AST children of `node`, normalized for formatting
+ * artifacts: whitespace-only JSXText is dropped (see
+ * {@link isFormattingArtifact}) and `ParenthesizedExpression` levels
+ * are unwrapped (see {@link unwrapParens}). Traversal order is
+ * `Object.keys` insertion order. Every traversal — parent stamping,
+ * span descent, path record, path descend — goes through this, so the
+ * normalized tree is the only tree paths ever index.
+ */
+const childrenOf = (node: OxcNode): OxcNode[] =>
+  directChildren(node)
+    .map(unwrapParens)
+    .filter((child) => !isFormattingArtifact(child));
 
 const isAstNode = (value: unknown): value is OxcNode => {
   return (
@@ -166,8 +190,8 @@ const collectLandmarks: ParserAdapter["collectLandmarks"] = (file) => {
       const declarations = Array.isArray(decl.declarations)
         ? decl.declarations.filter(isAstNode)
         : [];
-      for (const d of declarations) {
-        const name = nameOf(d.id);
+      for (const declarator of declarations) {
+        const name = nameOf(declarator.id);
         if (name && !landmarks.has(name)) landmarks.set(name, stmt);
       }
       continue;

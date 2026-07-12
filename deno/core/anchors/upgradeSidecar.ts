@@ -90,7 +90,15 @@ export const upgradeSidecar = (
   };
 
   const A = sidecar.A.map((row): AnchorRow => {
-    const [oldLi, , gi, si, vi, from, to] = row;
+    const [
+      oldLandmarkIndex,
+      ,
+      generatorIndex,
+      schemaIndex,
+      variantIndex,
+      from,
+      to,
+    ] = row;
     const trimmed = trimSpan(source, from, to);
     const node = parser.smallestEnclosing(parsed, trimmed.from, trimmed.to);
     const location = parser.ascendToLandmark(node, landmarks);
@@ -98,13 +106,13 @@ export const upgradeSidecar = (
       // Nothing stable to descend from — keep the worker's landmark
       // (the enclosing Definition's name) so hover/pin flows still
       // group correctly; the empty path marks it non-re-anchorable.
-      const workerLandmark = sidecar.L[oldLi] ?? "";
+      const workerLandmark = sidecar.L[oldLandmarkIndex] ?? "";
       return [
         intern(L, internedL, workerLandmark),
         intern(P, internedP, ""),
-        gi,
-        si,
-        vi,
+        generatorIndex,
+        schemaIndex,
+        variantIndex,
         from,
         to,
       ];
@@ -112,13 +120,92 @@ export const upgradeSidecar = (
     return [
       intern(L, internedL, location.landmark),
       intern(P, internedP, location.path.join(".")),
-      gi,
-      si,
-      vi,
+      generatorIndex,
+      schemaIndex,
+      variantIndex,
       from,
       to,
     ];
   });
 
   return { ...sidecar, parser: parser.id, L, P, A };
+};
+
+export type ReanchorSidecarArgs = {
+  /** An upgraded sidecar (real landmarks + AST paths — run
+   *  {@link upgradeSidecar} first). */
+  sidecar: Sidecar;
+  /** The artifact text as it now exists ON DISK — e.g. after the
+   *  consumer's formatter ran over the raw render. */
+  source: string;
+  parser: ParserAdapter;
+};
+
+/**
+ * Realign a sidecar's byte spans to a reshaped copy of its artifact by
+ * resolving each anchor's landmark + AST path against `source` — so the
+ * written sidecar describes the file as it actually exists on disk
+ * (formatted coordinates), and readers need no runtime re-anchoring.
+ *
+ * Returns `undefined` when realignment isn't possible at all —
+ * non-ASCII source (span-unit skew), parse failure, or no anchor
+ * resolving. The caller MUST then keep the raw-coordinate sidecar AND
+ * the raw manifest lengths together: updating the manifest without
+ * realigned spans would defeat the reader's drift detection and serve
+ * wrong spans silently. Individual anchors that fail to resolve are
+ * dropped (their parallel `An` entries with them).
+ */
+export const reanchorSidecar = (
+  { sidecar, source, parser }: ReanchorSidecarArgs,
+): Sidecar | undefined => {
+  if (sidecar.A.length === 0) return sidecar;
+  if (!isAscii(source)) return undefined;
+
+  let parsed: unknown;
+  try {
+    parsed = parser.parse(sidecar.f, source);
+  } catch {
+    return undefined;
+  }
+  const landmarks = parser.collectLandmarks(parsed);
+
+  const A: AnchorRow[] = [];
+  // `An` is strictly parallel to `A` (or absent altogether) — a dropped
+  // row must drop its producer entry too, and a sidecar without the
+  // optional pool stays without it.
+  const producerIndices = sidecar.An;
+  const An: number[] | undefined = producerIndices === undefined
+    ? undefined
+    : [];
+  sidecar.A.forEach((row, index) => {
+    const [
+      landmarkIndex,
+      pathIndex,
+      generatorIndex,
+      schemaIndex,
+      variantIndex,
+    ] = row;
+    const landmarkName = sidecar.L[landmarkIndex] ?? "";
+    if (landmarkName === "") return;
+    const landmark = landmarks.get(landmarkName);
+    if (landmark === undefined) return;
+    const pathText = sidecar.P[pathIndex] ?? "";
+    const path = pathText === "" ? [] : pathText.split(".").map(Number);
+    const node = parser.descendPath(landmark, path);
+    if (node === undefined) return;
+    const span = parser.spanOf(node);
+    A.push([
+      landmarkIndex,
+      pathIndex,
+      generatorIndex,
+      schemaIndex,
+      variantIndex,
+      span.start,
+      span.end,
+    ]);
+    if (An !== undefined) An.push(producerIndices?.[index] ?? -1);
+  });
+
+  if (A.length === 0) return undefined;
+  return An === undefined ? { ...sidecar, A } : { ...sidecar, A, An };
 };
