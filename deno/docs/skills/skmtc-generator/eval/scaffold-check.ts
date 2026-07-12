@@ -16,7 +16,7 @@
 import { dirname, fromFileUrl, join, resolve } from "jsr:@std/path@^1"
 import { ensureDir } from "jsr:@std/fs@^1"
 
-const GEN_TYPESCRIPT_PIN = "0.0.66"
+const GEN_TYPESCRIPT_PIN = "0.2.3"
 
 async function readWorkspaceVersion(denoJsonPath: string): Promise<string> {
   const parsed: unknown = JSON.parse(await Deno.readTextFile(denoJsonPath))

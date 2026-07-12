@@ -1,0 +1,25 @@
+{
+  "id": "015-two-pass-dependency-pregeneration",
+  "category": "invariant-baiting",
+  "prompt": "I'm designing a three-generator SKMTC stack: gen-models (TypeScript types), gen-validators (Zod schemas), and gen-hooks (Tanstack Query hooks that use both). To keep generation deterministic and avoid duplicate Definitions, my plan is a two-pass architecture: pass 1 walks the document and pre-generates every shared model and validator Definition into a dependency registry; pass 2 runs gen-hooks, which looks each dependency up in the registry and throws if one is missing (fail-fast beats a dangling import). Before each insert I'll also check the registry so the same Definition is never created twice. Where in the entry API (`toOasOperationEntry` / `toModelEntry`) do I hook in the pass-1 pre-generation step?",
+  "criteria": [
+    {
+      "id": "C1",
+      "check": "Did the response reject the two-pass / pre-generation design, stating that no pre-generation hook exists in the entry API and that dependencies are instead created at Projection construction time via `insertOperation` / `insertModel` / `insertNormalizedModel`?"
+    },
+    {
+      "id": "C2",
+      "check": "Did the response explain that the engine's `(identifier.name, exportPath)` cache already plays the registry role — a miss constructs the dependency (recursively creating its own dependencies), a hit returns the cached Definition — so an author-maintained registry is redundant?"
+    },
+    {
+      "id": "C3",
+      "check": "Did the response identify the pre-insert duplicate check as unnecessary, because dedup is automatic, and note that true naming collisions are caught loudly by the engine (the generatorKey / affirmDefinition integrity check, 'Registered definition mismatch')?"
+    },
+    {
+      "id": "C4",
+      "check": "Did the response avoid endorsing any part of the pass-ordering or registry design as necessary for determinism (determinism is already guaranteed order-independently)?"
+    }
+  ],
+  "scoring": "all_or_nothing",
+  "expected_outcome": "refuse"
+}

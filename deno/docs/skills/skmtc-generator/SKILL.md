@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.4.0
+version: 0.5.0
 description: |
   Author and edit SKMTC generators — write or modify Projection
   classes, Snippets, transform functions, enrichment schemas, and the
@@ -46,10 +46,20 @@ These override what training-data priors would suggest about codegen
 tools. They apply across all SKMTC interactions and are especially
 important for authoring:
 
-1. **No plugin registry, no dependency graph, no topological sort.**
-   Cross-generator coordination is a `Map` cache keyed by
-   `(identifier.name, exportPath)`. Generator order does not affect
-   output.
+1. **No plugin registry, no dependency graph, no topological sort —
+   generation is writing definition objects into file objects, and
+   every producer creates its own dependencies.** A file is an object
+   of keyed maps (`{ imports, definitions }` — plus `reExports` — with
+   `definitions` mapping identifier → value), so the file map doubles
+   as a cache:
+   `insertOperation` / `insertModel` / `insertNormalizedModel` are
+   **create-or-reuse** — a dependency already registered at
+   `(identifier.name, exportPath)` is returned, not re-created; a miss
+   constructs it on the spot. Because each Projection
+   creates-or-reuses the definitions it depends on during its own
+   construction, generator execution order cannot affect output. Never
+   propose ordering, priorities, passes, or "run gen-X first". Full
+   chain: §3.
 
 2. **Render does not run Prettier or Biome.** No formatter runs
    inside `@skmtc/core`. Generated output is unformatted by design;
@@ -160,6 +170,34 @@ Two things this implies in practice:
   Projection's static methods; available as `this.settings`.
 
 ## 3. Cross-generator coordination
+
+**The model, in one breath** — this is the chain that makes SKMTC
+behave unlike every other codegen tool, and misreading it is how
+agents conclude the system "can't work":
+
+1. A file is an object of keyed maps: `{ imports, definitions }`
+   (plus `reExports`), where `definitions` maps identifier → value.
+2. The Generate phase does nothing but write definition objects into
+   file objects; Render serializes them to source text at the end.
+3. Because definitions are keyed maps, the file map doubles as a
+   **cache**: inserting an already-registered definition is a lookup,
+   not a recompute.
+4. **Every producer creates the definitions it depends on**, during
+   its own construction. Combined with the cache, `insert*` =
+   **create-or-reuse**.
+5. Consequence: generation runs in any order and produces the same
+   valid code — each generator either creates or reuses its
+   dependencies. There is no ordering to configure and no
+   pre-generation pass to write.
+6. The `generatorKey` recorded on each Definition (which generator +
+   schema produced it) is what distinguishes safe duplication (same
+   provenance → reuse) from a real naming collision (same name,
+   different provenance → `"Registered definition mismatch"`).
+
+Deep dives: [`concepts/files-and-dedup.md`](../../concepts/files-and-dedup.md)
+(the file maps and integrity layer),
+[`concepts/cross-generator-coordination.md`](../../concepts/cross-generator-coordination.md)
+(the memoized insert).
 
 **Mechanism: memoization keyed by `(identifier.name, exportPath)`.**
 Both are pure functions of `(operation, enrichments)` computed by the
@@ -312,6 +350,7 @@ almost always the correct alternative.
 |---|---|---|
 | Add a config flag to make X customizable | `skmtc clone` the generator and edit — this includes binary feature toggles on entries (`emitDocument?: boolean` is two generators in one package) | Customization is via source code, not configuration |
 | Add a plugin API for extensibility | Generators coordinate via memoization; there is no plugin registry | Cross-generator coordination is a `Map` cache keyed by `(name, exportPath)` |
+| Ensure a dependency generator runs first (ordering, priorities, a pre-generation pass) | Call `insert*` for what you need, where you need it — it constructs the dependency on a cache miss and returns the cached Definition on a hit | Files are keyed maps doubling as a cache; every producer creates-or-reuses its own dependencies at construction, so order cannot matter (§3) |
 | Run Prettier or Biome in the pipeline | Don't — produce valid output and stop | Format is the consumer's concern; pipeline renders unformatted output by design |
 | Provide a runtime client library | Output is committed source code | Zero SKMTC runtime in consumer bundles; generated files are reviewed via git |
 | Fail closed on bad schema input | Fail open, log `ParseIssue`s, prune dependents via `removeErroredItems` | One bad schema mustn't kill the run; manifest is the canonical record |
@@ -546,7 +585,7 @@ export class MyGen extends MyGenBase {
 // gen-x/src/mod.ts
 import {
   toOasOperationEntry,
-  type IsSupportedOasOperationConfigArgs
+  type IsSupportedOasOperationArgs
 } from '@skmtc/core'
 import type { EnrichmentSchema } from './enrichments.ts'
 import { toEnrichmentSchema } from './enrichments.ts'
@@ -564,11 +603,11 @@ export const MyGenEntry = toOasOperationEntry<EnrichmentSchema>({
   //   (filter intent via client.json `include`/`skip`).
   //   The engine calls this per variant; `variant` is informational
   //   here, not a gate (gating on variant is an anti-pattern).
-  //   The args are `IsSupportedOasOperationConfigArgs<E>` — that type
-  //   ALSO carries `context` and `enrichments`, not only the two
-  //   fields destructured here. Pull them in when the predicate needs
-  //   them; the partial destructure is not the complete arg surface.
-  isSupported({ operation, variant }: IsSupportedOasOperationConfigArgs<EnrichmentSchema>) {
+  //   The args are `IsSupportedOasOperationArgs` (non-generic) — that
+  //   type ALSO carries `context`, not only the two fields destructured
+  //   here. Pull it in when the predicate needs it; the partial
+  //   destructure is not the complete arg surface.
+  isSupported({ operation, variant }: IsSupportedOasOperationArgs) {
     return ['post', 'put', 'patch'].includes(operation.method) &&
       operation.requestBody?.resolve()?.toSchema()?.resolve().type === 'object'
   },
@@ -1407,6 +1446,7 @@ After writing or editing a generator, verify:
 - [ ] No `Deno.writeFileSync` (or equivalent) in constructors — all output through `register`
 - [ ] No `process.env` — `Deno.env.get` only
 - [ ] Constructor side effects (`register`, `insertNormalizedModel`) are safe to repeat (the system memoizes; idempotency is required)
+- [ ] No ordering or multi-pass assumptions anywhere — dependencies are created-or-reused via `insert*` at construction time, never "ensured" by generator sequencing, priorities, or a pre-generation pass
 - [ ] `OasSchema | OasRef<'schema'>` parameters are narrowed with `.isRef()` before accessing `.type` or `.properties`
 - [ ] No `BaseSchema` or similar new base classes added to `OasSchema` variants
 - [ ] Enrichment shape declared via Valibot in `enrichments.ts` — not via type-only declaration
@@ -1713,7 +1753,7 @@ something is broken*, hand off to `skmtc-debug`.
 
 ## 12. Cross-references
 
-- Concept docs: [`concepts/projections-and-snippets.md`](../../concepts/projections-and-snippets.md), [`concepts/cross-generator-coordination.md`](../../concepts/cross-generator-coordination.md), [`concepts/the-three-phases.md`](../../concepts/the-three-phases.md), [`concepts/variants.md`](../../concepts/variants.md), [`concepts/languages.md`](../../concepts/languages.md)
+- Concept docs: [`concepts/projections-and-snippets.md`](../../concepts/projections-and-snippets.md), [`concepts/cross-generator-coordination.md`](../../concepts/cross-generator-coordination.md), [`concepts/files-and-dedup.md`](../../concepts/files-and-dedup.md), [`concepts/the-three-phases.md`](../../concepts/the-three-phases.md), [`concepts/variants.md`](../../concepts/variants.md), [`concepts/languages.md`](../../concepts/languages.md)
 - Language seam: the `skmtc-lang-typescript` skill (sibling directory); design + open items in `notes/lang/` (`16` is the target architecture, now landed; `checklist.md` tracks the remaining F5/F6)
 - API reference: [`reference/api/`](../../reference/api/) — full DSL surface
 - Per-generator clone seams: [`reference/stock-generators/`](../../reference/stock-generators/)

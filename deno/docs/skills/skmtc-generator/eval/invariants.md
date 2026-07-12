@@ -130,3 +130,14 @@ Snippet `register({ imports, destinationPath })` requires `destinationPath` (sni
 ## 14. `transform` returns `void`
 
 All three entry factories type `transform` as `({ context, operation|refName, variant }) => void`, uniformly across OAS, GQL, and model entries. Output is produced only via side effects — `register` / `insertOperation` / `insertModel` / `insertNormalizedModel`; a value returned from `transform` is ignored.
+
+## 15. Generation is create-or-reuse: files are keyed maps, producers create their own dependencies
+
+A file is an object of keyed maps — `{ imports, definitions }` (plus `reExports`), with `definitions` mapping identifier → value. The Generate phase does nothing but write definition objects into file objects; Render serializes them. Because the maps are keyed, the file map doubles as a cache, and the whole coordination model follows:
+
+- `insertOperation` / `insertModel` / `insertNormalizedModel` are **create-or-reuse**: a cache hit at `(identifier.name, exportPath)` returns the existing Definition; a miss constructs the dependency's Projection — which recursively creates-or-reuses ITS dependencies — and registers it.
+- **Every producer creates the definitions it depends on during its own construction.** There is no execution ordering, no priorities, no multi-pass design, and no "ensure gen-X runs first" — none of these mechanisms exist, and proposing one (including workarounds like reordering the generators list or splitting generation into two runs) is incorrect.
+- No author-maintained registry or pre-generation step is ever needed; the engine's cache IS the registry. Defensive duplicate-checking before an insert is also incorrect — dedup is automatic.
+- The `generatorKey` recorded on each Definition (which generator + schema produced it) is what distinguishes safe duplication (same provenance → the cached Definition is reused) from a real naming collision (same name, different provenance → `affirmDefinition` throws `"Registered definition mismatch"`).
+
+A response that treats SKMTC generation as an ordered pipeline of template passes — sequencing generators, pre-generating shared dependencies in a first pass, or hand-managing a dependency registry — has imported the wrong mental model and is incorrect regardless of how carefully it is engineered.
