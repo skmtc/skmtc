@@ -37,7 +37,7 @@ manifest is what lands at
 ## Top-level shape
 
 ```ts
-// core/types/Manifest.ts:147-165
+// core/types/Manifest.ts
 type ManifestContent = {
   deploymentId: string         // identifies the run
   traceId: string              // OpenTelemetry-shaped correlation key
@@ -120,7 +120,7 @@ Each leaf is one of five `ResultType` values:
 
 `GenerateContext.toArtifacts` calls `captureCurrentResult(result,
 stackTrail)` at four points in each per-item iteration (see
-`GenerateContext.ts:390-431`):
+`GenerateContext.ts`):
 
 - On `isSupported` returning false → `'notSupported'`
 - On `include` filter rejecting → `'skipped'`
@@ -294,7 +294,7 @@ iteration. But `ResultsHandler` may capture intermediate
 `warning` / `error` results if the generator logged via the
 logger during its run. The two land at different positions in the
 tree (the intermediate ones get a `'SKIPPED'` placeholder trail —
-see `ResultsHandler.ts:116`).
+see `ResultsHandler.ts`).
 
 ### What if a generator produces no output but doesn't throw?
 

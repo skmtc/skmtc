@@ -50,7 +50,7 @@ every noun and verb is greppable.
 ### `affirmDefinition`
 
 The Driver-side integrity check that runs on every cache hit
-(`core/dsl/model/ModelDriver.ts:124-144`). Confirms the cached
+(`core/dsl/model/ModelDriver.ts`). Confirms the cached
 `Definition`'s `generatorKey` matches the caller's current key and
 the cached value is an instance of the caller's Projection class.
 Mismatch throws "Registered definition mismatch". See

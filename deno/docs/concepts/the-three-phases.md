@@ -235,7 +235,7 @@ an in-memory map of files-to-render.
 
 ### The outer loop
 
-`GenerateContext.toArtifacts` (`core/context/GenerateContext.ts:275`) iterates
+`GenerateContext.toArtifacts` (`core/context/GenerateContext.ts`) iterates
 the configured generators. For each generator, it applies filter checks, then
 dispatches by generator type:
 
@@ -341,7 +341,7 @@ payload.
 
 ### Mechanism
 
-`RenderContext.collate` (`core/context/RenderContext.ts:185`) iterates the files
+`RenderContext.collate` (`core/context/RenderContext.ts`) iterates the files
 map and calls `file.toString()` on each:
 
 ```ts
@@ -358,7 +358,7 @@ const fileObjects: FileObject[] = fileEntries.map(([destinationPath, file]) => {
 
 Rendering a code file is language-specific: core declares the abstract
 `FileBase`, and the language's file class owns `toString()`.
-`TsFile.toString()` (`lang-typescript/src/TsFile.ts:142-179`) joins three
+`TsFile.toString()` (`lang-typescript/src/TsFile.ts`) joins three
 sections:
 
 ```ts
@@ -470,7 +470,7 @@ host-side, but GraphQL parsing happens worker-side. See
 
 **What happens if I throw in a generator's `transform`?**
 
-`#runOasOperationGenerator` (`core/context/GenerateContext.ts:417-432`) catches
+`#runOasOperationGenerator` (`core/context/GenerateContext.ts`) catches
 it, logs an error, and marks the operation as `'error'` in the manifest. The
 rest of the run continues. Errors are scoped to one (generator × operation)
 pair.

@@ -49,7 +49,7 @@ merge.
 ## File shape
 
 ```ts
-// lang-typescript/src/TsFile.ts:28-52
+// lang-typescript/src/TsFile.ts
 class TsFile extends CodeFileBase {
   packages: ModulePackage[] | undefined
   definitions: Map<string, TsDefinition> = new Map()
@@ -66,7 +66,7 @@ class TsFile extends CodeFileBase {
 
 The three maps render in fixed order at file serialization time:
 re-exports → imports → definitions
-(`lang-typescript/src/TsFile.ts:142-179`). Empty sections drop
+(`lang-typescript/src/TsFile.ts`). Empty sections drop
 out; non-empty sections are joined with double newlines.
 
 Core never names `TsFile`: the neutral `CodeFileBase` declares
@@ -87,11 +87,11 @@ There are two `register` surfaces, one per layer:
   **creates the destination `TsFile` on first write**, and hands
   pure data down to the neutral layer.
 - **The neutral form** — `context.register`
-  (`core/context/GenerateContext.ts:1133`) takes pure-data arrays
+  (`core/context/GenerateContext.ts`) takes pure-data arrays
   (`imports: ImportBase[]`, `reExports: ReExportBase[]`,
   `definitions`, plus `destinationPath`) and **never creates
   files** — it throws if the destination file does not exist
-  (`GenerateContext.ts:1143-1146`), because file creation belongs
+  (`GenerateContext.ts`), because file creation belongs
   to a layer that knows the language. It then delegates the
   merging to the file's own `addImports` / `addReExports` /
   `addDefinition`.
@@ -101,7 +101,7 @@ There are two `register` surfaces, one per layer:
 ### Imports — per-module merge collapses repeated registrations
 
 ```ts
-// lang-typescript/src/TsFile.ts:79-86
+// lang-typescript/src/TsFile.ts
 override addImports(incoming: TsImport[]): void {
   for (const importEntry of incoming) {
     const key = importEntry.mergeKey()
@@ -124,7 +124,7 @@ module + same name = one final import.
 ### reExports — keyed by module, merged, split by entity type at render
 
 ```ts
-// lang-typescript/src/TsFile.ts:92-99
+// lang-typescript/src/TsFile.ts
 override addReExports(incoming: TsReExport[]): void {
   for (const reExportEntry of incoming) {
     const key = reExportEntry.mergeKey()
@@ -152,7 +152,7 @@ re-exports of the same name in the same group dedup on merge.
 ### Definitions — `Map.has` gates writes (first-write-wins)
 
 ```ts
-// lang-typescript/src/TsFile.ts:66-72
+// lang-typescript/src/TsFile.ts
 override addDefinition(definition: TsDefinition): void {
   const key = definition.identifier.declarationKey()
 
@@ -197,7 +197,7 @@ Whenever a Driver hits the definition cache (rather than missing
 and constructing fresh), it runs `affirmDefinition`:
 
 ```ts
-// core/dsl/model/ModelDriver.ts:168-189
+// core/dsl/model/ModelDriver.ts
 private affirmDefinition<V extends GeneratedValue>(
   definition: DefinitionBase | undefined,
   exportPath: string
@@ -375,7 +375,7 @@ class JsonFile extends FileBase {
 
 Only one map (`content`), no dedup story — it's just a JSON
 serialization wrapper. `context.registerJson({ destinationPath,
-json })` (`core/context/GenerateContext.ts:1077`) writes to a
+json })` (`core/context/GenerateContext.ts`) writes to a
 `JsonFile`'s `content`. Used for `package.json`, manifests, route
 configs, etc.
 

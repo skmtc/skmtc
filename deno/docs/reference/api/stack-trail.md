@@ -147,7 +147,7 @@ fully independent.
 Two production call sites use `clone` outside of `trace`:
 
 - `registerRef` storage: `context.registerRef(stackTrail.clone(), $ref)`
-  (`core/oas/ref/toRefV31.ts:26`). Without the clone, the stored
+  (`core/oas/ref/toRefV31.ts`). Without the clone, the stored
   consumer trail would mutate as the walker returned.
 - Test fixtures and the rare parser that needs to snapshot a trail
   for deferred logging.
@@ -244,7 +244,7 @@ containing `%3A` literals.
 ### Snapshotting for deferred use
 
 ```ts
-// core/oas/ref/toRefV31.ts:26
+// core/oas/ref/toRefV31.ts
 context.registerRef(stackTrail.clone(), $ref)
 ```
 
@@ -283,7 +283,7 @@ the parent's location instead of the failing item's.
 
 `OasDocument.removeItem(stackTrail)` reads only the first three
 frames of the trail
-(`core/oas/document/Document.ts:190-219`):
+(`core/oas/document/Document.ts`):
 
 - `['paths', '<path>', '<method>', ...]` → removes the operation
   matching `(path, method)`; deeper frames are discarded.

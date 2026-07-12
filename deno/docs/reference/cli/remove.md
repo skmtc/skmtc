@@ -109,7 +109,7 @@ generator's source to drop the import.
 ```
 
 The shape matches `RemoveHeadlessResult` in
-`cli/lib/remove-headless.ts:15-18`:
+`cli/lib/remove-headless.ts`:
 
 ```ts
 export type RemoveHeadlessResult = {

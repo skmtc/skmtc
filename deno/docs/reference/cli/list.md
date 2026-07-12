@@ -64,7 +64,7 @@ read-only.
 - **`projectName`** — echoed from the argument.
 - **`generators`** — a flat string array of import keys (every key
   under `deno.json#imports`). The shape matches `ListHeadlessResult`
-  in `cli/lib/list-headless.ts:20-23`:
+  in `cli/lib/list-headless.ts`:
 
   ```ts
   export type ListHeadlessResult = {

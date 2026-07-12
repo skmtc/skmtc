@@ -61,7 +61,7 @@ For each generator argument, the CLI:
 
 Install does **not** modify `client.json`. The generator's
 `install({ denoJson })` method
-(`cli/lib/generator.ts:96–98`) is a single call —
+(`cli/lib/generator.ts–98`) is a single call —
 `denoJson.addImport(moduleName, fullName)` — and touches the
 project's `deno.json` only. Enrichments are user-added on demand:
 read the generator's `src/enrichments.ts` Valibot schema to learn

@@ -75,7 +75,7 @@ TypeScript's entity vocabulary, and adds the `register` /
 You hand this object to the veneer (e.g.
 `toTsOasOperationProjectionBase(config)`). Required vs optional
 matches the source type (`OasOperationProjectionBaseConfig`,
-`toOasOperationProjectionBase.ts:40–76`):
+`toOasOperationProjectionBase.ts–76`):
 
 ```ts
 {
@@ -124,8 +124,8 @@ and exposes it as a class static (see below).
 ### Class statics produced by the factory
 
 The factory returns a class with the following statics
-(`toOasOperationProjectionBase.ts:110–151`,
-`toModelProjectionBase.ts:124–154`):
+(`toOasOperationProjectionBase.ts–151`,
+`toModelProjectionBase.ts–154`):
 
 | Static | Source |
 |---|---|
@@ -206,7 +206,7 @@ context methods directly.
 Core's factories deliberately define **no** `register` — register
 ergonomics are typed by each language's concise vocabulary, which
 core can't name. The override lives in the language package's
-projection-base veneer (`toTsModelProjectionBase.ts:38–49` and
+projection-base veneer (`toTsModelProjectionBase.ts–49` and
 siblings), which adds two methods:
 
 ```ts
@@ -217,14 +217,14 @@ register(args: TsRegisterArgs): void
 registerInto(destinationPath: string, args: TsRegisterArgs): void
 ```
 
-`TsRegisterArgs` (`lang-typescript/src/register.ts:23`) has
+`TsRegisterArgs` (`lang-typescript/src/register.ts`) has
 `imports?`, `reExports?`, `definitions?`, `custom?` — and *no*
 `destinationPath`. Both methods delegate to the lang package's
 `register` *function*, which converts the concise import form into
 `TsImport` objects, creates the destination `TsFile` on first write,
 and hands pure data to the neutral `context.register` — whose
 argument type is `ContextRegisterArgs`
-(`core/context/generateTypes.ts:308`): standardized `ImportBase[]` /
+(`core/context/generateTypes.ts`): standardized `ImportBase[]` /
 `ReExportBase[]` / `DefinitionBase[]` plus a required
 `destinationPath: string`.
 
@@ -382,7 +382,7 @@ See [cross-generator-coordination concept](../../concepts/cross-generator-coordi
 ## Instance construction
 
 The Projection's constructor signature varies by base
-(`dsl/operation/oas/types.ts:14`, `toModelProjectionBase.ts:34`):
+(`dsl/operation/oas/types.ts`, `toModelProjectionBase.ts`):
 
 ```ts
 // Operation projection

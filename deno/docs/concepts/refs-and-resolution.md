@@ -109,7 +109,7 @@ progresses** — when `User` finishes parsing, it's added to
 calls `someRef.resolve()`, the document is fully populated.
 
 ```ts
-// core/parse/v3-{0,1}/ref/toRefV31.ts:33-37
+// core/parse/v3-{0,1}/ref/toRefV31.ts
 context.registerRef(stackTrail.clone(), $ref)
 
 return context.withStackTrail(stackTrail, () =>
@@ -203,7 +203,7 @@ error.
 What about `A → B → A → B → ...` cycles?
 
 ```ts
-// core/oas/ref/Ref.ts:16
+// core/oas/ref/Ref.ts
 const MAX_LOOKUPS = 10
 ```
 

@@ -105,7 +105,7 @@ for the parallel design on the parsed-schema side.
 
 Every model generator must expose a static `schemaToValueFn` on
 its Projection class. The signature
-(`core/types/TypeSystem.ts:607`):
+(`core/types/TypeSystem.ts`):
 
 ```ts
 export type SchemaToValueFn = <Schema extends SchemaType>(
@@ -140,7 +140,7 @@ generator that doesn't handle it.
 ## A complete `schemaToValueFn` example
 
 `gen-typescript`'s implementation
-(`skmtc-generators/gen-typescript/src/Ts.ts:16-82`):
+(`skmtc-generators/gen-typescript/src/Ts.ts`):
 
 ```ts
 export const toTsValue: SchemaToValueFn = ({
@@ -171,7 +171,7 @@ export const toTsValue: SchemaToValueFn = ({
 Then `TsProjection` exposes it as the static hook:
 
 ```ts
-// skmtc-generators/gen-typescript/src/TsProjection.ts:30-32
+// skmtc-generators/gen-typescript/src/TsProjection.ts
 static schemaToValueFn = (...args: Parameters<typeof toTsValue>) => {
   return toTsValue(...args)
 }
@@ -296,7 +296,7 @@ needs the model generator's representation of an *inline* schema
 The engine then calls the projection's `schemaToValueFn`:
 
 ```ts
-// core/context/GenerateContext.ts:782-787
+// core/context/GenerateContext.ts
 const value = projection.schemaToValueFn({
   context: this,
   schema,
@@ -414,7 +414,7 @@ breaks the cycle with a per-`(generatorId, refName)` counter on
 `GenerateContext`:
 
 ```ts
-// core/context/GenerateContext.ts:279
+// core/context/GenerateContext.ts
 modelDepth: Record<string, number>
 ```
 
@@ -428,7 +428,7 @@ Projection's constructor asks for its schema:
        ▼
 2.  new ModelDriver({ projection: ZodProjection, refName: 'User', ... })
        │
-       ├─ ModelDriver.ts:79  →  modelDepth['@skmtc/gen-zod:User'] = 0
+       ├─ ModelDriver.ts  →  modelDepth['@skmtc/gen-zod:User'] = 0
        │
        │   (cache miss path)
        ▼
@@ -437,7 +437,7 @@ Projection's constructor asks for its schema:
        ▼
 4.  context.resolveSchemaRefOnce('User', '@skmtc/gen-zod')
        │
-       │   GenerateContext.ts:1467  →  modelDepth['@skmtc/gen-zod:User']++
+       │   GenerateContext.ts  →  modelDepth['@skmtc/gen-zod:User']++
        │                                                          (now 1)
        ▼
 5.  toZodValue({ schema, ... })   ← walks the User schema
@@ -446,7 +446,7 @@ Projection's constructor asks for its schema:
        ▼
 6.  new ZodRef({ refName, ... })
        │
-       │   ZodRef.ts:27  →  is modelDepth['@skmtc/gen-zod:<refName>'] > 0?
+       │   ZodRef.ts  →  is modelDepth['@skmtc/gen-zod:<refName>'] > 0?
        │
        ├─ refName === 'User'      → YES (was set to 1 in step 4)
        │                            ├─ skip recursion (no new ModelDriver)
@@ -461,7 +461,7 @@ Projection's constructor asks for its schema:
 7.  ZodProjection constructor returns
        │
        ▼
-8.  ModelDriver.ts:93  →  modelDepth['@skmtc/gen-zod:User'] = 0  (cleanup)
+8.  ModelDriver.ts  →  modelDepth['@skmtc/gen-zod:User'] = 0  (cleanup)
 ```
 
 The depth counter is, in practice, **binary** — always 0 or 1.
@@ -475,7 +475,7 @@ design uses it as a presence flag.
 `ZodRef.toString()` wraps the terminal branch in `z.lazy`:
 
 ```ts
-// skmtc-generators/gen-zod/src/ZodRef.ts:56-59
+// skmtc-generators/gen-zod/src/ZodRef.ts
 override toString(): string {
   const out = applyModifiers(this.name, this.modifiers)
   return this.terminal ? `z.lazy(() => ${out})` : out
@@ -490,7 +490,7 @@ defers the lookup until the schema is actually used.
 `TsRef.toString()` does *not* wrap:
 
 ```ts
-// skmtc-generators/gen-typescript/src/TsRef.ts:50-52
+// skmtc-generators/gen-typescript/src/TsRef.ts
 override toString(): string {
   return applyModifiers(this.name, this.modifiers)
 }
@@ -541,8 +541,8 @@ arrays-of-self type evaluation, in extreme cases).
 
 ### Why `ModelDriver` does the bracketing, not the Projection
 
-The two `modelDepth = 0` assignments in `ModelDriver.ts:79` and
-`ModelDriver.ts:93` bracket the entire Projection-construction
+The two `modelDepth = 0` assignments in `ModelDriver.ts` and
+`ModelDriver.ts` bracket the entire Projection-construction
 window. They run regardless of whether the inner Projection
 constructor throws.
 
@@ -606,7 +606,7 @@ nowhere until every generator opts in.
 ### What about `gen-msw`, `gen-shadcn-form`, and other operation generators — do they have `schemaToValueFn`?
 
 No. `schemaToValueFn` is a contract on `ModelProjection` only
-(`core/dsl/model/types.ts:81`). Operation generators
+(`core/dsl/model/types.ts`). Operation generators
 (`OasOperationProjectionBase`, `GqlOperationProjectionBase`) don't
 have it because operations aren't schema variants — they're path-
 and-method-keyed entities. Operation generators that need to
