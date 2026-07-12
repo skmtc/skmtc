@@ -99,6 +99,8 @@ CLI:    ◀──────── Persist files ◀┘
 - **Generate:** walk generators; memoized Drivers coordinate cross-generator dependencies.
 - **Render:** serialize to `{ path: content }` strings. (No Prettier — consumers format their own output.)
 
+This is not the codegen you know: a file is a keyed map of definitions, not a text buffer, and every generator either creates or reuses its dependencies — which is why generation order can't affect output. See [`concepts/definitions-and-files.md`](concepts/definitions-and-files.md) for the mechanism in one page.
+
 Generators are TypeScript classes you `install` from JSR or `clone` into your project for editing. See [`concepts/the-three-phases.md`](concepts/the-three-phases.md).
 
 ---

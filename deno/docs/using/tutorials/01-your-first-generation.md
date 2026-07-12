@@ -104,10 +104,12 @@ const validated = pet.parse(someApiResponse)
 The CLI ran the engine, which executed the [three phases](../../concepts/the-three-phases.md):
 
 1. **Parse:** the OpenAPI document was normalized to OAS 3.0 and
-   converted to typed `OasDocument`/`OasSchema` instances.
-2. **Generate:** `gen-zod`'s entry function iterated every schema
-   component and called `insertModel(ZodProjection, refName)` for
-   each, populating the file map.
+   converted to a typed object model.
+2. **Generate:** `gen-zod` produced one definition per schema
+   component and wrote each into an in-memory file map. (How that
+   map works — and why it lets generators share output — is
+   [Definitions and files](../../concepts/definitions-and-files.md);
+   you'll see it pay off in tutorial 02.)
 3. **Render:** the file map was serialized to `{ path: content }`
    artifacts and written to disk.
 

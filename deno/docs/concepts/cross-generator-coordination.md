@@ -5,6 +5,10 @@
 > hits guaranteed to produce the same Definition that a fresh
 > construction would.
 
+New to the mechanism? Start with
+[Definitions and files](definitions-and-files.md) — the one-page
+create-or-reuse model this page deepens.
+
 Cross-generator coordination in SKMTC is **memoization keyed by
 `(identifier.name, exportPath)`**, where both halves of the key are
 pure functions of the input. Same inputs → same key → same cached
