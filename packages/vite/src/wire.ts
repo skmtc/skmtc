@@ -13,11 +13,11 @@
 //     malformed value (never fail the whole outcome parse);
 //   - tuples tolerate extra items (valibot semantics, kept deliberately) —
 //     a future plugin appending metadata must not break older desktops;
-//   - the outcome union is STRICT: `v.variant` rejects an unknown `type`, so
-//     ADDING a MatchOutcome variant is a BREAKING change for older desktops.
+//   - the outcome union is STRICT: `v.variant` rejects an unknown `type`.
 //     Deliberate asymmetry — an unknown verdict is not safely ignorable the
-//     way extra tuple items are; ship new variants behind a major/minor bump
-//     with the desktop updated first.
+//     way extra tuple items are. (No installed desktop base yet, so adding a
+//     variant costs nothing today; this note is the design fact, not a
+//     compat procedure.)
 
 import * as v from 'valibot'
 
