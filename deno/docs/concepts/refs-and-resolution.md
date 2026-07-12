@@ -225,7 +225,7 @@ Two maps live on `ParseContext`:
   `.clone()` is essential: trails are mutable, and an
   un-cloned trail would mutate as the walk returned through parent
   frames. See
-  [the-stack-trail.md](the-stack-trail.md#the-clone-on-store-rule)
+  [the StackTrail reference](../reference/api/stack-trail.md)
   for the full clone-on-store discussion.
 
 - **`#refErrors: Map<refKey, unknown[]>`** — when a parse error
@@ -238,7 +238,7 @@ namespace (the `$ref` string) reached from two directions: ref
 encounters populate `#refConsumers` from the literal `$ref` in the
 document; error registration populates `#refErrors` from the
 *current trail* converted via `StackTrail.toStackRef()`. See
-[the-stack-trail.md](the-stack-trail.md#tostackref-the-address-bridge)
+[the StackTrail reference](../reference/api/stack-trail.md)
 for that address-bridging step.
 
 ## Cascade pruning
@@ -340,7 +340,7 @@ but Render doesn't touch it.
 
 - [The three phases](the-three-phases.md) — where refs are constructed and resolved
 - [Error handling philosophy](error-handling-philosophy.md) — the cascade-pruning model
-- [The StackTrail](the-stack-trail.md) — the position-stack that addresses ref consumers and bridges to `$ref` strings
+- [StackTrail reference](../reference/api/stack-trail.md) — the position-stack that addresses ref consumers and bridges to `$ref` strings
 - [The type system](the-type-system.md) — how a model generator's `schemaToValueFn` handles `OasRef<'schema'>` alongside the schema variants
 - [API reference: oas-ref](../reference/api/oas-ref.md) — full method signatures
 - [API reference: oas-schema-variants](../reference/api/oas-schema-variants.md) — the schema union

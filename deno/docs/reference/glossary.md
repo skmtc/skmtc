@@ -523,7 +523,7 @@ values. Exit code 2.
 `ParseContext.#refConsumers: Map<refKey, StackTrail[]>` — every
 `$ref` encounter is recorded here. Used during cascade pruning to
 identify which items reference a failed schema. The stored trails
-are clones; see [the-stack-trail §clone-on-store](../concepts/the-stack-trail.md#the-clone-on-store-rule).
+are clones; see [the StackTrail reference](api/stack-trail.md).
 
 ### refErrors
 
@@ -531,7 +531,7 @@ are clones; see [the-stack-trail §clone-on-store](../concepts/the-stack-trail.m
 the `$ref` they invalidated. Used during cascade pruning.
 Populated automatically from `stackTrail.toStackRef()` when an
 error is logged at a component position. See
-[the-stack-trail §toStackRef](../concepts/the-stack-trail.md#tostackref-the-address-bridge).
+[the StackTrail reference](api/stack-trail.md).
 
 ### `register`
 
@@ -661,7 +661,7 @@ colons in a segment are URL-encoded as `%3A`. Three responsibilities:
 *locate* (every `ParseIssue.location` is a trail's `toString`),
 *address* (consumer trails feed cascade pruning), *bridge*
 (`toStackRef` converts component-position trails to `$ref`
-strings). See [the-stack-trail](../concepts/the-stack-trail.md).
+strings). See [the StackTrail reference](api/stack-trail.md).
 
 ### Stringable
 
