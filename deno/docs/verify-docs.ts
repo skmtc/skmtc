@@ -33,8 +33,8 @@
  *      reference/cli/<command>.md page; every reference/cli page and
  *      every row of the skill's command table names a command that is
  *      still registered.
- *   7. PARSE-ISSUE SYNC — every member of the OasIssueType and
- *      GqlIssueType unions has a `### \`CODE\`` entry in
+ *   7. PARSE-ISSUE SYNC — every member of the OasIssueType,
+ *      GqlIssueType, and EnrichmentWarningType unions has a `### \`CODE\`` entry in
  *      reference/error-codes.md, every documented code is still in a
  *      union, and every issue level the source emits is documented.
  *   8. CLIENT-SETTINGS SYNC — every key of the clientSettings and
@@ -564,6 +564,10 @@ const oasIssueMembers = parseUnionMembers(
   await Deno.readTextFile(join(denoDir, 'core', 'context', 'generateTypes.ts')),
   'OasIssueType'
 )
+const enrichmentWarningMembers = parseUnionMembers(
+  await Deno.readTextFile(join(denoDir, 'core', 'enrichments', 'EnrichmentWarning.ts')),
+  'EnrichmentWarningType'
+)
 const parseIssueText = await Deno.readTextFile(join(denoDir, 'core', 'context', 'ParseIssue.ts'))
 const gqlIssueMembers = parseUnionMembers(parseIssueText, 'GqlIssueType')
 
@@ -576,7 +580,7 @@ if (oasIssueMembers.length === 0 || gqlIssueMembers.length === 0) {
   )
 } else {
   let issueSyncFailures = 0
-  const unionMembers = new Set([...oasIssueMembers, ...gqlIssueMembers])
+  const unionMembers = new Set([...oasIssueMembers, ...gqlIssueMembers, ...enrichmentWarningMembers])
 
   for (const code of unionMembers) {
     if (!errorCodesText.includes(`### \`${code}\``)) {

@@ -95,9 +95,10 @@ for all three routing shapes.
 
 Two validation behaviors worth knowing before you edit: a
 wrongly-typed value (a number where `title` expects a string) fails
-the run with a validation error naming the path — but an unknown key
-is silently ignored. If a customization doesn't land, check the key
-spelling and the routing path first.
+that operation's generation — the run completes, and the manifest
+records the error with the path. A misspelled key can't fail
+anything (the schema ignores unknown keys), so the engine warns
+about it instead — step 5 shows that warning in action.
 
 ## Step 3: Regenerate
 
@@ -120,6 +121,26 @@ The form's `<h2>` text is now "Add a new pet", the submit button
 reads "Add to inventory", and the `name` field's label is "Pet
 name". Other operations use the form generator's defaults
 (derived from the OAS path and verb).
+
+## Step 5: Typo a key on purpose
+
+Misspell one override and watch the engine catch it. In
+`client.json`, change `"submitLabel"` to `"submitLabl"` and
+regenerate:
+
+```bash
+skmtc generate petstore --json > out.json
+jq '.manifest.enrichmentWarnings' out.json
+```
+
+The run completes (warnings never affect output), and the manifest
+names the problem — an `UNKNOWN_ENRICHMENT_KEY` warning carrying the
+full routing path and a suggestion (`submitLabl` → did you mean
+`submitLabel`?). The same block prints as "Enrichment warnings" in
+the normal command output. Typos in the routing keys (a wrong path or
+method) surface the same way, as `UNCONSUMED_ENRICHMENT`.
+
+Fix the key back and regenerate before moving on.
 
 ## What just happened
 

@@ -110,6 +110,10 @@ either:
 
 ## Troubleshooting
 
+- **A customization silently doesn't land** — check
+  `manifest.enrichmentWarnings` (`jq '.manifest.enrichmentWarnings'`):
+  typo'd keys and routing paths warn there, with suggestions.
+
 - **Enrichments silently ignored** — Most likely a key-path typo.
   Run `skmtc agent-context --json | jq '.projects[] |
   .settings.enrichmentsConfigured'` to confirm `client.json`
