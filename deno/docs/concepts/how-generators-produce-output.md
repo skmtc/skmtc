@@ -7,9 +7,9 @@
 > class does not, by itself, cause it to run). Output is produced by
 > side-effect through `context.register` and `context.insert*`.
 
-New to the mechanism? Start with
-[Definitions and files](definitions-and-files.md) — the one-page
-create-or-reuse model; this page covers the producer side of it.
+The whole mechanism in one page:
+[Definitions and files](definitions-and-files.md). This page deepens
+its producer side.
 
 If you have written generators for other tools (orval,
 openapi-generator, kubb, graphql-codegen) you probably expect the

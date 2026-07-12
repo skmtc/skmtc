@@ -20,10 +20,9 @@ generator both contribute to a form's file; a form file imports a
 model file's type). The file class is what keeps these concurrent
 writers consistent.
 
-New to the mechanism? Start with
-[Definitions and files](definitions-and-files.md) — the one-page
-create-or-reuse model; this page is its file-and-integrity deep
-dive.
+The whole mechanism in one page:
+[Definitions and files](definitions-and-files.md). This page deepens
+its file-and-integrity side.
 
 This page covers the `TsFile` shape, how each map dedups, the
 `JsonFile` sibling, and the integrity check on top of definitions

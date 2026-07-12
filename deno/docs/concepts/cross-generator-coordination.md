@@ -5,9 +5,9 @@
 > hits guaranteed to produce the same Definition that a fresh
 > construction would.
 
-New to the mechanism? Start with
-[Definitions and files](definitions-and-files.md) — the one-page
-create-or-reuse model this page deepens.
+The whole mechanism in one page:
+[Definitions and files](definitions-and-files.md). This page deepens
+its multi-generator side.
 
 Cross-generator coordination in SKMTC is **memoization keyed by
 `(identifier.name, exportPath)`**, where both halves of the key are
