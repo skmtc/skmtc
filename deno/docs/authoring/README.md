@@ -42,6 +42,7 @@ Recipes for specific problems.
 - [Swap a peer dependency](how-to/swap-a-peer-dependency.md)
 - [Add enrichment options](how-to/add-enrichment-options.md)
 - [Compose with another generator](how-to/compose-with-another-generator.md)
+- [Author a multi-generator stack](how-to/author-a-multi-generator-stack.md)
 - [Handle GraphQL instead of OAS](how-to/handle-graphql-instead-of-oas.md)
 
 ## Recipes
