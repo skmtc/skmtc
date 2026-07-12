@@ -81,11 +81,17 @@ const numberWords: Record<number, string> = {
 
 // ---------------------------------------------------------------------
 // 1. Fact-list sync: skmtc-generator SKILL.md §1 ↔ llms.md "Read this
-//    first". Counts must match, and each header's spelled number must
-//    match its own list length.
+//    first". Counts must match, each header's spelled number must
+//    match its own list length, and each fact's bold lead sentence
+//    must match pairwise (the generator skill mirrors llms.md at the
+//    lead-sentence level; bodies may elaborate differently).
 // ---------------------------------------------------------------------
 
-type FactList = { headerWord: string | undefined; count: number };
+type FactList = {
+  headerWord: string | undefined;
+  count: number;
+  leads: string[];
+};
 
 const parseFactList = (
   text: string,
@@ -102,13 +108,21 @@ const parseFactList = (
     new RegExp(`(${Object.values(numberWords).join("|")}) facts`, "i"),
   )?.[1]?.toLowerCase();
 
-  let count = 0;
+  const items: string[] = [];
   for (const line of lines.slice(start + 1)) {
     if (/^## /.test(line)) break;
-    if (/^\d+\. \*\*/.test(line)) count++;
+    if (/^\d+\. \*\*/.test(line)) {
+      items.push(line);
+    } else if (items.length > 0 && line.trim() !== "") {
+      items[items.length - 1] += ` ${line.trim()}`;
+    }
   }
 
-  return { headerWord, count };
+  const leads = items.map((item) =>
+    item.replace(/\s+/g, " ").match(/\*\*(.+?)\*\*/)?.[1]?.trim() ?? ""
+  );
+
+  return { headerWord, count: items.length, leads };
 };
 
 const llmsPath = join(docsDir, "llms.md");
@@ -143,6 +157,28 @@ if (!llmsFacts) {
     pass(
       `fact-list sync: llms.md and generator skill both list ${llmsFacts.count} facts`,
     );
+
+    const driftedLeads = llmsFacts.leads
+      .map((lead, index) => ({
+        fact: index + 1,
+        llms: lead,
+        skill: skillFacts.leads[index] ?? "",
+      }))
+      .filter((pair) => pair.llms !== pair.skill);
+
+    if (driftedLeads.length === 0) {
+      pass(
+        `fact-lead sync: all ${llmsFacts.count} bold lead sentences match pairwise`,
+      );
+    } else {
+      for (const pair of driftedLeads) {
+        fail(
+          `fact-lead drift on fact ${pair.fact}:\n` +
+            `  llms.md:  ${pair.llms}\n` +
+            `  SKILL.md: ${pair.skill}`,
+        );
+      }
+    }
   }
 
   for (
