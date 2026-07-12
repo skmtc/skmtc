@@ -82,6 +82,9 @@ skmtc generate petstore
 The engine fetches the spec, runs `gen-zod` against each schema
 component, and writes the artifacts to `src/generated/`.
 
+If the remote fetch fails (offline, proxy), download the spec to a
+file and use the local-path form from Step 4.
+
 ## Step 6: Read the output
 
 ```bash

@@ -82,7 +82,6 @@ Try swapping the install order:
 ```bash
 skmtc remove petstore @skmtc/gen-zod
 skmtc remove petstore @skmtc/gen-typescript
-skmtc install @skmtc/gen-tanstack-query-fetch-zod petstore  # already installed
 skmtc install @skmtc/gen-typescript petstore
 skmtc install @skmtc/gen-zod petstore
 skmtc generate petstore
@@ -90,6 +89,62 @@ skmtc generate petstore
 
 The output is **identical**. Generator order doesn't matter — see
 [how idempotency works](../../explanation/how-idempotency-works.md).
+
+## Step 5: Change the schema and watch the fan-out
+
+So far the schema has been a remote URL. Make it local so you can
+edit it. From the workspace root:
+
+```bash
+curl -o openapi.json https://petstore3.swagger.io/api/v3/openapi.json
+```
+
+Point `source` at the file in `.skmtc/petstore/.settings/client.json`
+(relative paths resolve against the workspace root):
+
+```jsonc
+{ "source": "./openapi.json" }
+```
+
+Now add a field. In `openapi.json`, find
+`components.schemas.Pet.properties` and add:
+
+```jsonc
+"nickname": { "type": "string" }
+```
+
+Regenerate and look for it:
+
+```bash
+skmtc generate petstore
+grep -rn "nickname" src/generated/
+```
+
+Every file that spells out `Pet`'s shape updated in one regenerate —
+the type gained a field and the validator gained a rule — while the
+hook files that import them stayed consistent without changing. This
+is the property you'll lean on daily: edit the schema, regenerate,
+and everything derived from it agrees.
+
+## Step 6 (optional): break the schema on purpose
+
+While the schema is local, see what a bad item costs. In
+`openapi.json`, change any `"$ref"` to point at a schema that doesn't
+exist — for example `"#/components/schemas/DoesNotExist"` — and
+regenerate:
+
+```bash
+skmtc generate petstore --json > out.json
+jq '.manifest.parseIssues' out.json
+```
+
+The run completes. Unaffected files regenerate as normal; the broken
+item and everything that depended on it are pruned rather than
+mis-generated, and `parseIssues` names the casualty
+(`INVALID_DEPENDENCY_REF`) with its location. One bad schema never
+kills the run — the manifest always tells you exactly what it cost.
+
+Undo the edit and regenerate before moving on.
 
 ## What just happened
 
@@ -104,6 +159,11 @@ generators changed nothing.
 How that works — files as keyed maps, insert as create-or-reuse — is
 one short page:
 [Definitions and files](../../concepts/definitions-and-files.md).
+
+Steps 5 and 6 showed the two properties this buys you day to day: a
+schema edit fans out to every derived artifact in one regenerate, and
+a schema mistake narrows the output instead of killing the run, with
+the manifest naming exactly what was skipped.
 
 ## Next steps
 

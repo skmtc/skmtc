@@ -34,13 +34,16 @@ For `gen-shadcn-form`, the shape is roughly:
   "submitLabel": "string",
   "fields": [
     {
-      "id": "string",         // matches a property name in the request body schema
+      // binds this entry to a request-body property — the path IS the join key
+      "moduleSelect": { "schemaPath": ["name"] },
       "label": "string",
       "placeholder": "string"
     }
   ]
 }
 ```
+
+All keys are optional — provide only what you override.
 
 The full schema is documented at [gen-shadcn-form's reference](../../reference/stock-generators/gen-shadcn-form.md).
 
@@ -55,7 +58,7 @@ Edit `.skmtc/petstore/.settings/client.json`:
 
 ```jsonc
 {
-  "source": "https://petstore3.swagger.io/api/v3/openapi.json",
+  "source": "./openapi.json",
   "settings": {
     "basePath": "src/generated",
     "enrichments": {
@@ -90,6 +93,12 @@ operation generators — the override sits under the `variant` key
 [enrichments shape reference](../../reference/settings/enrichments-shape.md)
 for all three routing shapes.
 
+Two validation behaviors worth knowing before you edit: a
+wrongly-typed value (a number where `title` expects a string) fails
+the run with a validation error naming the path — but an unknown key
+is silently ignored. If a customization doesn't land, check the key
+spelling and the routing path first.
+
 ## Step 3: Regenerate
 
 ```bash
@@ -114,23 +123,17 @@ name". Other operations use the form generator's defaults
 
 ## What just happened
 
-`client.json#settings.enrichments` is read by the engine and
-routed to each generator instance. The `toOasOperationProjectionBase`
-factory looks up
-`enrichments[generatorId][operation.path][operation.method][variant]`
-for the current operation and validates the result against the
-generator's Valibot schema. The validated `{ subject, generator,
-stack }` umbrella lands on the Projection as
-`this.settings.enrichments` — read your per-operation config off its
-`subject` scope:
+Your `client.json` entry was routed to the form generator by the
+path `[generatorId][path][method][variant]` and validated against
+the shape the generator declares. Where you provided a value (the
+`title` for `POST /pet`), it overrode the generator's default; where
+you didn't, the defaults applied — which is why the other operations'
+forms are unchanged. Configuration reached generated output without
+you touching any code.
 
-```ts
-const { title, submitLabel } = this.settings.enrichments.subject ?? {}
-return `<Form><h2>${title ?? defaultTitle}</h2>...<Button>${submitLabel ?? 'Submit'}</Button></Form>`
-```
-
-When you provided a `title` for `POST /pet`, it landed there. When
-you didn't (for other operations), the `??` defaults kicked in.
+How enrichments are declared and routed — including what generator
+authors do on the other side of this contract — is the
+[enrichments concept](../../concepts/enrichments.md).
 
 ## Next steps
 
