@@ -54,7 +54,7 @@ Complete worked examples.
 ## Shared resources you'll need
 
 - [Concepts](../concepts/) — the DSL, the pipeline, cross-generator coordination, refs
-- [API reference](../reference/api/) — `@skmtc/core` exports, OAS object model, DSL classes
-- [CLI reference](../reference/cli/) — `clone`, `create`, `dev`, `bundle`
+- [API reference](../reference/api/core-overview.md) — `@skmtc/core` exports, OAS object model, DSL classes
+- [CLI reference](../reference/cli/overview.md) — `clone`, `create`, `dev`, `bundle`
 - [Stock generators reference](../reference/stock-generators/) — source layout and clone seams per generator
 - [Explanation](../explanation/) — design rationale for the architecture you'll be extending

@@ -214,9 +214,8 @@ TypeScript's (`TsEntityType`) is
 `'variable' | 'type' | 'class' | 'interface' | 'namespace'`:
 `'variable'` declares `const` and imports `import { X }`; `'type'`
 declares `type` and imports `import { type X }` under
-`verbatimModuleSyntax`. The old core `EntityType` class is gone
-(F6); `toTsKeyword` in `@skmtc/lang-typescript` maps `type` to the
-keyword. See
+`verbatimModuleSyntax`. `toTsKeyword` in `@skmtc/lang-typescript`
+maps `type` to the keyword. See
 [stringable-composition](../concepts/stringable-composition.md#identifier-and-entity-kinds).
 
 ### `exportPath`
@@ -377,8 +376,8 @@ inference is logged as a `ParseIssue`. See
 
 ### `List`
 
-The typed list-builder utility in `@skmtc/lang-typescript`
-(moved from core under F5). Typed bookend styles
+The typed list-builder utility in `@skmtc/lang-typescript`. Typed
+bookend styles
 (`ListObject = {…}`, `ListArray = […]`, `ListParams = (…)`,
 `ListLines = \n-joined`), `skipEmpty` rendering, automatic
 `undefined`-filtering, and helpers `toRecord`,
@@ -740,7 +739,8 @@ function.
 
 ## Cross-references
 
-- [Concept docs](../concepts/) — fuller treatment of most terms here
+- [Vocabulary cheat-sheet](../concepts/vocabulary-cheat-sheet.md) — the analogue table for core terms
+- [The three phases](../concepts/the-three-phases.md) — fuller treatment of most terms here
 - [llms.md](../llms.md) — consolidated operational reference
 - [Manifest format](manifest-format.md)
 - [Error codes](error-codes.md)

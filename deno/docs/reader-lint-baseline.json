@@ -12,10 +12,6 @@
     "concepts/the-three-phases.md|line-number-citation": 4,
     "concepts/the-type-system.md|line-number-citation": 14,
     "explanation/how-idempotency-works.md|line-number-citation": 2,
-    "reference/api/dsl-definition.md|notes-path": 1,
-    "reference/api/dsl-definition.md|refactor-batch-tag": 1,
-    "reference/api/dsl-identifier.md|notes-path": 1,
-    "reference/api/dsl-identifier.md|refactor-batch-tag": 2,
     "reference/api/generate-context.md|line-number-citation": 1,
     "reference/api/oas-ref.md|line-number-citation": 1,
     "reference/api/parse-context.md|line-number-citation": 1,
@@ -26,16 +22,7 @@
     "reference/cli/list.md|line-number-citation": 1,
     "reference/cli/remove.md|line-number-citation": 1,
     "reference/glossary.md|line-number-citation": 1,
-    "reference/glossary.md|refactor-batch-tag": 2,
     "reference/settings/source-resolution.md|line-number-citation": 1
   },
-  "orphans": [
-    "concepts/languages.md",
-    "concepts/multi-package-output.md",
-    "concepts/vocabulary-cheat-sheet.md",
-    "reference/api/core-overview.md",
-    "reference/api/dsl-custom-value.md",
-    "reference/api/dsl-inserted.md",
-    "reference/cli/merge.md"
-  ]
+  "orphans": []
 }
