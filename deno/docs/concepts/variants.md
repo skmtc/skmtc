@@ -339,7 +339,7 @@ Fold the variant axis into `toIdentifierName` / `toExportPath` — each
 variant needs its own cache key, and the Driver throws on a mismatch —
 and read the per-variant leaf off `this.settings.enrichments`.
 The canonical implementation is
-[`skmtc-generators/gen-shadcn-form`](../../../skmtc-generators/gen-shadcn-form/)
+[`skmtc-generators/gen-shadcn-form`](https://github.com/skmtc/skmtc-generators/tree/main/gen-shadcn-form)
 post-`@skmtc/core@0.5.0`.
 
 ## Cross-references

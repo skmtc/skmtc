@@ -73,6 +73,13 @@
  *      overview catalog, per-generator gen-*.md pages) must agree on
  *      the set.
  *
+ *  13. DEAD-LINK CHECK — every relative markdown link in the
+ *      reader-facing tree must resolve: `.md` targets must exist on
+ *      disk, and directory links must contain a README.md. The orphan
+ *      check (10) guards reachability; this guards resolution — a
+ *      reachable page can still carry a broken link (the class that
+ *      survived until an ad-hoc sweep caught it).
+ *
  *   exit 0 — all checks hold.
  *   exit 1 — one or more failed; each failure names file + expectation.
  *
@@ -1043,6 +1050,47 @@ if (surfaceProblems.length === 0) {
     `stock-generator surface sync: README table, overview catalog, and ` +
       `${generatorPages.size} reference pages agree`,
   );
+}
+
+// ---------------------------------------------------------------------
+// 13. Dead-link check — every relative markdown link in the reader
+//     tree must resolve. Reuses the file set loaded for checks 9/10.
+// ---------------------------------------------------------------------
+
+const deadLinks: string[] = []
+for (const [relPath, text] of readerFileTexts) {
+  const lines = text.split("\n")
+  lines.forEach((line, index) => {
+    for (const match of line.matchAll(/\]\(([^)\s]+?)(?:#[^)]*)?\)/g)) {
+      const target = match[1]
+      if (/^[a-z][a-z+]*:/.test(target)) continue // URL scheme
+      if (target.startsWith("#") || target === "") continue // same-page anchor
+
+      const fromDir = dirname(join(docsDir, relPath))
+      if (target.endsWith(".md")) {
+        try {
+          Deno.statSync(join(fromDir, target))
+        } catch {
+          deadLinks.push(`${relPath}:${index + 1} → ${target}`)
+        }
+      } else if (target.endsWith("/")) {
+        try {
+          Deno.statSync(join(fromDir, target, "README.md"))
+        } catch {
+          deadLinks.push(
+            `${relPath}:${index + 1} → ${target} (directory link with no README.md behind it)`,
+          )
+        }
+      }
+    }
+  })
+}
+
+deadLinks.forEach(link => fail(`dead link: ${link}`))
+if (deadLinks.length === 0) {
+  pass(
+    `dead-link check: all relative markdown links resolve across ${readerFileTexts.size} reader-facing files`,
+  )
 }
 
 // ---------------------------------------------------------------------
