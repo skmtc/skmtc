@@ -253,6 +253,7 @@ const checkProject = (projectName: string, ctx: CheckProjectContext): Check[] =>
   checks.push(checkProjectBundle(projectName, denoJsonPath, bundlePath))
   checks.push(checkProjectWorkerPin(projectName, denoJsonPath, join(projectPath, 'worker.ts')))
   checks.push(checkProjectManifest(projectName))
+  checks.push(checkProjectEnrichments(projectName))
   // Gen-maps (anchors) checks — all three short-circuit to `skipped`
   // when the project hasn't opted in, so they're free for users not
   // using the feature.
@@ -639,5 +640,95 @@ const checkProjectManifest = (projectName: string): Check => {
     id: `project-manifest/${projectName}`,
     status: 'ok',
     message: `Project "${projectName}" manifest.json is current.`
+  }
+}
+
+/**
+ * Static enrichment-address check against the last manifest. The
+ * generate-phase consumption audit (core 0.28.0+) records enrichment
+ * config the engine never consumed — typo'd generator ids, paths,
+ * methods, model names, schema-dropped keys — on
+ * `manifest.enrichmentWarnings`. Doctor surfaces those verdicts without
+ * re-running, so dead enrichment config is visible between runs.
+ *
+ * Only `warning`-level entries fail the check; `info` entries
+ * (enrichments on deliberately skipped items) are a routine state and
+ * keep the check `ok`. Manifest read problems are `skipped`, not
+ * re-reported — `project-manifest` owns those.
+ */
+const checkProjectEnrichments = (projectName: string): Check => {
+  const id = `project-enrichments/${projectName}`
+  const manifestPath = Manifest.toPath(projectName)
+
+  if (!existsSync(manifestPath)) {
+    return {
+      id,
+      status: 'skipped',
+      message: `Project "${projectName}" has no manifest yet — enrichment check skipped.`
+    }
+  }
+
+  let parsedJson: unknown
+  try {
+    parsedJson = JSON.parse(Deno.readTextFileSync(manifestPath))
+  } catch {
+    return {
+      id,
+      status: 'skipped',
+      message: `Project "${projectName}" manifest.json is unreadable — enrichment check skipped (see project-manifest).`
+    }
+  }
+
+  const validated = v.safeParse(manifestContent, parsedJson)
+  if (!validated.success) {
+    return {
+      id,
+      status: 'skipped',
+      message: `Project "${projectName}" manifest.json doesn't match the current schema — enrichment check skipped (see project-manifest).`
+    }
+  }
+
+  const warnings = validated.output.enrichmentWarnings
+
+  if (warnings === undefined) {
+    return {
+      id,
+      status: 'skipped',
+      message:
+        `Project "${projectName}" manifest predates enrichment warnings — ` +
+        `re-run \`skmtc generate ${projectName}\` with @skmtc/core 0.28+ to enable this check.`
+    }
+  }
+
+  const actionable = warnings.filter(warning => warning.level === 'warning')
+  const infoCount = warnings.length - actionable.length
+
+  if (actionable.length > 0) {
+    const preview = actionable
+      .slice(0, 3)
+      .map(warning => warning.message)
+      .join('; ')
+    const ellipsis = actionable.length > 3 ? '; …' : ''
+    return {
+      id,
+      status: 'warning',
+      message:
+        `Project "${projectName}" last generate reported ${actionable.length} ` +
+        `enrichment warning(s): ${preview}${ellipsis}`,
+      hint:
+        'Fix the flagged keys in `.settings/client.json#settings.enrichments`, then re-run ' +
+        '`skmtc generate`. Full list: `manifest.enrichmentWarnings` (warnings are also printed ' +
+        'by `skmtc generate`).',
+      data: { enrichmentWarnings: warnings }
+    }
+  }
+
+  return {
+    id,
+    status: 'ok',
+    message:
+      infoCount > 0
+        ? `Project "${projectName}" enrichments are clean (${infoCount} info note(s) about skipped items).`
+        : `Project "${projectName}" enrichments were all consumed on the last generate.`
   }
 }

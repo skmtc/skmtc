@@ -59,6 +59,7 @@ For each project under `.skmtc/<project>/`:
 | `project-core-pin/<project>` | The project's `@skmtc/core` import pin matches the CLI's |
 | `project-bundle/<project>` | If the project has at least one *local* generator import, `bundle.js` exists. Pure JSR projects return `ok` with `hasLocalGenerator: false` (no bundle needed). |
 | `project-manifest/<project>` | `manifest.json` (if present) parses and matches the schema the current `@skmtc/core` expects |
+| `project-enrichments/<project>` | The last generate's `manifest.enrichmentWarnings` has no `warning`-level entries — dead enrichment config (typo'd generator ids, paths, methods, model names; schema-dropped keys) surfaces here between runs. `info` entries (enrichments on deliberately skipped items) keep the check `ok`. Skips when the manifest is missing, broken (deferred to `project-manifest`), or written by a core older than 0.28.0. |
 
 The exact set of checks evolves over time. Run `skmtc doctor` itself
 to see the current battery.
@@ -268,6 +269,27 @@ The on-disk `manifest.json` is malformed or has drifted from the
 schema the current `@skmtc/core` expects. The runtime tolerates a
 stale manifest but cleanup of previous artifacts will be skipped
 on the next run. Run `skmtc generate <project>` to rewrite it.
+
+### Enrichment warnings from the last run
+
+```
+○ project-enrichments/my-api    WARN
+    Project "my-api" last generate reported 1 enrichment warning(s):
+    enrichment entry '@skmtc/gen-shadcn-form → /pet → post' was never
+    consumed — no matching generator or subject in this run
+    (did you mean '/pets'?)
+```
+
+The last generate's consumption audit found enrichment config the
+engine never read — a typo'd routing key or an entry orphaned by
+schema evolution — or leaf keys the generator's schema silently
+dropped. Fix the flagged keys in
+`.settings/client.json#settings.enrichments` and re-run
+`skmtc generate <project>`. The full structured list (including
+`info` entries) is in the check's `data.enrichmentWarnings` and in
+`manifest.enrichmentWarnings` — see
+[the manifest format](../manifest-format.md) for the
+`EnrichmentWarning` shape.
 
 ## See also
 
