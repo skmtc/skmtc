@@ -112,7 +112,7 @@ wrappers around `TsProjection` with zero real consumers).
 
 These are observed gaps and edges that users should be aware of.
 
-### `#SKM-47` — `insertNormalizedModel` fallback-name integrity
+### Known gap — `insertNormalizedModel` fallback-name integrity
 
 When `insertNormalizedModel` is called with an **inline schema**
 (no ref), the cache key uses the caller's `fallbackName`. Two
@@ -264,7 +264,7 @@ users on stock get the upgrade when they explicitly bump.
 - [Design philosophy](design-philosophy.md) — the principles that
   shape what's prioritized
 - [How idempotency works](how-idempotency-works.md) — context for
-  `#SKM-47` and the same-name collision limitation
+  the fallback-name gap and the same-name collision limitation
 - [Comparison to other tools](comparison-to-other-tools.md) —
   how SKMTC's maturity compares to other codegen tools
 - [API: toArtifacts](../reference/api/to-artifacts.md) — the

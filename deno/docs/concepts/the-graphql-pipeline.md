@@ -299,22 +299,13 @@ export const graphqlClientEntry = toGqlOperationEntry({
 })
 ```
 
-The functional pattern (a free `emitOperation` helper called from
-`transform`) is no longer represented in stock: the two earlier
-packages that used it — `@skmtc/gen-graphql-operation` and
-`@skmtc/gen-graphql-typed-document-node` — were deleted on
-2026-05-13 after a zero-consumer audit confirmed neither had real
-`.ts` consumers anywhere in the workspace. Both were thin wrappers
-that delegated to `TsProjection` for the bulk of their work. New
-GraphQL operation generators should follow the class-based pattern.
+### Composing with peer generators
 
-### When to use the class-based pattern instead
-
-If you author a GraphQL operation generator whose output is
-referenced by peer generators (a hypothetical `gen-graphql-shadcn-form`
-analog to the OAS form generator), use your language package's
-`toTsGqlOperationProjectionBase` veneer to declare a Projection class.
-The factory mirrors `toTsOasOperationProjectionBase`:
+When your generator's output is referenced by peer generators (a
+hypothetical `gen-graphql-shadcn-form` analog to the OAS form
+generator), the class-based Projection is what makes that possible —
+peers find it via `insertOperation`. The factory mirrors
+`toTsOasOperationProjectionBase`:
 
 ```ts fragment
 import { toTsGqlOperationProjectionBase } from '@skmtc/lang-typescript'

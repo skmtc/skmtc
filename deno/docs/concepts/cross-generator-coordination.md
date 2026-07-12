@@ -202,7 +202,7 @@ The integrity-check rigor differs by code path:
 | `insertNormalizedModel` fallback-name branch (for inline schemas) | Name-only check | **Silent merge** |
 | Direct `register({ definitions })` | Name-only check in `File.definitions.has(name)` | First-write-wins silently |
 
-The asymmetry is documented as `#SKM-47` — the fallback-name path
+The asymmetry is a known gap — the fallback-name path
 lacks the strict integrity check that the Driver path has. In
 practice this only matters when two generators happen to produce the
 same `fallbackName` for *different* inline schemas in the same file
@@ -469,8 +469,8 @@ cache is hit.
 ### Why is the fallback-name path looser than the Driver path?
 
 Historical: the fallback-name path was added to support inline
-schemas without requiring `$ref` everywhere. The integrity check was
-deferred (`#SKM-47`). The pragmatic answer is to use ref-based
+schemas without requiring `$ref` everywhere. The integrity check there is
+a known gap. The pragmatic answer is to use ref-based
 schemas where possible — they route through the strict Driver path.
 
 ### Can I read peer generators' source text in an emergency?
