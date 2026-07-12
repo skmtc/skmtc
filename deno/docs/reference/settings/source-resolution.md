@@ -47,7 +47,7 @@ The project's pinned source — read from
 `.skmtc/<project>/.settings/client.json`. The `source` field lives
 at the **top level** of `client.json`, **not** inside `settings`.
 The CLI reads it as `parsed.source` (see
-`cli/lib/agent-context-headless.ts:157–158`).
+`cli/lib/agent-context-headless.ts–158`).
 
 This is the typical configured state. See the [`source` field
 reference in client-json-schema.md](client-json-schema.md#source-top-level-optional)

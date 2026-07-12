@@ -124,7 +124,7 @@ from the CLI's auth state, not hard-coded:
 ```
 
 The scope falls back through `Project.addGenerator` in
-`cli/lib/project.ts:340–349`:
+`cli/lib/project.ts–349`:
 
 1. **Explicit scope from the input.** If you ran
    `skmtc create my-api @myorg/my-zod-schema model`, the scope is

@@ -72,7 +72,7 @@ integrity check.
 ## Walkthrough — `ShadcnForm`
 
 The constructor of `gen-shadcn-form`'s `ShadcnForm` class
-(`skmtc-generators/gen-shadcn-form/src/ShadcnForm.ts:18-93`),
+(`skmtc-generators/gen-shadcn-form/src/ShadcnForm.ts`),
 walked step by step. The full source is the canonical reference;
 this walkthrough names what each step buys you.
 
@@ -291,7 +291,7 @@ render is pure string composition.
 ## Walkthrough — `ShadcnTable` (simpler)
 
 `gen-shadcn-table` has a shorter constructor
-(`skmtc-generators/gen-shadcn-table/src/ShadcnTable.ts:15-45`):
+(`skmtc-generators/gen-shadcn-table/src/ShadcnTable.ts`):
 
 ```ts
 constructor({ context, operation, settings }: ConstructorArgs) {
@@ -334,7 +334,7 @@ references directly, not part of the file's public API.
 
 The most interesting structural choice in `gen-shadcn-form` is
 the property-by-property field dispatch in
-`schemaToField.ts:23-141`. This is itself a small visitor:
+`schemaToField.ts`. This is itself a small visitor:
 
 ```ts
 export const schemaToField = ({ isRequired, schema, ... }) => {
@@ -408,7 +408,7 @@ render an array-of-strings input. Instead, it looks up the
 operation tagged `GetOffices` on the document and pulls in
 `@skmtc/gen-shadcn-select` to render a searchable typeahead
 backed by that operation
-(`schemaToField.ts:159-178`).
+(`schemaToField.ts`).
 
 This is **inter-generator coupling by enrichment**, not by
 import. The form generator doesn't know about specific operations

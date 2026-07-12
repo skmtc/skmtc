@@ -218,7 +218,7 @@ construction.
 The trick that lets `OasRef` work without two-pass parsing:
 
 ```ts
-// core/oas/ref/toRefV31.ts:26-34
+// core/oas/ref/toRefV31.ts
 context.registerRef(stackTrail.clone(), $ref)
 
 return new OasRef(

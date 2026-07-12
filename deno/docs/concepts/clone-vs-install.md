@@ -228,7 +228,7 @@ by a value that the author *could* have made configurable but
 chose to hardcode. The hardcode is the seam: editing the hardcoded
 value (in your clone) is the customization.
 
-Example: in `gen-shadcn-form/src/base.ts:26-30`:
+Example: in `gen-shadcn-form/src/base.ts`:
 
 ```ts
 toExportPath({ operation, enrichments, variant }): string {

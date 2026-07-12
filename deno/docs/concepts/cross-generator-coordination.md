@@ -384,7 +384,7 @@ harder case: your generator's output for one operation depends on
 some *other* operation, whose identity the consumer specifies as a
 string in their enrichment.
 
-Canonical case (`gen-shadcn-form/src/schemaToField.ts:164`): a form
+Canonical case (`gen-shadcn-form/src/schemaToField.ts`): a form
 renders a field whose values come from a list endpoint that the
 consumer names. The form generator doesn't know in advance which
 endpoint backs the field; the consumer points at one (by tag,

@@ -203,8 +203,8 @@ definition in the same file? It depends on the insertion path:
 - **Driver path** (`insertModel`, `insertOperation`,
   `insertNormalizedModel`): the second writer throws
   `Registered definition mismatch` via `affirmDefinition`
-  (`core/dsl/operation/oas/OasOperationDriver.ts:129`,
-  `GqlOperationDriver.ts:129`, `model/ModelDriver.ts:137`).
+  (`core/dsl/operation/oas/OasOperationDriver.ts`,
+  `GqlOperationDriver.ts`, `model/ModelDriver.ts`).
   The collision is loud.
 - **Bare `register({ definitions })` path**: silent
   first-write-wins via `Map.has`. The second is dropped.

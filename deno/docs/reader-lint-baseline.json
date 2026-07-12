@@ -1,28 +1,4 @@
 {
-  "patterns": {
-    "authoring/recipes/composing-multi-generator-stacks.md|line-number-citation": 4,
-    "concepts/clone-vs-install.md|line-number-citation": 1,
-    "concepts/cross-generator-coordination.md|line-number-citation": 1,
-    "concepts/error-handling-philosophy.md|line-number-citation": 9,
-    "concepts/files-and-dedup.md|line-number-citation": 9,
-    "concepts/how-generators-produce-output.md|line-number-citation": 5,
-    "concepts/refs-and-resolution.md|line-number-citation": 2,
-    "concepts/stringable-composition.md|line-number-citation": 2,
-    "concepts/the-manifest.md|line-number-citation": 3,
-    "concepts/the-three-phases.md|line-number-citation": 4,
-    "concepts/the-type-system.md|line-number-citation": 14,
-    "explanation/how-idempotency-works.md|line-number-citation": 2,
-    "reference/api/generate-context.md|line-number-citation": 1,
-    "reference/api/oas-ref.md|line-number-citation": 1,
-    "reference/api/parse-context.md|line-number-citation": 1,
-    "reference/api/projection-bases.md|line-number-citation": 7,
-    "reference/api/stack-trail.md|line-number-citation": 3,
-    "reference/cli/create.md|line-number-citation": 1,
-    "reference/cli/install.md|line-number-citation": 1,
-    "reference/cli/list.md|line-number-citation": 1,
-    "reference/cli/remove.md|line-number-citation": 1,
-    "reference/glossary.md|line-number-citation": 1,
-    "reference/settings/source-resolution.md|line-number-citation": 1
-  },
+  "patterns": {},
   "orphans": []
 }

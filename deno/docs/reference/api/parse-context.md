@@ -186,7 +186,7 @@ Called by parser code when a `$ref` is encountered. Records the
 consumer (via cloned stack trail) under the ref key.
 
 ```ts
-// In core/oas/ref/toRefV31.ts:26
+// In core/oas/ref/toRefV31.ts
 context.registerRef(stackTrail.clone(), $ref)
 ```
 

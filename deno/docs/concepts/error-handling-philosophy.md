@@ -110,11 +110,11 @@ they are what makes the model true rather than aspirational.
 ### 1. Empty parsed document issued at construction, mutated in place
 
 `ParseContext` constructs an empty `OasDocument` _before_ the walk starts
-(`core/context/ParseContext.ts:120`). Every `OasRef` constructed during the walk
+(`core/context/ParseContext.ts`). Every `OasRef` constructed during the walk
 holds a reference to `context.parsedDocument`, which wraps that same instance:
 
 ```ts
-// core/parse/v3-{0,1}/ref/toRefV31.ts:33-37
+// core/parse/v3-{0,1}/ref/toRefV31.ts
 context.registerRef(stackTrail.clone(), $ref)
 
 return context.withStackTrail(stackTrail, () =>
@@ -123,13 +123,13 @@ return context.withStackTrail(stackTrail, () =>
 ```
 
 `OasDocument.#fields` is `undefined` at this point — every getter throws
-(`Document.ts:248`: `Accessing 'openapi' before fields are
+(`Document.ts`: `Accessing 'openapi' before fields are
 set`). At the end of
 parse, `parse()` mutates the same instance via
 `oasState.oasDocument.fields = toDocumentFieldsV3(...)`. All the refs that
 captured the empty wrapper now resolve through the now-populated fields.
 
-The same pattern is applied to `GqlDocument` (`ParseContext.ts:134-136`). Issued
+The same pattern is applied to `GqlDocument` (`ParseContext.ts`). Issued
 empty at construction, populated by `parseGqlDocument` at the end of the walk.
 The symmetry is deliberate.
 
@@ -142,12 +142,12 @@ both.
 
 `StackTrail.toStackRef()` returns a `$ref` string _only_ when the trail points
 at a recognized component position (`['components', <bucket>, <name>]`) — and
-returns `undefined` otherwise (`StackTrail.ts:138-154`).
+returns `undefined` otherwise (`StackTrail.ts`).
 
 `ParseContext.registerRefError` is a deliberate no-op on `undefined`:
 
 ```ts
-// core/context/ParseContext.ts:334-342
+// core/context/ParseContext.ts
 registerRefError(error: unknown, refKey: string | undefined): void {
   if (!refKey) return
   // ...
@@ -157,7 +157,7 @@ registerRefError(error: unknown, refKey: string | undefined): void {
 The two compose. Inside `logIssueNoKey`, every error-level issue runs:
 
 ```ts
-// core/context/ParseContext.ts:399
+// core/context/ParseContext.ts
 this.registerRefError(issue.cause ?? issue.message, stackTrail.toStackRef());
 ```
 
@@ -179,7 +179,7 @@ parser was when it hit the `$ref` — but `removeItem` only looks at
 `[first, second, third]`:
 
 ```ts
-// core/oas/document/Document.ts:190-219
+// core/oas/document/Document.ts
 case 'paths': {
   const index = this.#fields!.operations.findIndex(
     ({ path, method }) => path === second && method === third
@@ -208,7 +208,7 @@ a thrown error reaches the surrounding `catch`, the trace has already popped
 error at the _child_ position, `tryParseAt` opens a fresh trace:
 
 ```ts
-// core/context/tryParseAt.ts:81-99
+// core/context/tryParseAt.ts
 try {
   return stackTrail.trace(key, (childStack) => fn(childStack));
 } catch (error) {

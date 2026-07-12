@@ -121,7 +121,7 @@ Generators don't call this — it's invoked by the engine.
 ### `register(args: ContextRegisterArgs): void`
 
 The neutral side-effect API — **pure data**, already standardized
-into language objects (`core/context/generateTypes.ts:308`):
+into language objects (`core/context/generateTypes.ts`):
 
 ```ts
 type ContextRegisterArgs = {

@@ -32,7 +32,7 @@ a Projection that nobody asks for is never constructed.
 
 ## What `GenerateContext.toArtifacts` actually does
 
-`GenerateContext.toArtifacts` (`core/context/GenerateContext.ts:275`)
+`GenerateContext.toArtifacts` (`core/context/GenerateContext.ts`)
 iterates the configured generators in order. For each one, it
 routes by `type` to one of three per-generator loops:
 
@@ -99,7 +99,7 @@ Three channels on `GenerateContext`, all called via side effect:
 ### `context.register({ destinationPath, imports?, definitions?, reExports? })`
 
 The lowest-level registration API
-(`core/context/GenerateContext.ts:1133`). Takes pure data
+(`core/context/GenerateContext.ts`). Takes pure data
 (`imports: ImportBase[]`, `reExports: ReExportBase[]`,
 `definitions`) and mutates the file at `destinationPath` — which
 must already exist; `register` never creates files and throws on a
@@ -152,7 +152,7 @@ below, returns the underlying `Definition` instead — it has
 For inline schemas (not addressable by `$ref`). If the schema is
 a `$ref`, delegates to `insertModel`; otherwise registers a one-off
 `Definition` under `fallbackName` via the projection's
-`schemaToValueFn` (`core/context/GenerateContext.ts:752-798`).
+`schemaToValueFn` (`core/context/GenerateContext.ts`).
 
 ## Projections are pull-based
 
@@ -257,7 +257,7 @@ found a Definition whose `generatorKey` doesn't match what the
 current `insert*` call computed. Two different generators landed
 on the same `(name, exportPath)` pair. Either rename one or change
 its export path so the keys differ. See
-`core/dsl/model/ModelDriver.ts:124-144` for the check.
+`core/dsl/model/ModelDriver.ts` for the check.
 
 ## Related invariants
 
@@ -327,7 +327,7 @@ Projections give you (a) cross-generator coordination via the
 
 ### What if I throw from `transform`?
 
-`toArtifacts` catches it (`GenerateContext.ts:428-432`), logs to
+`toArtifacts` catches it (`GenerateContext.ts`), logs to
 `logger.error`, and marks the item `'error'` in the manifest
 results. Siblings continue. The throw does not propagate out of
 the generator's pass.

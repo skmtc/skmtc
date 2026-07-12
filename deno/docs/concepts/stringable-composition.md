@@ -113,8 +113,8 @@ generator author works with most often, grouped by role.
 | Class | `toString()` output | Source |
 |---|---|---|
 | `SnippetBase` | (abstract — subclasses override) | `core/dsl/SnippetBase.ts` |
-| `Definition` | `export <const|type> <name> = <value>;` | `core/dsl/Definition.ts:232` |
-| `CustomValue` | The wrapped string verbatim | `core/dsl/CustomValue.ts:80` |
+| `Definition` | `export <const|type> <name> = <value>;` | `core/dsl/Definition.ts` |
+| `CustomValue` | The wrapped string verbatim | `core/dsl/CustomValue.ts` |
 | `Inserted.toName()` | The peer Projection's identifier name (string return; not a `toString`) | `core/dsl/Inserted.ts` |
 
 `SnippetBase` is the abstract root for **Projections** (named,
