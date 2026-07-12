@@ -171,9 +171,9 @@ Pick the tree that matches your role; the shared layers work for both.
 ### Role-specific trees
 
 - **[`using/`](using/)** — installing, configuring, running, integrating; no generator code involved
-  - [Tutorials](using/tutorials/) · [How-to](using/how-to/) · [Recipes](using/recipes/)
+  - [Tutorials](using/README.md#tutorials) · [How-to](using/README.md#how-to-guides) · [Recipes](using/README.md#recipes)
 - **[`authoring/`](authoring/)** — authoring generators: cloning, customizing, writing new ones
-  - [Tutorials](authoring/tutorials/) · [How-to](authoring/how-to/) · [Recipes](authoring/recipes/)
+  - [Tutorials](authoring/README.md#tutorials) · [How-to](authoring/README.md#how-to-guides) · [Recipes](authoring/README.md#recipes)
 
 ### Shared layers
 
@@ -218,7 +218,7 @@ Per-generator reference: [`reference/stock-generators/`](reference/stock-generat
 
 **Are generators sandboxed?** Yes — `net: false`, `run: false` in the Worker. Can read env vars. See [`explanation/security-model.md`](explanation/security-model.md).
 
-**Is there a hosted version?** Yes — `skmtc generate` can route to a remote Sandbox API. See [`using/recipes/`](using/recipes/).
+**Is there a hosted version?** Yes — `skmtc generate` can route to a remote Sandbox API. See [the recipes](using/README.md#recipes).
 
 ---
 
