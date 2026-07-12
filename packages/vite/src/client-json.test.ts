@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import * as v from 'valibot'
 import {
   applyEdit,
   applyEditToClientJson,
@@ -100,7 +101,7 @@ describe('applyEditToClientJson', () => {
 
 describe('enrichmentEditSchema (boundary validation)', () => {
   it('parses a valid writeLeaf edit', () => {
-    const parsed = enrichmentEditSchema.parse({
+    const parsed = v.parse(enrichmentEditSchema, {
       op: 'writeLeaf',
       generator: GEN,
       subject: { type: 'operation', path: '/x', method: 'get' },
@@ -112,12 +113,12 @@ describe('enrichmentEditSchema (boundary validation)', () => {
   })
 
   it('rejects an unknown op', () => {
-    expect(() => enrichmentEditSchema.parse({ op: 'nope' })).toThrow()
+    expect(() => v.parse(enrichmentEditSchema, { op: 'nope' })).toThrow()
   })
 
   it('rejects a malformed subject', () => {
     expect(() =>
-      enrichmentEditSchema.parse({
+      v.parse(enrichmentEditSchema, {
         op: 'addVariant',
         generator: GEN,
         subject: { type: 'banana' },

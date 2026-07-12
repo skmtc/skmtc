@@ -12,9 +12,9 @@
 // hub's generated models.
 
 import { match } from 'ts-pattern'
-import { z } from 'zod'
+import * as v from 'valibot'
 
-export const httpMethodSchema = z.enum([
+export const httpMethodSchema = v.picklist([
   'get',
   'post',
   'put',
@@ -24,33 +24,33 @@ export const httpMethodSchema = z.enum([
   'head',
   'trace'
 ])
-export type HttpMethod = z.infer<typeof httpMethodSchema>
+export type HttpMethod = v.InferOutput<typeof httpMethodSchema>
 
 /** One flat include/skip rule, validated at the HTTP boundary. */
-export const generatorFilterSchema = z.discriminatedUnion('scope', [
-  z.object({ scope: z.literal('all'), generator: z.string(), variants: z.array(z.string()) }),
-  z.object({
-    scope: z.literal('operation'),
-    generator: z.string(),
-    path: z.string(),
+export const generatorFilterSchema = v.variant('scope', [
+  v.object({ scope: v.literal('all'), generator: v.string(), variants: v.array(v.string()) }),
+  v.object({
+    scope: v.literal('operation'),
+    generator: v.string(),
+    path: v.string(),
     method: httpMethodSchema,
-    variants: z.array(z.string())
+    variants: v.array(v.string())
   }),
-  z.object({
-    scope: z.literal('model'),
-    generator: z.string(),
-    refName: z.string(),
-    variants: z.array(z.string())
+  v.object({
+    scope: v.literal('model'),
+    generator: v.string(),
+    refName: v.string(),
+    variants: v.array(v.string())
   })
 ])
-export type GeneratorFilter = z.infer<typeof generatorFilterSchema>
+export type GeneratorFilter = v.InferOutput<typeof generatorFilterSchema>
 
 /** Body of `POST /__skmtc/filters`: the full flat include + skip lists. */
-export const filtersWriteSchema = z.object({
-  include: z.array(generatorFilterSchema),
-  skip: z.array(generatorFilterSchema)
+export const filtersWriteSchema = v.object({
+  include: v.array(generatorFilterSchema),
+  skip: v.array(generatorFilterSchema)
 })
-export type FiltersWrite = z.infer<typeof filtersWriteSchema>
+export type FiltersWrite = v.InferOutput<typeof filtersWriteSchema>
 
 type OperationVariants = Record<string, Record<string, string[]>>
 type ModelVariants = Record<string, string[]>
@@ -74,15 +74,15 @@ export function toFilterEntries(filters: GeneratorFilter[]): FilterEntry[] {
 
   for (const filter of filters) {
     match(filter)
-      .with({ scope: 'all' }, (rule) => {
+      .with({ scope: 'all' }, rule => {
         wholeGenerators.push(rule.generator)
       })
-      .with({ scope: 'operation' }, (rule) => {
+      .with({ scope: 'operation' }, rule => {
         const paths = (operations[rule.generator] ??= {})
         const methods = (paths[rule.path] ??= {})
         methods[rule.method] = rule.variants
       })
-      .with({ scope: 'model' }, (rule) => {
+      .with({ scope: 'model' }, rule => {
         const refs = (models[rule.generator] ??= {})
         refs[rule.refName] = rule.variants
       })
@@ -135,13 +135,13 @@ export function fromFilterEntries(raw: unknown): GeneratorFilter[] {
         // Per-operation: `path -> method -> variant[]`.
         if (!isRecord(value)) continue
         for (const [methodKey, variants] of Object.entries(value)) {
-          const method = httpMethodSchema.safeParse(methodKey)
+          const method = v.safeParse(httpMethodSchema, methodKey)
           if (!method.success) continue
           rows.push({
             generator,
             scope: 'operation',
             path: subjectKey,
-            method: method.data,
+            method: method.output,
             variants: toStringArray(variants)
           })
         }
