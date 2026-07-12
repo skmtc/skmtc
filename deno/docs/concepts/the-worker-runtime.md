@@ -152,9 +152,7 @@ JS file. This is what the Worker spawns.
 the only artifact `generate` loads. Generator source enters the
 bundle either as a `jsr:` specifier (installed) or a relative path
 (cloned / locally authored); `deno bundle` resolves both through the
-project's import map. (Older CLI versions no-op'd on remote-only
-projects, which left pure-install projects unable to generate; that
-special case is gone.)
+project's import map.
 
 ### Bundle freshness
 

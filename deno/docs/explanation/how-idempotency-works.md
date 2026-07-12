@@ -238,7 +238,7 @@ The integrity gap: two generators independently passing different
 separate definitions. The system can't tell that they're "the
 same" without a name.
 
-This is tracked as `#SKM-47` in the [status and roadmap](status-and-roadmap.md).
+This is a known limitation — see the [status and roadmap](status-and-roadmap.md).
 The mitigation: generator authors should prefer refs when
 possible; the spec author should hoist commonly-used inline
 schemas to components.
@@ -279,7 +279,7 @@ But the failure mode exists for generator authors who write
   surface
 - [API: ContentSettings](../reference/api/content-settings.md) — what the
   cache key is derived from
-- [Status and roadmap](status-and-roadmap.md) — `#SKM-47` and
-  related known limitations
+- [Status and roadmap](status-and-roadmap.md) — the fallback-name
+  integrity gap and related known limitations
 - [Design philosophy](design-philosophy.md) — idempotency as a
   load-bearing principle

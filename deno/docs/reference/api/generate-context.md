@@ -241,7 +241,7 @@ Branches:
   the resolved refName. Strict integrity check.
 - **`schema.isRef()` is false** (inline schema): caches by
   `(fallbackName, destinationPath)`. **Name-only check** — does not
-  verify generator identity (the `#SKM-47` integrity gap).
+  verify generator identity (a known integrity gap).
 
 ### `findDefinition({ name, exportPath }): DefinitionBase | undefined`
 

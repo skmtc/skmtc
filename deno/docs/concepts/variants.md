@@ -341,26 +341,6 @@ The canonical implementation is
 [`skmtc-generators/gen-shadcn-form`](../../../skmtc-generators/gen-shadcn-form/)
 post-`@skmtc/core@0.5.0`.
 
-## Tests that enforce the invariants
-
-Each invariant above maps to one or more executable specs:
-
-| Invariant | Enforcement test(s) |
-|---|---|
-| `'main'` always present (synthetic when absent) | `GenerateContext.variants.test.ts` → "operation with no enrichment block dispatches a single `main` variant" |
-| Missing-`'main'` throws | `GenerateContext.variants.test.ts` → "declared variants without `main` throws at engine dispatch"; `helpers/toVariantList.test.ts` → "missing main with other variants present throws" |
-| Multi-variant fan-out | `GenerateContext.variants.test.ts` → "multi-variant enrichment fans out one transform per declared variant" |
-| Variants-aware peer composition | `GenerateContext.cross-variant.test.ts` |
-| Variant-bound `fallbackName` (the `ShadcnForm` pattern) | `GenerateContext.normalized-model-variants.test.ts` |
-| `GeneratorKey` carries variant end-to-end | `GenerateContext.end-to-end.test.ts`; `dsl/GeneratorKeys.test.ts` round-trip tests |
-| Driver throws on peer-variant mismatch | `dsl/operation/oas/OasOperationDriver.test.ts` → "Variant validation" |
-| Variants-aware `toIdentifierName` ignoring variant collides | `dsl/operation/oas/OasOperationDriver.test.ts` → the "collides on second variant" test |
-| Per-variant skip/include filtering | `GenerateContext.variants.test.ts` → "skip with…"/"include with…"; `GenerateContext.model-variants.test.ts` (model arm) |
-| Per-variant `StackTrail` nesting | `GenerateContext.variants.test.ts` → "nests the variant frame inside the operation frame" |
-| Bit-identical formatted output | `run/toArtifacts.regression.test.ts` |
-| Model arm: engine fan-out + missing-`main` throw | `GenerateContext.model-variants.test.ts` |
-| Model arm: peer-variant guard + collision check | `dsl/model/ModelDriver.variants.test.ts` |
-
 ## Cross-references
 
 - Skill: [`skills/skmtc-generator/SKILL.md`](../skills/skmtc-generator/SKILL.md) — authoring variants-aware generators (§10 task card; §4 tripwire rows; §8 anti-patterns).
@@ -369,4 +349,3 @@ Each invariant above maps to one or more executable specs:
 - Concept: [`cross-generator-coordination.md`](./cross-generator-coordination.md) — how peers default to `'main'`.
 - Concept: [`projections-and-snippets.md`](./projections-and-snippets.md) — `ContentSettings.variant`.
 - Reference: `reference/settings/enrichments-shape.md` — the variant level in the routing diagram.
-- Friction log: [`../friction-log/2026-05-14-shadcn-form-refactor.md`](../friction-log/2026-05-14-shadcn-form-refactor.md) item #9 — original driving motivation.

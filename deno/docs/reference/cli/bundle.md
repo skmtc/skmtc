@@ -9,10 +9,7 @@ what the SKMTC Worker loads at generate time.
 Every project builds a local bundle — remote-only (all generators
 installed from JSR) and hybrid (some cloned) alike. `deno bundle`
 resolves `jsr:` specifiers through the project's import map, so the
-build is identical either way. (Older CLI versions no-op'd on
-remote-only projects on the assumption that a published JSR bundle
-would be used at generate time; no such path existed, which left
-pure-install projects unable to generate.)
+build is identical either way.
 
 ## Synopsis
 

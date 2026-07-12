@@ -124,27 +124,16 @@ GraphQL-specific differences:
 
 ### Why the class-based pattern, not a functional `transform`?
 
-Earlier stock generators (`@skmtc/gen-graphql-operation`,
-`@skmtc/gen-graphql-typed-document-node`) used a functional pattern
-— a free `emitOperation` helper called from `transform`, no
-Projection class. Both were deleted on 2026-05-13. The reasons were
-mechanical:
-
-- The artifacts they produced (`<Op>Args`, `<Op>Result`,
-  `<Op>Document`) had zero `.ts` consumers across the workspace —
-  no peer generator ever needed to find them via `insertOperation`.
-- Most of each `transform`'s work was `context.insertNormalizedModel(TsProjection, …)`
-  delegation; the package's distinctive logic was a naming
-  convention plus an export path — which is exactly what a
-  Projection class encapsulates.
-- The functional shape bypassed `affirmDefinition` integrity checks
-  (it called `context.register({ definitions: [new TsDefinition(...)] })`
-  directly with hand-built `generatorKey`s).
-
 Class-based Projections get all four framework guarantees from
 `insertOperation` (Definition registration, cross-File import
 registration, insertion order, refactor resilience). A free helper
-in `transform` skips them.
+called from `transform` skips them: it has to hand-build
+`generatorKey`s and call `register({ definitions })` directly —
+bypassing the `affirmDefinition` integrity check — and the artifacts
+it produces can't be found by peer generators via `insertOperation`.
+A naming convention plus an export path is exactly what a Projection
+class encapsulates; a helper that only delegates re-implements that
+encapsulation without the guarantees.
 
 If the only thing your generator does in `transform` is delegate to
 `TsProjection` / `ZodProjection` for typing the operation, the

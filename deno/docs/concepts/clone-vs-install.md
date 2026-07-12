@@ -66,9 +66,7 @@ Identical to cloned: `skmtc bundle` regenerates `worker.ts` from
 `deno.json#imports` and compiles `bundle.js`, resolving the `jsr:`
 specifiers through the project's import map. A project with only
 installed generators still needs its `bundle.js` — it is the only
-artifact `generate` loads. (Older CLI versions no-op'd here with
-`{ type: 'noop', reason: 'remote-only' }`; that special case is
-gone.)
+artifact `generate` loads.
 
 ### Bundle behavior when cloned
 
