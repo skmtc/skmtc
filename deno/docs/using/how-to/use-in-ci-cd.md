@@ -103,6 +103,12 @@ git diff --exit-code src/generated/
 If the diff is non-empty, the committed output is stale — fail
 the build and prompt the developer to regenerate.
 
+This check is also where committed generated output pays off in
+review: a schema change shows up as an ordinary, readable diff in
+the pull request, so your API contract change is reviewed in the
+same place as the code that motivated it. Generated code you can't
+diff is a black box; this is the opposite.
+
 ## Troubleshooting
 
 - **Schema URL unreachable in CI** — The CI environment may have
