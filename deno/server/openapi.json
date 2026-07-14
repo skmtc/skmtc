@@ -1,0 +1,1999 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "skmtc stack server",
+    "version": "1.0.0",
+    "description": "The public API of a deployed @skmtc/server bundle: generate code from an OpenAPI/GraphQL schema against the bundled generator stack, plus schema, capability and enrichment introspection. Codegen is a pure function of (bundle, schema, client settings)."
+  },
+  "paths": {
+    "/artifacts": {
+      "post": {
+        "operationId": "generateArtifacts",
+        "summary": "Generate code artifacts from a schema",
+        "description": "Parse → transform → render the posted schema through the bundled generators, returning the generated files, the run manifest, and the attribution sidecars + generation map.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtifactsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated artifacts + manifest + attribution.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "artifacts",
+                    "manifest"
+                  ],
+                  "properties": {
+                    "artifacts": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "description": "Generated file contents keyed by output path."
+                    },
+                    "manifest": {
+                      "$ref": "#/components/schemas/Manifest"
+                    },
+                    "sidecars": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "$ref": "#/components/schemas/Sidecar"
+                      },
+                      "description": "Per-file attribution sidecars keyed by output path."
+                    },
+                    "generationMap": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/GenerationMapEntry"
+                      },
+                      "description": "Per-Definition generation-map index (file → schema origin)."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request body."
+          },
+          "422": {
+            "description": "Unprocessable — schema parse failure, invalid config, or generator error."
+          }
+        }
+      }
+    },
+    "/subjects": {
+      "post": {
+        "operationId": "supportedSubjects",
+        "summary": "Which subjects each generator supports",
+        "description": "Parse + each generator’s `isSupported` only — no transform, no render.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtifactsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-generator supported subjects + parse issues.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "subjects",
+                    "parseIssues"
+                  ],
+                  "properties": {
+                    "subjects": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "$ref": "#/components/schemas/GeneratorSupport"
+                      },
+                      "description": "Supported subjects keyed by generator id."
+                    },
+                    "parseIssues": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ParseIssue"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request body."
+          },
+          "422": {
+            "description": "Unprocessable — schema parse failure, invalid config, or generator error."
+          }
+        }
+      }
+    },
+    "/enrichment-defaults": {
+      "post": {
+        "operationId": "enrichmentDefaults",
+        "summary": "Seed enrichment values derived from a schema",
+        "description": "The default enrichment values each generator derives from the schema (the \"Generate fields from schema\" payload) — Parse + `toEnrichmentDefaults` over supported subjects, no transform, no render.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtifactsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Seed enrichment values + parse issues.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "enrichmentDefaults",
+                    "parseIssues"
+                  ],
+                  "properties": {
+                    "enrichmentDefaults": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "Seed enrichment values, mirroring the `client.json#settings.enrichments` subtree (subject scope): `[generatorId][path][method][variant]` for operations, `[generatorId][refName][variant]` for models."
+                    },
+                    "parseIssues": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ParseIssue"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request body."
+          },
+          "422": {
+            "description": "Unprocessable — schema parse failure, invalid config, or generator error."
+          }
+        }
+      }
+    },
+    "/generators": {
+      "get": {
+        "operationId": "listGenerators",
+        "summary": "List the configured generator ids",
+        "description": "A pure function of the bundled generators — no schema, no parse.",
+        "responses": {
+          "200": {
+            "description": "The configured generator ids.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "generators"
+                  ],
+                  "properties": {
+                    "generators": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Configured generator ids in the deployed bundle."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/descriptors": {
+      "post": {
+        "operationId": "enrichmentDescriptors",
+        "summary": "Form-renderable enrichment descriptors",
+        "description": "The renderable descriptor for each generator’s enrichment schema — a pure function of the bundled generators (no schema, no parse), safe to cache per bundle. POST with no body.",
+        "responses": {
+          "200": {
+            "description": "One descriptor per configured generator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "descriptors"
+                  ],
+                  "properties": {
+                    "descriptors": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EnrichmentDescriptor"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request body."
+          },
+          "422": {
+            "description": "Unprocessable — schema parse failure, invalid config, or generator error."
+          }
+        }
+      }
+    },
+    "/validate": {
+      "post": {
+        "operationId": "validateEnrichments",
+        "summary": "Validate an enrichment config against the stack",
+        "description": "The authoritative verdict on whether the posted `clientSettings.enrichments` satisfy each generator’s enrichment schema. Documentless — no schema needed.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validation issues (empty when the config is valid).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "issues"
+                  ],
+                  "properties": {
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EnrichmentValidationIssue"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request body."
+          },
+          "422": {
+            "description": "Unprocessable — schema parse failure, invalid config, or generator error."
+          }
+        }
+      }
+    },
+    "/to-v3-json": {
+      "post": {
+        "operationId": "toV3Json",
+        "summary": "Normalize a schema document to OpenAPI 3.0",
+        "description": "Convert a Swagger 2.0 document to OpenAPI 3.0; 3.0 / 3.1 documents pass through unchanged. The same normalization the `oas` generate path runs.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToV3JsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The normalized OpenAPI 3.0 document.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "schema"
+                  ],
+                  "properties": {
+                    "schema": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "The input document normalized to an OpenAPI 3.0 document."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request body."
+          },
+          "422": {
+            "description": "Unprocessable — schema parse failure, invalid config, or generator error."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ArtifactsRequest": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "protocol": {
+                "const": "oas"
+              },
+              "schema": {
+                "type": "string"
+              },
+              "clientSettings": {
+                "type": "object",
+                "properties": {
+                  "basePath": {
+                    "type": "string"
+                  },
+                  "schemaSource": {
+                    "type": "string"
+                  },
+                  "packages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "rootPath": {
+                          "type": "string"
+                        },
+                        "moduleName": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "rootPath"
+                      ]
+                    }
+                  },
+                  "enrichments": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": {}
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "include": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "skip": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "anchors": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "out": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "enabled"
+                    ]
+                  },
+                  "inputDirs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "formatter": {
+                    "type": "string"
+                  },
+                  "generatedSuffix": {
+                    "type": "string"
+                  },
+                  "ejected": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": []
+              },
+              "schemaSrc": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "protocol",
+              "schema"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "protocol": {
+                "const": "gql"
+              },
+              "schema": {
+                "type": "string"
+              },
+              "clientSettings": {
+                "type": "object",
+                "properties": {
+                  "basePath": {
+                    "type": "string"
+                  },
+                  "schemaSource": {
+                    "type": "string"
+                  },
+                  "packages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "rootPath": {
+                          "type": "string"
+                        },
+                        "moduleName": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "rootPath"
+                      ]
+                    }
+                  },
+                  "enrichments": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": {}
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "include": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "skip": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "anchors": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "out": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "enabled"
+                    ]
+                  },
+                  "inputDirs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "formatter": {
+                    "type": "string"
+                  },
+                  "generatedSuffix": {
+                    "type": "string"
+                  },
+                  "ejected": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": []
+              },
+              "schemaSrc": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "protocol",
+              "schema"
+            ]
+          }
+        ]
+      },
+      "ValidateRequest": {
+        "type": "object",
+        "properties": {
+          "clientSettings": {
+            "type": "object",
+            "properties": {
+              "basePath": {
+                "type": "string"
+              },
+              "schemaSource": {
+                "type": "string"
+              },
+              "packages": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "rootPath": {
+                      "type": "string"
+                    },
+                    "moduleName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "rootPath"
+                  ]
+                }
+              },
+              "enrichments": {
+                "type": "object",
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      }
+                    }
+                  ]
+                }
+              },
+              "include": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "skip": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "anchors": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "out": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "enabled"
+                ]
+              },
+              "inputDirs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "formatter": {
+                "type": "string"
+              },
+              "generatedSuffix": {
+                "type": "string"
+              },
+              "ejected": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": []
+          }
+        },
+        "required": []
+      },
+      "ToV3JsonRequest": {
+        "type": "object",
+        "properties": {
+          "schema": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema"
+        ]
+      },
+      "Manifest": {
+        "type": "object",
+        "properties": {
+          "deploymentId": {
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          },
+          "spanId": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "files": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "lines": {
+                  "type": "number"
+                },
+                "characters": {
+                  "type": "number"
+                },
+                "destinationPath": {
+                  "type": "string"
+                },
+                "ejected": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "lines",
+                "characters",
+                "destinationPath"
+              ]
+            }
+          },
+          "previews": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "module": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "exportPath": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "exportPath"
+                  ]
+                },
+                "source": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "const": "oasOperation"
+                        },
+                        "generatorId": {
+                          "type": "string"
+                        },
+                        "operationPath": {
+                          "type": "string"
+                        },
+                        "operationMethod": {
+                          "anyOf": [
+                            {
+                              "const": "get"
+                            },
+                            {
+                              "const": "post"
+                            },
+                            {
+                              "const": "put"
+                            },
+                            {
+                              "const": "patch"
+                            },
+                            {
+                              "const": "delete"
+                            },
+                            {
+                              "const": "head"
+                            },
+                            {
+                              "const": "options"
+                            },
+                            {
+                              "const": "trace"
+                            }
+                          ]
+                        },
+                        "variant": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "generatorId",
+                        "operationPath",
+                        "operationMethod",
+                        "variant"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "const": "gqlOperation"
+                        },
+                        "generatorId": {
+                          "type": "string"
+                        },
+                        "rootKind": {
+                          "enum": [
+                            "query",
+                            "mutation",
+                            "subscription"
+                          ]
+                        },
+                        "fieldName": {
+                          "type": "string"
+                        },
+                        "variant": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "generatorId",
+                        "rootKind",
+                        "fieldName",
+                        "variant"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "const": "model"
+                        },
+                        "generatorId": {
+                          "type": "string"
+                        },
+                        "refName": {
+                          "type": "string"
+                        },
+                        "variant": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "generatorId",
+                        "refName",
+                        "variant"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "module",
+                "source"
+              ]
+            }
+          },
+          "results": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ManifestDef0"
+                },
+                {
+                  "anyOf": [
+                    {
+                      "const": "success"
+                    },
+                    {
+                      "const": "warning"
+                    },
+                    {
+                      "const": "error"
+                    },
+                    {
+                      "const": "skipped"
+                    },
+                    {
+                      "const": "notSupported"
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ManifestDef0"
+                  }
+                }
+              ]
+            }
+          },
+          "parseIssues": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "protocol": {
+                          "const": "oas"
+                        },
+                        "level": {
+                          "const": "error"
+                        },
+                        "type": {
+                          "anyOf": [
+                            {
+                              "const": "UNEXPECTED_PROPERTY"
+                            },
+                            {
+                              "const": "MISSING_OBJECT_TYPE"
+                            },
+                            {
+                              "const": "MISSING_STRING_TYPE"
+                            },
+                            {
+                              "const": "MISSING_ARRAY_TYPE"
+                            },
+                            {
+                              "const": "MISSING_BOOLEAN_TYPE"
+                            },
+                            {
+                              "const": "INVALID_EXAMPLE"
+                            },
+                            {
+                              "const": "INVALID_ENUM"
+                            },
+                            {
+                              "const": "INVALID_DEFAULT"
+                            },
+                            {
+                              "const": "INVALID_NULLABLE"
+                            },
+                            {
+                              "const": "UNEXPECTED_FORMAT"
+                            },
+                            {
+                              "const": "INVALID_RESPONSE"
+                            },
+                            {
+                              "const": "INVALID_FORMAT"
+                            },
+                            {
+                              "const": "INVALID_OPERATION"
+                            },
+                            {
+                              "const": "INVALID_SCHEMA"
+                            },
+                            {
+                              "const": "INVALID_PARAMETER"
+                            },
+                            {
+                              "const": "INVALID_SECURITY_SCHEME"
+                            },
+                            {
+                              "const": "INVALID_DEPENDENCY_REF"
+                            },
+                            {
+                              "const": "EXAMPLE_AND_EXAMPLES_DEFINED"
+                            }
+                          ]
+                        },
+                        "location": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "cause": {}
+                      },
+                      "required": [
+                        "protocol",
+                        "level",
+                        "type",
+                        "location",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "protocol": {
+                          "const": "oas"
+                        },
+                        "level": {
+                          "const": "warning"
+                        },
+                        "type": {
+                          "anyOf": [
+                            {
+                              "const": "UNEXPECTED_PROPERTY"
+                            },
+                            {
+                              "const": "MISSING_OBJECT_TYPE"
+                            },
+                            {
+                              "const": "MISSING_STRING_TYPE"
+                            },
+                            {
+                              "const": "MISSING_ARRAY_TYPE"
+                            },
+                            {
+                              "const": "MISSING_BOOLEAN_TYPE"
+                            },
+                            {
+                              "const": "INVALID_EXAMPLE"
+                            },
+                            {
+                              "const": "INVALID_ENUM"
+                            },
+                            {
+                              "const": "INVALID_DEFAULT"
+                            },
+                            {
+                              "const": "INVALID_NULLABLE"
+                            },
+                            {
+                              "const": "UNEXPECTED_FORMAT"
+                            },
+                            {
+                              "const": "INVALID_RESPONSE"
+                            },
+                            {
+                              "const": "INVALID_FORMAT"
+                            },
+                            {
+                              "const": "INVALID_OPERATION"
+                            },
+                            {
+                              "const": "INVALID_SCHEMA"
+                            },
+                            {
+                              "const": "INVALID_PARAMETER"
+                            },
+                            {
+                              "const": "INVALID_SECURITY_SCHEME"
+                            },
+                            {
+                              "const": "INVALID_DEPENDENCY_REF"
+                            },
+                            {
+                              "const": "EXAMPLE_AND_EXAMPLES_DEFINED"
+                            }
+                          ]
+                        },
+                        "location": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "protocol",
+                        "level",
+                        "type",
+                        "location",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "protocol": {
+                          "const": "oas"
+                        },
+                        "level": {
+                          "const": "debug"
+                        },
+                        "type": {
+                          "anyOf": [
+                            {
+                              "const": "UNEXPECTED_PROPERTY"
+                            },
+                            {
+                              "const": "MISSING_OBJECT_TYPE"
+                            },
+                            {
+                              "const": "MISSING_STRING_TYPE"
+                            },
+                            {
+                              "const": "MISSING_ARRAY_TYPE"
+                            },
+                            {
+                              "const": "MISSING_BOOLEAN_TYPE"
+                            },
+                            {
+                              "const": "INVALID_EXAMPLE"
+                            },
+                            {
+                              "const": "INVALID_ENUM"
+                            },
+                            {
+                              "const": "INVALID_DEFAULT"
+                            },
+                            {
+                              "const": "INVALID_NULLABLE"
+                            },
+                            {
+                              "const": "UNEXPECTED_FORMAT"
+                            },
+                            {
+                              "const": "INVALID_RESPONSE"
+                            },
+                            {
+                              "const": "INVALID_FORMAT"
+                            },
+                            {
+                              "const": "INVALID_OPERATION"
+                            },
+                            {
+                              "const": "INVALID_SCHEMA"
+                            },
+                            {
+                              "const": "INVALID_PARAMETER"
+                            },
+                            {
+                              "const": "INVALID_SECURITY_SCHEME"
+                            },
+                            {
+                              "const": "INVALID_DEPENDENCY_REF"
+                            },
+                            {
+                              "const": "EXAMPLE_AND_EXAMPLES_DEFINED"
+                            }
+                          ]
+                        },
+                        "location": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "protocol",
+                        "level",
+                        "type",
+                        "location",
+                        "message"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "protocol": {
+                          "const": "gql"
+                        },
+                        "level": {
+                          "const": "error"
+                        },
+                        "type": {
+                          "anyOf": [
+                            {
+                              "const": "NESTED_LIST_LOSSY"
+                            },
+                            {
+                              "const": "UNKNOWN_TYPE_KIND"
+                            },
+                            {
+                              "const": "DROPPED_DIRECTIVE"
+                            },
+                            {
+                              "const": "SKIPPED_FIELD_ARGUMENTS"
+                            },
+                            {
+                              "const": "SKIPPED_FEATURE"
+                            },
+                            {
+                              "const": "INVALID_TYPE_DEFINITION"
+                            },
+                            {
+                              "const": "INVALID_DEPENDENCY_REF"
+                            }
+                          ]
+                        },
+                        "location": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "cause": {}
+                      },
+                      "required": [
+                        "protocol",
+                        "level",
+                        "type",
+                        "location",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "protocol": {
+                          "const": "gql"
+                        },
+                        "level": {
+                          "const": "warning"
+                        },
+                        "type": {
+                          "anyOf": [
+                            {
+                              "const": "NESTED_LIST_LOSSY"
+                            },
+                            {
+                              "const": "UNKNOWN_TYPE_KIND"
+                            },
+                            {
+                              "const": "DROPPED_DIRECTIVE"
+                            },
+                            {
+                              "const": "SKIPPED_FIELD_ARGUMENTS"
+                            },
+                            {
+                              "const": "SKIPPED_FEATURE"
+                            },
+                            {
+                              "const": "INVALID_TYPE_DEFINITION"
+                            },
+                            {
+                              "const": "INVALID_DEPENDENCY_REF"
+                            }
+                          ]
+                        },
+                        "location": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "protocol",
+                        "level",
+                        "type",
+                        "location",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "protocol": {
+                          "const": "gql"
+                        },
+                        "level": {
+                          "const": "debug"
+                        },
+                        "type": {
+                          "anyOf": [
+                            {
+                              "const": "NESTED_LIST_LOSSY"
+                            },
+                            {
+                              "const": "UNKNOWN_TYPE_KIND"
+                            },
+                            {
+                              "const": "DROPPED_DIRECTIVE"
+                            },
+                            {
+                              "const": "SKIPPED_FIELD_ARGUMENTS"
+                            },
+                            {
+                              "const": "SKIPPED_FEATURE"
+                            },
+                            {
+                              "const": "INVALID_TYPE_DEFINITION"
+                            },
+                            {
+                              "const": "INVALID_DEPENDENCY_REF"
+                            }
+                          ]
+                        },
+                        "location": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "protocol",
+                        "level",
+                        "type",
+                        "location",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "enrichmentWarnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "level": {
+                  "enum": [
+                    "warning",
+                    "info"
+                  ]
+                },
+                "type": {
+                  "enum": [
+                    "UNCONSUMED_ENRICHMENT",
+                    "UNKNOWN_GENERATOR_ID",
+                    "UNKNOWN_ENRICHMENT_KEY",
+                    "SKIPPED_SUBJECT_ENRICHMENT",
+                    "SKIPPED_GENERATOR_ENRICHMENT"
+                  ]
+                },
+                "path": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "message": {
+                  "type": "string"
+                },
+                "suggestion": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "level",
+                "type",
+                "path",
+                "message"
+              ]
+            }
+          },
+          "startAt": {
+            "type": "number"
+          },
+          "endAt": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "deploymentId",
+          "traceId",
+          "spanId",
+          "files",
+          "previews",
+          "results",
+          "parseIssues",
+          "startAt",
+          "endAt"
+        ]
+      },
+      "ManifestDef0": {
+        "type": "object",
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/ManifestDef0"
+            },
+            {
+              "anyOf": [
+                {
+                  "const": "success"
+                },
+                {
+                  "const": "warning"
+                },
+                {
+                  "const": "error"
+                },
+                {
+                  "const": "skipped"
+                },
+                {
+                  "const": "notSupported"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ManifestDef0"
+              }
+            }
+          ]
+        }
+      },
+      "Sidecar": {
+        "type": "object",
+        "properties": {
+          "v": {
+            "const": 2
+          },
+          "f": {
+            "type": "string"
+          },
+          "src": {
+            "type": "string"
+          },
+          "parser": {
+            "type": "string"
+          },
+          "R": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "host": {
+                  "type": "string"
+                },
+                "type": {
+                  "anyOf": [
+                    {
+                      "const": "jsr"
+                    },
+                    {
+                      "const": "jsr-private"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "host",
+                "type"
+              ]
+            }
+          },
+          "G": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                },
+                "r": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "name",
+                "version",
+                "r"
+              ]
+            }
+          },
+          "S": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "V": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "L": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "P": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "A": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "minItems": 7
+            }
+          },
+          "N": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "An": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "v",
+          "f",
+          "src",
+          "parser",
+          "R",
+          "G",
+          "S",
+          "V",
+          "L",
+          "P",
+          "A"
+        ]
+      },
+      "GenerationMapEntry": {
+        "type": "object",
+        "properties": {
+          "f": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "g": {
+            "type": "string"
+          },
+          "s": {
+            "type": "string"
+          },
+          "v": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "f",
+          "name",
+          "g",
+          "s",
+          "v"
+        ]
+      },
+      "ParseIssue": {
+        "type": "object",
+        "required": [
+          "protocol",
+          "level",
+          "type",
+          "location",
+          "message"
+        ],
+        "properties": {
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "oas",
+              "gql"
+            ]
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning",
+              "debug"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "description": "Protocol-specific issue category."
+          },
+          "location": {
+            "type": "string",
+            "description": "Document pointer / path of the issue."
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "GeneratorSupport": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "operations"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "oasOperation"
+                ]
+              },
+              "operations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "path",
+                    "method"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "method": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "webhooks"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "webhook"
+                ]
+              },
+              "webhooks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "method"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "method": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "operations"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "gqlOperation"
+                ]
+              },
+              "operations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "rootKind",
+                    "fieldName"
+                  ],
+                  "properties": {
+                    "rootKind": {
+                      "type": "string"
+                    },
+                    "fieldName": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "models"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "model"
+                ]
+              },
+              "models": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "EnrichmentDescriptor": {
+        "type": "object",
+        "required": [
+          "generator",
+          "subjectType",
+          "fields"
+        ],
+        "properties": {
+          "generator": {
+            "type": "string",
+            "description": "Generator id."
+          },
+          "subjectType": {
+            "type": "string",
+            "description": "Subject kind the generator enriches, e.g. `model` or `operation`."
+          },
+          "fields": {
+            "type": "array",
+            "description": "Renderable field descriptors (key, type, and field-kind specifics).",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "EnrichmentValidationIssue": {
+        "type": "object",
+        "required": [
+          "generator",
+          "scope",
+          "message"
+        ],
+        "properties": {
+          "generator": {
+            "type": "string",
+            "description": "Generator id, e.g. `@skmtc/gen-zod`."
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "stack",
+              "generator",
+              "subject"
+            ]
+          },
+          "subject": {
+            "type": "string",
+            "description": "Operation path or model ref the issue is scoped to."
+          },
+          "method": {
+            "type": "string"
+          },
+          "variant": {
+            "type": "string"
+          },
+          "field": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
