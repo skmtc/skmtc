@@ -5,17 +5,23 @@
 > which are missing, plus orphaned files a previous generate spared
 > from pruning. Read-only.
 
-`status` answers "what does the tool think is going on?" without
-touching anything. It reads the project's `.settings/manifest.json`
-(the record of what the last `generate` wrote) and
-`.settings/generated.lock.json` (per-file content hashes), compares
-each tracked file's on-disk content, and reports a per-file
-classification. It shares its classification logic with the
-`generate` writer, so `status` and `generate` can never disagree
-about whether a file is edited.
+`status` answers "what does the tool think is going on?" — it never
+writes. It reads the project's `.settings/manifest.json` (the record
+of what the last `generate` wrote) and `.settings/generated.lock.json`
+(per-file content hashes), compares each tracked file's on-disk
+content, and reports a per-file classification. It shares its
+classification logic with the `generate` writer, so `status` and
+`generate` can never disagree about whether a file is edited.
 
-`status` is a local-only operation — it never contacts JSR, never
-rebundles, and never writes anything.
+`status` resolves the configured schema and renders fresh content on
+demand — the same schema-resolution + worker invocation `generate`
+uses — to disambiguate a formatter-config change from a hand edit, and
+to classify ejected files against what the generator would currently
+produce. When the schema can't be reached (none configured, unreachable
+source, no bundle yet), it degrades to lock-hash-only comparison
+instead of failing: safe to run any time, including CI, offline, or
+before a project has ever been generated. It never contacts JSR and
+never rebundles.
 
 ## Synopsis
 
@@ -60,9 +66,10 @@ overall `clean` boolean. Logs and warnings go to stderr.
 
 - **`clean`** — the on-disk content matches what the last generate
   wrote (directly, or via formatter-drift resolution: re-formatting
-  the stored canonical baseline under the current
+  this run's fresh canonical render under the current
   `settings.formatter` config reproduces the disk content, so a
-  formatter-config change never reads as an edit).
+  formatter-config change doesn't read as an edit — only available
+  when the schema is reachable this run; see [Behavior notes](#behavior-notes)).
 - **`modified`** — the file was hand-edited since the last generate.
   The next `generate` will protect it: no overwrite, no delete.
   Lasting changes belong in enrichments or hand-written modules;
@@ -78,23 +85,19 @@ overall `clean` boolean. Logs and warnings go to stderr.
   generated output, never overwritten or deleted; does not count as
   dirty for `--check`. See [eject](./eject.md) / [adopt](./adopt.md).
 
-### Drift state for ejected files
+### Live state for ejected files
 
-Each `ejected` entry also carries the drift state the last `generate`
-run computed (generate holds all three versions: the baseline at eject
-time, the fresh pristine render, and the disk file — `status` itself
-runs without the engine and reads the persisted state):
+Ejected is binary — owned until `skmtc adopt` — so there's no drift
+history to track or acknowledge, only whether the file currently
+matches what the generator would produce right now. Each `ejected`
+entry carries this live state, computed fresh each run against
+`status`'s own resolved schema (absent when the schema couldn't be
+reached this run):
 
-- **`quiet`** — the generator's output hasn't moved since eject.
-- **`drifted`** — the generator now produces something different from
-  the baseline the edits were made against, annotated with whether the
-  generator's changes **collide** with the user's edits or are
-  **non-overlapping** (line-based three-way analysis), and whether the
-  drift was already reviewed. Acknowledge a drift by setting
-  `reviewedPristineHash` in `.settings/ejections.json` to the current
-  pristine hash — it stays quiet until the output moves again.
 - **`re-adoptable`** — the disk file matches current generated output
   (edit reverted, or the generator caught up): run `skmtc adopt`.
+- **`owned`** — the disk file differs from current generated output.
+  Expected and unremarkable — the file is the user's by design.
 - **`stale`** — no generator produces the file anymore (schema item
   removed or renamed). Stale ejections that left the manifest are
   listed separately.
@@ -116,11 +119,16 @@ aren't forgotten.
 - Formatter-drift resolution shells out to `settings.formatter` (via
   `sh -c`, one adjacent hidden temp file per suspect file); with no
   formatter configured, comparison is raw content hashes only.
+- When no schema is configured, the schema source is unreachable, or
+  the project has no `bundle.js` yet, `status` degrades to comparing
+  the lock's recorded hashes only — formatter-drift resolution and
+  ejected-file sub-state are unavailable for that run, but `modified`
+  detection for ordinary edits still works.
 
 ## See also
 
-- [generate](./generate.md) — writes the lock and baselines `status`
-  reads; protects modified files.
+- [generate](./generate.md) — writes the lock `status` reads; protects
+  modified files.
 - [clean](./clean.md) — deletes the full generated set.
 - [client.json schema](../settings/client-json-schema.md) —
   `settings.formatter`, `settings.generatedSuffix`.

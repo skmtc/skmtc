@@ -49,7 +49,6 @@ version and exits.
 | -------- | ---------------------------------------------------------------------------------------------- | ------------------- |
 | `status` | Classify generated files against the lock: clean / manually edited / missing / orphaned (read-only) | [status](status.md) |
 | `eject`  | Take ownership of a generated file — renamed off the generated suffix, never overwritten again | [eject](eject.md)   |
-| `merge`  | Three-way merge of generator changes into an ejected file, keeping your edits                  | [merge](merge.md)   |
 | `adopt`  | Return an ejected file to generation                                                           | [adopt](adopt.md)   |
 
 ### Maintenance

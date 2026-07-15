@@ -1,6 +1,5 @@
 import type { GeneratedLockContent, GeneratedLockEntry } from '@/lib/generated-lock.ts'
 import { toContentHash } from '@/lib/generated-lock.ts'
-import { readBaseline } from '@/lib/baseline-store.ts'
 import { formatContent } from '@/lib/formatter.ts'
 
 /**
@@ -14,8 +13,6 @@ export type EditDetectionContext = {
   lock: GeneratedLockContent | null
   /** From `client.json#settings.formatter`; absent → raw comparison only. */
   formatterCommand: string | undefined
-  /** Absent when the caller didn't supply a `projectPath` (baselines disabled). */
-  baselinesDir: string | null
   /** App root — cwd for formatter runs. */
   appRoot: string
 }
@@ -25,7 +22,7 @@ export type ClassifyResult = {
   diskHash: string
   /**
    * Set when the mismatch was explained by a formatter-config change
-   * (re-formatting the stored baseline under the current config
+   * (re-formatting `freshCanonicalContent` under the current config
    * reproduces the disk content). The caller records this as the
    * file's new `formattedHash` so the next run compares cheaply.
    */
@@ -37,21 +34,28 @@ export type ClassifyResult = {
  * run recorded in `lockEntry`:
  *
  * 1. Disk matches `formattedHash` → untouched.
- * 2. Otherwise, re-format the canonical baseline under the *current*
+ * 2. Otherwise, re-format `freshCanonicalContent` under the *current*
  *    formatter config; if that reproduces the disk content, only the
  *    formatting moved (config change) — untouched.
  * 3. Otherwise: edited.
+ *
+ * `freshCanonicalContent` is this run's live canonical render for the
+ * artifact — from the engine during `generate`, or from `status`/
+ * `clean`'s own on-demand engine call. It's `undefined` when nothing
+ * rendered this artifact this run (a stale-artifact protect-check) or
+ * the engine couldn't be reached (the schema-unreachable degrade
+ * path) — either way step 2 is skipped and a hash mismatch is edited.
  */
 export const classifyDiskFile = ({
-  artifactPath,
   absolutePath,
   lockEntry,
-  detection
+  detection,
+  freshCanonicalContent
 }: {
-  artifactPath: string
   absolutePath: string
   lockEntry: GeneratedLockEntry
   detection: EditDetectionContext
+  freshCanonicalContent: string | undefined
 }): ClassifyResult => {
   const diskContent = Deno.readTextFileSync(absolutePath)
   const diskHash = toContentHash(diskContent)
@@ -60,22 +64,18 @@ export const classifyDiskFile = ({
     return { edited: false, diskHash }
   }
 
-  const { formatterCommand, baselinesDir, appRoot } = detection
+  const { formatterCommand, appRoot } = detection
 
-  if (formatterCommand && baselinesDir) {
-    const baseline = readBaseline(baselinesDir, artifactPath)
+  if (formatterCommand && freshCanonicalContent !== undefined) {
+    const formattedFresh = formatContent({
+      command: formatterCommand,
+      absolutePath,
+      content: freshCanonicalContent,
+      cwd: appRoot
+    })
 
-    if (baseline !== null) {
-      const formattedBaseline = formatContent({
-        command: formatterCommand,
-        absolutePath,
-        content: baseline,
-        cwd: appRoot
-      })
-
-      if (formattedBaseline !== null && toContentHash(formattedBaseline) === diskHash) {
-        return { edited: false, diskHash, driftResolvedFormattedHash: diskHash }
-      }
+    if (formattedFresh !== null && toContentHash(formattedFresh) === diskHash) {
+      return { edited: false, diskHash, driftResolvedFormattedHash: diskHash }
     }
   }
 

@@ -64,8 +64,7 @@ const readClientEjected = (clientJsonPath: string): string[] | undefined => {
 }
 
 Deno.test('eject/adopt - full round trip is lossless', async () => {
-  const { tempDir, skmtcRootPath, projectPath, manifestPath, clientJsonPath } =
-    await toWorkspace('my-api')
+  const { tempDir, skmtcRootPath, manifestPath, clientJsonPath } = await toWorkspace('my-api')
   const originalCwd = Deno.cwd()
   try {
     Deno.chdir(tempDir)
@@ -75,8 +74,7 @@ Deno.test('eject/adopt - full round trip is lossless', async () => {
     writeGeneratedFiles({
       manifestPath,
       artifacts: { 'src/user.generated.ts': 'export type User = { id: string }\n' },
-      manifest: toManifest({ 'src/user.generated.ts': '@/src/user.generated.ts' }),
-      projectPath
+      manifest: toManifest({ 'src/user.generated.ts': '@/src/user.generated.ts' })
     })
 
     // The user edits, then ejects.
@@ -134,7 +132,7 @@ Deno.test('eject/adopt - full round trip is lossless', async () => {
 })
 
 Deno.test('eject - collision pre-flight blocks ejecting onto an existing file', async () => {
-  const { tempDir, skmtcRootPath, projectPath, manifestPath } = await toWorkspace('my-api')
+  const { tempDir, skmtcRootPath, manifestPath } = await toWorkspace('my-api')
   const originalCwd = Deno.cwd()
   try {
     Deno.chdir(tempDir)
@@ -142,8 +140,7 @@ Deno.test('eject - collision pre-flight blocks ejecting onto an existing file', 
     writeGeneratedFiles({
       manifestPath,
       artifacts: { 'src/user.generated.ts': 'export type User = {}\n' },
-      manifest: toManifest({ 'src/user.generated.ts': '@/src/user.generated.ts' }),
-      projectPath
+      manifest: toManifest({ 'src/user.generated.ts': '@/src/user.generated.ts' })
     })
 
     // A hand-written file already sits at the owned name.
@@ -170,7 +167,7 @@ Deno.test('eject - collision pre-flight blocks ejecting onto an existing file', 
 })
 
 Deno.test('eject - untracked and already-ejected files are refused', async () => {
-  const { tempDir, skmtcRootPath, projectPath, manifestPath } = await toWorkspace('my-api')
+  const { tempDir, skmtcRootPath, manifestPath } = await toWorkspace('my-api')
   const originalCwd = Deno.cwd()
   try {
     Deno.chdir(tempDir)
@@ -178,8 +175,7 @@ Deno.test('eject - untracked and already-ejected files are refused', async () =>
     writeGeneratedFiles({
       manifestPath,
       artifacts: { 'src/user.generated.ts': 'export type User = {}\n' },
-      manifest: toManifest({ 'src/user.generated.ts': '@/src/user.generated.ts' }),
-      projectPath
+      manifest: toManifest({ 'src/user.generated.ts': '@/src/user.generated.ts' })
     })
 
     const untracked = await ejectHeadless({

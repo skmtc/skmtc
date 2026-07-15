@@ -64,6 +64,8 @@ Deno.test('cleanHeadless - deletes recorded files, prunes emptied dirs, removes 
       projectName: 'demo',
       dryRun: false,
       clientSettings: SETTINGS,
+      schemaSourceString: undefined,
+      stackUrl: undefined,
       skmtcRootPath
     })
 
@@ -93,6 +95,8 @@ Deno.test('cleanHeadless - dry run touches nothing', async () => {
       projectName: 'demo',
       dryRun: true,
       clientSettings: SETTINGS,
+      schemaSourceString: undefined,
+      stackUrl: undefined,
       skmtcRootPath
     })
 
@@ -119,6 +123,8 @@ Deno.test('cleanHeadless - no manifest is a no-op', async () => {
       projectName: 'demo',
       dryRun: false,
       clientSettings: SETTINGS,
+      schemaSourceString: undefined,
+      stackUrl: undefined,
       skmtcRootPath
     })
     assertEquals(result.noManifest, true)
@@ -142,6 +148,8 @@ Deno.test('cleanHeadless - reports already-absent files under missing', async ()
       projectName: 'demo',
       dryRun: false,
       clientSettings: SETTINGS,
+      schemaSourceString: undefined,
+      stackUrl: undefined,
       skmtcRootPath
     })
     assertEquals(result.deleted, ['src/gen/Present.ts'])
@@ -169,6 +177,8 @@ Deno.test('cleanHeadless - refuses to delete files resolving outside the app roo
       projectName: 'demo',
       dryRun: false,
       clientSettings: SETTINGS,
+      schemaSourceString: undefined,
+      stackUrl: undefined,
       skmtcRootPath
     })
     assertEquals(result.deleted, ['src/gen/Safe.ts'])
@@ -187,6 +197,8 @@ Deno.test('cleanHeadless - skips dir pruning when basePath is absent', async () 
       projectName: 'demo',
       dryRun: false,
       clientSettings: undefined,
+      schemaSourceString: undefined,
+      stackUrl: undefined,
       skmtcRootPath
     })
     // File still deleted, but no dir pruning without an anchor.
@@ -249,8 +261,7 @@ Deno.test('cleanHeadless - spares ejected files and reports modified ones', asyn
         startAt: Date.now(),
         endAt: Date.now()
       }),
-      clientSettings,
-      projectPath
+      clientSettings
     })
 
     Deno.writeTextFileSync(
@@ -266,6 +277,8 @@ Deno.test('cleanHeadless - spares ejected files and reports modified ones', asyn
       projectName: 'my-api',
       dryRun: false,
       clientSettings,
+      schemaSourceString: undefined,
+      stackUrl: undefined,
       skmtcRootPath
     })
 

@@ -18,9 +18,8 @@ Concretely, adopting `src/types/user.ts`:
    re-applying `settings.generatedSuffix` when no record exists).
    Refused when files exist at *both* names (resolve the duplicate
    first).
-2. **Removes** the entry from `client.json#settings.ejected`, the
-   record from `.settings/ejections.json`, and the committed baseline
-   copy.
+2. **Removes** the entry from `client.json#settings.ejected` and the
+   record from `.settings/ejections.json`.
 3. From the next `skmtc generate`: the engine emits the suffixed path
    again, peer imports follow, and the file is engine-owned.
 

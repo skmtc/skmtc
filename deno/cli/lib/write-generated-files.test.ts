@@ -642,14 +642,11 @@ Deno.test('writeGeneratedFiles - a formatter config change is not an edit', asyn
       const manifestPath = join(tempDir, 'manifest.json')
       const artifactPath = join(tempDir, 'out.ts')
       const manifest = manifestFor('out.ts')
-      const projectPath = join(tempDir, '.skmtc', 'project')
-
       writeGeneratedFiles({
         manifestPath,
         artifacts: { 'out.ts': canonical },
         manifest,
-        clientSettings: { formatter: 'deno fmt' },
-        projectPath
+        clientSettings: { formatter: 'deno fmt' }
       })
       assertEquals(Deno.readTextFileSync(artifactPath), formattedDouble)
 
@@ -661,8 +658,7 @@ Deno.test('writeGeneratedFiles - a formatter config change is not an edit', asyn
         manifestPath,
         artifacts: { 'out.ts': canonical },
         manifest,
-        clientSettings: { formatter: 'deno fmt --options-single-quote' },
-        projectPath
+        clientSettings: { formatter: 'deno fmt --options-single-quote' }
       })
 
       // Re-formatting the stored canonical baseline under the CURRENT config
@@ -677,8 +673,7 @@ Deno.test('writeGeneratedFiles - a formatter config change is not an edit', asyn
         manifestPath,
         artifacts: { 'out.ts': canonical },
         manifest,
-        clientSettings: { formatter: 'deno fmt --options-single-quote' },
-        projectPath
+        clientSettings: { formatter: 'deno fmt --options-single-quote' }
       })
       assertEquals(third.protectedPaths, [])
       assertEquals(Deno.statSync(artifactPath).mtime?.getTime(), PAST.getTime())
@@ -698,15 +693,13 @@ Deno.test('writeGeneratedFiles - a real edit is detected through the formatter',
       const manifestPath = join(tempDir, 'manifest.json')
       const artifactPath = join(tempDir, 'out.ts')
       const manifest = manifestFor('out.ts')
-      const projectPath = join(tempDir, '.skmtc', 'project')
       const clientSettings = { formatter: 'deno fmt' }
 
       writeGeneratedFiles({
         manifestPath,
         artifacts: { 'out.ts': canonical },
         manifest,
-        clientSettings,
-        projectPath
+        clientSettings
       })
 
       // A semantic edit in the formatted file — formatter-drift resolution
@@ -718,8 +711,7 @@ Deno.test('writeGeneratedFiles - a real edit is detected through the formatter',
         manifestPath,
         artifacts: { 'out.ts': canonical },
         manifest,
-        clientSettings,
-        projectPath
+        clientSettings
       })
 
       assertEquals(rerun.protectedPaths, ['out.ts'])

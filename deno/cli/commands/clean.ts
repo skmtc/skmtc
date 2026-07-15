@@ -57,7 +57,9 @@ export const renderClean = async ({
   const result = await cleanHeadless({
     projectName,
     dryRun: dryRunFlag ?? false,
-    clientSettings: project.clientJson.contents?.settings
+    clientSettings: project.clientJson.contents?.settings,
+    schemaSourceString: project.clientJson.contents?.source,
+    stackUrl: project.clientJson.contents?.serverUrl
   })
 
   printCleanResult(result, {
