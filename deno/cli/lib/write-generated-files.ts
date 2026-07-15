@@ -17,24 +17,9 @@ import {
   toGeneratedLockPath,
   writeGeneratedLock
 } from '@/lib/generated-lock.ts'
-import {
-  readBaseline,
-  removeBaseline,
-  toBaselinePath,
-  toBaselinesDir,
-  writeBaseline
-} from '@/lib/baseline-store.ts'
-import { formatContent, runFormatter } from '@/lib/formatter.ts'
+import { runFormatter } from '@/lib/formatter.ts'
 import { classifyDiskFile, type EditDetectionContext } from '@/lib/edit-detection.ts'
-import { readEjections, toEjectionsPath } from '@/lib/ejections.ts'
-import {
-  type EjectionFileState,
-  toEjectionStatePath,
-  writeEjectionState
-} from '@/lib/ejection-state.ts'
-import { classifyThreeWay, isThreeWayDiffable } from '@/lib/three-way.ts'
-import { toCommittedBaselinePath, toPristinePath } from '@/lib/baseline-store.ts'
-import { dirname } from '@std/path/dirname'
+import { classifyEjectedFile } from '@/lib/ejection-state.ts'
 
 /**
  * Artifact-space keys of the project's ejected files: each
@@ -126,11 +111,14 @@ export const deletePreviousArtifacts = ({
       // it would destroy their work. Leave it and let the caller report.
       const lockEntry = detection?.lock?.files[path]
       if (detection && lockEntry && existsSync(absolutePath)) {
+        // Nothing renders this path this run (it's stale) — no fresh
+        // content to disambiguate a formatter-config change from an
+        // edit, so a hash mismatch here is always classified edited.
         const { edited } = classifyDiskFile({
-          artifactPath: path,
           absolutePath,
           lockEntry,
-          detection
+          detection,
+          freshCanonicalContent: undefined
         })
 
         if (edited) {
@@ -141,10 +129,6 @@ export const deletePreviousArtifacts = ({
 
       Deno.removeSync(absolutePath)
       deletedAbsPaths.push(absolutePath)
-
-      if (detection?.baselinesDir) {
-        removeBaseline(detection.baselinesDir, path)
-      }
     } catch (_error) {
       // Ignore
       // console.error(`Failed to delete artifact: "${error}"`)
@@ -199,14 +183,6 @@ type WriteGeneratedFilesArgs = {
    *  and formatter-aware edit detection. */
   clientSettings?: ClientSettings
   /**
-   * Filesystem path of the project — `.skmtc/<project>/`. Enables the
-   * canonical-content baseline store (`<projectPath>/.baselines/`),
-   * which is what lets edit detection tell a formatter-config change
-   * apart from a hand edit. Omitted → baselines are disabled and only
-   * lock-hash comparison runs.
-   */
-  projectPath?: string
-  /**
    * Suppress the multi-line stderr warning for protected files. Watch
    * mode sets this — re-announcing the same protected files on every
    * rebuild is alarm fatigue; `dev` prints its own one-line status
@@ -226,13 +202,6 @@ export type WriteGeneratedFilesResult = {
    */
   protectedPaths: string[]
   /**
-   * Drift report for ejected files, present when the project has any.
-   * All lists carry owned artifact paths. `drifted` contains only
-   * UNREVIEWED drift (nag control: an acknowledged drift —
-   * `reviewedPristineHash` in ejections.json matching the current
-   * pristine hash — stays out until the output changes again).
-   */
-  /**
    * On-disk content per artifact whose file no longer matches the raw
    * engine render at the end of the run — formatted by
    * `settings.formatter` this run, or left formatted by a previous run
@@ -241,8 +210,8 @@ export type WriteGeneratedFilesResult = {
    * describes the file as it actually exists on disk.
    */
   onDiskDrift: Record<string, string>
+  /** Live report for ejected files, present when the project has any. All lists carry owned artifact paths. */
   ejections?: {
-    drifted: string[]
     reAdoptable: string[]
     stale: string[]
     /** Suffixed twins of ejected files that a (version-skewed) engine emitted — blocked from writing. */
@@ -255,7 +224,6 @@ export const writeGeneratedFiles = ({
   artifacts,
   manifest,
   clientSettings,
-  projectPath,
   warnOnProtected = true
 }: WriteGeneratedFilesArgs): WriteGeneratedFilesResult => {
   const skmtcRootPath = toRootPath()
@@ -263,12 +231,10 @@ export const writeGeneratedFiles = ({
 
   const lockPath = toGeneratedLockPath(manifestPath)
   const lock = readGeneratedLock(lockPath)
-  const baselinesDir = projectPath ? toBaselinesDir(projectPath) : null
 
   const detection: EditDetectionContext = {
     lock,
     formatterCommand: clientSettings?.formatter,
-    baselinesDir,
     appRoot
   }
 
@@ -341,7 +307,7 @@ export const writeGeneratedFiles = ({
       // Ejected: the user owns this file. The engine still rendered it
       // (that content is drift detection's input) but the host never
       // writes it. The lock entry carries forward untouched — it is
-      // the base a future adopt/merge resolves from.
+      // the base a future adopt resolves from.
       const previousEntry = lock?.files[artifactPath]
       if (previousEntry) {
         nextLockFiles[artifactPath] = previousEntry
@@ -378,9 +344,6 @@ export const writeGeneratedFiles = ({
           canonicalHash,
           formattedHash: canonicalHash
         }
-        if (baselinesDir) {
-          writeBaseline(baselinesDir, artifactPath, content)
-        }
         continue
       }
 
@@ -394,17 +357,25 @@ export const writeGeneratedFiles = ({
       continue
     }
 
+    // This run's fresh canonical render for `artifactPath` is `content`
+    // — already in memory, no cache needed. It's only an exact stand-in
+    // for "what was rendered last time" when the canonical output is
+    // unchanged (the branch below): if the schema also changed this
+    // run, a formatter-config change on an otherwise-untouched file can
+    // misclassify as edited here, since there's no way to recover what
+    // the OLD canonical render looked like. That fails safe — the file
+    // is protected, never destroyed — and resolves itself next run.
     const { edited, driftResolvedFormattedHash } = classifyDiskFile({
-      artifactPath,
       absolutePath,
       lockEntry,
-      detection
+      detection,
+      freshCanonicalContent: content
     })
 
     if (edited) {
       // The prime invariant: never destroy a hand edit. Keep the old
-      // lock entry and baseline — they are what the user's edit was
-      // made against, and what a future eject/merge resolves from.
+      // lock entry — it is what the user's edit was made against, and
+      // what a future eject resolves from.
       protectedPaths.push(artifactPath)
       nextLockFiles[artifactPath] = lockEntry
       continue
@@ -418,12 +389,6 @@ export const writeGeneratedFiles = ({
       nextLockFiles[artifactPath] = {
         canonicalHash: lockEntry.canonicalHash,
         formattedHash: driftResolvedFormattedHash ?? lockEntry.formattedHash
-      }
-      if (baselinesDir && toBaselinePath(baselinesDir, artifactPath) !== null) {
-        const existingBaseline = readBaseline(baselinesDir, artifactPath)
-        if (existingBaseline === null) {
-          writeBaseline(baselinesDir, artifactPath, content)
-        }
       }
       continue
     }
@@ -453,14 +418,11 @@ export const writeGeneratedFiles = ({
     }
   }
 
-  for (const { artifactPath, absolutePath, canonicalHash, content } of pendingWrites) {
+  for (const { artifactPath, absolutePath, canonicalHash } of pendingWrites) {
     const onDisk = Deno.readTextFileSync(absolutePath)
     nextLockFiles[artifactPath] = {
       canonicalHash,
       formattedHash: toContentHash(onDisk)
-    }
-    if (baselinesDir) {
-      writeBaseline(baselinesDir, artifactPath, content)
     }
   }
 
@@ -490,8 +452,6 @@ export const writeGeneratedFiles = ({
   const ejections = toEjectionReport({
     artifacts: artifacts ?? {},
     clientSettings,
-    manifestPath,
-    projectPath,
     skmtcRootPath,
     appRoot,
     twinBlocked
@@ -504,13 +464,6 @@ export const writeGeneratedFiles = ({
           `ejected file(s):\n${ejections.twinBlocked.map(path => `  ${path}`).join('\n')}\n` +
           `The engine that produced this run does not honor settings.ejected — rebundle the ` +
           `project so its core pin supports ejection.`
-      )
-    }
-    if (ejections.drifted.length > 0) {
-      console.error(
-        `Note: ${ejections.drifted.length} ejected file(s) have drifted behind their ` +
-          `generators:\n${ejections.drifted.map(path => `  ${path}`).join('\n')}\n` +
-          `See \`skmtc status\` for details.`
       )
     }
     if (ejections.reAdoptable.length > 0) {
@@ -582,32 +535,22 @@ export const writeGeneratedFiles = ({
 }
 
 /**
- * Computes the per-run drift state of every ejected file. This is the
- * only moment all three versions exist together: B (the committed
- * baseline from eject time), P (this run's pristine render, present in
- * `artifacts` because ejected items still generate in memory), and D
- * (the user's file on disk).
- *
- * State precedence: `re-adoptable` wins over `quiet` — a file that
- * matches current generated output should return to generation even
- * when the generator hasn't moved (the user reverted their edit).
- * Drift is formatter-free (canonical P vs canonical B); only the
- * re-adopt check compares through the formatter, because D is a
- * formatted file.
+ * Computes the live state of every ejected file against this run's
+ * fresh render — the only moment both exist together: P (this run's
+ * pristine render, present in `artifacts` because ejected items still
+ * generate in memory) and D (the user's file on disk). No history is
+ * consulted or persisted; ejected is binary, so "does it currently
+ * match" is the whole question.
  */
 const toEjectionReport = ({
   artifacts,
   clientSettings,
-  manifestPath,
-  projectPath,
   skmtcRootPath,
   appRoot,
   twinBlocked
 }: {
   artifacts: Record<string, string>
   clientSettings: ClientSettings | undefined
-  manifestPath: string
-  projectPath: string | undefined
   skmtcRootPath: string
   appRoot: string
   twinBlocked: string[]
@@ -618,13 +561,10 @@ const toEjectionReport = ({
     return undefined
   }
 
-  const records = readEjections(toEjectionsPath(manifestPath))
   const formatterCommand = clientSettings?.formatter
 
-  const drifted: string[] = []
   const reAdoptable: string[] = []
   const stale: string[] = []
-  const stateFiles: Record<string, EjectionFileState> = {}
 
   for (const ejectedExportPath of ejectedExportPaths) {
     const ownedArtifactPath = toResolvedArtifactPath({
@@ -634,100 +574,22 @@ const toEjectionReport = ({
     const absoluteOwned = join(skmtcRootPath, '..', ownedArtifactPath)
 
     const pristine = artifacts[ownedArtifactPath]
-
-    if (pristine === undefined) {
-      stale.push(ownedArtifactPath)
-      stateFiles[ownedArtifactPath] = { state: 'stale' }
-      if (projectPath) {
-        try {
-          Deno.removeSync(toPristinePath(projectPath, ownedArtifactPath))
-        } catch (_error) {
-          // Absent — nothing to clear.
-        }
-      }
-      continue
-    }
-
-    // Persist this run's pristine render — the "theirs" side a later
-    // `skmtc merge` needs, since merge runs without the engine.
-    if (projectPath) {
-      const pristinePath = toPristinePath(projectPath, ownedArtifactPath)
-      ensureDirSync(dirname(pristinePath))
-      Deno.writeTextFileSync(pristinePath, pristine)
-    }
-
-    const pristineHash = toContentHash(pristine)
-    const record = records.files[ejectedExportPath]
-
     const diskContent = existsSync(absoluteOwned) ? Deno.readTextFileSync(absoluteOwned) : undefined
 
-    const matchesGenerated =
-      diskContent !== undefined &&
-      (formatterCommand
-        ? formatContent({
-            command: formatterCommand,
-            absolutePath: absoluteOwned,
-            content: pristine,
-            cwd: appRoot
-          }) === diskContent
-        : pristine === diskContent)
-
-    if (matchesGenerated) {
-      reAdoptable.push(ownedArtifactPath)
-      stateFiles[ownedArtifactPath] = { state: 're-adoptable', pristineHash }
-      continue
-    }
-
-    // Without a recorded baseline hash (a hand-added settings.ejected
-    // entry) there is no drift signal — the file is quietly owned.
-    if (!record?.baselineHash || pristineHash === record.baselineHash) {
-      stateFiles[ownedArtifactPath] = { state: 'quiet', pristineHash }
-      continue
-    }
-
-    const reviewed = record.reviewedPristineHash === pristineHash
-
-    const baselineContent =
-      projectPath && existsSync(toCommittedBaselinePath(projectPath, ownedArtifactPath))
-        ? Deno.readTextFileSync(toCommittedBaselinePath(projectPath, ownedArtifactPath))
-        : undefined
-
-    // Skip classification (leaving "overlap unknown") when any side is
-    // too large for the line diff — the O(n·m) LCS would stall the
-    // generate. See MAX_DIFF_CELLS.
-    const classification =
-      baselineContent !== undefined &&
-      diskContent !== undefined &&
-      isThreeWayDiffable({
-        base: baselineContent,
-        ours: diskContent,
-        theirs: pristine
-      })
-        ? classifyThreeWay({
-            base: baselineContent,
-            ours: diskContent,
-            theirs: pristine
-          })
-        : undefined
-
-    stateFiles[ownedArtifactPath] = {
-      state: 'drifted',
-      pristineHash,
-      ...(classification ? { classification } : {}),
-      reviewed
-    }
-
-    if (!reviewed) {
-      drifted.push(ownedArtifactPath)
-    }
-  }
-
-  if (projectPath) {
-    writeEjectionState(toEjectionStatePath(projectPath), {
-      version: 1,
-      files: stateFiles
+    const { state } = classifyEjectedFile({
+      pristine,
+      diskContent,
+      formatterCommand,
+      absolutePath: absoluteOwned,
+      appRoot
     })
+
+    if (state === 'stale') {
+      stale.push(ownedArtifactPath)
+    } else if (state === 're-adoptable') {
+      reAdoptable.push(ownedArtifactPath)
+    }
   }
 
-  return { drifted, reAdoptable, stale, twinBlocked }
+  return { reAdoptable, stale, twinBlocked }
 }

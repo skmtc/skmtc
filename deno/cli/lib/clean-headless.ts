@@ -11,6 +11,13 @@
  * Strict mode invokes this directly. A `dryRun` enumerates what would
  * be deleted without touching disk — recommended before a real run
  * since the operation is destructive and not undoable.
+ *
+ * Resolves the schema and renders fresh content on demand (like
+ * `status`) so the `modified` report can tell a formatter-config
+ * change apart from a hand edit; degrades to lock-hash-only comparison
+ * when the schema can't be reached. Either way, `clean` still deletes
+ * the full generated set — the fresh render only affects what gets
+ * *reported*, not what gets deleted.
  */
 
 import { join } from '@std/path/join'
@@ -23,8 +30,8 @@ import { toRootPath } from '@/lib/to-root-path.ts'
 import { pruneEmptyDirs, toAnchorDirs } from '@/lib/prune-empty-dirs.ts'
 import { toEjectedArtifactPaths } from '@/lib/write-generated-files.ts'
 import { readGeneratedLock, toGeneratedLockPath } from '@/lib/generated-lock.ts'
-import { toBaselinesDir } from '@/lib/baseline-store.ts'
 import { classifyDiskFile, type EditDetectionContext } from '@/lib/edit-detection.ts'
+import { resolveFreshArtifacts } from '@/lib/resolve-fresh-artifacts.ts'
 
 type CleanHeadlessArgs = {
   projectName: string
@@ -32,6 +39,13 @@ type CleanHeadlessArgs = {
   /** Output anchors from the project's client.json — used to bound
    *  empty-dir pruning. When absent (no basePath), dirs aren't pruned. */
   clientSettings: ClientSettings | undefined
+  /** `client.json#source` — resolved fresh to disambiguate a
+   *  formatter-config change from a hand edit in the `modified` report.
+   *  Absent, or unreachable, degrades to lock-hash-only comparison. */
+  schemaSourceString: string | undefined
+  /** `client.json#serverUrl` — generate against a deployed stack
+   *  server instead of the local bundle, when set. */
+  stackUrl: string | undefined
   /** Workspace root (`.skmtc`). Defaults to the cwd-derived
    *  `toRootPath()`. Injectable so tests can point at a temp workspace
    *  without depending on `Deno.cwd()`. */
@@ -72,10 +86,13 @@ export const cleanHeadless = async ({
   projectName,
   dryRun,
   clientSettings,
+  schemaSourceString,
+  stackUrl,
   skmtcRootPath = toRootPath()
 }: CleanHeadlessArgs): Promise<CleanHeadlessResult> => {
   const appRoot = resolve(join(skmtcRootPath, '..'))
-  const manifestPath = join(skmtcRootPath, projectName, '.settings', 'manifest.json')
+  const projectPath = join(skmtcRootPath, projectName)
+  const manifestPath = join(projectPath, '.settings', 'manifest.json')
 
   const manifest = await Manifest.openFromPath(projectName, manifestPath)
 
@@ -108,9 +125,15 @@ export const cleanHeadless = async ({
   const detection: EditDetectionContext = {
     lock,
     formatterCommand: clientSettings?.formatter,
-    baselinesDir: toBaselinesDir(join(skmtcRootPath, projectName)),
     appRoot
   }
+
+  const freshArtifacts = await resolveFreshArtifacts({
+    projectPath,
+    schemaSourceString,
+    clientSettings,
+    stackUrl
+  })
 
   for (const [path, entry] of Object.entries(manifest.contents.files)) {
     const absolutePath = join(skmtcRootPath, '..', path)
@@ -143,7 +166,12 @@ export const cleanHeadless = async ({
     const lockEntry = lock?.files[path]
     if (
       lockEntry &&
-      classifyDiskFile({ artifactPath: path, absolutePath, lockEntry, detection }).edited
+      classifyDiskFile({
+        absolutePath,
+        lockEntry,
+        detection,
+        freshCanonicalContent: freshArtifacts?.[path]
+      }).edited
     ) {
       modified.push(path)
     }

@@ -22,9 +22,8 @@ Concretely, ejecting `src/types/user.generated.ts`:
    metadata in `.settings/ejections.json` — when it was ejected, which
    generator items produced it (from the generation map, when
    available), and the last-generated content hash.
-3. **Re-keys the generated lock entry** and copies the canonical
-   baseline into the committed `.settings/baselines/` store, so drift
-   detection and future merge tooling work on fresh clones and in CI.
+3. **Re-keys the generated lock entry** — the base a future `adopt`
+   resolves from.
 
 From the next `skmtc generate` on:
 
@@ -67,9 +66,8 @@ the project's manifest and exist on disk.
 ### `--json`
 
 Write the structured result to stdout: the owned export path and
-on-disk path, the previous path, the contributing generator items, and
-whether a committed baseline was recorded. On failure: `{ ok: false,
-reason }` with exit 1.
+on-disk path, the previous path, and the contributing generator items.
+On failure: `{ ok: false, reason }` with exit 1.
 
 ## Behavior notes
 

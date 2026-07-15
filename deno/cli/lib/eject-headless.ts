@@ -5,12 +5,10 @@
  * **Eject** renames `X.generated.ts` → `X.ts`, adds the owned export
  * path to `client.json#settings.ejected` (the authoritative set the
  * engine and writer read), records provenance metadata in
- * `.settings/ejections.json`, re-keys the generated lock entry, and
- * copies the canonical baseline into the committed
- * `.settings/baselines/` store. From the next generate on, the engine
- * stores the owned path into ContentSettings for this item — every
- * peer import specifier follows automatically — and the host never
- * writes or deletes the file.
+ * `.settings/ejections.json`, and re-keys the generated lock entry.
+ * From the next generate on, the engine stores the owned path into
+ * ContentSettings for this item — every peer import specifier follows
+ * automatically — and the host never writes or deletes the file.
  *
  * **Adopt** is the inverse: rename back, remove the setting and
  * metadata. It never destroys content — if the adopted file still
@@ -37,7 +35,6 @@ import {
 } from '@skmtc/core'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { Manifest } from '@/lib/manifest.ts'
-import { toCommittedBaselinePath } from '@/lib/baseline-store.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import { readGeneratedLock, toGeneratedLockPath, writeGeneratedLock } from '@/lib/generated-lock.ts'
 import {
@@ -73,8 +70,6 @@ export type EjectHeadlessResult =
       previousArtifactPath: string
       /** Contributing generator items from the generation map (may be empty). */
       items: EjectionItem[]
-      /** True when the committed baseline copy was written. */
-      baselineRecorded: boolean
     }
   | { ok: false; reason: string }
 
@@ -150,7 +145,7 @@ export const ejectHeadless = async ({
   }
 
   // 3. Re-key the lock entry — it holds the last-generated hashes, the
-  //    base a future adopt/merge resolves from.
+  //    base a future adopt resolves from.
   const lockPath = toGeneratedLockPath(manifestPath)
   const lock = readGeneratedLock(lockPath)
   const lockEntry = lock?.files[artifactPath]
@@ -160,18 +155,7 @@ export const ejectHeadless = async ({
     writeGeneratedLock(lockPath, lock)
   }
 
-  // 4. Copy the canonical baseline into the committed store, so drift
-  //    detection and merge work on fresh clones and in CI.
-  const cachedBaselinePath = join(projectPath, '.baselines', artifactPath)
-  const committedBaselinePath = toCommittedBaselinePath(projectPath, ownedArtifactPath)
-  let baselineRecorded = false
-  if (existsSync(cachedBaselinePath)) {
-    ensureDirSync(dirname(committedBaselinePath))
-    Deno.copyFileSync(cachedBaselinePath, committedBaselinePath)
-    baselineRecorded = true
-  }
-
-  // 5. Provenance metadata.
+  // 4. Provenance metadata.
   const items = readGenerationMapItems({
     projectPath,
     clientSettings,
@@ -184,8 +168,7 @@ export const ejectHeadless = async ({
     reason: 'explicit',
     ejectedAt: new Date().toISOString(),
     generatedExportPath: entry.destinationPath,
-    items,
-    ...(lockEntry ? { baselineHash: lockEntry.canonicalHash } : {})
+    items
   }
   writeEjections(ejectionsPath, ejections)
 
@@ -195,8 +178,7 @@ export const ejectHeadless = async ({
     ownedExportPath,
     ownedArtifactPath,
     previousArtifactPath: artifactPath,
-    items,
-    baselineRecorded
+    items
   }
 }
 
@@ -300,13 +282,6 @@ export const adoptHeadless = ({
 
   delete ejections.files[ownedExportPath]
   writeEjections(ejectionsPath, ejections)
-
-  const committedBaselinePath = toCommittedBaselinePath(projectPath, ownedArtifactPath)
-  try {
-    Deno.removeSync(committedBaselinePath)
-  } catch (_error) {
-    // Absent or unremovable — either way, not worth failing the adopt.
-  }
 
   return { ok: true, projectName, ownedExportPath, generatedArtifactPath }
 }

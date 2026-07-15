@@ -31,18 +31,6 @@ export type EjectionRecord = {
   generatedExportPath: string
   /** Generator items that produced the file (from `_map.ndjson`); empty when gen-maps weren't available. */
   items: EjectionItem[]
-  /** SHA-256 of the last generated canonical content at eject time, when the lock knew it. */
-  baselineHash?: string
-  /**
-   * Nag control for drift review: SHA-256 of the pristine render the
-   * user last acknowledged. While the current pristine hash matches,
-   * the drift stays out of generate's warnings and `--check` never
-   * fires for it; the moment the generator's output moves again, the
-   * drift resurfaces. Advancing this NEVER advances `baselineHash` —
-   * the baseline stays what the user's edits were made against (it is
-   * the future merge base).
-   */
-  reviewedPristineHash?: string
 }
 
 export type EjectionsContent = {
@@ -61,9 +49,7 @@ const ejectionRecord: v.GenericSchema<EjectionRecord> = v.object({
   reason: v.union([v.literal('manual-edit'), v.literal('explicit')]),
   ejectedAt: v.string(),
   generatedExportPath: v.string(),
-  items: v.array(ejectionItem),
-  baselineHash: v.optional(v.string()),
-  reviewedPristineHash: v.optional(v.string())
+  items: v.array(ejectionItem)
 })
 
 export const ejectionsContent: v.GenericSchema<EjectionsContent> = v.object({

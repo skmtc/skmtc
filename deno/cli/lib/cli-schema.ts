@@ -170,14 +170,6 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     agentMode: 'json-only'
   },
   {
-    name: 'merge',
-    description:
-      "Resolve drift on an ejected file: three-way merge that keeps your edits and applies the generator's changes, advancing the baseline. Refuses whole on collisions — never writes conflict markers. The file stays ejected.",
-    args: ['<project>', '<file>'],
-    flags: [{ flag: '--json', description: 'Emit structured JSON output.' }],
-    agentMode: 'json-only'
-  },
-  {
     name: 'describe',
     description:
       "Report a project's preview metadata by running its bundle read-only: supported subjects (operations / models) per generator, the form-renderable enrichment descriptors, and the schema-derived enrichment defaults.",

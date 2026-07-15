@@ -142,7 +142,6 @@ export const generateLocal = async ({
       artifacts,
       manifest,
       clientSettings,
-      projectPath,
       warnOnProtected
     })
 

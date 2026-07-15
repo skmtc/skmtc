@@ -48,8 +48,7 @@ export const generate = async ({
       manifestPath,
       artifacts,
       manifest,
-      clientSettings,
-      projectPath: project.toPath()
+      clientSettings
     })
 
     const stats = toGenerationStats({ manifest, artifacts })

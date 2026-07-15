@@ -13,11 +13,15 @@ type RenderStatusArgs = {
 }
 
 /**
- * `status` is read-only: it classifies every generated file the
- * project's manifest records against the generated lock (clean /
- * modified / missing / unverified, plus orphaned files spared from
- * pruning) without touching anything. Like `clean` and `doctor` it
- * has no Ink variant — headless text or `--json` only. `--check`
+ * `status` is read-only — it never writes — and classifies every
+ * generated file the project's manifest records against the generated
+ * lock (clean / modified / missing / unverified, plus orphaned files
+ * spared from pruning). It resolves the schema and renders fresh
+ * content on demand to disambiguate a formatter-config change from a
+ * hand edit, degrading to lock-hash-only comparison when the schema
+ * can't be reached — safe to run any time, including CI, offline or
+ * before a project has ever been generated. Like `clean` and `doctor`
+ * it has no Ink variant — headless text or `--json` only. `--check`
  * turns a dirty status (modified or orphaned files) into exit 1 for
  * CI gates.
  */
@@ -54,7 +58,9 @@ export const renderStatus = async ({
 
   const result = await statusHeadless({
     projectName,
-    clientSettings: project.clientJson.contents?.settings
+    clientSettings: project.clientJson.contents?.settings,
+    schemaSourceString: project.clientJson.contents?.source,
+    stackUrl: project.clientJson.contents?.serverUrl
   })
 
   printStatusResult(result, {
@@ -102,7 +108,7 @@ export const printStatusResult = (
       )
 
       const listed = result.files.filter(({ status, ejection }) =>
-        verbose ? true : status === 'modified' || (ejection && ejection.state !== 'quiet')
+        verbose ? true : status === 'modified' || (ejection && ejection.state !== 'owned')
       )
 
       for (const { path, status, ejection } of listed) {
@@ -156,20 +162,10 @@ const toEjectionNote = (ejection: StatusHeadlessResult['files'][number]['ejectio
   }
 
   switch (ejection.state) {
-    case 'quiet':
+    case 'owned':
       return ''
     case 're-adoptable':
       return ' (matches generated output — `skmtc adopt` to resume generation)'
-    case 'drifted': {
-      const overlap =
-        ejection.classification === 'collision'
-          ? 'the generator changes collide with your edits'
-          : ejection.classification === 'non-overlapping'
-            ? "the generator changes don't touch your edits"
-            : 'overlap unknown'
-      const reviewed = ejection.reviewed ? '; reviewed' : ''
-      return ` (drifted — ${overlap}${reviewed})`
-    }
     case 'stale':
       return ' (no longer produced by any generator)'
     default: {

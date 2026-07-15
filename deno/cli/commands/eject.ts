@@ -94,13 +94,6 @@ export const printEjectResult = (result: EjectHeadlessResult, format: 'text' | '
         }
       }
 
-      if (!result.baselineRecorded) {
-        console.log(
-          `\nNote: no canonical baseline was available to record — drift detection for this ` +
-            `file starts from the next generate.`
-        )
-      }
-
       console.log(`\nRun \`skmtc generate\` to update peer imports. Reverse with \`skmtc adopt\`.`)
       return
     }

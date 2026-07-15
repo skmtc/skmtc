@@ -5,14 +5,12 @@ import * as v from 'valibot'
 import { manifestContent, type ManifestContent } from '@skmtc/core/Manifest'
 import { writeGeneratedFiles } from '@/lib/write-generated-files.ts'
 import { ejectHeadless } from '@/lib/eject-headless.ts'
-import { readEjections, toEjectionsPath, writeEjections } from '@/lib/ejections.ts'
-import { readEjectionState, toEjectionStatePath } from '@/lib/ejection-state.ts'
-import { readGeneratedLock, toContentHash, toGeneratedLockPath } from '@/lib/generated-lock.ts'
+import { readGeneratedLock, toGeneratedLockPath } from '@/lib/generated-lock.ts'
 
-// Drift lifecycle: run 1 generates (seeding lock + baseline cache), the
-// user edits and ejects (committing the baseline), then subsequent runs
-// compare B (committed baseline), P (this run's render, still present
-// in artifacts for ejected items), and D (the user's disk file).
+// Ejected-file report: each generate run compares P (this run's render,
+// still present in artifacts for ejected items) against D (the user's
+// disk file) live — no history, no persisted state. `re-adoptable` /
+// `stale` / neither (ordinary, owned) is the whole model.
 
 const BASE = ['export const a = 1', 'export const b = 2', 'export const c = 3'].join('\n') + '\n'
 
@@ -37,7 +35,6 @@ const toManifest = (files: Record<string, string>): ManifestContent =>
 type Workspace = {
   tempDir: string
   skmtcRootPath: string
-  projectPath: string
   manifestPath: string
 }
 
@@ -59,8 +56,7 @@ const toEjectedWorkspace = async (editedContent: string): Promise<Workspace> => 
   writeGeneratedFiles({
     manifestPath,
     artifacts: { 'src/user.generated.ts': BASE },
-    manifest: toManifest({ 'src/user.generated.ts': '@/src/user.generated.ts' }),
-    projectPath
+    manifest: toManifest({ 'src/user.generated.ts': '@/src/user.generated.ts' })
   })
 
   Deno.writeTextFileSync(join(tempDir, 'src/user.generated.ts'), editedContent)
@@ -73,7 +69,7 @@ const toEjectedWorkspace = async (editedContent: string): Promise<Workspace> => 
   })
   assertEquals(ejected.ok, true)
 
-  return { tempDir, skmtcRootPath, projectPath, manifestPath }
+  return { tempDir, skmtcRootPath, manifestPath }
 }
 
 const EJECTED_SETTINGS = { ejected: ['@/src/user.ts'] }
@@ -91,33 +87,26 @@ const withCapturedErrors = async (
   }
 }
 
-Deno.test('drift - unchanged generator output is quiet', async () => {
+Deno.test('ejection report - unchanged generator output is ordinary (owned)', async () => {
   const originalCwd = Deno.cwd()
   const edited = BASE.replace('export const a = 1', 'export const a = 100 // mine')
-  const { tempDir, projectPath, manifestPath } = await toEjectedWorkspace(edited)
+  const { tempDir, manifestPath } = await toEjectedWorkspace(edited)
   try {
-    await withCapturedErrors(errors => {
+    await withCapturedErrors(() => {
       const result = writeGeneratedFiles({
         manifestPath,
         artifacts: { 'src/user.ts': BASE },
         manifest: toManifest({ 'src/user.ts': '@/src/user.ts' }),
-        clientSettings: EJECTED_SETTINGS,
-        projectPath
+        clientSettings: EJECTED_SETTINGS
       })
 
+      // Neither re-adoptable nor stale — an ordinary owned file, nothing
+      // to report.
       assertEquals(result.ejections, {
-        drifted: [],
         reAdoptable: [],
         stale: [],
         twinBlocked: []
       })
-      assertEquals(
-        errors.filter(msg => msg.includes('drifted')),
-        []
-      )
-
-      const state = readEjectionState(toEjectionStatePath(projectPath))
-      assertEquals(state.files['src/user.ts']?.state, 'quiet')
 
       // The user's file is untouched.
       assertEquals(Deno.readTextFileSync(join(tempDir, 'src/user.ts')), edited)
@@ -128,114 +117,10 @@ Deno.test('drift - unchanged generator output is quiet', async () => {
   }
 })
 
-Deno.test('drift - disjoint generator change reports non-overlapping drift', async () => {
+Deno.test('ejection report - a reverted edit reports re-adoptable', async () => {
   const originalCwd = Deno.cwd()
   const edited = BASE.replace('export const a = 1', 'export const a = 100 // mine')
-  const { tempDir, projectPath, manifestPath } = await toEjectedWorkspace(edited)
-  try {
-    await withCapturedErrors(errors => {
-      // The generator now changes the LAST line — disjoint from the edit.
-      const pristine = BASE.replace('export const c = 3', 'export const c = 30')
-
-      const result = writeGeneratedFiles({
-        manifestPath,
-        artifacts: { 'src/user.ts': pristine },
-        manifest: toManifest({ 'src/user.ts': '@/src/user.ts' }),
-        clientSettings: EJECTED_SETTINGS,
-        projectPath
-      })
-
-      assertEquals(result.ejections?.drifted, ['src/user.ts'])
-      assertStringIncludes(errors.join('\n'), 'drifted behind their generators')
-
-      const state = readEjectionState(toEjectionStatePath(projectPath))
-      assertEquals(state.files['src/user.ts']?.state, 'drifted')
-      assertEquals(state.files['src/user.ts']?.classification, 'non-overlapping')
-      assertEquals(state.files['src/user.ts']?.reviewed, false)
-    })
-  } finally {
-    Deno.chdir(originalCwd)
-    await Deno.remove(tempDir, { recursive: true })
-  }
-})
-
-Deno.test('drift - both sides changing the same line reports a collision', async () => {
-  const originalCwd = Deno.cwd()
-  const edited = BASE.replace('export const b = 2', 'export const b = 200 // mine')
-  const { tempDir, projectPath, manifestPath } = await toEjectedWorkspace(edited)
-  try {
-    await withCapturedErrors(() => {
-      const pristine = BASE.replace('export const b = 2', 'export const b = 20')
-
-      writeGeneratedFiles({
-        manifestPath,
-        artifacts: { 'src/user.ts': pristine },
-        manifest: toManifest({ 'src/user.ts': '@/src/user.ts' }),
-        clientSettings: EJECTED_SETTINGS,
-        projectPath
-      })
-
-      const state = readEjectionState(toEjectionStatePath(projectPath))
-      assertEquals(state.files['src/user.ts']?.classification, 'collision')
-    })
-  } finally {
-    Deno.chdir(originalCwd)
-    await Deno.remove(tempDir, { recursive: true })
-  }
-})
-
-Deno.test('drift - acknowledged drift stays quiet until output moves again', async () => {
-  const originalCwd = Deno.cwd()
-  const edited = BASE.replace('export const a = 1', 'export const a = 100 // mine')
-  const { tempDir, projectPath, manifestPath } = await toEjectedWorkspace(edited)
-  try {
-    await withCapturedErrors(errors => {
-      const pristine = BASE.replace('export const c = 3', 'export const c = 30')
-
-      // The user acknowledges this exact pristine output.
-      const ejectionsPath = toEjectionsPath(manifestPath)
-      const ejections = readEjections(ejectionsPath)
-      ejections.files['@/src/user.ts'].reviewedPristineHash = toContentHash(pristine)
-      writeEjections(ejectionsPath, ejections)
-
-      const acknowledged = writeGeneratedFiles({
-        manifestPath,
-        artifacts: { 'src/user.ts': pristine },
-        manifest: toManifest({ 'src/user.ts': '@/src/user.ts' }),
-        clientSettings: EJECTED_SETTINGS,
-        projectPath
-      })
-
-      assertEquals(acknowledged.ejections?.drifted, [])
-      assertEquals(
-        errors.filter(msg => msg.includes('drifted')),
-        []
-      )
-      const state = readEjectionState(toEjectionStatePath(projectPath))
-      assertEquals(state.files['src/user.ts']?.reviewed, true)
-
-      // The generator moves AGAIN — the drift resurfaces.
-      const movedAgain = pristine.replace('export const c = 30', 'export const c = 300')
-      const resurfaced = writeGeneratedFiles({
-        manifestPath,
-        artifacts: { 'src/user.ts': movedAgain },
-        manifest: toManifest({ 'src/user.ts': '@/src/user.ts' }),
-        clientSettings: EJECTED_SETTINGS,
-        projectPath
-      })
-
-      assertEquals(resurfaced.ejections?.drifted, ['src/user.ts'])
-    })
-  } finally {
-    Deno.chdir(originalCwd)
-    await Deno.remove(tempDir, { recursive: true })
-  }
-})
-
-Deno.test('drift - a reverted edit reports re-adoptable', async () => {
-  const originalCwd = Deno.cwd()
-  const edited = BASE.replace('export const a = 1', 'export const a = 100 // mine')
-  const { tempDir, projectPath, manifestPath } = await toEjectedWorkspace(edited)
+  const { tempDir, manifestPath } = await toEjectedWorkspace(edited)
   try {
     await withCapturedErrors(errors => {
       // The user reverts their edit: disk now equals generated output.
@@ -245,15 +130,11 @@ Deno.test('drift - a reverted edit reports re-adoptable', async () => {
         manifestPath,
         artifacts: { 'src/user.ts': BASE },
         manifest: toManifest({ 'src/user.ts': '@/src/user.ts' }),
-        clientSettings: EJECTED_SETTINGS,
-        projectPath
+        clientSettings: EJECTED_SETTINGS
       })
 
       assertEquals(result.ejections?.reAdoptable, ['src/user.ts'])
       assertStringIncludes(errors.join('\n'), 'skmtc adopt')
-
-      const state = readEjectionState(toEjectionStatePath(projectPath))
-      assertEquals(state.files['src/user.ts']?.state, 're-adoptable')
     })
   } finally {
     Deno.chdir(originalCwd)
@@ -261,10 +142,10 @@ Deno.test('drift - a reverted edit reports re-adoptable', async () => {
   }
 })
 
-Deno.test('drift - an ejected file no longer produced reports stale', async () => {
+Deno.test('ejection report - an ejected file no longer produced reports stale', async () => {
   const originalCwd = Deno.cwd()
   const edited = BASE.replace('export const a = 1', 'export const a = 100 // mine')
-  const { tempDir, projectPath, manifestPath } = await toEjectedWorkspace(edited)
+  const { tempDir, manifestPath } = await toEjectedWorkspace(edited)
   try {
     await withCapturedErrors(errors => {
       // The schema item was removed: no artifact at the owned path.
@@ -272,8 +153,7 @@ Deno.test('drift - an ejected file no longer produced reports stale', async () =
         manifestPath,
         artifacts: { 'src/other.generated.ts': 'export const other = 1\n' },
         manifest: toManifest({ 'src/other.generated.ts': '@/src/other.generated.ts' }),
-        clientSettings: EJECTED_SETTINGS,
-        projectPath
+        clientSettings: EJECTED_SETTINGS
       })
 
       assertEquals(result.ejections?.stale, ['src/user.ts'])
@@ -288,10 +168,10 @@ Deno.test('drift - an ejected file no longer produced reports stale', async () =
   }
 })
 
-Deno.test('drift - a suffixed twin from a version-skewed engine is blocked', async () => {
+Deno.test('ejection report - a suffixed twin from a version-skewed engine is blocked', async () => {
   const originalCwd = Deno.cwd()
   const edited = BASE.replace('export const a = 1', 'export const a = 100 // mine')
-  const { tempDir, projectPath, manifestPath } = await toEjectedWorkspace(edited)
+  const { tempDir, manifestPath } = await toEjectedWorkspace(edited)
   try {
     await withCapturedErrors(errors => {
       // A stale bundle (core without ejection support) emits the
@@ -300,8 +180,7 @@ Deno.test('drift - a suffixed twin from a version-skewed engine is blocked', asy
         manifestPath,
         artifacts: { 'src/user.generated.ts': BASE },
         manifest: toManifest({ 'src/user.generated.ts': '@/src/user.generated.ts' }),
-        clientSettings: EJECTED_SETTINGS,
-        projectPath
+        clientSettings: EJECTED_SETTINGS
       })
 
       assertEquals(result.ejections?.twinBlocked, ['src/user.generated.ts'])
@@ -315,10 +194,10 @@ Deno.test('drift - a suffixed twin from a version-skewed engine is blocked', asy
   }
 })
 
-Deno.test('drift - a stale run preserves the ejected lock entry (adopt safety net)', async () => {
+Deno.test('ejection report - a stale run preserves the ejected lock entry (adopt safety net)', async () => {
   const originalCwd = Deno.cwd()
   const edited = BASE.replace('export const a = 1', 'export const a = 100 // mine')
-  const { tempDir, skmtcRootPath, projectPath, manifestPath } = await toEjectedWorkspace(edited)
+  const { tempDir, manifestPath } = await toEjectedWorkspace(edited)
   try {
     await withCapturedErrors(() => {
       // Stale run: no generator produces the ejected file.
@@ -326,8 +205,7 @@ Deno.test('drift - a stale run preserves the ejected lock entry (adopt safety ne
         manifestPath,
         artifacts: { 'src/other.generated.ts': 'export const other = 1\n' },
         manifest: toManifest({ 'src/other.generated.ts': '@/src/other.generated.ts' }),
-        clientSettings: EJECTED_SETTINGS,
-        projectPath
+        clientSettings: EJECTED_SETTINGS
       })
 
       // The lock entry for the ejected file survives — it is what a
