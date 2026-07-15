@@ -1,73 +1,42 @@
-import { cors } from 'hono/cors'
-import { Hono } from 'hono'
+import { cors } from "hono/cors";
+import { Hono } from "hono";
 import {
-  clientSettings as settingsSchema,
   toArtifacts,
   toEnrichmentDefaults,
   toEnrichmentDescriptor,
   toSupportedSubjects,
-  validateConfig
-} from '@skmtc/core'
-import type { GeneratorsMapContainer, SkmtcDocumentInput } from '@skmtc/core'
-import type { ManifestContent } from '@skmtc/core/Manifest'
-import type { Sidecar, GenerationMapEntry } from '@skmtc/core/Anchors'
-import { stringToSchema, toV3Document } from '@skmtc/convert'
-import * as v from 'valibot'
-import { StackTrail } from '@skmtc/core'
-
-/**
- * Body schemas for `POST /artifacts`, modeled as a discriminated
- * union over `protocol`. Each variant declares the field it actually
- * needs — there are no optional / "maybe present" fields whose
- * presence depends on another field's value.
- *
- * The shared half (`schema`, `clientSettings`) is spread into each
- * variant rather than extracted into a base, because the branching
- * shape is the more important property to make obvious.
- */
-const oasArtifactsBody = v.object({
-  protocol: v.literal('oas'),
-  schema: v.string(),
-  clientSettings: v.optional(settingsSchema),
-  /** Schema source identifier stamped onto each sidecar's `src` field
-   *  (e.g. `'openapi.json'`). Optional — defaults to the protocol name. */
-  schemaSrc: v.optional(v.string())
-})
-
-const gqlArtifactsBody = v.object({
-  protocol: v.literal('gql'),
-  schema: v.string(),
-  clientSettings: v.optional(settingsSchema),
-  /** Schema source identifier stamped onto each sidecar's `src` field.
-   *  Optional — defaults to the protocol name. */
-  schemaSrc: v.optional(v.string())
-})
-
-/**
- * Discriminated request body for `POST /artifacts`. `v.variant` keys
- * on `protocol` and routes to the matching variant — clients must
- * send `protocol: 'oas'` or `protocol: 'gql'` explicitly. After
- * parsing, the result is a properly-narrowed discriminated union.
- */
-const postArtifactsBody = v.variant('protocol', [oasArtifactsBody, gqlArtifactsBody])
-
-type ArtifactsBody = v.InferOutput<typeof postArtifactsBody>
+  validateConfig,
+} from "@skmtc/core";
+import type { GeneratorsMapContainer, SkmtcDocumentInput } from "@skmtc/core";
+import type { ManifestContent } from "@skmtc/core/Manifest";
+import type { GenerationMapEntry, Sidecar } from "@skmtc/core/Anchors";
+import { stringToSchema, toV3Document } from "@skmtc/convert";
+import * as v from "valibot";
+import { StackTrail } from "@skmtc/core";
+import openApiDocument from "../openapi.json" with { type: "json" };
+import {
+  postArtifactsBody,
+  toV3JsonBody,
+  validateBody,
+} from "./requestSchemas.ts";
+import type { ArtifactsBody } from "./requestSchemas.ts";
 
 type GenerateResult = {
-  artifacts: Record<string, string>
-  manifest: ManifestContent
+  artifacts: Record<string, string>;
+  manifest: ManifestContent;
   /** Per-file attribution sidecars (byte-range → producer). Present
    *  because attribution is always enabled with a post-pass below. */
-  sidecars?: Record<string, Sidecar>
+  sidecars?: Record<string, Sidecar>;
   /** Per-Definition generation-map index (file → schema origin). */
-  generationMap?: GenerationMapEntry[]
-}
+  generationMap?: GenerationMapEntry[];
+};
 
 type DispatchArgs = {
-  body: ArtifactsBody
-  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
-  logsPath: string | undefined
-}
+  body: ArtifactsBody;
+  toGeneratorConfigMap: <EnrichmentType = undefined>() =>
+    GeneratorsMapContainer<EnrichmentType>;
+  logsPath: string | undefined;
+};
 
 /**
  * Routes a parsed request body to the appropriate core entry point.
@@ -80,32 +49,32 @@ type DispatchArgs = {
 const dispatchArtifacts = async ({
   body,
   toGeneratorConfigMap,
-  logsPath
+  logsPath,
 }: DispatchArgs): Promise<GenerateResult> => {
-  const startAt = Date.now()
-  const traceId = `trace-${startAt}`
-  const spanId = `span-${startAt}`
-  const stackTrail = new StackTrail([traceId, spanId])
+  const startAt = Date.now();
+  const traceId = `trace-${startAt}`;
+  const spanId = `span-${startAt}`;
+  const stackTrail = new StackTrail([traceId, spanId]);
 
   // Build the unified SkmtcDocumentInput from the protocol-specific
   // body shape, then route through the single `toArtifacts` entry. The
   // host-side OAS normalization (Swagger 2 / 3.1 → 3.0 via
   // `@skmtc/convert`) still runs here; GQL passes its SDL through
   // unchanged.
-  let document: SkmtcDocumentInput
+  let document: SkmtcDocumentInput;
   switch (body.protocol) {
-    case 'oas': {
-      const documentObject = await toV3Document(stringToSchema(body.schema))
-      document = { type: 'oas', value: documentObject }
-      break
+    case "oas": {
+      const documentObject = await toV3Document(stringToSchema(body.schema));
+      document = { type: "oas", value: documentObject };
+      break;
     }
-    case 'gql': {
-      document = { type: 'gql', value: body.schema }
-      break
+    case "gql": {
+      document = { type: "gql", value: body.schema };
+      break;
     }
     default: {
-      const _exhaustive: never = body
-      throw new Error(`Unhandled protocol: ${JSON.stringify(_exhaustive)}`)
+      const _exhaustive: never = body;
+      throw new Error(`Unhandled protocol: ${JSON.stringify(_exhaustive)}`);
     }
   }
 
@@ -125,69 +94,76 @@ const dispatchArtifacts = async ({
     logsPath,
     silent: true,
     attribution: {
-      postPass: { schemaSrc: body.schemaSrc ?? body.protocol }
-    }
-  })
+      postPass: { schemaSrc: body.schemaSrc ?? body.protocol },
+    },
+  });
 
-  return { artifacts, manifest, sidecars, generationMap }
-}
+  return { artifacts, manifest, sidecars, generationMap };
+};
 
 type CreateServerArgs = {
-  toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
-  logsPath?: string
-}
+  toGeneratorConfigMap: <EnrichmentType = undefined>() =>
+    GeneratorsMapContainer<EnrichmentType>;
+  logsPath?: string;
+};
 
-export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArgs): Hono => {
-  const app = new Hono()
+export const createServer = (
+  { toGeneratorConfigMap, logsPath }: CreateServerArgs,
+): Hono => {
+  const app = new Hono();
 
   app.use(
-    '*',
+    "*",
     cors({
-      origin: '*',
-      allowHeaders: ['api-version', 'authorization', 'content-type'],
-      allowMethods: ['*'],
+      origin: "*",
+      allowHeaders: ["api-version", "authorization", "content-type"],
+      allowMethods: ["*"],
       credentials: true,
-      exposeHeaders: ['api-version', 'authorization', 'content-type']
-    })
-  )
+      exposeHeaders: ["api-version", "authorization", "content-type"],
+    }),
+  );
 
-  app.post('/artifacts', async c => {
-    const body = v.parse(postArtifactsBody, await c.req.json())
+  app.post("/artifacts", async (c) => {
+    const body = v.parse(postArtifactsBody, await c.req.json());
 
-    const { artifacts, manifest, sidecars, generationMap } = await dispatchArtifacts({
-      body,
-      toGeneratorConfigMap,
-      logsPath
-    })
+    const { artifacts, manifest, sidecars, generationMap } =
+      await dispatchArtifacts({
+        body,
+        toGeneratorConfigMap,
+        logsPath,
+      });
 
-    return c.json({ artifacts, manifest, sidecars, generationMap }, 200)
-  })
+    return c.json({ artifacts, manifest, sidecars, generationMap }, 200);
+  });
 
   // Capability introspection: which subjects (operations / models) does each
   // configured generator support for this schema? Runs Parse + each generator's
   // `isSupported` only — no transform, no render. Same request body as
   // `/artifacts` (the OAS branch is normalized v2/3.1 → 3.0 first).
-  app.post('/subjects', async c => {
-    const body = v.parse(postArtifactsBody, await c.req.json())
+  app.post("/subjects", async (c) => {
+    const body = v.parse(postArtifactsBody, await c.req.json());
 
-    const startAt = Date.now()
-    const traceId = `trace-${startAt}`
-    const spanId = `span-${startAt}`
-    const stackTrail = new StackTrail([traceId, spanId])
+    const startAt = Date.now();
+    const traceId = `trace-${startAt}`;
+    const spanId = `span-${startAt}`;
+    const stackTrail = new StackTrail([traceId, spanId]);
 
-    let document: SkmtcDocumentInput
+    let document: SkmtcDocumentInput;
     switch (body.protocol) {
-      case 'oas': {
-        document = { type: 'oas', value: await toV3Document(stringToSchema(body.schema)) }
-        break
+      case "oas": {
+        document = {
+          type: "oas",
+          value: await toV3Document(stringToSchema(body.schema)),
+        };
+        break;
       }
-      case 'gql': {
-        document = { type: 'gql', value: body.schema }
-        break
+      case "gql": {
+        document = { type: "gql", value: body.schema };
+        break;
       }
       default: {
-        const _exhaustive: never = body
-        throw new Error(`Unhandled protocol: ${JSON.stringify(_exhaustive)}`)
+        const _exhaustive: never = body;
+        throw new Error(`Unhandled protocol: ${JSON.stringify(_exhaustive)}`);
       }
     }
 
@@ -198,11 +174,11 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
       settings: body.clientSettings,
       toGeneratorConfigMap,
       stackTrail,
-      silent: true
-    })
+      silent: true,
+    });
 
-    return c.json({ subjects, parseIssues }, 200)
-  })
+    return c.json({ subjects, parseIssues }, 200);
+  });
 
   // Seed-values introspection: the DEFAULT enrichment values each configured
   // generator derives from this schema — the "Generate fields from schema"
@@ -212,27 +188,30 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
   // first). The result mirrors the `client.json#settings.enrichments` subtree
   // (subject scope only), keyed `[id][path][method]['main']` for operations and
   // `[id][refName]['main']` for models.
-  app.post('/enrichment-defaults', async c => {
-    const body = v.parse(postArtifactsBody, await c.req.json())
+  app.post("/enrichment-defaults", async (c) => {
+    const body = v.parse(postArtifactsBody, await c.req.json());
 
-    const startAt = Date.now()
-    const traceId = `trace-${startAt}`
-    const spanId = `span-${startAt}`
-    const stackTrail = new StackTrail([traceId, spanId])
+    const startAt = Date.now();
+    const traceId = `trace-${startAt}`;
+    const spanId = `span-${startAt}`;
+    const stackTrail = new StackTrail([traceId, spanId]);
 
-    let document: SkmtcDocumentInput
+    let document: SkmtcDocumentInput;
     switch (body.protocol) {
-      case 'oas': {
-        document = { type: 'oas', value: await toV3Document(stringToSchema(body.schema)) }
-        break
+      case "oas": {
+        document = {
+          type: "oas",
+          value: await toV3Document(stringToSchema(body.schema)),
+        };
+        break;
       }
-      case 'gql': {
-        document = { type: 'gql', value: body.schema }
-        break
+      case "gql": {
+        document = { type: "gql", value: body.schema };
+        break;
       }
       default: {
-        const _exhaustive: never = body
-        throw new Error(`Unhandled protocol: ${JSON.stringify(_exhaustive)}`)
+        const _exhaustive: never = body;
+        throw new Error(`Unhandled protocol: ${JSON.stringify(_exhaustive)}`);
       }
     }
 
@@ -243,25 +222,27 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
       settings: body.clientSettings,
       toGeneratorConfigMap,
       stackTrail,
-      silent: true
-    })
+      silent: true,
+    });
 
-    return c.json({ enrichmentDefaults, parseIssues }, 200)
-  })
+    return c.json({ enrichmentDefaults, parseIssues }, 200);
+  });
 
-  app.get('/generators', c => {
-    return c.json({ generators: Object.keys(toGeneratorConfigMap()) })
-  })
+  app.get("/generators", (c) => {
+    return c.json({ generators: Object.keys(toGeneratorConfigMap()) });
+  });
 
   // Enrichment-schema introspection: the form-renderable descriptor for each
   // generator's enrichment schema. A pure function of the bundled generators —
   // no schema, no parse, no render — so descriptors are stable per bundle and
   // safe to cache by the host keyed on the (immutable) deployment. POST (no
   // body) to match the runner's single `postToBundle` helper.
-  app.post('/descriptors', c => {
-    const descriptors = Object.values(toGeneratorConfigMap()).map(toEnrichmentDescriptor)
-    return c.json({ descriptors })
-  })
+  app.post("/descriptors", (c) => {
+    const descriptors = Object.values(toGeneratorConfigMap()).map(
+      toEnrichmentDescriptor,
+    );
+    return c.json({ descriptors });
+  });
 
   // Enrichment validation: the authoritative verdict on whether the supplied
   // `clientSettings.enrichments` values satisfy each generator's Valibot
@@ -269,30 +250,32 @@ export const createServer = ({ toGeneratorConfigMap, logsPath }: CreateServerArg
   // mirrors `/descriptors` (a pure function of the bundled generators + the
   // posted enrichments). The host calls this to gate persists, CLI pushes,
   // schema-drift migration, and Publish.
-  app.post('/validate', async c => {
-    const { clientSettings } = v.parse(
-      v.object({ clientSettings: v.optional(settingsSchema) }),
-      await c.req.json()
-    )
+  app.post("/validate", async (c) => {
+    const { clientSettings } = v.parse(validateBody, await c.req.json());
 
     const issues = validateConfig(
       clientSettings?.enrichments,
-      Object.values(toGeneratorConfigMap())
-    )
+      Object.values(toGeneratorConfigMap()),
+    );
 
-    return c.json({ issues })
-  })
+    return c.json({ issues });
+  });
 
-  app.post('/to-v3-json', async c => {
-    const body = await c.req.json()
-
-    const { schema } = v.parse(v.object({ schema: v.string() }), body)
+  app.post("/to-v3-json", async (c) => {
+    const { schema } = v.parse(toV3JsonBody, await c.req.json());
 
     // 3.0/3.1 pass through unchanged; only Swagger 2.0 is converted to 3.0.
-    const normalizedDocument = await toV3Document(stringToSchema(schema))
+    const normalizedDocument = await toV3Document(stringToSchema(schema));
 
-    return c.json({ schema: normalizedDocument })
-  })
+    return c.json({ schema: normalizedDocument });
+  });
 
-  return app
-}
+  // Self-description: the server's own published OpenAPI 3.1 contract, covering
+  // every route above. Generated from the request valibot schemas + `@skmtc/core`
+  // response schemas at build time (`deno task openapi`) and served as the
+  // committed static artifact — the converter is kept out of the deployed bundle.
+  // A GET with no body, like `/generators`, so a deployed server self-documents.
+  app.get("/openapi.json", (c) => c.json(openApiDocument));
+
+  return app;
+};
