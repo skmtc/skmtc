@@ -121,7 +121,7 @@ Use `deno compile`, **not** `deno install`:
 
 ```bash
 deno compile --no-check \
-  --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir \
+  --allow-read --allow-write --allow-net --allow-env --allow-run=deno,sh --allow-sys=homedir --allow-ffi \
   --unstable-worker-options \
   --config /path/to/skmtc/deno/cli/deno.json \
   --include /path/to/skmtc/deno/cli \
@@ -130,8 +130,15 @@ deno compile --no-check \
 ```
 
 The scoped permissions (instead of `-A`) match the published install: skmtc
-needs read/write/net/env, spawns only `deno` + `sh`, and `homedir` to find
-the workspace root — no FFI, no remote imports. `--unstable-worker-options`
+needs read/write/net/env, spawns only `deno` + `sh`, `homedir` to find the
+workspace root, and `ffi` for `oxc-parser`'s native binding — no remote
+imports. `--allow-ffi` is only exercised when a project has
+`settings.anchors.enabled` (or `--anchors`): `generate-local.ts` dynamically
+imports `@skmtc/core/Anchors/oxc` on that path only, so most runs never touch
+it, but the permission still has to be granted up front for compiled/installed
+binaries (unlike `deno run`, they can't prompt at runtime). Without it, a
+project that enables anchors fails with `NotCapable: Requires ffi access to
+".../@oxc-parser/binding-*/parser.*.node"`. `--unstable-worker-options`
 **must** be passed here: `cli/deno.json` carries no `unstable` field, so
 without it the compiled binary fails the first `generate` on
 `Worker.deno.permissions`. (For a throwaway dev run, `deno run --allow-all`

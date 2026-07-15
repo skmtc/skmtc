@@ -3,7 +3,6 @@ import { GenerateArtifacts } from '@/lib/generate-artifacts.ts'
 import { writeGeneratedFiles, type WriteGeneratedFilesResult } from '@/lib/write-generated-files.ts'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { reanchorSidecar, upgradeSidecar, writeSidecars } from '@skmtc/core/Anchors'
-import { oxcAdapter } from '@skmtc/core/Anchors/oxc'
 import { toResolvedArtifactPath } from '@skmtc/core'
 import { type GenerationStats, toGenerationStats } from '@/lib/generationStats.ts'
 import type { FileType } from '@/lib/types.ts'
@@ -156,6 +155,13 @@ export const generateLocal = async ({
       //    spans to the FORMATTED text so the written sidecar describes
       //    the file as it exists on disk.
       // Artifacts are keyed by resolved path; sidecar `f` is `@/`-aliased.
+      //
+      // `oxcAdapter` is imported dynamically, here, rather than at module
+      // scope: it pulls in `npm:oxc-parser`'s native binding, which needs
+      // `--allow-ffi` and is otherwise unused (and unwanted) on every
+      // generate run that never asked for anchors/attribution — matching
+      // the worker's own stance (it never imports oxc at all).
+      const { oxcAdapter } = await import('@skmtc/core/Anchors/oxc')
       const sidecarArtifacts = new Set<string>()
       const realignedArtifacts = new Set<string>()
       const upgradedSidecars = Object.fromEntries(
