@@ -47,6 +47,35 @@ skmtc generate lab --json        # errors must be [], one file per schema
 cd consumer && gradle test       # compiles AND round-trip tests pass
 ```
 
+## Narrate and log as you work (part of the task)
+
+- **Narrate intent.** Before each significant action or change of
+  approach, output one visible sentence starting `WHY:` giving the
+  *reason* you chose it — not a description of the action. Example:
+  `WHY: reading KtFile.ts because the projection base needs its
+  constructor shape`.
+- **Log friction immediately.** Keep `FRICTION.md` at the workspace
+  root. The moment you hit friction — missing info, a surprising API,
+  a failed attempt, docs that didn't answer your question, a guess
+  you were forced to make — append an entry:
+
+  ```
+  ## <n>. <short title>
+  - Trying: <what you were trying to do>
+  - Expected: <what you expected>
+  - Actual: <what happened>
+  - Unblocker: <the exact info/doc/example that would have unblocked you instantly>
+  ```
+
+- **Exit retro.** Before your final summary, write `RETRO.md`: your
+  top 3 pain points, the single piece of information that would have
+  saved you the most time, what was missing from the skills you
+  loaded, and a short paragraph of advice to the next agent
+  attempting this task.
+
+Honesty over polish — these logs feed skill improvements and do not
+affect grading.
+
 ## Hard rules
 
 - Do NOT modify anything under `consumer/src/test/`, the gradle build

@@ -222,6 +222,8 @@ function build(events) {
             for (const m of MILESTONE_FILES)
               if (input.file_path.endsWith('src/' + m) && input.file_path.includes('gen-'))
                 milestone(current, 'write:' + m, 'src/' + m + ' written');
+            if (input.file_path.endsWith('FRICTION.md')) milestone(current, 'friction', 'first friction entry logged');
+            if (input.file_path.endsWith('RETRO.md')) milestone(current, 'retro', 'exit retro written');
             if (item.name === 'Write' && typeof input.content === 'string')
               fileOps.push({ turn: current.i, path: input.file_path, kind: 'write', content: input.content });
             if (item.name === 'Edit')

@@ -157,6 +157,10 @@ try {
 }
 EOF
 )
+FRICTION_COUNT=$([ -f FRICTION.md ] && grep -c '^## ' FRICTION.md || echo 0)
+RETRO_STATE=$([ -f RETRO.md ] && echo yes || echo no)
+note ""
+note "**Feedback channels:** $FRICTION_COUNT friction entr(y/ies) in workspace/FRICTION.md; exit retro: $RETRO_STATE (workspace/RETRO.md)"
 note ""
 note "**Structural eval:** $VERDICT (details: structural.md)"
 note ""

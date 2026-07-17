@@ -71,6 +71,8 @@ const handleToolUse = item => {
           milestone(`write:${marker}`, `generator src/${marker} written`)
         }
       }
+      if (path.endsWith('FRICTION.md')) milestone('friction', 'first friction entry logged')
+      if (path.endsWith('RETRO.md')) milestone('retro', 'exit retro written')
     }
   } else if (name === 'Bash') {
     const full = String(input.command || '')
@@ -84,6 +86,12 @@ const handleToolUse = item => {
       if (full.includes(`src/${marker}`) && full.includes('gen-') && full.includes('<<')) {
         milestone(`write:${marker}`, `generator src/${marker} written`)
       }
+    }
+    if (full.includes('FRICTION.md') && (full.includes('<<') || full.includes('>'))) {
+      milestone('friction', 'first friction entry logged')
+    }
+    if (full.includes('RETRO.md') && (full.includes('<<') || full.includes('>'))) {
+      milestone('retro', 'exit retro written')
     }
   } else if (name === 'Grep' || name === 'Glob') {
     label = `${name}: ${String(input.pattern ?? input.query ?? '').slice(0, 60)}`

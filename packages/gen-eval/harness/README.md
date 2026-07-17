@@ -179,9 +179,33 @@ calibration:
 - **Hard rules name the enforcement** — tests are checksum-verified;
   copying from other implementations is audited.
 
+The task also carries a **narrate-and-log protocol** — the model's
+self-reported rationale and friction, replacing the reasoning the API
+redacts:
+
+- **`WHY:` lines** — one visible sentence of intent before each
+  significant action, streamed into the timeline and viewer as
+  ordinary assistant text (this channel is NOT redacted).
+- **`FRICTION.md`** (workspace root) — appended the moment the model
+  hits missing info, a surprising API, or a forced guess. Each entry
+  ends with an **Unblocker**: the exact info that would have unblocked
+  it instantly — i.e. the model drafts the missing skill content for
+  you. Watch it grow live in the viewer's file tree; `report.md`
+  shows the entry count.
+- **`RETRO.md`** — an exit retro (top pain points, what was missing
+  from the skills, advice to the next agent), written before the
+  final summary.
+
+Milestones fire for the first friction entry and the exit retro.
+Feed the unblockers into the skill, re-run, and compare — the same
+loop as `skmtc-retro`, applied to the agent under test. Caveat: the
+protocol adds mild observer effect and changed the prompt;
+`meta.json` records `taskSha` so runs on different task versions are
+never silently compared.
+
 To run variants (e.g. drop the skill-loading instruction), edit
-`task.md` and tag the run with a label; the prompt is in git, so
-variants stay reconstructable.
+`task.md` and tag the run with a label; the prompt is in git and
+checksummed into `meta.json`, so variants stay reconstructable.
 
 Beyond the prompt, the model gets: the standard Claude Code system
 prompt, the user-global `~/.claude/CLAUDE.md` (a constant across
