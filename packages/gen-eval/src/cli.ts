@@ -52,7 +52,11 @@ const toRow = (report: GeneratorReport): string[] => {
     `${strings.outsideCount} (${pct(strings.outsideShare)})`,
     topProjection,
     report.accumulator.verdict ? 'yes' : 'no',
-    maxBucket === undefined ? '—' : `≤${maxBucket}`
+    maxBucket === undefined ? '—' : `≤${maxBucket}`,
+    report.toStringPurity.pass ? 'ok' : `FAIL:${report.toStringPurity.violations.length}`,
+    report.adHocToString.pass ? 'ok' : `FAIL:${report.adHocToString.sites.length}`,
+    `${report.asCasts.count}`,
+    `${report.registrationChannels.rawDefinitionRegisters.length}`
   ]
 }
 
@@ -65,7 +69,11 @@ const HEADER = [
   'str-outside',
   'top-proj',
   'acc',
-  'max-size'
+  'max-size',
+  'pure',
+  'adhoc',
+  'as',
+  'raw-reg'
 ]
 
 const printTable = (rows: string[][]): void => {
@@ -149,6 +157,31 @@ const toMarkdown = (reports: GeneratorReport[]): string => {
     lines.push(
       `- top-level projection: ${report.topLevelProjection.pass ? 'ok' : report.topLevelProjection.exempt ? 'exempt (accumulator)' : 'FAIL'}`
     )
+    if (!report.toStringPurity.pass) {
+      lines.push(`- toString purity VIOLATIONS:`)
+      for (const violation of report.toStringPurity.violations) {
+        lines.push(`  - ${violation.className ?? '<module>'} \`${violation.file}:${violation.line}\` [${violation.kind}] ${violation.detail}`)
+      }
+    }
+    if (!report.adHocToString.pass) {
+      lines.push(`- ad-hoc { toString } object literals:`)
+      for (const site of report.adHocToString.sites) {
+        lines.push(`  - \`${site.file}:${site.line}\` in ${site.site}`)
+      }
+    }
+    if (report.asCasts.count > 0) {
+      lines.push(`- as-casts (${report.asCasts.count} — each requires approval):`)
+      for (const site of report.asCasts.sites) {
+        lines.push(`  - \`${site.file}:${site.line}\` in ${site.site} — \`${site.text ?? ''}\``)
+      }
+    }
+    const channels = report.registrationChannels
+    lines.push(
+      `- registration channels: insertOperation ${channels.insertOperation}, insertModel ${channels.insertModel}, insertNormalizedModel ${channels.insertNormalizedModel}, defineAndRegister ${channels.defineAndRegister}, raw definition registers ${channels.rawDefinitionRegisters.length}`
+    )
+    for (const site of channels.rawDefinitionRegisters) {
+      lines.push(`  - raw: \`${site.file}:${site.line}\` in ${site.site}`)
+    }
     lines.push('')
   }
   return lines.join('\n')

@@ -222,7 +222,51 @@
         "bucket": 200,
         "count": 1
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": false,
+      "sites": [
+        {
+          "file": "src/ArktypeObject.ts",
+          "site": "ArktypeObject.constructor",
+          "line": 54
+        }
+      ]
+    },
+    "asCasts": {
+      "count": 3,
+      "sites": [
+        {
+          "file": "src/ArktypeArray.ts",
+          "site": "ArktypeArray.toString",
+          "line": 42,
+          "text": "this.items as any"
+        },
+        {
+          "file": "src/ArktypeObject.ts",
+          "site": "ArktypeObject.constructor",
+          "line": 54,
+          "text": "{ toString: () => 'type(\"unknown\")' } as TypeSystemValue"
+        },
+        {
+          "file": "src/ArktypeUnion.ts",
+          "site": "ArktypeUnion.toString",
+          "line": 59,
+          "text": "member as any"
+        }
+      ]
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 1,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-csharp",
@@ -561,7 +605,33 @@
         "bucket": 150,
         "count": 1
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 1,
+      "sites": [
+        {
+          "file": "src/polymorphicMembership.ts",
+          "site": "toPolymorphicMembership",
+          "line": 126,
+          "text": "parentRefName as RefName"
+        }
+      ]
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 2,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 3,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-csharp-aspnet",
@@ -788,7 +858,26 @@
         "bucket": 200,
         "count": 1
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 0,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 4,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-daisyui-form",
@@ -944,7 +1033,39 @@
         "bucket": 100,
         "count": 1
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 2,
+      "sites": [
+        {
+          "file": "src/DaisyForm.ts",
+          "site": "DaisyForm.constructor",
+          "line": 54,
+          "text": "(operation.extensionFields?.['x-daisy-form'] ?? {}) as { submitColor?: string sh"
+        },
+        {
+          "file": "src/schemaToField.ts",
+          "site": "schemaToField",
+          "line": 45,
+          "text": "schema as OasObject"
+        }
+      ]
+    },
+    "registrationChannels": {
+      "insertOperation": 1,
+      "insertModel": 0,
+      "insertNormalizedModel": 2,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-express",
@@ -1096,7 +1217,26 @@
         "bucket": 100,
         "count": 1
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 1,
+      "insertModel": 0,
+      "insertNormalizedModel": 1,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-kotlin-jackson-s",
@@ -1582,7 +1722,32 @@
         "bucket": 200,
         "count": 1
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 0,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": [
+        {
+          "file": "src/mod.ts",
+          "site": "transform",
+          "line": 51
+        }
+      ]
+    }
   },
   {
     "generator": "@skmtc/gen-kotlin-kotlinx",
@@ -1876,7 +2041,33 @@
         "bucket": 100,
         "count": 2
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 1,
+      "sites": [
+        {
+          "file": "src/sealedMembership.ts",
+          "site": "toSealedMembership",
+          "line": 127,
+          "text": "parentRefName as RefName"
+        }
+      ]
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 2,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 3,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-kotlin-sdk",
@@ -2414,7 +2605,37 @@
         "bucket": 150,
         "count": 3
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 2,
+      "insertModel": 0,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 3,
+      "rawDefinitionRegisters": [
+        {
+          "file": "src/emitStaticFiles.ts",
+          "site": "emitStaticFiles",
+          "line": 59
+        },
+        {
+          "file": "src/sharedModels.ts",
+          "site": "ensureModelDefinition",
+          "line": 115
+        }
+      ]
+    }
   },
   {
     "generator": "@skmtc/gen-kotlin-spring",
@@ -2609,7 +2830,26 @@
         "bucket": 150,
         "count": 1
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 0,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 4,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-md-docs",
@@ -3068,7 +3308,26 @@
         "bucket": 50,
         "count": 25
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 0,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-msw",
@@ -3169,7 +3428,26 @@
         "bucket": 50,
         "count": 2
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 1,
+      "insertModel": 0,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 1,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-reapit-form",
@@ -3376,7 +3654,37 @@
         "bucket": 100,
         "count": 1
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": false,
+      "sites": [
+        {
+          "file": "src/ReapitForm.ts",
+          "site": "ReapitForm.constructor",
+          "line": 118
+        },
+        {
+          "file": "src/fields/SectionInput.ts",
+          "site": "SectionInput.constructor",
+          "line": 49
+        }
+      ]
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 2,
+      "insertModel": 0,
+      "insertNormalizedModel": 1,
+      "defineAndRegister": 1,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-reapit-graphql-client",
@@ -3522,7 +3830,45 @@
         "bucket": 100,
         "count": 1
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": false,
+      "sites": [
+        {
+          "file": "src/ReapitGraphqlClient.ts",
+          "site": "ReapitGraphqlClient.constructor",
+          "line": 89
+        }
+      ]
+    },
+    "asCasts": {
+      "count": 2,
+      "sites": [
+        {
+          "file": "src/selection/ObjectSelection.ts",
+          "site": "ObjectSelection.constructor",
+          "line": 31,
+          "text": "[name, new ScalarSelection()] as [string, Selection]"
+        },
+        {
+          "file": "src/selection/toSelection.ts",
+          "site": "toSelection",
+          "line": 96,
+          "text": "_exhaustive as { type: string }"
+        }
+      ]
+    },
+    "registrationChannels": {
+      "insertOperation": 1,
+      "insertModel": 0,
+      "insertNormalizedModel": 2,
+      "defineAndRegister": 1,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-reapit-multi-select",
@@ -3592,7 +3938,26 @@
         "bucket": 150,
         "count": 1
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 2,
+      "insertModel": 0,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-reapit-searchable-dropdown",
@@ -3665,7 +4030,26 @@
         "bucket": 150,
         "count": 1
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 2,
+      "insertModel": 0,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-shadcn-form",
@@ -3912,7 +4296,39 @@
         "bucket": 100,
         "count": 1
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 2,
+      "sites": [
+        {
+          "file": "src/ShadcnForm.ts",
+          "site": "subtractPathFromSchema",
+          "line": 188,
+          "text": "path as keyof typeof resolved.properties"
+        },
+        {
+          "file": "src/schemaToField.ts",
+          "site": "schemaToField",
+          "line": 154,
+          "text": "schema.enums.filter( (item): item is string => typeof item === 'string' ) as str"
+        }
+      ]
+    },
+    "registrationChannels": {
+      "insertOperation": 2,
+      "insertModel": 0,
+      "insertNormalizedModel": 4,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-shadcn-select",
@@ -4049,7 +4465,26 @@
         "bucket": 100,
         "count": 2
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 3,
+      "insertModel": 0,
+      "insertNormalizedModel": 2,
+      "defineAndRegister": 1,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-shadcn-table",
@@ -4203,7 +4638,32 @@
         "bucket": 50,
         "count": 5
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 3,
+      "insertModel": 0,
+      "insertNormalizedModel": 2,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": [
+        {
+          "file": "src/TableColumn.ts",
+          "site": "TableColumn.constructor",
+          "line": 43
+        }
+      ]
+    }
   },
   {
     "generator": "@skmtc/gen-supabase-hono",
@@ -4355,7 +4815,26 @@
         "bucket": 100,
         "count": 1
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 1,
+      "insertModel": 0,
+      "insertNormalizedModel": 1,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-tanstack-query-fetch-zod",
@@ -4517,7 +4996,26 @@
         "bucket": 50,
         "count": 7
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 1,
+      "insertModel": 0,
+      "insertNormalizedModel": 8,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-tanstack-query-supabase-zod",
@@ -4683,7 +5181,26 @@
         "bucket": 100,
         "count": 1
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 1,
+      "insertModel": 0,
+      "insertNormalizedModel": 8,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-typescript",
@@ -4908,7 +5425,26 @@
         "bucket": 50,
         "count": 15
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 1,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-typescript-s",
@@ -5133,7 +5669,26 @@
         "bucket": 50,
         "count": 15
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 1,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-typescript-sdk",
@@ -5291,7 +5846,26 @@
         "bucket": 250,
         "count": 1
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 1,
+      "insertModel": 0,
+      "insertNormalizedModel": 3,
+      "defineAndRegister": 3,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-valibot",
@@ -5511,7 +6085,26 @@
         "bucket": 50,
         "count": 14
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 1,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    }
   },
   {
     "generator": "@skmtc/gen-zod",
@@ -5733,6 +6326,32 @@
         "bucket": 50,
         "count": 14
       }
-    ]
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 1,
+      "sites": [
+        {
+          "file": "src/Zod.ts",
+          "site": "toZodValue",
+          "line": 41,
+          "text": "schema as TypeSystemCustom"
+        }
+      ]
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 1,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    }
   }
 ]

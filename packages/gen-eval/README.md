@@ -5,7 +5,13 @@ no LLM judging, no type resolution — derived from the generation model in
 the `skmtc-generator` skill. Built to (a) baseline the stock generators
 and (b) grade generators authored by models in skill-eval harness runs.
 
-## The five checks
+**Each check is a separate module** under `src/checks/`, running as a
+pure function over the facts produced by a single shared AST pass
+(`src/parse.ts`) — adding a check never adds a parse. **Each check is
+documented** in [`docs/`](docs/README.md), one page per check: what it
+asserts, why, how it is measured, and the known legitimate exceptions.
+
+## The checks
 
 1. **Structure** — the expected package shape exists: `deno.json` (named
    `@scope/gen-*`), root `mod.ts`, `src/mod.ts`, `src/base.ts`,
@@ -45,10 +51,20 @@ and (b) grade generators authored by models in skill-eval harness runs.
 7. **Producer size** — each producer's line span, bucketed to the nearest
    50 (minimum bucket 50). The table shows the largest bucket; the
    markdown report lists the distribution and names producers ≥150 lines.
+8. **toString purity** — no `this.*` assignments/mutations and no
+   register-family calls inside `toString` bodies (it runs multiple
+   times). Pass/fail.
+9. **No ad-hoc `{ toString }` object literals** — the Stringable
+   duck-type that should be a Snippet. Pass/fail, expected zero.
+10. **as-casts** — count + sites, excluding `as const`. Expected
+    near-zero; each surviving cast requires explicit approval.
+11. **Registration channels** — informational: Driver-path `insert*` /
+    `defineAndRegister` counts vs raw `register({ definitions })` with
+    hand-built Definitions, with sites listed.
 
-Checks 1 and 5 are pass/fail facts. Checks 2–4 and 7 are reported as
-numbers and per-site listings for human interpretation — there is
-deliberately no composite score.
+Checks 1, 5, 8 and 9 are pass/fail facts. The rest are numbers and
+per-site listings for human interpretation — there is deliberately no
+composite score. Full per-check documentation: [`docs/`](docs/README.md).
 
 ## Usage
 
