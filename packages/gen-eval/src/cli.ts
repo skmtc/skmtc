@@ -1,8 +1,13 @@
 #!/usr/bin/env node
 import { readdirSync, existsSync, writeFileSync, mkdirSync, statSync } from 'node:fs'
 import { join, resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { analyzeGenerator } from './analyze.ts'
 import type { GeneratorReport } from './types.ts'
+
+// The stock generators live in the sibling skmtc-generators repo:
+// <skmtc-root>/skmtc/packages/gen-eval/src → <skmtc-root>/skmtc-generators
+const STOCK_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../skmtc-generators')
 
 type CliArgs = {
   targets: string[]
@@ -17,6 +22,7 @@ const parseArgs = (argv: string[]): CliArgs => {
   for (let index = 0; index < argv.length; index++) {
     const value = argv[index]
     if (value === '--scan') args.scan = argv[++index]
+    else if (value === '--stock') args.scan = STOCK_DIR
     else if (value === '--json') args.jsonOut = argv[++index]
     else if (value === '--md') args.mdOut = argv[++index]
     else if (value === '--verbose') args.verbose = true
@@ -56,7 +62,10 @@ const toRow = (report: GeneratorReport): string[] => {
     report.toStringPurity.pass ? 'ok' : `FAIL:${report.toStringPurity.violations.length}`,
     report.adHocToString.pass ? 'ok' : `FAIL:${report.adHocToString.sites.length}`,
     `${report.asCasts.count}`,
-    `${report.registrationChannels.rawDefinitionRegisters.length}`
+    `${report.registrationChannels.rawDefinitionRegisters.length}`,
+    report.templateImports.pass ? 'ok' : `FAIL:${report.templateImports.sites.length}`,
+    `${report.emittedTodos.count}`,
+    report.runtimeDiscipline.pass ? 'ok' : `FAIL:${report.runtimeDiscipline.violations.length}`
   ]
 }
 
@@ -73,7 +82,10 @@ const HEADER = [
   'pure',
   'adhoc',
   'as',
-  'raw-reg'
+  'raw-reg',
+  'tpl-imp',
+  'todo',
+  'runtime'
 ]
 
 const printTable = (rows: string[][]): void => {
@@ -182,6 +194,24 @@ const toMarkdown = (reports: GeneratorReport[]): string => {
     for (const site of channels.rawDefinitionRegisters) {
       lines.push(`  - raw: \`${site.file}:${site.line}\` in ${site.site}`)
     }
+    if (!report.templateImports.pass) {
+      lines.push(`- import statements inside template literals:`)
+      for (const site of report.templateImports.sites) {
+        lines.push(`  - \`${site.file}:${site.line}\` in ${site.site}`)
+      }
+    }
+    if (report.emittedTodos.count > 0) {
+      lines.push(`- TODO markers in emitted text (${report.emittedTodos.count}):`)
+      for (const site of report.emittedTodos.sites) {
+        lines.push(`  - \`${site.file}:${site.line}\` in ${site.site} — ${site.text ?? ''}`)
+      }
+    }
+    if (!report.runtimeDiscipline.pass) {
+      lines.push(`- runtime-discipline VIOLATIONS:`)
+      for (const violation of report.runtimeDiscipline.violations) {
+        lines.push(`  - \`${violation.file}:${violation.line}\` in ${violation.site} [${violation.category}] ${violation.detail}`)
+      }
+    }
     lines.push('')
   }
   return lines.join('\n')
@@ -194,7 +224,9 @@ const main = (): void => {
     ...(args.scan ? findGeneratorDirs(resolve(args.scan)) : [])
   ]
   if (dirs.length === 0) {
-    console.error('usage: gen-eval [genDir ...] [--scan parentDir] [--json out.json] [--md out.md]')
+    console.error(
+      'usage: gen-eval [genDir ...] [--scan parentDir | --stock] [--json out.json] [--md out.md]'
+    )
     process.exit(2)
   }
 

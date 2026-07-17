@@ -69,6 +69,14 @@ export type ToStringViolation = {
   detail: string
 }
 
+export type RuntimeViolation = {
+  file: string
+  site: string
+  line: number
+  category: 'node-ism' | 'fs' | 'network' | 'timer' | 'async'
+  detail: string
+}
+
 export type RegistrationChannels = {
   insertOperation: number
   insertModel: number
@@ -115,6 +123,9 @@ export type FileFacts = {
     defineAndRegister: number
   }
   rawDefinitionRegisters: CodeSite[]
+  templateImportSites: CodeSite[]
+  todoSites: CodeSite[]
+  runtimeViolations: RuntimeViolation[]
 }
 
 export type PackageFacts = {
@@ -151,4 +162,7 @@ export type GeneratorReport = {
   adHocToString: { pass: boolean; sites: CodeSite[] }
   asCasts: { count: number; sites: CodeSite[] }
   registrationChannels: RegistrationChannels
+  templateImports: { pass: boolean; sites: CodeSite[] }
+  emittedTodos: { count: number; sites: CodeSite[] }
+  runtimeDiscipline: { pass: boolean; violations: RuntimeViolation[] }
 }

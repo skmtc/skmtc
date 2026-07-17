@@ -8,6 +8,7 @@ import type {
   FileFacts,
   PackageFacts,
   ProducerKind,
+  RuntimeViolation,
   StringBucket
 } from './types.ts'
 
@@ -30,15 +31,42 @@ const REGISTER_FAMILY = new Set([
 // or a builder call like List.toArray([])).
 const MUTATION_PATH = /this\.(\w+)(?:\.\w+|\[[^\]]*\])*\.(?:push|add|set|unshift|splice|delete)\(/g
 
+// Template-literal hygiene: import statements belong in register calls,
+// never in emitted text.
+const TEMPLATE_IMPORT = /^\s*import\b(.*\bfrom\b|\s+['"])/m
+const TODO_MARKER = /\b(TODO|FIXME|XXX)\b/
+// Deno file-op namespace methods (Deno.env is allowed — the sanctioned
+// env read; logs via console/logger are allowed side effects).
+const DENO_FS_METHOD = /^(write|read|remove|mkdir|open|create|copy|rename|truncate|link|symlink|stat|lstat)/
+const FS_MODULES = new Set(['fs', 'node:fs', 'node:fs/promises', 'fs/promises'])
+const TIMER_CALLS = new Set(['setTimeout', 'setInterval'])
+const PROMISE_METHODS = new Set(['then', 'catch', 'finally'])
+
 type Frame = { label: string; isToString: boolean; isNamingStatic: boolean }
 
+// Only the code the worker bundle executes: root-level entry files
+// (mod.ts) plus src/**. Demo scripts, examples/, scripts/ etc. are out
+// of scope — they legitimately do async and fs work.
 const listSourceFiles = (dir: string): string[] => {
-  const entries = readdirSync(dir, { recursive: true, encoding: 'utf8' })
-  return entries
-    .filter(entry => /\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry))
-    .filter(entry => !entry.split('/').some(part => part === 'node_modules' || part.startsWith('.')))
+  const isSource = (entry: string): boolean =>
+    /\.tsx?$/.test(entry) &&
+    !/\.test\.tsx?$/.test(entry) &&
+    !entry.split('/').some(part => part === 'node_modules' || part.startsWith('.'))
+
+  const rootFiles = readdirSync(dir, { encoding: 'utf8' })
+    .filter(entry => isSource(entry) && !entry.includes('/'))
     .map(entry => join(dir, entry))
     .filter(path => statSync(path).isFile())
+
+  const srcDir = join(dir, 'src')
+  const srcFiles = existsSync(srcDir)
+    ? readdirSync(srcDir, { recursive: true, encoding: 'utf8' })
+        .filter(isSource)
+        .map(entry => join(srcDir, entry))
+        .filter(path => statSync(path).isFile())
+    : []
+
+  return [...rootFiles, ...srcFiles]
 }
 
 const nameOfFunctionLike = (node: ts.Node, sourceFile: ts.SourceFile): string | undefined => {
@@ -161,7 +189,10 @@ const parseFile = (path: string, genDir: string): FileFacts => {
     adHocToStringSites: [],
     asCastSites: [],
     insertCalls: { insertOperation: 0, insertModel: 0, insertNormalizedModel: 0, defineAndRegister: 0 },
-    rawDefinitionRegisters: []
+    rawDefinitionRegisters: [],
+    templateImportSites: [],
+    todoSites: [],
+    runtimeViolations: []
   }
 
   const lineOf = (node: ts.Node): number =>
@@ -369,6 +400,89 @@ const parseFile = (path: string, genDir: string): FileFacts => {
         ...site,
         text: node.getText(sourceFile).replace(/\s+/g, ' ').slice(0, 80)
       })
+    }
+
+    // --- template hygiene: imports and TODO markers in emitted text ---
+    if (ts.isTemplateExpression(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+      const templateText = node.getText(sourceFile)
+      if (TEMPLATE_IMPORT.test(templateText)) {
+        facts.templateImportSites.push(siteOf(node, stack))
+      }
+      const todoMatch = templateText.match(TODO_MARKER)
+      if (todoMatch) {
+        facts.todoSites.push({ ...siteOf(node, stack), text: todoMatch[0] })
+      }
+    }
+
+    // --- runtime discipline: valid synchronous Deno; side effects are
+    //     logs and register/insert calls only. AST-level detection, so
+    //     `await`/`fetch` appearing as TEXT inside emitted template
+    //     literals is never flagged. ---
+    const pushRuntime = (category: RuntimeViolation['category'], detail: string): void => {
+      const site = siteOf(node, stack)
+      facts.runtimeViolations.push({ file, site: site.site, line: site.line, category, detail })
+    }
+
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === 'process'
+    ) {
+      pushRuntime('node-ism', `process.${node.name.text}`)
+    }
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
+      const name = node.expression.text
+      if (name === 'require') pushRuntime('node-ism', 'require(…)')
+      if (name === 'fetch') pushRuntime('network', 'fetch(…)')
+      if (TIMER_CALLS.has(name)) pushRuntime('timer', `${name}(…)`)
+    }
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === 'Deno' &&
+      DENO_FS_METHOD.test(node.name.text)
+    ) {
+      pushRuntime('fs', `Deno.${node.name.text}`)
+    }
+    if (
+      ts.isImportDeclaration(node) &&
+      ts.isStringLiteral(node.moduleSpecifier) &&
+      FS_MODULES.has(node.moduleSpecifier.text)
+    ) {
+      pushRuntime('fs', `import from '${node.moduleSpecifier.text}'`)
+    }
+    if (
+      ts.isNewExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      (node.expression.text === 'WebSocket' || node.expression.text === 'XMLHttpRequest')
+    ) {
+      pushRuntime('network', `new ${node.expression.text}(…)`)
+    }
+    if (ts.isAwaitExpression(node)) {
+      pushRuntime('async', 'await expression')
+    }
+    if (
+      ts.isNewExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === 'Promise'
+    ) {
+      pushRuntime('async', 'new Promise(…)')
+    }
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      PROMISE_METHODS.has(node.expression.name.text) &&
+      node.arguments.length > 0 &&
+      node.arguments.some(argument => ts.isArrowFunction(argument) || ts.isFunctionExpression(argument))
+    ) {
+      pushRuntime('async', `.${node.expression.name.text}(callback)`)
+    }
+    if (
+      isFunctionLike(node) &&
+      ts.canHaveModifiers(node) &&
+      ts.getModifiers(node)?.some(modifier => modifier.kind === ts.SyntaxKind.AsyncKeyword)
+    ) {
+      pushRuntime('async', `async ${nameOfFunctionLike(node, sourceFile) ?? '<anonymous>'}`)
     }
 
     const isTemplate = ts.isTemplateExpression(node)

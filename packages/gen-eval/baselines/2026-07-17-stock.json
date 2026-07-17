@@ -2,7 +2,7 @@
   {
     "generator": "@skmtc/gen-arktype",
     "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-arktype",
-    "fileCount": 22,
+    "fileCount": 20,
     "structure": {
       "present": [
         "deno.json",
@@ -142,9 +142,7 @@
       "src/applyModifiers.ts:applyModifiers",
       "src/enrichments.ts:toEnrichmentSchema",
       "src/withNullable.ts:withNullable",
-      "src/withOptional.ts:withOptional",
-      "test/helpers/toGenerateContext.ts:toGenerateContext",
-      "test/helpers/toParseContext.ts:toParseContext"
+      "src/withOptional.ts:withOptional"
     ],
     "methodDiscipline": {
       "producers": 12,
@@ -266,6 +264,18 @@
       "insertNormalizedModel": 0,
       "defineAndRegister": 0,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -631,6 +641,18 @@
       "insertNormalizedModel": 0,
       "defineAndRegister": 3,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -877,6 +899,18 @@
       "insertNormalizedModel": 0,
       "defineAndRegister": 4,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -1065,6 +1099,18 @@
       "insertNormalizedModel": 2,
       "defineAndRegister": 0,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -1236,6 +1282,18 @@
       "insertNormalizedModel": 1,
       "defineAndRegister": 0,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -1747,12 +1805,24 @@
           "line": 51
         }
       ]
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
     "generator": "@skmtc/gen-kotlin-kotlinx",
     "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-kotlin-kotlinx",
-    "fileCount": 26,
+    "fileCount": 24,
     "structure": {
       "present": [
         "deno.json",
@@ -1941,9 +2011,7 @@
       "src/unionHints.ts:toHintMaps",
       "src/unionHints.ts:getUnionHint",
       "src/unionHints.ts:getInvalidUnionHint",
-      "src/unionHints.ts:markInvalidUnionHint",
-      "test/helpers/toGenerateContext.ts:toGenerateContext",
-      "test/helpers/toParseContext.ts:toParseContext"
+      "src/unionHints.ts:markInvalidUnionHint"
     ],
     "methodDiscipline": {
       "producers": 15,
@@ -2067,6 +2135,18 @@
       "insertNormalizedModel": 0,
       "defineAndRegister": 3,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -2635,6 +2715,18 @@
           "line": 115
         }
       ]
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -2849,12 +2941,24 @@
       "insertNormalizedModel": 0,
       "defineAndRegister": 4,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
     "generator": "@skmtc/gen-md-docs",
     "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-md-docs",
-    "fileCount": 27,
+    "fileCount": 23,
     "structure": {
       "present": [
         "deno.json",
@@ -3141,18 +3245,7 @@
       "src/snippets/TypeInfo.ts:toRefAnchor",
       "src/snippets/TypeInfo.ts:toConstraints",
       "src/snippets/TypeInfo.ts:toBound",
-      "src/snippets/TypeInfo.ts:toDefault",
-      "test/helpers/invariants.ts:markdownDocs",
-      "test/helpers/invariants.ts:toSlug",
-      "test/helpers/invariants.ts:checkAnchorLinks",
-      "test/helpers/invariants.ts:checkIndexIntegrity",
-      "test/helpers/invariants.ts:checkFrontmatter",
-      "test/helpers/invariants.ts:checkJsonExamples",
-      "test/helpers/invariants.ts:checkCodeFences",
-      "test/helpers/invariants.ts:checkAll",
-      "test/helpers/kitchenSink.ts:runKitchenSink",
-      "test/helpers/toGenerateContext.ts:toGenerateContext",
-      "test/helpers/toParsedDocument.ts:toParsedDocument"
+      "src/snippets/TypeInfo.ts:toDefault"
     ],
     "methodDiscipline": {
       "producers": 25,
@@ -3195,9 +3288,9 @@
       "insideToStringChars": 4170,
       "namingStaticsCount": 0,
       "namingStaticsChars": 0,
-      "outsideCount": 86,
-      "outsideChars": 4534,
-      "outsideShare": 0.5209099264705882,
+      "outsideCount": 72,
+      "outsideChars": 3773,
+      "outsideShare": 0.47500944227621805,
       "topOutsideSites": [
         {
           "site": "toOAuth2Detail",
@@ -3218,12 +3311,6 @@
           "chars": 387
         },
         {
-          "site": "checkIndexIntegrity",
-          "file": "test/helpers/invariants.ts",
-          "count": 7,
-          "chars": 377
-        },
-        {
           "site": "toConstraints",
           "file": "src/snippets/TypeInfo.ts",
           "count": 8,
@@ -3236,16 +3323,22 @@
           "chars": 222
         },
         {
-          "site": "checkFrontmatter",
-          "file": "test/helpers/invariants.ts",
-          "count": 4,
-          "chars": 204
-        },
-        {
           "site": "toSchemeKind",
           "file": "src/snippets/Security.ts",
           "count": 4,
           "chars": 179
+        },
+        {
+          "site": "Frontmatter.constructor",
+          "file": "src/snippets/Frontmatter.ts",
+          "count": 4,
+          "chars": 178
+        },
+        {
+          "site": "toPathName",
+          "file": "src/paths.ts",
+          "count": 1,
+          "chars": 164
         }
       ]
     },
@@ -3327,6 +3420,18 @@
       "insertNormalizedModel": 0,
       "defineAndRegister": 0,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -3447,12 +3552,24 @@
       "insertNormalizedModel": 0,
       "defineAndRegister": 1,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
     "generator": "@skmtc/gen-reapit-form",
     "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-reapit-form",
-    "fileCount": 18,
+    "fileCount": 17,
     "structure": {
       "present": [
         "deno.json",
@@ -3586,9 +3703,9 @@
       "insideToStringChars": 1983,
       "namingStaticsCount": 2,
       "namingStaticsChars": 74,
-      "outsideCount": 19,
-      "outsideChars": 480,
-      "outsideShare": 0.19488428745432398,
+      "outsideCount": 17,
+      "outsideChars": 437,
+      "outsideShare": 0.1805785123966942,
       "topOutsideSites": [
         {
           "site": "toCoerceValue",
@@ -3613,12 +3730,6 @@
           "file": "src/fields/SelectInput.ts",
           "count": 1,
           "chars": 44
-        },
-        {
-          "site": "<module>",
-          "file": "demo/run.ts",
-          "count": 2,
-          "chars": 43
         },
         {
           "site": "schemaToField",
@@ -3684,6 +3795,18 @@
       "insertNormalizedModel": 1,
       "defineAndRegister": 1,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -3868,6 +3991,18 @@
       "insertNormalizedModel": 2,
       "defineAndRegister": 1,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -3957,6 +4092,18 @@
       "insertNormalizedModel": 0,
       "defineAndRegister": 0,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -4049,6 +4196,18 @@
       "insertNormalizedModel": 0,
       "defineAndRegister": 0,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -4328,6 +4487,18 @@
       "insertNormalizedModel": 4,
       "defineAndRegister": 0,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -4484,6 +4655,18 @@
       "insertNormalizedModel": 2,
       "defineAndRegister": 1,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -4663,6 +4846,18 @@
           "line": 43
         }
       ]
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -4834,6 +5029,18 @@
       "insertNormalizedModel": 1,
       "defineAndRegister": 0,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -5015,6 +5222,18 @@
       "insertNormalizedModel": 8,
       "defineAndRegister": 0,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -5200,12 +5419,24 @@
       "insertNormalizedModel": 8,
       "defineAndRegister": 0,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
     "generator": "@skmtc/gen-typescript",
     "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-typescript",
-    "fileCount": 25,
+    "fileCount": 22,
     "structure": {
       "present": [
         "deno.json",
@@ -5371,10 +5602,7 @@
       "src/scalars.ts:resetCustomScalars",
       "src/scalars.ts:getCustomScalarMap",
       "src/withNullable.ts:withNullable",
-      "src/withOptional.ts:withOptional",
-      "test/helpers/testContext.ts:createMockContext",
-      "test/helpers/toGenerateContext.ts:toGenerateContext",
-      "test/helpers/toParseContext.ts:toParseContext"
+      "src/withOptional.ts:withOptional"
     ],
     "methodDiscipline": {
       "producers": 15,
@@ -5444,12 +5672,24 @@
       "insertNormalizedModel": 0,
       "defineAndRegister": 0,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
     "generator": "@skmtc/gen-typescript-s",
     "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-typescript-s",
-    "fileCount": 25,
+    "fileCount": 22,
     "structure": {
       "present": [
         "deno.json",
@@ -5615,10 +5855,7 @@
       "src/scalars.ts:resetCustomScalars",
       "src/scalars.ts:getCustomScalarMap",
       "src/withNullable.ts:withNullable",
-      "src/withOptional.ts:withOptional",
-      "test/helpers/testContext.ts:createMockContext",
-      "test/helpers/toGenerateContext.ts:toGenerateContext",
-      "test/helpers/toParseContext.ts:toParseContext"
+      "src/withOptional.ts:withOptional"
     ],
     "methodDiscipline": {
       "producers": 15,
@@ -5688,6 +5925,18 @@
       "insertNormalizedModel": 0,
       "defineAndRegister": 0,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
@@ -5865,12 +6114,24 @@
       "insertNormalizedModel": 3,
       "defineAndRegister": 3,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
     "generator": "@skmtc/gen-valibot",
     "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-valibot",
-    "fileCount": 22,
+    "fileCount": 20,
     "structure": {
       "present": [
         "deno.json",
@@ -6024,9 +6285,7 @@
       "src/applyModifiers.ts:applyModifiers",
       "src/enrichments.ts:toEnrichmentSchema",
       "src/withNullable.ts:withNullable",
-      "src/withOptional.ts:withOptional",
-      "test/helpers/toGenerateContext.ts:toGenerateContext",
-      "test/helpers/toParseContext.ts:toParseContext"
+      "src/withOptional.ts:withOptional"
     ],
     "methodDiscipline": {
       "producers": 14,
@@ -6104,12 +6363,24 @@
       "insertNormalizedModel": 0,
       "defineAndRegister": 0,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   },
   {
     "generator": "@skmtc/gen-zod",
     "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-zod",
-    "fileCount": 22,
+    "fileCount": 20,
     "structure": {
       "present": [
         "deno.json",
@@ -6261,9 +6532,7 @@
       "src/applyModifiers.ts:applyModifiers",
       "src/enrichments.ts:toEnrichmentSchema",
       "src/withNullable.ts:withNullable",
-      "src/withOptional.ts:withOptional",
-      "test/helpers/toGenerateContext.ts:toGenerateContext",
-      "test/helpers/toParseContext.ts:toParseContext"
+      "src/withOptional.ts:withOptional"
     ],
     "methodDiscipline": {
       "producers": 14,
@@ -6352,6 +6621,18 @@
       "insertNormalizedModel": 0,
       "defineAndRegister": 0,
       "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
     }
   }
 ]

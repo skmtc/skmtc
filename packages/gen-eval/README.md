@@ -61,20 +61,35 @@ asserts, why, how it is measured, and the known legitimate exceptions.
 11. **Registration channels** — informational: Driver-path `insert*` /
     `defineAndRegister` counts vs raw `register({ definitions })` with
     hand-built Definitions, with sites listed.
+12. **No import statements in template literals** — imports are always
+    added via register calls. Pass/fail, expected zero.
+13. **TODO markers in emitted text** — the stub-scaffold pattern
+    (`TODO|FIXME|XXX` in templates). Informational count.
+14. **Runtime discipline** — valid synchronous Deno: no node-isms, fs
+    APIs, network, timers, or async constructs in generator source; the
+    only side effects are logs and register/insert calls. AST-level, so
+    async code inside emitted template text is never flagged. Pass/fail.
 
-Checks 1, 5, 8 and 9 are pass/fail facts. The rest are numbers and
-per-site listings for human interpretation — there is deliberately no
-composite score. Full per-check documentation: [`docs/`](docs/README.md).
+Checks 1, 5, 8, 9, 12 and 14 are pass/fail facts. The rest are numbers
+and per-site listings for human interpretation — there is deliberately
+no composite score. Full per-check documentation: [`docs/`](docs/README.md).
+Analysis scope is the code the worker bundle executes: root entry files
+plus `src/**` (demo/, scripts/, and tests excluded).
 
 ## Usage
 
 ```bash
+# the whole stock-generator suite (skmtc-generators resolved from the
+# package location — works from any cwd), one row per generator, one
+# column per check:
+pnpm stock            # print the table
+pnpm stock:save       # also write baselines/stock-latest.{json,md}
+
 # one generator
 node src/cli.ts ../../../skmtc-generators/gen-zod
 
-# scan a directory of gen-* packages, write reports
-node src/cli.ts --scan ../../../skmtc-generators \
-  --json baselines/<date>-stock.json --md baselines/<date>-stock.md
+# scan any directory of gen-* packages, write reports
+node src/cli.ts --scan <dir> --json out.json --md out.md
 ```
 
 Runs directly on Node ≥ 23 (native type stripping); no build step.

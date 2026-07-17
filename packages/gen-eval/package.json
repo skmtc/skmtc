@@ -9,6 +9,8 @@
   },
   "scripts": {
     "analyze": "node src/cli.ts",
+    "stock": "node src/cli.ts --stock",
+    "stock:save": "node src/cli.ts --stock --json baselines/stock-latest.json --md baselines/stock-latest.md",
     "test": "vitest run"
   },
   "dependencies": {

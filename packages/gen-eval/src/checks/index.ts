@@ -10,6 +10,9 @@ import { runToStringPurity } from './tostring-purity.ts'
 import { runAdHocToString } from './adhoc-tostring.ts'
 import { runAsCasts } from './as-casts.ts'
 import { runRegistrationChannels } from './registration-channels.ts'
+import { runTemplateImports } from './template-imports.ts'
+import { runEmittedTodos } from './emitted-todos.ts'
+import { runRuntimeDiscipline } from './runtime-discipline.ts'
 
 /** One entry per check module; `doc` names the file under docs/. */
 export const CHECKS = [
@@ -23,7 +26,10 @@ export const CHECKS = [
   { id: 'tostring-purity', title: 'toString() is pure', doc: 'tostring-purity.md' },
   { id: 'adhoc-tostring', title: 'No ad-hoc { toString } object literals', doc: 'adhoc-tostring.md' },
   { id: 'as-casts', title: 'as-cast count (approval required)', doc: 'as-casts.md' },
-  { id: 'registration-channels', title: 'Registration channels (informational)', doc: 'registration-channels.md' }
+  { id: 'registration-channels', title: 'Registration channels (informational)', doc: 'registration-channels.md' },
+  { id: 'template-imports', title: 'No import statements in template literals', doc: 'template-imports.md' },
+  { id: 'emitted-todos', title: 'TODO markers in emitted text (informational)', doc: 'emitted-todos.md' },
+  { id: 'runtime-discipline', title: 'Valid synchronous Deno; side effects are logs + registers', doc: 'runtime-discipline.md' }
 ] as const
 
 export const runAll = (facts: PackageFacts): GeneratorReport => {
@@ -45,6 +51,9 @@ export const runAll = (facts: PackageFacts): GeneratorReport => {
     toStringPurity: runToStringPurity(facts),
     adHocToString: runAdHocToString(facts),
     asCasts: runAsCasts(facts),
-    registrationChannels: runRegistrationChannels(facts)
+    registrationChannels: runRegistrationChannels(facts),
+    templateImports: runTemplateImports(facts),
+    emittedTodos: runEmittedTodos(facts),
+    runtimeDiscipline: runRuntimeDiscipline(facts)
   }
 }
