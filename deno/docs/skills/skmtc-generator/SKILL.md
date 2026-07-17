@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.6.1
+version: 0.6.2
 description: |
   Author and edit SKMTC generators — write or modify Projection
   classes, Snippets, transform functions, enrichment schemas, and the
@@ -1041,6 +1041,38 @@ the *naming seams* (`toIdentifierName` should produce idiomatic
 casing for the target language; `toExportPath` its file layout), and
 keep everything else — purity, self-provisioning, compose-don't-
 concatenate — exactly as for TypeScript.
+
+### Working method: scaffold first — do not audit the engine
+
+The observed failure mode when authoring for a new language is
+spending dozens of turns fetching and reading `@skmtc/core` source
+(`deno doc` symbol by symbol, downloading files from jsr.io) to
+become certain of every signature before writing anything. Don't.
+The projection-base factory owns the engine contract — the core
+surface a generator touches is small (the entry factory, `OasSchema`
+narrowing, `insert*`/`register`), and every bit of it is already
+demonstrated in the §6 scaffolds and inside the lang package's own
+source.
+
+The productive order:
+
+1. **Read the lang package** — its projection-base factory, snippet
+   base, and `Definition`/`File` classes. Its source shows exactly
+   how it calls core, which is all the core knowledge you need.
+2. **Scaffold immediately** — transliterate §6's A–C with the lang
+   imports swapped, register the generator in the project
+   `deno.json`, and run `skmtc bundle` within your first few
+   actions.
+3. **Let the toolchain teach** — bundle/typecheck errors name the
+   exact signature you got wrong, one at a time. They are a faster
+   and more reliable teacher than engine source: the factory's
+   generics check your config either way, so pre-reading core buys
+   certainty you get for free at bundle time.
+
+If you genuinely need one core signature, look at how the lang
+package uses it before reaching for core source. Auditing the engine
+to de-risk the first line is unbounded in cost and the risk it
+retires is already retired by the type checker.
 
 ## 9. Verification checklist
 
