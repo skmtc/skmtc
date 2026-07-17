@@ -1,0 +1,21 @@
+{
+  "name": "@skmtc/gen-eval",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Structural eval for SKMTC generators — mechanical checks on producer discipline, derived from the skmtc-generator skill's generation model",
+  "type": "module",
+  "bin": {
+    "gen-eval": "./src/cli.ts"
+  },
+  "scripts": {
+    "analyze": "node src/cli.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "typescript": "^5.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "vitest": "^3.0.0"
+  }
+}

@@ -1,0 +1,4671 @@
+[
+  {
+    "generator": "@skmtc/gen-arktype",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-arktype",
+    "fileCount": 22,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-arktype"
+    },
+    "classes": [
+      {
+        "className": "ArktypeArray",
+        "file": "src/ArktypeArray.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ArktypeBoolean",
+        "file": "src/ArktypeBoolean.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ArktypeInteger",
+        "file": "src/ArktypeInteger.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ArktypeNull",
+        "file": "src/ArktypeNull.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ArktypeNumber",
+        "file": "src/ArktypeNumber.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ArktypeObject",
+        "file": "src/ArktypeObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "extractInnerType",
+          "toStringLiteral",
+          "generateObjectString"
+        ]
+      },
+      {
+        "className": "ArktypeProjection",
+        "file": "src/ArktypeProjection.ts",
+        "extendsName": "ArktypeBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "ArktypeRef",
+        "file": "src/ArktypeRef.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ArktypeString",
+        "file": "src/ArktypeString.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ArktypeUnion",
+        "file": "src/ArktypeUnion.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "extractInnerType"
+        ]
+      },
+      {
+        "className": "ArktypeUnknown",
+        "file": "src/ArktypeUnknown.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ArktypeVoid",
+        "file": "src/ArktypeVoid.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 11,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/Arktype.ts:toArktypeValue",
+      "src/applyModifiers.ts:applyModifiers",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/withNullable.ts:withNullable",
+      "src/withOptional.ts:withOptional",
+      "test/helpers/toGenerateContext.ts:toGenerateContext",
+      "test/helpers/toParseContext.ts:toParseContext"
+    ],
+    "methodDiscipline": {
+      "producers": 12,
+      "clean": 10,
+      "flagged": [
+        {
+          "className": "ArktypeObject",
+          "kind": "snippet",
+          "extraMethods": [
+            "extractInnerType",
+            "toStringLiteral",
+            "generateObjectString"
+          ]
+        },
+        {
+          "className": "ArktypeUnion",
+          "kind": "snippet",
+          "extraMethods": [
+            "extractInnerType"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 7,
+      "insideToStringChars": 156,
+      "namingStaticsCount": 1,
+      "namingStaticsChars": 36,
+      "outsideCount": 26,
+      "outsideChars": 1828,
+      "outsideShare": 0.9213709677419355,
+      "topOutsideSites": [
+        {
+          "site": "ArktypeObject.generateObjectString",
+          "file": "src/ArktypeObject.ts",
+          "count": 21,
+          "chars": 1718
+        },
+        {
+          "site": "applyModifiers",
+          "file": "src/applyModifiers.ts",
+          "count": 3,
+          "chars": 67
+        },
+        {
+          "site": "withOptional",
+          "file": "src/withOptional.ts",
+          "count": 1,
+          "chars": 24
+        },
+        {
+          "site": "withNullable",
+          "file": "src/withNullable.ts",
+          "count": 1,
+          "chars": 19
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  },
+  {
+    "generator": "@skmtc/gen-csharp",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-csharp",
+    "fileCount": 24,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts"
+      ],
+      "missing": [
+        "src/enrichments.ts"
+      ],
+      "pass": false,
+      "packageName": "@skmtc/gen-csharp"
+    },
+    "classes": [
+      {
+        "className": "CsAbstractRecordProjection",
+        "file": "src/CsAbstractRecordProjection.ts",
+        "extendsName": "CsAbstractRecordBase",
+        "kind": "projection",
+        "extraMethods": [
+          "attributes",
+          "description"
+        ]
+      },
+      {
+        "className": "CsArray",
+        "file": "src/CsArray.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CsEnumMembers",
+        "file": "src/CsEnumMembers.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CsEnumProjection",
+        "file": "src/CsEnumProjection.ts",
+        "extendsName": "CsEnumBase",
+        "kind": "projection",
+        "extraMethods": [
+          "attributes",
+          "description"
+        ]
+      },
+      {
+        "className": "CsUnknown",
+        "file": "src/CsJsonValues.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CsUnion",
+        "file": "src/CsJsonValues.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CsObjectValue",
+        "file": "src/CsObjectValue.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CsDictionary",
+        "file": "src/CsObjectValue.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CsPolymorphicParentValue",
+        "file": "src/CsPolymorphicParentValue.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CsInteger",
+        "file": "src/CsPrimitives.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CsNumber",
+        "file": "src/CsPrimitives.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CsBoolean",
+        "file": "src/CsPrimitives.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CsVoid",
+        "file": "src/CsPrimitives.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CsRecordProjection",
+        "file": "src/CsRecordProjection.ts",
+        "extendsName": "CsRecordBase",
+        "kind": "projection",
+        "extraMethods": [
+          "description",
+          "baseTypes"
+        ]
+      },
+      {
+        "className": "CsRecordValue",
+        "file": "src/CsRecordValue.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CsRef",
+        "file": "src/CsRef.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CsString",
+        "file": "src/CsString.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 3,
+      "snippets": 14,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/Cs.ts:toCsValue",
+      "src/applyModifiers.ts:applyModifiers",
+      "src/base.ts:toCsModelName",
+      "src/base.ts:toCsModelExportPath",
+      "src/baseNamespace.ts:setBaseNamespace",
+      "src/baseNamespace.ts:getBaseNamespace",
+      "src/baseNamespace.ts:resetBaseNamespace",
+      "src/mod.ts:toCsharpEntry",
+      "src/modelNames.ts:toEnrichmentSchema",
+      "src/modelNames.ts:isRecord",
+      "src/modelNames.ts:toModelAlias",
+      "src/modelNames.ts:toCsModelDisplayName",
+      "src/polymorphicMembership.ts:isPolymorphicUnion",
+      "src/polymorphicMembership.ts:hintFailure",
+      "src/polymorphicMembership.ts:toPolymorphicMembership",
+      "src/polymorphicMembership.ts:collectParentClaims",
+      "src/polymorphicMembership.ts:toMemberTag",
+      "src/polymorphicMembership.ts:peekRawSchema",
+      "src/scalars.ts:getCustomScalar",
+      "src/scalars.ts:logUnknownFormatOnce",
+      "src/scalars.ts:setCustomScalars",
+      "src/scalars.ts:resetCustomScalars",
+      "src/scalars.ts:getCustomScalarMap",
+      "src/toCsProjection.ts:toCsProjection",
+      "src/toCsProjection.ts:toCsProjectionForRef",
+      "src/toCsProjection.ts:peekSchema",
+      "src/toEnumValues.ts:toEnumValues",
+      "src/unionHints.ts:isRecord",
+      "src/unionHints.ts:toPropertyName",
+      "src/unionHints.ts:toHintMaps",
+      "src/unionHints.ts:getUnionHint",
+      "src/unionHints.ts:getInvalidUnionHint",
+      "src/unionHints.ts:markInvalidUnionHint"
+    ],
+    "methodDiscipline": {
+      "producers": 17,
+      "clean": 14,
+      "flagged": [
+        {
+          "className": "CsAbstractRecordProjection",
+          "kind": "projection",
+          "extraMethods": [
+            "attributes",
+            "description"
+          ]
+        },
+        {
+          "className": "CsEnumProjection",
+          "kind": "projection",
+          "extraMethods": [
+            "attributes",
+            "description"
+          ]
+        },
+        {
+          "className": "CsRecordProjection",
+          "kind": "projection",
+          "extraMethods": [
+            "description",
+            "baseTypes"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 11,
+      "insideToStringChars": 576,
+      "namingStaticsCount": 0,
+      "namingStaticsChars": 0,
+      "outsideCount": 52,
+      "outsideChars": 5255,
+      "outsideShare": 0.9012176299091065,
+      "topOutsideSites": [
+        {
+          "site": "CsRecordValue.constructor",
+          "file": "src/CsRecordValue.ts",
+          "count": 9,
+          "chars": 722
+        },
+        {
+          "site": "CsRef.constructor",
+          "file": "src/CsRef.ts",
+          "count": 5,
+          "chars": 569
+        },
+        {
+          "site": "CsUnion.constructor",
+          "file": "src/CsJsonValues.ts",
+          "count": 3,
+          "chars": 479
+        },
+        {
+          "site": "CsString.constructor",
+          "file": "src/CsString.ts",
+          "count": 3,
+          "chars": 477
+        },
+        {
+          "site": "CsObjectValue.constructor",
+          "file": "src/CsObjectValue.ts",
+          "count": 3,
+          "chars": 471
+        },
+        {
+          "site": "CsEnumProjection.constructor",
+          "file": "src/CsEnumProjection.ts",
+          "count": 4,
+          "chars": 398
+        },
+        {
+          "site": "setBaseNamespace",
+          "file": "src/baseNamespace.ts",
+          "count": 3,
+          "chars": 289
+        },
+        {
+          "site": "CsAbstractRecordProjection.constructor",
+          "file": "src/CsAbstractRecordProjection.ts",
+          "count": 2,
+          "chars": 247
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": true
+  },
+  {
+    "generator": "@skmtc/gen-csharp-aspnet",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-csharp-aspnet",
+    "fileCount": 9,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [
+        "src/base.ts"
+      ],
+      "pass": false,
+      "packageName": "@skmtc/gen-csharp-aspnet"
+    },
+    "classes": [
+      {
+        "className": "AspnetServiceInterface",
+        "file": "src/AspnetApiClasses.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "add"
+        ]
+      },
+      {
+        "className": "AspnetControllerClass",
+        "file": "src/AspnetApiClasses.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "add"
+        ]
+      },
+      {
+        "className": "AspnetApiMethod",
+        "file": "src/AspnetApiMethod.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ApiExceptionValue",
+        "file": "src/errorSupport.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ApiExceptionHandlerValue",
+        "file": "src/errorSupport.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "GeneratedResultsValue",
+        "file": "src/resultsSupport.ts",
+        "extendsName": "CsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 0,
+      "snippets": 6,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/AspnetApiMethod.ts:toMappingAttribute",
+      "src/apiFile.ts:toApiTag",
+      "src/apiFile.ts:toTagBase",
+      "src/apiFile.ts:toServiceName",
+      "src/apiFile.ts:toControllerName",
+      "src/apiFile.ts:toApiExportPath",
+      "src/baseNamespace.ts:setBaseNamespace",
+      "src/baseNamespace.ts:getBaseNamespace",
+      "src/baseNamespace.ts:resetBaseNamespace",
+      "src/enrichments.ts:isRecord",
+      "src/enrichments.ts:toServiceMethodName",
+      "src/errorSupport.ts:toErrorExportPath",
+      "src/errorSupport.ts:ensureApiErrorSupport",
+      "src/mod.ts:toCsharpAspnetEntry",
+      "src/resultsSupport.ts:toGeneratedResultsExportPath",
+      "src/resultsSupport.ts:ensureGeneratedResults"
+    ],
+    "methodDiscipline": {
+      "producers": 6,
+      "clean": 4,
+      "flagged": [
+        {
+          "className": "AspnetServiceInterface",
+          "kind": "snippet",
+          "extraMethods": [
+            "add"
+          ]
+        },
+        {
+          "className": "AspnetControllerClass",
+          "kind": "snippet",
+          "extraMethods": [
+            "add"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 7,
+      "insideToStringChars": 1247,
+      "namingStaticsCount": 0,
+      "namingStaticsChars": 0,
+      "outsideCount": 49,
+      "outsideChars": 3493,
+      "outsideShare": 0.7369198312236287,
+      "topOutsideSites": [
+        {
+          "site": "transform",
+          "file": "src/mod.ts",
+          "count": 8,
+          "chars": 1072
+        },
+        {
+          "site": "AspnetApiMethod.constructor",
+          "file": "src/AspnetApiMethod.ts",
+          "count": 16,
+          "chars": 606
+        },
+        {
+          "site": "ensureGeneratedResults",
+          "file": "src/resultsSupport.ts",
+          "count": 3,
+          "chars": 477
+        },
+        {
+          "site": "ensureApiErrorSupport",
+          "file": "src/errorSupport.ts",
+          "count": 3,
+          "chars": 476
+        },
+        {
+          "site": "setBaseNamespace",
+          "file": "src/baseNamespace.ts",
+          "count": 3,
+          "chars": 303
+        },
+        {
+          "site": "toMappingAttribute",
+          "file": "src/AspnetApiMethod.ts",
+          "count": 9,
+          "chars": 146
+        },
+        {
+          "site": "getBaseNamespace",
+          "file": "src/baseNamespace.ts",
+          "count": 1,
+          "chars": 143
+        },
+        {
+          "site": "ApiExceptionValue.<module>",
+          "file": "src/errorSupport.ts",
+          "count": 1,
+          "chars": 129
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": false,
+      "exempt": true
+    },
+    "accumulatorPattern": true
+  },
+  {
+    "generator": "@skmtc/gen-daisyui-form",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-daisyui-form",
+    "fileCount": 13,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-daisyui-form"
+    },
+    "classes": [
+      {
+        "className": "DaisyForm",
+        "file": "src/DaisyForm.ts",
+        "extendsName": "DaisyFormBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "FormFields",
+        "file": "src/FormFields.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CheckboxInput",
+        "file": "src/fields/CheckboxInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "IntegerInput",
+        "file": "src/fields/IntegerInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "NumberInput",
+        "file": "src/fields/NumberInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ObjectInput",
+        "file": "src/fields/ObjectInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "SelectInput",
+        "file": "src/fields/SelectInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "StringInput",
+        "file": "src/fields/StringInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 7,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/schemaToField.ts:schemaToField",
+      "src/schemaToField.ts:getLabel"
+    ],
+    "methodDiscipline": {
+      "producers": 8,
+      "clean": 8,
+      "flagged": []
+    },
+    "strings": {
+      "insideToStringCount": 31,
+      "insideToStringChars": 5632,
+      "namingStaticsCount": 2,
+      "namingStaticsChars": 86,
+      "outsideCount": 4,
+      "outsideChars": 164,
+      "outsideShare": 0.028295376121463076,
+      "topOutsideSites": [
+        {
+          "site": "DaisyForm.constructor",
+          "file": "src/DaisyForm.ts",
+          "count": 2,
+          "chars": 92
+        },
+        {
+          "site": "SelectInput.constructor",
+          "file": "src/fields/SelectInput.ts",
+          "count": 1,
+          "chars": 44
+        },
+        {
+          "site": "ObjectInput.constructor",
+          "file": "src/fields/ObjectInput.ts",
+          "count": 1,
+          "chars": 28
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  },
+  {
+    "generator": "@skmtc/gen-express",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-express",
+    "fileCount": 10,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-express"
+    },
+    "classes": [
+      {
+        "className": "ExpressApp",
+        "file": "src/ExpressApp.ts",
+        "extendsName": "ExpressAppBase",
+        "kind": "projection",
+        "extraMethods": [
+          "append"
+        ]
+      },
+      {
+        "className": "ExpressRoute",
+        "file": "src/ExpressRoute.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "RequestBody",
+        "file": "src/RequestBody.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Response",
+        "file": "src/Response.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ResponseVoid",
+        "file": "src/ResponseVoid.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 4,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/toFirstSegment.ts:toFirstSegment"
+    ],
+    "methodDiscipline": {
+      "producers": 5,
+      "clean": 4,
+      "flagged": [
+        {
+          "className": "ExpressApp",
+          "kind": "projection",
+          "extraMethods": [
+            "append"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 7,
+      "insideToStringChars": 826,
+      "namingStaticsCount": 1,
+      "namingStaticsChars": 17,
+      "outsideCount": 5,
+      "outsideChars": 161,
+      "outsideShare": 0.16312056737588654,
+      "topOutsideSites": [
+        {
+          "site": "ExpressRoute.constructor",
+          "file": "src/ExpressRoute.ts",
+          "count": 3,
+          "chars": 97
+        },
+        {
+          "site": "ExpressApp.append",
+          "file": "src/ExpressApp.ts",
+          "count": 1,
+          "chars": 37
+        },
+        {
+          "site": "RequestBody.constructor",
+          "file": "src/RequestBody.ts",
+          "count": 1,
+          "chars": 27
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  },
+  {
+    "generator": "@skmtc/gen-kotlin-jackson-s",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-kotlin-jackson-s",
+    "fileCount": 28,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-kotlin-jackson-s"
+    },
+    "classes": [
+      {
+        "className": "ModelField",
+        "file": "src/model/ModelField.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "typedAccessor",
+          "rawAccessor",
+          "flattenedTypedAccessor",
+          "flattenedRawAccessor",
+          "builderVariable",
+          "fromAssignment",
+          "setterBlocks",
+          "flattenedSetterBlocks",
+          "buildArgument",
+          "validateTerm",
+          "validityTerm",
+          "optionalMark",
+          "fromTarget",
+          "descriptionKdoc",
+          "typedSetter",
+          "rawAccessorKdoc",
+          "rawJsonSetterKdoc",
+          "docTypeExpression"
+        ]
+      },
+      {
+        "className": "ListModelField",
+        "file": "src/model/ModelField.ts",
+        "extendsName": "ModelField",
+        "kind": "snippet",
+        "extraMethods": [
+          "builderVariable",
+          "fromAssignment",
+          "setterBlocks",
+          "flattenedSetterBlocks",
+          "buildArgument",
+          "validateTerm",
+          "validityTerm",
+          "rawJsonSetterKdoc",
+          "docTypeExpression",
+          "addMethod"
+        ]
+      },
+      {
+        "className": "SdkModelValue",
+        "file": "src/model/SdkModelValue.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "AdditionalPropertiesAccessors",
+        "file": "src/model/sections/AdditionalPropertiesAccessors.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "EnvelopeConversion",
+        "file": "src/model/sections/EnvelopeConversion.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "KnownValueEnum",
+        "file": "src/model/sections/KnownValueEnum.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ModelBuilder",
+        "file": "src/model/sections/ModelBuilder.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ModelClassBody",
+        "file": "src/model/sections/ModelClassBody.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ModelCompanion",
+        "file": "src/model/sections/ModelCompanion.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ModelIdentity",
+        "file": "src/model/sections/ModelIdentity.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "NestedModelClass",
+        "file": "src/model/sections/NestedModelClass.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "applyShadowing"
+        ]
+      },
+      {
+        "className": "PrimaryConstructorParameters",
+        "file": "src/model/sections/PrimaryConstructorParameters.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "RawAccessors",
+        "file": "src/model/sections/RawAccessors.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "SecondaryConstructor",
+        "file": "src/model/sections/SecondaryConstructor.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TypedAccessors",
+        "file": "src/model/sections/TypedAccessors.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ValidateBlock",
+        "file": "src/model/sections/ValidateBlock.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ValidityScore",
+        "file": "src/model/sections/ValidityScore.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "KtScalarType",
+        "file": "src/model/types/KtTypes.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "applyShadowing"
+        ]
+      },
+      {
+        "className": "KtDatetimeType",
+        "file": "src/model/types/KtTypes.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "applyShadowing"
+        ]
+      },
+      {
+        "className": "KtListType",
+        "file": "src/model/types/KtTypes.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "applyShadowing"
+        ]
+      },
+      {
+        "className": "KtNestedClassType",
+        "file": "src/model/types/KtTypes.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "applyShadowing"
+        ]
+      },
+      {
+        "className": "KtEnumType",
+        "file": "src/model/types/KtTypes.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "applyShadowing"
+        ]
+      },
+      {
+        "className": "KtSharedRefType",
+        "file": "src/model/types/KtTypes.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "applyShadowing"
+        ]
+      }
+    ],
+    "classTotals": {
+      "projections": 0,
+      "snippets": 23,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/base.ts:toJacksonSModelName",
+      "src/base.ts:toJacksonSModelExportPath",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/errors.ts:exceptionName",
+      "src/errors.ts:requiredThrows",
+      "src/errors.ts:optionalThrows",
+      "src/format.ts:indent",
+      "src/format.ts:kdoc",
+      "src/modelConfig.ts:getModelConfig",
+      "src/naming.ts:toConstantCase",
+      "src/naming.ts:decapitalize",
+      "src/naming.ts:toSingular",
+      "src/model/ModelField.ts:docTypeOf",
+      "src/model/ModelField.ts:addMethodKdoc",
+      "src/model/ModelField.ts:requiredFieldsFence",
+      "src/model/structuralHash.ts:toStructuralHash",
+      "src/model/structuralHash.ts:canonicalize",
+      "src/model/toModelFields.ts:toModelFields",
+      "src/model/toModelFields.ts:toModelField",
+      "src/model/toModelFields.ts:isCustomValue",
+      "src/model/toModelFields.ts:orderSortedFields",
+      "src/model/toModelFields.ts:shadowFields",
+      "src/model/types/KtTypes.ts:toCoreModuleRoot",
+      "src/model/types/toKtType.ts:toKtType"
+    ],
+    "methodDiscipline": {
+      "producers": 23,
+      "clean": 14,
+      "flagged": [
+        {
+          "className": "ModelField",
+          "kind": "snippet",
+          "extraMethods": [
+            "typedAccessor",
+            "rawAccessor",
+            "flattenedTypedAccessor",
+            "flattenedRawAccessor",
+            "builderVariable",
+            "fromAssignment",
+            "setterBlocks",
+            "flattenedSetterBlocks",
+            "buildArgument",
+            "validateTerm",
+            "validityTerm",
+            "optionalMark",
+            "fromTarget",
+            "descriptionKdoc",
+            "typedSetter",
+            "rawAccessorKdoc",
+            "rawJsonSetterKdoc",
+            "docTypeExpression"
+          ]
+        },
+        {
+          "className": "ListModelField",
+          "kind": "snippet",
+          "extraMethods": [
+            "builderVariable",
+            "fromAssignment",
+            "setterBlocks",
+            "flattenedSetterBlocks",
+            "buildArgument",
+            "validateTerm",
+            "validityTerm",
+            "rawJsonSetterKdoc",
+            "docTypeExpression",
+            "addMethod"
+          ]
+        },
+        {
+          "className": "NestedModelClass",
+          "kind": "snippet",
+          "extraMethods": [
+            "applyShadowing"
+          ]
+        },
+        {
+          "className": "KtScalarType",
+          "kind": "snippet",
+          "extraMethods": [
+            "applyShadowing"
+          ]
+        },
+        {
+          "className": "KtDatetimeType",
+          "kind": "snippet",
+          "extraMethods": [
+            "applyShadowing"
+          ]
+        },
+        {
+          "className": "KtListType",
+          "kind": "snippet",
+          "extraMethods": [
+            "applyShadowing"
+          ]
+        },
+        {
+          "className": "KtNestedClassType",
+          "kind": "snippet",
+          "extraMethods": [
+            "applyShadowing"
+          ]
+        },
+        {
+          "className": "KtEnumType",
+          "kind": "snippet",
+          "extraMethods": [
+            "applyShadowing"
+          ]
+        },
+        {
+          "className": "KtSharedRefType",
+          "kind": "snippet",
+          "extraMethods": [
+            "applyShadowing"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 82,
+      "insideToStringChars": 15803,
+      "namingStaticsCount": 0,
+      "namingStaticsChars": 0,
+      "outsideCount": 90,
+      "outsideChars": 5509,
+      "outsideShare": 0.25849286786786785,
+      "topOutsideSites": [
+        {
+          "site": "ListModelField.setterBlocks",
+          "file": "src/model/ModelField.ts",
+          "count": 5,
+          "chars": 523
+        },
+        {
+          "site": "ModelField.flattenedSetterBlocks",
+          "file": "src/model/ModelField.ts",
+          "count": 4,
+          "chars": 287
+        },
+        {
+          "site": "ListModelField.rawJsonSetterKdoc",
+          "file": "src/model/ModelField.ts",
+          "count": 2,
+          "chars": 276
+        },
+        {
+          "site": "ModelField.rawJsonSetterKdoc",
+          "file": "src/model/ModelField.ts",
+          "count": 3,
+          "chars": 271
+        },
+        {
+          "site": "ModelField.typedAccessor",
+          "file": "src/model/ModelField.ts",
+          "count": 3,
+          "chars": 216
+        },
+        {
+          "site": "ModelField.typedSetter",
+          "file": "src/model/ModelField.ts",
+          "count": 2,
+          "chars": 195
+        },
+        {
+          "site": "ModelField.setterBlocks",
+          "file": "src/model/ModelField.ts",
+          "count": 2,
+          "chars": 183
+        },
+        {
+          "site": "requiredThrows",
+          "file": "src/errors.ts",
+          "count": 1,
+          "chars": 168
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": false,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  },
+  {
+    "generator": "@skmtc/gen-kotlin-kotlinx",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-kotlin-kotlinx",
+    "fileCount": 26,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-kotlin-kotlinx"
+    },
+    "classes": [
+      {
+        "className": "KtArray",
+        "file": "src/KtArray.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "KtDataClassValue",
+        "file": "src/KtDataClassValue.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "KtEnumEntries",
+        "file": "src/KtEnumEntries.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "KtUnknown",
+        "file": "src/KtJsonValues.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "KtUnion",
+        "file": "src/KtJsonValues.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "KtModelProjection",
+        "file": "src/KtModelProjection.ts",
+        "extendsName": "KtModelBase",
+        "kind": "projection",
+        "extraMethods": [
+          "annotations",
+          "description",
+          "supertypes"
+        ]
+      },
+      {
+        "className": "KtObjectValue",
+        "file": "src/KtObjectValue.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "KtRecord",
+        "file": "src/KtObjectValue.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "KtInteger",
+        "file": "src/KtPrimitives.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "KtNumber",
+        "file": "src/KtPrimitives.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "KtBoolean",
+        "file": "src/KtPrimitives.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "KtVoid",
+        "file": "src/KtPrimitives.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "KtRef",
+        "file": "src/KtRef.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "KtSealedInterfaceValue",
+        "file": "src/KtSealedInterfaceValue.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "KtString",
+        "file": "src/KtString.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 14,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/Kt.ts:toKtValue",
+      "src/applyModifiers.ts:applyModifiers",
+      "src/base.ts:toKtModelExportPath",
+      "src/enrichments.ts:isKotlinPackage",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/kdocText.ts:toKDocText",
+      "src/modelNames.ts:toKtModelName",
+      "src/modelNames.ts:isRecord",
+      "src/modelNames.ts:toModelAlias",
+      "src/modelNames.ts:toKtModelDisplayName",
+      "src/peekSchema.ts:peekSchema",
+      "src/scalars.ts:toScalarMap",
+      "src/scalars.ts:getCustomScalar",
+      "src/sealedMembership.ts:isSealedUnion",
+      "src/sealedMembership.ts:hintFailure",
+      "src/sealedMembership.ts:toSealedMembership",
+      "src/sealedMembership.ts:collectParentClaims",
+      "src/sealedMembership.ts:toHintedMemberTag",
+      "src/sealedMembership.ts:toMemberTag",
+      "src/sealedMembership.ts:peekRawSchema",
+      "src/toEnumEntryName.ts:toEnumValues",
+      "src/toEnumEntryName.ts:toEnumEntryName",
+      "src/toKtModelShape.ts:toKtModelShape",
+      "src/unionHints.ts:isRecord",
+      "src/unionHints.ts:toPropertyName",
+      "src/unionHints.ts:toHintMaps",
+      "src/unionHints.ts:getUnionHint",
+      "src/unionHints.ts:getInvalidUnionHint",
+      "src/unionHints.ts:markInvalidUnionHint",
+      "test/helpers/toGenerateContext.ts:toGenerateContext",
+      "test/helpers/toParseContext.ts:toParseContext"
+    ],
+    "methodDiscipline": {
+      "producers": 15,
+      "clean": 14,
+      "flagged": [
+        {
+          "className": "KtModelProjection",
+          "kind": "projection",
+          "extraMethods": [
+            "annotations",
+            "description",
+            "supertypes"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 8,
+      "insideToStringChars": 322,
+      "namingStaticsCount": 0,
+      "namingStaticsChars": 0,
+      "outsideCount": 25,
+      "outsideChars": 1712,
+      "outsideShare": 0.8416912487708947,
+      "topOutsideSites": [
+        {
+          "site": "KtDataClassValue.constructor",
+          "file": "src/KtDataClassValue.ts",
+          "count": 11,
+          "chars": 927
+        },
+        {
+          "site": "toHintMaps",
+          "file": "src/unionHints.ts",
+          "count": 2,
+          "chars": 237
+        },
+        {
+          "site": "KtSealedInterfaceValue.constructor",
+          "file": "src/KtSealedInterfaceValue.ts",
+          "count": 2,
+          "chars": 209
+        },
+        {
+          "site": "isSealedUnion",
+          "file": "src/sealedMembership.ts",
+          "count": 1,
+          "chars": 90
+        },
+        {
+          "site": "hintFailure",
+          "file": "src/sealedMembership.ts",
+          "count": 1,
+          "chars": 72
+        },
+        {
+          "site": "peekSchema",
+          "file": "src/peekSchema.ts",
+          "count": 1,
+          "chars": 30
+        },
+        {
+          "site": "KtRef.constructor",
+          "file": "src/KtRef.ts",
+          "count": 1,
+          "chars": 29
+        },
+        {
+          "site": "KtEnumEntries.constructor",
+          "file": "src/KtEnumEntries.ts",
+          "count": 1,
+          "chars": 22
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": true
+  },
+  {
+    "generator": "@skmtc/gen-kotlin-sdk",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-kotlin-sdk",
+    "fileCount": 37,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-kotlin-sdk"
+    },
+    "classes": [
+      {
+        "className": "KtSdkParams",
+        "file": "src/KtSdkParams.ts",
+        "extendsName": "SdkBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "KtSdkResponseModel",
+        "file": "src/KtSdkResponseModel.ts",
+        "extendsName": "SdkBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "SdkClientImplValue",
+        "file": "src/client/SdkClientImplValue.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "#rawImpl"
+        ]
+      },
+      {
+        "className": "SdkClientValue",
+        "file": "src/client/SdkClientValue.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "#descriptionLines",
+          "#rawView"
+        ]
+      },
+      {
+        "className": "ParamField",
+        "file": "src/params/ParamField.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "constructorParameter",
+          "accessor",
+          "builderVariable",
+          "fromAssignment",
+          "setterBlocks",
+          "buildArgument",
+          "put",
+          "pathSegment",
+          "stringify",
+          "optionalMark",
+          "descriptionKdoc"
+        ]
+      },
+      {
+        "className": "ListParamField",
+        "file": "src/params/ParamField.ts",
+        "extendsName": "ParamField",
+        "kind": "snippet",
+        "extraMethods": [
+          "builderVariable",
+          "fromAssignment",
+          "setterBlocks",
+          "buildArgument",
+          "stringify"
+        ]
+      },
+      {
+        "className": "SdkParamsValue",
+        "file": "src/params/SdkParamsValue.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "SdkServiceImplValue",
+        "file": "src/services/SdkServiceImplValue.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "add",
+          "#delegation",
+          "#rawImpl",
+          "#rawMethod"
+        ]
+      },
+      {
+        "className": "SdkServiceValue",
+        "file": "src/services/SdkServiceValue.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "add",
+          "#rawView",
+          "#methods"
+        ]
+      },
+      {
+        "className": "AbsentBody",
+        "file": "src/params/body/AbsentBody.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "fromLeadAssignments",
+          "fromTailAssignments"
+        ]
+      },
+      {
+        "className": "MapBody",
+        "file": "src/params/body/MapBody.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "fromLeadAssignments",
+          "fromTailAssignments"
+        ]
+      },
+      {
+        "className": "ModelBody",
+        "file": "src/params/body/ModelBody.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "fromLeadAssignments",
+          "fromTailAssignments",
+          "bodySetter"
+        ]
+      },
+      {
+        "className": "RefBody",
+        "file": "src/params/body/RefBody.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "fromLeadAssignments",
+          "fromTailAssignments"
+        ]
+      },
+      {
+        "className": "HeadersOverride",
+        "file": "src/params/sections/HeadersOverride.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ParamAccessors",
+        "file": "src/params/sections/ParamAccessors.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ParamsBuilder",
+        "file": "src/params/sections/ParamsBuilder.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ParamsClassBody",
+        "file": "src/params/sections/ParamsClassBody.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ParamsCompanion",
+        "file": "src/params/sections/ParamsCompanion.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ParamsConstructorParameters",
+        "file": "src/params/sections/ParamsConstructorParameters.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ParamsIdentity",
+        "file": "src/params/sections/ParamsIdentity.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "PathParamFn",
+        "file": "src/params/sections/PathParamFn.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "QueryParamsOverride",
+        "file": "src/params/sections/QueryParamsOverride.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 2,
+      "snippets": 20,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/SdkConfig.ts:toScreamingPrefix",
+      "src/base.ts:toCoreModuleRoot",
+      "src/base.ts:toModelsDir",
+      "src/base.ts:toClassStem",
+      "src/base.ts:toOperationName",
+      "src/base.ts:toResourceName",
+      "src/base.ts:toResourceDir",
+      "src/base.ts:toModelExportPath",
+      "src/base.ts:toServiceExportPath",
+      "src/base.ts:resolveEnrichment",
+      "src/config.ts:toSdkConfig",
+      "src/emitStaticFiles.ts:emitStaticFiles",
+      "src/emitStaticFiles.ts:toStaticFile",
+      "src/emitStaticFiles.ts:mergeOverlay",
+      "src/emitStaticFiles.ts:toDestinationPath",
+      "src/emitStaticFiles.ts:toSubstitute",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/format.ts:indent",
+      "src/format.ts:kdoc",
+      "src/naming.ts:toConstantCase",
+      "src/naming.ts:decapitalize",
+      "src/naming.ts:toSingular",
+      "src/sharedModels.ts:ensureSharedModels",
+      "src/sharedModels.ts:ensureModelDefinition",
+      "src/sharedModels.ts:findOperation",
+      "src/sharedModels.ts:toResponseSchema",
+      "src/sharedModels.ts:resolvePointer",
+      "src/client/SdkClient.ts:toClientModel",
+      "src/client/SdkClient.ts:orderedOperations",
+      "src/client/SdkClient.ts:suffix",
+      "src/client/SdkClient.ts:flavorDir",
+      "src/client/SdkClient.ts:toClientName",
+      "src/client/SdkClient.ts:serviceOf",
+      "src/client/ensureClient.ts:ensureClient",
+      "src/params/SdkParamsValue.ts:toPathSlug",
+      "src/params/toParamFields.ts:toParamFields",
+      "src/params/toParamFields.ts:lastPathParamName",
+      "src/params/toParamFields.ts:paramsHaveRequired",
+      "src/params/toParamFields.ts:resolveParameters",
+      "src/params/toParamFields.ts:toTemplateOrder",
+      "src/params/toParamFields.ts:toLastPathName",
+      "src/params/toParamFields.ts:isConstructionRequired",
+      "src/params/toParamFields.ts:toParamField",
+      "src/params/toParamFields.ts:toParamType",
+      "src/params/toParamFields.ts:toParamKotlinName",
+      "src/params/toParamFields.ts:toWireForm",
+      "src/services/SdkServiceImplValue.ts:fn",
+      "src/services/SdkServiceImplValue.ts:callSuffix",
+      "src/services/SdkServiceValue.ts:fn",
+      "src/services/ensureServices.ts:ensureServices",
+      "src/services/serviceFacts.ts:toServiceOperation",
+      "src/services/serviceFacts.ts:toPathSegments",
+      "src/services/serviceFacts.ts:toServiceName",
+      "src/services/serviceFacts.ts:toServiceImplName",
+      "src/services/serviceFacts.ts:addModelImports",
+      "src/params/body/BodySnippet.ts:toBodyShape",
+      "src/params/body/BodySnippet.ts:bodyHasRequired",
+      "src/params/body/BodySnippet.ts:toBodySnippet"
+    ],
+    "methodDiscipline": {
+      "producers": 22,
+      "clean": 12,
+      "flagged": [
+        {
+          "className": "SdkClientImplValue",
+          "kind": "snippet",
+          "extraMethods": [
+            "#rawImpl"
+          ]
+        },
+        {
+          "className": "SdkClientValue",
+          "kind": "snippet",
+          "extraMethods": [
+            "#descriptionLines",
+            "#rawView"
+          ]
+        },
+        {
+          "className": "ParamField",
+          "kind": "snippet",
+          "extraMethods": [
+            "constructorParameter",
+            "accessor",
+            "builderVariable",
+            "fromAssignment",
+            "setterBlocks",
+            "buildArgument",
+            "put",
+            "pathSegment",
+            "stringify",
+            "optionalMark",
+            "descriptionKdoc"
+          ]
+        },
+        {
+          "className": "ListParamField",
+          "kind": "snippet",
+          "extraMethods": [
+            "builderVariable",
+            "fromAssignment",
+            "setterBlocks",
+            "buildArgument",
+            "stringify"
+          ]
+        },
+        {
+          "className": "SdkServiceImplValue",
+          "kind": "snippet",
+          "extraMethods": [
+            "add",
+            "#delegation",
+            "#rawImpl",
+            "#rawMethod"
+          ]
+        },
+        {
+          "className": "SdkServiceValue",
+          "kind": "snippet",
+          "extraMethods": [
+            "add",
+            "#rawView",
+            "#methods"
+          ]
+        },
+        {
+          "className": "AbsentBody",
+          "kind": "snippet",
+          "extraMethods": [
+            "fromLeadAssignments",
+            "fromTailAssignments"
+          ]
+        },
+        {
+          "className": "MapBody",
+          "kind": "snippet",
+          "extraMethods": [
+            "fromLeadAssignments",
+            "fromTailAssignments"
+          ]
+        },
+        {
+          "className": "ModelBody",
+          "kind": "snippet",
+          "extraMethods": [
+            "fromLeadAssignments",
+            "fromTailAssignments",
+            "bodySetter"
+          ]
+        },
+        {
+          "className": "RefBody",
+          "kind": "snippet",
+          "extraMethods": [
+            "fromLeadAssignments",
+            "fromTailAssignments"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 89,
+      "insideToStringChars": 9672,
+      "namingStaticsCount": 0,
+      "namingStaticsChars": 0,
+      "outsideCount": 254,
+      "outsideChars": 34755,
+      "outsideShare": 0.7822945506111149,
+      "topOutsideSites": [
+        {
+          "site": "SdkServiceImplValue.#rawMethod",
+          "file": "src/services/SdkServiceImplValue.ts",
+          "count": 39,
+          "chars": 17072
+        },
+        {
+          "site": "SdkServiceValue.#methods",
+          "file": "src/services/SdkServiceValue.ts",
+          "count": 35,
+          "chars": 4369
+        },
+        {
+          "site": "SdkClientImplValue.#rawImpl",
+          "file": "src/client/SdkClientImplValue.ts",
+          "count": 16,
+          "chars": 1763
+        },
+        {
+          "site": "SdkServiceImplValue.#delegation",
+          "file": "src/services/SdkServiceImplValue.ts",
+          "count": 10,
+          "chars": 1232
+        },
+        {
+          "site": "SdkServiceImplValue.#rawImpl",
+          "file": "src/services/SdkServiceImplValue.ts",
+          "count": 11,
+          "chars": 1198
+        },
+        {
+          "site": "SdkClientValue.#rawView",
+          "file": "src/client/SdkClientValue.ts",
+          "count": 7,
+          "chars": 809
+        },
+        {
+          "site": "SdkServiceValue.#rawView",
+          "file": "src/services/SdkServiceValue.ts",
+          "count": 6,
+          "chars": 748
+        },
+        {
+          "site": "RefBody.constructor",
+          "file": "src/params/body/RefBody.ts",
+          "count": 10,
+          "chars": 549
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": true
+  },
+  {
+    "generator": "@skmtc/gen-kotlin-spring",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-kotlin-spring",
+    "fileCount": 7,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [
+        "src/base.ts"
+      ],
+      "pass": false,
+      "packageName": "@skmtc/gen-kotlin-spring"
+    },
+    "classes": [
+      {
+        "className": "SpringServiceInterface",
+        "file": "src/SpringApiInterface.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "add"
+        ]
+      },
+      {
+        "className": "SpringControllerClass",
+        "file": "src/SpringApiInterface.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "add"
+        ]
+      },
+      {
+        "className": "SpringApiMethod",
+        "file": "src/SpringApiMethod.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ApiErrorValue",
+        "file": "src/apiErrorSupport.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ApiErrorHandlerValue",
+        "file": "src/apiErrorSupport.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 0,
+      "snippets": 5,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/SpringApiMethod.ts:isRecord",
+      "src/SpringApiMethod.ts:toServiceMethodName",
+      "src/SpringApiMethod.ts:toMappingAnnotation",
+      "src/SpringApiMethod.ts:toResponseStatusName",
+      "src/apiErrorSupport.ts:ensureApiErrorSupport",
+      "src/apiFile.ts:toApiTag",
+      "src/apiFile.ts:toTagBase",
+      "src/apiFile.ts:toServiceName",
+      "src/apiFile.ts:toControllerName",
+      "src/apiFile.ts:toApiExportPath",
+      "src/enrichments.ts:isKotlinPackage",
+      "src/enrichments.ts:toEnrichmentSchema"
+    ],
+    "methodDiscipline": {
+      "producers": 5,
+      "clean": 3,
+      "flagged": [
+        {
+          "className": "SpringServiceInterface",
+          "kind": "snippet",
+          "extraMethods": [
+            "add"
+          ]
+        },
+        {
+          "className": "SpringControllerClass",
+          "kind": "snippet",
+          "extraMethods": [
+            "add"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 7,
+      "insideToStringChars": 718,
+      "namingStaticsCount": 0,
+      "namingStaticsChars": 0,
+      "outsideCount": 21,
+      "outsideChars": 632,
+      "outsideShare": 0.46814814814814815,
+      "topOutsideSites": [
+        {
+          "site": "SpringApiMethod.constructor",
+          "file": "src/SpringApiMethod.ts",
+          "count": 10,
+          "chars": 367
+        },
+        {
+          "site": "toMappingAnnotation",
+          "file": "src/SpringApiMethod.ts",
+          "count": 8,
+          "chars": 175
+        },
+        {
+          "site": "toApiExportPath",
+          "file": "src/apiFile.ts",
+          "count": 1,
+          "chars": 35
+        },
+        {
+          "site": "toControllerName",
+          "file": "src/apiFile.ts",
+          "count": 1,
+          "chars": 29
+        },
+        {
+          "site": "toServiceName",
+          "file": "src/apiFile.ts",
+          "count": 1,
+          "chars": 26
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": false,
+      "exempt": true
+    },
+    "accumulatorPattern": true
+  },
+  {
+    "generator": "@skmtc/gen-md-docs",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-md-docs",
+    "fileCount": 27,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [
+        "src/base.ts"
+      ],
+      "pass": false,
+      "packageName": "@skmtc/gen-md-docs"
+    },
+    "classes": [
+      {
+        "className": "Description",
+        "file": "src/snippets/Description.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TopIndex",
+        "file": "src/snippets/DocsIndex.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": [
+          "add"
+        ]
+      },
+      {
+        "className": "TagIndex",
+        "file": "src/snippets/DocsIndex.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": [
+          "add"
+        ]
+      },
+      {
+        "className": "Catalog",
+        "file": "src/snippets/DocsIndex.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": [
+          "add"
+        ]
+      },
+      {
+        "className": "Enums",
+        "file": "src/snippets/Enums.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Example",
+        "file": "src/snippets/Example.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ExternalDocs",
+        "file": "src/snippets/ExternalDocs.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Frontmatter",
+        "file": "src/snippets/Frontmatter.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Name",
+        "file": "src/snippets/Name.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "OperationDoc",
+        "file": "src/snippets/OperationDoc.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Parameters",
+        "file": "src/snippets/Parameters.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Parameter",
+        "file": "src/snippets/Parameters.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "PathMethod",
+        "file": "src/snippets/PathMethod.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Responses",
+        "file": "src/snippets/Responses.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ResponseEntry",
+        "file": "src/snippets/Responses.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Header",
+        "file": "src/snippets/Responses.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Link",
+        "file": "src/snippets/Responses.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Schema",
+        "file": "src/snippets/Schema.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Properties",
+        "file": "src/snippets/Schema.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Definitions",
+        "file": "src/snippets/Schema.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": [
+          "add",
+          "build"
+        ]
+      },
+      {
+        "className": "TypeDefinition",
+        "file": "src/snippets/Schema.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Section",
+        "file": "src/snippets/Section.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Security",
+        "file": "src/snippets/Security.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Summary",
+        "file": "src/snippets/Summary.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TypeInfo",
+        "file": "src/snippets/TypeInfo.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 0,
+      "snippets": 25,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/mod.ts:addToIndexes",
+      "src/mod.ts:getOrCreate",
+      "src/mod.ts:toIndexEntry",
+      "src/paths.ts:toDocsExportPath",
+      "src/paths.ts:toPathName",
+      "src/paths.ts:toKebabCase",
+      "src/toContent.ts:toContent",
+      "src/toContent.ts:toMediaTypeLine",
+      "src/toExample.ts:toExample",
+      "src/snippets/DocsIndex.ts:toGroups",
+      "src/snippets/DocsIndex.ts:toOperationLink",
+      "src/snippets/DocsIndex.ts:toExternalDocsLink",
+      "src/snippets/DocsIndex.ts:toServersSection",
+      "src/snippets/DocsIndex.ts:toAuthSection",
+      "src/snippets/DocsIndex.ts:toSchemeDetail",
+      "src/snippets/DocsIndex.ts:toOAuth2Detail",
+      "src/snippets/Frontmatter.ts:toListLines",
+      "src/snippets/Frontmatter.ts:toYamlString",
+      "src/snippets/Parameters.ts:toParameterNote",
+      "src/snippets/Schema.ts:toExpansion",
+      "src/snippets/Schema.ts:toObjectProperties",
+      "src/snippets/Schema.ts:toAdditionalProperties",
+      "src/snippets/Security.ts:toRequirementLine",
+      "src/snippets/Security.ts:toSchemeText",
+      "src/snippets/Security.ts:toSchemeKind",
+      "src/snippets/TypeInfo.ts:toTypeName",
+      "src/snippets/TypeInfo.ts:toRefAnchor",
+      "src/snippets/TypeInfo.ts:toConstraints",
+      "src/snippets/TypeInfo.ts:toBound",
+      "src/snippets/TypeInfo.ts:toDefault",
+      "test/helpers/invariants.ts:markdownDocs",
+      "test/helpers/invariants.ts:toSlug",
+      "test/helpers/invariants.ts:checkAnchorLinks",
+      "test/helpers/invariants.ts:checkIndexIntegrity",
+      "test/helpers/invariants.ts:checkFrontmatter",
+      "test/helpers/invariants.ts:checkJsonExamples",
+      "test/helpers/invariants.ts:checkCodeFences",
+      "test/helpers/invariants.ts:checkAll",
+      "test/helpers/kitchenSink.ts:runKitchenSink",
+      "test/helpers/toGenerateContext.ts:toGenerateContext",
+      "test/helpers/toParsedDocument.ts:toParsedDocument"
+    ],
+    "methodDiscipline": {
+      "producers": 25,
+      "clean": 21,
+      "flagged": [
+        {
+          "className": "TopIndex",
+          "kind": "snippet",
+          "extraMethods": [
+            "add"
+          ]
+        },
+        {
+          "className": "TagIndex",
+          "kind": "snippet",
+          "extraMethods": [
+            "add"
+          ]
+        },
+        {
+          "className": "Catalog",
+          "kind": "snippet",
+          "extraMethods": [
+            "add"
+          ]
+        },
+        {
+          "className": "Definitions",
+          "kind": "snippet",
+          "extraMethods": [
+            "add",
+            "build"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 68,
+      "insideToStringChars": 4170,
+      "namingStaticsCount": 0,
+      "namingStaticsChars": 0,
+      "outsideCount": 86,
+      "outsideChars": 4534,
+      "outsideShare": 0.5209099264705882,
+      "topOutsideSites": [
+        {
+          "site": "toOAuth2Detail",
+          "file": "src/snippets/DocsIndex.ts",
+          "count": 11,
+          "chars": 499
+        },
+        {
+          "site": "toServersSection",
+          "file": "src/snippets/DocsIndex.ts",
+          "count": 4,
+          "chars": 419
+        },
+        {
+          "site": "toSchemeDetail",
+          "file": "src/snippets/DocsIndex.ts",
+          "count": 7,
+          "chars": 387
+        },
+        {
+          "site": "checkIndexIntegrity",
+          "file": "test/helpers/invariants.ts",
+          "count": 7,
+          "chars": 377
+        },
+        {
+          "site": "toConstraints",
+          "file": "src/snippets/TypeInfo.ts",
+          "count": 8,
+          "chars": 293
+        },
+        {
+          "site": "toSchemeText",
+          "file": "src/snippets/Security.ts",
+          "count": 6,
+          "chars": 222
+        },
+        {
+          "site": "checkFrontmatter",
+          "file": "test/helpers/invariants.ts",
+          "count": 4,
+          "chars": 204
+        },
+        {
+          "site": "toSchemeKind",
+          "file": "src/snippets/Security.ts",
+          "count": 4,
+          "chars": 179
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": false,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  },
+  {
+    "generator": "@skmtc/gen-msw",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-msw",
+    "fileCount": 6,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-msw"
+    },
+    "classes": [
+      {
+        "className": "MockRoute",
+        "file": "src/MockRoute.ts",
+        "extendsName": "MswBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "MockRoutesList",
+        "file": "src/MockRoutesList.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": [
+          "add"
+        ]
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 1,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/enrichments.ts:toEnrichmentSchema"
+    ],
+    "methodDiscipline": {
+      "producers": 2,
+      "clean": 1,
+      "flagged": [
+        {
+          "className": "MockRoutesList",
+          "kind": "snippet",
+          "extraMethods": [
+            "add"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 3,
+      "insideToStringChars": 257,
+      "namingStaticsCount": 1,
+      "namingStaticsChars": 58,
+      "outsideCount": 0,
+      "outsideChars": 0,
+      "outsideShare": 0,
+      "topOutsideSites": []
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": true
+  },
+  {
+    "generator": "@skmtc/gen-reapit-form",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-reapit-form",
+    "fileCount": 18,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-reapit-form"
+    },
+    "classes": [
+      {
+        "className": "ReapitForm",
+        "file": "src/ReapitForm.ts",
+        "extendsName": "ReapitFormBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "ArrayInput",
+        "file": "src/fields/ArrayInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CheckboxInput",
+        "file": "src/fields/CheckboxInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "InputWrapper",
+        "file": "src/fields/InputWrapper.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "LookupInput",
+        "file": "src/fields/LookupInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "NumberInput",
+        "file": "src/fields/NumberInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "SectionInput",
+        "file": "src/fields/SectionInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "SelectInput",
+        "file": "src/fields/SelectInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "StringInput",
+        "file": "src/fields/StringInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TextAreaInput",
+        "file": "src/fields/TextAreaInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 9,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/enrichments.ts:toProperties",
+      "src/schemaToField.ts:schemaToField",
+      "src/schemaToField.ts:isReferenceKind",
+      "src/schemaToField.ts:inferStringInputType",
+      "src/schemaToField.ts:humaniseLast",
+      "src/toCoerceBlock.ts:toCoerceBlock",
+      "src/toCoerceBlock.ts:toObjectExpr",
+      "src/toCoerceBlock.ts:toCoerceValue",
+      "src/fields/labelText.ts:labelText"
+    ],
+    "methodDiscipline": {
+      "producers": 10,
+      "clean": 10,
+      "flagged": []
+    },
+    "strings": {
+      "insideToStringCount": 22,
+      "insideToStringChars": 1983,
+      "namingStaticsCount": 2,
+      "namingStaticsChars": 74,
+      "outsideCount": 19,
+      "outsideChars": 480,
+      "outsideShare": 0.19488428745432398,
+      "topOutsideSites": [
+        {
+          "site": "toCoerceValue",
+          "file": "src/toCoerceBlock.ts",
+          "count": 6,
+          "chars": 160
+        },
+        {
+          "site": "ReapitForm.constructor",
+          "file": "src/ReapitForm.ts",
+          "count": 4,
+          "chars": 115
+        },
+        {
+          "site": "toObjectExpr",
+          "file": "src/toCoerceBlock.ts",
+          "count": 4,
+          "chars": 85
+        },
+        {
+          "site": "SelectInput.constructor",
+          "file": "src/fields/SelectInput.ts",
+          "count": 1,
+          "chars": 44
+        },
+        {
+          "site": "<module>",
+          "file": "demo/run.ts",
+          "count": 2,
+          "chars": 43
+        },
+        {
+          "site": "schemaToField",
+          "file": "src/schemaToField.ts",
+          "count": 1,
+          "chars": 21
+        },
+        {
+          "site": "labelText",
+          "file": "src/fields/labelText.ts",
+          "count": 1,
+          "chars": 12
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": true
+  },
+  {
+    "generator": "@skmtc/gen-reapit-graphql-client",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-reapit-graphql-client",
+    "fileCount": 8,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-reapit-graphql-client"
+    },
+    "classes": [
+      {
+        "className": "ReapitGraphqlClient",
+        "file": "src/ReapitGraphqlClient.ts",
+        "extendsName": "ReapitGraphqlClientBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "ObjectSelection",
+        "file": "src/selection/ObjectSelection.ts",
+        "extendsName": "Selection",
+        "kind": "other",
+        "extraMethods": [
+          "isEmpty",
+          "withName",
+          "asDocumentSuffix"
+        ]
+      },
+      {
+        "className": "Selection",
+        "file": "src/selection/Selection.ts",
+        "kind": "other",
+        "extraMethods": [
+          "isEmpty",
+          "withName",
+          "asDocumentSuffix"
+        ]
+      },
+      {
+        "className": "ScalarSelection",
+        "file": "src/selection/Selection.ts",
+        "extendsName": "Selection",
+        "kind": "other",
+        "extraMethods": [
+          "isEmpty",
+          "withName"
+        ]
+      },
+      {
+        "className": "EmptySelection",
+        "file": "src/selection/Selection.ts",
+        "extendsName": "Selection",
+        "kind": "other",
+        "extraMethods": [
+          "isEmpty",
+          "withName"
+        ]
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 0,
+      "other": 4
+    },
+    "producerShare": 0.2,
+    "helperFunctions": [
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/selection/toSelection.ts:unwrap",
+      "src/selection/toSelection.ts:toSelection"
+    ],
+    "methodDiscipline": {
+      "producers": 1,
+      "clean": 1,
+      "flagged": []
+    },
+    "strings": {
+      "insideToStringCount": 6,
+      "insideToStringChars": 876,
+      "namingStaticsCount": 2,
+      "namingStaticsChars": 61,
+      "outsideCount": 14,
+      "outsideChars": 811,
+      "outsideShare": 0.48073503260225253,
+      "topOutsideSites": [
+        {
+          "site": "ReapitGraphqlClient.constructor",
+          "file": "src/ReapitGraphqlClient.ts",
+          "count": 11,
+          "chars": 684
+        },
+        {
+          "site": "toSelection",
+          "file": "src/selection/toSelection.ts",
+          "count": 1,
+          "chars": 78
+        },
+        {
+          "site": "ObjectSelection.withName",
+          "file": "src/selection/ObjectSelection.ts",
+          "count": 1,
+          "chars": 28
+        },
+        {
+          "site": "ObjectSelection.asDocumentSuffix",
+          "file": "src/selection/ObjectSelection.ts",
+          "count": 1,
+          "chars": 21
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": true
+  },
+  {
+    "generator": "@skmtc/gen-reapit-multi-select",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-reapit-multi-select",
+    "fileCount": 5,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-reapit-multi-select"
+    },
+    "classes": [
+      {
+        "className": "ReapitMultiSelect",
+        "file": "src/ReapitMultiSelect.ts",
+        "extendsName": "ReapitMultiSelectBase",
+        "kind": "projection",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 0,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/base.ts:stripGetPrefix",
+      "src/base.ts:decapitalize",
+      "src/enrichments.ts:toEnrichmentSchema"
+    ],
+    "methodDiscipline": {
+      "producers": 1,
+      "clean": 1,
+      "flagged": []
+    },
+    "strings": {
+      "insideToStringCount": 1,
+      "insideToStringChars": 4172,
+      "namingStaticsCount": 2,
+      "namingStaticsChars": 81,
+      "outsideCount": 0,
+      "outsideChars": 0,
+      "outsideShare": 0,
+      "topOutsideSites": []
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  },
+  {
+    "generator": "@skmtc/gen-reapit-searchable-dropdown",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-reapit-searchable-dropdown",
+    "fileCount": 5,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-reapit-searchable-dropdown"
+    },
+    "classes": [
+      {
+        "className": "ReapitSearchableDropdown",
+        "file": "src/ReapitSearchableDropdown.ts",
+        "extendsName": "ReapitSearchableDropdownBase",
+        "kind": "projection",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 0,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/base.ts:stripGetPrefix",
+      "src/base.ts:decapitalize",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/mod.ts:unwrapPagedItem",
+      "src/mod.ts:hasScalarStringField",
+      "src/mod.ts:hasNameStringArgument"
+    ],
+    "methodDiscipline": {
+      "producers": 1,
+      "clean": 1,
+      "flagged": []
+    },
+    "strings": {
+      "insideToStringCount": 1,
+      "insideToStringChars": 4310,
+      "namingStaticsCount": 2,
+      "namingStaticsChars": 76,
+      "outsideCount": 0,
+      "outsideChars": 0,
+      "outsideShare": 0,
+      "topOutsideSites": []
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  },
+  {
+    "generator": "@skmtc/gen-shadcn-form",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-shadcn-form",
+    "fileCount": 16,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-shadcn-form"
+    },
+    "classes": [
+      {
+        "className": "FormFields",
+        "file": "src/FormFields.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "FormLabel",
+        "file": "src/FormLabel.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ShadcnForm",
+        "file": "src/ShadcnForm.ts",
+        "extendsName": "ShadcnFormBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "CheckboxInput",
+        "file": "src/fields/CheckboxInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "CustomInput",
+        "file": "src/fields/CustomInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "IntegerInput",
+        "file": "src/fields/IntegerInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "NumberInput",
+        "file": "src/fields/NumberInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ObjectInput",
+        "file": "src/fields/ObjectInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "SelectInput",
+        "file": "src/fields/SelectInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "StringInput",
+        "file": "src/fields/StringInput.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Table",
+        "file": "src/fields/Table.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "SimpleTable",
+        "file": "src/fields/Table.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ObjectTable",
+        "file": "src/fields/Table.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "SimpleTableRowRender",
+        "file": "src/fields/Table.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TableObjectRowRender",
+        "file": "src/fields/Table.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 14,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/ShadcnForm.ts:pathToOptions",
+      "src/ShadcnForm.ts:subtractPathFromSchema",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/enrichments.ts:toProperties",
+      "src/schemaToField.ts:schemaToField",
+      "src/schemaToField.ts:getLabel",
+      "src/schemaToField.ts:getReferencedOperation"
+    ],
+    "methodDiscipline": {
+      "producers": 15,
+      "clean": 15,
+      "flagged": []
+    },
+    "strings": {
+      "insideToStringCount": 27,
+      "insideToStringChars": 3276,
+      "namingStaticsCount": 2,
+      "namingStaticsChars": 86,
+      "outsideCount": 14,
+      "outsideChars": 1146,
+      "outsideShare": 0.2591587516960651,
+      "topOutsideSites": [
+        {
+          "site": "TableObjectRowRender.constructor",
+          "file": "src/fields/Table.ts",
+          "count": 2,
+          "chars": 368
+        },
+        {
+          "site": "SimpleTableRowRender.constructor",
+          "file": "src/fields/Table.ts",
+          "count": 2,
+          "chars": 332
+        },
+        {
+          "site": "ShadcnForm.constructor",
+          "file": "src/ShadcnForm.ts",
+          "count": 5,
+          "chars": 202
+        },
+        {
+          "site": "getReferencedOperation",
+          "file": "src/schemaToField.ts",
+          "count": 2,
+          "chars": 128
+        },
+        {
+          "site": "SelectInput.constructor",
+          "file": "src/fields/SelectInput.ts",
+          "count": 1,
+          "chars": 60
+        },
+        {
+          "site": "ObjectTable.constructor",
+          "file": "src/fields/Table.ts",
+          "count": 1,
+          "chars": 33
+        },
+        {
+          "site": "ObjectInput.constructor",
+          "file": "src/fields/ObjectInput.ts",
+          "count": 1,
+          "chars": 23
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  },
+  {
+    "generator": "@skmtc/gen-shadcn-select",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-shadcn-select",
+    "fileCount": 8,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-shadcn-select"
+    },
+    "classes": [
+      {
+        "className": "InputOption",
+        "file": "src/InputOption.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "PathParams",
+        "file": "src/PathParams.ts",
+        "extendsName": "ShadcnSelectApiBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "ShadcnSelectField",
+        "file": "src/ShadcnSelectField.ts",
+        "extendsName": "ShadcnSelectApiBase",
+        "kind": "projection",
+        "extraMethods": [
+          "toIdentifierName"
+        ]
+      },
+      {
+        "className": "ShadcnSelectInput",
+        "file": "src/ShadcnSelectInput.ts",
+        "extendsName": "ShadcnSelectApiBase",
+        "kind": "projection",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 3,
+      "snippets": 1,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/enrichments.ts:toProperties"
+    ],
+    "methodDiscipline": {
+      "producers": 4,
+      "clean": 3,
+      "flagged": [
+        {
+          "className": "ShadcnSelectField",
+          "kind": "projection",
+          "extraMethods": [
+            "toIdentifierName"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 6,
+      "insideToStringChars": 1357,
+      "namingStaticsCount": 3,
+      "namingStaticsChars": 95,
+      "outsideCount": 6,
+      "outsideChars": 173,
+      "outsideShare": 0.1130718954248366,
+      "topOutsideSites": [
+        {
+          "site": "InputOption.constructor",
+          "file": "src/InputOption.ts",
+          "count": 2,
+          "chars": 63
+        },
+        {
+          "site": "ShadcnSelectInput.constructor",
+          "file": "src/ShadcnSelectInput.ts",
+          "count": 2,
+          "chars": 47
+        },
+        {
+          "site": "ShadcnSelectField.constructor",
+          "file": "src/ShadcnSelectField.ts",
+          "count": 1,
+          "chars": 39
+        },
+        {
+          "site": "PathParams.constructor",
+          "file": "src/PathParams.ts",
+          "count": 1,
+          "chars": 24
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": true
+  },
+  {
+    "generator": "@skmtc/gen-shadcn-table",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-shadcn-table",
+    "fileCount": 9,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-shadcn-table"
+    },
+    "classes": [
+      {
+        "className": "Column",
+        "file": "src/Column.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "PathParams",
+        "file": "src/PathParams.ts",
+        "extendsName": "ShadcnTableBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "ShadcnTable",
+        "file": "src/ShadcnTable.ts",
+        "extendsName": "ShadcnTableBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "TableColumn",
+        "file": "src/TableColumn.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TanstackColumns",
+        "file": "src/TanstackColumns.ts",
+        "extendsName": "ShadcnTableBase",
+        "kind": "projection",
+        "extraMethods": [
+          "toIdentifierName"
+        ]
+      }
+    ],
+    "classTotals": {
+      "projections": 3,
+      "snippets": 2,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/TableColumn.ts:getLabel",
+      "src/TableColumn.ts:getCell",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/enrichments.ts:toProperties"
+    ],
+    "methodDiscipline": {
+      "producers": 5,
+      "clean": 4,
+      "flagged": [
+        {
+          "className": "TanstackColumns",
+          "kind": "projection",
+          "extraMethods": [
+            "toIdentifierName"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 7,
+      "insideToStringChars": 967,
+      "namingStaticsCount": 2,
+      "namingStaticsChars": 80,
+      "outsideCount": 9,
+      "outsideChars": 404,
+      "outsideShare": 0.2946754194018964,
+      "topOutsideSites": [
+        {
+          "site": "TanstackColumns.constructor",
+          "file": "src/TanstackColumns.ts",
+          "count": 1,
+          "chars": 121
+        },
+        {
+          "site": "TableColumn.constructor",
+          "file": "src/TableColumn.ts",
+          "count": 3,
+          "chars": 91
+        },
+        {
+          "site": "getLabel",
+          "file": "src/TableColumn.ts",
+          "count": 2,
+          "chars": 87
+        },
+        {
+          "site": "getCell",
+          "file": "src/TableColumn.ts",
+          "count": 1,
+          "chars": 68
+        },
+        {
+          "site": "PathParams.constructor",
+          "file": "src/PathParams.ts",
+          "count": 1,
+          "chars": 24
+        },
+        {
+          "site": "ShadcnTable.constructor",
+          "file": "src/ShadcnTable.ts",
+          "count": 1,
+          "chars": 13
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  },
+  {
+    "generator": "@skmtc/gen-supabase-hono",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-supabase-hono",
+    "fileCount": 10,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-supabase-hono"
+    },
+    "classes": [
+      {
+        "className": "RequestBody",
+        "file": "src/RequestBody.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "Response",
+        "file": "src/Response.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ResponseVoid",
+        "file": "src/ResponseVoid.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "SupabaseHono",
+        "file": "src/SupabaseHono.ts",
+        "extendsName": "SupabaseHonoBase",
+        "kind": "projection",
+        "extraMethods": [
+          "append"
+        ]
+      },
+      {
+        "className": "SupabaseRoute",
+        "file": "src/SupabaseRoute.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 4,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/toFirstSegment.ts:toFirstSegment"
+    ],
+    "methodDiscipline": {
+      "producers": 5,
+      "clean": 4,
+      "flagged": [
+        {
+          "className": "SupabaseHono",
+          "kind": "projection",
+          "extraMethods": [
+            "append"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 7,
+      "insideToStringChars": 1370,
+      "namingStaticsCount": 1,
+      "namingStaticsChars": 17,
+      "outsideCount": 5,
+      "outsideChars": 157,
+      "outsideShare": 0.10281597904387688,
+      "topOutsideSites": [
+        {
+          "site": "SupabaseRoute.constructor",
+          "file": "src/SupabaseRoute.ts",
+          "count": 3,
+          "chars": 93
+        },
+        {
+          "site": "SupabaseHono.append",
+          "file": "src/SupabaseHono.ts",
+          "count": 1,
+          "chars": 37
+        },
+        {
+          "site": "RequestBody.constructor",
+          "file": "src/RequestBody.ts",
+          "count": 1,
+          "chars": 27
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  },
+  {
+    "generator": "@skmtc/gen-tanstack-query-fetch-zod",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-tanstack-query-fetch-zod",
+    "fileCount": 13,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-tanstack-query-fetch-zod"
+    },
+    "classes": [
+      {
+        "className": "MutationEndpoint",
+        "file": "src/MutationEndpoint.ts",
+        "extendsName": "TanstackQueryBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "MutationFn",
+        "file": "src/MutationFn.ts",
+        "extendsName": "TanstackQueryBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "PaginatedQueryEndpoint",
+        "file": "src/PaginatedQueryEndpoint.ts",
+        "extendsName": "TanstackQueryBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "PaginatedQueryFn",
+        "file": "src/PaginatedQueryFn.ts",
+        "extendsName": "TanstackQueryBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "QueryEndpoint",
+        "file": "src/QueryEndpoint.ts",
+        "extendsName": "TanstackQueryBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "QueryFn",
+        "file": "src/QueryFn.ts",
+        "extendsName": "TanstackQueryBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "TanstackQuery",
+        "file": "src/TanstackQuery.ts",
+        "extendsName": "TanstackQueryBase",
+        "kind": "projection",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 7,
+      "snippets": 0,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/listFns.ts:toListKeyAndItem",
+      "src/listFns.ts:isListResponse",
+      "src/util.ts:stripLeadingSlash"
+    ],
+    "methodDiscipline": {
+      "producers": 7,
+      "clean": 7,
+      "flagged": []
+    },
+    "strings": {
+      "insideToStringCount": 6,
+      "insideToStringChars": 1958,
+      "namingStaticsCount": 2,
+      "namingStaticsChars": 67,
+      "outsideCount": 11,
+      "outsideChars": 401,
+      "outsideShare": 0.16998728274692668,
+      "topOutsideSites": [
+        {
+          "site": "MutationFn.constructor",
+          "file": "src/MutationFn.ts",
+          "count": 3,
+          "chars": 145
+        },
+        {
+          "site": "PaginatedQueryFn.constructor",
+          "file": "src/PaginatedQueryFn.ts",
+          "count": 2,
+          "chars": 96
+        },
+        {
+          "site": "QueryFn.constructor",
+          "file": "src/QueryFn.ts",
+          "count": 2,
+          "chars": 96
+        },
+        {
+          "site": "MutationEndpoint.constructor",
+          "file": "src/MutationEndpoint.ts",
+          "count": 2,
+          "chars": 44
+        },
+        {
+          "site": "PaginatedQueryEndpoint.constructor",
+          "file": "src/PaginatedQueryEndpoint.ts",
+          "count": 1,
+          "chars": 10
+        },
+        {
+          "site": "QueryEndpoint.constructor",
+          "file": "src/QueryEndpoint.ts",
+          "count": 1,
+          "chars": 10
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  },
+  {
+    "generator": "@skmtc/gen-tanstack-query-supabase-zod",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-tanstack-query-supabase-zod",
+    "fileCount": 13,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-tanstack-query-supabase-zod"
+    },
+    "classes": [
+      {
+        "className": "MutationEndpoint",
+        "file": "src/MutationEndpoint.ts",
+        "extendsName": "TanstackQueryBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "MutationFn",
+        "file": "src/MutationFn.ts",
+        "extendsName": "TanstackQueryBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "PaginatedQueryEndpoint",
+        "file": "src/PaginatedQueryEndpoint.ts",
+        "extendsName": "TanstackQueryBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "PaginatedQueryFn",
+        "file": "src/PaginatedQueryFn.ts",
+        "extendsName": "TanstackQueryBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "QueryEndpoint",
+        "file": "src/QueryEndpoint.ts",
+        "extendsName": "TanstackQueryBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "QueryFn",
+        "file": "src/QueryFn.ts",
+        "extendsName": "TanstackQueryBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "TanstackQuery",
+        "file": "src/TanstackQuery.ts",
+        "extendsName": "TanstackQueryBase",
+        "kind": "projection",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 7,
+      "snippets": 0,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/listFns.ts:toListKeyAndItem",
+      "src/listFns.ts:isListResponse",
+      "src/util.ts:stripLeadingSlash"
+    ],
+    "methodDiscipline": {
+      "producers": 7,
+      "clean": 7,
+      "flagged": []
+    },
+    "strings": {
+      "insideToStringCount": 6,
+      "insideToStringChars": 1790,
+      "namingStaticsCount": 2,
+      "namingStaticsChars": 67,
+      "outsideCount": 11,
+      "outsideChars": 401,
+      "outsideShare": 0.18302145139205842,
+      "topOutsideSites": [
+        {
+          "site": "MutationFn.constructor",
+          "file": "src/MutationFn.ts",
+          "count": 3,
+          "chars": 145
+        },
+        {
+          "site": "PaginatedQueryFn.constructor",
+          "file": "src/PaginatedQueryFn.ts",
+          "count": 2,
+          "chars": 96
+        },
+        {
+          "site": "QueryFn.constructor",
+          "file": "src/QueryFn.ts",
+          "count": 2,
+          "chars": 96
+        },
+        {
+          "site": "MutationEndpoint.constructor",
+          "file": "src/MutationEndpoint.ts",
+          "count": 2,
+          "chars": 44
+        },
+        {
+          "site": "PaginatedQueryEndpoint.constructor",
+          "file": "src/PaginatedQueryEndpoint.ts",
+          "count": 1,
+          "chars": 10
+        },
+        {
+          "site": "QueryEndpoint.constructor",
+          "file": "src/QueryEndpoint.ts",
+          "count": 1,
+          "chars": 10
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  },
+  {
+    "generator": "@skmtc/gen-typescript",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-typescript",
+    "fileCount": 25,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-typescript"
+    },
+    "classes": [
+      {
+        "className": "TsArray",
+        "file": "src/TsArray.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsBoolean",
+        "file": "src/TsBoolean.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsInteger",
+        "file": "src/TsInteger.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsNever",
+        "file": "src/TsNever.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsNull",
+        "file": "src/TsNull.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsNumber",
+        "file": "src/TsNumber.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsObject",
+        "file": "src/TsObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsObjectProperties",
+        "file": "src/TsObject.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsRecord",
+        "file": "src/TsObject.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsProjection",
+        "file": "src/TsProjection.ts",
+        "extendsName": "TypescriptBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "TsRef",
+        "file": "src/TsRef.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsString",
+        "file": "src/TsString.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsUnion",
+        "file": "src/TsUnion.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsUnknown",
+        "file": "src/TsUnknown.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsVoid",
+        "file": "src/TsVoid.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 14,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/Ts.ts:toTsValue",
+      "src/applyModifiers.ts:applyModifiers",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/mod.ts:toTypescriptEntry",
+      "src/scalars.ts:getCustomScalar",
+      "src/scalars.ts:setCustomScalars",
+      "src/scalars.ts:resetCustomScalars",
+      "src/scalars.ts:getCustomScalarMap",
+      "src/withNullable.ts:withNullable",
+      "src/withOptional.ts:withOptional",
+      "test/helpers/testContext.ts:createMockContext",
+      "test/helpers/toGenerateContext.ts:toGenerateContext",
+      "test/helpers/toParseContext.ts:toParseContext"
+    ],
+    "methodDiscipline": {
+      "producers": 15,
+      "clean": 15,
+      "flagged": []
+    },
+    "strings": {
+      "insideToStringCount": 15,
+      "insideToStringChars": 840,
+      "namingStaticsCount": 1,
+      "namingStaticsChars": 36,
+      "outsideCount": 7,
+      "outsideChars": 133,
+      "outsideShare": 0.1366906474820144,
+      "topOutsideSites": [
+        {
+          "site": "withOptional",
+          "file": "src/withOptional.ts",
+          "count": 4,
+          "chars": 72
+        },
+        {
+          "site": "TsRef.constructor",
+          "file": "src/TsRef.ts",
+          "count": 1,
+          "chars": 34
+        },
+        {
+          "site": "withNullable",
+          "file": "src/withNullable.ts",
+          "count": 2,
+          "chars": 27
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  },
+  {
+    "generator": "@skmtc/gen-typescript-s",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-typescript-s",
+    "fileCount": 25,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-typescript-s"
+    },
+    "classes": [
+      {
+        "className": "TsArray",
+        "file": "src/TsArray.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsBoolean",
+        "file": "src/TsBoolean.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsInteger",
+        "file": "src/TsInteger.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsNever",
+        "file": "src/TsNever.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsNull",
+        "file": "src/TsNull.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsNumber",
+        "file": "src/TsNumber.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsObject",
+        "file": "src/TsObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsObjectProperties",
+        "file": "src/TsObject.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsRecord",
+        "file": "src/TsObject.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsProjection",
+        "file": "src/TsProjection.ts",
+        "extendsName": "TypescriptBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "TsRef",
+        "file": "src/TsRef.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsString",
+        "file": "src/TsString.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsUnion",
+        "file": "src/TsUnion.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsUnknown",
+        "file": "src/TsUnknown.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "TsVoid",
+        "file": "src/TsVoid.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 14,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/Ts.ts:toTsValue",
+      "src/applyModifiers.ts:applyModifiers",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/mod.ts:toTypescriptEntry",
+      "src/scalars.ts:getCustomScalar",
+      "src/scalars.ts:setCustomScalars",
+      "src/scalars.ts:resetCustomScalars",
+      "src/scalars.ts:getCustomScalarMap",
+      "src/withNullable.ts:withNullable",
+      "src/withOptional.ts:withOptional",
+      "test/helpers/testContext.ts:createMockContext",
+      "test/helpers/toGenerateContext.ts:toGenerateContext",
+      "test/helpers/toParseContext.ts:toParseContext"
+    ],
+    "methodDiscipline": {
+      "producers": 15,
+      "clean": 15,
+      "flagged": []
+    },
+    "strings": {
+      "insideToStringCount": 15,
+      "insideToStringChars": 421,
+      "namingStaticsCount": 1,
+      "namingStaticsChars": 36,
+      "outsideCount": 7,
+      "outsideChars": 133,
+      "outsideShare": 0.24007220216606498,
+      "topOutsideSites": [
+        {
+          "site": "withOptional",
+          "file": "src/withOptional.ts",
+          "count": 4,
+          "chars": 72
+        },
+        {
+          "site": "TsRef.constructor",
+          "file": "src/TsRef.ts",
+          "count": 1,
+          "chars": 34
+        },
+        {
+          "site": "withNullable",
+          "file": "src/withNullable.ts",
+          "count": 2,
+          "chars": 27
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  },
+  {
+    "generator": "@skmtc/gen-typescript-sdk",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-typescript-sdk",
+    "fileCount": 8,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-typescript-sdk"
+    },
+    "classes": [
+      {
+        "className": "ApiMethod",
+        "file": "src/ApiMethod.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "NamespaceReExport",
+        "file": "src/SdkResource.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "PageAliasValue",
+        "file": "src/SdkResource.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "SdkResource",
+        "file": "src/SdkResource.ts",
+        "extendsName": "SdkResourceBase",
+        "kind": "projection",
+        "extraMethods": [
+          "append",
+          "#ensureNamespace",
+          "#reExportNames",
+          "#trackSchema",
+          "#ensurePageAlias"
+        ]
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 3,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/SdkResource.ts:methodPriority",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/resource.ts:toResourceClassName",
+      "src/resource.ts:toResourceExportPath",
+      "src/resource.ts:toParamName",
+      "src/resource.ts:toClientPath",
+      "src/resource.ts:toPagination",
+      "src/wrapDescription.ts:wrapDescription"
+    ],
+    "methodDiscipline": {
+      "producers": 4,
+      "clean": 3,
+      "flagged": [
+        {
+          "className": "SdkResource",
+          "kind": "projection",
+          "extraMethods": [
+            "append",
+            "#ensureNamespace",
+            "#reExportNames",
+            "#trackSchema",
+            "#ensurePageAlias"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 4,
+      "insideToStringChars": 169,
+      "namingStaticsCount": 2,
+      "namingStaticsChars": 160,
+      "outsideCount": 35,
+      "outsideChars": 2334,
+      "outsideShare": 0.9324810227726728,
+      "topOutsideSites": [
+        {
+          "site": "ApiMethod.constructor",
+          "file": "src/ApiMethod.ts",
+          "count": 9,
+          "chars": 1186
+        },
+        {
+          "site": "SdkResource.append",
+          "file": "src/SdkResource.ts",
+          "count": 17,
+          "chars": 940
+        },
+        {
+          "site": "toClientPath",
+          "file": "src/resource.ts",
+          "count": 5,
+          "chars": 107
+        },
+        {
+          "site": "wrapDescription",
+          "file": "src/wrapDescription.ts",
+          "count": 3,
+          "chars": 64
+        },
+        {
+          "site": "toResourceExportPath",
+          "file": "src/resource.ts",
+          "count": 1,
+          "chars": 37
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": true
+  },
+  {
+    "generator": "@skmtc/gen-valibot",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-valibot",
+    "fileCount": 22,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-valibot"
+    },
+    "classes": [
+      {
+        "className": "ValibotArray",
+        "file": "src/ValibotArray.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ValibotBoolean",
+        "file": "src/ValibotBoolean.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ValibotInteger",
+        "file": "src/ValibotInteger.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ValibotNull",
+        "file": "src/ValibotNull.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ValibotNumber",
+        "file": "src/ValibotNumber.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ValibotObject",
+        "file": "src/ValibotObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ValibotObjectProperties",
+        "file": "src/ValibotObject.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ValibotRecord",
+        "file": "src/ValibotObject.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ValibotProjection",
+        "file": "src/ValibotProjection.ts",
+        "extendsName": "ValibotBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "ValibotRef",
+        "file": "src/ValibotRef.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ValibotString",
+        "file": "src/ValibotString.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ValibotUnion",
+        "file": "src/ValibotUnion.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [
+          "buildVariantUnion"
+        ]
+      },
+      {
+        "className": "ValibotUnknown",
+        "file": "src/ValibotUnknown.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ValibotVoid",
+        "file": "src/ValibotVoid.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 13,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/Valibot.ts:toValibotValue",
+      "src/applyModifiers.ts:applyModifiers",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/withNullable.ts:withNullable",
+      "src/withOptional.ts:withOptional",
+      "test/helpers/toGenerateContext.ts:toGenerateContext",
+      "test/helpers/toParseContext.ts:toParseContext"
+    ],
+    "methodDiscipline": {
+      "producers": 14,
+      "clean": 13,
+      "flagged": [
+        {
+          "className": "ValibotUnion",
+          "kind": "snippet",
+          "extraMethods": [
+            "buildVariantUnion"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 15,
+      "insideToStringChars": 1034,
+      "namingStaticsCount": 1,
+      "namingStaticsChars": 36,
+      "outsideCount": 10,
+      "outsideChars": 343,
+      "outsideShare": 0.24909222948438633,
+      "topOutsideSites": [
+        {
+          "site": "ValibotUnion.buildVariantUnion",
+          "file": "src/ValibotUnion.ts",
+          "count": 6,
+          "chars": 279
+        },
+        {
+          "site": "withNullable",
+          "file": "src/withNullable.ts",
+          "count": 2,
+          "chars": 32
+        },
+        {
+          "site": "withOptional",
+          "file": "src/withOptional.ts",
+          "count": 2,
+          "chars": 32
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  },
+  {
+    "generator": "@skmtc/gen-zod",
+    "dir": "/Users/dmitrigrabov/workspace/skmtc-root/skmtc-generators/gen-zod",
+    "fileCount": 22,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@skmtc/gen-zod"
+    },
+    "classes": [
+      {
+        "className": "ZodArray",
+        "file": "src/ZodArray.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ZodBoolean",
+        "file": "src/ZodBoolean.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ZodConstraint",
+        "file": "src/ZodConstraints.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ZodInteger",
+        "file": "src/ZodInteger.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ZodNumber",
+        "file": "src/ZodNumber.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ZodObject",
+        "file": "src/ZodObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ZodObjectProperties",
+        "file": "src/ZodObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ZodRecord",
+        "file": "src/ZodObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ZodProjection",
+        "file": "src/ZodProjection.ts",
+        "extendsName": "ZodBase",
+        "kind": "projection",
+        "extraMethods": []
+      },
+      {
+        "className": "ZodRef",
+        "file": "src/ZodRef.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ZodString",
+        "file": "src/ZodString.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ZodUnion",
+        "file": "src/ZodUnion.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ZodUnknown",
+        "file": "src/ZodUnknown.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      },
+      {
+        "className": "ZodVoid",
+        "file": "src/ZodVoid.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": []
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 13,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/Zod.ts:toZodValue",
+      "src/applyModifiers.ts:applyModifiers",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/withNullable.ts:withNullable",
+      "src/withOptional.ts:withOptional",
+      "test/helpers/toGenerateContext.ts:toGenerateContext",
+      "test/helpers/toParseContext.ts:toParseContext"
+    ],
+    "methodDiscipline": {
+      "producers": 14,
+      "clean": 14,
+      "flagged": []
+    },
+    "strings": {
+      "insideToStringCount": 30,
+      "insideToStringChars": 1575,
+      "namingStaticsCount": 1,
+      "namingStaticsChars": 36,
+      "outsideCount": 9,
+      "outsideChars": 243,
+      "outsideShare": 0.13366336633663367,
+      "topOutsideSites": [
+        {
+          "site": "ZodProjection.constructor",
+          "file": "src/ZodProjection.ts",
+          "count": 2,
+          "chars": 88
+        },
+        {
+          "site": "ZodRef.constructor",
+          "file": "src/ZodRef.ts",
+          "count": 2,
+          "chars": 54
+        },
+        {
+          "site": "toZodValue",
+          "file": "src/Zod.ts",
+          "count": 1,
+          "chars": 39
+        },
+        {
+          "site": "withNullable",
+          "file": "src/withNullable.ts",
+          "count": 2,
+          "chars": 31
+        },
+        {
+          "site": "withOptional",
+          "file": "src/withOptional.ts",
+          "count": 2,
+          "chars": 31
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulatorPattern": false
+  }
+]
