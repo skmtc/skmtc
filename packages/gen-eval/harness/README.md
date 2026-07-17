@@ -21,9 +21,18 @@ A run typically takes 10–40 minutes depending on the model.
 
 ## What a run produces — `harness/runs/<id>/`
 
+While a run is live, the terminal shows **one line per action** (tool
+calls, errors, milestones like "loaded skmtc-generator skill" /
+"generator src/base.ts written" / "clean generate" / "gradle BUILD
+SUCCESSFUL"), stamped with elapsed time and turn number. The same feed
+is written to `timeline.md` — from another terminal:
+`tail -f harness/runs/<id>/timeline.md`. Post-hoc, re-render any
+transcript with `python3 harness/timeline.py <transcript.jsonl>`.
+
 | File | What it is |
 |---|---|
 | `report.md` | The gates table + structural verdict — **read this first** |
+| `timeline.md` | Turn-by-turn progress: milestones, tool calls, errors — the skim view |
 | `structural.md` / `.json` | The 14-check structural eval over the authored generator |
 | `transcript.jsonl` | Full stream-json transcript incl. thinking and every tool call |
 | `session.jsonl` | The Claude Code session file (same content, session format) |

@@ -71,8 +71,10 @@ claude -p "$(cat "$HARNESS_DIR/task.md")" \
   --output-format stream-json \
   --verbose \
   --dangerously-skip-permissions \
-  > "$RUN_DIR/transcript.jsonl" 2> "$RUN_DIR/claude-stderr.log"
-CLAUDE_EXIT=$?
+  2> "$RUN_DIR/claude-stderr.log" \
+  | tee "$RUN_DIR/transcript.jsonl" \
+  | python3 -u "$HARNESS_DIR/timeline.py" --tee "$RUN_DIR/timeline.md"
+CLAUDE_EXIT=${PIPESTATUS[0]}
 set -e
 echo "claude exited: $CLAUDE_EXIT"
 
