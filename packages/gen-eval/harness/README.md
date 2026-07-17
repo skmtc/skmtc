@@ -118,6 +118,14 @@ track); each fires once, on first occurrence:
 | `gradle BUILD SUCCESSFUL` | a tool result containing `BUILD SUCCESSFUL` |
 | `run finished — turns/cost` | the stream's result event (viewer only) |
 
+**Feedback marks** (every occurrence, not once-only): `WHY:` assistant
+lines render as `>>> WHY: …` in the timeline and as blue-badged blocks
++ blue scrubber ticks in the viewer; every `FRICTION.md` append prints
+`*** FRICTION: <entry title>` and every `RETRO.md` write prints
+`*** RETRO written`, with amber badges/ticks in the viewer. The
+scrubber legend shows all four tick colors — amber ticks are your
+jump-to-friction navigation.
+
 Together they trace the intended arc: skills → the three generator
 files → bundle → generate → clean generate → tests green. A run whose
 timeline never reaches `src/base.ts written` (e.g. a research spiral)

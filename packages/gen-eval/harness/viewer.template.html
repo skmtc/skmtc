@@ -49,6 +49,8 @@
   }
   .tick.milestone { background: var(--accent); }
   .tick.error { background: var(--error); }
+  .tick.why { background: var(--think); top: 12px; }
+  .tick.feedback { background: var(--warn); top: 12px; }
   #playhead {
     position: absolute; top: -5px; width: 14px; height: 32px; border-radius: 7px;
     background: var(--text); border: 2px solid var(--bg); margin-left: -7px;
@@ -112,6 +114,8 @@
   .badge.tool { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
   .badge.err { background: color-mix(in srgb, var(--error) 25%, transparent); color: var(--error); }
   .badge.mile { background: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent); }
+  .badge.why { background: color-mix(in srgb, var(--think) 22%, transparent); color: var(--think); }
+  .badge.fb { background: color-mix(in srgb, var(--warn) 22%, transparent); color: var(--warn); }
   details > summary { cursor: pointer; color: var(--dim); }
   details[open] > summary { margin-bottom: 6px; }
   .result { color: var(--dim); }
@@ -148,6 +152,8 @@
   <div id="legend">
     <span><span class="dot" style="background:var(--accent)"></span>milestone</span>
     <span><span class="dot" style="background:var(--error)"></span>error</span>
+    <span><span class="dot" style="background:var(--think)"></span>WHY</span>
+    <span><span class="dot" style="background:var(--warn)"></span>friction/retro</span>
     <span>navigate: <kbd>&larr;</kbd> <kbd>&rarr;</kbd> <kbd>space</kbd> — drag the playhead or click the track</span>
   </div>
 </div>
@@ -191,6 +197,15 @@ function build(events) {
     seen.add(key);
     turn.milestones.push(label);
   };
+  const FRICTION_TITLE = /^##\s*\d*\.?\s*(.+)$/gm;
+  const feedbackMark = (turn, path, content) => {
+    if (path.endsWith('FRICTION.md')) {
+      const titles = [...String(content || '').matchAll(FRICTION_TITLE)];
+      turn.feedback.push({ kind: 'friction', title: titles.length ? titles[titles.length - 1][1] : null });
+    } else if (path.endsWith('RETRO.md')) {
+      turn.feedback.push({ kind: 'retro', title: null });
+    }
+  };
   const resultText = raw => Array.isArray(raw)
     ? raw.map(p => (p && p.text) || '').join(' ')
     : String(raw ?? '');
@@ -202,7 +217,7 @@ function build(events) {
     if (ev.type === 'assistant') {
       const content = (ev.message || {}).content || [];
       if (!content.some(c => c && ['text','tool_use','thinking'].includes(c.type))) continue;
-      current = { i: turns.length + 1, thinking: [], texts: [], tools: [], milestones: [], hasError: false };
+      current = { i: turns.length + 1, thinking: [], texts: [], tools: [], milestones: [], whys: [], feedback: [], hasError: false };
       turns.push(current);
       for (const item of content) {
         if (!item) continue;
@@ -210,7 +225,12 @@ function build(events) {
           current.thinking.push({ text: item.thinking || '', tokens: pendingThinkingTokens });
           pendingThinkingTokens = null;
         }
-        else if (item.type === 'text') { if ((item.text || '').trim()) current.texts.push(item.text); }
+        else if (item.type === 'text') {
+          const trimmed = (item.text || '').trim();
+          if (!trimmed) continue;
+          if (trimmed.startsWith('WHY:')) current.whys.push(trimmed);
+          else current.texts.push(item.text);
+        }
         else if (item.type === 'tool_use') {
           const input = item.input || {};
           const tool = { name: item.name, input, result: null, isError: false };
@@ -222,8 +242,7 @@ function build(events) {
             for (const m of MILESTONE_FILES)
               if (input.file_path.endsWith('src/' + m) && input.file_path.includes('gen-'))
                 milestone(current, 'write:' + m, 'src/' + m + ' written');
-            if (input.file_path.endsWith('FRICTION.md')) milestone(current, 'friction', 'first friction entry logged');
-            if (input.file_path.endsWith('RETRO.md')) milestone(current, 'retro', 'exit retro written');
+            feedbackMark(current, input.file_path, input.content ?? input.new_string);
             if (item.name === 'Write' && typeof input.content === 'string')
               fileOps.push({ turn: current.i, path: input.file_path, kind: 'write', content: input.content });
             if (item.name === 'Edit')
@@ -246,6 +265,7 @@ function build(events) {
               for (const m of MILESTONE_FILES)
                 if (path.endsWith('src/' + m) && path.includes('gen-'))
                   milestone(current, 'write:' + m, 'src/' + m + ' written');
+              feedbackMark(current, path, match[7]);
             }
           }
         }
@@ -316,6 +336,12 @@ function renderTurn() {
   let html = '<p class="turnhead">turn ' + turn.i + ' / ' + TURNS.length + '</p>';
   for (const m of turn.milestones)
     html += '<div class="block"><div class="bh"><span class="badge mile">milestone</span>' + esc(m) + '</div></div>';
+  for (const fb of turn.feedback)
+    html += '<div class="block"><div class="bh"><span class="badge fb">' + fb.kind + '</span>' +
+      esc(fb.title ?? (fb.kind === 'retro' ? 'exit retro written' : 'entry logged')) + '</div></div>';
+  for (const why of turn.whys)
+    html += '<div class="block"><div class="bh"><span class="badge why">WHY</span></div><div class="bb"><pre>' +
+      esc(why.replace(/^WHY:\s*/, '')) + '</pre></div></div>';
   for (const th of turn.thinking) {
     if (th.text) {
       html += '<div class="block"><div class="bh"><span class="badge think">thinking</span>' + th.text.length +
@@ -460,6 +486,8 @@ function renderTicks() {
   TURNS.forEach(turn => {
     if (turn.milestones.length) addTick(turn.i, 'milestone');
     if (turn.hasError) addTick(turn.i, 'error');
+    if (turn.whys.length) addTick(turn.i, 'why');
+    if (turn.feedback.length) addTick(turn.i, 'feedback');
   });
   function addTick(i, cls) {
     const el = document.createElement('div');

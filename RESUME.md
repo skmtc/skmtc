@@ -120,12 +120,14 @@ milestones + report integration.
 
 ## State at session end (evening 2026-07-17)
 
-- **A comparison run was LIVE**:
-  `runs/20260717-222650-sonnet-after-research-fix` — skill
-  `c32790a0` (0.6.2 scaffold-first) + the narrate/friction protocol
-  (meta lacks `taskSha` only because run.sh gained that field minutes
-  after launch). Early behavior looked right: reading
-  `RoundTripTest.kt` by turn 13 instead of excavating core.
+- **The comparison run was interrupted ~90 s in**:
+  `runs/20260717-222650-sonnet-after-research-fix` — skill `c32790a0`
+  (0.6.2 scaffold-first) + the narrate/friction protocol. The 13
+  turns it got were promising (reading `RoundTripTest.kt` instead of
+  excavating core), but it died mid-thinking with no result —
+  **relaunch it first thing**: `harness/run.sh sonnet
+  after-research-fix` (the relaunch also picks up the per-occurrence
+  WHY/FRICTION/RETRO timeline + scrubber marks added after).
 - Earlier runs (all interrupted, kept for reference):
   `20260717-213901` (gates 3ok/3fail), `-214222` (112-turn research
   spiral), `-221643-sonnet-shallow-think` (same spiral at

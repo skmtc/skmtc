@@ -50,6 +50,17 @@ const milestone = (key, text) => {
   emit(`*** MILESTONE: ${text}`)
 }
 
+const FRICTION_TITLE = /^##\s*\d*\.?\s*(.+)$/gm
+const feedbackMark = (path, content) => {
+  if (path.endsWith('FRICTION.md')) {
+    const titles = [...String(content || '').matchAll(FRICTION_TITLE)]
+    const last = titles.length ? titles[titles.length - 1][1] : null
+    emit(`*** FRICTION${last ? `: ${last.slice(0, 80)}` : ' entry logged'}`)
+  } else if (path.endsWith('RETRO.md')) {
+    emit('*** RETRO written')
+  }
+}
+
 const resultText = raw =>
   Array.isArray(raw) ? raw.map(part => (part && part.text) || '').join(' ') : String(raw ?? '')
 
@@ -71,8 +82,7 @@ const handleToolUse = item => {
           milestone(`write:${marker}`, `generator src/${marker} written`)
         }
       }
-      if (path.endsWith('FRICTION.md')) milestone('friction', 'first friction entry logged')
-      if (path.endsWith('RETRO.md')) milestone('retro', 'exit retro written')
+      feedbackMark(path, input.content ?? input.new_string)
     }
   } else if (name === 'Bash') {
     const full = String(input.command || '')
@@ -88,10 +98,10 @@ const handleToolUse = item => {
       }
     }
     if (full.includes('FRICTION.md') && (full.includes('<<') || full.includes('>'))) {
-      milestone('friction', 'first friction entry logged')
+      feedbackMark('FRICTION.md', full)
     }
     if (full.includes('RETRO.md') && (full.includes('<<') || full.includes('>'))) {
-      milestone('retro', 'exit retro written')
+      feedbackMark('RETRO.md', full)
     }
   } else if (name === 'Grep' || name === 'Glob') {
     label = `${name}: ${String(input.pattern ?? input.query ?? '').slice(0, 60)}`
@@ -129,7 +139,9 @@ const handleEvent = event => {
       }
       else if (item.type === 'text') {
         const text = String(item.text || '').replace(/\s+/g, ' ').trim()
-        if (text) emit(`say: ${text.slice(0, 110)}`)
+        if (!text) continue
+        if (text.startsWith('WHY:')) emit(`>>> ${text.slice(0, 140)}`)
+        else emit(`say: ${text.slice(0, 110)}`)
       } else if (item.type === 'tool_use') handleToolUse(item)
     }
   } else if (event.type === 'user') {
