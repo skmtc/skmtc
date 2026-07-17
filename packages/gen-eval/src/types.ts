@@ -6,6 +6,20 @@ export type ClassReport = {
   extendsName: string | undefined
   kind: ProducerKind | 'other'
   extraMethods: string[]
+  lines: number
+  sizeBucket: number
+}
+
+export type ContainerProducer = {
+  className: string
+  containerProps: string[]
+  mutatorMethods: string[]
+}
+
+export type AccumulatorReport = {
+  verdict: boolean
+  signals: string[]
+  containerProducers: ContainerProducer[]
 }
 
 export type StringSite = {
@@ -37,6 +51,7 @@ export type MethodDisciplineReport = {
   producers: number
   clean: number
   flagged: { className: string; kind: ProducerKind; extraMethods: string[] }[]
+  accumulatorExempt: { className: string; kind: ProducerKind; extraMethods: string[] }[]
 }
 
 export type GeneratorReport = {
@@ -51,5 +66,6 @@ export type GeneratorReport = {
   methodDiscipline: MethodDisciplineReport
   strings: StringsReport
   topLevelProjection: { pass: boolean; exempt: boolean }
-  accumulatorPattern: boolean
+  accumulator: AccumulatorReport
+  producerSizes: { bucket: number; count: number }[]
 }

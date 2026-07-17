@@ -17,8 +17,10 @@ and (b) grade generators authored by models in skill-eval harness runs.
    `producer% = producers / all classes`.
 3. **Method discipline** — producers should have no methods beyond
    `constructor` and `toString()`. Extra methods (including accessors) are
-   listed per class. Known legitimate exception: accumulator values like
-   `gen-msw`'s `MockRoutesList.add`.
+   listed per class. In generators with a confirmed accumulator verdict
+   (check 6), mutator methods on the container producer are bucketed as
+   `accumulatorExempt` and count as clean — `gen-msw`'s
+   `MockRoutesList.add` is the canonical case.
 4. **String composition inside `toString()`** — template expressions,
    string concatenation, and `.join()` calls are attributed to the
    lexically enclosing function and bucketed: inside a `toString` body,
@@ -28,12 +30,25 @@ and (b) grade generators authored by models in skill-eval harness runs.
    instead of producers rendering themselves. Top offending sites are
    listed per file+function.
 5. **Top-level Projection** — at least one Projection class exists.
-   Generators using the accumulator pattern (`defineAndRegister` present)
-   are exempt when they have none.
+   Generators with a confirmed accumulator verdict are exempt when they
+   have none.
+6. **Accumulator detection** — a generator counts as accumulator-style
+   only on evidence, not on a bare `defineAndRegister` mention (that is
+   also the legitimate private-sibling primitive): it must call
+   `defineAndRegister` AND either call `findDefinition` or contain a
+   **container producer** — a producer class with a method that mutates a
+   `this.<prop>` path (`push`/`add`/`set`/`unshift`/`splice`/`delete`),
+   which also marks `<prop>` as the container regardless of how it was
+   initialized (literal, `new Map()`, or a builder like
+   `List.toArray([])`). The verdict switches the exemptions in checks 3
+   and 5, so acc and non-acc generators are graded by different rules.
+7. **Producer size** — each producer's line span, bucketed to the nearest
+   50 (minimum bucket 50). The table shows the largest bucket; the
+   markdown report lists the distribution and names producers ≥150 lines.
 
-Checks 1 and 5 are pass/fail facts. Checks 2–4 are reported as numbers
-and per-site listings for human interpretation — there is deliberately no
-composite score.
+Checks 1 and 5 are pass/fail facts. Checks 2–4 and 7 are reported as
+numbers and per-site listings for human interpretation — there is
+deliberately no composite score.
 
 ## Usage
 

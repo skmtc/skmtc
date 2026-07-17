@@ -36,12 +36,13 @@ const pct = (value: number): string => `${Math.round(value * 100)}%`
 const mark = (pass: boolean): string => (pass ? 'ok' : 'FAIL')
 
 const toRow = (report: GeneratorReport): string[] => {
-  const { classTotals, methodDiscipline, strings, topLevelProjection } = report
+  const { classTotals, methodDiscipline, strings, topLevelProjection, producerSizes } = report
   const topProjection = topLevelProjection.pass
     ? 'ok'
     : topLevelProjection.exempt
       ? 'exempt(acc)'
       : 'FAIL'
+  const maxBucket = producerSizes.at(-1)?.bucket
   return [
     report.generator,
     report.structure.pass ? 'ok' : `missing:${report.structure.missing.length}`,
@@ -49,11 +50,23 @@ const toRow = (report: GeneratorReport): string[] => {
     pct(report.producerShare),
     `${methodDiscipline.clean}/${methodDiscipline.producers}`,
     `${strings.outsideCount} (${pct(strings.outsideShare)})`,
-    topProjection
+    topProjection,
+    report.accumulator.verdict ? 'yes' : 'no',
+    maxBucket === undefined ? '—' : `≤${maxBucket}`
   ]
 }
 
-const HEADER = ['generator', 'structure', 'classes', 'producer%', 'clean-methods', 'str-outside', 'top-proj']
+const HEADER = [
+  'generator',
+  'structure',
+  'classes',
+  'producer%',
+  'clean-methods',
+  'str-outside',
+  'top-proj',
+  'acc',
+  'max-size'
+]
 
 const printTable = (rows: string[][]): void => {
   const widths = HEADER.map((header, column) =>
@@ -100,6 +113,28 @@ const toMarkdown = (reports: GeneratorReport[]): string => {
         lines.push(`  - ${flaggedClass.className} (${flaggedClass.kind}): ${flaggedClass.extraMethods.join(', ')}`)
       }
     }
+    if (report.methodDiscipline.accumulatorExempt.length > 0) {
+      lines.push(`- accumulator-exempt extra methods:`)
+      for (const exemptClass of report.methodDiscipline.accumulatorExempt) {
+        lines.push(`  - ${exemptClass.className} (${exemptClass.kind}): ${exemptClass.extraMethods.join(', ')}`)
+      }
+    }
+    if (report.producerSizes.length > 0) {
+      lines.push(
+        `- producer sizes (lines, nearest 50): ${report.producerSizes.map(size => `≤${size.bucket}: ${size.count}`).join(', ')}`
+      )
+      const big = report.classes
+        .filter(item => item.kind !== 'other' && item.sizeBucket >= 150)
+        .sort((a, b) => b.lines - a.lines)
+      for (const bigClass of big.slice(0, 6)) {
+        lines.push(`  - ${bigClass.className} (${bigClass.kind}) — ${bigClass.lines} lines (~${bigClass.sizeBucket})`)
+      }
+    }
+    if (report.accumulator.signals.length > 0) {
+      lines.push(
+        `- accumulator: ${report.accumulator.verdict ? 'YES' : 'no'} — signals: ${report.accumulator.signals.join('; ')}`
+      )
+    }
     const { strings } = report
     lines.push(
       `- strings: inside toString ${strings.insideToStringCount} node(s)/${strings.insideToStringChars} chars; ` +
@@ -112,9 +147,8 @@ const toMarkdown = (reports: GeneratorReport[]): string => {
       }
     }
     lines.push(
-      `- top-level projection: ${report.topLevelProjection.pass ? 'ok' : report.topLevelProjection.exempt ? 'exempt (accumulator pattern)' : 'FAIL'}`
+      `- top-level projection: ${report.topLevelProjection.pass ? 'ok' : report.topLevelProjection.exempt ? 'exempt (accumulator)' : 'FAIL'}`
     )
-    lines.push(`- accumulator pattern (defineAndRegister): ${report.accumulatorPattern ? 'yes' : 'no'}`)
     lines.push('')
   }
   return lines.join('\n')

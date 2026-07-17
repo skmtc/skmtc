@@ -21,35 +21,45 @@
         "file": "src/ArktypeArray.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 49,
+        "sizeBucket": 50
       },
       {
         "className": "ArktypeBoolean",
         "file": "src/ArktypeBoolean.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 15,
+        "sizeBucket": 50
       },
       {
         "className": "ArktypeInteger",
         "file": "src/ArktypeInteger.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 18,
+        "sizeBucket": 50
       },
       {
         "className": "ArktypeNull",
         "file": "src/ArktypeNull.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 12,
+        "sizeBucket": 50
       },
       {
         "className": "ArktypeNumber",
         "file": "src/ArktypeNumber.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 15,
+        "sizeBucket": 50
       },
       {
         "className": "ArktypeObject",
@@ -60,28 +70,36 @@
           "extractInnerType",
           "toStringLiteral",
           "generateObjectString"
-        ]
+        ],
+        "lines": 184,
+        "sizeBucket": 200
       },
       {
         "className": "ArktypeProjection",
         "file": "src/ArktypeProjection.ts",
         "extendsName": "ArktypeBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 27,
+        "sizeBucket": 50
       },
       {
         "className": "ArktypeRef",
         "file": "src/ArktypeRef.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 32,
+        "sizeBucket": 50
       },
       {
         "className": "ArktypeString",
         "file": "src/ArktypeString.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 30,
+        "sizeBucket": 50
       },
       {
         "className": "ArktypeUnion",
@@ -90,21 +108,27 @@
         "kind": "snippet",
         "extraMethods": [
           "extractInnerType"
-        ]
+        ],
+        "lines": 51,
+        "sizeBucket": 50
       },
       {
         "className": "ArktypeUnknown",
         "file": "src/ArktypeUnknown.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 12,
+        "sizeBucket": 50
       },
       {
         "className": "ArktypeVoid",
         "file": "src/ArktypeVoid.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 12,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -142,7 +166,8 @@
             "extractInnerType"
           ]
         }
-      ]
+      ],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 7,
@@ -183,7 +208,21 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 11
+      },
+      {
+        "bucket": 200,
+        "count": 1
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-csharp",
@@ -211,21 +250,27 @@
         "extraMethods": [
           "attributes",
           "description"
-        ]
+        ],
+        "lines": 58,
+        "sizeBucket": 50
       },
       {
         "className": "CsArray",
         "file": "src/CsArray.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 40,
+        "sizeBucket": 50
       },
       {
         "className": "CsEnumMembers",
         "file": "src/CsEnumMembers.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 46,
+        "sizeBucket": 50
       },
       {
         "className": "CsEnumProjection",
@@ -235,70 +280,90 @@
         "extraMethods": [
           "attributes",
           "description"
-        ]
+        ],
+        "lines": 62,
+        "sizeBucket": 50
       },
       {
         "className": "CsUnknown",
         "file": "src/CsJsonValues.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 19,
+        "sizeBucket": 50
       },
       {
         "className": "CsUnion",
         "file": "src/CsJsonValues.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 69,
+        "sizeBucket": 50
       },
       {
         "className": "CsObjectValue",
         "file": "src/CsObjectValue.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 81,
+        "sizeBucket": 100
       },
       {
         "className": "CsDictionary",
         "file": "src/CsObjectValue.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 46,
+        "sizeBucket": 50
       },
       {
         "className": "CsPolymorphicParentValue",
         "file": "src/CsPolymorphicParentValue.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 47,
+        "sizeBucket": 50
       },
       {
         "className": "CsInteger",
         "file": "src/CsPrimitives.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 16,
+        "sizeBucket": 50
       },
       {
         "className": "CsNumber",
         "file": "src/CsPrimitives.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 16,
+        "sizeBucket": 50
       },
       {
         "className": "CsBoolean",
         "file": "src/CsPrimitives.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 14,
+        "sizeBucket": 50
       },
       {
         "className": "CsVoid",
         "file": "src/CsPrimitives.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 11,
+        "sizeBucket": 50
       },
       {
         "className": "CsRecordProjection",
@@ -308,28 +373,36 @@
         "extraMethods": [
           "description",
           "baseTypes"
-        ]
+        ],
+        "lines": 58,
+        "sizeBucket": 50
       },
       {
         "className": "CsRecordValue",
         "file": "src/CsRecordValue.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 145,
+        "sizeBucket": 150
       },
       {
         "className": "CsRef",
         "file": "src/CsRef.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 85,
+        "sizeBucket": 100
       },
       {
         "className": "CsString",
         "file": "src/CsString.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 85,
+        "sizeBucket": 100
       }
     ],
     "classTotals": {
@@ -401,7 +474,8 @@
             "baseTypes"
           ]
         }
-      ]
+      ],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 11,
@@ -466,7 +540,28 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": true
+    "accumulator": {
+      "verdict": true,
+      "signals": [
+        "defineAndRegister call",
+        "findDefinition call"
+      ],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 13
+      },
+      {
+        "bucket": 100,
+        "count": 3
+      },
+      {
+        "bucket": 150,
+        "count": 1
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-csharp-aspnet",
@@ -493,7 +588,9 @@
         "kind": "snippet",
         "extraMethods": [
           "add"
-        ]
+        ],
+        "lines": 15,
+        "sizeBucket": 50
       },
       {
         "className": "AspnetControllerClass",
@@ -502,35 +599,45 @@
         "kind": "snippet",
         "extraMethods": [
           "add"
-        ]
+        ],
+        "lines": 27,
+        "sizeBucket": 50
       },
       {
         "className": "AspnetApiMethod",
         "file": "src/AspnetApiMethod.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 218,
+        "sizeBucket": 200
       },
       {
         "className": "ApiExceptionValue",
         "file": "src/errorSupport.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 26,
+        "sizeBucket": 50
       },
       {
         "className": "ApiExceptionHandlerValue",
         "file": "src/errorSupport.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 53,
+        "sizeBucket": 50
       },
       {
         "className": "GeneratedResultsValue",
         "file": "src/resultsSupport.ts",
         "extendsName": "CsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 31,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -559,8 +666,9 @@
     ],
     "methodDiscipline": {
       "producers": 6,
-      "clean": 4,
-      "flagged": [
+      "clean": 6,
+      "flagged": [],
+      "accumulatorExempt": [
         {
           "className": "AspnetServiceInterface",
           "kind": "snippet",
@@ -640,7 +748,47 @@
       "pass": false,
       "exempt": true
     },
-    "accumulatorPattern": true
+    "accumulator": {
+      "verdict": true,
+      "signals": [
+        "defineAndRegister call",
+        "findDefinition call",
+        "container producer AspnetServiceInterface (methods) mutated by add",
+        "container producer AspnetControllerClass (methods, attributes, baseTypes) mutated by add"
+      ],
+      "containerProducers": [
+        {
+          "className": "AspnetServiceInterface",
+          "containerProps": [
+            "methods"
+          ],
+          "mutatorMethods": [
+            "add"
+          ]
+        },
+        {
+          "className": "AspnetControllerClass",
+          "containerProps": [
+            "methods",
+            "attributes",
+            "baseTypes"
+          ],
+          "mutatorMethods": [
+            "add"
+          ]
+        }
+      ]
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 5
+      },
+      {
+        "bucket": 200,
+        "count": 1
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-daisyui-form",
@@ -664,56 +812,72 @@
         "file": "src/DaisyForm.ts",
         "extendsName": "DaisyFormBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 109,
+        "sizeBucket": 100
       },
       {
         "className": "FormFields",
         "file": "src/FormFields.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 30,
+        "sizeBucket": 50
       },
       {
         "className": "CheckboxInput",
         "file": "src/fields/CheckboxInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 37,
+        "sizeBucket": 50
       },
       {
         "className": "IntegerInput",
         "file": "src/fields/IntegerInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 39,
+        "sizeBucket": 50
       },
       {
         "className": "NumberInput",
         "file": "src/fields/NumberInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 50,
+        "sizeBucket": 50
       },
       {
         "className": "ObjectInput",
         "file": "src/fields/ObjectInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 45,
+        "sizeBucket": 50
       },
       {
         "className": "SelectInput",
         "file": "src/fields/SelectInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 49,
+        "sizeBucket": 50
       },
       {
         "className": "StringInput",
         "file": "src/fields/StringInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 48,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -730,7 +894,8 @@
     "methodDiscipline": {
       "producers": 8,
       "clean": 8,
-      "flagged": []
+      "flagged": [],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 31,
@@ -765,7 +930,21 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 7
+      },
+      {
+        "bucket": 100,
+        "count": 1
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-express",
@@ -791,35 +970,45 @@
         "kind": "projection",
         "extraMethods": [
           "append"
-        ]
+        ],
+        "lines": 41,
+        "sizeBucket": 50
       },
       {
         "className": "ExpressRoute",
         "file": "src/ExpressRoute.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 103,
+        "sizeBucket": 100
       },
       {
         "className": "RequestBody",
         "file": "src/RequestBody.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 36,
+        "sizeBucket": 50
       },
       {
         "className": "Response",
         "file": "src/Response.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 21,
+        "sizeBucket": 50
       },
       {
         "className": "ResponseVoid",
         "file": "src/ResponseVoid.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 17,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -843,7 +1032,8 @@
             "append"
           ]
         }
-      ]
+      ],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 7,
@@ -878,7 +1068,35 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [
+        "findDefinition call",
+        "container producer ExpressApp (methods, routes) mutated by append"
+      ],
+      "containerProducers": [
+        {
+          "className": "ExpressApp",
+          "containerProps": [
+            "methods",
+            "routes"
+          ],
+          "mutatorMethods": [
+            "append"
+          ]
+        }
+      ]
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 4
+      },
+      {
+        "bucket": 100,
+        "count": 1
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-kotlin-jackson-s",
@@ -921,7 +1139,9 @@
           "rawAccessorKdoc",
           "rawJsonSetterKdoc",
           "docTypeExpression"
-        ]
+        ],
+        "lines": 212,
+        "sizeBucket": 200
       },
       {
         "className": "ListModelField",
@@ -939,63 +1159,81 @@
           "rawJsonSetterKdoc",
           "docTypeExpression",
           "addMethod"
-        ]
+        ],
+        "lines": 110,
+        "sizeBucket": 100
       },
       {
         "className": "SdkModelValue",
         "file": "src/model/SdkModelValue.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 60,
+        "sizeBucket": 50
       },
       {
         "className": "AdditionalPropertiesAccessors",
         "file": "src/model/sections/AdditionalPropertiesAccessors.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 28,
+        "sizeBucket": 50
       },
       {
         "className": "EnvelopeConversion",
         "file": "src/model/sections/EnvelopeConversion.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 29,
+        "sizeBucket": 50
       },
       {
         "className": "KnownValueEnum",
         "file": "src/model/sections/KnownValueEnum.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 159,
+        "sizeBucket": 150
       },
       {
         "className": "ModelBuilder",
         "file": "src/model/sections/ModelBuilder.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 88,
+        "sizeBucket": 100
       },
       {
         "className": "ModelClassBody",
         "file": "src/model/sections/ModelClassBody.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 26,
+        "sizeBucket": 50
       },
       {
         "className": "ModelCompanion",
         "file": "src/model/sections/ModelCompanion.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 19,
+        "sizeBucket": 50
       },
       {
         "className": "ModelIdentity",
         "file": "src/model/sections/ModelIdentity.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 36,
+        "sizeBucket": 50
       },
       {
         "className": "NestedModelClass",
@@ -1004,49 +1242,63 @@
         "kind": "snippet",
         "extraMethods": [
           "applyShadowing"
-        ]
+        ],
+        "lines": 57,
+        "sizeBucket": 50
       },
       {
         "className": "PrimaryConstructorParameters",
         "file": "src/model/sections/PrimaryConstructorParameters.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 28,
+        "sizeBucket": 50
       },
       {
         "className": "RawAccessors",
         "file": "src/model/sections/RawAccessors.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 22,
+        "sizeBucket": 50
       },
       {
         "className": "SecondaryConstructor",
         "file": "src/model/sections/SecondaryConstructor.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 31,
+        "sizeBucket": 50
       },
       {
         "className": "TypedAccessors",
         "file": "src/model/sections/TypedAccessors.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 12,
+        "sizeBucket": 50
       },
       {
         "className": "ValidateBlock",
         "file": "src/model/sections/ValidateBlock.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 46,
+        "sizeBucket": 50
       },
       {
         "className": "ValidityScore",
         "file": "src/model/sections/ValidityScore.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 20,
+        "sizeBucket": 50
       },
       {
         "className": "KtScalarType",
@@ -1055,7 +1307,9 @@
         "kind": "snippet",
         "extraMethods": [
           "applyShadowing"
-        ]
+        ],
+        "lines": 17,
+        "sizeBucket": 50
       },
       {
         "className": "KtDatetimeType",
@@ -1064,7 +1318,9 @@
         "kind": "snippet",
         "extraMethods": [
           "applyShadowing"
-        ]
+        ],
+        "lines": 22,
+        "sizeBucket": 50
       },
       {
         "className": "KtListType",
@@ -1073,7 +1329,9 @@
         "kind": "snippet",
         "extraMethods": [
           "applyShadowing"
-        ]
+        ],
+        "lines": 23,
+        "sizeBucket": 50
       },
       {
         "className": "KtNestedClassType",
@@ -1082,7 +1340,9 @@
         "kind": "snippet",
         "extraMethods": [
           "applyShadowing"
-        ]
+        ],
+        "lines": 37,
+        "sizeBucket": 50
       },
       {
         "className": "KtEnumType",
@@ -1091,7 +1351,9 @@
         "kind": "snippet",
         "extraMethods": [
           "applyShadowing"
-        ]
+        ],
+        "lines": 28,
+        "sizeBucket": 50
       },
       {
         "className": "KtSharedRefType",
@@ -1100,7 +1362,9 @@
         "kind": "snippet",
         "extraMethods": [
           "applyShadowing"
-        ]
+        ],
+        "lines": 35,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -1228,7 +1492,8 @@
             "applyShadowing"
           ]
         }
-      ]
+      ],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 82,
@@ -1293,7 +1558,31 @@
       "pass": false,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [
+        "findDefinition call"
+      ],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 19
+      },
+      {
+        "bucket": 100,
+        "count": 2
+      },
+      {
+        "bucket": 150,
+        "count": 1
+      },
+      {
+        "bucket": 200,
+        "count": 1
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-kotlin-kotlinx",
@@ -1317,35 +1606,45 @@
         "file": "src/KtArray.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 24,
+        "sizeBucket": 50
       },
       {
         "className": "KtDataClassValue",
         "file": "src/KtDataClassValue.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 113,
+        "sizeBucket": 100
       },
       {
         "className": "KtEnumEntries",
         "file": "src/KtEnumEntries.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 42,
+        "sizeBucket": 50
       },
       {
         "className": "KtUnknown",
         "file": "src/KtJsonValues.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 19,
+        "sizeBucket": 50
       },
       {
         "className": "KtUnion",
         "file": "src/KtJsonValues.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 68,
+        "sizeBucket": 50
       },
       {
         "className": "KtModelProjection",
@@ -1356,70 +1655,90 @@
           "annotations",
           "description",
           "supertypes"
-        ]
+        ],
+        "lines": 96,
+        "sizeBucket": 100
       },
       {
         "className": "KtObjectValue",
         "file": "src/KtObjectValue.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 56,
+        "sizeBucket": 50
       },
       {
         "className": "KtRecord",
         "file": "src/KtObjectValue.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 32,
+        "sizeBucket": 50
       },
       {
         "className": "KtInteger",
         "file": "src/KtPrimitives.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 16,
+        "sizeBucket": 50
       },
       {
         "className": "KtNumber",
         "file": "src/KtPrimitives.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 16,
+        "sizeBucket": 50
       },
       {
         "className": "KtBoolean",
         "file": "src/KtPrimitives.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 14,
+        "sizeBucket": 50
       },
       {
         "className": "KtVoid",
         "file": "src/KtPrimitives.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 11,
+        "sizeBucket": 50
       },
       {
         "className": "KtRef",
         "file": "src/KtRef.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 49,
+        "sizeBucket": 50
       },
       {
         "className": "KtSealedInterfaceValue",
         "file": "src/KtSealedInterfaceValue.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 40,
+        "sizeBucket": 50
       },
       {
         "className": "KtString",
         "file": "src/KtString.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 61,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -1474,7 +1793,8 @@
             "supertypes"
           ]
         }
-      ]
+      ],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 8,
@@ -1539,7 +1859,24 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": true
+    "accumulator": {
+      "verdict": true,
+      "signals": [
+        "defineAndRegister call",
+        "findDefinition call"
+      ],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 13
+      },
+      {
+        "bucket": 100,
+        "count": 2
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-kotlin-sdk",
@@ -1563,14 +1900,18 @@
         "file": "src/KtSdkParams.ts",
         "extendsName": "SdkBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 44,
+        "sizeBucket": 50
       },
       {
         "className": "KtSdkResponseModel",
         "file": "src/KtSdkResponseModel.ts",
         "extendsName": "SdkBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 40,
+        "sizeBucket": 50
       },
       {
         "className": "SdkClientImplValue",
@@ -1579,7 +1920,9 @@
         "kind": "snippet",
         "extraMethods": [
           "#rawImpl"
-        ]
+        ],
+        "lines": 94,
+        "sizeBucket": 100
       },
       {
         "className": "SdkClientValue",
@@ -1589,7 +1932,9 @@
         "extraMethods": [
           "#descriptionLines",
           "#rawView"
-        ]
+        ],
+        "lines": 94,
+        "sizeBucket": 100
       },
       {
         "className": "ParamField",
@@ -1608,7 +1953,9 @@
           "stringify",
           "optionalMark",
           "descriptionKdoc"
-        ]
+        ],
+        "lines": 144,
+        "sizeBucket": 150
       },
       {
         "className": "ListParamField",
@@ -1621,14 +1968,18 @@
           "setterBlocks",
           "buildArgument",
           "stringify"
-        ]
+        ],
+        "lines": 58,
+        "sizeBucket": 50
       },
       {
         "className": "SdkParamsValue",
         "file": "src/params/SdkParamsValue.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 75,
+        "sizeBucket": 100
       },
       {
         "className": "SdkServiceImplValue",
@@ -1640,7 +1991,9 @@
           "#delegation",
           "#rawImpl",
           "#rawMethod"
-        ]
+        ],
+        "lines": 170,
+        "sizeBucket": 150
       },
       {
         "className": "SdkServiceValue",
@@ -1651,7 +2004,9 @@
           "add",
           "#rawView",
           "#methods"
-        ]
+        ],
+        "lines": 156,
+        "sizeBucket": 150
       },
       {
         "className": "AbsentBody",
@@ -1661,7 +2016,9 @@
         "extraMethods": [
           "fromLeadAssignments",
           "fromTailAssignments"
-        ]
+        ],
+        "lines": 33,
+        "sizeBucket": 50
       },
       {
         "className": "MapBody",
@@ -1671,7 +2028,9 @@
         "extraMethods": [
           "fromLeadAssignments",
           "fromTailAssignments"
-        ]
+        ],
+        "lines": 53,
+        "sizeBucket": 50
       },
       {
         "className": "ModelBody",
@@ -1682,7 +2041,9 @@
           "fromLeadAssignments",
           "fromTailAssignments",
           "bodySetter"
-        ]
+        ],
+        "lines": 94,
+        "sizeBucket": 100
       },
       {
         "className": "RefBody",
@@ -1692,70 +2053,90 @@
         "extraMethods": [
           "fromLeadAssignments",
           "fromTailAssignments"
-        ]
+        ],
+        "lines": 68,
+        "sizeBucket": 50
       },
       {
         "className": "HeadersOverride",
         "file": "src/params/sections/HeadersOverride.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 21,
+        "sizeBucket": 50
       },
       {
         "className": "ParamAccessors",
         "file": "src/params/sections/ParamAccessors.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 12,
+        "sizeBucket": 50
       },
       {
         "className": "ParamsBuilder",
         "file": "src/params/sections/ParamsBuilder.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 82,
+        "sizeBucket": 100
       },
       {
         "className": "ParamsClassBody",
         "file": "src/params/sections/ParamsClassBody.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 52,
+        "sizeBucket": 50
       },
       {
         "className": "ParamsCompanion",
         "file": "src/params/sections/ParamsCompanion.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 34,
+        "sizeBucket": 50
       },
       {
         "className": "ParamsConstructorParameters",
         "file": "src/params/sections/ParamsConstructorParameters.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 30,
+        "sizeBucket": 50
       },
       {
         "className": "ParamsIdentity",
         "file": "src/params/sections/ParamsIdentity.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 34,
+        "sizeBucket": 50
       },
       {
         "className": "PathParamFn",
         "file": "src/params/sections/PathParamFn.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 17,
+        "sizeBucket": 50
       },
       {
         "className": "QueryParamsOverride",
         "file": "src/params/sections/QueryParamsOverride.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 21,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -1826,7 +2207,7 @@
     ],
     "methodDiscipline": {
       "producers": 22,
-      "clean": 12,
+      "clean": 14,
       "flagged": [
         {
           "className": "SdkClientImplValue",
@@ -1872,25 +2253,6 @@
           ]
         },
         {
-          "className": "SdkServiceImplValue",
-          "kind": "snippet",
-          "extraMethods": [
-            "add",
-            "#delegation",
-            "#rawImpl",
-            "#rawMethod"
-          ]
-        },
-        {
-          "className": "SdkServiceValue",
-          "kind": "snippet",
-          "extraMethods": [
-            "add",
-            "#rawView",
-            "#methods"
-          ]
-        },
-        {
           "className": "AbsentBody",
           "kind": "snippet",
           "extraMethods": [
@@ -1921,6 +2283,27 @@
           "extraMethods": [
             "fromLeadAssignments",
             "fromTailAssignments"
+          ]
+        }
+      ],
+      "accumulatorExempt": [
+        {
+          "className": "SdkServiceImplValue",
+          "kind": "snippet",
+          "extraMethods": [
+            "add",
+            "#delegation",
+            "#rawImpl",
+            "#rawMethod"
+          ]
+        },
+        {
+          "className": "SdkServiceValue",
+          "kind": "snippet",
+          "extraMethods": [
+            "add",
+            "#rawView",
+            "#methods"
           ]
         }
       ]
@@ -1988,7 +2371,50 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": true
+    "accumulator": {
+      "verdict": true,
+      "signals": [
+        "defineAndRegister call",
+        "findDefinition call",
+        "container producer SdkServiceImplValue (operations, supertypes) mutated by add",
+        "container producer SdkServiceValue (operations) mutated by add"
+      ],
+      "containerProducers": [
+        {
+          "className": "SdkServiceImplValue",
+          "containerProps": [
+            "operations",
+            "supertypes"
+          ],
+          "mutatorMethods": [
+            "add"
+          ]
+        },
+        {
+          "className": "SdkServiceValue",
+          "containerProps": [
+            "operations"
+          ],
+          "mutatorMethods": [
+            "add"
+          ]
+        }
+      ]
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 14
+      },
+      {
+        "bucket": 100,
+        "count": 5
+      },
+      {
+        "bucket": 150,
+        "count": 3
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-kotlin-spring",
@@ -2015,7 +2441,9 @@
         "kind": "snippet",
         "extraMethods": [
           "add"
-        ]
+        ],
+        "lines": 15,
+        "sizeBucket": 50
       },
       {
         "className": "SpringControllerClass",
@@ -2024,28 +2452,36 @@
         "kind": "snippet",
         "extraMethods": [
           "add"
-        ]
+        ],
+        "lines": 27,
+        "sizeBucket": 50
       },
       {
         "className": "SpringApiMethod",
         "file": "src/SpringApiMethod.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 143,
+        "sizeBucket": 150
       },
       {
         "className": "ApiErrorValue",
         "file": "src/apiErrorSupport.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 20,
+        "sizeBucket": 50
       },
       {
         "className": "ApiErrorHandlerValue",
         "file": "src/apiErrorSupport.ts",
         "extendsName": "KtSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 28,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -2070,8 +2506,9 @@
     ],
     "methodDiscipline": {
       "producers": 5,
-      "clean": 3,
-      "flagged": [
+      "clean": 5,
+      "flagged": [],
+      "accumulatorExempt": [
         {
           "className": "SpringServiceInterface",
           "kind": "snippet",
@@ -2133,7 +2570,46 @@
       "pass": false,
       "exempt": true
     },
-    "accumulatorPattern": true
+    "accumulator": {
+      "verdict": true,
+      "signals": [
+        "defineAndRegister call",
+        "findDefinition call",
+        "container producer SpringServiceInterface (methods) mutated by add",
+        "container producer SpringControllerClass (methods, annotations) mutated by add"
+      ],
+      "containerProducers": [
+        {
+          "className": "SpringServiceInterface",
+          "containerProps": [
+            "methods"
+          ],
+          "mutatorMethods": [
+            "add"
+          ]
+        },
+        {
+          "className": "SpringControllerClass",
+          "containerProps": [
+            "methods",
+            "annotations"
+          ],
+          "mutatorMethods": [
+            "add"
+          ]
+        }
+      ]
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 4
+      },
+      {
+        "bucket": 150,
+        "count": 1
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-md-docs",
@@ -2158,7 +2634,9 @@
         "file": "src/snippets/Description.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 13,
+        "sizeBucket": 50
       },
       {
         "className": "TopIndex",
@@ -2167,7 +2645,9 @@
         "kind": "snippet",
         "extraMethods": [
           "add"
-        ]
+        ],
+        "lines": 56,
+        "sizeBucket": 50
       },
       {
         "className": "TagIndex",
@@ -2176,7 +2656,9 @@
         "kind": "snippet",
         "extraMethods": [
           "add"
-        ]
+        ],
+        "lines": 34,
+        "sizeBucket": 50
       },
       {
         "className": "Catalog",
@@ -2185,112 +2667,144 @@
         "kind": "snippet",
         "extraMethods": [
           "add"
-        ]
+        ],
+        "lines": 34,
+        "sizeBucket": 50
       },
       {
         "className": "Enums",
         "file": "src/snippets/Enums.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 16,
+        "sizeBucket": 50
       },
       {
         "className": "Example",
         "file": "src/snippets/Example.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 23,
+        "sizeBucket": 50
       },
       {
         "className": "ExternalDocs",
         "file": "src/snippets/ExternalDocs.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 16,
+        "sizeBucket": 50
       },
       {
         "className": "Frontmatter",
         "file": "src/snippets/Frontmatter.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 24,
+        "sizeBucket": 50
       },
       {
         "className": "Name",
         "file": "src/snippets/Name.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 13,
+        "sizeBucket": 50
       },
       {
         "className": "OperationDoc",
         "file": "src/snippets/OperationDoc.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 55,
+        "sizeBucket": 50
       },
       {
         "className": "Parameters",
         "file": "src/snippets/Parameters.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 21,
+        "sizeBucket": 50
       },
       {
         "className": "Parameter",
         "file": "src/snippets/Parameters.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 45,
+        "sizeBucket": 50
       },
       {
         "className": "PathMethod",
         "file": "src/snippets/PathMethod.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 15,
+        "sizeBucket": 50
       },
       {
         "className": "Responses",
         "file": "src/snippets/Responses.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 20,
+        "sizeBucket": 50
       },
       {
         "className": "ResponseEntry",
         "file": "src/snippets/Responses.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 57,
+        "sizeBucket": 50
       },
       {
         "className": "Header",
         "file": "src/snippets/Responses.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 33,
+        "sizeBucket": 50
       },
       {
         "className": "Link",
         "file": "src/snippets/Responses.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 25,
+        "sizeBucket": 50
       },
       {
         "className": "Schema",
         "file": "src/snippets/Schema.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 50,
+        "sizeBucket": 50
       },
       {
         "className": "Properties",
         "file": "src/snippets/Schema.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 19,
+        "sizeBucket": 50
       },
       {
         "className": "Definitions",
@@ -2300,42 +2814,54 @@
         "extraMethods": [
           "add",
           "build"
-        ]
+        ],
+        "lines": 32,
+        "sizeBucket": 50
       },
       {
         "className": "TypeDefinition",
         "file": "src/snippets/Schema.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 28,
+        "sizeBucket": 50
       },
       {
         "className": "Section",
         "file": "src/snippets/Section.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 49,
+        "sizeBucket": 50
       },
       {
         "className": "Security",
         "file": "src/snippets/Security.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 21,
+        "sizeBucket": 50
       },
       {
         "className": "Summary",
         "file": "src/snippets/Summary.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 17,
+        "sizeBucket": 50
       },
       {
         "className": "TypeInfo",
         "file": "src/snippets/TypeInfo.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 45,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -2421,7 +2947,8 @@
             "build"
           ]
         }
-      ]
+      ],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 68,
@@ -2486,7 +3013,62 @@
       "pass": false,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [
+        "container producer TopIndex (entries) mutated by add",
+        "container producer TagIndex (entries) mutated by add",
+        "container producer Catalog (entries) mutated by add",
+        "container producer Definitions (seen, queue, entries) mutated by add, build"
+      ],
+      "containerProducers": [
+        {
+          "className": "TopIndex",
+          "containerProps": [
+            "entries"
+          ],
+          "mutatorMethods": [
+            "add"
+          ]
+        },
+        {
+          "className": "TagIndex",
+          "containerProps": [
+            "entries"
+          ],
+          "mutatorMethods": [
+            "add"
+          ]
+        },
+        {
+          "className": "Catalog",
+          "containerProps": [
+            "entries"
+          ],
+          "mutatorMethods": [
+            "add"
+          ]
+        },
+        {
+          "className": "Definitions",
+          "containerProps": [
+            "seen",
+            "queue",
+            "entries"
+          ],
+          "mutatorMethods": [
+            "add",
+            "build"
+          ]
+        }
+      ]
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 25
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-msw",
@@ -2510,7 +3092,9 @@
         "file": "src/MockRoute.ts",
         "extendsName": "MswBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 68,
+        "sizeBucket": 50
       },
       {
         "className": "MockRoutesList",
@@ -2519,7 +3103,9 @@
         "kind": "snippet",
         "extraMethods": [
           "add"
-        ]
+        ],
+        "lines": 16,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -2533,8 +3119,9 @@
     ],
     "methodDiscipline": {
       "producers": 2,
-      "clean": 1,
-      "flagged": [
+      "clean": 2,
+      "flagged": [],
+      "accumulatorExempt": [
         {
           "className": "MockRoutesList",
           "kind": "snippet",
@@ -2558,7 +3145,31 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": true
+    "accumulator": {
+      "verdict": true,
+      "signals": [
+        "defineAndRegister call",
+        "findDefinition call",
+        "container producer MockRoutesList (list) mutated by add"
+      ],
+      "containerProducers": [
+        {
+          "className": "MockRoutesList",
+          "containerProps": [
+            "list"
+          ],
+          "mutatorMethods": [
+            "add"
+          ]
+        }
+      ]
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 2
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-reapit-form",
@@ -2582,70 +3193,90 @@
         "file": "src/ReapitForm.ts",
         "extendsName": "ReapitFormBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 115,
+        "sizeBucket": 100
       },
       {
         "className": "ArrayInput",
         "file": "src/fields/ArrayInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 24,
+        "sizeBucket": 50
       },
       {
         "className": "CheckboxInput",
         "file": "src/fields/CheckboxInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 21,
+        "sizeBucket": 50
       },
       {
         "className": "InputWrapper",
         "file": "src/fields/InputWrapper.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 20,
+        "sizeBucket": 50
       },
       {
         "className": "LookupInput",
         "file": "src/fields/LookupInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 21,
+        "sizeBucket": 50
       },
       {
         "className": "NumberInput",
         "file": "src/fields/NumberInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 24,
+        "sizeBucket": 50
       },
       {
         "className": "SectionInput",
         "file": "src/fields/SectionInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 33,
+        "sizeBucket": 50
       },
       {
         "className": "SelectInput",
         "file": "src/fields/SelectInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 30,
+        "sizeBucket": 50
       },
       {
         "className": "StringInput",
         "file": "src/fields/StringInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 31,
+        "sizeBucket": 50
       },
       {
         "className": "TextAreaInput",
         "file": "src/fields/TextAreaInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 24,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -2669,7 +3300,8 @@
     "methodDiscipline": {
       "producers": 10,
       "clean": 10,
-      "flagged": []
+      "flagged": [],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 22,
@@ -2728,7 +3360,23 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": true
+    "accumulator": {
+      "verdict": false,
+      "signals": [
+        "defineAndRegister call"
+      ],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 9
+      },
+      {
+        "bucket": 100,
+        "count": 1
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-reapit-graphql-client",
@@ -2752,7 +3400,9 @@
         "file": "src/ReapitGraphqlClient.ts",
         "extendsName": "ReapitGraphqlClientBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 115,
+        "sizeBucket": 100
       },
       {
         "className": "ObjectSelection",
@@ -2763,7 +3413,9 @@
           "isEmpty",
           "withName",
           "asDocumentSuffix"
-        ]
+        ],
+        "lines": 41,
+        "sizeBucket": 50
       },
       {
         "className": "Selection",
@@ -2773,7 +3425,9 @@
           "isEmpty",
           "withName",
           "asDocumentSuffix"
-        ]
+        ],
+        "lines": 35,
+        "sizeBucket": 50
       },
       {
         "className": "ScalarSelection",
@@ -2783,7 +3437,9 @@
         "extraMethods": [
           "isEmpty",
           "withName"
-        ]
+        ],
+        "lines": 11,
+        "sizeBucket": 50
       },
       {
         "className": "EmptySelection",
@@ -2793,7 +3449,9 @@
         "extraMethods": [
           "isEmpty",
           "withName"
-        ]
+        ],
+        "lines": 11,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -2810,7 +3468,8 @@
     "methodDiscipline": {
       "producers": 1,
       "clean": 1,
-      "flagged": []
+      "flagged": [],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 6,
@@ -2851,7 +3510,19 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": true
+    "accumulator": {
+      "verdict": false,
+      "signals": [
+        "defineAndRegister call"
+      ],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 100,
+        "count": 1
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-reapit-multi-select",
@@ -2875,7 +3546,9 @@
         "file": "src/ReapitMultiSelect.ts",
         "extendsName": "ReapitMultiSelectBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 153,
+        "sizeBucket": 150
       }
     ],
     "classTotals": {
@@ -2892,7 +3565,8 @@
     "methodDiscipline": {
       "producers": 1,
       "clean": 1,
-      "flagged": []
+      "flagged": [],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 1,
@@ -2908,7 +3582,17 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 150,
+        "count": 1
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-reapit-searchable-dropdown",
@@ -2932,7 +3616,9 @@
         "file": "src/ReapitSearchableDropdown.ts",
         "extendsName": "ReapitSearchableDropdownBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 148,
+        "sizeBucket": 150
       }
     ],
     "classTotals": {
@@ -2952,7 +3638,8 @@
     "methodDiscipline": {
       "producers": 1,
       "clean": 1,
-      "flagged": []
+      "flagged": [],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 1,
@@ -2968,7 +3655,17 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 150,
+        "count": 1
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-shadcn-form",
@@ -2992,105 +3689,135 @@
         "file": "src/FormFields.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 41,
+        "sizeBucket": 50
       },
       {
         "className": "FormLabel",
         "file": "src/FormLabel.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 23,
+        "sizeBucket": 50
       },
       {
         "className": "ShadcnForm",
         "file": "src/ShadcnForm.ts",
         "extendsName": "ShadcnFormBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 123,
+        "sizeBucket": 100
       },
       {
         "className": "CheckboxInput",
         "file": "src/fields/CheckboxInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 34,
+        "sizeBucket": 50
       },
       {
         "className": "CustomInput",
         "file": "src/fields/CustomInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 21,
+        "sizeBucket": 50
       },
       {
         "className": "IntegerInput",
         "file": "src/fields/IntegerInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 29,
+        "sizeBucket": 50
       },
       {
         "className": "NumberInput",
         "file": "src/fields/NumberInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 28,
+        "sizeBucket": 50
       },
       {
         "className": "ObjectInput",
         "file": "src/fields/ObjectInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 42,
+        "sizeBucket": 50
       },
       {
         "className": "SelectInput",
         "file": "src/fields/SelectInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 46,
+        "sizeBucket": 50
       },
       {
         "className": "StringInput",
         "file": "src/fields/StringInput.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 28,
+        "sizeBucket": 50
       },
       {
         "className": "Table",
         "file": "src/fields/Table.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 35,
+        "sizeBucket": 50
       },
       {
         "className": "SimpleTable",
         "file": "src/fields/Table.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 52,
+        "sizeBucket": 50
       },
       {
         "className": "ObjectTable",
         "file": "src/fields/Table.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 64,
+        "sizeBucket": 50
       },
       {
         "className": "SimpleTableRowRender",
         "file": "src/fields/Table.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 56,
+        "sizeBucket": 50
       },
       {
         "className": "TableObjectRowRender",
         "file": "src/fields/Table.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 57,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -3111,7 +3838,8 @@
     "methodDiscipline": {
       "producers": 15,
       "clean": 15,
-      "flagged": []
+      "flagged": [],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 27,
@@ -3170,7 +3898,21 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 14
+      },
+      {
+        "bucket": 100,
+        "count": 1
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-shadcn-select",
@@ -3194,14 +3936,18 @@
         "file": "src/InputOption.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 38,
+        "sizeBucket": 50
       },
       {
         "className": "PathParams",
         "file": "src/PathParams.ts",
         "extendsName": "ShadcnSelectApiBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 37,
+        "sizeBucket": 50
       },
       {
         "className": "ShadcnSelectField",
@@ -3210,14 +3956,18 @@
         "kind": "projection",
         "extraMethods": [
           "toIdentifierName"
-        ]
+        ],
+        "lines": 82,
+        "sizeBucket": 100
       },
       {
         "className": "ShadcnSelectInput",
         "file": "src/ShadcnSelectInput.ts",
         "extendsName": "ShadcnSelectApiBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 100,
+        "sizeBucket": 100
       }
     ],
     "classTotals": {
@@ -3241,7 +3991,8 @@
             "toIdentifierName"
           ]
         }
-      ]
+      ],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 6,
@@ -3282,7 +4033,23 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": true
+    "accumulator": {
+      "verdict": false,
+      "signals": [
+        "defineAndRegister call"
+      ],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 2
+      },
+      {
+        "bucket": 100,
+        "count": 2
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-shadcn-table",
@@ -3306,28 +4073,36 @@
         "file": "src/Column.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 22,
+        "sizeBucket": 50
       },
       {
         "className": "PathParams",
         "file": "src/PathParams.ts",
         "extendsName": "ShadcnTableBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 37,
+        "sizeBucket": 50
       },
       {
         "className": "ShadcnTable",
         "file": "src/ShadcnTable.ts",
         "extendsName": "ShadcnTableBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 60,
+        "sizeBucket": 50
       },
       {
         "className": "TableColumn",
         "file": "src/TableColumn.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 47,
+        "sizeBucket": 50
       },
       {
         "className": "TanstackColumns",
@@ -3336,7 +4111,9 @@
         "kind": "projection",
         "extraMethods": [
           "toIdentifierName"
-        ]
+        ],
+        "lines": 44,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -3362,7 +4139,8 @@
             "toIdentifierName"
           ]
         }
-      ]
+      ],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 7,
@@ -3415,7 +4193,17 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 5
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-supabase-hono",
@@ -3439,21 +4227,27 @@
         "file": "src/RequestBody.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 31,
+        "sizeBucket": 50
       },
       {
         "className": "Response",
         "file": "src/Response.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 22,
+        "sizeBucket": 50
       },
       {
         "className": "ResponseVoid",
         "file": "src/ResponseVoid.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 17,
+        "sizeBucket": 50
       },
       {
         "className": "SupabaseHono",
@@ -3462,14 +4256,18 @@
         "kind": "projection",
         "extraMethods": [
           "append"
-        ]
+        ],
+        "lines": 74,
+        "sizeBucket": 50
       },
       {
         "className": "SupabaseRoute",
         "file": "src/SupabaseRoute.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 98,
+        "sizeBucket": 100
       }
     ],
     "classTotals": {
@@ -3493,7 +4291,8 @@
             "append"
           ]
         }
-      ]
+      ],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 7,
@@ -3528,7 +4327,35 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [
+        "findDefinition call",
+        "container producer SupabaseHono (methods, routes) mutated by append"
+      ],
+      "containerProducers": [
+        {
+          "className": "SupabaseHono",
+          "containerProps": [
+            "methods",
+            "routes"
+          ],
+          "mutatorMethods": [
+            "append"
+          ]
+        }
+      ]
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 4
+      },
+      {
+        "bucket": 100,
+        "count": 1
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-tanstack-query-fetch-zod",
@@ -3552,49 +4379,63 @@
         "file": "src/MutationEndpoint.ts",
         "extendsName": "TanstackQueryBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 46,
+        "sizeBucket": 50
       },
       {
         "className": "MutationFn",
         "file": "src/MutationFn.ts",
         "extendsName": "TanstackQueryBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 72,
+        "sizeBucket": 50
       },
       {
         "className": "PaginatedQueryEndpoint",
         "file": "src/PaginatedQueryEndpoint.ts",
         "extendsName": "TanstackQueryBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 33,
+        "sizeBucket": 50
       },
       {
         "className": "PaginatedQueryFn",
         "file": "src/PaginatedQueryFn.ts",
         "extendsName": "TanstackQueryBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 49,
+        "sizeBucket": 50
       },
       {
         "className": "QueryEndpoint",
         "file": "src/QueryEndpoint.ts",
         "extendsName": "TanstackQueryBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 32,
+        "sizeBucket": 50
       },
       {
         "className": "QueryFn",
         "file": "src/QueryFn.ts",
         "extendsName": "TanstackQueryBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 48,
+        "sizeBucket": 50
       },
       {
         "className": "TanstackQuery",
         "file": "src/TanstackQuery.ts",
         "extendsName": "TanstackQueryBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 33,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -3612,7 +4453,8 @@
     "methodDiscipline": {
       "producers": 7,
       "clean": 7,
-      "flagged": []
+      "flagged": [],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 6,
@@ -3665,7 +4507,17 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 7
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-tanstack-query-supabase-zod",
@@ -3689,49 +4541,63 @@
         "file": "src/MutationEndpoint.ts",
         "extendsName": "TanstackQueryBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 46,
+        "sizeBucket": 50
       },
       {
         "className": "MutationFn",
         "file": "src/MutationFn.ts",
         "extendsName": "TanstackQueryBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 75,
+        "sizeBucket": 100
       },
       {
         "className": "PaginatedQueryEndpoint",
         "file": "src/PaginatedQueryEndpoint.ts",
         "extendsName": "TanstackQueryBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 33,
+        "sizeBucket": 50
       },
       {
         "className": "PaginatedQueryFn",
         "file": "src/PaginatedQueryFn.ts",
         "extendsName": "TanstackQueryBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 50,
+        "sizeBucket": 50
       },
       {
         "className": "QueryEndpoint",
         "file": "src/QueryEndpoint.ts",
         "extendsName": "TanstackQueryBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 32,
+        "sizeBucket": 50
       },
       {
         "className": "QueryFn",
         "file": "src/QueryFn.ts",
         "extendsName": "TanstackQueryBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 49,
+        "sizeBucket": 50
       },
       {
         "className": "TanstackQuery",
         "file": "src/TanstackQuery.ts",
         "extendsName": "TanstackQueryBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 33,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -3749,7 +4615,8 @@
     "methodDiscipline": {
       "producers": 7,
       "clean": 7,
-      "flagged": []
+      "flagged": [],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 6,
@@ -3802,7 +4669,21 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 6
+      },
+      {
+        "bucket": 100,
+        "count": 1
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-typescript",
@@ -3826,105 +4707,135 @@
         "file": "src/TsArray.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 19,
+        "sizeBucket": 50
       },
       {
         "className": "TsBoolean",
         "file": "src/TsBoolean.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 27,
+        "sizeBucket": 50
       },
       {
         "className": "TsInteger",
         "file": "src/TsInteger.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 24,
+        "sizeBucket": 50
       },
       {
         "className": "TsNever",
         "file": "src/TsNever.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 11,
+        "sizeBucket": 50
       },
       {
         "className": "TsNull",
         "file": "src/TsNull.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 11,
+        "sizeBucket": 50
       },
       {
         "className": "TsNumber",
         "file": "src/TsNumber.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 14,
+        "sizeBucket": 50
       },
       {
         "className": "TsObject",
         "file": "src/TsObject.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 58,
+        "sizeBucket": 50
       },
       {
         "className": "TsObjectProperties",
         "file": "src/TsObject.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 41,
+        "sizeBucket": 50
       },
       {
         "className": "TsRecord",
         "file": "src/TsObject.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 21,
+        "sizeBucket": 50
       },
       {
         "className": "TsProjection",
         "file": "src/TsProjection.ts",
         "extendsName": "TypescriptBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 26,
+        "sizeBucket": 50
       },
       {
         "className": "TsRef",
         "file": "src/TsRef.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 48,
+        "sizeBucket": 50
       },
       {
         "className": "TsString",
         "file": "src/TsString.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 35,
+        "sizeBucket": 50
       },
       {
         "className": "TsUnion",
         "file": "src/TsUnion.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 38,
+        "sizeBucket": 50
       },
       {
         "className": "TsUnknown",
         "file": "src/TsUnknown.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 11,
+        "sizeBucket": 50
       },
       {
         "className": "TsVoid",
         "file": "src/TsVoid.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 11,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -3951,7 +4862,8 @@
     "methodDiscipline": {
       "producers": 15,
       "clean": 15,
-      "flagged": []
+      "flagged": [],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 15,
@@ -3986,7 +4898,17 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 15
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-typescript-s",
@@ -4010,105 +4932,135 @@
         "file": "src/TsArray.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 19,
+        "sizeBucket": 50
       },
       {
         "className": "TsBoolean",
         "file": "src/TsBoolean.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 27,
+        "sizeBucket": 50
       },
       {
         "className": "TsInteger",
         "file": "src/TsInteger.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 24,
+        "sizeBucket": 50
       },
       {
         "className": "TsNever",
         "file": "src/TsNever.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 11,
+        "sizeBucket": 50
       },
       {
         "className": "TsNull",
         "file": "src/TsNull.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 11,
+        "sizeBucket": 50
       },
       {
         "className": "TsNumber",
         "file": "src/TsNumber.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 14,
+        "sizeBucket": 50
       },
       {
         "className": "TsObject",
         "file": "src/TsObject.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 58,
+        "sizeBucket": 50
       },
       {
         "className": "TsObjectProperties",
         "file": "src/TsObject.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 57,
+        "sizeBucket": 50
       },
       {
         "className": "TsRecord",
         "file": "src/TsObject.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 21,
+        "sizeBucket": 50
       },
       {
         "className": "TsProjection",
         "file": "src/TsProjection.ts",
         "extendsName": "TypescriptBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 32,
+        "sizeBucket": 50
       },
       {
         "className": "TsRef",
         "file": "src/TsRef.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 48,
+        "sizeBucket": 50
       },
       {
         "className": "TsString",
         "file": "src/TsString.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 35,
+        "sizeBucket": 50
       },
       {
         "className": "TsUnion",
         "file": "src/TsUnion.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 38,
+        "sizeBucket": 50
       },
       {
         "className": "TsUnknown",
         "file": "src/TsUnknown.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 11,
+        "sizeBucket": 50
       },
       {
         "className": "TsVoid",
         "file": "src/TsVoid.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 11,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -4135,7 +5087,8 @@
     "methodDiscipline": {
       "producers": 15,
       "clean": 15,
-      "flagged": []
+      "flagged": [],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 15,
@@ -4170,7 +5123,17 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 15
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-typescript-sdk",
@@ -4194,21 +5157,27 @@
         "file": "src/ApiMethod.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 54,
+        "sizeBucket": 50
       },
       {
         "className": "NamespaceReExport",
         "file": "src/SdkResource.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 20,
+        "sizeBucket": 50
       },
       {
         "className": "PageAliasValue",
         "file": "src/SdkResource.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 16,
+        "sizeBucket": 50
       },
       {
         "className": "SdkResource",
@@ -4221,7 +5190,9 @@
           "#reExportNames",
           "#trackSchema",
           "#ensurePageAlias"
-        ]
+        ],
+        "lines": 234,
+        "sizeBucket": 250
       }
     ],
     "classTotals": {
@@ -4255,7 +5226,8 @@
             "#ensurePageAlias"
           ]
         }
-      ]
+      ],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 4,
@@ -4302,7 +5274,24 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": true
+    "accumulator": {
+      "verdict": true,
+      "signals": [
+        "defineAndRegister call",
+        "findDefinition call"
+      ],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 3
+      },
+      {
+        "bucket": 250,
+        "count": 1
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-valibot",
@@ -4326,77 +5315,99 @@
         "file": "src/ValibotArray.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 34,
+        "sizeBucket": 50
       },
       {
         "className": "ValibotBoolean",
         "file": "src/ValibotBoolean.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 17,
+        "sizeBucket": 50
       },
       {
         "className": "ValibotInteger",
         "file": "src/ValibotInteger.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 17,
+        "sizeBucket": 50
       },
       {
         "className": "ValibotNull",
         "file": "src/ValibotNull.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 13,
+        "sizeBucket": 50
       },
       {
         "className": "ValibotNumber",
         "file": "src/ValibotNumber.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 17,
+        "sizeBucket": 50
       },
       {
         "className": "ValibotObject",
         "file": "src/ValibotObject.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 63,
+        "sizeBucket": 50
       },
       {
         "className": "ValibotObjectProperties",
         "file": "src/ValibotObject.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 42,
+        "sizeBucket": 50
       },
       {
         "className": "ValibotRecord",
         "file": "src/ValibotObject.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 21,
+        "sizeBucket": 50
       },
       {
         "className": "ValibotProjection",
         "file": "src/ValibotProjection.ts",
         "extendsName": "ValibotBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 26,
+        "sizeBucket": 50
       },
       {
         "className": "ValibotRef",
         "file": "src/ValibotRef.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 34,
+        "sizeBucket": 50
       },
       {
         "className": "ValibotString",
         "file": "src/ValibotString.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 41,
+        "sizeBucket": 50
       },
       {
         "className": "ValibotUnion",
@@ -4405,21 +5416,27 @@
         "kind": "snippet",
         "extraMethods": [
           "buildVariantUnion"
-        ]
+        ],
+        "lines": 63,
+        "sizeBucket": 50
       },
       {
         "className": "ValibotUnknown",
         "file": "src/ValibotUnknown.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 13,
+        "sizeBucket": 50
       },
       {
         "className": "ValibotVoid",
         "file": "src/ValibotVoid.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 13,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -4448,7 +5465,8 @@
             "buildVariantUnion"
           ]
         }
-      ]
+      ],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 15,
@@ -4483,7 +5501,17 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 14
+      }
+    ]
   },
   {
     "generator": "@skmtc/gen-zod",
@@ -4507,98 +5535,126 @@
         "file": "src/ZodArray.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 28,
+        "sizeBucket": 50
       },
       {
         "className": "ZodBoolean",
         "file": "src/ZodBoolean.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 35,
+        "sizeBucket": 50
       },
       {
         "className": "ZodConstraint",
         "file": "src/ZodConstraints.ts",
         "extendsName": "SnippetBase",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 16,
+        "sizeBucket": 50
       },
       {
         "className": "ZodInteger",
         "file": "src/ZodInteger.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 74,
+        "sizeBucket": 50
       },
       {
         "className": "ZodNumber",
         "file": "src/ZodNumber.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 71,
+        "sizeBucket": 50
       },
       {
         "className": "ZodObject",
         "file": "src/ZodObject.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 64,
+        "sizeBucket": 50
       },
       {
         "className": "ZodObjectProperties",
         "file": "src/ZodObject.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 44,
+        "sizeBucket": 50
       },
       {
         "className": "ZodRecord",
         "file": "src/ZodObject.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 25,
+        "sizeBucket": 50
       },
       {
         "className": "ZodProjection",
         "file": "src/ZodProjection.ts",
         "extendsName": "ZodBase",
         "kind": "projection",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 47,
+        "sizeBucket": 50
       },
       {
         "className": "ZodRef",
         "file": "src/ZodRef.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 63,
+        "sizeBucket": 50
       },
       {
         "className": "ZodString",
         "file": "src/ZodString.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 59,
+        "sizeBucket": 50
       },
       {
         "className": "ZodUnion",
         "file": "src/ZodUnion.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 44,
+        "sizeBucket": 50
       },
       {
         "className": "ZodUnknown",
         "file": "src/ZodUnknown.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 13,
+        "sizeBucket": 50
       },
       {
         "className": "ZodVoid",
         "file": "src/ZodVoid.ts",
         "extendsName": "TsSnippet",
         "kind": "snippet",
-        "extraMethods": []
+        "extraMethods": [],
+        "lines": 13,
+        "sizeBucket": 50
       }
     ],
     "classTotals": {
@@ -4619,7 +5675,8 @@
     "methodDiscipline": {
       "producers": 14,
       "clean": 14,
-      "flagged": []
+      "flagged": [],
+      "accumulatorExempt": []
     },
     "strings": {
       "insideToStringCount": 30,
@@ -4666,6 +5723,16 @@
       "pass": true,
       "exempt": false
     },
-    "accumulatorPattern": false
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 14
+      }
+    ]
   }
 ]

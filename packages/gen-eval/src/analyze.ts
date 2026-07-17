@@ -22,6 +22,9 @@ type ParsedClass = {
   extendsName: string | undefined
   extendsFactoryCall: boolean
   methods: string[]
+  lines: number
+  containerProps: string[]
+  mutatorMethods: string[]
 }
 
 type ParsedFile = {
@@ -32,6 +35,7 @@ type ParsedFile = {
   peerProjectionImports: string[]
   helperFunctions: string[]
   usesDefineAndRegister: boolean
+  usesFindDefinition: boolean
   stringSites: Map<string, { count: number; chars: number; bucket: StringBucket }>
 }
 
@@ -96,6 +100,66 @@ const isStringish = (node: ts.Expression): boolean =>
   ts.isTemplateExpression(node) ||
   ts.isNoSubstitutionTemplateLiteral(node)
 
+const CONTAINER_CONSTRUCTORS = /^(Map|Set|WeakMap|WeakSet|Array)$/
+
+const isContainerInit = (expression: ts.Expression): boolean =>
+  ts.isArrayLiteralExpression(expression) ||
+  ts.isObjectLiteralExpression(expression) ||
+  (ts.isNewExpression(expression) &&
+    ts.isIdentifier(expression.expression) &&
+    CONTAINER_CONSTRUCTORS.test(expression.expression.text))
+
+const collectContainerProps = (node: ts.ClassDeclaration): string[] => {
+  const props: string[] = []
+  for (const member of node.members) {
+    if (ts.isPropertyDeclaration(member) && member.initializer && isContainerInit(member.initializer)) {
+      props.push(member.name.getText())
+    }
+    if (ts.isConstructorDeclaration(member) && member.body) {
+      for (const statement of member.body.statements) {
+        if (
+          ts.isExpressionStatement(statement) &&
+          ts.isBinaryExpression(statement.expression) &&
+          statement.expression.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+          ts.isPropertyAccessExpression(statement.expression.left) &&
+          statement.expression.left.expression.kind === ts.SyntaxKind.ThisKeyword &&
+          isContainerInit(statement.expression.right)
+        ) {
+          props.push(statement.expression.left.name.text)
+        }
+      }
+    }
+  }
+  return [...new Set(props)]
+}
+
+// A mutation like `this.list.values.push(route)` marks `list` as a
+// container regardless of how it was initialized (literal, new Map(),
+// or a builder call like List.toArray([])).
+const MUTATION_PATH = /this\.(\w+)(?:\.\w+|\[[^\]]*\])*\.(?:push|add|set|unshift|splice|delete)\(/g
+
+const findMutations = (
+  node: ts.ClassDeclaration,
+  sourceFile: ts.SourceFile
+): { mutatorMethods: string[]; mutatedProps: string[] } => {
+  const mutatorMethods: string[] = []
+  const mutatedProps: string[] = []
+  for (const member of node.members) {
+    if (!ts.isMethodDeclaration(member) || !member.body) continue
+    const name = member.name.getText(sourceFile)
+    if (name === 'toString') continue
+    const matches = [...member.body.getText(sourceFile).matchAll(MUTATION_PATH)]
+    if (matches.length > 0) {
+      mutatorMethods.push(name)
+      for (const match of matches) {
+        const prop = match[1]
+        if (prop !== undefined) mutatedProps.push(prop)
+      }
+    }
+  }
+  return { mutatorMethods, mutatedProps: [...new Set(mutatedProps)] }
+}
+
 const parseFile = (path: string, genDir: string): ParsedFile => {
   const text = readFileSync(path, 'utf8')
   const sourceFile = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
@@ -108,7 +172,8 @@ const parseFile = (path: string, genDir: string): ParsedFile => {
     snippetImports: [],
     peerProjectionImports: [],
     helperFunctions: [],
-    usesDefineAndRegister: /\bdefineAndRegister\b/.test(text),
+    usesDefineAndRegister: false,
+    usesFindDefinition: false,
     stringSites: new Map()
   }
 
@@ -187,7 +252,30 @@ const parseFile = (path: string, genDir: string): ParsedFile => {
           methods.push(member.name.getText(sourceFile))
         }
       }
-      parsed.classes.push({ className: node.name.text, file, extendsName, extendsFactoryCall, methods })
+      const startLine = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line
+      const endLine = sourceFile.getLineAndCharacterOfPosition(node.end).line
+      const mutations = findMutations(node, sourceFile)
+      parsed.classes.push({
+        className: node.name.text,
+        file,
+        extendsName,
+        extendsFactoryCall,
+        methods,
+        lines: endLine - startLine + 1,
+        containerProps: [...new Set([...collectContainerProps(node), ...mutations.mutatedProps])],
+        mutatorMethods: mutations.mutatorMethods
+      })
+    }
+
+    if (ts.isCallExpression(node)) {
+      const callee = node.expression
+      const calleeName = ts.isIdentifier(callee)
+        ? callee.text
+        : ts.isPropertyAccessExpression(callee)
+          ? callee.name.text
+          : undefined
+      if (calleeName === 'defineAndRegister') parsed.usesDefineAndRegister = true
+      if (calleeName === 'findDefinition') parsed.usesFindDefinition = true
     }
 
     const isTemplate = ts.isTemplateExpression(node)
@@ -331,10 +419,16 @@ const summarizeStrings = (files: ParsedFile[]): StringsReport => {
   }
 }
 
+const toSizeBucket = (lines: number): number => Math.max(50, Math.round(lines / 50) * 50)
+
 export const analyzeGenerator = (dir: string): GeneratorReport => {
   const sourceFiles = listSourceFiles(dir)
   const parsedFiles = sourceFiles.map(path => parseFile(path, dir))
   const kinds = classifyClasses(parsedFiles)
+
+  const parsedByName = new Map(
+    parsedFiles.flatMap(file => file.classes.map(parsedClass => [parsedClass.className, parsedClass] as const))
+  )
 
   const classes: ClassReport[] = parsedFiles.flatMap(file =>
     file.classes.map(parsedClass => {
@@ -345,7 +439,9 @@ export const analyzeGenerator = (dir: string): GeneratorReport => {
         file: parsedClass.file,
         extendsName: parsedClass.extendsName,
         kind,
-        extraMethods
+        extraMethods,
+        lines: parsedClass.lines,
+        sizeBucket: toSizeBucket(parsedClass.lines)
       }
     })
   )
@@ -354,17 +450,58 @@ export const analyzeGenerator = (dir: string): GeneratorReport => {
   const snippets = classes.filter(item => item.kind === 'snippet')
   const other = classes.filter(item => item.kind === 'other')
   const producers = [...projections, ...snippets]
-  const flagged = producers
-    .filter(item => item.extraMethods.length > 0)
+
+  // Accumulator detection: a producer holding a mutable container with
+  // mutator methods, combined with the defineAndRegister (+findDefinition)
+  // shared-aggregate machinery. defineAndRegister alone is NOT enough —
+  // it is also the legitimate private-sibling primitive.
+  const usesDefineAndRegister = parsedFiles.some(file => file.usesDefineAndRegister)
+  const usesFindDefinition = parsedFiles.some(file => file.usesFindDefinition)
+  const containerProducers = producers
+    .map(item => parsedByName.get(item.className))
+    .filter(parsedClass => parsedClass !== undefined)
+    .filter(parsedClass => parsedClass.mutatorMethods.length > 0)
+    .map(parsedClass => ({
+      className: parsedClass.className,
+      containerProps: parsedClass.containerProps,
+      mutatorMethods: parsedClass.mutatorMethods
+    }))
+
+  const signals: string[] = []
+  if (usesDefineAndRegister) signals.push('defineAndRegister call')
+  if (usesFindDefinition) signals.push('findDefinition call')
+  for (const container of containerProducers) {
+    signals.push(
+      `container producer ${container.className} (${container.containerProps.join(', ')}) mutated by ${container.mutatorMethods.join(', ')}`
+    )
+  }
+  const accumulatorVerdict =
+    usesDefineAndRegister && (usesFindDefinition || containerProducers.length > 0)
+
+  const exemptClassNames = new Set(
+    accumulatorVerdict ? containerProducers.map(container => container.className) : []
+  )
+  const withExtras = producers.filter(item => item.extraMethods.length > 0)
+  const flagged = withExtras
+    .filter(item => !exemptClassNames.has(item.className))
+    .map(item => {
+      const kind: ProducerKind = item.kind === 'projection' ? 'projection' : 'snippet'
+      return { className: item.className, kind, extraMethods: item.extraMethods }
+    })
+  const accumulatorExempt = withExtras
+    .filter(item => exemptClassNames.has(item.className))
     .map(item => {
       const kind: ProducerKind = item.kind === 'projection' ? 'projection' : 'snippet'
       return { className: item.className, kind, extraMethods: item.extraMethods }
     })
 
-  const accumulatorPattern = parsedFiles.some(file => file.usesDefineAndRegister)
   const hasProjection = projections.length > 0
-
   const structure = checkStructure(dir)
+
+  const sizeCounts = new Map<number, number>()
+  for (const producer of producers) {
+    sizeCounts.set(producer.sizeBucket, (sizeCounts.get(producer.sizeBucket) ?? 0) + 1)
+  }
 
   return {
     generator: structure.packageName ?? dir.split('/').at(-1) ?? dir,
@@ -380,10 +517,14 @@ export const analyzeGenerator = (dir: string): GeneratorReport => {
     methodDiscipline: {
       producers: producers.length,
       clean: producers.length - flagged.length,
-      flagged
+      flagged,
+      accumulatorExempt
     },
     strings: summarizeStrings(parsedFiles),
-    topLevelProjection: { pass: hasProjection, exempt: !hasProjection && accumulatorPattern },
-    accumulatorPattern
+    topLevelProjection: { pass: hasProjection, exempt: !hasProjection && accumulatorVerdict },
+    accumulator: { verdict: accumulatorVerdict, signals, containerProducers },
+    producerSizes: [...sizeCounts.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(entry => ({ bucket: entry[0], count: entry[1] }))
   }
 }
