@@ -58,6 +58,7 @@ def main() -> None:
     out = run_dir / 'viewer.html'
     out.write_text(html)
     print(f'wrote {out} ({len(lines)} events)')
+    print(f'view:  file://{out.resolve()}')
 
 
 if __name__ == '__main__':

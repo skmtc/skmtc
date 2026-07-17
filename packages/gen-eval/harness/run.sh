@@ -149,5 +149,13 @@ print(json.dumps(entry, indent=2))
 EOF
 
 echo ""
-echo "done — review: $RUN_DIR/report.md, then structural.md, then transcript.jsonl"
+echo "=============================================================="
+echo "  run complete — gates exit: $GATES_EXIT"
+echo ""
+echo "  viewer:   file://$RUN_DIR/viewer.html"
+echo "  report:   file://$RUN_DIR/report.md"
+echo "  timeline: file://$RUN_DIR/timeline.md"
+echo ""
+echo "  (cmd-click the viewer link, or: open \"$RUN_DIR/viewer.html\")"
+echo "=============================================================="
 exit "$GATES_EXIT"
