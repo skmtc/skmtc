@@ -57,6 +57,7 @@ writeFileSync(process.env.META_PATH, JSON.stringify({
   skillSha: process.env.SKILL_SHA,
   skillDirtyFiles: Number(process.env.SKILL_DIRTY),
   label: process.env.LABEL,
+  thinkingBudget: process.env.MAX_THINKING_TOKENS ?? null,
   started: new Date().toISOString()
 }, null, 2))
 EOF

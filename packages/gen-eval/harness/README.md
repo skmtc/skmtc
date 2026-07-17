@@ -12,7 +12,17 @@ cheap, reproducible, and comparable.
 cd skmtc/packages/gen-eval
 harness/run.sh claude-fable-5              # or: sonnet | opus | haiku
 harness/run.sh sonnet after-skill-fix      # optional label for the run
+
+# dial reasoning up/down (recorded in meta.json for comparability):
+MAX_THINKING_TOKENS=32000 harness/run.sh claude-fable-5 deep-think
+MAX_THINKING_TOKENS=2048  harness/run.sh sonnet shallow-think
 ```
+
+Thinking *content* is not visible in any Claude Code mode for current
+models — the API defaults to display: omitted (empty thinking blocks +
+signature; GitHub issue #36006 tracks surfacing it). The viewer shows
+per-block token estimates instead. The budget knob above still changes
+how much reasoning happens.
 
 Requirements: `skmtc` CLI on PATH, `claude` CLI, node ≥ 23, gradle +
 a JDK (homebrew `openjdk@21` is auto-detected). The harness is
