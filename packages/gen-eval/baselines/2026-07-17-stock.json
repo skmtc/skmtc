@@ -276,6 +276,21 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "fail",
+      "failedChecks": [
+        "adhoc-tostring"
+      ],
+      "warningCount": 6,
+      "warnings": {
+        "flaggedProducers": 2,
+        "asCasts": 3,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": true
+      }
     }
   },
   {
@@ -653,6 +668,21 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "fail",
+      "failedChecks": [
+        "structure"
+      ],
+      "warningCount": 5,
+      "warnings": {
+        "flaggedProducers": 3,
+        "asCasts": 1,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": true
+      }
     }
   },
   {
@@ -911,6 +941,21 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "fail",
+      "failedChecks": [
+        "structure"
+      ],
+      "warningCount": 1,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": true
+      }
     }
   },
   {
@@ -1111,6 +1156,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "warn",
+      "failedChecks": [],
+      "warningCount": 2,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 2,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -1294,6 +1352,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "warn",
+      "failedChecks": [],
+      "warningCount": 1,
+      "warnings": {
+        "flaggedProducers": 1,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -1817,6 +1888,21 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "fail",
+      "failedChecks": [
+        "top-level-projection"
+      ],
+      "warningCount": 10,
+      "warnings": {
+        "flaggedProducers": 9,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 1,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -2147,6 +2233,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "warn",
+      "failedChecks": [],
+      "warningCount": 3,
+      "warnings": {
+        "flaggedProducers": 1,
+        "asCasts": 1,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": true
+      }
     }
   },
   {
@@ -2727,6 +2826,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "warn",
+      "failedChecks": [],
+      "warningCount": 11,
+      "warnings": {
+        "flaggedProducers": 8,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 2,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": true
+      }
     }
   },
   {
@@ -2953,6 +3065,21 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "fail",
+      "failedChecks": [
+        "structure"
+      ],
+      "warningCount": 0,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -3432,6 +3559,22 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "fail",
+      "failedChecks": [
+        "structure",
+        "top-level-projection"
+      ],
+      "warningCount": 4,
+      "warnings": {
+        "flaggedProducers": 4,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -3564,6 +3707,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "clean",
+      "failedChecks": [],
+      "warningCount": 0,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -3807,6 +3963,21 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "fail",
+      "failedChecks": [
+        "adhoc-tostring"
+      ],
+      "warningCount": 0,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -4003,6 +4174,21 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "fail",
+      "failedChecks": [
+        "adhoc-tostring"
+      ],
+      "warningCount": 6,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 2,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 4,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -4104,6 +4290,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "clean",
+      "failedChecks": [],
+      "warningCount": 0,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -4208,6 +4407,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "clean",
+      "failedChecks": [],
+      "warningCount": 0,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -4499,6 +4711,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "warn",
+      "failedChecks": [],
+      "warningCount": 2,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 2,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -4667,6 +4892,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "warn",
+      "failedChecks": [],
+      "warningCount": 1,
+      "warnings": {
+        "flaggedProducers": 1,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -4858,6 +5096,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "warn",
+      "failedChecks": [],
+      "warningCount": 2,
+      "warnings": {
+        "flaggedProducers": 1,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 1,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -5041,6 +5292,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "warn",
+      "failedChecks": [],
+      "warningCount": 1,
+      "warnings": {
+        "flaggedProducers": 1,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -5234,6 +5498,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "clean",
+      "failedChecks": [],
+      "warningCount": 0,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -5431,6 +5708,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "clean",
+      "failedChecks": [],
+      "warningCount": 0,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -5684,6 +5974,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "clean",
+      "failedChecks": [],
+      "warningCount": 0,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -5937,6 +6240,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "clean",
+      "failedChecks": [],
+      "warningCount": 0,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -6126,6 +6442,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "warn",
+      "failedChecks": [],
+      "warningCount": 2,
+      "warnings": {
+        "flaggedProducers": 1,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": true
+      }
     }
   },
   {
@@ -6375,6 +6704,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "warn",
+      "failedChecks": [],
+      "warningCount": 1,
+      "warnings": {
+        "flaggedProducers": 1,
+        "asCasts": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   },
   {
@@ -6633,6 +6975,19 @@
     "runtimeDiscipline": {
       "pass": true,
       "violations": []
+    },
+    "aggregate": {
+      "verdict": "warn",
+      "failedChecks": [],
+      "warningCount": 1,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 1,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
     }
   }
 ]

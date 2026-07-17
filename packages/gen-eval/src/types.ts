@@ -165,4 +165,17 @@ export type GeneratorReport = {
   templateImports: { pass: boolean; sites: CodeSite[] }
   emittedTodos: { count: number; sites: CodeSite[] }
   runtimeDiscipline: { pass: boolean; violations: RuntimeViolation[] }
+  aggregate: {
+    verdict: 'clean' | 'warn' | 'fail'
+    failedChecks: string[]
+    warningCount: number
+    warnings: {
+      flaggedProducers: number
+      asCasts: number
+      rawDefinitionRegisters: number
+      emittedTodos: number
+      otherClasses: number
+      outsideShareHigh: boolean
+    }
+  }
 }

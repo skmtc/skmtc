@@ -3,6 +3,7 @@ import { readdirSync, existsSync, writeFileSync, mkdirSync, statSync } from 'nod
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { analyzeGenerator } from './analyze.ts'
+import { formatAggregate } from './aggregate.ts'
 import type { GeneratorReport } from './types.ts'
 
 // The stock generators live in the sibling skmtc-generators repo:
@@ -51,6 +52,7 @@ const toRow = (report: GeneratorReport): string[] => {
   const maxBucket = producerSizes.at(-1)?.bucket
   return [
     report.generator,
+    formatAggregate(report.aggregate),
     report.structure.pass ? 'ok' : `missing:${report.structure.missing.length}`,
     `${classTotals.projections}P/${classTotals.snippets}S/${classTotals.other}O`,
     pct(report.producerShare),
@@ -71,6 +73,7 @@ const toRow = (report: GeneratorReport): string[] => {
 
 const HEADER = [
   'generator',
+  'verdict',
   'structure',
   'classes',
   'producer%',
@@ -118,6 +121,9 @@ const toMarkdown = (reports: GeneratorReport[]): string => {
 
   for (const report of reports) {
     lines.push(`## ${report.generator}`, '')
+    lines.push(
+      `- verdict: **${formatAggregate(report.aggregate)}**${report.aggregate.failedChecks.length ? ` — failed: ${report.aggregate.failedChecks.join(', ')}` : ''}`
+    )
     lines.push(`- dir: \`${report.dir}\``)
     lines.push(`- structure: ${mark(report.structure.pass)}${report.structure.missing.length ? ` — missing: ${report.structure.missing.join(', ')}` : ''}`)
     lines.push(

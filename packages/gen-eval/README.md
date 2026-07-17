@@ -71,8 +71,11 @@ asserts, why, how it is measured, and the known legitimate exceptions.
     async code inside emitted template text is never flagged. Pass/fail.
 
 Checks 1, 5, 8, 9, 12 and 14 are pass/fail facts. The rest are numbers
-and per-site listings for human interpretation — there is deliberately
-no composite score. Full per-check documentation: [`docs/`](docs/README.md).
+and per-site listings for human interpretation. The `verdict` column is
+a derived **defect aggregate** (`clean` / `warn(m)` / `FAIL(nF+mW)` —
+see [`docs/aggregate.md`](docs/aggregate.md)); there is deliberately no
+weighted quality score. Full per-check documentation:
+[`docs/`](docs/README.md).
 Analysis scope is the code the worker bundle executes: root entry files
 plus `src/**` (demo/, scripts/, and tests excluded).
 

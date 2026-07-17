@@ -21,6 +21,7 @@ legitimate exceptions.
 | 12 | [No import statements in template literals](template-imports.md) | `src/checks/template-imports.ts` | pass/fail |
 | 13 | [TODO markers in emitted text](emitted-todos.md) | `src/checks/emitted-todos.ts` | informational |
 | 14 | [Runtime discipline (sync Deno, side effects = logs + registers)](runtime-discipline.md) | `src/checks/runtime-discipline.ts` | pass/fail |
+| — | [Aggregate verdict](aggregate.md) | `src/aggregate.ts` | derived: clean / warn(m) / FAIL(nF+mW) |
 
 Architecture: a single shared AST pass (`src/parse.ts`) produces
 `PackageFacts`; every check module is a pure function over those facts,

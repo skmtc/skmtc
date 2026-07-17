@@ -13,6 +13,7 @@ import { runRegistrationChannels } from './registration-channels.ts'
 import { runTemplateImports } from './template-imports.ts'
 import { runEmittedTodos } from './emitted-todos.ts'
 import { runRuntimeDiscipline } from './runtime-discipline.ts'
+import { toAggregate } from '../aggregate.ts'
 
 /** One entry per check module; `doc` names the file under docs/. */
 export const CHECKS = [
@@ -34,7 +35,7 @@ export const CHECKS = [
 
 export const runAll = (facts: PackageFacts): GeneratorReport => {
   const producerShare = runProducerShare(facts)
-  return {
+  const report = {
     generator: facts.packageName ?? facts.dir.split('/').at(-1) ?? facts.dir,
     dir: facts.dir,
     fileCount: facts.fileCount,
@@ -56,4 +57,5 @@ export const runAll = (facts: PackageFacts): GeneratorReport => {
     emittedTodos: runEmittedTodos(facts),
     runtimeDiscipline: runRuntimeDiscipline(facts)
   }
+  return { ...report, aggregate: toAggregate(report) }
 }
