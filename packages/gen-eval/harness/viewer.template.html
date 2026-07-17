@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gen-eval run viewer</title>
+<style>
+  :root {
+    --bg: #101418; --panel: #171c22; --panel2: #1d232b; --border: #2a323c;
+    --text: #d7dee6; --dim: #8b98a5; --accent: #4cc38a; --warn: #e5b567;
+    --error: #e5484d; --think: #7e9cd8;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--mono);
+    font-size: 13px; display: flex; flex-direction: column; overflow: hidden;
+  }
+  header {
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    font-family: var(--sans);
+  }
+  header h1 { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
+  header .meta { color: var(--dim); font-size: 13px; }
+  #controls { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  button {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 4px; padding: 4px 10px; font-family: var(--sans); font-size: 13px;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  #pos { min-width: 110px; text-align: center; color: var(--dim); }
+  /* scrubber */
+  #scrubwrap { padding: 14px 16px 6px; border-bottom: 1px solid var(--border); user-select: none; }
+  #track {
+    position: relative; height: 22px; background: var(--panel2);
+    border: 1px solid var(--border); border-radius: 11px; cursor: pointer;
+  }
+  #fill {
+    position: absolute; left: 0; top: 0; bottom: 0; border-radius: 11px 0 0 11px;
+    background: color-mix(in srgb, var(--accent) 22%, transparent); pointer-events: none;
+  }
+  .tick {
+    position: absolute; top: 3px; bottom: 3px; width: 3px; border-radius: 2px;
+    pointer-events: none;
+  }
+  .tick.milestone { background: var(--accent); }
+  .tick.error { background: var(--error); }
+  #playhead {
+    position: absolute; top: -5px; width: 14px; height: 32px; border-radius: 7px;
+    background: var(--text); border: 2px solid var(--bg); margin-left: -7px;
+    cursor: grab; box-shadow: 0 0 6px rgba(0,0,0,.6);
+  }
+  #playhead:active { cursor: grabbing; }
+  #legend {
+    display: flex; gap: 16px; padding: 6px 2px 0; color: var(--dim);
+    font-size: 13px; font-family: var(--sans);
+  }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+  /* main panes */
+  main { flex: 1; display: flex; min-height: 0; }
+  section { min-width: 0; overflow-y: auto; }
+  #turnpane { flex: 1.15; padding: 14px 16px; border-right: 1px solid var(--border); }
+  #filespane { flex: 1; display: flex; flex-direction: column; }
+  #filebar {
+    display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px;
+    border-bottom: 1px solid var(--border); background: var(--panel);
+  }
+  .filechip {
+    padding: 3px 9px; border: 1px solid var(--border); border-radius: 4px;
+    cursor: pointer; color: var(--dim); font-size: 13px; background: var(--panel2);
+    font-family: var(--sans);
+  }
+  .filechip.active { color: var(--text); border-color: var(--accent); }
+  .filechip.touched { color: var(--warn); }
+  #filecontent {
+    flex: 1; overflow: auto; padding: 12px 16px; white-space: pre;
+    font-size: 13px; line-height: 1.5; color: var(--text); tab-size: 2;
+  }
+  /* turn detail */
+  .turnhead {
+    color: var(--dim); margin-bottom: 10px; font-family: var(--sans);
+    font-size: 16px; font-weight: 600;
+  }
+  .block { margin-bottom: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); }
+  .block > .bh {
+    padding: 6px 10px; font-size: 13px; color: var(--dim);
+    display: flex; gap: 8px; align-items: baseline;
+  }
+  .block > .bb { padding: 8px 10px 10px; border-top: 1px solid var(--border); }
+  .block pre { white-space: pre-wrap; word-break: break-word; font-size: 13px; line-height: 1.45; }
+  .badge { padding: 1px 7px; border-radius: 3px; font-size: 13px; font-family: var(--sans); }
+  .badge.think { background: color-mix(in srgb, var(--think) 20%, transparent); color: var(--think); }
+  .badge.say { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+  .badge.tool { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+  .badge.err { background: color-mix(in srgb, var(--error) 25%, transparent); color: var(--error); }
+  .badge.mile { background: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent); }
+  details > summary { cursor: pointer; color: var(--dim); }
+  details[open] > summary { margin-bottom: 6px; }
+  .result { color: var(--dim); }
+  .result.err { color: var(--error); }
+  #drop {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 14px; background: var(--bg); z-index: 10;
+  }
+  #drop.hidden, .hidden { display: none; }
+  #drop .zone {
+    border: 2px dashed var(--border); border-radius: 12px; padding: 60px 80px;
+    color: var(--dim); text-align: center;
+  }
+  kbd { background: var(--panel2); border: 1px solid var(--border); border-radius: 3px; padding: 0 5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>gen-eval run viewer</h1>
+  <span class="meta" id="metaline"></span>
+  <div id="controls">
+    <button id="prev" title="previous turn (&larr;)">&#9664;</button>
+    <button id="play" title="play/pause (space)">&#9654;</button>
+    <button id="next" title="next turn (&rarr;)">&#9654;&#9654;</button>
+    <span id="pos"></span>
+  </div>
+</header>
+<div id="scrubwrap">
+  <div id="track">
+    <div id="fill"></div>
+    <div id="ticks"></div>
+    <div id="playhead"></div>
+  </div>
+  <div id="legend">
+    <span><span class="dot" style="background:var(--accent)"></span>milestone</span>
+    <span><span class="dot" style="background:var(--error)"></span>error</span>
+    <span>navigate: <kbd>&larr;</kbd> <kbd>&rarr;</kbd> <kbd>space</kbd> — drag the playhead or click the track</span>
+  </div>
+</div>
+<main>
+  <section id="turnpane"></section>
+  <section id="filespane">
+    <div id="filebar"></div>
+    <pre id="filecontent"></pre>
+  </section>
+</main>
+<div id="drop" class="hidden">
+  <div class="zone">
+    <p style="font-size:16px;margin-bottom:10px">Drop a <b>transcript.jsonl</b> here</p>
+    <p>or <input type="file" id="filepick" accept=".jsonl,.json"></p>
+  </div>
+</div>
+<script id="data" type="application/json">__DATA__</script>
+<script id="metadata" type="application/json">__META__</script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+const MILESTONE_FILES = ['base.ts', 'mod.ts', 'enrichments.ts'];
+const MILESTONE_CMDS = [['skmtc bundle','first bundle'],['skmtc generate','first generate'],['gradle test','first test run']];
+
+// ---- model: parse raw stream-json events into turns -----------------
+function build(events) {
+  const turns = [];            // {i, thinking:[], texts:[], tools:[], milestones:[], hasError}
+  const toolIndex = new Map(); // tool_use_id -> tool record
+  const fileOps = [];          // {turn, path, kind:'write'|'edit', content|old,new,all}
+  const seen = new Set();
+  let current = null;
+
+  const milestone = (turn, key, label) => {
+    if (seen.has(key)) return;
+    seen.add(key);
+    turn.milestones.push(label);
+  };
+  const resultText = raw => Array.isArray(raw)
+    ? raw.map(p => (p && p.text) || '').join(' ')
+    : String(raw ?? '');
+
+  for (const ev of events) {
+    if (ev.type === 'assistant') {
+      const content = (ev.message || {}).content || [];
+      if (!content.some(c => c && ['text','tool_use','thinking'].includes(c.type))) continue;
+      current = { i: turns.length + 1, thinking: [], texts: [], tools: [], milestones: [], hasError: false };
+      turns.push(current);
+      for (const item of content) {
+        if (!item) continue;
+        if (item.type === 'thinking') current.thinking.push(item.thinking || '');
+        else if (item.type === 'text') { if ((item.text || '').trim()) current.texts.push(item.text); }
+        else if (item.type === 'tool_use') {
+          const input = item.input || {};
+          const tool = { name: item.name, input, result: null, isError: false };
+          current.tools.push(tool);
+          toolIndex.set(item.id, { tool, turn: current });
+          if (item.name === 'Skill' && String(input.skill || '').includes('skmtc'))
+            milestone(current, 'skill:' + input.skill, 'loaded ' + input.skill + ' skill');
+          if ((item.name === 'Write' || item.name === 'Edit') && input.file_path) {
+            for (const m of MILESTONE_FILES)
+              if (input.file_path.endsWith('src/' + m) && input.file_path.includes('gen-'))
+                milestone(current, 'write:' + m, 'src/' + m + ' written');
+            if (item.name === 'Write' && typeof input.content === 'string')
+              fileOps.push({ turn: current.i, path: input.file_path, kind: 'write', content: input.content });
+            if (item.name === 'Edit')
+              fileOps.push({ turn: current.i, path: input.file_path, kind: 'edit',
+                old: input.old_string || '', neu: input.new_string || '', all: !!input.replace_all });
+          }
+          if (item.name === 'Bash') {
+            const cmd = input.command || '';
+            for (const [needle, label] of MILESTONE_CMDS)
+              if (cmd.includes(needle)) milestone(current, 'cmd:' + needle, label);
+          }
+        }
+      }
+    } else if (ev.type === 'user') {
+      for (const item of ((ev.message || {}).content || [])) {
+        if (!item || item.type !== 'tool_result') continue;
+        const entry = toolIndex.get(item.tool_use_id);
+        if (!entry) continue;
+        const text = resultText(item.content);
+        entry.tool.result = text;
+        entry.tool.isError = !!item.is_error;
+        if (item.is_error) entry.turn.hasError = true;
+        if (/"errors":\s*\[\]/.test(text) && /"type":\s*"generated"/.test(text))
+          milestone(entry.turn, 'generate-ok', 'clean generate');
+        if (text.includes('BUILD SUCCESSFUL'))
+          milestone(entry.turn, 'gradle-ok', 'gradle BUILD SUCCESSFUL');
+      }
+    } else if (ev.type === 'result') {
+      if (turns.length) {
+        const last = turns[turns.length - 1];
+        const cost = ev.total_cost_usd != null ? ' cost=$' + ev.total_cost_usd.toFixed(2) : '';
+        milestone(last, 'done', 'run finished — turns=' + ev.num_turns + cost);
+      }
+    }
+  }
+  return { turns, fileOps };
+}
+
+// ---- workspace reconstruction --------------------------------------
+function fileState(fileOps, upToTurn) {
+  const files = new Map(); // path -> {content, lastTouched}
+  for (const op of fileOps) {
+    if (op.turn > upToTurn) break;
+    const entry = files.get(op.path) || { content: null, lastTouched: 0 };
+    if (op.kind === 'write') entry.content = op.content;
+    else if (entry.content != null && op.old) {
+      entry.content = op.all
+        ? entry.content.split(op.old).join(op.neu)
+        : entry.content.replace(op.old, op.neu);
+    }
+    entry.lastTouched = op.turn;
+    files.set(op.path, entry);
+  }
+  return files;
+}
+const shortPath = p => p.split('/').slice(-3).join('/');
+
+// ---- rendering ------------------------------------------------------
+let TURNS = [], FILEOPS = [], T = 1, selectedFile = null, playing = null;
+
+function renderTurn() {
+  const turn = TURNS[T - 1];
+  const pane = $('turnpane');
+  if (!turn) { pane.innerHTML = '<p class="turnhead">no turns</p>'; return; }
+  let html = '<p class="turnhead">turn ' + turn.i + ' / ' + TURNS.length + '</p>';
+  for (const m of turn.milestones)
+    html += '<div class="block"><div class="bh"><span class="badge mile">milestone</span>' + esc(m) + '</div></div>';
+  for (const th of turn.thinking)
+    html += '<div class="block"><div class="bh"><span class="badge think">thinking</span>' + th.length +
+      ' chars</div><div class="bb"><details><summary>show reasoning</summary><pre>' + esc(th) + '</pre></details></div></div>';
+  for (const tx of turn.texts)
+    html += '<div class="block"><div class="bh"><span class="badge say">assistant</span></div><div class="bb"><pre>' + esc(tx) + '</pre></div></div>';
+  for (const tool of turn.tools) {
+    let head = tool.name, body = '';
+    if (tool.name === 'Bash') { head += ' — ' + (tool.input.command || '').slice(0, 100); }
+    else if (tool.input.file_path) { head += ' — ' + shortPath(tool.input.file_path); }
+    else if (tool.input.skill) { head += ' — ' + tool.input.skill; }
+    if (tool.name === 'Write' && tool.input.content)
+      body += '<details><summary>content (' + tool.input.content.length + ' chars)</summary><pre>' + esc(tool.input.content) + '</pre></details>';
+    else if (tool.name === 'Edit')
+      body += '<details><summary>edit diff</summary><pre style="color:var(--error)">- ' + esc(tool.input.old_string) +
+        '</pre><pre style="color:var(--accent)">+ ' + esc(tool.input.new_string) + '</pre></details>';
+    else if (Object.keys(tool.input).length && tool.name !== 'Bash')
+      body += '<details><summary>input</summary><pre>' + esc(JSON.stringify(tool.input, null, 1).slice(0, 3000)) + '</pre></details>';
+    if (tool.result != null) {
+      const cls = tool.isError ? 'result err' : 'result';
+      const truncated = tool.result.length > 1200 ? tool.result.slice(0, 1200) + ' …' : tool.result;
+      body += '<details' + (tool.isError ? ' open' : '') + '><summary class="' + cls + '">' +
+        (tool.isError ? 'ERROR result' : 'result') + ' (' + tool.result.length + ' chars)</summary><pre class="' + cls + '">' +
+        esc(truncated) + '</pre></details>';
+    }
+    html += '<div class="block"><div class="bh"><span class="badge tool">' + esc(tool.name) + '</span>' +
+      '<span>' + esc(head.slice(tool.name.length)) + '</span>' +
+      (tool.isError ? '<span class="badge err">error</span>' : '') + '</div>' +
+      (body ? '<div class="bb">' + body + '</div>' : '') + '</div>';
+  }
+  pane.innerHTML = html;
+  pane.scrollTop = 0;
+}
+
+function renderFiles() {
+  const files = fileState(FILEOPS, T);
+  const bar = $('filebar');
+  bar.innerHTML = '';
+  if (!files.size) {
+    bar.innerHTML = '<span style="color:var(--dim)">no files written yet at this turn</span>';
+    $('filecontent').textContent = '';
+    return;
+  }
+  if (!selectedFile || !files.has(selectedFile)) selectedFile = [...files.keys()].pop();
+  for (const [path, entry] of files) {
+    const chip = document.createElement('span');
+    chip.className = 'filechip' + (path === selectedFile ? ' active' : '') +
+      (entry.lastTouched === T ? ' touched' : '');
+    chip.textContent = shortPath(path) + (entry.lastTouched === T ? ' *' : '');
+    chip.title = path;
+    chip.onclick = () => { selectedFile = path; renderFiles(); };
+    bar.appendChild(chip);
+  }
+  const current = files.get(selectedFile);
+  $('filecontent').textContent = current && current.content != null
+    ? current.content
+    : '(content not reconstructable — edited before any full Write)';
+}
+
+function renderScrubber() {
+  const n = Math.max(TURNS.length, 1);
+  $('fill').style.width = ((T - 0.5) / n * 100) + '%';
+  $('playhead').style.left = ((T - 0.5) / n * 100) + '%';
+  $('pos').textContent = 'turn ' + T + ' / ' + TURNS.length;
+}
+
+function renderTicks() {
+  const ticks = $('ticks');
+  ticks.innerHTML = '';
+  const n = Math.max(TURNS.length, 1);
+  TURNS.forEach(turn => {
+    if (turn.milestones.length) addTick(turn.i, 'milestone');
+    if (turn.hasError) addTick(turn.i, 'error');
+  });
+  function addTick(i, cls) {
+    const el = document.createElement('div');
+    el.className = 'tick ' + cls;
+    el.style.left = 'calc(' + ((i - 0.5) / n * 100) + '% - 1px)';
+    ticks.appendChild(el);
+  }
+}
+
+function goTo(turn) {
+  T = Math.min(Math.max(1, turn), Math.max(TURNS.length, 1));
+  renderScrubber(); renderTurn(); renderFiles();
+}
+
+// ---- scrubber interaction ------------------------------------------
+function turnFromEvent(event) {
+  const rect = $('track').getBoundingClientRect();
+  const frac = Math.min(Math.max((event.clientX - rect.left) / rect.width, 0), 1);
+  return Math.round(frac * (TURNS.length - 1)) + 1;
+}
+let dragging = false;
+$('track').addEventListener('pointerdown', event => {
+  dragging = true;
+  $('track').setPointerCapture(event.pointerId);
+  goTo(turnFromEvent(event));
+});
+$('track').addEventListener('pointermove', event => { if (dragging) goTo(turnFromEvent(event)); });
+$('track').addEventListener('pointerup', () => { dragging = false; });
+$('prev').onclick = () => goTo(T - 1);
+$('next').onclick = () => goTo(T + 1);
+$('play').onclick = togglePlay;
+function togglePlay() {
+  if (playing) { clearInterval(playing); playing = null; $('play').innerHTML = '&#9654;'; return; }
+  if (T >= TURNS.length) goTo(1);   // replay a finished run from the start
+  $('play').innerHTML = '&#10073;&#10073;';
+  playing = setInterval(() => {
+    if (T >= TURNS.length) { togglePlay(); return; }
+    goTo(T + 1);
+  }, 900);
+}
+document.addEventListener('keydown', event => {
+  if (event.key === 'ArrowLeft') { goTo(T - 1); event.preventDefault(); }
+  if (event.key === 'ArrowRight') { goTo(T + 1); event.preventDefault(); }
+  if (event.key === ' ') { togglePlay(); event.preventDefault(); }
+});
+
+// ---- boot -----------------------------------------------------------
+function load(events, meta) {
+  const model = build(events);
+  TURNS = model.turns; FILEOPS = model.fileOps;
+  const bits = [];
+  if (meta) {
+    if (meta.model) bits.push(meta.model);
+    if (meta.label) bits.push(meta.label);
+    if (meta.skillSha) bits.push('skill ' + String(meta.skillSha).slice(0, 10));
+    const res = meta.result || {};
+    if (res.costUsd != null) bits.push('$' + res.costUsd.toFixed(2));
+  }
+  $('metaline').textContent = bits.join(' · ');
+  renderTicks();
+  goTo(TURNS.length);   // open at the end, like a finished video
+  $('drop').classList.add('hidden');
+}
+
+function parseJsonl(text) {
+  return text.split('\n').map(line => { try { return JSON.parse(line); } catch { return null; } }).filter(Boolean);
+}
+
+const embedded = JSON.parse($('data').textContent || 'null');
+const embeddedMeta = JSON.parse($('metadata').textContent || 'null');
+if (embedded && embedded.length) {
+  load(embedded, embeddedMeta);
+} else {
+  $('drop').classList.remove('hidden');
+  const readFile = file => file.text().then(text => load(parseJsonl(text), null));
+  $('filepick').onchange = event => { if (event.target.files[0]) readFile(event.target.files[0]); };
+  document.addEventListener('dragover', event => event.preventDefault());
+  document.addEventListener('drop', event => {
+    event.preventDefault();
+    if (event.dataTransfer.files[0]) readFile(event.dataTransfer.files[0]);
+  });
+}
+</script>
+</body>
+</html>

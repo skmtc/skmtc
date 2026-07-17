@@ -117,7 +117,10 @@ GATES_EXIT=$?
 set -e
 cp -R "$WORKSPACE" "$RUN_DIR/workspace"
 
-# 7. Append to the runs index for cross-run comparison
+# 7. Bake the in-browser viewer (scrubber UI over the transcript)
+python3 "$HARNESS_DIR/viewer.py" "$RUN_DIR" || true
+
+# 8. Append to the runs index for cross-run comparison
 python3 - "$HARNESS_DIR/runs/index.jsonl" "$RUN_DIR" "$GATES_EXIT" <<'EOF'
 import json, sys, os
 run_dir = sys.argv[2]

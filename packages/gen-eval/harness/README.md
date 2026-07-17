@@ -32,6 +32,7 @@ transcript with `python3 harness/timeline.py <transcript.jsonl>`.
 | File | What it is |
 |---|---|
 | `report.md` | The gates table + structural verdict — **read this first** |
+| `viewer.html` | **In-browser scrubber** — open it and drag through the run turn by turn (see below) |
 | `timeline.md` | Turn-by-turn progress: milestones, tool calls, errors — the skim view |
 | `structural.md` / `.json` | The 14-check structural eval over the authored generator |
 | `transcript.jsonl` | Full stream-json transcript incl. thinking and every tool call |
@@ -64,6 +65,26 @@ Deliberately shared across runs (constants, recorded per run):
 `~/.claude/CLAUDE.md` + user skills (the skill under test — SHA and a
 snapshot captured in the run dir), and the gradle/deno/pnpm caches
 (dependency bytes, not knowledge).
+
+## The run viewer
+
+`open harness/runs/<id>/viewer.html` — a self-contained page (no
+server, works offline) with a video-player scrubber over the run:
+
+- drag the playhead, click the track, use ◀ ▶ / arrow keys, or press
+  play to replay the run turn by turn (space = play/pause; play at the
+  end restarts from turn 1)
+- green ticks mark milestones, red ticks mark turns with tool errors
+- left pane: the selected turn — thinking (collapsible), assistant
+  text, every tool call with inputs, Write contents, Edit diffs, and
+  results (errors auto-expanded)
+- right pane: the **workspace as of that turn** — files reconstructed
+  by replaying Write/Edit operations, so you can watch `base.ts`
+  evolve; `*` marks files touched in the current turn
+
+Regenerate for any run with `python3 harness/viewer.py <run-dir>`;
+`python3 harness/viewer.py --template standalone.html` builds a
+drag-and-drop version that opens any `transcript.jsonl`.
 
 ## The gates (ground truth, no judging)
 
