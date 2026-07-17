@@ -72,10 +72,17 @@ const handleToolUse = item => {
       }
     }
   } else if (name === 'Bash') {
-    const command = String(input.command || '').replace(/\s+/g, ' ').slice(0, 90)
+    const full = String(input.command || '')
+    const command = full.replace(/\s+/g, ' ').slice(0, 90)
     label = `Bash: ${command}`
     for (const [needle, text] of MILESTONE_CMDS) {
       if (command.includes(needle)) milestone(`cmd:${needle}`, text)
+    }
+    // heredoc writes count as generator-file milestones too
+    for (const marker of MILESTONE_FILES) {
+      if (full.includes(`src/${marker}`) && full.includes('gen-') && full.includes('<<')) {
+        milestone(`write:${marker}`, `generator src/${marker} written`)
+      }
     }
   } else if (name === 'Grep' || name === 'Glob') {
     label = `${name}: ${String(input.pattern ?? input.query ?? '').slice(0, 60)}`

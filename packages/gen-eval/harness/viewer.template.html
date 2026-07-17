@@ -208,6 +208,19 @@ function build(events) {
             const cmd = input.command || '';
             for (const [needle, label] of MILESTONE_CMDS)
               if (cmd.includes(needle)) milestone(current, 'cmd:' + needle, label);
+            // Heredoc writes (cat > path <<'EOF' ... EOF) count as file
+            // ops too — headless models often write files this way
+            // instead of using the Write tool.
+            const HEREDOC = /cat\s+(?:(>>|>)\s*(\S+)\s+)?<<\s*-?\s*(['"]?)(\w+)\3\s*(?:(>>|>)\s*(\S+))?[^\n]*\n([\s\S]*?)\n\4(?=\n|$)/g;
+            for (const match of cmd.matchAll(HEREDOC)) {
+              const path = match[2] || match[6];
+              if (!path) continue;
+              const kind = (match[1] || match[5]) === '>>' ? 'append' : 'write';
+              fileOps.push({ turn: current.i, path, kind, content: match[7] });
+              for (const m of MILESTONE_FILES)
+                if (path.endsWith('src/' + m) && path.includes('gen-'))
+                  milestone(current, 'write:' + m, 'src/' + m + ' written');
+            }
           }
         }
       }
@@ -243,6 +256,7 @@ function fileState(fileOps, upToTurn) {
     if (op.turn > upToTurn) break;
     const entry = files.get(op.path) || { content: null, lastTouched: 0 };
     if (op.kind === 'write') entry.content = op.content;
+    else if (op.kind === 'append') entry.content = (entry.content ?? '') + op.content;
     else if (entry.content != null && op.old) {
       entry.content = op.all
         ? entry.content.split(op.old).join(op.neu)
@@ -257,17 +271,28 @@ const shortPath = p => p.split('/').slice(-3).join('/');
 
 // ---- rendering ------------------------------------------------------
 let TURNS = [], FILEOPS = [], T = 1, selectedFile = null, playing = null;
+const userToggles = new Map();   // details data-key -> user's chosen open state
+let lastRenderedTurn = null;
 
 function renderTurn() {
   const turn = TURNS[T - 1];
   const pane = $('turnpane');
-  if (!turn) { pane.innerHTML = '<p class="turnhead">no turns</p>'; return; }
+  if (!turn) { pane.innerHTML = '<p class="turnhead">no turns</p>'; lastRenderedTurn = null; return; }
+  let detailsIndex = 0;
+  // Keyed <details>: user toggles survive re-renders (live updates,
+  // scrubbing away and back). Default state applies until toggled.
+  const det = (defaultOpen, summaryHtml, bodyHtml) => {
+    const key = turn.i + ':' + (detailsIndex++);
+    const open = userToggles.has(key) ? userToggles.get(key) : defaultOpen;
+    return '<details data-key="' + key + '"' + (open ? ' open' : '') +
+      '><summary>' + summaryHtml + '</summary>' + bodyHtml + '</details>';
+  };
   let html = '<p class="turnhead">turn ' + turn.i + ' / ' + TURNS.length + '</p>';
   for (const m of turn.milestones)
     html += '<div class="block"><div class="bh"><span class="badge mile">milestone</span>' + esc(m) + '</div></div>';
   for (const th of turn.thinking)
     html += '<div class="block"><div class="bh"><span class="badge think">thinking</span>' + th.length +
-      ' chars</div><div class="bb"><details><summary>show reasoning</summary><pre>' + esc(th) + '</pre></details></div></div>';
+      ' chars</div><div class="bb">' + det(false, 'show reasoning', '<pre>' + esc(th) + '</pre>') + '</div></div>';
   for (const tx of turn.texts)
     html += '<div class="block"><div class="bh"><span class="badge say">assistant</span></div><div class="bb"><pre>' + esc(tx) + '</pre></div></div>';
   for (const tool of turn.tools) {
@@ -276,27 +301,36 @@ function renderTurn() {
     else if (tool.input.file_path) { head += ' — ' + shortPath(tool.input.file_path); }
     else if (tool.input.skill) { head += ' — ' + tool.input.skill; }
     if (tool.name === 'Write' && tool.input.content)
-      body += '<details><summary>content (' + tool.input.content.length + ' chars)</summary><pre>' + esc(tool.input.content) + '</pre></details>';
+      body += det(false, 'content (' + tool.input.content.length + ' chars)', '<pre>' + esc(tool.input.content) + '</pre>');
     else if (tool.name === 'Edit')
-      body += '<details><summary>edit diff</summary><pre style="color:var(--error)">- ' + esc(tool.input.old_string) +
-        '</pre><pre style="color:var(--accent)">+ ' + esc(tool.input.new_string) + '</pre></details>';
+      body += det(false, 'edit diff', '<pre style="color:var(--error)">- ' + esc(tool.input.old_string) +
+        '</pre><pre style="color:var(--accent)">+ ' + esc(tool.input.new_string) + '</pre>');
     else if (Object.keys(tool.input).length && tool.name !== 'Bash')
-      body += '<details><summary>input</summary><pre>' + esc(JSON.stringify(tool.input, null, 1).slice(0, 3000)) + '</pre></details>';
+      body += det(false, 'input', '<pre>' + esc(JSON.stringify(tool.input, null, 1).slice(0, 3000)) + '</pre>');
     if (tool.result != null) {
       const cls = tool.isError ? 'result err' : 'result';
       const truncated = tool.result.length > 1200 ? tool.result.slice(0, 1200) + ' …' : tool.result;
-      body += '<details' + (tool.isError ? ' open' : '') + '><summary class="' + cls + '">' +
-        (tool.isError ? 'ERROR result' : 'result') + ' (' + tool.result.length + ' chars)</summary><pre class="' + cls + '">' +
-        esc(truncated) + '</pre></details>';
+      body += det(tool.isError,
+        '<span class="' + cls + '">' + (tool.isError ? 'ERROR result' : 'result') + ' (' + tool.result.length + ' chars)</span>',
+        '<pre class="' + cls + '">' + esc(truncated) + '</pre>');
     }
     html += '<div class="block"><div class="bh"><span class="badge tool">' + esc(tool.name) + '</span>' +
       '<span>' + esc(head.slice(tool.name.length)) + '</span>' +
       (tool.isError ? '<span class="badge err">error</span>' : '') + '</div>' +
       (body ? '<div class="bb">' + body + '</div>' : '') + '</div>';
   }
+  const sameTurn = lastRenderedTurn === turn.i;
+  const keepScroll = sameTurn ? pane.scrollTop : 0;
   pane.innerHTML = html;
-  pane.scrollTop = 0;
+  pane.scrollTop = keepScroll;
+  lastRenderedTurn = turn.i;
 }
+
+// Record explicit user toggles ('toggle' doesn't bubble — capture).
+$('turnpane').addEventListener('toggle', event => {
+  const key = event.target && event.target.dataset ? event.target.dataset.key : null;
+  if (key) userToggles.set(key, event.target.open);
+}, true);
 
 function renderFiles() {
   const files = fileState(FILEOPS, T);
@@ -410,12 +444,15 @@ function updateMetaline() {
 
 function refresh(events) {
   const wasAtEnd = TURNS.length === 0 || T >= TURNS.length;
-  const keep = T;
   const model = build(events);
   TURNS = model.turns; FILEOPS = model.fileOps;
   renderTicks();
   updateMetaline();
-  goTo(wasAtEnd ? TURNS.length : keep);   // tail if following; hold if scrubbed back
+  if (wasAtEnd) {
+    goTo(TURNS.length);      // following: tail the newest turn
+  } else {
+    renderScrubber();        // scrubbed back: update track geometry only,
+  }                          // leaving the open panes (and toggles) alone
   $('drop').classList.add('hidden');
 }
 
