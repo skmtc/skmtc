@@ -139,7 +139,30 @@ milestones + report integration.
 
 ## Tomorrow — pick up here
 
-1. **Read the after-research-fix run**: dashboard →
+0. **Relaunch the comparison run and LET IT FINISH** (every run so
+   far was Ctrl-C'd — we have zero complete data points):
+
+   ```bash
+   cd skmtc/packages/gen-eval
+   harness/run.sh sonnet after-research-fix
+   ```
+
+   What this does: seeds an isolated temp workspace (schema +
+   vendored lang-kotlin + checksummed gradle acceptance tests),
+   records provenance (skill SHA, task checksum), prints the live
+   dashboard viewer link, runs sonnet headlessly against `task.md`
+   (10–40 min, billed to the subscription window), then grades with
+   the six gates + structural eval into `report.md` and archives
+   everything (full pipeline: `harness/README.md` → "What happens
+   during a run"). The label `after-research-fix` tags it as the
+   skill-0.6.2 configuration for dashboard comparison against the
+   pre-fix runs. **What to watch:** does the `src/base.ts written`
+   milestone fire in the first minutes (scaffold-first fix worked)
+   instead of never (research spiral); then `>>> WHY:` lines and
+   amber `*** FRICTION:` marks stream the model's rationale and
+   pain points live.
+
+1. **Read the finished run**: dashboard →
    `runs/20260717-222650-…/report.md`, `FRICTION.md`, `RETRO.md`,
    viewer. Key questions: did `src/base.ts written` fire early (fix
    worked)? Which gates pass? What do the Unblockers ask for?
