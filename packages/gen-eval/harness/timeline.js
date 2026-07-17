@@ -22,6 +22,7 @@ process.stdout.on('error', error => {
 
 const start = Date.now()
 let turn = 0
+let pendingThinkingTokens = null
 const toolNames = new Map()
 const seenMilestones = new Set()
 
@@ -98,6 +99,10 @@ const handleEvent = event => {
     emit(`session start — model ${event.model || '?'}`)
     return
   }
+  if (event.type === 'system' && event.subtype === 'thinking_tokens') {
+    pendingThinkingTokens = event.estimated_tokens ?? pendingThinkingTokens
+    return
+  }
   if (event.type === 'assistant') {
     const content = (event.message || {}).content || []
     let bumped = false
@@ -107,7 +112,13 @@ const handleEvent = event => {
         turn += 1
         bumped = true
       }
-      if (item.type === 'thinking') emit(`thinking (${(item.thinking || '').length} chars)`)
+      if (item.type === 'thinking') {
+        const chars = (item.thinking || '').length
+        emit(chars > 0
+          ? `thinking (${chars} chars)`
+          : `thinking (redacted${pendingThinkingTokens ? `, ~${pendingThinkingTokens} tok` : ''})`)
+        pendingThinkingTokens = null
+      }
       else if (item.type === 'text') {
         const text = String(item.text || '').replace(/\s+/g, ' ').trim()
         if (text) emit(`say: ${text.slice(0, 110)}`)

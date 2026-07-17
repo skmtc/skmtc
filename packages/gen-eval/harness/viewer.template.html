@@ -65,21 +65,35 @@
   section { min-width: 0; overflow-y: auto; }
   #turnpane { flex: 1.15; padding: 14px 16px; border-right: 1px solid var(--border); }
   #filespane { flex: 1; display: flex; flex-direction: column; }
-  #filebar {
-    display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px;
-    border-bottom: 1px solid var(--border); background: var(--panel);
+  #filepath {
+    padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--dim);
+    font-family: var(--mono); font-size: 13px; background: var(--panel);
+    min-height: 33px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .filechip {
-    padding: 3px 9px; border: 1px solid var(--border); border-radius: 4px;
-    cursor: pointer; color: var(--dim); font-size: 13px; background: var(--panel2);
-    font-family: var(--sans);
+  #filesbody { flex: 1; display: flex; min-height: 0; }
+  #filetree {
+    width: 250px; flex-shrink: 0; overflow: auto; padding: 6px 0;
+    border-right: 1px solid var(--border); background: var(--panel);
+    font-size: 13px; user-select: none;
   }
-  .filechip.active { color: var(--text); border-color: var(--accent); }
-  .filechip.touched { color: var(--warn); }
+  .treedir {
+    color: var(--dim); cursor: pointer; padding: 3px 8px; white-space: nowrap;
+    font-family: var(--sans); font-weight: 600;
+  }
+  .treefile {
+    color: var(--dim); cursor: pointer; padding: 3px 8px; white-space: nowrap;
+    font-family: var(--mono);
+  }
+  .treedir:hover, .treefile:hover { background: var(--panel2); }
+  .treefile.active { color: var(--text); background: var(--panel2); box-shadow: inset 2px 0 0 var(--accent); }
+  .treefile.touched { color: var(--warn); }
+  .tw { display: inline-block; width: 14px; color: var(--dim); }
+  .treeempty { color: var(--dim); padding: 12px; font-family: var(--sans); }
   #filecontent {
-    flex: 1; overflow: auto; padding: 12px 16px; white-space: pre;
+    flex: 1; overflow: auto; padding: 12px 16px 12px 8px; white-space: pre;
     font-size: 13px; line-height: 1.5; color: var(--text); tab-size: 2;
   }
+  .ln { color: var(--dim); opacity: .5; user-select: none; margin-right: 14px; }
   /* turn detail */
   .turnhead {
     color: var(--dim); margin-bottom: 10px; font-family: var(--sans);
@@ -140,8 +154,11 @@
 <main>
   <section id="turnpane"></section>
   <section id="filespane">
-    <div id="filebar"></div>
-    <pre id="filecontent"></pre>
+    <div id="filepath"></div>
+    <div id="filesbody">
+      <div id="filetree"></div>
+      <pre id="filecontent"></pre>
+    </div>
   </section>
 </main>
 <div id="drop" class="hidden">
@@ -167,6 +184,7 @@ function build(events) {
   const fileOps = [];          // {turn, path, kind:'write'|'edit', content|old,new,all}
   const seen = new Set();
   let current = null;
+  let pendingThinkingTokens = null;
 
   const milestone = (turn, key, label) => {
     if (seen.has(key)) return;
@@ -178,6 +196,9 @@ function build(events) {
     : String(raw ?? '');
 
   for (const ev of events) {
+    if (ev.type === 'system' && ev.subtype === 'thinking_tokens') {
+      pendingThinkingTokens = ev.estimated_tokens ?? pendingThinkingTokens;
+    }
     if (ev.type === 'assistant') {
       const content = (ev.message || {}).content || [];
       if (!content.some(c => c && ['text','tool_use','thinking'].includes(c.type))) continue;
@@ -185,7 +206,10 @@ function build(events) {
       turns.push(current);
       for (const item of content) {
         if (!item) continue;
-        if (item.type === 'thinking') current.thinking.push(item.thinking || '');
+        if (item.type === 'thinking') {
+          current.thinking.push({ text: item.thinking || '', tokens: pendingThinkingTokens });
+          pendingThinkingTokens = null;
+        }
         else if (item.type === 'text') { if ((item.text || '').trim()) current.texts.push(item.text); }
         else if (item.type === 'tool_use') {
           const input = item.input || {};
@@ -290,9 +314,15 @@ function renderTurn() {
   let html = '<p class="turnhead">turn ' + turn.i + ' / ' + TURNS.length + '</p>';
   for (const m of turn.milestones)
     html += '<div class="block"><div class="bh"><span class="badge mile">milestone</span>' + esc(m) + '</div></div>';
-  for (const th of turn.thinking)
-    html += '<div class="block"><div class="bh"><span class="badge think">thinking</span>' + th.length +
-      ' chars</div><div class="bb">' + det(false, 'show reasoning', '<pre>' + esc(th) + '</pre>') + '</div></div>';
+  for (const th of turn.thinking) {
+    if (th.text) {
+      html += '<div class="block"><div class="bh"><span class="badge think">thinking</span>' + th.text.length +
+        ' chars</div><div class="bb">' + det(false, 'show reasoning', '<pre>' + esc(th.text) + '</pre>') + '</div></div>';
+    } else {
+      html += '<div class="block"><div class="bh"><span class="badge think">thinking</span>' +
+        'redacted by API' + (th.tokens ? ' (~' + th.tokens + ' tokens)' : '') + '</div></div>';
+    }
+  }
   for (const tx of turn.texts)
     html += '<div class="block"><div class="bh"><span class="badge say">assistant</span></div><div class="bb"><pre>' + esc(tx) + '</pre></div></div>';
   for (const tool of turn.tools) {
@@ -332,30 +362,87 @@ $('turnpane').addEventListener('toggle', event => {
   if (key) userToggles.set(key, event.target.open);
 }, true);
 
+const expandedDirs = new Map();   // dir path -> expanded (default true)
+const escAttr = value => esc(value).replace(/"/g, '&quot;');
+
 function renderFiles() {
   const files = fileState(FILEOPS, T);
-  const bar = $('filebar');
-  bar.innerHTML = '';
+  const tree = $('filetree');
   if (!files.size) {
-    bar.innerHTML = '<span style="color:var(--dim)">no files written yet at this turn</span>';
+    tree.innerHTML = '<p class="treeempty">no files written yet at this turn</p>';
     $('filecontent').textContent = '';
+    $('filepath').textContent = '';
     return;
   }
   if (!selectedFile || !files.has(selectedFile)) selectedFile = [...files.keys()].pop();
+
+  // Build a nested tree from the flat path map.
+  const root = { dirs: new Map(), files: [] };
   for (const [path, entry] of files) {
-    const chip = document.createElement('span');
-    chip.className = 'filechip' + (path === selectedFile ? ' active' : '') +
-      (entry.lastTouched === T ? ' touched' : '');
-    chip.textContent = shortPath(path) + (entry.lastTouched === T ? ' *' : '');
-    chip.title = path;
-    chip.onclick = () => { selectedFile = path; renderFiles(); };
-    bar.appendChild(chip);
+    const parts = path.split('/').filter(Boolean);
+    let node = root;
+    for (let index = 0; index < parts.length - 1; index++) {
+      const name = parts[index];
+      if (!node.dirs.has(name)) {
+        node.dirs.set(name, { key: parts.slice(0, index + 1).join('/'), dirs: new Map(), files: [] });
+      }
+      node = node.dirs.get(name);
+    }
+    node.files.push({ name: parts[parts.length - 1], path, touched: entry.lastTouched === T });
   }
+
+  let html = '';
+  const renderNode = (node, depth) => {
+    for (const name of [...node.dirs.keys()].sort()) {
+      const dir = node.dirs.get(name);
+      const expanded = expandedDirs.get(dir.key) ?? true;
+      html += '<div class="treedir" data-dir="' + escAttr(dir.key) + '" style="padding-left:' +
+        (8 + depth * 14) + 'px"><span class="tw">' + (expanded ? '\u25be' : '\u25b8') + '</span>' +
+        esc(name) + '/</div>';
+      if (expanded) renderNode(dir, depth + 1);
+    }
+    for (const file of node.files.sort((a, b) => a.name.localeCompare(b.name))) {
+      html += '<div class="treefile' + (file.path === selectedFile ? ' active' : '') +
+        (file.touched ? ' touched' : '') + '" data-path="' + escAttr(file.path) +
+        '" style="padding-left:' + (22 + depth * 14) + 'px">' + esc(file.name) +
+        (file.touched ? ' *' : '') + '</div>';
+    }
+  };
+  renderNode(root, 0);
+  tree.innerHTML = html;
+
+  // Code view with line numbers; preserve scroll when re-rendering the
+  // same file (live updates).
+  $('filepath').textContent = selectedFile;
+  const contentEl = $('filecontent');
   const current = files.get(selectedFile);
-  $('filecontent').textContent = current && current.content != null
-    ? current.content
-    : '(content not reconstructable — edited before any full Write)';
+  if (current && current.content != null) {
+    const keepScroll = contentEl.dataset.path === selectedFile ? contentEl.scrollTop : 0;
+    contentEl.innerHTML = current.content.split('\n').map((line, index) =>
+      '<span class="ln">' + String(index + 1).padStart(4, '\u00a0') + '</span>' + esc(line)
+    ).join('\n');
+    contentEl.dataset.path = selectedFile;
+    contentEl.scrollTop = keepScroll;
+  } else {
+    contentEl.textContent = '(content not reconstructable — edited before any full Write)';
+    contentEl.dataset.path = '';
+  }
 }
+
+$('filetree').addEventListener('click', event => {
+  const dirEl = event.target.closest('.treedir');
+  if (dirEl) {
+    const key = dirEl.dataset.dir;
+    expandedDirs.set(key, !(expandedDirs.get(key) ?? true));
+    renderFiles();
+    return;
+  }
+  const fileEl = event.target.closest('.treefile');
+  if (fileEl) {
+    selectedFile = fileEl.dataset.path;
+    renderFiles();
+  }
+});
 
 function renderScrubber() {
   const n = Math.max(TURNS.length, 1);
