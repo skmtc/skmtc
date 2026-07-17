@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.6.0
+version: 0.6.1
 description: |
   Author and edit SKMTC generators — write or modify Projection
   classes, Snippets, transform functions, enrichment schemas, and the
@@ -130,8 +130,17 @@ SKMTC generation, start to finish:
     syntax helpers. See §8 for emitting a language other than
     TypeScript.
 
-Two engine-level facts that don't derive from the model but govern
+Three engine-level facts that don't derive from the model but govern
 authoring:
+
+- **Generator code is valid synchronous Deno; the only side effects
+  are logs and register/insert calls.** The Generate loop is
+  synchronous — no `async` functions, `await`, Promises, or timers
+  anywhere in generator source (emitted *text* may of course be
+  async). No filesystem access (`Deno.env.get` is the one sanctioned
+  environment read), no network (the Worker runs with `net: false`),
+  no `process.*` node-isms. Output reaches the world only through
+  `register` / `insert*`.
 
 - **`OasSchema` is a union type, not a class hierarchy.**
   `OasObject`, `OasArray`, `OasString`, … are sibling classes, each
@@ -176,12 +185,20 @@ automatically.
 
 ### When to write which
 
+- **The per-item main artifact is always a Projection** (or, for an
+  accumulator generator, contributions into a shared aggregate). A
+  generator built entirely of Snippets that hand-registers its
+  Definitions has bypassed the Driver path — no cache identity, no
+  `ContentSettings`, unreachable by peers. Every generator has at
+  least one top-level Projection unless it is accumulator-style.
 - **Other generators may reach for it by name** → Projection
 - **Needs file-scope export** → Projection
 - **Fragment embedded in someone else's output (JSX child, function
   body, expression)** → Snippet
-- **Unsure** → Probably Snippet. Promote to Projection only when
-  cross-file identity is needed.
+- **Unsure about a fragment** → Probably Snippet. Promote to
+  Projection only when cross-file identity is needed. (This rule is
+  about the *internals* of an artifact — it never overrides the first
+  rule about the artifact itself.)
 
 ### The constructor / `toString()` contract
 
@@ -196,6 +213,12 @@ For both Projections and Snippets:
   mutation, no side effects, no `register` calls (by Render time the
   file's imports are finalised). Cache anything expensive on `this`
   from the constructor.
+- **Constructor and `toString` are the only methods.** A producer with
+  additional methods is being used as a service object or a
+  string-builder — decompose that logic into delegate Snippets
+  composed via `${...}` instead (orchestrator–delegate card, §10).
+  The one legitimate exception: a mutator like `add()` on an
+  accumulator's container value (`gen-msw`'s `MockRoutesList`).
 
 ### The type vocabulary
 
@@ -206,6 +229,27 @@ For both Projections and Snippets:
 - **`ContentSettings<E>`** — the `(identifier, exportPath,
   enrichments, variant)` bundle from §1 point 8; available as
   `this.settings`.
+
+### The silhouette of a finished generator
+
+Measured across the clean stock generators, a well-shaped generator
+looks like this — use it as a self-check target, not a quota:
+
+- **1 top-level Projection** (a variants- or multi-artifact generator
+  may have a few) plus a fleet of **small Snippets** — most under
+  50–100 lines each; a producer past ~150 lines is usually absorbing
+  branches that belong in delegate Snippets.
+- **Every class is a producer**; helper *functions* route and
+  construct Snippets, they don't build strings.
+- **Producers have no methods beyond constructor and `toString`.**
+- **String composition lives inside `toString()`** — in clean
+  generators only a small minority of template text sits outside it
+  (naming statics and small constructor-computed labels); when helper
+  modules dominate the composition, snippets have been reduced to
+  pass-throughs.
+- **Zero** ad-hoc `{ toString: … }` objects, imports inside template
+  literals, TODO stubs in emitted text; `as` casts at most rare,
+  justified edge cases.
 
 ## 3. Writing producers into Files: register and insert
 
@@ -1006,12 +1050,19 @@ After writing or editing a generator, verify:
 
 - [ ] `transform` produces output only via `insert*` / `register` —
   returns nothing meaningful
+- [ ] At least one top-level Projection exists (or the generator is
+  genuinely accumulator-style: `findDefinition` + `defineAndRegister`
+  around a shared aggregate)
 - [ ] No ordering or multi-pass assumptions — dependencies are
   created-or-reused via `insert*` at construction time
-- [ ] No direct file writes (`Deno.writeFileSync`); no `process.env`
-  (use `Deno.env.get`)
+- [ ] Generator source is synchronous Deno: no `async`/`await`/
+  Promises/timers, no fs APIs (`Deno.env.get` is the one sanctioned
+  read), no network, no `process.*`
 - [ ] Constructor side effects are safe to repeat (the system
   memoizes; idempotency is required); `toString()` is pure
+- [ ] Producers carry no methods beyond `constructor` and `toString`
+  (accumulator container mutators excepted); no ad-hoc
+  `{ toString: … }` object literals anywhere
 
 **Naming and caching**
 
