@@ -15,7 +15,16 @@ harness/run.sh sonnet after-skill-fix      # optional label for the run
 ```
 
 Requirements: `skmtc` CLI on PATH, `claude` CLI, node ≥ 23, gradle +
-a JDK (homebrew `openjdk@21` is auto-detected). The run uses
+a JDK (homebrew `openjdk@21` is auto-detected). The harness is
+all-node — no python dependency.
+
+**The dashboard** (`node harness/server.js`, auto-started by run.sh)
+serves everything at `http://127.0.0.1:8484`: a run list with LIVE /
+done / aborted status, verdicts, gates, cost — and each run's viewer
+at `/runs/<id>/viewer.html`, which live-follows an in-flight run
+(polls the transcript every ~3s; tails the newest turn unless you
+scrub back). The link prints BEFORE the model starts. Do not edit
+harness scripts while a run is in flight — bash reads them lazily. The run uses
 `--dangerously-skip-permissions`, scoped to the throwaway workspace.
 A run typically takes 10–40 minutes depending on the model.
 
@@ -27,7 +36,7 @@ calls, errors, milestones like "loaded skmtc-generator skill" /
 SUCCESSFUL"), stamped with elapsed time and turn number. The same feed
 is written to `timeline.md` — from another terminal:
 `tail -f harness/runs/<id>/timeline.md`. Post-hoc, re-render any
-transcript with `python3 harness/timeline.py <transcript.jsonl>`.
+transcript with `node harness/timeline.js <transcript.jsonl>`.
 
 | File | What it is |
 |---|---|
@@ -82,8 +91,8 @@ server, works offline) with a video-player scrubber over the run:
   by replaying Write/Edit operations, so you can watch `base.ts`
   evolve; `*` marks files touched in the current turn
 
-Regenerate for any run with `python3 harness/viewer.py <run-dir>`;
-`python3 harness/viewer.py --template standalone.html` builds a
+Regenerate for any run with `node harness/viewer.js <run-dir>`;
+`node harness/viewer.js --template standalone.html` builds a
 drag-and-drop version that opens any `transcript.jsonl`.
 
 ## The gates (ground truth, no judging)

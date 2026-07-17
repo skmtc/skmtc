@@ -384,20 +384,38 @@ document.addEventListener('keydown', event => {
 });
 
 // ---- boot -----------------------------------------------------------
-function load(events, meta) {
-  const model = build(events);
-  TURNS = model.turns; FILEOPS = model.fileOps;
+let META = null, LIVE = false, FINISHED = false, lastEventCount = -1;
+
+function metaBits() {
   const bits = [];
-  if (meta) {
-    if (meta.model) bits.push(meta.model);
-    if (meta.label) bits.push(meta.label);
-    if (meta.skillSha) bits.push('skill ' + String(meta.skillSha).slice(0, 10));
-    const res = meta.result || {};
+  if (META) {
+    if (META.model) bits.push(META.model);
+    if (META.label) bits.push(META.label);
+    if (META.skillSha) bits.push('skill ' + String(META.skillSha).slice(0, 10));
+    const res = META.result || {};
     if (res.costUsd != null) bits.push('$' + res.costUsd.toFixed(2));
   }
-  $('metaline').textContent = bits.join(' · ');
+  return bits.join(' \u00b7 ');
+}
+
+function updateMetaline() {
+  const tag = LIVE
+    ? (FINISHED
+        ? '<span style="color:var(--accent)">\u25cf run finished</span>'
+        : '<span style="color:var(--error)">\u25cf LIVE</span> following')
+    : '';
+  const bits = metaBits();
+  $('metaline').innerHTML = [tag, esc(bits)].filter(Boolean).join(' \u00b7 ');
+}
+
+function refresh(events) {
+  const wasAtEnd = TURNS.length === 0 || T >= TURNS.length;
+  const keep = T;
+  const model = build(events);
+  TURNS = model.turns; FILEOPS = model.fileOps;
   renderTicks();
-  goTo(TURNS.length);   // open at the end, like a finished video
+  updateMetaline();
+  goTo(wasAtEnd ? TURNS.length : keep);   // tail if following; hold if scrubbed back
   $('drop').classList.add('hidden');
 }
 
@@ -405,13 +423,42 @@ function parseJsonl(text) {
   return text.split('\n').map(line => { try { return JSON.parse(line); } catch { return null; } }).filter(Boolean);
 }
 
+async function startLive() {
+  const poll = async () => {
+    try {
+      const metaResp = await fetch('meta.json', { cache: 'no-store' });
+      if (metaResp.ok) META = await metaResp.json();
+    } catch {}
+    try {
+      const resp = await fetch('transcript.jsonl', { cache: 'no-store' });
+      if (resp.ok) {
+        const events = parseJsonl(await resp.text());
+        if (events.length !== lastEventCount) {
+          lastEventCount = events.length;
+          FINISHED = events.some(event => event.type === 'result');
+          refresh(events);
+        } else {
+          updateMetaline();
+        }
+      }
+    } catch {}
+    if (!FINISHED) setTimeout(poll, 3000);
+  };
+  poll();
+}
+
 const embedded = JSON.parse($('data').textContent || 'null');
 const embeddedMeta = JSON.parse($('metadata').textContent || 'null');
 if (embedded && embedded.length) {
-  load(embedded, embeddedMeta);
+  META = embeddedMeta;
+  refresh(embedded);
+} else if (location.protocol !== 'file:') {
+  LIVE = true;
+  updateMetaline();
+  startLive();
 } else {
   $('drop').classList.remove('hidden');
-  const readFile = file => file.text().then(text => load(parseJsonl(text), null));
+  const readFile = file => file.text().then(text => refresh(parseJsonl(text)));
   $('filepick').onchange = event => { if (event.target.files[0]) readFile(event.target.files[0]); };
   document.addEventListener('dragover', event => event.preventDefault());
   document.addEventListener('drop', event => {

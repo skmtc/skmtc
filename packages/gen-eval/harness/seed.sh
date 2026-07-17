@@ -18,24 +18,24 @@ cd "$WORKSPACE"
 # 1. SKMTC project + pinned schema
 skmtc init lab consumer/src/main/kotlin --json > /dev/null
 cp "$ASSETS/openapi.json" openapi.json
-python3 - <<'EOF'
-import json
-path = '.skmtc/lab/.settings/client.json'
-config = json.load(open(path))
-config['source'] = './openapi.json'
-json.dump(config, open(path, 'w'), indent=2)
+node - <<'EOF'
+const { readFileSync, writeFileSync } = require('node:fs')
+const path = '.skmtc/lab/.settings/client.json'
+const config = JSON.parse(readFileSync(path, 'utf8'))
+config.source = './openapi.json'
+writeFileSync(path, JSON.stringify(config, null, 2))
 EOF
 
 # 2. Vendored lang-kotlin (pre-alpha; not on public JSR) as a workspace
 #    member, wired into the project import map
 cp -R "$LANG_KOTLIN" .skmtc/lab/lang-kotlin
-python3 - <<'EOF'
-import json
-path = '.skmtc/lab/deno.json'
-config = json.load(open(path))
-config.setdefault('imports', {})
-config['workspace'] = ['./lang-kotlin']
-json.dump(config, open(path, 'w'), indent=2)
+node - <<'EOF'
+const { readFileSync, writeFileSync } = require('node:fs')
+const path = '.skmtc/lab/deno.json'
+const config = JSON.parse(readFileSync(path, 'utf8'))
+config.imports = config.imports ?? {}
+config.workspace = ['./lang-kotlin']
+writeFileSync(path, JSON.stringify(config, null, 2))
 EOF
 
 # 3. Consumer gradle app (compile + round-trip acceptance tests)

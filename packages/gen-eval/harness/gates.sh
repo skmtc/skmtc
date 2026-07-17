@@ -39,36 +39,37 @@ fi
 # stop Bash reads under skip-permissions, so this is the enforcement.
 SKMTC_ROOT=$(cd "$HARNESS_DIR/../../../.." && pwd)
 if [ -f "$OUT/transcript.jsonl" ]; then
-  AUDIT=$(python3 - "$OUT/transcript.jsonl" "$SKMTC_ROOT" <<'EOF'
-import json, sys
-forbidden = [
-    f"{sys.argv[2]}/skmtc-generators",
-    f"{sys.argv[2]}/.skmtc",
-    f"{sys.argv[2]}/kotlin-demos",
-    f"{sys.argv[2]}/kotlin-spring-demo",
-    f"{sys.argv[2]}/csharp-demos",
-    "harness/runs/"
+  AUDIT=$(TRANSCRIPT="$OUT/transcript.jsonl" SKMTC_ROOT="$SKMTC_ROOT" node - <<'EOF'
+const { readFileSync } = require('node:fs')
+const root = process.env.SKMTC_ROOT
+const forbidden = [
+  `${root}/skmtc-generators`,
+  `${root}/.skmtc`,
+  `${root}/kotlin-demos`,
+  `${root}/kotlin-spring-demo`,
+  `${root}/csharp-demos`,
+  'harness/runs/'
 ]
-hits = []
-with open(sys.argv[1]) as transcript:
-    for line in transcript:
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        content = (event.get('message') or {}).get('content')
-        if not isinstance(content, list):
-            continue
-        for item in content:
-            if isinstance(item, dict) and item.get('type') == 'tool_use':
-                payload = json.dumps(item.get('input', {}))
-                for path in forbidden:
-                    if path in payload:
-                        hits.append(f"{item.get('name')}: …{path.split('/')[-1]}")
-if hits:
-    print(f"FAIL|{len(hits)} forbidden access(es): {'; '.join(sorted(set(hits))[:4])}")
-else:
-    print("ok|no tool call touched forbidden paths")
+const hits = []
+for (const line of readFileSync(process.env.TRANSCRIPT, 'utf8').split('\n')) {
+  let event
+  try { event = JSON.parse(line) } catch { continue }
+  const content = (event.message ?? {}).content
+  if (!Array.isArray(content)) continue
+  for (const item of content) {
+    if (item && item.type === 'tool_use') {
+      const payload = JSON.stringify(item.input ?? {})
+      for (const path of forbidden) {
+        if (payload.includes(path)) hits.push(`${item.name}: …${path.split('/').pop()}`)
+      }
+    }
+  }
+}
+if (hits.length) {
+  console.log(`FAIL|${hits.length} forbidden access(es): ${[...new Set(hits)].sort().slice(0, 4).join('; ')}`)
+} else {
+  console.log('ok|no tool call touched forbidden paths')
+}
 EOF
 )
   gate contamination "${AUDIT%%|*}" "${AUDIT#*|}"
@@ -79,36 +80,42 @@ fi
 # Gate 1 — clean regenerate from the bundle (catches hand-written output)
 skmtc clean lab --json > "$OUT/clean.json" 2>&1
 skmtc generate lab --json > "$OUT/generate.json" 2>&1
-GEN_SUMMARY=$(python3 - "$OUT/generate.json" <<'EOF'
-import json, sys
-try:
-    data = json.load(open(sys.argv[1]))
-except Exception as error:
-    print(f"FAIL|unparseable generate output: {error}")
-    raise SystemExit
-if data.get('type') != 'generated' or data.get('errors'):
-    print(f"FAIL|type={data.get('type')} errors={data.get('errors')}")
-else:
-    kotlin_files = [f for f in data.get('files', []) if f.endswith('.kt')]
-    print(f"ok|{len(kotlin_files)} kotlin file(s)")
+GEN_SUMMARY=$(GENERATE_JSON="$OUT/generate.json" node - <<'EOF'
+const { readFileSync } = require('node:fs')
+let data
+try {
+  data = JSON.parse(readFileSync(process.env.GENERATE_JSON, 'utf8'))
+} catch (error) {
+  console.log(`FAIL|unparseable generate output: ${error.message}`)
+  process.exit(0)
+}
+if (data.type !== 'generated' || (data.errors ?? []).length) {
+  console.log(`FAIL|type=${data.type} errors=${JSON.stringify(data.errors)}`)
+} else {
+  const kotlinFiles = (data.files ?? []).filter(file => file.endsWith('.kt'))
+  console.log(`ok|${kotlinFiles.length} kotlin file(s)`)
+}
 EOF
 )
 gate generate "${GEN_SUMMARY%%|*}" "${GEN_SUMMARY#*|}"
 
 # Gate 2 — schema coverage: one file per components.schemas entry
-COVERAGE=$(python3 - <<'EOF'
-import json, os
-schemas = list(json.load(open('openapi.json'))['components']['schemas'])
-produced = set()
-for root, _dirs, files in os.walk('consumer/src/main/kotlin'):
-    for name in files:
-        if name.endswith('.kt'):
-            produced.add(name.split('.')[0])
-missing = [s for s in schemas if s not in produced]
-if missing:
-    print(f"FAIL|missing {len(missing)}/{len(schemas)}: {', '.join(missing[:6])}")
-else:
-    print(f"ok|all {len(schemas)} schemas covered")
+COVERAGE=$(node - <<'EOF'
+const { readFileSync, readdirSync } = require('node:fs')
+const schemas = Object.keys(JSON.parse(readFileSync('openapi.json', 'utf8')).components.schemas)
+const produced = new Set()
+try {
+  for (const entry of readdirSync('consumer/src/main/kotlin', { recursive: true })) {
+    const name = String(entry).split('/').pop()
+    if (name.endsWith('.kt')) produced.add(name.split('.')[0])
+  }
+} catch {}
+const missing = schemas.filter(schema => !produced.has(schema))
+if (missing.length) {
+  console.log(`FAIL|missing ${missing.length}/${schemas.length}: ${missing.slice(0, 6).join(', ')}`)
+} else {
+  console.log(`ok|all ${schemas.length} schemas covered`)
+}
 EOF
 )
 gate schema-coverage "${COVERAGE%%|*}" "${COVERAGE#*|}"
@@ -134,18 +141,20 @@ fi
 # Structural eval over the authored generator
 node "$GEN_EVAL/src/cli.ts" --scan .skmtc/lab \
   --json "$OUT/structural.json" --md "$OUT/structural.md" > "$OUT/structural.txt" 2>&1
-VERDICT=$(python3 - "$OUT/structural.json" <<'EOF'
-import json, sys
-try:
-    reports = json.load(open(sys.argv[1]))
-    if not reports:
-        print('no generator found')
-    else:
-        aggregate = reports[0]['aggregate']
-        extra = f" — failed: {', '.join(aggregate['failedChecks'])}" if aggregate['failedChecks'] else ''
-        print(f"{aggregate['verdict']} ({aggregate['warningCount']} warnings){extra}")
-except Exception as error:
-    print(f'unavailable: {error}')
+VERDICT=$(STRUCTURAL_JSON="$OUT/structural.json" node - <<'EOF'
+const { readFileSync } = require('node:fs')
+try {
+  const reports = JSON.parse(readFileSync(process.env.STRUCTURAL_JSON, 'utf8'))
+  if (!reports.length) {
+    console.log('no generator found')
+  } else {
+    const aggregate = reports[0].aggregate
+    const extra = aggregate.failedChecks.length ? ` — failed: ${aggregate.failedChecks.join(', ')}` : ''
+    console.log(`${aggregate.verdict} (${aggregate.warningCount} warnings)${extra}`)
+  }
+} catch (error) {
+  console.log(`unavailable: ${error.message}`)
+}
 EOF
 )
 note ""

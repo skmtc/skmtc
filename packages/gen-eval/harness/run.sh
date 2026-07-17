@@ -31,18 +31,18 @@ bash "$HARNESS_DIR/seed.sh" "$WORKSPACE"
 # enforcement since Bash can read anything under skip-permissions).
 SKMTC_ROOT=$(cd "$HARNESS_DIR/../../../.." && pwd)
 mkdir -p "$WORKSPACE/.claude"
-python3 - "$WORKSPACE/.claude/settings.json" "$SKMTC_ROOT" <<'EOF'
-import json, sys
-root = sys.argv[2]
-deny = [
-    f"Read({root}/skmtc-generators/**)",
-    f"Read({root}/.skmtc/**)",
-    f"Read({root}/kotlin-demos/**)",
-    f"Read({root}/kotlin-spring-demo/**)",
-    f"Read({root}/csharp-demos/**)",
-    f"Read({root}/skmtc/packages/gen-eval/harness/runs/**)"
+SETTINGS_PATH="$WORKSPACE/.claude/settings.json" SKMTC_ROOT="$SKMTC_ROOT" node - <<'EOF'
+const { writeFileSync } = require('node:fs')
+const root = process.env.SKMTC_ROOT
+const deny = [
+  `Read(${root}/skmtc-generators/**)`,
+  `Read(${root}/.skmtc/**)`,
+  `Read(${root}/kotlin-demos/**)`,
+  `Read(${root}/kotlin-spring-demo/**)`,
+  `Read(${root}/csharp-demos/**)`,
+  `Read(${root}/skmtc/packages/gen-eval/harness/runs/**)`
 ]
-json.dump({'permissions': {'deny': deny}}, open(sys.argv[1], 'w'), indent=2)
+writeFileSync(process.env.SETTINGS_PATH, JSON.stringify({ permissions: { deny } }, null, 2))
 EOF
 
 # 2. Record provenance: skill version + snapshot
@@ -50,18 +50,39 @@ SKILL_SHA=$(git -C "$SKMTC_REPO" rev-parse HEAD)
 SKILL_DIRTY=$(git -C "$SKMTC_REPO" status --porcelain -- deno/docs/skills deno/docs/llms.md | wc -l | tr -d ' ')
 mkdir -p "$RUN_DIR/skill-snapshot"
 cp -RL "$HOME/.claude/skills/skmtc-generator" "$RUN_DIR/skill-snapshot/" 2>/dev/null || true
-python3 - "$RUN_DIR/meta.json" "$MODEL" "$SKILL_SHA" "$SKILL_DIRTY" "$LABEL" <<'EOF'
-import json, sys, datetime
-json.dump({
-    'model': sys.argv[2],
-    'skillSha': sys.argv[3],
-    'skillDirtyFiles': int(sys.argv[4]),
-    'label': sys.argv[5],
-    'started': datetime.datetime.now().astimezone().isoformat()
-}, open(sys.argv[1], 'w'), indent=2)
+META_PATH="$RUN_DIR/meta.json" MODEL="$MODEL" SKILL_SHA="$SKILL_SHA" SKILL_DIRTY="$SKILL_DIRTY" LABEL="$LABEL" node - <<'EOF'
+const { writeFileSync } = require('node:fs')
+writeFileSync(process.env.META_PATH, JSON.stringify({
+  model: process.env.MODEL,
+  skillSha: process.env.SKILL_SHA,
+  skillDirtyFiles: Number(process.env.SKILL_DIRTY),
+  label: process.env.LABEL,
+  started: new Date().toISOString()
+}, null, 2))
 EOF
 
-# 3. The authoring run — headless, transcript with thinking captured.
+# 3. LIVE viewer via the persistent dashboard: start it if not
+#    already running, bake an un-baked viewer that live-polls the
+#    transcript through the dashboard, print the link BEFORE the
+#    model starts. Dashboard survives across runs (localhost only).
+PORT=${GEN_EVAL_PORT:-8484}
+node "$HARNESS_DIR/viewer.js" --template "$RUN_DIR/viewer.html" > /dev/null
+if ! curl -sf "http://127.0.0.1:$PORT/health" > /dev/null 2>&1; then
+  nohup node "$HARNESS_DIR/server.js" > "$HARNESS_DIR/dashboard.log" 2>&1 &
+  disown || true
+  sleep 0.7
+fi
+echo ""
+echo "=============================================================="
+echo "  LIVE viewer (follow along, updates every ~3s):"
+echo ""
+echo "  http://127.0.0.1:$PORT/runs/$RUN_ID/viewer.html"
+echo ""
+echo "  all runs: http://127.0.0.1:$PORT/"
+echo "=============================================================="
+echo ""
+
+# 4. The authoring run — headless, transcript with thinking captured.
 #    --dangerously-skip-permissions is scoped to this throwaway
 #    workspace; the model needs to run skmtc/deno/gradle freely.
 cd "$WORKSPACE"
@@ -73,7 +94,7 @@ claude -p "$(cat "$HARNESS_DIR/task.md")" \
   --dangerously-skip-permissions \
   2> "$RUN_DIR/claude-stderr.log" \
   | tee "$RUN_DIR/transcript.jsonl" \
-  | python3 -u "$HARNESS_DIR/timeline.py" --tee "$RUN_DIR/timeline.md"
+  | node "$HARNESS_DIR/timeline.js" --tee "$RUN_DIR/timeline.md"
 CLAUDE_EXIT=${PIPESTATUS[0]}
 set -e
 echo "claude exited: $CLAUDE_EXIT"
@@ -85,28 +106,26 @@ LATEST_SESSION=$(ls -t $SESSION_GLOB/*.jsonl 2>/dev/null | head -1 || true)
 [ -n "$LATEST_SESSION" ] && cp "$LATEST_SESSION" "$RUN_DIR/session.jsonl"
 
 # 5. Cost/turn stats from the final stream-json result event
-python3 - "$RUN_DIR/transcript.jsonl" "$RUN_DIR/meta.json" <<'EOF'
-import json, sys
-result = {}
-try:
-    with open(sys.argv[1]) as transcript:
-        for line in transcript:
-            try:
-                event = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if event.get('type') == 'result':
-                result = {
-                    'costUsd': event.get('total_cost_usd'),
-                    'turns': event.get('num_turns'),
-                    'durationMs': event.get('duration_ms'),
-                    'isError': event.get('is_error')
-                }
-except FileNotFoundError:
-    pass
-meta = json.load(open(sys.argv[2]))
-meta['result'] = result
-json.dump(meta, open(sys.argv[2], 'w'), indent=2)
+TRANSCRIPT="$RUN_DIR/transcript.jsonl" META_PATH="$RUN_DIR/meta.json" node - <<'EOF'
+const { readFileSync, writeFileSync, existsSync } = require('node:fs')
+let result = {}
+if (existsSync(process.env.TRANSCRIPT)) {
+  for (const line of readFileSync(process.env.TRANSCRIPT, 'utf8').split('\n')) {
+    let event
+    try { event = JSON.parse(line) } catch { continue }
+    if (event.type === 'result') {
+      result = {
+        costUsd: event.total_cost_usd ?? null,
+        turns: event.num_turns ?? null,
+        durationMs: event.duration_ms ?? null,
+        isError: event.is_error ?? null
+      }
+    }
+  }
+}
+const meta = JSON.parse(readFileSync(process.env.META_PATH, 'utf8'))
+meta.result = result
+writeFileSync(process.env.META_PATH, JSON.stringify(meta, null, 2))
 EOF
 
 # 6. Gates + structural eval + report (run in the live workspace, then
@@ -118,34 +137,35 @@ set -e
 cp -R "$WORKSPACE" "$RUN_DIR/workspace"
 
 # 7. Bake the in-browser viewer (scrubber UI over the transcript)
-python3 "$HARNESS_DIR/viewer.py" "$RUN_DIR" || true
+node "$HARNESS_DIR/viewer.js" "$RUN_DIR" || true
 
 # 8. Append to the runs index for cross-run comparison
-python3 - "$HARNESS_DIR/runs/index.jsonl" "$RUN_DIR" "$GATES_EXIT" <<'EOF'
-import json, sys, os
-run_dir = sys.argv[2]
-meta = json.load(open(os.path.join(run_dir, 'meta.json')))
-structural = {}
-try:
-    reports = json.load(open(os.path.join(run_dir, 'structural.json')))
-    if reports:
-        structural = reports[0]['aggregate']
-except Exception:
-    pass
-entry = {
-    'run': os.path.basename(run_dir),
-    'model': meta['model'],
-    'label': meta.get('label') or None,
-    'skillSha': meta['skillSha'][:12],
-    'gatesPass': int(sys.argv[3]) == 0,
-    'structural': structural.get('verdict'),
-    'warnings': structural.get('warningCount'),
-    'costUsd': (meta.get('result') or {}).get('costUsd'),
-    'turns': (meta.get('result') or {}).get('turns')
+INDEX_PATH="$HARNESS_DIR/runs/index.jsonl" RUN_PATH="$RUN_DIR" GATES_EXIT="$GATES_EXIT" node - <<'EOF'
+const { readFileSync, appendFileSync, existsSync } = require('node:fs')
+const { basename, join } = require('node:path')
+const runDir = process.env.RUN_PATH
+const meta = JSON.parse(readFileSync(join(runDir, 'meta.json'), 'utf8'))
+let aggregate = {}
+const structuralPath = join(runDir, 'structural.json')
+if (existsSync(structuralPath)) {
+  try {
+    const reports = JSON.parse(readFileSync(structuralPath, 'utf8'))
+    if (reports.length) aggregate = reports[0].aggregate ?? {}
+  } catch {}
 }
-with open(sys.argv[1], 'a') as index:
-    index.write(json.dumps(entry) + '\n')
-print(json.dumps(entry, indent=2))
+const entry = {
+  run: basename(runDir),
+  model: meta.model,
+  label: meta.label || null,
+  skillSha: String(meta.skillSha).slice(0, 12),
+  gatesPass: Number(process.env.GATES_EXIT) === 0,
+  structural: aggregate.verdict ?? null,
+  warnings: aggregate.warningCount ?? null,
+  costUsd: meta.result?.costUsd ?? null,
+  turns: meta.result?.turns ?? null
+}
+appendFileSync(process.env.INDEX_PATH, JSON.stringify(entry) + '\n')
+console.log(JSON.stringify(entry, null, 2))
 EOF
 
 echo ""
