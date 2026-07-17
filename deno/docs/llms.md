@@ -2,7 +2,7 @@
 
 A primer for AI coding assistants and agents working with SKMTC code. **Flat and self-contained** — every section is independent, ordered by priority rather than narrative. Skim once, then jump to whichever section your task needs.
 
-> **If you read nothing else:** SKMTC is a TypeScript code generator. Generators are TypeScript classes that run inside a sandboxed Deno Worker. Cross-generator coordination is **memoization keyed by `(identifier.name, exportPath)`**, not a dependency graph. Most defaults from generic codegen patterns (Mustache templates, plugin registries, formatting passes, dependency ordering) do **not** apply here. Verify before stating.
+> **If you read nothing else:** SKMTC is a code generator. Generators are TypeScript classes that run inside a sandboxed Deno Worker. Generation is writing **Definition** objects (identifier → value) into **File** objects that double as a cache; every producer creates its own dependencies, so cross-generator coordination is **memoization keyed by `(identifier.name, exportPath)`**, not a dependency graph. Most defaults from generic codegen patterns (Mustache templates, plugin registries, formatting passes, dependency ordering) do **not** apply here. Verify before stating.
 
 ---
 
@@ -36,7 +36,7 @@ The user you're helping is in one of two roles. Identify which, then read only t
 
 | Task | Read these sections (in order) |
 |---|---|
-| Explain SKMTC to a user | Quick reference → Read this first → What SKMTC is → Pipeline |
+| Explain SKMTC to a user | Quick reference → The generation model → What SKMTC is → Pipeline |
 | Set up a project | Quick reference → User task cards: Setup |
 | Generate from a schema | Pipeline → User task cards: Generation |
 | Debug a failed run | Verification → Anti-patterns: Pattern-level → User task cards: Debugging |
@@ -47,19 +47,45 @@ The user you're helping is in one of two roles. Identify which, then read only t
 
 | Task | Read these sections (in order) |
 |---|---|
-| Clone and customize a stock generator | Decision trees → DSL → Anti-patterns → Author task cards: Customizing |
-| Author a new generator | DSL → Cross-generator coordination → Anti-patterns → Author task cards: Authoring |
+| Clone and customize a stock generator | The generation model → Decision trees → DSL → Anti-patterns → Author task cards: Customizing |
+| Author a new generator | The generation model → DSL → Cross-generator coordination → Anti-patterns → Author task cards: Authoring |
 | Debug wrong output | Verification → Anti-patterns → Author task cards: Debugging output |
 | Understand cross-generator coordination | Cross-generator coordination → DSL |
 | Swap a peer dependency | Customization seams → Author task cards: Swapping peer deps |
 
-If unsure which role applies: read **Read this first** + **Verification protocol** + **What SKMTC is / is NOT**, then route by question.
+If unsure which role applies: read **The generation model** + **Read this first** + **Verification protocol** + **What SKMTC is / is NOT**, then route by question.
+
+---
+
+## The generation model
+
+The one story every rule in this document falls out of. Hold this model and the principle tables below read as consequences, not as arbitrary conventions. (The `skmtc-generator` skill carries the authoring-weighted version.)
+
+1. **Parse.** The engine parses the schema (OpenAPI v3 or GraphQL SDL) into typesafe intermediate-representation objects — `OasOperation`, the `OasSchema` union, `GqlOperation`. `allOf` is pre-merged; `$ref`s are lazy (`OasRef`, resolved with `.resolve()`).
+
+2. **Loop.** The Generate phase walks `(generator × item × variant)` and calls each generator entry's `transform({ context, operation | refName, variant })` per item. `transform` returns `void` — everything a generator produces, it produces by side effect on `context`.
+
+3. **Produce.** A generator converts each incoming IR object into a **producer** — a *Projection* or a *Snippet* — normally by calling `context.insertOperation` / `insertModel` from `transform`. Producers, not string manipulation, are the unit of work: output is built by constructing and composing producers.
+
+4. **Definitions in Files.** A Projection's value is wrapped in a **Definition** — essentially a key and a value: the key is an identifier (a variable or type name), the value is whatever gets assigned to it. Definitions are written into **File** objects: keyed maps `{ imports, definitions, reExports }`, with `definitions` mapping identifier name → Definition.
+
+5. **Files have two roles.** *Render unit:* at the Render phase each File serializes to source text — imports header, then `export const <key> = <value>` (or the language's equivalent) per Definition; unformatted by design. *Cache:* during Generate, `insert*` checks `(identifier.name, exportPath)` first — a hit returns the already-registered Definition, a miss constructs the producer on the spot; `findDefinition` reads a Definition back without constructing anything.
+
+6. **Producers self-provision.** Each producer's constructor creates-or-reuses everything it depends on — peer Definitions via `insert*`, library imports via `register`. `insert*` is `register` with more oomph: it computes the peer's settings, dedupes against the cache, wraps the value in a Definition, and registers the cross-file import. By the time a producer is itself registered, its dependencies are already in place.
+
+7. **Therefore order cannot matter.** Whatever order generators run in, each one creates or reuses its dependencies at the moment it needs them, so output is always complete and identical. The `generatorKey` recorded on each Definition distinguishes safe reuse (same provenance) from a real naming collision (different provenance → `"Registered definition mismatch"`).
+
+8. **Settings tell a Projection where it lands.** The Driver computes `ContentSettings` — the identifier it will be assigned to, the file it will be written to, its enrichments, and its variant — from the Projection's static methods; the instance reads `this.settings`. Snippets have no settings: they are anonymous fragments the parent embeds anywhere via `${...}`, which is exactly what makes them shareable and reusable.
+
+9. **Consumers customize via enrichments; authors via source.** Each generator declares its options as a Valibot schema in `enrichments.ts`, valued from `client.json`. Everything beyond that schema is clone-and-edit — hardcoded paths and peer imports are deliberate customization seams.
+
+10. **The engine is language-blind.** A generator declares its target language through its import graph — projection bases and snippet base imported from a lang package that owns the concrete `File` / `Import` / `Definition` subclasses and identifier factories (fact 6 below has the full detail).
 
 ---
 
 ## Read this first: six facts that override default LLM intuitions
 
-These assertions are the ones you would most likely get wrong by extrapolating from other codegen tools (orval, openapi-generator, kubb, graphql-codegen).
+The facts below pin the highest-drift corollaries of the model — the assertions you would most likely get wrong by extrapolating from other codegen tools (orval, openapi-generator, kubb, graphql-codegen).
 
 1. **No plugin registry, no dependency graph, no topological sort — generation is writing definition objects into file objects, and every producer creates its own dependencies.** A file is `{ imports, definitions }` (plus `reExports`), with `definitions` keyed by identifier, so the file map doubles as a cache: `insertOperation` / `insertModel` / `insertNormalizedModel` are create-or-reuse — a dependency already registered at `(name, exportPath)` is returned, not re-created; a miss constructs it on the spot, recursively. Cross-generator coordination is that `Map<(name, exportPath), Definition>` cache. Generator order does not affect output; never propose ordering, priorities, or a pre-generation pass.
 
@@ -614,6 +640,7 @@ Use this as the first read when an agent enters a SKMTC project cold.
 
 ## Glossary
 
+- **Producer** — the collective term for Projection | Snippet: the unit of generation work a generator converts each IR object into. Every producer creates its own dependencies during construction (the generation model, point 6).
 - **Projection** — a named, file-level generated artifact. Extends a class built by the lang package's `to*ProjectionBase` veneers. Wrapped in `Definition`. Cached by `(name, exportPath)`.
 - **Snippet** — an anonymous, embeddable generated fragment. Extends `SnippetBase`. Embedded via `${...}`.
 - **Definition** — the `export const X = VALUE` wrapper around a Projection's value. Created by Drivers.

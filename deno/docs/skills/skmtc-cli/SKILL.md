@@ -278,7 +278,7 @@ Known check ids:
     // When `packages` is set, basePath is the monorepo root and `@`
     // is per-package: intra-package imports render `@/…` (rooted at
     // that package), cross-package imports render the target's
-    // `moduleName`. See `concepts/multi-package-output.md`.
+    // `moduleName`. See `reference/settings/client-json-schema.md`.
     "packages": [
       { "rootPath": "packages/models/src", "moduleName": "@app/models" }
     ]

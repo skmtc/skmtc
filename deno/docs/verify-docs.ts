@@ -6,11 +6,12 @@
  * sync verification at any link, so each link decays independently).
  *
  * Checks:
- *   1. FACT-LIST SYNC — the skmtc-generator skill's §1 fact list and
- *      llms.md's "Read this first" list have the same item count, and
- *      each header's spelled-out number matches its own list.
- *      (The OTHER skills deliberately tune their own five-fact lists to
- *      their audience — only the generator skill mirrors llms.md.)
+ *   1. FACT-ANCHOR SYNC — llms.md's "Read this first" list is
+ *      self-consistent (its header's spelled-out number matches the
+ *      list length) and each fact's bold lead clause appears somewhere
+ *      in the skmtc-generator skill, which leads with the generation
+ *      model (§1) rather than mirroring the list. (The OTHER skills
+ *      deliberately tune their own fact lists to their audience.)
  *   2. DEAD-MODEL GUARD — affirmative mentions of the superseded 0.7.x
  *      interim language model (`resolveLang`, the entry `lang` field,
  *      `declares no 'lang'`) are banned across the doc surfaces; a
@@ -121,11 +122,12 @@ const numberWords: Record<number, string> = {
 }
 
 // ---------------------------------------------------------------------
-// 1. Fact-list sync: skmtc-generator SKILL.md §1 ↔ llms.md "Read this
-//    first". Counts must match, each header's spelled number must
-//    match its own list length, and each fact's bold lead sentence
-//    must match pairwise (the generator skill mirrors llms.md at the
-//    lead-sentence level; bodies may elaborate differently).
+// 1. Fact-anchor sync: llms.md "Read this first" is the canonical
+//    fact list (its header word must match its own length). The
+//    skmtc-generator skill leads with the generation model instead of
+//    mirroring the list, so each fact's bold lead clause (the text
+//    before any " — ", trailing period dropped) must appear somewhere
+//    in the skill — normalized for markdown markup and whitespace.
 // ---------------------------------------------------------------------
 
 type FactList = {
@@ -171,58 +173,45 @@ const llmsPath = join(docsDir, 'llms.md')
 const generatorSkillPath = join(docsDir, 'skills', 'skmtc-generator', 'SKILL.md')
 
 const llmsFacts = parseFactList(await Deno.readTextFile(llmsPath), /^## Read this first/)
-const skillFacts = parseFactList(
-  await Deno.readTextFile(generatorSkillPath),
-  /^## 1\. The \w+ facts/
-)
+const generatorSkillText = await Deno.readTextFile(generatorSkillPath)
+
+const normalizeForAnchor = (text: string): string =>
+  text.replace(/[`*]/g, '').replace(/\s+/g, ' ').toLowerCase()
 
 if (!llmsFacts) {
   fail('llms.md: "Read this first" section not found')
-} else if (!skillFacts) {
-  fail('skmtc-generator SKILL.md: "§1 The <n> facts" section not found')
 } else {
-  if (llmsFacts.count !== skillFacts.count) {
+  const expected = numberWords[llmsFacts.count]
+  if (llmsFacts.headerWord !== expected) {
     fail(
-      `fact-list drift: llms.md has ${llmsFacts.count} facts, ` +
-        `skmtc-generator SKILL.md §1 has ${skillFacts.count} — re-sync them ` +
-        `(the generator skill mirrors llms.md; the other skills tune their own lists)`
+      `llms.md: header says "${llmsFacts.headerWord ?? '<no number word>'} facts" ` +
+        `but the list has ${llmsFacts.count} items (expected "${expected}")`
     )
   } else {
-    pass(`fact-list sync: llms.md and generator skill both list ${llmsFacts.count} facts`)
-
-    const driftedLeads = llmsFacts.leads
-      .map((lead, index) => ({
-        fact: index + 1,
-        llms: lead,
-        skill: skillFacts.leads[index] ?? ''
-      }))
-      .filter(pair => pair.llms !== pair.skill)
-
-    if (driftedLeads.length === 0) {
-      pass(`fact-lead sync: all ${llmsFacts.count} bold lead sentences match pairwise`)
-    } else {
-      for (const pair of driftedLeads) {
-        fail(
-          `fact-lead drift on fact ${pair.fact}:\n` +
-            `  llms.md:  ${pair.llms}\n` +
-            `  SKILL.md: ${pair.skill}`
-        )
-      }
-    }
+    pass('llms.md: header word matches list length')
   }
 
-  for (const [name, facts] of [
-    ['llms.md', llmsFacts],
-    ['skmtc-generator SKILL.md', skillFacts]
-  ] as const) {
-    const expected = numberWords[facts.count]
-    if (facts.headerWord !== expected) {
+  const skillNormalized = normalizeForAnchor(generatorSkillText)
+  const missingAnchors = llmsFacts.leads
+    .map((lead, index) => ({
+      fact: index + 1,
+      clause: lead.split(' — ')[0].trim().replace(/\.$/, '')
+    }))
+    .filter(
+      item => item.clause !== '' && !skillNormalized.includes(normalizeForAnchor(item.clause))
+    )
+
+  if (missingAnchors.length === 0) {
+    pass(
+      `fact-anchor sync: all ${llmsFacts.count} llms.md fact lead clauses appear in the generator skill`
+    )
+  } else {
+    for (const item of missingAnchors) {
       fail(
-        `${name}: header says "${facts.headerWord ?? '<no number word>'} facts" ` +
-          `but the list has ${facts.count} items (expected "${expected}")`
+        `fact-anchor drift: llms.md fact ${item.fact} lead clause not found in ` +
+          `skmtc-generator SKILL.md — carry it in §1 (the model) or §4 (rules):\n` +
+          `  "${item.clause}"`
       )
-    } else {
-      pass(`${name}: header word matches list length`)
     }
   }
 }
