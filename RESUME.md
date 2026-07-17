@@ -137,6 +137,56 @@ milestones + report integration.
   `deno/CLAUDE.md`, an untracked friction-log entry) deliberately
   left uncommitted.
 
+## Performance plan (from harness-log analysis, end of session)
+
+Where the time went, per the transcripts, ranked by expected payoff:
+
+1. **Complete a run before changing anything else** — all four runs
+   were interrupted; every conclusion so far rests on partial data.
+2. **Seeded API digest (the big lever).** Runs 2–3 burned 60–112
+   turns on single-file Reads of lang-kotlin (~20 files, one per
+   turn) and then `deno doc --filter <symbol>` against core, symbol
+   by symbol. The transcripts hand us the exact shopping list the
+   model hunted: `toModelEntry`, `GenerateContext`, `DefinitionBase`,
+   `GeneratedValue`, `Inserted`, `ContentSettings`, `IdentifierBase`,
+   `OasComponents`, `Document`, `TypeSystem`. Plan: `seed.sh`
+   generates `API.md` into the workspace (deno doc over vendored
+   lang-kotlin + those core symbols); `task.md` points at it ("read
+   ./API.md before reaching for source"). ~40 archaeology turns → 1
+   Read. This is the pre-emption mechanism, and a
+   proto-`skmtc-lang-kotlin` skill: once its content stabilizes
+   across runs, graduate it into a real lang skill.
+3. **Pre-warm the toolchain at seed time** — the model's first
+   `gradle` pays JVM start + full dependency download and its first
+   `skmtc bundle` pays deno's cold cache; neither measures the
+   skill. `seed.sh` should run `gradle -p consumer testClasses` and
+   a throwaway `skmtc bundle` before the model starts, so iteration
+   cycles cost seconds (matters: the skill tells models to use
+   bundle errors as the teacher).
+4. **Ceiling run with fable** (same skill + task) to separate "the
+   skill under-informs" from "sonnet over-researches": fable clean →
+   skill adequate, digest is a sonnet crutch; fable also stalls →
+   the information gap is real for everyone.
+5. **Loop discipline**: one labeled re-run per change; mine
+   FRICTION.md Unblockers into digest (environmental info) vs skill
+   (doctrine); don't stack variable changes — taskSha/skillSha
+   bookkeeping only pays off if respected.
+
+Deliberately NOT doing: scripting the first N actions into task.md —
+faster runs, but it would turn the eval into instruction-following
+and stop measuring whether the skill teaches.
+
+**Open decision for tomorrow (A vs B):**
+- **A (cleaner experiment, RESUME's current plan):** first run pure
+  skill-0.6.2 (`after-research-fix`) to measure the scaffold-first
+  fix in isolation; add the digest + pre-warm as the run after
+  (label `with-digest`).
+- **B (faster to green):** build digest + pre-warm first (~30 min,
+  new taskSha) and make tomorrow's first run the strongest
+  configuration.
+Lean A if measuring the skill matters most today; lean B if getting
+a passing generator matters most.
+
 ## Tomorrow — pick up here
 
 0. **Relaunch the comparison run and LET IT FINISH** (every run so
