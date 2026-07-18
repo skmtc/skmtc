@@ -4,6 +4,7 @@ import { ensureFile } from '@std/fs/ensure-file'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { OperationGenerator } from '@/lib/operation-generator.ts'
 import { ModelGenerator } from '@/lib/model-generator.ts'
+import { KotlinModelGenerator } from '@/lib/kotlin-model-generator.ts'
 import { PackageDenoJson } from '@/lib/package-deno-json.ts'
 import type { Manager } from '@/lib/manager.ts'
 import type { Project } from '@/lib/project.ts'
@@ -70,6 +71,7 @@ type InstallArgs = {
 type AddArgs = {
   project: Project
   generatorType: 'operation' | 'model'
+  language?: 'typescript' | 'kotlin'
 }
 
 type PathOptions = {
@@ -97,17 +99,28 @@ export class Generator {
     denoJson.addImport(this.toModuleName(), this.toFullName())
   }
 
-  async add({ project, generatorType }: AddArgs) {
+  async add({ project, generatorType, language = 'typescript' }: AddArgs) {
     const generatorPath = join(toProjectPath(project.name), this.packageName)
     await this.createFiles(generatorPath, project.manager)
 
     switch (generatorType) {
       case 'operation': {
+        invariant(
+          language === 'typescript',
+          `--lang ${language} is not yet supported for operation generators`
+        )
+
         const operationGenerator = new OperationGenerator(this)
         await operationGenerator.createOperationFiles(generatorPath)
         break
       }
       case 'model': {
+        if (language === 'kotlin') {
+          const kotlinModelGenerator = new KotlinModelGenerator(this)
+          await kotlinModelGenerator.createModelFiles(generatorPath)
+          break
+        }
+
         const modelGenerator = new ModelGenerator(this)
         await modelGenerator.createModelFiles(generatorPath)
         break

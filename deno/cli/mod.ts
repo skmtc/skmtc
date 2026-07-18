@@ -69,6 +69,7 @@ const run = async () => {
   }
 
   const generatorType = new EnumType(['operation', 'model'])
+  const generatorLanguage = new EnumType(['typescript', 'kotlin'])
 
   // The descriptors in `lib/cli-schema.ts` are the source of truth for
   // each command's `description` and the human-readable args pattern
@@ -97,10 +98,14 @@ const run = async () => {
   const createCommand = new Command()
     .description(getCommandDescriptor('create').description)
     .type('generatorType', generatorType)
+    .type('generatorLanguage', generatorLanguage)
     .arguments('<project:string> <generator:string> <type:generatorType>')
-    .action(async (_options, projectName, generator, type) => {
+    .option('-l, --lang <language:generatorLanguage>', 'Target output language for the scaffolded generator.', {
+      default: 'typescript' as const
+    })
+    .action(async (options, projectName, generator, type) => {
       const { renderCreate } = await import('@/commands/create.tsx')
-      await renderCreate({ projectName, generator, type })
+      await renderCreate({ projectName, generator, type, language: options.lang })
     })
 
   const cloneCommand = new Command()
