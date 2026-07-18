@@ -21,9 +21,13 @@ export type KtDefinitionArgs<Value extends GeneratedValue> = {
 /**
  * Kotlin's concrete {@link DefinitionBase}: assembles the declaration
  * shell around the generated value, dispatching on the identifier's typed
- * `type` — exhaustive over this language's vocabulary. (A foreign
- * identifier is refused earlier, at the `Lang.toDefinition` boundary in
- * `KtLang`; the constructor only accepts a {@link KtIdentifier}.)
+ * `type` — exhaustive over this language's vocabulary. The identifier
+ * renders its own declaration head (`data class User`, `val timeout:
+ * Long` — see {@link KtIdentifier.toString}); each branch here adds only
+ * the kind's *arrangement*: parameter parens, supertype clause, braced
+ * body. (A foreign identifier is refused earlier, at the
+ * `Lang.toDefinition` boundary in `KtLang`; the constructor only accepts
+ * a {@link KtIdentifier}.)
  *
  * | type | shell |
  * |---|---|
@@ -88,9 +92,11 @@ export class KtDefinition<
   }
 
   private toShell(): string {
-    const { name, type, typeName } = this.identifier
+    // The identifier renders its own declaration head (`data class User`,
+    // `val timeout: Long`); each branch adds only the kind's arrangement.
+    const head = this.identifier
 
-    switch (type) {
+    switch (this.identifier.type) {
       case 'class': {
         const constructorClause = isKtConstructed(this.value)
           ? `${toConstructorKeyword(this.value.constructorModifiers)}(\n${this.value.constructorParameters}\n)`
@@ -102,8 +108,8 @@ export class KtDefinition<
         const body = `${this.value}`
 
         return body.length
-          ? `class ${name}${constructorClause}${supertypeClause} {\n${body}\n}`
-          : `class ${name}${constructorClause}${supertypeClause}`
+          ? `${head}${constructorClause}${supertypeClause} {\n${body}\n}`
+          : `${head}${constructorClause}${supertypeClause}`
       }
       case 'data-class': {
         const clause =
@@ -111,26 +117,21 @@ export class KtDefinition<
             ? ` : ${this.value.supertypes.join(', ')}`
             : ''
 
-        return `data class ${name}(\n${this.value}\n)${clause}`
+        return `${head}(\n${this.value}\n)${clause}`
       }
       case 'enum-class':
-        return `enum class ${name} {\n${this.value}\n}`
-      case 'interface': {
-        const body = `${this.value}`
-
-        return body.length ? `interface ${name} {\n${body}\n}` : `interface ${name}`
-      }
+        return `${head} {\n${this.value}\n}`
+      case 'interface':
       case 'sealed-interface': {
         const body = `${this.value}`
 
-        return body.length ? `sealed interface ${name} {\n${body}\n}` : `sealed interface ${name}`
+        return body.length ? `${head} {\n${body}\n}` : `${head}`
       }
       case 'typealias':
-        return `typealias ${name} = ${this.value}`
       case 'val':
-        return `val ${name}${typeName ? `: ${typeName}` : ''} = ${this.value}`
+        return `${head} = ${this.value}`
       default:
-        throw new Error(`Unknown Kotlin entity type: ${type}`)
+        throw new Error(`Unknown Kotlin entity type: ${this.identifier.type}`)
     }
   }
 }

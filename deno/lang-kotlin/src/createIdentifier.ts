@@ -198,9 +198,9 @@ export const createVerbatim = (name: string): KtIdentifier => {
  * {@link isKtEntityType}. Throws on a type outside the vocabulary, a loud
  * signal that an identifier built for another language (or with a typo'd
  * type) reached the Kotlin renderer. (Unlike TypeScript there is no
- * keyword map here — the declaration keywords live in
- * {@link import('./KtDefinition.ts').KtDefinition}'s shells, the only
- * place they are used.)
+ * keyword map here — the declaration keywords live on
+ * {@link import('./KtIdentifier.ts').KtIdentifier}'s declaration-head
+ * render, the only place they are used.)
  */
 export const toKtEntityType = (type: string): KtEntityType => {
   if (!isKtEntityType(type)) {

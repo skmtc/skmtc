@@ -91,3 +91,21 @@ Deno.test('toKtEntityType throws outside the vocabulary (foreign-language identi
   assertThrows(() => toKtEntityType('variable'), Error, 'Unknown Kotlin entity type: variable')
   assertThrows(() => toKtEntityType('type'), Error, 'Unknown Kotlin entity type: type')
 })
+
+Deno.test('identifiers render their own declaration head (keyword + name)', () => {
+  assertEquals(`${createClass('UsersController')}`, 'class UsersController')
+  assertEquals(`${createDataClass('User')}`, 'data class User')
+  assertEquals(`${createEnumClass('Status')}`, 'enum class Status')
+  assertEquals(`${createInterface('UsersApi')}`, 'interface UsersApi')
+  assertEquals(`${createSealedInterface('Animal')}`, 'sealed interface Animal')
+  assertEquals(`${createTypeAlias('UserList')}`, 'typealias UserList')
+  assertEquals(`${createValue('MAX_RETRIES')}`, 'val MAX_RETRIES')
+})
+
+Deno.test('a typed val renders its type annotation in the head', () => {
+  assertEquals(`${createValue('timeout', { typeName: 'Long' })}`, 'val timeout: Long')
+})
+
+Deno.test('verbatim has no declaration head — bare-name render (cache identity only)', () => {
+  assertEquals(`${createVerbatim('UtilsFileBody')}`, 'UtilsFileBody')
+})
