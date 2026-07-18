@@ -1,7 +1,8 @@
 # gen-kotlin-jackson authoring harness
 
 Runs a model against the task "author `gen-kotlin-jackson` from
-scratch" in a fresh, isolated SKMTC workspace; captures everything
+scratch: recreate kotlin-person-api's `Dtos.kt` from its OpenAPI
+schema" in a fresh, isolated SKMTC workspace; captures everything
 needed for diagnosis (full transcript, live timeline, scrubber viewer,
 workspace snapshot, provenance); grades the result with ground-truth
 gates plus the [structural eval](../docs/README.md).
@@ -57,15 +58,19 @@ post-processing.
 
 1. **Seed** (`seed.sh`) — creates a fresh workspace in a temp dir
    *outside every repo*: `skmtc init lab`, the pinned schema
-   (`assets/openapi.json`), `@skmtc/lang-kotlin` vendored from
-   `skmtc/deno/lang-kotlin` as a deno workspace member, and the
-   consumer gradle app with the pinned acceptance tests. Integrity
+   (`assets/openapi.json` — kotlin-person-api's), `@skmtc/lang-kotlin`
+   vendored from `skmtc/deno/lang-kotlin` as a deno workspace member,
+   the consumer app (the kotlin-person-api snapshot **minus its
+   `Dtos.kt`**, plus the pinned `DtoContractTest.kt`), and read-only
+   reference material (`reference/Dtos.kt` — the target output — and
+   the vendored `gen-typescript` / `gen-zod` sources). Integrity
    checksums are recorded.
 2. **Deny rules** — the workspace's `.claude/settings.json` declares
    the stock generators, demo apps, and previous runs off-limits.
 3. **Provenance** — `meta.json` records model, label, skill git SHA
    (+ dirty-file count), thinking budget, start time; the
-   skmtc-generator skill is snapshotted into the run dir.
+   skmtc-generator and skmtc-lang-kotlin skills are snapshotted into
+   the run dir.
 4. **Dashboard + live viewer** — the dashboard is started if not
    already running and the run's live-viewer URL is printed *before*
    the model starts.
@@ -175,15 +180,30 @@ drag-and-drop page that opens any transcript;
 calibration:
 
 - **Skill loading is instructed, not discovered** — the eval measures
-  whether the *skill teaches the shape*, not whether the model finds
-  the skill.
-- **The acceptance test is the spec** — class names, package,
-  snake_case fidelity, the `object` hard-keyword property, and
-  `petType` polymorphism are all defined by `RoundTripTest.kt`, which
-  the model is told to read.
-- **lang-kotlin is pointed at, not taught** — pre-alpha, no skill;
-  "read its source" tests the skmtc-generator skill's §8 strategy for
-  new languages.
+  whether the *skills teach the shape*, not whether the model finds
+  them. Three skills are named: `skmtc-generator`,
+  `skmtc-lang-kotlin`, and `skmtc-cli`.
+- **The reference output + contract test are the spec** —
+  `reference/Dtos.kt` is the hand-written file to recreate (prose and
+  dividers cosmetic; declarations, annotations, and wire behavior
+  normative), and `DtoContractTest.kt` pins that behavior case by
+  case: money-as-string serde, `kind`-discriminated sealed hierarchy,
+  enum wire values + `@JsonEnumDefaultValue` fallback,
+  `readOnly`/`writeOnly` access, the ISO `@JsonFormat` timestamp, and
+  the `additionalProperties` map default.
+- **Cross-language references are provided, answers are not** — the
+  vendored `gen-typescript`/`gen-zod` show how a model generator walks
+  schemas and composes producers; the Kotlin generators and the
+  original kotlin-person-api stay off-limits (deny rules + audit).
+  The task warns that some principles do not transfer 1:1 across
+  languages.
+- **lang-kotlin is taught by its own skill** — `skmtc-lang-kotlin`
+  carries the head+value rendering model, the interface shapes, and a
+  scaffold; the vendored source stays available as ground truth.
+  (Historical: earlier task versions pointed at the source with no
+  skill — every pre-skill run exhausted its budget reverse-engineering
+  the API and authored nothing; that research spiral is what the
+  skill exists to collapse.)
 - **Hard rules name the enforcement** — tests are checksum-verified;
   copying from other implementations is audited.
 
@@ -234,8 +254,8 @@ empty.
 | `transcript.jsonl` | Full stream-json feed: every tool call, every event |
 | `session.jsonl` | The Claude Code session file (backup capture) |
 | `meta.json` | Model, label, skill SHA + dirty flag, thinking budget, cost, turns, duration |
-| `skill-snapshot/` | The skmtc-generator skill exactly as this run saw it |
-| `workspace/` | The full sandbox: authored generator at `.skmtc/lab/gen-kotlin-jackson/`, generated Kotlin at `consumer/src/main/kotlin/models/` |
+| `skill-snapshot/` | The skmtc-generator + skmtc-lang-kotlin skills exactly as this run saw them |
+| `workspace/` | The full sandbox: authored generator at `.skmtc/lab/gen-kotlin-jackson/`, generated file at `consumer/src/main/kotlin/com/example/api/dto/Dtos.kt`, reference material at `reference/` |
 | `generate.json`, `compile.log`, `test.log`, `integrity.log` | Raw gate evidence |
 | `../index.jsonl` | One line per run: model, skill SHA, gates, verdict, cost, turns |
 
@@ -243,22 +263,28 @@ empty.
 
 ## The gates (ground truth, no judging)
 
-0. **contamination** — no tool-call input touched other generator
-   implementations, demo apps, or previous runs (transcript audit).
-1. **integrity** — acceptance tests / build files / schema untouched
-   (checksums; edits disqualify the run).
+0. **contamination** — no tool-call input touched generator
+   implementations outside the vendored references, the original
+   kotlin-person-api, demo apps, or previous runs (transcript audit).
+1. **integrity** — consumer sources + contract test / build files /
+   schema / reference material untouched (checksums; edits disqualify
+   the run).
 2. **generate** — `skmtc clean` + `skmtc generate` from the bundle
    exits with no errors (also catches hand-written output
    masquerading as generated: clean deletes it, generate must
    recreate it).
-3. **schema-coverage** — one Kotlin file per `components.schemas`
-   entry.
-4. **compile** — `gradle compileKotlin` (skipped with a note if no
-   JDK/gradle).
-5. **round-trip** — the pinned Jackson tests: JSON tree-equality
-   round-trips, snake_case property fidelity, the `object` keyword
-   property, enum, and `petType`-discriminated polymorphism with
-   subtype checks.
+3. **dtos-file** — the single
+   `com/example/api/dto/Dtos.kt` exists and declares every
+   `components.schemas` entry.
+4. **compile** — `gradle compileKotlin`: the whole Spring Boot app
+   (controller, services, serde, config) compiles against the
+   generated DTOs (skipped with a note if no JDK/gradle).
+5. **dto-contract** — the pinned `DtoContractTest.kt`: money
+   round-trips as a two-decimal string, the sealed `Contact` hierarchy
+   round-trips by `kind`, unknown enum values fall back to `UNKNOWN`,
+   `readOnly` fields are ignored on input, the `writeOnly` password
+   never serializes, `createdAt` uses the pinned ISO pattern, and
+   `attributes` defaults to an empty map.
 
 Then the **structural eval** runs over the authored generator
 (checks documented in [`../docs/`](../docs/README.md)). Reference
@@ -285,7 +311,7 @@ skip-permissions:
    anything, but not *unrecorded*.
 
 Deliberately shared constants (recorded per run): the user-global
-`~/.claude/CLAUDE.md`, the skill under test (SHA + snapshot), and
+`~/.claude/CLAUDE.md`, the skills under test (SHA + snapshot), and
 gradle/deno/pnpm caches (dependency bytes, not knowledge).
 
 ---
@@ -322,7 +348,7 @@ read the transcripts, not just the counts.
 | `timeline.js` | stream-json → one-line-per-action view (`--tee` live mode, file arg post-hoc) |
 | `viewer.js` + `viewer.template.html` | Bakes the scrubber viewer (`--template` = live/drag-drop mode) |
 | `server.js` | The persistent dashboard (`node harness/server.js`, port `GEN_EVAL_PORT` or 8484, binds 127.0.0.1) |
-| `assets/` | Pinned schema, gradle build files, `RoundTripTest.kt` |
+| `assets/` | Pinned schema, the kotlin-person-api snapshot (minus `Dtos.kt`, plus `DtoContractTest.kt`), `reference-Dtos.kt` |
 | `runs/` | One directory per run + `index.jsonl` (gitignored) |
 
 ---
@@ -333,7 +359,7 @@ read the transcripts, not just the counts.
   transcript has been quiet ≥ 5 min: the run was interrupted (Ctrl-C)
   or crashed. `claude-stderr.log` is empty on interrupts. Artifacts
   up to that point are intact and viewable.
-- **compile/round-trip gates `skip`** — no JDK/gradle found. Install
+- **compile/dto-contract gates `skip`** — no JDK/gradle found. Install
   `brew install openjdk@21` and re-run gates:
   `bash harness/gates.sh runs/<id>/workspace runs/<id>`.
 - **Files pane empty mid-run** — check the timeline: the model may

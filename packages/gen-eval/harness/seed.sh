@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Seed a fresh, isolated SKMTC workspace for a gen-kotlin-jackson
-# authoring run. Usage: seed.sh <workspace-dir>
+# authoring run: recreate kotlin-person-api's Dtos.kt from its schema.
+# Usage: seed.sh <workspace-dir>
 set -euo pipefail
 
 WORKSPACE=${1:?usage: seed.sh <workspace-dir>}
@@ -9,13 +10,17 @@ ASSETS="$HARNESS_DIR/assets"
 # harness/ -> gen-eval -> packages -> skmtc -> skmtc-root
 SKMTC_ROOT=$(cd "$HARNESS_DIR/../../../.." && pwd)
 LANG_KOTLIN="$SKMTC_ROOT/skmtc/deno/lang-kotlin"
+REF_GENERATORS="$SKMTC_ROOT/skmtc-generators"
 
 [ -d "$LANG_KOTLIN" ] || { echo "lang-kotlin not found at $LANG_KOTLIN" >&2; exit 1; }
+[ -d "$REF_GENERATORS/gen-typescript" ] || { echo "gen-typescript not found at $REF_GENERATORS" >&2; exit 1; }
+[ -d "$REF_GENERATORS/gen-zod" ] || { echo "gen-zod not found at $REF_GENERATORS" >&2; exit 1; }
 
 mkdir -p "$WORKSPACE"
 cd "$WORKSPACE"
 
-# 1. SKMTC project + pinned schema
+# 1. SKMTC project + pinned schema. basePath is the consumer's Gradle
+#    source root, so `@/com/example/api/dto/Dtos.kt` lands in-package.
 skmtc init lab consumer/src/main/kotlin --json > /dev/null
 cp "$ASSETS/openapi.json" openapi.json
 node - <<'EOF'
@@ -38,11 +43,11 @@ config.workspace = ['./lang-kotlin']
 writeFileSync(path, JSON.stringify(config, null, 2))
 EOF
 
-# 3. Consumer gradle app (compile + round-trip acceptance tests)
-mkdir -p consumer/src/main/kotlin consumer/src/test/kotlin
-cp "$ASSETS/build.gradle.kts" consumer/build.gradle.kts
-cp "$ASSETS/settings.gradle.kts" consumer/settings.gradle.kts
-cp "$ASSETS/RoundTripTest.kt" consumer/src/test/kotlin/RoundTripTest.kt
+# 3. Consumer: the kotlin-person-api snapshot WITHOUT its Dtos.kt — the
+#    generator under authoring must recreate it. Everything else (app,
+#    config, serde seam, controller, services, the pinned contract test)
+#    is hand-written consumer code the generated DTOs must satisfy.
+cp -R "$ASSETS/kotlin-person-api/." consumer/
 
 # Point gradle at a JDK (homebrew openjdk@21 preferred; else java_home)
 JDK_HOME=""
@@ -57,11 +62,24 @@ else
   echo "WARN: no JDK >=17 found — the compile/test gate will be skipped" >&2
 fi
 
-# 4. Integrity checksums — the gates disqualify a run that edits these
-shasum -a 256 \
-  consumer/src/test/kotlin/RoundTripTest.kt \
-  consumer/build.gradle.kts \
-  consumer/settings.gradle.kts \
-  openapi.json > .harness-checksums
+# 4. Reference material (read-only; checksum-pinned):
+#    - the target output the generator must recreate,
+#    - two stock TypeScript model generators as reference
+#      implementations (cross-language: principles, not answers).
+mkdir -p reference
+cp "$ASSETS/reference-Dtos.kt" reference/Dtos.kt
+for gen in gen-typescript gen-zod; do
+  mkdir -p "reference/$gen"
+  cp -R "$REF_GENERATORS/$gen/src" "reference/$gen/src"
+  cp "$REF_GENERATORS/$gen/mod.ts" "$REF_GENERATORS/$gen/deno.json" "$REF_GENERATORS/$gen/README.md" "reference/$gen/"
+done
+
+# 5. Integrity checksums — the gates disqualify a run that edits these:
+#    the schema, the consumer's build files, every hand-written consumer
+#    source (incl. the contract test), and the reference target.
+{
+  shasum -a 256 openapi.json consumer/build.gradle.kts consumer/settings.gradle.kts reference/Dtos.kt
+  find consumer/src -type f -print0 | sort -z | xargs -0 shasum -a 256
+} > .harness-checksums
 
 echo "seeded: $WORKSPACE"

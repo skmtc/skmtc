@@ -37,6 +37,7 @@ const root = process.env.SKMTC_ROOT
 const deny = [
   `Read(${root}/skmtc-generators/**)`,
   `Read(${root}/.skmtc/**)`,
+  `Read(${root}/kotlin-person-api/**)`,
   `Read(${root}/kotlin-demos/**)`,
   `Read(${root}/kotlin-spring-demo/**)`,
   `Read(${root}/csharp-demos/**)`,
@@ -51,6 +52,7 @@ TASK_SHA=$(shasum -a 256 "$HARNESS_DIR/task.md" | cut -c1-12)
 SKILL_DIRTY=$(git -C "$SKMTC_REPO" status --porcelain -- deno/docs/skills deno/docs/llms.md | wc -l | tr -d ' ')
 mkdir -p "$RUN_DIR/skill-snapshot"
 cp -RL "$HOME/.claude/skills/skmtc-generator" "$RUN_DIR/skill-snapshot/" 2>/dev/null || true
+cp -RL "$HOME/.claude/skills/skmtc-lang-kotlin" "$RUN_DIR/skill-snapshot/" 2>/dev/null || true
 META_PATH="$RUN_DIR/meta.json" MODEL="$MODEL" SKILL_SHA="$SKILL_SHA" SKILL_DIRTY="$SKILL_DIRTY" LABEL="$LABEL" TASK_SHA="$TASK_SHA" node - <<'EOF'
 const { writeFileSync } = require('node:fs')
 writeFileSync(process.env.META_PATH, JSON.stringify({

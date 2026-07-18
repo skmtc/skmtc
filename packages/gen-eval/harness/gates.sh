@@ -45,6 +45,7 @@ const root = process.env.SKMTC_ROOT
 const forbidden = [
   `${root}/skmtc-generators`,
   `${root}/.skmtc`,
+  `${root}/kotlin-person-api`,
   `${root}/kotlin-demos`,
   `${root}/kotlin-spring-demo`,
   `${root}/csharp-demos`,
@@ -99,43 +100,46 @@ EOF
 )
 gate generate "${GEN_SUMMARY%%|*}" "${GEN_SUMMARY#*|}"
 
-# Gate 2 — schema coverage: one file per components.schemas entry
+# Gate 2 — target file: the single Dtos.kt exists and declares every
+# components.schemas entry (the objective is ONE file, not one per schema)
 COVERAGE=$(node - <<'EOF'
-const { readFileSync, readdirSync } = require('node:fs')
+const { readFileSync, existsSync } = require('node:fs')
 const schemas = Object.keys(JSON.parse(readFileSync('openapi.json', 'utf8')).components.schemas)
-const produced = new Set()
-try {
-  for (const entry of readdirSync('consumer/src/main/kotlin', { recursive: true })) {
-    const name = String(entry).split('/').pop()
-    if (name.endsWith('.kt')) produced.add(name.split('.')[0])
-  }
-} catch {}
-const missing = schemas.filter(schema => !produced.has(schema))
-if (missing.length) {
-  console.log(`FAIL|missing ${missing.length}/${schemas.length}: ${missing.slice(0, 6).join(', ')}`)
+const target = 'consumer/src/main/kotlin/com/example/api/dto/Dtos.kt'
+if (!existsSync(target)) {
+  console.log(`FAIL|${target} was not generated`)
 } else {
-  console.log(`ok|all ${schemas.length} schemas covered`)
+  const source = readFileSync(target, 'utf8')
+  const missing = schemas.filter(
+    name => !new RegExp(`(class|interface|typealias)\\s+${name}\\b`).test(source)
+  )
+  if (missing.length) {
+    console.log(`FAIL|Dtos.kt missing ${missing.length}/${schemas.length} declarations: ${missing.slice(0, 6).join(', ')}`)
+  } else {
+    console.log(`ok|Dtos.kt declares all ${schemas.length} schemas`)
+  }
 }
 EOF
 )
-gate schema-coverage "${COVERAGE%%|*}" "${COVERAGE#*|}"
+gate dtos-file "${COVERAGE%%|*}" "${COVERAGE#*|}"
 
-# Gate 3 + 4 — Kotlin compiles, round-trip tests pass
+# Gate 3 + 4 — the whole app compiles against the generated DTOs, and
+# the pinned DTO contract test passes
 if [ -f consumer/gradle.properties ] && command -v gradle > /dev/null; then
   if (cd consumer && gradle -q compileKotlin --console=plain) > "$OUT/compile.log" 2>&1; then
     gate compile ok "gradle compileKotlin"
     if (cd consumer && gradle -q test --console=plain) > "$OUT/test.log" 2>&1; then
-      gate round-trip ok "gradle test"
+      gate dto-contract ok "gradle test (DtoContractTest)"
     else
-      gate round-trip FAIL "see test.log"
+      gate dto-contract FAIL "see test.log"
     fi
   else
     gate compile FAIL "see compile.log"
-    gate round-trip skip "compile failed"
+    gate dto-contract skip "compile failed"
   fi
 else
   gate compile skip "no JDK/gradle available"
-  gate round-trip skip "no JDK/gradle available"
+  gate dto-contract skip "no JDK/gradle available"
 fi
 
 # Structural eval over the authored generator
@@ -167,8 +171,10 @@ note ""
 note "Gates passed: $PASS_COUNT, failed: $FAIL_COUNT."
 note ""
 note "Diagnosis order: report.md -> structural.md -> generate.json ->"
-note "test.log -> transcript.jsonl (search for the Skill invocation and"
-note "the first Write of base.ts to see where the model's plan diverged)."
+note "test.log -> diff consumer/src/main/kotlin/com/example/api/dto/Dtos.kt"
+note "against workspace/reference/Dtos.kt -> transcript.jsonl (search for"
+note "the Skill invocation and the first Write of base.ts to see where"
+note "the model's plan diverged)."
 
 cat "$REPORT"
 [ "$FAIL_COUNT" -eq 0 ]

@@ -1,50 +1,80 @@
-# Task: author @eval/gen-kotlin-jackson from scratch
+# Task: author @eval/gen-kotlin-jackson — recreate Dtos.kt from the schema
 
 You are in a fresh SKMTC workspace. Author a **model generator** named
-`@eval/gen-kotlin-jackson` that emits **Kotlin data classes with
-Jackson annotations** for every schema in `./openapi.json`'s
-`components.schemas` — including the polymorphic ones.
+`@eval/gen-kotlin-jackson` that generates
+`consumer/src/main/kotlin/com/example/api/dto/Dtos.kt` — a **single
+Kotlin file containing every DTO** — from `./openapi.json`.
 
-**Load the `skmtc-generator` and `skmtc-cli` skills before writing any
-code**, and follow them: projection base via the lang package's
-factory, snippets for fragments, imports via register calls, no string
-composition outside `toString()`, `transform` returns void.
+The target is real: `reference/Dtos.kt` is the hand-written file your
+generator must recreate (KDoc prose and section dividers are cosmetic;
+the declarations, annotations, types, defaults, and wire behavior are
+the spec). It exercises: an enum with pinned lower-case wire values
+and a forward-compatible `@JsonEnumDefaultValue` fallback; a
+`oneOf`+discriminator hierarchy as a sealed interface with
+`@JsonTypeInfo`/`@JsonSubTypes` (members drop the discriminator
+property — Jackson owns the tag); a money field serialized as a
+fixed-scale decimal string via the hand-written serde classes;
+`readOnly`/`writeOnly` access control; an ISO `@JsonFormat` timestamp;
+and `additionalProperties` as a defaulted `Map`.
+
+**Load the `skmtc-generator`, `skmtc-lang-kotlin`, and `skmtc-cli`
+skills before writing any code**, and follow them: projection base via
+the lang package's factory, snippets for fragments, imports via
+register calls, no string composition outside `toString()`,
+`transform` returns void.
 
 ## Environment (already set up — do not re-init)
 
 - SKMTC project: `lab` (`.skmtc/lab/`), schema pinned in
-  `client.json#source`, `basePath` = `consumer/src/main/kotlin`.
+  `client.json#source`, `basePath` = `consumer/src/main/kotlin` — so a
+  destination path of `@/com/example/api/dto/Dtos.kt` lands in package
+  `com.example.api.dto`. Register every definition into that ONE file.
 - The Kotlin language layer `@skmtc/lang-kotlin` is **vendored** at
   `.skmtc/lab/lang-kotlin/` and declared as a deno workspace member.
-  It is pre-alpha with no skill — **read its source** for the API
-  (`toKtModelProjectionBase`, `KtSnippet`, `KtFile`, `KtAnnotation`,
-  `createIdentifier`, `register`, `sanitizePropertyName`,
-  `toPackageName`, …).
+  The `skmtc-lang-kotlin` skill covers its API — prefer the skill over
+  re-deriving the API from source; the vendored source is the ground
+  truth for anything the skill leaves open.
 - Create your generator at `.skmtc/lab/gen-kotlin-jackson/` and add it
   to `.skmtc/lab/deno.json` (`imports` entry
   `"@eval/gen-kotlin-jackson": "./gen-kotlin-jackson/mod.ts"` plus a
   `workspace` entry) — see the skmtc-cli skill's "Registering an
   agent-authored local generator" card.
-- A consumer gradle app lives at `consumer/` with acceptance tests in
-  `consumer/src/test/kotlin/RoundTripTest.kt`. **Read the test** — it
-  defines the target: package `models`, refName-derived class names
-  (`User`, `Animal`, `Dog`, `Cat`, `Price`, …), JSON round-trip
-  fidelity including snake_case property names, the `object` property
-  (a Kotlin hard keyword), and `petType`-discriminated `Animal`
-  polymorphism.
+- `consumer/` is a full Spring Boot app (kotlin-person-api) with its
+  `Dtos.kt` removed. Everything else is hand-written and
+  checksum-pinned: the controller and services compile against your
+  generated DTOs, `com.example.api.serde` holds the money
+  (de)serializers your generated `Pet.adoptionFee` must reference, and
+  `consumer/src/test/kotlin/DtoContractTest.kt` is the acceptance
+  test. **Read the test** — it pins the wire behavior case by case.
+- **Reference generators** are vendored at `reference/gen-typescript/`
+  and `reference/gen-zod/` — two stock TypeScript model generators.
+  Study how they walk schemas and compose producers, but be mindful:
+  **some principles do not transfer 1:1 across languages** (TypeScript
+  has type-only imports and per-schema files; Kotlin here wants one
+  file, path-derived packages, and annotation-driven serialization).
+
+## Policy decisions are yours to encode
+
+The schema cannot express everything in the reference output. The
+BigDecimal-plus-serde mapping for the money field, the `@JsonFormat`
+pattern, and marking the `unknown` enum constant as the fallback are
+**generator policy** — encode them in your generator source as
+deliberate seams (the stock-generator convention), not by mutating the
+schema or the consumer.
 
 ## Output requirements
 
-- One file per schema under `models/` relative to basePath (e.g.
-  `models/User.generated.kt`), each declaring `package models`.
+- One generated file: `com/example/api/dto/Dtos.kt` under basePath,
+  declaring `package com.example.api.dto`, containing all six schema
+  declarations.
 - Complete working output — no TODO stubs.
 
 ## Acceptance (verify yourself; stop when all green)
 
 ```bash
 skmtc bundle lab --json          # after generator source changes
-skmtc generate lab --json        # errors must be [], one file per schema
-cd consumer && gradle test       # compiles AND round-trip tests pass
+skmtc generate lab --json        # errors must be [], Dtos.kt created
+cd consumer && gradle test       # app compiles AND DtoContractTest passes
 ```
 
 ## Narrate and log as you work (part of the task)
@@ -78,9 +108,15 @@ affect grading.
 
 ## Hard rules
 
-- Do NOT modify anything under `consumer/src/test/`, the gradle build
-  files, or `openapi.json` — they are checksum-verified; edits
-  disqualify the run.
-- Do not copy from other generator implementations.
+- Do NOT modify anything under `consumer/src/`, the gradle build
+  files, `openapi.json`, or `reference/` — they are checksum-verified;
+  edits disqualify the run.
+- Derive the output from the schema. Do NOT embed `reference/Dtos.kt`
+  (wholly or per-declaration) as literal template text — the
+  structural eval reads your generator source and a verbatim blob is
+  exactly what it flags.
+- Do not read generator implementations other than the two vendored
+  references (the originals outside the workspace are off-limits and
+  audited).
 - Iterate until acceptance passes, then print a short summary of what
   you built and the final test output.
