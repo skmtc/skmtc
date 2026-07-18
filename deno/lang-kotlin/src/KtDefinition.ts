@@ -1,6 +1,6 @@
 import { DefinitionBase } from '@skmtc/core'
 import type { GeneratedValue, GenerateContextType } from '@skmtc/core'
-import { isKtAnnotated } from './KtAnnotation.ts'
+import { toKtAnnotations } from './KtAnnotation.ts'
 import { isKtDocumented } from './KtDocumented.ts'
 import type { KtIdentifier } from './KtIdentifier.ts'
 import { withDescription } from './withDescription.ts'
@@ -76,11 +76,7 @@ export class KtDefinition<
       return `${this.value}`
     }
 
-    const annotations = isKtAnnotated(this.value)
-      ? this.value.annotations.map(annotation => `${annotation}\n`).join('')
-      : ''
-
-    const declaration = `${annotations}${this.toShell()}`
+    const declaration = `${toKtAnnotations(this.value)}${this.toShell()}`
 
     // Constructor description wins; else the value-carried protocol.
     const description =

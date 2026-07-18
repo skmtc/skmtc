@@ -4,7 +4,7 @@ import type { GenerateContextType } from '@skmtc/core/generate'
 import { KtDefinition } from './KtDefinition.ts'
 import { kotlin } from './KtLang.ts'
 import { KtParameterList } from './KtParameterList.ts'
-import { KtAnnotation } from './KtAnnotation.ts'
+import { KtAnnotation, toKtAnnotations } from './KtAnnotation.ts'
 import { KtPrimaryConstructor } from './KtPrimaryConstructor.ts'
 import {
   createClass,
@@ -53,7 +53,7 @@ Deno.test('enum-class renders its entries in a braced body', () => {
 
 Deno.test('class value composes primary constructor, body, and annotations', () => {
   const value = {
-    annotations: [new KtAnnotation('RestController')],
+    annotations: [new KtAnnotation({ context, name: 'RestController' })],
     toString: () =>
       `${new KtPrimaryConstructor({
         parameters: new KtParameterList([
@@ -112,7 +112,7 @@ Deno.test('interface renders class-level annotations and private visibility', ()
     context,
     identifier: createInterface('UsersApi', { exported: false }),
     value: {
-      annotations: [new KtAnnotation('Suppress', ['"unused"'])],
+      annotations: [new KtAnnotation({ context, name: 'Suppress', args: ['"unused"'] })],
       toString: () => ' {\n    fun getUsersId(id: String): User\n}'
     }
   })
@@ -214,9 +214,19 @@ Deno.test('the Lang boundary folds the neutral noExport into a restricted identi
   assertEquals(definition.toString().startsWith('private data class User('), true)
 })
 
+Deno.test('toKtAnnotations collects the protocol field; empty renders the empty string', () => {
+  const annotated = { annotations: [new KtAnnotation({ context, name: 'Serializable' })], toString: () => 'x' }
+
+  assertEquals(`${toKtAnnotations(annotated)}`, '@Serializable\n')
+  assertEquals(`${toKtAnnotations('plain string value')}`, '')
+  assertEquals(`${toKtAnnotations({ annotations: [] })}`, '')
+  // A stray `annotations` field that is not KtAnnotation[] is not the protocol.
+  assertEquals(`${toKtAnnotations({ annotations: ['@Fake'] })}`, '')
+})
+
 Deno.test('class-level annotations ride on the value via the KtAnnotated protocol', () => {
   class AnnotatedValue {
-    annotations = [new KtAnnotation('Serializable')]
+    annotations = [new KtAnnotation({ context, name: 'Serializable' })]
 
     toString(): string {
       return `${new KtParameterList([{ name: 'id', type: 'String' }])}`
@@ -261,7 +271,7 @@ Deno.test('the value composes an inline supertype clause after its parameter lis
 
 Deno.test('annotations and a supertype clause compose on one value', () => {
   class SealedMemberValue {
-    annotations = [new KtAnnotation('Serializable'), new KtAnnotation('SerialName', ['"dog"'])]
+    annotations = [new KtAnnotation({ context, name: 'Serializable' }), new KtAnnotation({ context, name: 'SerialName', args: ['"dog"'] })]
 
     toString(): string {
       return `${new KtParameterList([{ name: 'name', type: 'String' }])} : Animal`

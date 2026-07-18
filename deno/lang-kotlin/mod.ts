@@ -50,7 +50,13 @@ export {
   type KtFunctionSignatureArgs,
   type KtFunctionParameterArgs
 } from './src/KtFunctionSignature.ts'
-export { KtAnnotation, isKtAnnotated, type KtAnnotated } from './src/KtAnnotation.ts'
+export {
+  KtAnnotation,
+  KtAnnotations,
+  toKtAnnotations,
+  type KtAnnotated,
+  type KtAnnotationArgs
+} from './src/KtAnnotation.ts'
 export { isKtDocumented, type KtDocumented } from './src/KtDocumented.ts'
 export {
   KtPrimaryConstructor,

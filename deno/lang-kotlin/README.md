@@ -80,11 +80,18 @@ the current model).
   (`${primaryConstructor} : Supertype {\n…\n}` — supertype clauses and
   braced bodies are written inline; plain Kotlin syntax carries no
   grammar rule worth a class).
-- **`KtFunctionSignature`** / **`KtFunctionParameter`** /
-  **`KtAnnotation`** — construct helpers (method signatures for
-  interface and class bodies with optional KDoc, expression bodies
-  (` = …` delegation), and per-parameter defaults; generic annotation
-  grammar — *which* annotation is generator policy).
+- **`KtFunctionSignature`** / **`KtFunctionParameter`** — construct
+  helpers (method signatures for interface and class bodies with
+  optional KDoc, expression bodies (` = …` delegation), and
+  per-parameter defaults).
+- **`KtAnnotation`** — a registering leaf (the `TsHeritage` pattern):
+  given a `packageName` it self-registers its class's import into
+  `destinationPath`, so annotation and import are one statement;
+  same-package imports are suppressed centrally by `KtFile`.
+  Default-scope annotations (`@Deprecated`) pass no `packageName`.
+  `toKtAnnotations(value)` collects a value's `KtAnnotated` protocol
+  field into a `KtAnnotations` block (empty renders nothing). *Which*
+  annotation to emit is generator policy.
 - **Identifier factories** — `createClass`, `createDataClass`,
   `createEnumClass`, `createInterface`, `createSealedInterface`,
   `createTypeAlias`, `createValue`, `createVerbatim` (+

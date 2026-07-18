@@ -1,7 +1,45 @@
-import type { Stringable } from '@skmtc/core'
+import type { GenerateContextType, Stringable } from '@skmtc/core'
+import { register } from './register.ts'
+
+/**
+ * Constructor arguments for {@link KtAnnotation}. `packageName` and
+ * `destinationPath` come together or not at all: an annotation that names
+ * a packaged class declares where it lives and where it is used; a
+ * default-scope annotation (`@Deprecated`, `@Suppress` — `kotlin.*` needs
+ * no import) passes neither.
+ */
+export type KtAnnotationArgs = {
+  context: GenerateContextType
+  name: string
+  /** Pre-quoted argument list rendered inside `(…)`; omitted → bare `@Name`. */
+  args?: Stringable[]
+} & (
+  | {
+      /** Dotted package the annotation class lives in — self-registers `import <packageName>.<name>`. */
+      packageName: string
+      /** The file the annotation renders into — where its import registers. */
+      destinationPath: string
+    }
+  | { packageName?: undefined; destinationPath?: undefined }
+)
 
 /**
  * Renders a Kotlin annotation: `@Serializable`, `@SerialName("user_id")`.
+ *
+ * A registering LEAF entity (the `TsHeritage` precedent): given a
+ * `packageName` it registers its own class's import into
+ * `destinationPath`, so the annotation and its import are one statement
+ * that cannot drift apart. It registers unconditionally — a same-package
+ * annotation's import is dropped centrally by `KtFile`'s render-time
+ * suppression, so callers need no such check. Container renderers
+ * ({@link KtAnnotations}, `KtParameterList`, `KtFunctionSignature`) stay
+ * pure and just interpolate.
+ *
+ * NOT a `KtSnippet` subclass: `KtDefinition` imports {@link toKtAnnotations}
+ * from this module, so extending `KtSnippet` would close a load-time module
+ * cycle (`KtSnippet → KtLang → KtDefinition → KtAnnotation → KtSnippet`).
+ * It calls this package's {@link register} function directly instead — the
+ * same write path `KtSnippet.register` delegates to.
  *
  * Generic grammar only — args are {@link Stringable} and pre-quoted by the
  * caller. WHICH annotation to emit is generator policy (the serialization
@@ -11,9 +49,16 @@ export class KtAnnotation {
   name: string
   args: Stringable[]
 
-  constructor(name: string, args: Stringable[] = []) {
-    this.name = name
-    this.args = args
+  constructor(constructorArgs: KtAnnotationArgs) {
+    this.name = constructorArgs.name
+    this.args = constructorArgs.args ?? []
+
+    if (constructorArgs.packageName !== undefined) {
+      register(constructorArgs.context, {
+        imports: { [constructorArgs.packageName]: [constructorArgs.name] },
+        destinationPath: constructorArgs.destinationPath
+      })
+    }
   }
 
   toString(): string {
@@ -27,18 +72,15 @@ export class KtAnnotation {
  *
  * `Lang.toDefinition`'s neutral signature has no annotations slot, so
  * annotations ride on the value: a generator's projection sets an
- * `annotations` field, and `KtDefinition.toString()` detects it via
- * {@link isKtAnnotated} and renders the annotations above the declaration
- * shell. Scratch-proved per note 19 (cast-free `in` narrowing).
+ * `annotations` field, and `KtDefinition.toString()` collects it via
+ * {@link toKtAnnotations} and renders the annotations above the
+ * declaration head.
  */
 export type KtAnnotated = {
   annotations: KtAnnotation[]
 }
 
-/**
- * Type guard for the {@link KtAnnotated} protocol — narrows without casts.
- */
-export const isKtAnnotated = (value: unknown): value is KtAnnotated => {
+const isKtAnnotated = (value: unknown): value is KtAnnotated => {
   if (typeof value !== 'object' || value === null) {
     return false
   }
@@ -51,4 +93,31 @@ export const isKtAnnotated = (value: unknown): value is KtAnnotated => {
     Array.isArray(value.annotations) &&
     value.annotations.every(item => item instanceof KtAnnotation)
   )
+}
+
+/**
+ * A class-level annotation block — zero or more {@link KtAnnotation}s,
+ * rendered one per line above a declaration head. Empty renders the empty
+ * string, so it interpolates unconditionally
+ * (`${annotations}${head}${value}`).
+ */
+export class KtAnnotations {
+  annotations: KtAnnotation[]
+
+  constructor(annotations: KtAnnotation[] = []) {
+    this.annotations = annotations
+  }
+
+  toString(): string {
+    return this.annotations.map(annotation => `${annotation}\n`).join('')
+  }
+}
+
+/**
+ * Collect a value's {@link KtAnnotated} protocol field into a
+ * {@link KtAnnotations} block — empty when the value carries none, so the
+ * caller renders it without a guard.
+ */
+export const toKtAnnotations = (value: unknown): KtAnnotations => {
+  return new KtAnnotations(isKtAnnotated(value) ? value.annotations : [])
 }

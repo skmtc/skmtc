@@ -59,7 +59,7 @@ Deno.test('same-package imports are suppressed (Kotlin needs no import for them)
 
 Deno.test('the Track 2 User-DTO worked example renders byte-for-byte (note 19 snapshot)', () => {
   class AnnotatedDataClassValue {
-    annotations = [new KtAnnotation('Serializable')]
+    annotations = [new KtAnnotation({ context, name: 'Serializable' })]
     parameters: KtParameterList
 
     constructor(parameters: KtParameterList) {
@@ -85,7 +85,7 @@ Deno.test('the Track 2 User-DTO worked example renders byte-for-byte (note 19 sn
           {
             name: 'userId',
             type: 'String',
-            annotations: [new KtAnnotation('SerialName', ['"user_id"'])]
+            annotations: [new KtAnnotation({ context, name: 'SerialName', args: ['"user_id"'] })]
           },
           { name: 'name', type: 'String' },
           { name: 'email', type: 'String', nullable: true, defaultValue: 'null' }
