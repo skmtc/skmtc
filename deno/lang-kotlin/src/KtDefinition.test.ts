@@ -13,8 +13,7 @@ import {
   createInterface,
   createSealedInterface,
   createTypeAlias,
-  createValue,
-  createVerbatim
+  createValue
 } from './createIdentifier.ts'
 
 // Construction only stores `context`; `toString()` never reads it (test-only cast).
@@ -343,23 +342,6 @@ Deno.test('KtDocumented value supplies the KDoc; constructor description wins', 
     fromConstructor.toString(),
     '/** Explicit. */\ndata class User(\n    val id: String\n)'
   )
-})
-
-Deno.test('verbatim type renders the value as-is — no head, visibility, or annotations', () => {
-  const body =
-    'internal fun add(a: Int, b: Int): Int = a + b\n\ninternal fun sub(a: Int, b: Int): Int = a - b'
-
-  // Through the Lang boundary so the neutral noExport flag is exercised:
-  // the fold restricts the identifier, but verbatim renders no head, so
-  // there is nothing to restrict — the value passes through untouched.
-  const definition = kotlin.toDefinition({
-    context,
-    identifier: createVerbatim('MathUtilsBody'),
-    value: body,
-    noExport: true
-  })
-
-  assertEquals(definition.toString(), body)
 })
 
 Deno.test('KtPrimaryConstructor renders modifiers with the explicit constructor keyword', () => {

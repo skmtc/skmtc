@@ -71,7 +71,6 @@ export {
   createSealedInterface,
   createTypeAlias,
   createValue,
-  createVerbatim,
   isKtEntityType,
   toKtEntityType,
   type KtEntityType,

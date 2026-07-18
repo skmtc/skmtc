@@ -18,9 +18,11 @@ import { KtIdentifier } from './KtIdentifier.ts'
  * - `'val'` — a top-level `val Name = …` assignment (Kotlin's distinctive
  *   file-scope value, illegal in C#/PHP/Java).
  *
- * - `'verbatim'` — NO shell: the value renders as-is (multi-declaration
- *   template files, where the identifier serves cache identity only —
- *   the gen-kotlin-sdk static-runtime idiom, note `32` §A5).
+ * Every kind names a REAL declaration — an identifier that never appears
+ * in code is a contradiction. Raw whole-file content (static template
+ * files) is a FILE fact, not a definition: it goes through the register
+ * vocabulary's `custom` field (`FileBase.custom`), with no identifier
+ * involved.
  *
  * Unlike TypeScript, the type does NOT drive import form — every Kotlin
  * import is `import pkg.Name`. It drives only the declaration shell.
@@ -41,8 +43,7 @@ const ktEntityTypes = [
   'interface',
   'sealed-interface',
   'typealias',
-  'val',
-  'verbatim'
+  'val'
 ] as const
 
 const ktEntityTypeSet: ReadonlySet<string> = new Set(ktEntityTypes)
@@ -173,23 +174,6 @@ export const createValue = (name: string, args: CreateValueArgs = {}): KtIdentif
   const { typeName, exported } = args
 
   return new KtIdentifier({ name, typeName, exported, type: 'val' })
-}
-
-/**
- * Creates a `verbatim` identifier — the value renders as-is with NO
- * declaration shell, visibility, or annotations. For content whose text
- * is already complete Kotlin (parameterized template files, bodies with
- * several top-level declarations); `name` serves cache identity only
- * and must be unique within the destination file.
- *
- * @example
- * ```typescript
- * const utils = createVerbatim('UtilsFileBody')
- * // KtDefinition renders the value's text untouched
- * ```
- */
-export const createVerbatim = (name: string): KtIdentifier => {
-  return new KtIdentifier({ name, type: 'verbatim' })
 }
 
 /**

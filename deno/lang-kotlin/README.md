@@ -25,7 +25,9 @@ the `KtDocumented` KDoc value protocol, signature-level KDoc, and
 function-parameter defaults (`verbose: Boolean? = null` — the
 service-seam ergonomics) — the production-polish arc (specs
 `notes/lang/28`/`29`). The gen-kotlin-sdk arc (note `32`) added the
-`verbatim` kind (multi-declaration template files), constructor
+`verbatim` kind (multi-declaration template files — since removed;
+whole-file raw content is a FILE fact awaiting a neutral content-file
+class in core), constructor
 modifiers with the explicit `constructor` keyword, the supertype clause
 on the `class` shell, and the OAS operation projection-base veneer.
 The head+value rewrite then moved the declaration keywords (and
@@ -61,10 +63,16 @@ the current model).
   its declaration head (`data class User`, `val timeout: Long` — the
   keyword map lives on `KtIdentifier`), and the value renders
   everything after it. Assignment kinds (`typealias` / `val`) render
-  `${head} = ${value}`; declaration kinds render `${head}${value}`;
-  `verbatim` renders the value as-is. A value that renders nothing IS
-  the bodyless idiom (`sealed interface Animal`) — the definition
-  never inspects the value. Visibility is the identifier's fact,
+  `${head} = ${value}`; declaration kinds render `${head}${value}`. A
+  value that renders nothing IS the bodyless idiom (`sealed interface
+  Animal`) — the definition never inspects the value. Raw whole-file
+  content (static template files) is a FILE fact, not a definition —
+  no identifier involved; it belongs on a self-contained content file
+  (neutral core wiring pending), not on `KtFile`. `KtFile` renders the
+  neutral `custom` slot (`FileBase.custom`) as LEADING content above
+  the `package` directive — e.g. a generated-file attribution banner —
+  the same placement `TsFile` gives it, last non-`undefined` write
+  wins. Visibility is the identifier's fact,
   rendered in its head (nothing when public, `private ` to restrict);
   the neutral `noExport` flag folds into a restricted identifier copy
   at the `KtLang.toDefinition` boundary. Two protocols remain on the
@@ -94,7 +102,7 @@ the current model).
   annotation to emit is generator policy.
 - **Identifier factories** — `createClass`, `createDataClass`,
   `createEnumClass`, `createInterface`, `createSealedInterface`,
-  `createTypeAlias`, `createValue`, `createVerbatim` (+
+  `createTypeAlias`, `createValue` (+
   `toKtEntityType`, the cast-free narrowing of the engine's opaque
   `type` string; throws outside the vocabulary).
 - **`sanitizePropertyName`** — hard keywords + invalid names →

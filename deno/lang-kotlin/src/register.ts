@@ -1,6 +1,6 @@
 import { normalize } from '@std/path/normalize'
 import invariant from 'npm:tiny-invariant@1.3.3'
-import type { DefinitionBase, GenerateContextType, GeneratedValue } from '@skmtc/core'
+import type { DefinitionBase, GenerateContextType, GeneratedValue, Stringable } from '@skmtc/core'
 import { KtFile } from './KtFile.ts'
 import { KtImport, type KtImportNameArg } from './KtImport.ts'
 import { KtDefinition } from './KtDefinition.ts'
@@ -25,12 +25,14 @@ export type KtRegisterArgs = {
   /** Definition objects to include in the destination file. */
   definitions?: (DefinitionBase | undefined)[]
   /**
-   * Optional comment block rendered above the destination file's
-   * `package` directive (e.g. a generated-file attribution line).
-   * First writer wins — Drivers create files without a header, so the
-   * first register carrying one sets it.
+   * Leading file content, set on the destination file's neutral
+   * `custom` slot ({@link FileBase.custom}) and rendered by
+   * {@link KtFile} ABOVE the `package` directive — e.g. a
+   * generated-file attribution banner (only comments may precede
+   * `package`). The same placement `TsFile` gives the slot; the same
+   * neutral semantics too — last non-`undefined` write wins.
    */
-  fileHeader?: string
+  custom?: Stringable
 }
 
 /**
@@ -60,14 +62,12 @@ export const register = (
     `Cannot register Kotlin content into '${destinationPath}' — the file was created by another language`
   )
 
-  // First writer wins; a no-op when `fileHeader` is absent.
-  file.header ??= args.fileHeader
-
   context.register({
     imports: Object.entries(args.imports ?? {}).map(([module, names]) =>
       KtImport.fromConcise(module, names)
     ),
     definitions: args.definitions,
+    custom: args.custom,
     destinationPath
   })
 }

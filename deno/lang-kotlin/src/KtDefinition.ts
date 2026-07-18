@@ -33,8 +33,9 @@ export type KtDefinitionArgs<Value extends GeneratedValue> = {
  *   renders nothing yields the bodyless idiom (`sealed interface
  *   Animal`, `class Marker`) — the value decides its own form; the
  *   definition never inspects it.
- * - **`verbatim`** — the value IS the declaration text; no head, no
- *   visibility, no annotations.
+ * (Raw whole-file content — static template files — is a FILE fact, not
+ * a definition: it flows through the register vocabulary's `custom`
+ * field onto `FileBase.custom`, with no identifier involved.)
  *
  * Two protocols remain on the value because they render OUTSIDE the
  * head+value line: class-level annotations
@@ -70,12 +71,6 @@ export class KtDefinition<
   }
 
   override toString(): string {
-    if (this.identifier.type === 'verbatim') {
-      // The value IS the declaration text (template files, multi-
-      // declaration bodies) — no head, no visibility, no annotations.
-      return `${this.value}`
-    }
-
     const declaration = `${toKtAnnotations(this.value)}${this.toShell()}`
 
     // Constructor description wins; else the value-carried protocol.

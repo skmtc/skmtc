@@ -21,12 +21,9 @@ export type KtIdentifierArgs = IdentifierBaseArgs & {
 }
 
 /**
- * Single source of truth for the declaration keywords — each shell-bearing
+ * Single source of truth for the declaration keywords — every
  * {@link KtEntityType} mapped to the keyword(s) its declaration head
- * renders with. `verbatim` is deliberately absent: it has no declaration
- * head (the value renders as-is; its identifier is cache identity only),
- * so {@link KtIdentifier.toString} falls back to the neutral bare-name
- * render for it.
+ * renders with; `satisfies` makes coverage exhaustive at compile time.
  */
 const ktDeclarationKeywords = {
   'class': 'class',
@@ -36,7 +33,7 @@ const ktDeclarationKeywords = {
   'sealed-interface': 'sealed interface',
   'typealias': 'typealias',
   'val': 'val'
-} as const satisfies Record<Exclude<KtEntityType, 'verbatim'>, string>
+} as const satisfies Record<KtEntityType, string>
 
 /**
  * Kotlin's concrete {@link IdentifierBase}: adds the typed `type`
@@ -69,16 +66,10 @@ export class KtIdentifier extends IdentifierBase {
    * own way — Go via name casing, Kotlin via this prefix). Kotlin defaults
    * to `public`, so `exported` renders as *nothing* when true and
    * `private ` (file-local) when false — keyword only to restrict.
-   * `verbatim` (no head, nothing to restrict) keeps the neutral bare-name
-   * behavior. Generators splicing a name into generated code should keep
-   * using `.name` / `Inserted.toName()`, which this override does not
-   * touch.
+   * Generators splicing a name into generated code should keep using
+   * `.name` / `Inserted.toName()`, which this override does not touch.
    */
   override toString(): string {
-    if (this.type === 'verbatim') {
-      return this.name
-    }
-
     const visibility = this.exported === false ? 'private ' : ''
     const typeName = this.typeName ? `: ${this.typeName}` : ''
 

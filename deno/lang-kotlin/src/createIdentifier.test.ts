@@ -7,7 +7,6 @@ import {
   createSealedInterface,
   createTypeAlias,
   createValue,
-  createVerbatim,
   toKtEntityType
 } from './createIdentifier.ts'
 
@@ -69,13 +68,6 @@ Deno.test('factories honor exported: false (renders private downstream)', () => 
   assertEquals(identifier.exported, false)
 })
 
-Deno.test('createVerbatim writes the verbatim type (cache-identity-only name)', () => {
-  const identifier = createVerbatim('UtilsFileBody')
-
-  assertEquals(identifier.name, 'UtilsFileBody')
-  assertEquals(identifier.type, 'verbatim')
-})
-
 Deno.test('toKtEntityType narrows the full vocabulary', () => {
   assertEquals(toKtEntityType('class'), 'class')
   assertEquals(toKtEntityType('data-class'), 'data-class')
@@ -84,7 +76,6 @@ Deno.test('toKtEntityType narrows the full vocabulary', () => {
   assertEquals(toKtEntityType('sealed-interface'), 'sealed-interface')
   assertEquals(toKtEntityType('typealias'), 'typealias')
   assertEquals(toKtEntityType('val'), 'val')
-  assertEquals(toKtEntityType('verbatim'), 'verbatim')
 })
 
 Deno.test('toKtEntityType throws outside the vocabulary (foreign-language identifier)', () => {
@@ -111,6 +102,3 @@ Deno.test('exported: false renders the private visibility prefix in the head', (
   assertEquals(`${createValue('secret', { exported: false, typeName: 'String' })}`, 'private val secret: String')
 })
 
-Deno.test('verbatim has no declaration head — bare-name render (cache identity only)', () => {
-  assertEquals(`${createVerbatim('UtilsFileBody')}`, 'UtilsFileBody')
-})

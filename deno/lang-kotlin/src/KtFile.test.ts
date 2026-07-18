@@ -159,12 +159,12 @@ Deno.test('multi-package mode resolves cross-rootPath imports to real dotted pac
   )
 })
 
-Deno.test('header renders above the package directive', () => {
+Deno.test('the custom slot renders above the package directive (leading content)', () => {
   const file = new KtFile({
     path: '@/com/example/api/User.generated.kt',
-    settings: undefined,
-    header: '// Generated file — do not edit.'
+    settings: undefined
   })
+  file.custom = '// Generated file — do not edit.'
   file.addImports([KtImport.fromConcise('kotlinx.serialization', ['Serializable'])])
 
   assertEquals(
