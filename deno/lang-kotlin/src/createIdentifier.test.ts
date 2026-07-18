@@ -1,13 +1,21 @@
 import { assertEquals, assertThrows } from '@std/assert'
 import {
+  createClass,
   createDataClass,
   createEnumClass,
   createInterface,
   createSealedInterface,
   createTypeAlias,
   createValue,
-  toKtKeyword
+  toKtEntityType
 } from './createIdentifier.ts'
+
+Deno.test('createClass writes the class type', () => {
+  const identifier = createClass('UsersController')
+
+  assertEquals(identifier.name, 'UsersController')
+  assertEquals(identifier.type, 'class')
+})
 
 Deno.test('createDataClass writes the data-class type', () => {
   const identifier = createDataClass('User')
@@ -60,16 +68,37 @@ Deno.test('factories honor exported: false (renders private downstream)', () => 
   assertEquals(identifier.exported, false)
 })
 
-Deno.test('toKtKeyword maps the full vocabulary', () => {
-  assertEquals(toKtKeyword('data-class'), 'data class')
-  assertEquals(toKtKeyword('enum-class'), 'enum class')
-  assertEquals(toKtKeyword('interface'), 'interface')
-  assertEquals(toKtKeyword('sealed-interface'), 'sealed interface')
-  assertEquals(toKtKeyword('typealias'), 'typealias')
-  assertEquals(toKtKeyword('val'), 'val')
+Deno.test('toKtEntityType narrows the full vocabulary', () => {
+  assertEquals(toKtEntityType('class'), 'class')
+  assertEquals(toKtEntityType('data-class'), 'data-class')
+  assertEquals(toKtEntityType('enum-class'), 'enum-class')
+  assertEquals(toKtEntityType('interface'), 'interface')
+  assertEquals(toKtEntityType('sealed-interface'), 'sealed-interface')
+  assertEquals(toKtEntityType('typealias'), 'typealias')
+  assertEquals(toKtEntityType('val'), 'val')
 })
 
-Deno.test('toKtKeyword throws outside the vocabulary (foreign-language identifier)', () => {
-  assertThrows(() => toKtKeyword('variable'), Error, 'Unknown Kotlin entity type: variable')
-  assertThrows(() => toKtKeyword('type'), Error, 'Unknown Kotlin entity type: type')
+Deno.test('toKtEntityType throws outside the vocabulary (foreign-language identifier)', () => {
+  assertThrows(() => toKtEntityType('variable'), Error, 'Unknown Kotlin entity type: variable')
+  assertThrows(() => toKtEntityType('type'), Error, 'Unknown Kotlin entity type: type')
 })
+
+Deno.test('identifiers render their own declaration head (keyword + name)', () => {
+  assertEquals(`${createClass('UsersController')}`, 'class UsersController')
+  assertEquals(`${createDataClass('User')}`, 'data class User')
+  assertEquals(`${createEnumClass('Status')}`, 'enum class Status')
+  assertEquals(`${createInterface('UsersApi')}`, 'interface UsersApi')
+  assertEquals(`${createSealedInterface('Animal')}`, 'sealed interface Animal')
+  assertEquals(`${createTypeAlias('UserList')}`, 'typealias UserList')
+  assertEquals(`${createValue('MAX_RETRIES')}`, 'val MAX_RETRIES')
+})
+
+Deno.test('a typed val renders its type annotation in the head', () => {
+  assertEquals(`${createValue('timeout', { typeName: 'Long' })}`, 'val timeout: Long')
+})
+
+Deno.test('exported: false renders the private visibility prefix in the head', () => {
+  assertEquals(`${createDataClass('Internal', { exported: false })}`, 'private data class Internal')
+  assertEquals(`${createValue('secret', { exported: false, typeName: 'String' })}`, 'private val secret: String')
+})
+

@@ -9,6 +9,7 @@ import { createDataClass } from './createIdentifier.ts'
 
 // Construction only stores `context`; `toString()` never reads it (test-only cast).
 const context = {} as unknown as GenerateContextType
+const destinationPath = '@/test/Test.generated.kt'
 
 Deno.test('package directive is derived from the file path', () => {
   const file = new KtFile({ path: '@/com/example/api/User.generated.kt', settings: undefined })
@@ -59,7 +60,7 @@ Deno.test('same-package imports are suppressed (Kotlin needs no import for them)
 
 Deno.test('the Track 2 User-DTO worked example renders byte-for-byte (note 19 snapshot)', () => {
   class AnnotatedDataClassValue {
-    annotations = [new KtAnnotation('Serializable')]
+    annotations = [new KtAnnotation({ context, destinationPath, name: 'Serializable' })]
     parameters: KtParameterList
 
     constructor(parameters: KtParameterList) {
@@ -85,7 +86,7 @@ Deno.test('the Track 2 User-DTO worked example renders byte-for-byte (note 19 sn
           {
             name: 'userId',
             type: 'String',
-            annotations: [new KtAnnotation('SerialName', ['"user_id"'])]
+            annotations: [new KtAnnotation({ context, destinationPath, name: 'SerialName', args: ['"user_id"'] })]
           },
           { name: 'name', type: 'String' },
           { name: 'email', type: 'String', nullable: true, defaultValue: 'null' }
@@ -158,12 +159,12 @@ Deno.test('multi-package mode resolves cross-rootPath imports to real dotted pac
   )
 })
 
-Deno.test('header renders above the package directive', () => {
+Deno.test('the custom slot renders above the package directive (leading content)', () => {
   const file = new KtFile({
     path: '@/com/example/api/User.generated.kt',
-    settings: undefined,
-    header: '// Generated file — do not edit.'
+    settings: undefined
   })
+  file.custom = '// Generated file — do not edit.'
   file.addImports([KtImport.fromConcise('kotlinx.serialization', ['Serializable'])])
 
   assertEquals(

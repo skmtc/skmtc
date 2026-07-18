@@ -200,6 +200,19 @@ The CLI uses Cliffy framework with these patterns:
 - `deno task check` runs the full CI suite locally (doc-sync + workspace type-check & tests). A version-controlled `pre-push` hook (`<repo>/.githooks/pre-push`) runs it before every push so failures surface locally, not in GitHub Actions. Enable it per-clone with `git config core.hooksPath .githooks`; bypass a single push with `git push --no-verify`.
 - Use absolute import paths prefixed with `@/`, not of relative path imports
 
+## Deno 2.9 dependency age gate (misleading bundle failure)
+
+Deno ≥ 2.9 blocks recently published dependency versions by default
+(`--minimum-dependency-age`, unstable). The failure is misleading:
+`deno bundle` — and therefore `skmtc install` / `skmtc bundle`, which
+shell out to it — fails with `Do not know how to load path:
+deno:jsr:@skmtc/…` and no mention of age. Because `@skmtc/*` publishes
+on every merge to main, a just-released version ALWAYS trips the gate
+on jsr.io. Workarounds: pass `--minimum-dependency-age=0` to
+`deno bundle`, or use deno ≤ 2.8, or the local mirror (the gate does
+not fire against it). Verified 2026-07-12 — full write-up in
+`deno/docs/friction-log/2026-07-12-docs-journey-program.md` entry 6.
+
 Use US English spelling in code, prose and documentation
 
 <claude-mem-context>

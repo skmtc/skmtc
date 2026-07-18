@@ -104,118 +104,93 @@ hand off to `skmtc-debug`.
 
 ## Outline structure
 
-The actual `SKILL.md` should have approximately these sections:
+The `SKILL.md` (v0.6.0 restructure) leads with the **constructive
+generation model** and derives the rules from it, instead of opening
+with defensive tables. Rationale: an agent that only holds a rulebook
+can check its work but cannot *derive* what to write; the model
+section gives it the game, the rules then read as consequences.
 
-### 1. The five facts that override default LLM intuitions
+### 1. The generation model
 
-Verbatim from `llms.md`. These are the highest-priority overrides for
-LLM defaults; they appear at the top so positional attention prioritizes
-them.
+The narrative, in pipeline order: parse → typed IR → the
+(generator × item × variant) loop → `transform` converts each IR
+object into a **producer** (Projection or Snippet) → a Projection's
+value is wrapped in a **Definition** (key = identifier, value =
+what's assigned to it) written into a **File** → Files have two roles
+(render unit + cache) → producers self-provision their dependencies
+via `register` / `insert*` → therefore order cannot matter →
+settings tell a Projection where it lands → enrichments (consumer
+customization) vs clone-and-edit (author customization) → the engine
+is language-blind (the import graph declares the language).
 
-### 2. The DSL: Projection vs Snippet
+Plus the two engine facts that don't derive from the model:
+`OasSchema` is a union of siblings; the variant axis fans out at the
+engine.
 
-The two-level model. Table comparing them (extends, static methods,
-file-level export, caching, embedding). Cross-reference to
-`concepts/projections-and-snippets.md` for full prose.
+Sync contract: `verify-docs.ts` check 1 asserts every `llms.md`
+"Read this first" fact's bold lead clause appears somewhere in this
+skill (the skill no longer mirrors the list shape).
 
-### 3. Cross-generator coordination
+### 2. Producers: Projection vs Snippet
 
-The memoization model — `(identifier.name, exportPath)` cache, pure
-functions, idempotency by construction. The Driver lifecycle.
-Cross-reference to `concepts/cross-generator-coordination.md`.
+The two-level DSL. Comparison table, when-to-write-which, the
+constructor/`toString()` contract, `Stringable` / `ContentSettings`.
 
-### 4. Operational principles (full table)
+### 3. Writing producers into Files: register and insert
 
-The canonical operational principles table — every row from `llms.md`'s
-"Operational principles for proposing changes" section. This is the
-**most load-bearing section** because it directly defends against
-LLM-training-data-default mistakes.
+The Driver flow, the which-helper-for-which-job table, variant
+threading, peer `isSupported` enforcement, and the
+operation-reference protocol.
 
-Includes the "Don't suggest config flags," "Don't add a base class for
-OasSchema," "Use `createVariable` not raw strings," etc.
+### 4. Operational rules
 
-Each row: default intuition → SKMTC's stance → why.
+The former "operational principles table" and "anti-patterns"
+sections merged — every distinct rule stated once, grouped by theme
+(producing output / naming and caching / composition / schema
+handling / gates and customization / code style), with compact
+wrong→right code only where the mistake is syntactic. The full
+default-intuition → stance table stays canonical in `llms.md`; this
+section is the authoring-weighted digest.
 
 ### 5. Decision trees
 
-The authoring decision trees:
-
-- "Projection or Snippet?"
-- "Where do strings go?" (toString() / register / Identifier / CustomValue)
-- "Should I clone or install?"
-- "Where's the customization seam in gen-X?"
+Clone-or-install (with the peers-are-installed note), Projection-or-
+Snippet, where-do-strings-go, why-is-output-empty.
 
 ### 6. Code scaffolds
 
-Boilerplate the LLM can adapt:
-
-- **Operation Projection scaffold** (the `base.ts` factory call +
-  Projection class skeleton)
-- **Model Projection scaffold**
-- **Anonymous Snippet scaffold**
-- **Enrichment Valibot schema scaffold**
-
-Each scaffold is ~15–25 lines. Annotated with comments showing where
-common modifications go.
+`base.ts` factory / operation Projection / entry (`mod.ts`) with GQL
+and model variants / entry-factory routing cheat sheet / Valibot
+enrichments umbrella / Snippet. Annotated at the extension points.
 
 ### 7. Customization seams in stock generators
 
-Table of where to edit what in a cloned generator:
+The where-to-edit-what table plus the path-param-coupling and
+monorepo-output callouts.
 
-| Seam | Location | Customize by |
-|---|---|---|
-| Export path | `gen-x/src/base.ts` → `toExportPath` | Edit `join('@', ...)` |
-| Identifier shape | `gen-x/src/base.ts` → `toIdentifier` | Edit name-building |
-| Peer dependency | `gen-x/src/<Main>.ts` top imports | Swap import target |
-| Consumer-side component path | `gen-x/src/fields/<X>.ts` register | Change import key |
-| Capability gate | `gen-x/src/mod.ts` → `isSupported` | Change predicate |
-| Enrichment schema | `gen-x/src/enrichments.ts` | Add Valibot fields |
+### 8. Emitting a language other than TypeScript
 
-### 8. Anti-patterns (top ~15 with failure modes)
-
-The top entries from `llms.md`'s anti-patterns section. Each: wrong
-pattern, specific failure mode.
-
-Cross-reference to `llms.md` for the full catalog.
+What a lang package owns; everything else in the skill is
+language-agnostic and transliterates by swapping the lang imports.
+Supports the "write a server/DTO generator in another language" test
+case without a per-language skill existing yet.
 
 ### 9. Verification checklist
 
-After writing or editing a generator, verify:
-
-- [ ] All imports go through `register({ imports, destinationPath })`
-- [ ] No `as` casts in non-test code
-- [ ] No raw identifier strings — `createVariable/createType`
-- [ ] No `if/else` chains of length ≥ 3 — use `switch` + `never` default
-- [ ] `toString()` is pure (no mutation of `this`)
-- [ ] `transform()` returns nothing (uses `register` / `insertOperation`)
-- [ ] No literal `import` statements in template literals
-- [ ] Constructor side effects are idempotent (register and insertOperation are safe to repeat)
-- [ ] `toIdentifier` and `toExportPath` are pure functions of `(operation, enrichments)`
-- [ ] Cross-references use `insertOperation(Other, op).toName()`, not source text
+Grouped by theme (model conformance / naming / registration /
+schema / enrichments / variants / style) — every distinct check from
+the rules, one line each.
 
 ### 10. Task cards
 
-The 5–7 most common authoring tasks:
+Clone-and-customize, new-from-scratch, field type, peer swap,
+enrichment options (compact); orchestrator–delegate, variants-aware,
+barrel, accumulator (with code — these patterns exist nowhere else).
 
-- Adding a new field type to a form generator
-- Customizing export paths
-- Swapping the HTTP layer
-- Authoring a new model generator
-- Authoring a new operation generator
-- Adding enrichment options
-- Composing with another generator
+### 11–12. Boundaries and cross-references
 
-### 11. Cross-references
-
-- Authoring tutorials: `authoring/tutorials/01-cloning-a-generator.md`, etc.
-- How-tos: `authoring/how-to/*`
-- Recipes: `authoring/recipes/*`
-- API reference: `reference/api/`
-- Concepts: `concepts/projections-and-snippets.md`,
-  `concepts/cross-generator-coordination.md`,
-  `concepts/the-three-phases.md`
-- Explanation: `explanation/design-philosophy.md`,
-  `explanation/why-clone-to-customize.md`
+Skill handoffs; concept/reference/tutorial pointers; the enforcement
+tests that pin the invariants.
 
 ## Open design questions
 

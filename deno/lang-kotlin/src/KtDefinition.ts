@@ -1,11 +1,7 @@
 import { DefinitionBase } from '@skmtc/core'
-import invariant from 'npm:tiny-invariant@1.3.3'
-import type { GeneratedValue, GenerateContextType, IdentifierBase, Stringable } from '@skmtc/core'
-import { isKtAnnotated } from './KtAnnotation.ts'
-import { isKtConstructed } from './KtConstructed.ts'
+import type { GeneratedValue, GenerateContextType } from '@skmtc/core'
+import { toKtAnnotations } from './KtAnnotation.ts'
 import { isKtDocumented } from './KtDocumented.ts'
-import { isKtSupertyped } from './KtSupertyped.ts'
-import { isKtIdentifier } from './KtIdentifier.ts'
 import type { KtIdentifier } from './KtIdentifier.ts'
 import { withDescription } from './withDescription.ts'
 
@@ -14,76 +10,68 @@ import { withDescription } from './withDescription.ts'
  */
 export type KtDefinitionArgs<Value extends GeneratedValue> = {
   context: GenerateContextType
-  identifier: IdentifierBase
+  identifier: KtIdentifier
   value: Value
   description?: string
-  noExport?: boolean
 }
 
 /**
- * Kotlin's concrete {@link DefinitionBase}: assembles the declaration
- * shell around the generated value, dispatching on the identifier's
- * opaque `type` — exhaustive over this language's vocabulary, throwing
- * outside it (no silent fallback).
+ * Kotlin's concrete {@link DefinitionBase}: renders the identifier's
+ * declaration head and the value, each rendering itself.
  *
- * | type | shell |
- * |---|---|
- * | `class` | `class Name` (+ `(\n…\n)` via the `KtConstructed` protocol; + ` {\n…\n}` when the value renders non-empty) |
- * | `data-class` | `data class Name(\n…\n)` (+ ` : A, B` via the supertype protocol) |
- * | `enum-class` | `enum class Name {\n…\n}` |
- * | `interface` | `interface Name` (+ ` {\n…\n}` when the value renders non-empty) |
- * | `sealed-interface` | `sealed interface Name` (+ ` {\n…\n}` when the value renders non-empty) |
- * | `typealias` | `typealias Name = …` |
- * | `val` | `val Name[: Type] = …` (Kotlin's distinctive file-scope value) |
+ * - **Assignment kinds** (`typealias`, `val`) — `${head} = ${value}`;
+ *   the value is the right-hand-side expression.
+ * - **Declaration kinds** (`class`, `data-class`, `enum-class`,
+ *   `interface`, `sealed-interface`) — `${head}${value}`; the value
+ *   renders everything after the head: a
+ *   {@link import('./KtParameterList.ts').KtParameterList} (parentheses
+ *   included), a
+ *   {@link import('./KtPrimaryConstructor.ts').KtPrimaryConstructor}
+ *   (modifiers + the explicit `constructor` keyword), plus inline
+ *   ` : A, B` supertype clauses and ` {\n…\n}` braced bodies — plain
+ *   Kotlin syntax carries no grammar rule worth a class. A value that
+ *   renders nothing yields the bodyless idiom (`sealed interface
+ *   Animal`, `class Marker`) — the value decides its own form; the
+ *   definition never inspects it.
+ * (Raw whole-file content — static template files — is a FILE fact, not
+ * a definition: it flows through the register vocabulary's `custom`
+ * field onto `FileBase.custom`, with no identifier involved.)
  *
- * Class-level annotations ride on the VALUE via the
- * {@link import('./KtAnnotation.ts').KtAnnotated} protocol (the neutral
- * `Lang.toDefinition` signature has no annotations slot) and render one
- * per line above the shell; a supertype clause rides the same way via
- * {@link import('./KtSupertyped.ts').KtSupertyped} (rendered for the
- * `data-class` type only in v1); a `description` renders as a KDoc block
- * above the annotations.
+ * Two protocols remain on the value because they render OUTSIDE the
+ * head+value line: class-level annotations
+ * ({@link import('./KtAnnotation.ts').KtAnnotated}, one per line above
+ * the declaration — the neutral `Lang.toDefinition` signature has no
+ * annotations slot) and KDoc
+ * ({@link import('./KtDocumented.ts').KtDocumented}, above the
+ * annotations; an explicit constructor `description` wins).
  *
- * Visibility: Kotlin defaults to `public`, so the neutral `exported`
- * renders as *nothing* when exported and `private ` (file-local) when
- * not — keyword only to restrict. `noExport` restricts the same way.
+ * (A foreign identifier is refused earlier, at the `Lang.toDefinition`
+ * boundary in `KtLang`; the constructor only accepts a
+ * {@link KtIdentifier}.)
+ *
+ * Visibility is the identifier's fact, rendered in its head (`private
+ * data class …` — see {@link KtIdentifier.toString}). The neutral
+ * `noExport` flag the Drivers pass is folded into a restricted identifier
+ * copy at the `KtLang.toDefinition` boundary, so this class never sees
+ * it.
  */
 export class KtDefinition<
   Value extends GeneratedValue = GeneratedValue
 > extends DefinitionBase<Value> {
-  description: string | undefined
-  noExport: boolean | undefined
+  /** Narrows the inherited neutral `identifier` to the concrete Kotlin
+   *  subclass (the constructor only accepts a {@link KtIdentifier}). */
+  declare identifier: KtIdentifier
 
-  constructor({ context, identifier, value, description, noExport }: KtDefinitionArgs<Value>) {
+  description: string | undefined
+
+  constructor({ context, identifier, value, description }: KtDefinitionArgs<Value>) {
     super({ context, identifier, value })
 
     this.description = description
-    this.noExport = noExport
   }
 
   override toString(): string {
-    // The engine holds the identifier as the neutral `IdentifierBase`;
-    // narrow to `KtIdentifier` cast-free to read the typed `type`.
-    const identifier = this.identifier
-    invariant(
-      isKtIdentifier(identifier),
-      `KtDefinition needs a KtIdentifier to render '${identifier.name}', got a foreign identifier`
-    )
-
-    if (identifier.type === 'verbatim') {
-      // The value IS the declaration text (template files, multi-
-      // declaration bodies) — no shell, no visibility, no annotations.
-      return `${this.value}`
-    }
-
-    const restricted = this.noExport === true || identifier.exported === false
-    const visibility = restricted ? 'private ' : ''
-
-    const annotations = isKtAnnotated(this.value)
-      ? this.value.annotations.map(annotation => `${annotation}\n`).join('')
-      : ''
-
-    const declaration = `${annotations}${visibility}${this.toShell(identifier)}`
+    const declaration = `${toKtAnnotations(this.value)}${this.toShell()}`
 
     // Constructor description wins; else the value-carried protocol.
     const description =
@@ -92,62 +80,16 @@ export class KtDefinition<
     return withDescription(declaration, { description })
   }
 
-  private toShell(identifier: KtIdentifier): string {
-    const { name, type, typeName } = identifier
-
-    switch (type) {
-      case 'class': {
-        const constructorClause = isKtConstructed(this.value)
-          ? `${toConstructorKeyword(this.value.constructorModifiers)}(\n${this.value.constructorParameters}\n)`
-          : ''
-        const supertypeClause =
-          isKtSupertyped(this.value) && this.value.supertypes.length
-            ? ` : ${this.value.supertypes.join(', ')}`
-            : ''
-        const body = `${this.value}`
-
-        return body.length
-          ? `class ${name}${constructorClause}${supertypeClause} {\n${body}\n}`
-          : `class ${name}${constructorClause}${supertypeClause}`
-      }
-      case 'data-class': {
-        const clause =
-          isKtSupertyped(this.value) && this.value.supertypes.length
-            ? ` : ${this.value.supertypes.join(', ')}`
-            : ''
-
-        return `data class ${name}(\n${this.value}\n)${clause}`
-      }
-      case 'enum-class':
-        return `enum class ${name} {\n${this.value}\n}`
-      case 'interface': {
-        const body = `${this.value}`
-
-        return body.length ? `interface ${name} {\n${body}\n}` : `interface ${name}`
-      }
-      case 'sealed-interface': {
-        const body = `${this.value}`
-
-        return body.length ? `sealed interface ${name} {\n${body}\n}` : `sealed interface ${name}`
-      }
+  private toShell(): string {
+    switch (this.identifier.type) {
       case 'typealias':
-        return `typealias ${name} = ${this.value}`
       case 'val':
-        return `val ${name}${typeName ? `: ${typeName}` : ''} = ${this.value}`
+        // Assignment kinds: the value is the right-hand side.
+        return `${this.identifier} = ${this.value}`
       default:
-        throw new Error(`Unknown Kotlin entity type: ${type}`)
+        // Declaration kinds: the identifier renders its head, the value
+        // renders everything after it (constructor, supertypes, body).
+        return `${this.identifier}${this.value}`
     }
   }
-}
-
-/**
- * Constructor modifiers (annotations / visibility) between the class
- * name and the parameter list require Kotlin's explicit `constructor`
- * keyword — the lang owns that rule; the modifiers' content is
- * generator policy.
- */
-const toConstructorKeyword = (modifiers: Stringable | undefined): string => {
-  const rendered = modifiers === undefined ? '' : `${modifiers}`
-
-  return rendered.length ? ` ${rendered} constructor` : ''
 }

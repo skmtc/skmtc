@@ -8,11 +8,14 @@
  * `kotlin` {@link Lang} object,
  * `KtSnippet` (static `lang`, keyless registers), the register family
  * (`register`/`defineAndRegister` + `KtRegisterArgs` — deliberately no
- * `reExports` field), the model projection-base veneer, `KtFile`
- * (path-derived `package` directive, sorted imports, same-package
- * suppression), `KtImport` (symbol-level, `as` aliases), `KtDefinition`
- * (exhaustive seven-type shells; the `KtAnnotated` / `KtSupertyped` /
- * `KtConstructed` / `KtDocumented` value protocols), the
+ * `reExports` field), the projection-base veneers (model + OAS
+ * operation), `KtFile` (path-derived `package` directive, sorted imports,
+ * same-package suppression), `KtImport` (symbol-level, `as` aliases),
+ * `KtDefinition` (head + value rendering — the identifier renders its
+ * declaration head, the value renders everything after it via
+ * `KtParameterList` / `KtPrimaryConstructor` plus inline supertype
+ * clauses and ` {\n…\n}` bodies; the `KtAnnotated` / `KtDocumented`
+ * value protocols cover what renders above the declaration), the
  * function-signature grammar (`KtFunctionSignature` /
  * `KtFunctionParameter` — interface/class methods incl. KDoc,
  * expression bodies, and parameter defaults), the identifier
@@ -47,10 +50,18 @@ export {
   type KtFunctionSignatureArgs,
   type KtFunctionParameterArgs
 } from './src/KtFunctionSignature.ts'
-export { KtAnnotation, isKtAnnotated, type KtAnnotated } from './src/KtAnnotation.ts'
-export { isKtSupertyped, type KtSupertyped } from './src/KtSupertyped.ts'
-export { isKtConstructed, type KtConstructed } from './src/KtConstructed.ts'
+export {
+  KtAnnotation,
+  KtAnnotations,
+  toKtAnnotations,
+  type KtAnnotated,
+  type KtAnnotationArgs
+} from './src/KtAnnotation.ts'
 export { isKtDocumented, type KtDocumented } from './src/KtDocumented.ts'
+export {
+  KtPrimaryConstructor,
+  type KtPrimaryConstructorArgs
+} from './src/KtPrimaryConstructor.ts'
 export { withDescription, type WithDescriptionArgs } from './src/withDescription.ts'
 export {
   createClass,
@@ -60,8 +71,7 @@ export {
   createSealedInterface,
   createTypeAlias,
   createValue,
-  createVerbatim,
-  toKtKeyword,
+  isKtEntityType,
   toKtEntityType,
   type KtEntityType,
   type CreateKtIdentifierArgs,
@@ -70,7 +80,7 @@ export {
 export { sanitizePropertyName } from './src/sanitizePropertyName.ts'
 export { toPackageName } from './src/toPackageName.ts'
 export { ktHardKeywords, isKtIdentifierName } from './src/hardKeywords.ts'
-export { kotlin } from './src/ktLang.ts'
+export { kotlin } from './src/KtLang.ts'
 export { KtSnippet } from './src/KtSnippet.ts'
 export {
   register,

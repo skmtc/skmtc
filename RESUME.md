@@ -1,0 +1,247 @@
+# RESUME — skmtc-generator skill eval program (2026-07-17 session)
+
+Fresh-agent pickup anchor for the skill-effectiveness work. Everything
+below happened in one session on branch
+**`docs/generator-skill-model-first`** (~21 commits, **not pushed**).
+
+## Intent
+
+The `skmtc-generator` skill was underperforming: agents authoring
+generators produced the wrong *shape* (the reference failure is
+`skmtc-generators/gen-kotlin-jackson-s` — all snippets, zero
+Projections, hand-registered Definitions). Diagnosis: the skill was a
+rulebook without the game — 40 defensive rules, never the constructive
+story. The program built this session:
+
+1. **Teach the model, not just the rules** — restructure the skill
+   (and `llms.md`) around the generation model narrative.
+2. **Measure structurally** — mechanical, no-LLM-judge checks on
+   generator source (`packages/gen-eval`), baselined against the
+   stock fleet so "good" and "sub-par" have numbers.
+3. **Test end-to-end** — a harness that has a model author
+   `gen-kotlin-jackson` from scratch in an isolated sandbox, graded
+   by ground-truth gates + the structural eval, with full telemetry
+   for human diagnosis.
+4. **Close the loop** — diagnose → edit skill → re-run (skill SHA +
+   task checksum recorded per run) → compare.
+
+Success test (user-defined): a model, given the skill, produces a
+clean generator for server code / DTOs in a non-TypeScript language.
+
+## What was built (all on the branch)
+
+### Skill + docs (`deno/docs/`)
+
+- **`skills/skmtc-generator/SKILL.md`** 0.5.0 → **0.6.2**, 1788 →
+  ~1400 lines: new §1 "The generation model" (parse → IR → loop →
+  producer → Definition → File-as-render-unit+cache →
+  self-provisioning → order-independence); §4 merges the old
+  principles table + anti-patterns (every rule once, thematically
+  grouped); §8 "Emitting a language other than TypeScript" **plus
+  0.6.2's "Working method: scaffold first — do not audit the engine"**
+  (evidence-driven, see findings); "silhouette of a finished
+  generator" (quantitative target shape); artifact-is-a-Projection
+  counter-rule; runtime-discipline fact; method-discipline made
+  explicit.
+- **`llms.md`**: same model-first treatment — "The generation model"
+  section before the six facts; facts kept canonical; `Producer` added
+  to glossary.
+- **`verify-docs.ts` check 1** rewritten: fact-ANCHOR sync (llms.md
+  canonical + each fact lead must appear in the skill) instead of the
+  old mirrored-list shape. All 13 checks + doc-test + verify-catalog
+  green at every commit.
+
+### Structural eval (`packages/gen-eval/`)
+
+Private all-node TS package, no build step (`node src/cli.ts`,
+node ≥ 23). One shared AST pass (`src/parse.ts` → `PackageFacts`);
+**14 checks, one module each** under `src/checks/`, each documented in
+`docs/` (one page per check + index). Aggregate = **defect aggregate**
+(`clean` / `warn(m)` / `FAIL(nF+mW)`), deliberately not a weighted
+score. `pnpm stock` sweeps `skmtc-generators/` (one row per generator,
+one column per check); baseline at `baselines/2026-07-17-stock.{json,md}`.
+
+### Authoring harness (`packages/gen-eval/harness/`)
+
+`harness/run.sh <model> [label]` — full docs in `harness/README.md`:
+isolated temp workspace (vendored lang-kotlin, pinned kotlin-demo
+schema, gradle consumer with pinned Jackson round-trip tests, JDK21
+auto-wired), deny rules + transcript contamination audit, provenance
+(skill SHA + snapshot, taskSha, MAX_THINKING_TOKENS), live terminal
+timeline, **persistent dashboard** (`http://127.0.0.1:8484/` — run
+list with LIVE/done/aborted + per-run scrubber viewer with live
+follow), gates (integrity, contamination, clean-generate,
+schema-coverage, compile, round-trip) + structural eval → `report.md`,
+`runs/index.jsonl` for comparison. Viewer: video-player scrubber,
+turn pane with persisted disclosures, file tree + line-numbered code
+view reconstructing the workspace per turn (Write/Edit + bash
+heredocs). **Narrate-and-log protocol** in `task.md`: `WHY:` intent
+lines (visible channel), `FRICTION.md` with per-entry `Unblocker:`
+(the model drafts the missing skill content), `RETRO.md` exit retro;
+milestones + report integration.
+
+## What we learned (findings, in order of importance)
+
+1. **The baseline validates the checks.** Clean cohort
+   (gen-typescript, gen-zod, tanstack pair, gen-msw…) = `clean`;
+   `gen-kotlin-jackson-s` = `FAIL(1F+10W)` — zero Projections, its
+   single raw `register(context, {definitions: [new KtDefinition…]})`
+   IS its whole output path. `gen-md-docs` is the second
+   zero-Projection non-accumulator offender. Three stock generators
+   carry ad-hoc `{ toString }` objects (arktype — with an as-cast in
+   the same expression — reapit-form ×2, reapit-graphql-client).
+   toString-purity passes fleet-wide. Accumulator detection is
+   evidence-based (defineAndRegister + findDefinition/container
+   mutator), which keeps exemptions honest.
+2. **Sonnet-5 research-spiral (reproduced ×2, different thinking
+   budgets):** on the authoring task it spent 60–112 turns
+   `deno doc`-ing `@skmtc/core` symbol-by-symbol and curling core
+   source from jsr.io into `/tmp` — zero files written before the
+   runs were interrupted. The skill said *what* to write, never *when
+   to stop researching* → skill 0.6.2 §8 "scaffold first" is the fix
+   under test right now.
+3. **Thinking is unrecoverable on current models** — API default
+   `display: "omitted"` across ALL Claude Code surfaces
+   (headless/interactive/sessions/both auth methods; verified
+   empirically incl. `thinking_delta` events carrying 0 chars;
+   upstream anthropics/claude-code#36006). Practical answers: the
+   viewer/timeline show `redacted (~N tokens)` estimates, and the
+   narrate-and-log protocol externalizes rationale via the visible
+   text channel.
+4. **Headless models write via bash heredocs**, not only the Write
+   tool — the viewer's file reconstruction handles both.
+5. **Operational lessons:** never edit harness scripts mid-run (bash
+   reads lazily — this clipped one run's post-processing); Ctrl-C'd
+   runs are auto-detected as `aborted` (no result event + transcript
+   quiet 5 min); harness bills against the Claude subscription unless
+   `ANTHROPIC_API_KEY` is exported; deno 2.9's dependency-age gate
+   did NOT bite (core 0.28.0 old enough, lang-kotlin vendored);
+   JDK 21 comes from homebrew via seeded `gradle.properties`.
+
+## State at session end (evening 2026-07-17)
+
+- **The comparison run was interrupted ~90 s in**:
+  `runs/20260717-222650-sonnet-after-research-fix` — skill `c32790a0`
+  (0.6.2 scaffold-first) + the narrate/friction protocol. The 13
+  turns it got were promising (reading `RoundTripTest.kt` instead of
+  excavating core), but it died mid-thinking with no result —
+  **relaunch it first thing**: `harness/run.sh sonnet
+  after-research-fix` (the relaunch also picks up the per-occurrence
+  WHY/FRICTION/RETRO timeline + scrubber marks added after).
+- Earlier runs (all interrupted, kept for reference):
+  `20260717-213901` (gates 3ok/3fail), `-214222` (112-turn research
+  spiral), `-221643-sonnet-shallow-think` (same spiral at
+  MAX_THINKING_TOKENS≈2048).
+- Dashboard was running on 8484 (`node harness/server.js` if not).
+- Branch not pushed; repo has unrelated user WIP (`deno.lock`,
+  `deno/CLAUDE.md`, an untracked friction-log entry) deliberately
+  left uncommitted.
+
+## Performance plan (from harness-log analysis, end of session)
+
+Where the time went, per the transcripts, ranked by expected payoff:
+
+1. **Complete a run before changing anything else** — all four runs
+   were interrupted; every conclusion so far rests on partial data.
+2. **Seeded API digest (the big lever).** Runs 2–3 burned 60–112
+   turns on single-file Reads of lang-kotlin (~20 files, one per
+   turn) and then `deno doc --filter <symbol>` against core, symbol
+   by symbol. The transcripts hand us the exact shopping list the
+   model hunted: `toModelEntry`, `GenerateContext`, `DefinitionBase`,
+   `GeneratedValue`, `Inserted`, `ContentSettings`, `IdentifierBase`,
+   `OasComponents`, `Document`, `TypeSystem`. Plan: `seed.sh`
+   generates `API.md` into the workspace (deno doc over vendored
+   lang-kotlin + those core symbols); `task.md` points at it ("read
+   ./API.md before reaching for source"). ~40 archaeology turns → 1
+   Read. This is the pre-emption mechanism, and a
+   proto-`skmtc-lang-kotlin` skill: once its content stabilizes
+   across runs, graduate it into a real lang skill.
+3. **Pre-warm the toolchain at seed time** — the model's first
+   `gradle` pays JVM start + full dependency download and its first
+   `skmtc bundle` pays deno's cold cache; neither measures the
+   skill. `seed.sh` should run `gradle -p consumer testClasses` and
+   a throwaway `skmtc bundle` before the model starts, so iteration
+   cycles cost seconds (matters: the skill tells models to use
+   bundle errors as the teacher).
+4. **Ceiling run with fable** (same skill + task) to separate "the
+   skill under-informs" from "sonnet over-researches": fable clean →
+   skill adequate, digest is a sonnet crutch; fable also stalls →
+   the information gap is real for everyone.
+5. **Loop discipline**: one labeled re-run per change; mine
+   FRICTION.md Unblockers into digest (environmental info) vs skill
+   (doctrine); don't stack variable changes — taskSha/skillSha
+   bookkeeping only pays off if respected.
+
+Deliberately NOT doing: scripting the first N actions into task.md —
+faster runs, but it would turn the eval into instruction-following
+and stop measuring whether the skill teaches.
+
+**Open decision for tomorrow (A vs B):**
+- **A (cleaner experiment, RESUME's current plan):** first run pure
+  skill-0.6.2 (`after-research-fix`) to measure the scaffold-first
+  fix in isolation; add the digest + pre-warm as the run after
+  (label `with-digest`).
+- **B (faster to green):** build digest + pre-warm first (~30 min,
+  new taskSha) and make tomorrow's first run the strongest
+  configuration.
+Lean A if measuring the skill matters most today; lean B if getting
+a passing generator matters most.
+
+## Tomorrow — pick up here
+
+0. **Relaunch the comparison run and LET IT FINISH** (every run so
+   far was Ctrl-C'd — we have zero complete data points):
+
+   ```bash
+   cd skmtc/packages/gen-eval
+   harness/run.sh sonnet after-research-fix
+   ```
+
+   What this does: seeds an isolated temp workspace (schema +
+   vendored lang-kotlin + checksummed gradle acceptance tests),
+   records provenance (skill SHA, task checksum), prints the live
+   dashboard viewer link, runs sonnet headlessly against `task.md`
+   (10–40 min, billed to the subscription window), then grades with
+   the six gates + structural eval into `report.md` and archives
+   everything (full pipeline: `harness/README.md` → "What happens
+   during a run"). The label `after-research-fix` tags it as the
+   skill-0.6.2 configuration for dashboard comparison against the
+   pre-fix runs. **What to watch:** does the `src/base.ts written`
+   milestone fire in the first minutes (scaffold-first fix worked)
+   instead of never (research spiral); then `>>> WHY:` lines and
+   amber `*** FRICTION:` marks stream the model's rationale and
+   pain points live.
+
+1. **Read the finished run**: dashboard →
+   `runs/20260717-222650-…/report.md`, `FRICTION.md`, `RETRO.md`,
+   viewer. Key questions: did `src/base.ts written` fire early (fix
+   worked)? Which gates pass? What do the Unblockers ask for?
+2. **Feed the Unblockers into the skill** (they are pre-drafted skill
+   content), bump version, `deno task verify-docs`, re-run labeled.
+3. **Run the ceiling**: `harness/run.sh claude-fable-5` (fable also
+   redacts thinking; the WHY/friction channels are the visibility).
+4. When a run goes green: run 2–3 repeats (noise), then consider
+   promoting the authored generator to replace
+   `gen-kotlin-jackson-s`, and re-baseline (`pnpm stock:save`).
+5. **Push the branch / open the PR** when ready — it contains the
+   skill restructure, llms.md, verify-docs change, gen-eval package,
+   and harness (21 commits, all gates green).
+6. Parked ideas: standalone API-based runner with
+   `display:"summarized"` for real reasoning text; additional checks
+   (registration-channels promotion to pass/fail once legitimate raw
+   uses are adjudicated — see `gen-shadcn-table`'s noExport sibling
+   and `gen-kotlin-sdk`'s static-file emitters); wiring gen-eval into
+   the skill as a self-check (deliberately NOT done yet — first
+   measure the skill's teaching, not linter-looping).
+
+## Crib
+
+```bash
+cd skmtc/packages/gen-eval
+pnpm stock                                  # structural eval, whole fleet
+harness/run.sh <model> [label]              # authoring run (docs: harness/README.md)
+node harness/server.js                      # dashboard http://127.0.0.1:8484
+cat harness/runs/index.jsonl                # cross-run comparison
+# skill lives at deno/docs/skills/skmtc-generator/SKILL.md (symlinked into ~/.claude/skills)
+cd ../../deno && deno task verify-docs      # after any skill/docs edit
+```

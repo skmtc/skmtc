@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gen-eval run viewer</title>
+<style>
+  :root {
+    --bg: #101418; --panel: #171c22; --panel2: #1d232b; --border: #2a323c;
+    --text: #d7dee6; --dim: #8b98a5; --accent: #4cc38a; --warn: #e5b567;
+    --error: #e5484d; --think: #7e9cd8;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--mono);
+    font-size: 13px; display: flex; flex-direction: column; overflow: hidden;
+  }
+  header {
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    font-family: var(--sans);
+  }
+  header h1 { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
+  header .meta { color: var(--dim); font-size: 13px; }
+  #controls { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  button {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 4px; padding: 4px 10px; font-family: var(--sans); font-size: 13px;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  #pos { min-width: 110px; text-align: center; color: var(--dim); }
+  /* scrubber */
+  #scrubwrap { padding: 14px 16px 6px; border-bottom: 1px solid var(--border); user-select: none; }
+  #track {
+    position: relative; height: 22px; background: var(--panel2);
+    border: 1px solid var(--border); border-radius: 11px; cursor: pointer;
+  }
+  #fill {
+    position: absolute; left: 0; top: 0; bottom: 0; border-radius: 11px 0 0 11px;
+    background: color-mix(in srgb, var(--accent) 22%, transparent); pointer-events: none;
+  }
+  .tick {
+    position: absolute; top: 3px; bottom: 3px; width: 3px; border-radius: 2px;
+    pointer-events: none;
+  }
+  .tick.milestone { background: var(--accent); }
+  .tick.error { background: var(--error); }
+  .tick.why { background: var(--think); top: 12px; }
+  .tick.feedback { background: var(--warn); top: 12px; }
+  #playhead {
+    position: absolute; top: -5px; width: 14px; height: 32px; border-radius: 7px;
+    background: var(--text); border: 2px solid var(--bg); margin-left: -7px;
+    cursor: grab; box-shadow: 0 0 6px rgba(0,0,0,.6);
+  }
+  #playhead:active { cursor: grabbing; }
+  #legend {
+    display: flex; gap: 16px; padding: 6px 2px 0; color: var(--dim);
+    font-size: 13px; font-family: var(--sans);
+  }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+  /* main panes */
+  main { flex: 1; display: flex; min-height: 0; }
+  section { min-width: 0; overflow-y: auto; }
+  #turnpane { flex: 1.15; padding: 14px 16px; border-right: 1px solid var(--border); }
+  #filespane { flex: 1; display: flex; flex-direction: column; }
+  #filepath {
+    padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--dim);
+    font-family: var(--mono); font-size: 13px; background: var(--panel);
+    min-height: 33px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #filesbody { flex: 1; display: flex; min-height: 0; }
+  #filetree {
+    width: 250px; flex-shrink: 0; overflow: auto; padding: 6px 0;
+    border-right: 1px solid var(--border); background: var(--panel);
+    font-size: 13px; user-select: none;
+  }
+  .treedir {
+    color: var(--dim); cursor: pointer; padding: 3px 8px; white-space: nowrap;
+    font-family: var(--sans); font-weight: 600;
+  }
+  .treefile {
+    color: var(--dim); cursor: pointer; padding: 3px 8px; white-space: nowrap;
+    font-family: var(--mono);
+  }
+  .treedir:hover, .treefile:hover { background: var(--panel2); }
+  .treefile.active { color: var(--text); background: var(--panel2); box-shadow: inset 2px 0 0 var(--accent); }
+  .treefile.touched { color: var(--warn); }
+  .tw { display: inline-block; width: 14px; color: var(--dim); }
+  .treeempty { color: var(--dim); padding: 12px; font-family: var(--sans); }
+  #filecontent {
+    flex: 1; overflow: auto; padding: 12px 16px 12px 8px; white-space: pre;
+    font-size: 13px; line-height: 1.5; color: var(--text); tab-size: 2;
+  }
+  .ln { color: var(--dim); opacity: .5; user-select: none; margin-right: 14px; }
+  /* turn detail */
+  .turnhead {
+    color: var(--dim); margin-bottom: 10px; font-family: var(--sans);
+    font-size: 16px; font-weight: 600;
+  }
+  .block { margin-bottom: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); }
+  .block > .bh {
+    padding: 6px 10px; font-size: 13px; color: var(--dim);
+    display: flex; gap: 8px; align-items: baseline;
+  }
+  .block > .bb { padding: 8px 10px 10px; border-top: 1px solid var(--border); }
+  .block pre { white-space: pre-wrap; word-break: break-word; font-size: 13px; line-height: 1.45; }
+  .badge { padding: 1px 7px; border-radius: 3px; font-size: 13px; font-family: var(--sans); }
+  .badge.think { background: color-mix(in srgb, var(--think) 20%, transparent); color: var(--think); }
+  .badge.say { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+  .badge.tool { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+  .badge.err { background: color-mix(in srgb, var(--error) 25%, transparent); color: var(--error); }
+  .badge.mile { background: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent); }
+  .badge.why { background: color-mix(in srgb, var(--think) 22%, transparent); color: var(--think); }
+  .badge.fb { background: color-mix(in srgb, var(--warn) 22%, transparent); color: var(--warn); }
+  details > summary { cursor: pointer; color: var(--dim); }
+  details[open] > summary { margin-bottom: 6px; }
+  .result { color: var(--dim); }
+  .result.err { color: var(--error); }
+  #drop {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 14px; background: var(--bg); z-index: 10;
+  }
+  #drop.hidden, .hidden { display: none; }
+  #drop .zone {
+    border: 2px dashed var(--border); border-radius: 12px; padding: 60px 80px;
+    color: var(--dim); text-align: center;
+  }
+  kbd { background: var(--panel2); border: 1px solid var(--border); border-radius: 3px; padding: 0 5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>gen-eval run viewer</h1>
+  <span class="meta" id="metaline"></span>
+  <div id="controls">
+    <button id="prev" title="previous turn (&larr;)">&#9664;</button>
+    <button id="play" title="play/pause (space)">&#9654;</button>
+    <button id="next" title="next turn (&rarr;)">&#9654;&#9654;</button>
+    <span id="pos"></span>
+  </div>
+</header>
+<div id="scrubwrap">
+  <div id="track">
+    <div id="fill"></div>
+    <div id="ticks"></div>
+    <div id="playhead"></div>
+  </div>
+  <div id="legend">
+    <span><span class="dot" style="background:var(--accent)"></span>milestone</span>
+    <span><span class="dot" style="background:var(--error)"></span>error</span>
+    <span><span class="dot" style="background:var(--think)"></span>WHY</span>
+    <span><span class="dot" style="background:var(--warn)"></span>friction/retro</span>
+    <span>navigate: <kbd>&larr;</kbd> <kbd>&rarr;</kbd> <kbd>space</kbd> — drag the playhead or click the track</span>
+  </div>
+</div>
+<main>
+  <section id="turnpane"></section>
+  <section id="filespane">
+    <div id="filepath"></div>
+    <div id="filesbody">
+      <div id="filetree"></div>
+      <pre id="filecontent"></pre>
+    </div>
+  </section>
+</main>
+<div id="drop" class="hidden">
+  <div class="zone">
+    <p style="font-size:16px;margin-bottom:10px">Drop a <b>transcript.jsonl</b> here</p>
+    <p>or <input type="file" id="filepick" accept=".jsonl,.json"></p>
+  </div>
+</div>
+<script id="data" type="application/json">__DATA__</script>
+<script id="metadata" type="application/json">__META__</script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+const MILESTONE_FILES = ['base.ts', 'mod.ts', 'enrichments.ts'];
+const MILESTONE_CMDS = [['skmtc bundle','first bundle'],['skmtc generate','first generate'],['gradle test','first test run']];
+
+// ---- model: parse raw stream-json events into turns -----------------
+function build(events) {
+  const turns = [];            // {i, thinking:[], texts:[], tools:[], milestones:[], hasError}
+  const toolIndex = new Map(); // tool_use_id -> tool record
+  const fileOps = [];          // {turn, path, kind:'write'|'edit', content|old,new,all}
+  const seen = new Set();
+  let current = null;
+  let pendingThinkingTokens = null;
+
+  const milestone = (turn, key, label) => {
+    if (seen.has(key)) return;
+    seen.add(key);
+    turn.milestones.push(label);
+  };
+  const FRICTION_TITLE = /^##\s*\d*\.?\s*(.+)$/gm;
+  const feedbackMark = (turn, path, content) => {
+    if (path.endsWith('FRICTION.md')) {
+      const titles = [...String(content || '').matchAll(FRICTION_TITLE)];
+      turn.feedback.push({ kind: 'friction', title: titles.length ? titles[titles.length - 1][1] : null });
+    } else if (path.endsWith('RETRO.md')) {
+      turn.feedback.push({ kind: 'retro', title: null });
+    }
+  };
+  const resultText = raw => Array.isArray(raw)
+    ? raw.map(p => (p && p.text) || '').join(' ')
+    : String(raw ?? '');
+
+  for (const ev of events) {
+    if (ev.type === 'system' && ev.subtype === 'thinking_tokens') {
+      pendingThinkingTokens = ev.estimated_tokens ?? pendingThinkingTokens;
+    }
+    if (ev.type === 'assistant') {
+      const content = (ev.message || {}).content || [];
+      if (!content.some(c => c && ['text','tool_use','thinking'].includes(c.type))) continue;
+      current = { i: turns.length + 1, thinking: [], texts: [], tools: [], milestones: [], whys: [], feedback: [], hasError: false };
+      turns.push(current);
+      for (const item of content) {
+        if (!item) continue;
+        if (item.type === 'thinking') {
+          current.thinking.push({ text: item.thinking || '', tokens: pendingThinkingTokens });
+          pendingThinkingTokens = null;
+        }
+        else if (item.type === 'text') {
+          const trimmed = (item.text || '').trim();
+          if (!trimmed) continue;
+          if (trimmed.startsWith('WHY:')) current.whys.push(trimmed);
+          else current.texts.push(item.text);
+        }
+        else if (item.type === 'tool_use') {
+          const input = item.input || {};
+          const tool = { name: item.name, input, result: null, isError: false };
+          current.tools.push(tool);
+          toolIndex.set(item.id, { tool, turn: current });
+          if (item.name === 'Skill' && String(input.skill || '').includes('skmtc'))
+            milestone(current, 'skill:' + input.skill, 'loaded ' + input.skill + ' skill');
+          if ((item.name === 'Write' || item.name === 'Edit') && input.file_path) {
+            for (const m of MILESTONE_FILES)
+              if (input.file_path.endsWith('src/' + m) && input.file_path.includes('gen-'))
+                milestone(current, 'write:' + m, 'src/' + m + ' written');
+            feedbackMark(current, input.file_path, input.content ?? input.new_string);
+            if (item.name === 'Write' && typeof input.content === 'string')
+              fileOps.push({ turn: current.i, path: input.file_path, kind: 'write', content: input.content });
+            if (item.name === 'Edit')
+              fileOps.push({ turn: current.i, path: input.file_path, kind: 'edit',
+                old: input.old_string || '', neu: input.new_string || '', all: !!input.replace_all });
+          }
+          if (item.name === 'Bash') {
+            const cmd = input.command || '';
+            for (const [needle, label] of MILESTONE_CMDS)
+              if (cmd.includes(needle)) milestone(current, 'cmd:' + needle, label);
+            // Heredoc writes (cat > path <<'EOF' ... EOF) count as file
+            // ops too — headless models often write files this way
+            // instead of using the Write tool.
+            const HEREDOC = /cat\s+(?:(>>|>)\s*(\S+)\s+)?<<\s*-?\s*(['"]?)(\w+)\3\s*(?:(>>|>)\s*(\S+))?[^\n]*\n([\s\S]*?)\n\4(?=\n|$)/g;
+            for (const match of cmd.matchAll(HEREDOC)) {
+              const path = match[2] || match[6];
+              if (!path) continue;
+              const kind = (match[1] || match[5]) === '>>' ? 'append' : 'write';
+              fileOps.push({ turn: current.i, path, kind, content: match[7] });
+              for (const m of MILESTONE_FILES)
+                if (path.endsWith('src/' + m) && path.includes('gen-'))
+                  milestone(current, 'write:' + m, 'src/' + m + ' written');
+              feedbackMark(current, path, match[7]);
+            }
+          }
+        }
+      }
+    } else if (ev.type === 'user') {
+      for (const item of ((ev.message || {}).content || [])) {
+        if (!item || item.type !== 'tool_result') continue;
+        const entry = toolIndex.get(item.tool_use_id);
+        if (!entry) continue;
+        const text = resultText(item.content);
+        entry.tool.result = text;
+        entry.tool.isError = !!item.is_error;
+        if (item.is_error) entry.turn.hasError = true;
+        if (/"errors":\s*\[\]/.test(text) && /"type":\s*"generated"/.test(text))
+          milestone(entry.turn, 'generate-ok', 'clean generate');
+        if (text.includes('BUILD SUCCESSFUL'))
+          milestone(entry.turn, 'gradle-ok', 'gradle BUILD SUCCESSFUL');
+      }
+    } else if (ev.type === 'result') {
+      if (turns.length) {
+        const last = turns[turns.length - 1];
+        const cost = ev.total_cost_usd != null ? ' cost=$' + ev.total_cost_usd.toFixed(2) : '';
+        milestone(last, 'done', 'run finished — turns=' + ev.num_turns + cost);
+      }
+    }
+  }
+  return { turns, fileOps };
+}
+
+// ---- workspace reconstruction --------------------------------------
+function fileState(fileOps, upToTurn) {
+  const files = new Map(); // path -> {content, lastTouched}
+  for (const op of fileOps) {
+    if (op.turn > upToTurn) break;
+    const entry = files.get(op.path) || { content: null, lastTouched: 0 };
+    if (op.kind === 'write') entry.content = op.content;
+    else if (op.kind === 'append') entry.content = (entry.content ?? '') + op.content;
+    else if (entry.content != null && op.old) {
+      entry.content = op.all
+        ? entry.content.split(op.old).join(op.neu)
+        : entry.content.replace(op.old, op.neu);
+    }
+    entry.lastTouched = op.turn;
+    files.set(op.path, entry);
+  }
+  return files;
+}
+const shortPath = p => p.split('/').slice(-3).join('/');
+
+// ---- rendering ------------------------------------------------------
+let TURNS = [], FILEOPS = [], T = 1, selectedFile = null, playing = null;
+const userToggles = new Map();   // details data-key -> user's chosen open state
+let lastRenderedTurn = null;
+
+function renderTurn() {
+  const turn = TURNS[T - 1];
+  const pane = $('turnpane');
+  if (!turn) { pane.innerHTML = '<p class="turnhead">no turns</p>'; lastRenderedTurn = null; return; }
+  let detailsIndex = 0;
+  // Keyed <details>: user toggles survive re-renders (live updates,
+  // scrubbing away and back). Default state applies until toggled.
+  const det = (defaultOpen, summaryHtml, bodyHtml) => {
+    const key = turn.i + ':' + (detailsIndex++);
+    const open = userToggles.has(key) ? userToggles.get(key) : defaultOpen;
+    return '<details data-key="' + key + '"' + (open ? ' open' : '') +
+      '><summary>' + summaryHtml + '</summary>' + bodyHtml + '</details>';
+  };
+  let html = '<p class="turnhead">turn ' + turn.i + ' / ' + TURNS.length + '</p>';
+  for (const m of turn.milestones)
+    html += '<div class="block"><div class="bh"><span class="badge mile">milestone</span>' + esc(m) + '</div></div>';
+  for (const fb of turn.feedback)
+    html += '<div class="block"><div class="bh"><span class="badge fb">' + fb.kind + '</span>' +
+      esc(fb.title ?? (fb.kind === 'retro' ? 'exit retro written' : 'entry logged')) + '</div></div>';
+  for (const why of turn.whys)
+    html += '<div class="block"><div class="bh"><span class="badge why">WHY</span></div><div class="bb"><pre>' +
+      esc(why.replace(/^WHY:\s*/, '')) + '</pre></div></div>';
+  for (const th of turn.thinking) {
+    if (th.text) {
+      html += '<div class="block"><div class="bh"><span class="badge think">thinking</span>' + th.text.length +
+        ' chars</div><div class="bb">' + det(false, 'show reasoning', '<pre>' + esc(th.text) + '</pre>') + '</div></div>';
+    } else {
+      html += '<div class="block"><div class="bh"><span class="badge think">thinking</span>' +
+        'redacted by API' + (th.tokens ? ' (~' + th.tokens + ' tokens)' : '') + '</div></div>';
+    }
+  }
+  for (const tx of turn.texts)
+    html += '<div class="block"><div class="bh"><span class="badge say">assistant</span></div><div class="bb"><pre>' + esc(tx) + '</pre></div></div>';
+  for (const tool of turn.tools) {
+    let head = tool.name, body = '';
+    if (tool.name === 'Bash') { head += ' — ' + (tool.input.command || '').slice(0, 100); }
+    else if (tool.input.file_path) { head += ' — ' + shortPath(tool.input.file_path); }
+    else if (tool.input.skill) { head += ' — ' + tool.input.skill; }
+    if (tool.name === 'Write' && tool.input.content)
+      body += det(false, 'content (' + tool.input.content.length + ' chars)', '<pre>' + esc(tool.input.content) + '</pre>');
+    else if (tool.name === 'Edit')
+      body += det(false, 'edit diff', '<pre style="color:var(--error)">- ' + esc(tool.input.old_string) +
+        '</pre><pre style="color:var(--accent)">+ ' + esc(tool.input.new_string) + '</pre>');
+    else if (Object.keys(tool.input).length && tool.name !== 'Bash')
+      body += det(false, 'input', '<pre>' + esc(JSON.stringify(tool.input, null, 1).slice(0, 3000)) + '</pre>');
+    if (tool.result != null) {
+      const cls = tool.isError ? 'result err' : 'result';
+      const truncated = tool.result.length > 1200 ? tool.result.slice(0, 1200) + ' …' : tool.result;
+      body += det(tool.isError,
+        '<span class="' + cls + '">' + (tool.isError ? 'ERROR result' : 'result') + ' (' + tool.result.length + ' chars)</span>',
+        '<pre class="' + cls + '">' + esc(truncated) + '</pre>');
+    }
+    html += '<div class="block"><div class="bh"><span class="badge tool">' + esc(tool.name) + '</span>' +
+      '<span>' + esc(head.slice(tool.name.length)) + '</span>' +
+      (tool.isError ? '<span class="badge err">error</span>' : '') + '</div>' +
+      (body ? '<div class="bb">' + body + '</div>' : '') + '</div>';
+  }
+  const sameTurn = lastRenderedTurn === turn.i;
+  const keepScroll = sameTurn ? pane.scrollTop : 0;
+  pane.innerHTML = html;
+  pane.scrollTop = keepScroll;
+  lastRenderedTurn = turn.i;
+}
+
+// Record explicit user toggles ('toggle' doesn't bubble — capture).
+$('turnpane').addEventListener('toggle', event => {
+  const key = event.target && event.target.dataset ? event.target.dataset.key : null;
+  if (key) userToggles.set(key, event.target.open);
+}, true);
+
+const expandedDirs = new Map();   // dir path -> expanded (default true)
+const escAttr = value => esc(value).replace(/"/g, '&quot;');
+
+function renderFiles() {
+  const files = fileState(FILEOPS, T);
+  const tree = $('filetree');
+  if (!files.size) {
+    tree.innerHTML = '<p class="treeempty">no files written yet at this turn</p>';
+    $('filecontent').textContent = '';
+    $('filepath').textContent = '';
+    return;
+  }
+  if (!selectedFile || !files.has(selectedFile)) selectedFile = [...files.keys()].pop();
+
+  // Build a nested tree from the flat path map.
+  const root = { dirs: new Map(), files: [] };
+  for (const [path, entry] of files) {
+    const parts = path.split('/').filter(Boolean);
+    let node = root;
+    for (let index = 0; index < parts.length - 1; index++) {
+      const name = parts[index];
+      if (!node.dirs.has(name)) {
+        node.dirs.set(name, { key: parts.slice(0, index + 1).join('/'), dirs: new Map(), files: [] });
+      }
+      node = node.dirs.get(name);
+    }
+    node.files.push({ name: parts[parts.length - 1], path, touched: entry.lastTouched === T });
+  }
+
+  let html = '';
+  const renderNode = (node, depth) => {
+    for (const name of [...node.dirs.keys()].sort()) {
+      const dir = node.dirs.get(name);
+      const expanded = expandedDirs.get(dir.key) ?? true;
+      html += '<div class="treedir" data-dir="' + escAttr(dir.key) + '" style="padding-left:' +
+        (8 + depth * 14) + 'px"><span class="tw">' + (expanded ? '\u25be' : '\u25b8') + '</span>' +
+        esc(name) + '/</div>';
+      if (expanded) renderNode(dir, depth + 1);
+    }
+    for (const file of node.files.sort((a, b) => a.name.localeCompare(b.name))) {
+      html += '<div class="treefile' + (file.path === selectedFile ? ' active' : '') +
+        (file.touched ? ' touched' : '') + '" data-path="' + escAttr(file.path) +
+        '" style="padding-left:' + (22 + depth * 14) + 'px">' + esc(file.name) +
+        (file.touched ? ' *' : '') + '</div>';
+    }
+  };
+  renderNode(root, 0);
+  tree.innerHTML = html;
+
+  // Code view with line numbers; preserve scroll when re-rendering the
+  // same file (live updates).
+  $('filepath').textContent = selectedFile;
+  const contentEl = $('filecontent');
+  const current = files.get(selectedFile);
+  if (current && current.content != null) {
+    const keepScroll = contentEl.dataset.path === selectedFile ? contentEl.scrollTop : 0;
+    contentEl.innerHTML = current.content.split('\n').map((line, index) =>
+      '<span class="ln">' + String(index + 1).padStart(4, '\u00a0') + '</span>' + esc(line)
+    ).join('\n');
+    contentEl.dataset.path = selectedFile;
+    contentEl.scrollTop = keepScroll;
+  } else {
+    contentEl.textContent = '(content not reconstructable — edited before any full Write)';
+    contentEl.dataset.path = '';
+  }
+}
+
+$('filetree').addEventListener('click', event => {
+  const dirEl = event.target.closest('.treedir');
+  if (dirEl) {
+    const key = dirEl.dataset.dir;
+    expandedDirs.set(key, !(expandedDirs.get(key) ?? true));
+    renderFiles();
+    return;
+  }
+  const fileEl = event.target.closest('.treefile');
+  if (fileEl) {
+    selectedFile = fileEl.dataset.path;
+    renderFiles();
+  }
+});
+
+function renderScrubber() {
+  const n = Math.max(TURNS.length, 1);
+  $('fill').style.width = ((T - 0.5) / n * 100) + '%';
+  $('playhead').style.left = ((T - 0.5) / n * 100) + '%';
+  $('pos').textContent = 'turn ' + T + ' / ' + TURNS.length;
+}
+
+function renderTicks() {
+  const ticks = $('ticks');
+  ticks.innerHTML = '';
+  const n = Math.max(TURNS.length, 1);
+  TURNS.forEach(turn => {
+    if (turn.milestones.length) addTick(turn.i, 'milestone');
+    if (turn.hasError) addTick(turn.i, 'error');
+    if (turn.whys.length) addTick(turn.i, 'why');
+    if (turn.feedback.length) addTick(turn.i, 'feedback');
+  });
+  function addTick(i, cls) {
+    const el = document.createElement('div');
+    el.className = 'tick ' + cls;
+    el.style.left = 'calc(' + ((i - 0.5) / n * 100) + '% - 1px)';
+    ticks.appendChild(el);
+  }
+}
+
+function goTo(turn) {
+  T = Math.min(Math.max(1, turn), Math.max(TURNS.length, 1));
+  renderScrubber(); renderTurn(); renderFiles();
+}
+
+// ---- scrubber interaction ------------------------------------------
+function turnFromEvent(event) {
+  const rect = $('track').getBoundingClientRect();
+  const frac = Math.min(Math.max((event.clientX - rect.left) / rect.width, 0), 1);
+  return Math.round(frac * (TURNS.length - 1)) + 1;
+}
+let dragging = false;
+$('track').addEventListener('pointerdown', event => {
+  dragging = true;
+  $('track').setPointerCapture(event.pointerId);
+  goTo(turnFromEvent(event));
+});
+$('track').addEventListener('pointermove', event => { if (dragging) goTo(turnFromEvent(event)); });
+$('track').addEventListener('pointerup', () => { dragging = false; });
+$('prev').onclick = () => goTo(T - 1);
+$('next').onclick = () => goTo(T + 1);
+$('play').onclick = togglePlay;
+function togglePlay() {
+  if (playing) { clearInterval(playing); playing = null; $('play').innerHTML = '&#9654;'; return; }
+  if (T >= TURNS.length) goTo(1);   // replay a finished run from the start
+  $('play').innerHTML = '&#10073;&#10073;';
+  playing = setInterval(() => {
+    if (T >= TURNS.length) { togglePlay(); return; }
+    goTo(T + 1);
+  }, 900);
+}
+document.addEventListener('keydown', event => {
+  if (event.key === 'ArrowLeft') { goTo(T - 1); event.preventDefault(); }
+  if (event.key === 'ArrowRight') { goTo(T + 1); event.preventDefault(); }
+  if (event.key === ' ') { togglePlay(); event.preventDefault(); }
+});
+
+// ---- boot -----------------------------------------------------------
+let META = null, LIVE = false, FINISHED = false, lastEventCount = -1;
+
+function metaBits() {
+  const bits = [];
+  if (META) {
+    if (META.model) bits.push(META.model);
+    if (META.label) bits.push(META.label);
+    if (META.skillSha) bits.push('skill ' + String(META.skillSha).slice(0, 10));
+    const res = META.result || {};
+    if (res.costUsd != null) bits.push('$' + res.costUsd.toFixed(2));
+  }
+  return bits.join(' \u00b7 ');
+}
+
+function updateMetaline() {
+  const tag = LIVE
+    ? (FINISHED
+        ? '<span style="color:var(--accent)">\u25cf run finished</span>'
+        : '<span style="color:var(--error)">\u25cf LIVE</span> following')
+    : '';
+  const bits = metaBits();
+  $('metaline').innerHTML = [tag, esc(bits)].filter(Boolean).join(' \u00b7 ');
+}
+
+function refresh(events) {
+  const wasAtEnd = TURNS.length === 0 || T >= TURNS.length;
+  const model = build(events);
+  TURNS = model.turns; FILEOPS = model.fileOps;
+  renderTicks();
+  updateMetaline();
+  if (wasAtEnd) {
+    goTo(TURNS.length);      // following: tail the newest turn
+  } else {
+    renderScrubber();        // scrubbed back: update track geometry only,
+  }                          // leaving the open panes (and toggles) alone
+  $('drop').classList.add('hidden');
+}
+
+function parseJsonl(text) {
+  return text.split('\n').map(line => { try { return JSON.parse(line); } catch { return null; } }).filter(Boolean);
+}
+
+async function startLive() {
+  const poll = async () => {
+    try {
+      const metaResp = await fetch('meta.json', { cache: 'no-store' });
+      if (metaResp.ok) META = await metaResp.json();
+    } catch {}
+    try {
+      const resp = await fetch('transcript.jsonl', { cache: 'no-store' });
+      if (resp.ok) {
+        const events = parseJsonl(await resp.text());
+        if (events.length !== lastEventCount) {
+          lastEventCount = events.length;
+          FINISHED = events.some(event => event.type === 'result');
+          refresh(events);
+        } else {
+          updateMetaline();
+        }
+      }
+    } catch {}
+    if (!FINISHED) setTimeout(poll, 3000);
+  };
+  poll();
+}
+
+const embedded = JSON.parse($('data').textContent || 'null');
+const embeddedMeta = JSON.parse($('metadata').textContent || 'null');
+if (embedded && embedded.length) {
+  META = embeddedMeta;
+  refresh(embedded);
+} else if (location.protocol !== 'file:') {
+  LIVE = true;
+  updateMetaline();
+  startLive();
+} else {
+  $('drop').classList.remove('hidden');
+  const readFile = file => file.text().then(text => refresh(parseJsonl(text)));
+  $('filepick').onchange = event => { if (event.target.files[0]) readFile(event.target.files[0]); };
+  document.addEventListener('dragover', event => event.preventDefault());
+  document.addEventListener('drop', event => {
+    event.preventDefault();
+    if (event.dataTransfer.files[0]) readFile(event.dataTransfer.files[0]);
+  });
+}
+</script>
+</body>
+</html>

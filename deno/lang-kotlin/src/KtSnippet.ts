@@ -1,5 +1,5 @@
 import { SnippetBase, type GeneratedValue, type Lang } from '@skmtc/core'
-import { kotlin } from './ktLang.ts'
+import { kotlin } from './KtLang.ts'
 import {
   register,
   defineAndRegister,

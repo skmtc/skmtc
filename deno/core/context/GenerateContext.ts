@@ -1201,9 +1201,11 @@ export class GenerateContext implements GenerateContextType {
    * Store a language-constructed file. The engine never constructs a
    * concrete (language) `File`; the language's `register` builds its own
    * `FileBase` subclass and hands it in here. Throws if a file already
-   * exists at the (normalized) path.
+   * exists at the (normalized) path. Returns the stored file, so
+   * get-or-create is a single expression at the call site
+   * (`context.getFile(path) ?? context.addFile(new KtFile({ … }))`).
    */
-  addFile(file: FileBase): void {
+  addFile<File extends FileBase>(file: File): File {
     const normalizedPath = normalize(file.path)
 
     if (this.#files.has(normalizedPath)) {
@@ -1211,6 +1213,8 @@ export class GenerateContext implements GenerateContextType {
     }
 
     this.#files.set(normalizedPath, file)
+
+    return file
   }
 
   /**

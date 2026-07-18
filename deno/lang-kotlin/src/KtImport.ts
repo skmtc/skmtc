@@ -122,6 +122,16 @@ export class KtImport extends ImportBase {
     })
   }
 
+  /**
+   * The packages-less fallback render — correct for dotted-package modules
+   * and for path-form modules in single-package projects. The canonical
+   * render path is {@link import('./KtFile.ts').KtFile}'s `toString`, which
+   * calls {@link toLines} with the project's `settings.packages` so a
+   * path-form module under another module's `rootPath` resolves to that
+   * module's real package; the neutral `ImportBase` signature gives this
+   * override no way to receive them, so multi-package resolution is only
+   * correct through `KtFile`.
+   */
   override toString(): string {
     return this.toLines().join('\n')
   }

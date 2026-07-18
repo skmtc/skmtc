@@ -11,15 +11,6 @@ import { toPackageName } from './toPackageName.ts'
 export type KtFileArgs = {
   path: string
   settings: ClientSettings | undefined
-  /**
-   * Optional comment block rendered ABOVE the `package` directive
-   * (e.g. a generated-file attribution line). Also settable after
-   * construction — the register function applies a first-writer-wins
-   * `fileHeader` from the concise vocabulary, since Drivers create
-   * files through the neutral `Lang.createFile` which has no header
-   * slot.
-   */
-  header?: string
 }
 
 /**
@@ -36,7 +27,11 @@ export type KtFileArgs = {
  *   symbols need no import in Kotlin — the structural analog of TsFile's
  *   intra-package `@/` normalization). In particular the Driver's
  *   cross-file peer imports vanish when peers share the package.
- * - the rendering arrangement: package directive, imports (one statement
+ * - the rendering arrangement: the neutral `custom` slot
+ *   ({@link FileBase.custom}) first — leading content above the
+ *   `package` directive (e.g. a generated-file attribution banner;
+ *   only comments may precede `package`), the same placement `TsFile`
+ *   gives it — then the package directive, imports (one statement
  *   per symbol, **sorted alphabetically** — not style, which is the
  *   consumer's formatter's job, but registration-order independence:
  *   the rendered bytes are what snapshot tests and byte-identical
@@ -55,8 +50,6 @@ export class KtFile extends CodeFileBase {
   packageName: string
   /** Threaded into package derivation and same-package suppression. */
   settings: ClientSettings | undefined
-  /** Comment block rendered above the `package` directive, if set. */
-  header: string | undefined
 
   /** Definitions keyed by identifier name (first write wins; Kotlin has no declaration merging). */
   definitions: Map<string, DefinitionBase> = new Map()
@@ -67,11 +60,10 @@ export class KtFile extends CodeFileBase {
   /** Re-exports keyed by {@link ReExportBase.mergeKey} — Kotlin registers none; kept for the neutral contract. */
   reExports: Map<string, ReExportBase> = new Map()
 
-  constructor({ path, settings, header }: KtFileArgs) {
+  constructor({ path, settings }: KtFileArgs) {
     super({ path })
     this.packageName = toPackageName(path, settings?.packages)
     this.settings = settings
-    this.header = header
   }
 
   override addDefinition(definition: DefinitionBase): void {
@@ -127,7 +119,10 @@ export class KtFile extends CodeFileBase {
       .join('\n\n')
 
     const sections = [
-      this.header ?? '',
+      // The neutral leading-content slot (FileBase.custom) — e.g. a
+      // generated-file attribution banner; only comments may precede
+      // `package`. Set through the register vocabulary's `custom` field.
+      this.custom === undefined ? '' : `${this.custom}`,
       this.packageName ? `package ${this.packageName}` : '',
       importLines.join('\n'),
       definitions
