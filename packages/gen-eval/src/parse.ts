@@ -188,6 +188,7 @@ const parseFile = (path: string, genDir: string): FileFacts => {
     toStringViolations: [],
     adHocToStringSites: [],
     asCastSites: [],
+    redundantRefGuardSites: [],
     insertCalls: { insertOperation: 0, insertModel: 0, insertNormalizedModel: 0, defineAndRegister: 0 },
     rawDefinitionRegisters: [],
     templateImportSites: [],
@@ -400,6 +401,40 @@ const parseFile = (path: string, genDir: string): FileFacts => {
         ...site,
         text: node.getText(sourceFile).replace(/\s+/g, ' ').slice(0, 80)
       })
+    }
+
+    // --- redundant ref guard: `x.isRef() ? x.resolve() : x` ---
+    // `.resolve()` / `.resolveOnce()` are identity (`return this`) on every
+    // concrete schema variant, so guarding them with `.isRef()` is noise.
+    // Only the exact identity shape is flagged (either branch order);
+    // genuine branching on `.isRef()` (e.g. `toRefName()`) never matches.
+    if (ts.isConditionalExpression(node)) {
+      const { condition, whenTrue, whenFalse } = node
+      if (
+        ts.isCallExpression(condition) &&
+        ts.isPropertyAccessExpression(condition.expression) &&
+        condition.expression.name.text === 'isRef'
+      ) {
+        const subject = condition.expression.expression.getText(sourceFile)
+        const isResolveOfSubject = (expression: ts.Expression): boolean =>
+          ts.isCallExpression(expression) &&
+          ts.isPropertyAccessExpression(expression.expression) &&
+          (expression.expression.name.text === 'resolve' ||
+            expression.expression.name.text === 'resolveOnce') &&
+          expression.expression.expression.getText(sourceFile) === subject
+        const isSubject = (expression: ts.Expression): boolean =>
+          expression.getText(sourceFile) === subject
+        if (
+          (isResolveOfSubject(whenTrue) && isSubject(whenFalse)) ||
+          (isResolveOfSubject(whenFalse) && isSubject(whenTrue))
+        ) {
+          const site = siteOf(node, stack)
+          facts.redundantRefGuardSites.push({
+            ...site,
+            text: node.getText(sourceFile).replace(/\s+/g, ' ').slice(0, 80)
+          })
+        }
+      }
     }
 
     // --- template hygiene: imports and TODO markers in emitted text ---

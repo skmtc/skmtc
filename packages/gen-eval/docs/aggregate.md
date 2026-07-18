@@ -16,6 +16,7 @@ facts ("why is an as-cast worth 3 points?").
   - flagged producer methods (check 3, after accumulator exemption)
   - as-casts (check 10)
   - raw definition registers (check 11)
+  - redundant `isRef()` guards around `resolve()` (check 15)
   - TODO markers in emitted text (check 13)
   - `other` (non-producer) classes (check 2)
   - +1 if outside-toString string share ≥ 50% (check 4) — the one

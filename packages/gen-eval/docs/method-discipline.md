@@ -30,8 +30,13 @@ the canonical case). Without the verdict, the same methods are flagged.
 
 ## Reading the result
 
-`flagged` entries name the class and its extra methods. One or two
-small private helpers (`toImports`, a getter) are common and mostly
-harmless; a producer with several methods is usually doing composition
-that should be delegated to child Snippets (see the
-orchestrator–delegate card in the skmtc-generator skill).
+`flagged` entries name the class and its extra methods. A producer
+with several methods is usually doing composition that should be
+delegated to child Snippets (see the orchestrator–delegate card in
+the skmtc-generator skill). **JS getters are an anti-pattern, not a
+harmless helper** — the canonical offender is the protocol mirror
+(`get annotations() { return this.value.annotations }`). The fix is
+not a copied field (`this.annotations = this.value.annotations` —
+the same fact in two places, which the check cannot see): a field
+other code reads off a producer belongs directly on that producer,
+not one level deeper and mirrored out.

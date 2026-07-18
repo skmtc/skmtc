@@ -17,6 +17,7 @@ export type Aggregate = {
   warnings: {
     flaggedProducers: number
     asCasts: number
+    redundantRefGuards: number
     rawDefinitionRegisters: number
     emittedTodos: number
     otherClasses: number
@@ -40,6 +41,7 @@ export const toAggregate = (report: Omit<GeneratorReport, 'aggregate'>): Aggrega
   const warnings = {
     flaggedProducers: report.methodDiscipline.flagged.length,
     asCasts: report.asCasts.count,
+    redundantRefGuards: report.redundantRefGuards.count,
     rawDefinitionRegisters: report.registrationChannels.rawDefinitionRegisters.length,
     emittedTodos: report.emittedTodos.count,
     otherClasses: report.classTotals.other,
@@ -48,6 +50,7 @@ export const toAggregate = (report: Omit<GeneratorReport, 'aggregate'>): Aggrega
   const warningCount =
     warnings.flaggedProducers +
     warnings.asCasts +
+    warnings.redundantRefGuards +
     warnings.rawDefinitionRegisters +
     warnings.emittedTodos +
     warnings.otherClasses +

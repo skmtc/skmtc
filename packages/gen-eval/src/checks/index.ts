@@ -13,6 +13,7 @@ import { runRegistrationChannels } from './registration-channels.ts'
 import { runTemplateImports } from './template-imports.ts'
 import { runEmittedTodos } from './emitted-todos.ts'
 import { runRuntimeDiscipline } from './runtime-discipline.ts'
+import { runRedundantRefGuards } from './redundant-ref-guard.ts'
 import { toAggregate } from '../aggregate.ts'
 
 /** One entry per check module; `doc` names the file under docs/. */
@@ -30,7 +31,8 @@ export const CHECKS = [
   { id: 'registration-channels', title: 'Registration channels (informational)', doc: 'registration-channels.md' },
   { id: 'template-imports', title: 'No import statements in template literals', doc: 'template-imports.md' },
   { id: 'emitted-todos', title: 'TODO markers in emitted text (informational)', doc: 'emitted-todos.md' },
-  { id: 'runtime-discipline', title: 'Valid synchronous Deno; side effects are logs + registers', doc: 'runtime-discipline.md' }
+  { id: 'runtime-discipline', title: 'Valid synchronous Deno; side effects are logs + registers', doc: 'runtime-discipline.md' },
+  { id: 'redundant-ref-guard', title: 'No redundant isRef() guards around resolve()', doc: 'redundant-ref-guard.md' }
 ] as const
 
 export const runAll = (facts: PackageFacts): GeneratorReport => {
@@ -52,6 +54,7 @@ export const runAll = (facts: PackageFacts): GeneratorReport => {
     toStringPurity: runToStringPurity(facts),
     adHocToString: runAdHocToString(facts),
     asCasts: runAsCasts(facts),
+    redundantRefGuards: runRedundantRefGuards(facts),
     registrationChannels: runRegistrationChannels(facts),
     templateImports: runTemplateImports(facts),
     emittedTodos: runEmittedTodos(facts),

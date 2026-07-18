@@ -116,6 +116,7 @@ export type FileFacts = {
   toStringViolations: ToStringViolation[]
   adHocToStringSites: CodeSite[]
   asCastSites: CodeSite[]
+  redundantRefGuardSites: CodeSite[]
   insertCalls: {
     insertOperation: number
     insertModel: number
@@ -161,6 +162,7 @@ export type GeneratorReport = {
   toStringPurity: { pass: boolean; violations: ToStringViolation[] }
   adHocToString: { pass: boolean; sites: CodeSite[] }
   asCasts: { count: number; sites: CodeSite[] }
+  redundantRefGuards: { count: number; sites: CodeSite[] }
   registrationChannels: RegistrationChannels
   templateImports: { pass: boolean; sites: CodeSite[] }
   emittedTodos: { count: number; sites: CodeSite[] }
@@ -172,6 +174,7 @@ export type GeneratorReport = {
     warnings: {
       flaggedProducers: number
       asCasts: number
+      redundantRefGuards: number
       rawDefinitionRegisters: number
       emittedTodos: number
       otherClasses: number

@@ -64,6 +64,7 @@ const toRow = (report: GeneratorReport): string[] => {
     report.toStringPurity.pass ? 'ok' : `FAIL:${report.toStringPurity.violations.length}`,
     report.adHocToString.pass ? 'ok' : `FAIL:${report.adHocToString.sites.length}`,
     `${report.asCasts.count}`,
+    `${report.redundantRefGuards.count}`,
     `${report.registrationChannels.rawDefinitionRegisters.length}`,
     report.templateImports.pass ? 'ok' : `FAIL:${report.templateImports.sites.length}`,
     `${report.emittedTodos.count}`,
@@ -85,6 +86,7 @@ const HEADER = [
   'pure',
   'adhoc',
   'as',
+  'ref-guard',
   'raw-reg',
   'tpl-imp',
   'todo',
@@ -190,6 +192,14 @@ const toMarkdown = (reports: GeneratorReport[]): string => {
     if (report.asCasts.count > 0) {
       lines.push(`- as-casts (${report.asCasts.count} — each requires approval):`)
       for (const site of report.asCasts.sites) {
+        lines.push(`  - \`${site.file}:${site.line}\` in ${site.site} — \`${site.text ?? ''}\``)
+      }
+    }
+    if (report.redundantRefGuards.count > 0) {
+      lines.push(
+        `- redundant isRef() guards (${report.redundantRefGuards.count} — \`.resolve()\` is identity on concrete schemas; call it unconditionally):`
+      )
+      for (const site of report.redundantRefGuards.sites) {
         lines.push(`  - \`${site.file}:${site.line}\` in ${site.site} — \`${site.text ?? ''}\``)
       }
     }
