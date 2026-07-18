@@ -114,9 +114,9 @@ the current model).
 The boundary in one grep: `grep kotlinx src/` → empty. Serialization
 flavor lives in `gen-kotlin`; this package is grammar only.
 
-Skill: not yet written — the
-[`skmtc-lang-typescript` skill](../docs/skills/skmtc-lang-typescript/SKILL.md)
-is the designated template for `skmtc-lang-<X>` skills (see
+Skill: [`skmtc-lang-kotlin`](../docs/skills/skmtc-lang-kotlin/SKILL.md)
+(on the [`skmtc-lang-typescript`](../docs/skills/skmtc-lang-typescript/SKILL.md)
+template; source↔skill sync enforced by `deno task verify-docs` — see
 `docs/skills/README.md`).
 Architecture spec: `notes/lang/19-kotlin-architecture.md` (local notes).
 Template: [`@skmtc/lang-typescript`](../lang-typescript/).

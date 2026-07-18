@@ -136,7 +136,7 @@ These overrides exist because well-intentioned TS conventions frequently break S
 | Hardcode generator-internal identifier names | Derive from operation/refName via `toIdentifierName` | Hardcodes break the `(name, exportPath)` cache-key uniqueness |
 | Suggest "make generation order deterministic" | It already is; coordinate via `insertOperation` | Order is structurally irrelevant; deterministic by construction |
 | Add `@override` decorators or runtime type checks | Use TypeScript's structural typing + discriminated unions | Runtime overhead unnecessary; types catch this at compile time |
-| Reach into `OasOperation` properties directly without `.resolve()` | Call `.resolve()` on `OasRef`-typed values; check `.isRef()` | The common parameter type is `OasSchema \| OasRef<'schema'>`; resolution is lazy |
+| Reach into `OasOperation` properties directly without `.resolve()` | Call `.resolve()` unconditionally — it is identity (`return this`) on every concrete schema variant | The common parameter type is `OasSchema \| OasRef<'schema'>`; resolution is lazy. Guarding it (`schema.isRef() ? schema.resolve() : schema`) is redundant; reserve `.isRef()` for genuine branching (`toRefName()`) |
 | Look up a peer's emitted name with `Producer.toIdentifierName(...)` | Call `insertOperation(Producer, op).toName()` instead | Static lookup returns the name but skips four framework side effects: Definition registration, cross-File import registration, insertion order, and refactor re-resolution. The static call's emitted reference can fail to resolve at consumer compile time, fail to import at consumer compile time, hit TDZ at consumer runtime, or stop following a producer rename — none of those failures appear at the generator's typecheck. See [cross-generator-coordination § Why call `insertOperation`](concepts/cross-generator-coordination.md#why-call-insertoperation-instead-of-producertoidentifiernameop) |
 | Emit a file-scope export by calling `defineAndRegister` with a Snippet value | Make it a Projection, dispatch via `insertOperation` | A `defineAndRegister`'d Snippet is keyed by the caller-chosen name string, not by `(Producer.toIdentifierName(...), Producer.toExportPath(...))`. Other generators cannot reach it via `insertOperation` (no class to pass); the identifier name lives at the caller, so a rename changes two sites instead of one |
 | Return a duck-typed `{ toString: () => '...' }` from a helper function in a render path | Make it a `SnippetBase` descendant class | The duck-typed object has no `context` (so `register({ imports, destinationPath })` is unavailable), no `generatorKey` (invisible to `affirmDefinition`), and isn't `instanceof SnippetBase` (rejected by generic code over the family) |
@@ -497,7 +497,8 @@ Reference example: `skmtc-generators/gen-shadcn-form/src/`.
 | Using `as` casts in production code | Use type guards; `as` is for tests only |
 | Long `if/else` chains for 3+ branches | Codebase prefers `switch` with exhaustive `never` default |
 | Direct mutation of `context.#files` | Private for a reason; go through `register` |
-| Reading `OasSchema` params without first checking `isRef()` | The common parameter type is `OasSchema \| OasRef<'schema'>` |
+| Reading `OasSchema` params without `.resolve()` | The common parameter type is `OasSchema \| OasRef<'schema'>` |
+| Guarding resolution — `schema.isRef() ? schema.resolve() : schema` | `.resolve()` is identity on concrete schemas; call it unconditionally. `.isRef()` is for branches that genuinely differ |
 | Calling `resolve()` without expecting cycle throw | `MAX_LOOKUPS = 10` will throw on cycles |
 
 ---

@@ -213,12 +213,19 @@ For both Projections and Snippets:
   mutation, no side effects, no `register` calls (by Render time the
   file's imports are finalised). Cache anything expensive on `this`
   from the constructor.
-- **Constructor and `toString` are the only methods.** A producer with
-  additional methods is being used as a service object or a
-  string-builder — decompose that logic into delegate Snippets
-  composed via `${...}` instead (orchestrator–delegate card, §10).
-  The one legitimate exception: a mutator like `add()` on an
-  accumulator's container value (`gen-msw`'s `MockRoutesList`).
+- **Constructor and `toString` are the only methods — get/set
+  accessors included.** A producer with additional methods is being
+  used as a service object or a string-builder — decompose that logic
+  into delegate Snippets composed via `${...}` instead
+  (orchestrator–delegate card, §10). A JS getter is still a method: a
+  mirror like `get annotations() { return this.value.annotations }`
+  is the anti-pattern form — and so is copying the field
+  (`this.annotations = this.value.annotations`). A field other code
+  reads off a producer (e.g. a lang value protocol read off the
+  definition's value) is declared directly on that producer, not
+  buried one level deep and mirrored out. The one legitimate
+  exception: a mutator like `add()` on an accumulator's container
+  value (`gen-msw`'s `MockRoutesList`).
 
 ### The type vocabulary
 
@@ -495,19 +502,31 @@ TypeScript-output-specific rules (type-only imports / TS1484,
 - **`OasSchema` stays a union of siblings.** No `BaseSchema`, no
   runtime polymorphism — `.isRef()` + `.type` discriminator narrowing
   is the design.
-- **Resolve before you reach.** `OasRef`-typed values (`OasSchema |
-  OasRef<'schema'>` is the common parameter type) need `.isRef()` /
-  `.resolve()` before property access. `toRefName()` is a **method**
-  on `OasRef`, callable only inside an `.isRef()` branch — reading
-  `.refName` as a property returns `undefined` and crashes
-  downstream. If you're calling `toRefName()` to build an import path
-  by hand, switch to `insertNormalizedModel` — it handles named refs
-  and inline schemas uniformly.
+- **Resolve before you reach — and resolve unconditionally.**
+  `OasRef`-typed values (`OasSchema | OasRef<'schema'>` is the common
+  parameter type) need `.resolve()` before property access, and every
+  concrete schema variant implements `.resolve()` as `return this` —
+  so a guard is redundant:
+
+  ```ts fragment
+  // ❌ WRONG — guarding a call that is identity on concrete schemas
+  const resolved = schema.isRef() ? schema.resolve() : schema
+  // ✅ RIGHT
+  const resolved = schema.resolve()
+  ```
+
+  `.isRef()` is for **genuine branching only** — when the two branches
+  do different things, not the same thing. The canonical case:
+  `toRefName()` is a **method** on `OasRef`, callable only inside an
+  `.isRef()` branch — reading `.refName` as a property returns
+  `undefined` and crashes downstream. If you're calling `toRefName()`
+  to build an import path by hand, switch to `insertNormalizedModel` —
+  it handles named refs and inline schemas uniformly.
 - **`allOf` is already merged** (`core/oas/_merge-all-of/` runs at
   Parse). Treat received schemas as flat objects.
 - **Unwrap before you switch.** OpenAPI refs can't carry extensions,
   so SKMTC sometimes models `$ref + extension` as a one-member
-  union — unwrap single-member unions and `.isRef()`-resolve before
+  union — unwrap single-member unions and `.resolve()` before
   `switch (schema.type)`.
 - **Forward the typed schema into per-type Snippets, not just
   `modifiers`.** A router (`toZodValue`, `toTsValue`) that drops the

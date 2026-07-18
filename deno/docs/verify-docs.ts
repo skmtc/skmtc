@@ -289,14 +289,20 @@ if (deadModelHits === 0) {
 // 3. lang-<X> source ↔ skill sync — one block per shipped language.
 // ---------------------------------------------------------------------
 
-// Empty while every non-TypeScript language layer is pre-alpha: their
-// skills were deleted (2026-07-07) and will be recreated — one entry
-// here per language — when a layer ships and its skill returns.
+// One entry per shipped language layer with a skill. (The other
+// non-TypeScript layers are pre-alpha: their skills were deleted
+// 2026-07-07 and each returns here when its layer ships.)
 const languageSyncTargets: {
   packageDirectory: string
   skillName: string
   guardPrefix: string
-}[] = []
+}[] = [
+  {
+    packageDirectory: 'lang-kotlin',
+    skillName: 'skmtc-lang-kotlin',
+    guardPrefix: 'isKt'
+  }
+]
 
 for (const { packageDirectory, skillName, guardPrefix } of languageSyncTargets) {
   const skillPath = join(docsDir, 'skills', skillName, 'SKILL.md')

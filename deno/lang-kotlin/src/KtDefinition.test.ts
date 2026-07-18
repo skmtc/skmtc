@@ -5,6 +5,7 @@ import { KtDefinition } from './KtDefinition.ts'
 import { kotlin } from './KtLang.ts'
 import { KtParameterList } from './KtParameterList.ts'
 import { KtAnnotation, toKtAnnotations } from './KtAnnotation.ts'
+import { KtSnippet } from './KtSnippet.ts'
 import { KtPrimaryConstructor } from './KtPrimaryConstructor.ts'
 import {
   createClass,
@@ -237,6 +238,29 @@ Deno.test('class-level annotations ride on the value via the KtAnnotated protoco
     context,
     identifier: createDataClass('User'),
     value: new AnnotatedValue()
+  })
+
+  assertEquals(definition.toString(), '@Serializable\ndata class User(\n    val id: String\n)')
+})
+
+Deno.test('a Driver-wrapped projection carries the protocol directly — no mirroring', () => {
+  // The Driver wraps the PROJECTION in the Definition, so the projection
+  // IS the definition's value: its own `annotations` field is the
+  // KtAnnotated protocol, read as `definition.value.annotations`. Nothing
+  // is mirrored from the inner value (no getter, no copied field).
+  class UserProjection extends KtSnippet {
+    annotations = [new KtAnnotation({ context, destinationPath, name: 'Serializable' })]
+    value = new KtParameterList([{ name: 'id', type: 'String' }])
+
+    override toString(): string {
+      return `${this.value}`
+    }
+  }
+
+  const definition = kotlin.toDefinition({
+    context,
+    identifier: createDataClass('User'),
+    value: new UserProjection({ context })
   })
 
   assertEquals(definition.toString(), '@Serializable\ndata class User(\n    val id: String\n)')
