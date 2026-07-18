@@ -54,7 +54,12 @@ Deno.test('a same-package annotation registers harmlessly — KtFile suppresses 
 Deno.test('an annotation without a packageName renders only (default-scope annotations)', () => {
   const context = toGenerateContext()
 
-  const annotation = new KtAnnotation({ context, name: 'Deprecated', args: ['"use v2"'] })
+  const annotation = new KtAnnotation({
+    context,
+    name: 'Deprecated',
+    args: ['"use v2"'],
+    destinationPath: '@/com/example/api/User.generated.kt'
+  })
 
   assertEquals(`${annotation}`, '@Deprecated("use v2")')
   assertEquals(context.inspectedFiles.size, 0)

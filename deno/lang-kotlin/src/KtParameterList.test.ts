@@ -6,13 +6,14 @@ import { KtAnnotation } from './KtAnnotation.ts'
 // Construction only stores `context`; annotations here carry no
 // packageName, so nothing registers (test-only cast).
 const context = {} as unknown as GenerateContextType
+const destinationPath = '@/test/Test.generated.kt'
 
 Deno.test('parameters render nullability, defaults, and inline annotations', () => {
   const parameters = new KtParameterList([
     {
       name: 'userId',
       type: 'String',
-      annotations: [new KtAnnotation({ context, name: 'SerialName', args: ['"user_id"'] })]
+      annotations: [new KtAnnotation({ context, destinationPath, name: 'SerialName', args: ['"user_id"'] })]
     },
     { name: 'name', type: 'String' },
     { name: 'email', type: 'String', nullable: true, defaultValue: 'null' }
@@ -35,7 +36,7 @@ Deno.test('parameters render visibility after annotations (Kotlin modifier order
       name: 'tagged',
       type: 'String',
       visibility: 'internal',
-      annotations: [new KtAnnotation({ context, name: 'SerialName', args: ['"t"'] })]
+      annotations: [new KtAnnotation({ context, destinationPath, name: 'SerialName', args: ['"t"'] })]
     }
   ])
 
@@ -55,6 +56,6 @@ Deno.test('no trailing comma after the last parameter (formatter territory)', ()
 })
 
 Deno.test('KtAnnotation renders bare and with args', () => {
-  assertEquals(new KtAnnotation({ context, name: 'Serializable' }).toString(), '@Serializable')
-  assertEquals(new KtAnnotation({ context, name: 'SerialName', args: ['"user_id"'] }).toString(), '@SerialName("user_id")')
+  assertEquals(new KtAnnotation({ context, destinationPath, name: 'Serializable' }).toString(), '@Serializable')
+  assertEquals(new KtAnnotation({ context, destinationPath, name: 'SerialName', args: ['"user_id"'] }).toString(), '@SerialName("user_id")')
 })

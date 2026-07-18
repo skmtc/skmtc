@@ -2,26 +2,27 @@ import type { GenerateContextType, Stringable } from '@skmtc/core'
 import { register } from './register.ts'
 
 /**
- * Constructor arguments for {@link KtAnnotation}. `packageName` and
- * `destinationPath` come together or not at all: an annotation that names
- * a packaged class declares where it lives and where it is used; a
- * default-scope annotation (`@Deprecated`, `@Suppress` — `kotlin.*` needs
- * no import) passes neither.
+ * Constructor arguments for {@link KtAnnotation}.
  */
 export type KtAnnotationArgs = {
   context: GenerateContextType
   name: string
   /** Pre-quoted argument list rendered inside `(…)`; omitted → bare `@Name`. */
   args?: Stringable[]
-} & (
-  | {
-      /** Dotted package the annotation class lives in — self-registers `import <packageName>.<name>`. */
-      packageName: string
-      /** The file the annotation renders into — where its import registers. */
-      destinationPath: string
-    }
-  | { packageName?: undefined; destinationPath?: undefined }
-)
+  /**
+   * Dotted package the annotation class lives in — self-registers
+   * `import <packageName>.<name>` into `destinationPath`. Omitted for
+   * default-scope annotations (`@Deprecated`, `@Suppress` — `kotlin.*`
+   * needs no import): the annotation then only renders.
+   */
+  packageName?: string
+  /**
+   * The file the annotation renders into — where its import registers.
+   * Always explicit, like every snippet: the parent knows its target
+   * file, so every combination of these args is valid.
+   */
+  destinationPath: string
+}
 
 /**
  * Renders a Kotlin annotation: `@Serializable`, `@SerialName("user_id")`.
@@ -49,14 +50,14 @@ export class KtAnnotation {
   name: string
   args: Stringable[]
 
-  constructor(constructorArgs: KtAnnotationArgs) {
-    this.name = constructorArgs.name
-    this.args = constructorArgs.args ?? []
+  constructor({ context, name, args = [], packageName, destinationPath }: KtAnnotationArgs) {
+    this.name = name
+    this.args = args
 
-    if (constructorArgs.packageName !== undefined) {
-      register(constructorArgs.context, {
-        imports: { [constructorArgs.packageName]: [constructorArgs.name] },
-        destinationPath: constructorArgs.destinationPath
+    if (packageName !== undefined) {
+      register(context, {
+        imports: { [packageName]: [name] },
+        destinationPath
       })
     }
   }
