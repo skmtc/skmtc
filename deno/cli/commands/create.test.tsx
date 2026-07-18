@@ -6,8 +6,10 @@ import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import type { InkRenderFn } from '@/commands/types.ts'
 import type { Instance } from 'ink'
 import type { AppProps } from '@/components/App.tsx'
+import { withFakeTty } from '@/tests/strict-mode-helpers.test.ts'
 
 Deno.test('renderCreate - should call toSession, render, and App with expected props', async () => {
+  await withFakeTty(async () => {
   // Set up mocks
   const manager = createMockManager()
 
@@ -54,7 +56,8 @@ Deno.test('renderCreate - should call toSession, render, and App with expected p
             page: 'create-generator',
             projectName: testProjectName,
             generatorName: testGenerator,
-            generatorType: testType
+            generatorType: testType,
+            language: undefined
           },
           skmtcRoot,
           message: null,
@@ -64,5 +67,6 @@ Deno.test('renderCreate - should call toSession, render, and App with expected p
         }}
       />
     ]
+  })
   })
 })
