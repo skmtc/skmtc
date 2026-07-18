@@ -1,6 +1,6 @@
 ---
 name: skmtc-cli
-version: 0.4.0
+version: 0.4.1
 description: |
   Use the SKMTC CLI to scaffold projects, install or clone generators
   from JSR, configure schema sources and enrichments, and produce code
@@ -692,12 +692,16 @@ Use this when generator **source already exists on disk** (authored
 programmatically, not scaffolded) and you want the CLI to run it —
 e.g. a sandbox handed "a folder of generator source + a schema".
 
-**Do not use `skmtc create` for this.** `create` is interactive (no
-`--json`), needs a `model|operation` arg, scaffolds *stub* `src/`
-files you'd overwrite, and — via `Generator.createFiles` — only
-`ensureFile`s the package root `mod.ts`, leaving it **empty**. Its one
-useful side effect (patching the project `deno.json`) is a two-field
-edit you do directly.
+**`skmtc create` is agent-usable for Kotlin.** In a non-TTY session
+it runs headlessly from its command-line args, and
+`skmtc create <project> <name> model --lang kotlin` writes a WORKING
+baseline generator (schema-routed data classes / enum classes / sealed
+interfaces, a `KtType` snippet, `enrichments.ts`, a real root `mod.ts`
+default export) plus the project `deno.json` registration —
+scaffold-then-customise is the preferred flow. The **TypeScript**
+templates (`--lang typescript`, the default) still scaffold stubs and
+leave the package root `mod.ts` empty — for TS, the direct-registration
+flow below remains the practical path.
 
 **The CLI discovers a local generator ONLY via the project
 `deno.json#imports`.** `toGeneratorIds()` = the import *keys* whose

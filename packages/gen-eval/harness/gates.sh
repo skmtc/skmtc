@@ -147,6 +147,19 @@ else
   gate compile skip "no gradle available"
 fi
 
+# Gate — wire behavior: the app's test suite (DtoContractTest) exercises
+# serde round-trips the compile gate cannot see (missing @JsonSerialize,
+# enum fallback, read/write-only access all pass compileKotlin).
+if command -v gradle > /dev/null; then
+  if (cd kotlin-person-api && gradle -q test --console=plain) > "$OUT/test.log" 2>&1; then
+    gate dto-contract ok "gradle test"
+  else
+    gate dto-contract FAIL "see test.log"
+  fi
+else
+  gate dto-contract skip "no gradle available"
+fi
+
 # Reference diff (reported, not gated): the generated Dtos.kt against
 # the repo's real one. KDoc prose is authored commentary absent from
 # the schema, so byte-equality is not demanded — the diff is surfaced

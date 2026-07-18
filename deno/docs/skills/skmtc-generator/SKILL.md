@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.6.3
+version: 0.6.4
 description: |
   Author and edit SKMTC generators — write or modify Projection
   classes, Snippets, transform functions, enrichment schemas, and the
@@ -544,6 +544,12 @@ TypeScript-output-specific rules (type-only imports / TS1484,
   `undefined` and crashes downstream. If you're calling `toRefName()`
   to build an import path by hand, switch to `insertNormalizedModel` —
   it handles named refs and inline schemas uniformly.
+- **Object property values are a 3-way union.** `OasObject.properties`
+  is `Record<string, OasSchema | OasRef<'schema'> | CustomValue>` —
+  type schema-walking helpers against all three. `CustomValue`
+  satisfies the same narrowing surface (`.isRef()` returns false,
+  `.type === 'custom'`, `.resolve()` is identity), so it flows through
+  a schema→type Snippet as the `default` branch.
 - **`allOf` is already merged** (`core/oas/_merge-all-of/` runs at
   Parse). Treat received schemas as flat objects.
 - **Unwrap before you switch.** OpenAPI refs can't carry extensions,
@@ -861,7 +867,9 @@ export const MyModelEntry = toModelEntry<EnrichmentSchema>({
   // ⬇ Optional capability gate (default: every model). The predicate
   //   gets `refName` (no schema) — resolve it yourself when needed.
   isSupported({ context, refName }) {
-    const schema = context.resolveSchemaRefOnce(refName, MyGen.id)
+    // Unconditional `.resolve()` — identity on concrete schemas;
+    // never `schema.isRef() ? schema.resolve() : schema`.
+    const schema = context.resolveSchemaRefOnce(refName, MyGen.id).resolve()
     return !schema.isRef() && schema.type === 'object'
   },
 
@@ -1088,11 +1096,12 @@ instead of `@skmtc/lang-typescript`):
   `toGqlOperationEntry` / `toModelEntry` are pure pipeline config
   with no language involvement.
 
-Non-TypeScript language layers are **pre-alpha and have no skills
-yet** — read the lang package's source directly for its exact export
-names, and treat the `skmtc-lang-typescript` skill as the template
-for what a language layer covers (it is the model for future
-`skmtc-lang-<X>` skills). Keep the target language's conventions in
+Kotlin has a full language skill (`skmtc-lang-kotlin`) and a
+scaffolder (`skmtc create … model --lang kotlin` — a working baseline
+to customise); other non-TypeScript layers are pre-alpha — read the
+lang package's source for exact export names, with
+`skmtc-lang-typescript` as the template for what a language layer
+covers. Keep the target language's conventions in
 the *naming seams* (`toIdentifierName` should produce idiomatic
 casing for the target language; `toExportPath` its file layout), and
 keep everything else — purity, self-provisioning, compose-don't-
@@ -1239,15 +1248,34 @@ save); verify against §9.
 
 ```bash
 skmtc create <project> <gen-name> operation   # or 'model'
+skmtc create <project> <gen-name> model --lang kotlin   # Kotlin target
 ```
 
-Then, matching scaffolds A–D: implement `isSupported` in `src/mod.ts`;
+`--lang kotlin` (model generators) writes a WORKING baseline — schema
+routing to data classes / enum classes / sealed interfaces (the
+union-assigns-parent pattern), a `KtType` schema→type Snippet,
+`enrichments.ts`, and the project `deno.json` registration. Customise
+its seams instead of hand-writing the standard files. In a non-TTY
+session `create` runs headlessly from its command-line args.
+
+For TypeScript, then, matching scaffolds A–D: implement `isSupported` in `src/mod.ts`;
 `toIdentifierName` / `toIdentifierType` / `toExportPath` in
 `src/base.ts` (the lang import here declares the target language);
 the Projection in `src/<MainProjection>.ts`; decompose into Snippets
 (scaffold E) as needed; always create `src/enrichments.ts` (scaffold
 D — `emptyEnrichmentSchema` when there are no user options). Iterate
 with `skmtc dev <project>`.
+
+### Card: Recreating a hand-written file
+
+When the target is an exact file the app compiles against (a
+hand-written `Dtos.kt`, a module imported by name): a constant
+`toExportPath` returning that one path; `client.json#settings.generatedSuffix: ""`
+so the engine writes the exact filename; register every definition
+into the one file (same-package peers need no import wiring); policy
+seams for whatever the schema cannot express. The diff against the
+hand-written original is the acceptance signal — KDoc prose and
+declaration ordering are non-derivable and remain.
 
 ### Card: Adding a new field type to a form generator
 

@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-kotlin
-version: 0.2.0
+version: 0.3.0
 description: |
   The Kotlin target-language layer for SKMTC generators
   (`@skmtc/lang-kotlin`). Covers how a generator declares Kotlin as its
@@ -400,22 +400,41 @@ typealias / val:    the right-hand-side expression
 
 The Kotlin idiom for a discriminated `oneOf` (`Animal` = `Dog | Cat`,
 discriminated by `petType`) is a sealed parent plus supertyped
-members, and it needs **no dedicated machinery** — it falls out of the
-head+value model:
+members. The pattern: **the union assigns membership to its members**
+— a member schema does not know it is in a union and behaves as if it
+is not.
 
+- **Members** carry two generator-owned seams, empty by default:
+  `supertypes: Stringable[]` and `omittedProperties: Set<string>`.
+  Their value renders `` supertypes.length ? ` : ${supertypes.join(', ')}` : '' ``
+  after the parameter list and filters omitted properties — so a
+  standalone schema renders exactly as before.
 - **Parent**: `createSealedInterface(refName)` with a value that
   renders `''` — the bodyless idiom gives `sealed interface Animal`.
   (Serialization annotations on the parent — `@JsonTypeInfo` /
   `@JsonSubTypes`, `@Serializable` — are generator policy via the
-  `KtAnnotated` protocol.)
-- **Members**: ordinary data classes whose value renders the supertype
-  clause inline after the parameter list —
-  `` `${parameterList} : ${parent.toName()}` `` — where `parent` is
-  the `insertModel` handle for the parent schema. The Driver registers
-  the cross-file import of the parent into each member's file (and
-  suppresses it when same-package).
-- Dynamic membership scans write
-  `` supertypes.length ? ` : ${supertypes.join(', ')}` : '' ``.
+  `KtAnnotated` protocol.) Its constructor inserts each `$ref` member
+  and assigns:
+
+  ```ts fragment
+  schema.members.forEach(member => {
+    if (!member.isRef()) return
+    const inserted = context.insertModel(KtModel, member.toRefName())
+    inserted.definition.value.supertypes.push(refName)
+    const tag = schema.discriminator?.propertyName
+    if (tag) inserted.definition.value.omittedProperties.add(tag)
+  })
+  ```
+
+- **Order cannot matter**: inserts are idempotent and memoized, so
+  member-first and union-first visits converge on one instance, and
+  generate completes before render — pinned by core's
+  `GenerateContext.insert-mutation.test.ts`. Assign during generate
+  only; `toString()` stays a pure read of the seams. Multi-union
+  membership composes (` : A, B`) for free.
+- This is generator-owned state, NOT a lang protocol — the old
+  `KtSupertyped` render protocol stays gone. The
+  `skmtc create … --lang kotlin` scaffold ships this pattern.
 
 ### The value protocols — what renders *above* the declaration
 
