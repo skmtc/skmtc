@@ -11,7 +11,7 @@ import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
-import type { ModelProjection } from '@/dsl/model/types.ts'
+import type { ModelProjection, NormalizedModelProjection } from '@/dsl/model/types.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
@@ -199,7 +199,7 @@ export const toGqlOperationProjectionBase = <
       Schema extends OasSchema | OasRef<'schema'> | OasVoid,
       PeerEnrichmentType = undefined
     >(
-      projection: ModelProjection<V, PeerEnrichmentType>,
+      projection: NormalizedModelProjection<V, PeerEnrichmentType>,
       { schema, fallbackName }: Omit<InsertNormalizedModelArgs<Schema>, 'destinationPath'>,
       options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
     ): InsertNormalizedModelReturn<V, Schema> {

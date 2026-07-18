@@ -86,7 +86,7 @@ import type { WebhookEntry } from '@/dsl/webhook/toWebhookEntry.ts'
 import type { OasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import type { GqlOperationEntry } from '@/dsl/operation/gql/toGqlOperationEntry.ts'
 import type { ModelEntry } from '@/dsl/model/toModelEntry.ts'
-import type { ModelProjection } from '@/dsl/model/types.ts'
+import type { ModelProjection, NormalizedModelProjection } from '@/dsl/model/types.ts'
 import { EnrichmentAudit, hasVariantEnrichment } from '@/enrichments/EnrichmentAudit.ts'
 import { formatEnrichmentPath, type EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
 
@@ -1404,7 +1404,7 @@ export class GenerateContext implements GenerateContextType {
     Schema extends OasSchema | OasRef<'schema'> | OasVoid,
     EnrichmentType
   >(
-    projection: ModelProjection<V, EnrichmentType>,
+    projection: NormalizedModelProjection<V, EnrichmentType>,
     { schema, fallbackName, destinationPath }: InsertNormalizedModelArgs<Schema>,
     { noExport = false, variant }: InsertNormalizedModelOptions = {}
   ): InsertNormalizedModelReturn<V, Schema> {
