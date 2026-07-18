@@ -336,7 +336,7 @@ class**, so supertype clauses (` : Animal`) and braced bodies
 
 | Helper | Renders | The grammar rule it owns |
 |---|---|---|
-| `KtParameterList` | `(\n    @Anno val id: String,\n    val email: String? = null\n)` | Parentheses included; each parameter a `val` property with optional annotations, `private/protected/internal` visibility, `?` nullability, ` = default` |
+| `KtParameterList` | `(\n    @Anno\n    val id: String,\n    val email: String? = null\n)` | Parentheses included; each parameter a `val` property with annotations one per line above it, `private/protected/internal` visibility, `?` nullability, ` = default` |
 | `KtPrimaryConstructor` | `(…)` or ` @Anno private constructor(…)` | Modifiers force Kotlin's explicit `constructor` keyword; without modifiers it renders just the parameter list |
 | `KtFunctionSignature` | `    @GetMapping("/users/{id}")\n    fun getUsersId(@PathVariable("id") id: String): User` | Method signatures inside interface/class bodies: per-signature KDoc + annotations, abstract by default, expression body via `body` (` = …` — block bodies deliberately unsupported), implicit `Unit` when `returnType` omitted |
 | `KtFunctionParameter` | `@RequestParam("verbose") verbose: Boolean? = null` | One signature parameter — annotations, nullability, defaults |
@@ -523,7 +523,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class User(
-    @SerialName("user_id") val userId: String,
+    @SerialName("user_id")
+    val userId: String,
     val name: String,
     val email: String? = null
 )

@@ -13,7 +13,7 @@ export type KtParameterArgs = {
   nullable?: boolean
   /** Optional default (` = …`), e.g. `'null'` for optional properties. */
   defaultValue?: Stringable
-  /** Inline annotations rendered before `val` (e.g. `@SerialName("…")`). */
+  /** Annotations rendered one per line above the parameter (e.g. `@SerialName("…")`). */
   annotations?: KtAnnotation[]
   /**
    * Visibility modifier rendered after the annotations, before `val`
@@ -48,13 +48,13 @@ export class KtParameterList {
       .map(parameter => {
         const visibility = parameter.visibility ? `${parameter.visibility} ` : ''
         const annotations = parameter.annotations?.length
-          ? parameter.annotations.map(annotation => `${annotation} `).join('')
+          ? parameter.annotations.map(annotation => `    ${annotation}\n`).join('')
           : ''
         const nullable = parameter.nullable ? '?' : ''
         const defaultValue =
           parameter.defaultValue !== undefined ? ` = ${parameter.defaultValue}` : ''
 
-        return `    ${annotations}${visibility}val ${parameter.name}: ${parameter.type}${nullable}${defaultValue}`
+        return `${annotations}    ${visibility}val ${parameter.name}: ${parameter.type}${nullable}${defaultValue}`
       })
       .join(',\n')
 
