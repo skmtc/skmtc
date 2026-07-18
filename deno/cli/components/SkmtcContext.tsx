@@ -94,6 +94,7 @@ export type ViewStateAddGenerator = {
   projectName: string
   generatorName?: string
   generatorType?: 'operation' | 'model'
+  language?: 'typescript' | 'kotlin'
   username?: string
 }
 
@@ -102,6 +103,7 @@ export type ViewStateAddGeneratorConfirmed = {
   projectName: string
   generatorName: string
   generatorType: 'operation' | 'model'
+  language?: 'typescript' | 'kotlin'
   username: string
 }
 

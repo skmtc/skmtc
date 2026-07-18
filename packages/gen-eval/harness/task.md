@@ -38,11 +38,14 @@ register calls, no string composition outside `toString()`,
   The `skmtc-lang-kotlin` skill covers its API — prefer the skill over
   re-deriving the API from source; the vendored source is the ground
   truth for anything the skill leaves open.
-- Create your generator at `.skmtc/lab/gen-kotlin-jackson/` and add it
-  to `.skmtc/lab/deno.json` (`imports` entry
-  `"@eval/gen-kotlin-jackson": "./gen-kotlin-jackson/mod.ts"` plus a
-  `workspace` entry) — see the skmtc-cli skill's "Registering an
-  agent-authored local generator" card.
+- **Scaffold first, then customise.** Run
+  `skmtc create lab @eval/gen-kotlin-jackson model --lang kotlin` —
+  it writes a WORKING baseline Kotlin model generator (file-per-model
+  data classes / enums / sealed interfaces, schema-driven types) and
+  registers it in `.skmtc/lab/deno.json`. Your task is customising
+  that baseline into the target: one `Dtos.kt` file, the Jackson
+  annotations, the policy seams. Do not hand-write the standard files
+  the scaffolder already provides.
 - `kotlin-person-api/` is the real Spring Boot app with its `Dtos.kt`
   removed. Everything else is hand-written and checksum-pinned: the
   controller and services compile against your generated DTOs,
@@ -67,11 +70,12 @@ register calls, no string composition outside `toString()`,
 ## Policy decisions are yours to encode
 
 The schema cannot express everything in the reference output. The
-BigDecimal-plus-serde mapping for the money field, the `@JsonFormat`
-pattern, and marking the `unknown` enum constant as the fallback are
-**generator policy** — encode them in your generator source as
-deliberate seams (the stock-generator convention), not by mutating the
-schema or the app.
+money field is marked `format: decimal` — map it to `BigDecimal`.
+Which serde classes pair with it, the `@JsonFormat` pattern, and
+marking the `unknown` enum constant as the fallback are **generator
+policy** — encode them in your generator source as deliberate seams
+(the stock-generator convention), not by mutating the schema or the
+app.
 
 ## Output requirements
 
@@ -85,7 +89,11 @@ schema or the app.
 ```bash
 skmtc bundle lab --json               # after generator source changes
 skmtc generate lab --json             # errors must be [], Dtos.kt created
-cd kotlin-person-api && gradle compileKotlin   # the app compiles against your DTOs
+node reference/structural-eval/cli.ts --scan .skmtc/lab
+# ^ the SAME structural eval that grades this run — re-run it and fix
+#   what it reports until there are no FAILs and no warnings
+cd kotlin-person-api && gradle compileKotlin && gradle test
+# ^ the app compiles AND its DtoContractTest passes against your DTOs
 diff ../reference/Dtos.kt src/main/kotlin/com/example/api/dto/Dtos.kt
 # ^ inspect what remains — close the derivable gaps (declarations,
 #   annotations, types, defaults); KDoc prose gaps are expected

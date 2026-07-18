@@ -14,7 +14,7 @@ import type { Inserted } from '@/dsl/Inserted.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
-import type { ModelProjection } from '@/dsl/model/types.ts'
+import type { ModelProjection, NormalizedModelProjection } from '@/dsl/model/types.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { SchemaToNonRef, TypeSystemOutput } from '@/types/TypeSystem.ts'
@@ -540,7 +540,7 @@ export type GenerateContextType = {
     Schema extends OasSchema | OasRef<'schema'> | OasVoid,
     EnrichmentType
   >(
-    projection: ModelProjection<V, EnrichmentType>,
+    projection: NormalizedModelProjection<V, EnrichmentType>,
     { schema, fallbackName, destinationPath }: InsertNormalizedModelArgs<Schema>,
     options?: InsertNormalizedModelOptions
   ) => InsertNormalizedModelReturn<V, Schema>

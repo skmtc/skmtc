@@ -149,7 +149,8 @@ Deno.test(
         args: [
           {
             moduleName: 'my-generator',
-            type: 'operation'
+            type: 'operation',
+            language: undefined
           }
         ]
       })
@@ -213,7 +214,8 @@ Deno.test(
         args: [
           {
             moduleName: 'user-model',
-            type: 'model'
+            type: 'model',
+            language: undefined
           }
         ]
       })
@@ -265,7 +267,8 @@ Deno.test(
         args: [
           {
             moduleName: 'failing-generator',
-            type: 'operation'
+            type: 'operation',
+            language: undefined
           }
         ]
       })

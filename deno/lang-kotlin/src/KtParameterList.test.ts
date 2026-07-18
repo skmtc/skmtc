@@ -8,7 +8,7 @@ import { KtAnnotation } from './KtAnnotation.ts'
 const context = {} as unknown as GenerateContextType
 const destinationPath = '@/test/Test.generated.kt'
 
-Deno.test('parameters render nullability, defaults, and inline annotations', () => {
+Deno.test('parameters render nullability, defaults, and own-line annotations', () => {
   const parameters = new KtParameterList([
     {
       name: 'userId',
@@ -22,7 +22,8 @@ Deno.test('parameters render nullability, defaults, and inline annotations', () 
   assertEquals(
     parameters.toString(),
     '(\n' +
-      '    @SerialName("user_id") val userId: String,\n' +
+      '    @SerialName("user_id")\n' +
+      '    val userId: String,\n' +
       '    val name: String,\n' +
       '    val email: String? = null\n' +
       ')'
@@ -44,7 +45,8 @@ Deno.test('parameters render visibility after annotations (Kotlin modifier order
     parameters.toString(),
     '(\n' +
       '    private val service: UsersService,\n' +
-      '    @SerialName("t") internal val tagged: String\n' +
+      '    @SerialName("t")\n' +
+      '    internal val tagged: String\n' +
       ')'
   )
 })

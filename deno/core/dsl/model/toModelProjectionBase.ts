@@ -16,6 +16,7 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
 import type {
   ModelProjection,
+  NormalizedModelProjection,
   ToModelIdentifierNameArgs,
   ToModelExportPathArgs
 } from '@/dsl/model/types.ts'
@@ -195,7 +196,7 @@ export const toModelProjectionBase = <
       Schema extends OasSchema | OasRef<'schema'> | OasVoid,
       PeerEnrichmentType = undefined
     >(
-      projection: ModelProjection<V, PeerEnrichmentType>,
+      projection: NormalizedModelProjection<V, PeerEnrichmentType>,
       { schema, fallbackName }: Omit<InsertNormalizedModelArgs<Schema>, 'destinationPath'>,
       options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
     ): InsertNormalizedModelReturn<V, Schema> {

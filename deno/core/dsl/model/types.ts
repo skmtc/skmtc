@@ -138,13 +138,24 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
    * case it is treated as supporting every model.
    */
   isSupported?: (args: IsSupportedModelArgs) => boolean
-  schemaToValueFn: SchemaToValueFn
-  /**
-   * The inline-schema fallback seam used by `insertNormalizedModel` when a
-   * schema is not a `$ref`: builds the Definition's identifier from a bare
-   * `fallbackName`. A generator static; returns the neutral `IdentifierBase`
-   * (the engine reads only `.name`).
-   */
-  createIdentifier: (name: string) => IdentifierBase
   // deno-lint-ignore ban-types
 } & Function
+
+/**
+ * A {@link ModelProjection} that can also handle **inline** (non-`$ref`)
+ * schemas — the parameter type of `insertNormalizedModel`, which is the
+ * only consumer of these two statics. `insertModel` (named refs only)
+ * takes the plain {@link ModelProjection}, so a generator that never
+ * inserts inline schemas declares neither.
+ */
+export type NormalizedModelProjection<V extends GeneratedValue, EnrichmentType = undefined> =
+  ModelProjection<V, EnrichmentType> & {
+    /** Builds the inline schema's value (the Definition body). */
+    schemaToValueFn: SchemaToValueFn
+    /**
+     * Builds the Definition's identifier from a bare `fallbackName`. A
+     * generator static; returns the neutral `IdentifierBase` (the engine
+     * reads only `.name`).
+     */
+    createIdentifier: (name: string) => IdentifierBase
+  }

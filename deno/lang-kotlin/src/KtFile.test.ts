@@ -104,7 +104,8 @@ Deno.test('the Track 2 User-DTO worked example renders byte-for-byte (note 19 sn
       '\n' +
       '@Serializable\n' +
       'data class User(\n' +
-      '    @SerialName("user_id") val userId: String,\n' +
+      '    @SerialName("user_id")\n' +
+      '    val userId: String,\n' +
       '    val name: String,\n' +
       '    val email: String? = null\n' +
       ')\n'

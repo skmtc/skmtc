@@ -20,6 +20,7 @@ import { SKMTC_IGNORE_FILE, SKMTCIGNORE_TEMPLATE } from '@/lib/source-upload.ts'
 type AddGeneratorArgs = {
   moduleName: string
   type: 'operation' | 'model'
+  language?: 'typescript' | 'kotlin'
   username?: string
 }
 
@@ -304,7 +305,7 @@ export class Project {
     return this.rootDenoJson.toGeneratorIds()
   }
 
-  async addGenerator({ moduleName, type, username }: AddGeneratorArgs) {
+  async addGenerator({ moduleName, type, language, username }: AddGeneratorArgs) {
     try {
       const { scopeName, packageName, version } = parseModuleName(moduleName)
 
@@ -315,7 +316,7 @@ export class Project {
         version: version ?? '0.0.1'
       })
 
-      generator.add({ project: this, generatorType: type })
+      await generator.add({ project: this, generatorType: type, language })
     } catch (error) {
       console.error(error)
 

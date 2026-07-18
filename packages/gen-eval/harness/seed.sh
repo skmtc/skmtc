@@ -69,6 +69,10 @@ for gen in gen-typescript gen-zod; do
   cp "$REF_GENERATORS/$gen/mod.ts" "$REF_GENERATORS/$gen/deno.json" "$REF_GENERATORS/$gen/README.md" "reference/$gen/"
 done
 ln -s "$SKMTC_ROOT/skmtc/deno" reference/skmtc-deno
+# The structural eval the harness grades with, runnable mid-task:
+#   node reference/structural-eval/cli.ts --scan .skmtc/lab
+# (src only — run transcripts stay out of reach)
+ln -s "$SKMTC_ROOT/skmtc/packages/gen-eval/src" reference/structural-eval
 
 # 5. Integrity checksums — the gates disqualify a run that edits these:
 #    the schema, the app's build files, every hand-written app source,

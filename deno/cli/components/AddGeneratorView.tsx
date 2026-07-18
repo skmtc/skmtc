@@ -14,7 +14,7 @@ type AddGeneratorViewProps = {
   view: ViewStateAddGenerator
 }
 
-export const AddGeneratorView = ({ project }: AddGeneratorViewProps) => {
+export const AddGeneratorView = ({ project, view }: AddGeneratorViewProps) => {
   const { dispatch, state } = useSkmtc()
 
   return (
@@ -36,7 +36,7 @@ export const AddGeneratorView = ({ project }: AddGeneratorViewProps) => {
           taskKey: 'add-generator-task',
           include: true,
           state: undefined,
-          render: () => <AddGeneratorTask project={project} />
+          render: () => <AddGeneratorTask project={project} language={view.language} />
         }
       ]}
       leave={() => {
@@ -54,9 +54,10 @@ export const AddGeneratorView = ({ project }: AddGeneratorViewProps) => {
 
 type AddGeneratorTaskProps = {
   project: Project
+  language?: 'typescript' | 'kotlin'
 }
 
-const AddGeneratorTask = ({ project }: AddGeneratorTaskProps) => {
+const AddGeneratorTask = ({ project, language }: AddGeneratorTaskProps) => {
   const { dispatch, dispatchMessage } = useSkmtc()
   const { state: taskState } = useTask()
 
@@ -72,7 +73,7 @@ const AddGeneratorTask = ({ project }: AddGeneratorTaskProps) => {
     invariant(generatorType, 'Generator type is required')
 
     project
-      .addGenerator({ moduleName: generatorName, type: generatorType })
+      .addGenerator({ moduleName: generatorName, type: generatorType, language })
       .then(() => {
         dispatchMessage({
           success: `"${generatorName}" (${generatorType}) generator added to ${project.name}`
