@@ -28,7 +28,14 @@ export const kotlin: Lang = {
       `KtDefinition needs a KtIdentifier to render '${identifier.name}', got a foreign identifier`
     )
 
-    return new KtDefinition({ context, identifier, value, noExport, description })
+    return new KtDefinition({
+      context,
+      // Kotlin has no definition-level visibility — `noExport` becomes
+      // `exported: false` on the identifier, rendered in its head.
+      identifier: noExport ? new KtIdentifier({ ...identifier, exported: false }) : identifier,
+      value,
+      description
+    })
   },
 
   // The Driver's cross-file import of a peer Definition's identifier —

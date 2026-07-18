@@ -11,8 +11,11 @@
  * `reExports` field), the projection-base veneers (model + OAS
  * operation), `KtFile` (path-derived `package` directive, sorted imports,
  * same-package suppression), `KtImport` (symbol-level, `as` aliases),
- * `KtDefinition` (exhaustive declaration shells; the `KtAnnotated` /
- * `KtSupertyped` / `KtConstructed` / `KtDocumented` value protocols), the
+ * `KtDefinition` (head + value rendering — the identifier renders its
+ * declaration head, the value renders everything after it via
+ * `KtParameterList` / `KtPrimaryConstructor` plus inline supertype
+ * clauses and ` {\n…\n}` bodies; the `KtAnnotated` / `KtDocumented`
+ * value protocols cover what renders above the declaration), the
  * function-signature grammar (`KtFunctionSignature` /
  * `KtFunctionParameter` — interface/class methods incl. KDoc,
  * expression bodies, and parameter defaults), the identifier
@@ -48,9 +51,11 @@ export {
   type KtFunctionParameterArgs
 } from './src/KtFunctionSignature.ts'
 export { KtAnnotation, isKtAnnotated, type KtAnnotated } from './src/KtAnnotation.ts'
-export { isKtSupertyped, type KtSupertyped } from './src/KtSupertyped.ts'
-export { isKtConstructed, type KtConstructed } from './src/KtConstructed.ts'
 export { isKtDocumented, type KtDocumented } from './src/KtDocumented.ts'
+export {
+  KtPrimaryConstructor,
+  type KtPrimaryConstructorArgs
+} from './src/KtPrimaryConstructor.ts'
 export { withDescription, type WithDescriptionArgs } from './src/withDescription.ts'
 export {
   createClass,

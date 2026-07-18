@@ -6,8 +6,8 @@ import { KtIdentifier } from './KtIdentifier.ts'
  * narrow against.
  *
  * - `'class'` — a concrete `class Name(…) { … }` declaration (the
- *   generated-controller idiom; constructor properties ride the
- *   `KtConstructed` value protocol).
+ *   generated-controller idiom; the value composes its
+ *   `KtPrimaryConstructor` and braced body).
  * - `'data-class'` — a `data class Name(…)` DTO container.
  * - `'enum-class'` — an `enum class Name { … }` declaration.
  * - `'interface'` — an `interface Name { … }` declaration (the Spring

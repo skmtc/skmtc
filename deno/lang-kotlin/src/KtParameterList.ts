@@ -24,10 +24,12 @@ export type KtParameterArgs = {
 }
 
 /**
- * Renders a Kotlin primary-constructor parameter list — the value a
- * {@link import('./KtDefinition.ts').KtDefinition} wraps for a
- * `data class` DTO. Each parameter is a public `val` property; the
- * Definition assembles the `data class Name( … )` shell.
+ * Renders a Kotlin primary-constructor parameter list, **parentheses
+ * included** — `(\n    val id: String\n)`. The value owns its
+ * delimiters: a data-class value interpolates this directly
+ * (`${parameters}${supertypeClause}`), and the definition renders only
+ * `${head}${value}`. Each parameter is a `val` property (public by
+ * default).
  *
  * No trailing comma after the last parameter — a cosmetic non-decision:
  * trailing commas are the consumer's formatter's territory (ktfmt adds
@@ -42,7 +44,7 @@ export class KtParameterList {
   }
 
   toString(): string {
-    return this.parameters
+    const parameters = this.parameters
       .map(parameter => {
         const visibility = parameter.visibility ? `${parameter.visibility} ` : ''
         const annotations = parameter.annotations?.length
@@ -55,5 +57,7 @@ export class KtParameterList {
         return `    ${annotations}${visibility}val ${parameter.name}: ${parameter.type}${nullable}${defaultValue}`
       })
       .join(',\n')
+
+    return `(\n${parameters}\n)`
   }
 }

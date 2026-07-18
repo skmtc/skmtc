@@ -83,9 +83,12 @@ export type KtDefineAndRegisterArgs<Value extends GeneratedValue> = {
    * KDoc description rendered above the declaration — wins over the
    * value-carried {@link import('./KtDocumented.ts').KtDocumented}
    * protocol, exactly as on {@link KtDefinition}'s constructor.
+   *
+   * There is deliberately no `noExport` here: visibility is the
+   * identifier's fact — pass `exported: false` to the identifier factory
+   * (`createDataClass(name, { exported: false })`) instead.
    */
   description?: string
-  noExport?: boolean
 }
 
 /**
@@ -99,9 +102,9 @@ export type KtDefineAndRegisterArgs<Value extends GeneratedValue> = {
  */
 export const defineAndRegister = <Value extends GeneratedValue>(
   context: GenerateContextType,
-  { identifier, value, destinationPath, description, noExport }: KtDefineAndRegisterArgs<Value>
+  { identifier, value, destinationPath, description }: KtDefineAndRegisterArgs<Value>
 ): KtDefinition<Value> => {
-  const definition = new KtDefinition({ context, identifier, value, description, noExport })
+  const definition = new KtDefinition({ context, identifier, value, description })
 
   register(context, { definitions: [definition], destinationPath })
 

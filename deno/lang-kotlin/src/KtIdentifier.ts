@@ -61,21 +61,28 @@ export class KtIdentifier extends IdentifierBase {
   }
 
   /**
-   * The declaration head: `<keyword> <name>[: <typeName>]`. Overrides the
-   * neutral base's bare-name render — in Kotlin the keyword belongs to the
-   * identifier's kind, so the identifier renders it. `verbatim` (no head)
-   * keeps the neutral bare-name behavior. Generators splicing a name into
-   * generated code should keep using `.name` / `Inserted.toName()`, which
-   * this override does not touch.
+   * The declaration head: `[private ]<keyword> <name>[: <typeName>]`.
+   * Overrides the neutral base's bare-name render — in Kotlin the keyword
+   * belongs to the identifier's kind, so the identifier renders it, and
+   * visibility is the identifier's own `exported` fact (the pattern core's
+   * `IdentifierBase.exported` doc anticipates: each language renders it its
+   * own way — Go via name casing, Kotlin via this prefix). Kotlin defaults
+   * to `public`, so `exported` renders as *nothing* when true and
+   * `private ` (file-local) when false — keyword only to restrict.
+   * `verbatim` (no head, nothing to restrict) keeps the neutral bare-name
+   * behavior. Generators splicing a name into generated code should keep
+   * using `.name` / `Inserted.toName()`, which this override does not
+   * touch.
    */
   override toString(): string {
     if (this.type === 'verbatim') {
       return this.name
     }
 
+    const visibility = this.exported === false ? 'private ' : ''
     const typeName = this.typeName ? `: ${this.typeName}` : ''
 
-    return `${ktDeclarationKeywords[this.type]} ${this.name}${typeName}`
+    return `${visibility}${ktDeclarationKeywords[this.type]} ${this.name}${typeName}`
   }
 }
 

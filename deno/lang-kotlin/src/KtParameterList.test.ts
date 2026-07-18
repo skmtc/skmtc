@@ -15,9 +15,11 @@ Deno.test('parameters render nullability, defaults, and inline annotations', () 
 
   assertEquals(
     parameters.toString(),
-    '    @SerialName("user_id") val userId: String,\n' +
+    '(\n' +
+      '    @SerialName("user_id") val userId: String,\n' +
       '    val name: String,\n' +
-      '    val email: String? = null'
+      '    val email: String? = null\n' +
+      ')'
   )
 })
 
@@ -34,14 +36,17 @@ Deno.test('parameters render visibility after annotations (Kotlin modifier order
 
   assertEquals(
     parameters.toString(),
-    '    private val service: UsersService,\n' + '    @SerialName("t") internal val tagged: String'
+    '(\n' +
+      '    private val service: UsersService,\n' +
+      '    @SerialName("t") internal val tagged: String\n' +
+      ')'
   )
 })
 
 Deno.test('no trailing comma after the last parameter (formatter territory)', () => {
   const parameters = new KtParameterList([{ name: 'id', type: 'String' }])
 
-  assertEquals(parameters.toString(), '    val id: String')
+  assertEquals(parameters.toString(), '(\n    val id: String\n)')
 })
 
 Deno.test('KtAnnotation renders bare and with args', () => {

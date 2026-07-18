@@ -5,7 +5,7 @@ import { KtDefinition } from './KtDefinition.ts'
 import { kotlin } from './KtLang.ts'
 import { KtParameterList } from './KtParameterList.ts'
 import { KtAnnotation } from './KtAnnotation.ts'
-import { isKtSupertyped } from './KtSupertyped.ts'
+import { KtPrimaryConstructor } from './KtPrimaryConstructor.ts'
 import {
   createClass,
   createDataClass,
@@ -16,12 +16,11 @@ import {
   createValue,
   createVerbatim
 } from './createIdentifier.ts'
-import { isKtConstructed } from './KtConstructed.ts'
 
 // Construction only stores `context`; `toString()` never reads it (test-only cast).
 const context = {} as unknown as GenerateContextType
 
-Deno.test('data-class shell renders the User DTO', () => {
+Deno.test('data-class renders the User DTO (KtParameterList owns its parens)', () => {
   const definition = new KtDefinition({
     context,
     identifier: createDataClass('User'),
@@ -42,28 +41,26 @@ Deno.test('data-class shell renders the User DTO', () => {
   )
 })
 
-Deno.test('enum-class shell renders entries in braces', () => {
+Deno.test('enum-class renders its entries in a braced body', () => {
   const definition = new KtDefinition({
     context,
     identifier: createEnumClass('Status'),
-    value: '    ACTIVE,\n    INACTIVE'
+    value: ' {\n    ACTIVE,\n    INACTIVE\n}'
   })
 
   assertEquals(definition.toString(), 'enum class Status {\n    ACTIVE,\n    INACTIVE\n}')
 })
 
-Deno.test('class shell renders the KtConstructed clause, body, and annotations', () => {
+Deno.test('class value composes primary constructor, body, and annotations', () => {
   const value = {
     annotations: [new KtAnnotation('RestController')],
-    constructorParameters: new KtParameterList([
-      { name: 'service', type: 'UsersService', visibility: 'private' }
-    ]),
-    toString: () => '    fun getUsersId(id: String): User = service.getUsersId(id)'
+    toString: () =>
+      `${new KtPrimaryConstructor({
+        parameters: new KtParameterList([
+          { name: 'service', type: 'UsersService', visibility: 'private' }
+        ])
+      })} {\n    fun getUsersId(id: String): User = service.getUsersId(id)\n}`
   }
-
-  // the guard narrows without casts
-  assertEquals(isKtConstructed(value), true)
-  assertEquals(isKtConstructed({ toString: () => 'x' }), false)
 
   const definition = new KtDefinition({
     context,
@@ -82,19 +79,19 @@ Deno.test('class shell renders the KtConstructed clause, body, and annotations',
   )
 })
 
-Deno.test('class shell collapses without the protocol and without a body', () => {
+Deno.test('class value renders bare or body-only — the value decides its own form', () => {
   const bare = new KtDefinition({ context, identifier: createClass('Marker'), value: '' })
   const bodyOnly = new KtDefinition({
     context,
     identifier: createClass('Holder'),
-    value: '    val x: Int = 1'
+    value: ' {\n    val x: Int = 1\n}'
   })
 
   assertEquals(bare.toString(), 'class Marker')
   assertEquals(bodyOnly.toString(), 'class Holder {\n    val x: Int = 1\n}')
 })
 
-Deno.test('interface shell renders a body in braces, bodyless when the value is empty', () => {
+Deno.test('interface renders a braced body, bodyless when the value renders nothing', () => {
   const bodyless = new KtDefinition({
     context,
     identifier: createInterface('Marker'),
@@ -103,20 +100,20 @@ Deno.test('interface shell renders a body in braces, bodyless when the value is 
   const withBody = new KtDefinition({
     context,
     identifier: createInterface('UsersApi'),
-    value: '    fun getUsersId(id: String): User'
+    value: ' {\n    fun getUsersId(id: String): User\n}'
   })
 
   assertEquals(bodyless.toString(), 'interface Marker')
   assertEquals(withBody.toString(), 'interface UsersApi {\n    fun getUsersId(id: String): User\n}')
 })
 
-Deno.test('interface shell renders class-level annotations and private visibility', () => {
+Deno.test('interface renders class-level annotations and private visibility', () => {
   const definition = new KtDefinition({
     context,
     identifier: createInterface('UsersApi', { exported: false }),
     value: {
       annotations: [new KtAnnotation('Suppress', ['"unused"'])],
-      toString: () => '    fun getUsersId(id: String): User'
+      toString: () => ' {\n    fun getUsersId(id: String): User\n}'
     }
   })
 
@@ -126,7 +123,7 @@ Deno.test('interface shell renders class-level annotations and private visibilit
   )
 })
 
-Deno.test('sealed-interface shell renders bodyless when the value is empty', () => {
+Deno.test('sealed-interface renders bodyless when the value renders nothing (the oneOf parent)', () => {
   const bodyless = new KtDefinition({
     context,
     identifier: createSealedInterface('Animal'),
@@ -135,14 +132,14 @@ Deno.test('sealed-interface shell renders bodyless when the value is empty', () 
   const withBody = new KtDefinition({
     context,
     identifier: createSealedInterface('Animal'),
-    value: '    val type: String'
+    value: ' {\n    val type: String\n}'
   })
 
   assertEquals(bodyless.toString(), 'sealed interface Animal')
   assertEquals(withBody.toString(), 'sealed interface Animal {\n    val type: String\n}')
 })
 
-Deno.test('typealias shell renders the assignment form', () => {
+Deno.test('typealias renders the assignment form', () => {
   const definition = new KtDefinition({
     context,
     identifier: createTypeAlias('UserList'),
@@ -198,16 +195,23 @@ Deno.test('exported renders nothing (public default) vs `private` to restrict', 
     identifier: createDataClass('User', { exported: false }),
     value: new KtParameterList([{ name: 'id', type: 'String' }])
   })
-  const noExport = new KtDefinition({
+
+  assertEquals(exported.toString().startsWith('data class User('), true)
+  assertEquals(restricted.toString().startsWith('private data class User('), true)
+})
+
+Deno.test('the Lang boundary folds the neutral noExport into a restricted identifier', () => {
+  // Drivers pass `noExport` on the neutral toDefinition call; Kotlin has
+  // no definition-level visibility — the flag becomes `exported: false`
+  // on a copy of the identifier, and the head renders `private `.
+  const definition = kotlin.toDefinition({
     context,
     identifier: createDataClass('User'),
     value: new KtParameterList([{ name: 'id', type: 'String' }]),
     noExport: true
   })
 
-  assertEquals(exported.toString().startsWith('data class User('), true)
-  assertEquals(restricted.toString().startsWith('private data class User('), true)
-  assertEquals(noExport.toString().startsWith('private data class User('), true)
+  assertEquals(definition.toString().startsWith('private data class User('), true)
 })
 
 Deno.test('class-level annotations ride on the value via the KtAnnotated protocol', () => {
@@ -215,7 +219,7 @@ Deno.test('class-level annotations ride on the value via the KtAnnotated protoco
     annotations = [new KtAnnotation('Serializable')]
 
     toString(): string {
-      return '    val id: String'
+      return `${new KtParameterList([{ name: 'id', type: 'String' }])}`
     }
   }
 
@@ -228,7 +232,7 @@ Deno.test('class-level annotations ride on the value via the KtAnnotated protoco
   assertEquals(definition.toString(), '@Serializable\ndata class User(\n    val id: String\n)')
 })
 
-Deno.test('description renders as a KDoc block above annotations and shell', () => {
+Deno.test('description renders as a KDoc block above annotations and declaration', () => {
   const definition = new KtDefinition({
     context,
     identifier: createTypeAlias('UserId'),
@@ -239,45 +243,28 @@ Deno.test('description renders as a KDoc block above annotations and shell', () 
   assertEquals(definition.toString(), '/** Opaque user identifier */\ntypealias UserId = String')
 })
 
-Deno.test('a supertype clause rides on the value via the KtSupertyped protocol', () => {
+Deno.test('the value composes an inline supertype clause after its parameter list', () => {
   class MemberValue {
-    supertypes = ['Animal']
-
     toString(): string {
-      return '    val name: String'
+      return `${new KtParameterList([{ name: 'name', type: 'String' }])} : Animal`
     }
   }
 
-  class MultiMemberValue {
-    supertypes = ['Animal', { toString: () => 'Pet' }]
-
-    toString(): string {
-      return '    val name: String'
-    }
-  }
-
-  const single = new KtDefinition({
+  const definition = new KtDefinition({
     context,
     identifier: createDataClass('Dog'),
     value: new MemberValue()
   })
-  const multiple = new KtDefinition({
-    context,
-    identifier: createDataClass('Dog'),
-    value: new MultiMemberValue()
-  })
 
-  assertEquals(single.toString(), 'data class Dog(\n    val name: String\n) : Animal')
-  assertEquals(multiple.toString(), 'data class Dog(\n    val name: String\n) : Animal, Pet')
+  assertEquals(definition.toString(), 'data class Dog(\n    val name: String\n) : Animal')
 })
 
-Deno.test('annotations and supertypes compose on one value', () => {
+Deno.test('annotations and a supertype clause compose on one value', () => {
   class SealedMemberValue {
     annotations = [new KtAnnotation('Serializable'), new KtAnnotation('SerialName', ['"dog"'])]
-    supertypes = ['Animal']
 
     toString(): string {
-      return '    val name: String'
+      return `${new KtParameterList([{ name: 'name', type: 'String' }])} : Animal`
     }
   }
 
@@ -293,70 +280,51 @@ Deno.test('annotations and supertypes compose on one value', () => {
   )
 })
 
-Deno.test('empty or absent supertypes render no clause (byte-identical to pre-protocol output)', () => {
-  class EmptySupertypesValue {
-    supertypes: string[] = []
+Deno.test('a dynamic membership scan renders its clause inline — empty means no clause', () => {
+  // A value whose supertypes are computed (union-membership scan) writes
+  // the clause inline — one conditional, no dedicated class.
+  class ScannedValue {
+    supertypes: string[]
+
+    constructor(supertypes: string[]) {
+      this.supertypes = supertypes
+    }
 
     toString(): string {
-      return '    val id: String'
+      const clause = this.supertypes.length ? ` : ${this.supertypes.join(', ')}` : ''
+
+      return `${new KtParameterList([{ name: 'id', type: 'String' }])}${clause}`
     }
   }
 
-  const empty = new KtDefinition({
+  const member = new KtDefinition({
+    context,
+    identifier: createDataClass('Dog'),
+    value: new ScannedValue(['Animal', 'Pet'])
+  })
+  const standalone = new KtDefinition({
     context,
     identifier: createDataClass('User'),
-    value: new EmptySupertypesValue()
-  })
-  const absent = new KtDefinition({
-    context,
-    identifier: createDataClass('User'),
-    value: new KtParameterList([{ name: 'id', type: 'String' }])
+    value: new ScannedValue([])
   })
 
-  assertEquals(empty.toString(), 'data class User(\n    val id: String\n)')
-  assertEquals(absent.toString(), 'data class User(\n    val id: String\n)')
-})
-
-Deno.test('kinds without a supertype clause (typealias) ignore the KtSupertyped protocol', () => {
-  class SupertypedAlias {
-    supertypes = ['Animal']
-
-    toString(): string {
-      return 'JsonElement'
-    }
-  }
-
-  const definition = new KtDefinition({
-    context,
-    identifier: createTypeAlias('Payload'),
-    value: new SupertypedAlias()
-  })
-
-  assertEquals(definition.toString(), 'typealias Payload = JsonElement')
-})
-
-Deno.test('isKtSupertyped narrows the protocol without casts', () => {
-  assertEquals(isKtSupertyped({ supertypes: ['Animal'] }), true)
-  assertEquals(isKtSupertyped({ supertypes: [{ toString: () => 'Pet' }] }), true)
-  assertEquals(isKtSupertyped({ supertypes: [] }), true)
-  assertEquals(isKtSupertyped({ supertypes: 'Animal' }), false)
-  assertEquals(isKtSupertyped({ supertypes: [null] }), false)
-  assertEquals(isKtSupertyped({}), false)
-  assertEquals(isKtSupertyped(null), false)
-  assertEquals(isKtSupertyped('Animal'), false)
+  assertEquals(member.toString(), 'data class Dog(\n    val id: String\n) : Animal, Pet')
+  assertEquals(standalone.toString(), 'data class User(\n    val id: String\n)')
 })
 
 Deno.test('KtDocumented value supplies the KDoc; constructor description wins', () => {
+  const parameters = () => `${new KtParameterList([{ name: 'id', type: 'String' }])}`
+
   const fromValue = new KtDefinition({
     context,
     identifier: createDataClass('User'),
-    value: { description: 'A user.', toString: () => '    val id: String' }
+    value: { description: 'A user.', toString: parameters }
   })
   const fromConstructor = new KtDefinition({
     context,
     identifier: createDataClass('User'),
     description: 'Explicit.',
-    value: { description: 'A user.', toString: () => '    val id: String' }
+    value: { description: 'A user.', toString: parameters }
   })
 
   assertEquals(fromValue.toString(), '/** A user. */\ndata class User(\n    val id: String\n)')
@@ -366,32 +334,33 @@ Deno.test('KtDocumented value supplies the KDoc; constructor description wins', 
   )
 })
 
-Deno.test('verbatim type renders the value as-is — no shell, visibility, or annotations', () => {
+Deno.test('verbatim type renders the value as-is — no head, visibility, or annotations', () => {
   const body =
     'internal fun add(a: Int, b: Int): Int = a + b\n\ninternal fun sub(a: Int, b: Int): Int = a - b'
 
-  const definition = new KtDefinition({
+  // Through the Lang boundary so the neutral noExport flag is exercised:
+  // the fold restricts the identifier, but verbatim renders no head, so
+  // there is nothing to restrict — the value passes through untouched.
+  const definition = kotlin.toDefinition({
     context,
     identifier: createVerbatim('MathUtilsBody'),
     value: body,
-    // Ignored on verbatim — there is nothing to restrict
     noExport: true
   })
 
   assertEquals(definition.toString(), body)
 })
 
-Deno.test('class shell renders constructor modifiers with the explicit constructor keyword', () => {
-  const value = {
-    constructorModifiers: '@JsonCreator(mode = JsonCreator.Mode.DISABLED) private',
-    constructorParameters: '    private val id: JsonField<String>',
-    toString: (): string => ''
-  }
-
+Deno.test('KtPrimaryConstructor renders modifiers with the explicit constructor keyword', () => {
   const definition = new KtDefinition({
     context,
     identifier: createClass('User'),
-    value
+    value: new KtPrimaryConstructor({
+      modifiers: '@JsonCreator(mode = JsonCreator.Mode.DISABLED) private',
+      parameters: new KtParameterList([
+        { name: 'id', type: 'JsonField<String>', visibility: 'private' }
+      ])
+    })
   })
 
   assertEquals(
@@ -402,10 +371,14 @@ Deno.test('class shell renders constructor modifiers with the explicit construct
   )
 })
 
-Deno.test('class shell without constructor modifiers keeps the bare parameter list', () => {
+Deno.test('KtPrimaryConstructor without modifiers is the bare parameter list', () => {
   const value = {
-    constructorParameters: '    private val service: UsersService',
-    toString: (): string => '    fun list(): List<User> = service.list()'
+    toString: () =>
+      `${new KtPrimaryConstructor({
+        parameters: new KtParameterList([
+          { name: 'service', type: 'UsersService', visibility: 'private' }
+        ])
+      })} {\n    fun list(): List<User> = service.list()\n}`
   }
 
   const definition = new KtDefinition({
@@ -424,12 +397,15 @@ Deno.test('class shell without constructor modifiers keeps the bare parameter li
   )
 })
 
-Deno.test('class shell renders a supertype clause via the KtSupertyped protocol', () => {
+Deno.test('a class value composes constructor, supertype clause, and body', () => {
   const value = {
-    constructorModifiers: 'private',
-    constructorParameters: '    private val stopId: String?',
-    supertypes: ['Params'],
-    toString: (): string => '    fun stopId(): String? = stopId'
+    toString: () =>
+      `${new KtPrimaryConstructor({
+        modifiers: 'private',
+        parameters: new KtParameterList([
+          { name: 'stopId', type: 'String', nullable: true, visibility: 'private' }
+        ])
+      })} : Params {\n    fun stopId(): String? = stopId\n}`
   }
 
   const definition = new KtDefinition({

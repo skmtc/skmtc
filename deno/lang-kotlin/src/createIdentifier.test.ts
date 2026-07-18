@@ -106,6 +106,11 @@ Deno.test('a typed val renders its type annotation in the head', () => {
   assertEquals(`${createValue('timeout', { typeName: 'Long' })}`, 'val timeout: Long')
 })
 
+Deno.test('exported: false renders the private visibility prefix in the head', () => {
+  assertEquals(`${createDataClass('Internal', { exported: false })}`, 'private data class Internal')
+  assertEquals(`${createValue('secret', { exported: false, typeName: 'String' })}`, 'private val secret: String')
+})
+
 Deno.test('verbatim has no declaration head — bare-name render (cache identity only)', () => {
   assertEquals(`${createVerbatim('UtilsFileBody')}`, 'UtilsFileBody')
 })

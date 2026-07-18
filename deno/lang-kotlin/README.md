@@ -28,6 +28,12 @@ service-seam ergonomics) — the production-polish arc (specs
 `verbatim` kind (multi-declaration template files), constructor
 modifiers with the explicit `constructor` keyword, the supertype clause
 on the `class` shell, and the OAS operation projection-base veneer.
+The head+value rewrite then moved the declaration keywords (and
+visibility) onto `KtIdentifier` and the delimiters onto the value
+side, dissolving the `KtSupertyped` and `KtConstructed` protocols —
+primary constructors became `KtPrimaryConstructor`; supertype clauses
+and braced bodies are written inline (see `KtDefinition` below for
+the current model).
 
 ## What this package owns
 
@@ -51,24 +57,34 @@ on the `class` shell, and the OAS operation projection-base veneer.
   independence), **same-package import suppression**.
 - **`KtImport`** — symbol-level, `as` aliases, one statement per
   symbol, dotted-package and `@/`-path module keys.
-- **`KtDefinition`** — declaration shells, exhaustive over the kind
-  vocabulary (`class` / `data-class` / `enum-class` / `interface` /
-  `sealed-interface` / `typealias` / `val` / `verbatim`); visibility
-  renders nothing when public,
-  `private` to restrict; class-level annotations ride the value via the
-  **`KtAnnotated`** protocol, the supertype clause
-  (`data class Dog(…) : Animal`, data-class and class kinds) via the
-  **`KtSupertyped`** protocol, the primary constructor via the
-  **`KtConstructed`** protocol, and KDoc via the **`KtDocumented`**
-  protocol (rendered with `withDescription`) — mirror protocol getters
-  on the projection: the Driver wraps the projection, not the value.
-- **`KtParameterList`** / **`KtFunctionSignature`** /
-  **`KtFunctionParameter`** / **`KtAnnotation`** — construct helpers
-  (constructor params: nullability `?`, `= default`, inline
-  annotations; method signatures for interface and class bodies with
-  optional KDoc, expression bodies (` = …` delegation), and
-  per-parameter defaults; generic annotation grammar — *which*
-  annotation is generator policy).
+- **`KtDefinition`** — head + value rendering: the identifier renders
+  its declaration head (`data class User`, `val timeout: Long` — the
+  keyword map lives on `KtIdentifier`), and the value renders
+  everything after it. Assignment kinds (`typealias` / `val`) render
+  `${head} = ${value}`; declaration kinds render `${head}${value}`;
+  `verbatim` renders the value as-is. A value that renders nothing IS
+  the bodyless idiom (`sealed interface Animal`) — the definition
+  never inspects the value. Visibility is the identifier's fact,
+  rendered in its head (nothing when public, `private ` to restrict);
+  the neutral `noExport` flag folds into a restricted identifier copy
+  at the `KtLang.toDefinition` boundary. Two protocols remain on the
+  value because
+  they render above the declaration: class-level annotations
+  (**`KtAnnotated`**) and KDoc (**`KtDocumented`**, rendered with
+  `withDescription`; constructor `description` wins) — mirror protocol
+  getters on the projection: the Driver wraps the projection, not the
+  value.
+- **`KtParameterList`** (parentheses included) / **`KtPrimaryConstructor`**
+  (modifiers + the explicit `constructor` keyword rule) — the
+  composable value classes a declaration-kind value interpolates
+  (`${primaryConstructor} : Supertype {\n…\n}` — supertype clauses and
+  braced bodies are written inline; plain Kotlin syntax carries no
+  grammar rule worth a class).
+- **`KtFunctionSignature`** / **`KtFunctionParameter`** /
+  **`KtAnnotation`** — construct helpers (method signatures for
+  interface and class bodies with optional KDoc, expression bodies
+  (` = …` delegation), and per-parameter defaults; generic annotation
+  grammar — *which* annotation is generator policy).
 - **Identifier factories** — `createClass`, `createDataClass`,
   `createEnumClass`, `createInterface`, `createSealedInterface`,
   `createTypeAlias`, `createValue`, `createVerbatim` (+
