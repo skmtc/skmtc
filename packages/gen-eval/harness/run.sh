@@ -55,14 +55,17 @@ const deny = [
 writeFileSync(process.env.SETTINGS_PATH, JSON.stringify({ permissions: { deny } }, null, 2))
 EOF
 
-# 2. Record provenance: skill version + snapshot
+# 2. Record provenance: skill version + snapshot + the app's git state
+#    (the workspace app is copied from the live kotlin-person-api repo)
 SKILL_SHA=$(git -C "$SKMTC_REPO" rev-parse HEAD)
 TASK_SHA=$(shasum -a 256 "$HARNESS_DIR/task.md" | cut -c1-12)
 SKILL_DIRTY=$(git -C "$SKMTC_REPO" status --porcelain -- deno/docs/skills deno/docs/llms.md | wc -l | tr -d ' ')
+PERSON_API_SHA=$(git -C "$SKMTC_ROOT/kotlin-person-api" rev-parse HEAD 2>/dev/null || echo unknown)
+PERSON_API_DIRTY=$(git -C "$SKMTC_ROOT/kotlin-person-api" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 mkdir -p "$RUN_DIR/skill-snapshot"
 cp -RL "$HOME/.claude/skills/skmtc-generator" "$RUN_DIR/skill-snapshot/" 2>/dev/null || true
 cp -RL "$HOME/.claude/skills/skmtc-lang-kotlin" "$RUN_DIR/skill-snapshot/" 2>/dev/null || true
-META_PATH="$RUN_DIR/meta.json" MODEL="$MODEL" SKILL_SHA="$SKILL_SHA" SKILL_DIRTY="$SKILL_DIRTY" LABEL="$LABEL" TASK_SHA="$TASK_SHA" node - <<'EOF'
+META_PATH="$RUN_DIR/meta.json" MODEL="$MODEL" SKILL_SHA="$SKILL_SHA" SKILL_DIRTY="$SKILL_DIRTY" LABEL="$LABEL" TASK_SHA="$TASK_SHA" PERSON_API_SHA="$PERSON_API_SHA" PERSON_API_DIRTY="$PERSON_API_DIRTY" node - <<'EOF'
 const { writeFileSync } = require('node:fs')
 writeFileSync(process.env.META_PATH, JSON.stringify({
   model: process.env.MODEL,
@@ -70,6 +73,8 @@ writeFileSync(process.env.META_PATH, JSON.stringify({
   skillDirtyFiles: Number(process.env.SKILL_DIRTY),
   label: process.env.LABEL,
   taskSha: process.env.TASK_SHA,
+  personApiSha: process.env.PERSON_API_SHA,
+  personApiDirtyFiles: Number(process.env.PERSON_API_DIRTY),
   thinkingBudget: process.env.MAX_THINKING_TOKENS ?? null,
   started: new Date().toISOString()
 }, null, 2))

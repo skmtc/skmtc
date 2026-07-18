@@ -6,28 +6,29 @@ set -euo pipefail
 
 WORKSPACE=${1:?usage: seed.sh <workspace-dir>}
 HARNESS_DIR=$(cd "$(dirname "$0")" && pwd)
-ASSETS="$HARNESS_DIR/assets"
 # harness/ -> gen-eval -> packages -> skmtc -> skmtc-root
 SKMTC_ROOT=$(cd "$HARNESS_DIR/../../../.." && pwd)
 LANG_KOTLIN="$SKMTC_ROOT/skmtc/deno/lang-kotlin"
 REF_GENERATORS="$SKMTC_ROOT/skmtc-generators"
+PERSON_API="$SKMTC_ROOT/kotlin-person-api"
 
 [ -d "$LANG_KOTLIN" ] || { echo "lang-kotlin not found at $LANG_KOTLIN" >&2; exit 1; }
 [ -d "$REF_GENERATORS/gen-typescript" ] || { echo "gen-typescript not found at $REF_GENERATORS" >&2; exit 1; }
 [ -d "$REF_GENERATORS/gen-zod" ] || { echo "gen-zod not found at $REF_GENERATORS" >&2; exit 1; }
+[ -f "$PERSON_API/openapi.json" ] || { echo "kotlin-person-api not found at $PERSON_API" >&2; exit 1; }
 
 mkdir -p "$WORKSPACE"
 cd "$WORKSPACE"
 
-# 1. SKMTC project + pinned schema. basePath is the consumer's Gradle
-#    source root, so `@/com/example/api/dto/Dtos.kt` lands in-package.
-skmtc init lab consumer/src/main/kotlin --json > /dev/null
-cp "$ASSETS/openapi.json" openapi.json
+# 1. SKMTC project pinned at the app's own schema. basePath is the
+#    app's Gradle source root, so `@/com/example/api/dto/Dtos.kt`
+#    lands in package com.example.api.dto.
+skmtc init lab kotlin-person-api/src/main/kotlin --json > /dev/null
 node - <<'EOF'
 const { readFileSync, writeFileSync } = require('node:fs')
 const path = '.skmtc/lab/.settings/client.json'
 const config = JSON.parse(readFileSync(path, 'utf8'))
-config.source = './openapi.json'
+config.source = './kotlin-person-api/openapi.json'
 writeFileSync(path, JSON.stringify(config, null, 2))
 EOF
 
@@ -43,24 +44,15 @@ config.workspace = ['./lang-kotlin']
 writeFileSync(path, JSON.stringify(config, null, 2))
 EOF
 
-# 3. Consumer: the kotlin-person-api snapshot WITHOUT its Dtos.kt — the
-#    generator under authoring must recreate it. Everything else (app,
-#    config, serde seam, controller, services, the pinned contract test)
-#    is hand-written consumer code the generated DTOs must satisfy.
-cp -R "$ASSETS/kotlin-person-api/." consumer/
-
-# Point gradle at a JDK (homebrew openjdk@21 preferred; else java_home)
-JDK_HOME=""
-if [ -d /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home ]; then
-  JDK_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
-elif JH=$(/usr/libexec/java_home -v 17+ 2>/dev/null); then
-  JDK_HOME=$JH
-fi
-if [ -n "$JDK_HOME" ]; then
-  echo "org.gradle.java.home=$JDK_HOME" > consumer/gradle.properties
-else
-  echo "WARN: no JDK >=17 found — the compile/test gate will be skipped" >&2
-fi
+# 3. The app, under its own name: kotlin-person-api copied straight
+#    from the repo (no vendored fork), minus ONLY its Dtos.kt — the
+#    file the generator under authoring must recreate. Everything else
+#    (app, config, serde seam, controller, services, gradle wiring) is
+#    the real app the generated DTOs must satisfy.
+rsync -a \
+  --exclude '.git' --exclude '.gradle' --exclude '.kotlin' --exclude 'build' \
+  --exclude 'src/main/kotlin/com/example/api/dto/Dtos.kt' \
+  "$PERSON_API/" kotlin-person-api/
 
 # 4. Reference material (read-only; checksum-pinned):
 #    - the target output the generator must recreate,
@@ -70,7 +62,7 @@ fi
 #      lang packages, concept docs) as a READ-ONLY symlink — so the
 #      agent never needs to hunt API surfaces in package caches.
 mkdir -p reference
-cp "$ASSETS/reference-Dtos.kt" reference/Dtos.kt
+cp "$PERSON_API/src/main/kotlin/com/example/api/dto/Dtos.kt" reference/Dtos.kt
 for gen in gen-typescript gen-zod; do
   mkdir -p "reference/$gen"
   cp -R "$REF_GENERATORS/$gen/src" "reference/$gen/src"
@@ -79,11 +71,12 @@ done
 ln -s "$SKMTC_ROOT/skmtc/deno" reference/skmtc-deno
 
 # 5. Integrity checksums — the gates disqualify a run that edits these:
-#    the schema, the consumer's build files, every hand-written consumer
-#    source (incl. the contract test), and the reference target.
+#    the schema, the app's build files, every hand-written app source,
+#    and the reference target.
 {
-  shasum -a 256 openapi.json consumer/build.gradle.kts consumer/settings.gradle.kts reference/Dtos.kt
-  find consumer/src -type f -print0 | sort -z | xargs -0 shasum -a 256
+  shasum -a 256 kotlin-person-api/openapi.json kotlin-person-api/build.gradle.kts \
+    kotlin-person-api/settings.gradle.kts kotlin-person-api/gradle.properties reference/Dtos.kt
+  find kotlin-person-api/src -type f -print0 | sort -z | xargs -0 shasum -a 256
 } > .harness-checksums
 
 echo "seeded: $WORKSPACE"

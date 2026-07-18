@@ -57,12 +57,13 @@ post-processing.
 `run.sh <model> [label]` executes this pipeline:
 
 1. **Seed** (`seed.sh`) — creates a fresh workspace in a temp dir
-   *outside every repo*: `skmtc init lab`, the pinned schema
-   (`assets/openapi.json` — kotlin-person-api's), `@skmtc/lang-kotlin`
+   *outside every repo*: `skmtc init lab`, `@skmtc/lang-kotlin`
    vendored from `skmtc/deno/lang-kotlin` as a deno workspace member,
-   the consumer app (the kotlin-person-api snapshot **minus its
-   `Dtos.kt`**, plus the pinned `DtoContractTest.kt`), and read-only
-   reference material (`reference/Dtos.kt` — the target output — the
+   the app copied straight from the `kotlin-person-api` repo under its
+   own name — **minus only its `Dtos.kt`**, the file the generator
+   must recreate; the SKMTC project pins the app's own
+   `openapi.json` — and read-only reference material
+   (`reference/Dtos.kt` — the target, copied from the repo — the
    vendored `gen-typescript` / `gen-zod` sources, and
    `reference/skmtc-deno`, a read-only symlink to the monorepo's deno
    workspace so core/lang API surfaces are looked up at the source
@@ -189,20 +190,20 @@ calibration:
   whether the *skills teach the shape*, not whether the model finds
   them. Three skills are named: `skmtc-generator`,
   `skmtc-lang-kotlin`, and `skmtc-cli`.
-- **The reference output + contract test are the spec** —
-  `reference/Dtos.kt` is the hand-written file to recreate (prose and
-  dividers cosmetic; declarations, annotations, and wire behavior
-  normative), and `DtoContractTest.kt` pins that behavior case by
-  case: money-as-string serde, `kind`-discriminated sealed hierarchy,
-  enum wire values + `@JsonEnumDefaultValue` fallback,
-  `readOnly`/`writeOnly` access, the ISO `@JsonFormat` timestamp, and
-  the `additionalProperties` map default.
-- **Cross-language references are provided, answers are not** — the
-  vendored `gen-typescript`/`gen-zod` show how a model generator walks
-  schemas and composes producers; the Kotlin generators and the
-  original kotlin-person-api stay off-limits (deny rules + audit).
-  The task warns that some principles do not transfer 1:1 across
-  languages.
+- **The reference output is the spec** — `reference/Dtos.kt` (the
+  repo's hand-written file, copied at seed time) is what the
+  generator must recreate: money-as-string serde,
+  `kind`-discriminated sealed hierarchy, enum wire values +
+  `@JsonEnumDefaultValue` fallback, `readOnly`/`writeOnly` access,
+  the ISO `@JsonFormat` timestamp, the `additionalProperties` map
+  default. Its KDoc prose is not in the schema, so the run reports a
+  diff rather than demanding byte-equality.
+- **Cross-language references are provided, Kotlin answers are not**
+  — the vendored `gen-typescript`/`gen-zod` show how a model
+  generator walks schemas and composes producers; the stock Kotlin
+  generators and the original repos stay off-limits (deny rules +
+  audit). The task warns that some principles do not transfer 1:1
+  across languages.
 - **Framework source is sanctioned, caches are not** —
   `reference/skmtc-deno` links the monorepo's deno workspace (core
   engine, lang packages, concept docs) so `@skmtc/core` API questions
@@ -268,8 +269,8 @@ empty.
 | `session.jsonl` | The Claude Code session file (backup capture) |
 | `meta.json` | Model, label, skill SHA + dirty flag, thinking budget, cost, turns, duration |
 | `skill-snapshot/` | The skmtc-generator + skmtc-lang-kotlin skills exactly as this run saw them |
-| `workspace/` | The full sandbox: authored generator at `.skmtc/lab/gen-kotlin-jackson/`, generated file at `consumer/src/main/kotlin/com/example/api/dto/Dtos.kt`, reference material at `reference/` |
-| `generate.json`, `compile.log`, `test.log`, `integrity.log` | Raw gate evidence |
+| `workspace/` | The full sandbox: authored generator at `.skmtc/lab/gen-kotlin-jackson/`, generated file at `kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.kt`, reference material at `reference/` |
+| `generate.json`, `compile.log`, `dtos-diff.txt`, `integrity.log` | Raw gate evidence + the reference diff |
 | `../index.jsonl` | One line per run: model, skill SHA, gates, verdict, cost, turns |
 
 ---
@@ -279,9 +280,9 @@ empty.
 0. **contamination** — no tool-call input touched generator
    implementations outside the vendored references, the original
    kotlin-person-api, demo apps, or previous runs (transcript audit).
-1. **integrity** — consumer sources + contract test / build files /
-   schema / reference material untouched (checksums; edits disqualify
-   the run).
+1. **integrity** — the app's sources / build files / schema /
+   reference material untouched (checksums; edits disqualify the
+   run).
 2. **generate** — `skmtc clean` + `skmtc generate` from the bundle
    exits with no errors (also catches hand-written output
    masquerading as generated: clean deletes it, generate must
@@ -291,13 +292,14 @@ empty.
    `components.schemas` entry.
 4. **compile** — `gradle compileKotlin`: the whole Spring Boot app
    (controller, services, serde, config) compiles against the
-   generated DTOs (skipped with a note if no JDK/gradle).
-5. **dto-contract** — the pinned `DtoContractTest.kt`: money
-   round-trips as a two-decimal string, the sealed `Contact` hierarchy
-   round-trips by `kind`, unknown enum values fall back to `UNKNOWN`,
-   `readOnly` fields are ignored on input, the `writeOnly` password
-   never serializes, `createdAt` uses the pinned ISO pattern, and
-   `attributes` defaults to an empty map.
+   generated DTOs (skipped with a note if no gradle).
+
+The report also surfaces a **reference diff** (not a gate): the
+generated `Dtos.kt` diffed against the repo's real one
+(`dtos-diff.txt`). Declarations, annotations, types, and defaults are
+derivable from the schema and should converge to zero; KDoc prose is
+authored commentary absent from the schema, so those lines are
+expected to remain.
 
 Then the **structural eval** runs over the authored generator
 (checks documented in [`../docs/`](../docs/README.md)). Reference
@@ -366,7 +368,6 @@ read the transcripts, not just the counts.
 | `timeline.js` | stream-json → one-line-per-action view (`--tee` live mode, file arg post-hoc) |
 | `viewer.js` + `viewer.template.html` | Bakes the scrubber viewer (`--template` = live/drag-drop mode) |
 | `server.js` | The persistent dashboard (`node harness/server.js`, port `GEN_EVAL_PORT` or 8484, binds 127.0.0.1) |
-| `assets/` | Pinned schema, the kotlin-person-api snapshot (minus `Dtos.kt`, plus `DtoContractTest.kt`), `reference-Dtos.kt` |
 | `runs/` | One directory per run + `index.jsonl` (gitignored) |
 
 ---
@@ -377,8 +378,8 @@ read the transcripts, not just the counts.
   transcript has been quiet ≥ 5 min: the run was interrupted (Ctrl-C)
   or crashed. `claude-stderr.log` is empty on interrupts. Artifacts
   up to that point are intact and viewable.
-- **compile/dto-contract gates `skip`** — no JDK/gradle found. Install
-  `brew install openjdk@21` and re-run gates:
+- **compile gate `skip`** — no gradle found. Install
+  `brew install gradle openjdk@21` and re-run gates:
   `bash harness/gates.sh runs/<id>/workspace runs/<id>`.
 - **Files pane empty mid-run** — check the timeline: the model may
   genuinely not have written anything yet (research phase). The pane

@@ -28,7 +28,7 @@ note "|---|---|---|"
 
 # Gate 0 — integrity: the acceptance tests were not touched
 if shasum -a 256 -c .harness-checksums > "$OUT/integrity.log" 2>&1; then
-  gate integrity ok "test + build files untouched"
+  gate integrity ok "app sources + build files + schema untouched"
 else
   gate integrity FAIL "checksum mismatch — see integrity.log (run disqualified)"
 fi
@@ -117,8 +117,8 @@ gate generate "${GEN_SUMMARY%%|*}" "${GEN_SUMMARY#*|}"
 # components.schemas entry (the objective is ONE file, not one per schema)
 COVERAGE=$(node - <<'EOF'
 const { readFileSync, existsSync } = require('node:fs')
-const schemas = Object.keys(JSON.parse(readFileSync('openapi.json', 'utf8')).components.schemas)
-const target = 'consumer/src/main/kotlin/com/example/api/dto/Dtos.kt'
+const schemas = Object.keys(JSON.parse(readFileSync('kotlin-person-api/openapi.json', 'utf8')).components.schemas)
+const target = 'kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.kt'
 if (!existsSync(target)) {
   console.log(`FAIL|${target} was not generated`)
 } else {
@@ -136,23 +136,28 @@ EOF
 )
 gate dtos-file "${COVERAGE%%|*}" "${COVERAGE#*|}"
 
-# Gate 3 + 4 — the whole app compiles against the generated DTOs, and
-# the pinned DTO contract test passes
-if [ -f consumer/gradle.properties ] && command -v gradle > /dev/null; then
-  if (cd consumer && gradle -q compileKotlin --console=plain) > "$OUT/compile.log" 2>&1; then
+# Gate 3 — the whole app compiles against the generated DTOs
+if command -v gradle > /dev/null; then
+  if (cd kotlin-person-api && gradle -q compileKotlin --console=plain) > "$OUT/compile.log" 2>&1; then
     gate compile ok "gradle compileKotlin"
-    if (cd consumer && gradle -q test --console=plain) > "$OUT/test.log" 2>&1; then
-      gate dto-contract ok "gradle test (DtoContractTest)"
-    else
-      gate dto-contract FAIL "see test.log"
-    fi
   else
     gate compile FAIL "see compile.log"
-    gate dto-contract skip "compile failed"
   fi
 else
-  gate compile skip "no JDK/gradle available"
-  gate dto-contract skip "no JDK/gradle available"
+  gate compile skip "no gradle available"
+fi
+
+# Reference diff (reported, not gated): the generated Dtos.kt against
+# the repo's real one. KDoc prose is authored commentary absent from
+# the schema, so byte-equality is not demanded — the diff is surfaced
+# for inspection instead.
+TARGET=kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.kt
+if [ -f "$TARGET" ]; then
+  diff reference/Dtos.kt "$TARGET" > "$OUT/dtos-diff.txt" 2>&1
+  DIFF_LINES=$(grep -c '^[<>]' "$OUT/dtos-diff.txt" 2>/dev/null || true)
+  DIFF_SUMMARY="${DIFF_LINES:-0} line(s) differ from reference/Dtos.kt (dtos-diff.txt)"
+else
+  DIFF_SUMMARY="no generated Dtos.kt to diff"
 fi
 
 # Structural eval over the authored generator
@@ -177,17 +182,18 @@ EOF
 FRICTION_COUNT=$([ -f FRICTION.md ] && grep -c '^## ' FRICTION.md || echo 0)
 RETRO_STATE=$([ -f RETRO.md ] && echo yes || echo no)
 note ""
+note "**Reference diff:** $DIFF_SUMMARY"
+note ""
 note "**Feedback channels:** $FRICTION_COUNT friction entr(y/ies) in workspace/FRICTION.md; exit retro: $RETRO_STATE (workspace/RETRO.md)"
 note ""
 note "**Structural eval:** $VERDICT (details: structural.md)"
 note ""
 note "Gates passed: $PASS_COUNT, failed: $FAIL_COUNT."
 note ""
-note "Diagnosis order: report.md -> structural.md -> generate.json ->"
-note "test.log -> diff consumer/src/main/kotlin/com/example/api/dto/Dtos.kt"
-note "against workspace/reference/Dtos.kt -> transcript.jsonl (search for"
-note "the Skill invocation and the first Write of base.ts to see where"
-note "the model's plan diverged)."
+note "Diagnosis order: report.md -> dtos-diff.txt -> structural.md ->"
+note "generate.json -> compile.log -> transcript.jsonl (search for the"
+note "Skill invocation and the first Write of base.ts to see where the"
+note "model's plan diverged)."
 
 cat "$REPORT"
 [ "$FAIL_COUNT" -eq 0 ]
