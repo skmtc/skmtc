@@ -17,6 +17,12 @@ RUN_DIR="$HARNESS_DIR/runs/$RUN_ID"
 mkdir -p "$RUN_DIR"
 echo "run: $RUN_DIR"
 
+# 0. Toolchain preflight in a throwaway workspace: bundle + generate a
+#    minimal Kotlin generator so environment breakage (version skew,
+#    stale CLI/worker pins, vendoring gaps) aborts the run here instead
+#    of burning agent minutes on a misleading mid-run failure.
+bash "$HARNESS_DIR/preflight.sh"
+
 # 1. Seed the workspace in an ISOLATED temp dir outside every repo:
 #    no project CLAUDE.md ancestors, fresh per-run project memory
 #    (keyed by cwd), no sibling runs to browse, no path hints to the
@@ -59,13 +65,15 @@ EOF
 #    (the workspace app is copied from the live kotlin-person-api repo)
 SKILL_SHA=$(git -C "$SKMTC_REPO" rev-parse HEAD)
 TASK_SHA=$(shasum -a 256 "$HARNESS_DIR/task.md" | cut -c1-12)
+HARNESS_SHA=$(cat "$HARNESS_DIR/run.sh" "$HARNESS_DIR/seed.sh" "$HARNESS_DIR/gates.sh" \
+  "$HARNESS_DIR/preflight.sh" "$HARNESS_DIR/task.md" | shasum -a 256 | cut -c1-12)
 SKILL_DIRTY=$(git -C "$SKMTC_REPO" status --porcelain -- deno/docs/skills deno/docs/llms.md | wc -l | tr -d ' ')
 PERSON_API_SHA=$(git -C "$SKMTC_ROOT/kotlin-person-api" rev-parse HEAD 2>/dev/null || echo unknown)
 PERSON_API_DIRTY=$(git -C "$SKMTC_ROOT/kotlin-person-api" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 mkdir -p "$RUN_DIR/skill-snapshot"
 cp -RL "$HOME/.claude/skills/skmtc-generator" "$RUN_DIR/skill-snapshot/" 2>/dev/null || true
 cp -RL "$HOME/.claude/skills/skmtc-lang-kotlin" "$RUN_DIR/skill-snapshot/" 2>/dev/null || true
-META_PATH="$RUN_DIR/meta.json" MODEL="$MODEL" SKILL_SHA="$SKILL_SHA" SKILL_DIRTY="$SKILL_DIRTY" LABEL="$LABEL" TASK_SHA="$TASK_SHA" PERSON_API_SHA="$PERSON_API_SHA" PERSON_API_DIRTY="$PERSON_API_DIRTY" node - <<'EOF'
+META_PATH="$RUN_DIR/meta.json" MODEL="$MODEL" SKILL_SHA="$SKILL_SHA" SKILL_DIRTY="$SKILL_DIRTY" LABEL="$LABEL" TASK_SHA="$TASK_SHA" HARNESS_SHA="$HARNESS_SHA" PERSON_API_SHA="$PERSON_API_SHA" PERSON_API_DIRTY="$PERSON_API_DIRTY" node - <<'EOF'
 const { writeFileSync } = require('node:fs')
 writeFileSync(process.env.META_PATH, JSON.stringify({
   model: process.env.MODEL,
@@ -73,6 +81,7 @@ writeFileSync(process.env.META_PATH, JSON.stringify({
   skillDirtyFiles: Number(process.env.SKILL_DIRTY),
   label: process.env.LABEL,
   taskSha: process.env.TASK_SHA,
+  harnessSha: process.env.HARNESS_SHA,
   personApiSha: process.env.PERSON_API_SHA,
   personApiDirtyFiles: Number(process.env.PERSON_API_DIRTY),
   thinkingBudget: process.env.MAX_THINKING_TOKENS ?? null,
@@ -177,6 +186,7 @@ const entry = {
   model: meta.model,
   label: meta.label || null,
   skillSha: String(meta.skillSha).slice(0, 12),
+  harnessSha: meta.harnessSha ?? null,
   gatesPass: Number(process.env.GATES_EXIT) === 0,
   structural: aggregate.verdict ?? null,
   warnings: aggregate.warningCount ?? null,

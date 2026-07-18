@@ -67,11 +67,12 @@ register calls, no string composition outside `toString()`,
 ## Policy decisions are yours to encode
 
 The schema cannot express everything in the reference output. The
-BigDecimal-plus-serde mapping for the money field, the `@JsonFormat`
-pattern, and marking the `unknown` enum constant as the fallback are
-**generator policy** — encode them in your generator source as
-deliberate seams (the stock-generator convention), not by mutating the
-schema or the app.
+money field is marked `format: decimal` — map it to `BigDecimal`.
+Which serde classes pair with it, the `@JsonFormat` pattern, and
+marking the `unknown` enum constant as the fallback are **generator
+policy** — encode them in your generator source as deliberate seams
+(the stock-generator convention), not by mutating the schema or the
+app.
 
 ## Output requirements
 
