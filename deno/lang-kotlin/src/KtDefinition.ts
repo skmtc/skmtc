@@ -1,11 +1,9 @@
 import { DefinitionBase } from '@skmtc/core'
-import invariant from 'npm:tiny-invariant@1.3.3'
-import type { GeneratedValue, GenerateContextType, IdentifierBase, Stringable } from '@skmtc/core'
+import type { GeneratedValue, GenerateContextType, Stringable } from '@skmtc/core'
 import { isKtAnnotated } from './KtAnnotation.ts'
 import { isKtConstructed } from './KtConstructed.ts'
 import { isKtDocumented } from './KtDocumented.ts'
 import { isKtSupertyped } from './KtSupertyped.ts'
-import { isKtIdentifier } from './KtIdentifier.ts'
 import type { KtIdentifier } from './KtIdentifier.ts'
 import { withDescription } from './withDescription.ts'
 
@@ -14,7 +12,7 @@ import { withDescription } from './withDescription.ts'
  */
 export type KtDefinitionArgs<Value extends GeneratedValue> = {
   context: GenerateContextType
-  identifier: IdentifierBase
+  identifier: KtIdentifier
   value: Value
   description?: string
   noExport?: boolean
@@ -22,13 +20,14 @@ export type KtDefinitionArgs<Value extends GeneratedValue> = {
 
 /**
  * Kotlin's concrete {@link DefinitionBase}: assembles the declaration
- * shell around the generated value, dispatching on the identifier's
- * opaque `type` — exhaustive over this language's vocabulary, throwing
- * outside it (no silent fallback).
+ * shell around the generated value, dispatching on the identifier's typed
+ * `type` — exhaustive over this language's vocabulary. (A foreign
+ * identifier is refused earlier, at the `Lang.toDefinition` boundary in
+ * `KtLang`; the constructor only accepts a {@link KtIdentifier}.)
  *
  * | type | shell |
  * |---|---|
- * | `class` | `class Name` (+ `(\n…\n)` via the `KtConstructed` protocol; + ` {\n…\n}` when the value renders non-empty) |
+ * | `class` | `class Name` (+ `(\n…\n)` via the `KtConstructed` protocol; + ` : A, B` via the supertype protocol; + ` {\n…\n}` when the value renders non-empty) |
  * | `data-class` | `data class Name(\n…\n)` (+ ` : A, B` via the supertype protocol) |
  * | `enum-class` | `enum class Name {\n…\n}` |
  * | `interface` | `interface Name` (+ ` {\n…\n}` when the value renders non-empty) |
@@ -40,9 +39,9 @@ export type KtDefinitionArgs<Value extends GeneratedValue> = {
  * {@link import('./KtAnnotation.ts').KtAnnotated} protocol (the neutral
  * `Lang.toDefinition` signature has no annotations slot) and render one
  * per line above the shell; a supertype clause rides the same way via
- * {@link import('./KtSupertyped.ts').KtSupertyped} (rendered for the
- * `data-class` type only in v1); a `description` renders as a KDoc block
- * above the annotations.
+ * {@link import('./KtSupertyped.ts').KtSupertyped} (rendered on the
+ * `data-class` and `class` shells); a `description` renders as a KDoc
+ * block above the annotations.
  *
  * Visibility: Kotlin defaults to `public`, so the neutral `exported`
  * renders as *nothing* when exported and `private ` (file-local) when
@@ -51,6 +50,10 @@ export type KtDefinitionArgs<Value extends GeneratedValue> = {
 export class KtDefinition<
   Value extends GeneratedValue = GeneratedValue
 > extends DefinitionBase<Value> {
+  /** Narrows the inherited neutral `identifier` to the concrete Kotlin
+   *  subclass (the constructor only accepts a {@link KtIdentifier}). */
+  declare identifier: KtIdentifier
+
   description: string | undefined
   noExport: boolean | undefined
 
@@ -62,28 +65,20 @@ export class KtDefinition<
   }
 
   override toString(): string {
-    // The engine holds the identifier as the neutral `IdentifierBase`;
-    // narrow to `KtIdentifier` cast-free to read the typed `type`.
-    const identifier = this.identifier
-    invariant(
-      isKtIdentifier(identifier),
-      `KtDefinition needs a KtIdentifier to render '${identifier.name}', got a foreign identifier`
-    )
-
-    if (identifier.type === 'verbatim') {
+    if (this.identifier.type === 'verbatim') {
       // The value IS the declaration text (template files, multi-
       // declaration bodies) — no shell, no visibility, no annotations.
       return `${this.value}`
     }
 
-    const restricted = this.noExport === true || identifier.exported === false
+    const restricted = this.noExport === true || this.identifier.exported === false
     const visibility = restricted ? 'private ' : ''
 
     const annotations = isKtAnnotated(this.value)
       ? this.value.annotations.map(annotation => `${annotation}\n`).join('')
       : ''
 
-    const declaration = `${annotations}${visibility}${this.toShell(identifier)}`
+    const declaration = `${annotations}${visibility}${this.toShell()}`
 
     // Constructor description wins; else the value-carried protocol.
     const description =
@@ -92,8 +87,8 @@ export class KtDefinition<
     return withDescription(declaration, { description })
   }
 
-  private toShell(identifier: KtIdentifier): string {
-    const { name, type, typeName } = identifier
+  private toShell(): string {
+    const { name, type, typeName } = this.identifier
 
     switch (type) {
       case 'class': {

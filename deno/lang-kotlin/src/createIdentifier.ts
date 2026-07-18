@@ -25,18 +25,32 @@ import { KtIdentifier } from './KtIdentifier.ts'
  * Unlike TypeScript, the type does NOT drive import form — every Kotlin
  * import is `import pkg.Name`. It drives only the declaration shell.
  * Deferred kinds (`object`, `fun`, `var`, `const-val`) arrive with the
- * milestones that need them; {@link toKtKeyword} throwing on them is the
- * desired behavior until then.
+ * milestones that need them; {@link toKtEntityType} throwing on them is
+ * the desired behavior until then.
  */
-export type KtEntityType =
-  | 'class'
-  | 'data-class'
-  | 'enum-class'
-  | 'interface'
-  | 'sealed-interface'
-  | 'typealias'
-  | 'val'
-  | 'verbatim'
+export type KtEntityType = (typeof ktEntityTypes)[number]
+
+/**
+ * Single source of truth for the vocabulary — {@link KtEntityType} derives
+ * from it, so the type and the {@link isKtEntityType} guard cannot drift.
+ */
+const ktEntityTypes = [
+  'class',
+  'data-class',
+  'enum-class',
+  'interface',
+  'sealed-interface',
+  'typealias',
+  'val',
+  'verbatim'
+] as const
+
+const ktEntityTypeSet: ReadonlySet<string> = new Set(ktEntityTypes)
+
+/**
+ * Type guard — whether an opaque `type` string is one this language knows.
+ */
+export const isKtEntityType = (type: string): type is KtEntityType => ktEntityTypeSet.has(type)
 
 /**
  * Options shared by the identifier factories — every field optional, so
@@ -179,59 +193,19 @@ export const createVerbatim = (name: string): KtIdentifier => {
 }
 
 /**
- * Maps an identifier's opaque `type` to its Kotlin declaration keyword.
- * Throws on a type outside this language's vocabulary — a loud signal
- * that an identifier built for another language (or with a typo'd type)
- * reached the Kotlin renderer.
- */
-export const toKtKeyword = (type: string): string => {
-  switch (type) {
-    case 'class':
-      return 'class'
-    case 'data-class':
-      return 'data class'
-    case 'enum-class':
-      return 'enum class'
-    case 'interface':
-      return 'interface'
-    case 'sealed-interface':
-      return 'sealed interface'
-    case 'typealias':
-      return 'typealias'
-    case 'val':
-      return 'val'
-    case 'verbatim':
-      return ''
-    default:
-      throw new Error(`Unknown Kotlin entity type: ${type}`)
-  }
-}
-
-/**
  * Narrow the engine's opaque `type: string` (from `Lang.toIdentifier`'s
- * neutral args) to this language's {@link KtEntityType} — cast-free, via a
- * validating switch. Throws on a type outside the vocabulary, the same loud
- * signal {@link toKtKeyword} gives.
+ * neutral args) to this language's {@link KtEntityType} — cast-free, via
+ * {@link isKtEntityType}. Throws on a type outside the vocabulary, a loud
+ * signal that an identifier built for another language (or with a typo'd
+ * type) reached the Kotlin renderer. (Unlike TypeScript there is no
+ * keyword map here — the declaration keywords live in
+ * {@link import('./KtDefinition.ts').KtDefinition}'s shells, the only
+ * place they are used.)
  */
 export const toKtEntityType = (type: string): KtEntityType => {
-  switch (type) {
-    case 'class':
-      return 'class'
-    case 'data-class':
-      return 'data-class'
-    case 'enum-class':
-      return 'enum-class'
-    case 'interface':
-      return 'interface'
-    case 'sealed-interface':
-      return 'sealed-interface'
-    case 'typealias':
-      return 'typealias'
-    case 'val':
-      return 'val'
-    case 'verbatim':
-      return 'verbatim'
-    default:
-      throw new Error(`Unknown Kotlin entity type: ${type}`)
+  if (!isKtEntityType(type)) {
+    throw new Error(`Unknown Kotlin entity type: ${type}`)
   }
+
+  return type
 }

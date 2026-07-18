@@ -30,7 +30,7 @@ import { assertNotMatch } from '@std/assert/not-match'
 import { assertInstanceOf } from '@std/assert/instance-of'
 import { KtSnippet } from './KtSnippet.ts'
 import { KtFile } from './KtFile.ts'
-import { kotlin } from './ktLang.ts'
+import { kotlin } from './KtLang.ts'
 import { toKtModelProjectionBase } from './toKtModelProjectionBase.ts'
 import { createValue } from './createIdentifier.ts'
 

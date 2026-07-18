@@ -8,11 +8,11 @@
  * `kotlin` {@link Lang} object,
  * `KtSnippet` (static `lang`, keyless registers), the register family
  * (`register`/`defineAndRegister` + `KtRegisterArgs` — deliberately no
- * `reExports` field), the model projection-base veneer, `KtFile`
- * (path-derived `package` directive, sorted imports, same-package
- * suppression), `KtImport` (symbol-level, `as` aliases), `KtDefinition`
- * (exhaustive seven-type shells; the `KtAnnotated` / `KtSupertyped` /
- * `KtConstructed` / `KtDocumented` value protocols), the
+ * `reExports` field), the projection-base veneers (model + OAS
+ * operation), `KtFile` (path-derived `package` directive, sorted imports,
+ * same-package suppression), `KtImport` (symbol-level, `as` aliases),
+ * `KtDefinition` (exhaustive declaration shells; the `KtAnnotated` /
+ * `KtSupertyped` / `KtConstructed` / `KtDocumented` value protocols), the
  * function-signature grammar (`KtFunctionSignature` /
  * `KtFunctionParameter` — interface/class methods incl. KDoc,
  * expression bodies, and parameter defaults), the identifier
@@ -61,7 +61,7 @@ export {
   createTypeAlias,
   createValue,
   createVerbatim,
-  toKtKeyword,
+  isKtEntityType,
   toKtEntityType,
   type KtEntityType,
   type CreateKtIdentifierArgs,
@@ -70,7 +70,7 @@ export {
 export { sanitizePropertyName } from './src/sanitizePropertyName.ts'
 export { toPackageName } from './src/toPackageName.ts'
 export { ktHardKeywords, isKtIdentifierName } from './src/hardKeywords.ts'
-export { kotlin } from './src/ktLang.ts'
+export { kotlin } from './src/KtLang.ts'
 export { KtSnippet } from './src/KtSnippet.ts'
 export {
   register,

@@ -2,6 +2,7 @@ import { assertEquals, assertThrows } from '@std/assert'
 import { IdentifierBase } from '@skmtc/core'
 import type { GenerateContextType } from '@skmtc/core/generate'
 import { KtDefinition } from './KtDefinition.ts'
+import { kotlin } from './KtLang.ts'
 import { KtParameterList } from './KtParameterList.ts'
 import { KtAnnotation } from './KtAnnotation.ts'
 import { isKtSupertyped } from './KtSupertyped.ts'
@@ -168,18 +169,19 @@ Deno.test('top-level val is a legal Kotlin declaration (distinctive: file-scope 
   assertEquals(typed.toString(), 'val timeout: Long = 5000')
 })
 
-Deno.test('a foreign identifier throws — no silent fallback shell', () => {
+Deno.test('a foreign identifier throws at the Lang boundary — no silent fallback shell', () => {
   // A neutral IdentifierBase built for another language — the engine holds
-  // identifiers as IdentifierBase, so KtDefinition narrows to KtIdentifier
-  // and refuses anything else (cast-free, via isKtIdentifier).
-  const definition = new KtDefinition({
-    context,
-    identifier: new IdentifierBase({ name: 'User' }),
-    value: 'x'
-  })
-
+  // identifiers as IdentifierBase, and `kotlin.toDefinition` narrows to
+  // KtIdentifier (cast-free, via isKtIdentifier) BEFORE construction, so
+  // the misconfiguration fails at Generate with the causing generator on
+  // the stack, not at Render.
   assertThrows(
-    () => definition.toString(),
+    () =>
+      kotlin.toDefinition({
+        context,
+        identifier: new IdentifierBase({ name: 'User' }),
+        value: 'x'
+      }),
     Error,
     "KtDefinition needs a KtIdentifier to render 'User', got a foreign identifier"
   )
@@ -315,7 +317,7 @@ Deno.test('empty or absent supertypes render no clause (byte-identical to pre-pr
   assertEquals(absent.toString(), 'data class User(\n    val id: String\n)')
 })
 
-Deno.test('non-data-class kinds ignore the KtSupertyped protocol in v1', () => {
+Deno.test('kinds without a supertype clause (typealias) ignore the KtSupertyped protocol', () => {
   class SupertypedAlias {
     supertypes = ['Animal']
 

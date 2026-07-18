@@ -530,8 +530,8 @@ export type GenerateContextType = {
   getFile: (filePath: string) => FileBase | undefined
   /** Read-only view of every file generated so far — an inspection/tooling seam (not coordination). */
   inspectedFiles: ReadonlyMap<string, FileBase>
-  /** Store a language-constructed file; the neutral write primitive. */
-  addFile: (file: FileBase) => void
+  /** Store a language-constructed file; the neutral write primitive. Returns the stored file. */
+  addFile: <File extends FileBase>(file: File) => File
   insertOperation: <V extends GeneratedValue, EnrichmentType = undefined>(
     args: InsertOperationArgs<V, EnrichmentType>
   ) => Inserted<V, EnrichmentType>

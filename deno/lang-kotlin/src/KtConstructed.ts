@@ -1,4 +1,5 @@
 import type { Stringable } from '@skmtc/core'
+import { isStringable } from './isStringable.ts'
 
 /**
  * The protocol by which a Definition's VALUE supplies a primary
@@ -30,14 +31,6 @@ export type KtConstructed = {
    * are is generator policy.
    */
   constructorModifiers?: Stringable
-}
-
-const isStringable = (item: unknown): item is Stringable => {
-  if (typeof item === 'string') {
-    return true
-  }
-
-  return typeof item === 'object' && item !== null && typeof item.toString === 'function'
 }
 
 /**

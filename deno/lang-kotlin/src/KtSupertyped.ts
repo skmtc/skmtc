@@ -1,4 +1,5 @@
 import type { Stringable } from '@skmtc/core'
+import { isStringable } from './isStringable.ts'
 
 /**
  * The protocol by which a Definition's VALUE supplies a supertype clause
@@ -16,21 +17,14 @@ import type { Stringable } from '@skmtc/core'
  * need no import, and cross-package supertypes are the caller's import
  * to register.
  *
- * Rendered for the `data-class` type only in v1 (enum conformance and
+ * Rendered on the `data-class` and `class` shells (the sealed-union
+ * member and the SDK client/service-impl idioms; enum conformance and
  * sealed-extends-sealed arrive with a milestone that needs them).
  * Scratch-proved cast-free per the note-19 `KtAnnotated` precedent
  * (spec: `notes/lang/22-kotlin-sealed-oneof-architecture.md`).
  */
 export type KtSupertyped = {
   supertypes: Stringable[]
-}
-
-const isStringable = (item: unknown): item is Stringable => {
-  if (typeof item === 'string') {
-    return true
-  }
-
-  return typeof item === 'object' && item !== null && typeof item.toString === 'function'
 }
 
 /**

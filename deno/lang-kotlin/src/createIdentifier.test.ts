@@ -1,13 +1,22 @@
 import { assertEquals, assertThrows } from '@std/assert'
 import {
+  createClass,
   createDataClass,
   createEnumClass,
   createInterface,
   createSealedInterface,
   createTypeAlias,
   createValue,
-  toKtKeyword
+  createVerbatim,
+  toKtEntityType
 } from './createIdentifier.ts'
+
+Deno.test('createClass writes the class type', () => {
+  const identifier = createClass('UsersController')
+
+  assertEquals(identifier.name, 'UsersController')
+  assertEquals(identifier.type, 'class')
+})
 
 Deno.test('createDataClass writes the data-class type', () => {
   const identifier = createDataClass('User')
@@ -60,16 +69,25 @@ Deno.test('factories honor exported: false (renders private downstream)', () => 
   assertEquals(identifier.exported, false)
 })
 
-Deno.test('toKtKeyword maps the full vocabulary', () => {
-  assertEquals(toKtKeyword('data-class'), 'data class')
-  assertEquals(toKtKeyword('enum-class'), 'enum class')
-  assertEquals(toKtKeyword('interface'), 'interface')
-  assertEquals(toKtKeyword('sealed-interface'), 'sealed interface')
-  assertEquals(toKtKeyword('typealias'), 'typealias')
-  assertEquals(toKtKeyword('val'), 'val')
+Deno.test('createVerbatim writes the verbatim type (cache-identity-only name)', () => {
+  const identifier = createVerbatim('UtilsFileBody')
+
+  assertEquals(identifier.name, 'UtilsFileBody')
+  assertEquals(identifier.type, 'verbatim')
 })
 
-Deno.test('toKtKeyword throws outside the vocabulary (foreign-language identifier)', () => {
-  assertThrows(() => toKtKeyword('variable'), Error, 'Unknown Kotlin entity type: variable')
-  assertThrows(() => toKtKeyword('type'), Error, 'Unknown Kotlin entity type: type')
+Deno.test('toKtEntityType narrows the full vocabulary', () => {
+  assertEquals(toKtEntityType('class'), 'class')
+  assertEquals(toKtEntityType('data-class'), 'data-class')
+  assertEquals(toKtEntityType('enum-class'), 'enum-class')
+  assertEquals(toKtEntityType('interface'), 'interface')
+  assertEquals(toKtEntityType('sealed-interface'), 'sealed-interface')
+  assertEquals(toKtEntityType('typealias'), 'typealias')
+  assertEquals(toKtEntityType('val'), 'val')
+  assertEquals(toKtEntityType('verbatim'), 'verbatim')
+})
+
+Deno.test('toKtEntityType throws outside the vocabulary (foreign-language identifier)', () => {
+  assertThrows(() => toKtEntityType('variable'), Error, 'Unknown Kotlin entity type: variable')
+  assertThrows(() => toKtEntityType('type'), Error, 'Unknown Kotlin entity type: type')
 })

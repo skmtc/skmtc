@@ -1,8 +1,9 @@
 import type { Lang } from '@skmtc/core'
+import invariant from 'npm:tiny-invariant@1.3.3'
 import { KtFile } from './KtFile.ts'
 import { KtDefinition } from './KtDefinition.ts'
 import { KtImport } from './KtImport.ts'
-import { KtIdentifier } from './KtIdentifier.ts'
+import { KtIdentifier, isKtIdentifier } from './KtIdentifier.ts'
 import { toKtEntityType } from './createIdentifier.ts'
 
 /**
@@ -16,8 +17,19 @@ import { toKtEntityType } from './createIdentifier.ts'
 export const kotlin: Lang = {
   createFile: ({ path, settings }) => new KtFile({ path, settings }),
 
-  toDefinition: ({ context, identifier, value, noExport, description }) =>
-    new KtDefinition({ context, identifier, value, noExport, description }),
+  toDefinition: ({ context, identifier, value, noExport, description }) => {
+    // The engine holds identifiers as the neutral `IdentifierBase`; this is
+    // the one boundary that narrows back to the concrete `KtIdentifier`
+    // before handing it on. A foreign identifier is a misconfiguration —
+    // failing here, at Generate, keeps the causing generator on the stack
+    // instead of surfacing at Render, far from the cause.
+    invariant(
+      isKtIdentifier(identifier),
+      `KtDefinition needs a KtIdentifier to render '${identifier.name}', got a foreign identifier`
+    )
+
+    return new KtDefinition({ context, identifier, value, noExport, description })
+  },
 
   // The Driver's cross-file import of a peer Definition's identifier —
   // `module` is the peer's export path; KtFile resolves it to a package
