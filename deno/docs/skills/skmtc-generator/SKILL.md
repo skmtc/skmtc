@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.6.2
+version: 0.6.3
 description: |
   Author and edit SKMTC generators — write or modify Projection
   classes, Snippets, transform functions, enrichment schemas, and the
@@ -397,6 +397,17 @@ TypeScript-output-specific rules (type-only imports / TS1484,
   constructor puts a file on disk but not in `context.#files` —
   invisible to `findDefinition`, the artifacts payload, the manifest,
   and cleanup.
+- **The engine injects the generated-file suffix into `toExportPath`.**
+  The path a Projection declares gets the project's suffix
+  (`client.json#settings.generatedSuffix`, default `'.generated'`)
+  inserted before the extension — return `@/models/User.ts` and the
+  file lands as `User.generated.ts`. Injection is idempotent (a path
+  already carrying the suffix is unchanged), and explicit
+  `destinationPath` arguments to `register`/`registerInto` are taken
+  verbatim (never suffixed). When the consumer requires an exact
+  filename — recreating a hand-written file, a module the app imports
+  by name — set `client.json#settings.generatedSuffix: ""` rather
+  than fighting the suffix inside `toExportPath`.
 - **Imports never go in template literals.** They land in the file
   *body* (TypeScript rejects) and bypass `Set`-based dedup. Register
   them in the constructor:
@@ -496,6 +507,17 @@ TypeScript-output-specific rules (type-only imports / TS1484,
 - **`Inserted` exposes methods, not properties:** `.toName()`,
   `.toIdentifier()`, `.settings`, `.definition`. There is no
   `.identifier` property (TS2551) — prefer `.toName()` for the name.
+- **Schema→type mapping is a Snippet tree, not a string helper.** The
+  most tempting helper in a model generator —
+  `toKotlinType(schema): string` / `toTsType(schema): string`
+  returning `'List<String>'` — is string composition outside
+  `toString()`. Model the target-language type as a value Snippet
+  (schema in the constructor, rendering in `toString()`, item types
+  interpolated recursively); helper functions may *route to* and
+  *construct* these Snippets, never assemble their text. This keeps
+  nested types recursive, lets leaf types self-register their
+  imports, and is what the structural eval's string-composition
+  check measures.
 
 ### Schema handling
 
@@ -928,7 +950,12 @@ Key facts:
   the projection-base config — required-ness is what lets
   `static toEnrichments` parse the raw umbrella cast-free. No
   enrichments at all → `toEnrichmentSchema: () => emptyEnrichmentSchema`
-  (from `@skmtc/core`), as `gen-typescript` does.
+  (from `@skmtc/core`), as `gen-typescript` does — but keep the
+  **file**: `src/enrichments.ts` exists in every finished generator,
+  even when it only re-exports `emptyEnrichmentSchema`. It is the
+  canonical seam consumers (and the structural eval) look for; an
+  enrichment-free generator states that fact there rather than by
+  the file's absence.
 - Read the per-item leaf via `this.settings.enrichments.subject`. The
   run-constant scopes are read on demand from any context holder via
   `toGeneratorEnrichment(context, id, schema)` /
@@ -1005,6 +1032,16 @@ them: clone and edit.
 Enrichments are limited to what each generator's Valibot schema
 declares; anything else requires cloning — never suggest "configuring"
 a hardcoded value.
+
+Semantic type mappings key on the schema's **`format`**, not on
+property names. `format` is an open vocabulary, and a string schema
+carrying `format: decimal` is the established way to mark an
+exact-decimal money value — a Kotlin generator maps it to
+`BigDecimal`. What the format *triggers* — which serde classes pair
+with it, which annotations render — is generator policy in a named
+seam; the trigger itself belongs in the schema. If a schema carries
+no marker, add one (it is a one-line, semantically inert edit) rather
+than hardcoding property-name lists into the generator.
 
 > **Runtime coupling — path-param naming.** Generators that read URL
 > params (e.g. `gen-shadcn-form`'s `useSafeParams`) hard-code the
@@ -1147,6 +1184,9 @@ After writing or editing a generator, verify:
   branch (and only if `insertNormalizedModel` won't do the job)
 - [ ] `switch (schema.type)` preceded by single-member-union unwrap and
   ref resolve; no new `BaseSchema`-style base classes
+- [ ] `grep -n 'isRef() ?' src/` returns nothing — the ternary guard
+  around `.resolve()` is redundant (identity on concrete schemas);
+  `.isRef()` is for genuine branching only
 - [ ] Per-type Snippet routers forward the typed schema, not just
   modifiers
 
@@ -1205,8 +1245,9 @@ Then, matching scaffolds A–D: implement `isSupported` in `src/mod.ts`;
 `toIdentifierName` / `toIdentifierType` / `toExportPath` in
 `src/base.ts` (the lang import here declares the target language);
 the Projection in `src/<MainProjection>.ts`; decompose into Snippets
-(scaffold E) as needed; declare enrichments if user options are
-needed. Iterate with `skmtc dev <project>`.
+(scaffold E) as needed; always create `src/enrichments.ts` (scaffold
+D — `emptyEnrichmentSchema` when there are no user options). Iterate
+with `skmtc dev <project>`.
 
 ### Card: Adding a new field type to a form generator
 

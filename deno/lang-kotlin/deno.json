@@ -11,6 +11,7 @@
     "test": "deno test --allow-all"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@0.28.1"
+    "@skmtc/core": "jsr:@skmtc/core@0.28.1",
+    "@std/path": "jsr:@std/path@^1.0.9"
   }
 }

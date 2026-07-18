@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-kotlin
-version: 0.1.0
+version: 0.2.0
 description: |
   The Kotlin target-language layer for SKMTC generators
   (`@skmtc/lang-kotlin`). Covers how a generator declares Kotlin as its
@@ -280,7 +280,13 @@ these):
 - **Same-package imports are suppressed centrally.** A symbol in the
   destination file's own package needs no import in Kotlin, and
   `KtFile` drops it at render. Over-registering is therefore harmless
-  — callers never need a same-package check.
+  — callers never need a same-package check. The single-file
+  consequence: in a generator that registers every model into ONE
+  file (the DTO-file idiom), peer references need **no import wiring
+  at all** — get the peer's name through the `insertModel` handle
+  (`.toName()`, per `skmtc-generator` §4) and interpolate it; there
+  is no circular-import hazard to design around, since Kotlin
+  same-file declarations reference each other freely.
 - **Importing from the default package throws.** Kotlin cannot import
   a root-level (package-less) symbol from a packaged file; hitting
   this means a generator's path policy put an artifact at `@/<Name>.kt`
@@ -337,7 +343,49 @@ class**, so supertype clauses (` : Animal`) and braced bodies
 | `KtAnnotations` (via `toKtAnnotations(value)`) | One annotation per line + trailing newline; empty renders `''` | The class-level annotation block above a declaration |
 | `withDescription(value, { description })` | `/** … */\n${value}` | KDoc — Kotlin's block-comment syntax is JSDoc-identical; multi-line descriptions get ` * ` margins |
 
-Canonical value shapes, by kind:
+The exact constructor shapes — **these are complete**; verify with
+`deno check` after scaffolding rather than pre-reading the package
+source:
+
+```ts fragment
+// KtParameterList — new KtParameterList(parameters: KtParameterArgs[])
+type KtParameterArgs = {
+  name: string                // FINAL name — already sanitized, may be backticked
+  type: Stringable
+  nullable?: boolean          // renders `Type?`
+  defaultValue?: Stringable   // renders ` = …` (e.g. 'null')
+  annotations?: KtAnnotation[]           // inline, before `val`
+  visibility?: 'private' | 'protected' | 'internal'  // absent = public
+}
+
+// KtAnnotation — new KtAnnotation(args: KtAnnotationArgs)
+type KtAnnotationArgs = {
+  context: GenerateContextType
+  name: string
+  args?: Stringable[]         // pre-quoted, rendered inside `(…)`; omitted → bare @Name
+  packageName?: string        // self-registers the import; omit for kotlin.* scope
+  destinationPath: string     // always explicit — the parent knows its file
+}
+
+// KtFunctionSignature — new KtFunctionSignature(args)
+type KtFunctionSignatureArgs = {
+  name: string
+  parameters: KtFunctionParameterArgs[]  // { name, type, nullable?, defaultValue?, annotations? }
+  returnType?: Stringable     // omitted → implicit Unit
+  annotations?: KtAnnotation[]
+  description?: string        // KDoc above the annotations
+  body?: Stringable           // expression body ` = …`; absent → abstract form
+}
+
+// KtPrimaryConstructor — new KtPrimaryConstructor(args)
+type KtPrimaryConstructorArgs = {
+  parameters: Stringable      // typically a KtParameterList (owns its parens)
+  modifiers?: Stringable[]    // e.g. annotations / 'private' — forces `constructor` keyword
+}
+
+// Identifier factories — createDataClass(name, { exported?: boolean })
+// (all kinds; only createValue adds { typeName?: string })
+```
 
 ```text
 data class value:   `${parameterList}${supertypes.length ? ` : ${supertypes.join(', ')}` : ''}`
@@ -524,11 +572,16 @@ never names a serialization library.
   rename to camelCase and annotate
   (`@SerialName("user_id") val userId`). Renaming is generator
   policy; this package only guarantees the chosen name parses.
-- **File naming**: `.kt` extension, and keep the `.generated.` infix
-  from the engine-side conventions (`User.generated.kt`) — that part
-  is language-neutral. Class names come from the refName; the engine's
-  cache keys on `(identifier.name, exportPath)` exactly as for any
-  language.
+- **File naming**: `.kt` extension; the engine injects the
+  generated-file infix (`client.json#settings.generatedSuffix`,
+  default `'.generated'`) into `toExportPath` before the extension —
+  `User.kt` lands as `User.generated.kt`, idempotently, exactly as
+  for any language. Keep the convention for ordinary output; when the
+  consumer requires an exact filename (recreating a hand-written
+  file the app compiles against), set
+  `client.json#settings.generatedSuffix: ""` rather than fighting
+  the suffix in the path policy. Class names come from the refName;
+  the engine's cache keys on `(identifier.name, exportPath)`.
 
 ## 6. Kotlin-output anti-patterns
 
