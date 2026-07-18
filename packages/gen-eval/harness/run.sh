@@ -34,6 +34,7 @@ mkdir -p "$WORKSPACE/.claude"
 SETTINGS_PATH="$WORKSPACE/.claude/settings.json" SKMTC_ROOT="$SKMTC_ROOT" node - <<'EOF'
 const { writeFileSync } = require('node:fs')
 const root = process.env.SKMTC_ROOT
+const home = process.env.HOME
 const deny = [
   `Read(${root}/skmtc-generators/**)`,
   `Read(${root}/.skmtc/**)`,
@@ -41,7 +42,15 @@ const deny = [
   `Read(${root}/kotlin-demos/**)`,
   `Read(${root}/kotlin-spring-demo/**)`,
   `Read(${root}/csharp-demos/**)`,
-  `Read(${root}/skmtc/packages/gen-eval/harness/runs/**)`
+  `Read(${root}/skmtc/packages/gen-eval/harness/runs/**)`,
+  // Package caches hold published @skmtc/* sources incl. the Kotlin
+  // answer generators — framework source is sanctioned at the
+  // workspace's reference/skmtc-deno symlink instead.
+  `Read(${home}/.cache/deno/**)`,
+  `Read(${home}/Library/Caches/deno/**)`,
+  // reference/skmtc-deno symlinks the LIVE repo: reads fine, writes not.
+  `Edit(${root}/skmtc/deno/**)`,
+  `Write(${root}/skmtc/deno/**)`
 ]
 writeFileSync(process.env.SETTINGS_PATH, JSON.stringify({ permissions: { deny } }, null, 2))
 EOF

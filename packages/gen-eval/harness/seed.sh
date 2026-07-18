@@ -65,7 +65,10 @@ fi
 # 4. Reference material (read-only; checksum-pinned):
 #    - the target output the generator must recreate,
 #    - two stock TypeScript model generators as reference
-#      implementations (cross-language: principles, not answers).
+#      implementations (cross-language: principles, not answers),
+#    - the framework monorepo's deno workspace (core engine source,
+#      lang packages, concept docs) as a READ-ONLY symlink — so the
+#      agent never needs to hunt API surfaces in package caches.
 mkdir -p reference
 cp "$ASSETS/reference-Dtos.kt" reference/Dtos.kt
 for gen in gen-typescript gen-zod; do
@@ -73,6 +76,7 @@ for gen in gen-typescript gen-zod; do
   cp -R "$REF_GENERATORS/$gen/src" "reference/$gen/src"
   cp "$REF_GENERATORS/$gen/mod.ts" "$REF_GENERATORS/$gen/deno.json" "$REF_GENERATORS/$gen/README.md" "reference/$gen/"
 done
+ln -s "$SKMTC_ROOT/skmtc/deno" reference/skmtc-deno
 
 # 5. Integrity checksums — the gates disqualify a run that edits these:
 #    the schema, the consumer's build files, every hand-written consumer

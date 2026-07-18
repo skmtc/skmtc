@@ -62,11 +62,17 @@ post-processing.
    vendored from `skmtc/deno/lang-kotlin` as a deno workspace member,
    the consumer app (the kotlin-person-api snapshot **minus its
    `Dtos.kt`**, plus the pinned `DtoContractTest.kt`), and read-only
-   reference material (`reference/Dtos.kt` — the target output — and
-   the vendored `gen-typescript` / `gen-zod` sources). Integrity
-   checksums are recorded.
+   reference material (`reference/Dtos.kt` — the target output — the
+   vendored `gen-typescript` / `gen-zod` sources, and
+   `reference/skmtc-deno`, a read-only symlink to the monorepo's deno
+   workspace so core/lang API surfaces are looked up at the source
+   instead of scoured from package caches). Integrity checksums are
+   recorded.
 2. **Deny rules** — the workspace's `.claude/settings.json` declares
-   the stock generators, demo apps, and previous runs off-limits.
+   the stock generators, demo apps, previous runs, and the deno
+   package caches (`~/.cache/deno`, `~/Library/Caches/deno` — they
+   hold published `@skmtc/*` incl. the Kotlin answers) off-limits for
+   reads, and the live `skmtc/deno` tree off-limits for writes.
 3. **Provenance** — `meta.json` records model, label, skill git SHA
    (+ dirty-file count), thinking budget, start time; the
    skmtc-generator and skmtc-lang-kotlin skills are snapshotted into
@@ -197,6 +203,13 @@ calibration:
   original kotlin-person-api stay off-limits (deny rules + audit).
   The task warns that some principles do not transfer 1:1 across
   languages.
+- **Framework source is sanctioned, caches are not** —
+  `reference/skmtc-deno` links the monorepo's deno workspace (core
+  engine, lang packages, concept docs) so `@skmtc/core` API questions
+  are answered at the source. The deno package caches are fenced
+  instead: they contain published `@skmtc/*` packages including the
+  Kotlin answer generators, and a pre-fence run wandered into
+  `~/.cache/deno` hunting core's types.
 - **lang-kotlin is taught by its own skill** — `skmtc-lang-kotlin`
   carries the head+value rendering model, the interface shapes, and a
   scaffold; the vendored source stays available as ground truth.
@@ -312,7 +325,12 @@ skip-permissions:
 
 Deliberately shared constants (recorded per run): the user-global
 `~/.claude/CLAUDE.md`, the skills under test (SHA + snapshot), and
-gradle/deno/pnpm caches (dependency bytes, not knowledge).
+gradle/deno/pnpm caches as *build infrastructure* (the toolchains
+resolve dependencies through them). Reading cache **contents** is
+fenced, though: the deno caches carry published `@skmtc/*` sources
+including the Kotlin answer generators, so `~/.cache/deno` and
+`~/Library/Caches/deno` are deny-ruled and audited — API questions
+belong at `reference/skmtc-deno` instead.
 
 ---
 

@@ -49,8 +49,16 @@ const forbidden = [
   `${root}/kotlin-demos`,
   `${root}/kotlin-spring-demo`,
   `${root}/csharp-demos`,
-  'harness/runs/'
+  'harness/runs/',
+  // Package caches hold published @skmtc/* incl. the Kotlin answers;
+  // reference/skmtc-deno is the sanctioned framework source instead.
+  '.cache/deno',
+  'Library/Caches/deno'
 ]
+// reference/skmtc-deno symlinks the LIVE monorepo: reads are
+// sanctioned, mutations disqualify (checksums cannot see them).
+const writeTools = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit'])
+const writeForbidden = [`${root}/skmtc/deno`, 'reference/skmtc-deno']
 const hits = []
 for (const line of readFileSync(process.env.TRANSCRIPT, 'utf8').split('\n')) {
   let event
@@ -62,6 +70,11 @@ for (const line of readFileSync(process.env.TRANSCRIPT, 'utf8').split('\n')) {
       const payload = JSON.stringify(item.input ?? {})
       for (const path of forbidden) {
         if (payload.includes(path)) hits.push(`${item.name}: …${path.split('/').pop()}`)
+      }
+      if (writeTools.has(item.name)) {
+        for (const path of writeForbidden) {
+          if (payload.includes(path)) hits.push(`${item.name} into framework source: …${path.split('/').pop()}`)
+        }
       }
     }
   }

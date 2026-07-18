@@ -52,6 +52,13 @@ register calls, no string composition outside `toString()`,
   **some principles do not transfer 1:1 across languages** (TypeScript
   has type-only imports and per-schema files; Kotlin here wants one
   file, path-derived packages, and annotation-driven serialization).
+- **Framework source** is readable at `reference/skmtc-deno/` (a
+  read-only link to the SKMTC monorepo's deno workspace): `core/src`
+  is the engine — the `OasSchema` classes, drivers, and context whose
+  API surface `@skmtc/core` exposes — and `lang-kotlin/` is the same
+  package vendored into your project. Look things up THERE; never go
+  hunting in package caches (`~/.cache/deno`, `~/Library/Caches/deno`
+  are off-limits and audited).
 
 ## Policy decisions are yours to encode
 
@@ -110,7 +117,9 @@ affect grading.
 
 - Do NOT modify anything under `consumer/src/`, the gradle build
   files, `openapi.json`, or `reference/` — they are checksum-verified;
-  edits disqualify the run.
+  edits disqualify the run. `reference/skmtc-deno` in particular
+  links to live framework source: read-only, any write there
+  disqualifies.
 - Derive the output from the schema. Do NOT embed `reference/Dtos.kt`
   (wholly or per-declaration) as literal template text — the
   structural eval reads your generator source and a verbatim blob is
