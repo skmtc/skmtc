@@ -39,7 +39,7 @@ fi
 # stop Bash reads under skip-permissions, so this is the enforcement.
 SKMTC_ROOT=${SKMTC_ROOT:-$(cd "$HARNESS_DIR/../../../.." && pwd)}
 if [ -f "$OUT/transcript.jsonl" ]; then
-  AUDIT=$(TRANSCRIPT="$OUT/transcript.jsonl" SKMTC_ROOT="$SKMTC_ROOT" node - <<'EOF'
+  AUDIT=$(TRANSCRIPT="$OUT/transcript.jsonl" SKMTC_ROOT="$SKMTC_ROOT" GEN_EVAL_SRC="$(cd "$GEN_EVAL/src" && pwd)" node - <<'EOF'
 const { readFileSync } = require('node:fs')
 const root = process.env.SKMTC_ROOT
 const forbidden = [
@@ -69,13 +69,17 @@ const divePattern = /reference\/skmtc-deno|lab\/lang-kotlin/
 // the grader-studying behavior: legal, but each one means the agent
 // believes the grader knows something the skills do not. RUNNING the
 // eval via cli.ts is by design and not counted — cli.ts mentions are
-// stripped before matching. Counted and reported as the "grader dives"
+// stripped before matching. Matched BOTH by the workspace symlink
+// name AND by the resolved target path (run 195833 read the checks
+// through absolute worktree paths and the symlink-only pattern
+// reported a false 0). Counted and reported as the "grader dives"
 // metric; escalate to a forbidden path only if the behavior persists
-// now that structural.md inlines the doc text of each check.
+// now that flagged-check doc text is inlined in eval output.
 // (No apostrophes in this heredoc: the macOS bash 3.2 parser tracks
 // quotes through command substitution and an odd count eats the
 // closing paren.)
 const graderPattern = /reference\/structural-eval/
+const graderSrc = process.env.GEN_EVAL_SRC || ''
 let dives = 0
 let graderDives = 0
 for (const line of readFileSync(process.env.TRANSCRIPT, 'utf8').split('\n')) {
@@ -98,9 +102,13 @@ for (const line of readFileSync(process.env.TRANSCRIPT, 'utf8').split('\n')) {
         }
       }
       if (diveTools.has(item.name) && divePattern.test(payload)) dives += 1
+      const strippedPayload = payload
+        .replaceAll('reference/structural-eval/cli.ts', '')
+        .replaceAll(`${graderSrc}/cli.ts`, '')
       if (
         diveTools.has(item.name) &&
-        graderPattern.test(payload.replaceAll('reference/structural-eval/cli.ts', ''))
+        (graderPattern.test(strippedPayload) ||
+          (graderSrc !== '' && strippedPayload.includes(graderSrc)))
       ) graderDives += 1
     }
   }

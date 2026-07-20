@@ -304,6 +304,21 @@ const main = (): void => {
   const reports = dirs.map(analyzeGenerator)
   printTable(reports.map(toRow))
 
+  // Any flagged check prints its full rule on STDOUT — the output the
+  // caller actually reads first (run 195833 dove into check source
+  // because the rule text lived only in the --md report it didn't
+  // know to generate). Sites still live in --md.
+  for (const report of reports) {
+    const flagged = flaggedCheckIds(report)
+    if (flagged.length === 0) continue
+    console.log(
+      `\n${report.generator} — the rule behind each flagged check (flagged SITES: rerun with --md <file>):`
+    )
+    for (const id of flagged) {
+      console.log(`\n${inlineCheckDoc(id).join('\n').trimEnd()}`)
+    }
+  }
+
   if (args.verbose) {
     for (const report of reports) {
       console.log(`\n=== ${report.generator}`)

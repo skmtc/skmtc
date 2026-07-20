@@ -75,10 +75,18 @@ register calls, no string composition outside `toString()`,
 
 ## Working method
 
-- **Use the Read tool (not `cat`) on any file you intend to edit or
-  overwrite** — the scaffolded generator sources especially. The Write
-  and Edit tools require a prior tool-level Read of the file; `cat`
-  does not count and the write will be rejected.
+- **Inspect files you intend to edit or overwrite individually** —
+  the scaffolded generator sources especially. The Write and Edit
+  tools require the file to have been read first, and the rule is
+  precise: the Read tool always counts, and a **bare single-file
+  `cat`/`head`/`sed -n` (no `&&`, no pipes, no redirects) also
+  counts** — but a batched compound command
+  (`cat a.ts && echo === && cat b.ts`) does NOT, and the write will
+  be rejected even though you have seen the content.
+- **The working directory does not persist between Bash calls.** Use
+  absolute paths (or `gradle -p <path>`) instead of `cd`-then-run —
+  a bare `cd kotlin-person-api` will fail whenever an earlier call
+  left the cwd elsewhere.
 
 ## Policy decisions are yours to encode
 
@@ -105,9 +113,9 @@ skmtc generate lab --json             # errors must be [], Dtos.kt created
 node reference/structural-eval/cli.ts --scan .skmtc/lab
 # ^ the SAME structural eval that grades this run — re-run it and fix
 #   what it reports until there are no FAILs and no warnings
-cd kotlin-person-api && gradle compileKotlin && gradle test
+gradle -p kotlin-person-api compileKotlin && gradle -p kotlin-person-api test
 # ^ the app compiles AND its DtoContractTest passes against your DTOs
-diff ../reference/Dtos.kt src/main/kotlin/com/example/api/dto/Dtos.kt
+diff reference/Dtos.kt kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.kt
 # ^ inspect what remains — close the derivable gaps (declarations,
 #   annotations, types, defaults); KDoc prose gaps are expected
 ```

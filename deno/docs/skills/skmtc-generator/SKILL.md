@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.9.1
+version: 0.9.2
 description: |
   Author and edit SKMTC generators — write or modify Projection
   classes, Snippets, transform functions, enrichment schemas, and the
@@ -503,6 +503,17 @@ TypeScript-output-specific rules (type-only imports / TS1484,
   Registration is already idempotent via Set / Map semantics.
 - **Build strings by interpolating `Stringable`s** (`${snippet}`),
   never by concatenation — interpolation preserves Snippet recursion.
+- **What the composition metric counts.** The structural eval measures
+  where composition sits: template literals, `+` concatenation, and
+  `.join()` are composition; **plain string literals are free
+  everywhere**, and naming statics are bucketed separately. The
+  warning fires when ≥50% of composition characters sit outside
+  `toString()`. On a warning, the flagged check's rule prints with the
+  eval's table and `--md <file>` lists the offending sites — no need
+  to read anything else. The fix is placement, not hoisting: move
+  dynamic composition into a snippet's `toString()`; a static string
+  stays a literal at its use site (a constants module buys nothing —
+  literals are uncounted there too).
 - **No ad-hoc `{ toString: () => '…' }` objects.** The duck-type
   satisfies `Stringable` while lying about capabilities — no
   `context` (can never register an import), invisible to

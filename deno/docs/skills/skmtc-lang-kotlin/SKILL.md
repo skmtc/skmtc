@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-kotlin
-version: 0.6.1
+version: 0.6.2
 description: |
   The Kotlin target-language layer for SKMTC generators
   (`@skmtc/lang-kotlin`). Covers how a generator declares Kotlin as its
@@ -369,6 +369,13 @@ Omit `packageName` for default-scope annotations (`@Deprecated`,
 `@Suppress` — `kotlin.*` needs no import): the annotation then only
 renders. Never pair a `KtAnnotation` with a separate manual
 `register({ imports })` for the same class (§6).
+
+Multi-element `args` render comma-joined on **one line**
+(`args.join(', ')`). For a multi-line annotation body — the
+`@JsonSubTypes` idiom with one `JsonSubTypes.Type(…)` entry per
+line — pass a SINGLE arg carrying the whole body: a `Stringable`
+snippet whose `toString()` composes the lines (keeping composition
+inside `toString()`), or a pre-formatted string.
 
 The self-registration covers the annotation's **own** class only.
 When the annotation's *arguments* name a second symbol —
