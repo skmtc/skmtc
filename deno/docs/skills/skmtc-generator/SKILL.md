@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.11.0
+version: 0.11.1
 description: |
   Author and edit SKMTC generators — write or modify Projection
   classes, Snippets, transform functions, enrichment schemas, and the
@@ -1286,7 +1286,14 @@ The productive order:
    exact signature you got wrong, one at a time. They are a faster
    and more reliable teacher than engine source: the factory's
    generics check your config either way, so pre-reading core buys
-   certainty you get for free at bundle time.
+   certainty you get for free at bundle time. Two mechanics:
+   `skmtc bundle`/`generate` run esbuild, which does NOT typecheck —
+   a green generate can ride a type-broken generator, so run
+   `deno check` explicitly before calling the work done. And run it
+   from **inside** the project dir
+   (`cd .skmtc/<project> && deno check <gen>/mod.ts`) — from anywhere
+   else the workspace import map doesn't apply and the one real error
+   drowns under ~40 cascading resolution errors.
 
 If you genuinely need one core signature, check this skill's
 generated API appendix (the OAS IR) and the lang skill's appendix

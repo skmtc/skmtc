@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-kotlin
-version: 0.9.0
+version: 0.9.1
 description: |
   The Kotlin target-language layer for SKMTC generators
   (`@skmtc/lang-kotlin`). Covers how a generator declares Kotlin as its
@@ -107,7 +107,7 @@ export const KtModelBase = toKtModelProjectionBase({
 
 ```ts fragment
 // gen-x/src/KtModel.ts — the per-schema Projection
-import type { ModelProjectionArgs, Stringable } from '@skmtc/core'
+import type { EmptyEnrichments, ModelProjectionArgs, Stringable } from '@skmtc/core'
 import { KtAnnotation } from '@skmtc/lang-kotlin'
 import { KtModelBase } from './base.ts'
 import { toKtValue } from './Kt.ts'
@@ -120,7 +120,12 @@ export class KtModel extends KtModelBase {
   annotations: KtAnnotation[]
   value: Stringable
 
-  constructor({ context, settings, refName }: ModelProjectionArgs) {
+  // The enrichment generic must match the base: `toEnrichmentSchema:
+  // () => emptyEnrichmentSchema` makes the base expect
+  // ModelProjectionArgs<EmptyEnrichments>; the bare default fails
+  // `deno check` — which bundle/generate will NOT catch (esbuild does
+  // not typecheck).
+  constructor({ context, settings, refName }: ModelProjectionArgs<EmptyEnrichments>) {
     super({ context, settings, refName })
 
     const schema = context.resolveSchemaRefOnce(refName, KtModel.id).resolve()
@@ -202,6 +207,12 @@ every package of the stack** — see §6):
   "@skmtc/lang-kotlin": "jsr:@skmtc/lang-kotlin@<pin>"
 }
 ```
+
+The same-pin rule covers **core too**: pin `@skmtc/core` to the exact
+version the lang-kotlin package (vendored or JSR) pins — read it from
+that package's `deno.json` rather than taking a newer one. Two core
+copies in one build break cross-copy `instanceof` exactly like two
+lang copies (§6).
 
 ### The router contract — `SchemaToValueFn`, no core dive needed
 
@@ -344,7 +355,11 @@ these):
   at all** — get the peer's name through the `insertModel` handle
   (`.toName()`, per `skmtc-generator` §4) and interpolate it; there
   is no circular-import hazard to design around, since Kotlin
-  same-file declarations reference each other freely.
+  same-file declarations reference each other freely. Concretely, the
+  router's whole `ref` case is those two calls: a `RefValue` snippet
+  whose constructor does `context.insertModel(KtModel,
+  ref.toRefName())` and whose `toString()` returns the stored
+  `.toName()` — no register, nothing else.
 - **Importing from the default package throws.** Kotlin cannot import
   a root-level (package-less) symbol from a packaged file; hitting
   this means a generator's path policy put an artifact at `@/<Name>.kt`
@@ -565,7 +580,7 @@ is not.
     annotations: KtAnnotation[] // the KtAnnotated protocol slot (§4)
     value: ReturnType<typeof toKtValue> // NOT Stringable — so .value reads type-check
 
-    constructor({ context, settings, refName }: ModelProjectionArgs) {
+    constructor({ context, settings, refName }: ModelProjectionArgs<EmptyEnrichments>) {
       super({ context, settings, refName })
       const schema = context.resolveSchemaRefOnce(refName, KtModel.id).resolve()
       this.value = toKtValue({

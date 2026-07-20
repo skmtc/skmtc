@@ -230,14 +230,19 @@ export class DataClassValue extends KtSnippet {
   }
 
   toModelProjection(mainModule: string) {
-    return `import type { ModelProjectionArgs, Stringable } from '@skmtc/core'
+    return `import type { EmptyEnrichments, ModelProjectionArgs, Stringable } from '@skmtc/core'
 import { KtModelBase } from './base.ts'
 import { toKtValue } from './Kt.ts'
 
 export class ${mainModule}Projection extends KtModelBase {
   value: Stringable
 
-  constructor(args: ModelProjectionArgs) {
+  // The enrichment generic must match the base: wiring
+  // \`toEnrichmentSchema: () => emptyEnrichmentSchema\` makes the base
+  // expect ModelProjectionArgs<EmptyEnrichments> — the bare
+  // ModelProjectionArgs default (undefined) fails \`deno check\`, and
+  // bundle/generate won't catch it (esbuild does not typecheck).
+  constructor(args: ModelProjectionArgs<EmptyEnrichments>) {
     super(args)
 
     const { context, refName } = args

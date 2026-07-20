@@ -52,6 +52,16 @@ if [ ! -f "$PROBE/src/Kt.ts" ] \
   ls "$PROBE/src" >&2 2>/dev/null || true
   exit 1
 fi
+# The skeleton's claim is "bundles AND type-checks" — bundle/generate run
+# esbuild (no typecheck), so only an explicit deno check verifies the
+# second half (run 20260720-214151: a bare ModelProjectionArgs
+# constructor rode green gates all the way to a manual check). Must run
+# from inside the project dir so the workspace import map applies.
+if ! (cd .skmtc/lab && deno check gen-shape-probe/mod.ts) > "$PF_WS/probe-check.log" 2>&1; then
+  echo "preflight FAILED: the scaffolded kotlin skeleton does not type-check" >&2
+  tail -20 "$PF_WS/probe-check.log" >&2
+  exit 1
+fi
 rm -rf "$PROBE"
 mv "$PF_WS/deno.json.pre-probe" .skmtc/lab/deno.json
 
@@ -71,7 +81,7 @@ cat > .skmtc/lab/gen-preflight/deno.json <<'EOF'
 EOF
 cat > .skmtc/lab/gen-preflight/mod.ts <<'EOF'
 import { emptyEnrichmentSchema, toModelEntry } from '@skmtc/core'
-import type { ModelProjectionArgs } from '@skmtc/core'
+import type { EmptyEnrichments, ModelProjectionArgs } from '@skmtc/core'
 import { toKtModelProjectionBase } from '@skmtc/lang-kotlin'
 
 const PreflightBase = toKtModelProjectionBase({
@@ -83,7 +93,7 @@ const PreflightBase = toKtModelProjectionBase({
 })
 
 class PreflightModel extends PreflightBase {
-  constructor(args: ModelProjectionArgs) {
+  constructor(args: ModelProjectionArgs<EmptyEnrichments>) {
     super(args)
 
     this.register({
