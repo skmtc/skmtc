@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-kotlin
-version: 0.6.0
+version: 0.6.1
 description: |
   The Kotlin target-language layer for SKMTC generators
   (`@skmtc/lang-kotlin`). Covers how a generator declares Kotlin as its
@@ -534,7 +534,9 @@ is not.
   // Inside the object value snippet's toString() — a pure read of the
   // seam. Filtering in the constructor would miss assignments made
   // after this member was built (union-first visit order), so keep
-  // wireName on each parameter and filter here.
+  // wireName on each parameter and filter here. This filter (plus the
+  // KtParameterList wrap) is the ONLY render-time work — every other
+  // per-parameter decision was made at construction (§4).
   const visible = this.parameters.filter(
     ({ wireName }) => !this.discriminatorProperties.has(wireName)
   )
@@ -736,18 +738,45 @@ export class StringValue extends KtSnippet {
 ```
 
 ```ts fragment
-// Consumer side — the object snippet's toString() collects protocol
-// fields. No `.type` anywhere: not on schemas, not on routed values.
-new KtParameterList(
-  this.parameters.map(({ name, value, required, positionAnnotations }) => ({
-    name,
+// Consumer side — the object snippet's CONSTRUCTOR makes every
+// per-parameter decision and stores fully-decided entries. No `.type`
+// anywhere: not on schemas, not on routed values.
+this.parameters = Object.entries(properties ?? {}).map(([wireName, property]) => {
+  const isRequired = (required ?? []).includes(wireName)
+  const value = toKtValue({ context, schema: property, destinationPath, required: isRequired })
+  const inherentDefault = value.defaultValue // e.g. 'emptyMap()'
+  return {
+    wireName, // kept only for the render-time discriminator filter
+    name: sanitizePropertyName(wireName),
     type: value,
-    nullable: !required,
-    annotations: [...positionAnnotations, ...value.annotations],
-    defaultValue: value.defaultValue ?? (required ? undefined : 'null')
-  }))
-)
+    // Non-required is nullable UNLESS the type carries its own zero value.
+    nullable: !isRequired && inherentDefault === undefined,
+    annotations: [...toPositionAnnotations(wireName), ...value.annotations],
+    defaultValue: isRequired ? undefined : (inherentDefault ?? 'null')
+  }
+})
 ```
+
+```ts fragment
+// toString() — the decisions are already made. Exactly two operations
+// remain, and only because union membership settles after member
+// construction: the discriminator filter, and the KtParameterList wrap.
+override toString(): string {
+  return `${new KtParameterList(
+    this.parameters.filter(({ wireName }) => !this.discriminatorProperties.has(wireName))
+  )}`
+}
+```
+
+One more placement rule the split implies: **facts are declared in
+place — no policy module.** The `decimal` branch declares the money
+serde annotations where it branches; the `date-time` branch its
+`@JsonFormat`; the enum snippet its fallback. A central `policy.ts`
+collecting serializer class names, format patterns, and fallback
+values re-centralizes what the mapping distributes — a parallel
+dispatch table keyed by comments instead of code. A constant used
+once belongs at its use site (plain string literals are free
+everywhere; hoisting them to another module buys nothing).
 
 Forking *within* a router case on schema facts is the same
 within-type-rendering license the string snippet's `format` branch
