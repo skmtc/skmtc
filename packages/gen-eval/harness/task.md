@@ -40,16 +40,18 @@ register calls, no string composition outside `toString()`,
   truth for anything the skill leaves open.
 - **Scaffold first, then implement.** Run
   `skmtc create lab @eval/gen-kotlin-jackson model --lang kotlin` —
-  it writes a SKELETON (entry, projection base, one projection, a
-  data-class parameter-list snippet, an empty `toKtValue` router
-  typed `SchemaToValueFn`) and registers it in `.skmtc/lab/deno.json`.
-  The skeleton bundles but `generate` fails loudly, naming each
-  unmapped schema type. Your task is the generator itself: implement
-  the schema→snippet mapping (one self-rendering snippet per schema
-  variant — the reference generators show the router shape), the
-  declaration kinds beyond data-class/typealias, the single `Dtos.kt`
-  output, the Jackson annotations, and the policy seams. Do not
-  hand-write the wiring files the scaffolder already provides.
+  it writes a SKELETON (entry, projection base, one projection making
+  a single router call, a `toKtValue` router typed `SchemaToValueFn`)
+  and registers it in `.skmtc/lab/deno.json`. One router case is
+  implemented as the worked example — `'object'` → `DataClassValue` —
+  and every other case throws, so the skeleton bundles but `generate`
+  fails loudly, naming each unmapped schema type. Your task is the
+  generator itself: implement the rest of the schema→snippet mapping
+  (one self-rendering snippet per schema variant, following the
+  example and the reference generators), the declaration kinds beyond
+  data-class/typealias, the single `Dtos.kt` output, the Jackson
+  annotations, and the policy seams. Do not hand-write the wiring
+  files the scaffolder already provides.
 - `kotlin-person-api/` is the real Spring Boot app with its `Dtos.kt`
   removed. Everything else is hand-written and checksum-pinned: the
   controller and services compile against your generated DTOs,

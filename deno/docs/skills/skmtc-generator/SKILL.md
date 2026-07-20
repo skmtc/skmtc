@@ -1294,17 +1294,19 @@ skmtc create <project> <gen-name> model --lang kotlin   # Kotlin target
 ```
 
 `--lang kotlin` (model generators) writes a SKELETON — the mechanical
-wiring (entry, projection base, one projection, a data-class
-parameter-list snippet, `enrichments.ts`, the project `deno.json`
-registration) plus an empty `toKtValue` router typed `SchemaToValueFn`
-that throws on every schema type. It bundles and type-checks;
-`generate` fails loudly, naming each unmapped type, until you
-implement the schema→snippet mapping: one case per `schema.type`,
-each returning a small self-rendering snippet that takes the typed
-variant (the `toZodValue` / `Ts.ts` shape in the stock generators).
-Declaration kinds beyond data-class/typealias, union handling, format
-policy, and serialization annotations are all yours to author. In a
-non-TTY session `create` runs headlessly from its command-line args.
+wiring (entry, projection base, one projection making a single router
+call, `enrichments.ts`, the project `deno.json` registration) plus a
+`toKtValue` router typed `SchemaToValueFn` with exactly one case
+implemented: `'object'` → `DataClassValue`, the worked example of the
+pattern — it takes the typed variant, carries the TypeSystem contract
+fields for its output type, renders itself, and routes its properties
+back through the router. Every other case throws. The skeleton bundles
+and type-checks; `generate` fails loudly, naming each unmapped type,
+until you implement the rest of the mapping the same way (the
+`toZodValue` / `Ts.ts` shape in the stock generators). Declaration
+kinds beyond data-class/typealias, union handling, format policy, and
+serialization annotations are all yours to author. In a non-TTY
+session `create` runs headlessly from its command-line args.
 
 For TypeScript, then, matching scaffolds A–D: implement `isSupported` in `src/mod.ts`;
 `toIdentifierName` / `toIdentifierType` / `toExportPath` in

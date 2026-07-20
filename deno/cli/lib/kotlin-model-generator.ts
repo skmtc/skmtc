@@ -4,15 +4,18 @@ import { join } from '@std/path/join'
 
 /**
  * Scaffolds a Kotlin model generator SKELETON: the mechanical wiring only
- * (entry, projection base, one projection, a data-class parameter-list
- * snippet, `enrichments.ts`), plus an empty `toKtValue` router typed
- * `SchemaToValueFn` that throws on every schema type. The skeleton
- * bundles and type-checks; `generate` fails loudly until the author
- * implements the schema→snippet mapping — one self-rendering snippet per
- * schema variant, the gen-zod / gen-typescript shape. Deliberately
- * carries NO answers: no enum/union handling, no format policy, no
- * serialization annotations — that is generator authoring, guided by the
- * skmtc-generator and skmtc-lang-kotlin skills.
+ * (entry, projection base, one projection making a single router call,
+ * `enrichments.ts`), plus a `toKtValue` router typed `SchemaToValueFn`
+ * with exactly ONE case implemented — 'object' → `DataClassValue`, the
+ * worked example of the pattern (typed variant in, TypeSystem contract
+ * fields carried, self-rendering, self-registering imports) — and a
+ * default that throws. The skeleton bundles and type-checks; `generate`
+ * fails loudly until the author implements the remaining schema→snippet
+ * mapping, one self-rendering snippet per variant (the gen-zod /
+ * gen-typescript shape). Deliberately carries NO answers beyond that
+ * example: no scalar mapping, no enum/union handling, no format policy,
+ * no serialization annotations — that is generator authoring, guided by
+ * the skmtc-generator and skmtc-lang-kotlin skills.
  *
  * The project must make `@skmtc/lang-kotlin` resolvable (pre-alpha: a
  * vendored workspace member; no JSR pin is written here).
@@ -110,17 +113,18 @@ export const toEnrichmentSchema = () => emptyEnrichmentSchema
 
   toKt() {
     return `import type { SchemaToValueFn } from '@skmtc/core'
+import { DataClassValue } from './DataClassValue.ts'
 
 /**
  * Maps a parsed schema node to a self-rendering Kotlin snippet — the
- * generator's central seam, deliberately unimplemented in this skeleton.
- *
- * Implement it as the reference generators do (gen-zod's \`toZodValue\`,
- * gen-typescript's \`Ts.ts\`): one case per \`schema.type\`, each returning
- * a small snippet class that takes the TYPED schema variant, extracts its
- * facts in the constructor, renders itself in \`toString()\`, and
- * registers its own imports. The router routes and constructs — it never
- * builds strings.
+ * generator's central seam. Only the 'object' case is implemented, as
+ * the worked example of the shape (gen-zod's \`toZodValue\`,
+ * gen-typescript's \`Ts.ts\`): one case per \`schema.type\`, each
+ * returning a small snippet class that takes the TYPED schema variant,
+ * carries the TypeSystem contract fields for its output type, extracts
+ * its facts in the constructor, renders itself in \`toString()\`, and
+ * registers its own imports. The router routes and constructs — it
+ * never builds strings.
  */
 export const toKtValue: SchemaToValueFn = ({
   schema,
@@ -130,8 +134,15 @@ export const toKtValue: SchemaToValueFn = ({
   rootRef
 }) => {
   switch (schema.type) {
+    case 'object':
+      return new DataClassValue({
+        context,
+        objectSchema: schema,
+        destinationPath,
+        modifiers: { required }
+      })
     // case 'string':
-    //   return new KtString({ context, stringSchema: schema, destinationPath, required })
+    //   return new KtString({ context, stringSchema: schema, destinationPath, modifiers: { required } })
     default:
       throw new Error(\`toKtValue: schema type '\${schema.type}' is not mapped yet\`)
   }
@@ -140,44 +151,74 @@ export const toKtValue: SchemaToValueFn = ({
   }
 
   toDataClassValue() {
-    return `import type { GenerateContextType, OasObject, Stringable } from '@skmtc/core'
+    return `import type {
+  GenerateContextType,
+  Modifiers,
+  OasObject,
+  TypeSystemObjectProperties,
+  TypeSystemValue
+} from '@skmtc/core'
 import { KtParameterList, KtSnippet, sanitizePropertyName } from '@skmtc/lang-kotlin'
 import { toKtValue } from './Kt.ts'
 
 type DataClassValueArgs = {
   context: GenerateContextType
-  schema: OasObject
+  objectSchema: OasObject
   destinationPath: string
+  modifiers: Modifiers
 }
 
 type Parameter = {
-  wireName: string
   name: string
-  type: Stringable
+  type: TypeSystemValue
   required: boolean
 }
 
 export class DataClassValue extends KtSnippet {
+  // The TypeSystem contract fields for the 'object' output — carrying
+  // these is what lets the toKtValue router return this snippet as
+  // \`TypeSystemOutput<'object'>\`. Every snippet you add for another
+  // schema type carries its own output type's fields the same way.
+  type = 'object' as const
+  recordProperties: null = null
+  objectProperties: TypeSystemObjectProperties | null
+  modifiers: Modifiers
+
   parameters: Parameter[]
 
-  constructor({ context, schema, destinationPath }: DataClassValueArgs) {
+  constructor({ context, objectSchema, destinationPath, modifiers }: DataClassValueArgs) {
     super({ context })
 
-    const required = schema.required ?? []
+    this.modifiers = modifiers
 
-    this.parameters = Object.entries(schema.properties ?? {}).map(([wireName, property]) => ({
-      wireName,
-      name: sanitizePropertyName(wireName),
-      required: required.includes(wireName),
-      // Routed through the toKtValue seam; snippets it constructs register
-      // their imports here, in the constructor, never at render.
-      type: toKtValue({
+    if (objectSchema.additionalProperties) {
+      throw new Error('DataClassValue: additionalProperties is not mapped yet')
+    }
+
+    const required = objectSchema.required ?? []
+    const properties: Record<string, TypeSystemValue> = {}
+
+    // Properties route back through the toKtValue seam; snippets it
+    // constructs register their imports here, in the constructor,
+    // never at render.
+    this.parameters = Object.entries(objectSchema.properties ?? {}).map(([wireName, property]) => {
+      const value = toKtValue({
         context,
         schema: property,
         destinationPath,
         required: required.includes(wireName)
       })
-    }))
+
+      properties[wireName] = value
+
+      return {
+        name: sanitizePropertyName(wireName),
+        type: value,
+        required: required.includes(wireName)
+      }
+    })
+
+    this.objectProperties = { properties }
   }
 
   override toString(): string {
@@ -199,7 +240,6 @@ export class DataClassValue extends KtSnippet {
   toModelProjection(mainModule: string) {
     return `import type { ModelProjectionArgs, Stringable } from '@skmtc/core'
 import { KtModelBase } from './base.ts'
-import { DataClassValue } from './DataClassValue.ts'
 import { toKtValue } from './Kt.ts'
 
 export class ${mainModule}Projection extends KtModelBase {
@@ -212,10 +252,9 @@ export class ${mainModule}Projection extends KtModelBase {
     const destinationPath = this.settings.exportPath
     const schema = context.resolveSchemaRefOnce(refName, KtModelBase.id).resolve()
 
-    this.value =
-      schema.type === 'object'
-        ? new DataClassValue({ context, schema, destinationPath })
-        : toKtValue({ context, schema, destinationPath, required: true })
+    // Everything flows through the router — 'object' is a case like any
+    // other, not a special case here.
+    this.value = toKtValue({ context, schema, destinationPath, required: true })
   }
 
   override toString(): string {
