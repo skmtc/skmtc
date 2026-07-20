@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.6.4
+version: 0.6.5
 description: |
   Author and edit SKMTC generators — write or modify Projection
   classes, Snippets, transform functions, enrichment schemas, and the
@@ -213,11 +213,17 @@ For both Projections and Snippets:
   mutation, no side effects, no `register` calls (by Render time the
   file's imports are finalised). Cache anything expensive on `this`
   from the constructor.
-- **Constructor and `toString` are the only methods — get/set
-  accessors included.** A producer with additional methods is being
-  used as a service object or a string-builder — decompose that logic
-  into delegate Snippets composed via `${...}` instead
-  (orchestrator–delegate card, §10). A JS getter is still a method: a
+- **Constructor and `toString` are the only methods — private
+  helpers and get/set accessors included.** A producer with
+  additional methods is being used as a service object or a
+  string-builder — decompose that logic into delegate Snippets
+  composed via `${...}` instead (orchestrator–delegate card, §10).
+  `private` does not exempt a method: a `private toAnnotations()` /
+  `private assignMembership()` on a producer is the same violation,
+  and the mechanical fix is a **module-level free function** taking
+  `{ context, … }` that routes and constructs Snippet leaves (never
+  assembles their text) — write it that way first rather than
+  refactoring to it. A JS getter is still a method: a
   mirror like `get annotations() { return this.value.annotations }`
   is the anti-pattern form — and so is copying the field
   (`this.annotations = this.value.annotations`). A field other code
@@ -550,6 +556,34 @@ TypeScript-output-specific rules (type-only imports / TS1484,
   satisfies the same narrowing surface (`.isRef()` returns false,
   `.type === 'custom'`, `.resolve()` is identity), so it flows through
   a schema→type Snippet as the `default` branch.
+- **Wire facts live on the concrete variant, never the union type.**
+  `readOnly` / `writeOnly` / `format` / `enums` / `default` /
+  `deprecated` are declared per-variant; `OasSchema` itself carries
+  nothing, so flat property access off it does not compile — narrow
+  first (`const resolved = schema.resolve()`, then
+  `switch (resolved.type)`) and read the fact inside the branch. The
+  crib sheet below covers the fields generators actually read; no
+  source dive needed for these.
+
+  Every variant has `title?` / `description?` / `example?` /
+  `nullable?`, and all except `union` and `unknown` add `readOnly?` /
+  `writeOnly?` / `deprecated?` / `default?` / `enums?` (plural — there
+  is no `enum` field). Per-variant, beyond those:
+
+  | `.type` | Variant-specific fields |
+  |---|---|
+  | `'string'` | `format?: string` (open — `date-time`, `uuid`, `decimal`, …), `pattern?`, `maxLength?` / `minLength?` |
+  | `'integer'` | `format?: 'int32' \| 'int64'`, `minimum?` / `maximum?` / `exclusiveMinimum?` / `exclusiveMaximum?` / `multipleOf?` |
+  | `'number'` | `format?: 'float' \| 'double'`, same bounds as `'integer'` |
+  | `'boolean'` | nothing further |
+  | `'array'` | `items: OasSchema \| OasRef<'schema'>`, `maxItems?` / `minItems?`, `uniqueItems?` — and its default is named `defaultValue`, not `default` |
+  | `'object'` | `properties?` (the 3-way union above), `required?: string[]` (property names — presence here is what "required" means), `additionalProperties?: boolean \| OasSchema \| OasRef<'schema'>`, `maxProperties?` / `minProperties?` |
+  | `'union'` | `members: (OasSchema \| OasRef<'schema'>)[]`, `discriminator?: { propertyName: string; mapping?: Record<string, string> }` — **no wire facts**: a `oneOf` member's `readOnly` / `format` live on the member, so resolve each member and read there |
+  | `'unknown'` | nothing further — the untyped-schema fallback |
+
+  The table is a map, not the territory: for a field it doesn't
+  answer, grep the variant's class in the vendored core source
+  (`oas/<variant>/…`) rather than re-deriving the model.
 - **`allOf` is already merged** (`core/oas/_merge-all-of/` runs at
   Parse). Treat received schemas as flat objects.
 - **Unwrap before you switch.** OpenAPI refs can't carry extensions,

@@ -72,8 +72,11 @@ for (const line of readFileSync(process.env.TRANSCRIPT, 'utf8').split('\n')) {
         if (payload.includes(path)) hits.push(`${item.name}: …${path.split('/').pop()}`)
       }
       if (writeTools.has(item.name)) {
+        // Match the write TARGET only — file content legitimately mentions
+        // framework paths (e.g. RETRO.md citing reference/skmtc-deno).
+        const target = (item.input ?? {}).file_path ?? (item.input ?? {}).notebook_path ?? ''
         for (const path of writeForbidden) {
-          if (payload.includes(path)) hits.push(`${item.name} into framework source: …${path.split('/').pop()}`)
+          if (target.includes(path)) hits.push(`${item.name} into framework source: …${path.split('/').pop()}`)
         }
       }
     }

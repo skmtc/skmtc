@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-kotlin
-version: 0.3.0
+version: 0.3.1
 description: |
   The Kotlin target-language layer for SKMTC generators
   (`@skmtc/lang-kotlin`). Covers how a generator declares Kotlin as its
@@ -318,6 +318,17 @@ Omit `packageName` for default-scope annotations (`@Deprecated`,
 renders. Never pair a `KtAnnotation` with a separate manual
 `register({ imports })` for the same class (§6).
 
+The self-registration covers the annotation's **own** class only.
+When the annotation's *arguments* name a second symbol —
+`@JsonSerialize(using = MoneyStringSerializer::class)`,
+`@field:JsonDeserialize(using = MoneyStringDeserializer::class)` —
+that symbol needs its own `register({ imports })` alongside the
+annotation (the args are opaque `Stringable`s; nothing parses class
+references out of them). One annotation, two imports. Exception:
+when the referenced class lands in the destination file's own
+package, same-package suppression (§3) makes the extra register
+unnecessary — though registering it anyway is harmless.
+
 ### Leading file content — the `custom` slot
 
 `KtRegisterArgs.custom` sets the destination file's neutral `custom`
@@ -632,6 +643,14 @@ never names a serialization library.
   is. A leading banner belongs on the register vocabulary's `custom`
   slot (§3); whole-file static content is a FILE fact, not a
   definition.
+- **Producer logic in private methods** — a `private
+  toAnnotations()` on a value class or projection breaks the
+  constructor + `toString()` contract exactly as a public method
+  does (`skmtc-generator` §2: private helpers and accessors count).
+  Annotation-building and union-membership branching belong in
+  module-level free functions taking `{ context, … }` that construct
+  `KtAnnotation` / snippet leaves — the leaves then self-register
+  their imports.
 - **Mirroring protocol fields** — a getter
   (`get annotations() { return this.value.annotations }` — a method;
   producers are constructor + `toString()` only, and the structural
