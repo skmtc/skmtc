@@ -28,6 +28,30 @@ trap cleanup EXIT
 bash "$HARNESS_DIR/seed.sh" "$PF_WS" > /dev/null
 cd "$PF_WS"
 
+# Scaffolder-shape probe: the agent's first act is `skmtc create …
+# --lang kotlin`, and the CLI on PATH is a compiled binary — a stale
+# one silently seeds the run with an outdated skeleton (run
+# 20260720-192026: a Jul-18 binary emitted the pre-router KtType
+# shape; the agent burned its first phase undoing it and read the
+# structural-eval source to arbitrate the contradiction). Scaffold a
+# throwaway generator and assert the router-skeleton shape.
+cp .skmtc/lab/deno.json "$PF_WS/deno.json.pre-probe"
+skmtc create lab @eval/gen-shape-probe model --lang kotlin > /dev/null
+PROBE=.skmtc/lab/gen-shape-probe
+if [ ! -f "$PROBE/src/Kt.ts" ] \
+  || ! grep -q "SchemaToValueFn" "$PROBE/src/Kt.ts" \
+  || ! grep -q "toKtValue" "$PROBE/src/Kt.ts" \
+  || [ -f "$PROBE/src/KtType.ts" ]; then
+  echo "preflight FAILED: installed skmtc scaffolds a stale kotlin skeleton" >&2
+  echo "(want src/Kt.ts with a toKtValue router typed SchemaToValueFn and no" >&2
+  echo "KtType.ts). Recompile the CLI from current source (cli/CLAUDE.md," >&2
+  echo "'Installing the CLI from local source') and rerun." >&2
+  ls "$PROBE/src" >&2 2>/dev/null || true
+  exit 1
+fi
+rm -rf "$PROBE"
+mv "$PF_WS/deno.json.pre-probe" .skmtc/lab/deno.json
+
 # A minimal Kotlin model generator. The constructor register() call is
 # deliberate: it writes an import into the projection's own file BEFORE
 # the Driver has created it, exercising the lang register()'s

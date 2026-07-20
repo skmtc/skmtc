@@ -65,7 +65,19 @@ const hits = []
 // Counted per tool call and reported as the "source dives" metric.
 const diveTools = new Set(['Bash', 'Read', 'Grep', 'Glob'])
 const divePattern = /reference\/skmtc-deno|lab\/lang-kotlin/
+// Reads of the structural eval OWN source (parse.ts, checks dir) are
+// the grader-studying behavior: legal, but each one means the agent
+// believes the grader knows something the skills do not. RUNNING the
+// eval via cli.ts is by design and not counted — cli.ts mentions are
+// stripped before matching. Counted and reported as the "grader dives"
+// metric; escalate to a forbidden path only if the behavior persists
+// now that structural.md inlines the doc text of each check.
+// (No apostrophes in this heredoc: the macOS bash 3.2 parser tracks
+// quotes through command substitution and an odd count eats the
+// closing paren.)
+const graderPattern = /reference\/structural-eval/
 let dives = 0
+let graderDives = 0
 for (const line of readFileSync(process.env.TRANSCRIPT, 'utf8').split('\n')) {
   let event
   try { event = JSON.parse(line) } catch { continue }
@@ -86,21 +98,28 @@ for (const line of readFileSync(process.env.TRANSCRIPT, 'utf8').split('\n')) {
         }
       }
       if (diveTools.has(item.name) && divePattern.test(payload)) dives += 1
+      if (
+        diveTools.has(item.name) &&
+        graderPattern.test(payload.replaceAll('reference/structural-eval/cli.ts', ''))
+      ) graderDives += 1
     }
   }
 }
 if (hits.length) {
-  console.log(`FAIL|${hits.length} forbidden access(es): ${[...new Set(hits)].sort().slice(0, 4).join('; ')}|${dives}`)
+  console.log(`FAIL|${hits.length} forbidden access(es): ${[...new Set(hits)].sort().slice(0, 4).join('; ')}|${dives}|${graderDives}`)
 } else {
-  console.log(`ok|no tool call touched forbidden paths|${dives}`)
+  console.log(`ok|no tool call touched forbidden paths|${dives}|${graderDives}`)
 }
 EOF
 )
+  GRADER_DIVES="${AUDIT##*|}"
+  AUDIT="${AUDIT%|*}"
   SOURCE_DIVES="${AUDIT##*|}"
   AUDIT="${AUDIT%|*}"
   gate contamination "${AUDIT%%|*}" "${AUDIT#*|}"
 else
   SOURCE_DIVES="n/a"
+  GRADER_DIVES="n/a"
   gate contamination skip "no transcript.jsonl in out dir"
 fi
 
@@ -223,6 +242,8 @@ FRICTION_COUNT=$([ -f FRICTION.md ] && grep -c '^## ' FRICTION.md || echo 0)
 RETRO_STATE=$([ -f RETRO.md ] && echo yes || echo no)
 note ""
 note "**Source dives:** ${SOURCE_DIVES:-n/a} tool call(s) into framework source (reference/skmtc-deno or vendored lang-kotlin) — sanctioned, but each is a fact the skills failed to carry"
+note ""
+note "**Grader dives:** ${GRADER_DIVES:-n/a} tool call(s) into the structural eval's own source (running cli.ts not counted) — each means the agent thought the grader knew something the skills and structural.md didn't"
 note ""
 note "**Reference diff:** $DIFF_SUMMARY"
 note ""

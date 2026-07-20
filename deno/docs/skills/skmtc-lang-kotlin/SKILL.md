@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-kotlin
-version: 0.5.0
+version: 0.6.0
 description: |
   The Kotlin target-language layer for SKMTC generators
   (`@skmtc/lang-kotlin`). Covers how a generator declares Kotlin as its
@@ -492,11 +492,16 @@ is not.
   never `instanceof`-wired after the fact:
 
   ```ts fragment
-  // Member side — the §1 projection, grown the two seams. A schema
-  // that is in no union renders exactly as before (both seams empty).
+  // Member side — the §1 projection, grown the seams. A schema that
+  // is in no union renders exactly as before (all seams empty). The
+  // `owner` arg is the generator's own addition to its router args:
+  // the projection hands its OWN mutable fields to the router, passed
+  // ONLY at this top-level call — recursive child calls never forward
+  // it (nested objects are not union members).
   export class KtModel extends KtModelBase {
     supertypes: Stringable[] = []
     discriminatorProperties: Set<string> = new Set()
+    annotations: KtAnnotation[] = []   // the KtAnnotated protocol field
     value: Stringable
 
     constructor({ context, settings, refName }: ModelProjectionArgs) {
@@ -507,7 +512,12 @@ is not.
         schema,
         destinationPath: settings.exportPath,
         required: true,
-        discriminatorProperties: this.discriminatorProperties // same Set — assignments arrive later
+        owner: {
+          // Same instances the parent union mutates — assignments
+          // arrive after this constructor returns.
+          annotations: this.annotations,
+          discriminatorProperties: this.discriminatorProperties
+        }
       })
     }
 
@@ -517,11 +527,8 @@ is not.
   }
   ```
 
-  `discriminatorProperties` rides the generator's *own* router args
-  (an optional field alongside `TypeSystemArgs`, threaded into the
-  `object` case only — recursive child calls don't forward it, since
-  nested objects are not union members), and the object snippet
-  filters **at render, by wire name**:
+  The object router case receives `owner?.discriminatorProperties`
+  and its snippet filters **at render, by wire name**:
 
   ```ts fragment
   // Inside the object value snippet's toString() — a pure read of the
@@ -535,21 +542,48 @@ is not.
 
 - **Parent**: `createSealedInterface(refName)` with a value that
   renders `''` — the bodyless idiom gives `sealed interface Animal`.
-  (Serialization annotations on the parent — `@JsonTypeInfo` /
-  `@JsonSubTypes`, `@Serializable` — are generator policy via the
-  `KtAnnotated` protocol.) Its constructor inserts each `$ref` member
-  and assigns — `insertModel` returns the one memoized handle however
-  many producers ask, and `.definition.value` is the member projection
-  instance, so the seam writes land where the seams were declared:
+  The work all happens in the **union router case**: it owns the
+  union facts (discriminator name, member list), so it is where the
+  parent's class annotations are decided — pushed into
+  `owner.annotations`, the parent projection's own `KtAnnotated`
+  field threaded through the same top-level call as the member's
+  seams. No annotation helper elsewhere, no `.type` guard anywhere.
+  Member assignment uses `insertModel` — it returns the one memoized
+  handle however many producers ask, and `.definition.value` is the
+  member projection instance, so the seam writes land where the seams
+  were declared:
 
   ```ts fragment
-  schema.members.forEach(member => {
-    if (!member.isRef()) return
-    const inserted = context.insertModel(KtModel, member.toRefName())
-    inserted.definition.value.supertypes.push(refName)
+  // The union router case, in full: parent annotations + membership.
+  case 'union': {
     const tag = schema.discriminator?.propertyName
-    if (tag) inserted.definition.value.discriminatorProperties.add(tag)
-  })
+    if (tag && owner) {
+      owner.annotations.push(
+        new KtAnnotation({
+          context,
+          destinationPath,
+          name: 'JsonTypeInfo',
+          args: [`use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "${tag}"`],
+          packageName: 'com.fasterxml.jackson.annotation'
+        }),
+        new KtAnnotation({
+          context,
+          destinationPath,
+          name: 'JsonSubTypes',
+          args: [/* one JsonSubTypes.Type(value = Dog::class, name = "dog") per member,
+                    from inserted.toName() + the discriminator mapping */],
+          packageName: 'com.fasterxml.jackson.annotation'
+        })
+      )
+    }
+    schema.members.forEach(member => {
+      if (!member.isRef()) return
+      const inserted = context.insertModel(KtModel, member.toRefName())
+      inserted.definition.value.supertypes.push(refName)
+      if (tag) inserted.definition.value.discriminatorProperties.add(tag)
+    })
+    return new SealedParentValue() // toString() renders '' — the bodyless idiom
+  }
   ```
 
 - **Order cannot matter**: inserts are idempotent and memoized, so
@@ -713,6 +747,27 @@ new KtParameterList(
     defaultValue: value.defaultValue ?? (required ? undefined : 'null')
   }))
 )
+```
+
+Forking *within* a router case on schema facts is the same
+within-type-rendering license the string snippet's `format` branch
+uses — one case, two snippets. The canonical instance: an
+`additionalProperties`-only object is a Kotlin `Map`, not a data
+class, and the split is a `properties`-presence check inside the one
+`object` case — never a second dispatch site:
+
+```ts fragment
+case 'object': {
+  // Named properties → data class; additionalProperties-only → Map.
+  // Both are schema.type === 'object'; the fact that splits them is
+  // read HERE, inside the case that owns the type.
+  return schema.properties && Object.keys(schema.properties).length
+    ? new DataClassValue({ context, objectSchema: schema, destinationPath, modifiers, owner })
+    : new MapValue({ context, objectSchema: schema, destinationPath, modifiers })
+  // MapValue renders `Map<String, ${toKtValue(schema.additionalProperties…)}>`
+  // and self-declares defaultValue: 'emptyMap()' — the consumer reads
+  // the field (previous fragment) without knowing Maps exist.
+}
 ```
 
 ### Worked example — a serializable DTO, end to end

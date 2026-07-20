@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.9.0
+version: 0.9.1
 description: |
   Author and edit SKMTC generators — write or modify Projection
   classes, Snippets, transform functions, enrichment schemas, and the
@@ -1426,8 +1426,11 @@ hand-written `Dtos.kt`, a module imported by name): a constant
 so the engine writes the exact filename; register every definition
 into the one file (same-package peers need no import wiring); policy
 seams for whatever the schema cannot express. The diff against the
-hand-written original is the acceptance signal — KDoc prose and
-declaration ordering are non-derivable and remain.
+hand-written original is the acceptance signal — but only its
+*semantic* residue: KDoc prose and declaration ordering are
+non-derivable, and formatter territory (trailing commas, line
+wrapping, blank-line style) belongs to the consumer's formatter. All
+of those are expected to remain in the raw diff; don't chase them.
 
 ### Card: Adding a new field type to a form generator
 

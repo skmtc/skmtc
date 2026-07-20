@@ -1,14 +1,17 @@
 #!/usr/bin/env node
-import { readdirSync, existsSync, writeFileSync, mkdirSync, statSync } from 'node:fs'
+import { readdirSync, existsSync, writeFileSync, mkdirSync, statSync, readFileSync } from 'node:fs'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { analyzeGenerator } from './analyze.ts'
 import { formatAggregate } from './aggregate.ts'
+import { CHECKS } from './checks/index.ts'
 import type { GeneratorReport } from './types.ts'
 
 // The stock generators live in the sibling skmtc-generators repo:
 // <skmtc-root>/skmtc/packages/gen-eval/src → <skmtc-root>/skmtc-generators
 const STOCK_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../skmtc-generators')
+
+const DOCS_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../docs')
 
 type CliArgs = {
   targets: string[]
@@ -104,6 +107,32 @@ const printTable = (rows: string[][]): void => {
   console.log(formatRow(HEADER))
   console.log(widths.map(width => '-'.repeat(width)).join('  '))
   for (const row of rows) console.log(formatRow(row))
+}
+
+// Every check id whose defect shows in this report — failed pass/fail
+// checks plus warning categories with nonzero counts.
+const flaggedCheckIds = (report: GeneratorReport): string[] => {
+  const ids = [...report.aggregate.failedChecks]
+  const { warnings } = report.aggregate
+  if (warnings.flaggedProducers > 0) ids.push('method-discipline')
+  if (warnings.asCasts > 0) ids.push('as-casts')
+  if (warnings.redundantRefGuards > 0) ids.push('redundant-ref-guard')
+  if (warnings.rawDefinitionRegisters > 0) ids.push('registration-channels')
+  if (warnings.emittedTodos > 0) ids.push('emitted-todos')
+  if (warnings.otherClasses > 0) ids.push('producer-share')
+  if (warnings.outsideShareHigh) ids.push('string-composition')
+  return [...new Set(ids)]
+}
+
+// Inline a check's doc file (headings demoted two levels) so the report
+// itself states what the check operationally asserts and why — reading
+// the check's source should never be necessary.
+const inlineCheckDoc = (id: string): string[] => {
+  const check = CHECKS.find(entry => entry.id === id)
+  if (!check) return []
+  const docPath = join(DOCS_DIR, check.doc)
+  if (!existsSync(docPath)) return []
+  return [readFileSync(docPath, 'utf8').trim().replace(/^(#+)/gm, '##$1'), '']
 }
 
 const toMarkdown = (reports: GeneratorReport[]): string => {
@@ -237,6 +266,21 @@ const toMarkdown = (reports: GeneratorReport[]): string => {
       lines.push(`- runtime-discipline VIOLATIONS:`)
       for (const violation of report.runtimeDiscipline.violations) {
         lines.push(`  - \`${violation.file}:${violation.line}\` in ${violation.site} [${violation.category}] ${violation.detail}`)
+      }
+    }
+    const flagged = flaggedCheckIds(report)
+    if (flagged.length > 0) {
+      lines.push('')
+      lines.push(`### What each flagged check means`)
+      lines.push('')
+      lines.push(
+        'The full rule behind every check flagged above, inlined from the',
+        "eval's own docs — everything the check source would tell you is",
+        'already here.'
+      )
+      lines.push('')
+      for (const id of flagged) {
+        lines.push(...inlineCheckDoc(id))
       }
     }
     lines.push('')
