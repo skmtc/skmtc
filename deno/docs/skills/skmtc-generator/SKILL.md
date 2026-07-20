@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.7.0
+version: 0.8.0
 description: |
   Author and edit SKMTC generators — write or modify Projection
   classes, Snippets, transform functions, enrichment schemas, and the
@@ -42,7 +42,60 @@ conventions from training data that conflict with this model.
 
 ## 1. The generation model
 
-SKMTC generation, start to finish:
+### The two axioms
+
+Two axioms generate every rule in this skill. Hold them and the rest
+follows; violate either and you are outside the framework.
+
+**Axiom 1 — the mapping.** A generator is a total mapping from IR
+nodes to producers. A schema node (`OasSchema` / `OasRef<'schema'>` /
+`CustomValue`) becomes output through exactly two doors: a named
+schema through `insertModel` / `insertNormalizedModel` (→ a
+Projection, built by the engine's Driver), everything else through
+the generator's single schema→value function (typed
+`SchemaToValueFn` → a Snippet). Composites route their children back
+through the same function. There is no third door — no `schema.type`
+conditional outside the router, no producer that dispatches for a
+subset of types, no case handled "outside the mapping". Unmapped
+types fail loudly at the router. (Scope: the axiom governs *value
+production*. The mapping's metadata policies — `toIdentifierType`
+choosing a declaration kind, an `isSupported` gate — may inspect
+`schema.type`; they decide what a node is called or whether it is
+handled, never what renders it.)
+
+**Axiom 2 — the dependencies.** Every producer declares its own
+dependencies at the moment it is constructed: peer definitions
+through the two doors, imports through `register` (or a
+self-registering leaf like `TsHeritage` / `KtAnnotation`). Placement
+is the engine's job, and it comes with guarantees:
+
+- **Existence** — a dependency you insert is built synchronously
+  inside your constructor; its handle (`.toName()`, interpolation)
+  is valid immediately.
+- **Uniqueness** — insertion is memoized on `(identifier.name,
+  exportPath)`; however many producers declare the same dependency,
+  in whatever order, exactly one instance exists.
+- **Placement** — a dependency landing in your own file was
+  registered before you and renders above you; one landing in
+  another file lands at its own `toExportPath`, and the import into
+  your file is registered automatically (deduped and
+  same-package-suppressed by the File). Pinned by
+  `core/context/GenerateContext.placement.test.ts`.
+- **Settlement** — all declaration happens during generate; render
+  starts only after generate completes, so `toString()` is a pure
+  read of settled state. This is why visit order cannot matter
+  (pinned by `GenerateContext.insert-mutation.test.ts`), and why a
+  producer must never insert or register at render time.
+
+The author's side of the bargain: never sort definitions, never
+forward-declare, never hand-wire an import for an inserted peer,
+never check whether something "already exists". Declare what you
+need where you need it; the engine owes you the rest.
+
+### The pipeline
+
+SKMTC generation, start to finish — every step an instance of the
+axioms:
 
 1. **Parse.** The engine parses the API schema (OpenAPI v3 or GraphQL
    SDL) into typesafe intermediate-representation objects —
@@ -58,8 +111,10 @@ SKMTC generation, start to finish:
    on `context`.
 
 3. **Produce.** A generator converts each incoming IR object into a
-   **producer** — a *Projection* or a *Snippet* — normally by calling
-   `context.insertOperation` / `insertModel` from `transform`. The
+   **producer** — a *Projection* or a *Snippet* — through axiom 1's
+   two doors: `context.insertOperation` / `insertModel` from
+   `transform` for named items, the generator's `SchemaToValueFn`
+   router for every inline schema node a producer touches. The
    producer, not string manipulation, is the unit of work: you build
    output by constructing and composing producers.
 
@@ -84,14 +139,16 @@ SKMTC generation, start to finish:
      constructing anything, so you can retrieve any info you need
      from work already done.
 
-6. **Producers self-provision.** Each producer's constructor creates
-   everything it depends on — peer Definitions via `insert*`
-   (create-or-reuse against the cache), library imports via
-   `register`. `insert*` is `register` with more oomph: it computes
-   the peer's settings, dedupes against the cache, wraps the value in
-   a Definition, and stitches the cross-file import. By the time a
-   producer is itself registered, its dependencies are already in
-   place — in the right files, with the right imports.
+6. **Producers self-provision.** This is axiom 2 seen from inside the
+   loop: each producer's constructor creates everything it depends
+   on — peer Definitions via `insert*` (create-or-reuse against the
+   cache), library imports via `register`. `insert*` is `register`
+   with more oomph: it computes the peer's settings, dedupes against
+   the cache, wraps the value in a Definition, and stitches the
+   cross-file import. By the time a producer is itself registered,
+   its dependencies are already in place — registered ahead of it in
+   its own file (they render above it), or in their own files with
+   the import already wired.
 
 7. **Therefore order cannot matter.** Whatever order generators run
    in, each one either creates or reuses its dependencies at the
@@ -212,7 +269,9 @@ For both Projections and Snippets:
   integrity checks. It must be a **pure function of `this`**: no
   mutation, no side effects, no `register` calls (by Render time the
   file's imports are finalised). Cache anything expensive on `this`
-  from the constructor.
+  from the constructor. This split IS axiom 2's settlement guarantee
+  seen from inside a producer: declaration happens at construction,
+  render reads settled state.
 - **Constructor and `toString` are the only methods — private
   helpers and get/set accessors included.** A producer with
   additional methods is being used as a service object or a
@@ -253,7 +312,10 @@ looks like this — use it as a self-check target, not a quota:
   50–100 lines each; a producer past ~150 lines is usually absorbing
   branches that belong in delegate Snippets.
 - **Every class is a producer**; helper *functions* route and
-  construct Snippets, they don't build strings.
+  construct Snippets, they don't build strings. There is exactly ONE
+  schema-dispatch site — the `SchemaToValueFn` router (axiom 1); a
+  `schema.type` conditional anywhere else is a special case and the
+  defining smell of a generator leaving the framework.
 - **Producers have no methods beyond constructor and `toString`.**
 - **String composition lives inside `toString()`** — in clean
   generators only a small minority of template text sits outside it
@@ -266,7 +328,10 @@ looks like this — use it as a self-check target, not a quota:
 
 ## 3. Writing producers into Files: register and insert
 
-The flow when `MyProjection.constructor` calls
+This section is axiom 2's machinery: how declaring a dependency at
+construction time delivers the four guarantees (existence,
+uniqueness, placement, settlement). The flow when
+`MyProjection.constructor` calls
 `this.insertOperation(OtherProjection, operation)`:
 
 1. The projection-base wrapper auto-fills `destinationPath` from
@@ -593,6 +658,15 @@ TypeScript-output-specific rules (type-only imports / TS1484,
   so SKMTC sometimes models `$ref + extension` as a one-member
   union — unwrap single-member unions and `.resolve()` before
   `switch (schema.type)`.
+- **The router is the only dispatch site** (axiom 1). The generator's
+  `SchemaToValueFn` (`toZodValue`, `toTsValue`, `toKtValue`) owns
+  every `schema.type` decision; a projection makes ONE router call
+  for its value, and a composite snippet routes its children back
+  through the same function. A `schema.type` ternary in a projection
+  constructor, a value class that switches on schema type while
+  rendering, a "just this one case" handled inline — each is a third
+  door, and the road to broken. If a type needs different handling,
+  that is a new router case returning a new snippet.
 - **Forward the typed schema into per-type Snippets, not just
   `modifiers`.** A router (`toZodValue`, `toTsValue`) that drops the
   schema silently erases constraints — a `[true]` enum becomes
@@ -1202,6 +1276,14 @@ After writing or editing a generator, verify:
 - [ ] Producers carry no methods beyond `constructor` and `toString`
   (accumulator container mutators excepted); no ad-hoc
   `{ toString: … }` object literals anywhere
+- [ ] Exactly ONE schema-dispatch site: every `schema.type`
+  conditional lives in the `SchemaToValueFn` router; projections make
+  a single router call for their value; composite snippets route
+  children back through the same function (axiom 1 — no third door)
+- [ ] No producer sorts definitions, forward-declares, hand-wires an
+  import for an inserted peer, or checks whether a dependency
+  "already exists" — declaration at construction is the whole job
+  (axiom 2)
 
 **Naming and caching**
 

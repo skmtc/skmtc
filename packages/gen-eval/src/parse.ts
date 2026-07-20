@@ -16,6 +16,19 @@ const PROJECTION_BASE_FACTORY = /^to[A-Z]\w*ProjectionBase$/
 const SNIPPET_BASE_NAME = /(^|[a-z0-9])(Snippet|SnippetBase)$/i
 const PEER_PROJECTION_NAME = /Projection$/
 const NAMING_STATICS = new Set(['toExportPath', 'toIdentifierName', 'toPackageName'])
+// Axiom 1 (single dispatch): schema.type decisions belong in the
+// generator's SchemaToValueFn router. Router functions are recognised
+// by name (toZodValue / toTsValue / toKtValue / schemaToValueFn) or by
+// an explicit SchemaToValueFn type annotation; the mapping's metadata
+// policies (toIdentifierType, isSupported) may also inspect schema.type
+// — they decide what a node is called or whether it is handled, never
+// what renders it. Everything else is a third door.
+const ROUTER_LABEL = /^to[A-Z]\w*Value$|^schemaToValueFn$/
+const DISPATCH_METADATA_LABELS = new Set(['toIdentifierType', 'isSupported'])
+const SCHEMA_TYPE_LITERALS = new Set([
+  'string', 'integer', 'number', 'boolean', 'array', 'object',
+  'union', 'unknown', 'ref', 'custom', 'void', 'null'
+])
 const CONTAINER_CONSTRUCTORS = /^(Map|Set|WeakMap|WeakSet|Array)$/
 const MUTATOR_VERBS = new Set(['push', 'add', 'set', 'unshift', 'splice', 'delete'])
 const REGISTER_FAMILY = new Set([
@@ -42,7 +55,13 @@ const FS_MODULES = new Set(['fs', 'node:fs', 'node:fs/promises', 'fs/promises'])
 const TIMER_CALLS = new Set(['setTimeout', 'setInterval'])
 const PROMISE_METHODS = new Set(['then', 'catch', 'finally'])
 
-type Frame = { label: string; isToString: boolean; isNamingStatic: boolean }
+type Frame = {
+  label: string
+  isToString: boolean
+  isNamingStatic: boolean
+  isRouter: boolean
+  isDispatchMetadata: boolean
+}
 
 // Only the code the worker bundle executes: root-level entry files
 // (mod.ts) plus src/**. Demo scripts, examples/, scripts/ etc. are out
@@ -189,6 +208,7 @@ const parseFile = (path: string, genDir: string): FileFacts => {
     adHocToStringSites: [],
     asCastSites: [],
     redundantRefGuardSites: [],
+    schemaDispatchSites: [],
     insertCalls: { insertOperation: 0, insertModel: 0, insertNormalizedModel: 0, defineAndRegister: 0 },
     rawDefinitionRegisters: [],
     templateImportSites: [],
@@ -520,6 +540,54 @@ const parseFile = (path: string, genDir: string): FileFacts => {
       pushRuntime('async', `async ${nameOfFunctionLike(node, sourceFile) ?? '<anonymous>'}`)
     }
 
+    // --- axiom 1: schema-type dispatch sites (switches on `.type`,
+    //     comparisons of `.type` against a schema-type literal),
+    //     classified by where they sit ---
+    const dispatchContext = (): 'router' | 'metadata' | 'outside' =>
+      stack.some(frame => frame.isRouter)
+        ? 'router'
+        : stack.some(frame => frame.isDispatchMetadata)
+          ? 'metadata'
+          : 'outside'
+
+    if (
+      ts.isSwitchStatement(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      node.expression.name.text === 'type'
+    ) {
+      facts.schemaDispatchSites.push({
+        ...siteOf(node, stack),
+        context: dispatchContext(),
+        text: `switch (${node.expression.getText(sourceFile)})`
+      })
+    }
+
+    if (
+      ts.isBinaryExpression(node) &&
+      (node.operatorToken.kind === ts.SyntaxKind.EqualsEqualsEqualsToken ||
+        node.operatorToken.kind === ts.SyntaxKind.ExclamationEqualsEqualsToken)
+    ) {
+      const sides = [
+        [node.left, node.right],
+        [node.right, node.left]
+      ] as const
+      for (const [accessSide, literalSide] of sides) {
+        if (
+          ts.isPropertyAccessExpression(accessSide) &&
+          accessSide.name.text === 'type' &&
+          ts.isStringLiteralLike(literalSide) &&
+          SCHEMA_TYPE_LITERALS.has(literalSide.text)
+        ) {
+          facts.schemaDispatchSites.push({
+            ...siteOf(node, stack),
+            context: dispatchContext(),
+            text: node.getText(sourceFile).replace(/\s+/g, ' ').slice(0, 80)
+          })
+          break
+        }
+      }
+    }
+
     const isTemplate = ts.isTemplateExpression(node)
     const isConcat =
       ts.isBinaryExpression(node) &&
@@ -537,10 +605,16 @@ const parseFile = (path: string, genDir: string): FileFacts => {
 
     if (isFunctionLike(node)) {
       const label = nameOfFunctionLike(node, sourceFile) ?? '<anonymous>'
+      const routerAnnotation =
+        ts.isVariableDeclaration(node.parent) &&
+        node.parent.type !== undefined &&
+        node.parent.type.getText(sourceFile).includes('SchemaToValueFn')
       const frame: Frame = {
         label,
         isToString: label === 'toString',
-        isNamingStatic: NAMING_STATICS.has(label)
+        isNamingStatic: NAMING_STATICS.has(label),
+        isRouter: ROUTER_LABEL.test(label) || routerAnnotation,
+        isDispatchMetadata: DISPATCH_METADATA_LABELS.has(label)
       }
       node.forEachChild(child => visit(child, [...stack, frame]))
       return

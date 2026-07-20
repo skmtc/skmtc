@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-kotlin
-version: 0.4.0
+version: 0.4.1
 description: |
   The Kotlin target-language layer for SKMTC generators
   (`@skmtc/lang-kotlin`). Covers how a generator declares Kotlin as its
@@ -105,10 +105,10 @@ export const KtModelBase = toKtModelProjectionBase({
 
 ```ts fragment
 // gen-x/src/KtModel.ts — the per-schema Projection
-import type { ModelProjectionArgs } from '@skmtc/core'
+import type { ModelProjectionArgs, Stringable } from '@skmtc/core'
 import { KtAnnotation } from '@skmtc/lang-kotlin'
 import { KtModelBase } from './base.ts'
-import { DataClassValue } from './DataClassValue.ts'
+import { toKtValue } from './Kt.ts'
 
 export class KtModel extends KtModelBase {
   // Class-level annotations — the KtAnnotated protocol (§4). The Driver
@@ -116,12 +116,12 @@ export class KtModel extends KtModelBase {
   // definition's value and the protocol field lives directly on it:
   // KtDefinition reads it as `this.value.annotations`.
   annotations: KtAnnotation[]
-  value: DataClassValue
+  value: Stringable
 
   constructor({ context, settings, refName }: ModelProjectionArgs) {
     super({ context, settings, refName })
 
-    const schema = context.resolveSchemaRefOnce(refName, KtModel.id)
+    const schema = context.resolveSchemaRefOnce(refName, KtModel.id).resolve()
 
     this.annotations = [
       new KtAnnotation({
@@ -133,10 +133,14 @@ export class KtModel extends KtModelBase {
       })
     ]
 
-    this.value = new DataClassValue({
+    // ONE router call — the generator's SchemaToValueFn owns every
+    // schema.type decision (skmtc-generator axiom 1); 'object' maps to
+    // the data-class value snippet inside the router, not here.
+    this.value = toKtValue({
       context,
       schema,
-      destinationPath: settings.exportPath // snippets/leaves always get the parent's file
+      destinationPath: settings.exportPath, // snippets/leaves always get the parent's file
+      required: true
     })
   }
 

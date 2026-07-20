@@ -68,7 +68,8 @@ const toRow = (report: GeneratorReport): string[] => {
     `${report.registrationChannels.rawDefinitionRegisters.length}`,
     report.templateImports.pass ? 'ok' : `FAIL:${report.templateImports.sites.length}`,
     `${report.emittedTodos.count}`,
-    report.runtimeDiscipline.pass ? 'ok' : `FAIL:${report.runtimeDiscipline.violations.length}`
+    report.runtimeDiscipline.pass ? 'ok' : `FAIL:${report.runtimeDiscipline.violations.length}`,
+    report.singleDispatch.pass ? 'ok' : `FAIL:${report.singleDispatch.outside.length}`
   ]
 }
 
@@ -90,7 +91,8 @@ const HEADER = [
   'raw-reg',
   'tpl-imp',
   'todo',
-  'runtime'
+  'runtime',
+  'dispatch'
 ]
 
 const printTable = (rows: string[][]): void => {
@@ -177,6 +179,15 @@ const toMarkdown = (reports: GeneratorReport[]): string => {
     lines.push(
       `- top-level projection: ${report.topLevelProjection.pass ? 'ok' : report.topLevelProjection.exempt ? 'exempt (accumulator)' : 'FAIL'}`
     )
+    lines.push(
+      `- single dispatch (axiom 1): ${report.singleDispatch.pass ? 'ok' : 'FAIL'} — ${report.singleDispatch.routerCount} router site(s), ${report.singleDispatch.metadataCount} metadata site(s), ${report.singleDispatch.outside.length} outside`
+    )
+    if (report.singleDispatch.outside.length > 0) {
+      lines.push(`- schema-type dispatch OUTSIDE the router:`)
+      for (const site of report.singleDispatch.outside) {
+        lines.push(`  - \`${site.file}:${site.line}\` in ${site.site} — ${site.text}`)
+      }
+    }
     if (!report.toStringPurity.pass) {
       lines.push(`- toString purity VIOLATIONS:`)
       for (const violation of report.toStringPurity.violations) {
