@@ -23,8 +23,12 @@ const toChunks = source => {
     .filter(line => line.trim() !== '')
   const chunks = []
   let current = []
+  // Indented lines are continuations of a multi-line annotation
+  // (`@JsonSubTypes(` + indented `JsonSubTypes.Type(...)` entries +
+  // col-0 `)`), so they keep the chunk annotation-only.
   const currentIsAnnotationsOnly = () =>
-    current.length > 0 && current.every(line => line.startsWith('@') || line.startsWith(')'))
+    current.length > 0 &&
+    current.every(line => line.startsWith('@') || line.startsWith(')') || /^\s/.test(line))
   for (const line of lines) {
     const startsChunk = !/^\s/.test(line) && CHUNK_START.test(line)
     // A col-0 keyword line directly after a col-0 annotation block is the
