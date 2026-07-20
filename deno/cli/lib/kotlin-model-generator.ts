@@ -213,7 +213,8 @@ export class KtType extends KtSnippet {
   }
 
   toDataClassValue() {
-    return `import type { GenerateContextType, OasObject, Stringable } from '@skmtc/core'
+    return `import type { CustomValue, GenerateContextType, OasObject, OasRef, OasSchema, Stringable } from '@skmtc/core'
+import type { KtAnnotation } from '@skmtc/lang-kotlin'
 import { KtParameterList, KtSnippet, sanitizePropertyName } from '@skmtc/lang-kotlin'
 import { KtType } from './KtType.ts'
 
@@ -240,6 +241,7 @@ type Parameter = {
   name: string
   type: KtType
   required: boolean
+  annotations: KtAnnotation[]
 }
 
 export class DataClassValue extends KtSnippet {
@@ -257,7 +259,10 @@ export class DataClassValue extends KtSnippet {
       wireName,
       name: sanitizePropertyName(wireName),
       type: new KtType({ context, schema: property, destinationPath }),
-      required: required.includes(wireName)
+      required: required.includes(wireName),
+      // Constructed here, not in toString(): a KtAnnotation registers its
+      // import on construction, and side effects belong to the constructor.
+      annotations: toParameterAnnotations({ context, wireName, property, destinationPath })
     }))
   }
 
@@ -270,11 +275,12 @@ export class DataClassValue extends KtSnippet {
     )
 
     const parameterList = new KtParameterList(
-      kept.map(({ name, type, required }) => ({
+      kept.map(({ name, type, required, annotations }) => ({
         name,
         type,
         nullable: !required,
-        defaultValue: required ? undefined : 'null'
+        defaultValue: required ? undefined : 'null',
+        annotations
       }))
     )
 
@@ -282,6 +288,27 @@ export class DataClassValue extends KtSnippet {
 
     return \`\${parameterList}\${clause}\`
   }
+}
+
+type ToParameterAnnotationsArgs = {
+  context: GenerateContextType
+  wireName: string
+  property: OasSchema | OasRef<'schema'> | CustomValue
+  destinationPath: string
+}
+
+/**
+ * Per-property wire annotations — extend HERE (renames, serde pairings,
+ * access control). Returns none by default.
+ *
+ * Producer logic lives in module-level free functions like this one:
+ * producers stay constructor + toString() only, and a private helper
+ * method on the producer breaks that contract just like a public one.
+ * Construct KtAnnotation leaves — each self-registers its own import —
+ * and KtParameterList renders them one per line above the property.
+ */
+export const toParameterAnnotations = (_args: ToParameterAnnotationsArgs): KtAnnotation[] => {
+  return []
 }
 `
   }

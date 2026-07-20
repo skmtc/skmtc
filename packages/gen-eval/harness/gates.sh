@@ -37,7 +37,7 @@ fi
 # paths (other generator implementations, demo apps, previous runs).
 # Scans tool_use INPUTS in the transcript — deny rules alone cannot
 # stop Bash reads under skip-permissions, so this is the enforcement.
-SKMTC_ROOT=$(cd "$HARNESS_DIR/../../../.." && pwd)
+SKMTC_ROOT=${SKMTC_ROOT:-$(cd "$HARNESS_DIR/../../../.." && pwd)}
 if [ -f "$OUT/transcript.jsonl" ]; then
   AUDIT=$(TRANSCRIPT="$OUT/transcript.jsonl" SKMTC_ROOT="$SKMTC_ROOT" node - <<'EOF'
 const { readFileSync } = require('node:fs')
@@ -60,6 +60,12 @@ const forbidden = [
 const writeTools = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit'])
 const writeForbidden = [`${root}/skmtc/deno`, 'reference/skmtc-deno']
 const hits = []
+// Sanctioned framework-source reads (reference/skmtc-deno, the vendored
+// lang-kotlin) are legal but each one is time the skills failed to save.
+// Counted per tool call and reported as the "source dives" metric.
+const diveTools = new Set(['Bash', 'Read', 'Grep', 'Glob'])
+const divePattern = /reference\/skmtc-deno|lab\/lang-kotlin/
+let dives = 0
 for (const line of readFileSync(process.env.TRANSCRIPT, 'utf8').split('\n')) {
   let event
   try { event = JSON.parse(line) } catch { continue }
@@ -79,18 +85,22 @@ for (const line of readFileSync(process.env.TRANSCRIPT, 'utf8').split('\n')) {
           if (target.includes(path)) hits.push(`${item.name} into framework source: …${path.split('/').pop()}`)
         }
       }
+      if (diveTools.has(item.name) && divePattern.test(payload)) dives += 1
     }
   }
 }
 if (hits.length) {
-  console.log(`FAIL|${hits.length} forbidden access(es): ${[...new Set(hits)].sort().slice(0, 4).join('; ')}`)
+  console.log(`FAIL|${hits.length} forbidden access(es): ${[...new Set(hits)].sort().slice(0, 4).join('; ')}|${dives}`)
 } else {
-  console.log('ok|no tool call touched forbidden paths')
+  console.log(`ok|no tool call touched forbidden paths|${dives}`)
 }
 EOF
 )
+  SOURCE_DIVES="${AUDIT##*|}"
+  AUDIT="${AUDIT%|*}"
   gate contamination "${AUDIT%%|*}" "${AUDIT#*|}"
 else
+  SOURCE_DIVES="n/a"
   gate contamination skip "no transcript.jsonl in out dir"
 fi
 
@@ -171,7 +181,12 @@ TARGET=kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.kt
 if [ -f "$TARGET" ]; then
   diff reference/Dtos.kt "$TARGET" > "$OUT/dtos-diff.txt" 2>&1
   DIFF_LINES=$(grep -c '^[<>]' "$OUT/dtos-diff.txt" 2>/dev/null || true)
-  DIFF_SUMMARY="${DIFF_LINES:-0} line(s) differ from reference/Dtos.kt (dtos-diff.txt)"
+  # Semantic count: strip comments / blank lines / trailing commas, then
+  # compare as order-insensitive line multisets — KDoc prose, banners, and
+  # hand-authored declaration order are non-derivable, so only the residue
+  # is worth reading.
+  SEMANTIC=$(REF=reference/Dtos.kt GEN="$TARGET" NORM_OUT="$OUT/dtos-diff-semantic.txt" node "$HARNESS_DIR/semantic-diff.js")
+  DIFF_SUMMARY="raw ${DIFF_LINES:-0} line(s) / semantic ${SEMANTIC:-?} declaration(s) differ from reference/Dtos.kt (dtos-diff.txt, dtos-diff-semantic.txt)"
 else
   DIFF_SUMMARY="no generated Dtos.kt to diff"
 fi
@@ -197,6 +212,8 @@ EOF
 )
 FRICTION_COUNT=$([ -f FRICTION.md ] && grep -c '^## ' FRICTION.md || echo 0)
 RETRO_STATE=$([ -f RETRO.md ] && echo yes || echo no)
+note ""
+note "**Source dives:** ${SOURCE_DIVES:-n/a} tool call(s) into framework source (reference/skmtc-deno or vendored lang-kotlin) — sanctioned, but each is a fact the skills failed to carry"
 note ""
 note "**Reference diff:** $DIFF_SUMMARY"
 note ""

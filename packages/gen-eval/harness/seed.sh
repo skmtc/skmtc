@@ -6,8 +6,10 @@ set -euo pipefail
 
 WORKSPACE=${1:?usage: seed.sh <workspace-dir>}
 HARNESS_DIR=$(cd "$(dirname "$0")" && pwd)
-# harness/ -> gen-eval -> packages -> skmtc -> skmtc-root
-SKMTC_ROOT=$(cd "$HARNESS_DIR/../../../.." && pwd)
+# harness/ -> gen-eval -> packages -> skmtc -> skmtc-root. Overridable so
+# the harness can run from a worktree checkout (whose walk-up lands in
+# .claude/worktrees) while still seeding from the real sibling repos.
+SKMTC_ROOT=${SKMTC_ROOT:-$(cd "$HARNESS_DIR/../../../.." && pwd)}
 LANG_KOTLIN="$SKMTC_ROOT/skmtc/deno/lang-kotlin"
 REF_GENERATORS="$SKMTC_ROOT/skmtc-generators"
 PERSON_API="$SKMTC_ROOT/kotlin-person-api"

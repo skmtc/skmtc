@@ -35,7 +35,7 @@ bash "$HARNESS_DIR/seed.sh" "$WORKSPACE"
 # Declare off-limits paths (defense in depth: deny rules for the Read
 # tool; the contamination AUDIT gate on the transcript is the real
 # enforcement since Bash can read anything under skip-permissions).
-SKMTC_ROOT=$(cd "$HARNESS_DIR/../../../.." && pwd)
+SKMTC_ROOT=${SKMTC_ROOT:-$(cd "$HARNESS_DIR/../../../.." && pwd)}
 mkdir -p "$WORKSPACE/.claude"
 SETTINGS_PATH="$WORKSPACE/.claude/settings.json" SKMTC_ROOT="$SKMTC_ROOT" node - <<'EOF'
 const { writeFileSync } = require('node:fs')

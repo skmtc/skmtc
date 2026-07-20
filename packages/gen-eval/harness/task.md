@@ -67,6 +67,13 @@ register calls, no string composition outside `toString()`,
   hunting in package caches (`~/.cache/deno`, `~/Library/Caches/deno`
   are off-limits and audited).
 
+## Working method
+
+- **Use the Read tool (not `cat`) on any file you intend to edit or
+  overwrite** — the scaffolded generator sources especially. The Write
+  and Edit tools require a prior tool-level Read of the file; `cat`
+  does not count and the write will be rejected.
+
 ## Policy decisions are yours to encode
 
 The schema cannot express everything in the reference output. The

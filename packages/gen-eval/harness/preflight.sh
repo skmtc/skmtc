@@ -8,6 +8,19 @@
 set -euo pipefail
 
 HARNESS_DIR=$(cd "$(dirname "$0")" && pwd)
+SKMTC_ROOT=${SKMTC_ROOT:-$(cd "$HARNESS_DIR/../../../.." && pwd)}
+
+# A dirty kotlin-person-api contaminates the run: seed.sh copies the
+# WORKING TREE, so uncommitted state silently becomes the app + the
+# reference/Dtos.kt every diff is judged against, and personApiSha in
+# meta.json stops describing what actually ran.
+if [ "${ALLOW_DIRTY:-0}" != "1" ] && [ -n "$(git -C "$SKMTC_ROOT/kotlin-person-api" status --porcelain 2>/dev/null)" ]; then
+  echo "preflight FAILED: kotlin-person-api working tree is dirty — commit or" >&2
+  echo "stash first (the seeded app + reference/Dtos.kt would embed uncommitted" >&2
+  echo "state), or rerun with ALLOW_DIRTY=1 to accept it knowingly." >&2
+  exit 1
+fi
+
 PF_WS=$(mktemp -d "${TMPDIR:-/tmp}/gen-eval-preflight.XXXXXX")
 cleanup() { rm -rf "$PF_WS"; }
 trap cleanup EXIT

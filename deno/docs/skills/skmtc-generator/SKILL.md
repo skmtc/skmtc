@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.6.5
+version: 0.7.0
 description: |
   Author and edit SKMTC generators — write or modify Projection
   classes, Snippets, transform functions, enrichment schemas, and the
@@ -581,9 +581,12 @@ TypeScript-output-specific rules (type-only imports / TS1484,
   | `'union'` | `members: (OasSchema \| OasRef<'schema'>)[]`, `discriminator?: { propertyName: string; mapping?: Record<string, string> }` — **no wire facts**: a `oneOf` member's `readOnly` / `format` live on the member, so resolve each member and read there |
   | `'unknown'` | nothing further — the untyped-schema fallback |
 
-  The table is a map, not the territory: for a field it doesn't
-  answer, grep the variant's class in the vendored core source
-  (`oas/<variant>/…`) rather than re-deriving the model.
+  The table is a map; the territory is ALSO in this skill: the
+  **generated API appendix** at the end carries the full `deno doc`
+  output for every variant class, `OasRef`, `CustomValue`, and the
+  discriminator — field-by-field, generated from source. Consult it
+  before opening core source; it cannot drift from what the source
+  says.
 - **`allOf` is already merged** (`core/oas/_merge-all-of/` runs at
   Parse). Treat received schemas as flat objects.
 - **Unwrap before you switch.** OpenAPI refs can't carry extensions,
@@ -1155,9 +1158,12 @@ source.
 
 The productive order:
 
-1. **Read the lang package** — its projection-base factory, snippet
-   base, and `Definition`/`File` classes. Its source shows exactly
-   how it calls core, which is all the core knowledge you need.
+1. **Read the lang skill's generated API appendix** — the
+   `skmtc-lang-<X>` skill carries the package's full `deno doc`
+   surface (exact constructor and register shapes, generated from
+   source). That is the "read the lang package" step with the reading
+   already done; open the package source only for a symbol the
+   appendix genuinely lacks.
 2. **Scaffold immediately** — transliterate §6's A–C with the lang
    imports swapped, register the generator in the project
    `deno.json`, and run `skmtc bundle` within your first few
@@ -1168,10 +1174,12 @@ The productive order:
    generics check your config either way, so pre-reading core buys
    certainty you get for free at bundle time.
 
-If you genuinely need one core signature, look at how the lang
-package uses it before reaching for core source. Auditing the engine
-to de-risk the first line is unbounded in cost and the risk it
-retires is already retired by the type checker.
+If you genuinely need one core signature, check this skill's
+generated API appendix (the OAS IR) and the lang skill's appendix
+first, then how the lang package uses it — core source is the last
+resort, not the first. Auditing the engine to de-risk the first line
+is unbounded in cost and the risk it retires is already retired by
+the type checker.
 
 ## 9. Verification checklist
 
@@ -1509,3 +1517,1335 @@ when in doubt whether a rule still applies, read or run the test.
   `core/context/GenerateContext.normalized-model-variants.test.ts`
 - Bit-identical rendering across variant changes:
   `core/run/toArtifacts.regression.test.ts`
+
+<!-- api-appendix:begin — GENERATED, do not edit by hand -->
+
+## Appendix — generated API reference
+
+> Generated from framework source at `eb16419c` by
+> `deno run --allow-read --allow-write --allow-run=deno,git .scripts/generate-skill-api-appendix.ts`
+> (from `deno/`). **Authoritative** for signatures, fields, and doc
+> comments — trust it instead of re-reading package source. For a
+> symbol not listed here, `deno doc <file> <Symbol>` against the
+> framework source beats grepping it.
+
+### `@skmtc/core` — the OAS IR a generator reads
+
+The schema classes handed to `transform` / projections via `resolveSchemaRefOnce` and friends: every `OasSchema` variant with its exact fields, plus `OasRef`, `CustomValue`, and the discriminator. Wire facts (`readOnly` / `writeOnly` / `format` / `enums` / `default`) live on the concrete variants listed here — narrow with `switch (resolved.type)` and read inside the branch.
+
+### `core/oas/schema/Schema.ts`
+
+```text
+Defined in deno/core/oas/schema/Schema.ts:110:1
+
+type OasSchema = OasArray | OasBoolean | OasInteger | OasNumber | OasObject | OasString | OasUnknown | OasUnion
+  Union type representing all possible OpenAPI Schema objects in the SKMTC system.
+
+  `OasSchema` is the fundamental type for representing any OpenAPI schema definition
+  after it has been parsed and processed by the SKMTC pipeline. It encompasses all
+  JSON Schema types supported by OpenAPI 3.x specifications, providing type-safe
+  access to schema properties and validation constraints.
+
+  This union type is used throughout the system for schema processing, type generation,
+  and validation. Each variant corresponds to a specific JSON Schema type with its
+  own set of properties and validation rules.
+
+  ## Supported Schema Types
+
+  - {@link OasArray}: Array schemas with item type definitions and constraints
+  - {@link OasBoolean}: Boolean schemas with optional default values
+  - {@link OasInteger}: Integer schemas with numeric constraints and formats
+  - {@link OasNumber}: Number schemas with numeric constraints and formats
+  - {@link OasObject}: Object schemas with properties, required fields, and constraints
+  - {@link OasString}: String schemas with length constraints, patterns, and formats
+  - {@link OasUnknown}: Schemas with unknown or mixed types
+  - {@link OasUnion}: Union schemas representing oneOf/anyOf/allOf constructs
+
+  @example
+      Type checking and processing
+
+      ```typescript
+      import type { OasSchema } from '@skmtc/core';
+
+      function processSchema(schema: OasSchema): string {
+        if (schema.type === 'object') {
+          // TypeScript knows this is OasObject
+          return `Object with ${Object.keys(schema.properties || {}).length} properties`;
+        } else if (schema.type === 'array') {
+          // TypeScript knows this is OasArray
+          return `Array of ${schema.items.type} items`;
+        } else if (schema.type === 'string') {
+          // TypeScript knows this is OasString
+          return `String${schema.format ? ` (${schema.format})` : ''}`;
+        }
+        // Handle other types...
+        return `${schema.type} type`;
+      }
+      ```
+
+  @example
+      Schema validation and constraints
+
+      ```typescript
+      function validateSchemaConstraints(schema: OasSchema, value: unknown): boolean {
+        switch (schema.type) {
+          case 'string':
+            if (typeof value !== 'string') return false;
+            if (schema.minLength && value.length < schema.minLength) return false;
+            if (schema.maxLength && value.length > schema.maxLength) return false;
+            if (schema.pattern && !new RegExp(schema.pattern).test(value)) return false;
+            return true;
+
+          case 'integer':
+          case 'number':
+            if (typeof value !== 'number') return false;
+            if (schema.minimum && value < schema.minimum) return false;
+            if (schema.maximum && value > schema.maximum) return false;
+            return true;
+
+          case 'array':
+            if (!Array.isArray(value)) return false;
+            if (schema.minItems && value.length < schema.minItems) return false;
+            if (schema.maxItems && value.length > schema.maxItems) return false;
+            return true;
+
+          default:
+            return true;
+        }
+      }
+      ```
+
+  @example
+      Code generation based on schema type
+
+      ```typescript
+      class TypeScriptGenerator {
+        generateType(schema: OasSchema): string {
+          switch (schema.type) {
+            case 'object':
+              return this.generateInterface(schema);
+            case 'array':
+              return `Array<${this.generateType(schema.items)}>`;
+            case 'string':
+              if (schema.enums) {
+                return schema.enums.map(e => `'${e}'`).join(' | ');
+              }
+              return 'string';
+            case 'integer':
+            case 'number':
+              return 'number';
+            case 'boolean':
+              return 'boolean';
+            case 'union':
+              return schema.variants.map(v => this.generateType(v)).join(' | ');
+            default:
+              return 'unknown';
+          }
+        }
+      }
+      ```
+
+
+Defined in deno/core/oas/schema/Schema.ts:135:1
+
+type ToJsonSchemaOptions = { resolve: boolean; }
+  Configuration options for JSON Schema conversion operations.
+
+  These options control how OAS schemas are converted back to JSON Schema format,
+  particularly around reference resolution and schema inlining behavior.
+
+  @example
+      ```typescript
+      const options: ToJsonSchemaOptions = {
+        resolve: true  // Resolve $ref references during conversion
+      };
+
+      const jsonSchema = schema.toJsonSchema(options);
+      ```
+```
+### `core/oas/string/String.ts`
+
+```text
+Defined in deno/core/oas/string/String.ts:44:1
+
+class OasString<Nullable extends boolean | undefined = boolean | undefined> extends OasBase
+
+  constructor(fields: StringFields<Nullable>, context?: ParseContextType)
+  oasType: "schema"
+    Object is part the 'schema' set which is used
+    to define data types in an OpenAPI document.
+  type: "string"
+    Constant value 'string' useful for type narrowing and tagged unions.
+  title: string | undefined
+    A short summary of the string.
+  description: string | undefined
+    A description of the string.
+  format: string | undefined
+    The format of the string.
+  enums: Nullable extends true ? (string | null)[] | undefined : string[] | undefined
+    An array of allowed values for the string.
+  maxLength: number | undefined
+    The maximum length of the string.
+  minLength: number | undefined
+    The minimum length of the string.
+  nullable: Nullable | undefined
+    Indicates whether value can be null.
+  extensionFields: Record<string, unknown> | undefined
+    Specification Extension fields
+  example: Nullable extends true ? string | null | undefined : string | undefined
+    An example of the string.
+  pattern: string | undefined
+    The pattern of the string.
+  default: Nullable extends true ? string | null | undefined : string | undefined
+    The default value of the string.
+  readOnly: boolean | undefined
+    Whether the string is read-only.
+  writeOnly: boolean | undefined
+    Whether the string is write-only.
+  deprecated: boolean | undefined
+    Whether the string is deprecated.
+  isRef(): this is OasRef<"schema">
+  traverse(path: SchemaPath): OasSchema | OasRef<"schema">
+  resolve(): OasString<Nullable>
+  resolveOnce(): OasString<Nullable>
+  toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject
+
+Defined in deno/core/oas/string/String.ts:13:1
+
+type StringFields<Nullable extends boolean | undefined> = { title?: string; description?: string; format?: string; default?: Nullable extends true ? string | null | undefined : string | undefined; pattern?: string; enums?: Nullable extends true ? (string | null)[] | undefined : string[] | undefined; maxLength?: number; minLength?: number; nullable?: Nullable; extensionFields?: Record<string, unknown>; example?: Nullable extends true ? string | null | undefined : string | undefined; readOnly?: boolean; writeOnly?: boolean; deprecated?: boolean; }
+  Constructor fields for {@link OasString}.
+
+  @template Nullable
+      Whether the string value can be null
+```
+### `core/oas/integer/Integer.ts`
+
+```text
+Defined in deno/core/oas/integer/Integer.ts:47:1
+
+class OasInteger<Nullable extends boolean | undefined = boolean | undefined> extends OasBase
+
+  constructor(fields: IntegerFields<Nullable>, context?: ParseContextType)
+  oasType: "schema"
+    Object is part the 'schema' set which is used
+    to define data types in an OpenAPI document.
+  type: "integer"
+    Constant value 'integer' useful for type narrowing and tagged unions.
+  title: string | undefined
+    A short summary of the integer.
+  description: string | undefined
+    A description of the integer.
+  nullable: Nullable | undefined
+    Indicates whether value can be null.
+  format: "int32" | "int64" | undefined
+    The format of the integer.
+  enums: Nullable extends true ? (number | null)[] | undefined : number[] | undefined
+    An array of allowed values for the integer.
+  extensionFields: Record<string, unknown> | undefined
+    Specification Extension fields
+  example: Nullable extends true ? number | null | undefined : number | undefined
+    An example of the integer.
+  multipleOf: number | undefined
+    The multiple of the integer.
+  maximum: number | undefined
+    The maximum value of the integer.
+  exclusiveMaximum: boolean | undefined
+    Whether the maximum value is exclusive.
+  minimum: number | undefined
+    The minimum value of the integer.
+  exclusiveMinimum: boolean | undefined
+    Whether the minimum value is exclusive.
+  default: Nullable extends true ? number | null | undefined : number | undefined
+    The default value of the integer.
+  readOnly: boolean | undefined
+    Whether the integer is read-only.
+  writeOnly: boolean | undefined
+    Whether the integer is write-only.
+  deprecated: boolean | undefined
+    Whether the integer is deprecated.
+  isRef(): this is OasRef<"schema">
+  traverse(path: SchemaPath): OasSchema | OasRef<"schema">
+  resolve(): OasInteger<Nullable>
+  resolveOnce(): OasInteger<Nullable>
+  toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject
+
+Defined in deno/core/oas/integer/Integer.ts:12:1
+
+type IntegerFields<Nullable extends boolean | undefined> = { title?: string; description?: string; nullable?: Nullable; format?: "int32" | "int64"; default?: Nullable extends true ? number | null | undefined : number | undefined; enums?: Nullable extends true ? (number | null)[] | undefined : number[] | undefined; extensionFields?: Record<string, unknown>; example?: Nullable extends true ? number | null | undefined : number | undefined; multipleOf?: number; maximum?: number; exclusiveMaximum?: boolean; minimum?: number; exclusiveMinimum?: boolean; readOnly?: boolean; writeOnly?: boolean; deprecated?: boolean; }
+  Constructor fields for {@link OasInteger}.
+
+  @template Nullable
+      Whether the integer value can be null
+```
+### `core/oas/number/Number.ts`
+
+```text
+Defined in deno/core/oas/number/Number.ts:48:1
+
+class OasNumber<Nullable extends boolean | undefined = boolean | undefined> extends OasBase
+
+  constructor(fields: NumberFields<Nullable>, context?: ParseContextType)
+  oasType: "schema"
+    Object is part the 'schema' set which is used
+    to define data types in an OpenAPI document.
+  type: "number"
+    Constant value 'number' useful for type narrowing and tagged unions.
+  title: string | undefined
+    A short summary of the number.
+  default: Nullable extends true ? number | null | undefined : number | undefined
+    The default value of the number.
+  description: string | undefined
+    A description of the number.
+  nullable: Nullable | undefined
+    Indicates whether value can be null.
+  extensionFields: Record<string, unknown> | undefined
+    Specification Extension fields
+  example: Nullable extends true ? number | null | undefined : number | undefined
+    An example of the number.
+  enums: Nullable extends true ? (number | null)[] | undefined : number[] | undefined
+    An array of allowed values for the number.
+  format: "float" | "double" | undefined
+    The format of the number.
+  multipleOf: number | undefined
+    The multiple of the number.
+  maximum: number | undefined
+    The maximum value of the number.
+  exclusiveMaximum: boolean | undefined
+    Whether the maximum value is exclusive.
+  minimum: number | undefined
+    The minimum value of the number.
+  exclusiveMinimum: boolean | undefined
+    Whether the minimum value is exclusive.
+  readOnly: boolean | undefined
+    Whether the number is read-only.
+  writeOnly: boolean | undefined
+    Whether the number is write-only.
+  deprecated: boolean | undefined
+    Whether the number is deprecated.
+  isRef(): this is OasRef<"schema">
+  traverse(path: SchemaPath): OasSchema | OasRef<"schema">
+  resolve(): OasNumber<Nullable>
+  resolveOnce(): OasNumber<Nullable>
+  toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject
+
+Defined in deno/core/oas/number/Number.ts:13:1
+
+type NumberFields<Nullable extends boolean | undefined> = { title?: string; description?: string; nullable?: Nullable; default?: Nullable extends true ? number | null | undefined : number | undefined; extensionFields?: Record<string, unknown>; example?: Nullable extends true ? number | null | undefined : number | undefined; enums?: Nullable extends true ? (number | null)[] | undefined : number[] | undefined; format?: "float" | "double"; multipleOf?: number; maximum?: number; exclusiveMaximum?: boolean; minimum?: number; exclusiveMinimum?: boolean; readOnly?: boolean; writeOnly?: boolean; deprecated?: boolean; }
+  Constructor fields for {@link OasNumber}.
+
+  @template Nullable
+      Whether the number can be null (affects type unions)
+```
+### `core/oas/boolean/Boolean.ts`
+
+```text
+Defined in deno/core/oas/boolean/Boolean.ts:35:1
+
+class OasBoolean<Nullable extends boolean | undefined = boolean | undefined> extends OasBase
+
+  constructor(fields: BooleanFields<Nullable>, context?: ParseContextType)
+    Creates a new OasBoolean instance.
+
+    @param fields
+        Boolean configuration fields including validation constraints and metadata
+
+    @param context
+        Optional ParseContext. When passed and attribution is
+        enabled, the current StackTrail is snapshotted onto the
+        instance (via the {@link OasBase} base).
+
+  oasType: "schema"
+    Object is part the 'schema' set which is used
+    to define data types in an OpenAPI document.
+  type: "boolean"
+    Constant value 'boolean' useful for type narrowing and tagged unions.
+  title: string | undefined
+    A short summary of the boolean.
+  description: string | undefined
+    A description of the boolean.
+  nullable: Nullable | undefined
+    Indicates whether value can be null.
+  extensionFields: Record<string, unknown> | undefined
+    Specification Extension fields
+  example: Nullable extends true ? boolean | null | undefined : boolean | undefined
+    An example of the boolean.
+  enums: Nullable extends true ? (boolean | null)[] | undefined : boolean[] | undefined
+    Possible values the boolean can have
+  default: Nullable extends true ? boolean | null | undefined : boolean | undefined
+    The default value of the boolean.
+  readOnly: boolean | undefined
+    Whether the boolean is read-only
+  writeOnly: boolean | undefined
+    Whether the boolean is write-only
+  deprecated: boolean | undefined
+    Whether the boolean is deprecated
+  isRef(): this is OasRef<"schema">
+    Determines if this boolean is a reference object.
+
+    @return
+        Always returns false since this is a concrete boolean instance, not a reference
+
+  traverse(path: SchemaPath): OasSchema | OasRef<"schema">
+  resolve(): OasBoolean<Nullable>
+    Resolves this boolean object.
+
+    @return
+        The boolean instance itself since it's already a concrete object, not a reference
+
+  resolveOnce(): OasBoolean<Nullable>
+    Resolves this boolean object one level.
+
+    @return
+        The boolean instance itself since it's already a concrete object, not a reference
+
+  toJsonSchema(options?: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject
+    Converts this OAS boolean to an OpenAPI v3 JSON schema representation.
+
+    @param options
+        Conversion options (currently unused for boolean schemas)
+
+    @return
+        OpenAPI v3 boolean schema object with type and all validation constraints
+
+
+Defined in deno/core/oas/boolean/Boolean.ts:13:1
+
+type BooleanFields<Nullable extends boolean | undefined> = { title?: string; description?: string; nullable?: Nullable; extensionFields?: Record<string, unknown>; example?: Nullable extends true ? boolean | null | undefined : boolean | undefined; enums?: Nullable extends true ? (boolean | null)[] | undefined : boolean[] | undefined; default?: Nullable extends true ? boolean | null | undefined : boolean | undefined; readOnly?: boolean; writeOnly?: boolean; deprecated?: boolean; }
+  Constructor fields for {@link OasBoolean}.
+
+  @template Nullable
+      Whether the boolean can be null (affects type unions)
+```
+### `core/oas/array/Array.ts`
+
+```text
+Defined in deno/core/oas/array/Array.ts:44:1
+
+class OasArray<Nullable extends boolean | undefined = boolean | undefined> extends OasBase
+
+  constructor(fields: ArrayFields<Nullable>, context?: ParseContextType)
+  oasType: "schema"
+    Object is part the 'schema' set which is used
+    to define data types in an OpenAPI document.
+  type: "array"
+    Constant value 'array' useful for type narrowing and tagged unions.
+  items: OasSchema | OasRef<"schema">
+    Defines the type of items in the array.
+  title: string | undefined
+    A short summary of the array.
+  description: string | undefined
+    A description of the array.
+  nullable: Nullable | undefined
+    Indicates whether value can be null.
+  uniqueItems: boolean | undefined
+    Indicates whether the array items must be unique.
+  extensionFields: Record<string, unknown> | undefined
+    Specification Extension fields
+  example: Nullable extends true ? unknown[] | null | undefined : unknown[] | undefined
+    An example of the array.
+  maxItems: number | undefined
+    The maximum number of items in the array.
+  minItems: number | undefined
+    The minimum number of items in the array.
+  enums: Nullable extends true ? (unknown | null)[] | undefined : unknown[] | undefined
+    The enum values for the array.
+  defaultValue: Nullable extends true ? unknown[] | null | undefined : unknown[] | undefined
+    The default value for the array.
+  readOnly: boolean | undefined
+    Whether the array is read-only.
+  writeOnly: boolean | undefined
+    Whether the array is write-only.
+  deprecated: boolean | undefined
+    Whether the array is deprecated.
+  isRef(): this is OasRef<"schema">
+    Determines if this array is a reference object.
+
+    @return
+        Always returns false since this is a concrete array instance, not a reference
+
+  traverse(path: SchemaPath): OasSchema | OasRef<"schema">
+  resolve(): OasArray<Nullable>
+    Resolves this array object.
+
+    @return
+        The array instance itself since it's already a concrete object, not a reference
+
+  resolveOnce(): OasArray<Nullable>
+    Resolves this array object one level.
+
+    @return
+        The array instance itself since it's already a concrete object, not a reference
+
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ArraySchemaObject
+    Converts this OAS array to an OpenAPI v3 JSON schema representation.
+
+    @param options
+        Conversion options including reference handling and formatting preferences
+
+    @return
+        OpenAPI v3 array schema object with type, items schema, and all validation constraints
+
+
+Defined in deno/core/oas/array/Array.ts:13:1
+
+type ArrayFields<Nullable extends boolean | undefined> = { items: OasSchema | OasRef<"schema">; title?: string; description?: string; nullable?: Nullable; uniqueItems?: boolean; extensionFields?: Record<string, unknown>; example?: Nullable extends true ? unknown[] | null | undefined : unknown[] | undefined; maxItems?: number; minItems?: number; enums?: Nullable extends true ? (unknown | null)[] | undefined : unknown[] | undefined; defaultValue?: Nullable extends true ? unknown[] | null | undefined : unknown[] | undefined; readOnly?: boolean; writeOnly?: boolean; deprecated?: boolean; }
+  Constructor fields for {@link OasArray}.
+
+  @template Nullable
+      Whether the array value can be null
+```
+### `core/oas/object/Object.ts`
+
+```text
+Defined in deno/core/oas/object/Object.ts:153:1
+
+class OasObject<Nullable extends boolean | undefined = boolean | undefined> extends OasBase
+  Represents an object schema in the OpenAPI Specification.
+
+  `OasObject` handles both:
+
+  - Objects: Types with fixed, named properties (like TypeScript interfaces)
+  - Records: Types with dynamic keys and consistent value types (like TypeScript Record<string, T>)
+
+  This class provides comprehensive support for object validation constraints,
+  property management, and JSON Schema conversion. It supports nullable types
+  through generic type parameters and handles complex property relationships.
+
+  ## Key Features
+
+  - Property Management: Add/remove properties with automatic required field handling
+  - Type Safety: Generic nullable type support with proper TypeScript inference
+  - Validation: Min/max properties, additional properties, and enum constraints
+  - JSON Schema: Convert to standard JSON Schema format for validation
+  - Immutability: All mutations return new instances (functional style)
+
+  @template Nullable
+      Whether the object value itself can be null
+
+  @example
+      Basic object schema
+
+      ```typescript
+      import { OasObject } from '@skmtc/core';
+
+      const userObject = new OasObject({
+        title: 'User',
+        description: 'A user in the system',
+        properties: {
+          id: new OasString({ title: 'User ID' }),
+          name: new OasString({ title: 'Full Name' }),
+          email: new OasString({ format: 'email' })
+        },
+        required: ['id', 'name'],
+        additionalProperties: false
+      });
+      ```
+
+  @example
+      Dynamic property management
+
+      ```typescript
+      // Start with empty object
+      let schema = OasObject.empty();
+
+      // Add properties dynamically
+      schema = schema.addProperty({
+        name: 'id',
+        schema: new OasString(),
+        required: true
+      });
+
+      schema = schema.addProperty({
+        name: 'metadata',
+        schema: new OasObject({ additionalProperties: true }),
+        required: false
+      });
+
+      // Remove a property
+      schema = schema.removeProperty('metadata');
+      ```
+
+  @example
+      Record-style object (additional properties)
+
+      ```typescript
+      const recordObject = new OasObject({
+        title: 'StringMap',
+        description: 'A map of string keys to string values',
+        additionalProperties: new OasString(), // Any string key -> string value
+        minProperties: 1 // At least one property required
+      });
+
+      // This allows: { [key: string]: string }
+      ```
+
+  @example
+      Nullable object support
+
+      ```typescript
+      const nullableUser = new OasObject<true>({
+        nullable: true,
+        properties: {
+          name: new OasString()
+        },
+        default: null // Can have null default when nullable
+      });
+
+      // This represents: { name: string } | null
+      ```
+
+
+  constructor(fields: OasObjectFields<Nullable>, context?: ParseContextType)
+    Creates a new OasObject instance.
+
+    @param fields
+        Object configuration fields
+
+    @example
+        ```typescript
+        const userSchema = new OasObject({
+          title: 'User',
+          properties: {
+            id: new OasString({ title: 'ID' }),
+            name: new OasString({ title: 'Name' })
+          },
+          required: ['id'],
+          additionalProperties: false
+        });
+        ```
+
+  oasType: "schema"
+    Object is part the 'schema' set which is used
+    to define data types in an OpenAPI document.
+  type: "object"
+    Constant value 'object' useful for type narrowing and tagged unions.
+  title: string | undefined
+    A short summary of the object.
+  description: string | undefined
+    A description of the object.
+  externalDocs: OasExternalDocs | undefined
+    External documentation for the object.
+  nullable: Nullable | undefined
+    Indicates whether value can be null.
+  properties: Nullable extends true ? Record<string, OasSchema | OasRef<"schema"> | CustomValue> | null | undefined : Record<string, OasSchema | OasRef<"schema"> | CustomValue> | undefined
+    A record which maps property names of the object to their schemas.
+  required: string[] | undefined
+    An array of required property names.
+  additionalProperties: boolean | OasSchema | OasRef<"schema"> | undefined
+    Indicates whether additional properties are allowed.
+
+    This is equivalent to a Record type in TypeScript.
+  extensionFields: Record<string, unknown> | undefined
+    Specification Extension fields
+  example: Nullable extends true ? Record<string, unknown> | null | undefined : Record<string, unknown> | undefined
+    An example of the object.
+  default: Nullable extends true ? Record<string, unknown> | null | undefined : Record<string, unknown> | undefined
+    The default value of the object.
+  maxProperties?: number
+    Maximum number of properties allowed in the object
+  minProperties?: number
+    Minimum number of properties required in the object
+  readOnly?: boolean
+    Whether the object is read-only
+  writeOnly?: boolean
+    Whether the object is write-only
+  deprecated?: boolean
+    Whether the object schema is deprecated
+  enums?: Nullable extends true ? (Record<string, unknown> | null)[] | undefined : Record<string, unknown>[] | undefined
+    Array of valid enum values for the object
+  static empty(): OasObject<false>
+    Creates a new empty OasObject with no properties.
+
+    This factory method creates a non-nullable object with empty properties
+    and required arrays, useful as a starting point for dynamic object building.
+
+    @return
+        A new empty OasObject instance
+
+    @example
+        ```typescript
+        // Start with empty object and build up
+        let schema = OasObject.empty();
+
+        schema = schema.addProperty({
+          name: 'id',
+          schema: new OasString(),
+          required: true
+        });
+
+        schema = schema.addProperty({
+          name: 'name',
+          schema: new OasString(),
+          required: true
+        });
+        ```
+
+  addProperty({name, schema, required}: AddPropertyArgs): OasObject
+    Adds a new property to the object.
+
+    This method returns a new OasObject instance with the added property,
+    following an immutable pattern. If the property is marked as required,
+    it will be added to the required array.
+
+    @param args
+        Property addition arguments
+
+    @param args.name
+        The name of the property to add
+
+    @param args.schema
+        The schema definition for the property
+
+    @param args.required
+        Whether the property should be required (default: false)
+
+    @return
+        A new OasObject with the added property
+
+    @example
+        Adding a simple property
+
+        ```typescript
+        const original = OasObject.empty();
+        const withName = original.addProperty({
+          name: 'username',
+          schema: new OasString({ minLength: 3 }),
+          required: true
+        });
+
+        console.log(withName.required); // ['username']
+        ```
+
+    @example
+        Chaining property additions
+
+        ```typescript
+        const userSchema = OasObject.empty()
+          .addProperty({
+            name: 'id',
+            schema: new OasInteger(),
+            required: true
+          })
+          .addProperty({
+            name: 'email',
+            schema: new OasString({ format: 'email' }),
+            required: true
+          })
+          .addProperty({
+            name: 'age',
+            schema: new OasInteger({ minimum: 0 }),
+            required: false
+          });
+        ```
+
+  removeProperty(name: string): OasObject
+    Removes a property from the object.
+
+    This method returns a new OasObject instance with the specified property
+    removed. If the property was required, it will also be removed from the
+    required array. If the property doesn't exist, returns the same instance.
+
+    @param name
+        The name of the property to remove
+
+    @return
+        A new OasObject with the property removed, or the same instance if property doesn't exist
+
+    @example
+        ```typescript
+        const userSchema = new OasObject({
+          properties: {
+            id: new OasString(),
+            name: new OasString(),
+            email: new OasString(),
+            temporaryField: new OasString()
+          },
+          required: ['id', 'name', 'temporaryField']
+        });
+
+        // Remove temporary field
+        const cleanedSchema = userSchema.removeProperty('temporaryField');
+
+        console.log(cleanedSchema.required); // ['id', 'name']
+        console.log('temporaryField' in cleanedSchema.properties); // false
+        ```
+
+  isRef(): this is OasRef<"schema">
+  traverse(path: SchemaPath): OasSchema | OasRef<"schema">
+  resolve(): OasObject
+  resolveOnce(): OasObject
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject
+    Converts the OasObject to a standard JSON Schema object.
+
+    This method serializes the object to the JSON Schema format used in
+    OpenAPI specifications. It handles property conversion, additional
+    properties rules, and validation constraints.
+
+    @param options
+        Conversion options for handling references and context
+
+    @return
+        A JSON Schema representation of the object
+
+    @example
+        ```typescript
+        const userObject = new OasObject({
+          title: 'User',
+          properties: {
+            id: new OasString(),
+            name: new OasString()
+          },
+          required: ['id'],
+          additionalProperties: false
+        });
+
+        const jsonSchema = userObject.toJsonSchema({ refContext: new Map() });
+
+        console.log(jsonSchema);
+        // {
+        //   type: 'object',
+        //   title: 'User',
+        //   properties: {
+        //     id: { type: 'string' },
+        //     name: { type: 'string' }
+        //   },
+        //   required: ['id'],
+        //   additionalProperties: false
+        // }
+        ```
+
+
+Defined in deno/core/oas/object/Object.ts:59:1
+
+type AddPropertyArgs = { name: string; schema: OasSchema | OasRef<"schema"> | CustomValue | undefined; required?: boolean; }
+  Arguments for the {@link OasObject.addProperty} method.
+
+Defined in deno/core/oas/object/Object.ts:15:1
+
+type OasObjectFields<Nullable extends boolean | undefined> = { title?: string; description?: string; externalDocs?: OasExternalDocs | undefined; properties?: Record<string, OasSchema | OasRef<"schema"> | CustomValue> | undefined; required?: string[] | undefined; default?: Nullable extends true ? Record<string, unknown> | null | undefined : Record<string, unknown> | undefined; additionalProperties?: boolean | OasSchema | OasRef<"schema"> | undefined; nullable?: Nullable; maxProperties?: number; minProperties?: number; enums?: Nullable extends true ? (Record<string, unknown> | null)[] | undefined : Record<string, unknown>[] | undefined; extensionFields?: Record<string, unknown>; example?: Nullable extends true ? Record<string, unknown> | null | undefined : Record<string, unknown> | undefined; readOnly?: boolean; writeOnly?: boolean; deprecated?: boolean; }
+  Constructor fields for {@link OasObject}.
+
+  @template Nullable
+      Whether the object can be null (affects type unions)
+```
+### `core/oas/union/Union.ts`
+
+```text
+Defined in deno/core/oas/union/Union.ts:147:1
+
+class OasUnion extends OasBase
+  Represents a union type schema in the OpenAPI Specification.
+
+  `OasUnion` handles both OpenAPI `oneOf` and `anyOf` constructs by mapping them
+  to TypeScript union types. While OpenAPI distinguishes between these concepts,
+  in TypeScript they both represent union types (A | B | C), making the distinction
+  less meaningful for code generation.
+
+  This class supports both simple unions and discriminated (tagged) unions through
+  the discriminator property, which enables more precise type narrowing in generated code.
+
+  ## Key Features
+
+  - Union Types: Represents multiple possible schema types as a single union
+  - Tagged Unions: Supports discriminator properties for type narrowing
+  - Reference Resolution: Handles references to other schemas within union members
+  - Nullable Support: Can represent nullable union types (A | B | null)
+  - JSON Schema: Converts to standard JSON Schema format for validation
+
+  @example
+      Basic union type
+
+      ```typescript
+      import { OasUnion, OasString, OasInteger } from '@skmtc/core';
+
+      const stringOrNumber = new OasUnion({
+        title: 'StringOrNumber',
+        description: 'A value that can be either a string or number',
+        members: [
+          new OasString({ title: 'String Value' }),
+          new OasInteger({ title: 'Integer Value' })
+        ]
+      });
+
+      // This represents: string | number
+      ```
+
+  @example
+      Discriminated union (tagged union)
+
+      ```typescript
+      const shape = new OasUnion({
+        title: 'Shape',
+        description: 'Different types of geometric shapes',
+        discriminator: new OasDiscriminator({
+          propertyName: 'type',
+          mapping: {
+            'circle': '#/components/schemas/Circle',
+            'square': '#/components/schemas/Square'
+          }
+        }),
+        members: [
+          new OasRef({ $ref: '#/components/schemas/Circle' }),
+          new OasRef({ $ref: '#/components/schemas/Square' })
+        ]
+      });
+
+      // This creates a tagged union that can be narrowed by the 'type' property
+      ```
+
+  @example
+      Nullable union
+
+      ```typescript
+      const nullableStatus = new OasUnion({
+        title: 'NullableStatus',
+        nullable: true,
+        members: [
+          new OasString({ enum: ['active', 'inactive'] }),
+          new OasString({ enum: ['pending', 'suspended'] })
+        ],
+        default: null
+      });
+
+      // This represents: ('active' | 'inactive' | 'pending' | 'suspended') | null
+      ```
+
+  @example
+      Complex nested union
+
+      ```typescript
+      const apiResponse = new OasUnion({
+        title: 'ApiResponse',
+        description: 'Response from API endpoint',
+        members: [
+          new OasObject({
+            title: 'SuccessResponse',
+            properties: {
+              success: new OasBoolean({ default: true }),
+              data: new OasObject({ additionalProperties: true })
+            }
+          }),
+          new OasObject({
+            title: 'ErrorResponse',
+            properties: {
+              error: new OasString(),
+              code: new OasInteger()
+            }
+          })
+        ]
+      });
+
+      // This represents: { success: boolean; data: Record<string, any> } | { error: string; code: number }
+      ```
+
+  @example
+      Using with references
+
+      ```typescript
+      const userOrAdmin = new OasUnion({
+        title: 'UserOrAdmin',
+        description: 'Either a regular user or an admin user',
+        members: [
+          new OasRef({ $ref: '#/components/schemas/User' }),
+          new OasRef({ $ref: '#/components/schemas/Admin' })
+        ]
+      });
+
+      // References will be resolved during processing
+      // This represents: User | Admin
+      ```
+
+
+  constructor(fields: UnionFields, context?: ParseContextType)
+  oasType: "schema"
+    Object is part the 'schema' set which is used
+    to define data types in an OpenAPI document.
+  type: "union"
+    Constant value 'union' useful for type narrowing and tagged unions.
+  title: string | undefined
+    A short summary of the union.
+  description: string | undefined
+    A description of the union.
+  externalDocs: OasExternalDocs | undefined
+    External documentation for the union.
+  nullable: boolean | undefined
+    Indicates whether value can be null.
+  discriminator: OasDiscriminator | undefined
+    Discriminator object used to tag member types and make the union a tagged union.
+  members: (OasSchema | OasRef<"schema">)[]
+    Array of schemas or references to schemas that are part of the union.
+  extensionFields: Record<string, unknown> | undefined
+    Specification Extension fields
+  example?: unknown
+    An example of the union type.
+  default?: unknown
+    The default value of the union type.
+  isRef(): this is OasRef<"schema">
+  traverse(path: SchemaPath): OasSchema | OasRef<"schema">
+  resolve(): OasUnion
+  resolveOnce(): OasUnion
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject
+
+Defined in deno/core/oas/union/Union.ts:14:1
+
+type UnionFields = { title?: string; description?: string; externalDocs?: OasExternalDocs | undefined; nullable?: boolean; discriminator?: OasDiscriminator; example?: unknown; default?: unknown; members: (OasSchema | OasRef<"schema">)[]; extensionFields?: Record<string, unknown>; }
+  Constructor fields for {@link OasUnion}.
+```
+### `core/oas/unknown/Unknown.ts`
+
+```text
+Defined in deno/core/oas/unknown/Unknown.ts:23:1
+
+class OasUnknown extends OasBase
+  Object representing an unknown type in the OpenAPI Specification.
+
+  JSON schema treats a definition without any type information as 'any'.
+  Since this is not useful in an API context, we use OasUnknown to
+  represent types that are not specified.
+
+  constructor(fields: UnknownFields, context?: ParseContextType)
+  oasType: "schema"
+    Object is part the 'schema' set which is used
+    to define data types in an OpenAPI document.
+  type: "unknown"
+    Constant value 'unknown' useful for type narrowing and tagged unions.
+  title: string | undefined
+    A short summary of the unknown type.
+  description: string | undefined
+    A description of the unknown type.
+  extensionFields: Record<string, unknown> | undefined
+    Specification Extension fields
+  example: unknown | undefined
+    An example of the unknown type.
+  nullable: boolean | undefined
+    Whether the unknown type is nullable
+  isRef(): this is OasRef<"schema">
+  traverse(path: SchemaPath): OasSchema | OasRef<"schema">
+  resolve(): OasUnknown
+  resolveOnce(): OasUnknown
+  toJsonSchema(_options?: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject | OpenAPIV3.ArraySchemaObject
+
+Defined in deno/core/oas/unknown/Unknown.ts:8:1
+
+type UnknownFields = { title?: string; description?: string; extensionFields?: Record<string, unknown>; example?: unknown; nullable?: boolean; }
+```
+### `core/oas/ref/Ref.ts`
+
+```text
+Defined in deno/core/oas/ref/Ref.ts:157:1
+
+class OasRef<T extends OasRefData["refType"]> extends OasBase
+  Represents an OpenAPI reference ($ref) in the SKMTC OAS processing system.
+
+  The `OasRef` class handles OpenAPI JSON Reference Objects that point to reusable
+  components within the same document. It provides type-safe reference resolution
+  with support for chained references and circular reference detection.
+
+  ## Key Features
+
+  - Type Safety: Generic parameter ensures resolved types match the reference type
+  - Lazy Resolution: References are resolved on-demand, not during construction
+  - Chain Resolution: Handles references that point to other references
+  - Circular Detection: Prevents infinite loops with maximum lookup limits
+  - Type Validation: Ensures resolved objects match expected reference types
+
+  @template T
+      The type of component this reference points to
+
+  @example
+      Basic reference resolution
+
+      ```typescript
+      import { OasRef } from '@skmtc/core';
+
+      // Reference to a schema component
+      const userRef = new OasRef<'schema'>({
+        refType: 'schema',
+        $ref: '#/components/schemas/User'
+      }, document);
+
+      // Resolve the reference
+      const userSchema = userRef.resolve();
+      console.log(userSchema.properties); // Access resolved schema properties
+      ```
+
+  @example
+      Working with different reference types
+
+      ```typescript
+      // Schema reference
+      const schemaRef = new OasRef<'schema'>({
+        refType: 'schema',
+        $ref: '#/components/schemas/Product'
+      }, document);
+
+      // Response reference
+      const responseRef = new OasRef<'response'>({
+        refType: 'response',
+        $ref: '#/components/responses/ErrorResponse'
+      }, document);
+
+      // Parameter reference
+      const paramRef = new OasRef<'parameter'>({
+        refType: 'parameter',
+        $ref: '#/components/parameters/PageSize'
+      }, document);
+      ```
+
+  @example
+      Reference checking and conditional resolution
+
+      ```typescript
+      function processSchemaOrRef(schema: OasSchema | OasRef<'schema'>) {
+        if (schema.isRef()) {
+          // Handle reference
+          const refName = schema.toRefName();
+          console.log(`Processing reference: ${refName}`);
+
+          // Resolve only when needed
+          const resolved = schema.resolve();
+          return processed(resolved);
+        } else {
+          // Handle direct schema
+          return process(schema);
+        }
+      }
+      ```
+
+  @example
+      Chained reference handling
+
+      ```typescript
+      // References can point to other references
+      const chainedRef = new OasRef<'schema'>({
+        refType: 'schema',
+        $ref: '#/components/schemas/AliasToUser'
+      }, document);
+
+      // resolve() automatically follows the chain
+      const finalSchema = chainedRef.resolve(); // Follows chain to final schema
+
+      // resolveOnce() resolves only one step
+      const oneStep = chainedRef.resolveOnce(); // May still be a reference
+      ```
+
+
+  constructor(fields: RefFields<T>, context: ParseContextType)
+    Creates a new OAS reference instance.
+
+    @param fields
+        Reference field data including refType and $ref
+
+    @param document
+        Discriminated document containing the referenced
+        component. For OAS, refs resolve through the document's components;
+        for GQL, through the document's registry (GQL only ever creates
+        schema refs).
+
+  oasType: "ref"
+    OAS type identifier
+  type: "ref"
+    Type identifier
+  isRef(): this is OasRef<T>
+    Type guard to check if this instance is a reference.
+
+    @return
+        Always true for OasRef instances
+
+  resolve(lookupsPerformed: number): ResolvedRef<T>
+    Recursively resolves this reference to its final target component.
+
+    Follows reference chains until reaching a non-reference component,
+    with protection against infinite loops.
+
+    @param lookupsPerformed
+        Internal counter to prevent infinite recursion
+
+    @return
+        The resolved component
+
+    @throws
+        Error if maximum lookup depth is exceeded
+
+  resolveOnce(): OasRef<T> | ResolvedRef<T>
+    Resolves this reference one level. Dispatches on the document's
+    protocol — OAS reads from `document.components.<bucket>`; GQL
+    reads from `document.registry.schemas`.
+
+    @return
+        Either the resolved component or another reference in the chain
+
+  toRefName(): RefName
+  isSchemaRef(): this is OasRef<"schema">
+    Narrows this reference to a schema reference.
+
+    @return
+        True when this reference points at a schema component.
+
+  traverse(path: SchemaPath): OasSchema | OasRef<"schema">
+    Navigate an {@link SchemaPath} starting from this reference, resolving it
+    to descend through. See {@link traverseSchema}.
+
+    Available on every `OasRef` so `.traverse()` works on the common
+    `OasSchema | OasRef<'schema'>` value (an object property, array `items`).
+    Schema paths only describe schemas for now, so it throws for non-schema
+    refs (response/parameter/…); {@link isSchemaRef} narrows `this`, keeping the
+    delegation cast-free.
+
+    @return
+        The schema at the path (may be an unresolved `$ref`).
+
+    @throws
+        Error when called on a non-schema ref.
+
+  get $ref(): string
+  get refType(): OasRefData["refType"]
+  get nullable(): boolean | undefined
+    Use-site nullability of this reference (see {@link RefFields.nullable}).
+    The getter exists on the prototype, so `'nullable' in ref` is always
+    true and the value-function nullable read picks it up uniformly.
+  get document(): SkmtcParsedDocument
+    Returns the discriminated parsed document this ref resolves
+    through. OAS variant carries the parent `OasDocument`; GQL variant
+    carries the parent `GqlDocument` (whose registry holds the
+    schemas).
+  toJsonSchema({resolve}: ToJsonSchemaOptions): OpenAPIV3.ReferenceObject | ResolvedRefJsonType<T>
+  toJSON(): object
+
+Defined in deno/core/oas/ref/Ref.ts:382:1
+
+type OasComponentType = OasSchema | OasResponse | OasParameter | OasExample | OasRequestBody | OasHeader | OasSecurityScheme | OasLink
+  Union type of all OAS component types that can be referenced.
+
+  Includes all OpenAPI component types that support $ref resolution.
+
+Defined in deno/core/oas/ref/Ref.ts:55:1
+
+type RefFields<T extends OasRefData["refType"]> = { refType: T; $ref: string; nullable?: boolean; }
+  Field data for creating OAS reference objects.
+
+  @template T
+      The type of component being referenced (e.g., 'schema', 'response')
+
+
+Defined in deno/core/oas/ref/Ref.ts:397:1
+
+type ResolvedRef<T extends OasRefData["refType"]> = Extract<OasComponentType, { oasType: T; }>
+  Type representing a resolved reference to a specific component type.
+
+  @template T
+      The type of component being referenced (e.g., 'schema', 'response')
+
+
+Defined in deno/core/oas/ref/Ref.ts:373:1
+
+type ResolvedRefJsonType<T extends OasRefData["refType"]> = ReturnType<ResolvedRef<T>["toJsonSchema"]>
+  Type representing the JSON schema result from resolving a reference.
+
+  @template T
+      The type of component being referenced
+```
+### `core/oas/discriminator/Discriminator.ts`
+
+```text
+Defined in deno/core/oas/discriminator/Discriminator.ts:5:1
+
+class OasDiscriminator
+
+  constructor(fields: DiscriminatorFields)
+  oasType: "discriminator"
+  propertyName: string
+  mapping?: Record<string, string>
+
+Defined in deno/core/oas/discriminator/Discriminator.ts:0:1
+
+type DiscriminatorFields = { propertyName: string; mapping?: Record<string, string>; }
+```
+### `core/dsl/CustomValue.ts`
+
+```text
+Defined in deno/core/dsl/CustomValue.ts:97:14
+
+function isCustomValue(value: unknown): value is CustomValue
+  Type guard function to check if a value is a CustomValue instance.
+
+  @param value
+      Value to check
+
+  @return
+      True if the value is a CustomValue, false otherwise
+
+  @example
+      Type checking
+
+      ```typescript
+      if (isCustomValue(someValue)) {
+        console.log(someValue.value); // TypeScript knows it's a CustomValue
+      }
+      ```
+
+
+Defined in deno/core/dsl/CustomValue.ts:30:1
+
+class CustomValue extends SnippetBase
+  Represents a custom value in the SKMTC generation pipeline.
+
+  CustomValue allows generators to create arbitrary content that doesn't fit
+  standard schema types. Used for injecting custom code, templates, or specialized
+  content during the generation process.
+
+  @example
+      Creating custom content
+
+      ```typescript
+      const customValue = new CustomValue({
+        context: generateContext,
+        value: 'const customCode = "generated";',
+        generatorKey: 'my-generator'
+      });
+
+      console.log(customValue.toString()); // "const customCode = "generated";"
+      ```
+
+
+  constructor({context, value, generatorKey}: CreateArgs)
+    Creates a new CustomValue instance.
+
+    @param args
+        Creation arguments including context, value, and optional generator key
+
+  type: "custom"
+    Type identifier for this custom value
+  value: Stringable
+    The underlying value content that can be converted to string
+  isRef(): this is OasRef<"schema">
+    Determines if this custom value is a reference.
+
+    @return
+        Always false since custom values are concrete content, not references
+
+  resolve(): CustomValue
+    Resolves this custom value.
+
+    @return
+        The custom value itself since it's already resolved
+
+  resolveOnce(): CustomValue
+    Resolves this custom value one level.
+
+    @return
+        The custom value itself since it's already resolved
+
+  override toString(): string
+    Converts the custom value to its string representation.
+
+    @return
+        String representation of the underlying value
+
+
+Defined in deno/core/dsl/CustomValue.ts:6:1
+
+private type CreateArgs = { context: GenerateContextType; value: Stringable; generatorKey?: GeneratorKey; }
+```
+
+<!-- api-appendix:end -->
