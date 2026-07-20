@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-kotlin
-version: 0.8.0
+version: 0.9.0
 description: |
   The Kotlin target-language layer for SKMTC generators
   (`@skmtc/lang-kotlin`). Covers how a generator declares Kotlin as its
@@ -125,16 +125,6 @@ export class KtModel extends KtModelBase {
 
     const schema = context.resolveSchemaRefOnce(refName, KtModel.id).resolve()
 
-    this.annotations = [
-      new KtAnnotation({
-        context,
-        name: 'JsonIgnoreProperties',
-        args: ['ignoreUnknown = true'],
-        packageName: 'com.fasterxml.jackson.annotation',
-        destinationPath: settings.exportPath
-      })
-    ]
-
     // ONE router call — the generator's SchemaToValueFn owns every
     // schema.type decision (skmtc-generator axiom 1); 'object' maps to
     // the data-class value snippet inside the router, not here.
@@ -144,6 +134,22 @@ export class KtModel extends KtModelBase {
       destinationPath: settings.exportPath, // snippets/leaves always get the parent's file
       required: true
     })
+
+    // Reference-sharing: point the protocol field at the routed value's
+    // OWN array — one array, two names; whatever a router case put there
+    // is already here. Push projection-level policy into it; NEVER
+    // reassign it afterward (a later `this.annotations = []` would
+    // silently split the two names onto different arrays).
+    this.annotations = this.value.annotations
+    this.annotations.push(
+      new KtAnnotation({
+        context,
+        name: 'JsonIgnoreProperties',
+        args: ['ignoreUnknown = true'],
+        packageName: 'com.fasterxml.jackson.annotation',
+        destinationPath: settings.exportPath
+      })
+    )
   }
 
   toString(): string {
@@ -541,35 +547,23 @@ members. The pattern: **the union assigns membership to its members**
 — a member schema does not know it is in a union and behaves as if it
 is not.
 
-- **Members** carry generator-owned seams, declared **directly on the
-  member projection** and empty by default: `supertypes: Stringable[]`,
-  `annotations: KtAnnotation[]`, and `parameters` — the parameter
-  entries array the object router case FILLS (§4's consumer fragment
-  pushes into `owner.parameters` and hands the same array to
-  `new KtParameterList(entries)`). The seams live on the projection
-  because the Driver wraps the projection instance itself in the
-  Definition — `inserted.definition.value` IS the member projection
-  (§4, the value protocols); there is no inner value object to reach
-  into. Everything is shared **by instance** and mutated only during
-  generate — constructor-threaded, never `instanceof`-wired, nothing
-  constructed or filtered at render:
+- **Members** carry two fields the parent writes to, both reachable
+  through `inserted.definition.value` (the Driver wraps the projection
+  instance itself in the Definition, so that IS the member
+  projection): `supertypes` — declared on the projection, rendered by
+  its own `toString()` — and the routed value's `parameters` array,
+  reached as `.value.parameters` (it lives on the object value that
+  renders it; no projection property, no copy). The router keeps the
+  **bare `SchemaToValueFn` type** — nothing extra is threaded in;
+  facts flow *out* of the router on the values it returns:
 
   ```ts fragment
-  // Member side — the §1 projection, grown the seams. A schema that
-  // is in no union renders exactly as before (all seams empty). The
-  // `owner` arg is the generator's own addition to its router args:
-  // the projection LENDS OUT ITS OWN ARRAYS so that code running
-  // elsewhere (a router case now, a union parent later) can fill or
-  // edit them — arrays pass by reference, so nothing is ever copied
-  // back. Passed ONLY at this top-level call; recursive child calls
-  // never forward it (nested objects are not union members). Note the
-  // scaffold's bare `toKtValue: SchemaToValueFn` annotation cannot
-  // accept `owner` — widen it: (args: TypeSystemArgs<S> & { owner?: … }).
+  // Member side — the §1 projection, grown one seam. A schema that is
+  // in no union renders exactly as before (supertypes empty).
   export class KtModel extends KtModelBase {
     supertypes: Stringable[] = []
-    parameters: KtDataClassParameter[] = [] // filled by the object case
-    annotations: KtAnnotation[] = []        // the KtAnnotated protocol field
-    value: Stringable
+    annotations: KtAnnotation[] // the KtAnnotated protocol slot (§4)
+    value: ReturnType<typeof toKtValue> // NOT Stringable — so .value reads type-check
 
     constructor({ context, settings, refName }: ModelProjectionArgs) {
       super({ context, settings, refName })
@@ -578,14 +572,14 @@ is not.
         context,
         schema,
         destinationPath: settings.exportPath,
-        required: true,
-        owner: {
-          // Same instances the parent union mutates — writes arrive
-          // after this constructor returns, before render (settlement).
-          annotations: this.annotations,
-          parameters: this.parameters
-        }
+        required: true
       })
+      // Reference-sharing: KtDefinition reads annotations off THIS
+      // object, so the protocol slot must exist here — point it at the
+      // routed value's own array (one array, two names; whatever a
+      // router case put there is already here). Never reassign either
+      // name afterward — push, don't replace.
+      this.annotations = this.value.annotations
     }
 
     toString(): string {
@@ -596,35 +590,37 @@ is not.
 
   The discriminator tag property is **removed by the parent, during
   generate** — not filtered at render: `insertModel` guarantees the
-  member's constructor has run (existence), so its `parameters` array
-  is always filled by the time a union case touches it, whichever
-  visit order; the `KtParameterList` built in the member's
-  constructor holds the same array instance, so the removal is
-  visible at render with zero render-time work. The member never
-  chooses between tags (a member of two unions gets two removals);
-  which tag appears on the wire is decided at serialization time by
-  the sealed parent the value is viewed through (each parent renders
-  its own `@JsonTypeInfo(property = …)`), never by the member.
+  member's constructor has run (existence), so the object value and
+  its `parameters` array always exist by the time a union case
+  touches them, whichever visit order; the `KtParameterList` built in
+  the value's constructor holds the same array instance, so the
+  removal is visible at render with zero render-time work. The member
+  never chooses between tags (a member of two unions gets two
+  removals); which tag appears on the wire is decided at
+  serialization time by the sealed parent the value is viewed through
+  (each parent renders its own `@JsonTypeInfo(property = …)`), never
+  by the member.
 
 - **Parent**: `createSealedInterface(refName)` with a value that
   renders `''` — the bodyless idiom gives `sealed interface Animal`.
   The work all happens in the **union router case**: it owns the
   union facts (discriminator name, member list), so it is where the
-  parent's class annotations are decided — pushed into
-  `owner.annotations`, the parent projection's own `KtAnnotated`
-  field threaded through the same top-level call as the member's
-  seams. No annotation helper elsewhere, no `.type` guard anywhere.
-  Member assignment uses `insertModel` — it returns the one memoized
-  handle however many producers ask, and `.definition.value` is the
-  member projection instance, so the seam writes land where the seams
-  were declared:
+  parent's class annotations are decided — pushed into the
+  `annotations` array of the `SealedParentValue` it returns; the
+  parent projection's alias line (previous fragment) makes that same
+  array its `KtAnnotated` protocol slot. No annotation helper
+  elsewhere, no `.type` guard anywhere. Member assignment uses
+  `insertModel` — it returns the one memoized handle however many
+  producers ask, and `.definition.value` is the member projection
+  instance:
 
   ```ts fragment
   // The union router case, in full: parent annotations + membership.
   case 'union': {
     const tag = schema.discriminator?.propertyName
-    if (tag && owner) {
-      owner.annotations.push(
+    const value = new SealedParentValue({ context }) // renders ''; owns its annotations array
+    if (tag) {
+      value.annotations.push(
         new KtAnnotation({
           context,
           destinationPath,
@@ -648,14 +644,14 @@ is not.
       inserted.definition.value.supertypes.push(refName)
       if (tag) {
         // Remove the tag parameter — Jackson owns it via the parent's
-        // @JsonTypeInfo. Generate-time mutation of the shared entries
-        // array; the member's KtParameterList sees the settled result.
-        const parameters = inserted.definition.value.parameters
+        // @JsonTypeInfo. Generate-time mutation of the object value's
+        // entries array; its KtParameterList sees the settled result.
+        const parameters = inserted.definition.value.value.parameters ?? []
         const at = parameters.findIndex(parameter => parameter.wireName === tag)
         if (at >= 0) parameters.splice(at, 1)
       }
     })
-    return new SealedParentValue() // toString() renders '' — the bodyless idiom
+    return value
   }
   ```
 
@@ -690,13 +686,18 @@ Both protocols are read off the **definition's value** —
 the only place they live. For a `defineAndRegister` call the value is
 the object you passed (the worked example below). For a **Projection**,
 the Driver wraps the projection instance itself in the Definition —
-the projection IS the definition's value, so declare `annotations` /
-`description` **directly on the projection** (the §1 scaffold). Do
-not bury them inside an inner value object and mirror them out —
-neither a getter (`get annotations() { … }` — a method, breaking the
-producer contract) nor a copied field
-(`this.annotations = this.value.annotations` — the same fact in two
-places). One protocol field, on the object the Definition wraps.
+the projection IS the definition's value, so the field must sit
+**directly on the projection**. When the fact is computed inside a
+router case (the routed value carries it), the wiring is
+**reference-sharing**: after the single router call, point the
+projection's field at the routed value's own array —
+`this.annotations = this.value.annotations` — one array, two names;
+writes through either are visible to both (the §1 scaffold). Two
+disciplines keep it safe: a getter (`get annotations() { … }`) is
+still a method and still banned, and neither name may ever be
+**reassigned** afterward — push into the array, never replace it; a
+later `this.annotations = []` silently splits the two names onto
+different arrays with no error anywhere.
 
 ### Annotations and defaults are decided inside the per-type snippet
 
@@ -754,6 +755,10 @@ The mechanics, on the skeleton's shapes:
 export type KtValueFields = {
   annotations: KtAnnotation[]
   defaultValue?: Stringable
+  // Object values only: the entries array their KtParameterList shares —
+  // exposed so a union parent can reach it through the projection
+  // (`inserted.definition.value.value.parameters` — the oneOf recipe).
+  parameters?: KtDataClassParameter[]
 }
 
 // The router's own, tighter signature — still satisfies every
@@ -814,7 +819,8 @@ export class StringValue extends KtSnippet {
 // KtParameterList ONCE, sharing the SAME array instance — so
 // generate-time removals (the oneOf recipe) are visible at render.
 // No `.type` anywhere: not on schemas, not on routed values.
-const entries = owner?.parameters ?? [] // the projection's seam, or a local array
+const entries: KtDataClassParameter[] = []
+this.parameters = entries // the KtValueFields slot a union parent may edit
 for (const [wireName, property] of Object.entries(properties ?? {})) {
   const isRequired = (required ?? []).includes(wireName)
   const value = toKtValue({ context, schema: property, destinationPath, required: isRequired })
@@ -867,7 +873,7 @@ the contract slot IS where the delegate lives.
 
 ```ts fragment
 case 'object':
-  return new ObjectValue({ context, objectSchema: schema, destinationPath, modifiers, owner })
+  return new ObjectValue({ context, objectSchema: schema, destinationPath, modifiers })
 ```
 
 ```ts fragment
@@ -881,14 +887,16 @@ export class ObjectValue extends KtSnippet {
   modifiers: Modifiers
   annotations: KtAnnotation[] = []
   defaultValue?: Stringable
+  parameters: KtDataClassParameter[] | undefined // KtValueFields slot (same array the delegate renders)
 
-  constructor({ context, objectSchema, destinationPath, modifiers, owner }: Args) {
+  constructor({ context, objectSchema, destinationPath, modifiers }: Args) {
     super({ context })
     this.modifiers = modifiers
     const { properties, required, additionalProperties } = objectSchema
     this.objectProperties = properties && Object.keys(properties).length
-      ? new DataClassParameters({ context, properties, required, destinationPath, owner })
+      ? new DataClassParameters({ context, properties, required, destinationPath })
       : null
+    this.parameters = this.objectProperties?.parameters // reference-share upward for the oneOf recipe
     this.recordProperties = additionalProperties
       ? new MapValue({ context, schema: additionalProperties, destinationPath })
       : null
@@ -1090,12 +1098,15 @@ never names a serialization library.
 - **Mirroring protocol fields** — a getter
   (`get annotations() { return this.value.annotations }` — a method;
   producers are constructor + `toString()` only, and the structural
-  eval's method-discipline check counts accessors) or a copied field
-  (`this.annotations = this.value.annotations` — the same fact in two
-  places). Both mean the annotations were declared one level too deep:
-  the protocol is read off the definition's value, so declare it
-  directly on the object the Definition wraps — the projection itself
-  when Driver-inserted (§4).
+  eval's method-discipline check counts accessors), a **copy**
+  (`this.annotations = [...this.value.annotations]` — a second array,
+  two facts that will drift), or **reassigning an aliased name**
+  (`this.annotations = []` after the alias — silently splits the two
+  names onto different arrays). What IS sanctioned is
+  reference-sharing: `this.annotations = this.value.annotations` in
+  the constructor points the projection's protocol slot at the routed
+  value's own array — one array, two names — and is the canonical
+  wiring (§4); after that line, push, never replace.
 - **Re-deriving schema facts outside the router** — an annotation or
   default-value helper that takes a schema and asks
   `resolved.type === 'string'` (or narrows a routed value with

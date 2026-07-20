@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.10.0
+version: 0.11.0
 description: |
   Author and edit SKMTC generators — write or modify Projection
   classes, Snippets, transform functions, enrichment schemas, and the
@@ -288,11 +288,14 @@ For both Projections and Snippets:
   assembles their text) — write it that way first rather than
   refactoring to it. A JS getter is still a method: a
   mirror like `get annotations() { return this.value.annotations }`
-  is the anti-pattern form — and so is copying the field
-  (`this.annotations = this.value.annotations`). A field other code
-  reads off a producer (e.g. a lang value protocol read off the
-  definition's value) is declared directly on that producer, not
-  buried one level deep and mirrored out. The one legitimate
+  is the anti-pattern form, as is copying into a new container
+  (`this.annotations = [...this.value.annotations]`). A field other
+  code reads off a producer (e.g. a lang value protocol read off the
+  definition's value) is declared directly on that producer — and
+  when the fact is computed by a router case on the routed value, the
+  sanctioned wiring is reference-sharing in the constructor
+  (`this.annotations = this.value.annotations` — one array, two
+  names; push into it afterward, never reassign either name). The one legitimate
   exception: a mutator like `add()` on an accumulator's container
   value (`gen-msw`'s `MockRoutesList`).
 
