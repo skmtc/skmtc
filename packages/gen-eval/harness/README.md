@@ -269,7 +269,7 @@ empty.
 | `session.jsonl` | The Claude Code session file (backup capture) |
 | `meta.json` | Model, label, skill SHA + dirty flag, thinking budget, cost, turns, duration |
 | `skill-snapshot/` | The skmtc-generator + skmtc-lang-kotlin skills exactly as this run saw them |
-| `workspace/` | The full sandbox: authored generator at `.skmtc/lab/gen-kotlin-jackson/`, generated file at `kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.kt`, reference material at `reference/` |
+| `workspace/` | The full sandbox: authored generator at `.skmtc/lab/gen-kotlin-jackson/`, generated file at `kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.generated.kt`, reference material at `reference/` |
 | `generate.json`, `compile.log`, `dtos-diff.txt`, `integrity.log` | Raw gate evidence + the reference diff |
 | `../index.jsonl` | One line per run: model, skill SHA, gates, verdict, cost, turns |
 
@@ -288,8 +288,10 @@ empty.
    masquerading as generated: clean deletes it, generate must
    recreate it).
 3. **dtos-file** — the single
-   `com/example/api/dto/Dtos.kt` exists and declares every
-   `components.schemas` entry.
+   `com/example/api/dto/Dtos.generated.kt` exists and declares every
+   `components.schemas` entry (default `generatedSuffix`; Kotlin
+   resolves by package, so the hand-written `Dtos.kt` name is not
+   required).
 4. **compile** — `gradle compileKotlin`: the whole Spring Boot app
    (controller, services, serde, config) compiles against the
    generated DTOs (skipped with a note if no gradle).
@@ -304,8 +306,8 @@ empty.
    structural FAIL.
 
 The report also surfaces a **reference diff** (not a gate): the
-generated `Dtos.kt` diffed against the repo's real one
-(`dtos-diff.txt`). Declarations, annotations, types, and defaults are
+generated `Dtos.generated.kt` diffed against the repo's real
+hand-written `Dtos.kt` (`dtos-diff.txt`). Declarations, annotations, types, and defaults are
 derivable from the schema and should converge to zero; KDoc prose is
 authored commentary absent from the schema, so those lines are
 expected to remain.

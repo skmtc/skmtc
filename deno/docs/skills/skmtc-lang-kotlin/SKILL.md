@@ -973,12 +973,15 @@ never names a serialization library.
   generated-file infix (`client.json#settings.generatedSuffix`,
   default `'.generated'`) into `toExportPath` before the extension —
   `User.kt` lands as `User.generated.kt`, idempotently, exactly as
-  for any language. Keep the convention for ordinary output; when the
-  consumer requires an exact filename (recreating a hand-written
-  file the app compiles against), set
-  `client.json#settings.generatedSuffix: ""` rather than fighting
-  the suffix in the path policy. Class names come from the refName;
-  the engine's cache keys on `(identifier.name, exportPath)`.
+  for any language. Keep the convention — including when replacing a
+  hand-written file: Kotlin resolves by **package**, not filename, so
+  `Dtos.generated.kt` replaces a hand-written `Dtos.kt` without
+  touching the app, and the engine-owned marker survives. An exact
+  filename genuinely matters only when something outside Kotlin keys
+  on it (a build script, a TS import); only then set
+  `client.json#settings.generatedSuffix: ""` rather than fighting the
+  suffix in the path policy. Class names come from the refName; the
+  engine's cache keys on `(identifier.name, exportPath)`.
 
 ## 6. Kotlin-output anti-patterns
 

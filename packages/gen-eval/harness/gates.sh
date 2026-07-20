@@ -153,12 +153,14 @@ EOF
 )
 gate generate "${GEN_SUMMARY%%|*}" "${GEN_SUMMARY#*|}"
 
-# Gate 2 — target file: the single Dtos.kt exists and declares every
-# components.schemas entry (the objective is ONE file, not one per schema)
+# Gate 2 — target file: the single Dtos.generated.kt exists and declares
+# every components.schemas entry (the objective is ONE file, not one per
+# schema; default generatedSuffix — Kotlin resolves by package, so the
+# generated file need not take the hand-written Dtos.kt name)
 COVERAGE=$(node - <<'EOF'
 const { readFileSync, existsSync } = require('node:fs')
 const schemas = Object.keys(JSON.parse(readFileSync('kotlin-person-api/openapi.json', 'utf8')).components.schemas)
-const target = 'kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.kt'
+const target = 'kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.generated.kt'
 if (!existsSync(target)) {
   console.log(`FAIL|${target} was not generated`)
 } else {
@@ -167,9 +169,9 @@ if (!existsSync(target)) {
     name => !new RegExp(`(class|interface|typealias)\\s+${name}\\b`).test(source)
   )
   if (missing.length) {
-    console.log(`FAIL|Dtos.kt missing ${missing.length}/${schemas.length} declarations: ${missing.slice(0, 6).join(', ')}`)
+    console.log(`FAIL|Dtos.generated.kt missing ${missing.length}/${schemas.length} declarations: ${missing.slice(0, 6).join(', ')}`)
   } else {
-    console.log(`ok|Dtos.kt declares all ${schemas.length} schemas`)
+    console.log(`ok|Dtos.generated.kt declares all ${schemas.length} schemas`)
   }
 }
 EOF
@@ -200,11 +202,11 @@ else
   gate dto-contract skip "no gradle available"
 fi
 
-# Reference diff (reported, not gated): the generated Dtos.kt against
-# the repo's real one. KDoc prose is authored commentary absent from
-# the schema, so byte-equality is not demanded — the diff is surfaced
-# for inspection instead.
-TARGET=kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.kt
+# Reference diff (reported, not gated): the generated Dtos.generated.kt
+# against the repo's real hand-written Dtos.kt. KDoc prose is authored
+# commentary absent from the schema, so byte-equality is not demanded —
+# the diff is surfaced for inspection instead.
+TARGET=kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.generated.kt
 if [ -f "$TARGET" ]; then
   diff reference/Dtos.kt "$TARGET" > "$OUT/dtos-diff.txt" 2>&1
   DIFF_LINES=$(grep -c '^[<>]' "$OUT/dtos-diff.txt" 2>/dev/null || true)
@@ -215,7 +217,7 @@ if [ -f "$TARGET" ]; then
   SEMANTIC=$(REF=reference/Dtos.kt GEN="$TARGET" NORM_OUT="$OUT/dtos-diff-semantic.txt" node "$HARNESS_DIR/semantic-diff.js")
   DIFF_SUMMARY="raw ${DIFF_LINES:-0} line(s) / semantic ${SEMANTIC:-?} declaration(s) differ from reference/Dtos.kt (dtos-diff.txt, dtos-diff-semantic.txt)"
 else
-  DIFF_SUMMARY="no generated Dtos.kt to diff"
+  DIFF_SUMMARY="no generated Dtos.generated.kt to diff"
 fi
 
 # Gate — structural eval over the authored generator. A 'fail'

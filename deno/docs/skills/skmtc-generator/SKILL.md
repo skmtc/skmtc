@@ -475,10 +475,13 @@ TypeScript-output-specific rules (type-only imports / TS1484,
   file lands as `User.generated.ts`. Injection is idempotent (a path
   already carrying the suffix is unchanged), and explicit
   `destinationPath` arguments to `register`/`registerInto` are taken
-  verbatim (never suffixed). When the consumer requires an exact
-  filename — recreating a hand-written file, a module the app imports
-  by name — set `client.json#settings.generatedSuffix: ""` rather
-  than fighting the suffix inside `toExportPath`.
+  verbatim (never suffixed). Set
+  `client.json#settings.generatedSuffix: ""` only when something
+  genuinely keys on the exact filename — a TS module the app imports
+  by name, a build script. Replacing a hand-written file does NOT by
+  itself require it in package-resolved languages (Kotlin/JVM): the
+  suffixed file provides the same package members and the marker
+  survives.
 - **Imports never go in template literals.** They land in the file
   *body* (TypeScript rejects) and bypass `Set`-based dedup. Register
   them in the constructor:
@@ -1431,12 +1434,17 @@ with `skmtc dev <project>`.
 
 ### Card: Recreating a hand-written file
 
-When the target is an exact file the app compiles against (a
-hand-written `Dtos.kt`, a module imported by name): a constant
-`toExportPath` returning that one path; `client.json#settings.generatedSuffix: ""`
-so the engine writes the exact filename; register every definition
-into the one file (same-package peers need no import wiring); policy
-seams for whatever the schema cannot express. The diff against the
+When the target is a single file replacing a hand-written one: a
+constant `toExportPath` returning that one path; register every
+definition into the one file (same-package peers need no import
+wiring); policy seams for whatever the schema cannot express. Whether
+the exact filename matters depends on the language's resolution
+model: TypeScript imports by filename, so recreating a module
+imported by name needs `client.json#settings.generatedSuffix: ""` to
+write the exact name — but Kotlin/JVM resolves by package, so keep
+the default suffix and let `Dtos.kt` land as `Dtos.generated.kt`;
+the app compiles unchanged and the file keeps its engine-owned
+marker. The diff against the
 hand-written original is the acceptance signal — but only its
 *semantic* residue: KDoc prose and declaration ordering are
 non-derivable, and formatter territory (trailing commas, line

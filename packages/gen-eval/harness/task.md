@@ -1,10 +1,12 @@
-# Task: author @eval/gen-kotlin-jackson — recreate Dtos.kt from the schema
+# Task: author @eval/gen-kotlin-jackson — recreate the Dtos.kt declarations from the schema
 
 You are in a fresh SKMTC workspace. Author a **model generator** named
 `@eval/gen-kotlin-jackson` that generates
-`kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.kt` — a
-**single Kotlin file containing every DTO** — from
-`kotlin-person-api/openapi.json`.
+`kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.generated.kt`
+— a **single Kotlin file containing every DTO** — from
+`kotlin-person-api/openapi.json`. (Kotlin resolves by package, not
+filename, so the generated file replaces the hand-written `Dtos.kt`
+without matching its name — keep the default generated-file suffix.)
 
 The target is real: `reference/Dtos.kt` is the hand-written file your
 generator must recreate. Get as close to it as the schema allows —
@@ -31,8 +33,10 @@ register calls, no string composition outside `toString()`,
 - SKMTC project: `lab` (`.skmtc/lab/`), schema pinned in
   `client.json#source`, `basePath` = `kotlin-person-api/src/main/kotlin`
   — so a destination path of `@/com/example/api/dto/Dtos.kt` lands in
-  package `com.example.api.dto`. Register every definition into that
-  ONE file.
+  package `com.example.api.dto`, and the engine injects the default
+  generated-file suffix (`.generated` — leave
+  `client.json#settings.generatedSuffix` alone), so the file lands as
+  `Dtos.generated.kt`. Register every definition into that ONE file.
 - The Kotlin language layer `@skmtc/lang-kotlin` is **vendored** at
   `.skmtc/lab/lang-kotlin/` and declared as a deno workspace member.
   The `skmtc-lang-kotlin` skill covers its API — prefer the skill over
@@ -49,9 +53,9 @@ register calls, no string composition outside `toString()`,
   generator itself: implement the rest of the schema→snippet mapping
   (one self-rendering snippet per schema variant, following the
   example and the reference generators), the declaration kinds beyond
-  data-class/typealias, the single `Dtos.kt` output, the Jackson
-  annotations, and the policy seams. Do not hand-write the wiring
-  files the scaffolder already provides.
+  data-class/typealias, the single `Dtos.generated.kt` output, the
+  Jackson annotations, and the policy seams. Do not hand-write the
+  wiring files the scaffolder already provides.
 - `kotlin-person-api/` is the real Spring Boot app with its `Dtos.kt`
   removed. Everything else is hand-written and checksum-pinned: the
   controller and services compile against your generated DTOs,
@@ -100,22 +104,23 @@ app.
 
 ## Output requirements
 
-- One generated file: `com/example/api/dto/Dtos.kt` under basePath,
-  declaring `package com.example.api.dto`, containing all six schema
-  declarations.
+- One generated file: `com/example/api/dto/Dtos.generated.kt` under
+  basePath, declaring `package com.example.api.dto`, containing all
+  six schema declarations. Keep the default `generatedSuffix`; the
+  exact hand-written filename is NOT required (package resolution).
 - Complete working output — no TODO stubs.
 
 ## Acceptance (verify yourself; stop when all green)
 
 ```bash
 skmtc bundle lab --json               # after generator source changes
-skmtc generate lab --json             # errors must be [], Dtos.kt created
+skmtc generate lab --json             # errors must be [], Dtos.generated.kt created
 node reference/structural-eval/cli.ts --scan .skmtc/lab
 # ^ the SAME structural eval that grades this run — re-run it and fix
 #   what it reports until there are no FAILs and no warnings
 gradle -p kotlin-person-api compileKotlin && gradle -p kotlin-person-api test
 # ^ the app compiles AND its DtoContractTest passes against your DTOs
-diff reference/Dtos.kt kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.kt
+diff reference/Dtos.kt kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.generated.kt
 # ^ inspect what remains — close the derivable gaps (declarations,
 #   annotations, types, defaults); KDoc prose gaps are expected
 ```
