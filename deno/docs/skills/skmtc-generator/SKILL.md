@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.8.0
+version: 0.9.0
 description: |
   Author and edit SKMTC generators — write or modify Projection
   classes, Snippets, transform functions, enrichment schemas, and the
@@ -667,6 +667,22 @@ TypeScript-output-specific rules (type-only imports / TS1484,
   rendering, a "just this one case" handled inline — each is a third
   door, and the road to broken. If a type needs different handling,
   that is a new router case returning a new snippet.
+- **Annotations and defaults are decided inside the per-type
+  snippet.** The router's dispatch answers `schema.type` once; every
+  type-dependent decision (which serialization annotation, what
+  default value) is made inside the snippet that dispatch constructed
+  and exposed as a field on it (`annotations`, `defaultValue`) that
+  the consuming renderer reads without narrowing. Position facts
+  (wire-name renames) stay with the renderer that owns them;
+  cross-variant wire facts are read with the `in` operator
+  (`'readOnly' in resolved ? resolved.readOnly : undefined`) — a fact
+  read, not a dispatch; and if a decision doesn't apply to some type,
+  the router case that owns that type stops requesting it — no
+  internal `schema.type !== 'union'` guard. A helper that re-resolves
+  a schema and asks `.type === 'string'` after the router already
+  routed is asking the already-answered question a second time — the
+  single-dispatch check flags it. Worked example: `skmtc-lang-kotlin`
+  §4.
 - **Forward the typed schema into per-type Snippets, not just
   `modifiers`.** A router (`toZodValue`, `toTsValue`) that drops the
   schema silently erases constraints — a `[true]` enum becomes
@@ -1280,6 +1296,10 @@ After writing or editing a generator, verify:
   conditional lives in the `SchemaToValueFn` router; projections make
   a single router call for their value; composite snippets route
   children back through the same function (axiom 1 — no third door)
+- [ ] Annotation / default-value decisions live inside the per-type
+  snippets, exposed as value fields the renderer reads — nothing
+  re-asks `.type`; wire facts read via `in`; applicability decided by
+  which router case requests the decision
 - [ ] No producer sorts definitions, forward-declares, hand-wires an
   import for an inserted peer, or checks whether a dependency
   "already exists" — declaration at construction is the whole job
@@ -1612,7 +1632,7 @@ when in doubt whether a rule still applies, read or run the test.
 
 ## Appendix — generated API reference
 
-> Generated from framework source at `eb16419c` by
+> Generated from framework source at `86b36f13` by
 > `deno run --allow-read --allow-write --allow-run=deno,git .scripts/generate-skill-api-appendix.ts`
 > (from `deno/`). **Authoritative** for signatures, fields, and doc
 > comments — trust it instead of re-reading package source. For a
@@ -2936,6 +2956,708 @@ class CustomValue extends SnippetBase
 Defined in deno/core/dsl/CustomValue.ts:6:1
 
 private type CreateArgs = { context: GenerateContextType; value: Stringable; generatorKey?: GeneratorKey; }
+```
+### `@skmtc/core` — the router and insertion contracts
+
+The `SchemaToValueFn` router contract (`TypeSystemArgs` in, `TypeSystemOutput` out — structural: a per-type snippet carries its output type's fields alongside its own state), the deliberately thin `Modifiers`, and the `Inserted` handle `insertModel` / `insertOperation` return (`inserted.definition.value` IS the peer projection instance for Driver-built definitions). Note: consumers of routed values read the generator's own value fields (`annotations`, `defaultValue`) rather than narrowing `.type` — some doc-comment examples below predate that rule.
+
+### `core/types/TypeSystem.ts`
+
+```text
+Defined in deno/core/types/TypeSystem.ts:537:1
+
+type SchemaToNonRef<Schema extends SchemaType> = Schema extends OasRef<"schema"> ? never : Schema
+  Extracts only non-reference types from a schema type.
+
+  @template Schema
+      The schema type to filter
+
+  @example
+      ```typescript
+      type SchemaOnly = SchemaToNonRef<OasSchema>; // OasSchema
+      type NeverForRef = SchemaToNonRef<OasRef<'schema'>>; // never
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:524:1
+
+type SchemaToRef<Schema extends SchemaType> = Schema extends OasRef<"schema"> ? Schema : never
+  Extracts only reference types from a schema type.
+
+  @template Schema
+      The schema type to filter
+
+  @example
+      ```typescript
+      type RefOnly = SchemaToRef<OasRef<'schema'>>; // OasRef<'schema'>
+      type NeverForSchema = SchemaToRef<OasSchema>; // never
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:450:1
+
+type SchemaToTypeSystemMap = { ref: { source: OasRef<"schema">; output: TypeSystemRef; }; array: { source: OasSchema; output: TypeSystemArray; }; number: { source: OasSchema; output: TypeSystemNumber; }; void: { source: OasVoid; output: TypeSystemVoid; }; integer: { source: OasSchema; output: TypeSystemInteger; }; boolean: { source: OasSchema; output: TypeSystemBoolean; }; unknown: { source: OasSchema; output: TypeSystemUnknown; }; null: { source: OasSchema; output: TypeSystemNull; }; object: { source: OasSchema; output: TypeSystemObject; }; string: { source: OasSchema; output: TypeSystemString; }; union: { source: OasSchema; output: TypeSystemUnion; }; custom: { source: CustomValue; output: TypeSystemCustom; }; }
+  Mapping of schema types to their type system representations.
+
+  This type maps OpenAPI schema types to their corresponding type system
+  value types, enabling type-safe transformations during code generation.
+
+  @example
+      ```typescript
+      // Used internally by the type system transformation process
+      type StringOutput = SchemaToTypeSystemMap['string']['output']; // TypeSystemString
+      type RefSource = SchemaToTypeSystemMap['ref']['source']; // OasRef<'schema'>
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:606:1
+
+type SchemaToValueFn = (args: TypeSystemArgs<Schema>) => TypeSystemOutput<Schema["type"]>
+  Function type for transforming schemas to type system values.
+
+  @template Schema
+      The schema type being transformed
+
+  @param args
+      Transformation arguments
+
+  @return
+      The corresponding type system value
+
+  @example
+      ```typescript
+      const transformSchema: SchemaToValueFn = (args) => {
+        switch (args.schema.type) {
+          case 'string':
+            return transformStringSchema(args);
+          case 'object':
+            return transformObjectSchema(args);
+          // ... other cases
+          default:
+            throw new Error(`Unknown schema type: ${args.schema.type}`);
+        }
+      };
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:512:1
+
+type SchemaType = OasSchema | OasRef<"schema"> | OasVoid | CustomValue
+  Union of all possible schema types that can be transformed.
+
+  @example
+      ```typescript
+      function transformSchema(schema: SchemaType): TypeSystemValue {
+        // Transform any schema type to its type system representation
+        return toTypeSystemValue(schema);
+      }
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:571:1
+
+type TypeSystemArgs<Schema extends SchemaType> = { context: GenerateContextType; destinationPath: string; schema: Schema; rootRef?: RefName; required: boolean | undefined; }
+  Arguments for type system transformation functions.
+
+  @template Schema
+      The specific schema type being transformed
+
+  @example
+      ```typescript
+      function transformStringSchema(args: TypeSystemArgs<OasSchema>): TypeSystemString {
+        const { context, schema, required } = args;
+        // Transform string schema to type system representation
+        return {
+          type: 'string',
+          format: schema.format,
+          enums: schema.enums,
+          modifiers: { optional: !required, nullable: schema.nullable }
+        };
+      }
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:145:1
+
+type TypeSystemArray = { type: "array"; items: TypeSystemValue; modifiers: Modifiers; generatorKey?: GeneratorKey; }
+  Type system representation of array types.
+
+  @example
+      ```typescript
+      const stringArray: TypeSystemArray = {
+        type: 'array',
+        items: { type: 'string', modifiers: { optional: false, nullable: false } },
+        modifiers: { optional: false, nullable: false }
+      };
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:241:1
+
+type TypeSystemBoolean = { type: "boolean"; modifiers: Modifiers; generatorKey?: GeneratorKey; }
+  Type system representation of boolean types.
+
+  @example
+      ```typescript
+      const flagType: TypeSystemBoolean = {
+        type: 'boolean',
+        modifiers: { optional: false, nullable: false }
+      };
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:124:1
+
+type TypeSystemCustom = { type: "custom"; value: Stringable; generatorKey?: GeneratorKey; }
+  Type system representation for custom, generator-specific types.
+
+  `TypeSystemCustom` allows generators to inject custom type representations
+  that don't fit into standard OpenAPI types. The value is a `Stringable`
+  that will be rendered directly in the generated code.
+
+  @example
+      ```typescript
+      const customType: TypeSystemCustom = {
+        type: 'custom',
+        value: 'React.ReactNode',
+        generatorKey: 'react-component|Button'
+      };
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:221:1
+
+type TypeSystemInteger = { type: "integer"; modifiers: Modifiers; generatorKey?: GeneratorKey; }
+  Type system representation of integer number types.
+
+  @example
+      ```typescript
+      const countType: TypeSystemInteger = {
+        type: 'integer',
+        modifiers: { optional: false, nullable: false }
+      };
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:203:1
+
+type TypeSystemNever = { type: "never"; generatorKey?: GeneratorKey; }
+  Type system representation of never types (impossible values).
+
+  @example
+      ```typescript
+      const neverType: TypeSystemNever = {
+        type: 'never'
+      };
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:277:1
+
+type TypeSystemNull = { type: "null"; generatorKey?: GeneratorKey; }
+  Type system representation of null types.
+
+  @example
+      ```typescript
+      const nullType: TypeSystemNull = {
+        type: 'null'
+      };
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:167:1
+
+type TypeSystemNumber = { type: "number"; modifiers: Modifiers; generatorKey?: GeneratorKey; }
+  Type system representation of floating-point number types.
+
+  @example
+      ```typescript
+      const priceType: TypeSystemNumber = {
+        type: 'number',
+        modifiers: { optional: false, nullable: false }
+      };
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:424:1
+
+type TypeSystemObject = { type: "object"; recordProperties: TypeSystemRecord | null; objectProperties: TypeSystemObjectProperties | null; modifiers: Modifiers; generatorKey?: GeneratorKey; }
+  Type system representation of object types.
+
+  Objects can have either fixed properties (objectProperties) or
+  dynamic key-value pairs (recordProperties), or both.
+
+  @example
+      Fixed properties object
+
+      ```typescript
+      const userObject: TypeSystemObject = {
+        type: 'object',
+        recordProperties: null,
+        objectProperties: {
+          properties: {
+            id: { type: 'string', modifiers: { optional: false, nullable: false } },
+            name: { type: 'string', modifiers: { optional: false, nullable: false } },
+            email: { type: 'string', modifiers: { optional: true, nullable: false } }
+          }
+        },
+        modifiers: { optional: false, nullable: false }
+      };
+      ```
+
+  @example
+      Record-like object
+
+      ```typescript
+      const configObject: TypeSystemObject = {
+        type: 'object',
+        recordProperties: {
+          value: { type: 'string', modifiers: { optional: false, nullable: false } }
+        },
+        objectProperties: null,
+        modifiers: { optional: false, nullable: false }
+      };
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:314:1
+
+type TypeSystemObjectProperties = { properties: Record<string, TypeSystemValue>; generatorKey?: GeneratorKey; }
+  Type system representation of object properties.
+
+  @example
+      ```typescript
+      const objectProps: TypeSystemObjectProperties = {
+        properties: {
+          name: { type: 'string', modifiers: { optional: false, nullable: false } },
+          age: { type: 'integer', modifiers: { optional: true, nullable: false } }
+        }
+      };
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:550:1
+
+type TypeSystemOutput<T extends keyof SchemaToTypeSystemMap> = SchemaToTypeSystemMap[T]["output"]
+  Gets the output type for a given schema type key.
+
+  @template T
+      The schema type key
+
+  @example
+      ```typescript
+      type StringOutput = TypeSystemOutput<'string'>; // TypeSystemString
+      type ArrayOutput = TypeSystemOutput<'array'>; // TypeSystemArray
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:294:1
+
+type TypeSystemRecord = { value: TypeSystemValue | "true"; generatorKey?: GeneratorKey; }
+  Type system representation of record types (key-value mappings).
+
+  @example
+      ```typescript
+      const recordType: TypeSystemRecord = {
+        value: { type: 'string', modifiers: { optional: false, nullable: false } }
+      };
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:97:1
+
+type TypeSystemRef = { type: "ref"; name: string; modifiers: Modifiers; generatorKey?: GeneratorKey; }
+  Type system representation of a reference to another schema.
+
+  `TypeSystemRef` represents references to other schemas, typically used for
+  complex types that are defined elsewhere in the schema and referenced
+  through `$ref` in OpenAPI specifications.
+
+  @example
+      ```typescript
+      const userRef: TypeSystemRef = {
+        type: 'ref',
+        name: 'User',
+        modifiers: { optional: false, nullable: false },
+        generatorKey: 'model|User'
+      };
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:341:1
+
+type TypeSystemString = { type: "string"; format: string | undefined; enums: string[] | (string | null)[] | undefined; modifiers: Modifiers; generatorKey?: GeneratorKey; }
+  Type system representation of string types.
+
+  @example
+      ```typescript
+      const emailString: TypeSystemString = {
+        type: 'string',
+        format: 'email',
+        enums: undefined,
+        modifiers: { optional: false, nullable: false }
+      };
+
+      const statusEnum: TypeSystemString = {
+        type: 'string',
+        format: undefined,
+        enums: ['active', 'inactive', 'pending'],
+        modifiers: { optional: false, nullable: false }
+      };
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:377:1
+
+type TypeSystemUnion = { type: "union"; members: TypeSystemValue[]; discriminator: string | undefined; modifiers: Modifiers; generatorKey?: GeneratorKey; }
+  Type system representation of union types.
+
+  @example
+      ```typescript
+      const stringOrNumber: TypeSystemUnion = {
+        type: 'union',
+        members: [
+          { type: 'string', modifiers: { optional: false, nullable: false } },
+          { type: 'number', modifiers: { optional: false, nullable: false } }
+        ],
+        discriminator: undefined,
+        modifiers: { optional: false, nullable: false }
+      };
+
+      const discriminatedUnion: TypeSystemUnion = {
+        type: 'union',
+        members: [userType, adminType, guestType],
+        discriminator: 'type',
+        modifiers: { optional: false, nullable: false }
+      };
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:260:1
+
+type TypeSystemUnknown = { type: "unknown"; generatorKey?: GeneratorKey; }
+  Type system representation of unknown types.
+
+  @example
+      ```typescript
+      const unknownType: TypeSystemUnknown = {
+        type: 'unknown'
+      };
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:65:1
+
+type TypeSystemValue = TypeSystemArray | TypeSystemObject | TypeSystemUnion | TypeSystemString | TypeSystemNumber | TypeSystemInteger | TypeSystemBoolean | TypeSystemUnknown | TypeSystemVoid | TypeSystemNever | TypeSystemRef | TypeSystemNull | TypeSystemCustom
+  Union type representing all possible type system values in the SKMTC code generation system.
+
+  The `TypeSystemValue` represents the normalized intermediate representation used by SKMTC
+  to convert OpenAPI schemas into target language types. This type system abstracts away
+  OpenAPI-specific details and provides a consistent interface for generating code in
+  different target languages and frameworks.
+
+  ## Type Categories
+
+  - Primitive Types: `string`, `number`, `integer`, `boolean`, `null`
+  - Complex Types: `array`, `object`, `union`
+  - Special Types: `void`, `never`, `unknown`, `custom`
+  - Reference Types: `ref` for schema references
+
+  @example
+      Discriminated union usage
+
+      ```typescript
+      import { TypeSystemValue } from '@skmtc/core';
+
+      function processType(type: TypeSystemValue): string {
+        switch (type.type) {
+          case 'string':
+            return `string${type.modifiers.optional ? '?' : ''}`;
+          case 'array':
+            return `${processType(type.items)}[]`;
+          case 'object':
+            return 'object';
+          case 'ref':
+            return type.name;
+          default:
+            return type.type;
+        }
+      }
+      ```
+
+  @example
+      In generator contexts
+
+      ```typescript
+      class TypeScriptGenerator {
+        generateType(typeValue: TypeSystemValue): string {
+          if (typeValue.type === 'union') {
+            return typeValue.members
+              .map(member => this.generateType(member))
+              .join(' | ');
+          }
+
+          if (typeValue.type === 'array') {
+            return `${this.generateType(typeValue.items)}[]`;
+          }
+
+          // Handle other types...
+          return typeValue.type;
+        }
+      }
+      ```
+
+
+Defined in deno/core/types/TypeSystem.ts:186:1
+
+type TypeSystemVoid = { type: "void"; generatorKey?: GeneratorKey; }
+  Type system representation of void types (no value).
+
+  @example
+      ```typescript
+      const voidType: TypeSystemVoid = {
+        type: 'void'
+      };
+      ```
+```
+### `core/types/Modifiers.ts`
+
+```text
+Defined in deno/core/types/Modifiers.ts:65:1
+
+type Modifiers = { required?: boolean; description?: string; nullable?: boolean; }
+  Type modifiers used throughout the SKMTC type system.
+
+  `Modifiers` represent additional metadata and constraints that can be
+  applied to type system values. These modifiers affect how types are
+  generated and used in the target language output.
+
+  @example
+      Basic usage
+
+      ```typescript
+      import { Modifiers } from '@skmtc/core';
+
+      const stringModifiers: Modifiers = {
+        required: true,
+        nullable: false,
+        description: 'User email address'
+      };
+
+      const optionalModifiers: Modifiers = {
+        required: false,
+        nullable: true,
+        description: 'Optional user profile image URL'
+      };
+      ```
+
+  @example
+      In type system values
+
+      ```typescript
+      const emailField: TypeSystemString = {
+        type: 'string',
+        format: 'email',
+        enums: undefined,
+        modifiers: {
+          required: true,
+          nullable: false,
+          description: 'Valid email address for account registration'
+        }
+      };
+
+      const optionalNote: TypeSystemString = {
+        type: 'string',
+        format: undefined,
+        enums: undefined,
+        modifiers: {
+          required: false,
+          nullable: true,
+          description: 'Optional user note or comment'
+        }
+      };
+      ```
+
+  @example
+      TypeScript generation
+
+      ```typescript
+      function generateTypeScript(type: TypeSystemValue): string {
+        const baseType = generateBaseType(type);
+        const optional = !type.modifiers.required ? '?' : '';
+        const nullable = type.modifiers.nullable ? ' | null' : '';
+
+        return `${baseType}${nullable}${optional}`;
+      }
+
+      // Required non-null string: 'string'
+      // Optional non-null string: 'string?'
+      // Required nullable string: 'string | null'
+      // Optional nullable string: 'string | null?'
+      ```
+```
+### `core/dsl/Inserted.ts`
+
+```text
+Defined in deno/core/dsl/Inserted.ts:67:1
+
+class Inserted<V extends GeneratedValue, EnrichmentType>
+  Represents a successfully inserted generator artifact in the SKMTC DSL system.
+
+  The `Inserted` class is returned when generators are inserted into the generation
+  context, providing access to the generated content, metadata, and configuration.
+  It acts as a bridge between the insertion process and the consuming code that
+  needs to reference or use the generated artifacts.
+
+  This class provides type-safe access to generated values with proper handling
+  of both forced and lazy generation modes, ensuring the correct optionality
+  of the generated content based on the generation strategy used.
+
+  ## Key Features
+
+  - Type Safety: Generic parameters preserve exact types from generators
+  - Metadata Access: Provides access to identifiers, export paths, and settings
+  - Value Extraction: Type-safe value extraction with proper optionality
+  - Enrichment Support: Full support for custom enrichment data types
+
+  @template V
+      The type of generated value (preserves generator output type)
+
+  @template EnrichmentType
+      Optional type for custom enrichment data
+
+  @example
+      Basic usage with forced generation
+
+      ```typescript
+      import { Inserted } from '@skmtc/core';
+
+      class MyGenerator extends ModelProjectionBase {
+        generate(): Definition {
+          // Insert a related model with forced generation
+          const userModel = this.insertModel(
+            new UserModelGenerator({ ... }),
+            'User'
+          ); // Returns Inserted<UserModelValue, EnrichmentType>
+
+          // Access the generated value (guaranteed to be present)
+          const userTypeName = userModel.toValue(); // UserModelValue (not undefined)
+          const exportPath = userModel.toExportPath(); // './src/models.ts'
+          const identifier = userModel.toName(); // 'User'
+
+          return new Definition({
+            identifier: createType(this.refName),
+            value: {
+              generatorKey: this.generatorKey,
+              content: `export interface Order { user: ${userTypeName}; }`
+            }
+          });
+        }
+      }
+      ```
+
+
+  constructor({settings, definition}: ConstructorArgs<V, EnrichmentType>)
+    Creates a new Inserted instance.
+
+    @param args
+        Insertion configuration
+
+    @param args.settings
+        Content settings with identifier and export path
+
+    @param args.definition
+        The generated definition containing the value
+
+  settings: ContentSettings<EnrichmentType>
+    Content settings including identifier and export path
+  definition: GeneratedDefinition<V>
+    The generated definition with its value
+  toName(): string
+    Gets the name of the inserted artifact.
+
+    This method returns the string name from the identifier, which is commonly
+    used when referencing the generated artifact in code or templates.
+
+    @return
+        The name of the inserted artifact
+
+    @example
+        ```typescript
+        const userModel = this.insertModel(generator, 'User');
+        const name = userModel.toName(); // 'User'
+
+        // Use in generated code
+        const code = `interface Order { user: ${name}; }`;
+        ```
+
+  toIdentifier(): IdentifierBase
+    Gets the full identifier of the inserted artifact.
+
+    This method returns the complete `IdentifierBase` object, which carries
+    the name and (language-neutrally) the type annotation. Useful when you
+    need access to the type annotation or export flag.
+
+    @return
+        The complete `IdentifierBase` object
+
+    @example
+        ```typescript
+        const model = this.insertModel(generator, 'User');
+        const identifier = model.toIdentifier();
+
+        console.log(identifier.name);        // 'User'
+        console.log(identifier.typeName);    // optional type annotation
+        console.log(identifier.exported);    // export flag
+        ```
+
+  toExportPath(): string
+    Gets the export path where the artifact was generated.
+
+    This method returns the file path where the generated artifact is located,
+    which is useful for creating import statements or understanding the file
+    structure of generated code.
+
+    @return
+        The export path of the generated artifact
+
+    @example
+        ```typescript
+        const userModel = this.insertModel(generator, 'User');
+        const exportPath = userModel.toExportPath(); // './src/models/User.ts'
+
+        // Create import statement
+        const importStmt = `import { User } from '${exportPath}';`;
+        ```
+
+  toValue(): V
+    Gets the generated value from the inserted artifact.
+
+    This method returns the actual generated content with proper type safety
+
+    @return
+        The generated value
+
+    @example
+        ```typescript
+        const userModel = this.insertModel(generator, 'User');
+        const value = userModel.toValue(); // UserModelValue
+
+        // Use the generated value
+        const code = `type OrderUser = ${value};`;
+        ```
+
+
+Defined in deno/core/dsl/Inserted.ts:10:1
+
+private type ConstructorArgs<V extends GeneratedValue, EnrichmentType> = { settings: ContentSettings<EnrichmentType>; definition: GeneratedDefinition<V>; }
+  Constructor arguments for {@link Inserted}.
+
+  @template V
+      The type of generated value
+
+  @template EnrichmentType
+      Optional enrichment data type
 ```
 
 <!-- api-appendix:end -->

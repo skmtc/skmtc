@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-kotlin
-version: 0.4.1
+version: 0.5.0
 description: |
   The Kotlin target-language layer for SKMTC generators
   (`@skmtc/lang-kotlin`). Covers how a generator declares Kotlin as its
@@ -12,9 +12,11 @@ description: |
   the import model of emitted Kotlin (packages from paths, symbol-level
   imports, same-package suppression, no type-only imports), the value
   composition classes (`KtParameterList`, `KtPrimaryConstructor`,
-  `KtFunctionSignature`, `KtAnnotation`), and naming/sanitization
-  (`sanitizePropertyName`, `toPackageName`, hard keywords like
-  `object`).
+  `KtFunctionSignature`, `KtAnnotation`), the `SchemaToValueFn` router
+  contract and where serialization annotations and default values are
+  decided (inside the router's per-type snippets, exposed as value
+  fields), and naming/sanitization (`sanitizePropertyName`,
+  `toPackageName`, hard keywords like `object`).
 
   Use this skill alongside `skmtc-generator` whenever a generator emits
   Kotlin — and specifically when the user asks about "lang-kotlin",
@@ -194,6 +196,52 @@ every package of the stack** — see §6):
   "@skmtc/lang-kotlin": "jsr:@skmtc/lang-kotlin@<pin>"
 }
 ```
+
+### The router contract — `SchemaToValueFn`, no core dive needed
+
+The `toKtValue` router the scaffold above calls is typed by core's
+`SchemaToValueFn`. Its whole surface:
+
+```ts fragment
+type SchemaType = OasSchema | OasRef<'schema'> | OasVoid | CustomValue
+
+type SchemaToValueFn = <S extends SchemaType>(
+  args: TypeSystemArgs<S>
+) => TypeSystemOutput<S['type']>
+
+type TypeSystemArgs<S extends SchemaType> = {
+  context: GenerateContextType
+  destinationPath: string // the parent's file — threaded into every leaf
+  schema: S               // the typed variant after narrowing
+  rootRef?: RefName       // originating ref name, when routing a named schema
+  required: boolean | undefined
+}
+```
+
+The contract is **structural**: each per-type snippet class carries the
+fields of its output type alongside its own state — nothing extends a
+core class for this. The `skmtc create … --lang kotlin` skeleton's
+`DataClassValue` is the worked case: `type = 'object' as const`,
+`recordProperties: null`, `objectProperties`, `modifiers`. A snippet
+for another schema type carries its own output type's fields the same
+way (`'string'` → `type`, `format`, `enums`, `modifiers`).
+
+Two facts that save a dive into `core/types/TypeSystem.ts`:
+
+- **`Modifiers` is deliberately thin** — `{ required?, description?,
+  nullable? }` and nothing else. Wire facts (`readOnly` / `writeOnly`,
+  `format`) are NOT threaded through modifiers; the per-type snippet
+  holds its typed schema variant and reads them directly (§4,
+  "annotations and defaults are decided inside the per-type snippet").
+- **You may tighten the return type in your own generator.** Declaring
+  your router to return `TypeSystemOutput<S['type']> & KtValueFields`
+  (your protocol fields — §4) is a stricter signature that still
+  satisfies every caller, and gives the consuming renderer cast-free
+  protocol reads.
+
+The output types carry `.type` discriminators, but consumers never
+need them (§4): a renderer reads fields off routed values —
+`annotations`, `defaultValue` — instead of narrowing.
 
 ## 2. Entity kinds & identifiers
 
@@ -422,17 +470,77 @@ members. The pattern: **the union assigns membership to its members**
 — a member schema does not know it is in a union and behaves as if it
 is not.
 
-- **Members** carry two generator-owned seams, empty by default:
-  `supertypes: Stringable[]` and `omittedProperties: Set<string>`.
-  Their value renders `` supertypes.length ? ` : ${supertypes.join(', ')}` : '' ``
-  after the parameter list and filters omitted properties — so a
-  standalone schema renders exactly as before.
+- **Members** carry two generator-owned seams, declared **directly on
+  the member projection** and empty by default: `supertypes:
+  Stringable[]` and `discriminatorProperties: Set<string>` — the wire
+  names of discriminator tag properties this member must NOT
+  re-declare (the tag rides the sealed parent's serialization
+  machinery, e.g. `@JsonTypeInfo`; a member of two unions may collect
+  two names). The only read of the Set is the render filter's
+  membership test below — the seam can only *remove* parameters, so
+  the member never chooses between tags and two entries cause no
+  ambiguity. Which tag appears on the wire is decided at
+  serialization time by the sealed parent the value is viewed through
+  (each parent renders its own `@JsonTypeInfo(property = …)`), never
+  by the member. The seams live on the projection because the Driver
+  wraps the projection instance itself in the Definition —
+  `inserted.definition.value` IS the member projection (§4, the value
+  protocols); there is no inner value object to reach into. The
+  projection renders the supertype clause itself and shares the
+  `discriminatorProperties` **Set instance** into the object value
+  snippet that renders the parameter list — constructor-threaded,
+  never `instanceof`-wired after the fact:
+
+  ```ts fragment
+  // Member side — the §1 projection, grown the two seams. A schema
+  // that is in no union renders exactly as before (both seams empty).
+  export class KtModel extends KtModelBase {
+    supertypes: Stringable[] = []
+    discriminatorProperties: Set<string> = new Set()
+    value: Stringable
+
+    constructor({ context, settings, refName }: ModelProjectionArgs) {
+      super({ context, settings, refName })
+      const schema = context.resolveSchemaRefOnce(refName, KtModel.id).resolve()
+      this.value = toKtValue({
+        context,
+        schema,
+        destinationPath: settings.exportPath,
+        required: true,
+        discriminatorProperties: this.discriminatorProperties // same Set — assignments arrive later
+      })
+    }
+
+    toString(): string {
+      return `${this.value}${this.supertypes.length ? ` : ${this.supertypes.join(', ')}` : ''}`
+    }
+  }
+  ```
+
+  `discriminatorProperties` rides the generator's *own* router args
+  (an optional field alongside `TypeSystemArgs`, threaded into the
+  `object` case only — recursive child calls don't forward it, since
+  nested objects are not union members), and the object snippet
+  filters **at render, by wire name**:
+
+  ```ts fragment
+  // Inside the object value snippet's toString() — a pure read of the
+  // seam. Filtering in the constructor would miss assignments made
+  // after this member was built (union-first visit order), so keep
+  // wireName on each parameter and filter here.
+  const visible = this.parameters.filter(
+    ({ wireName }) => !this.discriminatorProperties.has(wireName)
+  )
+  ```
+
 - **Parent**: `createSealedInterface(refName)` with a value that
   renders `''` — the bodyless idiom gives `sealed interface Animal`.
   (Serialization annotations on the parent — `@JsonTypeInfo` /
   `@JsonSubTypes`, `@Serializable` — are generator policy via the
   `KtAnnotated` protocol.) Its constructor inserts each `$ref` member
-  and assigns:
+  and assigns — `insertModel` returns the one memoized handle however
+  many producers ask, and `.definition.value` is the member projection
+  instance, so the seam writes land where the seams were declared:
 
   ```ts fragment
   schema.members.forEach(member => {
@@ -440,7 +548,7 @@ is not.
     const inserted = context.insertModel(KtModel, member.toRefName())
     inserted.definition.value.supertypes.push(refName)
     const tag = schema.discriminator?.propertyName
-    if (tag) inserted.definition.value.omittedProperties.add(tag)
+    if (tag) inserted.definition.value.discriminatorProperties.add(tag)
   })
   ```
 
@@ -482,6 +590,130 @@ neither a getter (`get annotations() { … }` — a method, breaking the
 producer contract) nor a copied field
 (`this.annotations = this.value.annotations` — the same fact in two
 places). One protocol field, on the object the Definition wraps.
+
+### Annotations and defaults are decided inside the per-type snippet
+
+Which serialization annotations to emit, what default value to use,
+which access modifier applies — every such decision depends on a fact
+somebody already holds, and the rule is to make the decision **where
+the fact lives**, then expose the result as a field:
+
+> The router's dispatch answers `schema.type` once. Every
+> type-dependent decision is made inside the per-type snippet that
+> dispatch constructed, and exposed as a field on the snippet
+> (`annotations`, `defaultValue`) for the consuming renderer to read.
+> Nothing outside the router ever asks `.type` again — not on a
+> schema, not on a routed value.
+
+A helper that takes a schema and asks `resolved.type === 'string'`
+after the router already dispatched is asking the already-answered
+question a second time — the structural eval's single-dispatch check
+flags exactly this, and is right to.
+
+Split every decision by where its fact lives:
+
+- **Type facts → the snippet self-declares.**
+  `@JsonSerialize(using = MoneyStringSerializer::class)` derives from
+  `format: 'decimal'`; `@JsonFormat(…)` from `format: 'date-time'`.
+  The router's `string` case already owns those facts: its snippet
+  branches on `format` *internally* (within-type rendering, not type
+  dispatch) and exposes the result as a protocol field —
+  `annotations: KtAnnotation[]`, the same shape `KtAnnotated` gives
+  class level.
+- **Defaults are the snippet's own knowledge.** A map snippet knows its
+  zero value is `'emptyMap()'`; it exposes a `defaultValue` protocol
+  field rather than letting the renderer inspect
+  `value.type === 'object'` to decide.
+- **Position facts → the parameter renderer, no dispatch needed.** The
+  `@JsonProperty("user_id")` rename needs `wireName` vs the sanitized
+  name — facts only the object snippet has; zero schema inspection.
+  The renderer concatenates its own position annotations with the
+  value's type annotations.
+- **Cross-type wire facts → the `in` operator.** `readOnly` /
+  `writeOnly` live on the concrete schema variants, not the union, but
+  reading one is a fact read, not a dispatch:
+  `'readOnly' in resolved ? resolved.readOnly : undefined`.
+- **Cross-type applicability → move the call, don't guard.** If class
+  annotations don't apply to unions, let the union router case be the
+  one that doesn't request them — never an internal
+  `schema.type !== 'union'` guard inside the annotation helper.
+
+The mechanics, on the skeleton's shapes:
+
+```ts fragment
+// The generator's value protocol — EVERY routed snippet carries these
+// (empty when the type implies nothing; that mild burden is the point:
+// consumers read fields, never narrow).
+export type KtValueFields = {
+  annotations: KtAnnotation[]
+  defaultValue?: Stringable
+}
+
+// The router's own, tighter signature — still satisfies every
+// SchemaToValueFn call site, and makes protocol reads cast-free.
+export const toKtValue = <S extends SchemaType>(
+  args: TypeSystemArgs<S>
+): TypeSystemOutput<S['type']> & KtValueFields => { /* switch (schema.type) … */ }
+```
+
+```ts fragment
+// Router 'string' case — the snippet owns format policy internally.
+export class StringValue extends KtSnippet {
+  type = 'string' as const    // TypeSystem contract fields (§1) …
+  format: string | undefined
+  enums: string[] | undefined
+  modifiers: Modifiers
+  annotations: KtAnnotation[] // ← protocol: self-declared policy
+  defaultValue?: Stringable
+
+  constructor({ context, stringSchema, destinationPath, modifiers }: Args) {
+    super({ context })
+    this.format = stringSchema.format
+    this.enums = stringSchema.enums
+    this.modifiers = modifiers
+    // Branching on format INSIDE the string case is within-type
+    // rendering — legal; the router's dispatch already extracted the fact.
+    this.annotations =
+      stringSchema.format === 'decimal'
+        ? [
+            new KtAnnotation({
+              context,
+              destinationPath,
+              name: 'JsonSerialize',
+              args: ['using = MoneyStringSerializer::class'],
+              packageName: 'com.fasterxml.jackson.databind.annotation'
+            })
+          ]
+        : []
+    if (stringSchema.format === 'decimal') {
+      // The annotation's ARGS name a second class — it registers its
+      // own import alongside (§3, one annotation, two imports).
+      this.register({
+        imports: { 'com.example.serde': ['MoneyStringSerializer'] },
+        destinationPath
+      })
+    }
+  }
+
+  override toString(): string {
+    return this.format === 'decimal' ? 'BigDecimal' : 'String'
+  }
+}
+```
+
+```ts fragment
+// Consumer side — the object snippet's toString() collects protocol
+// fields. No `.type` anywhere: not on schemas, not on routed values.
+new KtParameterList(
+  this.parameters.map(({ name, value, required, positionAnnotations }) => ({
+    name,
+    type: value,
+    nullable: !required,
+    annotations: [...positionAnnotations, ...value.annotations],
+    defaultValue: value.defaultValue ?? (required ? undefined : 'null')
+  }))
+)
+```
 
 ### Worked example — a serializable DTO, end to end
 
@@ -669,6 +901,14 @@ never names a serialization library.
   the protocol is read off the definition's value, so declare it
   directly on the object the Definition wraps — the projection itself
   when Driver-inserted (§4).
+- **Re-deriving schema facts outside the router** — an annotation or
+  default-value helper that takes a schema and asks
+  `resolved.type === 'string'` (or narrows a routed value with
+  `value.type === 'object'`) after the router already dispatched. The
+  mapping extracted that fact once; policy consumes it as a protocol
+  field (`annotations` / `defaultValue` — §4) or an `in` fact-read,
+  never by a second dispatch. The single-dispatch check flags every
+  such site.
 - **Running a formatter over the output** — render is unformatted by
   design; the consumer's ktfmt/ktlint formats. Trailing commas,
   line-wrapping, and indentation niceties are their territory.
@@ -717,7 +957,7 @@ being rewritten onto this model; the migration log is
 
 ## Appendix — generated API reference
 
-> Generated from framework source at `eb16419c` by
+> Generated from framework source at `86b36f13` by
 > `deno run --allow-read --allow-write --allow-run=deno,git .scripts/generate-skill-api-appendix.ts`
 > (from `deno/`). **Authoritative** for signatures, fields, and doc
 > comments — trust it instead of re-reading package source. For a

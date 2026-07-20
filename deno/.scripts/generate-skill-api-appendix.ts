@@ -12,46 +12,72 @@
 const BEGIN_MARKER = '<!-- api-appendix:begin — GENERATED, do not edit by hand -->'
 const END_MARKER = '<!-- api-appendix:end -->'
 
-type Target = {
-  skill: string
+type AppendixSection = {
   title: string
   intro: string
   files: string[]
 }
 
+type Target = {
+  skill: string
+  sections: AppendixSection[]
+}
+
 const targets: Target[] = [
   {
     skill: 'docs/skills/skmtc-lang-kotlin/SKILL.md',
-    title: '`@skmtc/lang-kotlin` — the full exported surface',
-    intro:
-      'Every export of the package, with exact constructor/argument shapes. ' +
-      'The prose sections above explain how the pieces compose; this is the ' +
-      'complete signature-level truth.',
-    files: ['lang-kotlin/mod.ts']
+    sections: [
+      {
+        title: '`@skmtc/lang-kotlin` — the full exported surface',
+        intro:
+          'Every export of the package, with exact constructor/argument shapes. ' +
+          'The prose sections above explain how the pieces compose; this is the ' +
+          'complete signature-level truth.',
+        files: ['lang-kotlin/mod.ts']
+      }
+    ]
   },
   {
     skill: 'docs/skills/skmtc-generator/SKILL.md',
-    title: '`@skmtc/core` — the OAS IR a generator reads',
-    intro:
-      'The schema classes handed to `transform` / projections via ' +
-      '`resolveSchemaRefOnce` and friends: every `OasSchema` variant with its ' +
-      'exact fields, plus `OasRef`, `CustomValue`, and the discriminator. ' +
-      'Wire facts (`readOnly` / `writeOnly` / `format` / `enums` / `default`) ' +
-      'live on the concrete variants listed here — narrow with ' +
-      '`switch (resolved.type)` and read inside the branch.',
-    files: [
-      'core/oas/schema/Schema.ts',
-      'core/oas/string/String.ts',
-      'core/oas/integer/Integer.ts',
-      'core/oas/number/Number.ts',
-      'core/oas/boolean/Boolean.ts',
-      'core/oas/array/Array.ts',
-      'core/oas/object/Object.ts',
-      'core/oas/union/Union.ts',
-      'core/oas/unknown/Unknown.ts',
-      'core/oas/ref/Ref.ts',
-      'core/oas/discriminator/Discriminator.ts',
-      'core/dsl/CustomValue.ts'
+    sections: [
+      {
+        title: '`@skmtc/core` — the OAS IR a generator reads',
+        intro:
+          'The schema classes handed to `transform` / projections via ' +
+          '`resolveSchemaRefOnce` and friends: every `OasSchema` variant with its ' +
+          'exact fields, plus `OasRef`, `CustomValue`, and the discriminator. ' +
+          'Wire facts (`readOnly` / `writeOnly` / `format` / `enums` / `default`) ' +
+          'live on the concrete variants listed here — narrow with ' +
+          '`switch (resolved.type)` and read inside the branch.',
+        files: [
+          'core/oas/schema/Schema.ts',
+          'core/oas/string/String.ts',
+          'core/oas/integer/Integer.ts',
+          'core/oas/number/Number.ts',
+          'core/oas/boolean/Boolean.ts',
+          'core/oas/array/Array.ts',
+          'core/oas/object/Object.ts',
+          'core/oas/union/Union.ts',
+          'core/oas/unknown/Unknown.ts',
+          'core/oas/ref/Ref.ts',
+          'core/oas/discriminator/Discriminator.ts',
+          'core/dsl/CustomValue.ts'
+        ]
+      },
+      {
+        title: '`@skmtc/core` — the router and insertion contracts',
+        intro:
+          'The `SchemaToValueFn` router contract (`TypeSystemArgs` in, ' +
+          '`TypeSystemOutput` out — structural: a per-type snippet carries its ' +
+          "output type's fields alongside its own state), the deliberately thin " +
+          '`Modifiers`, and the `Inserted` handle `insertModel` / ' +
+          '`insertOperation` return (`inserted.definition.value` IS the peer ' +
+          'projection instance for Driver-built definitions). Note: consumers of ' +
+          "routed values read the generator's own value fields (`annotations`, " +
+          '`defaultValue`) rather than narrowing `.type` — some doc-comment ' +
+          'examples below predate that rule.',
+        files: ['core/types/TypeSystem.ts', 'core/types/Modifiers.ts', 'core/dsl/Inserted.ts']
+      }
     ]
   }
 ]
@@ -81,10 +107,14 @@ const repoRoot = (await run('git', ['rev-parse', '--show-toplevel'])).trim()
 const sourceSha = (await run('git', ['rev-parse', '--short', 'HEAD'])).trim()
 
 for (const target of targets) {
-  const sections: string[] = []
-  for (const file of target.files) {
-    const doc = relativizePaths(stripAnsi(await run('deno', ['doc', file])), repoRoot).trim()
-    sections.push(`### \`${file}\`\n\n\`\`\`text\n${doc}\n\`\`\``)
+  const sectionBlocks: string[] = []
+  for (const section of target.sections) {
+    const fileBlocks: string[] = []
+    for (const file of section.files) {
+      const doc = relativizePaths(stripAnsi(await run('deno', ['doc', file])), repoRoot).trim()
+      fileBlocks.push(`### \`${file}\`\n\n\`\`\`text\n${doc}\n\`\`\``)
+    }
+    sectionBlocks.push([`### ${section.title}`, '', section.intro, '', ...fileBlocks].join('\n'))
   }
 
   const appendix = [
@@ -99,11 +129,7 @@ for (const target of targets) {
     '> symbol not listed here, `deno doc <file> <Symbol>` against the',
     '> framework source beats grepping it.',
     '',
-    `### ${target.title}`,
-    '',
-    target.intro,
-    '',
-    ...sections,
+    ...sectionBlocks,
     '',
     END_MARKER
   ].join('\n')
@@ -116,5 +142,6 @@ for (const target of targets) {
       ? skillText.slice(0, beginAt) + appendix + skillText.slice(endAt + END_MARKER.length)
       : `${skillText.trimEnd()}\n\n${appendix}\n`
   await Deno.writeTextFile(target.skill, updated)
-  console.log(`${target.skill}: appendix ${beginAt !== -1 ? 'replaced' : 'appended'} (${target.files.length} file(s), sha ${sourceSha})`)
+  const fileCount = target.sections.reduce((count, section) => count + section.files.length, 0)
+  console.log(`${target.skill}: appendix ${beginAt !== -1 ? 'replaced' : 'appended'} (${fileCount} file(s), sha ${sourceSha})`)
 }

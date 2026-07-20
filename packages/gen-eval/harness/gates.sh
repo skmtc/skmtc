@@ -191,7 +191,14 @@ else
   DIFF_SUMMARY="no generated Dtos.kt to diff"
 fi
 
-# Structural eval over the authored generator
+# Gate — structural eval over the authored generator. A 'fail'
+# aggregate verdict fails the gate: the pass/fail checks are strict
+# AND fair now that annotation/default decisions live inside the
+# router's per-type snippets (skmtc-lang-kotlin §4), so no site
+# outside the router needs `.type`. 'warn' stays advisory detail. An
+# unreadable eval or a missing generator is a loud FAIL, not a skip —
+# the harness owns the eval, so its absence is harness breakage, and
+# 6/6 green gates must never coexist with an unread structural FAIL.
 node "$GEN_EVAL/src/cli.ts" --scan .skmtc/lab \
   --json "$OUT/structural.json" --md "$OUT/structural.md" > "$OUT/structural.txt" 2>&1
 VERDICT=$(STRUCTURAL_JSON="$OUT/structural.json" node - <<'EOF'
@@ -199,17 +206,19 @@ const { readFileSync } = require('node:fs')
 try {
   const reports = JSON.parse(readFileSync(process.env.STRUCTURAL_JSON, 'utf8'))
   if (!reports.length) {
-    console.log('no generator found')
+    console.log('FAIL|no generator found in .skmtc/lab')
   } else {
     const aggregate = reports[0].aggregate
     const extra = aggregate.failedChecks.length ? ` — failed: ${aggregate.failedChecks.join(', ')}` : ''
-    console.log(`${aggregate.verdict} (${aggregate.warningCount} warnings)${extra}`)
+    const status = aggregate.verdict === 'fail' ? 'FAIL' : 'ok'
+    console.log(`${status}|${aggregate.verdict} (${aggregate.warningCount} warnings)${extra} (details: structural.md)`)
   }
 } catch (error) {
-  console.log(`unavailable: ${error.message}`)
+  console.log(`FAIL|eval unavailable: ${error.message}`)
 }
 EOF
 )
+gate structural "${VERDICT%%|*}" "${VERDICT#*|}"
 FRICTION_COUNT=$([ -f FRICTION.md ] && grep -c '^## ' FRICTION.md || echo 0)
 RETRO_STATE=$([ -f RETRO.md ] && echo yes || echo no)
 note ""
@@ -218,8 +227,6 @@ note ""
 note "**Reference diff:** $DIFF_SUMMARY"
 note ""
 note "**Feedback channels:** $FRICTION_COUNT friction entr(y/ies) in workspace/FRICTION.md; exit retro: $RETRO_STATE (workspace/RETRO.md)"
-note ""
-note "**Structural eval:** $VERDICT (details: structural.md)"
 note ""
 note "Gates passed: $PASS_COUNT, failed: $FAIL_COUNT."
 note ""

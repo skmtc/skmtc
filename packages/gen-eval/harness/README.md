@@ -88,8 +88,8 @@ post-processing.
 6. **Post-run capture** — the Claude Code session file is copied in;
    cost/turns/duration are extracted from the stream's result event
    into `meta.json`.
-7. **Gates** (`gates.sh`) — see below; also runs the structural eval
-   over the authored generator and writes `report.md`.
+7. **Gates** (`gates.sh`) — see below; the structural eval over the
+   authored generator is one of the gates. Writes `report.md`.
 8. **Archive** — the temp workspace is copied to
    `runs/<id>/workspace/` and the temp dir deleted; the viewer is
    re-baked as a static self-contained file; the run is appended to
@@ -293,6 +293,15 @@ empty.
 4. **compile** — `gradle compileKotlin`: the whole Spring Boot app
    (controller, services, serde, config) compiles against the
    generated DTOs (skipped with a note if no gradle).
+5. **dto-contract** — `gradle test`: the app's `DtoContractTest`
+   suite exercises serde round-trips the compile gate cannot see
+   (skipped with a note if no gradle).
+6. **structural** — the structural eval over the authored generator
+   (checks documented in [`../docs/`](../docs/README.md)): a `fail`
+   aggregate verdict fails the gate; `warn` passes with the warning
+   count in the detail. A missing generator or unreadable eval is a
+   loud FAIL — green gates must never coexist with an unread
+   structural FAIL.
 
 The report also surfaces a **reference diff** (not a gate): the
 generated `Dtos.kt` diffed against the repo's real one
@@ -301,12 +310,10 @@ derivable from the schema and should converge to zero; KDoc prose is
 authored commentary absent from the schema, so those lines are
 expected to remain.
 
-Then the **structural eval** runs over the authored generator
-(checks documented in [`../docs/`](../docs/README.md)). Reference
-points: the existing sub-par implementation's signature is
-`FAIL(1F+10W)`; the clean stock cohort is `clean`. The target
-trajectory across harness iterations is FAIL → warn → clean with all
-gates green.
+Structural reference points: the existing sub-par implementation's
+signature is `FAIL(1F+10W)`; the clean stock cohort is `clean`. The
+target trajectory across harness iterations is FAIL → warn → clean
+with all gates green.
 
 ---
 
