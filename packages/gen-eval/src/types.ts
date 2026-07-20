@@ -65,7 +65,7 @@ export type ToStringViolation = {
   className: string | undefined
   file: string
   line: number
-  kind: 'assignment' | 'mutation' | 'register-call'
+  kind: 'assignment' | 'mutation' | 'register-call' | 'construction'
   detail: string
 }
 

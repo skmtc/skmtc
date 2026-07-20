@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.9.2
+version: 0.10.0
 description: |
   Author and edit SKMTC generators — write or modify Projection
   classes, Snippets, transform functions, enrichment schemas, and the
@@ -268,10 +268,14 @@ For both Projections and Snippets:
 - **`toString()` may run multiple times** — during Render, previews,
   integrity checks. It must be a **pure function of `this`**: no
   mutation, no side effects, no `register` calls (by Render time the
-  file's imports are finalised). Cache anything expensive on `this`
-  from the constructor. This split IS axiom 2's settlement guarantee
-  seen from inside a producer: declaration happens at construction,
-  render reads settled state.
+  file's imports are finalised), and **no construction** — the render
+  tree (delegate snippets, parameter lists, any `new X(…)`) is built
+  in the constructor; `toString()` only reads and interpolates, and
+  refusals throw from the constructor (fail at generate, never at
+  render). Cache anything expensive on `this` from the constructor.
+  This split IS axiom 2's settlement guarantee seen from inside a
+  producer: declaration happens at construction, render reads settled
+  state.
 - **Constructor and `toString` are the only methods — private
   helpers and get/set accessors included.** A producer with
   additional methods is being used as a service object or a
@@ -500,8 +504,11 @@ TypeScript-output-specific rules (type-only imports / TS1484,
   `export const` yourself produces `export const Foo = export const
   Foo = ...` — a syntax error.
 - **`toString()` is pure** — no mutation of `this`, no side effects,
-  no `register` calls. It may run multiple times (Render, previews,
-  integrity checks).
+  no `register` calls, no `new` of anything (snippets, parameter
+  lists, Errors — the render tree is built in the constructor;
+  refusals throw there too). It may run multiple times (Render,
+  previews, integrity checks). The tostring-purity check flags every
+  construction site.
 - **No defensive `if (!already-registered)` around `register`.**
   Registration is already idempotent via Set / Map semantics.
 - **Build strings by interpolating `Stringable`s** (`${snippet}`),
@@ -1302,7 +1309,9 @@ After writing or editing a generator, verify:
   Promises/timers, no fs APIs (`Deno.env.get` is the one sanctioned
   read), no network, no `process.*`
 - [ ] Constructor side effects are safe to repeat (the system
-  memoizes; idempotency is required); `toString()` is pure
+  memoizes; idempotency is required); `toString()` is pure AND
+  construction-free (no `new` — the render tree is built in the
+  constructor)
 - [ ] Producers carry no methods beyond `constructor` and `toString`
   (accumulator container mutators excepted); no ad-hoc
   `{ toString: … }` object literals anywhere

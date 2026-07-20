@@ -386,6 +386,22 @@ const parseFile = (path: string, genDir: string): FileFacts => {
       }
     }
 
+    // Construction inside toString: the render tree is built at
+    // construction time; toString only reads and interpolates settled
+    // state. Any `new` in a toString body — a KtParameterList wrap, an
+    // Error for a render-time refusal — is work that belongs in the
+    // constructor (refusals fail at generate, not render).
+    if (inToString && ts.isNewExpression(node)) {
+      const site = siteOf(node, stack)
+      facts.toStringViolations.push({
+        className: enclosingClassName(node),
+        file,
+        line: site.line,
+        kind: 'construction',
+        detail: `new ${node.expression.getText(sourceFile)}(…) inside toString — build the render tree in the constructor`
+      })
+    }
+
     if (
       inToString &&
       ts.isBinaryExpression(node) &&

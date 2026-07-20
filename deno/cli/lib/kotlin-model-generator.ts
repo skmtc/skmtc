@@ -170,12 +170,6 @@ type DataClassValueArgs = {
   modifiers: Modifiers
 }
 
-type Parameter = {
-  name: string
-  type: TypeSystemValue
-  required: boolean
-}
-
 export class DataClassValue extends KtSnippet {
   // The TypeSystem contract fields for the 'object' output — carrying
   // these is what lets the toKtValue router return this snippet as
@@ -186,7 +180,7 @@ export class DataClassValue extends KtSnippet {
   objectProperties: TypeSystemObjectProperties | null
   modifiers: Modifiers
 
-  parameters: Parameter[]
+  parameterList: KtParameterList
 
   constructor({ context, objectSchema, destinationPath, modifiers }: DataClassValueArgs) {
     super({ context })
@@ -200,40 +194,36 @@ export class DataClassValue extends KtSnippet {
     const required = objectSchema.required ?? []
     const properties: Record<string, TypeSystemValue> = {}
 
-    // Properties route back through the toKtValue seam; snippets it
-    // constructs register their imports here, in the constructor,
-    // never at render.
-    this.parameters = Object.entries(objectSchema.properties ?? {}).map(([wireName, property]) => {
-      const value = toKtValue({
-        context,
-        schema: property,
-        destinationPath,
-        required: required.includes(wireName)
+    // Properties route back through the toKtValue seam. EVERYTHING is
+    // built here, in the constructor — the per-parameter decisions,
+    // the imports the routed snippets register, and the
+    // KtParameterList itself. toString() only reads: it constructs
+    // nothing (the structural eval flags any \`new\` inside toString).
+    this.parameterList = new KtParameterList(
+      Object.entries(objectSchema.properties ?? {}).map(([wireName, property]) => {
+        const value = toKtValue({
+          context,
+          schema: property,
+          destinationPath,
+          required: required.includes(wireName)
+        })
+
+        properties[wireName] = value
+
+        return {
+          name: sanitizePropertyName(wireName),
+          type: value,
+          nullable: !required.includes(wireName),
+          defaultValue: required.includes(wireName) ? undefined : 'null'
+        }
       })
-
-      properties[wireName] = value
-
-      return {
-        name: sanitizePropertyName(wireName),
-        type: value,
-        required: required.includes(wireName)
-      }
-    })
+    )
 
     this.objectProperties = { properties }
   }
 
   override toString(): string {
-    const parameterList = new KtParameterList(
-      this.parameters.map(({ name, type, required }) => ({
-        name,
-        type,
-        nullable: !required,
-        defaultValue: required ? undefined : 'null'
-      }))
-    )
-
-    return \`\${parameterList}\`
+    return \`\${this.parameterList}\`
   }
 }
 `

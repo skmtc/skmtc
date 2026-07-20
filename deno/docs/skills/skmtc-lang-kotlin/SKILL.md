@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-kotlin
-version: 0.7.0
+version: 0.8.0
 description: |
   The Kotlin target-language layer for SKMTC generators
   (`@skmtc/lang-kotlin`). Covers how a generator declares Kotlin as its
@@ -541,26 +541,18 @@ members. The pattern: **the union assigns membership to its members**
 — a member schema does not know it is in a union and behaves as if it
 is not.
 
-- **Members** carry two generator-owned seams, declared **directly on
-  the member projection** and empty by default: `supertypes:
-  Stringable[]` and `discriminatorProperties: Set<string>` — the wire
-  names of discriminator tag properties this member must NOT
-  re-declare (the tag rides the sealed parent's serialization
-  machinery, e.g. `@JsonTypeInfo`; a member of two unions may collect
-  two names). The only read of the Set is the render filter's
-  membership test below — the seam can only *remove* parameters, so
-  the member never chooses between tags and two entries cause no
-  ambiguity. Which tag appears on the wire is decided at
-  serialization time by the sealed parent the value is viewed through
-  (each parent renders its own `@JsonTypeInfo(property = …)`), never
-  by the member. The seams live on the projection because the Driver
-  wraps the projection instance itself in the Definition —
-  `inserted.definition.value` IS the member projection (§4, the value
-  protocols); there is no inner value object to reach into. The
-  projection renders the supertype clause itself and shares the
-  `discriminatorProperties` **Set instance** into the object value
-  snippet that renders the parameter list — constructor-threaded,
-  never `instanceof`-wired after the fact:
+- **Members** carry generator-owned seams, declared **directly on the
+  member projection** and empty by default: `supertypes: Stringable[]`,
+  `annotations: KtAnnotation[]`, and `parameters` — the parameter
+  entries array the object router case FILLS (§4's consumer fragment
+  pushes into `owner.parameters` and hands the same array to
+  `new KtParameterList(entries)`). The seams live on the projection
+  because the Driver wraps the projection instance itself in the
+  Definition — `inserted.definition.value` IS the member projection
+  (§4, the value protocols); there is no inner value object to reach
+  into. Everything is shared **by instance** and mutated only during
+  generate — constructor-threaded, never `instanceof`-wired, nothing
+  constructed or filtered at render:
 
   ```ts fragment
   // Member side — the §1 projection, grown the seams. A schema that
@@ -571,8 +563,8 @@ is not.
   // it (nested objects are not union members).
   export class KtModel extends KtModelBase {
     supertypes: Stringable[] = []
-    discriminatorProperties: Set<string> = new Set()
-    annotations: KtAnnotation[] = []   // the KtAnnotated protocol field
+    parameters: KtDataClassParameter[] = [] // filled by the object case
+    annotations: KtAnnotation[] = []        // the KtAnnotated protocol field
     value: Stringable
 
     constructor({ context, settings, refName }: ModelProjectionArgs) {
@@ -584,10 +576,10 @@ is not.
         destinationPath: settings.exportPath,
         required: true,
         owner: {
-          // Same instances the parent union mutates — assignments
-          // arrive after this constructor returns.
+          // Same instances the parent union mutates — writes arrive
+          // after this constructor returns, before render (settlement).
           annotations: this.annotations,
-          discriminatorProperties: this.discriminatorProperties
+          parameters: this.parameters
         }
       })
     }
@@ -598,20 +590,17 @@ is not.
   }
   ```
 
-  The object router case receives `owner?.discriminatorProperties`
-  and its snippet filters **at render, by wire name**:
-
-  ```ts fragment
-  // Inside the object value snippet's toString() — a pure read of the
-  // seam. Filtering in the constructor would miss assignments made
-  // after this member was built (union-first visit order), so keep
-  // wireName on each parameter and filter here. This filter (plus the
-  // KtParameterList wrap) is the ONLY render-time work — every other
-  // per-parameter decision was made at construction (§4).
-  const visible = this.parameters.filter(
-    ({ wireName }) => !this.discriminatorProperties.has(wireName)
-  )
-  ```
+  The discriminator tag property is **removed by the parent, during
+  generate** — not filtered at render: `insertModel` guarantees the
+  member's constructor has run (existence), so its `parameters` array
+  is always filled by the time a union case touches it, whichever
+  visit order; the `KtParameterList` built in the member's
+  constructor holds the same array instance, so the removal is
+  visible at render with zero render-time work. The member never
+  chooses between tags (a member of two unions gets two removals);
+  which tag appears on the wire is decided at serialization time by
+  the sealed parent the value is viewed through (each parent renders
+  its own `@JsonTypeInfo(property = …)`), never by the member.
 
 - **Parent**: `createSealedInterface(refName)` with a value that
   renders `''` — the bodyless idiom gives `sealed interface Animal`.
@@ -653,7 +642,14 @@ is not.
       if (!member.isRef()) return
       const inserted = context.insertModel(KtModel, member.toRefName())
       inserted.definition.value.supertypes.push(refName)
-      if (tag) inserted.definition.value.discriminatorProperties.add(tag)
+      if (tag) {
+        // Remove the tag parameter — Jackson owns it via the parent's
+        // @JsonTypeInfo. Generate-time mutation of the shared entries
+        // array; the member's KtParameterList sees the settled result.
+        const parameters = inserted.definition.value.parameters
+        const at = parameters.findIndex(parameter => parameter.wireName === tag)
+        if (at >= 0) parameters.splice(at, 1)
+      }
     })
     return new SealedParentValue() // toString() renders '' — the bodyless idiom
   }
@@ -810,32 +806,35 @@ export class StringValue extends KtSnippet {
 
 ```ts fragment
 // Consumer side — the object snippet's CONSTRUCTOR makes every
-// per-parameter decision and stores fully-decided entries. No `.type`
-// anywhere: not on schemas, not on routed values.
-this.parameters = Object.entries(properties ?? {}).map(([wireName, property]) => {
+// per-parameter decision, fills the entries array, and builds the
+// KtParameterList ONCE, sharing the SAME array instance — so
+// generate-time removals (the oneOf recipe) are visible at render.
+// No `.type` anywhere: not on schemas, not on routed values.
+const entries = owner?.parameters ?? [] // the projection's seam, or a local array
+for (const [wireName, property] of Object.entries(properties ?? {})) {
   const isRequired = (required ?? []).includes(wireName)
   const value = toKtValue({ context, schema: property, destinationPath, required: isRequired })
   const inherentDefault = value.defaultValue // e.g. 'emptyMap()'
-  return {
-    wireName, // kept only for the render-time discriminator filter
+  entries.push({
+    wireName, // kept for the union recipe's generate-time removal
     name: sanitizePropertyName(wireName),
     type: value,
     // Non-required is nullable UNLESS the type carries its own zero value.
     nullable: !isRequired && inherentDefault === undefined,
     annotations: [...toPositionAnnotations(wireName), ...value.annotations],
     defaultValue: isRequired ? undefined : (inherentDefault ?? 'null')
-  }
-})
+  })
+}
+this.parameterList = new KtParameterList(entries)
 ```
 
 ```ts fragment
-// toString() — the decisions are already made. Exactly two operations
-// remain, and only because union membership settles after member
-// construction: the discriminator filter, and the KtParameterList wrap.
+// toString() — pure interpolation of settled state. NOTHING is
+// constructed here: no snippets, no KtParameterList wrap, no Error
+// (refusals throw from the constructor). The structural eval's
+// tostring-purity check flags any `new` inside toString.
 override toString(): string {
-  return `${new KtParameterList(
-    this.parameters.filter(({ wireName }) => !this.discriminatorProperties.has(wireName))
-  )}`
+  return `${this.parameterList}`
 }
 ```
 
