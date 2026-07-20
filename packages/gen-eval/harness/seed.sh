@@ -9,7 +9,10 @@ HARNESS_DIR=$(cd "$(dirname "$0")" && pwd)
 # harness/ -> gen-eval -> packages -> skmtc -> skmtc-root. Overridable so
 # the harness can run from a worktree checkout (whose walk-up lands in
 # .claude/worktrees) while still seeding from the real sibling repos.
-SKMTC_ROOT=${SKMTC_ROOT:-$(cd "$HARNESS_DIR/../../../.." && pwd)}
+# Workspace root = parent of the MAIN skmtc checkout, derived via git so
+# harness runs from a linked worktree resolve correctly (the plain
+# ../../../.. default landed inside .claude/worktrees/).
+SKMTC_ROOT=${SKMTC_ROOT:-$(dirname "$(git -C "$HARNESS_DIR" worktree list --porcelain | head -1 | cut -d' ' -f2-)")}
 LANG_KOTLIN="$SKMTC_ROOT/skmtc/deno/lang-kotlin"
 REF_GENERATORS="$SKMTC_ROOT/skmtc-generators"
 PERSON_API="$SKMTC_ROOT/kotlin-person-api"

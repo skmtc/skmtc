@@ -35,7 +35,10 @@ bash "$HARNESS_DIR/seed.sh" "$WORKSPACE"
 # Declare off-limits paths (defense in depth: deny rules for the Read
 # tool; the contamination AUDIT gate on the transcript is the real
 # enforcement since Bash can read anything under skip-permissions).
-SKMTC_ROOT=${SKMTC_ROOT:-$(cd "$HARNESS_DIR/../../../.." && pwd)}
+# Workspace root = parent of the MAIN skmtc checkout, derived via git so
+# harness runs from a linked worktree resolve correctly (the plain
+# ../../../.. default landed inside .claude/worktrees/).
+SKMTC_ROOT=${SKMTC_ROOT:-$(dirname "$(git -C "$HARNESS_DIR" worktree list --porcelain | head -1 | cut -d' ' -f2-)")}
 mkdir -p "$WORKSPACE/.claude"
 SETTINGS_PATH="$WORKSPACE/.claude/settings.json" SKMTC_ROOT="$SKMTC_ROOT" node - <<'EOF'
 const { writeFileSync } = require('node:fs')

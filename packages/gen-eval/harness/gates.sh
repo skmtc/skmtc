@@ -37,7 +37,10 @@ fi
 # paths (other generator implementations, demo apps, previous runs).
 # Scans tool_use INPUTS in the transcript — deny rules alone cannot
 # stop Bash reads under skip-permissions, so this is the enforcement.
-SKMTC_ROOT=${SKMTC_ROOT:-$(cd "$HARNESS_DIR/../../../.." && pwd)}
+# Workspace root = parent of the MAIN skmtc checkout, derived via git so
+# harness runs from a linked worktree resolve correctly (the plain
+# ../../../.. default landed inside .claude/worktrees/).
+SKMTC_ROOT=${SKMTC_ROOT:-$(dirname "$(git -C "$HARNESS_DIR" worktree list --porcelain | head -1 | cut -d' ' -f2-)")}
 if [ -f "$OUT/transcript.jsonl" ]; then
   AUDIT=$(TRANSCRIPT="$OUT/transcript.jsonl" SKMTC_ROOT="$SKMTC_ROOT" GEN_EVAL_SRC="$(cd "$GEN_EVAL/src" && pwd)" node - <<'EOF'
 const { readFileSync } = require('node:fs')
