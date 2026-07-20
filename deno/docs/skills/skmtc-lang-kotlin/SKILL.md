@@ -753,22 +753,38 @@ Forking *within* a router case on schema facts is the same
 within-type-rendering license the string snippet's `format` branch
 uses — one case, two snippets. The canonical instance: an
 `additionalProperties`-only object is a Kotlin `Map`, not a data
-class, and the split is a `properties`-presence check inside the one
-`object` case — never a second dispatch site:
+class, and the split is a `properties`-presence check — a schema
+fact, not a type dispatch. The case stays one line; the fork lives in
+a **routing function** (the composition rule: helper functions route
+to and construct Snippets, never assemble their text):
 
 ```ts fragment
-case 'object': {
-  // Named properties → data class; additionalProperties-only → Map.
-  // Both are schema.type === 'object'; the fact that splits them is
-  // read HERE, inside the case that owns the type.
-  return schema.properties && Object.keys(schema.properties).length
+case 'object':
+  return toObjectValue({ context, schema, destinationPath, modifiers, owner })
+```
+
+```ts fragment
+// Module-level routing function — named innards, no text assembly.
+// Named properties → data class; additionalProperties-only → Map.
+const toObjectValue = ({ context, schema, destinationPath, modifiers, owner }: ToObjectValueArgs) =>
+  schema.properties && Object.keys(schema.properties).length
     ? new DataClassValue({ context, objectSchema: schema, destinationPath, modifiers, owner })
     : new MapValue({ context, objectSchema: schema, destinationPath, modifiers })
-  // MapValue renders `Map<String, ${toKtValue(schema.additionalProperties…)}>`
-  // and self-declares defaultValue: 'emptyMap()' — the consumer reads
-  // the field (previous fragment) without knowing Maps exist.
-}
+// MapValue renders `Map<String, ${toKtValue(schema.additionalProperties…)}>`
+// and self-declares defaultValue: 'emptyMap()' — the consumer reads
+// the field (previous fragment) without knowing Maps exist.
 ```
+
+Why a routing function and not one `ObjectValue` snippet deciding
+internally: the routed value IS the contract carrier, and
+`DataClassValue` / `MapValue` carry *different* truthful
+`TypeSystemOutput<'object'>` fields (`objectProperties` set with
+`recordProperties: null`, and the reverse). A wrapper holding a
+delegate would have to re-expose its delegate's fields — a getter
+breaks the producer contract, a copied field is the protocol-mirror
+anti-pattern (§6) — so the choice between snippets happens *before*
+construction, and each snippet stays the direct carrier of its own
+facts.
 
 ### Worked example — a serializable DTO, end to end
 
