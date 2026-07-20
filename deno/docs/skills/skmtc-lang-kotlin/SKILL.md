@@ -558,9 +558,13 @@ is not.
   // Member side — the §1 projection, grown the seams. A schema that
   // is in no union renders exactly as before (all seams empty). The
   // `owner` arg is the generator's own addition to its router args:
-  // the projection hands its OWN mutable fields to the router, passed
-  // ONLY at this top-level call — recursive child calls never forward
-  // it (nested objects are not union members).
+  // the projection LENDS OUT ITS OWN ARRAYS so that code running
+  // elsewhere (a router case now, a union parent later) can fill or
+  // edit them — arrays pass by reference, so nothing is ever copied
+  // back. Passed ONLY at this top-level call; recursive child calls
+  // never forward it (nested objects are not union members). Note the
+  // scaffold's bare `toKtValue: SchemaToValueFn` annotation cannot
+  // accept `owner` — widen it: (args: TypeSystemArgs<S> & { owner?: … }).
   export class KtModel extends KtModelBase {
     supertypes: Stringable[] = []
     parameters: KtDataClassParameter[] = [] // filled by the object case
