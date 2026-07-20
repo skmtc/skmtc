@@ -612,7 +612,8 @@ is not.
   elsewhere, no `.type` guard anywhere. Member assignment uses
   `insertModel` — it returns the one memoized handle however many
   producers ask, and `.definition.value` is the member projection
-  instance:
+  instance — typed as such by `insertModel`'s generics, so the writes
+  below need no cast:
 
   ```ts fragment
   // The union router case, in full: parent annotations + membership.
@@ -666,6 +667,91 @@ is not.
   `skmtc create … --lang kotlin` scaffold is a deliberate skeleton
   and does NOT ship this pattern — this section is the canonical
   recipe; implement it in your generator.
+
+### The `enum class` recipe — head and body from two seams
+
+A string-with-`enums` schema becomes `enum class PetType { … }`, and
+the declaration is split across the two places §2 defines: the
+**identifier** renders the head (`enum class PetType`), so
+`toIdentifierType` must return `'enum-class'` — a mapping-metadata
+policy, where inspecting the schema is sanctioned:
+
+```ts fragment
+// base.ts — declaration KIND is metadata (toIdentifierType may
+// inspect the schema; it decides what a node is CALLED, never what
+// renders it).
+toIdentifierType: (refName, context): KtIdentifierType => {
+  const schema = context.resolveSchemaRefOnce(refName, denoJson.name).resolve()
+  if (schema.type === 'object') return { type: 'data-class' }
+  if (schema.type === 'union') return { type: 'sealed-interface' }
+  if (schema.type === 'string' && schema.enums) return { type: 'enum-class' }
+  return { type: 'typealias' }
+}
+```
+
+The **value** renders the braced body — the router's `string` case
+forks on `enums` presence (a schema fact; the same within-case
+license as the `format` branch and the object case's Map fork):
+
+```ts fragment
+case 'string':
+  return schema.enums
+    ? new EnumClassValue({ context, stringSchema: schema, destinationPath, modifiers })
+    : new StringValue({ context, stringSchema: schema, destinationPath, modifiers })
+```
+
+```ts fragment
+// Renders ONLY the body — ` {\n…\n}` including the leading space and
+// braces (§2: the value owns its shell; the head comes from the
+// identifier). Everything is decided and built in the constructor:
+// wire value → UPPER_SNAKE constant name, the @JsonProperty rename
+// each constant keeps, and which constant gets @JsonEnumDefaultValue
+// (the forward-compatible fallback — generator policy).
+export class EnumClassValue extends KtSnippet {
+  type = 'string' as const // TypeSystem contract fields (§1) …
+  format: string | undefined
+  enums: string[] | undefined
+  modifiers: Modifiers
+  annotations: KtAnnotation[] = [] // KtValueFields — empty here
+  constants: { annotations: KtAnnotation[]; name: string }[]
+
+  constructor({ context, stringSchema, destinationPath, modifiers }: Args) {
+    super({ context })
+    this.format = stringSchema.format
+    this.enums = (stringSchema.enums ?? []).flatMap(entry => (entry === null ? [] : [entry]))
+    this.modifiers = modifiers
+    this.constants = this.enums.map(wireValue => ({
+      // Wire values are data; constant names are identifiers.
+      name: wireValue.replace(/[^A-Za-z0-9]+/g, '_').toUpperCase(),
+      annotations: [
+        new KtAnnotation({
+          context,
+          destinationPath,
+          name: 'JsonProperty',
+          args: [`"${wireValue}"`],
+          packageName: 'com.fasterxml.jackson.annotation'
+        })
+      ]
+    }))
+  }
+
+  override toString(): string {
+    const body = this.constants
+      .map(({ annotations, name }) => `${annotations.map(a => `    ${a}\n`).join('')}    ${name},`)
+      .join('\n\n')
+    return ` {\n${body}\n}`
+  }
+}
+```
+
+One caveat to state rather than discover: an **inline** (property-
+level) string-with-enums also routes through this case, and a braced
+body is not a valid property type. In the discriminated-union shape
+this is harmless — the only inline enums are discriminator tags,
+whose parameter entries the union parent removes before render. A
+schema with genuine inline enums needs a policy decision first: hoist
+the enum to a named schema (`insertNormalizedModel` with a
+`fallbackName`) or degrade the property to plain `String`.
 
 ### The value protocols — what renders *above* the declaration
 
