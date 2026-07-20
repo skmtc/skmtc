@@ -448,7 +448,9 @@ is not.
   membership composes (` : A, B`) for free.
 - This is generator-owned state, NOT a lang protocol — the old
   `KtSupertyped` render protocol stays gone. The
-  `skmtc create … --lang kotlin` scaffold ships this pattern.
+  `skmtc create … --lang kotlin` scaffold is a deliberate skeleton
+  and does NOT ship this pattern — this section is the canonical
+  recipe; implement it in your generator.
 
 ### The value protocols — what renders *above* the declaration
 

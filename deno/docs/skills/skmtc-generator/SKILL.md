@@ -1293,12 +1293,18 @@ skmtc create <project> <gen-name> operation   # or 'model'
 skmtc create <project> <gen-name> model --lang kotlin   # Kotlin target
 ```
 
-`--lang kotlin` (model generators) writes a WORKING baseline — schema
-routing to data classes / enum classes / sealed interfaces (the
-union-assigns-parent pattern), a `KtType` schema→type Snippet,
-`enrichments.ts`, and the project `deno.json` registration. Customise
-its seams instead of hand-writing the standard files. In a non-TTY
-session `create` runs headlessly from its command-line args.
+`--lang kotlin` (model generators) writes a SKELETON — the mechanical
+wiring (entry, projection base, one projection, a data-class
+parameter-list snippet, `enrichments.ts`, the project `deno.json`
+registration) plus an empty `toKtValue` router typed `SchemaToValueFn`
+that throws on every schema type. It bundles and type-checks;
+`generate` fails loudly, naming each unmapped type, until you
+implement the schema→snippet mapping: one case per `schema.type`,
+each returning a small self-rendering snippet that takes the typed
+variant (the `toZodValue` / `Ts.ts` shape in the stock generators).
+Declaration kinds beyond data-class/typealias, union handling, format
+policy, and serialization annotations are all yours to author. In a
+non-TTY session `create` runs headlessly from its command-line args.
 
 For TypeScript, then, matching scaffolds A–D: implement `isSupported` in `src/mod.ts`;
 `toIdentifierName` / `toIdentifierType` / `toExportPath` in
