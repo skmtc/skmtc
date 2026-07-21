@@ -1,9 +1,9 @@
 # skmtc adopt
 
 > Return an ejected file to generation: rename it back to its generated
-> name and remove it from `settings.ejected`. The next generate resumes
-> writing it — and a file that still carries manual edits is protected,
-> never overwritten.
+> name and remove it from `settings.ejected`. The file is engine-owned
+> again — the next generate overwrites it, so adopt only when nothing
+> in the file still needs keeping.
 
 `adopt` is the symmetric inverse of [`skmtc eject`](./eject.md). Use it
 when the reason for ejecting has passed: the manual change was moved
@@ -23,12 +23,12 @@ Concretely, adopting `src/types/user.ts`:
 3. From the next `skmtc generate`: the engine emits the suffixed path
    again, peer imports follow, and the file is engine-owned.
 
-**Adopt never destroys content.** If the adopted file's content still
-differs from what the generator produces, the next generate detects the
-difference and *protects* the file (reports it, leaves it untouched)
-rather than overwriting — the prime invariant of edit detection. Adopt
-is therefore always safe to try; the worst case is returning to a
-protected state.
+**Adopting queues the file for overwrite.** Generated files are
+engine-owned: from the next generate on, the file's content is whatever
+the generators produce — any changes made while it was ejected are gone
+(git history keeps them). Adopt itself never destroys content — the
+rename preserves the file as-is — so re-ejecting before the next
+generate fully reverses it.
 
 ## Synopsis
 
