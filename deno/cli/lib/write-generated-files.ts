@@ -18,7 +18,6 @@ import {
   writeGeneratedLock
 } from '@/lib/generated-lock.ts'
 import { runFormatter } from '@/lib/formatter.ts'
-import { classifyDiskFile, type EditDetectionContext } from '@/lib/edit-detection.ts'
 import { classifyEjectedFile } from '@/lib/ejection-state.ts'
 
 /**
@@ -48,15 +47,6 @@ type DeletePreviousArtifactsArgs = {
    *  basePath, or called without settings), dirs aren't pruned. */
   clientSettings?: ClientSettings
   /**
-   * Edit-detection context. When absent (legacy callers), pruning
-   * behaves as before: every stale manifest path is deleted. When
-   * present, a stale file classified as hand-edited is left in place
-   * and reported through `onProtected`.
-   */
-  detection?: EditDetectionContext
-  /** Receives the artifact path of every stale-but-edited file spared from deletion. */
-  onProtected?: (artifactPath: string) => void
-  /**
    * Artifact-space paths of ejected (user-owned) files — never
    * deleted, regardless of manifest state. Defaults to the set derived
    * from `clientSettings.ejected`.
@@ -69,8 +59,6 @@ export const deletePreviousArtifacts = ({
   incomingPaths,
   manifestPath,
   clientSettings,
-  detection,
-  onProtected,
   ejectedArtifactPaths = toEjectedArtifactPaths(clientSettings)
 }: DeletePreviousArtifactsArgs): void => {
   if (!existsSync(manifestPath)) {
@@ -106,26 +94,6 @@ export const deletePreviousArtifacts = ({
       }
 
       const absolutePath = join(skmtcRootPath, '..', path)
-
-      // A stale artifact the user has edited is theirs now — deleting
-      // it would destroy their work. Leave it and let the caller report.
-      const lockEntry = detection?.lock?.files[path]
-      if (detection && lockEntry && existsSync(absolutePath)) {
-        // Nothing renders this path this run (it's stale) — no fresh
-        // content to disambiguate a formatter-config change from an
-        // edit, so a hash mismatch here is always classified edited.
-        const { edited } = classifyDiskFile({
-          absolutePath,
-          lockEntry,
-          detection,
-          freshCanonicalContent: undefined
-        })
-
-        if (edited) {
-          onProtected?.(path)
-          continue
-        }
-      }
 
       Deno.removeSync(absolutePath)
       deletedAbsPaths.push(absolutePath)
@@ -183,10 +151,9 @@ type WriteGeneratedFilesArgs = {
    *  and formatter-aware edit detection. */
   clientSettings?: ClientSettings
   /**
-   * Suppress the multi-line stderr warning for protected files. Watch
-   * mode sets this — re-announcing the same protected files on every
-   * rebuild is alarm fatigue; `dev` prints its own one-line status
-   * instead. Protection itself is unaffected.
+   * No-op, retained for caller compatibility. Edit protection (and its
+   * stderr warning) was removed: generated files are engine-owned and
+   * overwritten on every run.
    */
   warnOnProtected?: boolean
 }
@@ -195,10 +162,9 @@ export type WriteGeneratedFilesResult = {
   manifest: ManifestContent
   artifacts: Record<string, string>
   /**
-   * Artifact paths that were NOT written (or deleted) this run because
-   * the on-disk file no longer matches what the previous run produced —
-   * i.e. the user hand-edited it. The prime invariant: `generate`
-   * never destroys a hand edit.
+   * Always empty. Edit protection was removed — generated files are
+   * engine-owned and overwritten on every run. The field is retained
+   * so the `--json` result shape stays stable for consumers.
    */
   protectedPaths: string[]
   /**
@@ -223,8 +189,7 @@ export const writeGeneratedFiles = ({
   manifestPath,
   artifacts,
   manifest,
-  clientSettings,
-  warnOnProtected = true
+  clientSettings
 }: WriteGeneratedFilesArgs): WriteGeneratedFilesResult => {
   const skmtcRootPath = toRootPath()
   const appRoot = resolve(skmtcRootPath, '..')
@@ -232,13 +197,6 @@ export const writeGeneratedFiles = ({
   const lockPath = toGeneratedLockPath(manifestPath)
   const lock = readGeneratedLock(lockPath)
 
-  const detection: EditDetectionContext = {
-    lock,
-    formatterCommand: clientSettings?.formatter,
-    appRoot
-  }
-
-  const protectedPaths: string[] = []
   const ejectedArtifactPaths = toEjectedArtifactPaths(clientSettings)
 
   // Suffixed twins of ejected files. A correctly-versioned engine maps
@@ -267,9 +225,7 @@ export const writeGeneratedFiles = ({
     incomingPaths: Object.keys(artifacts ?? {}),
     manifestPath,
     skmtcRootPath,
-    clientSettings,
-    detection,
-    onProtected: path => protectedPaths.push(path)
+    clientSettings
   })
 
   // Mark ejected entries before the manifest lands on disk, so every
@@ -328,72 +284,35 @@ export const writeGeneratedFiles = ({
       continue
     }
 
-    const lockEntry = lock?.files[artifactPath]
+    // Render output is deterministic, so skipping byte-identical
+    // rewrites keeps mtimes stable for file-watch consumers (Vite
+    // HMR, `skmtc dev`).
+    const diskContent = Deno.readTextFileSync(absolutePath)
 
-    if (!lockEntry) {
-      // Untracked file (first run with edit detection, or a fresh
-      // clone without the lock): preserve the pre-lock behavior —
-      // changed-only overwrite — and seed a lock entry so the NEXT
-      // run can tell edits apart. Render output is deterministic, so
-      // skipping byte-identical rewrites also keeps mtimes stable for
-      // file-watch consumers (Vite HMR, `skmtc dev`).
-      const diskContent = Deno.readTextFileSync(absolutePath)
-
-      if (diskContent === content) {
-        nextLockFiles[artifactPath] = {
-          canonicalHash,
-          formattedHash: canonicalHash
-        }
-        continue
-      }
-
-      Deno.writeTextFileSync(absolutePath, content)
-      pendingWrites.push({
-        artifactPath,
-        absolutePath,
+    if (diskContent === content) {
+      nextLockFiles[artifactPath] = {
         canonicalHash,
-        content
-      })
+        formattedHash: canonicalHash
+      }
       continue
     }
 
-    // This run's fresh canonical render for `artifactPath` is `content`
-    // — already in memory, no cache needed. It's only an exact stand-in
-    // for "what was rendered last time" when the canonical output is
-    // unchanged (the branch below): if the schema also changed this
-    // run, a formatter-config change on an otherwise-untouched file can
-    // misclassify as edited here, since there's no way to recover what
-    // the OLD canonical render looked like. That fails safe — the file
-    // is protected, never destroyed — and resolves itself next run.
-    const { edited, driftResolvedFormattedHash } = classifyDiskFile({
-      absolutePath,
-      lockEntry,
-      detection,
-      freshCanonicalContent: content
-    })
+    // Unchanged render whose on-disk bytes are exactly what the
+    // post-write formatter left last time → no write. This is a pure
+    // cache-validity check (same render in, same formatted bytes on
+    // disk); any other disk state — hand edits included — is
+    // overwritten below. Generated files are engine-owned.
+    const lockEntry = lock?.files[artifactPath]
 
-    if (edited) {
-      // The prime invariant: never destroy a hand edit. Keep the old
-      // lock entry — it is what the user's edit was made against, and
-      // what a future eject resolves from.
-      protectedPaths.push(artifactPath)
+    if (
+      lockEntry &&
+      lockEntry.canonicalHash === canonicalHash &&
+      toContentHash(diskContent) === lockEntry.formattedHash
+    ) {
       nextLockFiles[artifactPath] = lockEntry
       continue
     }
 
-    if (canonicalHash === lockEntry.canonicalHash) {
-      // Unchanged render output on a clean file → no write (keeps
-      // mtimes stable). Record the drift-resolved formatted hash when
-      // a formatter-config change was detected so subsequent runs
-      // compare cheaply again.
-      nextLockFiles[artifactPath] = {
-        canonicalHash: lockEntry.canonicalHash,
-        formattedHash: driftResolvedFormattedHash ?? lockEntry.formattedHash
-      }
-      continue
-    }
-
-    // Changed render output on a clean file → overwrite.
     Deno.writeTextFileSync(absolutePath, content)
     pendingWrites.push({ artifactPath, absolutePath, canonicalHash, content })
   }
@@ -423,15 +342,6 @@ export const writeGeneratedFiles = ({
     nextLockFiles[artifactPath] = {
       canonicalHash,
       formattedHash: toContentHash(onDisk)
-    }
-  }
-
-  // Stale-but-edited files spared by the prune keep their lock entry so
-  // future runs can still classify them.
-  for (const path of protectedPaths) {
-    const previousEntry = lock?.files[path]
-    if (previousEntry && !nextLockFiles[path]) {
-      nextLockFiles[path] = previousEntry
     }
   }
 
@@ -482,36 +392,18 @@ export const writeGeneratedFiles = ({
     }
   }
 
-  if (warnOnProtected && protectedPaths.length > 0) {
-    console.error(
-      `Warning: ${protectedPaths.length} generated file(s) have manual edits and were left ` +
-        `untouched:\n${protectedPaths.map(path => `  ${path}`).join('\n')}\n` +
-        `Generated files are overwritten on each run — move lasting changes into enrichments ` +
-        `or hand-written modules, or revert the files to resume generation for them.`
-    )
-  }
-
   // On-disk drift vs the raw render, for the sidecar/manifest realignment
   // in generate-local. Only FORMATTER-attributable drift qualifies:
-  // - collected only when `settings.formatter` is configured (no formatter
-  //   → nothing legitimate can have drifted, and skipping the scan avoids
-  //   re-reading the whole corpus per generate);
-  // - hand-edited files (`protectedPaths` — both the stale-spared and the
-  //   incoming-write-skipped kinds) are excluded: realigning attribution
-  //   onto user-owned text and silencing the reader's drift trigger for it
-  //   would serve confidently wrong spans.
+  // collected only when `settings.formatter` is configured (no formatter
+  // → nothing legitimate can have drifted, and skipping the scan avoids
+  // re-reading the whole corpus per generate).
   // Read AFTER the formatter step so a just-formatted file is captured;
   // covers unwritten (unchanged-render) files too — their on-disk copy
   // stays formatted from a previous run.
   const onDiskDrift: Record<string, string> = {}
   if (formatterCommand) {
-    const protectedSet = new Set(protectedPaths)
     for (const [artifactPath, artifactContent] of Object.entries(artifacts ?? {})) {
-      if (
-        twinArtifactPaths.has(artifactPath) ||
-        ejectedArtifactPaths.has(artifactPath) ||
-        protectedSet.has(artifactPath)
-      ) {
+      if (twinArtifactPaths.has(artifactPath) || ejectedArtifactPaths.has(artifactPath)) {
         continue
       }
       try {
@@ -528,7 +420,7 @@ export const writeGeneratedFiles = ({
   return {
     manifest,
     artifacts,
-    protectedPaths,
+    protectedPaths: [],
     onDiskDrift,
     ...(ejections ? { ejections } : {})
   }
