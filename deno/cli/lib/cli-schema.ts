@@ -164,7 +164,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
   {
     name: 'adopt',
     description:
-      'Return an ejected file to generation: rename it back to its generated name and remove it from settings.ejected. The next generate resumes writing it; a file still carrying manual edits is protected, never overwritten.',
+      'Return an ejected file to generation: rename it back to its generated name and remove it from settings.ejected. The file is engine-owned again — the next generate overwrites it, so re-eject first if it still carries changes worth keeping.',
     args: ['<project>', '<file>'],
     flags: [{ flag: '--json', description: 'Emit structured JSON output.' }],
     agentMode: 'json-only'

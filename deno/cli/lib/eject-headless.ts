@@ -11,9 +11,10 @@
  * automatically — and the host never writes or deletes the file.
  *
  * **Adopt** is the inverse: rename back, remove the setting and
- * metadata. It never destroys content — if the adopted file still
- * differs from generated output, the next generate *protects* it (the
- * prime invariant) rather than overwriting.
+ * metadata. Generated files are engine-owned: once adopted, the next
+ * generate overwrites the file — a file that still carries changes
+ * worth keeping should stay ejected. The rename itself never destroys
+ * content; the caller's messaging carries the overwrite warning.
  *
  * Both operations order their steps so an interruption leaves a safe
  * state: client.json is updated before the rename on eject (a listed
