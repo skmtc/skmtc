@@ -41,12 +41,6 @@ type GenerateLocalArgs = {
    * - `undefined` (default) — use the config value
    */
   anchorsFlag?: boolean
-  /**
-   * Forwarded to `writeGeneratedFiles`. Watch mode passes `false` and
-   * prints its own one-line protected-file status per rebuild instead
-   * of the writer's multi-line stderr warning.
-   */
-  warnOnProtected?: boolean
 }
 
 /**
@@ -94,10 +88,9 @@ export type GenerateLocalResult = {
    */
   anchors?: GenerateLocalAnchorsStats
   /**
-   * Artifact paths the run left untouched because their on-disk
-   * content has manual edits (see `WriteGeneratedFilesResult`).
-   * Surfaced structurally for `--json` consumers; the human-readable
-   * warning already landed on stderr.
+   * Always empty — edit protection was removed (generated files are
+   * engine-owned). Retained so the `--json` result shape stays stable
+   * for consumers (see `WriteGeneratedFilesResult`).
    */
   protectedPaths: string[]
   /**
@@ -116,8 +109,7 @@ export const generateLocal = async ({
   manifestPath,
   projectPath,
   schemaSource,
-  anchorsFlag,
-  warnOnProtected
+  anchorsFlag
 }: GenerateLocalArgs): Promise<GenerateLocalResult> => {
   try {
     const attribution = toAttributionPayload({
@@ -140,8 +132,7 @@ export const generateLocal = async ({
       manifestPath,
       artifacts,
       manifest,
-      clientSettings,
-      warnOnProtected
+      clientSettings
     })
 
     let anchorsStats: GenerateLocalAnchorsStats | undefined

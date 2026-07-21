@@ -251,6 +251,37 @@ Deno.test('deletePreviousArtifacts - handles nested directory paths', async () =
   }
 })
 
+Deno.test('deletePreviousArtifacts - refuses to delete a path that escapes the app root', async () => {
+  const tempDir = await Deno.makeTempDir()
+
+  try {
+    // App root is tempDir/app; the victim sits one level above it. A
+    // manifest key with a `..` segment must be refused, not deleted.
+    const appRoot = join(tempDir, 'app')
+    const skmtcDir = join(appRoot, 'skmtc')
+    await Deno.mkdir(skmtcDir, { recursive: true })
+
+    const manifestPath = join(skmtcDir, 'manifest.json')
+    const escapePath = join(tempDir, 'escape.ts')
+    await Deno.writeTextFile(escapePath, 'outside the app root')
+
+    const manifest = createManifest({
+      '../escape.ts': { lines: 1, characters: 20, destinationPath: '../escape.ts' }
+    })
+    await Deno.writeTextFile(manifestPath, JSON.stringify(manifest))
+
+    deletePreviousArtifacts({
+      skmtcRootPath: skmtcDir,
+      manifestPath,
+      incomingPaths: []
+    })
+
+    assertEquals(existsSync(escapePath), true)
+  } finally {
+    await Deno.remove(tempDir, { recursive: true })
+  }
+})
+
 Deno.test('deletePreviousArtifacts - skips cleanup gracefully when manifest is stale-schema', async () => {
   // Same tolerance contract as `Manifest.open` — a stale manifest
   // shouldn't abort the generate run. Here we verify the
