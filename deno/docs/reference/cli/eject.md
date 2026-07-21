@@ -6,10 +6,9 @@
 > deleted.
 
 Generated files are overwritten on every `skmtc generate` run — editing
-one directly loses the edit on the next regenerate (or, with edit
-detection, leaves the file permanently `modified`/protected). `eject`
-is the sanctioned way to keep a manual change: it converts the file
-from engine-owned output into ordinary hand-written source.
+one directly loses the edit on the next regenerate. `eject` is the
+sanctioned way to keep a manual change: it converts the file from
+engine-owned output into ordinary hand-written source.
 
 Concretely, ejecting `src/types/user.generated.ts`:
 

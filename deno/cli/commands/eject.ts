@@ -173,8 +173,8 @@ export const printAdoptResult = (result: AdoptHeadlessResult, format: 'text' | '
       console.log(
         `Adopted "${result.ownedExportPath}" back into generation as ` +
           `"${result.generatedArtifactPath}".\n` +
-          `The next generate resumes writing it — and if the file still carries manual ` +
-          `edits, it will be protected, not overwritten.`
+          `The file is engine-owned again: the next generate overwrites it. If it still ` +
+          `carries changes you need, re-eject before generating.`
       )
       return
     }

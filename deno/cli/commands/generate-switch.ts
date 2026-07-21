@@ -5,8 +5,6 @@ import { toManifestPath } from '@/lib/to-manifest-path.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { checkBundleFreshness } from '@/lib/bundle-freshness.ts'
 import { runTypecheck } from '@/lib/typecheck.ts'
-import { detectFormatter, formatterHint } from '@/lib/detect-formatter.ts'
-import { toRootPath } from '@/lib/to-root-path.ts'
 import { resolve } from '@std/path'
 
 type GenerateSwitchArgs = {
@@ -138,15 +136,6 @@ export const generateSwitch = async ({
       typecheck: typecheckResult,
       format
     })
-
-    // Human-facing nudge only (never in the agent-pinned JSON/strict
-    // output): when the app has a detectable formatter but
-    // `settings.formatter` isn't configured, suggest wiring it up so
-    // generated files come out formatted with attribution aligned.
-    if (format === 'text' && !generateLocalArgs.clientSettings?.formatter) {
-      const detected = detectFormatter(resolve(toRootPath(), '..'))
-      if (detected !== undefined) console.error(formatterHint(detected))
-    }
 
     // If any parseIssue came back at `error` level, the run isn't a
     // success even when the JSON payload has `type: "generated"`.

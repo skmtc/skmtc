@@ -300,15 +300,15 @@ resolve normally.
 
 A host concern: the generation engine itself never formats — render
 output stays canonical. The hook exists so on-disk files match the
-consumer's own code style, and so edit detection can compare *through*
-the formatter: the writer records the formatted content's hash in
-`generated.lock.json`, and a formatter-config change is resolved by
-re-formatting the stored canonical baseline under the current config
-rather than being misread as a hand edit.
+consumer's own code style. The writer records the formatted content's
+hash in `generated.lock.json` so an unchanged render whose disk bytes
+still match can skip the rewrite (keeping mtimes stable for
+file-watchers); a formatter-config change alone doesn't trigger a
+mass rewrite — files converge to the new style when their render
+changes or after the repo is reformatted.
 
 Guard rails: a crashing or missing formatter is never destructive —
-files land unformatted, a warning goes to stderr, and comparison
-degrades to raw content.
+files land unformatted and a warning goes to stderr.
 
 ### `settings.generatedSuffix` (optional)
 

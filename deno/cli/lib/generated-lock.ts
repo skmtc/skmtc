@@ -22,14 +22,14 @@ export type GeneratedLockEntry = {
 }
 
 /**
- * Content of `.settings/generated.lock.json` — the committed record of
- * what the last generate run wrote, keyed by artifact path (the same
- * app-root-relative keys the manifest uses). Unlike the manifest (a
- * per-run diagnostic that is rewritten wholesale), the lock is the
- * *edit-detection baseline*: `writeGeneratedFiles` compares the on-disk
- * content of every artifact against its lock entry before overwriting,
- * and a file whose disk hash matches neither `formattedHash` nor the
- * formatter-drift resolution is protected from overwrite and deletion.
+ * Content of `.settings/generated.lock.json` — a machine-local record
+ * of what the last generate run wrote, keyed by artifact path (the
+ * same app-root-relative keys the manifest uses). The lock is a
+ * write-avoidance cache for `writeGeneratedFiles` (an unchanged render
+ * whose disk bytes still match the recorded post-formatter state skips
+ * the rewrite, keeping mtimes stable) and the informational baseline
+ * `status` and `clean` classify against. It never blocks an overwrite
+ * — generated files are engine-owned.
  */
 export type GeneratedLockContent = {
   version: 1

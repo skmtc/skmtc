@@ -78,12 +78,14 @@ export const deletePreviousArtifacts = ({
   }
 
   const paths = Object.keys(manifestFile.files)
+  const incomingPathSet = new Set(incomingPaths)
+  const appRoot = resolve(skmtcRootPath, '..')
 
   const deletedAbsPaths: string[] = []
 
   for (const path of paths) {
     try {
-      if (incomingPaths.includes(path)) {
+      if (incomingPathSet.has(path)) {
         continue
       }
 
@@ -94,6 +96,13 @@ export const deletePreviousArtifacts = ({
       }
 
       const absolutePath = join(skmtcRootPath, '..', path)
+
+      // Containment guard: generated files always live under the app
+      // root. A manifest key that escapes it (a stray `..` segment) is
+      // refused rather than deleted — same stance as `clean`.
+      if (!resolve(absolutePath).startsWith(appRoot)) {
+        continue
+      }
 
       Deno.removeSync(absolutePath)
       deletedAbsPaths.push(absolutePath)
@@ -150,12 +159,6 @@ type WriteGeneratedFilesArgs = {
    *  Also supplies the `formatter` command for post-write formatting
    *  and formatter-aware edit detection. */
   clientSettings?: ClientSettings
-  /**
-   * No-op, retained for caller compatibility. Edit protection (and its
-   * stderr warning) was removed: generated files are engine-owned and
-   * overwritten on every run.
-   */
-  warnOnProtected?: boolean
 }
 
 export type WriteGeneratedFilesResult = {

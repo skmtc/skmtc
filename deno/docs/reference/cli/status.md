@@ -1,17 +1,18 @@
 # skmtc status
 
 > Classify every generated file against the generated lock: which are
-> clean, which carry manual edits (and are protected from overwrite),
-> which are missing, plus orphaned files a previous generate spared
-> from pruning. Read-only.
+> clean, which carry manual edits (and will be overwritten by the next
+> generate), which are missing, plus orphaned lock entries the manifest
+> no longer records. Read-only.
 
 `status` answers "what does the tool think is going on?" — it never
 writes. It reads the project's `.settings/manifest.json` (the record
 of what the last `generate` wrote) and `.settings/generated.lock.json`
 (per-file content hashes), compares each tracked file's on-disk
-content, and reports a per-file classification. It shares its
-classification logic with the `generate` writer, so `status` and
-`generate` can never disagree about whether a file is edited.
+content, and reports a per-file classification. The classification is
+informational: generated files are engine-owned, so `generate` never
+consults it — a `modified` file is a heads-up that the next generate
+will overwrite those edits, not a protection.
 
 `status` resolves the configured schema and renders fresh content on
 demand — the same schema-resolution + worker invocation `generate`
@@ -71,15 +72,15 @@ overall `clean` boolean. Logs and warnings go to stderr.
   formatter-config change doesn't read as an edit — only available
   when the schema is reachable this run; see [Behavior notes](#behavior-notes)).
 - **`modified`** — the file was hand-edited since the last generate.
-  The next `generate` will protect it: no overwrite, no delete.
-  Lasting changes belong in enrichments or hand-written modules;
-  reverting the file resumes generation for it.
+  The next `generate` overwrites it (or prunes it when nothing renders
+  it anymore). Lasting changes belong in enrichments, hand-written
+  modules, or an [ejected](./eject.md) file.
 - **`missing`** — the manifest records it but it's gone from disk.
   The next `generate` rewrites it.
-- **`unverified`** — no lock entry exists (the project predates edit
-  detection, or a fresh clone without the lock). Run
-  `skmtc generate` once to seed the lock; classification activates
-  from the following run.
+- **`unverified`** — no lock entry exists (the project predates the
+  lock, or a fresh clone without it — the lock is machine-local). Run
+  `skmtc generate` once to seed it; classification activates from the
+  following run.
 - **`ejected`** — user-owned by declaration
   (`client.json#settings.ejected`, glyph `E`). Expected to differ from
   generated output, never overwritten or deleted; does not count as
@@ -104,11 +105,12 @@ reached this run):
 
 ### Orphaned files
 
-Lock-tracked paths that the manifest no longer records: stale files a
-previous `generate` would have pruned but spared because they carried
-manual edits. They are no longer produced by any generator — the
-edits are the user's to keep or move; the files are listed so they
-aren't forgotten.
+Lock-tracked paths that the manifest no longer records. A normal
+`generate` prunes stale files and drops their lock entries together,
+so orphans only arise from out-of-band skew — a lock written by an
+older CLI, an interrupted run, or git moving the manifest without the
+(untracked) lock. Listed so they aren't forgotten; the entries clear
+on the next generate.
 
 ## Behavior notes
 
@@ -127,8 +129,8 @@ aren't forgotten.
 
 ## See also
 
-- [generate](./generate.md) — writes the lock `status` reads; protects
-  modified files.
+- [generate](./generate.md) — writes the lock `status` reads;
+  overwrites modified files.
 - [clean](./clean.md) — deletes the full generated set.
 - [client.json schema](../settings/client-json-schema.md) —
   `settings.formatter`, `settings.generatedSuffix`.
