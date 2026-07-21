@@ -174,7 +174,7 @@ Deno.test('statusHeadless - files without a lock entry are unverified', async ()
   }
 })
 
-Deno.test('statusHeadless - edited files spared from pruning surface as orphaned', async () => {
+Deno.test('statusHeadless - stale files are pruned even when edited', async () => {
   const { tempDir, skmtcRootPath, manifestPath } = await toWorkspace('my-api')
   const originalCwd = Deno.cwd()
   try {
@@ -188,7 +188,9 @@ Deno.test('statusHeadless - edited files spared from pruning surface as orphaned
 
       Deno.writeTextFileSync(join(tempDir, 'src/old.ts'), 'export const old = 1 // keep\n')
 
-      // Next generate no longer produces old.ts — the prune spares it.
+      // Next generate no longer produces old.ts — generated files are
+      // engine-owned, so the prune deletes it, edit included, and status
+      // has nothing to report for it.
       writeGeneratedFiles({
         manifestPath,
         artifacts: { 'src/new.ts': 'export const fresh = 1\n' },
@@ -203,9 +205,9 @@ Deno.test('statusHeadless - edited files spared from pruning surface as orphaned
         skmtcRootPath
       })
 
-      assertEquals(result.orphaned, ['src/old.ts'])
+      assertEquals(result.orphaned, [])
       assertEquals(result.counts, { clean: 1, modified: 0, missing: 0, unverified: 0, ejected: 0 })
-      assertEquals(result.clean, false)
+      assertEquals(result.clean, true)
     })
   } finally {
     Deno.chdir(originalCwd)

@@ -4,6 +4,7 @@ import { readGeneratedLock, toGeneratedLockPath } from '@/lib/generated-lock.ts'
 import { manifestContent } from '@skmtc/core/Manifest'
 import * as v from 'valibot'
 import { join } from '@std/path/join'
+import { existsSync } from '@std/fs/exists'
 
 // Helper to create a valid manifest structure
 const createManifest = (files: Record<string, unknown>) => ({
@@ -395,14 +396,15 @@ Deno.test('writeGeneratedFiles - rewrites a file whose content changed', async (
   }
 })
 
-// --- writeGeneratedFiles: edit detection + protect -------------------------
-// The prime invariant of the override/eject arc: `generate` never destroys a
-// hand edit. The writer classifies every on-disk artifact against the
-// generated lock (`.settings/generated.lock.json`) before overwriting or
-// pruning; a file whose content matches neither the recorded formatted hash
-// nor the formatter-drift resolution is left untouched and reported.
+// --- writeGeneratedFiles: engine ownership ---------------------------------
+// Generated files are engine-owned: every run converges the on-disk tree to
+// this run's render, hand edits included. The lock is a write-avoidance
+// cache only (byte-identical and unchanged-formatted skips keep mtimes
+// stable) — it never blocks an overwrite, and `protectedPaths` is always
+// empty. Ejection (`settings.ejected`) is the one sanctioned way to own a
+// file.
 
-/** Runs a test body with console.error captured (protect warnings land on stderr). */
+/** Runs a test body with console.error captured (formatter warnings land on stderr). */
 const withCapturedErrors = async (
   body: (errors: string[]) => Promise<void> | void
 ): Promise<void> => {
@@ -416,7 +418,7 @@ const withCapturedErrors = async (
   }
 }
 
-Deno.test('writeGeneratedFiles - protects a hand-edited file from overwrite', async () => {
+Deno.test('writeGeneratedFiles - overwrites a hand-edited file', async () => {
   const tempDir = await Deno.makeTempDir()
   const originalCwd = Deno.cwd()
   try {
@@ -432,7 +434,8 @@ Deno.test('writeGeneratedFiles - protects a hand-edited file from overwrite', as
         manifest
       })
 
-      // The user edits the generated file by hand.
+      // The user edits the generated file by hand — generated files are
+      // engine-owned, so the next run overwrites the edit.
       Deno.writeTextFileSync(artifactPath, 'export const a = 1 // patched by hand\n')
 
       const result = writeGeneratedFiles({
@@ -441,18 +444,12 @@ Deno.test('writeGeneratedFiles - protects a hand-edited file from overwrite', as
         manifest
       })
 
-      assertEquals(Deno.readTextFileSync(artifactPath), 'export const a = 1 // patched by hand\n')
-      assertEquals(result.protectedPaths, ['out.ts'])
-      assertStringIncludes(errors.join('\n'), 'manual edits')
-
-      // The protection is stable: a third run still refuses to clobber.
-      const again = writeGeneratedFiles({
-        manifestPath,
-        artifacts: { 'out.ts': 'export const a = 3\n' },
-        manifest
-      })
-      assertEquals(Deno.readTextFileSync(artifactPath), 'export const a = 1 // patched by hand\n')
-      assertEquals(again.protectedPaths, ['out.ts'])
+      assertEquals(Deno.readTextFileSync(artifactPath), 'export const a = 2\n')
+      assertEquals(result.protectedPaths, [])
+      assertEquals(
+        errors.filter(msg => msg.includes('manual edits')),
+        []
+      )
     })
   } finally {
     Deno.chdir(originalCwd)
@@ -460,7 +457,7 @@ Deno.test('writeGeneratedFiles - protects a hand-edited file from overwrite', as
   }
 })
 
-Deno.test('writeGeneratedFiles - protects a hand-edited stale file from deletion', async () => {
+Deno.test('writeGeneratedFiles - prunes a stale file even when hand-edited', async () => {
   const tempDir = await Deno.makeTempDir()
   const originalCwd = Deno.cwd()
   try {
@@ -478,20 +475,21 @@ Deno.test('writeGeneratedFiles - protects a hand-edited stale file from deletion
 
       Deno.writeTextFileSync(oldPath, 'export const old = 1 // keep me\n')
 
-      // Next run no longer produces old.ts — normally it would be pruned.
+      // Next run no longer produces old.ts — it is pruned regardless of the
+      // edit. Ejection is the sanctioned way to keep a generated file.
       const result = writeGeneratedFiles({
         manifestPath,
         artifacts: { 'new.ts': 'export const fresh = 1\n' },
         manifest: manifestFor('new.ts')
       })
 
-      assertEquals(Deno.readTextFileSync(oldPath), 'export const old = 1 // keep me\n')
+      assertEquals(existsSync(oldPath), false)
       assertEquals(Deno.readTextFileSync(newPath), 'export const fresh = 1\n')
-      assertEquals(result.protectedPaths, ['old.ts'])
+      assertEquals(result.protectedPaths, [])
 
-      // The spared file keeps its lock entry so future runs can still classify it.
+      // The pruned file's lock entry is dropped with it.
       const lock = readGeneratedLock(toGeneratedLockPath(manifestPath))
-      assertEquals(typeof lock?.files['old.ts']?.canonicalHash, 'string')
+      assertEquals(lock?.files['old.ts'], undefined)
     })
   } finally {
     Deno.chdir(originalCwd)
@@ -499,7 +497,7 @@ Deno.test('writeGeneratedFiles - protects a hand-edited stale file from deletion
   }
 })
 
-Deno.test('writeGeneratedFiles - reverting an edit resumes generation', async () => {
+Deno.test('writeGeneratedFiles - overwrites pre-existing untracked files and seeds the lock', async () => {
   const tempDir = await Deno.makeTempDir()
   const originalCwd = Deno.cwd()
   try {
@@ -509,52 +507,9 @@ Deno.test('writeGeneratedFiles - reverting an edit resumes generation', async ()
       const artifactPath = join(tempDir, 'out.ts')
       const manifest = manifestFor('out.ts')
 
-      writeGeneratedFiles({
-        manifestPath,
-        artifacts: { 'out.ts': 'export const a = 1\n' },
-        manifest
-      })
-      Deno.writeTextFileSync(artifactPath, 'export const a = 99\n')
-
-      const protectedRun = writeGeneratedFiles({
-        manifestPath,
-        artifacts: { 'out.ts': 'export const a = 2\n' },
-        manifest
-      })
-      assertEquals(protectedRun.protectedPaths, ['out.ts'])
-
-      // The user reverts their edit — the file matches the last generated
-      // content again, so generation resumes.
-      Deno.writeTextFileSync(artifactPath, 'export const a = 1\n')
-
-      const resumedRun = writeGeneratedFiles({
-        manifestPath,
-        artifacts: { 'out.ts': 'export const a = 2\n' },
-        manifest
-      })
-      assertEquals(resumedRun.protectedPaths, [])
-      assertEquals(Deno.readTextFileSync(artifactPath), 'export const a = 2\n')
-    })
-  } finally {
-    Deno.chdir(originalCwd)
-    await Deno.remove(tempDir, { recursive: true })
-  }
-})
-
-Deno.test('writeGeneratedFiles - seeds the lock for pre-existing untracked files', async () => {
-  const tempDir = await Deno.makeTempDir()
-  const originalCwd = Deno.cwd()
-  try {
-    Deno.chdir(tempDir)
-    await withCapturedErrors(() => {
-      const manifestPath = join(tempDir, 'manifest.json')
-      const artifactPath = join(tempDir, 'out.ts')
-      const manifest = manifestFor('out.ts')
-
-      // A pre-lock project: the file exists on disk but no lock tracks it.
-      // Migration contract: the first run behaves as before (overwrite) and
-      // seeds the lock; edit detection activates from the next run.
-      Deno.writeTextFileSync(artifactPath, 'export const a = 0 // pre-feature content\n')
+      // No lock yet (fresh clone / first run): the file is overwritten and
+      // the lock is seeded for the write-avoidance skips.
+      Deno.writeTextFileSync(artifactPath, 'export const a = 0 // pre-existing content\n')
 
       const first = writeGeneratedFiles({
         manifestPath,
@@ -564,18 +519,8 @@ Deno.test('writeGeneratedFiles - seeds the lock for pre-existing untracked files
       assertEquals(first.protectedPaths, [])
       assertEquals(Deno.readTextFileSync(artifactPath), 'export const a = 1\n')
 
-      Deno.writeTextFileSync(artifactPath, 'export const a = 1 // edited after seeding\n')
-
-      const second = writeGeneratedFiles({
-        manifestPath,
-        artifacts: { 'out.ts': 'export const a = 2\n' },
-        manifest
-      })
-      assertEquals(second.protectedPaths, ['out.ts'])
-      assertEquals(
-        Deno.readTextFileSync(artifactPath),
-        'export const a = 1 // edited after seeding\n'
-      )
+      const lock = readGeneratedLock(toGeneratedLockPath(manifestPath))
+      assertEquals(typeof lock?.files['out.ts']?.canonicalHash, 'string')
     })
   } finally {
     Deno.chdir(originalCwd)
@@ -633,7 +578,7 @@ Deno.test('writeGeneratedFiles - formats written files and stays quiet on unchan
   }
 })
 
-Deno.test('writeGeneratedFiles - a formatter config change is not an edit', async () => {
+Deno.test('writeGeneratedFiles - a formatter config change converges after the repo reformat', async () => {
   const tempDir = await Deno.makeTempDir()
   const originalCwd = Deno.cwd()
   try {
@@ -650,24 +595,32 @@ Deno.test('writeGeneratedFiles - a formatter config change is not an edit', asyn
       })
       assertEquals(Deno.readTextFileSync(artifactPath), formattedDouble)
 
-      // The user changes their formatter config and reformats the repo —
-      // every generated file's bytes change without any hand edit.
-      Deno.writeTextFileSync(artifactPath, formattedSingle)
+      // Config change alone, render and disk untouched: the unchanged-render
+      // skip still applies — the file keeps the old style for now (lazy).
+      Deno.utimeSync(artifactPath, PAST, PAST)
+      const lazy = writeGeneratedFiles({
+        manifestPath,
+        artifacts: { 'out.ts': canonical },
+        manifest,
+        clientSettings: { formatter: 'deno fmt --options-single-quote' }
+      })
+      assertEquals(lazy.protectedPaths, [])
+      assertEquals(Deno.statSync(artifactPath).mtime?.getTime(), PAST.getTime())
 
+      // The user reformats the repo under the new config (the usual next
+      // step): disk no longer matches the recorded state, so the next run
+      // rewrites and re-formats — converging on the new style.
+      Deno.writeTextFileSync(artifactPath, formattedSingle)
       const rerun = writeGeneratedFiles({
         manifestPath,
         artifacts: { 'out.ts': canonical },
         manifest,
         clientSettings: { formatter: 'deno fmt --options-single-quote' }
       })
-
-      // Re-formatting the stored canonical baseline under the CURRENT config
-      // reproduces the disk content, so the file is clean — not protected,
-      // not rewritten.
       assertEquals(rerun.protectedPaths, [])
       assertEquals(Deno.readTextFileSync(artifactPath), formattedSingle)
 
-      // And the resolution is recorded: the next run compares cheaply again.
+      // The new formatted state is recorded: the next run skips the write.
       Deno.utimeSync(artifactPath, PAST, PAST)
       const third = writeGeneratedFiles({
         manifestPath,
@@ -684,7 +637,7 @@ Deno.test('writeGeneratedFiles - a formatter config change is not an edit', asyn
   }
 })
 
-Deno.test('writeGeneratedFiles - a real edit is detected through the formatter', async () => {
+Deno.test('writeGeneratedFiles - a hand edit under a formatter is overwritten', async () => {
   const tempDir = await Deno.makeTempDir()
   const originalCwd = Deno.cwd()
   try {
@@ -702,8 +655,8 @@ Deno.test('writeGeneratedFiles - a real edit is detected through the formatter',
         clientSettings
       })
 
-      // A semantic edit in the formatted file — formatter-drift resolution
-      // must NOT explain this away.
+      // A semantic edit in the formatted file — overwritten and re-formatted
+      // on the next run like any other divergence.
       const edited = `${formattedDouble}export const b = 2;\n`
       Deno.writeTextFileSync(artifactPath, edited)
 
@@ -714,8 +667,8 @@ Deno.test('writeGeneratedFiles - a real edit is detected through the formatter',
         clientSettings
       })
 
-      assertEquals(rerun.protectedPaths, ['out.ts'])
-      assertEquals(Deno.readTextFileSync(artifactPath), edited)
+      assertEquals(rerun.protectedPaths, [])
+      assertEquals(Deno.readTextFileSync(artifactPath), formattedDouble)
     })
   } finally {
     Deno.chdir(originalCwd)
@@ -762,51 +715,11 @@ Deno.test('writeGeneratedFiles - formatter failure degrades gracefully', async (
   }
 })
 
-Deno.test('writeGeneratedFiles - warnOnProtected: false protects silently', async () => {
-  const tempDir = await Deno.makeTempDir()
-  const originalCwd = Deno.cwd()
-  try {
-    Deno.chdir(tempDir)
-    await withCapturedErrors(errors => {
-      const manifestPath = join(tempDir, 'manifest.json')
-      const artifactPath = join(tempDir, 'out.ts')
-      const manifest = manifestFor('out.ts')
-
-      writeGeneratedFiles({
-        manifestPath,
-        artifacts: { 'out.ts': 'export const a = 1\n' },
-        manifest
-      })
-      Deno.writeTextFileSync(artifactPath, 'export const a = 1 // mine\n')
-
-      // Watch mode: protection still applies, but the multi-line stderr
-      // warning is suppressed — dev prints its own one-line status.
-      const result = writeGeneratedFiles({
-        manifestPath,
-        artifacts: { 'out.ts': 'export const a = 2\n' },
-        manifest,
-        warnOnProtected: false
-      })
-
-      assertEquals(result.protectedPaths, ['out.ts'])
-      assertEquals(Deno.readTextFileSync(artifactPath), 'export const a = 1 // mine\n')
-      assertEquals(
-        errors.filter(msg => msg.includes('manual edits')),
-        []
-      )
-    })
-  } finally {
-    Deno.chdir(originalCwd)
-    await Deno.remove(tempDir, { recursive: true })
-  }
-})
-
 // --- writeGeneratedFiles: ejected files ------------------------------------
 // An ejected file (client.json#settings.ejected, suffix-less export
 // paths) is user-owned: the engine still renders it (drift input), but
 // the host never writes it, never deletes it, and marks it in the
-// manifest. Distinct from `protected` — ejection is declared intent,
-// not a detected edit.
+// manifest. Ejection is declared intent — the one way to own a file.
 
 Deno.test('writeGeneratedFiles - never writes or deletes an ejected file', async () => {
   const tempDir = await Deno.makeTempDir()
