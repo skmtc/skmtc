@@ -29,7 +29,8 @@
  * carry no `lang`. The TypeScript syntax helpers (`List`, `NextList`,
  * `FunctionParameter`, `PathParams`, `toPathParams`, `toPathTemplate`,
  * `identifiers`, `keyValues`, `withDescription`) and the naming layer
- * (`sanitizePropertyName`) live HERE (moved from core under F5/F6 —
+ * (`sanitizePropertyName` for property keys, `sanitizeIdentifier` for
+ * binding names) live HERE (moved from core under F5/F6 —
  * see ../../notes/lang/17-naming-layer-and-helpers-move.md).
  */
 
@@ -81,6 +82,7 @@ export * from './src/identifiers.ts'
 export * from './src/keyValues.ts'
 export * from './src/withDescription.ts'
 export * from './src/sanitizePropertyName.ts'
+export * from './src/sanitizeIdentifier.ts'
 export {
   createVariable,
   createType,
