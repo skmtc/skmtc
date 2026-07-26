@@ -39,13 +39,19 @@ const isFunctionLike = (node: Deno.lint.Node): node is FunctionLike =>
   node.type === 'FunctionExpression' ||
   node.type === 'ArrowFunctionExpression'
 
-/** The name of a non-computed object-property or class-member key. */
+/**
+ * The name of a non-computed object-property or class-member key. A private
+ * member reads back with its `#`, the form the harness records and the form
+ * a reader recognises.
+ */
 export const toKeyName = (key: Deno.lint.Node): string | undefined =>
   key.type === 'Identifier'
     ? key.name
-    : key.type === 'Literal' && typeof key.value === 'string'
-      ? key.value
-      : undefined
+    : key.type === 'PrivateIdentifier'
+      ? `#${key.name}`
+      : key.type === 'Literal' && typeof key.value === 'string'
+        ? key.value
+        : undefined
 
 const toFunctionLabel = (
   fn: FunctionLike,
