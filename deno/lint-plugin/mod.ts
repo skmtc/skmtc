@@ -24,6 +24,7 @@
  * legitimately do the things the rules forbid (see `src/shared/target.ts`).
  */
 
+import { noAdhocToString } from './src/rules/no-adhoc-tostring.ts'
 import { singleDispatch } from './src/rules/single-dispatch.ts'
 import { toStringPurity } from './src/rules/tostring-purity.ts'
 
@@ -36,7 +37,8 @@ export const plugin: Deno.lint.Plugin = {
   name: 'skmtc',
   rules: {
     'tostring-purity': toStringPurity,
-    'single-dispatch': singleDispatch
+    'single-dispatch': singleDispatch,
+    'no-adhoc-tostring': noAdhocToString
   }
 }
 
