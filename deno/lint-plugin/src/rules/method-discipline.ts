@@ -61,6 +61,22 @@ import { toKeyName } from '../shared/nodes.ts'
  * / `#methods`, `SdkServiceImplValue.#delegation` / `#rawImpl` /
  * `#rawMethod`) stay visible.
  *
+ * A method written as a class FIELD holding a function
+ * (`toProperties = (): string => …`) counts too. It is a `PropertyDefinition`
+ * rather than a `MethodDefinition`, but it is the same string-builder the
+ * rule exists to catch — and `tostring-purity` already treats an arrow-field
+ * `toString` as a `toString` body, so the two rules would otherwise disagree
+ * about what a method is.
+ *
+ * `static` members are not methods for this purpose. They are the framework's
+ * contract slots — the engine reads `schemaToValueFn` and `createIdentifier`
+ * off the projection class, and every clean stock generator declares at least
+ * one as a static arrow field. The doctrine is about the instance lifecycle:
+ * the constructor sets state, `toString()` renders it. Excluding statics also
+ * stops `static override toIdentifierName(…)` firing — a naming static that
+ * `string-composition.md` names as expected, and that check 3 flags only
+ * because its member collection ignores the modifier.
+ *
  * ## Known false negatives
  *
  * - A projection whose base is imported under a name that neither ends in
@@ -70,6 +86,16 @@ import { toKeyName } from '../shared/nodes.ts'
  *   expression is not tracked.
  * - Non-mutator helper logic hidden inside a method that ALSO mutates a
  *   container rides along on the accumulator exemption.
+ * - The accumulator exemption matches `CONTAINER_MUTATION` against the
+ *   member's SOURCE TEXT, mirroring the harness. So a method whose emitted
+ *   template text happens to contain `this.x.push(` is exempted as though it
+ *   mutated a container. An AST walk of the body would be tighter; the text
+ *   match is kept because it is the harness's own shape and the collision is
+ *   remote.
+ * - A field assigned a function indirectly (`toProperties = makeBuilder()`)
+ *   is not function-like at the AST level and is not flagged.
+ * - `abstract` member declarations and `accessor` fields are separate node
+ *   kinds and are not inspected. Neither appears in generator code today.
  */
 
 const PROJECTION_BASE_FACTORY = /^to[A-Z]\w*ProjectionBase$/
@@ -92,6 +118,37 @@ const HINT =
   'this producer and share the reference in the constructor.'
 
 type ClassNode = Deno.lint.ClassDeclaration | Deno.lint.ClassExpression
+
+/**
+ * How a method reads in the diagnostic, or `undefined` when the member is
+ * not one — a contract member, or a field holding data rather than a
+ * function.
+ */
+const toMemberDescription = (
+  member: Deno.lint.MethodDefinition | Deno.lint.PropertyDefinition
+): string | undefined => {
+  // `static` members are the framework's contract slots, not instance
+  // behaviour: `schemaToValueFn` and `createIdentifier` are read off the
+  // projection CLASS by the engine, and every clean stock generator declares
+  // them. The doctrine governs the constructor/toString lifecycle, which is
+  // an instance concern.
+  if (member.static) return undefined
+
+  const memberName = toKeyName(member.key)
+  if (memberName !== undefined && CONTRACT_MEMBERS.has(memberName)) return undefined
+  const label = memberName ?? '<computed>'
+
+  if (member.type === 'PropertyDefinition') {
+    const holdsFunction =
+      member.value?.type === 'ArrowFunctionExpression' ||
+      member.value?.type === 'FunctionExpression'
+    return holdsFunction ? `function field ${label}` : undefined
+  }
+
+  if (member.kind === 'get') return `getter ${label}`
+  if (member.kind === 'set') return `setter ${label}`
+  return `method ${label}()`
+}
 
 export const methodDiscipline: Deno.lint.Rule = {
   create(context) {
@@ -162,16 +219,10 @@ export const methodDiscipline: Deno.lint.Rule = {
           if (className === undefined || !producerClassNames.has(className)) continue
 
           for (const member of classNode.body.body) {
-            if (member.type !== 'MethodDefinition') continue
-            const memberName = toKeyName(member.key)
-            if (memberName !== undefined && CONTRACT_MEMBERS.has(memberName)) continue
+            if (member.type !== 'MethodDefinition' && member.type !== 'PropertyDefinition') continue
+            const described = toMemberDescription(member)
+            if (described === undefined) continue
             if (CONTAINER_MUTATION.test(sourceCode.getText(member))) continue
-
-            const label = memberName ?? '<computed>'
-            const described =
-              member.kind === 'get' || member.kind === 'set'
-                ? `${member.kind === 'get' ? 'getter' : 'setter'} ${label}`
-                : `method ${label}()`
 
             context.report({
               node: member,

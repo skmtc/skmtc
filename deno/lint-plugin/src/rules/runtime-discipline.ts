@@ -35,6 +35,10 @@ import { toKeyName } from '../shared/nodes.ts'
  *   aliased import) is not matched.
  * - `for await` is an `AwaitExpression`-free async construct and is not
  *   matched.
+ * - `.then(handlerRef)` — a named function passed by reference rather than
+ *   an inline callback — is not matched. The argument has to be a literal
+ *   arrow or function expression, which is what keeps `.then()` on a
+ *   non-promise builder from firing.
  * - `import 'node:fs'` is matched, but `await import('node:fs')` is
  *   caught only by the `await`, not by the specifier.
  */

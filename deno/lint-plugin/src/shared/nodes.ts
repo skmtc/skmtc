@@ -11,11 +11,8 @@
  *   cast. `context.sourceCode.getAncestors(node)` returns the same chain
  *   (root first, excluding the node) as a typed array — that is the
  *   route every helper here takes.
- * - `TemplateElement` carries `raw`/`cooked`, but a template's emitted
- *   text is read with `sourceCode.getText(node)` to match the harness:
- *   an import statement broken across an interpolation
- *   (`import { ${name} } from '${path}'`) is only visible in the raw
- *   source text.
+ * - A template's emitted text comes from its `quasis`, not from
+ *   `sourceCode.getText(node)`. See {@link toEmittedText}.
  */
 
 /** A function-like node — the frames of the enclosing-scope chain. */
@@ -144,6 +141,28 @@ export const toCalleeName = (callee: Deno.lint.Expression): string | undefined =
 /** The string value of a string literal, when the node is one. */
 export const toStringLiteralValue = (node: Deno.lint.Node): string | undefined =>
   node.type === 'Literal' && typeof node.value === 'string' ? node.value : undefined
+
+// Stands in for each `${…}` when a template's emitted text is assembled.
+// A single non-whitespace character, so an import statement broken across
+// an interpolation (`import { ${name} } from '${path}'`) still reads as one
+// line.
+const INTERPOLATION_PLACEHOLDER = '_'
+
+/**
+ * The text a template literal emits: its own `quasis`, with each
+ * interpolation standing in as one character.
+ *
+ * Reading `sourceCode.getText(node)` instead would be wrong in three ways.
+ * It includes the opening backtick, which is not whitespace — so a
+ * line-anchored pattern can never match an import on the template's FIRST
+ * line (a latent gap in the harness check this was ported from). It
+ * includes nested templates' text, so one violation inside a nested
+ * template reports twice, on the inner node and again on the outer. And it
+ * includes the source of every `${…}` expression, so an identifier that
+ * merely mentions a marker (`${todoCount}`) reads as emitted text.
+ */
+export const toEmittedText = (node: Deno.lint.TemplateLiteral): string =>
+  node.quasis.map(quasi => quasi.raw).join(INTERPOLATION_PLACEHOLDER)
 
 /**
  * A node's source text, collapsed to one line and truncated — the form

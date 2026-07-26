@@ -27,3 +27,10 @@ Deno.test('target: a directory whose name merely contains an excluded word stays
   assertEquals(isGeneratorSource('/root/kotlin-demos/gen-thing/src/Value.ts'), true)
   assertEquals(isGeneratorSource('/root/gen-thing/src/testing.ts'), true)
 })
+
+Deno.test('target: windows paths are scoped the same as posix ones', () => {
+  assertEquals(isGeneratorSource('C:\\root\\.skmtc\\lab\\gen-thing\\src\\Value.ts'), true)
+  assertEquals(isGeneratorSource('C:\\root\\gen-thing\\demo\\run.ts'), false)
+  assertEquals(isGeneratorSource('C:\\root\\gen-thing\\.scripts\\generate.ts'), false)
+  assertEquals(isGeneratorSource('C:\\root\\gen-thing\\src\\Value.test.ts'), false)
+})

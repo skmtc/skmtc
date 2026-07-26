@@ -3,13 +3,24 @@ import { lint, messagesFrom } from '../test/lint.ts'
 
 const RULE = 'no-emitted-todos'
 
-Deno.test('no-emitted-todos: flags each marker in emitted text', () => {
+Deno.test('no-emitted-todos: flags each marker kind in emitted text', () => {
   const todo = messagesFrom(RULE, 'const a = `// TODO: implement the handler`')
   assertEquals(todo.length, 1)
   assertStringIncludes(todo[0] ?? '', 'TODO marker in emitted text')
 
   assertEquals(lint(RULE, 'const b = `// FIXME: wire the client`').length, 1)
   assertEquals(lint(RULE, 'const c = `// XXX: placeholder body`').length, 1)
+})
+
+Deno.test('no-emitted-todos: reports once per template, on the first marker', () => {
+  const messages = messagesFrom(RULE, 'const a = `// TODO: one\n// FIXME: two\n// XXX: three`')
+  assertEquals(messages.length, 1)
+  assertStringIncludes(messages[0] ?? '', 'TODO marker')
+})
+
+Deno.test('no-emitted-todos: reports a nested template once, and ignores marker-named expressions', () => {
+  assertEquals(lint(RULE, 'const a = `head\n${`// TODO: fill in`}\ntail`').length, 1)
+  assertEquals(lint(RULE, 'const b = `${todoCount} items`'), [])
 })
 
 Deno.test('no-emitted-todos: silent on a lowercase placeholder attribute', () => {

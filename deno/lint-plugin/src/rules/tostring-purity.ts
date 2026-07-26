@@ -152,6 +152,9 @@ export const toStringPurity: Deno.lint.Rule = {
       'Program:exit'() {
         for (const call of callsFromToString) {
           if (!registeringNames.has(call.name)) continue
+          // A same-class method NAMED after the register family already
+          // reported directly on the call — don't report it twice.
+          if (REGISTER_FAMILY.has(call.name)) continue
           context.report({
             node: call.node,
             message: `${call.name}(…) registers, and is called from toString() — declaration must settle before render`,

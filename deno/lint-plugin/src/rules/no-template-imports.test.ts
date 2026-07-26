@@ -21,6 +21,18 @@ Deno.test('no-template-imports: flags an import broken across an interpolation',
   assertEquals(lint(RULE, source).length, 1)
 })
 
+Deno.test('no-template-imports: reports a nested template once, on the inner node', () => {
+  const source = "const rendered = `header\n${`import { z } from 'zod'`}\nbody`"
+  const diagnostics = lint(RULE, source)
+  assertEquals(diagnostics.length, 1)
+  // The inner template, not the outer one that merely contains its source.
+  assertEquals(source.slice(...(diagnostics[0]?.range ?? [0, 0])).startsWith('`import'), true)
+})
+
+Deno.test('no-template-imports: silent when the import only exists in an interpolation', () => {
+  assertEquals(lint(RULE, `const rendered = \`\${"import x from 'y'"}\``), [])
+})
+
 Deno.test('no-template-imports: silent on emitted code with no import statement', () => {
   const source = `class Value extends TsSnippet {
       override toString(): string {

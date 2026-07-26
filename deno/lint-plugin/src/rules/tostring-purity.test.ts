@@ -94,6 +94,23 @@ Deno.test('tostring-purity: flags a register reached through a module-level help
   assertEquals(messages.length, 1)
 })
 
+Deno.test('tostring-purity: reports a register-named method called from toString once', () => {
+  const messages = messagesFrom(
+    RULE,
+    `class Value extends TsSnippet {
+       register(args: RegisterArgs) {
+         this.registerInto('a.ts', args)
+       }
+       override toString(): string {
+         this.register({ imports: {} })
+         return 'x'
+       }
+     }`
+  )
+  assertEquals(messages.length, 1)
+  assertStringIncludes(messages[0] ?? '', 'register(…) inside toString()')
+})
+
 Deno.test('tostring-purity: silent on a pure toString reading settled state', () => {
   const source = `class DataClassValue extends KtSnippet {
       parameterList: KtParameterList

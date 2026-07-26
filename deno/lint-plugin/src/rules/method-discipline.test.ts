@@ -50,6 +50,40 @@ Deno.test('method-discipline: flags when the factory is called inline in the ext
   assertEquals(lint(RULE, source).length, 1)
 })
 
+Deno.test('method-discipline: flags a string-builder written as an arrow field', () => {
+  const messages = messagesFrom(
+    RULE,
+    `class ZodObject extends TsSnippet {
+       entries: string[] = []
+       toProperties = (): string => this.entries.join(', ')
+       override toString(): string { return this.toProperties() }
+     }`
+  )
+  assertEquals(messages.length, 1)
+  assertStringIncludes(messages[0] ?? '', 'function field toProperties on producer ZodObject')
+})
+
+Deno.test('method-discipline: silent on data fields and on an arrow-field toString', () => {
+  const source = `class StringValue extends KtSnippet {
+      type = 'string' as const
+      annotations: KtAnnotation[] = []
+      parameterList = new KtParameterList([])
+      builder = makeBuilder()
+      toString = (): string => 'String'
+    }`
+  assertEquals(lint(RULE, source), [])
+})
+
+Deno.test('method-discipline: silent on the static contract slots', () => {
+  const source = `class ZodProjection extends ZodBase {
+      static schemaToValueFn = (...args: Parameters<typeof toZodValue>) => toZodValue(...args)
+      static createIdentifier = createVariable
+      static toRefName(refName: string): string { return refName }
+      override toString() { return \`\${this.value}\` }
+    }`
+  assertEquals(lint(RULE, source), [])
+})
+
 Deno.test('method-discipline: silent on constructor + toString only', () => {
   const source = `class StringValue extends KtSnippet {
       type = 'string' as const

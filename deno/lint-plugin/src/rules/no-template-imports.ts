@@ -1,4 +1,5 @@
 import { isGeneratorSource } from '../shared/target.ts'
+import { toEmittedText } from '../shared/nodes.ts'
 
 /**
  * `skmtc/no-template-imports` — imports reach emitted files through
@@ -15,6 +16,10 @@ import { isGeneratorSource } from '../shared/target.ts'
  *
  * - Emitted text assembled outside a template literal (a `+`
  *   concatenation, an array joined at render) is not scanned.
+ * - An import statement that only exists inside an interpolation — a
+ *   string literal or a nested template held in `${…}` — is attributed to
+ *   that inner node, not to this one (see `toEmittedText`), so a bare
+ *   `${"import x from 'y'"}` is missed.
  * - A dynamic `import('…')` in emitted text is not an import statement
  *   and is not matched.
  *
@@ -28,14 +33,6 @@ import { isGeneratorSource } from '../shared/target.ts'
 
 const TEMPLATE_IMPORT = /^\s*import\b(.*\bfrom\b|\s+['"])/m
 
-// The template's own text starts with a backtick, which is not
-// whitespace, so an import on the FIRST line of the template would never
-// satisfy the line-start anchor. Dropping the opening backtick makes the
-// first line behave like every other one — a deliberate improvement over
-// the harness, which reads the node text verbatim and so only catches
-// imports from the second line on.
-const toEmittedText = (text: string): string => text.replace(/^`/, '')
-
 const HINT =
   'The register family is the only import channel: this.register({ imports }) for the own file, ' +
   'this.registerInto(path, { imports }) cross-file, this.register({ imports, destinationPath }) ' +
@@ -47,7 +44,7 @@ export const noTemplateImports: Deno.lint.Rule = {
 
     return {
       TemplateLiteral(node) {
-        if (!TEMPLATE_IMPORT.test(toEmittedText(context.sourceCode.getText(node)))) return
+        if (!TEMPLATE_IMPORT.test(toEmittedText(node))) return
         context.report({
           node,
           message: 'import statement in emitted text — imports are added via register',

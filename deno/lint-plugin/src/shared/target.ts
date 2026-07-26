@@ -8,7 +8,11 @@
  * test builds a `{ toString }` double and casts with `as`.
  *
  * A lint rule sees one absolute filename and cannot locate the package
- * root, so the scope is approximated by path shape instead. The
+ * root, so the scope is approximated by path shape instead. Both separators
+ * are split on: `deno lint` hands rules a backslash path on Windows, and
+ * splitting on `/` alone there would match no directory segment at all —
+ * every excluded tree would come INTO scope, which is the wrong failure
+ * direction for a one-directional precision policy. The
  * approximation is deliberately loose in one direction only: it may skip
  * a file the harness would have read (a generator that happens to live
  * under a directory named `tests`), never the reverse. Consumers narrow
@@ -32,6 +36,8 @@ const EXCLUDED_SEGMENTS = new Set([
 
 const TEST_FILE = /\.(test|spec|bench)\.[cm]?[jt]sx?$/
 
+const PATH_SEPARATOR = /[/\\]/
+
 // Dot-directories inside a generator hold its own tooling (`.scripts`
 // build scripts, `.github` workflows) and are out of scope like `scripts/`.
 // `.skmtc` is the exception: it is the project workspace root, so every
@@ -46,7 +52,7 @@ const isExcludedSegment = (segment: string): boolean =>
  * every rule, so a rule body never repeats the scope question.
  */
 export const isGeneratorSource = (filename: string): boolean => {
-  const segments = filename.split('/')
+  const segments = filename.split(PATH_SEPARATOR)
   const basename = segments.at(-1) ?? ''
   return !TEST_FILE.test(basename) && !segments.slice(0, -1).some(isExcludedSegment)
 }
