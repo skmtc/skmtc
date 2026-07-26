@@ -29,6 +29,7 @@ import { noAsCasts } from './src/rules/no-as-casts.ts'
 import { noEmittedTodos } from './src/rules/no-emitted-todos.ts'
 import { noRedundantRefGuard } from './src/rules/no-redundant-ref-guard.ts'
 import { noTemplateImports } from './src/rules/no-template-imports.ts'
+import { runtimeDiscipline } from './src/rules/runtime-discipline.ts'
 import { singleDispatch } from './src/rules/single-dispatch.ts'
 import { toStringPurity } from './src/rules/tostring-purity.ts'
 
@@ -46,7 +47,8 @@ export const plugin: Deno.lint.Plugin = {
     'no-as-casts': noAsCasts,
     'no-template-imports': noTemplateImports,
     'no-emitted-todos': noEmittedTodos,
-    'no-redundant-ref-guard': noRedundantRefGuard
+    'no-redundant-ref-guard': noRedundantRefGuard,
+    'runtime-discipline': runtimeDiscipline
   }
 }
 
