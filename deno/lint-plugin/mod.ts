@@ -24,6 +24,8 @@
  * legitimately do the things the rules forbid (see `src/shared/target.ts`).
  */
 
+import { toStringPurity } from './src/rules/tostring-purity.ts'
+
 /**
  * The plugin. `name: 'skmtc'` makes rule ids read `skmtc/<rule>`, which is
  * what a consumer excludes in `deno.json` and what
@@ -31,7 +33,9 @@
  */
 export const plugin: Deno.lint.Plugin = {
   name: 'skmtc',
-  rules: {}
+  rules: {
+    'tostring-purity': toStringPurity
+  }
 }
 
 export default plugin
