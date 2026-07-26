@@ -35,12 +35,17 @@ bash "$HARNESS_DIR/seed.sh" "$WORKSPACE"
 # Declare off-limits paths (defense in depth: deny rules for the Read
 # tool; the contamination AUDIT gate on the transcript is the real
 # enforcement since Bash can read anything under skip-permissions).
-SKMTC_ROOT=$(cd "$HARNESS_DIR/../../../.." && pwd)
+# Workspace root = parent of the MAIN skmtc checkout, derived via git so
+# harness runs from a linked worktree resolve correctly (the plain
+# ../../../.. default landed inside .claude/worktrees/).
+SKMTC_ROOT=${SKMTC_ROOT:-$(dirname "$(git -C "$HARNESS_DIR" worktree list --porcelain | head -1 | cut -d' ' -f2-)")}
 mkdir -p "$WORKSPACE/.claude"
-SETTINGS_PATH="$WORKSPACE/.claude/settings.json" SKMTC_ROOT="$SKMTC_ROOT" node - <<'EOF'
+SETTINGS_PATH="$WORKSPACE/.claude/settings.json" SKMTC_ROOT="$SKMTC_ROOT" \
+  GRADER_SRC="$(cd "$HARNESS_DIR/../src" && pwd)" node - <<'EOF'
 const { writeFileSync } = require('node:fs')
 const root = process.env.SKMTC_ROOT
 const home = process.env.HOME
+const graderSrc = process.env.GRADER_SRC
 const deny = [
   `Read(${root}/skmtc-generators/**)`,
   `Read(${root}/.skmtc/**)`,
@@ -49,6 +54,13 @@ const deny = [
   `Read(${root}/kotlin-spring-demo/**)`,
   `Read(${root}/csharp-demos/**)`,
   `Read(${root}/skmtc/packages/gen-eval/harness/runs/**)`,
+  // The structural eval's implementation: the workspace wrapper is
+  // runnable, the source it delegates to is not readable — the
+  // grader's output is the feedback surface, the skills the doctrine
+  // channel. Both the harness's own copy (the wrapper target, correct
+  // under worktree overrides) and the main checkout's are denied.
+  `Read(${graderSrc}/**)`,
+  `Read(${root}/skmtc/packages/gen-eval/src/**)`,
   // Package caches hold published @skmtc/* sources incl. the Kotlin
   // answer generators — framework source is sanctioned at the
   // workspace's reference/skmtc-deno symlink instead.
@@ -70,10 +82,16 @@ HARNESS_SHA=$(cat "$HARNESS_DIR/run.sh" "$HARNESS_DIR/seed.sh" "$HARNESS_DIR/gat
 SKILL_DIRTY=$(git -C "$SKMTC_REPO" status --porcelain -- deno/docs/skills deno/docs/llms.md | wc -l | tr -d ' ')
 PERSON_API_SHA=$(git -C "$SKMTC_ROOT/kotlin-person-api" rev-parse HEAD 2>/dev/null || echo unknown)
 PERSON_API_DIRTY=$(git -C "$SKMTC_ROOT/kotlin-person-api" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+# The skmtc on PATH is a compiled binary — its age is provenance the
+# git SHAs can't see (a stale binary scaffolds a stale skeleton; run
+# 20260720-192026). Preflight asserts the scaffold shape; this records
+# which binary actually ran.
+SKMTC_BIN=$(command -v skmtc || echo missing)
+SKMTC_BIN_MTIME=$([ -f "$SKMTC_BIN" ] && stat -f '%Sm' -t '%Y-%m-%dT%H:%M:%S' "$SKMTC_BIN" || echo unknown)
 mkdir -p "$RUN_DIR/skill-snapshot"
 cp -RL "$HOME/.claude/skills/skmtc-generator" "$RUN_DIR/skill-snapshot/" 2>/dev/null || true
 cp -RL "$HOME/.claude/skills/skmtc-lang-kotlin" "$RUN_DIR/skill-snapshot/" 2>/dev/null || true
-META_PATH="$RUN_DIR/meta.json" MODEL="$MODEL" SKILL_SHA="$SKILL_SHA" SKILL_DIRTY="$SKILL_DIRTY" LABEL="$LABEL" TASK_SHA="$TASK_SHA" HARNESS_SHA="$HARNESS_SHA" PERSON_API_SHA="$PERSON_API_SHA" PERSON_API_DIRTY="$PERSON_API_DIRTY" node - <<'EOF'
+META_PATH="$RUN_DIR/meta.json" MODEL="$MODEL" SKILL_SHA="$SKILL_SHA" SKILL_DIRTY="$SKILL_DIRTY" LABEL="$LABEL" TASK_SHA="$TASK_SHA" HARNESS_SHA="$HARNESS_SHA" PERSON_API_SHA="$PERSON_API_SHA" PERSON_API_DIRTY="$PERSON_API_DIRTY" SKMTC_BIN="$SKMTC_BIN" SKMTC_BIN_MTIME="$SKMTC_BIN_MTIME" node - <<'EOF'
 const { writeFileSync } = require('node:fs')
 writeFileSync(process.env.META_PATH, JSON.stringify({
   model: process.env.MODEL,
@@ -84,6 +102,8 @@ writeFileSync(process.env.META_PATH, JSON.stringify({
   harnessSha: process.env.HARNESS_SHA,
   personApiSha: process.env.PERSON_API_SHA,
   personApiDirtyFiles: Number(process.env.PERSON_API_DIRTY),
+  skmtcBin: process.env.SKMTC_BIN,
+  skmtcBinMtime: process.env.SKMTC_BIN_MTIME,
   thinkingBudget: process.env.MAX_THINKING_TOKENS ?? null,
   started: new Date().toISOString()
 }, null, 2))
@@ -113,6 +133,12 @@ echo ""
 # 4. The authoring run — headless, transcript with thinking captured.
 #    --dangerously-skip-permissions is scoped to this throwaway
 #    workspace; the model needs to run skmtc/deno/gradle freely.
+#    --add-dir extends the sandbox to the framework source the
+#    reference/skmtc-deno symlink points at — without it the sandbox
+#    reports the target as ENOENT and every sanctioned source dive
+#    fails looking like a wrong path (run 150032 friction #2), while
+#    the task brief promises the path is readable. The deny rules +
+#    contamination audit still police what may be read there.
 cd "$WORKSPACE"
 set +e
 claude -p "$(cat "$HARNESS_DIR/task.md")" \
@@ -120,6 +146,7 @@ claude -p "$(cat "$HARNESS_DIR/task.md")" \
   --output-format stream-json \
   --verbose \
   --dangerously-skip-permissions \
+  --add-dir "$SKMTC_ROOT/skmtc/deno" \
   2> "$RUN_DIR/claude-stderr.log" \
   | tee "$RUN_DIR/transcript.jsonl" \
   | node "$HARNESS_DIR/timeline.js" --tee "$RUN_DIR/timeline.md"
@@ -153,6 +180,24 @@ if (existsSync(process.env.TRANSCRIPT)) {
 }
 const meta = JSON.parse(readFileSync(process.env.META_PATH, 'utf8'))
 meta.result = result
+writeFileSync(process.env.META_PATH, JSON.stringify(meta, null, 2))
+EOF
+
+# 5b. Thinking metrics. The reasoning TEXT is redacted by the API, but
+#     the stream carries per-block token estimates and per-message
+#     timestamps, so the blocks are measurable — and a single block can
+#     eat half a run (run 20260720-223422: 51,550 tokens / 477 s / 55%
+#     of wall clock). thinking.js is the one implementation; meta.json
+#     carries its numbers so index.jsonl and the dashboard never
+#     re-parse the transcript.
+META_PATH="$RUN_DIR/meta.json" THINKING_JSON="$(node "$HARNESS_DIR/thinking.js" --json "$RUN_DIR" 2>/dev/null || echo null)" node - <<'EOF'
+const { readFileSync, writeFileSync } = require('node:fs')
+const meta = JSON.parse(readFileSync(process.env.META_PATH, 'utf8'))
+try {
+  meta.thinking = JSON.parse(process.env.THINKING_JSON || 'null')
+} catch {
+  meta.thinking = null
+}
 writeFileSync(process.env.META_PATH, JSON.stringify(meta, null, 2))
 EOF
 
@@ -191,7 +236,10 @@ const entry = {
   structural: aggregate.verdict ?? null,
   warnings: aggregate.warningCount ?? null,
   costUsd: meta.result?.costUsd ?? null,
-  turns: meta.result?.turns ?? null
+  turns: meta.result?.turns ?? null,
+  thinkTotalTokens: meta.thinking?.thinkTotalTokens ?? null,
+  maxThinkBlockTokens: meta.thinking?.maxThinkBlock?.tokens ?? null,
+  maxThinkBlockSeconds: meta.thinking?.maxThinkBlock?.seconds ?? null
 }
 appendFileSync(process.env.INDEX_PATH, JSON.stringify(entry) + '\n')
 console.log(JSON.stringify(entry, null, 2))

@@ -14,6 +14,7 @@ import { runTemplateImports } from './template-imports.ts'
 import { runEmittedTodos } from './emitted-todos.ts'
 import { runRuntimeDiscipline } from './runtime-discipline.ts'
 import { runRedundantRefGuards } from './redundant-ref-guard.ts'
+import { runSingleDispatch } from './single-dispatch.ts'
 import { toAggregate } from '../aggregate.ts'
 
 /** One entry per check module; `doc` names the file under docs/. */
@@ -32,7 +33,8 @@ export const CHECKS = [
   { id: 'template-imports', title: 'No import statements in template literals', doc: 'template-imports.md' },
   { id: 'emitted-todos', title: 'TODO markers in emitted text (informational)', doc: 'emitted-todos.md' },
   { id: 'runtime-discipline', title: 'Valid synchronous Deno; side effects are logs + registers', doc: 'runtime-discipline.md' },
-  { id: 'redundant-ref-guard', title: 'No redundant isRef() guards around resolve()', doc: 'redundant-ref-guard.md' }
+  { id: 'redundant-ref-guard', title: 'No redundant isRef() guards around resolve()', doc: 'redundant-ref-guard.md' },
+  { id: 'single-dispatch', title: 'schema.type dispatch lives only in the SchemaToValueFn router', doc: 'single-dispatch.md' }
 ] as const
 
 export const runAll = (facts: PackageFacts): GeneratorReport => {
@@ -52,6 +54,7 @@ export const runAll = (facts: PackageFacts): GeneratorReport => {
     accumulator: runAccumulator(facts),
     producerSizes: runProducerSize(facts),
     toStringPurity: runToStringPurity(facts),
+    singleDispatch: runSingleDispatch(facts),
     adHocToString: runAdHocToString(facts),
     asCasts: runAsCasts(facts),
     redundantRefGuards: runRedundantRefGuards(facts),

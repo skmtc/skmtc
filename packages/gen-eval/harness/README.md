@@ -88,8 +88,8 @@ post-processing.
 6. **Post-run capture** — the Claude Code session file is copied in;
    cost/turns/duration are extracted from the stream's result event
    into `meta.json`.
-7. **Gates** (`gates.sh`) — see below; also runs the structural eval
-   over the authored generator and writes `report.md`.
+7. **Gates** (`gates.sh`) — see below; the structural eval over the
+   authored generator is one of the gates. Writes `report.md`.
 8. **Archive** — the temp workspace is copied to
    `runs/<id>/workspace/` and the temp dir deleted; the viewer is
    re-baked as a static self-contained file; the run is appended to
@@ -106,7 +106,9 @@ Three synchronized views while a run is live:
 - **Dashboard** — `http://127.0.0.1:8484/` lists every run with
   status (**LIVE** / done / **aborted** — aborted = no result event
   and the transcript quiet for 5 minutes), verdict, gates, turns,
-  cost, and skill SHA. Auto-refreshes.
+  cost, largest think block (tokens / seconds), and skill SHA.
+  Auto-refreshes. The think column reads from `meta.thinking`, so runs
+  archived before that field existed show `—`.
 - **Live viewer** — `http://127.0.0.1:8484/runs/<id>/viewer.html`
   polls the transcript every ~3 s. It *tails* the newest turn while
   you're at the end and *holds your position* if you've scrubbed
@@ -115,7 +117,8 @@ Three synchronized views while a run is live:
 ### Milestones
 
 Detected in `timeline.js` and the viewer (green ticks on the scrubber
-track); each fires once, on first occurrence:
+track); each fires once, on first occurrence — except `deep think`,
+which fires per block (see below):
 
 | Milestone | Trigger |
 |---|---|
@@ -128,15 +131,38 @@ track); each fires once, on first occurrence:
 | `first test attempt` | Bash command containing `gradle test` |
 | `clean generate` | a tool result containing `"type": "generated"` with `"errors": []` |
 | `gradle BUILD SUCCESSFUL` | a tool result containing `BUILD SUCCESSFUL` |
+| `deep think` | a think block over 60 s of wall clock **or** 5000 estimated tokens — fires per block, not once |
 | `run finished — turns/cost` | the stream's result event (viewer only) |
+
+`deep think` is the one milestone that repeats: a run can stall
+repeatedly and each stall is a separate thing to bracket. The
+thresholds are `DEEP_THINK_SECONDS` / `DEEP_THINK_TOKENS` in
+`timeline.js` and `viewer.template.html` — 60 s is an order of
+magnitude above the typical few-second block (long enough to read as a
+stall while you watch the terminal), 5000 tokens is past step-level
+deliberation into plan-scale reasoning; either alone fires, since a
+fast large block and a slow small one are both worth a look. In the
+viewer it gets a violet scrubber tick of its own (legend: *deep
+think*) and a header block stating the gap, token estimate, and
+context size.
 
 **Feedback marks** (every occurrence, not once-only): `WHY:` assistant
 lines render as `>>> WHY: …` in the timeline and as blue-badged blocks
 + blue scrubber ticks in the viewer; every `FRICTION.md` append prints
-`*** FRICTION: <entry title>` and every `RETRO.md` write prints
-`*** RETRO written`, with amber badges/ticks in the viewer. The
+`*** FRICTION: <entry title>`, every `RETRO.md` write prints
+`*** RETRO written`, and every `PLAN.md` write prints
+`*** PLAN written/amended`, with amber badges/ticks in the viewer. The
 scrubber legend shows all four tick colors — amber ticks are your
 jump-to-friction navigation.
+
+`PLAN.md` is the highest-value of the three to read against the think
+blocks. Reasoning is redacted, so a plan the model keeps in its head
+leaves nothing behind but a wall-clock gap; the task therefore asks
+for the module list, the router-case mapping, and the policy
+decisions to be written down *before* implementation. Comparing when
+the plan mark fires against when the deep-think block fires is the
+direct measure of whether the run externalized its design or
+deliberated it silently.
 
 Together they trace the intended arc: skills → the three generator
 files → bundle → generate → clean generate → tests green. A run whose
@@ -174,10 +200,38 @@ estimates; if a model/config ever ships plaintext, the full
 collapsible reasoning appears automatically. `MAX_THINKING_TOKENS`
 still controls how much reasoning *happens*.
 
-Post-hoc tooling: `node harness/viewer.js <run-dir>` re-bakes a
-static viewer; `node harness/viewer.js --template out.html` builds a
-drag-and-drop page that opens any transcript;
-`node harness/timeline.js <transcript.jsonl>` re-renders a timeline.
+**Redacted is not unmeasured.** The stream carries
+`system/thinking_tokens` events (cumulative *within* a block — the
+deltas restart at each new block, so the last value before an assistant
+message is that block's size, never a sum across blocks), and every
+assistant message carries a `timestamp` and a `usage` block. So each
+think block has a size (estimated tokens), a wall-clock cost (the gap
+back to the previous timestamped event — assistant or tool result), and
+a context size (`cache_read + cache_creation`) — all without a word of
+the reasoning. What remains unavailable is *why*, and the only
+substitute is **bracketing**: the tool calls immediately before a block
+are what the model had just seen, and the assistant text plus first
+`Write`/`Edit` after it are what the block decided. A block is
+diagnosed by reading those two ends. This matters because the blocks
+are not uniform — in run `20260720-223422` a single block took 51,550
+estimated tokens and 477 s, 55% of the entire run's wall clock, and
+nothing in the harness said so until `thinking.js` existed.
+
+Post-hoc tooling: `node harness/thinking.js <run-dir>` prints the
+bracketed think-block table (`--summary` for the one-liner `report.md`
+carries, `--json` for the `meta.json` metrics); `node
+harness/viewer.js <run-dir>` re-bakes a static viewer; `node
+harness/viewer.js --template out.html` builds a drag-and-drop page that
+opens any transcript; `node harness/timeline.js <transcript.jsonl>`
+re-renders a timeline.
+
+`thinking.js` lists blocks **largest first**, not in run order: the
+distribution is long-tailed — one block routinely carries most of the
+reasoning — so the block you have to read is the first one printed. Run
+order is not lost, since every record carries its elapsed time into the
+run. The footer line gives total thinking tokens, thinking as a share
+of the model's total output tokens, and the largest block's share of
+run wall clock.
 
 ---
 
@@ -261,17 +315,17 @@ empty.
 
 | File | What it is |
 |---|---|
-| `report.md` | Gates table + structural verdict — **read this first** |
+| `report.md` | Gates table + structural verdict, plus the source/grader dive counts, reference diff, feedback-channel counts, and the **Thinking** line (total estimated tokens, share of model output, largest block in tokens/seconds/share of wall clock) — **read this first** |
 | `viewer.html` | The scrubber viewer (live during the run, static after) |
 | `timeline.md` | Turn-by-turn skim view: milestones, tool calls, errors |
 | `structural.md` / `.json` | The structural eval (all checks + aggregate verdict) over the authored generator |
 | `transcript.jsonl` | Full stream-json feed: every tool call, every event |
 | `session.jsonl` | The Claude Code session file (backup capture) |
-| `meta.json` | Model, label, skill SHA + dirty flag, thinking budget, cost, turns, duration |
+| `meta.json` | Model, label, skill SHA + dirty flag, thinking budget, cost, turns, duration, `thinking` (block count, `thinkTotalTokens`, share of output, `maxThinkBlock`: tokens / seconds / elapsed / context / what it decided) |
 | `skill-snapshot/` | The skmtc-generator + skmtc-lang-kotlin skills exactly as this run saw them |
-| `workspace/` | The full sandbox: authored generator at `.skmtc/lab/gen-kotlin-jackson/`, generated file at `kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.kt`, reference material at `reference/` |
+| `workspace/` | The full sandbox: authored generator at `.skmtc/lab/gen-kotlin-jackson/`, generated file at `kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.generated.kt`, reference material at `reference/` |
 | `generate.json`, `compile.log`, `dtos-diff.txt`, `integrity.log` | Raw gate evidence + the reference diff |
-| `../index.jsonl` | One line per run: model, skill SHA, gates, verdict, cost, turns |
+| `../index.jsonl` | One line per run: model, skill SHA, gates, verdict, cost, turns, `thinkTotalTokens`, `maxThinkBlockTokens`, `maxThinkBlockSeconds` |
 
 ---
 
@@ -288,25 +342,34 @@ empty.
    masquerading as generated: clean deletes it, generate must
    recreate it).
 3. **dtos-file** — the single
-   `com/example/api/dto/Dtos.kt` exists and declares every
-   `components.schemas` entry.
+   `com/example/api/dto/Dtos.generated.kt` exists and declares every
+   `components.schemas` entry (default `generatedSuffix`; Kotlin
+   resolves by package, so the hand-written `Dtos.kt` name is not
+   required).
 4. **compile** — `gradle compileKotlin`: the whole Spring Boot app
    (controller, services, serde, config) compiles against the
    generated DTOs (skipped with a note if no gradle).
+5. **dto-contract** — `gradle test`: the app's `DtoContractTest`
+   suite exercises serde round-trips the compile gate cannot see
+   (skipped with a note if no gradle).
+6. **structural** — the structural eval over the authored generator
+   (checks documented in [`../docs/`](../docs/README.md)): a `fail`
+   aggregate verdict fails the gate; `warn` passes with the warning
+   count in the detail. A missing generator or unreadable eval is a
+   loud FAIL — green gates must never coexist with an unread
+   structural FAIL.
 
 The report also surfaces a **reference diff** (not a gate): the
-generated `Dtos.kt` diffed against the repo's real one
-(`dtos-diff.txt`). Declarations, annotations, types, and defaults are
+generated `Dtos.generated.kt` diffed against the repo's real
+hand-written `Dtos.kt` (`dtos-diff.txt`). Declarations, annotations, types, and defaults are
 derivable from the schema and should converge to zero; KDoc prose is
 authored commentary absent from the schema, so those lines are
 expected to remain.
 
-Then the **structural eval** runs over the authored generator
-(checks documented in [`../docs/`](../docs/README.md)). Reference
-points: the existing sub-par implementation's signature is
-`FAIL(1F+10W)`; the clean stock cohort is `clean`. The target
-trajectory across harness iterations is FAIL → warn → clean with all
-gates green.
+Structural reference points: the existing sub-par implementation's
+signature is `FAIL(1F+10W)`; the clean stock cohort is `clean`. The
+target trajectory across harness iterations is FAIL → warn → clean
+with all gates green.
 
 ---
 
@@ -344,6 +407,14 @@ belong at `reference/skmtc-deno` instead.
    then). For the plan-level story, skim `timeline.md`: did it load
    the skill, when did `src/base.ts written` fire, did it loop on an
    error?
+
+   If the report's **Thinking** line shows a block that ate a large
+   share of the run — or the timeline fired `deep think` — run `node
+   harness/thinking.js harness/runs/<id>` and read that block's bracket: the
+   tool calls before it are the evidence it was reasoning over, the
+   `Write` after it is the conclusion it reached. A long block followed
+   by a small, confident write usually means the skills left it
+   deriving something they could have stated.
 3. Map the failure to a skill section, edit
    `skmtc/deno/docs/skills/skmtc-generator/SKILL.md`, run
    `deno task verify-docs` in `skmtc/deno`.
@@ -366,6 +437,7 @@ read the transcripts, not just the counts.
 | `gates.sh` | Runtime gates + structural eval + `report.md` |
 | `task.md` | The prompt (verbatim) |
 | `timeline.js` | stream-json → one-line-per-action view (`--tee` live mode, file arg post-hoc) |
+| `thinking.js` | Think-block analysis: per-block wall gap, estimated tokens, context size, bracketed by the tool calls before and the decision after (`--summary` → the `report.md` line, `--json` → the `meta.json` metrics) |
 | `viewer.js` + `viewer.template.html` | Bakes the scrubber viewer (`--template` = live/drag-drop mode) |
 | `server.js` | The persistent dashboard (`node harness/server.js`, port `GEN_EVAL_PORT` or 8484, binds 127.0.0.1) |
 | `runs/` | One directory per run + `index.jsonl` (gitignored) |
@@ -380,7 +452,7 @@ read the transcripts, not just the counts.
   up to that point are intact and viewable.
 - **compile gate `skip`** — no gradle found. Install
   `brew install gradle openjdk@21` and re-run gates:
-  `bash harness/gates.sh runs/<id>/workspace runs/<id>`.
+  `bash harness/gates.sh harness/runs/<id>/workspace harness/runs/<id>`.
 - **Files pane empty mid-run** — check the timeline: the model may
   genuinely not have written anything yet (research phase). The pane
   replays Write/Edit tools and bash heredocs; exotic write methods
@@ -388,7 +460,7 @@ read the transcripts, not just the counts.
 - **Dashboard not up** — `node harness/server.js` (logs to
   `harness/dashboard.log`); `/health` is the probe run.sh uses.
 - **Viewer looks stale for an old run** — re-bake it:
-  `node harness/viewer.js runs/<id>`.
+  `node harness/viewer.js harness/runs/<id>`.
 - **Gates re-run on an archived run** — works against the copied
-  workspace: `bash harness/gates.sh runs/<id>/workspace runs/<id>`
+  workspace: `bash harness/gates.sh harness/runs/<id>/workspace harness/runs/<id>`
   (the generate gate re-executes `skmtc clean`+`generate` in place).

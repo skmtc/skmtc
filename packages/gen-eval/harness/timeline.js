@@ -14,6 +14,15 @@ const MILESTONE_CMDS = [
   ['skmtc generate', 'first generate attempt'],
   ['gradle test', 'first test attempt']
 ]
+// A think block is "deep" when it stalls the run or reasons at plan
+// scale: 60 s is an order of magnitude above the typical few-second
+// block and long enough to read as a stall; 5000 tokens is past
+// step-level deliberation. Either alone fires. Unlike the other
+// milestones this one fires per block, not once — a run can stall
+// repeatedly and each stall is a separate thing to bracket.
+// (Kept in sync by hand with viewer.template.html.)
+const DEEP_THINK_SECONDS = 60
+const DEEP_THINK_TOKENS = 5000
 
 process.stdout.on('error', error => {
   if (error.code === 'EPIPE') process.exit(0)
@@ -23,6 +32,7 @@ process.stdout.on('error', error => {
 const start = Date.now()
 let turn = 0
 let pendingThinkingTokens = null
+let lastEventTime = null
 const toolNames = new Map()
 const seenMilestones = new Set()
 
@@ -58,6 +68,11 @@ const feedbackMark = (path, content) => {
     emit(`*** FRICTION${last ? `: ${last.slice(0, 80)}` : ' entry logged'}`)
   } else if (path.endsWith('RETRO.md')) {
     emit('*** RETRO written')
+  } else if (path.endsWith('PLAN.md')) {
+    // The plan is the externalized form of the reasoning the API
+    // redacts — every write is a mark, since the task asks for it to be
+    // amended in place rather than rewritten.
+    emit('*** PLAN written/amended')
   }
 }
 
@@ -113,6 +128,15 @@ const handleToolUse = item => {
 }
 
 const handleEvent = event => {
+  // Wall gap = this message's timestamp minus the previous timestamped
+  // event (assistant OR user — tool results carry timestamps too). The
+  // thinking text is redacted, so the gap and the streamed token
+  // estimate are all the block leaves behind.
+  const eventTime = event.timestamp ? Date.parse(event.timestamp) : null
+  const gapSeconds = eventTime != null && lastEventTime != null
+    ? (eventTime - lastEventTime) / 1000
+    : null
+  if (eventTime != null) lastEventTime = eventTime
   if (event.type === 'system' && event.subtype === 'init') {
     emit(`session start — model ${event.model || '?'}`)
     return
@@ -132,9 +156,18 @@ const handleEvent = event => {
       }
       if (item.type === 'thinking') {
         const chars = (item.thinking || '').length
+        const tokens = pendingThinkingTokens
+        const gap = gapSeconds != null ? `, ${gapSeconds.toFixed(1)}s` : ''
         emit(chars > 0
-          ? `thinking (${chars} chars)`
-          : `thinking (redacted${pendingThinkingTokens ? `, ~${pendingThinkingTokens} tok` : ''})`)
+          ? `thinking (${chars} chars${gap})`
+          : `thinking (redacted${tokens ? `, ~${tokens} tok` : ''}${gap})`)
+        if ((gapSeconds != null && gapSeconds > DEEP_THINK_SECONDS) || (tokens ?? 0) > DEEP_THINK_TOKENS) {
+          milestone(
+            `deep-think:${turn}`,
+            `deep think — ${gapSeconds != null ? `${gapSeconds.toFixed(0)}s` : 'unknown gap'}` +
+              `${tokens ? ` / ~${tokens} tokens` : ''} (reasoning redacted — bracket it: harness/thinking.js)`
+          )
+        }
         pendingThinkingTokens = null
       }
       else if (item.type === 'text') {
