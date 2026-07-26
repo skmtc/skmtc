@@ -1360,11 +1360,14 @@ Concept deep-dives, the full API-reference link set, and the
 enforcement-test index live in [`references.md`](references.md). The
 rule to remember: where an enforcement test exists for an invariant,
 the test is the executable spec — read or run it when in doubt.
+
+<!-- api-appendix:begin — GENERATED, do not edit by hand -->
+
 ## Appendix — generated API reference
 
 The full `deno doc` surface for the packages this skill covers lives
 in [`appendix.md`](appendix.md), in this skill's directory —
-generated from framework source at `278f1ea2`, signatures and
+generated from framework source at `d2f2d415`, signatures and
 field docs only. It is **authoritative**: when the prose above does
 not carry the exact constructor or field shape you need, Read (or
 grep) `appendix.md` instead of diving into package source. Do not

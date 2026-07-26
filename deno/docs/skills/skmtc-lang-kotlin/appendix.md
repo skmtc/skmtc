@@ -1,6 +1,6 @@
 # Appendix — generated API reference
 
-> Generated from framework source at `278f1ea2` by
+> Generated from framework source at `d2f2d415` by
 > `deno run --allow-read --allow-write --allow-run=deno,git .scripts/generate-skill-api-appendix.ts`
 > (from `deno/`). **Authoritative** for signatures, fields, and doc
 > comments — trust it instead of re-reading package source. JSDoc

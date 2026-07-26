@@ -27,6 +27,46 @@ type Target = {
   sections: AppendixSection[]
 }
 
+const oasIrSection: AppendixSection = {
+  title: '`@skmtc/core` — the OAS IR a generator reads',
+  intro:
+    'The schema classes handed to `transform` / projections via ' +
+    '`resolveSchemaRefOnce` and friends: every `OasSchema` variant with its ' +
+    'exact fields, plus `OasRef`, `CustomValue`, and the discriminator. ' +
+    'Wire facts (`readOnly` / `writeOnly` / `format` / `enums` / `default`) ' +
+    'live on the concrete variants listed here — narrow with ' +
+    '`switch (resolved.type)` and read inside the branch.',
+  files: [
+    'core/oas/schema/Schema.ts',
+    'core/oas/string/String.ts',
+    'core/oas/integer/Integer.ts',
+    'core/oas/number/Number.ts',
+    'core/oas/boolean/Boolean.ts',
+    'core/oas/array/Array.ts',
+    'core/oas/object/Object.ts',
+    'core/oas/union/Union.ts',
+    'core/oas/unknown/Unknown.ts',
+    'core/oas/ref/Ref.ts',
+    'core/oas/discriminator/Discriminator.ts',
+    'core/dsl/CustomValue.ts'
+  ]
+}
+
+const routerAndInsertionSection: AppendixSection = {
+  title: '`@skmtc/core` — the router and insertion contracts',
+  intro:
+    'The `SchemaToValueFn` router contract (`TypeSystemArgs` in, ' +
+    '`TypeSystemOutput` out — structural: a per-type snippet carries its ' +
+    "output type's fields alongside its own state), the deliberately thin " +
+    '`Modifiers`, and the `Inserted` handle `insertModel` / ' +
+    '`insertOperation` return (`inserted.definition.value` IS the peer ' +
+    'projection instance for Driver-built definitions). Note: consumers of ' +
+    "routed values read the generator's own value fields (`annotations`, " +
+    '`defaultValue`) rather than narrowing `.type` — some doc-comment ' +
+    'examples below predate that rule.',
+  files: ['core/types/TypeSystem.ts', 'core/types/Modifiers.ts', 'core/dsl/Inserted.ts']
+}
+
 const targets: Target[] = [
   {
     skill: 'docs/skills/skmtc-lang-kotlin/SKILL.md',
@@ -45,46 +85,12 @@ const targets: Target[] = [
   {
     skill: 'docs/skills/skmtc-generator/SKILL.md',
     appendix: 'docs/skills/skmtc-generator/appendix.md',
-    sections: [
-      {
-        title: '`@skmtc/core` — the OAS IR a generator reads',
-        intro:
-          'The schema classes handed to `transform` / projections via ' +
-          '`resolveSchemaRefOnce` and friends: every `OasSchema` variant with its ' +
-          'exact fields, plus `OasRef`, `CustomValue`, and the discriminator. ' +
-          'Wire facts (`readOnly` / `writeOnly` / `format` / `enums` / `default`) ' +
-          'live on the concrete variants listed here — narrow with ' +
-          '`switch (resolved.type)` and read inside the branch.',
-        files: [
-          'core/oas/schema/Schema.ts',
-          'core/oas/string/String.ts',
-          'core/oas/integer/Integer.ts',
-          'core/oas/number/Number.ts',
-          'core/oas/boolean/Boolean.ts',
-          'core/oas/array/Array.ts',
-          'core/oas/object/Object.ts',
-          'core/oas/union/Union.ts',
-          'core/oas/unknown/Unknown.ts',
-          'core/oas/ref/Ref.ts',
-          'core/oas/discriminator/Discriminator.ts',
-          'core/dsl/CustomValue.ts'
-        ]
-      },
-      {
-        title: '`@skmtc/core` — the router and insertion contracts',
-        intro:
-          'The `SchemaToValueFn` router contract (`TypeSystemArgs` in, ' +
-          '`TypeSystemOutput` out — structural: a per-type snippet carries its ' +
-          "output type's fields alongside its own state), the deliberately thin " +
-          '`Modifiers`, and the `Inserted` handle `insertModel` / ' +
-          '`insertOperation` return (`inserted.definition.value` IS the peer ' +
-          'projection instance for Driver-built definitions). Note: consumers of ' +
-          "routed values read the generator's own value fields (`annotations`, " +
-          '`defaultValue`) rather than narrowing `.type` — some doc-comment ' +
-          'examples below predate that rule.',
-        files: ['core/types/TypeSystem.ts', 'core/types/Modifiers.ts', 'core/dsl/Inserted.ts']
-      }
-    ]
+    sections: [oasIrSection, routerAndInsertionSection]
+  },
+  {
+    skill: 'docs/skills/skmtc-generator-v2/SKILL.md',
+    appendix: 'docs/skills/skmtc-generator-v2/appendix.md',
+    sections: [oasIrSection, routerAndInsertionSection]
   }
 ]
 
