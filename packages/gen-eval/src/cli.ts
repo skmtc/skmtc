@@ -21,6 +21,9 @@ type CliArgs = {
   verbose: boolean
 }
 
+const USAGE =
+  'usage: gen-eval [genDir ...] [--scan parentDir | --stock] [--json out.json] [--md out.md]'
+
 const parseArgs = (argv: string[]): CliArgs => {
   const args: CliArgs = { targets: [], scan: undefined, jsonOut: undefined, mdOut: undefined, verbose: false }
   for (let index = 0; index < argv.length; index++) {
@@ -30,7 +33,16 @@ const parseArgs = (argv: string[]): CliArgs => {
     else if (value === '--json') args.jsonOut = argv[++index]
     else if (value === '--md') args.mdOut = argv[++index]
     else if (value === '--verbose') args.verbose = true
-    else if (value !== undefined) args.targets.push(value)
+    else if (value === '--help' || value === '-h') {
+      console.log(USAGE)
+      process.exit(0)
+    } else if (value !== undefined && value.startsWith('-')) {
+      // An unknown flag must not fall through to the target list — it
+      // would be resolved as a directory and crash with a stack trace.
+      console.error(`unknown flag: ${value}`)
+      console.error(USAGE)
+      process.exit(2)
+    } else if (value !== undefined) args.targets.push(value)
   }
   return args
 }
@@ -295,9 +307,13 @@ const main = (): void => {
     ...(args.scan ? findGeneratorDirs(resolve(args.scan)) : [])
   ]
   if (dirs.length === 0) {
-    console.error(
-      'usage: gen-eval [genDir ...] [--scan parentDir | --stock] [--json out.json] [--md out.md]'
-    )
+    console.error(USAGE)
+    process.exit(2)
+  }
+  const missing = dirs.filter(dir => !existsSync(dir))
+  if (missing.length > 0) {
+    console.error(`no such generator dir: ${missing.join(', ')}`)
+    console.error(USAGE)
     process.exit(2)
   }
 

@@ -7,7 +7,12 @@
 The generator has exactly one schema-dispatch site. Every place the
 source inspects a schema's `.type` to make a decision — a
 `switch (schema.type)`, a `schema.type === 'object'` comparison in a
-ternary or if-chain — is classified by where it sits:
+ternary or if-chain — is classified by where it sits. Both forms are
+guarded by the schema-type vocabulary: a comparison counts only when
+the literal is a schema type, and a switch counts only when at least
+one `case` tests a schema-type literal — a switch over some other
+`.type` field (an AST kind, an OpenAPI security scheme) is not schema
+dispatch. Sites are classified:
 
 - **router** — inside a function named `to<X>Value` /
   `schemaToValueFn`, or one annotated with `SchemaToValueFn`. The

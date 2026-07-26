@@ -475,7 +475,9 @@ const parseFile = (path: string, genDir: string): FileFacts => {
 
     // --- template hygiene: imports and TODO markers in emitted text ---
     if (ts.isTemplateExpression(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
-      const templateText = node.getText(sourceFile)
+      // Strip the opening backtick: TEMPLATE_IMPORT is line-anchored, and
+      // the backtick otherwise hides an import on the template's first line.
+      const templateText = node.getText(sourceFile).replace(/^`/, '')
       if (TEMPLATE_IMPORT.test(templateText)) {
         facts.templateImportSites.push(siteOf(node, stack))
       }
@@ -569,7 +571,16 @@ const parseFile = (path: string, genDir: string): FileFacts => {
     if (
       ts.isSwitchStatement(node) &&
       ts.isPropertyAccessExpression(node.expression) &&
-      node.expression.name.text === 'type'
+      node.expression.name.text === 'type' &&
+      // At least one case must test a schema-type literal — a switch over
+      // some other `.type` vocabulary (AST kinds, security schemes) is not
+      // schema dispatch. Mirrors the guard the comparison form carries.
+      node.caseBlock.clauses.some(
+        clause =>
+          ts.isCaseClause(clause) &&
+          ts.isStringLiteralLike(clause.expression) &&
+          SCHEMA_TYPE_LITERALS.has(clause.expression.text)
+      )
     ) {
       facts.schemaDispatchSites.push({
         ...siteOf(node, stack),
