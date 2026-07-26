@@ -26,6 +26,7 @@
 
 import { noAdhocToString } from './src/rules/no-adhoc-tostring.ts'
 import { noAsCasts } from './src/rules/no-as-casts.ts'
+import { noTemplateImports } from './src/rules/no-template-imports.ts'
 import { singleDispatch } from './src/rules/single-dispatch.ts'
 import { toStringPurity } from './src/rules/tostring-purity.ts'
 
@@ -40,7 +41,8 @@ export const plugin: Deno.lint.Plugin = {
     'tostring-purity': toStringPurity,
     'single-dispatch': singleDispatch,
     'no-adhoc-tostring': noAdhocToString,
-    'no-as-casts': noAsCasts
+    'no-as-casts': noAsCasts,
+    'no-template-imports': noTemplateImports
   }
 }
 
