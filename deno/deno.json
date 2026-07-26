@@ -30,6 +30,7 @@
     "./lang-python",
     "./lang-rust",
     "./lang-typescript",
+    "./lint-plugin",
     "./mcp",
     "./openapi-down-convert",
     "./openapi-overlays",
