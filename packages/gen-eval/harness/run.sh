@@ -89,7 +89,7 @@ PERSON_API_DIRTY=$(git -C "$SKMTC_ROOT/kotlin-person-api" status --porcelain 2>/
 SKMTC_BIN=$(command -v skmtc || echo missing)
 SKMTC_BIN_MTIME=$([ -f "$SKMTC_BIN" ] && stat -f '%Sm' -t '%Y-%m-%dT%H:%M:%S' "$SKMTC_BIN" || echo unknown)
 mkdir -p "$RUN_DIR/skill-snapshot"
-cp -RL "$HOME/.claude/skills/skmtc-generator" "$RUN_DIR/skill-snapshot/" 2>/dev/null || true
+cp -RL "$HOME/.claude/skills/skmtc-generator-v2" "$RUN_DIR/skill-snapshot/" 2>/dev/null || true
 cp -RL "$HOME/.claude/skills/skmtc-lang-kotlin" "$RUN_DIR/skill-snapshot/" 2>/dev/null || true
 META_PATH="$RUN_DIR/meta.json" MODEL="$MODEL" SKILL_SHA="$SKILL_SHA" SKILL_DIRTY="$SKILL_DIRTY" LABEL="$LABEL" TASK_SHA="$TASK_SHA" HARNESS_SHA="$HARNESS_SHA" PERSON_API_SHA="$PERSON_API_SHA" PERSON_API_DIRTY="$PERSON_API_DIRTY" SKMTC_BIN="$SKMTC_BIN" SKMTC_BIN_MTIME="$SKMTC_BIN_MTIME" node - <<'EOF'
 const { writeFileSync } = require('node:fs')

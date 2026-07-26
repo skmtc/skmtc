@@ -22,7 +22,7 @@ fixed-scale decimal string via the hand-written serde classes;
 `readOnly`/`writeOnly` access control; an ISO `@JsonFormat` timestamp;
 and `additionalProperties` as a defaulted `Map`.
 
-**Load the `skmtc-generator`, `skmtc-lang-kotlin`, and `skmtc-cli`
+**Load the `skmtc-generator-v2`, `skmtc-lang-kotlin`, and `skmtc-cli-v2`
 skills before writing any code**, and follow them: projection base via
 the lang package's factory, snippets for fragments, imports via
 register calls, no string composition outside `toString()`,
@@ -70,12 +70,15 @@ register calls, no string composition outside `toString()`,
   has type-only imports and per-schema files; Kotlin here wants one
   file, path-derived packages, and annotation-driven serialization).
 - **Framework source** is readable at `reference/skmtc-deno/` (a
-  read-only link to the SKMTC monorepo's deno workspace): `core/src`
-  is the engine — the `OasSchema` classes, drivers, and context whose
-  API surface `@skmtc/core` exposes — and `lang-kotlin/` is the same
-  package vendored into your project. Look things up THERE; never go
-  hunting in package caches (`~/.cache/deno`, `~/Library/Caches/deno`
-  are off-limits and audited).
+  read-only link to the SKMTC monorepo's deno workspace): `core/` is
+  the engine — the `OasSchema` classes live one directory per type at
+  `core/oas/<type>/<Type>.ts` (there is no `core/src`), drivers and
+  context under `core/dsl` / `core/context` — and `lang-kotlin/` is
+  the same package vendored into your project. Look things up THERE;
+  never go hunting in package caches (`~/.cache/deno`,
+  `~/Library/Caches/deno` are off-limits and audited). Recursive
+  greps may fail silently through the symlink — resolve it first:
+  `grep -rn <pattern> "$(readlink reference/skmtc-deno)/core/oas"`.
 
 ## Working method
 

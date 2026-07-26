@@ -955,7 +955,11 @@ Split every decision by where its fact lives:
   there, so a shared per-type snippet cannot carry it without being
   wrong at one of the two sites. The parameter renderer reads both per
   property and concatenates its own position annotations with the
-  value's type annotations. The rule generalizes: **a fact that can
+  value's type annotations. When BOTH facts apply to one property,
+  they combine into a single annotation with two named args —
+  `@JsonProperty(value = "user_id", access = JsonProperty.Access.READ_ONLY)`
+  — never two `@JsonProperty` annotations; the single-arg forms are
+  the degenerate cases. The rule generalizes: **a fact that can
   differ between two properties of the same schema type is a position
   fact**, whatever it is declared on.
 - **Cross-type wire facts → the `in` operator.** `readOnly` /
@@ -1151,12 +1155,12 @@ object is a Kotlin `Map`, not a data class, and the split is a
 Unlike the string forks (whose targets render different Kotlin types
 and are therefore separate snippet modules), the object fork stays
 ONE snippet for the whole case, and the stock shape dissolves the
-where-do-the-delegates-live question: **the TypeSystem contract
-fields themselves hold the delegate snippets** — `objectProperties`
+where-do-the-child-snippets-live question: **the TypeSystem contract
+fields themselves hold the child snippets** — `objectProperties`
 and `recordProperties` are slots the `'object'` output type demands
 anyway, each nullable, each holding the snippet that renders that
 half. No wrapper, no mirroring: the contract slot IS where the
-delegate lives. (This shape is already worked in full in this
+child snippet lives. (This shape is already worked in full in this
 skill — no need to open gen-zod's source to re-derive it.)
 
 ```ts fragment
@@ -1166,16 +1170,22 @@ case 'object':
 
 ```ts fragment
 // The skeleton's DataClassValue, generalized (gen-zod's ZodObject
-// shape). Contract fields hold the delegates; toString branches on
-// its OWN nullable fields — own state, never schema.type.
+// shape). Contract fields hold the child snippets; toString branches
+// on its OWN nullable fields — own state, never schema.type.
 export class ObjectValue extends KtSnippet {
   type = 'object' as const
-  objectProperties: DataClassParameters | null // the parameter-list delegate
-  recordProperties: MapValue | null            // the Map<String, V> delegate
+  // DataClassParameters must ALSO carry a bare `properties:
+  // Record<string, TypeSystemValue>` field (fill it in the same
+  // per-property loop that builds `parameters`) — the router returns
+  // this value as `TypeSystemValue & KtValueFields`, and the contract's
+  // `TypeSystemObjectProperties` shape requires it structurally or
+  // `deno check` rejects the 'object' case.
+  objectProperties: DataClassParameters | null // the parameter-list snippet
+  recordProperties: MapValue | null            // the Map<String, V> snippet
   modifiers: Modifiers
   annotations: KtAnnotation[] = []
   defaultValue?: Stringable
-  parameters: KtDataClassParameter[] | undefined // KtValueFields slot (same array the delegate renders)
+  parameters: KtDataClassParameter[] | undefined // KtValueFields slot (same array the parameter-list snippet renders)
 
   constructor({ context, objectSchema, destinationPath, modifiers }: Args) {
     super({ context })
@@ -1453,7 +1463,7 @@ being rewritten onto this model; the migration log is
 
 The full `deno doc` surface for the packages this skill covers lives
 in [`appendix.md`](appendix.md), in this skill's directory —
-generated from framework source at `278f1ea2`, signatures and
+generated from framework source at `d2f2d415`, signatures and
 field docs only. It is **authoritative**: when the prose above does
 not carry the exact constructor or field shape you need, Read (or
 grep) `appendix.md` instead of diving into package source. Do not
