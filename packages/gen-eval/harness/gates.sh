@@ -261,6 +261,30 @@ try {
 EOF
 )
 gate structural "${VERDICT%%|*}" "${VERDICT#*|}"
+
+# Gate — deno lint with @skmtc/lint-plugin over the authored
+# generator: the per-file half of the doctrine as diagnostics
+# (PR #97). Runs the REPO's plugin by path, not the scaffolded jsr
+# pin — deterministic, offline, and immune to the 24h
+# minimum-dependency-age window after a plugin release. Built-in
+# Deno rules are disabled (rules.tags: []) so only doctrine findings
+# gate; the plugin's scaffold-is-clean test guarantees a clean
+# baseline, so every finding here is authored drift.
+LINT_DIRS=$(find .skmtc/lab -maxdepth 1 -type d -name 'gen-*' 2>/dev/null)
+if [ -n "$LINT_DIRS" ]; then
+  LINT_CONFIG=$(mktemp "${TMPDIR:-/tmp}/gen-eval-lint.XXXXXX")
+  printf '{ "lint": { "plugins": ["%s"], "rules": { "tags": [] } } }\n' \
+    "$SKMTC_ROOT/skmtc/deno/lint-plugin/mod.ts" > "$LINT_CONFIG"
+  if deno lint --config "$LINT_CONFIG" $LINT_DIRS > "$OUT/lint.txt" 2>&1; then
+    gate lint ok "deno lint (skmtc plugin): 0 findings"
+  else
+    LINT_COUNT=$(grep -cE 'error\[skmtc/' "$OUT/lint.txt" || true)
+    gate lint FAIL "$LINT_COUNT doctrine finding(s) — see lint.txt"
+  fi
+  rm -f "$LINT_CONFIG"
+else
+  gate lint FAIL "no generator dir under .skmtc/lab"
+fi
 FRICTION_COUNT=$([ -f FRICTION.md ] && grep -c '^## ' FRICTION.md || echo 0)
 RETRO_STATE=$([ -f RETRO.md ] && echo yes || echo no)
 # Thinking is redacted but measurable: streamed per-block token

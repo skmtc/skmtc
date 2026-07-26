@@ -54,6 +54,34 @@ Deno.test('PackageDenoJson - create and write cycle works', async () => {
   }
 })
 
+Deno.test('PackageDenoJson - lint plugin config round-trips', async () => {
+  const tempDir = await Deno.makeTempDir()
+  const denoJsonPath = join(tempDir, 'deno.json')
+
+  try {
+    const manager = createMockManager()
+    const packageDenoJson = PackageDenoJson.create(
+      {
+        path: denoJsonPath,
+        contents: {
+          name: '@test/package',
+          version: '1.0.0',
+          exports: './mod.ts',
+          lint: { plugins: ['jsr:@skmtc/lint-plugin@^0.1.0'] }
+        }
+      },
+      manager
+    )
+
+    await packageDenoJson.write()
+
+    const loaded = await PackageDenoJson.open(denoJsonPath, manager)
+    assertEquals(loaded.contents.lint?.plugins, ['jsr:@skmtc/lint-plugin@^0.1.0'])
+  } finally {
+    await Deno.remove(tempDir, { recursive: true })
+  }
+})
+
 Deno.test('PackageDenoJson - open adds cleanup action to manager', async () => {
   const tempDir = await Deno.makeTempDir()
   const denoJsonPath = join(tempDir, 'deno.json')
