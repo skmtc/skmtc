@@ -37,6 +37,7 @@ export const toAggregate = (report: Omit<GeneratorReport, 'aggregate'>): Aggrega
   if (!report.adHocToString.pass) failedChecks.push('adhoc-tostring')
   if (!report.templateImports.pass) failedChecks.push('template-imports')
   if (!report.runtimeDiscipline.pass) failedChecks.push('runtime-discipline')
+  if (!report.singleDispatch.pass) failedChecks.push('single-dispatch')
 
   const warnings = {
     flaggedProducers: report.methodDiscipline.flagged.length,

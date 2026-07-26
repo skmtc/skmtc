@@ -6,8 +6,13 @@ set -euo pipefail
 
 WORKSPACE=${1:?usage: seed.sh <workspace-dir>}
 HARNESS_DIR=$(cd "$(dirname "$0")" && pwd)
-# harness/ -> gen-eval -> packages -> skmtc -> skmtc-root
-SKMTC_ROOT=$(cd "$HARNESS_DIR/../../../.." && pwd)
+# harness/ -> gen-eval -> packages -> skmtc -> skmtc-root. Overridable so
+# the harness can run from a worktree checkout (whose walk-up lands in
+# .claude/worktrees) while still seeding from the real sibling repos.
+# Workspace root = parent of the MAIN skmtc checkout, derived via git so
+# harness runs from a linked worktree resolve correctly (the plain
+# ../../../.. default landed inside .claude/worktrees/).
+. "$HARNESS_DIR/skmtc-root.sh"
 LANG_KOTLIN="$SKMTC_ROOT/skmtc/deno/lang-kotlin"
 REF_GENERATORS="$SKMTC_ROOT/skmtc-generators"
 PERSON_API="$SKMTC_ROOT/kotlin-person-api"
@@ -33,13 +38,23 @@ writeFileSync(path, JSON.stringify(config, null, 2))
 EOF
 
 # 2. Vendored lang-kotlin (pre-alpha; not on public JSR) as a workspace
-#    member, wired into the project import map
+#    member, wired into the project import map. The root map also pins
+#    @skmtc/core (mirrored from the vendored package, keeping the
+#    same-pin rule single-sourced) — the CLI convention (see
+#    Generator.clone's doc comment) is that peer deps live in the
+#    project ROOT deno.json, and a scaffolded generator member cannot
+#    type-check without it (run 20260720-214151 friction #3: the agent
+#    had to hand-pin core, guessing).
 cp -R "$LANG_KOTLIN" .skmtc/lab/lang-kotlin
 node - <<'EOF'
 const { readFileSync, writeFileSync } = require('node:fs')
 const path = '.skmtc/lab/deno.json'
 const config = JSON.parse(readFileSync(path, 'utf8'))
+const langKotlin = JSON.parse(readFileSync('.skmtc/lab/lang-kotlin/deno.json', 'utf8'))
+const corePin = (langKotlin.imports ?? {})['@skmtc/core']
+if (typeof corePin !== 'string') throw new Error('vendored lang-kotlin pins no @skmtc/core')
 config.imports = config.imports ?? {}
+config.imports['@skmtc/core'] = corePin
 config.workspace = ['./lang-kotlin']
 writeFileSync(path, JSON.stringify(config, null, 2))
 EOF
@@ -71,8 +86,28 @@ done
 ln -s "$SKMTC_ROOT/skmtc/deno" reference/skmtc-deno
 # The structural eval the harness grades with, runnable mid-task:
 #   node reference/structural-eval/cli.ts --scan .skmtc/lab
-# (src only — run transcripts stay out of reach)
-ln -s "$SKMTC_ROOT/skmtc/packages/gen-eval/src" reference/structural-eval
+# Runnable ONLY — the workspace gets a thin delegating wrapper, not the
+# source (run 123817 confirmed grader-source dives persist even with
+# rule text inlined in eval output, so the read path is closed: the
+# grader's OUTPUT is the feedback surface; the doctrine channel is the
+# skills). The wrapper delegates to the harness's OWN eval package —
+# never $SKMTC_ROOT's copy: with an SKMTC_ROOT override (worktree
+# runs) they can differ, and the agent must iterate against the exact
+# eval that grades it. The delegation target is denied to the Read
+# tool (run.sh settings) and audited as contamination (gates.sh).
+mkdir -p reference/structural-eval
+GRADER_CLI="$(cd "$HARNESS_DIR/../src" && pwd)/cli.ts"
+cat > reference/structural-eval/cli.ts <<WRAPPER
+#!/usr/bin/env node
+// Thin delegator to the structural eval that grades this run. The
+// implementation is off-limits by design: run it and read its OUTPUT
+// (the table prints each flagged check's rule text; --md <file> lists
+// the offending sites). The rules it enforces are taught by the
+// skills, not by this source.
+import { spawnSync } from 'node:child_process'
+const result = spawnSync('node', ['$GRADER_CLI', ...process.argv.slice(2)], { stdio: 'inherit' })
+process.exit(result.status ?? 1)
+WRAPPER
 
 # 5. Integrity checksums — the gates disqualify a run that edits these:
 #    the schema, the app's build files, every hand-written app source,

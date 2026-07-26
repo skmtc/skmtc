@@ -37,9 +37,12 @@ fi
 # paths (other generator implementations, demo apps, previous runs).
 # Scans tool_use INPUTS in the transcript — deny rules alone cannot
 # stop Bash reads under skip-permissions, so this is the enforcement.
-SKMTC_ROOT=$(cd "$HARNESS_DIR/../../../.." && pwd)
+# Workspace root = parent of the MAIN skmtc checkout, derived via git so
+# harness runs from a linked worktree resolve correctly (the plain
+# ../../../.. default landed inside .claude/worktrees/).
+. "$HARNESS_DIR/skmtc-root.sh"
 if [ -f "$OUT/transcript.jsonl" ]; then
-  AUDIT=$(TRANSCRIPT="$OUT/transcript.jsonl" SKMTC_ROOT="$SKMTC_ROOT" node - <<'EOF'
+  AUDIT=$(TRANSCRIPT="$OUT/transcript.jsonl" SKMTC_ROOT="$SKMTC_ROOT" GEN_EVAL_SRC="$(cd "$GEN_EVAL/src" && pwd)" node - <<'EOF'
 const { readFileSync } = require('node:fs')
 const root = process.env.SKMTC_ROOT
 const forbidden = [
@@ -60,6 +63,30 @@ const forbidden = [
 const writeTools = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit'])
 const writeForbidden = [`${root}/skmtc/deno`, 'reference/skmtc-deno']
 const hits = []
+// Sanctioned framework-source reads (reference/skmtc-deno, the vendored
+// lang-kotlin) are legal but each one is time the skills failed to save.
+// Counted per tool call and reported as the "source dives" metric.
+const diveTools = new Set(['Bash', 'Read', 'Grep', 'Glob'])
+const divePattern = /reference\/skmtc-deno|lab\/lang-kotlin/
+// Grader-studying behavior: each poke at the grader means the agent
+// believes it knows something the skills do not. RUNNING the eval via
+// cli.ts is by design and not counted — cli.ts mentions are stripped
+// before matching. Matched BOTH by the workspace-relative name AND by
+// the resolved source path (run 195833 read the checks through
+// absolute worktree paths and the relative-only pattern reported a
+// false 0). ESCALATED after run 123817 (dives persisted with rule
+// text inlined in eval output): the workspace now holds only a
+// delegating wrapper, and any read that reaches the delegation
+// target (the real source, GEN_EVAL_SRC) is contamination — see the
+// hits.push below. Workspace-relative pokes at the wrapper dir stay
+// a counted metric.
+// (No apostrophes in this heredoc: the macOS bash 3.2 parser tracks
+// quotes through command substitution and an odd count eats the
+// closing paren.)
+const graderPattern = /reference\/structural-eval/
+const graderSrc = process.env.GEN_EVAL_SRC || ''
+let dives = 0
+let graderDives = 0
 for (const line of readFileSync(process.env.TRANSCRIPT, 'utf8').split('\n')) {
   let event
   try { event = JSON.parse(line) } catch { continue }
@@ -68,26 +95,52 @@ for (const line of readFileSync(process.env.TRANSCRIPT, 'utf8').split('\n')) {
   for (const item of content) {
     if (item && item.type === 'tool_use') {
       const payload = JSON.stringify(item.input ?? {})
+      // Write tools match on their TARGET only, everywhere below —
+      // file CONTENT legitimately mentions framework and grader paths
+      // (RETRO.md citing reference/skmtc-deno or the wrapper path must
+      // not disqualify a run that never read the source).
+      const target = (item.input ?? {}).file_path ?? (item.input ?? {}).notebook_path ?? ''
+      const scanText = writeTools.has(item.name) ? target : payload
       for (const path of forbidden) {
-        if (payload.includes(path)) hits.push(`${item.name}: …${path.split('/').pop()}`)
+        if (scanText.includes(path)) hits.push(`${item.name}: …${path.split('/').pop()}`)
       }
       if (writeTools.has(item.name)) {
         for (const path of writeForbidden) {
-          if (payload.includes(path)) hits.push(`${item.name} into framework source: …${path.split('/').pop()}`)
+          if (target.includes(path)) hits.push(`${item.name} into framework source: …${path.split('/').pop()}`)
         }
+      }
+      if (diveTools.has(item.name) && divePattern.test(payload)) dives += 1
+      const strippedPayload = scanText
+        .replaceAll('reference/structural-eval/cli.ts', '')
+        .replaceAll(`${graderSrc}/cli.ts`, '')
+      if (
+        diveTools.has(item.name) &&
+        (graderPattern.test(strippedPayload) ||
+          (graderSrc !== '' && strippedPayload.includes(graderSrc)))
+      ) graderDives += 1
+      // The escalation itself: any tool call reaching the delegation
+      // target (not a cli.ts run, stripped above) disqualifies the run.
+      if (graderSrc !== '' && strippedPayload.includes(graderSrc)) {
+        hits.push(`${item.name} into grader source: …${graderSrc.split('/').slice(-2).join('/')}`)
       }
     }
   }
 }
 if (hits.length) {
-  console.log(`FAIL|${hits.length} forbidden access(es): ${[...new Set(hits)].sort().slice(0, 4).join('; ')}`)
+  console.log(`FAIL|${hits.length} forbidden access(es): ${[...new Set(hits)].sort().slice(0, 4).join('; ')}|${dives}|${graderDives}`)
 } else {
-  console.log('ok|no tool call touched forbidden paths')
+  console.log(`ok|no tool call touched forbidden paths|${dives}|${graderDives}`)
 }
 EOF
 )
+  GRADER_DIVES="${AUDIT##*|}"
+  AUDIT="${AUDIT%|*}"
+  SOURCE_DIVES="${AUDIT##*|}"
+  AUDIT="${AUDIT%|*}"
   gate contamination "${AUDIT%%|*}" "${AUDIT#*|}"
 else
+  SOURCE_DIVES="n/a"
+  GRADER_DIVES="n/a"
   gate contamination skip "no transcript.jsonl in out dir"
 fi
 
@@ -113,12 +166,14 @@ EOF
 )
 gate generate "${GEN_SUMMARY%%|*}" "${GEN_SUMMARY#*|}"
 
-# Gate 2 — target file: the single Dtos.kt exists and declares every
-# components.schemas entry (the objective is ONE file, not one per schema)
+# Gate 2 — target file: the single Dtos.generated.kt exists and declares
+# every components.schemas entry (the objective is ONE file, not one per
+# schema; default generatedSuffix — Kotlin resolves by package, so the
+# generated file need not take the hand-written Dtos.kt name)
 COVERAGE=$(node - <<'EOF'
 const { readFileSync, existsSync } = require('node:fs')
 const schemas = Object.keys(JSON.parse(readFileSync('kotlin-person-api/openapi.json', 'utf8')).components.schemas)
-const target = 'kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.kt'
+const target = 'kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.generated.kt'
 if (!existsSync(target)) {
   console.log(`FAIL|${target} was not generated`)
 } else {
@@ -127,9 +182,9 @@ if (!existsSync(target)) {
     name => !new RegExp(`(class|interface|typealias)\\s+${name}\\b`).test(source)
   )
   if (missing.length) {
-    console.log(`FAIL|Dtos.kt missing ${missing.length}/${schemas.length} declarations: ${missing.slice(0, 6).join(', ')}`)
+    console.log(`FAIL|Dtos.generated.kt missing ${missing.length}/${schemas.length} declarations: ${missing.slice(0, 6).join(', ')}`)
   } else {
-    console.log(`ok|Dtos.kt declares all ${schemas.length} schemas`)
+    console.log(`ok|Dtos.generated.kt declares all ${schemas.length} schemas`)
   }
 }
 EOF
@@ -160,20 +215,32 @@ else
   gate dto-contract skip "no gradle available"
 fi
 
-# Reference diff (reported, not gated): the generated Dtos.kt against
-# the repo's real one. KDoc prose is authored commentary absent from
-# the schema, so byte-equality is not demanded — the diff is surfaced
-# for inspection instead.
-TARGET=kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.kt
+# Reference diff (reported, not gated): the generated Dtos.generated.kt
+# against the repo's real hand-written Dtos.kt. KDoc prose is authored
+# commentary absent from the schema, so byte-equality is not demanded —
+# the diff is surfaced for inspection instead.
+TARGET=kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.generated.kt
 if [ -f "$TARGET" ]; then
   diff reference/Dtos.kt "$TARGET" > "$OUT/dtos-diff.txt" 2>&1
   DIFF_LINES=$(grep -c '^[<>]' "$OUT/dtos-diff.txt" 2>/dev/null || true)
-  DIFF_SUMMARY="${DIFF_LINES:-0} line(s) differ from reference/Dtos.kt (dtos-diff.txt)"
+  # Semantic count: strip comments / blank lines / trailing commas, then
+  # compare as order-insensitive line multisets — KDoc prose, banners, and
+  # hand-authored declaration order are non-derivable, so only the residue
+  # is worth reading.
+  SEMANTIC=$(REF=reference/Dtos.kt GEN="$TARGET" NORM_OUT="$OUT/dtos-diff-semantic.txt" node "$HARNESS_DIR/semantic-diff.js")
+  DIFF_SUMMARY="raw ${DIFF_LINES:-0} line(s) / semantic ${SEMANTIC:-?} declaration(s) differ from reference/Dtos.kt (dtos-diff.txt, dtos-diff-semantic.txt)"
 else
-  DIFF_SUMMARY="no generated Dtos.kt to diff"
+  DIFF_SUMMARY="no generated Dtos.generated.kt to diff"
 fi
 
-# Structural eval over the authored generator
+# Gate — structural eval over the authored generator. A 'fail'
+# aggregate verdict fails the gate: the pass/fail checks are strict
+# AND fair now that annotation/default decisions live inside the
+# router's per-type snippets (skmtc-lang-kotlin §4), so no site
+# outside the router needs `.type`. 'warn' stays advisory detail. An
+# unreadable eval or a missing generator is a loud FAIL, not a skip —
+# the harness owns the eval, so its absence is harness breakage, and
+# 6/6 green gates must never coexist with an unread structural FAIL.
 node "$GEN_EVAL/src/cli.ts" --scan .skmtc/lab \
   --json "$OUT/structural.json" --md "$OUT/structural.md" > "$OUT/structural.txt" 2>&1
 VERDICT=$(STRUCTURAL_JSON="$OUT/structural.json" node - <<'EOF'
@@ -181,25 +248,37 @@ const { readFileSync } = require('node:fs')
 try {
   const reports = JSON.parse(readFileSync(process.env.STRUCTURAL_JSON, 'utf8'))
   if (!reports.length) {
-    console.log('no generator found')
+    console.log('FAIL|no generator found in .skmtc/lab')
   } else {
     const aggregate = reports[0].aggregate
     const extra = aggregate.failedChecks.length ? ` — failed: ${aggregate.failedChecks.join(', ')}` : ''
-    console.log(`${aggregate.verdict} (${aggregate.warningCount} warnings)${extra}`)
+    const status = aggregate.verdict === 'fail' ? 'FAIL' : 'ok'
+    console.log(`${status}|${aggregate.verdict} (${aggregate.warningCount} warnings)${extra} (details: structural.md)`)
   }
 } catch (error) {
-  console.log(`unavailable: ${error.message}`)
+  console.log(`FAIL|eval unavailable: ${error.message}`)
 }
 EOF
 )
+gate structural "${VERDICT%%|*}" "${VERDICT#*|}"
 FRICTION_COUNT=$([ -f FRICTION.md ] && grep -c '^## ' FRICTION.md || echo 0)
 RETRO_STATE=$([ -f RETRO.md ] && echo yes || echo no)
+# Thinking is redacted but measurable: streamed per-block token
+# estimates + message timestamps. Reported, not gated — a run can be
+# slow and right — but a block that eats half the wall clock is the
+# first thing to bracket in the viewer. thinking.js is the one
+# implementation (run.sh writes the same numbers into meta.json).
+THINK_SUMMARY=$(node "$HARNESS_DIR/thinking.js" --summary "$OUT" 2>/dev/null || echo "unavailable")
+note ""
+note "**Thinking:** ${THINK_SUMMARY:-unavailable} (per-block detail: \`node harness/thinking.js runs/<id>\`)"
+note ""
+note "**Source dives:** ${SOURCE_DIVES:-n/a} tool call(s) into framework source (reference/skmtc-deno or vendored lang-kotlin) — sanctioned, but each is a fact the skills failed to carry"
+note ""
+note "**Grader dives:** ${GRADER_DIVES:-n/a} tool call(s) into the structural eval's own source (running cli.ts not counted) — each means the agent thought the grader knew something the skills and structural.md didn't"
 note ""
 note "**Reference diff:** $DIFF_SUMMARY"
 note ""
 note "**Feedback channels:** $FRICTION_COUNT friction entr(y/ies) in workspace/FRICTION.md; exit retro: $RETRO_STATE (workspace/RETRO.md)"
-note ""
-note "**Structural eval:** $VERDICT (details: structural.md)"
 note ""
 note "Gates passed: $PASS_COUNT, failed: $FAIL_COUNT."
 note ""

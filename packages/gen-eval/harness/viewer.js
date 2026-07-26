@@ -9,6 +9,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { DEEP_THINK_SECONDS, DEEP_THINK_TOKENS, MILESTONE_CMDS, MILESTONE_FILES } from './constants.js'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const TEMPLATE = readFileSync(join(HERE, 'viewer.template.html'), 'utf8')
@@ -19,7 +20,7 @@ const args = process.argv.slice(2)
 
 if (args[0] === '--template') {
   const out = args[1] ?? 'viewer.html'
-  writeFileSync(out, TEMPLATE.replace('__DATA__', 'null').replace('__META__', 'null'))
+  writeFileSync(out, TEMPLATE.replace('__DATA__', 'null').replace('__META__', 'null').replace('__DEEP_THINK_SECONDS__', String(DEEP_THINK_SECONDS)).replace('__DEEP_THINK_TOKENS__', String(DEEP_THINK_TOKENS)).replace('__MILESTONE_FILES__', JSON.stringify(MILESTONE_FILES)).replace('__MILESTONE_CMDS__', JSON.stringify(MILESTONE_CMDS)))
   console.log(`wrote ${out} (live/drag-drop mode)`)
   process.exit(0)
 }
@@ -54,6 +55,7 @@ if (existsSync(metaPath)) {
 
 const html = TEMPLATE.replace('__DATA__', escapeForScript(JSON.stringify(events)))
   .replace('__META__', escapeForScript(JSON.stringify(meta)))
+  .replace('__DEEP_THINK_SECONDS__', String(DEEP_THINK_SECONDS)).replace('__DEEP_THINK_TOKENS__', String(DEEP_THINK_TOKENS)).replace('__MILESTONE_FILES__', JSON.stringify(MILESTONE_FILES)).replace('__MILESTONE_CMDS__', JSON.stringify(MILESTONE_CMDS))
 const out = join(runDir, 'viewer.html')
 writeFileSync(out, html)
 console.log(`wrote ${out} (${events.length} events)`)

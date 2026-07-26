@@ -9,10 +9,15 @@ No `toString()` body (including arrows nested inside it):
 - assigns to a `this.*` path (any assignment operator, `++`-style
   excluded only because it doesn't survive the assignment-token range),
 - mutates a `this.*` path via `push`/`add`/`set`/`unshift`/`splice`/
-  `delete`, or
+  `delete`,
 - calls the register family (`register`, `registerInto`,
   `insertOperation`, `insertModel`, `insertNormalizedModel`,
-  `defineAndRegister`).
+  `defineAndRegister`), or
+- **constructs anything** (`new X(…)` — a `KtParameterList` wrap, a
+  snippet, an `Error`). The render tree is built at construction
+  time; `toString()` only reads and interpolates settled state.
+  Refusals throw from the constructor (fail at generate), never from
+  render.
 
 ## Why
 
@@ -26,9 +31,10 @@ constructor/toString contract.
 ## How it is measured
 
 During the shared AST pass, every assignment, this-rooted mutator call,
-and register-family call is checked against the enclosing-function
-stack; violations record class, file, line, kind
-(`assignment`/`mutation`/`register-call`) and a detail string.
+register-family call, and `new` expression is checked against the
+enclosing-function stack; violations record class, file, line, kind
+(`assignment`/`mutation`/`register-call`/`construction`) and a detail
+string.
 
 ## Reading the result
 

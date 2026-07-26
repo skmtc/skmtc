@@ -57,6 +57,10 @@ import {
  *   own dispatch reports as outside. That is the round-3 check's limit
  *   too, and it is a false POSITIVE risk rather than a negative — see the
  *   rule text: name the router.
+ * - The name gate cuts the other way as well: ANY function matching
+ *   `to<X>Value` is sanctioned, so a helper named e.g. `toDefaultValue`
+ *   or `toAnnotationsValue` could carry dispatch undetected. Reserve
+ *   that naming shape for the router.
  * - `if`/`else if` chains and `switch` are both covered, but a
  *   `.type` comparison against a value held in a variable
  *   (`schema.type === wanted`) is not.

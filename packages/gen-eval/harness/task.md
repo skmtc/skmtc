@@ -1,10 +1,12 @@
-# Task: author @eval/gen-kotlin-jackson — recreate Dtos.kt from the schema
+# Task: author @eval/gen-kotlin-jackson — recreate the Dtos.kt declarations from the schema
 
 You are in a fresh SKMTC workspace. Author a **model generator** named
 `@eval/gen-kotlin-jackson` that generates
-`kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.kt` — a
-**single Kotlin file containing every DTO** — from
-`kotlin-person-api/openapi.json`.
+`kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.generated.kt`
+— a **single Kotlin file containing every DTO** — from
+`kotlin-person-api/openapi.json`. (Kotlin resolves by package, not
+filename, so the generated file replaces the hand-written `Dtos.kt`
+without matching its name — keep the default generated-file suffix.)
 
 The target is real: `reference/Dtos.kt` is the hand-written file your
 generator must recreate. Get as close to it as the schema allows —
@@ -20,7 +22,7 @@ fixed-scale decimal string via the hand-written serde classes;
 `readOnly`/`writeOnly` access control; an ISO `@JsonFormat` timestamp;
 and `additionalProperties` as a defaulted `Map`.
 
-**Load the `skmtc-generator`, `skmtc-lang-kotlin`, and `skmtc-cli`
+**Load the `skmtc-generator-v2`, `skmtc-lang-kotlin`, and `skmtc-cli-v2`
 skills before writing any code**, and follow them: projection base via
 the lang package's factory, snippets for fragments, imports via
 register calls, no string composition outside `toString()`,
@@ -31,21 +33,30 @@ register calls, no string composition outside `toString()`,
 - SKMTC project: `lab` (`.skmtc/lab/`), schema pinned in
   `client.json#source`, `basePath` = `kotlin-person-api/src/main/kotlin`
   — so a destination path of `@/com/example/api/dto/Dtos.kt` lands in
-  package `com.example.api.dto`. Register every definition into that
-  ONE file.
+  package `com.example.api.dto`, and the engine injects the default
+  generated-file suffix (`.generated` — leave
+  `client.json#settings.generatedSuffix` alone), so the file lands as
+  `Dtos.generated.kt`. Register every definition into that ONE file.
 - The Kotlin language layer `@skmtc/lang-kotlin` is **vendored** at
   `.skmtc/lab/lang-kotlin/` and declared as a deno workspace member.
   The `skmtc-lang-kotlin` skill covers its API — prefer the skill over
   re-deriving the API from source; the vendored source is the ground
   truth for anything the skill leaves open.
-- **Scaffold first, then customise.** Run
+- **Scaffold first, then implement.** Run
   `skmtc create lab @eval/gen-kotlin-jackson model --lang kotlin` —
-  it writes a WORKING baseline Kotlin model generator (file-per-model
-  data classes / enums / sealed interfaces, schema-driven types) and
-  registers it in `.skmtc/lab/deno.json`. Your task is customising
-  that baseline into the target: one `Dtos.kt` file, the Jackson
-  annotations, the policy seams. Do not hand-write the standard files
-  the scaffolder already provides.
+  it writes a working baseline (entry, projection, a plain-signature
+  `toKtValue` router, `protocol.ts` with the value-field contracts,
+  one module per scaffolded router case) and registers it in
+  `.skmtc/lab/deno.json`. The cases with one honest Kotlin answer are
+  scaffolded — string/integer/number/boolean/array/ref/object — so
+  the skeleton bundles and `generate` is green immediately; the cases
+  that are DECISIONS throw loudly (`union`, `unknown`, and an
+  `object` whose shape is a map via `additionalProperties`). Your
+  task is everything the schema cannot decide for you: the throwing
+  cases, the format policies (money, timestamps), enums, the Jackson
+  annotations and access control, the single `Dtos.generated.kt`
+  output, and the policy seams. Extend the scaffolded modules; do not
+  hand-write the wiring files the scaffolder already provides.
 - `kotlin-person-api/` is the real Spring Boot app with its `Dtos.kt`
   removed. Everything else is hand-written and checksum-pinned: the
   controller and services compile against your generated DTOs,
@@ -60,12 +71,31 @@ register calls, no string composition outside `toString()`,
   has type-only imports and per-schema files; Kotlin here wants one
   file, path-derived packages, and annotation-driven serialization).
 - **Framework source** is readable at `reference/skmtc-deno/` (a
-  read-only link to the SKMTC monorepo's deno workspace): `core/src`
-  is the engine — the `OasSchema` classes, drivers, and context whose
-  API surface `@skmtc/core` exposes — and `lang-kotlin/` is the same
-  package vendored into your project. Look things up THERE; never go
-  hunting in package caches (`~/.cache/deno`, `~/Library/Caches/deno`
-  are off-limits and audited).
+  read-only link to the SKMTC monorepo's deno workspace): `core/` is
+  the engine — the `OasSchema` classes live one directory per type at
+  `core/oas/<type>/<Type>.ts` (there is no `core/src`), drivers and
+  context under `core/dsl` / `core/context` — and `lang-kotlin/` is
+  the same package vendored into your project. Look things up THERE;
+  never go hunting in package caches (`~/.cache/deno`,
+  `~/Library/Caches/deno` are off-limits and audited). Recursive
+  greps may fail silently through the symlink — resolve it first:
+  `grep -rn <pattern> "$(readlink reference/skmtc-deno)/core/oas"`.
+
+## Working method
+
+- **Inspect files you intend to edit or overwrite individually** —
+  the scaffolded generator sources especially. The Write and Edit
+  tools require the file to have been read first, and the rule is
+  precise: the Read tool always counts, and a **bare single-file
+  `cat`/`head`/`sed -n` (no `&&`, no pipes, no redirects) also
+  counts** — but a batched compound command
+  (`cat a.ts && echo === && cat b.ts`) does NOT, and the write will
+  be rejected even though you have seen the content.
+- **The working directory DOES persist between Bash calls** — which is
+  exactly why a bare `cd` is a trap: it leaves every later command
+  running somewhere unexpected. Use subshells
+  (`(cd .skmtc/lab && deno check ...)`) or absolute paths
+  (`gradle -p <path>`) so no call changes the cwd the next one sees.
 
 ## Policy decisions are yours to encode
 
@@ -79,28 +109,49 @@ app.
 
 ## Output requirements
 
-- One generated file: `com/example/api/dto/Dtos.kt` under basePath,
-  declaring `package com.example.api.dto`, containing all six schema
-  declarations.
+- One generated file: `com/example/api/dto/Dtos.generated.kt` under
+  basePath, declaring `package com.example.api.dto`, containing all
+  six schema declarations. Keep the default `generatedSuffix`; the
+  exact hand-written filename is NOT required (package resolution).
 - Complete working output — no TODO stubs.
 
 ## Acceptance (verify yourself; stop when all green)
 
 ```bash
 skmtc bundle lab --json               # after generator source changes
-skmtc generate lab --json             # errors must be [], Dtos.kt created
+(cd .skmtc/lab && deno check gen-kotlin-jackson/mod.ts)
+# ^ bundle/generate do NOT typecheck (esbuild) — a green generate can
+#   ride a type-broken generator. The parentheses matter: Bash cwd
+#   persists across tool calls, and a leaked `cd` makes the next
+#   skmtc command fail with misleading "missing schema" errors
+skmtc generate lab --json             # errors must be [], Dtos.generated.kt created
 node reference/structural-eval/cli.ts --scan .skmtc/lab
 # ^ the SAME structural eval that grades this run — re-run it and fix
-#   what it reports until there are no FAILs and no warnings
-cd kotlin-person-api && gradle compileKotlin && gradle test
+#   what it reports until there are no FAILs and no warnings. Its
+#   OUTPUT is the complete feedback surface: the table prints each
+#   flagged check's rule text, and `--md <file>` lists the offending
+#   sites. Its implementation is off-limits (reading it disqualifies
+#   the run) — the rules it enforces are taught by the skills
+gradle -p kotlin-person-api compileKotlin && gradle -p kotlin-person-api test
 # ^ the app compiles AND its DtoContractTest passes against your DTOs
-diff ../reference/Dtos.kt src/main/kotlin/com/example/api/dto/Dtos.kt
+diff reference/Dtos.kt kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.generated.kt
 # ^ inspect what remains — close the derivable gaps (declarations,
 #   annotations, types, defaults); KDoc prose gaps are expected
 ```
 
 ## Narrate and log as you work (part of the task)
 
+- **Write the plan down before you implement it.** After you have read
+  the scaffolded sources and before you write generator code, write
+  `PLAN.md` at the workspace root: the module list (one line per file
+  you intend to create, with what it renders), the router case →
+  snippet mapping (one line per schema type), and the policy decisions
+  you have identified with where each will live. One line each — this
+  is a plan, not a design document, and it does not need to be right;
+  amend it in place as you learn. Planning in your head instead is the
+  expensive path: reasoning is not visible in the transcript, so a
+  plan that stays unwritten cannot be reviewed, compared between runs,
+  or resumed after a mistake.
 - **Narrate intent.** Before each significant action or change of
   approach, output one visible sentence starting `WHY:` giving the
   *reason* you chose it — not a description of the action. Example:

@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-typescript
-version: 0.1.0
+version: 0.2.0
 description: |
   The TypeScript target-language layer for SKMTC generators
   (`@skmtc/lang-typescript`). Covers how a generator declares
@@ -133,6 +133,156 @@ The package dependency (both required):
   "@skmtc/lang-typescript": "jsr:@skmtc/lang-typescript@<pin>"
 }
 ```
+
+### Wiring scaffolds — base.ts, the Projection, the Snippet
+
+The concrete TS wiring the `skmtc-generator` skill's contracts
+describe (its scaffolds C–D — the entry and enrichments — stay
+language-free in that skill; these three are the TypeScript-specific
+counterparts):
+
+
+```ts
+// gen-x/src/base.ts
+import {
+  capitalize,
+  camelCase,
+  toMethodVerb,
+  withVariant  // only needed for variants-aware generators
+} from '@skmtc/core'
+// ⬇ The factory comes from the LANG package — this import is what
+//   declares the generator's target language.
+import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import { join } from '@std/path'
+import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
+import denoJson from '../deno.json' with { type: 'json' }
+
+export const MyGenBase = toTsOasOperationProjectionBase<EnrichmentSchema>({
+  id: denoJson.name,
+  toEnrichmentSchema,
+
+  // ⬇ Customize: how is the identifier NAME derived? Returns a plain
+  //   string — the cache-key half; must stay pure and side-effect-free.
+  //   `variant` is always present ('main' minimum). Variants-unaware:
+  //   ignore it. Variants-aware: wrap in withVariant(base, variant).
+  toIdentifierName({ operation, variant }): string {
+    const verb = capitalize(toMethodVerb(operation.method))
+    const base = `${verb}${camelCase(operation.path, { upperFirst: true })}`
+    // Variants-unaware:    return base
+    return withVariant(base, variant)
+  },
+
+  // ⬇ Customize: the non-name identifier parts. The `kind` drives
+  //   declaration keywords and import forms in the language layer —
+  //   'variable' for `export const`, 'type' for `export type`.
+  toIdentifierType: () => ({ type: 'variable' }),
+
+  // ⬇ Customize: where does the generated file land?
+  toExportPath({ operation, enrichments, variant }): string {
+    const name = this.toIdentifierName({ operation, enrichments, variant })
+    return join('@', 'my-gen', `${name}.generated.ts`)
+  }
+})
+```
+
+`withVariant(base, 'main')` returns `base` unchanged; other variants
+append a PascalCased suffix (`withVariant('Form', 'line-items')` →
+`'FormLineItems'`). Variant names are kebab-strict
+(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`).
+
+
+
+```ts
+// gen-x/src/MyGen.ts
+import { TsProjection } from '@skmtc/gen-typescript'
+import { MyGenBase } from './base.ts'
+import type { EnrichmentSchema } from './enrichments.ts'
+import type { OasOperationProjectionConstructorArgs } from '@skmtc/core'
+import invariant from 'tiny-invariant'
+
+export class MyGen extends MyGenBase {
+  tsRequestBodyName: string
+
+  constructor({
+    context,
+    operation,
+    settings
+  }: OasOperationProjectionConstructorArgs<EnrichmentSchema>) {
+    super({ context, operation, settings })
+
+    // ⬇ toRequestBody returns undefined when the operation has no body —
+    //   narrow before handing it on (isSupported gates on it, so throw).
+    const requestBody = operation.toRequestBody(({ schema }) => schema)
+    invariant(requestBody, 'Request body is required')
+
+    // ⬇ Self-provision: compose with peers by name. The Driver handles
+    //   ref resolution, dedup, and import registration.
+    const tsRequestBody = this.insertNormalizedModel(TsProjection, {
+      schema: requestBody,
+      fallbackName: `${settings.identifier.name}Body`
+    })
+    this.tsRequestBodyName = tsRequestBody.identifier.name
+
+    // ⬇ Register runtime imports needed by toString().
+    this.register({
+      imports: { 'some-runtime-library': ['someHelper'] }
+    })
+  }
+
+  override toString(): string {
+    // ⬇ Pure function of `this`; emit ONLY the value — the Driver
+    //   wraps it as `export const ${name} = ${value};` at Render.
+    return `someHelper<${this.tsRequestBodyName}>(...)`
+  }
+}
+```
+
+
+
+```ts
+// gen-x/src/MyFieldSnippet.ts
+import type { GenerateContextType, OasRef, OasSchema } from '@skmtc/core'
+import { TsSnippet } from '@skmtc/lang-typescript'
+
+type MyFieldSnippetArgs = {
+  context: GenerateContextType
+  name: string
+  label?: string
+  destinationPath: string    // ⬅ Snippets have no exportPath; the parent passes it
+  schema?: OasSchema | OasRef<'schema'> // ⬅ optional: originating node, for attribution
+}
+
+export class MyFieldSnippet extends TsSnippet {
+  name: string
+  label: string | undefined
+
+  constructor({ context, name, label, destinationPath, schema }: MyFieldSnippetArgs) {
+    // ⬇ stackTrail is an optional attribution input — clone at the
+    //   call site (the live trail is mutable).
+    super({ context, stackTrail: schema?.stackTrail.clone() })
+    this.name = name
+    this.label = label
+
+    // ⬇ Self-provision against the parent's destinationPath — keyless.
+    this.register({
+      imports: { '@/components/fields/my-field': ['MyField'] },
+      destinationPath
+    })
+  }
+
+  override toString() {
+    return `<MyField name="${this.name}"${this.label ? ` label="${this.label}"` : ''} />`
+  }
+}
+```
+
+The parent constructs it with
+`new MyFieldSnippet({ …, destinationPath: this.settings.exportPath })`
+and interpolates it with `${this.fieldSnippet}`. `generatorKey` is an
+*optional* attribution (gen-maps) input — thread
+`generatorKey: this.generatorKey` into `super(...)` to attribute the
+snippet to the parent generator; registering never needs it.
+
 
 ## 2. Entity kinds & identifiers
 

@@ -65,7 +65,7 @@ export type ToStringViolation = {
   className: string | undefined
   file: string
   line: number
-  kind: 'assignment' | 'mutation' | 'register-call'
+  kind: 'assignment' | 'mutation' | 'register-call' | 'construction'
   detail: string
 }
 
@@ -103,6 +103,18 @@ export type ClassFacts = {
   mutatorMethods: string[]
 }
 
+export type SchemaDispatchSite = CodeSite & {
+  context: 'router' | 'metadata' | 'outside'
+  text: string
+}
+
+export type SingleDispatchResult = {
+  pass: boolean
+  routerCount: number
+  metadataCount: number
+  outside: SchemaDispatchSite[]
+}
+
 export type FileFacts = {
   file: string
   classes: ClassFacts[]
@@ -117,6 +129,7 @@ export type FileFacts = {
   adHocToStringSites: CodeSite[]
   asCastSites: CodeSite[]
   redundantRefGuardSites: CodeSite[]
+  schemaDispatchSites: SchemaDispatchSite[]
   insertCalls: {
     insertOperation: number
     insertModel: number
@@ -160,6 +173,7 @@ export type GeneratorReport = {
   accumulator: AccumulatorReport
   producerSizes: { bucket: number; count: number }[]
   toStringPurity: { pass: boolean; violations: ToStringViolation[] }
+  singleDispatch: SingleDispatchResult
   adHocToString: { pass: boolean; sites: CodeSite[] }
   asCasts: { count: number; sites: CodeSite[] }
   redundantRefGuards: { count: number; sites: CodeSite[] }

@@ -97,6 +97,7 @@ const listRuns = async () => {
       status,
       costUsd: meta.result?.costUsd ?? null,
       turns: meta.result?.turns ?? null,
+      maxThinkBlock: meta.thinking?.maxThinkBlock ?? null,
       gates,
       verdict: aggregate ? aggregate.verdict : null,
       warnings: aggregate ? aggregate.warningCount : null,
@@ -146,11 +147,16 @@ async function refresh() {
       return;
     }
     let html = '<table><tr><th>run</th><th>status</th><th>model</th><th>verdict</th><th>gates</th>' +
-      '<th>turns</th><th>cost</th><th>skill</th><th>open</th></tr>';
+      '<th>turns</th><th>cost</th><th title="largest single think block: tokens / wall seconds">max think</th>' +
+      '<th>skill</th><th>open</th></tr>';
     for (const run of runs) {
       const verdictClass = run.verdict ? 'verdict-' + run.verdict : '';
       const verdict = run.verdict
         ? run.verdict + (run.warnings ? '(' + run.warnings + 'w)' : '')
+        : '—';
+      const think = run.maxThinkBlock
+        ? Math.round(run.maxThinkBlock.tokens / 1000) + 'k' +
+          (run.maxThinkBlock.seconds != null ? ' / ' + Math.round(run.maxThinkBlock.seconds) + 's' : '')
         : '—';
       html += '<tr>' +
         '<td>' + esc(run.id) + (run.label ? ' <span style="color:var(--warn)">[' + esc(run.label) + ']</span>' : '') + '</td>' +
@@ -162,6 +168,7 @@ async function refresh() {
         '<td>' + (run.gates ? run.gates.passed + ' ok / ' + run.gates.failed + ' fail' : '—') + '</td>' +
         '<td>' + (run.turns ?? '—') + '</td>' +
         '<td>' + (run.costUsd != null ? '$' + run.costUsd.toFixed(2) : '—') + '</td>' +
+        '<td>' + esc(think) + '</td>' +
         '<td>' + esc(run.skillSha ?? '—') + '</td>' +
         '<td><a href="/runs/' + encodeURIComponent(run.id) + '/viewer.html">viewer</a> · ' +
         '<a href="/runs/' + encodeURIComponent(run.id) + '/report.md">report</a> · ' +

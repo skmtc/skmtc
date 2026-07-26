@@ -1,14 +1,17 @@
 #!/usr/bin/env node
-import { readdirSync, existsSync, writeFileSync, mkdirSync, statSync } from 'node:fs'
+import { readdirSync, existsSync, writeFileSync, mkdirSync, statSync, readFileSync } from 'node:fs'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { analyzeGenerator } from './analyze.ts'
 import { formatAggregate } from './aggregate.ts'
+import { CHECKS } from './checks/index.ts'
 import type { GeneratorReport } from './types.ts'
 
 // The stock generators live in the sibling skmtc-generators repo:
 // <skmtc-root>/skmtc/packages/gen-eval/src → <skmtc-root>/skmtc-generators
 const STOCK_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../skmtc-generators')
+
+const DOCS_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../docs')
 
 type CliArgs = {
   targets: string[]
@@ -17,6 +20,9 @@ type CliArgs = {
   mdOut: string | undefined
   verbose: boolean
 }
+
+const USAGE =
+  'usage: gen-eval [genDir ...] [--scan parentDir | --stock] [--json out.json] [--md out.md]'
 
 const parseArgs = (argv: string[]): CliArgs => {
   const args: CliArgs = { targets: [], scan: undefined, jsonOut: undefined, mdOut: undefined, verbose: false }
@@ -27,7 +33,16 @@ const parseArgs = (argv: string[]): CliArgs => {
     else if (value === '--json') args.jsonOut = argv[++index]
     else if (value === '--md') args.mdOut = argv[++index]
     else if (value === '--verbose') args.verbose = true
-    else if (value !== undefined) args.targets.push(value)
+    else if (value === '--help' || value === '-h') {
+      console.log(USAGE)
+      process.exit(0)
+    } else if (value !== undefined && value.startsWith('-')) {
+      // An unknown flag must not fall through to the target list — it
+      // would be resolved as a directory and crash with a stack trace.
+      console.error(`unknown flag: ${value}`)
+      console.error(USAGE)
+      process.exit(2)
+    } else if (value !== undefined) args.targets.push(value)
   }
   return args
 }
@@ -68,7 +83,8 @@ const toRow = (report: GeneratorReport): string[] => {
     `${report.registrationChannels.rawDefinitionRegisters.length}`,
     report.templateImports.pass ? 'ok' : `FAIL:${report.templateImports.sites.length}`,
     `${report.emittedTodos.count}`,
-    report.runtimeDiscipline.pass ? 'ok' : `FAIL:${report.runtimeDiscipline.violations.length}`
+    report.runtimeDiscipline.pass ? 'ok' : `FAIL:${report.runtimeDiscipline.violations.length}`,
+    report.singleDispatch.pass ? 'ok' : `FAIL:${report.singleDispatch.outside.length}`
   ]
 }
 
@@ -90,7 +106,8 @@ const HEADER = [
   'raw-reg',
   'tpl-imp',
   'todo',
-  'runtime'
+  'runtime',
+  'dispatch'
 ]
 
 const printTable = (rows: string[][]): void => {
@@ -102,6 +119,32 @@ const printTable = (rows: string[][]): void => {
   console.log(formatRow(HEADER))
   console.log(widths.map(width => '-'.repeat(width)).join('  '))
   for (const row of rows) console.log(formatRow(row))
+}
+
+// Every check id whose defect shows in this report — failed pass/fail
+// checks plus warning categories with nonzero counts.
+const flaggedCheckIds = (report: GeneratorReport): string[] => {
+  const ids = [...report.aggregate.failedChecks]
+  const { warnings } = report.aggregate
+  if (warnings.flaggedProducers > 0) ids.push('method-discipline')
+  if (warnings.asCasts > 0) ids.push('as-casts')
+  if (warnings.redundantRefGuards > 0) ids.push('redundant-ref-guard')
+  if (warnings.rawDefinitionRegisters > 0) ids.push('registration-channels')
+  if (warnings.emittedTodos > 0) ids.push('emitted-todos')
+  if (warnings.otherClasses > 0) ids.push('producer-share')
+  if (warnings.outsideShareHigh) ids.push('string-composition')
+  return [...new Set(ids)]
+}
+
+// Inline a check's doc file (headings demoted two levels) so the report
+// itself states what the check operationally asserts and why — reading
+// the check's source should never be necessary.
+const inlineCheckDoc = (id: string): string[] => {
+  const check = CHECKS.find(entry => entry.id === id)
+  if (!check) return []
+  const docPath = join(DOCS_DIR, check.doc)
+  if (!existsSync(docPath)) return []
+  return [readFileSync(docPath, 'utf8').trim().replace(/^(#+)/gm, '##$1'), '']
 }
 
 const toMarkdown = (reports: GeneratorReport[]): string => {
@@ -177,6 +220,15 @@ const toMarkdown = (reports: GeneratorReport[]): string => {
     lines.push(
       `- top-level projection: ${report.topLevelProjection.pass ? 'ok' : report.topLevelProjection.exempt ? 'exempt (accumulator)' : 'FAIL'}`
     )
+    lines.push(
+      `- single dispatch (axiom 1): ${report.singleDispatch.pass ? 'ok' : 'FAIL'} — ${report.singleDispatch.routerCount} router site(s), ${report.singleDispatch.metadataCount} metadata site(s), ${report.singleDispatch.outside.length} outside`
+    )
+    if (report.singleDispatch.outside.length > 0) {
+      lines.push(`- schema-type dispatch OUTSIDE the router:`)
+      for (const site of report.singleDispatch.outside) {
+        lines.push(`  - \`${site.file}:${site.line}\` in ${site.site} — ${site.text}`)
+      }
+    }
     if (!report.toStringPurity.pass) {
       lines.push(`- toString purity VIOLATIONS:`)
       for (const violation of report.toStringPurity.violations) {
@@ -228,6 +280,21 @@ const toMarkdown = (reports: GeneratorReport[]): string => {
         lines.push(`  - \`${violation.file}:${violation.line}\` in ${violation.site} [${violation.category}] ${violation.detail}`)
       }
     }
+    const flagged = flaggedCheckIds(report)
+    if (flagged.length > 0) {
+      lines.push('')
+      lines.push(`### What each flagged check means`)
+      lines.push('')
+      lines.push(
+        'The full rule behind every check flagged above, inlined from the',
+        "eval's own docs — everything the check source would tell you is",
+        'already here.'
+      )
+      lines.push('')
+      for (const id of flagged) {
+        lines.push(...inlineCheckDoc(id))
+      }
+    }
     lines.push('')
   }
   return lines.join('\n')
@@ -240,14 +307,33 @@ const main = (): void => {
     ...(args.scan ? findGeneratorDirs(resolve(args.scan)) : [])
   ]
   if (dirs.length === 0) {
-    console.error(
-      'usage: gen-eval [genDir ...] [--scan parentDir | --stock] [--json out.json] [--md out.md]'
-    )
+    console.error(USAGE)
+    process.exit(2)
+  }
+  const missing = dirs.filter(dir => !existsSync(dir))
+  if (missing.length > 0) {
+    console.error(`no such generator dir: ${missing.join(', ')}`)
+    console.error(USAGE)
     process.exit(2)
   }
 
   const reports = dirs.map(analyzeGenerator)
   printTable(reports.map(toRow))
+
+  // Any flagged check prints its full rule on STDOUT — the output the
+  // caller actually reads first (run 195833 dove into check source
+  // because the rule text lived only in the --md report it didn't
+  // know to generate). Sites still live in --md.
+  for (const report of reports) {
+    const flagged = flaggedCheckIds(report)
+    if (flagged.length === 0) continue
+    console.log(
+      `\n${report.generator} — the rule behind each flagged check (flagged SITES: rerun with --md <file>):`
+    )
+    for (const id of flagged) {
+      console.log(`\n${inlineCheckDoc(id).join('\n').trimEnd()}`)
+    }
+  }
 
   if (args.verbose) {
     for (const report of reports) {

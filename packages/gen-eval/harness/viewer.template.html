@@ -8,7 +8,7 @@
   :root {
     --bg: #101418; --panel: #171c22; --panel2: #1d232b; --border: #2a323c;
     --text: #d7dee6; --dim: #8b98a5; --accent: #4cc38a; --warn: #e5b567;
-    --error: #e5484d; --think: #7e9cd8;
+    --error: #e5484d; --think: #7e9cd8; --deep: #b184e8;
     --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   }
@@ -49,6 +49,7 @@
   }
   .tick.milestone { background: var(--accent); }
   .tick.error { background: var(--error); }
+  .tick.deep { background: var(--deep); }
   .tick.why { background: var(--think); top: 12px; }
   .tick.feedback { background: var(--warn); top: 12px; }
   #playhead {
@@ -114,6 +115,7 @@
   .badge.tool { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
   .badge.err { background: color-mix(in srgb, var(--error) 25%, transparent); color: var(--error); }
   .badge.mile { background: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent); }
+  .badge.deep { background: color-mix(in srgb, var(--deep) 26%, transparent); color: var(--deep); }
   .badge.why { background: color-mix(in srgb, var(--think) 22%, transparent); color: var(--think); }
   .badge.fb { background: color-mix(in srgb, var(--warn) 22%, transparent); color: var(--warn); }
   details > summary { cursor: pointer; color: var(--dim); }
@@ -152,6 +154,7 @@
   <div id="legend">
     <span><span class="dot" style="background:var(--accent)"></span>milestone</span>
     <span><span class="dot" style="background:var(--error)"></span>error</span>
+    <span><span class="dot" style="background:var(--deep)"></span>deep think</span>
     <span><span class="dot" style="background:var(--think)"></span>WHY</span>
     <span><span class="dot" style="background:var(--warn)"></span>friction/retro</span>
     <span>navigate: <kbd>&larr;</kbd> <kbd>&rarr;</kbd> <kbd>space</kbd> — drag the playhead or click the track</span>
@@ -180,8 +183,15 @@
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
-const MILESTONE_FILES = ['base.ts', 'mod.ts', 'enrichments.ts'];
-const MILESTONE_CMDS = [['skmtc bundle','first bundle'],['skmtc generate','first generate'],['gradle test','first test run']];
+const MILESTONE_FILES = __MILESTONE_FILES__;
+const MILESTONE_CMDS = __MILESTONE_CMDS__;
+// A think block is "deep" when it stalls the run or reasons at plan
+// scale: 60 s is an order of magnitude above the typical few-second
+// block, 5000 tokens is past step-level deliberation. Either alone
+// fires, and it fires per block (not once) — a run can stall
+// repeatedly. Values injected by viewer.js from constants.js.
+const DEEP_THINK_SECONDS = __DEEP_THINK_SECONDS__;
+const DEEP_THINK_TOKENS = __DEEP_THINK_TOKENS__;
 
 // ---- model: parse raw stream-json events into turns -----------------
 function build(events) {
@@ -191,6 +201,7 @@ function build(events) {
   const seen = new Set();
   let current = null;
   let pendingThinkingTokens = null;
+  let lastEventTime = null;
 
   const milestone = (turn, key, label) => {
     if (seen.has(key)) return;
@@ -204,6 +215,11 @@ function build(events) {
       turn.feedback.push({ kind: 'friction', title: titles.length ? titles[titles.length - 1][1] : null });
     } else if (path.endsWith('RETRO.md')) {
       turn.feedback.push({ kind: 'retro', title: null });
+    } else if (path.endsWith('PLAN.md')) {
+      // The plan is the externalized form of the reasoning the API
+      // redacts — every write is a mark, since the task asks for it to
+      // be amended in place rather than rewritten.
+      turn.feedback.push({ kind: 'plan', title: null });
     }
   };
   const resultText = raw => Array.isArray(raw)
@@ -212,17 +228,32 @@ function build(events) {
 
   for (const ev of events) {
     if (ev.type === 'system' && ev.subtype === 'thinking_tokens') {
+      // estimated_tokens is cumulative WITHIN a block (deltas restart
+      // at each new block) — take the last value before the message.
       pendingThinkingTokens = ev.estimated_tokens ?? pendingThinkingTokens;
     }
+    // Wall gap = this message's timestamp minus the previous timestamped
+    // event (tool results carry timestamps too). Thinking text is
+    // redacted, so the gap + token estimate are all a block leaves.
+    const evTime = ev.timestamp ? Date.parse(ev.timestamp) : null;
+    const gapSeconds = evTime != null && lastEventTime != null ? (evTime - lastEventTime) / 1000 : null;
+    if (evTime != null) lastEventTime = evTime;
     if (ev.type === 'assistant') {
       const content = (ev.message || {}).content || [];
       if (!content.some(c => c && ['text','tool_use','thinking'].includes(c.type))) continue;
+      const usage = (ev.message || {}).usage || {};
+      const contextTokens = (usage.cache_read_input_tokens || 0) + (usage.cache_creation_input_tokens || 0);
       current = { i: turns.length + 1, thinking: [], texts: [], tools: [], milestones: [], whys: [], feedback: [], hasError: false };
       turns.push(current);
       for (const item of content) {
         if (!item) continue;
         if (item.type === 'thinking') {
-          current.thinking.push({ text: item.thinking || '', tokens: pendingThinkingTokens });
+          const deep = (gapSeconds != null && gapSeconds > DEEP_THINK_SECONDS) ||
+            (pendingThinkingTokens || 0) > DEEP_THINK_TOKENS;
+          current.thinking.push({
+            text: item.thinking || '', tokens: pendingThinkingTokens,
+            seconds: gapSeconds, context: contextTokens, deep
+          });
           pendingThinkingTokens = null;
         }
         else if (item.type === 'text') {
@@ -338,17 +369,30 @@ function renderTurn() {
     html += '<div class="block"><div class="bh"><span class="badge mile">milestone</span>' + esc(m) + '</div></div>';
   for (const fb of turn.feedback)
     html += '<div class="block"><div class="bh"><span class="badge fb">' + fb.kind + '</span>' +
-      esc(fb.title ?? (fb.kind === 'retro' ? 'exit retro written' : 'entry logged')) + '</div></div>';
+      esc(fb.title ?? (fb.kind === 'retro' ? 'exit retro written'
+        : fb.kind === 'plan' ? 'plan written / amended' : 'entry logged')) + '</div></div>';
   for (const why of turn.whys)
     html += '<div class="block"><div class="bh"><span class="badge why">WHY</span></div><div class="bb"><pre>' +
       esc(why.replace(/^WHY:\s*/, '')) + '</pre></div></div>';
   for (const th of turn.thinking) {
+    // The reasoning is unreadable, so a deep block is called out with
+    // what IS measurable — wall gap, token estimate, context size. The
+    // diagnosis is the surrounding turns: tool calls above, decision below.
+    if (th.deep) {
+      html += '<div class="block"><div class="bh"><span class="badge deep">deep think</span>' +
+        (th.seconds != null ? th.seconds.toFixed(0) + 's' : 'unknown gap') +
+        (th.tokens ? ' · ~' + th.tokens.toLocaleString() + ' tokens' : '') +
+        (th.context ? ' · context ' + Math.round(th.context / 1000) + 'k' : '') +
+        ' · reasoning redacted — read the tool calls before and the decision after</div></div>';
+    }
+    const gap = th.seconds != null ? ', ' + th.seconds.toFixed(1) + 's' : '';
     if (th.text) {
       html += '<div class="block"><div class="bh"><span class="badge think">thinking</span>' + th.text.length +
-        ' chars</div><div class="bb">' + det(false, 'show reasoning', '<pre>' + esc(th.text) + '</pre>') + '</div></div>';
+        ' chars' + gap + '</div><div class="bb">' + det(false, 'show reasoning', '<pre>' + esc(th.text) + '</pre>') + '</div></div>';
     } else {
       html += '<div class="block"><div class="bh"><span class="badge think">thinking</span>' +
-        'redacted by API' + (th.tokens ? ' (~' + th.tokens + ' tokens)' : '') + '</div></div>';
+        'redacted by API' + (th.tokens ? ' (~' + th.tokens.toLocaleString() + ' tokens' + gap + ')' : gap ? ' (' + gap.slice(2) + ')' : '') +
+        '</div></div>';
     }
   }
   for (const tx of turn.texts)
@@ -485,6 +529,7 @@ function renderTicks() {
   const n = Math.max(TURNS.length, 1);
   TURNS.forEach(turn => {
     if (turn.milestones.length) addTick(turn.i, 'milestone');
+    if (turn.thinking.some(th => th.deep)) addTick(turn.i, 'deep');
     if (turn.hasError) addTick(turn.i, 'error');
     if (turn.whys.length) addTick(turn.i, 'why');
     if (turn.feedback.length) addTick(turn.i, 'feedback');
