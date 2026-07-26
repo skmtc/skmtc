@@ -48,10 +48,18 @@ import { toKeyName } from '../shared/nodes.ts'
  * exempt. The approximation is looser than the harness's — an accumulator
  * mutator in a package with no accumulator machinery is exempted here and
  * flagged there — which is the safe direction: it never invents a
- * violation. Measured against the stock cohort, the whole difference is
- * six methods in three packages: `ExpressApp.append`,
- * `SupabaseHono.append`, and `gen-md-docs`' `TopIndex.add` /
- * `TagIndex.add` / `Catalog.add` / `Definitions.add`+`build`.
+ * violation. Measured against the stock cohort that costs seven methods:
+ * `ExpressApp.append`, `SupabaseHono.append`, and `gen-md-docs`'
+ * `TopIndex.add` / `TagIndex.add` / `Catalog.add` / `Definitions.add` +
+ * `Definitions.build`.
+ *
+ * It is also STRICTER than the harness in the other direction, and
+ * deliberately so: the harness buckets a container producer's entire
+ * `extraMethods` list as exempt, so a mutator's exemption covers its
+ * non-mutator siblings. Per-method keeps the siblings — which is how
+ * `gen-kotlin-sdk`'s private rendering helpers (`SdkServiceValue.#rawView`
+ * / `#methods`, `SdkServiceImplValue.#delegation` / `#rawImpl` /
+ * `#rawMethod`) stay visible.
  *
  * ## Known false negatives
  *

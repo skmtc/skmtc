@@ -74,6 +74,24 @@ Deno.test('method-discipline: silent on an accumulator mutator', () => {
   assertEquals(lint(RULE, source), [])
 })
 
+Deno.test('method-discipline: names a private helper with its #, and keeps it when a sibling mutates', () => {
+  const messages = messagesFrom(
+    RULE,
+    `class SdkServiceValue extends KtSnippet {
+       methods: string[] = []
+       add(method: string) {
+         this.methods.push(method)
+       }
+       #rawView(): string {
+         return this.methods.join(', ')
+       }
+       override toString(): string { return this.#rawView() }
+     }`
+  )
+  assertEquals(messages.length, 1)
+  assertStringIncludes(messages[0] ?? '', 'method #rawView() on producer SdkServiceValue')
+})
+
 Deno.test('method-discipline: silent on a non-producer class', () => {
   const source = `class Selection {
       toLabel(): string { return this.name }
