@@ -14,7 +14,7 @@ description: |
   "author a generator", "clone gen-x", "customize gen-x", "add a field
   type", "swap the HTTP layer", "change export paths", "add enrichment
   options", "compose generators", or edits a `.ts`/`.tsx` file under
-  `<root>/.skmtc/<project>/<gen-name>/`. Defer to `skmtc-cli` for
+  `<root>/.skmtc/<project>/<gen-name>/`. Defer to `skmtc-cli-v2` for
   install/clone/bundle commands themselves. Defer to `skmtc-debug` when
   the generator's output is broken and the cause isn't yet known.
   Pair with `skmtc-lang-typescript` or `skmtc-lang-kotlin` for the
@@ -265,9 +265,8 @@ constructor resumes, the dependency is settled — and since your own
 registration happens after your constructor's inserts, a same-file
 dependency is always registered, and therefore rendered, above you.
 
-What you get back is an `Inserted` handle — itself `Stringable`
-(it renders as the peer's name), with the peer still reachable as an
-object:
+`insertModel` / `insertOperation` return an `Inserted` handle, with
+the peer still reachable as an object:
 
 ```ts
 // core/dsl/Inserted.ts
@@ -280,6 +279,10 @@ class Inserted<V, EnrichmentType> {
   toValue(): V
 }
 ```
+
+`insertNormalizedModel` is the exception: it returns the
+`DefinitionBase` directly — read the name off `.identifier.name`;
+there is no `toName()` on it.
 
 Four guarantees follow, and every one of them is a thing you must NOT
 re-implement:
@@ -568,7 +571,7 @@ output; the emitted code is the ground truth the object tree was
 building toward.
 
 **Boundaries.** CLI commands (install/clone/bundle/generate
-mechanics) → `skmtc-cli`. Broken output with unknown cause →
+mechanics) → `skmtc-cli-v2`. Broken output with unknown cause →
 `skmtc-debug` (verify-first). The target language's rendering layer —
 file/import model, identifier factories, wiring scaffolds, syntax
 helpers — → `skmtc-lang-typescript` / `skmtc-lang-kotlin`; load the
@@ -593,7 +596,7 @@ generators additionally → `skmtc-graphql`.
 
 The full `deno doc` surface for the packages this skill covers lives
 in [`appendix.md`](appendix.md), in this skill's directory —
-generated from framework source at `d2f2d415`, signatures and
+generated from framework source at `71ef53bc`, signatures and
 field docs only. It is **authoritative**: when the prose above does
 not carry the exact constructor or field shape you need, Read (or
 grep) `appendix.md` instead of diving into package source. Do not

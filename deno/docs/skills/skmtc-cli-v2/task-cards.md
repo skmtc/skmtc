@@ -1,13 +1,13 @@
-# skmtc-cli — task cards
+# skmtc-cli-v2 — task cards
 
-Pull-loaded workflows for the `skmtc-cli` skill: end-to-end recipes
-for the common jobs. Section numbering matches `SKILL.md`, which
-carries a stub pointing here.
+Pull-loaded workflows for the `skmtc-cli-v2` skill: end-to-end
+recipes for the common jobs, referenced from SKILL.md §7.
 
-Read the card for the job in front of you. The command surface itself
-is in `SKILL.md` §4 — you do not need a card to run one command.
+Read the card for the job in front of you. The command surface lives
+in the binary (`skmtc --help`, `skmtc <cmd> -h`) — you do not need a
+card to run one command.
 
-## 10. Task cards
+## Task cards
 
 ### Card: Setting up SKMTC in a project
 
@@ -162,13 +162,16 @@ e.g. a sandbox handed "a folder of generator source + a schema".
 **`skmtc create` is agent-usable for Kotlin.** In a non-TTY session
 it runs headlessly from its command-line args, and
 `skmtc create <project> <name> model --lang kotlin` writes a WORKING
-baseline generator (schema-routed data classes / enum classes / sealed
-interfaces, a `KtType` snippet, `enrichments.ts`, a real root `mod.ts`
-default export) plus the project `deno.json` registration —
-scaffold-then-customise is the preferred flow. The **TypeScript**
-templates (`--lang typescript`, the default) still scaffold stubs and
-leave the package root `mod.ts` empty — for TS, the direct-registration
-flow below remains the practical path.
+baseline generator: a plain-signature `toKtValue` router with one
+module per scaffolded case (string/integer/number/boolean/array/ref/
+object), `protocol.ts` carrying the value-field contracts, decision
+cases throwing loudly (union, unknown, map-shaped object),
+`enrichments.ts`, and a real root `mod.ts` default export, plus the
+project `deno.json` registration — scaffold-then-customise is the
+preferred flow. The **TypeScript** templates (`--lang typescript`,
+the default) still scaffold stubs and leave the package root `mod.ts`
+empty — for TS, the direct-registration flow below remains the
+practical path.
 
 **The CLI discovers a local generator ONLY via the project
 `deno.json#imports`.** `toGeneratorIds()` = the import *keys* whose
@@ -222,7 +225,7 @@ Then, **by hand**, write under `.skmtc/lab/`:
        "@<scope>/gen-<name>": "./<gen-dir>/mod.ts",  // local generator
        "@skmtc/core":   "jsr:@skmtc/core@<pin>",      // peer deps the
        "@skmtc/worker": "jsr:@skmtc/worker@<pin>",    // generator src
-       "@skmtc/lang-typescript": "jsr:@skmtc/lang-typescript@<pin>", // the entry's `lang`
+       "@skmtc/lang-typescript": "jsr:@skmtc/lang-typescript@<pin>", // the lang package the base file imports
        "@std/path":     "jsr:@std/path@^1",           // imports by bare
        "tiny-invariant":"npm:tiny-invariant@^1.3.3"   // specifier
        // ...valibot, ts-pattern, etc. as the source needs

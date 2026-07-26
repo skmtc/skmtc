@@ -17,7 +17,7 @@ description: |
   "publish a stack", "deploy to skmtc-hub" (the command is `publish`;
   there is no `deploy`), "skmtc in CI", or invokes any CLI
   subcommand. For *authoring* a generator package (Projections,
-  Snippets, transform functions), defer to `skmtc-generator`. When
+  Snippets, transform functions), defer to `skmtc-generator-v2`. When
   something is broken (no output, wrong output, error messages, stale
   bundle), defer to `skmtc-debug` — verify-first stance takes
   priority during diagnosis.
@@ -42,7 +42,7 @@ mental model, the agent contract, and the decisions that need intent.
 Everything else — the command list, per-command flags, argument
 shapes — lives in the binary itself and is always current there;
 §3 shows how to pull it on demand. This skill guides **using** the
-CLI; for authoring generator packages see `skmtc-generator`, for
+CLI; for authoring generator packages see `skmtc-generator-v2`, for
 diagnosing failures see `skmtc-debug`.
 
 ## 1. Mental model
@@ -184,7 +184,7 @@ front of you. A single command doesn't need a card; `-h` covers it.
 This skill ends at the CLI surface. Hand off when:
 
 - The next step edits a `.ts`/`.tsx` file under
-  `<root>/.skmtc/<project>/<gen-name>/` → **skmtc-generator**
+  `<root>/.skmtc/<project>/<gen-name>/` → **skmtc-generator-v2**
 - The user reports something broken and the cause isn't yet known →
   **skmtc-debug** (verify-first stance)
 - The session is wrapping up and observations are worth recording →

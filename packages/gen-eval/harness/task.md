@@ -44,18 +44,19 @@ register calls, no string composition outside `toString()`,
   truth for anything the skill leaves open.
 - **Scaffold first, then implement.** Run
   `skmtc create lab @eval/gen-kotlin-jackson model --lang kotlin` —
-  it writes a SKELETON (entry, projection base, one projection making
-  a single router call, a `toKtValue` router typed `SchemaToValueFn`)
-  and registers it in `.skmtc/lab/deno.json`. One router case is
-  implemented as the worked example — `'object'` → `DataClassValue` —
-  and every other case throws, so the skeleton bundles but `generate`
-  fails loudly, naming each unmapped schema type. Your task is the
-  generator itself: implement the rest of the schema→snippet mapping
-  (one self-rendering snippet per schema variant, following the
-  example and the reference generators), the declaration kinds beyond
-  data-class/typealias, the single `Dtos.generated.kt` output, the
-  Jackson annotations, and the policy seams. Do not hand-write the
-  wiring files the scaffolder already provides.
+  it writes a working baseline (entry, projection, a plain-signature
+  `toKtValue` router, `protocol.ts` with the value-field contracts,
+  one module per scaffolded router case) and registers it in
+  `.skmtc/lab/deno.json`. The cases with one honest Kotlin answer are
+  scaffolded — string/integer/number/boolean/array/ref/object — so
+  the skeleton bundles and `generate` is green immediately; the cases
+  that are DECISIONS throw loudly (`union`, `unknown`, and an
+  `object` whose shape is a map via `additionalProperties`). Your
+  task is everything the schema cannot decide for you: the throwing
+  cases, the format policies (money, timestamps), enums, the Jackson
+  annotations and access control, the single `Dtos.generated.kt`
+  output, and the policy seams. Extend the scaffolded modules; do not
+  hand-write the wiring files the scaffolder already provides.
 - `kotlin-person-api/` is the real Spring Boot app with its `Dtos.kt`
   removed. Everything else is hand-written and checksum-pinned: the
   controller and services compile against your generated DTOs,
@@ -90,10 +91,11 @@ register calls, no string composition outside `toString()`,
   counts** — but a batched compound command
   (`cat a.ts && echo === && cat b.ts`) does NOT, and the write will
   be rejected even though you have seen the content.
-- **The working directory does not persist between Bash calls.** Use
-  absolute paths (or `gradle -p <path>`) instead of `cd`-then-run —
-  a bare `cd kotlin-person-api` will fail whenever an earlier call
-  left the cwd elsewhere.
+- **The working directory DOES persist between Bash calls** — which is
+  exactly why a bare `cd` is a trap: it leaves every later command
+  running somewhere unexpected. Use subshells
+  (`(cd .skmtc/lab && deno check ...)`) or absolute paths
+  (`gradle -p <path>`) so no call changes the cwd the next one sees.
 
 ## Policy decisions are yours to encode
 

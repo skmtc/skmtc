@@ -189,9 +189,9 @@ const MILESTONE_CMDS = [['skmtc bundle','first bundle'],['skmtc generate','first
 // scale: 60 s is an order of magnitude above the typical few-second
 // block, 5000 tokens is past step-level deliberation. Either alone
 // fires, and it fires per block (not once) — a run can stall
-// repeatedly. Kept in sync by hand with timeline.js.
-const DEEP_THINK_SECONDS = 60;
-const DEEP_THINK_TOKENS = 5000;
+// repeatedly. Values injected by viewer.js from constants.js.
+const DEEP_THINK_SECONDS = __DEEP_THINK_SECONDS__;
+const DEEP_THINK_TOKENS = __DEEP_THINK_TOKENS__;
 
 // ---- model: parse raw stream-json events into turns -----------------
 function build(events) {

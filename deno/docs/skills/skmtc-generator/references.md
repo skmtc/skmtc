@@ -31,5 +31,3 @@ when in doubt whether a rule still applies, read or run the test.
 - Bit-identical rendering across variant changes:
   `core/run/toArtifacts.regression.test.ts`
 
-<!-- api-appendix:begin — GENERATED, do not edit by hand -->
-

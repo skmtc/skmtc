@@ -22,7 +22,7 @@
  *   deno task skills point main --dry-run
  */
 
-import { basename, dirname, fromFileUrl, join } from '@std/path'
+import { basename, dirname, fromFileUrl, isAbsolute, join, resolve } from '@std/path'
 
 const SKILLS_SEGMENT = join('deno', 'docs', 'skills')
 
@@ -58,7 +58,11 @@ export const readSkillLinks = async (skillsHome: string): Promise<SkillLink[]> =
   for await (const entry of Deno.readDir(skillsHome)) {
     if (!entry.isSymlink) continue
     const linkPath = join(skillsHome, entry.name)
-    const target = await Deno.readLink(linkPath)
+    const rawTarget = await Deno.readLink(linkPath)
+    // A relative target is relative to the symlink's own directory —
+    // resolving it there keeps later `git -C treeRoot` calls correct
+    // regardless of the script's cwd.
+    const target = isAbsolute(rawTarget) ? rawTarget : resolve(dirname(linkPath), rawTarget)
     const at = target.indexOf(SKILLS_SEGMENT)
     if (at === -1) continue
     links.push({
@@ -85,7 +89,13 @@ export const readTrees = async (repoRoot: string): Promise<Map<string, string>> 
     .filter(line => line.startsWith('worktree '))
     .map(line => line.slice('worktree '.length))
   const trees = new Map<string, string>()
-  roots.forEach((root, index) => trees.set(index === 0 ? 'main' : basename(root), root))
+  roots.forEach((root, index) => {
+    // Two worktrees can share a directory basename; a silent last-wins
+    // would make `point <label>` target the wrong tree. Disambiguate
+    // with the worktree-list index so every root keeps a unique label.
+    const base = index === 0 ? 'main' : basename(root)
+    trees.set(trees.has(base) ? `${base}@${index}` : base, root)
+  })
   return trees
 }
 

@@ -76,8 +76,8 @@ post-processing.
    reads, and the live `skmtc/deno` tree off-limits for writes.
 3. **Provenance** — `meta.json` records model, label, skill git SHA
    (+ dirty-file count), thinking budget, start time; the
-   skmtc-generator and skmtc-lang-kotlin skills are snapshotted into
-   the run dir.
+   skmtc-generator-v2 and skmtc-lang-kotlin skills are snapshotted
+   into the run dir.
 4. **Dashboard + live viewer** — the dashboard is started if not
    already running and the run's live-viewer URL is printed *before*
    the model starts.
@@ -242,8 +242,8 @@ calibration:
 
 - **Skill loading is instructed, not discovered** — the eval measures
   whether the *skills teach the shape*, not whether the model finds
-  them. Three skills are named: `skmtc-generator`,
-  `skmtc-lang-kotlin`, and `skmtc-cli`.
+  them. Three skills are named (task.md is authoritative):
+  `skmtc-generator-v2`, `skmtc-lang-kotlin`, and `skmtc-cli-v2`.
 - **The reference output is the spec** — `reference/Dtos.kt` (the
   repo's hand-written file, copied at seed time) is what the
   generator must recreate: money-as-string serde,
@@ -322,7 +322,7 @@ empty.
 | `transcript.jsonl` | Full stream-json feed: every tool call, every event |
 | `session.jsonl` | The Claude Code session file (backup capture) |
 | `meta.json` | Model, label, skill SHA + dirty flag, thinking budget, cost, turns, duration, `thinking` (block count, `thinkTotalTokens`, share of output, `maxThinkBlock`: tokens / seconds / elapsed / context / what it decided) |
-| `skill-snapshot/` | The skmtc-generator + skmtc-lang-kotlin skills exactly as this run saw them |
+| `skill-snapshot/` | The skmtc-generator-v2 + skmtc-lang-kotlin skills exactly as this run saw them |
 | `workspace/` | The full sandbox: authored generator at `.skmtc/lab/gen-kotlin-jackson/`, generated file at `kotlin-person-api/src/main/kotlin/com/example/api/dto/Dtos.generated.kt`, reference material at `reference/` |
 | `generate.json`, `compile.log`, `dtos-diff.txt`, `integrity.log` | Raw gate evidence + the reference diff |
 | `../index.jsonl` | One line per run: model, skill SHA, gates, verdict, cost, turns, `thinkTotalTokens`, `maxThinkBlockTokens`, `maxThinkBlockSeconds` |
@@ -415,9 +415,11 @@ belong at `reference/skmtc-deno` instead.
    `Write` after it is the conclusion it reached. A long block followed
    by a small, confident write usually means the skills left it
    deriving something they could have stated.
-3. Map the failure to a skill section, edit
-   `skmtc/deno/docs/skills/skmtc-generator/SKILL.md`, run
-   `deno task verify-docs` in `skmtc/deno`.
+3. Map the failure to a skill section and edit the skill the runs
+   actually load (per task.md — currently
+   `skmtc/deno/docs/skills/skmtc-generator-v2/SKILL.md` or its
+   `common-errors.md` sibling), then run `deno task verify-docs` in
+   `skmtc/deno`.
 4. Re-run with a label: `harness/run.sh <model> after-<fix>`.
 5. Compare on the dashboard or `cat runs/index.jsonl` — skill SHA per
    run keeps configurations attributable.

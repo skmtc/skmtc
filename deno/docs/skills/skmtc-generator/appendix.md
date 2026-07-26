@@ -1,6 +1,6 @@
 # Appendix — generated API reference
 
-> Generated from framework source at `d2f2d415` by
+> Generated from framework source at `71ef53bc` by
 > `deno run --allow-read --allow-write --allow-run=deno,git .scripts/generate-skill-api-appendix.ts`
 > (from `deno/`). **Authoritative** for signatures, fields, and doc
 > comments — trust it instead of re-reading package source. JSDoc
@@ -10,7 +10,7 @@
 
 ### `@skmtc/core` — the OAS IR a generator reads
 
-The schema classes handed to `transform` / projections via `resolveSchemaRefOnce` and friends: every `OasSchema` variant with its exact fields, plus `OasRef`, `CustomValue`, and the discriminator. Wire facts (`readOnly` / `writeOnly` / `format` / `enums` / `default`) live on the concrete variants listed here — narrow with `switch (resolved.type)` and read inside the branch.
+The schema classes handed to `transform` / projections via `resolveSchemaRefOnce` and friends: every `OasSchema` variant with its exact fields, plus `OasRef`, `CustomValue`, and the discriminator. Wire facts (`readOnly` / `writeOnly` / `format` / `enums` / `default`) live on the concrete variants listed here. Type facts are read inside the router's per-type case (which already holds the narrowed variant); position facts are read with the `in` operator — never a `.type` branch outside the router.
 
 ### `core/oas/schema/Schema.ts`
 

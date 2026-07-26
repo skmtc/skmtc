@@ -17,7 +17,7 @@
  */
 
 import { assert, assertExists } from '@std/assert'
-import type * as log from '@std/log'
+import * as log from '@std/log'
 import { GenerateContext } from './GenerateContext.ts'
 import { StackTrail } from './StackTrail.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
@@ -35,13 +35,9 @@ import type { Lang } from '@/dsl/Lang.ts'
 import type { ModelProjectionConstructorArgs } from '@/dsl/model/types.ts'
 import type { RefName } from '@/types/RefName.ts'
 
-const mockLogger: log.Logger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-  critical: () => {}
-} as unknown as log.Logger
+// An unconfigured named logger has no handlers, so it is silent — a
+// real Logger, no structural double, no cast.
+const mockLogger: log.Logger = log.getLogger('placement-test-silent')
 
 const neutralLang: Lang = {
   createFile: ({ path }) => new MockFile({ path }),
@@ -109,6 +105,12 @@ const renderModelsFile = (schemaNames: string[]): string => {
     settings: undefined,
     logger: mockLogger,
     captureCurrentResult: () => {},
+    // The contract is a GENERIC callback (`<E>() => GeneratorsMapContainer<E>`),
+    // which no concrete entry can satisfy honestly — a direct cast fails
+    // TS2352 (insufficient overlap), so the cast below is forced by that
+    // type shape, not by this test. Core cleanup candidate: make the
+    // container's enrichment type flow from the entries instead of the
+    // caller's type argument.
     // deno-lint-ignore no-explicit-any
     toGeneratorConfigMap: () => ({ '@test/placement': entry }) as any
   })

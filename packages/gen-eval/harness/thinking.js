@@ -16,14 +16,9 @@
  */
 import { readFileSync, existsSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { DEEP_THINK_SECONDS, DEEP_THINK_TOKENS } from './constants.js'
 
-// A block is "deep" if it stalls the run or reasons at plan scale.
-// 60s is an order of magnitude above the typical few-second block and
-// long enough to read as a stall in the terminal; 5000 tokens is past
-// step-level deliberation. Either alone fires — a fast large block and
-// a slow small one are both worth surfacing.
-const DEEP_THINK_SECONDS = 60
-const DEEP_THINK_TOKENS = 5000
+// Deep-think thresholds and their rationale: constants.js.
 
 const args = process.argv.slice(2)
 const mode = (args.find(arg => arg.startsWith('--')) ?? '--table').slice(2)

@@ -11,7 +11,7 @@ HARNESS_DIR=$(cd "$(dirname "$0")" && pwd)
 # Workspace root = parent of the MAIN skmtc checkout, derived via git so
 # harness runs from a linked worktree resolve correctly (the plain
 # ../../../.. default landed inside .claude/worktrees/).
-SKMTC_ROOT=${SKMTC_ROOT:-$(dirname "$(git -C "$HARNESS_DIR" worktree list --porcelain | head -1 | cut -d' ' -f2-)")}
+. "$HARNESS_DIR/skmtc-root.sh"
 
 # A dirty kotlin-person-api contaminates the run: seed.sh copies the
 # WORKING TREE, so uncommitted state silently becomes the app + the

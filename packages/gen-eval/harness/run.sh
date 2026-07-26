@@ -38,7 +38,7 @@ bash "$HARNESS_DIR/seed.sh" "$WORKSPACE"
 # Workspace root = parent of the MAIN skmtc checkout, derived via git so
 # harness runs from a linked worktree resolve correctly (the plain
 # ../../../.. default landed inside .claude/worktrees/).
-SKMTC_ROOT=${SKMTC_ROOT:-$(dirname "$(git -C "$HARNESS_DIR" worktree list --porcelain | head -1 | cut -d' ' -f2-)")}
+. "$HARNESS_DIR/skmtc-root.sh"
 mkdir -p "$WORKSPACE/.claude"
 SETTINGS_PATH="$WORKSPACE/.claude/settings.json" SKMTC_ROOT="$SKMTC_ROOT" \
   GRADER_SRC="$(cd "$HARNESS_DIR/../src" && pwd)" node - <<'EOF'

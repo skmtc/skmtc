@@ -22,7 +22,11 @@ legitimate exceptions.
 | 13 | [TODO markers in emitted text](emitted-todos.md) | `src/checks/emitted-todos.ts` | informational |
 | 14 | [Runtime discipline (sync Deno, side effects = logs + registers)](runtime-discipline.md) | `src/checks/runtime-discipline.ts` | pass/fail |
 | 15 | [No redundant `isRef()` guards around `resolve()`](redundant-ref-guard.md) | `src/checks/redundant-ref-guard.ts` | count, warning |
+| 16 | [`schema.type` dispatch lives only in the router](single-dispatch.md) | `src/checks/single-dispatch.ts` | pass/fail |
 | — | [Aggregate verdict](aggregate.md) | `src/aggregate.ts` | derived: clean / warn(m) / FAIL(nF+mW) |
+
+Check 8 gained a construction clause in round 3: `new` inside
+`toString()` fails alongside assignment, mutation, and register calls.
 
 Architecture: a single shared AST pass (`src/parse.ts`) produces
 `PackageFacts`; every check module is a pure function over those facts,

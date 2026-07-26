@@ -40,7 +40,7 @@ fi
 # Workspace root = parent of the MAIN skmtc checkout, derived via git so
 # harness runs from a linked worktree resolve correctly (the plain
 # ../../../.. default landed inside .claude/worktrees/).
-SKMTC_ROOT=${SKMTC_ROOT:-$(dirname "$(git -C "$HARNESS_DIR" worktree list --porcelain | head -1 | cut -d' ' -f2-)")}
+. "$HARNESS_DIR/skmtc-root.sh"
 if [ -f "$OUT/transcript.jsonl" ]; then
   AUDIT=$(TRANSCRIPT="$OUT/transcript.jsonl" SKMTC_ROOT="$SKMTC_ROOT" GEN_EVAL_SRC="$(cd "$GEN_EVAL/src" && pwd)" node - <<'EOF'
 const { readFileSync } = require('node:fs')
@@ -95,19 +95,22 @@ for (const line of readFileSync(process.env.TRANSCRIPT, 'utf8').split('\n')) {
   for (const item of content) {
     if (item && item.type === 'tool_use') {
       const payload = JSON.stringify(item.input ?? {})
+      // Write tools match on their TARGET only, everywhere below —
+      // file CONTENT legitimately mentions framework and grader paths
+      // (RETRO.md citing reference/skmtc-deno or the wrapper path must
+      // not disqualify a run that never read the source).
+      const target = (item.input ?? {}).file_path ?? (item.input ?? {}).notebook_path ?? ''
+      const scanText = writeTools.has(item.name) ? target : payload
       for (const path of forbidden) {
-        if (payload.includes(path)) hits.push(`${item.name}: …${path.split('/').pop()}`)
+        if (scanText.includes(path)) hits.push(`${item.name}: …${path.split('/').pop()}`)
       }
       if (writeTools.has(item.name)) {
-        // Match the write TARGET only — file content legitimately mentions
-        // framework paths (e.g. RETRO.md citing reference/skmtc-deno).
-        const target = (item.input ?? {}).file_path ?? (item.input ?? {}).notebook_path ?? ''
         for (const path of writeForbidden) {
           if (target.includes(path)) hits.push(`${item.name} into framework source: …${path.split('/').pop()}`)
         }
       }
       if (diveTools.has(item.name) && divePattern.test(payload)) dives += 1
-      const strippedPayload = payload
+      const strippedPayload = scanText
         .replaceAll('reference/structural-eval/cli.ts', '')
         .replaceAll(`${graderSrc}/cli.ts`, '')
       if (

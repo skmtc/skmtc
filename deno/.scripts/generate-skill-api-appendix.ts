@@ -34,8 +34,10 @@ const oasIrSection: AppendixSection = {
     '`resolveSchemaRefOnce` and friends: every `OasSchema` variant with its ' +
     'exact fields, plus `OasRef`, `CustomValue`, and the discriminator. ' +
     'Wire facts (`readOnly` / `writeOnly` / `format` / `enums` / `default`) ' +
-    'live on the concrete variants listed here — narrow with ' +
-    '`switch (resolved.type)` and read inside the branch.',
+    'live on the concrete variants listed here. Type facts are read inside ' +
+    "the router's per-type case (which already holds the narrowed variant); " +
+    'position facts are read with the `in` operator — never a `.type` ' +
+    'branch outside the router.',
   files: [
     'core/oas/schema/Schema.ts',
     'core/oas/string/String.ts',

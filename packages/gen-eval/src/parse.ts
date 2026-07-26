@@ -23,6 +23,13 @@ const NAMING_STATICS = new Set(['toExportPath', 'toIdentifierName', 'toPackageNa
 // policies (toIdentifierType, isSupported) may also inspect schema.type
 // — they decide what a node is called or whether it is handled, never
 // what renders it. Everything else is a third door.
+//
+// Known holes, accepted as heuristic cost (mirrored in
+// @skmtc/lint-plugin's skmtc/single-dispatch doc comment): any
+// function matching to<X>Value is sanctioned, so a helper named e.g.
+// toDefaultValue could carry dispatch undetected; and a destructured
+// read (`const { type } = schema; switch (type)`) evades the
+// PropertyAccessExpression matchers entirely.
 const ROUTER_LABEL = /^to[A-Z]\w*Value$|^schemaToValueFn$/
 const DISPATCH_METADATA_LABELS = new Set(['toIdentifierType', 'isSupported'])
 const SCHEMA_TYPE_LITERALS = new Set([

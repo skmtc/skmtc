@@ -6,8 +6,9 @@ description: |
   whose input schema is GraphQL SDL rather than OpenAPI. Covers
   `toGqlOperationEntry`, `GqlOperation`, `synthesizeArgsObject`
   (mutation args -> object schema), the GQL enrichment routing
-  (`[id][rootKind][fieldName][variant]` — NOT pre-resolved, unlike
-  OAS), the `to<Lang>GqlOperationProjectionBase` companion factories,
+  (`[id][rootKind][fieldName][variant]` — two nested subject keys
+  where OAS has path+method), the
+  `to<Lang>GqlOperationProjectionBase` companion factories,
   and the `GeneratorKey` shape `id|rootKind|fieldName|variant`.
 
   Use this skill ALONGSIDE `skmtc-generator` whenever the schema
@@ -53,10 +54,10 @@ export const MyGqlEntry = toGqlOperationEntry<EnrichmentSchema>({
 
 GQL-specific notes:
 
-1. **Enrichments are *not* pre-resolved for GQL.** OAS pre-resolves by
-   path+method; GQL hands you the raw operation — reach the subject
-   leaf at `context.settings.enrichments[id][operation.identifier][variant]`
-   yourself (`operation.identifier` is `<rootKind>_<fieldName>`).
+1. **Enrichments arrive parsed on `settings.enrichments`**, exactly
+   as for OAS operations and models — read them there; never index
+   the raw umbrella by hand. The subject keys are
+   `[id][rootKind][fieldName][variant]`.
 2. **Mutation args come via `synthesizeArgsObject(operation)`** — GQL
    has no `requestBody`; this turns the field's arguments into an
    object schema for `insertNormalizedModel`.
@@ -72,10 +73,14 @@ Background: [`concepts/the-graphql-pipeline.md`](../../concepts/the-graphql-pipe
    is `<rootKind>_<fieldName>`). The companion projection-base
    factory is the lang package's
    `to<Lang>GqlOperationProjectionBase`.
-2. **Enrichments are NOT pre-resolved.** OAS pre-resolves the subject
-   leaf by path+method before your statics run; GQL hands you the raw
-   operation — reach the leaf yourself at
-   `context.settings.enrichments[id][operation.identifier][variant]`.
+2. **Enrichments arrive parsed on `settings.enrichments`, same as
+   OAS** — the base's `static toEnrichments` parses the umbrella with
+   `subjectSegments: [operation.rootKind, operation.fieldName,
+   variant]` (`toGqlOperationProjectionBase.ts`). Only the subject
+   keys differ: two nested segments (`rootKind`, `fieldName`) where
+   OAS has path+method. `operation.identifier`
+   (`<rootKind>_<fieldName>`) is a file-naming/cache key, never an
+   enrichment key.
 3. **Mutation args come via `synthesizeArgsObject(operation)`** — GQL
    has no `requestBody`; this turns the field's arguments into an
    object schema suitable for `insertNormalizedModel`.

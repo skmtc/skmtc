@@ -7,6 +7,7 @@
  */
 import { createInterface } from 'node:readline'
 import { createReadStream, createWriteStream } from 'node:fs'
+import { DEEP_THINK_SECONDS, DEEP_THINK_TOKENS } from './constants.js'
 
 const MILESTONE_FILES = ['base.ts', 'mod.ts', 'enrichments.ts']
 const MILESTONE_CMDS = [
@@ -20,9 +21,7 @@ const MILESTONE_CMDS = [
 // step-level deliberation. Either alone fires. Unlike the other
 // milestones this one fires per block, not once — a run can stall
 // repeatedly and each stall is a separate thing to bracket.
-// (Kept in sync by hand with viewer.template.html.)
-const DEEP_THINK_SECONDS = 60
-const DEEP_THINK_TOKENS = 5000
+// Thresholds: constants.js (shared with thinking.js and the viewer).
 
 process.stdout.on('error', error => {
   if (error.code === 'EPIPE') process.exit(0)

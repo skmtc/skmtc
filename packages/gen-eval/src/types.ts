@@ -108,6 +108,13 @@ export type SchemaDispatchSite = CodeSite & {
   text: string
 }
 
+export type SingleDispatchResult = {
+  pass: boolean
+  routerCount: number
+  metadataCount: number
+  outside: SchemaDispatchSite[]
+}
+
 export type FileFacts = {
   file: string
   classes: ClassFacts[]
@@ -166,12 +173,7 @@ export type GeneratorReport = {
   accumulator: AccumulatorReport
   producerSizes: { bucket: number; count: number }[]
   toStringPurity: { pass: boolean; violations: ToStringViolation[] }
-  singleDispatch: {
-    pass: boolean
-    routerCount: number
-    metadataCount: number
-    outside: SchemaDispatchSite[]
-  }
+  singleDispatch: SingleDispatchResult
   adHocToString: { pass: boolean; sites: CodeSite[] }
   asCasts: { count: number; sites: CodeSite[] }
   redundantRefGuards: { count: number; sites: CodeSite[] }

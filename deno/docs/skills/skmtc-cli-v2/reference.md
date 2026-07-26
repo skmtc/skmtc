@@ -1,9 +1,10 @@
-# skmtc-cli — reference companion
+# skmtc-cli-v2 — reference companion
 
-Pull-loaded detail for the `skmtc-cli` skill: the settings file's
-full shape, the filter semantics, the JSON envelopes agents parse, and
-the user-facing operational principles. Section numbers match
-`SKILL.md`, which carries a stub pointing here for each.
+Pull-loaded detail for the `skmtc-cli-v2` skill: the settings file's
+full shape, the filter semantics, the JSON envelopes agents parse,
+the user-facing operational principles, and the doctor check ids.
+Sections keep their historical numbers (§6/§7/§8/§11) — SKILL.md §6
+points here; the numbers do not map onto v2's own section numbering.
 
 Read this when you are editing `client.json`, writing a filter,
 parsing `--json` output, or checking a principle — not before.
@@ -72,6 +73,14 @@ parsing `--json` output, or checking a principle — not before.
 
     // Deny-list. Applied after include. See §7.
     "skip": [],
+
+    // Optional. Filename suffix the engine injects into every
+    // projection export path before the extension (`CreateForm.tsx`
+    // → `CreateForm.generated.tsx`). Defaults to ".generated"; set
+    // "" to disable. Injection is idempotent, and the suffix marks a
+    // file as engine-owned — it is the seam the eject/adopt flow
+    // renames across. Usually leave it alone.
+    "generatedSuffix": ".generated",
 
     // Optional. Multi-package output — route generated files into
     // separate packages of a monorepo. Each entry is

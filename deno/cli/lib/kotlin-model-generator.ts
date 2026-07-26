@@ -20,12 +20,14 @@ import { join } from '@std/path/join'
  *
  * - Scaffolded, because the mapping is not a choice: `string` → String,
  *   `integer` → Int/Long, `number` → Double/Float, `boolean` → Boolean,
- *   `array` → List<T>, `ref` → the peer declaration's name, `object` →
- *   a data-class parameter list.
+ *   `array` → List<T>, `ref` → the peer declaration's name, `object`
+ *   with named properties → a data-class parameter list.
  * - Throws, because a guess would be wrong and silent: `union` (sealed
- *   hierarchy vs typealias vs collapsed supertype) and `unknown` (no
+ *   hierarchy vs typealias vs collapsed supertype), `unknown` (no
  *   honest Kotlin type — `Any` is not an answer, it is the absence of
- *   one).
+ *   one), and an `object` whose shape is a map (`additionalProperties`
+ *   truthy — Map<String, V> vs a hybrid class, plus the default-value
+ *   and nullability pairing, are generator policy).
  *
  * So `generate` is green from the first run and emits plain, valid,
  * compiling Kotlin, and every subsequent step is an increment against
@@ -283,8 +285,10 @@ import { KtSnippet } from '@skmtc/lang-kotlin'
 type StringValueArgs = {
   context: GenerateContextType
   stringSchema: OasString
-  // Present on every value snippet: the file its imports register into.
-  // A snippet has no file of its own — the parent passes this down.
+  // The file this snippet's imports register into — a snippet has no
+  // file of its own, so the parent passes it down. Carried by the
+  // snippets that register (or grow toward registering) imports;
+  // thread it into any other snippet the moment you add imports there.
   destinationPath: string
   modifiers: Modifiers
 }
@@ -570,7 +574,9 @@ export class DataClassValue extends KtSnippet {
     this.modifiers = modifiers
 
     if (objectSchema.additionalProperties) {
-      throw new Error('DataClassValue: additionalProperties is not mapped yet')
+      throw new Error(
+        'DataClassValue: additionalProperties makes this a map-shaped object — decide the Kotlin shape (Map<String, V> vs a hybrid class, default value, nullability)'
+      )
     }
 
     const required = objectSchema.required ?? []

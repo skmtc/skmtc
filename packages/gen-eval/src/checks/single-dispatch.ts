@@ -1,4 +1,4 @@
-import type { PackageFacts, SchemaDispatchSite } from '../types.ts'
+import type { PackageFacts, SingleDispatchResult } from '../types.ts'
 
 /**
  * Check 16 — single dispatch (the generator skill's axiom 1). A
@@ -19,13 +19,6 @@ import type { PackageFacts, SchemaDispatchSite } from '../types.ts'
  *
  * Docs: docs/single-dispatch.md
  */
-
-export type SingleDispatchResult = {
-  pass: boolean
-  routerCount: number
-  metadataCount: number
-  outside: SchemaDispatchSite[]
-}
 
 export const runSingleDispatch = (facts: PackageFacts): SingleDispatchResult => {
   const sites = facts.files.flatMap(file => file.schemaDispatchSites)
