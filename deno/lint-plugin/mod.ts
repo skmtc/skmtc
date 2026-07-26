@@ -1,0 +1,59 @@
+/**
+ * `@skmtc/lint-plugin` — the SKMTC generator doctrine as `deno lint` rules.
+ *
+ * Wire it into a generator project's `deno.json`:
+ *
+ * ```json
+ * { "lint": { "plugins": ["jsr:@skmtc/lint-plugin"] } }
+ * ```
+ *
+ * Then `deno lint` (and the Deno LSP, live in the editor) reports each
+ * violation at its site, with the rule text as the diagnostic hint. Seven
+ * of the rules are ports of the per-file structural checks in
+ * `packages/gen-eval/src/checks/`, whose canonical rule text lives in
+ * `packages/gen-eval/docs/<check>.md`. Two go further than the harness here
+ * — `single-dispatch` has no counterpart in it, and `tostring-purity`'s
+ * construction clause is not in check 8 — and say so in their doc comments.
+ * Every rule module carries its doctrine and its known false negatives.
+ *
+ * Cross-file and aggregate checks — producer share, package structure, the
+ * accumulator verdict, string-composition share, producer sizes, and the
+ * "exactly one router exists" half of single-dispatch — are not
+ * expressible per-file and stay in the gen-eval harness.
+ *
+ * Every rule is silent in test files and under `demo/`, `examples/`,
+ * `scripts/`, `dist/`, `coverage/` and `node_modules/` — trees that
+ * legitimately do the things the rules forbid (see `src/shared/target.ts`).
+ */
+
+import { methodDiscipline } from './src/rules/method-discipline.ts'
+import { noAdhocToString } from './src/rules/no-adhoc-tostring.ts'
+import { noAsCasts } from './src/rules/no-as-casts.ts'
+import { noEmittedTodos } from './src/rules/no-emitted-todos.ts'
+import { noRedundantRefGuard } from './src/rules/no-redundant-ref-guard.ts'
+import { noTemplateImports } from './src/rules/no-template-imports.ts'
+import { runtimeDiscipline } from './src/rules/runtime-discipline.ts'
+import { singleDispatch } from './src/rules/single-dispatch.ts'
+import { toStringPurity } from './src/rules/tostring-purity.ts'
+
+/**
+ * The plugin. `name: 'skmtc'` makes rule ids read `skmtc/<rule>`, which is
+ * what a consumer excludes in `deno.json` and what
+ * `// deno-lint-ignore skmtc/<rule>` names.
+ */
+export const plugin: Deno.lint.Plugin = {
+  name: 'skmtc',
+  rules: {
+    'tostring-purity': toStringPurity,
+    'single-dispatch': singleDispatch,
+    'no-adhoc-tostring': noAdhocToString,
+    'no-as-casts': noAsCasts,
+    'no-template-imports': noTemplateImports,
+    'no-emitted-todos': noEmittedTodos,
+    'no-redundant-ref-guard': noRedundantRefGuard,
+    'runtime-discipline': runtimeDiscipline,
+    'method-discipline': methodDiscipline
+  }
+}
+
+export default plugin

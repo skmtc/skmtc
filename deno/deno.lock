@@ -1266,6 +1266,11 @@
           "jsr:@skmtc/core@0.28.2"
         ]
       },
+      "lint-plugin": {
+        "dependencies": [
+          "jsr:@std/assert@^1.0.10"
+        ]
+      },
       "mcp": {
         "dependencies": [
           "jsr:@std/fs@^1.0.7",
