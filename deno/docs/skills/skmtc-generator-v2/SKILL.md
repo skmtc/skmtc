@@ -562,13 +562,17 @@ read framework source only for a concrete signature you need.
 
 **Verify mechanically, not by re-reading.** Type-check from the
 project root in a subshell —
-`(cd .skmtc/<project> && deno check <gen>/mod.ts)` — and run whatever
-checker the workspace provides (an eval workspace ships a runnable
-grader; its output, like every SKMTC diagnostic, carries the rule
-text — treat it as authoritative feedback, not as a prompt to go
-read the checker's source). Then generate and read the actual
-output; the emitted code is the ground truth the object tree was
-building toward.
+`(cd .skmtc/<project> && deno check <gen>/mod.ts)` — and lint:
+scaffolded generator projects carry `@skmtc/lint-plugin` in their
+`deno.json`, so `(cd .skmtc/<project>/<gen> && deno lint)` reports
+doctrine violations (construction in `toString()`, dispatch outside
+the router, redundant ref guards, …) with the rule text in each
+hint. Findings are doctrine — fix them, never suppress them. Run
+whatever additional checker the workspace provides (an eval
+workspace ships a runnable grader; its output is authoritative
+feedback, not a prompt to read the checker's source). Then generate
+and read the actual output; the emitted code is the ground truth the
+object tree was building toward.
 
 **Boundaries.** CLI commands (install/clone/bundle/generate
 mechanics) → `skmtc-cli-v2`. Broken output with unknown cause →

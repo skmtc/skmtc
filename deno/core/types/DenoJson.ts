@@ -34,7 +34,13 @@ export const packageDenoJson: v.GenericSchema<PackageDenoJson> = v.looseObject({
   name: v.string(),
   version: v.string(),
   imports: v.optional(v.record(v.string(), v.string())),
-  exports: v.union([v.record(v.string(), v.string()), v.string()])
+  exports: v.union([v.record(v.string(), v.string()), v.string()]),
+  lint: v.optional(
+    v.looseObject({
+      plugins: v.optional(v.array(v.string())),
+      rules: v.optional(v.looseObject({ exclude: v.optional(v.array(v.string())) }))
+    })
+  )
 })
 
 /**
@@ -48,4 +54,8 @@ export type PackageDenoJson = {
   version: string
   imports?: Record<string, string>
   exports: Record<string, string> | string
+  lint?: {
+    plugins?: string[]
+    rules?: { exclude?: string[] }
+  }
 }

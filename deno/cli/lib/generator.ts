@@ -142,7 +142,11 @@ export class Generator {
         contents: {
           name: this.toModuleName(),
           version: this.version,
-          exports: './mod.ts'
+          exports: './mod.ts',
+          // Generator doctrine as live diagnostics: deno lint (and the
+          // Deno LSP) picks the plugin up from here, so violations
+          // surface at edit time with the rule text in the hint.
+          lint: { plugins: ['jsr:@skmtc/lint-plugin@^0.1.0'] }
         }
       },
       manager

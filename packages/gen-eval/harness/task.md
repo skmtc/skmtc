@@ -124,6 +124,11 @@ skmtc bundle lab --json               # after generator source changes
 #   ride a type-broken generator. The parentheses matter: Bash cwd
 #   persists across tool calls, and a leaked `cd` makes the next
 #   skmtc command fail with misleading "missing schema" errors
+(cd .skmtc/lab/gen-kotlin-jackson && deno lint)
+# ^ the scaffolded deno.json carries @skmtc/lint-plugin — every
+#   finding is generator doctrine with the rule in the hint; fix
+#   findings, never suppress them. (A freshly released plugin can be
+#   age-blocked for its first day — Deno's error names the flag.)
 skmtc generate lab --json             # errors must be [], Dtos.generated.kt created
 node reference/structural-eval/cli.ts --scan .skmtc/lab
 # ^ the SAME structural eval that grades this run — re-run it and fix
