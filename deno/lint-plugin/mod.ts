@@ -8,11 +8,13 @@
  * ```
  *
  * Then `deno lint` (and the Deno LSP, live in the editor) reports each
- * violation at its site, with the rule text as the diagnostic hint. The
- * rules are ports of the per-file structural checks in
- * `packages/gen-eval/src/checks/`; the canonical rule text for each lives
- * in `packages/gen-eval/docs/<check>.md`, and each rule module carries the
- * doctrine plus its known false negatives in its doc comment.
+ * violation at its site, with the rule text as the diagnostic hint. Seven
+ * of the rules are ports of the per-file structural checks in
+ * `packages/gen-eval/src/checks/`, whose canonical rule text lives in
+ * `packages/gen-eval/docs/<check>.md`. Two go further than the harness here
+ * — `single-dispatch` has no counterpart in it, and `tostring-purity`'s
+ * construction clause is not in check 8 — and say so in their doc comments.
+ * Every rule module carries its doctrine and its known false negatives.
  *
  * Cross-file and aggregate checks — producer share, package structure, the
  * accumulator verdict, string-composition share, producer sizes, and the

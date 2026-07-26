@@ -23,6 +23,13 @@ import {
  * lands after Render has finalised the file's imports and is silently
  * lost.
  *
+ * The construction clause goes beyond check 8 as it stands in
+ * `packages/gen-eval` here: that check flags assignment, mutation and
+ * register, and gained `new` on the `feat/gen-eval-round-3` branch. The
+ * reason is the same one the rest of the rule rests on — the render tree is
+ * built at construction time, and a refusal should fail at generate rather
+ * than at render.
+ *
  * ## Known false negatives
  *
  * - **Construction reached through a helper.** `new` inside a same-file

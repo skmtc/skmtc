@@ -65,10 +65,16 @@ inline ignore with a reason: it keeps the decision at the site.
 
 ## Relationship to the gen-eval harness
 
-These rules are ports of the per-file structural checks in
-`packages/gen-eval/src/checks/`; the canonical rule text lives in
-`packages/gen-eval/docs/<check>.md`. The linter enforces *what*; the
-`skmtc-generator` skill teaches *why*; the hint text is the bridge.
+Seven of these rules are ports of the per-file structural checks in
+`packages/gen-eval/src/checks/`, whose canonical rule text lives in
+`packages/gen-eval/docs/<check>.md`. Two go further: `single-dispatch` has
+no counterpart in the harness, and `tostring-purity`'s construction clause
+is not in check 8. Both were written against the `feat/gen-eval-round-3`
+branch and say so in their doc comments, which is where their doctrine
+lives.
+
+The linter enforces *what*; the `skmtc-generator` skill teaches *why*; the
+hint text is the bridge.
 
 Cross-file and aggregate checks are not expressible per-file and stay in the
 harness: package structure, producer share, the accumulator verdict,
@@ -85,6 +91,7 @@ deno task test    # or: deno test --allow-all
 `deno test`; it throws under `deno run`. `src/test/lint.ts` wraps it.
 
 `src/test/scaffold.test.ts` is the load-bearing test: it runs the CLI's real
-scaffolders and asserts the plugin finds **nothing** in what `skmtc create`
-writes. If a rule fires there, either the rule is wrong or the scaffold has
-drifted.
+scaffolders and pins what the plugin finds in what `skmtc create` writes.
+Both TypeScript scaffolders are clean; the Kotlin one trips four rules and
+those findings are pinned with an explanation, because that scaffolder is
+the thing that drifted — a rewrite is in flight.
