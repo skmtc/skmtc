@@ -24,6 +24,7 @@
  * legitimately do the things the rules forbid (see `src/shared/target.ts`).
  */
 
+import { methodDiscipline } from './src/rules/method-discipline.ts'
 import { noAdhocToString } from './src/rules/no-adhoc-tostring.ts'
 import { noAsCasts } from './src/rules/no-as-casts.ts'
 import { noEmittedTodos } from './src/rules/no-emitted-todos.ts'
@@ -48,7 +49,8 @@ export const plugin: Deno.lint.Plugin = {
     'no-template-imports': noTemplateImports,
     'no-emitted-todos': noEmittedTodos,
     'no-redundant-ref-guard': noRedundantRefGuard,
-    'runtime-discipline': runtimeDiscipline
+    'runtime-discipline': runtimeDiscipline,
+    'method-discipline': methodDiscipline
   }
 }
 
