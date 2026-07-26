@@ -137,7 +137,8 @@ which fires per block (see below):
 `deep think` is the one milestone that repeats: a run can stall
 repeatedly and each stall is a separate thing to bracket. The
 thresholds are `DEEP_THINK_SECONDS` / `DEEP_THINK_TOKENS` in
-`timeline.js` and `viewer.template.html` — 60 s is an order of
+`constants.js` (imported by thinking.js and timeline.js; viewer.js
+injects them into the template at bake time) — 60 s is an order of
 magnitude above the typical few-second block (long enough to read as a
 stall while you watch the terminal), 5000 tokens is past step-level
 deliberation into plan-scale reasoning; either alone fires, since a
@@ -168,8 +169,9 @@ Together they trace the intended arc: skills → the three generator
 files → bundle → generate → clean generate → tests green. A run whose
 timeline never reaches `src/base.ts written` (e.g. a research spiral)
 is diagnosable at a glance. To add a milestone, edit the
-`MILESTONE_FILES` / `MILESTONE_CMDS` constants in `timeline.js` and
-`viewer.template.html` (kept in sync by hand).
+`MILESTONE_FILES` / `MILESTONE_CMDS` constants in `constants.js` —
+timeline.js imports them and viewer.js injects them into the template
+at bake time, so one edit reaches both.
 
 ### The run viewer
 

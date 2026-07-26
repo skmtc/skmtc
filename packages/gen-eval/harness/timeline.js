@@ -7,21 +7,15 @@
  */
 import { createInterface } from 'node:readline'
 import { createReadStream, createWriteStream } from 'node:fs'
-import { DEEP_THINK_SECONDS, DEEP_THINK_TOKENS } from './constants.js'
-
-const MILESTONE_FILES = ['base.ts', 'mod.ts', 'enrichments.ts']
-const MILESTONE_CMDS = [
-  ['skmtc bundle', 'first bundle attempt'],
-  ['skmtc generate', 'first generate attempt'],
-  ['gradle test', 'first test attempt']
-]
-// A think block is "deep" when it stalls the run or reasons at plan
-// scale: 60 s is an order of magnitude above the typical few-second
-// block and long enough to read as a stall; 5000 tokens is past
-// step-level deliberation. Either alone fires. Unlike the other
-// milestones this one fires per block, not once — a run can stall
-// repeatedly and each stall is a separate thing to bracket.
-// Thresholds: constants.js (shared with thinking.js and the viewer).
+import {
+  DEEP_THINK_SECONDS,
+  DEEP_THINK_TOKENS,
+  MILESTONE_CMDS,
+  MILESTONE_FILES
+} from './constants.js'
+// Deep-think fires per block, not once — a run can stall repeatedly
+// and each stall is a separate thing to bracket. Thresholds and their
+// rationale: constants.js (shared with thinking.js and the viewer).
 
 process.stdout.on('error', error => {
   if (error.code === 'EPIPE') process.exit(0)

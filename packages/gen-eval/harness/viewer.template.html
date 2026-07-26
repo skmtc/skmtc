@@ -183,8 +183,8 @@
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
-const MILESTONE_FILES = ['base.ts', 'mod.ts', 'enrichments.ts'];
-const MILESTONE_CMDS = [['skmtc bundle','first bundle'],['skmtc generate','first generate'],['gradle test','first test run']];
+const MILESTONE_FILES = __MILESTONE_FILES__;
+const MILESTONE_CMDS = __MILESTONE_CMDS__;
 // A think block is "deep" when it stalls the run or reasons at plan
 // scale: 60 s is an order of magnitude above the typical few-second
 // block, 5000 tokens is past step-level deliberation. Either alone
