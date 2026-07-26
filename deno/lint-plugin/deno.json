@@ -2,11 +2,11 @@
   "name": "@skmtc/lint-plugin",
   "version": "0.1.0",
   "license": "Apache-2.0",
-  "private": true,
   "exports": {
     ".": "./mod.ts"
   },
   "tasks": {
+    "publish": "deno publish --allow-slow-types --allow-dirty",
     "test": "deno test --allow-all"
   },
   "imports": {
