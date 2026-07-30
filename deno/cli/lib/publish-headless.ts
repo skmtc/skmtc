@@ -1,7 +1,9 @@
 /**
- * Headless `publish` path. Builds the single self-contained bundle and uploads
- * it together with the project source in ONE atomic multipart request,
- * publishing a new immutable version of the stack package.
+ * Headless `publish` path. Uploads the project SOURCE TREE in one atomic
+ * multipart request, publishing a new immutable version of the stack package.
+ * Source is the deliverable: the hub deploys it directly as a Deno Deploy app
+ * (synthesizing the `server.ts` entry itself) — there is no compiled bundle
+ * (hub plan-2026-07-30-stacks-on-deno-deploy, phase-4 switch).
  *
  * Flow:
  *   1. Resolve the version to publish — the `--version` flag wins, otherwise
@@ -10,17 +12,16 @@
  *      semver is already published.
  *   2. `resolveAccountHandle` — the PAT resolves to the stack account; the
  *      project name is the stack slug. Stack identity is `<handle>/<project>`.
- *   3. `bundleDeploy(project)` → `<project>/server.js` — one self-contained
- *      bundle (generators + `createServer` + `@skmtc/core` + `@skmtc/server`,
- *      nothing external).
- *   4. `collectSourceFiles(project)` — the user-authored source tree, filtered
- *      by built-in defaults + the project's optional `.skmtcignore`.
- *   5. `POST /v1/stacks/{account}/{stack}/versions` (multipart) with the
- *      `version` part + `bundle` part + one `files` part per source file. The
- *      hub writes bundle + source to R2, reconciles the stack's generator
- *      composition from the uploaded `deno.json`, and returns the complete
- *      StackVersion. There is no metadata-only intermediate state — the
- *      publish is atomic.
+ *   3. `collectSourceFiles(project)` — the user-authored source tree, filtered
+ *      by built-in defaults + the project's optional `.skmtcignore`. The hub
+ *      REQUIRES `deno.lock` in the upload (deterministic resolution + the
+ *      single-`@skmtc/core` check happen at publish, where the author is
+ *      watching).
+ *   4. `POST /v1/stacks/{account}/{stack}/versions` (multipart) with the
+ *      `version` part + one `files` part per source file. The hub writes the
+ *      source to R2, computes the content identity (`sourceHash`), reconciles
+ *      the stack's generator composition from the uploaded `deno.json`, and
+ *      returns the complete StackVersion. Atomic — no intermediate state.
  *
  * Versions are addressed by semver — there is no deployment id, shortId, or
  * `production` alias here. Deployments (and the alias) belong to *projects*
@@ -29,7 +30,6 @@
 
 import { join } from '@std/path/join'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { bundleDeploy } from '@/lib/bundle-deploy.ts'
 import { collectSourceFiles, type SourceFile } from '@/lib/source-upload.ts'
 import { parseScopedName } from '@/lib/scoped-name.ts'
 
@@ -51,9 +51,8 @@ export type PublishHeadlessResult =
   | {
       type: 'published'
       projectName: string
-      bundlePath: string
-      bundleBytes: number
-      bundleSha256: string
+      /** Content identity of the uploaded source tree (sha256 hex). */
+      sourceHash: string
       stack: { account: string; slug: string }
       /** The published semver. */
       version: string
@@ -66,7 +65,7 @@ export type PublishHeadlessResult =
       type: 'failed'
       projectName: string
       reason: string
-      stage: 'version' | 'identity' | 'bundle' | 'publish'
+      stage: 'version' | 'identity' | 'source' | 'publish'
     }
 
 const DEFAULT_ORIGIN = 'https://api.skmtc.dev'
@@ -156,32 +155,18 @@ export const resolveStackName = async (
   return parsed
 }
 
-/**
- * Read a file into a fresh `ArrayBuffer`. `Deno.readFile` returns
- * `Uint8Array<ArrayBufferLike>` whose underlying buffer might be a
- * `SharedArrayBuffer`, which fetch bodies reject. Copy into a
- * non-shared `ArrayBuffer`.
- */
-const readArrayBuffer = async (path: string): Promise<ArrayBuffer> => {
-  const u8 = await Deno.readFile(path)
-  const buf = new ArrayBuffer(u8.byteLength)
-  new Uint8Array(buf).set(u8)
-  return buf
-}
-
 type StackVersionResponse = {
   version: string
   versionUrl: string
-  bundleBytes: number
-  bundleSha256: string
+  sourceHash: string
   sourceFileCount: number
   sourceTotalBytes: number
 }
 
 /**
- * POST the version + bundle + source tree in one atomic multipart request
- * and parse the returned StackVersion. The hub writes R2, reconciles the
- * composition, and returns the complete version (bundle + source populated).
+ * POST the version + source tree in one atomic multipart request and parse
+ * the returned StackVersion. The hub writes R2, computes the source content
+ * identity, reconciles the composition, and returns the complete version.
  *
  * Exported for tests.
  */
@@ -191,7 +176,6 @@ export const publishVersion = async ({
   account,
   slug,
   version,
-  bundle,
   files
 }: {
   origin: string
@@ -199,14 +183,12 @@ export const publishVersion = async ({
   account: string
   slug: string
   version: string
-  bundle: ArrayBuffer
   files: SourceFile[]
 }): Promise<StackVersionResponse> => {
   if (files.length === 0) throw new Error('no source files to upload')
 
   const form = new FormData()
   form.append('version', version)
-  form.append('bundle', new Blob([bundle], { type: 'application/javascript' }), 'server.js')
   for (const file of files) {
     // The hub reads each `files` part's filename as the path relative to the
     // project root (FormData sets `Content-Disposition: filename` from the
@@ -236,33 +218,25 @@ export const publishVersion = async ({
   if (!isObject(payload)) throw new Error('hub returned non-object payload')
   const publishedVersion = payload['version']
   const versionUrl = payload['htmlUrl']
-  const bundleField = payload['bundle']
+  const sourceHash = payload['sourceHash']
   const sourceField = payload['source']
   if (
     typeof publishedVersion !== 'string' ||
     typeof versionUrl !== 'string' ||
-    !isObject(bundleField) ||
+    typeof sourceHash !== 'string' ||
     !isObject(sourceField)
   ) {
     throw new Error('hub stack version payload had unexpected shape')
   }
-  const bundleBytes = bundleField['bytes']
-  const bundleSha256 = bundleField['sha256']
   const sourceFileCount = sourceField['fileCount']
   const sourceTotalBytes = sourceField['totalBytes']
-  if (
-    typeof bundleBytes !== 'number' ||
-    typeof bundleSha256 !== 'string' ||
-    typeof sourceFileCount !== 'number' ||
-    typeof sourceTotalBytes !== 'number'
-  ) {
-    throw new Error('hub stack version payload had unexpected bundle/source shape')
+  if (typeof sourceFileCount !== 'number' || typeof sourceTotalBytes !== 'number') {
+    throw new Error('hub stack version payload had unexpected source shape')
   }
   return {
     version: publishedVersion,
     versionUrl,
-    bundleBytes,
-    bundleSha256,
+    sourceHash,
     sourceFileCount,
     sourceTotalBytes
   }
@@ -311,20 +285,24 @@ export const publishHeadless = async ({
     }
   }
 
-  let bundlePath: string
-  let bundleBuffer: ArrayBuffer
   let files: SourceFile[]
   try {
-    const built = await bundleDeploy({ project })
-    bundlePath = built.projectBundlePath
-    bundleBuffer = await readArrayBuffer(bundlePath)
     files = await collectSourceFiles(project.toPath())
+    // Pre-flight what the hub will reject anyway, with the recipe attached:
+    // deterministic resolution (and the single-@skmtc/core check) hang off
+    // the lockfile, so publishing without one always 422s server-side.
+    if (!files.some(file => file.path === 'deno.lock')) {
+      throw new Error(
+        'deno.lock not found in the upload — the hub requires it. Run `deno install` in the ' +
+          'project (and make sure .skmtcignore does not exclude deno.lock), then re-publish.'
+      )
+    }
   } catch (err) {
     return {
       type: 'failed',
       projectName,
       reason: err instanceof Error ? err.message : String(err),
-      stage: 'bundle'
+      stage: 'source'
     }
   }
 
@@ -336,7 +314,6 @@ export const publishHeadless = async ({
       account,
       slug,
       version,
-      bundle: bundleBuffer,
       files
     })
   } catch (err) {
@@ -351,9 +328,7 @@ export const publishHeadless = async ({
   return {
     type: 'published',
     projectName,
-    bundlePath,
-    bundleBytes: published.bundleBytes,
-    bundleSha256: published.bundleSha256,
+    sourceHash: published.sourceHash,
     stack: { account, slug },
     version: published.version,
     versionUrl: published.versionUrl,

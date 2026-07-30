@@ -118,9 +118,7 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
               ✓ Published {result.projectName} → {result.stack.account}/{result.stack.slug}@
               {result.version}
             </Text>
-            <Text>bundle: {result.bundlePath}</Text>
-            <Text>bytes: {result.bundleBytes.toLocaleString()}</Text>
-            <Text>sha256: {result.bundleSha256.slice(0, 16)}...</Text>
+            <Text>sourceHash: {result.sourceHash.slice(0, 16)}...</Text>
             <Text>
               source: {result.sourceFileCount} files, {result.sourceTotalBytes.toLocaleString()}{' '}
               bytes

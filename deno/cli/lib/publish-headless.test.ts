@@ -35,12 +35,7 @@ const stackVersionPayload = {
   version: '3.0.1',
   releasedAt: '2026-06-09T12:00:00Z',
   yanked: false,
-  bundle: {
-    key: 'stack-versions/abc/server.js',
-    bytes: 57344,
-    sha256: 'deadbeef',
-    uploadedAt: '2026-06-09T12:00:00Z'
-  },
+  sourceHash: 'cafef00d',
   source: {
     rootKey: 'stack-versions/abc/source/',
     fileCount: 2,
@@ -51,7 +46,7 @@ const stackVersionPayload = {
   htmlUrl: 'https://skmtc.dev/acme/stacks/my-api/versions/3.0.1'
 }
 
-Deno.test('publishVersion - POSTs multipart version + bundle + files to the versions endpoint', async () => {
+Deno.test('publishVersion - POSTs multipart version + files to the versions endpoint', async () => {
   let fetchUrl: string | undefined
   let fetchOptions: RequestInit | undefined
 
@@ -72,7 +67,6 @@ Deno.test('publishVersion - POSTs multipart version + bundle + files to the vers
       account: 'acme',
       slug: 'my-api',
       version: '3.0.1',
-      bundle: toArrayBuffer('// bundle'),
       files: createSourceFiles()
     })
 
@@ -85,12 +79,8 @@ Deno.test('publishVersion - POSTs multipart version + bundle + files to the vers
     }
     assertEquals(body.get('version'), '3.0.1')
 
-    const bundlePart = body.get('bundle')
-    if (!(bundlePart instanceof File)) {
-      throw new Error('expected a file `bundle` part')
-    }
-    assertEquals(bundlePart.name, 'server.js')
-    assertEquals(bundlePart.type, 'application/javascript')
+    // Source-only publish: no `bundle` part rides the form any more.
+    assertEquals(body.get('bundle'), null)
 
     const fileParts = body.getAll('files')
     assertEquals(fileParts.length, 2)
@@ -101,8 +91,7 @@ Deno.test('publishVersion - POSTs multipart version + bundle + files to the vers
     assertEquals(result, {
       version: '3.0.1',
       versionUrl: 'https://skmtc.dev/acme/stacks/my-api/versions/3.0.1',
-      bundleBytes: 57344,
-      bundleSha256: 'deadbeef',
+      sourceHash: 'cafef00d',
       sourceFileCount: 2,
       sourceTotalBytes: 11
     })
@@ -125,7 +114,6 @@ Deno.test('publishVersion - surfaces 409 as a clear "already published" failure'
         account: 'acme',
         slug: 'my-api',
         version: '3.0.1',
-        bundle: toArrayBuffer('// bundle'),
         files: createSourceFiles()
       })
     )
@@ -189,7 +177,7 @@ Deno.test('publishHeadless - missing version fails before any network call', asy
   }
 
   // Only `findProject(...).toPath()` is exercised on the missing-version
-  // path — the failure short-circuits before identity/bundle/publish.
+  // path — the failure short-circuits before identity/source/publish.
   const skmtcRoot = {
     findProject: () => ({ toPath: () => projectPath })
   } as unknown as SkmtcRoot
@@ -205,6 +193,41 @@ Deno.test('publishHeadless - missing version fails before any network call', asy
     if (result.type !== 'failed') throw new Error('expected a failed result')
     assertEquals(result.stage, 'version')
     assertStringIncludes(result.reason, "set a `version` in the project's deno.json")
+    assertEquals(fetchCalls, 0)
+  } finally {
+    globalThis.fetch = originalFetch
+    await Deno.remove(projectPath, { recursive: true })
+  }
+})
+
+Deno.test('publishHeadless - fails at the source stage when deno.lock is missing', async () => {
+  const projectPath = await Deno.makeTempDir()
+  await Deno.writeTextFile(
+    `${projectPath}/deno.json`,
+    JSON.stringify({ name: '@acme/my-api', version: '3.0.1' })
+  )
+  const skmtcRoot = {
+    findProject: () => ({ toPath: () => projectPath })
+  } as unknown as SkmtcRoot
+
+  const originalFetch = globalThis.fetch
+  let fetchCalls = 0
+  globalThis.fetch = () => {
+    fetchCalls++
+    throw new Error('publish must not reach the network without deno.lock')
+  }
+
+  try {
+    const result = await publishHeadless({
+      skmtcRoot,
+      projectName: 'my-api',
+      token: 'pat-123'
+    })
+
+    assertEquals(result.type, 'failed')
+    if (result.type !== 'failed') throw new Error('expected a failed result')
+    assertEquals(result.stage, 'source')
+    assertStringIncludes(result.reason, 'deno.lock not found')
     assertEquals(fetchCalls, 0)
   } finally {
     globalThis.fetch = originalFetch

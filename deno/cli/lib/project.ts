@@ -170,12 +170,12 @@ export class Project {
   }
 
   /**
-   * Generate the CF-Workers entry `server.ts` that wraps the project's
-   * installed generators in `createServer({ toGeneratorConfigMap })`
-   * from `@skmtc/server`. `bundleDeploy` (see `lib/bundle-deploy.ts`)
-   * then compiles this entry into a single self-contained `server.js`
-   * (`@skmtc/server` + `@skmtc/core` inlined) and uploads it to
-   * skmtc-hub via `skmtc deploy`.
+   * Generate the `server.ts` entry that wraps the project's installed
+   * generators in `createServer({ toGeneratorConfigMap })` from
+   * `@skmtc/server` — the local counterpart of the entry the hub
+   * synthesizes when deploying a published version as a Deno Deploy app.
+   * (The compile-to-`server.js` publish step is retired: publish uploads
+   * source only.)
    */
   async createServer() {
     const mod = toServer(this.toGeneratorIds())
@@ -188,9 +188,9 @@ export class Project {
 
     await Deno.writeTextFile(modPath, mod)
 
-    // Pin `@skmtc/server` and `@skmtc/core` so the `deno bundle`
-    // subprocess can resolve them. Parallels the `ensureWorkerDeps`
-    // step in `createWorker`.
+    // Pin `@skmtc/server` and `@skmtc/core` so the emitted entry's bare
+    // specifiers resolve to ONE core version through the import map.
+    // Parallels the `ensureWorkerDeps` step in `createWorker`.
     if (ensureServerDeps(this.rootDenoJson)) {
       await this.rootDenoJson.write()
     }
@@ -263,7 +263,9 @@ export class Project {
 
       this.name = newName
 
-      this.clientJson.path = ClientJson.toPath({ projectPath: toProjectPath(newName) })
+      this.clientJson.path = ClientJson.toPath({
+        projectPath: toProjectPath(newName)
+      })
       this.rootDenoJson.projectName = newName
     } catch (error) {
       console.error(error)
