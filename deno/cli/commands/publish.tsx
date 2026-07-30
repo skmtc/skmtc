@@ -119,10 +119,8 @@ export const printPublishResult = (
           console.log(
             `Published "${result.projectName}" → ${result.stack.account}/${result.stack.slug}@${result.version}`
           )
-          console.log(`  bundle: ${result.bundlePath}`)
-          console.log(`  bytes: ${result.bundleBytes}`)
-          console.log(`  sha256: ${result.bundleSha256}`)
           console.log(`  source: ${result.sourceFileCount} files, ${result.sourceTotalBytes} bytes`)
+          console.log(`  sourceHash: ${result.sourceHash}`)
           console.log(`  version: ${result.versionUrl}`)
           return
         }

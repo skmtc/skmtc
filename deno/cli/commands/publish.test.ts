@@ -8,9 +8,7 @@ import { captureStdout } from '@/tests/strict-mode-helpers.test.ts'
 const publishedResult: PublishHeadlessResult = {
   type: 'published',
   projectName: 'my-api',
-  bundlePath: '/root/.skmtc/my-api/server.js',
-  bundleBytes: 57344,
-  bundleSha256: 'deadbeef',
+  sourceHash: 'deadbeef',
   stack: { account: 'acme', slug: 'my-api' },
   version: '3.0.1',
   versionUrl: 'https://skmtc.dev/acme/stacks/my-api/versions/3.0.1',
