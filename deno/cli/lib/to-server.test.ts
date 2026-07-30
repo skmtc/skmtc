@@ -5,7 +5,7 @@ Deno.test('toMod - generates server code with single generator', () => {
   const generatorIds = ['@skmtc/shadcn-ui']
   const result = toServer(generatorIds)
 
-  assertStringIncludes(result, "import { createServer } from 'jsr:@skmtc/server'")
+  assertStringIncludes(result, "import { createServer } from '@skmtc/server'")
   assertStringIncludes(result, "import skmtcShadcnUi from '@skmtc/shadcn-ui'")
   assertStringIncludes(result, 'skmtcShadcnUi')
   assertStringIncludes(result, 'toGeneratorConfigMap')
@@ -36,7 +36,7 @@ Deno.test('toMod - generates empty generators array when no generators provided'
   const generatorIds: string[] = []
   const result = toServer(generatorIds)
 
-  assertStringIncludes(result, "import { createServer } from 'jsr:@skmtc/server'")
+  assertStringIncludes(result, "import { createServer } from '@skmtc/server'")
   assertStringIncludes(
     result,
     'toGeneratorConfigMap: () => Object.fromEntries([].map(g => [g.id, g]))'
