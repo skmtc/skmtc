@@ -117,8 +117,10 @@ functions that return strings — helpers drift.
   with `withVariant`. Dropping it collides every variant onto `'main'`.
 - **Enrichments are the only config channel** (bundled generators take
   no options; module state breaks determinism). Declare a valibot
-  three-scope umbrella (`subject`/`generator`/`stack`);
-  `emptyEnrichmentSchema` is the opt-out; read via
+  three-scope umbrella (`subject`/`generator`/`stack`); the opt-out is
+  `export const toEnrichmentSchema = () => emptyEnrichmentSchema` — a
+  FUNCTION returning the schema, required in both the entry config and
+  the base-factory config. Read via
   `this.settings.enrichments.subject?...`; unread keys surface as
   warnings.
 - **Naming**: models from `refName` casing (core's `camelCase`,
