@@ -118,6 +118,12 @@ const ExampleBase = toKtModelProjectionBase({
 class ExampleProjection extends ExampleBase {
   value: ExampleDataClassValue
 
+  // The mirrored protocols (skill §5/§8): the Driver wraps THIS object as
+  // the KtDefinition's value, so KtDefinition reads them off the wrapper.
+  // Canon is reference assignment — one array, two names; never copy.
+  annotations: KtAnnotation[]
+  description: string | undefined
+
   constructor(args: ModelProjectionConstructorArgs<Enrichments<undefined, undefined, undefined>>) {
     super(args)
 
@@ -125,16 +131,9 @@ class ExampleProjection extends ExampleBase {
       context: args.context,
       destinationPath: this.settings.exportPath
     })
-  }
 
-  // The mirrored protocols (skill §5/§8): the Driver wraps THIS object as
-  // the KtDefinition's value, so KtDefinition reads them off the wrapper.
-  get annotations(): KtAnnotation[] {
-    return this.value.annotations
-  }
-
-  get description(): string | undefined {
-    return this.value.description
+    this.annotations = this.value.annotations
+    this.description = this.value.description
   }
 
   // deno-lint-ignore no-explicit-any

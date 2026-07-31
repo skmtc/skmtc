@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-typescript-v3
-version: 0.2.0
+version: 0.2.1
 description: >
   The TypeScript target-language layer for SKMTC generators
   (@skmtc/lang-typescript): projection base factories, TsSnippet, the
@@ -132,10 +132,11 @@ this.properties[key] = `z.string().optional()`
 this.properties[key] = toMyValue({ schema: propSchema, required, destinationPath, context })
 ```
 
-A cached peer *name* is a legitimate string
-(`this.responseName = inserted.identifier.name`); modifier pipelines
-(`applyModifiers`-style) run inside `toString()`, never to build stored
-fields.
+A cached peer *name* is a legitimate string — minding the two insert
+return shapes: `this.responseName = definition.identifier.name` from
+`insertNormalizedModel`, or `.toName()` off `insertModel`'s `Inserted`
+handle. Modifier pipelines (`applyModifiers`-style) run inside
+`toString()`, never to build stored fields.
 
 ## 9. TypeScript pitfalls
 

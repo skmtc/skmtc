@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-kotlin-v3
-version: 0.2.0
+version: 0.2.1
 description: >
   The Kotlin target-language layer for SKMTC generators
   (@skmtc/lang-kotlin): base factories, KtSnippet, the seven identifier
@@ -102,9 +102,10 @@ Two things ride on value-carried protocols (the neutral Lang signature
 has no slot for them): `KtAnnotated` (`annotations: KtAnnotation[]`,
 strict — string look-alikes are silently dropped) and `KtDocumented`
 (`description`). **The mirroring gotcha**: the Driver wraps the
-PROJECTION as the definition's value, so mirror both as getters
-forwarding to your inner value object, or class-level annotations and
-KDoc silently vanish.
+PROJECTION as the definition's value, so mirror both onto the projection
+— canon is **reference assignment in the constructor**
+(`this.annotations = this.value.annotations` — one array, two names;
+never copy) — or class-level annotations and KDoc silently vanish.
 
 ## 6. Composition classes (current API)
 
@@ -155,7 +156,7 @@ parameters.push({
 // this.parameterList = new KtParameterList(parameters)
 // class-level: this.annotations = [new KtAnnotation({ context,
 //   destinationPath, name: 'Serializable', packageName: 'kotlinx.serialization' })]
-// projection mirrors: get annotations() { return this.value.annotations }
+// projection mirrors by REFERENCE: this.annotations = this.value.annotations
 ```
 
 Renders (verified byte-for-byte through the engine):

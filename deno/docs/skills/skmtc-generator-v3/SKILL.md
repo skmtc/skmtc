@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator-v3
-version: 0.2.0
+version: 0.2.1
 description: >
   Author and edit SKMTC generators — packages that project an OpenAPI
   domain model into application code. Method: clone the nearest stock
@@ -91,19 +91,27 @@ functions that return strings — helpers drift.
   `(identifier.name, exportPath)`. On a peer reference the Driver probes
   `findDefinition`; hit → reuse (constructor never runs) + auto-stitched
   import; miss → construct recursively. So: never hardcode a peer's name
-  or path — call `this.insertModel(Peer, refName)` /
-  `this.insertNormalizedModel(Peer, { schema, fallbackName })` and read
-  `.identifier.name` off the result; never hand-write peer imports;
-  never import a peer's naming helpers (ask
+  or path — insert and read the result, minding the two return shapes:
+  `insertModel(Peer, refName)` returns an **Inserted handle** (name via
+  `.toName()`, definition via `.definition`), while
+  `insertNormalizedModel(Peer, { schema, fallbackName })` returns the
+  **definition itself** (name via `.identifier.name`). Never hand-write
+  peer imports; never import a peer's naming helpers (ask
   `context.toModelContentSettings` if you need identity without
   materializing). Key collision under different generators throws
   `Registered definition mismatch`.
 - **Two composition shapes.** Projection (one definition per subject —
   entry calls `insertModel`/`insertOperation`) and accumulator (many
   subjects append into one definition — entry does
-  `context.findDefinition(...) ?? defineAndRegister(...)` then mutates
-  the container value; the sanctioned exception to "no methods beyond
-  constructor and toString").
+  `context.findDefinition(...) ?? defineAndRegister(context, {...})`
+  then mutates the container value; the sanctioned exception to "no
+  methods beyond constructor and toString"). `defineAndRegister` is a
+  **lang-package free function** (import it from your lang package) —
+  there is no `context.defineAndRegister`; that API was deleted.
+- **When in doubt, make it a producer.** The cost asymmetry is one-way:
+  a producer that never needed to be one costs a few lines; a string
+  that later needed to be a producer severs the chain for everything
+  built on it. Assume your value will be built upon.
 - **Thread the variant.** `transform({ context, operation, variant })` →
   pass `variant` through to `insertOperation`, and fold it into names
   with `withVariant`. Dropping it collides every variant onto `'main'`.
@@ -124,6 +132,13 @@ functions that return strings — helpers drift.
 
 ## 5. Verify against the run
 
+**Never guess a signature.** SKMTC has almost no training-data presence;
+your recalled API shapes are unreliable. Exact signatures for core
+contracts (`Oas*` classes, `Inserted`, `ContentSettings`,
+`TypeSystemArgs`, entry configs) are one command away:
+`deno doc jsr:@skmtc/core@<pinned-version> <SymbolName>` — read it
+instead of guessing, and instead of casting around a type error.
+
 Generation is sub-second — run it after every meaningful change. Read in
 order: (1) manifest — expected definitions at expected paths? parse
 issues? per-item errors? (2) one golden artifact — **import header
@@ -143,6 +158,9 @@ the text into a template.
 | Works once, breaks on recursion/refs | Build tree in constructor; refs via the ref snippet/Driver |
 | Enrichment ignored | Umbrella routing key mismatch — check warnings |
 | Output edits vanish | You edited generated files; customize the generator |
+| Router misroutes custom values | `schema.type === 'custom'` is a real dispatch case — presence-test with `'readOnly' in schema`-style guards, not type equality |
+| `null` slips through an optional guard | `!== undefined` lets `null` pass on Nullable generics — check both |
+| `insertResult.identifier` is a type error | You have an `Inserted` handle (from `insertModel`) — use `.toName()`/`.definition`; only `insertNormalizedModel` returns the definition |
 
 ## 7. The lang layer
 
@@ -152,3 +170,8 @@ rules, sanitization — lives in the target language's package and skill.
 Load `skmtc-lang-typescript-v3` or `skmtc-lang-kotlin-v3` before writing
 code. Lang skill wins on language specifics; this skill wins on engine
 semantics.
+
+Scope note: this skill covers **OpenAPI input**. GraphQL SDL input
+exists (`toGqlOperationEntry`, subject routing by
+`[rootKind][fieldName]`) — for GraphQL authoring load the
+`skmtc-graphql` skill alongside; the engine rules here apply unchanged.
