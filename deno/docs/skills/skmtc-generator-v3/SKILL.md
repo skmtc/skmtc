@@ -1,5 +1,6 @@
 ---
 name: skmtc-generator-v3
+version: 0.1.0
 description: >
   Author and edit SKMTC generators — the packages that project an OpenAPI
   domain model into application code. Teaches the generation model first

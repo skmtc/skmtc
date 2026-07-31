@@ -1,5 +1,6 @@
 ---
 name: skmtc-lang-kotlin-v3
+version: 0.1.0
 description: >
   The Kotlin target-language layer for SKMTC generators (@skmtc/lang-kotlin).
   Covers declaring Kotlin as a generator's target (toKtModelProjectionBase /

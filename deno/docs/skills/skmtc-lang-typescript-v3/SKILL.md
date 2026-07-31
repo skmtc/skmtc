@@ -1,5 +1,6 @@
 ---
 name: skmtc-lang-typescript-v3
+version: 0.1.0
 description: >
   The TypeScript target-language layer for SKMTC generators
   (@skmtc/lang-typescript). Covers declaring TypeScript as a generator's
