@@ -1,57 +1,48 @@
 ---
 name: skmtc-lang-kotlin-v3
-version: 0.1.0
+version: 0.2.0
 description: >
-  The Kotlin target-language layer for SKMTC generators (@skmtc/lang-kotlin).
-  Covers declaring Kotlin as a generator's target (toKtModelProjectionBase /
-  toKtOasOperationProjectionBase, KtSnippet), the register call shapes, the
-  seven identifier entity kinds, the emitted-Kotlin import model (packages
-  from paths, symbol-level sorted imports, same-package suppression, no
-  type-only imports, no re-exports), the head+value render model,
-  value-composition classes (KtParameterList, KtPrimaryConstructor,
-  KtFunctionSignature, KtAnnotation), serialization-annotation placement,
-  naming/sanitization (backticks, hard keywords), and a worked example. Use
-  ALONGSIDE skmtc-generator-v3 whenever a generator emits Kotlin — that
-  skill carries engine rules; this one carries the concrete classes.
-  Section headings mirror skmtc-lang-typescript-v3 (the lang-skill template).
+  The Kotlin target-language layer for SKMTC generators
+  (@skmtc/lang-kotlin): base factories, KtSnippet, the seven identifier
+  kinds, packages-from-paths imports, the head+value render model,
+  KtAnnotation and the composition classes, sanitization and
+  @SerialName placement, plus the current-API worked example (the
+  shipped gen-kotlin-* packages are API-stale — do not copy their call
+  shapes). Use ALONGSIDE skmtc-generator-v3 whenever a generator emits
+  Kotlin. Headings mirror skmtc-lang-typescript-v3.
 ---
 
 # The Kotlin layer (@skmtc/lang-kotlin)
 
-Read `skmtc-generator-v3` first — this skill assumes its mental model and
-only covers what is Kotlin-specific.
+Read `skmtc-generator-v3` first.
 
-> **Version note (2026-07-31).** The API of record is the workspace
-> `skmtc/deno/lang-kotlin` (0.9.14 line) and its tests. The shipped Kotlin
-> generators (`gen-kotlin-kotlinx`, `gen-kotlin-spring`, `gen-kotlin-sdk`)
-> are **architecturally canonical but API-stale** in places — they predate
-> the 0.9.11 flattening. Concretely: they call `new KtAnnotation('Name',
-> [args])` positionally, but the current constructor takes object args and
-> self-registers its import; they import `isKtAnnotated`/`isKtSupertyped`,
-> which are no longer exported (`KtSupertyped` was dissolved — supertype
-> clauses are now rendered inline by the value). Copy their *structure*,
-> not their lang-API call shapes; this skill shows the current shapes.
+> **Drift warning.** The API of record is the workspace
+> `skmtc/deno/lang-kotlin` and its tests. The shipped `gen-kotlin-*`
+> generators predate the 0.9.11 flattening: they call
+> `new KtAnnotation('Name', [args])` positionally and import
+> `isKtAnnotated`/`isKtSupertyped` (no longer exported; supertype
+> clauses now render inline in the value). Clone their **structure**
+> only; take call shapes from THIS skill's example (§8), which is pinned
+> byte-for-byte against the engine by
+> `lang-kotlin/src/skill-v3-example.test.ts`.
 
 ## 1. Declaring the language
 
-Exactly as in TypeScript: the declaration is the **import graph**. Your
-`src/base.ts` imports a projection-base factory from `@skmtc/lang-kotlin`;
-the returned class extends `KtSnippet`; `KtSnippet` carries
-`static lang = kotlin`; Drivers read it off the class pre-construction.
+Same pattern as TypeScript — the import graph declares it. Two
+factories: `toKtModelProjectionBase`, `toKtOasOperationProjectionBase`;
+snippets extend `KtSnippet`.
 
 ```ts
-import { toKtModelProjectionBase } from '@skmtc/lang-kotlin'
-
 export const KtModelBase = toKtModelProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
   toEnrichmentSchema,
   toIdentifierName({ refName, enrichments }) {
     return enrichments?.subject?.name ?? capitalize(camelCase(refName))
   },
-  // Kotlin's identifier kind depends on the SCHEMA SHAPE, so this one may
-  // read context (it runs only on the cache-miss path; the name stays pure):
+  // Kotlin's identifier KIND depends on schema shape → may read context
+  // (runs only on cache-miss; the NAME stays pure):
   toIdentifierType(refName, context) {
-    return { type: toKtModelShape(context, peekSchema(context, refName)) }
+    return { type: toShape(context, peekSchema(context, refName)) }
   },
   toExportPath({ refName, enrichments }) {
     const name = enrichments?.subject?.name ?? capitalize(camelCase(refName))
@@ -60,220 +51,91 @@ export const KtModelBase = toKtModelProjectionBase<EnrichmentSchema>({
 })
 ```
 
-Two factories: `toKtModelProjectionBase`, `toKtOasOperationProjectionBase`
-(no GraphQL/webhook veneers yet). Snippets extend `KtSnippet`.
+The export path's directory segments ARE the Kotlin package (§4). Make
+`basePackage` a **required generator-scope enrichment** with no default;
+validate segments with `isKtIdentifierName` + `ktHardKeywords`. Put the
+shape dispatch (object+props → `data-class`; string+enums →
+`enum-class`; qualifying discriminated union → `sealed-interface`; else
+`typealias`) in ONE deterministic function read by both
+`toIdentifierType` and the constructor, so kind and value can't disagree.
 
-Note the pattern above: **the export path spells out the package** — its
-`@/`-relative directory segments ARE the Kotlin package (§4). A
-`basePackage` is typically a **required generator-scope enrichment** with
-no default (a silently-wrong `com.example` helps nobody); validate its
-segments with `isKtIdentifierName` + `ktHardKeywords`.
+## 2. Register shapes — Kotlin differences
 
-## 2. The register call shapes
+Same three shapes as TS (projection own-file / `registerInto` / snippet
+with required `destinationPath`), plus `defineAndRegister` (no cache
+check; no `noExport` — visibility is the identifier's fact: pass
+`exported: false` to the factory). Compile-time differences: **no
+`reExports` field** (Kotlin has none) and **no `type` tag on imports**
+(no type-only imports). `custom` renders above the `package` directive.
 
-Same family as TypeScript, same asymmetry:
+## 3. Identifier kinds
 
-| Caller | Call | Destination |
-|---|---|---|
-| Projection | `this.register(args)` | its own export file |
-| Projection | `this.registerInto(path, args)` | explicit file |
-| Snippet | `this.register({ ...args, destinationPath })` | required — snippets have no file |
+Seven: `class`, `data-class`, `enum-class`, `interface`,
+`sealed-interface`, `typealias`, `val` — factories `createClass`,
+`createDataClass`, `createEnumClass`, `createInterface`,
+`createSealedInterface`, `createTypeAlias`, `createValue` (only
+`createValue` takes `typeName`; `exported: false` renders `private `).
+Deferred kinds (`object`, `fun`, `var`) make `toKtEntityType` throw —
+deliberately loud. Kind does NOT affect import form.
 
-Free functions: `register(context, args)` and `defineAndRegister(context,
-{ identifier, value, destinationPath, description })`. `defineAndRegister`
-does **no cache check** — wrap with `context.findDefinition` where dedup is
-wanted (the accumulator get-or-create idiom), and it has **no `noExport`**:
-visibility is the identifier's fact — pass `exported: false` to the
-identifier factory.
+## 4. Emitted-import rules
 
-`KtRegisterArgs` differences from TS, both deliberate compile-time facts:
-
-- **No `reExports` field** — Kotlin has no re-exports; registering one is a
-  type error, not a runtime no-op.
-- **No `type` tag on import names** — Kotlin has no type-only imports.
-  `KtImportNameArg = string | { name, alias? }`.
-
-`custom` is the file banner slot, rendered **above** the `package`
-directive (only comments may precede `package`); last non-`undefined`
-write wins.
-
-## 3. Identifiers: seven entity kinds, seven factories
-
-```ts
-type KtEntityType = 'class' | 'data-class' | 'enum-class' | 'interface'
-                  | 'sealed-interface' | 'typealias' | 'val'
-```
-
-Factories: `createClass`, `createDataClass`, `createEnumClass`,
-`createInterface`, `createSealedInterface`, `createTypeAlias`,
-`createValue` (only `createValue` takes a `typeName`; all take
-`{ exported?: boolean }`, default true — `exported: false` renders
-`private `). Deferred kinds (`object`, `fun`, `var`, `const-val`) make
-`toKtEntityType` throw — a loud signal, by design, that an identifier built
-for another language (or a future milestone) reached the Kotlin renderer.
-
-Unlike TypeScript, the entity kind does **not** drive import form — every
-Kotlin import is `import pkg.Name`. What the kind drives is the render
-shell (§5).
-
-**Kotlin identifier kinds depend on schema shape**, so stock practice puts
-the dispatch in one deterministic function (`toKtModelShape`-style) read by
-BOTH `toIdentifierType` and the projection constructor — the kind and the
-value can then never disagree, and dispatch stays deterministic per
-`(document, schema)`, which the cache-key path needs:
-
-- object with properties → `data-class`; empty/record-only → `typealias`
-- string with enums → `enum-class`; plain → `typealias`
-- qualifying discriminated union → `sealed-interface`; else `typealias`
-- ref and everything else → `typealias`
-
-## 4. The emitted-Kotlin import model
-
-- **Packages come from paths.** `toPackageName(path, packages?)`: strip
-  `@/`, strip the longest matching configured `rootPath`, take the dirname,
-  join segments with `.`. `@/com/example/api/User.generated.kt` →
-  `package com.example.api`. Root-level files get the default package (no
-  `package` line). Segments are **validated, never sanitized** — a segment
-  that is not a plain identifier or is a hard keyword (`@/com/object/…`)
-  **throws**: package layout is generator path policy, fix the policy.
-- **One import statement per symbol**, `import pkg.Name` (no brace
-  grouping), `as` aliases supported. Imports render **sorted** — not style
-  but determinism: byte-identical output regardless of registration order.
+- **Packages from paths**: `@/com/example/api/User.generated.kt` →
+  `package com.example.api`. Segments are validated, never sanitized —
+  a keyword or invalid segment **throws** (fix the path policy).
+- One `import pkg.Name` per symbol (no brace grouping), `as` aliases,
+  rendered **sorted** (determinism, not style).
 - **Same-package suppression is central**: register imports
-  unconditionally; `KtFile` drops any import whose resolved package equals
-  the file's own package at render time. Peer references within one package
-  render bare.
-- Two module-key forms, routed by shape: a dotted package
-  (`'kotlinx.serialization'`) for libraries, an `@/`-export path for
-  project files (what the Driver passes when stitching peer imports).
-- **Importing from the default package throws** — a root-level artifact
-  referenced from a packaged one is a path-policy bug surfaced loudly.
+  unconditionally; `KtFile` drops same-package ones at render.
+- Importing from the default package throws (root-level artifact
+  referenced from a packaged one = path-policy bug).
 
-## 5. The render model: head + value
+## 5. Render model: head + value
 
-A Kotlin definition renders as **identifier-head + value**, switched on the
-identifier kind:
+Assignment kinds (`typealias`, `val`): `<head> = <value>`. Declaration
+kinds: `<head><value>` — the value renders everything after the name:
+parameter list (parens included), inline ` : Parent` clauses, ` { … }`
+bodies; an empty value yields the bodyless idiom
+(`sealed interface Animal`).
 
-- Assignment kinds (`typealias`, `val`): `<head> = <value>` — e.g.
-  `typealias UserId = String`.
-- Declaration kinds (everything else): `<head><value>` — the head is
-  `[private ]<keyword> <Name>`, and the value renders **everything after
-  it**: the primary-constructor parameter list (parens included), inline
-  ` : Parent` supertype clauses, ` { … }` bodies. A value that renders
-  nothing yields the bodyless idiom (`sealed interface Animal`).
+Two things ride on value-carried protocols (the neutral Lang signature
+has no slot for them): `KtAnnotated` (`annotations: KtAnnotation[]`,
+strict — string look-alikes are silently dropped) and `KtDocumented`
+(`description`). **The mirroring gotcha**: the Driver wraps the
+PROJECTION as the definition's value, so mirror both as getters
+forwarding to your inner value object, or class-level annotations and
+KDoc silently vanish.
 
-Two things ride *outside* the head+value line via value-carried protocols,
-because the neutral `Lang.toDefinition` signature has no slot for them:
+## 6. Composition classes (current API)
 
-- **`KtAnnotated`** — `{ annotations: KtAnnotation[] }` on the value →
-  rendered above the declaration (`@Serializable`).
-- **`KtDocumented`** — `{ description?: string }` → the KDoc block.
-
-**The mirroring gotcha (learn this one).** The Driver wraps the
-*projection* as the definition's value — so if your projection delegates to
-an inner value object, the protocols must be **mirrored on the projection**
-(getters forwarding `this.value.annotations` / `.description`), or the
-class-level annotations and KDoc silently vanish. The protocol check is
-strict: `annotations` must be real `KtAnnotation` instances — a look-alike
-array of strings is silently dropped.
-
-File assembly: `custom` banner → `package` directive → sorted imports →
-definitions (joined by blank lines, first write wins per identifier name —
-Kotlin has no declaration merging).
-
-## 6. Value composition classes
-
-- **`KtParameterList(parameters)`** — the primary-constructor list,
-  **parentheses included**. Each item:
+- `KtParameterList(parameters)` — parens included; each
   `{ name, type: Stringable, nullable?, defaultValue?, annotations?,
-  visibility? }` → renders `    [@Anno\n    ][private ]val name: Type[?][ = default]`,
-  annotations one per line, no trailing comma.
-- **`KtPrimaryConstructor({ parameters, modifiers? })`** — exists for one
-  grammar rule: modifiers force the explicit `constructor` keyword
-  (`class C private constructor(...)`). Compose:
-  `` `${new KtPrimaryConstructor({ parameters: new KtParameterList([...]) })} {\n …body… \n}` ``.
-- **`KtFunctionSignature({ name, parameters, returnType?, annotations?,
-  description?, body? })`** — method grammar for interface/class bodies;
-  abstract by default, expression body only (block bodies deliberately
-  unsupported). `KtFunctionParameter` is a *different* production from a
-  constructor parameter — no `val`, annotations inline.
-- **`KtAnnotation({ context, name, args?, packageName?, destinationPath })`**
-  — a **registering leaf**: given `packageName` it registers
-  `import <packageName>.<name>` itself, so the annotation and its import
-  are one statement that cannot drift apart (register unconditionally —
-  same-package suppression handles the rest). `args` are pre-quoted
-  Stringables: `args: ['"user_id"']`, `args: ['Foo::class']`. It is
-  deliberately NOT a `KtSnippet` subclass (module-cycle avoidance), so it
-  needs `context` passed in. `KtAnnotations` renders a list one-per-line
-  and `''` when empty, so it interpolates unconditionally.
-- **`withDescription(value, { description })`** — KDoc: inline `/** … */`
-  for one line, margined block for multi-line.
+  visibility? }` renders as an indented `val`, annotations one per line.
+- `KtPrimaryConstructor({ parameters, modifiers? })` — modifiers force
+  the explicit `constructor` keyword.
+- `KtFunctionSignature({ name, parameters, returnType?, annotations?,
+  body? })` — abstract by default, expression body only.
+- `KtAnnotation({ context, name, args?, packageName?, destinationPath })`
+  — a **registering leaf**: with `packageName` it registers its own
+  import (register unconditionally; suppression handles same-package).
+  `args` are pre-quoted (`['"user_id"']`, `['Foo::class']`).
+- `withDescription(value, { description })` — KDoc.
 
-## 7. Naming and sanitization of emitted identifiers
+## 7. Sanitization and @SerialName
 
-- **`sanitizePropertyName(name)`** — three outcomes: plain identifier and
-  not a hard keyword → unchanged; hard keyword or syntactically invalid →
-  **backticked** (`` `object` ``, `` `user name` ``, `` `1st` ``);
-  JVM-unescapable characters (`. ; : / \ [ ] < >` …) → **throws** with
-  "rename it (camelCase + @SerialName) before registering". Returns a plain
-  string — Kotlin has no quoted-property fallback.
-- **Renames are not sanitization's job.** Wire-name mismatches are handled
-  by serialization annotations. The two compose: a backticked keyword still
-  *equals* its wire name, so `` `object` `` needs **no** `@SerialName`;
-  a camelCased `user_id` → `userId` **does**. Decide the annotation by
-  comparing the *unescaped* chosen name with the wire key.
-- Hard keywords are the 28 Kotlin hard keywords only — soft keywords
-  (`value`, `data`, `field`, `import`) and modifier keywords (`sealed`,
-  `internal`) are legal identifiers and are not escaped.
-- Casing lives generator-side with core's helpers: classes
-  `capitalize(camelCase(refName))`; properties
-  `sanitizePropertyName(camelCase(key))` (the canonical pairing); enum
-  entries CONSTANT_CASE with deterministic disambiguation on collisions.
-  Nested synthesized names chain the parent: `User` → `UserAddress` →
-  `UserAddressItem`.
+`sanitizePropertyName(name)`: plain → unchanged; hard keyword or invalid
+→ **backticked**; JVM-unescapable characters → **throws** ("rename +
+@SerialName"). Renames are NOT its job — serialization annotations
+handle wire-name mismatches, and the two compose: decide the annotation
+by comparing the *unescaped* chosen name with the wire key
+(`` `object` `` needs no @SerialName; `user_id`→`userId` does). Only the
+28 hard keywords escape; soft/modifier keywords (`value`, `data`,
+`sealed`) are legal identifiers. Canonical pairing:
+`sanitizePropertyName(camelCase(key))`.
 
-## 8. Worked example — a kotlinx-serialization data class
+## 8. Worked example — kotlinx data class (current API, engine-pinned)
 
-The projection dispatches on the shared shape function and stores one value
-object (structure from `gen-kotlin-kotlinx`, call shapes current):
-
-```ts
-export class KtModelProjection extends KtModelBase {
-  value: ModelValue
-
-  constructor({ context, refName, settings, rootRef }: ModelProjectionConstructorArgs<EnrichmentSchema>) {
-    super({ context, refName, settings })
-    const schema = context.resolveSchemaRefOnce(refName, KtModelBase.id)
-    const shape = toKtModelShape(context, schema)
-
-    if (shape === 'data-class' && !schema.isRef() && schema.type === 'object') {
-      this.value = new KtDataClassValue({
-        context, objectSchema: schema,
-        destinationPath: settings.exportPath,
-        className: settings.identifier.name, rootRef
-      })
-    } else if (shape === 'enum-class' && ...) {
-      this.value = new KtEnumEntries({ ... })
-    } else {
-      this.value = toKtValue({ schema, destinationPath: settings.exportPath,
-        required: true, context, rootRef, fallbackName: settings.identifier.name })
-    }
-  }
-
-  // MIRROR the value-carried protocols — the Driver wraps THIS object:
-  get annotations(): KtAnnotation[] { return this.value.annotations ?? [] }
-  get description(): string | undefined { return this.value.description }
-
-  static schemaToValueFn: SchemaToValueFn = args => toKtValue({ ...args,
-    fallbackName: args.rootRef ? capitalize(camelCase(args.rootRef)) : 'Inline' })
-  static createIdentifier = createTypeAlias
-
-  override toString() { return `${this.value}` }
-}
-```
-
-Inside the data-class value, the per-property loop — objects stored, syntax
-deferred, annotations decided by wire-name comparison:
+Per-property loop inside the data-class value snippet:
 
 ```ts
 const propertyName = sanitizePropertyName(camelCase(key))
@@ -286,15 +148,17 @@ if (propertyName.replaceAll('`', '') !== key) {
 }
 parameters.push({
   name: propertyName,
-  type: value,                       // ← the SNIPPET, never `${value}`
-  nullable: false,                   // the type expression owns the single `?`
+  type: value,                     // the SNIPPET — never `${value}`
   defaultValue: isRequired ? undefined : 'null',
   annotations
 })
-// later: this.parameterList = new KtParameterList(parameters)
+// this.parameterList = new KtParameterList(parameters)
+// class-level: this.annotations = [new KtAnnotation({ context,
+//   destinationPath, name: 'Serializable', packageName: 'kotlinx.serialization' })]
+// projection mirrors: get annotations() { return this.value.annotations }
 ```
 
-Rendered result:
+Renders (verified byte-for-byte through the engine):
 
 ```kotlin
 package com.example.api
@@ -311,73 +175,23 @@ data class User(
 )
 ```
 
-### Wrong vs right, with the failure it causes
+The type expression is the **single owner** of `?`; the parameter layer
+only adds `= null`. Passing `` `${value}` `` instead of the snippet
+strands its registered imports and synthesized siblings — the file
+breaks far from the cause. Serialization flavor is confined to the value
+files (data class / enum entries / sealed interface): a Jackson/Moshi
+sibling generator swaps annotation construction there only.
 
-```ts
-// WRONG: pre-rendered text as the parameter type
-parameters.push({ name, type: `${toKtValue({ schema, ... })}` })
+## 9. Kotlin pitfalls
 
-// RIGHT: the snippet object
-parameters.push({ name, type: toKtValue({ schema, ... }) })
-```
-
-Both typecheck (`type: Stringable`). The wrong one strands the snippet's
-constructor side effects: the `import kotlinx.serialization.json.JsonElement`
-it would have registered, the sibling data class it would have synthesized
-for a nested object, and its provenance trail. The file compiles later or
-never, far from the cause.
-
-**Modifiers**: optional and nullable collapse into one `?` on the type
-expression, and the type expression is its **single owner** —
-`KtParameterList` never adds one on top (no `String??`). Optionality's
-default value (`= null`) is the parameter layer's only rule.
-
-**Serialization flavor is confined**: in gen-kotlin-kotlinx the entire
-kotlinx-specific surface lives in three value files (data class, enum
-entries, sealed interface). A Jackson/Moshi sibling generator replaces the
-annotation construction in those files only — the lang package is
-grammar-only (`grep kotlinx src/` in lang-kotlin returns nothing). This is
-the customization seam for "same shapes, different serializer".
-
-**Operation-side shapes** (both real): the *accumulator* (gen-kotlin-spring
-— per tag, one file with a `<Tag>Service` interface and a `@RestController`
-class; each operation appends a `KtFunctionSignature` into both via
-`findDefinition ?? defineAndRegister`), and the *projection*
-(gen-kotlin-sdk — `toKtOasOperationProjectionBase`, one class per
-operation). An operation generator never names model classes — it calls the
-model generator's exported router (`toKtValue` from
-`@skmtc/gen-kotlin-kotlinx`, an ordinary exact-pinned dependency) and lets
-the Driver register definitions and stitch imports.
-
-## 9. Where plain strings are legitimate
-
-- Kotlin syntax with **no grammar rule worth a class**: supertype clauses
-  and braced bodies composed inside `toString()`
-  (`` `${primaryConstructor} {\n${body}\n}` ``), expression bodies
-  (`'service.getUsersId(id)'`).
-- Terminal type expressions after `applyModifiers`: `'Int'`, `'Long'`,
-  `` `List<${this.items}>` `` — leaves with nothing left to register.
-- Pre-quoted annotation args (`'"user_id"'`, `'Foo::class'`) and import
-  module keys (`'kotlinx.serialization'`).
-- A cached peer *name* (from `settings.identifier.name` on a ref hit).
-
-Mandatory objects: everything stored and rendered later — parameter
-`type`s, annotation instances (`KtAnnotation`, not `'@Serializable'`),
-identifiers (`KtIdentifier` via factories — a foreign identifier throws at
-the Lang boundary), and anything that must register an import or be found
-in the cache.
-
-## 10. Kotlin-specific pitfalls
-
-| Symptom | Cause | Fix |
-|---|---|---|
-| Class-level `@Serializable` / KDoc missing from output | Protocols not mirrored on the projection wrapper | Add `annotations` / `description` getters forwarding to `this.value` |
-| Annotation silently dropped | Strings in the `annotations` array (protocol requires `KtAnnotation` instances) | Construct real `KtAnnotation`s |
-| `segment 'x' is not a valid package name part` | Export path contains a non-identifier or keyword directory | Fix the path policy — packages are validated, never sanitized |
-| Import appears in file body / duplicated | Import written in a template | `register` / annotation `packageName` (lint: `no-template-imports`) |
-| `Kotlin cannot import from the default package` | Root-level artifact referenced from a packaged file | Give the artifact a packaged export path |
-| `String??` or missing `?` | Two layers applying nullability | The type expression owns the single `?`; parameter layer only adds `= null` |
-| `Unknown Kotlin entity type` throw | Identifier built with a TS kind, or a deferred kind (`object`, `fun`) | Use the seven Kotlin factories |
-| `data class` with zero parameters throws | Empty object routed to data-class | Shape dispatch must send empty objects to `typealias` (`JsonObject`) |
-| TDZ crash at module load (`… in the temporal dead zone`) | Module-init cycle: base ↔ router ↔ projection imports | Break the cycle with a leaf module (the `peekSchema` pattern); keep `KtAnnotation`-style leaves off `KtSnippet` |
-| Generator behaves differently across runs | Module-level state or non-memoized document scans | Config via enrichments only; memoize scans in `WeakMap`s keyed on the document |
+| Symptom | Fix |
+|---|---|
+| `@Serializable`/KDoc missing | Mirror `annotations`/`description` getters on the projection |
+| Annotation silently dropped | Real `KtAnnotation` instances, not strings |
+| `segment 'x' is not a valid package name part` | Fix the export-path policy — packages validate, never sanitize |
+| Import mid-file / duplicated | `register` / annotation `packageName`, never templates |
+| `String??` | Type expression owns the single `?` |
+| `Unknown Kotlin entity type` | Use the seven Kotlin factories, not TS kinds |
+| Empty `data class` throws | Shape dispatch must route empty objects to `typealias` |
+| TDZ crash at module load | Break base↔router↔projection cycles with a leaf module (`peekSchema` pattern) |
+| Nondeterministic output | No module state; config via enrichments; memoize document scans in `WeakMap` |
