@@ -1,0 +1,170 @@
+===FILE: gen-api-client/deno.json===
+{
+  "name": "@exp/gen-api-client",
+  "version": "0.1.0"
+}
+===END===
+
+===FILE: gen-api-client/mod.ts===
+export { default } from './src/mod.ts'
+===END===
+
+===FILE: gen-api-client/src/mod.ts===
+import invariant from 'npm:tiny-invariant@^1.3.3'
+import { toOasOperationEntry } from 'jsr:@skmtc/core@0.28.3'
+import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
+import { ClientClass } from './ClientClass.ts'
+import denoJson from '../deno.json' with { type: 'json' }
+
+export const entry = toOasOperationEntry<EnrichmentSchema>({
+  id: denoJson.name,
+  toEnrichmentSchema,
+  transform: ({ context, operation, variant }) => {
+    const enrichments = {}
+    const clientName = ClientClass.toIdentifierName({ operation, enrichments, variant })
+    const clientPath = ClientClass.toExportPath({ operation, enrichments, variant })
+
+    const clientDef =
+      context.findDefinition({ name: clientName, exportPath: clientPath }) ??
+      context.insertOperation({ projection: ClientClass, operation, variant }).definition
+
+    invariant(clientDef?.value instanceof ClientClass, 'client must be an instance of ClientClass')
+    clientDef.value.append(operation)
+  }
+})
+
+export { entry as default }
+===END===
+
+===FILE: gen-api-client/src/base.ts===
+import { capitalize } from 'jsr:@skmtc/core@0.28.3'
+import { toTsOasOperationProjectionBase } from 'jsr:@skmtc/lang-typescript@0.12.17'
+import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
+import denoJson from '../deno.json' with { type: 'json' }
+
+export const ClientClassBase = toTsOasOperationProjectionBase<EnrichmentSchema>({
+  id: denoJson.name,
+  toIdentifierName({ operation }) {
+    const tag = operation.tags?.[0] || 'default'
+    return capitalize(tag) + 'Client'
+  },
+  toIdentifierType: () => ({ type: 'class' }),
+  toExportPath({ operation }) {
+    const tag = operation.tags?.[0] || 'default'
+    return `@/client/${capitalize(tag)}Client.generated.ts`
+  },
+  toEnrichmentSchema
+})
+===END===
+
+===FILE: gen-api-client/src/enrichments.ts===
+import { emptyEnrichmentSchema } from 'jsr:@skmtc/core@0.28.3'
+
+export const toEnrichmentSchema = () => emptyEnrichmentSchema
+
+export type EnrichmentSchema = Record<string, never>
+===END===
+
+===FILE: gen-api-client/src/ClientClass.ts===
+import { List, type ListLines } from 'jsr:@skmtc/lang-typescript@0.12.17'
+import type { OasOperation, OasOperationProjectionConstructorArgs } from 'jsr:@skmtc/core@0.28.3'
+import { ClientClassBase } from './base.ts'
+import { ClientMethod } from './ClientMethod.ts'
+import type { EnrichmentSchema } from './enrichments.ts'
+
+export class ClientClass extends ClientClassBase {
+  methods: ListLines<ClientMethod>
+
+  constructor(args: OasOperationProjectionConstructorArgs<EnrichmentSchema>) {
+    super(args)
+    this.methods = List.toLines([])
+  }
+
+  append(operation: OasOperation) {
+    this.methods.values.push(
+      new ClientMethod({
+        context: this.context,
+        operation,
+        destinationPath: this.settings.exportPath
+      })
+    )
+  }
+
+  override toString(): string {
+    return `export class ${this.settings.identifier.name} {
+${this.methods}
+}`
+  }
+}
+===END===
+
+===FILE: gen-api-client/src/ClientMethod.ts===
+import type { GeneratorContext, OasOperation } from 'jsr:@skmtc/core@0.28.3'
+import { TsSnippet } from 'jsr:@skmtc/lang-typescript@0.12.17'
+import { capitalize, OasVoid } from 'jsr:@skmtc/core@0.28.3'
+import { ZodProjection } from 'jsr:@skmtc/gen-zod@0.2.5'
+
+interface ClientMethodConstructorArgs {
+  context: GeneratorContext
+  operation: OasOperation
+  destinationPath: string
+}
+
+export class ClientMethod extends TsSnippet {
+  operation: OasOperation
+  methodName: string
+  zodResponseName: string
+  pathParams: string[]
+  hasBody: boolean
+
+  constructor({ context, operation, destinationPath }: ClientMethodConstructorArgs) {
+    super({ context })
+    this.operation = operation
+
+    this.methodName = buildMethodName(operation)
+    this.pathParams = operation.toParams(['path']).map(p => p.name)
+    this.hasBody = !!operation.requestBody && ['post', 'put', 'patch'].includes(operation.method.toLowerCase())
+
+    const zodResponse = this.insertNormalizedModel(ZodProjection, {
+      schema: operation.toSuccessResponse()?.resolve().toSchema() ?? OasVoid.empty(),
+      fallbackName: `${capitalize(this.methodName)}Response`
+    })
+    this.zodResponseName = zodResponse.identifier.name
+
+    this.register({
+      imports: {
+        zod: ['z']
+      }
+    })
+  }
+
+  override toString(): string {
+    const path = this.operation.path.replace(/{([^}]+)}/g, '${\\$$1}')
+    const params = this.pathParams.length > 0 ? this.pathParams.map(p => `${p}: string`).join(', ') : ''
+    const methodSig = `async ${this.methodName}(${params}${this.hasBody ? (params ? ', ' : '') + 'body: unknown' : ''})`
+
+    const fetchCall = `const res = await fetch(\`${path}\`, {
+      method: '${this.operation.method.toUpperCase()}',${this.hasBody ? '\n      body: JSON.stringify(body),' : ''}
+      headers: { 'Content-Type': 'application/json' }
+    })`
+
+    return `
+  ${methodSig} {
+    ${fetchCall}
+    if (!res.ok) throw new Error(await res.text())
+    return ${this.zodResponseName}.parse(await res.json())
+  }`
+  }
+}
+
+function buildMethodName(operation: OasOperation): string {
+  const method = operation.method.toLowerCase()
+  const pathParts = operation.path
+    .split('/')
+    .filter(Boolean)
+    .map(p => capitalize(p.replace(/{|}/g, '')))
+  return method + pathParts.join('')
+}
+===END===
+
+DONE. The generator groups operations by their first tag, creating one client class per tag (OrdersClient and AddressesClient). Each operation becomes a method using deterministic naming from method + path segments. Methods fetch with proper zod validation of responses, pulling schemas from gen-zod. The entry uses an accumulator pattern to append methods to the same client class for all operations sharing a tag.

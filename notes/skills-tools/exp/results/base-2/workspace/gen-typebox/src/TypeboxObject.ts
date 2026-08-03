@@ -1,0 +1,164 @@
+import { isEmpty } from '@skmtc/core'
+import type {
+  CustomValue,
+  GenerateContextType,
+  GeneratorKey,
+  Modifiers,
+  OasObject,
+  OasRef,
+  OasSchema,
+  RefName,
+  TypeSystemValue
+} from '@skmtc/core'
+import { TsSnippet } from '@skmtc/lang-typescript'
+import { toTypeboxValue } from './Typebox.ts'
+import { applyModifiers } from './applyModifiers.ts'
+import { TypeboxUnknown } from './primitives.ts'
+
+type TypeboxObjectArgs = {
+  context: GenerateContextType
+  destinationPath: string
+  objectSchema: OasObject
+  modifiers: Modifiers
+  generatorKey: GeneratorKey
+  rootRef?: RefName
+}
+
+export class TypeboxObject extends TsSnippet {
+  type = 'object' as const
+  recordValue: TypeboxRecord | null
+  objectProperties: TypeboxObjectProperties | null
+  modifiers: Modifiers
+
+  constructor({
+    context,
+    generatorKey,
+    destinationPath,
+    objectSchema,
+    modifiers,
+    rootRef
+  }: TypeboxObjectArgs) {
+    super({ context, generatorKey, stackTrail: objectSchema.stackTrail.clone() })
+
+    this.modifiers = modifiers
+
+    const { properties, required, additionalProperties } = objectSchema
+
+    this.recordValue = additionalProperties
+      ? new TypeboxRecord({
+          context,
+          generatorKey,
+          destinationPath,
+          schema: additionalProperties,
+          rootRef
+        })
+      : null
+
+    this.objectProperties =
+      properties && !isEmpty(properties)
+        ? new TypeboxObjectProperties({
+            context,
+            generatorKey,
+            destinationPath,
+            properties,
+            required,
+            rootRef
+          })
+        : null
+
+    this.register({ imports: { '@sinclair/typebox': ['Type'] }, destinationPath })
+  }
+
+  override toString(): string {
+    const { objectProperties, recordValue } = this
+
+    if (objectProperties && recordValue) {
+      return applyModifiers(`Type.Intersect([${objectProperties}, ${recordValue}])`, this.modifiers)
+    }
+
+    const content = recordValue?.toString() ?? objectProperties?.toString() ?? 'Type.Object({})'
+
+    return applyModifiers(content, this.modifiers)
+  }
+}
+
+type TypeboxObjectPropertiesArgs = {
+  context: GenerateContextType
+  destinationPath: string
+  properties: Record<string, OasSchema | OasRef<'schema'> | CustomValue>
+  required: OasObject['required']
+  generatorKey: GeneratorKey
+  rootRef?: RefName
+}
+
+class TypeboxObjectProperties extends TsSnippet {
+  properties: Record<string, TypeSystemValue>
+
+  constructor({
+    context,
+    generatorKey,
+    destinationPath,
+    properties,
+    required = [],
+    rootRef
+  }: TypeboxObjectPropertiesArgs) {
+    super({ context, generatorKey })
+
+    this.properties = Object.fromEntries(
+      Object.entries(properties).map(([key, property]) => {
+        const value = toTypeboxValue({
+          destinationPath,
+          schema: property,
+          required: required.includes(key),
+          context,
+          rootRef
+        })
+
+        return [key, value]
+      })
+    )
+  }
+
+  override toString(): string {
+    const entries = Object.entries(this.properties).map(([key, value]) => {
+      const needsQuotes = /[^a-zA-Z0-9_$]/.test(key) || /^\d/.test(key)
+      const formattedKey = needsQuotes ? JSON.stringify(key) : key
+
+      return `${formattedKey}: ${value}`
+    })
+
+    return `Type.Object({${entries.join(', ')}})`
+  }
+}
+
+type TypeboxRecordArgs = {
+  context: GenerateContextType
+  destinationPath: string
+  schema: true | OasSchema | OasRef<'schema'>
+  generatorKey: GeneratorKey
+  rootRef?: RefName
+}
+
+class TypeboxRecord extends TsSnippet {
+  value: TypeSystemValue
+
+  constructor({ context, generatorKey, destinationPath, schema, rootRef }: TypeboxRecordArgs) {
+    super({ context, generatorKey })
+
+    if (schema === true || isEmpty(schema)) {
+      this.value = new TypeboxUnknown({ context, destinationPath, generatorKey })
+    } else {
+      this.value = toTypeboxValue({
+        destinationPath,
+        schema,
+        required: true,
+        context,
+        rootRef
+      })
+    }
+  }
+
+  override toString(): string {
+    return `Type.Record(Type.String(), ${this.value})`
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "workspace": "/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/opus-base-3",
+  "timestamp": "2026-08-03T19:02:12.087Z",
+  "verifyPassed": true,
+  "verifyTail": "artifacts written to out/: 5\n  models/Address.generated.ts\n  models/Category.generated.ts\n  models/Order.generated.ts\n  models/OrderItem.generated.ts\n  models/OrderStatus.generated.ts\nresults: {\"success\":10}\nparseIssues: 0\n",
+  "artifacts": [
+    "Address.generated.ts",
+    "Category.generated.ts",
+    "Order.generated.ts",
+    "OrderItem.generated.ts",
+    "OrderStatus.generated.ts"
+  ],
+  "expectedModelsPresent": [
+    "Order",
+    "OrderItem",
+    "OrderStatus",
+    "Address",
+    "Category"
+  ],
+  "allModelsPresent": true,
+  "duplicateDefinitions": [],
+  "orderImportsAddress": true,
+  "lintSkmtcFirings": [],
+  "lintTotal": 1,
+  "genEval": {
+    "structurePass": false,
+    "producerShare": 1,
+    "stringOutsideShare": 1,
+    "stringTopOutsideSites": [
+      {
+        "site": "toObjectValue",
+        "file": "src/toSchemaValue.ts",
+        "count": 5,
+        "chars": 232
+      },
+      {
+        "site": "toSchemaValue",
+        "file": "src/toSchemaValue.ts",
+        "count": 5,
+        "chars": 180
+      },
+      {
+        "site": "toStringValue",
+        "file": "src/toSchemaValue.ts",
+        "count": 2,
+        "chars": 101
+      },
+      {
+        "site": "EffectSchemaModel.toRefValue",
+        "file": "src/EffectSchemaModel.ts",
+        "count": 1,
+        "chars": 51
+      },
+      {
+        "site": "toModelExportPath",
+        "file": "src/EffectSchemaModel.ts",
+        "count": 1,
+        "chars": 37
+      }
+    ],
+    "templateImportsPass": true,
+    "adHocToStringPass": true,
+    "methodDiscipline": {
+      "producers": 1,
+      "clean": 1
+    },
+    "aggregateVerdict": "fail"
+  },
+  "skeletonAdoption": {
+    "slotMarkers": 0,
+    "hasLibTs": false,
+    "adopted": false
+  },
+  "categoryRecursion": true
+}

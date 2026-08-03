@@ -1,0 +1,64 @@
+{
+  "workspace": "/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-1",
+  "verifyPassed": false,
+  "verifyTail": "\u001b[39m\nartifacts written to out/: 0\nresults: {\"error\":5}\nparseIssues: 0\n\u001b[0m\u001b[32mTask\u001b[0m \u001b[0m\u001b[36mverify\u001b[0m deno run --allow-read --allow-write --allow-env harness.ts && deno check --config check.deno.json out/client/*.ts out/types/*.ts\nFAIL: the run produced zero artifacts\nCommand failed: deno task verify\n\u001b[0m\u001b[32mTask\u001b[0m \u001b[0m\u001b[36mverify\u001b[0m deno run --allow-read --allow-write --allow-env harness.ts && deno check --config check.deno.json out/client/*.ts out/types/*.ts\nFAIL: the run produced zero artifacts\n",
+  "clientFiles": [],
+  "ordersClass": 0,
+  "ordersMethods": 0,
+  "addressesClass": 0,
+  "addressesMethods": 0,
+  "accumulatorShape": false,
+  "duplicateDefinitions": [],
+  "zodModelFilesExist": false,
+  "clientImportsModels": false,
+  "usesZodParse": false,
+  "lintSkmtcFirings": [],
+  "lintTotal": 2,
+  "genEval": {
+    "structurePass": true,
+    "producerShare": 1,
+    "stringOutsideShare": 0.1956521739130435,
+    "stringTopOutsideSites": [
+      {
+        "site": "toMethodName",
+        "file": "src/naming.ts",
+        "count": 2,
+        "chars": 225
+      },
+      {
+        "site": "toClientName",
+        "file": "src/naming.ts",
+        "count": 1,
+        "chars": 46
+      },
+      {
+        "site": "ApiClient.append",
+        "file": "src/ApiClient.ts",
+        "count": 1,
+        "chars": 17
+      }
+    ],
+    "templateImportsPass": true,
+    "adHocToStringPass": true,
+    "accumulatorVerdict": {
+      "verdict": false,
+      "signals": [
+        "findDefinition call",
+        "container producer ApiClient (clientMethods) mutated by append"
+      ],
+      "containerProducers": [
+        {
+          "className": "ApiClient",
+          "containerProps": [
+            "clientMethods"
+          ],
+          "mutatorMethods": [
+            "append"
+          ]
+        }
+      ]
+    },
+    "aggregateVerdict": "warn"
+  },
+  "timestamp": "2026-07-31T22:22:51.031Z"
+}

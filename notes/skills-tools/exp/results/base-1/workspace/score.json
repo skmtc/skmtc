@@ -1,0 +1,61 @@
+{
+  "workspace": "/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/base-1",
+  "timestamp": "2026-07-31T19:54:08.294Z",
+  "verifyPassed": true,
+  "verifyTail": "artifacts written to out/: 4\n  models/Address.generated.ts\n  models/Order.generated.ts\n  models/OrderItem.generated.ts\n  models/OrderStatus.generated.ts\nresults: {\"success\":8}\nparseIssues: 0\n",
+  "artifacts": [
+    "Address.generated.ts",
+    "Order.generated.ts",
+    "OrderItem.generated.ts",
+    "OrderStatus.generated.ts"
+  ],
+  "expectedModelsPresent": [
+    "Order",
+    "OrderItem",
+    "OrderStatus",
+    "Address"
+  ],
+  "allModelsPresent": true,
+  "duplicateDefinitions": [],
+  "orderImportsAddress": true,
+  "lintSkmtcFirings": [],
+  "lintTotal": 4,
+  "genEval": {
+    "structurePass": true,
+    "producerShare": 1,
+    "stringOutsideShare": 0.2987551867219917,
+    "stringTopOutsideSites": [
+      {
+        "site": "numericContent",
+        "file": "src/primitives.ts",
+        "count": 3,
+        "chars": 81
+      },
+      {
+        "site": "applyModifiers",
+        "file": "src/applyModifiers.ts",
+        "count": 2,
+        "chars": 67
+      },
+      {
+        "site": "toTypeboxValue",
+        "file": "src/Typebox.ts",
+        "count": 1,
+        "chars": 39
+      },
+      {
+        "site": "TypeboxRef.constructor",
+        "file": "src/TypeboxRef.ts",
+        "count": 1,
+        "chars": 29
+      }
+    ],
+    "templateImportsPass": true,
+    "adHocToStringPass": true,
+    "methodDiscipline": {
+      "producers": 13,
+      "clean": 13
+    },
+    "aggregateVerdict": "clean"
+  }
+}

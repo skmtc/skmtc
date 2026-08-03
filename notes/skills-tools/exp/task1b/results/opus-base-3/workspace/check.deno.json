@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "@/": "./out/",
+    "effect": "npm:effect@^3.10.0"
+  },
+  "nodeModulesDir": "auto"
+}

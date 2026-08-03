@@ -1,0 +1,6 @@
+verify:             PASS
+accumulator shape:  PASS (orders 1c/3m, addresses 1c/1m)
+no duplicates:      PASS 
+zod via engine:     PASS
+skmtc lint clean:   PASS 
+gen-eval:           oS 0.180 verdict clean

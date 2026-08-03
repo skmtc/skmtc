@@ -1,0 +1,49 @@
+{
+  "workspace": "/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/skills-3",
+  "timestamp": "2026-07-31T21:09:58.923Z",
+  "verifyPassed": true,
+  "verifyTail": "artifacts written to out/: 4\n  models/Address.generated.ts\n  models/Order.generated.ts\n  models/OrderItem.generated.ts\n  models/OrderStatus.generated.ts\nresults: {\"success\":8}\nparseIssues: 0\n",
+  "artifacts": [
+    "Address.generated.ts",
+    "Order.generated.ts",
+    "OrderItem.generated.ts",
+    "OrderStatus.generated.ts"
+  ],
+  "expectedModelsPresent": [
+    "Order",
+    "OrderItem",
+    "OrderStatus",
+    "Address"
+  ],
+  "allModelsPresent": true,
+  "duplicateDefinitions": [],
+  "orderImportsAddress": true,
+  "lintSkmtcFirings": [],
+  "lintTotal": 0,
+  "genEval": {
+    "structurePass": true,
+    "producerShare": 1,
+    "stringOutsideShare": 0.2659279778393352,
+    "stringTopOutsideSites": [
+      {
+        "site": "toTypeboxValue",
+        "file": "src/toTypeboxValue.ts",
+        "count": 1,
+        "chars": 57
+      },
+      {
+        "site": "applyNullable",
+        "file": "src/applyNullable.ts",
+        "count": 1,
+        "chars": 39
+      }
+    ],
+    "templateImportsPass": true,
+    "adHocToStringPass": true,
+    "methodDiscipline": {
+      "producers": 7,
+      "clean": 7
+    },
+    "aggregateVerdict": "clean"
+  }
+}

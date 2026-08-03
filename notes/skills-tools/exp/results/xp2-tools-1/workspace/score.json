@@ -1,0 +1,69 @@
+{
+  "workspace": "/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/xp2-tools-1",
+  "verifyPassed": true,
+  "verifyTail": "  client/AddressesClient.generated.ts\n  client/OrdersClient.generated.ts\n  types/address.generated.ts\n  types/getOrdersResponse.generated.ts\n  types/order.generated.ts\n  types/orderItem.generated.ts\n  types/orderStatus.generated.ts\nresults: {\"success\":11}\nparseIssues: 0\n",
+  "clientFiles": [
+    "AddressesClient.generated.ts",
+    "OrdersClient.generated.ts"
+  ],
+  "ordersClass": 1,
+  "ordersMethods": 3,
+  "addressesClass": 1,
+  "addressesMethods": 1,
+  "accumulatorShape": true,
+  "duplicateDefinitions": [],
+  "zodModelFilesExist": true,
+  "clientImportsModels": true,
+  "usesZodParse": true,
+  "lintSkmtcFirings": [],
+  "lintTotal": 1,
+  "genEval": {
+    "structurePass": false,
+    "producerShare": 1,
+    "stringOutsideShare": 0.41360294117647056,
+    "stringTopOutsideSites": [
+      {
+        "site": "toMethodName",
+        "file": "src/identifiers.ts",
+        "count": 1,
+        "chars": 71
+      },
+      {
+        "site": "toClientName",
+        "file": "src/identifiers.ts",
+        "count": 1,
+        "chars": 47
+      },
+      {
+        "site": "MethodBody.constructor",
+        "file": "src/MethodBody.ts",
+        "count": 2,
+        "chars": 42
+      },
+      {
+        "site": "toClientPath",
+        "file": "src/identifiers.ts",
+        "count": 1,
+        "chars": 35
+      },
+      {
+        "site": "insertZodSchema",
+        "file": "src/insertZodSchema.ts",
+        "count": 1,
+        "chars": 30
+      }
+    ],
+    "templateImportsPass": true,
+    "adHocToStringPass": true,
+    "accumulatorVerdict": {
+      "verdict": true,
+      "signals": [
+        "defineAndRegister call",
+        "findDefinition call"
+      ],
+      "containerProducers": []
+    },
+    "aggregateVerdict": "fail"
+  },
+  "timestamp": "2026-07-31T22:26:18.214Z"
+}

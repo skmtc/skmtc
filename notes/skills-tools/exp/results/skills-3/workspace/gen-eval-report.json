@@ -1,0 +1,194 @@
+[
+  {
+    "generator": "@exp/gen-typebox",
+    "dir": "/private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/skills-3/gen-typebox",
+    "fileCount": 14,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@exp/gen-typebox"
+    },
+    "classes": [
+      {
+        "className": "TypeboxArray",
+        "file": "src/TypeboxArray.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 17,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxObject",
+        "file": "src/TypeboxObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 29,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxProjection",
+        "file": "src/TypeboxProjection.ts",
+        "extendsName": "TypeboxBase",
+        "kind": "projection",
+        "extraMethods": [],
+        "lines": 22,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxRef",
+        "file": "src/TypeboxRef.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 24,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxScalar",
+        "file": "src/TypeboxScalar.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 17,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxString",
+        "file": "src/TypeboxString.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 29,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxUnion",
+        "file": "src/TypeboxUnion.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 21,
+        "sizeBucket": 50
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 6,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/applyNullable.ts:applyNullable",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/toTypeboxValue.ts:toTypeboxValue"
+    ],
+    "methodDiscipline": {
+      "producers": 7,
+      "clean": 7,
+      "flagged": [],
+      "accumulatorExempt": []
+    },
+    "strings": {
+      "insideToStringCount": 9,
+      "insideToStringChars": 265,
+      "namingStaticsCount": 1,
+      "namingStaticsChars": 22,
+      "outsideCount": 2,
+      "outsideChars": 96,
+      "outsideShare": 0.2659279778393352,
+      "topOutsideSites": [
+        {
+          "site": "toTypeboxValue",
+          "file": "src/toTypeboxValue.ts",
+          "count": 1,
+          "chars": 57
+        },
+        {
+          "site": "applyNullable",
+          "file": "src/applyNullable.ts",
+          "count": 1,
+          "chars": 39
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 7
+      }
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "singleDispatch": {
+      "pass": true,
+      "routerCount": 1,
+      "metadataCount": 0,
+      "outside": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "redundantRefGuards": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 2,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
+    },
+    "aggregate": {
+      "verdict": "clean",
+      "failedChecks": [],
+      "warningCount": 0,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "redundantRefGuards": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
+    }
+  }
+]

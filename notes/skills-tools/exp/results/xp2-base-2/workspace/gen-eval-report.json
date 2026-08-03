@@ -1,0 +1,183 @@
+[
+  {
+    "generator": "@exp/gen-api-client",
+    "dir": "/private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/xp2-base-2/gen-api-client",
+    "fileCount": 7,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@exp/gen-api-client"
+    },
+    "classes": [
+      {
+        "className": "ApiClient",
+        "file": "src/ApiClient.ts",
+        "extendsName": "ApiClientBase",
+        "kind": "projection",
+        "extraMethods": [],
+        "lines": 30,
+        "sizeBucket": 50
+      },
+      {
+        "className": "ClientMethod",
+        "file": "src/ClientMethod.ts",
+        "extendsName": "ApiClientBase",
+        "kind": "projection",
+        "extraMethods": [],
+        "lines": 62,
+        "sizeBucket": 50
+      }
+    ],
+    "classTotals": {
+      "projections": 2,
+      "snippets": 0,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/ClientMethod.ts:toParamType",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/naming.ts:toClientTag",
+      "src/naming.ts:toClientName",
+      "src/naming.ts:toClientExportPath",
+      "src/naming.ts:toMethodName"
+    ],
+    "methodDiscipline": {
+      "producers": 2,
+      "clean": 2,
+      "flagged": [],
+      "accumulatorExempt": []
+    },
+    "strings": {
+      "insideToStringCount": 2,
+      "insideToStringChars": 33,
+      "namingStaticsCount": 0,
+      "namingStaticsChars": 0,
+      "outsideCount": 10,
+      "outsideChars": 570,
+      "outsideShare": 0.945273631840796,
+      "topOutsideSites": [
+        {
+          "site": "ClientMethod.constructor",
+          "file": "src/ClientMethod.ts",
+          "count": 7,
+          "chars": 434
+        },
+        {
+          "site": "toClientName",
+          "file": "src/naming.ts",
+          "count": 1,
+          "chars": 56
+        },
+        {
+          "site": "toClientExportPath",
+          "file": "src/naming.ts",
+          "count": 1,
+          "chars": 41
+        },
+        {
+          "site": "toMethodName",
+          "file": "src/naming.ts",
+          "count": 1,
+          "chars": 39
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulator": {
+      "verdict": false,
+      "signals": [
+        "findDefinition call"
+      ],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 2
+      }
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "singleDispatch": {
+      "pass": false,
+      "routerCount": 0,
+      "metadataCount": 0,
+      "outside": [
+        {
+          "file": "src/ClientMethod.ts",
+          "site": "toParamType",
+          "line": 16,
+          "context": "outside",
+          "text": "switch (resolved.type)"
+        }
+      ]
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "redundantRefGuards": {
+      "count": 1,
+      "sites": [
+        {
+          "file": "src/ClientMethod.ts",
+          "site": "toParamType",
+          "line": 14,
+          "text": "schema.isRef() ? schema.resolve() : schema"
+        }
+      ]
+    },
+    "registrationChannels": {
+      "insertOperation": 1,
+      "insertModel": 0,
+      "insertNormalizedModel": 2,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
+    },
+    "aggregate": {
+      "verdict": "fail",
+      "failedChecks": [
+        "single-dispatch"
+      ],
+      "warningCount": 2,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "redundantRefGuards": 1,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": true
+      }
+    }
+  }
+]

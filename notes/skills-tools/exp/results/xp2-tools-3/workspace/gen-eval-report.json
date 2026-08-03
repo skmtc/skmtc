@@ -1,0 +1,188 @@
+[
+  {
+    "generator": "@exp/gen-api-client",
+    "dir": "/private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/xp2-tools-3/gen-api-client",
+    "fileCount": 6,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [
+        "src/base.ts"
+      ],
+      "pass": false,
+      "packageName": "@exp/gen-api-client"
+    },
+    "classes": [
+      {
+        "className": "ApiClient",
+        "file": "src/ApiClient.ts",
+        "extendsName": "SnippetBase",
+        "kind": "snippet",
+        "extraMethods": [
+          "add"
+        ],
+        "lines": 17,
+        "sizeBucket": 50
+      },
+      {
+        "className": "ClientMethod",
+        "file": "src/ClientMethod.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 64,
+        "sizeBucket": 50
+      }
+    ],
+    "classTotals": {
+      "projections": 0,
+      "snippets": 2,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/ClientMethod.ts:toMethodName",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/insertZodModel.ts:insertZodModel"
+    ],
+    "methodDiscipline": {
+      "producers": 2,
+      "clean": 2,
+      "flagged": [],
+      "accumulatorExempt": [
+        {
+          "className": "ApiClient",
+          "kind": "snippet",
+          "extraMethods": [
+            "add"
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "insideToStringCount": 2,
+      "insideToStringChars": 300,
+      "namingStaticsCount": 0,
+      "namingStaticsChars": 0,
+      "outsideCount": 9,
+      "outsideChars": 317,
+      "outsideShare": 0.513776337115073,
+      "topOutsideSites": [
+        {
+          "site": "ClientMethod.constructor",
+          "file": "src/ClientMethod.ts",
+          "count": 5,
+          "chars": 152
+        },
+        {
+          "site": "toMethodName",
+          "file": "src/ClientMethod.ts",
+          "count": 1,
+          "chars": 71
+        },
+        {
+          "site": "transform",
+          "file": "src/mod.ts",
+          "count": 2,
+          "chars": 64
+        },
+        {
+          "site": "insertZodModel",
+          "file": "src/insertZodModel.ts",
+          "count": 1,
+          "chars": 30
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": false,
+      "exempt": true
+    },
+    "accumulator": {
+      "verdict": true,
+      "signals": [
+        "defineAndRegister call",
+        "findDefinition call",
+        "container producer ApiClient (methods) mutated by add"
+      ],
+      "containerProducers": [
+        {
+          "className": "ApiClient",
+          "containerProps": [
+            "methods"
+          ],
+          "mutatorMethods": [
+            "add"
+          ]
+        }
+      ]
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 2
+      }
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "singleDispatch": {
+      "pass": true,
+      "routerCount": 0,
+      "metadataCount": 0,
+      "outside": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "redundantRefGuards": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 0,
+      "insertNormalizedModel": 2,
+      "defineAndRegister": 1,
+      "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
+    },
+    "aggregate": {
+      "verdict": "fail",
+      "failedChecks": [
+        "structure"
+      ],
+      "warningCount": 1,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "redundantRefGuards": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": true
+      }
+    }
+  }
+]

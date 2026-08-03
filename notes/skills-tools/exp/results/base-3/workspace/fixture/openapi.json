@@ -1,0 +1,49 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "Orders API (feedback-inversion experiment fixture)", "version": "1.0.0" },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Order": {
+        "type": "object",
+        "required": ["id", "status", "items", "shippingAddress"],
+        "properties": {
+          "id": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/OrderStatus" },
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/OrderItem" }
+          },
+          "shippingAddress": { "$ref": "#/components/schemas/Address" },
+          "billingAddress": { "$ref": "#/components/schemas/Address" },
+          "notes": { "type": "string", "nullable": true }
+        }
+      },
+      "OrderItem": {
+        "type": "object",
+        "required": ["sku", "quantity", "unitPrice"],
+        "properties": {
+          "sku": { "type": "string" },
+          "quantity": { "type": "integer" },
+          "unitPrice": { "type": "number" },
+          "giftWrap": { "type": "boolean" }
+        }
+      },
+      "OrderStatus": {
+        "type": "string",
+        "enum": ["pending", "paid", "shipped", "cancelled"]
+      },
+      "Address": {
+        "type": "object",
+        "required": ["line1", "city", "postalCode", "country"],
+        "properties": {
+          "line1": { "type": "string" },
+          "line2": { "type": "string" },
+          "city": { "type": "string" },
+          "postalCode": { "type": "string" },
+          "country": { "type": "string" }
+        }
+      }
+    }
+  }
+}

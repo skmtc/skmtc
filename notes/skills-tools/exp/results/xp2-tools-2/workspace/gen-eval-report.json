@@ -1,0 +1,192 @@
+[
+  {
+    "generator": "@exp/gen-api-client",
+    "dir": "/private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/xp2-tools-2/gen-api-client",
+    "fileCount": 5,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [
+        "src/base.ts"
+      ],
+      "pass": false,
+      "packageName": "@exp/gen-api-client"
+    },
+    "classes": [
+      {
+        "className": "ApiClientClass",
+        "file": "src/ApiClientClass.ts",
+        "extendsName": "TsClass",
+        "kind": "other",
+        "extraMethods": [],
+        "lines": 9,
+        "sizeBucket": 50
+      },
+      {
+        "className": "PathParameter",
+        "file": "src/ClientMethod.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 16,
+        "sizeBucket": 50
+      },
+      {
+        "className": "BodyParameter",
+        "file": "src/ClientMethod.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 15,
+        "sizeBucket": 50
+      },
+      {
+        "className": "MethodBody",
+        "file": "src/ClientMethod.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 41,
+        "sizeBucket": 50
+      }
+    ],
+    "classTotals": {
+      "projections": 0,
+      "snippets": 3,
+      "other": 1
+    },
+    "producerShare": 0.75,
+    "helperFunctions": [
+      "src/ClientMethod.ts:toMethodName",
+      "src/ClientMethod.ts:insertZodModel",
+      "src/ClientMethod.ts:toClientMethod",
+      "src/enrichments.ts:toEnrichmentSchema"
+    ],
+    "methodDiscipline": {
+      "producers": 3,
+      "clean": 3,
+      "flagged": [],
+      "accumulatorExempt": []
+    },
+    "strings": {
+      "insideToStringCount": 3,
+      "insideToStringChars": 313,
+      "namingStaticsCount": 0,
+      "namingStaticsChars": 0,
+      "outsideCount": 6,
+      "outsideChars": 243,
+      "outsideShare": 0.4370503597122302,
+      "topOutsideSites": [
+        {
+          "site": "transform",
+          "file": "src/mod.ts",
+          "count": 2,
+          "chars": 74
+        },
+        {
+          "site": "toMethodName",
+          "file": "src/ClientMethod.ts",
+          "count": 1,
+          "chars": 71
+        },
+        {
+          "site": "MethodBody.constructor",
+          "file": "src/ClientMethod.ts",
+          "count": 1,
+          "chars": 36
+        },
+        {
+          "site": "toClientMethod",
+          "file": "src/ClientMethod.ts",
+          "count": 1,
+          "chars": 32
+        },
+        {
+          "site": "insertZodModel",
+          "file": "src/ClientMethod.ts",
+          "count": 1,
+          "chars": 30
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": false,
+      "exempt": true
+    },
+    "accumulator": {
+      "verdict": true,
+      "signals": [
+        "defineAndRegister call",
+        "findDefinition call"
+      ],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 3
+      }
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "singleDispatch": {
+      "pass": true,
+      "routerCount": 0,
+      "metadataCount": 0,
+      "outside": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "redundantRefGuards": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 0,
+      "insertNormalizedModel": 2,
+      "defineAndRegister": 1,
+      "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
+    },
+    "aggregate": {
+      "verdict": "fail",
+      "failedChecks": [
+        "structure"
+      ],
+      "warningCount": 1,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "redundantRefGuards": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 1,
+        "outsideShareHigh": false
+      }
+    }
+  }
+]

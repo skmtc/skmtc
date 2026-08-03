@@ -1,0 +1,56 @@
+{
+  "files": {
+    "models/Order.generated.ts": {
+      "destinationPath": "@/models/Order.generated.ts",
+      "lines": 7,
+      "characters": 450
+    },
+    "models/OrderStatus.generated.ts": {
+      "destinationPath": "@/models/OrderStatus.generated.ts",
+      "lines": 4,
+      "characters": 180
+    },
+    "models/OrderItem.generated.ts": {
+      "destinationPath": "@/models/OrderItem.generated.ts",
+      "lines": 4,
+      "characters": 193
+    },
+    "models/Address.generated.ts": {
+      "destinationPath": "@/models/Address.generated.ts",
+      "lines": 4,
+      "characters": 209
+    }
+  },
+  "previews": {},
+  "traceId": "exp",
+  "spanId": "exp",
+  "results": {
+    "generate": {
+      "@exp/gen-typebox": {
+        "Order": {
+          "variant%3A main": "success"
+        },
+        "OrderItem": {
+          "variant%3A main": "success"
+        },
+        "OrderStatus": {
+          "variant%3A main": "success"
+        },
+        "Address": {
+          "variant%3A main": "success"
+        }
+      }
+    },
+    "render": {
+      "@/models/Order.generated.ts": "success",
+      "@/models/OrderStatus.generated.ts": "success",
+      "@/models/OrderItem.generated.ts": "success",
+      "@/models/Address.generated.ts": "success"
+    }
+  },
+  "parseIssues": [],
+  "enrichmentWarnings": [],
+  "deploymentId": "1785532198669",
+  "startAt": 1785532198663,
+  "endAt": 1785532198669
+}

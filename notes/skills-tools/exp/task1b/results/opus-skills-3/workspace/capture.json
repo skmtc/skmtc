@@ -1,0 +1,535 @@
+{
+  "artifacts": {
+    "models/Order.generated.ts": "import {Schema} from 'effect'\nimport {OrderStatus} from '@/models/OrderStatus.generated.ts'\nimport {OrderItem} from '@/models/OrderItem.generated.ts'\nimport {Address} from '@/models/Address.generated.ts'\n\nexport const Order = Schema.Struct({id: Schema.String, status: OrderStatus, items: Schema.Array(OrderItem), shippingAddress: Address, billingAddress: Schema.optional(Address), notes: Schema.optional(Schema.NullOr(Schema.String))});\n",
+    "models/OrderStatus.generated.ts": "import {Schema} from 'effect'\n\nexport const OrderStatus = Schema.Literal('pending', 'paid', 'shipped', 'cancelled');\n",
+    "models/OrderItem.generated.ts": "import {Schema} from 'effect'\n\nexport const OrderItem = Schema.Struct({sku: Schema.String, quantity: Schema.Int, unitPrice: Schema.Number, giftWrap: Schema.optional(Schema.Boolean)});\n",
+    "models/Address.generated.ts": "import {Schema} from 'effect'\n\nexport const Address = Schema.Struct({line1: Schema.String, line2: Schema.optional(Schema.String), city: Schema.String, postalCode: Schema.String, country: Schema.String});\n",
+    "models/Category.generated.ts": "import {Schema} from 'effect'\n\nexport const Category: Schema.Schema<any> = Schema.Struct({id: Schema.String, name: Schema.String, children: Schema.optional(Schema.Array(Schema.suspend((): Schema.Schema<any> => Category)))});\n"
+  },
+  "inspection": {
+    "__class": "Map",
+    "@/models/Order.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/models/Order.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const Order": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-effect-schema|Order|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "Order",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "EffectSchemaProjection",
+            "skipped": false,
+            "generatorKey": "@exp/gen-effect-schema|Order|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "Order",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/models/Order.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "Order",
+            "value": {
+              "__class": "EffectSchemaObject",
+              "skipped": false,
+              "generatorKey": "@exp/gen-effect-schema",
+              "type": "object",
+              "objectProperties": {
+                "__class": "EffectSchemaObjectProperties",
+                "skipped": false,
+                "generatorKey": "@exp/gen-effect-schema",
+                "properties": {
+                  "id": "[EffectSchemaString …]",
+                  "status": "[EffectSchemaRef …]",
+                  "items": "[EffectSchemaArray …]",
+                  "shippingAddress": "[EffectSchemaRef …]",
+                  "billingAddress": "[EffectSchemaRef …]",
+                  "notes": "[EffectSchemaString …]"
+                },
+                "required": [
+                  "id",
+                  "status",
+                  "items",
+                  "shippingAddress"
+                ],
+                "visibility": {
+                  "id": "[Object …]",
+                  "status": "[Object …]",
+                  "items": "[Object …]",
+                  "shippingAddress": "[Object …]",
+                  "billingAddress": "[Object …]",
+                  "notes": "[Object …]"
+                }
+              },
+              "recordProperties": null,
+              "modifiers": {
+                "required": true,
+                "nullable": null
+              }
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": false
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "effect": {
+          "__class": "TsImport",
+          "module": "effect",
+          "specifiers": [
+            {
+              "name": "Schema",
+              "typeOnly": false
+            }
+          ]
+        },
+        "@/models/OrderStatus.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/models/OrderStatus.generated.ts",
+          "specifiers": [
+            {
+              "name": "OrderStatus",
+              "typeOnly": false
+            }
+          ]
+        },
+        "@/models/OrderItem.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/models/OrderItem.generated.ts",
+          "specifiers": [
+            {
+              "name": "OrderItem",
+              "typeOnly": false
+            }
+          ]
+        },
+        "@/models/Address.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/models/Address.generated.ts",
+          "specifiers": [
+            {
+              "name": "Address",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/models/OrderStatus.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/models/OrderStatus.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const OrderStatus": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-effect-schema|OrderStatus|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "OrderStatus",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "EffectSchemaProjection",
+            "skipped": false,
+            "generatorKey": "@exp/gen-effect-schema|OrderStatus|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "OrderStatus",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/models/OrderStatus.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "OrderStatus",
+            "value": {
+              "__class": "EffectSchemaString",
+              "skipped": false,
+              "generatorKey": "@exp/gen-effect-schema",
+              "type": "string",
+              "stringSchema": {
+                "__class": "OasString",
+                "oasType": "schema",
+                "type": "string",
+                "title": null,
+                "description": null,
+                "format": null,
+                "enums": [
+                  "pending",
+                  "paid",
+                  "shipped",
+                  "cancelled"
+                ],
+                "maxLength": null,
+                "minLength": null,
+                "nullable": null,
+                "extensionFields": null,
+                "example": null,
+                "pattern": null,
+                "default": null,
+                "readOnly": null,
+                "writeOnly": null,
+                "deprecated": null
+              },
+              "format": null,
+              "enums": [
+                "pending",
+                "paid",
+                "shipped",
+                "cancelled"
+              ],
+              "modifiers": {
+                "required": true,
+                "nullable": null
+              }
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "effect": {
+          "__class": "TsImport",
+          "module": "effect",
+          "specifiers": [
+            {
+              "name": "Schema",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/models/OrderItem.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/models/OrderItem.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const OrderItem": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-effect-schema|OrderItem|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "OrderItem",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "EffectSchemaProjection",
+            "skipped": false,
+            "generatorKey": "@exp/gen-effect-schema|OrderItem|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "OrderItem",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/models/OrderItem.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "OrderItem",
+            "value": {
+              "__class": "EffectSchemaObject",
+              "skipped": false,
+              "generatorKey": "@exp/gen-effect-schema",
+              "type": "object",
+              "objectProperties": {
+                "__class": "EffectSchemaObjectProperties",
+                "skipped": false,
+                "generatorKey": "@exp/gen-effect-schema",
+                "properties": {
+                  "sku": "[EffectSchemaString …]",
+                  "quantity": "[EffectSchemaInteger …]",
+                  "unitPrice": "[EffectSchemaNumber …]",
+                  "giftWrap": "[EffectSchemaBoolean …]"
+                },
+                "required": [
+                  "sku",
+                  "quantity",
+                  "unitPrice"
+                ],
+                "visibility": {
+                  "sku": "[Object …]",
+                  "quantity": "[Object …]",
+                  "unitPrice": "[Object …]",
+                  "giftWrap": "[Object …]"
+                }
+              },
+              "recordProperties": null,
+              "modifiers": {
+                "required": true,
+                "nullable": null
+              }
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "effect": {
+          "__class": "TsImport",
+          "module": "effect",
+          "specifiers": [
+            {
+              "name": "Schema",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/models/Address.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/models/Address.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const Address": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-effect-schema|Address|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "Address",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "EffectSchemaProjection",
+            "skipped": false,
+            "generatorKey": "@exp/gen-effect-schema|Address|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "Address",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/models/Address.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "Address",
+            "value": {
+              "__class": "EffectSchemaObject",
+              "skipped": false,
+              "generatorKey": "@exp/gen-effect-schema",
+              "type": "object",
+              "objectProperties": {
+                "__class": "EffectSchemaObjectProperties",
+                "skipped": false,
+                "generatorKey": "@exp/gen-effect-schema",
+                "properties": {
+                  "line1": "[EffectSchemaString …]",
+                  "line2": "[EffectSchemaString …]",
+                  "city": "[EffectSchemaString …]",
+                  "postalCode": "[EffectSchemaString …]",
+                  "country": "[EffectSchemaString …]"
+                },
+                "required": [
+                  "line1",
+                  "city",
+                  "postalCode",
+                  "country"
+                ],
+                "visibility": {
+                  "line1": "[Object …]",
+                  "line2": "[Object …]",
+                  "city": "[Object …]",
+                  "postalCode": "[Object …]",
+                  "country": "[Object …]"
+                }
+              },
+              "recordProperties": null,
+              "modifiers": {
+                "required": true,
+                "nullable": null
+              }
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "effect": {
+          "__class": "TsImport",
+          "module": "effect",
+          "specifiers": [
+            {
+              "name": "Schema",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/models/Category.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/models/Category.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const Category": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-effect-schema|Category|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "Category",
+            "typeName": "Schema.Schema<any>",
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "EffectSchemaProjection",
+            "skipped": false,
+            "generatorKey": "@exp/gen-effect-schema|Category|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "Category",
+                "typeName": "Schema.Schema<any>",
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/models/Category.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "Category",
+            "value": {
+              "__class": "EffectSchemaObject",
+              "skipped": false,
+              "generatorKey": "@exp/gen-effect-schema",
+              "type": "object",
+              "objectProperties": {
+                "__class": "EffectSchemaObjectProperties",
+                "skipped": false,
+                "generatorKey": "@exp/gen-effect-schema",
+                "properties": {
+                  "id": "[EffectSchemaString …]",
+                  "name": "[EffectSchemaString …]",
+                  "children": "[EffectSchemaArray …]"
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "visibility": {
+                  "id": "[Object …]",
+                  "name": "[Object …]",
+                  "children": "[Object …]"
+                }
+              },
+              "recordProperties": null,
+              "modifiers": {
+                "required": true,
+                "nullable": null
+              }
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": false
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "effect": {
+          "__class": "TsImport",
+          "module": "effect",
+          "specifiers": [
+            {
+              "name": "Schema",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@exp/gen-effect-schema",
+  "version": "0.0.1",
+  "exports": "./mod.ts",
+  "tasks": {
+    "test": "deno test --allow-env --allow-sys --allow-read"
+  },
+  "imports": {
+    "@skmtc/core": "jsr:@skmtc/core@0.28.3",
+    "@skmtc/lang-typescript": "jsr:@skmtc/lang-typescript@0.12.17",
+    "@std/assert": "jsr:@std/assert@^1.0.10",
+    "@std/path": "jsr:@std/path@^1.0.9",
+    "ts-pattern": "npm:ts-pattern@^5.9.0"
+  },
+  "fmt": {
+    "semiColons": false,
+    "singleQuote": true
+  },
+  "lint": {
+    "plugins": ["jsr:@skmtc/lint-plugin@0.1.0"],
+    "rules": {
+      "exclude": ["no-slow-types"]
+    }
+  }
+}

@@ -1,0 +1,8 @@
+wrote gen-api-client/deno.json
+wrote gen-api-client/mod.ts
+wrote gen-api-client/src/mod.ts
+wrote gen-api-client/src/base.ts
+wrote gen-api-client/src/enrichments.ts
+wrote gen-api-client/src/naming.ts
+wrote gen-api-client/src/ApiClient.ts
+blocks: 7

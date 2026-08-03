@@ -1,0 +1,74 @@
+{
+  "workspace": "/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/xp2-tools-3",
+  "verifyPassed": true,
+  "verifyTail": "  client/AddressesClient.generated.ts\n  client/OrdersClient.generated.ts\n  types/address.generated.ts\n  types/getOrdersResponse.generated.ts\n  types/order.generated.ts\n  types/orderItem.generated.ts\n  types/orderStatus.generated.ts\nresults: {\"success\":11}\nparseIssues: 0\n",
+  "clientFiles": [
+    "AddressesClient.generated.ts",
+    "OrdersClient.generated.ts"
+  ],
+  "ordersClass": 1,
+  "ordersMethods": 3,
+  "addressesClass": 1,
+  "addressesMethods": 1,
+  "accumulatorShape": true,
+  "duplicateDefinitions": [],
+  "zodModelFilesExist": true,
+  "clientImportsModels": true,
+  "usesZodParse": true,
+  "lintSkmtcFirings": [],
+  "lintTotal": 1,
+  "genEval": {
+    "structurePass": false,
+    "producerShare": 1,
+    "stringOutsideShare": 0.513776337115073,
+    "stringTopOutsideSites": [
+      {
+        "site": "ClientMethod.constructor",
+        "file": "src/ClientMethod.ts",
+        "count": 5,
+        "chars": 152
+      },
+      {
+        "site": "toMethodName",
+        "file": "src/ClientMethod.ts",
+        "count": 1,
+        "chars": 71
+      },
+      {
+        "site": "transform",
+        "file": "src/mod.ts",
+        "count": 2,
+        "chars": 64
+      },
+      {
+        "site": "insertZodModel",
+        "file": "src/insertZodModel.ts",
+        "count": 1,
+        "chars": 30
+      }
+    ],
+    "templateImportsPass": true,
+    "adHocToStringPass": true,
+    "accumulatorVerdict": {
+      "verdict": true,
+      "signals": [
+        "defineAndRegister call",
+        "findDefinition call",
+        "container producer ApiClient (methods) mutated by add"
+      ],
+      "containerProducers": [
+        {
+          "className": "ApiClient",
+          "containerProps": [
+            "methods"
+          ],
+          "mutatorMethods": [
+            "add"
+          ]
+        }
+      ]
+    },
+    "aggregateVerdict": "fail"
+  },
+  "timestamp": "2026-07-31T22:48:13.035Z"
+}

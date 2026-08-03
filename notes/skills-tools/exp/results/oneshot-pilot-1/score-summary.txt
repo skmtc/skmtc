@@ -1,0 +1,6 @@
+verify:             FAIL
+accumulator shape:  FAIL (orders 0c/0m, addresses 0c/0m)
+no duplicates:      PASS 
+zod via engine:     FAIL
+skmtc lint clean:   PASS 
+gen-eval:           oS 0.196 verdict warn

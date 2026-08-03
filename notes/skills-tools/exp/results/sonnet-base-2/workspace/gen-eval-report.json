@@ -1,0 +1,247 @@
+[
+  {
+    "generator": "@exp/gen-typebox",
+    "dir": "/private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/sonnet-base-2/gen-typebox",
+    "fileCount": 19,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@exp/gen-typebox"
+    },
+    "classes": [
+      {
+        "className": "TypeboxArray",
+        "file": "src/TypeboxArray.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 25,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxBoolean",
+        "file": "src/TypeboxBoolean.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 25,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxInteger",
+        "file": "src/TypeboxInteger.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 27,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxNumber",
+        "file": "src/TypeboxNumber.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 27,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxObject",
+        "file": "src/TypeboxObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 32,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxObjectProperties",
+        "file": "src/TypeboxObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 36,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxProjection",
+        "file": "src/TypeboxProjection.ts",
+        "extendsName": "TypeboxBase",
+        "kind": "projection",
+        "extraMethods": [],
+        "lines": 26,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxRef",
+        "file": "src/TypeboxRef.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 33,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxString",
+        "file": "src/TypeboxString.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 29,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxUnion",
+        "file": "src/TypeboxUnion.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 29,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxUnknown",
+        "file": "src/TypeboxUnknown.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 13,
+        "sizeBucket": 50
+      },
+      {
+        "className": "TypeboxVoid",
+        "file": "src/TypeboxVoid.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 13,
+        "sizeBucket": 50
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 11,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/Typebox.ts:toTypeboxValue",
+      "src/applyModifiers.ts:applyModifiers",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/withNullable.ts:withNullable",
+      "src/withOptional.ts:withOptional"
+    ],
+    "methodDiscipline": {
+      "producers": 12,
+      "clean": 12,
+      "flagged": [],
+      "accumulatorExempt": []
+    },
+    "strings": {
+      "insideToStringCount": 22,
+      "insideToStringChars": 1385,
+      "namingStaticsCount": 1,
+      "namingStaticsChars": 22,
+      "outsideCount": 5,
+      "outsideChars": 121,
+      "outsideShare": 0.08034528552456839,
+      "topOutsideSites": [
+        {
+          "site": "withNullable",
+          "file": "src/withNullable.ts",
+          "count": 2,
+          "chars": 47
+        },
+        {
+          "site": "toTypeboxValue",
+          "file": "src/Typebox.ts",
+          "count": 1,
+          "chars": 39
+        },
+        {
+          "site": "withOptional",
+          "file": "src/withOptional.ts",
+          "count": 2,
+          "chars": 35
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 12
+      }
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "singleDispatch": {
+      "pass": true,
+      "routerCount": 1,
+      "metadataCount": 0,
+      "outside": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "redundantRefGuards": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 1,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
+    },
+    "aggregate": {
+      "verdict": "clean",
+      "failedChecks": [],
+      "warningCount": 0,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "redundantRefGuards": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
+    }
+  }
+]
