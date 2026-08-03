@@ -350,6 +350,60 @@ but accumulator-shaped — wrong shape for this skill. So: new task1b.
       context — checks whether the scaffolder pipeline should just
       ship the skeleton as its template for model targets.
 
+## task1k — Kotlin+Jackson model generator (user-directed 2026-08-03)
+
+Deliverable run, not an experiment: author gen-kotlin-jackson through
+the harness (skills arm: model-v3 + generator-v3 + lang-kotlin-v3,
+Opus), then validate on a large real schema. Hardest condition to
+date: NO Kotlin skeleton exists — model-v3 contributed shape rules
+only; call shapes came from lang-kotlin-v3's engine-pinned example.
+
+- [x] Rig (exp/task1k/): fixture = task1b's 5 models with snake_case
+      wire keys + hard-keyword `object` property + recursive Category;
+      kotlin-checks.mjs replaces deno-check (no kotlinc): package
+      directive, @JsonProperty placement/composition, single-?, enum
+      shape, same-package import suppression. RIG BUG found post-run:
+      `List<OrderItem>\b` word-boundary regex can never match before
+      `,` — fixed in template + archive; the generator had been green.
+- [x] kotlin-jackson-1 (Opus): $9.05, 136 turns, 1292s (tail inflated
+      by the rig bug — agent looped on an unsatisfiable check it was
+      forbidden to edit). oS 0.194, verdict clean, producerShare 1.0,
+      lint clean, model-v3 patterns adopted WITHOUT a skeleton
+      (lib.ts + 25 SLOT markers + shape.ts dispatch per lang skill
+      §1). Output quality: backticked `object` with NO @JsonProperty
+      (composition rule applied), UPPER_CASE enum entries with
+      per-entry @JsonProperty, single-? + `= null` throughout.
+- [x] Large-schema validation: reapit.json (Swagger 2.0, 491 schemas)
+      → converted via workspace swagger2openapi → **491/491 files,
+      0 errors, 164ms**, 4 parseIssues (input quirks). Sweeps: zero
+      `??`, zero duplicate declarations, zero same-package imports;
+      134 files carry @JsonProperty (HAL `_embedded`/`_links` renamed
+      correctly); required-vs-optional split correct (CreateX models);
+      integer enums → `typealias X = Int`. LIMITATION found: inline
+      (anonymous) nested objects render `Map<String, Any?>` — the
+      converted Reapit spec is fully inlined (0 schema-to-schema
+      refs), so this fallback carries much of the spec; typed-ref
+      machinery is fixture-proven but unused here. Enhancement
+      candidate: synthesize named classes for inline objects via
+      insertNormalizedModel + fallbackName (needs a task1k follow-on).
+      Kotlin-skeleton authoring for skmtc-model-v3 would also close
+      the no-skeleton gap this run exposed ($9.05/21min vs task1b's
+      $3.27/6.5min WITH skeleton).
+- [x] Second large schema: OpenAI spec (3.1.0 YAML, no down-convert —
+      core parses 3.1 natively per @skmtc/convert docs; only YAML
+      parse needed). **1016 files in 124ms, 2 errors** — both from a
+      DANGLING REF in the spec itself (ImageRefParam missing from
+      components; engine isolated the one subject). 868 data classes,
+      61 enum classes (ref + enum paths fire: `val role: MessageRole`),
+      87 typealiases, zero ??/dups. 485 parseIssues all input-quality
+      (description-on-ref, `unixtime` format, min_items-on-number spec
+      typos). Union finding: oneOf renders `Any` / `typealias X = Any`
+      — agent DOCUMENTED the decision in SLOT(union) (anonymous unions
+      don't exist in Kotlin; proper modeling = sealed interface +
+      @JsonTypeInfo/@JsonSubTypes, a top-level declaration). Sealed-
+      interface union support is the #2 enhancement after inline-object
+      synthesis.
+
 ## B — reorientation tools
 
 *Build order below is provisional until EXP-3; B1/B2 are confirmed first

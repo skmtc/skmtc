@@ -1,0 +1,279 @@
+[
+  {
+    "generator": "@exp/gen-kotlin-jackson",
+    "dir": "/private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/kotlin-jackson-1/gen-kotlin-jackson",
+    "fileCount": 16,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@exp/gen-kotlin-jackson"
+    },
+    "classes": [
+      {
+        "className": "KotlinArray",
+        "file": "src/KotlinArray.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 39,
+        "sizeBucket": 50
+      },
+      {
+        "className": "KotlinEnumEntries",
+        "file": "src/KotlinEnumEntries.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 52,
+        "sizeBucket": 50
+      },
+      {
+        "className": "KotlinObject",
+        "file": "src/KotlinObject.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 67,
+        "sizeBucket": 50
+      },
+      {
+        "className": "KotlinObjectProperties",
+        "file": "src/KotlinObject.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 94,
+        "sizeBucket": 100
+      },
+      {
+        "className": "KotlinRecord",
+        "file": "src/KotlinObject.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 27,
+        "sizeBucket": 50
+      },
+      {
+        "className": "KotlinProjection",
+        "file": "src/KotlinProjection.ts",
+        "extendsName": "KotlinJacksonBase",
+        "kind": "projection",
+        "extraMethods": [],
+        "lines": 68,
+        "sizeBucket": 50
+      },
+      {
+        "className": "KotlinRef",
+        "file": "src/KotlinRef.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 68,
+        "sizeBucket": 50
+      },
+      {
+        "className": "KotlinNumber",
+        "file": "src/KotlinScalars.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 22,
+        "sizeBucket": 50
+      },
+      {
+        "className": "KotlinInteger",
+        "file": "src/KotlinScalars.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 22,
+        "sizeBucket": 50
+      },
+      {
+        "className": "KotlinBoolean",
+        "file": "src/KotlinScalars.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 19,
+        "sizeBucket": 50
+      },
+      {
+        "className": "KotlinUnknown",
+        "file": "src/KotlinScalars.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 21,
+        "sizeBucket": 50
+      },
+      {
+        "className": "KotlinVoid",
+        "file": "src/KotlinScalars.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 12,
+        "sizeBucket": 50
+      },
+      {
+        "className": "KotlinString",
+        "file": "src/KotlinString.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 35,
+        "sizeBucket": 50
+      },
+      {
+        "className": "KotlinUnion",
+        "file": "src/KotlinUnion.ts",
+        "extendsName": "KtSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 46,
+        "sizeBucket": 50
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 13,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/Kotlin.ts:toKotlinValue",
+      "src/KotlinEnumEntries.ts:toEnumEntryName",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/modifiers.ts:isNullish",
+      "src/modifiers.ts:applyModifiers",
+      "src/shape.ts:peekSchema",
+      "src/shape.ts:isDataClassSchema",
+      "src/shape.ts:isEnumClassSchema",
+      "src/shape.ts:toModelShape"
+    ],
+    "methodDiscipline": {
+      "producers": 14,
+      "clean": 14,
+      "flagged": [],
+      "accumulatorExempt": []
+    },
+    "strings": {
+      "insideToStringCount": 9,
+      "insideToStringChars": 485,
+      "namingStaticsCount": 1,
+      "namingStaticsChars": 22,
+      "outsideCount": 6,
+      "outsideChars": 117,
+      "outsideShare": 0.19435215946843853,
+      "topOutsideSites": [
+        {
+          "site": "KotlinRef.constructor",
+          "file": "src/KotlinRef.ts",
+          "count": 2,
+          "chars": 74
+        },
+        {
+          "site": "applyModifiers",
+          "file": "src/modifiers.ts",
+          "count": 2,
+          "chars": 21
+        },
+        {
+          "site": "KotlinEnumEntries.constructor",
+          "file": "src/KotlinEnumEntries.ts",
+          "count": 1,
+          "chars": 12
+        },
+        {
+          "site": "KotlinObjectProperties.constructor",
+          "file": "src/KotlinObject.ts",
+          "count": 1,
+          "chars": 10
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 13
+      },
+      {
+        "bucket": 100,
+        "count": 1
+      }
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "singleDispatch": {
+      "pass": true,
+      "routerCount": 0,
+      "metadataCount": 0,
+      "outside": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "redundantRefGuards": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 1,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
+    },
+    "aggregate": {
+      "verdict": "clean",
+      "failedChecks": [],
+      "warningCount": 0,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "redundantRefGuards": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
+    }
+  }
+]

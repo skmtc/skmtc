@@ -1,0 +1,127 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Orders API (task1k: Kotlin+Jackson model fixture)",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Order": {
+        "type": "object",
+        "required": [
+          "id",
+          "object",
+          "status",
+          "items",
+          "shipping_address"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderStatus"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItem"
+            }
+          },
+          "shipping_address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "billing_address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "customer_notes": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "OrderItem": {
+        "type": "object",
+        "required": [
+          "sku",
+          "quantity",
+          "unit_price"
+        ],
+        "properties": {
+          "sku": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "unit_price": {
+            "type": "number"
+          },
+          "gift_wrap": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OrderStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "paid",
+          "shipped",
+          "cancelled"
+        ]
+      },
+      "Address": {
+        "type": "object",
+        "required": [
+          "line_1",
+          "city",
+          "postal_code",
+          "country"
+        ],
+        "properties": {
+          "line_1": {
+            "type": "string"
+          },
+          "line_2": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Category"
+            }
+          }
+        }
+      }
+    }
+  }
+}

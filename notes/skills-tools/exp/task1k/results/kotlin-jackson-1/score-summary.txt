@@ -1,0 +1,8 @@
+verify:            FAIL
+all models:        PASS (Order, OrderItem, OrderStatus, Address, Category)
+no duplicates:     PASS 
+@JsonProperty:     PASS
+skmtc lint clean:  PASS 
+gen-eval:          report written
+recursion (lazy):  PASS
+skeleton adopted:  true (25 SLOT markers, lib.ts: true)
