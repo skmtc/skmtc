@@ -1,0 +1,155 @@
+[
+  {
+    "generator": "@exp/gen-api-client",
+    "dir": "/private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/xp2-base-3/gen-api-client",
+    "fileCount": 2,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts"
+      ],
+      "missing": [
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "pass": false,
+      "packageName": "@exp/gen-api-client"
+    },
+    "classes": [],
+    "classTotals": {
+      "projections": 0,
+      "snippets": 0,
+      "other": 0
+    },
+    "producerShare": 0,
+    "helperFunctions": [
+      "src/transform.ts:toClassName",
+      "src/transform.ts:toMethodName",
+      "src/transform.ts:toParamTsType",
+      "src/transform.ts:toClientClass",
+      "src/transform.ts:transformOperation"
+    ],
+    "methodDiscipline": {
+      "producers": 0,
+      "clean": 0,
+      "flagged": [],
+      "accumulatorExempt": []
+    },
+    "strings": {
+      "insideToStringCount": 0,
+      "insideToStringChars": 0,
+      "namingStaticsCount": 0,
+      "namingStaticsChars": 0,
+      "outsideCount": 14,
+      "outsideChars": 748,
+      "outsideShare": 1,
+      "topOutsideSites": [
+        {
+          "site": "transformOperation",
+          "file": "src/transform.ts",
+          "count": 11,
+          "chars": 649
+        },
+        {
+          "site": "toMethodName",
+          "file": "src/transform.ts",
+          "count": 2,
+          "chars": 62
+        },
+        {
+          "site": "toClassName",
+          "file": "src/transform.ts",
+          "count": 1,
+          "chars": 37
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": false,
+      "exempt": true
+    },
+    "accumulator": {
+      "verdict": true,
+      "signals": [
+        "defineAndRegister call",
+        "findDefinition call"
+      ],
+      "containerProducers": []
+    },
+    "producerSizes": [],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "singleDispatch": {
+      "pass": false,
+      "routerCount": 0,
+      "metadataCount": 0,
+      "outside": [
+        {
+          "file": "src/transform.ts",
+          "site": "toParamTsType",
+          "line": 34,
+          "context": "outside",
+          "text": "switch (resolved?.type)"
+        }
+      ]
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "redundantRefGuards": {
+      "count": 1,
+      "sites": [
+        {
+          "file": "src/transform.ts",
+          "site": "toParamTsType",
+          "line": 32,
+          "text": "schema.isRef() ? schema.resolve() : schema"
+        }
+      ]
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 0,
+      "insertNormalizedModel": 2,
+      "defineAndRegister": 1,
+      "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
+    },
+    "aggregate": {
+      "verdict": "fail",
+      "failedChecks": [
+        "structure",
+        "single-dispatch"
+      ],
+      "warningCount": 2,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "redundantRefGuards": 1,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": true
+      }
+    }
+  }
+]

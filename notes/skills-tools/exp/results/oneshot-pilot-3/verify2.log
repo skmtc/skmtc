@@ -1,0 +1,63 @@
+[0m[32mTask[0m [0m[36mverify[0m deno run --allow-read --allow-write --allow-env harness.ts && deno check --config check.deno.json out/client/*.ts out/types/*.ts
+[31m[31m[1m[ERROR][22m[31m [90m2026-07-31 22:32:45.287[31m
+TypeError: Path must be a string, received "undefined"
+    at assertPath (https://jsr.io/@std/path/1.1.6/_common/assert_path.ts:6:11)
+    at assertArg (https://jsr.io/@std/path/1.1.6/_common/normalize.ts:7:3)
+    at normalize (https://jsr.io/@std/path/1.1.6/posix/normalize.ts:48:3)
+    at normalize (https://jsr.io/@std/path/1.1.6/normalize.ts:32:47)
+    at GenerateContext.getFile (https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:1183:28)
+    at GenerateContext.findDefinition (https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:1661:23)
+    at GenerateContext.insertNormalizedModel (https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:1422:35)
+    at new ClientMethod (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientMethod.ts:27:38)
+    at ClientClass.append (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientClass.ts:17:7)
+    at Object.transform (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/mod.ts:20:21)
+[39m
+[31m[31m[1m[ERROR][22m[31m [90m2026-07-31 22:32:45.290[31m
+TypeError: Path must be a string, received "undefined"
+    at assertPath (https://jsr.io/@std/path/1.1.6/_common/assert_path.ts:6:11)
+    at assertArg (https://jsr.io/@std/path/1.1.6/_common/normalize.ts:7:3)
+    at normalize (https://jsr.io/@std/path/1.1.6/posix/normalize.ts:48:3)
+    at normalize (https://jsr.io/@std/path/1.1.6/normalize.ts:32:47)
+    at register (https://jsr.io/@skmtc/lang-typescript/0.12.17/src/register.ts:48:27)
+    at ClientMethod.register (https://jsr.io/@skmtc/lang-typescript/0.12.17/src/TsSnippet.ts:44:5)
+    at new ClientMethod (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientMethod.ts:33:10)
+    at ClientClass.append (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientClass.ts:17:7)
+    at Object.transform (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/mod.ts:20:21)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:811:31
+[39m
+[31m[31m[1m[ERROR][22m[31m [90m2026-07-31 22:32:45.290[31m
+TypeError: Path must be a string, received "undefined"
+    at assertPath (https://jsr.io/@std/path/1.1.6/_common/assert_path.ts:6:11)
+    at assertArg (https://jsr.io/@std/path/1.1.6/_common/normalize.ts:7:3)
+    at normalize (https://jsr.io/@std/path/1.1.6/posix/normalize.ts:48:3)
+    at normalize (https://jsr.io/@std/path/1.1.6/normalize.ts:32:47)
+    at register (https://jsr.io/@skmtc/lang-typescript/0.12.17/src/register.ts:48:27)
+    at ClientMethod.register (https://jsr.io/@skmtc/lang-typescript/0.12.17/src/TsSnippet.ts:44:5)
+    at new ClientMethod (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientMethod.ts:33:10)
+    at ClientClass.append (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientClass.ts:17:7)
+    at Object.transform (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/mod.ts:20:21)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:811:31
+[39m
+[31m[31m[1m[ERROR][22m[31m [90m2026-07-31 22:32:45.290[31m
+TypeError: Path must be a string, received "undefined"
+    at assertPath (https://jsr.io/@std/path/1.1.6/_common/assert_path.ts:6:11)
+    at assertArg (https://jsr.io/@std/path/1.1.6/_common/normalize.ts:7:3)
+    at normalize (https://jsr.io/@std/path/1.1.6/posix/normalize.ts:48:3)
+    at normalize (https://jsr.io/@std/path/1.1.6/normalize.ts:32:47)
+    at register (https://jsr.io/@skmtc/lang-typescript/0.12.17/src/register.ts:48:27)
+    at ClientMethod.register (https://jsr.io/@skmtc/lang-typescript/0.12.17/src/TsSnippet.ts:44:5)
+    at new ClientMethod (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientMethod.ts:33:10)
+    at ClientClass.append (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientClass.ts:17:7)
+    at Object.transform (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/mod.ts:20:21)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:811:31
+[39m
+artifacts written to out/: 6
+  client/AddressesClient.generated.ts
+  client/OrdersClient.generated.ts
+  types/address.generated.ts
+  types/order.generated.ts
+  types/orderItem.generated.ts
+  types/orderStatus.generated.ts
+results: {"error":5,"success":6}
+parseIssues: 0
+FAIL: 5 subject(s) errored — see manifest.json

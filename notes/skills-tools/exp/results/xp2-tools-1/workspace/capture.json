@@ -1,0 +1,654 @@
+{
+  "artifacts": {
+    "client/OrdersClient.generated.ts": "import {getOrdersResponse} from '@/types/getOrdersResponse.generated.ts'\nimport {order} from '@/types/order.generated.ts'\nimport {z} from 'zod'\n\nexport class OrdersClient {\nasync getOrders() {\n    const res = await fetch(`/orders`, {\n      method: 'GET'\n    })\n\n    if (!res.ok) {\n      throw new Error(await res.text())\n    }\n\n    return getOrdersResponse.parse(await res.json())\n  }\n\nasync postOrders(body: z.infer<typeof order>) {\n    const res = await fetch(`/orders`, {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify(body)\n    })\n\n    if (!res.ok) {\n      throw new Error(await res.text())\n    }\n\n    return order.parse(await res.json())\n  }\n\nasync getOrdersId(id: string) {\n    const res = await fetch(`/orders/${id}`, {\n      method: 'GET'\n    })\n\n    if (!res.ok) {\n      throw new Error(await res.text())\n    }\n\n    return order.parse(await res.json())\n  }\n}\n",
+    "types/order.generated.ts": "import {z} from 'zod'\nimport {orderStatus} from '@/types/orderStatus.generated.ts'\nimport {orderItem} from '@/types/orderItem.generated.ts'\nimport {address} from '@/types/address.generated.ts'\n\nexport const order = z.object({id: z.string(), status: orderStatus, items: z.array(orderItem), shippingAddress: address, billingAddress: address.optional(), notes: z.string().nullable().optional()});\n",
+    "types/orderStatus.generated.ts": "import {z} from 'zod'\n\nexport const orderStatus = z.enum([\"pending\", \"paid\", \"shipped\", \"cancelled\"]);\n",
+    "types/orderItem.generated.ts": "import {z} from 'zod'\n\nexport const orderItem = z.object({sku: z.string(), quantity: z.number().int(), unitPrice: z.number(), giftWrap: z.boolean().optional()});\n",
+    "types/address.generated.ts": "import {z} from 'zod'\n\nexport const address = z.object({line1: z.string(), line2: z.string().optional(), city: z.string(), postalCode: z.string(), country: z.string()});\n",
+    "types/getOrdersResponse.generated.ts": "import {order} from '@/types/order.generated.ts'\nimport {z} from 'zod'\n\nexport const getOrdersResponse = z.array(order);\n",
+    "client/AddressesClient.generated.ts": "import {address} from '@/types/address.generated.ts'\n\nexport class AddressesClient {\nasync getAddressesId(id: string) {\n    const res = await fetch(`/addresses/${id}`, {\n      method: 'GET'\n    })\n\n    if (!res.ok) {\n      throw new Error(await res.text())\n    }\n\n    return address.parse(await res.json())\n  }\n}\n"
+  },
+  "inspection": {
+    "__class": "Map",
+    "@/client/OrdersClient.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/client/OrdersClient.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "class OrdersClient": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-api-client|/orders|get|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "OrdersClient",
+            "typeName": null,
+            "exported": true,
+            "type": "class"
+          },
+          "value": {
+            "__class": "ClientClass",
+            "skipped": false,
+            "generatorKey": "@exp/gen-api-client|/orders|get|main",
+            "clientClass": {
+              "__class": "TsClass",
+              "heritage": null,
+              "properties": {
+                "__class": "Map"
+              },
+              "classConstructor": null,
+              "methods": {
+                "__class": "Map",
+                "getOrders": {
+                  "__class": "TsMethod",
+                  "name": "getOrders",
+                  "parameters": "[Array …]",
+                  "returnType": null,
+                  "body": "[MethodBody …]",
+                  "description": null,
+                  "isAsync": true,
+                  "isStatic": false,
+                  "accessibility": null
+                },
+                "postOrders": {
+                  "__class": "TsMethod",
+                  "name": "postOrders",
+                  "parameters": "[Array …]",
+                  "returnType": null,
+                  "body": "[MethodBody …]",
+                  "description": null,
+                  "isAsync": true,
+                  "isStatic": false,
+                  "accessibility": null
+                },
+                "getOrdersId": {
+                  "__class": "TsMethod",
+                  "name": "getOrdersId",
+                  "parameters": "[Array …]",
+                  "returnType": null,
+                  "body": "[MethodBody …]",
+                  "description": null,
+                  "isAsync": true,
+                  "isStatic": false,
+                  "accessibility": null
+                }
+              }
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "@/types/getOrdersResponse.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/types/getOrdersResponse.generated.ts",
+          "specifiers": [
+            {
+              "name": "getOrdersResponse",
+              "typeOnly": false
+            }
+          ]
+        },
+        "@/types/order.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/types/order.generated.ts",
+          "specifiers": [
+            {
+              "name": "order",
+              "typeOnly": false
+            }
+          ]
+        },
+        "zod": {
+          "__class": "TsImport",
+          "module": "zod",
+          "specifiers": [
+            {
+              "name": "z",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/types/order.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/types/order.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const order": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@skmtc/gen-zod|Order|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "order",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "ZodProjection",
+            "skipped": false,
+            "generatorKey": "@skmtc/gen-zod|Order|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "order",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/types/order.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "Order",
+            "value": {
+              "__class": "ZodObject",
+              "skipped": false,
+              "generatorKey": "@skmtc/gen-zod",
+              "type": "object",
+              "recordProperties": null,
+              "objectProperties": {
+                "__class": "ZodObjectProperties",
+                "skipped": false,
+                "generatorKey": "@skmtc/gen-zod",
+                "properties": {
+                  "id": "[ZodString …]",
+                  "status": "[ZodRef …]",
+                  "items": "[ZodArray …]",
+                  "shippingAddress": "[ZodRef …]",
+                  "billingAddress": "[ZodRef …]",
+                  "notes": "[ZodString …]"
+                },
+                "required": [
+                  "id",
+                  "status",
+                  "items",
+                  "shippingAddress"
+                ]
+              },
+              "modifiers": {
+                "required": true,
+                "nullable": null
+              }
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "zod": {
+          "__class": "TsImport",
+          "module": "zod",
+          "specifiers": [
+            {
+              "name": "z",
+              "typeOnly": false
+            }
+          ]
+        },
+        "@/types/orderStatus.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/types/orderStatus.generated.ts",
+          "specifiers": [
+            {
+              "name": "orderStatus",
+              "typeOnly": false
+            }
+          ]
+        },
+        "@/types/orderItem.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/types/orderItem.generated.ts",
+          "specifiers": [
+            {
+              "name": "orderItem",
+              "typeOnly": false
+            }
+          ]
+        },
+        "@/types/address.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/types/address.generated.ts",
+          "specifiers": [
+            {
+              "name": "address",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/types/orderStatus.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/types/orderStatus.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const orderStatus": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@skmtc/gen-zod|OrderStatus|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "orderStatus",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "ZodProjection",
+            "skipped": false,
+            "generatorKey": "@skmtc/gen-zod|OrderStatus|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "orderStatus",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/types/orderStatus.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "OrderStatus",
+            "value": {
+              "__class": "ZodString",
+              "skipped": false,
+              "generatorKey": "@skmtc/gen-zod",
+              "type": "string",
+              "format": null,
+              "enums": [
+                "pending",
+                "paid",
+                "shipped",
+                "cancelled"
+              ],
+              "constraints": {
+                "__class": "List",
+                "values": [],
+                "separator": "",
+                "bookends": "none",
+                "skipEmpty": true
+              },
+              "modifiers": {
+                "required": true,
+                "nullable": null
+              }
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "zod": {
+          "__class": "TsImport",
+          "module": "zod",
+          "specifiers": [
+            {
+              "name": "z",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/types/orderItem.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/types/orderItem.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const orderItem": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@skmtc/gen-zod|OrderItem|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "orderItem",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "ZodProjection",
+            "skipped": false,
+            "generatorKey": "@skmtc/gen-zod|OrderItem|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "orderItem",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/types/orderItem.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "OrderItem",
+            "value": {
+              "__class": "ZodObject",
+              "skipped": false,
+              "generatorKey": "@skmtc/gen-zod",
+              "type": "object",
+              "recordProperties": null,
+              "objectProperties": {
+                "__class": "ZodObjectProperties",
+                "skipped": false,
+                "generatorKey": "@skmtc/gen-zod",
+                "properties": {
+                  "sku": "[ZodString …]",
+                  "quantity": "[ZodInteger …]",
+                  "unitPrice": "[ZodNumber …]",
+                  "giftWrap": "[ZodBoolean …]"
+                },
+                "required": [
+                  "sku",
+                  "quantity",
+                  "unitPrice"
+                ]
+              },
+              "modifiers": {
+                "required": true,
+                "nullable": null
+              }
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "zod": {
+          "__class": "TsImport",
+          "module": "zod",
+          "specifiers": [
+            {
+              "name": "z",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/types/address.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/types/address.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const address": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@skmtc/gen-zod|Address|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "address",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "ZodProjection",
+            "skipped": false,
+            "generatorKey": "@skmtc/gen-zod|Address|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "address",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/types/address.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "Address",
+            "value": {
+              "__class": "ZodObject",
+              "skipped": false,
+              "generatorKey": "@skmtc/gen-zod",
+              "type": "object",
+              "recordProperties": null,
+              "objectProperties": {
+                "__class": "ZodObjectProperties",
+                "skipped": false,
+                "generatorKey": "@skmtc/gen-zod",
+                "properties": {
+                  "line1": "[ZodString …]",
+                  "line2": "[ZodString …]",
+                  "city": "[ZodString …]",
+                  "postalCode": "[ZodString …]",
+                  "country": "[ZodString …]"
+                },
+                "required": [
+                  "line1",
+                  "city",
+                  "postalCode",
+                  "country"
+                ]
+              },
+              "modifiers": {
+                "required": true,
+                "nullable": null
+              }
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "zod": {
+          "__class": "TsImport",
+          "module": "zod",
+          "specifiers": [
+            {
+              "name": "z",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/types/getOrdersResponse.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/types/getOrdersResponse.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const getOrdersResponse": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@skmtc/gen-zod",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "getOrdersResponse",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "ZodArray",
+            "skipped": false,
+            "generatorKey": "@skmtc/gen-zod",
+            "type": "array",
+            "items": {
+              "__class": "ZodRef",
+              "skipped": false,
+              "generatorKey": "@skmtc/gen-zod|Order|main",
+              "type": "ref",
+              "modifiers": {
+                "required": true,
+                "nullable": null
+              },
+              "name": "order",
+              "terminal": false
+            },
+            "modifiers": {
+              "required": true,
+              "nullable": null
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": false
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "@/types/order.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/types/order.generated.ts",
+          "specifiers": [
+            {
+              "name": "order",
+              "typeOnly": false
+            }
+          ]
+        },
+        "zod": {
+          "__class": "TsImport",
+          "module": "zod",
+          "specifiers": [
+            {
+              "name": "z",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/client/AddressesClient.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/client/AddressesClient.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "class AddressesClient": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-api-client|/addresses/{id}|get|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "AddressesClient",
+            "typeName": null,
+            "exported": true,
+            "type": "class"
+          },
+          "value": {
+            "__class": "ClientClass",
+            "skipped": false,
+            "generatorKey": "@exp/gen-api-client|/addresses/{id}|get|main",
+            "clientClass": {
+              "__class": "TsClass",
+              "heritage": null,
+              "properties": {
+                "__class": "Map"
+              },
+              "classConstructor": null,
+              "methods": {
+                "__class": "Map",
+                "getAddressesId": {
+                  "__class": "TsMethod",
+                  "name": "getAddressesId",
+                  "parameters": "[Array …]",
+                  "returnType": null,
+                  "body": "[MethodBody …]",
+                  "description": null,
+                  "isAsync": true,
+                  "isStatic": false,
+                  "accessibility": null
+                }
+              }
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "@/types/address.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/types/address.generated.ts",
+          "specifiers": [
+            {
+              "name": "address",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    }
+  }
+}

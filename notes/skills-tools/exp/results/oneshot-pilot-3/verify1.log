@@ -1,0 +1,59 @@
+[0m[32mTask[0m [0m[36mverify[0m deno run --allow-read --allow-write --allow-env harness.ts && deno check --config check.deno.json out/client/*.ts out/types/*.ts
+[31m[31m[1m[ERROR][22m[31m [90m2026-07-31 22:32:27.011[31m
+TypeError: this.insertNormalizedModel is not a function
+    at new ClientMethod (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientMethod.ts:27:30)
+    at ClientClass.append (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientClass.ts:17:7)
+    at Object.transform (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/mod.ts:20:21)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:811:31
+    at StackTrail.trace (https://jsr.io/@skmtc/core/0.28.3/context/StackTrail.ts:104:22)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:759:19
+    at Array.forEach (<anonymous>)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:758:18
+    at StackTrail.trace (https://jsr.io/@skmtc/core/0.28.3/context/StackTrail.ts:104:22)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:734:18
+[39m
+[31m[31m[1m[ERROR][22m[31m [90m2026-07-31 22:32:27.012[31m
+TypeError: this.insertNormalizedModel is not a function
+    at new ClientMethod (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientMethod.ts:27:30)
+    at ClientClass.append (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientClass.ts:17:7)
+    at Object.transform (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/mod.ts:20:21)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:811:31
+    at StackTrail.trace (https://jsr.io/@skmtc/core/0.28.3/context/StackTrail.ts:104:22)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:759:19
+    at Array.forEach (<anonymous>)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:758:18
+    at StackTrail.trace (https://jsr.io/@skmtc/core/0.28.3/context/StackTrail.ts:104:22)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:734:18
+[39m
+[31m[31m[1m[ERROR][22m[31m [90m2026-07-31 22:32:27.012[31m
+TypeError: this.insertNormalizedModel is not a function
+    at new ClientMethod (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientMethod.ts:27:30)
+    at ClientClass.append (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientClass.ts:17:7)
+    at Object.transform (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/mod.ts:20:21)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:811:31
+    at StackTrail.trace (https://jsr.io/@skmtc/core/0.28.3/context/StackTrail.ts:104:22)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:759:19
+    at Array.forEach (<anonymous>)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:758:18
+    at StackTrail.trace (https://jsr.io/@skmtc/core/0.28.3/context/StackTrail.ts:104:22)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:734:18
+[39m
+[31m[31m[1m[ERROR][22m[31m [90m2026-07-31 22:32:27.012[31m
+TypeError: this.insertNormalizedModel is not a function
+    at new ClientMethod (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientMethod.ts:27:30)
+    at ClientClass.append (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/ClientClass.ts:17:7)
+    at Object.transform (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3/gen-api-client/src/mod.ts:20:21)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:811:31
+    at StackTrail.trace (https://jsr.io/@skmtc/core/0.28.3/context/StackTrail.ts:104:22)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:759:19
+    at Array.forEach (<anonymous>)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:758:18
+    at StackTrail.trace (https://jsr.io/@skmtc/core/0.28.3/context/StackTrail.ts:104:22)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:734:18
+[39m
+artifacts written to out/: 2
+  client/AddressesClient.generated.ts
+  client/OrdersClient.generated.ts
+results: {"error":5,"success":2}
+parseIssues: 0
+FAIL: 5 subject(s) errored — see manifest.json

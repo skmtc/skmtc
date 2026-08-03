@@ -1,0 +1,68 @@
+{
+  "workspace": "/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/scaffold-pilot-1",
+  "verifyPassed": true,
+  "verifyTail": "artifacts written to out/: 6\n  client/AddressesClient.generated.ts\n  client/OrdersClient.generated.ts\n  types/address.generated.ts\n  types/order.generated.ts\n  types/orderItem.generated.ts\n  types/orderStatus.generated.ts\nresults: {\"success\":10}\nparseIssues: 0\n",
+  "clientFiles": [
+    "AddressesClient.generated.ts",
+    "OrdersClient.generated.ts"
+  ],
+  "ordersClass": 1,
+  "ordersMethods": 3,
+  "addressesClass": 1,
+  "addressesMethods": 1,
+  "accumulatorShape": true,
+  "duplicateDefinitions": [],
+  "zodModelFilesExist": true,
+  "clientImportsModels": true,
+  "usesZodParse": true,
+  "lintSkmtcFirings": [],
+  "lintTotal": 1,
+  "genEval": {
+    "structurePass": true,
+    "producerShare": 1,
+    "stringOutsideShare": 0.15719063545150502,
+    "stringTopOutsideSites": [
+      {
+        "site": "toClientName",
+        "file": "src/base.ts",
+        "count": 1,
+        "chars": 37
+      },
+      {
+        "site": "toClientExportPath",
+        "file": "src/base.ts",
+        "count": 1,
+        "chars": 35
+      },
+      {
+        "site": "ClientMethod.constructor",
+        "file": "src/ClientMethod.ts",
+        "count": 1,
+        "chars": 22
+      }
+    ],
+    "templateImportsPass": true,
+    "adHocToStringPass": true,
+    "accumulatorVerdict": {
+      "verdict": true,
+      "signals": [
+        "defineAndRegister call",
+        "findDefinition call",
+        "container producer ClientClass (methods) mutated by add"
+      ],
+      "containerProducers": [
+        {
+          "className": "ClientClass",
+          "containerProps": [
+            "methods"
+          ],
+          "mutatorMethods": [
+            "add"
+          ]
+        }
+      ]
+    },
+    "aggregateVerdict": "clean"
+  },
+  "timestamp": "2026-07-31T22:44:25.550Z"
+}

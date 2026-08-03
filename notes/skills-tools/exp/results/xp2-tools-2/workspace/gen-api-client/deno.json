@@ -1,0 +1,14 @@
+{
+  "name": "@exp/gen-api-client",
+  "version": "0.1.0",
+  "exports": "./mod.ts",
+  "imports": {
+    "@skmtc/core": "jsr:@skmtc/core@0.28.3",
+    "@skmtc/lang-typescript": "jsr:@skmtc/lang-typescript@0.12.17",
+    "@skmtc/gen-zod": "jsr:@skmtc/gen-zod@0.2.5",
+    "@std/path": "jsr:@std/path@^1.0.9"
+  },
+  "lint": {
+    "plugins": ["jsr:@skmtc/lint-plugin@0.1.0"]
+  }
+}

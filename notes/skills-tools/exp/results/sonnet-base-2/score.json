@@ -1,0 +1,55 @@
+{
+  "workspace": "/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/sonnet-base-2",
+  "timestamp": "2026-07-31T20:29:05.853Z",
+  "verifyPassed": true,
+  "verifyTail": "artifacts written to out/: 4\n  models/Address.generated.ts\n  models/Order.generated.ts\n  models/OrderItem.generated.ts\n  models/OrderStatus.generated.ts\nresults: {\"success\":8}\nparseIssues: 0\n",
+  "artifacts": [
+    "Address.generated.ts",
+    "Order.generated.ts",
+    "OrderItem.generated.ts",
+    "OrderStatus.generated.ts"
+  ],
+  "expectedModelsPresent": [
+    "Order",
+    "OrderItem",
+    "OrderStatus",
+    "Address"
+  ],
+  "allModelsPresent": true,
+  "duplicateDefinitions": [],
+  "orderImportsAddress": true,
+  "lintSkmtcFirings": [],
+  "lintTotal": 42,
+  "genEval": {
+    "structurePass": true,
+    "producerShare": 1,
+    "stringOutsideShare": 0.08034528552456839,
+    "stringTopOutsideSites": [
+      {
+        "site": "withNullable",
+        "file": "src/withNullable.ts",
+        "count": 2,
+        "chars": 47
+      },
+      {
+        "site": "toTypeboxValue",
+        "file": "src/Typebox.ts",
+        "count": 1,
+        "chars": 39
+      },
+      {
+        "site": "withOptional",
+        "file": "src/withOptional.ts",
+        "count": 2,
+        "chars": 35
+      }
+    ],
+    "templateImportsPass": true,
+    "adHocToStringPass": true,
+    "methodDiscipline": {
+      "producers": 12,
+      "clean": 12
+    },
+    "aggregateVerdict": "clean"
+  }
+}

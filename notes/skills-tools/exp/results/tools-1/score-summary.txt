@@ -1,0 +1,6 @@
+verify:            PASS
+all models:        PASS (Order, OrderItem, OrderStatus, Address)
+no duplicates:     PASS 
+ref import:        PASS
+skmtc lint clean:  PASS 
+gen-eval:          report written

@@ -1,0 +1,172 @@
+[
+  {
+    "generator": "@exp/gen-effect-schema",
+    "dir": "/private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/opus-base-1/gen-effect-schema",
+    "fileCount": 4,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts"
+      ],
+      "missing": [
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "pass": false,
+      "packageName": "@exp/gen-effect-schema"
+    },
+    "classes": [
+      {
+        "className": "EffectSchema",
+        "file": "src/EffectSchema.ts",
+        "extendsName": "base",
+        "kind": "projection",
+        "extraMethods": [],
+        "lines": 28,
+        "sizeBucket": 50
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 0,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/EffectSchema.ts:toInFlight",
+      "src/EffectSchema.ts:indent",
+      "src/EffectSchema.ts:toLiteralArgs",
+      "src/EffectSchema.ts:toRefValue",
+      "src/EffectSchema.ts:toStructValue",
+      "src/EffectSchema.ts:toEffectValue",
+      "src/naming.ts:toSchemaName",
+      "src/naming.ts:toSchemaExportPath"
+    ],
+    "methodDiscipline": {
+      "producers": 1,
+      "clean": 1,
+      "flagged": [],
+      "accumulatorExempt": []
+    },
+    "strings": {
+      "insideToStringCount": 0,
+      "insideToStringChars": 0,
+      "namingStaticsCount": 0,
+      "namingStaticsChars": 0,
+      "outsideCount": 20,
+      "outsideChars": 1028,
+      "outsideShare": 1,
+      "topOutsideSites": [
+        {
+          "site": "toEffectValue",
+          "file": "src/EffectSchema.ts",
+          "count": 10,
+          "chars": 566
+        },
+        {
+          "site": "toStructValue",
+          "file": "src/EffectSchema.ts",
+          "count": 5,
+          "chars": 206
+        },
+        {
+          "site": "toLiteralArgs",
+          "file": "src/EffectSchema.ts",
+          "count": 2,
+          "chars": 102
+        },
+        {
+          "site": "toRefValue",
+          "file": "src/EffectSchema.ts",
+          "count": 1,
+          "chars": 75
+        },
+        {
+          "site": "indent",
+          "file": "src/EffectSchema.ts",
+          "count": 1,
+          "chars": 41
+        },
+        {
+          "site": "toSchemaExportPath",
+          "file": "src/naming.ts",
+          "count": 1,
+          "chars": 38
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 1
+      }
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "singleDispatch": {
+      "pass": true,
+      "routerCount": 1,
+      "metadataCount": 0,
+      "outside": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "redundantRefGuards": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 2,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
+    },
+    "aggregate": {
+      "verdict": "fail",
+      "failedChecks": [
+        "structure"
+      ],
+      "warningCount": 1,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "redundantRefGuards": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": true
+      }
+    }
+  }
+]

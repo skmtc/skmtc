@@ -1,0 +1,57 @@
+[0m[32mTask[0m [0m[36mverify[0m deno run --allow-read --allow-write --allow-env harness.ts && deno check --config check.deno.json out/client/*.ts out/types/*.ts
+[31m[31m[1m[ERROR][22m[31m [90m2026-07-31 22:22:50.560[31m
+TypeError: Cannot read properties of undefined (reading '~run')
+    at Module.parse (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-1/node_modules/.deno/valibot@1.1.0/node_modules/valibot/dist/index.js:6835:25)
+    at parseEnrichmentUmbrella (https://jsr.io/@skmtc/core/0.28.3/enrichments/parseEnrichmentUmbrella.ts:103:12)
+    at ApiClient.toEnrichments (https://jsr.io/@skmtc/core/0.28.3/dsl/operation/oas/toOasOperationProjectionBase.ts:132:14)
+    at GenerateContext.toOperationContentSettings (https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:1534:41)
+    at new OasOperationDriver (https://jsr.io/@skmtc/core/0.28.3/dsl/operation/oas/OasOperationDriver.ts:82:34)
+    at GenerateContext.insertOperation (https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:1364:38)
+    at Object.transform (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-1/gen-api-client/src/mod.ts:14:21)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:811:31
+    at StackTrail.trace (https://jsr.io/@skmtc/core/0.28.3/context/StackTrail.ts:104:22)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:759:19
+[39m
+[31m[31m[1m[ERROR][22m[31m [90m2026-07-31 22:22:50.560[31m
+TypeError: Cannot read properties of undefined (reading '~run')
+    at Module.parse (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-1/node_modules/.deno/valibot@1.1.0/node_modules/valibot/dist/index.js:6835:25)
+    at parseEnrichmentUmbrella (https://jsr.io/@skmtc/core/0.28.3/enrichments/parseEnrichmentUmbrella.ts:103:12)
+    at ApiClient.toEnrichments (https://jsr.io/@skmtc/core/0.28.3/dsl/operation/oas/toOasOperationProjectionBase.ts:132:14)
+    at GenerateContext.toOperationContentSettings (https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:1534:41)
+    at new OasOperationDriver (https://jsr.io/@skmtc/core/0.28.3/dsl/operation/oas/OasOperationDriver.ts:82:34)
+    at GenerateContext.insertOperation (https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:1364:38)
+    at Object.transform (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-1/gen-api-client/src/mod.ts:14:21)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:811:31
+    at StackTrail.trace (https://jsr.io/@skmtc/core/0.28.3/context/StackTrail.ts:104:22)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:759:19
+[39m
+[31m[31m[1m[ERROR][22m[31m [90m2026-07-31 22:22:50.561[31m
+TypeError: Cannot read properties of undefined (reading '~run')
+    at Module.parse (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-1/node_modules/.deno/valibot@1.1.0/node_modules/valibot/dist/index.js:6835:25)
+    at parseEnrichmentUmbrella (https://jsr.io/@skmtc/core/0.28.3/enrichments/parseEnrichmentUmbrella.ts:103:12)
+    at ApiClient.toEnrichments (https://jsr.io/@skmtc/core/0.28.3/dsl/operation/oas/toOasOperationProjectionBase.ts:132:14)
+    at GenerateContext.toOperationContentSettings (https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:1534:41)
+    at new OasOperationDriver (https://jsr.io/@skmtc/core/0.28.3/dsl/operation/oas/OasOperationDriver.ts:82:34)
+    at GenerateContext.insertOperation (https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:1364:38)
+    at Object.transform (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-1/gen-api-client/src/mod.ts:14:21)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:811:31
+    at StackTrail.trace (https://jsr.io/@skmtc/core/0.28.3/context/StackTrail.ts:104:22)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:759:19
+[39m
+[31m[31m[1m[ERROR][22m[31m [90m2026-07-31 22:22:50.561[31m
+TypeError: Cannot read properties of undefined (reading '~run')
+    at Module.parse (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-1/node_modules/.deno/valibot@1.1.0/node_modules/valibot/dist/index.js:6835:25)
+    at parseEnrichmentUmbrella (https://jsr.io/@skmtc/core/0.28.3/enrichments/parseEnrichmentUmbrella.ts:103:12)
+    at ApiClient.toEnrichments (https://jsr.io/@skmtc/core/0.28.3/dsl/operation/oas/toOasOperationProjectionBase.ts:132:14)
+    at GenerateContext.toOperationContentSettings (https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:1534:41)
+    at new OasOperationDriver (https://jsr.io/@skmtc/core/0.28.3/dsl/operation/oas/OasOperationDriver.ts:82:34)
+    at GenerateContext.insertOperation (https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:1364:38)
+    at Object.transform (file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-1/gen-api-client/src/mod.ts:14:21)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:811:31
+    at StackTrail.trace (https://jsr.io/@skmtc/core/0.28.3/context/StackTrail.ts:104:22)
+    at https://jsr.io/@skmtc/core/0.28.3/context/GenerateContext.ts:759:19
+[39m
+artifacts written to out/: 0
+results: {"error":5}
+parseIssues: 0
+FAIL: the run produced zero artifacts

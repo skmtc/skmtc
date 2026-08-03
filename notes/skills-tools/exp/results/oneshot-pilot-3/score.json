@@ -1,0 +1,64 @@
+{
+  "workspace": "/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-3",
+  "verifyPassed": false,
+  "verifyTail": "  types/orderItem.generated.ts\n  types/orderStatus.generated.ts\nresults: {\"error\":5,\"success\":6}\nparseIssues: 0\n\u001b[0m\u001b[32mTask\u001b[0m \u001b[0m\u001b[36mverify\u001b[0m deno run --allow-read --allow-write --allow-env harness.ts && deno check --config check.deno.json out/client/*.ts out/types/*.ts\nFAIL: 5 subject(s) errored — see manifest.json\nCommand failed: deno task verify\n\u001b[0m\u001b[32mTask\u001b[0m \u001b[0m\u001b[36mverify\u001b[0m deno run --allow-read --allow-write --allow-env harness.ts && deno check --config check.deno.json out/client/*.ts out/types/*.ts\nFAIL: 5 subject(s) errored — see manifest.json\n",
+  "clientFiles": [
+    "AddressesClient.generated.ts",
+    "OrdersClient.generated.ts"
+  ],
+  "ordersClass": 2,
+  "ordersMethods": 0,
+  "addressesClass": 2,
+  "addressesMethods": 0,
+  "accumulatorShape": false,
+  "duplicateDefinitions": [
+    "AddressesClient×2",
+    "OrdersClient×2"
+  ],
+  "zodModelFilesExist": true,
+  "clientImportsModels": false,
+  "usesZodParse": false,
+  "lintSkmtcFirings": [],
+  "lintTotal": 12,
+  "genEval": {
+    "structurePass": true,
+    "producerShare": 1,
+    "stringOutsideShare": 0.0836940836940837,
+    "stringTopOutsideSites": [
+      {
+        "site": "ClientMethod.constructor",
+        "file": "src/ClientMethod.ts",
+        "count": 1,
+        "chars": 40
+      },
+      {
+        "site": "buildMethodName",
+        "file": "src/ClientMethod.ts",
+        "count": 1,
+        "chars": 18
+      }
+    ],
+    "templateImportsPass": true,
+    "adHocToStringPass": true,
+    "accumulatorVerdict": {
+      "verdict": false,
+      "signals": [
+        "findDefinition call",
+        "container producer ClientClass (methods) mutated by append"
+      ],
+      "containerProducers": [
+        {
+          "className": "ClientClass",
+          "containerProps": [
+            "methods"
+          ],
+          "mutatorMethods": [
+            "append"
+          ]
+        }
+      ]
+    },
+    "aggregateVerdict": "warn"
+  },
+  "timestamp": "2026-07-31T22:32:45.727Z"
+}

@@ -1,0 +1,402 @@
+{
+  "artifacts": {
+    "models/Order.generated.ts": "import {Type} from '@sinclair/typebox'\nimport {OrderStatus} from '@/models/OrderStatus.generated.ts'\nimport {OrderItem} from '@/models/OrderItem.generated.ts'\nimport {Address} from '@/models/Address.generated.ts'\n\nexport const Order = Type.Object({id: Type.String(), status: OrderStatus, items: Type.Array(OrderItem), shippingAddress: Address, billingAddress: Type.Optional(Address), notes: Type.Optional(Type.Union([Type.String(), Type.Null()]))});\n",
+    "models/OrderStatus.generated.ts": "import {Type} from '@sinclair/typebox'\n\nexport const OrderStatus = Type.Union([Type.Literal('pending'), Type.Literal('paid'), Type.Literal('shipped'), Type.Literal('cancelled')]);\n",
+    "models/OrderItem.generated.ts": "import {Type} from '@sinclair/typebox'\n\nexport const OrderItem = Type.Object({sku: Type.String(), quantity: Type.Integer(), unitPrice: Type.Number(), giftWrap: Type.Optional(Type.Boolean())});\n",
+    "models/Address.generated.ts": "import {Type} from '@sinclair/typebox'\n\nexport const Address = Type.Object({line1: Type.String(), line2: Type.Optional(Type.String()), city: Type.String(), postalCode: Type.String(), country: Type.String()});\n"
+  },
+  "inspection": {
+    "__class": "Map",
+    "@/models/Order.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/models/Order.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const Order": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-typebox|Order|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "Order",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "TypeboxProjection",
+            "skipped": false,
+            "generatorKey": "@exp/gen-typebox|Order|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "Order",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/models/Order.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "Order",
+            "value": {
+              "__class": "TypeboxObject",
+              "skipped": false,
+              "generatorKey": "@exp/gen-typebox",
+              "type": "object",
+              "recordProperties": null,
+              "objectProperties": {
+                "__class": "TypeboxObjectProperties",
+                "skipped": false,
+                "generatorKey": "@exp/gen-typebox",
+                "properties": {
+                  "id": "[TypeboxString …]",
+                  "status": "[TypeboxRef …]",
+                  "items": "[TypeboxArray …]",
+                  "shippingAddress": "[TypeboxRef …]",
+                  "billingAddress": "[TypeboxRef …]",
+                  "notes": "[TypeboxString …]"
+                },
+                "required": [
+                  "id",
+                  "status",
+                  "items",
+                  "shippingAddress"
+                ]
+              },
+              "modifiers": {
+                "required": true,
+                "nullable": null
+              }
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": false
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "@sinclair/typebox": {
+          "__class": "TsImport",
+          "module": "@sinclair/typebox",
+          "specifiers": [
+            {
+              "name": "Type",
+              "typeOnly": false
+            }
+          ]
+        },
+        "@/models/OrderStatus.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/models/OrderStatus.generated.ts",
+          "specifiers": [
+            {
+              "name": "OrderStatus",
+              "typeOnly": false
+            }
+          ]
+        },
+        "@/models/OrderItem.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/models/OrderItem.generated.ts",
+          "specifiers": [
+            {
+              "name": "OrderItem",
+              "typeOnly": false
+            }
+          ]
+        },
+        "@/models/Address.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/models/Address.generated.ts",
+          "specifiers": [
+            {
+              "name": "Address",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/models/OrderStatus.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/models/OrderStatus.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const OrderStatus": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-typebox|OrderStatus|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "OrderStatus",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "TypeboxProjection",
+            "skipped": false,
+            "generatorKey": "@exp/gen-typebox|OrderStatus|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "OrderStatus",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/models/OrderStatus.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "OrderStatus",
+            "value": {
+              "__class": "TypeboxString",
+              "skipped": false,
+              "generatorKey": "@exp/gen-typebox",
+              "type": "string",
+              "format": null,
+              "enums": [
+                "pending",
+                "paid",
+                "shipped",
+                "cancelled"
+              ],
+              "options": {
+                "__class": "TypeboxOptions",
+                "skipped": false,
+                "generatorKey": null,
+                "entries": []
+              },
+              "modifiers": {
+                "required": true,
+                "nullable": null
+              }
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "@sinclair/typebox": {
+          "__class": "TsImport",
+          "module": "@sinclair/typebox",
+          "specifiers": [
+            {
+              "name": "Type",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/models/OrderItem.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/models/OrderItem.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const OrderItem": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-typebox|OrderItem|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "OrderItem",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "TypeboxProjection",
+            "skipped": false,
+            "generatorKey": "@exp/gen-typebox|OrderItem|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "OrderItem",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/models/OrderItem.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "OrderItem",
+            "value": {
+              "__class": "TypeboxObject",
+              "skipped": false,
+              "generatorKey": "@exp/gen-typebox",
+              "type": "object",
+              "recordProperties": null,
+              "objectProperties": {
+                "__class": "TypeboxObjectProperties",
+                "skipped": false,
+                "generatorKey": "@exp/gen-typebox",
+                "properties": {
+                  "sku": "[TypeboxString …]",
+                  "quantity": "[TypeboxInteger …]",
+                  "unitPrice": "[TypeboxNumber …]",
+                  "giftWrap": "[TypeboxBoolean …]"
+                },
+                "required": [
+                  "sku",
+                  "quantity",
+                  "unitPrice"
+                ]
+              },
+              "modifiers": {
+                "required": true,
+                "nullable": null
+              }
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "@sinclair/typebox": {
+          "__class": "TsImport",
+          "module": "@sinclair/typebox",
+          "specifiers": [
+            {
+              "name": "Type",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/models/Address.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/models/Address.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const Address": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-typebox|Address|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "Address",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "TypeboxProjection",
+            "skipped": false,
+            "generatorKey": "@exp/gen-typebox|Address|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "Address",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/models/Address.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "Address",
+            "value": {
+              "__class": "TypeboxObject",
+              "skipped": false,
+              "generatorKey": "@exp/gen-typebox",
+              "type": "object",
+              "recordProperties": null,
+              "objectProperties": {
+                "__class": "TypeboxObjectProperties",
+                "skipped": false,
+                "generatorKey": "@exp/gen-typebox",
+                "properties": {
+                  "line1": "[TypeboxString …]",
+                  "line2": "[TypeboxString …]",
+                  "city": "[TypeboxString …]",
+                  "postalCode": "[TypeboxString …]",
+                  "country": "[TypeboxString …]"
+                },
+                "required": [
+                  "line1",
+                  "city",
+                  "postalCode",
+                  "country"
+                ]
+              },
+              "modifiers": {
+                "required": true,
+                "nullable": null
+              }
+            }
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "@sinclair/typebox": {
+          "__class": "TsImport",
+          "module": "@sinclair/typebox",
+          "specifiers": [
+            {
+              "name": "Type",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "files": {
+    "com/example/models/OrderStatus.generated.kt": {
+      "destinationPath": "@/com/example/models/OrderStatus.generated.kt",
+      "lines": 15,
+      "characters": 274
+    },
+    "com/example/models/Order.generated.kt": {
+      "destinationPath": "@/com/example/models/Order.generated.kt",
+      "lines": 17,
+      "characters": 433
+    },
+    "com/example/models/OrderItem.generated.kt": {
+      "destinationPath": "@/com/example/models/OrderItem.generated.kt",
+      "lines": 13,
+      "characters": 274
+    },
+    "com/example/models/Address.generated.kt": {
+      "destinationPath": "@/com/example/models/Address.generated.kt",
+      "lines": 15,
+      "characters": 321
+    },
+    "com/example/models/Category.generated.kt": {
+      "destinationPath": "@/com/example/models/Category.generated.kt",
+      "lines": 8,
+      "characters": 134
+    }
+  },
+  "previews": {},
+  "traceId": "exp",
+  "spanId": "exp",
+  "results": {
+    "generate": {
+      "@exp/gen-kotlin-jackson": {
+        "Order": {
+          "variant%3A main": "success"
+        },
+        "OrderItem": {
+          "variant%3A main": "success"
+        },
+        "OrderStatus": {
+          "variant%3A main": "success"
+        },
+        "Address": {
+          "variant%3A main": "success"
+        },
+        "Category": {
+          "variant%3A main": "success"
+        }
+      }
+    },
+    "render": {
+      "@/com/example/models/OrderStatus.generated.kt": "success",
+      "@/com/example/models/Order.generated.kt": "success",
+      "@/com/example/models/OrderItem.generated.kt": "success",
+      "@/com/example/models/Address.generated.kt": "success",
+      "@/com/example/models/Category.generated.kt": "success"
+    }
+  },
+  "parseIssues": [],
+  "enrichmentWarnings": [],
+  "deploymentId": "1785787479450",
+  "startAt": 1785787479442,
+  "endAt": 1785787479450
+}

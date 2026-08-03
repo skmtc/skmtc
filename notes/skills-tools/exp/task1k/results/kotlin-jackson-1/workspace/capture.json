@@ -1,0 +1,709 @@
+{
+  "artifacts": {
+    "com/example/models/OrderStatus.generated.kt": "package com.example.models\n\nimport com.fasterxml.jackson.annotation.JsonProperty\n\nenum class OrderStatus {\n    @JsonProperty(\"pending\")\n    PENDING,\n    @JsonProperty(\"paid\")\n    PAID,\n    @JsonProperty(\"shipped\")\n    SHIPPED,\n    @JsonProperty(\"cancelled\")\n    CANCELLED\n}\n",
+    "com/example/models/Order.generated.kt": "package com.example.models\n\nimport com.fasterxml.jackson.annotation.JsonProperty\n\ndata class Order(\n    val id: String,\n    val `object`: String,\n    val status: OrderStatus,\n    val items: List<OrderItem>,\n    @JsonProperty(\"shipping_address\")\n    val shippingAddress: Address,\n    @JsonProperty(\"billing_address\")\n    val billingAddress: Address? = null,\n    @JsonProperty(\"customer_notes\")\n    val customerNotes: String? = null\n)\n",
+    "com/example/models/OrderItem.generated.kt": "package com.example.models\n\nimport com.fasterxml.jackson.annotation.JsonProperty\n\ndata class OrderItem(\n    val sku: String,\n    val quantity: Int,\n    @JsonProperty(\"unit_price\")\n    val unitPrice: Double,\n    @JsonProperty(\"gift_wrap\")\n    val giftWrap: Boolean? = null\n)\n",
+    "com/example/models/Address.generated.kt": "package com.example.models\n\nimport com.fasterxml.jackson.annotation.JsonProperty\n\ndata class Address(\n    @JsonProperty(\"line_1\")\n    val line1: String,\n    @JsonProperty(\"line_2\")\n    val line2: String? = null,\n    val city: String,\n    @JsonProperty(\"postal_code\")\n    val postalCode: String,\n    val country: String\n)\n",
+    "com/example/models/Category.generated.kt": "package com.example.models\n\ndata class Category(\n    val id: String,\n    val name: String,\n    val children: List<Category>? = null\n)\n"
+  },
+  "inspection": {
+    "__class": "Map",
+    "@/com/example/models/OrderStatus.generated.kt": {
+      "__class": "KtFile",
+      "path": "@/com/example/models/OrderStatus.generated.kt",
+      "custom": null,
+      "packageName": "com.example.models",
+      "settings": null,
+      "definitions": {
+        "__class": "Map",
+        "OrderStatus": {
+          "__class": "KtDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-kotlin-jackson|OrderStatus|main",
+          "identifier": {
+            "__class": "KtIdentifier",
+            "name": "OrderStatus",
+            "typeName": null,
+            "exported": true,
+            "type": "enum-class"
+          },
+          "value": {
+            "__class": "KotlinProjection",
+            "skipped": false,
+            "generatorKey": "@exp/gen-kotlin-jackson|OrderStatus|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "KtIdentifier",
+                "name": "OrderStatus",
+                "typeName": null,
+                "exported": true,
+                "type": "enum-class"
+              },
+              "exportPath": "@/com/example/models/OrderStatus.generated.kt",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "OrderStatus",
+            "value": {
+              "__class": "KotlinEnumEntries",
+              "skipped": false,
+              "generatorKey": "@exp/gen-kotlin-jackson",
+              "type": "enum-entries",
+              "entries": [
+                {
+                  "name": "PENDING",
+                  "annotations": "[Array …]"
+                },
+                {
+                  "name": "PAID",
+                  "annotations": "[Array …]"
+                },
+                {
+                  "name": "SHIPPED",
+                  "annotations": "[Array …]"
+                },
+                {
+                  "name": "CANCELLED",
+                  "annotations": "[Array …]"
+                }
+              ]
+            }
+          },
+          "description": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "com.fasterxml.jackson.annotation": {
+          "__class": "KtImport",
+          "module": "com.fasterxml.jackson.annotation",
+          "specifiers": [
+            {
+              "name": "JsonProperty"
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/com/example/models/Order.generated.kt": {
+      "__class": "KtFile",
+      "path": "@/com/example/models/Order.generated.kt",
+      "custom": null,
+      "packageName": "com.example.models",
+      "settings": null,
+      "definitions": {
+        "__class": "Map",
+        "Order": {
+          "__class": "KtDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-kotlin-jackson|Order|main",
+          "identifier": {
+            "__class": "KtIdentifier",
+            "name": "Order",
+            "typeName": null,
+            "exported": true,
+            "type": "data-class"
+          },
+          "value": {
+            "__class": "KotlinProjection",
+            "skipped": false,
+            "generatorKey": "@exp/gen-kotlin-jackson|Order|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "KtIdentifier",
+                "name": "Order",
+                "typeName": null,
+                "exported": true,
+                "type": "data-class"
+              },
+              "exportPath": "@/com/example/models/Order.generated.kt",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "Order",
+            "value": {
+              "__class": "KotlinObjectProperties",
+              "skipped": false,
+              "generatorKey": "@exp/gen-kotlin-jackson",
+              "properties": {
+                "id": {
+                  "__class": "KotlinString",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "string",
+                  "stringSchema": "[OasString …]",
+                  "format": null,
+                  "enums": null,
+                  "modifiers": "[Object …]"
+                },
+                "object": {
+                  "__class": "KotlinString",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "string",
+                  "stringSchema": "[OasString …]",
+                  "format": null,
+                  "enums": null,
+                  "modifiers": "[Object …]"
+                },
+                "status": {
+                  "__class": "KotlinRef",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson|OrderStatus|main",
+                  "type": "ref",
+                  "modifiers": "[Object …]",
+                  "name": "OrderStatus",
+                  "terminal": false
+                },
+                "items": {
+                  "__class": "KotlinArray",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "array",
+                  "items": "[KotlinRef …]",
+                  "modifiers": "[Object …]"
+                },
+                "shipping_address": {
+                  "__class": "KotlinRef",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson|Address|main",
+                  "type": "ref",
+                  "modifiers": "[Object …]",
+                  "name": "Address",
+                  "terminal": false
+                },
+                "billing_address": {
+                  "__class": "KotlinRef",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson|Address|main",
+                  "type": "ref",
+                  "modifiers": "[Object …]",
+                  "name": "Address",
+                  "terminal": false
+                },
+                "customer_notes": {
+                  "__class": "KotlinString",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "string",
+                  "stringSchema": "[OasString …]",
+                  "format": null,
+                  "enums": null,
+                  "modifiers": "[Object …]"
+                }
+              },
+              "required": [
+                "id",
+                "object",
+                "status",
+                "items",
+                "shipping_address"
+              ],
+              "visibility": {
+                "id": {
+                  "readOnly": false,
+                  "writeOnly": false
+                },
+                "object": {
+                  "readOnly": false,
+                  "writeOnly": false
+                },
+                "status": {
+                  "readOnly": false,
+                  "writeOnly": false
+                },
+                "items": {
+                  "readOnly": false,
+                  "writeOnly": false
+                },
+                "shipping_address": {
+                  "readOnly": false,
+                  "writeOnly": false
+                },
+                "billing_address": {
+                  "readOnly": false,
+                  "writeOnly": false
+                },
+                "customer_notes": {
+                  "readOnly": false,
+                  "writeOnly": false
+                }
+              },
+              "parameterList": {
+                "__class": "KtParameterList",
+                "parameters": [
+                  "[Object …]",
+                  "[Object …]",
+                  "[Object …]",
+                  "[Object …]",
+                  "[Object …]",
+                  "[Object …]",
+                  "[Object …]"
+                ]
+              }
+            }
+          },
+          "description": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "@/com/example/models/OrderStatus.generated.kt": {
+          "__class": "KtImport",
+          "module": "@/com/example/models/OrderStatus.generated.kt",
+          "specifiers": [
+            {
+              "name": "OrderStatus"
+            }
+          ]
+        },
+        "@/com/example/models/OrderItem.generated.kt": {
+          "__class": "KtImport",
+          "module": "@/com/example/models/OrderItem.generated.kt",
+          "specifiers": [
+            {
+              "name": "OrderItem"
+            }
+          ]
+        },
+        "@/com/example/models/Address.generated.kt": {
+          "__class": "KtImport",
+          "module": "@/com/example/models/Address.generated.kt",
+          "specifiers": [
+            {
+              "name": "Address"
+            }
+          ]
+        },
+        "com.fasterxml.jackson.annotation": {
+          "__class": "KtImport",
+          "module": "com.fasterxml.jackson.annotation",
+          "specifiers": [
+            {
+              "name": "JsonProperty"
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/com/example/models/OrderItem.generated.kt": {
+      "__class": "KtFile",
+      "path": "@/com/example/models/OrderItem.generated.kt",
+      "custom": null,
+      "packageName": "com.example.models",
+      "settings": null,
+      "definitions": {
+        "__class": "Map",
+        "OrderItem": {
+          "__class": "KtDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-kotlin-jackson|OrderItem|main",
+          "identifier": {
+            "__class": "KtIdentifier",
+            "name": "OrderItem",
+            "typeName": null,
+            "exported": true,
+            "type": "data-class"
+          },
+          "value": {
+            "__class": "KotlinProjection",
+            "skipped": false,
+            "generatorKey": "@exp/gen-kotlin-jackson|OrderItem|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "KtIdentifier",
+                "name": "OrderItem",
+                "typeName": null,
+                "exported": true,
+                "type": "data-class"
+              },
+              "exportPath": "@/com/example/models/OrderItem.generated.kt",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "OrderItem",
+            "value": {
+              "__class": "KotlinObjectProperties",
+              "skipped": false,
+              "generatorKey": "@exp/gen-kotlin-jackson",
+              "properties": {
+                "sku": {
+                  "__class": "KotlinString",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "string",
+                  "stringSchema": "[OasString …]",
+                  "format": null,
+                  "enums": null,
+                  "modifiers": "[Object …]"
+                },
+                "quantity": {
+                  "__class": "KotlinInteger",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "integer",
+                  "schema": "[OasInteger …]",
+                  "modifiers": "[Object …]"
+                },
+                "unit_price": {
+                  "__class": "KotlinNumber",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "number",
+                  "schema": "[OasNumber …]",
+                  "modifiers": "[Object …]"
+                },
+                "gift_wrap": {
+                  "__class": "KotlinBoolean",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "boolean",
+                  "schema": "[OasBoolean …]",
+                  "modifiers": "[Object …]"
+                }
+              },
+              "required": [
+                "sku",
+                "quantity",
+                "unit_price"
+              ],
+              "visibility": {
+                "sku": {
+                  "readOnly": false,
+                  "writeOnly": false
+                },
+                "quantity": {
+                  "readOnly": false,
+                  "writeOnly": false
+                },
+                "unit_price": {
+                  "readOnly": false,
+                  "writeOnly": false
+                },
+                "gift_wrap": {
+                  "readOnly": false,
+                  "writeOnly": false
+                }
+              },
+              "parameterList": {
+                "__class": "KtParameterList",
+                "parameters": [
+                  "[Object …]",
+                  "[Object …]",
+                  "[Object …]",
+                  "[Object …]"
+                ]
+              }
+            }
+          },
+          "description": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "com.fasterxml.jackson.annotation": {
+          "__class": "KtImport",
+          "module": "com.fasterxml.jackson.annotation",
+          "specifiers": [
+            {
+              "name": "JsonProperty"
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/com/example/models/Address.generated.kt": {
+      "__class": "KtFile",
+      "path": "@/com/example/models/Address.generated.kt",
+      "custom": null,
+      "packageName": "com.example.models",
+      "settings": null,
+      "definitions": {
+        "__class": "Map",
+        "Address": {
+          "__class": "KtDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-kotlin-jackson|Address|main",
+          "identifier": {
+            "__class": "KtIdentifier",
+            "name": "Address",
+            "typeName": null,
+            "exported": true,
+            "type": "data-class"
+          },
+          "value": {
+            "__class": "KotlinProjection",
+            "skipped": false,
+            "generatorKey": "@exp/gen-kotlin-jackson|Address|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "KtIdentifier",
+                "name": "Address",
+                "typeName": null,
+                "exported": true,
+                "type": "data-class"
+              },
+              "exportPath": "@/com/example/models/Address.generated.kt",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "Address",
+            "value": {
+              "__class": "KotlinObjectProperties",
+              "skipped": false,
+              "generatorKey": "@exp/gen-kotlin-jackson",
+              "properties": {
+                "line_1": {
+                  "__class": "KotlinString",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "string",
+                  "stringSchema": "[OasString …]",
+                  "format": null,
+                  "enums": null,
+                  "modifiers": "[Object …]"
+                },
+                "line_2": {
+                  "__class": "KotlinString",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "string",
+                  "stringSchema": "[OasString …]",
+                  "format": null,
+                  "enums": null,
+                  "modifiers": "[Object …]"
+                },
+                "city": {
+                  "__class": "KotlinString",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "string",
+                  "stringSchema": "[OasString …]",
+                  "format": null,
+                  "enums": null,
+                  "modifiers": "[Object …]"
+                },
+                "postal_code": {
+                  "__class": "KotlinString",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "string",
+                  "stringSchema": "[OasString …]",
+                  "format": null,
+                  "enums": null,
+                  "modifiers": "[Object …]"
+                },
+                "country": {
+                  "__class": "KotlinString",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "string",
+                  "stringSchema": "[OasString …]",
+                  "format": null,
+                  "enums": null,
+                  "modifiers": "[Object …]"
+                }
+              },
+              "required": [
+                "line_1",
+                "city",
+                "postal_code",
+                "country"
+              ],
+              "visibility": {
+                "line_1": {
+                  "readOnly": false,
+                  "writeOnly": false
+                },
+                "line_2": {
+                  "readOnly": false,
+                  "writeOnly": false
+                },
+                "city": {
+                  "readOnly": false,
+                  "writeOnly": false
+                },
+                "postal_code": {
+                  "readOnly": false,
+                  "writeOnly": false
+                },
+                "country": {
+                  "readOnly": false,
+                  "writeOnly": false
+                }
+              },
+              "parameterList": {
+                "__class": "KtParameterList",
+                "parameters": [
+                  "[Object …]",
+                  "[Object …]",
+                  "[Object …]",
+                  "[Object …]",
+                  "[Object …]"
+                ]
+              }
+            }
+          },
+          "description": null
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "com.fasterxml.jackson.annotation": {
+          "__class": "KtImport",
+          "module": "com.fasterxml.jackson.annotation",
+          "specifiers": [
+            {
+              "name": "JsonProperty"
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/com/example/models/Category.generated.kt": {
+      "__class": "KtFile",
+      "path": "@/com/example/models/Category.generated.kt",
+      "custom": null,
+      "packageName": "com.example.models",
+      "settings": null,
+      "definitions": {
+        "__class": "Map",
+        "Category": {
+          "__class": "KtDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-kotlin-jackson|Category|main",
+          "identifier": {
+            "__class": "KtIdentifier",
+            "name": "Category",
+            "typeName": null,
+            "exported": true,
+            "type": "data-class"
+          },
+          "value": {
+            "__class": "KotlinProjection",
+            "skipped": false,
+            "generatorKey": "@exp/gen-kotlin-jackson|Category|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "KtIdentifier",
+                "name": "Category",
+                "typeName": null,
+                "exported": true,
+                "type": "data-class"
+              },
+              "exportPath": "@/com/example/models/Category.generated.kt",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "Category",
+            "value": {
+              "__class": "KotlinObjectProperties",
+              "skipped": false,
+              "generatorKey": "@exp/gen-kotlin-jackson",
+              "properties": {
+                "id": {
+                  "__class": "KotlinString",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "string",
+                  "stringSchema": "[OasString …]",
+                  "format": null,
+                  "enums": null,
+                  "modifiers": "[Object …]"
+                },
+                "name": {
+                  "__class": "KotlinString",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "string",
+                  "stringSchema": "[OasString …]",
+                  "format": null,
+                  "enums": null,
+                  "modifiers": "[Object …]"
+                },
+                "children": {
+                  "__class": "KotlinArray",
+                  "skipped": false,
+                  "generatorKey": "@exp/gen-kotlin-jackson",
+                  "type": "array",
+                  "items": "[KotlinRef …]",
+                  "modifiers": "[Object …]"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "visibility": {
+                "id": {
+                  "readOnly": false,
+                  "writeOnly": false
+                },
+                "name": {
+                  "readOnly": false,
+                  "writeOnly": false
+                },
+                "children": {
+                  "readOnly": false,
+                  "writeOnly": false
+                }
+              },
+              "parameterList": {
+                "__class": "KtParameterList",
+                "parameters": [
+                  "[Object …]",
+                  "[Object …]",
+                  "[Object …]"
+                ]
+              }
+            }
+          },
+          "description": null
+        }
+      },
+      "imports": {
+        "__class": "Map"
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    }
+  }
+}

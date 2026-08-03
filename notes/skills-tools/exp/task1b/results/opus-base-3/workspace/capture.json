@@ -1,0 +1,362 @@
+{
+  "artifacts": {
+    "models/Order.generated.ts": "import {Schema} from 'effect'\nimport {OrderStatus} from '@/models/OrderStatus.generated.ts'\nimport {OrderItem} from '@/models/OrderItem.generated.ts'\nimport {Address} from '@/models/Address.generated.ts'\n\nexport const Order = Schema.Struct({\nid: Schema.String,\nstatus: OrderStatus,\nitems: Schema.Array(OrderItem),\nshippingAddress: Address,\nbillingAddress: Schema.optional(Address),\nnotes: Schema.optional(Schema.NullOr(Schema.String))\n});\n",
+    "models/OrderStatus.generated.ts": "import {Schema} from 'effect'\n\nexport const OrderStatus = Schema.Literal('pending', 'paid', 'shipped', 'cancelled');\n",
+    "models/OrderItem.generated.ts": "import {Schema} from 'effect'\n\nexport const OrderItem = Schema.Struct({\nsku: Schema.String,\nquantity: Schema.Int,\nunitPrice: Schema.Number,\ngiftWrap: Schema.optional(Schema.Boolean)\n});\n",
+    "models/Address.generated.ts": "import {Schema} from 'effect'\n\nexport const Address = Schema.Struct({\nline1: Schema.String,\nline2: Schema.optional(Schema.String),\ncity: Schema.String,\npostalCode: Schema.String,\ncountry: Schema.String\n});\n",
+    "models/Category.generated.ts": "import {Schema} from 'effect'\n\nexport const Category = Schema.Struct({\nid: Schema.String,\nname: Schema.String,\nchildren: Schema.optional(Schema.Array(Schema.suspend((): Schema.Schema<any> => Category)))\n});\n"
+  },
+  "inspection": {
+    "__class": "Map",
+    "@/models/Order.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/models/Order.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const Order": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-effect-schema|Order|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "Order",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "EffectSchemaModel",
+            "skipped": false,
+            "generatorKey": "@exp/gen-effect-schema|Order|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "Order",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/models/Order.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "Order",
+            "value": "Schema.Struct({\nid: Schema.String,\nstatus: OrderStatus,\nitems: Schema.Array(OrderItem),\nshippingAddress: Address,\nbillingAddress: Schema.optional(Address),\nnotes: Schema.optional(Schema.NullOr(Schema.String))\n})"
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": false
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "effect": {
+          "__class": "TsImport",
+          "module": "effect",
+          "specifiers": [
+            {
+              "name": "Schema",
+              "typeOnly": false
+            }
+          ]
+        },
+        "@/models/OrderStatus.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/models/OrderStatus.generated.ts",
+          "specifiers": [
+            {
+              "name": "OrderStatus",
+              "typeOnly": false
+            }
+          ]
+        },
+        "@/models/OrderItem.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/models/OrderItem.generated.ts",
+          "specifiers": [
+            {
+              "name": "OrderItem",
+              "typeOnly": false
+            }
+          ]
+        },
+        "@/models/Address.generated.ts": {
+          "__class": "TsImport",
+          "module": "@/models/Address.generated.ts",
+          "specifiers": [
+            {
+              "name": "Address",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/models/OrderStatus.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/models/OrderStatus.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const OrderStatus": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-effect-schema|OrderStatus|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "OrderStatus",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "EffectSchemaModel",
+            "skipped": false,
+            "generatorKey": "@exp/gen-effect-schema|OrderStatus|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "OrderStatus",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/models/OrderStatus.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "OrderStatus",
+            "value": "Schema.Literal('pending', 'paid', 'shipped', 'cancelled')"
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": false
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "effect": {
+          "__class": "TsImport",
+          "module": "effect",
+          "specifiers": [
+            {
+              "name": "Schema",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/models/OrderItem.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/models/OrderItem.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const OrderItem": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-effect-schema|OrderItem|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "OrderItem",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "EffectSchemaModel",
+            "skipped": false,
+            "generatorKey": "@exp/gen-effect-schema|OrderItem|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "OrderItem",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/models/OrderItem.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "OrderItem",
+            "value": "Schema.Struct({\nsku: Schema.String,\nquantity: Schema.Int,\nunitPrice: Schema.Number,\ngiftWrap: Schema.optional(Schema.Boolean)\n})"
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": false
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "effect": {
+          "__class": "TsImport",
+          "module": "effect",
+          "specifiers": [
+            {
+              "name": "Schema",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/models/Address.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/models/Address.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const Address": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-effect-schema|Address|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "Address",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "EffectSchemaModel",
+            "skipped": false,
+            "generatorKey": "@exp/gen-effect-schema|Address|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "Address",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/models/Address.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "Address",
+            "value": "Schema.Struct({\nline1: Schema.String,\nline2: Schema.optional(Schema.String),\ncity: Schema.String,\npostalCode: Schema.String,\ncountry: Schema.String\n})"
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": false
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "effect": {
+          "__class": "TsImport",
+          "module": "effect",
+          "specifiers": [
+            {
+              "name": "Schema",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    },
+    "@/models/Category.generated.ts": {
+      "__class": "TsFile",
+      "path": "@/models/Category.generated.ts",
+      "custom": null,
+      "packages": null,
+      "definitions": {
+        "__class": "Map",
+        "const Category": {
+          "__class": "TsDefinition",
+          "skipped": false,
+          "generatorKey": "@exp/gen-effect-schema|Category|main",
+          "identifier": {
+            "__class": "TsIdentifier",
+            "name": "Category",
+            "typeName": null,
+            "exported": true,
+            "type": "variable"
+          },
+          "value": {
+            "__class": "EffectSchemaModel",
+            "skipped": false,
+            "generatorKey": "@exp/gen-effect-schema|Category|main",
+            "settings": {
+              "__class": "ContentSettings",
+              "identifier": {
+                "__class": "TsIdentifier",
+                "name": "Category",
+                "typeName": null,
+                "exported": true,
+                "type": "variable"
+              },
+              "exportPath": "@/models/Category.generated.ts",
+              "enrichments": {
+                "subject": null,
+                "generator": null,
+                "stack": null
+              },
+              "variant": "main"
+            },
+            "refName": "Category",
+            "value": "Schema.Struct({\nid: Schema.String,\nname: Schema.String,\nchildren: Schema.optional(Schema.Array(Schema.suspend((): Schema.Schema<any> => Category)))\n})"
+          },
+          "description": null,
+          "leadingComment": null,
+          "noExport": false
+        }
+      },
+      "imports": {
+        "__class": "Map",
+        "effect": {
+          "__class": "TsImport",
+          "module": "effect",
+          "specifiers": [
+            {
+              "name": "Schema",
+              "typeOnly": false
+            }
+          ]
+        }
+      },
+      "reExports": {
+        "__class": "Map"
+      }
+    }
+  }
+}

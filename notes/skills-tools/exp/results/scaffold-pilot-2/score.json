@@ -1,0 +1,68 @@
+{
+  "workspace": "/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/scaffold-pilot-2",
+  "verifyPassed": false,
+  "verifyTail": "\n\u001b[0m\u001b[1mTS2749 \u001b[0m[ERROR]: 'order' refers to a value, but is being used as a type here. Did you mean 'typeof order'?\n  async getApiOrdersId(id): Promise<order> {\n\u001b[0m\u001b[31m                                    ~~~~~\u001b[0m\n    at \u001b[0m\u001b[36mfile:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/scaffold-pilot-2/out/client/OrdersClient.generated.ts\u001b[0m:\u001b[0m\u001b[33m25\u001b[0m:\u001b[0m\u001b[33m37\u001b[0m\n\nFound 6 errors.\n\n\u001b[0m\u001b[1m\u001b[31merror\u001b[0m: Type checking failed.\n",
+  "clientFiles": [
+    "AddressesClient.generated.ts",
+    "OrdersClient.generated.ts"
+  ],
+  "ordersClass": 1,
+  "ordersMethods": 3,
+  "addressesClass": 1,
+  "addressesMethods": 1,
+  "accumulatorShape": true,
+  "duplicateDefinitions": [],
+  "zodModelFilesExist": true,
+  "clientImportsModels": true,
+  "usesZodParse": true,
+  "lintSkmtcFirings": [],
+  "lintTotal": 1,
+  "genEval": {
+    "structurePass": true,
+    "producerShare": 1,
+    "stringOutsideShare": 0.19957537154989385,
+    "stringTopOutsideSites": [
+      {
+        "site": "toClientName",
+        "file": "src/base.ts",
+        "count": 1,
+        "chars": 37
+      },
+      {
+        "site": "toClientExportPath",
+        "file": "src/base.ts",
+        "count": 1,
+        "chars": 35
+      },
+      {
+        "site": "ClientMethod.constructor",
+        "file": "src/ClientMethod.ts",
+        "count": 1,
+        "chars": 22
+      }
+    ],
+    "templateImportsPass": true,
+    "adHocToStringPass": true,
+    "accumulatorVerdict": {
+      "verdict": true,
+      "signals": [
+        "defineAndRegister call",
+        "findDefinition call",
+        "container producer ClientClass (methods) mutated by add"
+      ],
+      "containerProducers": [
+        {
+          "className": "ClientClass",
+          "containerProps": [
+            "methods"
+          ],
+          "mutatorMethods": [
+            "add"
+          ]
+        }
+      ]
+    },
+    "aggregateVerdict": "clean"
+  },
+  "timestamp": "2026-07-31T22:47:41.462Z"
+}
