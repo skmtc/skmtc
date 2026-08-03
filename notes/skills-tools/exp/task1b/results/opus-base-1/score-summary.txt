@@ -1,0 +1,8 @@
+verify:            PASS
+all models:        PASS (Order, OrderItem, OrderStatus, Address, Category)
+no duplicates:     PASS 
+ref import:        PASS
+skmtc lint clean:  PASS 
+gen-eval:          report written
+recursion (lazy):  PASS
+skeleton adopted:  false (0 SLOT markers, lib.ts: false)

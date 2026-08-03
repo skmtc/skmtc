@@ -1,0 +1,16 @@
+[0m[32mTask[0m [0m[36mverify[0m deno run --allow-read --allow-write --allow-env harness.ts && deno check --config check.deno.json out/client/*.ts out/types/*.ts
+artifacts written to out/: 6
+  client/AddressesClient.generated.ts
+  client/OrdersClient.generated.ts
+  types/address.generated.ts
+  types/order.generated.ts
+  types/orderItem.generated.ts
+  types/orderStatus.generated.ts
+results: {"success":10}
+parseIssues: 0
+[0m[32mCheck[0m out/client/AddressesClient.generated.ts
+[0m[32mCheck[0m out/client/OrdersClient.generated.ts
+[0m[32mCheck[0m out/types/address.generated.ts
+[0m[32mCheck[0m out/types/order.generated.ts
+[0m[32mCheck[0m out/types/orderItem.generated.ts
+[0m[32mCheck[0m out/types/orderStatus.generated.ts

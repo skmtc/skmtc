@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "@/": "./out/",
+    "@sinclair/typebox": "npm:@sinclair/typebox@^0.34.0"
+  },
+  "nodeModulesDir": "auto"
+}

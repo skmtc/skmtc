@@ -1,0 +1,67 @@
+{
+  "workspace": "/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/oneshot-pilot-2",
+  "verifyPassed": true,
+  "verifyTail": "artifacts written to out/: 6\n  client/AddressesClient.generated.ts\n  client/OrdersClient.generated.ts\n  types/address.generated.ts\n  types/order.generated.ts\n  types/orderItem.generated.ts\n  types/orderStatus.generated.ts\nresults: {\"success\":10}\nparseIssues: 0\n",
+  "clientFiles": [
+    "AddressesClient.generated.ts",
+    "OrdersClient.generated.ts"
+  ],
+  "ordersClass": 1,
+  "ordersMethods": 3,
+  "addressesClass": 1,
+  "addressesMethods": 1,
+  "accumulatorShape": true,
+  "duplicateDefinitions": [],
+  "zodModelFilesExist": true,
+  "clientImportsModels": true,
+  "usesZodParse": true,
+  "lintSkmtcFirings": [],
+  "lintTotal": 2,
+  "genEval": {
+    "structurePass": true,
+    "producerShare": 0.5,
+    "stringOutsideShare": 0.3380281690140845,
+    "stringTopOutsideSites": [
+      {
+        "site": "toMethodName",
+        "file": "src/names.ts",
+        "count": 2,
+        "chars": 267
+      },
+      {
+        "site": "toClientName",
+        "file": "src/names.ts",
+        "count": 1,
+        "chars": 46
+      },
+      {
+        "site": "ApiClient.append",
+        "file": "src/ApiClient.ts",
+        "count": 1,
+        "chars": 23
+      }
+    ],
+    "templateImportsPass": true,
+    "adHocToStringPass": true,
+    "accumulatorVerdict": {
+      "verdict": false,
+      "signals": [
+        "findDefinition call",
+        "container producer ApiClient (methods) mutated by append"
+      ],
+      "containerProducers": [
+        {
+          "className": "ApiClient",
+          "containerProps": [
+            "methods"
+          ],
+          "mutatorMethods": [
+            "append"
+          ]
+        }
+      ]
+    },
+    "aggregateVerdict": "warn"
+  },
+  "timestamp": "2026-07-31T22:29:18.160Z"
+}

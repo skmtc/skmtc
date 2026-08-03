@@ -1,0 +1,178 @@
+===FILE: gen-api-client/deno.json===
+{
+  "name": "@exp/gen-api-client",
+  "version": "0.1.0",
+  "exports": {
+    ".": "./mod.ts"
+  }
+}
+===END===
+
+===FILE: gen-api-client/mod.ts===
+export * from './src/mod.ts'
+export * from './src/ApiClient.ts'
+export * from './src/base.ts'
+export * from './src/enrichments.ts'
+export * from './src/naming.ts'
+export { apiClientEntry as default } from './src/mod.ts'
+===END===
+
+===FILE: gen-api-client/src/mod.ts===
+import { toOasOperationEntry } from '@skmtc/core'
+import denoJson from '../deno.json' with { type: 'json' }
+import { ApiClient } from './ApiClient.ts'
+import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
+
+export const apiClientEntry = toOasOperationEntry<EnrichmentSchema>({
+  id: denoJson.name,
+  toEnrichmentSchema,
+  transform: ({ context, operation, variant }) => {
+    const client =
+      context.findDefinition({
+        name: ApiClient.toIdentifierName({ operation, enrichments: undefined, variant }),
+        exportPath: ApiClient.toExportPath({ operation, enrichments: undefined, variant })
+      }) ?? context.insertOperation({ projection: ApiClient, operation, variant }).definition
+
+    const value = client?.value
+
+    if (!(value instanceof ApiClient)) {
+      throw new Error('Expected a single ApiClient definition per tag')
+    }
+
+    value.append(operation)
+  }
+})
+===END===
+
+===FILE: gen-api-client/src/base.ts===
+import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
+import denoJson from '../deno.json' with { type: 'json' }
+import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
+import { toClientName } from './naming.ts'
+
+export const ApiClientBase = toTsOasOperationProjectionBase<EnrichmentSchema>({
+  id: denoJson.name,
+  toIdentifierName({ operation }) {
+    return toClientName(operation)
+  },
+  toIdentifierType: () => ({ type: 'class' }),
+  toExportPath({ operation, enrichments, variant }) {
+    const name = this.toIdentifierName({ operation, enrichments, variant })
+
+    return ['@', 'client', `${name}.generated.ts`].join('/')
+  },
+  toEnrichmentSchema
+})
+===END===
+
+===FILE: gen-api-client/src/enrichments.ts===
+import { emptyEnrichmentSchema } from '@skmtc/core'
+
+export const toEnrichmentSchema = emptyEnrichmentSchema
+
+export type EnrichmentSchema = undefined
+===END===
+
+===FILE: gen-api-client/src/naming.ts===
+import { camelCase, capitalize } from '@skmtc/core'
+import type { OasOperation } from '@skmtc/core'
+
+export const toClientName = (operation: OasOperation): string => {
+  const [tag] = operation.tags ?? []
+
+  return `${capitalize(camelCase(tag ?? 'api'))}Client`
+}
+
+export const toMethodName = (operation: OasOperation): string => {
+  const segments = operation.path
+    .split('/')
+    .filter(segment => segment.length > 0)
+    .map(segment => capitalize(camelCase(segment.replaceAll('{', '').replaceAll('}', ''))))
+    .join('')
+
+  return `${operation.method.toLowerCase()}${segments}`
+}
+===END===
+
+===FILE: gen-api-client/src/ApiClient.ts===
+import { OasVoid } from '@skmtc/core'
+import type { OasOperation, OasOperationProjectionConstructorArgs } from '@skmtc/core'
+import { toPathTemplate } from '@skmtc/lang-typescript'
+import { ZodProjection } from '@skmtc/gen-zod'
+import { ApiClientBase } from './base.ts'
+import type { EnrichmentSchema } from './enrichments.ts'
+import { toMethodName } from './naming.ts'
+
+type ClientMethod = {
+  name: string
+  httpMethod: string
+  path: string
+  pathParams: string[]
+  hasBody: boolean
+  responseName: string
+}
+
+export class ApiClient extends ApiClientBase {
+  clientMethods: ClientMethod[]
+
+  constructor({ context, operation, settings }: OasOperationProjectionConstructorArgs<EnrichmentSchema>) {
+    super({ context, operation, settings })
+
+    this.clientMethods = []
+  }
+
+  append(operation: OasOperation) {
+    const name = toMethodName(operation)
+
+    const zodResponse = this.insertNormalizedModel(ZodProjection, {
+      schema: operation.toSuccessResponse()?.resolve().toSchema() ?? OasVoid.empty(),
+      fallbackName: `${name}Response`
+    })
+
+    this.clientMethods.push({
+      name,
+      httpMethod: operation.method.toUpperCase(),
+      path: operation.path,
+      pathParams: operation.toParams(['path']).map(param => param.name),
+      hasBody: operation.method === 'post' || operation.method === 'put' || operation.method === 'patch',
+      responseName: zodResponse.identifier.name
+    })
+  }
+
+  override toString(): string {
+    const methods = this.clientMethods
+      .map(({ name, httpMethod, path, pathParams, hasBody, responseName }) => {
+        const params = pathParams.map(param => `${param}: string`)
+
+        if (hasBody) {
+          params.push('body: unknown')
+        }
+
+        const requestInit = hasBody
+          ? `{
+      method: '${httpMethod}',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }`
+          : `{ method: '${httpMethod}' }`
+
+        return `  async ${name}(${params.join(', ')}) {
+    const res = await fetch(\`${toPathTemplate(path)}\`, ${requestInit})
+
+    if (!res.ok) {
+      throw new Error(await res.text())
+    }
+
+    return ${responseName}.parse(await res.json())
+  }`
+      })
+      .join('\n\n')
+
+    return `{
+${methods}
+}`
+  }
+}
+===END===
+
+DONE — `@exp/gen-api-client` is an accumulator-style operation generator modeled on `@skmtc/gen-express`: the entry (`src/mod.ts`) runs per operation and does the `findDefinition ?? insertOperation` get-or-create against a per-tag identity, where `base.ts` derives both the identifier (`OrdersClient`, `AddressesClient`, kind `class`) and the export path (`@/client/<Tag>Client.generated.ts`) from the operation's first tag, so each tag's class and file are created exactly once and every subsequent same-tag operation is routed to `append()` on the cached instance. `append()` stores only structured data — a deterministic method name from method + path segments (`getOrdersId`, `postOrders`), the uppercased HTTP method, path-parameter names from `operation.toParams(['path'])`, a body flag for mutating methods, and the response schema's constant name obtained by projecting the operation's success-response schema through `this.insertNormalizedModel(ZodProjection, …)` — which lets the engine materialize each zod model exactly once in its own file (shared `Order` refs dedupe through the cache) and auto-stitch the schema imports into the client files. All target syntax is composed only inside the prototype `toString()`, which renders the class body: one `async` method per operation with typed path parameters, a `toPathTemplate`-templated `fetch`, `JSON.stringify(body)` for POST bodies, and `<schema>.parse(await res.json())` for validated returns.

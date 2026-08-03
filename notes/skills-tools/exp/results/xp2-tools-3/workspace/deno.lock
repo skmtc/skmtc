@@ -1,0 +1,32 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@skmtc/lint-plugin@0.1.0": "0.1.0",
+    "npm:ts-pattern@^5.9.0": "5.9.0",
+    "npm:zod@^3.24.0": "3.25.76"
+  },
+  "jsr": {
+    "@skmtc/lint-plugin@0.1.0": {
+      "integrity": "4129941fc5e6c552139b61fd046d5b47ae225c0a4700b2eb799f4f1b9451ed2c"
+    }
+  },
+  "npm": {
+    "ts-pattern@5.9.0": {
+      "integrity": "sha512-6s5V71mX8qBUmlgbrfL33xDUwO0fq48rxAu2LBE11WBeGdpCPOsXksQbZJHvHwhrd3QjUusd3mAOM5Gg0mFBLg=="
+    },
+    "zod@3.25.76": {
+      "integrity": "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@skmtc/core@0.28.3",
+      "jsr:@skmtc/gen-zod@0.2.5",
+      "jsr:@skmtc/lang-typescript@0.12.17",
+      "jsr:@std/assert@^1.0.10",
+      "jsr:@std/path@^1.0.9",
+      "npm:ts-pattern@^5.9.0",
+      "npm:zod@^3.24.0"
+    ]
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "workspace": "/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/opus-skills-3",
+  "timestamp": "2026-08-03T19:21:41.289Z",
+  "verifyPassed": true,
+  "verifyTail": "artifacts written to out/: 5\n  models/Address.generated.ts\n  models/Category.generated.ts\n  models/Order.generated.ts\n  models/OrderItem.generated.ts\n  models/OrderStatus.generated.ts\nresults: {\"success\":10}\nparseIssues: 0\n",
+  "artifacts": [
+    "Address.generated.ts",
+    "Category.generated.ts",
+    "Order.generated.ts",
+    "OrderItem.generated.ts",
+    "OrderStatus.generated.ts"
+  ],
+  "expectedModelsPresent": [
+    "Order",
+    "OrderItem",
+    "OrderStatus",
+    "Address",
+    "Category"
+  ],
+  "allModelsPresent": true,
+  "duplicateDefinitions": [],
+  "orderImportsAddress": true,
+  "lintSkmtcFirings": [],
+  "lintTotal": 0,
+  "genEval": {
+    "structurePass": true,
+    "producerShare": 1,
+    "stringOutsideShare": 0.24074074074074073,
+    "stringTopOutsideSites": [
+      {
+        "site": "EffectSchemaRef.constructor",
+        "file": "src/EffectSchemaRef.ts",
+        "count": 2,
+        "chars": 72
+      },
+      {
+        "site": "applyModifiers",
+        "file": "src/modifiers.ts",
+        "count": 3,
+        "chars": 69
+      },
+      {
+        "site": "EffectSchemaProjection.constructor",
+        "file": "src/EffectSchemaProjection.ts",
+        "count": 2,
+        "chars": 55
+      },
+      {
+        "site": "literal",
+        "file": "src/EffectSchemaString.ts",
+        "count": 1,
+        "chars": 12
+      }
+    ],
+    "templateImportsPass": true,
+    "adHocToStringPass": true,
+    "methodDiscipline": {
+      "producers": 13,
+      "clean": 13
+    },
+    "aggregateVerdict": "clean"
+  },
+  "skeletonAdoption": {
+    "slotMarkers": 25,
+    "hasLibTs": true,
+    "adopted": true
+  },
+  "categoryRecursion": true
+}

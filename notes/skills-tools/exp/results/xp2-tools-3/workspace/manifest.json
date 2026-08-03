@@ -1,0 +1,74 @@
+{
+  "files": {
+    "types/order.generated.ts": {
+      "destinationPath": "@/types/order.generated.ts",
+      "lines": 7,
+      "characters": 394
+    },
+    "types/orderStatus.generated.ts": {
+      "destinationPath": "@/types/orderStatus.generated.ts",
+      "lines": 4,
+      "characters": 103
+    },
+    "types/orderItem.generated.ts": {
+      "destinationPath": "@/types/orderItem.generated.ts",
+      "lines": 4,
+      "characters": 162
+    },
+    "types/address.generated.ts": {
+      "destinationPath": "@/types/address.generated.ts",
+      "lines": 4,
+      "characters": 170
+    },
+    "types/getOrdersResponse.generated.ts": {
+      "destinationPath": "@/types/getOrdersResponse.generated.ts",
+      "lines": 5,
+      "characters": 121
+    },
+    "client/OrdersClient.generated.ts": {
+      "destinationPath": "@/client/OrdersClient.generated.ts",
+      "lines": 44,
+      "characters": 931
+    },
+    "client/AddressesClient.generated.ts": {
+      "destinationPath": "@/client/AddressesClient.generated.ts",
+      "lines": 16,
+      "characters": 315
+    }
+  },
+  "previews": {},
+  "traceId": "exp2",
+  "spanId": "exp2",
+  "results": {
+    "generate": {
+      "@exp/gen-api-client": {
+        "/orders%3Aget": {
+          "variant%3A main": "success"
+        },
+        "/orders%3Apost": {
+          "variant%3A main": "success"
+        },
+        "/orders/{id}%3Aget": {
+          "variant%3A main": "success"
+        },
+        "/addresses/{id}%3Aget": {
+          "variant%3A main": "success"
+        }
+      }
+    },
+    "render": {
+      "@/types/order.generated.ts": "success",
+      "@/types/orderStatus.generated.ts": "success",
+      "@/types/orderItem.generated.ts": "success",
+      "@/types/address.generated.ts": "success",
+      "@/types/getOrdersResponse.generated.ts": "success",
+      "@/client/OrdersClient.generated.ts": "success",
+      "@/client/AddressesClient.generated.ts": "success"
+    }
+  },
+  "parseIssues": [],
+  "enrichmentWarnings": [],
+  "deploymentId": "1785538092619",
+  "startAt": 1785538092610,
+  "endAt": 1785538092619
+}

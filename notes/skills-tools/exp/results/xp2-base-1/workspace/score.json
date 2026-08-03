@@ -1,0 +1,62 @@
+{
+  "workspace": "/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/xp2-base-1",
+  "verifyPassed": true,
+  "verifyTail": "artifacts written to out/: 6\n  client/AddressesClient.generated.ts\n  client/OrdersClient.generated.ts\n  types/address.generated.ts\n  types/order.generated.ts\n  types/orderItem.generated.ts\n  types/orderStatus.generated.ts\nresults: {\"success\":10}\nparseIssues: 0\n",
+  "clientFiles": [
+    "AddressesClient.generated.ts",
+    "OrdersClient.generated.ts"
+  ],
+  "ordersClass": 1,
+  "ordersMethods": 3,
+  "addressesClass": 1,
+  "addressesMethods": 1,
+  "accumulatorShape": true,
+  "duplicateDefinitions": [],
+  "zodModelFilesExist": true,
+  "clientImportsModels": true,
+  "usesZodParse": true,
+  "lintSkmtcFirings": [],
+  "lintTotal": 1,
+  "genEval": {
+    "structurePass": false,
+    "producerShare": 1,
+    "stringOutsideShare": 0.9806701030927835,
+    "stringTopOutsideSites": [
+      {
+        "site": "toClientMethod",
+        "file": "src/toClientMethod.ts",
+        "count": 11,
+        "chars": 573
+      },
+      {
+        "site": "toMethodName",
+        "file": "src/naming.ts",
+        "count": 1,
+        "chars": 97
+      },
+      {
+        "site": "toClientName",
+        "file": "src/naming.ts",
+        "count": 1,
+        "chars": 50
+      },
+      {
+        "site": "toClientPath",
+        "file": "src/naming.ts",
+        "count": 1,
+        "chars": 41
+      }
+    ],
+    "templateImportsPass": true,
+    "adHocToStringPass": true,
+    "accumulatorVerdict": {
+      "verdict": false,
+      "signals": [
+        "findDefinition call"
+      ],
+      "containerProducers": []
+    },
+    "aggregateVerdict": "fail"
+  },
+  "timestamp": "2026-07-31T21:57:46.309Z"
+}

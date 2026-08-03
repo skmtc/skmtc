@@ -1,0 +1,69 @@
+{
+  "workspace": "/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/kotlin-jackson-1",
+  "timestamp": "2026-08-03T20:03:57.716Z",
+  "verifyPassed": false,
+  "verifyTail": "  com/example/models/OrderItem.generated.kt\n  com/example/models/OrderStatus.generated.kt\nresults: {\"success\":10}\nparseIssues: 0\n\u001b[0m\u001b[32mTask\u001b[0m \u001b[0m\u001b[36mverify\u001b[0m deno run --allow-read --allow-write --allow-env harness.ts && node kotlin-checks.mjs\nKOTLIN CHECKS FAILED (1):\n  - Order: items not typed List<OrderItem>\nCommand failed: deno task verify\n\u001b[0m\u001b[32mTask\u001b[0m \u001b[0m\u001b[36mverify\u001b[0m deno run --allow-read --allow-write --allow-env harness.ts && node kotlin-checks.mjs\nKOTLIN CHECKS FAILED (1):\n  - Order: items not typed List<OrderItem>\n",
+  "artifacts": [
+    "Address.generated.kt",
+    "Category.generated.kt",
+    "Order.generated.kt",
+    "OrderItem.generated.kt",
+    "OrderStatus.generated.kt"
+  ],
+  "expectedModelsPresent": [
+    "Order",
+    "OrderItem",
+    "OrderStatus",
+    "Address",
+    "Category"
+  ],
+  "allModelsPresent": true,
+  "duplicateDefinitions": [],
+  "jacksonAnnotated": true,
+  "lintSkmtcFirings": [],
+  "lintTotal": 3,
+  "genEval": {
+    "structurePass": true,
+    "producerShare": 1,
+    "stringOutsideShare": 0.19435215946843853,
+    "stringTopOutsideSites": [
+      {
+        "site": "KotlinRef.constructor",
+        "file": "src/KotlinRef.ts",
+        "count": 2,
+        "chars": 74
+      },
+      {
+        "site": "applyModifiers",
+        "file": "src/modifiers.ts",
+        "count": 2,
+        "chars": 21
+      },
+      {
+        "site": "KotlinEnumEntries.constructor",
+        "file": "src/KotlinEnumEntries.ts",
+        "count": 1,
+        "chars": 12
+      },
+      {
+        "site": "KotlinObjectProperties.constructor",
+        "file": "src/KotlinObject.ts",
+        "count": 1,
+        "chars": 10
+      }
+    ],
+    "templateImportsPass": true,
+    "adHocToStringPass": true,
+    "methodDiscipline": {
+      "producers": 14,
+      "clean": 14
+    },
+    "aggregateVerdict": "clean"
+  },
+  "skeletonAdoption": {
+    "slotMarkers": 25,
+    "hasLibTs": true,
+    "adopted": true
+  },
+  "categoryRecursion": true
+}

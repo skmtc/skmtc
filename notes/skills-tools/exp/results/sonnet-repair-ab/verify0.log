@@ -1,0 +1,22 @@
+[0m[32mInitialize[0m zod@3.25.76
+[0m[32mInitialize[0m ts-pattern@5.9.0
+[0m[32mTask[0m [0m[36mverify[0m deno run --allow-read --allow-write --allow-env harness.ts && deno check --config check.deno.json out/client/*.ts out/types/*.ts
+[0m[32mInitialize[0m graphql@16.14.2
+[0m[32mInitialize[0m @babel/helper-validator-identifier@7.27.1
+[0m[32mInitialize[0m lodash-es@4.17.21
+[0m[32mInitialize[0m valibot@1.1.0
+[0m[32mInitialize[0m tiny-invariant@1.3.3
+artifacts written to out/: 6
+  client/AddressesClient.generated.ts
+  client/OrdersClient.generated.ts
+  types/address.generated.ts
+  types/order.generated.ts
+  types/orderItem.generated.ts
+  types/orderStatus.generated.ts
+results: {"success":10}
+parseIssues: 0
+[0m[1m[31merror[0m: SyntaxError: Unexpected token `,`. Expected yield, an identifier, [ or {
+   |
+15 |   async createApiOrders(, body: unknown): Promise<order> {
+   |                         ~
+    at file:///private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/sonnet-repair-ab/out/client/OrdersClient.generated.ts:15:25

@@ -1,0 +1,297 @@
+[
+  {
+    "generator": "@exp/gen-effect-schema",
+    "dir": "/private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/opus-base-2/gen-effect-schema",
+    "fileCount": 13,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@exp/gen-effect-schema"
+    },
+    "classes": [
+      {
+        "className": "EffectArray",
+        "file": "src/EffectArray.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 33,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectObject",
+        "file": "src/EffectObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 61,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectStruct",
+        "file": "src/EffectObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 35,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectRecord",
+        "file": "src/EffectObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 18,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectRef",
+        "file": "src/EffectRef.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 65,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectScalar",
+        "file": "src/EffectScalars.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 24,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectString",
+        "file": "src/EffectScalars.ts",
+        "extendsName": "EffectScalar",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 7,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectNumber",
+        "file": "src/EffectScalars.ts",
+        "extendsName": "EffectScalar",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 7,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectInteger",
+        "file": "src/EffectScalars.ts",
+        "extendsName": "EffectScalar",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 7,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectBoolean",
+        "file": "src/EffectScalars.ts",
+        "extendsName": "EffectScalar",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 7,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectUnknown",
+        "file": "src/EffectScalars.ts",
+        "extendsName": "EffectScalar",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 7,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectVoid",
+        "file": "src/EffectScalars.ts",
+        "extendsName": "EffectScalar",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 7,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectSchemaProjection",
+        "file": "src/EffectSchemaProjection.ts",
+        "extendsName": "EffectSchemaBase",
+        "kind": "projection",
+        "extraMethods": [],
+        "lines": 40,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectUnion",
+        "file": "src/EffectUnion.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 31,
+        "sizeBucket": 50
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 13,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/Effect.ts:toEffectValue",
+      "src/EffectObject.ts:toPropertyKey",
+      "src/EffectScalars.ts:toStringExpression",
+      "src/applyModifiers.ts:withNullable",
+      "src/applyModifiers.ts:withOptional",
+      "src/applyModifiers.ts:applyModifiers",
+      "src/enrichments.ts:toEnrichmentSchema"
+    ],
+    "methodDiscipline": {
+      "producers": 14,
+      "clean": 14,
+      "flagged": [],
+      "accumulatorExempt": []
+    },
+    "strings": {
+      "insideToStringCount": 13,
+      "insideToStringChars": 540,
+      "namingStaticsCount": 1,
+      "namingStaticsChars": 22,
+      "outsideCount": 18,
+      "outsideChars": 537,
+      "outsideShare": 0.4986072423398329,
+      "topOutsideSites": [
+        {
+          "site": "toStringExpression",
+          "file": "src/EffectScalars.ts",
+          "count": 4,
+          "chars": 189
+        },
+        {
+          "site": "toEffectValue",
+          "file": "src/Effect.ts",
+          "count": 1,
+          "chars": 54
+        },
+        {
+          "site": "withOptional",
+          "file": "src/applyModifiers.ts",
+          "count": 2,
+          "chars": 40
+        },
+        {
+          "site": "withNullable",
+          "file": "src/applyModifiers.ts",
+          "count": 2,
+          "chars": 38
+        },
+        {
+          "site": "EffectRef.constructor",
+          "file": "src/EffectRef.ts",
+          "count": 1,
+          "chars": 35
+        },
+        {
+          "site": "EffectSchemaProjection.constructor",
+          "file": "src/EffectSchemaProjection.ts",
+          "count": 1,
+          "chars": 35
+        },
+        {
+          "site": "toPropertyKey",
+          "file": "src/EffectObject.ts",
+          "count": 1,
+          "chars": 33
+        },
+        {
+          "site": "<module>",
+          "file": "src/constants.ts",
+          "count": 1,
+          "chars": 26
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 14
+      }
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "singleDispatch": {
+      "pass": true,
+      "routerCount": 1,
+      "metadataCount": 0,
+      "outside": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "redundantRefGuards": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 1,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
+    },
+    "aggregate": {
+      "verdict": "clean",
+      "failedChecks": [],
+      "warningCount": 0,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "redundantRefGuards": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
+    }
+  }
+]

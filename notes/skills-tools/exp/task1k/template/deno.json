@@ -1,0 +1,18 @@
+{
+  "imports": {
+    "@skmtc/core": "jsr:@skmtc/core@0.28.3",
+    "@skmtc/lang-kotlin": "jsr:@skmtc/lang-kotlin@0.9.14",
+    "@std/path": "jsr:@std/path@^1.0.9",
+    "@std/assert": "jsr:@std/assert@^1.0.10",
+    "ts-pattern": "npm:ts-pattern@^5.9.0"
+  },
+  "nodeModulesDir": "auto",
+  "lint": {
+    "plugins": ["jsr:@skmtc/lint-plugin@0.1.0"],
+    "include": ["gen-kotlin-jackson/"]
+  },
+  "tasks": {
+    "generate": "deno run --allow-read --allow-write --allow-env harness.ts",
+    "verify": "deno run --allow-read --allow-write --allow-env harness.ts && node kotlin-checks.mjs"
+  }
+}

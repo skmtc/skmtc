@@ -1,0 +1,68 @@
+{
+  "files": {
+    "client/OrdersClient.generated.ts": {
+      "destinationPath": "@/client/OrdersClient.generated.ts",
+      "lines": 25,
+      "characters": 660
+    },
+    "types/order.generated.ts": {
+      "destinationPath": "@/types/order.generated.ts",
+      "lines": 7,
+      "characters": 394
+    },
+    "types/orderStatus.generated.ts": {
+      "destinationPath": "@/types/orderStatus.generated.ts",
+      "lines": 4,
+      "characters": 103
+    },
+    "types/orderItem.generated.ts": {
+      "destinationPath": "@/types/orderItem.generated.ts",
+      "lines": 4,
+      "characters": 162
+    },
+    "types/address.generated.ts": {
+      "destinationPath": "@/types/address.generated.ts",
+      "lines": 4,
+      "characters": 170
+    },
+    "client/AddressesClient.generated.ts": {
+      "destinationPath": "@/client/AddressesClient.generated.ts",
+      "lines": 10,
+      "characters": 232
+    }
+  },
+  "previews": {},
+  "traceId": "exp2",
+  "spanId": "exp2",
+  "results": {
+    "generate": {
+      "@exp/gen-api-client": {
+        "/orders%3Aget": {
+          "variant%3A main": "success"
+        },
+        "/orders%3Apost": {
+          "variant%3A main": "success"
+        },
+        "/orders/{id}%3Aget": {
+          "variant%3A main": "success"
+        },
+        "/addresses/{id}%3Aget": {
+          "variant%3A main": "success"
+        }
+      }
+    },
+    "render": {
+      "@/client/OrdersClient.generated.ts": "success",
+      "@/types/order.generated.ts": "success",
+      "@/types/orderStatus.generated.ts": "success",
+      "@/types/orderItem.generated.ts": "success",
+      "@/types/address.generated.ts": "success",
+      "@/client/AddressesClient.generated.ts": "success"
+    }
+  },
+  "parseIssues": [],
+  "enrichmentWarnings": [],
+  "deploymentId": "1785535957039",
+  "startAt": 1785535957030,
+  "endAt": 1785535957039
+}

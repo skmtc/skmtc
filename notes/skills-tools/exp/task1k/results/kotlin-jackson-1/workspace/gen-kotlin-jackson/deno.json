@@ -1,0 +1,9 @@
+{
+  "name": "@exp/gen-kotlin-jackson",
+  "version": "0.0.1",
+  "exports": "./mod.ts",
+  "fmt": {
+    "semiColons": false,
+    "singleQuote": true
+  }
+}

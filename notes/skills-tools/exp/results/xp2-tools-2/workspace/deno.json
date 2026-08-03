@@ -1,0 +1,20 @@
+{
+  "imports": {
+    "@skmtc/core": "jsr:@skmtc/core@0.28.3",
+    "@skmtc/lang-typescript": "jsr:@skmtc/lang-typescript@0.12.17",
+    "@skmtc/gen-zod": "jsr:@skmtc/gen-zod@0.2.5",
+    "@std/path": "jsr:@std/path@^1.0.9",
+    "@std/assert": "jsr:@std/assert@^1.0.10",
+    "ts-pattern": "npm:ts-pattern@^5.9.0",
+    "zod": "npm:zod@^3.24.0"
+  },
+  "nodeModulesDir": "auto",
+  "lint": {
+    "plugins": ["jsr:@skmtc/lint-plugin@0.1.0"],
+    "include": ["gen-api-client/"]
+  },
+  "tasks": {
+    "generate": "deno run --allow-read --allow-write --allow-env harness.ts",
+    "verify": "deno run --allow-read --allow-write --allow-env harness.ts && deno check --config check.deno.json out/client/*.ts out/types/*.ts"
+  }
+}

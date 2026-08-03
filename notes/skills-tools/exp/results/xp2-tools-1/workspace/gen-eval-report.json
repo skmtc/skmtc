@@ -1,0 +1,193 @@
+[
+  {
+    "generator": "@exp/gen-api-client",
+    "dir": "/private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/xp2-tools-1/gen-api-client",
+    "fileCount": 9,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [
+        "src/base.ts"
+      ],
+      "pass": false,
+      "packageName": "@exp/gen-api-client"
+    },
+    "classes": [
+      {
+        "className": "BodyParam",
+        "file": "src/BodyParam.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 15,
+        "sizeBucket": 50
+      },
+      {
+        "className": "ClientClass",
+        "file": "src/ClientClass.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 16,
+        "sizeBucket": 50
+      },
+      {
+        "className": "MethodBody",
+        "file": "src/MethodBody.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 57,
+        "sizeBucket": 50
+      },
+      {
+        "className": "PathParam",
+        "file": "src/PathParam.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 23,
+        "sizeBucket": 50
+      }
+    ],
+    "classTotals": {
+      "projections": 0,
+      "snippets": 4,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/identifiers.ts:toClientName",
+      "src/identifiers.ts:toClientPath",
+      "src/identifiers.ts:toMethodName",
+      "src/insertZodSchema.ts:insertZodSchema"
+    ],
+    "methodDiscipline": {
+      "producers": 4,
+      "clean": 4,
+      "flagged": [],
+      "accumulatorExempt": []
+    },
+    "strings": {
+      "insideToStringCount": 3,
+      "insideToStringChars": 319,
+      "namingStaticsCount": 0,
+      "namingStaticsChars": 0,
+      "outsideCount": 6,
+      "outsideChars": 225,
+      "outsideShare": 0.41360294117647056,
+      "topOutsideSites": [
+        {
+          "site": "toMethodName",
+          "file": "src/identifiers.ts",
+          "count": 1,
+          "chars": 71
+        },
+        {
+          "site": "toClientName",
+          "file": "src/identifiers.ts",
+          "count": 1,
+          "chars": 47
+        },
+        {
+          "site": "MethodBody.constructor",
+          "file": "src/MethodBody.ts",
+          "count": 2,
+          "chars": 42
+        },
+        {
+          "site": "toClientPath",
+          "file": "src/identifiers.ts",
+          "count": 1,
+          "chars": 35
+        },
+        {
+          "site": "insertZodSchema",
+          "file": "src/insertZodSchema.ts",
+          "count": 1,
+          "chars": 30
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": false,
+      "exempt": true
+    },
+    "accumulator": {
+      "verdict": true,
+      "signals": [
+        "defineAndRegister call",
+        "findDefinition call"
+      ],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 4
+      }
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "singleDispatch": {
+      "pass": true,
+      "routerCount": 0,
+      "metadataCount": 0,
+      "outside": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "redundantRefGuards": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 0,
+      "insertNormalizedModel": 2,
+      "defineAndRegister": 1,
+      "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
+    },
+    "aggregate": {
+      "verdict": "fail",
+      "failedChecks": [
+        "structure"
+      ],
+      "warningCount": 0,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "redundantRefGuards": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
+    }
+  }
+]

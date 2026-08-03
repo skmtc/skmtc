@@ -1,0 +1,12 @@
+{
+  "name": "@exp/gen-typebox",
+  "version": "0.1.0",
+  "exports": "./mod.ts",
+  "imports": {
+    "@skmtc/core": "jsr:@skmtc/core@0.28.3",
+    "@skmtc/lang-typescript": "jsr:@skmtc/lang-typescript@0.12.17"
+  },
+  "lint": {
+    "plugins": ["jsr:@skmtc/lint-plugin@0.1.0"]
+  }
+}

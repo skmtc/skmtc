@@ -1,0 +1,5 @@
+{
+  "name": "@exp/gen-api-client",
+  "version": "0.0.1",
+  "exports": "./mod.ts"
+}

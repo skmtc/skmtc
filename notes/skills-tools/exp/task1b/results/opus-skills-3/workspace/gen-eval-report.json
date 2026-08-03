@@ -1,0 +1,265 @@
+[
+  {
+    "generator": "@exp/gen-effect-schema",
+    "dir": "/private/var/folders/zm/gsy264sn75dcq_3nksyr_q640000gn/T/skmtc-exp/opus-skills-3/gen-effect-schema",
+    "fileCount": 14,
+    "structure": {
+      "present": [
+        "deno.json",
+        "mod.ts",
+        "src/mod.ts",
+        "src/base.ts",
+        "src/enrichments.ts"
+      ],
+      "missing": [],
+      "pass": true,
+      "packageName": "@exp/gen-effect-schema"
+    },
+    "classes": [
+      {
+        "className": "EffectSchemaArray",
+        "file": "src/EffectSchemaArray.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 38,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectSchemaObject",
+        "file": "src/EffectSchemaObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 76,
+        "sizeBucket": 100
+      },
+      {
+        "className": "EffectSchemaObjectProperties",
+        "file": "src/EffectSchemaObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 62,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectSchemaRecord",
+        "file": "src/EffectSchemaObject.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 27,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectSchemaProjection",
+        "file": "src/EffectSchemaProjection.ts",
+        "extendsName": "EffectSchemaBase",
+        "kind": "projection",
+        "extraMethods": [],
+        "lines": 49,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectSchemaRef",
+        "file": "src/EffectSchemaRef.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 75,
+        "sizeBucket": 100
+      },
+      {
+        "className": "EffectSchemaNumber",
+        "file": "src/EffectSchemaScalars.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 24,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectSchemaInteger",
+        "file": "src/EffectSchemaScalars.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 24,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectSchemaBoolean",
+        "file": "src/EffectSchemaScalars.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 23,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectSchemaUnknown",
+        "file": "src/EffectSchemaScalars.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 17,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectSchemaVoid",
+        "file": "src/EffectSchemaScalars.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 14,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectSchemaString",
+        "file": "src/EffectSchemaString.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 44,
+        "sizeBucket": 50
+      },
+      {
+        "className": "EffectSchemaUnion",
+        "file": "src/EffectSchemaUnion.ts",
+        "extendsName": "TsSnippet",
+        "kind": "snippet",
+        "extraMethods": [],
+        "lines": 46,
+        "sizeBucket": 50
+      }
+    ],
+    "classTotals": {
+      "projections": 1,
+      "snippets": 12,
+      "other": 0
+    },
+    "producerShare": 1,
+    "helperFunctions": [
+      "src/EffectSchema.ts:toEffectSchemaValue",
+      "src/EffectSchemaString.ts:literal",
+      "src/enrichments.ts:toEnrichmentSchema",
+      "src/modifiers.ts:applyModifiers"
+    ],
+    "methodDiscipline": {
+      "producers": 13,
+      "clean": 13,
+      "flagged": [],
+      "accumulatorExempt": []
+    },
+    "strings": {
+      "insideToStringCount": 20,
+      "insideToStringChars": 656,
+      "namingStaticsCount": 1,
+      "namingStaticsChars": 22,
+      "outsideCount": 8,
+      "outsideChars": 208,
+      "outsideShare": 0.24074074074074073,
+      "topOutsideSites": [
+        {
+          "site": "EffectSchemaRef.constructor",
+          "file": "src/EffectSchemaRef.ts",
+          "count": 2,
+          "chars": 72
+        },
+        {
+          "site": "applyModifiers",
+          "file": "src/modifiers.ts",
+          "count": 3,
+          "chars": 69
+        },
+        {
+          "site": "EffectSchemaProjection.constructor",
+          "file": "src/EffectSchemaProjection.ts",
+          "count": 2,
+          "chars": 55
+        },
+        {
+          "site": "literal",
+          "file": "src/EffectSchemaString.ts",
+          "count": 1,
+          "chars": 12
+        }
+      ]
+    },
+    "topLevelProjection": {
+      "pass": true,
+      "exempt": false
+    },
+    "accumulator": {
+      "verdict": false,
+      "signals": [],
+      "containerProducers": []
+    },
+    "producerSizes": [
+      {
+        "bucket": 50,
+        "count": 11
+      },
+      {
+        "bucket": 100,
+        "count": 2
+      }
+    ],
+    "toStringPurity": {
+      "pass": true,
+      "violations": []
+    },
+    "singleDispatch": {
+      "pass": true,
+      "routerCount": 0,
+      "metadataCount": 0,
+      "outside": []
+    },
+    "adHocToString": {
+      "pass": true,
+      "sites": []
+    },
+    "asCasts": {
+      "count": 0,
+      "sites": []
+    },
+    "redundantRefGuards": {
+      "count": 0,
+      "sites": []
+    },
+    "registrationChannels": {
+      "insertOperation": 0,
+      "insertModel": 1,
+      "insertNormalizedModel": 0,
+      "defineAndRegister": 0,
+      "rawDefinitionRegisters": []
+    },
+    "templateImports": {
+      "pass": true,
+      "sites": []
+    },
+    "emittedTodos": {
+      "count": 0,
+      "sites": []
+    },
+    "runtimeDiscipline": {
+      "pass": true,
+      "violations": []
+    },
+    "aggregate": {
+      "verdict": "clean",
+      "failedChecks": [],
+      "warningCount": 0,
+      "warnings": {
+        "flaggedProducers": 0,
+        "asCasts": 0,
+        "redundantRefGuards": 0,
+        "rawDefinitionRegisters": 0,
+        "emittedTodos": 0,
+        "otherClasses": 0,
+        "outsideShareHigh": false
+      }
+    }
+  }
+]
