@@ -17,7 +17,10 @@
     "valibot": "npm:valibot@1.1.0"
   },
   "nodeModulesDir": "auto",
-  "unstable": ["kv", "worker-options"],
+  "unstable": [
+    "kv",
+    "worker-options"
+  ],
   "workspace": [
     "./cli",
     "./convert",
@@ -49,5 +52,8 @@
     "coverage:html": "deno coverage coverage --html",
     "verify-docs": "deno run --allow-read --allow-run=deno docs/verify-docs.ts && deno run --allow-read --allow-run docs/friction-log/verify-catalog.ts && deno run --allow-read --allow-write --allow-run --allow-env docs/doc-test.ts"
   },
-  "minimumDependencyAge": "0"
+  "minimumDependencyAge": "0",
+  "exclude": [
+    "docs/skills/skmtc-model-v3/skeleton"
+  ]
 }
