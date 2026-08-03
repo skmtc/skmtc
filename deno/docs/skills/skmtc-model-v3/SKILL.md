@@ -1,6 +1,6 @@
 ---
 name: skmtc-model-v3
-version: 0.1.0
+version: 0.1.1
 description: >
   The model-generator shape for SKMTC: one definition per component
   schema, built by copying the shipped SKELETON package and filling its
@@ -131,6 +131,6 @@ specifics (register shapes, identifier kinds, import machinery,
 skill owns only the model SHAPE. The skeleton is TypeScript-emitting;
 for a Kotlin model generator, keep this skill's shape and edge-case
 rules but take call shapes from skmtc-lang-kotlin-v3 (no Kotlin
-skeleton yet). Operation/accumulator generators are a different shape —
-clone `gen-tanstack-query-fetch-zod` or `gen-msw` per
-skmtc-generator-v3 §2.
+skeleton yet). Operation generators are a different shape — load
+`skmtc-operation-v3`; accumulators are covered by neither (clone
+`gen-msw`/`gen-express` per skmtc-generator-v3 §2).

@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator-v3
-version: 0.2.2
+version: 0.2.3
 description: >
   Author and edit SKMTC generators — packages that project an OpenAPI
   domain model into application code. Method: clone the nearest stock
@@ -35,9 +35,9 @@ nearest exemplar:
 |---|---|
 | model → validator/schema value | load **skmtc-model-v3** and copy its engine-tested skeleton (fill-in slots; gen-zod is its pattern source) |
 | model → type declaration | `@skmtc/gen-typescript` |
-| operation → client hook, consuming a model generator | `@skmtc/gen-tanstack-query-fetch-zod` |
+| operation → client hook/SDK/form, consuming a model generator | load **skmtc-operation-v3** (decomposition + peer-consumption rules; gen-tanstack-query-fetch-zod is its canonical instance) |
 | many subjects → one shared file (accumulator) | `@skmtc/gen-msw`, `@skmtc/gen-express` |
-| Kotlin | structure from `gen-kotlin-*`, but their lang-API call shapes are STALE — take call shapes from skmtc-lang-kotlin-v3 only |
+| Kotlin | `@skmtc/gen-kotlin-jackson` (current lang-kotlin API; the older gen-kotlin-* were retired) |
 
 Fetch source from JSR: `https://jsr.io/@skmtc/<name>/meta.json` → pick
 version → fetch files (or `deno doc jsr:@skmtc/<name>`). Keep the
@@ -171,10 +171,11 @@ File/Import/Definition, identifier factories, emitted-language import
 rules, sanitization — lives in the target language's package and skill.
 Load `skmtc-lang-typescript-v3` or `skmtc-lang-kotlin-v3` before writing
 code. Lang skill wins on language specifics; this skill wins on engine
-semantics. Model generators additionally have a SHAPE skill —
-`skmtc-model-v3` — carrying the fill-in skeleton and the model edge
-cases (refs, recursion, visibility); model-specific guidance lives
-there, not here.
+semantics. Two SHAPE skills carry the per-shape guidance — load the
+one matching your subject: `skmtc-model-v3` (fill-in skeleton, model
+edge cases: refs, recursion, visibility) or `skmtc-operation-v3`
+(operation decomposition, peer-consumption rules). Shape-specific
+guidance lives there, not here.
 
 Scope note: this skill covers **OpenAPI input**. GraphQL SDL input
 exists (`toGqlOperationEntry`, subject routing by
