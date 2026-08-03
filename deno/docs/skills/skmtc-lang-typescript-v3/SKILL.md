@@ -25,7 +25,7 @@ The declaration is the import graph — no `lang` config field exists.
 `src/base.ts` imports a factory; the returned class extends `TsSnippet`,
 which carries the `static lang` Drivers read pre-construction.
 
-```ts
+```ts fragment
 import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 
 export const MyBase = toTsModelProjectionBase<EnrichmentSchema>({
