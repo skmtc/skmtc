@@ -6,6 +6,9 @@ import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { SchemaToValueFn } from '@/types/TypeSystem.ts'
+import type { OasSchema } from '@/oas/schema/Schema.ts'
+import type { OasRef } from '@/oas/ref/Ref.ts'
+import type { OasVoid } from '@/oas/void/Void.ts'
 
 /**
  * External constructor signature for a model projection class.
@@ -158,4 +161,30 @@ export type NormalizedModelProjection<V extends GeneratedValue, EnrichmentType =
      * reads only `.name`).
      */
     createIdentifier: (name: string) => IdentifierBase
+    /**
+     * Optional: answer the DECLARATION question directly — identifier
+     * kind and value decided together, by the projection that owns both.
+     *
+     * The default path assumes a value renders identically in type
+     * position and as a declaration body — true for TypeScript
+     * (`z.object({...})` is both), false for languages with a head+value
+     * declaration model: Kotlin's inline object is `Map<String, Any?>`
+     * as a type but a parameter list after `data class Name`. A
+     * projection for such a language provides this static; the engine
+     * then never glues a declaration head to a type-position render.
+     */
+    toDeclaration?: (args: ToDeclarationArgs) => {
+      identifier: IdentifierBase
+      value: GeneratedValue
+    }
   }
+
+/** Arguments for {@link NormalizedModelProjection.toDeclaration}. */
+export type ToDeclarationArgs = {
+  context: GenerateContextType
+  schema: OasSchema | OasRef<'schema'> | OasVoid
+  /** The caller-provided model name (the normalized `fallbackName`). */
+  name: string
+  /** The file the definition will land in. */
+  destinationPath: string
+}

@@ -1430,12 +1430,26 @@ export class GenerateContext implements GenerateContextType {
       return cachedDefinition as InsertNormalizedModelReturn<V, Schema>
     }
 
-    const value = projection.schemaToValueFn({
+    // A projection may answer the DECLARATION question directly
+    // (identifier kind + value decided together — languages whose values
+    // render differently in type position and declaration position).
+    // Otherwise the type-position value declares as-is, which is the
+    // TypeScript-family behavior.
+    const declaration = projection.toDeclaration?.({
       context: this,
       schema,
-      destinationPath,
-      required: true
+      name: fallbackName,
+      destinationPath
     })
+
+    const value = declaration
+      ? declaration.value
+      : projection.schemaToValueFn({
+        context: this,
+        schema,
+        destinationPath,
+        required: true
+      })
 
     // The inline-schema fallback builds the Definition through the
     // projection's language — the static read off the projection class at
@@ -1450,7 +1464,7 @@ export class GenerateContext implements GenerateContextType {
 
     const definition = projection.lang.toDefinition({
       context: this,
-      identifier: projection.createIdentifier(fallbackName),
+      identifier: declaration ? declaration.identifier : projection.createIdentifier(fallbackName),
       value,
       noExport
     })
