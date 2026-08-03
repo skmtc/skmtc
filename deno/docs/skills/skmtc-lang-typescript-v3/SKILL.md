@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-typescript-v3
-version: 0.2.1
+version: 0.2.2
 description: >
   The TypeScript target-language layer for SKMTC generators
   (@skmtc/lang-typescript): projection base factories, TsSnippet, the
@@ -13,10 +13,11 @@ description: >
 
 # The TypeScript layer (@skmtc/lang-typescript)
 
-Read `skmtc-generator-v3` first; you will normally have cloned
-`@skmtc/gen-zod` (model) or `@skmtc/gen-tanstack-query-fetch-zod`
-(operation) — **those are the worked examples**. This skill carries the
-rules that aren't visible from imitation alone.
+Read `skmtc-generator-v3` first; you will normally have copied the
+`skmtc-model-v3` skeleton (model generators — load that skill) or
+cloned `@skmtc/gen-tanstack-query-fetch-zod` (operation) — **those are
+the worked examples**. This skill carries the rules that aren't visible
+from imitation alone.
 
 ## 1. Declaring the language
 

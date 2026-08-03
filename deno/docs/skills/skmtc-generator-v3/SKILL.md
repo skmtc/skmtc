@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator-v3
-version: 0.2.1
+version: 0.2.2
 description: >
   Author and edit SKMTC generators — packages that project an OpenAPI
   domain model into application code. Method: clone the nearest stock
@@ -33,7 +33,7 @@ nearest exemplar:
 
 | Need | Clone |
 |---|---|
-| model → validator/schema value | `@skmtc/gen-zod` (also gen-arktype, gen-valibot) |
+| model → validator/schema value | load **skmtc-model-v3** and copy its engine-tested skeleton (fill-in slots; gen-zod is its pattern source) |
 | model → type declaration | `@skmtc/gen-typescript` |
 | operation → client hook, consuming a model generator | `@skmtc/gen-tanstack-query-fetch-zod` |
 | many subjects → one shared file (accumulator) | `@skmtc/gen-msw`, `@skmtc/gen-express` |
@@ -171,7 +171,10 @@ File/Import/Definition, identifier factories, emitted-language import
 rules, sanitization — lives in the target language's package and skill.
 Load `skmtc-lang-typescript-v3` or `skmtc-lang-kotlin-v3` before writing
 code. Lang skill wins on language specifics; this skill wins on engine
-semantics.
+semantics. Model generators additionally have a SHAPE skill —
+`skmtc-model-v3` — carrying the fill-in skeleton and the model edge
+cases (refs, recursion, visibility); model-specific guidance lives
+there, not here.
 
 Scope note: this skill covers **OpenAPI input**. GraphQL SDL input
 exists (`toGqlOperationEntry`, subject routing by
