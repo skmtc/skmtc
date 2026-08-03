@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-kotlin-v3
-version: 0.2.1
+version: 0.2.2
 description: >
   The Kotlin target-language layer for SKMTC generators
   (@skmtc/lang-kotlin): base factories, KtSnippet, the seven identifier
@@ -183,6 +183,27 @@ breaks far from the cause. Serialization flavor is confined to the value
 files (data class / enum entries / sealed interface): a Jackson/Moshi
 sibling generator swaps annotation construction there only.
 
+## 8b. Normalized models — KNOWN ENGINE GAP (verified 2026-08-03)
+
+The head+value model means a Kotlin value renders differently in TYPE
+position (`Map<String, Any?>`) and DECLARATION position (a parameter
+list). Core's generic `insertNormalizedModel` glues the identifier
+head to the value's type-position `toString()` — which for an inline
+OBJECT schema renders invalid Kotlin: `data class XMap<String, Any?>`.
+Until a declaration-form protocol exists, the legitimate options are:
+
+- **Named `$ref` schemas are unaffected** — `insertModel` and the ref
+  path work correctly; prefer specs/contracts that name their models.
+- An inline NON-object schema normalizes fine as a `typealias`-shaped
+  value.
+- For an inline object: use a normalized-model API the peer package
+  explicitly exports, if it has one; otherwise degrade (accept the
+  type-position form where semantics allow) and NAME THE GAP in your
+  summary. Never fabricate a refName or drive the peer's identity
+  statics to force a declaration into existence — that is the
+  two-doors rule (skmtc-generator-v3 §4), and the result couples you
+  to the peer's private snippet shape.
+
 ## 9. Kotlin pitfalls
 
 | Symptom | Fix |
@@ -196,3 +217,4 @@ sibling generator swaps annotation construction there only.
 | Empty `data class` throws | Shape dispatch must route empty objects to `typealias` |
 | TDZ crash at module load | Break base↔router↔projection cycles with a leaf module (`peekSchema` pattern) |
 | Nondeterministic output | No module state; config via enrichments; memoize document scans in `WeakMap` |
+| `data class X` glued to `Map<String, Any?>` | The normalized-insert type/declaration gap — §8b, don't hack around it |

@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator-v3
-version: 0.2.3
+version: 0.2.4
 description: >
   Author and edit SKMTC generators — packages that project an OpenAPI
   domain model into application code. Method: clone the nearest stock
@@ -108,6 +108,18 @@ functions that return strings — helpers drift.
   methods beyond constructor and toString"). `defineAndRegister` is a
   **lang-package free function** (import it from your lang package) —
   there is no `context.defineAndRegister`; that API was deleted.
+- **Peers have exactly two doors**: the insert machinery, or an API the
+  peer package explicitly exports. Never call another generator's
+  identity statics (`toIdentifierName`/`toExportPath`/`toEnrichments`)
+  yourself, and never fabricate a refName — `toRefName` on a string you
+  built points at a schema that does not exist, and attribution,
+  enrichment routing, and recursion tracking are all keyed by REAL
+  refNames; the fabrication survives only until something resolves it.
+  If the sanctioned call cannot express what you need, you have found an
+  ENGINE GAP: name it in your summary and take the nearest legitimate
+  degradation. Never re-create engine machinery inside a generator — a
+  faithful-looking counterfeit passes every automated check and breaks,
+  far from the cause, on the next engine change.
 - **When in doubt, make it a producer.** The cost asymmetry is one-way:
   a producer that never needed to be one costs a few lines; a string
   that later needed to be a producer severs the chain for everything
@@ -163,6 +175,8 @@ the text into a template.
 | Router misroutes custom values | `schema.type === 'custom'` is a real dispatch case — presence-test with `'readOnly' in schema`-style guards, not type equality |
 | `null` slips through an optional guard | `!== undefined` lets `null` pass on Nullable generics — check both |
 | `insertResult.identifier` is a type error | You have an `Inserted` handle (from `insertModel`) — use `.toName()`/`.definition`; only `insertNormalizedModel` returns the definition |
+| `` toRefName(`...${name}`) `` anywhere | Fabricated ref — go through a peer's two doors, never its statics |
+| Reading fields off a peer's value beyond the definition/name | Coupled to the peer's PRIVATE snippet shape — it will change silently |
 
 ## 7. The lang layer
 

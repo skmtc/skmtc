@@ -1,6 +1,6 @@
 ---
 name: skmtc-operation-v3
-version: 0.1.0
+version: 0.1.1
 description: >
   The operation-generator shape for SKMTC: one definition per (path,
   method), for any output family — client hooks, SDK methods, forms,
@@ -99,6 +99,19 @@ path, your file's import is stitched by the engine, and only the
 identifier lands in your tree. Import peer projections through their
 package alias (`@skmtc/gen-zod`), never by relative path.
 
+What the insert gives you — the name, the placement (normalized models
+co-locate at YOUR export path via the base wrapper), the declaration
+form — **is the convention**. If it does not match what you want, do
+not fight it by driving the peer's machinery yourself: fabricating a
+refName to key the peer's identity statics, calling its
+`toExportPath`/`toIdentifierName` directly, or reading fields off its
+returned value beyond the definition and its name are all the same
+mistake — a reimplementation of the engine that passes every automated
+check and breaks on the next peer or engine change. Those are the TWO
+DOORS of skmtc-generator-v3 §4; when neither door fits, you found an
+engine or lang gap — check the lang skill's known-gap notes, take the
+nearest legitimate degradation, and say so in your summary.
+
 ## 4. Dispatch and composition
 
 Models route on schema type; operations route on **operation kind** —
@@ -158,6 +171,8 @@ identifier-derived); (3) unsupported operations absent, not errored.
 | Run fails on operations you never meant to handle | Missing/loose `isSupported` |
 | Path renders with wrong interpolation | Path template belongs to the lang layer, at render — never build it into a stored string |
 | Peer import points into another package's source tree | Import via the `@skmtc/*` package alias |
+| A helper builds a `#/components/schemas/...` string, or calls a peer's identity statics | Reimplemented insert machinery — two doors only (skmtc-generator-v3 §4) |
+| Peer's rendered value looks wrong in declaration position | Lang-level type-vs-declaration gap — see the lang skill's known-gap notes, don't pluck the peer's internals |
 
 ## 9. Boundaries
 
