@@ -55,7 +55,8 @@ export {
   KtAnnotations,
   toKtAnnotations,
   type KtAnnotated,
-  type KtAnnotationArgs
+  type KtAnnotationArgs,
+  type KtAnnotationTarget
 } from './src/KtAnnotation.ts'
 export { isKtDocumented, type KtDocumented } from './src/KtDocumented.ts'
 export {

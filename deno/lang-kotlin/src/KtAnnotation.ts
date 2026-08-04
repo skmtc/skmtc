@@ -2,6 +2,23 @@ import type { GenerateContextType, Stringable } from '@skmtc/core'
 import { register } from './register.ts'
 
 /**
+ * Kotlin's annotation use-site targets — the `field:` in
+ * `@field:JsonAnySetter`. Grammar-level, so the set is closed and owned
+ * here; WHICH target a generator picks is its policy.
+ */
+export type KtAnnotationTarget =
+  | 'field'
+  | 'get'
+  | 'set'
+  | 'param'
+  | 'property'
+  | 'receiver'
+  | 'setparam'
+  | 'delegate'
+  | 'file'
+  | 'all'
+
+/**
  * Constructor arguments for {@link KtAnnotation}.
  */
 export type KtAnnotationArgs = {
@@ -9,6 +26,13 @@ export type KtAnnotationArgs = {
   name: string
   /** Pre-quoted argument list rendered inside `(…)`; omitted → bare `@Name`. */
   args?: Stringable[]
+  /**
+   * Use-site target rendered as `@<target>:<Name>` — needed when the
+   * declaration site is ambiguous (a constructor `val` is parameter,
+   * property, field, and getter at once). The imported symbol is still
+   * `name` alone; the target is render-only grammar.
+   */
+  target?: KtAnnotationTarget
   /**
    * Dotted package the annotation class lives in — self-registers
    * `import <packageName>.<name>` into `destinationPath`. Omitted for
@@ -49,10 +73,12 @@ export type KtAnnotationArgs = {
 export class KtAnnotation {
   name: string
   args: Stringable[]
+  target: KtAnnotationTarget | undefined
 
-  constructor({ context, name, args = [], packageName, destinationPath }: KtAnnotationArgs) {
+  constructor({ context, name, args = [], target, packageName, destinationPath }: KtAnnotationArgs) {
     this.name = name
     this.args = args
+    this.target = target
 
     if (packageName !== undefined) {
       register(context, {
@@ -63,7 +89,9 @@ export class KtAnnotation {
   }
 
   toString(): string {
-    return this.args.length ? `@${this.name}(${this.args.join(', ')})` : `@${this.name}`
+    const head = this.target ? `@${this.target}:${this.name}` : `@${this.name}`
+
+    return this.args.length ? `${head}(${this.args.join(', ')})` : head
   }
 }
 
