@@ -64,3 +64,36 @@ Deno.test('an annotation without a packageName renders only (default-scope annot
   assertEquals(`${annotation}`, '@Deprecated("use v2")')
   assertEquals(context.inspectedFiles.size, 0)
 })
+
+Deno.test('a use-site target renders as @target:Name; the import stays the bare symbol', () => {
+  const context = toGenerateContext()
+  const destinationPath = '@/com/example/api/User.generated.kt'
+
+  const annotation = new KtAnnotation({
+    context,
+    name: 'JsonAnySetter',
+    target: 'field',
+    packageName: 'com.fasterxml.jackson.annotation',
+    destinationPath
+  })
+
+  assertEquals(`${annotation}`, '@field:JsonAnySetter')
+
+  const file = context.getFile(destinationPath)
+  assertInstanceOf(file, KtFile)
+  assertStringIncludes(file.toString(), 'import com.fasterxml.jackson.annotation.JsonAnySetter')
+})
+
+Deno.test('a use-site target composes with args', () => {
+  const context = toGenerateContext()
+
+  const annotation = new KtAnnotation({
+    context,
+    name: 'Suppress',
+    target: 'file',
+    args: ['"unused"'],
+    destinationPath: '@/com/example/api/User.generated.kt'
+  })
+
+  assertEquals(`${annotation}`, '@file:Suppress("unused")')
+})
