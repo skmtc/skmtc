@@ -108,9 +108,14 @@ refName to key the peer's identity statics, calling its
 returned value beyond the definition and its name are all the same
 mistake — a reimplementation of the engine that passes every automated
 check and breaks on the next peer or engine change. Those are the TWO
-DOORS of skmtc-generator-v3 §4; when neither door fits, you found an
-engine or lang gap — check the lang skill's known-gap notes, take the
-nearest legitimate degradation, and say so in your summary.
+DOORS of skmtc-generator-v3 §4; when neither door fits, do not settle
+for a degraded render — research how other code generators handle the
+same edge case (the lang skill's notes, retired in-house generators in
+git history, OpenAPI Generator's inline-model hoisting). The usual
+answer is a synthesized named declaration, reached through the peer's
+exported API or your own lang package's `defineAndRegister`. If the
+known solution needs machinery the engine lacks, name the gap in your
+summary and raise it — never silently ship the degraded form.
 
 ## 4. Dispatch and composition
 

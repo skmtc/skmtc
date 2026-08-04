@@ -115,9 +115,34 @@ functions that return strings — helpers drift.
   built points at a schema that does not exist, and attribution,
   enrichment routing, and recursion tracking are all keyed by REAL
   refNames; the fabrication survives only until something resolves it.
-  If the sanctioned call cannot express what you need, you have found an
-  ENGINE GAP: name it in your summary and take the nearest legitimate
-  degradation. Never re-create engine machinery inside a generator — a
+  If the sanctioned call cannot express what you need, do NOT settle
+  for a degraded render — a widened type (`Map<String, Any?>` for a
+  known shape) is capitulation, not a solution. Treat the situation as
+  a solved problem you haven't found yet: research how other code
+  generators handle this exact edge case — the stock lineup, retired
+  in-house generators (git history is a design archive), and mature
+  external tools (OpenAPI Generator, Fabrikt). The answer is almost
+  always to SYNTHESIZE a named declaration and reference it by name
+  (`findDefinition` probe + your lang package's `defineAndRegister`).
+  The synthesized NAME derives from the schema's own `stackTrail` — a
+  pure function from position to name, computed at the point of need
+  (`components/schemas/Order/properties/metadata` → `OrderMetadata`;
+  an operation-rooted trail reuses `toMethodVerb` naming →
+  `CreateApiOrdersBody`). Never thread a naming hint as a parameter:
+  position-derived names are deterministic, collision-free (distinct
+  positions → distinct trails), and reach EVERY construction path —
+  including values built through `insertNormalizedModel`'s contract,
+  which cannot pass a hint. Two rules: anchor on the document landmarks
+  (`components`/`paths`), never absolute indices — the trail's head
+  carries per-run tracing frames (`trace-*`/`span-*`/`parse`); and
+  throw on an unrecognized or empty trail rather than invent a name
+  (the engine isolates the throw to that subject). Worked example:
+  `toSynthesizedName.ts` in the kotlin-debug rig's gen-kotlin-jackson
+  (verified end-to-end 2026-08-04, compiler-clean).
+  Only when the known solution needs machinery the engine genuinely
+  lacks have you found an ENGINE GAP — name it in your summary and
+  raise it; never silently ship the degraded form as if it were the
+  answer. Never re-create engine machinery inside a generator — a
   faithful-looking counterfeit passes every automated check and breaks,
   far from the cause, on the next engine change.
 - **When in doubt, make it a producer.** The cost asymmetry is one-way:

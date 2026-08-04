@@ -1,6 +1,6 @@
 ---
 name: skmtc-model-v3
-version: 0.1.1
+version: 0.1.3
 description: >
   The model-generator shape for SKMTC: one definition per component
   schema, built by copying the shipped SKELETON package and filling its
@@ -84,6 +84,43 @@ engine machinery — modifying it is almost always a mistake.
 - **additionalProperties** → the record path; `true`/empty schema →
   the unknown fallback; properties + additionalProperties together →
   SLOT(object-intersection).
+- **An object schema has four forms — and position can change the
+  render.** Properties-only, record-only (additionalProperties), both,
+  empty: every place an object renders must survive all four. In
+  TypeScript one expression serves both type and declaration positions
+  (`z.object({...})`, `.and(z.record(...))` for both-forms), so the
+  object SLOTs compose freely. In a head+value language (Kotlin) the
+  two positions DIVERGE, and a position-blind `toString()` cannot serve
+  both (compiler-verified 2026-08-04, kotlin-debug rig): properties-only
+  declares as a `data class` parameter list, and in type position must
+  render a NAME — synthesize the named sibling declaration and
+  reference it (name derived from the schema's own `stackTrail`, no
+  naming param threaded through the router; collisions policed by a
+  document-wide claim registry that throws per-item, since the name
+  shares a PACKAGE with every component class — gen-kotlin-jackson
+  `toSynthesizedName.ts` + `synthesizedNames.ts`; a parameter list in
+  type position parses as a function type and fails, and widening to
+  `Map<String, Any?>` discards the type — capitulation, not a
+  solution); record-only and empty
+  must not take a data-class head at all (`data class X()` is illegal —
+  their declaration kind is `typealias`); both-forms has a declaration
+  form (data class plus a `@field:JsonAnySetter @get:JsonAnyGetter`
+  catch-all map property) but no anonymous type form. Decide the
+  identifier KIND and the value together from the same schema guards
+  (gen-kotlin-jackson `shape.ts` is the worked example) — never from
+  the name alone, and never by making one `toString()` answer both
+  positions.
+- **A discriminated union may be a DECLARATION, not an expression.**
+  In TypeScript SLOT(union) is one expression
+  (`z.discriminatedUnion("type", [...])`). In a language without union
+  types (Kotlin) a qualifying discriminated union becomes a named
+  `sealed` declaration, and the member models must declare the
+  supertype — a member may be BUILT before its union is ever seen, so
+  membership comes from a document-wide scan (parent → member
+  inversion, WeakMap-memoized) consulted at member construction, never
+  from the union's own walk. Non-qualifying unions render the honest
+  wire type (`JsonNode`), not `Any`. Full pattern:
+  skmtc-lang-kotlin-v3 §8c.
 - **Property keys** go through `handleKey` — `'first-name'` renders
   quoted; never assume keys are identifiers.
 - **Visibility.** `readOnly`/`writeOnly` are captured per property in
@@ -121,6 +158,7 @@ import means a string swallowed a snippet), then the body, then
 | Enum with `null` member renders `'null'` | Keep the `literal()` null-guard from `MyLibString` |
 | Peer generator can't consume yours | `schemaToValueFn`/`createIdentifier` statics or TypeSystem contract fields removed |
 | Lint fires `no-template-imports`/`no-adhoc-tostring` | Target syntax leaked outside a `toString()` body — move it into the SLOT |
+| `data class NameMap<String, Any?>` (head glued to a type) in output | Declaration kind and value were decided separately — see the four-forms bullet in §3; kind+value must come from the same schema guards |
 
 ## 6. Boundaries
 
