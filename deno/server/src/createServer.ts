@@ -20,6 +20,8 @@ import {
   validateBody,
 } from "./requestSchemas.ts";
 import type { ArtifactsBody } from "./requestSchemas.ts";
+import { homePageHtml, homePageMd, resolveCoreVersion } from "./homePage.ts";
+import type { HomePageContext, StackIdentity } from "./homePage.ts";
 
 type GenerateResult = {
   artifacts: Record<string, string>;
@@ -105,12 +107,23 @@ type CreateServerArgs = {
   toGeneratorConfigMap: <EnrichmentType = undefined>() =>
     GeneratorsMapContainer<EnrichmentType>;
   logsPath?: string;
+  /** Deploy-time identity shown on the home page (`/`, `/index.md`,
+   *  `/llms.txt`). Optional — without it the page falls back to a generic
+   *  self-description. */
+  identity?: StackIdentity;
 };
 
 export const createServer = (
-  { toGeneratorConfigMap, logsPath }: CreateServerArgs,
+  { toGeneratorConfigMap, logsPath, identity }: CreateServerArgs,
 ): Hono => {
   const app = new Hono();
+
+  const toHomeContext = (requestUrl: string): HomePageContext => ({
+    identity: identity ?? {},
+    generators: Object.keys(toGeneratorConfigMap()),
+    origin: new URL(requestUrl).origin,
+    coreVersion: resolveCoreVersion(),
+  });
 
   app.use(
     "*",
@@ -122,6 +135,27 @@ export const createServer = (
       exposeHeaders: ["api-version", "authorization", "content-type"],
     }),
   );
+
+  // The home page: HTML for browsers, the flat markdown contract for
+  // everything else (curl sends `Accept: */*` — no flags needed).
+  app.get("/", (c) => {
+    const wantsHtml = (c.req.header("accept") ?? "").includes("text/html");
+    return wantsHtml
+      ? c.html(homePageHtml(toHomeContext(c.req.url)))
+      : c.text(homePageMd(toHomeContext(c.req.url)), 200, {
+        "content-type": "text/markdown; charset=utf-8",
+      });
+  });
+
+  app.get(
+    "/index.md",
+    (c) =>
+      c.text(homePageMd(toHomeContext(c.req.url)), 200, {
+        "content-type": "text/markdown; charset=utf-8",
+      }),
+  );
+
+  app.get("/llms.txt", (c) => c.text(homePageMd(toHomeContext(c.req.url))));
 
   app.post("/artifacts", async (c) => {
     const body = v.parse(postArtifactsBody, await c.req.json());
