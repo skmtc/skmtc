@@ -20,7 +20,7 @@ import {
   validateBody,
 } from "./requestSchemas.ts";
 import type { ArtifactsBody } from "./requestSchemas.ts";
-import { homePageHtml, homePageMd, resolveCoreVersion } from "./homePage.ts";
+import { homePageHtml, homePageMd } from "./homePage.ts";
 import type { HomePageContext, StackIdentity } from "./homePage.ts";
 
 type GenerateResult = {
@@ -122,7 +122,6 @@ export const createServer = (
     identity: identity ?? {},
     generators: Object.keys(toGeneratorConfigMap()),
     origin: new URL(requestUrl).origin,
-    coreVersion: resolveCoreVersion(),
   });
 
   app.use(

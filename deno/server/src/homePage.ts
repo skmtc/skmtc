@@ -32,8 +32,6 @@ export type HomePageContext = {
   generators: string[];
   /** The serving origin, from the request URL. */
   origin: string;
-  /** Resolved `@skmtc/core` version. */
-  coreVersion: string;
 };
 
 const FALLBACK_NAME = "skmtc stack server";
@@ -78,21 +76,6 @@ export const toStackIdentity = (denoConfig: unknown): StackIdentity => {
     ...(description !== undefined ? { description } : {}),
     ...(homepageUrl !== undefined ? { homepageUrl } : {}),
   };
-};
-
-/** Resolved `@skmtc/core` version — the same skew canary trick the hosted
- *  wrapper uses. Resolution shapes seen live:
- *  `https://jsr.io/@skmtc/core/0.26.0/mod.ts` and `jsr:@skmtc/core@0.26.0`. */
-export const resolveCoreVersion = (): string => {
-  try {
-    const resolved = import.meta.resolve("@skmtc/core");
-    const match = /@skmtc\/core[@/]([^/]+)/.exec(resolved);
-    // A workspace-path resolution has no version in it — show "unknown"
-    // rather than a file URL.
-    return match ? match[1] : "unknown";
-  } catch {
-    return "unknown";
-  }
 };
 
 const curlExample = (origin: string): string =>
@@ -144,7 +127,7 @@ const escapeHtml = (text: string): string =>
 /** The flat, complete markdown page — served at `/` (non-browser Accept),
  *  `/index.md` and `/llms.txt`. */
 export const homePageMd = (context: HomePageContext): string => {
-  const { identity, generators, origin, coreVersion } = context;
+  const { identity, generators, origin } = context;
   const name = identity.name ?? FALLBACK_NAME;
   const homepage = identity.homepageUrl ?? FALLBACK_HOMEPAGE;
   const endpoints = ENDPOINT_LINES.map(([route, what]) =>
@@ -207,13 +190,13 @@ ${agentPrompt(context)}
 \`\`\`
 
 ---
-core ${coreVersion} · ${homepage}
+${homepage}
 `;
 };
 
 /** The layered HTML page — served at `/` to browsers (`Accept: text/html`). */
 export const homePageHtml = (context: HomePageContext): string => {
-  const { identity, generators, origin, coreVersion } = context;
+  const { identity, generators, origin } = context;
   const name = escapeHtml(identity.name ?? FALLBACK_NAME);
   const homepage = escapeHtml(identity.homepageUrl ?? FALLBACK_HOMEPAGE);
   const tagline = escapeHtml(identity.description || FALLBACK_DESCRIPTION);
@@ -378,7 +361,6 @@ export const homePageHtml = (context: HomePageContext): string => {
   </div>
 
   <footer>
-    <span>core ${escapeHtml(coreVersion)}</span>
     <a href="/llms.txt">/llms.txt</a>
     <a href="${homepage}">hub &#8599;</a>
   </footer>
