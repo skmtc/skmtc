@@ -79,17 +79,13 @@ export const toStackIdentity = (denoConfig: unknown): StackIdentity => {
 };
 
 /** The zero-asset first command: a public schema URL, nothing to have on
- *  disk, no stringify step. */
+ *  disk, no stringify step. The page shows ONLY this — the inline `schema`
+ *  field stays documented in the agent prompt and the OpenAPI contract,
+ *  and local files are the CLI's job (`source` in client.json). */
 const curlExample = (origin: string): string =>
   `curl -s -X POST ${origin}/artifacts \\
   -H 'content-type: application/json' \\
   -d '{"source":"https://petstore3.swagger.io/api/v3/openapi.json"}'`;
-
-/** The local-file variant: inline the document as a JSON string. */
-const curlFileExample = (origin: string): string =>
-  `curl -s -X POST ${origin}/artifacts \\
-  -H 'content-type: application/json' \\
-  -d "{\\"schema\\":$(jq -Rs . < openapi.json)}"`;
 
 const installCommand = ({ name }: StackIdentity): string =>
   name
@@ -165,12 +161,6 @@ Point \`source\` at any schema URL:
 
 \`\`\`sh
 ${curlExample(origin)}
-\`\`\`
-
-Or inline a local file as \`schema\`:
-
-\`\`\`sh
-${curlFileExample(origin)}
 \`\`\`
 
 Returns \`{"artifacts": {"<path>": "<content>", ...}, "manifest": {...}}\` —
@@ -334,13 +324,6 @@ export const homePageHtml = (context: HomePageContext): string => {
       <button class="copy" data-copy="curl-cmd">[copy]</button>
       <pre><code id="curl-cmd"><span class="p">$</span> ${
     escapeHtml(curlExample(origin))
-  }</code></pre>
-    </div>
-    <p class="dim">Or inline a local file as <code>schema</code>:</p>
-    <div class="block">
-      <button class="copy" data-copy="curl-file-cmd">[copy]</button>
-      <pre><code id="curl-file-cmd"><span class="p">$</span> ${
-    escapeHtml(curlFileExample(origin))
   }</code></pre>
     </div>
     <p>Returns <code>{"artifacts": {"&lt;path&gt;": "&lt;content&gt;", …},
