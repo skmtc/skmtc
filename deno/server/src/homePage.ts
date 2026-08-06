@@ -113,8 +113,9 @@ export const homePageMd = (context: HomePageContext): string => {
 
 ${identity.description || FALLBACK_DESCRIPTION}
 
-A deployed SKMTC stack server: POST a schema, receive generated source files.
-Deterministic — same schema in, same bytes out. Nothing is stored.
+This is a deployed SKMTC stack server. POST an OpenAPI v3 schema to receive
+generated source files. The same schema always produces the same output, and
+schemas are not stored.
 
 ## Use
 
@@ -125,9 +126,9 @@ ${curlExample(origin)}
 Returns \`{"artifacts": {"<path>": "<content>", ...}, "manifest": {...}}\` —
 write each artifacts entry to its path.
 
-Bad schemas do not error: the response is 200 with issues in
-\`manifest.parseIssues\`. Treat \`level: "error"\` entries as failures; do not
-retry — runs are deterministic, so fix the schema instead.
+Invalid schemas still return 200, with issues listed in
+\`manifest.parseIssues\`. Treat \`level: "error"\` entries as failures. Retrying
+will not help; fix the schema instead.
 
 ## When to use it
 
@@ -265,7 +266,6 @@ export const homePageHtml = (context: HomePageContext): string => {
       : ""
   }</div>
     <div>${tagline}</div>
-    <div class="dim">Deterministic — same schema in, same bytes out. Nothing is stored.</div>
     <nav aria-label="formats">
       <a href="/index.md">.md</a>
       <a href="/openapi.json">openapi.json</a>
@@ -283,8 +283,8 @@ export const homePageHtml = (context: HomePageContext): string => {
     </div>
     <p>Returns <code>{"artifacts": {"&lt;path&gt;": "&lt;content&gt;", …},
     "manifest": {…}}</code> — write each entry to its path.</p>
-    <p class="dim">Bad schemas don't error; they log. Check
-    <code>manifest.parseIssues</code> before trusting partial output.</p>
+    <p class="dim">Invalid schemas still return 200. Check
+    <code>manifest.parseIssues</code> before using the output.</p>
   </section>
 
   <div>
