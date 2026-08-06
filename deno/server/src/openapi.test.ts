@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "jsr:@std/assert@^1.0.10";
+import { assertEquals, assertExists } from "@std/assert";
 import { buildOpenApiDocument } from "./openapi.ts";
 import { createServer } from "./createServer.ts";
 
@@ -34,11 +34,16 @@ Deno.test("buildOpenApiDocument - documents every route the server serves", () =
 Deno.test("buildOpenApiDocument - request bodies are derived from the valibot schemas", () => {
   const doc = buildOpenApiDocument();
   const artifactsRequest = doc.components?.schemas?.ArtifactsRequest;
-  // The `postArtifactsBody` variant converts to an `anyOf` over the oas/gql
-  // branches — proof the request schema came from the runtime validator, not a
-  // hand-written stub.
+  // `postArtifactsBody` converts to an object schema carrying both input
+  // fields (`schema` inline / `source` URL) — proof the request schema came
+  // from the runtime validator, not a hand-written stub.
   assertExists(artifactsRequest);
-  assertEquals("anyOf" in artifactsRequest, true);
+  const properties = "properties" in artifactsRequest
+    ? artifactsRequest.properties ?? {}
+    : {};
+  assertEquals("schema" in properties, true);
+  assertEquals("source" in properties, true);
+  assertEquals("protocol" in properties, true);
 });
 
 Deno.test("buildOpenApiDocument - every $ref resolves to a component", () => {

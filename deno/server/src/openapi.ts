@@ -33,7 +33,7 @@ import {
 
 /** The server-contract version — bump on a breaking change to any route's
  *  request/response shape. Independent of the `@skmtc/server` package version. */
-export const SERVER_API_VERSION = "1.0.0";
+export const SERVER_API_VERSION = "1.1.0";
 
 type Schema = OpenAPIV3.SchemaObject;
 type Ref = OpenAPIV3.ReferenceObject;
@@ -255,6 +255,62 @@ const enrichmentDescriptor: Schema = {
   },
 };
 
+/** Echo of a fetched `source` input — the reproducibility receipt. */
+const resolvedSource: Schema = {
+  type: "object",
+  required: ["url", "resolvedUrl", "digest"],
+  description:
+    "Present when the request used `source`: the URL as requested, the final " +
+    "URL after redirects (keep this one — when the source redirects to a " +
+    "content-addressed form it pins the exact document), and a " +
+    "`sha256:<hex>` digest of the fetched bytes.",
+  properties: {
+    url: { type: "string", description: "The `source` URL as requested." },
+    resolvedUrl: {
+      type: "string",
+      description: "The final URL after redirects.",
+    },
+    digest: {
+      type: "string",
+      description: "`sha256:<hex>` digest of the fetched bytes.",
+    },
+  },
+};
+
+/** The structured error body every non-200 response carries. */
+const errorResponse: Schema = {
+  type: "object",
+  required: ["error", "message"],
+  properties: {
+    error: {
+      type: "string",
+      enum: [
+        "invalid_request",
+        "source_fetch_failed",
+        "invalid_schema",
+        "internal_error",
+      ],
+      description: "Machine-readable error code.",
+    },
+    message: { type: "string", description: "What went wrong, actionably." },
+    issues: {
+      type: "array",
+      description: "Field-level validation issues (`invalid_request` only).",
+      items: {
+        type: "object",
+        required: ["message"],
+        properties: {
+          path: {
+            type: "string",
+            description: "Dot path of the offending field.",
+          },
+          message: { type: "string" },
+        },
+      },
+    },
+  },
+};
+
 // --- Response envelopes -------------------------------------------------------
 
 const artifactsResponse = (): Schema => ({
@@ -278,6 +334,7 @@ const artifactsResponse = (): Schema => ({
       description:
         "Per-Definition generation-map index (file → schema origin).",
     },
+    source: ref("ResolvedSource"),
   },
 });
 
@@ -365,14 +422,21 @@ const jsonResponse = (
   content: { "application/json": { schema } },
 });
 
-/** The error responses a route can return. `422` covers a schema parse failure,
- *  an invalid body, or a generator throw (the server has no dedicated 4xx split). */
+/** The error responses a route can return, all carrying the structured
+ *  `ErrorResponse` body: 400 for a body that fails validation (with
+ *  field-level `issues`), 422 for a `source` that could not be fetched or a
+ *  document that could not be read at all. A document that reads but has
+ *  problems is NOT an error — it returns 200 with `manifest.parseIssues`. */
 const errorResponses: OpenAPIV3.ResponsesObject = {
-  "400": { description: "Malformed request body." },
-  "422": {
-    description:
-      "Unprocessable — schema parse failure, invalid config, or generator error.",
-  },
+  "400": jsonResponse(
+    "Malformed request — invalid JSON body or failed validation.",
+    ref("ErrorResponse"),
+  ),
+  "422": jsonResponse(
+    "Unprocessable — the `source` could not be fetched, or the document " +
+      "could not be read as a schema.",
+    ref("ErrorResponse"),
+  ),
 };
 
 /**
@@ -397,9 +461,12 @@ export const buildOpenApiDocument = (): OpenAPIV3.Document => ({
         operationId: "generateArtifacts",
         summary: "Generate code artifacts from a schema",
         description:
-          "Parse → transform → render the posted schema through the bundled " +
+          "Parse → transform → render the schema through the bundled " +
           "generators, returning the generated files, the run manifest, and the " +
-          "attribution sidecars + generation map.",
+          "attribution sidecars + generation map. The schema arrives inline " +
+          "(`schema`) or by URL (`source` — fetched by the server, echoed back " +
+          "with its resolved URL and content digest); `protocol` is inferred " +
+          "from the document when omitted.",
         requestBody: jsonBody(ref("ArtifactsRequest")),
         responses: {
           "200": jsonResponse(
@@ -524,6 +591,8 @@ export const buildOpenApiDocument = (): OpenAPIV3.Document => ({
       GeneratorSupport: generatorSupport,
       EnrichmentDescriptor: enrichmentDescriptor,
       EnrichmentValidationIssue: enrichmentValidationIssue,
+      ResolvedSource: resolvedSource,
+      ErrorResponse: errorResponse,
     },
   },
 });

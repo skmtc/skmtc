@@ -78,10 +78,18 @@ export const toStackIdentity = (denoConfig: unknown): StackIdentity => {
   };
 };
 
+/** The zero-asset first command: a public schema URL, nothing to have on
+ *  disk, no stringify step. */
 const curlExample = (origin: string): string =>
   `curl -s -X POST ${origin}/artifacts \\
   -H 'content-type: application/json' \\
-  -d "{\\"protocol\\":\\"oas\\",\\"schema\\":$(jq -Rs . < openapi.json)}"`;
+  -d '{"source":"https://petstore3.swagger.io/api/v3/openapi.json"}'`;
+
+/** The local-file variant: inline the document as a JSON string. */
+const curlFileExample = (origin: string): string =>
+  `curl -s -X POST ${origin}/artifacts \\
+  -H 'content-type: application/json' \\
+  -d "{\\"schema\\":$(jq -Rs . < openapi.json)}"`;
 
 const installCommand = ({ name }: StackIdentity): string =>
   name
@@ -95,14 +103,21 @@ const agentPrompt = ({ identity, origin }: HomePageContext): string =>
 ${identity.description || FALLBACK_DESCRIPTION}
 It is deterministic: the same schema always produces the same output.
 
-1. POST ${origin}/artifacts with JSON body:
-   {"protocol": "oas", "schema": "<OpenAPI v3 document, JSON-stringified>"}
-   (use "gql" with an SDL string for GraphQL)
+1. POST ${origin}/artifacts with JSON body, ONE of:
+   {"source": "<URL of the schema document>"}  - the server fetches it
+   {"schema": "<the document itself, JSON-stringified>"}
+   OpenAPI (JSON/YAML) and GraphQL SDL are auto-detected; pass
+   "protocol": "oas" | "gql" only to override.
 2. Response: {"artifacts": {"<path>": "<content>", ...}, "manifest": {...}}.
-   Write every artifacts entry to disk at its path.
-3. The server fails open: bad schemas return 200 with issues in
-   manifest.parseIssues. Treat level "error" entries as failures; do not
-   retry - fix the schema instead.
+   Write every artifacts entry to disk at its path. When "source" was used,
+   the response echoes {"source": {"url", "resolvedUrl", "digest"}} - keep
+   resolvedUrl to reproduce the run.
+3. Errors are structured JSON: 400 {"error": "invalid_request", "issues":
+   [...]} for a bad body; 422 {"error": "source_fetch_failed" |
+   "invalid_schema", "message"} when the source can't be fetched or the
+   document can't be read. A document that reads but has problems returns
+   200 with issues in manifest.parseIssues - treat level "error" entries as
+   failures; do not retry, fix the schema instead.
 4. GET ${origin}/llms.txt describes this server; GET ${origin}/openapi.json
    is its full API contract.`;
 
@@ -140,22 +155,33 @@ export const homePageMd = (context: HomePageContext): string => {
 
 ${identity.description || FALLBACK_DESCRIPTION}
 
-This is a deployed SKMTC stack server. POST an OpenAPI v3 schema to receive
-generated source files. The same schema always produces the same output, and
-schemas are not stored.
+This is a deployed SKMTC stack server. POST a schema — an OpenAPI document or
+GraphQL SDL, inline or by URL — to receive generated source files. The same
+schema always produces the same output, and schemas are not stored.
 
 ## Use
+
+Point \`source\` at any schema URL:
 
 \`\`\`sh
 ${curlExample(origin)}
 \`\`\`
 
-Returns \`{"artifacts": {"<path>": "<content>", ...}, "manifest": {...}}\` —
-write each artifacts entry to its path.
+Or inline a local file as \`schema\`:
 
-Invalid schemas still return 200, with issues listed in
-\`manifest.parseIssues\`. Treat \`level: "error"\` entries as failures. Retrying
-will not help; fix the schema instead.
+\`\`\`sh
+${curlFileExample(origin)}
+\`\`\`
+
+Returns \`{"artifacts": {"<path>": "<content>", ...}, "manifest": {...}}\` —
+write each artifacts entry to its path. When \`source\` was used, the response
+echoes the final URL and a content digest, so the run is reproducible.
+
+A \`source\` that can't be fetched, or a document that can't be read, returns
+a structured 4xx with a \`message\` saying what to fix. A document that reads
+but has problems returns 200 with issues in \`manifest.parseIssues\` — treat
+\`level: "error"\` entries as failures. Retrying will not help; fix the schema
+instead.
 
 ## When to use it
 
@@ -302,15 +328,25 @@ export const homePageHtml = (context: HomePageContext): string => {
 
   <section>
     <h2>use</h2>
+    <p class="dim">Point <code>source</code> at any schema URL — OpenAPI or
+    GraphQL SDL, auto-detected:</p>
     <div class="block">
       <button class="copy" data-copy="curl-cmd">[copy]</button>
       <pre><code id="curl-cmd"><span class="p">$</span> ${
     escapeHtml(curlExample(origin))
   }</code></pre>
     </div>
+    <p class="dim">Or inline a local file as <code>schema</code>:</p>
+    <div class="block">
+      <button class="copy" data-copy="curl-file-cmd">[copy]</button>
+      <pre><code id="curl-file-cmd"><span class="p">$</span> ${
+    escapeHtml(curlFileExample(origin))
+  }</code></pre>
+    </div>
     <p>Returns <code>{"artifacts": {"&lt;path&gt;": "&lt;content&gt;", …},
     "manifest": {…}}</code> — write each entry to its path.</p>
-    <p class="dim">Invalid schemas still return 200. Check
+    <p class="dim">Fetch or read failures return structured 4xx errors. A
+    schema that reads but has problems returns 200 — check
     <code>manifest.parseIssues</code> before using the output.</p>
   </section>
 

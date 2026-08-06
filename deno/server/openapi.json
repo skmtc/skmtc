@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "skmtc stack server",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "The public API of a deployed @skmtc/server bundle: generate code from an OpenAPI/GraphQL schema against the bundled generator stack, plus schema, capability and enrichment introspection. Codegen is a pure function of (bundle, schema, client settings)."
   },
   "paths": {
@@ -10,7 +10,7 @@
       "post": {
         "operationId": "generateArtifacts",
         "summary": "Generate code artifacts from a schema",
-        "description": "Parse → transform → render the posted schema through the bundled generators, returning the generated files, the run manifest, and the attribution sidecars + generation map.",
+        "description": "Parse → transform → render the schema through the bundled generators, returning the generated files, the run manifest, and the attribution sidecars + generation map. The schema arrives inline (`schema`) or by URL (`source` — fetched by the server, echoed back with its resolved URL and content digest); `protocol` is inferred from the document when omitted.",
         "requestBody": {
           "required": true,
           "content": {
@@ -56,6 +56,9 @@
                         "$ref": "#/components/schemas/GenerationMapEntry"
                       },
                       "description": "Per-Definition generation-map index (file → schema origin)."
+                    },
+                    "source": {
+                      "$ref": "#/components/schemas/ResolvedSource"
                     }
                   }
                 }
@@ -63,10 +66,24 @@
             }
           },
           "400": {
-            "description": "Malformed request body."
+            "description": "Malformed request — invalid JSON body or failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Unprocessable — schema parse failure, invalid config, or generator error."
+            "description": "Unprocessable — the `source` could not be fetched, or the document could not be read as a schema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -117,10 +134,24 @@
             }
           },
           "400": {
-            "description": "Malformed request body."
+            "description": "Malformed request — invalid JSON body or failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Unprocessable — schema parse failure, invalid config, or generator error."
+            "description": "Unprocessable — the `source` could not be fetched, or the document could not be read as a schema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -169,10 +200,24 @@
             }
           },
           "400": {
-            "description": "Malformed request body."
+            "description": "Malformed request — invalid JSON body or failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Unprocessable — schema parse failure, invalid config, or generator error."
+            "description": "Unprocessable — the `source` could not be fetched, or the document could not be read as a schema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -236,10 +281,24 @@
             }
           },
           "400": {
-            "description": "Malformed request body."
+            "description": "Malformed request — invalid JSON body or failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Unprocessable — schema parse failure, invalid config, or generator error."
+            "description": "Unprocessable — the `source` could not be fetched, or the document could not be read as a schema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -282,10 +341,24 @@
             }
           },
           "400": {
-            "description": "Malformed request body."
+            "description": "Malformed request — invalid JSON body or failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Unprocessable — schema parse failure, invalid config, or generator error."
+            "description": "Unprocessable — the `source` could not be fetched, or the document could not be read as a schema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -327,10 +400,24 @@
             }
           },
           "400": {
-            "description": "Malformed request body."
+            "description": "Malformed request — invalid JSON body or failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Unprocessable — schema parse failure, invalid config, or generator error."
+            "description": "Unprocessable — the `source` could not be fetched, or the document could not be read as a schema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -339,364 +426,189 @@
   "components": {
     "schemas": {
       "ArtifactsRequest": {
-        "anyOf": [
-          {
-            "type": "object",
-            "properties": {
-              "protocol": {
-                "const": "oas"
-              },
-              "schema": {
-                "type": "string"
-              },
-              "clientSettings": {
-                "type": "object",
-                "properties": {
-                  "basePath": {
-                    "type": "string"
-                  },
-                  "schemaSource": {
-                    "type": "string"
-                  },
-                  "packages": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "rootPath": {
-                          "type": "string"
-                        },
-                        "moduleName": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "rootPath"
-                      ]
-                    }
-                  },
-                  "enrichments": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "object",
-                            "additionalProperties": {}
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "object",
-                            "additionalProperties": {}
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  "include": {
-                    "type": "array",
-                    "items": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "object",
-                            "additionalProperties": {
-                              "type": "object",
-                              "additionalProperties": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              }
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "object",
-                            "additionalProperties": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            }
-                          }
-                        },
-                        {
-                          "type": "string"
-                        }
-                      ]
-                    }
-                  },
-                  "skip": {
-                    "type": "array",
-                    "items": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "object",
-                            "additionalProperties": {
-                              "type": "object",
-                              "additionalProperties": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              }
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "object",
-                            "additionalProperties": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            }
-                          }
-                        },
-                        {
-                          "type": "string"
-                        }
-                      ]
-                    }
-                  },
-                  "anchors": {
-                    "type": "object",
-                    "properties": {
-                      "enabled": {
-                        "type": "boolean"
-                      },
-                      "out": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "enabled"
-                    ]
-                  },
-                  "inputDirs": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "formatter": {
-                    "type": "string"
-                  },
-                  "generatedSuffix": {
-                    "type": "string"
-                  },
-                  "ejected": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "required": []
-              },
-              "schemaSrc": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "protocol",
-              "schema"
-            ]
+        "type": "object",
+        "properties": {
+          "protocol": {
+            "enum": [
+              "oas",
+              "gql"
+            ],
+            "description": "Schema protocol. Optional — inferred from the document content when omitted (a JSON/YAML document with an `openapi` or `swagger` key is `oas`; anything else is treated as GraphQL SDL)."
           },
-          {
+          "schema": {
+            "type": "string",
+            "description": "The schema document itself, as a string."
+          },
+          "source": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the schema document. The server fetches it (following redirects) and echoes the final URL + content digest in the response."
+          },
+          "clientSettings": {
             "type": "object",
             "properties": {
-              "protocol": {
-                "const": "gql"
-              },
-              "schema": {
+              "basePath": {
                 "type": "string"
               },
-              "clientSettings": {
+              "schemaSource": {
+                "type": "string"
+              },
+              "packages": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "rootPath": {
+                      "type": "string"
+                    },
+                    "moduleName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "rootPath"
+                  ]
+                }
+              },
+              "enrichments": {
                 "type": "object",
-                "properties": {
-                  "basePath": {
-                    "type": "string"
-                  },
-                  "schemaSource": {
-                    "type": "string"
-                  },
-                  "packages": {
-                    "type": "array",
-                    "items": {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
                       "type": "object",
-                      "properties": {
-                        "rootPath": {
-                          "type": "string"
-                        },
-                        "moduleName": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "rootPath"
-                      ]
-                    }
-                  },
-                  "enrichments": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "object",
-                            "additionalProperties": {}
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "object",
-                            "additionalProperties": {}
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  "include": {
-                    "type": "array",
-                    "items": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "object",
-                            "additionalProperties": {
-                              "type": "object",
-                              "additionalProperties": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              }
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "object",
-                            "additionalProperties": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            }
-                          }
-                        },
-                        {
-                          "type": "string"
-                        }
-                      ]
-                    }
-                  },
-                  "skip": {
-                    "type": "array",
-                    "items": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "object",
-                            "additionalProperties": {
-                              "type": "object",
-                              "additionalProperties": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              }
-                            }
-                          }
-                        },
-                        {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "object",
-                            "additionalProperties": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            }
-                          }
-                        },
-                        {
-                          "type": "string"
-                        }
-                      ]
-                    }
-                  },
-                  "anchors": {
-                    "type": "object",
-                    "properties": {
-                      "enabled": {
-                        "type": "boolean"
-                      },
-                      "out": {
-                        "type": "string"
+                      "additionalProperties": {}
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {}
                       }
                     },
-                    "required": [
-                      "enabled"
-                    ]
-                  },
-                  "inputDirs": {
-                    "type": "array",
-                    "items": {
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      }
+                    }
+                  ]
+                }
+              },
+              "include": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    {
                       "type": "string"
                     }
-                  },
-                  "formatter": {
-                    "type": "string"
-                  },
-                  "generatedSuffix": {
-                    "type": "string"
-                  },
-                  "ejected": {
-                    "type": "array",
-                    "items": {
+                  ]
+                }
+              },
+              "skip": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    {
                       "type": "string"
                     }
+                  ]
+                }
+              },
+              "anchors": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "out": {
+                    "type": "string"
                   }
                 },
-                "required": []
+                "required": [
+                  "enabled"
+                ]
               },
-              "schemaSrc": {
+              "inputDirs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "formatter": {
                 "type": "string"
+              },
+              "generatedSuffix": {
+                "type": "string"
+              },
+              "ejected": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
               }
             },
-            "required": [
-              "protocol",
-              "schema"
-            ]
+            "required": []
+          },
+          "schemaSrc": {
+            "type": "string"
           }
-        ]
+        },
+        "required": []
       },
       "ValidateRequest": {
         "type": "object",
@@ -869,11 +781,14 @@
         "properties": {
           "schema": {
             "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the schema document. The server fetches it (following redirects) and echoes the final URL + content digest in the response."
           }
         },
-        "required": [
-          "schema"
-        ]
+        "required": []
       },
       "Manifest": {
         "type": "object",
@@ -1991,6 +1906,71 @@
           },
           "message": {
             "type": "string"
+          }
+        }
+      },
+      "ResolvedSource": {
+        "type": "object",
+        "required": [
+          "url",
+          "resolvedUrl",
+          "digest"
+        ],
+        "description": "Present when the request used `source`: the URL as requested, the final URL after redirects (keep this one — when the source redirects to a content-addressed form it pins the exact document), and a `sha256:<hex>` digest of the fetched bytes.",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The `source` URL as requested."
+          },
+          "resolvedUrl": {
+            "type": "string",
+            "description": "The final URL after redirects."
+          },
+          "digest": {
+            "type": "string",
+            "description": "`sha256:<hex>` digest of the fetched bytes."
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error",
+          "message"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid_request",
+              "source_fetch_failed",
+              "invalid_schema",
+              "internal_error"
+            ],
+            "description": "Machine-readable error code."
+          },
+          "message": {
+            "type": "string",
+            "description": "What went wrong, actionably."
+          },
+          "issues": {
+            "type": "array",
+            "description": "Field-level validation issues (`invalid_request` only).",
+            "items": {
+              "type": "object",
+              "required": [
+                "message"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Dot path of the offending field."
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       }
