@@ -87,9 +87,11 @@ export const resolveCoreVersion = (): string => {
   try {
     const resolved = import.meta.resolve("@skmtc/core");
     const match = /@skmtc\/core[@/]([^/]+)/.exec(resolved);
-    return match ? match[1] : resolved;
+    // A workspace-path resolution has no version in it — show "unknown"
+    // rather than a file URL.
+    return match ? match[1] : "unknown";
   } catch {
-    return "unresolved";
+    return "unknown";
   }
 };
 
