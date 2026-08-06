@@ -19,6 +19,10 @@ type ToPathArgs = {
   useParent: boolean
 }
 
+/** How long a remote schema fetch may take before failing with a clear
+ *  timeout error instead of hanging the command. */
+const REMOTE_FETCH_TIMEOUT_MS = 30_000
+
 export class SchemaFile {
   contents: string | null
   schemaSource: SchemaSource | null
@@ -68,9 +72,35 @@ export class SchemaFile {
   ): Promise<{ contents: string; fileType: FileType; schemaSource: SchemaSource }> {
     switch (schemaSource.type) {
       case 'remote': {
-        const response = await fetch(schemaSource.url)
+        let response: Response
+        try {
+          response = await fetch(schemaSource.url, {
+            signal: AbortSignal.timeout(REMOTE_FETCH_TIMEOUT_MS),
+            redirect: 'follow'
+          })
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error)
+          throw new Error(`Could not fetch schema from ${schemaSource.url}: ${reason}`)
+        }
+
+        if (!response.ok) {
+          await response.body?.cancel()
+          throw new Error(
+            `Schema source ${schemaSource.url} returned ${response.status} ${response.statusText}`.trim()
+          )
+        }
+
         const contents = await response.text()
-        const url = new URL(schemaSource.url)
+
+        invariant(contents, `Schema fetched from "${schemaSource.url}" is empty`)
+
+        // The final URL after redirects — a source that redirects to a
+        // pinned/content-addressed form should be detected (and reported)
+        // by where it landed, not where it started. A constructed Response
+        // (tests, some proxies) has an empty `url`; fall back to the
+        // requested one.
+        const finalUrl = response.url === '' ? schemaSource.url : response.url
+        const url = new URL(finalUrl)
         // Prefer extension-based detection (cheap, deterministic). Fall
         // back to the response's Content-Type for endpoints whose URL
         // has no schema-bearing extension (e.g.
@@ -87,7 +117,7 @@ export class SchemaFile {
         return {
           contents,
           fileType,
-          schemaSource
+          schemaSource: { type: 'remote', url: finalUrl }
         }
       }
       case 'local': {

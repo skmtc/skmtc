@@ -165,6 +165,93 @@ Deno.test('SchemaFile.getFromSource - handles local YAML correctly', async () =>
   }
 })
 
+/** Run `body` with `globalThis.fetch` replaced — remote sources fetch
+ *  through it, so tests need no network access. */
+const withStubbedFetch = async (
+  stub: (input: URL | RequestInfo) => Response | Promise<Response>,
+  body: () => Promise<void>
+) => {
+  const original = globalThis.fetch
+  globalThis.fetch = ((input: URL | RequestInfo) => Promise.resolve(stub(input))) as typeof fetch
+  try {
+    await body()
+  } finally {
+    globalThis.fetch = original
+  }
+}
+
+Deno.test('SchemaFile.getFromSource - fetches a remote JSON source', async () => {
+  await withStubbedFetch(
+    () =>
+      new Response('{"openapi": "3.0.0"}', {
+        status: 200,
+        headers: { 'content-type': 'application/json' }
+      }),
+    async () => {
+      const source = { type: 'remote' as const, url: 'https://example.com/openapi.json' }
+      const result = await SchemaFile.getFromSource(source)
+
+      assertEquals(result.contents, '{"openapi": "3.0.0"}')
+      assertEquals(result.fileType, 'json')
+      // A constructed Response has no url, so the requested URL is kept.
+      assertEquals(result.schemaSource, { type: 'remote', url: 'https://example.com/openapi.json' })
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - non-2xx remote source fails with the status', async () => {
+  await withStubbedFetch(
+    () => new Response('not found', { status: 404, statusText: 'Not Found' }),
+    async () => {
+      const source = { type: 'remote' as const, url: 'https://example.com/missing.json' }
+
+      await assertRejects(
+        async () => {
+          await SchemaFile.getFromSource(source)
+        },
+        Error,
+        'returned 404'
+      )
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - unreachable remote source fails with the reason', async () => {
+  await withStubbedFetch(
+    () => {
+      throw new TypeError('connection refused')
+    },
+    async () => {
+      const source = { type: 'remote' as const, url: 'https://example.com/openapi.json' }
+
+      await assertRejects(
+        async () => {
+          await SchemaFile.getFromSource(source)
+        },
+        Error,
+        'Could not fetch schema from https://example.com/openapi.json'
+      )
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - empty remote body fails clearly', async () => {
+  await withStubbedFetch(
+    () => new Response('', { status: 200 }),
+    async () => {
+      const source = { type: 'remote' as const, url: 'https://example.com/openapi.json' }
+
+      await assertRejects(
+        async () => {
+          await SchemaFile.getFromSource(source)
+        },
+        Error,
+        'is empty'
+      )
+    }
+  )
+})
+
 Deno.test('SchemaFile.openFromSource - returns consistent schemaSource', async () => {
   const tempDir = await Deno.makeTempDir()
 

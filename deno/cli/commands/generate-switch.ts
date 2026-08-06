@@ -75,9 +75,9 @@ export const generateSwitch = async ({
       usage: 'skmtc generate <project> [schema]',
       example: 'skmtc generate my-api ./schema.json',
       discover:
-        'If you want the schema source pinned, set `settings.source` in ' +
-        '.skmtc/<project>/.settings/client.json — then `skmtc generate <project>` ' +
-        'is enough.'
+        'If you want the schema source pinned, set top-level `source` (a file ' +
+        'path or an https URL) in .skmtc/<project>/.settings/client.json — then ' +
+        '`skmtc generate <project>` is enough.'
     })
   }
 
