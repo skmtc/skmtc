@@ -10,6 +10,8 @@
 // <details> disclosure; the markdown variant is flat and complete because
 // agents want the whole contract inline.
 
+import * as v from "valibot";
+
 /** Deploy-time identity shown on the home page. All fields optional — a
  *  server created without one still serves a useful, generic page. */
 export type StackIdentity = {
@@ -37,6 +39,46 @@ export type HomePageContext = {
 const FALLBACK_NAME = "skmtc stack server";
 const FALLBACK_DESCRIPTION = "Convert an OpenAPI v3 schema into source files.";
 const FALLBACK_HOMEPAGE = "https://skmtc.dev";
+
+/** The `deno.json` fields the home page reads. `name` and `version` are the
+ *  standard package fields publish already requires; `description` and
+ *  `homepage` are optional extras a stack author can add. Unknown keys are
+ *  ignored. */
+const stackDenoConfig = v.object({
+  name: v.optional(v.string()),
+  version: v.optional(v.string()),
+  description: v.optional(v.string()),
+  homepage: v.optional(v.string()),
+});
+
+/**
+ * Derive the home page identity from a stack's parsed `deno.json` — the one
+ * source both the CLI and the hub already require. The synthesized `server.ts`
+ * entry sits beside `deno.json`, so it can pass the file straight through:
+ *
+ * ```ts
+ * import denoConfig from './deno.json' with { type: 'json' }
+ * export default createServer({ ..., identity: toStackIdentity(denoConfig) })
+ * ```
+ *
+ * `name` drops the leading `@` (`@skmtc/markdown-docs` → `skmtc/markdown-docs`)
+ * and, when `homepage` is absent, the hub page is derived from it. Fails soft:
+ * an unreadable config yields an empty identity and the generic page.
+ */
+export const toStackIdentity = (denoConfig: unknown): StackIdentity => {
+  const parsed = v.safeParse(stackDenoConfig, denoConfig);
+  if (!parsed.success) return {};
+  const { name, version, description, homepage } = parsed.output;
+  const label = name?.startsWith("@") ? name.slice(1) : name;
+  const homepageUrl = homepage ??
+    (label ? `${FALLBACK_HOMEPAGE}/${label}` : undefined);
+  return {
+    ...(label !== undefined ? { name: label } : {}),
+    ...(version !== undefined ? { version } : {}),
+    ...(description !== undefined ? { description } : {}),
+    ...(homepageUrl !== undefined ? { homepageUrl } : {}),
+  };
+};
 
 /** Resolved `@skmtc/core` version — the same skew canary trick the hosted
  *  wrapper uses. Resolution shapes seen live:
