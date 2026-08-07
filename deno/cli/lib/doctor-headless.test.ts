@@ -13,9 +13,23 @@ import { assertEquals } from '@std/assert/equals'
 import { assertStringIncludes } from '@std/assert/string-includes'
 import { join } from '@std/path/join'
 import { ensureDir } from '@std/fs/ensure-dir'
-import { runDoctor } from '@/lib/doctor-headless.ts'
+import { runDoctor as runDoctorWithRegistry, type Check } from '@/lib/doctor-headless.ts'
 import { printDoctorResult } from '@/commands/doctor.ts'
 import { captureStdout } from '@/tests/strict-mode-helpers.test.ts'
+
+/**
+ * `runDoctor` with the registry lookup answered as "unreachable" — the
+ * checks below are filesystem facts, and a real fetch would make every
+ * one of them depend on the network. The registry comparison has its own
+ * tests, which state the registry's answer explicitly.
+ */
+const runDoctor = (
+  args: Parameters<typeof runDoctorWithRegistry>[0]
+): ReturnType<typeof runDoctorWithRegistry> =>
+  runDoctorWithRegistry({
+    getLatestCliMeta: () => Promise.resolve(undefined),
+    ...args
+  })
 
 /**
  * Sets up a temp directory, cd's into it, runs `fn` with the temp dir
@@ -571,4 +585,233 @@ Deno.test('runDoctor - hub-auth check reports stored credential shape offline', 
       }
     }
   })
+})
+
+/** A registry answer: `latest`, and when it was published. */
+const toCliMeta = (latest: string, publishedAt?: string) => () =>
+  Promise.resolve({
+    scope: 'skmtc',
+    name: 'cli',
+    latest,
+    versions: {
+      [latest]: publishedAt === undefined ? {} : { createdAt: publishedAt }
+    }
+  })
+
+const hoursAgo = (hours: number): string =>
+  new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
+
+/**
+ * The `cli-version-current` check from a doctor run, taken inside a temp
+ * root like every other test here. `toRootPath()` walks up `cwd`, so a
+ * run outside `withTempSkmtcRoot` reads whatever `.skmtc` the developer
+ * happens to have — passing only because these tests assert on one
+ * check, and one malformed manifest in someone's scratch project away
+ * from a confusing failure in a check they are not testing.
+ *
+ * `denoVersion` defaults to a gate-ENFORCING version rather than falling
+ * through to the ambient one. Leaving it ambient made the outcome depend
+ * on the developer's Deno: `heldBack` flips to false on 2.6-2.8 (the flag
+ * parses, nothing is held back) and the flag drops out of the printed
+ * command on ≤ 2.5.4 — both inside doctor's own >= 2.4.0 supported range,
+ * so the suite passed here and failed for someone one minor behind.
+ */
+const toVersionCheck = async (
+  cliVersion: string,
+  getLatestCliMeta: Parameters<typeof runDoctorWithRegistry>[0]['getLatestCliMeta'],
+  denoVersion: string = '2.9.4'
+): Promise<Check> => {
+  const found: Check[] = []
+  await withTempSkmtcRoot(async () => {
+    const result = await runDoctorWithRegistry({
+      cliVersion,
+      getLatestCliMeta,
+      denoVersion
+    })
+    const check = result.checks.find(c => c.id === 'cli-version-current')
+    if (check === undefined) throw new Error('cli-version-current check missing')
+    found.push(check)
+  })
+  return found[0]
+}
+
+Deno.test('runDoctor - cli-version-current is ok on the latest release', async () => {
+  const check = await toVersionCheck('0.9.41', toCliMeta('0.9.41', hoursAgo(48)))
+
+  assertEquals(check.status, 'ok')
+  assertStringIncludes(check.message, 'latest published')
+})
+
+Deno.test('runDoctor - cli-version-current names the age gate for a fresh release', async () => {
+  // The silent case: an unpinned `deno install` inside the window
+  // resolves the older version and reports success, so doctor has to say
+  // why a plain reinstall will not move it.
+  const check = await toVersionCheck('0.9.40', toCliMeta('0.9.41', hoursAgo(2)))
+
+  assertEquals(check.status, 'warning')
+  assertStringIncludes(check.message, '0.9.40 is behind')
+  assertStringIncludes(check.hint ?? '', 'minimum-dependency-age')
+  assertStringIncludes(check.hint ?? '', '--minimum-dependency-age=0')
+  assertStringIncludes(check.hint ?? '', '2 hours ago')
+  assertEquals(check.data?.heldBack, true)
+})
+
+Deno.test('runDoctor - cli-version-current omits the age note once the window has passed', async () => {
+  const check = await toVersionCheck('0.9.40', toCliMeta('0.9.41', hoursAgo(72)))
+
+  assertEquals(check.status, 'warning')
+  assertEquals(check.data?.heldBack, false)
+  assertEquals(check.hint?.includes('window'), false)
+  // The flag stays in the command regardless — it is a no-op once the
+  // release is old enough, and wrong to drop from a copied command.
+  assertStringIncludes(check.hint ?? '', '--minimum-dependency-age=0')
+})
+
+Deno.test('runDoctor - cli-version-current accepts a build ahead of the registry', async () => {
+  const check = await toVersionCheck('0.10.0', toCliMeta('0.9.41', hoursAgo(48)))
+
+  assertEquals(check.status, 'ok')
+  assertStringIncludes(check.message, 'ahead of the published')
+})
+
+Deno.test('runDoctor - cli-version-current skips when the registry is unreachable', async () => {
+  const check = await toVersionCheck('0.9.40', () => Promise.resolve(undefined))
+
+  assertEquals(check.status, 'skipped')
+  // Offline is not a failure: doctor still reports every other check.
+  assertStringIncludes(check.message, 'Could not reach')
+})
+
+Deno.test('runDoctor - cli-version-current survives a registry answering the wrong shape', async () => {
+  // A mirror or proxy behind JSR_URL answering 200 with a JSON error
+  // object. Doctor is the "everything else is broken" command, so an
+  // unreadable answer must be one `skipped` line, not a throw that takes
+  // the other twelve checks with it.
+  const check = await toVersionCheck(
+    '0.9.40',
+    () => Promise.resolve(JSON.parse('{"error":"nope"}'))
+  )
+
+  assertEquals(check.status, 'skipped')
+})
+
+Deno.test('runDoctor - cli-version-current survives a rejected registry lookup', async () => {
+  const check = await toVersionCheck('0.9.40', () =>
+    Promise.reject(new Error('socket hang up'))
+  )
+
+  assertEquals(check.status, 'skipped')
+})
+
+Deno.test('runDoctor - cli-version-current treats a future publish time as inside the window', async () => {
+  // A machine whose clock lags the registry by a minute. The release
+  // landed moments ago — the deepest part of the window, and the exact
+  // case this check exists to explain.
+  const check = await toVersionCheck('0.9.40', toCliMeta('0.9.41', hoursAgo(-0.02)))
+
+  assertEquals(check.status, 'warning')
+  assertEquals(check.data?.heldBack, true)
+  assertStringIncludes(check.hint ?? '', 'published a moment ago')
+})
+
+Deno.test('runDoctor - cli-version-current tolerates a missing publish time', async () => {
+  const check = await toVersionCheck('0.9.40', toCliMeta('0.9.41'))
+
+  assertEquals(check.status, 'warning')
+  assertEquals(check.data?.heldBack, false)
+})
+
+Deno.test('runDoctor - cli-version-current names no gate on a Deno that has none', async () => {
+  // 2.5.5-2.8 parse the flag but hold nothing back. Naming the window
+  // here would explain a cause that does not exist on this runtime, and
+  // the command still carries the flag because it is a harmless no-op.
+  const check = await toVersionCheck('0.9.40', toCliMeta('0.9.41', hoursAgo(2)), '2.7.0')
+
+  assertEquals(check.status, 'warning')
+  assertEquals(check.data?.heldBack, false)
+  assertEquals(check.hint?.includes('window'), false)
+  assertStringIncludes(check.hint ?? '', '--minimum-dependency-age=0')
+})
+
+/**
+ * Every check id, read out of the source the docs point at. Both
+ * spellings appear: a plain literal (`id: 'deno-version'`) for a
+ * workspace check, and a template (`id: \`project-bundle/${name}\``)
+ * for a per-project one, which the docs write as
+ * `project-bundle/<project>`.
+ */
+const toCheckIds = async (): Promise<string[]> => {
+  const sources = ['doctor-headless.ts', 'doctor-anchors.ts']
+  const ids = new Set<string>()
+  for (const source of sources) {
+    const text = await Deno.readTextFile(new URL(source, import.meta.url))
+    for (const match of text.matchAll(/\bid = `([a-z-]+)\/\$\{/g)) ids.add(match[1])
+    for (const match of text.matchAll(/\bid: `([a-z-]+)\/\$\{/g)) ids.add(match[1])
+    for (const match of text.matchAll(/\bid: '([a-z-]+)'/g)) ids.add(match[1])
+  }
+  return [...ids].sort()
+}
+
+Deno.test('runDoctor - --offline says it was skipped by request, not that the network failed', async () => {
+  // `--offline` never attempts the lookup, so reporting a connectivity
+  // problem would have an agent tell the user about a failure that did
+  // not happen — in the command whose value is naming an accurate cause.
+  const checks: Check[] = []
+  await withTempSkmtcRoot(async () => {
+    const result = await runDoctorWithRegistry({
+      cliVersion: '0.9.40',
+      offline: true,
+      getLatestCliMeta: () => {
+        throw new Error('the registry must not be consulted')
+      }
+    })
+    const check = result.checks.find(c => c.id === 'cli-version-current')
+    if (check === undefined) throw new Error('cli-version-current check missing')
+    checks.push(check)
+  })
+
+  assertEquals(checks[0].status, 'skipped')
+  assertStringIncludes(checks[0].message, 'Skipped by --offline')
+  assertEquals(checks[0].message.includes('Could not reach'), false)
+})
+
+Deno.test('runDoctor - on a Deno without the gate, the hint neither claims nor prints the flag', async () => {
+  // Deno < 2.9 enforces no holdback, and <= 2.5.4 rejects the flag as an
+  // unknown argument. Claiming the flag is the fix while handing over a
+  // command that omits it is the contradiction to avoid — and doctor's
+  // own floor (2.4.0) puts such a reader inside the supported range.
+  const check = await toVersionCheck('0.9.40', toCliMeta('0.9.41', hoursAgo(2)), '2.5.0')
+
+  assertEquals(check.status, 'warning')
+  assertEquals(check.data?.heldBack, false)
+  assertEquals(check.hint?.includes('--minimum-dependency-age=0'), false)
+})
+
+Deno.test('runDoctor - on a gate-enforcing Deno the hint both claims and prints the flag', async () => {
+  const check = await toVersionCheck('0.9.40', toCliMeta('0.9.41', hoursAgo(2)), '2.9.4')
+
+  assertEquals(check.data?.heldBack, true)
+  assertStringIncludes(check.hint ?? '', '--minimum-dependency-age=0')
+})
+
+Deno.test('doctor - every check id is documented in all three catalogues', async () => {
+  // The docs are what an agent reads to reason about a check without
+  // running it, and three files carry the same table. Adding a check
+  // without a row makes it invisible to exactly those readers — which is
+  // how `cli-version-current` shipped undocumented in review.
+  const catalogues = [
+    '../../docs/reference/cli/doctor.md',
+    '../../docs/skills/skmtc-cli/SKILL.md',
+    '../../docs/skills/skmtc-cli-v2/reference.md'
+  ]
+  const ids = await toCheckIds()
+  // Guard the guard: a broken extraction would vacuously pass.
+  assertEquals(ids.length > 10, true)
+  assertEquals(ids.includes('cli-version-current'), true)
+
+  for (const catalogue of catalogues) {
+    const text = await Deno.readTextFile(new URL(catalogue, import.meta.url))
+    const undocumented = ids.filter(id => !text.includes(`\`${id}`))
+    assertEquals(undocumented, [], `undocumented in ${catalogue}`)
+  }
 })

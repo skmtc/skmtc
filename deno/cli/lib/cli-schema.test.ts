@@ -80,3 +80,15 @@ Deno.test('cli-schema - toArgsString handles empty args', () => {
     ''
   )
 })
+
+Deno.test('cli-schema - doctor declares --offline, which agents discover through this schema', () => {
+  // `agent-context` prints these descriptors verbatim, and the audience
+  // for `--offline` is an automated run — which reads the schema, not
+  // `--help`. A flag wired into the Cliffy command but not declared here
+  // is invisible to the only caller that wants it.
+  const doctor = getCommandDescriptor('doctor')
+  const flags = doctor.flags.map(f => f.flag)
+
+  assertEquals(flags.includes('--json'), true)
+  assertEquals(flags.includes('--offline'), true)
+})

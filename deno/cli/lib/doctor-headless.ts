@@ -26,6 +26,20 @@ import {
   checkAnchorsStaleness
 } from '@/lib/doctor-anchors.ts'
 import { maskToken, readStoredAuth, toAuthFilePath } from '@/lib/hub-token.ts'
+import { Jsr } from '@/lib/jsr.ts'
+import type { JsrPkgMetaVersions } from '@/lib/jsr.ts'
+import { getJsrBaseUrl } from '@/lib/jsr-registry.ts'
+import { greaterThan } from '@std/semver/greater-than'
+import { parse as parseSemver } from '@std/semver/parse'
+import {
+  DEPENDENCY_AGE_FLAG,
+  DEPENDENCY_AGE_WINDOW_HOURS,
+  enforcesDependencyAgeGate,
+  isWithinDependencyAgeWindow,
+  supportsDependencyAgeFlag,
+  toCliInstallCommand,
+  toHoursSincePublish
+} from '@/lib/dependency-age.ts'
 
 export type CheckStatus = 'ok' | 'warning' | 'error' | 'skipped'
 
@@ -69,18 +83,37 @@ type RunDoctorArgs = {
    * injectable so tests can exercise the version-floor check.
    */
   denoVersion?: string
+  /**
+   * The registry lookup behind the `cli-version-current` check — the
+   * only network call doctor makes. Injectable so tests state the
+   * registry's answer instead of reaching for it.
+   */
+  getLatestCliMeta?: () => Promise<JsrPkgMetaVersions | undefined>
+  /**
+   * Don't look the registry up at all (`--offline`). Distinct from the
+   * lookup failing: doctor's value is naming an accurate cause, so a run
+   * that never asked must not report a connectivity problem.
+   */
+  offline?: boolean
 }
 
 export const runDoctor = async ({
   cliVersion,
-  denoVersion = Deno.version.deno
+  denoVersion = Deno.version.deno,
+  // `scopeName` carries its `@` — `toJsrUrl` joins the parts verbatim.
+  getLatestCliMeta = () =>
+    Jsr.tryGetLatestMeta({ scopeName: '@skmtc', packageName: 'cli' }),
+  offline = false
 }: RunDoctorArgs): Promise<DoctorResult> => {
   const skmtcRootPath = toRootPath()
   const globalStateDir = join(homedir(), '.skmtc')
   const projects = listProjects(skmtcRootPath)
   const checks: Check[] = []
 
-  checks.push(checkInstallLockfile())
+  checks.push(
+    await checkCliVersionCurrent({ cliVersion, denoVersion, getLatestCliMeta, offline })
+  )
+  checks.push(checkInstallLockfile(denoVersion))
   checks.push(checkDenoVersion(denoVersion))
   checks.push(checkHubAuth())
 
@@ -118,6 +151,132 @@ const aggregate = (checks: Check[]): CheckStatus => {
   return 'ok'
 }
 
+type CheckCliVersionArgs = {
+  cliVersion: string
+  denoVersion: string
+  getLatestCliMeta: () => Promise<JsrPkgMetaVersions | undefined>
+  offline: boolean
+}
+
+/**
+ * Is the running CLI the newest published one? Doctor otherwise reports
+ * the version it is running as a fact with nothing to compare it to, so
+ * "you are a release behind" stays invisible — and the way you most often
+ * end up there is silent: on a Deno that enforces the dependency-age
+ * gate, an unpinned `deno install` inside the window resolves the
+ * PREVIOUS version and reports success. When that is the situation, say
+ * so and name the flag.
+ *
+ * Diagnostic only: `--offline`, an unreachable registry, a missing
+ * publish time or a local build ahead of the registry all degrade to
+ * `skipped`/`ok` rather than failing the command. The `--offline` and
+ * unreachable cases carry DIFFERENT messages — a run that never asked
+ * must not report a connectivity problem.
+ */
+const checkCliVersionCurrent = async ({
+  cliVersion,
+  denoVersion,
+  getLatestCliMeta,
+  offline
+}: CheckCliVersionArgs): Promise<Check> => {
+  if (offline) {
+    return {
+      id: 'cli-version-current',
+      status: 'skipped',
+      message:
+        `Skipped by --offline; the running CLI ${cliVersion} was not compared ` +
+        `against ${getJsrBaseUrl()}.`
+    }
+  }
+  // Belt and braces with `tryGetLatestMeta`'s shape check: doctor is the
+  // command you run when everything else is broken, so a registry answer
+  // it cannot read has to become a `skipped` line, never a throw that
+  // takes the other twelve checks down with it.
+  //
+  // Called through `Promise.resolve().then` rather than `f().catch`: an
+  // injected or refactored `getLatestCliMeta` that throws SYNCHRONOUSLY
+  // never produces a promise for `.catch` to attach to, so the throw
+  // escapes past exactly the guard this comment is describing.
+  const meta = await Promise.resolve().then(getLatestCliMeta).catch(() => undefined)
+  if (typeof meta?.latest !== 'string' || typeof meta.versions !== 'object') {
+    return {
+      id: 'cli-version-current',
+      status: 'skipped',
+      message: `Could not reach ${getJsrBaseUrl()} to compare @skmtc/cli versions.`
+    }
+  }
+  if (meta.latest === cliVersion) {
+    return {
+      id: 'cli-version-current',
+      status: 'ok',
+      message: `CLI ${cliVersion} is the latest published @skmtc/cli.`,
+      data: { cliVersion, latest: meta.latest }
+    }
+  }
+  if (isAheadOfRegistry(cliVersion, meta.latest)) {
+    return {
+      id: 'cli-version-current',
+      status: 'ok',
+      message:
+        `CLI ${cliVersion} is ahead of the published ${meta.latest} — ` +
+        `a local build, or a release still propagating.`,
+      data: { cliVersion, latest: meta.latest }
+    }
+  }
+
+  const publishedAt = meta.versions?.[meta.latest]?.createdAt
+  // Both halves have to hold: the release is young enough to be held
+  // back, AND the running Deno is one that enforces the holdback. On
+  // Deno < 2.9 nothing is gated, so the explanation would name a cause
+  // that does not exist — and the command below correctly omits a flag
+  // the prose would be telling the reader to use.
+  const heldBack =
+    enforcesDependencyAgeGate(denoVersion) && isWithinDependencyAgeWindow(publishedAt)
+  const lockPath = join(homedir(), '.deno', 'bin', '.skmtc', 'deno.lock')
+  const install = toCliInstallCommand(denoVersion)
+  const reinstall = existsSync(lockPath) ? `rm -f ${lockPath} && ${install}` : install
+
+  return {
+    id: 'cli-version-current',
+    status: 'warning',
+    message: `CLI ${cliVersion} is behind the latest published @skmtc/cli ${meta.latest}.`,
+    hint: heldBack
+      ? `${meta.latest} was published ${formatHours(publishedAt)} ago, inside ` +
+        `Deno's ${DEPENDENCY_AGE_WINDOW_HOURS}h minimum-dependency-age window: ` +
+        `an install without \`${DEPENDENCY_AGE_FLAG}\` silently resolves an ` +
+        `older release instead and reports success. Run: \`${reinstall}\`.`
+      : `Run: \`${reinstall}\`.`,
+    data: { cliVersion, latest: meta.latest, publishedAt, heldBack }
+  }
+}
+
+/** Is the running version newer than the registry's latest — a local
+ *  build, or a release still propagating? An unparseable version is
+ *  treated as not ahead, so the check errs toward reporting a
+ *  difference rather than hiding one. */
+const isAheadOfRegistry = (cliVersion: string, latest: string): boolean => {
+  try {
+    return greaterThan(parseSemver(cliVersion), parseSemver(latest))
+  } catch {
+    return false
+  }
+}
+
+/** "3 hours" / "45 minutes" — enough to see whether the wait is nearly
+ *  over without printing a timestamp the reader has to subtract. */
+const formatHours = (publishedAt: string | undefined): string => {
+  const hours = toHoursSincePublish(publishedAt)
+  if (hours === undefined) return 'an unknown time'
+  if (hours < 1) {
+    // Negative when the publish time is a touch ahead of the local clock;
+    // "a moment" reads correctly either way.
+    const minutes = Math.round(hours * 60)
+    return minutes <= 1 ? 'a moment' : `${minutes} minutes`
+  }
+  const rounded = Math.round(hours)
+  return rounded === 1 ? '1 hour' : `${rounded} hours`
+}
+
 /**
  * Friction #16: the lockfile of the globally-installed `skmtc` CLI,
  * at `~/.deno/bin/.skmtc/deno.lock`, silently pins an old CLI/core
@@ -125,7 +284,7 @@ const aggregate = (checks: Check[]): CheckStatus => {
  * behavior from here, but we can detect the situation and tell the
  * operator how to clear it.
  */
-const checkInstallLockfile = (): Check => {
+const checkInstallLockfile = (denoVersion?: string): Check => {
   const lockPath = join(homedir(), '.deno', 'bin', '.skmtc', 'deno.lock')
   if (!existsSync(lockPath)) {
     return {
@@ -144,11 +303,21 @@ const checkInstallLockfile = (): Check => {
       id: 'install-lockfile',
       status: 'ok',
       message: `Install lockfile present. Pinned: @skmtc/cli=${cliVersion ?? 'unknown'}, @skmtc/core=${coreVersion ?? 'unknown'}.`,
+      // The flag half of this hint only holds where the command actually
+      // carries the flag. On a Deno too old to parse it `toCliInstallCommand`
+      // omits it, and asserting "not optional" over a command without it
+      // is the contradiction the sibling check's two-predicate split exists
+      // to avoid.
       hint:
         `If enrichment leaves arrive as \`{}\` inside generators, your installed ` +
         `CLI might be pinned to an old @skmtc/core. Remediation: ` +
-        `\`rm -f ${lockPath} && deno install -gAf --unstable-worker-options --name skmtc jsr:@skmtc/cli\`. ` +
-        `See friction #16 in skmtc-cli skill §7.`,
+        `\`rm -f ${lockPath} && ${toCliInstallCommand(denoVersion)}\`.` +
+        (supportsDependencyAgeFlag(denoVersion)
+          ? ` The age flag is part of the remediation, not optional: clearing the ` +
+            `lock alone re-resolves to the same older version whenever the ` +
+            `newest release is under ${DEPENDENCY_AGE_WINDOW_HOURS}h old.`
+          : '') +
+        ` See friction #16 in skmtc-cli skill §7.`,
       data: { lockPath, cliVersion, coreVersion }
     }
   } catch (error) {

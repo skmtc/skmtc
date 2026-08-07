@@ -200,17 +200,51 @@ The CLI uses Cliffy framework with these patterns:
 - `deno task check` runs the full CI suite locally (doc-sync + workspace type-check & tests). A version-controlled `pre-push` hook (`<repo>/.githooks/pre-push`) runs it before every push so failures surface locally, not in GitHub Actions. Enable it per-clone with `git config core.hooksPath .githooks`; bypass a single push with `git push --no-verify`.
 - Use absolute import paths prefixed with `@/`, not of relative path imports
 
-## Deno 2.9 dependency age gate (misleading bundle failure)
+## Deno 2.9 dependency age gate (three faces, one cause)
 
-Deno ≥ 2.9 blocks recently published dependency versions by default
-(`--minimum-dependency-age`, unstable). The failure is misleading:
-`deno bundle` — and therefore `skmtc install` / `skmtc bundle`, which
-shell out to it — fails with `Do not know how to load path:
-deno:jsr:@skmtc/…` and no mention of age. Because `@skmtc/*` publishes
-on every merge to main, a just-released version ALWAYS trips the gate
-on jsr.io. Workarounds: pass `--minimum-dependency-age=0` to
-`deno bundle`, or use deno ≤ 2.8, or the local mirror (the gate does
-not fire against it). Verified 2026-07-12 — full write-up in
+Deno ≥ 2.9 refuses to resolve a dependency version published in the last
+24 hours by default (`--minimum-dependency-age`, unstable). Because
+`@skmtc/*` publishes on every merge to main, a just-released version
+ALWAYS trips it on jsr.io. It shows up three different ways:
+
+| resolution | symptom |
+| --- | --- |
+| exact pin (project `deno.json`, `deno bundle`) | hard error naming the policy on ≥ 2.9.3; on 2.9.0–2.9.2 the misleading `Do not know how to load path: deno:jsr:@skmtc/…` |
+| unpinned (`deno install jsr:@skmtc/cli`) | **silent** — resolves the previous version and reports success |
+| existing lockfile | keeps the older resolution; clearing the lock without the flag lands on it again |
+
+The silent one is the dangerous one: the install succeeds, `skmtc
+--version` reports the older version truthfully, and a fresh release
+looks like it never published.
+
+`deno/cli/lib/dependency-age.ts` is the single source, and the invariant
+is "goes through this module", not "through one function in it": every
+`deno` subprocess the CLI spawns splices `toDependencyAgeArgs()`, and
+every `deno install` the CLI or the docs PRINT is built here —
+`toCliInstallCommand()` for the global CLI, `toProjectInstallCommand()`
+for a project directory, `toJsrReinstallCommand()` (in
+`.scripts/release.ts`) for the just-published pin. A printed command
+without the flag hands the reader a recovery step that reproduces the
+failure. `skmtc doctor`'s
+`cli-version-current` check compares the running CLI against the
+registry and names the gate when the newest release is inside the
+window.
+
+One printed `deno` command is deliberately outside the invariant:
+`cli/workspaces/serve.node.tsx` prints `deno run jsr:@skmtc/cli serve …`
+from the **Node.js** build, where `Deno.version` does not exist — every
+helper in `dependency-age.ts` defaults to it, so routing this one
+through the module would throw a `ReferenceError` in the environment
+that prints it. The exposure is the mild face of the gate (an unpinned
+`deno run` resolves the previous release and runs it) rather than the
+hard error, and the message is a "you are on the wrong runtime" pointer,
+not a recovery step. Leave it hard-coded; do not "fix" it by importing
+the module.
+
+Other escape hatches: deno ≤ 2.8, or `"minimumDependencyAge": "0"` in
+the relevant `deno.json` (this workspace sets it; generated project
+configs deliberately do NOT — that is the user's file). Verified
+2026-07-12, extended 2026-08-07 — write-up in
 `deno/docs/friction-log/2026-07-12-docs-journey-program.md` entry 6.
 
 Use US English spelling in code, prose and documentation

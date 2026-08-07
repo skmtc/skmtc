@@ -1,9 +1,12 @@
 import { assertEquals, assertThrows } from '@std/assert'
+import { assertStringIncludes } from '@std/assert/string-includes'
 import {
   assertNoPrivateDeps,
   incrementPatch,
   planRelease,
   toDependencyOrder,
+  toJsrInstallArgs,
+  toJsrReinstallCommand,
   toWorkspaceDep,
   type WorkspacePackage
 } from './release.ts'
@@ -163,4 +166,25 @@ Deno.test('planRelease - a private package still cascade-bumps when a dependency
 
   assertEquals(plan.get('@skmtc/lang-java')?.version, '0.0.2')
   assertEquals(plan.get('@skmtc/lang-java')?.imports['@skmtc/core'], 'jsr:@skmtc/core@0.6.3')
+})
+
+Deno.test('toJsrInstallArgs - the just-published pin carries the dependency-age flag', () => {
+  // An exact pin published seconds ago is the HARD-error face of Deno's
+  // dependency-age gate, so the release script's own reinstall would
+  // fail to resolve the version it just published.
+  const args = toJsrInstallArgs('0.9.42')
+
+  assertEquals(args.includes('--minimum-dependency-age=0'), true)
+  assertEquals(args.at(-1), 'jsr:@skmtc/cli@0.9.42')
+  assertEquals(args[0], 'install')
+})
+
+Deno.test('toJsrReinstallCommand - the printed recovery line carries it too', () => {
+  // This line is aimed at consumers outside this workspace, where
+  // `deno/deno.json`'s `minimumDependencyAge: "0"` does not apply.
+  const command = toJsrReinstallCommand('https://jsr.io/', '0.9.42')
+
+  assertStringIncludes(command, '--minimum-dependency-age=0')
+  assertStringIncludes(command, 'JSR_URL=https://jsr.io/')
+  assertStringIncludes(command, 'jsr:@skmtc/cli@0.9.42')
 })

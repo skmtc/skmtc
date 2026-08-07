@@ -23,10 +23,20 @@ import denoJson from '../deno.json' with { type: 'json' }
 
 type RenderDoctorArgs = {
   jsonFlag?: boolean
+  /** Skip the one check that reaches the network (`cli-version-current`),
+   *  for a run that already knows it is offline and does not want to
+   *  spend the lookup's timeout to be told so. */
+  offlineFlag?: boolean
 }
 
-export const renderDoctor = async ({ jsonFlag }: RenderDoctorArgs): Promise<void> => {
-  const result = await runDoctor({ cliVersion: denoJson.version })
+export const renderDoctor = async ({
+  jsonFlag,
+  offlineFlag
+}: RenderDoctorArgs): Promise<void> => {
+  const result = await runDoctor({
+    cliVersion: denoJson.version,
+    offline: offlineFlag === true
+  })
   printDoctorResult(result, { format: resolveOutputFormat({ jsonFlag }) })
   Deno.exit(result.summary === 'error' ? 1 : 0)
 }

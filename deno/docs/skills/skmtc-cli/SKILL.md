@@ -196,6 +196,7 @@ Known check ids:
 
 | Check id | What it inspects |
 |---|---|
+| `cli-version-current` | The running CLI vs the newest published `@skmtc/cli` — the only check that reaches the network (2s bound, `skipped` when unreachable, `--offline` skips it). Names Deno's 24h minimum-dependency-age window when the newest release is still inside it, since a reinstall without `--minimum-dependency-age=0` silently resolves an older one |
 | `install-lockfile` | `~/.deno/bin/.skmtc/deno.lock` — the installed CLI's version pin of `@skmtc/cli` and `@skmtc/core` |
 | `deno-version` | Running Deno is ≥ 2.4.0 — the floor for the esbuild-based `deno bundle` |
 | `hub-auth` | `~/.skmtc/auth.json` parses to `{ host, token }` — offline only; `skipped` when not logged in, `warning` + logout/login hint when malformed; never reports more than the token's last 4 chars |
@@ -203,8 +204,12 @@ Known check ids:
 | `project-base-path/<project>` | `client.json#settings.basePath` present and relative |
 | `project-core-pin/<project>` | Project's `@skmtc/core` pin matches the CLI's major.minor |
 | `project-bundle/<project>` | `bundle.js` exists — every project (remote-only included) generates from it; warning with a `skmtc bundle` hint when missing |
+| `project-enrichments/<project>` | Last generate's `manifest.enrichmentWarnings` has no `warning`-level entries — dead enrichment config (typo'd generator id, path, method or model name) surfaces here between runs; `info` entries keep it `ok` |
 | `project-worker-pin/<project>` | If `worker.ts` exists, `@skmtc/worker` is pinned (the generated worker imports it); ok-noop before the first bundle |
 | `project-manifest/<project>` | `manifest.json` matches the current `@skmtc/core` schema |
+| `anchors-config/<project>` | `client.json#settings.anchors` shape; gen-maps are opt-in via `settings.anchors.enabled` |
+| `anchors-coverage/<project>` | Share of manifest files carrying an attribution sidecar; `warning` below threshold |
+| `anchors-staleness/<project>` | Sidecars on disk are current for the last run |
 ## 6. The client.json shape
 
 `.skmtc/<project>/.settings/client.json` — top level is

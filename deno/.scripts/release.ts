@@ -22,6 +22,7 @@
  */
 
 import { dirname, fromFileUrl, join } from '@std/path'
+import { toDependencyAgeArgs } from '../cli/lib/dependency-age.ts'
 
 /**
  * Scoped runtime permissions for the installed `skmtc` CLI — replaces a
@@ -361,21 +362,41 @@ const reinstallCliLocalCompile = async (cliDir: string): Promise<void> => {
   }
 }
 
+/**
+ * `deno install` args for the just-published CLI. The version landed
+ * seconds ago, so it sits as deep inside Deno's dependency-age window as
+ * a version gets — and an EXACT pin inside that window is a hard
+ * resolution error, not a silent downgrade. Both the run and the printed
+ * recovery command build from here so neither can lose the flag.
+ */
+export const toJsrInstallArgs = (version: string): string[] => [
+  'install',
+  ...toDependencyAgeArgs(),
+  ...SKMTC_PERMS,
+  '-g',
+  '--unstable-worker-options',
+  '-n',
+  'skmtc',
+  '-f',
+  `jsr:@skmtc/cli@${version}`
+]
+
+/**
+ * The same install as a copy-pasteable line. This one is handed to
+ * consumers running OUTSIDE this workspace, where `deno/deno.json`'s
+ * `minimumDependencyAge: "0"` does not apply — so the string has to
+ * carry the flag itself or it reproduces the error it exists to recover
+ * from.
+ */
+export const toJsrReinstallCommand = (jsrUrl: string, version: string): string =>
+  `JSR_URL=${jsrUrl} deno ${toJsrInstallArgs(version).join(' ')}`
+
 const reinstallCliFromJsr = async (jsrUrl: string, version: string): Promise<void> => {
   console.log(`Polling ${jsrUrl}@skmtc/cli for v${version}...`)
   await waitForJsrPropagation(jsrUrl, '@skmtc/cli', version)
   console.log(`Installing @skmtc/cli@${version} from JSR...`)
   const result = await new Deno.Command('deno', {
-    args: [
-      'install',
-      ...SKMTC_PERMS,
-      '-g',
-      '--unstable-worker-options',
-      '-n',
-      'skmtc',
-      '-f',
-      `jsr:@skmtc/cli@${version}`
-    ],
+    args: toJsrInstallArgs(version),
     env: { ...Deno.env.toObject(), JSR_URL: jsrUrl },
     stdout: 'inherit',
     stderr: 'inherit'
@@ -401,9 +422,7 @@ const printReinstallHint = (
   console.error(`    -o ~/.deno/bin/skmtc \\`)
   console.error(`    ${join(cliDir, 'mod.ts')}`)
   console.error('  # From JSR (downstream consumers):')
-  console.error(
-    `  JSR_URL=${jsrUrl} deno install ${SKMTC_PERMS_STR} -g --unstable-worker-options -n skmtc -f jsr:@skmtc/cli@${version}`
-  )
+  console.error(`  ${toJsrReinstallCommand(jsrUrl, version)}`)
   if (mode !== 'none') {
     console.error(`(mode "${mode}" was attempted but failed — defer to the manual commands above.)`)
   }
