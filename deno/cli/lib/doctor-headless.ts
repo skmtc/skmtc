@@ -36,6 +36,7 @@ import {
   DEPENDENCY_AGE_WINDOW_HOURS,
   enforcesDependencyAgeGate,
   isWithinDependencyAgeWindow,
+  supportsDependencyAgeFlag,
   toCliInstallCommand,
   toHoursSincePublish
 } from '@/lib/dependency-age.ts'
@@ -112,7 +113,7 @@ export const runDoctor = async ({
   checks.push(
     await checkCliVersionCurrent({ cliVersion, denoVersion, getLatestCliMeta, offline })
   )
-  checks.push(checkInstallLockfile())
+  checks.push(checkInstallLockfile(denoVersion))
   checks.push(checkDenoVersion(denoVersion))
   checks.push(checkHubAuth())
 
@@ -191,7 +192,12 @@ const checkCliVersionCurrent = async ({
   // command you run when everything else is broken, so a registry answer
   // it cannot read has to become a `skipped` line, never a throw that
   // takes the other twelve checks down with it.
-  const meta = await getLatestCliMeta().catch(() => undefined)
+  //
+  // Called through `Promise.resolve().then` rather than `f().catch`: an
+  // injected or refactored `getLatestCliMeta` that throws SYNCHRONOUSLY
+  // never produces a promise for `.catch` to attach to, so the throw
+  // escapes past exactly the guard this comment is describing.
+  const meta = await Promise.resolve().then(getLatestCliMeta).catch(() => undefined)
   if (typeof meta?.latest !== 'string' || typeof meta.versions !== 'object') {
     return {
       id: 'cli-version-current',
@@ -278,7 +284,7 @@ const formatHours = (publishedAt: string | undefined): string => {
  * behavior from here, but we can detect the situation and tell the
  * operator how to clear it.
  */
-const checkInstallLockfile = (): Check => {
+const checkInstallLockfile = (denoVersion?: string): Check => {
   const lockPath = join(homedir(), '.deno', 'bin', '.skmtc', 'deno.lock')
   if (!existsSync(lockPath)) {
     return {
@@ -297,14 +303,21 @@ const checkInstallLockfile = (): Check => {
       id: 'install-lockfile',
       status: 'ok',
       message: `Install lockfile present. Pinned: @skmtc/cli=${cliVersion ?? 'unknown'}, @skmtc/core=${coreVersion ?? 'unknown'}.`,
+      // The flag half of this hint only holds where the command actually
+      // carries the flag. On a Deno too old to parse it `toCliInstallCommand`
+      // omits it, and asserting "not optional" over a command without it
+      // is the contradiction the sibling check's two-predicate split exists
+      // to avoid.
       hint:
         `If enrichment leaves arrive as \`{}\` inside generators, your installed ` +
         `CLI might be pinned to an old @skmtc/core. Remediation: ` +
-        `\`rm -f ${lockPath} && ${toCliInstallCommand()}\`. ` +
-        `The age flag is part of the remediation, not optional: clearing the ` +
-        `lock alone re-resolves to the same older version whenever the ` +
-        `newest release is under ${DEPENDENCY_AGE_WINDOW_HOURS}h old. ` +
-        `See friction #16 in skmtc-cli skill §7.`,
+        `\`rm -f ${lockPath} && ${toCliInstallCommand(denoVersion)}\`.` +
+        (supportsDependencyAgeFlag(denoVersion)
+          ? ` The age flag is part of the remediation, not optional: clearing the ` +
+            `lock alone re-resolves to the same older version whenever the ` +
+            `newest release is under ${DEPENDENCY_AGE_WINDOW_HOURS}h old.`
+          : '') +
+        ` See friction #16 in skmtc-cli skill §7.`,
       data: { lockPath, cliVersion, coreVersion }
     }
   } catch (error) {

@@ -114,10 +114,12 @@ replace. If a stale `~/.deno/bin/.skmtc/deno.lock` is also pinning that
 version, delete it first (`rm -f ~/.deno/bin/.skmtc/deno.lock`).
 `skmtc doctor` reports both conditions.
 
-On Deno ≤ 2.5, drop the flag — the gate doesn't exist there and the
+On Deno ≤ 2.5.4, drop the flag — the gate doesn't exist there and the
 argument is unknown, so the install fails with
-`error: unexpected argument '--minimum-dependency-age' found`. (The CLI
-does this for you wherever it builds the command itself.)
+`error: unexpected argument '--minimum-dependency-age' found`. The flag
+parses from 2.5.5 onward, where it is an accepted no-op until the gate
+itself arrives in 2.9. (The CLI does this for you wherever it builds the
+command itself.)
 
 #### No output for an operation
 

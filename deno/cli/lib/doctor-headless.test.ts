@@ -608,18 +608,25 @@ const hoursAgo = (hours: number): string =>
  * happens to have — passing only because these tests assert on one
  * check, and one malformed manifest in someone's scratch project away
  * from a confusing failure in a check they are not testing.
+ *
+ * `denoVersion` defaults to a gate-ENFORCING version rather than falling
+ * through to the ambient one. Leaving it ambient made the outcome depend
+ * on the developer's Deno: `heldBack` flips to false on 2.6-2.8 (the flag
+ * parses, nothing is held back) and the flag drops out of the printed
+ * command on ≤ 2.5.4 — both inside doctor's own >= 2.4.0 supported range,
+ * so the suite passed here and failed for someone one minor behind.
  */
 const toVersionCheck = async (
   cliVersion: string,
   getLatestCliMeta: Parameters<typeof runDoctorWithRegistry>[0]['getLatestCliMeta'],
-  denoVersion?: string
+  denoVersion: string = '2.9.4'
 ): Promise<Check> => {
   const found: Check[] = []
   await withTempSkmtcRoot(async () => {
     const result = await runDoctorWithRegistry({
       cliVersion,
       getLatestCliMeta,
-      ...(denoVersion === undefined ? {} : { denoVersion })
+      denoVersion
     })
     const check = result.checks.find(c => c.id === 'cli-version-current')
     if (check === undefined) throw new Error('cli-version-current check missing')
@@ -714,6 +721,18 @@ Deno.test('runDoctor - cli-version-current tolerates a missing publish time', as
   assertEquals(check.data?.heldBack, false)
 })
 
+Deno.test('runDoctor - cli-version-current names no gate on a Deno that has none', async () => {
+  // 2.5.5-2.8 parse the flag but hold nothing back. Naming the window
+  // here would explain a cause that does not exist on this runtime, and
+  // the command still carries the flag because it is a harmless no-op.
+  const check = await toVersionCheck('0.9.40', toCliMeta('0.9.41', hoursAgo(2)), '2.7.0')
+
+  assertEquals(check.status, 'warning')
+  assertEquals(check.data?.heldBack, false)
+  assertEquals(check.hint?.includes('window'), false)
+  assertStringIncludes(check.hint ?? '', '--minimum-dependency-age=0')
+})
+
 /**
  * Every check id, read out of the source the docs point at. Both
  * spellings appear: a plain literal (`id: 'deno-version'`) for a
@@ -757,7 +776,7 @@ Deno.test('runDoctor - --offline says it was skipped by request, not that the ne
 })
 
 Deno.test('runDoctor - on a Deno without the gate, the hint neither claims nor prints the flag', async () => {
-  // Deno < 2.9 enforces no holdback, and <= 2.5 rejects the flag as an
+  // Deno < 2.9 enforces no holdback, and <= 2.5.4 rejects the flag as an
   // unknown argument. Claiming the flag is the fix while handing over a
   // command that omits it is the contradiction to avoid — and doctor's
   // own floor (2.4.0) puts such a reader inside the supported range.

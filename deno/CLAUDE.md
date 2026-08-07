@@ -230,6 +230,17 @@ failure. `skmtc doctor`'s
 registry and names the gate when the newest release is inside the
 window.
 
+One printed `deno` command is deliberately outside the invariant:
+`cli/workspaces/serve.node.tsx` prints `deno run jsr:@skmtc/cli serve …`
+from the **Node.js** build, where `Deno.version` does not exist — every
+helper in `dependency-age.ts` defaults to it, so routing this one
+through the module would throw a `ReferenceError` in the environment
+that prints it. The exposure is the mild face of the gate (an unpinned
+`deno run` resolves the previous release and runs it) rather than the
+hard error, and the message is a "you are on the wrong runtime" pointer,
+not a recovery step. Leave it hard-coded; do not "fix" it by importing
+the module.
+
 Other escape hatches: deno ≤ 2.8, or `"minimumDependencyAge": "0"` in
 the relevant `deno.json` (this workspace sets it; generated project
 configs deliberately do NOT — that is the user's file). Verified

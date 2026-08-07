@@ -20,7 +20,8 @@
  *
  * Anything that shells out to `deno` on the CLI's behalf passes
  * {@link toDependencyAgeArgs}, and anything that PRINTS a `deno` command
- * for someone to run builds it through {@link toCliInstallCommand} — a
+ * for someone to run builds it here — {@link toCliInstallCommand} for the
+ * global CLI, {@link toProjectInstallCommand} for a project directory. A
  * remediation without the flag sends the reader back to the version they
  * are trying to leave.
  */
@@ -31,33 +32,57 @@ export const DEPENDENCY_AGE_FLAG = '--minimum-dependency-age=0'
 /** Deno's default holdback window, for messages that explain the wait. */
 export const DEPENDENCY_AGE_WINDOW_HOURS = 24
 
+/** `major.minor.patch` as numbers, or `undefined` when the string is not
+ *  a version. A prerelease suffix (`2.9.0-rc.1`) still yields its numeric
+ *  patch, so a release candidate compares as its own release. */
+const toVersionParts = (
+  denoVersion: string
+): { major: number; minor: number; patch: number } | undefined => {
+  const [major, minor, patch] = denoVersion.split('.')
+  const parsedMajor = Number(major)
+  const parsedMinor = Number(minor)
+  if (Number.isNaN(parsedMajor) || Number.isNaN(parsedMinor)) return undefined
+  return { major: parsedMajor, minor: parsedMinor, patch: parseInt(patch, 10) || 0 }
+}
+
 /**
- * Does this Deno understand the flag? It parses from 2.6 (a no-op until
- * the 2.9 gate) and is an unknown-argument error on ≤ 2.5. Callers pass
- * the running version because a subprocess resolves `deno` from PATH —
- * the same binary running this code in the supported setups.
+ * Does this Deno understand the flag? It parses from 2.5.5 — `deno
+ * 2.5.5 / 2025.10.28`, *"feat(unstable): ability to only install
+ * dependencies older than a certain date (#30752)"*, which registers
+ * `min_dep_age_arg()` in `compile_args_without_check_args`, composed by
+ * `run` / `bundle` / `install` alike. (The 2.8.3 and 2.9.4 release notes
+ * add it to `deno info` and `deno add`/`remove`; those are per-subcommand
+ * backfills, not the introduction.) It is a no-op until the 2.9 gate, and
+ * an unknown-argument error only on ≤ 2.5.4.
+ *
+ * Callers pass the running version because a subprocess resolves `deno`
+ * from PATH — the same binary running this code in the supported setups.
  */
 export const supportsDependencyAgeFlag = (
   denoVersion: string = Deno.version.deno
 ): boolean => {
-  const [major, minor] = denoVersion.split('.').map(Number)
-  if (Number.isNaN(major) || Number.isNaN(minor)) return false
-  return major > 2 || (major === 2 && minor >= 6)
+  const parts = toVersionParts(denoVersion)
+  if (parts === undefined) return false
+  const { major, minor, patch } = parts
+  if (major !== 2) return major > 2
+  if (minor !== 5) return minor > 5
+  return patch >= 5
 }
 
 /**
  * Does this Deno actually ENFORCE the holdback? Two different versions
  * matter and conflating them produces wrong advice: the flag parses from
- * 2.6, but nothing is held back until 2.9. Below that there is no gate
- * to explain, so a "your release is too new to install" hint would name
- * a cause that does not exist.
+ * 2.5.5, but nothing is held back until 2.9 — `deno 2.9.0 / 2026.06.25`,
+ * *"feat: enable default minimum dependency age (#35458)"*. Below that
+ * there is no gate to explain, so a "your release is too new to install"
+ * hint would name a cause that does not exist.
  */
 export const enforcesDependencyAgeGate = (
   denoVersion: string = Deno.version.deno
 ): boolean => {
-  const [major, minor] = denoVersion.split('.').map(Number)
-  if (Number.isNaN(major) || Number.isNaN(minor)) return false
-  return major > 2 || (major === 2 && minor >= 9)
+  const parts = toVersionParts(denoVersion)
+  if (parts === undefined) return false
+  return parts.major > 2 || (parts.major === 2 && parts.minor >= 9)
 }
 
 /** Args to splice into a `deno` subprocess invocation, empty when the
@@ -104,16 +129,22 @@ export const toHoursSincePublish = (
  * Is this version still inside Deno's holdback window — i.e. will a
  * resolution without the flag refuse to reach it?
  *
- * A NEGATIVE age counts as inside. A publish time slightly ahead of the
- * local clock (a lagging machine, a registry timestamp a moment ahead)
- * means the release just landed, which is the deepest part of the window
- * — reading it as "outside" would drop the explanation in the one case
- * the check exists for.
+ * A SLIGHTLY negative age counts as inside. A publish time a little
+ * ahead of the local clock (a lagging machine, a registry timestamp a
+ * moment ahead) means the release just landed, which is the deepest part
+ * of the window — reading it as "outside" would drop the explanation in
+ * the one case the check exists for.
+ *
+ * The tolerance is bounded, though: a `createdAt` far in the future is a
+ * broken clock or a mirror inventing timestamps, not a fresh release, and
+ * calling it "held back" would name the wrong cause to someone already
+ * debugging. Beyond one window's slack it reads as outside.
  */
 export const isWithinDependencyAgeWindow = (
   publishedAt: string | undefined,
   now?: Date
 ): boolean => {
   const hours = toHoursSincePublish(publishedAt, now)
-  return hours !== undefined && hours < DEPENDENCY_AGE_WINDOW_HOURS
+  if (hours === undefined) return false
+  return hours > -DEPENDENCY_AGE_WINDOW_HOURS && hours < DEPENDENCY_AGE_WINDOW_HOURS
 }
