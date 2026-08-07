@@ -57,3 +57,12 @@ Deno.test('isWithinDependencyAgeWindow - 24 hours is the boundary', () => {
   // No publish time reported: assume nothing rather than claim a hold.
   assertEquals(isWithinDependencyAgeWindow(undefined), false)
 })
+
+Deno.test('isWithinDependencyAgeWindow - a future publish time counts as inside', () => {
+  // Clock skew between the machine and the registry puts `publishedAt`
+  // marginally ahead. The release just landed, so it is as held back as
+  // a version gets — reading it as "outside" drops the explanation in
+  // the one case the window is checked for.
+  assertEquals(isWithinDependencyAgeWindow(hoursAgo(-0.02)), true)
+  assertEquals(isWithinDependencyAgeWindow(hoursAgo(-5)), true)
+})

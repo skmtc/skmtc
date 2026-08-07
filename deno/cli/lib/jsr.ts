@@ -3,6 +3,7 @@ import { maxSatisfying } from '@std/semver/max-satisfying'
 import { parse } from '@std/semver/parse'
 import { parseRange } from '@std/semver/parse-range'
 import { toJsrUrl } from '@/lib/jsr-registry.ts'
+import * as v from 'valibot'
 
 export type Pkg = {
   name: string
@@ -42,6 +43,23 @@ export type JsrPkgMetaVersions = {
   }
 }
 
+/** Runtime shape for {@link Jsr.tryGetLatestMeta} — `latest` is a string
+ *  and `versions` a map, or the answer is not a package meta document.
+ *  (A package whose versions are all yanked reports `latest: null`; that
+ *  fails here, which is the right answer for a version comparison.) */
+const jsrPkgMetaVersionsSchema = v.object({
+  scope: v.string(),
+  name: v.string(),
+  latest: v.string(),
+  versions: v.record(
+    v.string(),
+    v.object({
+      yanked: v.optional(v.boolean()),
+      createdAt: v.optional(v.string())
+    })
+  )
+})
+
 type GetLatestMetaArgs = {
   scopeName: string
   packageName: string
@@ -78,8 +96,14 @@ export class Jsr {
   /**
    * {@link getLatestMeta} for a caller that must not fail or print when
    * the registry is unreachable — a diagnostic, not a step in a workflow.
-   * Returns `undefined` on any network, status or parse failure, and
-   * bounds the wait so an offline machine does not stall the command.
+   * Returns `undefined` on any network, status, parse OR SHAPE failure,
+   * and bounds the wait so an offline machine does not stall the command.
+   *
+   * The shape check is the point of the separate method: `JSR_URL` can
+   * name a mirror or proxy, and one answering 200 with a JSON error
+   * object would otherwise hand the caller a `JsrPkgMetaVersions` whose
+   * `versions` is undefined — a crash at the use site, in a diagnostic
+   * that exists for when everything else is already broken.
    */
   static async tryGetLatestMeta({
     scopeName,
@@ -92,7 +116,8 @@ export class Jsr {
       const url = toJsrUrl(`${scopeName}/${packageName}/meta.json`)
       const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) })
       if (!res.ok) return undefined
-      return await res.json()
+      const parsed = v.safeParse(jsrPkgMetaVersionsSchema, await res.json())
+      return parsed.success ? parsed.output : undefined
     } catch {
       return undefined
     }

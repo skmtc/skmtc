@@ -74,12 +74,20 @@ export const toHoursSincePublish = (
   return (now.getTime() - published.getTime()) / (1000 * 60 * 60)
 }
 
-/** Is this version still inside Deno's holdback window — i.e. will a
- *  resolution without the flag refuse to reach it? */
+/**
+ * Is this version still inside Deno's holdback window — i.e. will a
+ * resolution without the flag refuse to reach it?
+ *
+ * A NEGATIVE age counts as inside. A publish time slightly ahead of the
+ * local clock (a lagging machine, a registry timestamp a moment ahead)
+ * means the release just landed, which is the deepest part of the window
+ * — reading it as "outside" would drop the explanation in the one case
+ * the check exists for.
+ */
 export const isWithinDependencyAgeWindow = (
   publishedAt: string | undefined,
   now?: Date
 ): boolean => {
   const hours = toHoursSincePublish(publishedAt, now)
-  return hours !== undefined && hours >= 0 && hours < DEPENDENCY_AGE_WINDOW_HOURS
+  return hours !== undefined && hours < DEPENDENCY_AGE_WINDOW_HOURS
 }

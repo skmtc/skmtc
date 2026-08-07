@@ -658,9 +658,82 @@ Deno.test('runDoctor - cli-version-current skips when the registry is unreachabl
   assertStringIncludes(check.message, 'Could not reach')
 })
 
+Deno.test('runDoctor - cli-version-current survives a registry answering the wrong shape', async () => {
+  // A mirror or proxy behind JSR_URL answering 200 with a JSON error
+  // object. Doctor is the "everything else is broken" command, so an
+  // unreadable answer must be one `skipped` line, not a throw that takes
+  // the other twelve checks with it.
+  const check = await toVersionCheck(
+    '0.9.40',
+    () => Promise.resolve(JSON.parse('{"error":"nope"}'))
+  )
+
+  assertEquals(check.status, 'skipped')
+})
+
+Deno.test('runDoctor - cli-version-current survives a rejected registry lookup', async () => {
+  const check = await toVersionCheck('0.9.40', () =>
+    Promise.reject(new Error('socket hang up'))
+  )
+
+  assertEquals(check.status, 'skipped')
+})
+
+Deno.test('runDoctor - cli-version-current treats a future publish time as inside the window', async () => {
+  // A machine whose clock lags the registry by a minute. The release
+  // landed moments ago — the deepest part of the window, and the exact
+  // case this check exists to explain.
+  const check = await toVersionCheck('0.9.40', toCliMeta('0.9.41', hoursAgo(-0.02)))
+
+  assertEquals(check.status, 'warning')
+  assertEquals(check.data?.heldBack, true)
+  assertStringIncludes(check.hint ?? '', 'published a moment ago')
+})
+
 Deno.test('runDoctor - cli-version-current tolerates a missing publish time', async () => {
   const check = await toVersionCheck('0.9.40', toCliMeta('0.9.41'))
 
   assertEquals(check.status, 'warning')
   assertEquals(check.data?.heldBack, false)
+})
+
+/**
+ * Every check id, read out of the source the docs point at. Both
+ * spellings appear: a plain literal (`id: 'deno-version'`) for a
+ * workspace check, and a template (`id: \`project-bundle/${name}\``)
+ * for a per-project one, which the docs write as
+ * `project-bundle/<project>`.
+ */
+const toCheckIds = async (): Promise<string[]> => {
+  const sources = ['doctor-headless.ts', 'doctor-anchors.ts']
+  const ids = new Set<string>()
+  for (const source of sources) {
+    const text = await Deno.readTextFile(new URL(source, import.meta.url))
+    for (const match of text.matchAll(/\bid = `([a-z-]+)\/\$\{/g)) ids.add(match[1])
+    for (const match of text.matchAll(/\bid: `([a-z-]+)\/\$\{/g)) ids.add(match[1])
+    for (const match of text.matchAll(/\bid: '([a-z-]+)'/g)) ids.add(match[1])
+  }
+  return [...ids].sort()
+}
+
+Deno.test('doctor - every check id is documented in all three catalogues', async () => {
+  // The docs are what an agent reads to reason about a check without
+  // running it, and three files carry the same table. Adding a check
+  // without a row makes it invisible to exactly those readers — which is
+  // how `cli-version-current` shipped undocumented in review.
+  const catalogues = [
+    '../../docs/reference/cli/doctor.md',
+    '../../docs/skills/skmtc-cli/SKILL.md',
+    '../../docs/skills/skmtc-cli-v2/reference.md'
+  ]
+  const ids = await toCheckIds()
+  // Guard the guard: a broken extraction would vacuously pass.
+  assertEquals(ids.length > 10, true)
+  assertEquals(ids.includes('cli-version-current'), true)
+
+  for (const catalogue of catalogues) {
+    const text = await Deno.readTextFile(new URL(catalogue, import.meta.url))
+    const undocumented = ids.filter(id => !text.includes(`\`${id}`))
+    assertEquals(undocumented, [], `undocumented in ${catalogue}`)
+  }
 })

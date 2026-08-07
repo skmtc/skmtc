@@ -12,7 +12,7 @@ before `generate`, or when diagnosing a confusing failure.
 ## Synopsis
 
 ```
-skmtc doctor [--json]
+skmtc doctor [--json] [--offline]
 ```
 
 The command takes no positional arguments — it always operates on
@@ -29,6 +29,15 @@ a human-readable check-by-check report.
 by agents — the structured form is designed for programmatic
 remediation.
 
+### `--offline`
+
+Skip the registry lookup behind `cli-version-current`, which then
+reports `skipped`. Every other check is filesystem-only, so this makes
+the whole command network-free. Without it the lookup is bounded at 2
+seconds and degrades to `skipped` anyway — use `--offline` when a run
+already knows it has no network and does not want to spend the timeout
+being told so.
+
 ## Behavior
 
 ### Checks performed
@@ -36,14 +45,16 @@ remediation.
 Each check has an ID, a target (workspace or project), and a
 pass/fail result. Failures include a remediation hint.
 
-There are exactly **six** check IDs (the full surface is enumerated
-in `cli/lib/doctor-headless.ts` — every `id:` literal). Workspace-scoped
-checks plus per-project checks:
+The full surface is enumerated in `cli/lib/doctor-headless.ts` and
+`cli/lib/doctor-anchors.ts` — every `id:` literal. A test asserts that
+each one appears in this table, so a check added without a row here
+fails the suite. Workspace-scoped checks plus per-project checks:
 
 #### Workspace-level checks
 
 | Check ID | What it verifies |
 |---|---|
+| `cli-version-current` | The running CLI against the newest published `@skmtc/cli`. The only check that reaches the network (2s bound; `skipped` when unreachable, and `skmtc doctor --offline` skips the lookup outright). When the newest release is still inside Deno's 24h minimum-dependency-age window, the hint says so — a reinstall without `--minimum-dependency-age=0` silently resolves an older release. |
 | `install-lockfile` | The installed CLI's `deno.lock` (under `~/.deno/bin/.skmtc/`) exists and pins `@skmtc/cli` and `@skmtc/core` to compatible versions |
 | `deno-version` | The running Deno satisfies the `>= 2.4.0` floor for the esbuild-based `deno bundle` |
 | `hub-auth` | `~/.skmtc/auth.json` (written by `skmtc login`) parses to the expected `{ host, token }` shape. Offline only — no network call; `skipped` when not logged in, `warning` with a logout/login hint when malformed. Reports at most the token's last 4 characters. |
@@ -60,6 +71,10 @@ For each project under `.skmtc/<project>/`:
 | `project-bundle/<project>` | If the project has at least one *local* generator import, `bundle.js` exists. Pure JSR projects return `ok` with `hasLocalGenerator: false` (no bundle needed). |
 | `project-manifest/<project>` | `manifest.json` (if present) parses and matches the schema the current `@skmtc/core` expects |
 | `project-enrichments/<project>` | The last generate's `manifest.enrichmentWarnings` has no `warning`-level entries — dead enrichment config (typo'd generator ids, paths, methods, model names; schema-dropped keys) surfaces here between runs. `info` entries (enrichments on deliberately skipped items) keep the check `ok`. Skips when the manifest is missing, broken (deferred to `project-manifest`), or written by a core older than 0.28.0. |
+| `project-worker-pin/<project>` | The project pins `@skmtc/worker` — the generated `worker.ts` needs it to bundle. `skipped` before the first `skmtc bundle` writes `worker.ts`; `warning` with a `skmtc bundle` hint when the pin is missing. |
+| `anchors-config/<project>` | `client.json#settings.anchors` parses and reports whether gen-maps are enabled (opt-in via `settings.anchors.enabled`) and where they are written. |
+| `anchors-coverage/<project>` | Share of the manifest's files that have an attribution sidecar; `warning` below the coverage threshold. `skipped` when anchors are disabled or the project has not generated yet. |
+| `anchors-staleness/<project>` | Sidecars on disk are current for the last run. `skipped` when anchors are disabled or no manifest exists. |
 
 The exact set of checks evolves over time. Run `skmtc doctor` itself
 to see the current battery.

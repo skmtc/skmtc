@@ -156,8 +156,12 @@ const checkCliVersionCurrent = async (
   cliVersion: string,
   getLatestCliMeta: () => Promise<JsrPkgMetaVersions | undefined>
 ): Promise<Check> => {
-  const meta = await getLatestCliMeta()
-  if (meta === undefined) {
+  // Belt and braces with `tryGetLatestMeta`'s shape check: doctor is the
+  // command you run when everything else is broken, so a registry answer
+  // it cannot read has to become a `skipped` line, never a throw that
+  // takes the other twelve checks down with it.
+  const meta = await getLatestCliMeta().catch(() => undefined)
+  if (typeof meta?.latest !== 'string' || typeof meta.versions !== 'object') {
     return {
       id: 'cli-version-current',
       status: 'skipped',
@@ -183,7 +187,7 @@ const checkCliVersionCurrent = async (
     }
   }
 
-  const publishedAt = meta.versions[meta.latest]?.createdAt
+  const publishedAt = meta.versions?.[meta.latest]?.createdAt
   const heldBack = isWithinDependencyAgeWindow(publishedAt)
   const lockPath = join(homedir(), '.deno', 'bin', '.skmtc', 'deno.lock')
   const reinstall = existsSync(lockPath)
@@ -221,8 +225,14 @@ const isAheadOfRegistry = (cliVersion: string, latest: string): boolean => {
 const formatHours = (publishedAt: string | undefined): string => {
   const hours = toHoursSincePublish(publishedAt)
   if (hours === undefined) return 'an unknown time'
-  if (hours < 1) return `${Math.max(1, Math.round(hours * 60))} minutes`
-  return `${Math.round(hours)} hours`
+  if (hours < 1) {
+    // Negative when the publish time is a touch ahead of the local clock;
+    // "a moment" reads correctly either way.
+    const minutes = Math.round(hours * 60)
+    return minutes <= 1 ? 'a moment' : `${minutes} minutes`
+  }
+  const rounded = Math.round(hours)
+  return rounded === 1 ? '1 hour' : `${rounded} hours`
 }
 
 /**

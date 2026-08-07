@@ -7,9 +7,13 @@ import denoJson from './deno.json' with { type: 'json' }
 //   dsn: 'https://9904234a7aabfeff2145622ccb0824e3@o4508018789646336.ingest.de.sentry.io/4509532871262288'
 // })
 
-// Commands that never touch JSR can be allow-listed here so they keep
-// working offline. Adding new commands defaults to "requires registry"
-// — make it an explicit decision when something can skip the check.
+// Commands that don't need JSR to do their job are allow-listed here so
+// they keep working offline. Adding new commands defaults to "requires
+// registry" — make it an explicit decision when something can skip the
+// check. `doctor` is a partial exception: its `cli-version-current`
+// check asks the registry which CLI version is current, but the lookup
+// is bounded and degrades to `skipped`, so doctor still reports every
+// other check offline (`--offline` skips the lookup outright).
 const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
   'generate',
   'dev',
@@ -473,9 +477,13 @@ const run = async () => {
   const doctorCommand = new Command()
     .description(getCommandDescriptor('doctor').description)
     .option('--json', 'Emit structured JSON output.')
-    .action(async ({ json }) => {
+    .option(
+      '--offline',
+      'Skip the registry lookup behind `cli-version-current`, which reports `skipped` instead.'
+    )
+    .action(async ({ json, offline }) => {
       const { renderDoctor } = await import('@/commands/doctor.ts')
-      await renderDoctor({ jsonFlag: json })
+      await renderDoctor({ jsonFlag: json, offlineFlag: offline })
     })
 
   const agentContextCommand = new Command()
