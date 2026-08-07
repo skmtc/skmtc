@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator-v3
-version: 0.2.2
+version: 0.2.4
 description: >
   Author and edit SKMTC generators — packages that project an OpenAPI
   domain model into application code. Method: clone the nearest stock
@@ -35,9 +35,9 @@ nearest exemplar:
 |---|---|
 | model → validator/schema value | load **skmtc-model-v3** and copy its engine-tested skeleton (fill-in slots; gen-zod is its pattern source) |
 | model → type declaration | `@skmtc/gen-typescript` |
-| operation → client hook, consuming a model generator | `@skmtc/gen-tanstack-query-fetch-zod` |
+| operation → client hook/SDK/form, consuming a model generator | load **skmtc-operation-v3** (decomposition + peer-consumption rules; gen-tanstack-query-fetch-zod is its canonical instance) |
 | many subjects → one shared file (accumulator) | `@skmtc/gen-msw`, `@skmtc/gen-express` |
-| Kotlin | structure from `gen-kotlin-*`, but their lang-API call shapes are STALE — take call shapes from skmtc-lang-kotlin-v3 only |
+| Kotlin | `@skmtc/gen-kotlin-jackson` (current lang-kotlin API; the older gen-kotlin-* were retired) |
 
 Fetch source from JSR: `https://jsr.io/@skmtc/<name>/meta.json` → pick
 version → fetch files (or `deno doc jsr:@skmtc/<name>`). Keep the
@@ -108,6 +108,43 @@ functions that return strings — helpers drift.
   methods beyond constructor and toString"). `defineAndRegister` is a
   **lang-package free function** (import it from your lang package) —
   there is no `context.defineAndRegister`; that API was deleted.
+- **Peers have exactly two doors**: the insert machinery, or an API the
+  peer package explicitly exports. Never call another generator's
+  identity statics (`toIdentifierName`/`toExportPath`/`toEnrichments`)
+  yourself, and never fabricate a refName — `toRefName` on a string you
+  built points at a schema that does not exist, and attribution,
+  enrichment routing, and recursion tracking are all keyed by REAL
+  refNames; the fabrication survives only until something resolves it.
+  If the sanctioned call cannot express what you need, do NOT settle
+  for a degraded render — a widened type (`Map<String, Any?>` for a
+  known shape) is capitulation, not a solution. Treat the situation as
+  a solved problem you haven't found yet: research how other code
+  generators handle this exact edge case — the stock lineup, retired
+  in-house generators (git history is a design archive), and mature
+  external tools (OpenAPI Generator, Fabrikt). The answer is almost
+  always to SYNTHESIZE a named declaration and reference it by name
+  (`findDefinition` probe + your lang package's `defineAndRegister`).
+  The synthesized NAME derives from the schema's own `stackTrail` — a
+  pure function from position to name, computed at the point of need
+  (`components/schemas/Order/properties/metadata` → `OrderMetadata`;
+  an operation-rooted trail reuses `toMethodVerb` naming →
+  `CreateApiOrdersBody`). Never thread a naming hint as a parameter:
+  position-derived names are deterministic, collision-free (distinct
+  positions → distinct trails), and reach EVERY construction path —
+  including values built through `insertNormalizedModel`'s contract,
+  which cannot pass a hint. Two rules: anchor on the document landmarks
+  (`components`/`paths`), never absolute indices — the trail's head
+  carries per-run tracing frames (`trace-*`/`span-*`/`parse`); and
+  throw on an unrecognized or empty trail rather than invent a name
+  (the engine isolates the throw to that subject). Worked example:
+  `toSynthesizedName.ts` in the kotlin-debug rig's gen-kotlin-jackson
+  (verified end-to-end 2026-08-04, compiler-clean).
+  Only when the known solution needs machinery the engine genuinely
+  lacks have you found an ENGINE GAP — name it in your summary and
+  raise it; never silently ship the degraded form as if it were the
+  answer. Never re-create engine machinery inside a generator — a
+  faithful-looking counterfeit passes every automated check and breaks,
+  far from the cause, on the next engine change.
 - **When in doubt, make it a producer.** The cost asymmetry is one-way:
   a producer that never needed to be one costs a few lines; a string
   that later needed to be a producer severs the chain for everything
@@ -163,6 +200,8 @@ the text into a template.
 | Router misroutes custom values | `schema.type === 'custom'` is a real dispatch case — presence-test with `'readOnly' in schema`-style guards, not type equality |
 | `null` slips through an optional guard | `!== undefined` lets `null` pass on Nullable generics — check both |
 | `insertResult.identifier` is a type error | You have an `Inserted` handle (from `insertModel`) — use `.toName()`/`.definition`; only `insertNormalizedModel` returns the definition |
+| `` toRefName(`...${name}`) `` anywhere | Fabricated ref — go through a peer's two doors, never its statics |
+| Reading fields off a peer's value beyond the definition/name | Coupled to the peer's PRIVATE snippet shape — it will change silently |
 
 ## 7. The lang layer
 
@@ -171,10 +210,11 @@ File/Import/Definition, identifier factories, emitted-language import
 rules, sanitization — lives in the target language's package and skill.
 Load `skmtc-lang-typescript-v3` or `skmtc-lang-kotlin-v3` before writing
 code. Lang skill wins on language specifics; this skill wins on engine
-semantics. Model generators additionally have a SHAPE skill —
-`skmtc-model-v3` — carrying the fill-in skeleton and the model edge
-cases (refs, recursion, visibility); model-specific guidance lives
-there, not here.
+semantics. Two SHAPE skills carry the per-shape guidance — load the
+one matching your subject: `skmtc-model-v3` (fill-in skeleton, model
+edge cases: refs, recursion, visibility) or `skmtc-operation-v3`
+(operation decomposition, peer-consumption rules). Shape-specific
+guidance lives there, not here.
 
 Scope note: this skill covers **OpenAPI input**. GraphQL SDL input
 exists (`toGqlOperationEntry`, subject routing by
