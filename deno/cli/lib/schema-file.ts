@@ -26,25 +26,21 @@ type ToPathArgs = {
  * Idle, not total: the budget resets on every chunk that arrives, so a
  * large spec on a slow-but-progressing link still completes, while a
  * server that accepts the connection and then stalls fails inside the
- * window. A total cap would regress the "40MB spec over a congested VPN"
- * case that worked before any timeout existed.
+ * window. An idle-only budget would regress the "40MB spec over a
+ * congested VPN" case that worked before any timeout existed.
  */
 const REMOTE_FETCH_IDLE_TIMEOUT_MS = 30_000
 
 /**
- * A project whose schema configuration is AMBIGUOUS or MALFORMED, as
- * opposed to one whose source could not be reached.
+ * The ceiling an idle budget cannot provide on its own.
  *
- * The distinction is what {@link SchemaFile.openFromProject} tolerates.
- * An unreachable source is environmental — the network is down, a pinned
- * URL now 404s — and must not take down the commands that never needed
- * the schema. Two schema files sitting in the same directory is a
- * deterministic mistake that no command can work around, so it keeps
- * failing hard from every command, as it did before the tolerant wrapper.
+ * A response that trickles one byte every few seconds resets the idle
+ * window forever, so without this a mistyped SSE endpoint — or a proxy
+ * emitting keep-alive whitespace during a long backend render — hangs
+ * the command and grows the buffer without bound. Five minutes is far
+ * beyond any real schema download and well short of burning a CI job.
  */
-export class SchemaConfigError extends Error {
-  override readonly name = 'SchemaConfigError'
-}
+const REMOTE_FETCH_TOTAL_TIMEOUT_MS = 5 * 60_000
 
 export class SchemaFile {
   contents: string | null
@@ -74,9 +70,14 @@ export class SchemaFile {
    * `toGenerateLocalArgs`, never through here, and still fail hard with
    * the full message.
    *
-   * A {@link SchemaConfigError} is NOT tolerated — the project is
-   * misconfigured rather than unreachable, and a warning line is easy to
-   * miss (invisible in `--json` runs, where agents read stdout).
+   * EVERY failure is tolerated here, including a misconfigured project
+   * (two schema files at the default locations, an empty file). Letting
+   * those through as throws crashes `list`, `clean`, `install` and the
+   * bare prompt with an uncaught exception and an empty stdout — the
+   * recovery commands included — which is worse than a warning even
+   * though a warning is easy to miss. Surfacing misconfiguration as
+   * structured output belongs in the commands, via `strict-mode.ts`,
+   * not in a throw from the root open.
    *
    * The warning goes to stderr so `--json` output on stdout stays clean.
    */
@@ -87,10 +88,6 @@ export class SchemaFile {
     try {
       return await SchemaFile.openFromProjectStrict(projectName, source)
     } catch (error) {
-      if (error instanceof SchemaConfigError) {
-        throw error
-      }
-
       const reason = error instanceof Error ? error.message : String(error)
       console.error(
         `Warning: could not read the schema for project "${projectName}": ${reason}\n` +
@@ -135,13 +132,19 @@ export class SchemaFile {
   ): Promise<{ contents: string; fileType: FileType; schemaSource: SchemaSource }> {
     switch (schemaSource.type) {
       case 'remote': {
-        // One deadline for the whole exchange, reset by every chunk the
-        // body read receives. `clear()` in `finally` so a fast success
-        // does not leave a pending timer holding the event loop open.
-        const timeout = toIdleTimeout(REMOTE_FETCH_IDLE_TIMEOUT_MS)
+        // One deadline for the whole exchange — an idle window reset by
+        // every chunk, under a total ceiling that never resets.
+        // `clear()` in `finally` so a fast success does not leave a
+        // pending timer holding the event loop open.
+        const deadline = toFetchDeadline({
+          idleMs: REMOTE_FETCH_IDLE_TIMEOUT_MS,
+          totalMs: REMOTE_FETCH_TOTAL_TIMEOUT_MS
+        })
 
         try {
-          const response = await fetchRemote(schemaSource.url, timeout.signal)
+          const response = await fetchRemote(schemaSource.url, deadline.signal)
+
+          deadline.startBody()
 
           if (!response.ok) {
             // Not awaited: cancelling an ERRORED stream rejects (a server
@@ -158,7 +161,7 @@ export class SchemaFile {
           // headers promptly and then stalls rejects HERE, not at `fetch`.
           // Reading through the same wrapper keeps that failure from
           // escaping as a bare `TimeoutError` with no URL.
-          const contents = await readRemoteBody({ response, url: schemaSource.url, timeout })
+          const contents = await readRemoteBody({ response, url: schemaSource.url, deadline })
 
           // `.trim()`: a whitespace-only body is as empty as an absent one
           // — the shape a misconfigured proxy or a template that rendered
@@ -185,7 +188,7 @@ export class SchemaFile {
             schemaSource: { type: 'remote', url: finalUrl }
           }
         } finally {
-          timeout.clear()
+          deadline.clear()
         }
       }
       case 'local': {
@@ -206,65 +209,102 @@ export class SchemaFile {
   }
 }
 
-type IdleTimeout = {
-  /** Pass to `fetch`; aborts once the idle window elapses. */
+export type FetchDeadline = {
+  /** Pass to `fetch`; aborts when either budget runs out. */
   signal: AbortSignal
-  /** Restart the window — call whenever bytes arrive. */
+  /** The response has started; subsequent stalls are body stalls. */
+  startBody: () => void
+  /** Restart the idle window — call whenever bytes arrive. */
   touch: () => void
-  /** Stop the timer. Always call, or it holds the event loop open. */
+  /** Stop the timers. Always call, or they hold the event loop open. */
   clear: () => void
 }
 
+type ToFetchDeadlineArgs = {
+  /** Longest gap with no bytes before the fetch is abandoned. */
+  idleMs: number
+  /** Longest the whole exchange may run, however steadily it drips. */
+  totalMs: number
+}
+
 /**
- * An abort deadline that RESETS on progress.
+ * Two budgets on one signal.
  *
- * `AbortSignal.timeout` caps the whole exchange, which turns a slow but
- * healthy download into a failure. This aborts only when nothing has
- * arrived for `ms`, so the size of the schema stops mattering and only a
- * genuinely stalled connection trips it. The abort reason is a
- * `TimeoutError`, so {@link toFetchFailure} phrases it the same way for
- * the connect phase and the body read.
+ * The IDLE one resets on progress, so the size of the schema stops
+ * mattering and a slow-but-healthy download is not cut off — which a
+ * single total cap gets wrong. The TOTAL one never resets, because an
+ * idle budget alone can be held open forever by a response that trickles
+ * a byte every few seconds.
+ *
+ * Both abort with a `TimeoutError` whose message is the finished
+ * sentence {@link toFetchFailure} reports, so the four cases — waiting
+ * for a response, stalled mid-body, and the ceiling in either phase —
+ * each name what actually happened.
  */
-const toIdleTimeout = (ms: number): IdleTimeout => {
+export const toFetchDeadline = ({ idleMs, totalMs }: ToFetchDeadlineArgs): FetchDeadline => {
   const controller = new AbortController()
 
-  // Mutable because the point is to reschedule it on every chunk.
-  let timer: ReturnType<typeof setTimeout> | undefined
+  // Mutable: the idle timer is rescheduled on every chunk, and the
+  // phrasing changes once the response has started.
+  let idleTimer: ReturnType<typeof setTimeout> | undefined
+  let started = false
+
+  const abort = (message: string) => {
+    controller.abort(new DOMException(message, 'TimeoutError'))
+  }
+
+  const totalTimer = setTimeout(() => {
+    abort(`exceeded the ${totalMs / 60_000}m limit for a single fetch`)
+  }, totalMs)
 
   const clear = () => {
-    if (timer !== undefined) {
-      clearTimeout(timer)
-      timer = undefined
+    clearTimeout(totalTimer)
+
+    if (idleTimer !== undefined) {
+      clearTimeout(idleTimer)
+      idleTimer = undefined
     }
   }
 
   const touch = () => {
-    clear()
-    timer = setTimeout(() => {
-      controller.abort(new DOMException(`Idle for ${ms}ms`, 'TimeoutError'))
-    }, ms)
+    if (idleTimer !== undefined) {
+      clearTimeout(idleTimer)
+    }
+
+    idleTimer = setTimeout(() => {
+      abort(
+        started
+          ? `timed out after ${idleMs / 1000}s with no data received`
+          : `timed out after ${idleMs / 1000}s waiting for a response`
+      )
+    }, idleMs)
+  }
+
+  const startBody = () => {
+    started = true
+    touch()
   }
 
   touch()
 
-  return { signal: controller.signal, touch, clear }
+  return { signal: controller.signal, startBody, touch, clear }
 }
 
 /**
  * One phrasing for every way a remote fetch can fail, so the URL and the
- * reason are always in the message. A timeout arrives as `TimeoutError`,
- * whose own message ("The operation was aborted due to timeout") names
- * neither the source nor the limit — and says nothing about the limit
- * being an IDLE one, which is what tells the reader that a big download
- * is not what failed.
+ * reason are always in the message. The reason for a timeout comes from
+ * {@link toFetchDeadline}, which knows which budget ran out and whether
+ * the response had started — `TimeoutError`'s own message ("The
+ * operation was aborted due to timeout") names neither the source, the
+ * limit, nor which of the two it was.
  */
 const toFetchFailure = (url: string, error: unknown): Error => {
-  const timedOut = error instanceof DOMException && error.name === 'TimeoutError'
-  const reason = timedOut
-    ? `timed out after ${REMOTE_FETCH_IDLE_TIMEOUT_MS / 1000}s with no data received`
-    : error instanceof Error
+  const reason =
+    error instanceof DOMException && error.name === 'TimeoutError'
       ? error.message
-      : String(error)
+      : error instanceof Error
+        ? error.message
+        : String(error)
 
   return new Error(`Could not fetch schema from ${url}: ${reason}`)
 }
@@ -280,7 +320,7 @@ const fetchRemote = async (url: string, signal: AbortSignal): Promise<Response> 
 type ReadRemoteBodyArgs = {
   response: Response
   url: string
-  timeout: IdleTimeout
+  deadline: FetchDeadline
 }
 
 /**
@@ -288,7 +328,7 @@ type ReadRemoteBodyArgs = {
  * restarts the idle window, so a large schema on a slow link keeps
  * downloading while a stalled one still fails inside it.
  */
-const readRemoteBody = async ({ response, url, timeout }: ReadRemoteBodyArgs): Promise<string> => {
+const readRemoteBody = async ({ response, url, deadline }: ReadRemoteBodyArgs): Promise<string> => {
   const reader = response.body?.getReader()
 
   if (!reader) {
@@ -306,7 +346,7 @@ const readRemoteBody = async ({ response, url, timeout }: ReadRemoteBodyArgs): P
         break
       }
 
-      timeout.touch()
+      deadline.touch()
       chunks.push(decoder.decode(value, { stream: true }))
     }
 
@@ -371,11 +411,12 @@ const toFileTypeFromContentType = (contentType: string): FileType | null => {
 /**
  * Content types that positively identify a document that is NOT a schema.
  *
- * The shape this exists for: a source behind SSO 302s to a login page,
- * which answers `200 text/html`. Without this, the requested URL's
- * `.json` would still "identify" the format and hand an HTML page to the
- * JSON parser, so the user reads a syntax error instead of learning they
- * were redirected somewhere else.
+ * The shape this exists for: a source behind SSO answers a login page
+ * with `200 text/html`. It may 302 first, or — for a proxy that
+ * preserves the URL — serve the page in place at the pinned `.json`.
+ * Either way an extension would still "identify" the format and hand an
+ * HTML page to the JSON parser, so the user reads a syntax error instead
+ * of learning they never reached the schema.
  */
 const isNonSchemaContentType = (contentType: string): boolean => {
   const mime = contentType.split(';', 1)[0]?.trim().toLowerCase() ?? ''
@@ -409,8 +450,13 @@ type ToRemoteFileTypeArgs = {
  *   3. the REQUESTED URL's extension — `/openapi.json` redirecting to a
  *      presigned or content-addressed blob (`/blob/abc123`, often
  *      `application/octet-stream`) is a common shape, and the extension
- *      the user pinned is the last real evidence of intent — UNLESS the
- *      `Content-Type` has already said the body is not a schema.
+ *      the user pinned is the last real evidence of intent.
+ *
+ * A `Content-Type` that positively identifies a non-schema document
+ * short-circuits ALL THREE. It has to come first: an SSO proxy that
+ * serves its login page in place answers `200 text/html` at the pinned
+ * `/openapi.json`, so step 1 would otherwise match the extension and
+ * hand HTML to the JSON parser.
  *
  * Detection expects the *response body* to be a parseable schema
  * document — for live GraphQL HTTP endpoints that only accept POSTed
@@ -422,26 +468,32 @@ const toRemoteFileType = ({
   contentType,
   requestedUrl
 }: ToRemoteFileTypeArgs): FileType => {
+  const redirected = requestedUrl !== finalUrl
+
+  if (isNonSchemaContentType(contentType)) {
+    const from = redirected ? ` (requested '${requestedUrl}')` : ''
+
+    throw new Error(
+      `Schema source '${finalUrl}'${from} answered with Content-Type '${contentType}', an HTML document rather than a schema. ` +
+        `A source behind SSO or an authenticating proxy typically answers this way with a login page — either where it redirected to, or in place at the URL you pinned. ` +
+        `Bundle the spec to a local file, or point \`source\` at a local proxy that injects the credential.`
+    )
+  }
+
   // The extension check reads the pathname; the error message reports the
   // whole URL — when a redirect lands somewhere unexpected, the host that
   // answered is the single most useful fact.
   const detected =
     toFileTypeOrNull(new URL(finalUrl).pathname) ??
     toFileTypeFromContentType(contentType) ??
-    (isNonSchemaContentType(contentType) ? null : toFileTypeOrNull(new URL(requestedUrl).pathname))
+    toFileTypeOrNull(new URL(requestedUrl).pathname)
 
   if (detected) return detected
 
-  const requestedNote = requestedUrl === finalUrl ? '' : ` (nor the requested '${requestedUrl}')`
-
-  // Naming the redirect explicitly, because "it returned a web page" is
-  // the answer and "no recognized extension" is not.
-  const htmlNote = isNonSchemaContentType(contentType)
-    ? ` The response is an HTML document, so the source most likely redirected to a login or error page instead of serving the schema.`
-    : ''
+  const requestedNote = redirected ? ` (nor the requested '${requestedUrl}')` : ''
 
   throw new Error(
-    `Could not determine schema format for remote source: '${finalUrl}'${requestedNote} has no recognized extension (.json, .yaml, .yml, .graphql, .gql, or .graphqls), and Content-Type '${contentType}' is not a JSON, YAML or GraphQL media type.${htmlNote} ` +
+    `Could not determine schema format for remote source: '${finalUrl}'${requestedNote} has no recognized extension (.json, .yaml, .yml, .graphql, .gql, or .graphqls), and Content-Type '${contentType}' is not a JSON, YAML or GraphQL media type. ` +
       `For live GraphQL HTTP endpoints, run an introspection query yourself and save the SDL to a local file.`
   )
 }
@@ -454,13 +506,19 @@ const toRemoteFileType = ({
  * that redirects to a content-addressed form is attributed to the form
  * it actually read.
  *
- * The query survives only when NOTHING redirected. That split matters
- * both ways. A redirect target's query is server-generated and a
- * presigned one carries credentials (`X-Amz-Signature`), which must not
- * land in a committed gen-map. But when the URL is the one the user
- * pinned, its query is often the identity of the schema — the `?raw`
- * form, `?version=3` — and dropping it leaves a `schemaSrc` that fetches
- * a different document, defeating the field's whole purpose.
+ * Gen-maps are COMMITTED files, so nothing secret may reach this string.
+ * Userinfo goes unconditionally, and so does every query parameter whose
+ * name says it carries a credential — a presigned URL pinned directly is
+ * as dangerous as one redirected to, and the CLI has no auth mechanism,
+ * so passing a presigned URL as `source` is a workflow the docs actively
+ * recommend.
+ *
+ * What remains of the query survives only when NOTHING redirected. A
+ * redirect target's query is server-generated: unknowable in general, so
+ * it goes wholesale. The URL the user pinned is knowable, and its query
+ * is often the identity of the schema — the `?raw` form, `?version=3` —
+ * where dropping it would leave a `schemaSrc` that fetches a different
+ * document, defeating the field's whole purpose.
  *
  * For a LOCAL source the label is the string the user wrote, NOT the
  * resolved path — `toSchemaContents` absolutizes relative paths, and
@@ -470,17 +528,72 @@ const toRemoteFileType = ({
 export const toAttributedSource = (requested: string, resolved: SchemaSource): string => {
   if (resolved.type === 'local') return requested
 
-  const url = new URL(resolved.url)
-  url.hash = ''
-
-  const requestedUrl = new URL(requested)
-  requestedUrl.hash = ''
+  const url = toRecordableUrl(resolved.url)
+  const requestedUrl = toRecordableUrl(requested)
 
   if (url.href !== requestedUrl.href) {
     url.search = ''
+
+    return url.href
+  }
+
+  for (const name of [...url.searchParams.keys()]) {
+    if (isCredentialParameter(name)) {
+      url.searchParams.delete(name)
+    }
   }
 
   return url.href
+}
+
+/** Everything that must never be committed, off — before any comparison,
+ *  so a credential can't decide whether two URLs are the same. */
+const toRecordableUrl = (source: string): URL => {
+  const url = new URL(source)
+
+  url.hash = ''
+  url.username = ''
+  url.password = ''
+
+  return url
+}
+
+/** Vendors that sign a URL by adding a family of parameters, all of
+ *  which are credential material. */
+const CREDENTIAL_PARAMETER_PREFIXES = ['x-amz-', 'x-goog-', 'x-ms-', 'x-obs-']
+
+/** Matched on the WHOLE name, never as a substring — `sig` as a
+ *  substring would strip `?design=…`. */
+const CREDENTIAL_PARAMETER_NAMES = new Set([
+  'access_key',
+  'access_token',
+  'accesskey',
+  'accesstoken',
+  'api_key',
+  'api-key',
+  'apikey',
+  'auth',
+  'authorization',
+  'credential',
+  'credentials',
+  'key',
+  'passwd',
+  'password',
+  'pwd',
+  'sas',
+  'secret',
+  'sig',
+  'signature',
+  'token'
+])
+
+const isCredentialParameter = (name: string): boolean => {
+  const lowerName = name.toLowerCase()
+
+  return (
+    CREDENTIAL_PARAMETER_NAMES.has(lowerName) ||
+    CREDENTIAL_PARAMETER_PREFIXES.some(prefix => lowerName.startsWith(prefix))
+  )
 }
 
 export const toSchemaSource = (source: string): SchemaSource => {
@@ -520,10 +633,9 @@ const openPath = async (path: string): Promise<string> => {
 
   // `.trim()`, matching the remote path: a whitespace-only file is as
   // empty as an absent one, and would otherwise resurface downstream as
-  // an opaque parse error. A file that exists but says nothing is a
-  // mistake to fix, not a source to work around — hence the config error.
+  // an opaque parse error.
   if (!contents.trim()) {
-    throw new SchemaConfigError(`Schema file at "${path}" is empty`)
+    throw new Error(`Schema file at "${path}" is empty`)
   }
 
   return contents
@@ -553,7 +665,7 @@ const findSchemaFile = async ({
   const present = [hasJson, hasYaml, hasGraphql].filter(Boolean).length
 
   if (present > 1) {
-    throw new SchemaConfigError(
+    throw new Error(
       'Multiple schema files found at the default locations; expected exactly one of openapi.json, openapi.yaml, or schema.graphql'
     )
   }

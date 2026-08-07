@@ -1,8 +1,8 @@
 import { assertEquals, assertRejects, assertStringIncludes } from '@std/assert'
 import {
-  SchemaConfigError,
   SchemaFile,
   toAttributedSource,
+  toFetchDeadline,
   toSchemaSource
 } from '@/lib/schema-file.ts'
 import { join } from '@std/path/join'
@@ -418,11 +418,12 @@ Deno.test('SchemaFile.getFromSource - a body that fails mid-read reports the URL
         new ReadableStream({
           start(controller) {
             controller.enqueue(new TextEncoder().encode('{"openapi":'))
-            // What `AbortSignal.timeout` raises when a server sends
-            // headers promptly and then stalls: the rejection lands on
-            // the body read, not on `fetch`.
+            // What the deadline raises when a server sends headers
+            // promptly and then stalls: the rejection lands on the body
+            // read, not on `fetch`, carrying the phrasing the deadline
+            // chose for that phase.
             controller.error(
-              new DOMException('The operation was aborted due to timeout', 'TimeoutError')
+              new DOMException('timed out after 30s with no data received', 'TimeoutError')
             )
           }
         }),
@@ -553,7 +554,7 @@ Deno.test('SchemaFile.getFromSource - detects the registered OpenAPI media types
   }
 })
 
-Deno.test('SchemaFile.getFromSource - an HTML login page is not read as the pinned extension', async () => {
+Deno.test('SchemaFile.getFromSource - an HTML login page is rejected after a redirect', async () => {
   await withStubbedFetch(
     () =>
       withFinalUrl(
@@ -564,9 +565,6 @@ Deno.test('SchemaFile.getFromSource - an HTML login page is not read as the pinn
         'https://sso.example.com/login'
       ),
     async () => {
-      // An SSO proxy 302s the pinned `.json` to a login page. Trusting the
-      // requested extension here would hand HTML to the JSON parser and
-      // report a syntax error instead of the redirect.
       const source = { type: 'remote' as const, url: 'https://example.com/openapi.json' }
 
       const error = await assertRejects(
@@ -574,9 +572,33 @@ Deno.test('SchemaFile.getFromSource - an HTML login page is not read as the pinn
           await SchemaFile.getFromSource(source)
         },
         Error,
-        'Could not determine schema format'
+        'an HTML document rather than a schema'
       )
-      assertStringIncludes(error.message, 'redirected to a login or error page')
+      assertStringIncludes(error.message, 'https://sso.example.com/login')
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - an HTML login page is rejected without a redirect', async () => {
+  await withStubbedFetch(
+    // A proxy that preserves the URL answers the login page IN PLACE at
+    // the pinned `.json`. Nothing redirected, so the final URL still ends
+    // `.json` — the extension would win and hand HTML to the JSON parser.
+    () =>
+      new Response('<!doctype html><title>Sign in</title>', {
+        status: 200,
+        headers: { 'content-type': 'text/html; charset=utf-8' }
+      }),
+    async () => {
+      const source = { type: 'remote' as const, url: 'https://example.com/openapi.json' }
+
+      await assertRejects(
+        async () => {
+          await SchemaFile.getFromSource(source)
+        },
+        Error,
+        'an HTML document rather than a schema'
+      )
     }
   )
 })
@@ -617,26 +639,91 @@ Deno.test('SchemaFile.getFromSource - reassembles a body split across chunks', a
   }
 })
 
-Deno.test('SchemaFile.openFromProject - a misconfigured schema still fails hard', async () => {
-  // The tolerant wrapper is for sources that cannot be REACHED. A file
-  // that is there and says nothing is a mistake to fix, and a warning
-  // line is invisible in `--json` runs.
+Deno.test('SchemaFile.openFromProject - a misconfigured schema warns, it does not throw', async () => {
+  // `SkmtcRoot.open` opens every project, and nothing up the stack
+  // catches. Throwing here crashes `list`, `clean`, `install` and the
+  // bare prompt with an uncaught exception and an empty stdout — the
+  // recovery commands included.
   const tempDir = await Deno.makeTempDir()
+  const warnings: string[] = []
+  const originalError = console.error
+  console.error = (...args: unknown[]) => {
+    warnings.push(args.map(String).join(' '))
+  }
 
   try {
     const filePath = join(tempDir, 'openapi.json')
     await Deno.writeTextFile(filePath, '   \n')
 
-    const error = await assertRejects(
-      async () => {
-        await SchemaFile.openFromProject('some-project', filePath)
-      },
-      SchemaConfigError,
-      'is empty'
-    )
-    assertStringIncludes(error.message, filePath)
+    const schemaFile = await SchemaFile.openFromProject('some-project', filePath)
+
+    assertEquals(schemaFile.contents, null)
   } finally {
+    console.error = originalError
     await Deno.remove(tempDir, { recursive: true })
+  }
+
+  assertEquals(warnings.length, 1)
+  assertStringIncludes(warnings[0], 'is empty')
+})
+
+Deno.test('toFetchDeadline - the total ceiling fires even while progress continues', async () => {
+  // The idle window alone can be held open forever by a response that
+  // trickles a byte every few seconds.
+  const deadline = toFetchDeadline({ idleMs: 10_000, totalMs: 120 })
+
+  try {
+    const aborted = new Promise<Event>(resolve => {
+      deadline.signal.addEventListener('abort', resolve, { once: true })
+    })
+
+    // Steady "progress" that would keep resetting an idle-only budget.
+    const heartbeat = setInterval(() => deadline.touch(), 20)
+    await aborted
+    clearInterval(heartbeat)
+
+    const reason = deadline.signal.reason
+
+    assertEquals(reason instanceof DOMException, true)
+    assertEquals((reason as DOMException).name, 'TimeoutError')
+    assertStringIncludes((reason as DOMException).message, 'limit for a single fetch')
+  } finally {
+    deadline.clear()
+  }
+})
+
+Deno.test('toFetchDeadline - names the phase the idle window ran out in', async () => {
+  const beforeResponse = toFetchDeadline({ idleMs: 40, totalMs: 10_000 })
+
+  try {
+    await new Promise<Event>(resolve => {
+      beforeResponse.signal.addEventListener('abort', resolve, { once: true })
+    })
+
+    // No response yet: nothing "stopped" producing bytes, it never began.
+    assertStringIncludes(
+      (beforeResponse.signal.reason as DOMException).message,
+      'waiting for a response'
+    )
+  } finally {
+    beforeResponse.clear()
+  }
+
+  const duringBody = toFetchDeadline({ idleMs: 40, totalMs: 10_000 })
+
+  try {
+    duringBody.startBody()
+
+    await new Promise<Event>(resolve => {
+      duringBody.signal.addEventListener('abort', resolve, { once: true })
+    })
+
+    assertStringIncludes(
+      (duringBody.signal.reason as DOMException).message,
+      'with no data received'
+    )
+  } finally {
+    duringBody.clear()
   }
 })
 
@@ -662,6 +749,46 @@ Deno.test('toAttributedSource - keeps the query when nothing redirected', () => 
       url: 'https://hub.example.com/spec?raw'
     }),
     'https://hub.example.com/spec?raw'
+  )
+})
+
+Deno.test('toAttributedSource - strips credentials from a directly pinned URL', () => {
+  // The CLI has no auth mechanism, so passing a presigned URL as the
+  // source is a workflow the docs recommend — and nothing redirects, so
+  // a redirect-only guard would write the signature into a committed
+  // gen-map.
+  assertEquals(
+    toAttributedSource(
+      'https://bucket.s3.amazonaws.com/openapi.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=deadbeefcafe&version=3',
+      {
+        type: 'remote',
+        url: 'https://bucket.s3.amazonaws.com/openapi.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=deadbeefcafe&version=3'
+      }
+    ),
+    // The identity-bearing parameter survives; the credentials do not.
+    'https://bucket.s3.amazonaws.com/openapi.json?version=3'
+  )
+})
+
+Deno.test('toAttributedSource - strips userinfo', () => {
+  assertEquals(
+    toAttributedSource('https://user:token@example.com/openapi.json', {
+      type: 'remote',
+      url: 'https://user:token@example.com/openapi.json'
+    }),
+    'https://example.com/openapi.json'
+  )
+})
+
+Deno.test('toAttributedSource - keeps a parameter that merely contains a credential word', () => {
+  // `sig` is stripped as a whole name; as a substring it would take
+  // `design` with it.
+  assertEquals(
+    toAttributedSource('https://example.com/spec?design=v2&sig=abc', {
+      type: 'remote',
+      url: 'https://example.com/spec?design=v2&sig=abc'
+    }),
+    'https://example.com/spec?design=v2'
   )
 })
 

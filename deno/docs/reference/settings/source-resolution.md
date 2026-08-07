@@ -242,18 +242,32 @@ alongside generation config.
 
 ### Timeouts
 
-A remote fetch fails once **30 seconds** pass with no data received. The
-budget is idle time, not total time, and every chunk that arrives resets
-it — so a large spec on a slow link keeps downloading for as long as it
-makes progress, while a server that accepts the connection and then
-stalls fails inside the window rather than hanging the command:
+A remote fetch runs under two budgets:
+
+| Budget | Limit | Resets |
+|--------|-------|--------|
+| Idle — longest gap with no bytes | 30 seconds | on every chunk received |
+| Total — the whole exchange | 5 minutes | never |
+
+The idle budget is what schema size is measured against, and it resets
+on progress — so a large spec on a slow link keeps downloading for as
+long as it keeps arriving. The total budget is the ceiling the idle one
+cannot provide: a response that trickles a byte every few seconds would
+otherwise reset the idle window forever, which is what a mistyped
+SSE/long-poll endpoint or a proxy emitting keep-alive whitespace does.
+
+The message names which budget ran out, and for the idle one, whether
+the response had started:
 
 ```
+Could not fetch schema from https://example.com/openapi.json: timed out after 30s waiting for a response
 Could not fetch schema from https://example.com/openapi.json: timed out after 30s with no data received
+Could not fetch schema from https://example.com/openapi.json: exceeded the 5m limit for a single fetch
 ```
 
-Schema size therefore does not affect the timeout. If you see this
-message, the connection stopped producing bytes.
+The first means nothing arrived at all — the server never answered. The
+second means the response started and then stalled. The third means it
+never stopped arriving but never finished either.
 
 ### Redirects
 
@@ -266,12 +280,24 @@ content-addressed form is attributed to the pinned form. That value is
 what lands in the anchors / gen-maps payload as `schemaSrc`, and `skmtc
 generate` and `skmtc dev` record it identically.
 
-The query string survives only when nothing redirected. On a redirect
-target it is dropped, because a presigned one carries credentials
-(`X-Amz-Signature`) and gen-maps are committed files. On the URL you
-pinned it is kept, because there the query is often the identity of the
-schema (`?raw`, `?version=3`) and a `schemaSrc` without it would fetch a
-different document.
+Gen-maps are committed files, so nothing secret reaches `schemaSrc`:
+
+- **Userinfo is always removed.** `https://user:token@host/spec` is
+  recorded as `https://host/spec`.
+- **Credential-bearing query parameters are always removed**, whether or
+  not anything redirected — any `X-Amz-*`, `X-Goog-*`, `X-Ms-*` or
+  `X-Obs-*` parameter, and the exact names `token`, `signature`, `sig`,
+  `secret`, `key`, `apikey`, `api_key`, `access_key`, `access_token`,
+  `auth`, `authorization`, `credential(s)`, `password`, `passwd`, `pwd`
+  and `sas`. Matching is on the whole parameter name, so `?design=v2`
+  survives. Passing a presigned URL as `source` is a documented
+  workaround for authenticated specs, so this applies to a URL you pin
+  directly, not only to a redirect target.
+- **The rest of the query survives only when nothing redirected.** A
+  redirect target's query is server-generated and not knowable in
+  general, so it is dropped wholesale. On the URL you pinned, the query
+  is often the identity of the schema (`?raw`, `?version=3`), and a
+  `schemaSrc` without it would fetch a different document.
 
 A **local** source is attributed as written, not as the absolutized
 path.
@@ -288,15 +314,18 @@ Format detection uses that final URL too, then falls back in order:
    (`/blob/abc123`, typically `application/octet-stream`), where only
    the URL you pinned identifies the format
 
-Step 3 is skipped when the `Content-Type` positively identifies a
-non-schema document (`text/html`, `application/xhtml+xml`). A source
-behind SSO that redirects to a login page answers `200 text/html`;
-without this the pinned `.json` would still "identify" the format and
-the HTML would reach the JSON parser, reporting a syntax error instead
-of the redirect. The failure names it directly:
+All three steps are skipped — and the run fails immediately — when the
+`Content-Type` positively identifies a non-schema document (`text/html`,
+`application/xhtml+xml`). A source behind SSO or an authenticating proxy
+answers `200 text/html` with a login page, either where it redirected to
+or **in place at the URL you pinned**. The in-place case is why this
+check comes before step 1 rather than only guarding step 3: the final
+URL still ends `.json`, so an extension check would match it and hand
+HTML to the JSON parser, reporting a syntax error instead of the real
+problem.
 
 ```
-… Content-Type 'text/html; charset=utf-8' is not a JSON, YAML or GraphQL media type. The response is an HTML document, so the source most likely redirected to a login or error page instead of serving the schema.
+Schema source 'https://sso.example.com/login' (requested 'https://example.com/openapi.json') answered with Content-Type 'text/html; charset=utf-8', an HTML document rather than a schema. A source behind SSO or an authenticating proxy typically answers this way with a login page — either where it redirected to, or in place at the URL you pinned. Bundle the spec to a local file, or point `source` at a local proxy that injects the credential.
 ```
 
 If none of the steps identifies a format, the run fails with a message
