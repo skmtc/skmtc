@@ -242,13 +242,18 @@ alongside generation config.
 
 ### Timeouts
 
-A remote fetch is capped at **30 seconds**, covering the whole exchange
-— connection, headers, and reading the body. A server that stalls
-mid-body fails at the cap rather than hanging the command:
+A remote fetch fails once **30 seconds** pass with no data received. The
+budget is idle time, not total time, and every chunk that arrives resets
+it — so a large spec on a slow link keeps downloading for as long as it
+makes progress, while a server that accepts the connection and then
+stalls fails inside the window rather than hanging the command:
 
 ```
-Could not fetch schema from https://example.com/openapi.json: timed out after 30s
+Could not fetch schema from https://example.com/openapi.json: timed out after 30s with no data received
 ```
+
+Schema size therefore does not affect the timeout. If you see this
+message, the connection stopped producing bytes.
 
 ### Redirects
 
@@ -258,10 +263,18 @@ case: an `/openapi` endpoint that 302-redirects to `/openapi.json`.
 The **final** URL — where the response actually came from — is what the
 CLI reports as the schema source, so a source that redirects to a pinned,
 content-addressed form is attributed to the pinned form. That value is
-what lands in the anchors / gen-maps payload as `schemaSrc`, with the
-query string dropped: a presigned redirect target carries credentials
-(`X-Amz-Signature`), and gen-maps are committed files. A **local**
-source is attributed as written, not as the absolutized path.
+what lands in the anchors / gen-maps payload as `schemaSrc`, and `skmtc
+generate` and `skmtc dev` record it identically.
+
+The query string survives only when nothing redirected. On a redirect
+target it is dropped, because a presigned one carries credentials
+(`X-Amz-Signature`) and gen-maps are committed files. On the URL you
+pinned it is kept, because there the query is often the identity of the
+schema (`?raw`, `?version=3`) and a `schemaSrc` without it would fetch a
+different document.
+
+A **local** source is attributed as written, not as the absolutized
+path.
 
 Format detection uses that final URL too, then falls back in order:
 
@@ -275,7 +288,18 @@ Format detection uses that final URL too, then falls back in order:
    (`/blob/abc123`, typically `application/octet-stream`), where only
    the URL you pinned identifies the format
 
-If none of the three identifies a format, the run fails with a message
+Step 3 is skipped when the `Content-Type` positively identifies a
+non-schema document (`text/html`, `application/xhtml+xml`). A source
+behind SSO that redirects to a login page answers `200 text/html`;
+without this the pinned `.json` would still "identify" the format and
+the HTML would reach the JSON parser, reporting a syntax error instead
+of the redirect. The failure names it directly:
+
+```
+… Content-Type 'text/html; charset=utf-8' is not a JSON, YAML or GraphQL media type. The response is an HTML document, so the source most likely redirected to a login or error page instead of serving the schema.
+```
+
+If none of the steps identifies a format, the run fails with a message
 naming both full URLs — including the host that answered, which is the
 useful fact when a redirect lands somewhere unexpected — and the
 `Content-Type`.

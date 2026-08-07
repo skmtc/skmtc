@@ -1,5 +1,10 @@
 import { assertEquals, assertRejects, assertStringIncludes } from '@std/assert'
-import { SchemaFile, toAttributedSource, toSchemaSource } from '@/lib/schema-file.ts'
+import {
+  SchemaConfigError,
+  SchemaFile,
+  toAttributedSource,
+  toSchemaSource
+} from '@/lib/schema-file.ts'
 import { join } from '@std/path/join'
 
 Deno.test('toSchemaSource - identifies HTTP URLs as remote', () => {
@@ -416,7 +421,9 @@ Deno.test('SchemaFile.getFromSource - a body that fails mid-read reports the URL
             // What `AbortSignal.timeout` raises when a server sends
             // headers promptly and then stalls: the rejection lands on
             // the body read, not on `fetch`.
-            controller.error(new DOMException('The operation was aborted due to timeout', 'TimeoutError'))
+            controller.error(
+              new DOMException('The operation was aborted due to timeout', 'TimeoutError')
+            )
           }
         }),
         { status: 200, headers: { 'content-type': 'application/json' } }
@@ -431,8 +438,10 @@ Deno.test('SchemaFile.getFromSource - a body that fails mid-read reports the URL
         Error,
         'Could not fetch schema from https://example.com/openapi.json'
       )
-      // Names the cap, which `TimeoutError`'s own message does not.
-      assertStringIncludes(error.message, 'timed out after 30s')
+      // Names the cap AND that it is an idle one — a reader who sees
+      // "timed out" on a big download needs to know size was not the
+      // problem.
+      assertStringIncludes(error.message, 'timed out after 30s with no data received')
     }
   )
 })
@@ -529,7 +538,8 @@ Deno.test('SchemaFile.getFromSource - detects the registered OpenAPI media types
 
   for (const [contentType, expected] of cases) {
     await withStubbedFetch(
-      () => new Response('openapi: 3.0.0', { status: 200, headers: { 'content-type': contentType } }),
+      () =>
+        new Response('openapi: 3.0.0', { status: 200, headers: { 'content-type': contentType } }),
       async () => {
         // No extension on either URL, so the header is the only evidence.
         const result = await SchemaFile.getFromSource({
@@ -543,7 +553,94 @@ Deno.test('SchemaFile.getFromSource - detects the registered OpenAPI media types
   }
 })
 
-Deno.test('toAttributedSource - records the resolved URL, without its query', () => {
+Deno.test('SchemaFile.getFromSource - an HTML login page is not read as the pinned extension', async () => {
+  await withStubbedFetch(
+    () =>
+      withFinalUrl(
+        new Response('<!doctype html><title>Sign in</title>', {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8' }
+        }),
+        'https://sso.example.com/login'
+      ),
+    async () => {
+      // An SSO proxy 302s the pinned `.json` to a login page. Trusting the
+      // requested extension here would hand HTML to the JSON parser and
+      // report a syntax error instead of the redirect.
+      const source = { type: 'remote' as const, url: 'https://example.com/openapi.json' }
+
+      const error = await assertRejects(
+        async () => {
+          await SchemaFile.getFromSource(source)
+        },
+        Error,
+        'Could not determine schema format'
+      )
+      assertStringIncludes(error.message, 'redirected to a login or error page')
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - reassembles a body split across chunks', async () => {
+  // The idle deadline means the body is read chunk by chunk rather than
+  // through `response.text()`. A multi-byte character straddling a chunk
+  // boundary is what a naive decode-per-chunk would corrupt.
+  const body = '{"openapi": "3.0.0", "title": "café ✅"}'
+  const bytes = new TextEncoder().encode(body)
+  const splitAt = bytes.indexOf(0xc3) + 1
+
+  const server = Deno.serve(
+    { port: 0, onListen: () => {} },
+    () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(bytes.slice(0, splitAt))
+            controller.enqueue(bytes.slice(splitAt))
+            controller.close()
+          }
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      )
+  )
+
+  try {
+    const { port } = server.addr as Deno.NetAddr
+    const result = await SchemaFile.getFromSource({
+      type: 'remote',
+      url: `http://localhost:${port}/openapi.json`
+    })
+
+    assertEquals(result.contents, body)
+  } finally {
+    await server.shutdown()
+  }
+})
+
+Deno.test('SchemaFile.openFromProject - a misconfigured schema still fails hard', async () => {
+  // The tolerant wrapper is for sources that cannot be REACHED. A file
+  // that is there and says nothing is a mistake to fix, and a warning
+  // line is invisible in `--json` runs.
+  const tempDir = await Deno.makeTempDir()
+
+  try {
+    const filePath = join(tempDir, 'openapi.json')
+    await Deno.writeTextFile(filePath, '   \n')
+
+    const error = await assertRejects(
+      async () => {
+        await SchemaFile.openFromProject('some-project', filePath)
+      },
+      SchemaConfigError,
+      'is empty'
+    )
+    assertStringIncludes(error.message, filePath)
+  } finally {
+    await Deno.remove(tempDir, { recursive: true })
+  }
+})
+
+Deno.test('toAttributedSource - drops a redirect target query', () => {
   // A presigned redirect target carries credentials, and gen-maps are
   // committed files.
   assertEquals(
@@ -552,6 +649,19 @@ Deno.test('toAttributedSource - records the resolved URL, without its query', ()
       url: 'https://cdn.example.com/blob/abc123?X-Amz-Signature=deadbeef&X-Amz-Expires=900'
     }),
     'https://cdn.example.com/blob/abc123'
+  )
+})
+
+Deno.test('toAttributedSource - keeps the query when nothing redirected', () => {
+  // The credential case is a REDIRECT TARGET's query. On the URL the user
+  // pinned, the query is often the identity of the schema — dropping it
+  // leaves a `schemaSrc` that fetches a different document.
+  assertEquals(
+    toAttributedSource('https://hub.example.com/spec?raw', {
+      type: 'remote',
+      url: 'https://hub.example.com/spec?raw'
+    }),
+    'https://hub.example.com/spec?raw'
   )
 })
 
