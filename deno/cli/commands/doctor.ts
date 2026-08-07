@@ -35,7 +35,7 @@ export const renderDoctor = async ({
 }: RenderDoctorArgs): Promise<void> => {
   const result = await runDoctor({
     cliVersion: denoJson.version,
-    ...(offlineFlag ? { getLatestCliMeta: () => Promise.resolve(undefined) } : {})
+    offline: offlineFlag === true
   })
   printDoctorResult(result, { format: resolveOutputFormat({ jsonFlag }) })
   Deno.exit(result.summary === 'error' ? 1 : 0)

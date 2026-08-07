@@ -13,7 +13,7 @@ import { assertEquals } from '@std/assert/equals'
 import { assertStringIncludes } from '@std/assert/string-includes'
 import { join } from '@std/path/join'
 import { ensureDir } from '@std/fs/ensure-dir'
-import { runDoctor as runDoctorWithRegistry } from '@/lib/doctor-headless.ts'
+import { runDoctor as runDoctorWithRegistry, type Check } from '@/lib/doctor-headless.ts'
 import { printDoctorResult } from '@/commands/doctor.ts'
 import { captureStdout } from '@/tests/strict-mode-helpers.test.ts'
 
@@ -601,14 +601,31 @@ const toCliMeta = (latest: string, publishedAt?: string) => () =>
 const hoursAgo = (hours: number): string =>
   new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
 
+/**
+ * The `cli-version-current` check from a doctor run, taken inside a temp
+ * root like every other test here. `toRootPath()` walks up `cwd`, so a
+ * run outside `withTempSkmtcRoot` reads whatever `.skmtc` the developer
+ * happens to have — passing only because these tests assert on one
+ * check, and one malformed manifest in someone's scratch project away
+ * from a confusing failure in a check they are not testing.
+ */
 const toVersionCheck = async (
   cliVersion: string,
-  getLatestCliMeta: Parameters<typeof runDoctorWithRegistry>[0]['getLatestCliMeta']
-) => {
-  const result = await runDoctorWithRegistry({ cliVersion, getLatestCliMeta })
-  const check = result.checks.find(c => c.id === 'cli-version-current')
-  if (check === undefined) throw new Error('cli-version-current check missing')
-  return check
+  getLatestCliMeta: Parameters<typeof runDoctorWithRegistry>[0]['getLatestCliMeta'],
+  denoVersion?: string
+): Promise<Check> => {
+  const found: Check[] = []
+  await withTempSkmtcRoot(async () => {
+    const result = await runDoctorWithRegistry({
+      cliVersion,
+      getLatestCliMeta,
+      ...(denoVersion === undefined ? {} : { denoVersion })
+    })
+    const check = result.checks.find(c => c.id === 'cli-version-current')
+    if (check === undefined) throw new Error('cli-version-current check missing')
+    found.push(check)
+  })
+  return found[0]
 }
 
 Deno.test('runDoctor - cli-version-current is ok on the latest release', async () => {
@@ -715,6 +732,48 @@ const toCheckIds = async (): Promise<string[]> => {
   }
   return [...ids].sort()
 }
+
+Deno.test('runDoctor - --offline says it was skipped by request, not that the network failed', async () => {
+  // `--offline` never attempts the lookup, so reporting a connectivity
+  // problem would have an agent tell the user about a failure that did
+  // not happen — in the command whose value is naming an accurate cause.
+  const checks: Check[] = []
+  await withTempSkmtcRoot(async () => {
+    const result = await runDoctorWithRegistry({
+      cliVersion: '0.9.40',
+      offline: true,
+      getLatestCliMeta: () => {
+        throw new Error('the registry must not be consulted')
+      }
+    })
+    const check = result.checks.find(c => c.id === 'cli-version-current')
+    if (check === undefined) throw new Error('cli-version-current check missing')
+    checks.push(check)
+  })
+
+  assertEquals(checks[0].status, 'skipped')
+  assertStringIncludes(checks[0].message, 'Skipped by --offline')
+  assertEquals(checks[0].message.includes('Could not reach'), false)
+})
+
+Deno.test('runDoctor - on a Deno without the gate, the hint neither claims nor prints the flag', async () => {
+  // Deno < 2.9 enforces no holdback, and <= 2.5 rejects the flag as an
+  // unknown argument. Claiming the flag is the fix while handing over a
+  // command that omits it is the contradiction to avoid — and doctor's
+  // own floor (2.4.0) puts such a reader inside the supported range.
+  const check = await toVersionCheck('0.9.40', toCliMeta('0.9.41', hoursAgo(2)), '2.5.0')
+
+  assertEquals(check.status, 'warning')
+  assertEquals(check.data?.heldBack, false)
+  assertEquals(check.hint?.includes('--minimum-dependency-age=0'), false)
+})
+
+Deno.test('runDoctor - on a gate-enforcing Deno the hint both claims and prints the flag', async () => {
+  const check = await toVersionCheck('0.9.40', toCliMeta('0.9.41', hoursAgo(2)), '2.9.4')
+
+  assertEquals(check.data?.heldBack, true)
+  assertStringIncludes(check.hint ?? '', '--minimum-dependency-age=0')
+})
 
 Deno.test('doctor - every check id is documented in all three catalogues', async () => {
   // The docs are what an agent reads to reason about a check without

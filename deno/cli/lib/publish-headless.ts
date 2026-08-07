@@ -32,6 +32,7 @@ import { join } from '@std/path/join'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { collectSourceFiles, type SourceFile } from '@/lib/source-upload.ts'
 import { parseScopedName } from '@/lib/scoped-name.ts'
+import { toProjectInstallCommand } from '@/lib/dependency-age.ts'
 
 type PublishHeadlessArgs = {
   skmtcRoot: SkmtcRoot
@@ -293,8 +294,8 @@ export const publishHeadless = async ({
     // the lockfile, so publishing without one always 422s server-side.
     if (!files.some(file => file.path === 'deno.lock')) {
       throw new Error(
-        'deno.lock not found in the upload — the hub requires it. Run `deno install` in the ' +
-          'project (and make sure .skmtcignore does not exclude deno.lock), then re-publish.'
+        `deno.lock not found in the upload — the hub requires it. Run \`${toProjectInstallCommand()}\` ` +
+          'in the project (and make sure .skmtcignore does not exclude deno.lock), then re-publish.'
       )
     }
   } catch (err) {

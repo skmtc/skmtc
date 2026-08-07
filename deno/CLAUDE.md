@@ -217,11 +217,15 @@ The silent one is the dangerous one: the install succeeds, `skmtc
 --version` reports the older version truthfully, and a fresh release
 looks like it never published.
 
-`deno/cli/lib/dependency-age.ts` is the single source: every `deno`
-subprocess the CLI spawns passes `toDependencyAgeArgs()`, and every
-remediation the CLI or the docs PRINT is built from
-`toCliInstallCommand()` — a printed command without the flag sends the
-reader back to the version they are leaving. `skmtc doctor`'s
+`deno/cli/lib/dependency-age.ts` is the single source, and the invariant
+is "goes through this module", not "through one function in it": every
+`deno` subprocess the CLI spawns splices `toDependencyAgeArgs()`, and
+every `deno install` the CLI or the docs PRINT is built here —
+`toCliInstallCommand()` for the global CLI, `toProjectInstallCommand()`
+for a project directory, `toJsrReinstallCommand()` (in
+`.scripts/release.ts`) for the just-published pin. A printed command
+without the flag hands the reader a recovery step that reproduces the
+failure. `skmtc doctor`'s
 `cli-version-current` check compares the running CLI against the
 registry and names the gate when the newest release is inside the
 window.

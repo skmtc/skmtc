@@ -34,6 +34,7 @@ import { parse as parseSemver } from '@std/semver/parse'
 import {
   DEPENDENCY_AGE_FLAG,
   DEPENDENCY_AGE_WINDOW_HOURS,
+  enforcesDependencyAgeGate,
   isWithinDependencyAgeWindow,
   toCliInstallCommand,
   toHoursSincePublish
@@ -87,6 +88,12 @@ type RunDoctorArgs = {
    * registry's answer instead of reaching for it.
    */
   getLatestCliMeta?: () => Promise<JsrPkgMetaVersions | undefined>
+  /**
+   * Don't look the registry up at all (`--offline`). Distinct from the
+   * lookup failing: doctor's value is naming an accurate cause, so a run
+   * that never asked must not report a connectivity problem.
+   */
+  offline?: boolean
 }
 
 export const runDoctor = async ({
@@ -94,14 +101,17 @@ export const runDoctor = async ({
   denoVersion = Deno.version.deno,
   // `scopeName` carries its `@` — `toJsrUrl` joins the parts verbatim.
   getLatestCliMeta = () =>
-    Jsr.tryGetLatestMeta({ scopeName: '@skmtc', packageName: 'cli' })
+    Jsr.tryGetLatestMeta({ scopeName: '@skmtc', packageName: 'cli' }),
+  offline = false
 }: RunDoctorArgs): Promise<DoctorResult> => {
   const skmtcRootPath = toRootPath()
   const globalStateDir = join(homedir(), '.skmtc')
   const projects = listProjects(skmtcRootPath)
   const checks: Check[] = []
 
-  checks.push(await checkCliVersionCurrent(cliVersion, getLatestCliMeta))
+  checks.push(
+    await checkCliVersionCurrent({ cliVersion, denoVersion, getLatestCliMeta, offline })
+  )
   checks.push(checkInstallLockfile())
   checks.push(checkDenoVersion(denoVersion))
   checks.push(checkHubAuth())
@@ -140,22 +150,43 @@ const aggregate = (checks: Check[]): CheckStatus => {
   return 'ok'
 }
 
+type CheckCliVersionArgs = {
+  cliVersion: string
+  denoVersion: string
+  getLatestCliMeta: () => Promise<JsrPkgMetaVersions | undefined>
+  offline: boolean
+}
+
 /**
  * Is the running CLI the newest published one? Doctor otherwise reports
  * the version it is running as a fact with nothing to compare it to, so
  * "you are a release behind" stays invisible — and the way you most often
- * end up there is silent: an unpinned `deno install` inside Deno's
- * dependency-age window resolves the PREVIOUS version and reports
- * success. When that is the situation, say so and name the flag.
+ * end up there is silent: on a Deno that enforces the dependency-age
+ * gate, an unpinned `deno install` inside the window resolves the
+ * PREVIOUS version and reports success. When that is the situation, say
+ * so and name the flag.
  *
- * Diagnostic only: unreachable registry, missing publish time or a local
- * build ahead of the registry all degrade to `skipped`/`ok` rather than
- * failing the command.
+ * Diagnostic only: `--offline`, an unreachable registry, a missing
+ * publish time or a local build ahead of the registry all degrade to
+ * `skipped`/`ok` rather than failing the command. The `--offline` and
+ * unreachable cases carry DIFFERENT messages — a run that never asked
+ * must not report a connectivity problem.
  */
-const checkCliVersionCurrent = async (
-  cliVersion: string,
-  getLatestCliMeta: () => Promise<JsrPkgMetaVersions | undefined>
-): Promise<Check> => {
+const checkCliVersionCurrent = async ({
+  cliVersion,
+  denoVersion,
+  getLatestCliMeta,
+  offline
+}: CheckCliVersionArgs): Promise<Check> => {
+  if (offline) {
+    return {
+      id: 'cli-version-current',
+      status: 'skipped',
+      message:
+        `Skipped by --offline; the running CLI ${cliVersion} was not compared ` +
+        `against ${getJsrBaseUrl()}.`
+    }
+  }
   // Belt and braces with `tryGetLatestMeta`'s shape check: doctor is the
   // command you run when everything else is broken, so a registry answer
   // it cannot read has to become a `skipped` line, never a throw that
@@ -188,11 +219,16 @@ const checkCliVersionCurrent = async (
   }
 
   const publishedAt = meta.versions?.[meta.latest]?.createdAt
-  const heldBack = isWithinDependencyAgeWindow(publishedAt)
+  // Both halves have to hold: the release is young enough to be held
+  // back, AND the running Deno is one that enforces the holdback. On
+  // Deno < 2.9 nothing is gated, so the explanation would name a cause
+  // that does not exist — and the command below correctly omits a flag
+  // the prose would be telling the reader to use.
+  const heldBack =
+    enforcesDependencyAgeGate(denoVersion) && isWithinDependencyAgeWindow(publishedAt)
   const lockPath = join(homedir(), '.deno', 'bin', '.skmtc', 'deno.lock')
-  const reinstall = existsSync(lockPath)
-    ? `rm -f ${lockPath} && ${toCliInstallCommand()}`
-    : toCliInstallCommand()
+  const install = toCliInstallCommand(denoVersion)
+  const reinstall = existsSync(lockPath) ? `rm -f ${lockPath} && ${install}` : install
 
   return {
     id: 'cli-version-current',

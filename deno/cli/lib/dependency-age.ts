@@ -45,6 +45,21 @@ export const supportsDependencyAgeFlag = (
   return major > 2 || (major === 2 && minor >= 6)
 }
 
+/**
+ * Does this Deno actually ENFORCE the holdback? Two different versions
+ * matter and conflating them produces wrong advice: the flag parses from
+ * 2.6, but nothing is held back until 2.9. Below that there is no gate
+ * to explain, so a "your release is too new to install" hint would name
+ * a cause that does not exist.
+ */
+export const enforcesDependencyAgeGate = (
+  denoVersion: string = Deno.version.deno
+): boolean => {
+  const [major, minor] = denoVersion.split('.').map(Number)
+  if (Number.isNaN(major) || Number.isNaN(minor)) return false
+  return major > 2 || (major === 2 && minor >= 9)
+}
+
 /** Args to splice into a `deno` subprocess invocation, empty when the
  *  running Deno predates the flag. */
 export const toDependencyAgeArgs = (denoVersion?: string): string[] =>
@@ -61,6 +76,17 @@ export const toCliInstallCommand = (denoVersion?: string): string =>
     ...toDependencyAgeArgs(denoVersion),
     '--unstable-worker-options --name skmtc jsr:@skmtc/cli'
   ].join(' ')
+
+/**
+ * `deno install` for a PROJECT directory — the one `skmtc publish` tells
+ * you to run when the upload has no `deno.lock`. That directory's
+ * `deno.json` carries the exact `@skmtc/*` pins `ensureWorkerDeps` /
+ * `ensureServerDeps` wrote at the CLI's own version, so on a CLI
+ * released minutes ago it is the hard-error face of the gate: without
+ * the flag, the recovery instruction reproduces the failure.
+ */
+export const toProjectInstallCommand = (denoVersion?: string): string =>
+  ['deno install', ...toDependencyAgeArgs(denoVersion)].join(' ')
 
 /** Hours since `publishedAt`, or `undefined` when the registry did not
  *  report a publish time. */

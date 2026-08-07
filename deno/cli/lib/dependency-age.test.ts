@@ -2,11 +2,13 @@ import { assertEquals } from '@std/assert/equals'
 import { assertStringIncludes } from '@std/assert/string-includes'
 import {
   DEPENDENCY_AGE_FLAG,
+  enforcesDependencyAgeGate,
   isWithinDependencyAgeWindow,
   supportsDependencyAgeFlag,
   toCliInstallCommand,
   toDependencyAgeArgs,
-  toHoursSincePublish
+  toHoursSincePublish,
+  toProjectInstallCommand
 } from '@/lib/dependency-age.ts'
 
 Deno.test('supportsDependencyAgeFlag - the flag parses from Deno 2.6', () => {
@@ -65,4 +67,25 @@ Deno.test('isWithinDependencyAgeWindow - a future publish time counts as inside'
   // the one case the window is checked for.
   assertEquals(isWithinDependencyAgeWindow(hoursAgo(-0.02)), true)
   assertEquals(isWithinDependencyAgeWindow(hoursAgo(-5)), true)
+})
+
+Deno.test('enforcesDependencyAgeGate - the holdback starts at Deno 2.9, not 2.6', () => {
+  // Two versions matter and conflating them gives wrong advice: the flag
+  // PARSES from 2.6, but nothing is HELD BACK until 2.9.
+  assertEquals(enforcesDependencyAgeGate('2.8.5'), false)
+  assertEquals(enforcesDependencyAgeGate('2.9.0'), true)
+  assertEquals(enforcesDependencyAgeGate('3.0.0'), true)
+  assertEquals(enforcesDependencyAgeGate('canary'), false)
+  // 2.6-2.8 accept the flag but have nothing to hold back.
+  assertEquals(supportsDependencyAgeFlag('2.7.0'), true)
+  assertEquals(enforcesDependencyAgeGate('2.7.0'), false)
+})
+
+Deno.test('toProjectInstallCommand - the publish remediation carries the flag', () => {
+  // `skmtc publish` tells you to run this inside `.skmtc/<project>/`,
+  // whose deno.json holds EXACT @skmtc/* pins written at the CLI's own
+  // version — the hard-error face of the gate on a fresh release.
+  assertStringIncludes(toProjectInstallCommand('2.9.4'), DEPENDENCY_AGE_FLAG)
+  assertEquals(toProjectInstallCommand('2.9.4').startsWith('deno install'), true)
+  assertEquals(toProjectInstallCommand('2.5.0'), 'deno install')
 })

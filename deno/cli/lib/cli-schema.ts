@@ -329,7 +329,14 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     name: 'doctor',
     description: 'Diagnose common SKMTC misconfigurations',
     args: [],
-    flags: [{ flag: '--json', description: 'Emit structured JSON output.' }],
+    flags: [
+      { flag: '--json', description: 'Emit structured JSON output.' },
+      {
+        flag: '--offline',
+        description:
+          'Skip the registry lookup behind `cli-version-current`, which reports `skipped`. Every other check is filesystem-only.'
+      }
+    ],
     agentMode: 'json-only'
   },
   {

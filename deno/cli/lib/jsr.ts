@@ -115,7 +115,13 @@ export class Jsr {
     try {
       const url = toJsrUrl(`${scopeName}/${packageName}/meta.json`)
       const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) })
-      if (!res.ok) return undefined
+      if (!res.ok) {
+        // Drain the body so the connection is released — a mirror that
+        // 404s the package, or an incident at jsr.io, would otherwise
+        // leak one per `skmtc doctor` run.
+        await res.body?.cancel()
+        return undefined
+      }
       const parsed = v.safeParse(jsrPkgMetaVersionsSchema, await res.json())
       return parsed.success ? parsed.output : undefined
     } catch {
