@@ -4,7 +4,6 @@ import type { ClientSettings } from '@skmtc/core/Settings'
 import type { Project } from '@/lib/project.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { toGenerationStats } from '@/lib/generationStats.ts'
-import type { FileType } from '@/lib/types.ts'
 
 type GenerateArgs = {
   project: Project
@@ -15,7 +14,6 @@ type GenerateArgs = {
    * File type of the schema source. Drives which parser the worker
    * runs over `schemaContents`.
    */
-  fileType: FileType
   clientSettings: ClientSettings | undefined
   /**
    * When set (from `client.json#serverUrl`), generate against this deployed
@@ -29,7 +27,6 @@ export const generate = async ({
   bundlePath,
   skmtcRoot,
   schemaContents,
-  fileType,
   clientSettings,
   stackUrl
 }: GenerateArgs) => {
@@ -37,7 +34,6 @@ export const generate = async ({
     const { artifacts, manifest } = await GenerateArtifacts.generateWithWorker({
       bundlePath,
       schemaContents,
-      fileType,
       clientSettings,
       stackUrl
     })

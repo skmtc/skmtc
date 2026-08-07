@@ -180,7 +180,6 @@ const RunGenerateTask = ({ project, bundlePath, schemaSourceString }: RunGenerat
             bundlePath,
             skmtcRoot: state.skmtcRoot,
             schemaContents: schemaContents.contents,
-            fileType: schemaContents.fileType,
             clientSettings: project.clientJson?.contents?.settings
           })
         } catch (error) {
@@ -248,13 +247,12 @@ const WatchGenerateTask = ({ project, bundlePath, schemaSourceString }: WatchGen
     }
 
     SchemaFile.getFromSource(toSchemaSource(schemaSourceString))
-      .then(({ contents, fileType }) => {
+      .then(({ contents }) => {
         return generate({
           project,
           bundlePath,
           skmtcRoot: state.skmtcRoot,
           schemaContents: contents,
-          fileType,
           clientSettings: project.clientJson?.contents?.settings
         })
       })

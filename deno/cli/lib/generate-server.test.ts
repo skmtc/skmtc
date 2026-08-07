@@ -26,7 +26,6 @@ Deno.test('generateWithServer POSTs to {url}/artifacts with protocol + schema + 
       // trailing slash should be trimmed before appending /artifacts
       stackUrl: 'https://api.test/v1/stacks/ada/react-stack/servers/3.0.1/',
       schemaContents: '{"openapi":"3.0.0"}',
-      fileType: 'json',
       clientSettings: { basePath: 'src' }
     })
 
@@ -37,7 +36,10 @@ Deno.test('generateWithServer POSTs to {url}/artifacts with protocol + schema + 
     assertEquals(headers['content-type'], 'application/json')
 
     const body = JSON.parse(String(capturedInit?.body))
-    assertEquals(body.protocol, 'oas')
+    // No `protocol`: the stack server infers it from the document, using
+    // the same `@skmtc/convert` inference the local path uses. Sending a
+    // second opinion derived from a filename could only disagree.
+    assertEquals('protocol' in body, false)
     assertEquals(body.schema, '{"openapi":"3.0.0"}')
     assertEquals(body.clientSettings.basePath, 'src')
 
@@ -48,20 +50,20 @@ Deno.test('generateWithServer POSTs to {url}/artifacts with protocol + schema + 
   }
 })
 
-Deno.test('generateWithServer maps graphql fileType to the gql protocol', async () => {
-  let protocol = ''
+Deno.test('generateWithServer sends SDL untouched, without a protocol', async () => {
+  let body: Record<string, unknown> = {}
   globalThis.fetch = (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    protocol = JSON.parse(String(init?.body)).protocol
+    body = JSON.parse(String(init?.body))
     return Promise.resolve(okJson({ artifacts: {}, manifest: { files: [] } }))
   }
   try {
     await generateWithServer({
       stackUrl: 'https://api.test/s',
       schemaContents: 'type Query { a: Int }',
-      fileType: 'graphql',
       clientSettings: undefined
     })
-    assertEquals(protocol, 'gql')
+    assertEquals(body.schema, 'type Query { a: Int }')
+    assertEquals('protocol' in body, false)
   } finally {
     globalThis.fetch = originalFetch
   }
@@ -77,7 +79,6 @@ Deno.test('generateWithServer preserves a query string (e.g. ?preview=true) on t
     await generateWithServer({
       stackUrl: 'https://api.test/v1/stacks/ada/s/servers/1.0.0?preview=true',
       schemaContents: '{}',
-      fileType: 'json',
       clientSettings: undefined
     })
     assertEquals(
@@ -97,7 +98,6 @@ Deno.test('generateWithServer throws on a non-2xx response', async () => {
         generateWithServer({
           stackUrl: 'https://api.test/s',
           schemaContents: '{}',
-          fileType: 'json',
           clientSettings: undefined
         }),
       Error,
@@ -117,7 +117,6 @@ Deno.test('generateWithServer throws on an unexpected response shape', async () 
         generateWithServer({
           stackUrl: 'https://api.test/s',
           schemaContents: '{}',
-          fileType: 'json',
           clientSettings: undefined
         }),
       Error,

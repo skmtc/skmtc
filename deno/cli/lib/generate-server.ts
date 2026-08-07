@@ -1,7 +1,6 @@
 import type { ClientSettings } from '@skmtc/core/Settings'
 import type { ManifestContent } from '@skmtc/core/Manifest'
 import type { GenerationMapEntry, Sidecar } from '@skmtc/core/Anchors'
-import { type FileType, fileTypeToProtocol } from '@/lib/types.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
 import { resolveHubToken } from '@/lib/hub-token.ts'
 
@@ -13,7 +12,6 @@ type GenerateWithServerArgs = {
    */
   stackUrl: string
   schemaContents: string
-  fileType: FileType
   clientSettings: ClientSettings | undefined
 }
 
@@ -34,7 +32,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 export const generateWithServer = async ({
   stackUrl,
   schemaContents,
-  fileType,
   clientSettings
 }: GenerateWithServerArgs): Promise<GenerateResponse> => {
   // Append `/artifacts` to the PATH while preserving any query string on
@@ -43,7 +40,6 @@ export const generateWithServer = async ({
   const endpointUrl = new URL(stackUrl)
   endpointUrl.pathname = `${endpointUrl.pathname.replace(/\/+$/, '')}/artifacts`
   const endpoint = endpointUrl.toString()
-  const protocol = fileTypeToProtocol(fileType)
 
   const headers: Record<string, string> = { 'content-type': 'application/json' }
   const token = resolveHubToken()
@@ -54,7 +50,7 @@ export const generateWithServer = async ({
     response = await fetch(endpoint, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ protocol, schema: schemaContents, clientSettings })
+      body: JSON.stringify({ schema: schemaContents, clientSettings })
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)

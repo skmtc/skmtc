@@ -76,7 +76,6 @@ Deno.test('describeWithWorker - creates Worker read-only (write: false)', async 
     await describeWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: undefined,
-      fileType: 'json' as const,
       bundlePath: './worker.ts'
     })
 
@@ -120,7 +119,6 @@ Deno.test('describeWithWorker - handles READY and posts a DESCRIBE message (OAS 
     await describeWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: undefined,
-      fileType: 'json' as const,
       bundlePath: './worker.ts'
     })
 
@@ -152,7 +150,6 @@ Deno.test('describeWithWorker - resolves with subjects/descriptors/defaults on R
     const result = await describeWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: undefined,
-      fileType: 'json' as const,
       bundlePath: './worker.ts'
     })
 
@@ -183,7 +180,6 @@ Deno.test('describeWithWorker - rejects on ERROR message', async () => {
         describeWithWorker({
           schemaContents: createMockSchemaContents(),
           clientSettings: undefined,
-          fileType: 'json' as const,
           bundlePath: './worker.ts'
         }),
       Error

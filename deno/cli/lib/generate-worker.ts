@@ -1,7 +1,6 @@
 import type { ClientSettings } from '@skmtc/core/Settings'
 import type { SerializableAttribution } from '@skmtc/worker/types'
 import { toDocumentInput } from '@/lib/document-input.ts'
-import type { FileType } from '@/lib/types.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
 
 // Re-export so existing callers (e.g. `services/generateSandboxApi.ts`)
@@ -19,7 +18,6 @@ type GenerateWithWorkerArgs = {
    * OpenAPI converter; `graphql` is sent as raw SDL — the worker calls
    * the GraphQL parser internally.
    */
-  fileType: FileType
   clientSettings: ClientSettings | undefined
   bundlePath: string
   /**
@@ -33,7 +31,6 @@ type GenerateWithWorkerArgs = {
 
 export const generateWithWorker = ({
   schemaContents,
-  fileType,
   clientSettings,
   bundlePath,
   attribution
@@ -59,7 +56,7 @@ export const generateWithWorker = ({
 
       switch (type) {
         case 'READY': {
-          const document = await toDocumentInput(schemaContents, fileType)
+          const document = await toDocumentInput(schemaContents)
           worker.postMessage({
             type: 'GENERATE',
             payload: {

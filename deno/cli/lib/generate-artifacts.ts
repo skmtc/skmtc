@@ -3,12 +3,10 @@ import type { SerializableAttribution } from '@skmtc/worker/types'
 import { generateWithWorker } from './generate-worker.ts'
 import { generateWithServer } from './generate-server.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
-import type { FileType } from '@/lib/types.ts'
 
 type GenerateWithWorkerArgs = {
   bundlePath: string
   schemaContents: string
-  fileType: FileType
   clientSettings: ClientSettings | undefined
   attribution?: SerializableAttribution
   /**
@@ -24,17 +22,15 @@ export class GenerateArtifacts {
   static async generateWithWorker({
     bundlePath,
     schemaContents,
-    fileType,
     clientSettings,
     attribution,
     stackUrl
   }: GenerateWithWorkerArgs): Promise<GenerateResponse> {
     if (stackUrl) {
-      return await generateWithServer({ stackUrl, schemaContents, fileType, clientSettings })
+      return await generateWithServer({ stackUrl, schemaContents, clientSettings })
     }
     return await generateWithWorker({
       schemaContents,
-      fileType,
       clientSettings,
       bundlePath,
       attribution

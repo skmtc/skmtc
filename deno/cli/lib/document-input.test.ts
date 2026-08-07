@@ -7,7 +7,7 @@ Deno.test('toDocumentInput - graphql posts the raw SDL unparsed', async () => {
   // structured clone, so the SDL must cross the worker boundary as the
   // verbatim string and be parsed worker-side.
   const sdl = 'type Query { hello: String }'
-  const result = await toDocumentInput(sdl, 'graphql')
+  const result = await toDocumentInput(sdl)
 
   assertEquals(result.type, 'gql')
   if (result.type !== 'gql') throw new Error('expected gql document')
@@ -21,8 +21,7 @@ Deno.test('toDocumentInput - OAS 3.0 JSON passes through as an oas document', as
       openapi: '3.0.0',
       info: { title: 'Modern API', version: '1.0.0' },
       paths: {}
-    }),
-    'json'
+    })
   )
 
   assertEquals(result.type, 'oas')
@@ -40,8 +39,7 @@ Deno.test('toDocumentInput - Swagger 2.0 JSON is converted to OpenAPI 3.0 host-s
       swagger: '2.0',
       info: { title: 'Legacy API', version: '1.0.0' },
       paths: {}
-    }),
-    'json'
+    })
   )
 
   assertEquals(result.type, 'oas')
@@ -54,8 +52,7 @@ Deno.test('toDocumentInput - Swagger 2.0 JSON is converted to OpenAPI 3.0 host-s
 
 Deno.test('toDocumentInput - YAML OAS is parsed into an oas document', async () => {
   const result = await toDocumentInput(
-    ['openapi: 3.0.0', 'info:', '  title: Yaml API', '  version: 1.0.0', 'paths: {}'].join('\n'),
-    'yaml'
+    ['openapi: 3.0.0', 'info:', '  title: Yaml API', '  version: 1.0.0', 'paths: {}'].join('\n')
   )
 
   assertEquals(result.type, 'oas')

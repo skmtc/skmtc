@@ -133,16 +133,29 @@ worker parses it via the GraphQL runtime there.
 
 ### Format detection
 
-A **local** source is detected from its extension alone — `.json`,
-`.yaml` / `.yml`, `.graphql` / `.gql` / `.graphqls`. Any other extension
-is an error; the CLI does not inspect the contents to guess.
+The protocol is read from the **document**, never from where it came
+from. A file extension, a URL and a `Content-Type` header are all names
+given by whoever served it: an extensionless endpoint carries no name at
+all, a framework that defaults to `text/html` gives a wrong one, and a
+redirect can leave both stale. The bytes are already in hand, so they
+are the one source that cannot contradict itself.
 
-A **remote** source has a `Content-Type` and possibly a redirect to take
-into account, so it uses a three-step ladder described under
-[Redirects](#redirects) below.
+- a JSON or YAML mapping carrying an `openapi` or `swagger` key is
+  **OpenAPI**
+- a document carrying an SDL definition (`type`, `interface`, `enum`,
+  `union`, `input`, `scalar`, `schema`, `directive`) is **GraphQL**
 
-If detection fails, the CLI exits with a clear error rather than
-guessing.
+Anything else is an error rather than a guess — an HTML page, a JSON
+document with no `openapi` key, a truncated document, an empty response.
+Handing those to a parser only produces a syntax error about a language
+they were never written in.
+
+The same inference runs in the CLI and in `@skmtc/server`
+(`inferProtocol`, in `@skmtc/convert`), so both reach the same verdict
+for the same bytes. File extensions still decide which conventional
+filename the CLI *looks for* when no `source` is set — `openapi.json`,
+`openapi.yaml`, `schema.graphql` — but that is locating a file, not
+classifying one.
 
 ## Pre-parse normalization
 
@@ -289,41 +302,20 @@ A **local** source is attributed as written, not as the absolutized
 path — the resolved form would put the developer's home directory into
 the file and churn it per machine.
 
-Format detection uses that final URL too, then falls back in order:
+Format detection does not consult the URL or the `Content-Type` at all —
+see [Format detection](#format-detection). An extensionless endpoint and
+a redirect to a content-addressed blob are both fine, whatever headers
+they carry.
 
-1. the final URL's extension (`/v1/spec.yaml` → `yaml`)
-2. `Content-Type` (`application/graphql` → `graphql`), including the
-   registered OpenAPI media types and any `+json` / `+yaml` structured
-   suffix — `application/vnd.oai.openapi+json;version=3.0` is JSON,
-   bare `application/vnd.oai.openapi` is YAML
-3. the **requested** URL's extension — for the common case of
-   `/openapi.json` redirecting to a presigned or content-addressed blob
-   (`/blob/abc123`, typically `application/octet-stream`), where only
-   the URL you pinned identifies the format
-
-All three steps are skipped — and the run fails immediately — when the
-**body** begins with `<`, which no JSON, YAML or GraphQL SDL document
-does. A source behind SSO or an authenticating proxy answers `200` with
-a login page, either where it redirected to or **in place at the URL you
-pinned**. The in-place case is why this check comes before step 1: the
-final URL still ends `.json`, so an extension check would match it and
-hand HTML to the JSON parser, reporting a syntax error instead of the
-real problem.
-
-The check reads the body rather than the `Content-Type` because that
-header is routinely wrong in the harmless direction — Express's
-`res.send(string)` and Flask's bare-string return both answer
-`text/html` for a hand-rolled `/openapi.json`. Such a source is
-**accepted**: the header is ignored when the body is a schema.
+The one remote-specific case worth naming: a source behind SSO or an
+authenticating proxy answers `200` with a login page, either where it
+redirected to or **in place at the URL you pinned**. The document is
+read as markup and the run fails saying so, rather than passing HTML to
+the JSON parser:
 
 ```
-Schema source 'https://sso.example.com/login' (requested 'https://example.com/openapi.json') answered with an HTML or XML document rather than a schema (Content-Type 'text/html; charset=utf-8'). A source behind SSO or an authenticating proxy typically answers this way with a login page — either where it redirected to, or in place at the URL you pinned. Bundle the spec to a local file, or point `source` at a local proxy that injects the credential.
+The document is an HTML or XML page rather than a schema. A source behind SSO or an authenticating proxy typically answers this way with a login page. Bundle the schema to a local file, or point at a local proxy that injects the credential.
 ```
-
-If none of the steps identifies a format, the run fails with a message
-naming both full URLs — including the host that answered, which is the
-useful fact when a redirect lands somewhere unexpected — and the
-`Content-Type`.
 
 ### HTTP status handling
 

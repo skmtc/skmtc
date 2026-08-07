@@ -26,3 +26,5 @@
 
 export { stringToSchema, toV3Document } from './toV3Document.ts'
 export type { AnyOasDocument } from './types.ts'
+export { inferProtocol, looksLikeSdl, ProtocolInferenceError } from './inferProtocol.ts'
+export type { Protocol } from './inferProtocol.ts'

@@ -27,7 +27,6 @@ export const toGenerateLocalArgs = async ({
       manifestPath: toManifestPath(projectPath),
       projectPath,
       schemaContents: schemaContents.contents,
-      fileType: schemaContents.fileType,
       clientSettings: clientJsonContents?.settings,
       stackUrl: clientJsonContents?.serverUrl,
       // The RESOLVED source, so attribution records the URL the schema
@@ -51,7 +50,6 @@ export const toGenerateLocalArgs = async ({
     manifestPath: toManifestPath(projectPath),
     projectPath,
     schemaContents: schemaContents.contents,
-    fileType: schemaContents.fileType,
     clientSettings: clientJsonContents.settings,
     stackUrl: clientJsonContents.serverUrl,
     schemaSource: toAttributedSource(clientJsonContents.source, schemaContents.schemaSource)

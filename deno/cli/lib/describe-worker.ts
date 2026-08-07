@@ -6,7 +6,6 @@ import type {
   SupportedSubjects
 } from '@skmtc/core'
 import { toDocumentInput } from '@/lib/document-input.ts'
-import type { FileType } from '@/lib/types.ts'
 
 /**
  * Host-side result of a `DESCRIBE` worker run — the read-only metadata
@@ -23,7 +22,6 @@ export type DescribeResponse = {
 type DescribeWithWorkerArgs = {
   schemaContents: string
   /** File type of the schema source — drives OAS-vs-GQL document building. */
-  fileType: FileType
   clientSettings: ClientSettings | undefined
   bundlePath: string
 }
@@ -39,7 +37,6 @@ type DescribeWithWorkerArgs = {
  */
 export const describeWithWorker = ({
   schemaContents,
-  fileType,
   clientSettings,
   bundlePath
 }: DescribeWithWorkerArgs): Promise<DescribeResponse> => {
@@ -64,7 +61,7 @@ export const describeWithWorker = ({
 
       switch (type) {
         case 'READY': {
-          const document = await toDocumentInput(schemaContents, fileType)
+          const document = await toDocumentInput(schemaContents)
           worker.postMessage({
             type: 'DESCRIBE',
             payload: {

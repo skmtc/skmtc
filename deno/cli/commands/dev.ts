@@ -72,7 +72,6 @@ export const dev = async ({ projectName, schemaSourceString }: DevArgs) => {
         manifestPath,
         projectPath,
         schemaContents: schemaContents.contents,
-        fileType: schemaContents.fileType,
         clientSettings: project.clientJson.contents?.settings,
         // The RESOLVED source, matching `toGenerateLocalArgs`. Passing the
         // raw pin here instead would make `dev` and `generate` write

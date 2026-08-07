@@ -58,7 +58,6 @@ Deno.test('SchemaFile.create - returns instance with null values', () => {
 
   assertEquals(schemaFile.contents, null)
   assertEquals(schemaFile.schemaSource, null)
-  assertEquals(schemaFile.fileType, null)
 })
 
 Deno.test('SchemaFile.openFromSource - opens local JSON file', async () => {
@@ -72,7 +71,6 @@ Deno.test('SchemaFile.openFromSource - opens local JSON file', async () => {
     const schemaFile = await SchemaFile.openFromSource(filePath)
 
     assertEquals(schemaFile.contents, contents)
-    assertEquals(schemaFile.fileType, 'json')
     assertEquals(schemaFile.schemaSource?.type, 'local')
   } finally {
     await Deno.remove(tempDir, { recursive: true })
@@ -90,7 +88,6 @@ Deno.test('SchemaFile.openFromSource - opens local YAML file', async () => {
     const schemaFile = await SchemaFile.openFromSource(filePath)
 
     assertEquals(schemaFile.contents, contents)
-    assertEquals(schemaFile.fileType, 'yaml')
     assertEquals(schemaFile.schemaSource?.type, 'local')
   } finally {
     await Deno.remove(tempDir, { recursive: true })
@@ -106,29 +103,6 @@ Deno.test('SchemaFile.openFromSource - handles .yml extension', async () => {
     await Deno.writeTextFile(filePath, contents)
 
     const schemaFile = await SchemaFile.openFromSource(filePath)
-
-    assertEquals(schemaFile.fileType, 'yaml')
-  } finally {
-    await Deno.remove(tempDir, { recursive: true })
-  }
-})
-
-Deno.test('SchemaFile.getFromSource - rejects unsupported file extension', async () => {
-  const tempDir = await Deno.makeTempDir()
-
-  try {
-    const filePath = join(tempDir, 'schema.txt')
-    await Deno.writeTextFile(filePath, 'test content')
-
-    const source = { type: 'local' as const, path: filePath }
-
-    await assertRejects(
-      async () => {
-        await SchemaFile.getFromSource(source)
-      },
-      Error,
-      'Schema file extension not recognized'
-    )
   } finally {
     await Deno.remove(tempDir, { recursive: true })
   }
@@ -146,7 +120,6 @@ Deno.test('SchemaFile.getFromSource - handles local JSON correctly', async () =>
     const result = await SchemaFile.getFromSource(source)
 
     assertEquals(result.contents, jsonContent)
-    assertEquals(result.fileType, 'json')
   } finally {
     await Deno.remove(tempDir, { recursive: true })
   }
@@ -164,7 +137,6 @@ Deno.test('SchemaFile.getFromSource - handles local YAML correctly', async () =>
     const result = await SchemaFile.getFromSource(source)
 
     assertEquals(result.contents, yamlContent)
-    assertEquals(result.fileType, 'yaml')
   } finally {
     await Deno.remove(tempDir, { recursive: true })
   }
@@ -197,7 +169,6 @@ Deno.test('SchemaFile.getFromSource - fetches a remote JSON source', async () =>
       const result = await SchemaFile.getFromSource(source)
 
       assertEquals(result.contents, '{"openapi": "3.0.0"}')
-      assertEquals(result.fileType, 'json')
       // A constructed Response has no url, so the requested URL is kept.
       assertEquals(result.schemaSource, { type: 'remote', url: 'https://example.com/openapi.json' })
     }
@@ -284,101 +255,6 @@ const withFinalUrl = (response: Response, url: string): Response => {
   return response
 }
 
-Deno.test('SchemaFile.getFromSource - detects the format from the URL it landed on', async () => {
-  await withStubbedFetch(
-    () =>
-      withFinalUrl(
-        new Response('openapi: 3.0.0', {
-          status: 200,
-          headers: { 'content-type': 'application/octet-stream' }
-        }),
-        'https://cdn.example.com/pinned/spec.yaml'
-      ),
-    async () => {
-      const source = { type: 'remote' as const, url: 'https://example.com/spec' }
-      const result = await SchemaFile.getFromSource(source)
-
-      // The redirect target's extension wins over an unhelpful
-      // Content-Type — the server is saying what it served.
-      assertEquals(result.fileType, 'yaml')
-      assertEquals(result.schemaSource, {
-        type: 'remote',
-        url: 'https://cdn.example.com/pinned/spec.yaml'
-      })
-    }
-  )
-})
-
-Deno.test('SchemaFile.getFromSource - falls back to the requested URL when the redirect target has no extension', async () => {
-  await withStubbedFetch(
-    () =>
-      withFinalUrl(
-        new Response('{"openapi": "3.0.0"}', {
-          status: 200,
-          headers: { 'content-type': 'application/octet-stream' }
-        }),
-        'https://cdn.example.com/blob/abc123'
-      ),
-    async () => {
-      const source = { type: 'remote' as const, url: 'https://example.com/openapi.json' }
-      const result = await SchemaFile.getFromSource(source)
-
-      // The common presigned/content-addressed shape: neither the final
-      // pathname nor the Content-Type identifies the format, so the
-      // extension the user pinned is the last real evidence of intent.
-      assertEquals(result.fileType, 'json')
-      // Attribution still reports where it landed.
-      assertEquals(result.schemaSource, {
-        type: 'remote',
-        url: 'https://cdn.example.com/blob/abc123'
-      })
-    }
-  )
-})
-
-Deno.test('SchemaFile.getFromSource - detects the format from Content-Type alone', async () => {
-  await withStubbedFetch(
-    () =>
-      new Response('type Query { a: Int }', {
-        status: 200,
-        headers: { 'content-type': 'application/graphql; charset=utf-8' }
-      }),
-    async () => {
-      // No extension anywhere, so only the header can decide.
-      const source = { type: 'remote' as const, url: 'https://example.com/schema' }
-      const result = await SchemaFile.getFromSource(source)
-
-      assertEquals(result.fileType, 'graphql')
-    }
-  )
-})
-
-Deno.test('SchemaFile.getFromSource - unidentifiable format names both hosts', async () => {
-  await withStubbedFetch(
-    () =>
-      withFinalUrl(
-        new Response('nonsense', {
-          status: 200,
-          headers: { 'content-type': 'application/octet-stream' }
-        }),
-        'https://cdn.example.com/blob/abc123'
-      ),
-    async () => {
-      const source = { type: 'remote' as const, url: 'https://example.com/schema' }
-
-      await assertRejects(
-        async () => {
-          await SchemaFile.getFromSource(source)
-        },
-        Error,
-        // Full URLs, not pathnames — when a redirect lands somewhere
-        // unexpected, the host that answered is the useful fact.
-        "nor the requested 'https://example.com/schema'"
-      )
-    }
-  )
-})
-
 Deno.test('SchemaFile.getFromSource - follows a real redirect and reports where it landed', async () => {
   // The stubs above assert the logic; this asserts the assumption the
   // logic rests on — that `redirect: 'follow'` leaves the final URL on
@@ -400,8 +276,6 @@ Deno.test('SchemaFile.getFromSource - follows a real redirect and reports where 
       type: 'remote',
       url: `http://localhost:${port}/openapi.json`
     })
-
-    assertEquals(result.fileType, 'yaml')
     assertEquals(result.schemaSource, {
       type: 'remote',
       url: `http://localhost:${port}/v1/spec.yaml`
@@ -468,7 +342,6 @@ Deno.test('SchemaFile.openFromProject - an unreadable pinned source warns instea
 
         assertEquals(schemaFile.contents, null)
         assertEquals(schemaFile.schemaSource, null)
-        assertEquals(schemaFile.fileType, null)
       }
     )
   } finally {
@@ -528,32 +401,6 @@ Deno.test('SchemaFile.getFromSource - a status error survives a body that errors
   )
 })
 
-Deno.test('SchemaFile.getFromSource - detects the registered OpenAPI media types', async () => {
-  const cases: [string, string][] = [
-    ['application/vnd.oai.openapi+json;version=3.0', 'json'],
-    ['application/vnd.oai.openapi+yaml', 'yaml'],
-    // Registered without a suffix, YAML by the spec's default serialization.
-    ['application/vnd.oai.openapi', 'yaml'],
-    ['application/openapi+json', 'json']
-  ]
-
-  for (const [contentType, expected] of cases) {
-    await withStubbedFetch(
-      () =>
-        new Response('openapi: 3.0.0', { status: 200, headers: { 'content-type': contentType } }),
-      async () => {
-        // No extension on either URL, so the header is the only evidence.
-        const result = await SchemaFile.getFromSource({
-          type: 'remote',
-          url: 'https://api.example.com/openapi'
-        })
-
-        assertEquals(result.fileType, expected, contentType)
-      }
-    )
-  }
-})
-
 Deno.test('SchemaFile.openFromProject - a remote source gets the short budget', async () => {
   // `SkmtcRoot.open` opens every project. A schema nobody asked for must
   // not hold `list` / `clean` / `install` for the minutes `generate` is
@@ -591,77 +438,6 @@ Deno.test('SchemaFile.openFromProject - a remote source gets the short budget', 
   }
 
   assertStringIncludes(warnings[0], 'timed out after 10s')
-})
-
-Deno.test('SchemaFile.getFromSource - an HTML login page is rejected after a redirect', async () => {
-  await withStubbedFetch(
-    () =>
-      withFinalUrl(
-        new Response('<!doctype html><title>Sign in</title>', {
-          status: 200,
-          headers: { 'content-type': 'text/html; charset=utf-8' }
-        }),
-        'https://sso.example.com/login'
-      ),
-    async () => {
-      const source = { type: 'remote' as const, url: 'https://example.com/openapi.json' }
-
-      const error = await assertRejects(
-        async () => {
-          await SchemaFile.getFromSource(source)
-        },
-        Error,
-        'an HTML or XML document rather than a schema'
-      )
-      assertStringIncludes(error.message, 'https://sso.example.com/login')
-    }
-  )
-})
-
-Deno.test('SchemaFile.getFromSource - an HTML login page is rejected without a redirect', async () => {
-  await withStubbedFetch(
-    // A proxy that preserves the URL answers the login page IN PLACE at
-    // the pinned `.json`. Nothing redirected, so the final URL still ends
-    // `.json` — the extension would win and hand HTML to the JSON parser.
-    () =>
-      new Response('<!doctype html><title>Sign in</title>', {
-        status: 200,
-        headers: { 'content-type': 'text/html; charset=utf-8' }
-      }),
-    async () => {
-      const source = { type: 'remote' as const, url: 'https://example.com/openapi.json' }
-
-      await assertRejects(
-        async () => {
-          await SchemaFile.getFromSource(source)
-        },
-        Error,
-        'an HTML or XML document rather than a schema'
-      )
-    }
-  )
-})
-
-Deno.test('SchemaFile.getFromSource - a valid spec served as text/html is accepted', async () => {
-  await withStubbedFetch(
-    // Express's `res.send(string)` and Flask's bare-string return both
-    // answer `text/html` for a hand-rolled `/openapi.json`. Rejecting on
-    // the header alone would reject a source that works on main.
-    () =>
-      new Response('{"openapi": "3.0.0"}', {
-        status: 200,
-        headers: { 'content-type': 'text/html; charset=utf-8' }
-      }),
-    async () => {
-      const result = await SchemaFile.getFromSource({
-        type: 'remote',
-        url: 'https://internal.example.com/openapi.json'
-      })
-
-      assertEquals(result.fileType, 'json')
-      assertEquals(result.contents, '{"openapi": "3.0.0"}')
-    }
-  )
 })
 
 Deno.test('SchemaFile.getFromSource - reassembles a body split across chunks', async () => {
