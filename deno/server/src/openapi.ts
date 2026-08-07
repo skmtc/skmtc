@@ -326,7 +326,10 @@ const errorResponse: Schema = {
         properties: {
           path: {
             type: "string",
-            description: "Dot path of the offending field.",
+            description:
+              "Dot path of the offending field. Absent when the issue is a " +
+              "whole-body rule rather than one field — `schema`/`source` " +
+              "exactly-one, for instance.",
           },
           message: { type: "string" },
         },

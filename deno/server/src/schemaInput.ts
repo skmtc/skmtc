@@ -47,19 +47,49 @@ const FETCH_TIMEOUT_MS = 10_000;
 const MAX_SOURCE_BYTES = 20 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
 
+/** A GraphQL Name, as the spec defines it. */
+const NAME = "[_A-Za-z][_0-9A-Za-z]*";
+
 /**
- * Does this text carry a GraphQL SDL definition? Every SDL keyword that can
- * open a definition, followed by whitespace — which is what separates SDL's
- * `type Query {` from YAML's `type: string`.
+ * Does this text carry a GraphQL SDL definition? Each alternative is a
+ * definition keyword, its name, and the token that must follow — `{`, `@`,
+ * `implements`, `=`. Keyword-plus-whitespace alone is not enough: YAML block
+ * scalars carry ordinary prose, and a wrapped line reading `type of widget
+ * is ...` or `schema defined in components.` opens with exactly that shape.
  *
  * This is a POSITIVE test, deliberately: gql is not the fallthrough for
  * "everything that isn't OpenAPI". An HTML error page and a JSON document
  * with no `openapi` key are neither protocol, and saying so beats handing
  * them to the GraphQL parser and reporting its syntax error.
  */
-const looksLikeSdl = (schema: string): boolean =>
-  /^[ \t]*(type|interface|enum|union|input|scalar|schema|directive|extend)[ \t]+/m
-    .test(schema);
+const SDL_DEFINITION = new RegExp(
+  [
+    // `type Foo {`, `type Foo implements Bar`, `type Foo @dir`
+    `(?:type|interface|input)[ \\t]+${NAME}[ \\t]*(?:\\{|@|implements[ \\t])`,
+    // `enum Foo {`, `enum Foo @dir`
+    `enum[ \\t]+${NAME}[ \\t]*(?:\\{|@)`,
+    // `union Foo = A | B`
+    `union[ \\t]+${NAME}[ \\t]*(?:=|@)`,
+    // `scalar Foo` — nothing but a directive may follow on the line
+    `scalar[ \\t]+${NAME}[ \\t]*(?:@|$)`,
+    // `schema {`, `schema @dir {`
+    `schema[ \\t]*(?:\\{|@)`,
+    // `directive @foo on FIELD_DEFINITION`
+    `directive[ \\t]*@`,
+  ].map((definition) => `^[ \\t]*(?:extend[ \\t]+)?(?:${definition})`).join("|"),
+  "m",
+);
+
+const looksLikeSdl = (schema: string): boolean => SDL_DEFINITION.test(schema);
+
+/**
+ * Does this text announce itself as an OpenAPI document? Anchored at column
+ * 0, where an OAS document carries its version key. Indented, the same text
+ * is a nested mapping key or an SDL field named `openapi` — neither of which
+ * is the header.
+ */
+const announcesOas = (schema: string): boolean =>
+  /^(?:openapi|swagger)[ \t]*:/m.test(schema);
 
 type ParseOutcome =
   /** Read as a JSON/YAML mapping — the shape an OAS document has. */
@@ -105,7 +135,11 @@ export const inferProtocol = (schema: string): "oas" | "gql" => {
   ) {
     return "oas";
   }
-  if (looksLikeSdl(schema)) return "gql";
+  // A document that announces itself as OAS on line 1 and then fails to parse
+  // is a broken OAS document, not SDL. Reporting the YAML failure names the
+  // problem; running it through the GraphQL parser reports the wrong language.
+  const brokenOas = outcome.kind === "unreadable" && announcesOas(schema);
+  if (!brokenOas && looksLikeSdl(schema)) return "gql";
   throw new SchemaReadError(
     outcome.kind === "unreadable"
       ? `Could not read the document as JSON or YAML: ${outcome.reason}. ` +
@@ -113,6 +147,30 @@ export const inferProtocol = (schema: string): "oas" | "gql" => {
       : "The document is neither an OpenAPI document (no `openapi` or " +
         "`swagger` key) nor GraphQL SDL.",
   );
+};
+
+/**
+ * Reject a document routed to the GraphQL parser that carries no SDL
+ * definition at all — so an explicit `protocol: "gql"` gets the same 422 that
+ * inferring the protocol would give. Without this, passing `protocol` is a
+ * way around the readability contract: an HTML sign-in page comes back 200
+ * with a GraphQL syntax error about `<`.
+ *
+ * A document that IS SDL but has syntax errors stays a 200 with
+ * `manifest.parseIssues`. Unreadable and "readable but wrong" are different
+ * answers, and only the first is a 422.
+ */
+export const assertSdlReadable = (schema: string): void => {
+  if (schema.trim() === "") {
+    throw new SchemaReadError("The schema document is empty.");
+  }
+  if (!looksLikeSdl(schema)) {
+    throw new SchemaReadError(
+      "The document contains no GraphQL SDL definition (`type`, " +
+        "`interface`, `enum`, `union`, `input`, `scalar`, `schema` or " +
+        "`directive`).",
+    );
+  }
 };
 
 const toDigest = async (bytes: Uint8Array<ArrayBuffer>): Promise<string> => {
@@ -234,8 +292,19 @@ const isPrivateName = (hostname: string): boolean => {
  *
  * Checked per redirect hop, not just on the requested URL: `redirect:
  * "follow"` would hand a public-looking URL a free hop to an internal one.
- * A hostname that RESOLVES to a private address is not covered — that needs
- * DNS resolution the deployment target does not guarantee.
+ *
+ * WHAT THIS DOES NOT COVER: only the literal hostname is inspected, so a
+ * public name with a private A record (`schema.example.com` → 169.254.169.254)
+ * passes and is fetched — and because the body becomes the schema and the
+ * status is echoed in the 422, the endpoint reads back what it fetched rather
+ * than merely reaching it. Resolving the name first would not settle it
+ * either: DNS rebinding defeats a pre-flight resolution unless the resolved
+ * address is pinned for the connection, which `fetch` does not expose.
+ *
+ * So network isolation, not this function, is the control that has to hold —
+ * see "Network isolation" in `docs/reference/cli/publish.md`. Anyone running
+ * a stack server outside an isolated runtime needs an egress policy in front
+ * of it; this check alone is not one.
  */
 const toFetchableUrl = (url: string): URL => {
   const parsed = new URL(url);
@@ -268,12 +337,10 @@ const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 const fetchFollowing = async (
   url: string,
   hopsLeft: number,
+  signal: AbortSignal,
 ): Promise<{ response: Response; resolvedUrl: string }> => {
   const target = toFetchableUrl(url);
-  const response = await fetch(target, {
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    redirect: "manual",
-  });
+  const response = await fetch(target, { signal, redirect: "manual" });
   const location = response.headers.get("location");
   if (!REDIRECT_STATUSES.has(response.status) || location === null) {
     return { response, resolvedUrl: target.href };
@@ -284,16 +351,23 @@ const fetchFollowing = async (
       `Source ${url} exceeded ${MAX_REDIRECTS} redirects.`,
     );
   }
-  return fetchFollowing(new URL(location, target).href, hopsLeft - 1);
+  return fetchFollowing(new URL(location, target).href, hopsLeft - 1, signal);
 };
 
 /** `fetchFollowing`, with any network-level failure (DNS, refused connect,
- *  connect timeout) reported as a `SourceFetchError`. */
+ *  connect timeout) reported as a `SourceFetchError`.
+ *
+ *  The timeout is created here, once, and threaded through every redirect
+ *  hop and the body read — so `FETCH_TIMEOUT_MS` is the budget for the whole
+ *  fetch, not per hop. Created per hop it would let a source that emits the
+ *  maximum redirects hold the request open for `MAX_REDIRECTS + 1` times as
+ *  long as the documented limit. */
 const fetchChecked = async (
   url: string,
+  signal: AbortSignal,
 ): Promise<{ response: Response; resolvedUrl: string }> => {
   try {
-    return await fetchFollowing(url, MAX_REDIRECTS);
+    return await fetchFollowing(url, MAX_REDIRECTS, signal);
   } catch (error) {
     if (error instanceof SourceFetchError) throw error;
     const reason = error instanceof Error ? error.message : String(error);
@@ -306,7 +380,8 @@ const fetchChecked = async (
 export const fetchSource = async (
   url: string,
 ): Promise<{ schema: string; source: ResolvedSource }> => {
-  const { response, resolvedUrl } = await fetchChecked(url);
+  const signal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
+  const { response, resolvedUrl } = await fetchChecked(url, signal);
 
   if (!response.ok) {
     await response.body?.cancel();

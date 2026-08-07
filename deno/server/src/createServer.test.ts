@@ -521,6 +521,78 @@ Deno.test("POST /artifacts - an HTML page from a source is a 422", async () => {
   );
 });
 
+Deno.test("POST /artifacts - an HTML page with explicit protocol=gql is a 422", async () => {
+  await withStubbedFetch(
+    () =>
+      new Response("<!doctype html><html><body>Sign in</body></html>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    async () => {
+      const app = mkApp();
+      const res = await app.request("/artifacts", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          source: "https://example.com/schema.graphql",
+          protocol: "gql",
+        }),
+      });
+
+      // The same page is a 422 with `protocol` omitted. Passing `protocol`
+      // used to skip the readability gate entirely and return 200 with a
+      // GraphQL syntax error about `<` — the home page invites callers to
+      // pass `protocol`, so that path has to hold the same contract.
+      assertEquals(res.status, 422);
+      assertEquals((await res.json()).error, "invalid_schema");
+    },
+  );
+});
+
+Deno.test("POST /artifacts - an inline non-SDL document with protocol=gql is a 422", async () => {
+  const app = mkApp();
+  const res = await app.request("/artifacts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ schema: JSON.stringify(minimalOas), protocol: "gql" }),
+  });
+
+  assertEquals(res.status, 422);
+  assertEquals((await res.json()).error, "invalid_schema");
+});
+
+Deno.test("POST /artifacts - a whole-body validation issue omits `path`", async () => {
+  const app = mkApp();
+  const res = await app.request("/artifacts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ protocol: "oas" }),
+  });
+
+  assertEquals(res.status, 400);
+  const body = await res.json();
+  // The exactly-one rule is a whole-body check, so valibot has no dot path
+  // for it. The published contract declares `path` an optional string, so the
+  // key is omitted — emitting `null` made a legitimate 400 fail validation in
+  // a client generated from that contract.
+  assertEquals(body.issues.length > 0, true);
+  assertEquals("path" in body.issues[0], false);
+  assertEquals(typeof body.issues[0].message, "string");
+});
+
+Deno.test("POST /artifacts - a field-level validation issue keeps `path`", async () => {
+  const app = mkApp();
+  const res = await app.request("/artifacts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ schema: JSON.stringify(minimalOas), protocol: "nope" }),
+  });
+
+  assertEquals(res.status, 400);
+  const body = await res.json();
+  assertEquals(body.issues[0].path, "protocol");
+});
+
 Deno.test("POST /artifacts - rejects a source pointing at a private address", async () => {
   await withStubbedFetch(
     () => {

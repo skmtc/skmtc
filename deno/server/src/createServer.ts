@@ -22,6 +22,7 @@ import {
 } from "./requestSchemas.ts";
 import type { Context } from "hono";
 import {
+  assertSdlReadable,
   fetchSource,
   resolveSchemaInput,
   SchemaReadError,
@@ -75,6 +76,9 @@ const toDocumentInput = async (
       }
     }
     case "gql": {
+      // The readability gate `inferProtocol` applies, applied again here so
+      // an explicit `protocol: "gql"` is not a way around it.
+      assertSdlReadable(schema);
       return { type: "gql", value: schema };
     }
     default: {
@@ -176,10 +180,16 @@ export const createServer = (
       return c.json({
         error: "invalid_request",
         message: "Request body failed validation.",
-        issues: error.issues.map((issue) => ({
-          path: v.getDotPath(issue),
-          message: issue.message,
-        })),
+        // `getDotPath` is null for a whole-body rule (the exactly-one check
+        // is one), and the contract declares `path` an optional string. Omit
+        // the key rather than sending a null the published schema forbids.
+        issues: error.issues.map((issue) => {
+          const path = v.getDotPath(issue);
+          return {
+            ...(path !== null ? { path } : {}),
+            message: issue.message,
+          };
+        }),
       }, 400);
     }
     if (error instanceof InvalidBodyError) {

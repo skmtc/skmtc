@@ -26,10 +26,29 @@ Deno.test('ensureServerDeps - repins a stale @skmtc/server version', () => {
   // The generated `server.ts` is rewritten from the CLI's template on every
   // publish, so a project left on an older server release loads an entry
   // importing symbols that release does not export.
-  const denoJson = withImports({ '@skmtc/server': 'jsr:@skmtc/server@0.2.63' })
+  //
+  // The fixture is 0.0.1 so it can never equal the CLI's own pin. Pinning a
+  // fixture to a real past release made this test vacuous: `ensureCurrentPin`
+  // took its `current === wanted` early return, and the assertion below passed
+  // on the *core* pin being added instead.
+  const denoJson = withImports({ '@skmtc/server': 'jsr:@skmtc/server@0.0.1' })
 
   assertEquals(ensureServerDeps(denoJson), true)
   assertEquals(denoJson.contents.imports?.['@skmtc/server'], serverPin)
+})
+
+Deno.test('ensureServerDeps - repins the server even when core is current', () => {
+  // Isolates `ensureCurrentPin`: core needs no work, so `changed` can only be
+  // true if the server pin was actually rewritten. Deleting `ensureCurrentPin`
+  // fails this test, which is what the case above could not do.
+  const denoJson = withImports({
+    '@skmtc/server': 'jsr:@skmtc/server@0.0.1',
+    '@skmtc/core': corePin
+  })
+
+  assertEquals(ensureServerDeps(denoJson), true)
+  assertEquals(denoJson.contents.imports?.['@skmtc/server'], serverPin)
+  assertEquals(denoJson.contents.imports?.['@skmtc/core'], corePin)
 })
 
 Deno.test('ensureServerDeps - leaves a local @skmtc/server override alone', () => {
