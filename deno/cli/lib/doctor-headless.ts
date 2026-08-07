@@ -26,6 +26,18 @@ import {
   checkAnchorsStaleness
 } from '@/lib/doctor-anchors.ts'
 import { maskToken, readStoredAuth, toAuthFilePath } from '@/lib/hub-token.ts'
+import { Jsr } from '@/lib/jsr.ts'
+import type { JsrPkgMetaVersions } from '@/lib/jsr.ts'
+import { getJsrBaseUrl } from '@/lib/jsr-registry.ts'
+import { greaterThan } from '@std/semver/greater-than'
+import { parse as parseSemver } from '@std/semver/parse'
+import {
+  DEPENDENCY_AGE_FLAG,
+  DEPENDENCY_AGE_WINDOW_HOURS,
+  isWithinDependencyAgeWindow,
+  toCliInstallCommand,
+  toHoursSincePublish
+} from '@/lib/dependency-age.ts'
 
 export type CheckStatus = 'ok' | 'warning' | 'error' | 'skipped'
 
@@ -69,17 +81,27 @@ type RunDoctorArgs = {
    * injectable so tests can exercise the version-floor check.
    */
   denoVersion?: string
+  /**
+   * The registry lookup behind the `cli-version-current` check — the
+   * only network call doctor makes. Injectable so tests state the
+   * registry's answer instead of reaching for it.
+   */
+  getLatestCliMeta?: () => Promise<JsrPkgMetaVersions | undefined>
 }
 
 export const runDoctor = async ({
   cliVersion,
-  denoVersion = Deno.version.deno
+  denoVersion = Deno.version.deno,
+  // `scopeName` carries its `@` — `toJsrUrl` joins the parts verbatim.
+  getLatestCliMeta = () =>
+    Jsr.tryGetLatestMeta({ scopeName: '@skmtc', packageName: 'cli' })
 }: RunDoctorArgs): Promise<DoctorResult> => {
   const skmtcRootPath = toRootPath()
   const globalStateDir = join(homedir(), '.skmtc')
   const projects = listProjects(skmtcRootPath)
   const checks: Check[] = []
 
+  checks.push(await checkCliVersionCurrent(cliVersion, getLatestCliMeta))
   checks.push(checkInstallLockfile())
   checks.push(checkDenoVersion(denoVersion))
   checks.push(checkHubAuth())
@@ -119,6 +141,91 @@ const aggregate = (checks: Check[]): CheckStatus => {
 }
 
 /**
+ * Is the running CLI the newest published one? Doctor otherwise reports
+ * the version it is running as a fact with nothing to compare it to, so
+ * "you are a release behind" stays invisible — and the way you most often
+ * end up there is silent: an unpinned `deno install` inside Deno's
+ * dependency-age window resolves the PREVIOUS version and reports
+ * success. When that is the situation, say so and name the flag.
+ *
+ * Diagnostic only: unreachable registry, missing publish time or a local
+ * build ahead of the registry all degrade to `skipped`/`ok` rather than
+ * failing the command.
+ */
+const checkCliVersionCurrent = async (
+  cliVersion: string,
+  getLatestCliMeta: () => Promise<JsrPkgMetaVersions | undefined>
+): Promise<Check> => {
+  const meta = await getLatestCliMeta()
+  if (meta === undefined) {
+    return {
+      id: 'cli-version-current',
+      status: 'skipped',
+      message: `Could not reach ${getJsrBaseUrl()} to compare @skmtc/cli versions.`
+    }
+  }
+  if (meta.latest === cliVersion) {
+    return {
+      id: 'cli-version-current',
+      status: 'ok',
+      message: `CLI ${cliVersion} is the latest published @skmtc/cli.`,
+      data: { cliVersion, latest: meta.latest }
+    }
+  }
+  if (isAheadOfRegistry(cliVersion, meta.latest)) {
+    return {
+      id: 'cli-version-current',
+      status: 'ok',
+      message:
+        `CLI ${cliVersion} is ahead of the published ${meta.latest} — ` +
+        `a local build, or a release still propagating.`,
+      data: { cliVersion, latest: meta.latest }
+    }
+  }
+
+  const publishedAt = meta.versions[meta.latest]?.createdAt
+  const heldBack = isWithinDependencyAgeWindow(publishedAt)
+  const lockPath = join(homedir(), '.deno', 'bin', '.skmtc', 'deno.lock')
+  const reinstall = existsSync(lockPath)
+    ? `rm -f ${lockPath} && ${toCliInstallCommand()}`
+    : toCliInstallCommand()
+
+  return {
+    id: 'cli-version-current',
+    status: 'warning',
+    message: `CLI ${cliVersion} is behind the latest published @skmtc/cli ${meta.latest}.`,
+    hint: heldBack
+      ? `${meta.latest} was published ${formatHours(publishedAt)} ago, inside ` +
+        `Deno's ${DEPENDENCY_AGE_WINDOW_HOURS}h minimum-dependency-age window: ` +
+        `an install without \`${DEPENDENCY_AGE_FLAG}\` silently resolves an ` +
+        `older release instead and reports success. Run: \`${reinstall}\`.`
+      : `Run: \`${reinstall}\`.`,
+    data: { cliVersion, latest: meta.latest, publishedAt, heldBack }
+  }
+}
+
+/** Is the running version newer than the registry's latest — a local
+ *  build, or a release still propagating? An unparseable version is
+ *  treated as not ahead, so the check errs toward reporting a
+ *  difference rather than hiding one. */
+const isAheadOfRegistry = (cliVersion: string, latest: string): boolean => {
+  try {
+    return greaterThan(parseSemver(cliVersion), parseSemver(latest))
+  } catch {
+    return false
+  }
+}
+
+/** "3 hours" / "45 minutes" — enough to see whether the wait is nearly
+ *  over without printing a timestamp the reader has to subtract. */
+const formatHours = (publishedAt: string | undefined): string => {
+  const hours = toHoursSincePublish(publishedAt)
+  if (hours === undefined) return 'an unknown time'
+  if (hours < 1) return `${Math.max(1, Math.round(hours * 60))} minutes`
+  return `${Math.round(hours)} hours`
+}
+
+/**
  * Friction #16: the lockfile of the globally-installed `skmtc` CLI,
  * at `~/.deno/bin/.skmtc/deno.lock`, silently pins an old CLI/core
  * version even when `deno install -f` is rerun. We can't fix Deno's
@@ -147,7 +254,10 @@ const checkInstallLockfile = (): Check => {
       hint:
         `If enrichment leaves arrive as \`{}\` inside generators, your installed ` +
         `CLI might be pinned to an old @skmtc/core. Remediation: ` +
-        `\`rm -f ${lockPath} && deno install -gAf --unstable-worker-options --name skmtc jsr:@skmtc/cli\`. ` +
+        `\`rm -f ${lockPath} && ${toCliInstallCommand()}\`. ` +
+        `The age flag is part of the remediation, not optional: clearing the ` +
+        `lock alone re-resolves to the same older version whenever the ` +
+        `newest release is under ${DEPENDENCY_AGE_WINDOW_HOURS}h old. ` +
         `See friction #16 in skmtc-cli skill §7.`,
       data: { lockPath, cliVersion, coreVersion }
     }

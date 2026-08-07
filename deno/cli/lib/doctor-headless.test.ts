@@ -13,9 +13,23 @@ import { assertEquals } from '@std/assert/equals'
 import { assertStringIncludes } from '@std/assert/string-includes'
 import { join } from '@std/path/join'
 import { ensureDir } from '@std/fs/ensure-dir'
-import { runDoctor } from '@/lib/doctor-headless.ts'
+import { runDoctor as runDoctorWithRegistry } from '@/lib/doctor-headless.ts'
 import { printDoctorResult } from '@/commands/doctor.ts'
 import { captureStdout } from '@/tests/strict-mode-helpers.test.ts'
+
+/**
+ * `runDoctor` with the registry lookup answered as "unreachable" — the
+ * checks below are filesystem facts, and a real fetch would make every
+ * one of them depend on the network. The registry comparison has its own
+ * tests, which state the registry's answer explicitly.
+ */
+const runDoctor = (
+  args: Parameters<typeof runDoctorWithRegistry>[0]
+): ReturnType<typeof runDoctorWithRegistry> =>
+  runDoctorWithRegistry({
+    getLatestCliMeta: () => Promise.resolve(undefined),
+    ...args
+  })
 
 /**
  * Sets up a temp directory, cd's into it, runs `fn` with the temp dir
@@ -571,4 +585,82 @@ Deno.test('runDoctor - hub-auth check reports stored credential shape offline', 
       }
     }
   })
+})
+
+/** A registry answer: `latest`, and when it was published. */
+const toCliMeta = (latest: string, publishedAt?: string) => () =>
+  Promise.resolve({
+    scope: 'skmtc',
+    name: 'cli',
+    latest,
+    versions: {
+      [latest]: publishedAt === undefined ? {} : { createdAt: publishedAt }
+    }
+  })
+
+const hoursAgo = (hours: number): string =>
+  new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
+
+const toVersionCheck = async (
+  cliVersion: string,
+  getLatestCliMeta: Parameters<typeof runDoctorWithRegistry>[0]['getLatestCliMeta']
+) => {
+  const result = await runDoctorWithRegistry({ cliVersion, getLatestCliMeta })
+  const check = result.checks.find(c => c.id === 'cli-version-current')
+  if (check === undefined) throw new Error('cli-version-current check missing')
+  return check
+}
+
+Deno.test('runDoctor - cli-version-current is ok on the latest release', async () => {
+  const check = await toVersionCheck('0.9.41', toCliMeta('0.9.41', hoursAgo(48)))
+
+  assertEquals(check.status, 'ok')
+  assertStringIncludes(check.message, 'latest published')
+})
+
+Deno.test('runDoctor - cli-version-current names the age gate for a fresh release', async () => {
+  // The silent case: an unpinned `deno install` inside the window
+  // resolves the older version and reports success, so doctor has to say
+  // why a plain reinstall will not move it.
+  const check = await toVersionCheck('0.9.40', toCliMeta('0.9.41', hoursAgo(2)))
+
+  assertEquals(check.status, 'warning')
+  assertStringIncludes(check.message, '0.9.40 is behind')
+  assertStringIncludes(check.hint ?? '', 'minimum-dependency-age')
+  assertStringIncludes(check.hint ?? '', '--minimum-dependency-age=0')
+  assertStringIncludes(check.hint ?? '', '2 hours ago')
+  assertEquals(check.data?.heldBack, true)
+})
+
+Deno.test('runDoctor - cli-version-current omits the age note once the window has passed', async () => {
+  const check = await toVersionCheck('0.9.40', toCliMeta('0.9.41', hoursAgo(72)))
+
+  assertEquals(check.status, 'warning')
+  assertEquals(check.data?.heldBack, false)
+  assertEquals(check.hint?.includes('window'), false)
+  // The flag stays in the command regardless — it is a no-op once the
+  // release is old enough, and wrong to drop from a copied command.
+  assertStringIncludes(check.hint ?? '', '--minimum-dependency-age=0')
+})
+
+Deno.test('runDoctor - cli-version-current accepts a build ahead of the registry', async () => {
+  const check = await toVersionCheck('0.10.0', toCliMeta('0.9.41', hoursAgo(48)))
+
+  assertEquals(check.status, 'ok')
+  assertStringIncludes(check.message, 'ahead of the published')
+})
+
+Deno.test('runDoctor - cli-version-current skips when the registry is unreachable', async () => {
+  const check = await toVersionCheck('0.9.40', () => Promise.resolve(undefined))
+
+  assertEquals(check.status, 'skipped')
+  // Offline is not a failure: doctor still reports every other check.
+  assertStringIncludes(check.message, 'Could not reach')
+})
+
+Deno.test('runDoctor - cli-version-current tolerates a missing publish time', async () => {
+  const check = await toVersionCheck('0.9.40', toCliMeta('0.9.41'))
+
+  assertEquals(check.status, 'warning')
+  assertEquals(check.data?.heldBack, false)
 })

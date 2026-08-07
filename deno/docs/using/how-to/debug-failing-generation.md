@@ -102,8 +102,17 @@ Fix: reinstall the CLI with the flag. The `curl` installer
 with a bare `deno install`, overwrite the binary:
 
 ```bash
-deno install -gAf --unstable-worker-options --name skmtc jsr:@skmtc/cli
+deno install -gAf --minimum-dependency-age=0 --unstable-worker-options \
+  --name skmtc jsr:@skmtc/cli
 ```
+
+`--minimum-dependency-age=0` is not optional. Deno holds back any version
+published in the last 24 hours, and `@skmtc/*` publishes on every merge —
+so without it an unpinned install resolves the *previous* CLI, reports
+success, and leaves you on the version you were trying to replace. If a
+stale `~/.deno/bin/.skmtc/deno.lock` is also pinning that version, delete
+it first (`rm -f ~/.deno/bin/.skmtc/deno.lock`). `skmtc doctor` reports
+both conditions.
 
 #### No output for an operation
 

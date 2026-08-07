@@ -26,9 +26,14 @@ export type JsrPkgManifestFile = {
   readonly checksum: string
 }
 
-export type JsrPkgMetaVersion = { yanked?: boolean }
+export type JsrPkgMetaVersion = {
+  yanked?: boolean
+  /** Publish time, as JSR reports it. Optional — a registry mirror need
+   *  not carry it, and callers must degrade without it. */
+  createdAt?: string
+}
 
-type JsrPkgMetaVersions = {
+export type JsrPkgMetaVersions = {
   scope: string
   name: string
   latest: string
@@ -68,6 +73,29 @@ export class Jsr {
     const meta: JsrPkgMetaVersions = await res.json()
 
     return meta
+  }
+
+  /**
+   * {@link getLatestMeta} for a caller that must not fail or print when
+   * the registry is unreachable — a diagnostic, not a step in a workflow.
+   * Returns `undefined` on any network, status or parse failure, and
+   * bounds the wait so an offline machine does not stall the command.
+   */
+  static async tryGetLatestMeta({
+    scopeName,
+    packageName,
+    timeoutMs = 2_000
+  }: GetLatestMetaArgs & { timeoutMs?: number }): Promise<
+    JsrPkgMetaVersions | undefined
+  > {
+    try {
+      const url = toJsrUrl(`${scopeName}/${packageName}/meta.json`)
+      const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) })
+      if (!res.ok) return undefined
+      return await res.json()
+    } catch {
+      return undefined
+    }
   }
 
   static async getLatestVersion({

@@ -1,4 +1,5 @@
 import { join } from '@std/path/join'
+import { toDependencyAgeArgs } from '@/lib/dependency-age.ts'
 
 type RunDebugSessionArgs = {
   /** Absolute path to the project dir (`.skmtc/<project>`). */
@@ -104,7 +105,17 @@ export const runDebugSession = async ({
 
   const inspectionPath = await Deno.makeTempFile({ prefix: 'skmtc-inspection-', suffix: '.json' })
 
-  const args = ['run', '--config', join(projectPath, 'deno.json'), '-A']
+  // The harness resolves the project's pins, which name `@skmtc/*`
+  // versions that can be younger than Deno's dependency-age cutoff — the
+  // same holdback `deno bundle` has to clear. Without the flag a debug run
+  // against a freshly released stack fails to resolve before it can pause.
+  const args = [
+    'run',
+    ...toDependencyAgeArgs(),
+    '--config',
+    join(projectPath, 'deno.json'),
+    '-A'
+  ]
   if (!auto) {
     // Standard "pause until a debugger connects, then run" — the same flow as
     // `node --inspect-brk`. Deno prints the ws:// URL on stderr; on attach the
