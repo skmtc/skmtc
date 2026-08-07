@@ -554,6 +554,45 @@ Deno.test('SchemaFile.getFromSource - detects the registered OpenAPI media types
   }
 })
 
+Deno.test('SchemaFile.openFromProject - a remote source gets the short budget', async () => {
+  // `SkmtcRoot.open` opens every project. A schema nobody asked for must
+  // not hold `list` / `clean` / `install` for the minutes `generate` is
+  // allowed, so this path stops at 30s where `generate` stops at 5m.
+  const server = Deno.serve({ port: 0, onListen: () => {} }, () => {
+    // Headers immediately, then nothing — the idle window decides.
+    return new Response(new ReadableStream({ start() {} }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' }
+    })
+  })
+
+  const warnings: string[] = []
+  const originalError = console.error
+  console.error = (...args: unknown[]) => {
+    warnings.push(args.map(String).join(' '))
+  }
+
+  try {
+    const { port } = server.addr as Deno.NetAddr
+    const started = performance.now()
+
+    const schemaFile = await SchemaFile.openFromProject(
+      'slow-project',
+      `http://localhost:${port}/openapi.json`
+    )
+    const elapsed = performance.now() - started
+
+    assertEquals(schemaFile.contents, null)
+    // The generate budget's idle window is 30s; this one is 10s.
+    assertEquals(elapsed < 20_000, true, `took ${Math.round(elapsed)}ms`)
+  } finally {
+    console.error = originalError
+    await server.shutdown()
+  }
+
+  assertStringIncludes(warnings[0], 'timed out after 10s')
+})
+
 Deno.test('SchemaFile.getFromSource - an HTML login page is rejected after a redirect', async () => {
   await withStubbedFetch(
     () =>
@@ -572,7 +611,7 @@ Deno.test('SchemaFile.getFromSource - an HTML login page is rejected after a red
           await SchemaFile.getFromSource(source)
         },
         Error,
-        'an HTML document rather than a schema'
+        'an HTML or XML document rather than a schema'
       )
       assertStringIncludes(error.message, 'https://sso.example.com/login')
     }
@@ -597,8 +636,30 @@ Deno.test('SchemaFile.getFromSource - an HTML login page is rejected without a r
           await SchemaFile.getFromSource(source)
         },
         Error,
-        'an HTML document rather than a schema'
+        'an HTML or XML document rather than a schema'
       )
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - a valid spec served as text/html is accepted', async () => {
+  await withStubbedFetch(
+    // Express's `res.send(string)` and Flask's bare-string return both
+    // answer `text/html` for a hand-rolled `/openapi.json`. Rejecting on
+    // the header alone would reject a source that works on main.
+    () =>
+      new Response('{"openapi": "3.0.0"}', {
+        status: 200,
+        headers: { 'content-type': 'text/html; charset=utf-8' }
+      }),
+    async () => {
+      const result = await SchemaFile.getFromSource({
+        type: 'remote',
+        url: 'https://internal.example.com/openapi.json'
+      })
+
+      assertEquals(result.fileType, 'json')
+      assertEquals(result.contents, '{"openapi": "3.0.0"}')
     }
   )
 })
@@ -739,35 +800,28 @@ Deno.test('toAttributedSource - drops a redirect target query', () => {
   )
 })
 
-Deno.test('toAttributedSource - keeps the query when nothing redirected', () => {
-  // The credential case is a REDIRECT TARGET's query. On the URL the user
-  // pinned, the query is often the identity of the schema — dropping it
-  // leaves a `schemaSrc` that fetches a different document.
-  assertEquals(
-    toAttributedSource('https://hub.example.com/spec?raw', {
-      type: 'remote',
-      url: 'https://hub.example.com/spec?raw'
-    }),
-    'https://hub.example.com/spec?raw'
-  )
-})
+Deno.test('toAttributedSource - drops the query of a directly pinned URL', () => {
+  // No redirect. A deny-list would have to name every scheme's
+  // credential parameter to be safe here, and cannot: the set is open.
+  // Dropping the whole query costs identity and buys the guarantee.
+  const cases = [
+    // S3 SigV4
+    'https://bucket.s3.amazonaws.com/openapi.json?X-Amz-Signature=deadbeefcafe&version=3',
+    // GitLab's documented URL auth — missed by a deny-list built around
+    // the object-store schemes.
+    'https://gitlab.com/api/v4/projects/1/repository/files/openapi.json/raw?ref=main&private_token=glpat-XXXX',
+    // Akamai token auth, nginx secure_link, a plain HMAC.
+    'https://cdn.example.com/openapi.json?__token__=abc',
+    'https://cdn.example.com/openapi.json?md5=abc',
+    'https://cdn.example.com/openapi.json?hmac=abc'
+  ]
 
-Deno.test('toAttributedSource - strips credentials from a directly pinned URL', () => {
-  // The CLI has no auth mechanism, so passing a presigned URL as the
-  // source is a workflow the docs recommend — and nothing redirects, so
-  // a redirect-only guard would write the signature into a committed
-  // gen-map.
-  assertEquals(
-    toAttributedSource(
-      'https://bucket.s3.amazonaws.com/openapi.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=deadbeefcafe&version=3',
-      {
-        type: 'remote',
-        url: 'https://bucket.s3.amazonaws.com/openapi.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=deadbeefcafe&version=3'
-      }
-    ),
-    // The identity-bearing parameter survives; the credentials do not.
-    'https://bucket.s3.amazonaws.com/openapi.json?version=3'
-  )
+  for (const source of cases) {
+    const attributed = toAttributedSource(source, { type: 'remote', url: source })
+
+    assertEquals(attributed.includes('?'), false, source)
+    assertEquals(attributed, new URL(source).origin + new URL(source).pathname, source)
+  }
 })
 
 Deno.test('toAttributedSource - strips userinfo', () => {
@@ -777,18 +831,6 @@ Deno.test('toAttributedSource - strips userinfo', () => {
       url: 'https://user:token@example.com/openapi.json'
     }),
     'https://example.com/openapi.json'
-  )
-})
-
-Deno.test('toAttributedSource - keeps a parameter that merely contains a credential word', () => {
-  // `sig` is stripped as a whole name; as a substring it would take
-  // `design` with it.
-  assertEquals(
-    toAttributedSource('https://example.com/spec?design=v2&sig=abc', {
-      type: 'remote',
-      url: 'https://example.com/spec?design=v2&sig=abc'
-    }),
-    'https://example.com/spec?design=v2'
   )
 })
 

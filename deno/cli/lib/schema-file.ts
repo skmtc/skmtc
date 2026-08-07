@@ -19,28 +19,37 @@ type ToPathArgs = {
   useParent: boolean
 }
 
-/**
- * How long a remote schema fetch may go WITHOUT RECEIVING DATA before
- * failing with a clear timeout error instead of hanging the command.
- *
- * Idle, not total: the budget resets on every chunk that arrives, so a
- * large spec on a slow-but-progressing link still completes, while a
- * server that accepts the connection and then stalls fails inside the
- * window. An idle-only budget would regress the "40MB spec over a
- * congested VPN" case that worked before any timeout existed.
- */
-const REMOTE_FETCH_IDLE_TIMEOUT_MS = 30_000
+export type RemoteBudget = {
+  /** Longest gap with no bytes before the fetch is abandoned. */
+  idleMs: number
+  /** Longest the whole exchange may run, however steadily it drips. */
+  totalMs: number
+}
 
 /**
- * The ceiling an idle budget cannot provide on its own.
+ * What a command that ACTUALLY WANTS the schema will wait.
  *
- * A response that trickles one byte every few seconds resets the idle
- * window forever, so without this a mistyped SSE endpoint — or a proxy
- * emitting keep-alive whitespace during a long backend render — hangs
- * the command and grows the buffer without bound. Five minutes is far
- * beyond any real schema download and well short of burning a CI job.
+ * The idle budget resets on every chunk that arrives, so a large spec on
+ * a slow-but-progressing link still completes — a total cap alone would
+ * regress the "40MB spec over a congested VPN" case that worked before
+ * any timeout existed. The total budget is the ceiling an idle one
+ * cannot provide: a response that trickles a byte every few seconds
+ * resets the idle window forever, so without it a mistyped SSE endpoint
+ * — or a proxy emitting keep-alive whitespace during a long backend
+ * render — hangs the command and grows the buffer without bound.
  */
-const REMOTE_FETCH_TOTAL_TIMEOUT_MS = 5 * 60_000
+const GENERATE_BUDGET: RemoteBudget = { idleMs: 30_000, totalMs: 5 * 60_000 }
+
+/**
+ * What a command that does NOT want the schema will wait.
+ *
+ * `SkmtcRoot.open` opens every project, so this budget governs `list`,
+ * `clean`, `install` and the bare prompt. None of them need the schema,
+ * and they should not inherit a ceiling sized for downloading one: a
+ * single project pinned to a trickling host would hold all of them for
+ * minutes.
+ */
+const ROOT_OPEN_BUDGET: RemoteBudget = { idleMs: 10_000, totalMs: 30_000 }
 
 export class SchemaFile {
   contents: string | null
@@ -80,6 +89,10 @@ export class SchemaFile {
    * not in a throw from the root open.
    *
    * The warning goes to stderr so `--json` output on stdout stays clean.
+   *
+   * A remote source here also gets {@link ROOT_OPEN_BUDGET} rather than
+   * the generous one `generate` uses — a schema nobody asked for must
+   * not hold up the command for minutes.
    */
   static async openFromProject(
     projectName: string,
@@ -103,7 +116,7 @@ export class SchemaFile {
     source: string | undefined
   ): Promise<SchemaFile> {
     if (source) {
-      return await SchemaFile.openFromSource(source)
+      return await SchemaFile.openFromSource(source, ROOT_OPEN_BUDGET)
     }
 
     const defaultFileInfo = await findSchemaFile({ projectName })
@@ -121,14 +134,18 @@ export class SchemaFile {
     })
   }
 
-  static async openFromSource(schemaSourceString: string): Promise<SchemaFile> {
-    const { contents, schemaSource, fileType } = await toSchemaContents(schemaSourceString)
+  static async openFromSource(
+    schemaSourceString: string,
+    budget: RemoteBudget = GENERATE_BUDGET
+  ): Promise<SchemaFile> {
+    const { contents, schemaSource, fileType } = await toSchemaContents(schemaSourceString, budget)
 
     return new SchemaFile({ schemaSource, contents, fileType })
   }
 
   static async getFromSource(
-    schemaSource: SchemaSource
+    schemaSource: SchemaSource,
+    budget: RemoteBudget = GENERATE_BUDGET
   ): Promise<{ contents: string; fileType: FileType; schemaSource: SchemaSource }> {
     switch (schemaSource.type) {
       case 'remote': {
@@ -136,10 +153,7 @@ export class SchemaFile {
         // every chunk, under a total ceiling that never resets.
         // `clear()` in `finally` so a fast success does not leave a
         // pending timer holding the event loop open.
-        const deadline = toFetchDeadline({
-          idleMs: REMOTE_FETCH_IDLE_TIMEOUT_MS,
-          totalMs: REMOTE_FETCH_TOTAL_TIMEOUT_MS
-        })
+        const deadline = toFetchDeadline(budget)
 
         try {
           const response = await fetchRemote(schemaSource.url, deadline.signal)
@@ -179,7 +193,8 @@ export class SchemaFile {
           const fileType = toRemoteFileType({
             finalUrl,
             contentType,
-            requestedUrl: schemaSource.url
+            requestedUrl: schemaSource.url,
+            contents
           })
 
           return {
@@ -237,9 +252,11 @@ type ToFetchDeadlineArgs = {
  * a byte every few seconds.
  *
  * Both abort with a `TimeoutError` whose message is the finished
- * sentence {@link toFetchFailure} reports, so the four cases — waiting
- * for a response, stalled mid-body, and the ceiling in either phase —
- * each name what actually happened.
+ * sentence {@link toFetchFailure} reports, so the three reachable cases
+ * — waiting for a response, stalled mid-body, and the ceiling — each
+ * name what actually happened. (The ceiling can only be reached once the
+ * body is arriving: nothing calls `touch()` before `startBody()`, so
+ * before that the shorter idle window always trips first.)
  */
 export const toFetchDeadline = ({ idleMs, totalMs }: ToFetchDeadlineArgs): FetchDeadline => {
   const controller = new AbortController()
@@ -409,20 +426,18 @@ const toFileTypeFromContentType = (contentType: string): FileType | null => {
 }
 
 /**
- * Content types that positively identify a document that is NOT a schema.
+ * Whether the body is markup rather than a schema.
  *
- * The shape this exists for: a source behind SSO answers a login page
- * with `200 text/html`. It may 302 first, or — for a proxy that
- * preserves the URL — serve the page in place at the pinned `.json`.
- * Either way an extension would still "identify" the format and hand an
- * HTML page to the JSON parser, so the user reads a syntax error instead
- * of learning they never reached the schema.
+ * Decided on the BODY, not on `Content-Type`. The header is routinely
+ * wrong in the harmless direction — Express's `res.send(string)` and
+ * Flask's bare-string return both answer `text/html` for a hand-rolled
+ * `/openapi.json` — so rejecting on the header alone rejects valid
+ * specs. A document whose first non-whitespace character is `<` is never
+ * JSON, YAML or GraphQL SDL, and it is exactly what an SSO login page
+ * looks like, whether it arrived after a redirect or in place at the URL
+ * you pinned.
  */
-const isNonSchemaContentType = (contentType: string): boolean => {
-  const mime = contentType.split(';', 1)[0]?.trim().toLowerCase() ?? ''
-
-  return mime === 'text/html' || mime === 'application/xhtml+xml'
-}
+const isMarkupDocument = (contents: string): boolean => contents.trimStart().startsWith('<')
 
 const toFileTypeOrNull = (path: string): FileType | null => {
   try {
@@ -438,6 +453,8 @@ type ToRemoteFileTypeArgs = {
   contentType: string
   /** The URL the user pinned, before any redirect. */
   requestedUrl: string
+  /** The body already read, so markup can be recognized as markup. */
+  contents: string
 }
 
 /**
@@ -452,11 +469,10 @@ type ToRemoteFileTypeArgs = {
  *      `application/octet-stream`) is a common shape, and the extension
  *      the user pinned is the last real evidence of intent.
  *
- * A `Content-Type` that positively identifies a non-schema document
- * short-circuits ALL THREE. It has to come first: an SSO proxy that
- * serves its login page in place answers `200 text/html` at the pinned
- * `/openapi.json`, so step 1 would otherwise match the extension and
- * hand HTML to the JSON parser.
+ * A body that is MARKUP short-circuits all three. It has to come first:
+ * an SSO proxy that serves its login page in place answers `200` at the
+ * pinned `/openapi.json`, so step 1 would otherwise match the extension
+ * and hand HTML to the JSON parser.
  *
  * Detection expects the *response body* to be a parseable schema
  * document — for live GraphQL HTTP endpoints that only accept POSTed
@@ -466,15 +482,16 @@ type ToRemoteFileTypeArgs = {
 const toRemoteFileType = ({
   finalUrl,
   contentType,
-  requestedUrl
+  requestedUrl,
+  contents
 }: ToRemoteFileTypeArgs): FileType => {
   const redirected = requestedUrl !== finalUrl
 
-  if (isNonSchemaContentType(contentType)) {
+  if (isMarkupDocument(contents)) {
     const from = redirected ? ` (requested '${requestedUrl}')` : ''
 
     throw new Error(
-      `Schema source '${finalUrl}'${from} answered with Content-Type '${contentType}', an HTML document rather than a schema. ` +
+      `Schema source '${finalUrl}'${from} answered with an HTML or XML document rather than a schema (Content-Type '${contentType}'). ` +
         `A source behind SSO or an authenticating proxy typically answers this way with a login page — either where it redirected to, or in place at the URL you pinned. ` +
         `Bundle the spec to a local file, or point \`source\` at a local proxy that injects the credential.`
     )
@@ -506,19 +523,26 @@ const toRemoteFileType = ({
  * that redirects to a content-addressed form is attributed to the form
  * it actually read.
  *
- * Gen-maps are COMMITTED files, so nothing secret may reach this string.
- * Userinfo goes unconditionally, and so does every query parameter whose
- * name says it carries a credential — a presigned URL pinned directly is
- * as dangerous as one redirected to, and the CLI has no auth mechanism,
- * so passing a presigned URL as `source` is a workflow the docs actively
- * recommend.
+ * Gen-maps are COMMITTED files, so the QUERY AND FRAGMENT ARE ALWAYS
+ * DROPPED, along with any userinfo. Not filtered — dropped.
  *
- * What remains of the query survives only when NOTHING redirected. A
- * redirect target's query is server-generated: unknowable in general, so
- * it goes wholesale. The URL the user pinned is knowable, and its query
- * is often the identity of the schema — the `?raw` form, `?version=3` —
- * where dropping it would leave a `schemaSrc` that fetches a different
- * document, defeating the field's whole purpose.
+ * Filtering was tried and does not work. Naming the parameters that
+ * carry credentials means enumerating a set nobody can close: an earlier
+ * deny-list covering the S3, GCS, Azure and CloudFront schemes still let
+ * GitLab's `private_token`, Akamai's `__token__`, Cloudflare's `verify`,
+ * nginx's `md5` and a plain `hmac` through, and stripping selectively
+ * re-serializes the query, so `?raw` came back as `?raw=`. The CLI has
+ * no auth mechanism, so pinning a credentialed URL as `source` is a
+ * documented workaround — which makes a miss here a long-lived token in
+ * git history.
+ *
+ * The cost is real: for a source whose query IS its identity (`?raw`,
+ * `?version=3`) the recorded `schemaSrc` no longer round-trips to the
+ * same document. That is the lesser harm, and it is documented in
+ * `source-resolution.md`.
+ *
+ * The rest is the final, post-redirect URL, so a pin that redirects to a
+ * content-addressed form is attributed to the form it actually read.
  *
  * For a LOCAL source the label is the string the user wrote, NOT the
  * resolved path — `toSchemaContents` absolutizes relative paths, and
@@ -528,72 +552,14 @@ const toRemoteFileType = ({
 export const toAttributedSource = (requested: string, resolved: SchemaSource): string => {
   if (resolved.type === 'local') return requested
 
-  const url = toRecordableUrl(resolved.url)
-  const requestedUrl = toRecordableUrl(requested)
+  const url = new URL(resolved.url)
 
-  if (url.href !== requestedUrl.href) {
-    url.search = ''
-
-    return url.href
-  }
-
-  for (const name of [...url.searchParams.keys()]) {
-    if (isCredentialParameter(name)) {
-      url.searchParams.delete(name)
-    }
-  }
-
-  return url.href
-}
-
-/** Everything that must never be committed, off — before any comparison,
- *  so a credential can't decide whether two URLs are the same. */
-const toRecordableUrl = (source: string): URL => {
-  const url = new URL(source)
-
+  url.search = ''
   url.hash = ''
   url.username = ''
   url.password = ''
 
-  return url
-}
-
-/** Vendors that sign a URL by adding a family of parameters, all of
- *  which are credential material. */
-const CREDENTIAL_PARAMETER_PREFIXES = ['x-amz-', 'x-goog-', 'x-ms-', 'x-obs-']
-
-/** Matched on the WHOLE name, never as a substring — `sig` as a
- *  substring would strip `?design=…`. */
-const CREDENTIAL_PARAMETER_NAMES = new Set([
-  'access_key',
-  'access_token',
-  'accesskey',
-  'accesstoken',
-  'api_key',
-  'api-key',
-  'apikey',
-  'auth',
-  'authorization',
-  'credential',
-  'credentials',
-  'key',
-  'passwd',
-  'password',
-  'pwd',
-  'sas',
-  'secret',
-  'sig',
-  'signature',
-  'token'
-])
-
-const isCredentialParameter = (name: string): boolean => {
-  const lowerName = name.toLowerCase()
-
-  return (
-    CREDENTIAL_PARAMETER_NAMES.has(lowerName) ||
-    CREDENTIAL_PARAMETER_PREFIXES.some(prefix => lowerName.startsWith(prefix))
-  )
+  return url.href
 }
 
 export const toSchemaSource = (source: string): SchemaSource => {

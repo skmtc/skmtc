@@ -2,11 +2,12 @@ import { toSchemaSource } from '@/lib/schema-file.ts'
 import { isAbsolute } from '@std/path/is-absolute'
 import { join } from '@std/path/join'
 import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
-import { SchemaFile } from '@/lib/schema-file.ts'
+import { SchemaFile, type RemoteBudget } from '@/lib/schema-file.ts'
 import type { FileType, SchemaSource } from '@/lib/types.ts'
 
 export const toSchemaContents = async (
-  schemaSourceString: string
+  schemaSourceString: string,
+  budget?: RemoteBudget
 ): Promise<{ contents: string; schemaSource: SchemaSource; fileType: FileType }> => {
   const schemaSource = toSchemaSource(schemaSourceString)
 
@@ -14,5 +15,5 @@ export const toSchemaContents = async (
     schemaSource.path = join(toAbsoluteRootPath(), schemaSource.path)
   }
 
-  return await SchemaFile.getFromSource(schemaSource)
+  return await SchemaFile.getFromSource(schemaSource, budget)
 }

@@ -133,19 +133,16 @@ worker parses it via the GraphQL runtime there.
 
 ### Format detection
 
-The CLI detects format in this order:
+A **local** source is detected from its extension alone — `.json`,
+`.yaml` / `.yml`, `.graphql` / `.gql` / `.graphqls`. Any other extension
+is an error; the CLI does not inspect the contents to guess.
 
-1. **File extension** — `.json`, `.yaml`/`.yml`, `.graphql`/`.gql`
-2. **HTTP `Content-Type` header** — `application/json`,
-   `application/yaml` / `text/yaml`, `application/graphql` /
-   `text/graphql`
-3. **Content sniffing** — first non-whitespace byte:
-   - `{` → JSON
-   - `swagger:` / `openapi:` at line start → YAML
-   - `type ` / `schema ` / `scalar ` at line start → GraphQL SDL
+A **remote** source has a `Content-Type` and possibly a redirect to take
+into account, so it uses a three-step ladder described under
+[Redirects](#redirects) below.
 
-If detection fails (e.g., a `.txt` file with ambiguous contents),
-the CLI exits with a clear error rather than guessing.
+If detection fails, the CLI exits with a clear error rather than
+guessing.
 
 ## Pre-parse normalization
 
@@ -280,24 +277,28 @@ content-addressed form is attributed to the pinned form. That value is
 what lands in the anchors / gen-maps payload as `schemaSrc`, and `skmtc
 generate` and `skmtc dev` record it identically.
 
-Gen-maps are committed files, so nothing secret reaches `schemaSrc`:
+Gen-maps are committed files, so **the query string, the fragment and
+any userinfo are always dropped** — from a URL you pinned directly as
+much as from a redirect target:
 
-- **Userinfo is always removed.** `https://user:token@host/spec` is
-  recorded as `https://host/spec`.
-- **Credential-bearing query parameters are always removed**, whether or
-  not anything redirected — any `X-Amz-*`, `X-Goog-*`, `X-Ms-*` or
-  `X-Obs-*` parameter, and the exact names `token`, `signature`, `sig`,
-  `secret`, `key`, `apikey`, `api_key`, `access_key`, `access_token`,
-  `auth`, `authorization`, `credential(s)`, `password`, `passwd`, `pwd`
-  and `sas`. Matching is on the whole parameter name, so `?design=v2`
-  survives. Passing a presigned URL as `source` is a documented
-  workaround for authenticated specs, so this applies to a URL you pin
-  directly, not only to a redirect target.
-- **The rest of the query survives only when nothing redirected.** A
-  redirect target's query is server-generated and not knowable in
-  general, so it is dropped wholesale. On the URL you pinned, the query
-  is often the identity of the schema (`?raw`, `?version=3`), and a
-  `schemaSrc` without it would fetch a different document.
+```
+https://user:token@example.com/openapi.json?private_token=glpat-XXXX#frag
+→ https://example.com/openapi.json
+```
+
+They are dropped rather than filtered. Filtering would mean naming every
+parameter that carries a credential, and that set cannot be closed — a
+list covering the S3, GCS, Azure and CloudFront schemes still misses
+GitLab's `private_token`, Akamai's `__token__`, Cloudflare's `verify`,
+nginx's `md5` and a plain `hmac`. Since the CLI has no auth mechanism,
+[pinning a credentialed URL](#authentication) is a documented workaround,
+which would make any miss a long-lived token in git history.
+
+The cost: for a source whose query *is* its identity (`?raw`,
+`?version=3`), the recorded `schemaSrc` no longer round-trips to the same
+document. It still identifies the endpoint, not the exact
+representation. If you need exact provenance, bundle the spec to a local
+file and pin that.
 
 A **local** source is attributed as written, not as the absolutized
 path.
@@ -315,17 +316,22 @@ Format detection uses that final URL too, then falls back in order:
    the URL you pinned identifies the format
 
 All three steps are skipped — and the run fails immediately — when the
-`Content-Type` positively identifies a non-schema document (`text/html`,
-`application/xhtml+xml`). A source behind SSO or an authenticating proxy
-answers `200 text/html` with a login page, either where it redirected to
-or **in place at the URL you pinned**. The in-place case is why this
-check comes before step 1 rather than only guarding step 3: the final
-URL still ends `.json`, so an extension check would match it and hand
-HTML to the JSON parser, reporting a syntax error instead of the real
-problem.
+**body** begins with `<`, which no JSON, YAML or GraphQL SDL document
+does. A source behind SSO or an authenticating proxy answers `200` with
+a login page, either where it redirected to or **in place at the URL you
+pinned**. The in-place case is why this check comes before step 1: the
+final URL still ends `.json`, so an extension check would match it and
+hand HTML to the JSON parser, reporting a syntax error instead of the
+real problem.
+
+The check reads the body rather than the `Content-Type` because that
+header is routinely wrong in the harmless direction — Express's
+`res.send(string)` and Flask's bare-string return both answer
+`text/html` for a hand-rolled `/openapi.json`. Such a source is
+**accepted**: the header is ignored when the body is a schema.
 
 ```
-Schema source 'https://sso.example.com/login' (requested 'https://example.com/openapi.json') answered with Content-Type 'text/html; charset=utf-8', an HTML document rather than a schema. A source behind SSO or an authenticating proxy typically answers this way with a login page — either where it redirected to, or in place at the URL you pinned. Bundle the spec to a local file, or point `source` at a local proxy that injects the credential.
+Schema source 'https://sso.example.com/login' (requested 'https://example.com/openapi.json') answered with an HTML or XML document rather than a schema (Content-Type 'text/html; charset=utf-8'). A source behind SSO or an authenticating proxy typically answers this way with a login page — either where it redirected to, or in place at the URL you pinned. Bundle the spec to a local file, or point `source` at a local proxy that injects the credential.
 ```
 
 If none of the steps identifies a format, the run fails with a message
