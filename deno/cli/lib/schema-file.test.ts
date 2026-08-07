@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects, assertStringIncludes } from '@std/assert'
-import { SchemaFile, toSchemaSource } from '@/lib/schema-file.ts'
+import { SchemaFile, toAttributedSource, toSchemaSource } from '@/lib/schema-file.ts'
 import { join } from '@std/path/join'
 
 Deno.test('toSchemaSource - identifies HTTP URLs as remote', () => {
@@ -348,7 +348,7 @@ Deno.test('SchemaFile.getFromSource - detects the format from Content-Type alone
   )
 })
 
-Deno.test('SchemaFile.getFromSource - unidentifiable format names both URLs', async () => {
+Deno.test('SchemaFile.getFromSource - unidentifiable format names both hosts', async () => {
   await withStubbedFetch(
     () =>
       withFinalUrl(
@@ -366,7 +366,9 @@ Deno.test('SchemaFile.getFromSource - unidentifiable format names both URLs', as
           await SchemaFile.getFromSource(source)
         },
         Error,
-        "nor the requested '/schema'"
+        // Full URLs, not pathnames — when a redirect lands somewhere
+        // unexpected, the host that answered is the useful fact.
+        "nor the requested 'https://example.com/schema'"
       )
     }
   )
@@ -466,4 +468,102 @@ Deno.test('SchemaFile.openFromProject - an unreadable pinned source warns instea
   assertEquals(warnings.length, 1)
   assertStringIncludes(warnings[0], 'could not read the schema for project "some-project"')
   assertStringIncludes(warnings[0], 'returned 404')
+})
+
+Deno.test('SchemaFile.getFromSource - a whitespace-only body is empty', async () => {
+  await withStubbedFetch(
+    // What a misconfigured proxy or a template that rendered nothing
+    // returns. Passing it on turns into an opaque parse error later.
+    () => new Response('\n  \n', { status: 200 }),
+    async () => {
+      const source = { type: 'remote' as const, url: 'https://example.com/openapi.json' }
+
+      await assertRejects(
+        async () => {
+          await SchemaFile.getFromSource(source)
+        },
+        Error,
+        'is empty'
+      )
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - a status error survives a body that errors on cancel', async () => {
+  await withStubbedFetch(
+    () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            // A server that sends 5xx headers and then resets: cancelling
+            // this stream rejects, and awaiting that rejection would
+            // replace the status error with a bare stream error.
+            controller.error(new TypeError('connection reset'))
+          }
+        }),
+        { status: 500, statusText: 'Internal Server Error' }
+      ),
+    async () => {
+      const source = { type: 'remote' as const, url: 'https://example.com/openapi.json' }
+
+      const error = await assertRejects(
+        async () => {
+          await SchemaFile.getFromSource(source)
+        },
+        Error,
+        'returned 500'
+      )
+      assertStringIncludes(error.message, 'https://example.com/openapi.json')
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - detects the registered OpenAPI media types', async () => {
+  const cases: [string, string][] = [
+    ['application/vnd.oai.openapi+json;version=3.0', 'json'],
+    ['application/vnd.oai.openapi+yaml', 'yaml'],
+    // Registered without a suffix, YAML by the spec's default serialization.
+    ['application/vnd.oai.openapi', 'yaml'],
+    ['application/openapi+json', 'json']
+  ]
+
+  for (const [contentType, expected] of cases) {
+    await withStubbedFetch(
+      () => new Response('openapi: 3.0.0', { status: 200, headers: { 'content-type': contentType } }),
+      async () => {
+        // No extension on either URL, so the header is the only evidence.
+        const result = await SchemaFile.getFromSource({
+          type: 'remote',
+          url: 'https://api.example.com/openapi'
+        })
+
+        assertEquals(result.fileType, expected, contentType)
+      }
+    )
+  }
+})
+
+Deno.test('toAttributedSource - records the resolved URL, without its query', () => {
+  // A presigned redirect target carries credentials, and gen-maps are
+  // committed files.
+  assertEquals(
+    toAttributedSource('https://example.com/openapi.json', {
+      type: 'remote',
+      url: 'https://cdn.example.com/blob/abc123?X-Amz-Signature=deadbeef&X-Amz-Expires=900'
+    }),
+    'https://cdn.example.com/blob/abc123'
+  )
+})
+
+Deno.test('toAttributedSource - keeps a local source as written', () => {
+  // `toSchemaContents` absolutizes relative paths; recording the resolved
+  // one would write the developer's home directory into a committed
+  // gen-map and churn it per machine.
+  assertEquals(
+    toAttributedSource('./openapi.json', {
+      type: 'local',
+      path: '/Users/someone/work/.skmtc/openapi.json'
+    }),
+    './openapi.json'
+  )
 })

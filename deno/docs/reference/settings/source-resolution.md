@@ -257,19 +257,28 @@ case: an `/openapi` endpoint that 302-redirects to `/openapi.json`.
 
 The **final** URL — where the response actually came from — is what the
 CLI reports as the schema source, so a source that redirects to a pinned,
-content-addressed form is attributed to the pinned form.
+content-addressed form is attributed to the pinned form. That value is
+what lands in the anchors / gen-maps payload as `schemaSrc`, with the
+query string dropped: a presigned redirect target carries credentials
+(`X-Amz-Signature`), and gen-maps are committed files. A **local**
+source is attributed as written, not as the absolutized path.
 
 Format detection uses that final URL too, then falls back in order:
 
 1. the final URL's extension (`/v1/spec.yaml` → `yaml`)
-2. `Content-Type` (`application/graphql` → `graphql`)
+2. `Content-Type` (`application/graphql` → `graphql`), including the
+   registered OpenAPI media types and any `+json` / `+yaml` structured
+   suffix — `application/vnd.oai.openapi+json;version=3.0` is JSON,
+   bare `application/vnd.oai.openapi` is YAML
 3. the **requested** URL's extension — for the common case of
    `/openapi.json` redirecting to a presigned or content-addressed blob
    (`/blob/abc123`, typically `application/octet-stream`), where only
    the URL you pinned identifies the format
 
 If none of the three identifies a format, the run fails with a message
-naming both URLs and the `Content-Type`.
+naming both full URLs — including the host that answered, which is the
+useful fact when a redirect lands somewhere unexpected — and the
+`Content-Type`.
 
 ### HTTP status handling
 
@@ -280,8 +289,9 @@ naming both URLs and the `Content-Type`.
 | non-2xx (`401`, `403`, `404`, `5xx`, …) | Exit with `Schema source <url> returned <status> <statusText>` |
 
 The status and reason phrase come from the server; the CLI does not
-translate them into per-status messages. An empty `200` body is also an
-error — a silently empty spec is never what the caller meant.
+translate them into per-status messages. An empty — or whitespace-only —
+`200` body is also an error; a silently empty spec is never what the
+caller meant.
 
 The CLI does not currently retry transient failures. A flaky spec
 endpoint should be wrapped by a local proxy or bundled to a file.

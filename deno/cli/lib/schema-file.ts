@@ -111,7 +111,11 @@ export class SchemaFile {
         const response = await fetchRemote(schemaSource.url)
 
         if (!response.ok) {
-          await response.body?.cancel()
+          // Not awaited: cancelling an ERRORED stream rejects (a server
+          // that sends 500 headers and then resets), and awaiting it here
+          // would replace the status error with a bare stream error
+          // naming neither the URL nor the status.
+          void response.body?.cancel().catch(() => {})
           throw new Error(
             `Schema source ${schemaSource.url} returned ${response.status} ${response.statusText}`.trim()
           )
@@ -123,7 +127,11 @@ export class SchemaFile {
         // from escaping as a bare `TimeoutError` with no URL.
         const contents = await readRemoteBody(response, schemaSource.url)
 
-        invariant(contents, `Schema fetched from "${schemaSource.url}" is empty`)
+        // `.trim()`: a whitespace-only body is as empty as an absent one
+        // — the shape a misconfigured proxy or a template that rendered
+        // nothing returns — and would otherwise resurface downstream as
+        // an opaque parse error.
+        invariant(contents.trim(), `Schema fetched from "${schemaSource.url}" is empty`)
 
         // The final URL after redirects — a source that redirects to a
         // pinned/content-addressed form should be detected (and reported)
@@ -133,9 +141,9 @@ export class SchemaFile {
         const finalUrl = response.url === '' ? schemaSource.url : response.url
         const contentType = response.headers.get('content-type') ?? ''
         const fileType = toRemoteFileType({
-          finalPath: new URL(finalUrl).pathname,
+          finalUrl,
           contentType,
-          requestedPath: new URL(schemaSource.url).pathname
+          requestedUrl: schemaSource.url
         })
 
         return {
@@ -212,8 +220,18 @@ const toFileType = (path: string): FileType => {
   }
 }
 
-/** `Content-Type` → `FileType`, or `null` when the header names nothing
- *  we can parse. The header may carry a `; charset=…` suffix. */
+/**
+ * `Content-Type` → `FileType`, or `null` when the header names nothing
+ * we can parse. The header may carry parameters (`; charset=…`,
+ * `;version=3.0`), which are stripped first.
+ *
+ * Matching is exact on the common types, then falls back to the
+ * structured suffix (RFC 6839): `application/vnd.oai.openapi+json` — the
+ * media type registered for OpenAPI — `application/openapi+json` and
+ * their `+yaml` counterparts all state the format unambiguously in the
+ * suffix, and a server setting one of them should not be told the format
+ * could not be determined.
+ */
 const toFileTypeFromContentType = (contentType: string): FileType | null => {
   const mime = contentType.split(';', 1)[0]?.trim().toLowerCase() ?? ''
   switch (mime) {
@@ -227,7 +245,13 @@ const toFileTypeFromContentType = (contentType: string): FileType | null => {
     case 'application/x-yaml':
     case 'text/x-yaml':
       return 'yaml'
+    // `application/vnd.oai.openapi` with no suffix is YAML by
+    // registration — the OpenAPI spec's default serialization.
+    case 'application/vnd.oai.openapi':
+      return 'yaml'
     default:
+      if (mime.endsWith('+json')) return 'json'
+      if (mime.endsWith('+yaml')) return 'yaml'
       return null
   }
 }
@@ -241,11 +265,11 @@ const toFileTypeOrNull = (path: string): FileType | null => {
 }
 
 type ToRemoteFileTypeArgs = {
-  /** Pathname of the URL the response actually came from. */
-  finalPath: string
+  /** The URL the response actually came from. */
+  finalUrl: string
   contentType: string
-  /** Pathname of the URL the user pinned, before any redirect. */
-  requestedPath: string
+  /** The URL the user pinned, before any redirect. */
+  requestedUrl: string
 }
 
 /**
@@ -266,24 +290,50 @@ type ToRemoteFileTypeArgs = {
  * a file.
  */
 const toRemoteFileType = ({
-  finalPath,
+  finalUrl,
   contentType,
-  requestedPath
+  requestedUrl
 }: ToRemoteFileTypeArgs): FileType => {
+  // The extension check reads the pathname; the error message reports the
+  // whole URL — when a redirect lands somewhere unexpected, the host that
+  // answered is the single most useful fact.
   const detected =
-    toFileTypeOrNull(finalPath) ??
+    toFileTypeOrNull(new URL(finalUrl).pathname) ??
     toFileTypeFromContentType(contentType) ??
-    toFileTypeOrNull(requestedPath)
+    toFileTypeOrNull(new URL(requestedUrl).pathname)
 
   if (detected) return detected
 
-  const requestedNote =
-    requestedPath === finalPath ? '' : ` (nor the requested '${requestedPath}')`
+  const requestedNote = requestedUrl === finalUrl ? '' : ` (nor the requested '${requestedUrl}')`
 
   throw new Error(
-    `Could not determine schema format for remote source: URL pathname '${finalPath}'${requestedNote} has no recognized extension (.json, .yaml, .yml, .graphql, .gql, or .graphqls), and Content-Type '${contentType}' is not application/graphql, application/json, or application/yaml. ` +
+    `Could not determine schema format for remote source: '${finalUrl}'${requestedNote} has no recognized extension (.json, .yaml, .yml, .graphql, .gql, or .graphqls), and Content-Type '${contentType}' is not a JSON, YAML or GraphQL media type. ` +
       `For live GraphQL HTTP endpoints, run an introspection query yourself and save the SDL to a local file.`
   )
+}
+
+/**
+ * The provenance label for a resolved schema source — what gets recorded
+ * as `schemaSrc` in the anchors / gen-maps payload.
+ *
+ * For a REMOTE source this is the final, post-redirect URL, so a pin
+ * that redirects to a content-addressed form is attributed to the form
+ * it actually read. The query string is dropped: a presigned redirect
+ * target carries credentials (`X-Amz-Signature`) and gen-maps are
+ * committed files.
+ *
+ * For a LOCAL source the label is the string the user wrote, NOT the
+ * resolved path — `toSchemaContents` absolutizes relative paths, and
+ * writing `/Users/<name>/…` into a committed gen-map would leak the
+ * developer's home directory and churn the file per machine.
+ */
+export const toAttributedSource = (requested: string, resolved: SchemaSource): string => {
+  if (resolved.type === 'local') return requested
+
+  const url = new URL(resolved.url)
+  url.search = ''
+  url.hash = ''
+  return url.href
 }
 
 export const toSchemaSource = (source: string): SchemaSource => {
