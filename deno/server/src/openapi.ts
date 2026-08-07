@@ -11,9 +11,11 @@ import {
 
 /**
  * Builds the stack server's own published OpenAPI 3.1 contract — the full public
- * surface of a deployed `@skmtc/server` bundle (all seven routes), so the CLI,
- * the preview container and third parties can generate a typed client against a
- * running server.
+ * surface of a deployed `@skmtc/server` bundle (every route it serves), so the
+ * CLI, the preview container and third parties can generate a typed client
+ * against a running server. `openapi.test.ts` derives its expectation from the
+ * app's own route table, so a route added to `createServer` and not documented
+ * here fails the test.
  *
  * This is the AUTHORITATIVE source-of-truth spec (plan §9.2). It differs from the
  * hub's `StackServerApi` contract, which documents only the three routes the hub
@@ -33,7 +35,7 @@ import {
 
 /** The server-contract version — bump on a breaking change to any route's
  *  request/response shape. Independent of the `@skmtc/server` package version. */
-export const SERVER_API_VERSION = "1.0.0";
+export const SERVER_API_VERSION = "1.1.0";
 
 type Schema = OpenAPIV3.SchemaObject;
 type Ref = OpenAPIV3.ReferenceObject;
@@ -119,6 +121,28 @@ const derive = (
   });
   return components;
 };
+
+/**
+ * Re-state the "exactly one of `schema` / `source`" rule on a derived request
+ * component. The rule lives in a `v.check` on the valibot pipe, and
+ * `@valibot/to-json-schema` cannot represent a `check` — `errorMode: 'ignore'`
+ * drops it silently, leaving both fields optional and unconstrained. Without
+ * this the published contract says an empty body is valid while the server
+ * answers 400, and a client generated from the document has no signal.
+ *
+ * `oneOf` is exact here: with both fields present both branches match (so the
+ * document rejects it), with neither present neither matches.
+ */
+const withExactlyOneInput = (
+  components: Record<string, Schema>,
+  name: string,
+): Record<string, Schema> => ({
+  ...components,
+  [name]: {
+    ...components[name],
+    oneOf: [{ required: ["schema"] }, { required: ["source"] }],
+  },
+});
 
 // --- Hand-modeled response schemas (no runtime valibot schema in core) --------
 
@@ -255,6 +279,65 @@ const enrichmentDescriptor: Schema = {
   },
 };
 
+/** Echo of a fetched `source` input — the reproducibility receipt. */
+const resolvedSource: Schema = {
+  type: "object",
+  required: ["url", "resolvedUrl", "digest"],
+  description:
+    "Present when the request used `source`: the URL as requested, the final " +
+    "URL after redirects (keep this one — when the source redirects to a " +
+    "content-addressed form it pins the exact document), and a " +
+    "`sha256:<hex>` digest of the fetched bytes.",
+  properties: {
+    url: { type: "string", description: "The `source` URL as requested." },
+    resolvedUrl: {
+      type: "string",
+      description: "The final URL after redirects.",
+    },
+    digest: {
+      type: "string",
+      description: "`sha256:<hex>` digest of the fetched bytes.",
+    },
+  },
+};
+
+/** The structured error body every non-200 response carries. */
+const errorResponse: Schema = {
+  type: "object",
+  required: ["error", "message"],
+  properties: {
+    error: {
+      type: "string",
+      enum: [
+        "invalid_request",
+        "source_fetch_failed",
+        "invalid_schema",
+        "internal_error",
+      ],
+      description: "Machine-readable error code.",
+    },
+    message: { type: "string", description: "What went wrong, actionably." },
+    issues: {
+      type: "array",
+      description: "Field-level validation issues (`invalid_request` only).",
+      items: {
+        type: "object",
+        required: ["message"],
+        properties: {
+          path: {
+            type: "string",
+            description:
+              "Dot path of the offending field. Absent when the issue is a " +
+              "whole-body rule rather than one field — `schema`/`source` " +
+              "exactly-one, for instance.",
+          },
+          message: { type: "string" },
+        },
+      },
+    },
+  },
+};
+
 // --- Response envelopes -------------------------------------------------------
 
 const artifactsResponse = (): Schema => ({
@@ -278,6 +361,7 @@ const artifactsResponse = (): Schema => ({
       description:
         "Per-Definition generation-map index (file → schema origin).",
     },
+    source: ref("ResolvedSource"),
   },
 });
 
@@ -352,6 +436,20 @@ const toV3JsonResponse: Schema = {
 
 // --- Operation helpers --------------------------------------------------------
 
+/** A route that returns the self-description as text, not JSON. */
+const textResponse = (
+  description: string,
+  mediaTypes: string[],
+): OpenAPIV3.ResponseObject => {
+  const stringSchema: Schema = { type: "string" };
+  return {
+    description,
+    content: Object.fromEntries(
+      mediaTypes.map((mediaType) => [mediaType, { schema: stringSchema }]),
+    ),
+  };
+};
+
 const jsonBody = (schemaRef: Ref | Schema): OpenAPIV3.RequestBodyObject => ({
   required: true,
   content: { "application/json": { schema: schemaRef } },
@@ -365,14 +463,21 @@ const jsonResponse = (
   content: { "application/json": { schema } },
 });
 
-/** The error responses a route can return. `422` covers a schema parse failure,
- *  an invalid body, or a generator throw (the server has no dedicated 4xx split). */
+/** The error responses a route can return, all carrying the structured
+ *  `ErrorResponse` body: 400 for a body that fails validation (with
+ *  field-level `issues`), 422 for a `source` that could not be fetched or a
+ *  document that could not be read at all. A document that reads but has
+ *  problems is NOT an error — it returns 200 with `manifest.parseIssues`. */
 const errorResponses: OpenAPIV3.ResponsesObject = {
-  "400": { description: "Malformed request body." },
-  "422": {
-    description:
-      "Unprocessable — schema parse failure, invalid config, or generator error.",
-  },
+  "400": jsonResponse(
+    "Malformed request — invalid JSON body or failed validation.",
+    ref("ErrorResponse"),
+  ),
+  "422": jsonResponse(
+    "Unprocessable — the `source` could not be fetched, or the document " +
+      "could not be read as a schema.",
+    ref("ErrorResponse"),
+  ),
 };
 
 /**
@@ -392,14 +497,58 @@ export const buildOpenApiDocument = (): OpenAPIV3.Document => ({
       "(bundle, schema, client settings).",
   },
   paths: {
+    "/": {
+      get: {
+        operationId: "homePage",
+        summary: "The server's self-description",
+        description:
+          "Content-negotiated on `Accept`: a browser (`text/html`) gets the " +
+          "HTML page, anything else the flat markdown contract — the same " +
+          "text `/index.md` and `/llms.txt` serve.",
+        responses: {
+          "200": textResponse("The self-description.", [
+            "text/html",
+            "text/markdown",
+          ]),
+        },
+      },
+    },
+    "/index.md": {
+      get: {
+        operationId: "homePageMarkdown",
+        summary: "The self-description as markdown",
+        description: "The markdown variant of `/`, unconditionally.",
+        responses: {
+          "200": textResponse("The self-description, as markdown.", [
+            "text/markdown",
+          ]),
+        },
+      },
+    },
+    "/llms.txt": {
+      get: {
+        operationId: "homePageLlmsTxt",
+        summary: "The self-description at the llms.txt convention path",
+        description:
+          "The same markdown as `/index.md`, at the path agents look for.",
+        responses: {
+          "200": textResponse("The self-description, as markdown.", [
+            "text/plain",
+          ]),
+        },
+      },
+    },
     "/artifacts": {
       post: {
         operationId: "generateArtifacts",
         summary: "Generate code artifacts from a schema",
         description:
-          "Parse → transform → render the posted schema through the bundled " +
+          "Parse → transform → render the schema through the bundled " +
           "generators, returning the generated files, the run manifest, and the " +
-          "attribution sidecars + generation map.",
+          "attribution sidecars + generation map. The schema arrives inline " +
+          "(`schema`) or by URL (`source` — fetched by the server, echoed back " +
+          "with its resolved URL and content digest); `protocol` is inferred " +
+          "from the document when omitted.",
         requestBody: jsonBody(ref("ArtifactsRequest")),
         responses: {
           "200": jsonResponse(
@@ -509,13 +658,37 @@ export const buildOpenApiDocument = (): OpenAPIV3.Document => ({
         },
       },
     },
+    "/openapi.json": {
+      get: {
+        operationId: "openApiDocument",
+        summary: "This contract",
+        description:
+          "The server's own OpenAPI 3.1 document — the one you are reading. " +
+          "Served as a committed static artifact, so it is a pure function of " +
+          "the package version.",
+        responses: {
+          "200": jsonResponse("This OpenAPI document.", {
+            type: "object",
+            additionalProperties: true,
+          }),
+        },
+      },
+    },
   },
   components: {
     schemas: {
-      // Derived from the runtime valibot schemas — cannot drift from the server.
-      ...derive("ArtifactsRequest", postArtifactsBody),
+      // Derived from the runtime valibot schemas — cannot drift from the
+      // server, except for the pipe-level `check` the converter cannot
+      // express, which `withExactlyOneInput` restores.
+      ...withExactlyOneInput(
+        derive("ArtifactsRequest", postArtifactsBody),
+        "ArtifactsRequest",
+      ),
       ...derive("ValidateRequest", validateBody),
-      ...derive("ToV3JsonRequest", toV3JsonBody),
+      ...withExactlyOneInput(
+        derive("ToV3JsonRequest", toV3JsonBody),
+        "ToV3JsonRequest",
+      ),
       ...derive("Manifest", manifestContent),
       ...derive("Sidecar", sidecarSchema),
       ...derive("GenerationMapEntry", generationMapEntry),
@@ -524,6 +697,8 @@ export const buildOpenApiDocument = (): OpenAPIV3.Document => ({
       GeneratorSupport: generatorSupport,
       EnrichmentDescriptor: enrichmentDescriptor,
       EnrichmentValidationIssue: enrichmentValidationIssue,
+      ResolvedSource: resolvedSource,
+      ErrorResponse: errorResponse,
     },
   },
 });

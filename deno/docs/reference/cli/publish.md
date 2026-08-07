@@ -197,6 +197,21 @@ prefix resolving to a local path becomes `cloned`. Mixed states for
 the same generator name are rejected (`422 — composition
 inconsistency`). The root `deno.json` must be part of the upload.
 
+## Network isolation
+
+A published stack server accepts a `source` URL on `/artifacts` and
+`/to-v3-json` and fetches it server-side. The server rejects URLs whose
+hostname is a loopback, private, link-local or `.internal`/`.local` name,
+and re-checks every redirect hop — but it inspects the **hostname only**.
+A public name with a private DNS record still resolves and is fetched, and
+the fetched body comes back to the caller as the schema.
+
+The control that actually holds is the runtime's network isolation. On the
+hub, stack servers run under Deno subhosting, which has no route to an
+internal network. **Running a stack server anywhere else requires an egress
+policy in front of it** — the hostname check is defence in depth, not a
+substitute.
+
 ## Errors
 
 All errors use the uniform `ApiError` envelope (`{ code, message, … }`):

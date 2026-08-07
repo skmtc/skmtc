@@ -15,11 +15,33 @@ import * as v from "valibot";
 import { StackTrail } from "@skmtc/core";
 import openApiDocument from "../openapi.json" with { type: "json" };
 import {
+  InvalidBodyError,
   postArtifactsBody,
   toV3JsonBody,
   validateBody,
 } from "./requestSchemas.ts";
-import type { ArtifactsBody } from "./requestSchemas.ts";
+import type { Context } from "hono";
+import {
+  assertSdlReadable,
+  fetchSource,
+  resolveSchemaInput,
+  SchemaReadError,
+  SourceFetchError,
+} from "./schemaInput.ts";
+import type { ResolvedSchemaInput } from "./schemaInput.ts";
+import { homePageHtml, homePageMd } from "./homePage.ts";
+import type { HomePageContext, StackIdentity } from "./homePage.ts";
+
+/** Read a request body as JSON, reporting a malformed body as the typed
+ *  `InvalidBodyError` (→ 400). Only the body parse is caught, so a
+ *  `SyntaxError` raised anywhere below a route keeps its own meaning. */
+const readJsonBody = async (c: Context): Promise<unknown> => {
+  try {
+    return await c.req.json();
+  } catch {
+    throw new InvalidBodyError("Request body is not valid JSON.");
+  }
+};
 
 type GenerateResult = {
   artifacts: Record<string, string>;
@@ -31,23 +53,55 @@ type GenerateResult = {
   generationMap?: GenerationMapEntry[];
 };
 
+/**
+ * Build the unified `SkmtcDocumentInput` from a resolved schema input. The
+ * host-side OAS normalization (Swagger 2 / 3.1 → 3.0 via `@skmtc/convert`)
+ * runs here; GQL passes its SDL through unchanged. A document that cannot be
+ * read at all surfaces as a `SchemaReadError` (→ structured 422), distinct
+ * from a readable document with issues (→ 200 + `manifest.parseIssues`).
+ */
+const toDocumentInput = async (
+  { protocol, schema }: ResolvedSchemaInput,
+): Promise<SkmtcDocumentInput> => {
+  switch (protocol) {
+    case "oas": {
+      try {
+        return {
+          type: "oas",
+          value: await toV3Document(stringToSchema(schema)),
+        };
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        throw new SchemaReadError(`Could not read OAS document: ${reason}`);
+      }
+    }
+    case "gql": {
+      // The readability gate `inferProtocol` applies, applied again here so
+      // an explicit `protocol: "gql"` is not a way around it.
+      assertSdlReadable(schema);
+      return { type: "gql", value: schema };
+    }
+    default: {
+      const _exhaustive: never = protocol;
+      throw new Error(`Unhandled protocol: ${JSON.stringify(_exhaustive)}`);
+    }
+  }
+};
+
 type DispatchArgs = {
-  body: ArtifactsBody;
+  resolved: ResolvedSchemaInput;
+  schemaSrc: string | undefined;
+  clientSettings: v.InferOutput<typeof postArtifactsBody>["clientSettings"];
   toGeneratorConfigMap: <EnrichmentType = undefined>() =>
     GeneratorsMapContainer<EnrichmentType>;
   logsPath: string | undefined;
 };
 
-/**
- * Routes a parsed request body to the appropriate core entry point.
- *
- * The `body` parameter is already a discriminated union (validated by
- * `postArtifactsBody`), so switch-narrowing on `body.protocol`
- * automatically narrows the rest of the body's shape — there's
- * nothing to assert at runtime.
- */
+/** Routes a resolved schema input to the core `toArtifacts` entry point. */
 const dispatchArtifacts = async ({
-  body,
+  resolved,
+  schemaSrc,
+  clientSettings,
   toGeneratorConfigMap,
   logsPath,
 }: DispatchArgs): Promise<GenerateResult> => {
@@ -56,27 +110,7 @@ const dispatchArtifacts = async ({
   const spanId = `span-${startAt}`;
   const stackTrail = new StackTrail([traceId, spanId]);
 
-  // Build the unified SkmtcDocumentInput from the protocol-specific
-  // body shape, then route through the single `toArtifacts` entry. The
-  // host-side OAS normalization (Swagger 2 / 3.1 → 3.0 via
-  // `@skmtc/convert`) still runs here; GQL passes its SDL through
-  // unchanged.
-  let document: SkmtcDocumentInput;
-  switch (body.protocol) {
-    case "oas": {
-      const documentObject = await toV3Document(stringToSchema(body.schema));
-      document = { type: "oas", value: documentObject };
-      break;
-    }
-    case "gql": {
-      document = { type: "gql", value: body.schema };
-      break;
-    }
-    default: {
-      const _exhaustive: never = body;
-      throw new Error(`Unhandled protocol: ${JSON.stringify(_exhaustive)}`);
-    }
-  }
+  const document = await toDocumentInput(resolved);
 
   // Always emit attribution. The post-pass runs without a parser
   // (native parsers don't bundle cleanly via `deno bundle`), so AST
@@ -88,13 +122,16 @@ const dispatchArtifacts = async ({
     spanId,
     startAt,
     document,
-    settings: body.clientSettings,
+    settings: clientSettings,
     toGeneratorConfigMap,
     stackTrail,
     logsPath,
     silent: true,
     attribution: {
-      postPass: { schemaSrc: body.schemaSrc ?? body.protocol },
+      postPass: {
+        schemaSrc: schemaSrc ?? resolved.source?.resolvedUrl ??
+          resolved.protocol,
+      },
     },
   });
 
@@ -105,12 +142,22 @@ type CreateServerArgs = {
   toGeneratorConfigMap: <EnrichmentType = undefined>() =>
     GeneratorsMapContainer<EnrichmentType>;
   logsPath?: string;
+  /** Deploy-time identity shown on the home page (`/`, `/index.md`,
+   *  `/llms.txt`). Optional — without it the page falls back to a generic
+   *  self-description. */
+  identity?: StackIdentity;
 };
 
 export const createServer = (
-  { toGeneratorConfigMap, logsPath }: CreateServerArgs,
+  { toGeneratorConfigMap, logsPath, identity }: CreateServerArgs,
 ): Hono => {
   const app = new Hono();
+
+  const toHomeContext = (requestUrl: string): HomePageContext => ({
+    identity: identity ?? {},
+    generators: Object.keys(toGeneratorConfigMap()),
+    origin: new URL(requestUrl).origin,
+  });
 
   app.use(
     "*",
@@ -123,17 +170,93 @@ export const createServer = (
     }),
   );
 
+  // Structured errors, matching the published contract: a body that fails
+  // validation is a 400 with field-level issues; an unfetchable source or an
+  // unreadable document is a 422 with a reason; anything else is a JSON 500
+  // carrying a fixed message. Never the bare-text default — a 4xx always
+  // tells the caller what to fix.
+  app.onError((error, c) => {
+    if (error instanceof v.ValiError) {
+      return c.json({
+        error: "invalid_request",
+        message: "Request body failed validation.",
+        // `getDotPath` is null for a whole-body rule (the exactly-one check
+        // is one), and the contract declares `path` an optional string. Omit
+        // the key rather than sending a null the published schema forbids.
+        issues: error.issues.map((issue) => {
+          const path = v.getDotPath(issue);
+          return {
+            ...(path !== null ? { path } : {}),
+            message: issue.message,
+          };
+        }),
+      }, 400);
+    }
+    if (error instanceof InvalidBodyError) {
+      return c.json({ error: "invalid_request", message: error.message }, 400);
+    }
+    if (error instanceof SourceFetchError) {
+      return c.json(
+        { error: "source_fetch_failed", message: error.message },
+        422,
+      );
+    }
+    if (error instanceof SchemaReadError) {
+      return c.json({ error: "invalid_schema", message: error.message }, 422);
+    }
+    // The 4xx messages above are authored for the caller. An uncaught throw
+    // is not: its message can carry host paths, internal hostnames and
+    // whatever else a generator, core or the runtime put in it, and this
+    // route surface is unauthenticated. The log gets the whole error, the
+    // caller gets the shape.
+    console.error(error);
+    return c.json({
+      error: "internal_error",
+      message: "The server failed to complete the request.",
+    }, 500);
+  });
+
+  // The home page: HTML for browsers, the flat markdown contract for
+  // everything else (curl sends `Accept: */*` — no flags needed).
+  app.get("/", (c) => {
+    const wantsHtml = (c.req.header("accept") ?? "").includes("text/html");
+    return wantsHtml
+      ? c.html(homePageHtml(toHomeContext(c.req.url)))
+      : c.text(homePageMd(toHomeContext(c.req.url)), 200, {
+        "content-type": "text/markdown; charset=utf-8",
+      });
+  });
+
+  app.get(
+    "/index.md",
+    (c) =>
+      c.text(homePageMd(toHomeContext(c.req.url)), 200, {
+        "content-type": "text/markdown; charset=utf-8",
+      }),
+  );
+
+  app.get("/llms.txt", (c) => c.text(homePageMd(toHomeContext(c.req.url))));
+
   app.post("/artifacts", async (c) => {
-    const body = v.parse(postArtifactsBody, await c.req.json());
+    const body = v.parse(postArtifactsBody, await readJsonBody(c));
+    const resolved = await resolveSchemaInput(body);
 
     const { artifacts, manifest, sidecars, generationMap } =
       await dispatchArtifacts({
-        body,
+        resolved,
+        schemaSrc: body.schemaSrc,
+        clientSettings: body.clientSettings,
         toGeneratorConfigMap,
         logsPath,
       });
 
-    return c.json({ artifacts, manifest, sidecars, generationMap }, 200);
+    return c.json({
+      artifacts,
+      manifest,
+      sidecars,
+      generationMap,
+      ...(resolved.source !== undefined ? { source: resolved.source } : {}),
+    }, 200);
   });
 
   // Capability introspection: which subjects (operations / models) does each
@@ -141,31 +264,15 @@ export const createServer = (
   // `isSupported` only — no transform, no render. Same request body as
   // `/artifacts` (the OAS branch is normalized v2/3.1 → 3.0 first).
   app.post("/subjects", async (c) => {
-    const body = v.parse(postArtifactsBody, await c.req.json());
+    const body = v.parse(postArtifactsBody, await readJsonBody(c));
+    const resolved = await resolveSchemaInput(body);
 
     const startAt = Date.now();
     const traceId = `trace-${startAt}`;
     const spanId = `span-${startAt}`;
     const stackTrail = new StackTrail([traceId, spanId]);
 
-    let document: SkmtcDocumentInput;
-    switch (body.protocol) {
-      case "oas": {
-        document = {
-          type: "oas",
-          value: await toV3Document(stringToSchema(body.schema)),
-        };
-        break;
-      }
-      case "gql": {
-        document = { type: "gql", value: body.schema };
-        break;
-      }
-      default: {
-        const _exhaustive: never = body;
-        throw new Error(`Unhandled protocol: ${JSON.stringify(_exhaustive)}`);
-      }
-    }
+    const document = await toDocumentInput(resolved);
 
     const { subjects, parseIssues } = toSupportedSubjects({
       traceId,
@@ -189,31 +296,15 @@ export const createServer = (
   // (subject scope only), keyed `[id][path][method]['main']` for operations and
   // `[id][refName]['main']` for models.
   app.post("/enrichment-defaults", async (c) => {
-    const body = v.parse(postArtifactsBody, await c.req.json());
+    const body = v.parse(postArtifactsBody, await readJsonBody(c));
+    const resolved = await resolveSchemaInput(body);
 
     const startAt = Date.now();
     const traceId = `trace-${startAt}`;
     const spanId = `span-${startAt}`;
     const stackTrail = new StackTrail([traceId, spanId]);
 
-    let document: SkmtcDocumentInput;
-    switch (body.protocol) {
-      case "oas": {
-        document = {
-          type: "oas",
-          value: await toV3Document(stringToSchema(body.schema)),
-        };
-        break;
-      }
-      case "gql": {
-        document = { type: "gql", value: body.schema };
-        break;
-      }
-      default: {
-        const _exhaustive: never = body;
-        throw new Error(`Unhandled protocol: ${JSON.stringify(_exhaustive)}`);
-      }
-    }
+    const document = await toDocumentInput(resolved);
 
     const { enrichmentDefaults, parseIssues } = toEnrichmentDefaults({
       traceId,
@@ -251,7 +342,7 @@ export const createServer = (
   // posted enrichments). The host calls this to gate persists, CLI pushes,
   // schema-drift migration, and Publish.
   app.post("/validate", async (c) => {
-    const { clientSettings } = v.parse(validateBody, await c.req.json());
+    const { clientSettings } = v.parse(validateBody, await readJsonBody(c));
 
     const issues = validateConfig(
       clientSettings?.enrichments,
@@ -262,12 +353,24 @@ export const createServer = (
   });
 
   app.post("/to-v3-json", async (c) => {
-    const { schema } = v.parse(toV3JsonBody, await c.req.json());
+    const body = v.parse(toV3JsonBody, await readJsonBody(c));
+    const schema = body.source !== undefined
+      ? (await fetchSource(body.source)).schema
+      : body.schema;
+    if (schema === undefined) {
+      // Unreachable behind the request schema's exactly-one check.
+      throw new SchemaReadError("No schema input provided.");
+    }
 
     // 3.0/3.1 pass through unchanged; only Swagger 2.0 is converted to 3.0.
-    const normalizedDocument = await toV3Document(stringToSchema(schema));
-
-    return c.json({ schema: normalizedDocument });
+    try {
+      const normalizedDocument = await toV3Document(stringToSchema(schema));
+      return c.json({ schema: normalizedDocument });
+    } catch (error) {
+      if (error instanceof SchemaReadError) throw error;
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new SchemaReadError(`Could not read OAS document: ${reason}`);
+    }
   });
 
   // Self-description: the server's own published OpenAPI 3.1 contract, covering
