@@ -516,51 +516,24 @@ const toRemoteFileType = ({
 }
 
 /**
- * The provenance label for a resolved schema source — what gets recorded
- * as `schemaSrc` in the anchors / gen-maps payload.
+ * The provenance label for a resolved schema source.
  *
- * For a REMOTE source this is the final, post-redirect URL, so a pin
- * that redirects to a content-addressed form is attributed to the form
- * it actually read.
+ * A REMOTE source is recorded as the final, post-redirect URL, COMPLETE
+ * — query included. skmtc-hub's `?raw` surface is the case that decides
+ * this: `/{account}/apis/{api}?raw` redirects to
+ * `/{account}/apis/{api}/versions/{ref}?raw`, and the same URL without
+ * `?raw` is the HTML page, not the document. Dropping the query would
+ * record a URL that no longer names what was read, breaking the
+ * "redirect is the lockfile" contract the hub is built around. This
+ * matches `@skmtc/server`, which records `resolvedUrl: target.href`.
  *
- * Gen-maps are COMMITTED files, so the QUERY AND FRAGMENT ARE ALWAYS
- * DROPPED, along with any userinfo. Not filtered — dropped.
- *
- * Filtering was tried and does not work. Naming the parameters that
- * carry credentials means enumerating a set nobody can close: an earlier
- * deny-list covering the S3, GCS, Azure and CloudFront schemes still let
- * GitLab's `private_token`, Akamai's `__token__`, Cloudflare's `verify`,
- * nginx's `md5` and a plain `hmac` through, and stripping selectively
- * re-serializes the query, so `?raw` came back as `?raw=`. The CLI has
- * no auth mechanism, so pinning a credentialed URL as `source` is a
- * documented workaround — which makes a miss here a long-lived token in
- * git history.
- *
- * The cost is real: for a source whose query IS its identity (`?raw`,
- * `?version=3`) the recorded `schemaSrc` no longer round-trips to the
- * same document. That is the lesser harm, and it is documented in
- * `source-resolution.md`.
- *
- * The rest is the final, post-redirect URL, so a pin that redirects to a
- * content-addressed form is attributed to the form it actually read.
- *
- * For a LOCAL source the label is the string the user wrote, NOT the
+ * A LOCAL source is recorded as the string the user wrote, NOT the
  * resolved path — `toSchemaContents` absolutizes relative paths, and
- * writing `/Users/<name>/…` into a committed gen-map would leak the
- * developer's home directory and churn the file per machine.
+ * writing `/Users/<name>/…` into a gen-map would leak the developer's
+ * home directory and churn the file per machine.
  */
-export const toAttributedSource = (requested: string, resolved: SchemaSource): string => {
-  if (resolved.type === 'local') return requested
-
-  const url = new URL(resolved.url)
-
-  url.search = ''
-  url.hash = ''
-  url.username = ''
-  url.password = ''
-
-  return url.href
-}
+export const toAttributedSource = (requested: string, resolved: SchemaSource): string =>
+  resolved.type === 'local' ? requested : resolved.url
 
 export const toSchemaSource = (source: string): SchemaSource => {
   if (source.startsWith('http://') || source.startsWith('https://')) {

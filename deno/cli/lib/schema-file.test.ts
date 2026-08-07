@@ -788,49 +788,30 @@ Deno.test('toFetchDeadline - names the phase the idle window ran out in', async 
   }
 })
 
-Deno.test('toAttributedSource - drops a redirect target query', () => {
-  // A presigned redirect target carries credentials, and gen-maps are
-  // committed files.
+Deno.test('toAttributedSource - records the redirect target complete', () => {
+  // skmtc-hub's `?raw` surface: the floating form redirects to the
+  // version-pinned one, which is the document only WITH `?raw` — the
+  // same URL without it is the HTML page. Dropping the query would
+  // record a URL that no longer names what was read.
   assertEquals(
-    toAttributedSource('https://example.com/openapi.json', {
+    toAttributedSource('https://hub.example.com/acme/apis/pets?raw', {
       type: 'remote',
-      url: 'https://cdn.example.com/blob/abc123?X-Amz-Signature=deadbeef&X-Amz-Expires=900'
+      url: 'https://hub.example.com/acme/apis/pets/versions/3.0.1?raw'
     }),
-    'https://cdn.example.com/blob/abc123'
+    'https://hub.example.com/acme/apis/pets/versions/3.0.1?raw'
   )
 })
 
-Deno.test('toAttributedSource - drops the query of a directly pinned URL', () => {
-  // No redirect. A deny-list would have to name every scheme's
-  // credential parameter to be safe here, and cannot: the set is open.
-  // Dropping the whole query costs identity and buys the guarantee.
-  const cases = [
-    // S3 SigV4
-    'https://bucket.s3.amazonaws.com/openapi.json?X-Amz-Signature=deadbeefcafe&version=3',
-    // GitLab's documented URL auth — missed by a deny-list built around
-    // the object-store schemes.
-    'https://gitlab.com/api/v4/projects/1/repository/files/openapi.json/raw?ref=main&private_token=glpat-XXXX',
-    // Akamai token auth, nginx secure_link, a plain HMAC.
-    'https://cdn.example.com/openapi.json?__token__=abc',
-    'https://cdn.example.com/openapi.json?md5=abc',
-    'https://cdn.example.com/openapi.json?hmac=abc'
-  ]
-
-  for (const source of cases) {
-    const attributed = toAttributedSource(source, { type: 'remote', url: source })
-
-    assertEquals(attributed.includes('?'), false, source)
-    assertEquals(attributed, new URL(source).origin + new URL(source).pathname, source)
-  }
-})
-
-Deno.test('toAttributedSource - strips userinfo', () => {
+Deno.test('toAttributedSource - records a directly pinned URL complete', () => {
   assertEquals(
-    toAttributedSource('https://user:token@example.com/openapi.json', {
-      type: 'remote',
-      url: 'https://user:token@example.com/openapi.json'
-    }),
-    'https://example.com/openapi.json'
+    toAttributedSource(
+      'https://hub.example.com/acme/apis/pets/versions/3.0.1?raw&variant=openapi3',
+      {
+        type: 'remote',
+        url: 'https://hub.example.com/acme/apis/pets/versions/3.0.1?raw&variant=openapi3'
+      }
+    ),
+    'https://hub.example.com/acme/apis/pets/versions/3.0.1?raw&variant=openapi3'
   )
 })
 

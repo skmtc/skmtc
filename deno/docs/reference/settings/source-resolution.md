@@ -277,31 +277,17 @@ content-addressed form is attributed to the pinned form. That value is
 what lands in the anchors / gen-maps payload as `schemaSrc`, and `skmtc
 generate` and `skmtc dev` record it identically.
 
-Gen-maps are committed files, so **the query string, the fragment and
-any userinfo are always dropped** — from a URL you pinned directly as
-much as from a redirect target:
-
-```
-https://user:token@example.com/openapi.json?private_token=glpat-XXXX#frag
-→ https://example.com/openapi.json
-```
-
-They are dropped rather than filtered. Filtering would mean naming every
-parameter that carries a credential, and that set cannot be closed — a
-list covering the S3, GCS, Azure and CloudFront schemes still misses
-GitLab's `private_token`, Akamai's `__token__`, Cloudflare's `verify`,
-nginx's `md5` and a plain `hmac`. Since the CLI has no auth mechanism,
-[pinning a credentialed URL](#authentication) is a documented workaround,
-which would make any miss a long-lived token in git history.
-
-The cost: for a source whose query *is* its identity (`?raw`,
-`?version=3`), the recorded `schemaSrc` no longer round-trips to the same
-document. It still identifies the endpoint, not the exact
-representation. If you need exact provenance, bundle the spec to a local
-file and pin that.
+The URL is recorded **complete**, query included, which is what makes
+the recorded value re-fetchable. skmtc-hub's `?raw` surface is the case
+that decides this: `/{account}/apis/{api}?raw` redirects to
+`/{account}/apis/{api}/versions/{ref}?raw`, and that same URL *without*
+`?raw` is the HTML page rather than the document. This matches
+`@skmtc/server`, which echoes the same value as `resolvedUrl` for a
+caller to reproduce a run with.
 
 A **local** source is attributed as written, not as the absolutized
-path.
+path — the resolved form would put the developer's home directory into
+the file and churn it per machine.
 
 Format detection uses that final URL too, then falls back in order:
 
