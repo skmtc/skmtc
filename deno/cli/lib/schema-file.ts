@@ -34,7 +34,43 @@ export class SchemaFile {
     this.fileType = args?.fileType || null
   }
 
+  /**
+   * Open a project's schema, TOLERATING an unreadable one.
+   *
+   * `Project.open` calls this, and `SkmtcRoot.open` opens EVERY project
+   * in the root — so a throw here aborts the ~25 commands that touch the
+   * root (`list`, `clean`, `remove`, `bundle`, `install`, `push`,
+   * `publish`, `status`, …) plus the bare `skmtc` prompt, none of which
+   * need the schema. One project pinned to a URL that now 404s would
+   * take all of them down.
+   *
+   * So a source that cannot be read yields an EMPTY `SchemaFile` and a
+   * stderr warning, exactly as `readManifestTolerant` does for a
+   * malformed manifest. The commands that actually consume the schema
+   * (`generate`, `dev`) reach it through `toSchemaContents` /
+   * `toGenerateLocalArgs`, never through here, and still fail hard with
+   * the full message.
+   *
+   * The warning goes to stderr so `--json` output on stdout stays clean.
+   */
   static async openFromProject(
+    projectName: string,
+    source: string | undefined
+  ): Promise<SchemaFile> {
+    try {
+      return await SchemaFile.openFromProjectStrict(projectName, source)
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error)
+      console.error(
+        `Warning: could not read the schema for project "${projectName}": ${reason}\n` +
+          `  Commands that need the schema (\`skmtc generate ${projectName}\`) will report this; ` +
+          `others continue without it.`
+      )
+      return new SchemaFile()
+    }
+  }
+
+  private static async openFromProjectStrict(
     projectName: string,
     source: string | undefined
   ): Promise<SchemaFile> {
@@ -72,16 +108,7 @@ export class SchemaFile {
   ): Promise<{ contents: string; fileType: FileType; schemaSource: SchemaSource }> {
     switch (schemaSource.type) {
       case 'remote': {
-        let response: Response
-        try {
-          response = await fetch(schemaSource.url, {
-            signal: AbortSignal.timeout(REMOTE_FETCH_TIMEOUT_MS),
-            redirect: 'follow'
-          })
-        } catch (error) {
-          const reason = error instanceof Error ? error.message : String(error)
-          throw new Error(`Could not fetch schema from ${schemaSource.url}: ${reason}`)
-        }
+        const response = await fetchRemote(schemaSource.url)
 
         if (!response.ok) {
           await response.body?.cancel()
@@ -90,7 +117,11 @@ export class SchemaFile {
           )
         }
 
-        const contents = await response.text()
+        // `AbortSignal.timeout` covers the body read too, so a server that
+        // sends headers promptly and then stalls rejects HERE, not at
+        // `fetch`. Reading through the same wrapper keeps that failure
+        // from escaping as a bare `TimeoutError` with no URL.
+        const contents = await readRemoteBody(response, schemaSource.url)
 
         invariant(contents, `Schema fetched from "${schemaSource.url}" is empty`)
 
@@ -100,19 +131,12 @@ export class SchemaFile {
         // (tests, some proxies) has an empty `url`; fall back to the
         // requested one.
         const finalUrl = response.url === '' ? schemaSource.url : response.url
-        const url = new URL(finalUrl)
-        // Prefer extension-based detection (cheap, deterministic). Fall
-        // back to the response's Content-Type for endpoints whose URL
-        // has no schema-bearing extension (e.g.
-        // `https://example.com/schema` returning `application/graphql`).
-        // Note: this still expects the *response body* to be a parseable
-        // schema document — for live GraphQL HTTP endpoints that only
-        // accept POSTed introspection queries, you currently need to
-        // run introspection yourself and save the SDL to a file. A
-        // future enhancement could detect a 405/missing-query response
-        // and POST an introspection query automatically.
         const contentType = response.headers.get('content-type') ?? ''
-        const fileType = toFileTypeFromPathOrContentType(url.pathname, contentType)
+        const fileType = toRemoteFileType({
+          finalPath: new URL(finalUrl).pathname,
+          contentType,
+          requestedPath: new URL(schemaSource.url).pathname
+        })
 
         return {
           contents,
@@ -138,6 +162,42 @@ export class SchemaFile {
   }
 }
 
+/**
+ * One phrasing for every way a remote fetch can fail, so the URL and —
+ * for the 30s cap this adds — the reason are always in the message. A
+ * timeout arrives as `TimeoutError`, whose own message ("The operation
+ * was aborted due to timeout") names neither the source nor the limit.
+ */
+const toFetchFailure = (url: string, error: unknown): Error => {
+  const timedOut = error instanceof DOMException && error.name === 'TimeoutError'
+  const reason = timedOut
+    ? `timed out after ${REMOTE_FETCH_TIMEOUT_MS / 1000}s`
+    : error instanceof Error
+      ? error.message
+      : String(error)
+
+  return new Error(`Could not fetch schema from ${url}: ${reason}`)
+}
+
+const fetchRemote = async (url: string): Promise<Response> => {
+  try {
+    return await fetch(url, {
+      signal: AbortSignal.timeout(REMOTE_FETCH_TIMEOUT_MS),
+      redirect: 'follow'
+    })
+  } catch (error) {
+    throw toFetchFailure(url, error)
+  }
+}
+
+const readRemoteBody = async (response: Response, url: string): Promise<string> => {
+  try {
+    return await response.text()
+  } catch (error) {
+    throw toFetchFailure(url, error)
+  }
+}
+
 const toFileType = (path: string): FileType => {
   if (path.endsWith('.json')) {
     return 'json'
@@ -152,45 +212,78 @@ const toFileType = (path: string): FileType => {
   }
 }
 
-/**
- * Like {@link toFileType} but consults `Content-Type` as a fallback when
- * the URL pathname doesn't end in a recognized extension. Used only for
- * remote sources, where servers can hint the format directly.
- *
- * Mappings:
- *   - `application/graphql`             → `graphql`
- *   - `application/json` / `text/json`  → `json`
- *   - `application/yaml` / `text/yaml` /
- *     `application/x-yaml` / `text/x-yaml` → `yaml`
- *
- * The header may include a `; charset=...` suffix; we strip it before
- * matching. If neither path nor content-type yields a recognized type,
- * we re-throw `toFileType`'s descriptive error so the user sees the
- * full list of supported formats.
- */
-const toFileTypeFromPathOrContentType = (path: string, contentType: string): FileType => {
+/** `Content-Type` → `FileType`, or `null` when the header names nothing
+ *  we can parse. The header may carry a `; charset=…` suffix. */
+const toFileTypeFromContentType = (contentType: string): FileType | null => {
+  const mime = contentType.split(';', 1)[0]?.trim().toLowerCase() ?? ''
+  switch (mime) {
+    case 'application/graphql':
+      return 'graphql'
+    case 'application/json':
+    case 'text/json':
+      return 'json'
+    case 'application/yaml':
+    case 'text/yaml':
+    case 'application/x-yaml':
+    case 'text/x-yaml':
+      return 'yaml'
+    default:
+      return null
+  }
+}
+
+const toFileTypeOrNull = (path: string): FileType | null => {
   try {
     return toFileType(path)
-  } catch (pathError) {
-    const mime = contentType.split(';', 1)[0]?.trim().toLowerCase() ?? ''
-    switch (mime) {
-      case 'application/graphql':
-        return 'graphql'
-      case 'application/json':
-      case 'text/json':
-        return 'json'
-      case 'application/yaml':
-      case 'text/yaml':
-      case 'application/x-yaml':
-      case 'text/x-yaml':
-        return 'yaml'
-      default:
-        throw new Error(
-          `Could not determine schema format for remote source: URL pathname '${path}' has no recognized extension (.json, .yaml, .yml, .graphql, .gql, or .graphqls), and Content-Type '${contentType}' is not application/graphql, application/json, or application/yaml. ` +
-            `For live GraphQL HTTP endpoints, run an introspection query yourself and save the SDL to a local file.`
-        )
-    }
+  } catch {
+    return null
   }
+}
+
+type ToRemoteFileTypeArgs = {
+  /** Pathname of the URL the response actually came from. */
+  finalPath: string
+  contentType: string
+  /** Pathname of the URL the user pinned, before any redirect. */
+  requestedPath: string
+}
+
+/**
+ * Decide a remote source's format, in the order that is right most often:
+ *
+ *   1. the FINAL URL's extension — a redirect to `/spec.yaml` is the
+ *      server telling you what it served;
+ *   2. `Content-Type` — for endpoints with no schema-bearing extension
+ *      (`https://example.com/schema` returning `application/graphql`);
+ *   3. the REQUESTED URL's extension — `/openapi.json` redirecting to a
+ *      presigned or content-addressed blob (`/blob/abc123`, often
+ *      `application/octet-stream`) is a common shape, and the extension
+ *      the user pinned is the last real evidence of intent.
+ *
+ * Detection expects the *response body* to be a parseable schema
+ * document — for live GraphQL HTTP endpoints that only accept POSTed
+ * introspection queries, run introspection yourself and save the SDL to
+ * a file.
+ */
+const toRemoteFileType = ({
+  finalPath,
+  contentType,
+  requestedPath
+}: ToRemoteFileTypeArgs): FileType => {
+  const detected =
+    toFileTypeOrNull(finalPath) ??
+    toFileTypeFromContentType(contentType) ??
+    toFileTypeOrNull(requestedPath)
+
+  if (detected) return detected
+
+  const requestedNote =
+    requestedPath === finalPath ? '' : ` (nor the requested '${requestedPath}')`
+
+  throw new Error(
+    `Could not determine schema format for remote source: URL pathname '${finalPath}'${requestedNote} has no recognized extension (.json, .yaml, .yml, .graphql, .gql, or .graphqls), and Content-Type '${contentType}' is not application/graphql, application/json, or application/yaml. ` +
+      `For live GraphQL HTTP endpoints, run an introspection query yourself and save the SDL to a local file.`
+  )
 }
 
 export const toSchemaSource = (source: string): SchemaSource => {

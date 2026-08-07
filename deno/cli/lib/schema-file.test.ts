@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from '@std/assert'
+import { assertEquals, assertRejects, assertStringIncludes } from '@std/assert'
 import { SchemaFile, toSchemaSource } from '@/lib/schema-file.ts'
 import { join } from '@std/path/join'
 
@@ -269,4 +269,201 @@ Deno.test('SchemaFile.openFromSource - returns consistent schemaSource', async (
   } finally {
     await Deno.remove(tempDir, { recursive: true })
   }
+})
+
+/** A stubbed `Response` that reports a `url`, the way a real redirected
+ *  response does. A constructed `Response` has `url === ''`, which is
+ *  why the redirect paths below need this. */
+const withFinalUrl = (response: Response, url: string): Response => {
+  Object.defineProperty(response, 'url', { value: url })
+  return response
+}
+
+Deno.test('SchemaFile.getFromSource - detects the format from the URL it landed on', async () => {
+  await withStubbedFetch(
+    () =>
+      withFinalUrl(
+        new Response('openapi: 3.0.0', {
+          status: 200,
+          headers: { 'content-type': 'application/octet-stream' }
+        }),
+        'https://cdn.example.com/pinned/spec.yaml'
+      ),
+    async () => {
+      const source = { type: 'remote' as const, url: 'https://example.com/spec' }
+      const result = await SchemaFile.getFromSource(source)
+
+      // The redirect target's extension wins over an unhelpful
+      // Content-Type — the server is saying what it served.
+      assertEquals(result.fileType, 'yaml')
+      assertEquals(result.schemaSource, {
+        type: 'remote',
+        url: 'https://cdn.example.com/pinned/spec.yaml'
+      })
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - falls back to the requested URL when the redirect target has no extension', async () => {
+  await withStubbedFetch(
+    () =>
+      withFinalUrl(
+        new Response('{"openapi": "3.0.0"}', {
+          status: 200,
+          headers: { 'content-type': 'application/octet-stream' }
+        }),
+        'https://cdn.example.com/blob/abc123'
+      ),
+    async () => {
+      const source = { type: 'remote' as const, url: 'https://example.com/openapi.json' }
+      const result = await SchemaFile.getFromSource(source)
+
+      // The common presigned/content-addressed shape: neither the final
+      // pathname nor the Content-Type identifies the format, so the
+      // extension the user pinned is the last real evidence of intent.
+      assertEquals(result.fileType, 'json')
+      // Attribution still reports where it landed.
+      assertEquals(result.schemaSource, {
+        type: 'remote',
+        url: 'https://cdn.example.com/blob/abc123'
+      })
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - detects the format from Content-Type alone', async () => {
+  await withStubbedFetch(
+    () =>
+      new Response('type Query { a: Int }', {
+        status: 200,
+        headers: { 'content-type': 'application/graphql; charset=utf-8' }
+      }),
+    async () => {
+      // No extension anywhere, so only the header can decide.
+      const source = { type: 'remote' as const, url: 'https://example.com/schema' }
+      const result = await SchemaFile.getFromSource(source)
+
+      assertEquals(result.fileType, 'graphql')
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - unidentifiable format names both URLs', async () => {
+  await withStubbedFetch(
+    () =>
+      withFinalUrl(
+        new Response('nonsense', {
+          status: 200,
+          headers: { 'content-type': 'application/octet-stream' }
+        }),
+        'https://cdn.example.com/blob/abc123'
+      ),
+    async () => {
+      const source = { type: 'remote' as const, url: 'https://example.com/schema' }
+
+      await assertRejects(
+        async () => {
+          await SchemaFile.getFromSource(source)
+        },
+        Error,
+        "nor the requested '/schema'"
+      )
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - follows a real redirect and reports where it landed', async () => {
+  // The stubs above assert the logic; this asserts the assumption the
+  // logic rests on — that `redirect: 'follow'` leaves the final URL on
+  // `response.url`.
+  const server = Deno.serve({ port: 0, onListen: () => {} }, request => {
+    const { pathname } = new URL(request.url)
+    if (pathname === '/openapi.json') {
+      return new Response(null, { status: 302, headers: { location: '/v1/spec.yaml' } })
+    }
+    return new Response('openapi: 3.0.0', {
+      status: 200,
+      headers: { 'content-type': 'application/octet-stream' }
+    })
+  })
+
+  try {
+    const { port } = server.addr as Deno.NetAddr
+    const result = await SchemaFile.getFromSource({
+      type: 'remote',
+      url: `http://localhost:${port}/openapi.json`
+    })
+
+    assertEquals(result.fileType, 'yaml')
+    assertEquals(result.schemaSource, {
+      type: 'remote',
+      url: `http://localhost:${port}/v1/spec.yaml`
+    })
+  } finally {
+    await server.shutdown()
+  }
+})
+
+Deno.test('SchemaFile.getFromSource - a body that fails mid-read reports the URL', async () => {
+  await withStubbedFetch(
+    () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('{"openapi":'))
+            // What `AbortSignal.timeout` raises when a server sends
+            // headers promptly and then stalls: the rejection lands on
+            // the body read, not on `fetch`.
+            controller.error(new DOMException('The operation was aborted due to timeout', 'TimeoutError'))
+          }
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      ),
+    async () => {
+      const source = { type: 'remote' as const, url: 'https://example.com/openapi.json' }
+
+      const error = await assertRejects(
+        async () => {
+          await SchemaFile.getFromSource(source)
+        },
+        Error,
+        'Could not fetch schema from https://example.com/openapi.json'
+      )
+      // Names the cap, which `TimeoutError`'s own message does not.
+      assertStringIncludes(error.message, 'timed out after 30s')
+    }
+  )
+})
+
+Deno.test('SchemaFile.openFromProject - an unreadable pinned source warns instead of throwing', async () => {
+  // `SkmtcRoot.open` opens every project, so a throw here would break
+  // `list`, `clean`, `bundle`, `publish` … and the bare `skmtc` prompt,
+  // none of which need the schema.
+  const warnings: string[] = []
+  const originalError = console.error
+  console.error = (...args: unknown[]) => {
+    warnings.push(args.map(String).join(' '))
+  }
+
+  try {
+    await withStubbedFetch(
+      () => new Response('not found', { status: 404, statusText: 'Not Found' }),
+      async () => {
+        const schemaFile = await SchemaFile.openFromProject(
+          'some-project',
+          'https://example.com/gone.json'
+        )
+
+        assertEquals(schemaFile.contents, null)
+        assertEquals(schemaFile.schemaSource, null)
+        assertEquals(schemaFile.fileType, null)
+      }
+    )
+  } finally {
+    console.error = originalError
+  }
+
+  assertEquals(warnings.length, 1)
+  assertStringIncludes(warnings[0], 'could not read the schema for project "some-project"')
+  assertStringIncludes(warnings[0], 'returned 404')
 })

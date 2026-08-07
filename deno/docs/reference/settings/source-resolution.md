@@ -242,14 +242,34 @@ alongside generation config.
 
 ### Timeouts
 
-The CLI uses `fetch`'s default timeout behavior, with no explicit
-timeout override. Large specs over slow connections may hang;
-the user can cancel with Ctrl+C.
+A remote fetch is capped at **30 seconds**, covering the whole exchange
+— connection, headers, and reading the body. A server that stalls
+mid-body fails at the cap rather than hanging the command:
+
+```
+Could not fetch schema from https://example.com/openapi.json: timed out after 30s
+```
 
 ### Redirects
 
 The CLI follows redirects (standard `fetch()` behavior). A typical
 case: an `/openapi` endpoint that 302-redirects to `/openapi.json`.
+
+The **final** URL — where the response actually came from — is what the
+CLI reports as the schema source, so a source that redirects to a pinned,
+content-addressed form is attributed to the pinned form.
+
+Format detection uses that final URL too, then falls back in order:
+
+1. the final URL's extension (`/v1/spec.yaml` → `yaml`)
+2. `Content-Type` (`application/graphql` → `graphql`)
+3. the **requested** URL's extension — for the common case of
+   `/openapi.json` redirecting to a presigned or content-addressed blob
+   (`/blob/abc123`, typically `application/octet-stream`), where only
+   the URL you pinned identifies the format
+
+If none of the three identifies a format, the run fails with a message
+naming both URLs and the `Content-Type`.
 
 ### HTTP status handling
 
@@ -257,9 +277,11 @@ case: an `/openapi` endpoint that 302-redirects to `/openapi.json`.
 |--------|--------------|
 | `200` | Proceed with format detection |
 | `301` / `302` | Follow redirect |
-| `401` / `403` | Exit with auth-required error |
-| `404` | Exit with "schema not found" error |
-| `5xx` | Exit with server-error message (no retry) |
+| non-2xx (`401`, `403`, `404`, `5xx`, …) | Exit with `Schema source <url> returned <status> <statusText>` |
+
+The status and reason phrase come from the server; the CLI does not
+translate them into per-status messages. An empty `200` body is also an
+error — a silently empty spec is never what the caller meant.
 
 The CLI does not currently retry transient failures. A flaky spec
 endpoint should be wrapped by a local proxy or bundled to a file.
