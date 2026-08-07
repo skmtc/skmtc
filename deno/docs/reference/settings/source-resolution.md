@@ -133,19 +133,29 @@ worker parses it via the GraphQL runtime there.
 
 ### Format detection
 
-The CLI detects format in this order:
+The protocol is read from the **document**, never from where it came
+from. A file extension, a URL and a `Content-Type` header are all names
+given by whoever served it: an extensionless endpoint carries no name at
+all, a framework that defaults to `text/html` gives a wrong one, and a
+redirect can leave both stale. The bytes are already in hand, so they
+are the one source that cannot contradict itself.
 
-1. **File extension** — `.json`, `.yaml`/`.yml`, `.graphql`/`.gql`
-2. **HTTP `Content-Type` header** — `application/json`,
-   `application/yaml` / `text/yaml`, `application/graphql` /
-   `text/graphql`
-3. **Content sniffing** — first non-whitespace byte:
-   - `{` → JSON
-   - `swagger:` / `openapi:` at line start → YAML
-   - `type ` / `schema ` / `scalar ` at line start → GraphQL SDL
+- a JSON or YAML mapping carrying an `openapi` or `swagger` key is
+  **OpenAPI**
+- a document carrying an SDL definition (`type`, `interface`, `enum`,
+  `union`, `input`, `scalar`, `schema`, `directive`) is **GraphQL**
 
-If detection fails (e.g., a `.txt` file with ambiguous contents),
-the CLI exits with a clear error rather than guessing.
+Anything else is an error rather than a guess — an HTML page, a JSON
+document with no `openapi` key, a truncated document, an empty response.
+Handing those to a parser only produces a syntax error about a language
+they were never written in.
+
+The same inference runs in the CLI and in `@skmtc/server`
+(`inferProtocol`, in `@skmtc/convert`), so both reach the same verdict
+for the same bytes. File extensions still decide which conventional
+filename the CLI *looks for* when no `source` is set — `openapi.json`,
+`openapi.yaml`, `schema.graphql` — but that is locating a file, not
+classifying one.
 
 ## Pre-parse normalization
 
@@ -242,14 +252,70 @@ alongside generation config.
 
 ### Timeouts
 
-The CLI uses `fetch`'s default timeout behavior, with no explicit
-timeout override. Large specs over slow connections may hang;
-the user can cancel with Ctrl+C.
+A remote fetch runs under two budgets:
+
+| Budget | Limit | Resets |
+|--------|-------|--------|
+| Idle — longest gap with no bytes | 30 seconds | on every chunk received |
+| Total — the whole exchange | 5 minutes | never |
+
+The idle budget is what schema size is measured against, and it resets
+on progress — so a large spec on a slow link keeps downloading for as
+long as it keeps arriving. The total budget is the ceiling the idle one
+cannot provide: a response that trickles a byte every few seconds would
+otherwise reset the idle window forever, which is what a mistyped
+SSE/long-poll endpoint or a proxy emitting keep-alive whitespace does.
+
+The message names which budget ran out, and for the idle one, whether
+the response had started:
+
+```
+Could not fetch schema from https://example.com/openapi.json: timed out after 30s waiting for a response
+Could not fetch schema from https://example.com/openapi.json: timed out after 30s with no data received
+Could not fetch schema from https://example.com/openapi.json: exceeded the 5m limit for a single fetch
+```
+
+The first means nothing arrived at all — the server never answered. The
+second means the response started and then stalled. The third means it
+never stopped arriving but never finished either.
 
 ### Redirects
 
 The CLI follows redirects (standard `fetch()` behavior). A typical
 case: an `/openapi` endpoint that 302-redirects to `/openapi.json`.
+
+The **final** URL — where the response actually came from — is what the
+CLI reports as the schema source, so a source that redirects to a pinned,
+content-addressed form is attributed to the pinned form. That value is
+what lands in the anchors / gen-maps payload as `schemaSrc`, and `skmtc
+generate` and `skmtc dev` record it identically.
+
+The URL is recorded **complete**, query included, which is what makes
+the recorded value re-fetchable. skmtc-hub's `?raw` surface is the case
+that decides this: `/{account}/apis/{api}?raw` redirects to
+`/{account}/apis/{api}/versions/{ref}?raw`, and that same URL *without*
+`?raw` is the HTML page rather than the document. This matches
+`@skmtc/server`, which echoes the same value as `resolvedUrl` for a
+caller to reproduce a run with.
+
+A **local** source is attributed as written, not as the absolutized
+path — the resolved form would put the developer's home directory into
+the file and churn it per machine.
+
+Format detection does not consult the URL or the `Content-Type` at all —
+see [Format detection](#format-detection). An extensionless endpoint and
+a redirect to a content-addressed blob are both fine, whatever headers
+they carry.
+
+The one remote-specific case worth naming: a source behind SSO or an
+authenticating proxy answers `200` with a login page, either where it
+redirected to or **in place at the URL you pinned**. The document is
+read as markup and the run fails saying so, rather than passing HTML to
+the JSON parser:
+
+```
+The document is an HTML or XML page rather than a schema. A source behind SSO or an authenticating proxy typically answers this way with a login page. Bundle the schema to a local file, or point at a local proxy that injects the credential.
+```
 
 ### HTTP status handling
 
@@ -257,9 +323,12 @@ case: an `/openapi` endpoint that 302-redirects to `/openapi.json`.
 |--------|--------------|
 | `200` | Proceed with format detection |
 | `301` / `302` | Follow redirect |
-| `401` / `403` | Exit with auth-required error |
-| `404` | Exit with "schema not found" error |
-| `5xx` | Exit with server-error message (no retry) |
+| non-2xx (`401`, `403`, `404`, `5xx`, …) | Exit with `Schema source <url> returned <status> <statusText>` |
+
+The status and reason phrase come from the server; the CLI does not
+translate them into per-status messages. An empty — or whitespace-only —
+`200` body is also an error; a silently empty spec is never what the
+caller meant.
 
 The CLI does not currently retry transient failures. A flaky spec
 endpoint should be wrapped by a local proxy or bundled to a file.

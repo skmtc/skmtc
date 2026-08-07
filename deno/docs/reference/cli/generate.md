@@ -104,7 +104,8 @@ agent contexts).
 Resolution order:
 
 1. Explicit `[schema]` argument on the command line
-2. `client.json#settings.source` field
+2. `client.json#source` — top level, a file path or an `https` URL (not
+   `settings.source`)
 3. Interactive prompt (TTY only — strict mode fails with recipe)
 
 The first non-undefined value wins.

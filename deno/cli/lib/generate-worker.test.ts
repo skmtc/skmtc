@@ -116,7 +116,6 @@ Deno.test('generateWithWorker - creates Worker with correct URL and permissions'
     await generateWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: createMockClientSettings(),
-      fileType: 'json' as const,
       bundlePath: './worker-bundle.ts'
     })
 
@@ -176,7 +175,6 @@ Deno.test('generateWithWorker - handles READY message and posts GENERATE message
     await generateWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: createMockClientSettings(),
-      fileType: 'json' as const,
       bundlePath: './worker.ts'
     })
 
@@ -221,7 +219,6 @@ Deno.test('generateWithWorker - resolves with artifacts and manifest on RESULT m
     const result = await generateWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: createMockClientSettings(),
-      fileType: 'json' as const,
       bundlePath: './worker.ts'
     })
 
@@ -257,7 +254,6 @@ Deno.test('generateWithWorker - rejects on ERROR message from worker', async () 
       await generateWithWorker({
         schemaContents: createMockSchemaContents(),
         clientSettings: createMockClientSettings(),
-        fileType: 'json' as const,
         bundlePath: './worker.ts'
       })
     }, Error)
@@ -285,7 +281,6 @@ Deno.test('generateWithWorker - rejects on worker.onerror', async () => {
       await generateWithWorker({
         schemaContents: createMockSchemaContents(),
         clientSettings: createMockClientSettings(),
-        fileType: 'json' as const,
         bundlePath: './worker.ts'
       })
     })
@@ -326,7 +321,6 @@ Deno.test('generateWithWorker - terminates worker after successful completion', 
     await generateWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: createMockClientSettings(),
-      fileType: 'json' as const,
       bundlePath: './worker.ts'
     })
 
@@ -368,7 +362,6 @@ Deno.test('generateWithWorker - terminates worker after error', async () => {
       await generateWithWorker({
         schemaContents: createMockSchemaContents(),
         clientSettings: createMockClientSettings(),
-        fileType: 'json' as const,
         bundlePath: './worker.ts'
       })
     })
@@ -403,7 +396,6 @@ Deno.test('generateWithWorker - handles undefined clientSettings', async () => {
     const result = await generateWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: undefined,
-      fileType: 'json' as const,
       bundlePath: './worker.ts'
     })
 
@@ -445,7 +437,6 @@ Deno.test('generateWithWorker - posts GraphQL payload (protocol=gql, gqlSource) 
     await generateWithWorker({
       schemaContents: 'type Query { ping: Boolean }',
       clientSettings: undefined,
-      fileType: 'graphql' as const,
       bundlePath: './worker.ts'
     })
 
@@ -493,7 +484,6 @@ Deno.test('generateWithWorker - posts OAS payload (protocol=oas, documentObject)
     await generateWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: undefined,
-      fileType: 'json' as const,
       bundlePath: './worker.ts'
     })
 

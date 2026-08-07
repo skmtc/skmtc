@@ -1,6 +1,7 @@
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { toBundlePath } from '@/lib/to-bundle-path.ts'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
+import { toAttributedSource } from '@/lib/schema-file.ts'
 import { toClientJsonContents } from '@/lib/to-client-json-contents.ts'
 import { toManifestPath } from '@/lib/to-manifest-path.ts'
 
@@ -26,10 +27,11 @@ export const toGenerateLocalArgs = async ({
       manifestPath: toManifestPath(projectPath),
       projectPath,
       schemaContents: schemaContents.contents,
-      fileType: schemaContents.fileType,
       clientSettings: clientJsonContents?.settings,
       stackUrl: clientJsonContents?.serverUrl,
-      schemaSource: schemaSourceString
+      // The RESOLVED source, so attribution records the URL the schema
+      // was actually read from rather than a pin that redirected.
+      schemaSource: toAttributedSource(schemaSourceString, schemaContents.schemaSource)
     }
   }
 
@@ -48,9 +50,8 @@ export const toGenerateLocalArgs = async ({
     manifestPath: toManifestPath(projectPath),
     projectPath,
     schemaContents: schemaContents.contents,
-    fileType: schemaContents.fileType,
     clientSettings: clientJsonContents.settings,
     stackUrl: clientJsonContents.serverUrl,
-    schemaSource: clientJsonContents.source
+    schemaSource: toAttributedSource(clientJsonContents.source, schemaContents.schemaSource)
   }
 }

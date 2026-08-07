@@ -4,6 +4,7 @@ import { Project } from '@/lib/project.ts'
 import { createBundle } from '@/lib/create-bundle.ts'
 import { generateLocal } from '@/lib/generate-local.ts'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
+import { toAttributedSource } from '@/lib/schema-file.ts'
 import { toBundlePath } from '@/lib/to-bundle-path.ts'
 import { toManifestPath } from '@/lib/to-manifest-path.ts'
 import chokidar, { type FSWatcher } from 'chokidar'
@@ -71,9 +72,12 @@ export const dev = async ({ projectName, schemaSourceString }: DevArgs) => {
         manifestPath,
         projectPath,
         schemaContents: schemaContents.contents,
-        fileType: schemaContents.fileType,
         clientSettings: project.clientJson.contents?.settings,
-        schemaSource
+        // The RESOLVED source, matching `toGenerateLocalArgs`. Passing the
+        // raw pin here instead would make `dev` and `generate` write
+        // different `schemaSrc` values, so alternating between them
+        // rewrites the `src` field of every committed gen-map.
+        schemaSource: toAttributedSource(schemaSource, schemaContents.schemaSource)
       })
       const generateMs = Math.round(performance.now() - generateStart)
       const errorSuffix = stats.errors.length ? ` · ${stats.errors.length} errors` : ''

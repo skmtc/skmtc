@@ -41,7 +41,6 @@ export const resolveFreshArtifacts = async ({
     const { artifacts } = await GenerateArtifacts.generateWithWorker({
       bundlePath: toBundlePath(projectPath),
       schemaContents: schemaContents.contents,
-      fileType: schemaContents.fileType,
       clientSettings,
       stackUrl
     })

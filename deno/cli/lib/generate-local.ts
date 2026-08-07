@@ -5,7 +5,6 @@ import type { ClientSettings } from '@skmtc/core/Settings'
 import { reanchorSidecar, upgradeSidecar, writeSidecars } from '@skmtc/core/Anchors'
 import { toResolvedArtifactPath } from '@skmtc/core'
 import { type GenerationStats, toGenerationStats } from '@/lib/generationStats.ts'
-import type { FileType } from '@/lib/types.ts'
 import type { EnrichmentWarning, ParseIssue } from '@skmtc/core'
 import { toAttributionPayload } from '@/lib/to-attribution-payload.ts'
 
@@ -16,7 +15,6 @@ type GenerateLocalArgs = {
    * File type of the schema source. Determines whether the worker
    * receives an OpenAPI document object or raw GraphQL SDL.
    */
-  fileType: FileType
   clientSettings: ClientSettings | undefined
   /**
    * When set (from `client.json#serverUrl`), generate against this deployed
@@ -103,7 +101,6 @@ export type GenerateLocalResult = {
 export const generateLocal = async ({
   bundlePath,
   schemaContents,
-  fileType,
   clientSettings,
   stackUrl,
   manifestPath,
@@ -122,7 +119,6 @@ export const generateLocal = async ({
       await GenerateArtifacts.generateWithWorker({
         bundlePath,
         schemaContents,
-        fileType,
         clientSettings,
         attribution,
         stackUrl

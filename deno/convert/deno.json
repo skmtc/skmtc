@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/convert",
-  "version": "0.1.17",
+  "version": "0.2.0",
   "license": "Apache-2.0",
   "imports": {
     "@skmtc/openapi-down-convert": "jsr:@skmtc/openapi-down-convert@0.14.8",

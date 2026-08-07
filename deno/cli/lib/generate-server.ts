@@ -1,7 +1,7 @@
 import type { ClientSettings } from '@skmtc/core/Settings'
 import type { ManifestContent } from '@skmtc/core/Manifest'
 import type { GenerationMapEntry, Sidecar } from '@skmtc/core/Anchors'
-import { type FileType, fileTypeToProtocol } from '@/lib/types.ts'
+import { inferProtocol } from '@skmtc/convert'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
 import { resolveHubToken } from '@/lib/hub-token.ts'
 
@@ -13,7 +13,6 @@ type GenerateWithServerArgs = {
    */
   stackUrl: string
   schemaContents: string
-  fileType: FileType
   clientSettings: ClientSettings | undefined
 }
 
@@ -34,7 +33,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 export const generateWithServer = async ({
   stackUrl,
   schemaContents,
-  fileType,
   clientSettings
 }: GenerateWithServerArgs): Promise<GenerateResponse> => {
   // Append `/artifacts` to the PATH while preserving any query string on
@@ -43,7 +41,13 @@ export const generateWithServer = async ({
   const endpointUrl = new URL(stackUrl)
   endpointUrl.pathname = `${endpointUrl.pathname.replace(/\/+$/, '')}/artifacts`
   const endpoint = endpointUrl.toString()
-  const protocol = fileTypeToProtocol(fileType)
+
+  // Sent explicitly, though a current server would infer the same value
+  // from the document. Every stack deployed so far runs an older
+  // `@skmtc/server` whose request body is a variant DISCRIMINATED on
+  // `protocol` — omitting it is a 500 there, and those stacks only pick
+  // up the inference when they are re-published.
+  const protocol = inferProtocol(schemaContents)
 
   const headers: Record<string, string> = { 'content-type': 'application/json' }
   const token = resolveHubToken()

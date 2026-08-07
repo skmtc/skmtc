@@ -76,7 +76,6 @@ Deno.test('describeWithWorker - creates Worker read-only (write: false)', async 
     await describeWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: undefined,
-      fileType: 'json' as const,
       bundlePath: './worker.ts'
     })
 
@@ -120,7 +119,6 @@ Deno.test('describeWithWorker - handles READY and posts a DESCRIBE message (OAS 
     await describeWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: undefined,
-      fileType: 'json' as const,
       bundlePath: './worker.ts'
     })
 
@@ -152,7 +150,6 @@ Deno.test('describeWithWorker - resolves with subjects/descriptors/defaults on R
     const result = await describeWithWorker({
       schemaContents: createMockSchemaContents(),
       clientSettings: undefined,
-      fileType: 'json' as const,
       bundlePath: './worker.ts'
     })
 
@@ -183,10 +180,32 @@ Deno.test('describeWithWorker - rejects on ERROR message', async () => {
         describeWithWorker({
           schemaContents: createMockSchemaContents(),
           clientSettings: undefined,
-          fileType: 'json' as const,
           bundlePath: './worker.ts'
         }),
       Error
+    )
+  } finally {
+    globalThis.Worker = OriginalWorker
+  }
+})
+
+Deno.test('describeWithWorker - an unreadable document rejects, it does not hang', async () => {
+  // The inference throws. It used to run inside `worker.onmessage`,
+  // where a throw rejects nothing: the returned promise stayed pending
+  // and the rejection surfaced as an uncaught error, past the `.catch`
+  // in `commands/describe.ts` that exists to turn this into exit 1.
+  globalThis.Worker = MockWorker as unknown as typeof Worker
+
+  try {
+    await assertRejects(
+      () =>
+        describeWithWorker({
+          schemaContents: 'just some notes, not a schema',
+          clientSettings: undefined,
+          bundlePath: './bundle.js'
+        }),
+      Error,
+      'neither an OpenAPI document'
     )
   } finally {
     globalThis.Worker = OriginalWorker

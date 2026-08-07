@@ -2,7 +2,7 @@ import { assertEquals, assertRejects } from '@std/assert'
 import { stub, type Stub } from '@std/testing/mock'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
 import { SchemaFile } from '@/lib/schema-file.ts'
-import type { FileType, SchemaSource } from '@/lib/types.ts'
+import type { SchemaSource } from '@/lib/types.ts'
 
 Deno.test('toSchemaContents', async t => {
   await t.step('should handle remote schema sources with JSON', async () => {
@@ -14,13 +14,11 @@ Deno.test('toSchemaContents', async t => {
         type: 'remote',
         url: 'https://api.example.com/openapi.json'
       }
-      const mockFileType: FileType = 'json'
 
       getFromSourceStub = stub(SchemaFile, 'getFromSource', () =>
         Promise.resolve({
           contents: mockContents,
-          schemaSource: mockSchemaSource,
-          fileType: mockFileType
+          schemaSource: mockSchemaSource
         })
       )
 
@@ -28,7 +26,6 @@ Deno.test('toSchemaContents', async t => {
 
       assertEquals(result.contents, mockContents)
       assertEquals(result.schemaSource, mockSchemaSource)
-      assertEquals(result.fileType, 'json')
     } finally {
       getFromSourceStub?.restore()
     }
@@ -43,13 +40,11 @@ Deno.test('toSchemaContents', async t => {
         type: 'remote',
         url: 'https://api.example.com/openapi.yaml'
       }
-      const mockFileType: FileType = 'yaml'
 
       getFromSourceStub = stub(SchemaFile, 'getFromSource', () =>
         Promise.resolve({
           contents: mockContents,
-          schemaSource: mockSchemaSource,
-          fileType: mockFileType
+          schemaSource: mockSchemaSource
         })
       )
 
@@ -57,7 +52,6 @@ Deno.test('toSchemaContents', async t => {
 
       assertEquals(result.contents, mockContents)
       assertEquals(result.schemaSource, mockSchemaSource)
-      assertEquals(result.fileType, 'yaml')
     } finally {
       getFromSourceStub?.restore()
     }
@@ -73,13 +67,11 @@ Deno.test('toSchemaContents', async t => {
         type: 'local',
         path: absolutePath
       }
-      const mockFileType: FileType = 'json'
 
       getFromSourceStub = stub(SchemaFile, 'getFromSource', () =>
         Promise.resolve({
           contents: mockContents,
-          schemaSource: mockSchemaSource,
-          fileType: mockFileType
+          schemaSource: mockSchemaSource
         })
       )
 
@@ -90,7 +82,6 @@ Deno.test('toSchemaContents', async t => {
       if (result.schemaSource.type === 'local') {
         assertEquals(result.schemaSource.path, absolutePath)
       }
-      assertEquals(result.fileType, 'json')
     } finally {
       getFromSourceStub?.restore()
     }
@@ -102,7 +93,6 @@ Deno.test('toSchemaContents', async t => {
     try {
       const relativePath = 'schemas/openapi.json'
       const mockContents = JSON.stringify({ openapi: '3.0.0' })
-      const mockFileType: FileType = 'json'
 
       // Mock will receive the converted absolute path
       getFromSourceStub = stub(SchemaFile, 'getFromSource', (schemaSource: SchemaSource) => {
@@ -115,8 +105,7 @@ Deno.test('toSchemaContents', async t => {
 
         return Promise.resolve({
           contents: mockContents,
-          schemaSource,
-          fileType: mockFileType
+          schemaSource
         })
       })
 
@@ -129,7 +118,6 @@ Deno.test('toSchemaContents', async t => {
         assertEquals(result.schemaSource.path.startsWith('/'), true)
         assertEquals(result.schemaSource.path.includes(relativePath), true)
       }
-      assertEquals(result.fileType, 'json')
     } finally {
       getFromSourceStub?.restore()
     }
@@ -145,20 +133,17 @@ Deno.test('toSchemaContents', async t => {
         type: 'local',
         path: absolutePath
       }
-      const mockFileType: FileType = 'yaml'
 
       getFromSourceStub = stub(SchemaFile, 'getFromSource', () =>
         Promise.resolve({
           contents: mockContents,
-          schemaSource: mockSchemaSource,
-          fileType: mockFileType
+          schemaSource: mockSchemaSource
         })
       )
 
       const result = await toSchemaContents(absolutePath)
 
       assertEquals(result.contents, mockContents)
-      assertEquals(result.fileType, 'yaml')
     } finally {
       getFromSourceStub?.restore()
     }
@@ -193,13 +178,11 @@ Deno.test('toSchemaContents', async t => {
         type: 'remote',
         url: 'http://api.example.com/openapi.json'
       }
-      const mockFileType: FileType = 'json'
 
       getFromSourceStub = stub(SchemaFile, 'getFromSource', () =>
         Promise.resolve({
           contents: mockContents,
-          schemaSource: mockSchemaSource,
-          fileType: mockFileType
+          schemaSource: mockSchemaSource
         })
       )
 
@@ -220,13 +203,11 @@ Deno.test('toSchemaContents', async t => {
     try {
       const relativePath = ''
       const mockContents = JSON.stringify({ openapi: '3.0.0' })
-      const mockFileType: FileType = 'json'
 
       getFromSourceStub = stub(SchemaFile, 'getFromSource', (schemaSource: SchemaSource) => {
         return Promise.resolve({
           contents: mockContents,
-          schemaSource,
-          fileType: mockFileType
+          schemaSource
         })
       })
 

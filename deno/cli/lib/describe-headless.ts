@@ -32,7 +32,6 @@ export const describeHeadless = async ({
 
   const result = await describeWithWorker({
     schemaContents: schemaContents.contents,
-    fileType: schemaContents.fileType,
     clientSettings: project.clientJson.contents?.settings,
     bundlePath: toBundlePath(project.toPath())
   })

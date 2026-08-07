@@ -6,7 +6,6 @@ import type {
   SupportedSubjects
 } from '@skmtc/core'
 import { toDocumentInput } from '@/lib/document-input.ts'
-import type { FileType } from '@/lib/types.ts'
 
 /**
  * Host-side result of a `DESCRIBE` worker run — the read-only metadata
@@ -23,7 +22,6 @@ export type DescribeResponse = {
 type DescribeWithWorkerArgs = {
   schemaContents: string
   /** File type of the schema source — drives OAS-vs-GQL document building. */
-  fileType: FileType
   clientSettings: ClientSettings | undefined
   bundlePath: string
 }
@@ -37,12 +35,18 @@ type DescribeWithWorkerArgs = {
  * host-built `document` + `clientSettings`; the worker replies with one
  * `RESULT` carrying subjects + descriptors + defaults.
  */
-export const describeWithWorker = ({
+export const describeWithWorker = async ({
   schemaContents,
-  fileType,
   clientSettings,
   bundlePath
 }: DescribeWithWorkerArgs): Promise<DescribeResponse> => {
+  // BEFORE the worker spawns, and outside the promise below: this
+  // infers the protocol and can throw. Inside `worker.onmessage` the
+  // throw would reject nothing — the outer promise would hang and the
+  // rejection would surface as an uncaught error, past every `.catch`
+  // the commands wrap this in.
+  const document = await toDocumentInput(schemaContents)
+
   const workerUrl = new URL(bundlePath, import.meta.url)
 
   const worker = new Worker(workerUrl.href, {
@@ -59,12 +63,11 @@ export const describeWithWorker = ({
   })
 
   return new Promise((resolve, reject) => {
-    worker.onmessage = async (e: MessageEvent) => {
+    worker.onmessage = (e: MessageEvent) => {
       const { type } = e.data
 
       switch (type) {
         case 'READY': {
-          const document = await toDocumentInput(schemaContents, fileType)
           worker.postMessage({
             type: 'DESCRIBE',
             payload: {

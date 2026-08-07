@@ -1,5 +1,10 @@
 import { encodeHex } from "@std/encoding/hex";
-import { stringToSchema } from "@skmtc/convert";
+import {
+  inferProtocol as inferProtocolFromDocument,
+  looksLikeSdl,
+  type Protocol,
+  ProtocolInferenceError,
+} from "@skmtc/convert";
 import type { ArtifactsBody } from "./requestSchemas.ts";
 
 /**
@@ -47,106 +52,23 @@ const FETCH_TIMEOUT_MS = 10_000;
 const MAX_SOURCE_BYTES = 20 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
 
-/** A GraphQL Name, as the spec defines it. */
-const NAME = "[_A-Za-z][_0-9A-Za-z]*";
-
 /**
- * Does this text carry a GraphQL SDL definition? Each alternative is a
- * definition keyword, its name, and the token that must follow — `{`, `@`,
- * `implements`, `=`. Keyword-plus-whitespace alone is not enough: YAML block
- * scalars carry ordinary prose, and a wrapped line reading `type of widget
- * is ...` or `schema defined in components.` opens with exactly that shape.
+ * Infer the protocol from document content, reported as the server's
+ * `SchemaReadError` (→ structured 422).
  *
- * This is a POSITIVE test, deliberately: gql is not the fallthrough for
- * "everything that isn't OpenAPI". An HTML error page and a JSON document
- * with no `openapi` key are neither protocol, and saying so beats handing
- * them to the GraphQL parser and reporting its syntax error.
+ * The inference itself lives in `@skmtc/convert`, beside `stringToSchema`,
+ * so the CLI reaches the same verdict for the same bytes rather than
+ * deriving a protocol from a file extension or a `Content-Type`.
  */
-const SDL_DEFINITION = new RegExp(
-  [
-    // `type Foo {`, `type Foo implements Bar`, `type Foo @dir`
-    `(?:type|interface|input)[ \\t]+${NAME}[ \\t]*(?:\\{|@|implements[ \\t])`,
-    // `enum Foo {`, `enum Foo @dir`
-    `enum[ \\t]+${NAME}[ \\t]*(?:\\{|@)`,
-    // `union Foo = A | B`
-    `union[ \\t]+${NAME}[ \\t]*(?:=|@)`,
-    // `scalar Foo` — nothing but a directive may follow on the line
-    `scalar[ \\t]+${NAME}[ \\t]*(?:@|$)`,
-    // `schema {`, `schema @dir {`
-    `schema[ \\t]*(?:\\{|@)`,
-    // `directive @foo on FIELD_DEFINITION`
-    `directive[ \\t]*@`,
-  ].map((definition) => `^[ \\t]*(?:extend[ \\t]+)?(?:${definition})`).join("|"),
-  "m",
-);
-
-const looksLikeSdl = (schema: string): boolean => SDL_DEFINITION.test(schema);
-
-/**
- * Does this text announce itself as an OpenAPI document? Anchored at column
- * 0, where an OAS document carries its version key. Indented, the same text
- * is a nested mapping key or an SDL field named `openapi` — neither of which
- * is the header.
- */
-const announcesOas = (schema: string): boolean =>
-  /^(?:openapi|swagger)[ \t]*:/m.test(schema);
-
-type ParseOutcome =
-  /** Read as a JSON/YAML mapping — the shape an OAS document has. */
-  | { kind: "document"; document: object }
-  /** Read, but not as a mapping: a plain scalar (an HTML page reads as one),
-   *  a list, `null`. */
-  | { kind: "scalar" }
-  | { kind: "unreadable"; reason: string };
-
-const toParseOutcome = (schema: string): ParseOutcome => {
+export const inferProtocol = (schema: string): Protocol => {
   try {
-    const parsed = stringToSchema(schema);
-    return parsed !== null && typeof parsed === "object" &&
-        !Array.isArray(parsed)
-      ? { kind: "document", document: parsed }
-      : { kind: "scalar" };
+    return inferProtocolFromDocument(schema);
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    return { kind: "unreadable", reason };
+    if (error instanceof ProtocolInferenceError) {
+      throw new SchemaReadError(error.message);
+    }
+    throw error;
   }
-};
-
-/**
- * Infer the protocol from document content: a JSON/YAML mapping carrying an
- * `openapi` or `swagger` key is OAS; a document carrying an SDL definition is
- * GraphQL. Anything else raises `SchemaReadError` (→ 422) rather than being
- * routed to a parser that will only be able to say the text is not its
- * language — an HTML error page from a `source` behind an SSO wall, a JSON
- * document with no `openapi` key, a truncated document, an empty response.
- *
- * The two tests are independent, so neither ordering nor the parse succeeding
- * decides the answer alone: single-line SDL (`type Query { a: Int }`) reads as
- * a YAML mapping, and SDL with a field named `openapi` fails the YAML parse.
- */
-export const inferProtocol = (schema: string): "oas" | "gql" => {
-  if (schema.trim() === "") {
-    throw new SchemaReadError("The schema document is empty.");
-  }
-  const outcome = toParseOutcome(schema);
-  if (
-    outcome.kind === "document" &&
-    ("openapi" in outcome.document || "swagger" in outcome.document)
-  ) {
-    return "oas";
-  }
-  // A document that announces itself as OAS on line 1 and then fails to parse
-  // is a broken OAS document, not SDL. Reporting the YAML failure names the
-  // problem; running it through the GraphQL parser reports the wrong language.
-  const brokenOas = outcome.kind === "unreadable" && announcesOas(schema);
-  if (!brokenOas && looksLikeSdl(schema)) return "gql";
-  throw new SchemaReadError(
-    outcome.kind === "unreadable"
-      ? `Could not read the document as JSON or YAML: ${outcome.reason}. ` +
-        "Pass an OpenAPI document or GraphQL SDL."
-      : "The document is neither an OpenAPI document (no `openapi` or " +
-        "`swagger` key) nor GraphQL SDL.",
-  );
 };
 
 /**
