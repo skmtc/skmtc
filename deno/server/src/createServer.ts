@@ -168,8 +168,9 @@ export const createServer = (
 
   // Structured errors, matching the published contract: a body that fails
   // validation is a 400 with field-level issues; an unfetchable source or an
-  // unreadable document is a 422 with a reason; anything else is a JSON 500.
-  // Never the bare-text default — every failure tells the caller what to fix.
+  // unreadable document is a 422 with a reason; anything else is a JSON 500
+  // carrying a fixed message. Never the bare-text default — a 4xx always
+  // tells the caller what to fix.
   app.onError((error, c) => {
     if (error instanceof v.ValiError) {
       return c.json({
@@ -193,10 +194,15 @@ export const createServer = (
     if (error instanceof SchemaReadError) {
       return c.json({ error: "invalid_schema", message: error.message }, 422);
     }
+    // The 4xx messages above are authored for the caller. An uncaught throw
+    // is not: its message can carry host paths, internal hostnames and
+    // whatever else a generator, core or the runtime put in it, and this
+    // route surface is unauthenticated. The log gets the whole error, the
+    // caller gets the shape.
     console.error(error);
     return c.json({
       error: "internal_error",
-      message: error instanceof Error ? error.message : String(error),
+      message: "The server failed to complete the request.",
     }, 500);
   });
 

@@ -122,6 +122,28 @@ const derive = (
   return components;
 };
 
+/**
+ * Re-state the "exactly one of `schema` / `source`" rule on a derived request
+ * component. The rule lives in a `v.check` on the valibot pipe, and
+ * `@valibot/to-json-schema` cannot represent a `check` — `errorMode: 'ignore'`
+ * drops it silently, leaving both fields optional and unconstrained. Without
+ * this the published contract says an empty body is valid while the server
+ * answers 400, and a client generated from the document has no signal.
+ *
+ * `oneOf` is exact here: with both fields present both branches match (so the
+ * document rejects it), with neither present neither matches.
+ */
+const withExactlyOneInput = (
+  components: Record<string, Schema>,
+  name: string,
+): Record<string, Schema> => ({
+  ...components,
+  [name]: {
+    ...components[name],
+    oneOf: [{ required: ["schema"] }, { required: ["source"] }],
+  },
+});
+
 // --- Hand-modeled response schemas (no runtime valibot schema in core) --------
 
 /** A schema parse / validation issue — `@skmtc/core`'s `ParseIssue`. */
@@ -652,10 +674,18 @@ export const buildOpenApiDocument = (): OpenAPIV3.Document => ({
   },
   components: {
     schemas: {
-      // Derived from the runtime valibot schemas — cannot drift from the server.
-      ...derive("ArtifactsRequest", postArtifactsBody),
+      // Derived from the runtime valibot schemas — cannot drift from the
+      // server, except for the pipe-level `check` the converter cannot
+      // express, which `withExactlyOneInput` restores.
+      ...withExactlyOneInput(
+        derive("ArtifactsRequest", postArtifactsBody),
+        "ArtifactsRequest",
+      ),
       ...derive("ValidateRequest", validateBody),
-      ...derive("ToV3JsonRequest", toV3JsonBody),
+      ...withExactlyOneInput(
+        derive("ToV3JsonRequest", toV3JsonBody),
+        "ToV3JsonRequest",
+      ),
       ...derive("Manifest", manifestContent),
       ...derive("Sidecar", sidecarSchema),
       ...derive("GenerationMapEntry", generationMapEntry),

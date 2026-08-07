@@ -690,7 +690,19 @@
             "type": "string"
           }
         },
-        "required": []
+        "required": [],
+        "oneOf": [
+          {
+            "required": [
+              "schema"
+            ]
+          },
+          {
+            "required": [
+              "source"
+            ]
+          }
+        ]
       },
       "ValidateRequest": {
         "type": "object",
@@ -870,7 +882,19 @@
             "description": "URL of the schema document. The server fetches it (following redirects, checking each hop) and echoes the final URL + content digest in the response. Must be publicly reachable: a URL naming a loopback, private, link-local or `.internal` host is refused."
           }
         },
-        "required": []
+        "required": [],
+        "oneOf": [
+          {
+            "required": [
+              "schema"
+            ]
+          },
+          {
+            "required": [
+              "source"
+            ]
+          }
+        ]
       },
       "Manifest": {
         "type": "object",

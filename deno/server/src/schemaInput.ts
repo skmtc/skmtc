@@ -48,46 +48,71 @@ const MAX_SOURCE_BYTES = 20 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
 
 /**
- * Does this text present itself as a JSON/YAML document rather than GraphQL
- * SDL? A leading `{` is JSON; an `openapi:` / `swagger:` key line is YAML
- * OpenAPI. When such a document fails to parse, the input is a broken OAS
- * document — NOT SDL — so the failure must surface rather than be reclassified.
+ * Does this text carry a GraphQL SDL definition? Every SDL keyword that can
+ * open a definition, followed by whitespace — which is what separates SDL's
+ * `type Query {` from YAML's `type: string`.
+ *
+ * This is a POSITIVE test, deliberately: gql is not the fallthrough for
+ * "everything that isn't OpenAPI". An HTML error page and a JSON document
+ * with no `openapi` key are neither protocol, and saying so beats handing
+ * them to the GraphQL parser and reporting its syntax error.
  */
-const looksLikeOasDocument = (schema: string): boolean =>
-  schema.trimStart().startsWith("{") ||
-  /^[ \t]*(openapi|swagger)[ \t]*:/m.test(schema);
+const looksLikeSdl = (schema: string): boolean =>
+  /^[ \t]*(type|interface|enum|union|input|scalar|schema|directive|extend)[ \t]+/m
+    .test(schema);
+
+type ParseOutcome =
+  /** Read as a JSON/YAML mapping — the shape an OAS document has. */
+  | { kind: "document"; document: object }
+  /** Read, but not as a mapping: a plain scalar (an HTML page reads as one),
+   *  a list, `null`. */
+  | { kind: "scalar" }
+  | { kind: "unreadable"; reason: string };
+
+const toParseOutcome = (schema: string): ParseOutcome => {
+  try {
+    const parsed = stringToSchema(schema);
+    return parsed !== null && typeof parsed === "object" &&
+        !Array.isArray(parsed)
+      ? { kind: "document", document: parsed }
+      : { kind: "scalar" };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return { kind: "unreadable", reason };
+  }
+};
 
 /**
- * Infer the protocol from document content: a JSON/YAML document carrying an
- * `openapi` or `swagger` key is OAS; anything else is treated as GraphQL SDL
- * (whose parse issues, if any, surface through the normal gql parse path).
+ * Infer the protocol from document content: a JSON/YAML mapping carrying an
+ * `openapi` or `swagger` key is OAS; a document carrying an SDL definition is
+ * GraphQL. Anything else raises `SchemaReadError` (→ 422) rather than being
+ * routed to a parser that will only be able to say the text is not its
+ * language — an HTML error page from a `source` behind an SSO wall, a JSON
+ * document with no `openapi` key, a truncated document, an empty response.
  *
- * A document that announces itself as OAS but cannot be parsed raises
- * `SchemaReadError` (→ 422) instead of falling through to SDL — otherwise a
- * truncated OpenAPI document, an HTML error page returned by a `source` URL,
- * or an empty response comes back as 200 with a GraphQL syntax error, which
- * names the wrong problem.
+ * The two tests are independent, so neither ordering nor the parse succeeding
+ * decides the answer alone: single-line SDL (`type Query { a: Int }`) reads as
+ * a YAML mapping, and SDL with a field named `openapi` fails the YAML parse.
  */
 export const inferProtocol = (schema: string): "oas" | "gql" => {
   if (schema.trim() === "") {
     throw new SchemaReadError("The schema document is empty.");
   }
-  try {
-    const document = stringToSchema(schema);
-    if (
-      document !== null && typeof document === "object" &&
-      ("openapi" in document || "swagger" in document)
-    ) {
-      return "oas";
-    }
-  } catch (error) {
-    if (looksLikeOasDocument(schema)) {
-      const reason = error instanceof Error ? error.message : String(error);
-      throw new SchemaReadError(`Could not read OAS document: ${reason}`);
-    }
-    // Not JSON/YAML — fall through to SDL.
+  const outcome = toParseOutcome(schema);
+  if (
+    outcome.kind === "document" &&
+    ("openapi" in outcome.document || "swagger" in outcome.document)
+  ) {
+    return "oas";
   }
-  return "gql";
+  if (looksLikeSdl(schema)) return "gql";
+  throw new SchemaReadError(
+    outcome.kind === "unreadable"
+      ? `Could not read the document as JSON or YAML: ${outcome.reason}. ` +
+        "Pass an OpenAPI document or GraphQL SDL."
+      : "The document is neither an OpenAPI document (no `openapi` or " +
+        "`swagger` key) nor GraphQL SDL.",
+  );
 };
 
 const toDigest = async (bytes: Uint8Array<ArrayBuffer>): Promise<string> => {
@@ -190,11 +215,15 @@ const isPrivateIpv6 = (hostname: string): boolean => {
 };
 
 /** Names that resolve inside a private network by convention. */
-const isPrivateName = (hostname: string): boolean =>
-  hostname === "localhost" ||
-  [".localhost", ".local", ".internal"].some((suffix) =>
-    hostname.endsWith(suffix)
-  );
+const isPrivateName = (hostname: string): boolean => {
+  // A fully-qualified name keeps its trailing dot through `URL`, and
+  // `localhost.` resolves exactly where `localhost` does.
+  const name = hostname.endsWith(".") ? hostname.slice(0, -1) : hostname;
+  return name === "localhost" ||
+    [".localhost", ".local", ".internal"].some((suffix) =>
+      name.endsWith(suffix)
+    );
+};
 
 /**
  * Reject a `source` that points at the deployment's own network rather than

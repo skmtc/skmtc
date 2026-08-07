@@ -497,6 +497,30 @@ Deno.test("POST /artifacts - a mid-stream body failure returns a structured 422"
   );
 });
 
+Deno.test("POST /artifacts - an HTML page from a source is a 422", async () => {
+  await withStubbedFetch(
+    () =>
+      new Response("<!doctype html><html><body>Sign in</body></html>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    async () => {
+      const app = mkApp();
+      const res = await app.request("/artifacts", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ source: "https://example.com/openapi.json" }),
+      });
+
+      // A source behind an SSO/CDN wall answers 200 text/html. YAML reads
+      // that as a plain scalar, so nothing throws — it must still be a 422
+      // rather than a GraphQL syntax error at 200.
+      assertEquals(res.status, 422);
+      assertEquals((await res.json()).error, "invalid_schema");
+    },
+  );
+});
+
 Deno.test("POST /artifacts - rejects a source pointing at a private address", async () => {
   await withStubbedFetch(
     () => {
@@ -636,6 +660,27 @@ Deno.test("a SyntaxError raised below a route stays a 500", async () => {
   const res = await app.request("/generators");
   assertEquals(res.status, 500);
   assertEquals((await res.json()).error, "internal_error");
+});
+
+Deno.test("a 500 does not echo the error to an anonymous caller", async () => {
+  const app = createServer({
+    toGeneratorConfigMap: () => {
+      throw new Error(
+        "No such file or directory (os error 2), open '/Users/someone/work/stack/.skmtc/foo/config.json'",
+      );
+    },
+  });
+
+  const res = await app.request("/generators");
+  assertEquals(res.status, 500);
+  const body = await res.json();
+  // The routes are unauthenticated, and an uncaught message can carry host
+  // paths and internal hostnames. `console.error` above puts the whole error
+  // in the deployment logs; the response carries only the shape.
+  assertEquals(body, {
+    error: "internal_error",
+    message: "The server failed to complete the request.",
+  });
 });
 
 Deno.test("GET / - markdown for curl, HTML for a browser", async () => {

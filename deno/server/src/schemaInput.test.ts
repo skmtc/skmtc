@@ -1,5 +1,71 @@
-import { assertEquals, assertRejects, assertStringIncludes } from "@std/assert";
-import { fetchSource, SourceFetchError } from "./schemaInput.ts";
+import {
+  assertEquals,
+  assertRejects,
+  assertStringIncludes,
+  assertThrows,
+} from "@std/assert";
+import {
+  fetchSource,
+  inferProtocol,
+  SchemaReadError,
+  SourceFetchError,
+} from "./schemaInput.ts";
+
+/** SDL a caller can plausibly post. `type Query { a: Int }` on one line reads
+ *  as a YAML mapping, and a field named `openapi` fails the YAML parse — so
+ *  neither "it parsed" nor "it threw" can decide the protocol on its own. */
+const SDL_DOCUMENTS: [string, string][] = [
+  ["multi-line", "type Query {\n  a: Int\n}\n"],
+  ["single line", "type Query { a: Int }"],
+  ["field named openapi", "type Query {\n  openapi: String\n  a: Int\n}\n"],
+  ["field named swagger", "type Query {\n  swagger: String\n}\n"],
+  ["leading comment", "# The API\ntype Query {\n  a: Int\n}\n"],
+  ["leading docstring", '"""The API"""\ntype Query {\n  a: Int\n}\n'],
+  ["schema block", "schema {\n  query: Query\n}\ntype Query { a: Int }"],
+  ["enum and input", "enum Role { ADMIN }\ninput Filter { q: String }"],
+  ["scalar", "scalar DateTime\ntype Query { at: DateTime }"],
+  ["directive", "directive @auth on FIELD_DEFINITION\ntype Query { a: Int }"],
+  ["interface", "interface Node {\n  id: ID!\n}\n"],
+  ["extension", "extend type Query {\n  b: Int\n}\n"],
+  ["indented", "\n  type Query {\n    ping: Boolean\n  }\n"],
+];
+
+const OAS_DOCUMENTS: [string, string][] = [
+  ["json 3.0", '{"openapi": "3.0.0", "info": {}, "paths": {}}'],
+  ["yaml 3.0", "openapi: 3.0.0\ninfo:\n  title: x\npaths: {}\n"],
+  ["swagger 2.0", '{"swagger": "2.0", "info": {}, "paths": {}}'],
+  ["yaml swagger 2.0", "swagger: '2.0'\ninfo:\n  title: x\n"],
+];
+
+/** Documents that are neither protocol. Each used to be handed to the
+ *  GraphQL parser, which could only report that they are not SDL. */
+const UNREADABLE_DOCUMENTS: [string, string][] = [
+  ["html error page", "<!doctype html><html><body>404</body></html>"],
+  ["json without a version key", '{"paths": {"/a": {}}, "info": {}}'],
+  ["yaml without a version key", "info:\n  title: x\npaths: {}\n"],
+  ["truncated json", '{"openapi": "3.0.0", "info": {'],
+  ["bad indent yaml", "openapi: 3.0.0\ninfo:\n  title: x\n   bad: y"],
+  ["empty", "   "],
+  ["prose", "Not found. Please sign in to view this schema."],
+];
+
+Deno.test("inferProtocol - reads GraphQL SDL as gql", () => {
+  for (const [label, document] of SDL_DOCUMENTS) {
+    assertEquals(inferProtocol(document), "gql", label);
+  }
+});
+
+Deno.test("inferProtocol - reads an OpenAPI document as oas", () => {
+  for (const [label, document] of OAS_DOCUMENTS) {
+    assertEquals(inferProtocol(document), "oas", label);
+  }
+});
+
+Deno.test("inferProtocol - refuses a document that is neither", () => {
+  for (const [label, document] of UNREADABLE_DOCUMENTS) {
+    assertThrows(() => inferProtocol(document), SchemaReadError, undefined, label);
+  }
+});
 
 /** `fetchSource` with `globalThis.fetch` replaced, so no test touches the
  *  network — a blocked URL must fail before `fetch` is reached at all. */
@@ -35,6 +101,14 @@ const PRIVATE_URLS = [
   "http://[fe80::1]/x",
   "http://build.internal/openapi.json",
   "http://printer.local/openapi.json",
+  // Fully-qualified forms: `URL` keeps the trailing dot, and `localhost.`
+  // resolves exactly where `localhost` does.
+  "http://localhost./x",
+  "http://localhost.:8080/admin",
+  "http://build.internal./openapi.json",
+  "http://printer.local./openapi.json",
+  // `URL` lowercases the host, so the check sees one casing.
+  "http://LOCALHOST/x",
 ];
 
 Deno.test("fetchSource - refuses a private target without reaching fetch", async () => {

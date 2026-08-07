@@ -52,6 +52,21 @@ Deno.test("buildOpenApiDocument - request bodies are derived from the valibot sc
   assertEquals("protocol" in properties, true);
 });
 
+Deno.test("buildOpenApiDocument - the schema-input requests carry the exactly-one rule", () => {
+  // `@valibot/to-json-schema` cannot express the pipe's `v.check` and drops
+  // it, so without the restore step the contract says an empty body — or one
+  // carrying both fields — is valid, while the server answers 400.
+  const doc = buildOpenApiDocument();
+  for (const name of ["ArtifactsRequest", "ToV3JsonRequest"]) {
+    const schema = doc.components?.schemas?.[name];
+    assertExists(schema, name);
+    assertEquals("oneOf" in schema ? schema.oneOf : undefined, [
+      { required: ["schema"] },
+      { required: ["source"] },
+    ], name);
+  }
+});
+
 Deno.test("buildOpenApiDocument - every $ref resolves to a component", () => {
   const doc = buildOpenApiDocument();
   const schemas = new Set(Object.keys(doc.components?.schemas ?? {}));
