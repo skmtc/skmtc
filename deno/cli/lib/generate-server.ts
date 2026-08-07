@@ -1,6 +1,7 @@
 import type { ClientSettings } from '@skmtc/core/Settings'
 import type { ManifestContent } from '@skmtc/core/Manifest'
 import type { GenerationMapEntry, Sidecar } from '@skmtc/core/Anchors'
+import { inferProtocol } from '@skmtc/convert'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
 import { resolveHubToken } from '@/lib/hub-token.ts'
 
@@ -41,6 +42,13 @@ export const generateWithServer = async ({
   endpointUrl.pathname = `${endpointUrl.pathname.replace(/\/+$/, '')}/artifacts`
   const endpoint = endpointUrl.toString()
 
+  // Sent explicitly, though a current server would infer the same value
+  // from the document. Every stack deployed so far runs an older
+  // `@skmtc/server` whose request body is a variant DISCRIMINATED on
+  // `protocol` — omitting it is a 500 there, and those stacks only pick
+  // up the inference when they are re-published.
+  const protocol = inferProtocol(schemaContents)
+
   const headers: Record<string, string> = { 'content-type': 'application/json' }
   const token = resolveHubToken()
   if (token) headers.authorization = `Bearer ${token}`
@@ -50,7 +58,7 @@ export const generateWithServer = async ({
     response = await fetch(endpoint, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ schema: schemaContents, clientSettings })
+      body: JSON.stringify({ protocol, schema: schemaContents, clientSettings })
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)

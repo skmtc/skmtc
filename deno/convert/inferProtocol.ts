@@ -27,7 +27,11 @@ const NAME = '[_A-Za-z][_0-9A-Za-z]*'
 /**
  * Does this text carry a GraphQL SDL definition? Each alternative is a
  * definition keyword, its name, and the token that must follow — `{`, `@`,
- * `implements`, `=`. Keyword-plus-whitespace alone is not enough: YAML block
+ * `implements`, `=`. The gap before that token is `\\s*`, not spaces and
+ * tabs: SDL puts the brace on the next line freely (`type Query\\n{`) and
+ * `extend schema\\n  @link(...)` is the federation idiom, both of which a
+ * same-line-only test rejects. Keyword-plus-whitespace alone is not
+ * enough: YAML block
  * scalars carry ordinary prose, and a wrapped line reading `type of widget
  * is ...` or `schema defined in components.` opens with exactly that shape.
  *
@@ -39,15 +43,15 @@ const NAME = '[_A-Za-z][_0-9A-Za-z]*'
 const SDL_DEFINITION = new RegExp(
   [
     // `type Foo {`, `type Foo implements Bar`, `type Foo @dir`
-    `(?:type|interface|input)[ \\t]+${NAME}[ \\t]*(?:\\{|@|implements[ \\t])`,
+    `(?:type|interface|input)[ \\t]+${NAME}\\s*(?:\\{|@|implements[ \\t])`,
     // `enum Foo {`, `enum Foo @dir`
-    `enum[ \\t]+${NAME}[ \\t]*(?:\\{|@)`,
+    `enum[ \\t]+${NAME}\\s*(?:\\{|@)`,
     // `union Foo = A | B`
-    `union[ \\t]+${NAME}[ \\t]*(?:=|@)`,
+    `union[ \\t]+${NAME}\\s*(?:=|@)`,
     // `scalar Foo` — nothing but a directive may follow on the line
     `scalar[ \\t]+${NAME}[ \\t]*(?:@|$)`,
     // `schema {`, `schema @dir {`
-    `schema[ \\t]*(?:\\{|@)`,
+    `schema\\s*(?:\\{|@)`,
     // `directive @foo on FIELD_DEFINITION`
     `directive[ \\t]*@`
   ]
@@ -105,6 +109,19 @@ export const inferProtocol = (schema: string): Protocol => {
     throw new ProtocolInferenceError('The schema document is empty.')
   }
 
+  // BEFORE anything else. An HTML page can carry SDL-looking text — a
+  // `<pre>` block whose line begins `type Query {` — and the SDL test
+  // would then claim it, handing markup to the GraphQL parser. That is
+  // the outcome this branch exists to prevent, so it has to run first.
+  if (isMarkup(schema)) {
+    throw new ProtocolInferenceError(
+      'The document is an HTML or XML page rather than a schema. A source ' +
+        'behind SSO or an authenticating proxy typically answers this way ' +
+        'with a login page. Bundle the schema to a local file, or point at ' +
+        'a local proxy that injects the credential.'
+    )
+  }
+
   const outcome = toParseOutcome(schema)
 
   if (
@@ -121,20 +138,6 @@ export const inferProtocol = (schema: string): Protocol => {
 
   if (!brokenOas && looksLikeSdl(schema)) {
     return 'gql'
-  }
-
-  // Markup gets its own sentence. It is the single most common non-schema
-  // answer — a source behind SSO or an authenticating proxy serves a login
-  // page, either where it redirected to or in place at the URL that was
-  // asked for — and "neither OpenAPI nor SDL" describes it without
-  // explaining it.
-  if (isMarkup(schema)) {
-    throw new ProtocolInferenceError(
-      'The document is an HTML or XML page rather than a schema. A source ' +
-        'behind SSO or an authenticating proxy typically answers this way ' +
-        'with a login page. Bundle the schema to a local file, or point at ' +
-        'a local proxy that injects the credential.'
-    )
   }
 
   throw new ProtocolInferenceError(

@@ -380,13 +380,27 @@ const readRemoteBody = async ({ response, url, deadline }: ReadRemoteBodyArgs): 
  * "redirect is the lockfile" contract the hub is built around. This
  * matches `@skmtc/server`, which records `resolvedUrl: target.href`.
  *
+ * Userinfo is stripped: gen-maps are committed files, and a credential
+ * there is never what identifies the document.
+ *
  * A LOCAL source is recorded as the string the user wrote, NOT the
  * resolved path — `toSchemaContents` absolutizes relative paths, and
  * writing `/Users/<name>/…` into a gen-map would leak the developer's
  * home directory and churn the file per machine.
  */
-export const toAttributedSource = (requested: string, resolved: SchemaSource): string =>
-  resolved.type === 'local' ? requested : resolved.url
+export const toAttributedSource = (requested: string, resolved: SchemaSource): string => {
+  if (resolved.type === 'local') return requested
+
+  const url = new URL(resolved.url)
+
+  // Userinfo is the one part that is never identity. Deno keeps it on
+  // `response.url`, and unlike the query it cannot be what distinguishes
+  // one document from another — a hub `?raw` URL carries none.
+  url.username = ''
+  url.password = ''
+
+  return url.href
+}
 
 export const toSchemaSource = (source: string): SchemaSource => {
   if (source.startsWith('http://') || source.startsWith('https://')) {

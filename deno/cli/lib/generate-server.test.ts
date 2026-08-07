@@ -36,10 +36,10 @@ Deno.test('generateWithServer POSTs to {url}/artifacts with protocol + schema + 
     assertEquals(headers['content-type'], 'application/json')
 
     const body = JSON.parse(String(capturedInit?.body))
-    // No `protocol`: the stack server infers it from the document, using
-    // the same `@skmtc/convert` inference the local path uses. Sending a
-    // second opinion derived from a filename could only disagree.
-    assertEquals('protocol' in body, false)
+    // Sent explicitly: every stack deployed so far runs an older
+    // `@skmtc/server` whose body is a variant DISCRIMINATED on
+    // `protocol`, where omitting it is a 500.
+    assertEquals(body.protocol, 'oas')
     assertEquals(body.schema, '{"openapi":"3.0.0"}')
     assertEquals(body.clientSettings.basePath, 'src')
 
@@ -50,7 +50,7 @@ Deno.test('generateWithServer POSTs to {url}/artifacts with protocol + schema + 
   }
 })
 
-Deno.test('generateWithServer sends SDL untouched, without a protocol', async () => {
+Deno.test('generateWithServer sends SDL untouched, with the inferred protocol', async () => {
   let body: Record<string, unknown> = {}
   globalThis.fetch = (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     body = JSON.parse(String(init?.body))
@@ -63,7 +63,7 @@ Deno.test('generateWithServer sends SDL untouched, without a protocol', async ()
       clientSettings: undefined
     })
     assertEquals(body.schema, 'type Query { a: Int }')
-    assertEquals('protocol' in body, false)
+    assertEquals(body.protocol, 'gql')
   } finally {
     globalThis.fetch = originalFetch
   }
@@ -78,7 +78,7 @@ Deno.test('generateWithServer preserves a query string (e.g. ?preview=true) on t
   try {
     await generateWithServer({
       stackUrl: 'https://api.test/v1/stacks/ada/s/servers/1.0.0?preview=true',
-      schemaContents: '{}',
+      schemaContents: '{"openapi":"3.0.0"}',
       clientSettings: undefined
     })
     assertEquals(
@@ -97,7 +97,7 @@ Deno.test('generateWithServer throws on a non-2xx response', async () => {
       () =>
         generateWithServer({
           stackUrl: 'https://api.test/s',
-          schemaContents: '{}',
+          schemaContents: '{"openapi":"3.0.0"}',
           clientSettings: undefined
         }),
       Error,
@@ -116,7 +116,7 @@ Deno.test('generateWithServer throws on an unexpected response shape', async () 
       () =>
         generateWithServer({
           stackUrl: 'https://api.test/s',
-          schemaContents: '{}',
+          schemaContents: '{"openapi":"3.0.0"}',
           clientSettings: undefined
         }),
       Error,
