@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "@std/assert";
+import { assertEquals, assertExists, assertStringIncludes } from "@std/assert";
 import * as v from "valibot";
 import type {
   Enrichments,
@@ -132,6 +132,49 @@ Deno.test("POST /artifacts - unreadable OAS document returns a structured 422", 
   const body = await res.json();
   assertEquals(body.error, "invalid_schema");
   assertExists(body.message);
+});
+
+Deno.test("POST /artifacts - a truncated OpenAPI document is a 422, not SDL", async () => {
+  const app = mkApp();
+  const res = await app.request("/artifacts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    // No `protocol` — the home page and the agent prompt both tell callers
+    // to omit it. A document that announces itself as OAS and then fails to
+    // parse must not be reclassified as GraphQL SDL, which would return 200
+    // with a GraphQL syntax error naming the wrong problem.
+    body: JSON.stringify({ schema: '{"openapi": "3.0.0", "info": {' }),
+  });
+
+  assertEquals(res.status, 422);
+  const body = await res.json();
+  assertEquals(body.error, "invalid_schema");
+});
+
+Deno.test("POST /artifacts - a truncated YAML OpenAPI document is a 422", async () => {
+  const app = mkApp();
+  const res = await app.request("/artifacts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      schema: "openapi: 3.0.0\ninfo:\n  title: x\n   bad indent: y",
+    }),
+  });
+
+  assertEquals(res.status, 422);
+  assertEquals((await res.json()).error, "invalid_schema");
+});
+
+Deno.test("POST /artifacts - an empty document is a 422", async () => {
+  const app = mkApp();
+  const res = await app.request("/artifacts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ schema: "   " }),
+  });
+
+  assertEquals(res.status, 422);
+  assertEquals((await res.json()).error, "invalid_schema");
 });
 
 Deno.test("POST /artifacts - accepts protocol=oas with OpenAPI body", async () => {
@@ -390,6 +433,145 @@ Deno.test("POST /artifacts - unreachable source returns a structured 422", async
   );
 });
 
+/** A body that streams past the 20MB cap without declaring a
+ *  `content-length`, so the cap is enforced mid-stream. */
+const oversizedBody = (): ReadableStream<Uint8Array> => {
+  const megabyte = new Uint8Array(1024 * 1024);
+  let sent = 0;
+  return new ReadableStream({
+    pull(controller) {
+      controller.enqueue(megabyte);
+      sent += 1;
+      if (sent > 25) controller.close();
+    },
+  });
+};
+
+Deno.test("POST /artifacts - an oversized source returns a structured 422", async () => {
+  await withStubbedFetch(
+    () => new Response(oversizedBody(), { status: 200 }),
+    async () => {
+      const app = mkApp();
+      const res = await app.request("/artifacts", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ source: "https://example.com/huge.yaml" }),
+      });
+
+      // The cap is hit while reading, where the stream is locked by the
+      // reader — a plain `body.cancel()` there throws and would surface as
+      // a 500 carrying "Cannot cancel a locked ReadableStream".
+      assertEquals(res.status, 422);
+      const body = await res.json();
+      assertEquals(body.error, "source_fetch_failed");
+      assertStringIncludes(body.message, "limit");
+    },
+  );
+});
+
+Deno.test("POST /artifacts - a mid-stream body failure returns a structured 422", async () => {
+  await withStubbedFetch(
+    () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode("{"));
+            controller.error(new Error("connection reset"));
+          },
+        }),
+        { status: 200 },
+      ),
+    async () => {
+      const app = mkApp();
+      const res = await app.request("/artifacts", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ source: "https://example.com/slow.json" }),
+      });
+
+      // `fetch` resolves on headers, so a body that fails afterwards (read
+      // timeout, reset connection) is still a source-fetch failure.
+      assertEquals(res.status, 422);
+      assertEquals((await res.json()).error, "source_fetch_failed");
+    },
+  );
+});
+
+Deno.test("POST /artifacts - rejects a source pointing at a private address", async () => {
+  await withStubbedFetch(
+    () => {
+      throw new Error("fetch must not be attempted");
+    },
+    async () => {
+      const app = mkApp();
+      const res = await app.request("/artifacts", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          source: "http://169.254.169.254/latest/meta-data/",
+        }),
+      });
+
+      assertEquals(res.status, 422);
+      const body = await res.json();
+      assertEquals(body.error, "source_fetch_failed");
+      assertStringIncludes(body.message, "private address");
+    },
+  );
+});
+
+Deno.test("POST /artifacts - rejects a redirect into a private address", async () => {
+  const requested: string[] = [];
+  await withStubbedFetch(
+    (input) => {
+      requested.push(String(input));
+      return new Response(null, {
+        status: 302,
+        headers: { location: "http://localhost:8080/internal/config" },
+      });
+    },
+    async () => {
+      const app = mkApp();
+      const res = await app.request("/artifacts", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ source: "https://example.com/openapi.json" }),
+      });
+
+      // Every hop is checked, so a public-looking URL cannot redirect its
+      // way onto the deployment's own network.
+      assertEquals(res.status, 422);
+      assertStringIncludes((await res.json()).message, "private address");
+      assertEquals(requested, ["https://example.com/openapi.json"]);
+    },
+  );
+});
+
+Deno.test("POST /artifacts - follows a redirect and reports the final URL", async () => {
+  await withStubbedFetch(
+    (input) =>
+      String(input) === "https://example.com/openapi.json"
+        ? new Response(null, {
+          status: 302,
+          headers: { location: "/v1/openapi.json" },
+        })
+        : new Response(JSON.stringify(minimalOas), { status: 200 }),
+    async () => {
+      const app = mkApp();
+      const res = await app.request("/artifacts", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ source: "https://example.com/openapi.json" }),
+      });
+
+      assertEquals(res.status, 200);
+      const body = await res.json();
+      assertEquals(body.source.url, "https://example.com/openapi.json");
+      assertEquals(body.source.resolvedUrl, "https://example.com/v1/openapi.json");
+    },
+  );
+});
+
 Deno.test("POST /subjects - accepts a source URL", async () => {
   await withStubbedFetch(
     () => new Response(JSON.stringify(minimalOas), { status: 200 }),
@@ -438,4 +620,46 @@ Deno.test("POST /to-v3-json - converts OpenAPI source to v3 JSON", async () => {
   assertEquals(res.status, 200);
   const body = await res.json();
   assertEquals(body.schema.openapi, "3.0.0");
+});
+
+Deno.test("a SyntaxError raised below a route stays a 500", async () => {
+  const app = createServer({
+    toGeneratorConfigMap: () => {
+      // Stands in for a generator that `JSON.parse`s a malformed `x-`
+      // extension value: the request body was fine, so reporting this as
+      // "Request body is not valid JSON" would send the caller to debug the
+      // wrong thing — and a 4xx tells them it is theirs to fix.
+      throw new SyntaxError("Unexpected end of JSON input");
+    },
+  });
+
+  const res = await app.request("/generators");
+  assertEquals(res.status, 500);
+  assertEquals((await res.json()).error, "internal_error");
+});
+
+Deno.test("GET / - markdown for curl, HTML for a browser", async () => {
+  const app = mkApp();
+
+  const markdown = await app.request("/");
+  assertEquals(markdown.status, 200);
+  assertStringIncludes(
+    markdown.headers.get("content-type") ?? "",
+    "text/markdown",
+  );
+  assertStringIncludes(await markdown.text(), "# skmtc stack server");
+
+  const html = await app.request("/", { headers: { accept: "text/html" } });
+  assertEquals(html.status, 200);
+  assertStringIncludes(await html.text(), "<!doctype html>");
+});
+
+Deno.test("GET /index.md and /llms.txt - serve the markdown contract", async () => {
+  const app = mkApp();
+  for (const path of ["/index.md", "/llms.txt"]) {
+    const res = await app.request(path, { headers: { accept: "text/html" } });
+    assertEquals(res.status, 200);
+    // Unconditional markdown — the Accept header does not apply here.
+    assertStringIncludes(await res.text(), "## Endpoints");
+  }
 });

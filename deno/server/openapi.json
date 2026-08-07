@@ -6,6 +6,68 @@
     "description": "The public API of a deployed @skmtc/server bundle: generate code from an OpenAPI/GraphQL schema against the bundled generator stack, plus schema, capability and enrichment introspection. Codegen is a pure function of (bundle, schema, client settings)."
   },
   "paths": {
+    "/": {
+      "get": {
+        "operationId": "homePage",
+        "summary": "The server's self-description",
+        "description": "Content-negotiated on `Accept`: a browser (`text/html`) gets the HTML page, anything else the flat markdown contract — the same text `/index.md` and `/llms.txt` serve.",
+        "responses": {
+          "200": {
+            "description": "The self-description.",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/index.md": {
+      "get": {
+        "operationId": "homePageMarkdown",
+        "summary": "The self-description as markdown",
+        "description": "The markdown variant of `/`, unconditionally.",
+        "responses": {
+          "200": {
+            "description": "The self-description, as markdown.",
+            "content": {
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/llms.txt": {
+      "get": {
+        "operationId": "homePageLlmsTxt",
+        "summary": "The self-description at the llms.txt convention path",
+        "description": "The same markdown as `/index.md`, at the path agents look for.",
+        "responses": {
+          "200": {
+            "description": "The self-description, as markdown.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/artifacts": {
       "post": {
         "operationId": "generateArtifacts",
@@ -421,6 +483,26 @@
           }
         }
       }
+    },
+    "/openapi.json": {
+      "get": {
+        "operationId": "openApiDocument",
+        "summary": "This contract",
+        "description": "The server's own OpenAPI 3.1 document — the one you are reading. Served as a committed static artifact, so it is a pure function of the package version.",
+        "responses": {
+          "200": {
+            "description": "This OpenAPI document.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -442,7 +524,7 @@
           "source": {
             "type": "string",
             "format": "uri",
-            "description": "URL of the schema document. The server fetches it (following redirects) and echoes the final URL + content digest in the response."
+            "description": "URL of the schema document. The server fetches it (following redirects, checking each hop) and echoes the final URL + content digest in the response. Must be publicly reachable: a URL naming a loopback, private, link-local or `.internal` host is refused."
           },
           "clientSettings": {
             "type": "object",
@@ -785,7 +867,7 @@
           "source": {
             "type": "string",
             "format": "uri",
-            "description": "URL of the schema document. The server fetches it (following redirects) and echoes the final URL + content digest in the response."
+            "description": "URL of the schema document. The server fetches it (following redirects, checking each hop) and echoes the final URL + content digest in the response. Must be publicly reachable: a URL naming a loopback, private, link-local or `.internal` host is refused."
           }
         },
         "required": []

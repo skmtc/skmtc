@@ -15,10 +15,12 @@ import * as v from "valibot";
 import { StackTrail } from "@skmtc/core";
 import openApiDocument from "../openapi.json" with { type: "json" };
 import {
+  InvalidBodyError,
   postArtifactsBody,
   toV3JsonBody,
   validateBody,
 } from "./requestSchemas.ts";
+import type { Context } from "hono";
 import {
   fetchSource,
   resolveSchemaInput,
@@ -28,6 +30,17 @@ import {
 import type { ResolvedSchemaInput } from "./schemaInput.ts";
 import { homePageHtml, homePageMd } from "./homePage.ts";
 import type { HomePageContext, StackIdentity } from "./homePage.ts";
+
+/** Read a request body as JSON, reporting a malformed body as the typed
+ *  `InvalidBodyError` (→ 400). Only the body parse is caught, so a
+ *  `SyntaxError` raised anywhere below a route keeps its own meaning. */
+const readJsonBody = async (c: Context): Promise<unknown> => {
+  try {
+    return await c.req.json();
+  } catch {
+    throw new InvalidBodyError("Request body is not valid JSON.");
+  }
+};
 
 type GenerateResult = {
   artifacts: Record<string, string>;
@@ -168,11 +181,8 @@ export const createServer = (
         })),
       }, 400);
     }
-    if (error instanceof SyntaxError) {
-      return c.json({
-        error: "invalid_request",
-        message: "Request body is not valid JSON.",
-      }, 400);
+    if (error instanceof InvalidBodyError) {
+      return c.json({ error: "invalid_request", message: error.message }, 400);
     }
     if (error instanceof SourceFetchError) {
       return c.json(
@@ -212,7 +222,7 @@ export const createServer = (
   app.get("/llms.txt", (c) => c.text(homePageMd(toHomeContext(c.req.url))));
 
   app.post("/artifacts", async (c) => {
-    const body = v.parse(postArtifactsBody, await c.req.json());
+    const body = v.parse(postArtifactsBody, await readJsonBody(c));
     const resolved = await resolveSchemaInput(body);
 
     const { artifacts, manifest, sidecars, generationMap } =
@@ -238,7 +248,7 @@ export const createServer = (
   // `isSupported` only — no transform, no render. Same request body as
   // `/artifacts` (the OAS branch is normalized v2/3.1 → 3.0 first).
   app.post("/subjects", async (c) => {
-    const body = v.parse(postArtifactsBody, await c.req.json());
+    const body = v.parse(postArtifactsBody, await readJsonBody(c));
     const resolved = await resolveSchemaInput(body);
 
     const startAt = Date.now();
@@ -270,7 +280,7 @@ export const createServer = (
   // (subject scope only), keyed `[id][path][method]['main']` for operations and
   // `[id][refName]['main']` for models.
   app.post("/enrichment-defaults", async (c) => {
-    const body = v.parse(postArtifactsBody, await c.req.json());
+    const body = v.parse(postArtifactsBody, await readJsonBody(c));
     const resolved = await resolveSchemaInput(body);
 
     const startAt = Date.now();
@@ -316,7 +326,7 @@ export const createServer = (
   // posted enrichments). The host calls this to gate persists, CLI pushes,
   // schema-drift migration, and Publish.
   app.post("/validate", async (c) => {
-    const { clientSettings } = v.parse(validateBody, await c.req.json());
+    const { clientSettings } = v.parse(validateBody, await readJsonBody(c));
 
     const issues = validateConfig(
       clientSettings?.enrichments,
@@ -327,7 +337,7 @@ export const createServer = (
   });
 
   app.post("/to-v3-json", async (c) => {
-    const body = v.parse(toV3JsonBody, await c.req.json());
+    const body = v.parse(toV3JsonBody, await readJsonBody(c));
     const schema = body.source !== undefined
       ? (await fetchSource(body.source)).schema
       : body.schema;

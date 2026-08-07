@@ -50,6 +50,22 @@ const stackDenoConfig = v.object({
 });
 
 /**
+ * Keep a `homepage` only when it is an http(s) URL. The value comes from a
+ * stack's own `deno.json` and lands in `href` attributes on the rendered
+ * page, so a `javascript:` URL would execute on the deployment's origin.
+ * Anything else is dropped and the derived hub link takes over.
+ */
+const toHomepageUrl = (homepage: string | undefined): string | undefined => {
+  if (homepage === undefined) return undefined;
+  try {
+    const { protocol } = new URL(homepage);
+    return protocol === "http:" || protocol === "https:" ? homepage : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
  * Derive the home page identity from a stack's parsed `deno.json` — the one
  * source both the CLI and the hub already require. The synthesized `server.ts`
  * entry sits beside `deno.json`, so it can pass the file straight through:
@@ -60,15 +76,16 @@ const stackDenoConfig = v.object({
  * ```
  *
  * `name` drops the leading `@` (`@skmtc/markdown-docs` → `skmtc/markdown-docs`)
- * and, when `homepage` is absent, the hub page is derived from it. Fails soft:
- * an unreadable config yields an empty identity and the generic page.
+ * and, when `homepage` is absent or not an http(s) URL, the hub page is derived
+ * from it. Fails soft: an unreadable config yields an empty identity and the
+ * generic page.
  */
 export const toStackIdentity = (denoConfig: unknown): StackIdentity => {
   const parsed = v.safeParse(stackDenoConfig, denoConfig);
   if (!parsed.success) return {};
   const { name, version, description, homepage } = parsed.output;
   const label = name?.startsWith("@") ? name.slice(1) : name;
-  const homepageUrl = homepage ??
+  const homepageUrl = toHomepageUrl(homepage) ??
     (label ? `${FALLBACK_HOMEPAGE}/${label}` : undefined);
   return {
     ...(label !== undefined ? { name: label } : {}),

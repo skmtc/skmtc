@@ -15,20 +15,26 @@ const collectRefs = (node: unknown, acc: string[] = []): string[] => {
   return acc;
 };
 
-const EXPECTED_PATHS = [
-  "/artifacts",
-  "/subjects",
-  "/enrichment-defaults",
-  "/generators",
-  "/descriptors",
-  "/validate",
-  "/to-v3-json",
-];
+/**
+ * Every path the app actually routes, taken from Hono's own route table —
+ * NOT a hand-maintained list, which would let a new route ship undocumented.
+ * `method: 'ALL'` entries are middleware (the CORS handler), not routes.
+ */
+const servedPaths = (): string[] => {
+  const app = createServer({ toGeneratorConfigMap: () => ({}) });
+  return [
+    ...new Set(
+      app.routes.filter((route) => route.method !== "ALL").map((route) =>
+        route.path
+      ),
+    ),
+  ].sort();
+};
 
 Deno.test("buildOpenApiDocument - documents every route the server serves", () => {
   const doc = buildOpenApiDocument();
   assertEquals(doc.openapi, "3.1.0");
-  assertEquals(Object.keys(doc.paths ?? {}).sort(), [...EXPECTED_PATHS].sort());
+  assertEquals(Object.keys(doc.paths ?? {}).sort(), servedPaths());
 });
 
 Deno.test("buildOpenApiDocument - request bodies are derived from the valibot schemas", () => {
@@ -63,7 +69,7 @@ Deno.test("GET /openapi.json - serves the committed contract", async () => {
   assertEquals(res.status, 200);
   const doc = await res.json();
   assertEquals(doc.openapi, "3.1.0");
-  assertEquals(Object.keys(doc.paths).sort(), [...EXPECTED_PATHS].sort());
+  assertEquals(Object.keys(doc.paths).sort(), servedPaths());
 });
 
 Deno.test("openapi.json - committed artifact is in sync with the source schemas", async () => {

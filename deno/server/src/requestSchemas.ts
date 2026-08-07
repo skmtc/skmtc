@@ -10,6 +10,14 @@ import { clientSettings as settingsSchema } from "@skmtc/core";
  * the documented contract cannot drift from what the server actually accepts.
  */
 
+/** The request body itself was not JSON. Distinct from a `SyntaxError`
+ *  thrown deeper in a run (a generator reading a malformed `x-` extension,
+ *  say) — that is a server fault and must stay a 500, not become "your body
+ *  is not valid JSON". Maps to a structured 400. */
+export class InvalidBodyError extends Error {
+  override name = "InvalidBodyError";
+}
+
 const protocolSchema = v.pipe(
   v.picklist(["oas", "gql"]),
   v.description(
@@ -27,8 +35,10 @@ const sourceSchema = v.pipe(
     "`source` must use http or https.",
   ),
   v.description(
-    "URL of the schema document. The server fetches it (following redirects) " +
-      "and echoes the final URL + content digest in the response.",
+    "URL of the schema document. The server fetches it (following redirects, " +
+      "checking each hop) and echoes the final URL + content digest in the " +
+      "response. Must be publicly reachable: a URL naming a loopback, " +
+      "private, link-local or `.internal` host is refused.",
   ),
 );
 

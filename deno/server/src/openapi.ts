@@ -11,9 +11,11 @@ import {
 
 /**
  * Builds the stack server's own published OpenAPI 3.1 contract — the full public
- * surface of a deployed `@skmtc/server` bundle (all seven routes), so the CLI,
- * the preview container and third parties can generate a typed client against a
- * running server.
+ * surface of a deployed `@skmtc/server` bundle (every route it serves), so the
+ * CLI, the preview container and third parties can generate a typed client
+ * against a running server. `openapi.test.ts` derives its expectation from the
+ * app's own route table, so a route added to `createServer` and not documented
+ * here fails the test.
  *
  * This is the AUTHORITATIVE source-of-truth spec (plan §9.2). It differs from the
  * hub's `StackServerApi` contract, which documents only the three routes the hub
@@ -409,6 +411,20 @@ const toV3JsonResponse: Schema = {
 
 // --- Operation helpers --------------------------------------------------------
 
+/** A route that returns the self-description as text, not JSON. */
+const textResponse = (
+  description: string,
+  mediaTypes: string[],
+): OpenAPIV3.ResponseObject => {
+  const stringSchema: Schema = { type: "string" };
+  return {
+    description,
+    content: Object.fromEntries(
+      mediaTypes.map((mediaType) => [mediaType, { schema: stringSchema }]),
+    ),
+  };
+};
+
 const jsonBody = (schemaRef: Ref | Schema): OpenAPIV3.RequestBodyObject => ({
   required: true,
   content: { "application/json": { schema: schemaRef } },
@@ -456,6 +472,47 @@ export const buildOpenApiDocument = (): OpenAPIV3.Document => ({
       "(bundle, schema, client settings).",
   },
   paths: {
+    "/": {
+      get: {
+        operationId: "homePage",
+        summary: "The server's self-description",
+        description:
+          "Content-negotiated on `Accept`: a browser (`text/html`) gets the " +
+          "HTML page, anything else the flat markdown contract — the same " +
+          "text `/index.md` and `/llms.txt` serve.",
+        responses: {
+          "200": textResponse("The self-description.", [
+            "text/html",
+            "text/markdown",
+          ]),
+        },
+      },
+    },
+    "/index.md": {
+      get: {
+        operationId: "homePageMarkdown",
+        summary: "The self-description as markdown",
+        description: "The markdown variant of `/`, unconditionally.",
+        responses: {
+          "200": textResponse("The self-description, as markdown.", [
+            "text/markdown",
+          ]),
+        },
+      },
+    },
+    "/llms.txt": {
+      get: {
+        operationId: "homePageLlmsTxt",
+        summary: "The self-description at the llms.txt convention path",
+        description:
+          "The same markdown as `/index.md`, at the path agents look for.",
+        responses: {
+          "200": textResponse("The self-description, as markdown.", [
+            "text/plain",
+          ]),
+        },
+      },
+    },
     "/artifacts": {
       post: {
         operationId: "generateArtifacts",
@@ -573,6 +630,22 @@ export const buildOpenApiDocument = (): OpenAPIV3.Document => ({
             toV3JsonResponse,
           ),
           ...errorResponses,
+        },
+      },
+    },
+    "/openapi.json": {
+      get: {
+        operationId: "openApiDocument",
+        summary: "This contract",
+        description:
+          "The server's own OpenAPI 3.1 document — the one you are reading. " +
+          "Served as a committed static artifact, so it is a pure function of " +
+          "the package version.",
+        responses: {
+          "200": jsonResponse("This OpenAPI document.", {
+            type: "object",
+            additionalProperties: true,
+          }),
         },
       },
     },
