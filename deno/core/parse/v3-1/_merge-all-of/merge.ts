@@ -183,10 +183,22 @@ const mergeWithRef = (
   second: SchemaOrReference,
   getRef: GetRefFn
 ): SchemaOrReference => {
-  // A side already being expanded above us closes a cycle. Keep it as a
-  // reference rather than inlining: `toSchemaV3` turns a surviving `$ref` into
-  // an `OasRef` that resolves lazily, which is exactly what the single-member
-  // `allOf` path has always done, and for the same reason.
+  // A side already being expanded above us closes a cycle, so it cannot be
+  // resolved again — there is no finite inlining.
+  //
+  // What happens next depends on the other side. If the other side is empty the
+  // reference SURVIVES, and `toSchemaV3` turns it into an `OasRef` that resolves
+  // lazily at use time. If the other side carries content we keep that content
+  // and DROP the reference — so any constraint the referent imposes is lost from
+  // this position. That is not obviously right: the alternative is to keep both
+  // (`{allOf: [first, second]}`), which preserves the constraint but re-enters
+  // this branch on the way back up and needs a termination argument of its own.
+  //
+  // Known limitation, tracked with the guard's scoping redesign (see the
+  // `expanding` set on `GetRefFn`): the path is a property of ONE position, but
+  // the resolver carrying it governs a two-sided merge, so a reference on the
+  // opposite side that happens to name the same schema is also treated as
+  // closing a cycle. Measured at 4 sites in 2 of 66 sampled specs.
   if (closesCycle(getRef, first)) {
     return isEmpty(second) ? first : second
   }
