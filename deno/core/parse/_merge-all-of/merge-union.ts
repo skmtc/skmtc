@@ -2,6 +2,7 @@ import { decomposeUnion } from './decompose-union.ts'
 import type { GetRefFn, SchemaOrReference, SchemaObject } from './types.ts'
 import { mergeSchemasOrRefs } from './merge.ts'
 import { crossProduct } from './cross-product.ts'
+import { derefMember } from './ref-cycle.ts'
 import { isRef } from '@/helpers/refFns.ts'
 type MergeUnionArgs = {
   schema: SchemaObject
@@ -25,14 +26,10 @@ export const mergeUnion = ({ schema, getRef, groupType }: MergeUnionArgs): Schem
   //   return result
   // }
 
-  const dereffed = decomposed.map(decomposed => {
-    return '$ref' in decomposed ? getRef(decomposed) : decomposed
-  })
+  const result = decomposed.reduce<SchemaObject>((acc, member) => {
+    const [value, scoped] = derefMember(member, getRef)
 
-  const result = dereffed.reduce<SchemaObject>((acc, decomposed) => {
-    const merged = mergeCrossProduct({ first: acc, second: decomposed, getRef, groupType })
-
-    return merged
+    return mergeCrossProduct({ first: acc, second: value, getRef: scoped, groupType })
   }, {} as SchemaObject)
 
   const output = {
@@ -45,10 +42,24 @@ export const mergeUnion = ({ schema, getRef, groupType }: MergeUnionArgs): Schem
 }
 
 type MergeCrossProductArgs = {
-  first: SchemaObject
-  second: SchemaObject
+  first: SchemaOrReference
+  second: SchemaOrReference
   getRef: GetRefFn
   groupType: 'oneOf' | 'anyOf'
+}
+
+/**
+ * A schema's union members, or the schema itself when it is not a union. A
+ * reference is never a union — it is one member, resolved later.
+ */
+const toGroup = (schema: SchemaOrReference, groupType: 'oneOf' | 'anyOf'): SchemaOrReference[] => {
+  if (isRef(schema)) {
+    return [schema]
+  }
+
+  const group = schema[groupType]
+
+  return Array.isArray(group) ? group : [schema]
 }
 
 export const mergeCrossProduct = ({
@@ -57,16 +68,22 @@ export const mergeCrossProduct = ({
   getRef,
   groupType
 }: MergeCrossProductArgs): SchemaObject => {
-  const firstGroup = Array.isArray(first[groupType]) ? first[groupType] : [first]
-  const secondGroup = Array.isArray(second[groupType]) ? second[groupType] : [second]
-
-  const mergedGroup = crossProduct(firstGroup, secondGroup)
+  const mergedGroup = crossProduct(toGroup(first, groupType), toGroup(second, groupType))
     .map(([firstItem, secondItem]) => {
       try {
         const result = mergeSchemasOrRefs(firstItem, secondItem, getRef)
 
         return result
-      } catch (_error) {
+      } catch (error) {
+        // Dropping a branch on a genuine conflict is the design: a cross
+        // product legitimately contains impossible combinations. A RangeError
+        // is not that — it is the recursion running away, and swallowing it
+        // turned a fast stack overflow into a very long exponential search
+        // with union members silently vanishing. Let it out.
+        if (error instanceof RangeError) {
+          throw error
+        }
+
         return undefined
       }
     })

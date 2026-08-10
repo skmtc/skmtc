@@ -1,5 +1,6 @@
 import { isRef } from '@/helpers/refFns.ts'
-import type { SchemaOrReference, ReferenceObject, SchemaObject, GetRefFn } from './types.ts'
+import type { SchemaOrReference, SchemaObject, GetRefFn } from './types.ts'
+import { closesCycle, enteringRef } from './ref-cycle.ts'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
 import { checkReadOnlyWriteOnlyConflicts } from './check-read-only-write-only-conflicts.ts'
 import { checkFormatConflicts } from './check-format-conflicts.ts'
@@ -180,8 +181,20 @@ const typedMerge = (first: SchemaObject, second: SchemaObject, getRef: GetRefFn)
 const mergeWithRef = (
   first: SchemaOrReference,
   second: SchemaOrReference,
-  getRef: (ref: ReferenceObject) => SchemaObject
+  getRef: GetRefFn
 ): SchemaOrReference => {
+  // A side already being expanded above us closes a cycle. Keep it as a
+  // reference rather than inlining: `toSchemaV3` turns a surviving `$ref` into
+  // an `OasRef` that resolves lazily, which is exactly what the single-member
+  // `allOf` path has always done, and for the same reason.
+  if (closesCycle(getRef, first)) {
+    return isEmpty(second) ? first : second
+  }
+
+  if (closesCycle(getRef, second)) {
+    return isEmpty(first) ? second : first
+  }
+
   if (isRef(first) && isRef(second)) {
     if (first.$ref === second.$ref) {
       return {
@@ -189,18 +202,26 @@ const mergeWithRef = (
         ...second
       }
     } else {
-      return mergeSchemas(getRef(first), getRef(second), getRef)
+      return mergeSchemas(
+        getRef(first),
+        getRef(second),
+        enteringRef(enteringRef(getRef, first), second)
+      )
     }
   }
 
   if (isRef(first) && !isRef(second)) {
-    const merged = isEmpty(second) ? first : mergeSchemas(getRef(first), second, getRef)
+    const merged = isEmpty(second)
+      ? first
+      : mergeSchemas(getRef(first), second, enteringRef(getRef, first))
 
     return merged
   }
 
   if (!isRef(first) && isRef(second)) {
-    const merged = isEmpty(first) ? second : mergeSchemas(first, getRef(second), getRef)
+    const merged = isEmpty(first)
+      ? second
+      : mergeSchemas(first, getRef(second), enteringRef(getRef, second))
 
     return merged
   }
