@@ -276,37 +276,41 @@ const partitionNullMember = (
   return { members: nonNull, nullable: nonNull.length !== members.length }
 }
 
-/**
- * Collapse a single-member `oneOf`/`anyOf` into its surviving member.
- *
- * The wrapper's sibling keywords must ride into the member rather than
- * being discarded. The critical one is `nullable`: the 3.1 idiom
- * `oneOf:[{type:'string'},{type:'null'}]` ("string or null") has its
- * `{type:'null'}` member folded out by `partitionNullMember` above, leaving
- * `oneOf:[{type:'string'}]` + `nullable:true` on the wrapper. Re-dispatching
- * `members[0]` alone would drop the wrapper (`...value`) and silently turn
- * `string | null` back into a non-nullable `string`.
- * `description`/`title`/`readOnly`/... ride along the same way.
- *
- * Precedence: the member is the more specific schema, so it wins direct
- * conflicts (`{ ...value, ...member }`). `nullable` is the exception — it
- * OR-ins, because a nullable wrapper makes the whole schema nullable even
- * when the member itself is not.
- *
- * A ref member only reaches here when the wrapper carries no `nullable`
- * (the nullable-ref case stamps `nullable` on the OasRef node at the call
- * site, via `toRefV31`). Any other wrapper siblings on a bare `$ref` are
- * ignored per 3.0 ref semantics, so the ref is returned untouched.
- */
 type ToUnionSchemaArgs = {
-  /** The schema carrying the union keyword; its members are passed separately. */
-  value: OpenAPIV3.SchemaObject
-  members: (OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject)[]
-  /** Which keyword the author wrote. Kept for stack trails and messages only. */
+  /** The schema as authored, union keyword still in place. */
+  schema: OpenAPIV3.SchemaObject
+  /** Which keyword the author wrote. */
   parentType: 'oneOf' | 'anyOf'
   stackTrail: StackTrail
   context: ParseContextType
 }
+
+/**
+ * Re-spell a union's keyword as `oneOf` **at its original position**.
+ *
+ * `decomposeUnion` splits the parent's keys AT the union keyword: siblings
+ * before it merge into each member as `first`, siblings after it as `second`,
+ * and `genericMerge` is `{ ...first, ...second }` — so a key authored after the
+ * combinator wins over the member, and one authored before it loses. Rebuilding
+ * as `{ ...rest, oneOf: members }` would append the keyword last, putting every
+ * sibling in the `before` bucket and silently inverting that.
+ *
+ * That is not cosmetic. A parent `additionalProperties: false` written after
+ * `oneOf` is meant to close every member; appended-last it loses to each
+ * member's own `additionalProperties: true`, widening the contract. Validation
+ * equivalence only catches it if some spec-authored example happens to carry an
+ * extra property.
+ */
+const toOneOfSpelling = (
+  schema: OpenAPIV3.SchemaObject,
+  parentType: 'oneOf' | 'anyOf',
+  members: (OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject)[]
+): OpenAPIV3.SchemaObject =>
+  Object.fromEntries(
+    Object.entries(schema).map(([key, value]) =>
+      key === parentType ? ['oneOf', members] : [key, value]
+    )
+  ) as OpenAPIV3.SchemaObject
 
 /**
  * Parse a union, whichever keyword spelled it.
@@ -328,20 +332,22 @@ type ToUnionSchemaArgs = {
  * See skmtc#117.
  */
 const toUnionSchema = ({
-  value,
-  members,
+  schema,
   parentType,
   stackTrail,
   context
 }: ToUnionSchemaArgs): OasSchema | OasRef<'schema'> => {
   // 3.1: a `{ type: 'null' }` member makes the union nullable. Fold it into a
-  // `nullable` flag the collapse/union logic already understands.
-  const { members: withoutNull, nullable: hasNullMember } = partitionNullMember(members)
+  // `nullable` flag the collapse/union logic already understands. `nullable` is
+  // one of `decomposeUnion`'s excluded keys, so where it lands does not affect
+  // member precedence.
+  const { members: withoutNull, nullable: hasNullMember } = partitionNullMember(
+    schema[parentType] ?? []
+  )
+  const respelled = toOneOfSpelling(schema, parentType, withoutNull)
 
   const merged = mergeUnion({
-    schema: hasNullMember
-      ? { ...value, oneOf: withoutNull, nullable: true }
-      : { ...value, oneOf: members },
+    schema: hasNullMember ? { ...respelled, nullable: true } : respelled,
     getRef: toGetRef(context.documentObject),
     groupType: 'oneOf'
   })
@@ -376,6 +382,28 @@ const toUnionSchema = ({
   return toUnion({ value: rest, members: mergedMembers, parentType, stackTrail, context })
 }
 
+/**
+ * Collapse a single-member `oneOf`/`anyOf` into its surviving member.
+ *
+ * The wrapper's sibling keywords must ride into the member rather than
+ * being discarded. The critical one is `nullable`: the 3.1 idiom
+ * `oneOf:[{type:'string'},{type:'null'}]` ("string or null") has its
+ * `{type:'null'}` member folded out by `partitionNullMember` above, leaving
+ * `oneOf:[{type:'string'}]` + `nullable:true` on the wrapper. Re-dispatching
+ * `members[0]` alone would drop the wrapper (`...value`) and silently turn
+ * `string | null` back into a non-nullable `string`.
+ * `description`/`title`/`readOnly`/... ride along the same way.
+ *
+ * Precedence: the member is the more specific schema, so it wins direct
+ * conflicts (`{ ...value, ...member }`). `nullable` is the exception — it
+ * OR-ins, because a nullable wrapper makes the whole schema nullable even
+ * when the member itself is not.
+ *
+ * A ref member only reaches here when the wrapper carries no `nullable`
+ * (the nullable-ref case stamps `nullable` on the OasRef node at the call
+ * site, via `toRefV31`). Any other wrapper siblings on a bare `$ref` are
+ * ignored per 3.0 ref semantics, so the ref is returned untouched.
+ */
 const collapseSingleMember = (
   value: OpenAPIV3.SchemaObject,
   member: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
@@ -461,15 +489,7 @@ export const toSchemaV3 = ({
 
   if ('oneOf' in schema && Array.isArray(schema.oneOf)) {
     return stackTrail.trace('oneOf', st => {
-      const { oneOf, ...value } = schema
-
-      return toUnionSchema({
-        value,
-        members: oneOf ?? [],
-        parentType: 'oneOf',
-        stackTrail: st,
-        context
-      })
+      return toUnionSchema({ schema, parentType: 'oneOf', stackTrail: st, context })
     })
   }
 
@@ -482,15 +502,7 @@ export const toSchemaV3 = ({
         return toUnion({ value, members: anyOf, parentType: 'anyOf', stackTrail: st, context })
       }
 
-      const { anyOf, ...value } = schema
-
-      return toUnionSchema({
-        value,
-        members: anyOf ?? [],
-        parentType: 'anyOf',
-        stackTrail: st,
-        context
-      })
+      return toUnionSchema({ schema, parentType: 'anyOf', stackTrail: st, context })
     })
   }
 

@@ -73,14 +73,40 @@ export type ToSchemaV3Args = {
 }
 
 type ToUnionSchemaArgs = {
-  /** The schema carrying the union keyword; its members are passed separately. */
-  value: OpenAPIV3.SchemaObject
-  members: (OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject)[]
-  /** Which keyword the author wrote. Kept for stack trails and messages only. */
+  /** The schema as authored, union keyword still in place. */
+  schema: OpenAPIV3.SchemaObject
+  /** Which keyword the author wrote. */
   parentType: 'oneOf' | 'anyOf'
   stackTrail: StackTrail
   context: ParseContextType
 }
+
+/**
+ * Re-spell a union's keyword as `oneOf` **at its original position**.
+ *
+ * `decomposeUnion` splits the parent's keys AT the union keyword: siblings
+ * before it merge into each member as `first`, siblings after it as `second`,
+ * and `genericMerge` is `{ ...first, ...second }` — so a key authored after the
+ * combinator wins over the member, and one authored before it loses. Rebuilding
+ * as `{ ...rest, oneOf: members }` would append the keyword last, putting every
+ * sibling in the `before` bucket and silently inverting that.
+ *
+ * That is not cosmetic. A parent `additionalProperties: false` written after
+ * `oneOf` is meant to close every member; appended-last it loses to each
+ * member's own `additionalProperties: true`, widening the contract. Validation
+ * equivalence only catches it if some spec-authored example happens to carry an
+ * extra property.
+ */
+const toOneOfSpelling = (
+  schema: OpenAPIV3.SchemaObject,
+  parentType: 'oneOf' | 'anyOf',
+  members: (OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject)[]
+): OpenAPIV3.SchemaObject =>
+  Object.fromEntries(
+    Object.entries(schema).map(([key, value]) =>
+      key === parentType ? ['oneOf', members] : [key, value]
+    )
+  ) as OpenAPIV3.SchemaObject
 
 /**
  * Parse a union, whichever keyword spelled it.
@@ -102,14 +128,13 @@ type ToUnionSchemaArgs = {
  * skmtc#117.
  */
 const toUnionSchema = ({
-  value,
-  members,
+  schema,
   parentType,
   stackTrail,
   context
 }: ToUnionSchemaArgs): OasSchema | OasRef<'schema'> => {
   const merged = mergeUnion({
-    schema: { ...value, oneOf: members },
+    schema: toOneOfSpelling(schema, parentType, schema[parentType] ?? []),
     getRef: toGetRef(context.documentObject),
     groupType: 'oneOf'
   })
@@ -250,15 +275,7 @@ export const toSchemaV3 = ({
 
   if ('oneOf' in schema && Array.isArray(schema.oneOf)) {
     return stackTrail.trace('oneOf', st => {
-      const { oneOf, ...value } = schema
-
-      return toUnionSchema({
-        value,
-        members: oneOf ?? [],
-        parentType: 'oneOf',
-        stackTrail: st,
-        context
-      })
+      return toUnionSchema({ schema, parentType: 'oneOf', stackTrail: st, context })
     })
   }
 
@@ -274,15 +291,7 @@ export const toSchemaV3 = ({
         return toUnion({ value, members: anyOf, parentType: 'anyOf', stackTrail: st, context })
       }
 
-      const { anyOf, ...value } = schema
-
-      return toUnionSchema({
-        value,
-        members: anyOf ?? [],
-        parentType: 'anyOf',
-        stackTrail: st,
-        context
-      })
+      return toUnionSchema({ schema, parentType: 'anyOf', stackTrail: st, context })
     })
   }
 

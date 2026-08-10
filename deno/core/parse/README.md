@@ -192,9 +192,12 @@ Speakeasy explicitly to avoid an explosion of types.
 `parentType` still carries the author's keyword so stack trails and
 skipped-field messages name what they actually read.
 
-One observable consequence: **nested unions now flatten.** An `anyOf` whose
-member carries a `oneOf` used to nest and now merges into one union — same
-leaves, one level shallower, and no discriminators lost.
+One observable consequence: **nested unions flatten uniformly.** Previously a
+member was flattened only if it was spelled with the same keyword as its parent,
+so `oneOf`-inside-`anyOf` stayed nested while `anyOf`-inside-`anyOf` flattened.
+`toGroup` and the flattening step in `mergeCrossProduct` now read either
+spelling, so nesting collapses regardless of which keyword the author used —
+same leaves, one level shallower, and no discriminators lost.
 
 ### Cycle handling
 
@@ -236,7 +239,14 @@ one.
 
 Precedence is positional and worth knowing: `decomposeUnion` splits the parent's
 keys at the union keyword, and keys *after* the split merge in as `second`, so
-they win over the member's.
+they win over the member's, while keys before it merge as `first` and lose.
+
+**Anything that rebuilds a union schema must preserve the keyword's position.**
+Re-spelling `anyOf` as `oneOf` by appending (`{ ...rest, oneOf: members }`) puts
+the keyword last, drops every sibling into the `before` bucket, and inverts the
+rule — a parent `additionalProperties: false` authored after the combinator stops
+closing its members and the contract silently widens. `toOneOfSpelling` in each
+dispatcher substitutes the key in place for exactly this reason.
 
 ### The Stripe carve-out
 

@@ -51,13 +51,19 @@ type MergeCrossProductArgs = {
 /**
  * A schema's union members, or the schema itself when it is not a union. A
  * reference is never a union — it is one member, resolved later.
+ *
+ * EITHER spelling counts. `anyOf` and `oneOf` reach the same IR node, so
+ * reading only the pinned `groupType` made flattening depend on which keyword
+ * the author happened to use: with `groupType: 'oneOf'`, a member spelled
+ * `anyOf` would be left nested while a `oneOf` member was flattened. Whichever
+ * keyword spells a member, it is a union and its members belong in the group.
  */
-const toGroup = (schema: SchemaOrReference, groupType: 'oneOf' | 'anyOf'): SchemaOrReference[] => {
+const toGroup = (schema: SchemaOrReference): SchemaOrReference[] => {
   if (isRef(schema)) {
     return [schema]
   }
 
-  const group = schema[groupType]
+  const group = schema.oneOf ?? schema.anyOf
 
   return Array.isArray(group) ? group : [schema]
 }
@@ -68,7 +74,7 @@ export const mergeCrossProduct = ({
   getRef,
   groupType
 }: MergeCrossProductArgs): SchemaObject => {
-  const mergedGroup = crossProduct(toGroup(first, groupType), toGroup(second, groupType))
+  const mergedGroup = crossProduct(toGroup(first), toGroup(second))
     .map(([firstItem, secondItem]) => {
       try {
         const result = mergeSchemasOrRefs(firstItem, secondItem, getRef)
@@ -91,8 +97,14 @@ export const mergeCrossProduct = ({
 
   return {
     [groupType]: mergedGroup.flatMap(item => {
-      if (!isRef(item) && Array.isArray(item[groupType])) {
-        return item[groupType]
+      // Flatten a nested union under either spelling, for the same reason
+      // `toGroup` reads both.
+      if (!isRef(item)) {
+        const nested = item.oneOf ?? item.anyOf
+
+        if (Array.isArray(nested)) {
+          return nested
+        }
       }
 
       return [item]
