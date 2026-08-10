@@ -10,8 +10,8 @@ export type ExampleFields = {
   summary?: string
   /** Longer description of the example */
   description?: string
-  /** The example value */
-  value: unknown
+  /** The example value — absent when the example is given as an `externalValue` */
+  value?: unknown
   /** The external value of the example */
   externalValue?: string
   /** Custom extension fields (x-* properties) */
@@ -54,7 +54,10 @@ export class OasExample {
     return {
       summary: this.summary,
       description: this.description,
-      value: this.value
+      value: this.value,
+      // Without this an `externalValue`-only example round-trips to an Example
+      // Object holding neither an inline value nor a pointer to one.
+      externalValue: this.externalValue
     }
   }
 }

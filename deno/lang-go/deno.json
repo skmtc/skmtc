@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/lang-go",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "private": true,
   "license": "Apache-2.0",
   "exports": {
@@ -10,6 +10,6 @@
     "publish": "deno publish --allow-slow-types --allow-dirty"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@0.28.3"
+    "@skmtc/core": "jsr:@skmtc/core@0.28.4"
   }
 }
