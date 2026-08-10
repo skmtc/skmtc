@@ -119,12 +119,12 @@ Deno.test('toRootPath - the nearest .skmtc wins when a nested project shadows th
   }
 })
 
-Deno.test('toRootPath - does NOT walk up past the home-directory boundary (current limitation)', async () => {
-  // Characterization test, not an endorsement: the walk-up loop only runs while
-  // inside $HOME, so a repo checked out OUTSIDE $HOME (common in CI, containers,
-  // /opt) never finds an ancestor `.skmtc` — it assumes one in cwd. This pins
-  // current behavior; if monorepo-outside-$HOME is to be supported, relax the
-  // boundary in `to-root-path.ts` and update this test deliberately.
+Deno.test('toRootPath - stops the walk at the home-directory boundary', async () => {
+  // The walk-up loop runs only while inside $HOME, and that boundary is the
+  // design rather than a shortcoming: a SKMTC project is expected to live under
+  // the user's home directory. A repo checked out elsewhere (CI, a container,
+  // /opt) therefore gets `.skmtc` in cwd instead of an ancestor's — do not
+  // "fix" that by relaxing the loop in `to-root-path.ts`.
   const home = resolve(homedir())
   const repoRoot = await Deno.realPath(
     await Deno.makeTempDir({ prefix: 'skmtc-root-outside-home-' })
