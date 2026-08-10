@@ -10,6 +10,16 @@ type CollatedExampleArgs = {
   objectSchema: OasSchema | OasRef<'schema'> | undefined
   /** Current recursion depth (used to prevent infinite loops) */
   depth: number
+  /**
+   * The `$ref` pointers already entered on THIS path, used to cut reference
+   * cycles. Callers start collation without it; the function threads it.
+   *
+   * Path-scoped rather than global on purpose. A global set would also stop a
+   * cycle, and would additionally drop the example for the SECOND of two
+   * sibling uses of the same schema — silently emptying samples on every
+   * document that reuses a type, which is most of them.
+   */
+  seen?: ReadonlySet<string>
 }
 
 /**
@@ -157,7 +167,7 @@ type CollatedExampleArgs = {
  * }
  * ```
  */
-export const collateExamples = ({ objectSchema, depth }: CollatedExampleArgs): unknown => {
+export const collateExamples = ({ objectSchema, depth, seen }: CollatedExampleArgs): unknown => {
   if (!objectSchema) {
     return undefined
   }
@@ -168,9 +178,22 @@ export const collateExamples = ({ objectSchema, depth }: CollatedExampleArgs): u
 
   switch (objectSchema.type) {
     case 'ref': {
+      // A schema that reaches itself has no finite example, so the recursive
+      // key is omitted and collation continues around it.
+      //
+      // Without this the cycle simply pads the path until the depth limit
+      // throws, roughly sixteen steps in — so a self-referential schema and a
+      // legitimately deep one fail identically, and a caller that only wanted a
+      // sample body gets an exception instead. Cutting the cycle here is what
+      // makes the depth limit mean what it says.
+      if (seen?.has(objectSchema.$ref)) {
+        return undefined
+      }
+
       return collateExamples({
         objectSchema: objectSchema.resolve(),
-        depth: depth + 1
+        depth: depth + 1,
+        seen: new Set(seen ?? []).add(objectSchema.$ref)
       })
     }
 
@@ -188,7 +211,8 @@ export const collateExamples = ({ objectSchema, depth }: CollatedExampleArgs): u
 
         const propertyExample = collateExamples({
           objectSchema: value,
-          depth: depth + 1
+          depth: depth + 1,
+          seen
         })
 
         if (propertyExample) {
@@ -206,7 +230,8 @@ export const collateExamples = ({ objectSchema, depth }: CollatedExampleArgs): u
 
       const itemsExample = collateExamples({
         objectSchema: objectSchema.items,
-        depth: depth + 1
+        depth: depth + 1,
+        seen
       })
 
       return itemsExample ? [itemsExample] : undefined
@@ -231,7 +256,8 @@ export const collateExamples = ({ objectSchema, depth }: CollatedExampleArgs): u
       for (const member of objectSchema.members) {
         const unionExample = collateExamples({
           objectSchema: member,
-          depth: depth + 1
+          depth: depth + 1,
+          seen
         })
 
         if (unionExample) {
