@@ -37,13 +37,52 @@ Deno.test('toAbsoluteRootPath - returns parent of .skmtc directory', () => {
   assertEquals(absolutePath.endsWith('.skmtc'), false)
 })
 
-Deno.test('toRelativeRootPath - includes tilde for home directory', () => {
-  const relativePath = toRelativeRootPath()
+Deno.test('toRelativeRootPath - tildes the home prefix when the root is inside $HOME', async () => {
+  // Drive cwd to a known location under $HOME rather than reading whatever cwd
+  // the runner happens to have: from a checkout OUTSIDE $HOME the relative walk
+  // starts with `..`, which `join` collapses against the `~`, and the assertion
+  // fails for reasons that have nothing to do with the code under test.
+  if (!Deno.env.get('HOME')) {
+    return
+  }
+  const repoRoot = await Deno.realPath(
+    await Deno.makeTempDir({ dir: homedir(), prefix: 'skmtc-root-tilde-' })
+  )
+  try {
+    await ensureDir(join(repoRoot, '.skmtc'))
+    await withCwd(repoRoot, () => {
+      assertStringIncludes(toRelativeRootPath(), '~')
+    })
+  } finally {
+    await Deno.remove(repoRoot, { recursive: true })
+  }
+})
 
-  // If we have a HOME env var, path should start with ~
-  const hasHome = Deno.env.get('HOME')
-  if (hasHome) {
-    assertStringIncludes(relativePath, '~')
+Deno.test('toRelativeRootPath - drops the tilde when the root is outside $HOME (current limitation)', async () => {
+  // Characterization test, not an endorsement: `join('~', '../elsewhere')`
+  // collapses to `../elsewhere`, so a checkout outside $HOME gets a display path
+  // relative to a home directory it is not under. Pins the behaviour that makes
+  // the test above cwd-sensitive.
+  if (!Deno.env.get('HOME')) {
+    return
+  }
+  const home = resolve(homedir())
+  const repoRoot = await Deno.realPath(
+    await Deno.makeTempDir({ prefix: 'skmtc-root-tilde-outside-' })
+  )
+  if (resolve(repoRoot).startsWith(home)) {
+    // The system temp dir happens to live under $HOME here, so there is no
+    // outside-$HOME case to demonstrate — skip rather than assert a falsehood.
+    await Deno.remove(repoRoot, { recursive: true })
+    return
+  }
+  try {
+    await ensureDir(join(repoRoot, '.skmtc'))
+    await withCwd(repoRoot, () => {
+      assertEquals(toRelativeRootPath().includes('~'), false)
+    })
+  } finally {
+    await Deno.remove(repoRoot, { recursive: true })
   }
 })
 
