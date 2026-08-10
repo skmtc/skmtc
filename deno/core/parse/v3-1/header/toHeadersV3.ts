@@ -30,7 +30,7 @@ export const toHeadersV3 = ({
 
   for (const [key, value] of entries) {
     output[key] = stackTrail.trace(key, st =>
-      toHeaderV3({ header: value, stackTrail: st, context })
+      toHeaderV3({ header: value, name: key, stackTrail: st, context })
     )
   }
 
@@ -39,12 +39,15 @@ export const toHeadersV3 = ({
 
 export type ToHeaderV3Args = {
   header: OpenAPIV3.ReferenceObject | OpenAPIV3.HeaderObject
+  /** The header's name, used to key a singular `example` */
+  name: string
   stackTrail: StackTrail
   context: ParseContextType
 }
 
 const toHeaderV3 = ({
   header,
+  name,
   stackTrail,
   context
 }: ToHeaderV3Args): OasHeader | OasRef<'header'> => {
@@ -73,7 +76,7 @@ const toHeaderV3 = ({
     examples: toExamplesV3({
       examples,
       example,
-      exampleKey: `TEMP`,
+      exampleKey: name,
       stackTrail,
       context
     }),

@@ -8,7 +8,12 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 export type ToExampleSimpleV3Args = {
-  example: OpenAPIV3.ExampleObject
+  /**
+   * The example value itself. The singular `example` field of a media type,
+   * parameter or header is a LITERAL value — not an Example Object — so it
+   * carries no `summary`, `description` or `externalValue` to read.
+   */
+  example: unknown
   /** The stack trail for tracing */
   stackTrail: StackTrail
   /** Parse context for tracing and error handling */
@@ -18,8 +23,8 @@ export type ToExampleSimpleV3Args = {
 /**
  * Creates a simple OAS example from a value.
  *
- * Converts a raw example value into an OasExample object with basic
- * fields. Used for simple example scenarios where only the value matters.
+ * Wraps a literal example value as an {@link OasExample}. Used for the singular
+ * `example` field, where only the value exists.
  *
  * @param args - Arguments containing the example value
  * @returns OasExample object with the provided value
@@ -27,12 +32,7 @@ export type ToExampleSimpleV3Args = {
 export const toExampleSimpleV3 = ({
   example
 }: ToExampleSimpleV3Args): OasExample | OasRef<'example'> => {
-  const fields: ExampleFields = {
-    value: example.value,
-    summary: example.summary,
-    description: example.description,
-    externalValue: example.externalValue
-  }
+  const fields: ExampleFields = { value: example }
 
   return new OasExample(fields)
 }
@@ -44,8 +44,8 @@ export const toExampleSimpleV3 = ({
  * with context for tracing and error handling.
  */
 export type ToExamplesV3Args = {
-  /** Single example object (OpenAPI v3 format) */
-  example: OpenAPIV3.ExampleObject | undefined
+  /** The singular `example` field — a literal value, not an Example Object */
+  example: unknown
   /** Collection of named examples (OpenAPI v3 format) */
   examples: Record<string, OpenAPIV3.ExampleObject | OpenAPIV3.ReferenceObject> | undefined
   /** Key name for the example context */
@@ -73,7 +73,9 @@ export const toExamplesV3 = ({
   stackTrail,
   context
 }: ToExamplesV3Args): Record<string, OasExample | OasRef<'example'>> | undefined => {
-  if (example && examples) {
+  // `example` is a literal, so test presence rather than truthiness — `false`,
+  // `0` and `''` are all valid example values.
+  if (example !== undefined && examples !== undefined) {
     context.logIssue({
       key: 'example',
       level: 'warning',
@@ -84,7 +86,7 @@ export const toExamplesV3 = ({
     })
   }
 
-  if (example) {
+  if (example !== undefined) {
     return {
       [exampleKey]: stackTrail.trace('example', st =>
         toExampleSimpleV3({ example, stackTrail: st, context })
@@ -135,7 +137,10 @@ export const toExampleV3 = ({
     return toRefV31({ ref: example, refType: 'example', stackTrail, context })
   }
 
-  const { summary, description, value, ...skipped } = example
+  // `externalValue` is the alternative to `value` — an example too large or too
+  // awkward to inline. Leaving it in `skipped` both loses it and reports a
+  // standard field as an unexpected property.
+  const { summary, description, value, externalValue, ...skipped } = example
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -149,6 +154,7 @@ export const toExampleV3 = ({
     summary,
     description,
     value,
+    externalValue,
     extensionFields
   })
 }

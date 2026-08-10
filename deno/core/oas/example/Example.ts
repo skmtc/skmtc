@@ -10,8 +10,8 @@ export type ExampleFields = {
   summary?: string
   /** Longer description of the example */
   description?: string
-  /** The example value */
-  value: unknown
+  /** The example value — absent when the example is given as an `externalValue` */
+  value?: unknown
   /** The external value of the example */
   externalValue?: string
   /** Custom extension fields (x-* properties) */

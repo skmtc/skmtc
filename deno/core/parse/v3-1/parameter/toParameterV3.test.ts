@@ -2,6 +2,7 @@ import { mockParseContext } from '@/test/mockParseContext.ts'
 import { toParameterListV3, toParametersV3, toOptionalParametersV3 } from './toParameterV3.ts'
 import { assertEquals, assert } from '@std/assert'
 import { OasParameter } from '@/oas/parameter/Parameter.ts'
+import { OasExample } from '@/oas/example/Example.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 
@@ -276,4 +277,39 @@ Deno.test('toOptionalParametersV3 - converts when input is provided', () => {
   assertEquals(result !== undefined, true)
   assert(result?.userId instanceof OasParameter)
   assertEquals(result?.userId.name, 'userId')
+})
+
+Deno.test('toParameterListV3 - threads the singular example through, keyed by name and location', () => {
+  const stackTrail = new StackTrail(['TEST'])
+  const result = toParameterListV3({
+    stackTrail,
+    parameters: [{ name: 'limit', in: 'query', schema: { type: 'integer' }, example: 25 }],
+    context: mockParseContext
+  })
+
+  const parameter = result?.[0]
+  assert(parameter instanceof OasParameter)
+  assertEquals(parameter.examples, { 'limit-query': new OasExample({ value: 25 }) })
+})
+
+Deno.test('toParameterListV3 - threads named examples through under their own keys', () => {
+  const stackTrail = new StackTrail(['TEST'])
+  const result = toParameterListV3({
+    stackTrail,
+    parameters: [
+      {
+        name: 'sort',
+        in: 'query',
+        schema: { type: 'string' },
+        examples: { byName: { summary: 'Alphabetical', value: 'name' } }
+      }
+    ],
+    context: mockParseContext
+  })
+
+  const parameter = result?.[0]
+  assert(parameter instanceof OasParameter)
+  assertEquals(parameter.examples, {
+    byName: new OasExample({ summary: 'Alphabetical', value: 'name' })
+  })
 })
