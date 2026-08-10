@@ -298,6 +298,84 @@ const partitionNullMember = (
  * site, via `toRefV31`). Any other wrapper siblings on a bare `$ref` are
  * ignored per 3.0 ref semantics, so the ref is returned untouched.
  */
+type ToUnionSchemaArgs = {
+  /** The schema carrying the union keyword; its members are passed separately. */
+  value: OpenAPIV3.SchemaObject
+  members: (OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject)[]
+  /** Which keyword the author wrote. Kept for stack trails and messages only. */
+  parentType: 'oneOf' | 'anyOf'
+  stackTrail: StackTrail
+  context: ParseContextType
+}
+
+/**
+ * Parse a union, whichever keyword spelled it.
+ *
+ * `anyOf` and `oneOf` converge on one IR node: `OasUnion` records no source
+ * keyword, and `toJsonSchema` emits `oneOf` for both. Keeping two near-identical
+ * branches maintained a distinction nothing downstream could observe, and left
+ * the merge with two group types to cross-product — so the members are merged
+ * under one spelling here.
+ *
+ * `parentType` still carries the author's keyword, so stack trails and
+ * skipped-field messages name what they actually read.
+ *
+ * The collapse is not free of meaning: `oneOf` is exactly-one and `anyOf` is
+ * at-least-one, so a value matching two `anyOf` members is valid under `anyOf`
+ * and not under `oneOf`. Codegen cannot express that difference — it
+ * deserialises into one shape either way — and Stainless and Speakeasy both make
+ * the same collapse deliberately, Speakeasy to avoid an explosion of types.
+ * See skmtc#117.
+ */
+const toUnionSchema = ({
+  value,
+  members,
+  parentType,
+  stackTrail,
+  context
+}: ToUnionSchemaArgs): OasSchema | OasRef<'schema'> => {
+  // 3.1: a `{ type: 'null' }` member makes the union nullable. Fold it into a
+  // `nullable` flag the collapse/union logic already understands.
+  const { members: withoutNull, nullable: hasNullMember } = partitionNullMember(members)
+
+  const merged = mergeUnion({
+    schema: hasNullMember
+      ? { ...value, oneOf: withoutNull, nullable: true }
+      : { ...value, oneOf: members },
+    getRef: toGetRef(context.documentObject),
+    groupType: 'oneOf'
+  })
+
+  if (!('oneOf' in merged) || !Array.isArray(merged.oneOf)) {
+    throw new Error(`Missing "${parentType}" array`)
+  }
+
+  const { oneOf: mergedMembers, ...rest } = merged
+
+  if (mergedMembers.length === 0) {
+    throw new Error(`"${parentType}" array is empty`)
+  }
+
+  if (mergedMembers.length === 1) {
+    const [soleMember] = mergedMembers
+    // A 3.1 nullable reference `oneOf:[{$ref},{type:'null'}]` becomes a single
+    // `$ref` member + `nullable:true` once the null member above is folded out.
+    // Nullability here is a *use-site* property — the same refName may be
+    // referenced nullable at one site and not another — so it rides the OasRef
+    // node itself, NOT the shared referent and NOT a synthetic union.
+    // Generators read `ref.nullable` and render `Foo | null`; `ModelDriver`
+    // builds the un-nullable shared `Foo` from the refName. See
+    // notes/openapi-3.1-webhooks-and-parser-architecture.md §3.4.
+    if (isRef(soleMember) && rest.nullable) {
+      return toRefV31({ ref: soleMember, refType: 'schema', nullable: true, stackTrail, context })
+    }
+
+    return toSchemaV3({ schema: collapseSingleMember(rest, soleMember), stackTrail, context })
+  }
+
+  return toUnion({ value: rest, members: mergedMembers, parentType, stackTrail, context })
+}
+
 const collapseSingleMember = (
   value: OpenAPIV3.SchemaObject,
   member: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
@@ -383,60 +461,15 @@ export const toSchemaV3 = ({
 
   if ('oneOf' in schema && Array.isArray(schema.oneOf)) {
     return stackTrail.trace('oneOf', st => {
-      // 3.1: a `{ type: 'null' }` member makes the union nullable. Fold it
-      // into a `nullable` flag the collapse/union logic already understands.
-      const { members: oneOfWithoutNull, nullable: hasNullMember } = partitionNullMember(
-        schema.oneOf ?? []
-      )
-      const withoutNull: OpenAPIV3.SchemaObject = hasNullMember
-        ? { ...schema, oneOf: oneOfWithoutNull, nullable: true }
-        : schema
+      const { oneOf, ...value } = schema
 
-      const merged = mergeUnion({
-        schema: withoutNull,
-        getRef: toGetRef(context.documentObject),
-        groupType: 'oneOf'
+      return toUnionSchema({
+        value,
+        members: oneOf ?? [],
+        parentType: 'oneOf',
+        stackTrail: st,
+        context
       })
-
-      if (!('oneOf' in merged) || !Array.isArray(merged.oneOf)) {
-        throw new Error('Missing "oneOf" array')
-      }
-
-      const { oneOf: members, ...value } = merged
-
-      if (members.length === 0) {
-        throw new Error('"oneOf" array is empty')
-      }
-
-      if (members.length === 1) {
-        const [soleMember] = members
-        // A 3.1 nullable reference `oneOf:[{$ref},{type:'null'}]` becomes a
-        // single `$ref` member + `nullable:true` once the null member above
-        // is folded out. Nullability here is a *use-site* property — the same
-        // refName may be referenced nullable at one site and not another — so
-        // it rides the OasRef node itself, NOT the shared referent and NOT a
-        // synthetic union. Generators read `ref.nullable` and render
-        // `Foo | null`; `ModelDriver` builds the un-nullable shared `Foo` from
-        // the refName. See
-        // notes/openapi-3.1-webhooks-and-parser-architecture.md §3.4.
-        if (isRef(soleMember) && value.nullable) {
-          return toRefV31({
-            ref: soleMember,
-            refType: 'schema',
-            nullable: true,
-            stackTrail: st,
-            context
-          })
-        }
-
-        return toSchemaV3({
-          schema: collapseSingleMember(value, soleMember),
-          stackTrail: st,
-          context
-        })
-      }
-
-      return toUnion({ value, members, parentType: 'oneOf', stackTrail: st, context })
     })
   }
 
@@ -449,53 +482,15 @@ export const toSchemaV3 = ({
         return toUnion({ value, members: anyOf, parentType: 'anyOf', stackTrail: st, context })
       }
 
-      // 3.1: a `{ type: 'null' }` member makes the union nullable (mirrors
-      // the oneOf branch above).
-      const { members: anyOfWithoutNull, nullable: hasNullMember } = partitionNullMember(
-        schema.anyOf ?? []
-      )
-      const withoutNull: OpenAPIV3.SchemaObject = hasNullMember
-        ? { ...schema, anyOf: anyOfWithoutNull, nullable: true }
-        : schema
+      const { anyOf, ...value } = schema
 
-      const merged = mergeUnion({
-        schema: withoutNull,
-        getRef: toGetRef(context.documentObject),
-        groupType: 'anyOf'
+      return toUnionSchema({
+        value,
+        members: anyOf ?? [],
+        parentType: 'anyOf',
+        stackTrail: st,
+        context
       })
-
-      if (!('anyOf' in merged) || !Array.isArray(merged.anyOf)) {
-        throw new Error('Missing "anyOf" array')
-      }
-
-      const { anyOf: members, ...value } = merged
-
-      if (members.length === 0) {
-        throw new Error('"anyOf" array is empty')
-      }
-
-      if (members.length === 1) {
-        const [soleMember] = members
-        // See the oneOf branch: a single `$ref` carrying a hoisted `nullable`
-        // sets `nullable` on the OasRef node itself.
-        if (isRef(soleMember) && value.nullable) {
-          return toRefV31({
-            ref: soleMember,
-            refType: 'schema',
-            nullable: true,
-            stackTrail: st,
-            context
-          })
-        }
-
-        return toSchemaV3({
-          schema: collapseSingleMember(value, soleMember),
-          stackTrail: st,
-          context
-        })
-      }
-
-      return toUnion({ value, members, parentType: 'anyOf', stackTrail: st, context })
     })
   }
 
