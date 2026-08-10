@@ -88,10 +88,25 @@ type ExcludeOutput = {
   excluded: [string, unknown][]
 }
 
+/**
+ * Vendor extensions are union-level for the same reason the named keys above
+ * are: they are metadata about the union, not constraints its members have to
+ * satisfy.
+ *
+ * `excludedProperties` can only ever name keys OpenAPI defines, so without this
+ * every `x-` key was cross-product-merged into the members instead. In OpenAI's
+ * `AssistantStreamEvent` that meant the union's own
+ * `x-oaiMeta: {name: 'Assistant stream events', beta: true}` — a label for the
+ * whole group — overwrote each of the 25 events' `x-oaiMeta.dataDescription`,
+ * which is what says whether that event's `data` is a thread, a run or a run
+ * step. 23 distinct descriptions collapsed to one group label.
+ */
+const isVendorExtension = (key: string): boolean => key.startsWith('x-')
+
 const exclude = (entries: [string, unknown][]): ExcludeOutput => {
   return entries.reduce<ExcludeOutput>(
     (acc, [key, value]) => {
-      if (excludedProperties.includes(key)) {
+      if (excludedProperties.includes(key) || isVendorExtension(key)) {
         acc.excluded.push([key, value])
       } else {
         acc.retained.push([key, value])
