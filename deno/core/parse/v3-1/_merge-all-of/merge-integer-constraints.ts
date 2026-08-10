@@ -1,6 +1,7 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import type { SchemaObject } from './types.ts'
 import { genericMerge } from './generic-merge.ts'
+import { toMergedType } from './to-merged-type.ts'
 import type { GetRefFn } from './types.ts'
 import * as v from 'valibot'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
@@ -15,7 +16,14 @@ export function mergeIntegerConstraints(
   const result: SchemaObject = genericMerge(first, second, getRef, v.number())
 
   // Then merge other constraints
-  result.type = 'integer'
+  // Preserve a 3.1 list type rather than flattening it to the scalar.
+  // `['integer', 'null']` routes here because `checkAtLeastOneTypeMatch` reads
+  // list membership, and overwriting `type` would drop the `null` — silently
+  // turning a nullable field non-nullable, since `normalizeTypeArray` runs on
+  // the MERGED result and by then the `null` is gone. The object/array paths
+  // never had this problem: they go through `genericMerge`, which spreads
+  // `type` through untouched.
+  result.type = toMergedType(first.type, second.type, 'integer')
 
   // Merge minimum and exclusiveMinimum
   if (first.minimum !== undefined || second.minimum !== undefined) {
