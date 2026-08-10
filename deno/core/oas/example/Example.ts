@@ -54,7 +54,10 @@ export class OasExample {
     return {
       summary: this.summary,
       description: this.description,
-      value: this.value
+      value: this.value,
+      // Without this an `externalValue`-only example round-trips to an Example
+      // Object holding neither an inline value nor a pointer to one.
+      externalValue: this.externalValue
     }
   }
 }

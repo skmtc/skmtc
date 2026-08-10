@@ -79,21 +79,17 @@ export const toExamplesV3 = ({
     context.logIssue({
       key: 'example',
       level: 'warning',
-      message: `Both example and examples are defined for ${exampleKey}`,
+      message: `Both example and examples are defined for ${exampleKey}; using examples`,
       parent: examples,
       stackTrail,
       type: 'EXAMPLE_AND_EXAMPLES_DEFINED'
     })
   }
 
-  if (example !== undefined) {
-    return {
-      [exampleKey]: stackTrail.trace('example', st =>
-        toExampleSimpleV3({ example, stackTrail: st, context })
-      )
-    }
-  }
-
+  // The spec makes the two mutually exclusive, so reaching here with both is
+  // malformed input. Prefer `examples`: it is the richer field — many entries,
+  // each with a summary and description — and the singular carries nothing it
+  // cannot express, so this discards strictly less.
   if (examples) {
     return stackTrail.trace('examples', st => {
       const output: Record<string, OasExample | OasRef<'example'>> = {}
@@ -107,6 +103,14 @@ export const toExamplesV3 = ({
 
       return output
     })
+  }
+
+  if (example !== undefined) {
+    return {
+      [exampleKey]: stackTrail.trace('example', st =>
+        toExampleSimpleV3({ example, stackTrail: st, context })
+      )
+    }
   }
 
   return undefined

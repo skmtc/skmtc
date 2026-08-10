@@ -249,10 +249,21 @@ Deno.test('OasExample', async t => {
       assertEquals(result.value, ['item1', 'item2', 'item3'])
       assertEquals(result.summary, 'Array of items')
       assertEquals(result.description, 'Example showing an array of string items')
-      // Note: externalValue is not included in toJsonSchema output based on implementation
+      assertEquals(result.externalValue, 'https://example.com/items.json')
     })
 
-    await t.step('should NOT include externalValue in output', () => {
+    await t.step('should keep an externalValue-only example addressable', () => {
+      // Without `externalValue` this round-trips to an Example Object holding
+      // neither an inline value nor a pointer to one.
+      const example = new OasExample({ externalValue: 'https://example.com/big.json' })
+
+      const result = example.toJsonSchema({ resolve: false })
+
+      assertEquals(result.externalValue, 'https://example.com/big.json')
+      assertEquals(result.value, undefined)
+    })
+
+    await t.step('should include externalValue alongside value', () => {
       const example = new OasExample({
         value: 'test',
         externalValue: 'https://example.com/external.json'
@@ -260,8 +271,7 @@ Deno.test('OasExample', async t => {
 
       const result = example.toJsonSchema({ resolve: false })
 
-      // Based on the implementation, externalValue is not included in the output
-      assertEquals('externalValue' in result, false)
+      assertEquals(result.externalValue, 'https://example.com/external.json')
       assertEquals(result.value, 'test')
     })
 

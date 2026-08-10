@@ -84,6 +84,27 @@ Deno.test('toExamplesV3 - a named example keeps its externalValue', () => {
   })
 })
 
+Deno.test('toExamplesV3 - examples wins when a document declares both', () => {
+  const stackTrail = new StackTrail(['TEST'])
+  // Malformed input — the spec makes the two mutually exclusive. Keep the
+  // richer field: a falsy singular must not discard the whole named map.
+  const result = toExamplesV3({
+    example: null,
+    examples: {
+      empty: { summary: 'No body', value: null },
+      full: { summary: 'Populated', value: { id: 1 } }
+    },
+    exampleKey: 'application/json',
+    stackTrail,
+    context: mockParseContext
+  })
+
+  assertEquals(result, {
+    empty: new OasExample({ summary: 'No body', value: null }),
+    full: new OasExample({ summary: 'Populated', value: { id: 1 } })
+  })
+})
+
 Deno.test('toExamplesV3 - examples collection', () => {
   const stackTrail = new StackTrail(['TEST'])
   const result = toExamplesV3({
