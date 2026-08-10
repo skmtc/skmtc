@@ -73,13 +73,20 @@ export const toExamplesV3 = ({
   stackTrail,
   context
 }: ToExamplesV3Args): Record<string, OasExample | OasRef<'example'>> | undefined => {
+  // An empty map is declared but carries nothing, so it cannot be the richer
+  // field — letting it win would discard the singular in favour of no examples
+  // at all.
+  const namedExamples = examples && Object.keys(examples).length > 0 ? examples : undefined
+
   // `example` is a literal, so test presence rather than truthiness — `false`,
   // `0` and `''` are all valid example values.
   if (example !== undefined && examples !== undefined) {
     context.logIssue({
       key: 'example',
       level: 'warning',
-      message: `Both example and examples are defined for ${exampleKey}; using examples`,
+      message: `Both example and examples are defined for ${exampleKey}; using ${
+        namedExamples ? 'examples' : 'example'
+      }`,
       parent: examples,
       stackTrail,
       type: 'EXAMPLE_AND_EXAMPLES_DEFINED'
@@ -90,10 +97,10 @@ export const toExamplesV3 = ({
   // malformed input. Prefer `examples`: it is the richer field — many entries,
   // each with a summary and description — and the singular carries nothing it
   // cannot express, so this discards strictly less.
-  if (examples) {
+  if (namedExamples) {
     return stackTrail.trace('examples', st => {
       const output: Record<string, OasExample | OasRef<'example'>> = {}
-      const entries = Object.entries(examples)
+      const entries = Object.entries(namedExamples)
 
       for (const [key, value] of entries) {
         output[key] = st.trace(key, st2 =>
