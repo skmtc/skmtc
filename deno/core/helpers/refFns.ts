@@ -1,6 +1,6 @@
 import type { RefName } from '../types/RefName.ts'
 import type { OpenAPIV3 } from 'openapi-types'
-import type { ReferenceObject } from '../parse/_merge-all-of/types.ts'
+import type { ReferenceObject } from '../parse/v3-0/_merge-all-of/types.ts'
 
 /**
  * Extracts a reference name from an OpenAPI $ref string.
