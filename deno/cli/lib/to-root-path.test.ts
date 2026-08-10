@@ -17,6 +17,24 @@ const withCwd = async (dir: string, fn: () => Promise<void> | void) => {
   }
 }
 
+// Run `fn` with $HOME temporarily pointed at `dir`, restoring it afterwards.
+// `toRootPath` reads the home directory through `homedir()` and
+// `toRelativeRootPath` reads `$HOME` directly; both re-read per call, so the
+// override moves the pair together.
+const withHome = async (dir: string, fn: () => Promise<void> | void) => {
+  const previous = Deno.env.get('HOME')
+  Deno.env.set('HOME', dir)
+  try {
+    await fn()
+  } finally {
+    if (previous === undefined) {
+      Deno.env.delete('HOME')
+    } else {
+      Deno.env.set('HOME', previous)
+    }
+  }
+}
+
 Deno.test('toRootPath - returns path ending with .skmtc', () => {
   const rootPath = toRootPath()
 
@@ -37,13 +55,30 @@ Deno.test('toAbsoluteRootPath - returns parent of .skmtc directory', () => {
   assertEquals(absolutePath.endsWith('.skmtc'), false)
 })
 
-Deno.test('toRelativeRootPath - includes tilde for home directory', () => {
-  const relativePath = toRelativeRootPath()
+Deno.test('toRelativeRootPath - tildes the home prefix', async () => {
+  // A SKMTC project lives under the user's home directory, so the test supplies
+  // its own home instead of reading the machine's. Reading it made the
+  // assertion depend on where the runner sat: from a checkout outside $HOME the
+  // relative walk starts with `..`, `join` cancels that against the `~`, and
+  // the test fails for reasons unrelated to the code under test.
+  //
+  // `realPath` because `Deno.chdir` resolves symlinks — an unresolved home
+  // (Fedora Silverblue's /home -> /var/home, macOS /tmp -> /private/tmp)
+  // disagrees with the cwd the code under test sees, which reintroduces the
+  // same leading `..`.
+  const home = await Deno.realPath(await Deno.makeTempDir({ prefix: 'skmtc-home-' }))
 
-  // If we have a HOME env var, path should start with ~
-  const hasHome = Deno.env.get('HOME')
-  if (hasHome) {
-    assertStringIncludes(relativePath, '~')
+  try {
+    const repoRoot = join(home, 'repo')
+    await ensureDir(join(repoRoot, '.skmtc'))
+
+    await withHome(home, () =>
+      withCwd(repoRoot, () => {
+        assertEquals(toRelativeRootPath(), join('~', 'repo'))
+      })
+    )
+  } finally {
+    await Deno.remove(home, { recursive: true })
   }
 })
 
@@ -84,12 +119,12 @@ Deno.test('toRootPath - the nearest .skmtc wins when a nested project shadows th
   }
 })
 
-Deno.test('toRootPath - does NOT walk up past the home-directory boundary (current limitation)', async () => {
-  // Characterization test, not an endorsement: the walk-up loop only runs while
-  // inside $HOME, so a repo checked out OUTSIDE $HOME (common in CI, containers,
-  // /opt) never finds an ancestor `.skmtc` — it assumes one in cwd. This pins
-  // current behavior; if monorepo-outside-$HOME is to be supported, relax the
-  // boundary in `to-root-path.ts` and update this test deliberately.
+Deno.test('toRootPath - stops the walk at the home-directory boundary', async () => {
+  // The walk-up loop runs only while inside $HOME, and that boundary is the
+  // design rather than a shortcoming: a SKMTC project is expected to live under
+  // the user's home directory. A repo checked out elsewhere (CI, a container,
+  // /opt) therefore gets `.skmtc` in cwd instead of an ancestor's — do not
+  // "fix" that by relaxing the loop in `to-root-path.ts`.
   const home = resolve(homedir())
   const repoRoot = await Deno.realPath(
     await Deno.makeTempDir({ prefix: 'skmtc-root-outside-home-' })
