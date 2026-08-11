@@ -82,21 +82,6 @@ Deno.test('mergeNullOnly - returns the modified schema object', () => {
   assertEquals(result.nullable, true)
 })
 
-Deno.test('mergeNullOnly - mutates the original schema', () => {
-  const schema: OpenAPIV3.SchemaObject = {
-    type: 'number',
-    enum: [1, 2, 3]
-  }
-
-  const result = mergeNullOnly(schema)
-
-  // Verify it's the same object (reference equality)
-  assertEquals(result === schema, true)
-  // Verify the original was mutated
-  assertEquals(schema.nullable, true)
-  assertEquals(schema.enum, [1, 2, 3, null])
-})
-
 Deno.test('isNullOnly - returns true for valid null-only schema', () => {
   const schema: OpenAPIV3.SchemaObject = {
     nullable: true,
@@ -205,4 +190,23 @@ Deno.test('isNullOnly - returns false when enum contains non-null value', () => 
   const result = isNullOnly(schema)
 
   assertEquals(result, false)
+})
+
+/**
+ * `getRef` hands back the LIVE `components.schemas[X]` object, and property
+ * schemas are read straight off the document too, so anything mutated here is
+ * rewritten for every other use site and the result depends on parse order.
+ * Both fields matter: `enum` is an array, so appending to it reaches the
+ * original through a shallow copy.
+ */
+Deno.test('mergeNullOnly - does not mutate its argument', () => {
+  const schema: OpenAPIV3.SchemaObject = { type: 'string', enum: ['a', 'b'] }
+  const before = JSON.stringify(schema)
+
+  const result = mergeNullOnly(schema)
+
+  assertEquals(JSON.stringify(schema), before, 'the input schema must be untouched')
+  assertEquals(result.enum, ['a', 'b', null])
+  assertEquals(result.nullable, true)
+  assertEquals(schema.enum, ['a', 'b'], 'the enum ARRAY must not be appended to')
 })

@@ -207,21 +207,23 @@ const mergeWithRef = (
     return isEmpty(first) ? second : first
   }
 
-  // Resolved schemas go back through `mergeSchemasOrRefs`, NOT straight to
-  // `mergeSchemas`.
+  // A resolved referent's `allOf` is consumed HERE, while this expansion's
+  // path is still on the resolver.
   //
-  // `mergeSchemas` has no `allOf` / `oneOf` dispatch — that lives in
-  // `mergeSchemasOrRefs` — so a referent carrying `allOf` was handed to
-  // `typedMerge`, which copies keys it does not recognise into its output. The
-  // `allOf` therefore survived the merge and re-triggered the intersection
-  // branch on the way back up, at a frame whose resolver had none of this
-  // expansion's path on it. That is what made the recursion unbounded: the
-  // cycle marker is scoped to the descent, but the unconsumed `allOf` escaped
-  // upward in the data and was re-expanded from scratch.
+  // That `allOf` was the second half of the runaway. `mergeSchemas` has no
+  // `allOf` dispatch, so `typedMerge` copied the key into its output, where it
+  // escaped UPWARD in the data and was re-expanded at a frame whose resolver
+  // carried none of the path. The cycle marker is scoped to the descent; the
+  // unconsumed `allOf` outlived it.
   //
-  // Routing through `mergeSchemasOrRefs` consumes the `allOf` here, while the
-  // path is still in hand. There is no bounce risk: both arguments are resolved
-  // schemas, so `containsRef` is false and it cannot re-enter this function.
+  // Only `allOf`. Handing the referent to `mergeSchemasOrRefs` instead would
+  // also dispatch its `oneOf`/`anyOf` to `mergeCrossProduct`, whose `toGroup`
+  // keeps the member list and discards every sibling keyword on that node — a
+  // referent's `discriminator`, `description`, `properties` and `required` all
+  // vanish, on acyclic documents. A union needs no consuming here: it survives
+  // as data and `toSchemaV3` parses it later, which is what `main` does.
+  // (`toGroup` dropping those siblings is a real defect, tracked on skmtc#117
+  // as its own line item; it is not this PR's to change.)
   if (isRef(first) && isRef(second)) {
     if (first.$ref === second.$ref) {
       return {
@@ -229,29 +231,62 @@ const mergeWithRef = (
         ...second
       }
     } else {
-      return mergeSchemasOrRefs(
-        getRef(first),
-        getRef(second),
-        enteringRef(enteringRef(getRef, first), second)
+      const scoped = enteringRef(enteringRef(getRef, first), second)
+
+      return mergeResolved(
+        consumeAllOf(getRef(first), scoped),
+        consumeAllOf(getRef(second), scoped),
+        scoped
       )
     }
   }
 
   if (isRef(first) && !isRef(second)) {
-    const merged = isEmpty(second)
-      ? first
-      : mergeSchemasOrRefs(getRef(first), second, enteringRef(getRef, first))
+    if (isEmpty(second)) {
+      return first
+    }
 
-    return merged
+    const scoped = enteringRef(getRef, first)
+
+    return mergeResolved(consumeAllOf(getRef(first), scoped), second, scoped)
   }
 
   if (!isRef(first) && isRef(second)) {
-    const merged = isEmpty(first)
-      ? second
-      : mergeSchemasOrRefs(first, getRef(second), enteringRef(getRef, second))
+    if (isEmpty(first)) {
+      return second
+    }
 
-    return merged
+    const scoped = enteringRef(getRef, second)
+
+    return mergeResolved(first, consumeAllOf(getRef(second), scoped), scoped)
   }
 
   throw new Error('Invalid input')
+}
+
+/** A referent's `allOf`, squashed. Anything else is returned untouched. */
+const consumeAllOf = (schema: SchemaOrReference, getRef: GetRefFn): SchemaOrReference => {
+  if (isRef(schema) || !schema.allOf?.length) {
+    return schema
+  }
+
+  return mergeIntersection({ schema, getRef })
+}
+
+/**
+ * Merge two schemas that have already been resolved. `consumeAllOf` can still
+ * hand back a reference — a single-member `allOf`, or one the cycle guard
+ * refused to expand — so that case goes back through the ref path, where the
+ * resolver already carries the expansion path that terminates it.
+ */
+const mergeResolved = (
+  first: SchemaOrReference,
+  second: SchemaOrReference,
+  getRef: GetRefFn
+): SchemaOrReference => {
+  if (isRef(first) || isRef(second)) {
+    return mergeWithRef(first, second, getRef)
+  }
+
+  return mergeSchemas(first, second, getRef)
 }
