@@ -1,5 +1,6 @@
 import { isRef } from '@/helpers/refFns.ts'
-import type { SchemaOrReference, ReferenceObject, SchemaObject, GetRefFn } from './types.ts'
+import type { SchemaOrReference, SchemaObject, GetRefFn } from './types.ts'
+import { closesCycle, enteringRef } from './ref-cycle.ts'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
 import { checkReadOnlyWriteOnlyConflicts } from './check-read-only-write-only-conflicts.ts'
 import { checkFormatConflicts } from './check-format-conflicts.ts'
@@ -180,8 +181,47 @@ const typedMerge = (first: SchemaObject, second: SchemaObject, getRef: GetRefFn)
 const mergeWithRef = (
   first: SchemaOrReference,
   second: SchemaOrReference,
-  getRef: (ref: ReferenceObject) => SchemaObject
+  getRef: GetRefFn
 ): SchemaOrReference => {
+  // A side already being expanded above us closes a cycle, so it cannot be
+  // resolved again — there is no finite inlining.
+  //
+  // What happens next depends on the other side. If the other side is empty the
+  // reference SURVIVES, and `toSchemaV3` turns it into an `OasRef` that resolves
+  // lazily at use time. If the other side carries content we keep that content
+  // and DROP the reference — so any constraint the referent imposes is lost from
+  // this position. That is not obviously right: the alternative is to keep both
+  // (`{allOf: [first, second]}`), which preserves the constraint but re-enters
+  // this branch on the way back up and needs a termination argument of its own.
+  //
+  // Known limitation, tracked with the guard's scoping redesign (see the
+  // `expanding` set on `GetRefFn`): the path is a property of ONE position, but
+  // the resolver carrying it governs a two-sided merge, so a reference on the
+  // opposite side that happens to name the same schema is also treated as
+  // closing a cycle. Measured at 4 sites in 2 of 66 sampled specs.
+  if (closesCycle(getRef, first)) {
+    return isEmpty(second) ? first : second
+  }
+
+  if (closesCycle(getRef, second)) {
+    return isEmpty(first) ? second : first
+  }
+
+  // Resolved schemas go back through `mergeSchemasOrRefs`, NOT straight to
+  // `mergeSchemas`.
+  //
+  // `mergeSchemas` has no `allOf` / `oneOf` dispatch — that lives in
+  // `mergeSchemasOrRefs` — so a referent carrying `allOf` was handed to
+  // `typedMerge`, which copies keys it does not recognise into its output. The
+  // `allOf` therefore survived the merge and re-triggered the intersection
+  // branch on the way back up, at a frame whose resolver had none of this
+  // expansion's path on it. That is what made the recursion unbounded: the
+  // cycle marker is scoped to the descent, but the unconsumed `allOf` escaped
+  // upward in the data and was re-expanded from scratch.
+  //
+  // Routing through `mergeSchemasOrRefs` consumes the `allOf` here, while the
+  // path is still in hand. There is no bounce risk: both arguments are resolved
+  // schemas, so `containsRef` is false and it cannot re-enter this function.
   if (isRef(first) && isRef(second)) {
     if (first.$ref === second.$ref) {
       return {
@@ -189,18 +229,26 @@ const mergeWithRef = (
         ...second
       }
     } else {
-      return mergeSchemas(getRef(first), getRef(second), getRef)
+      return mergeSchemasOrRefs(
+        getRef(first),
+        getRef(second),
+        enteringRef(enteringRef(getRef, first), second)
+      )
     }
   }
 
   if (isRef(first) && !isRef(second)) {
-    const merged = isEmpty(second) ? first : mergeSchemas(getRef(first), second, getRef)
+    const merged = isEmpty(second)
+      ? first
+      : mergeSchemasOrRefs(getRef(first), second, enteringRef(getRef, first))
 
     return merged
   }
 
   if (!isRef(first) && isRef(second)) {
-    const merged = isEmpty(first) ? second : mergeSchemas(first, getRef(second), getRef)
+    const merged = isEmpty(first)
+      ? second
+      : mergeSchemasOrRefs(first, getRef(second), enteringRef(getRef, second))
 
     return merged
   }
