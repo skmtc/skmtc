@@ -189,7 +189,7 @@ User-supplied per-operation or per-model configuration declared in
 A generator-initiated request (`{ prompt, enrichmentSchema, content }`)
 for an LLM-fillable enrichment, returned by the optional
 `toEnrichmentRequest(refName)`. See
-[enrichments §AI-driven enrichments](../concepts/enrichments.md#ai-driven-enrichments--enrichmentrequest).
+[enrichments §AI-driven enrichments](../authoring/how-to/add-enrichment-options.md#ai-driven-enrichments--enrichmentrequest).
 
 ### Entity type (`TsIdentifier.type`)
 
@@ -235,7 +235,7 @@ A branded composite identifier on every `Definition` — four shapes (OAS
 operation, GQL operation, model, generator-only) — used by
 [`affirmDefinition`](#affirmdefinition) to detect cache-hit collisions.
 See
-[files-and-dedup](../concepts/files-and-dedup.md#the-four-generator-key-shapes).
+[files-and-dedup](../concepts/files-and-dedup.md#the-generator-key-shapes).
 
 ### Global state
 
@@ -263,7 +263,7 @@ allow-lists and deny-lists; filter order is `isSupported` → `include`
 
 The `GenerateContext` method that inserts a model Projection via
 `ModelDriver` and returns an [`Inserted`](#inserted). See
-[how-generators-produce-output](../concepts/how-generators-produce-output.md#contextinsertoperationmyprojection-op-and-contextinsertmodelmyprojection-refname).
+[how-generators-produce-output](../concepts/how-generators-produce-output.md#contextinsertoperation-projection-operation--and-contextinsertmodelmyprojection-refname).
 
 ### `insertNormalizedModel`
 
@@ -278,7 +278,7 @@ The `GenerateContext` method for inserting a Projection from an
 The `GenerateContext` method for inserting an operation Projection (OAS
 or GraphQL) via the appropriate Driver; returns an
 [`Inserted`](#inserted). See
-[how-generators-produce-output](../concepts/how-generators-produce-output.md#contextinsertoperationmyprojection-op-and-contextinsertmodelmyprojection-refname).
+[how-generators-produce-output](../concepts/how-generators-produce-output.md#contextinsertoperation-projection-operation--and-contextinsertmodelmyprojection-refname).
 
 ### `Inserted`
 
@@ -401,7 +401,7 @@ with `--force`.
 A manifest entry pairing a `PreviewModule` with a source descriptor,
 produced by a generator's optional `toPreviewModule` hook for UI / IDE
 tooling. See
-[the-manifest](../concepts/the-manifest.md#previews-and-mappings--for-tooling).
+[the-manifest](../concepts/the-manifest.md#previews--for-tooling).
 
 ### Projection
 
@@ -435,7 +435,7 @@ invalidated, used during cascade pruning. See
 The lowest-level registration method on `GenerateContext`, mutating the
 file map at `destinationPath`; the only legitimate way to add imports.
 See
-[how-generators-produce-output §register](../concepts/how-generators-produce-output.md#contextregister-destinationpath-imports-definitions-reexports).
+[how-generators-produce-output §register](../concepts/how-generators-produce-output.md#contextregister-destinationpath-imports-definitions-reexports-).
 
 ### "Registered definition mismatch"
 

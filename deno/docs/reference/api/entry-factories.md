@@ -148,7 +148,7 @@ For the AI-driven enrichment request system. The generator declares
 "I'd like enrichment values of *this* shape for *this* operation/
 schema" and the enrichment service can respond. Most generators
 don't use this. See
-[enrichments concept](../../concepts/enrichments.md#ai-driven-enrichment-requests).
+[enrichments concept](../../authoring/how-to/add-enrichment-options.md#ai-driven-enrichments--enrichmentrequest).
 
 ## All three factories: `isSupported`
 
@@ -188,7 +188,7 @@ Three rules:
    a static on the projection-base class
    (`MyProjection.isSupported`), so peers can ask "would *that*
    generator handle this operation?" — the foundation of the
-   [operation-reference protocol](../../concepts/cross-generator-coordination.md#operation-reference-protocol).
+   [operation-reference protocol](../../concepts/cross-generator-coordination.md#pattern-operation-reference-consumer-chosen-peer).
 
 **Model entries have an optional `isSupported`, symmetric with
 operations.** The three rules above all apply, with one shape
@@ -472,7 +472,7 @@ enrichment-request system).
 
 Only when an enrichment service is wired up to the pipeline. Most
 local generations don't use it. See
-[enrichments concept](../../concepts/enrichments.md#ai-driven-enrichment-requests).
+[enrichments concept](../../authoring/how-to/add-enrichment-options.md#ai-driven-enrichments--enrichmentrequest).
 
 ## See also
 

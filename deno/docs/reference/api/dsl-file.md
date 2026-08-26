@@ -152,7 +152,7 @@ declaration-merging layout: `class Foo … declare namespace Foo`).
 The render contract is **no formatter, no Prettier, no Biome**. The
 output is unformatted TypeScript by design; consumers run their own
 formatter as a post-step. See
-[concepts/the-three-phases.md](../../concepts/the-three-phases.md#render-phase).
+[concepts/the-three-phases.md](../../concepts/the-three-phases.md#phase-3-render).
 
 ## `JsonFile` (core)
 

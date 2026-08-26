@@ -159,7 +159,7 @@ This is the same logic as shadcn/ui under MIT — components are
 meant to be vendored, not configured. Your cloned generators
 inherit the MIT terms, which keeps the fork-friendly model intact.
 
-See [licence rationale](../explanation/design-philosophy.md#licence-rationale)
+See [licence rationale](../explanation/design-philosophy.md#license-rationale)
 in the design philosophy.
 
 ## Common questions

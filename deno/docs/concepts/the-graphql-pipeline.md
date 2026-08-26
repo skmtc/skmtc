@@ -390,7 +390,7 @@ are deferred:
 - **Federation directives** (`@key`, `@external`, etc.) are
   out of scope.
 
-See [reference/error-codes.md](../reference/error-codes.md#graphql-issue-types)
+See [reference/error-codes.md](../reference/error-codes.md#graphql-parse-issue-types)
 for the full `GqlIssueType` enum and what each code indicates.
 
 ## Common questions

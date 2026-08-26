@@ -186,7 +186,7 @@ This contrasts with the stock generators in `@skmtc/gen-*`, which are
 **MIT** — chosen for fork-friendliness (the clone-to-customize
 philosophy).
 
-See the [license rationale in the README](../../README.md#license)
+See the [license rationale](../../explanation/design-philosophy.md#license-rationale)
 for the full reasoning.
 
 ## Versioning
