@@ -20,6 +20,9 @@ you're a writer on that project) — exactly like git.
 are created in the web app; a `404` from `push` means "create the
 project first".
 
+New to the hub? [What is skmtc-hub](../../explanation/what-is-skmtc-hub.md)
+introduces the nouns this page assumes (account, stack, project, PAT).
+
 ## Synopsis
 
 ```

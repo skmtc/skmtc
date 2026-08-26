@@ -178,6 +178,13 @@ hit, registers the `Definition`. See
 
 ## E
 
+### Eject / adopt
+
+Taking ownership of a generated file (`eject`: rename to drop the
+generated suffix, record in `settings.ejected`, generators stop
+writing it) and returning it to generation (`adopt`). See
+[eject](cli/eject.md) and [adopt](cli/adopt.md).
+
 ### Enrichment
 
 User-supplied per-operation or per-model configuration declared in
@@ -222,6 +229,14 @@ serialized by Render via `file.toString()`. See
 
 ## G
 
+### Gen-map (anchors)
+
+The attribution sidecar an opted-in run writes next to each generated
+file, mapping byte ranges of output back to the generator, schema
+location, and variant that produced them. Toggled by
+`client.json#settings.anchors.enabled` or `--anchors` /
+`--no-anchors` on [generate](cli/generate.md).
+
 ### Generator
 
 A JSR package (or local TypeScript directory) implementing the
@@ -242,6 +257,15 @@ See
 `~/.skmtc/` — auth token, shadow project state, schema caches. Lives
 outside any project; check it when local state alone doesn't explain a
 failure.
+
+## H
+
+### Hub (skmtc-hub)
+
+The hosted service behind `login`, `publish`, `push`, and `pull`:
+accounts (users or orgs) own published stacks and the projects that
+run them. See
+[what-is-skmtc-hub](../explanation/what-is-skmtc-hub.md).
 
 ## I
 
@@ -519,6 +543,12 @@ The root class for all DSL elements — provides `context`,
 `generatorKey`, and `register()`; both Projections and Snippets extend
 it.
 
+### Stack (hub)
+
+A published, immutable version of a SKMTC project on the hub —
+identity `deno.json#name` (`@account/slug`), addressed by semver.
+Produced by [publish](cli/publish.md); hub projects pin one.
+
 ### `StackTrail`
 
 The mutable stack of string frames threaded through Parse that tracks
@@ -569,6 +599,13 @@ carrying [`Modifiers`](#modifiers). See
 
 ## V
 
+### Variant
+
+A named axis below `(operation, method)` / `(rootKind, fieldName)` /
+`refName` along which one source item produces *N* Definitions
+instead of one (section-edit forms, wizard steps, mock scenarios).
+Defaults to `'main'`. See [variants](../concepts/variants.md).
+
 ### `verbatimModuleSyntax`
 
 The TypeScript compiler option requiring `import { type X }` for
@@ -576,6 +613,14 @@ type-only imports; SKMTC's `Identifier` tracks entity types to render
 correct imports under it.
 
 ## W
+
+### Webhook
+
+The OpenAPI 3.1 subject for server-initiated calls: structurally an
+Operation Object keyed by **name** rather than URL path, with inverted
+request/response semantics — a distinct subject (`OasWebhook`), never
+routed through an operation generator. See
+[webhook generators](api/webhook-generators.md).
 
 ### Worker
 

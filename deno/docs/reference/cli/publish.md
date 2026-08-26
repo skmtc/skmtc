@@ -23,6 +23,9 @@ The version comes from the project root `deno.json#version`, or from
 is rejected with a `409`. The CLI never invents or auto-bumps a
 version.
 
+New to the hub? [What is skmtc-hub](../../explanation/what-is-skmtc-hub.md)
+introduces the nouns this page assumes (account, stack, project, PAT).
+
 ## Synopsis
 
 ```

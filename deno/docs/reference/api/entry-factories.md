@@ -29,8 +29,8 @@ Argument-shape type files:
 - `skmtc/deno/core/dsl/operation/gql/types.ts`
 - `skmtc/deno/core/dsl/model/types.ts`
 
-(A fourth flavor, `toWebhookEntry` in `core/dsl/webhook/`, follows
-the same shape.)
+(A fourth flavor exists for OpenAPI 3.1 webhooks — see
+[webhook generators](webhook-generators.md).)
 
 ## The three factories at a glance
 

@@ -17,6 +17,9 @@ separate from authorization (the hub checks you can read the project).
 `pull` never creates a project. A `404` means "create the project in the
 web app first".
 
+New to the hub? [What is skmtc-hub](../../explanation/what-is-skmtc-hub.md)
+introduces the nouns this page assumes (account, stack, project, PAT).
+
 ## Synopsis
 
 ```

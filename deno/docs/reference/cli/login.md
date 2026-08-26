@@ -16,6 +16,9 @@ automation — the command prints the token-settings URL rather than
 opening it (the recommended install grants `--allow-run=deno,sh`
 only, so spawning `open` would fail).
 
+New to the hub? [What is skmtc-hub](../../explanation/what-is-skmtc-hub.md)
+introduces the nouns this page assumes (account, stack, project, PAT).
+
 ## Synopsis
 
 ```
