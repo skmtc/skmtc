@@ -142,7 +142,7 @@ renderer.
 Derive names deterministically inside `toIdentifierName` — method +
 path for operations (via `camelCase` / `capitalize` / `toMethodVerb`
 from `@skmtc/core`), `refName` for models — and role-suffix them
-(`Form`, `Hook`, `Table`) for cache-key uniqueness. See the
-`skmtc-generator` skill section on bare-noun identifiers, and
+(`Form`, `Hook`, `Table`) for cache-key uniqueness — a bare noun
+collides as soon as a second generator names the same item. See
 `sanitizePropertyName` (from `@skmtc/lang-typescript`) for
 schema-supplied object keys.

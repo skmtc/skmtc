@@ -23,3 +23,22 @@ are and how to use them as starting points to clone and edit.
 | [`@skmtc/gen-shadcn-form`](gen-shadcn-form.md) | React form components using shadcn/ui form primitives |
 | [`@skmtc/gen-shadcn-select`](gen-shadcn-select.md) | React searchable-select component sourced from a GET endpoint |
 | [`@skmtc/gen-shadcn-table`](gen-shadcn-table.md) | React data-table component sourced from a GET list-response endpoint |
+
+## Not in this reference
+
+The `@skmtc/gen-*` scope has a few more members. They are absent here
+because they are pre-alpha, internal tooling, or younger siblings of a
+documented generator — not because they are secret:
+
+- `@skmtc/gen-daisyui-form` — form generator over daisyUI; the younger
+  sibling of [gen-shadcn-form](gen-shadcn-form.md)
+- `@skmtc/gen-typescript-s` and `@skmtc/gen-typescript-sdk` — a
+  configurable-scalars variant of [gen-typescript](gen-typescript.md),
+  and an enrichment-driven SDK resource-class generator
+- `@skmtc/gen-md-docs` — per-operation markdown documentation
+  (internal tooling for search indexing)
+- `@skmtc/gen-kotlin-jackson`, `@skmtc/gen-kotlin-spring` — private,
+  pre-alpha Kotlin track; not published
+- `@skmtc/gen-ts-webhook` — one handler type per OpenAPI 3.1 webhook;
+  covered as the worked example in
+  [webhook generators](../api/webhook-generators.md)

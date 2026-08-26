@@ -149,7 +149,7 @@ No — definitions are append-only into the file map; first-write-wins
 enrichments or the Projection's inputs, not by mutating a
 registered definition. (One sanctioned exception: the accumulator
 pattern mutates the *value* of a single shared definition — see
-gen-msw and the `skmtc-generator` skill's accumulator card.)
+gen-msw for the worked example.)
 
 ### What happens if `value` has no `toString()`?
 

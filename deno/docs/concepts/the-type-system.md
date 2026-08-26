@@ -314,7 +314,7 @@ that has no `$ref` of its own.
 (If the schema *is* a `$ref`, `insertNormalizedModel` delegates to
 `insertModel` instead, which goes through the full Driver flow —
 including the constructor's own internal `schemaToValueFn` call.
-See [how-generators-produce-output.md](how-generators-produce-output.md#contextinsertnormalizedmodelmyprojection-schema-fallbackname-destinationpath).)
+See [how-generators-produce-output.md](how-generators-produce-output.md#contextinsertnormalizedmodelmyprojection--schema-fallbackname-destinationpath-).)
 
 ## Why no default visitor?
 

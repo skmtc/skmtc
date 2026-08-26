@@ -111,9 +111,7 @@ would split into two entries, generators would produce duplicate
 definitions with subtle differences, and the order-independence
 guarantee would break.
 
-The purity invariant is convention-enforced, not type-enforced. The
-verification checklist in the `skmtc-generator` skill explicitly
-calls out the purity requirement.
+The purity invariant is convention-enforced, not type-enforced.
 
 ## The Driver flow
 

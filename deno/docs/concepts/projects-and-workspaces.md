@@ -379,7 +379,8 @@ shared file accumulating re-export entries.
   single-`basePath` model
 - [`files-and-dedup.md`](./files-and-dedup.md) — the `File` model and import
   normalisation
-- `skmtc-cli` skill §6 — the `client.json` shape
+- [client-json-schema.md](../reference/settings/client-json-schema.md) — the
+  `client.json` shape
 
 ## Further reading
 

@@ -77,5 +77,3 @@ change.
   — the register path end to end
 - [stringable-composition.md](stringable-composition.md) — why
   rendering lives on `toString()`
-- The `skmtc-lang-typescript` skill — the per-language operational
-  answers for the one production language layer
