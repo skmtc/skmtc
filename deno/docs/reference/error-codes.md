@@ -211,6 +211,35 @@ constraint.
 **Remediation:** Fix the offending enum member in the OpenAPI source
 so every member matches the schema's type.
 
+### `CYCLIC_COMPOSITION` — debug
+
+**When:** The parser met a composition cycle it resolved by NAMING rather
+than by copying. Two situations, both recorded so the choice is visible:
+
+- A `oneOf`/`anyOf` whose wrapper carries `properties` names members that
+  already `allOf`-extend the wrapper (`Parent: { properties, oneOf: [Child] }`
+  with `Child: allOf [Parent, …]`). Those members are kept as `$ref`s; the
+  wrapper's properties are not pushed into them, because they inherit them.
+- An inline multi-member `allOf` that the document reaches again while it is
+  being merged (`{ allOf: [{ properties }, { $ref: Union }] }` where a member
+  of `Union` contains that same `allOf`). The `allOf` is registered as a
+  component named from its location
+  (`<schema>~properties~<key>~oneOf~<index>`), and the recursion becomes a
+  `$ref` to it — the way a recursive type is written in any target language.
+  Generators see it as an ordinary model.
+
+**Typical message:** `2 oneOf member(s) already extend "Parent"; kept as
+references` or `Recursive inline allOf registered as component "…"`.
+
+**Remediation:** None required. If the synthesized name is unwelcome, give
+the recursive `allOf` a name yourself by hoisting it into
+`components.schemas` and referencing it.
+
+Mutual `allOf` with no union to take a branch of (`A: allOf [B]`,
+`B: allOf [A]`) is not resolved this way: it has no finite reading and is
+refused with `INVALID_SCHEMA` (`Cyclic allOf: "A" is being merged and cannot
+be copied into itself`).
+
 ## GraphQL parse-issue types
 
 ### `INVALID_TYPE_DEFINITION` — error

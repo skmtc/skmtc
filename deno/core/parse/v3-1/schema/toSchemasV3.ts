@@ -12,7 +12,8 @@ import { toBoolean } from '../boolean/toBoolean.ts'
 import { toString } from '../string/toString.ts'
 import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
-import { toGetRef } from '@/helpers/refFns.ts'
+import { extendsSchema, toMemberRef, toParseGetRef } from '@/helpers/toParseGetRef.ts'
+import { toSchemaExpansion, toSynthesizedName } from '@/context/SchemaExpansion.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
 import { mergeUnion } from '../_merge-all-of/merge-union.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
@@ -30,6 +31,7 @@ export const toSchemasV3 = ({
 }: ToSchemasV3Args): Record<string, OasSchema | OasRef<'schema'>> => {
   const output: Record<string, OasSchema | OasRef<'schema'>> = {}
   const entries = Object.entries(schemas)
+  const expansion = toSchemaExpansion(context)
 
   for (const [key, schema] of entries) {
     const value = tryParseAt({
@@ -38,7 +40,10 @@ export const toSchemasV3 = ({
       context,
       type: 'INVALID_SCHEMA',
       parent: schema,
-      fn: st => toSchemaV3({ schema, stackTrail: st, context })
+      // Built under its own name: while `key` is in progress, a cycle back
+      // into it is recognised by name (see `toParseGetRef`) or by node
+      // identity (see the `allOf` branch of `toSchemaV3`).
+      fn: st => expansion.enter(schema, key, () => toSchemaV3({ schema, stackTrail: st, context }))
     })
     if (value !== undefined) {
       output[key] = value
@@ -107,7 +112,11 @@ const normalizeTypeArray = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObj
   // of the bare types and let the oneOf branch build the OasUnion.
   if (members.length > 1) {
     const { type: _type, ...rest } = schema
-    return { ...rest, nullable, oneOf: members.map(member => ({ type: member })) }
+    return {
+      ...rest,
+      nullable,
+      oneOf: members.map(member => ({ type: member }))
+    }
   }
 
   // Exactly one non-null type: dispatch as that type, carrying nullability.
@@ -138,7 +147,12 @@ const normalizeConst = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObject 
 
   // `const` is a 3.1 keyword the 3.0-typed SchemaObject does not model; read
   // it via an annotated destructure rather than a cast.
-  const { const: constValue, ...rest }: OpenAPIV3.SchemaObject & { const?: unknown } = schema
+  const {
+    const: constValue,
+    ...rest
+  }: OpenAPIV3.SchemaObject & {
+    const?: unknown
+  } = schema
 
   return { ...rest, enum: [constValue] }
 }
@@ -271,7 +285,10 @@ const isNullTypeSchema = (member: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaOb
  */
 const partitionNullMember = (
   members: (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]
-): { members: (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]; nullable: boolean } => {
+): {
+  members: (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]
+  nullable: boolean
+} => {
   const nonNull = members.filter(member => !isNullTypeSchema(member))
   return { members: nonNull, nullable: nonNull.length !== members.length }
 }
@@ -372,12 +389,7 @@ export const toSchemaV3 = ({
         })
       }
 
-      const merged = mergeIntersection({
-        schema,
-        getRef: toGetRef(context.documentObject)
-      })
-
-      return toSchemaV3({ schema: merged, stackTrail: st, context })
+      return eliminateAllOf({ schema, stackTrail, st, context })
     })
   }
 
@@ -392,17 +404,32 @@ export const toSchemaV3 = ({
         ? { ...schema, oneOf: oneOfWithoutNull, nullable: true }
         : schema
 
-      const merged = mergeUnion({
+      const soleRef = toSoleRefMember(withoutNull, 'oneOf')
+
+      if (soleRef) {
+        return toRefV31({
+          ref: soleRef,
+          refType: 'schema',
+          nullable: withoutNull.nullable === true ? true : undefined,
+          stackTrail: st,
+          context
+        })
+      }
+
+      const { merged, inheriting } = mergeUnionWrapper({
         schema: withoutNull,
-        getRef: toGetRef(context.documentObject),
-        groupType: 'oneOf'
+        wrapperName: toSchemaExpansion(context).nameOf(schema),
+        groupType: 'oneOf',
+        stackTrail: st,
+        context
       })
 
       if (!('oneOf' in merged) || !Array.isArray(merged.oneOf)) {
         throw new Error('Missing "oneOf" array')
       }
 
-      const { oneOf: members, ...value } = merged
+      const { oneOf: mergedMembers, ...value } = merged
+      const members = [...inheriting, ...mergedMembers]
 
       if (members.length === 0) {
         throw new Error('"oneOf" array is empty')
@@ -436,7 +463,13 @@ export const toSchemaV3 = ({
         })
       }
 
-      return toUnion({ value, members, parentType: 'oneOf', stackTrail: st, context })
+      return toUnion({
+        value,
+        members,
+        parentType: 'oneOf',
+        stackTrail: st,
+        context
+      })
     })
   }
 
@@ -446,7 +479,13 @@ export const toSchemaV3 = ({
       // @ts-expect-error
       if (schema['x-expansionResources'] && Array.isArray(schema.anyOf)) {
         const { anyOf, ...value } = schema
-        return toUnion({ value, members: anyOf, parentType: 'anyOf', stackTrail: st, context })
+        return toUnion({
+          value,
+          members: anyOf,
+          parentType: 'anyOf',
+          stackTrail: st,
+          context
+        })
       }
 
       // 3.1: a `{ type: 'null' }` member makes the union nullable (mirrors
@@ -458,17 +497,32 @@ export const toSchemaV3 = ({
         ? { ...schema, anyOf: anyOfWithoutNull, nullable: true }
         : schema
 
-      const merged = mergeUnion({
+      const soleRef = toSoleRefMember(withoutNull, 'anyOf')
+
+      if (soleRef) {
+        return toRefV31({
+          ref: soleRef,
+          refType: 'schema',
+          nullable: withoutNull.nullable === true ? true : undefined,
+          stackTrail: st,
+          context
+        })
+      }
+
+      const { merged, inheriting } = mergeUnionWrapper({
         schema: withoutNull,
-        getRef: toGetRef(context.documentObject),
-        groupType: 'anyOf'
+        wrapperName: toSchemaExpansion(context).nameOf(schema),
+        groupType: 'anyOf',
+        stackTrail: st,
+        context
       })
 
       if (!('anyOf' in merged) || !Array.isArray(merged.anyOf)) {
         throw new Error('Missing "anyOf" array')
       }
 
-      const { anyOf: members, ...value } = merged
+      const { anyOf: mergedMembers, ...value } = merged
+      const members = [...inheriting, ...mergedMembers]
 
       if (members.length === 0) {
         throw new Error('"anyOf" array is empty')
@@ -495,7 +549,13 @@ export const toSchemaV3 = ({
         })
       }
 
-      return toUnion({ value, members, parentType: 'anyOf', stackTrail: st, context })
+      return toUnion({
+        value,
+        members,
+        parentType: 'anyOf',
+        stackTrail: st,
+        context
+      })
     })
   }
 
@@ -657,4 +717,249 @@ export const toOptionalSchemaV3 = ({
   }
 
   return toSchemaV3({ schema, stackTrail, context })
+}
+
+type EliminateAllOfArgs = {
+  schema: OpenAPIV3.SchemaObject
+  /** The trail the schema was reached at — names a recursive inline `allOf`. */
+  stackTrail: StackTrail
+  /** The trail inside the `allOf` frame — where the merged result is built. */
+  st: StackTrail
+  context: ParseContextType
+}
+
+/**
+ * Eliminate a multi-member `allOf` by merging its members into one schema,
+ * without looping on a document that reaches this node again while it is
+ * being merged.
+ *
+ * The merge copies property values by reference, so a cycle through a
+ * property (`A: allOf [B, …]`, `B.properties.x: { allOf: [A-shaped …] }`)
+ * hands `toSchemaV3` the SAME node object a second time, part-way through
+ * building it. That second visit is answered with a `$ref` to the node's
+ * name — the way a recursive type is written in any target language —
+ * rather than by merging it again:
+ *
+ * - a component already has a name, and the ref resolves to the component;
+ * - an inline `allOf` is given one from its location (`toSynthesizedName`)
+ *   and, because something now refers to it, is registered as a component
+ *   at the end of the parse (`ParseContext.parse`). The site that held it
+ *   inline refers to the new component too, so the schema exists once.
+ *
+ * An inline `allOf` nothing refers back to is merged in place as before:
+ * no name, no new component, identical IR to today.
+ */
+const eliminateAllOf = ({
+  schema,
+  stackTrail,
+  st,
+  context
+}: EliminateAllOfArgs): OasSchema | OasRef<'schema'> => {
+  const expansion = toSchemaExpansion(context)
+
+  if (expansion.isBuilding(schema)) {
+    const name = expansion.nameOf(schema)
+
+    if (name === undefined) {
+      throw new Error('Re-entered an allOf that has no name')
+    }
+
+    expansion.markReferenced(schema)
+
+    return toRefV31({
+      ref: { $ref: `#/components/schemas/${name}` },
+      refType: 'schema',
+      stackTrail: st,
+      context
+    })
+  }
+
+  const build = (): OasSchema | OasRef<'schema'> => {
+    expansion.startBuilding(schema)
+
+    const merged = mergeIntersection({
+      schema,
+      getRef: toParseGetRef(context)
+    })
+
+    return toSchemaV3({ schema: merged, stackTrail: st, context })
+  }
+
+  if (expansion.nameOf(schema) !== undefined) {
+    return build()
+  }
+
+  const name = toSynthesizedName(stackTrail)
+
+  return expansion.enter(schema, name, () => {
+    const node = build()
+
+    if (!expansion.wasReferenced(schema)) {
+      return node
+    }
+
+    expansion.synthesize(name, schema, node)
+
+    context.logIssueNoKey({
+      level: 'debug',
+      type: 'CYCLIC_COMPOSITION',
+      parent: schema,
+      stackTrail: st,
+      message: `Recursive inline allOf registered as component "${name}"`
+    })
+
+    return toRefV31({
+      ref: { $ref: `#/components/schemas/${name}` },
+      refType: 'schema',
+      stackTrail: st,
+      context
+    })
+  })
+}
+
+/**
+ * Wrapper keywords that describe the union itself rather than extend its
+ * members. A single-`$ref` union carrying only these is just a reference
+ * (with the wrapper's nullability), and must not force the target to be
+ * copied in — the OData `x-ms-navigationProperty` spelling of a nullable
+ * self-reference (`{ type: object, anyOf: [{ $ref: self }], nullable }`)
+ * would otherwise copy the parent into its own property without end.
+ */
+const UNION_ONLY_KEYWORDS = new Set([
+  'oneOf',
+  'anyOf',
+  'type',
+  'nullable',
+  'description',
+  'title',
+  'example',
+  'examples',
+  'default',
+  'deprecated',
+  'readOnly',
+  'writeOnly',
+  'externalDocs',
+  'discriminator'
+])
+
+/**
+ * The single `$ref` member of a one-member `oneOf`/`anyOf` whose wrapper adds
+ * nothing to it; `undefined` when the wrapper carries keywords that extend
+ * the member (`properties`, `required`, …), which the merge handles.
+ */
+const toSoleRefMember = (
+  schema: OpenAPIV3.SchemaObject,
+  groupType: 'oneOf' | 'anyOf'
+): OpenAPIV3.ReferenceObject | undefined => {
+  const members = schema[groupType]
+
+  if (!Array.isArray(members) || members.length !== 1) {
+    return undefined
+  }
+
+  const [member] = members
+
+  if (!isRef(member)) {
+    return undefined
+  }
+
+  const extendsMember = Object.keys(schema).some(
+    key => !UNION_ONLY_KEYWORDS.has(key) && !key.startsWith('x-')
+  )
+
+  return extendsMember ? undefined : member
+}
+
+type MergeUnionWrapperArgs = {
+  schema: OpenAPIV3.SchemaObject
+  /** The component name this union is the root of, when it is one. */
+  wrapperName: string | undefined
+  groupType: 'oneOf' | 'anyOf'
+  stackTrail: StackTrail
+  context: ParseContextType
+}
+
+type MergeUnionWrapperResult = {
+  /** `mergeUnion` over the members the wrapper extends. */
+  merged: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
+  /**
+   * Members kept as written — refs to schemas that already `allOf`-extend
+   * this wrapper, so pushing its keywords into them would only copy what
+   * they inherit (and, with `Child: allOf [Parent]`, never finish).
+   */
+  inheriting: (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]
+}
+
+/**
+ * Push a union wrapper's keywords into its members — except members that
+ * inherit from the wrapper already.
+ *
+ * `Parent: { properties, discriminator, oneOf: [Child1, Child2] }` with each
+ * `ChildN: allOf [Parent, own]` is the polymorphism idiom springdoc and
+ * Swagger emit. The children have the parent's properties through their own
+ * `allOf`; the parent's union is there to name them. Those members stay
+ * `OasRef`s. A member that does NOT extend the wrapper is extended by it,
+ * into a new inline schema, as before.
+ */
+const mergeUnionWrapper = ({
+  schema,
+  wrapperName,
+  groupType,
+  stackTrail,
+  context
+}: MergeUnionWrapperArgs): MergeUnionWrapperResult => {
+  const getRef = toParseGetRef(context)
+  const members = schema[groupType] ?? []
+
+  const inheriting =
+    wrapperName === undefined
+      ? []
+      : members.filter(member => {
+          const ref = toMemberRef(member)
+
+          if (ref === undefined) {
+            return false
+          }
+
+          try {
+            return extendsSchema(getRef(ref), wrapperName)
+          } catch {
+            return false
+          }
+        })
+
+  if (inheriting.length === 0) {
+    return { merged: mergeUnion({ schema, getRef, groupType }), inheriting }
+  }
+
+  const extending = members.filter(member => !inheriting.includes(member))
+
+  context.logIssueNoKey({
+    level: 'debug',
+    type: 'CYCLIC_COMPOSITION',
+    parent: schema,
+    stackTrail,
+    message: `${inheriting.length} ${groupType} member(s) already extend "${wrapperName}"; kept as references`
+  })
+
+  if (extending.length > 0) {
+    return {
+      merged: mergeUnion({
+        schema: { ...schema, [groupType]: extending },
+        getRef,
+        groupType
+      }),
+      inheriting
+    }
+  }
+
+  // Every member inherits: the wrapper's structural keywords are already in
+  // each of them, so only the union-level ones survive on the union node.
+  const unionOnly = Object.fromEntries(
+    Object.entries(schema).filter(
+      ([key]) => (UNION_ONLY_KEYWORDS.has(key) && key !== 'type') || key.startsWith('x-')
+    )
+  )
+
+  return { merged: { ...unionOnly, [groupType]: [] }, inheriting }
 }

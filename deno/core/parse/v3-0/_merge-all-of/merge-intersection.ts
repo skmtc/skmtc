@@ -16,7 +16,7 @@ export const mergeIntersection = ({ schema, getRef }: MergeIntersectionArgs): Sc
   }
 
   const dereffed = decomposed.map(decomposed => {
-    return '$ref' in decomposed ? getRef(decomposed) : decomposed
+    return '$ref' in decomposed ? getRef(decomposed, 'base') : decomposed
   })
 
   const result = dereffed.reduce<SchemaOrReference>((acc, decomposed) => {

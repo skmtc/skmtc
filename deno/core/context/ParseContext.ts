@@ -26,6 +26,9 @@ import { toDocumentFieldsV3 } from '@/parse/v3-0/document/toDocumentFieldsV3.ts'
 import { toDocumentFieldsV3 as toDocumentFieldsV31 } from '@/parse/v3-1/document/toDocumentFieldsV3.ts'
 import { toOasDialect } from '@/parse/toOasDialect.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
+import { OasComponents } from '@/oas/components/Components.ts'
+import type { RefName } from '@/types/RefName.ts'
+import { toSchemaExpansion } from '@/context/SchemaExpansion.ts'
 import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import { parseGqlDocument } from '@/gql/document/parseGqlDocument.ts'
@@ -47,7 +50,7 @@ import type { ParseIssue } from '@/context/ParseIssue.ts'
 // surface. New parser helpers should `import type` from
 // `./parseTypes.ts` (input/arg shapes) or `./ParseIssue.ts`
 // (issue / protocol enums); the class itself stays here.
-export type { ParseIssue, GqlIssueType } from '@/context/ParseIssue.ts'
+export type { GqlIssueType, ParseIssue } from '@/context/ParseIssue.ts'
 export type {
   GqlParseOptions,
   LogAtArgs,
@@ -252,6 +255,7 @@ export class ParseContext {
             throw new Error(`Unhandled OAS dialect: ${JSON.stringify(_exhaustive)}`)
           }
         }
+        this.#registerSynthesizedSchemas(oasState.oasDocument)
         this.removeErroredItems()
         return { type: 'oas', value: oasState.oasDocument }
       }
@@ -298,6 +302,31 @@ export class ParseContext {
    * single-level + generate-time-isolation contract above keeps the
    * dangling ref safe in the meantime.
    */
+  /**
+   * Schemas the parser named itself — recursive inline `allOf`s that a
+   * `$ref` now points at (see `SchemaExpansion`) — become components, so
+   * those refs resolve through `components.schemas` like any other. Runs
+   * once the whole document is walked: operations are parsed before
+   * components, and either can hold the `allOf` in question.
+   */
+  #registerSynthesizedSchemas(document: OasDocument): void {
+    const entries = toSchemaExpansion(this).synthesizedEntries()
+
+    if (entries.length === 0) {
+      return
+    }
+
+    const components = document.components ?? new OasComponents({})
+
+    for (const [name, node] of entries) {
+      components.addSchema(name as RefName, node)
+    }
+
+    if (document.components === undefined) {
+      document.fields = { ...document.fields, components }
+    }
+  }
+
   removeErroredItems(): void {
     switch (this.protocol.type) {
       case 'oas': {

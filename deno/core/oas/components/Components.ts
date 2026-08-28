@@ -306,6 +306,19 @@ export class OasComponents {
    * }
    * ```
    */
+  /**
+   * Adds a schema to the components. Used by the parser to register a schema
+   * it named itself — a recursive inline `allOf` that something refers to by
+   * name (see `SchemaExpansion`) — so `$ref`s to that name resolve like any
+   * author-written component.
+   */
+  addSchema(refName: RefName, schema: OasSchema | OasRef<'schema'>): void {
+    this.#fields.schemas = {
+      ...(this.#fields.schemas ?? {}),
+      [refName]: schema
+    }
+  }
+
   removeSchema(refName: RefName): OasSchema | OasRef<'schema'> {
     const { [refName]: removed, ...rest } = this.#fields.schemas!
 

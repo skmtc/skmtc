@@ -1,6 +1,14 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import * as v from 'valibot'
-export type GetRefFn = (ref: OpenAPIV3.ReferenceObject) => OpenAPIV3.SchemaObject
+import type { RefRole } from '@/helpers/toParseGetRef.ts'
+export type { RefRole }
+
+/**
+ * Resolves a `$ref` for the merge layer. `role` says how the result is about
+ * to be used; `'base'` (an `allOf` member being copied in) is the only role
+ * a cycle-aware resolver guards. Plain document lookups ignore it.
+ */
+export type GetRefFn = (ref: OpenAPIV3.ReferenceObject, role?: RefRole) => OpenAPIV3.SchemaObject
 
 export type OneOfObject = {
   oneOf?: (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]
