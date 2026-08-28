@@ -39,6 +39,9 @@ export const toUnion = ({
     externalDocs,
     example: unparsedExample,
     default: unparsedDefaultValue,
+    // `type` on a union node says nothing its members do not; the merge
+    // layer keeps it here rather than pushing it into `$ref` members.
+    type: _type,
     ...skipped
   } = valueWithoutNullable
 

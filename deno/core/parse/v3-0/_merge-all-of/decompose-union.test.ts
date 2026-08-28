@@ -58,10 +58,11 @@ Deno.test('decomposeUnion - structural siblings stay in `decomposed` (they distr
     groupType: 'anyOf'
   })
 
-  assertEquals(result.beforeExcluded, {})
+  // `type` describes the union and stays on it; `properties` distributes.
+  assertEquals(result.beforeExcluded, { type: 'object' })
   assertEquals(result.afterExcluded, {})
   assertEquals(result.decomposed, [
-    { type: 'object', properties: { id: { type: 'string' } } },
+    { properties: { id: { type: 'string' } } },
     { anyOf: [{ required: ['a'] }, { required: ['b'] }] }
   ])
 })
