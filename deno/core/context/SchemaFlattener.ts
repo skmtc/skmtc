@@ -9,90 +9,102 @@ type MergeIntersection = (args: {
 }) => SchemaObject | OpenAPIV3.ReferenceObject
 
 /**
- * Flattens each component's `allOf` once, by name, and hands the merge
- * layer the flattened form of every schema it copies in.
+ * The one place a multi-member `allOf` is eliminated. The `allOf` branch of
+ * `toSchemaV3` calls {@link SchemaFlattener.eliminate}; the merge layer,
+ * copying a base in, calls {@link SchemaFlattener.getRef}, which arrives
+ * back here by name. Both paths share one memo, so a component's `allOf`
+ * is merged once per parse however many times it is copied.
  *
  * Three things, each one sentence:
  *
- * - **Memo.** A component is flattened at most once per parse; every later
- *   copy of it reuses the result (a diamond, `A: allOf [B, C]` with
+ * - **Memo.** A schema node is eliminated at most once per parse; every
+ *   later copy of it reuses the result (a diamond, `A: allOf [B, C]` with
  *   `B: allOf [C]`, copies `C` twice and is fine).
- * - **Grey set.** A component whose flattening is in progress and is asked
- *   for again is a cycle with no finite reading (`A: allOf [B]`,
+ * - **Grey set.** A component whose elimination is in progress and is
+ *   copied in again is a cycle with no finite reading (`A: allOf [B]`,
  *   `B: allOf [A]`); it is refused with the chain named.
- * - **Base.** A component whose union lists its own subclasses is copied in
- *   as the base `normalizeComposition` set aside for it — its keywords minus
- *   that list: the schema being built IS one of the branches.
+ * - **Base.** A component whose union lists its own subclasses is copied
+ *   in as the base `normalizeComposition` set aside for it — its keywords
+ *   minus that list: the schema being built IS one of the branches.
  *
  * Inline `allOf`s that would loop are given names before the parser runs,
- * so everything recursive arrives here by name. Until
- * {@link SchemaFlattener.use} is called (a context built for a test double,
- * say) nothing is eliminated.
+ * so everything recursive arrives here by name.
  */
 export class SchemaFlattener {
   #resolve: Resolve = () => ({})
-  #mergeIntersection: MergeIntersection | undefined
+  #names = new WeakMap<object, string>()
   #bases = new Map<string, SchemaObject>()
-  #flattened = new Map<string, SchemaObject>()
+  #merge: MergeIntersection | undefined
+  #done = new WeakMap<object, SchemaObject>()
   #grey: string[] = []
 
-  /** Bind the document, the subclass-list bases, and the parser tree's merge layer for this parse. */
-  use(
-    document: OpenAPIV3.Document,
-    bases: Map<string, SchemaObject>,
-    mergeIntersection: MergeIntersection
-  ): void {
+  /** Bind the document and the subclass-list bases for this parse. */
+  use(document: OpenAPIV3.Document, bases: Map<string, SchemaObject>): void {
     this.#resolve = toGetRef(document)
     this.#bases = bases
-    this.#mergeIntersection = mergeIntersection
-    this.#flattened.clear()
-  }
+    this.#names = new WeakMap()
+    this.#done = new WeakMap()
 
-  /** The merge layer's resolver: a schema arrives flattened; a parent that lists its subclasses arrives as its base. */
-  readonly getRef: Resolve = ref => {
-    const name = toRefName(ref.$ref)
-
-    return this.#bases.get(name) ?? this.flatten(name)
+    for (const [name, schema] of Object.entries(document.components?.schemas ?? {})) {
+      if (schema !== null && typeof schema === 'object') {
+        this.#names.set(schema, name)
+      }
+    }
   }
 
   /**
-   * The component with its own multi-member `allOf` eliminated, memoised.
-   * `raw` is the component's schema when the caller has it (the components
-   * walk does); otherwise it is looked up by name.
+   * `schema` with its multi-member `allOf` merged away, using the parser
+   * tree's own merge layer. A component root is marked grey by name while
+   * it merges, so a base that leads back to it is refused as a cycle.
    */
-  flatten(name: string, raw?: SchemaObject): SchemaObject {
-    const done = this.#flattened.get(name)
+  eliminate(schema: SchemaObject, merge: MergeIntersection): SchemaObject {
+    this.#merge = merge
+
+    const done = this.#done.get(schema)
 
     if (done !== undefined) {
       return done
     }
 
-    if (this.#grey.includes(name)) {
+    const name = this.#names.get(schema)
+
+    if (name !== undefined && this.#grey.includes(name)) {
       throw new Error(`Cyclic allOf: ${[...this.#grey, name].join(' -> ')}`)
     }
 
-    const schema = raw ?? this.#resolve({ $ref: `#/components/schemas/${name}` })
-    this.#grey.push(name)
+    if (name !== undefined) {
+      this.#grey.push(name)
+    }
 
     try {
-      const result = this.#eliminate(schema)
-      this.#flattened.set(name, result)
+      const merged = merge({ schema, getRef: this.getRef })
+      const result = isRef(merged) ? this.getRef(merged) : merged
+      this.#done.set(schema, result)
 
       return result
     } finally {
-      this.#grey.pop()
+      if (name !== undefined) {
+        this.#grey.pop()
+      }
     }
   }
 
-  #eliminate(raw: SchemaObject): SchemaObject {
-    const merge = this.#mergeIntersection
+  /** The merge layer's resolver: a schema arrives eliminated; a parent that lists its subclasses arrives as its base. */
+  readonly getRef: Resolve = ref => {
+    const name = toRefName(ref.$ref)
+    const base = this.#bases.get(name)
+
+    if (base !== undefined) {
+      return base
+    }
+
+    const raw = this.#resolve(ref)
+    const merge = this.#merge
 
     if (merge === undefined || !Array.isArray(raw.allOf) || raw.allOf.length < 2) {
       return raw
     }
 
-    const merged = merge({ schema: raw, getRef: this.getRef })
-
-    return isRef(merged) ? this.getRef(merged) : merged
+    return this.eliminate(raw, merge)
   }
 }

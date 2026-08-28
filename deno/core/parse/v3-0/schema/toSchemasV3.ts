@@ -20,19 +20,12 @@ export type ToSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject>
   stackTrail: StackTrail
   context: ParseContextType
-  /**
-   * True for `components.schemas` only: each entry is a named component and
-   * is flattened by name first (see `SchemaFlattener`). The same parser
-   * handles `properties`, whose keys are not schema names.
-   */
-  components?: boolean
 }
 
 export const toSchemasV3 = ({
   schemas,
   stackTrail,
-  context,
-  components = false
+  context
 }: ToSchemasV3Args): Record<string, OasSchema | OasRef<'schema'>> => {
   const output: Record<string, OasSchema | OasRef<'schema'>> = {}
   const entries = Object.entries(schemas)
@@ -44,12 +37,7 @@ export const toSchemasV3 = ({
       context,
       type: 'INVALID_SCHEMA',
       parent: schema,
-      fn: st =>
-        toSchemaV3({
-          schema: components && !isRef(schema) ? context.flattener.flatten(key, schema) : schema,
-          stackTrail: st,
-          context
-        })
+      fn: st => toSchemaV3({ schema, stackTrail: st, context })
     })
     if (value !== undefined) {
       output[key] = value
@@ -63,21 +51,18 @@ export type ToOptionalSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject> | undefined
   stackTrail: StackTrail
   context: ParseContextType
-  /** See {@link ToSchemasV3Args.components}. */
-  components?: boolean
 }
 
 export const toOptionalSchemasV3 = ({
   schemas,
   stackTrail,
-  context,
-  components
+  context
 }: ToOptionalSchemasV3Args): Record<string, OasSchema | OasRef<'schema'>> | undefined => {
   if (!schemas) {
     return undefined
   }
 
-  return toSchemasV3({ schemas, stackTrail, context, components })
+  return toSchemasV3({ schemas, stackTrail, context })
 }
 
 export type ToSchemaV3Args = {
@@ -177,7 +162,9 @@ export const toSchemaV3 = ({
         })
       }
 
-      const merged = mergeIntersection({ schema, getRef: context.flattener.getRef })
+      // The one place a multi-member `allOf` is merged away; bases arrive
+      // already eliminated, by name, through the flattener's resolver.
+      const merged = context.flattener.eliminate(schema, mergeIntersection)
 
       return toSchemaV3({ schema: merged, stackTrail: st, context })
     })

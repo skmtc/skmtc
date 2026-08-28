@@ -27,8 +27,6 @@ import { toDocumentFieldsV3 as toDocumentFieldsV31 } from '@/parse/v3-1/document
 import { toOasDialect } from '@/parse/toOasDialect.ts'
 import { normalizeComposition } from '@/parse/normalizeComposition.ts'
 import { SchemaFlattener } from '@/context/SchemaFlattener.ts'
-import { mergeIntersection as mergeIntersectionV30 } from '@/parse/v3-0/_merge-all-of/merge-intersection.ts'
-import { mergeIntersection as mergeIntersectionV31 } from '@/parse/v3-1/_merge-all-of/merge-intersection.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import { GqlDocument } from '@/gql/document/GqlDocument.ts'
@@ -251,11 +249,7 @@ export class ParseContext {
         // parser tree. Everything downstream is version-specific code living
         // in its own tree (v3-0 / v3-1) and never re-checks the version.
         const dialect = toOasDialect(oasState.documentObject.openapi)
-        this.flattener.use(
-          oasState.documentObject,
-          this.bases,
-          dialect === '3.1' ? mergeIntersectionV31 : mergeIntersectionV30
-        )
+        this.flattener.use(oasState.documentObject, this.bases)
 
         for (const name of this.hoisted) {
           this.issues.push({
