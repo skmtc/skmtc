@@ -1,5 +1,5 @@
 import { isRef } from '@/helpers/refFns.ts'
-import type { SchemaOrReference, ReferenceObject, SchemaObject, GetRefFn } from './types.ts'
+import type { GetRefFn, ReferenceObject, SchemaObject, SchemaOrReference } from './types.ts'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
 import { checkReadOnlyWriteOnlyConflicts } from './check-read-only-write-only-conflicts.ts'
 import { checkFormatConflicts } from './check-format-conflicts.ts'
@@ -20,10 +20,16 @@ import { isEmpty } from '@/helpers/isEmpty.ts'
 import { isNullOnly, mergeNullOnly } from './nullable-merge.ts'
 
 export const mergeSchemasOrRefs = (
-  first: SchemaOrReference,
-  second: SchemaOrReference,
+  firstInput: SchemaOrReference,
+  secondInput: SchemaOrReference,
   getRef: GetRefFn
 ): SchemaOrReference => {
+  // An inline `allOf` that is being eliminated right now (reached again
+  // through a union member of its own base) is the schema under
+  // construction: refer to it by name rather than merge it a second time.
+  const first = toChainRef(firstInput, getRef)
+  const second = toChainRef(secondInput, getRef)
+
   if (containsRef(first, second)) {
     return mergeWithRef(first, second, getRef)
   }
@@ -34,6 +40,28 @@ export const mergeSchemasOrRefs = (
 
   if (isRef(second)) {
     throw new Error('Ref in second')
+  }
+
+  // Merging with the empty schema is the identity. The other operand comes
+  // back UNCHANGED — the same object, not a copy — so an inline `allOf`
+  // reaching here as a union member (the accumulator starts empty) arrives
+  // at `toSchemaV3` as the author's own node, where a recursive one is
+  // recognised by identity (see `SchemaExpansion`).
+  // `not` is refused whichever side it is on, BEFORE the identity shortcut:
+  // a union member of `{ not: {} }` ("matches nothing", seen in the wild as
+  // a placeholder) has always been dropped from the cross product by the
+  // throw below, leaving the other members. Returning it unchanged would
+  // instead refuse the whole union one level up.
+  if (first.not || second.not) {
+    throw new Error('Merging schemas with "not" keyword is not supported')
+  }
+
+  if (isEmpty(first)) {
+    return second
+  }
+
+  if (isEmpty(second)) {
+    return first
   }
 
   if (containsAllOf(first) || containsAllOf(second)) {
@@ -63,6 +91,16 @@ export const mergeSchemasOrRefs = (
   }
 
   return mergeSchemas(first, second, getRef)
+}
+
+const toChainRef = (schema: SchemaOrReference, getRef: GetRefFn): SchemaOrReference => {
+  if (isRef(schema)) {
+    return schema
+  }
+
+  const name = getRef.chainNameOf?.(schema)
+
+  return name === undefined ? schema : { $ref: `#/components/schemas/${name}` }
 }
 
 const containsAllOf = (schema: SchemaObject): boolean => {

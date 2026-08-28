@@ -50,7 +50,7 @@ export const toComponentsV3 = ({
 
   const fields: ComponentsFields = {
     schemas: stackTrail.trace('schemas', st =>
-      toOptionalSchemasV3({ schemas, stackTrail: st, context })
+      toOptionalSchemasV3({ schemas, stackTrail: st, context, components: true })
     ),
     responses: stackTrail.trace('responses', st =>
       toOptionalResponsesV3({ responses, stackTrail: st, context })

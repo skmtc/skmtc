@@ -153,55 +153,11 @@ Deno.test('mergeAllOf - even more complex oneOf', () => {
     }
   }
 
+  // Members are returned as written — see merge-union.test.ts for why the
+  // merge layer leaves a union member's own `allOf` to `toSchemaV3`.
   const expected: OpenAPIV3.SchemaObject = {
-    oneOf: [
-      {
-        type: 'object',
-        required: ['content', 'type'],
-        properties: {
-          content: {
-            type: 'string'
-          },
-          encoding: {
-            $ref: '#/components/schemas/Encoding'
-          },
-          type: {
-            type: 'string',
-            enum: ['file']
-          }
-        }
-      },
-      {
-        type: 'object',
-        required: ['gitSha1', 'type'],
-        properties: {
-          gitSha1: {
-            type: 'string'
-          },
-          type: {
-            type: 'string',
-            enum: ['file']
-          }
-        }
-      },
-      {
-        type: 'object',
-        required: ['target', 'type'],
-        properties: {
-          target: {
-            type: 'string'
-          },
-          type: {
-            type: 'string',
-            enum: ['symlink']
-          }
-        },
-        additionalProperties: false
-      }
-    ],
-    discriminator: {
-      propertyName: 'type'
-    }
+    oneOf: input.oneOf,
+    discriminator: input.discriminator
   }
 
   const result = mergeUnion({ schema: input, getRef, groupType: 'oneOf' })

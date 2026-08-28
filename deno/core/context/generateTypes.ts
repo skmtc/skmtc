@@ -237,6 +237,7 @@ export type OasIssueType =
   | 'INVALID_SECURITY_SCHEME'
   | 'INVALID_DEPENDENCY_REF'
   | 'EXAMPLE_AND_EXAMPLES_DEFINED'
+  | 'CYCLIC_COMPOSITION'
 
 /**
  * Valibot schema for {@link OasIssueType}. Annotation deliberately omitted
@@ -263,7 +264,8 @@ export const oasIssueType = v.union([
   v.literal('INVALID_PARAMETER'),
   v.literal('INVALID_SECURITY_SCHEME'),
   v.literal('INVALID_DEPENDENCY_REF'),
-  v.literal('EXAMPLE_AND_EXAMPLES_DEFINED')
+  v.literal('EXAMPLE_AND_EXAMPLES_DEFINED'),
+  v.literal('CYCLIC_COMPOSITION')
 ])
 
 // Compile-time drift detector: this binding fails to type-check if
@@ -359,7 +361,6 @@ export type InsertNormalizedModelArgs<Schema extends OasSchema | OasRef<'schema'
  *
  * Configures how a model should be processed and included in
  * the generated code output.
- *
  */
 export type InsertModelOptions = {
   /** Whether to exclude this model from exports */

@@ -11,12 +11,15 @@ import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { isRef, toRefName } from '@/helpers/refFns.ts'
 export type ToUnionArgs = {
   value: OpenAPIV3.SchemaObject
   members: (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]
   parentType: 'anyOf' | 'oneOf'
   stackTrail: StackTrail
   context: ParseContextType
+  /** The component name this union IS, when it is one — a member naming it is dropped. */
+  selfName?: string
 }
 
 export const toUnion = ({
@@ -24,7 +27,8 @@ export const toUnion = ({
   members,
   parentType,
   stackTrail,
-  context
+  context,
+  selfName
 }: ToUnionArgs): OasUnion => {
   const { nullable, value: valueWithoutNullable } = parseNullable({
     value,
@@ -79,11 +83,41 @@ export const toUnion = ({
       return acc
     }
 
-    return [
-      ...acc,
-      stackTrail.trace(`${index}`, st => toSchemaV3({ schema: item, stackTrail: st, context }))
-    ]
+    // A union member that refers to the union itself says nothing (`M = M |
+    // …`); it appears when a recursive `allOf` copies its base's union in.
+    if (selfName !== undefined && isRef(item) && toRefName(item.$ref) === selfName) {
+      return acc
+    }
+
+    // A member that fails to parse is dropped and the union survives — the
+    // behaviour the merge layer's cross product always had, now with the
+    // failure recorded rather than swallowed.
+    // Recorded at warning: an error-level issue under a component marks the
+    // component itself as failed and prunes everything that refers to it,
+    // which one bad member of a surviving union does not justify.
+    try {
+      return [
+        ...acc,
+        stackTrail.trace(`${index}`, st => toSchemaV3({ schema: item, stackTrail: st, context }))
+      ]
+    } catch (error) {
+      stackTrail.trace(`${index}`, st => {
+        context.logIssueNoKey({
+          level: 'warning',
+          type: 'INVALID_SCHEMA',
+          parent: item,
+          stackTrail: st,
+          message: `Union member dropped: ${error instanceof Error ? error.message : String(error)}`
+        })
+      })
+
+      return acc
+    }
   }, [])
+
+  if (membersParsed.length === 0) {
+    throw new Error(`"${parentType}" has no members left after parsing`)
+  }
 
   return context.withStackTrail(
     stackTrail,

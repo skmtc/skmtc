@@ -3,6 +3,7 @@ import type { GetRefFn, SchemaOrReference, SchemaObject } from './types.ts'
 import { mergeSchemasOrRefs } from './merge.ts'
 import { crossProduct } from './cross-product.ts'
 import { isRef } from '@/helpers/refFns.ts'
+import { CyclicMemberError } from '@/helpers/toParseGetRef.ts'
 type MergeUnionArgs = {
   schema: SchemaObject
   getRef: GetRefFn
@@ -63,10 +64,14 @@ export const mergeCrossProduct = ({
   const mergedGroup = crossProduct(firstGroup, secondGroup)
     .map(([firstItem, secondItem]) => {
       try {
-        const result = mergeSchemasOrRefs(firstItem, secondItem, getRef)
+        return mergeSchemasOrRefs(firstItem, secondItem, getRef)
+      } catch (error) {
+        // The member names a schema whose `allOf` is being merged: keep the
+        // reference as written instead of copying an unfinished schema.
+        if (error instanceof CyclicMemberError) {
+          return isRef(secondItem) ? secondItem : isRef(firstItem) ? firstItem : undefined
+        }
 
-        return result
-      } catch (_error) {
         return undefined
       }
     })

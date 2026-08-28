@@ -93,55 +93,15 @@ const input: SchemaObject = {
   }
 }
 
+// The merge layer no longer eliminates an `allOf` sitting inside a union
+// member when nothing is being merged INTO that member: merging with the
+// empty accumulator is the identity, so the member comes back as the
+// author's own node. `toSchemaV3` eliminates it from there — which is what
+// lets a recursive inline `allOf` be recognised by identity (see
+// `SchemaExpansion`). The end-to-end IR is unchanged.
 const expected: SchemaObject = {
-  oneOf: [
-    {
-      type: 'object',
-      required: ['content', 'type'],
-      properties: {
-        content: {
-          type: 'string'
-        },
-        encoding: {
-          $ref: '#/components/schemas/Encoding'
-        },
-        type: {
-          type: 'string',
-          enum: ['file']
-        }
-      }
-    },
-    {
-      type: 'object',
-      required: ['gitSha1', 'type'],
-      properties: {
-        gitSha1: {
-          type: 'string'
-        },
-        type: {
-          type: 'string',
-          enum: ['file']
-        }
-      }
-    },
-    {
-      type: 'object',
-      required: ['target', 'type'],
-      properties: {
-        target: {
-          type: 'string'
-        },
-        type: {
-          type: 'string',
-          enum: ['symlink']
-        }
-      },
-      additionalProperties: false
-    }
-  ],
-  discriminator: {
-    propertyName: 'type'
-  }
+  oneOf: input.oneOf,
+  discriminator: input.discriminator
 }
 
 Deno.test('mergeAllOf - with top-level oneOf', () => {

@@ -211,6 +211,46 @@ constraint.
 **Remediation:** Fix the offending enum member in the OpenAPI source
 so every member matches the schema's type.
 
+### `CYCLIC_COMPOSITION` — debug / warning
+
+**When:** The parser met a composition cycle and resolved it by keeping a
+REFERENCE rather than copying a schema into itself. The rule is the one
+every generator applies to a recursive type: a schema that is being built
+is referred to by name. Three situations, recorded so the choice is visible:
+
+- **debug** — a `oneOf`/`anyOf` names members that already `allOf`-extend
+  the wrapper (`Parent: { properties, oneOf: [Child] }` with
+  `Child: allOf [Parent, …]`, directly or through an intermediate level).
+  Those members stay `$ref`s; the wrapper's properties are not pushed into
+  them because they inherit them. Nothing is lost.
+- **debug** — an inline multi-member `allOf` that the document reaches again
+  while it is being merged (`{ allOf: [{ properties }, { $ref: Union }] }`
+  where a member of `Union` contains that same `allOf`). The `allOf` is
+  registered as a component named from its own location in the document
+  (`<schema>~properties~<key>~oneOf~<index>`), and the recursion becomes a
+  `$ref` to it. Generators see an ordinary model.
+- **debug or warning** — a union member names a schema that is still being
+  built, so the wrapper's keywords cannot be pushed into it. Debug when the
+  wrapper carried nothing that would have extended the member (`type`,
+  `nullable`, `description`, …); warning when it did, naming the keywords
+  that were not applied.
+
+**Typical message:** `2 oneOf member(s) already extend "Parent"; kept as
+references`, `Recursive inline allOf registered as component "…"`, or
+`1 anyOf member(s) refer to a schema still being built; kept as references,
+required not applied to them`.
+
+**Remediation:** None required for the debug cases. For the warning, hoist
+the extending keywords into the member schemas themselves. If a synthesized
+name is unwelcome, give the recursive `allOf` a name yourself by hoisting it
+into `components.schemas` and referencing it.
+
+Mutual `allOf` with no union to take a branch of (`A: allOf [B]`,
+`B: allOf [A]`) is not resolved this way: it has no finite reading and is
+refused with `INVALID_SCHEMA` (`Cyclic allOf: "A" is being merged and cannot
+be copied into itself`), as is any copy chain that nests past the parser's
+depth limit (`Cyclic composition: A -> B -> …`).
+
 ## GraphQL parse-issue types
 
 ### `INVALID_TYPE_DEFINITION` — error

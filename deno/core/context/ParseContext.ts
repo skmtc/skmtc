@@ -26,6 +26,10 @@ import { toDocumentFieldsV3 } from '@/parse/v3-0/document/toDocumentFieldsV3.ts'
 import { toDocumentFieldsV3 as toDocumentFieldsV31 } from '@/parse/v3-1/document/toDocumentFieldsV3.ts'
 import { toOasDialect } from '@/parse/toOasDialect.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
+import { OasComponents } from '@/oas/components/Components.ts'
+import type { RefName } from '@/types/RefName.ts'
+import { SchemaExpansion } from '@/context/SchemaExpansion.ts'
+import { collectRefNames } from '@/helpers/collectRefNames.ts'
 import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import { parseGqlDocument } from '@/gql/document/parseGqlDocument.ts'
@@ -47,7 +51,7 @@ import type { ParseIssue } from '@/context/ParseIssue.ts'
 // surface. New parser helpers should `import type` from
 // `./parseTypes.ts` (input/arg shapes) or `./ParseIssue.ts`
 // (issue / protocol enums); the class itself stays here.
-export type { ParseIssue, GqlIssueType } from '@/context/ParseIssue.ts'
+export type { GqlIssueType, ParseIssue } from '@/context/ParseIssue.ts'
 export type {
   GqlParseOptions,
   LogAtArgs,
@@ -109,6 +113,13 @@ export class ParseContext {
    */
   currentStackTrail: StackTrail | undefined
 
+  /**
+   * Which schemas this parse is building or copying right now, and the ones
+   * it named itself — the record that keeps a cyclic document finite. See
+   * {@link SchemaExpansion}.
+   */
+  readonly expansion: SchemaExpansion
+
   // Universal dependency-ref tracking. Populated by parsers as they
   // encounter references. OAS uses `$ref` strings as keys; GQL would
   // use type names. The maps don't care about the encoding.
@@ -118,6 +129,7 @@ export class ParseContext {
   constructor({ input, logger, silent = true, options }: ConstructorArgs) {
     this.logger = logger
     this.silent = silent
+    this.expansion = new SchemaExpansion(input.type === 'oas' ? input.value : undefined)
 
     switch (input.type) {
       case 'oas': {
@@ -253,6 +265,11 @@ export class ParseContext {
           }
         }
         this.removeErroredItems()
+        if (this.#dropSynthesizedDependingOnErrors()) {
+          // The hosts that referred to a dropped schema are consumers of it.
+          this.removeErroredItems()
+        }
+        this.#registerSynthesizedSchemas(oasState.oasDocument)
         return { type: 'oas', value: oasState.oasDocument }
       }
       case 'gql': {
@@ -298,6 +315,74 @@ export class ParseContext {
    * single-level + generate-time-isolation contract above keeps the
    * dangling ref safe in the meantime.
    */
+  /**
+   * Schemas the parser named itself — recursive inline `allOf`s that a
+   * `$ref` now points at (see `SchemaExpansion`) — become components, so
+   * those refs resolve through `components.schemas` like any other. Runs
+   * once the whole document is walked: operations are parsed before
+   * components, and either can hold the `allOf` in question.
+   */
+  #registerSynthesizedSchemas(document: OasDocument): void {
+    const entries = this.expansion.synthesizedEntries()
+
+    if (entries.length === 0) {
+      return
+    }
+
+    const components = document.components ?? new OasComponents({})
+
+    for (const [name, node] of entries) {
+      components.addSchema(name as RefName, node)
+    }
+
+    if (document.components === undefined) {
+      document.fields = { ...document.fields, components }
+    }
+  }
+
+  /**
+   * A synthesized schema is built inside its host, so the `$ref`s it holds
+   * were registered under the HOST's trail — which, after synthesis, is a
+   * reference to the new component and no longer the node holding them.
+   * `removeErroredItems` cannot prune through that indirection, so the
+   * synthesized schemas are checked here: one that depends on a schema that
+   * failed is dropped and recorded as failed itself, and the caller runs
+   * the prune again for whatever referred to it. Returns whether any were
+   * dropped.
+   */
+  #dropSynthesizedDependingOnErrors(): boolean {
+    const expansion = this.expansion
+    let dropped = false
+
+    for (const [name, node] of expansion.synthesizedEntries()) {
+      const failed = collectRefNames(node.toJsonSchema({ resolve: false })).find(refName =>
+        this.#refErrors.has(`#/components/schemas/${refName}`)
+      )
+
+      if (failed === undefined) {
+        continue
+      }
+
+      const refKey = `#/components/schemas/${name}`
+      const error = new Error(
+        `Synthesized schema "${name}" depends on "${failed}", which failed to parse`
+      )
+      this.registerRefError(error, refKey)
+      this.issues.push({
+        protocol: 'oas',
+        level: 'error',
+        type: 'INVALID_DEPENDENCY_REF',
+        location: refKey,
+        message: error.message,
+        cause: error
+      })
+      expansion.dropSynthesized(name)
+      dropped = true
+    }
+
+    return dropped
+  }
+
   removeErroredItems(): void {
     switch (this.protocol.type) {
       case 'oas': {

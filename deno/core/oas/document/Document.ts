@@ -274,6 +274,15 @@ export class OasDocument {
     this.#fields = fields
   }
 
+  /** The parsed fields; throws before {@link OasDocument.fields} is set. */
+  get fields(): DocumentFields {
+    if (!this.#fields) {
+      throw new Error(`Accessing 'fields' before fields are set`)
+    }
+
+    return this.#fields
+  }
+
   /** OpenAPI specification version */
   get openapi(): string {
     if (!this.#fields) {
