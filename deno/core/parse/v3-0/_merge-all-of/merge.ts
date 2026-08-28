@@ -20,10 +20,16 @@ import { isEmpty } from '@/helpers/isEmpty.ts'
 import { isNullOnly, mergeNullOnly } from './nullable-merge.ts'
 
 export const mergeSchemasOrRefs = (
-  first: SchemaOrReference,
-  second: SchemaOrReference,
+  firstInput: SchemaOrReference,
+  secondInput: SchemaOrReference,
   getRef: GetRefFn
 ): SchemaOrReference => {
+  // An inline `allOf` that is being eliminated right now (reached again
+  // through a union member of its own base) is the schema under
+  // construction: refer to it by name rather than merge it a second time.
+  const first = toChainRef(firstInput, getRef)
+  const second = toChainRef(secondInput, getRef)
+
   if (containsRef(first, second)) {
     return mergeWithRef(first, second, getRef)
   }
@@ -85,6 +91,16 @@ export const mergeSchemasOrRefs = (
   }
 
   return mergeSchemas(first, second, getRef)
+}
+
+const toChainRef = (schema: SchemaOrReference, getRef: GetRefFn): SchemaOrReference => {
+  if (isRef(schema)) {
+    return schema
+  }
+
+  const name = getRef.chainNameOf?.(schema)
+
+  return name === undefined ? schema : { $ref: `#/components/schemas/${name}` }
 }
 
 const containsAllOf = (schema: SchemaObject): boolean => {

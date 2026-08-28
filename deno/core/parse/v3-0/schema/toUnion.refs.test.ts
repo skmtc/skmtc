@@ -6,6 +6,7 @@
  * was covered; this pins the end-to-end OAS-model shape that generators see.
  */
 import type { ParseContextType } from '@/context/parseTypes.ts'
+import { SchemaExpansion } from '@/context/SchemaExpansion.ts'
 import { toSchemaV3 } from './toSchemasV3.ts'
 import { assert, assertEquals } from '@std/assert'
 import { OasUnion } from '@/oas/union/Union.ts'
@@ -25,6 +26,7 @@ const createTestContext = (): ParseContextType =>
     logIssueNoKey(): void {},
     registerRef(): void {},
     documentObject: {} as unknown,
+    expansion: new SchemaExpansion(),
     withStackTrail<T>(_stackTrail: unknown, fn: () => T): T {
       return fn()
     }

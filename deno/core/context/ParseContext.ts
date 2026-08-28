@@ -28,7 +28,8 @@ import { toOasDialect } from '@/parse/toOasDialect.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasComponents } from '@/oas/components/Components.ts'
 import type { RefName } from '@/types/RefName.ts'
-import { toSchemaExpansion } from '@/context/SchemaExpansion.ts'
+import { SchemaExpansion } from '@/context/SchemaExpansion.ts'
+import { collectRefNames } from '@/helpers/collectRefNames.ts'
 import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import { parseGqlDocument } from '@/gql/document/parseGqlDocument.ts'
@@ -112,6 +113,13 @@ export class ParseContext {
    */
   currentStackTrail: StackTrail | undefined
 
+  /**
+   * Which schemas this parse is building or copying right now, and the ones
+   * it named itself — the record that keeps a cyclic document finite. See
+   * {@link SchemaExpansion}.
+   */
+  readonly expansion: SchemaExpansion
+
   // Universal dependency-ref tracking. Populated by parsers as they
   // encounter references. OAS uses `$ref` strings as keys; GQL would
   // use type names. The maps don't care about the encoding.
@@ -121,6 +129,7 @@ export class ParseContext {
   constructor({ input, logger, silent = true, options }: ConstructorArgs) {
     this.logger = logger
     this.silent = silent
+    this.expansion = new SchemaExpansion(input.type === 'oas' ? input.value : undefined)
 
     switch (input.type) {
       case 'oas': {
@@ -255,8 +264,12 @@ export class ParseContext {
             throw new Error(`Unhandled OAS dialect: ${JSON.stringify(_exhaustive)}`)
           }
         }
-        this.#registerSynthesizedSchemas(oasState.oasDocument)
         this.removeErroredItems()
+        if (this.#dropSynthesizedDependingOnErrors()) {
+          // The hosts that referred to a dropped schema are consumers of it.
+          this.removeErroredItems()
+        }
+        this.#registerSynthesizedSchemas(oasState.oasDocument)
         return { type: 'oas', value: oasState.oasDocument }
       }
       case 'gql': {
@@ -310,7 +323,7 @@ export class ParseContext {
    * components, and either can hold the `allOf` in question.
    */
   #registerSynthesizedSchemas(document: OasDocument): void {
-    const entries = toSchemaExpansion(this).synthesizedEntries()
+    const entries = this.expansion.synthesizedEntries()
 
     if (entries.length === 0) {
       return
@@ -325,6 +338,49 @@ export class ParseContext {
     if (document.components === undefined) {
       document.fields = { ...document.fields, components }
     }
+  }
+
+  /**
+   * A synthesized schema is built inside its host, so the `$ref`s it holds
+   * were registered under the HOST's trail — which, after synthesis, is a
+   * reference to the new component and no longer the node holding them.
+   * `removeErroredItems` cannot prune through that indirection, so the
+   * synthesized schemas are checked here: one that depends on a schema that
+   * failed is dropped and recorded as failed itself, and the caller runs
+   * the prune again for whatever referred to it. Returns whether any were
+   * dropped.
+   */
+  #dropSynthesizedDependingOnErrors(): boolean {
+    const expansion = this.expansion
+    let dropped = false
+
+    for (const [name, node] of expansion.synthesizedEntries()) {
+      const failed = collectRefNames(node.toJsonSchema({ resolve: false })).find(refName =>
+        this.#refErrors.has(`#/components/schemas/${refName}`)
+      )
+
+      if (failed === undefined) {
+        continue
+      }
+
+      const refKey = `#/components/schemas/${name}`
+      const error = new Error(
+        `Synthesized schema "${name}" depends on "${failed}", which failed to parse`
+      )
+      this.registerRefError(error, refKey)
+      this.issues.push({
+        protocol: 'oas',
+        level: 'error',
+        type: 'INVALID_DEPENDENCY_REF',
+        location: refKey,
+        message: error.message,
+        cause: error
+      })
+      expansion.dropSynthesized(name)
+      dropped = true
+    }
+
+    return dropped
   }
 
   removeErroredItems(): void {

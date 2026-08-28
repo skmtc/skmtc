@@ -1,4 +1,5 @@
 import { assert, assertEquals } from '@std/assert'
+import { SchemaExpansion } from '@/context/SchemaExpansion.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { OasRef } from '@/oas/ref/Ref.ts'
@@ -29,6 +30,7 @@ const createContext = (): ParseContextType =>
     documentObject: {} as any,
     attribution: undefined,
     currentStackTrail: undefined,
+    expansion: new SchemaExpansion(),
     withStackTrail<T>(_stackTrail: unknown, fn: () => T): T {
       return fn()
     }
