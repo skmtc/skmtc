@@ -15,7 +15,7 @@ skmtc <command> [args...] [--json] [--no-input]
 skmtc -v | --version
 ```
 
-Install the CLI with `curl -fsSL https://skm.tc/install | sh` (bootstraps Deno
+Install the CLI with `curl -fsSL https://skmtc.dev/install | sh` (bootstraps Deno
 if needed), then invoke it as `skmtc` from any shell. The entry point is
 `skmtc/deno/cli/mod.ts`. The top-level `-v` / `--version` flag prints the CLI
 version and exits.

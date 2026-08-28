@@ -261,7 +261,7 @@ key isn't a `gen-*` entry in `deno.json#imports`.
 ```bash
 # Setup (once per CI run) — the installer bootstraps Deno if needed;
 # SKMTC_VERSION pins the CLI so runs are reproducible:
-SKMTC_VERSION=<version> curl -fsSL https://skm.tc/install | sh
+SKMTC_VERSION=<version> curl -fsSL https://skmtc.dev/install | sh
 # Build the project's bundle.js (required for every project unless a
 # fresh one is committed/cached):
 skmtc bundle <project>

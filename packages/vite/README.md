@@ -5,7 +5,7 @@ plugin serves project metadata, applies enrichment edits, regenerates code, and
 renders generated components in an iframe — with the app's real React, aliases,
 plugins, and CSS pipeline.
 
-For apps generated or onboarded with [SKMTC](https://skm.tc). The plugin is
+For apps generated or onboarded with [SKMTC](https://skmtc.dev). The plugin is
 dev-only (`apply: 'serve'`) and adds nothing to production builds.
 
 ## Install

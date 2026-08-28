@@ -21,7 +21,7 @@
 ### Install Skmtc
 
 ```bash
-curl -fsSL https://skm.tc/install | sh
+curl -fsSL https://skmtc.dev/install | sh
 ```
 
 This installs the latest `skmtc` CLI, bootstrapping [Deno](https://deno.com)
@@ -29,7 +29,7 @@ This installs the latest `skmtc` CLI, bootstrapping [Deno](https://deno.com)
 version, set `SKMTC_VERSION`:
 
 ```bash
-SKMTC_VERSION=0.9.26 curl -fsSL https://skm.tc/install | sh
+SKMTC_VERSION=0.9.26 curl -fsSL https://skmtc.dev/install | sh
 ```
 
 ### Create project and generate artifacts using TUI

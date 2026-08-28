@@ -511,7 +511,7 @@ Self-contained playbooks. Read only the one you need.
 
 #### Setting up SKMTC in a project
 
-1. Install the CLI: `curl -fsSL https://skm.tc/install | sh` — bootstraps Deno if needed and pins a version via `SKMTC_VERSION=<version>`. The script bakes in the required `--unstable-worker-options` flag (`@skmtc/worker` uses Deno's `Worker.deno.permissions` API, which sits behind it); a hand-rolled `deno install` without that flag makes the first `skmtc generate` exit with `Unstable API 'Worker.deno.permissions'`.
+1. Install the CLI: `curl -fsSL https://skmtc.dev/install | sh` — bootstraps Deno if needed and pins a version via `SKMTC_VERSION=<version>`. The script bakes in the required `--unstable-worker-options` flag (`@skmtc/worker` uses Deno's `Worker.deno.permissions` API, which sits behind it); a hand-rolled `deno install` without that flag makes the first `skmtc generate` exit with `Unstable API 'Worker.deno.permissions'`.
 2. `skmtc init <project-name> ./` creates `.skmtc/<project>/`.
 3. `skmtc install @skmtc/gen-typescript @skmtc/gen-zod <project>` to add generators.
 4. Edit `.skmtc/<project>/.settings/client.json` to set `source` and `settings.basePath`.
@@ -560,7 +560,7 @@ Self-contained playbooks. Read only the one you need.
 #### Using SKMTC in CI
 
 1. Pin Deno version.
-2. Install CLI in CI: `SKMTC_VERSION=<version> curl -fsSL https://skm.tc/install | sh` — the pin keeps runs reproducible.
+2. Install CLI in CI: `SKMTC_VERSION=<version> curl -fsSL https://skmtc.dev/install | sh` — the pin keeps runs reproducible.
 3. `skmtc bundle <project>` once at CI setup (only if generators are cloned).
 4. `skmtc generate <project> --no-input --json --typecheck`.
 5. Archive `manifest.json` as a CI artifact.

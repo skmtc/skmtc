@@ -33,6 +33,10 @@ import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { collectSourceFiles, type SourceFile } from '@/lib/source-upload.ts'
 import { parseScopedName } from '@/lib/scoped-name.ts'
 import { toProjectInstallCommand } from '@/lib/dependency-age.ts'
+// One definition, in the module that owns the stored-auth shape. This file
+// used to declare its own copy of the same literal, which is how a default
+// hub silently drifts between `login` and `publish`.
+import { DEFAULT_ORIGIN } from '@/lib/hub-token.ts'
 
 type PublishHeadlessArgs = {
   skmtcRoot: SkmtcRoot
@@ -69,7 +73,6 @@ export type PublishHeadlessResult =
       stage: 'version' | 'identity' | 'source' | 'publish'
     }
 
-const DEFAULT_ORIGIN = 'https://api.skmtc.dev'
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null

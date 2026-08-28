@@ -93,7 +93,7 @@ await build({
       url: 'https://github.com/skmtc/skmtc.git'
     },
     bugs: 'https://github.com/skmtc/skmtc/issues',
-    homepage: 'https://skm.tc',
+    homepage: 'https://skmtc.dev',
     keywords: ['openapi', 'swagger', 'typescript', 'codegen', 'code generator']
   },
   postBuild() {
