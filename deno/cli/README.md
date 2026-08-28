@@ -18,7 +18,7 @@
 Skmtc is a Deno CLI. Install the latest version with:
 
 ```bash
-curl -fsSL https://skm.tc/install | sh
+curl -fsSL https://skmtc.dev/install | sh
 ```
 
 This bootstraps [Deno](https://deno.com) (the runtime) automatically if needed.
@@ -131,7 +131,7 @@ For day-to-day work the published install is the right choice — pin a version
 with `SKMTC_VERSION`:
 
 ```bash
-SKMTC_VERSION=<version> curl -fsSL https://skm.tc/install | sh
+SKMTC_VERSION=<version> curl -fsSL https://skmtc.dev/install | sh
 ```
 
 To install a binary that tracks your **local checkout** instead, use `deno compile` rather than `deno install`:

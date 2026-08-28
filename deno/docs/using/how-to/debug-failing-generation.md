@@ -98,7 +98,7 @@ flag must be provided.
 binary at install time, so a binary installed without it fails here.
 
 Fix: reinstall the CLI with the flag. The `curl` installer
-(`curl -fsSL https://skm.tc/install | sh`) includes it; if you installed
+(`curl -fsSL https://skmtc.dev/install | sh`) includes it; if you installed
 with a bare `deno install`, overwrite the binary:
 
 ```bash

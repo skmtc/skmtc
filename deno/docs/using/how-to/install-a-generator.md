@@ -13,7 +13,7 @@ instead.
 
 - The `skmtc` CLI:
   ```bash
-  curl -fsSL https://skm.tc/install | sh
+  curl -fsSL https://skmtc.dev/install | sh
   ```
   The installer bootstraps Deno if needed and bakes in the
   `--unstable-worker-options` flag. The flag is required so the per-project Worker can use Deno's

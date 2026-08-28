@@ -19,7 +19,7 @@ If you don't have one handy, use the canonical Petstore spec:
 ## Step 1: Install the CLI
 
 ```bash
-curl -fsSL https://skm.tc/install | sh
+curl -fsSL https://skmtc.dev/install | sh
 ```
 
 The installer bootstraps Deno if it isn't already on your machine and
