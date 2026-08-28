@@ -212,8 +212,7 @@ Deno.test('mergeUnion - simple oneOf', () => {
           }
         },
         required: ['prompt'],
-        title: 'Prompt',
-        type: 'object'
+        title: 'Prompt'
       },
       {
         properties: {
@@ -238,10 +237,12 @@ Deno.test('mergeUnion - simple oneOf', () => {
           }
         },
         required: ['messages'],
-        title: 'Messages',
-        type: 'object'
+        title: 'Messages'
       }
-    ]
+    ],
+    // `type` describes the union, not its members: it stays on the union node
+    // rather than being pushed into each member (see decomposeUnion).
+    type: 'object'
   })
 })
 

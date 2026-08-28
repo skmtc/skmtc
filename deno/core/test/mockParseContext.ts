@@ -1,4 +1,5 @@
 import type { ParseContextType, LogSkippedValuesArgs } from '../context/parseTypes.ts'
+import { SchemaFlattener } from '@/context/SchemaFlattener.ts'
 import type { SkmtcParsedDocument } from '../types/SkmtcDocument.ts'
 /**
  * Mock implementation of ParseContext for testing purposes.
@@ -53,6 +54,7 @@ export const mockParseContext = {
   // gen-maps surface: no current stackTrail, so capture no-ops.
   // withStackTrail is a passthrough so factories don't blow up.
   currentStackTrail: undefined,
+  flattener: new SchemaFlattener(),
   withStackTrail<T>(_stackTrail: unknown, fn: () => T): T {
     return fn()
   }

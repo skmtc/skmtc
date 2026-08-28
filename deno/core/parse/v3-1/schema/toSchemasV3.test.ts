@@ -1,4 +1,5 @@
 import type { ParseContextType } from '@/context/parseTypes.ts'
+import { SchemaFlattener } from '@/context/SchemaFlattener.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { toSchemaV3, toSchemasV3, toOptionalSchemasV3, toOptionalSchemaV3 } from './toSchemasV3.ts'
 import { assertEquals, assertExists, assert } from '@std/assert'
@@ -47,6 +48,7 @@ const createTestContext = (): ParseContextType =>
     documentObject: {} as any,
     attribution: undefined,
     currentStackTrail: undefined,
+    flattener: new SchemaFlattener(),
     withStackTrail<T>(_stackTrail: unknown, fn: () => T): T {
       return fn()
     }

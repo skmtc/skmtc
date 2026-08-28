@@ -12,7 +12,6 @@ import { toBoolean } from '../boolean/toBoolean.ts'
 import { toString } from '../string/toString.ts'
 import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
-import { toGetRef } from '@/helpers/refFns.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
 import { mergeUnion } from '../_merge-all-of/merge-union.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
@@ -372,10 +371,9 @@ export const toSchemaV3 = ({
         })
       }
 
-      const merged = mergeIntersection({
-        schema,
-        getRef: toGetRef(context.documentObject)
-      })
+      // The one place a multi-member `allOf` is merged away; bases arrive
+      // already eliminated, by name, through the flattener's resolver.
+      const merged = context.flattener.eliminate(schema, mergeIntersection)
 
       return toSchemaV3({ schema: merged, stackTrail: st, context })
     })
@@ -394,7 +392,7 @@ export const toSchemaV3 = ({
 
       const merged = mergeUnion({
         schema: withoutNull,
-        getRef: toGetRef(context.documentObject),
+        getRef: context.flattener.getRef,
         groupType: 'oneOf'
       })
 
@@ -460,7 +458,7 @@ export const toSchemaV3 = ({
 
       const merged = mergeUnion({
         schema: withoutNull,
-        getRef: toGetRef(context.documentObject),
+        getRef: context.flattener.getRef,
         groupType: 'anyOf'
       })
 

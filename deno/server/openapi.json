@@ -1181,6 +1181,9 @@
                             },
                             {
                               "const": "EXAMPLE_AND_EXAMPLES_DEFINED"
+                            },
+                            {
+                              "const": "CYCLIC_COMPOSITION"
                             }
                           ]
                         },
@@ -1264,6 +1267,9 @@
                             },
                             {
                               "const": "EXAMPLE_AND_EXAMPLES_DEFINED"
+                            },
+                            {
+                              "const": "CYCLIC_COMPOSITION"
                             }
                           ]
                         },
@@ -1346,6 +1352,9 @@
                             },
                             {
                               "const": "EXAMPLE_AND_EXAMPLES_DEFINED"
+                            },
+                            {
+                              "const": "CYCLIC_COMPOSITION"
                             }
                           ]
                         },

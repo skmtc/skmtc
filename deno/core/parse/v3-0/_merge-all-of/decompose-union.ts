@@ -70,7 +70,7 @@ export const decomposeUnion = ({ schema, groupType }: DecomposeUnionArgs): Decom
 // (`not` is deliberately NOT excluded here — it has no faithful TypeScript
 // representation, so a schema using it is refused upstream in `toSchemaV3`
 // rather than silently dropped from the union.)
-const excludedProperties = [
+export const excludedProperties = [
   'discriminator',
   'default',
   'description',
@@ -91,7 +91,10 @@ type ExcludeOutput = {
 const exclude = (entries: [string, unknown][]): ExcludeOutput => {
   return entries.reduce<ExcludeOutput>(
     (acc, [key, value]) => {
-      if (excludedProperties.includes(key)) {
+      // `type` and `x-*` describe the union, not its members: pushing them
+      // into a `$ref` member would copy the member, and a copy of a schema
+      // that may still be being built is how a cyclic document loops.
+      if (excludedProperties.includes(key) || key === 'type' || key.startsWith('x-')) {
         acc.excluded.push([key, value])
       } else {
         acc.retained.push([key, value])

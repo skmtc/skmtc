@@ -25,6 +25,8 @@ import { buildSchema, type GraphQLSchema } from 'graphql'
 import { toDocumentFieldsV3 } from '@/parse/v3-0/document/toDocumentFieldsV3.ts'
 import { toDocumentFieldsV3 as toDocumentFieldsV31 } from '@/parse/v3-1/document/toDocumentFieldsV3.ts'
 import { toOasDialect } from '@/parse/toOasDialect.ts'
+import { normalizeComposition } from '@/parse/normalizeComposition.ts'
+import { SchemaFlattener } from '@/context/SchemaFlattener.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import { GqlDocument } from '@/gql/document/GqlDocument.ts'
@@ -109,6 +111,15 @@ export class ParseContext {
    */
   currentStackTrail: StackTrail | undefined
 
+  /** Flattens components by name, once each; the merge layer's resolver. See {@link SchemaFlattener}. */
+  readonly flattener: SchemaFlattener
+
+  /** Inline `allOf`s that took part in a cycle and were given a name before parsing. */
+  readonly hoisted: string[] = []
+
+  /** What a parent that lists its own subclasses contributes when copied in (see `normalizeComposition`). */
+  readonly bases: Map<string, OpenAPIV3.SchemaObject> = new Map()
+
   // Universal dependency-ref tracking. Populated by parsers as they
   // encounter references. OAS uses `$ref` strings as keys; GQL would
   // use type names. The maps don't care about the encoding.
@@ -118,12 +129,18 @@ export class ParseContext {
   constructor({ input, logger, silent = true, options }: ConstructorArgs) {
     this.logger = logger
     this.silent = silent
+    this.flattener = new SchemaFlattener()
 
     switch (input.type) {
       case 'oas': {
+        // A recursive inline `allOf` gets a name before the parser sees it, so
+        // every recursion in the document goes through a `$ref`.
+        const { document, hoisted, bases } = normalizeComposition(input.value)
+        this.hoisted = hoisted
+        this.bases = bases
         this.protocol = {
           type: 'oas',
-          documentObject: input.value,
+          documentObject: document,
           oasDocument: new OasDocument()
         }
         break
@@ -232,6 +249,17 @@ export class ParseContext {
         // parser tree. Everything downstream is version-specific code living
         // in its own tree (v3-0 / v3-1) and never re-checks the version.
         const dialect = toOasDialect(oasState.documentObject.openapi)
+        this.flattener.use(oasState.documentObject, this.bases)
+
+        for (const name of this.hoisted) {
+          this.issues.push({
+            protocol: 'oas',
+            level: 'debug',
+            type: 'CYCLIC_COMPOSITION',
+            location: `components:schemas:${name}`,
+            message: `Recursive inline allOf registered as component "${name}"`
+          })
+        }
         switch (dialect) {
           case '3.0':
             oasState.oasDocument.fields = toDocumentFieldsV3({

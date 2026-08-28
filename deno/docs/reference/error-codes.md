@@ -211,6 +211,25 @@ constraint.
 **Remediation:** Fix the offending enum member in the OpenAPI source
 so every member matches the schema's type.
 
+### `CYCLIC_COMPOSITION` — debug
+
+**When:** An inline multi-member `allOf` took part in a reference cycle
+(`Child.properties.next: { allOf: [{ $ref: Parent }, …] }` where `Parent`'s
+union lists `Child`), and the parser gave it a name before parsing: it is
+hoisted into `components.schemas` under a location-derived name
+(`<schema>~properties~<key>~oneOf~<index>`) and the site refers to it. Every
+recursion in the document then goes through a `$ref`, which the parser has
+always resolved lazily. Generators see an ordinary model.
+
+**Typical message:** `Recursive inline allOf registered as component "…"`.
+
+**Remediation:** None required. If the name is unwelcome, hoist the
+`allOf` into `components.schemas` yourself and reference it.
+
+Mutual `allOf` with no union to take a branch of (`A: allOf [B]`,
+`B: allOf [A]`) has no finite reading and is refused with `INVALID_SCHEMA`
+(`Cyclic allOf: A -> B -> A`).
+
 ## GraphQL parse-issue types
 
 ### `INVALID_TYPE_DEFINITION` — error
