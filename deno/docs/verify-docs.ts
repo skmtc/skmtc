@@ -708,11 +708,13 @@ const publishedSkillNames: string[] = JSON.parse(
   await Deno.readTextFile(join(docsDir, 'skills', '.claude-plugin', 'plugin.json'))
 ).skills.map((path: string) => path.replace(/^\.\//, ''))
 
-// Anything under skills/ — a published skill's directory, an
-// unpublished one, a file sitting directly in skills/, or the bare
-// directory link. Only the first form can be exempt, so the capture is
-// the directory name and it is absent for every other form.
-const linkIntoSkills = /\]\((?:\.{1,2}\/)*skills\/(?:([\w-]+)\/)?/
+// Anything under skills/ — a published skill, an unpublished one, a
+// file sitting directly in skills/, or the bare directory link. Only a
+// skill directory can be exempt, so the capture is that directory name
+// and it is absent for every other form. The name has to end at a path
+// separator, the closing paren or an anchor, or `skills/README.md`
+// would read as a skill called `README`.
+const linkIntoSkills = /\]\((?:\.{1,2}\/)*skills\/(?:([\w-]+)(?=[\/)#]))?/
 const linkIntoOtherInternalLayer = /\]\((?:\.{1,2}\/)*(?:friction-log|evals)\//
 
 const readerLintPatterns: ReaderLintPattern[] = [
