@@ -2,7 +2,7 @@
 name: skmtc-cli
 version: 0.5.0
 description: |
-  Use the SKMTC CLI to scaffold projects, install or clone generators
+  Use the Skmtc CLI to scaffold projects, install or clone generators
   from JSR, configure schema sources and enrichments, and produce code
   artifacts from an OpenAPI v3 or GraphQL SDL schema. Teaches the
   workspace mental model (`<root>/.skmtc/<project>/`, client.json,
@@ -30,9 +30,9 @@ allowed-tools:
   - Edit
 ---
 
-# SKMTC CLI
+# Skmtc CLI
 
-The SKMTC CLI generates code from OpenAPI v3 or GraphQL SDL documents.
+The Skmtc CLI generates code from OpenAPI v3 or GraphQL SDL documents.
 It's a Deno binary that wraps a project workspace under
 `<root>/.skmtc/`, fetches generators from JSR, and runs them against a
 schema source pinned in each project.
@@ -50,7 +50,7 @@ diagnosing failures see
 
 | Concept | Where it lives | Notes |
 |---|---|---|
-| SKMTC root | nearest ancestor dir containing `.skmtc/` | Created by `skmtc init` |
+| Skmtc root | nearest ancestor dir containing `.skmtc/` | Created by `skmtc init` |
 | Project | `<root>/.skmtc/<project>/` | One schema + one set of generators |
 | Project deps | `<root>/.skmtc/<project>/deno.json` | JSR imports of installed generators |
 | Schema pin | `<root>/.skmtc/<project>/.settings/client.json` | `source` field — URL or path. Resolution: explicit schema arg → `client.json#source` → interactive prompt (TTY only; strict mode fails with a recipe error) |

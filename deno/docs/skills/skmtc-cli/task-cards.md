@@ -9,10 +9,10 @@ card to run one command.
 
 ## Task cards
 
-### Card: Setting up SKMTC in a project
+### Card: Setting up Skmtc in a project
 
 ```bash
-cd path/to/your-app                           # this becomes the SKMTC root
+cd path/to/your-app                           # this becomes the Skmtc root
 skmtc init my-api ./src --json                # creates .skmtc/my-api/
 skmtc install @skmtc/gen-zod @skmtc/gen-typescript my-api --json
 # Edit .skmtc/my-api/.settings/client.json — set "source" to the schema URL/path
@@ -256,7 +256,7 @@ step-2 wiring took, check the generated `worker.ts` imports the
 local `@<scope>/gen-<name>` id — a missing entry means the import
 key isn't a `gen-*` entry in `deno.json#imports`.
 
-### Card: Using SKMTC in CI
+### Card: Using Skmtc in CI
 
 ```bash
 # Setup (once per CI run) — the installer bootstraps Deno if needed;

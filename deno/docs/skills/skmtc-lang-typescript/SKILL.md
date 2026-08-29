@@ -2,7 +2,7 @@
 name: skmtc-lang-typescript
 version: 0.2.2
 description: >
-  The TypeScript target-language layer for SKMTC generators
+  The TypeScript target-language layer for Skmtc generators
   (@skmtc/lang-typescript): projection base factories, TsSnippet, the
   three register shapes, identifier kinds and the type-only import
   machinery, composition helpers, sanitization, TsFile render rules.

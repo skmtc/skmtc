@@ -3,8 +3,8 @@
 Pull-loaded detail for the `skmtc-cli` skill: the settings file's
 full shape, the filter semantics, the JSON envelopes agents parse,
 the user-facing operational principles, and the doctor check ids.
-Sections keep their historical numbers (§6/§7/§8/§11) — SKILL.md §6
-points here; the numbers do not map onto v2's own section numbering.
+Sections keep their historical numbers (§6/§7/§8/§11), which SKILL.md
+cites directly; they do not line up with SKILL.md's own numbering.
 
 Read this when you are editing `client.json`, writing a filter,
 parsing `--json` output, or checking a principle — not before.
@@ -325,7 +325,7 @@ Selected from the full operational principles in `llms.md`. These are
 the ones most likely to override default LLM intuitions during CLI
 work:
 
-| Default intuition | SKMTC's stance |
+| Default intuition | Skmtc's stance |
 |---|---|
 | Add a config flag to customize a stock generator | Use `skmtc clone` and edit the source |
 | Run Prettier in the pipeline | Don't — produce valid TS; consumer formats separately |
