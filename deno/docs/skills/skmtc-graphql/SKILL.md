@@ -17,6 +17,8 @@ description: |
   generators. Engine rules (producers, register/insert, the axioms)
   stay in `skmtc-generator`; this skill carries only what differs
   for GraphQL.
+metadata:
+  internal: true
 ---
 
 # SKMTC GraphQL pipeline

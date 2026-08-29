@@ -1,5 +1,5 @@
 ---
-name: skmtc-model-v3
+name: skmtc-model
 version: 0.1.3
 description: >
   The model-generator shape for SKMTC: one definition per component
@@ -9,8 +9,8 @@ description: >
   nullable, additionalProperties, enums, readOnly/writeOnly. Use when
   authoring or editing a generator that maps schemas to a
   validator/schema/type library ("write a gen-<lib>", "map OpenAPI
-  models to <lib>"). Load ALONGSIDE skmtc-generator-v3 (engine rules)
-  and skmtc-lang-typescript-v3 (TS layer).
+  models to <lib>"). Load ALONGSIDE skmtc-generator (engine rules)
+  and skmtc-lang-typescript (TS layer).
 ---
 
 # Model generators: fill the skeleton
@@ -119,8 +119,8 @@ engine machinery — modifying it is almost always a mistake.
   membership comes from a document-wide scan (parent → member
   inversion, WeakMap-memoized) consulted at member construction, never
   from the union's own walk. Non-qualifying unions render the honest
-  wire type (`JsonNode`), not `Any`. Full pattern:
-  skmtc-lang-kotlin-v3 §8c.
+  wire type (`JsonNode`), not `Any`. Full pattern: the Kotlin lang
+  skill §8c.
 - **Property keys** go through `handleKey` — `'first-name'` renders
   quoted; never assume keys are identifiers.
 - **Visibility.** `readOnly`/`writeOnly` are captured per property in
@@ -163,12 +163,12 @@ import means a string swallowed a snippet), then the body, then
 ## 6. Boundaries
 
 Engine semantics (the one law, memoization, enrichments, variants,
-naming rules) live in **skmtc-generator-v3** — read it first. TS-layer
+naming rules) live in **skmtc-generator** — read it first. TS-layer
 specifics (register shapes, identifier kinds, import machinery,
-`List`/`FunctionParameter`) live in **skmtc-lang-typescript-v3**. This
+`List`/`FunctionParameter`) live in **skmtc-lang-typescript**. This
 skill owns only the model SHAPE. The skeleton is TypeScript-emitting;
 for a Kotlin model generator, keep this skill's shape and edge-case
-rules but take call shapes from skmtc-lang-kotlin-v3 (no Kotlin
+rules but take call shapes from the Kotlin lang skill (no Kotlin
 skeleton yet). Operation generators are a different shape — load
-`skmtc-operation-v3`; accumulators are covered by neither (clone
-`gen-msw`/`gen-express` per skmtc-generator-v3 §2).
+`skmtc-operation`; accumulators are covered by neither (clone
+`gen-msw`/`gen-express` per skmtc-generator §2).

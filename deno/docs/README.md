@@ -226,6 +226,22 @@ Per-generator reference: [`reference/stock-generators/`](reference/stock-generat
 
 If you are a coding assistant, read [`llms.md`](llms.md) — a primer optimized for your reading patterns. Also: `skmtc agent-context --json` produces a structured project state dump.
 
+### Agent skills
+
+Five skills ship from this repo, at the same commit as the code they describe: `skmtc-generator` (engine rules), `skmtc-lang-typescript` (the emitted TypeScript), `skmtc-model` and `skmtc-operation` (the two generator shapes), and `skmtc-cli`.
+
+```bash
+# Claude Code
+/plugin marketplace add skmtc/skmtc
+/plugin install skmtc@skmtc
+
+# any skills-capable agent
+npx skills add skmtc/skmtc
+npx skills add skmtc/skmtc --skill skmtc-generator
+```
+
+Each one reads fine on its own — for example [`skmtc-generator`](skills/skmtc-generator/SKILL.md) and [`skmtc-cli`](skills/skmtc-cli/SKILL.md).
+
 ---
 
 ## Project status

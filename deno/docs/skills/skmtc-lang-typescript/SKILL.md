@@ -1,467 +1,150 @@
 ---
 name: skmtc-lang-typescript
-version: 0.2.0
-description: |
+version: 0.2.2
+description: >
   The TypeScript target-language layer for SKMTC generators
-  (`@skmtc/lang-typescript`). Covers how a generator declares
-  TypeScript as its target language (importing the projection-base
-  veneers and `TsSnippet` from the lang package), what the lang package
-  exports (the `typescript` Lang object, the register family,
-  `TsFile` / `TsImport` / `TsDefinition`), entity
-  kinds and `Identifier` factories, the import model of emitted
-  TypeScript (type-only imports, TS1484 / `verbatimModuleSyntax`,
-  `toImport()`), the TS syntax helpers (`List`, `FunctionParameter`,
-  `toPathTemplate`, …), and naming/sanitization of emitted identifiers.
-
-  Use this skill alongside `skmtc-generator` whenever a generator emits
-  TypeScript — i.e. for almost all generator authoring today — and
-  specifically when the user asks about "lang-typescript", "TsSnippet",
-  "type-only imports", "TS1484", "import type", "where do I import List
-  from", "sanitizePropertyName", or anything about the *shape of the
-  emitted TypeScript* rather than engine behavior. Engine rules
-  (Projections, Snippets, cross-generator coordination, variants) live
-  in `skmtc-generator`. This skill is also the TEMPLATE for
-  future `skmtc-lang-<X>` skills, written once a language layer
-  leaves pre-alpha: a new language skill keeps these section
-  headings and replaces the answers.
-allowed-tools:
-  - Bash
-  - Read
-  - Glob
-  - Grep
-  - Write
-  - Edit
+  (@skmtc/lang-typescript): projection base factories, TsSnippet, the
+  three register shapes, identifier kinds and the type-only import
+  machinery, composition helpers, sanitization, TsFile render rules.
+  Use ALONGSIDE skmtc-generator whenever a generator emits
+  TypeScript. Headings are the template for other skmtc-lang-*
+  skills.
 ---
 
-# SKMTC TypeScript language layer
+# The TypeScript layer (@skmtc/lang-typescript)
 
-This skill covers the **target-language** side of generator authoring:
-what the emitted TypeScript looks like and which package owns each
-piece. The boundary rule, worth internalizing first:
+Read `skmtc-generator` first; you will normally have copied the
+`skmtc-model` skeleton (model generators — load that skill) or
+cloned `@skmtc/gen-tanstack-query-fetch-zod` (operation) — **those are
+the worked examples**. This skill carries the rules that aren't visible
+from imitation alone.
 
-> **The authoring language is always TypeScript/Deno; only the target
-> language varies.** Rules about how generator *source* is written
-> (`as` casts, `switch`+`never`, `Deno.env`, Valibot enrichments) live
-> in `skmtc-generator`. This skill covers how the generator's *output*
-> is shaped — files, imports, definitions, identifiers, naming — for
-> generators whose target is TypeScript.
+## 1. Declaring the language
 
-> **Template contract.** This is the first `skmtc-lang-<X>` skill and
-> the template for the rest. A new language skill (written once its
-> language layer leaves pre-alpha) keeps
-> the seven section headings below and replaces the answers. Every
-> section now describes symbols owned by THIS package — the naming
-> layer and syntax helpers moved out of `@skmtc/core` under F5/F6
-> (`notes/lang/17-naming-layer-and-helpers-move.md`); a new language
-> ships its own equivalents of §2/§4/§5.
-
-## 1. Package surface
-
-`@skmtc/lang-typescript` exports:
-
-| Export | What it is |
-|---|---|
-| `typescript` | The `Lang` object. Three neutral factories the engine's **Drivers** call, reading it ephemerally off the projection class's inherited static (`projection.lang`): `createFile`, `toDefinition`, `toImport`. Generators never call it. |
-| `TsSnippet` | The snippet base — where TypeScript enters the DSL class hierarchy. Carries the static `lang`; its `register` / `defineAndRegister` methods are typed by the concise vocabulary. Registering snippets are **keyless** (`generatorKey` is optional attribution input) |
-| `toTsModelProjectionBase` / `toTsOasOperationProjectionBase` / `toTsGqlOperationProjectionBase` | The projection-base veneers over core's factories — pre-bind `TsSnippet` as the factory's positional first argument (core's factory is `toModelProjectionBase(base, config)`; the veneer calls `toModelProjectionBase(TsSnippet, config)`, so a generator passes only `(config)` and never `base`) and add own-file `register(args)` + explicit cross-file `registerInto(destinationPath, args)`. The config is core's `ModelProjectionBaseConfig<E, TsLang>` (etc.) — generators rarely name it |
-| `register` / `defineAndRegister` | The register **functions** — convert the concise form, ensure the destination file, hand pure data to the neutral `context.register`. Transforms (closures with no class) import `defineAndRegister` directly |
-| `TsRegisterArgs` / `TsDefineAndRegisterArgs` | The concise register vocabulary (`imports` / `reExports` / `definitions`) |
-| `TsFile` | `CodeFileBase` subclass — a TypeScript output file (imports, re-exports, definitions, package-aware module normalization) |
-| `TsImport` | `ImportBase` subclass — renders import statements, including per-name `type` tags and statement-level `import type { … }` optimization |
-| `TsReExport` | `ReExportBase` subclass — renders `export { x }` / `export type { x }` re-export statements (the barrel seam) |
-| `TsDefinition` | `DefinitionBase` subclass — wraps a generated value as `export const/type Name: Type = value;` with optional JSDoc |
-| `ImportNameArg` | The concise import-name shape (`'name'`, `{ name, type: 'type' }`, `{ name, alias }`) accepted by `register({ imports })` |
-| `createVariable` / `createType` | The identifier factories (formerly `Identifier.createVariable` / `.createType` statics on core) — build neutral `Identifier`s with this language's `kind` vocabulary |
-| `TsEntityType` / `toTsKeyword` | The two-kind vocabulary (`'variable' \| 'type'`) and its declaration-keyword mapping (`const` / `type`) |
-| `List` / `NextList` / `FunctionParameter` / `PathParams` / `toPathParams` / `toPathTemplate` / `handleKey` / `handlePropertyName` / `keyValues` / `withDescription` | The TypeScript syntax helpers (§4) — moved from core under F5 |
-| `sanitizePropertyName` | TS/JS-specific property-name sanitization (§5) — moved from core under F6 |
-| `ReactRouterPathParams` | A stock snippet (`TsSnippet` subclass) for React-Router param plumbing |
-| `langId` | `'typescript'` |
-| `fileExtensions` | `['.ts', '.tsx']` |
-
-### Wiring — the import graph declares the language
+The declaration is the import graph — no `lang` config field exists.
+`src/base.ts` imports a factory; the returned class extends `TsSnippet`,
+which carries the `static lang` Drivers read pre-construction.
 
 ```ts fragment
-// gen-x/src/base.ts — the language enters HERE, through the import
 import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 
-export const MyBase = toTsModelProjectionBase({
+export const MyBase = toTsModelProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
-  toIdentifierName({ refName }) { /* … */ },
-  toIdentifierType(refName, context) { /* … */ },
-  toExportPath({ refName }) { /* … */ },
-  toEnrichmentSchema: () => emptyEnrichmentSchema
-})
-```
-
-```ts
-// gen-x/src/mod.ts — the entry is pure pipeline config; NO lang field
-import { toModelEntry } from '@skmtc/core'
-import denoJson from '../deno.json' with { type: 'json' }
-
-export const myEntry = toModelEntry({
-  id: denoJson.name,
-  transform({ context, refName }) { /* … */ }
-})
-```
-
-There is no `lang` config field anywhere — not on the entry, not on
-the projection base, not on snippets; `register` calls never pass one.
-A generator declares its language by importing its projection-base
-factory (`toTsModelProjectionBase` and friends — and, for registering
-snippets, `TsSnippet`) from this package. These veneers pre-bind
-`TsSnippet` as the positional first argument to core's underlying
-factory (which keeps its name, `toModelProjectionBase`), so the
-generator's config object carries no `base` field. The language rides
-the class hierarchy as the static `lang`
-on `TsSnippet`; the engine's Drivers read it ephemerally off the
-projection class (`projection.lang`) when they need to create a file
-or build a Definition.
-
-Generators normally never construct `TsFile` / `TsDefinition` /
-`TsImport` directly — this package's register functions and the
-engine's Drivers build them. If you find yourself `new TsImport(...)`
-in a generator, you almost certainly wanted
-`this.register({ imports })`.
-
-The package dependency (both required):
-
-```jsonc
-// gen-x/deno.json#imports
-{
-  "@skmtc/core": "jsr:@skmtc/core@<pin>",
-  "@skmtc/lang-typescript": "jsr:@skmtc/lang-typescript@<pin>"
-}
-```
-
-### Wiring scaffolds — base.ts, the Projection, the Snippet
-
-The concrete TS wiring the `skmtc-generator` skill's contracts
-describe (its scaffolds C–D — the entry and enrichments — stay
-language-free in that skill; these three are the TypeScript-specific
-counterparts):
-
-
-```ts
-// gen-x/src/base.ts
-import {
-  capitalize,
-  camelCase,
-  toMethodVerb,
-  withVariant  // only needed for variants-aware generators
-} from '@skmtc/core'
-// ⬇ The factory comes from the LANG package — this import is what
-//   declares the generator's target language.
-import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
-import { join } from '@std/path'
-import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
-import denoJson from '../deno.json' with { type: 'json' }
-
-export const MyGenBase = toTsOasOperationProjectionBase<EnrichmentSchema>({
-  id: denoJson.name,
-  toEnrichmentSchema,
-
-  // ⬇ Customize: how is the identifier NAME derived? Returns a plain
-  //   string — the cache-key half; must stay pure and side-effect-free.
-  //   `variant` is always present ('main' minimum). Variants-unaware:
-  //   ignore it. Variants-aware: wrap in withVariant(base, variant).
-  toIdentifierName({ operation, variant }): string {
-    const verb = capitalize(toMethodVerb(operation.method))
-    const base = `${verb}${camelCase(operation.path, { upperFirst: true })}`
-    // Variants-unaware:    return base
-    return withVariant(base, variant)
-  },
-
-  // ⬇ Customize: the non-name identifier parts. The `kind` drives
-  //   declaration keywords and import forms in the language layer —
-  //   'variable' for `export const`, 'type' for `export type`.
+  toIdentifierName({ refName }) { return decapitalize(camelCase(refName)) },
   toIdentifierType: () => ({ type: 'variable' }),
-
-  // ⬇ Customize: where does the generated file land?
-  toExportPath({ operation, enrichments, variant }): string {
-    const name = this.toIdentifierName({ operation, enrichments, variant })
-    return join('@', 'my-gen', `${name}.generated.ts`)
-  }
+  toExportPath({ refName, enrichments, variant }) {
+    const name = this.toIdentifierName({ refName, enrichments, variant })
+    return join('@', 'types', `${name}.generated.ts`)   // '@/' root marker
+  },
+  toEnrichmentSchema
 })
 ```
 
-`withVariant(base, 'main')` returns `base` unchanged; other variants
-append a PascalCased suffix (`withVariant('Form', 'line-items')` →
-`'FormLineItems'`). Variant names are kebab-strict
-(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`).
+Factories: `toTsModelProjectionBase`, `toTsOasOperationProjectionBase`
+(+ webhook/GQL variants). Snippets extend `TsSnippet` directly. Casing
+helpers (`camelCase`, `capitalize`, `decapitalize`) and `toEndpointName`
+come from `@skmtc/core`; `join` from `@std/path`.
 
+A projection consumable by peers via `insertNormalizedModel` also needs
+two statics: `schemaToValueFn` (your router) and `createIdentifier`.
 
+## 2. The three register shapes
 
-```ts
-// gen-x/src/MyGen.ts
-import { TsProjection } from '@skmtc/gen-typescript'
-import { MyGenBase } from './base.ts'
-import type { EnrichmentSchema } from './enrichments.ts'
-import type { OasOperationProjectionConstructorArgs } from '@skmtc/core'
-import invariant from 'tiny-invariant'
+| Caller | Call | Destination |
+|---|---|---|
+| Projection | `this.register(args)` | its own export file |
+| Projection | `this.registerInto(path, args)` | explicit file |
+| Snippet | `this.register({ ...args, destinationPath })` | required — snippets own no file |
 
-export class MyGen extends MyGenBase {
-  tsRequestBodyName: string
+Free functions for transform-level code: `register(context, args)`;
+`defineAndRegister(context, { identifier, value, destinationPath })` —
+no cache check (pair with `context.findDefinition` for the accumulator
+get-or-create idiom). Args:
+`{ imports?: Record<module, ImportNameArg[]>, reExports?, definitions?,
+custom? }`. `register` creates the file on first write and drops
+self-imports, so register imports unconditionally — per-leaf
+registration (every snippet needing `z` registers `{ zod: ['z'] }`) is
+the correct pattern, and merging is idempotent.
 
-  constructor({
-    context,
-    operation,
-    settings
-  }: OasOperationProjectionConstructorArgs<EnrichmentSchema>) {
-    super({ context, operation, settings })
+## 3. Identifier kinds
 
-    // ⬇ toRequestBody returns undefined when the operation has no body —
-    //   narrow before handing it on (isSupported gates on it, so throw).
-    const requestBody = operation.toRequestBody(({ schema }) => schema)
-    invariant(requestBody, 'Request body is required')
+`TsEntityType = 'variable' | 'type' | 'class' | 'interface' |
+'namespace'` — factories `createVariable(name, { typeName? })`,
+`createType`, `createClass`, `createInterface`, `createNamespace`.
+No `'function'` kind: a generated function is a `variable` whose value
+renders as an arrow function.
 
-    // ⬇ Self-provision: compose with peers by name. The Driver handles
-    //   ref resolution, dedup, and import registration.
-    const tsRequestBody = this.insertNormalizedModel(TsProjection, {
-      schema: requestBody,
-      fallbackName: `${settings.identifier.name}Body`
-    })
-    this.tsRequestBodyName = tsRequestBody.identifier.name
+`toIdentifierType` is one lever with three effects: declaration keyword;
+block form (class/interface/namespace take no `= value;`); and whether
+consumers import it **type-only** (`type` and `interface` do — this is
+what keeps consumers compiling under `verbatimModuleSyntax`/TS1484, and
+you get it by choosing the kind, never by writing import syntax).
+File dedup keys on keyword+name, so `class Foo` + `namespace Foo`
+coexist (declaration merging); first write wins per slot.
 
-    // ⬇ Register runtime imports needed by toString().
-    this.register({
-      imports: { 'some-runtime-library': ['someHelper'] }
-    })
-  }
+## 4. Emitted-import rules
 
-  override toString(): string {
-    // ⬇ Pure function of `this`; emit ONLY the value — the Driver
-    //   wraps it as `export const ${name} = ${value};` at Render.
-    return `someHelper<${this.tsRequestBodyName}>(...)`
-  }
-}
-```
+Concise forms per module: `['z']` (named), `[{ default: 'invariant' }]`
+(aliased/default), `[{ name: 'User', type: 'type' }]` (type-only).
+Sharp edge: only `type: 'type'` triggers type-only in the concise form —
+`type: 'interface'` does NOT; tag interfaces `type: 'type'`. Register
+against `@/…` export paths; module names are re-keyed at render via the
+project's package settings.
 
+## 5. Composition helpers
 
+All `Stringable`, all deferring joins to render — use them instead of
+`array.join` whenever items are snippets (joining pre-renders and orphans
+provenance):
 
-```ts
-// gen-x/src/MyFieldSnippet.ts
-import type { GenerateContextType, OasRef, OasSchema } from '@skmtc/core'
-import { TsSnippet } from '@skmtc/lang-typescript'
+- `List` — `List.toObject/toArray/toParams/toLines/toKeyValue`,
+  `List.fromKeys(record).toObject(fn)`, `new List(values, { separator,
+  bookends, skipEmpty })`.
+- `FunctionParameter({ typeDefinition, destructure, required, skipEmpty })`
+  — one object, four readings: `toString()` (declaration), `toInbound()`
+  (call site), `toPropertyList()`, `hasProperty(name)`.
+- `toPathTemplate('/users/{id}')` → `` /users/${id} ``; `toPathParams` →
+  `/users/:id`; `PathParams` bundles type + parameter + template.
+- `keyValues`, `withDescription`, `handleKey`, `handlePropertyName`;
+  `TsClass`/`TsHeritage` for class syntax (`TsHeritage` registers its own
+  heritage imports).
 
-type MyFieldSnippetArgs = {
-  context: GenerateContextType
-  name: string
-  label?: string
-  destinationPath: string    // ⬅ Snippets have no exportPath; the parent passes it
-  schema?: OasSchema | OasRef<'schema'> // ⬅ optional: originating node, for attribution
-}
+## 6. Sanitizing emitted names
 
-export class MyFieldSnippet extends TsSnippet {
-  name: string
-  label: string | undefined
+Two different questions: `sanitizeIdentifier(name)` for **binding
+names** (`export const <name>`; repairs `'2fa'` → `'_2fa'`, reserved →
+suffixed) vs `sanitizePropertyName(name)` for **property keys /
+destructuring** (returns a rename pair when repair is needed). Never
+hand-roll keyword lists.
 
-  constructor({ context, name, label, destinationPath, schema }: MyFieldSnippetArgs) {
-    // ⬇ stackTrail is an optional attribution input — clone at the
-    //   call site (the live trail is mutable).
-    super({ context, stackTrail: schema?.stackTrail.clone() })
-    this.name = name
-    this.label = label
+## 7. Files
 
-    // ⬇ Self-provision against the parent's destinationPath — keyless.
-    this.register({
-      imports: { '@/components/fields/my-field': ['MyField'] },
-      destinationPath
-    })
-  }
+Render order: custom banner → re-exports → imports → definitions;
+first-wins per definition slot makes output order-independent. You
+almost never construct `TsFile`/`TsImport`/`TsDefinition` yourself —
+`register` and the Drivers do.
 
-  override toString() {
-    return `<MyField name="${this.name}"${this.label ? ` label="${this.label}"` : ''} />`
-  }
-}
-```
-
-The parent constructs it with
-`new MyFieldSnippet({ …, destinationPath: this.settings.exportPath })`
-and interpolates it with `${this.fieldSnippet}`. `generatorKey` is an
-*optional* attribution (gen-maps) input — thread
-`generatorKey: this.generatorKey` into `super(...)` to attribute the
-snippet to the parent generator; registering never needs it.
-
-
-## 2. Entity kinds & identifiers
-
-TypeScript output has two entity kinds (`TsEntityType`), created via
-the identifier factory functions exported by THIS package:
+## 8. The contrast that matters
 
 ```ts
-import { createVariable, createType } from '@skmtc/lang-typescript'
-
-createVariable('fooBar')                      // → export const fooBar = …
-createVariable('fooBar', { typeName: 'Foo' }) // → export const fooBar: Foo = …
-createType('FooBar')                          // → export type FooBar = …
+// WRONG: stored rendered text — z import never registers, refs duplicate
+this.properties[key] = `z.string().optional()`
+// RIGHT: stored snippet — imports settle, cache sees it, provenance holds
+this.properties[key] = toMyValue({ schema: propSchema, required, destinationPath, context })
 ```
 
-- Core's `Identifier` is pure neutral data (`name`, opaque `kind`,
-  `exported`, opaque `typeName`); the factories write this language's
-  `kind` vocabulary (`'variable'` / `'type'`) into it. The old
-  `Identifier.createVariable` / `.createType` statics on core are
-  gone.
-- The kind drives both the **declaration keyword** (`toTsKeyword`:
-  `'variable'` → `const`, `'type'` → `type`, rendered by
-  `TsDefinition`) and the **import form** (value vs type import,
-  see §3).
-- **The typed-const annotation (`: Foo`) comes from the Identifier's
-  `typeName`, not from the value.** A Projection/Snippet `toString()`
-  returns only the right-hand-side expression; `TsDefinition` wraps it
-  with `export`, the keyword, the name, and the annotation. Never bake
-  `: Foo` or `export const` into the value itself.
-- Languages with richer declaration vocabularies (`interface`, `enum`,
-  C# `record`, Kotlin `data class`, Rust `struct`) define their own
-  kind sets in their own factories; `toTsKeyword` throws on a kind
-  outside this language's vocabulary.
+A cached peer *name* is a legitimate string — minding the two insert
+return shapes: `this.responseName = definition.identifier.name` from
+`insertNormalizedModel`, or `.toName()` off `insertModel`'s `Inserted`
+handle. Modifier pipelines (`applyModifiers`-style) run inside
+`toString()`, never to build stored fields.
 
-## 3. The import model of emitted TypeScript
+## 9. TypeScript pitfalls
 
-Generators register imports in the concise form (`ImportNameArg`,
-exported from this package — not from `@skmtc/core`); the language's
-register function converts them to `TsImport`s at the register
-boundary:
-
-```ts
-this.register({
-  imports: {
-    'react-hook-form': [
-      'useForm',                              // value import
-      { name: 'UseFormProps', type: 'type' }, // type-only import
-      { name: 'useForm', alias: 'rhfUseForm' } // aliased
-    ]
-  }
-})
-```
-
-Rendering rules `TsImport` applies (authors never hand-write these):
-
-- Per-name `type` tags render inline (`import { useForm, type
-  UseFormProps } from …`); when *every* name is a type, the statement
-  collapses to `import type { … } from …`.
-- Module specifiers: `@/…` paths resolve against the consumer's
-  bundler alias (rooted at `client.json#settings.basePath`, or
-  per-package when `packages` is configured — cross-package imports
-  render the target's `moduleName`). Bare specifiers (`zod`,
-  `react-hook-form`) pass through for the consumer's package manager.
-
-### Type-only imports — the TS1484 trap
-
-```ts
-// ❌ WRONG — bare value import of a type-only symbol
-this.register({
-  imports: { 'react-hook-form': ['useForm', 'UseFormProps'] }
-})
-
-// ✅ RIGHT — tag the type explicitly
-this.register({
-  imports: {
-    'react-hook-form': ['useForm', { name: 'UseFormProps', type: 'type' }]
-  }
-})
-
-// ✅ ALSO RIGHT — derive the tag from an Identifier you hold
-this.register({
-  imports: { './types': [
-    identifier.type === 'type'
-      ? { name: identifier.name, type: 'type' }
-      : identifier.name
-  ] }
-})
-```
-
-**Fails because:** consumers compiling with `verbatimModuleSyntax:
-true` (modern Vite, Next.js strict) reject bare value imports of types
-with TS1484. (For peer Definitions inserted via
-`insertOperation` / `insertModel`, the Driver already registers the
-import with the right form — `TsImport.fromIdentifier` reads the
-identifier's `type`; you only hand-tag imports you register yourself.)
-Note this is a **target-language** failure: the generator compiles
-fine; the *consumer's* build breaks.
-
-## 4. Syntax helpers
-
-String-building helpers for TypeScript syntax. They all return
-`Stringable`-compatible values that compose in template literals:
-
-| Helper | Renders |
+| Symptom | Fix |
 |---|---|
-| `List` | Delimited lists — arrays, object bodies, arg lists (`List.toArray`, `List.toObject`, `List.toKeyValue`, …) |
-| `FunctionParameter` | A typed function parameter, optionally destructured |
-| `PathParams` / `toPathParams` | Path-parameter names/types extracted from an OAS path |
-| `toPathTemplate` | An OAS path as a TS template literal (`` `/users/${id}` ``) |
-| `keyValues` | An object literal from a record, skipping `undefined` values |
-| `withDescription` | Prefixes a value with a JSDoc comment block |
-
-All import from `@skmtc/lang-typescript` (moved from core under F5).
-A future `lang-<X>` package ships its own equivalents; do not reach
-for these when targeting another language.
-
-## 5. Naming & sanitization
-
-- **`sanitizePropertyName(name)`** — makes an arbitrary OAS property
-  name safe as a TypeScript object key. JS-specific end to end: babel
-  identifier validation, the JS reserved-word list, quoting/camelCase
-  fallback via `List.toKeyValue`. Use it whenever emitting object keys
-  derived from schema property names.
-- **File extensions**: `.ts`, or `.tsx` when the output contains JSX.
-  Keep the `.generated.` infix from the engine-side conventions
-  (`Foo.generated.tsx`) — that part is language-neutral.
-- Identifier validity for *generated names* is normally guaranteed by
-  deriving them through `camelCase` / `capitalize` from method+path or
-  refName (see `skmtc-generator` §6A); sanitization is for *schema-
-  supplied* keys you don't control.
-
-## 6. TypeScript-output anti-patterns
-
-- **Bare value imports of type-only symbols** — §3 above (TS1484).
-- **Baking the declaration into the value** — `toString()` returning
-  `export const Foo = …` or `: Foo` annotations. The Driver +
-  `TsDefinition` add `export`, the keyword, the name, and the
-  `typeName` annotation; doubling them is a syntax error
-  (`export const Foo = export const Foo = …`). Return only the RHS.
-- **Hand-rendering import statements in template literals** — they
-  land in the file *body* (TS rejects) and bypass `TsImport`'s dedup
-  and `import type` collapsing. Engine-side rule (`skmtc-generator`
-  §8) — listed here because the failure is a TS compile error.
-- **Constructing `TsFile` / `TsImport` / `TsDefinition` in a
-  generator** — those are built by this package's register functions
-  and the engine's Drivers. Generators speak `register` /
-  `insertOperation` / `defineAndRegister`.
-- **Running a formatter over the output** — render is unformatted by
-  design; the consumer formats. (Engine fact; restated because "add
-  Prettier" is a TS-flavored instinct.)
-
-## 7. Boundary with other skills
-
-- **`skmtc-generator`** — everything engine-side: Projections,
-  Snippets, `register` / `registerInto` semantics, cross-generator
-  coordination, variants, enrichments, entry factories. If the
-  question is "how do generators work", it's there; if it's "what does
-  the emitted TypeScript look like", it's here.
-- **`skmtc-cli`** — install/clone/bundle/generate commands.
-- **`skmtc-debug`** — broken output, verify-first stance.
-
-### Status note
-
-The naming layer and syntax helpers landed in this package under
-F5/F6 (core ≥0.9.0 / lang-typescript ≥0.2.0 — see
-`notes/lang/17-naming-layer-and-helpers-move.md`): the identifier
-factories, `TsEntityType`, `sanitizePropertyName`, and the §4 helpers
-all import from `@skmtc/lang-typescript`. Core's `Identifier` is
-neutral data with a public constructor; core's `EntityType`, its
-concrete `Definition`, and `Identifier.toImport` no longer exist.
-The code boundary now matches the design.
-
-Current release: `@skmtc/lang-typescript` 0.4.0 (against `@skmtc/core`
-0.11.0). The projection-base veneers carry the `Ts` prefix
-(`toTsModelProjectionBase` and friends) and pre-bind `TsSnippet` as
-the positional first argument to core's `toModelProjectionBase(base,
-config)` — core's factory keeps its bare name; the per-veneer config
-alias types (`TsModelProjectionBaseConfig`, …) are gone, and the
-config is core's `ModelProjectionBaseConfig<E, TsLang>`.
-`toEnrichmentSchema` is now a required config field returning the
-three-scope enrichment umbrella `v.object({ subject, generator, stack
-})` (a no-enrichment generator passes `emptyEnrichmentSchema`); the
-deep enrichment treatment lives in `skmtc-generator`.
+| TS1484 in consumers | Identifier kind `type`/`interface`; concise imports need `type: 'type'` |
+| Interface import emitted as value | Tag it `type: 'type'` (known concise-form gap) |
+| TS7022/7024 on recursive schemas | Set `settings.identifier.typeName` (e.g. `z.ZodType<X>`) post-construction; the *name* stays stable |
+| Provenance holes under some nodes | `toString` must be a prototype method, never an arrow field |
+| Doubled `?`/modifiers | One owner: apply modifiers once, at the leaf's render |

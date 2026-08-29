@@ -1,9 +1,10 @@
 # skmtc-cli — reference companion
 
 Pull-loaded detail for the `skmtc-cli` skill: the settings file's
-full shape, the filter semantics, the JSON envelopes agents parse, and
-the user-facing operational principles. Section numbers match
-`SKILL.md`, which carries a stub pointing here for each.
+full shape, the filter semantics, the JSON envelopes agents parse,
+the user-facing operational principles, and the doctor check ids.
+Sections keep their historical numbers (§6/§7/§8/§11) — SKILL.md §6
+points here; the numbers do not map onto v2's own section numbering.
 
 Read this when you are editing `client.json`, writing a filter,
 parsing `--json` output, or checking a principle — not before.
@@ -72,6 +73,14 @@ parsing `--json` output, or checking a principle — not before.
 
     // Deny-list. Applied after include. See §7.
     "skip": [],
+
+    // Optional. Filename suffix the engine injects into every
+    // projection export path before the extension (`CreateForm.tsx`
+    // → `CreateForm.generated.tsx`). Defaults to ".generated"; set
+    // "" to disable. Injection is idempotent, and the suffix marks a
+    // file as engine-owned — it is the seam the eject/adopt flow
+    // renames across. Usually leave it alone.
+    "generatedSuffix": ".generated",
 
     // Optional. Multi-package output — route generated files into
     // separate packages of a monorepo. Each entry is
@@ -373,6 +382,28 @@ Mixed states are silently broken:
   - To use cloned source → import is `./gen-X/mod.ts`, ensure the
     folder + `gen-X/mod.ts` exist.
 
-Background: friction log entry `2026-05-28-composition-consistency-and-cloned-prefix.md`.
+Full list in
+[`llms.md`, "Operational principles for proposing changes"](https://github.com/skmtc/skmtc/blob/main/deno/docs/llms.md#operational-principles-for-proposing-changes).
 
-Full list in [`../../llms.md#operational-principles-for-proposing-changes`](../../llms.md#operational-principles-for-proposing-changes).
+## Doctor check ids
+
+`skmtc doctor --json` output is self-describing (every check carries
+`id`, `status`, `message`, `hint`); this catalogue exists for
+reasoning about a specific check without running it.
+
+| Check id | What it inspects |
+|---|---|
+| `cli-version-current` | The running CLI vs the newest published `@skmtc/cli` — the only check that reaches the network (2s bound, `skipped` when unreachable, `--offline` skips it). Names Deno's 24h minimum-dependency-age window when the newest release is still inside it, since a reinstall without `--minimum-dependency-age=0` silently resolves an older one |
+| `install-lockfile` | `~/.deno/bin/.skmtc/deno.lock` — the installed CLI's version pin of `@skmtc/cli` and `@skmtc/core` |
+| `deno-version` | Running Deno is ≥ 2.4.0 — the floor for the esbuild-based `deno bundle` |
+| `hub-auth` | `~/.skmtc/auth.json` parses to `{ host, token }` — offline only; `skipped` when not logged in, `warning` + logout/login hint when malformed; never reports more than the token's last 4 chars |
+| `project-deno-json/<project>` | `deno.json` exists and parses |
+| `project-base-path/<project>` | `client.json#settings.basePath` present and relative |
+| `project-core-pin/<project>` | Project's `@skmtc/core` pin matches the CLI's major.minor |
+| `project-bundle/<project>` | `bundle.js` exists — every project (remote-only included) generates from it; warning with a `skmtc bundle` hint when missing |
+| `project-enrichments/<project>` | Last generate's `manifest.enrichmentWarnings` has no `warning`-level entries — dead enrichment config (typo'd generator id, path, method or model name) surfaces here between runs; `info` entries keep it `ok` |
+| `project-worker-pin/<project>` | If `worker.ts` exists, `@skmtc/worker` is pinned (the generated worker imports it); ok-noop before the first bundle |
+| `project-manifest/<project>` | `manifest.json` matches the current `@skmtc/core` schema |
+| `anchors-config/<project>` | `client.json#settings.anchors` shape; gen-maps are opt-in via `settings.anchors.enabled` |
+| `anchors-coverage/<project>` | Share of manifest files carrying an attribution sidecar; `warning` below threshold |
+| `anchors-staleness/<project>` | Sidecars on disk are current for the last run |

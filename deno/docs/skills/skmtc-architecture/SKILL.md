@@ -27,6 +27,8 @@ allowed-tools:
   - Grep
   - Write
   - Edit
+metadata:
+  internal: true
 ---
 
 # SKMTC architecture

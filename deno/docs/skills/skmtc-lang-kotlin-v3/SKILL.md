@@ -8,13 +8,15 @@ description: >
   KtAnnotation and the composition classes, sanitization and
   @SerialName placement, plus the current-API worked example (the
   shipped gen-kotlin-* packages are API-stale — do not copy their call
-  shapes). Use ALONGSIDE skmtc-generator-v3 whenever a generator emits
-  Kotlin. Headings mirror skmtc-lang-typescript-v3.
+  shapes). Use ALONGSIDE skmtc-generator whenever a generator emits
+  Kotlin. Headings mirror skmtc-lang-typescript.
+metadata:
+  internal: true
 ---
 
 # The Kotlin layer (@skmtc/lang-kotlin)
 
-Read `skmtc-generator-v3` first.
+Read `skmtc-generator` first.
 
 > **Drift warning.** The API of record is the workspace
 > `skmtc/deno/lang-kotlin` and its tests. The shipped `gen-kotlin-*`
@@ -233,7 +235,7 @@ every mature Kotlin generator solves inline objects the same way:
   string enums synthesize the same way (`enum class` sibling).
 - Never fabricate a refName or drive the peer's identity statics to
   force a declaration into existence — that is the two-doors rule
-  (skmtc-generator-v3 §4), and the result couples you to the peer's
+  (skmtc-generator §4), and the result couples you to the peer's
   private snippet shape.
 
 ## 8c. Discriminated unions — sealed interfaces (shipped 2026-08-04)

@@ -1,13 +1,13 @@
 # skmtc-cli — task cards
 
-Pull-loaded workflows for the `skmtc-cli` skill: end-to-end recipes
-for the common jobs. Section numbering matches `SKILL.md`, which
-carries a stub pointing here.
+Pull-loaded workflows for the `skmtc-cli` skill: end-to-end
+recipes for the common jobs, referenced from SKILL.md §7.
 
-Read the card for the job in front of you. The command surface itself
-is in `SKILL.md` §4 — you do not need a card to run one command.
+Read the card for the job in front of you. The command surface lives
+in the binary (`skmtc --help`, `skmtc <cmd> -h`) — you do not need a
+card to run one command.
 
-## 10. Task cards
+## Task cards
 
 ### Card: Setting up SKMTC in a project
 
@@ -341,7 +341,7 @@ Key facts:
 - Read `version` / `versionUrl` from the JSON output. There is no
   `deploymentId` or `shortId` anymore.
 
-Full reference: [`reference/cli/publish.md`](../../reference/cli/publish.md).
+Full reference: [`reference/cli/publish.md`](https://github.com/skmtc/skmtc/blob/main/deno/docs/reference/cli/publish.md).
 
 ### Card: Pushing a project's config to skmtc-hub
 
@@ -383,11 +383,12 @@ Key facts:
 - Token + origin resolve exactly like `publish` (`--token` /
   `$SKMTC_HUB_TOKEN` / store; `--origin` / `$SKMTC_ORIGIN` / store host).
 
-Full reference: [`reference/cli/push.md`](../../reference/cli/push.md).
+Full reference: [`reference/cli/push.md`](https://github.com/skmtc/skmtc/blob/main/deno/docs/reference/cli/push.md).
 
-### Card: When to hand off to other skills
+### Card: When to hand off
 
 - "I want to edit this generator" → `skmtc-generator`
-- "Why is my generation failing / wrong / empty" → `skmtc-debug`
-  (verify-first stance takes priority)
-- "Let's reflect on this session" → `skmtc-retro`
+- "Why is my generation failing / wrong / empty" → verify before
+  proposing a fix: manifest first, then parse issues, then a
+  reproduction —
+  [debug-failing-generation](https://github.com/skmtc/skmtc/blob/main/deno/docs/using/how-to/debug-failing-generation.md)
