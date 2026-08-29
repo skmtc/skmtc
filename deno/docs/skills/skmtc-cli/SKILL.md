@@ -1,30 +1,26 @@
 ---
 name: skmtc-cli
-version: 0.4.1
+version: 0.1.0
 description: |
   Use the SKMTC CLI to scaffold projects, install or clone generators
   from JSR, configure schema sources and enrichments, and produce code
-  artifacts from an OpenAPI v3 or GraphQL SDL schema. Covers the
-  command surface (`init`, `create`, `clone`, `install`, `list`,
-  `remove`, `generate`, `describe`, `bundle`, `clean`, `status`,
-  `eject`, `adopt`, `dev`,
-  `publish`, `push`, `pull`, `project`, `migrate`, `login`, `logout`,
-  `doctor`, `agent-context`), the `<root>/.skmtc/<project>/` workspace layout, the
-  `.settings/client.json` shape (basePath, source, enrichments, skip,
-  include), and the agent-native operation modes
-  (interactive / strict text / strict JSON) with their exit codes and
-  recipe-error contract.
+  artifacts from an OpenAPI v3 or GraphQL SDL schema. Teaches the
+  workspace mental model (`<root>/.skmtc/<project>/`, client.json,
+  bundle, manifest) and the agent contract (strict text / strict JSON
+  modes, exit codes, recipe errors, `agent-context` + `doctor`); the
+  command surface itself is discovered from the binary — `skmtc
+  --help`, `skmtc <cmd> -h` — rather than carried in this skill.
 
   Use this skill when the user asks to "run skmtc", "generate code
   from an OpenAPI schema", "install a skmtc generator", "scaffold a
   skmtc project", "watch a skmtc project", "configure enrichments",
   "publish a stack", "deploy to skmtc-hub" (the command is `publish`;
-  there is no `deploy`), "skmtc in CI", or invokes any of the CLI
-  subcommands. For *authoring*
-  a generator package (Projections, Snippets, transform functions),
-  defer to `skmtc-generator`. When something is broken (no output,
-  wrong output, error messages, stale bundle), defer to `skmtc-debug`
-  — verify-first stance takes priority during diagnosis.
+  there is no `deploy`), "skmtc in CI", or invokes any CLI
+  subcommand. For *authoring* a generator package (Projections,
+  Snippets, transform functions), defer to `skmtc-generator`. When
+  something is broken (no output, wrong output, error messages, stale
+  bundle), defer to `skmtc-debug` — verify-first stance takes
+  priority during diagnosis.
 allowed-tools:
   - Bash
   - Read
@@ -41,60 +37,47 @@ It's a Deno binary that wraps a project workspace under
 `<root>/.skmtc/`, fetches generators from JSR, and runs them against a
 schema source pinned in each project.
 
-This skill guides **using** the CLI. For authoring generator packages,
-see `skmtc-generator`. For diagnosing failures, see `skmtc-debug`.
+This skill carries what the binary cannot tell you: the workspace
+mental model, the agent contract, and the decisions that need intent.
+Everything else — the command list, per-command flags, argument
+shapes — lives in the binary itself and is always current there;
+§3 shows how to pull it on demand. This skill guides **using** the
+CLI; for authoring generator packages see `skmtc-generator`, for
+diagnosing failures see `skmtc-debug`.
 
-## 1. The five facts that override default LLM intuitions
-
-These five override what training-data priors would suggest about
-codegen tools. They apply across all SKMTC interactions:
-
-1. **No plugin registry, no dependency graph, no topological sort.**
-   Cross-generator coordination is a `Map` cache keyed by
-   `(name, exportPath)`. Generator order does not affect output.
-
-2. **Render does not run Prettier or Biome.** Generated output is
-   unformatted by design; consumers format separately.
-
-3. **Generator source code is the customization surface.** Stock
-   generators have hardcoded export paths and peer imports. To
-   customize beyond enrichments: `skmtc clone` and edit the source.
-
-4. **`OasSchema` is a union type, not a class hierarchy.** Sibling
-   classes that each implement `.isRef()` returning `false`; `OasRef`
-   is a sibling with `.isRef()` returning `true`.
-
-5. **Same-named wrapper.** `insertNormalizedModel` exists on both
-   `GenerateContext` and the projection-base wrapper. Same name, two
-   methods — the wrapper auto-fills `destinationPath` from
-   `settings.exportPath` and forwards to the context method.
-
-## 2. Mental model
+## 1. Mental model
 
 | Concept | Where it lives | Notes |
 |---|---|---|
 | SKMTC root | nearest ancestor dir containing `.skmtc/` | Created by `skmtc init` |
 | Project | `<root>/.skmtc/<project>/` | One schema + one set of generators |
 | Project deps | `<root>/.skmtc/<project>/deno.json` | JSR imports of installed generators |
-| Schema pin | `<root>/.skmtc/<project>/.settings/client.json` | `source` field — URL or path |
+| Schema pin | `<root>/.skmtc/<project>/.settings/client.json` | `source` field — URL or path. Resolution: explicit schema arg → `client.json#source` → interactive prompt (TTY only; strict mode fails with a recipe error) |
 | **basePath** | `client.json#settings.basePath` | **Must match the consumer app's `@` alias root.** Both the on-disk root for generated files AND the alias root in the bundler's resolver. Generators produce `@/<subdir>/...` paths assuming this alignment. Absolute paths are rejected at `init`. |
 | Bundle | `<root>/.skmtc/<project>/bundle.js` | Compiled worker entry. Regenerated by `bundle`/`dev`/`clone`/`install`. |
 | Manifest | `<root>/.skmtc/<project>/.settings/manifest.json` | Per-run record of every file written and every (generator × item) outcome |
 | Generator | JSR package or local folder | Local: `<root>/.skmtc/<project>/<gen-name>/` |
-| **Global state** | `~/.skmtc/` | `auth.json` (the hub PAT stored by `skmtc login` — `{ host, token }`, mode 0600), shadow project state, schema caches. **Check this when local state alone doesn't explain a failure.** |
+| **Global state** | `~/.skmtc/` | `auth.json` (the hub PAT stored by `skmtc login`), shadow project state, schema caches. **Check this when local state alone doesn't explain a failure.** |
 
 A "project" is **not** the consuming app — it's the *generator
 configuration* the consuming app pulls code from.
 
-### Generators are opinionated templates, not configurable libraries
+**Generators are opinionated templates, not configurable libraries.**
+Stock `@skmtc/gen-*` packages ship hardcoded defaults — export paths,
+identifier naming, peer imports, output shapes — and there are no
+config flags for any of them, deliberately. To change them,
+`skmtc clone` the generator into the project and edit its source;
+that is the customization seam, not a workaround. "Stock generator
+hardcodes X" is almost never a CLI bug. Enrichments parameterize a
+generator within its shape; cloning changes the shape.
 
-Stock `@skmtc/gen-*` packages ship with hardcoded defaults (paths,
-naming, output shapes). When the defaults don't fit, **clone the
-generator and edit the source** — that's what `skmtc clone` is for.
-"Stock generator hardcodes X" is almost never a CLI bug; it's the
-customization seam in action.
+Two engine facts that shape CLI expectations: generator order never
+affects output (coordination is a memoized cache, not a dependency
+graph — never sequence generators), and render does not run a
+formatter (unformatted output is by design; consumers format
+separately).
 
-## 3. Agent-native operation modes
+## 2. The agent contract
 
 Every state-touching command supports three modes, picked
 automatically:
@@ -102,234 +85,101 @@ automatically:
 | Mode | When | Behavior |
 |---|---|---|
 | **Interactive** | TTY attached and no `--json` / `--no-input` | Ink TUI; prompts for missing args |
-| **Strict text** | Non-TTY (CI / pipes / agents) OR `--no-input` | No Ink. Plain-text result on stdout. Missing required args fail with a recipe error on stderr |
-| **Strict JSON** | `--json` (implies `--no-input`) | No Ink. Single JSON object on stdout. Logs/warnings on stderr. Exit 0 on success, non-zero on failure |
+| **Strict text** | Non-TTY (CI / pipes / agents) OR `--no-input` | Plain-text result on stdout; missing required args fail with a recipe error on stderr |
+| **Strict JSON** | `--json` (implies `--no-input`) | Single JSON object on stdout; logs on stderr |
 
 **For agents: add `--json` to every command.** The CLI auto-degrades
-to non-interactive mode on any non-TTY stdin/stdout, so no PTY
-wrappers needed.
+to non-interactive mode on any non-TTY stdin/stdout — no PTY wrappers
+needed. (Two exceptions surface in help: `dev` is long-running and
+has no `--json`; `create` has no `--json` yet.)
 
-### Exit codes (consistent across all commands)
+Exit codes are consistent across all commands: `0` success (including
+documented no-ops), `2` required input missing or invalid (recipe
+error on stderr), `1` anything else (registry unreachable, schema
+parse failure, fatal parseIssue, typecheck failure). For `generate
+--json`, an empty `errors` array is the success condition — not the
+exit code alone.
 
-| Code | Meaning |
-|---|---|
-| `0` | Success (including documented no-ops like `clean` on a project with no manifest) |
-| `2` | Required input missing or invalid (recipe error on stderr) |
-| `1` | Anything else (registry unreachable, schema parse failure, fatal parseIssue, typecheck failed) |
+**Recipe errors are the discovery mechanism.** When a required
+argument is missing in strict mode, stderr carries the usage line, a
+worked example, and a `Discover:` line naming the command that lists
+the valid values (e.g. `ls .skmtc/` for project names). Trust it:
+run the command, read the recipe, run the discovery, retry.
 
-### Recipe errors
+## 3. The command surface lives in the binary
 
-When a required argument is missing in strict mode, the CLI writes a
-structured error on stderr:
+Do not look for a command table in this skill — pull it live, where
+it is always current with the installed version:
 
-```
-Error: missing required argument: <project>
-
-skmtc is running in non-interactive mode (stdin/stdout is not a TTY,
-or --no-input was passed). All required arguments must be provided
-up front — skmtc will not prompt.
-
-Usage:   skmtc list <project>
-Example: skmtc list my-api
-
-Discover valid values: ls .skmtc/  (list existing projects)
+```bash
+skmtc --help        # every command, with real descriptions
+skmtc <cmd> -h      # full flags for one command
 ```
 
-The `Discover` line is the actionable bit — every recipe points at a
-follow-up command the agent can run to fetch the candidate set. No
-`--help` scraping required.
+The newer commands' help descriptions (`status`, `eject`, `adopt`,
+`publish`, `push`, `pull`) carry their full semantics — read them
+there rather than guessing from the names. One naming trap help
+cannot intercept: there is **no `skmtc deploy`** — stacks are
+*published* (`skmtc publish`) as immutable semver versions;
+deployments and the `production` alias belong to hub projects and are
+driven from the web app, not the CLI.
 
-## 4. Command surface at a glance
-
-| Command | Purpose | Strict mode |
-|---|---|---|
-| `init [projectName] [basePath]` | Scaffold a new project | Both args required |
-| `create <project> <generator> <model\|operation>` | Scaffold a local generator | All args required; no `--json` yet |
-| `clone [project] -g <id>...` | Pull JSR generator source into project for editing | Project + at least one `-g` required |
-| `install [generators...] [project]` | Add JSR generators to a project | Both required |
-| `list [project]` | Show installed generators | Project required |
-| `remove [project] [generator]` | Remove a generator | Both required |
-| `generate <project> [schema]` | Run the pipeline | Project required; schema falls back to `client.json#source` |
-| `describe [project] [schema]` | Summarize a schema's operations and models | Project optional (recipe error with discovery hint if missing); `--json` |
-| `bundle [project]` | Compile local generators without generating | Project required |
-| `clean [project]` | Delete a project's generated files + manifest, pruning emptied dirs | Project required; `--dry-run`, `--verbose`; no Ink variant; never deletes ejected files |
-| `status [project]` | Classify every generated file against the generated lock: clean / modified (hand-edited — the next generate overwrites it) / missing / unverified / ejected, plus orphaned files | Project required; `--check` exits 1 when dirty (CI gate); `--verbose`; read-only, no Ink variant |
-| `eject [project] [file]` | Take ownership of a generated file: rename to drop the generated suffix, record in `settings.ejected`; peer imports follow on the next generate | Both args required; `--json`; no Ink variant |
-| `adopt [project] [file]` | Return an ejected file to generation (inverse of `eject`); the file is engine-owned again and the next generate overwrites it — re-eject first if it still carries changes worth keeping | Both args required; `--json`; no Ink variant |
-| `dev <project> [schema]` | Watch + rebundle + regenerate on change | Project required; no `--json` (long-running) |
-| `publish <project>` | Build + publish an immutable stack version to skmtc-hub | Project + a token required — `--token`, `$SKMTC_HUB_TOKEN`, or the `skmtc login` store, in that order; version from `deno.json#version` or `--version` |
-| `push <project>` | Push a project's `client.json` (config + enrichments) to its hub project | Project required; destination from `--project @account/slug` or `client.json#project`; token like `publish` |
-| `pull <project>` | Pull a hub project's config down into the local project | Project required; token like `publish` |
-| `project create <name>` / `project rm <name>` | Create or delete a hub project from the local setup | Bare `skmtc project` prints subcommand usage, exit 2 |
-| `migrate variants <project>` | One-shot migration of `client.json` to the variant-aware shape (core 0.5.0+) | Idempotent; `--json`; bare `skmtc migrate` prints usage, exit 2 |
-| `login` | Validate + store a hub PAT (paste-a-PAT; `~/.skmtc/auth.json`, 0600) | `--with-token` reads the PAT from stdin; plain `login` with a stored token reports the handle (the `whoami`) |
-| `logout` | Delete the stored hub credential | No args; idempotent, always exit 0 |
-| `doctor` | Diagnose project setup | No args; always strict |
-| `agent-context` | Write JSON dump of CLI surface + state to stdout | No args; always strict |
-
-There is no `skmtc deploy` — the old deploy command was replaced by
-`publish`, not aliased. Stacks are *published* as immutable semver
-versions (like generator packages); deployments, runs, and the
-`production` alias belong to hub *projects* and are driven from the
-web app, not the CLI.
-
-Full per-command reference (flags, JSON output, exit codes): see
-[`reference/cli/`](../../reference/cli/) — one file per command.
-
-## 5. The first-step pattern for agents entering a workspace
+## 4. First steps in a workspace
 
 ```bash
 skmtc agent-context --json    # enumerate projects, commands, state
 skmtc doctor --json           # check for known frictions
 ```
 
-These two give an agent the full workspace picture without
-documentation lookups. `agent-context` is the snapshot; `doctor` is
-the diagnostic. Run them in that order.
+These two give the full workspace picture without documentation
+lookups — `agent-context` is the snapshot, `doctor` the diagnostic,
+in that order. `doctor`'s `summary` is the worst status across checks
+(`error > warning > ok`; exit 1 only on `error`), and every check
+carries its own `id`, `status`, `message`, and remediation `hint` —
+the output is self-describing. The check-id catalogue, if you need to
+reason about a specific check: [`reference.md`](reference.md)
+§"Doctor check ids".
 
-`doctor`'s `summary` is the worst status across all checks
-(`error > warning > ok`). Exit `0` if no `error`, `1` otherwise. Each
-check has `id`, `status`, `message`, and (where applicable) `hint`
-pointing at the remediation.
+## 5. The bundle-freshness gotcha
 
-Known check ids:
-
-| Check id | What it inspects |
-|---|---|
-| `cli-version-current` | The running CLI vs the newest published `@skmtc/cli` — the only check that reaches the network (2s bound, `skipped` when unreachable, `--offline` skips it). Names Deno's 24h minimum-dependency-age window when the newest release is still inside it, since a reinstall without `--minimum-dependency-age=0` silently resolves an older one |
-| `install-lockfile` | `~/.deno/bin/.skmtc/deno.lock` — the installed CLI's version pin of `@skmtc/cli` and `@skmtc/core` |
-| `deno-version` | Running Deno is ≥ 2.4.0 — the floor for the esbuild-based `deno bundle` |
-| `hub-auth` | `~/.skmtc/auth.json` parses to `{ host, token }` — offline only; `skipped` when not logged in, `warning` + logout/login hint when malformed; never reports more than the token's last 4 chars |
-| `project-deno-json/<project>` | `deno.json` exists and parses |
-| `project-base-path/<project>` | `client.json#settings.basePath` present and relative |
-| `project-core-pin/<project>` | Project's `@skmtc/core` pin matches the CLI's major.minor |
-| `project-bundle/<project>` | `bundle.js` exists — every project (remote-only included) generates from it; warning with a `skmtc bundle` hint when missing |
-| `project-enrichments/<project>` | Last generate's `manifest.enrichmentWarnings` has no `warning`-level entries — dead enrichment config (typo'd generator id, path, method or model name) surfaces here between runs; `info` entries keep it `ok` |
-| `project-worker-pin/<project>` | If `worker.ts` exists, `@skmtc/worker` is pinned (the generated worker imports it); ok-noop before the first bundle |
-| `project-manifest/<project>` | `manifest.json` matches the current `@skmtc/core` schema |
-| `anchors-config/<project>` | `client.json#settings.anchors` shape; gen-maps are opt-in via `settings.anchors.enabled` |
-| `anchors-coverage/<project>` | Share of manifest files carrying an attribution sidecar; `warning` below threshold |
-| `anchors-staleness/<project>` | Sidecars on disk are current for the last run |
-## 6. The client.json shape
-
-`.skmtc/<project>/.settings/client.json` — top level is
-`{ source?, settings }`; `settings` carries `basePath` (required,
-relative, no `..`), `packages`, `enrichments`, `skip`,
-`include`, `generatedSuffix`.
-
-**Full annotated shape, every key: [`reference.md` §6](reference.md).**
-Read it before editing the file — several keys have non-obvious
-constraints, and the schema reference is
-[`reference/settings/client-json-schema.md`](../../reference/settings/client-json-schema.md).
-
-## 7. Skip and include filters
-
-`settings.skip` and `settings.include` both accept three entry
-shapes: a whole generator (string), per-operation
-(`path → method → variant[]`), and per-model (`refName → variant[]`),
-where `[]` means every variant. This is where **user intent** is
-expressed — never a generator's `isSupported`.
-
-**Semantics, precedence, and worked entries: [`reference.md` §7](reference.md).**
-
-## 8. Common JSON output shapes
-
-Every command takes `--json` and prints one JSON object to stdout,
-discriminated by a `type` field. `generate` additionally carries
-`errors`, `parseIssues`, and `enrichmentWarnings` arrays — an empty
-`errors` is the success condition, not the exit code alone.
-
-**Per-command envelopes (install, bundle, generate, doctor, …):
-[`reference.md` §8](reference.md).** Read it when you are parsing
-output, not before.
-
-## 9. Decision trees
-
-### Install or clone?
+Generation runs the compiled `bundle.js`, not generator source — a
+stale bundle silently shadows source edits:
 
 ```
-Need to change identifier naming, export paths, peer deps, or output shape?
-├── No  → install
-└── Yes → clone (and edit src/base.ts or src/<Main>.ts)
-```
-
-The customization seams in stock generators are *deliberately*
-hardcoded values, not absences of config. There are no config flags
-for paths or output shape; clone is the answer.
-
-### Schema source resolution
-
-```
-1. Explicit schema arg on the command line
-2. `client.json#source` (when no arg)
-3. Interactive prompt (TTY only — strict mode fails with recipe)
-```
-
-### Generate sees the cloned generator?
-
-```
-1. `skmtc clone` triggers an automatic rebundle (since recently)
+1. `skmtc clone` triggers an automatic rebundle
 2. If `worker.ts` and `deno.json#imports` disagree, strict-mode
    generate refuses with a freshness error
-3. Remediation: `skmtc bundle <project>` then re-run `generate`
+3. Remediation: `skmtc bundle <project>`, then re-run `generate`
 4. `skmtc doctor --json` surfaces the mismatch as `project-bundle/<project>`
 ```
 
-## 10. Task cards
+## 6. Configuration: client.json and filters
 
-End-to-end workflows, one card per job:
+`.skmtc/<project>/.settings/client.json` — top level is
+`{ source?, settings }`; `settings` carries `basePath` (required,
+relative, no `..`), `packages`, `enrichments`, `skip`, `include`,
+`generatedSuffix`. Full annotated shape, every key:
+[`reference.md` §6](reference.md) — read it before editing the file.
 
-| Card | Card |
-|---|---|
-| Setting up SKMTC in a project | Filtering operations (opt-in form generator) |
-| Adding a generator to an existing project | Customizing a published generator |
-| Configuring enrichments | Registering an agent-authored local generator |
-| Pinning the schema source | Using SKMTC in CI |
-| Cleaning a project's generated output | Publishing a stack version to skmtc-hub |
-| When to hand off to other skills | Pushing a project's config to skmtc-hub |
+`settings.skip` / `settings.include` accept a whole generator, a
+per-operation entry (`path → method → variant[]`), or a per-model
+entry (`refName → variant[]`); `[]` means every variant. Filters are
+where **user intent** is expressed — never a generator's
+`isSupported`. Semantics and precedence:
+[`reference.md` §7](reference.md).
 
-**The cards themselves: [`task-cards.md`](task-cards.md).** Open the
-one card for the job in front of you — a single command needs §4, not
-a card.
+Every command's `--json` envelope is one object discriminated by a
+`type` field; per-command shapes: [`reference.md` §8](reference.md) —
+read when parsing output, not before.
 
-## 11. Operational principles (user-facing subset)
+## 7. Task cards
 
-The principles that override default LLM intuitions about codegen
-tools — clone-to-customize over config flags, generated files are
-overwritten, no runtime library, order-independence.
+End-to-end workflows (setup, adding generators, enrichments, CI,
+publishing, customizing a stock generator, …) live in
+[`task-cards.md`](task-cards.md) — open the one card for the job in
+front of you. A single command doesn't need a card; `-h` covers it.
 
-**The list: [`reference.md` §11](reference.md).** The canonical,
-complete aggregation is [`llms.md`](../../llms.md); the authoring-side
-principles live in the `skmtc-generator` skill.
-
-
-## Companion files
-
-This skill is split so the loaded context stays small. Two files sit
-beside it, loaded with the Read tool when the job needs them:
-
-| File | What it holds | Read it when |
-|---|---|---|
-| [`reference.md`](reference.md) | §6 client.json shape, §7 filter semantics, §8 JSON envelopes, §11 principles | Editing settings, writing a filter, parsing `--json` |
-| [`task-cards.md`](task-cards.md) | §10 — twelve end-to-end workflow cards | Doing a multi-step job for the first time |
-
-Everything needed to pick and run a command is inline here.
-
-## 12. Cross-references
-
-- Tutorials: [`using/tutorials/`](../../using/tutorials/)
-- How-tos: [`using/how-to/`](../../using/how-to/)
-- Recipes: [`using/recipes/`](../../using/recipes/)
-- Full per-command reference: [`reference/cli/`](../../reference/cli/)
-- Settings reference: [`reference/settings/client-json-schema.md`](../../reference/settings/client-json-schema.md)
-- Manifest format: [`reference/manifest-format.md`](../../reference/manifest-format.md)
-- Concepts: [`concepts/projects-and-workspaces.md`](../../concepts/projects-and-workspaces.md), [`concepts/clone-vs-install.md`](../../concepts/clone-vs-install.md)
-- Design rationale: [`explanation/design-philosophy.md`](../../explanation/design-philosophy.md)
-
-For LLMs needing the consolidated operational reference,
-[`llms.md`](../../llms.md) is the canonical aggregation.
-
-## 13. Boundary with other skills
+## 8. Boundary with other skills
 
 This skill ends at the CLI surface. Hand off when:
 
@@ -339,3 +189,12 @@ This skill ends at the CLI surface. Hand off when:
   **skmtc-debug** (verify-first stance)
 - The session is wrapping up and observations are worth recording →
   **skmtc-retro**
+
+## Companion files
+
+Loaded on demand with the Read tool, never eagerly:
+
+| File | What it holds | Read it when |
+|---|---|---|
+| [`reference.md`](reference.md) | §6 client.json shape, §7 filter semantics, §8 JSON envelopes, §11 operational principles, doctor check ids | Editing settings, writing a filter, parsing `--json`, reasoning about a doctor check |
+| [`task-cards.md`](task-cards.md) | Twelve end-to-end workflow cards | Doing a multi-step job for the first time |

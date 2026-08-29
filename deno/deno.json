@@ -54,6 +54,6 @@
   },
   "minimumDependencyAge": "0",
   "exclude": [
-    "docs/skills/skmtc-model-v3/skeleton"
+    "docs/skills/skmtc-model/skeleton"
   ]
 }

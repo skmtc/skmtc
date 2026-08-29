@@ -461,8 +461,9 @@ if (fillerHits === 0) {
 //    the registered command surface. Registrations before the final
 //    `await new Command()` chain are nested subcommands (project
 //    create/rm, migrate variants); registrations after it are the
-//    top-level surface. Both the skmtc-cli skill and the per-command
-//    reference pages must track it, in both directions.
+//    top-level surface. The per-command reference pages must track it in
+//    both directions; the skill instead points the agent at
+//    `skmtc --help`, and this check holds that pointer in place.
 // ---------------------------------------------------------------------
 
 const cliModText = await Deno.readTextFile(join(denoDir, 'cli', 'mod.ts'))
@@ -484,11 +485,6 @@ if (rootChainIndex === -1 || topLevelCommands.length === 0) {
   let commandSurfaceFailures = 0
 
   for (const command of topLevelCommands) {
-    if (!cliSkillText.includes('`' + command)) {
-      commandSurfaceFailures++
-      fail(`skmtc-cli SKILL.md: registered command \`${command}\` is never mentioned`)
-    }
-
     try {
       await Deno.stat(join(docsDir, 'reference', 'cli', `${command}.md`))
     } catch {
@@ -510,26 +506,25 @@ if (rootChainIndex === -1 || topLevelCommands.length === 0) {
     }
   }
 
-  const commandTableSection = cliSkillText.match(/^## \d+\. Command surface[\s\S]*?(?=^## )/m)
-  if (!commandTableSection) {
-    commandSurfaceFailures++
-    fail('skmtc-cli SKILL.md: "Command surface" section not found')
-  } else {
-    for (const row of commandTableSection[0].matchAll(/^\| `([a-z][a-z-]*)/gm)) {
-      if (!topLevelCommands.includes(row[1])) {
-        commandSurfaceFailures++
-        fail(
-          `skmtc-cli SKILL.md command table: \`${row[1]}\` is not a registered ` +
-            `top-level command in cli/mod.ts`
-        )
-      }
+  // The skill deliberately carries NO command table — it sends the agent
+  // to `skmtc --help`, which cannot go stale against the installed
+  // binary. What must hold is that the instruction is still there: a
+  // skill that neither lists the commands nor says where to find them
+  // leaves the agent guessing.
+  for (const discovery of ['skmtc --help', 'skmtc <cmd> -h']) {
+    if (!cliSkillText.includes(discovery)) {
+      commandSurfaceFailures++
+      fail(
+        `skmtc-cli SKILL.md: the skill carries no command table, so it must ` +
+          `tell the agent to run \`${discovery}\` — that line is missing`
+      )
     }
   }
 
   if (commandSurfaceFailures === 0) {
     pass(
       `CLI command-surface sync: all ${topLevelCommands.length} registered commands ` +
-        `are in the skill + have reference pages; no stale entries`
+        `have reference pages, no stale pages, and the skill points at \`skmtc --help\``
     )
   }
 }
@@ -705,12 +700,29 @@ const regexLint = (name: string, explain: string, regex: RegExp): ReaderLintPatt
   matches: line => regex.test(line)
 })
 
+// The published skills are reader-facing artifacts — a reader page may
+// link to one. Every OTHER skill directory is still an internal layer.
+// The plugin manifest is the source of truth for which is which, so the
+// two cannot drift apart.
+const publishedSkillNames: string[] = JSON.parse(
+  await Deno.readTextFile(join(docsDir, 'skills', '.claude-plugin', 'plugin.json'))
+).skills.map((path: string) => path.replace(/^\.\//, ''))
+
+const linkIntoSkills = /\]\((?:\.{1,2}\/)*skills\/([\w-]+)\//
+const linkIntoOtherInternalLayer = /\]\((?:\.{1,2}\/)*(?:friction-log|evals)\//
+
 const readerLintPatterns: ReaderLintPattern[] = [
-  regexLint(
-    'link-to-internal-layer',
-    'reader page links into skills/, friction-log/, or evals/ (agent/internal layers)',
-    /\]\((?:\.{1,2}\/)*(?:skills|friction-log|evals)\//
-  ),
+  {
+    name: 'link-to-internal-layer',
+    explain:
+      'reader page links into an unpublished skill, friction-log/, or evals/ ' +
+      '(agent/internal layers)',
+    matches: line => {
+      if (linkIntoOtherInternalLayer.test(line)) return true
+      const skill = line.match(linkIntoSkills)?.[1]
+      return skill !== undefined && !publishedSkillNames.includes(skill)
+    }
+  },
   regexLint('notes-path', 'reference to the private notes/ tree', /\bnotes\/[\w-]+\//),
   regexLint('internal-ticket', 'internal ticket id', /#SKM-\d+/),
   regexLint('refactor-batch-tag', 'internal refactor-batch shorthand (F5/F6-style)', /\bF[0-9]\b/),

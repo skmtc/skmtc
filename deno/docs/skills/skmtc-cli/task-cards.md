@@ -1,13 +1,13 @@
 # skmtc-cli — task cards
 
-Pull-loaded workflows for the `skmtc-cli` skill: end-to-end recipes
-for the common jobs. Section numbering matches `SKILL.md`, which
-carries a stub pointing here.
+Pull-loaded workflows for the `skmtc-cli` skill: end-to-end
+recipes for the common jobs, referenced from SKILL.md §7.
 
-Read the card for the job in front of you. The command surface itself
-is in `SKILL.md` §4 — you do not need a card to run one command.
+Read the card for the job in front of you. The command surface lives
+in the binary (`skmtc --help`, `skmtc <cmd> -h`) — you do not need a
+card to run one command.
 
-## 10. Task cards
+## Task cards
 
 ### Card: Setting up SKMTC in a project
 

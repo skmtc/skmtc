@@ -22,7 +22,7 @@ fixed-scale decimal string via the hand-written serde classes;
 `readOnly`/`writeOnly` access control; an ISO `@JsonFormat` timestamp;
 and `additionalProperties` as a defaulted `Map`.
 
-**Load the `skmtc-generator-v2`, `skmtc-lang-kotlin`, and `skmtc-cli-v2`
+**Load the `skmtc-generator`, `skmtc-lang-kotlin`, and `skmtc-cli`
 skills before writing any code**, and follow them: projection base via
 the lang package's factory, snippets for fragments, imports via
 register calls, no string composition outside `toString()`,

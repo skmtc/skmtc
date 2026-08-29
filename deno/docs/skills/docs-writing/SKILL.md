@@ -34,6 +34,8 @@ allowed-tools:
   - Glob
   - Grep
   - Bash
+metadata:
+  internal: true
 ---
 
 # Writing documentation

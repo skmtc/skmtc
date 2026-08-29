@@ -40,6 +40,26 @@ skmtc
 
 ![](assets/demo.gif)
 
+### Install the agent skills
+
+Five skills teach a coding agent to author Skmtc generators, and ship from the
+same commit as the code they describe: `skmtc-generator` (engine rules),
+`skmtc-lang-typescript` (the emitted TypeScript), `skmtc-model` and
+`skmtc-operation` (the two generator shapes), and `skmtc-cli`.
+
+```bash
+# Claude Code
+/plugin marketplace add skmtc/skmtc
+/plugin install skmtc@skmtc
+
+# any skills-capable agent
+npx skills add skmtc/skmtc
+npx skills add skmtc/skmtc --skill skmtc-generator
+```
+
+The sources live in
+[`deno/docs/skills/`](deno/docs/skills/) and read fine on their own.
+
 ## Available generators
 
 |                | Libraries          | Generator repo        | Status |

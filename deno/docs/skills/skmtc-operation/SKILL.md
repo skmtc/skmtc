@@ -1,5 +1,5 @@
 ---
-name: skmtc-operation-v3
+name: skmtc-operation
 version: 0.1.1
 description: >
   The operation-generator shape for SKMTC: one definition per (path,
@@ -12,7 +12,7 @@ description: >
   subject is operations ("write a gen for API clients/hooks/routes",
   "generate an SDK/form per endpoint"). Covers the projection shape
   only — accumulators (many operations → one file) are out of scope.
-  Load ALONGSIDE skmtc-generator-v3 and the emitted language's skill.
+  Load ALONGSIDE skmtc-generator and the emitted language's skill.
 ---
 
 # Operation generators: decompose the operation, reference the models
@@ -34,7 +34,7 @@ fill-in skeleton for this shape yet):
 |---|---|
 | client call / hook, consuming a model generator | `@skmtc/gen-tanstack-query-fetch-zod` — the canonical instance |
 | per-operation UI (forms), variant-aware | `@skmtc/gen-shadcn-form` |
-| many operations appended into ONE file | that is an **accumulator** — out of scope here; see skmtc-generator-v3 §4 and clone `gen-msw`/`gen-express` |
+| many operations appended into ONE file | that is an **accumulator** — out of scope here; see skmtc-generator §4 and clone `gen-msw`/`gen-express` |
 
 The clone gives you the anatomy (same package convention as models:
 entry / base / projection / value snippets). This skill carries the
@@ -108,7 +108,7 @@ refName to key the peer's identity statics, calling its
 returned value beyond the definition and its name are all the same
 mistake — a reimplementation of the engine that passes every automated
 check and breaks on the next peer or engine change. Those are the TWO
-DOORS of skmtc-generator-v3 §4; when neither door fits, do not settle
+DOORS of skmtc-generator §4; when neither door fits, do not settle
 for a degraded render — research how other code generators handle the
 same edge case (the lang skill's notes, retired in-house generators in
 git history, OpenAPI Generator's inline-model hoisting). The usual
@@ -134,7 +134,7 @@ Each kind is its own snippet class taking `(context, operation,
 settings)` (`OasOperationProjectionConstructorArgs`), storing snippets
 and peer names in its constructor, and composing target syntax ONLY in
 `toString()`. Runtime-library imports (`useQuery`, a client class)
-register in the constructor. The litmus from skmtc-generator-v3
+register in the constructor. The litmus from skmtc-generator
 applies with one addition: if you are about to write a schema's
 target-syntax by hand — a field list, a validator call, a type body —
 stop; that is a peer insert.
@@ -176,19 +176,19 @@ identifier-derived); (3) unsupported operations absent, not errored.
 | Run fails on operations you never meant to handle | Missing/loose `isSupported` |
 | Path renders with wrong interpolation | Path template belongs to the lang layer, at render — never build it into a stored string |
 | Peer import points into another package's source tree | Import via the `@skmtc/*` package alias |
-| A helper builds a `#/components/schemas/...` string, or calls a peer's identity statics | Reimplemented insert machinery — two doors only (skmtc-generator-v3 §4) |
+| A helper builds a `#/components/schemas/...` string, or calls a peer's identity statics | Reimplemented insert machinery — two doors only (skmtc-generator §4) |
 | Peer's rendered value looks wrong in declaration position | Lang-level type-vs-declaration gap — see the lang skill's known-gap notes, don't pluck the peer's internals |
 
 ## 9. Boundaries
 
 Engine rules (the one law, memoization, the two insert return shapes,
-enrichment umbrellas) live in **skmtc-generator-v3** — read it first.
+enrichment umbrellas) live in **skmtc-generator** — read it first.
 Everything concrete about the emitted language — the
 `to<Lang>OasOperationProjectionBase` factory, parameter-list and
 path-template helpers, import forms — lives in the lang skill
-(`skmtc-lang-typescript-v3`, `skmtc-lang-kotlin-v3`). The model side
+(`skmtc-lang-typescript`). The model side
 of the seam (how the peer you insert into actually renders schemas) is
-**skmtc-model-v3**. Accumulator generators — many subjects appending
+**skmtc-model**. Accumulator generators — many subjects appending
 into one shared definition via the `findDefinition ??
 defineAndRegister` idiom — are a different shape, deliberately not
 covered here.

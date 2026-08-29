@@ -30,6 +30,8 @@ allowed-tools:
   - Glob
   - Grep
   - Bash
+metadata:
+  internal: true
 ---
 
 # SKMTC retro

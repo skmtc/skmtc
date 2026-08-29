@@ -14,27 +14,43 @@ This directory is the canonical home for skills. The previous location
 
 ## The skill ecosystem
 
-| Skill                                              | Purpose                                                                                                                                                                                  | Audience                | Status                                                                                                                                                            |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`skmtc-architecture/`](skmtc-architecture/)       | System mental model — what SKMTC is, how the engine works, how to build infrastructure around it                                                                                         | Infrastructure builders | **SKILL.md authored** (v0.1.0)                                                                                                                                    |
-| [`skmtc-cli/`](skmtc-cli/)                         | Guide CLI usage — install, configure, run, integrate                                                                                                                                     | Users (`using/`)        | **SKILL.md authored** (v0.4.0); pulled from legacy + new content                                                                                                  |
-| [`skmtc-generator/`](skmtc-generator/)             | Guide generator authoring and editing                                                                                                                                                    | Authors (`authoring/`)  | **SKILL.md authored** (full: operational principles, scaffolds, task cards, variants)                                                                             |
-| [`skmtc-debug/`](skmtc-debug/)                     | Diagnose failures — no output, wrong output, errors                                                                                                                                      | Anyone debugging        | **SKILL.md authored** (verify-first stance)                                                                                                                       |
-| [`skmtc-retro/`](skmtc-retro/)                     | Capture session friction/wins to friction log                                                                                                                                            | Anyone (end of session) | Authored (v0.1.0); includes `/skmtc-retro` slash command                                                                                                          |
-| [`skmtc-retro-review/`](skmtc-retro-review/)       | Aggregate friction logs across sessions into patterns, priorities, and convergence metrics                                                                                               | Anyone (periodic)       | Authored; includes `/skmtc-retro-review` slash command                                                                                                            |
-| [`skmtc-lang-typescript/`](skmtc-lang-typescript/) | The TypeScript target-language layer — the shape of emitted TS                                                                                                                           | Generator authors       | Authored; the TEMPLATE for `skmtc-lang-<X>` skills (remaining language layers are pre-alpha — no skills until they stabilize)                                     |
-| [`skmtc-lang-kotlin/`](skmtc-lang-kotlin/)         | The Kotlin target-language layer — head+value rendering, packages from paths, the value composition classes                                                                              | Generator authors       | Authored (v0.1.0, on the lang-typescript template); source↔skill sync enforced by `verify-docs`                                                                   |
-| [`docs-writing/`](docs-writing/)                   | Documentation craft — audience, Diátaxis content types + compass, style/word rules, procedures, structure for humans + AI, API docs, page templates, mechanical enforcement, maintenance | Anyone writing docs     | **SKILL.md authored** (v0.2.0; Mintlify + Diátaxis + Google/Microsoft style guides + EPPO + WTD + Docs for Developers; companions `templates.md`, `mechanics.md`) |
-| [`skmtc-generator-v3/`](skmtc-generator-v3/)       | Generator authoring, third generation — engine mental model first (object trees over string concatenation), authored from scratch against a 2026-07-31 source sweep                      | Authors                 | Authored (v0.1.0); runs ALONGSIDE `skmtc-generator`/v2 pending eval comparison; design + eval plan in `notes/skills-tools/` (local)                               |
-| [`skmtc-lang-typescript-v3/`](skmtc-lang-typescript-v3/) | TypeScript target-language layer, v3 companion to `skmtc-generator-v3`                                                                                                             | Authors                 | Authored (v0.1.0); pairs only with `skmtc-generator-v3`                                                                                                           |
-| [`skmtc-lang-kotlin-v3/`](skmtc-lang-kotlin-v3/)   | Kotlin target-language layer, v3 companion to `skmtc-generator-v3`; teaches lang-kotlin HEAD API (shipped gen-kotlin-\* are API-stale)                                                   | Authors                 | Authored (v0.1.0); worked example pinned byte-for-byte by `lang-kotlin/src/skill-v3-example.test.ts`                                                              |
-| [`skmtc-model-v3/`](skmtc-model-v3/)               | Model-generator SHAPE layer: engine-tested fill-in skeleton (copy, rename, fill SLOTs) + model edge cases (refs, recursion, visibility); pairs with `skmtc-generator-v3` + a lang skill | Authors                 | Authored (v0.1.0); skeleton pinned by its own `mod.test.ts` engine gate                                                                                           |
-| [`skmtc-operation-v3/`](skmtc-operation-v3/)       | Operation-generator SHAPE layer: the invariant decomposition of (path, method) subjects + peer-consumption rules (every schema in the output is a model-generator reference); projection shape only, language-blind | Authors                 | Authored (v0.1.0); accumulators out of scope; no skeleton yet (clone by output family)                                                                            |
+Five skills are **published**: installable by anyone with a skills-capable
+agent, listed in `.claude-plugin/marketplace.json`, and rendered on skmtc.dev.
+The rest are **internal** — they stay in this directory, carry
+`metadata.internal: true` in frontmatter so `npx skills` hides them, and the
+plugin manifest does not list them.
 
-All skills live in this directory. The retro skill was moved here from
-`skmtc-platform/packages/skmtc-retro-skill/`; the cli skill was authored anew
-(content distilled from the legacy 1096-line file). Every skill in the table
-has a fully authored `SKILL.md`.
+### Published
+
+| Skill | Purpose | Version |
+| --- | --- | --- |
+| [`skmtc-generator/`](skmtc-generator/) | Generator authoring — the engine mental model (object trees over string concatenation), then clone-and-adapt | 0.2.4 |
+| [`skmtc-lang-typescript/`](skmtc-lang-typescript/) | The TypeScript target-language layer — the shape of emitted TS | 0.2.2 |
+| [`skmtc-model/`](skmtc-model/) | Model-generator SHAPE layer: engine-tested fill-in skeleton + model edge cases (refs, recursion, visibility) | 0.1.3 |
+| [`skmtc-operation/`](skmtc-operation/) | Operation-generator SHAPE layer: decomposition of (path, method) subjects + peer-consumption rules | 0.1.1 |
+| [`skmtc-cli/`](skmtc-cli/) | CLI usage — workspace model, agent contract, configuration; the command surface is pulled from the binary | 0.1.0 |
+
+Pairing rule: `skmtc-generator` carries the engine rules and is always loaded
+first; a lang skill carries the emitted language; a shape skill
+(`skmtc-model` or `skmtc-operation`) carries the per-subject guidance.
+
+### Internal
+
+| Skill | Purpose | Why it stays internal |
+| --- | --- | --- |
+| [`skmtc-architecture/`](skmtc-architecture/) | System mental model for building infrastructure around Skmtc | Platform-team audience, not generator authors |
+| [`skmtc-debug/`](skmtc-debug/) | Diagnose failures — no output, wrong output, errors | Leans on repo-internal diagnostics |
+| [`skmtc-graphql/`](skmtc-graphql/) | The GraphQL SDL pipeline, alongside `skmtc-generator` | GraphQL input is not yet a supported public path |
+| [`skmtc-lang-kotlin/`](skmtc-lang-kotlin/) | The Kotlin target-language layer; source↔skill sync enforced by `verify-docs` | Kotlin publication deferred |
+| [`skmtc-lang-kotlin-v3/`](skmtc-lang-kotlin-v3/) | Kotlin layer rewritten against lang-kotlin HEAD; worked example pinned by `lang-kotlin/src/skill-v3-example.test.ts` | Kotlin publication deferred; supersedes the above when it lands |
+| [`skmtc-retro/`](skmtc-retro/) | Capture session friction/wins to the friction log | Internal feedback tooling |
+| [`skmtc-retro-review/`](skmtc-retro-review/) | Aggregate friction logs into patterns and priorities | Internal feedback tooling |
+| [`docs-writing/`](docs-writing/) | Documentation craft — Diátaxis, style rules, page templates | Internal authoring tooling |
+
+The published five are the v3 line plus the CLI skill, under names that carry
+no version: the public name is the stable identity, and `version` frontmatter
+plus git history carry the generation. The v1/v2 skills they displaced were
+removed in the same change; git keeps their history.
 
 ## How skills relate to docs
 
