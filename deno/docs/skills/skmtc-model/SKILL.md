@@ -2,7 +2,7 @@
 name: skmtc-model
 version: 0.1.3
 description: >
-  The model-generator shape for SKMTC: one definition per component
+  The model-generator shape for Skmtc: one definition per component
   schema, built by copying the shipped SKELETON package and filling its
   SLOT markers with the target library's syntax. Covers the edge cases
   every model generator must survive — refs, recursion, optional vs

@@ -2,21 +2,21 @@
 name: skmtc-generator
 version: 0.13.0
 description: >
-  Author and edit SKMTC generators — packages that project an OpenAPI
+  Author and edit Skmtc generators — packages that project an OpenAPI
   domain model into application code. Method: clone the nearest stock
   generator, then apply the engine rules imitation can't teach. Assumes
-  zero prior SKMTC knowledge. Use when asked to "write a skmtc
+  zero prior Skmtc knowledge. Use when asked to "write a skmtc
   generator", "author/clone/customize gen-x", "add a field type",
   "change export paths", "add enrichment options", or when editing
   generator source. ALWAYS pair with the target language's skill
   (skmtc-lang-typescript).
 ---
 
-# Authoring SKMTC generators
+# Authoring Skmtc generators
 
-## 1. What SKMTC is
+## 1. What Skmtc is
 
-SKMTC derives application code from an OpenAPI document treated as a
+Skmtc derives application code from an OpenAPI document treated as a
 domain model. A **stack** of **generators** (small, opinionated,
 cloneable packages) is run by a deterministic engine that sweeps every
 subject of the schema — each **model** (component schema, by `refName`)
@@ -178,7 +178,7 @@ functions that return strings — helpers drift.
 
 ## 5. Verify against the run
 
-**Never guess a signature.** SKMTC has almost no training-data presence;
+**Never guess a signature.** Skmtc has almost no training-data presence;
 your recalled API shapes are unreliable. Exact signatures for core
 contracts (`Oas*` classes, `Inserted`, `ContentSettings`,
 `TypeSystemArgs`, entry configs) are one command away:

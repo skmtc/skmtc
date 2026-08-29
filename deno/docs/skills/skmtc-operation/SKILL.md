@@ -2,7 +2,7 @@
 name: skmtc-operation
 version: 0.1.1
 description: >
-  The operation-generator shape for SKMTC: one definition per (path,
+  The operation-generator shape for Skmtc: one definition per (path,
   method), for any output family — client hooks, SDK methods, forms,
   route stubs, docs. Output varies wildly; the DECOMPOSITION of the
   operation and the peer-consumption rules do not. Core teaching:
