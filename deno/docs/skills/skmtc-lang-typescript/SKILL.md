@@ -7,7 +7,7 @@ description: >
   three register shapes, identifier kinds and the type-only import
   machinery, composition helpers, sanitization, TsFile render rules.
   Use ALONGSIDE skmtc-generator whenever a generator emits
-  TypeScript. Headings are the template for other skmtc-lang-*-v3
+  TypeScript. Headings are the template for other skmtc-lang-*
   skills.
 ---
 

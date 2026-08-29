@@ -382,9 +382,8 @@ Mixed states are silently broken:
   - To use cloned source → import is `./gen-X/mod.ts`, ensure the
     folder + `gen-X/mod.ts` exist.
 
-Background: friction log entry `2026-05-28-composition-consistency-and-cloned-prefix.md`.
-
-Full list in [`../../llms.md#operational-principles-for-proposing-changes`](../../llms.md#operational-principles-for-proposing-changes).
+Full list in
+[`llms.md`, "Operational principles for proposing changes"](https://github.com/skmtc/skmtc/blob/main/deno/docs/llms.md#operational-principles-for-proposing-changes).
 
 ## Doctor check ids
 

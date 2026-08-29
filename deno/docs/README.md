@@ -240,7 +240,7 @@ npx skills add skmtc/skmtc
 npx skills add skmtc/skmtc --skill skmtc-generator
 ```
 
-The sources are in [`skills/`](skills/), readable directly — for example [`skills/skmtc-generator/SKILL.md`](skills/skmtc-generator/SKILL.md).
+Each one reads fine on its own — for example [`skmtc-generator`](skills/skmtc-generator/SKILL.md) and [`skmtc-cli`](skills/skmtc-cli/SKILL.md).
 
 ---
 

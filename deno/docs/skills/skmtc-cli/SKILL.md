@@ -1,6 +1,6 @@
 ---
 name: skmtc-cli
-version: 0.1.0
+version: 0.5.0
 description: |
   Use the SKMTC CLI to scaffold projects, install or clone generators
   from JSR, configure schema sources and enrichments, and produce code
@@ -19,8 +19,8 @@ description: |
   subcommand. For *authoring* a generator package (Projections,
   Snippets, transform functions), defer to `skmtc-generator`. When
   something is broken (no output, wrong output, error messages, stale
-  bundle), defer to `skmtc-debug` — verify-first stance takes
-  priority during diagnosis.
+  bundle), verify before proposing a fix: read the manifest and the
+  parse issues, and reproduce the failure first.
 allowed-tools:
   - Bash
   - Read
@@ -43,7 +43,8 @@ Everything else — the command list, per-command flags, argument
 shapes — lives in the binary itself and is always current there;
 §3 shows how to pull it on demand. This skill guides **using** the
 CLI; for authoring generator packages see `skmtc-generator`, for
-diagnosing failures see `skmtc-debug`.
+diagnosing failures see
+[debug-failing-generation](https://github.com/skmtc/skmtc/blob/main/deno/docs/using/how-to/debug-failing-generation.md).
 
 ## 1. Mental model
 
@@ -186,9 +187,9 @@ This skill ends at the CLI surface. Hand off when:
 - The next step edits a `.ts`/`.tsx` file under
   `<root>/.skmtc/<project>/<gen-name>/` → **skmtc-generator**
 - The user reports something broken and the cause isn't yet known →
-  **skmtc-debug** (verify-first stance)
-- The session is wrapping up and observations are worth recording →
-  **skmtc-retro**
+  verify before proposing: manifest, parse issues, then a reproduction
+  ([debug-failing-generation](https://github.com/skmtc/skmtc/blob/main/deno/docs/using/how-to/debug-failing-generation.md),
+  [error codes](https://github.com/skmtc/skmtc/blob/main/deno/docs/reference/error-codes.md))
 
 ## Companion files
 

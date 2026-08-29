@@ -708,7 +708,11 @@ const publishedSkillNames: string[] = JSON.parse(
   await Deno.readTextFile(join(docsDir, 'skills', '.claude-plugin', 'plugin.json'))
 ).skills.map((path: string) => path.replace(/^\.\//, ''))
 
-const linkIntoSkills = /\]\((?:\.{1,2}\/)*skills\/([\w-]+)\//
+// Anything under skills/ — a published skill's directory, an
+// unpublished one, a file sitting directly in skills/, or the bare
+// directory link. Only the first form can be exempt, so the capture is
+// the directory name and it is absent for every other form.
+const linkIntoSkills = /\]\((?:\.{1,2}\/)*skills\/(?:([\w-]+)\/)?/
 const linkIntoOtherInternalLayer = /\]\((?:\.{1,2}\/)*(?:friction-log|evals)\//
 
 const readerLintPatterns: ReaderLintPattern[] = [
@@ -719,8 +723,11 @@ const readerLintPatterns: ReaderLintPattern[] = [
       '(agent/internal layers)',
     matches: line => {
       if (linkIntoOtherInternalLayer.test(line)) return true
-      const skill = line.match(linkIntoSkills)?.[1]
-      return skill !== undefined && !publishedSkillNames.includes(skill)
+      const intoSkills = line.match(linkIntoSkills)
+      if (!intoSkills) return false
+      // A link at skills/ itself, or at a file directly inside it, has
+      // no skill directory to exempt — always internal.
+      return intoSkills[1] === undefined || !publishedSkillNames.includes(intoSkills[1])
     }
   },
   regexLint('notes-path', 'reference to the private notes/ tree', /\bnotes\/[\w-]+\//),

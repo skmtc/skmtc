@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.2.4
+version: 0.13.0
 description: >
   Author and edit SKMTC generators — packages that project an OpenAPI
   domain model into application code. Method: clone the nearest stock
@@ -235,5 +235,6 @@ guidance lives there, not here.
 
 Scope note: this skill covers **OpenAPI input**. GraphQL SDL input
 exists (`toGqlOperationEntry`, subject routing by
-`[rootKind][fieldName]`) — for GraphQL authoring load the
-`skmtc-graphql` skill alongside; the engine rules here apply unchanged.
+`[rootKind][fieldName]`) and the engine rules here apply to it
+unchanged, but the GraphQL specifics — the entry, the enrichment
+routing, the companion base factories — are not covered here.

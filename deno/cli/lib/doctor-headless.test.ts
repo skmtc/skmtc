@@ -794,7 +794,7 @@ Deno.test('runDoctor - on a gate-enforcing Deno the hint both claims and prints 
   assertStringIncludes(check.hint ?? '', '--minimum-dependency-age=0')
 })
 
-Deno.test('doctor - every check id is documented in all three catalogues', async () => {
+Deno.test('doctor - every check id is documented in both catalogues', async () => {
   // The docs are what an agent reads to reason about a check without
   // running it, and two files carry the same table. Adding a check
   // without a row makes it invisible to exactly those readers — which is
