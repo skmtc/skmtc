@@ -44,6 +44,7 @@
   "tasks": {
     "release": "deno run --allow-read --allow-write --allow-env --allow-net --allow-run .scripts/release.ts",
     "bump": "deno run --allow-read --allow-write .scripts/bump.ts",
+    "bump-plugin": "deno run --allow-read --allow-write .scripts/bump-plugin.ts",
     "skills": "deno run --allow-read --allow-write --allow-env --allow-run=git .scripts/skills.ts",
     "check": "deno task verify-docs && deno test --allow-all",
     "test:watch": "deno test --allow-all --watch",

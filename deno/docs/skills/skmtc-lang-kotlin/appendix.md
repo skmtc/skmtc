@@ -1,7 +1,7 @@
 # Appendix — generated API reference
 
 > Generated from framework source by
-> `deno run --allow-read --allow-write --allow-run=deno,git .scripts/generate-skill-api-appendix.ts`
+> `deno run --allow-read --allow-write --allow-env --allow-run=deno,git .scripts/generate-skill-api-appendix.ts`
 > (from `deno/`). **Authoritative** for signatures, fields, and doc
 > comments — trust it instead of re-reading package source. JSDoc
 > `@example` blocks are stripped at generation. For a symbol not

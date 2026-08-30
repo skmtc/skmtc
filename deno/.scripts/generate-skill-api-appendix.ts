@@ -1,13 +1,17 @@
 // Regenerate the "generated API reference" appendix in the skills that
 // carry one, from `deno doc` over framework source. Run from `deno/`:
 //
-//   deno run --allow-read --allow-write --allow-run=deno,git .scripts/generate-skill-api-appendix.ts
+//   deno run --allow-read --allow-write --allow-env --allow-run=deno,git .scripts/generate-skill-api-appendix.ts
 //
 // The appendix is the drift-proof alternative to hand-pasted type
 // declarations: `deno doc` output is derived from the same source an
 // agent would otherwise dive into, so the appendix cannot say something
 // the source does not. Re-running the script is the whole maintenance
-// story; a verify-docs check can later regenerate-and-diff to gate CI.
+// story, and verify-docs check 15 gates it: every export of the
+// documented package must appear in the appendix. That check holds
+// symbol NAMES rather than generated text, because `deno doc`'s
+// formatting shifts between patch releases; `--check` here does the
+// exact comparison, which is only meaningful on one machine.
 
 const BEGIN_MARKER = '<!-- api-appendix:begin — GENERATED, do not edit by hand -->'
 const END_MARKER = '<!-- api-appendix:end -->'
@@ -151,7 +155,7 @@ for (const target of targets) {
     '# Appendix — generated API reference',
     '',
     '> Generated from framework source by',
-    '> `deno run --allow-read --allow-write --allow-run=deno,git .scripts/generate-skill-api-appendix.ts`',
+    '> `deno run --allow-read --allow-write --allow-env --allow-run=deno,git .scripts/generate-skill-api-appendix.ts`',
     '> (from `deno/`). **Authoritative** for signatures, fields, and doc',
     '> comments — trust it instead of re-reading package source. JSDoc',
     '> `@example` blocks are stripped at generation. For a symbol not',
@@ -209,7 +213,7 @@ if (checkOnly) {
   if (drifted.length > 0) {
     console.error(
       `stale generated appendix: ${drifted.join(', ')}\n` +
-        'Regenerate with: deno run --allow-read --allow-write --allow-run=deno,git ' +
+        'Regenerate with: deno run --allow-read --allow-write --allow-env --allow-run=deno,git ' +
         '.scripts/generate-skill-api-appendix.ts'
     )
     Deno.exit(1)

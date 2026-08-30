@@ -41,6 +41,7 @@
     "jsr:@std/streams@^1.1.1": "1.1.1",
     "jsr:@std/testing@^1.0.15": "1.0.19",
     "jsr:@std/text@^1.0.17": "1.0.19",
+    "jsr:@std/yaml@1": "1.1.2",
     "jsr:@std/yaml@^1.0.5": "1.1.2",
     "jsr:@std/yaml@^1.1.0": "1.1.2",
     "jsr:@ts-morph/bootstrap@0.27": "0.27.0",

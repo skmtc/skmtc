@@ -10,7 +10,7 @@
       "name": "skmtc",
       "source": "./deno/docs/skills",
       "description": "Author Skmtc generators — derive application code from an OpenAPI document treated as a domain model.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Skmtc",
         "url": "https://skmtc.dev"

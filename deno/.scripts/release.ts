@@ -22,6 +22,7 @@
  */
 
 import { dirname, fromFileUrl, join } from '@std/path'
+import { parse as parseYaml } from 'jsr:@std/yaml@^1'
 import { toDependencyAgeArgs } from '../cli/lib/dependency-age.ts'
 
 /**
@@ -429,6 +430,30 @@ const printReinstallHint = (
 }
 
 /**
+ * `metadata.describes` out of a SKILL.md, parsed as YAML.
+ *
+ * A regex over the frontmatter was whitespace-exact, so re-indenting it or
+ * quoting it differently silently emptied the declaration — and an emptied
+ * declaration disables the guard rather than failing it.
+ */
+const readDescribes = (skillText: string): Record<string, string> => {
+  const block = skillText.match(/^---\n([\s\S]*?)\n---\n/)
+  if (!block) return {}
+  const frontmatter = parseYaml(block[1])
+  if (!isRecord(frontmatter) || !isRecord(frontmatter.metadata)) return {}
+  const describes = frontmatter.metadata.describes
+  if (!isRecord(describes)) return {}
+  return Object.fromEntries(
+    Object.entries(describes).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string'
+    )
+  )
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+/**
  * A published skill declares the package minor it was written against
  * (`metadata.describes`). Releasing past that declaration without touching the
  * skill is how a skill starts lying: every export keeps its name, the rule it
@@ -448,13 +473,7 @@ const assertSkillDeclarations = async (
   for await (const entry of Deno.readDir(skillsDir)) {
     if (!entry.isDirectory || entry.name.startsWith('.')) continue
     const text = await Deno.readTextFile(join(skillsDir, entry.name, 'SKILL.md')).catch(() => '')
-    const describes = text.match(/^ {2}describes:\n((?: {4}'[^']+': '[^']+'\n)+)/m)
-    if (!describes) continue
-
-    for (const line of describes[1].trim().split('\n')) {
-      const declared = line.match(/'([^']+)': '([^']+)'/)
-      if (!declared) continue
-      const [, packageName, declaredMinor] = declared
+    for (const [packageName, declaredMinor] of Object.entries(readDescribes(text))) {
       const releasing = planned.get(packageName)
       if (!releasing) continue
       const releasingMinor = releasing.split('.').slice(0, 2).join('.')
@@ -472,61 +491,6 @@ const assertSkillDeclarations = async (
       `Release refused — a skill describes a minor this release moves past:\n${stale.join('\n')}\n\n` +
         `Reread each skill against the package diff, update metadata.describes in its ` +
         `SKILL.md, and re-run. Nothing has been published.`
-    )
-  }
-}
-
-/**
- * Claude Code updates a plugin when its `version` moves, so a skill edit that
- * ships without a bump reaches nobody. The bump is the release's job rather
- * than the editing PR's: it is the release that makes the new text fetchable.
- *
- * Advisory by design — a git or manifest problem here must not fail a release
- * whose packages are already on the registry.
- */
-const bumpPluginVersion = async (rootDir: string): Promise<void> => {
-  const marketplacePath = join(rootDir, '..', '.claude-plugin', 'marketplace.json')
-  const pluginPath = join(rootDir, 'docs', 'skills', '.claude-plugin', 'plugin.json')
-
-  try {
-    const marketplace = JSON.parse(await Deno.readTextFile(marketplacePath))
-    const plugin = JSON.parse(await Deno.readTextFile(pluginPath))
-    const published: string[] = plugin.skills.map((path: string) => path.replace(/^\.\//, ''))
-
-    const lastBump = await new Deno.Command('git', {
-      args: ['log', '-1', '--format=%H', '--', marketplacePath],
-      cwd: rootDir,
-      stdout: 'piped',
-      stderr: 'null'
-    }).output()
-    const sinceSha = new TextDecoder().decode(lastBump.stdout).trim()
-    if (!sinceSha) return
-
-    const changed = await new Deno.Command('git', {
-      args: [
-        'diff',
-        '--name-only',
-        `${sinceSha}..HEAD`,
-        '--',
-        ...published.map(name => join(rootDir, 'docs', 'skills', name))
-      ],
-      cwd: rootDir,
-      stdout: 'piped',
-      stderr: 'null'
-    }).output()
-    if (new TextDecoder().decode(changed.stdout).trim() === '') return
-
-    const [major, minor, patch] = String(plugin.version).split('.').map(Number)
-    const next = `${major}.${minor}.${patch + 1}`
-    plugin.version = next
-    marketplace.plugins[0].version = next
-    await Deno.writeTextFile(pluginPath, `${JSON.stringify(plugin, null, 2)}\n`)
-    await Deno.writeTextFile(marketplacePath, `${JSON.stringify(marketplace, null, 2)}\n`)
-    console.log(`\nPublished skills changed since the last plugin bump — plugin version -> ${next}`)
-  } catch (error) {
-    console.error(
-      `\nPlugin version not bumped (${error instanceof Error ? error.message : String(error)}). ` +
-        `Bump it by hand if a published skill changed.`
     )
   }
 }
@@ -575,7 +539,6 @@ export const release = async (): Promise<void> => {
 
   console.log('\nApplying version + import updates...')
   await applyPlan(order, plan)
-  await bumpPluginVersion(rootDir)
 
   console.log('\nPublishing...')
   // With a JSR_AUTH_TOKEN (e.g. the local mirror's shared secret) the
