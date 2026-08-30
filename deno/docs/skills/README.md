@@ -24,11 +24,11 @@ plugin manifest does not list them.
 
 | Skill | Purpose | Version |
 | --- | --- | --- |
-| [`skmtc-generator/`](skmtc-generator/) | Generator authoring — the engine mental model (object trees over string concatenation), then clone-and-adapt | 0.2.4 |
+| [`skmtc-generator/`](skmtc-generator/) | Generator authoring — the engine mental model (object trees over string concatenation), then clone-and-adapt | 0.13.0 |
 | [`skmtc-lang-typescript/`](skmtc-lang-typescript/) | The TypeScript target-language layer — the shape of emitted TS | 0.2.2 |
 | [`skmtc-model/`](skmtc-model/) | Model-generator SHAPE layer: engine-tested fill-in skeleton + model edge cases (refs, recursion, visibility) | 0.1.3 |
 | [`skmtc-operation/`](skmtc-operation/) | Operation-generator SHAPE layer: decomposition of (path, method) subjects + peer-consumption rules | 0.1.1 |
-| [`skmtc-cli/`](skmtc-cli/) | CLI usage — workspace model, agent contract, configuration; the command surface is pulled from the binary | 0.1.0 |
+| [`skmtc-cli/`](skmtc-cli/) | CLI usage — workspace model, agent contract, configuration; the command surface is pulled from the binary | 0.5.0 |
 
 Pairing rule: `skmtc-generator` carries the engine rules and is always loaded
 first; a lang skill carries the emitted language; a shape skill
@@ -41,8 +41,7 @@ first; a lang skill carries the emitted language; a shape skill
 | [`skmtc-architecture/`](skmtc-architecture/) | System mental model for building infrastructure around Skmtc | Platform-team audience, not generator authors |
 | [`skmtc-debug/`](skmtc-debug/) | Diagnose failures — no output, wrong output, errors | Leans on repo-internal diagnostics |
 | [`skmtc-graphql/`](skmtc-graphql/) | The GraphQL SDL pipeline, alongside `skmtc-generator` | GraphQL input is not yet a supported public path |
-| [`skmtc-lang-kotlin/`](skmtc-lang-kotlin/) | The Kotlin target-language layer; source↔skill sync enforced by `verify-docs` | Kotlin publication deferred |
-| [`skmtc-lang-kotlin-v3/`](skmtc-lang-kotlin-v3/) | Kotlin layer rewritten against lang-kotlin HEAD; worked example pinned by `lang-kotlin/src/skill-v3-example.test.ts` | Kotlin publication deferred; supersedes the above when it lands |
+| [`skmtc-lang-kotlin/`](skmtc-lang-kotlin/) | The Kotlin target-language layer; source↔skill sync enforced by `verify-docs`, worked example pinned by `lang-kotlin/src/skill-example.test.ts` | Kotlin publication deferred |
 | [`skmtc-retro/`](skmtc-retro/) | Capture session friction/wins to the friction log | Internal feedback tooling |
 | [`skmtc-retro-review/`](skmtc-retro-review/) | Aggregate friction logs into patterns and priorities | Internal feedback tooling |
 | [`docs-writing/`](docs-writing/) | Documentation craft — Diátaxis, style rules, page templates | Internal authoring tooling |
@@ -51,6 +50,15 @@ The published five are the v3 line plus the CLI skill, under names that carry
 no version: the public name is the stable identity, and `version` frontmatter
 plus git history carry the generation. The v1/v2 skills they displaced were
 removed in the same change; git keeps their history.
+
+**Versioning rule: a `version` belongs to the public name and only ever moves
+forward.** Replacing the content behind a name continues that name's line
+rather than restarting it — `skmtc-generator` went 0.12.0 → 0.13.0 and
+`skmtc-cli` 0.4.1 → 0.5.0 when the v3 content took those names, and
+`skmtc-lang-kotlin` 0.10.0 → 0.11.0 when it took that one. A reader who has an
+older copy can then compare numbers and get the right answer. The tables above
+are checked against frontmatter by `verify-docs`, so a version edited in one
+place and not the other fails the gate.
 
 ## How skills relate to docs
 
