@@ -40,6 +40,10 @@ concurrency:
 
 jobs:
   publish:
+    # Stays GitHub-hosted while coverage runs on Blacksmith: npm Trusted
+    # Publishing accepts only an OIDC token minted on a cloud-hosted GitHub
+    # runner, so the `--provenance` publishes below fail on a third-party one.
+    # JSR is not the constraint here; npm is.
     runs-on: ubuntu-latest
     permissions:
       contents: read
