@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-read --allow-run=deno
+#!/usr/bin/env -S deno run --allow-read --allow-env --allow-run=deno,git
 /**
  * Mechanical doc/skill-chain sync checks — the regression guard for the
  * drift class the friction reviews keep finding (old C8 → C15: the
@@ -84,7 +84,8 @@
  *   exit 0 — all checks hold.
  *   exit 1 — one or more failed; each failure names file + expectation.
  *
- * Usage:  deno run --allow-read --allow-run=deno deno/docs/verify-docs.ts
+ * Usage:  deno run --allow-read --allow-env --allow-run=deno,git \
+ *           deno/docs/verify-docs.ts
  *         deno run --allow-read --allow-write deno/docs/verify-docs.ts \
  *           --update-reader-baseline   # rewrite reader-lint-baseline.json
  *                                      # to the current violation set
@@ -1469,10 +1470,10 @@ if (installSources.length === 1 && installSources[0] === ROOT_README) {
 //     Enforced from CONTENT, not git history. Making the release bump it
 //     could not work: the publish job checks out shallow and read-only,
 //     so `git log` answers differently there and the write is discarded
-//     with the runner either way. A digest of the published skills
-//     answers the same in a shallow clone, a hook and CI, and it puts
-//     the bump in the PR that edits the skill, where a human is already
-//     deciding what changed.
+//     with the runner either way. A digest of the published skills and
+//     the manifest that ships them answers the same in a shallow clone,
+//     a hook and CI, and it puts the bump in the PR that edits the
+//     skill, where a human is already deciding what changed.
 // ---------------------------------------------------------------------
 
 const pluginManifest = JSON.parse(
@@ -1496,6 +1497,11 @@ if (!marketplaceEntry) {
   fail(
     `plugin version: plugin.json says ${pluginManifest.version} and marketplace.json says ` +
       `${marketplaceEntry.version} — a consumer resolves one of them and gets the other's skills`
+  )
+} else if (marketplaceEntry.description !== pluginManifest.description) {
+  fail(
+    `plugin version: plugin.json and marketplace.json describe the plugin differently — the ` +
+      `catalogue shows one and the installed plugin the other`
   )
 } else if (pluginRecord.digest !== skillsDigest) {
   fail(

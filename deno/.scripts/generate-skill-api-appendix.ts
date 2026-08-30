@@ -13,6 +13,8 @@
 // formatting shifts between patch releases; `--check` here does the
 // exact comparison, which is only meaningful on one machine.
 
+import { runGit } from './run-git.ts'
+
 const BEGIN_MARKER = '<!-- api-appendix:begin — GENERATED, do not edit by hand -->'
 const END_MARKER = '<!-- api-appendix:end -->'
 
@@ -50,27 +52,11 @@ const targets: Target[] = [
 
 const decoder = new TextDecoder()
 
-/**
- * `git` is run with the environment cleared apart from what spawning needs.
- *
- * A git hook exports `GIT_DIR` and `GIT_INDEX_FILE`, and a child `git` obeys
- * them over its own working directory — so the same command answers one thing
- * from a shell and another from a pre-push hook, and this script's `--check`
- * failed only inside the hook. Anything reading git state on behalf of a check
- * has to ignore an ambient repo pointer.
- */
+/** `deno` subprocesses. `git` goes through `runGit`, which clears the environment. */
 const run = async (command: string, args: string[]): Promise<string> => {
   const output = await new Deno.Command(command, {
     args,
-    clearEnv: command === 'git',
-    env:
-      command === 'git'
-        ? {
-            NO_COLOR: '1',
-            PATH: Deno.env.get('PATH') ?? '',
-            HOME: Deno.env.get('HOME') ?? ''
-          }
-        : { NO_COLOR: '1' },
+    env: { NO_COLOR: '1' },
     stdout: 'piped',
     stderr: 'piped'
   }).output()
@@ -111,7 +97,7 @@ const stripExamples = (doc: string): string => {
 const relativizePaths = (text: string, repoRoot: string): string =>
   text.replaceAll(`file://${repoRoot}/`, '')
 
-const repoRoot = (await run('git', ['rev-parse', '--show-toplevel'])).trim()
+const repoRoot = (await runGit(Deno.cwd(), ['rev-parse', '--show-toplevel'])).trim()
 
 // `--check` regenerates in memory and compares, writing nothing. It is what
 // makes the appendix a gate rather than a habit: `deno doc` output cannot

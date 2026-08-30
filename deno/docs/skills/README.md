@@ -76,7 +76,7 @@ authority and acted on without checking. Every guard below runs in
 | Declared-version sync | A skill still declaring a package minor the workspace has moved past | `verify-docs` |
 | Doc-test | A renamed export breaking a fenced `ts` block a skill quotes | `doc-test` |
 | Worked-example pins | The Kotlin skill's example, and the model skeleton, no longer producing what they promise | `deno test` |
-| Plugin-version freshness | A published skill edited without bumping the plugin version, so no installed plugin ever sees it | `verify-docs` (digest of the published skills; fix with `deno task bump-plugin`) |
+| Plugin-version freshness | A published skill edited without bumping the plugin version, so no installed plugin ever sees it | `verify-docs` (digest of the published skills and the plugin manifest; fix with `deno task bump-plugin`) |
 | One install source | A second copy of the install lines, which drifts from the canonical one | `verify-docs` |
 | Release refusal | A release moving past a minor a skill declares | `deno task release` |
 

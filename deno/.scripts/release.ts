@@ -534,7 +534,12 @@ export const release = async (): Promise<void> => {
 
   await assertSkillDeclarations(
     rootDir,
-    new Map(order.map(pkg => [pkg.name, (plan.get(pkg.name) as PlannedRelease).version]))
+    new Map(
+      order.flatMap((pkg): [string, string][] => {
+        const planned = plan.get(pkg.name)
+        return planned ? [[pkg.name, planned.version]] : []
+      })
+    )
   )
 
   console.log('\nApplying version + import updates...')

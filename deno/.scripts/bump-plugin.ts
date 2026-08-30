@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-read --allow-write
+#!/usr/bin/env -S deno run --allow-read --allow-write --allow-env --allow-run=git
 /**
  * Bump the plugin version and re-record the published-skills digest.
  *
@@ -9,6 +9,11 @@
  *
  * `--check` reports whether a bump is needed without writing, which is what the
  * verify-docs check runs.
+ *
+ * Two PRs that each edit a published skill both compute the same next patch and
+ * write it to the same three files, so they conflict on merge. That is the cost
+ * of putting the bump in the editing PR, and it is paid the same way as any
+ * other conflict: rebase and re-run this.
  */
 import { dirname, fromFileUrl, join } from 'jsr:@std/path@^1'
 import { computeSkillsDigest, readPublishedNames } from './plugin-digest.ts'
