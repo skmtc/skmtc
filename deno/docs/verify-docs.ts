@@ -301,6 +301,11 @@ const languageSyncTargets: {
     packageDirectory: 'lang-kotlin',
     skillName: 'skmtc-lang-kotlin',
     guardPrefix: 'isKt'
+  },
+  {
+    packageDirectory: 'lang-typescript',
+    skillName: 'skmtc-lang-typescript',
+    guardPrefix: 'isTs'
   }
 ]
 
@@ -1230,6 +1235,127 @@ if (catalogueFailures === 0) {
   pass(
     `skills catalogue: ${skillDirectories.length} skills, ${publishedSkillNames.length} published ` +
       `(names, versions, internal flags and README rows all agree)`
+  )
+}
+
+// ---------------------------------------------------------------------
+// 15. Generated-appendix freshness — `deno doc` output cannot disagree
+//     with source, so the only way the appendix drifts is by not being
+//     regenerated after the source moved. The generator regenerates in
+//     memory under --check and compares, which is the same work a
+//     reviewer would otherwise have to remember to do.
+// ---------------------------------------------------------------------
+
+const appendixCheck = await new Deno.Command('deno', {
+  args: [
+    'run',
+    '--allow-read',
+    '--allow-run=deno,git',
+    join(denoDir, '.scripts', 'generate-skill-api-appendix.ts'),
+    '--check'
+  ],
+  cwd: denoDir,
+  stdout: 'piped',
+  stderr: 'piped'
+}).output()
+
+if (appendixCheck.success) {
+  pass(new TextDecoder().decode(appendixCheck.stdout).trim())
+} else {
+  fail(new TextDecoder().decode(appendixCheck.stderr).trim().split('\n')[0])
+}
+
+// ---------------------------------------------------------------------
+// 16. Declared-version sync — the check the mechanical guards cannot
+//     make. Every check above catches a RENAMED export; none catches a
+//     changed RULE that keeps every name — a default flipped, a
+//     protocol reordered, a step that became required. So each
+//     published skill declares the package minor it was written
+//     against, and a workspace that has moved past it fails here. The
+//     fix is not editing the number: it is rereading the skill against
+//     the package's diff, then editing the number.
+// ---------------------------------------------------------------------
+
+const workspaceVersions = new Map<string, { version: string; directory: string }>()
+for await (const entry of Deno.readDir(denoDir)) {
+  if (!entry.isDirectory || entry.name.startsWith('.')) continue
+  const denoJsonPath = join(denoDir, entry.name, 'deno.json')
+  const denoJson = await Deno.readTextFile(denoJsonPath).catch(() => undefined)
+  if (!denoJson) continue
+  const { name, version } = JSON.parse(denoJson)
+  if (typeof name === 'string' && typeof version === 'string') {
+    workspaceVersions.set(name, { version, directory: entry.name })
+  }
+}
+
+const toMinor = (version: string): string => version.split('.').slice(0, 2).join('.')
+
+let declaredVersionFailures = 0
+let declarationCount = 0
+
+for (const directory of skillDirectories) {
+  const skillText = await Deno.readTextFile(join(skillsDir, directory, 'SKILL.md')).catch(() => '')
+  const describes = skillText.match(/^ {2}describes:\n((?: {4}'[^']+': '[^']+'\n)+)/m)
+  if (!describes) continue
+
+  for (const line of describes[1].trim().split('\n')) {
+    const declared = line.match(/'([^']+)': '([^']+)'/)
+    if (!declared) continue
+    declarationCount++
+    const [, packageName, declaredMinor] = declared
+    const workspace = workspaceVersions.get(packageName)
+    if (!workspace) {
+      declaredVersionFailures++
+      fail(`${directory} declares ${packageName}, which is not a workspace package`)
+      continue
+    }
+    if (toMinor(workspace.version) !== declaredMinor) {
+      declaredVersionFailures++
+      fail(
+        `${directory} was written against ${packageName} ${declaredMinor}, and the workspace is ` +
+          `on ${workspace.version}. Reread the skill against \`git log ${workspace.directory}\` ` +
+          `since that minor, then update metadata.describes — the number is the record that ` +
+          `someone looked.`
+      )
+    }
+  }
+}
+
+if (declaredVersionFailures === 0) {
+  pass(
+    `declared-version sync: ${declarationCount} skill declaration(s) match the workspace minors`
+  )
+}
+
+// ---------------------------------------------------------------------
+// 17. One install source — the skill install lines live in the repo
+//     README and nowhere else. A second copy is not a duplication
+//     problem, it is a correctness one: the two drift, and the reader
+//     who finds the stale copy has no way to tell which is current.
+//     (The published site renders its own copy from a component; it is
+//     a different medium, not a second place to edit prose.)
+// ---------------------------------------------------------------------
+
+const INSTALL_LINE = 'npx skills add skmtc/skmtc'
+const installSources: string[] = []
+
+const rootReadme = join(denoDir, '..', 'README.md')
+if ((await Deno.readTextFile(rootReadme)).includes(INSTALL_LINE)) {
+  installSources.push('README.md')
+}
+
+for (const [relPath, text] of readerFileTexts) {
+  if (text.includes(INSTALL_LINE)) installSources.push(relPath)
+}
+
+if (installSources.length === 1 && installSources[0] === 'README.md') {
+  pass('install source: the skill install lines appear in README.md and nowhere else')
+} else if (installSources.length === 0) {
+  fail(`install source: no file carries \`${INSTALL_LINE}\` — the README section is the one place it belongs`)
+} else {
+  fail(
+    `install source: the install lines appear in ${installSources.length} files ` +
+      `(${installSources.join(', ')}). Keep them in README.md and link to that section.`
   )
 }
 

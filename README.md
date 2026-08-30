@@ -57,8 +57,13 @@ npx skills add skmtc/skmtc
 npx skills add skmtc/skmtc --skill skmtc-generator
 ```
 
-The sources live in
-[`deno/docs/skills/`](deno/docs/skills/) and read fine on their own.
+The sources live in [`deno/docs/skills/`](deno/docs/skills/) and read fine on
+their own; each is also rendered at
+[skmtc.dev/skills](https://skmtc.dev/skills).
+
+This block is the one place the install lines are written down — everything
+else points here, and `verify-docs` fails on a second copy. Instructions that
+exist twice drift, and the reader who finds the stale one has no way to tell.
 
 ## Available generators
 

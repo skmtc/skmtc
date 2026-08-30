@@ -341,7 +341,7 @@ discriminator omission. Everything else renders the honest wire type
 
 The full `deno doc` surface for the packages this skill covers lives
 in [`appendix.md`](appendix.md), in this skill's directory —
-generated from framework source at `71ef53bc`, signatures and
+generated from framework source at `0f26b1b7`, signatures and
 field docs only. It is **authoritative**: when the prose above does
 not carry the exact constructor or field shape you need, Read (or
 grep) `appendix.md` instead of diving into package source. Do not

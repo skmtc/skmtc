@@ -10,6 +10,9 @@ description: >
   "change export paths", "add enrichment options", or when editing
   generator source. ALWAYS pair with the target language's skill
   (skmtc-lang-typescript).
+metadata:
+  describes:
+    '@skmtc/core': '0.28'
 ---
 
 # Authoring Skmtc generators

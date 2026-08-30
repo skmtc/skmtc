@@ -428,6 +428,109 @@ const printReinstallHint = (
   }
 }
 
+/**
+ * A published skill declares the package minor it was written against
+ * (`metadata.describes`). Releasing past that declaration without touching the
+ * skill is how a skill starts lying: every export keeps its name, the rule it
+ * teaches changes, and no mechanical check notices.
+ *
+ * So the release refuses. The fix is to reread the skill against the diff and
+ * then update the declaration — one frontmatter edit, in the same PR as the
+ * change that forced it.
+ */
+const assertSkillDeclarations = async (
+  rootDir: string,
+  planned: Map<string, string>
+): Promise<void> => {
+  const skillsDir = join(rootDir, 'docs', 'skills')
+  const stale: string[] = []
+
+  for await (const entry of Deno.readDir(skillsDir)) {
+    if (!entry.isDirectory || entry.name.startsWith('.')) continue
+    const text = await Deno.readTextFile(join(skillsDir, entry.name, 'SKILL.md')).catch(() => '')
+    const describes = text.match(/^ {2}describes:\n((?: {4}'[^']+': '[^']+'\n)+)/m)
+    if (!describes) continue
+
+    for (const line of describes[1].trim().split('\n')) {
+      const declared = line.match(/'([^']+)': '([^']+)'/)
+      if (!declared) continue
+      const [, packageName, declaredMinor] = declared
+      const releasing = planned.get(packageName)
+      if (!releasing) continue
+      const releasingMinor = releasing.split('.').slice(0, 2).join('.')
+      if (releasingMinor !== declaredMinor) {
+        stale.push(
+          `  ${entry.name} was written against ${packageName} ${declaredMinor}; ` +
+            `releasing ${releasing}`
+        )
+      }
+    }
+  }
+
+  if (stale.length > 0) {
+    throw new Error(
+      `Release refused — a skill describes a minor this release moves past:\n${stale.join('\n')}\n\n` +
+        `Reread each skill against the package diff, update metadata.describes in its ` +
+        `SKILL.md, and re-run. Nothing has been published.`
+    )
+  }
+}
+
+/**
+ * Claude Code updates a plugin when its `version` moves, so a skill edit that
+ * ships without a bump reaches nobody. The bump is the release's job rather
+ * than the editing PR's: it is the release that makes the new text fetchable.
+ *
+ * Advisory by design — a git or manifest problem here must not fail a release
+ * whose packages are already on the registry.
+ */
+const bumpPluginVersion = async (rootDir: string): Promise<void> => {
+  const marketplacePath = join(rootDir, '..', '.claude-plugin', 'marketplace.json')
+  const pluginPath = join(rootDir, 'docs', 'skills', '.claude-plugin', 'plugin.json')
+
+  try {
+    const marketplace = JSON.parse(await Deno.readTextFile(marketplacePath))
+    const plugin = JSON.parse(await Deno.readTextFile(pluginPath))
+    const published: string[] = plugin.skills.map((path: string) => path.replace(/^\.\//, ''))
+
+    const lastBump = await new Deno.Command('git', {
+      args: ['log', '-1', '--format=%H', '--', marketplacePath],
+      cwd: rootDir,
+      stdout: 'piped',
+      stderr: 'null'
+    }).output()
+    const sinceSha = new TextDecoder().decode(lastBump.stdout).trim()
+    if (!sinceSha) return
+
+    const changed = await new Deno.Command('git', {
+      args: [
+        'diff',
+        '--name-only',
+        `${sinceSha}..HEAD`,
+        '--',
+        ...published.map(name => join(rootDir, 'docs', 'skills', name))
+      ],
+      cwd: rootDir,
+      stdout: 'piped',
+      stderr: 'null'
+    }).output()
+    if (new TextDecoder().decode(changed.stdout).trim() === '') return
+
+    const [major, minor, patch] = String(plugin.version).split('.').map(Number)
+    const next = `${major}.${minor}.${patch + 1}`
+    plugin.version = next
+    marketplace.plugins[0].version = next
+    await Deno.writeTextFile(pluginPath, `${JSON.stringify(plugin, null, 2)}\n`)
+    await Deno.writeTextFile(marketplacePath, `${JSON.stringify(marketplace, null, 2)}\n`)
+    console.log(`\nPublished skills changed since the last plugin bump — plugin version -> ${next}`)
+  } catch (error) {
+    console.error(
+      `\nPlugin version not bumped (${error instanceof Error ? error.message : String(error)}). ` +
+        `Bump it by hand if a published skill changed.`
+    )
+  }
+}
+
 export const release = async (): Promise<void> => {
   const reinstallMode = parseReinstallMode(Deno.args)
   const rootDir = join(dirname(fromFileUrl(import.meta.url)), '..')
@@ -465,8 +568,14 @@ export const release = async (): Promise<void> => {
     console.log(`  ${pkg.name}@${planned.version}  (${type}${suffix})`)
   }
 
+  await assertSkillDeclarations(
+    rootDir,
+    new Map(order.map(pkg => [pkg.name, (plan.get(pkg.name) as PlannedRelease).version]))
+  )
+
   console.log('\nApplying version + import updates...')
   await applyPlan(order, plan)
+  await bumpPluginVersion(rootDir)
 
   console.log('\nPublishing...')
   // With a JSR_AUTH_TOKEN (e.g. the local mirror's shared secret) the

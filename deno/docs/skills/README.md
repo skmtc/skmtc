@@ -60,6 +60,30 @@ older copy can then compare numbers and get the right answer. The tables above
 are checked against frontmatter by `verify-docs`, so a version edited in one
 place and not the other fails the gate.
 
+## What keeps these true
+
+A skill that has drifted from the engine is worse than no skill: it is read as
+authority and acted on without checking. Every guard below runs in
+`deno task check`, which CI runs on each pull request.
+
+| Guard | What it catches | Where |
+| --- | --- | --- |
+| Fact-anchor sync | An `llms.md` fact clause missing from `skmtc-generator` | `verify-docs` |
+| Lang source↔skill sync | An identifier factory or value-protocol guard the lang skill never mentions, or an entity-kind count that moved (Kotlin and TypeScript) | `verify-docs` |
+| CLI reference sync | A `cli/mod.ts` command missing from the reference pages, in both directions | `verify-docs` |
+| Skills catalogue sync | A README row, frontmatter version, `metadata.internal` flag or plugin.json membership disagreeing with the others | `verify-docs` |
+| Generated-appendix freshness | An appendix not regenerated after its package's source moved | `verify-docs` (runs the generator with `--check`) |
+| Declared-version sync | A skill still declaring a package minor the workspace has moved past | `verify-docs` |
+| Doc-test | A renamed export breaking a fenced `ts` block a skill quotes | `doc-test` |
+| Worked-example pins | The Kotlin skill's example, and the model skeleton, no longer producing what they promise | `deno test` |
+| Release refusal | A release moving past a minor a skill declares | `deno task release` |
+
+The last two rows are the ones that catch a changed *rule* rather than a
+renamed *symbol*. Name-level checks cannot see a default that flipped or a step
+that became required; a pinned example fails on it, and the declared-version
+gate forces a human to reread the skill before the release goes out. Editing
+the declared number is the record that someone looked.
+
 ## How skills relate to docs
 
 Skills are the **operational layer**; docs are the **reference layer**. The

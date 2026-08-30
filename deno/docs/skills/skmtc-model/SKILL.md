@@ -11,6 +11,10 @@ description: >
   validator/schema/type library ("write a gen-<lib>", "map OpenAPI
   models to <lib>"). Load ALONGSIDE skmtc-generator (engine rules)
   and skmtc-lang-typescript (TS layer).
+metadata:
+  describes:
+    '@skmtc/core': '0.28'
+    '@skmtc/lang-typescript': '0.12'
 ---
 
 # Model generators: fill the skeleton

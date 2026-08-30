@@ -91,9 +91,30 @@ const relativizePaths = (text: string, repoRoot: string): string =>
   text.replaceAll(`file://${repoRoot}/`, '')
 
 const repoRoot = (await run('git', ['rev-parse', '--show-toplevel'])).trim()
-const sourceSha = (await run('git', ['rev-parse', '--short', 'HEAD'])).trim()
+
+// `--check` regenerates in memory and compares, writing nothing. It is what
+// makes the appendix a gate rather than a habit: `deno doc` output cannot
+// disagree with source, so the only way this file drifts is by not being
+// regenerated after the source moved.
+const checkOnly = Deno.args.includes('--check')
+
+/**
+ * The commit the DOCUMENTED SOURCE last moved in — not `HEAD`.
+ *
+ * HEAD was the wrong provenance twice over. It made the line a lie on any
+ * commit that did not touch the package (the appendix was "generated from"
+ * a docs typo fix), and it made regenerate-and-diff impossible, because every
+ * commit changed the output whether or not the API had.
+ */
+const shaForFiles = async (files: string[]): Promise<string> => {
+  const packages = [...new Set(files.map(file => file.split('/')[0]))]
+  return (await run('git', ['log', '-1', '--format=%h', '--', ...packages])).trim()
+}
+
+const drifted: string[] = []
 
 for (const target of targets) {
+  const sourceSha = await shaForFiles(target.sections.flatMap(section => section.files))
   const sectionBlocks: string[] = []
   for (const section of target.sections) {
     const fileBlocks: string[] = []
@@ -121,7 +142,6 @@ for (const target of targets) {
     ...sectionBlocks,
     ''
   ].join('\n')
-  await Deno.writeTextFile(target.appendix, appendixBody)
 
   // SKILL.md keeps a short generated pointer between the same markers,
   // so re-runs stay idempotent and the loaded skill stays light.
@@ -150,9 +170,30 @@ for (const target of targets) {
     beginAt !== -1 && endAt !== -1
       ? skillText.slice(0, beginAt) + pointer + skillText.slice(endAt + END_MARKER.length)
       : `${skillText.trimEnd()}\n\n${pointer}\n`
+
+  if (checkOnly) {
+    const appendixOnDisk = await Deno.readTextFile(target.appendix).catch(() => '')
+    if (appendixOnDisk !== appendixBody) drifted.push(target.appendix)
+    if (skillText !== updated) drifted.push(target.skill)
+    continue
+  }
+
+  await Deno.writeTextFile(target.appendix, appendixBody)
   await Deno.writeTextFile(target.skill, updated)
   const fileCount = target.sections.reduce((count, section) => count + section.files.length, 0)
   console.log(
     `${target.skill}: pointer ${beginAt !== -1 ? 'replaced' : 'appended'}; ${target.appendix} written (${fileCount} file(s), sha ${sourceSha})`
   )
+}
+
+if (checkOnly) {
+  if (drifted.length > 0) {
+    console.error(
+      `stale generated appendix: ${drifted.join(', ')}\n` +
+        'Regenerate with: deno run --allow-read --allow-write --allow-run=deno,git ' +
+        '.scripts/generate-skill-api-appendix.ts'
+    )
+    Deno.exit(1)
+  }
+  console.log(`appendix check: ${targets.length} target(s) match their source`)
 }

@@ -5,11 +5,15 @@ on:
     branches: [main]
     paths:
       - 'deno/**'
+      # The skills catalogue check reads this manifest, so a PR that only
+      # edits it has to run the gate that would catch the disagreement.
+      - '.claude-plugin/**'
       - '.github/workflows/coverage.yml'
   pull_request:
     branches: [main]
     paths:
       - 'deno/**'
+      - '.claude-plugin/**'
 
 jobs:
   coverage:
