@@ -1250,6 +1250,7 @@ const appendixCheck = await new Deno.Command('deno', {
   args: [
     'run',
     '--allow-read',
+    '--allow-env',
     '--allow-run=deno,git',
     join(denoDir, '.scripts', 'generate-skill-api-appendix.ts'),
     '--check'

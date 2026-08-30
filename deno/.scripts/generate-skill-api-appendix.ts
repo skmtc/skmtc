@@ -46,10 +46,27 @@ const targets: Target[] = [
 
 const decoder = new TextDecoder()
 
+/**
+ * `git` is run with the environment cleared apart from what spawning needs.
+ *
+ * A git hook exports `GIT_DIR` and `GIT_INDEX_FILE`, and a child `git` obeys
+ * them over its own working directory — so the same command answers one thing
+ * from a shell and another from a pre-push hook, and this script's `--check`
+ * failed only inside the hook. Anything reading git state on behalf of a check
+ * has to ignore an ambient repo pointer.
+ */
 const run = async (command: string, args: string[]): Promise<string> => {
   const output = await new Deno.Command(command, {
     args,
-    env: { NO_COLOR: '1' },
+    clearEnv: command === 'git',
+    env:
+      command === 'git'
+        ? {
+            NO_COLOR: '1',
+            PATH: Deno.env.get('PATH') ?? '',
+            HOME: Deno.env.get('HOME') ?? ''
+          }
+        : { NO_COLOR: '1' },
     stdout: 'piped',
     stderr: 'piped'
   }).output()
