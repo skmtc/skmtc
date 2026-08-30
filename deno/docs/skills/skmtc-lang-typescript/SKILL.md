@@ -9,6 +9,10 @@ description: >
   Use ALONGSIDE skmtc-generator whenever a generator emits
   TypeScript. Headings are the template for other skmtc-lang-*
   skills.
+metadata:
+  describes:
+    '@skmtc/lang-typescript': '0.12'
+    '@skmtc/core': '0.28'
 ---
 
 # The TypeScript layer (@skmtc/lang-typescript)
@@ -68,11 +72,13 @@ the correct pattern, and merging is idempotent.
 
 ## 3. Identifier kinds
 
-`TsEntityType = 'variable' | 'type' | 'class' | 'interface' |
-'namespace'` — factories `createVariable(name, { typeName? })`,
-`createType`, `createClass`, `createInterface`, `createNamespace`.
-No `'function'` kind: a generated function is a `variable` whose value
-renders as an arrow function.
+TypeScript output has five entity kinds — `TsEntityType = 'variable' |
+'type' | 'class' | 'interface' | 'namespace'` — factories
+`createVariable(name, { typeName? })`, `createType`, `createClass`,
+`createInterface`, `createNamespace`. No `'function'` kind: a generated
+function is a `variable` whose value renders as an arrow function. The
+engine's identifier `type` is an opaque string; `isTsEntityType` narrows
+it to the five above.
 
 `toIdentifierType` is one lever with three effects: declaration keyword;
 block form (class/interface/namespace take no `= value;`); and whether

@@ -1,7 +1,7 @@
 # Appendix — generated API reference
 
-> Generated from framework source at `71ef53bc` by
-> `deno run --allow-read --allow-write --allow-run=deno,git .scripts/generate-skill-api-appendix.ts`
+> Generated from framework source by
+> `deno run --allow-read --allow-write --allow-env --allow-run=deno,git .scripts/generate-skill-api-appendix.ts`
 > (from `deno/`). **Authoritative** for signatures, fields, and doc
 > comments — trust it instead of re-reading package source. JSDoc
 > `@example` blocks are stripped at generation. For a symbol not
@@ -158,7 +158,7 @@ function sanitizePropertyName(propertyName: string): string
   Returns a plain `string` (unlike the TypeScript version's key-value
   fallback — Kotlin has no quoted-property syntax to fall back to).
 
-Defined in deno/lang-kotlin/src/KtAnnotation.ts:121:14
+Defined in deno/lang-kotlin/src/KtAnnotation.ts:149:14
 
 function toKtAnnotations(value: unknown): KtAnnotations
   Collect a value's {@link KtAnnotated} protocol field into a
@@ -300,7 +300,7 @@ Defined in deno/lang-kotlin/mod.ts:31:14
 const langId: "kotlin"
   The language id this package targets.
 
-Defined in deno/lang-kotlin/src/KtAnnotation.ts:48:1
+Defined in deno/lang-kotlin/src/KtAnnotation.ts:72:1
 
 class KtAnnotation
   Renders a Kotlin annotation: `@Serializable`, `@SerialName("user_id")`.
@@ -324,12 +324,13 @@ class KtAnnotation
   caller. WHICH annotation to emit is generator policy (the serialization
   seam lives in `gen-kotlin`); this package only renders what it is handed.
 
-  constructor({context, name, args, packageName, destinationPath}: KtAnnotationArgs)
+  constructor({context, name, args, target, packageName, destinationPath}: KtAnnotationArgs)
   name: string
   args: Stringable[]
+  target: KtAnnotationTarget | undefined
   toString(): string
 
-Defined in deno/lang-kotlin/src/KtAnnotation.ts:104:1
+Defined in deno/lang-kotlin/src/KtAnnotation.ts:132:1
 
 class KtAnnotations
   A class-level annotation block — zero or more {@link KtAnnotation}s,
@@ -647,7 +648,7 @@ type CreateValueArgs = { typeName?: string; exported?: boolean; }
   Options for {@link createValue} — the only factory with a `typeName`
   slot (the `val x: T = …` annotation).
 
-Defined in deno/lang-kotlin/src/KtAnnotation.ts:79:1
+Defined in deno/lang-kotlin/src/KtAnnotation.ts:107:1
 
 type KtAnnotated = { annotations: KtAnnotation[]; }
   The protocol by which a Definition's VALUE supplies class-level
@@ -659,10 +660,17 @@ type KtAnnotated = { annotations: KtAnnotation[]; }
   {@link toKtAnnotations} and renders the annotations above the
   declaration head.
 
-Defined in deno/lang-kotlin/src/KtAnnotation.ts:6:1
+Defined in deno/lang-kotlin/src/KtAnnotation.ts:23:1
 
-type KtAnnotationArgs = { context: GenerateContextType; name: string; args?: Stringable[]; packageName?: string; destinationPath: string; }
+type KtAnnotationArgs = { context: GenerateContextType; name: string; args?: Stringable[]; target?: KtAnnotationTarget; packageName?: string; destinationPath: string; }
   Constructor arguments for {@link KtAnnotation}.
+
+Defined in deno/lang-kotlin/src/KtAnnotation.ts:8:1
+
+type KtAnnotationTarget = "field" | "get" | "set" | "param" | "property" | "receiver" | "setparam" | "delegate" | "file" | "all"
+  Kotlin's annotation use-site targets — the `field:` in
+  `@field:JsonAnySetter`. Grammar-level, so the set is closed and owned
+  here; WHICH target a generator picks is its policy.
 
 Defined in deno/lang-kotlin/src/register.ts:77:1
 

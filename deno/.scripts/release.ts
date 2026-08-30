@@ -22,6 +22,7 @@
  */
 
 import { dirname, fromFileUrl, join } from '@std/path'
+import { parse as parseYaml } from 'jsr:@std/yaml@^1'
 import { toDependencyAgeArgs } from '../cli/lib/dependency-age.ts'
 
 /**
@@ -428,6 +429,72 @@ const printReinstallHint = (
   }
 }
 
+/**
+ * `metadata.describes` out of a SKILL.md, parsed as YAML.
+ *
+ * A regex over the frontmatter was whitespace-exact, so re-indenting it or
+ * quoting it differently silently emptied the declaration — and an emptied
+ * declaration disables the guard rather than failing it.
+ */
+const readDescribes = (skillText: string): Record<string, string> => {
+  const block = skillText.match(/^---\n([\s\S]*?)\n---\n/)
+  if (!block) return {}
+  const frontmatter = parseYaml(block[1])
+  if (!isRecord(frontmatter) || !isRecord(frontmatter.metadata)) return {}
+  const describes = frontmatter.metadata.describes
+  if (!isRecord(describes)) return {}
+  return Object.fromEntries(
+    Object.entries(describes).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string'
+    )
+  )
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+/**
+ * A published skill declares the package minor it was written against
+ * (`metadata.describes`). Releasing past that declaration without touching the
+ * skill is how a skill starts lying: every export keeps its name, the rule it
+ * teaches changes, and no mechanical check notices.
+ *
+ * So the release refuses. The fix is to reread the skill against the diff and
+ * then update the declaration — one frontmatter edit, in the same PR as the
+ * change that forced it.
+ */
+const assertSkillDeclarations = async (
+  rootDir: string,
+  planned: Map<string, string>
+): Promise<void> => {
+  const skillsDir = join(rootDir, 'docs', 'skills')
+  const stale: string[] = []
+
+  for await (const entry of Deno.readDir(skillsDir)) {
+    if (!entry.isDirectory || entry.name.startsWith('.')) continue
+    const text = await Deno.readTextFile(join(skillsDir, entry.name, 'SKILL.md')).catch(() => '')
+    for (const [packageName, declaredMinor] of Object.entries(readDescribes(text))) {
+      const releasing = planned.get(packageName)
+      if (!releasing) continue
+      const releasingMinor = releasing.split('.').slice(0, 2).join('.')
+      if (releasingMinor !== declaredMinor) {
+        stale.push(
+          `  ${entry.name} was written against ${packageName} ${declaredMinor}; ` +
+            `releasing ${releasing}`
+        )
+      }
+    }
+  }
+
+  if (stale.length > 0) {
+    throw new Error(
+      `Release refused — a skill describes a minor this release moves past:\n${stale.join('\n')}\n\n` +
+        `Reread each skill against the package diff, update metadata.describes in its ` +
+        `SKILL.md, and re-run. Nothing has been published.`
+    )
+  }
+}
+
 export const release = async (): Promise<void> => {
   const reinstallMode = parseReinstallMode(Deno.args)
   const rootDir = join(dirname(fromFileUrl(import.meta.url)), '..')
@@ -464,6 +531,16 @@ export const release = async (): Promise<void> => {
     const suffix = pkg.private ? ', private — bump only' : ''
     console.log(`  ${pkg.name}@${planned.version}  (${type}${suffix})`)
   }
+
+  await assertSkillDeclarations(
+    rootDir,
+    new Map(
+      order.flatMap((pkg): [string, string][] => {
+        const planned = plan.get(pkg.name)
+        return planned ? [[pkg.name, planned.version]] : []
+      })
+    )
+  )
 
   console.log('\nApplying version + import updates...')
   await applyPlan(order, plan)

@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-read --allow-run=deno
+#!/usr/bin/env -S deno run --allow-read --allow-env --allow-run=deno,git
 /**
  * Mechanical doc/skill-chain sync checks — the regression guard for the
  * drift class the friction reviews keep finding (old C8 → C15: the
@@ -84,7 +84,8 @@
  *   exit 0 — all checks hold.
  *   exit 1 — one or more failed; each failure names file + expectation.
  *
- * Usage:  deno run --allow-read --allow-run=deno deno/docs/verify-docs.ts
+ * Usage:  deno run --allow-read --allow-env --allow-run=deno,git \
+ *           deno/docs/verify-docs.ts
  *         deno run --allow-read --allow-write deno/docs/verify-docs.ts \
  *           --update-reader-baseline   # rewrite reader-lint-baseline.json
  *                                      # to the current violation set
@@ -94,6 +95,8 @@
  */
 
 import { dirname, fromFileUrl, join } from 'jsr:@std/path@^1'
+import { parse as parseYaml } from 'jsr:@std/yaml@^1'
+import { computeSkillsDigest } from '../.scripts/plugin-digest.ts'
 
 const docsDir = dirname(fromFileUrl(import.meta.url))
 const denoDir = join(docsDir, '..')
@@ -301,6 +304,11 @@ const languageSyncTargets: {
     packageDirectory: 'lang-kotlin',
     skillName: 'skmtc-lang-kotlin',
     guardPrefix: 'isKt'
+  },
+  {
+    packageDirectory: 'lang-typescript',
+    skillName: 'skmtc-lang-typescript',
+    guardPrefix: 'isTs'
   }
 ]
 
@@ -930,6 +938,29 @@ if (updateReaderBaseline) {
   }
 }
 
+/**
+ * Symbol names out of `deno doc --json`, walking every `symbols` array so a
+ * format shift between deno versions stays survivable. Shared by the
+ * core-export check and the appendix-coverage one.
+ */
+const collectSymbolNames = (value: unknown, into: Set<string>): void => {
+  if (Array.isArray(value)) {
+    for (const item of value) collectSymbolNames(item, into)
+    return
+  }
+  if (value === null || typeof value !== 'object') return
+  const record = value as Record<string, unknown>
+  if (Array.isArray(record.symbols)) {
+    for (const symbol of record.symbols) {
+      const name = (symbol as Record<string, unknown>).name
+      if (typeof name === 'string') into.add(name)
+    }
+  }
+  for (const child of Object.values(record)) {
+    collectSymbolNames(child, into)
+  }
+}
+
 // ---------------------------------------------------------------------
 // 11. Core-export sync — table-leading symbols in core-overview.md must
 //     be real exports of core/mod.ts. `deno doc --json` resolves the
@@ -950,24 +981,6 @@ if (!coreDocResult.success) {
       new TextDecoder().decode(coreDocResult.stderr).slice(0, 200),
   );
 } else {
-  const collectSymbolNames = (value: unknown, into: Set<string>): void => {
-    if (Array.isArray(value)) {
-      for (const item of value) collectSymbolNames(item, into);
-      return;
-    }
-    if (value === null || typeof value !== "object") return;
-    const record = value as Record<string, unknown>;
-    if (Array.isArray(record.symbols)) {
-      for (const symbol of record.symbols) {
-        const name = (symbol as Record<string, unknown>).name;
-        if (typeof name === "string") into.add(name);
-      }
-    }
-    for (const child of Object.values(record)) {
-      collectSymbolNames(child, into);
-    }
-  };
-
   const coreExports = new Set<string>();
   collectSymbolNames(
     JSON.parse(new TextDecoder().decode(coreDocResult.stdout)),
@@ -1231,6 +1244,278 @@ if (catalogueFailures === 0) {
     `skills catalogue: ${skillDirectories.length} skills, ${publishedSkillNames.length} published ` +
       `(names, versions, internal flags and README rows all agree)`
   )
+}
+
+// ---------------------------------------------------------------------
+// 15. Generated-appendix coverage — every symbol the documented package
+//     exports has to appear in its appendix, or the appendix was not
+//     regenerated after the API moved.
+//
+//     NOT a regenerate-and-diff: `deno doc`'s FORMATTING shifts between
+//     patch releases, so comparing generated text fails CI whenever its
+//     deno is a patch ahead of the author's, on content that is
+//     perfectly current. Symbol NAMES come from source, so they are the
+//     part worth holding — the same reasoning as check 11.
+//
+//     `generate-skill-api-appendix.ts --check` still does the exact
+//     comparison for an author on one machine, where the deno version
+//     is by definition the one that wrote the file.
+// ---------------------------------------------------------------------
+
+const appendixTargets = [{ packageDirectory: 'lang-kotlin', skillName: 'skmtc-lang-kotlin' }]
+
+const appendicesOnDisk: string[] = []
+for (const directory of skillDirectories) {
+  const path = join(skillsDir, directory, 'appendix.md')
+  if (await Deno.stat(path).then(() => true, () => false)) appendicesOnDisk.push(directory)
+}
+
+for (const orphan of appendicesOnDisk) {
+  if (!appendixTargets.some(target => target.skillName === orphan)) {
+    fail(`${orphan} ships an appendix.md that no appendix target covers — add it to appendixTargets`)
+  }
+}
+
+for (const { packageDirectory, skillName } of appendixTargets) {
+  const docResult = await new Deno.Command('deno', {
+    args: ['doc', '--json', join(denoDir, packageDirectory, 'mod.ts')],
+    stdout: 'piped',
+    stderr: 'piped'
+  }).output()
+
+  if (!docResult.success) {
+    fail(
+      `appendix coverage: \`deno doc --json ${packageDirectory}/mod.ts\` failed — ` +
+        new TextDecoder().decode(docResult.stderr).slice(0, 200)
+    )
+    continue
+  }
+
+  const exported = new Set<string>()
+  collectSymbolNames(JSON.parse(new TextDecoder().decode(docResult.stdout)), exported)
+
+  if (exported.size === 0) {
+    fail(
+      `appendix coverage: extracted zero symbols from ${packageDirectory}/mod.ts — ` +
+        'the extraction needs updating for this deno version'
+    )
+    continue
+  }
+
+  const appendix = await Deno.readTextFile(join(skillsDir, skillName, 'appendix.md'))
+  // Word-boundary, not substring: lang-kotlin exports `KtAnnotation`
+  // alongside `KtAnnotations`, `KtAnnotationArgs` and `KtAnnotationTarget`,
+  // so a bare `includes` reports the shortest name as present on the
+  // strength of a longer one and the dropped export goes unseen.
+  const mentions = (name: string): boolean =>
+    new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(appendix)
+  const missing = [...exported].filter(name => !mentions(name)).sort()
+
+  if (missing.length > 0) {
+    fail(
+      `appendix coverage: ${skillName}/appendix.md is missing ${missing.length} of ` +
+        `${exported.size} ${packageDirectory} exports (${missing.slice(0, 5).join(', ')}` +
+        `${missing.length > 5 ? ', …' : ''}). Regenerate: deno run --allow-read --allow-write ` +
+        '--allow-env --allow-run=deno,git .scripts/generate-skill-api-appendix.ts'
+    )
+  } else {
+    pass(
+      `appendix coverage: all ${exported.size} ${packageDirectory} exports appear in ` +
+        `${skillName}/appendix.md`
+    )
+  }
+}
+
+// ---------------------------------------------------------------------
+// 16. Declared-version sync — the check the mechanical guards cannot
+//     make. Every check above catches a RENAMED export; none catches a
+//     changed RULE that keeps every name — a default flipped, a
+//     protocol reordered, a step that became required. So each
+//     published skill declares the package minor it was written
+//     against, and a workspace that has moved past it fails here. The
+//     fix is not editing the number: it is rereading the skill against
+//     the package's diff, then editing the number.
+// ---------------------------------------------------------------------
+
+const workspaceVersions = new Map<string, { version: string; directory: string }>()
+for await (const entry of Deno.readDir(denoDir)) {
+  if (!entry.isDirectory || entry.name.startsWith('.')) continue
+  const denoJsonPath = join(denoDir, entry.name, 'deno.json')
+  const denoJson = await Deno.readTextFile(denoJsonPath).catch(() => undefined)
+  if (!denoJson) continue
+  const { name, version } = JSON.parse(denoJson)
+  if (typeof name === 'string' && typeof version === 'string') {
+    workspaceVersions.set(name, { version, directory: entry.name })
+  }
+}
+
+const toMinor = (version: string): string => version.split('.').slice(0, 2).join('.')
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+/**
+ * `metadata.describes`, parsed as YAML rather than matched with a
+ * whitespace-exact regex. The regex made the guard self-disabling: re-indent
+ * the block, switch to double quotes or flow style, and the declaration read as
+ * absent — which skipped the check instead of failing it.
+ */
+const readDescribes = (skillText: string): Record<string, string> | undefined => {
+  const block = skillText.match(/^---\n([\s\S]*?)\n---\n/)
+  if (!block) return undefined
+  const frontmatter = parseYaml(block[1])
+  if (!isRecord(frontmatter) || !isRecord(frontmatter.metadata)) return undefined
+  const describes = frontmatter.metadata.describes
+  if (!isRecord(describes)) return undefined
+  return Object.fromEntries(
+    Object.entries(describes).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string'
+    )
+  )
+}
+
+let declaredVersionFailures = 0
+let declarationCount = 0
+
+for (const directory of skillDirectories) {
+  const skillText = await Deno.readTextFile(join(skillsDir, directory, 'SKILL.md')).catch(() => '')
+  const describes = readDescribes(skillText)
+  const published = publishedSkillNames.includes(directory)
+
+  // Absence is a failure for a published skill, not a skip: deleting the three
+  // frontmatter lines would otherwise remove the guard with nothing noticing,
+  // which is the exact failure mode this check exists for.
+  if (published && (describes === undefined || Object.keys(describes).length === 0)) {
+    declaredVersionFailures++
+    fail(
+      `${directory} is published but declares no metadata.describes — a published skill has to ` +
+        `name the package minor it was written against, or a release can outrun it silently`
+    )
+    continue
+  }
+  if (describes === undefined) continue
+
+  for (const [packageName, declaredMinor] of Object.entries(describes)) {
+    declarationCount++
+    const workspace = workspaceVersions.get(packageName)
+    if (!workspace) {
+      declaredVersionFailures++
+      fail(`${directory} declares ${packageName}, which is not a workspace package`)
+      continue
+    }
+    if (toMinor(workspace.version) !== declaredMinor) {
+      declaredVersionFailures++
+      fail(
+        `${directory} was written against ${packageName} ${declaredMinor}, and the workspace is ` +
+          `on ${workspace.version}. Reread the skill against \`git log ${workspace.directory}\` ` +
+          `since that minor, then update metadata.describes — the number is the record that ` +
+          `someone looked.`
+      )
+    }
+  }
+}
+
+if (declaredVersionFailures === 0) {
+  pass(
+    `declared-version sync: ${declarationCount} skill declaration(s) match the workspace minors`
+  )
+}
+
+// ---------------------------------------------------------------------
+// 17. One install source — the skill install lines live in the repo
+//     README and nowhere else. A second copy is not a duplication
+//     problem, it is a correctness one: the two drift, and the reader
+//     who finds the stale copy has no way to tell which is current.
+//     (The published site renders its own copy from a component; it is
+//     a different medium, not a second place to edit prose.)
+// ---------------------------------------------------------------------
+
+const INSTALL_LINE = 'npx skills add skmtc/skmtc'
+
+// `readerFileTexts` keys docs/README.md as `README.md`, which is also what the
+// repo-root README would be called — so the two are labelled by their path from
+// the repo root. Without that the check cannot tell "the canonical home has the
+// lines" from "the canonical home is empty and a copy has them", which is the
+// exact drift it exists to stop, and a two-copy failure reads as
+// `(README.md, README.md)` with no way to know which file to edit.
+const ROOT_README = '<repo>/README.md'
+const installSources: string[] = []
+
+if ((await Deno.readTextFile(join(denoDir, '..', 'README.md'))).includes(INSTALL_LINE)) {
+  installSources.push(ROOT_README)
+}
+
+for (const [relPath, text] of readerFileTexts) {
+  if (text.includes(INSTALL_LINE)) installSources.push(`deno/docs/${relPath}`)
+}
+
+if (installSources.length === 1 && installSources[0] === ROOT_README) {
+  pass(`install source: the skill install lines appear in ${ROOT_README} and nowhere else`)
+} else if (installSources.length === 0) {
+  fail(
+    `install source: no file carries \`${INSTALL_LINE}\` — ${ROOT_README} is the one place it belongs`
+  )
+} else {
+  fail(
+    `install source: the install lines appear in ${installSources.length} place(s) ` +
+      `(${installSources.join(', ')}). Keep them in ${ROOT_README} and link to that section.`
+  )
+}
+
+// ---------------------------------------------------------------------
+// 18. Plugin-version freshness — Claude Code updates a plugin when its
+//     `version` moves, so a skill edit that ships without a bump reaches
+//     nobody who installed it.
+//
+//     Enforced from CONTENT, not git history. Making the release bump it
+//     could not work: the publish job checks out shallow and read-only,
+//     so `git log` answers differently there and the write is discarded
+//     with the runner either way. A digest of the published skills and
+//     the manifest that ships them answers the same in a shallow clone,
+//     a hook and CI, and it puts the bump in the PR that edits the
+//     skill, where a human is already deciding what changed.
+// ---------------------------------------------------------------------
+
+const pluginManifest = JSON.parse(
+  await Deno.readTextFile(join(skillsDir, '.claude-plugin', 'plugin.json'))
+)
+const marketplaceManifest = JSON.parse(
+  await Deno.readTextFile(join(denoDir, '..', '.claude-plugin', 'marketplace.json'))
+)
+const pluginRecord = JSON.parse(
+  await Deno.readTextFile(join(denoDir, '.scripts', 'plugin-release.json'))
+)
+const marketplaceEntry = marketplaceManifest.plugins.find(
+  (candidate: { name?: unknown }) => candidate.name === pluginManifest.name
+)
+
+const skillsDigest = await computeSkillsDigest(skillsDir, publishedSkillNames)
+
+if (!marketplaceEntry) {
+  fail(`plugin version: marketplace.json has no plugin named ${pluginManifest.name}`)
+} else if (marketplaceEntry.version !== pluginManifest.version) {
+  fail(
+    `plugin version: plugin.json says ${pluginManifest.version} and marketplace.json says ` +
+      `${marketplaceEntry.version} — a consumer resolves one of them and gets the other's skills`
+  )
+} else if (marketplaceEntry.description !== pluginManifest.description) {
+  fail(
+    `plugin version: plugin.json and marketplace.json describe the plugin differently — the ` +
+      `catalogue shows one and the installed plugin the other`
+  )
+} else if (pluginRecord.digest !== skillsDigest) {
+  fail(
+    'plugin version: the published skills changed since the last plugin bump. Run ' +
+      '`deno task bump-plugin` and commit the three files — without a version bump the edit ' +
+      'never reaches an installed plugin.'
+  )
+} else if (pluginRecord.version !== pluginManifest.version) {
+  fail(
+    `plugin version: plugin-release.json records ${pluginRecord.version} but the manifests say ` +
+      `${pluginManifest.version} — re-run \`deno task bump-plugin\``
+  )
+} else {
+  pass(`plugin version: ${pluginManifest.version} matches both manifests and the skills digest`)
 }
 
 // ---------------------------------------------------------------------

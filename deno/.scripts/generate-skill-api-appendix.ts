@@ -1,13 +1,19 @@
 // Regenerate the "generated API reference" appendix in the skills that
 // carry one, from `deno doc` over framework source. Run from `deno/`:
 //
-//   deno run --allow-read --allow-write --allow-run=deno,git .scripts/generate-skill-api-appendix.ts
+//   deno run --allow-read --allow-write --allow-env --allow-run=deno,git .scripts/generate-skill-api-appendix.ts
 //
 // The appendix is the drift-proof alternative to hand-pasted type
 // declarations: `deno doc` output is derived from the same source an
 // agent would otherwise dive into, so the appendix cannot say something
 // the source does not. Re-running the script is the whole maintenance
-// story; a verify-docs check can later regenerate-and-diff to gate CI.
+// story, and verify-docs check 15 gates it: every export of the
+// documented package must appear in the appendix. That check holds
+// symbol NAMES rather than generated text, because `deno doc`'s
+// formatting shifts between patch releases; `--check` here does the
+// exact comparison, which is only meaningful on one machine.
+
+import { runGit } from './run-git.ts'
 
 const BEGIN_MARKER = '<!-- api-appendix:begin — GENERATED, do not edit by hand -->'
 const END_MARKER = '<!-- api-appendix:end -->'
@@ -46,6 +52,7 @@ const targets: Target[] = [
 
 const decoder = new TextDecoder()
 
+/** `deno` subprocesses. `git` goes through `runGit`, which clears the environment. */
 const run = async (command: string, args: string[]): Promise<string> => {
   const output = await new Deno.Command(command, {
     args,
@@ -90,8 +97,31 @@ const stripExamples = (doc: string): string => {
 const relativizePaths = (text: string, repoRoot: string): string =>
   text.replaceAll(`file://${repoRoot}/`, '')
 
-const repoRoot = (await run('git', ['rev-parse', '--show-toplevel'])).trim()
-const sourceSha = (await run('git', ['rev-parse', '--short', 'HEAD'])).trim()
+const repoRoot = (await runGit(Deno.cwd(), ['rev-parse', '--show-toplevel'])).trim()
+
+// `--check` regenerates in memory and compares, writing nothing. It is what
+// makes the appendix a gate rather than a habit: `deno doc` output cannot
+// disagree with source, so the only way this file drifts is by not being
+// regenerated after the source moved.
+const checkOnly = Deno.args.includes('--check')
+
+/**
+ * No commit sha rides in the generated text.
+ *
+ * It used to carry `HEAD`, which was wrong twice over: the line was a lie on
+ * any commit that did not touch the package, and it made regenerate-and-diff
+ * impossible because every commit changed the output. Deriving it from the
+ * package's own last commit fixed the lie and broke something worse — the sha
+ * then depended on how the repo was CLONED. A shallow CI checkout resolves it
+ * differently from a full one, so the gate failed in CI on content that was
+ * perfectly current.
+ *
+ * A generated file that a check compares has to be a pure function of its
+ * source. The provenance line was decoration a reader could not act on; the
+ * regeneration command, which they can, stays.
+ */
+
+const drifted: string[] = []
 
 for (const target of targets) {
   const sectionBlocks: string[] = []
@@ -110,8 +140,8 @@ for (const target of targets) {
   const appendixBody = [
     '# Appendix — generated API reference',
     '',
-    `> Generated from framework source at \`${sourceSha}\` by`,
-    '> `deno run --allow-read --allow-write --allow-run=deno,git .scripts/generate-skill-api-appendix.ts`',
+    '> Generated from framework source by',
+    '> `deno run --allow-read --allow-write --allow-env --allow-run=deno,git .scripts/generate-skill-api-appendix.ts`',
     '> (from `deno/`). **Authoritative** for signatures, fields, and doc',
     '> comments — trust it instead of re-reading package source. JSDoc',
     '> `@example` blocks are stripped at generation. For a symbol not',
@@ -121,7 +151,6 @@ for (const target of targets) {
     ...sectionBlocks,
     ''
   ].join('\n')
-  await Deno.writeTextFile(target.appendix, appendixBody)
 
   // SKILL.md keeps a short generated pointer between the same markers,
   // so re-runs stay idempotent and the loaded skill stays light.
@@ -132,8 +161,8 @@ for (const target of targets) {
     '',
     'The full `deno doc` surface for the packages this skill covers lives',
     'in [`appendix.md`](appendix.md), in this skill\'s directory —',
-    `generated from framework source at \`${sourceSha}\`, signatures and`,
-    'field docs only. It is **authoritative**: when the prose above does',
+    'generated from framework source — signatures and field docs only.',
+    'It is **authoritative**: when the prose above does',
     'not carry the exact constructor or field shape you need, Read (or',
     'grep) `appendix.md` instead of diving into package source. Do not',
     'guess signatures. For a symbol not listed there,',
@@ -150,9 +179,30 @@ for (const target of targets) {
     beginAt !== -1 && endAt !== -1
       ? skillText.slice(0, beginAt) + pointer + skillText.slice(endAt + END_MARKER.length)
       : `${skillText.trimEnd()}\n\n${pointer}\n`
+
+  if (checkOnly) {
+    const appendixOnDisk = await Deno.readTextFile(target.appendix).catch(() => '')
+    if (appendixOnDisk !== appendixBody) drifted.push(target.appendix)
+    if (skillText !== updated) drifted.push(target.skill)
+    continue
+  }
+
+  await Deno.writeTextFile(target.appendix, appendixBody)
   await Deno.writeTextFile(target.skill, updated)
   const fileCount = target.sections.reduce((count, section) => count + section.files.length, 0)
   console.log(
-    `${target.skill}: pointer ${beginAt !== -1 ? 'replaced' : 'appended'}; ${target.appendix} written (${fileCount} file(s), sha ${sourceSha})`
+    `${target.skill}: pointer ${beginAt !== -1 ? 'replaced' : 'appended'}; ${target.appendix} written (${fileCount} file(s))`
   )
+}
+
+if (checkOnly) {
+  if (drifted.length > 0) {
+    console.error(
+      `stale generated appendix: ${drifted.join(', ')}\n` +
+        'Regenerate with: deno run --allow-read --allow-write --allow-env --allow-run=deno,git ' +
+        '.scripts/generate-skill-api-appendix.ts'
+    )
+    Deno.exit(1)
+  }
+  console.log(`appendix check: ${targets.length} target(s) match their source`)
 }

@@ -44,13 +44,14 @@
   "tasks": {
     "release": "deno run --allow-read --allow-write --allow-env --allow-net --allow-run .scripts/release.ts",
     "bump": "deno run --allow-read --allow-write .scripts/bump.ts",
+    "bump-plugin": "deno run --allow-read --allow-write --allow-env --allow-run=git .scripts/bump-plugin.ts",
     "skills": "deno run --allow-read --allow-write --allow-env --allow-run=git .scripts/skills.ts",
     "check": "deno task verify-docs && deno test --allow-all",
     "test:watch": "deno test --allow-all --watch",
     "test:coverage": "deno test --allow-all --coverage=coverage",
     "coverage:report": "deno coverage coverage --lcov > coverage.lcov",
     "coverage:html": "deno coverage coverage --html",
-    "verify-docs": "deno run --allow-read --allow-run=deno docs/verify-docs.ts && deno run --allow-read --allow-run docs/friction-log/verify-catalog.ts && deno run --allow-read --allow-write --allow-run --allow-env docs/doc-test.ts"
+    "verify-docs": "deno run --allow-read --allow-env --allow-run=deno,git docs/verify-docs.ts && deno run --allow-read --allow-run docs/friction-log/verify-catalog.ts && deno run --allow-read --allow-write --allow-run --allow-env docs/doc-test.ts"
   },
   "minimumDependencyAge": "0",
   "exclude": [

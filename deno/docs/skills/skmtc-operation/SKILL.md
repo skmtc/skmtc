@@ -13,6 +13,9 @@ description: >
   "generate an SDK/form per endpoint"). Covers the projection shape
   only — accumulators (many operations → one file) are out of scope.
   Load ALONGSIDE skmtc-generator and the emitted language's skill.
+metadata:
+  describes:
+    '@skmtc/core': '0.28'
 ---
 
 # Operation generators: decompose the operation, reference the models

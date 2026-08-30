@@ -28,6 +28,9 @@ allowed-tools:
   - Grep
   - Write
   - Edit
+metadata:
+  describes:
+    '@skmtc/cli': '0.9'
 ---
 
 # Skmtc CLI
