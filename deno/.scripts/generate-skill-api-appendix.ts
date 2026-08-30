@@ -116,22 +116,24 @@ const repoRoot = (await run('git', ['rev-parse', '--show-toplevel'])).trim()
 const checkOnly = Deno.args.includes('--check')
 
 /**
- * The commit the DOCUMENTED SOURCE last moved in — not `HEAD`.
+ * No commit sha rides in the generated text.
  *
- * HEAD was the wrong provenance twice over. It made the line a lie on any
- * commit that did not touch the package (the appendix was "generated from"
- * a docs typo fix), and it made regenerate-and-diff impossible, because every
- * commit changed the output whether or not the API had.
+ * It used to carry `HEAD`, which was wrong twice over: the line was a lie on
+ * any commit that did not touch the package, and it made regenerate-and-diff
+ * impossible because every commit changed the output. Deriving it from the
+ * package's own last commit fixed the lie and broke something worse — the sha
+ * then depended on how the repo was CLONED. A shallow CI checkout resolves it
+ * differently from a full one, so the gate failed in CI on content that was
+ * perfectly current.
+ *
+ * A generated file that a check compares has to be a pure function of its
+ * source. The provenance line was decoration a reader could not act on; the
+ * regeneration command, which they can, stays.
  */
-const shaForFiles = async (files: string[]): Promise<string> => {
-  const packages = [...new Set(files.map(file => file.split('/')[0]))]
-  return (await run('git', ['log', '-1', '--format=%h', '--', ...packages])).trim()
-}
 
 const drifted: string[] = []
 
 for (const target of targets) {
-  const sourceSha = await shaForFiles(target.sections.flatMap(section => section.files))
   const sectionBlocks: string[] = []
   for (const section of target.sections) {
     const fileBlocks: string[] = []
@@ -148,7 +150,7 @@ for (const target of targets) {
   const appendixBody = [
     '# Appendix — generated API reference',
     '',
-    `> Generated from framework source at \`${sourceSha}\` by`,
+    '> Generated from framework source by',
     '> `deno run --allow-read --allow-write --allow-run=deno,git .scripts/generate-skill-api-appendix.ts`',
     '> (from `deno/`). **Authoritative** for signatures, fields, and doc',
     '> comments — trust it instead of re-reading package source. JSDoc',
@@ -169,8 +171,8 @@ for (const target of targets) {
     '',
     'The full `deno doc` surface for the packages this skill covers lives',
     'in [`appendix.md`](appendix.md), in this skill\'s directory —',
-    `generated from framework source at \`${sourceSha}\`, signatures and`,
-    'field docs only. It is **authoritative**: when the prose above does',
+    'generated from framework source — signatures and field docs only.',
+    'It is **authoritative**: when the prose above does',
     'not carry the exact constructor or field shape you need, Read (or',
     'grep) `appendix.md` instead of diving into package source. Do not',
     'guess signatures. For a symbol not listed there,',
@@ -199,7 +201,7 @@ for (const target of targets) {
   await Deno.writeTextFile(target.skill, updated)
   const fileCount = target.sections.reduce((count, section) => count + section.files.length, 0)
   console.log(
-    `${target.skill}: pointer ${beginAt !== -1 ? 'replaced' : 'appended'}; ${target.appendix} written (${fileCount} file(s), sha ${sourceSha})`
+    `${target.skill}: pointer ${beginAt !== -1 ? 'replaced' : 'appended'}; ${target.appendix} written (${fileCount} file(s))`
   )
 }
 
