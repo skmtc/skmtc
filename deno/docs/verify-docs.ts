@@ -935,6 +935,29 @@ if (updateReaderBaseline) {
   }
 }
 
+/**
+ * Symbol names out of `deno doc --json`, walking every `symbols` array so a
+ * format shift between deno versions stays survivable. Shared by the
+ * core-export check and the appendix-coverage one.
+ */
+const collectSymbolNames = (value: unknown, into: Set<string>): void => {
+  if (Array.isArray(value)) {
+    for (const item of value) collectSymbolNames(item, into)
+    return
+  }
+  if (value === null || typeof value !== 'object') return
+  const record = value as Record<string, unknown>
+  if (Array.isArray(record.symbols)) {
+    for (const symbol of record.symbols) {
+      const name = (symbol as Record<string, unknown>).name
+      if (typeof name === 'string') into.add(name)
+    }
+  }
+  for (const child of Object.values(record)) {
+    collectSymbolNames(child, into)
+  }
+}
+
 // ---------------------------------------------------------------------
 // 11. Core-export sync — table-leading symbols in core-overview.md must
 //     be real exports of core/mod.ts. `deno doc --json` resolves the
@@ -955,24 +978,6 @@ if (!coreDocResult.success) {
       new TextDecoder().decode(coreDocResult.stderr).slice(0, 200),
   );
 } else {
-  const collectSymbolNames = (value: unknown, into: Set<string>): void => {
-    if (Array.isArray(value)) {
-      for (const item of value) collectSymbolNames(item, into);
-      return;
-    }
-    if (value === null || typeof value !== "object") return;
-    const record = value as Record<string, unknown>;
-    if (Array.isArray(record.symbols)) {
-      for (const symbol of record.symbols) {
-        const name = (symbol as Record<string, unknown>).name;
-        if (typeof name === "string") into.add(name);
-      }
-    }
-    for (const child of Object.values(record)) {
-      collectSymbolNames(child, into);
-    }
-  };
-
   const coreExports = new Set<string>();
   collectSymbolNames(
     JSON.parse(new TextDecoder().decode(coreDocResult.stdout)),
@@ -1239,31 +1244,77 @@ if (catalogueFailures === 0) {
 }
 
 // ---------------------------------------------------------------------
-// 15. Generated-appendix freshness — `deno doc` output cannot disagree
-//     with source, so the only way the appendix drifts is by not being
-//     regenerated after the source moved. The generator regenerates in
-//     memory under --check and compares, which is the same work a
-//     reviewer would otherwise have to remember to do.
+// 15. Generated-appendix coverage — every symbol the documented package
+//     exports has to appear in its appendix, or the appendix was not
+//     regenerated after the API moved.
+//
+//     NOT a regenerate-and-diff: `deno doc`'s FORMATTING shifts between
+//     patch releases, so comparing generated text fails CI whenever its
+//     deno is a patch ahead of the author's, on content that is
+//     perfectly current. Symbol NAMES come from source, so they are the
+//     part worth holding — the same reasoning as check 11.
+//
+//     `generate-skill-api-appendix.ts --check` still does the exact
+//     comparison for an author on one machine, where the deno version
+//     is by definition the one that wrote the file.
 // ---------------------------------------------------------------------
 
-const appendixCheck = await new Deno.Command('deno', {
-  args: [
-    'run',
-    '--allow-read',
-    '--allow-env',
-    '--allow-run=deno,git',
-    join(denoDir, '.scripts', 'generate-skill-api-appendix.ts'),
-    '--check'
-  ],
-  cwd: denoDir,
-  stdout: 'piped',
-  stderr: 'piped'
-}).output()
+const appendixTargets = [{ packageDirectory: 'lang-kotlin', skillName: 'skmtc-lang-kotlin' }]
 
-if (appendixCheck.success) {
-  pass(new TextDecoder().decode(appendixCheck.stdout).trim())
-} else {
-  fail(new TextDecoder().decode(appendixCheck.stderr).trim().split('\n')[0])
+const appendicesOnDisk: string[] = []
+for (const directory of skillDirectories) {
+  const path = join(skillsDir, directory, 'appendix.md')
+  if (await Deno.stat(path).then(() => true, () => false)) appendicesOnDisk.push(directory)
+}
+
+for (const orphan of appendicesOnDisk) {
+  if (!appendixTargets.some(target => target.skillName === orphan)) {
+    fail(`${orphan} ships an appendix.md that no appendix target covers — add it to appendixTargets`)
+  }
+}
+
+for (const { packageDirectory, skillName } of appendixTargets) {
+  const docResult = await new Deno.Command('deno', {
+    args: ['doc', '--json', join(denoDir, packageDirectory, 'mod.ts')],
+    stdout: 'piped',
+    stderr: 'piped'
+  }).output()
+
+  if (!docResult.success) {
+    fail(
+      `appendix coverage: \`deno doc --json ${packageDirectory}/mod.ts\` failed — ` +
+        new TextDecoder().decode(docResult.stderr).slice(0, 200)
+    )
+    continue
+  }
+
+  const exported = new Set<string>()
+  collectSymbolNames(JSON.parse(new TextDecoder().decode(docResult.stdout)), exported)
+
+  if (exported.size === 0) {
+    fail(
+      `appendix coverage: extracted zero symbols from ${packageDirectory}/mod.ts — ` +
+        'the extraction needs updating for this deno version'
+    )
+    continue
+  }
+
+  const appendix = await Deno.readTextFile(join(skillsDir, skillName, 'appendix.md'))
+  const missing = [...exported].filter(name => !appendix.includes(name)).sort()
+
+  if (missing.length > 0) {
+    fail(
+      `appendix coverage: ${skillName}/appendix.md is missing ${missing.length} of ` +
+        `${exported.size} ${packageDirectory} exports (${missing.slice(0, 5).join(', ')}` +
+        `${missing.length > 5 ? ', …' : ''}). Regenerate: deno run --allow-read --allow-write ` +
+        '--allow-env --allow-run=deno,git .scripts/generate-skill-api-appendix.ts'
+    )
+  } else {
+    pass(
+      `appendix coverage: all ${exported.size} ${packageDirectory} exports appear in ` +
+        `${skillName}/appendix.md`
+    )
+  }
 }
 
 // ---------------------------------------------------------------------

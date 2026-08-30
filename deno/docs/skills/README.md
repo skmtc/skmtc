@@ -72,7 +72,7 @@ authority and acted on without checking. Every guard below runs in
 | Lang source↔skill sync | An identifier factory or value-protocol guard the lang skill never mentions, or an entity-kind count that moved (Kotlin and TypeScript) | `verify-docs` |
 | CLI reference sync | A `cli/mod.ts` command missing from the reference pages, in both directions | `verify-docs` |
 | Skills catalogue sync | A README row, frontmatter version, `metadata.internal` flag or plugin.json membership disagreeing with the others | `verify-docs` |
-| Generated-appendix freshness | An appendix not regenerated after its package's source moved | `verify-docs` (runs the generator with `--check`) |
+| Generated-appendix coverage | An export missing from the appendix, because it was not regenerated after the API moved | `verify-docs` (names, not formatting — `deno doc`'s layout shifts between patch releases; `generate-skill-api-appendix.ts --check` does the exact comparison locally) |
 | Declared-version sync | A skill still declaring a package minor the workspace has moved past | `verify-docs` |
 | Doc-test | A renamed export breaking a fenced `ts` block a skill quotes | `doc-test` |
 | Worked-example pins | The Kotlin skill's example, and the model skeleton, no longer producing what they promise | `deno test` |
