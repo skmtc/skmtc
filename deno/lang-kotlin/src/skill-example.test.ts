@@ -1,5 +1,5 @@
 /**
- * H1 gate for the `skmtc-lang-kotlin-v3` skill (notes/skills-tools):
+ * H1 gate for the `skmtc-lang-kotlin` skill (notes/skills-tools):
  * the skill's worked example — a kotlinx-serialization data class — run
  * through the real engine using EXACTLY the call shapes the skill
  * teaches, pinned byte-for-byte against the rendered output the skill
@@ -107,7 +107,7 @@ class ExampleDataClassValue extends KtSnippet {
 }
 
 const ExampleBase = toKtModelProjectionBase({
-  id: '@skill/lang-kotlin-v3-example',
+  id: '@skill/lang-kotlin-example',
   toIdentifierName: ({ refName }) => capitalize(camelCase(refName)),
   toIdentifierType: () => ({ type: 'data-class' }),
   toExportPath: ({ refName }) =>

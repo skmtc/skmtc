@@ -1114,6 +1114,126 @@ if (deadLinks.length === 0) {
 }
 
 // ---------------------------------------------------------------------
+// 14. Skills catalogue sync — skills/README.md is the catalogue of what
+//     exists and which skills ship. Three sources have to agree: the
+//     directories on disk, each SKILL.md's frontmatter, and the plugin
+//     manifest that carries the published set. The version column
+//     drifted once already — it recorded the generation the content came
+//     from while frontmatter recorded the name's own line — so every
+//     published cell is compared, not just the membership.
+// ---------------------------------------------------------------------
+
+const skillsDir = join(docsDir, 'skills')
+
+type SkillFacts = { name: string; version: string; internal: boolean }
+
+const readSkillFacts = async (directory: string): Promise<SkillFacts | undefined> => {
+  let text: string
+  try {
+    text = await Deno.readTextFile(join(skillsDir, directory, 'SKILL.md'))
+  } catch {
+    fail(`skills/${directory}/ has no SKILL.md`)
+    return undefined
+  }
+  const frontmatter = text.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? ''
+  return {
+    name: frontmatter.match(/^name:\s*(\S+)/m)?.[1] ?? '',
+    version: frontmatter.match(/^version:\s*(\S+)/m)?.[1] ?? '',
+    internal: /^\s+internal:\s*true$/m.test(frontmatter)
+  }
+}
+
+const skillDirectories: string[] = []
+for await (const entry of Deno.readDir(skillsDir)) {
+  if (entry.isDirectory && !entry.name.startsWith('.')) skillDirectories.push(entry.name)
+}
+skillDirectories.sort()
+
+// A catalogue row in either table: | [`<name>/`](<name>/) | purpose | last cell |
+const toCatalogueRows = (block: string): Map<string, string> => {
+  const rows = new Map<string, string>()
+  for (const line of block.split('\n')) {
+    const row = line.match(/^\|\s*\[`([\w-]+)\/`\]\([^)]*\)\s*\|.*\|\s*([^|]*?)\s*\|\s*$/)
+    if (row) rows.set(row[1], row[2])
+  }
+  return rows
+}
+
+const skillsReadme = await Deno.readTextFile(join(skillsDir, 'README.md'))
+const afterPublished = skillsReadme.split('### Published')[1] ?? ''
+const publishedRows = toCatalogueRows(afterPublished.split('### Internal')[0] ?? '')
+const internalRows = toCatalogueRows(
+  (afterPublished.split('### Internal')[1] ?? '').split('\n## ')[0] ?? ''
+)
+
+let catalogueFailures = 0
+const catalogueFail = (message: string): void => {
+  catalogueFailures++
+  fail(message)
+}
+
+for (const directory of skillDirectories) {
+  const facts = await readSkillFacts(directory)
+  if (!facts) {
+    catalogueFailures++
+    continue
+  }
+
+  if (facts.name !== directory) {
+    catalogueFail(
+      `skills/${directory}/SKILL.md: frontmatter name is \`${facts.name}\` — a skill is loaded by ` +
+        `directory name, so the two cannot differ`
+    )
+  }
+
+  const published = publishedSkillNames.includes(directory)
+  if (published && facts.internal) {
+    catalogueFail(
+      `${directory} is listed in plugin.json but carries metadata.internal: true — ` +
+        `\`npx skills\` would hide a published skill`
+    )
+  }
+  if (!published && !facts.internal) {
+    catalogueFail(
+      `${directory} is not in plugin.json and does not carry metadata.internal: true — ` +
+        `\`npx skills add skmtc/skmtc\` would list an unpublished skill`
+    )
+  }
+
+  const row = published ? publishedRows.get(directory) : internalRows.get(directory)
+  if (row === undefined) {
+    catalogueFail(
+      `skills/README.md: ${directory} has no row in the ${published ? 'Published' : 'Internal'} table`
+    )
+  } else if (published && row !== facts.version) {
+    catalogueFail(
+      `skills/README.md: the ${directory} row says version ${row}, frontmatter says ` +
+        `${facts.version} — the version belongs to the public name, not to the generation ` +
+        `the content came from`
+    )
+  }
+}
+
+for (const listed of [...publishedRows.keys(), ...internalRows.keys()]) {
+  if (!skillDirectories.includes(listed)) {
+    catalogueFail(`skills/README.md lists ${listed}/, which is not a directory under skills/`)
+  }
+}
+
+for (const name of publishedSkillNames) {
+  if (!skillDirectories.includes(name)) {
+    catalogueFail(`plugin.json ships ${name}, which is not a directory under skills/`)
+  }
+}
+
+if (catalogueFailures === 0) {
+  pass(
+    `skills catalogue: ${skillDirectories.length} skills, ${publishedSkillNames.length} published ` +
+      `(names, versions, internal flags and README rows all agree)`
+  )
+}
+
+// ---------------------------------------------------------------------
 
 console.log(`\n${failures === 0 ? 'All doc-sync checks hold.' : `${failures} check(s) failed.`}`)
 Deno.exit(failures > 0 ? 1 : 0)
