@@ -15,10 +15,10 @@ import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import type { Method } from '@/types/Method.ts'
-import { emptyContainerEnrichmentSchema, emptyEnrichmentSchema } from '@/types/Enrichments.ts'
+import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 import type { OasOperationProjectionConstructorArgs } from '@/dsl/operation/oas/types.ts'
 import type { OasOperationContainerConstructorArgs } from '@/dsl/operation/oas/toOasOperationContainerBase.ts'
-import type { EmptyContainerEnrichments, EmptyEnrichments } from '@/types/Enrichments.ts'
+import type { EmptyEnrichments } from '@/types/Enrichments.ts'
 
 const mockLogger: log.Logger = {
   debug: () => {},
@@ -54,11 +54,11 @@ const ServiceBase = toOasOperationContainerBase(TsSnippet, {
   toIdentifierName: ({ operation }) => `${toTag(operation)}Service`,
   toIdentifierType: () => ({ type: 'variable' }),
   toExportPath: ({ operation }) => `@/api/${toTag(operation)}Api.ts`,
-  toEnrichmentSchema: () => emptyContainerEnrichmentSchema
+  toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 
 class ServiceContainer extends ServiceBase {
-  constructor(args: OasOperationContainerConstructorArgs<EmptyContainerEnrichments>) {
+  constructor(args: OasOperationContainerConstructorArgs<EmptyEnrichments>) {
     super(args)
   }
   override toString(): string {

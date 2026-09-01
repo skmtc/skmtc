@@ -28,9 +28,8 @@ import type {
  * declaration. Nothing enforces that; an identity that varies per operation
  * simply yields one container per operation, visible in the output.
  *
- * The enrichment umbrella has no `subject` scope. A container is a place
- * many subjects insert into, so no one subject's per-operation enrichment
- * describes it — the member carries that.
+ * Enrichments are read exactly as an operation projection's are, from the
+ * operation inserting into the container.
  */
 export type OasOperationContainerBaseConfig<
   EnrichmentType = undefined,
@@ -43,7 +42,7 @@ export type OasOperationContainerBaseConfig<
   toIdentifierType: (operation: OasOperation, context: GenerateContextType) => IdType
   /** Pure: the file the container is declared in. */
   toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
-  /** The `{ generator, stack }` umbrella — no subject scope. */
+  /** The generator's composite `{ subject, generator, stack }` schema. */
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported?: (args: IsSupportedOasOperationArgs) => boolean
 }
@@ -95,12 +94,14 @@ export const toOasOperationContainerBase = <
     static isSupported = config.isSupported ?? (() => true)
 
     static toEnrichments = ({
-      context
+      operation,
+      context,
+      variant
     }: ToOasOperationEnrichmentsArgs): EnrichmentType => {
-      // No `subjectSegments`: the run-constant scopes only.
       return parseEnrichmentUmbrella({
         context,
         generatorId: config.id,
+        subjectSegments: [operation.path, operation.method, variant],
         schema: config.toEnrichmentSchema()
       })
     }

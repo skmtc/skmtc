@@ -49,14 +49,8 @@ type ParseEnrichmentUmbrellaArgs<EnrichmentType> = {
    * `[name, method, variant]` for webhooks,
    * `[rootKind, fieldName, variant]` for GQL operations,
    * `[refName, variant]` for models.
-   *
-   * Omitted for a subject-less umbrella: a container is a place many
-   * subjects insert into, so no one subject's enrichment describes it, and
-   * the `subject` scope is left out entirely rather than read and ignored —
-   * reading it would both mislead the consumption audit and report a
-   * member's legitimate per-operation key as unknown.
    */
-  subjectSegments?: readonly string[]
+  subjectSegments: readonly string[]
   /** The generator's composite `{ subject, generator, stack }` schema. */
   schema: v.GenericSchema<EnrichmentType>
 }
@@ -77,9 +71,7 @@ export const parseEnrichmentUmbrella = <EnrichmentType>({
   schema
 }: ParseEnrichmentUmbrellaArgs<EnrichmentType>): EnrichmentType => {
   const raw = {
-    ...(subjectSegments
-      ? { subject: context.readEnrichment([generatorId, ...subjectSegments]) }
-      : {}),
+    subject: context.readEnrichment([generatorId, ...subjectSegments]),
     generator: context.readEnrichment([generatorId, GENERATOR_ENRICHMENT_KEY]),
     stack: context.readEnrichment([STACK_ENRICHMENT_KEY])
   }
@@ -87,15 +79,12 @@ export const parseEnrichmentUmbrella = <EnrichmentType>({
   // Diff the generator-owned scopes against the schema (stack excluded —
   // shared bag). Walking the umbrella keeps the scope schemas attributed
   // without reaching into the composite's entries.
-  const unknownKeys = findUnknownKeys(schema, {
-    ...('subject' in raw ? { subject: raw.subject } : {}),
-    generator: raw.generator
-  })
+  const unknownKeys = findUnknownKeys(schema, { subject: raw.subject, generator: raw.generator })
 
   for (const { path, suggestion } of unknownKeys) {
     const [scope, ...leafPath] = path
     const routingPath =
-      scope === 'subject' && subjectSegments
+      scope === 'subject'
         ? [generatorId, ...subjectSegments, ...leafPath]
         : [generatorId, GENERATOR_ENRICHMENT_KEY, ...leafPath]
 
