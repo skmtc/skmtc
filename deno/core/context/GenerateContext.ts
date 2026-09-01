@@ -1319,9 +1319,14 @@ export class GenerateContext implements GenerateContextType {
       // Definitions may land in the file or inside a declaration in it;
       // imports, re-exports and `custom` are always the file's. Resolved
       // only when a definition is actually placed — `into` alongside
-      // imports alone must not throw for a container nothing needed.
+      // imports alone must not throw for a container nothing needed. The
+      // test is the same one the loop below applies: the array is
+      // `(DefinitionBase | undefined)[]`, so a non-zero length is not
+      // proof that anything lands.
+      const placesADefinition = definitions?.some(definition => definition !== undefined) ?? false
+
       const place =
-        into === undefined || !definitions?.length
+        into === undefined || !placesADefinition
           ? currentFile
           : this.#toContainer(currentFile, into, normalizedPath)
 

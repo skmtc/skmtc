@@ -312,3 +312,27 @@ Deno.test('a member cannot be imported into another file', () => {
     'cannot be imported into'
   )
 })
+
+Deno.test('a member inserted into its own container\'s file needs no import', () => {
+  const getUsers = toOperation('get', '/users', 'Users')
+  const context = createContext([getUsers])
+
+  // The refusal above is about the import, not about the member: a caller
+  // already writing into the container's file asks for nothing that has to
+  // be named across a module boundary.
+  const inserted = context.insertOperation({
+    projection: ServiceMethod,
+    operation: getUsers,
+    destinationPath: '@/api/UsersApi.generated.ts'
+  })
+
+  assertEquals(inserted.definition.identifier.name, 'getusers')
+  assertEquals(
+    context.findDefinition({
+      name: 'getusers',
+      exportPath: '@/api/UsersApi.generated.ts',
+      into: 'UsersService'
+    })?.identifier.name,
+    'getusers'
+  )
+})

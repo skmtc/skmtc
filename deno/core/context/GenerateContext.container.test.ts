@@ -358,6 +358,10 @@ Deno.test('`into` alongside imports alone does not resolve a container', () => {
   // not exist must not throw.
   context.register({ destinationPath: path, into: 'NoSuchService' })
   context.register({ definitions: [], destinationPath: path, into: 'NoSuchService' })
+  // `definitions` is `(DefinitionBase | undefined)[]`, so a caller passing a
+  // lookup that missed sends a non-empty array that places nothing. Length is
+  // not the test; the same presence check the placing loop makes is.
+  context.register({ definitions: [undefined], destinationPath: path, into: 'NoSuchService' })
 })
 
 Deno.test('a group containing the key delimiter stays parseable', () => {

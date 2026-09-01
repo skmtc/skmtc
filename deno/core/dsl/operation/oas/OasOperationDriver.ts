@@ -119,30 +119,38 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
   private apply({ destinationPath }: ApplyArgs = {}): GeneratedDefinition<V> {
     const { identifier, exportPath } = this.settings
 
+    // The file an import has to be stitched into, or `undefined` when there
+    // is none to stitch — no destination, or the projection's own file.
+    const importInto =
+      destinationPath && normalize(exportPath) !== normalize(destinationPath)
+        ? destinationPath
+        : undefined
+
     // A member is declared inside its container, so it has no module-level
     // name — an import of it would name a symbol its file never exports, and
-    // the `Inserted.toName()` handed back would be unresolvable. Refusing is
-    // the only honest answer: what a caller wants from another file is the
-    // container, which it can insert itself.
+    // the `Inserted.toName()` handed back would be unresolvable. What a caller
+    // in another file wants is the container, which it can insert itself.
+    // Only the cross-file case is refused: a member inserted into the file its
+    // container already lives in stitches no import and needs no name.
     invariant(
-      !(this.#into !== undefined && destinationPath),
+      !(this.#into !== undefined && importInto !== undefined),
       `'${identifier.name}' is declared inside '${this.#into}', so it cannot be ` +
         `imported into '${destinationPath}'. Insert its container instead.`
     )
 
     const definition = this.getDefinition({ identifier, exportPath })
 
-    if (destinationPath && normalize(exportPath) !== normalize(destinationPath)) {
+    if (importInto !== undefined) {
       // Cross-file import of the peer's identifier from its export path.
       // The language builds the import object (`toImport`) and creates the
       // destination file on first write (caller-side); the engine stores
       // via the pure-data `context.register`. The import lands in the
       // caller's file (`destinationPath`); `insertOperation` only composes
       // same-language generators, so the peer's `lang` is the caller's.
-      this.ensureFile(destinationPath)
+      this.ensureFile(importInto)
       this.context.register({
         imports: [this.projection.lang.toImport({ identifier, module: exportPath })],
-        destinationPath
+        destinationPath: importInto
       })
     }
 

@@ -159,9 +159,10 @@ export const toOasOperationContainerBase = <
         context: args.context,
         // `new.target` is the most-derived class, so a subclass override of
         // `toGroupName` reaches the key the value actually carries.
-        generatorKey: (new.target as unknown as {
-          toGeneratorKey: (args: ToGeneratorKeyArgs<EnrichmentType>) => GeneratorKey
-        }).toGeneratorKey({ operation: args.operation, settings: args.settings })
+        generatorKey: new.target.toGeneratorKey({
+          operation: args.operation,
+          settings: args.settings
+        })
       })
 
       this.operation = args.operation

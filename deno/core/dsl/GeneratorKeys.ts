@@ -415,10 +415,17 @@ export const toContainerGeneratorKey = ({
  * `fromGeneratorKey` fell through to `generator-only` with the whole key
  * as the generator id. Attribution would then record that, with nothing
  * reporting a problem.
+ *
+ * `%` is escaped first so the mapping round-trips: without it a group
+ * holding the literal text `%7C` would come back out of
+ * {@link fromGeneratorKey} as `|`.
  */
-const escapeKeySegment = (segment: string): string => segment.replaceAll('|', '%7C')
+const escapeKeySegment = (segment: string): string =>
+  segment.replaceAll('%', '%25').replaceAll('|', '%7C')
 
-const unescapeKeySegment = (segment: string): string => segment.replaceAll('%7C', '|')
+/** Reverses {@link escapeKeySegment}: `%` last, so `%257C` returns `%7C`. */
+const unescapeKeySegment = (segment: string): string =>
+  segment.replaceAll('%7C', '|').replaceAll('%25', '%')
 
 /**
  * Arguments for {@link toGqlOperationGeneratorKey}.

@@ -1,4 +1,5 @@
 import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type {
   InsertOperationOptions,
@@ -129,21 +130,29 @@ export const toOasOperationProjectionBase = <
   base: LangSnippetConstructor,
   config: OasOperationProjectionBaseConfig<EnrichmentType, IdType>
 ) => {
-  const toGeneratorKey = ({ operation, settings }: ToGeneratorKeyArgs<EnrichmentType>) =>
-    toOasOperationGeneratorKey({
-      generatorId: config.id,
-      operation,
-      variant: settings.variant ?? DEFAULT_VARIANT
-    })
-
   return class extends base {
     static id = config.id
     /**
      * How this projection's key is computed — read by the Driver so it can
      * check a cache hit without knowing whether it holds a subject's
      * projection or a container.
+     *
+     * A method rather than a field, and reading `id` through `this`, for the
+     * same reason the container reads its group that way: a subclass
+     * overriding the generator id must change the key its values are stored
+     * under, not just what callers are told.
      */
-    static toGeneratorKey = toGeneratorKey
+    static toGeneratorKey({
+      operation,
+      settings
+    }: ToGeneratorKeyArgs<EnrichmentType>): GeneratorKey {
+      return toOasOperationGeneratorKey({
+        generatorId: this.id,
+        operation,
+        variant: settings.variant ?? DEFAULT_VARIANT
+      })
+    }
+
     static type = 'oasOperation' as const
 
     static toIdentifierName = config.toIdentifierName.bind(config)
@@ -184,7 +193,12 @@ export const toOasOperationProjectionBase = <
     constructor(args: OasOperationProjectionConstructorArgs<EnrichmentType>) {
       super({
         context: args.context,
-        generatorKey: toGeneratorKey({ operation: args.operation, settings: args.settings })
+        // `new.target` is the most-derived class, so a subclass override of
+        // `id` reaches the key the value actually carries.
+        generatorKey: new.target.toGeneratorKey({
+          operation: args.operation,
+          settings: args.settings
+        })
       })
 
       this.operation = args.operation
