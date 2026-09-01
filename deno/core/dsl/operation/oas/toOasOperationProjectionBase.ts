@@ -19,6 +19,7 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
 import type {
   OasOperationContainerProjection,
+  ToGeneratorKeyArgs,
   OasOperationProjection,
   OasOperationProjectionConstructorArgs,
   ToOasOperationContainerArgs,
@@ -128,8 +129,21 @@ export const toOasOperationProjectionBase = <
   base: LangSnippetConstructor,
   config: OasOperationProjectionBaseConfig<EnrichmentType, IdType>
 ) => {
+  const toGeneratorKey = ({ operation, settings }: ToGeneratorKeyArgs<EnrichmentType>) =>
+    toOasOperationGeneratorKey({
+      generatorId: config.id,
+      operation,
+      variant: settings.variant ?? DEFAULT_VARIANT
+    })
+
   return class extends base {
     static id = config.id
+    /**
+     * How this projection's key is computed — read by the Driver so it can
+     * check a cache hit without knowing whether it holds a subject's
+     * projection or a container.
+     */
+    static toGeneratorKey = toGeneratorKey
     static type = 'oasOperation' as const
 
     static toIdentifierName = config.toIdentifierName.bind(config)
@@ -170,11 +184,7 @@ export const toOasOperationProjectionBase = <
     constructor(args: OasOperationProjectionConstructorArgs<EnrichmentType>) {
       super({
         context: args.context,
-        generatorKey: toOasOperationGeneratorKey({
-          generatorId: config.id,
-          operation: args.operation,
-          variant: args.settings.variant ?? DEFAULT_VARIANT
-        })
+        generatorKey: toGeneratorKey({ operation: args.operation, settings: args.settings })
       })
 
       this.operation = args.operation

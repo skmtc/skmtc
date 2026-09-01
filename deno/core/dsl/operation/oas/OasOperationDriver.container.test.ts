@@ -237,10 +237,12 @@ Deno.test('a projection whose value holds no members is not a container', () => 
     }
   }
 
+  // The rejection comes from resolving the place, which is where the engine
+  // decides what a place is — the Driver no longer duplicates the check.
   assertThrows(
     () => context.insertOperation({ projection: Member, operation: getUsers }),
     Error,
-    'its value has no member store'
+    'that declaration does not hold members'
   )
 })
 

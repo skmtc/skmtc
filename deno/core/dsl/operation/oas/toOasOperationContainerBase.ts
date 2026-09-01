@@ -12,6 +12,7 @@ import { parseEnrichmentUmbrella } from '@/enrichments/parseEnrichmentUmbrella.t
 import { matchDefinitions } from '@/dsl/CodeFileBase.ts'
 import type {
   IsSupportedOasOperationArgs,
+  ToGeneratorKeyArgs,
   ToOasOperationGroupNameArgs,
   ToOasOperationEnrichmentsArgs,
   ToOasOperationExportPathArgs,
@@ -98,11 +99,24 @@ export const toOasOperationContainerBase = <
   base: LangSnippetConstructor,
   config: OasOperationContainerBaseConfig<EnrichmentType, IdType>
 ) => {
+  const toGeneratorKey = ({ operation, settings }: ToGeneratorKeyArgs<EnrichmentType>) => {
+    const variant = settings.variant ?? DEFAULT_VARIANT
+
+    return toContainerGeneratorKey({
+      generatorId: config.id,
+      group: config.toGroupName({ operation, enrichments: settings.enrichments, variant }),
+      name: settings.identifier.name,
+      variant
+    })
+  }
+
   return class extends base {
     static id = config.id
     static type = 'oasOperation' as const
 
     static toGroupName = config.toGroupName.bind(config)
+    /** Keyed on the group, so every member of it computes the same key. */
+    static toGeneratorKey = toGeneratorKey
 
     static toIdentifierName = config.toIdentifierName.bind(config)
     static toIdentifierType = config.toIdentifierType.bind(config)
@@ -131,20 +145,9 @@ export const toOasOperationContainerBase = <
     definitions: DefinitionBase[] = []
 
     constructor(args: OasOperationContainerConstructorArgs<EnrichmentType>) {
-      const variant = args.settings.variant ?? DEFAULT_VARIANT
-
       super({
         context: args.context,
-        generatorKey: toContainerGeneratorKey({
-          generatorId: config.id,
-          group: config.toGroupName({
-            operation: args.operation,
-            enrichments: args.settings.enrichments,
-            variant
-          }),
-          name: args.settings.identifier.name,
-          variant
-        })
+        generatorKey: toGeneratorKey({ operation: args.operation, settings: args.settings })
       })
 
       this.operation = args.operation

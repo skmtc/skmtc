@@ -6,11 +6,8 @@ import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import { toContainerGeneratorKey, toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
-import invariant from 'tiny-invariant'
-import { isDefinitionContainer } from '@/dsl/DefinitionContainer.ts'
-import type { OasOperationContainerProjection } from './types.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
+import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 
 type CreateOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
@@ -32,12 +29,6 @@ type CreateOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> =
 
 type ApplyArgs = {
   destinationPath?: string
-}
-
-/** A container projection with the settings it resolved to for this insert. */
-type ResolvedContainer = {
-  projection: OasOperationContainerProjection
-  settings: ContentSettings<unknown>
 }
 
 type GetDefinitionArgs = {
@@ -64,15 +55,10 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
   noExport?: boolean
   variant: string
   /**
-   * The container this projection declared, resolved once per insert.
-   *
-   * Cached rather than recomputed in {@link OasOperationDriver.ensureContainer}
-   * because resolving it reads enrichments, and reads are recorded for the
-   * consumption audit — doing it twice would report the same key consumed
-   * twice. One field rather than two: the projection and its settings are
-   * resolved together or not at all.
+   * The definition this projection's own definition goes inside, when it
+   * declared one — its name, which is how a place is addressed.
    */
-  #container: ResolvedContainer | undefined
+  #into: string | undefined
 
   constructor({
     context,
@@ -99,24 +85,21 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     assertPeerSupported({ context, projection, operation, variant })
 
     // A member's place is declared on the projection, like its name and its
-    // file are — resolved here so the member's own settings can take the
-    // container's export path rather than restating it.
+    // file are. The container is inserted the same way anything else is —
+    // its own run of this Driver, with its own identity, cache probe and
+    // integrity check — so nothing about placing a definition is written
+    // twice. Resolved before the member's settings, which take its file.
     const container = projection.toContainer?.({
       operation,
       enrichments: projection.toEnrichments({ operation, context, variant }),
       variant
     })
 
-    this.#container = container
-      ? {
-          projection: container,
-          settings: this.context.toOperationContentSettings({
-            operation,
-            projection: container,
-            variant
-          })
-        }
+    const insertedContainer = container
+      ? this.context.insertOperation({ projection: container, operation, variant })
       : undefined
+
+    this.#into = insertedContainer?.settings.identifier.name
 
     this.settings = this.context.toOperationContentSettings({
       operation,
@@ -124,7 +107,7 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       variant,
       // Same reason as the register/findDefinition spreads: a projection with
       // no container is asked for its settings exactly as it always was.
-      ...(this.#container ? { exportPath: this.#container.settings.exportPath } : {})
+      ...(insertedContainer ? { exportPath: insertedContainer.settings.exportPath } : {})
     })
 
     this.definition = this.apply({ destinationPath })
@@ -174,7 +157,7 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     // A member's place is its container, resolved (and created, on the first
     // member) before the member itself — `register` stores, it never builds
     // a declaration, exactly as it never builds a file.
-    const into = this.#container ? this.ensureContainer(this.#container) : undefined
+    const into = this.#into
 
     // Spread rather than always-pass: a non-member's call shape is exactly
     // what it was, so nothing downstream sees a key it never had.
@@ -211,62 +194,6 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     return definition
   }
 
-  /**
-   * Resolve the container this member belongs in, creating it if this is the
-   * first member to arrive. Returns its identifier name — the place
-   * `register` and `findDefinition` address.
-   *
-   * The container's identity is resolved against the member's own operation,
-   * so both land in one file by construction; a container whose export path
-   * disagrees with the member's is a bug in one of the two `toExportPath`
-   * functions and is reported rather than silently split across files.
-   */
-  private ensureContainer({ projection: container, settings }: ResolvedContainer): string {
-    const { identifier, exportPath } = settings
-
-    const cached = this.context.findDefinition({ name: identifier.name, exportPath })
-
-    if (cached) {
-      const currentKey = toContainerGeneratorKey({
-        generatorId: container.id,
-        group: container.toGroupName({
-          operation: this.operation,
-          enrichments: settings.enrichments,
-          variant: this.variant
-        }),
-        name: identifier.name,
-        variant: this.variant
-      })
-
-      if (currentKey !== cached.generatorKey) {
-        throw new Error(
-          `Registered definition mismatch: '${identifier.name}' in file '${exportPath}'. ` +
-            `Cached key '${cached.generatorKey}' does not match new key '${currentKey}'`
-        )
-      }
-
-      return identifier.name
-    }
-
-    const value = new container({ context: this.context, operation: this.operation, settings })
-
-    // The types make this unreachable; it is the backstop for a caller that
-    // defeated them, checked before the definition is registered so a
-    // container that cannot hold members never reaches a file.
-    invariant(
-      isDefinitionContainer(value),
-      `'${identifier.name}' is used as a container but its value has no member ` +
-        `store — it must implement addDefinition and findDefinitions.`
-    )
-
-    const definition = container.lang.toDefinition({ context: this.context, identifier, value })
-
-    this.ensureFile(exportPath)
-    this.context.register({ definitions: [definition], destinationPath: exportPath })
-
-    return identifier.name
-  }
-
   private affirmDefinition<V extends GeneratedValue>(
     definition: DefinitionBase | undefined,
     exportPath: string
@@ -275,11 +202,16 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       return false
     }
 
-    const currentKey = toOasOperationGeneratorKey({
-      generatorId: this.projection.id,
-      operation: this.operation,
-      variant: this.settings.variant
-    })
+    // The projection knows how its own key is made — a subject's projection
+    // keys on its subject, a container on the group its members share. A
+    // hand-rolled projection that declares neither is keyed on its subject.
+    const currentKey =
+      this.projection.toGeneratorKey?.({ operation: this.operation, settings: this.settings }) ??
+      toOasOperationGeneratorKey({
+        generatorId: this.projection.id,
+        operation: this.operation,
+        variant: this.settings.variant
+      })
 
     if (currentKey !== definition.generatorKey) {
       throw new Error(
