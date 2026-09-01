@@ -55,11 +55,22 @@ export class KtFunctionParameter {
 }
 
 /**
+ * A modifier rendered before `fun`. `suspend` is deliberately absent —
+ * coroutine handlers are a WebFlux concern this grammar does not cover.
+ */
+export type KtFunctionModifier = 'override' | 'open' | 'private' | 'internal' | 'protected'
+
+/**
  * Constructor arguments for {@link KtFunctionSignature}.
  */
 export type KtFunctionSignatureArgs = {
   /** The FINAL method name — already derived/sanitized by the generator. */
   name: string
+  /**
+   * Modifiers rendered before `fun`, in the order given — Kotlin's own
+   * convention is visibility first (`private override fun`).
+   */
+  modifiers?: KtFunctionModifier[]
   parameters: KtFunctionParameterArgs[]
   /** Omitted → no `: T` (Kotlin's implicit `Unit`). */
   returnType?: Stringable
@@ -88,11 +99,13 @@ export type KtFunctionSignatureArgs = {
  * one line (formatting is the consumer's formatter's job). Abstract by
  * default; an expression `body` renders the delegation form (` = …` —
  * block bodies deliberately unsupported). Optional KDoc `description`
- * above the annotations and per-parameter `= default`. Grammar only —
- * no `suspend`; the mapping annotations are generator policy.
+ * above the annotations and per-parameter `= default`. `modifiers`
+ * renders `override fun` and friends. Grammar only — no `suspend`; the
+ * mapping annotations are generator policy.
  */
 export class KtFunctionSignature {
   name: string
+  modifiers: KtFunctionModifier[] | undefined
   parameters: KtFunctionParameter[]
   returnType: Stringable | undefined
   annotations: KtAnnotation[] | undefined
@@ -101,6 +114,7 @@ export class KtFunctionSignature {
 
   constructor({
     name,
+    modifiers,
     parameters,
     returnType,
     annotations,
@@ -108,6 +122,7 @@ export class KtFunctionSignature {
     body
   }: KtFunctionSignatureArgs) {
     this.name = name
+    this.modifiers = modifiers
     this.parameters = parameters.map(parameter => new KtFunctionParameter(parameter))
     this.returnType = returnType
     this.annotations = annotations
@@ -123,7 +138,8 @@ export class KtFunctionSignature {
     const parameters = this.parameters.join(', ')
     const returns = this.returnType !== undefined ? `: ${this.returnType}` : ''
     const body = this.body !== undefined ? ` = ${this.body}` : ''
+    const modifiers = this.modifiers?.length ? `${this.modifiers.join(' ')} ` : ''
 
-    return `${kdoc}${annotations}    fun ${this.name}(${parameters})${returns}${body}`
+    return `${kdoc}${annotations}    ${modifiers}fun ${this.name}(${parameters})${returns}${body}`
   }
 }
