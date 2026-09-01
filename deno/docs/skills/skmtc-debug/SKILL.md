@@ -296,7 +296,12 @@ operation produced no files.
 1. Run `skmtc generate <project> --typecheck`. The CLI returns
    diagnostics scoped to this run's files.
 2. Map each TS error back to the generator source that produced the
-   offending line. Common patterns:
+   offending line: run `skmtc trace <file>:<line> --json` — it returns
+   the producer chain (Snippet/Projection class, generator package,
+   schema pointer) with the class's source location in the cloned
+   generator, plus a freshness header saying which run it describes.
+   Needs `.maps/` from a `--anchors` generate; without it, fall back
+   to reading generator source. Common patterns:
    - **"Module not found"**: The generator produced a path the
      consumer hasn't implemented. Check the generator's `register({
      imports: ... })` calls — the consumer must provide the named

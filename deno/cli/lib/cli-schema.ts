@@ -340,6 +340,28 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     agentMode: 'json-only'
   },
   {
+    name: 'trace',
+    description:
+      "Trace a generated file position back to the producers, generator, and schema element that wrote it, from the last generate's provenance maps (requires --anchors output). Location is <file>:<line>[:<col>], 1-based — the shape a compiler error reports.",
+    args: ['<location>', '[project]'],
+    flags: [{ flag: '--json', description: 'Emit structured JSON output.' }],
+    agentMode: 'json-only'
+  },
+  {
+    name: 'explain',
+    description:
+      "Explain a provenance subject from the last generate: `producer <Class>` shows the real output a Projection/Snippet class emitted (samples + counts + source location); `ref <Name>` shows which generator and artifact settled a definition name.",
+    args: ['<subject>', '<name>', '[project]'],
+    flags: [
+      { flag: '--json', description: 'Emit structured JSON output.' },
+      {
+        flag: '-g, --generator <id>',
+        description: 'Scope `producer` lookups to one generator package (class names can collide).'
+      }
+    ],
+    agentMode: 'json-only'
+  },
+  {
     name: 'agent-context',
     description: 'Print the CLI surface + current SKMTC state for agents',
     args: [],

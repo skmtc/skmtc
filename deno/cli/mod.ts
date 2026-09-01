@@ -494,6 +494,25 @@ const run = async () => {
       renderAgentContext({ jsonFlag: json })
     })
 
+  const traceCommand = new Command()
+    .description(getCommandDescriptor('trace').description)
+    .arguments('<location:string> [project:string]')
+    .option('--json', 'Emit structured JSON output.')
+    .action(async ({ json }, location: string, project?: string) => {
+      const { renderTrace } = await import('@/commands/trace.ts')
+      await renderTrace({ location, project, jsonFlag: json })
+    })
+
+  const explainCommand = new Command()
+    .description(getCommandDescriptor('explain').description)
+    .arguments('<subject:string> <name:string> [project:string]')
+    .option('--json', 'Emit structured JSON output.')
+    .option('-g, --generator <id:string>', 'Scope `producer` lookups to one generator package.')
+    .action(async ({ json, generator }, subject: string, name: string, project?: string) => {
+      const { renderExplain } = await import('@/commands/explain.ts')
+      await renderExplain({ subject, name, project, generator, jsonFlag: json })
+    })
+
   const projectCreateCommand = new Command()
     .description(
       'Create a new hub project named <name> from the local setup: stack from deno.json#name, API from client.json#api (or register client.json#source), config from client.json. Create-only — a name clash fails (use `push` to update an existing project).'
@@ -642,6 +661,8 @@ const run = async () => {
     .command('logout', logoutCommand)
     .command('dev', devCommand)
     .command('doctor', doctorCommand)
+    .command('trace', traceCommand)
+    .command('explain', explainCommand)
     .command('agent-context', agentContextCommand)
     .command('migrate', migrateCommand)
     .parse(Deno.args)

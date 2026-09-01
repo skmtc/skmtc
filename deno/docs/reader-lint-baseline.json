@@ -1,4 +1,7 @@
 {
-  "patterns": {},
+  "patterns": {
+    "reference/cli/explain.md|line-number-citation": 1,
+    "reference/cli/trace.md|line-number-citation": 4
+  },
   "orphans": []
 }

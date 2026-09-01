@@ -186,7 +186,15 @@ your recalled API shapes are unreliable. Exact signatures for core
 contracts (`Oas*` classes, `Inserted`, `ContentSettings`,
 `TypeSystemArgs`, entry configs) are one command away:
 `deno doc jsr:@skmtc/core@<pinned-version> <SymbolName>` — read it
-instead of guessing, and instead of casting around a type error. In
+instead of guessing, and instead of casting around a type error.
+
+**Never guess what a producer emits either.** When a project has been
+generated with `--anchors`, `skmtc explain producer <Class> --json`
+returns the real output a Snippet/Projection class wrote in the last
+run — samples sliced from actual artifacts, span/file counts, and the
+class's source location. Prefer one real sample over API archaeology;
+`skmtc explain ref <Name> --json` answers which generator and artifact
+settled a definition name. In
 particular `OasSchema` is a union type, not a class hierarchy: every
 variant implements `.isRef()` returning `false`, and `OasRef` is a
 sibling with `.isRef()` returning `true`.

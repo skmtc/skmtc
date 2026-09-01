@@ -140,7 +140,16 @@ Check, in order:
 #### Wrong output
 
 Read the generated file. The output is whatever the generator's
-Projection produced. If it's wrong:
+Projection produced. To find which producer wrote a specific line,
+run `skmtc trace <file>:<line> --json`. It names the Snippet or
+Projection class, the generator package, and the schema element. It
+also gives the class's source location in the cloned generator (see
+the [`skmtc trace` reference](../../reference/cli/trace.md)).
+
+To see what a producer class emits across the whole project, run
+`skmtc explain producer <Class> --json`
+([`skmtc explain` reference](../../reference/cli/explain.md)). Both
+commands need a `--anchors` run. If the output is wrong:
 
 - **Hardcoded values?** The generator's source has hardcoded peer
   imports, paths, or other values. Those are clone seams — see

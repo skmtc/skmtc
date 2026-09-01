@@ -19,7 +19,9 @@
     "react": "npm:react@^19.1.1",
     "ink-testing-library": "npm:ink-testing-library@^4.0.0",
     "gpt-tokenizer": "npm:gpt-tokenizer@^3.2.0",
-    "ignore": "npm:ignore@^7.0.5"
+    "ignore": "npm:ignore@^7.0.5",
+    "jsonc-parser": "npm:jsonc-parser@^3.3.1",
+    "oxc-parser": "npm:oxc-parser@0.41.0"
   },
   "permissions": {
     "default": {
