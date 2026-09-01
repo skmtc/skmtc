@@ -128,3 +128,30 @@ Deno.test('signature renders KDoc above annotations; parameters render defaults'
       '    fun getCreditNotes(limit: Int? = null): CreditNotePage'
   )
 })
+
+Deno.test('signature renders modifiers before `fun`, in the order given', () => {
+  const override = new KtFunctionSignature({
+    name: 'getUsersId',
+    modifiers: ['override'],
+    parameters: [{ name: 'id', type: 'String' }],
+    returnType: 'User',
+    body: 'throw ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "getUsersId")'
+  })
+  const visibility = new KtFunctionSignature({
+    name: 'helper',
+    modifiers: ['private', 'open'],
+    parameters: []
+  })
+
+  assertEquals(
+    override.toString(),
+    '    override fun getUsersId(id: String): User = throw ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "getUsersId")'
+  )
+  assertEquals(visibility.toString(), '    private open fun helper()')
+})
+
+Deno.test('an empty modifier list renders exactly like no modifiers', () => {
+  const empty = new KtFunctionSignature({ name: 'run', modifiers: [], parameters: [] })
+
+  assertEquals(empty.toString(), '    fun run()')
+})
