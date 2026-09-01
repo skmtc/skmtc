@@ -335,6 +335,14 @@ export type ContextRegisterArgs = {
   custom?: Stringable
   /** The destination file path. */
   destinationPath: string
+  /**
+   * Name of a declaration IN that file to insert the definitions into,
+   * rather than the file itself — a class or interface body holding members.
+   * The declaration must already exist and its value must satisfy
+   * {@link import('@/dsl/DefinitionContainer.ts').DefinitionContainer};
+   * `imports`, `reExports` and `custom` always target the file.
+   */
+  into?: string
 }
 
 /**
@@ -404,6 +412,23 @@ export type PickArgs = {
 }
 
 /**
+ * Arguments for `GenerateContext.findDefinition`.
+ *
+ * Deliberately not {@link PickArgs}, which `RenderContext.pick` also takes:
+ * `pick` reads file-level definitions only, so sharing one type would let
+ * `into` be passed there and silently ignored — returning nothing, or an
+ * unrelated file-level declaration that happens to share the name.
+ */
+export type FindDefinitionArgs = PickArgs & {
+  /**
+   * Name of a declaration in that file to look inside, rather than the file
+   * itself. A member and a top-level declaration may share a name without
+   * colliding, so the place is part of the lookup.
+   */
+  into?: string
+}
+
+/**
  * Arguments for building model content settings.
  *
  * @template V - The value type for the model
@@ -437,6 +462,15 @@ export type ToOasOperationSettingsArgs<V extends GeneratedValue, EnrichmentType 
    * {@link ContentSettings} built for this insertion.
    */
   variant?: string
+  /**
+   * The file to use instead of the projection's own `toExportPath`.
+   *
+   * The Driver passes the container's path when the projection declared a
+   * `toContainer`: a member is declared inside its container, so it has no
+   * file of its own to compute, and restating one is a way for the two to
+   * disagree.
+   */
+  exportPath?: string
 }
 
 /**
@@ -567,7 +601,7 @@ export type GenerateContextType = {
     variant
   }: BuildModelSettingsArgs<V, EnrichmentType>) => ContentSettings<EnrichmentType>
   resolveSchemaRefOnce: (refName: RefName, generatorId: string) => OasSchema | OasRef<'schema'>
-  findDefinition: ({ name, exportPath }: PickArgs) => DefinitionBase | undefined
+  findDefinition: ({ name, exportPath, into }: FindDefinitionArgs) => DefinitionBase | undefined
   /**
    * The recording enrichment accessor — the single choke point every
    * enrichment lookup routes through. Reads the node at

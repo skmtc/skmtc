@@ -4,6 +4,8 @@ import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import type { DefinitionContainer } from '@/dsl/DefinitionContainer.ts'
+import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 
 /**
  * External constructor signature for an OAS operation projection class.
@@ -72,12 +74,64 @@ export type ToOasOperationIdentifierNameArgs<EnrichmentType = undefined> = {
   variant: string
 }
 
+/**
+ * Arguments for a projection's `toGeneratorKey` static. `settings` carries
+ * the identifier, enrichments and variant the key may be built from.
+ */
+export type ToGeneratorKeyArgs<EnrichmentType = undefined> = {
+  operation: OasOperation
+  settings: ContentSettings<EnrichmentType>
+}
+
+/**
+ * Arguments for a container projection's `toGroupName` static — the same
+ * `(operation, enrichments, variant)` its identity siblings receive.
+ */
+export type ToOasOperationGroupNameArgs<EnrichmentType = undefined> = {
+  operation: OasOperation
+  enrichments: EnrichmentType
+  /** Variant the group belongs to (see {@link Variant}) */
+  variant: string
+}
+
+/**
+ * Arguments for a member projection's `toContainer` static — the same
+ * `(operation, enrichments, variant)` its identity siblings receive, and run
+ * on the same cache-check path, so it must be pure and cheap.
+ */
+export type ToOasOperationContainerArgs<EnrichmentType = undefined> = {
+  operation: OasOperation
+  enrichments: EnrichmentType
+  /** Variant the placement should disambiguate (see {@link Variant}) */
+  variant: string
+}
+
 export type ToOasOperationExportPathArgs<EnrichmentType = undefined> = {
   operation: OasOperation
   enrichments: EnrichmentType
   /** Operation variant the export path should disambiguate (see {@link Variant}) */
   variant: string
 }
+
+/**
+ * Static structural type of a container projection class — a projection
+ * whose VALUE holds definitions.
+ *
+ * Nothing is declared: the constraint is the value's own type, so a
+ * projection whose value has no member store is not assignable here. That is
+ * the same contract a file satisfies
+ * ({@link import('@/dsl/DefinitionContainer.ts').DefinitionContainer}), which
+ * is what makes both of them places.
+ */
+// deno-lint-ignore no-explicit-any
+export type OasOperationContainerProjection<EnrichmentType = any> =
+  & OasOperationProjection<GeneratedValue & DefinitionContainer, EnrichmentType>
+  & {
+    /** The group its members share — what its key is made of. */
+    toGroupName: (args: ToOasOperationGroupNameArgs<EnrichmentType>) => string
+    /** Required here: a container is keyed on its group, never its subject. */
+    toGeneratorKey: (args: ToGeneratorKeyArgs<EnrichmentType>) => GeneratorKey
+  }
 
 /**
  * Static structural type of an OAS operation projection class.
@@ -110,6 +164,26 @@ export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = un
    */
   toIdentifierType: (operation: OasOperation, context: GenerateContextType) => IdentifierType
   toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
+  /**
+   * How this projection's key is computed. A subject's projection keys on
+   * its subject; a container keys on the group its members share. The Driver
+   * reads it rather than branching on which kind it holds.
+   *
+   * Optional, like {@link isSupported}: a hand-rolled projection may omit it
+   * and is keyed on its subject, which is what every projection did before
+   * containers existed.
+   */
+  toGeneratorKey?: (args: ToGeneratorKeyArgs<EnrichmentType>) => GeneratorKey
+  /**
+   * The declaration this projection's definition is inserted into, rather
+   * than the file. Absent for a top-level definition — the common case.
+   *
+   * A member's file is its container's, so `toExportPath` is not consulted
+   * when this is present.
+   */
+  toContainer?: (
+    args: ToOasOperationContainerArgs<EnrichmentType>
+  ) => OasOperationContainerProjection
   toEnrichments: ({ operation, context }: ToOasOperationEnrichmentsArgs) => EnrichmentType
   /**
    * Family-level capability predicate, surfaced as a static by

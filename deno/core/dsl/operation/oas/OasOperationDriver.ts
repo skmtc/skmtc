@@ -6,8 +6,9 @@ import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
+import invariant from 'tiny-invariant'
+import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 
 type CreateOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
@@ -54,6 +55,11 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
   definition: GeneratedDefinition<V>
   noExport?: boolean
   variant: string
+  /**
+   * The definition this projection's own definition goes inside, when it
+   * declared one — its name, which is how a place is addressed.
+   */
+  #into: string | undefined
 
   constructor({
     context,
@@ -79,10 +85,32 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
 
     assertPeerSupported({ context, projection, operation, variant })
 
+    // A member's place is declared on the projection, like its name and its
+    // file are. The container is inserted the same way anything else is —
+    // its own run of this Driver, with its own identity, cache probe and
+    // integrity check — so nothing about placing a definition is written
+    // twice. Resolved before the member's settings, which take its file.
+    const container = projection.toContainer?.({
+      operation,
+      enrichments: projection.toEnrichments({ operation, context, variant }),
+      variant
+    })
+
+    const insertedContainer = container
+      ? this.context.insertOperation({ projection: container, operation, variant })
+      : undefined
+
+    this.#into = insertedContainer?.settings.identifier.name
+
     this.settings = this.context.toOperationContentSettings({
       operation,
       projection,
-      variant
+      variant,
+      // Same reason as the register/findDefinition spreads: a projection with
+      // no container is asked for its settings exactly as it always was.
+      ...(insertedContainer !== undefined
+        ? { exportPath: insertedContainer.settings.exportPath }
+        : {})
     })
 
     this.definition = this.apply({ destinationPath })
@@ -91,19 +119,38 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
   private apply({ destinationPath }: ApplyArgs = {}): GeneratedDefinition<V> {
     const { identifier, exportPath } = this.settings
 
+    // The file an import has to be stitched into, or `undefined` when there
+    // is none to stitch — no destination, or the projection's own file.
+    const importInto =
+      destinationPath && normalize(exportPath) !== normalize(destinationPath)
+        ? destinationPath
+        : undefined
+
+    // A member is declared inside its container, so it has no module-level
+    // name — an import of it would name a symbol its file never exports, and
+    // the `Inserted.toName()` handed back would be unresolvable. What a caller
+    // in another file wants is the container, which it can insert itself.
+    // Only the cross-file case is refused: a member inserted into the file its
+    // container already lives in stitches no import and needs no name.
+    invariant(
+      !(this.#into !== undefined && importInto !== undefined),
+      `'${identifier.name}' is declared inside '${this.#into}', so it cannot be ` +
+        `imported into '${destinationPath}'. Insert its container instead.`
+    )
+
     const definition = this.getDefinition({ identifier, exportPath })
 
-    if (destinationPath && normalize(exportPath) !== normalize(destinationPath)) {
+    if (importInto !== undefined) {
       // Cross-file import of the peer's identifier from its export path.
       // The language builds the import object (`toImport`) and creates the
       // destination file on first write (caller-side); the engine stores
       // via the pure-data `context.register`. The import lands in the
       // caller's file (`destinationPath`); `insertOperation` only composes
       // same-language generators, so the peer's `lang` is the caller's.
-      this.ensureFile(destinationPath)
+      this.ensureFile(importInto)
       this.context.register({
         imports: [this.projection.lang.toImport({ identifier, module: exportPath })],
-        destinationPath
+        destinationPath: importInto
       })
     }
 
@@ -129,9 +176,20 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
   }
 
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): DefinitionBase<V> {
+    // A member's place is its container, resolved (and created, on the first
+    // member) before the member itself — `register` stores, it never builds
+    // a declaration, exactly as it never builds a file.
+    // Presence, not truthiness: a container whose identifier name is empty
+    // would otherwise route the member to file level, silently landing it
+    // beside its container instead of inside it.
+    const into = this.#into
+
+    // Spread rather than always-pass: a non-member's call shape is exactly
+    // what it was, so nothing downstream sees a key it never had.
     const cachedDefinition = this.context.findDefinition({
       name: identifier.name,
-      exportPath
+      exportPath,
+      ...(into !== undefined ? { into } : {})
     })
 
     if (this.affirmDefinition<V>(cachedDefinition, exportPath)) {
@@ -154,7 +212,8 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     this.ensureFile(exportPath)
     this.context.register({
       definitions: [definition],
-      destinationPath: exportPath
+      destinationPath: exportPath,
+      ...(into !== undefined ? { into } : {})
     })
 
     return definition
@@ -168,11 +227,16 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       return false
     }
 
-    const currentKey = toOasOperationGeneratorKey({
-      generatorId: this.projection.id,
-      operation: this.operation,
-      variant: this.settings.variant
-    })
+    // The projection knows how its own key is made — a subject's projection
+    // keys on its subject, a container on the group its members share. A
+    // hand-rolled projection that declares neither is keyed on its subject.
+    const currentKey =
+      this.projection.toGeneratorKey?.({ operation: this.operation, settings: this.settings }) ??
+      toOasOperationGeneratorKey({
+        generatorId: this.projection.id,
+        operation: this.operation,
+        variant: this.settings.variant
+      })
 
     if (currentKey !== definition.generatorKey) {
       throw new Error(

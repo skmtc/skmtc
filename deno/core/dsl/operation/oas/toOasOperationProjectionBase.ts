@@ -1,4 +1,5 @@
 import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type {
   InsertOperationOptions,
@@ -18,8 +19,11 @@ import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
 import type {
+  OasOperationContainerProjection,
+  ToGeneratorKeyArgs,
   OasOperationProjection,
   OasOperationProjectionConstructorArgs,
+  ToOasOperationContainerArgs,
   ToOasOperationIdentifierNameArgs,
   ToOasOperationExportPathArgs
 } from '@/dsl/operation/oas/types.ts'
@@ -50,6 +54,22 @@ export type OasOperationProjectionBaseConfig<
    */
   toIdentifierType: (operation: OasOperation, context: GenerateContextType) => IdType
   toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
+  /**
+   * Declares this projection a MEMBER: its definition is inserted into the
+   * container this returns, rather than at file level.
+   *
+   * Shaped like its identity siblings, and run on the same cache-check path,
+   * so it must be pure. It returns the container class rather than naming
+   * one, which also defers the reference to call time — a module-level
+   * reference between a member and its container is one more way to build
+   * the load-order cycles a leaf module exists to break.
+   *
+   * A member's file is its container's, so `toExportPath` is not consulted
+   * when this is present.
+   */
+  toContainer?: (
+    args: ToOasOperationContainerArgs<EnrichmentType>
+  ) => OasOperationContainerProjection
   /**
    * Required composite schema for the `{ subject, generator, stack }`
    * enrichment umbrella. Required (not optional) is load-bearing: it is what
@@ -112,11 +132,33 @@ export const toOasOperationProjectionBase = <
 ) => {
   return class extends base {
     static id = config.id
+    /**
+     * How this projection's key is computed — read by the Driver so it can
+     * check a cache hit without knowing whether it holds a subject's
+     * projection or a container.
+     *
+     * A method rather than a field, and reading `id` through `this`, for the
+     * same reason the container reads its group that way: a subclass
+     * overriding the generator id must change the key its values are stored
+     * under, not just what callers are told.
+     */
+    static toGeneratorKey({
+      operation,
+      settings
+    }: ToGeneratorKeyArgs<EnrichmentType>): GeneratorKey {
+      return toOasOperationGeneratorKey({
+        generatorId: this.id,
+        operation,
+        variant: settings.variant ?? DEFAULT_VARIANT
+      })
+    }
+
     static type = 'oasOperation' as const
 
     static toIdentifierName = config.toIdentifierName.bind(config)
     static toIdentifierType = config.toIdentifierType.bind(config)
     static toExportPath = config.toExportPath.bind(config)
+    static toContainer = config.toContainer?.bind(config)
 
     static isSupported = config.isSupported ?? (() => true)
 
@@ -151,10 +193,11 @@ export const toOasOperationProjectionBase = <
     constructor(args: OasOperationProjectionConstructorArgs<EnrichmentType>) {
       super({
         context: args.context,
-        generatorKey: toOasOperationGeneratorKey({
-          generatorId: config.id,
+        // `new.target` is the most-derived class, so a subclass override of
+        // `id` reaches the key the value actually carries.
+        generatorKey: new.target.toGeneratorKey({
           operation: args.operation,
-          variant: args.settings.variant ?? DEFAULT_VARIANT
+          settings: args.settings
         })
       })
 
