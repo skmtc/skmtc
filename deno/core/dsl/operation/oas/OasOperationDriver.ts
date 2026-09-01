@@ -8,6 +8,7 @@ import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { toContainerGeneratorKey, toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import invariant from 'tiny-invariant'
+import { isDefinitionContainer } from '@/dsl/DefinitionContainer.ts'
 import type { OasOperationContainerProjection } from './types.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
@@ -212,13 +213,6 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
 
     invariant(container && settings, 'ensureContainer called without a container')
 
-    invariant(
-      container.isContainer,
-      `'${settings.identifier.name}' is used as a container but was not built with ` +
-        `toOasOperationContainerBase, so its value would carry a subject key — the ` +
-        `second member of the group would then fail the integrity check.`
-    )
-
     const { identifier, exportPath } = settings
 
     const cached = this.context.findDefinition({ name: identifier.name, exportPath })
@@ -241,11 +235,18 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       return identifier.name
     }
 
-    const definition = container.lang.toDefinition({
-      context: this.context,
-      identifier,
-      value: new container({ context: this.context, operation: this.operation, settings })
-    })
+    const value = new container({ context: this.context, operation: this.operation, settings })
+
+    // The types make this unreachable; it is the backstop for a caller that
+    // defeated them, checked before the definition is registered so a
+    // container that cannot hold members never reaches a file.
+    invariant(
+      isDefinitionContainer(value),
+      `'${identifier.name}' is used as a container but its value has no member ` +
+        `store — it must implement addDefinition and findDefinitions.`
+    )
+
+    const definition = container.lang.toDefinition({ context: this.context, identifier, value })
 
     this.ensureFile(exportPath)
     this.context.register({ definitions: [definition], destinationPath: exportPath })

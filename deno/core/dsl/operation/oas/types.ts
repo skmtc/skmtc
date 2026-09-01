@@ -4,6 +4,7 @@ import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import type { DefinitionContainer } from '@/dsl/DefinitionContainer.ts'
 
 /**
  * External constructor signature for an OAS operation projection class.
@@ -92,17 +93,20 @@ export type ToOasOperationExportPathArgs<EnrichmentType = undefined> = {
 }
 
 /**
- * Static structural type of a container projection class — a declaration
- * definitions are inserted into. Identity-wise it is an operation
- * projection; what the engine needs beyond that is the `isContainer` marker,
- * so a projection used as a container that never declared itself one is
- * rejected rather than failing later with a key mismatch its author cannot
- * place.
+ * Static structural type of a container projection class — a projection
+ * whose VALUE holds definitions.
+ *
+ * Nothing is declared: the constraint is the value's own type, so a
+ * projection whose value has no member store is not assignable here. That is
+ * the same contract a file satisfies
+ * ({@link import('@/dsl/DefinitionContainer.ts').DefinitionContainer}), which
+ * is what makes both of them places.
  */
 // deno-lint-ignore no-explicit-any
-export type OasOperationContainerProjection<V extends GeneratedValue = any, EnrichmentType = any> =
-  & OasOperationProjection<V, EnrichmentType>
-  & { isContainer: true }
+export type OasOperationContainerProjection<EnrichmentType = any> = OasOperationProjection<
+  GeneratedValue & DefinitionContainer,
+  EnrichmentType
+>
 
 /**
  * Static structural type of an OAS operation projection class.

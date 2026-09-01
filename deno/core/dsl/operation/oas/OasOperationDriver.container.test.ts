@@ -201,7 +201,7 @@ Deno.test('two members deriving one name collide loudly', () => {
   )
 })
 
-Deno.test('a projection used as a container must declare itself one', () => {
+Deno.test('a projection whose value holds no members is not a container', () => {
   const getUsers = toOperation('get', '/users', 'Users')
   const context = createContext([getUsers])
 
@@ -213,6 +213,7 @@ Deno.test('a projection used as a container must declare itself one', () => {
     toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
+  // No addDefinition / findDefinitions: nothing to insert into.
   class NotAContainer extends NotAContainerBase {
     override toString(): string {
       return '{}'
@@ -224,7 +225,7 @@ Deno.test('a projection used as a container must declare itself one', () => {
     toIdentifierName: () => 'handler',
     toIdentifierType: () => ({ type: 'variable' }),
     toExportPath: () => '@/unused.ts',
-    // @ts-expect-error - deliberately not a container, which is the point
+    // @ts-expect-error - its value has no member store, which is the point
     toContainer: () => NotAContainer,
     toEnrichmentSchema: () => emptyEnrichmentSchema
   })
@@ -238,7 +239,7 @@ Deno.test('a projection used as a container must declare itself one', () => {
   assertThrows(
     () => context.insertOperation({ projection: Member, operation: getUsers }),
     Error,
-    'was not built with toOasOperationContainerBase'
+    'its value has no member store'
   )
 })
 

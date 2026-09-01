@@ -72,9 +72,11 @@ export type OasOperationContainerConstructorArgs<EnrichmentType = undefined> = {
  * while still carrying the `generatorId` that stops another generator
  * claiming the declaration.
  *
- * And it implements the member store, so the engine can insert into it. The
- * subclass renders those members — where they sit in the declaration, and at
- * what indentation, is the language's business, not the engine's.
+ * And it implements the member store, so the engine can insert into it —
+ * which is also what makes the class assignable where a container is asked
+ * for, with nothing to declare. The subclass renders those members; where
+ * they sit in the declaration, and at what indentation, is the language's
+ * business, not the engine's.
  */
 export const toOasOperationContainerBase = <
   EnrichmentType = undefined,
@@ -86,7 +88,6 @@ export const toOasOperationContainerBase = <
   return class extends base {
     static id = config.id
     static type = 'oasOperation' as const
-    static isContainer = true as const
 
     static toIdentifierName = config.toIdentifierName.bind(config)
     static toIdentifierType = config.toIdentifierType.bind(config)
