@@ -335,6 +335,14 @@ export type ContextRegisterArgs = {
   custom?: Stringable
   /** The destination file path. */
   destinationPath: string
+  /**
+   * Name of a declaration IN that file to insert the definitions into,
+   * rather than the file itself — a class or interface body holding members.
+   * The declaration must already exist and its value must satisfy
+   * {@link import('@/dsl/DefinitionContainer.ts').DefinitionContainer};
+   * `imports`, `reExports` and `custom` always target the file.
+   */
+  into?: string
 }
 
 /**
@@ -401,6 +409,12 @@ export type PickArgs = {
   name: string
   /** The file path where the export should be made available */
   exportPath: string
+  /**
+   * Name of a declaration in that file to look inside, rather than the file
+   * itself. A member and a top-level declaration may share a name without
+   * colliding, so the place is part of the lookup.
+   */
+  into?: string
 }
 
 /**

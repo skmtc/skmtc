@@ -67,6 +67,8 @@ import type { SchemaToValueFn, SchemaType } from '@/types/TypeSystem.ts'
 import { Inserted } from '@/dsl/Inserted.ts'
 import type { CaptureChannel, CaptureSink } from '@/anchors/CaptureSink.ts'
 import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
+import { isDefinitionContainer } from '@/dsl/DefinitionContainer.ts'
+import type { DefinitionContainer } from '@/dsl/DefinitionContainer.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
 import { MarkdownFile } from '@/dsl/MarkdownFile.ts'
@@ -1284,7 +1286,8 @@ export class GenerateContext implements GenerateContextType {
     reExports = [],
     definitions,
     custom,
-    destinationPath
+    destinationPath,
+    into
   }: ContextRegisterArgs) {
     const normalizedPath = normalize(destinationPath)
 
@@ -1312,9 +1315,13 @@ export class GenerateContext implements GenerateContextType {
     // policy — are code-file concerns owned by the language subclass.
     // `JsonFile` (no definitions/imports) is skipped by the guard.
     if (currentFile instanceof CodeFileBase) {
+      // Definitions may land in the file or inside a declaration in it;
+      // imports, re-exports and `custom` are always the file's.
+      const place = into === undefined ? currentFile : this.#toContainer(currentFile, into, normalizedPath)
+
       definitions?.forEach(definition => {
         if (definition) {
-          currentFile.addDefinition(definition)
+          place.addDefinition(definition)
         }
       })
 
@@ -1654,12 +1661,52 @@ export class GenerateContext implements GenerateContextType {
    * @param { name, exportPath }
    * @returns Matching definition if found or `undefined` otherwise
    */
-  findDefinition({ name, exportPath }: PickArgs): DefinitionBase | undefined {
+  findDefinition({ name, exportPath, into }: PickArgs): DefinitionBase | undefined {
     // Pure lookup — no file is created on a miss. Definitions live on the
     // code-file subclass, so narrow; a non-code file (`JsonFile`) has none.
     // The cache wants the single primary for the name → first match.
     const file = this.getFile(exportPath)
-    return file instanceof CodeFileBase ? file.findDefinitions({ name })?.[0] : undefined
+
+    if (!(file instanceof CodeFileBase)) {
+      return undefined
+    }
+
+    if (into === undefined) {
+      return file.findDefinitions({ name })?.[0]
+    }
+
+    // A miss on the container is a miss on the member: nothing is created
+    // here, and a member cannot exist before the declaration holding it.
+    const container = file.findDefinitions({ name: into })?.[0]
+
+    return container && isDefinitionContainer(container.value)
+      ? container.value.findDefinitions({ name })?.[0]
+      : undefined
+  }
+
+  /**
+   * Resolve the declaration named `into` in `file` as an insertion target.
+   *
+   * Throws rather than falling back to the file: a member silently landing
+   * beside its intended container instead of inside it is a rendering
+   * difference no test would attribute to this call.
+   */
+  #toContainer(file: CodeFileBase, into: string, path: string): DefinitionContainer {
+    const definition = file.findDefinitions({ name: into })?.[0]
+
+    invariant(
+      definition,
+      `Cannot register into '${into}' in '${path}' — no declaration of that name exists. ` +
+        `Register the container before its members, or look it up with findDefinition first.`
+    )
+
+    invariant(
+      isDefinitionContainer(definition.value),
+      `Cannot register into '${into}' in '${path}' — that declaration does not hold members. ` +
+        `Its value must implement addDefinition and findDefinitions.`
+    )
+
+    return definition.value
   }
 }
 

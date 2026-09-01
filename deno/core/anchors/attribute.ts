@@ -60,7 +60,9 @@ export const attribute = (producer: SnippetBase): Attribution => {
  * - OAS operation → `#/paths/<escaped-path>/<method>`
  * - GQL operation → `<rootKind>.<fieldName>`
  * - Model → `#/components/schemas/<refName>`
- * - Generator-only / no key → `''` (no schema location to point at)
+ * - Container / generator-only / no key → `''` (no schema location to point
+ *   at — a container is a place many subjects insert into, so it has no
+ *   position of its own; its MEMBERS carry their subjects' keys)
  */
 const schemaPointerFromKey = (parsed: GeneratorKeyObject | undefined): string => {
   if (!parsed) return ''
@@ -73,6 +75,7 @@ const schemaPointerFromKey = (parsed: GeneratorKeyObject | undefined): string =>
       return `${parsed.rootKind}.${parsed.fieldName}`
     case 'model':
       return `#/components/schemas/${parsed.refName}`
+    case 'container':
     case 'generator-only':
       return ''
     default: {
