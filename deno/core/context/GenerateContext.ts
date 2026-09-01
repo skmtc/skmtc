@@ -1673,17 +1673,24 @@ export class GenerateContext implements GenerateContextType {
       return undefined
     }
 
-    if (into === undefined) {
-      return file.findDefinitions({ name })?.[0]
-    }
+    // Resolve the place, then ask it once — the same two steps `register`
+    // takes. A miss on the container is a miss on the member: nothing is
+    // created here, and a member cannot exist before the definition holding
+    // it.
+    const place = into === undefined ? file : this.#findContainer(file, into)
 
-    // A miss on the container is a miss on the member: nothing is created
-    // here, and a member cannot exist before the declaration holding it.
-    const container = file.findDefinitions({ name: into })?.[0]
+    return place?.findDefinitions({ name })?.[0]
+  }
 
-    return container && isDefinitionContainer(container.value)
-      ? container.value.findDefinitions({ name })?.[0]
-      : undefined
+  /**
+   * The definition named `into` in `file` as a place, or `undefined` when it
+   * is absent or holds no members — the read-path counterpart of
+   * {@link GenerateContext.#toContainer}, which throws on both.
+   */
+  #findContainer(file: CodeFileBase, into: string): DefinitionContainer | undefined {
+    const definition = file.findDefinitions({ name: into })?.[0]
+
+    return definition && isDefinitionContainer(definition.value) ? definition.value : undefined
   }
 
   /**
