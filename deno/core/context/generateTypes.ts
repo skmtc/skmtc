@@ -451,6 +451,15 @@ export type ToOasOperationSettingsArgs<V extends GeneratedValue, EnrichmentType 
    * {@link ContentSettings} built for this insertion.
    */
   variant?: string
+  /**
+   * The file to use instead of the projection's own `toExportPath`.
+   *
+   * The Driver passes the container's path when the projection declared a
+   * `toContainer`: a member is declared inside its container, so it has no
+   * file of its own to compute, and restating one is a way for the two to
+   * disagree.
+   */
+  exportPath?: string
 }
 
 /**

@@ -72,12 +72,37 @@ export type ToOasOperationIdentifierNameArgs<EnrichmentType = undefined> = {
   variant: string
 }
 
+/**
+ * Arguments for a member projection's `toContainer` static — the same
+ * `(operation, enrichments, variant)` its identity siblings receive, and run
+ * on the same cache-check path, so it must be pure and cheap.
+ */
+export type ToOasOperationContainerArgs<EnrichmentType = undefined> = {
+  operation: OasOperation
+  enrichments: EnrichmentType
+  /** Variant the placement should disambiguate (see {@link Variant}) */
+  variant: string
+}
+
 export type ToOasOperationExportPathArgs<EnrichmentType = undefined> = {
   operation: OasOperation
   enrichments: EnrichmentType
   /** Operation variant the export path should disambiguate (see {@link Variant}) */
   variant: string
 }
+
+/**
+ * Static structural type of a container projection class — a declaration
+ * definitions are inserted into. Identity-wise it is an operation
+ * projection; what the engine needs beyond that is the `isContainer` marker,
+ * so a projection used as a container that never declared itself one is
+ * rejected rather than failing later with a key mismatch its author cannot
+ * place.
+ */
+// deno-lint-ignore no-explicit-any
+export type OasOperationContainerProjection<V extends GeneratedValue = any, EnrichmentType = any> =
+  & OasOperationProjection<V, EnrichmentType>
+  & { isContainer: true }
 
 /**
  * Static structural type of an OAS operation projection class.
@@ -110,6 +135,16 @@ export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = un
    */
   toIdentifierType: (operation: OasOperation, context: GenerateContextType) => IdentifierType
   toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
+  /**
+   * The declaration this projection's definition is inserted into, rather
+   * than the file. Absent for a top-level definition — the common case.
+   *
+   * A member's file is its container's, so `toExportPath` is not consulted
+   * when this is present.
+   */
+  toContainer?: (
+    args: ToOasOperationContainerArgs<EnrichmentType>
+  ) => OasOperationContainerProjection
   toEnrichments: ({ operation, context }: ToOasOperationEnrichmentsArgs) => EnrichmentType
   /**
    * Family-level capability predicate, surfaced as a static by

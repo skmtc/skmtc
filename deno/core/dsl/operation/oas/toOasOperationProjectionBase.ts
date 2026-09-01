@@ -18,8 +18,10 @@ import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
 import type {
+  OasOperationContainerProjection,
   OasOperationProjection,
   OasOperationProjectionConstructorArgs,
+  ToOasOperationContainerArgs,
   ToOasOperationIdentifierNameArgs,
   ToOasOperationExportPathArgs
 } from '@/dsl/operation/oas/types.ts'
@@ -50,6 +52,22 @@ export type OasOperationProjectionBaseConfig<
    */
   toIdentifierType: (operation: OasOperation, context: GenerateContextType) => IdType
   toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
+  /**
+   * Declares this projection a MEMBER: its definition is inserted into the
+   * container this returns, rather than at file level.
+   *
+   * Shaped like its identity siblings, and run on the same cache-check path,
+   * so it must be pure. It returns the container class rather than naming
+   * one, which also defers the reference to call time — a module-level
+   * reference between a member and its container is one more way to build
+   * the load-order cycles a leaf module exists to break.
+   *
+   * A member's file is its container's, so `toExportPath` is not consulted
+   * when this is present.
+   */
+  toContainer?: (
+    args: ToOasOperationContainerArgs<EnrichmentType>
+  ) => OasOperationContainerProjection
   /**
    * Required composite schema for the `{ subject, generator, stack }`
    * enrichment umbrella. Required (not optional) is load-bearing: it is what
@@ -117,6 +135,7 @@ export const toOasOperationProjectionBase = <
     static toIdentifierName = config.toIdentifierName.bind(config)
     static toIdentifierType = config.toIdentifierType.bind(config)
     static toExportPath = config.toExportPath.bind(config)
+    static toContainer = config.toContainer?.bind(config)
 
     static isSupported = config.isSupported ?? (() => true)
 

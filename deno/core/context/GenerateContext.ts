@@ -1553,11 +1553,13 @@ export class GenerateContext implements GenerateContextType {
         ...args.projection.toIdentifierType(args.operation, this)
       }),
       exportPath: this.#toContentSettingsExportPath(
-        args.projection.toExportPath({
-          operation: args.operation,
-          enrichments,
-          variant
-        })
+        // A member has no file of its own: the Driver passes its container's.
+        args.exportPath ??
+          args.projection.toExportPath({
+            operation: args.operation,
+            enrichments,
+            variant
+          })
       ),
       enrichments,
       variant

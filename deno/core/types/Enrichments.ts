@@ -257,3 +257,29 @@ export const emptyEnrichmentSchema: v.GenericSchema<Enrichments<undefined, undef
   })
 
 export type EmptyEnrichments = v.InferOutput<typeof emptyEnrichmentSchema>
+
+/**
+ * A container's enrichment umbrella: the run-constant scopes only.
+ *
+ * A container is a place many subjects insert into, so no one subject's
+ * per-item enrichment describes it — the scope is absent rather than present
+ * and empty, so reading it is a type error instead of a silent read of
+ * whichever member happened to arrive first.
+ */
+export type ContainerEnrichments<Generator = undefined, Stack = undefined> = {
+  generator: Generator
+  stack: Stack
+}
+
+/**
+ * The composite schema a container with no enrichments declares. Sibling of
+ * {@link emptyEnrichmentSchema}, without the subject scope.
+ */
+export const emptyContainerEnrichmentSchema: v.GenericSchema<
+  ContainerEnrichments<undefined, undefined>
+> = v.object({
+  generator: v.undefined(),
+  stack: v.undefined()
+})
+
+export type EmptyContainerEnrichments = v.InferOutput<typeof emptyContainerEnrichmentSchema>
