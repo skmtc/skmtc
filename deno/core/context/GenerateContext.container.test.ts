@@ -259,32 +259,35 @@ Deno.test('isDefinitionContainer is structural, so a value from any module insta
 Deno.test('a container key round-trips and stays disjoint from the webhook key', () => {
   const key = toContainerGeneratorKey({
     generatorId: '@skmtc/gen-kotlin-spring',
-    exportPath: '@/com/example/api/UsersApi.generated.kt',
+    group: 'Users',
     name: 'UsersService'
   })
 
-  assertEquals(key, '@skmtc/gen-kotlin-spring|container|@/com/example/api/UsersApi.generated.kt|UsersService|main')
+  assertEquals(key, '@skmtc/gen-kotlin-spring|container|Users|UsersService|main')
   assertEquals(isContainerGeneratorKey(key), true)
   assertEquals(isWebhookGeneratorKey(key), false)
   assertEquals(toGeneratorId(key), '@skmtc/gen-kotlin-spring')
   assertEquals(fromGeneratorKey(key), {
     type: 'container',
     generatorId: '@skmtc/gen-kotlin-spring',
-    exportPath: '@/com/example/api/UsersApi.generated.kt',
+    group: 'Users',
     name: 'UsersService',
     variant: 'main'
   })
 })
 
-Deno.test('every member of a container computes the same key for it', () => {
-  const forMember = (_operation: string) =>
+Deno.test('every member of a group computes the same key for its container', () => {
+  const forMember = (tag: string) =>
     toContainerGeneratorKey({
       generatorId: '@skmtc/gen-kotlin-spring',
-      exportPath: '@/api/UsersApi.kt',
-      name: 'UsersService'
+      group: tag,
+      name: `${tag}Service`
     })
 
-  assertEquals(forMember('get /users'), forMember('post /users'))
+  // Same group, different subjects — one key.
+  assertEquals(forMember('Users'), forMember('Users'))
+  // Different groups are different containers, even in one file.
+  assertEquals(forMember('Users') === forMember('Orders'), false)
 })
 
 Deno.test('the tag-file shape: members create the container on demand, no accumulating method', () => {

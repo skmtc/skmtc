@@ -12,6 +12,7 @@ import { parseEnrichmentUmbrella } from '@/enrichments/parseEnrichmentUmbrella.t
 import { matchDefinitions } from '@/dsl/CodeFileBase.ts'
 import type {
   IsSupportedOasOperationArgs,
+  ToOasOperationGroupNameArgs,
   ToOasOperationEnrichmentsArgs,
   ToOasOperationExportPathArgs,
   ToOasOperationIdentifierNameArgs
@@ -36,6 +37,18 @@ export type OasOperationContainerBaseConfig<
   IdType extends IdentifierType = IdentifierType
 > = {
   id: string
+  /**
+   * The group this container collects — the operation's tag, its module,
+   * whatever the generator gathers subjects by. Pure, and a function of the
+   * subject like its identity siblings, so every member of a group computes
+   * the same one.
+   *
+   * It is what the container's key is made of. Deriving the key from the
+   * group rather than from where the container lands keeps it saying what
+   * the definition is rather than where it sits, and keeps it stable when a
+   * generator changes its naming or file policy.
+   */
+  toGroupName: (args: ToOasOperationGroupNameArgs<EnrichmentType>) => string
   /** Pure: the cache-key name, a function of the operation's group. */
   toIdentifierName: (args: ToOasOperationIdentifierNameArgs<EnrichmentType>) => string
   /** Runs only on cache-miss. Returns this language's identifier type. */
@@ -89,6 +102,8 @@ export const toOasOperationContainerBase = <
     static id = config.id
     static type = 'oasOperation' as const
 
+    static toGroupName = config.toGroupName.bind(config)
+
     static toIdentifierName = config.toIdentifierName.bind(config)
     static toIdentifierType = config.toIdentifierType.bind(config)
     static toExportPath = config.toExportPath.bind(config)
@@ -122,7 +137,11 @@ export const toOasOperationContainerBase = <
         context: args.context,
         generatorKey: toContainerGeneratorKey({
           generatorId: config.id,
-          exportPath: args.settings.exportPath,
+          group: config.toGroupName({
+            operation: args.operation,
+            enrichments: args.settings.enrichments,
+            variant
+          }),
           name: args.settings.identifier.name,
           variant
         })

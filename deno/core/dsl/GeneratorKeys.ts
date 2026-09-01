@@ -130,17 +130,20 @@ export type NakedWebhookGeneratorKey = `${string}|webhook|${string}|${Method}|${
 
 /**
  * Raw string format for container generator keys:
- * `generatorId|container|exportPath|name|variant`.
+ * `generatorId|container|group|name|variant`.
  *
  * A container is a place, not a subject — many subjects insert members into
- * one — so its key cannot be derived from a subject the way an operation's
- * is. It is derived from the identity the engine has already computed, which
- * every member resolves to identically, and the `generatorId` segment is what
- * the integrity check compares: a second generator claiming that name in that
- * file fails rather than silently inheriting someone else's declaration.
+ * one — so its key cannot name a subject the way an operation's does. It
+ * names the GROUP those subjects share instead: the tag they carry, the
+ * module they belong to, whatever the generator collects them by. Every
+ * member of the group computes the same one, and the `generatorId` segment
+ * is what the integrity check compares, so a second generator claiming that
+ * declaration fails rather than silently inheriting it.
  *
- * The literal `container` segment in position 2 keeps it disjoint from the
- * 5-segment webhook key, whose own discriminator is `webhook`.
+ * `name` distinguishes containers within one group — a tag may produce a
+ * service interface and a controller class. The literal `container` segment
+ * in position 2 keeps the key disjoint from the 5-segment webhook key, whose
+ * own discriminator is `webhook`.
  */
 export type NakedContainerGeneratorKey = `${string}|container|${string}|${string}|${string}`
 
@@ -374,9 +377,9 @@ export const toWebhookGeneratorKey = ({
 export type ToContainerGeneratorKeyArgs = {
   /** The generator that owns the container. */
   generatorId: string
-  /** The file the container is declared in. */
-  exportPath: string
-  /** The container's identifier name. */
+  /** The group its members share — a tag, a module, a service. */
+  group: string
+  /** The container's identifier name, distinguishing it within the group. */
   name: string
   /** Variant the container belongs to (see {@link Variant}). */
   variant?: string
@@ -385,22 +388,21 @@ export type ToContainerGeneratorKeyArgs = {
 /**
  * Build the key for a definition that holds members.
  *
- * `(exportPath, name)` is the same pair the cross-generator cache keys on,
- * so every member computes the same key for the container it inserts into,
- * and the integrity check still catches a different generator claiming that
- * declaration. It does NOT distinguish two container projections of one
- * generator claiming a single name in a single file: they are claiming one
- * identity, which is an authoring error the key space cannot express — core
- * cannot read a declaration's kind, which is opaque to it.
+ * Every member of a group computes the same key for the container it inserts
+ * into, because the group is a function of the subject the same way an
+ * identifier name is. Deriving it from the group rather than from where the
+ * container happens to land keeps the key stable when a generator changes
+ * its file or naming policy, and keeps it saying what the definition IS
+ * rather than where it sits.
  */
 export const toContainerGeneratorKey = ({
   generatorId,
-  exportPath,
+  group,
   name,
   variant = DEFAULT_VARIANT
 }: ToContainerGeneratorKeyArgs): ContainerGeneratorKey => {
   const nakedKey: NakedContainerGeneratorKey =
-    `${generatorId}|container|${exportPath}|${name}|${variant}`
+    `${generatorId}|container|${group}|${name}|${variant}`
 
   return nakedKey as ContainerGeneratorKey
 }
@@ -677,7 +679,7 @@ export const isWebhookGeneratorKey = (arg: unknown): arg is WebhookGeneratorKey 
 /**
  * Type guard to check if a value is a valid {@link ContainerGeneratorKey}.
  *
- * Validates `generatorId|container|exportPath|name|variant`: five
+ * Validates `generatorId|container|group|name|variant`: five
  * pipe-delimited segments with a literal `container` discriminator in
  * position 2. That literal is what keeps it disjoint from the webhook key,
  * which is also five segments but carries `webhook` in the same position.
@@ -693,13 +695,13 @@ export const isContainerGeneratorKey = (arg: unknown): arg is ContainerGenerator
     return false
   }
 
-  const [generatorId, discriminator, exportPath, name, variant] = keyTokens
+  const [generatorId, discriminator, group, name, variant] = keyTokens
 
   if (discriminator !== 'container') {
     return false
   }
 
-  return [generatorId, exportPath, name, variant].every(
+  return [generatorId, group, name, variant].every(
     token => typeof token === 'string' && token.length > 0
   )
 }
@@ -917,8 +919,8 @@ export type GeneratorKeyObject =
       type: 'container'
       /** Generator identifier */
       generatorId: string
-      /** The file the container is declared in */
-      exportPath: string
+      /** The group the container's members share */
+      group: string
       /** The container's identifier name */
       name: string
       /** Container variant name */
@@ -1009,8 +1011,8 @@ export const fromGeneratorKey = (generatorKey: GeneratorKey): GeneratorKeyObject
   }
 
   if (isContainerGeneratorKey(generatorKey)) {
-    const [generatorId, _container, exportPath, name, variant] = generatorKey.split('|')
-    return { type: 'container', generatorId, exportPath, name, variant }
+    const [generatorId, _container, group, name, variant] = generatorKey.split('|')
+    return { type: 'container', generatorId, group, name, variant }
   }
 
   if (isGqlOperationGeneratorKey(generatorKey)) {

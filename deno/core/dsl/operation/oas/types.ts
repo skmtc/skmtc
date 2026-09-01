@@ -74,6 +74,17 @@ export type ToOasOperationIdentifierNameArgs<EnrichmentType = undefined> = {
 }
 
 /**
+ * Arguments for a container projection's `toGroupName` static — the same
+ * `(operation, enrichments, variant)` its identity siblings receive.
+ */
+export type ToOasOperationGroupNameArgs<EnrichmentType = undefined> = {
+  operation: OasOperation
+  enrichments: EnrichmentType
+  /** Variant the group belongs to (see {@link Variant}) */
+  variant: string
+}
+
+/**
  * Arguments for a member projection's `toContainer` static — the same
  * `(operation, enrichments, variant)` its identity siblings receive, and run
  * on the same cache-check path, so it must be pure and cheap.
@@ -103,10 +114,12 @@ export type ToOasOperationExportPathArgs<EnrichmentType = undefined> = {
  * is what makes both of them places.
  */
 // deno-lint-ignore no-explicit-any
-export type OasOperationContainerProjection<EnrichmentType = any> = OasOperationProjection<
-  GeneratedValue & DefinitionContainer,
-  EnrichmentType
->
+export type OasOperationContainerProjection<EnrichmentType = any> =
+  & OasOperationProjection<GeneratedValue & DefinitionContainer, EnrichmentType>
+  & {
+    /** The group its members share — what its key is made of. */
+    toGroupName: (args: ToOasOperationGroupNameArgs<EnrichmentType>) => string
+  }
 
 /**
  * Static structural type of an OAS operation projection class.

@@ -220,7 +220,11 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     if (cached) {
       const currentKey = toContainerGeneratorKey({
         generatorId: container.id,
-        exportPath,
+        group: container.toGroupName({
+          operation: this.operation,
+          enrichments: settings.enrichments,
+          variant: this.variant
+        }),
         name: identifier.name,
         variant: this.variant
       })

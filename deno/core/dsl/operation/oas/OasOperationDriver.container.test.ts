@@ -51,6 +51,7 @@ const toTag = (operation: OasOperation) => operation.tags?.[0] ?? 'Default'
 
 const ServiceBase = toOasOperationContainerBase(TsSnippet, {
   id: '@test/gen-service',
+  toGroupName: ({ operation }) => toTag(operation),
   toIdentifierName: ({ operation }) => `${toTag(operation)}Service`,
   toIdentifierType: () => ({ type: 'variable' }),
   toExportPath: ({ operation }) => `@/api/${toTag(operation)}Api.ts`,
@@ -142,7 +143,7 @@ Deno.test('the container carries an identity key, so every member computes the s
 
   assertEquals(
     container?.generatorKey,
-    '@test/gen-service|container|@/api/UsersApi.generated.ts|UsersService|main'
+    '@test/gen-service|container|Users|UsersService|main'
   )
 })
 
