@@ -7,6 +7,7 @@ import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
+import invariant from 'tiny-invariant'
 import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 
@@ -107,7 +108,9 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       variant,
       // Same reason as the register/findDefinition spreads: a projection with
       // no container is asked for its settings exactly as it always was.
-      ...(insertedContainer ? { exportPath: insertedContainer.settings.exportPath } : {})
+      ...(insertedContainer !== undefined
+        ? { exportPath: insertedContainer.settings.exportPath }
+        : {})
     })
 
     this.definition = this.apply({ destinationPath })
@@ -115,6 +118,17 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
 
   private apply({ destinationPath }: ApplyArgs = {}): GeneratedDefinition<V> {
     const { identifier, exportPath } = this.settings
+
+    // A member is declared inside its container, so it has no module-level
+    // name — an import of it would name a symbol its file never exports, and
+    // the `Inserted.toName()` handed back would be unresolvable. Refusing is
+    // the only honest answer: what a caller wants from another file is the
+    // container, which it can insert itself.
+    invariant(
+      !(this.#into !== undefined && destinationPath),
+      `'${identifier.name}' is declared inside '${this.#into}', so it cannot be ` +
+        `imported into '${destinationPath}'. Insert its container instead.`
+    )
 
     const definition = this.getDefinition({ identifier, exportPath })
 
@@ -157,6 +171,9 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     // A member's place is its container, resolved (and created, on the first
     // member) before the member itself — `register` stores, it never builds
     // a declaration, exactly as it never builds a file.
+    // Presence, not truthiness: a container whose identifier name is empty
+    // would otherwise route the member to file level, silently landing it
+    // beside its container instead of inside it.
     const into = this.#into
 
     // Spread rather than always-pass: a non-member's call shape is exactly
@@ -164,7 +181,7 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     const cachedDefinition = this.context.findDefinition({
       name: identifier.name,
       exportPath,
-      ...(into ? { into } : {})
+      ...(into !== undefined ? { into } : {})
     })
 
     if (this.affirmDefinition<V>(cachedDefinition, exportPath)) {
@@ -188,7 +205,7 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     this.context.register({
       definitions: [definition],
       destinationPath: exportPath,
-      ...(into ? { into } : {})
+      ...(into !== undefined ? { into } : {})
     })
 
     return definition

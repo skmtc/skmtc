@@ -26,6 +26,7 @@ import type {
   InsertOperationArgs,
   InsertWebhookArgs,
   PickArgs,
+  FindDefinitionArgs,
   ContextRegisterArgs,
   RegisterJsonArgs,
   RegisterMarkdownArgs,
@@ -1316,8 +1317,13 @@ export class GenerateContext implements GenerateContextType {
     // `JsonFile` (no definitions/imports) is skipped by the guard.
     if (currentFile instanceof CodeFileBase) {
       // Definitions may land in the file or inside a declaration in it;
-      // imports, re-exports and `custom` are always the file's.
-      const place = into === undefined ? currentFile : this.#toContainer(currentFile, into, normalizedPath)
+      // imports, re-exports and `custom` are always the file's. Resolved
+      // only when a definition is actually placed — `into` alongside
+      // imports alone must not throw for a container nothing needed.
+      const place =
+        into === undefined || !definitions?.length
+          ? currentFile
+          : this.#toContainer(currentFile, into, normalizedPath)
 
       definitions?.forEach(definition => {
         if (definition) {
@@ -1663,7 +1669,7 @@ export class GenerateContext implements GenerateContextType {
    * @param { name, exportPath }
    * @returns Matching definition if found or `undefined` otherwise
    */
-  findDefinition({ name, exportPath, into }: PickArgs): DefinitionBase | undefined {
+  findDefinition({ name, exportPath, into }: FindDefinitionArgs): DefinitionBase | undefined {
     // Pure lookup — no file is created on a miss. Definitions live on the
     // code-file subclass, so narrow; a non-code file (`JsonFile`) has none.
     // The cache wants the single primary for the name → first match.

@@ -7,7 +7,7 @@
  */
 import { assertEquals, assertThrows } from '@std/assert'
 import type * as log from '@std/log'
-import { TsSnippet, createVariable, typescript } from '@skmtc/lang-typescript'
+import { TsDefinition, TsSnippet, createVariable, typescript } from '@skmtc/lang-typescript'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { toOasOperationProjectionBase } from '@/dsl/operation/oas/toOasOperationProjectionBase.ts'
 import { toOasOperationContainerBase } from '@/dsl/operation/oas/toOasOperationContainerBase.ts'
@@ -249,4 +249,66 @@ Deno.test('a projection whose value holds no members is not a container', () => 
 Deno.test('typescript lang is carried through to the container definition', () => {
   assertEquals(ServiceContainer.lang, typescript)
   assertEquals(createVariable('UsersService').name, 'UsersService')
+})
+
+Deno.test('a container applies a duplication rule, as a file does', () => {
+  const getUsers = toOperation('get', '/users', 'Users')
+  const context = createContext([getUsers])
+
+  context.insertOperation({ projection: ServiceMethod, operation: getUsers })
+
+  const path = '@/api/UsersApi.generated.ts'
+  const container = context.findDefinition({ name: 'UsersService', exportPath: path })
+
+  // A second definition of a member already present — what a caller using
+  // `register({ into })` without a preceding lookup produces. A file
+  // collapses the pair, so a container has to as well.
+  context.register({
+    definitions: [
+      new TsDefinition({
+        context,
+        identifier: createVariable('getusers'),
+        value: { toString: () => "() => 'again'" }
+      })
+    ],
+    destinationPath: path,
+    into: 'UsersService'
+  })
+
+  const members = (container?.value as ServiceContainer).definitions
+
+  assertEquals(members.map(member => member.identifier.name), ['getusers'])
+})
+
+Deno.test('an overridden toGroupName changes the key the container is stored under', () => {
+  class RegroupedContainer extends ServiceContainer {
+    static override toGroupName = () => 'Regrouped'
+  }
+
+  const getUsers = toOperation('get', '/users', 'Users')
+  const context = createContext([getUsers])
+
+  const inserted = context.insertOperation({ projection: RegroupedContainer, operation: getUsers })
+
+  assertEquals(
+    inserted.definition.generatorKey,
+    '@test/gen-service|container|Regrouped|UsersService|main'
+  )
+})
+
+Deno.test('a member cannot be imported into another file', () => {
+  const getUsers = toOperation('get', '/users', 'Users')
+  const context = createContext([getUsers])
+
+  // A member has no module-level name, so there is nothing to import.
+  assertThrows(
+    () =>
+      context.insertOperation({
+        projection: ServiceMethod,
+        operation: getUsers,
+        destinationPath: '@/routes/router.ts'
+      }),
+    Error,
+    'cannot be imported into'
+  )
 })

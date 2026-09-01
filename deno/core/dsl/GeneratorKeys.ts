@@ -402,10 +402,23 @@ export const toContainerGeneratorKey = ({
   variant = DEFAULT_VARIANT
 }: ToContainerGeneratorKeyArgs): ContainerGeneratorKey => {
   const nakedKey: NakedContainerGeneratorKey =
-    `${generatorId}|container|${group}|${name}|${variant}`
+    `${generatorId}|container|${escapeKeySegment(group)}|${escapeKeySegment(name)}|${variant}`
 
   return nakedKey as ContainerGeneratorKey
 }
+
+/**
+ * A group is whatever the generator groups by, and an OpenAPI tag is free
+ * text — `Users | Admin` is not unusual. An unescaped `|` would add a
+ * segment, so the key would still compare equal to itself and group
+ * correctly, while `isContainerGeneratorKey` rejected it on arity and
+ * `fromGeneratorKey` fell through to `generator-only` with the whole key
+ * as the generator id. Attribution would then record that, with nothing
+ * reporting a problem.
+ */
+const escapeKeySegment = (segment: string): string => segment.replaceAll('|', '%7C')
+
+const unescapeKeySegment = (segment: string): string => segment.replaceAll('%7C', '|')
 
 /**
  * Arguments for {@link toGqlOperationGeneratorKey}.
@@ -1012,7 +1025,13 @@ export const fromGeneratorKey = (generatorKey: GeneratorKey): GeneratorKeyObject
 
   if (isContainerGeneratorKey(generatorKey)) {
     const [generatorId, _container, group, name, variant] = generatorKey.split('|')
-    return { type: 'container', generatorId, group, name, variant }
+    return {
+      type: 'container',
+      generatorId,
+      group: unescapeKeySegment(group),
+      name: unescapeKeySegment(name),
+      variant
+    }
   }
 
   if (isGqlOperationGeneratorKey(generatorKey)) {

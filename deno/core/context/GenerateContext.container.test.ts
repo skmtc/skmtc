@@ -76,7 +76,11 @@ class TestDefinition extends DefinitionBase {
   }
 }
 
-/** A value that holds members — what makes its definition a place. */
+/**
+ * A value that holds members — what makes its definition a place. A stub:
+ * the duplication rule belongs to the real container base, and is covered
+ * where that is exercised.
+ */
 class TestContainerValue {
   members: DefinitionBase[] = []
 
@@ -342,4 +346,35 @@ Deno.test('the tag-file shape: members create the container on demand, no accumu
     'UsersService = { getUsersId = plain, postUsers = plain }\n' +
       'UsersController = { getUsersId = plain, postUsers = plain }'
   )
+})
+
+Deno.test('`into` alongside imports alone does not resolve a container', () => {
+  const context = createContext()
+  const path = '@/api/UsersApi.kt'
+
+  context.addFile(new TestFile({ path }))
+
+  // Nothing is being placed, so nothing needs a place — naming one that does
+  // not exist must not throw.
+  context.register({ destinationPath: path, into: 'NoSuchService' })
+  context.register({ definitions: [], destinationPath: path, into: 'NoSuchService' })
+})
+
+Deno.test('a group containing the key delimiter stays parseable', () => {
+  const key = toContainerGeneratorKey({
+    generatorId: '@skmtc/gen-kotlin-spring',
+    // An OpenAPI tag is free text.
+    group: 'Users | Admin',
+    name: 'UsersService'
+  })
+
+  assertEquals(isContainerGeneratorKey(key), true)
+  assertEquals(toGeneratorId(key), '@skmtc/gen-kotlin-spring')
+  assertEquals(fromGeneratorKey(key), {
+    type: 'container',
+    generatorId: '@skmtc/gen-kotlin-spring',
+    group: 'Users | Admin',
+    name: 'UsersService',
+    variant: 'main'
+  })
 })

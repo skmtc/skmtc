@@ -409,6 +409,17 @@ export type PickArgs = {
   name: string
   /** The file path where the export should be made available */
   exportPath: string
+}
+
+/**
+ * Arguments for `GenerateContext.findDefinition`.
+ *
+ * Deliberately not {@link PickArgs}, which `RenderContext.pick` also takes:
+ * `pick` reads file-level definitions only, so sharing one type would let
+ * `into` be passed there and silently ignored — returning nothing, or an
+ * unrelated file-level declaration that happens to share the name.
+ */
+export type FindDefinitionArgs = PickArgs & {
   /**
    * Name of a declaration in that file to look inside, rather than the file
    * itself. A member and a top-level declaration may share a name without
@@ -590,7 +601,7 @@ export type GenerateContextType = {
     variant
   }: BuildModelSettingsArgs<V, EnrichmentType>) => ContentSettings<EnrichmentType>
   resolveSchemaRefOnce: (refName: RefName, generatorId: string) => OasSchema | OasRef<'schema'>
-  findDefinition: ({ name, exportPath }: PickArgs) => DefinitionBase | undefined
+  findDefinition: ({ name, exportPath, into }: FindDefinitionArgs) => DefinitionBase | undefined
   /**
    * The recording enrichment accessor — the single choke point every
    * enrichment lookup routes through. Reads the node at

@@ -7,6 +7,7 @@ import type { FindDefinitionsQuery } from '@/dsl/CodeFileBase.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
 import { toContainerGeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 import { parseEnrichmentUmbrella } from '@/enrichments/parseEnrichmentUmbrella.ts'
 import { matchDefinitions } from '@/dsl/CodeFileBase.ts'
@@ -99,24 +100,33 @@ export const toOasOperationContainerBase = <
   base: LangSnippetConstructor,
   config: OasOperationContainerBaseConfig<EnrichmentType, IdType>
 ) => {
-  const toGeneratorKey = ({ operation, settings }: ToGeneratorKeyArgs<EnrichmentType>) => {
-    const variant = settings.variant ?? DEFAULT_VARIANT
-
-    return toContainerGeneratorKey({
-      generatorId: config.id,
-      group: config.toGroupName({ operation, enrichments: settings.enrichments, variant }),
-      name: settings.identifier.name,
-      variant
-    })
-  }
-
   return class extends base {
     static id = config.id
     static type = 'oasOperation' as const
 
     static toGroupName = config.toGroupName.bind(config)
-    /** Keyed on the group, so every member of it computes the same key. */
-    static toGeneratorKey = toGeneratorKey
+
+    /**
+     * Keyed on the group, so every member of it computes the same key.
+     *
+     * A method rather than a field, and reading `toGroupName` through
+     * `this`: a subclass overriding the group — the normal way a cloned
+     * generator adjusts one policy — must change the key the container is
+     * stored under, not just what callers are told.
+     */
+    static toGeneratorKey({
+      operation,
+      settings
+    }: ToGeneratorKeyArgs<EnrichmentType>): GeneratorKey {
+      const variant = settings.variant ?? DEFAULT_VARIANT
+
+      return toContainerGeneratorKey({
+        generatorId: config.id,
+        group: this.toGroupName({ operation, enrichments: settings.enrichments, variant }),
+        name: settings.identifier.name,
+        variant
+      })
+    }
 
     static toIdentifierName = config.toIdentifierName.bind(config)
     static toIdentifierType = config.toIdentifierType.bind(config)
@@ -147,19 +157,45 @@ export const toOasOperationContainerBase = <
     constructor(args: OasOperationContainerConstructorArgs<EnrichmentType>) {
       super({
         context: args.context,
-        generatorKey: toGeneratorKey({ operation: args.operation, settings: args.settings })
+        // `new.target` is the most-derived class, so a subclass override of
+        // `toGroupName` reaches the key the value actually carries.
+        generatorKey: (new.target as unknown as {
+          toGeneratorKey: (args: ToGeneratorKeyArgs<EnrichmentType>) => GeneratorKey
+        }).toGeneratorKey({ operation: args.operation, settings: args.settings })
       })
 
       this.operation = args.operation
       this.settings = args.settings
     }
 
-    /** {@link import('@/dsl/DefinitionContainer.ts').DefinitionContainer} */
+    /**
+     * {@link import('@/dsl/DefinitionContainer.ts').DefinitionContainer}
+     *
+     * Re-adding a member already present is a no-op, keyed the way a file
+     * keys its own duplication rule
+     * ({@link import('@/dsl/IdentifierBase.ts').IdentifierBase.declarationKey}).
+     * Without it a container and a file disagree about duplicates, and a
+     * second registration of one member renders it twice.
+     */
     addDefinition(definition: DefinitionBase): void {
+      const key = definition.identifier.declarationKey()
+
+      if (this.definitions.some(member => member.identifier.declarationKey() === key)) {
+        return
+      }
+
       this.definitions.push(definition)
     }
 
-    /** {@link import('@/dsl/DefinitionContainer.ts').DefinitionContainer} */
+    /**
+     * {@link import('@/dsl/DefinitionContainer.ts').DefinitionContainer}
+     *
+     * `name` only. A declaration's `type` is the language's, readable just
+     * from its own identifier subclass, which core cannot name — so the
+     * extractor here always answers `undefined` and a `type` filter would
+     * silently match nothing. A language veneer that narrows the identifier
+     * should override this to answer both, the way its file class does.
+     */
     findDefinitions(query?: FindDefinitionsQuery): DefinitionBase[] | undefined {
       return matchDefinitions(this.definitions, query, () => undefined)
     }
