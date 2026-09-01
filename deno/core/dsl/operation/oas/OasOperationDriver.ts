@@ -34,6 +34,12 @@ type ApplyArgs = {
   destinationPath?: string
 }
 
+/** A container projection with the settings it resolved to for this insert. */
+type ResolvedContainer = {
+  projection: OasOperationContainerProjection
+  settings: ContentSettings<unknown>
+}
+
 type GetDefinitionArgs = {
   identifier: IdentifierBase
   exportPath: string
@@ -57,9 +63,16 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
   definition: GeneratedDefinition<V>
   noExport?: boolean
   variant: string
-  /** The container this projection declared, resolved once per insert. */
-  container: OasOperationContainerProjection | undefined
-  containerSettings: ContentSettings<unknown> | undefined
+  /**
+   * The container this projection declared, resolved once per insert.
+   *
+   * Cached rather than recomputed in {@link OasOperationDriver.ensureContainer}
+   * because resolving it reads enrichments, and reads are recorded for the
+   * consumption audit — doing it twice would report the same key consumed
+   * twice. One field rather than two: the projection and its settings are
+   * resolved together or not at all.
+   */
+  #container: ResolvedContainer | undefined
 
   constructor({
     context,
@@ -88,18 +101,21 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     // A member's place is declared on the projection, like its name and its
     // file are — resolved here so the member's own settings can take the
     // container's export path rather than restating it.
-    this.container = projection.toContainer?.({
+    const container = projection.toContainer?.({
       operation,
       enrichments: projection.toEnrichments({ operation, context, variant }),
       variant
     })
 
-    const containerSettings = this.container
-      ? this.context.toOperationContentSettings({
-          operation,
-          projection: this.container,
-          variant
-        })
+    this.#container = container
+      ? {
+          projection: container,
+          settings: this.context.toOperationContentSettings({
+            operation,
+            projection: container,
+            variant
+          })
+        }
       : undefined
 
     this.settings = this.context.toOperationContentSettings({
@@ -108,10 +124,8 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       variant,
       // Same reason as the register/findDefinition spreads: a projection with
       // no container is asked for its settings exactly as it always was.
-      ...(containerSettings ? { exportPath: containerSettings.exportPath } : {})
+      ...(this.#container ? { exportPath: this.#container.settings.exportPath } : {})
     })
-
-    this.containerSettings = containerSettings
 
     this.definition = this.apply({ destinationPath })
   }
@@ -160,7 +174,7 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     // A member's place is its container, resolved (and created, on the first
     // member) before the member itself — `register` stores, it never builds
     // a declaration, exactly as it never builds a file.
-    const into = this.container ? this.ensureContainer() : undefined
+    const into = this.#container ? this.ensureContainer(this.#container) : undefined
 
     // Spread rather than always-pass: a non-member's call shape is exactly
     // what it was, so nothing downstream sees a key it never had.
@@ -207,12 +221,7 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
    * disagrees with the member's is a bug in one of the two `toExportPath`
    * functions and is reported rather than silently split across files.
    */
-  private ensureContainer(): string {
-    const container = this.container
-    const settings = this.containerSettings
-
-    invariant(container && settings, 'ensureContainer called without a container')
-
+  private ensureContainer({ projection: container, settings }: ResolvedContainer): string {
     const { identifier, exportPath } = settings
 
     const cached = this.context.findDefinition({ name: identifier.name, exportPath })
