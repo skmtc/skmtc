@@ -138,7 +138,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
   {
     name: 'status',
     description:
-      'Classify every generated file against the generated lock: clean / modified (hand-edited, protected from overwrite) / missing / unverified, plus orphaned files spared from pruning. Read-only.',
+      'Classify every generated file against the generated lock: clean / modified (hand-edited, and overwritten by the next generate — `eject` is what makes a file yours) / missing / unverified, plus orphaned files spared from pruning. Read-only.',
     args: ['<project>'],
     flags: [
       { flag: '--json', description: 'Emit structured JSON output.' },
