@@ -1,6 +1,18 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import * as v from 'valibot'
-export type GetRefFn = (ref: OpenAPIV3.ReferenceObject) => OpenAPIV3.SchemaObject
+/**
+ * Resolves a `$ref` to its schema, carrying the set of pointers already being
+ * expanded above it.
+ *
+ * The path rides on the resolver rather than being a separate parameter so that
+ * the eight modules which merely forward `getRef` — the per-type constraint
+ * mergers, `merge-properties`, `generic-merge` — propagate it without knowing it
+ * exists. Only the three places that actually dereference need to consult it.
+ */
+export type GetRefFn = ((ref: OpenAPIV3.ReferenceObject) => OpenAPIV3.SchemaObject) & {
+  /** `$ref` pointers being expanded on the current path. Absent at the root. */
+  readonly expanding?: ReadonlySet<string>
+}
 
 export type OneOfObject = {
   oneOf?: (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]
