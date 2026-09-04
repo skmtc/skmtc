@@ -3,6 +3,7 @@ import type { GetRefFn, SchemaOrReference, SchemaObject } from './types.ts'
 import { mergeSchemasOrRefs } from './merge.ts'
 import { crossProduct } from './cross-product.ts'
 import { isRef } from '@/helpers/refFns.ts'
+import { isExpanding, whileExpanding } from './ref-expansion.ts'
 type MergeUnionArgs = {
   schema: SchemaObject
   getRef: GetRefFn
@@ -25,14 +26,20 @@ export const mergeUnion = ({ schema, getRef, groupType }: MergeUnionArgs): Schem
   //   return result
   // }
 
-  const dereffed = decomposed.map(decomposed => {
-    return '$ref' in decomposed ? getRef(decomposed) : decomposed
-  })
+  // As in `mergeIntersection`: dereference inside the reduce so a member stays
+  // paired with its `$ref` for the duration of its own expansion.
+  const result = decomposed.reduce<SchemaObject>((acc, member) => {
+    if (!('$ref' in member)) {
+      return mergeCrossProduct({ first: acc, second: member, getRef, groupType })
+    }
 
-  const result = dereffed.reduce<SchemaObject>((acc, decomposed) => {
-    const merged = mergeCrossProduct({ first: acc, second: decomposed, getRef, groupType })
+    if (isExpanding(member)) {
+      return acc
+    }
 
-    return merged
+    return whileExpanding(member, () =>
+      mergeCrossProduct({ first: acc, second: getRef(member), getRef, groupType })
+    )
   }, {} as SchemaObject)
 
   const output = {

@@ -18,6 +18,7 @@ import { mergeIntersection } from './merge-intersection.ts'
 import { mergeCrossProduct } from './merge-union.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
 import { isNullOnly, mergeNullOnly } from './nullable-merge.ts'
+import { isExpanding, whileExpanding } from './ref-expansion.ts'
 
 export const mergeSchemasOrRefs = (
   first: SchemaOrReference,
@@ -177,6 +178,21 @@ const typedMerge = (first: SchemaObject, second: SchemaObject, getRef: GetRefFn)
   throw new Error(`Cannot merge schemas with type "${first.type}" with type "${second.type}"`)
 }
 
+/**
+ * Dereference `ref` AND flatten any `allOf` in its body, both inside the
+ * caller's expansion window.
+ *
+ * `genericMerge` spreads its inputs, so an `allOf` left on a dereferenced body
+ * is copied into the merge result and escapes to be expanded later — by which
+ * time the ref is no longer marked open and the cycle guard cannot see it.
+ * Flattening here keeps every expansion inside the window that guards it.
+ */
+const expandRef = (ref: ReferenceObject, getRef: GetRefFn): SchemaOrReference => {
+  const body = getRef(ref)
+
+  return containsAllOf(body) ? mergeIntersection({ schema: body, getRef }) : body
+}
+
 const mergeWithRef = (
   first: SchemaOrReference,
   second: SchemaOrReference,
@@ -188,21 +204,47 @@ const mergeWithRef = (
         ...first,
         ...second
       }
-    } else {
-      return mergeSchemas(getRef(first), getRef(second), getRef)
     }
+
+    // A ref already open on this path contributes nothing further, so the merge
+    // degenerates to whichever side can still be expanded.
+    if (isExpanding(first)) {
+      return isExpanding(second) ? first : second
+    }
+
+    if (isExpanding(second)) {
+      return first
+    }
+
+    return whileExpanding(first, () =>
+      whileExpanding(second, () =>
+        mergeSchemasOrRefs(expandRef(first, getRef), expandRef(second, getRef), getRef)
+      )
+    )
   }
 
   if (isRef(first) && !isRef(second)) {
-    const merged = isEmpty(second) ? first : mergeSchemas(getRef(first), second, getRef)
+    if (isEmpty(second)) {
+      return first
+    }
 
-    return merged
+    if (isExpanding(first)) {
+      return second
+    }
+
+    return whileExpanding(first, () => mergeSchemasOrRefs(expandRef(first, getRef), second, getRef))
   }
 
   if (!isRef(first) && isRef(second)) {
-    const merged = isEmpty(first) ? second : mergeSchemas(first, getRef(second), getRef)
+    if (isEmpty(first)) {
+      return second
+    }
 
-    return merged
+    if (isExpanding(second)) {
+      return first
+    }
+
+    return whileExpanding(second, () => mergeSchemasOrRefs(first, expandRef(second, getRef), getRef))
   }
 
   throw new Error('Invalid input')
