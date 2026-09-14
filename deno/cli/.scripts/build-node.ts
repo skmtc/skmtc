@@ -1,4 +1,4 @@
-import { build, emptyDir } from 'jsr:@deno/dnt@0.42.3'
+import { build, emptyDir } from 'jsr:@deno/dnt@0.43.2'
 import denoJson from '../deno.json' with { type: 'json' }
 
 await emptyDir('../../packages/cli')
