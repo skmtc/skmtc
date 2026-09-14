@@ -28,9 +28,15 @@ import type { KtIdentifierType } from './KtIdentifier.ts'
  * {@link KtIdentifierType} (so `toIdentifierType` returns the `type` bound to
  * `KtEntityType`). The base is the factory's first argument, not a config
  * field.
+ *
+ * `ProjectionOptions` — the caller options the projection declares (see
+ * core's `ProjectionOptions`) — is forwarded to the config unchanged.
  */
-export const toKtOasOperationProjectionBase = <EnrichmentType = undefined>(
-  config: OasOperationProjectionBaseConfig<EnrichmentType, KtIdentifierType>
+export const toKtOasOperationProjectionBase = <
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+>(
+  config: OasOperationProjectionBaseConfig<EnrichmentType, KtIdentifierType, ProjectionOptions>
 ) => {
   return class extends toOasOperationProjectionBase(KtSnippet, config) {
     /**

@@ -29,9 +29,12 @@ import type { KtIdentifierType } from './KtIdentifier.ts'
  * The companion operation veneer {@link toKtOasOperationProjectionBase} has
  * arrived (the OAS veneer now exists, driven by gen-kotlin-sdk's Response
  * models).
+ *
+ * `ProjectionOptions` — the caller options the projection declares (see
+ * core's `ProjectionOptions`) — is forwarded to the config unchanged.
  */
-export const toKtModelProjectionBase = <EnrichmentType = undefined>(
-  config: ModelProjectionBaseConfig<EnrichmentType, KtIdentifierType>
+export const toKtModelProjectionBase = <EnrichmentType = undefined, ProjectionOptions = undefined>(
+  config: ModelProjectionBaseConfig<EnrichmentType, KtIdentifierType, ProjectionOptions>
 ) => {
   return class extends toModelProjectionBase(KtSnippet, config) {
     /**
