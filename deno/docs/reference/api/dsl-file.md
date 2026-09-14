@@ -194,16 +194,31 @@ const normalizeModuleName = (args: NormalizeModuleNameArgs): string
 
 Pure function used by `TsFile.toString()` to translate file-system
 paths into package-name imports for monorepos. Not part of the
-public `@skmtc/lang-typescript` export surface. Three cases:
+public `@skmtc/lang-typescript` export surface. It composes
+`matchPackage` from `@skmtc/core` (which package roots hold the
+target) with `toAliasPath` (the intra-package `@/…` path). Three
+cases:
 
 | Situation | Result |
 |---|---|
-| `exportPath` lies inside a configured package, and `destinationPath` lies in the same package | `rootPath` is replaced with `@`, so `./packages/types/models/User.ts` becomes `@/models/User.ts` |
+| `exportPath` lies inside a configured package, and `destinationPath` lies in the same package | the package `rootPath` is replaced with `@`, so `packages/types/models/User.ts` becomes `@/models/User.ts` |
 | `exportPath` lies inside a configured package, but `destinationPath` does not | the package's `moduleName` is returned (e.g., `@company/types`) |
-| No package match | `exportPath` is returned unchanged |
+| No package match | `exportPath` is returned unchanged — a bare specifier (`zod`), or the workspace-root `@/…` of a project without `packages` |
 
-Throws if a package matches by `rootPath` but has no `moduleName`
-configured. See
+A root is a folder, compared in canonical spelling: `./packages/sdk/`,
+`@/packages/sdk` and `packages/sdk` are one root, and `packages/sdk`
+does not contain `packages/sdk-legacy`. Roots may nest — a nested root
+is a subpath export of the package around it. The *outermost* root
+containing the target decides whether the import is intra-package (so
+every file in the package shares one `@`), and the *innermost* root's
+`moduleName` is what a file outside the package writes
+(`@company/sdk/models`). The order of `packages` does not matter.
+
+Throws when the target's package (for a subpath, the nested root) has
+no `moduleName` and the importer is outside it; the message names the
+root and, for a nested root, the subpath name to set. See
+[projects-and-workspaces.md](../../concepts/projects-and-workspaces.md#how-a-file-is-routed)
+for the routing model and
 [clone-vs-install.md](../../concepts/clone-vs-install.md) for how
 `packages: ModulePackage[]` is configured.
 

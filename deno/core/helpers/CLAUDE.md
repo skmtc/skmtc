@@ -16,6 +16,21 @@ context-dependent state; nothing that touches `GenerateContext`.
   `GenerateContext.#runOasOperationGenerator` and
   `#runGqlOperationGenerator`.
 
+**Workspace-path helpers** (every reader of `settings.packages` and of
+artifact paths goes through these — never re-implement the strip):
+
+- `toWorkspacePath(path)` — the canonical workspace-relative spelling:
+  drops a leading `@/` or `./` and a trailing `/`; the workspace root
+  itself is `''`. A bare specifier (`zod`, `@tanstack/query`) passes
+  through untouched.
+- `isUnderRoot({path, rootPath})` — folder containment in canonical
+  spelling. A root contains itself and everything below it, never a
+  sibling that shares the prefix.
+- `matchPackage({path, packages})` — the package roots containing a
+  path as `{outermost, innermost}` (roots may nest: a nested root is a
+  subpath export). Used by `lang-typescript/normalizeModuleName` and
+  `lang-kotlin/toPackageName`.
+
 **Naming and string helpers:**
 
 - `strings.ts` — `capitalize`, `decapitalize`.

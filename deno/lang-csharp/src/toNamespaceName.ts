@@ -1,4 +1,5 @@
 import { dirname } from '@std/path/dirname'
+import { toWorkspacePath } from '@skmtc/core'
 import { csHardKeywords, isCsIdentifierName } from './hardKeywords.ts'
 
 /**
@@ -20,7 +21,7 @@ import { csHardKeywords, isCsIdentifierName } from './hardKeywords.ts'
  * `validateDestinationPath`.
  */
 export const toNamespaceName = (path: string): string => {
-  const withoutRoot = path.replace(/^(@\/|\.\/)/, '')
+  const withoutRoot = toWorkspacePath(path)
 
   const directory = dirname(withoutRoot)
 

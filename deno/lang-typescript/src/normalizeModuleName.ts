@@ -1,4 +1,5 @@
-import type { ModulePackage } from '@skmtc/core'
+import { isUnderRoot, matchPackage, type ModulePackage, type PackageMatch } from '@skmtc/core'
+import { toAliasPath } from '@/src/toAliasPath.ts'
 
 /**
  * Arguments for the {@link normalizeModuleName} function.
@@ -15,14 +16,33 @@ export type NormalizeModuleNameArgs = {
 /**
  * Normalizes module import/export paths based on package configuration.
  *
- * This function handles path resolution for complex project structures with
- * multiple packages. It converts file system paths to appropriate module
- * names based on:
- * - Whether the destination and export paths are in the same package
- * - Package-specific module naming conventions
- * - Root path truncation for intra-package imports
+ * Decides how an import of `exportPath` is written in the file at
+ * `destinationPath`:
  *
- * @throws {Error} When a matching package is found but has no moduleName configured
+ * - **no package contains the target** → `exportPath` as given. That covers a
+ *   bare specifier (`zod`, `@tanstack/query`) and, for an importer outside
+ *   every package too, the workspace-root `@/models/User.ts` a generator
+ *   wrote — the consumer's `tsconfig` maps that `@/` to `basePath`. An
+ *   importer *inside* a package cannot write that: its `@/` is the package
+ *   root, so the target's folder must be a package root as well.
+ * - **importer and target in the same package** → `@/` relative to the
+ *   package root ({@link toAliasPath}).
+ * - **importer outside the package** → the package's `moduleName`.
+ *
+ * Package roots may nest. A nested root is a **subpath export** of the
+ * package that contains it: files under it share the outer package's `@`
+ * alias, and a file outside the package imports them by the nested root's
+ * `moduleName` — `@company/sdk/models` rather than `@company/sdk`. So the
+ * outermost root containing the target decides whether an import is
+ * intra-package, and the innermost decides what an outside importer writes
+ * ({@link matchPackage}). The order of `packages` does not matter, and neither
+ * does path spelling: `@/packages/sdk`, `./packages/sdk/` and `packages/sdk`
+ * are one root.
+ *
+ * @throws {Error} When the target sits in a package the importer is outside
+ *   of and that package (for a subpath, the nested root) has no `moduleName`;
+ *   or when the importer is in a package and the target is a workspace-root
+ *   (`@/`, `./`) path under no package
  *
  * @example Cross-package import
  * ```typescript
@@ -49,6 +69,24 @@ export type NormalizeModuleNameArgs = {
  * console.log(normalized); // '@/models/User.ts' (truncates root path)
  * ```
  *
+ * @example Subpath export (nested roots)
+ * ```typescript
+ * const packages = [
+ *   { rootPath: './packages/sdk/src', moduleName: '@company/sdk' },
+ *   { rootPath: './packages/sdk/src/models', moduleName: '@company/sdk/models' }
+ * ];
+ * normalizeModuleName({
+ *   destinationPath: './packages/sdk/src/client/getUser.ts',
+ *   exportPath: './packages/sdk/src/models/User.ts',
+ *   packages
+ * }); // '@/models/User.ts' — inside the package, one alias
+ * normalizeModuleName({
+ *   destinationPath: './apps/api/src/routes/users.ts',
+ *   exportPath: './packages/sdk/src/models/User.ts',
+ *   packages
+ * }); // '@company/sdk/models' — outside it, the subpath
+ * ```
+ *
  * @example No package match (returns original path)
  * ```typescript
  * const normalized = normalizeModuleName({
@@ -62,26 +100,60 @@ export type NormalizeModuleNameArgs = {
 export const normalizeModuleName = ({
   destinationPath,
   exportPath,
-  packages = []
+  packages
 }: NormalizeModuleNameArgs): string => {
-  const matchingModule = packages.find(packageModule => {
-    return exportPath.startsWith(packageModule.rootPath)
-  })
+  const match = matchPackage({ path: exportPath, packages })
 
-  if (!matchingModule) {
+  if (!match) {
+    const importer = isWorkspaceSpelled(exportPath)
+      ? matchPackage({ path: destinationPath, packages })
+      : undefined
+
+    if (importer) {
+      throw new Error(
+        `'${destinationPath}' is in package root '${importer.outermost.rootPath}' but imports ` +
+          `'${exportPath}', which is under no package root. A package file resolves '@/' from ` +
+          `its own root, so add a package root containing '${exportPath}' to settings.packages.`
+      )
+    }
+
     return exportPath
   }
 
-  const { rootPath, moduleName } = matchingModule
-
-  // When importing from within same package, truncate the root path and denote root with '@'
-  if (destinationPath.startsWith(rootPath)) {
-    return exportPath.replace(rootPath, '@')
+  if (isUnderRoot({ path: destinationPath, rootPath: match.outermost.rootPath })) {
+    return toAliasPath({ path: exportPath, rootPath: match.outermost.rootPath })
   }
 
-  if (!moduleName) {
-    throw new Error(`Module name is not set for ${rootPath}`)
+  if (!match.innermost.moduleName) {
+    throw new Error(toMissingModuleNameMessage({ match, destinationPath, exportPath }))
   }
 
-  return moduleName
+  return match.innermost.moduleName
+}
+
+/** Spelled from the workspace root — an artifact path, never a bare specifier. */
+const isWorkspaceSpelled = (path: string): boolean => /^(@\/|\.\/)/.test(path)
+
+type ToMissingModuleNameMessageArgs = {
+  match: PackageMatch
+  destinationPath: string
+  exportPath: string
+}
+
+const toMissingModuleNameMessage = ({
+  match: { outermost, innermost },
+  destinationPath,
+  exportPath
+}: ToMissingModuleNameMessageArgs): string => {
+  const message =
+    `Package root '${innermost.rootPath}' has no moduleName, but '${destinationPath}' imports ` +
+    `'${exportPath}' from outside it. Set moduleName on that root in settings.packages`
+
+  if (outermost === innermost || !outermost.moduleName) {
+    return `${message}.`
+  }
+
+  const subpath = innermost.rootPath.slice(outermost.rootPath.length + 1)
+
+  return `${message} — a nested root is a subpath export and needs its own name, like '${outermost.moduleName}/${subpath}'.`
 }

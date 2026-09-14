@@ -23,6 +23,7 @@
 
 import { dirname, join, resolve, SEPARATOR } from '@std/path'
 import type { ClientSettings } from '@skmtc/core/Settings'
+import { toWorkspacePath } from '@skmtc/core'
 
 type AnchorDirs = {
   floorDir: string
@@ -46,7 +47,9 @@ export const toAnchorDirs = (
 
   const floorDir = resolve(join(appRoot, basePath))
   const protectedDirs = new Set(
-    (settings?.packages ?? []).map(pkg => resolve(join(appRoot, basePath, pkg.rootPath)))
+    (settings?.packages ?? []).map(pkg =>
+      resolve(join(appRoot, basePath, toWorkspacePath(pkg.rootPath)))
+    )
   )
 
   return { floorDir, protectedDirs }

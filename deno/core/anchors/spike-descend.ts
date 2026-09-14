@@ -15,6 +15,7 @@ import { join } from '@std/path'
 import * as v from 'valibot'
 import { oxcAdapter } from './oxcAdapter.ts'
 import { sidecarSchema } from './sidecar.ts'
+import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
 
 const normalize = (text: string): string =>
   text
@@ -47,7 +48,7 @@ const tally = {
 for await (const entry of walk(mapsDir, { includeDirs: false, exts: ['.json'] })) {
   if (!entry.path.endsWith('.skm.json')) continue
   const sidecar = v.parse(sidecarSchema, JSON.parse(await Deno.readTextFile(entry.path)))
-  const relative = sidecar.f.startsWith('@/') ? sidecar.f.slice(2) : sidecar.f
+  const relative = toWorkspacePath(sidecar.f)
   let rawText: string
   let formattedText: string
   try {

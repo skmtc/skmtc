@@ -52,6 +52,7 @@
 import { type GeneratorEnrichments, generatorEnrichments } from './Enrichments.ts'
 import * as v from 'valibot'
 import { type Method, method } from './Method.ts'
+import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
 
 /**
  * Whether a relative path contains a `..` parent-reference segment.
@@ -81,6 +82,46 @@ export const modulePackage: v.GenericSchema<ModulePackage> = v.object({
   ),
   moduleName: v.optional(v.string())
 })
+
+/**
+ * Valibot schema for `settings.packages` as a whole.
+ *
+ * Roots are folders compared in canonical spelling ({@link toWorkspacePath}),
+ * so two entries for one folder are a mistake however they are spelled, and
+ * the workspace root itself is not a package root — with no `packages` every
+ * file already imports through the workspace alias, and a root holding every
+ * path would also hold every bare module specifier. Roots may nest: a nested
+ * root is a subpath export of the package around it.
+ */
+export const modulePackages: v.GenericSchema<ModulePackage[]> = v.pipe(
+  v.array(modulePackage),
+  v.rawCheck(({ dataset, addIssue }) => {
+    if (!dataset.typed) return
+
+    const seen = new Map<string, string>()
+
+    for (const { rootPath } of dataset.value) {
+      const canonical = toWorkspacePath(rootPath)
+      const previous = seen.get(canonical)
+
+      if (canonical === '') {
+        addIssue({
+          message:
+            `package rootPath '${rootPath}' is the workspace root — a package root is a folder ` +
+            `below basePath; leave packages unset to import everything through '@/' from basePath`
+        })
+      } else if (previous !== undefined) {
+        addIssue({
+          message:
+            `package rootPath '${rootPath}' is already listed as '${previous}' — ` +
+            `each package root appears once; roots may nest, but not repeat`
+        })
+      }
+
+      seen.set(canonical, rootPath)
+    }
+  })
+)
 
 /**
  * Configuration for a module package in the generation output.
@@ -207,7 +248,7 @@ export const anchorsSettings: v.GenericSchema<AnchorsSettings> = v.object({
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   basePath: v.optional(v.string()),
   schemaSource: v.optional(v.string()),
-  packages: v.optional(v.array(modulePackage)),
+  packages: v.optional(modulePackages),
   enrichments: v.optional(generatorEnrichments),
   include: v.optional(v.array(include)),
   skip: v.optional(v.array(skip)),

@@ -336,22 +336,54 @@ Two resolutions — **where the file lands on disk** and **how an import to it
 renders**.
 
 **On disk.** `toResolvedArtifactPath` is `join(basePath, exportPath)`. A
-generator targeting a package returns a `toExportPath` that is a forward path
-under that package's `rootPath` (e.g. `packages/models/src/User.ts`); joined
-onto `basePath` it lands in the right place. No `..`.
+generator targeting a package returns a `toExportPath` under that package's
+`rootPath` — `packages/models/src/User.ts`, or the same path spelled from the
+workspace root, `@/packages/models/src/User.ts`; joined onto `basePath` it
+lands in the right place. No `..`.
 
-**In imports.** `normalizeModuleName` (`dsl/File.ts`) resolves a cross-file
-import three ways:
+**In imports.** `normalizeModuleName` (`@skmtc/lang-typescript`) resolves a
+cross-file import three ways:
 
 - importer and target in the **same package** → intra-package `@/…` (the
   target's `exportPath` with the package `rootPath` replaced by `@`);
 - importer and target in **different packages** → the target package's
   `moduleName`;
-- **no package match** → the raw `exportPath`.
+- **no package match** → the `exportPath` as given (a bare specifier like
+  `zod`, or the workspace-root `@/…` of a project without `packages`).
 
-So `@` is **per-package**, not a single global alias: a file under
+`@` means two things here, and the two never meet. On the way **in**, `@/` is
+Skmtc's **workspace root** — the anchor `toExportPath` writes and
+`toResolvedArtifactPath` joins onto `basePath`; `./` spells the same anchor.
+Package matching strips it, so `@/packages/models/src/User.ts`,
+`./packages/models/src/User.ts` and `packages/models/src/User.ts` are one
+path and `./packages/models/src/` and `packages/models/src` are one root. On
+the way **out**, `@/` is the **package alias** the generated import is written
+with — rooted at the package, not the workspace: a file under
 `packages/models/src` sees `@/` rooted at that package; a file in another
-package importing it gets `@skmtc/models`.
+package importing it gets `@skmtc/models`. The workspace root itself is never
+a package root (a bare specifier is indistinguishable from a forward
+workspace path, so a root holding everything would rewrite `zod`).
+
+**Subpath exports.** Package roots may nest, and a nested root is a subpath
+export of the package around it. The *outermost* root containing the target
+decides whether an import is intra-package — so every file in the package
+shares one `@`, rooted at the package — and the *innermost* root's
+`moduleName` is what a file outside the package writes:
+
+```json
+"packages": [
+  { "rootPath": "packages/sdk/src", "moduleName": "@acme/sdk" },
+  { "rootPath": "packages/sdk/src/models", "moduleName": "@acme/sdk/models" },
+  { "rootPath": "packages/sdk/src/client", "moduleName": "@acme/sdk/client" }
+]
+```
+
+A client function importing a model gets `@/models/User.ts`; a route in
+`apps/api` importing the same model gets `@acme/sdk/models`, which is the
+entry to declare in the package's `package.json#exports`. One package per
+contract, one subpath per consumer shape, no root barrel. The order of the
+`packages` array does not matter, and a root is a folder — `packages/sdk`
+does not contain `packages/sdk-legacy`.
 
 ### Barrels: a re-export-only file
 

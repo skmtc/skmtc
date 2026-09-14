@@ -89,6 +89,27 @@ Deno.test('pruneEmptyDirs - never removes a protected package root', async () =>
   }
 })
 
+Deno.test('toAnchorDirs - a package root is protected in any spelling', async () => {
+  const appRoot = await setup(['packages/models/src/User.ts'])
+  try {
+    for (const rootPath of [
+      '@/packages/models/src',
+      './packages/models/src/',
+      'packages/models/src'
+    ]) {
+      const anchors = toAnchorDirs(appRoot, { basePath: '.', packages: [{ rootPath }] })!
+
+      assertEquals(
+        anchors.protectedDirs,
+        new Set([resolve(join(appRoot, 'packages/models/src'))]),
+        `rootPath '${rootPath}'`
+      )
+    }
+  } finally {
+    await Deno.remove(appRoot, { recursive: true })
+  }
+})
+
 Deno.test('pruneEmptyDirs - dry run reports nested dirs without touching disk', async () => {
   const appRoot = await setup(['src/generated/types/User.ts'])
   try {

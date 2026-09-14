@@ -55,3 +55,42 @@ Deno.test('clientSettings - accepts forward-path packages', () => {
   })
   assertEquals(parsed.packages?.length, 2)
 })
+
+Deno.test('clientSettings - rejects one package root listed twice, however it is spelled', () => {
+  assertThrows(
+    () =>
+      v.parse(clientSettings, {
+        packages: [
+          { rootPath: 'packages/models/src', moduleName: '@app/models' },
+          { rootPath: './packages/models/src/' }
+        ]
+      }),
+    Error,
+    "package rootPath './packages/models/src/' is already listed as 'packages/models/src'"
+  )
+})
+
+Deno.test('clientSettings - rejects the workspace root as a package root', () => {
+  for (const rootPath of ['.', './', '@/', '']) {
+    assertThrows(
+      () => v.parse(clientSettings, { packages: [{ rootPath, moduleName: '@app/root' }] }),
+      Error,
+      'is the workspace root',
+      `rootPath '${rootPath}'`
+    )
+  }
+})
+
+Deno.test('clientSettings - accepts nested roots, named or not', () => {
+  // A nested root is a subpath export. Whether it needs a moduleName is a
+  // language question (TypeScript imports by it, Kotlin does not), so the
+  // schema does not decide it.
+  const parsed = v.parse(clientSettings, {
+    packages: [
+      { rootPath: 'packages/sdk/src/models', moduleName: '@app/sdk/models' },
+      { rootPath: 'packages/sdk/src', moduleName: '@app/sdk' },
+      { rootPath: 'packages/sdk/src/internal' }
+    ]
+  })
+  assertEquals(parsed.packages?.length, 3)
+})
