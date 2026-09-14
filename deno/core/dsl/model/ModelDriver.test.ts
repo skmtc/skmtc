@@ -151,7 +151,7 @@ Deno.test('ModelDriver', async t => {
       assertEquals(driver.refName, refName)
       assertEquals(driver.destinationPath, undefined)
       assertEquals(driver.rootRef, undefined)
-      assertEquals(driver.noExport, undefined)
+      assertEquals(driver.noExport, false)
     })
 
     await t.step('should initialize with all optional parameters', () => {
@@ -206,7 +206,7 @@ Deno.test('ModelDriver', async t => {
 
       assertSpyCalls(context.toModelContentSettings as any, 1)
       assertSpyCall(context.toModelContentSettings as any, 0, {
-        args: [{ refName, projection, variant: 'main' }]
+        args: [{ refName, projection, variant: 'main', options: undefined }]
       })
     })
 

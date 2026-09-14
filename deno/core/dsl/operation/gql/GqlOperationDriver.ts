@@ -6,25 +6,23 @@ import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import type { GenerateContextType } from '@/context/generateTypes.ts'
+import type { GenerateContextType, InsertGqlOperationArgs } from '@/context/generateTypes.ts'
 import { toGqlOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
+import { readProjectionOptions, toValueOptions } from '@/types/ProjectionOptions.ts'
+import isEqual from 'lodash-es/isEqual'
 
-type CreateGqlOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
+/**
+ * The `insertOperation` call plus the context. The Driver defaults
+ * `variant` to `'main'` and `noExport` to `false`, and reads the caller's
+ * options once for the identity statics and the constructor.
+ */
+type CreateGqlOperationArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = InsertGqlOperationArgs<V, EnrichmentType, ProjectionOptions> & {
   context: GenerateContextType
-  projection: GqlOperationProjection<V, EnrichmentType>
-  operation: GqlOperation
-  destinationPath?: string
-  noExport?: boolean
-  /**
-   * Target variant of the projection. The Driver resolves the
-   * peer's enrichment for this variant, asserts the variant exists
-   * (or is the default `'main'` which is always permitted), and
-   * threads it into the projection's `ContentSettings`.
-   * Optional — omitting it means `'main'`, so variants-unaware
-   * callers keep working unchanged.
-   */
-  variant?: string
 }
 
 type ApplyArgs = {
@@ -45,30 +43,39 @@ type GetDefinitionArgs = {
  * cache hit exists, registers the new definition, and stitches an import
  * into `destinationPath` if it differs from the projection's `exportPath`.
  */
-export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undefined> {
+export class GqlOperationDriver<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> {
   context: GenerateContextType
-  projection: GqlOperationProjection<V, EnrichmentType>
+  projection: GqlOperationProjection<V, EnrichmentType, ProjectionOptions>
   operation: GqlOperation
   settings: ContentSettings<EnrichmentType>
   destinationPath?: string
   definition: GeneratedDefinition<V>
-  noExport?: boolean
+  noExport: boolean
   variant: string
+  /** The caller's options, as passed to `insertOperation`. */
+  options: ProjectionOptions
 
-  constructor({
-    context,
-    projection,
-    operation,
-    destinationPath,
-    noExport,
-    variant = DEFAULT_VARIANT
-  }: CreateGqlOperationArgs<V, EnrichmentType>) {
+  constructor(args: CreateGqlOperationArgs<V, EnrichmentType, ProjectionOptions>) {
+    const {
+      context,
+      projection,
+      operation,
+      destinationPath,
+      noExport = false,
+      variant = DEFAULT_VARIANT
+    } = args
+
     this.context = context
     this.projection = projection
     this.operation = operation
     this.destinationPath = destinationPath
     this.noExport = noExport
     this.variant = variant
+    this.options = readProjectionOptions<ProjectionOptions>(args)
 
     assertPeerVariantExists({
       context,
@@ -82,7 +89,8 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     this.settings = this.context.toOperationContentSettings({
       operation,
       projection,
-      variant
+      variant,
+      options: this.options
     })
 
     this.definition = this.apply({ destinationPath })
@@ -141,7 +149,8 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     const value = new this.projection({
       context: this.context,
       operation: this.operation,
-      settings: this.settings
+      settings: this.settings,
+      options: this.options
     })
 
     const definition = this.projection.lang.toDefinition({
@@ -180,7 +189,21 @@ export class GqlOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       )
     }
 
-    return definition.value instanceof this.projection
+    if (!(definition.value instanceof this.projection)) {
+      return false
+    }
+
+    // Options are identity, like the variant, but cannot ride the key: a hit
+    // is checked against the options its value was built with.
+    const cachedOptions = toValueOptions(definition.value)
+
+    if (!isEqual(cachedOptions, this.options)) {
+      throw new Error(
+        `Registered definition mismatch: '${definition.identifier.name}' in file '${exportPath}'. Cached options ${JSON.stringify(cachedOptions)} do not match new options ${JSON.stringify(this.options)}. Fold options into toIdentifierName.`
+      )
+    }
+
+    return true
   }
 }
 
@@ -239,9 +262,13 @@ const assertPeerVariantExists = ({
   }
 }
 
-type AssertPeerSupportedArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
+type AssertPeerSupportedArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   context: GenerateContextType
-  projection: GqlOperationProjection<V, EnrichmentType>
+  projection: GqlOperationProjection<V, EnrichmentType, ProjectionOptions>
   operation: GqlOperation
   variant: string
 }
@@ -257,12 +284,16 @@ type AssertPeerSupportedArgs<V extends GeneratedValue, EnrichmentType = undefine
  * `GenerateContext`'s per-item `try/catch`. A peer with no static
  * `isSupported` is treated as supporting every operation.
  */
-const assertPeerSupported = <V extends GeneratedValue, EnrichmentType = undefined>({
+const assertPeerSupported = <
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+>({
   context,
   projection,
   operation,
   variant
-}: AssertPeerSupportedArgs<V, EnrichmentType>): void => {
+}: AssertPeerSupportedArgs<V, EnrichmentType, ProjectionOptions>): void => {
   const isSupported = projection.isSupported ?? (() => true)
 
   if (!isSupported({ operation, context, variant })) {

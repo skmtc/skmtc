@@ -44,6 +44,12 @@ The model half of the projection machinery, symmetric with
   - `affirmDefinition` builds the call's `generatorKey` with variant
     in the 3rd segment; the cache-key uniqueness invariant is
     enforced here.
+  - The constructor reads the caller's `options` off the call
+    (`readProjectionOptions`) and threads them into
+    `toModelContentSettings` (so `toIdentifierName` / `toExportPath`
+    receive them) and the projection constructor. `affirmDefinition`
+    compares a cache hit's `value.options` with the call's and throws
+    on mismatch. See `types/ProjectionOptions.ts`.
 - `types.ts` — arg shapes. Every `To*Args` and `Transform*Args`
   carries `variant: string`.
 

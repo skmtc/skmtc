@@ -2,8 +2,42 @@ import { CodeFileBase, matchDefinitions } from '@/dsl/CodeFileBase.ts'
 import { DefinitionBase } from '@/dsl/Definition.ts'
 import type { FindDefinitionsQuery } from '@/dsl/CodeFileBase.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import type { ImportBase } from '@/dsl/ImportBase.ts'
+import { ImportBase } from '@/dsl/ImportBase.ts'
 import type { ReExportBase } from '@/dsl/ReExportBase.ts'
+import invariant from 'tiny-invariant'
+
+/**
+ * A neutral {@link ImportBase} for core tests: named symbols from one module,
+ * merged by module. Enough for the engine's cross-file import stitching
+ * without a concrete language's import syntax.
+ */
+export class MockImport extends ImportBase {
+  names: string[]
+  module: string
+
+  constructor({ names, module }: { names: string[]; module: string }) {
+    super()
+    this.names = names
+    this.module = module
+  }
+
+  override mergeKey(): string {
+    return this.module
+  }
+
+  override merge(other: ImportBase): ImportBase {
+    invariant(other instanceof MockImport, 'MockImport can only merge with MockImport')
+
+    return new MockImport({
+      names: [...new Set([...this.names, ...other.names])],
+      module: this.module
+    })
+  }
+
+  override toString(): string {
+    return `import { ${this.names.join(', ')} } from '${this.module}'`
+  }
+}
 
 /**
  * A neutral {@link DefinitionBase} for core tests. Renders a wrapper around

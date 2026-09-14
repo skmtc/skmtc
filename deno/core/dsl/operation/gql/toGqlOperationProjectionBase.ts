@@ -1,10 +1,11 @@
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type {
-  InsertOperationOptions,
-  InsertModelOptions,
   InsertNormalizedModelArgs,
+  InsertNormalizedModelOptions,
   InsertNormalizedModelReturn
 } from '@/context/generateTypes.ts'
+import { readProjectionOptions, type ProjectionOptionsRest } from '@/types/ProjectionOptions.ts'
+import { toPeerInsertOptions, type PeerInsertOptions } from '@/types/InsertOptions.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
@@ -37,11 +38,14 @@ import { parseEnrichmentUmbrella } from '@/enrichments/parseEnrichmentUmbrella.t
  */
 export type GqlOperationProjectionBaseConfig<
   EnrichmentType = undefined,
-  IdType extends IdentifierType = IdentifierType
+  IdType extends IdentifierType = IdentifierType,
+  ProjectionOptions = undefined
 > = {
   id: string
   /** Pure: the cache-key name (the cache-check path runs this). */
-  toIdentifierName: (args: ToGqlOperationIdentifierNameArgs<EnrichmentType>) => string
+  toIdentifierName: (
+    args: ToGqlOperationIdentifierNameArgs<EnrichmentType, ProjectionOptions>
+  ) => string
   /**
    * Context-aware, overridable: the non-`name` parts of the identifier,
    * derived from the operation/schema. Runs only on cache-miss. Returns this
@@ -49,7 +53,7 @@ export type GqlOperationProjectionBaseConfig<
    * default); the tightening rides the type argument.
    */
   toIdentifierType: (operation: GqlOperation, context: GenerateContextType) => IdType
-  toExportPath: (args: ToGqlOperationExportPathArgs<EnrichmentType>) => string
+  toExportPath: (args: ToGqlOperationExportPathArgs<EnrichmentType, ProjectionOptions>) => string
   /**
    * Required composite schema for the `{ subject, generator, stack }`
    * enrichment umbrella. Required (not optional) is load-bearing: it is what
@@ -96,10 +100,11 @@ type ToEnrichmentsArgs = {
  */
 export const toGqlOperationProjectionBase = <
   EnrichmentType = undefined,
-  IdType extends IdentifierType = IdentifierType
+  IdType extends IdentifierType = IdentifierType,
+  ProjectionOptions = undefined
 >(
   base: LangSnippetConstructor,
-  config: GqlOperationProjectionBaseConfig<EnrichmentType, IdType>
+  config: GqlOperationProjectionBaseConfig<EnrichmentType, IdType, ProjectionOptions>
 ) => {
   return class extends base {
     static id = config.id
@@ -130,8 +135,10 @@ export const toGqlOperationProjectionBase = <
 
     settings: ContentSettings<EnrichmentType>
     operation: GqlOperation
+    /** The caller's options. */
+    options: ProjectionOptions
 
-    constructor(args: GqlOperationProjectionConstructorArgs<EnrichmentType>) {
+    constructor(args: GqlOperationProjectionConstructorArgs<EnrichmentType, ProjectionOptions>) {
       super({
         context: args.context,
         generatorKey: toGqlOperationGeneratorKey({
@@ -143,29 +150,34 @@ export const toGqlOperationProjectionBase = <
 
       this.operation = args.operation
       this.settings = args.settings
+      this.options = readProjectionOptions<ProjectionOptions>(args)
     }
 
     /**
      * Insert a related operation. The inserted operation is exported to this
      * projection's own `exportPath` unless `noExport` is set.
      *
-     * Pass `{ variant }` to target a specific variant on the peer (e.g.
-     * to thread `this.settings.variant` into a within-package sibling
-     * Projection that's also variants-aware). Omitting it defaults to
-     * the peer's `'main'` variant — the safe choice for variants-unaware
-     * peers and the standard pattern for cross-package composition.
+     * Pass `{ variant }` to target a specific variant on the peer; omitting
+     * it defaults to the peer's `'main'` variant. `{ options }` is required
+     * when the peer declares options and refused when it does not.
      */
-    insertOperation<V extends GeneratedValue, PeerEnrichmentType = undefined>(
-      projection: GqlOperationProjection<V, PeerEnrichmentType>,
+    insertOperation<
+      V extends GeneratedValue,
+      PeerEnrichmentType = undefined,
+      PeerProjectionOptions = undefined
+    >(
+      projection: GqlOperationProjection<V, PeerEnrichmentType, PeerProjectionOptions>,
       operation: GqlOperation,
-      options: Pick<InsertOperationOptions, 'noExport' | 'variant'> = {}
+      ...rest: ProjectionOptionsRest<
+        PeerInsertOptions<PeerProjectionOptions>,
+        PeerProjectionOptions
+      >
     ): Inserted<V, PeerEnrichmentType> {
       return this.context.insertOperation({
         projection,
         operation,
         destinationPath: this.settings.exportPath,
-        noExport: options.noExport,
-        variant: options.variant
+        ...toPeerInsertOptions(rest)
       })
     }
 
@@ -173,17 +185,25 @@ export const toGqlOperationProjectionBase = <
      * Insert a related model into this projection's export file.
      *
      * Pass `{ variant }` to target a specific variant on the peer model
-     * projection. Omitting it defaults to the peer's `'main'` variant.
+     * projection; omitting it defaults to the peer's `'main'` variant.
+     * `{ options }` is required when the peer declares options and refused
+     * when it does not.
      */
-    insertModel<V extends GeneratedValue, PeerEnrichmentType = undefined>(
-      projection: ModelProjection<V, PeerEnrichmentType>,
+    insertModel<
+      V extends GeneratedValue,
+      PeerEnrichmentType = undefined,
+      PeerProjectionOptions = undefined
+    >(
+      projection: ModelProjection<V, PeerEnrichmentType, PeerProjectionOptions>,
       refName: RefName,
-      options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
+      ...rest: ProjectionOptionsRest<
+        PeerInsertOptions<PeerProjectionOptions>,
+        PeerProjectionOptions
+      >
     ): Inserted<V, PeerEnrichmentType> {
       return this.context.insertModel(projection, refName, {
-        destinationPath: this.settings.exportPath,
-        noExport: options.noExport,
-        variant: options.variant
+        ...toPeerInsertOptions(rest),
+        destinationPath: this.settings.exportPath
       })
     }
 
@@ -191,17 +211,21 @@ export const toGqlOperationProjectionBase = <
      * Insert a related model with reference normalization. Useful for
      * schemas that may be either a `$ref` or a concrete object.
      *
-     * `{ variant }` flows through the `$ref` branch only; for inline
-     * schemas, bake the variant into `fallbackName`.
+     * `{ variant }` and `{ options }` flow through the `$ref` branch only;
+     * for inline schemas, bake what distinguishes them into `fallbackName`.
      */
     insertNormalizedModel<
       V extends GeneratedValue,
       Schema extends OasSchema | OasRef<'schema'> | OasVoid,
-      PeerEnrichmentType = undefined
+      PeerEnrichmentType = undefined,
+      PeerProjectionOptions = undefined
     >(
-      projection: NormalizedModelProjection<V, PeerEnrichmentType>,
+      projection: NormalizedModelProjection<V, PeerEnrichmentType, PeerProjectionOptions>,
       { schema, fallbackName }: Omit<InsertNormalizedModelArgs<Schema>, 'destinationPath'>,
-      options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
+      ...rest: ProjectionOptionsRest<
+        InsertNormalizedModelOptions<PeerProjectionOptions>,
+        PeerProjectionOptions
+      >
     ): InsertNormalizedModelReturn<V, Schema> {
       return this.context.insertNormalizedModel(
         projection,
@@ -210,10 +234,7 @@ export const toGqlOperationProjectionBase = <
           fallbackName,
           destinationPath: this.settings.exportPath
         },
-        {
-          noExport: options.noExport,
-          variant: options.variant
-        }
+        ...rest
       )
     }
   }

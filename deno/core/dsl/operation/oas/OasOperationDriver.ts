@@ -6,26 +6,24 @@ import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import type { GenerateContextType } from '@/context/generateTypes.ts'
+import type { GenerateContextType, InsertOasOperationArgs } from '@/context/generateTypes.ts'
 import invariant from 'tiny-invariant'
 import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
+import { readProjectionOptions, toValueOptions } from '@/types/ProjectionOptions.ts'
+import isEqual from 'lodash-es/isEqual'
 
-type CreateOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
+/**
+ * The `insertOperation` call plus the context. The Driver defaults
+ * `variant` to `'main'` and `noExport` to `false`, and reads the caller's
+ * options once for the identity statics and the constructor.
+ */
+type CreateOperationArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = InsertOasOperationArgs<V, EnrichmentType, ProjectionOptions> & {
   context: GenerateContextType
-  projection: OasOperationProjection<V, EnrichmentType>
-  operation: OasOperation
-  destinationPath?: string
-  noExport?: boolean
-  /**
-   * Target variant of the projection. The Driver resolves the
-   * peer's enrichment for this variant, asserts the variant exists
-   * (or is the default `'main'` which is always permitted), and
-   * threads it into the projection's `ContentSettings`.
-   * Optional — omitting it means `'main'`, so variants-unaware
-   * callers keep working unchanged.
-   */
-  variant?: string
 }
 
 type ApplyArgs = {
@@ -46,35 +44,44 @@ type GetDefinitionArgs = {
  * definition, and stitches an import into `destinationPath` if it differs
  * from the projection's `exportPath`.
  */
-export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undefined> {
+export class OasOperationDriver<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> {
   context: GenerateContextType
-  projection: OasOperationProjection<V, EnrichmentType>
+  projection: OasOperationProjection<V, EnrichmentType, ProjectionOptions>
   operation: OasOperation
   settings: ContentSettings<EnrichmentType>
   destinationPath?: string
   definition: GeneratedDefinition<V>
-  noExport?: boolean
+  noExport: boolean
   variant: string
+  /** The caller's options, as passed to `insertOperation`. */
+  options: ProjectionOptions
   /**
    * The definition this projection's own definition goes inside, when it
    * declared one — its name, which is how a place is addressed.
    */
   #into: string | undefined
 
-  constructor({
-    context,
-    projection,
-    operation,
-    destinationPath,
-    noExport,
-    variant = DEFAULT_VARIANT
-  }: CreateOperationArgs<V, EnrichmentType>) {
+  constructor(args: CreateOperationArgs<V, EnrichmentType, ProjectionOptions>) {
+    const {
+      context,
+      projection,
+      operation,
+      destinationPath,
+      noExport = false,
+      variant = DEFAULT_VARIANT
+    } = args
+
     this.context = context
     this.projection = projection
     this.operation = operation
     this.destinationPath = destinationPath
     this.noExport = noExport
     this.variant = variant
+    this.options = readProjectionOptions<ProjectionOptions>(args)
 
     assertPeerVariantExists({
       context,
@@ -93,7 +100,8 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     const container = projection.toContainer?.({
       operation,
       enrichments: projection.toEnrichments({ operation, context, variant }),
-      variant
+      variant,
+      options: this.options
     })
 
     const insertedContainer = container
@@ -106,6 +114,7 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       operation,
       projection,
       variant,
+      options: this.options,
       // Same reason as the register/findDefinition spreads: a projection with
       // no container is asked for its settings exactly as it always was.
       ...(insertedContainer !== undefined
@@ -199,7 +208,8 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
     const value = new this.projection({
       context: this.context,
       operation: this.operation,
-      settings: this.settings
+      settings: this.settings,
+      options: this.options
     })
 
     const definition = this.projection.lang.toDefinition({
@@ -244,7 +254,21 @@ export class OasOperationDriver<V extends GeneratedValue, EnrichmentType = undef
       )
     }
 
-    return definition.value instanceof this.projection
+    if (!(definition.value instanceof this.projection)) {
+      return false
+    }
+
+    // Options are identity, like the variant, but cannot ride the key: a hit
+    // is checked against the options its value was built with.
+    const cachedOptions = toValueOptions(definition.value)
+
+    if (!isEqual(cachedOptions, this.options)) {
+      throw new Error(
+        `Registered definition mismatch: '${definition.identifier.name}' in file '${exportPath}'. Cached options ${JSON.stringify(cachedOptions)} do not match new options ${JSON.stringify(this.options)}. Fold options into toIdentifierName.`
+      )
+    }
+
+    return true
   }
 }
 
@@ -310,9 +334,13 @@ const assertPeerVariantExists = ({
   }
 }
 
-type AssertPeerSupportedArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
+type AssertPeerSupportedArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   context: GenerateContextType
-  projection: OasOperationProjection<V, EnrichmentType>
+  projection: OasOperationProjection<V, EnrichmentType, ProjectionOptions>
   operation: OasOperation
   variant: string
 }
@@ -338,12 +366,16 @@ type AssertPeerSupportedArgs<V extends GeneratedValue, EnrichmentType = undefine
  * supporting every operation: `toOasOperationProjectionBase` defaults
  * it to `() => true`, and a hand-rolled projection may omit it.
  */
-const assertPeerSupported = <V extends GeneratedValue, EnrichmentType = undefined>({
+const assertPeerSupported = <
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+>({
   context,
   projection,
   operation,
   variant
-}: AssertPeerSupportedArgs<V, EnrichmentType>): void => {
+}: AssertPeerSupportedArgs<V, EnrichmentType, ProjectionOptions>): void => {
   const isSupported = projection.isSupported ?? (() => true)
 
   if (!isSupported({ operation, context, variant })) {

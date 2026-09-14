@@ -4,6 +4,7 @@ import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import type { ProjectionOptionsArg } from '@/types/ProjectionOptions.ts'
 
 /**
  * External constructor signature for a GraphQL operation projection class.
@@ -11,11 +12,14 @@ import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
  * The pipeline calls `new SomeProjection(args)` with this shape; the
  * runtime base class injects `generatorKey` before calling `super()`.
  */
-export type GqlOperationProjectionConstructorArgs<EnrichmentType = undefined> = {
+export type GqlOperationProjectionConstructorArgs<
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   context: GenerateContextType
   settings: ContentSettings<EnrichmentType>
   operation: GqlOperation
-}
+} & ProjectionOptionsArg<ProjectionOptions>
 
 export type TransformGqlOperationArgs = {
   context: GenerateContextType
@@ -62,22 +66,28 @@ export type ToGqlOperationMappingArgs = {
 }
 
 /**
- * Arguments for a GraphQL operation projection's `toIdentifierName` — the
- * pure, cache-key-source half of the old `toIdentifier`.
+ * Arguments for a GraphQL operation projection's `toIdentifierName`. Fold `options` into the name when the output
+ * depends on them: definitions are cached by name and export path.
  */
-export type ToGqlOperationIdentifierNameArgs<EnrichmentType = undefined> = {
+export type ToGqlOperationIdentifierNameArgs<
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   operation: GqlOperation
   enrichments: EnrichmentType
   /** Operation variant the identifier should disambiguate (see {@link Variant}) */
   variant: string
-}
+} & ProjectionOptionsArg<ProjectionOptions>
 
-export type ToGqlOperationExportPathArgs<EnrichmentType = undefined> = {
+export type ToGqlOperationExportPathArgs<
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   operation: GqlOperation
   enrichments: EnrichmentType
   /** Operation variant the export path should disambiguate (see {@link Variant}) */
   variant: string
-}
+} & ProjectionOptionsArg<ProjectionOptions>
 
 /**
  * Static structural type of a GraphQL operation projection class.
@@ -85,12 +95,22 @@ export type ToGqlOperationExportPathArgs<EnrichmentType = undefined> = {
  * Captures both the instance side (`new(...) => V`) and the static side
  * (`id`, `toIdentifierName`, `toIdentifierType`, `toExportPath`,
  * `toEnrichments`). Passed as a type parameter to
- * `context.insertOperation(...)`.
+ * `context.insertOperation(...)`. `ProjectionOptions` is the caller options
+ * the class declares; the Drivers infer it from the constructor and statics.
  */
-export type GqlOperationProjection<V extends GeneratedValue, EnrichmentType = undefined> = {
+export type GqlOperationProjection<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   prototype: V
 } & {
-  new ({ context, settings, operation }: GqlOperationProjectionConstructorArgs<EnrichmentType>): V
+  new ({
+    context,
+    settings,
+    operation,
+    options
+  }: GqlOperationProjectionConstructorArgs<EnrichmentType, ProjectionOptions>): V
   id: string
   type: 'gqlOperation'
   /**
@@ -101,7 +121,9 @@ export type GqlOperationProjection<V extends GeneratedValue, EnrichmentType = un
    */
   lang: Lang
   /** Pure: the cache-key name. */
-  toIdentifierName: (args: ToGqlOperationIdentifierNameArgs<EnrichmentType>) => string
+  toIdentifierName: (
+    args: ToGqlOperationIdentifierNameArgs<EnrichmentType, ProjectionOptions>
+  ) => string
   /**
    * Context-aware, overridable: the non-`name` parts of the identifier,
    * derived from the operation/schema. The engine assembles
@@ -109,7 +131,7 @@ export type GqlOperationProjection<V extends GeneratedValue, EnrichmentType = un
    * ...toIdentifierType(operation, context) })`.
    */
   toIdentifierType: (operation: GqlOperation, context: GenerateContextType) => IdentifierType
-  toExportPath: (args: ToGqlOperationExportPathArgs<EnrichmentType>) => string
+  toExportPath: (args: ToGqlOperationExportPathArgs<EnrichmentType, ProjectionOptions>) => string
   toEnrichments: ({ operation, context }: ToGqlOperationEnrichmentsArgs) => EnrichmentType
   /**
    * Family-level capability predicate, surfaced as a static by

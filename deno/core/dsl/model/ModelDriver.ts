@@ -1,5 +1,5 @@
 import type { ModelProjection } from './types.ts'
-import type { GenerateContextType } from '../../context/generateTypes.ts'
+import type { GenerateContextType, InsertModelOptions } from '@/context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
@@ -9,24 +9,20 @@ import type { GeneratedValue } from '../GeneratedValue.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { toModelGeneratorKey } from '../GeneratorKeys.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
+import { readProjectionOptions, toValueOptions } from '@/types/ProjectionOptions.ts'
+import isEqual from 'lodash-es/isEqual'
 
-type CreateModelArgs<V extends GeneratedValue, EnrichmentType> = {
+/**
+ * The `insertModel` call plus the context. The Driver defaults `variant`
+ * to `'main'` and `noExport` to `false`, and reads the caller's options
+ * once for the identity statics and the constructor.
+ */
+type CreateModelArgs<V extends GeneratedValue, EnrichmentType, ProjectionOptions> = {
   context: GenerateContextType
-  projection: ModelProjection<V, EnrichmentType>
+  projection: ModelProjection<V, EnrichmentType, ProjectionOptions>
   refName: RefName
-  destinationPath?: string
   rootRef?: RefName
-  noExport?: boolean
-  /**
-   * Target variant of the projection. The Driver resolves the
-   * peer's enrichment for this variant, asserts the variant exists
-   * (or is the default `'main'` which is always permitted), and
-   * threads it into the projection's `ContentSettings`.
-   * Optional — omitting it means `'main'`, so variants-unaware
-   * callers keep working unchanged.
-   */
-  variant?: string
-}
+} & InsertModelOptions<ProjectionOptions>
 type ApplyArgs = {
   destinationPath?: string
 }
@@ -46,26 +42,30 @@ type GetDefinitionArgs = {
  * definition, and stitches an import into `destinationPath` if it differs
  * from the projection's `exportPath`.
  */
-export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
+export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined> {
   context: GenerateContextType
-  projection: ModelProjection<V, EnrichmentType>
+  projection: ModelProjection<V, EnrichmentType, ProjectionOptions>
   refName: RefName
   settings: ContentSettings<EnrichmentType>
   destinationPath?: string
   definition: GeneratedDefinition<V>
   rootRef?: RefName
-  noExport?: boolean
+  noExport: boolean
   variant: string
+  /** The caller's options, as passed to `insertModel`. */
+  options: ProjectionOptions
 
-  constructor({
-    context,
-    projection,
-    refName,
-    destinationPath,
-    rootRef,
-    noExport,
-    variant = DEFAULT_VARIANT
-  }: CreateModelArgs<V, EnrichmentType>) {
+  constructor(args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>) {
+    const {
+      context,
+      projection,
+      refName,
+      destinationPath,
+      rootRef,
+      noExport = false,
+      variant = DEFAULT_VARIANT
+    } = args
+
     this.context = context
     this.projection = projection
     this.refName = refName
@@ -73,6 +73,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
     this.rootRef = rootRef
     this.noExport = noExport
     this.variant = variant
+    this.options = readProjectionOptions<ProjectionOptions>(args)
 
     this.context.modelDepth[`${projection.id}:${refName}`] = 0
 
@@ -85,7 +86,12 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
 
     assertPeerSupported({ context, projection, refName, variant })
 
-    this.settings = this.context.toModelContentSettings({ refName, projection, variant })
+    this.settings = this.context.toModelContentSettings({
+      refName,
+      projection,
+      variant,
+      options: this.options
+    })
     this.definition = this.apply({ destinationPath })
 
     this.context.modelDepth[`${projection.id}:${refName}`] = 0
@@ -144,7 +150,8 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
       context: this.context,
       settings: this.settings,
       destinationPath: this.settings.exportPath,
-      rootRef: this.rootRef
+      rootRef: this.rootRef,
+      options: this.options
     })
 
     const definition = this.projection.lang.toDefinition({
@@ -183,7 +190,21 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType> {
       )
     }
 
-    return definition.value instanceof this.projection
+    if (!(definition.value instanceof this.projection)) {
+      return false
+    }
+
+    // Options are identity, like the variant, but cannot ride the key: a hit
+    // is checked against the options its value was built with.
+    const cachedOptions = toValueOptions(definition.value)
+
+    if (!isEqual(cachedOptions, this.options)) {
+      throw new Error(
+        `Registered definition mismatch: '${definition.identifier.name}' in file '${exportPath}'. Cached options ${JSON.stringify(cachedOptions)} do not match new options ${JSON.stringify(this.options)}. Fold options into toIdentifierName.`
+      )
+    }
+
+    return true
   }
 }
 
@@ -243,9 +264,9 @@ const assertPeerVariantExists = ({
   }
 }
 
-type AssertPeerSupportedArgs<V extends GeneratedValue, EnrichmentType> = {
+type AssertPeerSupportedArgs<V extends GeneratedValue, EnrichmentType, ProjectionOptions> = {
   context: GenerateContextType
-  projection: ModelProjection<V, EnrichmentType>
+  projection: ModelProjection<V, EnrichmentType, ProjectionOptions>
   refName: RefName
   variant: string
 }
@@ -269,12 +290,12 @@ type AssertPeerSupportedArgs<V extends GeneratedValue, EnrichmentType> = {
  * model: `toModelProjectionBase` defaults it to `() => true`, and a
  * hand-rolled projection may omit it.
  */
-const assertPeerSupported = <V extends GeneratedValue, EnrichmentType>({
+const assertPeerSupported = <V extends GeneratedValue, EnrichmentType, ProjectionOptions>({
   context,
   projection,
   refName,
   variant
-}: AssertPeerSupportedArgs<V, EnrichmentType>): void => {
+}: AssertPeerSupportedArgs<V, EnrichmentType, ProjectionOptions>): void => {
   const isSupported = projection.isSupported ?? (() => true)
 
   if (!isSupported({ refName, context, variant })) {

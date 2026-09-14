@@ -39,12 +39,12 @@ class GenerateContext implements GenerateContextType {
   getFile(filePath: string): FileBase | undefined
   addFile(file: FileBase): void
   get inspectedFiles(): ReadonlyMap<string, FileBase>
-  insertOperation<V, E>(args: InsertOperationArgs<V, E>): Inserted<V, E>
-  insertModel<V, E>(projection: ModelProjection<V, E>, refName: RefName, options?: InsertModelOptions): Inserted<V, E>
-  insertNormalizedModel<V, S, E>(projection: ModelProjection<V, E>, args: InsertNormalizedModelArgs<S>, options?: InsertNormalizedModelOptions): InsertNormalizedModelReturn<V, S>
+  insertOperation<V, E, P>(args: InsertOperationArgs<V, E, P>): Inserted<V, E>
+  insertModel<V, E, P>(projection: ModelProjection<V, E, P>, refName: RefName, ...rest: ProjectionOptionsRest<InsertModelOptions<P>, P>): Inserted<V, E>
+  insertNormalizedModel<V, S, E, P>(projection: NormalizedModelProjection<V, E, P>, args: InsertNormalizedModelArgs<S>, ...rest: ProjectionOptionsRest<InsertNormalizedModelOptions<P>, P>): InsertNormalizedModelReturn<V, S>
   findDefinition(args: PickArgs): DefinitionBase | undefined
-  toOperationContentSettings<V, E>(args: ToOperationSettingsArgs<V, E>): ContentSettings<E>
-  toModelContentSettings<V, E>(args: BuildModelSettingsArgs<V, E>): ContentSettings<E>
+  toOperationContentSettings<V, E, P>(args: ToOperationSettingsArgs<V, E, P>): ContentSettings<E>
+  toModelContentSettings<V, E, P>(args: BuildModelSettingsArgs<V, E, P>): ContentSettings<E>
   resolveSchemaRefOnce(refName: RefName, generatorId: string): OasSchema | OasRef<'schema'>
 }
 ```
@@ -178,20 +178,26 @@ type RegisterJsonArgs = {
 The destination file must be created as a `JsonFile` (happens
 automatically when the path ends in `.json`).
 
-### `insertOperation<V, E>(args: InsertOperationArgs<V, E>): Inserted<V, E>`
+### `insertOperation<V, E, P>(args: InsertOperationArgs<V, E, P>): Inserted<V, E>`
 
 Insert a peer operation Projection's output. The Driver computes
 the peer's identifier and exportPath, performs the cache lookup,
 and either returns the cached Definition or constructs a new one.
 
 ```ts
-type InsertOperationArgs<V, E> = {
-  projection: OperationProjection<V, E>      // class, not instance
+type InsertOperationArgs<V, E, P> = {
+  projection: OperationProjection<V, E, P>   // class, not instance
   operation: OasOperation | GqlOperation
   destinationPath?: string                    // optional override
   noExport?: boolean
+  variant?: string
+  options: P                                  // required when the peer declares options, refused when it does not
 }
 ```
+
+`P` is the peer's `ProjectionOptions`: caller options the peer declared
+on its base factory. A peer that declares none takes no `options` key;
+a peer that declares `T | undefined` takes it optionally.
 
 Returns an `Inserted<V, E>` wrapper with the peer's identifier and
 the resulting Definition. Use `.toName()` to get the peer's name for
@@ -205,35 +211,46 @@ Generators typically call this through the projection-base wrapper
 (`this.insertOperation(Peer, op)`) which auto-fills `destinationPath`
 from `this.settings.exportPath`.
 
-### `insertModel<V, E>(projection, refName, options?): Inserted<V, E>`
+### `insertModel<V, E, P>(projection, refName, ...rest): Inserted<V, E>`
 
 The model equivalent of `insertOperation`. Routes through
 `ModelDriver`.
 
 ```ts
 insertModel(
-  projection: ModelProjection<V, E>,
+  projection: ModelProjection<V, E, P>,
   refName: RefName,
-  options?: { destinationPath?: string, noExport?: boolean }
+  ...rest: ProjectionOptionsRest<InsertModelOptions<P>, P>
 ): Inserted<V, E>
 ```
+
+The trailing argument is `{ destinationPath?, noExport?, variant?, options }`.
+It is optional unless the peer declares options, in which case
+`{ options }` is required. A cache hit whose options differ from the
+call's throws `"Registered definition mismatch"`, so a peer whose output
+depends on its options must fold them into `toIdentifierName`.
 
 Used by model Projections to reference each other (e.g., a Zod
 Projection referencing a TypeScript-type Projection for the same
 refName).
 
-### `insertNormalizedModel<V, S, E>(projection, args, options?): InsertNormalizedModelReturn<V, S>`
+### `insertNormalizedModel<V, S, E, P>(projection, args, ...rest): InsertNormalizedModelReturn<V, S>`
 
 The "either ref or inline schema" entry. Dispatches based on whether
 the schema is a `$ref`:
 
 ```ts
-insertNormalizedModel<V, S extends OasSchema | OasRef<'schema'> | OasVoid, E>(
-  projection: ModelProjection<V, E>,
+insertNormalizedModel<V, S extends OasSchema | OasRef<'schema'> | OasVoid, E, P>(
+  projection: NormalizedModelProjection<V, E, P>,
   args: { schema: S, fallbackName: string, destinationPath: string },
-  options?: { noExport?: boolean }
+  ...rest: ProjectionOptionsRest<InsertNormalizedModelOptions<P>, P>
 ): InsertNormalizedModelReturn<V, S>
 ```
+
+The trailing argument is `{ noExport?, variant?, options }`, required
+when the peer declares options. `variant` and `options` reach the
+`$ref` branch only; the inline branch constructs no projection, so bake
+what distinguishes it into `fallbackName`.
 
 Branches:
 
@@ -260,11 +277,13 @@ projection subclasses.)
 Used by Drivers as the first step of insert flows. Generators may
 call directly when implementing custom coordination.
 
-### `toOperationContentSettings<V, E>(args)`, `toModelContentSettings<V, E>(args)`
+### `toOperationContentSettings<V, E, P>(args)`, `toModelContentSettings<V, E, P>(args)`
 
 Compute `ContentSettings` (identifier + exportPath + enrichments)
 for a projection on a given operation/refName. Used by Drivers;
-generators rarely call directly.
+generators rarely call directly. `args` carries `options` on the same
+terms as the insert calls: required when the projection declares
+options, absent otherwise.
 
 ### `resolveSchemaRefOnce(refName, generatorId): OasSchema | OasRef<'schema'>`
 

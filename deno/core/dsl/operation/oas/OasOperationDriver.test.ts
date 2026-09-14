@@ -211,7 +211,8 @@ Deno.test('OasOperationDriver', async t => {
           {
             operation,
             projection,
-            variant: 'main'
+            variant: 'main',
+            options: undefined
           }
         ]
       })
