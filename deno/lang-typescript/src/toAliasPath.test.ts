@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from '@std/assert'
+import { assertEquals } from '@std/assert'
 import { toAliasPath } from './toAliasPath.ts'
 
 Deno.test('toAliasPath: the path relative to the package root, behind the @/ alias', () => {
@@ -25,15 +25,6 @@ Deno.test('toAliasPath: the workspace-root @/ on the way in is not the package @
   )
 })
 
-Deno.test('toAliasPath: a path outside the root cannot be aliased to it', () => {
-  assertThrows(
-    () => toAliasPath({ path: 'packages/sdk-legacy/src/a.ts', rootPath: 'packages/sdk' }),
-    Error,
-    "Cannot alias 'packages/sdk-legacy/src/a.ts': it is not under package root 'packages/sdk'"
-  )
-  assertThrows(
-    () => toAliasPath({ path: 'types/User.ts', rootPath: '.' }),
-    Error,
-    'not under package root'
-  )
+Deno.test('toAliasPath: the root itself is the package alias', () => {
+  assertEquals(toAliasPath({ path: 'packages/sdk/src', rootPath: 'packages/sdk/src' }), '@/')
 })

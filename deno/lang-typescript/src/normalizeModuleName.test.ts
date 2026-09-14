@@ -126,6 +126,35 @@ Deno.test('normalizeModuleName: outside the package, a target is the innermost m
   )
 })
 
+Deno.test('normalizeModuleName: a directory import of a root is that root — its barrel', () => {
+  // Outside the package: the subpath's own name, and the package's.
+  assertEquals(
+    normalizeModuleName({
+      destinationPath: 'apps/api/src/routes/users.ts',
+      exportPath: 'packages/sdk/src/models',
+      packages: nested
+    }),
+    '@company/sdk/models'
+  )
+  assertEquals(
+    normalizeModuleName({
+      destinationPath: 'apps/api/src/routes/users.ts',
+      exportPath: 'packages/sdk/src',
+      packages: nested
+    }),
+    '@company/sdk'
+  )
+  // Inside the package: the subpath folder behind the package alias.
+  assertEquals(
+    normalizeModuleName({
+      destinationPath: 'packages/sdk/src/client/getUser.ts',
+      exportPath: 'packages/sdk/src/models',
+      packages: nested
+    }),
+    '@/models'
+  )
+})
+
 Deno.test('normalizeModuleName: a subpath needs its own moduleName to be imported from outside', () => {
   assertThrows(
     () =>

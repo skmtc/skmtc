@@ -44,6 +44,20 @@ Deno.test('matchPackage: a path in the middle of a chain stops at the root that 
   assertEquals(match, { outermost: sdk, innermost: models })
 })
 
+Deno.test('matchPackage: a directory import of a root belongs to that root', () => {
+  assertEquals(
+    matchPackage({ path: 'packages/sdk/src/models', packages: [sdk, models, modelsV2] }),
+    {
+      outermost: sdk,
+      innermost: models
+    }
+  )
+  assertEquals(matchPackage({ path: 'packages/sdk/src', packages: [sdk, models] }), {
+    outermost: sdk,
+    innermost: sdk
+  })
+})
+
 Deno.test('matchPackage: roots and the path match in any spelling, and the match is canonical', () => {
   const match = matchPackage({
     path: '@/packages/sdk/src/models/User.ts',

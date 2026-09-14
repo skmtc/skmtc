@@ -39,9 +39,10 @@ export type PackageMatch = {
  *
  * Roots are compared as folders in canonical spelling, so `./packages/sdk/`,
  * `@/packages/sdk` and `packages/sdk` are one root, and the order of
- * `packages` never matters. `packages` is expected to have passed the
- * {@link clientSettings} schema, which rejects duplicate roots and the
- * workspace root.
+ * `packages` never matters. A root contains itself, so a directory import
+ * of a root (`packages/sdk/src/models`, its barrel) belongs to that root.
+ * `packages` is expected to have passed the {@link clientSettings} schema,
+ * which rejects duplicate roots and the workspace root.
  *
  * @example
  * ```typescript

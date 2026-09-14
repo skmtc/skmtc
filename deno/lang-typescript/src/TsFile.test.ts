@@ -343,3 +343,15 @@ Deno.test('TsFile renders nested package roots: one @ inside the package, subpat
 
   assertEquals(barrel.toString(), `export type { User } from '@/models/User.generated.ts'`)
 })
+
+Deno.test('TsFile merges two spellings of one artifact into one import statement', () => {
+  const settings = { packages: [{ rootPath: 'packages/sdk/src', moduleName: '@company/sdk' }] }
+
+  const tsFile = new TsFile({ path: 'packages/sdk/src/client/getUser.generated.ts', settings })
+  tsFile.addImports([
+    TsImport.fromConcise('@/packages/sdk/src/models/User.generated.ts', ['User']),
+    TsImport.fromConcise('packages/sdk/src/models/User.generated.ts', ['User', 'UserId'])
+  ])
+
+  assertEquals(tsFile.toString(), `import {User, UserId} from '@/models/User.generated.ts'`)
+})

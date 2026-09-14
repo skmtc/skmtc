@@ -29,9 +29,13 @@ Deno.test('isUnderRoot: a file or folder below the root is under it, at any dept
   assertEquals(isUnderRoot({ path: 'packages/sdk/models', rootPath: 'packages/sdk' }), true)
 })
 
-Deno.test('isUnderRoot: a root is a folder — a shared prefix, the root itself, and its parent are not under it', () => {
+Deno.test('isUnderRoot: a root contains itself — a directory import of the root is its barrel', () => {
+  assertEquals(isUnderRoot({ path: 'packages/sdk', rootPath: 'packages/sdk' }), true)
+  assertEquals(isUnderRoot({ path: '@/packages/sdk/', rootPath: './packages/sdk' }), true)
+})
+
+Deno.test('isUnderRoot: a root is a folder — a shared prefix and its parent are not under it', () => {
   assertEquals(isUnderRoot({ path: 'packages/sdk-legacy/a.ts', rootPath: 'packages/sdk' }), false)
-  assertEquals(isUnderRoot({ path: 'packages/sdk', rootPath: 'packages/sdk' }), false)
   assertEquals(isUnderRoot({ path: 'packages', rootPath: 'packages/sdk' }), false)
   assertEquals(isUnderRoot({ path: 'apps/packages/sdk/a.ts', rootPath: 'packages/sdk' }), false)
 })
@@ -51,15 +55,5 @@ Deno.test('isUnderRoot: spelling of either side does not matter', () => {
 
       assertEquals(isUnderRoot({ path, rootPath }), true, `path '${path}' under root '${rootPath}'`)
     }
-  }
-})
-
-Deno.test('isUnderRoot: the workspace root contains nothing', () => {
-  // A bare specifier and a forward workspace path look the same, so a root
-  // that held everything would treat `zod` as an artifact.
-  for (const rootPath of ['', '.', './', '@/']) {
-    assertEquals(isUnderRoot({ path: 'zod', rootPath }), false, `root '${rootPath}'`)
-    assertEquals(isUnderRoot({ path: 'types/User.ts', rootPath }), false, `root '${rootPath}'`)
-    assertEquals(isUnderRoot({ path: '@/types/User.ts', rootPath }), false, `root '${rootPath}'`)
   }
 })

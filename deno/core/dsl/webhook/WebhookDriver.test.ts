@@ -269,7 +269,7 @@ Deno.test('WebhookDriver', async t => {
 
       const importCall = registerSpy.calls.find(call => call.args[0].imports !== undefined)
       assertExists(importCall)
-      assertEquals(importCall.args[0].imports[0].mergeKey(), './webhooks/newPet.ts')
+      assertEquals(importCall.args[0].imports[0].mergeKey(), 'webhooks/newPet.ts')
       // The handler identifier is `type: 'type'`, so the import collapses to
       // a statement-level `import type { … }` (the representative form for a
       // generator emitting `export type`).

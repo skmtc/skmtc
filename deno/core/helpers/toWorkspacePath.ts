@@ -42,24 +42,26 @@ export type IsUnderRootArgs = {
 }
 
 /**
- * `path` is a file or folder below `rootPath` — a root is a folder, so never a
- * sibling that merely shares the prefix (`packages/sdk` does not contain
- * `packages/sdk-legacy`), and never the root itself (no artifact is its own
- * folder). Both arguments are canonicalised first, so spelling never matters.
+ * `path` is `rootPath` itself or a file or folder below it. A root is a
+ * folder, so a sibling that merely shares the prefix is not under it
+ * (`packages/sdk` does not contain `packages/sdk-legacy`), and a root
+ * contains itself: a directory import of a root is that root's barrel. Both
+ * arguments are canonicalised first, so spelling never matters.
  *
- * The workspace root contains nothing. A bare module specifier (`zod`) is
- * indistinguishable from a forward workspace path (`types/User.ts`), so a root
- * that held everything would treat external imports as artifacts.
+ * The workspace root is never a `rootPath` here — the {@link clientSettings}
+ * schema rejects it, because a root holding every path would also hold every
+ * bare module specifier (`zod` and `types/User.ts` look the same).
  *
  * @example
  * ```typescript
  * isUnderRoot({ path: '@/packages/sdk/src/User.ts', rootPath: './packages/sdk/src/' }) // true
+ * isUnderRoot({ path: 'packages/sdk/src', rootPath: 'packages/sdk/src' })              // true
  * isUnderRoot({ path: 'packages/sdk-legacy/src/User.ts', rootPath: 'packages/sdk' })   // false
- * isUnderRoot({ path: 'zod', rootPath: '.' })                                          // false
  * ```
  */
 export const isUnderRoot = ({ path, rootPath }: IsUnderRootArgs): boolean => {
   const root = toWorkspacePath(rootPath)
+  const workspacePath = toWorkspacePath(path)
 
-  return root !== '' && toWorkspacePath(path).startsWith(`${root}/`)
+  return workspacePath === root || workspacePath.startsWith(`${root}/`)
 }
