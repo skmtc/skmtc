@@ -28,6 +28,7 @@ import { walk } from '@std/fs/walk'
 import { join } from '@std/path'
 import { oxcAdapter } from './oxcAdapter.ts'
 import type { NodeHandle } from './ParserAdapter.ts'
+import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
 
 type OxcNodeLike = {
   type: string
@@ -230,7 +231,7 @@ for (const sidecarPath of sidecarPaths.slice(0, limit)) {
   if (sidecar === undefined) continue
   // `f` is '@/'-aliased ('@/tables/X.generated.tsx'); both roots hold the
   // path minus the alias.
-  const artifactRelative = sidecar.f.startsWith('@/') ? sidecar.f.slice(2) : sidecar.f
+  const artifactRelative = toWorkspacePath(sidecar.f)
   let rawText: string
   let formattedText: string
   try {

@@ -7,9 +7,10 @@
  * config and examples write it as `./`, and std `normalize` — applied to
  * `File.path` by the drivers — strips `./` but leaves `@/` alone. Anything
  * that compares paths from more than one of those sources (package matching,
- * on-disk resolution) must see all spellings as equal: the leading `@/` or
- * `./` goes, a trailing `/` goes, and the workspace root itself (`@/`, `./`,
- * `.`, ``) is the empty string.
+ * on-disk resolution) must see all spellings as equal: every leading `@/` or
+ * `./` goes, a trailing `/` goes, a Windows `\` is a `/`, and the workspace
+ * root itself (`@/`, `./`, `.`, ``) is the empty string. The result is a fixed
+ * point: canonicalizing it again changes nothing.
  *
  * The `@/` stripped here is Skmtc's **workspace root** — the prefix
  * {@link toResolvedArtifactPath} drops before joining onto `basePath`. It is
@@ -26,7 +27,10 @@
  * ```
  */
 export const toWorkspacePath = (path: string): string => {
-  const withoutAnchor = path.replace(/^(@\/|\.\/)/, '').replace(/\/+$/, '')
+  const withoutAnchor = path
+    .replaceAll('\\', '/')
+    .replace(/^(?:@\/|\.\/)+/, '')
+    .replace(/\/+$/, '')
 
   return withoutAnchor === '.' ? '' : withoutAnchor
 }
@@ -46,7 +50,7 @@ export type IsUnderRootArgs = {
  * folder, so a sibling that merely shares the prefix is not under it
  * (`packages/sdk` does not contain `packages/sdk-legacy`), and a root
  * contains itself: a directory import of a root is that root's barrel. Both
- * arguments are canonicalised first, so spelling never matters.
+ * arguments are canonicalized first, so spelling never matters.
  *
  * The workspace root is never a `rootPath` here — the {@link clientSettings}
  * schema rejects it, because a root holding every path would also hold every

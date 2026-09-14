@@ -85,13 +85,20 @@ parsing `--json` output, or checking a principle — not before.
     // Optional. Multi-package output — route generated files into
     // separate packages of a monorepo. Each entry is
     // `{ rootPath, moduleName? }` with a FORWARD `rootPath` (relative
-    // to basePath, no `..` — rejected at config load otherwise).
-    // When `packages` is set, basePath is the monorepo root and `@`
-    // is per-package: intra-package imports render `@/…` (rooted at
-    // that package), cross-package imports render the target's
-    // `moduleName`. See `reference/settings/client-json-schema.md`.
+    // to basePath). A root is a folder, not a prefix. Rejected at
+    // config load: a `..` segment, one root listed twice (in any
+    // spelling), and the workspace root itself (`.`) — leave
+    // `packages` unset to import everything through `@/` from
+    // basePath. When `packages` is set, basePath is the monorepo root
+    // and `@` is per-package: intra-package imports render `@/…`
+    // (rooted at that package), cross-package imports render the
+    // target's `moduleName`. Roots may nest: a nested root is a
+    // subpath export of the package around it (`@app/sdk/models`),
+    // sharing the outer package's `@`. See
+    // `reference/settings/client-json-schema.md`.
     "packages": [
-      { "rootPath": "packages/models/src", "moduleName": "@app/models" }
+      { "rootPath": "packages/sdk/src", "moduleName": "@app/sdk" },
+      { "rootPath": "packages/sdk/src/models", "moduleName": "@app/sdk/models" }
     ]
   }
 }
@@ -150,7 +157,14 @@ of every package (the monorepo root) so each `rootPath` — and every
 generator's `toExportPath` — is a plain forward path. A `..` segment
 in `basePath` or any `rootPath` is rejected at config load: it means
 `basePath` is too deep, and hand-counting `../` segments is the
-silent-misplacement footgun the forward-path rule removes.
+silent-misplacement footgun the forward-path rule removes. Two more
+rejections at config load: a root listed twice (spellings such as
+`./packages/sdk/`, `@/packages/sdk` and `packages/sdk` are one root)
+and the workspace root itself as a package root — with no `packages`
+every import already goes through `@/` from `basePath`. Roots may
+nest; a nested root is a subpath export of the package around it,
+named by its own `moduleName` for importers outside the package and
+sharing the outer package's `@` for files inside it.
 
 ## 7. Skip and include filters
 

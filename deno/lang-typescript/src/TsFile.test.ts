@@ -110,7 +110,7 @@ Deno.test('TsDefinition renders the legacy-pinned declarations', async testConte
 
 /**
  * `TsFile` must keep rendering the exact file the engine's legacy `File`
- * produced — re-exports, imports (with package normalisation), then
+ * produced — re-exports, imports (with package normalization), then
  * definitions. The expected literal below was pinned against the legacy
  * class before core's `File` was deleted (step 5 of the convergence
  * tracker).
@@ -298,7 +298,7 @@ Deno.test('TsFile collapses same-name + same-type even when the value differs (t
   assertEquals(tsFile.toString(), `export type Id = string;\n`)
 })
 
-Deno.test('TsFile renders the legacy-pinned cross-package import normalisation', () => {
+Deno.test('TsFile renders the legacy-pinned cross-package import normalization', () => {
   const settings = { packages: [{ rootPath: 'packages/models/src', moduleName: '@app/models' }] }
   const path = 'packages/client/src/api.generated.ts'
 
@@ -335,7 +335,7 @@ Deno.test('TsFile renders nested package roots: one @ inside the package, subpat
 
   assertEquals(route.toString(), `import {User} from '@company/sdk/models'`)
 
-  // A barrel re-exports through the same normalisation as imports.
+  // A barrel re-exports through the same normalization as imports.
   const barrel = new TsFile({ path: 'packages/sdk/src/index.generated.ts', settings })
   barrel.addReExports([
     TsReExport.fromConcise('@/packages/sdk/src/models/User.generated.ts', [createType('User')])
@@ -354,4 +354,48 @@ Deno.test('TsFile merges two spellings of one artifact into one import statement
   ])
 
   assertEquals(tsFile.toString(), `import {User, UserId} from '@/models/User.generated.ts'`)
+})
+
+Deno.test('TsFile renders one statement per subpath export, however many artifacts it holds', () => {
+  const settings = {
+    packages: [
+      { rootPath: 'packages/sdk/src', moduleName: '@company/sdk' },
+      { rootPath: 'packages/sdk/src/models', moduleName: '@company/sdk/models' }
+    ]
+  }
+
+  const route = new TsFile({ path: 'apps/api/src/routes/users.generated.ts', settings })
+  route.addImports([
+    TsImport.fromConcise('@/packages/sdk/src/models/User.generated.ts', ['User']),
+    TsImport.fromConcise('@/packages/sdk/src/models/Order.generated.ts', ['Order']),
+    TsImport.fromConcise('@/packages/sdk/src/config.generated.ts', ['config'])
+  ])
+
+  assertEquals(
+    route.toString(),
+    `import {User, Order} from '@company/sdk/models'\nimport {config} from '@company/sdk'`
+  )
+
+  const barrel = new TsFile({ path: 'apps/api/src/index.generated.ts', settings })
+  barrel.addReExports([
+    TsReExport.fromConcise('@/packages/sdk/src/models/User.generated.ts', [createType('User')]),
+    TsReExport.fromConcise('@/packages/sdk/src/models/Order.generated.ts', [createType('Order')])
+  ])
+
+  assertEquals(barrel.toString(), `export type { User, Order } from '@company/sdk/models'`)
+})
+
+Deno.test('TsFile without packages keeps each spelling as written — no merge across spellings', () => {
+  // With no packages, `./x` is importer-relative TypeScript and `@/x` is the
+  // consumer's alias; they are different modules and stay separate.
+  const tsFile = new TsFile({ path: 'client/getUser.generated.ts', settings: undefined })
+  tsFile.addImports([
+    TsImport.fromConcise('./models/User.generated.ts', ['A']),
+    TsImport.fromConcise('@/models/User.generated.ts', ['B'])
+  ])
+
+  assertEquals(
+    tsFile.toString(),
+    `import {A} from './models/User.generated.ts'\nimport {B} from '@/models/User.generated.ts'`
+  )
 })

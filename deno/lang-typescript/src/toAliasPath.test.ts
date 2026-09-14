@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert'
-import { toAliasPath } from './toAliasPath.ts'
+import { toAliasPath } from '@/src/toAliasPath.ts'
 
 Deno.test('toAliasPath: the path relative to the package root, behind the @/ alias', () => {
   assertEquals(

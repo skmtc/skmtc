@@ -1,5 +1,5 @@
 import { isUnderRoot, matchPackage, type ModulePackage, type PackageMatch } from '@skmtc/core'
-import { toAliasPath } from './toAliasPath.ts'
+import { toAliasPath } from '@/src/toAliasPath.ts'
 
 /**
  * Arguments for the {@link normalizeModuleName} function.
@@ -20,9 +20,11 @@ export type NormalizeModuleNameArgs = {
  * `destinationPath`:
  *
  * - **no package contains the target** → `exportPath` as given. That covers a
- *   bare specifier (`zod`, `@tanstack/query`) and, in a project without
- *   `packages`, the workspace-root `@/models/User.ts` a generator wrote — the
- *   consumer's `tsconfig` maps that `@/` to `basePath`.
+ *   bare specifier (`zod`, `@tanstack/query`) and, for an importer outside
+ *   every package too, the workspace-root `@/models/User.ts` a generator
+ *   wrote — the consumer's `tsconfig` maps that `@/` to `basePath`. An
+ *   importer *inside* a package cannot write that: its `@/` is the package
+ *   root, so the target's folder must be a package root as well.
  * - **importer and target in the same package** → `@/` relative to the
  *   package root ({@link toAliasPath}).
  * - **importer outside the package** → the package's `moduleName`.
@@ -38,7 +40,9 @@ export type NormalizeModuleNameArgs = {
  * are one root.
  *
  * @throws {Error} When the target sits in a package the importer is outside
- *   of and that package (for a subpath, the nested root) has no `moduleName`
+ *   of and that package (for a subpath, the nested root) has no `moduleName`;
+ *   or when the importer is in a package and the target is a workspace-root
+ *   (`@/`, `./`) path under no package
  *
  * @example Cross-package import
  * ```typescript
@@ -101,6 +105,18 @@ export const normalizeModuleName = ({
   const match = matchPackage({ path: exportPath, packages })
 
   if (!match) {
+    const importer = isWorkspaceSpelled(exportPath)
+      ? matchPackage({ path: destinationPath, packages })
+      : undefined
+
+    if (importer) {
+      throw new Error(
+        `'${destinationPath}' is in package root '${importer.outermost.rootPath}' but imports ` +
+          `'${exportPath}', which is under no package root. A package file resolves '@/' from ` +
+          `its own root, so add a package root containing '${exportPath}' to settings.packages.`
+      )
+    }
+
     return exportPath
   }
 
@@ -114,6 +130,9 @@ export const normalizeModuleName = ({
 
   return match.innermost.moduleName
 }
+
+/** Spelled from the workspace root — an artifact path, never a bare specifier. */
+const isWorkspaceSpelled = (path: string): boolean => /^(@\/|\.\/)/.test(path)
 
 type ToMissingModuleNameMessageArgs = {
   match: PackageMatch

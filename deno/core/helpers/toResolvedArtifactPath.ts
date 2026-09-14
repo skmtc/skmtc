@@ -26,7 +26,7 @@ type ToResolvedArtifactPathArgs = {
 }
 
 /**
- * Joins `destinationPath` (canonicalised) onto `basePath`, or onto `./` when
+ * Joins `destinationPath` (canonicalized) onto `basePath`, or onto `./` when
  * `basePath` is undefined.
  *
  * @example

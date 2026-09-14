@@ -77,12 +77,7 @@ export class TsFile extends CodeFileBase {
    * `register` calls this; the keying + merge are TypeScript's own policy.
    */
   override addImports(incoming: TsImport[]): void {
-    for (const importEntry of incoming) {
-      const key = importEntry.mergeKey()
-      const existing = this.imports.get(key)
-
-      this.imports.set(key, existing ? existing.merge(importEntry) : importEntry)
-    }
+    mergeInto(this.imports, incoming, (existing, entry) => existing.merge(entry))
   }
 
   /**
@@ -90,12 +85,7 @@ export class TsFile extends CodeFileBase {
    * with an existing entry via {@link TsReExport.merge}.
    */
   override addReExports(incoming: TsReExport[]): void {
-    for (const reExportEntry of incoming) {
-      const key = reExportEntry.mergeKey()
-      const existing = this.reExports.get(key)
-
-      this.reExports.set(key, existing ? existing.merge(reExportEntry) : reExportEntry)
-    }
+    mergeInto(this.reExports, incoming, (existing, entry) => existing.merge(entry))
   }
 
   /**
@@ -141,35 +131,39 @@ export class TsFile extends CodeFileBase {
   }
 
   override toString(): string {
-    const reExports = Array.from(this.reExports.values()).map(reExportEntry => {
-      // Re-key to the package-normalised module at render time — the same
-      // arrangement step the import section gets.
-      const updatedModuleName = normalizeModuleName({
-        destinationPath: this.path,
-        exportPath: reExportEntry.module,
-        packages: this.packages
-      })
+    // Render-time normalization can send several entries to one module
+    // (two spellings of one artifact; several artifacts of one subpath
+    // export), so entries are re-grouped by the normalized module and
+    // merged before rendering — one statement per module.
+    const reExports = new Map<string, TsReExport>()
 
-      return new TsReExport(updatedModuleName, reExportEntry.groups).toString()
-    })
+    mergeInto(
+      reExports,
+      Array.from(this.reExports.values()).map(
+        reExportEntry =>
+          new TsReExport(this.#toRenderedModule(reExportEntry.module), reExportEntry.groups)
+      ),
+      (existing, entry) => existing.merge(entry)
+    )
 
-    const imports = Array.from(this.imports.values()).map(importEntry => {
-      // Re-key to the package-normalised module at render time (the engine
-      // normalised per-import in `File.toString`).
-      const updatedModuleName = this.packages
-        ? normalizeModuleName({
-            destinationPath: this.path,
-            exportPath: importEntry.module,
-            packages: this.packages
-          })
-        : importEntry.module
+    const imports = new Map<string, TsImport>()
 
-      return new TsImport(updatedModuleName, importEntry.specifiers).toString()
-    })
+    mergeInto(
+      imports,
+      Array.from(this.imports.values()).map(
+        importEntry =>
+          new TsImport(this.#toRenderedModule(importEntry.module), importEntry.specifiers)
+      ),
+      (existing, entry) => existing.merge(entry)
+    )
 
     const definitions = this.#orderedDefinitions()
 
-    const body = [reExports, imports, definitions.map(definition => definition.toString())]
+    const body = [
+      Array.from(reExports.values()).map(reExportEntry => reExportEntry.toString()),
+      Array.from(imports.values()).map(importEntry => importEntry.toString()),
+      definitions.map(definition => definition.toString())
+    ]
       .filter(section => Boolean(section.length))
       .map(section => section.join('\n'))
       .join('\n\n')
@@ -177,5 +171,33 @@ export class TsFile extends CodeFileBase {
     // `custom` is the neutral leading-content slot (formerly `banner`),
     // inherited from `FileBase`; render it above the body when set.
     return this.custom ? `${this.custom}\n\n${body}` : body
+  }
+
+  /** The module as this file writes it: package-normalized when `packages` is set. */
+  #toRenderedModule(module: string): string {
+    return this.packages
+      ? normalizeModuleName({
+          destinationPath: this.path,
+          exportPath: module,
+          packages: this.packages
+        })
+      : module
+  }
+}
+
+/**
+ * Merges `incoming` into `target` keyed by `mergeKey()` (the module): an
+ * entry whose module is already present is merged into the existing one.
+ */
+const mergeInto = <Entry extends { mergeKey(): string }>(
+  target: Map<string, Entry>,
+  incoming: Entry[],
+  merge: (existing: Entry, entry: Entry) => Entry
+): void => {
+  for (const entry of incoming) {
+    const key = entry.mergeKey()
+    const existing = target.get(key)
+
+    target.set(key, existing ? merge(existing, entry) : entry)
   }
 }

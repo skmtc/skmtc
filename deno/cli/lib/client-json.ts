@@ -2,7 +2,7 @@ import { exists } from '@std/fs/exists'
 import { join } from '@std/path/join'
 import { type SkmtcClientConfig, skmtcClientConfig } from '@skmtc/core/Settings'
 import type { Manager } from '@/lib/manager.ts'
-import { parseOrExplain } from '@/lib/parse-or-explain.ts'
+import { ConfigValidationError, parseOrExplain } from '@/lib/parse-or-explain.ts'
 import { writeFileSafeDir } from '@/lib/file.ts'
 import type { ProjectKey } from '@/lib/project.ts'
 import { validateBasePath } from '@/lib/validate-base-path.ts'
@@ -50,8 +50,12 @@ export class ClientJson {
       )
 
       this.contents = parsed
-    } catch (_error) {
-      // Do nothing
+    } catch (error) {
+      // A file that is missing or mid-write keeps the previous contents; a
+      // file that parsed but fails the schema is a real error to surface.
+      if (error instanceof ConfigValidationError) {
+        throw error
+      }
     }
   }
 

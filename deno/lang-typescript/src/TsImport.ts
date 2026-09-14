@@ -1,4 +1,4 @@
-import { ImportBase, toWorkspacePath } from '@skmtc/core'
+import { ImportBase } from '@skmtc/core'
 import { List } from './List.ts'
 import type { TsIdentifier } from './TsIdentifier.ts'
 import { isTypeOnly, type TsEntityType } from './createIdentifier.ts'
@@ -89,13 +89,8 @@ export class TsImport extends ImportBase {
     return new TsImport(module, [{ name: identifier.name, typeOnly: isTypeOnly(identifier.type) }])
   }
 
-  /**
-   * The module in canonical workspace spelling, so two spellings of one
-   * artifact (`@/models/User.ts`, `./models/User.ts`) merge into one
-   * statement. A bare specifier (`zod`) is its own key.
-   */
   override mergeKey(): string {
-    return toWorkspacePath(this.module)
+    return this.module
   }
 
   override merge(other: ImportBase): TsImport {

@@ -1,5 +1,5 @@
 import { assertEquals, assertThrows } from '@std/assert'
-import { normalizeModuleName } from './normalizeModuleName.ts'
+import { normalizeModuleName } from '@/src/normalizeModuleName.ts'
 
 const flat = [
   { rootPath: 'packages/types', moduleName: '@company/types' },
@@ -155,6 +155,37 @@ Deno.test('normalizeModuleName: a directory import of a root is that root — it
   )
 })
 
+Deno.test('normalizeModuleName: a package file cannot import a workspace-root path under no package', () => {
+  assertThrows(
+    () =>
+      normalizeModuleName({
+        destinationPath: 'packages/sdk/src/client/getUser.ts',
+        exportPath: '@/shared/util.ts',
+        packages: nested
+      }),
+    Error,
+    "'packages/sdk/src/client/getUser.ts' is in package root 'packages/sdk/src' but imports '@/shared/util.ts', which is under no package root"
+  )
+  // Outside every package, the workspace-root spelling is the consumer's own alias.
+  assertEquals(
+    normalizeModuleName({
+      destinationPath: 'apps/web/src/main.ts',
+      exportPath: '@/shared/util.ts',
+      packages: nested
+    }),
+    '@/shared/util.ts'
+  )
+  // A bare specifier is not a workspace path and always passes through.
+  assertEquals(
+    normalizeModuleName({
+      destinationPath: 'packages/sdk/src/client/getUser.ts',
+      exportPath: 'zod',
+      packages: nested
+    }),
+    'zod'
+  )
+})
+
 Deno.test('normalizeModuleName: a subpath needs its own moduleName to be imported from outside', () => {
   assertThrows(
     () =>
@@ -172,7 +203,7 @@ Deno.test('normalizeModuleName: a subpath needs its own moduleName to be importe
 })
 
 Deno.test('normalizeModuleName: the three path sources may spell the workspace root differently', () => {
-  // rootPath as written in config (`./`), destinationPath as std-normalised
+  // rootPath as written in config (`./`), destinationPath as std-normalized
   // File.path (no prefix), exportPath as the generator wrote it (`./` or `@/`).
   const packages = [
     { rootPath: './packages/sdk/src', moduleName: '@company/sdk' },

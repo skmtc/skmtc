@@ -9,6 +9,16 @@ Deno.test('toWorkspacePath: the workspace-root anchor and a trailing slash are d
   assertEquals(toWorkspacePath('packages/sdk/src'), 'packages/sdk/src')
 })
 
+Deno.test('toWorkspacePath: stacked anchors and Windows separators canonicalize in one pass', () => {
+  assertEquals(toWorkspacePath('@/./packages/x'), 'packages/x')
+  assertEquals(toWorkspacePath('././packages/x/'), 'packages/x')
+  assertEquals(toWorkspacePath('packages\\sdk\\src\\User.ts'), 'packages/sdk/src/User.ts')
+  assertEquals(
+    toWorkspacePath(toWorkspacePath('@/./packages/x')),
+    toWorkspacePath('@/./packages/x')
+  )
+})
+
 Deno.test('toWorkspacePath: every spelling of the workspace root is the empty string', () => {
   for (const spelling of ['@/', './', '.', '']) {
     assertEquals(toWorkspacePath(spelling), '', `spelling: '${spelling}'`)

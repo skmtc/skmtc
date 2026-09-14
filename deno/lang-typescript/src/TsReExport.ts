@@ -1,4 +1,4 @@
-import { ReExportBase, toWorkspacePath } from '@skmtc/core'
+import { ReExportBase } from '@skmtc/core'
 import type { TsIdentifier } from './TsIdentifier.ts'
 
 /**
@@ -33,13 +33,8 @@ export class TsReExport extends ReExportBase {
     return new TsReExport(module, groups)
   }
 
-  /**
-   * The module in canonical workspace spelling, so two spellings of one
-   * artifact (`@/models/User.ts`, `./models/User.ts`) merge into one
-   * statement. A bare specifier (`zod`) is its own key.
-   */
   override mergeKey(): string {
-    return toWorkspacePath(this.module)
+    return this.module
   }
 
   override merge(other: ReExportBase): TsReExport {

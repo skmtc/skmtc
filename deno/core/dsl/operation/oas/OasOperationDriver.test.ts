@@ -327,7 +327,7 @@ Deno.test('OasOperationDriver', async t => {
       const importCall = registerSpy.calls.find(call => call.args[0].imports !== undefined)
 
       assertExists(importCall)
-      assertEquals(importCall.args[0].imports[0].mergeKey(), 'operations/getUsers.ts')
+      assertEquals(importCall.args[0].imports[0].mergeKey(), './operations/getUsers.ts')
       assertEquals(
         importCall.args[0].imports[0].toString(),
         `import {getUsers} from './operations/getUsers.ts'`
@@ -427,7 +427,7 @@ Deno.test('OasOperationDriver', async t => {
       // `imports` is a standardised `ImportBase[]` built by `lang.toImport`;
       // the engine no longer sees the concise record form.
       assertEquals(importCall.args[0].imports.length, 1)
-      assertEquals(importCall.args[0].imports[0].mergeKey(), 'ops/create.ts')
+      assertEquals(importCall.args[0].imports[0].mergeKey(), './ops/create.ts')
       assertEquals(
         importCall.args[0].imports[0].toString(),
         `import {createUser} from './ops/create.ts'`
@@ -1247,7 +1247,7 @@ Deno.test('OasOperationDriver', async t => {
       // Should have import registration
       const importCall = registerSpy.calls.find(call => call.args[0].imports)
       assertExists(importCall)
-      assertEquals(importCall.args[0].imports[0].mergeKey(), 'operations/getUsers.ts')
+      assertEquals(importCall.args[0].imports[0].mergeKey(), './operations/getUsers.ts')
       assertEquals(
         importCall.args[0].imports[0].toString(),
         `import {getUsers} from './operations/getUsers.ts'`
