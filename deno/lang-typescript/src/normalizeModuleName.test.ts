@@ -6,14 +6,41 @@ const flat = [
   { rootPath: 'packages/client', moduleName: '@company/client' }
 ]
 
-Deno.test("normalizeModuleName: a target in another package is that package's moduleName", () => {
+Deno.test('normalizeModuleName: a target under no package is written as given', () => {
+  // A bare specifier — the import is not an artifact at all.
   assertEquals(
     normalizeModuleName({
       destinationPath: 'packages/client/src/api.ts',
-      exportPath: 'packages/types/models/User.ts',
+      exportPath: 'zod',
       packages: flat
     }),
-    '@company/types'
+    'zod'
+  )
+  assertEquals(
+    normalizeModuleName({
+      destinationPath: 'packages/client/src/api.ts',
+      exportPath: '@tanstack/react-query',
+      packages: flat
+    }),
+    '@tanstack/react-query'
+  )
+  // A project without packages: the generator's workspace-root `@/` is what
+  // the consumer's tsconfig maps to basePath, so it stays.
+  assertEquals(
+    normalizeModuleName({
+      destinationPath: '@/api.ts',
+      exportPath: '@/types/User.ts',
+      packages: undefined
+    }),
+    '@/types/User.ts'
+  )
+  assertEquals(
+    normalizeModuleName({
+      destinationPath: 'src/index.ts',
+      exportPath: 'src/utils.ts',
+      packages: []
+    }),
+    'src/utils.ts'
   )
 })
 
@@ -28,22 +55,14 @@ Deno.test('normalizeModuleName: a target in the same package is @/ from the pack
   )
 })
 
-Deno.test('normalizeModuleName: a target under no package keeps its path', () => {
+Deno.test("normalizeModuleName: a target in another package is that package's moduleName", () => {
   assertEquals(
     normalizeModuleName({
-      destinationPath: 'src/index.ts',
-      exportPath: 'src/utils.ts',
+      destinationPath: 'packages/client/src/api.ts',
+      exportPath: 'packages/types/models/User.ts',
       packages: flat
     }),
-    'src/utils.ts'
-  )
-  assertEquals(
-    normalizeModuleName({
-      destinationPath: 'src/index.ts',
-      exportPath: 'src/utils.ts',
-      packages: undefined
-    }),
-    'src/utils.ts'
+    '@company/types'
   )
 })
 
@@ -56,33 +75,10 @@ Deno.test('normalizeModuleName: a package without a moduleName cannot be importe
         packages: [{ rootPath: 'packages/types' }]
       }),
     Error,
-    'packages/types'
+    "Package root 'packages/types' has no moduleName, but 'apps/web/src/main.ts' imports 'packages/types/models/User.ts' from outside it. Set moduleName on that root in settings.packages."
   )
 })
 
-Deno.test('normalizeModuleName: a root is a folder, not a string prefix', () => {
-  // packages/sdk-legacy shares the characters of packages/sdk and is not inside it.
-  assertEquals(
-    normalizeModuleName({
-      destinationPath: 'packages/sdk/src/a.ts',
-      exportPath: 'packages/sdk-legacy/src/b.ts',
-      packages: [{ rootPath: 'packages/sdk', moduleName: '@company/sdk' }]
-    }),
-    'packages/sdk-legacy/src/b.ts'
-  )
-  // A trailing slash on the root changes nothing.
-  assertEquals(
-    normalizeModuleName({
-      destinationPath: 'packages/sdk/src/a.ts',
-      exportPath: 'packages/sdk/src/b.ts',
-      packages: [{ rootPath: 'packages/sdk/', moduleName: '@company/sdk' }]
-    }),
-    '@/src/b.ts'
-  )
-})
-
-// A nested root is a subpath export of the package around it. Listed
-// innermost-first here on purpose: order must not matter.
 const nested = [
   { rootPath: 'packages/sdk/src/models', moduleName: '@company/sdk/models' },
   { rootPath: 'packages/sdk/src/client', moduleName: '@company/sdk/client' },
@@ -90,8 +86,8 @@ const nested = [
   { rootPath: 'apps/api/src', moduleName: '@company/api' }
 ]
 
-Deno.test('normalizeModuleName: inside the package, a subpath target is @/ from the outermost root', () => {
-  // Across subpaths of one package: one alias, rooted at the package.
+Deno.test('normalizeModuleName: inside the package, every file shares one @ rooted at the outermost root', () => {
+  // Across subpaths: client → models.
   assertEquals(
     normalizeModuleName({
       destinationPath: 'packages/sdk/src/client/getUser.ts',
@@ -100,19 +96,18 @@ Deno.test('normalizeModuleName: inside the package, a subpath target is @/ from 
     }),
     '@/models/User.ts'
   )
-  // Within one subpath: the same alias, so a file's imports never depend on
-  // which subpath it happens to be in.
+  // From a subpath up to the package root.
   assertEquals(
     normalizeModuleName({
-      destinationPath: 'packages/sdk/src/models/Order.ts',
-      exportPath: 'packages/sdk/src/models/User.ts',
+      destinationPath: 'packages/sdk/src/models/User.ts',
+      exportPath: 'packages/sdk/src/config.ts',
       packages: nested
     }),
-    '@/models/User.ts'
+    '@/config.ts'
   )
 })
 
-Deno.test('normalizeModuleName: outside the package, a subpath target is the innermost moduleName', () => {
+Deno.test('normalizeModuleName: outside the package, a target is the innermost moduleName', () => {
   assertEquals(
     normalizeModuleName({
       destinationPath: 'apps/api/src/routes/users.ts',
@@ -121,7 +116,6 @@ Deno.test('normalizeModuleName: outside the package, a subpath target is the inn
     }),
     '@company/sdk/models'
   )
-  // A file under the package but no subpath is the package itself.
   assertEquals(
     normalizeModuleName({
       destinationPath: 'apps/api/src/routes/users.ts',
@@ -144,6 +138,32 @@ Deno.test('normalizeModuleName: a subpath needs its own moduleName to be importe
         ]
       }),
     Error,
-    'packages/sdk/src/models'
+    "a nested root is a subpath export and needs its own name, like '@company/sdk/models'."
+  )
+})
+
+Deno.test('normalizeModuleName: the three path sources may spell the workspace root differently', () => {
+  // rootPath as written in config (`./`), destinationPath as std-normalised
+  // File.path (no prefix), exportPath as the generator wrote it (`./` or `@/`).
+  const packages = [
+    { rootPath: './packages/sdk/src', moduleName: '@company/sdk' },
+    { rootPath: './packages/sdk/src/models', moduleName: '@company/sdk/models' }
+  ]
+
+  assertEquals(
+    normalizeModuleName({
+      destinationPath: 'packages/sdk/src/client/getUser.ts',
+      exportPath: './packages/sdk/src/models/User.ts',
+      packages
+    }),
+    '@/models/User.ts'
+  )
+  assertEquals(
+    normalizeModuleName({
+      destinationPath: 'apps/api/src/routes/users.ts',
+      exportPath: '@/packages/sdk/src/models/User.ts',
+      packages
+    }),
+    '@company/sdk/models'
   )
 })

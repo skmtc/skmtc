@@ -307,3 +307,31 @@ Deno.test('TsFile renders the legacy-pinned cross-package import normalisation',
 
   assertEquals(tsFile.toString(), `import {User} from '@app/models'`)
 })
+
+Deno.test('TsFile renders nested package roots: one @ inside the package, subpath names outside, bare specifiers untouched', () => {
+  const settings = {
+    packages: [
+      { rootPath: 'packages/sdk/src', moduleName: '@company/sdk' },
+      { rootPath: 'packages/sdk/src/models', moduleName: '@company/sdk/models' }
+    ]
+  }
+
+  // Inside the package: a generator wrote the import with Skmtc's
+  // workspace-root `@/`; the file gets the package's `@/`.
+  const client = new TsFile({ path: 'packages/sdk/src/client/getUser.generated.ts', settings })
+  client.addImports([
+    TsImport.fromConcise('@/packages/sdk/src/models/User.generated.ts', ['User']),
+    TsImport.fromConcise('zod', ['z'])
+  ])
+
+  assertEquals(
+    client.toString(),
+    `import {User} from '@/models/User.generated.ts'\nimport {z} from 'zod'`
+  )
+
+  // Outside the package: the subpath export.
+  const route = new TsFile({ path: 'apps/api/src/routes/users.generated.ts', settings })
+  route.addImports([TsImport.fromConcise('@/packages/sdk/src/models/User.generated.ts', ['User'])])
+
+  assertEquals(route.toString(), `import {User} from '@company/sdk/models'`)
+})
