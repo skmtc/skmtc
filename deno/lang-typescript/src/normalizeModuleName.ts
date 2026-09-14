@@ -22,6 +22,14 @@ export type NormalizeModuleNameArgs = {
  * - Package-specific module naming conventions
  * - Root path truncation for intra-package imports
  *
+ * Package roots may nest. A nested root is a **subpath export** of the
+ * package that contains it: files under it share the outer package's `@`
+ * alias, and a file outside the package imports them by the nested root's
+ * `moduleName` — `@company/sdk/models` rather than `@company/sdk`. So the
+ * outermost root containing the target decides whether an import is
+ * intra-package, and the innermost decides what an outside importer writes.
+ * The order of `packages` does not matter.
+ *
  * @throws {Error} When a matching package is found but has no moduleName configured
  *
  * @example Cross-package import
@@ -49,6 +57,24 @@ export type NormalizeModuleNameArgs = {
  * console.log(normalized); // '@/models/User.ts' (truncates root path)
  * ```
  *
+ * @example Subpath export (nested roots)
+ * ```typescript
+ * const packages = [
+ *   { rootPath: './packages/sdk/src', moduleName: '@company/sdk' },
+ *   { rootPath: './packages/sdk/src/models', moduleName: '@company/sdk/models' }
+ * ];
+ * normalizeModuleName({
+ *   destinationPath: './packages/sdk/src/client/getUser.ts',
+ *   exportPath: './packages/sdk/src/models/User.ts',
+ *   packages
+ * }); // '@/models/User.ts' — inside the package, one alias
+ * normalizeModuleName({
+ *   destinationPath: './apps/api/src/routes/users.ts',
+ *   exportPath: './packages/sdk/src/models/User.ts',
+ *   packages
+ * }); // '@company/sdk/models' — outside it, the subpath
+ * ```
+ *
  * @example No package match (returns original path)
  * ```typescript
  * const normalized = normalizeModuleName({
@@ -64,24 +90,34 @@ export const normalizeModuleName = ({
   exportPath,
   packages = []
 }: NormalizeModuleNameArgs): string => {
-  const matchingModule = packages.find(packageModule => {
-    return exportPath.startsWith(packageModule.rootPath)
-  })
+  // Every root the target sits under, outermost first.
+  const containing = packages
+    .map(packageModule => ({ ...packageModule, rootPath: trimSlash(packageModule.rootPath) }))
+    .filter(packageModule => isUnder(exportPath, packageModule.rootPath))
+    .sort((a, b) => a.rootPath.length - b.rootPath.length)
 
-  if (!matchingModule) {
+  const outermost = containing.at(0)
+  const innermost = containing.at(-1)
+
+  if (!outermost || !innermost) {
     return exportPath
   }
 
-  const { rootPath, moduleName } = matchingModule
-
   // When importing from within same package, truncate the root path and denote root with '@'
-  if (destinationPath.startsWith(rootPath)) {
-    return exportPath.replace(rootPath, '@')
+  if (isUnder(destinationPath, outermost.rootPath)) {
+    return `@${exportPath.slice(outermost.rootPath.length)}`
   }
 
-  if (!moduleName) {
-    throw new Error(`Module name is not set for ${rootPath}`)
+  if (!innermost.moduleName) {
+    throw new Error(`Module name is not set for ${innermost.rootPath}`)
   }
 
-  return moduleName
+  return innermost.moduleName
 }
+
+const trimSlash = (rootPath: string): string =>
+  rootPath.endsWith('/') ? rootPath.slice(0, -1) : rootPath
+
+/** `path` is `rootPath` itself or a file or folder below it — never a sibling that merely shares the prefix. */
+const isUnder = (path: string, rootPath: string): boolean =>
+  path === rootPath || path.startsWith(`${rootPath}/`)

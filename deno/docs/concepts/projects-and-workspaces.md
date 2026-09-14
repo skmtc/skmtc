@@ -353,6 +353,27 @@ So `@` is **per-package**, not a single global alias: a file under
 `packages/models/src` sees `@/` rooted at that package; a file in another
 package importing it gets `@skmtc/models`.
 
+**Subpath exports.** Package roots may nest, and a nested root is a subpath
+export of the package around it. The *outermost* root containing the target
+decides whether an import is intra-package — so every file in the package
+shares one `@`, rooted at the package — and the *innermost* root's
+`moduleName` is what a file outside the package writes:
+
+```json
+"packages": [
+  { "rootPath": "packages/sdk/src", "moduleName": "@acme/sdk" },
+  { "rootPath": "packages/sdk/src/models", "moduleName": "@acme/sdk/models" },
+  { "rootPath": "packages/sdk/src/client", "moduleName": "@acme/sdk/client" }
+]
+```
+
+A client function importing a model gets `@/models/User.ts`; a route in
+`apps/api` importing the same model gets `@acme/sdk/models`, which is the
+entry to declare in the package's `package.json#exports`. One package per
+contract, one subpath per consumer shape, no root barrel. The order of the
+`packages` array does not matter, and a root is a folder — `packages/sdk`
+does not contain `packages/sdk-legacy`.
+
 ### Barrels: a re-export-only file
 
 A package usually wants one entry point that re-exports everything it generated.
