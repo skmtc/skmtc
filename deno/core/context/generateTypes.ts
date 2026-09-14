@@ -33,46 +33,10 @@ import type { CaptureSink } from '@/anchors/CaptureSink.ts'
 import type { Sidecar } from '@/anchors/sidecar.ts'
 import type { GenerationMapEntry } from '@/anchors/generationMap.ts'
 import type { ProjectionOptionsArg, ProjectionOptionsRest } from '@/types/ProjectionOptions.ts'
+import type { InsertOptions, PeerInsertOptions } from '@/types/InsertOptions.ts'
 
-/** Placement and export settings of an operation insertion. */
-export type InsertOperationSettings = {
-  /** Whether to exclude this operation from exports */
-  noExport?: boolean
-  /** Custom destination path for the operation */
-  destinationPath?: string
-  /**
-   * Target variant of the peer projection. Omit for `'main'` (the
-   * universally-safe default that every peer is guaranteed to
-   * honour). Pass explicitly only when the peer declares this
-   * variant — the Driver throws on mismatch.
-   */
-  variant?: string
-}
-
-/**
- * {@link InsertOperationSettings} plus the peer's caller options. `NoInfer`
- * keeps `ProjectionOptions` inferred from the projection alone.
- */
-export type InsertOperationOptions<ProjectionOptions = undefined> = InsertOperationSettings &
-  ProjectionOptionsArg<NoInfer<ProjectionOptions>>
-
-/**
- * Settings of a projection's own `insertOperation` / `insertModel`: the
- * file is always the projection's own, so it is not among them.
- */
-export type PeerInsertSettings = {
-  /** Whether to exclude the peer's definition from exports */
-  noExport?: boolean
-  /**
-   * Target variant of the peer projection. Omit for `'main'`; pass only
-   * when the peer declares this variant — the Driver throws on mismatch.
-   */
-  variant?: string
-}
-
-/** {@link PeerInsertSettings} plus the peer's caller options. */
-export type PeerInsertOptions<ProjectionOptions = undefined> = PeerInsertSettings &
-  ProjectionOptionsArg<NoInfer<ProjectionOptions>>
+/** Options for inserting an operation: {@link InsertOptions} under its historical name. */
+export type InsertOperationOptions<ProjectionOptions = undefined> = InsertOptions<ProjectionOptions>
 
 /**
  * Arguments for `GenerateContext.insertOperation`.
@@ -139,7 +103,7 @@ export type InsertWebhookArgs<
 export type PhaseType = 'parse' | 'generate' | 'render'
 
 /**
- * ProjectionOptions for retrieving files from the context.
+ * Options for retrieving files from the context.
  */
 export type GetFileOptions = {
   /** Whether to throw an error if the file is not found */
@@ -365,24 +329,8 @@ export type InsertNormalizedModelArgs<Schema extends OasSchema | OasRef<'schema'
   destinationPath: string
 }
 
-/** Placement and export settings of a model insertion. */
-export type InsertModelSettings = {
-  /** Whether to exclude this model from exports */
-  noExport?: boolean
-  /** Custom destination path for the model */
-  destinationPath?: string
-  /**
-   * Target variant of the peer model projection. Omit for `'main'`
-   * (the universally-safe default that every peer is guaranteed to
-   * honour). Pass explicitly only when the peer declares this
-   * variant — the Driver throws on mismatch.
-   */
-  variant?: string
-}
-
-/** {@link InsertModelSettings} plus the peer's caller options. */
-export type InsertModelOptions<ProjectionOptions = undefined> = InsertModelSettings &
-  ProjectionOptionsArg<NoInfer<ProjectionOptions>>
+/** Options for inserting a model: {@link InsertOptions} under its historical name. */
+export type InsertModelOptions<ProjectionOptions = undefined> = InsertOptions<ProjectionOptions>
 
 /**
  * Options for inserting a normalized model. `variant` and `options` reach
@@ -442,9 +390,7 @@ export type BuildModelSettingsArgs<
    * {@link ContentSettings} built for this insertion.
    */
   variant?: string
-  /** The caller's options, handed to the identity statics. */
-  options: ProjectionOptions
-}
+} & ProjectionOptionsArg<NoInfer<ProjectionOptions>>
 
 /**
  * Arguments for generating OAS operation content settings.
@@ -452,7 +398,7 @@ export type BuildModelSettingsArgs<
  * @template V - The value type for the operation
  * @template EnrichmentType - Optional enrichment type for the operation
  */
-export type ToOasOperationSettingsArgs<
+export type ToOasOperationSettingsFields<
   V extends GeneratedValue,
   EnrichmentType = undefined,
   ProjectionOptions = undefined
@@ -466,8 +412,6 @@ export type ToOasOperationSettingsArgs<
    * {@link ContentSettings} built for this insertion.
    */
   variant?: string
-  /** The caller's options, handed to the identity statics. */
-  options: ProjectionOptions
   /**
    * The file to use instead of the projection's own `toExportPath`.
    *
@@ -479,13 +423,21 @@ export type ToOasOperationSettingsArgs<
   exportPath?: string
 }
 
+/** {@link ToOasOperationSettingsFields} plus the caller's options. */
+export type ToOasOperationSettingsArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = ToOasOperationSettingsFields<V, EnrichmentType, ProjectionOptions> &
+  ProjectionOptionsArg<NoInfer<ProjectionOptions>>
+
 /**
  * Arguments for generating GraphQL operation content settings.
  *
  * @template V - The value type for the operation
  * @template EnrichmentType - Optional enrichment type for the operation
  */
-export type ToGqlOperationSettingsArgs<
+export type ToGqlOperationSettingsFields<
   V extends GeneratedValue,
   EnrichmentType = undefined,
   ProjectionOptions = undefined
@@ -497,9 +449,15 @@ export type ToGqlOperationSettingsArgs<
    * should be resolved (see {@link Variant}).
    */
   variant?: string
-  /** The caller's options, handed to the identity statics. */
-  options: ProjectionOptions
 }
+
+/** {@link ToGqlOperationSettingsFields} plus the caller's options. */
+export type ToGqlOperationSettingsArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = ToGqlOperationSettingsFields<V, EnrichmentType, ProjectionOptions> &
+  ProjectionOptionsArg<NoInfer<ProjectionOptions>>
 
 /**
  * Arguments accepted by `GenerateContext.toOperationContentSettings`.
@@ -535,9 +493,7 @@ export type ToWebhookSettingsArgs<
    * this insertion.
    */
   variant?: string
-  /** The caller's options, handed to the identity statics. */
-  options: ProjectionOptions
-}
+} & ProjectionOptionsArg<NoInfer<ProjectionOptions>>
 
 /**
  * Return type for inserting a normalized model.

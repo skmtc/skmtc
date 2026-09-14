@@ -1,12 +1,15 @@
-import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type {
+  GenerateContextType,
   InsertNormalizedModelArgs,
   InsertNormalizedModelOptions,
-  InsertNormalizedModelReturn,
-  PeerInsertOptions
-} from '../../context/generateTypes.ts'
-import { readProjectionOptions } from '@/types/ProjectionOptions.ts'
-import type { ProjectionOptionsArg, ProjectionOptionsRest } from '@/types/ProjectionOptions.ts'
+  InsertNormalizedModelReturn
+} from '@/context/generateTypes.ts'
+import {
+  readProjectionOptions,
+  type ProjectionOptionsArg,
+  type ProjectionOptionsRest
+} from '@/types/ProjectionOptions.ts'
+import { toPeerInsertOptions, type PeerInsertOptions } from '@/types/InsertOptions.ts'
 import { toModelGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
@@ -199,14 +202,10 @@ export const toModelProjectionBase = <
         PeerProjectionOptions
       >
     ): Inserted<V, PeerEnrichmentType> {
-      const [options] = rest
-
-      // `Object.assign`, not a spread: see `ProjectionOptionsRest`.
-      return this.context.insertModel(
-        projection,
-        refName,
-        Object.assign({ destinationPath: this.settings.exportPath }, options)
-      )
+      return this.context.insertModel(projection, refName, {
+        ...toPeerInsertOptions(rest),
+        destinationPath: this.settings.exportPath
+      })
     }
 
     /**

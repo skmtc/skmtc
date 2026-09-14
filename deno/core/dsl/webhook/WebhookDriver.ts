@@ -9,7 +9,8 @@ import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { toWebhookGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType, InsertWebhookArgs } from '@/context/generateTypes.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
-import { readProjectionOptions } from '@/types/ProjectionOptions.ts'
+import { readProjectionOptions, toValueOptions } from '@/types/ProjectionOptions.ts'
+import isEqual from 'lodash-es/isEqual'
 
 /**
  * The `insertWebhook` call plus the context. The Driver defaults `variant`
@@ -181,7 +182,21 @@ export class WebhookDriver<
       )
     }
 
-    return definition.value instanceof this.projection
+    if (!(definition.value instanceof this.projection)) {
+      return false
+    }
+
+    // Options are identity, like the variant, but cannot ride the key: a hit
+    // is checked against the options its value was built with.
+    const cachedOptions = toValueOptions(definition.value)
+
+    if (!isEqual(cachedOptions, this.options)) {
+      throw new Error(
+        `Registered definition mismatch: '${definition.identifier.name}' in file '${exportPath}'. Cached options ${JSON.stringify(cachedOptions)} do not match new options ${JSON.stringify(this.options)}. Fold options into toIdentifierName.`
+      )
+    }
+
+    return true
   }
 }
 

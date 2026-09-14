@@ -4,11 +4,10 @@ import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type {
   InsertNormalizedModelArgs,
   InsertNormalizedModelOptions,
-  InsertNormalizedModelReturn,
-  PeerInsertOptions
+  InsertNormalizedModelReturn
 } from '@/context/generateTypes.ts'
-import { readProjectionOptions } from '@/types/ProjectionOptions.ts'
-import type { ProjectionOptionsRest } from '@/types/ProjectionOptions.ts'
+import { readProjectionOptions, type ProjectionOptionsRest } from '@/types/ProjectionOptions.ts'
+import { toPeerInsertOptions, type PeerInsertOptions } from '@/types/InsertOptions.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
@@ -70,7 +69,8 @@ export type OasOperationProjectionBaseConfig<
    * the load-order cycles a leaf module exists to break.
    *
    * A member's file is its container's, so `toExportPath` is not consulted
-   * when this is present.
+   * when this is present. A container takes no caller options: the member's
+   * options may select the container class, never parameterise it.
    */
   toContainer?: (
     args: ToOasOperationContainerArgs<EnrichmentType, ProjectionOptions>
@@ -234,12 +234,12 @@ export const toOasOperationProjectionBase = <
         PeerProjectionOptions
       >
     ): Inserted<V, PeerEnrichmentType> {
-      const [options] = rest
-
-      // `Object.assign`, not a spread: see `ProjectionOptionsRest`.
-      return this.context.insertOperation(
-        Object.assign({ projection, operation, destinationPath: this.settings.exportPath }, options)
-      )
+      return this.context.insertOperation({
+        projection,
+        operation,
+        destinationPath: this.settings.exportPath,
+        ...toPeerInsertOptions(rest)
+      })
     }
 
     /**
@@ -262,14 +262,10 @@ export const toOasOperationProjectionBase = <
         PeerProjectionOptions
       >
     ): Inserted<V, PeerEnrichmentType> {
-      const [options] = rest
-
-      // `Object.assign`, not a spread: see `ProjectionOptionsRest`.
-      return this.context.insertModel(
-        projection,
-        refName,
-        Object.assign({ destinationPath: this.settings.exportPath }, options)
-      )
+      return this.context.insertModel(projection, refName, {
+        ...toPeerInsertOptions(rest),
+        destinationPath: this.settings.exportPath
+      })
     }
 
     /**

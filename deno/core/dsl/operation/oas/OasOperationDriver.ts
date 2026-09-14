@@ -6,12 +6,12 @@ import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
-import type { GenerateContextType } from '@/context/generateTypes.ts'
+import type { GenerateContextType, InsertOasOperationArgs } from '@/context/generateTypes.ts'
 import invariant from 'tiny-invariant'
 import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
-import { readProjectionOptions } from '@/types/ProjectionOptions.ts'
-import type { InsertOasOperationArgs } from '@/context/generateTypes.ts'
+import { readProjectionOptions, toValueOptions } from '@/types/ProjectionOptions.ts'
+import isEqual from 'lodash-es/isEqual'
 
 /**
  * The `insertOperation` call plus the context. The Driver defaults
@@ -254,7 +254,21 @@ export class OasOperationDriver<
       )
     }
 
-    return definition.value instanceof this.projection
+    if (!(definition.value instanceof this.projection)) {
+      return false
+    }
+
+    // Options are identity, like the variant, but cannot ride the key: a hit
+    // is checked against the options its value was built with.
+    const cachedOptions = toValueOptions(definition.value)
+
+    if (!isEqual(cachedOptions, this.options)) {
+      throw new Error(
+        `Registered definition mismatch: '${definition.identifier.name}' in file '${exportPath}'. Cached options ${JSON.stringify(cachedOptions)} do not match new options ${JSON.stringify(this.options)}. Fold options into toIdentifierName.`
+      )
+    }
+
+    return true
   }
 }
 

@@ -10,6 +10,7 @@
     "@std/fmt/colors": "jsr:@std/fmt@^1.0.0/colors",
     "@types/lodash-es": "npm:@types/lodash-es@4.17.12",
     "lodash-es/get": "npm:lodash-es@4.17.21/get.js",
+    "lodash-es/isEqual": "npm:lodash-es@4.17.21/isEqual.js",
     "lodash-es/set": "npm:lodash-es@4.17.21/set.js",
     "openapi-types": "npm:openapi-types@^12.1.3",
     "graphql": "npm:graphql@^16.9.0",

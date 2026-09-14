@@ -30,7 +30,8 @@ import type {
   ContextRegisterArgs,
   RegisterJsonArgs,
   RegisterMarkdownArgs,
-  ToGqlOperationSettingsArgs,
+  ToGqlOperationSettingsFields,
+  ToOasOperationSettingsFields,
   ToOperationSettingsArgs,
   ToWebhookSettingsArgs
 } from './generateTypes.ts'
@@ -52,7 +53,8 @@ import { OasOperationDriver } from '@/dsl/operation/oas/OasOperationDriver.ts'
 import { WebhookDriver } from '@/dsl/webhook/WebhookDriver.ts'
 import { GqlOperationDriver } from '@/dsl/operation/gql/GqlOperationDriver.ts'
 import { ModelDriver } from '@/dsl/model/ModelDriver.ts'
-import type { ProjectionOptionsRest } from '@/types/ProjectionOptions.ts'
+import { readProjectionOptions, type ProjectionOptionsRest } from '@/types/ProjectionOptions.ts'
+import { toInsertOptions, toPeerInsertOptions } from '@/types/InsertOptions.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
@@ -255,9 +257,15 @@ const isGqlInsertOperationArgs = <V extends GeneratedValue, EnrichmentType, Proj
 ): args is InsertGqlOperationArgs<V, EnrichmentType, ProjectionOptions> =>
   args.operation.oasType === 'gqlOperation'
 
-const isGqlToOperationSettingsArgs = <V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
-  args: ToOperationSettingsArgs<V, EnrichmentType, ProjectionOptions>
-): args is ToGqlOperationSettingsArgs<V, EnrichmentType, ProjectionOptions> =>
+const isGqlToOperationSettingsFields = <
+  V extends GeneratedValue,
+  EnrichmentType,
+  ProjectionOptions
+>(
+  args:
+    | ToOasOperationSettingsFields<V, EnrichmentType, ProjectionOptions>
+    | ToGqlOperationSettingsFields<V, EnrichmentType, ProjectionOptions>
+): args is ToGqlOperationSettingsFields<V, EnrichmentType, ProjectionOptions> =>
   args.operation.oasType === 'gqlOperation'
 
 /** A non-null object — the subject-scope leaf of an enrichment-defaults umbrella
@@ -1367,7 +1375,7 @@ export class GenerateContext implements GenerateContextType {
   >(args: InsertOperationArgs<V, EnrichmentType, ProjectionOptions>): Inserted<V, EnrichmentType> {
     // The Driver defaults `variant` and `noExport` and reads the caller's
     // options off the call.
-    if (isGqlInsertOperationArgs(args)) {
+    if (isGqlInsertOperationArgs<V, EnrichmentType, ProjectionOptions>(args)) {
       const { settings, definition } = new GqlOperationDriver({ ...args, context: this })
 
       return new Inserted({ settings, definition })
@@ -1410,16 +1418,13 @@ export class GenerateContext implements GenerateContextType {
       ProjectionOptions
     >
   ): InsertNormalizedModelReturn<V, Schema> {
-    const [insertOptions] = rest
-    const noExport = insertOptions?.noExport ?? false
+    const insertOptions = toPeerInsertOptions(rest)
 
     if (schema.isRef()) {
-      const { definition } = this.insertModel(
-        projection,
-        schema.toRefName(),
-        // `Object.assign`, not a spread: see `ProjectionOptionsRest`.
-        Object.assign({ destinationPath }, insertOptions)
-      )
+      const { definition } = this.insertModel(projection, schema.toRefName(), {
+        ...insertOptions,
+        destinationPath
+      })
 
       // @TODO Using mapped types would help avoid generics casting
       return definition as InsertNormalizedModelReturn<V, Schema>
@@ -1458,7 +1463,7 @@ export class GenerateContext implements GenerateContextType {
       context: this,
       identifier: projection.createIdentifier(fallbackName),
       value,
-      noExport
+      noExport: insertOptions.noExport
     })
 
     this.register({ definitions: [definition], destinationPath: normalizedPath })
@@ -1481,14 +1486,15 @@ export class GenerateContext implements GenerateContextType {
     refName: RefName,
     ...rest: ProjectionOptionsRest<InsertModelOptions<ProjectionOptions>, ProjectionOptions>
   ): Inserted<V, EnrichmentType> {
-    const [insertOptions] = rest
-
     // The Driver defaults `variant` and `noExport` and reads the caller's
-    // options off the call. `Object.assign`, not a spread: see
-    // `ProjectionOptionsRest`.
-    const { settings, definition } = new ModelDriver(
-      Object.assign({ context: this, projection, refName, rootRef: refName }, insertOptions)
-    )
+    // options off the call.
+    const { settings, definition } = new ModelDriver({
+      context: this,
+      projection,
+      refName,
+      rootRef: refName,
+      ...toInsertOptions(rest)
+    })
 
     return new Inserted({ settings, definition })
   }
@@ -1500,11 +1506,16 @@ export class GenerateContext implements GenerateContextType {
    * given operation.
    */
   toOperationContentSettings<V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
-    args: ToOperationSettingsArgs<V, EnrichmentType, ProjectionOptions>
+    settingsArgs: ToOperationSettingsArgs<V, EnrichmentType, ProjectionOptions>
   ): ContentSettings<EnrichmentType> {
-    const variant = args.variant ?? DEFAULT_VARIANT
+    const variant = settingsArgs.variant ?? DEFAULT_VARIANT
+    const options = readProjectionOptions<ProjectionOptions>(settingsArgs)
+    // The subject is narrowed on the plain fields; the options slot is read once above.
+    const args:
+      | ToOasOperationSettingsFields<V, EnrichmentType, ProjectionOptions>
+      | ToGqlOperationSettingsFields<V, EnrichmentType, ProjectionOptions> = settingsArgs
 
-    if (isGqlToOperationSettingsArgs(args)) {
+    if (isGqlToOperationSettingsFields<V, EnrichmentType, ProjectionOptions>(args)) {
       const enrichments = args.projection.toEnrichments({
         operation: args.operation,
         context: this,
@@ -1516,7 +1527,7 @@ export class GenerateContext implements GenerateContextType {
             operation: args.operation,
             enrichments,
             variant,
-            options: args.options
+            options
           }),
           ...args.projection.toIdentifierType(args.operation, this)
         }),
@@ -1525,7 +1536,7 @@ export class GenerateContext implements GenerateContextType {
             operation: args.operation,
             enrichments,
             variant,
-            options: args.options
+            options
           })
         ),
         enrichments,
@@ -1544,7 +1555,7 @@ export class GenerateContext implements GenerateContextType {
           operation: args.operation,
           enrichments,
           variant,
-          options: args.options
+          options
         }),
         ...args.projection.toIdentifierType(args.operation, this)
       }),
@@ -1555,7 +1566,7 @@ export class GenerateContext implements GenerateContextType {
             operation: args.operation,
             enrichments,
             variant,
-            options: args.options
+            options
           })
       ),
       enrichments,
@@ -1572,6 +1583,7 @@ export class GenerateContext implements GenerateContextType {
     args: ToWebhookSettingsArgs<V, EnrichmentType, ProjectionOptions>
   ): ContentSettings<EnrichmentType> {
     const variant = args.variant ?? DEFAULT_VARIANT
+    const options = readProjectionOptions<ProjectionOptions>(args)
 
     const enrichments = args.projection.toEnrichments({
       webhook: args.webhook,
@@ -1584,7 +1596,7 @@ export class GenerateContext implements GenerateContextType {
           webhook: args.webhook,
           enrichments,
           variant,
-          options: args.options
+          options
         }),
         ...args.projection.toIdentifierType(args.webhook, this)
       }),
@@ -1593,7 +1605,7 @@ export class GenerateContext implements GenerateContextType {
           webhook: args.webhook,
           enrichments,
           variant,
-          options: args.options
+          options
         })
       ),
       enrichments,
@@ -1609,16 +1621,11 @@ export class GenerateContext implements GenerateContextType {
    * identifier is assembled through the projection's language
    * (`lang.toIdentifier`).
    */
-  toModelContentSettings<V extends GeneratedValue, EnrichmentType, ProjectionOptions>({
-    refName,
-    projection,
-    variant = DEFAULT_VARIANT,
-    options
-  }: BuildModelSettingsArgs<
-    V,
-    EnrichmentType,
-    ProjectionOptions
-  >): ContentSettings<EnrichmentType> {
+  toModelContentSettings<V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
+    args: BuildModelSettingsArgs<V, EnrichmentType, ProjectionOptions>
+  ): ContentSettings<EnrichmentType> {
+    const { refName, projection, variant = DEFAULT_VARIANT } = args
+    const options = readProjectionOptions<ProjectionOptions>(args)
     const enrichments = projection.toEnrichments({ refName, context: this, variant })
     return new ContentSettings<EnrichmentType>({
       identifier: projection.lang.toIdentifier({

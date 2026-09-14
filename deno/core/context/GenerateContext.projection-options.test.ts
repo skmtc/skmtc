@@ -4,42 +4,71 @@
  * A model projection declares `{ suffix: string }` options and folds them
  * into its identifier name. An operation projection inserts it twice with
  * different options. Both definitions must land, each carrying its own
- * options, and the call surface must follow what each peer declares:
- * options required when declared, refused when not.
+ * options; a peer that forgets the fold must fail the integrity check; keys
+ * beyond `noExport` / `variant` / `options` must never reach the engine;
+ * and the call surface must follow what each peer declares.
+ *
+ * Uses neutral doubles only (MockFile / MockDefinition / MockImport /
+ * IdentifierBase) — core tests stay language-agnostic.
  */
 
-import { assertEquals, assertExists, assertInstanceOf } from '@std/assert'
-import type * as log from '@std/log'
+import {
+  assertEquals,
+  assertExists,
+  assertInstanceOf,
+  assertStrictEquals,
+  assertThrows
+} from '@std/assert'
+import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
-import { TsSnippet } from '@skmtc/lang-typescript'
+import { SnippetBase } from '@/dsl/SnippetBase.ts'
+import { IdentifierBase } from '@/dsl/IdentifierBase.ts'
+import { MockDefinition, MockFile, MockImport } from '@/test/MockFile.ts'
 import { toModelProjectionBase } from '@/dsl/model/toModelProjectionBase.ts'
 import { toOasOperationProjectionBase } from '@/dsl/operation/oas/toOasOperationProjectionBase.ts'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
+import { toRefName } from '@/helpers/refFns.ts'
 import type { Enrichments } from '@/types/Enrichments.ts'
+import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import type { OasOperationProjection } from '@/dsl/operation/oas/types.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
-import type { GenerateContextType } from '@/context/generateTypes.ts'
+import type { Lang } from '@/dsl/Lang.ts'
+import type { GenerateContextType, InsertModelOptions } from '@/context/generateTypes.ts'
 import type { RefName } from '@/types/RefName.ts'
 
-const mockLogger: log.Logger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-  critical: () => {}
-} as unknown as log.Logger
+// An unconfigured named logger has no handlers, so it is silent.
+const mockLogger: log.Logger = log.getLogger('projection-options-test-silent')
+
+const neutralLang: Lang = {
+  createFile: ({ path }) => new MockFile({ path }),
+  toDefinition: ({ context, identifier, value }) =>
+    new MockDefinition({ context, identifier, value }),
+  toImport: ({ identifier, module }) => new MockImport({ names: [identifier.name], module }),
+  toIdentifier: ({ name, typeName }) => new IdentifierBase({ name, typeName })
+}
+
+class NeutralSnippet extends SnippetBase {
+  static lang: Lang = neutralLang
+
+  override toString(): string {
+    return ''
+  }
+}
+
+const pet = toRefName('#/components/schemas/Pet')
 
 type PetOptions = { suffix: string }
 
-const PetBase = toModelProjectionBase<Enrichments, IdentifierType, PetOptions>(TsSnippet, {
+const PetBase = toModelProjectionBase<Enrichments, IdentifierType, PetOptions>(NeutralSnippet, {
   id: '@test/pet',
   toIdentifierName: ({ refName, options }) => `${refName}${options.suffix}`,
-  toIdentifierType: () => ({ type: 'type' }),
+  toIdentifierType: () => ({ type: 'entity' }),
   toExportPath: ({ refName, options }) => `@/models/${refName}${options.suffix}.ts`,
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })
@@ -50,10 +79,28 @@ class PetModel extends PetBase {
   }
 }
 
-const PlainBase = toModelProjectionBase(TsSnippet, {
+/** Reads its options but never folds them into its name. */
+const ForgetfulBase = toModelProjectionBase<Enrichments, IdentifierType, PetOptions>(
+  NeutralSnippet,
+  {
+    id: '@test/forgetful',
+    toIdentifierName: ({ refName }) => refName,
+    toIdentifierType: () => ({ type: 'entity' }),
+    toExportPath: ({ refName }) => `@/models/${refName}.ts`,
+    toEnrichmentSchema: () => emptyEnrichmentSchema
+  }
+)
+
+class ForgetfulModel extends ForgetfulBase {
+  override toString() {
+    return `{ kind: '${this.options.suffix}' }`
+  }
+}
+
+const PlainBase = toModelProjectionBase(NeutralSnippet, {
   id: '@test/plain',
   toIdentifierName: ({ refName }) => refName,
-  toIdentifierType: () => ({ type: 'type' }),
+  toIdentifierType: () => ({ type: 'entity' }),
   toExportPath: ({ refName }) => `@/models/${refName}.ts`,
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })
@@ -65,11 +112,11 @@ class PlainModel extends PlainBase {
 }
 
 const MaybeBase = toModelProjectionBase<Enrichments, IdentifierType, PetOptions | undefined>(
-  TsSnippet,
+  NeutralSnippet,
   {
     id: '@test/maybe',
     toIdentifierName: ({ refName, options }) => `${refName}${options?.suffix ?? ''}`,
-    toIdentifierType: () => ({ type: 'type' }),
+    toIdentifierType: () => ({ type: 'entity' }),
     toExportPath: ({ refName }) => `@/models/${refName}.ts`,
     toEnrichmentSchema: () => emptyEnrichmentSchema
   }
@@ -81,24 +128,39 @@ class MaybeModel extends MaybeBase {
   }
 }
 
-const HandlerBase = toOasOperationProjectionBase(TsSnippet, {
+const HandlerBase = toOasOperationProjectionBase(NeutralSnippet, {
   id: '@test/handler',
   toIdentifierName: () => 'handler',
-  toIdentifierType: () => ({ type: 'variable' }),
+  toIdentifierType: () => ({ type: 'entity' }),
   toExportPath: () => '@/handlers/handler.ts',
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 
 class HandlerProjection extends HandlerBase {
-  input = this.insertModel(PetModel, 'Pet' as RefName, { options: { suffix: 'Input' } })
-  output = this.insertModel(PetModel, 'Pet' as RefName, { options: { suffix: 'Output' } })
+  input = this.insertModel(PetModel, pet, { options: { suffix: 'Input' } })
+  output = this.insertModel(PetModel, pet, { options: { suffix: 'Output' } })
 
   override toString() {
     return `(${this.input.toName()}) => ${this.output.toName()}`
   }
 }
 
-const buildContext = () => {
+/** A non-literal trailing argument carrying a key the helper must not forward. */
+const bag: InsertModelOptions = { destinationPath: '@/somewhere/else.ts' }
+
+class LeakyHandler extends HandlerBase {
+  static override id = '@test/leaky-handler'
+  static override toExportPath = () => '@/handlers/leaky.ts'
+  peer = this.insertModel(PlainModel, pet, bag)
+
+  override toString() {
+    return `() => ${this.peer.toName()}`
+  }
+}
+
+const buildContext = <V extends GeneratedValue>(
+  projection: OasOperationProjection<V, Enrichments>
+) => {
   const doc = new OasDocument({
     openapi: '3.0.0',
     info: new OasInfo({ title: 'Test', version: '1.0.0' }),
@@ -108,26 +170,25 @@ const buildContext = () => {
   })
 
   const entry = toOasOperationEntry({
-    id: '@test/handler',
+    id: projection.id,
     toEnrichmentSchema: () => emptyEnrichmentSchema,
     transform: ({ context, operation, variant }) => {
-      context.insertOperation({ projection: HandlerProjection, operation, variant })
+      context.insertOperation({ projection, operation, variant })
     }
   })
 
   return new GenerateContext({
     document: { type: 'oas', value: doc },
-    // deno-lint-ignore no-explicit-any
-    settings: { enrichments: {} } as any,
+    settings: undefined,
     logger: mockLogger,
     captureCurrentResult: () => {},
     // deno-lint-ignore no-explicit-any
-    toGeneratorConfigMap: () => ({ '@test/handler': entry }) as any
+    toGeneratorConfigMap: () => ({ [projection.id]: entry }) as any
   })
 }
 
 Deno.test('projection options - each insertion carries its own options through name, file and value', () => {
-  const context = buildContext()
+  const context = buildContext(HandlerProjection)
   const { files } = context.toArtifacts(new StackTrail(['test']))
 
   const inputFile = files.get('@/models/PetInput.generated.ts')
@@ -156,11 +217,47 @@ Deno.test('projection options - each insertion carries its own options through n
   )
 })
 
+Deno.test('projection options - a cache hit with the same options is reused; different options throw', () => {
+  const context = buildContext(HandlerProjection)
+
+  const first = context.insertModel(ForgetfulModel, pet, { options: { suffix: 'Input' } })
+  const again = context.insertModel(ForgetfulModel, pet, { options: { suffix: 'Input' } })
+  assertStrictEquals(again.definition, first.definition)
+
+  assertThrows(
+    () => context.insertModel(ForgetfulModel, pet, { options: { suffix: 'Output' } }),
+    Error,
+    'Registered definition mismatch'
+  )
+})
+
+Deno.test('projection options - only noExport, variant and options reach the engine from the trailing argument', () => {
+  const context = buildContext(LeakyHandler)
+  const { files } = context.toArtifacts(new StackTrail(['test']))
+
+  assertEquals(files.has('@/somewhere/else.ts'), false)
+  assertExists(files.get('@/models/Pet.generated.ts'))
+
+  const handlerFile = files.get('@/handlers/leaky.generated.ts')
+  assertInstanceOf(handlerFile, MockFile)
+  assertEquals(handlerFile.imports.has('@/models/Pet.generated.ts'), true)
+
+  // Same guarantee on the context: engine-owned keys cannot be overridden.
+  const wide: InsertModelOptions & { refName: RefName } = {
+    noExport: true,
+    refName: toRefName('#/components/schemas/Other')
+  }
+  const inserted = context.insertModel(PlainModel, pet, wide)
+  assertEquals(inserted.toName(), 'Pet')
+  assertEquals(context.getFile('@/models/Other.generated.ts'), undefined)
+})
+
 // Type-level: the call surface follows what the peer declares. Never run.
 export const _typeChecks = (
   context: GenerateContextType,
   refName: RefName,
-  operation: OasOperation
+  operation: OasOperation,
+  handler: HandlerProjection
 ) => {
   context.insertModel(PetModel, refName, { options: { suffix: 'Input' } })
   context.insertModel(PetModel, refName, { options: { suffix: 'Input' }, noExport: true })
@@ -187,13 +284,18 @@ export const _typeChecks = (
     options: { suffix: 'Input' }
   })
 
-  const handler = new HandlerProjection({
-    context,
-    operation,
-    settings: HandlerProjection.prototype.settings
-  })
   handler.insertModel(PetModel, refName, { options: { suffix: 'Input' } })
   // @ts-expect-error options are required when the peer declares them
   handler.insertModel(PetModel, refName)
   handler.insertModel(PlainModel, refName)
+
+  context.toModelContentSettings({ refName, projection: PlainModel, variant: 'main' })
+  context.toModelContentSettings({
+    refName,
+    projection: PetModel,
+    variant: 'main',
+    options: { suffix: 'Input' }
+  })
+  // @ts-expect-error options are required when the peer declares them
+  context.toModelContentSettings({ refName, projection: PetModel, variant: 'main' })
 }

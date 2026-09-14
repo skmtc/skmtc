@@ -134,7 +134,8 @@ export type ToOasOperationExportPathArgs<
  * projection whose value has no member store is not assignable here. That is
  * the same contract a file satisfies
  * ({@link import('@/dsl/DefinitionContainer.ts').DefinitionContainer}), which
- * is what makes both of them places.
+ * is what makes both of them places. A container takes no caller options:
+ * its identity is its group's, shared by every member.
  */
 // deno-lint-ignore no-explicit-any
 export type OasOperationContainerProjection<EnrichmentType = any> = OasOperationProjection<
@@ -205,7 +206,8 @@ export type OasOperationProjection<
    * than the file. Absent for a top-level definition — the common case.
    *
    * A member's file is its container's, so `toExportPath` is not consulted
-   * when this is present.
+   * when this is present. A container takes no caller options: the member's
+   * options may select the container class, never parameterise it.
    */
   toContainer?: (
     args: ToOasOperationContainerArgs<EnrichmentType, ProjectionOptions>

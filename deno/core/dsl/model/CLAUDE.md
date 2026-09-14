@@ -47,8 +47,9 @@ The model half of the projection machinery, symmetric with
   - The constructor reads the caller's `options` off the call
     (`readProjectionOptions`) and threads them into
     `toModelContentSettings` (so `toIdentifierName` / `toExportPath`
-    receive them) and the projection constructor. See
-    `types/ProjectionOptions.ts`.
+    receive them) and the projection constructor. `affirmDefinition`
+    compares a cache hit's `value.options` with the call's and throws
+    on mismatch. See `types/ProjectionOptions.ts`.
 - `types.ts` — arg shapes. Every `To*Args` and `Transform*Args`
   carries `variant: string`.
 

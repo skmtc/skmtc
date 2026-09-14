@@ -14,7 +14,9 @@
  *
  * Options take part in identity: the engine caches definitions by name and
  * export path, so a projection whose output depends on its options must
- * fold them into `toIdentifierName`.
+ * fold them into `toIdentifierName`. A cache hit whose options differ from
+ * the call's throws. Options are held by reference until render, so pass a
+ * fresh object per insertion.
  *
  * @module ProjectionOptions
  */
@@ -31,11 +33,8 @@ export type ProjectionOptionsArg<ProjectionOptions> = undefined extends Projecti
 
 /**
  * The trailing parameter of an insert call, optional only when the
- * projection's options are.
- *
- * Forward the element with `Object.assign`, not a spread: spreading a
- * possibly-undefined value resolves the conditional `options` slot to its
- * loose shape.
+ * projection's options are. Read it with `toInsertOptions` /
+ * `toPeerInsertOptions`, which pick the known keys off it.
  */
 export type ProjectionOptionsRest<Args, ProjectionOptions> = undefined extends ProjectionOptions
   ? [args?: Args]
@@ -55,3 +54,7 @@ export function readProjectionOptions<ProjectionOptions>(
 export function readProjectionOptions(args: { options?: unknown } | undefined): unknown {
   return args?.options
 }
+
+/** The options a built value carries; `undefined` for a value that stores none. */
+export const toValueOptions = (value: object): unknown =>
+  'options' in value ? value.options : undefined

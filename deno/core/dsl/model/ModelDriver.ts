@@ -1,5 +1,5 @@
 import type { ModelProjection } from './types.ts'
-import type { GenerateContextType } from '../../context/generateTypes.ts'
+import type { GenerateContextType, InsertModelOptions } from '@/context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { normalize } from '@std/path/normalize'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
@@ -9,8 +9,8 @@ import type { GeneratedValue } from '../GeneratedValue.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { toModelGeneratorKey } from '../GeneratorKeys.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
-import { readProjectionOptions } from '@/types/ProjectionOptions.ts'
-import type { InsertModelOptions } from '../../context/generateTypes.ts'
+import { readProjectionOptions, toValueOptions } from '@/types/ProjectionOptions.ts'
+import isEqual from 'lodash-es/isEqual'
 
 /**
  * The `insertModel` call plus the context. The Driver defaults `variant`
@@ -190,7 +190,21 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
       )
     }
 
-    return definition.value instanceof this.projection
+    if (!(definition.value instanceof this.projection)) {
+      return false
+    }
+
+    // Options are identity, like the variant, but cannot ride the key: a hit
+    // is checked against the options its value was built with.
+    const cachedOptions = toValueOptions(definition.value)
+
+    if (!isEqual(cachedOptions, this.options)) {
+      throw new Error(
+        `Registered definition mismatch: '${definition.identifier.name}' in file '${exportPath}'. Cached options ${JSON.stringify(cachedOptions)} do not match new options ${JSON.stringify(this.options)}. Fold options into toIdentifierName.`
+      )
+    }
+
+    return true
   }
 }
 
