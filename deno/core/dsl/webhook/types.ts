@@ -4,6 +4,7 @@ import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
+import type { ProjectionOptionsArg } from '@/types/ProjectionOptions.ts'
 
 /**
  * External constructor signature for a webhook projection class.
@@ -15,11 +16,14 @@ import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
  * `operation` — webhooks are a distinct subject ({@link OasWebhook}),
  * so the field name and type differ even though the shape matches.
  */
-export type WebhookProjectionConstructorArgs<EnrichmentType = undefined> = {
+export type WebhookProjectionConstructorArgs<
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   context: GenerateContextType
   settings: ContentSettings<EnrichmentType>
   webhook: OasWebhook
-}
+} & ProjectionOptionsArg<ProjectionOptions>
 
 export type TransformWebhookArgs = {
   context: GenerateContextType
@@ -62,22 +66,25 @@ export type ToWebhookMappingArgs = {
 }
 
 /**
- * Arguments for a webhook projection's `toIdentifierName` — the pure,
- * cache-key-source half of the old `toIdentifier`.
+ * Arguments for a webhook projection's `toIdentifierName`. Fold `options` into the name when the output
+ * depends on them: definitions are cached by name and export path.
  */
-export type ToWebhookIdentifierNameArgs<EnrichmentType = undefined> = {
+export type ToWebhookIdentifierNameArgs<
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   webhook: OasWebhook
   enrichments: EnrichmentType
   /** Webhook variant the identifier should disambiguate (see {@link Variant}) */
   variant: string
-}
+} & ProjectionOptionsArg<ProjectionOptions>
 
-export type ToWebhookExportPathArgs<EnrichmentType = undefined> = {
+export type ToWebhookExportPathArgs<EnrichmentType = undefined, ProjectionOptions = undefined> = {
   webhook: OasWebhook
   enrichments: EnrichmentType
   /** Webhook variant the export path should disambiguate (see {@link Variant}) */
   variant: string
-}
+} & ProjectionOptionsArg<ProjectionOptions>
 
 /**
  * Static structural type of a webhook projection class.
@@ -85,12 +92,22 @@ export type ToWebhookExportPathArgs<EnrichmentType = undefined> = {
  * Captures both the instance side (`new(...) => V`) and the static side
  * (`id`, `toIdentifierName`, `toIdentifierType`, `toExportPath`,
  * `toEnrichments`). Passed as a type parameter to
- * `context.insertWebhook(...)`.
+ * `context.insertWebhook(...)`. `ProjectionOptions` is the caller options
+ * the class declares; the Drivers infer it from the constructor and statics.
  */
-export type WebhookProjection<V extends GeneratedValue, EnrichmentType = undefined> = {
+export type WebhookProjection<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   prototype: V
 } & {
-  new ({ context, settings, webhook }: WebhookProjectionConstructorArgs<EnrichmentType>): V
+  new ({
+    context,
+    settings,
+    webhook,
+    options
+  }: WebhookProjectionConstructorArgs<EnrichmentType, ProjectionOptions>): V
   id: string
   type: 'webhook'
   /**
@@ -101,7 +118,7 @@ export type WebhookProjection<V extends GeneratedValue, EnrichmentType = undefin
    */
   lang: Lang
   /** Pure: the cache-key name. */
-  toIdentifierName: (args: ToWebhookIdentifierNameArgs<EnrichmentType>) => string
+  toIdentifierName: (args: ToWebhookIdentifierNameArgs<EnrichmentType, ProjectionOptions>) => string
   /**
    * Context-aware, overridable: the non-`name` parts of the identifier,
    * derived from the webhook. The engine assembles
@@ -109,7 +126,7 @@ export type WebhookProjection<V extends GeneratedValue, EnrichmentType = undefin
    * ...toIdentifierType(webhook, context) })`.
    */
   toIdentifierType: (webhook: OasWebhook, context: GenerateContextType) => IdentifierType
-  toExportPath: (args: ToWebhookExportPathArgs<EnrichmentType>) => string
+  toExportPath: (args: ToWebhookExportPathArgs<EnrichmentType, ProjectionOptions>) => string
   toEnrichments: ({ webhook, context }: ToWebhookEnrichmentsArgs) => EnrichmentType
   /**
    * Family-level capability predicate, surfaced as a static by

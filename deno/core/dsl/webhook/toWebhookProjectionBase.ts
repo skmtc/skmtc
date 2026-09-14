@@ -1,11 +1,13 @@
 import { toWebhookGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type {
-  InsertOperationOptions,
-  InsertModelOptions,
   InsertNormalizedModelArgs,
-  InsertNormalizedModelReturn
+  InsertNormalizedModelOptions,
+  InsertNormalizedModelReturn,
+  PeerInsertOptions
 } from '@/context/generateTypes.ts'
+import { readProjectionOptions } from '@/types/ProjectionOptions.ts'
+import type { ProjectionOptionsRest } from '@/types/ProjectionOptions.ts'
 import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
@@ -39,18 +41,19 @@ import { parseEnrichmentUmbrella } from '@/enrichments/parseEnrichmentUmbrella.t
  */
 export type WebhookProjectionBaseConfig<
   EnrichmentType = undefined,
-  IdType extends IdentifierType = IdentifierType
+  IdType extends IdentifierType = IdentifierType,
+  ProjectionOptions = undefined
 > = {
   id: string
   /** Pure: the cache-key name (the cache-check path runs this). */
-  toIdentifierName: (args: ToWebhookIdentifierNameArgs<EnrichmentType>) => string
+  toIdentifierName: (args: ToWebhookIdentifierNameArgs<EnrichmentType, ProjectionOptions>) => string
   /**
    * Context-aware, overridable: the non-`name` parts of the identifier,
    * derived from the webhook. Runs only on cache-miss. Returns this
    * language's `XxIdentifierType` (`IdType`; the loose `type: string` by default).
    */
   toIdentifierType: (webhook: OasWebhook, context: GenerateContextType) => IdType
-  toExportPath: (args: ToWebhookExportPathArgs<EnrichmentType>) => string
+  toExportPath: (args: ToWebhookExportPathArgs<EnrichmentType, ProjectionOptions>) => string
   /**
    * Required composite schema for the `{ subject, generator, stack }`
    * enrichment umbrella. Required (not optional) is load-bearing: it is what
@@ -95,10 +98,11 @@ type ToEnrichmentsArgs = {
  */
 export const toWebhookProjectionBase = <
   EnrichmentType = undefined,
-  IdType extends IdentifierType = IdentifierType
+  IdType extends IdentifierType = IdentifierType,
+  ProjectionOptions = undefined
 >(
   base: LangSnippetConstructor,
-  config: WebhookProjectionBaseConfig<EnrichmentType, IdType>
+  config: WebhookProjectionBaseConfig<EnrichmentType, IdType, ProjectionOptions>
 ) => {
   return class extends base {
     static id = config.id
@@ -137,8 +141,10 @@ export const toWebhookProjectionBase = <
 
     settings: ContentSettings<EnrichmentType>
     webhook: OasWebhook
+    /** The caller's options. */
+    options: ProjectionOptions
 
-    constructor(args: WebhookProjectionConstructorArgs<EnrichmentType>) {
+    constructor(args: WebhookProjectionConstructorArgs<EnrichmentType, ProjectionOptions>) {
       super({
         context: args.context,
         generatorKey: toWebhookGeneratorKey({
@@ -150,41 +156,60 @@ export const toWebhookProjectionBase = <
 
       this.webhook = args.webhook
       this.settings = args.settings
+      this.options = readProjectionOptions<ProjectionOptions>(args)
     }
 
     /**
      * Insert a related operation (the operation-reference protocol — e.g. a
      * webhook handler that references a list endpoint). Exported to this
-     * projection's own `exportPath` unless `noExport` is set.
+     * projection's own `exportPath` unless `noExport` is set. `{ options }`
+     * is required when the peer declares options and refused when it does not.
      */
-    insertOperation<V extends GeneratedValue, PeerEnrichmentType = undefined>(
-      projection: OasOperationProjection<V, PeerEnrichmentType>,
+    insertOperation<
+      V extends GeneratedValue,
+      PeerEnrichmentType = undefined,
+      PeerProjectionOptions = undefined
+    >(
+      projection: OasOperationProjection<V, PeerEnrichmentType, PeerProjectionOptions>,
       operation: OasOperation,
-      options: Pick<InsertOperationOptions, 'noExport' | 'variant'> = {}
+      ...rest: ProjectionOptionsRest<
+        PeerInsertOptions<PeerProjectionOptions>,
+        PeerProjectionOptions
+      >
     ): Inserted<V, PeerEnrichmentType> {
-      return this.context.insertOperation({
-        projection,
-        operation,
-        destinationPath: this.settings.exportPath,
-        noExport: options.noExport,
-        variant: options.variant
-      })
+      const [options] = rest
+
+      // `Object.assign`, not a spread: see `ProjectionOptionsRest`.
+      return this.context.insertOperation(
+        Object.assign({ projection, operation, destinationPath: this.settings.exportPath }, options)
+      )
     }
 
     /**
      * Insert a related model into this projection's export file (e.g. the
-     * webhook's payload type).
+     * webhook's payload type). `{ options }` is required when the peer
+     * declares options and refused when it does not.
      */
-    insertModel<V extends GeneratedValue, PeerEnrichmentType = undefined>(
-      projection: ModelProjection<V, PeerEnrichmentType>,
+    insertModel<
+      V extends GeneratedValue,
+      PeerEnrichmentType = undefined,
+      PeerProjectionOptions = undefined
+    >(
+      projection: ModelProjection<V, PeerEnrichmentType, PeerProjectionOptions>,
       refName: RefName,
-      options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
+      ...rest: ProjectionOptionsRest<
+        PeerInsertOptions<PeerProjectionOptions>,
+        PeerProjectionOptions
+      >
     ): Inserted<V, PeerEnrichmentType> {
-      return this.context.insertModel(projection, refName, {
-        destinationPath: this.settings.exportPath,
-        noExport: options.noExport,
-        variant: options.variant
-      })
+      const [options] = rest
+
+      // `Object.assign`, not a spread: see `ProjectionOptionsRest`.
+      return this.context.insertModel(
+        projection,
+        refName,
+        Object.assign({ destinationPath: this.settings.exportPath }, options)
+      )
     }
 
     /**
@@ -195,11 +220,15 @@ export const toWebhookProjectionBase = <
     insertNormalizedModel<
       V extends GeneratedValue,
       Schema extends OasSchema | OasRef<'schema'> | OasVoid,
-      PeerEnrichmentType = undefined
+      PeerEnrichmentType = undefined,
+      PeerProjectionOptions = undefined
     >(
-      projection: NormalizedModelProjection<V, PeerEnrichmentType>,
+      projection: NormalizedModelProjection<V, PeerEnrichmentType, PeerProjectionOptions>,
       { schema, fallbackName }: Omit<InsertNormalizedModelArgs<Schema>, 'destinationPath'>,
-      options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
+      ...rest: ProjectionOptionsRest<
+        InsertNormalizedModelOptions<PeerProjectionOptions>,
+        PeerProjectionOptions
+      >
     ): InsertNormalizedModelReturn<V, Schema> {
       return this.context.insertNormalizedModel(
         projection,
@@ -208,10 +237,7 @@ export const toWebhookProjectionBase = <
           fallbackName,
           destinationPath: this.settings.exportPath
         },
-        {
-          noExport: options.noExport,
-          variant: options.variant
-        }
+        ...rest
       )
     }
   }

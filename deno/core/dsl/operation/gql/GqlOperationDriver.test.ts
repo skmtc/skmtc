@@ -203,7 +203,8 @@ Deno.test('GqlOperationDriver', async t => {
           {
             operation,
             projection,
-            variant: 'main'
+            variant: 'main',
+            options: undefined
           }
         ]
       })

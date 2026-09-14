@@ -1,9 +1,12 @@
 import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type {
-  InsertModelOptions,
   InsertNormalizedModelArgs,
-  InsertNormalizedModelReturn
+  InsertNormalizedModelOptions,
+  InsertNormalizedModelReturn,
+  PeerInsertOptions
 } from '../../context/generateTypes.ts'
+import { readProjectionOptions } from '@/types/ProjectionOptions.ts'
+import type { ProjectionOptionsArg, ProjectionOptionsRest } from '@/types/ProjectionOptions.ts'
 import { toModelGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
@@ -28,13 +31,13 @@ import { parseEnrichmentUmbrella } from '@/enrichments/parseEnrichmentUmbrella.t
  * Arguments accepted by classes generated via {@link toModelProjectionBase}.
  *
  * The factory injects `generatorKey` before delegating to the language
- * snippet base, so user code only supplies these three fields.
+ * snippet base, so user code only supplies these fields.
  */
-export type ModelProjectionArgs<EnrichmentType = undefined> = {
+export type ModelProjectionArgs<EnrichmentType = undefined, ProjectionOptions = undefined> = {
   context: GenerateContextType
   settings: ContentSettings<EnrichmentType>
   refName: RefName
-}
+} & ProjectionOptionsArg<ProjectionOptions>
 
 type ToEnrichmentsArgs = {
   refName: RefName
@@ -51,14 +54,18 @@ type ToEnrichmentsArgs = {
  * (`ModelProjectionBaseConfig<E, KtIdentifierType>`) so `toIdentifierType`'s
  * return tightens to that language's `type` vocabulary — no recast. The
  * default keeps the loose `type: string` boundary.
+ *
+ * Generic over `ProjectionOptions`: the caller options this projection
+ * accepts, received by the identity statics and stored as `this.options`.
  */
 export type ModelProjectionBaseConfig<
   EnrichmentType = undefined,
-  IdType extends IdentifierType = IdentifierType
+  IdType extends IdentifierType = IdentifierType,
+  ProjectionOptions = undefined
 > = {
   id: string
   /** Pure: the cache-key name (the cache-check path runs this). */
-  toIdentifierName: (args: ToModelIdentifierNameArgs<EnrichmentType>) => string
+  toIdentifierName: (args: ToModelIdentifierNameArgs<EnrichmentType, ProjectionOptions>) => string
   /**
    * Context-aware, overridable: the non-`name` parts of the identifier
    * (`type` / `typeName` / `exported`), derived from the schema. Runs only
@@ -67,7 +74,7 @@ export type ModelProjectionBaseConfig<
    * `string` by default). The tightening rides the type argument.
    */
   toIdentifierType: (refName: RefName, context: GenerateContextType) => IdType
-  toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
+  toExportPath: (args: ToModelExportPathArgs<EnrichmentType, ProjectionOptions>) => string
   /**
    * Required composite schema for the `{ subject, generator, stack }`
    * enrichment umbrella. Required (not optional) is load-bearing: it is what
@@ -114,10 +121,11 @@ export type ModelProjectionBaseConfig<
  */
 export const toModelProjectionBase = <
   EnrichmentType = undefined,
-  IdType extends IdentifierType = IdentifierType
+  IdType extends IdentifierType = IdentifierType,
+  ProjectionOptions = undefined
 >(
   base: LangSnippetConstructor,
-  config: ModelProjectionBaseConfig<EnrichmentType, IdType>
+  config: ModelProjectionBaseConfig<EnrichmentType, IdType, ProjectionOptions>
 ) => {
   return class extends base {
     static id = config.id
@@ -155,8 +163,10 @@ export const toModelProjectionBase = <
 
     settings: ContentSettings<EnrichmentType>
     refName: RefName
+    /** The caller's options. */
+    options: ProjectionOptions
 
-    constructor(args: ModelProjectionArgs<EnrichmentType>) {
+    constructor(args: ModelProjectionArgs<EnrichmentType, ProjectionOptions>) {
       super({
         context: args.context,
         generatorKey: toModelGeneratorKey({
@@ -168,23 +178,35 @@ export const toModelProjectionBase = <
 
       this.refName = args.refName
       this.settings = args.settings
+      this.options = readProjectionOptions<ProjectionOptions>(args)
     }
 
     /**
      * Insert a related model and return its `Inserted` reference. The
      * inserted model is exported to this projection's own `exportPath`
-     * unless `noExport` is set.
+     * unless `noExport` is set. `{ options }` is required when the peer
+     * declares options and refused when it does not.
      */
-    insertModel<V extends GeneratedValue, PeerEnrichmentType = undefined>(
-      projection: ModelProjection<V, PeerEnrichmentType>,
+    insertModel<
+      V extends GeneratedValue,
+      PeerEnrichmentType = undefined,
+      PeerProjectionOptions = undefined
+    >(
+      projection: ModelProjection<V, PeerEnrichmentType, PeerProjectionOptions>,
       refName: RefName,
-      options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
+      ...rest: ProjectionOptionsRest<
+        PeerInsertOptions<PeerProjectionOptions>,
+        PeerProjectionOptions
+      >
     ): Inserted<V, PeerEnrichmentType> {
-      return this.context.insertModel(projection, refName, {
-        destinationPath: this.settings.exportPath,
-        noExport: options.noExport,
-        variant: options.variant
-      })
+      const [options] = rest
+
+      // `Object.assign`, not a spread: see `ProjectionOptionsRest`.
+      return this.context.insertModel(
+        projection,
+        refName,
+        Object.assign({ destinationPath: this.settings.exportPath }, options)
+      )
     }
 
     /**
@@ -194,11 +216,15 @@ export const toModelProjectionBase = <
     insertNormalizedModel<
       V extends GeneratedValue,
       Schema extends OasSchema | OasRef<'schema'> | OasVoid,
-      PeerEnrichmentType = undefined
+      PeerEnrichmentType = undefined,
+      PeerProjectionOptions = undefined
     >(
-      projection: NormalizedModelProjection<V, PeerEnrichmentType>,
+      projection: NormalizedModelProjection<V, PeerEnrichmentType, PeerProjectionOptions>,
       { schema, fallbackName }: Omit<InsertNormalizedModelArgs<Schema>, 'destinationPath'>,
-      options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
+      ...rest: ProjectionOptionsRest<
+        InsertNormalizedModelOptions<PeerProjectionOptions>,
+        PeerProjectionOptions
+      >
     ): InsertNormalizedModelReturn<V, Schema> {
       return this.context.insertNormalizedModel(
         projection,
@@ -207,10 +233,7 @@ export const toModelProjectionBase = <
           fallbackName,
           destinationPath: this.settings.exportPath
         },
-        {
-          noExport: options.noExport,
-          variant: options.variant
-        }
+        ...rest
       )
     }
   }

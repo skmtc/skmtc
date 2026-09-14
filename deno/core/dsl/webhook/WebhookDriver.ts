@@ -7,24 +7,21 @@ import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { toWebhookGeneratorKey } from '@/dsl/GeneratorKeys.ts'
-import type { GenerateContextType } from '@/context/generateTypes.ts'
+import type { GenerateContextType, InsertWebhookArgs } from '@/context/generateTypes.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
+import { readProjectionOptions } from '@/types/ProjectionOptions.ts'
 
-type CreateWebhookArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
+/**
+ * The `insertWebhook` call plus the context. The Driver defaults `variant`
+ * to `'main'` and `noExport` to `false`, and reads the caller's options
+ * once for the identity statics and the constructor.
+ */
+type CreateWebhookArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = InsertWebhookArgs<V, EnrichmentType, ProjectionOptions> & {
   context: GenerateContextType
-  projection: WebhookProjection<V, EnrichmentType>
-  webhook: OasWebhook
-  destinationPath?: string
-  noExport?: boolean
-  /**
-   * Target variant of the projection. The Driver resolves the peer's
-   * enrichment for this variant, asserts the variant exists (or is the
-   * default `'main'` which is always permitted), and threads it into the
-   * projection's `ContentSettings`.
-   * Optional — omitting it means `'main'`, so variants-unaware
-   * callers keep working unchanged.
-   */
-  variant?: string
 }
 
 type ApplyArgs = {
@@ -45,30 +42,39 @@ type GetDefinitionArgs = {
  * exists, registers the new definition, and stitches an import into
  * `destinationPath` if it differs from the projection's `exportPath`.
  */
-export class WebhookDriver<V extends GeneratedValue, EnrichmentType = undefined> {
+export class WebhookDriver<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> {
   context: GenerateContextType
-  projection: WebhookProjection<V, EnrichmentType>
+  projection: WebhookProjection<V, EnrichmentType, ProjectionOptions>
   webhook: OasWebhook
   settings: ContentSettings<EnrichmentType>
   destinationPath?: string
   definition: GeneratedDefinition<V>
-  noExport?: boolean
+  noExport: boolean
   variant: string
+  /** The caller's options, as passed to `insertWebhook`. */
+  options: ProjectionOptions
 
-  constructor({
-    context,
-    projection,
-    webhook,
-    destinationPath,
-    noExport,
-    variant = DEFAULT_VARIANT
-  }: CreateWebhookArgs<V, EnrichmentType>) {
+  constructor(args: CreateWebhookArgs<V, EnrichmentType, ProjectionOptions>) {
+    const {
+      context,
+      projection,
+      webhook,
+      destinationPath,
+      noExport = false,
+      variant = DEFAULT_VARIANT
+    } = args
+
     this.context = context
     this.projection = projection
     this.webhook = webhook
     this.destinationPath = destinationPath
     this.noExport = noExport
     this.variant = variant
+    this.options = readProjectionOptions<ProjectionOptions>(args)
 
     assertPeerVariantExists({
       context,
@@ -82,7 +88,8 @@ export class WebhookDriver<V extends GeneratedValue, EnrichmentType = undefined>
     this.settings = this.context.toWebhookContentSettings({
       webhook,
       projection,
-      variant
+      variant,
+      options: this.options
     })
 
     this.definition = this.apply({ destinationPath })
@@ -134,7 +141,8 @@ export class WebhookDriver<V extends GeneratedValue, EnrichmentType = undefined>
     const value = new this.projection({
       context: this.context,
       webhook: this.webhook,
-      settings: this.settings
+      settings: this.settings,
+      options: this.options
     })
 
     const definition = this.projection.lang.toDefinition({
@@ -230,9 +238,13 @@ const assertPeerVariantExists = ({
   }
 }
 
-type AssertPeerSupportedArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
+type AssertPeerSupportedArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   context: GenerateContextType
-  projection: WebhookProjection<V, EnrichmentType>
+  projection: WebhookProjection<V, EnrichmentType, ProjectionOptions>
   webhook: OasWebhook
   variant: string
 }
@@ -244,12 +256,16 @@ type AssertPeerSupportedArgs<V extends GeneratedValue, EnrichmentType = undefine
  * generator's item as `error` while the run continues. A peer with no static
  * `isSupported` supports every webhook.
  */
-const assertPeerSupported = <V extends GeneratedValue, EnrichmentType = undefined>({
+const assertPeerSupported = <
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+>({
   context,
   projection,
   webhook,
   variant
-}: AssertPeerSupportedArgs<V, EnrichmentType>): void => {
+}: AssertPeerSupportedArgs<V, EnrichmentType, ProjectionOptions>): void => {
   const isSupported = projection.isSupported ?? (() => true)
 
   if (!isSupported({ webhook, context, variant })) {

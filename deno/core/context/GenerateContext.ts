@@ -52,6 +52,7 @@ import { OasOperationDriver } from '@/dsl/operation/oas/OasOperationDriver.ts'
 import { WebhookDriver } from '@/dsl/webhook/WebhookDriver.ts'
 import { GqlOperationDriver } from '@/dsl/operation/gql/GqlOperationDriver.ts'
 import { ModelDriver } from '@/dsl/model/ModelDriver.ts'
+import type { ProjectionOptionsRest } from '@/types/ProjectionOptions.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
@@ -249,13 +250,14 @@ export type InsertReturn<V extends GeneratedValue, EnrichmentType> = Inserted<V,
  * ```
  */
 
-const isGqlInsertOperationArgs = <V extends GeneratedValue, EnrichmentType>(
-  args: InsertOperationArgs<V, EnrichmentType>
-): args is InsertGqlOperationArgs<V, EnrichmentType> => args.operation.oasType === 'gqlOperation'
+const isGqlInsertOperationArgs = <V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
+  args: InsertOperationArgs<V, EnrichmentType, ProjectionOptions>
+): args is InsertGqlOperationArgs<V, EnrichmentType, ProjectionOptions> =>
+  args.operation.oasType === 'gqlOperation'
 
-const isGqlToOperationSettingsArgs = <V extends GeneratedValue, EnrichmentType>(
-  args: ToOperationSettingsArgs<V, EnrichmentType>
-): args is ToGqlOperationSettingsArgs<V, EnrichmentType> =>
+const isGqlToOperationSettingsArgs = <V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
+  args: ToOperationSettingsArgs<V, EnrichmentType, ProjectionOptions>
+): args is ToGqlOperationSettingsArgs<V, EnrichmentType, ProjectionOptions> =>
   args.operation.oasType === 'gqlOperation'
 
 /** A non-null object — the subject-scope leaf of an enrichment-defaults umbrella
@@ -1358,35 +1360,20 @@ export class GenerateContext implements GenerateContextType {
    *
    * @mutates this.files
    */
-  insertOperation<V extends GeneratedValue, EnrichmentType = undefined>(
-    args: InsertOperationArgs<V, EnrichmentType>
-  ): Inserted<V, EnrichmentType> {
-    // Default to the canonical variant. Callers who explicitly thread
-    // a variant (e.g. variants-aware Projections threading
-    // `this.settings.variant`) override this default.
-    const variant = args.variant ?? DEFAULT_VARIANT
-
+  insertOperation<
+    V extends GeneratedValue,
+    EnrichmentType = undefined,
+    ProjectionOptions = undefined
+  >(args: InsertOperationArgs<V, EnrichmentType, ProjectionOptions>): Inserted<V, EnrichmentType> {
+    // The Driver defaults `variant` and `noExport` and reads the caller's
+    // options off the call.
     if (isGqlInsertOperationArgs(args)) {
-      const { settings, definition } = new GqlOperationDriver({
-        context: this,
-        projection: args.projection,
-        operation: args.operation,
-        destinationPath: args.destinationPath,
-        noExport: args.noExport ?? false,
-        variant
-      })
+      const { settings, definition } = new GqlOperationDriver({ ...args, context: this })
 
       return new Inserted({ settings, definition })
     }
 
-    const { settings, definition } = new OasOperationDriver({
-      context: this,
-      projection: args.projection,
-      operation: args.operation,
-      destinationPath: args.destinationPath,
-      noExport: args.noExport ?? false,
-      variant
-    })
+    const { settings, definition } = new OasOperationDriver({ ...args, context: this })
 
     return new Inserted({ settings, definition })
   }
@@ -1396,19 +1383,12 @@ export class GenerateContext implements GenerateContextType {
    * the OAS 3.1 webhook subject — webhooks are OAS-only, so there is no
    * protocol discrimination.
    */
-  insertWebhook<V extends GeneratedValue, EnrichmentType = undefined>(
-    args: InsertWebhookArgs<V, EnrichmentType>
-  ): Inserted<V, EnrichmentType> {
-    const variant = args.variant ?? DEFAULT_VARIANT
-
-    const { settings, definition } = new WebhookDriver({
-      context: this,
-      projection: args.projection,
-      webhook: args.webhook,
-      destinationPath: args.destinationPath,
-      noExport: args.noExport ?? false,
-      variant
-    })
+  insertWebhook<
+    V extends GeneratedValue,
+    EnrichmentType = undefined,
+    ProjectionOptions = undefined
+  >(args: InsertWebhookArgs<V, EnrichmentType, ProjectionOptions>): Inserted<V, EnrichmentType> {
+    const { settings, definition } = new WebhookDriver({ ...args, context: this })
 
     return new Inserted({ settings, definition })
   }
@@ -1420,18 +1400,26 @@ export class GenerateContext implements GenerateContextType {
   insertNormalizedModel<
     V extends GeneratedValue,
     Schema extends OasSchema | OasRef<'schema'> | OasVoid,
-    EnrichmentType
+    EnrichmentType,
+    ProjectionOptions = undefined
   >(
-    projection: NormalizedModelProjection<V, EnrichmentType>,
+    projection: NormalizedModelProjection<V, EnrichmentType, ProjectionOptions>,
     { schema, fallbackName, destinationPath }: InsertNormalizedModelArgs<Schema>,
-    { noExport = false, variant }: InsertNormalizedModelOptions = {}
+    ...rest: ProjectionOptionsRest<
+      InsertNormalizedModelOptions<ProjectionOptions>,
+      ProjectionOptions
+    >
   ): InsertNormalizedModelReturn<V, Schema> {
+    const [insertOptions] = rest
+    const noExport = insertOptions?.noExport ?? false
+
     if (schema.isRef()) {
-      const { definition } = this.insertModel(projection, schema.toRefName(), {
-        destinationPath,
-        noExport,
-        variant
-      })
+      const { definition } = this.insertModel(
+        projection,
+        schema.toRefName(),
+        // `Object.assign`, not a spread: see `ProjectionOptionsRest`.
+        Object.assign({ destinationPath }, insertOptions)
+      )
 
       // @TODO Using mapped types would help avoid generics casting
       return definition as InsertNormalizedModelReturn<V, Schema>
@@ -1488,25 +1476,19 @@ export class GenerateContext implements GenerateContextType {
    *
    * @mutates this.files
    */
-  insertModel<V extends GeneratedValue, EnrichmentType>(
-    projection: ModelProjection<V, EnrichmentType>,
+  insertModel<V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
+    projection: ModelProjection<V, EnrichmentType, ProjectionOptions>,
     refName: RefName,
-    { destinationPath, noExport = false, variant }: InsertModelOptions = {}
+    ...rest: ProjectionOptionsRest<InsertModelOptions<ProjectionOptions>, ProjectionOptions>
   ): Inserted<V, EnrichmentType> {
-    // Default to the canonical variant. Callers who explicitly thread
-    // a variant (e.g. variants-aware Projections threading
-    // `this.settings.variant`) override this default.
-    const resolvedVariant = variant ?? DEFAULT_VARIANT
+    const [insertOptions] = rest
 
-    const { settings, definition } = new ModelDriver({
-      context: this,
-      projection,
-      refName,
-      destinationPath,
-      rootRef: refName,
-      noExport,
-      variant: resolvedVariant
-    })
+    // The Driver defaults `variant` and `noExport` and reads the caller's
+    // options off the call. `Object.assign`, not a spread: see
+    // `ProjectionOptionsRest`.
+    const { settings, definition } = new ModelDriver(
+      Object.assign({ context: this, projection, refName, rootRef: refName }, insertOptions)
+    )
 
     return new Inserted({ settings, definition })
   }
@@ -1517,8 +1499,8 @@ export class GenerateContext implements GenerateContextType {
    * `toEnrichments` against the
    * given operation.
    */
-  toOperationContentSettings<V extends GeneratedValue, EnrichmentType>(
-    args: ToOperationSettingsArgs<V, EnrichmentType>
+  toOperationContentSettings<V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
+    args: ToOperationSettingsArgs<V, EnrichmentType, ProjectionOptions>
   ): ContentSettings<EnrichmentType> {
     const variant = args.variant ?? DEFAULT_VARIANT
 
@@ -1533,7 +1515,8 @@ export class GenerateContext implements GenerateContextType {
           name: args.projection.toIdentifierName({
             operation: args.operation,
             enrichments,
-            variant
+            variant,
+            options: args.options
           }),
           ...args.projection.toIdentifierType(args.operation, this)
         }),
@@ -1541,7 +1524,8 @@ export class GenerateContext implements GenerateContextType {
           args.projection.toExportPath({
             operation: args.operation,
             enrichments,
-            variant
+            variant,
+            options: args.options
           })
         ),
         enrichments,
@@ -1559,7 +1543,8 @@ export class GenerateContext implements GenerateContextType {
         name: args.projection.toIdentifierName({
           operation: args.operation,
           enrichments,
-          variant
+          variant,
+          options: args.options
         }),
         ...args.projection.toIdentifierType(args.operation, this)
       }),
@@ -1569,7 +1554,8 @@ export class GenerateContext implements GenerateContextType {
           args.projection.toExportPath({
             operation: args.operation,
             enrichments,
-            variant
+            variant,
+            options: args.options
           })
       ),
       enrichments,
@@ -1582,8 +1568,8 @@ export class GenerateContext implements GenerateContextType {
    * {@link toOperationContentSettings}; webhooks are OAS-only, so there is no
    * protocol discrimination.
    */
-  toWebhookContentSettings<V extends GeneratedValue, EnrichmentType>(
-    args: ToWebhookSettingsArgs<V, EnrichmentType>
+  toWebhookContentSettings<V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
+    args: ToWebhookSettingsArgs<V, EnrichmentType, ProjectionOptions>
   ): ContentSettings<EnrichmentType> {
     const variant = args.variant ?? DEFAULT_VARIANT
 
@@ -1597,7 +1583,8 @@ export class GenerateContext implements GenerateContextType {
         name: args.projection.toIdentifierName({
           webhook: args.webhook,
           enrichments,
-          variant
+          variant,
+          options: args.options
         }),
         ...args.projection.toIdentifierType(args.webhook, this)
       }),
@@ -1605,7 +1592,8 @@ export class GenerateContext implements GenerateContextType {
         args.projection.toExportPath({
           webhook: args.webhook,
           enrichments,
-          variant
+          variant,
+          options: args.options
         })
       ),
       enrichments,
@@ -1621,19 +1609,24 @@ export class GenerateContext implements GenerateContextType {
    * identifier is assembled through the projection's language
    * (`lang.toIdentifier`).
    */
-  toModelContentSettings<V extends GeneratedValue, EnrichmentType>({
+  toModelContentSettings<V extends GeneratedValue, EnrichmentType, ProjectionOptions>({
     refName,
     projection,
-    variant = DEFAULT_VARIANT
-  }: BuildModelSettingsArgs<V, EnrichmentType>): ContentSettings<EnrichmentType> {
+    variant = DEFAULT_VARIANT,
+    options
+  }: BuildModelSettingsArgs<
+    V,
+    EnrichmentType,
+    ProjectionOptions
+  >): ContentSettings<EnrichmentType> {
     const enrichments = projection.toEnrichments({ refName, context: this, variant })
     return new ContentSettings<EnrichmentType>({
       identifier: projection.lang.toIdentifier({
-        name: projection.toIdentifierName({ refName, enrichments, variant }),
+        name: projection.toIdentifierName({ refName, enrichments, variant, options }),
         ...projection.toIdentifierType(refName, this)
       }),
       exportPath: this.#toContentSettingsExportPath(
-        projection.toExportPath({ refName, enrichments, variant })
+        projection.toExportPath({ refName, enrichments, variant, options })
       ),
       enrichments,
       variant

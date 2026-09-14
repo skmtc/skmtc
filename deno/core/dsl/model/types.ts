@@ -6,6 +6,7 @@ import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { SchemaToValueFn } from '@/types/TypeSystem.ts'
+import type { ProjectionOptionsArg } from '@/types/ProjectionOptions.ts'
 
 /**
  * External constructor signature for a model projection class.
@@ -14,13 +15,16 @@ import type { SchemaToValueFn } from '@/types/TypeSystem.ts'
  * runtime base class ({@link ModelProjectionBase}) injects `generatorKey`
  * before calling `super()`.
  */
-export type ModelProjectionConstructorArgs<EnrichmentType = undefined> = {
+export type ModelProjectionConstructorArgs<
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   context: GenerateContextType
   refName: RefName
   settings: ContentSettings<EnrichmentType>
   destinationPath: string
   rootRef?: RefName
-}
+} & ProjectionOptionsArg<ProjectionOptions>
 
 export type WithTransformModel = {
   transformModel: (refName: RefName) => void
@@ -75,22 +79,22 @@ export type ToModelMappingArgs = {
 }
 
 /**
- * Arguments for a model projection's `toIdentifierName` — the pure,
- * cache-key-source half of the old `toIdentifier`.
+ * Arguments for a model projection's `toIdentifierName`. Fold `options` into the name when the output
+ * depends on them: definitions are cached by name and export path.
  */
-export type ToModelIdentifierNameArgs<EnrichmentType = undefined> = {
+export type ToModelIdentifierNameArgs<EnrichmentType = undefined, ProjectionOptions = undefined> = {
   refName: RefName
   enrichments: EnrichmentType
   /** Model variant the identifier should disambiguate (see {@link Variant}) */
   variant: string
-}
+} & ProjectionOptionsArg<ProjectionOptions>
 
-export type ToModelExportPathArgs<EnrichmentType = undefined> = {
+export type ToModelExportPathArgs<EnrichmentType = undefined, ProjectionOptions = undefined> = {
   refName: RefName
   enrichments: EnrichmentType
   /** Model variant the export path should disambiguate (see {@link Variant}) */
   variant: string
-}
+} & ProjectionOptionsArg<ProjectionOptions>
 
 /**
  * Static structural type of a model projection class.
@@ -98,9 +102,14 @@ export type ToModelExportPathArgs<EnrichmentType = undefined> = {
  * Captures both the instance side (`new(...) => V`) and the static side
  * (`id`, `toIdentifierName`, `toIdentifierType`, `toExportPath`,
  * `toEnrichments`, `schemaToValueFn`). Passed as a type parameter to
- * `context.insertModel(...)`.
+ * `context.insertModel(...)`. `ProjectionOptions` is the caller options the
+ * class declares; the Drivers infer it from the constructor and statics.
  */
-export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined> = {
+export type ModelProjection<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   prototype: V
 } & {
   new ({
@@ -108,8 +117,9 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
     refName,
     settings,
     destinationPath,
-    rootRef
-  }: ModelProjectionConstructorArgs<EnrichmentType>): V
+    rootRef,
+    options
+  }: ModelProjectionConstructorArgs<EnrichmentType, ProjectionOptions>): V
   id: string
   type: 'model'
   /**
@@ -120,7 +130,7 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
    */
   lang: Lang
   /** Pure: the cache-key name. */
-  toIdentifierName: (args: ToModelIdentifierNameArgs<EnrichmentType>) => string
+  toIdentifierName: (args: ToModelIdentifierNameArgs<EnrichmentType, ProjectionOptions>) => string
   /**
    * Context-aware, overridable: the non-`name` parts of the identifier
    * (`type` / `typeName` / `exported`), derived from the schema. The engine
@@ -128,7 +138,7 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
    * ...toIdentifierType(refName, context) })`.
    */
   toIdentifierType: (refName: RefName, context: GenerateContextType) => IdentifierType
-  toExportPath: (args: ToModelExportPathArgs<EnrichmentType>) => string
+  toExportPath: (args: ToModelExportPathArgs<EnrichmentType, ProjectionOptions>) => string
   toEnrichments: ({ refName, context, variant }: ToModelEnrichmentsArgs) => EnrichmentType
   /**
    * Family-level capability predicate, surfaced as a static by
@@ -148,14 +158,17 @@ export type ModelProjection<V extends GeneratedValue, EnrichmentType = undefined
  * takes the plain {@link ModelProjection}, so a generator that never
  * inserts inline schemas declares neither.
  */
-export type NormalizedModelProjection<V extends GeneratedValue, EnrichmentType = undefined> =
-  ModelProjection<V, EnrichmentType> & {
-    /** Builds the inline schema's value (the Definition body). */
-    schemaToValueFn: SchemaToValueFn
-    /**
-     * Builds the Definition's identifier from a bare `fallbackName`. A
-     * generator static; returns the neutral `IdentifierBase` (the engine
-     * reads only `.name`).
-     */
-    createIdentifier: (name: string) => IdentifierBase
-  }
+export type NormalizedModelProjection<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = ModelProjection<V, EnrichmentType, ProjectionOptions> & {
+  /** Builds the inline schema's value (the Definition body). */
+  schemaToValueFn: SchemaToValueFn
+  /**
+   * Builds the Definition's identifier from a bare `fallbackName`. A
+   * generator static; returns the neutral `IdentifierBase` (the engine
+   * reads only `.name`).
+   */
+  createIdentifier: (name: string) => IdentifierBase
+}

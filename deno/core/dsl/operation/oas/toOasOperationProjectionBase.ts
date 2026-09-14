@@ -2,11 +2,13 @@ import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type {
-  InsertOperationOptions,
-  InsertModelOptions,
   InsertNormalizedModelArgs,
-  InsertNormalizedModelReturn
+  InsertNormalizedModelOptions,
+  InsertNormalizedModelReturn,
+  PeerInsertOptions
 } from '@/context/generateTypes.ts'
+import { readProjectionOptions } from '@/types/ProjectionOptions.ts'
+import type { ProjectionOptionsRest } from '@/types/ProjectionOptions.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
@@ -41,11 +43,14 @@ import { parseEnrichmentUmbrella } from '@/enrichments/parseEnrichmentUmbrella.t
  */
 export type OasOperationProjectionBaseConfig<
   EnrichmentType = undefined,
-  IdType extends IdentifierType = IdentifierType
+  IdType extends IdentifierType = IdentifierType,
+  ProjectionOptions = undefined
 > = {
   id: string
   /** Pure: the cache-key name (the cache-check path runs this). */
-  toIdentifierName: (args: ToOasOperationIdentifierNameArgs<EnrichmentType>) => string
+  toIdentifierName: (
+    args: ToOasOperationIdentifierNameArgs<EnrichmentType, ProjectionOptions>
+  ) => string
   /**
    * Context-aware, overridable: the non-`name` parts of the identifier,
    * derived from the operation/schema. Runs only on cache-miss. Returns this
@@ -53,7 +58,7 @@ export type OasOperationProjectionBaseConfig<
    * default); the tightening rides the type argument.
    */
   toIdentifierType: (operation: OasOperation, context: GenerateContextType) => IdType
-  toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
+  toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType, ProjectionOptions>) => string
   /**
    * Declares this projection a MEMBER: its definition is inserted into the
    * container this returns, rather than at file level.
@@ -68,7 +73,7 @@ export type OasOperationProjectionBaseConfig<
    * when this is present.
    */
   toContainer?: (
-    args: ToOasOperationContainerArgs<EnrichmentType>
+    args: ToOasOperationContainerArgs<EnrichmentType, ProjectionOptions>
   ) => OasOperationContainerProjection
   /**
    * Required composite schema for the `{ subject, generator, stack }`
@@ -125,10 +130,11 @@ type ToEnrichmentsArgs = {
  */
 export const toOasOperationProjectionBase = <
   EnrichmentType = undefined,
-  IdType extends IdentifierType = IdentifierType
+  IdType extends IdentifierType = IdentifierType,
+  ProjectionOptions = undefined
 >(
   base: LangSnippetConstructor,
-  config: OasOperationProjectionBaseConfig<EnrichmentType, IdType>
+  config: OasOperationProjectionBaseConfig<EnrichmentType, IdType, ProjectionOptions>
 ) => {
   return class extends base {
     static id = config.id
@@ -189,8 +195,10 @@ export const toOasOperationProjectionBase = <
 
     settings: ContentSettings<EnrichmentType>
     operation: OasOperation
+    /** The caller's options. */
+    options: ProjectionOptions
 
-    constructor(args: OasOperationProjectionConstructorArgs<EnrichmentType>) {
+    constructor(args: OasOperationProjectionConstructorArgs<EnrichmentType, ProjectionOptions>) {
       super({
         context: args.context,
         // `new.target` is the most-derived class, so a subclass override of
@@ -203,48 +211,65 @@ export const toOasOperationProjectionBase = <
 
       this.operation = args.operation
       this.settings = args.settings
+      this.options = readProjectionOptions<ProjectionOptions>(args)
     }
 
     /**
      * Insert a related operation. The inserted operation is exported to this
      * projection's own `exportPath` unless `noExport` is set.
      *
-     * Pass `{ variant }` to target a specific variant on the peer (e.g.
-     * to thread `this.settings.variant` into a within-package sibling
-     * Projection that's also variants-aware). Omitting it defaults to
-     * the peer's `'main'` variant — the safe choice for variants-unaware
-     * peers and the standard pattern for cross-package composition.
+     * Pass `{ variant }` to target a specific variant on the peer; omitting
+     * it defaults to the peer's `'main'` variant. `{ options }` is required
+     * when the peer declares options and refused when it does not.
      */
-    insertOperation<V extends GeneratedValue, PeerEnrichmentType = undefined>(
-      projection: OasOperationProjection<V, PeerEnrichmentType>,
+    insertOperation<
+      V extends GeneratedValue,
+      PeerEnrichmentType = undefined,
+      PeerProjectionOptions = undefined
+    >(
+      projection: OasOperationProjection<V, PeerEnrichmentType, PeerProjectionOptions>,
       operation: OasOperation,
-      options: Pick<InsertOperationOptions, 'noExport' | 'variant'> = {}
+      ...rest: ProjectionOptionsRest<
+        PeerInsertOptions<PeerProjectionOptions>,
+        PeerProjectionOptions
+      >
     ): Inserted<V, PeerEnrichmentType> {
-      return this.context.insertOperation({
-        projection,
-        operation,
-        destinationPath: this.settings.exportPath,
-        noExport: options.noExport,
-        variant: options.variant
-      })
+      const [options] = rest
+
+      // `Object.assign`, not a spread: see `ProjectionOptionsRest`.
+      return this.context.insertOperation(
+        Object.assign({ projection, operation, destinationPath: this.settings.exportPath }, options)
+      )
     }
 
     /**
      * Insert a related model into this projection's export file.
      *
      * Pass `{ variant }` to target a specific variant on the peer model
-     * projection. Omitting it defaults to the peer's `'main'` variant.
+     * projection; omitting it defaults to the peer's `'main'` variant.
+     * `{ options }` is required when the peer declares options and refused
+     * when it does not.
      */
-    insertModel<V extends GeneratedValue, PeerEnrichmentType = undefined>(
-      projection: ModelProjection<V, PeerEnrichmentType>,
+    insertModel<
+      V extends GeneratedValue,
+      PeerEnrichmentType = undefined,
+      PeerProjectionOptions = undefined
+    >(
+      projection: ModelProjection<V, PeerEnrichmentType, PeerProjectionOptions>,
       refName: RefName,
-      options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
+      ...rest: ProjectionOptionsRest<
+        PeerInsertOptions<PeerProjectionOptions>,
+        PeerProjectionOptions
+      >
     ): Inserted<V, PeerEnrichmentType> {
-      return this.context.insertModel(projection, refName, {
-        destinationPath: this.settings.exportPath,
-        noExport: options.noExport,
-        variant: options.variant
-      })
+      const [options] = rest
+
+      // `Object.assign`, not a spread: see `ProjectionOptionsRest`.
+      return this.context.insertModel(
+        projection,
+        refName,
+        Object.assign({ destinationPath: this.settings.exportPath }, options)
+      )
     }
 
     /**
@@ -252,17 +277,21 @@ export const toOasOperationProjectionBase = <
      * request/response schemas where the schema may be either a `$ref` or a
      * concrete object.
      *
-     * `{ variant }` flows through the `$ref` branch only; for inline
-     * schemas, bake the variant into `fallbackName`.
+     * `{ variant }` and `{ options }` flow through the `$ref` branch only;
+     * for inline schemas, bake what distinguishes them into `fallbackName`.
      */
     insertNormalizedModel<
       V extends GeneratedValue,
       Schema extends OasSchema | OasRef<'schema'> | OasVoid,
-      PeerEnrichmentType = undefined
+      PeerEnrichmentType = undefined,
+      PeerProjectionOptions = undefined
     >(
-      projection: NormalizedModelProjection<V, PeerEnrichmentType>,
+      projection: NormalizedModelProjection<V, PeerEnrichmentType, PeerProjectionOptions>,
       { schema, fallbackName }: Omit<InsertNormalizedModelArgs<Schema>, 'destinationPath'>,
-      options: Pick<InsertModelOptions, 'noExport' | 'variant'> = {}
+      ...rest: ProjectionOptionsRest<
+        InsertNormalizedModelOptions<PeerProjectionOptions>,
+        PeerProjectionOptions
+      >
     ): InsertNormalizedModelReturn<V, Schema> {
       return this.context.insertNormalizedModel(
         projection,
@@ -271,10 +300,7 @@ export const toOasOperationProjectionBase = <
           fallbackName,
           destinationPath: this.settings.exportPath
         },
-        {
-          noExport: options.noExport,
-          variant: options.variant
-        }
+        ...rest
       )
     }
   }

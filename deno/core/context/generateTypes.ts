@@ -32,16 +32,10 @@ import type { EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
 import type { CaptureSink } from '@/anchors/CaptureSink.ts'
 import type { Sidecar } from '@/anchors/sidecar.ts'
 import type { GenerationMapEntry } from '@/anchors/generationMap.ts'
+import type { ProjectionOptionsArg, ProjectionOptionsRest } from '@/types/ProjectionOptions.ts'
 
-/**
- * Options for inserting an operation into the generation context.
- *
- * Configures how an OpenAPI operation should be processed and
- * included in the generated code output.
- *
- * @template T - The generation type extending GenerationType
- */
-export type InsertOperationOptions = {
+/** Placement and export settings of an operation insertion. */
+export type InsertOperationSettings = {
   /** Whether to exclude this operation from exports */
   noExport?: boolean
   /** Custom destination path for the operation */
@@ -56,79 +50,88 @@ export type InsertOperationOptions = {
 }
 
 /**
- * Arguments for `GenerateContext.insertOperation`.
- *
- * @template V - Generated value type
- * @template EnrichmentType - Optional enrichment data type
+ * {@link InsertOperationSettings} plus the peer's caller options. `NoInfer`
+ * keeps `ProjectionOptions` inferred from the projection alone.
  */
-export type InsertOasOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
-  /** The operation projection to insert */
-  projection: OasOperationProjection<V, EnrichmentType>
-  /** The OpenAPI operation to process */
-  operation: OasOperation
-  /** Custom destination path for the operation */
-  destinationPath?: string
-  /** Whether to exclude this operation from exports */
+export type InsertOperationOptions<ProjectionOptions = undefined> = InsertOperationSettings &
+  ProjectionOptionsArg<NoInfer<ProjectionOptions>>
+
+/**
+ * Settings of a projection's own `insertOperation` / `insertModel`: the
+ * file is always the projection's own, so it is not among them.
+ */
+export type PeerInsertSettings = {
+  /** Whether to exclude the peer's definition from exports */
   noExport?: boolean
   /**
-   * Target variant of the peer projection. Omit for the canonical
-   * `'main'` variant — the only variant guaranteed to exist on every
-   * peer. Pass explicitly only when threading a caller's variant
-   * deliberately; the Driver throws if the requested variant isn't
-   * declared in the peer's enrichments.
+   * Target variant of the peer projection. Omit for `'main'`; pass only
+   * when the peer declares this variant — the Driver throws on mismatch.
    */
   variant?: string
 }
+
+/** {@link PeerInsertSettings} plus the peer's caller options. */
+export type PeerInsertOptions<ProjectionOptions = undefined> = PeerInsertSettings &
+  ProjectionOptionsArg<NoInfer<ProjectionOptions>>
 
 /**
  * Arguments for `GenerateContext.insertOperation`.
  *
  * @template V - Generated value type
  * @template EnrichmentType - Optional enrichment data type
+ * @template ProjectionOptions - The peer's caller options
  */
-export type InsertGqlOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
+export type InsertOasOperationArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   /** The operation projection to insert */
-  projection: GqlOperationProjection<V, EnrichmentType>
+  projection: OasOperationProjection<V, EnrichmentType, ProjectionOptions>
+  /** The OpenAPI operation to process */
+  operation: OasOperation
+} & InsertOperationOptions<ProjectionOptions>
+
+/**
+ * Arguments for `GenerateContext.insertOperation` (GraphQL subject).
+ *
+ * @template V - Generated value type
+ * @template EnrichmentType - Optional enrichment data type
+ * @template ProjectionOptions - The peer's caller options
+ */
+export type InsertGqlOperationArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
+  /** The operation projection to insert */
+  projection: GqlOperationProjection<V, EnrichmentType, ProjectionOptions>
   /** The GraphQL operation to process */
   operation: GqlOperation
-  /** Custom destination path for the operation */
-  destinationPath?: string
-  /** Whether to exclude this operation from exports */
-  noExport?: boolean
-  /**
-   * Target variant of the peer projection. Omit for the canonical
-   * `'main'` variant — the only variant guaranteed to exist on every
-   * peer. Pass explicitly only when threading a caller's variant
-   * deliberately; the Driver throws if the requested variant isn't
-   * declared in the peer's enrichments.
-   */
-  variant?: string
-}
+} & InsertOperationOptions<ProjectionOptions>
 
-export type InsertOperationArgs<V extends GeneratedValue, EnrichmentType = undefined> =
-  | InsertOasOperationArgs<V, EnrichmentType>
-  | InsertGqlOperationArgs<V, EnrichmentType>
+export type InsertOperationArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> =
+  | InsertOasOperationArgs<V, EnrichmentType, ProjectionOptions>
+  | InsertGqlOperationArgs<V, EnrichmentType, ProjectionOptions>
 
 /**
  * Arguments for `GenerateContext.insertWebhook`. Webhooks are OAS-only (no
  * GraphQL counterpart), so this is a single shape rather than a union.
  */
-export type InsertWebhookArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
+export type InsertWebhookArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   /** The webhook projection to insert */
-  projection: WebhookProjection<V, EnrichmentType>
+  projection: WebhookProjection<V, EnrichmentType, ProjectionOptions>
   /** The OpenAPI 3.1 webhook to process */
   webhook: OasWebhook
-  /** Custom destination path for the webhook */
-  destinationPath?: string
-  /** Whether to exclude this webhook from exports */
-  noExport?: boolean
-  /**
-   * Target variant of the peer projection. Omit for the canonical `'main'`
-   * variant; pass explicitly only when the peer declares this variant — the
-   * Driver throws if it isn't declared in the peer's enrichments.
-   */
-  variant?: string
-}
+} & InsertOperationOptions<ProjectionOptions>
 
 /**
  * Type representing the three phases of the SKMTC pipeline.
@@ -136,7 +139,7 @@ export type InsertWebhookArgs<V extends GeneratedValue, EnrichmentType = undefin
 export type PhaseType = 'parse' | 'generate' | 'render'
 
 /**
- * Options for retrieving files from the context.
+ * ProjectionOptions for retrieving files from the context.
  */
 export type GetFileOptions = {
   /** Whether to throw an error if the file is not found */
@@ -362,14 +365,8 @@ export type InsertNormalizedModelArgs<Schema extends OasSchema | OasRef<'schema'
   destinationPath: string
 }
 
-/**
- * Options for inserting a model into the generation context.
- *
- * Configures how a model should be processed and included in
- * the generated code output.
- *
- */
-export type InsertModelOptions = {
+/** Placement and export settings of a model insertion. */
+export type InsertModelSettings = {
   /** Whether to exclude this model from exports */
   noExport?: boolean
   /** Custom destination path for the model */
@@ -383,20 +380,17 @@ export type InsertModelOptions = {
   variant?: string
 }
 
+/** {@link InsertModelSettings} plus the peer's caller options. */
+export type InsertModelOptions<ProjectionOptions = undefined> = InsertModelSettings &
+  ProjectionOptionsArg<NoInfer<ProjectionOptions>>
+
 /**
- * Options for inserting a normalized model.
+ * Options for inserting a normalized model. `variant` and `options` reach
+ * the `$ref` branch only; the inline branch constructs no projection, so
+ * bake what distinguishes it into `fallbackName`.
  */
-export type InsertNormalizedModelOptions = {
-  /** Whether to exclude this model from exports */
-  noExport?: boolean
-  /**
-   * Target variant of the peer model projection (`$ref` branch only).
-   * Omit for `'main'`. The inline-schema branch ignores this option
-   * because its Definition is one-off — bake the variant into
-   * `fallbackName` if you need variant-distinct inline schemas.
-   */
-  variant?: string
-}
+export type InsertNormalizedModelOptions<ProjectionOptions = undefined> =
+  PeerInsertOptions<ProjectionOptions>
 
 /**
  * Arguments for picking a specific export from a generator module.
@@ -434,9 +428,13 @@ export type FindDefinitionArgs = PickArgs & {
  * @template V - The value type for the model
  * @template EnrichmentType - Optional enrichment type for the model
  */
-export type BuildModelSettingsArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
+export type BuildModelSettingsArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   refName: RefName
-  projection: ModelProjection<V, EnrichmentType>
+  projection: ModelProjection<V, EnrichmentType, ProjectionOptions>
   /**
    * Model variant whose enrichment / identifier / export path
    * should be resolved (see {@link Variant}). Threaded from the
@@ -444,6 +442,8 @@ export type BuildModelSettingsArgs<V extends GeneratedValue, EnrichmentType = un
    * {@link ContentSettings} built for this insertion.
    */
   variant?: string
+  /** The caller's options, handed to the identity statics. */
+  options: ProjectionOptions
 }
 
 /**
@@ -452,9 +452,13 @@ export type BuildModelSettingsArgs<V extends GeneratedValue, EnrichmentType = un
  * @template V - The value type for the operation
  * @template EnrichmentType - Optional enrichment type for the operation
  */
-export type ToOasOperationSettingsArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
+export type ToOasOperationSettingsArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   operation: OasOperation
-  projection: OasOperationProjection<V, EnrichmentType>
+  projection: OasOperationProjection<V, EnrichmentType, ProjectionOptions>
   /**
    * Operation variant whose enrichment / identifier / export path
    * should be resolved (see {@link Variant}). Threaded from the
@@ -462,6 +466,8 @@ export type ToOasOperationSettingsArgs<V extends GeneratedValue, EnrichmentType 
    * {@link ContentSettings} built for this insertion.
    */
   variant?: string
+  /** The caller's options, handed to the identity statics. */
+  options: ProjectionOptions
   /**
    * The file to use instead of the projection's own `toExportPath`.
    *
@@ -479,14 +485,20 @@ export type ToOasOperationSettingsArgs<V extends GeneratedValue, EnrichmentType 
  * @template V - The value type for the operation
  * @template EnrichmentType - Optional enrichment type for the operation
  */
-export type ToGqlOperationSettingsArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
+export type ToGqlOperationSettingsArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   operation: GqlOperation
-  projection: GqlOperationProjection<V, EnrichmentType>
+  projection: GqlOperationProjection<V, EnrichmentType, ProjectionOptions>
   /**
    * Operation variant whose enrichment / identifier / export path
    * should be resolved (see {@link Variant}).
    */
   variant?: string
+  /** The caller's options, handed to the identity statics. */
+  options: ProjectionOptions
 }
 
 /**
@@ -497,17 +509,25 @@ export type ToGqlOperationSettingsArgs<V extends GeneratedValue, EnrichmentType 
  * `oasType: 'gqlOperation'`. The dispatcher narrows on this discriminator
  * to look up the right enrichment path and identifier.
  */
-export type ToOperationSettingsArgs<V extends GeneratedValue, EnrichmentType = undefined> =
-  | ToOasOperationSettingsArgs<V, EnrichmentType>
-  | ToGqlOperationSettingsArgs<V, EnrichmentType>
+export type ToOperationSettingsArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> =
+  | ToOasOperationSettingsArgs<V, EnrichmentType, ProjectionOptions>
+  | ToGqlOperationSettingsArgs<V, EnrichmentType, ProjectionOptions>
 
 /**
  * Arguments accepted by `GenerateContext.toWebhookContentSettings`.
  * Webhooks are OAS-only, so this is a single shape (no protocol union).
  */
-export type ToWebhookSettingsArgs<V extends GeneratedValue, EnrichmentType = undefined> = {
+export type ToWebhookSettingsArgs<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   webhook: OasWebhook
-  projection: WebhookProjection<V, EnrichmentType>
+  projection: WebhookProjection<V, EnrichmentType, ProjectionOptions>
   /**
    * Webhook variant whose enrichment / identifier / export path should be
    * resolved (see {@link Variant}). Threaded from the Driver into the
@@ -515,6 +535,8 @@ export type ToWebhookSettingsArgs<V extends GeneratedValue, EnrichmentType = und
    * this insertion.
    */
   variant?: string
+  /** The caller's options, handed to the identity statics. */
+  options: ProjectionOptions
 }
 
 /**
@@ -566,40 +588,47 @@ export type GenerateContextType = {
   inspectedFiles: ReadonlyMap<string, FileBase>
   /** Store a language-constructed file; the neutral write primitive. Returns the stored file. */
   addFile: <File extends FileBase>(file: File) => File
-  insertOperation: <V extends GeneratedValue, EnrichmentType = undefined>(
-    args: InsertOperationArgs<V, EnrichmentType>
+  insertOperation: <
+    V extends GeneratedValue,
+    EnrichmentType = undefined,
+    ProjectionOptions = undefined
+  >(
+    args: InsertOperationArgs<V, EnrichmentType, ProjectionOptions>
   ) => Inserted<V, EnrichmentType>
   insertNormalizedModel: <
     V extends GeneratedValue,
     Schema extends OasSchema | OasRef<'schema'> | OasVoid,
-    EnrichmentType
+    EnrichmentType,
+    ProjectionOptions = undefined
   >(
-    projection: NormalizedModelProjection<V, EnrichmentType>,
+    projection: NormalizedModelProjection<V, EnrichmentType, ProjectionOptions>,
     { schema, fallbackName, destinationPath }: InsertNormalizedModelArgs<Schema>,
-    options?: InsertNormalizedModelOptions
+    ...rest: ProjectionOptionsRest<
+      InsertNormalizedModelOptions<ProjectionOptions>,
+      ProjectionOptions
+    >
   ) => InsertNormalizedModelReturn<V, Schema>
-  insertModel: <V extends GeneratedValue, EnrichmentType>(
-    projection: ModelProjection<V, EnrichmentType>,
+  insertModel: <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
+    projection: ModelProjection<V, EnrichmentType, ProjectionOptions>,
     refName: RefName,
-    options?: InsertModelOptions
+    ...rest: ProjectionOptionsRest<InsertModelOptions<ProjectionOptions>, ProjectionOptions>
   ) => Inserted<V, EnrichmentType>
-  toOperationContentSettings: <V extends GeneratedValue, EnrichmentType>({
-    operation,
-    projection
-  }: ToOperationSettingsArgs<V, EnrichmentType>) => ContentSettings<EnrichmentType>
-  insertWebhook: <V extends GeneratedValue, EnrichmentType = undefined>(
-    args: InsertWebhookArgs<V, EnrichmentType>
+  toOperationContentSettings: <V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
+    args: ToOperationSettingsArgs<V, EnrichmentType, ProjectionOptions>
+  ) => ContentSettings<EnrichmentType>
+  insertWebhook: <
+    V extends GeneratedValue,
+    EnrichmentType = undefined,
+    ProjectionOptions = undefined
+  >(
+    args: InsertWebhookArgs<V, EnrichmentType, ProjectionOptions>
   ) => Inserted<V, EnrichmentType>
-  toWebhookContentSettings: <V extends GeneratedValue, EnrichmentType>({
-    webhook,
-    projection,
-    variant
-  }: ToWebhookSettingsArgs<V, EnrichmentType>) => ContentSettings<EnrichmentType>
-  toModelContentSettings: <V extends GeneratedValue, EnrichmentType>({
-    refName,
-    projection,
-    variant
-  }: BuildModelSettingsArgs<V, EnrichmentType>) => ContentSettings<EnrichmentType>
+  toWebhookContentSettings: <V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
+    args: ToWebhookSettingsArgs<V, EnrichmentType, ProjectionOptions>
+  ) => ContentSettings<EnrichmentType>
+  toModelContentSettings: <V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
+    args: BuildModelSettingsArgs<V, EnrichmentType, ProjectionOptions>
+  ) => ContentSettings<EnrichmentType>
   resolveSchemaRefOnce: (refName: RefName, generatorId: string) => OasSchema | OasRef<'schema'>
   findDefinition: ({ name, exportPath, into }: FindDefinitionArgs) => DefinitionBase | undefined
   /**

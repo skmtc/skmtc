@@ -6,6 +6,7 @@ import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { DefinitionContainer } from '@/dsl/DefinitionContainer.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import type { ProjectionOptionsArg } from '@/types/ProjectionOptions.ts'
 
 /**
  * External constructor signature for an OAS operation projection class.
@@ -13,11 +14,14 @@ import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
  * The pipeline calls `new SomeProjection(args)` with this shape; the
  * runtime base class injects `generatorKey` before calling `super()`.
  */
-export type OasOperationProjectionConstructorArgs<EnrichmentType = undefined> = {
+export type OasOperationProjectionConstructorArgs<
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   context: GenerateContextType
   settings: ContentSettings<EnrichmentType>
   operation: OasOperation
-}
+} & ProjectionOptionsArg<ProjectionOptions>
 
 export type TransformOasOperationArgs = {
   context: GenerateContextType
@@ -64,15 +68,18 @@ export type ToOasOperationMappingArgs = {
 }
 
 /**
- * Arguments for an OAS operation projection's `toIdentifierName` — the
- * pure, cache-key-source half of the old `toIdentifier`.
+ * Arguments for an OAS operation projection's `toIdentifierName`. Fold `options` into the name when the output
+ * depends on them: definitions are cached by name and export path.
  */
-export type ToOasOperationIdentifierNameArgs<EnrichmentType = undefined> = {
+export type ToOasOperationIdentifierNameArgs<
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   operation: OasOperation
   enrichments: EnrichmentType
   /** Operation variant the identifier should disambiguate (see {@link Variant}) */
   variant: string
-}
+} & ProjectionOptionsArg<ProjectionOptions>
 
 /**
  * Arguments for a projection's `toGeneratorKey` static. `settings` carries
@@ -99,19 +106,25 @@ export type ToOasOperationGroupNameArgs<EnrichmentType = undefined> = {
  * `(operation, enrichments, variant)` its identity siblings receive, and run
  * on the same cache-check path, so it must be pure and cheap.
  */
-export type ToOasOperationContainerArgs<EnrichmentType = undefined> = {
+export type ToOasOperationContainerArgs<
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   operation: OasOperation
   enrichments: EnrichmentType
   /** Variant the placement should disambiguate (see {@link Variant}) */
   variant: string
-}
+} & ProjectionOptionsArg<ProjectionOptions>
 
-export type ToOasOperationExportPathArgs<EnrichmentType = undefined> = {
+export type ToOasOperationExportPathArgs<
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   operation: OasOperation
   enrichments: EnrichmentType
   /** Operation variant the export path should disambiguate (see {@link Variant}) */
   variant: string
-}
+} & ProjectionOptionsArg<ProjectionOptions>
 
 /**
  * Static structural type of a container projection class — a projection
@@ -124,14 +137,15 @@ export type ToOasOperationExportPathArgs<EnrichmentType = undefined> = {
  * is what makes both of them places.
  */
 // deno-lint-ignore no-explicit-any
-export type OasOperationContainerProjection<EnrichmentType = any> =
-  & OasOperationProjection<GeneratedValue & DefinitionContainer, EnrichmentType>
-  & {
-    /** The group its members share — what its key is made of. */
-    toGroupName: (args: ToOasOperationGroupNameArgs<EnrichmentType>) => string
-    /** Required here: a container is keyed on its group, never its subject. */
-    toGeneratorKey: (args: ToGeneratorKeyArgs<EnrichmentType>) => GeneratorKey
-  }
+export type OasOperationContainerProjection<EnrichmentType = any> = OasOperationProjection<
+  GeneratedValue & DefinitionContainer,
+  EnrichmentType
+> & {
+  /** The group its members share — what its key is made of. */
+  toGroupName: (args: ToOasOperationGroupNameArgs<EnrichmentType>) => string
+  /** Required here: a container is keyed on its group, never its subject. */
+  toGeneratorKey: (args: ToGeneratorKeyArgs<EnrichmentType>) => GeneratorKey
+}
 
 /**
  * Static structural type of an OAS operation projection class.
@@ -139,12 +153,22 @@ export type OasOperationContainerProjection<EnrichmentType = any> =
  * Captures both the instance side (`new(...) => V`) and the static side
  * (`id`, `toIdentifierName`, `toIdentifierType`, `toExportPath`,
  * `toEnrichments`). Passed as a type parameter to
- * `context.insertOperation(...)`.
+ * `context.insertOperation(...)`. `ProjectionOptions` is the caller options
+ * the class declares; the Drivers infer it from the constructor and statics.
  */
-export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = undefined> = {
+export type OasOperationProjection<
+  V extends GeneratedValue,
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+> = {
   prototype: V
 } & {
-  new ({ context, settings, operation }: OasOperationProjectionConstructorArgs<EnrichmentType>): V
+  new ({
+    context,
+    settings,
+    operation,
+    options
+  }: OasOperationProjectionConstructorArgs<EnrichmentType, ProjectionOptions>): V
   id: string
   type: 'oasOperation'
   /**
@@ -155,7 +179,9 @@ export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = un
    */
   lang: Lang
   /** Pure: the cache-key name. */
-  toIdentifierName: (args: ToOasOperationIdentifierNameArgs<EnrichmentType>) => string
+  toIdentifierName: (
+    args: ToOasOperationIdentifierNameArgs<EnrichmentType, ProjectionOptions>
+  ) => string
   /**
    * Context-aware, overridable: the non-`name` parts of the identifier,
    * derived from the operation/schema. The engine assembles
@@ -163,7 +189,7 @@ export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = un
    * ...toIdentifierType(operation, context) })`.
    */
   toIdentifierType: (operation: OasOperation, context: GenerateContextType) => IdentifierType
-  toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType>) => string
+  toExportPath: (args: ToOasOperationExportPathArgs<EnrichmentType, ProjectionOptions>) => string
   /**
    * How this projection's key is computed. A subject's projection keys on
    * its subject; a container keys on the group its members share. The Driver
@@ -182,7 +208,7 @@ export type OasOperationProjection<V extends GeneratedValue, EnrichmentType = un
    * when this is present.
    */
   toContainer?: (
-    args: ToOasOperationContainerArgs<EnrichmentType>
+    args: ToOasOperationContainerArgs<EnrichmentType, ProjectionOptions>
   ) => OasOperationContainerProjection
   toEnrichments: ({ operation, context }: ToOasOperationEnrichmentsArgs) => EnrichmentType
   /**

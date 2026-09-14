@@ -208,7 +208,7 @@ Deno.test('WebhookDriver', async t => {
 
       assertSpyCalls(toWebhookContentSettingsSpy, 1)
       assertSpyCall(toWebhookContentSettingsSpy, 0, {
-        args: [{ webhook, projection, variant: 'main' }]
+        args: [{ webhook, projection, variant: 'main', options: undefined }]
       })
     })
 
