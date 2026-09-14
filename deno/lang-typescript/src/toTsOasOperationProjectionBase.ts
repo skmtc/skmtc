@@ -25,9 +25,15 @@ import type { TsIdentifierType } from './TsIdentifier.ts'
  * {@link TsIdentifierType} (so `toIdentifierType`'s return tightens to the
  * `type` bound to `TsEntityType`). The base is the factory's first argument,
  * not a config field.
+ *
+ * `ProjectionOptions` — the caller options the projection declares (see
+ * core's `ProjectionOptions`) — is forwarded to the config unchanged.
  */
-export const toTsOasOperationProjectionBase = <EnrichmentType = undefined>(
-  config: OasOperationProjectionBaseConfig<EnrichmentType, TsIdentifierType>
+export const toTsOasOperationProjectionBase = <
+  EnrichmentType = undefined,
+  ProjectionOptions = undefined
+>(
+  config: OasOperationProjectionBaseConfig<EnrichmentType, TsIdentifierType, ProjectionOptions>
 ) => {
   return class extends toOasOperationProjectionBase(TsSnippet, config) {
     /**

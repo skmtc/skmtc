@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/core",
-  "version": "0.28.6",
+  "version": "0.28.7",
   "license": "Apache-2.0",
   "imports": {
     "@/": "./",

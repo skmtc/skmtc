@@ -25,9 +25,12 @@ import type { TsIdentifierType } from './TsIdentifier.ts'
  * {@link TsIdentifierType} (so `toIdentifierType`'s return tightens to the
  * `type` bound to `TsEntityType`). The base is the factory's first argument,
  * not a config field.
+ *
+ * `ProjectionOptions` — the caller options the projection declares (see
+ * core's `ProjectionOptions`) — is forwarded to the config unchanged.
  */
-export const toTsModelProjectionBase = <EnrichmentType = undefined>(
-  config: ModelProjectionBaseConfig<EnrichmentType, TsIdentifierType>
+export const toTsModelProjectionBase = <EnrichmentType = undefined, ProjectionOptions = undefined>(
+  config: ModelProjectionBaseConfig<EnrichmentType, TsIdentifierType, ProjectionOptions>
 ) => {
   return class extends toModelProjectionBase(TsSnippet, config) {
     /**
