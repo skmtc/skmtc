@@ -1,7 +1,5 @@
-import type { ModulePackage } from '@skmtc/core'
-import { matchPackage, type PackageMatch } from './matchPackage.ts'
+import { isUnderRoot, matchPackage, type ModulePackage, type PackageMatch } from '@skmtc/core'
 import { toAliasPath } from './toAliasPath.ts'
-import { isUnderRoot } from './toWorkspacePath.ts'
 
 /**
  * Arguments for the {@link normalizeModuleName} function.

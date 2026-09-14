@@ -1,5 +1,5 @@
 import { dirname } from '@std/path/dirname'
-import type { ModulePackage } from '@skmtc/core'
+import { matchPackage, type ModulePackage, toWorkspacePath } from '@skmtc/core'
 import { isKtIdentifierName, ktHardKeywords } from './hardKeywords.ts'
 
 /**
@@ -26,7 +26,7 @@ import { isKtIdentifierName, ktHardKeywords } from './hardKeywords.ts'
  * This is Kotlin's `validateDestinationPath`.
  */
 export const toPackageName = (path: string, packages?: ModulePackage[]): string => {
-  const withoutAlias = path.replace(/^(@\/|\.\/)/, '')
+  const withoutAlias = toWorkspacePath(path)
 
   const withoutRoot = stripRootPath(withoutAlias, packages)
 
@@ -51,21 +51,14 @@ export const toPackageName = (path: string, packages?: ModulePackage[]): string 
 }
 
 /**
- * Strips the longest matching package `rootPath` prefix from a forward
- * path. No `packages`, or no matching `rootPath` → the path is returned
- * unchanged (single-package behavior).
+ * Strips the owning package's `rootPath` from a canonical path: the
+ * innermost root that contains it ({@link matchPackage}), so nested roots
+ * (one Gradle module inside another) resolve to the nearest source root.
+ * A path under no root, or no `packages` at all, comes back unchanged
+ * (single-package behavior).
  */
 const stripRootPath = (path: string, packages?: ModulePackage[]): string => {
-  if (!packages?.length) {
-    return path
-  }
+  const match = matchPackage({ path, packages })
 
-  const rootPaths = packages
-    .map(modulePackage => modulePackage.rootPath.replace(/^(\.\/)/, '').replace(/\/$/, ''))
-    .filter(rootPath => rootPath.length && path.startsWith(`${rootPath}/`))
-    .sort((a, b) => b.length - a.length)
-
-  const [longest] = rootPaths
-
-  return longest ? path.slice(longest.length + 1) : path
+  return match ? path.slice(match.innermost.rootPath.length + 1) : path
 }

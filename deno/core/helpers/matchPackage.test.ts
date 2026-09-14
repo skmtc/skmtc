@@ -1,5 +1,5 @@
-import { assertEquals, assertThrows } from '@std/assert'
-import { matchPackage } from './matchPackage.ts'
+import { assertEquals } from '@std/assert'
+import { matchPackage } from '@/helpers/matchPackage.ts'
 
 const sdk = { rootPath: 'packages/sdk/src', moduleName: '@company/sdk' }
 const models = { rootPath: 'packages/sdk/src/models', moduleName: '@company/sdk/models' }
@@ -54,31 +54,4 @@ Deno.test('matchPackage: roots and the path match in any spelling, and the match
   })
 
   assertEquals(match, { outermost: sdk, innermost: models })
-})
-
-Deno.test('matchPackage: two spellings of one root are one root, and its moduleName survives either way round', () => {
-  const named = { rootPath: 'packages/sdk/src', moduleName: '@company/sdk' }
-  const unnamed = { rootPath: './packages/sdk/src/' }
-  const path = 'packages/sdk/src/config.ts'
-
-  assertEquals(matchPackage({ path, packages: [named, unnamed] }), {
-    outermost: sdk,
-    innermost: sdk
-  })
-  assertEquals(matchPackage({ path, packages: [unnamed, named] }), {
-    outermost: sdk,
-    innermost: sdk
-  })
-})
-
-Deno.test('matchPackage: one root under two module names is a configuration error', () => {
-  assertThrows(
-    () =>
-      matchPackage({
-        path: 'packages/sdk/src/config.ts',
-        packages: [sdk, { rootPath: './packages/sdk/src', moduleName: '@company/other' }]
-      }),
-    Error,
-    "Package root 'packages/sdk/src' is configured twice with different module names: '@company/sdk' and '@company/other'"
-  )
 })

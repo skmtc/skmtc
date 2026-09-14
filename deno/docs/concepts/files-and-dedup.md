@@ -391,11 +391,17 @@ file's `toString()` into `{ path: content }` artifacts.
 consults the project's `packages: ModulePackage[]` config and
 rewrites paths:
 
-- Within the same package: `./packages/types/models/User.ts` →
+- Within the same package: `packages/types/models/User.ts` →
   `@/models/User.ts` (root path replaced by `@`).
-- Across packages: `./packages/types/models/User.ts` →
-  `@company/types` (the `moduleName` of the matching package).
+- Across packages: `packages/types/models/User.ts` →
+  `@company/types` (the `moduleName` of the package; for a nested
+  root, the subpath's own `moduleName`).
 - No matching package: returns the original path unchanged.
+
+Roots are folders in canonical spelling and may nest — the full
+routing model, including subpath exports and the two meanings of `@`,
+is in
+[projects-and-workspaces.md](projects-and-workspaces.md#how-a-file-is-routed).
 
 This is what makes monorepos work — generators can write
 relative paths into the file map, and the rendered imports come

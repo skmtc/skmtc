@@ -61,6 +61,7 @@
  */
 
 import { join } from '@std/path/join'
+import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
 
 /**
  * Arguments for resolving artifact file paths.
@@ -219,5 +220,5 @@ export const toResolvedArtifactPath = ({
   basePath,
   destinationPath
 }: ToResolvedArtifactPathArgs): string => {
-  return join(basePath ?? './', destinationPath.replace(/^@\//, ''))
+  return join(basePath ?? './', toWorkspacePath(destinationPath))
 }

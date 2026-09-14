@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert'
-import { isUnderRoot, toWorkspacePath } from './toWorkspacePath.ts'
+import { isUnderRoot, toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
 
 Deno.test('toWorkspacePath: the workspace-root anchor and a trailing slash are dropped', () => {
   assertEquals(toWorkspacePath('@/packages/sdk/src'), 'packages/sdk/src')

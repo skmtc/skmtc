@@ -1,4 +1,4 @@
-import { isUnderRoot, toWorkspacePath } from './toWorkspacePath.ts'
+import { isUnderRoot, toWorkspacePath } from '@skmtc/core'
 
 /**
  * Arguments for {@link toAliasPath}.

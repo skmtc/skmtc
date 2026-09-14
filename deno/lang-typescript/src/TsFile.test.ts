@@ -334,4 +334,12 @@ Deno.test('TsFile renders nested package roots: one @ inside the package, subpat
   route.addImports([TsImport.fromConcise('@/packages/sdk/src/models/User.generated.ts', ['User'])])
 
   assertEquals(route.toString(), `import {User} from '@company/sdk/models'`)
+
+  // A barrel re-exports through the same normalisation as imports.
+  const barrel = new TsFile({ path: 'packages/sdk/src/index.generated.ts', settings })
+  barrel.addReExports([
+    TsReExport.fromConcise('@/packages/sdk/src/models/User.generated.ts', [createType('User')])
+  ])
+
+  assertEquals(barrel.toString(), `export type { User } from '@/models/User.generated.ts'`)
 })
