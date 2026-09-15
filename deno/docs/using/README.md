@@ -43,6 +43,7 @@ Recipes for specific problems.
 - [Configure enrichments](how-to/configure-enrichments.md)
 - [Pin the schema source](how-to/pin-schema-source.md)
 - [Skip or include operations](how-to/skip-or-include-operations.md)
+- [Generate into multiple packages](how-to/generate-into-multiple-packages.md)
 - [Use SKMTC in CI/CD](how-to/use-in-ci-cd.md)
 - [Update a schema and regenerate](how-to/update-a-schema.md)
 - [Debug a failing generation](how-to/debug-failing-generation.md)

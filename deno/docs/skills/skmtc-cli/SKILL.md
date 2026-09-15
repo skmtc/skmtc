@@ -1,6 +1,6 @@
 ---
 name: skmtc-cli
-version: 0.5.0
+version: 0.5.1
 description: |
   Use the Skmtc CLI to scaffold projects, install or clone generators
   from JSR, configure schema sources and enrichments, and produce code
@@ -164,6 +164,16 @@ stale bundle silently shadows source edits:
 relative, no `..`), `packages`, `enrichments`, `skip`, `include`,
 `generatedSuffix`. Full annotated shape, every key:
 [`reference.md` §6](reference.md) — read it before editing the file.
+
+`packages` (optional) routes output into monorepo packages. Each
+entry `{ rootPath, moduleName? }` is a folder forward from `basePath`,
+which is then the common ancestor of every package, not a bundler
+alias. Inside a root, imports render `@/` from that root; from
+outside, they render the root's `moduleName`. Nested roots are subpath
+exports (`@app/sdk/models`) that share the outer package's `@`. Config
+load rejects `..`, a repeated root and the workspace root; render
+fails on an outside import of a root with no `moduleName`. Task page:
+`docs/using/how-to/generate-into-multiple-packages.md`.
 
 `settings.skip` / `settings.include` accept a whole generator, a
 per-operation entry (`path → method → variant[]`), or a per-model

@@ -216,7 +216,11 @@ every file in the package shares one `@`), and the *innermost* root's
 
 Throws when the target's package (for a subpath, the nested root) has
 no `moduleName` and the importer is outside it; the message names the
-root and, for a nested root, the subpath name to set. See
+root and, for a nested root, the subpath name to set. Also throws when
+the importer is inside a package and the target is a workspace-root
+(`@/`, `./`) path under no package root: a package file resolves `@/`
+from its own root, so the message asks for a root that contains the
+target. See
 [projects-and-workspaces.md](../../concepts/projects-and-workspaces.md#how-a-file-is-routed)
 for the routing model and
 [clone-vs-install.md](../../concepts/clone-vs-install.md) for how

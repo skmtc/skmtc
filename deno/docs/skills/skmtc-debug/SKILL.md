@@ -301,7 +301,13 @@ operation produced no files.
      consumer hasn't implemented. Check the generator's `register({
      imports: ... })` calls — the consumer must provide the named
      module at the generated path, or the generator should be cloned
-     and the import target changed.
+     and the import target changed. For a package name
+     (`@acme/sdk/models`), the `moduleName` in `settings.packages` is
+     not declared in that package's `package.json` (`name`, or an
+     `exports` entry for a subpath). A render-time throw that names
+     `settings.packages` (`has no moduleName`, `under no package
+     root`) is a config fault, not a generator fault:
+     `docs/using/how-to/generate-into-multiple-packages.md`.
    - **Type mismatch between schema and validator**: The schema → DSL
      conversion produced a Zod (or other) schema with different
      shape than the TS type. Usually the form / hook generator and

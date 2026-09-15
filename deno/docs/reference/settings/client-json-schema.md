@@ -264,8 +264,10 @@ For projects that write code into multiple packages (e.g., a
 monorepo where types and validators land in different workspace
 packages). Each entry names a package root folder (`rootPath`,
 forward from `basePath`, no `..`) and optionally the name a file
-outside it imports it by (`moduleName`); the engine uses this when
-rendering cross-package imports.
+outside it imports it by (`moduleName`). The language package reads
+this at render time to write cross-file imports: same package →
+`@/` from that package's root; another package → the target root's
+`moduleName`; no package → the path as the generator wrote it.
 
 A root is a folder, not a string prefix — `packages/sdk` does not
 contain `packages/sdk-legacy` — and spelling does not matter
@@ -273,7 +275,13 @@ contain `packages/sdk-legacy` — and spelling does not matter
 nested root is a subpath export of the package around it
 (`@acme/sdk/models` under `@acme/sdk`). The schema rejects a root
 listed twice and the workspace root itself (`.`) as a package root.
-See [projects-and-workspaces.md](../../concepts/projects-and-workspaces.md#how-a-file-is-routed).
+Render fails when a file outside a root imports it and the root has
+no `moduleName`, and when a file inside a package imports a
+workspace-root path that no package holds.
+See [projects-and-workspaces.md](../../concepts/projects-and-workspaces.md#how-a-file-is-routed)
+for the routing model and
+[How to generate into multiple packages](../../using/how-to/generate-into-multiple-packages.md)
+for the steps and every error message.
 
 Most projects don't need this. Default: `[]`.
 
@@ -513,3 +521,4 @@ code.
 - [enrichments concept](../../concepts/enrichments.md) — mental model
 - [projects-and-workspaces concept](../../concepts/projects-and-workspaces.md) — where this file lives
 - [How to configure enrichments](../../using/how-to/configure-enrichments.md) — task-level guidance
+- [How to generate into multiple packages](../../using/how-to/generate-into-multiple-packages.md) — `settings.packages` step by step

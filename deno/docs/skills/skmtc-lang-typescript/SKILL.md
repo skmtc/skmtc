@@ -120,8 +120,11 @@ Concise forms per module: `['z']` (named), `[{ default: 'invariant' }]`
 (aliased/default), `[{ name: 'User', type: 'type' }]` (type-only).
 Sharp edge: only `type: 'type'` triggers type-only in the concise form —
 `type: 'interface'` does NOT; tag interfaces `type: 'type'`. Register
-against `@/…` export paths; module names are re-keyed at render via the
-project's package settings.
+against `@/…` export paths, where `@/` is the workspace root. At render
+`TsFile` re-keys each module through `settings.packages`: same package
+→ `@/` from that package's root; another package → the innermost
+root's `moduleName`; no root → as written. A package file that imports
+a workspace-root path under no root throws at render.
 
 ## 5. Composition helpers
 
