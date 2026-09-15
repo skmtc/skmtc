@@ -1,6 +1,7 @@
-# Using SKMTC
+# Consuming generators
 
-> Install, configure, and run SKMTC to generate code from your schemas.
+> Install generators, configure them, and run SKMTC to generate code
+> from your schemas.
 
 SKMTC generates TypeScript from an OpenAPI v3 or GraphQL schema — types,
 validators, query hooks, forms, mocks, and server routes, all from one
@@ -43,6 +44,7 @@ Recipes for specific problems.
 - [Configure enrichments](how-to/configure-enrichments.md)
 - [Pin the schema source](how-to/pin-schema-source.md)
 - [Skip or include operations](how-to/skip-or-include-operations.md)
+- [Generate into multiple packages](how-to/generate-into-multiple-packages.md)
 - [Use SKMTC in CI/CD](how-to/use-in-ci-cd.md)
 - [Update a schema and regenerate](how-to/update-a-schema.md)
 - [Debug a failing generation](how-to/debug-failing-generation.md)

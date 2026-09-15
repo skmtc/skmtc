@@ -96,8 +96,8 @@ The base classes provide `insertOperation`, `insertModel`, and
 `insertNormalizedModel` — thin wrappers around the same-named methods
 on [GenerateContext](generate-context.md) that auto-fill
 `destinationPath` from `settings.exportPath`. They also enforce the
-constructor's `args: { context, operation/schema, settings }`
-contract.
+constructor's `args: { context, operation/refName, settings, options }`
+contract (`options` only when the projection declares caller options).
 
 ## OAS object model
 
@@ -143,6 +143,8 @@ The TypeScript-level utility types and interfaces.
 | `OasParameterLocation` | `'path' \| 'query' \| 'header' \| 'cookie'` |
 | `OasComponentType` | Union of all top-level OAS component classes |
 | `Stringable` | Anything with a `toString(): string` — every DSL primitive implements it |
+| `InsertOptions` | `{ destinationPath?, noExport?, variant?, options }` — the trailing argument of `insertModel` / `insertOperation`; `PeerInsertOptions` is the same without `destinationPath` (the projection-base wrappers fill it) |
+| `ProjectionOptionsArg` | The `{ options }` slot on an insert call or identity static — required when the projection declares options, refused when it does not |
 
 ### Naming and identifier helpers
 

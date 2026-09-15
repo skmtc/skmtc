@@ -120,7 +120,10 @@ dependencies.
 ### `context.insertOperation({ projection, operation })` and `context.insertModel(MyProjection, refName)`
 
 (`insertOperation` takes a single object argument; `insertModel` is
-positional — `insertModel(projection, refName, options?)`.)
+positional — `insertModel(projection, refName, args?)`, where the
+trailing `args` carries `{ destinationPath?, noExport?, variant?, options }`.
+`options` is the peer's caller options: required when the peer declares
+an options type, refused when it does not.)
 
 The cross-generator coordination APIs. Both delegate to a Driver
 class (`OasOperationDriver`, `GqlOperationDriver`, `ModelDriver`)
@@ -128,11 +131,12 @@ that:
 
 1. Computes `settings = { identifier, exportPath, enrichments }`
    from the Projection's static `toIdentifierName` / `toIdentifierType` /
-   `toExportPath` / `toEnrichments` methods.
+   `toExportPath` / `toEnrichments` methods. The identity statics
+   receive the call's `variant` and `options`.
 2. Looks up `(identifier.name, exportPath)` in the
    `currentFile.definitions` cache.
 3. **On cache miss:** constructs `new MyProjection({ context,
-   operation/refName, settings, destinationPath })` — this is
+   operation/refName, settings, destinationPath, options })` — this is
    where the Projection class is actually instantiated — wraps the
    value in a `Definition`, and registers it.
 4. **On cache hit:** runs `affirmDefinition` integrity check

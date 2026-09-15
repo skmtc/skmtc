@@ -130,11 +130,12 @@ fails config validation at start.
 
 ```jsonc
 "enrichments": {
-  // Stack scope — one leaf shared across every generator.
+  // Stack scope — one leaf shared across every generator. Valid only
+  // when every generator in the run declares `stack` in its umbrella.
   "_stack": { "apiTitle": "Billing API" },
 
-  "@skmtc/gen-zod": {
-    // Generator scope — a run-constant for gen-zod only.
+  "@acme/gen-zod-strict": {
+    // Generator scope — a run-constant for this generator only.
     "_generator": { "strict": true },
 
     // Subject scope — per-model, unchanged. `'main'` is the
@@ -143,6 +144,14 @@ fails config validation at start.
   }
 }
 ```
+
+In `enrichments.ts` the same three scopes are the umbrella members
+`subject`, `generator` and `stack` — no underscore. A generator opts
+into a scope by declaring it; `v.undefined()` rejects any value at that
+key. Which scopes a generator declares is in its `enrichments.ts` —
+the stock generators declare `subject` only — so the `_generator` /
+`_stack` blocks above need cloned generators that declare them, and
+`_stack` needs every generator in the run to.
 
 Per-subject enrichments are otherwise unchanged: the routing keys and
 the mandatory `'main'` variant level (see the `client.json` shape above

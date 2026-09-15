@@ -32,9 +32,6 @@ documented generator — not because they are secret:
 
 - `@skmtc/gen-daisyui-form` — form generator over daisyUI; the younger
   sibling of [gen-shadcn-form](gen-shadcn-form.md)
-- `@skmtc/gen-typescript-s` and `@skmtc/gen-typescript-sdk` — a
-  configurable-scalars variant of [gen-typescript](gen-typescript.md),
-  and an enrichment-driven SDK resource-class generator
 - `@skmtc/gen-md-docs` — per-operation markdown documentation
   (internal tooling for search indexing)
 - `@skmtc/gen-kotlin-jackson`, `@skmtc/gen-kotlin-spring` — private,

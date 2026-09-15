@@ -20,7 +20,7 @@ A primer for AI coding assistants and agents working with SKMTC code. **Flat and
 | Output format | Unformatted TypeScript; no Prettier in pipeline |
 | Customization model | `install` (JSR, enrichments only) or `clone` (source, edit anything) |
 | Settings file | `.skmtc/<project>/.settings/client.json` |
-| Settings shape | `{ source, settings: { basePath, skip, include, enrichments } }` |
+| Settings shape | `{ source, settings: { basePath, packages, skip, include, enrichments } }` |
 | Project workspace | `.skmtc/<project>/` containing `deno.json`, `worker.ts`, `bundle.js`, `.settings/` |
 | Worker permissions | `read/write/env=true`, `net=false`, `run=false` |
 | Worker lifecycle | One-shot: spawned per generate, terminated after RESULT |
@@ -77,7 +77,7 @@ The one story every rule in this document falls out of. Hold this model and the 
 
 8. **Settings tell a Projection where it lands.** The Driver computes `ContentSettings` — the identifier it will be assigned to, the file it will be written to, its enrichments, and its variant — from the Projection's static methods; the instance reads `this.settings`. Snippets have no settings: they are anonymous fragments the parent embeds anywhere via `${...}`, which is exactly what makes them shareable and reusable.
 
-9. **Consumers customize via enrichments; authors via source.** Each generator declares its options as a Valibot schema in `enrichments.ts`, valued from `client.json`. Everything beyond that schema is clone-and-edit — hardcoded paths and peer imports are deliberate customization seams.
+9. **Authors declare enrichments; consumers provide them.** A generator's author declares, as a Valibot schema in `enrichments.ts`, the settings the generator needs that the document cannot supply; the consumer of the generator provides the values in `client.json`. Everything beyond that schema is clone-and-edit — hardcoded paths and peer imports are deliberate customization seams.
 
 10. **The engine is language-blind.** A generator declares its target language through its import graph — projection bases and snippet base imported from a lang package that owns the concrete `File` / `Import` / `Definition` subclasses and identifier factories (fact 6 below has the full detail).
 
@@ -129,7 +129,7 @@ These overrides exist because well-intentioned TS conventions frequently break S
 | Write `import` statements inside template literals | Register imports via `this.register({ imports })` (own file) or `this.registerInto(path, { imports })` (cross-file) | Bypasses dedup; lands inside file body not header |
 | Declare the language via a `lang` config field (entry, base, or snippet) | Import your factories and snippet base from the lang package (`toTsModelProjectionBase` / `TsSnippet` from `@skmtc/lang-typescript`) — the import graph declares the language; entries carry no `lang` | Language enters the class hierarchy at the lang snippet base; Drivers read it off the projection class's inherited static |
 | Thread an `acc` accumulator through `transform` | Transforms return `void` — the `Acc` accumulator is removed (F11). Accumulate via the gen-msw definition pattern (`findDefinition` + the lang package's `defineAndRegister` function) or module-scope state | The engine no longer threads an accumulator; a fresh Worker per run makes module-scope state per-run-safe |
-| Give a Projection custom constructor args | Projections receive a fixed `{ context, operation/refName, settings }` from the Driver — re-resolve dependencies inside the constructor | The Driver never passes custom args; the memoization cache makes re-resolution free |
+| Give a Projection ad-hoc constructor args | Declare an options type on the base factory and pass `{ options }` on the insert; the Driver delivers it to the identity statics and the constructor, and the instance stores it as `this.options` | Options ride the insert call, so they are typed by the peer, part of the cache identity (fold them into `toIdentifierName`), and reach every construction path — re-resolve everything else inside the constructor |
 | Add a `BaseSchema` class to share schema behavior | Schema variants are sibling classes, not subclasses | Duck-typed `.isRef()` + discriminator narrowing is intentional |
 | Use `Deno.writeFileSync` from a generator constructor | Use `register({ definitions, ... })` | Direct writes bypass `context.#files`; invisible to coordination and persistence |
 | Mock a database in tests | Use real Supabase / real DB | Project convention — mocked tests previously masked production bugs |
@@ -249,10 +249,11 @@ See [`concepts/projections-and-snippets.md`](concepts/projections-and-snippets.m
 
 1. The projection base's `insertOperation` (built by the factory — `core/dsl/operation/oas/toOasOperationProjectionBase.ts:144`) auto-fills `destinationPath`, delegates to `context.insertOperation`.
 2. `GenerateContext.insertOperation` (`core/context/GenerateContext.ts:1188`) instantiates `new OasOperationDriver(...)`.
-3. Driver computes `settings = context.toOperationContentSettings({ projection, operation })`.
+3. Driver computes `settings = context.toOperationContentSettings({ projection, operation, variant, options })`.
 4. Driver calls `getDefinition({ identifier, exportPath })` (`OasOperationDriver.ts:133-163`):
    - Cache hit + `affirmDefinition` passes: return cached.
    - Cache hit + generatorKey mismatch: throw `"Registered definition mismatch"`.
+   - Cache hit + the cached value's `options` differ from the call's: the same throw — the peer's name must fold its options.
    - Miss: `new projection({...})` runs; wrap value in `Definition`; register in target file.
 5. Driver stitches an import into the *calling* file if `exportPath !== destinationPath`.
 
@@ -362,6 +363,8 @@ Routing keys are hardcoded per projection-base factory:
 - OAS operation generators: `enrichments[generatorId][operation.path][operation.method][variant]`
 - Model generators: `enrichments[generatorId][refName][variant]`
 - GraphQL operation generators: `enrichments[generatorId][rootKind][fieldName][variant]`
+- Webhook generators: `enrichments[generatorId][webhookName][method][variant]`
+- Run-constant scopes at reserved keys: `enrichments[generatorId]._generator` (one generator) and `enrichments._stack` (every generator). A generator accepts them only when its umbrella declares that scope; `v.undefined()` rejects any value.
 
 The trailing `[variant]` level defaults to `'main'` when the consumer
 writes no variants. Whenever any variant is declared, `'main'` MUST be
@@ -369,6 +372,8 @@ present (engine throws via `toVariantList` otherwise). See
 [`concepts/variants.md`](./concepts/variants.md).
 
 The payload shape beneath the routing keys is declared per-generator via Valibot in `gen-x/src/enrichments.ts`. **To know what keys a generator accepts, read its `enrichments.ts`.**
+
+Misaddressed config never errors: every read goes through `context.readEnrichment`, and after the run the engine reports paths nothing read (`UNCONSUMED_ENRICHMENT`, `UNKNOWN_GENERATOR_ID`) and keys the schema dropped (`UNKNOWN_ENRICHMENT_KEY`, with a suggestion) on `manifest.enrichmentWarnings`. A wrong-typed value fails only that item.
 
 ### Skip and include filters
 
@@ -529,6 +534,7 @@ Self-contained playbooks. Read only the one you need.
 2. Open `.skmtc/<project>/.settings/client.json`.
 3. Add under `settings.enrichments[generatorId][...routingKeys][variant]` — routing keys depend on factory: `[path][method]` for OAS ops, `[refName]` for models, `[rootKind][fieldName]` for GraphQL ops. The trailing `variant` level defaults to `'main'`; declare extra variants to get N artifacts per item from a variants-aware generator.
 4. `skmtc generate <project>` (no rebundle needed).
+5. If the value does not land, read `manifest.enrichmentWarnings` — a typo'd routing key or leaf key is reported there with a suggestion.
 
 #### Pinning a schema source
 

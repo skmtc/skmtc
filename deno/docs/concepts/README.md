@@ -10,11 +10,11 @@
   create-or-reuse mechanism that makes SKMTC composable, in one page
 - [The three phases](the-three-phases.md) — Parse → Generate → Render
 
-## Using SKMTC
+## Consuming generators
 
 - [Projects and workspaces](projects-and-workspaces.md) — the on-disk model
 - [Clone vs install](clone-vs-install.md) — the customization gradient
-- [Enrichments](enrichments.md) — per-operation configuration
+- [Enrichments](enrichments.md) — settings a generator needs, declared by its author and provided by its consumer
 - [The worker runtime](the-worker-runtime.md) — the sandbox model
 - [The manifest](the-manifest.md) — the run record
 

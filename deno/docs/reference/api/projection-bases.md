@@ -114,6 +114,19 @@ matches the source type (`OasOperationProjectionBaseConfig`,
   swallowed.
 - **`isSupported`** is the family-level applicability predicate.
   Omit to advertise support for every item.
+- **Caller options.** The veneers take a second type parameter,
+  `ProjectionOptions` — `toTsModelProjectionBase<E, Options>(config)`
+  and the operation siblings — forwarded to core's third
+  (`toModelProjectionBase<E, IdType, Options>(base, config)`). It is
+  typed data a calling generator passes on an insert (`{ options }`).
+  When declared, `toIdentifierName`
+  and `toExportPath` receive `options` next to
+  `{ refName | operation, enrichments, variant }`, the constructor
+  receives it, and the instance stores it as `this.options`. Options
+  are part of identity: fold them into `toIdentifierName` whenever the
+  output depends on them, or a cache hit built with different options
+  throws `Registered definition mismatch`. Declare `T | undefined` to
+  make the slot optional.
 
 Note: **`toEnrichments` is not a config field.** The factory builds
 it from `toEnrichmentSchema` and the project's enrichment settings
@@ -157,6 +170,8 @@ only on GraphQL documents.
 - `operation: OasOperation | GqlOperation` (operation bases only) —
   the source operation.
 - `refName: RefName` (model base only) — the source schema's refName.
+- `options: ProjectionOptions` — the caller's options as passed on the
+  insert; `undefined` when the projection declares none.
 
 The factory constructor injects `generatorKey` (composed from the
 generator id, the operation/refName, and the variant) into the
@@ -169,23 +184,23 @@ from `this.settings.exportPath`:
 
 ```ts
 // Operation bases (OAS and GQL)
-insertOperation<V, E>(
-  projection: OperationProjection<V, E>,
+insertOperation<V, E, P>(
+  projection: OperationProjection<V, E, P>,
   operation: OasOperation | GqlOperation,
-  options?: { noExport?: boolean; variant?: string }
+  ...rest: [args?: { noExport?: boolean; variant?: string; options?: P }]
 ): Inserted<V, E>
 
 // All bases
-insertModel<V, E>(
-  projection: ModelProjection<V, E>,
+insertModel<V, E, P>(
+  projection: ModelProjection<V, E, P>,
   refName: RefName,
-  options?: { noExport?: boolean; variant?: string }
+  ...rest: [args?: { noExport?: boolean; variant?: string; options?: P }]
 ): Inserted<V, E>
 
-insertNormalizedModel<V, S, E>(
-  projection: ModelProjection<V, E>,
+insertNormalizedModel<V, S, E, P>(
+  projection: NormalizedModelProjection<V, E, P>,
   args: { schema: S, fallbackName: string },  // ← no destinationPath needed
-  options?: { noExport?: boolean; variant?: string }
+  ...rest: [args?: { noExport?: boolean; variant?: string; options?: P }]
 ): InsertNormalizedModelReturn<V, S>
 ```
 
@@ -193,6 +208,11 @@ These delegate to the corresponding methods on `GenerateContext`,
 filling in `destinationPath: this.settings.exportPath`. Generator
 code typically uses these wrappers rather than the underlying
 context methods directly.
+
+`P` is the peer's declared options type. The trailing argument is
+optional when the peer declares no options (an `options` key is then a
+type error) and required when it does — the `ProjectionOptionsRest`
+type in `@skmtc/core` encodes that rule.
 
 `defineAndRegister(args)` is inherited from `TsSnippet` — it builds a
 `TsDefinition` and registers it, but takes an explicit

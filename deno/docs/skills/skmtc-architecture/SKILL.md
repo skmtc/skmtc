@@ -1,6 +1,6 @@
 ---
 name: skmtc-architecture
-version: 0.1.0
+version: 0.1.1
 description: |
   Understand what SKMTC is, how its engine works, and the
   architectural invariants — for agents building or extending
@@ -251,9 +251,12 @@ dependency graph and no topological sort.** Coordination is
   `insertNormalizedModel`).
 - A **Driver** (`OasOperationDriver`, `GqlOperationDriver`,
   `ModelDriver`) computes a cache key `(identifier.name, exportPath)`
-  — both pure functions of `(operation, enrichments)` via the peer's
-  static methods.
-- **Cache hit** → the existing `Definition` is reused. **Miss** → the
+  — both pure functions of `(operation, enrichments, variant, options)`
+  via the peer's static methods. `options` is typed data the caller
+  passes on the insert; a peer that uses it folds it into the name.
+- **Cache hit** → the existing `Definition` is reused, after an
+  integrity check (generator key, class, and the caller's options — a
+  hit built with different options throws). **Miss** → the
   peer's Projection is constructed (which may recurse), wrapped in a
   `Definition`, registered, and its import stitched into the calling
   file.

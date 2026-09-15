@@ -1,6 +1,6 @@
 ---
 name: skmtc-cli
-version: 0.5.0
+version: 0.5.1
 description: |
   Use the Skmtc CLI to scaffold projects, install or clone generators
   from JSR, configure schema sources and enrichments, and produce code
@@ -72,8 +72,10 @@ identifier naming, peer imports, output shapes — and there are no
 config flags for any of them, deliberately. To change them,
 `skmtc clone` the generator into the project and edit its source;
 that is the customization seam, not a workaround. "Stock generator
-hardcodes X" is almost never a CLI bug. Enrichments parameterize a
-generator within its shape; cloning changes the shape.
+hardcodes X" is almost never a CLI bug. Enrichments supply the
+settings a generator's author declared it needs — its `enrichments.ts`
+schema is the whole contract a consumer can fill; cloning changes the
+shape.
 
 Two engine facts that shape CLI expectations: generator order never
 affects output (coordination is a memoized cache, not a dependency
@@ -164,6 +166,24 @@ stale bundle silently shadows source edits:
 relative, no `..`), `packages`, `enrichments`, `skip`, `include`,
 `generatedSuffix`. Full annotated shape, every key:
 [`reference.md` §6](reference.md) — read it before editing the file.
+
+`packages` (optional) routes output into monorepo packages. Each
+entry `{ rootPath, moduleName? }` is a folder forward from `basePath`,
+which is then the common ancestor of every package, not a bundler
+alias. Inside a root, imports render `@/` from that root; from
+outside, they render the root's `moduleName`. Nested roots are subpath
+exports (`@app/sdk/models`) that share the outer package's `@`. Config
+load rejects `..`, a repeated root and the workspace root; render
+fails on an outside import of a root with no `moduleName`. Task page:
+`docs/using/how-to/generate-into-multiple-packages.md`.
+
+Enrichment misaddressing never errors. When a customization does not
+land, read `manifest.enrichmentWarnings` (printed after `generate`,
+and re-read by `skmtc doctor` as `project-enrichments/<project>`): a
+typo'd id, path, method, model name or leaf key is reported with the
+nearest match. Routing is the literal path plus lowercase method,
+never `operationId`, under a `main` variant key. A wrong-typed value
+fails only that item, recorded as `error` in the manifest.
 
 `settings.skip` / `settings.include` accept a whole generator, a
 per-operation entry (`path → method → variant[]`), or a per-model

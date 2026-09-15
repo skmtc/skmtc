@@ -80,6 +80,14 @@
  *      check (10) guards reachability; this guards resolution — a
  *      reachable page can still carry a broken link (the class that
  *      survived until an ad-hoc sweep caught it).
+ *  14–18. See the numbered banners below (skills catalogue, appendix
+ *      coverage, declared-version sync, install source, plugin
+ *      version).
+ *  19. PUBLIC-API-SURFACE SYNC — a per-export digest of each package a
+ *      published skill describes (`.scripts/api-surface.json`). An
+ *      export added, removed or re-shaped on an unchanged minor fails:
+ *      bump the minor (which makes check 16 demand the reread), then
+ *      `deno task record-api-surface`.
  *
  *   exit 0 — all checks hold.
  *   exit 1 — one or more failed; each failure names file + expectation.
@@ -97,6 +105,16 @@
 import { dirname, fromFileUrl, join } from 'jsr:@std/path@^1'
 import { parse as parseYaml } from 'jsr:@std/yaml@^1'
 import { computeSkillsDigest } from '../.scripts/plugin-digest.ts'
+import {
+  computeApiSurface,
+  diffApiSurface,
+  isApiSurface,
+  isRecord,
+  recordPath,
+  surfaceTargets,
+  toMinor,
+  type ApiSurface
+} from '../.scripts/api-surface.ts'
 
 const docsDir = dirname(fromFileUrl(import.meta.url))
 const denoDir = join(docsDir, '..')
@@ -1349,11 +1367,6 @@ for await (const entry of Deno.readDir(denoDir)) {
   }
 }
 
-const toMinor = (version: string): string => version.split('.').slice(0, 2).join('.')
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
 /**
  * `metadata.describes`, parsed as YAML rather than matched with a
  * whitespace-exact regex. The regex made the guard self-disabling: re-indent
@@ -1377,8 +1390,12 @@ const readDescribes = (skillText: string): Record<string, string> | undefined =>
 let declaredVersionFailures = 0
 let declarationCount = 0
 
+/** Every SKILL.md by `skills/<dir>/SKILL.md`, read once here and reused by check 19. */
+const skillTexts = new Map<string, string>()
+
 for (const directory of skillDirectories) {
   const skillText = await Deno.readTextFile(join(skillsDir, directory, 'SKILL.md')).catch(() => '')
+  skillTexts.set(`skills/${directory}/SKILL.md`, skillText)
   const describes = readDescribes(skillText)
   const published = publishedSkillNames.includes(directory)
 
@@ -1516,6 +1533,143 @@ if (!marketplaceEntry) {
   )
 } else {
   pass(`plugin version: ${pluginManifest.version} matches both manifests and the skills digest`)
+}
+
+// ---------------------------------------------------------------------
+// 19. Public-API-surface sync — the gap in check 16. That check fires
+//     when a package MINOR moves past a skill's declaration; a public
+//     API change that ships as a patch never moves the minor, so every
+//     skill keeps its number and nobody rereads it (caller options on
+//     core 0.28.x shipped that way). So each described package's
+//     exported surface is recorded per export, and a change to it on
+//     an unchanged minor fails here. The fix is not editing the record:
+//     it is the minor bump, which hands the reread to check 16, and
+//     then re-recording.
+//
+//     Blind spot: a factory that returns an anonymous class
+//     (`toModelProjectionBase` and siblings, the lang veneers) has no
+//     return type in `deno doc`, so the class it returns — the insert
+//     wrappers, `register`, `this.options` — is outside the digest.
+//     Those exports are listed as `unresolved` in the record and counted
+//     in the pass line; a change to what they return still needs the
+//     minor bump by hand.
+//
+//     The digests come from `deno doc --json`, whose shape can move
+//     between deno versions. The record carries the deno that wrote it;
+//     when the current deno differs and the surface has moved, the two
+//     causes cannot be told apart from here, so the check says so and
+//     asks for a re-record on an unchanged surface with this deno first
+//     — never a guess from how many exports moved.
+// ---------------------------------------------------------------------
+
+const RECORD_SURFACE = 'deno task record-api-surface'
+
+const readSurfaceRecord = async (): Promise<Record<string, unknown> | undefined> => {
+  const text = await Deno.readTextFile(recordPath(denoDir)).catch(() => undefined)
+  if (text === undefined) {
+    fail(`api surface: no record at .scripts/api-surface.json — run \`${RECORD_SURFACE}\``)
+    return undefined
+  }
+  try {
+    const parsed: unknown = JSON.parse(text)
+    if (!isRecord(parsed)) {
+      fail(`api surface: .scripts/api-surface.json is not a JSON object — run \`${RECORD_SURFACE}\``)
+      return undefined
+    }
+    return parsed
+  } catch (error) {
+    fail(
+      `api surface: .scripts/api-surface.json is not valid JSON (${String(error)}) — ` +
+        `run \`${RECORD_SURFACE}\``
+    )
+    return undefined
+  }
+}
+
+const surfaceRecord = await readSurfaceRecord()
+
+const currentSurfaces =
+  surfaceRecord === undefined
+    ? []
+    : await Promise.all(
+        surfaceTargets.map(async target => {
+          try {
+            return { target, current: await computeApiSurface(denoDir, target) }
+          } catch (error) {
+            fail(`api surface: could not compute ${target.packageName} — ${String(error)}`)
+            return undefined
+          }
+        })
+      )
+
+for (const entry of currentSurfaces) {
+  if (entry === undefined || surfaceRecord === undefined) continue
+  const { target, current } = entry
+  const recordedEntry: unknown = surfaceRecord[target.packageName]
+  const exportCount = Object.keys(current.exports).length
+
+  if (!isApiSurface(recordedEntry)) {
+    fail(
+      `api surface: the record for ${target.packageName} is ${recordedEntry === undefined ? 'missing' : 'malformed'} ` +
+        `— run \`${RECORD_SURFACE}\``
+    )
+    continue
+  }
+  const recorded: ApiSurface = recordedEntry
+
+  const { added, removed, changed } = diffApiSurface(recorded.exports, current.exports)
+  const moved = [...added, ...removed, ...changed].sort()
+  const coverage = `${exportCount} exports, ${current.unresolved.length} by signature only`
+
+  if (moved.length === 0 && recorded.minor === current.minor) {
+    pass(`api surface: ${target.packageName} ${current.minor} — ${coverage}; all match the record`)
+    continue
+  }
+
+  if (moved.length === 0) {
+    fail(
+      `api surface: ${target.packageName} is on ${current.minor} but the record says ` +
+        `${recorded.minor}, with no export changed — re-record with \`${RECORD_SURFACE}\``
+    )
+    continue
+  }
+
+  const summary = `${added.length} added, ${removed.length} removed, ${changed.length} re-shaped`
+
+  if (recorded.deno !== current.deno) {
+    fail(
+      `api surface: ${target.packageName} moved (${summary}), and the record was written with ` +
+        `deno ${recorded.deno} while this is deno ${current.deno} — a \`deno doc\` format shift and ` +
+        `an API change look the same from here. Re-record on a commit whose surface is unchanged ` +
+        `with deno ${current.deno} first (\`${RECORD_SURFACE}\`), then re-run this check.`
+    )
+    continue
+  }
+
+  if (recorded.minor !== current.minor) {
+    fail(
+      `api surface: ${target.packageName} changed (${summary}) and its minor moved to ` +
+        `${current.minor} — re-record with \`${RECORD_SURFACE}\``
+    )
+    continue
+  }
+
+  fail(
+    `api surface: the public API of ${target.packageName} changed on minor ${current.minor} ` +
+      `(${summary}). A public API change is a minor: run \`deno task bump ${target.directory} --minor\`, ` +
+      `reread every skill declaring ${target.packageName} and the pages named below, then \`${RECORD_SURFACE}\`.`
+  )
+
+  // Where each moved export is documented — the reread list.
+  for (const name of moved.slice(0, 12)) {
+    const mentions = new RegExp(`\\b${name}\\b`)
+    const pages = [
+      ...[...readerFileTexts].filter(([, text]) => mentions.test(text)).map(([path]) => path),
+      ...[...skillTexts].filter(([, text]) => mentions.test(text)).map(([path]) => path)
+    ]
+    console.log(`      ${name}: ${pages.length > 0 ? pages.join(', ') : 'not documented anywhere'}`)
+  }
+  if (moved.length > 12) console.log(`      … and ${moved.length - 12} more`)
 }
 
 // ---------------------------------------------------------------------

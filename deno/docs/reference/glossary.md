@@ -187,9 +187,12 @@ writing it) and returning it to generation (`adopt`). See
 
 ### Enrichment
 
-User-supplied per-operation or per-model configuration declared in
-`client.json` and validated against the generator's Valibot schema from
-`toEnrichmentSchema`. See [enrichments](../concepts/enrichments.md).
+User-supplied configuration in `client.json`, validated against the
+generator's Valibot schema from `toEnrichmentSchema`. Three scopes by
+key depth: `subject` (per operation or model, under a variant key),
+`generator` (`[id]._generator`, one generator) and `stack` (`._stack`,
+every generator). Misaddressed entries are reported on
+`manifest.enrichmentWarnings`. See [enrichments](../concepts/enrichments.md).
 
 ### `EnrichmentRequest`
 
@@ -393,6 +396,17 @@ classes with a `.type` discriminator, not a class hierarchy.
 The runtime tag on parsed OAS items (`'schema'`, `'parameter'`,
 `'response'`, etc.), used by `OasRef.resolveOnce` for the
 type-integrity check.
+
+### Options (caller options)
+
+Typed data the calling generator passes on an insert — `{ options }`
+on `insertModel`, `insertOperation` or `insertNormalizedModel`. The
+peer declares the type on its base factory, receives it in
+`toIdentifierName` / `toExportPath` and the constructor, and stores it
+as `this.options`. Part of the [cache key](#cache-key) in effect: fold
+options into the name whenever the output depends on them. Contrast
+[Enrichment](#enrichment), the project author's per-subject
+configuration.
 
 ## P
 

@@ -1,6 +1,6 @@
 ---
 name: skmtc-graphql
-version: 0.1.0
+version: 0.1.1
 description: |
   The GraphQL pipeline for SKMTC generators — authoring generators
   whose input schema is GraphQL SDL rather than OpenAPI. Covers
@@ -89,8 +89,8 @@ Background: [`concepts/the-graphql-pipeline.md`](../../concepts/the-graphql-pipe
 4. **Routing keys**: enrichment routing is
    `enrichments.<id>.<rootKind>.<fieldName>.<variant>`; the
    `GeneratorKey` is `id|rootKind|fieldName|variant`. Compose with
-   `this.insertOperation(Peer, op, { variant? })` exactly as for
-   OAS.
+   `this.insertOperation(Peer, op, { variant?, options })` exactly as
+   for OAS — `options` only when the peer declares them.
 
 ## 3. Boundary with other skills
 
