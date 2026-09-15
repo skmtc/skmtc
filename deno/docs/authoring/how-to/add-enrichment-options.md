@@ -169,14 +169,17 @@ appear above the declaration.
 - **Enrichment silently ignored** — Read `manifest.enrichmentWarnings`
   first: a key the schema drops and a routing path nothing consumed
   are both reported there, with a suggestion. Most common causes:
-  schema-key typo; the fields declared on the umbrella root instead
-  of under `subject`; or the `main` variant key omitted in
-  `client.json` (the value must sit under `[…][variant]`, not
-  directly under the item key).
+  schema-key typo, or the fields declared on the umbrella root
+  instead of under `subject`.
+- **The run fails with `must include a 'main' variant`** — a value in
+  `client.json` sits directly under the item key instead of under
+  `[…][variant]`, so its keys were read as variant names. Nest it
+  under `main`.
 - **Valibot validation throws** — A required field is missing or a
   type doesn't match. The item is recorded as `error` in the manifest
-  and the run continues. Use `v.optional(...)` for everything that
-  can reasonably default.
+  (status only, keyed by generator, item and variant; the message is
+  in the log) and the run continues. Use `v.optional(...)` for
+  everything that can reasonably default.
 - **Changes not visible after edit** — Rebundle. Source-level
   edits don't reach the worker until you run `skmtc bundle`.
 

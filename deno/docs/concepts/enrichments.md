@@ -97,8 +97,10 @@ underscore form. Core reads the reserved keys by their literal spelling in
 A generator opts into a scope by declaring it. A scope declared
 `v.undefined()` rejects any value at its key, and every generator in the run
 parses the same `_stack`, so a stack value is only valid when each of them
-declares `stack`. Stock generators declare `subject` only (or nothing); to use
-the other scopes, clone the generator and declare them in its `enrichments.ts`.
+declares `stack`. Which scopes a generator declares is in its `enrichments.ts`:
+the form, table and select generators documented here declare `subject` only,
+`gen-typescript-sdk` also declares `generator`. To add a scope, clone the
+generator and declare it.
 
 Core's single predicate is the source of truth:
 
@@ -426,8 +428,8 @@ keys, so fields other generators consume don't interfere.
 Every generator in the run parses the same `_stack` value, and a scope
 declared `v.undefined()` rejects any value. So a stack value is valid only
 when each generator in the run declares a `stack` member that accepts it
-(`v.optional(...)` at least). Stock generators do not; clone the ones you
-run and declare the scope.
+(`v.optional(...)` at least). Most stock generators do not; check each one's
+`enrichments.ts`, and clone those that need the scope.
 
 What you _can't_ share is a **subject** or **generator** scope leaf — each
 generator declares its own shape independently there. If you want the same

@@ -177,8 +177,8 @@ functions that return strings — helpers drift.
   are read outside a projection with `toGeneratorEnrichment` /
   `toStackEnrichment`. Declare every scope you read: a scope left
   `v.undefined()` rejects any value at its key (so `_stack` needs
-  every generator in the run to declare `stack`; stock generators
-  declare `subject` only).
+  every generator in the run to declare `stack`; check each
+  generator's `enrichments.ts` — most stock ones declare `subject` only).
   A wrong-typed value fails that item only; keys the schema drops and
   routing paths nothing read land on `manifest.enrichmentWarnings`.
   Options come from the CALLING generator, on the insert:

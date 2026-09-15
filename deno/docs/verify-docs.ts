@@ -108,9 +108,12 @@ import { computeSkillsDigest } from '../.scripts/plugin-digest.ts'
 import {
   computeApiSurface,
   diffApiSurface,
+  isApiSurface,
+  isRecord,
   recordPath,
   surfaceTargets,
-  type ApiSurfaceRecord
+  toMinor,
+  type ApiSurface
 } from '../.scripts/api-surface.ts'
 
 const docsDir = dirname(fromFileUrl(import.meta.url))
@@ -1364,11 +1367,6 @@ for await (const entry of Deno.readDir(denoDir)) {
   }
 }
 
-const toMinor = (version: string): string => version.split('.').slice(0, 2).join('.')
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
 /**
  * `metadata.describes`, parsed as YAML rather than matched with a
  * whitespace-exact regex. The regex made the guard self-disabling: re-indent
@@ -1392,8 +1390,12 @@ const readDescribes = (skillText: string): Record<string, string> | undefined =>
 let declaredVersionFailures = 0
 let declarationCount = 0
 
+/** Every SKILL.md by `skills/<dir>/SKILL.md`, read once here and reused by check 19. */
+const skillTexts = new Map<string, string>()
+
 for (const directory of skillDirectories) {
   const skillText = await Deno.readTextFile(join(skillsDir, directory, 'SKILL.md')).catch(() => '')
+  skillTexts.set(`skills/${directory}/SKILL.md`, skillText)
   const describes = readDescribes(skillText)
   const published = publishedSkillNames.includes(directory)
 
@@ -1543,36 +1545,84 @@ if (!marketplaceEntry) {
 //     an unchanged minor fails here. The fix is not editing the record:
 //     it is the minor bump, which hands the reread to check 16, and
 //     then re-recording.
+//
+//     Blind spot: a factory that returns an anonymous class
+//     (`toModelProjectionBase` and siblings, the lang veneers) has no
+//     return type in `deno doc`, so the class it returns — the insert
+//     wrappers, `register`, `this.options` — is outside the digest.
+//     Those exports are listed as `unresolved` in the record and counted
+//     in the pass line; a change to what they return still needs the
+//     minor bump by hand.
+//
+//     The digests come from `deno doc --json`, whose shape can move
+//     between deno versions. The record carries the deno that wrote it;
+//     when the current deno differs and the surface has moved, the two
+//     causes cannot be told apart from here, so the check says so and
+//     asks for a re-record on an unchanged surface with this deno first
+//     — never a guess from how many exports moved.
 // ---------------------------------------------------------------------
 
 const RECORD_SURFACE = 'deno task record-api-surface'
-const surfaceRecord: ApiSurfaceRecord = JSON.parse(
-  await Deno.readTextFile(recordPath(denoDir)).catch(() => '{}')
-)
 
-const skillTexts = new Map<string, string>()
-for (const directory of skillDirectories) {
-  skillTexts.set(
-    `skills/${directory}/SKILL.md`,
-    await Deno.readTextFile(join(skillsDir, directory, 'SKILL.md')).catch(() => '')
-  )
+const readSurfaceRecord = async (): Promise<Record<string, unknown> | undefined> => {
+  const text = await Deno.readTextFile(recordPath(denoDir)).catch(() => undefined)
+  if (text === undefined) {
+    fail(`api surface: no record at .scripts/api-surface.json — run \`${RECORD_SURFACE}\``)
+    return undefined
+  }
+  try {
+    const parsed: unknown = JSON.parse(text)
+    if (!isRecord(parsed)) {
+      fail(`api surface: .scripts/api-surface.json is not a JSON object — run \`${RECORD_SURFACE}\``)
+      return undefined
+    }
+    return parsed
+  } catch (error) {
+    fail(
+      `api surface: .scripts/api-surface.json is not valid JSON (${String(error)}) — ` +
+        `run \`${RECORD_SURFACE}\``
+    )
+    return undefined
+  }
 }
 
-for (const target of surfaceTargets) {
-  const current = await computeApiSurface(denoDir, target)
-  const recorded = surfaceRecord[target.packageName]
+const surfaceRecord = await readSurfaceRecord()
+
+const currentSurfaces =
+  surfaceRecord === undefined
+    ? []
+    : await Promise.all(
+        surfaceTargets.map(async target => {
+          try {
+            return { target, current: await computeApiSurface(denoDir, target) }
+          } catch (error) {
+            fail(`api surface: could not compute ${target.packageName} — ${String(error)}`)
+            return undefined
+          }
+        })
+      )
+
+for (const entry of currentSurfaces) {
+  if (entry === undefined || surfaceRecord === undefined) continue
+  const { target, current } = entry
+  const recordedEntry: unknown = surfaceRecord[target.packageName]
   const exportCount = Object.keys(current.exports).length
 
-  if (!recorded) {
-    fail(`api surface: no record for ${target.packageName} — run \`${RECORD_SURFACE}\``)
+  if (!isApiSurface(recordedEntry)) {
+    fail(
+      `api surface: the record for ${target.packageName} is ${recordedEntry === undefined ? 'missing' : 'malformed'} ` +
+        `— run \`${RECORD_SURFACE}\``
+    )
     continue
   }
+  const recorded: ApiSurface = recordedEntry
 
   const { added, removed, changed } = diffApiSurface(recorded.exports, current.exports)
   const moved = [...added, ...removed, ...changed].sort()
+  const coverage = `${exportCount} exports, ${current.unresolved.length} by signature only`
 
   if (moved.length === 0 && recorded.minor === current.minor) {
-    pass(`api surface: ${target.packageName} ${current.minor} — ${exportCount} exports match the record`)
+    pass(`api surface: ${target.packageName} ${current.minor} — ${coverage}; all match the record`)
     continue
   }
 
@@ -1586,19 +1636,20 @@ for (const target of surfaceTargets) {
 
   const summary = `${added.length} added, ${removed.length} removed, ${changed.length} re-shaped`
 
-  if (recorded.minor !== current.minor) {
+  if (recorded.deno !== current.deno) {
     fail(
-      `api surface: ${target.packageName} changed (${summary}) and its minor moved to ` +
-        `${current.minor} — re-record with \`${RECORD_SURFACE}\``
+      `api surface: ${target.packageName} moved (${summary}), and the record was written with ` +
+        `deno ${recorded.deno} while this is deno ${current.deno} — a \`deno doc\` format shift and ` +
+        `an API change look the same from here. Re-record on a commit whose surface is unchanged ` +
+        `with deno ${current.deno} first (\`${RECORD_SURFACE}\`), then re-run this check.`
     )
     continue
   }
 
-  if (recorded.deno !== current.deno && moved.length > exportCount / 2) {
+  if (recorded.minor !== current.minor) {
     fail(
-      `api surface: ${moved.length} of ${exportCount} ${target.packageName} exports moved at once, ` +
-        `and the record was written with deno ${recorded.deno} (this is ${current.deno}) — a ` +
-        `\`deno doc\` format shift, not an API change. Re-record with \`${RECORD_SURFACE}\` on the same minor.`
+      `api surface: ${target.packageName} changed (${summary}) and its minor moved to ` +
+        `${current.minor} — re-record with \`${RECORD_SURFACE}\``
     )
     continue
   }

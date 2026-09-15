@@ -148,9 +148,10 @@ fails config validation at start.
 In `enrichments.ts` the same three scopes are the umbrella members
 `subject`, `generator` and `stack` — no underscore. A generator opts
 into a scope by declaring it; `v.undefined()` rejects any value at that
-key. Stock generators declare `subject` only (or nothing), so the
-`_generator` / `_stack` blocks above need a cloned generator that
-declares them.
+key. Which scopes a generator declares is in its `enrichments.ts` —
+most stock generators declare `subject` only, `gen-typescript-sdk`
+also `generator` — so the `_stack` block above needs every generator
+in the run to declare `stack`.
 
 Per-subject enrichments are otherwise unchanged: the routing keys and
 the mandatory `'main'` variant level (see the `client.json` shape above

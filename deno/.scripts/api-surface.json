@@ -581,7 +581,22 @@
       "validateConfig": "3ec22fdb8f0fbd56",
       "variantNameRegex": "2000aa3a53846a17",
       "withVariant": "70507568e59ea46c"
-    }
+    },
+    "unresolved": [
+      "gqlIssueType",
+      "numberFormat",
+      "oasBooleanData",
+      "oasIntegerData",
+      "oasIssueType",
+      "oasNumberData",
+      "oasStringData",
+      "toGetRef",
+      "toGqlOperationProjectionBase",
+      "toModelProjectionBase",
+      "toOasOperationContainerBase",
+      "toOasOperationProjectionBase",
+      "toWebhookProjectionBase"
+    ]
   },
   "@skmtc/lang-typescript": {
     "minor": "0.12",
@@ -666,6 +681,12 @@
       "toTsWebhookProjectionBase": "de68b69efc440990",
       "typescript": "a1f85db88d5235b7",
       "withDescription": "6f4deab8f215d265"
-    }
+    },
+    "unresolved": [
+      "toTsGqlOperationProjectionBase",
+      "toTsModelProjectionBase",
+      "toTsOasOperationProjectionBase",
+      "toTsWebhookProjectionBase"
+    ]
   }
 }

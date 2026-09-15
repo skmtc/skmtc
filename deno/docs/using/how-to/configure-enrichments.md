@@ -117,14 +117,18 @@ either:
   A typo'd generator id, path, method or model name is reported
   with the nearest match; a key the schema does not declare is
   reported as `UNKNOWN_ENRICHMENT_KEY` with a suggestion.
-- **No warning, still ignored** — the value must sit under the
-  variant key (`main`), not directly under the item key; and the
-  keys are the literal `path` and lowercase `method` for OAS
-  operations, the refName for models, `rootKind` and `fieldName`
-  for GraphQL operations.
+- **No warning, still ignored** — the keys are the literal `path`
+  and lowercase `method` for OAS operations, the refName for models,
+  `rootKind` and `fieldName` for GraphQL operations.
+- **The run fails with `must include a 'main' variant. Found
+  variants: …`** — the value sits directly under the item key
+  (`"post": { "title": … }`), so its keys were read as variant names.
+  Nest it under `main`: `"post": { "main": { "title": … } }`.
 - **The item is reported as `error` in the manifest** — a value has
-  the wrong type for the generator's schema; the message names the
-  enrichment path. The rest of the run completes. Re-check the
+  the wrong type for the generator's schema. The manifest records
+  only the status, keyed by generator, item and variant; the Valibot
+  message (`Invalid type: Expected string but received …`) is in the
+  run's log output. The rest of the run completes. Re-check the
   generator's `enrichments.ts`.
 - **The field you want does not exist** — the generator's schema does
   not declare it. Clone the generator and add it (see

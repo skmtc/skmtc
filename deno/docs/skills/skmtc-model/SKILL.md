@@ -132,8 +132,8 @@ engine machinery — modifying it is almost always a mistake.
   the target needs them, annotate the value (e.g. `.readonly()`) or
   emit request/response variants via `variant` threading — decide at
   SLOT(visibility). Caller options are the third route: declare the
-  second type parameter of `toTsModelProjectionBase`, let the consumer
-  pass `{ options }` on the insert, and fold them into the name.
+  second type parameter of `toTsModelProjectionBase`, let the calling
+  generator pass `{ options }` on the insert, and fold them into the name.
 - **Unknown never throws.** Untyped schemas route to the unknown
   fallback so one odd schema can't kill the subject. `custom` values
   pass through untouched.

@@ -31,7 +31,8 @@ component model.
   Caller *options* (`{ options }` on an insert) are the calling
   generator's axis: typed data the peer declares on its base factory
   and folds into its name. Use a variant for a shape the project
-  chooses; use options for a shape the consumer decides per call.
+  chooses; use options for a shape the calling generator decides per
+  call.
 - Variants are local to the variants-aware generator. The form
   generator can have `customer` / `location` variants without
   `gen-zod`, `gen-typescript`, or `gen-tanstack-query` knowing

@@ -211,8 +211,9 @@ at the routing path shown in the sections above.
 A generator accepts a value at these keys only when its umbrella
 declares that scope. A scope declared `v.undefined()` rejects any
 value, so `_stack` needs every generator in the run to declare
-`stack`. Stock generators declare neither run-constant scope; clone
-a generator to opt it in.
+`stack`. Which scopes a generator declares is in its `enrichments.ts`
+(most stock generators declare `subject` only; `gen-typescript-sdk`
+also declares `generator`); clone a generator to add one.
 
 ## Where the shape comes from
 

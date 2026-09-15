@@ -128,7 +128,7 @@ name means the package's `package.json` does not declare the
 
 The config loader rejects the file:
 
-- `package rootPath '…' must be a forward path with no ".." segments`.
+- `package rootPath must be a forward path with no ".." segments`.
   Move `basePath` up to a common ancestor. Then rewrite each `rootPath`
   forward from it.
 - `package rootPath '…' is already listed as '…'`. The same folder
