@@ -20,7 +20,7 @@ A primer for AI coding assistants and agents working with SKMTC code. **Flat and
 | Output format | Unformatted TypeScript; no Prettier in pipeline |
 | Customization model | `install` (JSR, enrichments only) or `clone` (source, edit anything) |
 | Settings file | `.skmtc/<project>/.settings/client.json` |
-| Settings shape | `{ source, settings: { basePath, skip, include, enrichments } }` |
+| Settings shape | `{ source, settings: { basePath, packages, skip, include, enrichments } }` |
 | Project workspace | `.skmtc/<project>/` containing `deno.json`, `worker.ts`, `bundle.js`, `.settings/` |
 | Worker permissions | `read/write/env=true`, `net=false`, `run=false` |
 | Worker lifecycle | One-shot: spawned per generate, terminated after RESULT |
@@ -77,7 +77,7 @@ The one story every rule in this document falls out of. Hold this model and the 
 
 8. **Settings tell a Projection where it lands.** The Driver computes `ContentSettings` — the identifier it will be assigned to, the file it will be written to, its enrichments, and its variant — from the Projection's static methods; the instance reads `this.settings`. Snippets have no settings: they are anonymous fragments the parent embeds anywhere via `${...}`, which is exactly what makes them shareable and reusable.
 
-9. **Consumers customize via enrichments; authors via source.** Each generator declares its options as a Valibot schema in `enrichments.ts`, valued from `client.json`. Everything beyond that schema is clone-and-edit — hardcoded paths and peer imports are deliberate customization seams.
+9. **Authors declare enrichments; consumers provide them.** A generator's author declares, as a Valibot schema in `enrichments.ts`, the settings the generator needs that the document cannot supply; the consumer of the generator provides the values in `client.json`. Everything beyond that schema is clone-and-edit — hardcoded paths and peer imports are deliberate customization seams.
 
 10. **The engine is language-blind.** A generator declares its target language through its import graph — projection bases and snippet base imported from a lang package that owns the concrete `File` / `Import` / `Definition` subclasses and identifier factories (fact 6 below has the full detail).
 
@@ -363,6 +363,8 @@ Routing keys are hardcoded per projection-base factory:
 - OAS operation generators: `enrichments[generatorId][operation.path][operation.method][variant]`
 - Model generators: `enrichments[generatorId][refName][variant]`
 - GraphQL operation generators: `enrichments[generatorId][rootKind][fieldName][variant]`
+- Webhook generators: `enrichments[generatorId][webhookName][method][variant]`
+- Run-constant scopes at reserved keys: `enrichments[generatorId]._generator` (one generator) and `enrichments._stack` (every generator). A generator accepts them only when its umbrella declares that scope; `v.undefined()` rejects any value.
 
 The trailing `[variant]` level defaults to `'main'` when the consumer
 writes no variants. Whenever any variant is declared, `'main'` MUST be
@@ -370,6 +372,8 @@ present (engine throws via `toVariantList` otherwise). See
 [`concepts/variants.md`](./concepts/variants.md).
 
 The payload shape beneath the routing keys is declared per-generator via Valibot in `gen-x/src/enrichments.ts`. **To know what keys a generator accepts, read its `enrichments.ts`.**
+
+Misaddressed config never errors: every read goes through `context.readEnrichment`, and after the run the engine reports paths nothing read (`UNCONSUMED_ENRICHMENT`, `UNKNOWN_GENERATOR_ID`) and keys the schema dropped (`UNKNOWN_ENRICHMENT_KEY`, with a suggestion) on `manifest.enrichmentWarnings`. A wrong-typed value fails only that item.
 
 ### Skip and include filters
 
@@ -530,6 +534,7 @@ Self-contained playbooks. Read only the one you need.
 2. Open `.skmtc/<project>/.settings/client.json`.
 3. Add under `settings.enrichments[generatorId][...routingKeys][variant]` — routing keys depend on factory: `[path][method]` for OAS ops, `[refName]` for models, `[rootKind][fieldName]` for GraphQL ops. The trailing `variant` level defaults to `'main'`; declare extra variants to get N artifacts per item from a variants-aware generator.
 4. `skmtc generate <project>` (no rebundle needed).
+5. If the value does not land, read `manifest.enrichmentWarnings` — a typo'd routing key or leaf key is reported there with a suggestion.
 
 #### Pinning a schema source
 

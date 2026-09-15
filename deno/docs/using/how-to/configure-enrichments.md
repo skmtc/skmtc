@@ -16,9 +16,9 @@ instead.
 
 - A SKMTC project with the target generator installed (e.g.,
   `@skmtc/gen-shadcn-form`).
-- Knowledge of the operation IDs (or model refNames) you want to
-  customize. List them via `skmtc agent-context --json | jq
-  '.projects[] | .generators'`.
+- The paths and methods (or model refNames) you want to customize,
+  as they appear in the source document. Routing uses the literal
+  path and the lowercase method, never `operationId`.
 
 ## Steps
 
@@ -110,24 +110,24 @@ either:
 
 ## Troubleshooting
 
-- **A customization silently doesn't land** — check
-  `manifest.enrichmentWarnings` (`jq '.manifest.enrichmentWarnings'`):
-  typo'd keys and routing paths warn there, with suggestions.
-
-- **Enrichments silently ignored** — Most likely a key-path typo.
-  Run `skmtc agent-context --json | jq '.projects[] |
-  .settings.enrichmentsConfigured'` to confirm `client.json`
-  parsed; then double-check the routing keys against the actual
-  values: for OAS operations the keys are the literal `path` and
-  lowercase `method` (not `operationId`); for models the key is
-  the refName; for GraphQL operations the keys are `rootKind` and
-  `fieldName`.
-- **"Type mismatch in enrichments"** — A required enrichment
-  field has the wrong type. Re-check the generator's
-  `enrichments.ts` for the Valibot schema.
-- **Unknown enrichment keys** — Unknown keys are silently
-  stripped (Valibot default). If the field you want isn't in the
-  generator's schema, clone the generator and add it (see
+- **A customization silently doesn't land** — read
+  `manifest.enrichmentWarnings` in `.skmtc/<project>/.settings/`
+  (the CLI also prints them as an "Enrichment warnings" block, and
+  `skmtc doctor` shows them as `project-enrichments/<project>`).
+  A typo'd generator id, path, method or model name is reported
+  with the nearest match; a key the schema does not declare is
+  reported as `UNKNOWN_ENRICHMENT_KEY` with a suggestion.
+- **No warning, still ignored** — the value must sit under the
+  variant key (`main`), not directly under the item key; and the
+  keys are the literal `path` and lowercase `method` for OAS
+  operations, the refName for models, `rootKind` and `fieldName`
+  for GraphQL operations.
+- **The item is reported as `error` in the manifest** — a value has
+  the wrong type for the generator's schema; the message names the
+  enrichment path. The rest of the run completes. Re-check the
+  generator's `enrichments.ts`.
+- **The field you want does not exist** — the generator's schema does
+  not declare it. Clone the generator and add it (see
   [add enrichment options](../../authoring/how-to/add-enrichment-options.md)).
 
 ## Related

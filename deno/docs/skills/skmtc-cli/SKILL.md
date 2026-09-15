@@ -72,8 +72,10 @@ identifier naming, peer imports, output shapes — and there are no
 config flags for any of them, deliberately. To change them,
 `skmtc clone` the generator into the project and edit its source;
 that is the customization seam, not a workaround. "Stock generator
-hardcodes X" is almost never a CLI bug. Enrichments parameterize a
-generator within its shape; cloning changes the shape.
+hardcodes X" is almost never a CLI bug. Enrichments supply the
+settings a generator's author declared it needs — its `enrichments.ts`
+schema is the whole contract a consumer can fill; cloning changes the
+shape.
 
 Two engine facts that shape CLI expectations: generator order never
 affects output (coordination is a memoized cache, not a dependency
@@ -174,6 +176,14 @@ exports (`@app/sdk/models`) that share the outer package's `@`. Config
 load rejects `..`, a repeated root and the workspace root; render
 fails on an outside import of a root with no `moduleName`. Task page:
 `docs/using/how-to/generate-into-multiple-packages.md`.
+
+Enrichment misaddressing never errors. When a customization does not
+land, read `manifest.enrichmentWarnings` (printed after `generate`,
+and re-read by `skmtc doctor` as `project-enrichments/<project>`): a
+typo'd id, path, method, model name or leaf key is reported with the
+nearest match. Routing is the literal path plus lowercase method,
+never `operationId`, under a `main` variant key. A wrong-typed value
+fails only that item, recorded as `error` in the manifest.
 
 `settings.skip` / `settings.include` accept a whole generator, a
 per-operation entry (`path → method → variant[]`), or a per-model

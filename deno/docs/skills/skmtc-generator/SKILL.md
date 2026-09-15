@@ -162,15 +162,26 @@ functions that return strings — helpers drift.
   `transform({ context, operation, variant })` →
   pass `variant` through to `insertOperation`, and fold it into names
   with `withVariant`. Dropping it collides every variant onto `'main'`.
-- **Enrichments are the user's config channel; options are the
-  caller's.** Enrichments come from the project's `client.json`:
-  declare a valibot three-scope umbrella
-  (`subject`/`generator`/`stack`); the opt-out is
+- **Enrichments are the settings your generator needs that the
+  document cannot supply; the consumer provides them; options are
+  the caller's.** Declare them as a valibot three-scope umbrella
+  (`subject`/`generator`/`stack`) in `enrichments.ts` — that schema is
+  the whole contract the consumer's `client.json` can fill; the
+  opt-out is
   `export const toEnrichmentSchema = () => emptyEnrichmentSchema` — a
   FUNCTION returning the schema, required in both the entry config and
   the base-factory config. Read via
-  `this.settings.enrichments.subject?...`; unread keys surface as
-  warnings. Options come from the CALLING generator, on the insert:
+  `this.settings.enrichments.subject?...`; the run-constant scopes
+  (`client.json` keys `[id]._generator` and `._stack`, umbrella
+  members `generator` and `stack` — no underscore in generator code)
+  are read outside a projection with `toGeneratorEnrichment` /
+  `toStackEnrichment`. Declare every scope you read: a scope left
+  `v.undefined()` rejects any value at its key (so `_stack` needs
+  every generator in the run to declare `stack`; stock generators
+  declare `subject` only).
+  A wrong-typed value fails that item only; keys the schema drops and
+  routing paths nothing read land on `manifest.enrichmentWarnings`.
+  Options come from the CALLING generator, on the insert:
   `this.insertModel(Peer, refName, { options: { suffix: 'Input' } })`.
   A projection declares its options type on its base factory (the
   veneer's second type parameter: `toTsModelProjectionBase<E, Options>`);

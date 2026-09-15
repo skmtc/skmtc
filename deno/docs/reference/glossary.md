@@ -187,9 +187,12 @@ writing it) and returning it to generation (`adopt`). See
 
 ### Enrichment
 
-User-supplied per-operation or per-model configuration declared in
-`client.json` and validated against the generator's Valibot schema from
-`toEnrichmentSchema`. See [enrichments](../concepts/enrichments.md).
+User-supplied configuration in `client.json`, validated against the
+generator's Valibot schema from `toEnrichmentSchema`. Three scopes by
+key depth: `subject` (per operation or model, under a variant key),
+`generator` (`[id]._generator`, one generator) and `stack` (`._stack`,
+every generator). Misaddressed entries are reported on
+`manifest.enrichmentWarnings`. See [enrichments](../concepts/enrichments.md).
 
 ### `EnrichmentRequest`
 

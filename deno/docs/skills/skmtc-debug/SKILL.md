@@ -92,6 +92,8 @@ the listed investigation steps in order.
 | `No matching export … for import "X"` (bundle time) | Peer-dep version skew | Run `skmtc doctor --json`; check `project-core-pin/<project>` |
 | `ConfigValidationError` | Stale manifest schema | Upgrade CLI; the manifest auto-rewrites on next generate |
 | Per-generator enrichments arrive as `{}` in the worker | The installed CLI is pinned to old `@skmtc/cli` / `@skmtc/core` | Delete `~/.deno/bin/.skmtc/deno.lock`; reinstall with `--reload` |
+| An enrichment customization doesn't land | `jq '.enrichmentWarnings' .settings/manifest.json` — routing is the literal path + lowercase method (never `operationId`), the refName for models, under a `main` variant key | Fix the flagged key (the message names the nearest match); `skmtc doctor` shows the same between runs |
+| An item is `error` with a Valibot message naming an enrichment path | A value has the wrong type for the generator's `enrichments.ts` schema, or a `_generator` / `_stack` value reached a generator whose umbrella declares that scope `v.undefined()` | Fix the value; or declare the scope on every generator that will see it |
 | "Raw mode is not supported on the current process.stdin" | Ink command run in non-TTY | Add `--json` flag; ported commands auto-degrade |
 
 For unrecognized symptoms: read `manifest.json`, then read the

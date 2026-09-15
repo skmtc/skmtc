@@ -14,14 +14,14 @@ factory; for the mental model see the
 
 The key path is hardcoded inside each projection-base factory, so
 the shape depends on which factory the generator was built from.
-There are three:
+There are four:
 
 ### OAS operation generators
 
 Source: `core/dsl/operation/oas/toOasOperationProjectionBase.ts`:
 
 ```ts
-get(context.settings, ['enrichments', config.id, operation.path, operation.method, variant])
+context.readEnrichment([config.id, operation.path, operation.method, variant])
 ```
 
 Four levels — the subject leaf sits under a trailing `variant` key:
@@ -69,7 +69,7 @@ is defined by the generator's Valibot schema:
 Source: `core/dsl/model/toModelProjectionBase.ts`:
 
 ```ts
-get(context.settings, `enrichments.${config.id}.${refName}.${variant}`)
+context.readEnrichment([config.id, refName, variant])
 ```
 
 Three levels:
@@ -126,7 +126,7 @@ Example (multi-variant — variants-aware model generator):
 Source: `core/dsl/operation/gql/toGqlOperationProjectionBase.ts`:
 
 ```ts
-get(context.settings, ['enrichments', config.id, operation.rootKind, operation.fieldName, variant])
+context.readEnrichment([config.id, operation.rootKind, operation.fieldName, variant])
 ```
 
 Four levels — the subject leaf sits under a trailing `variant` key:
@@ -159,116 +159,105 @@ Example:
 }
 ```
 
-## Per-generator declaration
+### Webhook generators
 
-Each generator declares its accepted enrichment shape via Valibot in
-`gen-x/src/enrichments.ts`. `toEnrichmentSchema` returns the
-**three-scope umbrella** — `v.object({ subject, generator, stack })` —
-not a flat payload. The per-item leaf (what a user writes for one
-operation/model, under the `variant` key above) lives under
-`subject`; the two run-constant scopes are declared `v.undefined()`
-when unused:
+Source: `core/dsl/webhook/toWebhookProjectionBase.ts`:
 
 ```ts
-// gen-shadcn-form/src/enrichments.ts
-import * as v from 'valibot'
-import { lensInputModuleType, moduleSelect } from '@skmtc/core'
-
-export const formFieldItem = v.object({
-  // `moduleSelect.schemaPath` is the join key (no separate `id`).
-  moduleSelect: v.pipe(moduleSelect(lensInputModuleType), v.title('Input')),
-  label: v.optional(v.string()),
-  placeholder: v.optional(v.string()),
-  references: v.optional(v.string())
-})
-
-// The subject-scoped leaf — the per-operation form override.
-export const formSchema = v.optional(
-  v.object({
-    title: v.optional(v.string()),
-    description: v.optional(v.string()),
-    submitLabel: v.optional(v.string()),
-    fields: v.optional(v.array(formFieldItem))
-  })
-)
-
-// The three-scope umbrella. This generator only reads `subject`.
-export const enrichmentSchema = v.object({
-  subject: formSchema,
-  generator: v.undefined(),
-  stack: v.undefined()
-})
-
-export type EnrichmentSchema = v.InferOutput<typeof enrichmentSchema>
-export const toEnrichmentSchema = () => enrichmentSchema
+context.readEnrichment([config.id, webhook.name, webhook.method, variant])
 ```
 
-The schema is registered via the generator's entry function
-(`toEnrichmentSchema` is a **required** config field):
+Four levels, keyed by the webhook's name (its key under the
+document's `webhooks` object), not by a request path:
 
-```ts
-// gen-shadcn-form/src/mod.ts
-export const ShadcnFormEntry = toOasOperationEntry<EnrichmentSchema>({
-  id: denoJson.name,
-  toEnrichmentSchema,
-  // ...
-})
+```
+enrichments
+  └── [generatorId]
+       └── [webhookName]  e.g., "orderShipped"
+            └── [method]  e.g., "post"
+                 └── [variant]  "main" by default
+                      └── { ...subject leaf }
 ```
 
-**The Valibot schema is the canonical source of truth for what
-the enrichment payload accepts.** To know what a user writes in
-`client.json` under the routing keys, read the `subject` member of
-the generator's `enrichmentSchema` — for `gen-shadcn-form` above
-that's the object with `title`, `description`, `submitLabel`,
-`fields`. A no-enrichment generator passes core's
-`emptyEnrichmentSchema` (the umbrella with all three scopes
-`v.undefined()`).
+### Reserved keys: `_generator` and `_stack`
+
+Two `_`-prefixed keys carry the run-constant scopes. `_generator`
+sits inside a generator's slot beside its subject keys; `_stack`
+sits at the top level beside the generator ids. A generator reads
+them off `this.settings.enrichments.generator` / `.stack`, or from
+anywhere with a context through `toGeneratorEnrichment` /
+`toStackEnrichment`. No other key may start with `_`.
+
+```jsonc
+{
+  "settings": {
+    "enrichments": {
+      "_stack": { "apiTitle": "Acme API" },
+      "@acme/gen-docs": {
+        "_generator": { "outputFormat": "mdx" },
+        "/customers": { "post": { "main": { "title": "Create Customer" } } }
+      }
+    }
+  }
+}
+```
+
+The underscore names exist only in `client.json`. On the umbrella
+and in `enrichments.ts` the members are `stack`, `generator` and
+`subject`: `_stack` is read into `stack` and `[id]._generator` into
+`generator`. There is no `_subject` key; the subject leaf is the value
+at the routing path shown in the sections above.
+
+A generator accepts a value at these keys only when its umbrella
+declares that scope. A scope declared `v.undefined()` rejects any
+value, so `_stack` needs every generator in the run to declare
+`stack`. Stock generators declare neither run-constant scope; clone
+a generator to opt it in.
+
+## Where the shape comes from
+
+The payload beneath the routing keys is whatever the generator's
+author declared under `subject` in `gen-x/src/enrichments.ts`: a
+Valibot umbrella `v.object({ subject, generator, stack })`, with
+`subject` the per-item leaf and the run-constant scopes declared
+`v.undefined()` when unused. **That schema is the canonical source
+of truth for what a consumer may write.** Read its `subject` member
+to learn the keys; for `gen-shadcn-form` they are `title`,
+`description`, `submitLabel` and `fields`. A generator with no
+settings declares core's `emptyEnrichmentSchema`. How an author
+declares the umbrella and reads it inside a Projection is in
+[add enrichment options](../../authoring/how-to/add-enrichment-options.md).
 
 ## Validation behavior
 
 For each Projection the engine builds:
 
-1. The factory's static `toEnrichments({ operation | refName, context })`
-   does the `get(context.settings, ...)` lookup at the path shown
-   above for that projection-base kind.
-2. The looked-up value (which may be `undefined`) is parsed against
-   the generator's declared Valibot schema via `v.parse(schema, value)`.
-3. The parsed value becomes `this.settings.enrichments` inside the
+1. The factory's static `toEnrichments({ operation | refName, context, variant })`
+   reads the three scopes through `context.readEnrichment`: the
+   subject leaf at the path shown above, `[generatorId]._generator`,
+   and `._stack`. Every read is recorded for the post-run audit.
+2. Keys under `subject` and `generator` that the schema does not
+   declare are reported as `UNKNOWN_ENRICHMENT_KEY` warnings. The
+   `stack` bag is exempt: other generators own its other keys.
+3. The `{ subject, generator, stack }` object is parsed once through
+   the generator's umbrella schema via `v.parse`.
+4. The parsed umbrella becomes `this.settings.enrichments` inside the
    Projection.
 
 Outcomes:
 
-- **Unknown keys**: silently stripped (Valibot default).
+- **Unknown keys**: dropped, and reported on
+  `manifest.enrichmentWarnings` with a nearest-key suggestion.
 - **Missing optional keys**: arrive as `undefined`.
-- **Type mismatch on required key**: surfaces as a parse error.
+- **Wrong-typed value**: the parse throws; that item is recorded as
+  `error` in the manifest and the run continues.
 - **Whole payload missing**: most stock generators wrap their
-  schema in `v.optional(...)`, so the value arrives as `undefined`.
-
-## Consumption in Projection constructors
-
-The validated, routed payload is available at `this.settings.enrichments`:
-
-```ts
-// gen-shadcn-form/src/ShadcnForm.ts
-override toString(): string {
-  const { title, description, submitLabel } = this.settings.enrichments.subject ?? {}
-
-  return `(${this.parameter}) => {
-    return (
-      <Form>
-        ${title ? `<h2>${title}</h2>` : ''}
-        ${description ? `<p>${description}</p>` : ''}
-        ${this.fields}
-        <Button>${submitLabel || 'Submit'}</Button>
-      </Form>
-    )
-  }`
-}
-```
-
-The Projection assumes the shape matches the declared Valibot schema
-— the engine has already validated. Optional fields may be
-`undefined`; the code handles that with `??` defaults.
+  subject schema in `v.optional(...)`, so the value arrives as
+  `undefined`.
+- **A value at a scope declared `v.undefined()`**: the parse throws.
+- **A routing key nothing read**: reported after the run as
+  `UNCONSUMED_ENRICHMENT` or `UNKNOWN_GENERATOR_ID`; see
+  [error codes](../error-codes.md#enrichment-warnings).
 
 ## What enrichments aren't
 
@@ -291,19 +280,22 @@ the schema doesn't anticipate will appear to do nothing.
 
 ### How do I know which routing shape a generator uses?
 
-Read the first line inside `src/base.ts` — it calls one of
-`toOasOperationProjectionBase`, `toModelProjectionBase`, or
-`toGqlOperationProjectionBase`. That call determines the routing
-shape.
+Read `src/base.ts` — it calls one of the language veneers,
+`toTsOasOperationProjectionBase`, `toTsModelProjectionBase`,
+`toTsGqlOperationProjectionBase` or `toTsWebhookProjectionBase`.
+That call determines the routing shape.
 
 Stock generators are documented in
 [reference/stock-generators/](../stock-generators/).
 
 ### Can I share enrichment payloads across operations?
 
-Not via the schema. The routing requires repeating the payload for
-each `(path, method)`, `refName`, or `(rootKind, fieldName)`. If
-you have shared values, duplicate manually — there is no wildcard.
+Not at the subject scope: there is no wildcard, so a per-item value
+is repeated for each `(path, method)`, `refName`, or
+`(rootKind, fieldName)`. A value that is the same for every item of
+one generator belongs at `[generatorId]._generator`; one shared by
+every generator belongs at `._stack`. The generator must declare the
+scope on its umbrella to accept it.
 
 ### Can enrichments arrive at a Snippet?
 
@@ -330,3 +322,4 @@ result.
 - [client.json schema reference](client-json-schema.md) — the broader settings shape
 - [How to configure enrichments](../../using/how-to/configure-enrichments.md) — the task-level guide
 - [Add enrichment options](../../authoring/how-to/add-enrichment-options.md) — the authoring perspective
+

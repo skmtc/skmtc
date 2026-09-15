@@ -11,7 +11,7 @@ skmtc generate my-api ./openapi.json
 
 ## Where to start
 
-- **[Using SKMTC](using/)** — install generators, configure a project, generate. **Start here.** Using SKMTC never requires writing a generator: you install generators the way you install packages, and configure them with JSON. Most teams stop there.
+- **[Consuming generators](using/)** — install generators, configure them, generate. **Start here.** Consuming generators never requires writing one: you install generators the way you install packages, and configure them with JSON. Most teams stop there.
 - **[Authoring generators](authoring/)** — clone, customize, or write generators. A deeper topic, and entirely optional — reach for it when stock defaults don't match your conventions. The [Authoring generators](#authoring-generators) section below shows what makes it tractable when you do.
 
 If you're not sure which applies, keep reading this page for the overview, then pick a tree.

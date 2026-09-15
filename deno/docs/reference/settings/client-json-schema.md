@@ -225,6 +225,7 @@ kind:
 | `toOasOperationProjectionBase` | `enrichments[generatorId][operation.path][operation.method][variant]` |
 | `toModelProjectionBase` | `enrichments[generatorId][refName][variant]` |
 | `toGqlOperationProjectionBase` | `enrichments[generatorId][rootKind][fieldName][variant]` |
+| `toWebhookProjectionBase` | `enrichments[generatorId][webhookName][method][variant]` |
 
 The value beneath the trailing `[variant]` key is the leaf payload
 — its shape is declared by the generator's Valibot schema in
@@ -240,11 +241,13 @@ Example for an OAS operation generator:
     "@skmtc/gen-shadcn-form": {
       "/contacts": {
         "post": {
-          "title": "Create Contact",
-          "submitLabel": "Save",
-          "fields": [
-            { "id": "officeIds", "references": "GetOffices", "label": "Offices" }
-          ]
+          "main": {
+            "title": "Create Contact",
+            "submitLabel": "Save",
+            "fields": [
+              { "moduleSelect": { "schemaPath": ["officeIds"] }, "label": "Offices", "references": "GetOffices" }
+            ]
+          }
         }
       }
     }
@@ -252,8 +255,20 @@ Example for an OAS operation generator:
 }
 ```
 
-Unknown fields are stripped silently; type mismatches surface as
-parse errors.
+Two reserved keys sit beside the routing keys: `_stack` at the top
+level is one leaf every generator in the run can read, and
+`_generator` inside a generator's slot is that generator's run-wide
+leaf. Every other key is a generator id or a subject name and must
+not start with `_`. A generator accepts a value at a reserved key only
+when its schema declares that scope; a scope declared `v.undefined()`
+rejects any value.
+
+A wrong-typed value fails that item's generation: the run completes
+and the manifest records the error with its path. A key the schema
+does not declare is dropped and reported as `UNKNOWN_ENRICHMENT_KEY`
+on `manifest.enrichmentWarnings`; a routing key that matches nothing
+is reported as `UNCONSUMED_ENRICHMENT` or `UNKNOWN_GENERATOR_ID`.
+`skmtc doctor` re-reads those warnings between runs.
 
 See [enrichments-shape reference](enrichments-shape.md) and
 [enrichments concept](../../concepts/enrichments.md).
