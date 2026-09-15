@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-typescript
-version: 0.2.2
+version: 0.2.3
 description: >
   The TypeScript target-language layer for Skmtc generators
   (@skmtc/lang-typescript): projection base factories, TsSnippet, the
@@ -48,6 +48,32 @@ Factories: `toTsModelProjectionBase`, `toTsOasOperationProjectionBase`
 (+ webhook/GQL variants). Snippets extend `TsSnippet` directly. Casing
 helpers (`camelCase`, `capitalize`, `decapitalize`) and `toEndpointName`
 come from `@skmtc/core`; `join` from `@std/path`.
+
+The veneers take two type parameters: `EnrichmentType` and
+`ProjectionOptions`, the caller options a peer passes as `{ options }`
+on an insert (skmtc-generator §4). Declare the second to accept
+options; `toIdentifierName` / `toExportPath` then receive `options`
+and the instance stores it as `this.options`:
+
+```ts fragment
+import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
+
+type ShapeOptions = { suffix: 'Input' | 'Output' }
+
+export const MyBase = toTsModelProjectionBase<EnrichmentSchema, ShapeOptions>({
+  id: denoJson.name,
+  toIdentifierName({ refName, options }) { return `${camelCase(refName)}${options.suffix}` },
+  toIdentifierType: () => ({ type: 'variable' }),
+  toExportPath({ refName, enrichments, variant, options }) {
+    const name = this.toIdentifierName({ refName, enrichments, variant, options })
+    return join('@', 'types', `${name}.generated.ts`)
+  },
+  toEnrichmentSchema
+})
+```
+
+Consuming a peer that declares options needs nothing from this layer:
+`this.insertModel(Peer, refName, { options })`.
 
 A projection consumable by peers via `insertNormalizedModel` also needs
 two statics: `schemaToValueFn` (your router) and `createIdentifier`.

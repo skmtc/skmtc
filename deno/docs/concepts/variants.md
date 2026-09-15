@@ -27,6 +27,11 @@ component model.
 - Cross-generator `insertOperation` / `insertModel` defaults to
   `'main'`. Pass an explicit non-`'main'` variant only when you know
   the peer declares it; the Driver throws otherwise.
+- Variants are the project author's axis, declared in enrichments.
+  Caller *options* (`{ options }` on an insert) are the calling
+  generator's axis: typed data the peer declares on its base factory
+  and folds into its name. Use a variant for a shape the project
+  chooses; use options for a shape the consumer decides per call.
 - Variants are local to the variants-aware generator. The form
   generator can have `customer` / `location` variants without
   `gen-zod`, `gen-typescript`, or `gen-tanstack-query` knowing

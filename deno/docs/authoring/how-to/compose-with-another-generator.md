@@ -71,6 +71,19 @@ For model-by-refName composition, use `insertModel`:
 const userTs = this.insertModel(TsProjection, 'User')
 ```
 
+### Pass options when the peer declares them
+
+Some peers declare caller options — typed data that changes what they
+produce. The trailing argument is then required, and the type checker
+tells you its shape:
+
+```ts
+const input = this.insertModel(PeerProjection, refName, { options: { suffix: 'Input' } })
+```
+
+Pass a fresh object per insertion. A peer that declares no options
+refuses an `options` key.
+
 Both `insertModel` and `insertNormalizedModel` exist as
 projection-base methods (`this.x`) that wrap the underlying
 `GenerateContext` methods (`this.context.x`). The projection-base

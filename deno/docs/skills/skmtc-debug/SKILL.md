@@ -1,6 +1,6 @@
 ---
 name: skmtc-debug
-version: 0.2.0
+version: 0.2.1
 description: |
   Diagnose failures in SKMTC sessions — no output, wrong output, error
   messages, bundle freshness, parseIssues, "Registered definition
@@ -331,6 +331,13 @@ operation produced no files.
 
 **Symptom:** `Error: Registered definition mismatch: 'X' in file
 'Y'. Cached key 'A' does not match new key 'B'`.
+
+A second form names options instead of keys: `Cached options {...}
+do not match new options {...}. Fold options into toIdentifierName.`
+The same `(name, exportPath)` was reached twice with different caller
+options, and the peer's `toIdentifierName` ignores them. Fix the peer
+(fold the options its output depends on into the name), not the
+caller.
 
 1. Two generators (or two callers within one generator) are
    producing the same identifier at the same `exportPath`.

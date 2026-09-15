@@ -1,6 +1,6 @@
 ---
 name: skmtc-operation
-version: 0.1.1
+version: 0.1.2
 description: >
   The operation-generator shape for Skmtc: one definition per (path,
   method), for any output family — client hooks, SDK methods, forms,
@@ -102,6 +102,14 @@ path, your file's import is stitched by the engine, and only the
 identifier lands in your tree. Import peer projections through their
 package alias (`@skmtc/gen-zod`), never by relative path.
 
+When the peer declares caller options, the trailing argument is
+required and typed by the peer:
+`this.insertModel(Peer, refName, { options: { suffix: 'Input' } })` —
+a fresh object per insertion; a peer that declares none refuses the
+key. On `insertNormalizedModel` the options reach the `$ref` branch
+only: the inline branch constructs no projection, so put whatever
+distinguishes the call into `fallbackName`.
+
 What the insert gives you — the name, the placement (normalized models
 co-locate at YOUR export path via the base wrapper), the declaration
 form — **is the convention**. If it does not match what you want, do
@@ -176,6 +184,7 @@ identifier-derived); (3) unsupported operations absent, not errored.
 | Response/body/params rendered inline in your file | §3 — insert into a model peer; only the name lands in your tree |
 | Peer model duplicated per operation | `fallbackName` not derived from `settings.identifier.name`, or peer referenced by hand-written name |
 | `Registered definition mismatch` on the second variant | Thread `variant` into `insertOperation` |
+| `Registered definition mismatch` naming `Cached options` | The peer's name ignores options its output depends on — fix the peer's `toIdentifierName`, not your call |
 | Run fails on operations you never meant to handle | Missing/loose `isSupported` |
 | Path renders with wrong interpolation | Path template belongs to the lang layer, at render — never build it into a stored string |
 | Peer import points into another package's source tree | Import via the `@skmtc/*` package alias |

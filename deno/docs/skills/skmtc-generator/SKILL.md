@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.13.0
+version: 0.14.0
 description: >
   Author and edit Skmtc generators — packages that project an OpenAPI
   domain model into application code. Method: clone the nearest stock
@@ -162,14 +162,27 @@ functions that return strings — helpers drift.
   `transform({ context, operation, variant })` →
   pass `variant` through to `insertOperation`, and fold it into names
   with `withVariant`. Dropping it collides every variant onto `'main'`.
-- **Enrichments are the only config channel** (bundled generators take
-  no options; module state breaks determinism). Declare a valibot
-  three-scope umbrella (`subject`/`generator`/`stack`); the opt-out is
+- **Enrichments are the user's config channel; options are the
+  caller's.** Enrichments come from the project's `client.json`:
+  declare a valibot three-scope umbrella
+  (`subject`/`generator`/`stack`); the opt-out is
   `export const toEnrichmentSchema = () => emptyEnrichmentSchema` — a
   FUNCTION returning the schema, required in both the entry config and
   the base-factory config. Read via
   `this.settings.enrichments.subject?...`; unread keys surface as
-  warnings.
+  warnings. Options come from the CALLING generator, on the insert:
+  `this.insertModel(Peer, refName, { options: { suffix: 'Input' } })`.
+  A projection declares its options type on its base factory (the
+  veneer's second type parameter: `toTsModelProjectionBase<E, Options>`);
+  the Driver hands them to `toIdentifierName` / `toExportPath` and the
+  constructor, and the instance stores them as `this.options`. Options
+  are identity: fold them into `toIdentifierName` whenever the output
+  depends on them, or a second insertion with different options throws
+  `Registered definition mismatch`. The call surface follows the
+  declaration — `{ options }` is required when the peer declares
+  options and a type error when it does not; declare `T | undefined`
+  to make it optional. Pass a fresh object per insertion. Module state
+  is never a channel: it breaks determinism.
 - **Naming**: models from `refName` casing (core's `camelCase`,
   `capitalize`, `decapitalize`); operations from **method + path** via
   core's `toEndpointName` (post→Create, put→Update). **Never**
@@ -210,6 +223,7 @@ the text into a template.
 | Import missing / appears mid-file | Declare via `register`, never in templates |
 | Duplicate definitions of a shared model | Reference peers via `insertModel`, not by name |
 | `Registered definition mismatch` | Thread `variant`; or two generators claim one (name, path) |
+| `Registered definition mismatch` naming `Cached options` | The peer's output depends on its options but its name ignores them — fold options into `toIdentifierName` |
 | Peer output name wrong | Read `.identifier.name` off the insert result |
 | Works once, breaks on recursion/refs | Build tree in constructor; refs via the ref snippet/Driver |
 | Enrichment ignored | Umbrella routing key mismatch — check warnings |

@@ -129,7 +129,7 @@ These overrides exist because well-intentioned TS conventions frequently break S
 | Write `import` statements inside template literals | Register imports via `this.register({ imports })` (own file) or `this.registerInto(path, { imports })` (cross-file) | Bypasses dedup; lands inside file body not header |
 | Declare the language via a `lang` config field (entry, base, or snippet) | Import your factories and snippet base from the lang package (`toTsModelProjectionBase` / `TsSnippet` from `@skmtc/lang-typescript`) — the import graph declares the language; entries carry no `lang` | Language enters the class hierarchy at the lang snippet base; Drivers read it off the projection class's inherited static |
 | Thread an `acc` accumulator through `transform` | Transforms return `void` — the `Acc` accumulator is removed (F11). Accumulate via the gen-msw definition pattern (`findDefinition` + the lang package's `defineAndRegister` function) or module-scope state | The engine no longer threads an accumulator; a fresh Worker per run makes module-scope state per-run-safe |
-| Give a Projection custom constructor args | Projections receive a fixed `{ context, operation/refName, settings }` from the Driver — re-resolve dependencies inside the constructor | The Driver never passes custom args; the memoization cache makes re-resolution free |
+| Give a Projection ad-hoc constructor args | Declare an options type on the base factory and pass `{ options }` on the insert; the Driver delivers it to the identity statics and the constructor, and the instance stores it as `this.options` | Options ride the insert call, so they are typed by the peer, part of the cache identity (fold them into `toIdentifierName`), and reach every construction path — re-resolve everything else inside the constructor |
 | Add a `BaseSchema` class to share schema behavior | Schema variants are sibling classes, not subclasses | Duck-typed `.isRef()` + discriminator narrowing is intentional |
 | Use `Deno.writeFileSync` from a generator constructor | Use `register({ definitions, ... })` | Direct writes bypass `context.#files`; invisible to coordination and persistence |
 | Mock a database in tests | Use real Supabase / real DB | Project convention — mocked tests previously masked production bugs |
@@ -249,10 +249,11 @@ See [`concepts/projections-and-snippets.md`](concepts/projections-and-snippets.m
 
 1. The projection base's `insertOperation` (built by the factory — `core/dsl/operation/oas/toOasOperationProjectionBase.ts:144`) auto-fills `destinationPath`, delegates to `context.insertOperation`.
 2. `GenerateContext.insertOperation` (`core/context/GenerateContext.ts:1188`) instantiates `new OasOperationDriver(...)`.
-3. Driver computes `settings = context.toOperationContentSettings({ projection, operation })`.
+3. Driver computes `settings = context.toOperationContentSettings({ projection, operation, variant, options })`.
 4. Driver calls `getDefinition({ identifier, exportPath })` (`OasOperationDriver.ts:133-163`):
    - Cache hit + `affirmDefinition` passes: return cached.
    - Cache hit + generatorKey mismatch: throw `"Registered definition mismatch"`.
+   - Cache hit + the cached value's `options` differ from the call's: the same throw — the peer's name must fold its options.
    - Miss: `new projection({...})` runs; wrap value in `Definition`; register in target file.
 5. Driver stitches an import into the *calling* file if `exportPath !== destinationPath`.
 

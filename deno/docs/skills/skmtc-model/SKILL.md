@@ -1,6 +1,6 @@
 ---
 name: skmtc-model
-version: 0.1.3
+version: 0.1.4
 description: >
   The model-generator shape for Skmtc: one definition per component
   schema, built by copying the shipped SKELETON package and filling its
@@ -131,7 +131,9 @@ engine machinery — modifying it is almost always a mistake.
   `MyLibObjectProperties.visibility`. Default policy ignores them; if
   the target needs them, annotate the value (e.g. `.readonly()`) or
   emit request/response variants via `variant` threading — decide at
-  SLOT(visibility).
+  SLOT(visibility). Caller options are the third route: declare the
+  second type parameter of `toTsModelProjectionBase`, let the consumer
+  pass `{ options }` on the insert, and fold them into the name.
 - **Unknown never throws.** Untyped schemas route to the unknown
   fallback so one odd schema can't kill the subject. `custom` values
   pass through untouched.

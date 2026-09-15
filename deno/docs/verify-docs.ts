@@ -80,6 +80,14 @@
  *      check (10) guards reachability; this guards resolution — a
  *      reachable page can still carry a broken link (the class that
  *      survived until an ad-hoc sweep caught it).
+ *  14–18. See the numbered banners below (skills catalogue, appendix
+ *      coverage, declared-version sync, install source, plugin
+ *      version).
+ *  19. PUBLIC-API-SURFACE SYNC — a per-export digest of each package a
+ *      published skill describes (`.scripts/api-surface.json`). An
+ *      export added, removed or re-shaped on an unchanged minor fails:
+ *      bump the minor (which makes check 16 demand the reread), then
+ *      `deno task record-api-surface`.
  *
  *   exit 0 — all checks hold.
  *   exit 1 — one or more failed; each failure names file + expectation.
@@ -97,6 +105,13 @@
 import { dirname, fromFileUrl, join } from 'jsr:@std/path@^1'
 import { parse as parseYaml } from 'jsr:@std/yaml@^1'
 import { computeSkillsDigest } from '../.scripts/plugin-digest.ts'
+import {
+  computeApiSurface,
+  diffApiSurface,
+  recordPath,
+  surfaceTargets,
+  type ApiSurfaceRecord
+} from '../.scripts/api-surface.ts'
 
 const docsDir = dirname(fromFileUrl(import.meta.url))
 const denoDir = join(docsDir, '..')
@@ -1516,6 +1531,94 @@ if (!marketplaceEntry) {
   )
 } else {
   pass(`plugin version: ${pluginManifest.version} matches both manifests and the skills digest`)
+}
+
+// ---------------------------------------------------------------------
+// 19. Public-API-surface sync — the gap in check 16. That check fires
+//     when a package MINOR moves past a skill's declaration; a public
+//     API change that ships as a patch never moves the minor, so every
+//     skill keeps its number and nobody rereads it (caller options on
+//     core 0.28.x shipped that way). So each described package's
+//     exported surface is recorded per export, and a change to it on
+//     an unchanged minor fails here. The fix is not editing the record:
+//     it is the minor bump, which hands the reread to check 16, and
+//     then re-recording.
+// ---------------------------------------------------------------------
+
+const RECORD_SURFACE = 'deno task record-api-surface'
+const surfaceRecord: ApiSurfaceRecord = JSON.parse(
+  await Deno.readTextFile(recordPath(denoDir)).catch(() => '{}')
+)
+
+const skillTexts = new Map<string, string>()
+for (const directory of skillDirectories) {
+  skillTexts.set(
+    `skills/${directory}/SKILL.md`,
+    await Deno.readTextFile(join(skillsDir, directory, 'SKILL.md')).catch(() => '')
+  )
+}
+
+for (const target of surfaceTargets) {
+  const current = await computeApiSurface(denoDir, target)
+  const recorded = surfaceRecord[target.packageName]
+  const exportCount = Object.keys(current.exports).length
+
+  if (!recorded) {
+    fail(`api surface: no record for ${target.packageName} — run \`${RECORD_SURFACE}\``)
+    continue
+  }
+
+  const { added, removed, changed } = diffApiSurface(recorded.exports, current.exports)
+  const moved = [...added, ...removed, ...changed].sort()
+
+  if (moved.length === 0 && recorded.minor === current.minor) {
+    pass(`api surface: ${target.packageName} ${current.minor} — ${exportCount} exports match the record`)
+    continue
+  }
+
+  if (moved.length === 0) {
+    fail(
+      `api surface: ${target.packageName} is on ${current.minor} but the record says ` +
+        `${recorded.minor}, with no export changed — re-record with \`${RECORD_SURFACE}\``
+    )
+    continue
+  }
+
+  const summary = `${added.length} added, ${removed.length} removed, ${changed.length} re-shaped`
+
+  if (recorded.minor !== current.minor) {
+    fail(
+      `api surface: ${target.packageName} changed (${summary}) and its minor moved to ` +
+        `${current.minor} — re-record with \`${RECORD_SURFACE}\``
+    )
+    continue
+  }
+
+  if (recorded.deno !== current.deno && moved.length > exportCount / 2) {
+    fail(
+      `api surface: ${moved.length} of ${exportCount} ${target.packageName} exports moved at once, ` +
+        `and the record was written with deno ${recorded.deno} (this is ${current.deno}) — a ` +
+        `\`deno doc\` format shift, not an API change. Re-record with \`${RECORD_SURFACE}\` on the same minor.`
+    )
+    continue
+  }
+
+  fail(
+    `api surface: the public API of ${target.packageName} changed on minor ${current.minor} ` +
+      `(${summary}). A public API change is a minor: run \`deno task bump ${target.directory} --minor\`, ` +
+      `reread every skill declaring ${target.packageName} and the pages named below, then \`${RECORD_SURFACE}\`.`
+  )
+
+  // Where each moved export is documented — the reread list.
+  for (const name of moved.slice(0, 12)) {
+    const mentions = new RegExp(`\\b${name}\\b`)
+    const pages = [
+      ...[...readerFileTexts].filter(([, text]) => mentions.test(text)).map(([path]) => path),
+      ...[...skillTexts].filter(([, text]) => mentions.test(text)).map(([path]) => path)
+    ]
+    console.log(`      ${name}: ${pages.length > 0 ? pages.join(', ') : 'not documented anywhere'}`)
+  }
+  if (moved.length > 12) console.log(`      … and ${moved.length - 12} more`)
 }
 
 // ---------------------------------------------------------------------

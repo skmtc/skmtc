@@ -58,8 +58,13 @@ map, exportPath identifies which file's map.
 Both halves of the key are computed by **static methods on the
 Projection class**:
 
-- `toIdentifierName({ operation, enrichments, variant })` → the name string
-- `toExportPath({ operation, enrichments, variant })` → string path
+- `toIdentifierName({ operation, enrichments, variant, options })` → the name string
+- `toExportPath({ operation, enrichments, variant, options })` → string path
+
+`options` is present only when the Projection declares an options type
+on its base factory: typed data the caller passes on the insert
+(`{ options }`). It is part of identity for the same reason `variant`
+is — fold it into the name whenever the output depends on it.
 
 (A third static, `toIdentifierType`, supplies the non-name parts of
 the identifier — entity type, exportedness — and runs only on cache
@@ -100,13 +105,13 @@ export const ShadcnFormBase = toTsOasOperationProjectionBase<EnrichmentSchema>({
 
 Notice the constraints:
 
-- Functions of `(operation, enrichments)` only
+- Functions of `(operation, enrichments, variant, options)` only
 - No `this`-side state read (this.someField doesn't influence outcome)
 - No async (no Promise, no `await`)
 - No environmental reads (no Date, no Math.random, no `process.env`)
 
 If you violated any of these, two callers with the same
-`(operation, enrichments)` could compute different keys. The cache
+`(operation, enrichments, variant, options)` could compute different keys. The cache
 would split into two entries, generators would produce duplicate
 definitions with subtle differences, and the order-independence
 guarantee would break.
@@ -120,17 +125,20 @@ When code calls `context.insertOperation({ projection: MyProjection, operation }
 that auto-fills `destinationPath`):
 
 1. **Compute settings.** Driver calls `MyProjection.toIdentifierName(...)`
-   and `MyProjection.toExportPath(...)` to produce the cache key
-   (`toIdentifierType` fills in the rest of the identifier).
+   and `MyProjection.toExportPath(...)` with the call's `variant` and
+   `options` to produce the cache key (`toIdentifierType` fills in the
+   rest of the identifier).
 
 2. **Look up cache.** Driver calls
    `context.findDefinition({ name, exportPath })`.
 
 3. **Cache hit?** Driver runs `affirmDefinition` integrity check:
    does the cached Definition's `generatorKey` match this Projection's
-   `generatorKey`? Does its value implement `MyProjection`? If yes →
-   return cached. If `generatorKey` mismatch → throw
-   `"Registered definition mismatch"`.
+   `generatorKey`? Does its value implement `MyProjection`? Were its
+   options equal to this call's? If yes → return cached. A
+   `generatorKey` or options mismatch → throw
+   `"Registered definition mismatch"` (for options: the Projection
+   forgot to fold them into its name).
 
 4. **Cache miss?** Driver instantiates `new MyProjection({...})`. The
    constructor runs — it may register imports, call `insertOperation`

@@ -159,10 +159,7 @@ differs from the hook's `exportPath`.
 ### Wiring a model's type into a TanStack Query argument
 
 ```ts
-const userType = context.insertModel({
-  projection: TsProjection,
-  refName: 'User'
-})
+const userType = context.insertModel(TsProjection, refName, { destinationPath })
 
 const body = `
   export const useUpdateUser = (input: ${userType.toName()}) => {
@@ -208,7 +205,7 @@ on each lookup.
 - [Concept: cross-generator coordination](../../concepts/cross-generator-coordination.md)
 - [Concept: how generators produce output](../../concepts/how-generators-produce-output.md)
 - [Concept: composing output with Stringable](../../concepts/stringable-composition.md)
-- [API: GenerateContext.insertOperation](generate-context.md#insertoperationv-eargs-insertoperationargsv-e-insertedv-e)
-- [API: GenerateContext.insertModel](generate-context.md#insertmodelv-eprojection-refname-options-insertedv-e)
+- [API: GenerateContext.insertOperation](generate-context.md#insertoperationv-e-pargs-insertoperationargsv-e-p-insertedv-e)
+- [API: GenerateContext.insertModel](generate-context.md#insertmodelv-e-pprojection-refname-rest-insertedv-e)
 - [API: ContentSettings](content-settings.md)
 - [Glossary: Inserted](../glossary.md#inserted)

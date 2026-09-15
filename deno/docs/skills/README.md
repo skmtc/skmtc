@@ -24,10 +24,10 @@ plugin manifest does not list them.
 
 | Skill | Purpose | Version |
 | --- | --- | --- |
-| [`skmtc-generator/`](skmtc-generator/) | Generator authoring — the engine mental model (object trees over string concatenation), then clone-and-adapt | 0.13.0 |
-| [`skmtc-lang-typescript/`](skmtc-lang-typescript/) | The TypeScript target-language layer — the shape of emitted TS | 0.2.2 |
-| [`skmtc-model/`](skmtc-model/) | Model-generator SHAPE layer: engine-tested fill-in skeleton + model edge cases (refs, recursion, visibility) | 0.1.3 |
-| [`skmtc-operation/`](skmtc-operation/) | Operation-generator SHAPE layer: decomposition of (path, method) subjects + peer-consumption rules | 0.1.1 |
+| [`skmtc-generator/`](skmtc-generator/) | Generator authoring — the engine mental model (object trees over string concatenation), then clone-and-adapt | 0.14.0 |
+| [`skmtc-lang-typescript/`](skmtc-lang-typescript/) | The TypeScript target-language layer — the shape of emitted TS | 0.2.3 |
+| [`skmtc-model/`](skmtc-model/) | Model-generator SHAPE layer: engine-tested fill-in skeleton + model edge cases (refs, recursion, visibility) | 0.1.4 |
+| [`skmtc-operation/`](skmtc-operation/) | Operation-generator SHAPE layer: decomposition of (path, method) subjects + peer-consumption rules | 0.1.2 |
 | [`skmtc-cli/`](skmtc-cli/) | CLI usage — workspace model, agent contract, configuration; the command surface is pulled from the binary | 0.5.0 |
 
 Pairing rule: `skmtc-generator` carries the engine rules and is always loaded
@@ -74,6 +74,7 @@ authority and acted on without checking. Every guard below runs in
 | Skills catalogue sync | A README row, frontmatter version, `metadata.internal` flag or plugin.json membership disagreeing with the others | `verify-docs` |
 | Generated-appendix coverage | An export missing from the appendix, because it was not regenerated after the API moved | `verify-docs` (names, not formatting — `deno doc`'s layout shifts between patch releases; `generate-skill-api-appendix.ts --check` does the exact comparison locally) |
 | Declared-version sync | A skill still declaring a package minor the workspace has moved past | `verify-docs` |
+| Public-API-surface sync | An export of `@skmtc/core` or `@skmtc/lang-typescript` added, removed or re-shaped while the package minor stayed put — the change declared-version sync cannot see | `verify-docs` (per-export digests in `.scripts/api-surface.json`; fix with `deno task bump <package> --minor`, which hands the reread to declared-version sync, then `deno task record-api-surface`) |
 | Doc-test | A renamed export breaking a fenced `ts` block a skill quotes | `doc-test` |
 | Worked-example pins | The Kotlin skill's example, and the model skeleton, no longer producing what they promise | `deno test` |
 | Plugin-version freshness | A published skill edited without bumping the plugin version, so no installed plugin ever sees it | `verify-docs` (digest of the published skills and the plugin manifest; fix with `deno task bump-plugin`) |
