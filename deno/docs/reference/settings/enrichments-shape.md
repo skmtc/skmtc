@@ -212,8 +212,8 @@ A generator accepts a value at these keys only when its umbrella
 declares that scope. A scope declared `v.undefined()` rejects any
 value, so `_stack` needs every generator in the run to declare
 `stack`. Which scopes a generator declares is in its `enrichments.ts`
-(most stock generators declare `subject` only; `gen-typescript-sdk`
-also declares `generator`); clone a generator to add one.
+(the stock generators documented here declare `subject` only); clone
+a generator to add one.
 
 ## Where the shape comes from
 

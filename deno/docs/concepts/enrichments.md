@@ -97,10 +97,9 @@ underscore form. Core reads the reserved keys by their literal spelling in
 A generator opts into a scope by declaring it. A scope declared
 `v.undefined()` rejects any value at its key, and every generator in the run
 parses the same `_stack`, so a stack value is only valid when each of them
-declares `stack`. Which scopes a generator declares is in its `enrichments.ts`:
-the form, table and select generators documented here declare `subject` only,
-`gen-typescript-sdk` also declares `generator`. To add a scope, clone the
-generator and declare it.
+declares `stack`. Which scopes a generator declares is in its `enrichments.ts`;
+the stock generators documented here declare `subject` only. To add a scope,
+clone the generator and declare it.
 
 Core's single predicate is the source of truth:
 
