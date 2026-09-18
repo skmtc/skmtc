@@ -223,6 +223,7 @@ export const writeGeneratedFiles = ({
     }
   }
   const twinBlocked: string[] = []
+  const escaped: string[] = []
 
   deletePreviousArtifacts({
     incomingPaths: Object.keys(artifacts ?? {}),
@@ -256,6 +257,15 @@ export const writeGeneratedFiles = ({
     const content = String(artifactContent)
     const absolutePath = join(skmtcRootPath, '..', artifactPath)
     const canonicalHash = toContentHash(content)
+
+    // Containment guard: core guarantees every artifact key sits below
+    // basePath, so a key that resolves outside the app root can only come
+    // from a bundle whose pinned core predates that rule. Refused rather
+    // than written — the same stance as the delete loop and `clean`.
+    if (!resolve(absolutePath).startsWith(appRoot)) {
+      escaped.push(artifactPath)
+      continue
+    }
 
     if (twinArtifactPaths.has(artifactPath)) {
       twinBlocked.push(artifactPath)
@@ -318,6 +328,15 @@ export const writeGeneratedFiles = ({
 
     Deno.writeTextFileSync(absolutePath, content)
     pendingWrites.push({ artifactPath, absolutePath, canonicalHash, content })
+  }
+
+  if (escaped.length > 0) {
+    console.error(
+      `Warning: refused to write ${escaped.length} artifact(s) that resolve outside the ` +
+        `workspace:\n${escaped.map(path => `  ${path}`).join('\n')}\n` +
+        `An export path must be a forward path below basePath — rebundle the project so ` +
+        `its core pin enforces this at generation time.`
+    )
   }
 
   // Post-write formatting: run the consumer's formatter over exactly

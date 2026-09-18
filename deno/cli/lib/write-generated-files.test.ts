@@ -809,3 +809,44 @@ Deno.test('writeGeneratedFiles - never writes or deletes an ejected file', async
     await Deno.remove(tempDir, { recursive: true })
   }
 })
+
+// --- writeGeneratedFiles: containment ------------------------------------------
+// Core guarantees every artifact key sits below basePath (an export path with
+// a '..' segment or an absolute path is rejected at generation time). A key
+// that still resolves outside the app root can only come from a bundle whose
+// pinned core predates that rule. The write loop refuses it — the same stance
+// the delete loop and `clean` already take — instead of writing outside the
+// workspace.
+Deno.test('writeGeneratedFiles - refuses an artifact that resolves outside the app root', async () => {
+  const tempDir = await Deno.makeTempDir()
+  const originalCwd = Deno.cwd()
+  const originalError = console.error
+  const errors: string[] = []
+  const escapePath = join(tempDir, '..', 'escape.ts')
+  try {
+    Deno.chdir(tempDir)
+    console.error = (message: string) => errors.push(message)
+    const manifestPath = join(tempDir, 'manifest.json')
+    const manifest = manifestFor('out.ts')
+
+    writeGeneratedFiles({
+      manifestPath,
+      artifacts: {
+        '../escape.ts': 'export const escaped = true\n',
+        'out.ts': 'export const a = 1\n'
+      },
+      manifest
+    })
+
+    assertEquals(existsSync(escapePath), false)
+    assertEquals(existsSync(join(tempDir, 'out.ts')), true)
+    assertStringIncludes(errors.join('\n'), '../escape.ts')
+  } finally {
+    console.error = originalError
+    Deno.chdir(originalCwd)
+    if (existsSync(escapePath)) {
+      Deno.removeSync(escapePath)
+    }
+    await Deno.remove(tempDir, { recursive: true })
+  }
+})
