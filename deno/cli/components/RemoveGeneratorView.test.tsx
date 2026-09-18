@@ -9,6 +9,7 @@ import {
 } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import { pointer } from '@/test/pointer.ts'
 
 // Helper to create a fresh mock project for each test
 const createMockProject = (generators: string[] = []): Project => {
@@ -123,7 +124,7 @@ Deno.test(
     assertEquals(
       frame,
       `Select generator to remove:
-❯ @skmtc/gen-typescript
+${pointer} @skmtc/gen-typescript
   @skmtc/gen-zod`
     )
 
@@ -415,7 +416,7 @@ Deno.test(
     assertEquals(
       frame,
       `Select generator to remove:
-❯ @skmtc/gen-typescript
+${pointer} @skmtc/gen-typescript
   @skmtc/gen-zod
   @skmtc/gen-tanstack-query`
     )

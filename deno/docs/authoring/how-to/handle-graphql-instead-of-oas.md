@@ -29,7 +29,6 @@ from the entry's `transform`.
 import { capitalize } from '@skmtc/core'
 import { toTsGqlOperationProjectionBase } from '@skmtc/lang-typescript'
 import type { TsIdentifierType } from '@skmtc/lang-typescript'
-import { join } from '@std/path'
 import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
 import denoJson from '../deno.json' with { type: 'json' }
 
@@ -39,7 +38,7 @@ export const MyGqlBase = toTsGqlOperationProjectionBase<EnrichmentSchema>({
   toIdentifierName: ({ operation }) => `use${capitalize(operation.fieldName)}`,
   toIdentifierType: (): TsIdentifierType => ({ type: 'variable' }),
   toExportPath: ({ operation }) =>
-    join('@', 'graphql', `use${capitalize(operation.fieldName)}.generated.ts`)
+    `@/graphql/use${capitalize(operation.fieldName)}.generated.ts`
 })
 
 // src/MyGqlHook.ts

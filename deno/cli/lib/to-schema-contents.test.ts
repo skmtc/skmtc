@@ -1,5 +1,7 @@
 import { assertEquals, assertRejects } from '@std/assert'
 import { stub, type Stub } from '@std/testing/mock'
+import { isAbsolute } from '@std/path/is-absolute'
+import { join } from '@std/path/join'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
 import { SchemaFile } from '@/lib/schema-file.ts'
 import type { FileType, SchemaSource } from '@/lib/types.ts'
@@ -108,9 +110,9 @@ Deno.test('toSchemaContents', async t => {
       getFromSourceStub = stub(SchemaFile, 'getFromSource', (schemaSource: SchemaSource) => {
         // Verify that the path was converted to absolute
         if (schemaSource.type === 'local') {
-          // Path should now be absolute (starts with /)
-          assertEquals(schemaSource.path.startsWith('/'), true)
-          assertEquals(schemaSource.path.includes(relativePath), true)
+          // Path should now be absolute, in the host's own spelling
+          assertEquals(isAbsolute(schemaSource.path), true)
+          assertEquals(schemaSource.path.includes(join('schemas', 'openapi.json')), true)
         }
 
         return Promise.resolve({
@@ -125,9 +127,9 @@ Deno.test('toSchemaContents', async t => {
       assertEquals(result.contents, mockContents)
       assertEquals(result.schemaSource.type, 'local')
       if (result.schemaSource.type === 'local') {
-        // Verify path is now absolute
-        assertEquals(result.schemaSource.path.startsWith('/'), true)
-        assertEquals(result.schemaSource.path.includes(relativePath), true)
+        // Verify path is now absolute, in the host's own spelling
+        assertEquals(isAbsolute(result.schemaSource.path), true)
+        assertEquals(result.schemaSource.path.includes(join('schemas', 'openapi.json')), true)
       }
       assertEquals(result.fileType, 'json')
     } finally {

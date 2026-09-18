@@ -9,6 +9,7 @@ import type { Project } from '@/lib/project.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { stub } from '@std/testing/mock'
 import { GenerateArtifacts } from '../lib/generate-artifacts.ts'
+import { pointer } from '@/test/pointer.ts'
 
 // Minimal OpenAPI schema for testing
 const minimalOpenAPISchema = JSON.stringify({
@@ -229,7 +230,7 @@ Deno.test(
 │  schema.json
 │
 │  Worker not found. Create it?
-│  ❯ Yes
+│  ${pointer} Yes
 │    No`
       )
 
@@ -252,7 +253,7 @@ Deno.test(
 │  Bundle created
 │
 │  Watch for changes?
-│  ❯ Yes
+│  ${pointer} Yes
 │    No`
       )
 
@@ -368,7 +369,7 @@ Deno.test(
       assertEquals(
         bundlePrompt,
         `│  Worker not found. Create it?
-│  ❯ Yes
+│  ${pointer} Yes
 │    No`
       )
 
@@ -388,7 +389,7 @@ Deno.test(
 │  Bundle created
 │
 │  Watch for changes?
-│  ❯ Yes
+│  ${pointer} Yes
 │    No`
       )
 
@@ -501,7 +502,7 @@ Deno.test(
       assertEquals(
         bundlePrompt,
         `│  Worker not found. Create it?
-│  ❯ Yes
+│  ${pointer} Yes
 │    No`
       )
 
@@ -618,7 +619,7 @@ Deno.test(
       assertEquals(
         bundlePrompt,
         `│  Worker not found. Create it?
-│  ❯ Yes
+│  ${pointer} Yes
 │    No`
       )
 
@@ -755,7 +756,7 @@ Deno.test(
 │  https://api.example.com/openapi.json
 │
 │  Worker not found. Create it?
-│  ❯ Yes
+│  ${pointer} Yes
 │    No`
       )
 
@@ -778,7 +779,7 @@ Deno.test(
 │  Bundle created
 │
 │  Watch for changes?
-│  ❯ Yes
+│  ${pointer} Yes
 │    No`
       )
 

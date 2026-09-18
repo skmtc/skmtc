@@ -52,15 +52,8 @@
 import { type GeneratorEnrichments, generatorEnrichments } from './Enrichments.ts'
 import * as v from 'valibot'
 import { type Method, method } from './Method.ts'
+import { hasParentSegment, isAbsolutePath, isExportPath } from '@/helpers/normalizeExportPath.ts'
 import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
-
-/**
- * Whether a relative path contains a `..` parent-reference segment.
- * `..` is a parent reference only as a whole path segment — a
- * directory name that merely contains dots is not flagged.
- */
-const hasParentSegment = (path: string): boolean =>
-  path.split(/[/\\]/).some(segment => segment === '..')
 
 /**
  * Valibot schema for {@link ModulePackage}.
@@ -246,7 +239,21 @@ export const anchorsSettings: v.GenericSchema<AnchorsSettings> = v.object({
 })
 
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
-  basePath: v.optional(v.string()),
+  basePath: v.optional(
+    v.pipe(
+      v.string(),
+      v.check(
+        basePath => !isAbsolutePath(basePath),
+        'basePath must be relative to the SKMTC root (the directory containing .skmtc/); ' +
+          'absolute paths are not supported because generated output is always written under it'
+      ),
+      v.check(
+        basePath => !hasParentSegment(basePath),
+        'basePath must be a forward path with no ".." segments — it is the on-disk anchor ' +
+          'every generated file sits below'
+      )
+    )
+  ),
   schemaSource: v.optional(v.string()),
   packages: v.optional(modulePackages),
   enrichments: v.optional(generatorEnrichments),
@@ -256,7 +263,18 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   inputDirs: v.optional(v.array(v.string())),
   formatter: v.optional(v.string()),
   generatedSuffix: v.optional(v.string()),
-  ejected: v.optional(v.array(v.string()))
+  ejected: v.optional(
+    v.array(
+      v.pipe(
+        v.string(),
+        v.check(
+          isExportPath,
+          'settings.ejected entries are export paths: a forward path below basePath, ' +
+            'with no ".." segment and not a Windows drive or UNC path'
+        )
+      )
+    )
+  )
 })
 
 /**

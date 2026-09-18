@@ -21,7 +21,6 @@ import { SchemaLocationTask } from '@/tasks/SchemaLocationTask.tsx'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
 import { join } from '@std/path/join'
 import { GenerateWorkerTask } from '../tasks/GenerateWorkerTask.tsx'
-import { toWorkerPath } from '../lib/to-worker-path.ts'
 
 type GenerateProps = {
   project: Project
@@ -40,17 +39,10 @@ export const GenerateView = ({ project, schemaSourceString, watchMode }: Generat
     return typeof schemaSourceString !== 'string' && !project.clientJson?.contents?.source
   }, [])
 
-  const includeGenerateWorkerTask = useMemo(() => {
-    const workerPath = join(project.toPath(), 'worker.ts')
+  // The on-disk path, the same value `project.createWorker()` returns.
+  const workerPath = useMemo(() => join(project.toPath(), 'worker.ts'), [])
 
-    return !existsSync(workerPath)
-  }, [])
-
-  const workerPath = useMemo(() => {
-    const workerPath = toWorkerPath(project.toPath())
-
-    return existsSync(workerPath) ? workerPath : undefined
-  }, [])
+  const includeGenerateWorkerTask = useMemo(() => !existsSync(workerPath), [])
 
   const includeWatchTask = useMemo(() => {
     if (isHttp(schemaSourceString)) {
@@ -82,7 +74,7 @@ export const GenerateView = ({ project, schemaSourceString, watchMode }: Generat
         {
           taskKey: 'generate-worker-task',
           include: includeGenerateWorkerTask,
-          state: workerPath,
+          state: includeGenerateWorkerTask ? undefined : workerPath,
           render: () => <GenerateWorkerTask project={project} />
         },
         {

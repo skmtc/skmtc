@@ -67,3 +67,12 @@ Deno.test('isUnderRoot: spelling of either side does not matter', () => {
     }
   }
 })
+
+Deno.test('toWorkspacePath: a bare leading slash is an anchor spelling, and `@` alone is the root', () => {
+  assertEquals(toWorkspacePath('/types/x.ts'), 'types/x.ts')
+  assertEquals(toWorkspacePath('//types/x.ts'), 'types/x.ts')
+  assertEquals(toWorkspacePath('@//types/x.ts'), 'types/x.ts')
+  for (const spelling of ['@', '/', '@/.']) {
+    assertEquals(toWorkspacePath(spelling), '', `spelling: '${spelling}'`)
+  }
+})

@@ -7,9 +7,9 @@
  * config and examples write it as `./`, and std `normalize` — applied to
  * `File.path` by the drivers — strips `./` but leaves `@/` alone. Anything
  * that compares paths from more than one of those sources (package matching,
- * on-disk resolution) must see all spellings as equal: every leading `@/` or
- * `./` goes, a trailing `/` goes, a Windows `\` is a `/`, and the workspace
- * root itself (`@/`, `./`, `.`, ``) is the empty string. The result is a fixed
+ * on-disk resolution) must see all spellings as equal: every leading `@/`,
+ * `./` or bare `/` goes, a trailing `/` goes, a Windows `\` is a `/`, and the
+ * workspace root itself (`@/`, `@`, `./`, `.`, `/`, ``) is the empty string. The result is a fixed
  * point: canonicalizing it again changes nothing.
  *
  * The `@/` stripped here is Skmtc's **workspace root** — the prefix
@@ -29,10 +29,10 @@
 export const toWorkspacePath = (path: string): string => {
   const withoutAnchor = path
     .replaceAll('\\', '/')
-    .replace(/^(?:@\/|\.\/)+/, '')
+    .replace(/^(?:@\/|\.\/|\/)+/, '')
     .replace(/\/+$/, '')
 
-  return withoutAnchor === '.' ? '' : withoutAnchor
+  return withoutAnchor === '.' || withoutAnchor === '@' ? '' : withoutAnchor
 }
 
 /**

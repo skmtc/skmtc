@@ -319,7 +319,7 @@ toIdentifierName: ({ refName, variant }) =>
   withVariant(`${refName}Schema`, variant),
 toIdentifierType: () => ({ type: 'variable' }),
 toExportPath: ({ refName, variant }) =>
-  join('@', 'schemas', `${withVariant(refName, variant)}.generated.ts`)
+  `@/schemas/${withVariant(refName, variant)}.generated.ts`
 ```
 
 **Generated files** (after `skmtc generate`):

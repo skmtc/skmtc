@@ -1,7 +1,7 @@
 import type { GqlOperationProjection } from './types.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import { normalize } from '@std/path/normalize'
+import { normalizeExportPath } from '@/helpers/normalizeExportPath.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
@@ -101,7 +101,10 @@ export class GqlOperationDriver<
 
     const definition = this.getDefinition({ identifier, exportPath })
 
-    if (destinationPath && normalize(exportPath) !== normalize(destinationPath)) {
+    if (
+      destinationPath &&
+      normalizeExportPath(exportPath) !== normalizeExportPath(destinationPath)
+    ) {
       // Cross-file import of the peer's identifier from its export path.
       // The language builds the import object (`toImport`) and creates the
       // destination file on first write (caller-side); the engine stores
@@ -125,7 +128,7 @@ export class GqlOperationDriver<
    * cache-hit path). Returns the normalized path.
    */
   private ensureFile(path: string): string {
-    const normalizedPath = normalize(path)
+    const normalizedPath = normalizeExportPath(path)
 
     if (!this.context.getFile(normalizedPath)) {
       this.context.addFile(

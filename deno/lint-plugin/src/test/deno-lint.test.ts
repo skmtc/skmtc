@@ -1,5 +1,4 @@
 import { assert, assertEquals } from '@std/assert'
-import { fromFileUrl } from '@std/path/from-file-url'
 import { join } from '@std/path/join'
 
 /**
@@ -11,7 +10,9 @@ import { join } from '@std/path/join'
  * informational checks, since `deno lint` has no warn severity).
  */
 
-const PLUGIN_PATH = fromFileUrl(import.meta.resolve('../../mod.ts'))
+// A file URL, not an OS path: on Windows `deno lint` reads a bare `D:\...`
+// as a module with scheme `d`.
+const PLUGIN_PATH = import.meta.resolve('../../mod.ts')
 
 const SOURCE = `// deno-lint-ignore skmtc/no-as-casts -- upstream types lack the narrowing
 export const approved = raw as Narrowed
@@ -37,7 +38,12 @@ const lintProject = async (
       stderr: 'piped'
     })
     const output = await command.output()
-    const report: unknown = JSON.parse(new TextDecoder().decode(output.stdout))
+    const stdout = new TextDecoder().decode(output.stdout)
+    assert(
+      stdout.length > 0,
+      `deno lint wrote no JSON (exit ${output.code}): ${new TextDecoder().decode(output.stderr)}`
+    )
+    const report: unknown = JSON.parse(stdout)
     assert(report !== null && typeof report === 'object' && 'diagnostics' in report)
     const { diagnostics } = report
     assert(Array.isArray(diagnostics))

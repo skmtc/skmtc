@@ -1,7 +1,7 @@
 import type { OasOperationProjection } from './types.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import { normalize } from '@std/path/normalize'
+import { normalizeExportPath } from '@/helpers/normalizeExportPath.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
@@ -131,7 +131,7 @@ export class OasOperationDriver<
     // The file an import has to be stitched into, or `undefined` when there
     // is none to stitch — no destination, or the projection's own file.
     const importInto =
-      destinationPath && normalize(exportPath) !== normalize(destinationPath)
+      destinationPath && normalizeExportPath(exportPath) !== normalizeExportPath(destinationPath)
         ? destinationPath
         : undefined
 
@@ -173,7 +173,7 @@ export class OasOperationDriver<
    * cache-hit path). Returns the normalized path.
    */
   private ensureFile(path: string): string {
-    const normalizedPath = normalize(path)
+    const normalizedPath = normalizeExportPath(path)
 
     if (!this.context.getFile(normalizedPath)) {
       this.context.addFile(

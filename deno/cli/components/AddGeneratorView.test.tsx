@@ -6,6 +6,7 @@ import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { assertSpyCall, stub } from '@std/testing/mock'
+import { pointer } from '@/test/pointer.ts'
 
 // Helper to create a fresh mock project for each test
 const createMockProject = (): Project => {
@@ -89,7 +90,7 @@ Deno.test(
       assertEquals(
         typePrompt,
         `│  Generator type
-│  ❯ operation
+│  ${pointer} operation
 │    model`
       )
 
@@ -191,7 +192,7 @@ Deno.test(
         modelSelected,
         `│  Generator type
 │    operation
-│  ❯ model`
+│  ${pointer} model`
       )
 
       // Select "model"

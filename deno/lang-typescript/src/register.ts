@@ -1,4 +1,4 @@
-import { normalize } from '@std/path/normalize'
+import { isWorkspaceSpelled, normalizeExportPath } from '@skmtc/core'
 import type { DefinitionBase, GenerateContextType, GeneratedValue, Stringable } from '@skmtc/core'
 import { TsFile } from './TsFile.ts'
 import { TsImport, type ImportNameArg } from './TsImport.ts'
@@ -16,7 +16,12 @@ import type { TsIdentifier } from './TsIdentifier.ts'
  * absence is compile-time.
  */
 export type TsRegisterArgs = {
-  /** Import statements to include, organized by module path. */
+  /**
+   * Import statements to include, keyed by module. A key spelled from the
+   * workspace root (`@/`, `./`, `/`, or a Windows form) is an export path
+   * and is written in its one spelling; any other key (`zod`,
+   * `@tanstack/query`, `types/y.ts`) is a module specifier, written as it is.
+   */
   imports?: Record<string, ImportNameArg[]>
   /** Re-export statements to include, organized by source module path. */
   reExports?: Record<string, TsIdentifier[]>
@@ -45,23 +50,35 @@ export const register = (
   context: GenerateContextType,
   args: TsRegisterArgs & { destinationPath: string }
 ): void => {
-  const destinationPath = normalize(args.destinationPath)
+  const destinationPath = normalizeExportPath(args.destinationPath)
 
   if (!context.getFile(destinationPath)) {
     context.addFile(new TsFile({ path: destinationPath, settings: context.settings }))
   }
 
+  // In the imports map a string is either a module specifier (`zod`,
+  // `@tanstack/query`, and any bare string) or an export path, which must
+  // be spelled from the workspace root (`@/`, `./`, `/`, Windows forms).
+  // `isWorkspaceSpelled` decides which, here and at render
+  // (`normalizeModuleName`), so one string is never read two ways.
+
+  // An export path is written in its one spelling, so `@\types\y.ts` and
+  // `./types/y.ts` render and merge as `@/types/y.ts`.
+  const toModule = (module: string): string =>
+    isWorkspaceSpelled(module) ? normalizeExportPath(module) : module
+
+  // A self-import — a symbol exported from the destination file itself — is
+  // already in scope and is never imported.
+  const isSelfImport = (module: string): boolean =>
+    isWorkspaceSpelled(module) && normalizeExportPath(module) === destinationPath
+
   context.register({
-    // Drop self-imports: a symbol exported from the destination file itself is
-    // already in scope, so it is never imported. Centralising the same-file
-    // check here means callers register against an export path without
-    // pre-checking it (compared normalised, since `destinationPath` is too).
     imports: Object.entries(args.imports ?? {})
-      .filter(([module]) => normalize(module) !== destinationPath)
-      .map(([module, names]) => TsImport.fromConcise(module, names)),
+      .filter(([module]) => !isSelfImport(module))
+      .map(([module, names]) => TsImport.fromConcise(toModule(module), names)),
     reExports: Object.entries(args.reExports ?? {})
       .filter(([, identifiers]) => identifiers.length > 0)
-      .map(([module, identifiers]) => TsReExport.fromConcise(module, identifiers)),
+      .map(([module, identifiers]) => TsReExport.fromConcise(toModule(module), identifiers)),
     definitions: args.definitions,
     custom: args.custom,
     destinationPath

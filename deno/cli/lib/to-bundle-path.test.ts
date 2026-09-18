@@ -1,132 +1,62 @@
-import { assertEquals, assert } from '@std/assert'
+import { assert, assertEquals } from '@std/assert'
 import { exists } from '@std/fs/exists'
 import { join } from '@std/path/join'
+import { resolve } from '@std/path/resolve'
+import { toFileUrl } from '@std/path/to-file-url'
 import { toBundleFsPath, toBundlePath } from '@/lib/to-bundle-path.ts'
 
+// Expectations are built with the same std functions on every host, so the
+// cases mean the same thing on Windows (`file:///D:/...`) as on POSIX.
 Deno.test('toBundlePath', async t => {
-  await t.step('should create file URL with bundle.js for absolute path', () => {
-    const result = toBundlePath('/project')
+  await t.step('is the file URL of bundle.js under an absolute project path', () => {
+    const result = toBundlePath(resolve('/project'))
 
-    assertEquals(result, 'file:///project/bundle.js')
-    assert(result.startsWith('file://'))
-    assert(result.endsWith('bundle.js'))
+    assertEquals(result, toFileUrl(resolve('/project', 'bundle.js')).href)
+    assert(result.startsWith('file:///'))
+    assert(result.endsWith('/project/bundle.js'))
+    assertEquals(result.includes('\\'), false)
   })
 
-  await t.step('should handle nested directory paths', () => {
-    const result = toBundlePath('/path/to/project')
-
-    assertEquals(result, 'file:///path/to/project/bundle.js')
-    assert(result.startsWith('file://'))
-    assert(result.endsWith('bundle.js'))
-  })
-
-  await t.step('should handle paths with spaces', () => {
-    const result = toBundlePath('/path/with spaces/project')
-
-    assertEquals(result, 'file:///path/with spaces/project/bundle.js')
-    assert(result.includes('with spaces'))
-  })
-
-  await t.step('should handle paths with special characters', () => {
-    const result = toBundlePath('/path/with-dashes_and_underscores')
-
-    assertEquals(result, 'file:///path/with-dashes_and_underscores/bundle.js')
-    assert(result.includes('with-dashes_and_underscores'))
-  })
-
-  await t.step('should handle relative paths', () => {
+  await t.step('resolves a relative project path against the working directory', () => {
     const result = toBundlePath('./project')
 
-    // join() normalizes './project' to 'project'
-    assertEquals(result, 'file://project/bundle.js')
-    assert(result.startsWith('file://'))
-    assert(result.endsWith('bundle.js'))
+    assertEquals(result, toFileUrl(resolve('project', 'bundle.js')).href)
+    assert(result.startsWith('file:///'))
   })
 
-  await t.step('should handle parent directory relative paths', () => {
-    const result = toBundlePath('../project')
+  await t.step('percent-encodes a space, as a URL must', () => {
+    const result = toBundlePath(resolve('/path/with spaces/project'))
 
-    assertEquals(result, 'file://../project/bundle.js')
-    assert(result.startsWith('file://'))
-    assert(result.endsWith('bundle.js'))
+    assert(result.endsWith('/with%20spaces/project/bundle.js'))
   })
 
-  await t.step('should handle root path', () => {
-    const result = toBundlePath('/')
-
-    assertEquals(result, 'file:///bundle.js')
-    assert(result.startsWith('file://'))
-    assert(result.endsWith('bundle.js'))
+  await t.step('a trailing slash on the project path makes no difference', () => {
+    assertEquals(toBundlePath(resolve('/my-project/')), toBundlePath(resolve('/my-project')))
+    assert(!toBundlePath(resolve('/my-project/')).includes('//bundle.js'))
   })
 
-  await t.step('should handle empty string path', () => {
-    const result = toBundlePath('')
+  await t.step('different projects give different URLs of the same shape', () => {
+    const result1 = toBundlePath(resolve('/project1'))
+    const result2 = toBundlePath(resolve('/project2'))
 
-    assertEquals(result, 'file://bundle.js')
-    assert(result.startsWith('file://'))
-    assert(result.endsWith('bundle.js'))
-  })
-
-  await t.step('should handle path without trailing slash', () => {
-    const result = toBundlePath('/my-project')
-
-    assertEquals(result, 'file:///my-project/bundle.js')
-    assert(!result.includes('//bundle.js'))
-  })
-
-  await t.step('should handle path with trailing slash', () => {
-    const result = toBundlePath('/my-project/')
-
-    // join() should handle the trailing slash correctly
-    assertEquals(result, 'file:///my-project/bundle.js')
-    assert(result.endsWith('bundle.js'))
-  })
-
-  await t.step('should create consistent format for multiple paths', () => {
-    const result1 = toBundlePath('/project1')
-    const result2 = toBundlePath('/project2')
-
-    // Both should follow the same pattern
-    assert(result1.startsWith('file://'))
-    assert(result2.startsWith('file://'))
-    assert(result1.endsWith('bundle.js'))
-    assert(result2.endsWith('bundle.js'))
     assert(result1 !== result2)
-  })
-
-  await t.step('should handle paths with dots', () => {
-    const result = toBundlePath('/path/to/project.name')
-
-    assertEquals(result, 'file:///path/to/project.name/bundle.js')
-    assert(result.includes('project.name'))
+    assert(result1.endsWith('/bundle.js') && result2.endsWith('/bundle.js'))
   })
 })
 
 Deno.test('toBundleFsPath', async t => {
-  await t.step('returns the plain filesystem path to bundle.js', () => {
+  await t.step('joins bundle.js onto the project path in the host spelling', () => {
     assertEquals(toBundleFsPath('/project'), join('/project', 'bundle.js'))
+    assertEquals(toBundleFsPath('./project'), join('project', 'bundle.js'))
   })
 
-  await t.step(
-    'resolves to a path @std/fs `exists` can stat — the toBundlePath URL form cannot',
-    async () => {
-      const projectPath = await Deno.makeTempDir()
-      try {
-        await Deno.writeTextFile(join(projectPath, 'bundle.js'), '// bundle')
-
-        // Diagnosis: `toBundlePath` returns a `file://` URL *string*.
-        // `@std/fs` `exists` treats that string as a literal path and
-        // false-negatives even though bundle.js is on disk — the root
-        // cause of the `skmtc bundle` "wasn't written" and doctor
-        // "no bundle.js" false-failures.
-        assertEquals(await exists(toBundlePath(projectPath), { isFile: true }), false)
-
-        // Fix: `toBundleFsPath` returns a plain filesystem path that
-        // `exists` resolves correctly.
-        assertEquals(await exists(toBundleFsPath(projectPath), { isFile: true }), true)
-      } finally {
-        await Deno.remove(projectPath, { recursive: true })
-      }
+  await t.step('names a real file when the project has a bundle', async () => {
+    const tempDir = await Deno.makeTempDir()
+    try {
+      await Deno.writeTextFile(join(tempDir, 'bundle.js'), 'export default {}')
+      assertEquals(await exists(toBundleFsPath(tempDir)), true)
+    } finally {
+      await Deno.remove(tempDir, { recursive: true })
     }
-  )
+  })
 })

@@ -3,7 +3,7 @@ import { GenerateArtifacts } from '@/lib/generate-artifacts.ts'
 import { writeGeneratedFiles, type WriteGeneratedFilesResult } from '@/lib/write-generated-files.ts'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { reanchorSidecar, upgradeSidecar, writeSidecars } from '@skmtc/core/Anchors'
-import { toResolvedArtifactPath } from '@skmtc/core'
+import { isExportPath, toResolvedArtifactPath } from '@skmtc/core'
 import { type GenerationStats, toGenerationStats } from '@/lib/generationStats.ts'
 import type { FileType } from '@/lib/types.ts'
 import type { EnrichmentWarning, ParseIssue } from '@skmtc/core'
@@ -93,6 +93,8 @@ export type GenerateLocalResult = {
    * for consumers (see `WriteGeneratedFilesResult`).
    */
   protectedPaths: string[]
+  /** Artifact keys refused for resolving outside the app root (see `WriteGeneratedFilesResult`). */
+  escaped: string[]
   /**
    * Drift report for ejected files (see `WriteGeneratedFilesResult`).
    * Present only when the project has ejected files.
@@ -128,7 +130,7 @@ export const generateLocal = async ({
         stackUrl
       })
 
-    const { protectedPaths, ejections, onDiskDrift } = writeGeneratedFiles({
+    const { protectedPaths, escaped, ejections, onDiskDrift } = writeGeneratedFiles({
       manifestPath,
       artifacts,
       manifest,
@@ -157,6 +159,10 @@ export const generateLocal = async ({
       const realignedArtifacts = new Set<string>()
       const upgradedSidecars = Object.fromEntries(
         Object.entries(sidecars).map(([filePath, sidecar]) => {
+          // A sidecar from a bundle whose core predates the export-path rule
+          // may carry a path the resolver now refuses; it names nothing that
+          // was written, so it is left as is.
+          if (!isExportPath(sidecar.f)) return [filePath, sidecar]
           const artifactKey = toResolvedArtifactPath({
             basePath: clientSettings?.basePath,
             destinationPath: sidecar.f
@@ -216,15 +222,23 @@ export const generateLocal = async ({
       }
     }
 
-    const stats = toGenerationStats({ manifest, artifacts })
+    // Refused artifacts were neither written nor kept in the manifest, so
+    // they are not generated files: not in `files`, not in the stats.
+    const escapedSet = new Set(escaped)
+    const writtenArtifacts = Object.fromEntries(
+      Object.entries(artifacts).filter(([artifactPath]) => !escapedSet.has(artifactPath))
+    )
+
+    const stats = toGenerationStats({ manifest, artifacts: writtenArtifacts })
 
     return {
       stats,
       parseIssues: manifest.parseIssues,
       enrichmentWarnings: manifest.enrichmentWarnings ?? [],
-      filePaths: Object.keys(artifacts),
+      filePaths: Object.keys(writtenArtifacts),
       anchors: anchorsStats,
       protectedPaths,
+      escaped,
       ...(ejections ? { ejections } : {})
     }
   } catch (error) {

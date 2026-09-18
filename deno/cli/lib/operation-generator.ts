@@ -48,7 +48,6 @@ export const ${mainModule}Entry = toOasOperationEntry({
     return `import { camelCase, capitalize, emptyEnrichmentSchema, toMethodVerb } from '@skmtc/core'
 import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import type { TsIdentifierType } from '@skmtc/lang-typescript'
-import { join } from '@std/path/join'
 
 export const ${mainModule}Base = toTsOasOperationProjectionBase({
   id: '${this.generator.toModuleName()}',
@@ -68,7 +67,7 @@ export const ${mainModule}Base = toTsOasOperationProjectionBase({
 
     // The engine injects the generated-file suffix (settings.generatedSuffix,
     // default '.generated') when this result is stored into ContentSettings.
-    return join('@', \`\${name}.tsx\`)
+    return \`@/\${name}.tsx\`
   },
 
   toEnrichmentSchema: () => emptyEnrichmentSchema

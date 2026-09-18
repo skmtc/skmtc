@@ -1,4 +1,4 @@
-import { normalize } from '@std/path/normalize'
+import { normalizeExportPath } from '@/helpers/normalizeExportPath.ts'
 import { applyGeneratedSuffix, DEFAULT_GENERATED_SUFFIX } from '@/helpers/applyGeneratedSuffix.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
@@ -1152,13 +1152,13 @@ export class GenerateContext implements GenerateContextType {
    * name real files verbatim (a JSON config or a hand-named barrel
    * must not be renamed).
    */
-  #toContentSettingsExportPath(exportPath: string): string {
+  #toContentSettingsExportPath(exportPath: string, generatorId?: string): string {
     const suffixed = applyGeneratedSuffix(
-      exportPath,
+      normalizeExportPath(exportPath, { generatorId }),
       this.settings?.generatedSuffix ?? DEFAULT_GENERATED_SUFFIX
     )
 
-    return this.#ejectedBySuffixedPath.get(normalize(suffixed)) ?? suffixed
+    return this.#ejectedBySuffixedPath.get(suffixed) ?? suffixed
   }
 
   /**
@@ -1173,8 +1173,8 @@ export class GenerateContext implements GenerateContextType {
 
       this.#ejectedBySuffixedPathCache = new Map(
         (this.settings?.ejected ?? []).map(ejectedPath => {
-          const normalized = normalize(ejectedPath)
-          return [normalize(applyGeneratedSuffix(normalized, suffix)), normalized]
+          const normalized = normalizeExportPath(ejectedPath)
+          return [applyGeneratedSuffix(normalized, suffix), normalized]
         })
       )
     }
@@ -1193,7 +1193,7 @@ export class GenerateContext implements GenerateContextType {
    * language-constructed file, use {@link addFile}.
    */
   getFile(filePath: string): FileBase | undefined {
-    return this.#files.get(normalize(filePath))
+    return this.#files.get(normalizeExportPath(filePath))
   }
 
   /**
@@ -1219,7 +1219,7 @@ export class GenerateContext implements GenerateContextType {
    * (`context.getFile(path) ?? context.addFile(new KtFile({ … }))`).
    */
   addFile<File extends FileBase>(file: File): File {
-    const normalizedPath = normalize(file.path)
+    const normalizedPath = normalizeExportPath(file.path)
 
     if (this.#files.has(normalizedPath)) {
       throw new Error(`File already exists: ${normalizedPath}`)
@@ -1237,7 +1237,7 @@ export class GenerateContext implements GenerateContextType {
    * @param args - Registration arguments with destination path and JSON content
    */
   registerJson({ destinationPath, json }: RegisterJsonArgs) {
-    const normalizedPath = normalize(destinationPath)
+    const normalizedPath = normalizeExportPath(destinationPath)
 
     let currentFile = this.getFile(normalizedPath)
 
@@ -1264,7 +1264,7 @@ export class GenerateContext implements GenerateContextType {
    * @experimental This method is experimental and may change in future versions
    */
   registerMarkdown({ destinationPath, markdown }: RegisterMarkdownArgs) {
-    const normalizedPath = normalize(destinationPath)
+    const normalizedPath = normalizeExportPath(destinationPath)
 
     let currentFile = this.getFile(normalizedPath)
 
@@ -1300,7 +1300,7 @@ export class GenerateContext implements GenerateContextType {
     destinationPath,
     into
   }: ContextRegisterArgs) {
-    const normalizedPath = normalize(destinationPath)
+    const normalizedPath = normalizeExportPath(destinationPath)
 
     const currentFile = this.getFile(normalizedPath)
 
@@ -1453,7 +1453,7 @@ export class GenerateContext implements GenerateContextType {
     // the use site (same ephemeral read the Drivers make) — pre-creates
     // the destination file caller-side, and stores via the pure-data
     // `register`.
-    const normalizedPath = normalize(destinationPath)
+    const normalizedPath = normalizeExportPath(destinationPath)
 
     if (!this.getFile(normalizedPath)) {
       this.addFile(projection.lang.createFile({ path: normalizedPath, settings: this.settings }))
@@ -1537,7 +1537,8 @@ export class GenerateContext implements GenerateContextType {
             enrichments,
             variant,
             options
-          })
+          }),
+          args.projection.id
         ),
         enrichments,
         variant
@@ -1567,7 +1568,8 @@ export class GenerateContext implements GenerateContextType {
             enrichments,
             variant,
             options
-          })
+          }),
+        args.projection.id
       ),
       enrichments,
       variant
@@ -1606,7 +1608,8 @@ export class GenerateContext implements GenerateContextType {
           enrichments,
           variant,
           options
-        })
+        }),
+        args.projection.id
       ),
       enrichments,
       variant
@@ -1633,7 +1636,8 @@ export class GenerateContext implements GenerateContextType {
         ...projection.toIdentifierType(refName, this)
       }),
       exportPath: this.#toContentSettingsExportPath(
-        projection.toExportPath({ refName, enrichments, variant, options })
+        projection.toExportPath({ refName, enrichments, variant, options }),
+        projection.id
       ),
       enrichments,
       variant

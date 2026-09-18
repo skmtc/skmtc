@@ -25,24 +25,30 @@ variant }` (and similar for GraphQL).
 
 ### Edit `toExportPath`
 
-Return whatever path you want. The path is relative to the
-project's configured `basePath`.
+Return the path spelled as `@/` plus a forward-slash path relative to
+the project's configured `basePath`. Write it as a template literal,
+not with a path-library `join`: the join would use the host's separator,
+and on Windows that puts backslashes inside generated import text. A
+`..` segment, or a Windows drive or UNC path, is rejected at generation
+time, so every file lands below `basePath`. A leading `/` is another
+spelling of the anchor, not a filesystem root: `/api/x.ts` lands at
+`<basePath>/api/x.ts`.
 
 ```ts
 // Stock gen-zod / gen-typescript default (decapitalized name under @/types)
 toExportPath: ({ refName }) => {
   const name = decapitalize(camelCase(refName))
-  return join('@', 'types', `${decapitalize(name)}.generated.ts`)
+  return `@/types/${decapitalize(name)}.generated.ts`
 }
 
 // Per-tag subdirectory
 toExportPath: ({ operation }) => {
   const tag = operation.tags?.[0] ?? 'misc'
-  return `/api/${tag}/${toEndpointName(operation)}.ts`
+  return `@/api/${tag}/${toEndpointName(operation)}.ts`
 }
 
 // Flat
-toExportPath: ({ refName }) => `/${refName}.ts`
+toExportPath: ({ refName }) => `@/${refName}.ts`
 ```
 
 **The function must be pure** — same input → same path. If it

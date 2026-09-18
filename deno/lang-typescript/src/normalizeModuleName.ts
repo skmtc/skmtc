@@ -1,4 +1,10 @@
-import { isUnderRoot, matchPackage, type ModulePackage, type PackageMatch } from '@skmtc/core'
+import {
+  isUnderRoot,
+  isWorkspaceSpelled,
+  matchPackage,
+  type ModulePackage,
+  type PackageMatch
+} from '@skmtc/core'
 import { toAliasPath } from '@/src/toAliasPath.ts'
 
 /**
@@ -102,12 +108,18 @@ export const normalizeModuleName = ({
   exportPath,
   packages
 }: NormalizeModuleNameArgs): string => {
+  // A module not spelled from the workspace root is a specifier (`zod`,
+  // `@tanstack/query`, `types/y.ts`) and is written as it is; only an export
+  // path is re-keyed through the package roots. The same predicate decides
+  // in `register`, so a string is never a specifier there and a path here.
+  if (!isWorkspaceSpelled(exportPath)) {
+    return exportPath
+  }
+
   const match = matchPackage({ path: exportPath, packages })
 
   if (!match) {
-    const importer = isWorkspaceSpelled(exportPath)
-      ? matchPackage({ path: destinationPath, packages })
-      : undefined
+    const importer = matchPackage({ path: destinationPath, packages })
 
     if (importer) {
       throw new Error(
@@ -130,9 +142,6 @@ export const normalizeModuleName = ({
 
   return match.innermost.moduleName
 }
-
-/** Spelled from the workspace root — an artifact path, never a bare specifier. */
-const isWorkspaceSpelled = (path: string): boolean => /^(@\/|\.\/)/.test(path)
 
 type ToMissingModuleNameMessageArgs = {
   match: PackageMatch

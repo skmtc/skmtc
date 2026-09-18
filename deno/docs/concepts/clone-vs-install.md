@@ -233,7 +233,7 @@ Example: in `gen-shadcn-form/src/base.ts`:
 ```ts
 toExportPath({ operation, enrichments, variant }): string {
   const name = this.toIdentifierName({ operation, enrichments, variant })
-  return join('@', 'forms', `${name}.generated.tsx`)
+  return `@/forms/${name}.generated.tsx`
 }
 ```
 

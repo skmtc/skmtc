@@ -78,3 +78,8 @@ Deno.test('rootPath ./ prefixes and trailing slashes are tolerated', () => {
     'com.example'
   )
 })
+
+Deno.test('a Windows-spelled export path derives the same package', () => {
+  assertEquals(toPackageName('@\\com\\example\\models\\User.generated.kt'), 'com.example.models')
+  assertEquals(toPackageName('com\\example\\User.kt'), 'com.example')
+})

@@ -24,6 +24,7 @@ import { join } from '@std/path/join'
 import { resolve } from '@std/path/resolve'
 import { relative } from '@std/path/relative'
 import { existsSync } from '@std/fs/exists'
+import { isInsideRoot } from '@/lib/is-inside-root.ts'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { Manifest } from '@/lib/manifest.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
@@ -150,7 +151,7 @@ export const cleanHeadless = async ({
     // root. A manifest key that escapes it (a stray `..` segment) is
     // refused rather than deleted — this command is destructive and
     // not undoable.
-    if (!resolve(absolutePath).startsWith(appRoot)) {
+    if (!isInsideRoot(appRoot, absolutePath)) {
       skipped.push(path)
       continue
     }
@@ -196,7 +197,10 @@ export const cleanHeadless = async ({
   // anchors so the walk can never remove basePath or a package root.
   const anchors = toAnchorDirs(appRoot, clientSettings)
   const removedDirs = anchors
-    ? pruneEmptyDirs({ deletedAbsPaths, anchors, dryRun }).map(dir => relative(appRoot, dir))
+    ? pruneEmptyDirs({ deletedAbsPaths, anchors, dryRun }).map(dir =>
+        // Reported like manifest keys: relative to the app root, forward slashes.
+        relative(appRoot, dir).replaceAll('\\', '/')
+      )
     : []
 
   let manifestRemoved = false

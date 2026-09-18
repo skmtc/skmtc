@@ -1,4 +1,4 @@
-import { normalize } from '@std/path/normalize'
+import { normalizeExportPath } from '@skmtc/core'
 import type { DefinitionBase, GenerateContextType, GeneratedValue } from '@skmtc/core'
 import { CsFile } from './CsFile.ts'
 import { CsImport, type CsImportNameArg } from './CsImport.ts'
@@ -41,7 +41,7 @@ export const register = (
   context: GenerateContextType,
   args: CsRegisterArgs & { destinationPath: string }
 ): void => {
-  const destinationPath = normalize(args.destinationPath)
+  const destinationPath = normalizeExportPath(args.destinationPath)
 
   if (!context.getFile(destinationPath)) {
     context.addFile(new CsFile({ path: destinationPath, settings: context.settings }))

@@ -1,4 +1,4 @@
-import { isAbsolute } from '@std/path/is-absolute'
+import { hasParentSegment, isAbsolutePath } from '@skmtc/core'
 
 /**
  * `basePath` in client.json is resolved relative to the SKMTC root
@@ -10,7 +10,7 @@ import { isAbsolute } from '@std/path/is-absolute'
  * Returns the validated basePath unchanged when valid.
  */
 export const validateBasePath = (basePath: string): string => {
-  if (isAbsolute(basePath)) {
+  if (isAbsolutePath(basePath)) {
     throw new Error(
       [
         `Invalid basePath: "${basePath}"`,
@@ -29,7 +29,7 @@ export const validateBasePath = (basePath: string): string => {
     )
   }
 
-  if (basePath.split(/[/\\]/).some(segment => segment === '..')) {
+  if (hasParentSegment(basePath)) {
     throw new Error(
       [
         `Invalid basePath: "${basePath}"`,
