@@ -16,7 +16,12 @@ import type { TsIdentifier } from './TsIdentifier.ts'
  * absence is compile-time.
  */
 export type TsRegisterArgs = {
-  /** Import statements to include, organized by module path. */
+  /**
+   * Import statements to include, keyed by module. A key spelled from the
+   * workspace root (`@/`, `./`, `/`, or a Windows form) is an export path
+   * and is written in its one spelling; any other key (`zod`,
+   * `@tanstack/query`, `types/y.ts`) is a module specifier, written as it is.
+   */
   imports?: Record<string, ImportNameArg[]>
   /** Re-export statements to include, organized by source module path. */
   reExports?: Record<string, TsIdentifier[]>
@@ -54,19 +59,18 @@ export const register = (
   // In the imports map a string is either a module specifier (`zod`,
   // `@tanstack/query`, and any bare string) or an export path, which must
   // be spelled from the workspace root (`@/`, `./`, `/`, Windows forms).
-  // One predicate decides which, for the rendered text and the self-import
-  // check alike, so core and the lang never read one string two ways.
-  const isPath = isWorkspaceSpelled
+  // `isWorkspaceSpelled` decides which, here and at render
+  // (`normalizeModuleName`), so one string is never read two ways.
 
   // An export path is written in its one spelling, so `@\types\y.ts` and
   // `./types/y.ts` render and merge as `@/types/y.ts`.
   const toModule = (module: string): string =>
-    isPath(module) ? normalizeExportPath(module) : module
+    isWorkspaceSpelled(module) ? normalizeExportPath(module) : module
 
   // A self-import — a symbol exported from the destination file itself — is
   // already in scope and is never imported.
   const isSelfImport = (module: string): boolean =>
-    isPath(module) && normalizeExportPath(module) === destinationPath
+    isWorkspaceSpelled(module) && normalizeExportPath(module) === destinationPath
 
   context.register({
     imports: Object.entries(args.imports ?? {})

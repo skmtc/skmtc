@@ -48,7 +48,7 @@ Deno.test('normalizeModuleName: a target in the same package is @/ from the pack
   assertEquals(
     normalizeModuleName({
       destinationPath: 'packages/types/src/index.ts',
-      exportPath: 'packages/types/models/User.ts',
+      exportPath: '@/packages/types/models/User.ts',
       packages: flat
     }),
     '@/models/User.ts'
@@ -59,7 +59,7 @@ Deno.test("normalizeModuleName: a target in another package is that package's mo
   assertEquals(
     normalizeModuleName({
       destinationPath: 'packages/client/src/api.ts',
-      exportPath: 'packages/types/models/User.ts',
+      exportPath: '@/packages/types/models/User.ts',
       packages: flat
     }),
     '@company/types'
@@ -71,11 +71,11 @@ Deno.test('normalizeModuleName: a package without a moduleName cannot be importe
     () =>
       normalizeModuleName({
         destinationPath: 'apps/web/src/main.ts',
-        exportPath: 'packages/types/models/User.ts',
+        exportPath: '@/packages/types/models/User.ts',
         packages: [{ rootPath: 'packages/types' }]
       }),
     Error,
-    "Package root 'packages/types' has no moduleName, but 'apps/web/src/main.ts' imports 'packages/types/models/User.ts' from outside it. Set moduleName on that root in settings.packages."
+    "Package root 'packages/types' has no moduleName, but 'apps/web/src/main.ts' imports '@/packages/types/models/User.ts' from outside it. Set moduleName on that root in settings.packages."
   )
 })
 
@@ -91,7 +91,7 @@ Deno.test('normalizeModuleName: inside the package, every file shares one @ root
   assertEquals(
     normalizeModuleName({
       destinationPath: 'packages/sdk/src/client/getUser.ts',
-      exportPath: 'packages/sdk/src/models/User.ts',
+      exportPath: '@/packages/sdk/src/models/User.ts',
       packages: nested
     }),
     '@/models/User.ts'
@@ -100,7 +100,7 @@ Deno.test('normalizeModuleName: inside the package, every file shares one @ root
   assertEquals(
     normalizeModuleName({
       destinationPath: 'packages/sdk/src/models/User.ts',
-      exportPath: 'packages/sdk/src/config.ts',
+      exportPath: '@/packages/sdk/src/config.ts',
       packages: nested
     }),
     '@/config.ts'
@@ -111,7 +111,7 @@ Deno.test('normalizeModuleName: outside the package, a target is the innermost m
   assertEquals(
     normalizeModuleName({
       destinationPath: 'apps/api/src/routes/users.ts',
-      exportPath: 'packages/sdk/src/models/User.ts',
+      exportPath: '@/packages/sdk/src/models/User.ts',
       packages: nested
     }),
     '@company/sdk/models'
@@ -119,7 +119,7 @@ Deno.test('normalizeModuleName: outside the package, a target is the innermost m
   assertEquals(
     normalizeModuleName({
       destinationPath: 'apps/api/src/routes/users.ts',
-      exportPath: 'packages/sdk/src/config.ts',
+      exportPath: '@/packages/sdk/src/config.ts',
       packages: nested
     }),
     '@company/sdk'
@@ -131,7 +131,7 @@ Deno.test('normalizeModuleName: a directory import of a root is that root — it
   assertEquals(
     normalizeModuleName({
       destinationPath: 'apps/api/src/routes/users.ts',
-      exportPath: 'packages/sdk/src/models',
+      exportPath: '@/packages/sdk/src/models',
       packages: nested
     }),
     '@company/sdk/models'
@@ -139,7 +139,7 @@ Deno.test('normalizeModuleName: a directory import of a root is that root — it
   assertEquals(
     normalizeModuleName({
       destinationPath: 'apps/api/src/routes/users.ts',
-      exportPath: 'packages/sdk/src',
+      exportPath: '@/packages/sdk/src',
       packages: nested
     }),
     '@company/sdk'
@@ -148,7 +148,7 @@ Deno.test('normalizeModuleName: a directory import of a root is that root — it
   assertEquals(
     normalizeModuleName({
       destinationPath: 'packages/sdk/src/client/getUser.ts',
-      exportPath: 'packages/sdk/src/models',
+      exportPath: '@/packages/sdk/src/models',
       packages: nested
     }),
     '@/models'
@@ -186,12 +186,25 @@ Deno.test('normalizeModuleName: a package file cannot import a workspace-root pa
   )
 })
 
+Deno.test('normalizeModuleName: a bare string is a specifier even when a root shares its first segment', () => {
+  // `register` leaves a bare string as a specifier; render must not read the
+  // same string as a path and re-key it through a package root.
+  assertEquals(
+    normalizeModuleName({
+      destinationPath: '@/app/x.ts',
+      exportPath: 'packages/types/models/User.ts',
+      packages: flat
+    }),
+    'packages/types/models/User.ts'
+  )
+})
+
 Deno.test('normalizeModuleName: a subpath needs its own moduleName to be imported from outside', () => {
   assertThrows(
     () =>
       normalizeModuleName({
         destinationPath: 'apps/api/src/routes/users.ts',
-        exportPath: 'packages/sdk/src/models/User.ts',
+        exportPath: '@/packages/sdk/src/models/User.ts',
         packages: [
           { rootPath: 'packages/sdk/src', moduleName: '@company/sdk' },
           { rootPath: 'packages/sdk/src/models' }

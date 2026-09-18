@@ -97,7 +97,9 @@ get-or-create idiom). Args:
 custom? }`. `register` creates the file on first write and drops
 self-imports, so register imports unconditionally — per-leaf
 registration (every snippet needing `z` registers `{ zod: ['z'] }`) is
-the correct pattern, and merging is idempotent.
+the correct pattern, and merging is idempotent. An `imports` key spelled
+from the workspace root (`@/`, `./`, `/`) is an export path; any other
+key (`zod`, `types/y.ts`) is a module specifier, written as it is.
 
 ## 3. Identifier kinds
 

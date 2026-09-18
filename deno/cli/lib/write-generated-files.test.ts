@@ -827,9 +827,15 @@ Deno.test('writeGeneratedFiles - refuses an artifact that resolves outside the a
     Deno.chdir(tempDir)
     console.error = (message: string) => errors.push(message)
     const manifestPath = join(tempDir, 'manifest.json')
-    const manifest = manifestFor('out.ts')
+    const manifest = v.parse(
+      manifestContent,
+      createManifest({
+        '../escape.ts': { lines: 1, characters: 1, destinationPath: '../escape.ts' },
+        'out.ts': { lines: 1, characters: 1, destinationPath: 'out.ts' }
+      })
+    )
 
-    writeGeneratedFiles({
+    const result = writeGeneratedFiles({
       manifestPath,
       artifacts: {
         '../escape.ts': 'export const escaped = true\n',
@@ -841,6 +847,11 @@ Deno.test('writeGeneratedFiles - refuses an artifact that resolves outside the a
     assertEquals(existsSync(escapePath), false)
     assertEquals(existsSync(join(tempDir, 'out.ts')), true)
     assertStringIncludes(errors.join('\n'), '../escape.ts')
+    // Reported to the strict-JSON consumer, and gone from the manifest on disk.
+    assertEquals(result.escaped, ['../escape.ts'])
+    assertEquals(Object.keys(result.manifest.files), ['out.ts'])
+    const written = v.parse(manifestContent, JSON.parse(Deno.readTextFileSync(manifestPath)))
+    assertEquals(Object.keys(written.files), ['out.ts'])
   } finally {
     console.error = originalError
     Deno.chdir(originalCwd)
