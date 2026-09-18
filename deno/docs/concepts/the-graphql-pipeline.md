@@ -284,7 +284,7 @@ export const GraphqlClientBase = toTsGqlOperationProjectionBase<EnrichmentSchema
   toIdentifierType: () => ({ type: 'variable' }),
   toExportPath({ operation, enrichments, variant }) {
     const name = this.toIdentifierName({ operation, enrichments, variant })
-    return join('@', 'graphql', `${name}.generated.ts`)
+    return `@/graphql/${name}.generated.ts`
   }
 })
 
@@ -315,7 +315,7 @@ export const MyGqlFormBase = toTsGqlOperationProjectionBase<EnrichmentSchema>({
   toIdentifierName: ({ operation }) =>
     `${capitalize(operation.fieldName)}Form`,
   toIdentifierType: () => ({ type: 'variable' }),
-  toExportPath: ({ operation }) => join('@', 'forms', `${operation.fieldName}.tsx`),
+  toExportPath: ({ operation }) => `@/forms/${operation.fieldName}.tsx`,
   toEnrichmentSchema,
   isSupported: () => true
 })

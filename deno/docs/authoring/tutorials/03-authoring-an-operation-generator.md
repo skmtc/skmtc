@@ -88,7 +88,6 @@ config fields on that call — not free-standing exports:
 import { emptyEnrichmentSchema, toEndpointName } from '@skmtc/core'
 import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
 import type { TsIdentifierType } from '@skmtc/lang-typescript'
-import { join } from '@std/path/join'
 
 export const CurlCmdBase = toTsOasOperationProjectionBase({
   id: '@local/curl-cmd',
@@ -101,7 +100,7 @@ export const CurlCmdBase = toTsOasOperationProjectionBase({
 
   toExportPath({ operation }): string {
     const tag = operation.tags?.[0] ?? 'misc'
-    return join('@', tag, `${toEndpointName(operation)}.curl.ts`)
+    return `@/${tag}/${toEndpointName(operation)}.curl.ts`
   },
 
   toEnrichmentSchema: () => emptyEnrichmentSchema
