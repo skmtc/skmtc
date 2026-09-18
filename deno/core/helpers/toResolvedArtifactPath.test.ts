@@ -1,4 +1,4 @@
-import { assertEquals } from '@std/assert/equals'
+import { assertEquals, assertThrows } from '@std/assert'
 import { toResolvedArtifactPath } from './toResolvedArtifactPath.ts'
 
 Deno.test('toResolvedArtifactPath - joins base path with destination', () => {
@@ -72,4 +72,36 @@ Deno.test('toResolvedArtifactPath - handles multiple @/ in path', () => {
   })
   // Only first @/ is stripped
   assertEquals(result, 'base/path/@/file.ts')
+})
+
+Deno.test('toResolvedArtifactPath - a Windows-spelled destination resolves to the same key', () => {
+  assertEquals(
+    toResolvedArtifactPath({ basePath: './src', destinationPath: '@\\types\\x.ts' }),
+    'src/types/x.ts'
+  )
+  assertEquals(
+    toResolvedArtifactPath({ basePath: undefined, destinationPath: 'types\\x.ts' }),
+    'types/x.ts'
+  )
+})
+
+Deno.test('toResolvedArtifactPath - a Windows-spelled basePath resolves to the same key', () => {
+  assertEquals(
+    toResolvedArtifactPath({ basePath: '.\\src\\generated', destinationPath: '@/x.ts' }),
+    'src/generated/x.ts'
+  )
+})
+
+Deno.test('toResolvedArtifactPath - the key never contains a backslash, on any host', () => {
+  const key = toResolvedArtifactPath({ basePath: './src', destinationPath: '@/a/b/c.ts' })
+  assertEquals(key.includes('\\'), false)
+  assertEquals(key, 'src/a/b/c.ts')
+})
+
+Deno.test('toResolvedArtifactPath - a destination that escapes basePath is refused', () => {
+  assertThrows(() => toResolvedArtifactPath({ basePath: './src', destinationPath: '../x.ts' }))
+  assertThrows(() =>
+    toResolvedArtifactPath({ basePath: './src', destinationPath: 'types/../../x.ts' })
+  )
+  assertThrows(() => toResolvedArtifactPath({ basePath: undefined, destinationPath: '../x.ts' }))
 })
