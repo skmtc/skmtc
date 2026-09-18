@@ -1,21 +1,28 @@
 import { GenerateContext, OasDocument } from '@skmtc/core'
 import type { GenerateContextType } from '@skmtc/core'
-import * as log from 'jsr:@std/log@0.224/logger'
+import { Logger } from '@std/log'
 import { assertEquals, assertInstanceOf } from '@std/assert'
-import { register } from './register.ts'
-import { TsFile } from './TsFile.ts'
+import { register } from '@/src/register.ts'
+import { TsFile } from '@/src/TsFile.ts'
+import { createType } from '@/src/createIdentifier.ts'
 
 const toGenerateContext = (): GenerateContextType => {
   return new GenerateContext({
     document: { type: 'oas', value: new OasDocument() },
     settings: undefined,
-    logger: new log.Logger('test', 'ERROR'),
+    logger: new Logger('test', 'CRITICAL'),
     captureCurrentResult: () => {},
     toGeneratorConfigMap: () => ({})
   })
 }
 
-Deno.test('register drops a self-import whatever spelling it arrives in', () => {
+const renderedFile = (context: GenerateContextType, path: string): string => {
+  const file = context.getFile(path)
+  assertInstanceOf(file, TsFile)
+  return file.toString()
+}
+
+Deno.test('register drops a self-import whatever spelling it arrives in, the bare form included', () => {
   const context = toGenerateContext()
 
   register(context, {
@@ -23,13 +30,12 @@ Deno.test('register drops a self-import whatever spelling it arrives in', () => 
     imports: {
       '@\\types\\x.ts': ['X'],
       './types/x.ts': ['X'],
+      'types/x.ts': ['X'],
       '@/types/y.ts': ['Y']
     }
   })
 
-  const file = context.getFile('@/types/x.ts')
-  assertInstanceOf(file, TsFile)
-  assertEquals(file.toString(), "import {Y} from '@/types/y.ts'")
+  assertEquals(renderedFile(context, '@/types/x.ts'), "import {Y} from '@/types/y.ts'")
 })
 
 Deno.test('register with a Windows-spelled destinationPath writes into the existing file', () => {
@@ -39,10 +45,26 @@ Deno.test('register with a Windows-spelled destinationPath writes into the exist
   register(context, { destinationPath: '@\\types\\x.ts', imports: { '@/types/z.ts': ['Z'] } })
 
   assertEquals(context.inspectedFiles.size, 1)
+  assertEquals(
+    renderedFile(context, '@/types/x.ts'),
+    "import {Y} from '@/types/y.ts'\nimport {Z} from '@/types/z.ts'"
+  )
+})
 
-  const file = context.getFile('@/types/x.ts')
-  assertInstanceOf(file, TsFile)
-  assertEquals(file.toString(), "import {Y} from '@/types/y.ts'\nimport {Z} from '@/types/z.ts'")
+Deno.test('register writes a workspace-spelled module in its one spelling and merges the spellings', () => {
+  const context = toGenerateContext()
+
+  register(context, {
+    destinationPath: '@/types/x.ts',
+    imports: { '@\\types\\y.ts': ['Y'], './types/y.ts': ['Y3'], zod: ['z'] },
+    reExports: { '.\\types\\z.ts': [createType('Z')] }
+  })
+
+  assertEquals(
+    renderedFile(context, '@/types/x.ts'),
+    "export type { Z } from '@/types/z.ts'\n\n" +
+      "import {Y, Y3} from '@/types/y.ts'\nimport {z} from 'zod'"
+  )
 })
 
 Deno.test('register renders the peer import exactly as issue #147 expects', () => {
@@ -53,7 +75,8 @@ Deno.test('register renders the peer import exactly as issue #147 expects', () =
     imports: { '@/types/widgetOwner.generated.ts': [{ name: 'WidgetOwner', type: 'type' }] }
   })
 
-  const file = context.getFile('@/types/widget.generated.ts')
-  assertInstanceOf(file, TsFile)
-  assertEquals(file.toString(), "import type {WidgetOwner} from '@/types/widgetOwner.generated.ts'")
+  assertEquals(
+    renderedFile(context, '@/types/widget.generated.ts'),
+    "import type {WidgetOwner} from '@/types/widgetOwner.generated.ts'"
+  )
 })

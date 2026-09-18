@@ -234,8 +234,9 @@ export class RenderContext {
     }
 
     // Build one sidecar per captured File from the spans the sink
-    // resolved (no re-render, no `toString`). Keyed by destination path,
-    // matching the file map. Accumulate the flat generation map.
+    // resolved (no re-render, no `toString`). Keyed by the resolved artifact
+    // path, matching `artifacts` and the manifest, so a sidecar sits at
+    // `<outDir>/<artifact key>.skm.json` where doctor looks for it.
     const { parser, schemaSrc, generatorMeta } = postPassConfig
     const sidecars: Record<string, Sidecar> = {}
     const generationMap: GenerationMapEntry[] = []
@@ -248,7 +249,11 @@ export class RenderContext {
         parser,
         generatorMeta
       })
-      sidecars[capture.destinationPath] = sidecar
+      const artifactPath = toResolvedArtifactPath({
+        basePath: this.basePath,
+        destinationPath: capture.destinationPath
+      })
+      sidecars[artifactPath] = sidecar
       generationMap.push(...entriesForSidecar(sidecar))
     }
     this.#captures = []

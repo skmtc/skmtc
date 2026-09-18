@@ -376,9 +376,9 @@ Deno.test('GqlOperationDriver', async t => {
       assertEquals(registerSpy.calls[0].args[0].imports, undefined)
     })
 
-    await t.step('rejects an absolute export path', () => {
+    await t.step('rejects a Windows drive export path', () => {
       const { context } = createMockContext()
-      const projection = createMockProjection({ exportPath: '/absolute/path/operation.ts' })
+      const projection = createMockProjection({ exportPath: 'C:\\absolute\\operation.ts' })
       const operation = createMockOperation({ fieldName: 'testOp' })
 
       assertThrows(
@@ -391,7 +391,7 @@ Deno.test('GqlOperationDriver', async t => {
             variant: 'main'
           }),
         Error,
-        'is absolute'
+        'is a Windows drive or UNC path'
       )
     })
 

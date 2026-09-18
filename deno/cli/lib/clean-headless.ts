@@ -24,7 +24,7 @@ import { join } from '@std/path/join'
 import { resolve } from '@std/path/resolve'
 import { relative } from '@std/path/relative'
 import { existsSync } from '@std/fs/exists'
-import { toWorkspacePath } from '@skmtc/core'
+import { isInsideRoot } from '@/lib/is-inside-root.ts'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { Manifest } from '@/lib/manifest.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
@@ -151,7 +151,7 @@ export const cleanHeadless = async ({
     // root. A manifest key that escapes it (a stray `..` segment) is
     // refused rather than deleted — this command is destructive and
     // not undoable.
-    if (!resolve(absolutePath).startsWith(appRoot)) {
+    if (!isInsideRoot(appRoot, absolutePath)) {
       skipped.push(path)
       continue
     }
@@ -198,8 +198,8 @@ export const cleanHeadless = async ({
   const anchors = toAnchorDirs(appRoot, clientSettings)
   const removedDirs = anchors
     ? pruneEmptyDirs({ deletedAbsPaths, anchors, dryRun }).map(dir =>
-        // Reported like manifest keys: workspace-relative, forward slashes.
-        toWorkspacePath(relative(appRoot, dir))
+        // Reported like manifest keys: relative to the app root, forward slashes.
+        relative(appRoot, dir).replaceAll('\\', '/')
       )
     : []
 

@@ -1,6 +1,7 @@
 import { join } from '@std/path/join'
 import { parse } from '@std/path/parse'
 import { resolve } from '@std/path/resolve'
+import { isInsideRoot } from '@/lib/is-inside-root.ts'
 import { ensureDirSync } from '@std/fs/ensure-dir'
 import { ensureFileSync } from '@std/fs/ensure-file'
 import { existsSync } from '@std/fs/exists'
@@ -100,7 +101,7 @@ export const deletePreviousArtifacts = ({
       // Containment guard: generated files always live under the app
       // root. A manifest key that escapes it (a stray `..` segment) is
       // refused rather than deleted — same stance as `clean`.
-      if (!resolve(absolutePath).startsWith(appRoot)) {
+      if (!isInsideRoot(appRoot, absolutePath)) {
         continue
       }
 
@@ -179,6 +180,13 @@ export type WriteGeneratedFilesResult = {
    * describes the file as it actually exists on disk.
    */
   onDiskDrift: Record<string, string>
+  /**
+   * Artifact keys refused because they resolve outside the app root —
+   * only possible from a bundle whose pinned core predates the export-path
+   * rule. Not written, not in the manifest; a strict-JSON consumer reads
+   * the refusal here rather than from stderr.
+   */
+  escaped: string[]
   /** Live report for ejected files, present when the project has any. All lists carry owned artifact paths. */
   ejections?: {
     reAdoptable: string[]
@@ -223,7 +231,19 @@ export const writeGeneratedFiles = ({
     }
   }
   const twinBlocked: string[] = []
-  const escaped: string[] = []
+
+  // Containment guard: core guarantees every artifact key sits below
+  // basePath, so a key that resolves outside the app root can only come
+  // from a bundle whose pinned core predates that rule. Refused rather
+  // than written — the same stance as the delete loop and `clean` — and
+  // dropped from the manifest, so no consumer lists it as generated.
+  const escaped = Object.keys(artifacts ?? {}).filter(
+    artifactPath => !isInsideRoot(appRoot, join(skmtcRootPath, '..', artifactPath))
+  )
+  const escapedSet = new Set(escaped)
+  for (const path of escaped) {
+    delete manifest.files[path]
+  }
 
   deletePreviousArtifacts({
     incomingPaths: Object.keys(artifacts ?? {}),
@@ -258,12 +278,7 @@ export const writeGeneratedFiles = ({
     const absolutePath = join(skmtcRootPath, '..', artifactPath)
     const canonicalHash = toContentHash(content)
 
-    // Containment guard: core guarantees every artifact key sits below
-    // basePath, so a key that resolves outside the app root can only come
-    // from a bundle whose pinned core predates that rule. Refused rather
-    // than written — the same stance as the delete loop and `clean`.
-    if (!resolve(absolutePath).startsWith(appRoot)) {
-      escaped.push(artifactPath)
+    if (escapedSet.has(artifactPath)) {
       continue
     }
 
@@ -443,6 +458,7 @@ export const writeGeneratedFiles = ({
     manifest,
     artifacts,
     protectedPaths: [],
+    escaped,
     onDiskDrift,
     ...(ejections ? { ejections } : {})
   }

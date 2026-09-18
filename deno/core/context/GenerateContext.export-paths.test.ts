@@ -12,9 +12,9 @@
  */
 
 import { assertEquals, assertExists, assertInstanceOf } from '@std/assert'
-import type * as log from '@std/log'
-import { GenerateContext } from './GenerateContext.ts'
-import { StackTrail } from './StackTrail.ts'
+import { Logger } from '@std/log'
+import { GenerateContext } from '@/context/GenerateContext.ts'
+import { StackTrail } from '@/context/StackTrail.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasComponents } from '@/oas/components/Components.ts'
@@ -32,14 +32,9 @@ import type { ModelProjectionConstructorArgs } from '@/dsl/model/types.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { ResultType } from '@/types/Results.ts'
+import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 
-const mockLogger: log.Logger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-  critical: () => {}
-} as unknown as log.Logger
+const logger = new Logger('test', 'CRITICAL')
 
 const neutralLang: Lang = {
   createFile: ({ path }) => new MockFile({ path }),
@@ -112,16 +107,19 @@ const buildContext = ({
   })
 
   const results: ResultType[] = []
+  const generators: GeneratorsMapContainer<Enrichments> = { [GENERATOR_ID]: entry }
 
   const context = new GenerateContext({
     document: { type: 'oas', value: document },
     settings,
-    logger: mockLogger,
+    logger,
     captureCurrentResult: result => {
       results.push(result)
     },
-    // deno-lint-ignore no-explicit-any
-    toGeneratorConfigMap: () => ({ [GENERATOR_ID]: entry }) as any
+    // The constructor lets each caller pick the enrichment type, which no
+    // concrete map can satisfy; the cast narrows to exactly that mismatch.
+    toGeneratorConfigMap: <EnrichmentType>() =>
+      generators as unknown as GeneratorsMapContainer<EnrichmentType>
   })
 
   return { context, results }
@@ -182,7 +180,7 @@ Deno.test('export paths - a Windows-spelled destinationPath registers into the e
 })
 
 Deno.test('export paths - a toExportPath that escapes basePath fails the item and adds no file', () => {
-  for (const escaping of ['@/../escape.ts', '../escape.ts', '/etc/escape.ts', '@/']) {
+  for (const escaping of ['@/../escape.ts', '../escape.ts', 'C:\\escape.ts', '@/']) {
     const { context, results } = buildContext({ toExportPath: () => escaping })
     const { files } = context.toArtifacts(new StackTrail(['test']))
 

@@ -24,7 +24,7 @@
 
 import { join } from '@std/path/join'
 import { dirname } from '@std/path/dirname'
-import { normalize } from '@std/path/normalize'
+import { toWorkspacePath } from '@skmtc/core'
 import { existsSync } from '@std/fs/exists'
 import { ensureDirSync } from '@std/fs/ensure-dir'
 import * as v from 'valibot'
@@ -104,7 +104,7 @@ export const ejectHeadless = async ({
   const ownedExportPath = removeGeneratedSuffix(entry.destinationPath, suffix)
 
   const alreadyEjected = (clientSettings?.ejected ?? []).some(
-    ejectedPath => normalize(ejectedPath) === normalize(ownedExportPath)
+    ejectedPath => toWorkspacePath(ejectedPath) === toWorkspacePath(ownedExportPath)
   )
   if (entry.ejected || alreadyEjected) {
     return { ok: false, reason: `"${file}" is already ejected.` }
@@ -122,7 +122,7 @@ export const ejectHeadless = async ({
     return { ok: false, reason: `"${artifactPath}" does not exist on disk — nothing to eject.` }
   }
 
-  const renames = normalize(ownedArtifactPath) !== normalize(artifactPath)
+  const renames = toWorkspacePath(ownedArtifactPath) !== toWorkspacePath(artifactPath)
 
   if (renames && existsSync(absoluteOwned)) {
     return {
@@ -217,7 +217,8 @@ export const adoptHeadless = ({
       destinationPath: ejectedPath
     })
     return (
-      normalize(ejectedPath) === normalize(file) || normalize(ownedArtifact) === normalize(file)
+      toWorkspacePath(ejectedPath) === toWorkspacePath(file) ||
+      toWorkspacePath(ownedArtifact) === toWorkspacePath(file)
     )
   })
 
@@ -247,7 +248,7 @@ export const adoptHeadless = ({
   const absoluteOwned = join(skmtcRootPath, '..', ownedArtifactPath)
   const absoluteGenerated = join(skmtcRootPath, '..', generatedArtifactPath)
 
-  const renames = normalize(generatedArtifactPath) !== normalize(ownedArtifactPath)
+  const renames = toWorkspacePath(generatedArtifactPath) !== toWorkspacePath(ownedArtifactPath)
 
   if (renames && existsSync(absoluteOwned) && existsSync(absoluteGenerated)) {
     return {
@@ -278,7 +279,7 @@ export const adoptHeadless = ({
   // 3. Release ownership last — from here the engine and writer treat
   //    the file as generated again.
   updateClientJsonEjected(projectPath, ejected =>
-    ejected.filter(ejectedPath => normalize(ejectedPath) !== normalize(ownedExportPath))
+    ejected.filter(ejectedPath => toWorkspacePath(ejectedPath) !== toWorkspacePath(ownedExportPath))
   )
 
   delete ejections.files[ownedExportPath]
@@ -292,10 +293,13 @@ const findManifestEntry = (
   files: Record<string, { destinationPath: string; ejected?: boolean }>,
   file: string
 ): [string, { destinationPath: string; ejected?: boolean }] | undefined => {
-  const normalized = normalize(file)
+  const normalized = toWorkspacePath(file)
 
   return Object.entries(files).find(([artifactPath, entry]) => {
-    return normalize(artifactPath) === normalized || normalize(entry.destinationPath) === normalized
+    return (
+      toWorkspacePath(artifactPath) === normalized ||
+      toWorkspacePath(entry.destinationPath) === normalized
+    )
   })
 }
 

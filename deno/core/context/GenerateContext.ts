@@ -1158,7 +1158,7 @@ export class GenerateContext implements GenerateContextType {
       this.settings?.generatedSuffix ?? DEFAULT_GENERATED_SUFFIX
     )
 
-    return this.#ejectedBySuffixedPath.get(normalizeExportPath(suffixed)) ?? suffixed
+    return this.#ejectedBySuffixedPath.get(suffixed) ?? suffixed
   }
 
   /**
@@ -1174,7 +1174,7 @@ export class GenerateContext implements GenerateContextType {
       this.#ejectedBySuffixedPathCache = new Map(
         (this.settings?.ejected ?? []).map(ejectedPath => {
           const normalized = normalizeExportPath(ejectedPath)
-          return [normalizeExportPath(applyGeneratedSuffix(normalized, suffix)), normalized]
+          return [applyGeneratedSuffix(normalized, suffix), normalized]
         })
       )
     }

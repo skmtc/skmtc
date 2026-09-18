@@ -52,25 +52,8 @@
 import { type GeneratorEnrichments, generatorEnrichments } from './Enrichments.ts'
 import * as v from 'valibot'
 import { type Method, method } from './Method.ts'
-import { isAbsolute as isPosixAbsolute } from '@std/path/posix/is-absolute'
-import { isAbsolute as isWindowsAbsolute } from '@std/path/windows/is-absolute'
+import { hasParentSegment, isAbsolutePath, isExportPath } from '@/helpers/normalizeExportPath.ts'
 import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
-
-/**
- * Whether a relative path contains a `..` parent-reference segment.
- * `..` is a parent reference only as a whole path segment — a
- * directory name that merely contains dots is not flagged.
- */
-const hasParentSegment = (path: string): boolean =>
-  path.split(/[/\\]/).some(segment => segment === '..')
-
-/**
- * Whether a path is absolute on either host: a POSIX root, a Windows
- * drive (`C:\`, `C:/`) or a UNC share. Checked on every host, so a
- * client.json written on Windows is rejected the same way on Linux.
- */
-const isAbsolutePath = (path: string): boolean =>
-  isPosixAbsolute(path.replaceAll('\\', '/')) || isWindowsAbsolute(path)
 
 /**
  * Valibot schema for {@link ModulePackage}.
@@ -280,7 +263,18 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   inputDirs: v.optional(v.array(v.string())),
   formatter: v.optional(v.string()),
   generatedSuffix: v.optional(v.string()),
-  ejected: v.optional(v.array(v.string()))
+  ejected: v.optional(
+    v.array(
+      v.pipe(
+        v.string(),
+        v.check(
+          isExportPath,
+          'settings.ejected entries are export paths: a forward path below basePath, ' +
+            'with no ".." segment and not a Windows drive or UNC path'
+        )
+      )
+    )
+  )
 })
 
 /**

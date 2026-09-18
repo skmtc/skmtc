@@ -93,6 +93,8 @@ export type GenerateLocalResult = {
    * for consumers (see `WriteGeneratedFilesResult`).
    */
   protectedPaths: string[]
+  /** Artifact keys refused for resolving outside the app root (see `WriteGeneratedFilesResult`). */
+  escaped: string[]
   /**
    * Drift report for ejected files (see `WriteGeneratedFilesResult`).
    * Present only when the project has ejected files.
@@ -128,7 +130,7 @@ export const generateLocal = async ({
         stackUrl
       })
 
-    const { protectedPaths, ejections, onDiskDrift } = writeGeneratedFiles({
+    const { protectedPaths, escaped, ejections, onDiskDrift } = writeGeneratedFiles({
       manifestPath,
       artifacts,
       manifest,
@@ -225,6 +227,7 @@ export const generateLocal = async ({
       filePaths: Object.keys(artifacts),
       anchors: anchorsStats,
       protectedPaths,
+      escaped,
       ...(ejections ? { ejections } : {})
     }
   } catch (error) {

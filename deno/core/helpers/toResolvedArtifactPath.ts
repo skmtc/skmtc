@@ -2,7 +2,7 @@
  * Resolves an artifact's destination path onto `basePath`.
  *
  * `destinationPath` is an export path in any spelling
- * ({@link normalizeExportPath}) — `@/models/User.ts` as a generator wrote
+ * ({@link toExportPathBody}) — `@/models/User.ts` as a generator wrote
  * it, `./models/User.ts`, or with Windows separators — and is always
  * joined onto `basePath` with forward slashes, so the artifact key reads
  * the same on every host. A `..` segment or an absolute path is refused:
@@ -12,7 +12,7 @@
  */
 
 import { join } from '@std/path/posix/join'
-import { normalizeExportPath } from '@/helpers/normalizeExportPath.ts'
+import { toExportPathBody } from '@/helpers/normalizeExportPath.ts'
 import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
 
 /**
@@ -45,8 +45,5 @@ export const toResolvedArtifactPath = ({
   basePath,
   destinationPath
 }: ToResolvedArtifactPathArgs): string => {
-  return join(
-    toWorkspacePath(basePath ?? ''),
-    toWorkspacePath(normalizeExportPath(destinationPath))
-  )
+  return join(toWorkspacePath(basePath ?? ''), toExportPathBody(destinationPath))
 }

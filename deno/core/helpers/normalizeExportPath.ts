@@ -4,11 +4,88 @@ import { isAbsolute as isWindowsAbsolute } from '@std/path/windows/is-absolute'
 import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
 
 /**
- * Options for {@link normalizeExportPath}.
+ * Options for {@link normalizeExportPath} and {@link toExportPathBody}.
  */
 export type NormalizeExportPathOptions = {
   /** Names the generator in the error when the path is rejected. */
   generatorId?: string
+}
+
+/**
+ * Whether a path contains a `..` parent-reference segment. `..` is a parent
+ * reference only as a whole segment — a directory name that merely contains
+ * dots is not flagged.
+ */
+export const hasParentSegment = (path: string): boolean =>
+  path.split(/[/\\]/).some(segment => segment === '..')
+
+/**
+ * Whether a path is absolute on either host: a POSIX root, a Windows drive
+ * (`C:\`, `C:/`) or a UNC share. Checked on every host, so a client.json
+ * written on Windows is rejected the same way on Linux.
+ */
+export const isAbsolutePath = (path: string): boolean =>
+  isPosixAbsolute(path.replaceAll('\\', '/')) || isWindowsAbsolute(path)
+
+/**
+ * A Windows drive path (`C:\`, `C:/`) or a UNC path (`\\server\share`):
+ * the two absolute forms that can never be relative to `basePath`. A bare
+ * leading `/` is not one — it is an anchor spelling of the workspace root.
+ */
+const isDriveOrUncPath = (path: string): boolean =>
+  /^[A-Za-z]:[\\/]/.test(path) || path.startsWith('\\\\')
+
+/**
+ * Whether `path` is spelled from the workspace root — `@/`, `./`, a bare
+ * leading `/`, or their Windows forms. An artifact path, never a bare
+ * module specifier such as `zod` or `@tanstack/query`.
+ */
+export const isWorkspaceSpelled = (path: string): boolean => /^(@[\\/]|\.[\\/]|[\\/])/.test(path)
+
+/**
+ * Whether `path` can be an export path: not a Windows drive or UNC path,
+ * no `..` segment, and naming a file rather than `basePath` itself. The
+ * non-throwing form of {@link normalizeExportPath}'s checks, for schema
+ * validation and for comparing a module specifier against a file path.
+ */
+export const isExportPath = (path: string): boolean =>
+  !isDriveOrUncPath(path) && !hasParentSegment(path) && toBody(path) !== ''
+
+/**
+ * The export path relative to `basePath`, canonical and with no anchor:
+ * what {@link normalizeExportPath} writes after `@/`, and what
+ * {@link toResolvedArtifactPath} joins onto `basePath`.
+ *
+ * Throws when the path cannot name a file below `basePath`: a Windows
+ * drive or UNC path, a `..` segment (checked as a whole segment before
+ * normalization, so it is never resolved), or a path naming `basePath`
+ * itself (`@/`, `./`, `.`, `/`, ``).
+ */
+export const toExportPathBody = (
+  path: string,
+  { generatorId }: NormalizeExportPathOptions = {}
+): string => {
+  const reject = (reason: string): never => {
+    const source = generatorId ? ` returned by generator '${generatorId}'` : ''
+
+    throw new Error(`Export path '${path}'${source} ${reason}`)
+  }
+
+  if (isDriveOrUncPath(path)) {
+    return reject('is a Windows drive or UNC path; an export path is relative to basePath')
+  }
+
+  if (hasParentSegment(path)) {
+    return reject('contains a ".." segment; an export path is a forward path below basePath')
+  }
+
+  const body = toBody(path)
+
+  if (body === '') {
+    return reject('names basePath itself; an export path names a file below it')
+  }
+
+  return body
 }
 
 /**
@@ -17,15 +94,12 @@ export type NormalizeExportPathOptions = {
  *
  * An export path is a logical path inside the workspace, never a
  * filesystem path, so it reads the same on every host. A generator may
- * return it as `@/types/User.ts`, `./types/User.ts`, `types/User.ts`, or
- * with Windows separators; the engine stores this form and nothing else,
- * so file-map keys, import modules and the ejected lookup always agree.
- * The result is a fixed point.
+ * return it as `@/types/User.ts`, `./types/User.ts`, `/types/User.ts`,
+ * `types/User.ts`, or with Windows separators; the engine stores this form
+ * and nothing else, so file-map keys, import modules and the ejected lookup
+ * always agree. The result is a fixed point.
  *
- * Throws when the path cannot name a file below `basePath`: a `..`
- * segment (checked as a whole segment, before normalization, so it is
- * never resolved), an absolute path on either host, or a path naming
- * `basePath` itself (`@/`, `./`, `.`, ``).
+ * Throws in the cases {@link toExportPathBody} throws.
  *
  * @example
  * ```typescript
@@ -36,36 +110,13 @@ export type NormalizeExportPathOptions = {
  */
 export const normalizeExportPath = (
   path: string,
-  { generatorId }: NormalizeExportPathOptions = {}
-): string => {
-  const forward = path.replaceAll('\\', '/')
-
-  const reject = (reason: string): never => {
-    const source = generatorId ? ` returned by generator '${generatorId}'` : ''
-
-    throw new Error(`Export path '${path}'${source} ${reason}`)
-  }
-
-  if (isPosixAbsolute(forward) || isWindowsAbsolute(path)) {
-    return reject('is absolute; an export path is relative to basePath')
-  }
-
-  if (forward.split('/').some(segment => segment === '..')) {
-    return reject('contains a ".." segment; an export path is a forward path below basePath')
-  }
-
-  const normalized = normalize(toWorkspacePath(forward))
-
-  if (normalized === '' || normalized === '.') {
-    return reject('names basePath itself; an export path names a file below it')
-  }
-
-  return `@/${normalized}`
-}
+  options: NormalizeExportPathOptions = {}
+): string => `@/${toExportPathBody(path, options)}`
 
 /**
- * Whether `path` is spelled from the workspace root (`@/`, `./`, or their
- * Windows forms) — an artifact path, never a bare module specifier such as
- * `zod` or `@tanstack/query`.
+ * Separator swap, POSIX normalize (so `@//x` and `@/./x` collapse), then
+ * every anchor spelling goes: `@/`, `./`, and a leading `/`. The root in
+ * any spelling is the empty string.
  */
-export const isWorkspaceSpelled = (path: string): boolean => /^(@|\.)[\\/]/.test(path)
+const toBody = (path: string): string =>
+  toWorkspacePath(normalize(path.replaceAll('\\', '/'))).replace(/^\/+/, '')

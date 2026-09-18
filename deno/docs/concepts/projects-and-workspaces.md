@@ -357,8 +357,11 @@ path. Its one spelling is `@/` followed by a forward-slash path relative to
 path a generator hands it (`normalizeExportPath` in `@skmtc/core`) — `./`,
 the bare form and Windows separators all become that spelling — and refuses a
 `..` segment, an absolute path, or `@/` alone, so every artifact lands below
-`basePath` on every host. `isWorkspaceSpelled` is how a language package tells
-an export path from a bare module specifier such as `zod`.
+`basePath` on every host. `toExportPathBody` is the same path with no anchor,
+what `toResolvedArtifactPath` joins onto `basePath`; `isExportPath` is the
+non-throwing form of the checks, used by the settings schema; and
+`isWorkspaceSpelled` is how a language package tells an export path from a
+bare module specifier such as `zod`.
 
 `@` means two things here, and the two never meet. On the way **in**, `@/` is
 Skmtc's **workspace root** — the anchor `toExportPath` writes and

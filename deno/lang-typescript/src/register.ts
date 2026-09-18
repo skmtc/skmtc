@@ -1,4 +1,4 @@
-import { isWorkspaceSpelled, normalizeExportPath } from '@skmtc/core'
+import { isExportPath, isWorkspaceSpelled, normalizeExportPath } from '@skmtc/core'
 import type { DefinitionBase, GenerateContextType, GeneratedValue, Stringable } from '@skmtc/core'
 import { TsFile } from './TsFile.ts'
 import { TsImport, type ImportNameArg } from './TsImport.ts'
@@ -51,19 +51,25 @@ export const register = (
     context.addFile(new TsFile({ path: destinationPath, settings: context.settings }))
   }
 
+  // A module spelled from the workspace root is an export path and is
+  // written in its one spelling, so `@\types\y.ts` and `./types/y.ts` render
+  // and merge as `@/types/y.ts`. A bare specifier (`zod`) is left alone.
+  const toModule = (module: string): string =>
+    isWorkspaceSpelled(module) ? normalizeExportPath(module) : module
+
+  // A self-import — a symbol exported from the destination file itself — is
+  // already in scope and is never imported. Compared canonically, in every
+  // spelling normalizeExportPath accepts, so the bare form counts too.
+  const isSelfImport = (module: string): boolean =>
+    isExportPath(module) && normalizeExportPath(module) === destinationPath
+
   context.register({
-    // Drop self-imports: a symbol exported from the destination file itself is
-    // already in scope, so it is never imported. Centralising the same-file
-    // check here means callers register against an export path without
-    // pre-checking it (compared normalised, since `destinationPath` is too).
     imports: Object.entries(args.imports ?? {})
-      .filter(
-        ([module]) => !isWorkspaceSpelled(module) || normalizeExportPath(module) !== destinationPath
-      )
-      .map(([module, names]) => TsImport.fromConcise(module, names)),
+      .filter(([module]) => !isSelfImport(module))
+      .map(([module, names]) => TsImport.fromConcise(toModule(module), names)),
     reExports: Object.entries(args.reExports ?? {})
       .filter(([, identifiers]) => identifiers.length > 0)
-      .map(([module, identifiers]) => TsReExport.fromConcise(module, identifiers)),
+      .map(([module, identifiers]) => TsReExport.fromConcise(toModule(module), identifiers)),
     definitions: args.definitions,
     custom: args.custom,
     destinationPath
