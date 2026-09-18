@@ -20,3 +20,8 @@ Deno.test('isInsideRoot - a path that climbs out is outside', () => {
   assertEquals(isInsideRoot(root, join(root, '..', 'x.ts')), false)
   assertEquals(isInsideRoot(root, resolve('/home/u')), false)
 })
+
+Deno.test('isInsideRoot - a first segment that merely begins with two dots is inside', () => {
+  assertEquals(isInsideRoot(root, join(root, '..cache', 'x.ts')), true)
+  assertEquals(isInsideRoot(root, join(root, '..cache')), true)
+})

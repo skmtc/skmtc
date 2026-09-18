@@ -45,7 +45,6 @@ export const ${camelCase(this.generator.packageName)}Entry = toModelEntry({
     return `import { decapitalize, camelCase, emptyEnrichmentSchema } from '@skmtc/core'
 import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 import type { TsIdentifierType } from '@skmtc/lang-typescript'
-import { join } from '@std/path/join'
 
 export const ${mainModule}Base = toTsModelProjectionBase({
   id: '${this.generator.toModuleName()}',
@@ -63,7 +62,7 @@ export const ${mainModule}Base = toTsModelProjectionBase({
 
     // The engine injects the generated-file suffix (settings.generatedSuffix,
     // default '.generated') when this result is stored into ContentSettings.
-    return join('@', 'types', \`\${decapitalize(name)}.tsx\`)
+    return \`@/types/\${decapitalize(name)}.tsx\`
   },
 
   toEnrichmentSchema: () => emptyEnrichmentSchema

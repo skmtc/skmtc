@@ -29,8 +29,10 @@ Return the path spelled as `@/` plus a forward-slash path relative to
 the project's configured `basePath`. Write it as a template literal,
 not with a path-library `join`: the join would use the host's separator,
 and on Windows that puts backslashes inside generated import text. A
-`..` segment or an absolute path is rejected at generation time, so
-every file lands below `basePath`.
+`..` segment, or a Windows drive or UNC path, is rejected at generation
+time, so every file lands below `basePath`. A leading `/` is another
+spelling of the anchor, not a filesystem root: `/api/x.ts` lands at
+`<basePath>/api/x.ts`.
 
 ```ts
 // Stock gen-zod / gen-typescript default (decapitalized name under @/types)

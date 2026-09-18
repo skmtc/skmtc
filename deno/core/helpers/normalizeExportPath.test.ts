@@ -55,7 +55,7 @@ Deno.test('normalizeExportPath: a Windows drive or UNC path is rejected on every
 })
 
 Deno.test('normalizeExportPath: a path naming basePath itself is rejected', () => {
-  for (const path of ['@/', './', '.', '/', '']) {
+  for (const path of ['@/', '@', '@/.', '@\\.', '@/./', './', './.', '.', '/', '']) {
     assertThrows(() => normalizeExportPath(path), Error, undefined, `path: '${path}'`)
   }
 })

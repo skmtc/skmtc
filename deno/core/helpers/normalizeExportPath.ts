@@ -59,7 +59,7 @@ export const isExportPath = (path: string): boolean =>
  * Throws when the path cannot name a file below `basePath`: a Windows
  * drive or UNC path, a `..` segment (checked as a whole segment before
  * normalization, so it is never resolved), or a path naming `basePath`
- * itself (`@/`, `./`, `.`, `/`, ``).
+ * itself (`@/`, `@`, `./`, `.`, `/`, ``).
  */
 export const toExportPathBody = (
   path: string,
@@ -114,9 +114,20 @@ export const normalizeExportPath = (
 ): string => `@/${toExportPathBody(path, options)}`
 
 /**
- * Separator swap, POSIX normalize (so `@//x` and `@/./x` collapse), then
- * every anchor spelling goes: `@/`, `./`, and a leading `/`. The root in
- * any spelling is the empty string.
+ * Separator swap, then every anchor spelling goes (`@/`, `./`, a leading
+ * `/` — {@link toWorkspacePath}), then POSIX normalize of what is left so
+ * `@//x` and `@/./x` collapse. The anchor goes first so normalize can
+ * never fold it into a name (`@/.` is the root, not a file called `@`).
+ * The root in any spelling is the empty string.
  */
-const toBody = (path: string): string =>
-  toWorkspacePath(normalize(path.replaceAll('\\', '/'))).replace(/^\/+/, '')
+const toBody = (path: string): string => {
+  const stripped = toWorkspacePath(path.replaceAll('\\', '/'))
+
+  if (stripped === '') {
+    return ''
+  }
+
+  const normalized = normalize(stripped)
+
+  return normalized === '.' ? '' : normalized
+}

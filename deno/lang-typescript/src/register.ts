@@ -1,4 +1,4 @@
-import { isExportPath, isWorkspaceSpelled, normalizeExportPath } from '@skmtc/core'
+import { isWorkspaceSpelled, normalizeExportPath } from '@skmtc/core'
 import type { DefinitionBase, GenerateContextType, GeneratedValue, Stringable } from '@skmtc/core'
 import { TsFile } from './TsFile.ts'
 import { TsImport, type ImportNameArg } from './TsImport.ts'
@@ -51,17 +51,22 @@ export const register = (
     context.addFile(new TsFile({ path: destinationPath, settings: context.settings }))
   }
 
-  // A module spelled from the workspace root is an export path and is
-  // written in its one spelling, so `@\types\y.ts` and `./types/y.ts` render
-  // and merge as `@/types/y.ts`. A bare specifier (`zod`) is left alone.
+  // In the imports map a string is either a module specifier (`zod`,
+  // `@tanstack/query`, and any bare string) or an export path, which must
+  // be spelled from the workspace root (`@/`, `./`, `/`, Windows forms).
+  // One predicate decides which, for the rendered text and the self-import
+  // check alike, so core and the lang never read one string two ways.
+  const isPath = isWorkspaceSpelled
+
+  // An export path is written in its one spelling, so `@\types\y.ts` and
+  // `./types/y.ts` render and merge as `@/types/y.ts`.
   const toModule = (module: string): string =>
-    isWorkspaceSpelled(module) ? normalizeExportPath(module) : module
+    isPath(module) ? normalizeExportPath(module) : module
 
   // A self-import — a symbol exported from the destination file itself — is
-  // already in scope and is never imported. Compared canonically, in every
-  // spelling normalizeExportPath accepts, so the bare form counts too.
+  // already in scope and is never imported.
   const isSelfImport = (module: string): boolean =>
-    isExportPath(module) && normalizeExportPath(module) === destinationPath
+    isPath(module) && normalizeExportPath(module) === destinationPath
 
   context.register({
     imports: Object.entries(args.imports ?? {})

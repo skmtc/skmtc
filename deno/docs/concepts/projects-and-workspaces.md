@@ -355,9 +355,9 @@ An export path is a logical path inside the workspace, never a filesystem
 path. Its one spelling is `@/` followed by a forward-slash path relative to
 `basePath`: `@/packages/models/src/User.ts`. The engine canonicalizes every
 path a generator hands it (`normalizeExportPath` in `@skmtc/core`) — `./`,
-the bare form and Windows separators all become that spelling — and refuses a
-`..` segment, an absolute path, or `@/` alone, so every artifact lands below
-`basePath` on every host. `toExportPathBody` is the same path with no anchor,
+the bare form, a leading `/` and Windows separators all become that spelling
+— and refuses a `..` segment, a Windows drive or UNC path, or `@/` alone, so
+every artifact lands below `basePath` on every host. `toExportPathBody` is the same path with no anchor,
 what `toResolvedArtifactPath` joins onto `basePath`; `isExportPath` is the
 non-throwing form of the checks, used by the settings schema; and
 `isWorkspaceSpelled` is how a language package tells an export path from a

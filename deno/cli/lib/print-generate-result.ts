@@ -56,6 +56,9 @@ export const printGenerateResult = ({
         // this is the structured mirror. Always present (empty when
         // nothing was protected) so consumers can pin to it.
         protectedFiles: result.protectedPaths,
+        // Artifact keys refused for resolving outside the app root. Always
+        // present (empty when nothing was refused) so consumers can pin to it.
+        escaped: result.escaped,
         // Ejected-file drift report — present only when the project
         // has ejected files, so the field's presence is the signal.
         ...(result.ejections ? { ejections: result.ejections } : {}),

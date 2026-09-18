@@ -22,7 +22,7 @@ const renderedFile = (context: GenerateContextType, path: string): string => {
   return file.toString()
 }
 
-Deno.test('register drops a self-import whatever spelling it arrives in, the bare form included', () => {
+Deno.test('register drops a self-import in every workspace spelling; a bare string is a specifier', () => {
   const context = toGenerateContext()
 
   register(context, {
@@ -30,12 +30,17 @@ Deno.test('register drops a self-import whatever spelling it arrives in, the bar
     imports: {
       '@\\types\\x.ts': ['X'],
       './types/x.ts': ['X'],
+      '/types/x.ts': ['X'],
       'types/x.ts': ['X'],
       '@/types/y.ts': ['Y']
     }
   })
 
-  assertEquals(renderedFile(context, '@/types/x.ts'), "import {Y} from '@/types/y.ts'")
+  // `types/x.ts` is a package specifier here, not the destination file.
+  assertEquals(
+    renderedFile(context, '@/types/x.ts'),
+    "import {X} from 'types/x.ts'\nimport {Y} from '@/types/y.ts'"
+  )
 })
 
 Deno.test('register with a Windows-spelled destinationPath writes into the existing file', () => {
