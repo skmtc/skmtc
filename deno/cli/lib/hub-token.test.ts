@@ -69,11 +69,14 @@ Deno.test('writeStoredAuth - writes auth.json with mode 0600', async () => {
 
     assertEquals(filePath, toAuthFilePath())
 
-    const mode = Deno.statSync(filePath).mode
-    if (mode === null) {
-      throw new Error('expected stat to return a mode')
+    // POSIX file modes only: Windows has no 0600 to assert.
+    if (Deno.build.os !== 'windows') {
+      const mode = Deno.statSync(filePath).mode
+      if (mode === null) {
+        throw new Error('expected stat to return a mode')
+      }
+      assertEquals(mode & 0o777, 0o600)
     }
-    assertEquals(mode & 0o777, 0o600)
 
     assertEquals(readStoredAuth(), {
       host: 'https://api.example.test',

@@ -5,6 +5,7 @@ import { CloneGeneratorView } from './CloneGeneratorView.tsx'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
 import { Project } from '@/lib/project.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import { pointer } from '@/test/pointer.ts'
 
 // Helper to create a fresh mock project for each test
 const createMockProject = (generators: string[] = []): Project => {
@@ -122,7 +123,7 @@ Deno.test(
     assertEquals(
       frame,
       `Select generators to clone:
-❯ @skmtc/gen-typescript
+${pointer} @skmtc/gen-typescript
   @skmtc/gen-zod`
     )
 
@@ -162,7 +163,7 @@ Deno.test(
     assertEquals(
       selectedFrame,
       `Select generators to clone:
-❯ @skmtc/gen-typescript ✔
+${pointer} @skmtc/gen-typescript ✔
   @skmtc/gen-zod`
     )
 
@@ -328,7 +329,7 @@ Deno.test(
     assertEquals(
       frame,
       `Select generators to clone:
-❯ @skmtc/gen-typescript
+${pointer} @skmtc/gen-typescript
   @skmtc/gen-zod`
     )
 
@@ -385,7 +386,7 @@ Deno.test(
         selectedFrame,
         `Select generators to clone:
   @skmtc/gen-typescript ✔
-❯ @skmtc/gen-zod ✔
+${pointer} @skmtc/gen-zod ✔
   @skmtc/gen-tanstack-query`
       )
 

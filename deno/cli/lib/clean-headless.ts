@@ -24,6 +24,7 @@ import { join } from '@std/path/join'
 import { resolve } from '@std/path/resolve'
 import { relative } from '@std/path/relative'
 import { existsSync } from '@std/fs/exists'
+import { toWorkspacePath } from '@skmtc/core'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { Manifest } from '@/lib/manifest.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
@@ -196,7 +197,10 @@ export const cleanHeadless = async ({
   // anchors so the walk can never remove basePath or a package root.
   const anchors = toAnchorDirs(appRoot, clientSettings)
   const removedDirs = anchors
-    ? pruneEmptyDirs({ deletedAbsPaths, anchors, dryRun }).map(dir => relative(appRoot, dir))
+    ? pruneEmptyDirs({ deletedAbsPaths, anchors, dryRun }).map(dir =>
+        // Reported like manifest keys: workspace-relative, forward slashes.
+        toWorkspacePath(relative(appRoot, dir))
+      )
     : []
 
   let manifestRemoved = false

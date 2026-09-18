@@ -1,5 +1,6 @@
 import { assertEquals, assertRejects } from '@std/assert'
 import { stub, type Stub } from '@std/testing/mock'
+import { isAbsolute } from '@std/path/is-absolute'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
 import { SchemaFile } from '@/lib/schema-file.ts'
 import type { FileType, SchemaSource } from '@/lib/types.ts'
@@ -108,8 +109,8 @@ Deno.test('toSchemaContents', async t => {
       getFromSourceStub = stub(SchemaFile, 'getFromSource', (schemaSource: SchemaSource) => {
         // Verify that the path was converted to absolute
         if (schemaSource.type === 'local') {
-          // Path should now be absolute (starts with /)
-          assertEquals(schemaSource.path.startsWith('/'), true)
+          // Path should now be absolute, in the host's own spelling
+          assertEquals(isAbsolute(schemaSource.path), true)
           assertEquals(schemaSource.path.includes(relativePath), true)
         }
 

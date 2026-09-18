@@ -37,7 +37,12 @@ const lintProject = async (
       stderr: 'piped'
     })
     const output = await command.output()
-    const report: unknown = JSON.parse(new TextDecoder().decode(output.stdout))
+    const stdout = new TextDecoder().decode(output.stdout)
+    assert(
+      stdout.length > 0,
+      `deno lint wrote no JSON (exit ${output.code}): ${new TextDecoder().decode(output.stderr)}`
+    )
+    const report: unknown = JSON.parse(stdout)
     assert(report !== null && typeof report === 'object' && 'diagnostics' in report)
     const { diagnostics } = report
     assert(Array.isArray(diagnostics))

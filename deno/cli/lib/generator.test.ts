@@ -1,4 +1,5 @@
 import { assertEquals, assertRejects } from '@std/assert'
+import { join } from '@std/path/join'
 import { Generator, CorePinMismatchError } from '@/lib/generator.ts'
 import type { RootDenoJson } from '@/lib/root-deno-json.ts'
 import { readCliCorePin } from '@/lib/doctor-headless.ts'
@@ -108,7 +109,7 @@ Deno.test('Generator.toPath - returns absolute path when relative is false', () 
 
   // Path should end with the package name and include .skmtc
   assertEquals(path.includes('.skmtc'), true)
-  assertEquals(path.endsWith('my-project/test-generator'), true)
+  assertEquals(path.endsWith(join('my-project', 'test-generator')), true)
 })
 
 Deno.test('Generator.toModPath - returns relative mod.ts path when relative is true', () => {

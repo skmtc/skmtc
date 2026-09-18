@@ -1,5 +1,6 @@
 import { assertEquals, assertThrows } from '@std/assert'
 import { parse as parseYaml } from '@std/yaml'
+import { fromFileUrl } from '@std/path/from-file-url'
 import {
   applyOverlay,
   type JsonValue,
@@ -101,8 +102,8 @@ for (const testCase of cases) {
 
 Deno.test('overlayFiles - serialises the overlaid document to YAML', async () => {
   const yaml = await overlayFiles(
-    new URL('./fixtures/openapi/town.yaml', import.meta.url).pathname,
-    new URL('./fixtures/overlays/update-root.yaml', import.meta.url).pathname
+    fromFileUrl(new URL('./fixtures/openapi/town.yaml', import.meta.url)),
+    fromFileUrl(new URL('./fixtures/overlays/update-root.yaml', import.meta.url))
   )
   const parsed = parseYaml(yaml) as Record<string, JsonValue>
   const info = parsed.info as Record<string, JsonValue>
@@ -111,8 +112,8 @@ Deno.test('overlayFiles - serialises the overlaid document to YAML', async () =>
 
 Deno.test('overlayFiles - can output JSON', async () => {
   const json = await overlayFiles(
-    new URL('./fixtures/openapi/town.yaml', import.meta.url).pathname,
-    new URL('./fixtures/overlays/update-root.yaml', import.meta.url).pathname,
+    fromFileUrl(new URL('./fixtures/openapi/town.yaml', import.meta.url)),
+    fromFileUrl(new URL('./fixtures/overlays/update-root.yaml', import.meta.url)),
     { format: 'json' }
   )
   const parsed = JSON.parse(json) as Record<string, JsonValue>
@@ -121,8 +122,8 @@ Deno.test('overlayFiles - can output JSON', async () => {
 })
 
 Deno.test('overlayFiles - YAML and JSON output describe the same document', async () => {
-  const openapi = new URL('./fixtures/openapi/petstore.yaml', import.meta.url).pathname
-  const overlay = new URL('./fixtures/overlays/overlay.yaml', import.meta.url).pathname
+  const openapi = fromFileUrl(new URL('./fixtures/openapi/petstore.yaml', import.meta.url))
+  const overlay = fromFileUrl(new URL('./fixtures/overlays/overlay.yaml', import.meta.url))
 
   const fromYaml = parseYaml(await overlayFiles(openapi, overlay, { format: 'yaml' }))
   const fromJson = JSON.parse(await overlayFiles(openapi, overlay, { format: 'json' }))
