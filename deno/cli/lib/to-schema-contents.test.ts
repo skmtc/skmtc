@@ -127,9 +127,9 @@ Deno.test('toSchemaContents', async t => {
       assertEquals(result.contents, mockContents)
       assertEquals(result.schemaSource.type, 'local')
       if (result.schemaSource.type === 'local') {
-        // Verify path is now absolute
-        assertEquals(result.schemaSource.path.startsWith('/'), true)
-        assertEquals(result.schemaSource.path.includes(relativePath), true)
+        // Verify path is now absolute, in the host's own spelling
+        assertEquals(isAbsolute(result.schemaSource.path), true)
+        assertEquals(result.schemaSource.path.includes(join('schemas', 'openapi.json')), true)
       }
       assertEquals(result.fileType, 'json')
     } finally {
