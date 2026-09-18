@@ -1,6 +1,6 @@
 {
   "@skmtc/core": {
-    "minor": "0.28",
+    "minor": "0.29",
     "deno": "2.9.5",
     "exports": {
       "AddPropertyArgs": "6922b41f66aabe95",
@@ -163,6 +163,7 @@
       "NakedModelGeneratorKey": "ce766ec4dd3a3717",
       "NakedOasOperationGeneratorKey": "6542a9e6b5c81429",
       "NakedWebhookGeneratorKey": "ba60f43693f80eab",
+      "NormalizeExportPathOptions": "45d4998167c454e0",
       "NormalizedModelProjection": "60ee30f0e85c51f6",
       "NumberFields": "5d62860a4c008eaf",
       "OAuth2SecuritySchemeFields": "fd6ae4c744f31b78",
@@ -450,6 +451,7 @@
       "isReservedEnrichmentKey": "4a4658e09661c0c2",
       "isUnderRoot": "7c9e98d6ea8b1d16",
       "isWebhookGeneratorKey": "20aa69f799aeefd6",
+      "isWorkspaceSpelled": "42ce360356f0e8bc",
       "lensInputModuleType": "629098147f140f11",
       "manifestContent": "ab70f0c29157b6d7",
       "manifestEntry": "90472df9525f397c",
@@ -466,6 +468,7 @@
       "modulePackages": "a0a1674586292f30",
       "moduleSelect": "60eca34cf17e2f6f",
       "moduleTypeOf": "f701cd2ff00f6295",
+      "normalizeExportPath": "54b46033ab93f4d0",
       "numberFormat": "0a752fffac0fe683",
       "oasArrayDataWithoutItems": "00d3b927d3abd7d8",
       "oasBooleanData": "0a752fffac0fe683",
