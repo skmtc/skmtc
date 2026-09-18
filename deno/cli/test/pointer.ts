@@ -7,3 +7,6 @@ import figures from 'npm:figures@6.1.0'
  * expectation must use the same source rather than a literal.
  */
 export const pointer: string = figures.pointer
+
+/** The done marker (`✔`, or `√` where Unicode is unsupported). */
+export const tick: string = figures.tick
