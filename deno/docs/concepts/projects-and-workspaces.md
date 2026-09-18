@@ -351,6 +351,15 @@ cross-file import three ways:
 - **no package match** → the `exportPath` as given (a bare specifier like
   `zod`, or the workspace-root `@/…` of a project without `packages`).
 
+An export path is a logical path inside the workspace, never a filesystem
+path. Its one spelling is `@/` followed by a forward-slash path relative to
+`basePath`: `@/packages/models/src/User.ts`. The engine canonicalizes every
+path a generator hands it (`normalizeExportPath` in `@skmtc/core`) — `./`,
+the bare form and Windows separators all become that spelling — and refuses a
+`..` segment, an absolute path, or `@/` alone, so every artifact lands below
+`basePath` on every host. `isWorkspaceSpelled` is how a language package tells
+an export path from a bare module specifier such as `zod`.
+
 `@` means two things here, and the two never meet. On the way **in**, `@/` is
 Skmtc's **workspace root** — the anchor `toExportPath` writes and
 `toResolvedArtifactPath` joins onto `basePath`; `./` spells the same anchor.

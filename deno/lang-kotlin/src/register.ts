@@ -1,5 +1,5 @@
-import { normalize } from '@std/path/normalize'
 import invariant from 'npm:tiny-invariant@1.3.3'
+import { normalizeExportPath } from '@skmtc/core'
 import type { DefinitionBase, GenerateContextType, GeneratedValue, Stringable } from '@skmtc/core'
 import { KtFile } from './KtFile.ts'
 import { KtImport, type KtImportNameArg } from './KtImport.ts'
@@ -51,7 +51,7 @@ export const register = (
   context: GenerateContextType,
   args: KtRegisterArgs & { destinationPath: string }
 ): void => {
-  const destinationPath = normalize(args.destinationPath)
+  const destinationPath = normalizeExportPath(args.destinationPath)
 
   const file =
     context.getFile(destinationPath) ??

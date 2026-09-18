@@ -1,4 +1,4 @@
-import { normalize } from '@std/path/normalize'
+import { isWorkspaceSpelled, normalizeExportPath } from '@skmtc/core'
 import type { DefinitionBase, GenerateContextType, GeneratedValue, Stringable } from '@skmtc/core'
 import { TsFile } from './TsFile.ts'
 import { TsImport, type ImportNameArg } from './TsImport.ts'
@@ -45,7 +45,7 @@ export const register = (
   context: GenerateContextType,
   args: TsRegisterArgs & { destinationPath: string }
 ): void => {
-  const destinationPath = normalize(args.destinationPath)
+  const destinationPath = normalizeExportPath(args.destinationPath)
 
   if (!context.getFile(destinationPath)) {
     context.addFile(new TsFile({ path: destinationPath, settings: context.settings }))
@@ -57,7 +57,9 @@ export const register = (
     // check here means callers register against an export path without
     // pre-checking it (compared normalised, since `destinationPath` is too).
     imports: Object.entries(args.imports ?? {})
-      .filter(([module]) => normalize(module) !== destinationPath)
+      .filter(
+        ([module]) => !isWorkspaceSpelled(module) || normalizeExportPath(module) !== destinationPath
+      )
       .map(([module, names]) => TsImport.fromConcise(module, names)),
     reExports: Object.entries(args.reExports ?? {})
       .filter(([, identifiers]) => identifiers.length > 0)

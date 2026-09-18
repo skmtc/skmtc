@@ -80,7 +80,7 @@ Deno.test('RenderContext', async t => {
       const file = createFileWithDefinition('test.ts', 'x', 'const x = 1;')
 
       const files = new Map<string, FileBase>()
-      files.set('test.ts', file)
+      files.set('@/test.ts', file)
 
       const previews = {}
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
@@ -98,7 +98,7 @@ Deno.test('RenderContext', async t => {
 
       assertEquals(typeof result.artifacts['test.ts'], 'string')
       assertEquals(result.previews, previews)
-      assertEquals(result.files['test.ts'].destinationPath, 'test.ts')
+      assertEquals(result.files['test.ts'].destinationPath, '@/test.ts')
     })
 
     await t.step('should include previews in result', () => {
@@ -141,7 +141,7 @@ Deno.test('RenderContext', async t => {
       )
 
       const files = new Map<string, FileBase>()
-      files.set('utils.ts', file)
+      files.set('@/utils.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
@@ -157,7 +157,7 @@ Deno.test('RenderContext', async t => {
       const result = context.collate(stackTrail)
 
       assertEquals(typeof result.artifacts['utils.ts'], 'string')
-      assertEquals(result.files['utils.ts'].destinationPath, 'utils.ts')
+      assertEquals(result.files['utils.ts'].destinationPath, '@/utils.ts')
       assertEquals(result.files['utils.ts'].lines > 0, true)
       assertEquals(result.files['utils.ts'].characters > 0, true)
     })
@@ -167,8 +167,8 @@ Deno.test('RenderContext', async t => {
       const file2 = createFileWithDefinition('file2.ts', 'b', 'export const b = 2;')
 
       const files = new Map<string, FileBase>()
-      files.set('file1.ts', file1)
-      files.set('file2.ts', file2)
+      files.set('@/file1.ts', file1)
+      files.set('@/file2.ts', file2)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
@@ -186,8 +186,8 @@ Deno.test('RenderContext', async t => {
       assertEquals(Object.keys(result.artifacts).length, 2)
       assertEquals(typeof result.artifacts['file1.ts'], 'string')
       assertEquals(typeof result.artifacts['file2.ts'], 'string')
-      assertEquals(result.files['file1.ts'].destinationPath, 'file1.ts')
-      assertEquals(result.files['file2.ts'].destinationPath, 'file2.ts')
+      assertEquals(result.files['file1.ts'].destinationPath, '@/file1.ts')
+      assertEquals(result.files['file2.ts'].destinationPath, '@/file2.ts')
     })
 
     await t.step('should handle empty files map', () => {
@@ -213,7 +213,7 @@ Deno.test('RenderContext', async t => {
       const file = createFileWithDefinition('models/User.ts', 'User', 'export interface User {}')
 
       const files = new Map<string, FileBase>()
-      files.set('models/User.ts', file)
+      files.set('@/models/User.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
@@ -229,14 +229,17 @@ Deno.test('RenderContext', async t => {
       const result = context.collate(stackTrail)
 
       // Path should be resolved with basePath
-      assertEquals(result.files['src/generated/models/User.ts']?.destinationPath, 'models/User.ts')
+      assertEquals(
+        result.files['src/generated/models/User.ts']?.destinationPath,
+        '@/models/User.ts'
+      )
     })
 
     await t.step('should calculate line count correctly', () => {
       const file = createFileWithDefinition('test.ts', 'test', 'line1\nline2\nline3')
 
       const files = new Map<string, FileBase>()
-      files.set('test.ts', file)
+      files.set('@/test.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
@@ -260,7 +263,7 @@ Deno.test('RenderContext', async t => {
       const file = createFileWithDefinition('test.ts', 'x', content)
 
       const files = new Map<string, FileBase>()
-      files.set('test.ts', file)
+      files.set('@/test.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
@@ -282,7 +285,7 @@ Deno.test('RenderContext', async t => {
       const file = createFileWithDefinition('test.ts', 'x', 'const x = 1;')
 
       const files = new Map<string, FileBase>()
-      files.set('test.ts', file)
+      files.set('@/test.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
       const captureSpy = spy(captureCurrentResult)
@@ -308,7 +311,7 @@ Deno.test('RenderContext', async t => {
       })
 
       const files = new Map<string, FileBase>()
-      files.set('config.json', jsonFile)
+      files.set('@/config.json', jsonFile)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
@@ -333,7 +336,7 @@ Deno.test('RenderContext', async t => {
       const file = new MockFile({ path: 'test.ts' })
 
       const files = new Map<string, FileBase>()
-      files.set('test.ts', file)
+      files.set('@/test.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
@@ -353,7 +356,7 @@ Deno.test('RenderContext', async t => {
       const file = new MockFile({ path: 'models/User.ts' })
 
       const files = new Map<string, FileBase>()
-      files.set('models/User.ts', file)
+      files.set('@/models/User.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
@@ -388,7 +391,7 @@ Deno.test('RenderContext', async t => {
       assertThrows(
         () => context.getFile('nonexistent.ts'),
         Error,
-        'File not found during render phase: nonexistent.ts'
+        'File not found during render phase: @/nonexistent.ts'
       )
     })
 
@@ -424,7 +427,7 @@ Deno.test('RenderContext', async t => {
       file.definitions.set('User', userDefinition)
 
       const files = new Map<string, FileBase>()
-      files.set('types.ts', file)
+      files.set('@/types.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
@@ -448,7 +451,7 @@ Deno.test('RenderContext', async t => {
       const file = new MockFile({ path: 'types.ts' })
 
       const files = new Map<string, FileBase>()
-      files.set('types.ts', file)
+      files.set('@/types.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
@@ -498,7 +501,7 @@ Deno.test('RenderContext', async t => {
       })
 
       const files = new Map<string, FileBase>()
-      files.set('config.json', jsonFile)
+      files.set('@/config.json', jsonFile)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
@@ -536,7 +539,7 @@ Deno.test('RenderContext', async t => {
       file.definitions.set('User', userDefinition)
 
       const files = new Map<string, FileBase>()
-      files.set('models/User.ts', file)
+      files.set('@/models/User.ts', file)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 
@@ -578,8 +581,8 @@ Deno.test('RenderContext', async t => {
       )
 
       const files = new Map<string, FileBase>()
-      files.set('models/User.ts', file1)
-      files.set('models/Post.ts', file2)
+      files.set('@/models/User.ts', file1)
+      files.set('@/models/Post.ts', file2)
 
       const previews = {}
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
@@ -619,8 +622,8 @@ Deno.test('RenderContext', async t => {
       })
 
       const files = new Map<string, FileBase>()
-      files.set('index.ts', tsFile)
-      files.set('tsconfig.json', jsonFile)
+      files.set('@/index.ts', tsFile)
+      files.set('@/tsconfig.json', jsonFile)
 
       const captureCurrentResult = (_result: ResultType, _st: StackTrail) => {}
 

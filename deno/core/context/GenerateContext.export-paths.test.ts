@@ -43,7 +43,8 @@ const mockLogger: log.Logger = {
 
 const neutralLang: Lang = {
   createFile: ({ path }) => new MockFile({ path }),
-  toDefinition: ({ context, identifier, value }) => new MockDefinition({ context, identifier, value }),
+  toDefinition: ({ context, identifier, value }) =>
+    new MockDefinition({ context, identifier, value }),
   toImport: ({ identifier, module }) => new MockImport({ names: [identifier.name], module }),
   toIdentifier: ({ name, typeName }) => new IdentifierBase({ name, typeName })
 }
@@ -84,7 +85,7 @@ const buildContext = ({
       super(args)
 
       if (args.refName === 'Widget') {
-        args.context.insertModel(Model, 'WidgetOwner' as RefName)
+        this.insertModel(Model, 'WidgetOwner' as RefName)
       }
     }
 
@@ -157,10 +158,11 @@ Deno.test('export paths - every accepted spelling is one file', () => {
     })
     const { files } = context.toArtifacts(new StackTrail(['test']))
 
-    assertEquals([...files.keys()].sort(), [
-      '@/types/widget.generated.ts',
-      '@/types/widgetOwner.generated.ts'
-    ], `spelling: '${spelling}'`)
+    assertEquals(
+      [...files.keys()].sort(),
+      ['@/types/widget.generated.ts', '@/types/widgetOwner.generated.ts'],
+      `spelling: '${spelling}'`
+    )
   }
 })
 

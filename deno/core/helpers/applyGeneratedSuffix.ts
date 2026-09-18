@@ -1,4 +1,4 @@
-import { extname } from '@std/path/extname'
+import { extname } from '@std/path/posix/extname'
 
 /**
  * The filename suffix marking a file as engine-owned, applied by the

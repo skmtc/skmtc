@@ -390,23 +390,23 @@ Deno.test('OasOperationDriver', async t => {
       assertEquals(registerSpy.calls[0].args[0].imports, undefined)
     })
 
-    await t.step('should handle relative vs absolute paths', () => {
-      const { context, registerSpy } = createMockContext()
+    await t.step('rejects an absolute export path', () => {
+      const { context } = createMockContext()
       const projection = createMockProjection({ exportPath: '/absolute/path/operation.ts' })
       const operation = createMockOperation({ operationId: 'testOp' })
 
-      new OasOperationDriver({
-        context,
-        projection,
-        operation,
-        destinationPath: './relative/path/file.ts',
-        variant: 'main'
-      })
-
-      // Different paths should register import
-      assertSpyCalls(registerSpy, 2)
-      const importCall = registerSpy.calls.find(call => call.args[0].imports)
-      assertExists(importCall)
+      assertThrows(
+        () =>
+          new OasOperationDriver({
+            context,
+            projection,
+            operation,
+            destinationPath: './relative/path/file.ts',
+            variant: 'main'
+          }),
+        Error,
+        'is absolute'
+      )
     })
 
     await t.step('should register imports with correct structure', () => {

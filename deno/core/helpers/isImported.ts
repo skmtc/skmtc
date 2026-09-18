@@ -1,4 +1,4 @@
-import { normalize } from '@std/path/normalize'
+import { normalize } from '@std/path/posix/normalize'
 
 /**
  * Determines whether two file paths represent different locations (import required).
@@ -81,5 +81,5 @@ import { normalize } from '@std/path/normalize'
  * ```
  */
 export const isImported = (pathOne: string, pathTwo: string): boolean => {
-  return normalize(pathOne) !== normalize(pathTwo)
+  return normalize(pathOne.replaceAll('\\', '/')) !== normalize(pathTwo.replaceAll('\\', '/'))
 }

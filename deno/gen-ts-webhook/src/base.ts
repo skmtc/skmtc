@@ -1,6 +1,5 @@
 import { emptyEnrichmentSchema } from '@skmtc/core'
 import { toTsWebhookProjectionBase } from '@skmtc/lang-typescript'
-import { join } from '@std/path'
 import { toPascalCase } from './toPascalCase.ts'
 import denoJson from '../deno.json' with { type: 'json' }
 
@@ -18,7 +17,7 @@ export const WebhookHandlerBase = toTsWebhookProjectionBase({
   },
   toIdentifierType: () => ({ type: 'type' }),
   toExportPath({ webhook }) {
-    return join('@', 'webhooks', `${toPascalCase(webhook.name)}.generated.ts`)
+    return `@/webhooks/${toPascalCase(webhook.name)}.generated.ts`
   },
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })

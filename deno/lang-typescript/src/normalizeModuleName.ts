@@ -1,4 +1,10 @@
-import { isUnderRoot, matchPackage, type ModulePackage, type PackageMatch } from '@skmtc/core'
+import {
+  isUnderRoot,
+  isWorkspaceSpelled,
+  matchPackage,
+  type ModulePackage,
+  type PackageMatch
+} from '@skmtc/core'
 import { toAliasPath } from '@/src/toAliasPath.ts'
 
 /**
@@ -130,9 +136,6 @@ export const normalizeModuleName = ({
 
   return match.innermost.moduleName
 }
-
-/** Spelled from the workspace root — an artifact path, never a bare specifier. */
-const isWorkspaceSpelled = (path: string): boolean => /^(@\/|\.\/)/.test(path)
 
 type ToMissingModuleNameMessageArgs = {
   match: PackageMatch

@@ -52,6 +52,8 @@
 import { type GeneratorEnrichments, generatorEnrichments } from './Enrichments.ts'
 import * as v from 'valibot'
 import { type Method, method } from './Method.ts'
+import { isAbsolute as isPosixAbsolute } from '@std/path/posix/is-absolute'
+import { isAbsolute as isWindowsAbsolute } from '@std/path/windows/is-absolute'
 import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
 
 /**
@@ -61,6 +63,14 @@ import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
  */
 const hasParentSegment = (path: string): boolean =>
   path.split(/[/\\]/).some(segment => segment === '..')
+
+/**
+ * Whether a path is absolute on either host: a POSIX root, a Windows
+ * drive (`C:\`, `C:/`) or a UNC share. Checked on every host, so a
+ * client.json written on Windows is rejected the same way on Linux.
+ */
+const isAbsolutePath = (path: string): boolean =>
+  isPosixAbsolute(path.replaceAll('\\', '/')) || isWindowsAbsolute(path)
 
 /**
  * Valibot schema for {@link ModulePackage}.
@@ -246,7 +256,21 @@ export const anchorsSettings: v.GenericSchema<AnchorsSettings> = v.object({
 })
 
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
-  basePath: v.optional(v.string()),
+  basePath: v.optional(
+    v.pipe(
+      v.string(),
+      v.check(
+        basePath => !isAbsolutePath(basePath),
+        'basePath must be relative to the SKMTC root (the directory containing .skmtc/); ' +
+          'absolute paths are not supported because generated output is always written under it'
+      ),
+      v.check(
+        basePath => !hasParentSegment(basePath),
+        'basePath must be a forward path with no ".." segments — it is the on-disk anchor ' +
+          'every generated file sits below'
+      )
+    )
+  ),
   schemaSource: v.optional(v.string()),
   packages: v.optional(modulePackages),
   enrichments: v.optional(generatorEnrichments),

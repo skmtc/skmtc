@@ -1,6 +1,6 @@
 import invariant from 'npm:tiny-invariant@1.3.3'
 import type { FilesRenderResult, RenderResult } from './generateTypes.ts'
-import { normalize } from '@std/path/normalize'
+import { normalizeExportPath } from '@/helpers/normalizeExportPath.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { PickArgs } from './generateTypes.ts'
 import type { ResultType } from '@/types/Results.ts'
@@ -345,13 +345,13 @@ export class RenderContext {
   }
 
   /**
-   * Retrieves a file from the context by its normalized path.
+   * Retrieves a file from the context by its export path.
    *
-   * This method looks up a file in the context's file map using path normalization
-   * to ensure consistent path resolution. It validates that the requested file
-   * exists and throws an error if not found.
+   * The path is canonicalized first ({@link normalizeExportPath}), so any
+   * spelling of the same export path finds the same file. Throws when no
+   * file exists at that path.
    *
-   * @param filePath - The file path to retrieve (will be normalized)
+   * @param filePath - The export path to retrieve, in any spelling
    * @returns The File or JsonFile instance
    * @throws {Error} When the file is not found in the context
    *
@@ -360,13 +360,13 @@ export class RenderContext {
    * const file = renderContext.getFile('./src/models/User.ts');
    * console.log(file.toString()); // Access file content
    *
-   * // Works with various path formats
+   * // Every spelling of the same export path finds the same file
    * const sameFile = renderContext.getFile('src/models/User.ts');
-   * const alsoSameFile = renderContext.getFile('/absolute/path/src/models/User.ts');
+   * const alsoSameFile = renderContext.getFile('@/src/models/User.ts');
    * ```
    */
   getFile(filePath: string): FileBase {
-    const normalizedPath = normalize(filePath)
+    const normalizedPath = normalizeExportPath(filePath)
 
     const currentFile = this.files.get(normalizedPath)
 

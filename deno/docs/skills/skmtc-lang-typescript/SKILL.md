@@ -12,7 +12,7 @@ description: >
 metadata:
   describes:
     '@skmtc/lang-typescript': '0.12'
-    '@skmtc/core': '0.28'
+    '@skmtc/core': '0.29'
 ---
 
 # The TypeScript layer (@skmtc/lang-typescript)
@@ -38,7 +38,7 @@ export const MyBase = toTsModelProjectionBase<EnrichmentSchema>({
   toIdentifierType: () => ({ type: 'variable' }),
   toExportPath({ refName, enrichments, variant }) {
     const name = this.toIdentifierName({ refName, enrichments, variant })
-    return join('@', 'types', `${name}.generated.ts`)   // '@/' root marker
+    return `@/types/${name}.generated.ts`   // '@/' is basePath; always forward slashes
   },
   toEnrichmentSchema
 })
@@ -47,7 +47,10 @@ export const MyBase = toTsModelProjectionBase<EnrichmentSchema>({
 Factories: `toTsModelProjectionBase`, `toTsOasOperationProjectionBase`
 (+ webhook/GQL variants). Snippets extend `TsSnippet` directly. Casing
 helpers (`camelCase`, `capitalize`, `decapitalize`) and `toEndpointName`
-come from `@skmtc/core`; `join` from `@std/path`.
+come from `@skmtc/core`. An export path is `@/` plus a forward-slash path
+relative to `basePath`; write it as a template literal, never with a
+path-library `join`, which would use the host's separator (backslashes on
+Windows) inside generated import text.
 
 The veneers take two type parameters: `EnrichmentType` and
 `ProjectionOptions`, the caller options a peer passes as `{ options }`
@@ -66,7 +69,7 @@ export const MyBase = toTsModelProjectionBase<EnrichmentSchema, ShapeOptions>({
   toIdentifierType: () => ({ type: 'variable' }),
   toExportPath({ refName, enrichments, variant, options }) {
     const name = this.toIdentifierName({ refName, enrichments, variant, options })
-    return join('@', 'types', `${name}.generated.ts`)
+    return `@/types/${name}.generated.ts`
   },
   toEnrichmentSchema
 })

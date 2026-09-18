@@ -1,6 +1,5 @@
 import { camelCase, decapitalize } from '@skmtc/core'
 import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
-import { join } from '@std/path'
 import denoJson from '../deno.json' with { type: 'json' }
 import { type EnrichmentSchema, toEnrichmentSchema } from './enrichments.ts'
 
@@ -17,13 +16,14 @@ export const MyLibBase = toTsModelProjectionBase<EnrichmentSchema>({
   // 'interface' would make consumers import it type-only.
   toIdentifierType: () => ({ type: 'variable' }),
 
-  // SLOT(export-path): where each model's file lives. '@' is the
-  // project-root marker; keep the .generated.ts suffix convention.
+  // SLOT(export-path): where each model's file lives. '@/' is basePath,
+  // and the path after it is always spelled with forward slashes; keep
+  // the .generated.ts suffix convention.
   toExportPath({ refName, enrichments, variant }): string {
     const name = this.toIdentifierName({ refName, enrichments, variant })
 
-    return join('@', 'models', `${name}.generated.ts`)
+    return `@/models/${name}.generated.ts`
   },
 
-  toEnrichmentSchema,
+  toEnrichmentSchema
 })

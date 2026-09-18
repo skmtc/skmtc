@@ -1,15 +1,18 @@
 /**
  * Resolves an artifact's destination path onto `basePath`.
  *
- * `destinationPath` is a workspace path in any spelling
- * ({@link toWorkspacePath}) — `@/models/User.ts` as a generator wrote it,
- * or `./models/User.ts` — and is always joined onto `basePath`; there is no
- * absolute-path escape.
+ * `destinationPath` is an export path in any spelling
+ * ({@link normalizeExportPath}) — `@/models/User.ts` as a generator wrote
+ * it, `./models/User.ts`, or with Windows separators — and is always
+ * joined onto `basePath` with forward slashes, so the artifact key reads
+ * the same on every host. A `..` segment or an absolute path is refused:
+ * every artifact lands below `basePath`, whoever writes it.
  *
  * @module toResolvedArtifactPath
  */
 
-import { join } from '@std/path/join'
+import { join } from '@std/path/posix/join'
+import { normalizeExportPath } from '@/helpers/normalizeExportPath.ts'
 import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
 
 /**
@@ -26,8 +29,9 @@ type ToResolvedArtifactPathArgs = {
 }
 
 /**
- * Joins `destinationPath` (canonicalized) onto `basePath`, or onto `./` when
- * `basePath` is undefined.
+ * Joins `destinationPath` (canonicalized) onto `basePath`, or onto the
+ * workspace root when `basePath` is undefined. Throws when
+ * `destinationPath` cannot name a file below `basePath`.
  *
  * @example
  * ```typescript
@@ -41,5 +45,8 @@ export const toResolvedArtifactPath = ({
   basePath,
   destinationPath
 }: ToResolvedArtifactPathArgs): string => {
-  return join(basePath ?? './', toWorkspacePath(destinationPath))
+  return join(
+    toWorkspacePath(basePath ?? ''),
+    toWorkspacePath(normalizeExportPath(destinationPath))
+  )
 }
