@@ -47,6 +47,46 @@ export const twoCoreRegistry: RegistryPackages = {
   }
 }
 
+/**
+ * Packages that declare `@skmtc/core` as a caret range (#165). The worker
+ * and `@skmtc/gen-a@0.1.0` were released on core 0.1.0; `@skmtc/gen-a@0.2.0`
+ * was released a patch later, on core 0.1.1. `@skmtc/gen-exact` still pins
+ * core 0.1.0 exactly, as generators released before #165 do. Returns a
+ * fresh object so a test can publish versions part-way through.
+ */
+export const toPatchApartRegistry = (): RegistryPackages => ({
+  '@skmtc/core': {
+    '0.1.0': 'export class Definition {}\n',
+    '0.1.1': 'export class Definition {}\n'
+  },
+  '@skmtc/worker': {
+    '0.1.0': [
+      "import { Definition } from 'jsr:@skmtc/core@^0.1.0'",
+      'export default (toGenerators: () => unknown) => [Definition, toGenerators]',
+      ''
+    ].join('\n')
+  },
+  '@skmtc/gen-a': {
+    '0.1.0': [
+      "import { Definition } from 'jsr:@skmtc/core@^0.1.0'",
+      "export default { id: '@skmtc/gen-a', Definition }",
+      ''
+    ].join('\n'),
+    '0.2.0': [
+      "import { Definition } from 'jsr:@skmtc/core@^0.1.1'",
+      "export default { id: '@skmtc/gen-a', Definition }",
+      ''
+    ].join('\n')
+  },
+  '@skmtc/gen-exact': {
+    '0.1.0': [
+      "import { Definition } from 'jsr:@skmtc/core@0.1.0'",
+      "export default { id: '@skmtc/gen-exact', Definition }",
+      ''
+    ].join('\n')
+  }
+})
+
 const toChecksum = async (content: string): Promise<string> => {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(content))
   return `sha256-${encodeHex(new Uint8Array(digest))}`
@@ -127,8 +167,8 @@ const restoreEnv = (name: string, value: string | undefined) => {
 }
 
 type RegistryProjectArgs = {
-  /** `@skmtc/gen-a` version the project pins — `0.2.0` puts two cores in the graph. */
-  generatorVersion: '0.1.0' | '0.2.0'
+  /** `@skmtc/gen-a` version the project pins — against {@link twoCoreRegistry}, `0.2.0` puts two cores in the graph. */
+  generatorVersion: string
   /** More `deno.json` imports; `gen-*` keys also go into `worker.ts`. */
   imports?: Record<string, string>
 }
@@ -141,8 +181,8 @@ export type RegistryProject = {
 
 /**
  * Creates `.skmtc/api/` in a temp dir inside the home directory (where
- * `toRootPath` looks), pinned to the {@link twoCoreRegistry} packages,
- * with a `worker.ts`, a placeholder `bundle.js` and a `client.json` that
+ * `toRootPath` looks), pinned to core 0.1.0, worker 0.1.0 and
+ * `@skmtc/gen-a@<generatorVersion>` of the served registry, with a `worker.ts`, a placeholder `bundle.js` and a `client.json` that
  * names a schema source — and cd's into it for the duration of `fn`.
  */
 export const withRegistryProject = async (

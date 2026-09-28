@@ -90,13 +90,14 @@ bundle it would produce:
 
 ```
 Project "api" resolves more than one copy of @skmtc/core:
-  @skmtc/core 0.28.7 ← @skmtc/worker@0.3.55
+  @skmtc/core 0.28.7 ← @skmtc/worker@0.3.55, worker.ts
   @skmtc/core 0.29.0 ← @skmtc/gen-typescript@0.2.7, @skmtc/gen-zod@0.2.7, @skmtc/lang-typescript@0.12.22
 ```
 
-Change the pins in the project's `deno.json` so that those packages
-agree, then run the command again. `skmtc generate` runs the same
-check before every generation.
+`worker.ts` imports `@skmtc/core`, so it marks the copy the project's
+own pin resolves to. Change the pins in the project's `deno.json` so
+that those packages agree, then run the command again. `skmtc generate`
+runs the same check before every generation.
 
 ### Bundle output
 

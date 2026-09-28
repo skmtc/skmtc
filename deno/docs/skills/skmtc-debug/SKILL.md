@@ -425,7 +425,7 @@ for '<METHOD> <path>' — peer has no enrichments configured. Only
    `core/dsl/operation/oas/OasOperationDriver.test.ts` →
    "Variant validation".
 
-### Scenario H: `TypeError: this.context.X is not a function` (workspace fallback to JSR)
+### Scenario H: `TypeError: this.context.X is not a function` (two copies of core)
 
 **Symptom:** a runtime exception like `TypeError:
 this.context.insertNormalizedModel is not a function` (any context
@@ -433,20 +433,23 @@ method) during `skmtc generate`, while `bundle.js` visibly contains a
 similar-but-differently-spelled method (`insertNormalisedModel` vs
 `insertNormalizedModel`, `toRefName` vs `getRefName`).
 
-**Cause:** two `@skmtc/core` versions in one bundle — a workspace
-member silently fell back to the JSR-published version:
+**Cause:** two `@skmtc/core` versions in one bundle. Published
+`@skmtc/*` packages declare core as a caret range (`^0.29.0`), and the
+project's `deno.json` pins core exactly; `worker.ts` imports
+`@skmtc/core`, so that pin is the version every range settles on. Two
+copies appear when something cannot settle on it:
 
-1. `@skmtc/worker` pins `@skmtc/core` with an exact version (for
-   example `@skmtc/core@0.4.0`).
-2. The local workspace member declares a different version (for
-   example `0.4.4`).
-3. Deno's workspace resolution rejects the mismatch and silently
-   fetches the worker's exact-pinned core from JSR. The bundle then
-   contains one `GenerateContext` from the worker's core and another
-   from the generators' core; at runtime `this.context` is the wrong
-   one.
+1. A package pins core **exactly** at a different version — a generator
+   released before the switch to ranges, or one built from an old
+   template.
+2. A package's range **starts above** the project pin — for example a
+   generator on `^0.29.1` in a project pinned to `0.29.0`.
+3. A local workspace member declares a version **outside** a range
+   (for example `0.4.4` against `^0.3.0`). Deno's workspace resolution
+   rejects the mismatch and silently fetches a JSR copy.
 
-**Diagnostic path:**
+**Diagnostic path:** `skmtc doctor`'s `project-package-copies/<project>`
+names each copy and the packages that import it. For case 3, also:
 
 ```bash
 grep -i "Workspace member" .skmtc/<project>/.settings/error-logs.txt
@@ -454,14 +457,15 @@ grep -i "Workspace member" .skmtc/<project>/.settings/error-logs.txt
 
 The fallback emits `Warning: Workspace member '@skmtc/core@X' was not
 used because it did not match '@skmtc/core@Y'` — and it surfaces ONLY
-in `error-logs.txt`: bundle doesn't print it, generate doesn't
-mention it, `doctor` doesn't currently flag it. The log file is the
-authoritative diagnostic.
+in `error-logs.txt`: bundle and generate don't print it, and doctor
+names the two copies but not the reason.
 
-**Fix:** align the worker's expected `@skmtc/core` version with the
-workspace — upgrade the worker to a ranged pin (`^0.4`) or pin the
-workspace member to the worker's exact version. One core copy in the
-bundle → the method exists at runtime.
+**Fix:** raise the project's `@skmtc/core`
+pin to a version every named package accepts (case 2), move an
+exact-pinned generator to a release with a caret range (case 1), or
+align the workspace member's version with the range (case 3). Then run
+`skmtc generate <project>`, which rebuilds the bundle. One core copy in
+the bundle → the method exists at runtime.
 
 ## 7. Anti-patterns specific to debugging
 

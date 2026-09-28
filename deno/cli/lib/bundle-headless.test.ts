@@ -7,10 +7,31 @@ import { bundleHeadless } from '@/lib/bundle-headless.ts'
 import { Manager } from '@/lib/manager.ts'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import {
+  toPatchApartRegistry,
   twoCoreRegistry,
   withJsrRegistryServer,
   withRegistryProject
 } from '@/tests/mocks/jsr-registry-server.mock.ts'
+
+/** Adds (or repins) imports in the project's `deno.json`, as `install` does. */
+const addProjectImports = async (projectPath: string, imports: Record<string, string>) => {
+  const denoJsonPath = join(projectPath, 'deno.json')
+  const denoJson: { imports: Record<string, string> } = JSON.parse(
+    await Deno.readTextFile(denoJsonPath)
+  )
+  denoJson.imports = { ...denoJson.imports, ...imports }
+  await Deno.writeTextFile(denoJsonPath, JSON.stringify(denoJson))
+}
+
+/** `deno bundle` starts each module with a `// <module path>` comment. */
+const bundledCorePattern = /^\/\/ \S*\/@skmtc\/core\/(\d+\.\d+\.\d+)\//gm
+
+/** The bundle holds exactly one `@skmtc/core`, at `version`. */
+const assertOneCore = async (projectPath: string, version: string) => {
+  const bundle = await Deno.readTextFile(join(projectPath, 'bundle.js'))
+  const versions = new Set(Array.from(bundle.matchAll(bundledCorePattern), ([, found]) => found))
+  assertEquals(Array.from(versions), [version])
+}
 
 Deno.test('bundleHeadless - refuses a graph with two copies of @skmtc/core', async () => {
   await withJsrRegistryServer(twoCoreRegistry, async () => {
@@ -59,10 +80,7 @@ Deno.test('bundleHeadless - a refusal leaves the earlier bundle.js untouched', a
         await bundleHeadless({ skmtcRoot: await SkmtcRoot.open(new Manager()), projectName })
         const bundled = await Deno.readTextFile(join(projectPath, 'bundle.js'))
 
-        const denoJsonPath = join(projectPath, 'deno.json')
-        const denoJson = JSON.parse(await Deno.readTextFile(denoJsonPath))
-        denoJson.imports['@skmtc/gen-b'] = 'jsr:@skmtc/gen-b@0.1.0'
-        await Deno.writeTextFile(denoJsonPath, JSON.stringify(denoJson))
+        await addProjectImports(projectPath, { '@skmtc/gen-b': 'jsr:@skmtc/gen-b@0.1.0' })
 
         await assertRejects(
           async () =>
@@ -74,5 +92,105 @@ Deno.test('bundleHeadless - a refusal leaves the earlier bundle.js untouched', a
         assertEquals(await Deno.readTextFile(join(projectPath, 'bundle.js')), bundled)
       }
     )
+  })
+})
+
+Deno.test('bundleHeadless - the project core pin decides which core the ranged packages share', async () => {
+  // The worker and gen-a both accept 0.1.1, but the project pins 0.1.0.
+  await withJsrRegistryServer(toPatchApartRegistry(), async () => {
+    await withRegistryProject(
+      { generatorVersion: '0.1.0' },
+      async ({ projectName, projectPath }) => {
+        await bundleHeadless({ skmtcRoot: await SkmtcRoot.open(new Manager()), projectName })
+
+        await assertOneCore(projectPath, '0.1.0')
+      }
+    )
+  })
+})
+
+Deno.test('bundleHeadless - a ranged worker beside an exact-pinned generator shares one core', async () => {
+  // gen-exact pins core 0.1.0; the worker's `^0.1.0` would float to 0.1.1
+  // if the project pin were not in the graph.
+  await withJsrRegistryServer(toPatchApartRegistry(), async () => {
+    await withRegistryProject(
+      { generatorVersion: '0.1.0', imports: { '@skmtc/gen-exact': 'jsr:@skmtc/gen-exact@0.1.0' } },
+      async ({ projectName, projectPath }) => {
+        await bundleHeadless({ skmtcRoot: await SkmtcRoot.open(new Manager()), projectName })
+
+        await assertOneCore(projectPath, '0.1.0')
+      }
+    )
+  })
+})
+
+Deno.test('bundleHeadless - a worker and generator released a patch apart share one @skmtc/core', async () => {
+  // The worker was released on core 0.1.0 and gen-a@0.2.0 on 0.1.1; the
+  // project pins 0.1.1, the lower bound of a CLI released alongside gen-a.
+  await withJsrRegistryServer(toPatchApartRegistry(), async () => {
+    await withRegistryProject(
+      { generatorVersion: '0.2.0', imports: { '@skmtc/core': 'jsr:@skmtc/core@0.1.1' } },
+      async ({ projectName, projectPath }) => {
+        await Deno.remove(join(projectPath, 'bundle.js'))
+        assertEquals(existsSync(join(projectPath, 'deno.lock')), false)
+
+        const result = await bundleHeadless({
+          skmtcRoot: await SkmtcRoot.open(new Manager()),
+          projectName
+        })
+
+        assertEquals(result.type, 'bundled')
+        await assertOneCore(projectPath, '0.1.1')
+      }
+    )
+  })
+})
+
+Deno.test('bundleHeadless - a deno.lock from before the patch still yields one @skmtc/core', async () => {
+  // The lock records core 0.1.0 for the project pin and the worker's
+  // `^0.1.0`. Moving the pin to 0.1.1 and installing a generator released
+  // on 0.1.1 must move those entries, not add a copy.
+  const registry = toPatchApartRegistry()
+  const { '0.1.1': core, ...earlierCores } = registry['@skmtc/core']
+  const { '0.2.0': generator, ...earlierGenerators } = registry['@skmtc/gen-a']
+  registry['@skmtc/core'] = earlierCores
+  registry['@skmtc/gen-a'] = earlierGenerators
+
+  await withJsrRegistryServer(registry, async () => {
+    await withRegistryProject(
+      { generatorVersion: '0.1.0' },
+      async ({ projectName, projectPath }) => {
+        await bundleHeadless({ skmtcRoot: await SkmtcRoot.open(new Manager()), projectName })
+        assertEquals(existsSync(join(projectPath, 'deno.lock')), true)
+        await assertOneCore(projectPath, '0.1.0')
+
+        registry['@skmtc/core']['0.1.1'] = core
+        registry['@skmtc/gen-a']['0.2.0'] = generator
+        await addProjectImports(projectPath, {
+          '@skmtc/core': 'jsr:@skmtc/core@0.1.1',
+          '@skmtc/gen-a': 'jsr:@skmtc/gen-a@0.2.0'
+        })
+
+        const result = await bundleHeadless({
+          skmtcRoot: await SkmtcRoot.open(new Manager()),
+          projectName
+        })
+
+        assertEquals(result.type, 'bundled')
+        await assertOneCore(projectPath, '0.1.1')
+      }
+    )
+  })
+})
+
+Deno.test('bundleHeadless - refuses a generator whose core range starts above the project pin', async () => {
+  await withJsrRegistryServer(toPatchApartRegistry(), async () => {
+    await withRegistryProject({ generatorVersion: '0.2.0' }, async ({ projectName }) => {
+      await assertRejects(
+        async () => bundleHeadless({ skmtcRoot: await SkmtcRoot.open(new Manager()), projectName }),
+        Error,
+        '@skmtc/core 0.1.1 ← @skmtc/gen-a@0.2.0'
+      )
+    })
   })
 })

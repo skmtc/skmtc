@@ -28,7 +28,12 @@ export const toWorker = (generatorIds: string[]) => {
   // map can route it (e.g. to a local checkout for iteration). When no
   // override is present, Deno still resolves it to the JSR-published
   // package via the project's deno.json import map.
+  //
+  // `import '@skmtc/core'` puts the project's exact core pin into the
+  // graph. Without it the pin is never resolved, and the ranged worker and
+  // generators settle on the newest core rather than the project's.
   const server = `
+import '@skmtc/core'
 import toWorker from '@skmtc/worker'
 ${imports}
 
