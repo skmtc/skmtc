@@ -5,8 +5,8 @@ import { List } from './List.ts'
 /** A heritage symbol — its name and the path it is exported from. */
 export type TsHeritageSymbol = {
   name: string
-  /** The path `name` is exported from (the import source — `normalizeModuleName`'s
-   *  `exportPath`). **Required** — a heritage symbol always declares where it
+  /** The path `name` is exported from (the import source — `toImportModule`'s
+   *  `module`). **Required** — a heritage symbol always declares where it
    *  lives; whether it actually needs importing is decided centrally during
    *  registration (`register` drops a symbol whose source is the class's own
    *  file — it is already in scope). */
@@ -19,7 +19,7 @@ export type TsHeritageSymbol = {
 export type TsHeritageArgs = {
   context: GenerateContextType
   /** The file the class is rendered into — where the heritage imports register
-   *  (`normalizeModuleName`'s `destinationPath`). Required: it is always known
+   *  (`toImportModule`'s `destinationPath`). Required: it is always known
    *  (the class's own path), and the imports can't land without it. */
   destinationPath: string
   /** The superclass — rendered as `extends <name>`. */

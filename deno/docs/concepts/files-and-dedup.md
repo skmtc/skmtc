@@ -386,8 +386,8 @@ file's `toString()` into `{ path: content }` artifacts.
 ## Cross-package path translation
 
 `TsFile.toString()` runs each import/reExport module through
-`normalizeModuleName`
-(`lang-typescript/src/normalizeModuleName.ts`). The function
+`toImportModule`
+(`lang-typescript/src/toImportModule.ts`). The function
 consults the project's `packages: ModulePackage[]` config and
 rewrites paths:
 

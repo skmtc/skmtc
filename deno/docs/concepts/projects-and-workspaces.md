@@ -341,7 +341,7 @@ generator targeting a package returns a `toExportPath` under that package's
 workspace root, `@/packages/models/src/User.ts`; joined onto `basePath` it
 lands in the right place. No `..`.
 
-**In imports.** `normalizeModuleName` (`@skmtc/lang-typescript`) resolves a
+**In imports.** `toImportModule` (`@skmtc/lang-typescript`) resolves a
 cross-file import three ways:
 
 - importer and target in the **same package** → intra-package `@/…` (the

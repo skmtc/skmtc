@@ -126,7 +126,7 @@ re-exports (which require different statements under
 #### `packages: ModulePackage[] | undefined`
 
 Inherited from `ClientSettings.packages`. Drives
-`normalizeModuleName` at render time (see below).
+`toImportModule` at render time (see below).
 
 ### `toString()`
 
@@ -145,7 +145,7 @@ definitions
 Empty sections are dropped. Non-empty sections join with double
 newlines (`\n\n`); each section's items join with single newlines.
 Import and re-export module names are re-keyed through
-`normalizeModuleName` at render time. Definitions render primaries
+`toImportModule` at render time. Definitions render primaries
 first (insertion order), then same-name companions (the
 declaration-merging layout: `class Foo … declare namespace Foo`).
 
@@ -179,17 +179,17 @@ dedup ("JSON is a degenerate language"). Used for non-code output
 Populated via `GenerateContext.registerJson({ destinationPath, json })`
 (`RegisterJsonArgs`). `registerMarkdown` is the Markdown sibling.
 
-## `normalizeModuleName`
+## `toImportModule`
 
 ```ts
-// lang-typescript/src/normalizeModuleName.ts (internal to the lang package)
-type NormalizeModuleNameArgs = {
+// lang-typescript/src/toImportModule.ts (internal to the lang package)
+type ToImportModuleArgs = {
   destinationPath: string
-  exportPath: string
+  module: string
   packages: ModulePackage[] | undefined
 }
 
-const normalizeModuleName = (args: NormalizeModuleNameArgs): string
+const toImportModule = (args: ToImportModuleArgs): string
 ```
 
 Pure function used by `TsFile.toString()` to translate file-system
@@ -201,9 +201,9 @@ cases:
 
 | Situation | Result |
 |---|---|
-| `exportPath` lies inside a configured package, and `destinationPath` lies in the same package | the package `rootPath` is replaced with `@`, so `packages/types/models/User.ts` becomes `@/models/User.ts` |
-| `exportPath` lies inside a configured package, but `destinationPath` does not | the package's `moduleName` is returned (e.g., `@company/types`) |
-| No package match | `exportPath` is returned unchanged — a bare specifier (`zod`), or the workspace-root `@/…` of a project without `packages` |
+| `module` lies inside a configured package, and `destinationPath` lies in the same package | the package `rootPath` is replaced with `@`, so `packages/types/models/User.ts` becomes `@/models/User.ts` |
+| `module` lies inside a configured package, but `destinationPath` does not | the package's `moduleName` is returned (e.g., `@company/types`) |
+| No package match | `module` is returned unchanged — a bare specifier (`zod`), or the workspace-root `@/…` of a project without `packages` |
 
 A root is a folder, compared in canonical spelling: `./packages/sdk/`,
 `@/packages/sdk` and `packages/sdk` are one root, and `packages/sdk`
@@ -255,7 +255,7 @@ filter.
 | Registering the same import name twice in one file | `TsImport.merge` collapses; one import line is rendered |
 | Same definition name registered by two *different* generators | Driver's [`affirmDefinition`](../glossary.md#affirmdefinition) throws "Registered definition mismatch" before `register` is reached |
 | Same name registered under two declaration types | Both render — TypeScript declaration merging (`class Foo` + `declare namespace Foo`), companion laid after the primary |
-| Path `./pkg/X.ts` rendering as `@/X.ts` in some files | Same-package translation via `normalizeModuleName` — expected |
+| Path `./pkg/X.ts` rendering as `@/X.ts` in some files | Same-package translation via `toImportModule` — expected |
 
 ## See also
 

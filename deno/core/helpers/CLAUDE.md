@@ -28,7 +28,7 @@ artifact paths goes through these — never re-implement the strip):
   sibling that shares the prefix.
 - `matchPackage({path, packages})` — the package roots containing a
   path as `{outermost, innermost}` (roots may nest: a nested root is a
-  subpath export). Used by `lang-typescript/normalizeModuleName` and
+  subpath export). Used by `lang-typescript/toImportModule` and
   `lang-kotlin/toPackageName`.
 
 **Naming and string helpers:**
