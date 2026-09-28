@@ -9,7 +9,8 @@ import { readCliCorePin, readCliWorkerPin } from '@/lib/doctor-headless.ts'
  *    '@skmtc/worker'`. It is imported by the CLI-generated worker, not
  *    by any cloned generator's source, so the `clone` import-collector
  *    never sees it and never adds it.
- *  - `@skmtc/core` — the generator source imports it.
+ *  - `@skmtc/core` — `worker.ts` imports it so this exact pin decides
+ *    the one core the ranged worker and generators resolve.
  *
  * Pins are added only when **absent** — an existing pin (e.g. a
  * local-checkout override) is never overwritten. Versions come from

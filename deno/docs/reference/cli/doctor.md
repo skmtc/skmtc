@@ -256,7 +256,7 @@ major-version drift can break generation. Update the project's
 
 ```
 [error] [project-package-copies/api] Project "api" resolves more than one copy of a package:
-  @skmtc/core 0.28.7 ← @skmtc/worker@0.3.55
+  @skmtc/core 0.28.7 ← @skmtc/worker@0.3.55, worker.ts
   @skmtc/core 0.29.0 ← @skmtc/gen-typescript@0.2.7, @skmtc/gen-zod@0.2.7, @skmtc/lang-typescript@0.12.22
 ```
 
@@ -264,8 +264,9 @@ The worker, a generator or a `lang-*` package resolves a different
 `@skmtc/core` from the rest. `project-core-pin` can still be `ok`: it
 compares only the project's own pin with the CLI's. Generation against
 this graph writes empty files and reports success, so `bundle` refuses
-to build it. Change the pins in the project's `deno.json` so that the
-named packages agree, then run `skmtc bundle <project>`.
+to build it. `worker.ts` marks the copy the project's own pin resolves
+to. Change the pins in the project's `deno.json` so that the named
+packages agree, then run `skmtc bundle <project>`.
 
 When the message starts `The bundle.js of project "api" holds…`, the
 graph is fine but `bundle.js` was built from an older one, and

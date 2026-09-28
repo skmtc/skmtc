@@ -50,8 +50,9 @@ export const twoCoreRegistry: RegistryPackages = {
 /**
  * Packages that declare `@skmtc/core` as a caret range (#165). The worker
  * and `@skmtc/gen-a@0.1.0` were released on core 0.1.0; `@skmtc/gen-a@0.2.0`
- * was released a patch later, on core 0.1.1. Returns a fresh object so a
- * test can publish versions part-way through.
+ * was released a patch later, on core 0.1.1. `@skmtc/gen-exact` still pins
+ * core 0.1.0 exactly, as generators released before #165 do. Returns a
+ * fresh object so a test can publish versions part-way through.
  */
 export const toPatchApartRegistry = (): RegistryPackages => ({
   '@skmtc/core': {
@@ -74,6 +75,13 @@ export const toPatchApartRegistry = (): RegistryPackages => ({
     '0.2.0': [
       "import { Definition } from 'jsr:@skmtc/core@^0.1.1'",
       "export default { id: '@skmtc/gen-a', Definition }",
+      ''
+    ].join('\n')
+  },
+  '@skmtc/gen-exact': {
+    '0.1.0': [
+      "import { Definition } from 'jsr:@skmtc/core@0.1.0'",
+      "export default { id: '@skmtc/gen-exact', Definition }",
       ''
     ].join('\n')
   }

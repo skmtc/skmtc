@@ -453,7 +453,9 @@ caret admits patch releases only), so packages released a patch apart
 resolve one copy of `@skmtc/core`. The release cascade moves each lower
 bound forward when a dependency releases. The project's `deno.json`
 keeps an **exact** `@skmtc/core` pin, written from the lower bound of
-the CLI's range; `skmtc doctor` checks that it matches the CLI's.
+the CLI's range, and the generated `worker.ts` imports `@skmtc/core`,
+so that pin is the one version every range settles on. `skmtc doctor`
+checks that it matches the CLI's.
 Lower bounds *can* lag between packages; always read `deno.json`.
 
 ## 11. Building infrastructure around SKMTC

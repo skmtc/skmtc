@@ -80,3 +80,7 @@ Deno.test('toMod - exports default from toWorker', () => {
 
   assertStringIncludes(result, 'export default toWorker')
 })
+
+Deno.test('toWorker - imports @skmtc/core so the project pin decides which core resolves', () => {
+  assertStringIncludes(toWorker(['@skmtc/msw']), "import '@skmtc/core'\n")
+})

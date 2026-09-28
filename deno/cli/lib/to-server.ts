@@ -27,7 +27,8 @@ export const toServer = (generatorIds: string[]) => {
   // `@skmtc/server`, NOT `jsr:@skmtc/server`. The bare specifier resolves
   // through the project's import map, where `ensureServerDeps` has pinned an
   // exact version alongside a matching `@skmtc/core` — which is the whole
-  // point of that pin. A raw `jsr:` URL bypasses the map and resolves to `*`,
+  // point of that pin. `import '@skmtc/core'` puts that core pin into the
+  // graph, so the ranged `@skmtc/server` and generators resolve to it. A raw `jsr:` URL bypasses the map and resolves to `*`,
   // so the lockfile decides, and a stale lock silently pulls an older
   // `@skmtc/server` with an older `@skmtc/core` beside the pinned one. Two
   // cores in one bundle means the `GenerateContext` the generators receive is
@@ -38,6 +39,7 @@ export const toServer = (generatorIds: string[]) => {
   // the server's home page. `toStackIdentity` fails soft — a config without
   // those fields yields the generic page.
   const server = `
+import '@skmtc/core'
 import { createServer, toStackIdentity } from '@skmtc/server'
 import denoConfig from './deno.json' with { type: 'json' }
 ${imports}
