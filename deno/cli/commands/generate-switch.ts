@@ -2,13 +2,12 @@ import { toGenerateLocalArgs } from '@/lib/to-generate-local-args.ts'
 import { printGenerateResult } from '@/lib/print-generate-result.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { toManifestPath } from '@/lib/to-manifest-path.ts'
-import { toProjectPath } from '@/lib/to-project-path.ts'
+import { isProjectName, toProjectPath } from '@/lib/to-project-path.ts'
 import { createBundle } from '@/lib/create-bundle.ts'
-import { Project } from '@/lib/project.ts'
+import { openBundleProject } from '@/lib/bundle-project.ts'
 import { Manager } from '@/lib/manager.ts'
 import type { generateLocal } from '@/lib/generate-local.ts'
 import { runTypecheck } from '@/lib/typecheck.ts'
-import { existsSync } from '@std/fs/exists'
 import { resolve } from '@std/path'
 
 type GenerateSwitchArgs = {
@@ -90,35 +89,15 @@ export const generateSwitch = async ({
 
   if (generateLocalArgs) {
     // A local project rebuilds bundle.js on every run, from the pins and
-    // generator source it has now, so no older bundle.js ever runs. The
-    // build refuses a module graph with two copies of `@skmtc/core` or a
-    // `@skmtc/lang-*`. A REMOTE generate (`client.json#serverUrl` set)
+    // generator source it has now, and runs the bundle that build returns.
+    // The build refuses a module graph with two copies of `@skmtc/core` or
+    // a `@skmtc/lang-*`. A REMOTE generate (`client.json#serverUrl` set)
     // runs on the stack server and builds nothing locally.
-    if (!generateLocalArgs.stackUrl) {
-      if (!existsSync(generateLocalArgs.projectPath)) {
-        return failWithRecipe({
-          command: 'generate',
-          arg: '<project>',
-          usage: 'skmtc generate <project> [schema]',
-          example: 'skmtc generate my-api ./schema.json',
-          discover: 'ls .skmtc/  (list existing projects)'
-        })
-      }
-
-      const project = await Project.open(projectName, new Manager())
-      const bundleError = await createBundle({ project }).then(
-        () => undefined,
-        (error: unknown) => (error instanceof Error ? error.message : String(error))
-      )
-      if (bundleError !== undefined) {
-        console.error(`Error: ${bundleError}\n`)
-        Deno.exit(1)
-      }
-    }
+    const bundlePath = generateLocalArgs.stackUrl ? undefined : await buildForRun(projectName)
 
     const runGenerateLocal =
       generateLocalFn ?? (await import('@/lib/generate-local.ts')).generateLocal
-    const result = await runGenerateLocal({ ...generateLocalArgs, anchorsFlag })
+    const result = await runGenerateLocal({ ...generateLocalArgs, bundlePath, anchorsFlag })
 
     // Optional post-generate type-check pass. Runs the consumer's
     // tsc against the freshly-emitted files; diagnostics are scoped
@@ -176,4 +155,27 @@ export const generateSwitch = async ({
   // to fill in the gaps.
   const { renderGenerate } = await import('@/commands/generate.tsx')
   return await renderGenerate({ projectName, schemaSourceString, watch })
+}
+
+/**
+ * Builds the project's bundle and returns the URL to run. Exits 2 for a
+ * name that isn't a project, and 1 when the build fails or is refused.
+ */
+const buildForRun = async (projectName: string): Promise<string> => {
+  if (!isProjectName(projectName)) {
+    return failWithRecipe({
+      command: 'generate',
+      arg: '<project>',
+      usage: 'skmtc generate <project> [schema]',
+      example: 'skmtc generate my-api ./schema.json',
+      discover: 'ls .skmtc/  (list existing projects)'
+    })
+  }
+
+  try {
+    return await createBundle({ project: await openBundleProject(projectName, new Manager()) })
+  } catch (error) {
+    console.error(`Error: ${error instanceof Error ? error.message : String(error)}\n`)
+    return Deno.exit(1)
+  }
 }

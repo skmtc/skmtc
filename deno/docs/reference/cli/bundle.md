@@ -84,8 +84,9 @@ package is a second copy. `import type` imports don't count, because
 `deno bundle` erases them.
 
 When the graph holds two copies, `bundle` exits 1 with a message that
-names each copy and the packages that import it. No `bundle.js` is
-left behind:
+names each copy and the packages that import it. The build also
+refuses a graph that `deno info` can't read, because nothing checks the
+bundle it would produce:
 
 ```
 Project "api" resolves more than one copy of @skmtc/core:
@@ -99,9 +100,11 @@ check before every generation.
 
 ### Bundle output
 
-The CLI deletes the previous `<project>/bundle.js` before the build
-starts, so a failed build leaves no bundle behind. If the build
-succeeds, `bundle.js` holds the new compiled JS. The bundle includes:
+`deno bundle` writes to a temporary file under `.settings/`, which is
+renamed over `<project>/bundle.js` only when the build succeeds, so a
+command running at the same time never loads a missing or half-written
+bundle. A failed build leaves the previous `bundle.js` in place; no
+command runs it. The bundle includes:
 
 - The `@skmtc/worker` runtime
 - The `@skmtc/core` engine
@@ -113,7 +116,8 @@ the number of generators.
 
 ### Logs
 
-Two log files are appended (not overwritten) per bundle:
+Each build replaces two log files, so they hold the output of the last
+build only:
 
 ```
 .skmtc/<project>/.settings/logs.txt        ← stdout from deno bundle
@@ -162,11 +166,11 @@ skmtc bundle my-api --json | jq '.type'
 
 ## When to run bundle explicitly
 
-Rarely. `skmtc generate`, `skmtc describe`, `skmtc status`,
-`skmtc clean` and `skmtc dev` build the bundle themselves before
-they run it, and `skmtc clone` and `skmtc install` build it to check
-the new generator. Nothing runs a `bundle.js` that it did not build
-in the same command.
+Rarely. `skmtc generate` and `skmtc dev` build the bundle before they
+run it, `skmtc describe`, `skmtc status` and `skmtc clean` build their
+own copy in a temporary directory, and `skmtc clone` and `skmtc install`
+build it to check the new generator. Nothing runs a `bundle.js` that it
+did not build in the same command.
 
 Run `bundle` explicitly to check that a project builds, for example
 after you change a pin, without generating any files.

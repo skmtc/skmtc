@@ -10,6 +10,39 @@ import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { stub } from '@std/testing/mock'
 import { GenerateArtifacts } from '../lib/generate-artifacts.ts'
 import { pointer } from '@/test/pointer.ts'
+import { join } from '@std/path/join'
+
+/**
+ * Points the project at a real, empty directory whose `createWorker`
+ * writes `worker.ts`, so the build's graph check has a file to read while
+ * the view still starts without a worker.
+ */
+const attachProjectDir = (project: Project): string => {
+  const projectDir = Deno.makeTempDirSync({ prefix: 'generate-view-' })
+  project.toPath = () => projectDir
+  project.createWorker = () => {
+    const workerPath = join(projectDir, 'worker.ts')
+    Deno.writeTextFileSync(workerPath, '')
+    return Promise.resolve(workerPath)
+  }
+  return projectDir
+}
+
+/**
+ * The stubbed `deno` subprocess prints one `deno info --json` graph for
+ * every call: a worker importing a single `@skmtc/core`, so the build's
+ * graph check passes.
+ */
+const singleCoreGraphOutput = new TextEncoder().encode(
+  JSON.stringify({
+    modules: [
+      {
+        specifier: 'file:///mock/projects/test-project/worker.ts',
+        dependencies: [{ code: { specifier: 'https://jsr.io/@skmtc/core/0.29.0/mod.ts' } }]
+      }
+    ]
+  })
+)
 
 // Minimal OpenAPI schema for testing
 const minimalOpenAPISchema = JSON.stringify({
@@ -130,6 +163,7 @@ Deno.test(
   async () => {
     const manager = createMockManager()
     const mockProject = createMockProjectWithoutSchema(manager, 'test-project')
+    const projectDir = attachProjectDir(mockProject)
 
     const initialState = createInitialState(mockProject)
 
@@ -160,10 +194,13 @@ Deno.test(
       output: () =>
         Promise.resolve({
           success: true,
-          stdout: new Uint8Array(),
+          stdout: singleCoreGraphOutput,
           stderr: new Uint8Array()
         })
     }))
+
+    // Stub Deno.rename so the build's move into bundle.js is a no-op
+    const renameStub = stub(Deno, 'rename', () => Promise.resolve())
 
     // Stub Deno.open to prevent log file operations
     const openStub = stub(Deno, 'open', () =>
@@ -290,6 +327,8 @@ Deno.test(
       writeTextFileStub.restore()
       commandStub.restore()
       openStub.restore()
+      renameStub.restore()
+      Deno.removeSync(projectDir, { recursive: true })
       connectStub.restore()
       generateStub.restore()
     }
@@ -303,6 +342,7 @@ Deno.test(
   async () => {
     const manager = createMockManager()
     const mockProject = createMockProject(manager, { name: 'test-project' })
+    const projectDir = attachProjectDir(mockProject)
 
     const initialState = createInitialState(mockProject)
 
@@ -330,10 +370,13 @@ Deno.test(
       output: () =>
         Promise.resolve({
           success: true,
-          stdout: new Uint8Array(),
+          stdout: singleCoreGraphOutput,
           stderr: new Uint8Array()
         })
     }))
+
+    // Stub Deno.rename so the build's move into bundle.js is a no-op
+    const renameStub = stub(Deno, 'rename', () => Promise.resolve())
 
     // Stub Deno.open to prevent log file operations
     const openStub = stub(Deno, 'open', () =>
@@ -415,6 +458,8 @@ Deno.test(
       writeTextFileStub.restore()
       commandStub.restore()
       openStub.restore()
+      renameStub.restore()
+      Deno.removeSync(projectDir, { recursive: true })
       connectStub.restore()
       fetchStub.restore()
     }
@@ -428,6 +473,7 @@ Deno.test(
   async () => {
     const manager = createMockManager()
     const mockProject = createMockProject(manager, { name: 'test-project' })
+    const projectDir = attachProjectDir(mockProject)
 
     const initialState = createInitialState(mockProject)
 
@@ -458,10 +504,13 @@ Deno.test(
       output: () =>
         Promise.resolve({
           success: true,
-          stdout: new Uint8Array(),
+          stdout: singleCoreGraphOutput,
           stderr: new Uint8Array()
         })
     }))
+
+    // Stub Deno.rename so the build's move into bundle.js is a no-op
+    const renameStub = stub(Deno, 'rename', () => Promise.resolve())
 
     // Stub Deno.open to prevent log file operations
     const openStub = stub(Deno, 'open', () =>
@@ -529,6 +578,8 @@ Deno.test(
       writeTextFileStub.restore()
       commandStub.restore()
       openStub.restore()
+      renameStub.restore()
+      Deno.removeSync(projectDir, { recursive: true })
       connectStub.restore()
       fetchStub.restore()
       generateStub.restore()
@@ -543,6 +594,7 @@ Deno.test(
   async () => {
     const manager = createMockManager()
     const mockProject = createMockProject(manager, { name: 'test-project' })
+    const projectDir = attachProjectDir(mockProject)
 
     const initialState = createInitialState(mockProject)
 
@@ -580,10 +632,13 @@ Deno.test(
       output: () =>
         Promise.resolve({
           success: true,
-          stdout: new Uint8Array(),
+          stdout: singleCoreGraphOutput,
           stderr: new Uint8Array()
         })
     }))
+
+    // Stub Deno.rename so the build's move into bundle.js is a no-op
+    const renameStub = stub(Deno, 'rename', () => Promise.resolve())
 
     // Stub Deno.open to prevent log file operations
     const openStub = stub(Deno, 'open', () =>
@@ -646,6 +701,8 @@ Deno.test(
       writeTextFileStub.restore()
       commandStub.restore()
       openStub.restore()
+      renameStub.restore()
+      Deno.removeSync(projectDir, { recursive: true })
       connectStub.restore()
       generateStub.restore()
     }
@@ -659,6 +716,7 @@ Deno.test(
   async () => {
     const manager = createMockManager()
     const mockProject = createMockProjectWithoutSchema(manager, 'test-project')
+    const projectDir = attachProjectDir(mockProject)
 
     const initialState = createInitialState(mockProject)
 
@@ -696,10 +754,13 @@ Deno.test(
       output: () =>
         Promise.resolve({
           success: true,
-          stdout: new Uint8Array(),
+          stdout: singleCoreGraphOutput,
           stderr: new Uint8Array()
         })
     }))
+
+    // Stub Deno.rename so the build's move into bundle.js is a no-op
+    const renameStub = stub(Deno, 'rename', () => Promise.resolve())
 
     // Stub Deno.open to prevent log file operations
     const openStub = stub(Deno, 'open', () =>
@@ -818,6 +879,8 @@ Deno.test(
       writeTextFileStub.restore()
       commandStub.restore()
       openStub.restore()
+      renameStub.restore()
+      Deno.removeSync(projectDir, { recursive: true })
       connectStub.restore()
       generateStub.restore()
     }

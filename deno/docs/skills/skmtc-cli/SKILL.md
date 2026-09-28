@@ -58,7 +58,7 @@ diagnosing failures see
 | Project deps | `<root>/.skmtc/<project>/deno.json` | JSR imports of installed generators |
 | Schema pin | `<root>/.skmtc/<project>/.settings/client.json` | `source` field — URL or path. Resolution: explicit schema arg → `client.json#source` → interactive prompt (TTY only; strict mode fails with a recipe error) |
 | **basePath** | `client.json#settings.basePath` | **Must match the consumer app's `@` alias root.** Both the on-disk root for generated files AND the alias root in the bundler's resolver. Generators produce `@/<subdir>/...` paths assuming this alignment. Absolute paths are rejected at `init`. |
-| Bundle | `<root>/.skmtc/<project>/bundle.js` | Compiled worker entry. Rebuilt by every command that runs it (`generate`, `describe`, `status`, `clean`, `dev`), and by `bundle`/`clone`/`install`. |
+| Bundle | `<root>/.skmtc/<project>/bundle.js` | Compiled worker entry. Rebuilt before every run by `generate`/`dev`, and by `bundle`/`clone`/`install`. `describe`/`status`/`clean` build their own copy outside the project. |
 | Manifest | `<root>/.skmtc/<project>/.settings/manifest.json` | Per-run record of every file written and every (generator × item) outcome |
 | Generator | JSR package or local folder | Local: `<root>/.skmtc/<project>/<gen-name>/` |
 | **Global state** | `~/.skmtc/` | `auth.json` (the hub PAT stored by `skmtc login`), shadow project state, schema caches. **Check this when local state alone doesn't explain a failure.** |
@@ -149,11 +149,12 @@ reason about a specific check: [`reference.md`](reference.md)
 ## 5. The bundle is rebuilt on every generate
 
 Generation runs the compiled `bundle.js`, not generator source. For a
-local project, `generate` deletes `bundle.js` and rebuilds it from
-`deno.json#imports` and the generator source on disk before every
-run, so pin changes and edits to cloned source apply on the next
-`generate` — no `skmtc bundle` step. `describe`, `status`, `clean`
-and `dev` build it the same way. A build failure exits 1 with the
+local project, `generate` rebuilds `bundle.js` from `deno.json#imports`
+and the generator source on disk before every run, so pin changes and
+edits to cloned source apply on the next `generate` — no `skmtc bundle`
+step. `dev` builds the same way; `describe`, `status` and `clean` build
+a read-only copy in a temporary directory (`deno bundle --frozen`), so
+after a pin change run `generate` once before them. A build failure exits 1 with the
 `deno bundle` error; a module graph with two copies of `@skmtc/core`
 (or a `@skmtc/lang-*`) exits 1 naming the packages that import each
 copy.

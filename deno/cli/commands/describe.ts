@@ -2,7 +2,8 @@ import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
 import { failWithRecipe, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { describeHeadless, type DescribeResult } from '@/lib/describe-headless.ts'
-import { createBundle } from '@/lib/create-bundle.ts'
+import { createReadOnlyBundle, type ReadOnlyBundle } from '@/lib/create-bundle.ts'
+import type { Project } from '@/lib/project.ts'
 
 type RenderDescribeArgs = {
   projectName: string | undefined
@@ -10,7 +11,7 @@ type RenderDescribeArgs = {
   jsonFlag?: boolean
   // Optional dependencies for testing.
   skmtcRoot?: SkmtcRoot
-  createBundleFn?: typeof createBundle
+  buildBundleFn?: (project: Project) => Promise<ReadOnlyBundle>
 }
 
 /**
@@ -23,15 +24,17 @@ type RenderDescribeArgs = {
  *
  * Like `doctor` / `agent-context` / `clean` it has no Ink variant — it
  * always runs headless and emits a text or `--json` result. The
- * `<project>` arg is required up front (recipe error otherwise). Like
- * `generate`, it rebuilds the project's `bundle.js` before running it.
+ * `<project>` arg is required up front (recipe error otherwise). It
+ * builds the project's bundle outside the project before running it
+ * (see `createReadOnlyBundle`), so it writes nothing to the project.
  */
 export const renderDescribe = async ({
   projectName,
   schemaSourceString,
   jsonFlag,
   skmtcRoot: providedSkmtcRoot,
-  createBundleFn = createBundle
+  buildBundleFn = project =>
+    createReadOnlyBundle({ projectName: project.name, projectPath: project.toPath() })
 }: RenderDescribeArgs) => {
   if (projectName === undefined) {
     return failWithRecipe({
@@ -72,13 +75,13 @@ export const renderDescribe = async ({
   // describe runs the bundle to read generator capabilities, so it builds
   // one from the current pins and generator source first. A failed build
   // is a precondition failure, not a bad argument: exit 1, not a recipe.
-  const bundlePath = await createBundleFn({ project }).catch(error => {
+  const bundle = await buildBundleFn(project).catch(error => {
     const message = error instanceof Error ? error.message : String(error)
     console.error(`Error: could not build the bundle for "${projectName}": ${message}`)
     return null
   })
 
-  if (bundlePath === null) {
+  if (bundle === null) {
     await skmtcRoot.manager.cleanup()
     Deno.exit(1)
   }
@@ -88,8 +91,15 @@ export const renderDescribe = async ({
   // generators (e.g. a generator built against an older `@skmtc/core`
   // lacks entry methods the trio calls) — surface it as a clean exit 1
   // instead of an uncaught worker rejection.
-  const result = await describeHeadless({ project, schemaSourceString, bundlePath }).catch(
-    error => {
+  //
+  // The temporary bundle is deleted before any exit below, which would
+  // skip a `using` disposal.
+  const result = await describeHeadless({
+    project,
+    schemaSourceString,
+    bundlePath: bundle.bundlePath
+  })
+    .catch(error => {
       const message = error instanceof Error ? error.message : String(error)
       console.error(
         `Error: describe failed for "${projectName}": ${message}\n` +
@@ -98,8 +108,8 @@ export const renderDescribe = async ({
           `pins in the project's deno.json and run describe again.`
       )
       return null
-    }
-  )
+    })
+    .finally(() => bundle[Symbol.asyncDispose]())
 
   if (result === null) {
     await skmtcRoot.manager.cleanup()

@@ -1,11 +1,16 @@
 import { join } from '@std/path/join'
-import type { Project } from '@/lib/project.ts'
+import { toFileUrl } from '@std/path/to-file-url'
+import { rootDenoJson } from '@skmtc/core/DenoJson'
+import type { BundleProject } from '@/lib/bundle-project.ts'
 import { toBundleFsPath, toBundlePath } from '@/lib/to-bundle-path.ts'
 import { toDependencyAgeArgs } from '@/lib/dependency-age.ts'
 import { toGraphRefusal } from '@/lib/duplicate-packages.ts'
+import { parseOrExplain } from '@/lib/parse-or-explain.ts'
+import { toGeneratorIds } from '@/lib/root-deno-json.ts'
+import { toWorker } from '@/lib/to-worker.ts'
 
 /**
- * Build a project's `bundle.js` from its generated `worker.ts`.
+ * Build a project's bundle from its generated `worker.ts`.
  *
  * This is pure orchestration — `Deno.Command` + fs — with **no JSX, ink,
  * or react**. It lives in a plain `.ts` (not the `GenerateBundleTask.tsx`
@@ -19,19 +24,19 @@ import { toGraphRefusal } from '@/lib/duplicate-packages.ts'
  */
 
 type CreateBundleArgs = {
-  project: Project
+  project: BundleProject
 }
 
+/**
+ * Builds `bundle.js` in the project directory, for the command that runs
+ * it next. `deno bundle` writes to a temporary file under `.settings/`,
+ * which is renamed over `bundle.js` only when the build succeeds, so a
+ * command running at the same time never loads a missing or half-written
+ * bundle. Returns the URL of the bundle to run.
+ */
 export const createBundle = async ({ project }: CreateBundleArgs): Promise<string> => {
-  const fileName = 'bundle.js'
   const projectPath = project.toPath()
-  const bundlePath = toBundlePath(project.toPath())
-
-  // Drop the previous bundle.js first, so a build that fails or is
-  // refused leaves nothing that could be run by mistake.
-  await Deno.remove(toBundleFsPath(projectPath)).catch(error => {
-    if (!(error instanceof Deno.errors.NotFound)) throw error
-  })
+  const settingsPath = join(projectPath, '.settings')
 
   await project.createWorker()
 
@@ -40,57 +45,145 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
     throw new Error(refusal)
   }
 
+  const temporaryBundlePath = join(settingsPath, `bundle-${crypto.randomUUID()}.js`)
+
   // Without the age flag, `deno bundle` on Deno ≥ 2.9 rejects a freshly
   // released stack — the project's pins name `@skmtc/*` versions that
   // publish on every merge, so they are younger than the default cutoff.
   // Same rationale as the installer's flag on `deno install`
   // (skmtc-hub/apps/install); see `@/lib/dependency-age.ts`.
-  const command = new Deno.Command('deno', {
-    args: ['bundle', ...toDependencyAgeArgs(), '-o', fileName, 'worker.ts'],
+  const { success, stdout, stderr } = await new Deno.Command('deno', {
+    args: ['bundle', ...toDependencyAgeArgs(), '-o', temporaryBundlePath, 'worker.ts'],
     cwd: projectPath,
     stdout: 'piped',
     stderr: 'piped'
-  })
+  }).output()
 
-  const logsPath = join(projectPath, '.settings', 'logs.txt')
-  const errorLogsPath = join(projectPath, '.settings', 'error-logs.txt')
-
-  const { success, stdout, stderr } = await command.output()
-
-  let logsFile: Deno.FsFile | undefined
-  try {
-    // Read stdout and write to file. Assign the outer binding (no
-    // `const`) so `finally` actually closes the handle.
-    logsFile = await Deno.open(logsPath, { create: true, append: true })
-    await logsFile.write(stdout)
-  } catch (error) {
-    console.error(error)
-    throw error
-  } finally {
-    logsFile?.close()
-  }
-
-  let errorLogsFile: Deno.FsFile | undefined
-  try {
-    errorLogsFile = await Deno.open(errorLogsPath, { create: true, append: true })
-    await errorLogsFile.write(stderr)
-  } catch (error) {
-    console.error(error)
-    throw error
-  } finally {
-    errorLogsFile?.close()
-  }
+  // Each build replaces the logs of the one before, so they stay the size
+  // of one build.
+  const errorLogsPath = join(settingsPath, 'error-logs.txt')
+  await replaceFile(join(settingsPath, 'logs.txt'), stdout)
+  await replaceFile(errorLogsPath, stderr)
 
   if (!success) {
+    await Deno.remove(temporaryBundlePath).catch(() => undefined)
     throw new Error(toBundleFailureMessage({ projectPath, errorLogsPath, stderr }))
   }
 
-  return bundlePath
+  await Deno.rename(temporaryBundlePath, toBundleFsPath(projectPath))
+
+  return toBundlePath(projectPath)
+}
+
+const replaceFile = async (path: string, contents: Uint8Array): Promise<void> => {
+  // Assign the outer binding (no `const`) so `finally` closes the handle.
+  let file: Deno.FsFile | undefined
+  try {
+    file = await Deno.open(path, { create: true, write: true, truncate: true })
+    await file.write(contents)
+  } finally {
+    file?.close()
+  }
+}
+
+/** A bundle in a temporary directory; disposing it deletes the directory. */
+export type ReadOnlyBundle = AsyncDisposable & {
+  /** URL of the bundle to run. */
+  bundlePath: string
+}
+
+/** Bound on each step of a read-only build — a cold cache with no network would otherwise hang it. */
+const READ_ONLY_BUILD_TIMEOUT_MS = 20_000
+
+type CreateReadOnlyBundleArgs = {
+  projectName: string
+  projectPath: string
+  timeoutMs?: number
+}
+
+/**
+ * Builds a project's bundle without writing to the project: `worker.ts`
+ * and `bundle.js` go to a temporary directory, the project's `deno.json`
+ * is used as it is, and `--frozen` keeps `deno.lock` unchanged. Throws
+ * when the project can't be built that way — a missing `@skmtc/worker` or
+ * `@skmtc/core` pin, or pins that changed since the last build — which
+ * `skmtc generate` fixes. For the commands that must not write
+ * (`status`, `clean`, `describe`).
+ */
+export const createReadOnlyBundle = async ({
+  projectName,
+  projectPath,
+  timeoutMs = READ_ONLY_BUILD_TIMEOUT_MS
+}: CreateReadOnlyBundleArgs): Promise<ReadOnlyBundle> => {
+  const denoJsonPath = join(projectPath, 'deno.json')
+  const { imports } = parseOrExplain(
+    rootDenoJson,
+    JSON.parse(await Deno.readTextFile(denoJsonPath)),
+    `deno.json at ${denoJsonPath}`
+  )
+  const missingPins = ['@skmtc/worker', '@skmtc/core'].filter(name => imports?.[name] === undefined)
+  if (missingPins.length > 0) {
+    throw new Error(
+      `Project "${projectName}" does not pin ${missingPins.join(' or ')}. ` +
+        `Run \`skmtc generate ${projectName}\` or \`skmtc bundle ${projectName}\`, which add the pins.`
+    )
+  }
+
+  const directory = await Deno.makeTempDir({ prefix: 'skmtc-bundle-' })
+  const bundle: ReadOnlyBundle = {
+    bundlePath: toFileUrl(join(directory, 'bundle.js')).href,
+    [Symbol.asyncDispose]: () => Deno.remove(directory, { recursive: true })
+  }
+
+  try {
+    const workerPath = join(directory, 'worker.ts')
+    await Deno.writeTextFile(workerPath, toWorker(toGeneratorIds(imports)))
+
+    const refusal = await toGraphRefusal({
+      projectName,
+      projectPath,
+      options: { frozen: true, timeoutMs, entryPath: workerPath }
+    })
+    if (refusal !== undefined) {
+      throw new Error(refusal)
+    }
+
+    const signal = AbortSignal.timeout(timeoutMs)
+    const { success, stderr } = await new Deno.Command('deno', {
+      args: [
+        'bundle',
+        '--frozen',
+        '--config',
+        denoJsonPath,
+        ...toDependencyAgeArgs(),
+        '-o',
+        join(directory, 'bundle.js'),
+        workerPath
+      ],
+      cwd: projectPath,
+      stdout: 'null',
+      stderr: 'piped',
+      signal
+    }).output()
+
+    if (signal.aborted) {
+      throw new Error(`\`deno bundle\` took longer than ${timeoutMs}ms.`)
+    }
+    if (!success) {
+      throw new Error(toBundleFailureMessage({ projectPath, stderr }))
+    }
+
+    return bundle
+  } catch (error) {
+    await bundle[Symbol.asyncDispose]()
+    throw error
+  }
 }
 
 type ToBundleFailureMessageArgs = {
   projectPath: string
-  errorLogsPath: string
+  /** Where the full output was written, when it was. */
+  errorLogsPath?: string
   stderr: Uint8Array
 }
 
@@ -113,6 +206,6 @@ export const toBundleFailureMessage = ({
   return [
     `Failed to create bundle — \`deno bundle\` failed in ${projectPath}.`,
     errorOutput || '(no stderr captured)',
-    `Full output: ${errorLogsPath}`
+    ...(errorLogsPath === undefined ? [] : [`Full output: ${errorLogsPath}`])
   ].join('\n\n')
 }

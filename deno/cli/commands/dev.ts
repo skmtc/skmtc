@@ -4,7 +4,6 @@ import { Project } from '@/lib/project.ts'
 import { createBundle } from '@/lib/create-bundle.ts'
 import { generateLocal } from '@/lib/generate-local.ts'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
-import { toBundlePath } from '@/lib/to-bundle-path.ts'
 import { toManifestPath } from '@/lib/to-manifest-path.ts'
 import chokidar, { type FSWatcher } from 'chokidar'
 import invariant from 'tiny-invariant'
@@ -39,7 +38,6 @@ export const dev = async ({ projectName, schemaSourceString }: DevArgs) => {
   invariant(project instanceof Project, `Project "${projectName}" must be a local project`)
 
   const projectPath = project.toPath()
-  const bundlePath = toBundlePath(projectPath)
   const manifestPath = toManifestPath(projectPath)
 
   const schemaSource = schemaSourceString ?? project.clientJson.contents?.source
@@ -60,7 +58,7 @@ export const dev = async ({ projectName, schemaSourceString }: DevArgs) => {
     try {
       const bundleStart = performance.now()
       log('bundling…')
-      await createBundle({ project })
+      const bundlePath = await createBundle({ project })
       const bundleMs = Math.round(performance.now() - bundleStart)
       log(`bundled in ${bundleMs}ms · generating…`)
 

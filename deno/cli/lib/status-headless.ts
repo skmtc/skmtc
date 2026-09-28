@@ -44,6 +44,7 @@ import { classifyDiskFile, type EditDetectionContext } from '@/lib/edit-detectio
 import { toEjectedArtifactPaths } from '@/lib/write-generated-files.ts'
 import { type EjectionFileState, classifyEjectedFile } from '@/lib/ejection-state.ts'
 import { resolveFreshArtifacts } from '@/lib/resolve-fresh-artifacts.ts'
+import { createReadOnlyBundle, type ReadOnlyBundle } from '@/lib/create-bundle.ts'
 
 export type FileStatus = 'clean' | 'modified' | 'missing' | 'unverified' | 'ejected'
 
@@ -91,10 +92,9 @@ type StatusHeadlessArgs = {
   /** `client.json#serverUrl` — generate against a deployed stack
    *  server instead of the local bundle, when set. */
   stackUrl: string | undefined
-  /** Builds the project's `bundle.js` and returns its URL (see
-   *  `createBundle`). Absent, a local project degrades to lock-hash
-   *  comparison. */
-  buildBundle?: () => Promise<string>
+  /** Builds the project's bundle without writing to the project.
+   *  Defaults to `createReadOnlyBundle`; tests stand in for it. */
+  buildBundle?: () => Promise<ReadOnlyBundle>
   /** Workspace root (`.skmtc`). Defaults to the cwd-derived
    *  `toRootPath()`. Injectable so tests can point at a temp workspace
    *  without depending on `Deno.cwd()`. */
@@ -111,6 +111,8 @@ export const statusHeadless = async ({
 }: StatusHeadlessArgs): Promise<StatusHeadlessResult> => {
   const appRoot = resolve(join(skmtcRootPath, '..'))
   const projectPath = join(skmtcRootPath, projectName)
+  const buildProjectBundle =
+    buildBundle ?? (() => createReadOnlyBundle({ projectName, projectPath }))
   const manifestPath = join(projectPath, '.settings', 'manifest.json')
 
   const manifest = await Manifest.openFromPath(projectName, manifestPath)
@@ -147,7 +149,7 @@ export const statusHeadless = async ({
     schemaSourceString,
     clientSettings,
     stackUrl,
-    buildBundle
+    buildBundle: buildProjectBundle
   })
 
   const files: StatusFileEntry[] = []

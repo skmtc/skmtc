@@ -10,7 +10,8 @@ import type { EnrichmentWarning, ParseIssue } from '@skmtc/core'
 import { toAttributionPayload } from '@/lib/to-attribution-payload.ts'
 
 type GenerateLocalArgs = {
-  bundlePath: string
+  /** URL of the bundle the caller just built. Unused with `stackUrl`. */
+  bundlePath: string | undefined
   schemaContents: string
   /**
    * File type of the schema source. Determines whether the worker

@@ -119,9 +119,11 @@ The first non-undefined value wins.
 ### The bundle is rebuilt on every run
 
 A local project builds `bundle.js` before every generation, in every
-mode: `generate` deletes the old file, writes `worker.ts` from
-`deno.json#imports`, then runs `deno bundle`. So a run always uses
-the pins in `deno.json` and the generator source on disk now. After
+mode: `generate` writes `worker.ts` from `deno.json#imports`, runs
+`deno bundle` into a temporary file, renames it over `bundle.js`, and
+runs the bundle it just built. So a run always uses the pins in
+`deno.json` and the generator source on disk now, and a command running
+at the same time never loads a half-written bundle. After
 you change a pin or edit a cloned generator, run `skmtc generate`
 again. You do not need `skmtc bundle` first.
 
@@ -130,14 +132,16 @@ build after a pin change takes longer while Deno downloads the new
 packages.
 
 If the build fails, `generate` exits 1 with the `deno bundle` error
-and writes no files. Remote generation (`client.json#serverUrl`)
+and writes no files. The previous `bundle.js` stays on disk, but no
+command runs it. Remote generation (`client.json#serverUrl`)
 runs on the stack server and builds nothing locally.
 
 ### One copy of `@skmtc/core`
 
 Before it bundles, the build checks the module graph of `worker.ts`
 for more than one copy of `@skmtc/core` or of a `@skmtc/lang-*`
-package. Generation with two copies would write empty files and exit
+package. A graph it can't read is refused too, since nothing checks
+the bundle afterwards. Generation with two copies would write empty files and exit
 0, so `generate` refuses with exit 1 and names the packages that
 import each copy:
 

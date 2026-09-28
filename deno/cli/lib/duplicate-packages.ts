@@ -93,6 +93,11 @@ type CheckModuleGraphOptions = {
   frozen?: boolean
   /** Give up on `deno info` after this long, e.g. on a cold cache with no network. */
   timeoutMs?: number
+  /**
+   * Check this entry instead of the project's `worker.ts`, resolved with
+   * the project's `deno.json`. For a build outside the project directory.
+   */
+  entryPath?: string
 }
 
 export type CheckModuleGraphFn = (
@@ -351,7 +356,7 @@ const lockfileOutOfDate = 'The lockfile is out of date'
  * unresolvable graph better than this check could.
  */
 export const checkModuleGraph: CheckModuleGraphFn = async (projectPath, options = {}) => {
-  const workerPath = join(projectPath, 'worker.ts')
+  const workerPath = options.entryPath ?? join(projectPath, 'worker.ts')
   if (!existsSync(workerPath)) {
     return { type: 'unavailable', reason: `${workerPath} does not exist yet.` }
   }
@@ -365,8 +370,9 @@ export const checkModuleGraph: CheckModuleGraphFn = async (projectPath, options 
         'info',
         '--json',
         ...(options.frozen ? ['--frozen'] : []),
+        ...(options.entryPath ? ['--config', join(projectPath, 'deno.json')] : []),
         ...toDependencyAgeArgs(),
-        'worker.ts'
+        workerPath
       ],
       cwd: projectPath,
       stdout: 'piped',
@@ -461,19 +467,31 @@ export const toDuplicatePackagesMessage = ({
 type ToGraphRefusalArgs = {
   projectName: string
   projectPath: string
+  options?: CheckModuleGraphOptions
 }
 
 /**
  * The refusal for a project whose module graph holds two copies, or
- * `undefined` when it doesn't (or can't be read). Shared by every bundle
+ * can't be read — nothing else checks what the build produces — or
+ * `undefined` when it holds one copy of each. Shared by every bundle
  * build and `generate --debug`, which both run the graph.
  */
 export const toGraphRefusal = async ({
   projectName,
-  projectPath
+  projectPath,
+  options
 }: ToGraphRefusalArgs): Promise<string | undefined> => {
-  const graphCheck = await checkModuleGraph(projectPath)
-  return graphCheck.type === 'duplicates'
-    ? toDuplicatePackagesMessage({ projectName, projectPath, duplicates: graphCheck.duplicates })
-    : undefined
+  const graphCheck = await checkModuleGraph(projectPath, options)
+  switch (graphCheck.type) {
+    case 'duplicates':
+      return toDuplicatePackagesMessage({
+        projectName,
+        projectPath,
+        duplicates: graphCheck.duplicates
+      })
+    case 'unavailable':
+      return `Could not check that project "${projectName}" resolves one copy of @skmtc/core: ${graphCheck.reason}`
+    case 'single-copies':
+      return undefined
+  }
 }

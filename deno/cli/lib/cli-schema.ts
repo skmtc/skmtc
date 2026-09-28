@@ -172,7 +172,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
   {
     name: 'describe',
     description:
-      "Report a project's preview metadata by running its bundle read-only: supported subjects (operations / models) per generator, the form-renderable enrichment descriptors, and the schema-derived enrichment defaults.",
+      "Report a project's preview metadata by building and running its bundle without writing to the project: supported subjects (operations / models) per generator, the form-renderable enrichment descriptors, and the schema-derived enrichment defaults.",
     args: ['<project>', '[schema]'],
     flags: [{ flag: '--json', description: 'Emit structured JSON output.' }],
     agentMode: 'json-only'

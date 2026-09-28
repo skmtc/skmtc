@@ -783,8 +783,8 @@ const checkProjectBasePath = (projectName: string, clientJsonPath: string): Chec
  * `deno bundle` fails with an unresolved-import error. `bundle` now
  * writes the pin via `ensureWorkerDeps`; this check surfaces a project
  * that predates that fix or had the pin removed. A project with no
- * `worker.ts` yet is ok-noop: the first `skmtc generate` writes both
- * the worker and the pin.
+ * `worker.ts` yet is ok-noop: the first build (`skmtc generate` for a
+ * local project, or `skmtc bundle`) writes both the worker and the pin.
  */
 const checkProjectWorkerPin = (
   projectName: string,
@@ -814,7 +814,7 @@ const checkProjectWorkerPin = (
     return {
       id: `project-worker-pin/${projectName}`,
       status: 'ok',
-      message: `Project "${projectName}" has no worker.ts yet; the first \`skmtc generate\` writes it along with the @skmtc/worker pin.`
+      message: `Project "${projectName}" has no worker.ts yet; the first build (\`skmtc generate\` or \`skmtc bundle\`) writes it along with the @skmtc/worker pin.`
     }
   }
 
@@ -823,7 +823,7 @@ const checkProjectWorkerPin = (
       id: `project-worker-pin/${projectName}`,
       status: 'warning',
       message: `Project "${projectName}" has no @skmtc/worker pin — the generated worker.ts will not bundle.`,
-      hint: `Run \`skmtc generate ${projectName}\` — it writes the pin automatically — or add "@skmtc/worker" to the project's deno.json imports.`
+      hint: `Run \`skmtc bundle ${projectName}\` — it writes the pin automatically — or add "@skmtc/worker" to the project's deno.json imports.`
     }
   }
 

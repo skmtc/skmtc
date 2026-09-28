@@ -7,6 +7,7 @@ import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { createMockProject } from '@/tests/mocks/project.mock.ts'
 import { mockClientJsonContents } from '@/tests/fixtures/client-json.fixture.ts'
+import { toStubBundle } from '@/tests/mocks/read-only-bundle.mock.ts'
 
 const captureLogs = (fn: () => void): string[] => {
   const logs: string[] = []
@@ -82,9 +83,6 @@ const baseResult: DescribeResult = {
   enrichmentDefaults: { '@scope/gen-x': { User: { main: {} } } },
   parseIssues: []
 }
-
-/** Stands in for the build — the mocked Worker never loads the bundle. */
-const createBundleFn = () => Promise.resolve('file:///mock/bundle.js')
 
 Deno.test('printDescribeResult - text reports descriptor + subject counts and per-descriptor fields', () => {
   const logs = captureLogs(() => printDescribeResult(baseResult, { format: 'text' }))
@@ -176,8 +174,7 @@ Deno.test('renderDescribe - a failed bundle build exits 1 with the build error',
     await renderDescribe({
       projectName: 'my-api',
       skmtcRoot,
-      createBundleFn: () =>
-        Promise.reject(new Error('Project "my-api" resolves more than one copy'))
+      buildBundleFn: () => Promise.reject(new Error('Project "my-api" resolves more than one copy'))
     })
   })
 
@@ -231,12 +228,21 @@ Deno.test('renderDescribe - happy path prints the result and exits 0', async () 
     project.clientJson.contents = { settings: mockClientJsonContents.settings, source: schemaPath }
     const skmtcRoot = createMockSkmtcRoot(manager, { projects: [project] })
 
+    // The mocked Worker never loads the bundle.
+    const bundle = toStubBundle()
+
     const { exitCode } = await withCapturedExit(async () => {
-      await renderDescribe({ projectName: 'my-api', skmtcRoot, createBundleFn })
+      await renderDescribe({
+        projectName: 'my-api',
+        skmtcRoot,
+        buildBundleFn: () => Promise.resolve(bundle)
+      })
     })
 
     assertEquals(exitCode, 0)
     assertStringIncludes(logs.join('\n'), 'describe "my-api"')
+    // The temporary bundle is deleted before describe exits.
+    assertEquals(bundle.disposed(), true)
   } finally {
     console.log = originalLog
     globalThis.Worker = OriginalWorker
@@ -264,11 +270,18 @@ Deno.test('renderDescribe - worker failure is caught and exits 1 with a pin hint
     project.clientJson.contents = { settings: mockClientJsonContents.settings, source: schemaPath }
     const skmtcRoot = createMockSkmtcRoot(manager, { projects: [project] })
 
+    const bundle = toStubBundle()
+
     const { errors, exitCode } = await withCapturedExit(async () => {
-      await renderDescribe({ projectName: 'my-api', skmtcRoot, createBundleFn })
+      await renderDescribe({
+        projectName: 'my-api',
+        skmtcRoot,
+        buildBundleFn: () => Promise.resolve(bundle)
+      })
     })
 
     assertEquals(exitCode, 1)
+    assertEquals(bundle.disposed(), true)
     const joined = errors.join('\n')
     assertStringIncludes(joined, 'describe failed for "my-api"')
     assertStringIncludes(joined, 'align the @skmtc/core pins')

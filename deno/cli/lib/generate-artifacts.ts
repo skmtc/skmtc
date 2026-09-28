@@ -6,7 +6,8 @@ import type { GenerateResponse } from '@/types/generateResponse.ts'
 import type { FileType } from '@/lib/types.ts'
 
 type GenerateWithWorkerArgs = {
-  bundlePath: string
+  /** URL of the bundle the caller just built. Unused with `stackUrl`. */
+  bundlePath: string | undefined
   schemaContents: string
   fileType: FileType
   clientSettings: ClientSettings | undefined
@@ -31,6 +32,9 @@ export class GenerateArtifacts {
   }: GenerateWithWorkerArgs): Promise<GenerateResponse> {
     if (stackUrl) {
       return await generateWithServer({ stackUrl, schemaContents, fileType, clientSettings })
+    }
+    if (bundlePath === undefined) {
+      throw new Error('No bundle to run: build the bundle first (see `createBundle`).')
     }
     return await generateWithWorker({
       schemaContents,

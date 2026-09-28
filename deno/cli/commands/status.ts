@@ -1,6 +1,5 @@
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
-import { createBundle } from '@/lib/create-bundle.ts'
 import { failWithRecipe, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { statusHeadless, type StatusHeadlessResult } from '@/lib/status-headless.ts'
 
@@ -62,8 +61,7 @@ export const renderStatus = async ({
     projectName,
     clientSettings: project.clientJson.contents?.settings,
     schemaSourceString: project.clientJson.contents?.source,
-    stackUrl: project.clientJson.contents?.serverUrl,
-    buildBundle: () => createBundle({ project })
+    stackUrl: project.clientJson.contents?.serverUrl
   })
 
   printStatusResult(result, {

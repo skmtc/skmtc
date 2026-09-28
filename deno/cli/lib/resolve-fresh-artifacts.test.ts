@@ -6,9 +6,10 @@ import { manifestContent } from '@skmtc/core/Manifest'
 import { resolveFreshArtifacts } from '@/lib/resolve-fresh-artifacts.ts'
 import { GenerateArtifacts } from '@/lib/generate-artifacts.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
+import { toStubBundle } from '@/tests/mocks/read-only-bundle.mock.ts'
 
 type WorkerCall = {
-  bundlePath: string
+  bundlePath: string | undefined
   stackUrl: string | undefined
 }
 
@@ -49,17 +50,38 @@ const withStubbedWorker = async (
   }
 }
 
-Deno.test('resolveFreshArtifacts - builds the bundle, then renders from what it built', async () => {
+Deno.test('resolveFreshArtifacts - builds the bundle, renders from it, then disposes of it', async () => {
   await withStubbedWorker(async (schemaPath, calls) => {
+    const bundle = toStubBundle('file:///tmp/skmtc-bundle/bundle.js')
     const artifacts = await resolveFreshArtifacts({
       schemaSourceString: schemaPath,
       clientSettings: undefined,
       stackUrl: undefined,
-      buildBundle: () => Promise.resolve('file:///project/bundle.js')
+      buildBundle: () => Promise.resolve(bundle)
     })
 
     assertEquals(artifacts, { 'src/out.ts': 'export {}\n' })
-    assertEquals(calls, [{ bundlePath: 'file:///project/bundle.js', stackUrl: undefined }])
+    assertEquals(calls, [{ bundlePath: 'file:///tmp/skmtc-bundle/bundle.js', stackUrl: undefined }])
+    assertEquals(bundle.disposed(), true)
+  })
+})
+
+Deno.test('resolveFreshArtifacts - an unreachable schema costs no build', async () => {
+  await withStubbedWorker(async (schemaPath, calls) => {
+    const builds: string[] = []
+    const artifacts = await resolveFreshArtifacts({
+      schemaSourceString: `${schemaPath}.missing`,
+      clientSettings: undefined,
+      stackUrl: undefined,
+      buildBundle: () => {
+        builds.push('built')
+        return Promise.resolve(toStubBundle())
+      }
+    })
+
+    assertEquals(artifacts, null)
+    assertEquals(builds, [])
+    assertEquals(calls, [])
   })
 })
 
@@ -100,12 +122,12 @@ Deno.test('resolveFreshArtifacts - a stack server project builds nothing locally
       stackUrl: 'https://stack.example',
       buildBundle: () => {
         builds.push('built')
-        return Promise.resolve('file:///project/bundle.js')
+        return Promise.resolve(toStubBundle())
       }
     })
 
     assertEquals(artifacts, { 'src/out.ts': 'export {}\n' })
     assertEquals(builds, [])
-    assertEquals(calls, [{ bundlePath: '', stackUrl: 'https://stack.example' }])
+    assertEquals(calls, [{ bundlePath: undefined, stackUrl: 'https://stack.example' }])
   })
 })

@@ -6,7 +6,7 @@ import { manifestContent, type ManifestContent } from '@skmtc/core/Manifest'
 import { writeGeneratedFiles } from '@/lib/write-generated-files.ts'
 import { toGeneratedLockPath } from '@/lib/generated-lock.ts'
 import { statusHeadless } from '@/lib/status-headless.ts'
-import { toBundlePath } from '@/lib/to-bundle-path.ts'
+import { type StubBundle, toStubBundle } from '@/tests/mocks/read-only-bundle.mock.ts'
 import { GenerateArtifacts } from '@/lib/generate-artifacts.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
 
@@ -67,7 +67,7 @@ const silenced = async (body: () => Promise<void> | void): Promise<void> => {
  */
 const withStubbedEngine = async <T>(
   { projectPath, artifacts }: { projectPath: string; artifacts: Record<string, string> },
-  body: (schemaSourceString: string, buildBundle: () => Promise<string>) => Promise<T>
+  body: (schemaSourceString: string, buildBundle: () => Promise<StubBundle>) => Promise<T>
 ): Promise<T> => {
   Deno.mkdirSync(projectPath, { recursive: true })
   const schemaPath = join(projectPath, 'openapi.json')
@@ -76,7 +76,7 @@ const withStubbedEngine = async <T>(
   const response: GenerateResponse = { artifacts, manifest: toManifest(Object.keys(artifacts)) }
   const generateStub = stub(GenerateArtifacts, 'generateWithWorker', () => Promise.resolve(response))
   try {
-    return await body(schemaPath, () => Promise.resolve(toBundlePath(projectPath)))
+    return await body(schemaPath, () => Promise.resolve(toStubBundle()))
   } finally {
     generateStub.restore()
   }

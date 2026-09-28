@@ -16,11 +16,15 @@ This is distinct from the *incremental* prune that runs inside
 rewrite (stale artifacts from a removed generator, a renamed
 output). `clean` deletes the **full** set the manifest records.
 
-`clean` never touches generator source or `client.json`. To report
-hand-edited files accurately it rebuilds `bundle.js` and renders fresh
-content, as `generate` does; the build contacts JSR only when the Deno
-cache lacks a pinned package, and a failed build only makes the report
-less precise.
+`clean` never touches generator source, `client.json`, `deno.json`,
+`worker.ts` or `bundle.js`. When a formatter could explain a tracked
+file's drift, it renders fresh content to tell the formatter change
+apart from a hand edit. It builds the bundle it renders with in a temporary directory, from the
+project's `deno.json` and `deno.lock` as they are (`deno bundle
+--frozen`), so it writes nothing to the project. The build downloads a
+pinned package only when the Deno cache lacks it, and gives up after
+20 seconds. A failed build only makes the
+`modified` report less precise.
 
 ## Synopsis
 
@@ -182,6 +186,7 @@ fresh tree rather than relying on the incremental prune.
 
 ## What `clean` does *not* do
 
+- Does **not** rebuild the project's `bundle.js` or `worker.ts`.
 - Does **not** modify `client.json` (enrichments, skip/include,
   basePath) or `deno.json` — generator *configuration* is untouched.
   Use [`remove`](remove.md) to uninstall a generator.

@@ -5,10 +5,15 @@
 > the form-renderable enrichment descriptors, and the schema-derived
 > enrichment defaults.
 
-`describe` rebuilds the project's `bundle.js`, loads it and the
-schema, then asks
-each installed generator what it *would* act on — without writing any
-files. It's the introspection half of `generate`: the same
+`describe` builds the project's bundle, loads it and the schema, then
+asks each installed generator what it *would* act on — without writing
+any files. The bundle is built in a temporary directory, from the
+project's `deno.json` and `deno.lock` as they are (`deno bundle
+--frozen`), so it writes nothing to the project. The build downloads a
+pinned package only when the Deno cache lacks it, and gives up after
+20 seconds. After you change a pin, run `skmtc generate` once
+before `describe`: the frozen build refuses pins that `deno.lock` has
+not seen, and exits 1 saying so. It's the introspection half of `generate`: the same
 subject-support decisions, reported instead of executed.
 
 ## Synopsis

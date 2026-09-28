@@ -103,9 +103,9 @@ Key facts:
   dirs it emptied, stops at the first non-empty ancestor, and never
   removes `basePath` or a `packages[].rootPath`. If `basePath` is
   unset in `client.json`, dir pruning is skipped entirely.
-- **`clean` deletes only generated output.** It rebuilds `bundle.js`
-  (as `generate` does) to render fresh content for its report, but
-  never edits `client.json` or generator source. To uninstall a
+- **`clean` touches only generated output.** It never rebuilds
+  `bundle.js` or edits `client.json` / `deno.json`; when it renders
+  fresh content for its report, it builds in a temporary directory. To uninstall a
   *generator*, use `remove`, not `clean`.
 - **No confirmation prompt** (no Ink variant). `--dry-run` is the
   safety valve; deletion is irreversible.

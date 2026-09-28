@@ -48,16 +48,16 @@ Deno.test('bundleHeadless - bundles a graph with one @skmtc/core', async () => {
   })
 })
 
-Deno.test('bundleHeadless - a refusal leaves no bundle.js behind', async () => {
+Deno.test('bundleHeadless - a refusal leaves the earlier bundle.js untouched', async () => {
   // `install` adds gen-b (on core 0.2.0) to a bundled project. The refused
-  // build must not leave the previous bundle.js, which lacks gen-b, where
-  // something could run it.
+  // build must not replace the earlier bundle.js. Nothing runs that file
+  // again: every command that runs a bundle builds it first.
   await withJsrRegistryServer(twoCoreRegistry, async () => {
     await withRegistryProject(
       { generatorVersion: '0.1.0' },
       async ({ projectName, projectPath }) => {
         await bundleHeadless({ skmtcRoot: await SkmtcRoot.open(new Manager()), projectName })
-        assertEquals(existsSync(join(projectPath, 'bundle.js')), true)
+        const bundled = await Deno.readTextFile(join(projectPath, 'bundle.js'))
 
         const denoJsonPath = join(projectPath, 'deno.json')
         const denoJson = JSON.parse(await Deno.readTextFile(denoJsonPath))
@@ -71,7 +71,7 @@ Deno.test('bundleHeadless - a refusal leaves no bundle.js behind', async () => {
           '@skmtc/core 0.2.0 ← @skmtc/gen-b@0.1.0'
         )
 
-        assertEquals(existsSync(join(projectPath, 'bundle.js')), false)
+        assertEquals(await Deno.readTextFile(join(projectPath, 'bundle.js')), bundled)
       }
     )
   })

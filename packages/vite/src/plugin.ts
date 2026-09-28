@@ -182,7 +182,8 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
   let viteRoot = process.cwd()
 
   // describe is a pure function of (schema, bundle) — cache it, invalidate on a
-  // bundle change.
+  // bundle change. describe builds its own bundle outside the project, so
+  // only a generate (or `skmtc bundle` / `skmtc dev`) replaces bundle.js.
   let describeCache: Promise<CliResult> | null = null
   const describe = (): Promise<CliResult> => {
     describeCache ??= runDescribe(root, options.project)
@@ -335,6 +336,12 @@ export function skmtcPreview(options: SkmtcPreviewOptions): Plugin {
       }
       server.watcher.on('add', onProvidersFileEvent)
       server.watcher.on('unlink', onProvidersFileEvent)
+
+      // A build renames the new bundle over bundle.js, which the watcher can
+      // report as `add` rather than `change`.
+      server.watcher.on('add', file => {
+        if (file === bundlePath) describeCache = null
+      })
 
       // Read-only metadata: subjects + descriptors + defaults (cached).
       const describeHandler: Connect.NextHandleFunction = async (_request, response) => {

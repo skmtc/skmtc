@@ -68,6 +68,7 @@ Deno.test('generateSwitch - --json and --watch together fail loudly with exit 2'
 const toRecordingGenerateLocal = () => {
   const bundles: string[] = []
   const generateLocalFn: typeof generateLocal = async ({ bundlePath }) => {
+    if (bundlePath === undefined) throw new Error('generate ran without building a bundle')
     bundles.push(await Deno.readTextFile(fromFileUrl(bundlePath)))
     return {
       stats: { tokens: 0, lines: 0, totalTime: 0, errors: [], files: 0 },
@@ -83,14 +84,15 @@ const toRecordingGenerateLocal = () => {
 
 const runGenerate = async (
   projectName: string,
-  generateLocalFn: typeof generateLocal
+  generateLocalFn: typeof generateLocal,
+  schemaSourceString?: string
 ): Promise<CapturedExit> => {
   let captured: CapturedExit = { errors: [], exitCode: undefined }
   await captureStdout(async () => {
     captured = await withCapturedExit(() =>
       generateSwitch({
         projectName,
-        schemaSourceString: undefined,
+        schemaSourceString,
         watch: undefined,
         noInputFlag: true,
         generateLocalFn
@@ -122,7 +124,11 @@ Deno.test('generateSwitch - refuses a module graph with two copies of @skmtc/cor
         assertStringIncludes(errors[0], '@skmtc/core 0.1.0 ← @skmtc/worker@0.1.0')
         assertStringIncludes(errors[0], '@skmtc/core 0.2.0 ← @skmtc/gen-a@0.2.0')
         assertEquals(bundles, [])
-        assertEquals(existsSync(join(projectPath, 'bundle.js')), false)
+        // The refused build left the earlier bundle.js alone and nothing ran it.
+        assertEquals(
+          await Deno.readTextFile(join(projectPath, 'bundle.js')),
+          'export default undefined\n'
+        )
       }
     )
   })
@@ -211,5 +217,52 @@ Deno.test('generateSwitch - runs the edited source of a cloned generator', async
         assertEquals(bundles[1].includes('before-edit'), false)
       }
     )
+  })
+})
+
+Deno.test('generateSwitch - an explicit schema needs no reachable client.json#source', async () => {
+  // Building reads the project's pins only, never the configured schema.
+  await withJsrRegistryServer(twoCoreRegistry, async () => {
+    await withRegistryProject(
+      { generatorVersion: '0.1.0' },
+      async ({ tempRoot, projectName, projectPath }) => {
+        const clientJsonPath = join(projectPath, '.settings', 'client.json')
+        await Deno.writeTextFile(
+          clientJsonPath,
+          JSON.stringify({ source: './missing-openapi.json', settings: { basePath: 'src/api' } })
+        )
+        const { bundles, generateLocalFn } = toRecordingGenerateLocal()
+
+        const { exitCode } = await runGenerate(
+          projectName,
+          generateLocalFn,
+          join(tempRoot, 'openapi.json')
+        )
+
+        assertEquals(exitCode, 0)
+        assertEquals(bundles.length, 1)
+      }
+    )
+  })
+})
+
+Deno.test('generateSwitch - a name that is not a project writes nothing', async () => {
+  await withJsrRegistryServer(twoCoreRegistry, async () => {
+    await withRegistryProject({ generatorVersion: '0.1.0' }, async ({ tempRoot }) => {
+      const { bundles, generateLocalFn } = toRecordingGenerateLocal()
+
+      const { errors, exitCode } = await runGenerate(
+        '.',
+        generateLocalFn,
+        join(tempRoot, 'openapi.json')
+      )
+
+      assertEquals(exitCode, 2)
+      assertStringIncludes(errors[0], 'missing required argument: <project>')
+      assertEquals(bundles, [])
+      for (const fileName of ['worker.ts', 'deno.json', 'bundle.js']) {
+        assertEquals(existsSync(join(tempRoot, '.skmtc', fileName)), false)
+      }
+    })
   })
 })
