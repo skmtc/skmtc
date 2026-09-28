@@ -5,13 +5,18 @@
 # dnt): its step installs deps, builds `dist/` with tsdown, then publishes.
 #
 # Runs automatically on every merge to main, except pushes that touch
-# only `retros/**`: the cascade publishes any workspace package whose
+# only paths listed under `paths-ignore` below (retros, notes, assets,
+# root docs): the cascade publishes any workspace package whose
 # deno.json version isn't yet on the registry and skips everything
 # already published, so merges with no version bumps are a no-op
 # ("nothing to publish"). Bump versions with `deno task bump <package>`
-# and merge — that IS the release. The workflow_dispatch trigger remains
-# for manual re-runs (e.g. after a partial failure; already-published
-# packages are skipped on re-run).
+# and merge — that IS the release.
+#
+# After a failed Publish, re-run it with workflow_dispatch
+# (already-published packages are skipped on re-run). A later retro or
+# docs-only merge does not retry it, and neither does an empty commit:
+# GitHub starts no run for a push with no changed files once a path
+# filter is set.
 #
 # Private packages (`"private": true` in deno.json) are bumped by the
 # cascade but never published — publish those manually to the local
@@ -33,9 +38,15 @@ name: Publish
 on:
   push:
     branches: [main]
-    # A retro-only push cannot change a version.
+    # Nothing under these paths feeds a published package.
     paths-ignore:
       - 'retros/**'
+      - 'notes/**'
+      - 'assets/**'
+      - 'autoresearch/**'
+      - 'README.md'
+      - 'RESUME.md'
+      - 'CONTRIBUTING.md'
   workflow_dispatch:
 
 concurrency:

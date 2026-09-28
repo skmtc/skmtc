@@ -39,7 +39,10 @@ The canonical flow:
    changed, with `deno task bump <package>` (cascades pins + dependent
    versions). Leave downstream consumers alone.
 2. Commit and merge to main — the `Publish` workflow runs `deno task release`
-   automatically on every merge (no-op when nothing is pending). Running
+   automatically on every merge (no-op when nothing is pending), except a
+   merge that touches only paths in its `paths-ignore` list (retros, notes,
+   assets, root docs). After a failed Publish, re-run it with
+   `workflow_dispatch`; a later retro-only merge will not retry it. Running
    `deno task release` locally from `skmtc/deno/` does the same against the
    ambient `JSR_URL` registry.
 
@@ -211,7 +214,7 @@ The CLI uses Cliffy framework with these patterns:
 
 Deno ≥ 2.9 refuses to resolve a dependency version published in the last
 24 hours by default (`--minimum-dependency-age`, unstable). Because
-`@skmtc/*` publishes on every merge to main, a just-released version
+`@skmtc/*` publishes on every code merge to main, a just-released version
 ALWAYS trips it on jsr.io. It shows up three different ways:
 
 | resolution | symptom |
