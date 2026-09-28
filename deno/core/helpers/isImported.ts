@@ -1,13 +1,13 @@
-import { normalizeExportPath } from '@/helpers/normalizeExportPath.ts'
+import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 
 /**
- * Whether two export paths name different files, so a symbol from one
+ * Whether two workspace paths name different files, so a symbol from one
  * must be imported into the other.
  *
- * Both are canonicalized with {@link normalizeExportPath}, so every
+ * Both are canonicalized with {@link normalizeWorkspacePath}, so every
  * spelling of one file compares equal: `@/`, `./`, the bare form, and
- * Windows separators. Throws, as that does, for a path that cannot be an
- * export path (a `..` segment, a Windows drive path).
+ * Windows separators. Throws, as that does, for a path that cannot name a
+ * file below `basePath` (a `..` segment, a Windows drive path).
  *
  * @example
  * ```typescript
@@ -17,5 +17,5 @@ import { normalizeExportPath } from '@/helpers/normalizeExportPath.ts'
  * ```
  */
 export const isImported = (pathOne: string, pathTwo: string): boolean => {
-  return normalizeExportPath(pathOne) !== normalizeExportPath(pathTwo)
+  return normalizeWorkspacePath(pathOne) !== normalizeWorkspacePath(pathTwo)
 }

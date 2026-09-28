@@ -52,7 +52,11 @@
 import { type GeneratorEnrichments, generatorEnrichments } from './Enrichments.ts'
 import * as v from 'valibot'
 import { type Method, method } from './Method.ts'
-import { hasParentSegment, isAbsolutePath, isExportPath } from '@/helpers/normalizeExportPath.ts'
+import {
+  hasParentSegment,
+  isAbsolutePath,
+  isValidWorkspacePath
+} from '@/helpers/normalizeWorkspacePath.ts'
 import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
 
 /**
@@ -268,7 +272,7 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
       v.pipe(
         v.string(),
         v.check(
-          isExportPath,
+          isValidWorkspacePath,
           'settings.ejected entries are export paths: a forward path below basePath, ' +
             'with no ".." segment and not a Windows drive or UNC path'
         )

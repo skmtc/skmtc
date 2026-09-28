@@ -24,7 +24,7 @@
 
 import { join } from '@std/path/join'
 import { dirname } from '@std/path/dirname'
-import { isExportPath, toWorkspacePath } from '@skmtc/core'
+import { isValidWorkspacePath, toWorkspacePath } from '@skmtc/core'
 import { existsSync } from '@std/fs/exists'
 import { ensureDirSync } from '@std/fs/ensure-dir'
 import * as v from 'valibot'
@@ -110,7 +110,7 @@ export const ejectHeadless = async ({
     return { ok: false, reason: `"${file}" is already ejected.` }
   }
 
-  if (!isExportPath(ownedExportPath)) {
+  if (!isValidWorkspacePath(ownedExportPath)) {
     return {
       ok: false,
       reason: `"${file}" has destination path "${entry.destinationPath}", which cannot be an export path — regenerate with a current core, then eject.`

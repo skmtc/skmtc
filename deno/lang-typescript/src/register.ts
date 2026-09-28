@@ -1,4 +1,4 @@
-import { isWorkspaceSpelled, normalizeExportPath } from '@skmtc/core'
+import { hasWorkspaceAnchor, normalizeWorkspacePath } from '@skmtc/core'
 import type { DefinitionBase, GenerateContextType, GeneratedValue, Stringable } from '@skmtc/core'
 import { TsFile } from './TsFile.ts'
 import { TsImport, type ImportNameArg } from './TsImport.ts'
@@ -50,7 +50,7 @@ export const register = (
   context: GenerateContextType,
   args: TsRegisterArgs & { destinationPath: string }
 ): void => {
-  const destinationPath = normalizeExportPath(args.destinationPath)
+  const destinationPath = normalizeWorkspacePath(args.destinationPath)
 
   if (!context.getFile(destinationPath)) {
     context.addFile(new TsFile({ path: destinationPath, settings: context.settings }))
@@ -59,18 +59,18 @@ export const register = (
   // In the imports map a string is either a module specifier (`zod`,
   // `@tanstack/query`, and any bare string) or an export path, which must
   // be spelled from the workspace root (`@/`, `./`, `/`, Windows forms).
-  // `isWorkspaceSpelled` decides which, here and at render
+  // `hasWorkspaceAnchor` decides which, here and at render
   // (`normalizeModuleName`), so one string is never read two ways.
 
   // An export path is written in its one spelling, so `@\types\y.ts` and
   // `./types/y.ts` render and merge as `@/types/y.ts`.
   const toModule = (module: string): string =>
-    isWorkspaceSpelled(module) ? normalizeExportPath(module) : module
+    hasWorkspaceAnchor(module) ? normalizeWorkspacePath(module) : module
 
   // A self-import — a symbol exported from the destination file itself — is
   // already in scope and is never imported.
   const isSelfImport = (module: string): boolean =>
-    isWorkspaceSpelled(module) && normalizeExportPath(module) === destinationPath
+    hasWorkspaceAnchor(module) && normalizeWorkspacePath(module) === destinationPath
 
   context.register({
     imports: Object.entries(args.imports ?? {})

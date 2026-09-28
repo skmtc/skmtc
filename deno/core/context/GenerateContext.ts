@@ -1,4 +1,4 @@
-import { normalizeExportPath } from '@/helpers/normalizeExportPath.ts'
+import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 import { applyGeneratedSuffix, DEFAULT_GENERATED_SUFFIX } from '@/helpers/applyGeneratedSuffix.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
@@ -1154,7 +1154,7 @@ export class GenerateContext implements GenerateContextType {
    */
   #toContentSettingsExportPath(exportPath: string, generatorId?: string): string {
     const suffixed = applyGeneratedSuffix(
-      normalizeExportPath(exportPath, { generatorId }),
+      normalizeWorkspacePath(exportPath, { generatorId }),
       this.settings?.generatedSuffix ?? DEFAULT_GENERATED_SUFFIX
     )
 
@@ -1173,7 +1173,7 @@ export class GenerateContext implements GenerateContextType {
 
       this.#ejectedBySuffixedPathCache = new Map(
         (this.settings?.ejected ?? []).map(ejectedPath => {
-          const normalized = normalizeExportPath(ejectedPath)
+          const normalized = normalizeWorkspacePath(ejectedPath)
           return [applyGeneratedSuffix(normalized, suffix), normalized]
         })
       )
@@ -1193,7 +1193,7 @@ export class GenerateContext implements GenerateContextType {
    * language-constructed file, use {@link addFile}.
    */
   getFile(filePath: string): FileBase | undefined {
-    return this.#files.get(normalizeExportPath(filePath))
+    return this.#files.get(normalizeWorkspacePath(filePath))
   }
 
   /**
@@ -1219,7 +1219,7 @@ export class GenerateContext implements GenerateContextType {
    * (`context.getFile(path) ?? context.addFile(new KtFile({ … }))`).
    */
   addFile<File extends FileBase>(file: File): File {
-    const normalizedPath = normalizeExportPath(file.path)
+    const normalizedPath = normalizeWorkspacePath(file.path)
 
     if (this.#files.has(normalizedPath)) {
       throw new Error(`File already exists: ${normalizedPath}`)
@@ -1237,7 +1237,7 @@ export class GenerateContext implements GenerateContextType {
    * @param args - Registration arguments with destination path and JSON content
    */
   registerJson({ destinationPath, json }: RegisterJsonArgs) {
-    const normalizedPath = normalizeExportPath(destinationPath)
+    const normalizedPath = normalizeWorkspacePath(destinationPath)
 
     let currentFile = this.getFile(normalizedPath)
 
@@ -1264,7 +1264,7 @@ export class GenerateContext implements GenerateContextType {
    * @experimental This method is experimental and may change in future versions
    */
   registerMarkdown({ destinationPath, markdown }: RegisterMarkdownArgs) {
-    const normalizedPath = normalizeExportPath(destinationPath)
+    const normalizedPath = normalizeWorkspacePath(destinationPath)
 
     let currentFile = this.getFile(normalizedPath)
 
@@ -1300,7 +1300,7 @@ export class GenerateContext implements GenerateContextType {
     destinationPath,
     into
   }: ContextRegisterArgs) {
-    const normalizedPath = normalizeExportPath(destinationPath)
+    const normalizedPath = normalizeWorkspacePath(destinationPath)
 
     const currentFile = this.getFile(normalizedPath)
 
@@ -1453,7 +1453,7 @@ export class GenerateContext implements GenerateContextType {
     // the use site (same ephemeral read the Drivers make) — pre-creates
     // the destination file caller-side, and stores via the pure-data
     // `register`.
-    const normalizedPath = normalizeExportPath(destinationPath)
+    const normalizedPath = normalizeWorkspacePath(destinationPath)
 
     if (!this.getFile(normalizedPath)) {
       this.addFile(projection.lang.createFile({ path: normalizedPath, settings: this.settings }))

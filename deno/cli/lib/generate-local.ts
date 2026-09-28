@@ -3,7 +3,7 @@ import { GenerateArtifacts } from '@/lib/generate-artifacts.ts'
 import { writeGeneratedFiles, type WriteGeneratedFilesResult } from '@/lib/write-generated-files.ts'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { reanchorSidecar, upgradeSidecar, writeSidecars } from '@skmtc/core/Anchors'
-import { isExportPath, toResolvedArtifactPath } from '@skmtc/core'
+import { isValidWorkspacePath, toResolvedArtifactPath } from '@skmtc/core'
 import { type GenerationStats, toGenerationStats } from '@/lib/generationStats.ts'
 import type { FileType } from '@/lib/types.ts'
 import type { EnrichmentWarning, ParseIssue } from '@skmtc/core'
@@ -162,7 +162,7 @@ export const generateLocal = async ({
           // A sidecar from a bundle whose core predates the export-path rule
           // may carry a path the resolver now refuses; it names nothing that
           // was written, so it is left as is.
-          if (!isExportPath(sidecar.f)) return [filePath, sidecar]
+          if (!isValidWorkspacePath(sidecar.f)) return [filePath, sidecar]
           const artifactKey = toResolvedArtifactPath({
             basePath: clientSettings?.basePath,
             destinationPath: sidecar.f

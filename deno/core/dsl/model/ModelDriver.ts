@@ -1,7 +1,7 @@
 import type { ModelProjection } from './types.ts'
 import type { GenerateContextType, InsertModelOptions } from '@/context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import { normalizeExportPath } from '@/helpers/normalizeExportPath.ts'
+import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '../GeneratedValue.ts'
@@ -104,7 +104,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
 
     if (
       destinationPath &&
-      normalizeExportPath(exportPath) !== normalizeExportPath(destinationPath)
+      normalizeWorkspacePath(exportPath) !== normalizeWorkspacePath(destinationPath)
     ) {
       // Cross-file import of the peer's identifier from its export path.
       // The language builds the import object (`toImport`) and creates the
@@ -127,7 +127,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
    * cache-hit path). Returns the normalized path.
    */
   private ensureFile(path: string): string {
-    const normalizedPath = normalizeExportPath(path)
+    const normalizedPath = normalizeWorkspacePath(path)
 
     if (!this.context.getFile(normalizedPath)) {
       this.context.addFile(

@@ -4,9 +4,9 @@ import { isAbsolute as isWindowsAbsolute } from '@std/path/windows/is-absolute'
 import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
 
 /**
- * Options for {@link normalizeExportPath} and {@link toExportPathBody}.
+ * Options for {@link normalizeWorkspacePath} and {@link toNormalizedWorkspacePath}.
  */
-export type NormalizeExportPathOptions = {
+export type NormalizeWorkspacePathOptions = {
   /** Names the generator in the error when the path is rejected. */
   generatorId?: string
 }
@@ -40,20 +40,20 @@ const isDriveOrUncPath = (path: string): boolean =>
  * leading `/`, or their Windows forms. An artifact path, never a bare
  * module specifier such as `zod` or `@tanstack/query`.
  */
-export const isWorkspaceSpelled = (path: string): boolean => /^(@[\\/]|\.[\\/]|[\\/])/.test(path)
+export const hasWorkspaceAnchor = (path: string): boolean => /^(@[\\/]|\.[\\/]|[\\/])/.test(path)
 
 /**
- * Whether `path` can be an export path: not a Windows drive or UNC path,
- * no `..` segment, and naming a file rather than `basePath` itself. The
- * non-throwing form of {@link normalizeExportPath}'s checks, for schema
- * validation and for comparing a module specifier against a file path.
+ * Whether `path` can name a file below `basePath`: not a Windows drive or
+ * UNC path, no `..` segment, and not `basePath` itself. The non-throwing
+ * form of {@link normalizeWorkspacePath}'s checks, for schema validation
+ * and for comparing a module specifier against a file path.
  */
-export const isExportPath = (path: string): boolean =>
+export const isValidWorkspacePath = (path: string): boolean =>
   !isDriveOrUncPath(path) && !hasParentSegment(path) && toBody(path) !== ''
 
 /**
- * The export path relative to `basePath`, canonical and with no anchor:
- * what {@link normalizeExportPath} writes after `@/`, and what
+ * The path relative to `basePath`, normalized and with no anchor:
+ * what {@link normalizeWorkspacePath} writes after `@/`, and what
  * {@link toResolvedArtifactPath} joins onto `basePath`.
  *
  * Throws when the path cannot name a file below `basePath`: a Windows
@@ -61,57 +61,57 @@ export const isExportPath = (path: string): boolean =>
  * normalization, so it is never resolved), or a path naming `basePath`
  * itself (`@/`, `@`, `./`, `.`, `/`, ``).
  */
-export const toExportPathBody = (
+export const toNormalizedWorkspacePath = (
   path: string,
-  { generatorId }: NormalizeExportPathOptions = {}
+  { generatorId }: NormalizeWorkspacePathOptions = {}
 ): string => {
   const reject = (reason: string): never => {
     const source = generatorId ? ` returned by generator '${generatorId}'` : ''
 
-    throw new Error(`Export path '${path}'${source} ${reason}`)
+    throw new Error(`Path '${path}'${source} ${reason}`)
   }
 
   if (isDriveOrUncPath(path)) {
-    return reject('is a Windows drive or UNC path; an export path is relative to basePath')
+    return reject('is a Windows drive or UNC path; a workspace path is relative to basePath')
   }
 
   if (hasParentSegment(path)) {
-    return reject('contains a ".." segment; an export path is a forward path below basePath')
+    return reject('contains a ".." segment; a workspace path is a forward path below basePath')
   }
 
   const body = toBody(path)
 
   if (body === '') {
-    return reject('names basePath itself; an export path names a file below it')
+    return reject('names basePath itself; a workspace path names a file below it')
   }
 
   return body
 }
 
 /**
- * The one spelling of an export path: `@/` followed by a POSIX path
- * relative to `basePath`.
+ * The one spelling of a workspace path — an export path or a destination
+ * path: `@/` followed by a POSIX path relative to `basePath`.
  *
- * An export path is a logical path inside the workspace, never a
+ * A workspace path is a logical path inside the workspace, never a
  * filesystem path, so it reads the same on every host. A generator may
- * return it as `@/types/User.ts`, `./types/User.ts`, `/types/User.ts`,
+ * return one as `@/types/User.ts`, `./types/User.ts`, `/types/User.ts`,
  * `types/User.ts`, or with Windows separators; the engine stores this form
  * and nothing else, so file-map keys, import modules and the ejected lookup
  * always agree. The result is a fixed point.
  *
- * Throws in the cases {@link toExportPathBody} throws.
+ * Throws in the cases {@link toNormalizedWorkspacePath} throws.
  *
  * @example
  * ```typescript
- * normalizeExportPath('@\\types\\User.ts') // '@/types/User.ts'
- * normalizeExportPath('./types/User.ts')   // '@/types/User.ts'
- * normalizeExportPath('../User.ts')        // throws
+ * normalizeWorkspacePath('@\\types\\User.ts') // '@/types/User.ts'
+ * normalizeWorkspacePath('./types/User.ts')   // '@/types/User.ts'
+ * normalizeWorkspacePath('../User.ts')        // throws
  * ```
  */
-export const normalizeExportPath = (
+export const normalizeWorkspacePath = (
   path: string,
-  options: NormalizeExportPathOptions = {}
-): string => `@/${toExportPathBody(path, options)}`
+  options: NormalizeWorkspacePathOptions = {}
+): string => `@/${toNormalizedWorkspacePath(path, options)}`
 
 /**
  * Separator swap, then every anchor spelling goes (`@/`, `./`, a leading

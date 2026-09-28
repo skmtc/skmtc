@@ -1,9 +1,9 @@
 /**
  * Resolves an artifact's destination path onto `basePath`.
  *
- * `destinationPath` is an export path in any spelling
- * ({@link toExportPathBody}) — `@/models/User.ts` as a generator wrote
- * it, `./models/User.ts`, or with Windows separators — and is always
+ * `destinationPath` is a workspace path in any spelling
+ * ({@link toNormalizedWorkspacePath}) — `@/models/User.ts` as a generator
+ * wrote it, `./models/User.ts`, or with Windows separators — and is always
  * joined onto `basePath` with forward slashes, so the artifact key reads
  * the same on every host. A `..` segment or an absolute path is refused:
  * every artifact lands below `basePath`, whoever writes it.
@@ -12,7 +12,7 @@
  */
 
 import { join } from '@std/path/posix/join'
-import { toExportPathBody } from '@/helpers/normalizeExportPath.ts'
+import { toNormalizedWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
 
 /**
@@ -45,5 +45,5 @@ export const toResolvedArtifactPath = ({
   basePath,
   destinationPath
 }: ToResolvedArtifactPathArgs): string => {
-  return join(toWorkspacePath(basePath ?? ''), toExportPathBody(destinationPath))
+  return join(toWorkspacePath(basePath ?? ''), toNormalizedWorkspacePath(destinationPath))
 }

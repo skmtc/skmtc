@@ -1,6 +1,6 @@
 import {
   isUnderRoot,
-  isWorkspaceSpelled,
+  hasWorkspaceAnchor,
   matchPackage,
   type ModulePackage,
   type PackageMatch
@@ -112,7 +112,7 @@ export const normalizeModuleName = ({
   // `@tanstack/query`, `types/y.ts`) and is written as it is; only an export
   // path is re-keyed through the package roots. The same predicate decides
   // in `register`, so a string is never a specifier there and a path here.
-  if (!isWorkspaceSpelled(exportPath)) {
+  if (!hasWorkspaceAnchor(exportPath)) {
     return exportPath
   }
 
