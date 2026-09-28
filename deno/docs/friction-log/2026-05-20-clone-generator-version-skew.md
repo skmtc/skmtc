@@ -22,7 +22,7 @@ JSR registry, on `cli@0.3.4` / `core@0.6.2` / `deno 2.7.14`.
 
 | # | Entry | Severity | Status |
 |---|-------|----------|--------|
-| 1 | `skmtc install` rejects space-separated generators; skill card example is wrong | friction | open |
+| 1 | `skmtc install` rejects space-separated generators; skill card example is wrong | friction | fixed |
 | 2 | `skmtc clone` swallows the underlying `deno bundle` error | friction | open |
 | 3 | `clone`-produced `deno.json` omits the `@skmtc/worker` pin needed by `worker.ts` | blocker | open |
 | 4 | "Install latest" of several stock generators produces a non-co-released, core-skewed set | friction | open |
@@ -46,7 +46,7 @@ First command after `init` — installing three generators.
 
 **Version anchor:** `@skmtc/cli@0.3.4`
 
-**Status:** open
+**Status:** fixed 2026-09-28 (#171) — `install` takes its generators as space-separated arguments, with the project last; the comma-separated form still works.
 
 ---
 

@@ -1,6 +1,7 @@
 import { Command, EnumType } from '@cliffy/command'
 import { assertJsrReachable, JsrRegistryUnreachableError } from '@/lib/jsr-registry.ts'
 import { getCommandDescriptor } from '@/lib/cli-schema.ts'
+import { INSTALL_ARGUMENTS, INSTALL_USAGE, toInstallArguments } from '@/lib/install-arguments.ts'
 import denoJson from './deno.json' with { type: 'json' }
 
 // Sentry.init({
@@ -137,11 +138,13 @@ const run = async () => {
 
   const installCommand = new Command()
     .description(getCommandDescriptor('install').description)
-    .arguments('[generators:string[]] [project:string]')
+    .arguments(INSTALL_ARGUMENTS)
+    .usage(INSTALL_USAGE)
     .option('--no-input', NO_INPUT_DESC)
     .option('--json', JSON_DESC)
-    .action(async ({ json, input }, generators, projectName) => {
+    .action(async ({ json, input }, ...values) => {
       const { renderInstall } = await import('@/commands/install.tsx')
+      const { generators, projectName } = toInstallArguments(values)
       await renderInstall({
         generators,
         projectName,

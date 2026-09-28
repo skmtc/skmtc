@@ -16,7 +16,9 @@ skmtc install [generators...] [project] [--json] [--no-input]
 
 ### `[generators...]`
 
-One or more JSR generator specifiers. Required in strict mode.
+One or more JSR generator specifiers, separated by spaces. A
+comma-separated list (`@skmtc/gen-zod,@skmtc/gen-typescript`) also
+works. Required in strict mode.
 
 Generator specifiers can be:
 
