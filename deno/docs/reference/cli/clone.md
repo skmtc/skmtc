@@ -94,6 +94,40 @@ For each cloned generator, the CLI writes:
 
 The directory mirrors the JSR package's source tree.
 
+### Imports rewritten to bare specifiers
+
+JSR serves published source with each bare import rewritten to a
+versioned specifier (`from 'jsr:@skmtc/core@0.29.0'`,
+`from 'npm:ts-pattern@^5.8.0'`). The CLI rewrites those imports back
+to bare specifiers, so versions come from `deno.json#imports`:
+
+```ts fragment
+// As JSR serves it
+import { capitalize } from 'jsr:@skmtc/core@0.29.0'
+
+// As cloned
+import { capitalize } from '@skmtc/core'
+```
+
+Only import positions change — strings, comments and non-source
+files are written as served. A specifier whose version is a value
+of the package's `deno.json#imports` becomes that entry's key. A
+package the imports don't name becomes its bare name, pinned in the
+clone's `deno.json` with the version it replaced. An import whose
+version disagrees with the pin, or with another import of the same
+package, was written that way on purpose and stays versioned.
+
+### The project decides shared versions
+
+The clone's `deno.json` keeps the package's own pins, except for any
+name the project's root `deno.json` already pins. Those are dropped,
+so the root decides their version: the clone runs on the project's
+`@skmtc/core`, and a peer generator the project already cloned
+resolves to its local copy.
+
+After editing a pin in either `deno.json`, run `skmtc bundle` — the
+bundle freshness check compares generator ids, not pin values.
+
 ### deno.json#imports updated
 
 The project's `deno.json` import entry switches from a JSR specifier
@@ -110,18 +144,12 @@ to a local path:
 Subsequent `generate` and `bundle` operations resolve to the local
 source instead of JSR.
 
-### Cross-generator peer imports
+### Peer imports
 
-If the cloned generator depends on other generators (e.g., a form
-generator depends on a Tanstack Query generator), the CLI writes
-those peer imports into the project's root `deno.json#imports`
-too. Other transitive peers (`@skmtc/core`, `@std/path`,
-`valibot`, `tiny-invariant`) are expected to already be present;
-the CLI does not overwrite them.
-
-If a transitive peer is missing, the next `bundle` surfaces a
-clear "No matching export" error. Run `skmtc doctor --json` to
-identify the missing pin.
+The clone's peers resolve through its own `deno.json` (or the
+project's, for names the project pins), so nothing else is written
+to the project's root `deno.json`. A peer generator the cloned
+generator imports is not installed as a generator of the project.
 
 ### Post-clone rebundle
 
