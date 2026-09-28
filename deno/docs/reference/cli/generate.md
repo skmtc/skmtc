@@ -343,7 +343,7 @@ No schema argument needed.
 | Code | Meaning |
 |---|---|
 | `0` | Success — no fatal parse issues, typecheck (if requested) passed |
-| `1` | Fatal parseIssue at level `error`, OR `--typecheck` returned `type: "failed"`, OR worker error, OR the module graph holds more than one copy of `@skmtc/core` or a `@skmtc/lang-*` package |
+| `1` | Fatal parseIssue at level `error`, OR `--typecheck` returned `type: "failed"`, OR worker error, OR the `bundle.js` about to run (with `--debug`, the module graph) holds more than one copy of `@skmtc/core` or a `@skmtc/lang-*` package |
 | `2` | Required argument missing (recipe error on stderr), OR `--json` and `--watch` both passed, OR bundle freshness gate triggered |
 
 ## Worker-side failures
