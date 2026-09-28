@@ -11,6 +11,7 @@
  * each copy. Every bundle build runs it, and so does `doctor`.
  */
 
+import { basename } from '@std/path/basename'
 import { dirname } from '@std/path/dirname'
 import { join } from '@std/path/join'
 import { relative } from '@std/path/relative'
@@ -154,6 +155,8 @@ type ModuleIdentity = {
 type ToIdentityContext = {
   /** Canonical (real) path of the project directory. */
   projectPath: string
+  /** Canonical path of an entry written outside the project. */
+  entryPath?: string
   readManifest: ReadManifestFn
   manifestCache: Map<string, { directory: string; manifest: PackageManifest } | undefined>
 }
@@ -203,10 +206,16 @@ const toLocalIdentity = (specifier: string, context: ToIdentityContext): ModuleI
 
   // Unnamed project files are grouped by their top-level entry — one
   // label per cloned generator directory, not one per source file.
-  const relativePath = relative(context.projectPath, path)
-  const label = isInside(context.projectPath, path)
-    ? relativePath.split(SEPARATOR)[0]
-    : relative(context.projectPath, dirname(path))
+  if (isInside(context.projectPath, path)) {
+    const label = relative(context.projectPath, path).split(SEPARATOR)[0]
+    return { copy: label, label }
+  }
+
+  // An entry written outside the project is named by its file name.
+  const label =
+    toCanonicalPath(path) === context.entryPath
+      ? basename(path)
+      : relative(context.projectPath, dirname(path))
   return { copy: label, label }
 }
 
@@ -280,6 +289,8 @@ type ToModuleGraphCheckArgs = {
   graph: ModuleGraph
   /** Canonical (real) path of the project directory. */
   projectPath: string
+  /** Canonical path of the entry, when it is outside the project. */
+  entryPath?: string
   readManifest?: ReadManifestFn
 }
 
@@ -294,10 +305,16 @@ type ToModuleGraphCheckArgs = {
 export const toModuleGraphCheck = ({
   graph,
   projectPath,
+  entryPath,
   readManifest = readManifestFromDisk
 }: ToModuleGraphCheckArgs): PackageCopiesCheck => {
   const redirects = graph.redirects ?? {}
-  const context: ToIdentityContext = { projectPath, readManifest, manifestCache: new Map() }
+  const context: ToIdentityContext = {
+    projectPath,
+    entryPath,
+    readManifest,
+    manifestCache: new Map()
+  }
   const index: CopyIndex = new Map()
 
   for (const module of graph.modules) {
@@ -352,8 +369,7 @@ const lockfileOutOfDate = 'The lockfile is out of date'
 /**
  * Resolves the project's `worker.ts` graph with `deno info --json` and
  * checks it. Never throws: when the graph can't be read the result is
- * `unavailable` and the caller carries on — `deno bundle` reports an
- * unresolvable graph better than this check could.
+ * `unavailable`.
  */
 export const checkModuleGraph: CheckModuleGraphFn = async (projectPath, options = {}) => {
   const workerPath = options.entryPath ?? join(projectPath, 'worker.ts')
@@ -402,7 +418,11 @@ export const checkModuleGraph: CheckModuleGraphFn = async (projectPath, options 
       return { type: 'unavailable', reason: '`deno info --json` output has an unexpected shape.' }
     }
 
-    return toModuleGraphCheck({ graph: parsed.output, projectPath: toCanonicalPath(projectPath) })
+    return toModuleGraphCheck({
+      graph: parsed.output,
+      projectPath: toCanonicalPath(projectPath),
+      entryPath: options.entryPath === undefined ? undefined : toCanonicalPath(options.entryPath)
+    })
   } catch (error) {
     return {
       type: 'unavailable',

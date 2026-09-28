@@ -212,6 +212,29 @@ Deno.test('toModuleGraphCheck - groups the project files that import a copy by t
   ])
 })
 
+Deno.test('toModuleGraphCheck - an entry outside the project is named by its file name', () => {
+  const entryPath = resolve('/tmp/skmtc-bundle-1/worker.ts')
+  const graph: ModuleGraph = {
+    modules: [
+      toModule({
+        specifier: toFileUrl(entryPath).href,
+        dependencies: ['https://jsr.io/@skmtc/core/0.28.3/mod.ts']
+      }),
+      toModule({
+        specifier: 'https://jsr.io/@skmtc/worker/0.3.56/mod.ts',
+        dependencies: ['https://jsr.io/@skmtc/core/0.29.0/mod.ts']
+      })
+    ]
+  }
+
+  const result = toModuleGraphCheck({ graph, projectPath, entryPath, readManifest: noManifests })
+
+  assertEquals(result.type === 'duplicates' ? result.duplicates[0].copies : [], [
+    { version: '0.28.3', importedBy: ['worker.ts'] },
+    { version: '0.29.0', importedBy: ['@skmtc/worker@0.3.56'] }
+  ])
+})
+
 Deno.test('toModuleGraphCheck - a local checkout of core is a second copy beside the JSR one', () => {
   // `"@skmtc/core": "../../core/mod.ts"` for a local generator, while the
   // worker loads jsr:@skmtc/core — same version, two copies at runtime.
