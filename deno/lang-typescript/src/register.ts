@@ -60,7 +60,7 @@ export const register = (
   // `@tanstack/query`, and any bare string) or an export path, which must
   // be spelled from the workspace root (`@/`, `./`, `/`, Windows forms).
   // `hasWorkspaceAnchor` decides which, here and at render
-  // (`normalizeModuleName`), so one string is never read two ways.
+  // (`toImportModule`), so one string is never read two ways.
 
   // An export path is written in its one spelling, so `@\types\y.ts` and
   // `./types/y.ts` render and merge as `@/types/y.ts`.
