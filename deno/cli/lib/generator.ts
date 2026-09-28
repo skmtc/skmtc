@@ -10,6 +10,7 @@ import type { Manager } from '@/lib/manager.ts'
 import type { Project } from '@/lib/project.ts'
 import invariant from 'tiny-invariant'
 import { extractImportPaths } from '@/lib/extract-import-paths.ts'
+import { toBareJsrSpecifiers } from '@/lib/to-bare-jsr-specifiers.ts'
 import { Jsr } from '@/lib/jsr.ts'
 import { readCliCorePin, toMajorMinor } from '@/lib/doctor-headless.ts'
 
@@ -162,13 +163,18 @@ export class Generator {
    * the version resolved from `this.version`'s semver constraint, then
    * written under `<project>/<packageName>/`.
    *
+   * JSR serves published source with each import resolved to a
+   * versioned `jsr:` specifier. Those are rewritten back to bare names
+   * before writing, and any name the package's `deno.json#imports`
+   * doesn't already pin is added there, so versions come from
+   * `deno.json` and changing a pin changes what the clone runs on.
+   *
    * After files are on disk, the package's own `deno.json#imports`
    * acts as the lookup table for cross-generator specifiers
    * (`@skmtc/gen-typescript`, etc.) that the cloned source references.
-   * Peer deps the package doesn't pin itself (`@skmtc/core`,
-   * `@std/path`, `valibot`, `tiny-invariant`, …) are expected to
-   * already be in the project's root `deno.json` from earlier
-   * `init`/`install` activity; we don't overwrite them.
+   * Those the project's root `deno.json` doesn't already pin are added
+   * there; existing root pins (`@skmtc/core`, installed generators, …)
+   * are never overwritten.
    *
    * Returns the concrete resolved version so callers can surface it
    * to the user (e.g. `skmtc clone … → @scope/pkg@0.0.55`).
@@ -218,7 +224,13 @@ export class Generator {
     // subsequent `skmtc list` / `doctor` calls can report it accurately.
     this.version = version
 
-    const downloads = Object.entries(files).map(async ([path, content]) => {
+    const bareFiles = Object.entries(files).map(([path, content]) => {
+      return isSourceFile(path)
+        ? { path, ...toBareJsrSpecifiers(content) }
+        : { path, content, pins: {} }
+    })
+
+    const downloads = bareFiles.map(async ({ path, content }) => {
       const joinedPath = join(toProjectPath(this.projectName), this.packageName, path)
 
       await ensureFile(joinedPath)
@@ -236,11 +248,16 @@ export class Generator {
     // populated.
     const packageDenoJsonPath = join(this.toPath({ relative: false }), 'deno.json')
     const packageDenoJson = await PackageDenoJson.open(packageDenoJsonPath, manager)
-    const packageImports = packageDenoJson.contents.imports ?? {}
+    // Every bare name the rewrite introduced must resolve through the
+    // clone's deno.json. The published pins win; the version that was
+    // written into the import fills any gap.
+    const rewrittenPins = Object.fromEntries(bareFiles.flatMap(({ pins }) => Object.entries(pins)))
+    const packageImports = { ...rewrittenPins, ...packageDenoJson.contents.imports }
+    packageDenoJson.contents = { ...packageDenoJson.contents, imports: packageImports }
 
     const importsToAdd = new Set<string>()
-    for (const [filePath, content] of Object.entries(files)) {
-      if (filePath.endsWith('.ts')) {
+    for (const { path, content } of bareFiles) {
+      if (isSourceFile(path)) {
         const importPaths = extractImportPaths(content)
         importPaths.forEach(path => importsToAdd.add(path))
       }
@@ -248,11 +265,12 @@ export class Generator {
 
     for (const importModule of importsToAdd) {
       const source = packageImports[importModule]
-      // Only add specifiers the package itself pinned. Skip anything
-      // unknown — the project's existing deno.json already pins peer
-      // deps (or doesn't, in which case `bundle` will surface a clear
+      // Only add specifiers the package itself pinned, and never
+      // overwrite a pin the project already has. Skip anything unknown
+      // — the project's existing deno.json already pins peer deps (or
+      // doesn't, in which case `bundle` will surface a clear
       // missing-export error).
-      if (source) {
+      if (source && !denoJson.contents.imports?.[importModule]) {
         denoJson.addImport(importModule, source)
       }
     }
@@ -297,6 +315,8 @@ export class Generator {
     return `${this.toPath({ relative })}/mod.ts`
   }
 }
+
+const isSourceFile = (path: string): boolean => /\.[cm]?[jt]sx?$/.test(path)
 
 type FromNameArgs = {
   projectName: string
