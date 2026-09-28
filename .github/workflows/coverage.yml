@@ -48,11 +48,21 @@ jobs:
         working-directory: deno
         run: deno task coverage:report
 
+      # A Coveralls outage must not turn main red: the tests above are the
+      # gate. A failed or stalled upload leaves the job green and raises a
+      # warning on the run instead.
       - name: Upload coverage to Coveralls
+        id: coveralls
+        continue-on-error: true
+        timeout-minutes: 5
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: deno/coverage.lcov
+
+      - name: Warn when the Coveralls upload failed
+        if: steps.coveralls.outcome == 'failure'
+        run: echo "::warning::Coveralls upload failed or timed out; coverage was not reported for this run"
 
   # Windows is a supported host for the CLI and the engine, and its path
   # separator is the one difference the Ubuntu job can never exercise
