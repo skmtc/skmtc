@@ -40,6 +40,11 @@ import {
   toCliInstallCommand,
   toHoursSincePublish
 } from '@/lib/dependency-age.ts'
+import {
+  checkModuleGraph as checkModuleGraphDefault,
+  type CheckModuleGraphFn,
+  toSingleCopiesSummary
+} from '@/lib/duplicate-packages.ts'
 
 export type CheckStatus = 'ok' | 'warning' | 'error' | 'skipped'
 
@@ -95,6 +100,12 @@ type RunDoctorArgs = {
    * that never asked must not report a connectivity problem.
    */
   offline?: boolean
+  /**
+   * Resolves a project's module graph for the `project-package-copies`
+   * check. Injectable so tests state the graph instead of spawning
+   * `deno info`.
+   */
+  checkModuleGraph?: CheckModuleGraphFn
 }
 
 export const runDoctor = async ({
@@ -103,7 +114,8 @@ export const runDoctor = async ({
   // `scopeName` carries its `@` — `toJsrUrl` joins the parts verbatim.
   getLatestCliMeta = () =>
     Jsr.tryGetLatestMeta({ scopeName: '@skmtc', packageName: 'cli' }),
-  offline = false
+  offline = false,
+  checkModuleGraph = checkModuleGraphDefault
 }: RunDoctorArgs): Promise<DoctorResult> => {
   const skmtcRootPath = toRootPath()
   const globalStateDir = join(homedir(), '.skmtc')
@@ -121,6 +133,7 @@ export const runDoctor = async ({
   const projectCtx: CheckProjectContext = { cliCorePin }
   for (const project of projects) {
     checks.push(...checkProject(project, projectCtx))
+    checks.push(await checkProjectPackageCopies(project, checkModuleGraph))
   }
 
   return {
@@ -580,6 +593,67 @@ const checkProjectCorePin = (
     id: `project-core-pin/${projectName}`,
     status: 'ok',
     message: `Project "${projectName}" pins @skmtc/core ${projectPin}; CLI uses ${cliCorePin} (compatible).`
+  }
+}
+
+/**
+ * The project pin alone doesn't decide which `@skmtc/core` runs: the
+ * worker, the installed generators and `lang-*` each resolve their own.
+ * Two copies in one graph make generation write empty files and report
+ * success, so this reads the whole graph (`deno info` on `worker.ts`) and
+ * names every version with the packages that import it.
+ *
+ * `deno info` works from the Deno cache, so it only reaches the network
+ * when the cache is cold — for a project that has never been bundled.
+ */
+const checkProjectPackageCopies = async (
+  projectName: string,
+  checkModuleGraph: CheckModuleGraphFn
+): Promise<Check> => {
+  const id = `project-package-copies/${projectName}`
+  const graphCheck = await checkModuleGraph(toProjectPath(projectName))
+
+  switch (graphCheck.type) {
+    case 'unavailable':
+      return {
+        id,
+        status: 'skipped',
+        message: `Could not resolve the module graph of project "${projectName}": ${graphCheck.reason}`
+      }
+    case 'duplicates': {
+      const copies = graphCheck.duplicates
+        .map(
+          duplicate =>
+            `${duplicate.name} ${duplicate.copies
+              .map(copy => `${copy.version} (from ${copy.importedBy.join(', ')})`)
+              .join(' and ')}`
+        )
+        .join('; ')
+      return {
+        id,
+        status: 'error',
+        message: `Project "${projectName}" resolves more than one copy of a package: ${copies}.`,
+        hint:
+          `Generation against this graph writes empty files and reports success. Change the pins in ` +
+          `${join(toProjectPath(projectName), 'deno.json')} so every package resolves the same version, ` +
+          `then run \`skmtc bundle ${projectName}\`.`,
+        data: { duplicates: graphCheck.duplicates }
+      }
+    }
+    case 'single-copies':
+      return {
+        id,
+        status: 'ok',
+        message:
+          graphCheck.packages.length > 0
+            ? `Project "${projectName}" resolves one copy of each package:\n${toSingleCopiesSummary(graphCheck.packages)}`
+            : `Project "${projectName}" resolves no @skmtc/core or @skmtc/lang-* package.`,
+        data: { packages: graphCheck.packages }
+      }
+    default: {
+      const _exhaustive: never = graphCheck
+      throw new Error(`Unhandled module graph check: ${JSON.stringify(_exhaustive)}`)
+    }
   }
 }
 

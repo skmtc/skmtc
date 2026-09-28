@@ -2,6 +2,7 @@ import { join } from '@std/path/join'
 import type { Project } from '@/lib/project.ts'
 import { toBundlePath } from '@/lib/to-bundle-path.ts'
 import { toDependencyAgeArgs } from '@/lib/dependency-age.ts'
+import { checkModuleGraph, toDuplicatePackagesMessage } from '@/lib/duplicate-packages.ts'
 
 /**
  * Build a project's `bundle.js` from its generated `worker.ts`.
@@ -27,6 +28,17 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
   const bundlePath = toBundlePath(project.toPath())
 
   await project.createWorker()
+
+  const graphCheck = await checkModuleGraph(projectPath)
+  if (graphCheck.type === 'duplicates') {
+    throw new Error(
+      toDuplicatePackagesMessage({
+        projectName: project.name,
+        projectPath,
+        duplicates: graphCheck.duplicates
+      })
+    )
+  }
 
   // Without the age flag, `deno bundle` on Deno ≥ 2.9 rejects a freshly
   // released stack — the project's pins name `@skmtc/*` versions that

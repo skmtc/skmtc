@@ -4,6 +4,7 @@ import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/str
 import { toManifestPath } from '@/lib/to-manifest-path.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { checkBundleFreshness } from '@/lib/bundle-freshness.ts'
+import { checkModuleGraph, toDuplicatePackagesMessage } from '@/lib/duplicate-packages.ts'
 import { runTypecheck } from '@/lib/typecheck.ts'
 import { resolve } from '@std/path'
 
@@ -101,6 +102,24 @@ export const generateSwitch = async ({
           console.error(`${freshness.hint}\n`)
         }
         Deno.exit(2)
+      }
+    }
+
+    // A bundle with two copies of `@skmtc/core` (or a `@skmtc/lang-*`)
+    // generates empty files and reports success. `bundle` refuses to
+    // build one, but a bundle built before that check — or by an older
+    // CLI — can still be on disk, so check the graph in every mode.
+    if (!generateLocalArgs.stackUrl) {
+      const graphCheck = await checkModuleGraph(generateLocalArgs.projectPath)
+      if (graphCheck.type === 'duplicates') {
+        console.error(
+          `Error: ${toDuplicatePackagesMessage({
+            projectName,
+            projectPath: generateLocalArgs.projectPath,
+            duplicates: graphCheck.duplicates
+          })}\n`
+        )
+        Deno.exit(1)
       }
     }
 

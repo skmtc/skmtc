@@ -16,6 +16,11 @@ import { ensureDir } from '@std/fs/ensure-dir'
 import { runDoctor as runDoctorWithRegistry, type Check } from '@/lib/doctor-headless.ts'
 import { printDoctorResult } from '@/commands/doctor.ts'
 import { captureStdout } from '@/tests/strict-mode-helpers.test.ts'
+import {
+  twoCoreRegistry,
+  withJsrRegistryServer,
+  withRegistryProject
+} from '@/tests/mocks/jsr-registry-server.mock.ts'
 
 /**
  * `runDoctor` with the registry lookup answered as "unreachable" — the
@@ -813,4 +818,53 @@ Deno.test('doctor - every check id is documented in both catalogues', async () =
     const undocumented = ids.filter(id => !text.includes(`\`${id}`))
     assertEquals(undocumented, [], `undocumented in ${catalogue}`)
   }
+})
+
+Deno.test('runDoctor - errors when the module graph resolves two copies of @skmtc/core', async () => {
+  // The project pin (0.1.0) matches the worker's, so project-core-pin
+  // alone would pass; the generator brings in core 0.2.0.
+  await withJsrRegistryServer(twoCoreRegistry, async () => {
+    await withRegistryProject({ generatorVersion: '0.2.0' }, async ({ projectName }) => {
+      const result = await runDoctor({ cliVersion: '0.1.5' })
+
+      const check = result.checks.find(c => c.id === `project-package-copies/${projectName}`)
+      assertEquals(check?.status, 'error')
+      assertStringIncludes(check?.message ?? '', '@skmtc/core 0.1.0 (from @skmtc/worker@0.1.0)')
+      assertStringIncludes(check?.message ?? '', '0.2.0 (from @skmtc/gen-a@0.2.0)')
+      assertStringIncludes(check?.hint ?? '', 'empty files')
+      assertEquals(result.summary, 'error')
+    })
+  })
+})
+
+Deno.test('runDoctor - reports the one @skmtc/core a project resolves', async () => {
+  await withJsrRegistryServer(twoCoreRegistry, async () => {
+    await withRegistryProject({ generatorVersion: '0.1.0' }, async ({ projectName }) => {
+      const result = await runDoctor({ cliVersion: '0.1.5' })
+
+      const check = result.checks.find(c => c.id === `project-package-copies/${projectName}`)
+      assertEquals(check?.status, 'ok')
+      assertStringIncludes(
+        check?.message ?? '',
+        '@skmtc/core 0.1.0 ← @skmtc/gen-a@0.1.0, @skmtc/worker@0.1.0'
+      )
+    })
+  })
+})
+
+Deno.test('runDoctor - skips the package-copies check when the graph is unavailable', async () => {
+  await withTempSkmtcRoot(async tempRoot => {
+    const projectPath = join(tempRoot, '.skmtc', 'no-worker')
+    await ensureDir(projectPath)
+    await Deno.writeTextFile(join(projectPath, 'deno.json'), JSON.stringify({ imports: {} }))
+
+    const result = await runDoctor({
+      cliVersion: '0.1.5',
+      checkModuleGraph: () => Promise.resolve({ type: 'unavailable', reason: 'no worker.ts' })
+    })
+
+    const check = result.checks.find(c => c.id === 'project-package-copies/no-worker')
+    assertEquals(check?.status, 'skipped')
+    assertStringIncludes(check?.message ?? '', 'no worker.ts')
+  })
 })

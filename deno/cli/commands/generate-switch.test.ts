@@ -2,6 +2,11 @@ import { assertEquals } from '@std/assert/equals'
 import { assertStringIncludes } from '@std/assert/string-includes'
 import { generateSwitch } from '@/commands/generate-switch.ts'
 import { withCapturedExit } from '@/tests/strict-mode-helpers.test.ts'
+import {
+  twoCoreRegistry,
+  withJsrRegistryServer,
+  withRegistryProject
+} from '@/tests/mocks/jsr-registry-server.mock.ts'
 
 Deno.test('generateSwitch - strict mode without a resolvable schema fails with a recipe error', async () => {
   // Reproduces the routing path that previously fell through to
@@ -46,4 +51,28 @@ Deno.test('generateSwitch - --json and --watch together fail loudly with exit 2'
   assertEquals(errors.length, 1)
   assertStringIncludes(errors[0], '--json and --watch are mutually exclusive')
   assertStringIncludes(errors[0], 'Pick one')
+})
+
+Deno.test('generateSwitch - refuses a bundle whose graph has two copies of @skmtc/core', async () => {
+  // A bundle.js built before `bundle` checked the graph (or by an older
+  // CLI) is still on disk. Generating from it would write empty files and
+  // exit 0, so generate checks the graph itself.
+  await withJsrRegistryServer(twoCoreRegistry, async () => {
+    await withRegistryProject({ generatorVersion: '0.2.0' }, async ({ projectName }) => {
+      const { errors, exitCode } = await withCapturedExit(async () => {
+        await generateSwitch({
+          projectName,
+          schemaSourceString: undefined,
+          watch: undefined,
+          noInputFlag: true
+        })
+      })
+
+      assertEquals(exitCode, 1)
+      assertEquals(errors.length, 1)
+      assertStringIncludes(errors[0], 'resolves more than one copy of @skmtc/core')
+      assertStringIncludes(errors[0], '@skmtc/core 0.1.0 ← @skmtc/worker@0.1.0')
+      assertStringIncludes(errors[0], '@skmtc/core 0.2.0 ← @skmtc/gen-a@0.2.0')
+    })
+  })
 })

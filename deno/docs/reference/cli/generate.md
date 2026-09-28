@@ -132,6 +132,17 @@ Remediation: `skmtc bundle <project>` then re-run.
 Interactive mode skips the gate; bundling issues surface at runtime
 instead.
 
+### One copy of `@skmtc/core`
+
+Before generation, in every mode, the CLI resolves the module graph
+of `worker.ts` — the same check `skmtc bundle` runs (see
+[bundle reference](bundle.md#one-copy-of-skmtccore)). A `bundle.js`
+built before that check, or by an older CLI, can hold two versions of
+`@skmtc/core` or of a `@skmtc/lang-*` package. Generation from it
+would write empty files and exit 0, so `generate` refuses with exit 1
+and names each version and the packages that import it. Remote
+generation (`client.json#serverUrl`) skips the check.
+
 ### Worker spawn and protocol
 
 The CLI spawns a Deno Worker from the project's `bundle.js` —
@@ -317,7 +328,7 @@ No schema argument needed.
 | Code | Meaning |
 |---|---|
 | `0` | Success — no fatal parse issues, typecheck (if requested) passed |
-| `1` | Fatal parseIssue at level `error`, OR `--typecheck` returned `type: "failed"`, OR worker error |
+| `1` | Fatal parseIssue at level `error`, OR `--typecheck` returned `type: "failed"`, OR worker error, OR the module graph holds more than one copy of `@skmtc/core` or a `@skmtc/lang-*` package |
 | `2` | Required argument missing (recipe error on stderr), OR `--json` and `--watch` both passed, OR bundle freshness gate triggered |
 
 ## Worker-side failures
