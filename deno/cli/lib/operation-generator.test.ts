@@ -54,7 +54,9 @@ Deno.test('OperationGenerator - toOasOperationProjectionBase generates correct b
     result,
     "import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'"
   )
-  assertStringIncludes(result, "import { join } from '@std/path/join'")
+  // The export path is a template literal; the scaffold pulls in no path library.
+  assertStringIncludes(result, 'return `@/${name}.tsx`')
+  assertEquals(result.includes('@std/path'), false)
   assertStringIncludes(result, 'toEnrichmentSchema: () => emptyEnrichmentSchema')
 })
 

@@ -291,7 +291,6 @@ class, then extend it.
 // gen-shadcn-form/src/base.ts (abridged; real source)
 import { camelCase, capitalize, toMethodVerb, withVariant } from '@skmtc/core'
 import { toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
-import { join } from '@std/path'
 import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
 import denoJson from '../deno.json' with { type: 'json' }
 
@@ -312,7 +311,7 @@ export const ShadcnFormBase = toTsOasOperationProjectionBase<EnrichmentSchema>({
   toExportPath({ operation, enrichments, variant }): string {
     const name = this.toIdentifierName({ operation, enrichments, variant })
 
-    return join('@', 'forms', `${name}.generated.tsx`)
+    return `@/forms/${name}.generated.tsx`
   }
 })
 ```
@@ -348,7 +347,6 @@ generators that produce one file per schema component.
 // gen-zod/src/base.ts (real source)
 import { camelCase, decapitalize } from '@skmtc/core'
 import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
-import { join } from '@std/path'
 import { toEnrichmentSchema, type EnrichmentSchema } from './enrichments.ts'
 import denoJson from '../deno.json' with { type: 'json' }
 
@@ -364,7 +362,7 @@ export const ZodBase = toTsModelProjectionBase<EnrichmentSchema>({
   toExportPath({ refName, enrichments, variant }): string {
     const name = this.toIdentifierName({ refName, enrichments, variant })
 
-    return join('@', 'types', `${decapitalize(name)}.generated.ts`)
+    return `@/types/${decapitalize(name)}.generated.ts`
   },
 
   toEnrichmentSchema

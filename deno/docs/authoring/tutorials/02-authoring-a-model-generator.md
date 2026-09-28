@@ -70,7 +70,6 @@ on that call — not free-standing exports:
 import { camelCase, decapitalize, emptyEnrichmentSchema } from '@skmtc/core'
 import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 import type { TsIdentifierType } from '@skmtc/lang-typescript'
-import { join } from '@std/path/join'
 
 export const SchemaMetaBase = toTsModelProjectionBase({
   id: '@local/schema-meta',
@@ -82,7 +81,7 @@ export const SchemaMetaBase = toTsModelProjectionBase({
   toIdentifierType: (): TsIdentifierType => ({ type: 'variable' }),
 
   toExportPath({ refName }): string {
-    return join('@', 'meta', `${refName}.meta.ts`)
+    return `@/meta/${refName}.meta.ts`
   },
 
   toEnrichmentSchema: () => emptyEnrichmentSchema

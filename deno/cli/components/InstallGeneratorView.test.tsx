@@ -8,6 +8,7 @@ import { stubRegistryGenerators } from '@/tests/mocks/registry.mock.ts'
 import type { Generator } from '@/types/generator.ts'
 import type { Project } from '@/lib/project.ts'
 import type { Generator as GeneratorClass } from '@/lib/generator.ts'
+import { pointer } from '@/test/pointer.ts'
 
 // Mock generators data
 const mockGenerators: Generator[] = [
@@ -116,7 +117,7 @@ Deno.test('InstallGenerator - requests project selection and generators', async 
   assertEquals(
     projectPrompt,
     `│  Select project
-│  ❯ test-project
+│  ${pointer} test-project
 │    Create new project`
   )
 
@@ -134,7 +135,7 @@ Deno.test('InstallGenerator - requests project selection and generators', async 
 │  test-project
 │
 │  Select generators to install
-│  ❯ @skmtc/gen-typescript
+│  ${pointer} @skmtc/gen-typescript
 │    @skmtc/gen-zod`
   )
 
@@ -212,7 +213,7 @@ Deno.test(
     assertEquals(
       generatorsPrompt,
       `│  Select generators to install
-│  ❯ @skmtc/gen-typescript
+│  ${pointer} @skmtc/gen-typescript
 │    @skmtc/gen-zod`
     )
 

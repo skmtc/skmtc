@@ -189,10 +189,11 @@ export const checkAnchorsStaleness = (projectName: string, projectPath: string):
   }
   const outDir = join(projectPath, anchorsCfg.out ?? '.maps')
   const stale: string[] = []
-  for (const [filePath, entry] of Object.entries(manifest.files)) {
+  for (const [filePath] of Object.entries(manifest.files)) {
     const sidecarPath = join(outDir, `${filePath}.skm.json`)
     if (!existsSync(sidecarPath)) continue // coverage check handles this
-    const fileMtime = mtimeOf(entry.destinationPath)
+    // The manifest key is the artifact path relative to the app root.
+    const fileMtime = mtimeOf(join(projectPath, '..', '..', filePath))
     const sidecarMtime = mtimeOf(sidecarPath)
     if (fileMtime === null || sidecarMtime === null) continue
     if (sidecarMtime < fileMtime) {

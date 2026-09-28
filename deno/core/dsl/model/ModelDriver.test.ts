@@ -112,7 +112,7 @@ const createMockContext = (): GenerateContextType => {
     modelDepth: {} as Record<string, number>,
     toModelContentSettings: spy(({ refName, variant }: { refName: RefName; variant: string }) => ({
       identifier: createType(refName),
-      exportPath: '/path/to/export.ts',
+      exportPath: '@/path/to/export.ts',
       enrichments: undefined,
       variant
     })),
@@ -158,7 +158,7 @@ Deno.test('ModelDriver', async t => {
       const context = createMockContext()
       const projection = createMockProjection()
       const refName = 'Product' as RefName
-      const destinationPath = '/path/to/destination.ts'
+      const destinationPath = '@/path/to/destination.ts'
       const rootRef = 'Root' as RefName
 
       const driver = new ModelDriver({
@@ -223,7 +223,7 @@ Deno.test('ModelDriver', async t => {
       })
 
       assertEquals(driver.settings.identifier.name, refName)
-      assertEquals(driver.settings.exportPath, '/path/to/export.ts')
+      assertEquals(driver.settings.exportPath, '@/path/to/export.ts')
     })
 
     await t.step('should call apply and set definition', () => {
@@ -330,7 +330,7 @@ Deno.test('ModelDriver', async t => {
       const context = createMockContext()
       const projection = createMockProjection()
       const refName = 'User' as RefName
-      const destinationPath = '/different/path.ts'
+      const destinationPath = '@/different/path.ts'
 
       new ModelDriver({
         context,
@@ -348,14 +348,14 @@ Deno.test('ModelDriver', async t => {
       // `lang.toImport`); the engine no longer sees the concise record form.
       const registeredImports = importCall.args[0].imports
       assertEquals(registeredImports.length, 1)
-      assertEquals(registeredImports[0].mergeKey(), '/path/to/export.ts')
+      assertEquals(registeredImports[0].mergeKey(), '@/path/to/export.ts')
       // The mock projection's `toModelContentSettings` returns a
       // `createType` identifier (see `createMockContext`), so the
       // import must carry the type-only marker — consumers compiling
       // with `verbatimModuleSyntax: true` would hit TS1484 otherwise.
       assertEquals(
         registeredImports[0].toString(),
-        `import type {${refName}} from '/path/to/export.ts'`
+        `import type {${refName}} from '@/path/to/export.ts'`
       )
       assertEquals(importCall.args[0].destinationPath, destinationPath)
     })
@@ -364,7 +364,7 @@ Deno.test('ModelDriver', async t => {
       const context = createMockContext()
       const projection = createMockProjection()
       const refName = 'User' as RefName
-      const destinationPath = '/path/to/export.ts'
+      const destinationPath = '@/path/to/export.ts'
 
       new ModelDriver({
         context,
@@ -384,7 +384,7 @@ Deno.test('ModelDriver', async t => {
       const context = createMockContext()
       const projection = createMockProjection()
       const refName = 'User' as RefName
-      const destinationPath = '/path/to/export.ts'
+      const destinationPath = '@/path/to/export.ts'
 
       new ModelDriver({
         context,
@@ -453,7 +453,7 @@ Deno.test('ModelDriver', async t => {
         args: [
           {
             name: refName,
-            exportPath: '/path/to/export.ts'
+            exportPath: '@/path/to/export.ts'
           }
         ]
       })
@@ -524,7 +524,7 @@ Deno.test('ModelDriver', async t => {
 
       assertEquals(definitionCall !== undefined, true)
       assertEquals(definitionCall.args[0].definitions.length, 1)
-      assertEquals(definitionCall.args[0].destinationPath, '/path/to/export.ts')
+      assertEquals(definitionCall.args[0].destinationPath, '@/path/to/export.ts')
     })
 
     await t.step('should pass noExport to Definition', () => {
@@ -588,11 +588,11 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '/path/to/export.ts',
+            exportPath: '@/path/to/export.ts',
             enrichments: undefined,
             variant: 'main'
           },
-          destinationPath: '/path/to/export.ts'
+          destinationPath: '@/path/to/export.ts'
         }),
         identifier: createType(refName)
       })
@@ -626,11 +626,11 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '/path/to/export.ts',
+            exportPath: '@/path/to/export.ts',
             enrichments: undefined,
             variant: 'main'
           },
-          destinationPath: '/path/to/export.ts'
+          destinationPath: '@/path/to/export.ts'
         }),
         identifier: createType(refName)
       })
@@ -684,11 +684,11 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '/path/to/export.ts',
+            exportPath: '@/path/to/export.ts',
             enrichments: undefined,
             variant: 'main'
           },
-          destinationPath: '/path/to/export.ts'
+          destinationPath: '@/path/to/export.ts'
         }),
         identifier: createType(refName)
       })
@@ -722,11 +722,11 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '/path/to/export.ts',
+            exportPath: '@/path/to/export.ts',
             enrichments: undefined,
             variant: 'main'
           },
-          destinationPath: '/path/to/export.ts'
+          destinationPath: '@/path/to/export.ts'
         }),
         identifier: createType(refName)
       })
@@ -760,11 +760,11 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '/path/to/export.ts',
+            exportPath: '@/path/to/export.ts',
             enrichments: undefined,
             variant: 'main'
           },
-          destinationPath: '/path/to/export.ts'
+          destinationPath: '@/path/to/export.ts'
         }),
         identifier: createType(refName)
       })
@@ -798,11 +798,11 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '/path/to/export.ts',
+            exportPath: '@/path/to/export.ts',
             enrichments: undefined,
             variant: 'main'
           },
-          destinationPath: '/path/to/export.ts'
+          destinationPath: '@/path/to/export.ts'
         }),
         identifier: createType(refName)
       })
@@ -820,7 +820,7 @@ Deno.test('ModelDriver', async t => {
           })
         },
         Error,
-        '/path/to/export.ts'
+        '@/path/to/export.ts'
       )
     })
 
@@ -836,11 +836,11 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '/path/to/export.ts',
+            exportPath: '@/path/to/export.ts',
             enrichments: undefined,
             variant: 'main'
           },
-          destinationPath: '/path/to/export.ts'
+          destinationPath: '@/path/to/export.ts'
         }),
         identifier: createType(refName)
       })
@@ -874,11 +874,11 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '/path/to/export.ts',
+            exportPath: '@/path/to/export.ts',
             enrichments: undefined,
             variant: 'main'
           },
-          destinationPath: '/path/to/export.ts'
+          destinationPath: '@/path/to/export.ts'
         }),
         identifier: createType(refName)
       })
@@ -972,7 +972,7 @@ Deno.test('ModelDriver', async t => {
       const context = createMockContext()
       const projection = createMockProjection()
       const refName = 'User' as RefName
-      const destinationPath = '/different/destination.ts'
+      const destinationPath = '@/different/destination.ts'
 
       new ModelDriver({
         context,
@@ -993,7 +993,7 @@ Deno.test('ModelDriver', async t => {
       const context = createMockContext()
       const projection = createMockProjection()
       const refName = 'User' as RefName
-      const destinationPath = '/path/to/export.ts'
+      const destinationPath = '@/path/to/export.ts'
 
       new ModelDriver({
         context,
@@ -1082,7 +1082,7 @@ Deno.test('ModelDriver', async t => {
       const context = createMockContext()
       const projection = createMockProjection()
       const refName = 'User' as RefName
-      const longPath = '/very/long/path/to/some/deeply/nested/directory/structure/file.ts'
+      const longPath = '@/very/long/path/to/some/deeply/nested/directory/structure/file.ts'
 
       const driver = new ModelDriver({
         context,
@@ -1107,11 +1107,11 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '/path/to/export.ts',
+            exportPath: '@/path/to/export.ts',
             enrichments: undefined,
             variant: 'main'
           },
-          destinationPath: '/path/to/export.ts'
+          destinationPath: '@/path/to/export.ts'
         }),
         identifier: createType(refName)
       })
@@ -1141,7 +1141,7 @@ Deno.test('ModelDriver', async t => {
       const context = createMockContext()
       const projection = createMockProjection()
       const refName = 'User' as RefName
-      const destinationPath = '/path/to/export.ts'
+      const destinationPath = '@/path/to/export.ts'
 
       const driver = new ModelDriver({
         context,

@@ -48,7 +48,7 @@ export const KtModelBase = toKtModelProjectionBase<EnrichmentSchema>({
   },
   toExportPath({ refName, enrichments }) {
     const name = enrichments?.subject?.name ?? capitalize(camelCase(refName))
-    return join('@', ...enrichments.generator.basePackage.split('.'), `${name}.generated.kt`)
+    return `@/${enrichments.generator.basePackage.replaceAll('.', '/')}/${name}.generated.kt`
   }
 })
 ```

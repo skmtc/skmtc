@@ -179,9 +179,9 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
 
   // Definitions registered by the operation generator should appear in
   // the result's files map keyed by their destination paths.
-  assertEquals(result.files.has('gql/operations/query_getUser.generated.ts'), true)
-  assertEquals(result.files.has('gql/operations/query_listPosts.generated.ts'), true)
-  assertEquals(result.files.has('gql/operations/mutation_createUser.generated.ts'), true)
+  assertEquals(result.files.has('@/gql/operations/query_getUser.generated.ts'), true)
+  assertEquals(result.files.has('@/gql/operations/query_listPosts.generated.ts'), true)
+  assertEquals(result.files.has('@/gql/operations/mutation_createUser.generated.ts'), true)
 })
 
 Deno.test('GraphQL pipeline - HTTP-protocol operation generator skipped on GQL doc', () => {

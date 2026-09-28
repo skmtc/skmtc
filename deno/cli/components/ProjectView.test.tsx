@@ -5,6 +5,7 @@ import { SkmtcProvider, type SkmtcState } from './SkmtcContext.tsx'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import type { Generator } from '@/types/generator.ts'
 import type { Project } from '@/lib/project.ts'
+import { pointer } from '@/test/pointer.ts'
 
 // Mock generators data
 const mockGenerators: Generator[] = [
@@ -60,7 +61,7 @@ Deno.test('ProjectView - renders project action menu', async () => {
   const output = lastFrame()
   assertEquals(
     output,
-    `❯ Generate artifacts
+    `${pointer} Generate artifacts
 
   Install generator
   Create new generator
@@ -95,7 +96,7 @@ Deno.test({
     const beforeOutput = lastFrame()
     assertEquals(
       beforeOutput,
-      `❯ Generate artifacts
+      `${pointer} Generate artifacts
 
   Install generator
   Create new generator
@@ -137,7 +138,7 @@ Deno.test({
       output,
       `  Generate artifacts
 
-❯ Install generator
+${pointer} Install generator
   Create new generator
   Clone generator
   Remove generator`
@@ -172,7 +173,7 @@ Deno.test({
       navOutput,
       `  Generate artifacts
 
-❯ Install generator
+${pointer} Install generator
   Create new generator
   Clone generator
   Remove generator`
@@ -215,7 +216,7 @@ Deno.test({
       `  Generate artifacts
 
   Install generator
-❯ Create new generator
+${pointer} Create new generator
   Clone generator
   Remove generator`
     )
@@ -260,7 +261,7 @@ Deno.test({
 
   Install generator
   Create new generator
-❯ Clone generator
+${pointer} Clone generator
   Remove generator`
     )
 
@@ -307,7 +308,7 @@ Deno.test({
   Install generator
   Create new generator
   Clone generator
-❯ Remove generator`
+${pointer} Remove generator`
     )
 
     // Select Remove generator
@@ -339,7 +340,7 @@ Deno.test({
     const beforeEscape = lastFrame()
     assertEquals(
       beforeEscape,
-      `❯ Generate artifacts
+      `${pointer} Generate artifacts
 
   Install generator
   Create new generator
@@ -356,7 +357,7 @@ Deno.test({
     const afterEscape = lastFrame()
     assertEquals(
       afterEscape,
-      `❯ Generate artifacts
+      `${pointer} Generate artifacts
 
   Install generator
   Create new generator

@@ -43,10 +43,11 @@ export const resolveOrigin = (originFlag?: string): string => {
 }
 
 export const toAuthFilePath = (): string => {
-  const home = Deno.env.get('HOME')
+  // HOME on POSIX; USERPROFILE is the Windows equivalent.
+  const home = Deno.env.get('HOME') ?? Deno.env.get('USERPROFILE')
 
   if (!home) {
-    throw new Error('HOME env var is not set')
+    throw new Error('Neither HOME nor USERPROFILE env var is set')
   }
 
   return join(home, '.skmtc', 'auth.json')

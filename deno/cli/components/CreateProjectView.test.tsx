@@ -7,6 +7,7 @@ import { assertSpyCall, stub } from '@std/testing/mock'
 import { stubRegistryGenerators } from '@/tests/mocks/registry.mock.ts'
 import type { Generator } from '@/types/generator.ts'
 import { type CreateProjectArgs, Project } from '../lib/project.ts'
+import { pointer } from '@/test/pointer.ts'
 
 // Mock generators data
 const mockGenerators: Generator[] = [
@@ -107,7 +108,7 @@ Deno.test('CreateProject - requests project name and loads generators', async ()
 │  test-project
 │
 │  Select generators to install
-│  ❯ @skmtc/gen-typescript
+│  ${pointer} @skmtc/gen-typescript
 │    @skmtc/gen-zod`
   )
 

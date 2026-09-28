@@ -303,7 +303,7 @@ Deno.test('TsFile renders the legacy-pinned cross-package import normalization',
   const path = 'packages/client/src/api.generated.ts'
 
   const tsFile = new TsFile({ path, settings })
-  tsFile.addImports([TsImport.fromConcise('packages/models/src/User.ts', ['User'])])
+  tsFile.addImports([TsImport.fromConcise('@/packages/models/src/User.ts', ['User'])])
 
   assertEquals(tsFile.toString(), `import {User} from '@app/models'`)
 })
@@ -350,7 +350,7 @@ Deno.test('TsFile merges two spellings of one artifact into one import statement
   const tsFile = new TsFile({ path: 'packages/sdk/src/client/getUser.generated.ts', settings })
   tsFile.addImports([
     TsImport.fromConcise('@/packages/sdk/src/models/User.generated.ts', ['User']),
-    TsImport.fromConcise('packages/sdk/src/models/User.generated.ts', ['User', 'UserId'])
+    TsImport.fromConcise('./packages/sdk/src/models/User.generated.ts', ['User', 'UserId'])
   ])
 
   assertEquals(tsFile.toString(), `import {User, UserId} from '@/models/User.generated.ts'`)

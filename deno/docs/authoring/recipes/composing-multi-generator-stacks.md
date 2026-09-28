@@ -216,7 +216,7 @@ peer artifacts.
 ```ts
 context.register({
   imports: { [this.settings.exportPath]: [this.settings.identifier.name] },
-  destinationPath: join('@', 'demo.tsx')
+  destinationPath: '@/demo.tsx'
 })
 ```
 

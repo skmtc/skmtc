@@ -73,7 +73,7 @@ like:
 ```ts
 toExportPath({ refName, enrichments, variant }): string {
   const name = this.toIdentifierName({ refName, enrichments, variant })
-  return join('@', 'types', `${decapitalize(name)}.generated.ts`)
+  return `@/types/${decapitalize(name)}.generated.ts`
 }
 ```
 

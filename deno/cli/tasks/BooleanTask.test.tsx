@@ -5,6 +5,7 @@ import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
 import { TaskProvider } from '@/components/TaskContext.tsx'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import type { Generator } from '@/types/generator.ts'
+import { pointer } from '@/test/pointer.ts'
 
 // Mock generators data
 const mockGenerators: Generator[] = [
@@ -58,7 +59,7 @@ Deno.test({
     assertEquals(
       selectOutput,
       `│  Watch for changes?
-│  ❯ Yes
+│  ${pointer} Yes
 │    No`
     )
 
@@ -101,7 +102,7 @@ Deno.test({
     assertEquals(
       selectOutput,
       `│  Watch for changes?
-│  ❯ Yes
+│  ${pointer} Yes
 │    No`
     )
 
@@ -115,7 +116,7 @@ Deno.test({
       updatedOutput,
       `│  Watch for changes?
 │    Yes
-│  ❯ No`
+│  ${pointer} No`
     )
 
     stdin.write('\r')

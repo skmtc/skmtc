@@ -1,27 +1,17 @@
 import { join } from '@std/path/join'
+import { resolve } from '@std/path/resolve'
+import { toFileUrl } from '@std/path/to-file-url'
 
 /**
- * `file://` URL string to the project's bundle.js. Use this form for
- * dynamic `import()` of the worker bundle — `new URL(...)` / `import()`
- * consume a URL.
- *
- * Do **not** pass this to `@std/fs` `exists` / `existsSync` / file
- * reads: those treat a `file://` URL *string* as a literal,
- * non-existent path. Use {@link toBundleFsPath} for filesystem access.
+ * The `file://` URL of a project's bundle, for dynamic import. Resolved to
+ * an absolute path first so the URL is well-formed on every host
+ * (`file:///D:/...` on Windows, never a backslash in the URL).
  */
 export const toBundlePath = (projectPath: string) => {
-  return `file://${join(projectPath, 'bundle.js')}`
+  return toFileUrl(resolve(projectPath, 'bundle.js')).href
 }
 
-/**
- * Filesystem path to the project's bundle.js. Use this form for
- * `@std/fs` existence checks and file reads.
- *
- * The {@link toBundlePath} `file://` URL form silently false-negatives
- * against `exists` / `existsSync` (a `file://` *string* is not a path),
- * which is the root cause of the `skmtc bundle` "wasn't written" and
- * `skmtc doctor` "no bundle.js" false-failures.
- */
+/** The on-disk path of a project's bundle, in the host's own spelling. */
 export const toBundleFsPath = (projectPath: string) => {
   return join(projectPath, 'bundle.js')
 }

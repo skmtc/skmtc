@@ -8,9 +8,11 @@ import {
 } from '@/lib/generated-lock.ts'
 
 Deno.test('toGeneratedLockPath - lock lives beside the manifest', () => {
+  const settingsDir = join('root', '.skmtc', 'project', '.settings')
+
   assertEquals(
-    toGeneratedLockPath('/root/.skmtc/project/.settings/manifest.json'),
-    '/root/.skmtc/project/.settings/generated.lock.json'
+    toGeneratedLockPath(join(settingsDir, 'manifest.json')),
+    join(settingsDir, 'generated.lock.json')
   )
 })
 

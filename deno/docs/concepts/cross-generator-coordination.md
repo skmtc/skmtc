@@ -98,7 +98,7 @@ export const ShadcnFormBase = toTsOasOperationProjectionBase<EnrichmentSchema>({
 
   toExportPath({ operation, enrichments, variant }): string {
     const name = this.toIdentifierName({ operation, enrichments, variant })
-    return join('@', 'forms', `${name}.generated.tsx`)
+    return `@/forms/${name}.generated.tsx`
   }
 })
 ```

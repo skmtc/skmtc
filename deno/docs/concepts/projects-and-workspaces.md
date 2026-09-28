@@ -341,7 +341,7 @@ generator targeting a package returns a `toExportPath` under that package's
 workspace root, `@/packages/models/src/User.ts`; joined onto `basePath` it
 lands in the right place. No `..`.
 
-**In imports.** `normalizeModuleName` (`@skmtc/lang-typescript`) resolves a
+**In imports.** `toImportModule` (`@skmtc/lang-typescript`) resolves a
 cross-file import three ways:
 
 - importer and target in the **same package** → intra-package `@/…` (the
@@ -350,6 +350,21 @@ cross-file import three ways:
   `moduleName`;
 - **no package match** → the `exportPath` as given (a bare specifier like
   `zod`, or the workspace-root `@/…` of a project without `packages`).
+
+An export path (where a definition is written) and a destination path
+(where a definition is used) are both workspace paths: logical paths inside
+the workspace, never filesystem paths. A workspace path has one spelling:
+`@/` followed by a forward-slash path relative to `basePath`, such as
+`@/packages/models/src/User.ts`. The engine normalizes every path a
+generator hands it (`normalizeWorkspacePath` in `@skmtc/core`) — `./`, the
+bare form, a leading `/` and Windows separators all become that spelling —
+and refuses a `..` segment, a Windows drive or UNC path, or `@/` alone, so
+every artifact lands below `basePath` on every host.
+`toNormalizedWorkspacePath` is the same path with no anchor, what
+`toResolvedArtifactPath` joins onto `basePath`; `isValidWorkspacePath` is
+the non-throwing form of the checks, used by the settings schema; and
+`hasWorkspaceAnchor` is how a language package tells a workspace path from a
+bare module specifier such as `zod`.
 
 `@` means two things here, and the two never meet. On the way **in**, `@/` is
 Skmtc's **workspace root** — the anchor `toExportPath` writes and

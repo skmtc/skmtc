@@ -27,3 +27,7 @@ Deno.test('throws on a reserved-keyword segment (loud beats @-escaped namespaces
     "segment 'class' is not a valid namespace name part"
   )
 })
+
+Deno.test('a Windows-spelled export path derives the same namespace', () => {
+  assertEquals(toNamespaceName('@\\Acme\\Api\\Models\\User.generated.cs'), 'Acme.Api.Models')
+})

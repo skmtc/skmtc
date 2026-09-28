@@ -287,7 +287,7 @@ See [`concepts/projections-and-snippets.md`](concepts/projections-and-snippets.m
 
 | Seam | Location pattern | Customize by |
 |---|---|---|
-| Export path | `gen-x/src/base.ts` → `toExportPath` | Edit the `join('@', ...)` call |
+| Export path | `gen-x/src/base.ts` → `toExportPath` | Edit the template literal (`` `@/types/${name}.generated.ts` ``) |
 | Identifier shape | `gen-x/src/base.ts` → `toIdentifierName` | Edit the name-building expression |
 | Peer dependency | `gen-x/src/<Main>.ts` top-level imports | Swap the import target |
 | Consumer-side component path | `gen-x/src/fields/<X>.ts` register | Change the import key |
@@ -323,7 +323,7 @@ Import (own file)?        → this.register({ imports: { module: [names] } })
 Import (another file)?    → this.registerInto(destinationPath, { imports }) — or, from a
                             Snippet, this.register({ imports, destinationPath })
 Identifier name?          → createVariable(name) or createType(name) (from @skmtc/lang-typescript)
-File path?                → join('@', ...) from @std/path
+File path?                → `@/dir/${name}.generated.ts` — a template literal; '@/' is basePath, always forward slashes
 TS fragment not in OAS?   → new CustomValue({ context, value: '...' })
 ```
 

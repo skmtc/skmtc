@@ -17,7 +17,7 @@
  */
 
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { isAbsolute } from '@std/path/is-absolute'
+import { isAbsolutePath } from '@skmtc/core'
 
 type InitHeadlessArgs = {
   skmtcRoot: SkmtcRoot
@@ -51,7 +51,7 @@ export class InvalidBasePathError extends Error {
  * here because the consumer's bundler config isn't visible.
  */
 export const validateBasePath = (basePath: string): string => {
-  if (isAbsolute(basePath)) {
+  if (isAbsolutePath(basePath)) {
     throw new InvalidBasePathError(
       basePath,
       `basePath must be relative to the SKMTC root (the directory containing .skmtc/). Got an absolute path: ${basePath}`

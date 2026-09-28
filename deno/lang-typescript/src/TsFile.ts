@@ -1,5 +1,5 @@
 import { CodeFileBase, matchDefinitions } from '@skmtc/core'
-import { normalizeModuleName } from './normalizeModuleName.ts'
+import { toImportModule } from './toImportModule.ts'
 import type { ClientSettings, ModulePackage, DefinitionBase } from '@skmtc/core'
 import { TsImport } from './TsImport.ts'
 import type { TsDefinition } from './TsDefinition.ts'
@@ -173,12 +173,12 @@ export class TsFile extends CodeFileBase {
     return this.custom ? `${this.custom}\n\n${body}` : body
   }
 
-  /** The module as this file writes it: package-normalized when `packages` is set. */
+  /** The module as this file writes it: rewritten by package when `packages` is set. */
   #toRenderedModule(module: string): string {
     return this.packages
-      ? normalizeModuleName({
+      ? toImportModule({
           destinationPath: this.path,
-          exportPath: module,
+          module,
           packages: this.packages
         })
       : module

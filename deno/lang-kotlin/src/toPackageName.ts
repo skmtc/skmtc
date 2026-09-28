@@ -1,4 +1,4 @@
-import { dirname } from '@std/path/dirname'
+import { dirname } from '@std/path/posix/dirname'
 import { matchPackage, type ModulePackage, toWorkspacePath } from '@skmtc/core'
 import { isKtIdentifierName, ktHardKeywords } from './hardKeywords.ts'
 
