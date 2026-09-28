@@ -48,11 +48,13 @@ jobs:
         working-directory: deno
         run: deno task coverage:report
 
+      # A Coveralls outage must not turn main red: the tests above are the gate.
       - name: Upload coverage to Coveralls
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: deno/coverage.lcov
+          fail-on-error: false
 
   # Windows is a supported host for the CLI and the engine, and its path
   # separator is the one difference the Ubuntu job can never exercise

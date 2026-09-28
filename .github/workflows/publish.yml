@@ -4,13 +4,14 @@
 # OIDC — npm Trusted Publishing). `@skmtc/vite` is a pnpm/node package (not
 # dnt): its step installs deps, builds `dist/` with tsdown, then publishes.
 #
-# Runs automatically on every merge to main: the cascade publishes any
-# workspace package whose deno.json version isn't yet on the registry
-# and skips everything already published, so merges with no version
-# bumps are a no-op ("nothing to publish"). Bump versions with
-# `deno task bump <package>` and merge — that IS the release. The
-# workflow_dispatch trigger remains for manual re-runs (e.g. after a
-# partial failure; already-published packages are skipped on re-run).
+# Runs automatically on every merge to main, except pushes that touch
+# only `retros/**`: the cascade publishes any workspace package whose
+# deno.json version isn't yet on the registry and skips everything
+# already published, so merges with no version bumps are a no-op
+# ("nothing to publish"). Bump versions with `deno task bump <package>`
+# and merge — that IS the release. The workflow_dispatch trigger remains
+# for manual re-runs (e.g. after a partial failure; already-published
+# packages are skipped on re-run).
 #
 # Private packages (`"private": true` in deno.json) are bumped by the
 # cascade but never published — publish those manually to the local
@@ -32,6 +33,9 @@ name: Publish
 on:
   push:
     branches: [main]
+    # A retro-only push cannot change a version.
+    paths-ignore:
+      - 'retros/**'
   workflow_dispatch:
 
 concurrency:
