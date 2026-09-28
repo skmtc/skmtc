@@ -40,6 +40,15 @@ import {
   toCliInstallCommand,
   toHoursSincePublish
 } from '@/lib/dependency-age.ts'
+import {
+  checkBundleCopies,
+  checkModuleGraph as checkModuleGraphDefault,
+  type CheckModuleGraphFn,
+  type PackageCopiesCheck,
+  toBundleFixHint,
+  toCopiesLines,
+  toGraphFixHint
+} from '@/lib/duplicate-packages.ts'
 
 export type CheckStatus = 'ok' | 'warning' | 'error' | 'skipped'
 
@@ -95,6 +104,12 @@ type RunDoctorArgs = {
    * that never asked must not report a connectivity problem.
    */
   offline?: boolean
+  /**
+   * Resolves a project's module graph for the `project-package-copies`
+   * check. Injectable so tests state the graph instead of spawning
+   * `deno info`.
+   */
+  checkModuleGraph?: CheckModuleGraphFn
 }
 
 export const runDoctor = async ({
@@ -103,7 +118,8 @@ export const runDoctor = async ({
   // `scopeName` carries its `@` — `toJsrUrl` joins the parts verbatim.
   getLatestCliMeta = () =>
     Jsr.tryGetLatestMeta({ scopeName: '@skmtc', packageName: 'cli' }),
-  offline = false
+  offline = false,
+  checkModuleGraph = checkModuleGraphDefault
 }: RunDoctorArgs): Promise<DoctorResult> => {
   const skmtcRootPath = toRootPath()
   const globalStateDir = join(homedir(), '.skmtc')
@@ -119,9 +135,16 @@ export const runDoctor = async ({
 
   const cliCorePin = readCliCorePin()
   const projectCtx: CheckProjectContext = { cliCorePin }
-  for (const project of projects) {
+  // `deno info` runs once per project; run them side by side.
+  const packageCopiesChecks = await Promise.all(
+    projects.map(project =>
+      checkProjectPackageCopies({ projectName: project, checkModuleGraph, offline })
+    )
+  )
+  projects.forEach((project, index) => {
     checks.push(...checkProject(project, projectCtx))
-  }
+    checks.push(packageCopiesChecks[index])
+  })
 
   return {
     skmtcRootPath,
@@ -580,6 +603,109 @@ const checkProjectCorePin = (
     id: `project-core-pin/${projectName}`,
     status: 'ok',
     message: `Project "${projectName}" pins @skmtc/core ${projectPin}; CLI uses ${cliCorePin} (compatible).`
+  }
+}
+
+/** Bound on `deno info` — a cold cache with no network would otherwise hang doctor. */
+const MODULE_GRAPH_TIMEOUT_MS = 20_000
+
+type CheckProjectPackageCopiesArgs = {
+  projectName: string
+  checkModuleGraph: CheckModuleGraphFn
+  offline: boolean
+}
+
+/**
+ * The project pin alone doesn't decide which `@skmtc/core` runs: the
+ * worker, the installed generators and `lang-*` each resolve their own.
+ * Two copies make generation write empty files and report success.
+ *
+ * Reads two sources. The module graph (`deno info --frozen` on
+ * `worker.ts`, so the lockfile is never written) names the packages that
+ * import each copy. `bundle.js` is what `generate` runs, and may predate
+ * the graph. `--offline` reads only `bundle.js`.
+ */
+const checkProjectPackageCopies = async ({
+  projectName,
+  checkModuleGraph,
+  offline
+}: CheckProjectPackageCopiesArgs): Promise<Check> => {
+  const id = `project-package-copies/${projectName}`
+  const projectPath = toProjectPath(projectName)
+
+  if (readServerUrl(projectPath) !== undefined) {
+    return {
+      id,
+      status: 'skipped',
+      message: `Project "${projectName}" generates on its stack server (client.json#serverUrl); no local bundle runs.`
+    }
+  }
+
+  const graphCheck: PackageCopiesCheck = offline
+    ? { type: 'unavailable', reason: 'skipped by --offline.' }
+    : await checkModuleGraph(projectPath, { frozen: true, timeoutMs: MODULE_GRAPH_TIMEOUT_MS })
+  const bundleCheck = checkBundleCopies(toBundleFsPath(projectPath))
+
+  if (graphCheck.type === 'duplicates') {
+    return {
+      id,
+      status: 'error',
+      message: `Project "${projectName}" resolves more than one copy of a package:\n${toCopiesLines(graphCheck.duplicates)}`,
+      hint: `Generation against this graph writes empty files and reports success. ${toGraphFixHint({ projectName, projectPath })}`,
+      data: { source: 'module-graph', duplicates: graphCheck.duplicates }
+    }
+  }
+
+  if (bundleCheck.type === 'duplicates') {
+    return {
+      id,
+      status: 'error',
+      message: `The bundle.js of project "${projectName}" holds more than one copy of a package:\n${toCopiesLines(bundleCheck.duplicates)}`,
+      hint: `\`skmtc generate\` refuses to run it. ${toBundleFixHint(projectName)}`,
+      data: { source: 'bundle', duplicates: bundleCheck.duplicates }
+    }
+  }
+
+  if (graphCheck.type === 'single-copies') {
+    return {
+      id,
+      status: 'ok',
+      message: `Project "${projectName}" resolves one copy of each package:\n${toCopiesLines(graphCheck.packages)}`,
+      data: { source: 'module-graph', packages: graphCheck.packages }
+    }
+  }
+
+  if (bundleCheck.type === 'single-copies') {
+    return {
+      id,
+      status: 'ok',
+      message:
+        `The bundle.js of project "${projectName}" holds one copy of each package ` +
+        `(module graph not read: ${graphCheck.reason}):\n${toCopiesLines(bundleCheck.packages)}`,
+      data: { source: 'bundle', packages: bundleCheck.packages }
+    }
+  }
+
+  return {
+    id,
+    status: 'skipped',
+    message: `Could not tell which @skmtc/core project "${projectName}" uses. Module graph: ${graphCheck.reason} bundle.js: ${bundleCheck.reason}`
+  }
+}
+
+const readServerUrl = (projectPath: string): string | undefined => {
+  try {
+    const parsed: unknown = JSON.parse(
+      Deno.readTextFileSync(join(projectPath, '.settings', 'client.json'))
+    )
+    return parsed &&
+      typeof parsed === 'object' &&
+      'serverUrl' in parsed &&
+      typeof parsed.serverUrl === 'string'
+      ? parsed.serverUrl
+      : undefined
+  } catch {
+    return undefined
   }
 }
 

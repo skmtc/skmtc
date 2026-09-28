@@ -67,6 +67,34 @@ The output is captured to `.settings/logs.txt` (stdout) and
 `.settings/error-logs.txt` (stderr). On any non-zero exit from
 `deno bundle`, the CLI surfaces the bundle error and exits 1.
 
+### One copy of `@skmtc/core`
+
+Before `deno bundle` runs, the CLI resolves the module graph of
+`worker.ts` with `deno info --json`. The graph must hold one copy of
+`@skmtc/core` and of each `@skmtc/lang-*` package. The engine
+recognizes definitions and files with `instanceof`, which fails across
+two copies: a bundle with two copies generates empty files and reports
+success.
+
+A copy is a version from JSR (or another host), from npm, or from a
+local directory — a checkout mapped in `deno.json` beside the JSR
+package is a second copy. `import type` imports don't count, because
+`deno bundle` erases them.
+
+When the graph holds two copies, `bundle` exits 1 with a message that
+names each copy and the packages that import it. It leaves the
+previous `bundle.js` and `worker.ts` in place, so `generate` still
+reports that bundle as out of date:
+
+```
+Project "api" resolves more than one copy of @skmtc/core:
+  @skmtc/core 0.28.7 ← @skmtc/worker@0.3.55
+  @skmtc/core 0.29.0 ← @skmtc/gen-typescript@0.2.7, @skmtc/gen-zod@0.2.7, @skmtc/lang-typescript@0.12.22
+```
+
+Change the pins in the project's `deno.json` so that those packages
+agree, then run `skmtc bundle <project>` again.
+
 ### Bundle output
 
 If successful, `<project>/bundle.js` is overwritten with the new
@@ -160,7 +188,7 @@ The `skmtc doctor` command surfaces freshness as
 | Code | Meaning |
 |---|---|
 | `0` | Success — bundle written |
-| `1` | `deno bundle` failed (check `.settings/error-logs.txt`) |
+| `1` | `deno bundle` failed (check `.settings/error-logs.txt`), or the module graph holds more than one copy of `@skmtc/core` or a `@skmtc/lang-*` package |
 | `2` | Required argument missing |
 
 ## Common failure modes

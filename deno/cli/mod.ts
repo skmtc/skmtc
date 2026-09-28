@@ -11,9 +11,10 @@ import denoJson from './deno.json' with { type: 'json' }
 // they keep working offline. Adding new commands defaults to "requires
 // registry" — make it an explicit decision when something can skip the
 // check. `doctor` is a partial exception: its `cli-version-current`
-// check asks the registry which CLI version is current, but the lookup
-// is bounded and degrades to `skipped`, so doctor still reports every
-// other check offline (`--offline` skips the lookup outright).
+// check asks the registry which CLI version is current, and
+// `project-package-copies` runs `deno info`, which downloads on a cold
+// cache. Both are bounded and degrade to `skipped`, so doctor still
+// reports every other check offline (`--offline` skips both outright).
 const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
   'generate',
   'dev',

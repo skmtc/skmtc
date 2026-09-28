@@ -32,8 +32,10 @@ remediation.
 ### `--offline`
 
 Skip the registry lookup behind `cli-version-current`, which then
-reports `skipped`. Every other check is filesystem-only, so this makes
-the whole command network-free. Without it the lookup is bounded at 2
+reports `skipped`, and have `project-package-copies` read `bundle.js`
+instead of resolving the module graph with `deno info`, which
+downloads on a cold Deno cache. Every other check is filesystem-only,
+so this makes the whole command network-free. Without it the lookup is bounded at 2
 seconds and degrades to `skipped` anyway — use `--offline` when a run
 already knows it has no network and does not want to spend the timeout
 being told so.
@@ -54,7 +56,7 @@ fails the suite. Workspace-scoped checks plus per-project checks:
 
 | Check ID | What it verifies |
 |---|---|
-| `cli-version-current` | The running CLI against the newest published `@skmtc/cli`. The only check that reaches the network (2s bound; `skipped` when unreachable, and `skmtc doctor --offline` skips the lookup outright). When the newest release is still inside Deno's 24h minimum-dependency-age window, the hint says so — a reinstall without `--minimum-dependency-age=0` silently resolves an older release. |
+| `cli-version-current` | The running CLI against the newest published `@skmtc/cli`. The only registry lookup (2s bound; `skipped` when unreachable, and `skmtc doctor --offline` skips the lookup outright). When the newest release is still inside Deno's 24h minimum-dependency-age window, the hint says so — a reinstall without `--minimum-dependency-age=0` silently resolves an older release. |
 | `install-lockfile` | The installed CLI's `deno.lock` (under `~/.deno/bin/.skmtc/`) exists and pins `@skmtc/cli` and `@skmtc/core` to compatible versions |
 | `deno-version` | The running Deno satisfies the `>= 2.4.0` floor for the esbuild-based `deno bundle` |
 | `hub-auth` | `~/.skmtc/auth.json` (written by `skmtc login`) parses to the expected `{ host, token }` shape. Offline only — no network call; `skipped` when not logged in, `warning` with a logout/login hint when malformed. Reports at most the token's last 4 characters. |
@@ -68,6 +70,7 @@ For each project under `.skmtc/<project>/`:
 | `project-deno-json/<project>` | `<project>/deno.json` exists and parses as JSON |
 | `project-base-path/<project>` | `<project>/client.json#settings.basePath` is set and **relative** (absolute paths fail) |
 | `project-core-pin/<project>` | The project's `@skmtc/core` import pin matches the CLI's |
+| `project-package-copies/<project>` | One copy of `@skmtc/core` and of each `@skmtc/lang-*` package, read from two sources. The module graph of `worker.ts` (`deno info --frozen`, bounded at 20s, never writes `deno.lock`) names the packages that import each copy. `bundle.js` is what `generate` runs. `error` when either holds two copies; `ok` lists the single copies; `skipped` for a project that generates on its stack server (`client.json#serverUrl`), or when neither source can be read — before the first `skmtc bundle`, for example. After a pin edit that hasn't been bundled, the lockfile no longer matches and the check reads `bundle.js` only. `--offline` reads `bundle.js` only. |
 | `project-bundle/<project>` | If the project has at least one *local* generator import, `bundle.js` exists. Pure JSR projects return `ok` with `hasLocalGenerator: false` (no bundle needed). |
 | `project-manifest/<project>` | `manifest.json` (if present) parses and matches the schema the current `@skmtc/core` expects |
 | `project-enrichments/<project>` | The last generate's `manifest.enrichmentWarnings` has no `warning`-level entries — dead enrichment config (typo'd generator ids, paths, methods, model names; schema-dropped keys) surfaces here between runs. `info` entries (enrichments on deliberately skipped items) keep the check `ok`. Skips when the manifest is missing, broken (deferred to `project-manifest`), or written by a core older than 0.28.0. |
@@ -248,6 +251,25 @@ The project's pinned `@skmtc/core` version doesn't match the CLI's.
 Mostly cosmetic — minor-version drift usually still works — but
 major-version drift can break generation. Update the project's
 `deno.json` to align.
+
+### Two copies of `@skmtc/core`
+
+```
+[error] [project-package-copies/api] Project "api" resolves more than one copy of a package:
+  @skmtc/core 0.28.7 ← @skmtc/worker@0.3.55
+  @skmtc/core 0.29.0 ← @skmtc/gen-typescript@0.2.7, @skmtc/gen-zod@0.2.7, @skmtc/lang-typescript@0.12.22
+```
+
+The worker, a generator or a `lang-*` package resolves a different
+`@skmtc/core` from the rest. `project-core-pin` can still be `ok`: it
+compares only the project's own pin with the CLI's. Generation against
+this graph writes empty files and reports success, so `bundle` refuses
+to build it. Change the pins in the project's `deno.json` so that the
+named packages agree, then run `skmtc bundle <project>`.
+
+When the message starts `The bundle.js of project "api" holds…`, the
+graph is fine but `bundle.js` was built from an older one, and
+`generate` refuses to run it. Run `skmtc bundle <project>`.
 
 ### basePath missing or absolute
 

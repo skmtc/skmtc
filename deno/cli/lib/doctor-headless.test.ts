@@ -16,6 +16,16 @@ import { ensureDir } from '@std/fs/ensure-dir'
 import { runDoctor as runDoctorWithRegistry, type Check } from '@/lib/doctor-headless.ts'
 import { printDoctorResult } from '@/commands/doctor.ts'
 import { captureStdout } from '@/tests/strict-mode-helpers.test.ts'
+import { assertRejects } from '@std/assert/rejects'
+import { bundleHeadless } from '@/lib/bundle-headless.ts'
+import { checkModuleGraph, type PackageCopiesCheck } from '@/lib/duplicate-packages.ts'
+import { Manager } from '@/lib/manager.ts'
+import { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import {
+  twoCoreRegistry,
+  withJsrRegistryServer,
+  withRegistryProject
+} from '@/tests/mocks/jsr-registry-server.mock.ts'
 
 /**
  * `runDoctor` with the registry lookup answered as "unreachable" — the
@@ -28,6 +38,8 @@ const runDoctor = (
 ): ReturnType<typeof runDoctorWithRegistry> =>
   runDoctorWithRegistry({
     getLatestCliMeta: () => Promise.resolve(undefined),
+    checkModuleGraph: () =>
+      Promise.resolve({ type: 'unavailable', reason: 'not resolved in tests' }),
     ...args
   })
 
@@ -813,4 +825,175 @@ Deno.test('doctor - every check id is documented in both catalogues', async () =
     const undocumented = ids.filter(id => !text.includes(`\`${id}`))
     assertEquals(undocumented, [], `undocumented in ${catalogue}`)
   }
+})
+
+Deno.test('runDoctor - errors when the module graph resolves two copies of @skmtc/core', async () => {
+  // The project pin (0.1.0) matches the worker's, so project-core-pin
+  // alone would pass; the generator brings in core 0.2.0.
+  await withJsrRegistryServer(twoCoreRegistry, async () => {
+    await withRegistryProject({ generatorVersion: '0.2.0' }, async ({ projectName }) => {
+      // The refused bundle resolves the graph and writes deno.lock, which
+      // doctor then reads without writing.
+      await assertRejects(async () =>
+        bundleHeadless({ skmtcRoot: await SkmtcRoot.open(new Manager()), projectName })
+      )
+
+      const result = await runDoctor({ cliVersion: '0.1.5', checkModuleGraph })
+
+      const check = result.checks.find(c => c.id === `project-package-copies/${projectName}`)
+      assertEquals(check?.status, 'error')
+      assertStringIncludes(check?.message ?? '', '@skmtc/core 0.1.0 ← @skmtc/worker@0.1.0')
+      assertStringIncludes(check?.message ?? '', '@skmtc/core 0.2.0 ← @skmtc/gen-a@0.2.0')
+      assertStringIncludes(check?.hint ?? '', 'empty files')
+      assertEquals(check?.data?.source, 'module-graph')
+      assertEquals(result.summary, 'error')
+    })
+  })
+})
+
+Deno.test('runDoctor - reports the one @skmtc/core a project resolves, and leaves deno.lock alone', async () => {
+  await withJsrRegistryServer(twoCoreRegistry, async () => {
+    await withRegistryProject(
+      { generatorVersion: '0.1.0' },
+      async ({ projectName, projectPath }) => {
+        await bundleHeadless({ skmtcRoot: await SkmtcRoot.open(new Manager()), projectName })
+        const lockPath = join(projectPath, 'deno.lock')
+        const lock = await Deno.readTextFile(lockPath)
+
+        // A pin edit that hasn't been bundled: doctor reads the bundle.js
+        // instead of rewriting the lockfile to the new pins.
+        const denoJsonPath = join(projectPath, 'deno.json')
+        const denoJson = JSON.parse(await Deno.readTextFile(denoJsonPath))
+        denoJson.imports['@skmtc/gen-b'] = 'jsr:@skmtc/gen-b@0.1.0'
+        await Deno.writeTextFile(denoJsonPath, JSON.stringify(denoJson))
+
+        const result = await runDoctor({ cliVersion: '0.1.5', checkModuleGraph })
+
+        const check = result.checks.find(c => c.id === `project-package-copies/${projectName}`)
+        assertEquals(check?.status, 'ok')
+        assertEquals(check?.data?.source, 'bundle')
+        assertStringIncludes(check?.message ?? '', 'deno.lock')
+        assertStringIncludes(check?.message ?? '', '  @skmtc/core 0.1.0')
+        assertEquals(await Deno.readTextFile(lockPath), lock)
+      }
+    )
+  })
+})
+
+Deno.test('runDoctor - names the importers of the one @skmtc/core', async () => {
+  await withJsrRegistryServer(twoCoreRegistry, async () => {
+    await withRegistryProject({ generatorVersion: '0.1.0' }, async ({ projectName }) => {
+      await bundleHeadless({ skmtcRoot: await SkmtcRoot.open(new Manager()), projectName })
+
+      const result = await runDoctor({ cliVersion: '0.1.5', checkModuleGraph })
+
+      const check = result.checks.find(c => c.id === `project-package-copies/${projectName}`)
+      assertEquals(check?.status, 'ok')
+      assertStringIncludes(
+        check?.message ?? '',
+        '@skmtc/core 0.1.0 ← @skmtc/gen-a@0.1.0, @skmtc/worker@0.1.0'
+      )
+    })
+  })
+})
+
+/** A `bundle.js` as `deno bundle` writes it, holding the given module paths. */
+const toBundleSource = (paths: string[]): string =>
+  paths.map(path => `// deno:${path}\nvar x = 1;`).join('\n')
+
+const writePackageCopiesProject = async (
+  tempRoot: string,
+  { bundle, clientJson }: { bundle?: string; clientJson?: Record<string, unknown> }
+): Promise<string> => {
+  const projectPath = join(tempRoot, '.skmtc', 'api')
+  await ensureDir(join(projectPath, '.settings'))
+  await Deno.writeTextFile(join(projectPath, 'deno.json'), JSON.stringify({ imports: {} }))
+  await Deno.writeTextFile(
+    join(projectPath, '.settings', 'client.json'),
+    JSON.stringify(clientJson ?? { settings: { basePath: 'src' } })
+  )
+  if (bundle !== undefined) await Deno.writeTextFile(join(projectPath, 'bundle.js'), bundle)
+  return projectPath
+}
+
+const singleCoreGraph: PackageCopiesCheck = {
+  type: 'single-copies',
+  packages: [
+    { name: '@skmtc/core', copies: [{ version: '0.29.0', importedBy: ['@skmtc/worker@0.3.56'] }] }
+  ]
+}
+
+Deno.test('runDoctor - errors on a bundle.js holding two cores even when the graph has one', async () => {
+  await withTempSkmtcRoot(async tempRoot => {
+    await writePackageCopiesProject(tempRoot, {
+      bundle: toBundleSource([
+        'https://jsr.io/@skmtc/core/0.28.7/mod.ts',
+        'https://jsr.io/@skmtc/core/0.29.0/mod.ts'
+      ])
+    })
+
+    const result = await runDoctor({
+      cliVersion: '0.1.5',
+      checkModuleGraph: () => Promise.resolve(singleCoreGraph)
+    })
+
+    const check = result.checks.find(c => c.id === 'project-package-copies/api')
+    assertEquals(check?.status, 'error')
+    assertStringIncludes(check?.message ?? '', '  @skmtc/core 0.28.7\n  @skmtc/core 0.29.0')
+    assertStringIncludes(check?.hint ?? '', 'skmtc bundle api')
+    assertEquals(check?.data?.source, 'bundle')
+  })
+})
+
+Deno.test('runDoctor - --offline reads bundle.js and never resolves the graph', async () => {
+  await withTempSkmtcRoot(async tempRoot => {
+    await writePackageCopiesProject(tempRoot, {
+      bundle: toBundleSource(['https://jsr.io/@skmtc/core/0.29.0/mod.ts'])
+    })
+    const graphCalls: string[] = []
+
+    const result = await runDoctor({
+      cliVersion: '0.1.5',
+      offline: true,
+      checkModuleGraph: projectPath => {
+        graphCalls.push(projectPath)
+        return Promise.resolve(singleCoreGraph)
+      }
+    })
+
+    const check = result.checks.find(c => c.id === 'project-package-copies/api')
+    assertEquals(graphCalls, [])
+    assertEquals(check?.status, 'ok')
+    assertStringIncludes(check?.message ?? '', '--offline')
+  })
+})
+
+Deno.test('runDoctor - skips the package-copies check for a project that generates remotely', async () => {
+  await withTempSkmtcRoot(async tempRoot => {
+    await writePackageCopiesProject(tempRoot, {
+      clientJson: { serverUrl: 'https://stack.example', settings: { basePath: 'src' } },
+      bundle: toBundleSource([
+        'https://jsr.io/@skmtc/core/0.28.7/mod.ts',
+        'https://jsr.io/@skmtc/core/0.29.0/mod.ts'
+      ])
+    })
+
+    const result = await runDoctor({ cliVersion: '0.1.5' })
+
+    const check = result.checks.find(c => c.id === 'project-package-copies/api')
+    assertEquals(check?.status, 'skipped')
+    assertStringIncludes(check?.message ?? '', 'serverUrl')
+  })
+})
+
+Deno.test('runDoctor - skips the package-copies check when neither source can be read', async () => {
+  await withTempSkmtcRoot(async tempRoot => {
+    await writePackageCopiesProject(tempRoot, {})
+
+    const result = await runDoctor({ cliVersion: '0.1.5' })
+
+    const check = result.checks.find(c => c.id === 'project-package-copies/api')
+    assertEquals(check?.status, 'skipped')
+    assertStringIncludes(check?.message ?? '', 'not resolved in tests')
+  })
 })

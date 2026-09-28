@@ -4,6 +4,8 @@ import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/str
 import { toManifestPath } from '@/lib/to-manifest-path.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { checkBundleFreshness } from '@/lib/bundle-freshness.ts'
+import { checkBundleCopies, toBundleDuplicatesMessage } from '@/lib/duplicate-packages.ts'
+import { toBundleFsPath } from '@/lib/to-bundle-path.ts'
 import { runTypecheck } from '@/lib/typecheck.ts'
 import { resolve } from '@std/path'
 
@@ -101,6 +103,21 @@ export const generateSwitch = async ({
           console.error(`${freshness.hint}\n`)
         }
         Deno.exit(2)
+      }
+    }
+
+    // A bundle.js holding two copies of `@skmtc/core` (or a `@skmtc/lang-*`)
+    // generates empty files and reports success. `bundle` refuses to build
+    // one, but a bundle.js built before that check, or by an older CLI, can
+    // still be on disk — so read the copies from the bundle.js that is
+    // about to run, in every mode.
+    if (!generateLocalArgs.stackUrl) {
+      const bundleCopies = checkBundleCopies(toBundleFsPath(generateLocalArgs.projectPath))
+      if (bundleCopies.type === 'duplicates') {
+        console.error(
+          `Error: ${toBundleDuplicatesMessage({ projectName, duplicates: bundleCopies.duplicates })}\n`
+        )
+        Deno.exit(1)
       }
     }
 

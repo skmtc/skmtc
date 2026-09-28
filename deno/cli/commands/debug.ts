@@ -4,6 +4,7 @@ import { failWithRecipe } from '@/lib/strict-mode.ts'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
 import { toDocumentInput } from '@/lib/document-input.ts'
 import { runDebugSession } from '@/lib/debug-session.ts'
+import { toGraphRefusal } from '@/lib/duplicate-packages.ts'
 
 type RenderDebugArgs = {
   projectName: string | undefined
@@ -74,6 +75,14 @@ export const renderDebug = async ({
   const schemaContents = await toSchemaContents(source)
   const document = await toDocumentInput(schemaContents.contents, schemaContents.fileType)
   const clientSettings = project.clientJson.contents?.settings
+
+  // A debug run loads worker.ts source rather than bundle.js, so check the
+  // graph it resolves: two copies of core would generate empty files.
+  const refusal = await toGraphRefusal({ projectName, projectPath: project.toPath() })
+  if (refusal !== undefined) {
+    console.error(`Error: ${refusal}\n`)
+    Deno.exit(1)
+  }
 
   const exitCode = await runDebugSession({
     projectPath: project.toPath(),

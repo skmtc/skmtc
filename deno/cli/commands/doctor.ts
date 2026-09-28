@@ -23,7 +23,7 @@ import denoJson from '../deno.json' with { type: 'json' }
 
 type RenderDoctorArgs = {
   jsonFlag?: boolean
-  /** Skip the one check that reaches the network (`cli-version-current`),
+  /** Skip the registry lookup behind `cli-version-current`,
    *  for a run that already knows it is offline and does not want to
    *  spend the lookup's timeout to be told so. */
   offlineFlag?: boolean

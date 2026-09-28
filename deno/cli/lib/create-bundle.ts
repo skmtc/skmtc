@@ -2,6 +2,7 @@ import { join } from '@std/path/join'
 import type { Project } from '@/lib/project.ts'
 import { toBundlePath } from '@/lib/to-bundle-path.ts'
 import { toDependencyAgeArgs } from '@/lib/dependency-age.ts'
+import { toGraphRefusal } from '@/lib/duplicate-packages.ts'
 
 /**
  * Build a project's `bundle.js` from its generated `worker.ts`.
@@ -26,7 +27,18 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
   const projectPath = project.toPath()
   const bundlePath = toBundlePath(project.toPath())
 
+  const workerPath = join(projectPath, 'worker.ts')
+  const previousWorker = await readTextFileIfExists(workerPath)
+
   await project.createWorker()
+
+  const refusal = await toGraphRefusal({ projectName: project.name, projectPath })
+  if (refusal !== undefined) {
+    // Put back the worker.ts the current bundle.js was built from, so the
+    // freshness gate still reports that bundle as stale against deno.json.
+    await restoreFile(workerPath, previousWorker)
+    throw new Error(refusal)
+  }
 
   // Without the age flag, `deno bundle` on Deno ≥ 2.9 rejects a freshly
   // released stack — the project's pins name `@skmtc/*` versions that
@@ -74,6 +86,23 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
   }
 
   return bundlePath
+}
+
+const readTextFileIfExists = async (path: string): Promise<string | undefined> => {
+  try {
+    return await Deno.readTextFile(path)
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) return undefined
+    throw error
+  }
+}
+
+const restoreFile = async (path: string, contents: string | undefined): Promise<void> => {
+  if (contents === undefined) {
+    await Deno.remove(path)
+  } else {
+    await Deno.writeTextFile(path, contents)
+  }
 }
 
 type ToBundleFailureMessageArgs = {

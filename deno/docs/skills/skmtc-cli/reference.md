@@ -416,13 +416,14 @@ reasoning about a specific check without running it.
 
 | Check id | What it inspects |
 |---|---|
-| `cli-version-current` | The running CLI vs the newest published `@skmtc/cli` — the only check that reaches the network (2s bound, `skipped` when unreachable, `--offline` skips it). Names Deno's 24h minimum-dependency-age window when the newest release is still inside it, since a reinstall without `--minimum-dependency-age=0` silently resolves an older one |
+| `cli-version-current` | The running CLI vs the newest published `@skmtc/cli` — the only registry lookup (2s bound, `skipped` when unreachable, `--offline` skips it). Names Deno's 24h minimum-dependency-age window when the newest release is still inside it, since a reinstall without `--minimum-dependency-age=0` silently resolves an older one |
 | `install-lockfile` | `~/.deno/bin/.skmtc/deno.lock` — the installed CLI's version pin of `@skmtc/cli` and `@skmtc/core` |
 | `deno-version` | Running Deno is ≥ 2.4.0 — the floor for the esbuild-based `deno bundle` |
 | `hub-auth` | `~/.skmtc/auth.json` parses to `{ host, token }` — offline only; `skipped` when not logged in, `warning` + logout/login hint when malformed; never reports more than the token's last 4 chars |
 | `project-deno-json/<project>` | `deno.json` exists and parses |
 | `project-base-path/<project>` | `client.json#settings.basePath` present and relative |
 | `project-core-pin/<project>` | Project's `@skmtc/core` pin matches the CLI's major.minor |
+| `project-package-copies/<project>` | One copy of `@skmtc/core` and of each `@skmtc/lang-*` in the `worker.ts` module graph (`deno info --frozen`, never writes the lock) and in `bundle.js`; `error` names each copy and, from the graph, the packages that import it — two copies generate empty files, so `bundle` refuses the graph and `generate` refuses the `bundle.js`; `skipped` for `serverUrl` projects; `--offline` reads `bundle.js` only |
 | `project-bundle/<project>` | `bundle.js` exists — every project (remote-only included) generates from it; warning with a `skmtc bundle` hint when missing |
 | `project-enrichments/<project>` | Last generate's `manifest.enrichmentWarnings` has no `warning`-level entries — dead enrichment config (typo'd generator id, path, method or model name) surfaces here between runs; `info` entries keep it `ok` |
 | `project-worker-pin/<project>` | If `worker.ts` exists, `@skmtc/worker` is pinned (the generated worker imports it); ok-noop before the first bundle |
