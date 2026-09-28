@@ -48,7 +48,7 @@ version → fetch files (or `deno doc jsr:@skmtc/<name>`). Keep the
 package convention exactly as cloned:
 
 ```
-gen-x/  deno.json (name @scope/gen-*, EXACT-version @skmtc/* pins,
+gen-x/  deno.json (name @scope/gen-*, caret-range @skmtc/* pins (^x.y.z),
         lint plugin jsr:@skmtc/lint-plugin)
         mod.ts            → re-exports + `export { entry as default }`
         src/mod.ts        → the entry: toModelEntry / toOasOperationEntry

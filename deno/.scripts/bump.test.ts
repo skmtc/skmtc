@@ -61,14 +61,36 @@ Deno.test('planBump - an explicit minor bump cascades a patch + repin to every d
   assertEquals(plan.get('@skmtc/core')?.version, '0.7.0')
   // worker: cascade patch + core pin rewritten to the new 0.7.0.
   assertEquals(plan.get('@skmtc/worker')?.version, '0.3.3')
-  assertEquals(plan.get('@skmtc/worker')?.imports['@skmtc/core'], 'jsr:@skmtc/core@0.7.0')
+  assertEquals(plan.get('@skmtc/worker')?.imports['@skmtc/core'], 'jsr:@skmtc/core@^0.7.0')
   // cli: cascade patch + repins core AND worker (to its *cascaded* 0.3.3).
   assertEquals(plan.get('@skmtc/cli')?.version, '0.3.5')
-  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/core'], 'jsr:@skmtc/core@0.7.0')
-  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/worker'], 'jsr:@skmtc/worker@0.3.3')
+  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/core'], 'jsr:@skmtc/core@^0.7.0')
+  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/worker'], 'jsr:@skmtc/worker@^0.3.3')
   assertEquals(
     plan.get('@skmtc/cli')?.imports['@skmtc/worker/types'],
-    'jsr:@skmtc/worker@0.3.3/types'
+    'jsr:@skmtc/worker@^0.3.3/types'
+  )
+})
+
+Deno.test('planBump - a patch bump moves every range lower bound to the new version', () => {
+  const packages = [
+    wp('@skmtc/core', '0.29.0'),
+    wp('@skmtc/worker', '0.3.56', { '@skmtc/core': 'jsr:@skmtc/core@^0.29.0' }),
+    wp('@skmtc/cli', '0.9.50', {
+      '@skmtc/core': 'jsr:@skmtc/core@^0.29.0',
+      '@skmtc/worker': 'jsr:@skmtc/worker@^0.3.56',
+      '@skmtc/worker/types': 'jsr:@skmtc/worker@^0.3.56/types'
+    })
+  ]
+  const plan = planBump(packages, new Map([['@skmtc/core', 'patch']]))
+
+  assertEquals(plan.get('@skmtc/core')?.version, '0.29.1')
+  assertEquals(plan.get('@skmtc/worker')?.imports['@skmtc/core'], 'jsr:@skmtc/core@^0.29.1')
+  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/core'], 'jsr:@skmtc/core@^0.29.1')
+  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/worker'], 'jsr:@skmtc/worker@^0.3.57')
+  assertEquals(
+    plan.get('@skmtc/cli')?.imports['@skmtc/worker/types'],
+    'jsr:@skmtc/worker@^0.3.57/types'
   )
 })
 
@@ -88,7 +110,7 @@ Deno.test('planBump - an explicitly named dependent uses its own level, not a ca
   assertEquals(plan.get('@skmtc/core')?.version, '0.7.0')
   // cli is named with --major: 1.0.0, NOT a cascade patch of 0.3.4.
   assertEquals(plan.get('@skmtc/cli')?.version, '1.0.0')
-  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/core'], 'jsr:@skmtc/core@0.7.0')
+  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/core'], 'jsr:@skmtc/core@^0.7.0')
 })
 
 Deno.test('planBump - bumping a leaf with no dependents changes only that package', () => {

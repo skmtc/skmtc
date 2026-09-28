@@ -2,6 +2,7 @@ import { assertEquals } from '@std/assert'
 import { RootDenoJson } from '@/lib/root-deno-json.ts'
 import { readCliCorePin, readCliServerPin } from '@/lib/doctor-headless.ts'
 import { ensureServerDeps } from '@/lib/ensure-server-deps.ts'
+import cliDenoJson from '@/deno.json' with { type: 'json' }
 
 const serverPin = `jsr:@skmtc/server@${readCliServerPin()}`
 const corePin = `jsr:@skmtc/core@${readCliCorePin()}`
@@ -20,6 +21,22 @@ Deno.test('ensureServerDeps - pins both peers in a fresh project', () => {
   assertEquals(ensureServerDeps(denoJson), true)
   assertEquals(denoJson.contents.imports?.['@skmtc/server'], serverPin)
   assertEquals(denoJson.contents.imports?.['@skmtc/core'], corePin)
+})
+
+Deno.test('ensureServerDeps - pins the exact lower bound of the CLI ranges', () => {
+  const denoJson = withImports({})
+
+  ensureServerDeps(denoJson)
+
+  assertEquals(cliDenoJson.imports['@skmtc/server'].startsWith('jsr:@skmtc/server@^'), true)
+  assertEquals(
+    denoJson.contents.imports?.['@skmtc/server'],
+    cliDenoJson.imports['@skmtc/server'].replace('@^', '@')
+  )
+  assertEquals(
+    denoJson.contents.imports?.['@skmtc/core'],
+    cliDenoJson.imports['@skmtc/core'].replace('@^', '@')
+  )
 })
 
 Deno.test('ensureServerDeps - repins a stale @skmtc/server version', () => {

@@ -2,7 +2,7 @@
 /**
  * Bump: raise the `version` of the package(s) you directly changed and
  * cascade that across the whole `deno/` workspace — every dependent has its
- * `@skmtc/*` import pins rewritten to the new versions and its own version
+ * `@skmtc/*` import ranges rewritten to `^<new version>` and its own version
  * patch-bumped, in dependency order.
  *
  * This is the planning half of the release cascade (`.scripts/release.ts`)
@@ -58,8 +58,8 @@ export const incrementVersion = (version: string, level: BumpLevel): string => {
  * plan when either:
  *   - it is an explicit target — it bumps by its level; or
  *   - one of its workspace dependencies is in the plan — the cascade: its
- *     `@skmtc/*` pins are rewritten to the dependency's new version and its
- *     own patch version is bumped.
+ *     `@skmtc/*` ranges are rewritten to `^<dependency's new version>` and
+ *     its own patch version is bumped.
  *
  * Mirrors {@link planRelease}, but the explicit-target set drives the direct
  * bumps in place of the registry's published-versions set.

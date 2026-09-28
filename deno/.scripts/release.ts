@@ -14,7 +14,7 @@
  *      version is not yet published is a release.
  *   3. It cascades: every workspace package that depends — directly or
  *      transitively — on a releasing package has its `@skmtc/*` import
- *      pin rewritten to the new version and its own patch version
+ *      range rewritten to `^<new version>` and its own patch version
  *      bumped.
  *   4. All releasing packages are published dependency-order first
  *      (a freshly-published dependency must be up before a dependent
@@ -76,9 +76,15 @@ export const toWorkspaceDep = (
   return match && workspaceNames.has(match[1]) ? match[1] : null
 }
 
-/** Rewrite the version in a `jsr:@scope/name@x[/sub]` import value. */
+/**
+ * Point a `jsr:@scope/name@x[/sub]` import at the caret range
+ * `^newVersion`, whether it held an exact pin or a range. Published
+ * packages declare `@skmtc/*` dependencies as ranges so that two packages
+ * released a patch apart resolve one copy of the dependency; the project's
+ * own exact pin decides which one.
+ */
 export const rewriteDepVersion = (importValue: string, newVersion: string): string =>
-  importValue.replace(/^(jsr:@[^@/\s]+\/[^@/\s]+)@[^/\s]+(\/.*)?$/, `$1@${newVersion}$2`)
+  importValue.replace(/^(jsr:@[^@/\s]+\/[^@/\s]+)@[^/\s]+(\/.*)?$/, `$1@^${newVersion}$2`)
 
 /**
  * Dependency-first order over the full workspace — a package always
@@ -110,7 +116,7 @@ export const toDependencyOrder = (packages: WorkspacePackage[]): WorkspacePackag
 export type PlannedRelease = {
   /** The version this package will be published at. */
   version: string
-  /** The package's imports, with workspace pins rewritten to the cascade versions. */
+  /** The package's imports, with workspace ranges rewritten to the cascade versions. */
   imports: Record<string, string>
 }
 
@@ -122,7 +128,7 @@ export type PlannedRelease = {
  *   - its `deno.json` version is **not** on the registry — you bumped
  *     it directly; it publishes at that version; or
  *   - a workspace dependency is being released — the **cascade**: its
- *     `@skmtc/*` pins are rewritten to the dependency's new version
+ *     `@skmtc/*` ranges are rewritten to `^<dependency's new version>`
  *     and its own patch version is bumped.
  *
  * Walking in dependency order means a dependency's final version is

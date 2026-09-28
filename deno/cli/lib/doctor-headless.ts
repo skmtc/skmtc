@@ -456,9 +456,13 @@ const checkProject = (projectName: string, ctx: CheckProjectContext): Check[] =>
 }
 
 /**
- * Reads the CLI's own `@skmtc/core` semver pin from
+ * Reads the CLI's own `@skmtc/core` version from
  * `cli/deno.json#imports`. Used to flag projects whose pin doesn't
  * satisfy the CLI's requirement.
+ *
+ * `cli/deno.json` declares a caret range (`^0.29.0`); this returns its
+ * lower bound (`0.29.0`), so the pin written into a project's
+ * `deno.json` stays exact and the project decides which core runs.
  *
  * Returns `null` if the import map is unreadable or missing — that's
  * a separate failure that should surface elsewhere; from doctor's
@@ -479,27 +483,29 @@ export const readCliCorePin = (): string | null => {
   // we only read the field we care about.
   const value = cliDenoJson?.imports?.['@skmtc/core']
   if (typeof value !== 'string') return null
-  // Strip the `jsr:` prefix and the `@skmtc/core@` segment so we keep
-  // just the version constraint (e.g. `^0.3.0`).
-  const match = value.match(/^jsr:@skmtc\/core@(.+)$/)
+  // Strip the `jsr:@skmtc/core@` prefix and any caret so we keep just
+  // the version (e.g. `0.3.0`).
+  const match = value.match(/^jsr:@skmtc\/core@\^?(.+)$/)
   return match ? match[1] : null
 }
 
 /**
- * The CLI's own `@skmtc/worker` pin, read from `cli/deno.json`.
- * `@skmtc/worker` versions independently of `@skmtc/core`, so it
- * needs its own reader. Mirrors {@link readCliCorePin}; exported so
+ * The CLI's own `@skmtc/worker` version, read from `cli/deno.json` as
+ * the lower bound of its range. `@skmtc/worker` versions independently
+ * of `@skmtc/core`, so it needs its own reader. Mirrors
+ * {@link readCliCorePin}; exported so
  * `ensureWorkerDeps` can pin a fresh project to the CLI's version.
  */
 export const readCliWorkerPin = (): string | null => {
   const value = cliDenoJson?.imports?.['@skmtc/worker']
   if (typeof value !== 'string') return null
-  const match = value.match(/^jsr:@skmtc\/worker@(.+)$/)
+  const match = value.match(/^jsr:@skmtc\/worker@\^?(.+)$/)
   return match ? match[1] : null
 }
 
 /**
- * The CLI's own `@skmtc/server` pin, read from `cli/deno.json`.
+ * The CLI's own `@skmtc/server` version, read from `cli/deno.json` as
+ * the lower bound of its range.
  * `@skmtc/server` is the Hono wrapper bundled into the CF-Workers
  * `server.js` artifact by `skmtc publish`. Exported so
  * `ensureServerDeps` can pin a fresh project to the CLI's version.
@@ -507,7 +513,7 @@ export const readCliWorkerPin = (): string | null => {
 export const readCliServerPin = (): string | null => {
   const value = cliDenoJson?.imports?.['@skmtc/server']
   if (typeof value !== 'string') return null
-  const match = value.match(/^jsr:@skmtc\/server@(.+)$/)
+  const match = value.match(/^jsr:@skmtc\/server@\^?(.+)$/)
   return match ? match[1] : null
 }
 

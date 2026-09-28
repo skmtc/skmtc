@@ -447,11 +447,14 @@ The project is **Deno-locked**, and that is an accepted trade. The
 | `swagger2openapi` | Swagger 2.0 → OpenAPI 3.0 conversion inside `@skmtc/convert`. |
 | `@cliffy/command`, `ink`, `react` | CLI command parsing and terminal UI. |
 
-**Version-pin discipline:** inter-package `@skmtc/*` dependencies are
-pinned to **exact JSR versions — no caret ranges** — so a cloned
-generator and the engine it compiles against can't silently skew.
-`skmtc doctor` checks that a project's `@skmtc/core` pin matches the
-CLI's. Pins *can* lag between packages; always read `deno.json`.
+**Version-pin discipline:** published `@skmtc/*` packages declare
+their `@skmtc/*` dependencies as **caret ranges** (`^0.29.0`; on 0.x a
+caret admits patch releases only), so packages released a patch apart
+resolve one copy of `@skmtc/core`. The release cascade moves each lower
+bound forward when a dependency releases. The project's `deno.json`
+keeps an **exact** `@skmtc/core` pin, written from the lower bound of
+the CLI's range; `skmtc doctor` checks that it matches the CLI's.
+Lower bounds *can* lag between packages; always read `deno.json`.
 
 ## 11. Building infrastructure around SKMTC
 
