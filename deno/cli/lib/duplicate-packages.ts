@@ -523,3 +523,23 @@ export const toBundleDuplicatesMessage = ({
     emptyFilesExplanation,
     toBundleFixHint(projectName)
   ].join('\n')
+
+type ToGraphRefusalArgs = {
+  projectName: string
+  projectPath: string
+}
+
+/**
+ * The refusal for a project whose module graph holds two copies, or
+ * `undefined` when it doesn't (or can't be read). Shared by `bundle` and
+ * `generate --debug`, which both run the graph.
+ */
+export const toGraphRefusal = async ({
+  projectName,
+  projectPath
+}: ToGraphRefusalArgs): Promise<string | undefined> => {
+  const graphCheck = await checkModuleGraph(projectPath)
+  return graphCheck.type === 'duplicates'
+    ? toDuplicatePackagesMessage({ projectName, projectPath, duplicates: graphCheck.duplicates })
+    : undefined
+}

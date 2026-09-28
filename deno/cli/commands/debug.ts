@@ -4,7 +4,7 @@ import { failWithRecipe } from '@/lib/strict-mode.ts'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
 import { toDocumentInput } from '@/lib/document-input.ts'
 import { runDebugSession } from '@/lib/debug-session.ts'
-import { checkModuleGraph, toDuplicatePackagesMessage } from '@/lib/duplicate-packages.ts'
+import { toGraphRefusal } from '@/lib/duplicate-packages.ts'
 
 type RenderDebugArgs = {
   projectName: string | undefined
@@ -78,15 +78,9 @@ export const renderDebug = async ({
 
   // A debug run loads worker.ts source rather than bundle.js, so check the
   // graph it resolves: two copies of core would generate empty files.
-  const graphCheck = await checkModuleGraph(project.toPath())
-  if (graphCheck.type === 'duplicates') {
-    console.error(
-      `Error: ${toDuplicatePackagesMessage({
-        projectName,
-        projectPath: project.toPath(),
-        duplicates: graphCheck.duplicates
-      })}\n`
-    )
+  const refusal = await toGraphRefusal({ projectName, projectPath: project.toPath() })
+  if (refusal !== undefined) {
+    console.error(`Error: ${refusal}\n`)
     Deno.exit(1)
   }
 
