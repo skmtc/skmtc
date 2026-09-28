@@ -47,8 +47,8 @@ Fetch source from JSR: `https://jsr.io/@skmtc/<name>/meta.json` → pick
 version → fetch files (or `deno doc jsr:@skmtc/<name>`). Keep the
 package convention as cloned, with one exception: declare `@skmtc/*`
 dependencies as caret ranges (`^x.y.z`), even where the clone source
-pins them exactly — an exact core pin beside the ranged worker puts two
-copies of core in the bundle:
+pins them exactly — an exact core pin puts a second copy of core in the
+bundle as soon as the project pins a different core:
 
 ```
 gen-x/  deno.json (name @scope/gen-*, caret-range @skmtc/* pins (^x.y.z),

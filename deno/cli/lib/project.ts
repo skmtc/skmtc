@@ -209,11 +209,10 @@ export class Project {
 
     await Deno.writeTextFile(modPath, mod)
 
-    // worker.ts does `import toWorker from '@skmtc/worker'`, and the
-    // generator source imports `@skmtc/core` — neither is added by the
-    // clone import-collector (worker.ts is CLI-generated, not part of
-    // any cloned package). Ensure both are pinned, then persist so the
-    // `deno bundle` subprocess reads the updated import map.
+    // worker.ts imports `@skmtc/worker` and `@skmtc/core` — neither is
+    // added by the clone import-collector (worker.ts is CLI-generated,
+    // not part of any cloned package). Ensure both are pinned, then
+    // persist so the `deno bundle` subprocess reads the updated import map.
     if (ensureWorkerDeps(this.rootDenoJson)) {
       await this.rootDenoJson.write()
     }

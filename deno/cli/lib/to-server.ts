@@ -27,13 +27,14 @@ export const toServer = (generatorIds: string[]) => {
   // `@skmtc/server`, NOT `jsr:@skmtc/server`. The bare specifier resolves
   // through the project's import map, where `ensureServerDeps` has pinned an
   // exact version alongside a matching `@skmtc/core` — which is the whole
-  // point of that pin. `import '@skmtc/core'` puts that core pin into the
-  // graph, so the ranged `@skmtc/server` and generators resolve to it. A raw `jsr:` URL bypasses the map and resolves to `*`,
+  // point of that pin. A raw `jsr:` URL bypasses the map and resolves to `*`,
   // so the lockfile decides, and a stale lock silently pulls an older
   // `@skmtc/server` with an older `@skmtc/core` beside the pinned one. Two
   // cores in one bundle means the `GenerateContext` the generators receive is
   // from the wrong copy: every subject fails with `context.<method> is not a
   // function` and the run emits zero artifacts, with nothing naming a version.
+  // `import '@skmtc/core'` puts the core pin into the graph, so the ranged
+  // `@skmtc/server` and generators resolve to it.
   // `server.ts` is emitted beside the project's `deno.json`, so the entry can
   // read its own package identity (name, version, description, homepage) for
   // the server's home page. `toStackIdentity` fails soft — a config without
