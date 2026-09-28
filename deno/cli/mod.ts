@@ -1,7 +1,7 @@
 import { Command, EnumType } from '@cliffy/command'
 import { assertJsrReachable, JsrRegistryUnreachableError } from '@/lib/jsr-registry.ts'
-import { getCommandDescriptor } from '@/lib/cli-schema.ts'
-import { INSTALL_ARGUMENTS, INSTALL_USAGE, toInstallArguments } from '@/lib/install-arguments.ts'
+import { getCommandDescriptor, JSON_DESCRIPTION, NO_INPUT_DESCRIPTION } from '@/lib/cli-schema.ts'
+import { toInstallCommand } from '@/commands/install-command.ts'
 import denoJson from './deno.json' with { type: 'json' }
 
 // Sentry.init({
@@ -53,11 +53,10 @@ const shouldSkipRegistryCheck = (args: readonly string[]): boolean => {
   return COMMANDS_THAT_SKIP_REGISTRY_CHECK.has(firstArg)
 }
 
-// Strings reused on every agent-mode command. The descriptions are
-// also exported via {@link AGENT_MODE_FLAGS} in `cli-schema.ts` so
-// `agent-context` reports the same text — keep these in sync.
-const NO_INPUT_DESC = 'Disable interactive prompts; fail on missing args.'
-const JSON_DESC = 'Emit structured JSON output (implies --no-input).'
+// Strings reused on every agent-mode command. They come from
+// `cli-schema.ts`, whose {@link AGENT_MODE_FLAGS} `agent-context` reports.
+const NO_INPUT_DESC = NO_INPUT_DESCRIPTION
+const JSON_DESC = JSON_DESCRIPTION
 const FORCE_DESC =
   "Bypass the pre-flight @skmtc/core peer-pin check. Cloning over a mismatched pin produces a generator that won't bundle — only use this when you know the skew is safe."
 
@@ -80,8 +79,9 @@ const run = async () => {
   // The descriptors in `lib/cli-schema.ts` are the source of truth for
   // each command's `description` and the human-readable args pattern
   // (which `agent-context` also reads). The `.arguments(...)` strings
-  // below carry Cliffy's type annotations (`:string`, `:string[]`,
-  // …) which don't belong in the descriptor — those stay inline.
+  // carry Cliffy's type annotations (`:string`, …), which don't belong
+  // in the descriptor. Most stay inline below; `install` is built in
+  // `commands/install-command.ts` so its parsing can be tested.
   // The `--json` / `--no-input` option pair is repeated on every
   // `full`-agent-mode command because Cliffy's chain types don't
   // round-trip through a generic helper without losing precision.
@@ -136,22 +136,7 @@ const run = async () => {
       })
     })
 
-  const installCommand = new Command()
-    .description(getCommandDescriptor('install').description)
-    .arguments(INSTALL_ARGUMENTS)
-    .usage(INSTALL_USAGE)
-    .option('--no-input', NO_INPUT_DESC)
-    .option('--json', JSON_DESC)
-    .action(async ({ json, input }, ...values) => {
-      const { renderInstall } = await import('@/commands/install.tsx')
-      const { generators, projectName } = toInstallArguments(values)
-      await renderInstall({
-        generators,
-        projectName,
-        jsonFlag: json,
-        noInputFlag: input === false
-      })
-    })
+  const installCommand = toInstallCommand()
 
   const listCommand = new Command()
     .description(getCommandDescriptor('list').description)

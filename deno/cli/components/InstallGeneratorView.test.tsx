@@ -330,3 +330,44 @@ Deno.test(
     unmount()
   }
 )
+
+// Test 5: A project name that does not exist still prompts, and a
+// `jsr:`-prefixed generator is not prefixed twice.
+Deno.test(
+  'InstallGenerator - unknown project name prompts for a project',
+  { sanitizeResources: false, sanitizeOps: false },
+  async () => {
+    const mockProject = createMockProject()
+    const installStub = stub(mockProject, 'installGenerator', () =>
+      Promise.resolve(mockGeneratorInstance)
+    )
+
+    const initialState = createInitialState({}, mockProject)
+
+    const { lastFrame, unmount, stdin } = renderInstallGenerator({
+      initialState,
+      projectName: 'missing-project',
+      generators: ['jsr:@skmtc/gen-zod']
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 200))
+
+    assertEquals(
+      lastFrame(),
+      `│  Select project
+│  ${pointer} test-project
+│    Create new project`
+    )
+
+    stdin.write('\r')
+
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    assertSpyCall(installStub, 0, {
+      args: [{ moduleName: 'jsr:@skmtc/gen-zod' }]
+    })
+
+    unmount()
+    installStub.restore()
+  }
+)

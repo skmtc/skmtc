@@ -14,6 +14,13 @@ skmtc install [generators...] [project] [--json] [--no-input]
 
 ## Arguments
 
+Every argument that is a JSR generator specifier (`@scope/name`,
+optionally prefixed with `jsr:`) is a generator. The one argument
+that is not is the project, conventionally last. With no project
+argument, strict mode fails with a recipe error and interactive mode
+asks for the project. With more than one non-specifier argument, the
+CLI exits 2 and names them.
+
 ### `[generators...]`
 
 One or more JSR generator specifiers, separated by spaces. A
@@ -33,7 +40,9 @@ The CLI normalizes all three forms.
 
 ### `[project]`
 
-The target project name. Required in strict mode.
+The target project name. Required in strict mode, where a name that
+does not match a directory under `.skmtc/` exits 2. In interactive
+mode an unknown name opens the project picker.
 
 ## Options
 
@@ -151,7 +160,7 @@ if you suspect peer-dep drift.
 |---|---|
 | `0` | Success — at least one generator installed |
 | `1` | Registry unreachable, version not found, write failure |
-| `2` | Required argument missing |
+| `2` | Required argument missing, unknown project, or more than one non-specifier argument |
 
 ## Common failure modes
 

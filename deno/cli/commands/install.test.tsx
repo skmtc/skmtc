@@ -181,3 +181,37 @@ Deno.test('renderInstall - empty generators array also fails (not just undefined
   assertEquals(exitCode, 2)
   assertStringIncludes(errors[0], 'missing required argument: <generators...>')
 })
+
+Deno.test('renderInstall - more than one non-specifier names the expected usage', async () => {
+  const { errors, exitCode } = await withCapturedExit(async () => {
+    await renderInstall({
+      projectName: undefined,
+      generators: undefined,
+      unrecognized: ['gen-zod', 'my-api'],
+      noInputFlag: true
+    })
+  })
+
+  assertEquals(exitCode, 2)
+  assertEquals(errors.length, 1)
+  assertStringIncludes(errors[0], 'expected one project, got "gen-zod", "my-api"')
+  assertStringIncludes(errors[0], 'Usage:   skmtc install <generators...> <project>')
+})
+
+Deno.test('renderInstall - an unknown project fails with a recipe error in strict mode', async () => {
+  const skmtcRoot = createMockSkmtcRoot(createMockManager())
+
+  const { errors, exitCode } = await withCapturedExit(async () => {
+    await renderInstall({
+      skmtcRoot,
+      projectName: 'missing-project',
+      generators: ['@skmtc/gen-zod'],
+      noInputFlag: true
+    })
+  })
+
+  assertEquals(exitCode, 2)
+  assertEquals(errors.length, 1)
+  assertStringIncludes(errors[0], 'project "missing-project" not found')
+  assertStringIncludes(errors[0], 'ls .skmtc/')
+})
