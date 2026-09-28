@@ -4,13 +4,21 @@ import { render } from 'ink'
 import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '../components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
-import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
+import {
+  failWithInvalidArg,
+  failWithRecipe,
+  resolveInputMode,
+  resolveOutputFormat
+} from '@/lib/strict-mode.ts'
+import { INSTALL_EXAMPLE, INSTALL_STRICT_USAGE } from '@/lib/install-arguments.ts'
 import { installHeadless, type InstallHeadlessResult } from '@/lib/install-headless.ts'
 
 type RenderInstallArgs = {
   skmtcRoot?: SkmtcRoot
   generators: string[] | undefined
   projectName: string | undefined
+  /** Positionals that are not generator specifiers, when more than one was given. */
+  unrecognized?: string[]
   jsonFlag?: boolean
   noInputFlag?: boolean
   // Optional dependencies for testing
@@ -18,15 +26,29 @@ type RenderInstallArgs = {
   AppComponent?: typeof App
 }
 
+const DISCOVER_PROJECTS = 'ls .skmtc/  (list existing projects)'
+
 export const renderInstall = async ({
   skmtcRoot: providedSkmtcRoot,
   generators,
   projectName,
+  unrecognized = [],
   jsonFlag,
   noInputFlag,
   renderFn = render,
   AppComponent = App
 }: RenderInstallArgs) => {
+  if (unrecognized.length > 0) {
+    return failWithInvalidArg({
+      message:
+        `expected one project, got ${unrecognized.map(value => `"${value}"`).join(', ')}. ` +
+        'Generators are JSR specifiers (@scope/name); the one other argument is the project.',
+      usage: INSTALL_STRICT_USAGE,
+      example: INSTALL_EXAMPLE,
+      discover: DISCOVER_PROJECTS
+    })
+  }
+
   const mode = resolveInputMode({ noInputFlag, jsonFlag })
 
   if (mode === 'strict') {
@@ -34,9 +56,9 @@ export const renderInstall = async ({
       return failWithRecipe({
         command: 'install',
         arg: '<project>',
-        usage: 'skmtc install <generators...> <project>',
-        example: 'skmtc install @skmtc/gen-zod @skmtc/gen-tanstack-query my-api',
-        discover: 'ls .skmtc/  (list existing projects)'
+        usage: INSTALL_STRICT_USAGE,
+        example: INSTALL_EXAMPLE,
+        discover: DISCOVER_PROJECTS
       })
     }
 
@@ -44,12 +66,21 @@ export const renderInstall = async ({
       return failWithRecipe({
         command: 'install',
         arg: '<generators...>',
-        usage: 'skmtc install <generators...> <project>',
-        example: 'skmtc install @skmtc/gen-zod @skmtc/gen-tanstack-query my-api'
+        usage: INSTALL_STRICT_USAGE,
+        example: INSTALL_EXAMPLE
       })
     }
 
     const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
+
+    if (!skmtcRoot.projects.some(({ name }) => name === projectName)) {
+      return failWithInvalidArg({
+        message: `project "${projectName}" not found`,
+        usage: INSTALL_STRICT_USAGE,
+        example: INSTALL_EXAMPLE,
+        discover: DISCOVER_PROJECTS
+      })
+    }
 
     const result = await installHeadless({
       skmtcRoot,

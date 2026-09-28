@@ -13,8 +13,9 @@ type InstallGeneratorViewProps = {
 export const InstallGeneratorView = ({ view }: InstallGeneratorViewProps) => {
   const { state, dispatch } = useSkmtc()
 
+  // Prompt when no project was given or the named one does not exist.
   const includeProjectName = useMemo(() => {
-    return !view.projectName
+    return !state.skmtcRoot.projects.some(project => project.name === view.projectName)
   }, [])
 
   const includeGenerators = useMemo(() => {
