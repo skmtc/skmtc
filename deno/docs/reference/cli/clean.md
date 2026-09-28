@@ -16,8 +16,11 @@ This is distinct from the *incremental* prune that runs inside
 rewrite (stale artifacts from a removed generator, a renamed
 output). `clean` deletes the **full** set the manifest records.
 
-`clean` is a local-only operation — it never contacts JSR, never
-rebundles, and never touches generator source or `client.json`.
+`clean` never touches generator source or `client.json`. To report
+hand-edited files accurately it rebuilds `bundle.js` and renders fresh
+content, as `generate` does; the build contacts JSR only when the Deno
+cache lacks a pinned package, and a failed build only makes the report
+less precise.
 
 ## Synopsis
 
@@ -179,8 +182,6 @@ fresh tree rather than relying on the incremental prune.
 
 ## What `clean` does *not* do
 
-- Does **not** rebundle, contact JSR, or touch `bundle.js` /
-  `worker.ts`.
 - Does **not** modify `client.json` (enrichments, skip/include,
   basePath) or `deno.json` — generator *configuration* is untouched.
   Use [`remove`](remove.md) to uninstall a generator.

@@ -3,14 +3,14 @@ name: skmtc-debug
 version: 0.2.1
 description: |
   Diagnose failures in SKMTC sessions — no output, wrong output, error
-  messages, bundle freshness, parseIssues, "Registered definition
+  messages, failed bundle builds, parseIssues, "Registered definition
   mismatch", ref cycles, "Module not found" in generated code, or any
   other broken behavior. Applies across both CLI usage and generator
   authoring contexts.
 
   Use this skill when the user asks "why isn't my generator working",
   "no output for X", "wrong output", "what does this error mean",
-  "manifest says X", "bundle is stale", "INVALID_SCHEMA",
+  "manifest says X", "bundle failed", "INVALID_SCHEMA",
   "INVALID_DEPENDENCY_REF", "Registered definition mismatch", "Module
   not found" (in generated code), "ConfigValidationError", or reports
   any other SKMTC failure.
@@ -85,11 +85,11 @@ the listed investigation steps in order.
 | `parseIssue` at `level: 'error'` | Read the issue's `location` | Walk to that path in the OpenAPI doc; check schema validity |
 | `INVALID_DEPENDENCY_REF` | Find the upstream `INVALID_SCHEMA` | Fix the upstream schema; dependent issues should heal |
 | `Registered definition mismatch: 'X' in 'Y'` | Read the two `generatorKey` values from the error | Clone one generator and disambiguate `toIdentifier` |
-| Bundle freshness warning | Compare `deno.json#imports` to imports in `worker.ts` | Run `skmtc bundle <project>` |
+| `generate` exits 1 with `Failed to create bundle` | Read the `deno bundle` error it prints (also in `.settings/error-logs.txt`) | Fix the import or pin it names in the project's `deno.json`, then re-run `generate` |
 | `Max lookups reached` | The ref chain exceeds 10 hops | Inspect the schema for circular refs or chains > 10 |
 | Module not found in generated code | Read the unresolved import path in the generated file | Either implement the consumer-side path, or clone the generator and change the import target |
 | Orphaned/stale generated files on disk (output from a since-removed generator, a renamed export) | Compare on-disk tree to `manifest.files`; a normal `generate` only prunes files the *next* run replaces | `skmtc clean <project> --dry-run` to preview, then `skmtc clean <project>` for a full reset, then re-`generate` |
-| Every generated file is empty, yet every item is `success` and the run exits 0 | Two copies of `@skmtc/core` (or a `lang-*`) in the bundle break the engine's `instanceof` checks — run `skmtc doctor`; `project-package-copies/<project>` names each version and the packages that import it | Change the project's `deno.json` pins so those packages agree; `skmtc bundle <project>` |
+| `generate` exits 1 with `resolves more than one copy of @skmtc/core` (or a host without the CLI writes empty files and reports `success`) | Two copies of `@skmtc/core` (or a `lang-*`) break the engine's `instanceof` checks — the message, and `skmtc doctor`'s `project-package-copies/<project>`, name each version and the packages that import it | Change the project's `deno.json` pins so those packages agree; re-run `generate` |
 | `No matching export … for import "X"` (bundle time) | Peer-dep version skew | Run `skmtc doctor --json`; check `project-core-pin/<project>` |
 | `ConfigValidationError` | Stale manifest schema | Upgrade CLI; the manifest auto-rewrites on next generate |
 | Per-generator enrichments arrive as `{}` in the worker | The installed CLI is pinned to old `@skmtc/cli` / `@skmtc/core` | Delete `~/.deno/bin/.skmtc/deno.lock`; reinstall with `--reload` |
@@ -321,20 +321,24 @@ operation produced no files.
      `nullable` in a way the generator didn't account for. Read the
      OAS schema for the affected property.
 
-### Scenario D: Bundle freshness warning
+### Scenario D: The bundle build fails
 
-**Symptom:** Strict-mode `generate` refuses with
-`Error: bundle.js is out of sync with deno.json — add: …` (exit 2).
+**Symptom:** `generate` exits 1 before any generation runs, with
+`Error: Failed to create bundle — \`deno bundle\` failed in …`.
 
-1. `deno.json#imports` and `worker.ts` declared different generator
-   sets. Either was hand-edited without rebundling.
-2. Remediation: `skmtc bundle <project>` (rebuilds `worker.ts` from
-   `deno.json#imports`).
-3. If `worker.ts` was edited by hand: the bundle has unrecorded
-   changes; reset by regenerating. Hand-edits to `worker.ts` are
-   not supported.
-4. Diagnostic: `skmtc doctor --json` surfaces this as
-   `project-bundle/<project>`.
+`generate` rebuilds `worker.ts` and `bundle.js` from the project's
+`deno.json` and generator source on every run, so a build failure
+is about the project as it is now — never an older bundle.
+
+1. Read the `deno bundle` error in the message (the full output is
+   in `.settings/error-logs.txt`). It names the import or pin that
+   failed.
+2. An unresolved bare specifier: a cloned generator imports a
+   package that no `deno.json` pins. Add the pin.
+3. `No matching export … for import "X"`: peer-dep version skew.
+   Run `skmtc doctor --json` and read `project-core-pin/<project>`.
+4. Fix `deno.json` or the generator source, then run `generate`
+   again. There is no separate rebuild step.
 
 ### Scenario E: Registered definition mismatch
 
@@ -499,7 +503,7 @@ The failure may be in:
 - `client.json` (wrong path, wrong enrichment shape, wrong `include`/
   `skip`)
 - The OpenAPI schema itself (malformed, missing `$ref` target)
-- A stale bundle (`worker.ts` ↔ `deno.json` drift)
+- A pin in the project's `deno.json` that doesn't build
 - A version mismatch (peer-pin between `@skmtc/core` and a generator)
 - The consumer-side code the generated output imports against
 - The user's setup (Deno version, JSR_URL, lockfile staleness)

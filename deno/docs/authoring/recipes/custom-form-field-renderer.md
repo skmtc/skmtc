@@ -165,7 +165,6 @@ components:
 Regenerate:
 
 ```bash
-skmtc bundle my-project
 skmtc generate my-project
 ```
 

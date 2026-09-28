@@ -43,18 +43,6 @@ current Deno releases. Omitting it produces a runtime error on the
 first `skmtc generate` — discovered in CI long after install
 "succeeded." The flag must be baked into the installed CLI binary at install time.
 
-### Bundle (if any generators are cloned)
-
-If the project has cloned or locally-created generators, rebuild
-the bundle in CI:
-
-```bash
-skmtc bundle <project>
-```
-
-If the project is JSR-only (no clones), this step is unnecessary
-— the published bundle is used.
-
 ### Run with `--no-input --json`
 
 ```bash
@@ -122,8 +110,6 @@ diff is a black box; this is the opposite.
   another branch, the lockfile may need updating. Commit
   lockfile changes deliberately, not as part of every generate
   run.
-- **"Stale bundle" warning** — Add `skmtc bundle` before `skmtc
-  generate` in your CI flow.
 
 ## Related
 

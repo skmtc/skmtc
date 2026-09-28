@@ -176,7 +176,8 @@ Deno.test('renderDescribe - a failed bundle build exits 1 with the build error',
     await renderDescribe({
       projectName: 'my-api',
       skmtcRoot,
-      createBundleFn: () => Promise.reject(new Error('Project "my-api" resolves more than one copy'))
+      createBundleFn: () =>
+        Promise.reject(new Error('Project "my-api" resolves more than one copy'))
     })
   })
 

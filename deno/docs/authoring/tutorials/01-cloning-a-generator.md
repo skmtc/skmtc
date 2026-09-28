@@ -10,7 +10,7 @@ A cloned copy of `@skmtc/gen-zod` at `.skmtc/<project>/gen-zod/`,
 with one edit (the export path), regenerated and verified.
 
 By the end you'll have seen the clone source layout, the
-rebundle step, and the iteration loop.
+regenerate step, and the iteration loop.
 
 ## Prerequisites
 
@@ -89,21 +89,15 @@ This is the **canonical first edit** because the file moves on
 disk. You'll see the change at `ls` time, before opening
 anything.
 
-## Step 4: Rebundle
-
-```bash
-skmtc bundle my-project
-```
-
-Cloned generators are bundled into a single `bundle.js` that the
-Worker loads. Source edits aren't visible until you rebundle.
-`skmtc doctor` flags stale bundles if you forget.
-
-## Step 5: Regenerate and verify
+## Step 4: Regenerate and verify
 
 ```bash
 skmtc generate my-project
 ```
+
+Cloned generators are bundled into a single `bundle.js` that the
+Worker loads. `generate` rebuilds it from your edited source before
+every run, so there is no separate build step.
 
 Output now lands in `src/schemas/` instead of `src/models/`.
 Confirm:
@@ -120,7 +114,7 @@ edited `ZodProjection.ts` instead, the contents would change.
 
 `skmtc clone` is a fork operation. It copies upstream source to
 your project, switches the import in `deno.json` to a local
-path, and rebundles. From that point on, the local source is
+path, and builds the bundle. From that point on, the local source is
 authoritative — JSR updates don't reach you unless you re-clone
 or manually merge.
 

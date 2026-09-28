@@ -29,8 +29,8 @@ skmtc install @skmtc/gen-<name> <project> --json
 ```
 
 If `installed` is non-empty and `bundle.type === "bundled"` → ready
-to `generate`; the rebundle ran automatically (remote-only and
-hybrid projects alike).
+to `generate`; the install built the bundle to check the new
+generator (remote-only and hybrid projects alike).
 
 ### Card: Configuring enrichments
 
@@ -103,8 +103,9 @@ Key facts:
   dirs it emptied, stops at the first non-empty ancestor, and never
   removes `basePath` or a `packages[].rootPath`. If `basePath` is
   unset in `client.json`, dir pruning is skipped entirely.
-- **`clean` touches only generated output.** It never rebundles,
-  contacts JSR, or edits `client.json` / `deno.json`. To uninstall a
+- **`clean` deletes only generated output.** It rebuilds `bundle.js`
+  (as `generate` does) to render fresh content for its report, but
+  never edits `client.json` or generator source. To uninstall a
   *generator*, use `remove`, not `clean`.
 - **No confirmation prompt** (no Ink variant). `--dry-run` is the
   safety valve; deletion is irreversible.
@@ -180,8 +181,9 @@ exactly those ids. A folder on disk not referenced from
 `deno.json#imports` is invisible.
 
 **`worker.ts` and `bundle.js` are the only derived artifacts** — never
-hand-write them. `bundle` regenerates `worker.ts` from
-`deno.json#imports`, then runs `deno bundle -o bundle.js worker.ts`.
+hand-write them. `generate` (and `bundle`) regenerates `worker.ts`
+from `deno.json#imports`, then runs `deno bundle -o bundle.js
+worker.ts`, on every run.
 `deno.json` and `.settings/client.json` are *config*, not derived —
 hand-writing those is correct and expected.
 
@@ -233,8 +235,8 @@ Then, **by hand**, write under `.skmtc/lab/`:
      "workspace": ["./<gen-dir>"]
    }
    ```
-   `init` writes an empty `{}`. `skmtc bundle` (and any command that
-   rebundles — `clone`, `dev`) now adds the `@skmtc/core` and
+   `init` writes an empty `{}`. `skmtc generate` (and any command that
+   builds the bundle — `bundle`, `clone`, `dev`) adds the `@skmtc/core` and
    `@skmtc/worker` pins automatically, at the CLI's own versions, when
    it generates `worker.ts` — so you no longer hand-pin those two. You
    **do** still pin every *other* bare specifier the generator source
@@ -247,8 +249,8 @@ Then, **by hand**, write under `.skmtc/lab/`:
    pass it as the `generate` positional). `basePath` is set by `init`.
 
 ```bash
-skmtc bundle lab --json   # → { type: "bundled", bundlePath } — writes worker.ts AND bundle.js
-skmtc generate lab <schema> --json --typecheck
+skmtc bundle lab --json   # optional build check → { type: "bundled", bundlePath }
+skmtc generate lab <schema> --json --typecheck   # rebuilds worker.ts + bundle.js, then generates
 ```
 
 `bundle` returns `type: "bundled"` for every project. To confirm the
@@ -262,11 +264,7 @@ key isn't a `gen-*` entry in `deno.json#imports`.
 # Setup (once per CI run) — the installer bootstraps Deno if needed;
 # SKMTC_VERSION pins the CLI so runs are reproducible:
 SKMTC_VERSION=<version> curl -fsSL https://skmtc.dev/install | sh
-# Build the project's bundle.js (required for every project unless a
-# fresh one is committed/cached):
-skmtc bundle <project>
-
-# Run:
+# Run (builds the project's bundle.js first):
 skmtc generate <project> --json --no-input --typecheck
 # Exit 0 on success, 1 on fatal parseIssue or typecheck failure.
 

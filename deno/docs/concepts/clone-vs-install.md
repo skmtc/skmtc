@@ -44,9 +44,9 @@ This adds a JSR import to `.skmtc/my-project/deno.json`:
 }
 ```
 
-No local source — `skmtc bundle` compiles the JSR-resolved
-generator code into the project-local `bundle.js` that `generate`
-loads, same as for cloned source.
+No local source — `skmtc generate` compiles the JSR-resolved
+generator code into the project-local `bundle.js` before it runs,
+same as for cloned source.
 
 ### Customization surface when installed
 
@@ -62,18 +62,19 @@ clone.
 
 ### Bundle behavior when installed
 
-Identical to cloned: `skmtc bundle` regenerates `worker.ts` from
-`deno.json#imports` and compiles `bundle.js`, resolving the `jsr:`
-specifiers through the project's import map. A project with only
-installed generators still needs its `bundle.js` — it is the only
-artifact `generate` loads.
+Identical to cloned: `skmtc generate` regenerates `worker.ts` from
+`deno.json#imports` and compiles `bundle.js` before every run,
+resolving the `jsr:` specifiers through the project's import map. A
+project with only installed generators still builds its `bundle.js`
+— it is the only artifact `generate` loads.
 
 ### Bundle behavior when cloned
 
-Every `skmtc bundle` (and `skmtc dev`) rebuilds `worker.ts` from
-`deno.json#imports` and runs `deno bundle worker.ts -o bundle.js`.
-The locally-built `bundle.js` is what runs at generate time; cloned
-source enters it by relative path instead of a `jsr:` specifier.
+Every `skmtc generate` (and `skmtc bundle`, `skmtc dev`) rebuilds
+`worker.ts` from `deno.json#imports` and runs
+`deno bundle worker.ts -o bundle.js`. The freshly built `bundle.js` is
+what runs; cloned source enters it by relative path instead of a
+`jsr:` specifier, so edits apply on the next `generate`.
 
 ## Customization seams in stock generators
 
@@ -179,8 +180,8 @@ shadcn/ui-style vendored components.
 
 Yes. They coexist in `deno.json#imports` — install entries use JSR
 specifiers, cloned entries use local paths. The bundle process
-handles both: any local generator triggers a `bundle.js` build;
-remote generators in the same project are bundled in alongside.
+handles both: `generate` builds one `bundle.js` holding the local
+generators and the remote ones alongside.
 
 ### Do enrichments work the same for cloned generators?
 

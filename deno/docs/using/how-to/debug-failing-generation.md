@@ -38,8 +38,8 @@ stderr, you see "this operation errored" without seeing why. Two
 related logs to know about:
 
 - `.skmtc/<project>/.settings/error-logs.txt` — written by the
-  `bundle` step (including the implicit rebundles inside `clone`,
-  `install`, and `dev`). Contains the `deno bundle` subprocess
+  bundle build (inside `generate`, `bundle`, `clone`, `install` and
+  `dev`). Contains the `deno bundle` subprocess
   stderr. **Generate-time worker errors do not land here**; only
   bundle-time errors do.
 - Stderr from `skmtc generate` — the live stream is where
@@ -151,16 +151,14 @@ Projection produced. If it's wrong:
 
 #### Module not found in generated code
 
-Two common causes:
-
-1. **Cross-generator import to a generator not installed.** E.g.,
-   `gen-shadcn-form` imports from `@skmtc/gen-tanstack-query-supabase-zod`.
-   If you have the fetch variant installed instead, the generated
-   import won't resolve. Either install the expected peer or
-   clone `gen-shadcn-form` and swap the import.
-2. **Stale bundle.** If you cloned a generator and edited it, but
-   didn't `skmtc bundle`, the old bundle is used. `skmtc doctor`
-   flags this.
+The common cause is a cross-generator import to a generator that
+isn't installed. E.g., `gen-shadcn-form` imports from
+`@skmtc/gen-tanstack-query-supabase-zod`. If you have the fetch
+variant installed instead, the generated import won't resolve.
+Either install the expected peer or clone `gen-shadcn-form` and swap
+the import. (`generate` rebuilds the bundle from a cloned
+generator's source on every run, so the output always reflects your
+latest edit.)
 
 ## Verification
 

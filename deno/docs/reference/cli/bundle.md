@@ -3,8 +3,10 @@
 > Compile the project's local generators into `bundle.js`.
 
 Regenerates `worker.ts` from `deno.json#imports`, then runs
-`deno bundle worker.ts -o bundle.js`. The resulting `bundle.js` is
-what the SKMTC Worker loads at generate time.
+`deno bundle worker.ts -o bundle.js`. `skmtc generate` runs the same
+build before every generation, so you do not need to run `bundle`
+before `generate`. Use `bundle` to check that a project builds
+without generating.
 
 Every project builds a local bundle — remote-only (all generators
 installed from JSR) and hybrid (some cloned) alike. `deno bundle`
@@ -82,9 +84,8 @@ package is a second copy. `import type` imports don't count, because
 `deno bundle` erases them.
 
 When the graph holds two copies, `bundle` exits 1 with a message that
-names each copy and the packages that import it. It leaves the
-previous `bundle.js` and `worker.ts` in place, so `generate` still
-reports that bundle as out of date:
+names each copy and the packages that import it. No `bundle.js` is
+left behind:
 
 ```
 Project "api" resolves more than one copy of @skmtc/core:
@@ -93,12 +94,14 @@ Project "api" resolves more than one copy of @skmtc/core:
 ```
 
 Change the pins in the project's `deno.json` so that those packages
-agree, then run `skmtc bundle <project>` again.
+agree, then run the command again. `skmtc generate` runs the same
+check before every generation.
 
 ### Bundle output
 
-If successful, `<project>/bundle.js` is overwritten with the new
-compiled JS. The bundle includes:
+The CLI deletes the previous `<project>/bundle.js` before the build
+starts, so a failed build leaves no bundle behind. If the build
+succeeds, `bundle.js` holds the new compiled JS. The bundle includes:
 
 - The `@skmtc/worker` runtime
 - The `@skmtc/core` engine
@@ -159,29 +162,14 @@ skmtc bundle my-api --json | jq '.type'
 
 ## When to run bundle explicitly
 
-The CLI runs `bundle` automatically after `skmtc clone` and after
-`skmtc install`. So in normal workflows, manual `bundle` is rarely
-needed.
+Rarely. `skmtc generate`, `skmtc describe`, `skmtc status`,
+`skmtc clean` and `skmtc dev` build the bundle themselves before
+they run it, and `skmtc clone` and `skmtc install` build it to check
+the new generator. Nothing runs a `bundle.js` that it did not build
+in the same command.
 
-Explicit bundle is useful when:
-
-- **You hand-edited `deno.json`** to change a generator pin or path
-  without going through the CLI. The auto-rebundle didn't run.
-- **You hand-edited a cloned generator's source.** The watch loop
-  (`skmtc dev`) is the better answer, but if you don't want a
-  watch, `skmtc bundle` rebuilds once.
-- **CI setup.** Pre-warming the bundle before running `generate` —
-  though `generate` will trigger a freshness check anyway.
-
-## Bundle freshness gate
-
-Strict-mode `generate` checks that the on-disk `bundle.js` matches
-the current `deno.json#imports`. If they've drifted, `generate`
-refuses with a recipe error pointing at `skmtc bundle`. See
-[generate reference](generate.md#bundle-freshness-gate-strict-mode).
-
-The `skmtc doctor` command surfaces freshness as
-`project-bundle/<project>`.
+Run `bundle` explicitly to check that a project builds, for example
+after you change a pin, without generating any files.
 
 ## Exit codes
 
@@ -202,7 +190,7 @@ error: No matching export … for import "SnippetBase"
 The cloned generator's `@skmtc/core` peer doesn't match the
 project's pin. Run `skmtc doctor --json` and look at the
 `project-core-pin/<project>` check. Fix the pin in `deno.json`, then
-re-run bundle.
+run the command again.
 
 ### Missing transitive peer
 
@@ -215,9 +203,9 @@ A peer dep declared by the cloned generator isn't in the project's
 
 ## See also
 
-- [`skmtc clone`](clone.md) — auto-rebundles after clone
-- [`skmtc install`](install.md) — auto-rebundles for hybrid projects
+- [`skmtc clone`](clone.md) — builds the bundle after clone
+- [`skmtc install`](install.md) — builds the bundle after install
 - [`skmtc dev`](dev.md) — bundle + regenerate on file changes
-- [`skmtc generate`](generate.md) — uses the bundle at run time
+- [`skmtc generate`](generate.md) — builds the bundle, then runs it
 - [the-worker-runtime concept](../../concepts/the-worker-runtime.md) — what the bundle is for
 - [generators-as-packages concept](../../concepts/generators-as-packages.md) — the package structure

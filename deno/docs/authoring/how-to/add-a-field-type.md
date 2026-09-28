@@ -103,12 +103,13 @@ your component library, or import an existing one (e.g.,
 
 The generator doesn't produce this component — it's user code.
 
-### Rebundle and regenerate
+### Regenerate
 
 ```bash
-skmtc bundle my-project
 skmtc generate my-project
 ```
+
+`generate` rebuilds the bundle from your edited source first.
 
 ## Verification
 

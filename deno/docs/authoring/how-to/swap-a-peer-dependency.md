@@ -64,15 +64,15 @@ If the peer's `toIdentifierName` produces different names (e.g.,
 `useCreateUser` vs `useUserCreateMutation`), the import in your
 output will follow — usually fine, occasionally surprising.
 
-### Rebundle and regenerate
+### Regenerate
 
 ```bash
-skmtc bundle my-project
 skmtc generate my-project
 ```
 
-The bundle picks up the new import. Output now references the
-fetch-variant hook.
+`generate` rebuilds the bundle from your edited source first, so it
+picks up the new import. Output now references the fetch-variant
+hook.
 
 ## Verification
 

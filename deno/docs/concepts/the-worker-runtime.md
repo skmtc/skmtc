@@ -148,23 +148,19 @@ JS file. This is what the Worker spawns.
 
 ### One bundle path for every project
 
-`skmtc bundle` always builds the project-local `bundle.js` — it is
-the only artifact `generate` loads. Generator source enters the
+`skmtc generate` builds the project-local `bundle.js` before every
+run — it is the only artifact `generate` loads. Generator source enters the
 bundle either as a `jsr:` specifier (installed) or a relative path
 (cloned / locally authored); `deno bundle` resolves both through the
 project's import map.
 
-### Bundle freshness
+### The bundle is rebuilt on every run
 
-A subtle invariant: `worker.ts` and `bundle.js` are derived from
-`deno.json#imports`. If you hand-edit `deno.json` (e.g., add a
-generator without going through `skmtc install`), the `worker.ts`
-becomes stale. Strict-mode `generate` refuses with a recipe error
-pointing at `skmtc bundle`.
-
-The `skmtc doctor` command surfaces this as
-`project-bundle/<project>` — the check that `worker.ts`'s imports
-match `deno.json`'s imports.
+`worker.ts` and `bundle.js` are derived from `deno.json#imports` and
+the generator source. `generate` rebuilds both before every run, so
+a hand-edited `deno.json`, a changed pin or an edited clone applies
+on the next `generate` with no separate step. The build refuses a
+module graph with two copies of `@skmtc/core`.
 
 ## The structured-clone boundary
 
@@ -318,4 +314,4 @@ generation always goes through the Worker.
 - [Projects and workspaces](projects-and-workspaces.md) — where `bundle.js` and `worker.ts` live
 - [Generators as packages](generators-as-packages.md) — how bundles are built
 - [API reference: to-artifacts](../reference/api/to-artifacts.md) — the engine entry point
-- [`skmtc bundle` reference](../reference/cli/bundle.md) — bundle freshness and the rebundle workflow
+- [`skmtc bundle` reference](../reference/cli/bundle.md) — how the bundle is built

@@ -94,15 +94,9 @@ app. See
 ### Bundle
 
 `bundle.js` — the compiled JS file the SKMTC Worker loads, produced by
-`deno bundle worker.ts -o bundle.js`. See
+`deno bundle worker.ts -o bundle.js`. `skmtc generate` rebuilds it
+before every run. See
 [the-worker-runtime](../concepts/the-worker-runtime.md).
-
-### Bundle freshness
-
-The invariant that `bundle.js` matches the current `deno.json#imports`.
-Drift triggers a refuse-with-recipe error in strict-mode `generate`;
-the `skmtc doctor` check `project-bundle/<project>` surfaces stale
-bundles.
 
 ## C
 
@@ -645,7 +639,8 @@ generate run. See
 ### `worker.ts`
 
 A derived file in `.skmtc/<project>/worker.ts`, templated from
-`deno.json#imports` by `skmtc bundle`; regenerated, not hand-edited.
+`deno.json#imports` by every `skmtc generate` (and `skmtc bundle`);
+regenerated, not hand-edited.
 
 ## Cross-references
 

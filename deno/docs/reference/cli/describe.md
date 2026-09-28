@@ -5,7 +5,8 @@
 > the form-renderable enrichment descriptors, and the schema-derived
 > enrichment defaults.
 
-`describe` loads the project's `bundle.js` and the schema, then asks
+`describe` rebuilds the project's `bundle.js`, loads it and the
+schema, then asks
 each installed generator what it *would* act on — without writing any
 files. It's the introspection half of `generate`: the same
 subject-support decisions, reported instead of executed.

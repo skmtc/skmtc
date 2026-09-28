@@ -6,7 +6,7 @@
 > no longer records. Read-only.
 
 `status` answers "what does the tool think is going on?" — it never
-writes. It reads the project's `.settings/manifest.json` (the record
+writes generated files. It reads the project's `.settings/manifest.json` (the record
 of what the last `generate` wrote) and `.settings/generated.lock.json`
 (per-file content hashes), compares each tracked file's on-disk
 content, and reports a per-file classification. The classification is
@@ -14,15 +14,16 @@ informational: generated files are engine-owned, so `generate` never
 consults it — a `modified` file is a heads-up that the next generate
 will overwrite those edits, not a protection.
 
-`status` resolves the configured schema and renders fresh content on
-demand — the same schema-resolution + worker invocation `generate`
-uses — to disambiguate a formatter-config change from a hand edit, and
-to classify ejected files against what the generator would currently
-produce. When the schema can't be reached (none configured, unreachable
-source, no bundle yet), it degrades to lock-hash-only comparison
-instead of failing: safe to run any time, including CI, offline, or
-before a project has ever been generated. It never contacts JSR and
-never rebundles.
+`status` rebuilds the project's `bundle.js`, resolves the configured
+schema and renders fresh content on demand — the same build, schema
+resolution and worker invocation `generate` uses — to disambiguate a
+formatter-config change from a hand edit, and to classify ejected
+files against what the generator would currently produce. The build
+contacts JSR only when the Deno cache lacks a pinned package. When
+the bundle can't be built or the schema can't be reached (none
+configured, unreachable source), it degrades to lock-hash-only
+comparison instead of failing: safe to run any time, including CI,
+offline, or before a project has ever been generated.
 
 ## Synopsis
 
@@ -122,7 +123,7 @@ on the next generate.
   `sh -c`, one adjacent hidden temp file per suspect file); with no
   formatter configured, comparison is raw content hashes only.
 - When no schema is configured, the schema source is unreachable, or
-  the project has no `bundle.js` yet, `status` degrades to comparing
+  the bundle build fails, `status` degrades to comparing
   the lock's recorded hashes only — formatter-drift resolution and
   ejected-file sub-state are unavailable for that run, but `modified`
   detection for ordinary edits still works.

@@ -25,7 +25,7 @@ Diagnose failures in SKMTC sessions:
 - No output produced for an operation that was expected to produce some
 - Wrong output (compiles but is incorrect, or doesn't compile)
 - Error messages the user doesn't understand
-- Bundle freshness or worker setup issues
+- Bundle build failures or worker setup issues
 - Cascading parseIssues from a single bad schema
 - "Registered definition mismatch" collisions between generators
 
@@ -49,7 +49,7 @@ Intent phrases that should load this skill:
 - "this error message" (when accompanied by an error)
 - "generation failed"
 - "manifest says X"
-- "bundle is stale" / "bundle freshness"
+- "bundle failed" / "deno bundle error"
 - "parseIssue" / "INVALID_SCHEMA" / "INVALID_DEPENDENCY_REF"
 - "this doesn't compile" (in the context of generated output)
 - "Registered definition mismatch"
@@ -82,7 +82,7 @@ Should NOT auto-load on:
   - "No output for operation X"
   - "Wrong output (semantic bug)"
   - "Generated code doesn't compile"
-  - "Bundle freshness warning"
+  - "The bundle build fails"
   - "Same-name collision (Registered definition mismatch)"
 - **Anti-patterns specific to debugging** — defaults to override:
   don't propose fixes without reproducing; don't extrapolate from
@@ -149,7 +149,7 @@ A table that the LLM consults *before* proposing causes:
 | `parseIssue` at `level: 'error'` | Read the issue's `location` | Walk to that path in the OpenAPI doc; check schema validity |
 | `INVALID_DEPENDENCY_REF` | Find the upstream `INVALID_SCHEMA` | Fix the upstream schema; the dependent should heal |
 | `Registered definition mismatch` | Find the two `generatorKey`s | One generator's `toIdentifier` is colliding; clone and disambiguate |
-| Bundle freshness warning | Compare `deno.json#imports` to `worker.ts` | Run `skmtc bundle <project>` |
+| `generate` exits 1 with `Failed to create bundle` | Read the `deno bundle` error | Fix the named import or pin; re-run `generate` |
 | `Max lookups reached` | The ref chain exceeds 10 hops | Inspect the schema for circular refs |
 
 ### 4. Reading the manifest
@@ -219,13 +219,12 @@ the typical root cause:
     different shape than the TS type; check `insertNormalizedModel`
     consistency between the two generators
 
-#### Scenario D: Bundle freshness warning
+#### Scenario D: The bundle build fails
 
-- `deno.json#imports` and `worker.ts` declared different generator
-  sets.
-- Run `skmtc bundle <project>` (rebuilds `worker.ts` from `deno.json`).
-- If `worker.ts` was hand-edited, the bundle has unrecorded changes;
-  reset by regenerating.
+- `generate` rebuilds the bundle from `deno.json` and generator
+  source on every run, so the failure is about the project now.
+- Read the `deno bundle` error; fix the import or pin it names.
+- Re-run `generate`; there is no separate rebuild step.
 
 #### Scenario E: Registered definition mismatch
 
@@ -247,7 +246,7 @@ The defaults to override when debugging:
   specific quirks (no Prettier, `OasSchema` union). Verify each claim
   against the source.
 - **Don't assume the bug is in the generator.** It may be in
-  `client.json`, in the OpenAPI schema, in a stale bundle, or in
+  `client.json`, in the OpenAPI schema, in a pin that doesn't build, or in
   consumer-side code the generator imports against.
 - **Don't restart from scratch** ("clean install" / "delete .skmtc and
   redo") **unless** the symptoms specifically suggest workspace

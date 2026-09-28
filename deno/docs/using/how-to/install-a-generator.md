@@ -76,9 +76,10 @@ look for `src/generated/<Tag>/<operation>.generated.ts`.
   `isSupported` filters that skip your operations (e.g.,
   `gen-shadcn-form` only handles POST/PUT/PATCH with object
   bodies).
-- **Stale bundle warning** — If the project has cloned
-  generators, run `skmtc bundle my-project` after install. `skmtc
-  doctor` flags this.
+- **Two copies of `@skmtc/core`** — If `generate` exits 1 naming
+  more than one `@skmtc/core`, the new generator pins a different
+  core from the rest of the project. Align the pins in the project's
+  `deno.json` and run `skmtc generate` again.
 
 ## Related
 

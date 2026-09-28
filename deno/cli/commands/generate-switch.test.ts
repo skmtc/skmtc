@@ -193,7 +193,10 @@ Deno.test('generateSwitch - runs the edited source of a cloned generator', async
       async ({ projectName, projectPath }) => {
         const sourcePath = join(projectPath, 'gen-c', 'mod.ts')
         const writeSource = (label: string) =>
-          Deno.writeTextFile(sourcePath, `export default { id: '@skmtc/gen-c', label: '${label}' }\n`)
+          Deno.writeTextFile(
+            sourcePath,
+            `export default { id: '@skmtc/gen-c', label: '${label}' }\n`
+          )
         await ensureDir(join(projectPath, 'gen-c'))
         await writeSource('before-edit')
         const { bundles, generateLocalFn } = toRecordingGenerateLocal()

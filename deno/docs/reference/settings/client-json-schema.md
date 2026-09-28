@@ -105,9 +105,8 @@ versions the same API instead of creating a duplicate. Ignored by
 ### `serverUrl` (top-level, optional)
 
 URL of a deployed stack server. When set, `skmtc generate` runs
-**remotely** against that stack instead of the local bundle — the
-local bundle-freshness gate is skipped, since there is no local
-bundle in play. Leave unset for normal local generation.
+**remotely** against that stack instead of the local bundle — no
+local bundle is built. Leave unset for normal local generation.
 
 ### `projectKey` (top-level, optional)
 

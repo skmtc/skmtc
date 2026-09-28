@@ -247,8 +247,8 @@ See [how to compose with another generator](../how-to/compose-with-another-gener
 skmtc dev my-project
 ```
 
-Watch mode. Re-runs generation on each source change. Faster
-than `skmtc bundle && skmtc generate` for iteration.
+Watch mode. Re-runs generation on each source change, so you don't
+run `skmtc generate` by hand after every edit.
 
 Leave it running for the rest of your authoring work — every save
 regenerates. This loop is how generator authoring is meant to feel:

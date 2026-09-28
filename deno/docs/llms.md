@@ -204,7 +204,7 @@ Engine = `@skmtc/core`. CLI = `@skmtc/cli`. Stock generators = `@skmtc/gen-*`.
 
 | Phase | Location | Action |
 |---|---|---|
-| **Bootstrap** | `cli/commands/generate-switch.ts` | Load client.json; locate schema; locate bundle; check freshness |
+| **Bootstrap** | `cli/commands/generate-switch.ts` | Load client.json; locate schema; rebuild `bundle.js` (refuses two copies of `@skmtc/core`) |
 | **Pre-parse** | `cli/lib/generate-worker.ts:62` | OAS → v3 (clone-safe); GraphQL stays SDL string |
 | **Spawn worker** | `cli/lib/generate-worker.ts:43-51` | `new Worker(bundle, { permissions: {...} })` |
 | **Message protocol** | `cli/lib/generate-worker.ts:83-122` | `READY` → `GENERATE` → `RESULT` (+ `ERROR` on throw) |
@@ -274,13 +274,13 @@ See [`concepts/projections-and-snippets.md`](concepts/projections-and-snippets.m
 
 - `skmtc install @skmtc/gen-x <project>` adds JSR specifier to `deno.json#imports`.
 - No local source. Customization via enrichments only.
-- No local `bundle.js`. JSR-published bundle used at generate time.
+- `generate` still builds a local `bundle.js`, resolving the `jsr:` specifiers.
 
 ### Clone path (local source)
 
 - `skmtc clone <project> -g @skmtc/gen-x` copies source into `.skmtc/<project>/gen-x/`. The `-g` flag is repeatable to clone multiple generators in one invocation.
 - `deno.json#imports` entry becomes a local path.
-- Next `skmtc bundle` regenerates `worker.ts` and runs `deno bundle worker.ts -o bundle.js`.
+- Every `skmtc generate` regenerates `worker.ts` and runs `deno bundle worker.ts -o bundle.js`, so edits apply on the next run.
 - The generator is now editable TypeScript.
 
 ### Customization seams in stock generators
@@ -446,8 +446,7 @@ Order: `isSupported` (capability) → `include` (allow) → `skip` (deny).
 | Worker spawn + protocol | `lib/generate-worker.ts` |
 | Worker package | `../worker/mod.ts` |
 | Worker.ts template renderer | `lib/to-worker.ts` |
-| Bundle implementation | `tasks/GenerateBundleTask.tsx` |
-| Bundle freshness check | `lib/bundle-freshness.ts` |
+| Bundle implementation | `lib/create-bundle.ts` |
 | Agent context dump | `commands/agent-context.ts` |
 
 ### Stock generators — `skmtc-generators/gen-*`
@@ -567,9 +566,8 @@ Self-contained playbooks. Read only the one you need.
 
 1. Pin Deno version.
 2. Install CLI in CI: `SKMTC_VERSION=<version> curl -fsSL https://skmtc.dev/install | sh` — the pin keeps runs reproducible.
-3. `skmtc bundle <project>` once at CI setup (only if generators are cloned).
-4. `skmtc generate <project> --no-input --json --typecheck`.
-5. Archive `manifest.json` as a CI artifact.
+3. `skmtc generate <project> --no-input --json --typecheck` (builds the bundle first).
+4. Archive `manifest.json` as a CI artifact.
 
 ### Author task cards
 
@@ -588,7 +586,7 @@ Self-contained playbooks. Read only the one you need.
 
 1. Open `.skmtc/<project>/<gen-name>/src/base.ts`.
 2. Find `toExportPath`. Edit path components.
-3. `skmtc bundle <project>` then `skmtc generate <project>`.
+3. `skmtc generate <project>` (rebuilds the bundle from the edited source).
 
 #### Swapping the HTTP layer in gen-shadcn-form
 
@@ -596,7 +594,7 @@ Self-contained playbooks. Read only the one you need.
 
 1. Clone `gen-shadcn-form` if not already.
 2. Edit `src/ShadcnForm.ts:1` — change the import target.
-3. `skmtc bundle <project>` and regenerate.
+3. `skmtc generate <project>`.
 
 #### Authoring a new generator
 
@@ -613,7 +611,7 @@ Self-contained playbooks. Read only the one you need.
 1. Edit `gen-x/src/enrichments.ts`. Add fields to the Valibot schema.
 2. Consume the enrichments in the Projection constructor via `this.settings.enrichments`.
 3. Document the new keys for users.
-4. Rebundle and regenerate.
+4. `skmtc generate <project>` (rebuilds the bundle, then regenerates).
 
 #### Fixing a same-name collision error
 
