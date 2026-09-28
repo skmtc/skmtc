@@ -47,6 +47,10 @@ type CleanHeadlessArgs = {
   /** `client.json#serverUrl` — generate against a deployed stack
    *  server instead of the local bundle, when set. */
   stackUrl: string | undefined
+  /** Builds the project's `bundle.js` and returns its URL (see
+   *  `createBundle`). Absent, a local project degrades to lock-hash
+   *  comparison. */
+  buildBundle?: () => Promise<string>
   /** Workspace root (`.skmtc`). Defaults to the cwd-derived
    *  `toRootPath()`. Injectable so tests can point at a temp workspace
    *  without depending on `Deno.cwd()`. */
@@ -89,6 +93,7 @@ export const cleanHeadless = async ({
   clientSettings,
   schemaSourceString,
   stackUrl,
+  buildBundle,
   skmtcRootPath = toRootPath()
 }: CleanHeadlessArgs): Promise<CleanHeadlessResult> => {
   const appRoot = resolve(join(skmtcRootPath, '..'))
@@ -130,10 +135,10 @@ export const cleanHeadless = async ({
   }
 
   const freshArtifacts = await resolveFreshArtifacts({
-    projectPath,
     schemaSourceString,
     clientSettings,
-    stackUrl
+    stackUrl,
+    buildBundle
   })
 
   for (const [path, entry] of Object.entries(manifest.contents.files)) {

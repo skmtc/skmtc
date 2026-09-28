@@ -42,9 +42,8 @@ export class JsrRegistryUnreachableError extends Error {
         '',
         '  JSR_URL=https://jsr.io/ skmtc <command>',
         '',
-        'If you are intentionally working offline, the only commands that do',
-        'not touch JSR are `skmtc generate` (when bundle.js is already built)',
-        'and `skmtc dev` against a project with no new generator installs.'
+        'If you are intentionally working offline, `skmtc generate` and',
+        '`skmtc dev` still work once the Deno cache holds every pinned package.'
       ].join('\n'),
       { cause }
     )

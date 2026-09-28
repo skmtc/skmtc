@@ -21,9 +21,9 @@
  * tracks — stale-but-edited files a previous generate spared from
  * pruning. They are the user's now; listed so they aren't forgotten.
  *
- * Never writes. Resolves the schema and renders fresh content on
- * demand (the same schema-resolution + worker invocation `generate`
- * uses) to disambiguate a formatter-config change from a hand edit,
+ * Never writes generated files. Rebuilds the project's `bundle.js`,
+ * then resolves the schema and renders fresh content on demand (the
+ * same build, schema resolution and worker invocation `generate` uses) to disambiguate a formatter-config change from a hand edit,
  * and to classify ejected files (`re-adoptable` / `owned` / `stale`)
  * against what the generator would produce right now. Degrades to
  * lock-hash-only comparison — and ejected files reporting without a
@@ -91,6 +91,10 @@ type StatusHeadlessArgs = {
   /** `client.json#serverUrl` — generate against a deployed stack
    *  server instead of the local bundle, when set. */
   stackUrl: string | undefined
+  /** Builds the project's `bundle.js` and returns its URL (see
+   *  `createBundle`). Absent, a local project degrades to lock-hash
+   *  comparison. */
+  buildBundle?: () => Promise<string>
   /** Workspace root (`.skmtc`). Defaults to the cwd-derived
    *  `toRootPath()`. Injectable so tests can point at a temp workspace
    *  without depending on `Deno.cwd()`. */
@@ -102,6 +106,7 @@ export const statusHeadless = async ({
   clientSettings,
   schemaSourceString,
   stackUrl,
+  buildBundle,
   skmtcRootPath = toRootPath()
 }: StatusHeadlessArgs): Promise<StatusHeadlessResult> => {
   const appRoot = resolve(join(skmtcRootPath, '..'))
@@ -139,10 +144,10 @@ export const statusHeadless = async ({
   }
 
   const freshArtifacts = await resolveFreshArtifacts({
-    projectPath,
     schemaSourceString,
     clientSettings,
-    stackUrl
+    stackUrl,
+    buildBundle
   })
 
   const files: StatusFileEntry[] = []

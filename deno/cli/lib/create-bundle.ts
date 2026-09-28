@@ -1,6 +1,6 @@
 import { join } from '@std/path/join'
 import type { Project } from '@/lib/project.ts'
-import { toBundlePath } from '@/lib/to-bundle-path.ts'
+import { toBundleFsPath, toBundlePath } from '@/lib/to-bundle-path.ts'
 import { toDependencyAgeArgs } from '@/lib/dependency-age.ts'
 import { toGraphRefusal } from '@/lib/duplicate-packages.ts'
 
@@ -27,16 +27,16 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
   const projectPath = project.toPath()
   const bundlePath = toBundlePath(project.toPath())
 
-  const workerPath = join(projectPath, 'worker.ts')
-  const previousWorker = await readTextFileIfExists(workerPath)
+  // Drop the previous bundle.js first, so a build that fails or is
+  // refused leaves nothing that could be run by mistake.
+  await Deno.remove(toBundleFsPath(projectPath)).catch(error => {
+    if (!(error instanceof Deno.errors.NotFound)) throw error
+  })
 
   await project.createWorker()
 
   const refusal = await toGraphRefusal({ projectName: project.name, projectPath })
   if (refusal !== undefined) {
-    // Put back the worker.ts the current bundle.js was built from, so the
-    // freshness gate still reports that bundle as stale against deno.json.
-    await restoreFile(workerPath, previousWorker)
     throw new Error(refusal)
   }
 
@@ -86,23 +86,6 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
   }
 
   return bundlePath
-}
-
-const readTextFileIfExists = async (path: string): Promise<string | undefined> => {
-  try {
-    return await Deno.readTextFile(path)
-  } catch (error) {
-    if (error instanceof Deno.errors.NotFound) return undefined
-    throw error
-  }
-}
-
-const restoreFile = async (path: string, contents: string | undefined): Promise<void> => {
-  if (contents === undefined) {
-    await Deno.remove(path)
-  } else {
-    await Deno.writeTextFile(path, contents)
-  }
 }
 
 type ToBundleFailureMessageArgs = {

@@ -1,5 +1,6 @@
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
+import { createBundle } from '@/lib/create-bundle.ts'
 import { failWithRecipe, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { statusHeadless, type StatusHeadlessResult } from '@/lib/status-headless.ts'
 
@@ -13,13 +14,14 @@ type RenderStatusArgs = {
 }
 
 /**
- * `status` is read-only — it never writes — and classifies every
+ * `status` never writes generated files. It classifies every
  * generated file the project's manifest records against the generated
  * lock (clean / modified / missing / unverified, plus orphaned files
- * spared from pruning). It resolves the schema and renders fresh
- * content on demand to disambiguate a formatter-config change from a
- * hand edit, degrading to lock-hash-only comparison when the schema
- * can't be reached — safe to run any time, including CI, offline or
+ * spared from pruning). It rebuilds the project's `bundle.js`, resolves
+ * the schema and renders fresh content on demand to disambiguate a
+ * formatter-config change from a hand edit, degrading to lock-hash-only
+ * comparison when the bundle can't be built or the schema can't be
+ * reached — safe to run any time, including CI, offline or
  * before a project has ever been generated. Like `clean` and `doctor`
  * it has no Ink variant — headless text or `--json` only. `--check`
  * turns a dirty status (modified or orphaned files) into exit 1 for
@@ -60,7 +62,8 @@ export const renderStatus = async ({
     projectName,
     clientSettings: project.clientJson.contents?.settings,
     schemaSourceString: project.clientJson.contents?.source,
-    stackUrl: project.clientJson.contents?.serverUrl
+    stackUrl: project.clientJson.contents?.serverUrl,
+    buildBundle: () => createBundle({ project })
   })
 
   printStatusResult(result, {

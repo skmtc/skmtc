@@ -3,10 +3,12 @@ import { printGenerateResult } from '@/lib/print-generate-result.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { toManifestPath } from '@/lib/to-manifest-path.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
-import { checkBundleFreshness } from '@/lib/bundle-freshness.ts'
-import { checkBundleCopies, toBundleDuplicatesMessage } from '@/lib/duplicate-packages.ts'
-import { toBundleFsPath } from '@/lib/to-bundle-path.ts'
+import { createBundle } from '@/lib/create-bundle.ts'
+import { Project } from '@/lib/project.ts'
+import { Manager } from '@/lib/manager.ts'
+import type { generateLocal } from '@/lib/generate-local.ts'
 import { runTypecheck } from '@/lib/typecheck.ts'
+import { existsSync } from '@std/fs/exists'
 import { resolve } from '@std/path'
 
 type GenerateSwitchArgs = {
@@ -31,6 +33,8 @@ type GenerateSwitchArgs = {
    * to honour the config value.
    */
   anchorsFlag?: boolean
+  /** Override for the generation run — tests stub this to skip the worker. */
+  generateLocalFn?: typeof generateLocal
 }
 
 export const generateSwitch = async ({
@@ -42,7 +46,8 @@ export const generateSwitch = async ({
   typecheck,
   tsconfig,
   tscCmd,
-  anchorsFlag
+  anchorsFlag,
+  generateLocalFn
 }: GenerateSwitchArgs) => {
   // --json + --watch is incompatible: --json emits a single object
   // and exits, --watch is a stream. Fail loudly so the caller learns
@@ -84,45 +89,36 @@ export const generateSwitch = async ({
   }
 
   if (generateLocalArgs) {
-    // Bundle freshness: if `deno.json#imports` and the on-disk
-    // `worker.ts` disagree on which generators are present (e.g.
-    // someone hand-edited `deno.json` outside the CLI), refuse with
-    // a recipe error pointing at `bundle`. Without this, `generate`
-    // silently runs against a stale bundle and skips the changed
-    // generators — friction #4's defensive net.
-    //
-    // Only gates strict mode (agents). Interactive users see realtime
-    // output and can recover; agents need the upfront refusal. Skipped
-    // entirely for a REMOTE generate (`client.json#serverUrl` set) — there
-    // is no local bundle to be fresh, generation runs on the stack server.
-    if (mode === 'strict' && !generateLocalArgs.stackUrl) {
-      const freshness = checkBundleFreshness({ projectName })
-      if (freshness.type === 'stale' || freshness.type === 'missing-worker') {
-        console.error(`Error: ${freshness.message}\n`)
-        if (freshness.type === 'stale') {
-          console.error(`${freshness.hint}\n`)
-        }
-        Deno.exit(2)
-      }
-    }
-
-    // A bundle.js holding two copies of `@skmtc/core` (or a `@skmtc/lang-*`)
-    // generates empty files and reports success. `bundle` refuses to build
-    // one, but a bundle.js built before that check, or by an older CLI, can
-    // still be on disk — so read the copies from the bundle.js that is
-    // about to run, in every mode.
+    // A local project rebuilds bundle.js on every run, from the pins and
+    // generator source it has now, so no older bundle.js ever runs. The
+    // build refuses a module graph with two copies of `@skmtc/core` or a
+    // `@skmtc/lang-*`. A REMOTE generate (`client.json#serverUrl` set)
+    // runs on the stack server and builds nothing locally.
     if (!generateLocalArgs.stackUrl) {
-      const bundleCopies = checkBundleCopies(toBundleFsPath(generateLocalArgs.projectPath))
-      if (bundleCopies.type === 'duplicates') {
-        console.error(
-          `Error: ${toBundleDuplicatesMessage({ projectName, duplicates: bundleCopies.duplicates })}\n`
-        )
+      if (!existsSync(generateLocalArgs.projectPath)) {
+        return failWithRecipe({
+          command: 'generate',
+          arg: '<project>',
+          usage: 'skmtc generate <project> [schema]',
+          example: 'skmtc generate my-api ./schema.json',
+          discover: 'ls .skmtc/  (list existing projects)'
+        })
+      }
+
+      const project = await Project.open(projectName, new Manager())
+      const bundleError = await createBundle({ project }).then(
+        () => undefined,
+        (error: unknown) => (error instanceof Error ? error.message : String(error))
+      )
+      if (bundleError !== undefined) {
+        console.error(`Error: ${bundleError}\n`)
         Deno.exit(1)
       }
     }
 
-    const { generateLocal } = await import('@/lib/generate-local.ts')
-    const result = await generateLocal({ ...generateLocalArgs, anchorsFlag })
+    const runGenerateLocal =
+      generateLocalFn ?? (await import('@/lib/generate-local.ts')).generateLocal
+    const result = await runGenerateLocal({ ...generateLocalArgs, anchorsFlag })
 
     // Optional post-generate type-check pass. Runs the consumer's
     // tsc against the freshly-emitted files; diagnostics are scoped

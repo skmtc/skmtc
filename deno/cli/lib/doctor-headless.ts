@@ -5,7 +5,7 @@
  *
  * Designed so an agent can run `skmtc doctor --json` as the first
  * step when something's off; the structured output points at the
- * specific friction to address (peer-dep skew, missing bundle,
+ * specific friction to address (peer-dep skew, two copies of core,
  * malformed manifest, etc.) without having to read stack traces.
  */
 
@@ -16,7 +16,6 @@ import * as v from 'valibot'
 import { manifestContent } from '@skmtc/core/Manifest'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
-import { toBundleFsPath } from '@/lib/to-bundle-path.ts'
 import { Manifest } from '@/lib/manifest.ts'
 import { homedir } from 'node:os'
 import cliDenoJson from '../deno.json' with { type: 'json' }
@@ -41,11 +40,8 @@ import {
   toHoursSincePublish
 } from '@/lib/dependency-age.ts'
 import {
-  checkBundleCopies,
   checkModuleGraph as checkModuleGraphDefault,
   type CheckModuleGraphFn,
-  type PackageCopiesCheck,
-  toBundleFixHint,
   toCopiesLines,
   toGraphFixHint
 } from '@/lib/duplicate-packages.ts'
@@ -416,7 +412,7 @@ const checkDenoVersion = (denoVersion: string): Check => {
   return {
     id: 'deno-version',
     status: 'warning',
-    message: `Deno ${denoVersion} is below 2.4.0 — \`skmtc bundle\` needs the esbuild-based \`deno bundle\` re-introduced in 2.4.0.`,
+    message: `Deno ${denoVersion} is below 2.4.0 — \`skmtc generate\` builds with the esbuild-based \`deno bundle\` re-introduced in 2.4.0.`,
     hint: `Upgrade Deno with \`deno upgrade\`.`,
     data: { denoVersion }
   }
@@ -436,13 +432,11 @@ const checkProject = (projectName: string, ctx: CheckProjectContext): Check[] =>
   const projectPath = toProjectPath(projectName)
   const denoJsonPath = join(projectPath, 'deno.json')
   const clientJsonPath = join(projectPath, '.settings', 'client.json')
-  const bundlePath = toBundleFsPath(projectPath)
 
   const checks: Check[] = []
   checks.push(checkProjectDenoJson(projectName, denoJsonPath))
   checks.push(checkProjectBasePath(projectName, clientJsonPath))
   checks.push(checkProjectCorePin(projectName, denoJsonPath, ctx.cliCorePin))
-  checks.push(checkProjectBundle(projectName, denoJsonPath, bundlePath))
   checks.push(checkProjectWorkerPin(projectName, denoJsonPath, join(projectPath, 'worker.ts')))
   checks.push(checkProjectManifest(projectName))
   checks.push(checkProjectEnrichments(projectName))
@@ -620,10 +614,10 @@ type CheckProjectPackageCopiesArgs = {
  * worker, the installed generators and `lang-*` each resolve their own.
  * Two copies make generation write empty files and report success.
  *
- * Reads two sources. The module graph (`deno info --frozen` on
- * `worker.ts`, so the lockfile is never written) names the packages that
- * import each copy. `bundle.js` is what `generate` runs, and may predate
- * the graph. `--offline` reads only `bundle.js`.
+ * Reads the module graph (`deno info --frozen` on `worker.ts`, so the
+ * lockfile is never written), which names the packages that import each
+ * copy — the graph every `generate` builds its bundle from. `--offline`
+ * skips it.
  */
 const checkProjectPackageCopies = async ({
   projectName,
@@ -641,55 +635,41 @@ const checkProjectPackageCopies = async ({
     }
   }
 
-  const graphCheck: PackageCopiesCheck = offline
-    ? { type: 'unavailable', reason: 'skipped by --offline.' }
-    : await checkModuleGraph(projectPath, { frozen: true, timeoutMs: MODULE_GRAPH_TIMEOUT_MS })
-  const bundleCheck = checkBundleCopies(toBundleFsPath(projectPath))
-
-  if (graphCheck.type === 'duplicates') {
+  if (offline) {
     return {
       id,
-      status: 'error',
-      message: `Project "${projectName}" resolves more than one copy of a package:\n${toCopiesLines(graphCheck.duplicates)}`,
-      hint: `Generation against this graph writes empty files and reports success. ${toGraphFixHint({ projectName, projectPath })}`,
-      data: { source: 'module-graph', duplicates: graphCheck.duplicates }
+      status: 'skipped',
+      message: `Skipped by --offline; the module graph of project "${projectName}" was not read.`
     }
   }
 
-  if (bundleCheck.type === 'duplicates') {
-    return {
-      id,
-      status: 'error',
-      message: `The bundle.js of project "${projectName}" holds more than one copy of a package:\n${toCopiesLines(bundleCheck.duplicates)}`,
-      hint: `\`skmtc generate\` refuses to run it. ${toBundleFixHint(projectName)}`,
-      data: { source: 'bundle', duplicates: bundleCheck.duplicates }
-    }
-  }
+  const graphCheck = await checkModuleGraph(projectPath, {
+    frozen: true,
+    timeoutMs: MODULE_GRAPH_TIMEOUT_MS
+  })
 
-  if (graphCheck.type === 'single-copies') {
-    return {
-      id,
-      status: 'ok',
-      message: `Project "${projectName}" resolves one copy of each package:\n${toCopiesLines(graphCheck.packages)}`,
-      data: { source: 'module-graph', packages: graphCheck.packages }
-    }
-  }
-
-  if (bundleCheck.type === 'single-copies') {
-    return {
-      id,
-      status: 'ok',
-      message:
-        `The bundle.js of project "${projectName}" holds one copy of each package ` +
-        `(module graph not read: ${graphCheck.reason}):\n${toCopiesLines(bundleCheck.packages)}`,
-      data: { source: 'bundle', packages: bundleCheck.packages }
-    }
-  }
-
-  return {
-    id,
-    status: 'skipped',
-    message: `Could not tell which @skmtc/core project "${projectName}" uses. Module graph: ${graphCheck.reason} bundle.js: ${bundleCheck.reason}`
+  switch (graphCheck.type) {
+    case 'duplicates':
+      return {
+        id,
+        status: 'error',
+        message: `Project "${projectName}" resolves more than one copy of a package:\n${toCopiesLines(graphCheck.duplicates)}`,
+        hint: `Generation against this graph writes empty files and reports success. ${toGraphFixHint({ projectName, projectPath })}`,
+        data: { source: 'module-graph', duplicates: graphCheck.duplicates }
+      }
+    case 'single-copies':
+      return {
+        id,
+        status: 'ok',
+        message: `Project "${projectName}" resolves one copy of each package:\n${toCopiesLines(graphCheck.packages)}`,
+        data: { source: 'module-graph', packages: graphCheck.packages }
+      }
+    case 'unavailable':
+      return {
+        id,
+        status: 'skipped',
+        message: `Could not tell which @skmtc/core project "${projectName}" uses: ${graphCheck.reason}`
+      }
   }
 }
 
@@ -796,48 +776,6 @@ const checkProjectBasePath = (projectName: string, clientJsonPath: string): Chec
   }
 }
 
-const checkProjectBundle = (
-  projectName: string,
-  denoJsonPath: string,
-  /** Filesystem path to the project's bundle.js (see `toBundleFsPath`). */
-  bundlePath: string
-): Check => {
-  if (!existsSync(denoJsonPath)) {
-    return {
-      id: `project-bundle/${projectName}`,
-      status: 'skipped',
-      message: `Project "${projectName}" has no deno.json — bundle check skipped.`
-    }
-  }
-  try {
-    JSON.parse(Deno.readTextFileSync(denoJsonPath))
-  } catch {
-    return {
-      id: `project-bundle/${projectName}`,
-      status: 'skipped',
-      message: `Project "${projectName}" deno.json is unparseable — bundle check skipped.`
-    }
-  }
-
-  // Every project — remote-only included — generates from its local
-  // bundle.js, so its absence is always actionable.
-  if (!existsSync(bundlePath)) {
-    return {
-      id: `project-bundle/${projectName}`,
-      status: 'warning',
-      message: `Project "${projectName}" has no bundle.js at ${bundlePath}.`,
-      hint: `Run \`skmtc bundle ${projectName}\` to build it.`,
-      data: { bundlePath }
-    }
-  }
-  return {
-    id: `project-bundle/${projectName}`,
-    status: 'ok',
-    message: `Project "${projectName}" has a local bundle.js.`,
-    data: { bundlePath }
-  }
-}
-
 /**
  * `clone` once produced a project whose deno.json had only the
  * `@scope/gen-*` local mappings — the CLI-generated `worker.ts` does
@@ -845,7 +783,7 @@ const checkProjectBundle = (
  * `deno bundle` fails with an unresolved-import error. `bundle` now
  * writes the pin via `ensureWorkerDeps`; this check surfaces a project
  * that predates that fix or had the pin removed. A project with no
- * `worker.ts` yet is ok-noop: the first `skmtc bundle` writes both
+ * `worker.ts` yet is ok-noop: the first `skmtc generate` writes both
  * the worker and the pin.
  */
 const checkProjectWorkerPin = (
@@ -876,7 +814,7 @@ const checkProjectWorkerPin = (
     return {
       id: `project-worker-pin/${projectName}`,
       status: 'ok',
-      message: `Project "${projectName}" has no worker.ts yet; the first \`skmtc bundle\` writes it along with the @skmtc/worker pin.`
+      message: `Project "${projectName}" has no worker.ts yet; the first \`skmtc generate\` writes it along with the @skmtc/worker pin.`
     }
   }
 
@@ -885,7 +823,7 @@ const checkProjectWorkerPin = (
       id: `project-worker-pin/${projectName}`,
       status: 'warning',
       message: `Project "${projectName}" has no @skmtc/worker pin — the generated worker.ts will not bundle.`,
-      hint: `Run \`skmtc bundle ${projectName}\` — it writes the pin automatically — or add "@skmtc/worker" to the project's deno.json imports.`
+      hint: `Run \`skmtc generate ${projectName}\` — it writes the pin automatically — or add "@skmtc/worker" to the project's deno.json imports.`
     }
   }
 

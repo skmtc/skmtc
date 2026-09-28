@@ -260,58 +260,6 @@ Deno.test('runDoctor - manifest without enrichmentWarnings skips with a regenera
   })
 })
 
-Deno.test('runDoctor - warns when project with local generators has no bundle.js', async () => {
-  await withTempSkmtcRoot(async tempRoot => {
-    const projectPath = join(tempRoot, '.skmtc', 'needs-bundle')
-    await ensureDir(join(projectPath, '.settings'))
-    await Deno.writeTextFile(
-      join(projectPath, 'deno.json'),
-      JSON.stringify({
-        imports: {
-          '@scope/gen-x': './gen-x/mod.ts' // local generator, no jsr:
-        }
-      })
-    )
-    await Deno.writeTextFile(
-      join(projectPath, '.settings', 'client.json'),
-      JSON.stringify({ settings: { basePath: './src' } })
-    )
-
-    const result = await runDoctor({ cliVersion: '0.1.5' })
-    const bundleCheck = result.checks.find(c => c.id === 'project-bundle/needs-bundle')
-    assertEquals(bundleCheck?.status, 'warning')
-    assertStringIncludes(bundleCheck?.message ?? '', 'no bundle.js')
-    assertStringIncludes(bundleCheck?.hint ?? '', 'skmtc bundle needs-bundle')
-  })
-})
-
-Deno.test('runDoctor - reports ok when a project with local generators has a bundle.js', async () => {
-  await withTempSkmtcRoot(async tempRoot => {
-    const projectPath = join(tempRoot, '.skmtc', 'has-bundle')
-    await ensureDir(join(projectPath, '.settings'))
-    await Deno.writeTextFile(
-      join(projectPath, 'deno.json'),
-      JSON.stringify({
-        imports: {
-          '@scope/gen-x': './gen-x/mod.ts' // local generator, no jsr:
-        }
-      })
-    )
-    await Deno.writeTextFile(
-      join(projectPath, '.settings', 'client.json'),
-      JSON.stringify({ settings: { basePath: './src' } })
-    )
-    // bundle.js IS present — the check must resolve it. Before the
-    // file://-URL-string vs fs-path fix, `existsSync` was handed a
-    // `file://` URL string, false-negatived, and reported `warning`.
-    await Deno.writeTextFile(join(projectPath, 'bundle.js'), '// bundle')
-
-    const result = await runDoctor({ cliVersion: '0.1.5' })
-    const bundleCheck = result.checks.find(c => c.id === 'project-bundle/has-bundle')
-    assertEquals(bundleCheck?.status, 'ok')
-  })
-})
-
 Deno.test('runDoctor - warns when a project with a worker.ts has no @skmtc/worker pin', async () => {
   await withTempSkmtcRoot(async tempRoot => {
     const projectPath = join(tempRoot, '.skmtc', 'no-worker-pin')
@@ -478,7 +426,7 @@ Deno.test('runDoctor - accepts a matching @skmtc/core pin without warning', asyn
   })
 })
 
-Deno.test('runDoctor - remote-only project without a bundle.js gets a warning', async () => {
+Deno.test('runDoctor - a remote-only project without a worker.ts passes the pin check', async () => {
   await withTempSkmtcRoot(async tempRoot => {
     const projectPath = join(tempRoot, '.skmtc', 'remote-only')
     await ensureDir(join(projectPath, '.settings'))
@@ -497,14 +445,8 @@ Deno.test('runDoctor - remote-only project without a bundle.js gets a warning', 
 
     const result = await runDoctor({ cliVersion: '0.1.5' })
 
-    // Remote-only projects generate from a local bundle.js like
-    // any other project — its absence is actionable, not a pass.
-    const bundleCheck = result.checks.find(c => c.id === 'project-bundle/remote-only')
-    assertEquals(bundleCheck?.status, 'warning')
-    assertStringIncludes(bundleCheck?.hint ?? '', 'skmtc bundle')
-
     // No worker.ts yet → the pin check is an ok-noop (the first
-    // `skmtc bundle` writes worker.ts and the pin together).
+    // `skmtc generate` writes worker.ts and the pin together).
     const pinCheck = result.checks.find(c => c.id === 'project-worker-pin/remote-only')
     assertEquals(pinCheck?.status, 'ok')
   })
@@ -748,9 +690,9 @@ Deno.test('runDoctor - cli-version-current names no gate on a Deno that has none
 /**
  * Every check id, read out of the source the docs point at. Both
  * spellings appear: a plain literal (`id: 'deno-version'`) for a
- * workspace check, and a template (`id: \`project-bundle/${name}\``)
+ * workspace check, and a template (`id: \`project-worker-pin/${name}\``)
  * for a per-project one, which the docs write as
- * `project-bundle/<project>`.
+ * `project-worker-pin/<project>`.
  */
 const toCheckIds = async (): Promise<string[]> => {
   const sources = ['doctor-headless.ts', 'doctor-anchors.ts']
@@ -851,7 +793,7 @@ Deno.test('runDoctor - errors when the module graph resolves two copies of @skmt
   })
 })
 
-Deno.test('runDoctor - reports the one @skmtc/core a project resolves, and leaves deno.lock alone', async () => {
+Deno.test('runDoctor - skips the package-copies check after a pin edit, and leaves deno.lock alone', async () => {
   await withJsrRegistryServer(twoCoreRegistry, async () => {
     await withRegistryProject(
       { generatorVersion: '0.1.0' },
@@ -860,8 +802,8 @@ Deno.test('runDoctor - reports the one @skmtc/core a project resolves, and leave
         const lockPath = join(projectPath, 'deno.lock')
         const lock = await Deno.readTextFile(lockPath)
 
-        // A pin edit that hasn't been bundled: doctor reads the bundle.js
-        // instead of rewriting the lockfile to the new pins.
+        // A pin edit since the last build: doctor reports that it can't
+        // read the graph rather than rewriting the lockfile to the new pins.
         const denoJsonPath = join(projectPath, 'deno.json')
         const denoJson = JSON.parse(await Deno.readTextFile(denoJsonPath))
         denoJson.imports['@skmtc/gen-b'] = 'jsr:@skmtc/gen-b@0.1.0'
@@ -870,10 +812,8 @@ Deno.test('runDoctor - reports the one @skmtc/core a project resolves, and leave
         const result = await runDoctor({ cliVersion: '0.1.5', checkModuleGraph })
 
         const check = result.checks.find(c => c.id === `project-package-copies/${projectName}`)
-        assertEquals(check?.status, 'ok')
-        assertEquals(check?.data?.source, 'bundle')
+        assertEquals(check?.status, 'skipped')
         assertStringIncludes(check?.message ?? '', 'deno.lock')
-        assertStringIncludes(check?.message ?? '', '  @skmtc/core 0.1.0')
         assertEquals(await Deno.readTextFile(lockPath), lock)
       }
     )
@@ -897,13 +837,9 @@ Deno.test('runDoctor - names the importers of the one @skmtc/core', async () => 
   })
 })
 
-/** A `bundle.js` as `deno bundle` writes it, holding the given module paths. */
-const toBundleSource = (paths: string[]): string =>
-  paths.map(path => `// deno:${path}\nvar x = 1;`).join('\n')
-
 const writePackageCopiesProject = async (
   tempRoot: string,
-  { bundle, clientJson }: { bundle?: string; clientJson?: Record<string, unknown> }
+  { clientJson }: { clientJson?: Record<string, unknown> }
 ): Promise<string> => {
   const projectPath = join(tempRoot, '.skmtc', 'api')
   await ensureDir(join(projectPath, '.settings'))
@@ -912,7 +848,6 @@ const writePackageCopiesProject = async (
     join(projectPath, '.settings', 'client.json'),
     JSON.stringify(clientJson ?? { settings: { basePath: 'src' } })
   )
-  if (bundle !== undefined) await Deno.writeTextFile(join(projectPath, 'bundle.js'), bundle)
   return projectPath
 }
 
@@ -923,33 +858,9 @@ const singleCoreGraph: PackageCopiesCheck = {
   ]
 }
 
-Deno.test('runDoctor - errors on a bundle.js holding two cores even when the graph has one', async () => {
+Deno.test('runDoctor - --offline skips the package-copies check and never resolves the graph', async () => {
   await withTempSkmtcRoot(async tempRoot => {
-    await writePackageCopiesProject(tempRoot, {
-      bundle: toBundleSource([
-        'https://jsr.io/@skmtc/core/0.28.7/mod.ts',
-        'https://jsr.io/@skmtc/core/0.29.0/mod.ts'
-      ])
-    })
-
-    const result = await runDoctor({
-      cliVersion: '0.1.5',
-      checkModuleGraph: () => Promise.resolve(singleCoreGraph)
-    })
-
-    const check = result.checks.find(c => c.id === 'project-package-copies/api')
-    assertEquals(check?.status, 'error')
-    assertStringIncludes(check?.message ?? '', '  @skmtc/core 0.28.7\n  @skmtc/core 0.29.0')
-    assertStringIncludes(check?.hint ?? '', 'skmtc bundle api')
-    assertEquals(check?.data?.source, 'bundle')
-  })
-})
-
-Deno.test('runDoctor - --offline reads bundle.js and never resolves the graph', async () => {
-  await withTempSkmtcRoot(async tempRoot => {
-    await writePackageCopiesProject(tempRoot, {
-      bundle: toBundleSource(['https://jsr.io/@skmtc/core/0.29.0/mod.ts'])
-    })
+    await writePackageCopiesProject(tempRoot, {})
     const graphCalls: string[] = []
 
     const result = await runDoctor({
@@ -963,7 +874,7 @@ Deno.test('runDoctor - --offline reads bundle.js and never resolves the graph', 
 
     const check = result.checks.find(c => c.id === 'project-package-copies/api')
     assertEquals(graphCalls, [])
-    assertEquals(check?.status, 'ok')
+    assertEquals(check?.status, 'skipped')
     assertStringIncludes(check?.message ?? '', '--offline')
   })
 })
@@ -971,11 +882,7 @@ Deno.test('runDoctor - --offline reads bundle.js and never resolves the graph', 
 Deno.test('runDoctor - skips the package-copies check for a project that generates remotely', async () => {
   await withTempSkmtcRoot(async tempRoot => {
     await writePackageCopiesProject(tempRoot, {
-      clientJson: { serverUrl: 'https://stack.example', settings: { basePath: 'src' } },
-      bundle: toBundleSource([
-        'https://jsr.io/@skmtc/core/0.28.7/mod.ts',
-        'https://jsr.io/@skmtc/core/0.29.0/mod.ts'
-      ])
+      clientJson: { serverUrl: 'https://stack.example', settings: { basePath: 'src' } }
     })
 
     const result = await runDoctor({ cliVersion: '0.1.5' })
@@ -986,7 +893,7 @@ Deno.test('runDoctor - skips the package-copies check for a project that generat
   })
 })
 
-Deno.test('runDoctor - skips the package-copies check when neither source can be read', async () => {
+Deno.test('runDoctor - skips the package-copies check when the module graph can not be read', async () => {
   await withTempSkmtcRoot(async tempRoot => {
     await writePackageCopiesProject(tempRoot, {})
 

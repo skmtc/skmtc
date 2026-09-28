@@ -212,7 +212,7 @@ export const writeGeneratedFiles = ({
 
   // Suffixed twins of ejected files. A correctly-versioned engine maps
   // an ejected item to its owned path, so its suffixed form should
-  // never appear in the artifacts — when it does (a stale bundle
+  // never appear in the artifacts — when it does (a project
   // pinning a pre-ejection core), writing it would plant a duplicate
   // next to the user's file. Blocked, loudly.
   const generatedSuffix = clientSettings?.generatedSuffix ?? DEFAULT_GENERATED_SUFFIX
@@ -349,8 +349,8 @@ export const writeGeneratedFiles = ({
     console.error(
       `Warning: refused to write ${escaped.length} artifact(s) that resolve outside the ` +
         `workspace:\n${escaped.map(path => `  ${path}`).join('\n')}\n` +
-        `An export path must be a forward path below basePath — rebundle the project so ` +
-        `its core pin enforces this at generation time.`
+        `An export path must be a forward path below basePath — move the project's ` +
+        `@skmtc/core pin to a version that enforces this at generation time.`
     )
   }
 
@@ -409,8 +409,8 @@ export const writeGeneratedFiles = ({
       console.error(
         `Warning: refused to write ${ejections.twinBlocked.length} generated twin(s) of ` +
           `ejected file(s):\n${ejections.twinBlocked.map(path => `  ${path}`).join('\n')}\n` +
-          `The engine that produced this run does not honor settings.ejected — rebundle the ` +
-          `project so its core pin supports ejection.`
+          `The engine that produced this run does not honor settings.ejected — move the ` +
+          `project's @skmtc/core pin to a version that supports ejection.`
       )
     }
     if (ejections.reAdoptable.length > 0) {

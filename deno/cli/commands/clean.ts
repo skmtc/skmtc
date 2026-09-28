@@ -1,5 +1,6 @@
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { Manager } from '@/lib/manager.ts'
+import { createBundle } from '@/lib/create-bundle.ts'
 import { failWithRecipe, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { cleanHeadless, type CleanHeadlessResult } from '@/lib/clean-headless.ts'
 
@@ -59,7 +60,8 @@ export const renderClean = async ({
     dryRun: dryRunFlag ?? false,
     clientSettings: project.clientJson.contents?.settings,
     schemaSourceString: project.clientJson.contents?.source,
-    stackUrl: project.clientJson.contents?.serverUrl
+    stackUrl: project.clientJson.contents?.serverUrl,
+    buildBundle: () => createBundle({ project })
   })
 
   printCleanResult(result, {

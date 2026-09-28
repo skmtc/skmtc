@@ -108,8 +108,8 @@ export const printInstallResult = (
       for (const id of result.installed) {
         console.log(`  - ${id}`)
       }
-      // The post-install rebundle picks up the new generator so the
-      // next `skmtc generate` runs it — remote-only and hybrid alike.
+      // The post-install rebundle confirms the new generator builds —
+      // remote-only and hybrid alike.
       console.log(`\nRebundled: ${result.bundle.bundlePath}`)
       console.log(`Verify with: cat .skmtc/${result.projectName}/deno.json`)
       return

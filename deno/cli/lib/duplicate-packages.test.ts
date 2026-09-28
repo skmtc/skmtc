@@ -9,14 +9,11 @@ import {
   checkModuleGraph,
   type ModuleGraph,
   type ReadManifestFn,
-  toBundleCopiesCheck,
-  toBundleDuplicatesMessage,
   toDuplicatePackagesMessage,
   toModuleGraphCheck
 } from '@/lib/duplicate-packages.ts'
 import { toWorker } from '@/lib/to-worker.ts'
 import {
-  bundleWithoutCheck,
   twoCoreRegistry,
   withJsrRegistryServer,
   withRegistryProject
@@ -358,40 +355,6 @@ Deno.test('toModuleGraphCheck - finding no core is unavailable, not a pass', () 
   assertEquals(check(graph).type, 'unavailable')
 })
 
-const toBundleSource = (markers: string[]): string =>
-  markers.map(marker => `// ${marker}\nvar x = 1;`).join('\n')
-
-Deno.test('toBundleCopiesCheck - reads the copies from the module markers', () => {
-  const twoCores = toBundleCopiesCheck(
-    toBundleSource([
-      'deno:https://jsr.io/@skmtc/core/0.28.7/mod.ts',
-      'deno:https://jsr.io/@skmtc/core/0.28.7/dsl/Definition.ts',
-      'deno:https://jsr.io/@skmtc/core/0.29.0/mod.ts',
-      'deno:https://jsr.io/@skmtc/gen-zod/0.2.7/mod.ts',
-      '../../Library/Caches/deno/npm/registry.npmjs.org/@skmtc/lang-typescript/0.12.22/mod.js'
-    ])
-  )
-
-  assertEquals(twoCores, {
-    type: 'duplicates',
-    duplicates: [
-      {
-        name: '@skmtc/core',
-        copies: [
-          { version: '0.28.7', importedBy: [] },
-          { version: '0.29.0', importedBy: [] }
-        ]
-      }
-    ]
-  })
-
-  assertEquals(
-    toBundleCopiesCheck(toBundleSource(['deno:https://jsr.io/@skmtc/core/0.29.0/mod.ts'])).type,
-    'single-copies'
-  )
-  assertEquals(toBundleCopiesCheck('export default 1\n').type, 'unavailable')
-})
-
 Deno.test('toDuplicatePackagesMessage - names the versions, the packages and the fix', () => {
   const result = check(ticketGraph)
   const message = toDuplicatePackagesMessage({
@@ -408,29 +371,7 @@ Deno.test('toDuplicatePackagesMessage - names the versions, the packages and the
   )
   assertStringIncludes(message, 'empty files')
   assertStringIncludes(message, join(projectPath, 'deno.json'))
-  assertStringIncludes(message, 'skmtc bundle api')
-})
-
-Deno.test('toBundleDuplicatesMessage - names the versions and points at bundle', () => {
-  const message = toBundleDuplicatesMessage({
-    projectName: 'api',
-    duplicates: [
-      {
-        name: '@skmtc/core',
-        copies: [
-          { version: '0.28.7', importedBy: [] },
-          { version: '0.29.0', importedBy: [] }
-        ]
-      }
-    ]
-  })
-
-  assertStringIncludes(
-    message,
-    'bundle.js of project "api" holds more than one copy of @skmtc/core'
-  )
-  assertStringIncludes(message, '  @skmtc/core 0.28.7\n  @skmtc/core 0.29.0')
-  assertStringIncludes(message, 'skmtc bundle api')
+  assertStringIncludes(message, 'skmtc generate api')
 })
 
 Deno.test('checkModuleGraph - resolves two cores from a real `deno info` run', async () => {
@@ -557,26 +498,4 @@ Deno.test('checkModuleGraph - a project without worker.ts is unavailable', async
   } finally {
     await Deno.remove(emptyProjectPath, { recursive: true })
   }
-})
-
-Deno.test('toBundleCopiesCheck - reads the copies of a real `deno bundle` output', async () => {
-  await withJsrRegistryServer(twoCoreRegistry, async () => {
-    await withRegistryProject({ generatorVersion: '0.2.0' }, async ({ projectPath }) => {
-      await bundleWithoutCheck(projectPath)
-
-      const result = toBundleCopiesCheck(await Deno.readTextFile(join(projectPath, 'bundle.js')))
-
-      assertEquals(
-        result.type === 'duplicates' ? result.duplicates[0].copies.map(copy => copy.version) : [],
-        ['0.1.0', '0.2.0']
-      )
-    })
-    await withRegistryProject({ generatorVersion: '0.1.0' }, async ({ projectPath }) => {
-      await bundleWithoutCheck(projectPath)
-
-      const result = toBundleCopiesCheck(await Deno.readTextFile(join(projectPath, 'bundle.js')))
-
-      assertEquals(result.type, 'single-copies')
-    })
-  })
 })

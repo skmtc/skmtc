@@ -23,15 +23,10 @@ export type InstallHeadlessResult = {
   projectName: string
   installed: string[]
   /**
-   * Result of the post-install rebundle. Always `type: 'bundled'` —
-   * every project (remote-only included) generates from its local
-   * `bundle.js`, so install rebuilds it to pick up the newly
-   * installed generator.
-   *
-   * Surfacing the bundle here is the install-side counterpart to
-   * the same fix in `cloneHeadless`: post-mutation state is now
-   * confirmed in the same command rather than left for the user
-   * to discover via a separate `bundle` invocation.
+   * Result of the post-install rebundle. Always `type: 'bundled'`.
+   * Building here confirms the new generator bundles before the
+   * command reports success — the install-side counterpart to
+   * `cloneHeadless`. (`generate` rebuilds the bundle on every run.)
    */
   bundle: BundleHeadlessResult
 }
