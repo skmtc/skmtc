@@ -9,8 +9,7 @@ import { PackageDenoJson } from '@/lib/package-deno-json.ts'
 import type { Manager } from '@/lib/manager.ts'
 import type { Project } from '@/lib/project.ts'
 import invariant from 'tiny-invariant'
-import { extractImportPaths } from '@/lib/extract-import-paths.ts'
-import { toBareJsrSpecifiers } from '@/lib/to-bare-jsr-specifiers.ts'
+import { toBareSpecifiers, type SourceFile } from '@/lib/to-bare-specifiers.ts'
 import { Jsr } from '@/lib/jsr.ts'
 import { readCliCorePin, toMajorMinor } from '@/lib/doctor-headless.ts'
 
@@ -163,18 +162,15 @@ export class Generator {
    * the version resolved from `this.version`'s semver constraint, then
    * written under `<project>/<packageName>/`.
    *
-   * JSR serves published source with each import resolved to a
-   * versioned `jsr:` specifier. Those are rewritten back to bare names
-   * before writing, and any name the package's `deno.json#imports`
-   * doesn't already pin is added there, so versions come from
-   * `deno.json` and changing a pin changes what the clone runs on.
-   *
-   * After files are on disk, the package's own `deno.json#imports`
-   * acts as the lookup table for cross-generator specifiers
-   * (`@skmtc/gen-typescript`, etc.) that the cloned source references.
-   * Those the project's root `deno.json` doesn't already pin are added
-   * there; existing root pins (`@skmtc/core`, installed generators, …)
-   * are never overwritten.
+   * JSR serves published source with each bare import resolved to a
+   * versioned `jsr:` / `npm:` specifier. Those are rewritten back to
+   * bare specifiers (see {@link toBareSpecifiers}), and a bare name the
+   * package's `deno.json#imports` doesn't pin is added there with the
+   * version it replaced. Names the project's root `deno.json` pins are
+   * then dropped from the clone's `deno.json`, so the root decides their
+   * version — one `@skmtc/core` for the project, and a peer that was
+   * cloned earlier resolves to its local copy. The root gains only the
+   * clone itself.
    *
    * Returns the concrete resolved version so callers can surface it
    * to the user (e.g. `skmtc clone … → @scope/pkg@0.0.55`).
@@ -224,55 +220,36 @@ export class Generator {
     // subsequent `skmtc list` / `doctor` calls can report it accurately.
     this.version = version
 
-    const bareFiles = Object.entries(files).map(([path, content]) => {
-      return isSourceFile(path)
-        ? { path, ...toBareJsrSpecifiers(content) }
-        : { path, content, pins: {} }
-    })
-
-    const downloads = bareFiles.map(async ({ path, content }) => {
-      const joinedPath = join(toProjectPath(this.projectName), this.packageName, path)
-
-      await ensureFile(joinedPath)
-
-      return Deno.writeTextFile(joinedPath, content)
-    })
-
-    await Promise.all(downloads)
-
-    // The package's own deno.json is the lookup table for any
-    // cross-generator imports the cloned source references — it's the
-    // record of what *this* package was published against on JSR. Peer
-    // deps not declared here are intentionally left to the project's
-    // root deno.json, which `init`/`install` is expected to have
-    // populated.
-    const packageDenoJsonPath = join(this.toPath({ relative: false }), 'deno.json')
-    const packageDenoJson = await PackageDenoJson.open(packageDenoJsonPath, manager)
-    // Every bare name the rewrite introduced must resolve through the
-    // clone's deno.json. The published pins win; the version that was
-    // written into the import fills any gap.
-    const rewrittenPins = Object.fromEntries(bareFiles.flatMap(({ pins }) => Object.entries(pins)))
-    const packageImports = { ...rewrittenPins, ...packageDenoJson.contents.imports }
-    packageDenoJson.contents = { ...packageDenoJson.contents, imports: packageImports }
-
-    const importsToAdd = new Set<string>()
-    for (const { path, content } of bareFiles) {
-      if (isSourceFile(path)) {
-        const importPaths = extractImportPaths(content)
-        importPaths.forEach(path => importsToAdd.add(path))
-      }
+    const toClonePath = (path: string) => {
+      return join(toProjectPath(this.projectName), this.packageName, path)
     }
 
-    for (const importModule of importsToAdd) {
-      const source = packageImports[importModule]
-      // Only add specifiers the package itself pinned, and never
-      // overwrite a pin the project already has. Skip anything unknown
-      // — the project's existing deno.json already pins peer deps (or
-      // doesn't, in which case `bundle` will surface a clear
-      // missing-export error).
-      if (source && !denoJson.contents.imports?.[importModule]) {
-        denoJson.addImport(importModule, source)
-      }
+    const writeFile = async ({ path, content }: SourceFile) => {
+      await ensureFile(toClonePath(path))
+      await Deno.writeTextFile(toClonePath(path), content)
+    }
+
+    const downloaded = Object.entries(files).map(([path, content]) => ({ path, content }))
+    const sourceFiles = downloaded.filter(({ path }) => isSourceFile(path))
+
+    await Promise.all(downloaded.filter(({ path }) => !isSourceFile(path)).map(writeFile))
+
+    const packageDenoJson = await PackageDenoJson.open(toClonePath('deno.json'), manager)
+    const publishedImports = packageDenoJson.contents.imports ?? {}
+
+    const bare = await toBareSpecifiers({ files: sourceFiles, imports: publishedImports })
+
+    await Promise.all(bare.files.map(writeFile))
+
+    const rootImports = denoJson.contents.imports ?? {}
+
+    packageDenoJson.contents = {
+      ...packageDenoJson.contents,
+      imports: Object.fromEntries(
+        Object.entries({ ...publishedImports, ...bare.pins }).filter(
+          ([key]) => !(key in rootImports)
+        )
+      )
     }
 
     denoJson.addImport(this.toModuleName(), this.toModPath({ relative: true }))

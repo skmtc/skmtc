@@ -34,7 +34,7 @@ authoring layer, and the consumer app.
 | # | Entry | Severity | Status |
 |---|-------|----------|--------|
 | 1 | Reflex to ask the user to hand-code around cloned-generator output | friction | open |
-| 2 | `skmtc clone` hardcodes JSR URLs in source instead of bare specifiers | friction | open |
+| 2 | `skmtc clone` hardcodes JSR URLs in source instead of bare specifiers | friction | resolved 2026-09-28 (PR #155) |
 | 3 | Cloned generators pin peers to JSR even when sibling clones exist | friction | open |
 | 4 | Per-item resource lookup + React Query dedup is the right resource-reference pattern | win | open |
 | 5 | `isListResponse` matched scalar-array `/{id}` responses as lists | friction | resolved 2026-05-24 (commit 09b227a) |
@@ -164,7 +164,7 @@ deno.json with the same import map shape as canonical.
 
 **Version anchor:** `@skmtc/cli@0.3.8`
 
-**Status:** open
+**Status:** resolved 2026-09-28 (PR #155) — JSR rewrites bare imports to versioned specifiers on publish; `clone` now rewrites them back and pins the versions in `deno.json`
 
 ---
 

@@ -316,8 +316,9 @@ Deno.test('Generator.clone - aligned pins pass the pre-flight check', async () =
 
 /**
  * A published package as JSR serves it: its `deno.json` carries the
- * pins, while its source has each import resolved to a versioned
- * `jsr:` specifier.
+ * pins, while its source has each bare import resolved to a versioned
+ * `jsr:` / `npm:` specifier — including the test file, which JSR leaves
+ * out of the version's module graph.
  */
 const publishedFiles: Record<string, string> = {
   '/deno.json': JSON.stringify({
@@ -326,7 +327,8 @@ const publishedFiles: Record<string, string> = {
     exports: './mod.ts',
     imports: {
       '@skmtc/core': 'jsr:@skmtc/core@0.29.0',
-      '@skmtc/gen-zod': 'jsr:@skmtc/gen-zod@0.2.7'
+      '@skmtc/gen-zod': 'jsr:@skmtc/gen-zod@0.2.7',
+      '@skmtc/gen-typescript': 'jsr:@skmtc/gen-typescript@0.2.7'
     }
   }),
   '/mod.ts': `export { QueryFn } from './src/QueryFn.ts'\n`,
@@ -334,8 +336,16 @@ const publishedFiles: Record<string, string> = {
     `import { capitalize } from 'jsr:@skmtc/core@0.29.0'`,
     `import type { OasOperationProjectionConstructorArgs } from 'jsr:@skmtc/core@0.29.0'`,
     `import { ZodProjection } from 'jsr:@skmtc/gen-zod@0.2.7'`,
+    `import { TsProjection } from 'jsr:@skmtc/gen-typescript@0.2.7'`,
+    `import { match } from 'npm:ts-pattern@^5.8.0'`,
     `import { join } from 'jsr:@std/path@1.0.8/join'`,
-    `import { TanstackQueryBase } from './base.ts'`
+    `import { TanstackQueryBase } from './base.ts'`,
+    "const emitted = `import { Hono } from 'jsr:@hono/hono@4.6.0'`"
+  ].join('\n'),
+  '/test/e2e.test.ts': [
+    `import { assertStringIncludes } from 'jsr:@std/assert@^1.0.0'`,
+    `import { capitalize } from 'jsr:@skmtc/core@0.29.0'`,
+    `assertStringIncludes(capitalize('a'), \`import { b } from 'jsr:@skmtc/core@0.29.0'\`)`
   ].join('\n'),
   '/README.md': `import { capitalize } from 'jsr:@skmtc/core@0.29.0'\n`
 }
@@ -365,30 +375,33 @@ const toFixtureResponse = (url: string): Response => {
   return file === undefined ? new Response('not found', { status: 404 }) : new Response(file)
 }
 
-Deno.test('Generator.clone - rewrites versioned jsr imports to bare specifiers', async () => {
+Deno.test('Generator.clone - rewrites versioned imports to bare specifiers', async () => {
   const tempRoot = await Deno.makeTempDir({ prefix: 'skmtc-clone-', dir: homedir() })
-  const projectName = 'clone-test'
-  const projectPath = join(tempRoot, '.skmtc', projectName)
-  await ensureDir(projectPath)
-  await Deno.writeTextFile(
-    join(projectPath, 'deno.json'),
-    JSON.stringify({
-      imports: {
-        '@skmtc/core': 'jsr:@skmtc/core@0.29.0',
-        '@skmtc/gen-zod': 'jsr:@skmtc/gen-zod@0.2.5'
-      }
-    })
-  )
-
   const prevCwd = Deno.cwd()
   const originalFetch = globalThis.fetch
-  Deno.chdir(tempRoot)
-  globalThis.fetch = (input: string | URL | Request) => {
-    const url = input instanceof Request ? input.url : input.toString()
-    return Promise.resolve(toFixtureResponse(url))
-  }
 
   try {
+    const projectName = 'clone-test'
+    const projectPath = join(tempRoot, '.skmtc', projectName)
+    await ensureDir(projectPath)
+    // The project pins a different core patch, and an earlier clone of
+    // gen-typescript. It has no gen-zod.
+    await Deno.writeTextFile(
+      join(projectPath, 'deno.json'),
+      JSON.stringify({
+        imports: {
+          '@skmtc/core': 'jsr:@skmtc/core@0.29.1',
+          '@skmtc/gen-typescript': './gen-typescript/mod.ts'
+        }
+      })
+    )
+
+    Deno.chdir(tempRoot)
+    globalThis.fetch = (input: string | URL | Request) => {
+      const url = input instanceof Request ? input.url : input.toString()
+      return Promise.resolve(toFixtureResponse(url))
+    }
+
     const manager = new Manager()
     const denoJson = await RootDenoJson.open(projectName, manager)
     const generator = Generator.create({
@@ -409,8 +422,22 @@ Deno.test('Generator.clone - rewrites versioned jsr imports to bare specifiers',
         `import { capitalize } from '@skmtc/core'`,
         `import type { OasOperationProjectionConstructorArgs } from '@skmtc/core'`,
         `import { ZodProjection } from '@skmtc/gen-zod'`,
+        `import { TsProjection } from '@skmtc/gen-typescript'`,
+        `import { match } from 'ts-pattern'`,
         `import { join } from '@std/path/join'`,
-        `import { TanstackQueryBase } from './base.ts'`
+        `import { TanstackQueryBase } from './base.ts'`,
+        "const emitted = `import { Hono } from 'jsr:@hono/hono@4.6.0'`"
+      ].join('\n')
+    )
+
+    // Test files outside the module graph are rewritten too; a string
+    // holding import text is not.
+    assertEquals(
+      await Deno.readTextFile(join(clonePath, 'test', 'e2e.test.ts')),
+      [
+        `import { assertStringIncludes } from '@std/assert'`,
+        `import { capitalize } from '@skmtc/core'`,
+        `assertStringIncludes(capitalize('a'), \`import { b } from 'jsr:@skmtc/core@0.29.0'\`)`
       ].join('\n')
     )
 
@@ -420,20 +447,24 @@ Deno.test('Generator.clone - rewrites versioned jsr imports to bare specifiers',
       publishedFiles['/README.md']
     )
 
-    // Published pins are kept; a bare name the package didn't pin is
-    // mapped to the version that was written into the import.
+    // The root decides every name it pins (core, the local
+    // gen-typescript); the clone keeps the rest, plus a pin for each
+    // bare name the published imports didn't name.
     const cloneDenoJson = JSON.parse(await Deno.readTextFile(join(clonePath, 'deno.json')))
     assertEquals(cloneDenoJson.imports, {
-      '@skmtc/core': 'jsr:@skmtc/core@0.29.0',
       '@skmtc/gen-zod': 'jsr:@skmtc/gen-zod@0.2.7',
-      '@std/path': 'jsr:@std/path@1.0.8'
+      'ts-pattern': 'npm:ts-pattern@^5.8.0',
+      '@std/path': 'jsr:@std/path@1.0.8',
+      '@std/assert': 'jsr:@std/assert@^1.0.0'
     })
 
-    // Existing project pins are never overwritten.
+    // The root gains the clone and nothing else.
     const rootDenoJson = JSON.parse(await Deno.readTextFile(join(projectPath, 'deno.json')))
-    assertEquals(rootDenoJson.imports['@skmtc/core'], 'jsr:@skmtc/core@0.29.0')
-    assertEquals(rootDenoJson.imports['@skmtc/gen-zod'], 'jsr:@skmtc/gen-zod@0.2.5')
-    assertEquals(rootDenoJson.imports['@skmtc/gen-fixture'], './gen-fixture/mod.ts')
+    assertEquals(rootDenoJson.imports, {
+      '@skmtc/core': 'jsr:@skmtc/core@0.29.1',
+      '@skmtc/gen-typescript': './gen-typescript/mod.ts',
+      '@skmtc/gen-fixture': './gen-fixture/mod.ts'
+    })
   } finally {
     globalThis.fetch = originalFetch
     Deno.chdir(prevCwd)

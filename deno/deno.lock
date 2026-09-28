@@ -5,6 +5,7 @@
     "jsr:@cliffy/flags@1.1.0": "1.1.0",
     "jsr:@cliffy/internal@1.1.0": "1.1.0",
     "jsr:@cliffy/table@1.1.0": "1.1.0",
+    "jsr:@deno/graph@0.111.0": "0.111.0",
     "jsr:@std/assert@^1.0.10": "1.0.19",
     "jsr:@std/assert@^1.0.19": "1.0.19",
     "jsr:@std/encoding@^1.0.10": "1.0.11",
@@ -84,6 +85,9 @@
       "dependencies": [
         "jsr:@std/fmt@^1.0.9"
       ]
+    },
+    "@deno/graph@0.111.0": {
+      "integrity": "ffb61e93ab838d1b8f66798b99a1eb75ef96915e5aa53f9c5118e4d8cdefd776"
     },
     "@std/assert@1.0.19": {
       "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
@@ -1110,6 +1114,7 @@
       "cli": {
         "dependencies": [
           "jsr:@cliffy/command@1.1.0",
+          "jsr:@deno/graph@0.111.0",
           "jsr:@skmtc/convert@0.1.17",
           "jsr:@skmtc/core@0.29.0",
           "jsr:@skmtc/server@0.3.5",

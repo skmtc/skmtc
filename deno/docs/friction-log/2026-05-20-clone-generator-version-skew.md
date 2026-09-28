@@ -26,7 +26,7 @@ JSR registry, on `cli@0.3.4` / `core@0.6.2` / `deno 2.7.14`.
 | 2 | `skmtc clone` swallows the underlying `deno bundle` error | friction | open |
 | 3 | `clone`-produced `deno.json` omits the `@skmtc/worker` pin needed by `worker.ts` | blocker | open |
 | 4 | "Install latest" of several stock generators produces a non-co-released, core-skewed set | friction | open |
-| 5 | Core version is baked into source as full specifiers, not the import map | friction | open |
+| 5 | Core version is baked into source as full specifiers, not the import map | friction | resolved 2026-09-28 (PR #155) |
 | 6 | `skmtc bundle` reports "wasn't written" under deno 2.7.14 though `deno bundle` succeeds | friction | open |
 | 7 | `core@0.6.2` model-entry `transform` typecheck drift + slow-types | polish | open |
 
@@ -118,7 +118,7 @@ Diagnosing the core-version skew from entry #4.
 
 **Version anchor:** `@skmtc/cli@0.3.4`, `@skmtc/core@0.6.2`
 
-**Status:** open
+**Status:** resolved 2026-09-28 (PR #155) — JSR rewrites bare imports to versioned specifiers on publish; `clone` now rewrites them back and pins the versions in `deno.json`
 
 ---
 
