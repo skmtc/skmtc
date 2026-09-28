@@ -4,8 +4,6 @@ import { assertStringIncludes } from '@std/assert/string-includes'
 import { existsSync } from '@std/fs/exists'
 import { join } from '@std/path/join'
 import { bundleHeadless } from '@/lib/bundle-headless.ts'
-import { checkBundleFreshness } from '@/lib/bundle-freshness.ts'
-import { checkBundleCopies } from '@/lib/duplicate-packages.ts'
 import { Manager } from '@/lib/manager.ts'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import {
@@ -25,12 +23,15 @@ const addProjectImports = async (projectPath: string, imports: Record<string, st
   await Deno.writeTextFile(denoJsonPath, JSON.stringify(denoJson))
 }
 
+/** `deno bundle` starts each module with a `// <module path>` comment. */
+const bundledCorePattern = /^\/\/ \S*\/@skmtc\/core\/(\d+\.\d+\.\d+)\//gm
+
 /** The bundle holds exactly one `@skmtc/core`, at `version`. */
-const assertOneCore = (projectPath: string, version: string) =>
-  assertEquals(checkBundleCopies(join(projectPath, 'bundle.js')), {
-    type: 'single-copies',
-    packages: [{ name: '@skmtc/core', copies: [{ version, importedBy: [] }] }]
-  })
+const assertOneCore = async (projectPath: string, version: string) => {
+  const bundle = await Deno.readTextFile(join(projectPath, 'bundle.js'))
+  const versions = new Set(Array.from(bundle.matchAll(bundledCorePattern), ([, found]) => found))
+  assertEquals(Array.from(versions), [version])
+}
 
 Deno.test('bundleHeadless - refuses a graph with two copies of @skmtc/core', async () => {
   await withJsrRegistryServer(twoCoreRegistry, async () => {
@@ -68,17 +69,16 @@ Deno.test('bundleHeadless - bundles a graph with one @skmtc/core', async () => {
   })
 })
 
-Deno.test('bundleHeadless - a refusal keeps the worker.ts the old bundle.js was built from', async () => {
+Deno.test('bundleHeadless - a refusal leaves the earlier bundle.js untouched', async () => {
   // `install` adds gen-b (on core 0.2.0) to a bundled project. The refused
-  // bundle must not leave a worker.ts that makes the old bundle.js — which
-  // lacks gen-b — look fresh.
+  // build must not replace the earlier bundle.js. Nothing runs that file
+  // again: every command that runs a bundle builds it first.
   await withJsrRegistryServer(twoCoreRegistry, async () => {
     await withRegistryProject(
       { generatorVersion: '0.1.0' },
       async ({ projectName, projectPath }) => {
         await bundleHeadless({ skmtcRoot: await SkmtcRoot.open(new Manager()), projectName })
-        const workerPath = join(projectPath, 'worker.ts')
-        const bundledWorker = await Deno.readTextFile(workerPath)
+        const bundled = await Deno.readTextFile(join(projectPath, 'bundle.js'))
 
         await addProjectImports(projectPath, { '@skmtc/gen-b': 'jsr:@skmtc/gen-b@0.1.0' })
 
@@ -89,10 +89,7 @@ Deno.test('bundleHeadless - a refusal keeps the worker.ts the old bundle.js was 
           '@skmtc/core 0.2.0 ← @skmtc/gen-b@0.1.0'
         )
 
-        assertEquals(await Deno.readTextFile(workerPath), bundledWorker)
-        const freshness = checkBundleFreshness({ projectName })
-        assertEquals(freshness.type, 'stale')
-        assertEquals(freshness.type === 'stale' ? freshness.added : [], ['@skmtc/gen-b'])
+        assertEquals(await Deno.readTextFile(join(projectPath, 'bundle.js')), bundled)
       }
     )
   })
@@ -106,7 +103,7 @@ Deno.test('bundleHeadless - the project core pin decides which core the ranged p
       async ({ projectName, projectPath }) => {
         await bundleHeadless({ skmtcRoot: await SkmtcRoot.open(new Manager()), projectName })
 
-        assertOneCore(projectPath, '0.1.0')
+        await assertOneCore(projectPath, '0.1.0')
       }
     )
   })
@@ -121,7 +118,7 @@ Deno.test('bundleHeadless - a ranged worker beside an exact-pinned generator sha
       async ({ projectName, projectPath }) => {
         await bundleHeadless({ skmtcRoot: await SkmtcRoot.open(new Manager()), projectName })
 
-        assertOneCore(projectPath, '0.1.0')
+        await assertOneCore(projectPath, '0.1.0')
       }
     )
   })
@@ -143,7 +140,7 @@ Deno.test('bundleHeadless - a worker and generator released a patch apart share 
         })
 
         assertEquals(result.type, 'bundled')
-        assertOneCore(projectPath, '0.1.1')
+        await assertOneCore(projectPath, '0.1.1')
       }
     )
   })
@@ -165,7 +162,7 @@ Deno.test('bundleHeadless - a deno.lock from before the patch still yields one @
       async ({ projectName, projectPath }) => {
         await bundleHeadless({ skmtcRoot: await SkmtcRoot.open(new Manager()), projectName })
         assertEquals(existsSync(join(projectPath, 'deno.lock')), true)
-        assertOneCore(projectPath, '0.1.0')
+        await assertOneCore(projectPath, '0.1.0')
 
         registry['@skmtc/core']['0.1.1'] = core
         registry['@skmtc/gen-a']['0.2.0'] = generator
@@ -180,7 +177,7 @@ Deno.test('bundleHeadless - a deno.lock from before the patch still yields one @
         })
 
         assertEquals(result.type, 'bundled')
-        assertOneCore(projectPath, '0.1.1')
+        await assertOneCore(projectPath, '0.1.1')
       }
     )
   })

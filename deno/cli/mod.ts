@@ -22,16 +22,18 @@ const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
   'doctor',
   'agent-context',
   'clean',
-  // status is read-only against the local manifest + lock; never
-  // touches JSR.
+  // status is read-only against the local manifest + lock. Its fresh
+  // render builds a bundle outside the project from the locked pins,
+  // bounded by a timeout, and degrades when that fails.
   'status',
   // eject/adopt move files between engine and user ownership — pure
   // local filesystem + config operations.
   'eject',
   'adopt',
-  // describe runs the project's local bundle to read generator
-  // capabilities; it never touches JSR. (generate --debug is covered by
-  // 'generate' above — it runs the local worker.ts source.)
+  // describe builds the project's bundle outside the project from the
+  // locked pins, then runs it to read generator capabilities. (generate
+  // --debug is covered by 'generate' above — it runs the local worker.ts
+  // source.)
   'describe',
   // login/logout talk to the hub (or just the local filesystem), not
   // the JSR registry.

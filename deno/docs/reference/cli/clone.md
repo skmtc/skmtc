@@ -125,8 +125,8 @@ so the root decides their version: the clone runs on the project's
 `@skmtc/core`, and a peer generator the project already cloned
 resolves to its local copy.
 
-After editing a pin in either `deno.json`, run `skmtc bundle` — the
-bundle freshness check compares generator ids, not pin values.
+After you edit a pin in either `deno.json`, run `skmtc generate`
+again. It rebuilds the bundle from the current pins on every run.
 
 ### deno.json#imports updated
 
@@ -153,9 +153,9 @@ generator imports is not installed as a generator of the project.
 
 ### Post-clone rebundle
 
-The CLI automatically rebundles after the clone. This refreshes
-`bundle.js` so subsequent `generate` runs see the new local
-source. The rebundle is reported in the JSON output:
+The CLI builds the bundle after the clone, to check that the cloned
+generator bundles and that the project still resolves one copy of
+`@skmtc/core`. The result is reported in the JSON output:
 
 ```jsonc
 {
@@ -167,10 +167,9 @@ source. The rebundle is reported in the JSON output:
 }
 ```
 
-Without this step, a subsequent `generate` would silently load the
-stale bundle and skip the cloned generator's changes. The post-
-clone rebundle costs ~300ms and closes a class of silent-failure
-debugging traps.
+`generate` does not use this bundle: it rebuilds the bundle on every
+run, so your edits to the cloned source apply on the next
+`skmtc generate`.
 
 ## JSON output
 
@@ -253,7 +252,8 @@ The cloned source is now your code. Common next steps:
    identifiers
 2. Edit `<project>/<gen-name>/src/<MainProjection>.ts` to change
    output shape
-3. Run `skmtc dev <project>` for the rebundle-and-regenerate loop
+3. Run `skmtc generate <project>`, or `skmtc dev <project>` to
+   regenerate on every save
 
 See [anatomy of a generator](../../authoring/anatomy-of-a-generator.md)
 for what you are editing.
@@ -269,8 +269,8 @@ for what you are editing.
 ## See also
 
 - [`skmtc install`](install.md) — alternative for stock-defaults
-- [`skmtc bundle`](bundle.md) — rebuilds after editing cloned source
-- [`skmtc dev`](dev.md) — auto-rebundle on file changes
+- [`skmtc generate`](generate.md) — rebuilds the bundle and runs your edited source
+- [`skmtc dev`](dev.md) — rebuild and regenerate on file changes
 - [clone-vs-install concept](../../concepts/clone-vs-install.md)
 - [Tutorial: cloning a generator](../../authoring/tutorials/01-cloning-a-generator.md) — the guided first edit
 - [generators-as-packages concept](../../concepts/generators-as-packages.md)

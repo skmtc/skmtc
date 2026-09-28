@@ -21,9 +21,9 @@
  * tracks — stale-but-edited files a previous generate spared from
  * pruning. They are the user's now; listed so they aren't forgotten.
  *
- * Never writes. Resolves the schema and renders fresh content on
- * demand (the same schema-resolution + worker invocation `generate`
- * uses) to disambiguate a formatter-config change from a hand edit,
+ * Never writes generated files. Rebuilds the project's `bundle.js`,
+ * then resolves the schema and renders fresh content on demand (the
+ * same build, schema resolution and worker invocation `generate` uses) to disambiguate a formatter-config change from a hand edit,
  * and to classify ejected files (`re-adoptable` / `owned` / `stale`)
  * against what the generator would produce right now. Degrades to
  * lock-hash-only comparison — and ejected files reporting without a
@@ -44,6 +44,7 @@ import { classifyDiskFile, type EditDetectionContext } from '@/lib/edit-detectio
 import { toEjectedArtifactPaths } from '@/lib/write-generated-files.ts'
 import { type EjectionFileState, classifyEjectedFile } from '@/lib/ejection-state.ts'
 import { resolveFreshArtifacts } from '@/lib/resolve-fresh-artifacts.ts'
+import { createReadOnlyBundle, type ReadOnlyBundle } from '@/lib/create-bundle.ts'
 
 export type FileStatus = 'clean' | 'modified' | 'missing' | 'unverified' | 'ejected'
 
@@ -91,6 +92,9 @@ type StatusHeadlessArgs = {
   /** `client.json#serverUrl` — generate against a deployed stack
    *  server instead of the local bundle, when set. */
   stackUrl: string | undefined
+  /** Builds the project's bundle without writing to the project.
+   *  Defaults to `createReadOnlyBundle`; tests stand in for it. */
+  buildBundle?: () => Promise<ReadOnlyBundle>
   /** Workspace root (`.skmtc`). Defaults to the cwd-derived
    *  `toRootPath()`. Injectable so tests can point at a temp workspace
    *  without depending on `Deno.cwd()`. */
@@ -102,10 +106,13 @@ export const statusHeadless = async ({
   clientSettings,
   schemaSourceString,
   stackUrl,
+  buildBundle,
   skmtcRootPath = toRootPath()
 }: StatusHeadlessArgs): Promise<StatusHeadlessResult> => {
   const appRoot = resolve(join(skmtcRootPath, '..'))
   const projectPath = join(skmtcRootPath, projectName)
+  const buildProjectBundle =
+    buildBundle ?? (() => createReadOnlyBundle({ projectName, projectPath }))
   const manifestPath = join(projectPath, '.settings', 'manifest.json')
 
   const manifest = await Manifest.openFromPath(projectName, manifestPath)
@@ -139,10 +146,10 @@ export const statusHeadless = async ({
   }
 
   const freshArtifacts = await resolveFreshArtifacts({
-    projectPath,
     schemaSourceString,
     clientSettings,
-    stackUrl
+    stackUrl,
+    buildBundle: buildProjectBundle
   })
 
   const files: StatusFileEntry[] = []

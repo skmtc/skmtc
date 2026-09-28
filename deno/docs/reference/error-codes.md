@@ -17,7 +17,7 @@ This file is the lookup reference for specific codes.
 | Thrown on stderr during generate | `Registered definition mismatch: '<X>' in file '<Y>' …` | [Registered definition mismatch](#registered-definition-mismatch) |
 | Thrown on stderr during generate | `Max lookups reached` | [Max lookups reached](#max-lookups-reached) |
 | Thrown on stderr during generate | `Ref "<$ref>" not found` / `Ref type mismatch for "<$ref>"` | [Ref not found](#ref-ref-not-found) · [Ref type mismatch](#ref-type-mismatch-for-ref) |
-| During `skmtc bundle` or the bundle step of generate | `bundle.js is out of sync with deno.json` / `No matching export … for import` | [Generate-time errors](#generate-time-errors) |
+| During `skmtc bundle` or the bundle step of generate | `No matching export … for import` | [Generate-time errors](#generate-time-errors) |
 | `manifest.enrichmentWarnings[].type` or the "Enrichment warnings" output block | `UNCONSUMED_ENRICHMENT`, `UNKNOWN_ENRICHMENT_KEY`, … | [Enrichment warnings](#enrichment-warnings) |
 | Shell `$?` after a run | exit code `0` / `1` / `2` | [CLI exit codes](#cli-exit-codes) |
 | A location string like `paths:/users:post:…` | decoding where an issue occurred | [Issue location strings](#issue-location-strings) |
@@ -342,21 +342,6 @@ during `OasRef.resolveOnce()`.
 **Remediation:** The OAS document has a wrong-bucket `$ref`. Move
 the target to the correct components bucket, or update the `$ref`
 to point at the correct existing target.
-
-### `bundle.js is out of sync with deno.json — add: …`
-
-**When:** Strict-mode `skmtc generate` detected that the
-`worker.ts`/`bundle.js` was built against a different set of
-generators than `deno.json#imports` currently declares. The error
-tells you which generator IDs are out of sync.
-
-**Remediation:**
-
-```bash
-skmtc bundle <project>
-```
-
-Then re-run `skmtc generate`.
 
 ### `No matching export … for import "<X>"` (during `deno bundle`)
 

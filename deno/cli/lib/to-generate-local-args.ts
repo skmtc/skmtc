@@ -1,5 +1,4 @@
 import { toProjectPath } from '@/lib/to-project-path.ts'
-import { toBundlePath } from '@/lib/to-bundle-path.ts'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
 import { toClientJsonContents } from '@/lib/to-client-json-contents.ts'
 import { toManifestPath } from '@/lib/to-manifest-path.ts'
@@ -22,7 +21,6 @@ export const toGenerateLocalArgs = async ({
     const schemaContents = await toSchemaContents(schemaSourceString)
 
     return {
-      bundlePath: toBundlePath(projectPath),
       manifestPath: toManifestPath(projectPath),
       projectPath,
       schemaContents: schemaContents.contents,
@@ -44,7 +42,6 @@ export const toGenerateLocalArgs = async ({
   }
 
   return {
-    bundlePath: toBundlePath(projectPath),
     manifestPath: toManifestPath(projectPath),
     projectPath,
     schemaContents: schemaContents.contents,

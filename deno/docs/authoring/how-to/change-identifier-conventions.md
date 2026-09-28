@@ -69,12 +69,13 @@ operation/refName so the throw never fires. Helpers like
 `toEndpointName(operation)` handle the OAS-spec quirks (missing
 `operationId`, identical paths with different methods).
 
-### Rebundle and regenerate
+### Regenerate
 
 ```bash
-skmtc bundle my-project
 skmtc generate my-project
 ```
+
+`generate` rebuilds the bundle from your edited source first.
 
 ## Verification
 

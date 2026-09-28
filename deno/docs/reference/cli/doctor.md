@@ -31,10 +31,10 @@ remediation.
 
 ### `--offline`
 
-Skip the registry lookup behind `cli-version-current`, which then
-reports `skipped`, and have `project-package-copies` read `bundle.js`
-instead of resolving the module graph with `deno info`, which
-downloads on a cold Deno cache. Every other check is filesystem-only,
+Skip the registry lookup behind `cli-version-current`, and the
+`deno info` module-graph read behind `project-package-copies`, which
+downloads on a cold Deno cache. Both checks then report `skipped`.
+Every other check is filesystem-only,
 so this makes the whole command network-free. Without it the lookup is bounded at 2
 seconds and degrades to `skipped` anyway — use `--offline` when a run
 already knows it has no network and does not want to spend the timeout
@@ -70,11 +70,10 @@ For each project under `.skmtc/<project>/`:
 | `project-deno-json/<project>` | `<project>/deno.json` exists and parses as JSON |
 | `project-base-path/<project>` | `<project>/client.json#settings.basePath` is set and **relative** (absolute paths fail) |
 | `project-core-pin/<project>` | The project's `@skmtc/core` import pin matches the CLI's |
-| `project-package-copies/<project>` | One copy of `@skmtc/core` and of each `@skmtc/lang-*` package, read from two sources. The module graph of `worker.ts` (`deno info --frozen`, bounded at 20s, never writes `deno.lock`) names the packages that import each copy. `bundle.js` is what `generate` runs. `error` when either holds two copies; `ok` lists the single copies; `skipped` for a project that generates on its stack server (`client.json#serverUrl`), or when neither source can be read — before the first `skmtc bundle`, for example. After a pin edit that hasn't been bundled, the lockfile no longer matches and the check reads `bundle.js` only. `--offline` reads `bundle.js` only. |
-| `project-bundle/<project>` | If the project has at least one *local* generator import, `bundle.js` exists. Pure JSR projects return `ok` with `hasLocalGenerator: false` (no bundle needed). |
+| `project-package-copies/<project>` | One copy of `@skmtc/core` and of each `@skmtc/lang-*` package in the module graph of `worker.ts` (`deno info --frozen`, bounded at 20s, never writes `deno.lock`), which names the packages that import each copy. `error` when the graph holds two copies — `generate` refuses to build it; `ok` lists the single copies; `skipped` for a project that generates on its stack server (`client.json#serverUrl`), with `--offline`, or when the graph can't be read — before the first `skmtc generate`, or after a pin edit that no build has written to `deno.lock` yet. |
 | `project-manifest/<project>` | `manifest.json` (if present) parses and matches the schema the current `@skmtc/core` expects |
 | `project-enrichments/<project>` | The last generate's `manifest.enrichmentWarnings` has no `warning`-level entries — dead enrichment config (typo'd generator ids, paths, methods, model names; schema-dropped keys) surfaces here between runs. `info` entries (enrichments on deliberately skipped items) keep the check `ok`. Skips when the manifest is missing, broken (deferred to `project-manifest`), or written by a core older than 0.28.0. |
-| `project-worker-pin/<project>` | The project pins `@skmtc/worker` — the generated `worker.ts` needs it to bundle. `skipped` before the first `skmtc bundle` writes `worker.ts`; `warning` with a `skmtc bundle` hint when the pin is missing. |
+| `project-worker-pin/<project>` | The project pins `@skmtc/worker` — the generated `worker.ts` needs it to bundle. `ok` before the first build (`skmtc generate` or `skmtc bundle`) writes `worker.ts`; `warning` with a `skmtc bundle` hint when the pin is missing — `bundle` writes the pin for every project, including `client.json#serverUrl` ones that `generate` never builds. |
 | `anchors-config/<project>` | `client.json#settings.anchors` parses and reports whether gen-maps are enabled (opt-in via `settings.anchors.enabled`) and where they are written. |
 | `anchors-coverage/<project>` | Share of the manifest's files that have an attribution sidecar; `warning` below the coverage threshold. `skipped` when anchors are disabled or the project has not generated yet. |
 | `anchors-staleness/<project>` | Sidecars on disk are current for the last run. `skipped` when anchors are disabled or no manifest exists. |
@@ -98,8 +97,8 @@ Project: my-api
 ✗ project-core-pin/my-api           FAIL
     Project pins @skmtc/core@^0.0.148, CLI uses @^0.0.150
     Remediation: update .skmtc/my-api/deno.json#imports
-○ project-bundle/my-api             WARN
-    bundle.js missing; run `skmtc bundle my-api`
+○ project-enrichments/my-api        WARN
+    Project "my-api" last generate reported 1 enrichment warning(s)
 ✓ project-manifest/my-api           OK
 
 Summary: 4 OK, 1 WARN, 1 FAIL
@@ -130,13 +129,6 @@ do not change the exit code.
       "hint": "Update .skmtc/my-api/deno.json#imports to align with the CLI's pin"
     },
     {
-      "id": "project-bundle/my-api",
-      "status": "warning",
-      "message": "Project \"my-api\" has local generators but no bundle.js at .skmtc/my-api/bundle.js.",
-      "hint": "Run `skmtc bundle my-api` to build it.",
-      "data": { "hasLocalGenerator": true, "bundlePath": ".skmtc/my-api/bundle.js" }
-    },
-    {
       "id": "project-manifest/my-api",
       "status": "ok",
       "message": "Project \"my-api\" manifest matches the current @skmtc/core schema."
@@ -159,12 +151,12 @@ if any is `warning`, otherwise `ok`.
 
 - **`ok`** — check passed
 - **`warning`** — advisory; the system can still operate (e.g.,
-  stale `bundle.js` — `generate` may produce older output)
+  enrichment config the last run never read)
 - **`error`** — blocking issue; `generate` is likely to misbehave
   or refuse to run
 - **`skipped`** — the check did not run (e.g., a per-project check
-  on a non-existent project, or a freshness check on a project
-  with no clones)
+  on a non-existent project, or a module-graph check under
+  `--offline`)
 
 ### Remediation hints
 
@@ -174,7 +166,7 @@ include it directly in user-facing error messages.
 
 When the remediation is a runnable command, `doctor` prefers
 formatting it as a backticked shell line (e.g.,
-`` Run `skmtc bundle my-api` ``) so it's both readable and easy to
+`` Run `skmtc generate my-api` ``) so it's both readable and easy to
 extract.
 
 ## Examples
@@ -263,14 +255,10 @@ major-version drift can break generation. Update the project's
 The worker, a generator or a `lang-*` package resolves a different
 `@skmtc/core` from the rest. `project-core-pin` can still be `ok`: it
 compares only the project's own pin with the CLI's. Generation against
-this graph writes empty files and reports success, so `bundle` refuses
-to build it. `worker.ts` marks the copy the project's own pin resolves
-to. Change the pins in the project's `deno.json` so that the named
-packages agree, then run `skmtc bundle <project>`.
-
-When the message starts `The bundle.js of project "api" holds…`, the
-graph is fine but `bundle.js` was built from an older one, and
-`generate` refuses to run it. Run `skmtc bundle <project>`.
+this graph writes empty files and reports success, so `generate` and
+`bundle` refuse to build it. `worker.ts` marks the copy the project's
+own pin resolves to. Change the pins in the project's `deno.json` so
+that the named packages agree, then run `skmtc generate <project>`.
 
 ### basePath missing or absolute
 
@@ -282,19 +270,6 @@ graph is fine but `bundle.js` was built from an older one, and
 `client.json#settings.basePath` is either unset or absolute.
 `basePath` must be relative to the SKMTC root. Edit `client.json`
 or re-run `skmtc init` with a relative path.
-
-### Bundle missing
-
-```
-○ project-bundle/my-api    WARN
-    bundle.js missing
-```
-
-The project has at least one local generator (a clone, or any
-import that isn't `jsr:...`) but no `bundle.js` is present.
-Run `skmtc bundle <project>` to build it. Remote-only projects
-report `ok` here — no bundle needed when every generator is on
-JSR.
 
 ### Stale manifest
 
@@ -334,7 +309,6 @@ dropped. Fix the flagged keys in
 - [`skmtc agent-context`](agent-context.md) — broader project state
   dump for agents
 - [`skmtc list`](list.md) — focused inventory of installed generators
-- [`skmtc bundle`](bundle.md) — rebuild `bundle.js` when `project-bundle/<project>` warns
 - [Reference: client.json schema](../settings/client-json-schema.md) —
   the schema `project-base-path` reads `settings.basePath` from
 - [How to debug a failing generation](../../using/how-to/debug-failing-generation.md) — broader

@@ -50,10 +50,9 @@ export type CloneHeadlessResult = {
    * symmetry with {@link installHeadless} (which can be `noop` for
    * remote-only projects).
    *
-   * Surfacing the bundle here closes friction #4: `skmtc clone`
-   * followed by `skmtc generate` used to silently run against a
-   * stale `bundle.js` that didn't know about the newly-cloned
-   * generator. The bundle now refreshes inside the same command.
+   * Building here confirms the cloned generator bundles before the
+   * command reports success. (`generate` rebuilds the bundle on every
+   * run, so this bundle is not what it runs.)
    */
   bundle: BundleHeadlessResult
 }
@@ -72,9 +71,8 @@ export const cloneHeadless = async ({
     cloned.push(result)
   }
 
-  // Refresh bundle.js so the next `skmtc generate` sees the cloned
-  // generator. Without this, the just-clone generator is invisible
-  // until the user separately runs `skmtc bundle` or `skmtc dev`.
+  // Confirm the cloned generator bundles, and refuse a clone that puts
+  // two copies of `@skmtc/core` in the graph.
   const bundle = await bundleHeadless({ skmtcRoot, projectName })
 
   return {

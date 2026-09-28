@@ -118,11 +118,6 @@ diagnostics-level failures but that an agent might want to surface:
 {
   "anomalies": [
     {
-      "type": "stale-bundle",
-      "project": "my-api",
-      "detail": "bundle.js older than src/my-form/"
-    },
-    {
       "type": "missing-operationId",
       "project": "my-api",
       "detail": "12 operations in spec have no operationId"
@@ -168,18 +163,6 @@ session to orient.
 
 ```bash
 skmtc agent-context --json | jq '.projects[] | select(.name == "my-api") | .generators'
-```
-
-### Detect stale bundle and remediate
-
-```bash
-state=$(skmtc agent-context --json)
-stale=$(echo "$state" | jq '.anomalies[] | select(.kind == "stale-bundle") | .project')
-
-if [ -n "$stale" ]; then
-  echo "Rebundling stale projects: $stale"
-  echo "$stale" | xargs -I {} skmtc bundle {}
-fi
 ```
 
 ## How `agent-context` differs from `doctor`
@@ -239,9 +222,8 @@ as a soft signal.
 ### Bundle metadata unavailable
 
 If `bundle.present` is `false` and `bundle.path` is absent, the
-project has never been bundled. Every project — remote-only
-included — needs a `bundle.js` to generate; run
-`skmtc bundle <project>` to build it.
+project has never been bundled. That is not a problem:
+`skmtc generate` builds `bundle.js` before every run.
 
 ## See also
 

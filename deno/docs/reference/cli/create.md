@@ -9,8 +9,7 @@ The `create` command is the **author-from-scratch** path. It writes
 a minimal generator project under `.skmtc/<project>/<generator>/`
 and wires it into the project's `deno.json#imports`. After scaffolding,
 you edit `src/` to define your generator's behavior, then run
-`skmtc bundle` (or it will be triggered automatically by subsequent
-commands) to make it available to the engine.
+`skmtc generate`, which rebuilds the bundle from your source first.
 
 ## Synopsis
 
@@ -141,8 +140,8 @@ scope in shared scripts or CI, pass it explicitly when running
 
 ### Post-create rebundle
 
-After scaffolding, the CLI rebuilds the project's `bundle.js` so the
-new generator is reachable by the next `generate` invocation. The
+After scaffolding, the CLI builds the project's `bundle.js` to check
+that the new generator compiles. The
 generator's scaffold produces a valid (but mostly-empty) Projection
 from the start, so the bundle compiles cleanly.
 
@@ -171,13 +170,12 @@ Produces an operation-projection scaffold under
 ```bash
 skmtc create my-api my-renderer operation
 # Edit src/MyRenderer.ts to define toString()
-skmtc bundle my-api
 skmtc generate my-api
 ```
 
-The bundle step after editing isn't strictly required — `generate`
-will pick up the bundled source — but running it explicitly produces
-clearer errors if the generator has compile issues.
+`generate` rebuilds the bundle from your edited source first. Run
+`skmtc bundle my-api` instead to check that the generator compiles
+without generating.
 
 ## `create` vs `clone` vs `install`
 
@@ -225,14 +223,14 @@ Run `skmtc init my-api` first.
 
 If the scaffold somehow fails to compile (rare; usually a CLI bug),
 the create step succeeds but the post-create rebundle fails. The
-scaffold remains on disk; fix the compile error and re-run
-`skmtc bundle`.
+scaffold remains on disk; fix the compile error and run
+`skmtc generate` (or `skmtc bundle`) again.
 
 ## See also
 
 - [`skmtc clone`](clone.md) — for customizing existing JSR generators
 - [`skmtc install`](install.md) — for adding JSR generators unchanged
-- [`skmtc bundle`](bundle.md) — explicit rebundle (triggered after `create`)
+- [`skmtc bundle`](bundle.md) — build the bundle without generating
 - [`skmtc list`](list.md) — verify the generator was added
 - [Projection bases reference](../api/projection-bases.md) — what
   the scaffolded base extends

@@ -132,15 +132,16 @@ internal clone, write a project-local README at
 `.skmtc/<project>/<gen>/README.md` so future maintainers know
 what enrichments exist.
 
-### Rebundle and regenerate
+### Regenerate
 
 ```bash
-skmtc bundle my-project
 skmtc generate my-project
 ```
 
-After bundling, add some test enrichments to `client.json` and
-verify the output reflects them.
+`generate` rebuilds the bundle from your edited source first.
+
+Then add some test enrichments to `client.json` and verify the
+output reflects them.
 
 ## Verification
 
@@ -180,8 +181,9 @@ appear above the declaration.
   (status only, keyed by generator, item and variant; the message is
   in the log) and the run continues. Use `v.optional(...)` for
   everything that can reasonably default.
-- **Changes not visible after edit** — Rebundle. Source-level
-  edits don't reach the worker until you run `skmtc bundle`.
+- **Changes not visible after edit** — Check that you edited the
+  clone the project's `deno.json` points at. `generate` rebuilds the
+  bundle from that source on every run.
 
 ## Forwards compatibility
 

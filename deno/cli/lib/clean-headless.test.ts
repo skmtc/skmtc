@@ -296,3 +296,91 @@ Deno.test('cleanHeadless - spares ejected files and reports modified ones', asyn
     await Deno.remove(tempDir, { recursive: true })
   }
 })
+
+Deno.test('cleanHeadless - builds a bundle only for a drifted file a formatter could explain', async () => {
+  const { writeGeneratedFiles } = await import('@/lib/write-generated-files.ts')
+  const v = await import('valibot')
+  const { manifestContent } = await import('@skmtc/core/Manifest')
+  const { toStubBundle } = await import('@/tests/mocks/read-only-bundle.mock.ts')
+  const { stub } = await import('@std/testing/mock')
+  const { GenerateArtifacts } = await import('@/lib/generate-artifacts.ts')
+
+  // The stub bundle is never loaded: the render fails and clean falls back.
+  const workerStub = stub(GenerateArtifacts, 'generateWithWorker', () =>
+    Promise.reject(new Error('no worker in this test'))
+  )
+  const tempDir = await Deno.makeTempDir()
+  const originalCwd = Deno.cwd()
+  const originalError = console.error
+  console.error = () => {}
+  try {
+    Deno.chdir(tempDir)
+    const skmtcRootPath = join(tempDir, '.skmtc')
+    const manifestPath = join(skmtcRootPath, 'my-api', '.settings', 'manifest.json')
+    const schemaPath = join(tempDir, 'openapi.json')
+    Deno.writeTextFileSync(schemaPath, '{}')
+
+    writeGeneratedFiles({
+      manifestPath,
+      artifacts: { 'src/edited.generated.ts': 'export const edited = 1\n' },
+      manifest: v.parse(manifestContent, {
+        deploymentId: 't',
+        traceId: 't',
+        spanId: 't',
+        files: {
+          'src/edited.generated.ts': {
+            lines: 1,
+            characters: 1,
+            destinationPath: '@/src/edited.generated.ts'
+          }
+        },
+        previews: {},
+        parseIssues: [],
+        results: {},
+        startAt: Date.now(),
+        endAt: Date.now()
+      }),
+      clientSettings: {}
+    })
+    Deno.writeTextFileSync(
+      join(tempDir, 'src/edited.generated.ts'),
+      'export const edited = 1 // mine\n'
+    )
+
+    const builds: string[] = []
+    const buildBundle = () => {
+      builds.push('built')
+      return Promise.resolve(toStubBundle())
+    }
+
+    // No formatter: fresh content could not change the answer, so no build.
+    const withoutFormatter = await cleanHeadless({
+      projectName: 'my-api',
+      dryRun: true,
+      clientSettings: {},
+      schemaSourceString: schemaPath,
+      stackUrl: undefined,
+      buildBundle,
+      skmtcRootPath
+    })
+    assertEquals(withoutFormatter.modified, ['src/edited.generated.ts'])
+    assertEquals(builds, [])
+
+    // With a formatter, the drifted file needs fresh content: one build.
+    await cleanHeadless({
+      projectName: 'my-api',
+      dryRun: true,
+      clientSettings: { formatter: 'cat' },
+      schemaSourceString: schemaPath,
+      stackUrl: undefined,
+      buildBundle,
+      skmtcRootPath
+    })
+    assertEquals(builds, ['built'])
+  } finally {
+    workerStub.restore()
+    console.error = originalError
+    Deno.chdir(originalCwd)
+    await Deno.remove(tempDir, { recursive: true })
+  }
+})

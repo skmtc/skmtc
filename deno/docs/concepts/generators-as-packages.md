@@ -243,7 +243,7 @@ When a generator updates its `@skmtc/core` pin (e.g., from `^0.2.x`
 to `^0.3.x`), every project using the generator needs to:
 
 1. Update its own `@skmtc/core` pin in `deno.json`
-2. Run `skmtc bundle` (if the project has clones) or just `skmtc generate` (otherwise)
+2. Run `skmtc generate` — it rebuilds the bundle against the new pin
 
 The CLI doesn't auto-update peer pins on `skmtc install` or
 `skmtc clone` — that would risk breaking the project's other
@@ -292,14 +292,14 @@ what changed.
    ```json
    { "@skmtc/gen-x": "./gen-x/mod.ts" }
    ```
-4. Triggers a post-clone rebundle (the project's `bundle.js` is
-   updated)
+4. Builds the bundle, to check the cloned generator bundles
 
-After cloning, the source is the user's code. JSR is not consulted
-at generate time; the local `bundle.js` is loaded by the Worker.
+After cloning, the source is the user's code. `generate` builds the
+local `bundle.js` from it and the Worker loads that bundle.
 
-Edits to the cloned source take effect at the next `skmtc bundle`
-(or `skmtc dev`, which auto-rebundles on file changes).
+Edits to the cloned source take effect at the next `skmtc generate`
+(or `skmtc dev`, which regenerates on file changes): each run
+rebuilds the bundle first.
 
 ## Common questions
 

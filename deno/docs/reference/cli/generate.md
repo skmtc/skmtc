@@ -2,7 +2,7 @@
 
 > Run the SKMTC generation pipeline against a schema.
 
-The most-used CLI command. Loads the project's bundle, parses the
+The most-used CLI command. Builds the project's bundle, parses the
 schema, runs every installed generator, writes output files, writes
 the manifest.
 
@@ -116,47 +116,45 @@ The first non-undefined value wins.
 - Neither set in interactive mode → mounts the Ink prompt.
 - Neither set in strict mode → exits 2 with a recipe error.
 
-### Bundle freshness gate (strict mode)
+### The bundle is rebuilt on every run
 
-Before generation, the CLI verifies that `bundle.js` matches the
-current `deno.json#imports`. If they've drifted (e.g., from
-hand-editing `deno.json` outside the CLI), strict-mode `generate`
-refuses with exit 2:
+A local project builds `bundle.js` before every generation, in every
+mode: `generate` writes `worker.ts` from `deno.json#imports`, runs
+`deno bundle` into a temporary file, renames it over `bundle.js`, and
+runs the bundle it just built. So a run always uses the pins in
+`deno.json` and the generator source on disk now, and a command running
+at the same time never loads a half-written bundle. After
+you change a pin or edit a cloned generator, run `skmtc generate`
+again. You do not need `skmtc bundle` first.
 
-```
-Error: bundle.js is out of sync with deno.json — add: @skmtc/gen-X
-```
+The build takes about 0.3 seconds with a warm Deno cache. The first
+build after a pin change takes longer while Deno downloads the new
+packages.
 
-Remediation: `skmtc bundle <project>` then re-run.
-
-Interactive mode skips the gate; bundling issues surface at runtime
-instead.
+If the build fails, `generate` exits 1 with the `deno bundle` error
+and writes no files. The previous `bundle.js` stays on disk, but no
+command runs it. Remote generation (`client.json#serverUrl`)
+runs on the stack server and builds nothing locally.
 
 ### One copy of `@skmtc/core`
 
-`skmtc bundle` refuses a module graph with two copies of
-`@skmtc/core` or of a `@skmtc/lang-*` package (see
-[bundle reference](bundle.md#one-copy-of-skmtccore)). A `bundle.js`
-built before that check, or by an older CLI, can still hold two.
-Generation from it would write empty files and exit 0, so before
-generating, in every mode, `generate` reads the copies from the
-`bundle.js` it is about to run and refuses with exit 1 when there are
-two:
+Before it bundles, the build checks the module graph of `worker.ts`
+for more than one copy of `@skmtc/core` or of a `@skmtc/lang-*`
+package. A graph it can't read is refused too, since nothing checks
+the bundle afterwards. Generation with two copies would write empty files and exit
+0, so `generate` refuses with exit 1 and names the packages that
+import each copy:
 
 ```
-Error: The bundle.js of project "api" holds more than one copy of @skmtc/core:
-  @skmtc/core 0.28.7
-  @skmtc/core 0.29.0
+Error: Project "api" resolves more than one copy of @skmtc/core:
+  @skmtc/core 0.1.0 ← @skmtc/worker@0.1.0
+  @skmtc/core 0.2.0 ← @skmtc/gen-a@0.2.0
 ```
 
-`deno bundle` marks each module with its path, so the check reads the
-file only: no network, no lockfile. A copy loaded from a local
-directory carries no version in its path, so only `bundle` catches
-that case. Run `skmtc bundle <project>` to rebuild; it names the
-packages that import each copy. Remote generation
-(`client.json#serverUrl`) skips the check. `generate --debug` runs
-`worker.ts` source, not `bundle.js`, so it checks the module graph
-the way `bundle` does.
+Change the pins in the project's `deno.json` so that the listed
+packages agree, then run `skmtc generate` again. `skmtc bundle` and
+`generate --debug` run the same check (see
+[bundle reference](bundle.md#one-copy-of-skmtccore)).
 
 ### Worker spawn and protocol
 
@@ -343,8 +341,8 @@ No schema argument needed.
 | Code | Meaning |
 |---|---|
 | `0` | Success — no fatal parse issues, typecheck (if requested) passed |
-| `1` | Fatal parseIssue at level `error`, OR `--typecheck` returned `type: "failed"`, OR worker error, OR the `bundle.js` about to run (with `--debug`, the module graph) holds more than one copy of `@skmtc/core` or a `@skmtc/lang-*` package |
-| `2` | Required argument missing (recipe error on stderr), OR `--json` and `--watch` both passed, OR bundle freshness gate triggered |
+| `1` | Fatal parseIssue at level `error`, OR `--typecheck` returned `type: "failed"`, OR worker error, OR the bundle build failed, OR the module graph holds more than one copy of `@skmtc/core` or a `@skmtc/lang-*` package |
+| `2` | Required argument missing (recipe error on stderr), OR `--json` and `--watch` both passed |
 
 ## Worker-side failures
 
@@ -360,7 +358,7 @@ exists and the operator can inspect `parseIssues` for the cause.
 
 ## See also
 
-- [`skmtc bundle`](bundle.md) — required if you've hand-edited `deno.json`
+- [`skmtc bundle`](bundle.md) — build the bundle without generating
 - [`skmtc dev`](dev.md) — watch-mode for generator source changes
 - [`skmtc doctor`](doctor.md) — diagnose setup before generating
 - [manifest format](../manifest-format.md) — what the run produced

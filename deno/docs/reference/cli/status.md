@@ -14,15 +14,20 @@ informational: generated files are engine-owned, so `generate` never
 consults it — a `modified` file is a heads-up that the next generate
 will overwrite those edits, not a protection.
 
-`status` resolves the configured schema and renders fresh content on
-demand — the same schema-resolution + worker invocation `generate`
-uses — to disambiguate a formatter-config change from a hand edit, and
-to classify ejected files against what the generator would currently
-produce. When the schema can't be reached (none configured, unreachable
-source, no bundle yet), it degrades to lock-hash-only comparison
-instead of failing: safe to run any time, including CI, offline, or
-before a project has ever been generated. It never contacts JSR and
-never rebundles.
+`status` resolves the configured schema, builds the project's bundle
+and renders fresh content on demand — the same schema resolution and
+worker invocation `generate` uses — to disambiguate a formatter-config
+change from a hand edit, and to classify ejected files against what the
+generator would currently produce. It builds the bundle it renders with in a temporary directory, from the
+project's `deno.json` and `deno.lock` as they are (`deno bundle
+--frozen`), so it writes nothing to the project. The build downloads a
+pinned package only when the Deno cache lacks it, and gives up after
+20 seconds. When the schema
+can't be reached (none configured, unreachable source) or the bundle
+can't be built that way (pins changed since the last `generate`, a
+missing `@skmtc/worker` pin, a build timeout), it degrades to
+lock-hash-only comparison instead of failing: safe to run any time,
+including CI, offline, or before a project has ever been generated.
 
 ## Synopsis
 
@@ -122,7 +127,7 @@ on the next generate.
   `sh -c`, one adjacent hidden temp file per suspect file); with no
   formatter configured, comparison is raw content hashes only.
 - When no schema is configured, the schema source is unreachable, or
-  the project has no `bundle.js` yet, `status` degrades to comparing
+  the read-only bundle build fails, `status` degrades to comparing
   the lock's recorded hashes only — formatter-drift resolution and
   ejected-file sub-state are unavailable for that run, but `modified`
   detection for ordinary edits still works.

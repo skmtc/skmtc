@@ -8,7 +8,7 @@ generator's entry from `deno.json#imports` and, when the entry
 pointed at a local path (a clone or a local-create), deletes the
 source directory under `.skmtc/<project>/<generator>/`. `remove`
 does **not** rebundle and does **not** update the Deno lockfile —
-the next `bundle` or `generate` invocation is responsible for those.
+the next `generate` rebuilds the bundle and updates the lockfile.
 
 ## Synopsis
 
@@ -87,10 +87,9 @@ delete — only the import entry is removed.
 
 ### `remove` does not rebundle
 
-`remove` does not invoke `bundle`. If you removed a local generator
-and the project still has other locals, the existing `bundle.js`
-becomes stale — run `skmtc bundle <project>` (or rely on the next
-`generate`'s freshness check) to rebuild.
+`remove` does not invoke `bundle`. The existing `bundle.js` still
+holds the removed generator, but nothing runs it: the next
+`skmtc generate` rebuilds the bundle without it.
 
 ### Cascading dependencies
 
@@ -134,9 +133,8 @@ on `.skmtc/<project>/<generator>/`.
 skmtc remove my-api @skmtc/gen-zod
 ```
 
-Removes the import entry. Rebuild the bundle (`skmtc bundle my-api`)
-before the next generate so the removed generator drops out of
-`bundle.js` — strict-mode `generate` refuses on the drift otherwise.
+Removes the import entry. The next `skmtc generate my-api` rebuilds
+`bundle.js` without the removed generator.
 
 ### Remove a local generator (with source deletion)
 
@@ -145,9 +143,8 @@ skmtc remove my-api @dgrabov/my-form --json
 ```
 
 Strict mode. Removes the import entry from `deno.json#imports` and
-deletes `.skmtc/my-api/my-form/`. No rebundle is performed — run
-`skmtc bundle my-api` afterwards if you want the existing
-`bundle.js` refreshed.
+deletes `.skmtc/my-api/my-form/`. No rebundle is performed; the next
+`skmtc generate my-api` rebuilds `bundle.js`.
 
 ### Scripted batch removal
 
@@ -177,14 +174,6 @@ Error: generator '@skmtc/gen-foo' not in project 'my-api'
 
 The import key doesn't match anything in `deno.json#imports`. Run
 `skmtc list my-api` to see what's actually installed.
-
-### Stale bundle after removal
-
-`remove` itself does not rebundle. If you removed a local generator,
-the project's `bundle.js` no longer reflects the source tree. The
-next `bundle` or `generate` will pick up the change; until then, a
-direct `generate` run uses the stale bundle and may still produce
-artifacts from the removed generator.
 
 ### Source-directory delete failure
 
@@ -216,7 +205,5 @@ but the source files remain. Inspect the directory manually.
 - [`skmtc create`](create.md) — the inverse for local-created
   generators
 - [`skmtc list`](list.md) — verify what's installed before/after
-- [`skmtc bundle`](bundle.md) — rebuild `bundle.js` after removing
-  a local generator
 - [Clone vs install concept](../../concepts/clone-vs-install.md) —
   context for the three source kinds

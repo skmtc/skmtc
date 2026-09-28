@@ -1,6 +1,5 @@
 import type { Project } from '@/lib/project.ts'
 import { toSchemaContents } from '@/lib/to-schema-contents.ts'
-import { toBundlePath } from '@/lib/to-bundle-path.ts'
 import { describeWithWorker, type DescribeResponse } from '@/lib/describe-worker.ts'
 
 /** Describe result plus the project it was computed for. */
@@ -12,6 +11,8 @@ type DescribeHeadlessArgs = {
   project: Project
   /** Explicit schema override; falls back to `client.json#source`. */
   schemaSourceString: string | undefined
+  /** URL of the `bundle.js` the caller has just built (see `createBundle`). */
+  bundlePath: string
 }
 
 /**
@@ -20,12 +21,13 @@ type DescribeHeadlessArgs = {
  * descriptors, and enrichment defaults — the metadata a preview rail
  * needs, in the same shapes the hub runner produces.
  *
- * The caller is responsible for validating that the bundle exists and a
- * schema source is present (see `commands/describe.ts`).
+ * The caller builds the bundle and validates that a schema source is
+ * present (see `commands/describe.ts`).
  */
 export const describeHeadless = async ({
   project,
-  schemaSourceString
+  schemaSourceString,
+  bundlePath
 }: DescribeHeadlessArgs): Promise<DescribeResult> => {
   const source = schemaSourceString ?? project.clientJson.contents?.source ?? ''
   const schemaContents = await toSchemaContents(source)
@@ -34,7 +36,7 @@ export const describeHeadless = async ({
     schemaContents: schemaContents.contents,
     fileType: schemaContents.fileType,
     clientSettings: project.clientJson.contents?.settings,
-    bundlePath: toBundlePath(project.toPath())
+    bundlePath
   })
 
   return { projectName: project.name, ...result }

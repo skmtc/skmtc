@@ -6,6 +6,7 @@ import { manifestContent, type ManifestContent } from '@skmtc/core/Manifest'
 import { writeGeneratedFiles } from '@/lib/write-generated-files.ts'
 import { toGeneratedLockPath } from '@/lib/generated-lock.ts'
 import { statusHeadless } from '@/lib/status-headless.ts'
+import { type StubBundle, toStubBundle } from '@/tests/mocks/read-only-bundle.mock.ts'
 import { GenerateArtifacts } from '@/lib/generate-artifacts.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
 
@@ -58,25 +59,24 @@ const silenced = async (body: () => Promise<void> | void): Promise<void> => {
 
 /**
  * Makes `resolveFreshArtifacts` (called internally by `statusHeadless`)
- * take the engine-reachable path: seeds a real local schema file + a
- * dummy `bundle.js` (so the reachability gate passes), and stubs
- * `GenerateArtifacts.generateWithWorker` to return canned `artifacts`
- * instead of spawning a real worker. `body` receives the schema path to
- * pass as `schemaSourceString`.
+ * take the engine-reachable path: seeds a real local schema file, and
+ * stubs `GenerateArtifacts.generateWithWorker` to return canned
+ * `artifacts` instead of spawning a real worker. `body` receives the
+ * schema path to pass as `schemaSourceString`, and a `buildBundle` that
+ * stands in for the build.
  */
 const withStubbedEngine = async <T>(
   { projectPath, artifacts }: { projectPath: string; artifacts: Record<string, string> },
-  body: (schemaSourceString: string) => Promise<T>
+  body: (schemaSourceString: string, buildBundle: () => Promise<StubBundle>) => Promise<T>
 ): Promise<T> => {
   Deno.mkdirSync(projectPath, { recursive: true })
   const schemaPath = join(projectPath, 'openapi.json')
   Deno.writeTextFileSync(schemaPath, '{}')
-  Deno.writeTextFileSync(join(projectPath, 'bundle.js'), '')
 
   const response: GenerateResponse = { artifacts, manifest: toManifest(Object.keys(artifacts)) }
   const generateStub = stub(GenerateArtifacts, 'generateWithWorker', () => Promise.resolve(response))
   try {
-    return await body(schemaPath)
+    return await body(schemaPath, () => Promise.resolve(toStubBundle()))
   } finally {
     generateStub.restore()
   }
@@ -273,12 +273,13 @@ Deno.test('statusHeadless - with the schema reachable, formatter drift still rea
 
       const result = await withStubbedEngine(
         { projectPath, artifacts: { 'src/out.ts': canonical } },
-        schemaSourceString =>
+        (schemaSourceString, buildBundle) =>
           statusHeadless({
             projectName: 'my-api',
             clientSettings: { formatter: 'deno fmt --options-single-quote' },
             schemaSourceString,
             stackUrl: undefined,
+            buildBundle,
             skmtcRootPath
           })
       )
@@ -356,12 +357,13 @@ Deno.test('statusHeadless - ejected files report their live state against fresh 
 
       const result = await withStubbedEngine(
         { projectPath, artifacts: { 'src/owned.ts': 'export const owned = 2\n' } },
-        schemaSourceString =>
+        (schemaSourceString, buildBundle) =>
           statusHeadless({
             projectName: 'my-api',
             clientSettings,
             schemaSourceString,
             stackUrl: undefined,
+            buildBundle,
             skmtcRootPath
           })
       )
@@ -404,12 +406,13 @@ Deno.test('statusHeadless - stale ejections stay out of orphaned and keep --chec
 
       const result = await withStubbedEngine(
         { projectPath, artifacts: { 'src/other.generated.ts': 'export const other = 1\n' } },
-        schemaSourceString =>
+        (schemaSourceString, buildBundle) =>
           statusHeadless({
             projectName: 'my-api',
             clientSettings,
             schemaSourceString,
             stackUrl: undefined,
+            buildBundle,
             skmtcRootPath
           })
       )

@@ -210,15 +210,6 @@ slowing Worker spawn.
 the size has to come from `stat`/`wc -c` against the path. If the bundle is
 unreasonably large, remove unused generators.
 
-### Stale-bundle warnings
-
-After editing a cloned generator's source, the `bundle.js` is
-stale until `skmtc bundle` runs. `skmtc generate` would use the
-old bundle, producing pre-edit output.
-
-**Mitigation:** `skmtc doctor` flags stale bundles. Users should
-re-bundle after generator-source edits.
-
 ## On the roadmap
 
 These are speculative; treat them as direction-of-travel, not

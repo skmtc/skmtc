@@ -178,7 +178,7 @@ Where the exception text lives, by failure phase:
 
 | Phase that failed | Where the message and stack appear |
 |---|---|
-| **Bundle** (`skmtc bundle`, or the implicit rebundle inside `clone` / `install` / `dev`) | `.skmtc/<project>/.settings/error-logs.txt`. The CLI's `GenerateBundleTask` writes the `deno bundle` subprocess stderr there on every bundle run |
+| **Bundle** (the build at the start of `generate`, `skmtc bundle`, or the build inside `clone` / `install` / `dev`) | `.skmtc/<project>/.settings/error-logs.txt`. The CLI writes the `deno bundle` subprocess stderr there on every build |
 | **Generate** (`skmtc generate` / `skmtc dev` re-run) | Live stderr of the invocation only. The host does not persist generate-time worker errors to disk |
 | **Hosted Sandbox API run** | `skmtc workspaces runtime-logs <project>` fetches them from the service using `manifest.spanId` |
 

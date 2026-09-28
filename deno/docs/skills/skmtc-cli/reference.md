@@ -353,7 +353,7 @@ work:
 | Add a config flag to customize a stock generator | Use `skmtc clone` and edit the source |
 | Run Prettier in the pipeline | Don't — produce valid TS; consumer formats separately |
 | Restart from scratch when something's off | Run `skmtc doctor --json` first; targeted fix beats nuke-and-pave |
-| Manually edit `bundle.js` or `worker.ts` | They're derived; run `skmtc bundle` to regenerate |
+| Manually edit `bundle.js` or `worker.ts` | They're derived; `skmtc generate` rebuilds both on every run |
 | Mock the database in tests | Use real Supabase / real DB (project convention) |
 | Use `process.env.X` | Use `Deno.env.get('X')` — Deno codebase |
 | Use `skmtc deploy` to put a stack on the hub | The command is `skmtc publish` — `deploy` no longer exists. Stacks are published as immutable semver versions (`POST /v1/stacks/{account}/{stack}/versions`); there is no deploymentId/shortId/production alias in the CLI. Deployments and the `production` alias belong to hub *projects*, driven from the web app. |
@@ -423,8 +423,7 @@ reasoning about a specific check without running it.
 | `project-deno-json/<project>` | `deno.json` exists and parses |
 | `project-base-path/<project>` | `client.json#settings.basePath` present and relative |
 | `project-core-pin/<project>` | Project's `@skmtc/core` pin matches the CLI's major.minor |
-| `project-package-copies/<project>` | One copy of `@skmtc/core` and of each `@skmtc/lang-*` in the `worker.ts` module graph (`deno info --frozen`, never writes the lock) and in `bundle.js`; `error` names each copy and, from the graph, the packages that import it — two copies generate empty files, so `bundle` refuses the graph and `generate` refuses the `bundle.js`; `skipped` for `serverUrl` projects; `--offline` reads `bundle.js` only |
-| `project-bundle/<project>` | `bundle.js` exists — every project (remote-only included) generates from it; warning with a `skmtc bundle` hint when missing |
+| `project-package-copies/<project>` | One copy of `@skmtc/core` and of each `@skmtc/lang-*` in the `worker.ts` module graph (`deno info --frozen`, never writes the lock); `error` names each copy and the packages that import it — two copies generate empty files, so `generate` and `bundle` refuse to build the graph; `skipped` for `serverUrl` projects, with `--offline`, or when the graph can't be read (e.g. a pin edit no build has locked yet) |
 | `project-enrichments/<project>` | Last generate's `manifest.enrichmentWarnings` has no `warning`-level entries — dead enrichment config (typo'd generator id, path, method or model name) surfaces here between runs; `info` entries keep it `ok` |
 | `project-worker-pin/<project>` | If `worker.ts` exists, `@skmtc/worker` is pinned (the generated worker imports it); ok-noop before the first bundle |
 | `project-manifest/<project>` | `manifest.json` matches the current `@skmtc/core` schema |

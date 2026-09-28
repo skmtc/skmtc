@@ -7,6 +7,7 @@ import { createMockSkmtcRoot } from '@/tests/mocks/skmtc-root.mock.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { createMockProject } from '@/tests/mocks/project.mock.ts'
 import { mockClientJsonContents } from '@/tests/fixtures/client-json.fixture.ts'
+import { toStubBundle } from '@/tests/mocks/read-only-bundle.mock.ts'
 
 const captureLogs = (fn: () => void): string[] => {
   const logs: string[] = []
@@ -158,25 +159,33 @@ Deno.test('renderDescribe - unknown project fails with a recipe (exit 2)', async
   assertStringIncludes(errors.join('\n'), 'missing required argument: <project>')
 })
 
-Deno.test('renderDescribe - existing project without a bundle exits 1 with a build hint', async () => {
-  // The mock project's path has no bundle.js on disk, so describe hits
-  // the precondition guard: a missing bundle is a build error (exit 1),
-  // not a bad-argument recipe error (exit 2).
+Deno.test('renderDescribe - a failed bundle build exits 1 with the build error', async () => {
+  // A build failure is a precondition failure (exit 1), not a
+  // bad-argument recipe error (exit 2).
   const manager = createMockManager()
   const project = createMockProject(manager, { name: 'my-api' })
+  project.clientJson.contents = {
+    settings: mockClientJsonContents.settings,
+    source: './openapi.json'
+  }
   const skmtcRoot = createMockSkmtcRoot(manager, { projects: [project] })
 
   const { errors, exitCode } = await withCapturedExit(async () => {
-    await renderDescribe({ projectName: 'my-api', skmtcRoot })
+    await renderDescribe({
+      projectName: 'my-api',
+      skmtcRoot,
+      buildBundleFn: () => Promise.reject(new Error('Project "my-api" resolves more than one copy'))
+    })
   })
 
   assertEquals(exitCode, 1)
-  assertStringIncludes(errors.join('\n'), 'skmtc bundle my-api')
+  const joined = errors.join('\n')
+  assertStringIncludes(joined, 'could not build the bundle for "my-api"')
+  assertStringIncludes(joined, 'resolves more than one copy')
 })
 
-Deno.test('renderDescribe - bundle present but no schema source fails with a recipe (exit 2)', async () => {
+Deno.test('renderDescribe - no schema source fails with a recipe (exit 2)', async () => {
   const tempDir = await Deno.makeTempDir()
-  await Deno.writeTextFile(join(tempDir, 'bundle.js'), '')
   try {
     const manager = createMockManager()
     const project = createMockProject(manager, { name: 'my-api' })
@@ -200,9 +209,6 @@ Deno.test('renderDescribe - bundle present but no schema source fails with a rec
 
 Deno.test('renderDescribe - happy path prints the result and exits 0', async () => {
   const tempDir = await Deno.makeTempDir()
-  // An empty bundle.js satisfies the existence precondition; the mocked
-  // Worker means it is never actually executed.
-  await Deno.writeTextFile(join(tempDir, 'bundle.js'), '')
   const schemaPath = join(tempDir, 'openapi.json')
   await Deno.writeTextFile(
     schemaPath,
@@ -222,12 +228,21 @@ Deno.test('renderDescribe - happy path prints the result and exits 0', async () 
     project.clientJson.contents = { settings: mockClientJsonContents.settings, source: schemaPath }
     const skmtcRoot = createMockSkmtcRoot(manager, { projects: [project] })
 
+    // The mocked Worker never loads the bundle.
+    const bundle = toStubBundle()
+
     const { exitCode } = await withCapturedExit(async () => {
-      await renderDescribe({ projectName: 'my-api', skmtcRoot })
+      await renderDescribe({
+        projectName: 'my-api',
+        skmtcRoot,
+        buildBundleFn: () => Promise.resolve(bundle)
+      })
     })
 
     assertEquals(exitCode, 0)
     assertStringIncludes(logs.join('\n'), 'describe "my-api"')
+    // The temporary bundle is deleted before describe exits.
+    assertEquals(bundle.disposed(), true)
   } finally {
     console.log = originalLog
     globalThis.Worker = OriginalWorker
@@ -235,9 +250,8 @@ Deno.test('renderDescribe - happy path prints the result and exits 0', async () 
   }
 })
 
-Deno.test('renderDescribe - worker failure is caught and exits 1 with a rebundle hint', async () => {
+Deno.test('renderDescribe - worker failure is caught and exits 1 with a pin hint', async () => {
   const tempDir = await Deno.makeTempDir()
-  await Deno.writeTextFile(join(tempDir, 'bundle.js'), '')
   const schemaPath = join(tempDir, 'openapi.json')
   await Deno.writeTextFile(
     schemaPath,
@@ -245,7 +259,7 @@ Deno.test('renderDescribe - worker failure is caught and exits 1 with a rebundle
   )
 
   // A core-version skew surfaces as a worker ERROR; renderDescribe must
-  // turn that into a clean exit 1 with a rebundle hint, not an uncaught
+  // turn that into a clean exit 1 with a pin hint, not an uncaught
   // rejection.
   installSequencedWorker({ type: 'ERROR', error: 'toSupportedSubjects is not a function' })
 
@@ -256,14 +270,21 @@ Deno.test('renderDescribe - worker failure is caught and exits 1 with a rebundle
     project.clientJson.contents = { settings: mockClientJsonContents.settings, source: schemaPath }
     const skmtcRoot = createMockSkmtcRoot(manager, { projects: [project] })
 
+    const bundle = toStubBundle()
+
     const { errors, exitCode } = await withCapturedExit(async () => {
-      await renderDescribe({ projectName: 'my-api', skmtcRoot })
+      await renderDescribe({
+        projectName: 'my-api',
+        skmtcRoot,
+        buildBundleFn: () => Promise.resolve(bundle)
+      })
     })
 
     assertEquals(exitCode, 1)
+    assertEquals(bundle.disposed(), true)
     const joined = errors.join('\n')
     assertStringIncludes(joined, 'describe failed for "my-api"')
-    assertStringIncludes(joined, 'skmtc bundle my-api')
+    assertStringIncludes(joined, 'align the @skmtc/core pins')
   } finally {
     globalThis.Worker = OriginalWorker
     await Deno.remove(tempDir, { recursive: true })

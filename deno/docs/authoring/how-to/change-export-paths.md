@@ -83,12 +83,13 @@ toExportPath: ({ operation, enrichments }) => {
 
 Users now set per-operation path overrides in `client.json`.
 
-### Rebundle and regenerate
+### Regenerate
 
 ```bash
-skmtc bundle my-project
 skmtc generate my-project
 ```
+
+`generate` rebuilds the bundle from your edited source first.
 
 Output appears at the new paths. Old files at the old paths
 persist — `skmtc generate` doesn't delete (see [how to update a
@@ -107,9 +108,9 @@ schema) follow automatically — they discover the path via
 
 ## Troubleshooting
 
-- **Other generators register imports to the OLD path.** They're
-  reading from a stale bundle. Run `skmtc bundle my-project`
-  again. `skmtc doctor` flags stale bundles.
+- **Other generators register imports to the OLD path.** They
+  hardcode the path instead of reading `insertModel`'s return value.
+  Clone them and use the returned path.
 - **Same path produced for multiple schemas.** Your
   `toExportPath` lost uniqueness. Driver-path inserts (the usual
   case via `insertModel` / `insertOperation`) detect the mismatch

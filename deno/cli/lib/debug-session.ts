@@ -1,5 +1,8 @@
 import { join } from '@std/path/join'
+import { rootDenoJson } from '@skmtc/core/DenoJson'
 import { toDependencyAgeArgs } from '@/lib/dependency-age.ts'
+import { toGraphRefusal } from '@/lib/duplicate-packages.ts'
+import { parseOrExplain } from '@/lib/parse-or-explain.ts'
 
 type RunDebugSessionArgs = {
   /** Absolute path to the project dir (`.skmtc/<project>`). */
@@ -81,6 +84,45 @@ if (inspectionPath) {
   console.error('Inspection snapshot: ' + inspectionFiles + ' file(s) -> ' + inspectionPath)
 }
 `
+
+type ToDebugGraphRefusalArgs = {
+  projectName: string
+  /** Absolute path to the project dir (`.skmtc/<project>`). */
+  projectPath: string
+}
+
+/**
+ * The refusal for a debug run whose module graph holds two copies, or
+ * `undefined` when it holds one. The harness imports its generators
+ * dynamically, which `deno info` can't follow, so the check resolves a
+ * temporary `worker.ts` that imports the same modules statically:
+ * `@skmtc/core` and each `@skmtc/gen-*` key. The project's own
+ * `worker.ts` is not needed.
+ */
+export const toDebugGraphRefusal = async ({
+  projectName,
+  projectPath
+}: ToDebugGraphRefusalArgs): Promise<string | undefined> => {
+  const denoJsonPath = join(projectPath, 'deno.json')
+  const { imports } = parseOrExplain(
+    rootDenoJson,
+    JSON.parse(await Deno.readTextFile(denoJsonPath)),
+    `deno.json at ${denoJsonPath}`
+  )
+  const generatorKeys = Object.keys(imports ?? {}).filter(key => key.startsWith('@skmtc/gen-'))
+
+  const directory = await Deno.makeTempDir({ prefix: 'skmtc-debug-' })
+  try {
+    const entryPath = join(directory, 'worker.ts')
+    await Deno.writeTextFile(
+      entryPath,
+      ['@skmtc/core', ...generatorKeys].map(key => `import '${key}'\n`).join('')
+    )
+    return await toGraphRefusal({ projectName, projectPath, options: { entryPath } })
+  } finally {
+    await Deno.remove(directory, { recursive: true })
+  }
+}
 
 /**
  * Run a debuggable generation.

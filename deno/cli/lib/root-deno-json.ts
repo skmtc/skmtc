@@ -40,9 +40,7 @@ export class RootDenoJson {
   }
 
   toGeneratorIds() {
-    return Object.keys(this.contents.imports ?? {}).filter(item => {
-      return parseModuleName(item).packageName.startsWith('gen-')
-    })
+    return toGeneratorIds(this.contents.imports)
   }
 
   static async open(projectName: string, manager: Manager): Promise<RootDenoJson> {
@@ -120,3 +118,7 @@ export class RootDenoJson {
     await writeFileSafeDir(path, content)
   }
 }
+
+/** The generator ids among a project's `deno.json#imports` keys. */
+export const toGeneratorIds = (imports: Record<string, string> | undefined): string[] =>
+  Object.keys(imports ?? {}).filter(item => parseModuleName(item).packageName.startsWith('gen-'))

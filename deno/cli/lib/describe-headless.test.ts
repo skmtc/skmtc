@@ -78,7 +78,11 @@ Deno.test('describeHeadless - resolves client.json#source, feeds it to the worke
       source: schemaPath
     }
 
-    const result = await describeHeadless({ project, schemaSourceString: undefined })
+    const result = await describeHeadless({
+      project,
+      schemaSourceString: undefined,
+      bundlePath: 'file:///mock/bundle.js'
+    })
 
     // The worker's response is stamped with the project it ran for.
     assertEquals(result.projectName, 'my-api')

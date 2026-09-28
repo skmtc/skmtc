@@ -3,8 +3,10 @@
 > Compile the project's local generators into `bundle.js`.
 
 Regenerates `worker.ts` from `deno.json#imports`, then runs
-`deno bundle worker.ts -o bundle.js`. The resulting `bundle.js` is
-what the SKMTC Worker loads at generate time.
+`deno bundle worker.ts -o bundle.js`. `skmtc generate` runs the same
+build before every generation, so you do not need to run `bundle`
+before `generate`. Use `bundle` to check that a project builds
+without generating.
 
 Every project builds a local bundle — remote-only (all generators
 installed from JSR) and hybrid (some cloned) alike. `deno bundle`
@@ -82,9 +84,9 @@ package is a second copy. `import type` imports don't count, because
 `deno bundle` erases them.
 
 When the graph holds two copies, `bundle` exits 1 with a message that
-names each copy and the packages that import it. It leaves the
-previous `bundle.js` and `worker.ts` in place, so `generate` still
-reports that bundle as out of date:
+names each copy and the packages that import it. The build also
+refuses a graph that `deno info` can't read, because nothing checks the
+bundle it would produce:
 
 ```
 Project "api" resolves more than one copy of @skmtc/core:
@@ -94,12 +96,16 @@ Project "api" resolves more than one copy of @skmtc/core:
 
 `worker.ts` imports `@skmtc/core`, so it marks the copy the project's
 own pin resolves to. Change the pins in the project's `deno.json` so
-that those packages agree, then run `skmtc bundle <project>` again.
+that those packages agree, then run the command again. `skmtc generate`
+runs the same check before every generation.
 
 ### Bundle output
 
-If successful, `<project>/bundle.js` is overwritten with the new
-compiled JS. The bundle includes:
+`deno bundle` writes to a temporary file under `.settings/`, which is
+renamed over `<project>/bundle.js` only when the build succeeds, so a
+command running at the same time never loads a missing or half-written
+bundle. A failed build leaves the previous `bundle.js` in place; no
+command runs it. The bundle includes:
 
 - The `@skmtc/worker` runtime
 - The `@skmtc/core` engine
@@ -111,7 +117,8 @@ the number of generators.
 
 ### Logs
 
-Two log files are appended (not overwritten) per bundle:
+Each build replaces two log files, so they hold the output of the last
+build only:
 
 ```
 .skmtc/<project>/.settings/logs.txt        ← stdout from deno bundle
@@ -160,29 +167,14 @@ skmtc bundle my-api --json | jq '.type'
 
 ## When to run bundle explicitly
 
-The CLI runs `bundle` automatically after `skmtc clone` and after
-`skmtc install`. So in normal workflows, manual `bundle` is rarely
-needed.
+Rarely. `skmtc generate` and `skmtc dev` build the bundle before they
+run it, `skmtc describe`, `skmtc status` and `skmtc clean` build their
+own copy in a temporary directory, and `skmtc clone` and `skmtc install`
+build it to check the new generator. Nothing runs a `bundle.js` that it
+did not build in the same command.
 
-Explicit bundle is useful when:
-
-- **You hand-edited `deno.json`** to change a generator pin or path
-  without going through the CLI. The auto-rebundle didn't run.
-- **You hand-edited a cloned generator's source.** The watch loop
-  (`skmtc dev`) is the better answer, but if you don't want a
-  watch, `skmtc bundle` rebuilds once.
-- **CI setup.** Pre-warming the bundle before running `generate` —
-  though `generate` will trigger a freshness check anyway.
-
-## Bundle freshness gate
-
-Strict-mode `generate` checks that the on-disk `bundle.js` matches
-the current `deno.json#imports`. If they've drifted, `generate`
-refuses with a recipe error pointing at `skmtc bundle`. See
-[generate reference](generate.md#bundle-freshness-gate-strict-mode).
-
-The `skmtc doctor` command surfaces freshness as
-`project-bundle/<project>`.
+Run `bundle` explicitly to check that a project builds, for example
+after you change a pin, without generating any files.
 
 ## Exit codes
 
@@ -203,7 +195,7 @@ error: No matching export … for import "SnippetBase"
 The cloned generator's `@skmtc/core` peer doesn't match the
 project's pin. Run `skmtc doctor --json` and look at the
 `project-core-pin/<project>` check. Fix the pin in `deno.json`, then
-re-run bundle.
+run the command again.
 
 ### Missing transitive peer
 
@@ -216,9 +208,9 @@ A peer dep declared by the cloned generator isn't in the project's
 
 ## See also
 
-- [`skmtc clone`](clone.md) — auto-rebundles after clone
-- [`skmtc install`](install.md) — auto-rebundles for hybrid projects
+- [`skmtc clone`](clone.md) — builds the bundle after clone
+- [`skmtc install`](install.md) — builds the bundle after install
 - [`skmtc dev`](dev.md) — bundle + regenerate on file changes
-- [`skmtc generate`](generate.md) — uses the bundle at run time
+- [`skmtc generate`](generate.md) — builds the bundle, then runs it
 - [the-worker-runtime concept](../../concepts/the-worker-runtime.md) — what the bundle is for
 - [generators-as-packages concept](../../concepts/generators-as-packages.md) — the package structure

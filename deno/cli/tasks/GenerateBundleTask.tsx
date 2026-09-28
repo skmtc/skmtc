@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useTask } from '@/components/TaskContext.tsx'
+import { tasksToState, useTask } from '@/components/TaskContext.tsx'
+import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import type { Project } from '@/lib/project.ts'
 import { createBundle } from '@/lib/create-bundle.ts'
 import { TaskBox } from '../components/TaskBox.tsx'
@@ -17,7 +18,8 @@ type GenerateBundleTaskProps = {
 }
 
 export const GenerateBundleTask = ({ project }: GenerateBundleTaskProps) => {
-  const { dispatch: taskDispatch } = useTask()
+  const { dispatchMessage } = useSkmtc()
+  const { state: taskState, dispatch: taskDispatch, leave } = useTask()
   const [done, setDone] = useState(false)
 
   useEffect(() => {
@@ -32,7 +34,13 @@ export const GenerateBundleTask = ({ project }: GenerateBundleTaskProps) => {
       taskDispatch({ type: 'increment-current-task' })
     }
 
-    run()
+    // A refused or failed build ends the run with its message and exit 1,
+    // as the headless path does.
+    run().catch(error => {
+      Deno.exitCode = 1
+      dispatchMessage({ error: error instanceof Error ? error.message : String(error) })
+      leave({ state: tasksToState(taskState.tasks) })
+    })
   }, [])
 
   if (done) {

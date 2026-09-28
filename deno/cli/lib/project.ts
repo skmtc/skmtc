@@ -12,8 +12,7 @@ import { join } from '@std/path/join'
 import { Manifest } from '@/lib/manifest.ts'
 import type { Generator as GeneratorType } from '@/types/generator.ts'
 import { toServer } from './to-server.ts'
-import { toWorker } from './to-worker.ts'
-import { ensureWorkerDeps } from './ensure-worker-deps.ts'
+import { writeWorker } from '@/lib/bundle-project.ts'
 import { ensureServerDeps } from './ensure-server-deps.ts'
 import { SKMTC_IGNORE_FILE, SKMTCIGNORE_TEMPLATE } from '@/lib/source-upload.ts'
 
@@ -199,25 +198,7 @@ export class Project {
   }
 
   async createWorker() {
-    const mod = toWorker(this.toGeneratorIds())
-
-    const path = this.toPath()
-
-    const modPath = join(path, 'worker.ts')
-
-    await Deno.mkdir(path, { recursive: true })
-
-    await Deno.writeTextFile(modPath, mod)
-
-    // worker.ts imports `@skmtc/worker` and `@skmtc/core` — neither is
-    // added by the clone import-collector (worker.ts is CLI-generated,
-    // not part of any cloned package). Ensure both are pinned, then
-    // persist so the `deno bundle` subprocess reads the updated import map.
-    if (ensureWorkerDeps(this.rootDenoJson)) {
-      await this.rootDenoJson.write()
-    }
-
-    return modPath
+    return await writeWorker({ projectPath: this.toPath(), rootDenoJson: this.rootDenoJson })
   }
 
   async installGenerator({ moduleName }: InstallGeneratorArgs) {

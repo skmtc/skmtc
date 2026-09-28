@@ -82,10 +82,11 @@ the shape, then type the keys into
 
 ### Post-install rebundle
 
-The CLI automatically rebundles after the install — remote-only and
-hybrid projects alike. This ensures the project-local `bundle.js`
-(the artifact `generate` loads) picks up the new generator without
-a separate `skmtc bundle` step.
+The CLI builds the bundle after the install — remote-only and
+hybrid projects alike — to check that the new generator bundles and
+that the project still resolves one copy of `@skmtc/core`.
+`generate` rebuilds the bundle on every run, so it always includes
+the new generator.
 
 ### Verification
 

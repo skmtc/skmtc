@@ -33,6 +33,7 @@ import { toEjectedArtifactPaths } from '@/lib/write-generated-files.ts'
 import { readGeneratedLock, toGeneratedLockPath } from '@/lib/generated-lock.ts'
 import { classifyDiskFile, type EditDetectionContext } from '@/lib/edit-detection.ts'
 import { resolveFreshArtifacts } from '@/lib/resolve-fresh-artifacts.ts'
+import { createReadOnlyBundle, type ReadOnlyBundle } from '@/lib/create-bundle.ts'
 
 type CleanHeadlessArgs = {
   projectName: string
@@ -47,6 +48,9 @@ type CleanHeadlessArgs = {
   /** `client.json#serverUrl` — generate against a deployed stack
    *  server instead of the local bundle, when set. */
   stackUrl: string | undefined
+  /** Builds the project's bundle without writing to the project.
+   *  Defaults to `createReadOnlyBundle`; tests stand in for it. */
+  buildBundle?: () => Promise<ReadOnlyBundle>
   /** Workspace root (`.skmtc`). Defaults to the cwd-derived
    *  `toRootPath()`. Injectable so tests can point at a temp workspace
    *  without depending on `Deno.cwd()`. */
@@ -89,10 +93,13 @@ export const cleanHeadless = async ({
   clientSettings,
   schemaSourceString,
   stackUrl,
+  buildBundle,
   skmtcRootPath = toRootPath()
 }: CleanHeadlessArgs): Promise<CleanHeadlessResult> => {
   const appRoot = resolve(join(skmtcRootPath, '..'))
   const projectPath = join(skmtcRootPath, projectName)
+  const buildProjectBundle =
+    buildBundle ?? (() => createReadOnlyBundle({ projectName, projectPath }))
   const manifestPath = join(projectPath, '.settings', 'manifest.json')
 
   const manifest = await Manifest.openFromPath(projectName, manifestPath)
@@ -129,12 +136,35 @@ export const cleanHeadless = async ({
     appRoot
   }
 
-  const freshArtifacts = await resolveFreshArtifacts({
-    projectPath,
-    schemaSourceString,
-    clientSettings,
-    stackUrl
-  })
+  // Fresh content only tells a formatter change apart from a hand edit,
+  // so it is rendered once, and only for the first file that needs it.
+  const loadFreshArtifacts = once(() =>
+    resolveFreshArtifacts({
+      schemaSourceString,
+      clientSettings,
+      stackUrl,
+      buildBundle: buildProjectBundle
+    })
+  )
+
+  const isHandEdited = async (path: string, absolutePath: string): Promise<boolean> => {
+    const lockEntry = lock?.files[path]
+    if (!lockEntry) return false
+    const withoutFresh = classifyDiskFile({
+      absolutePath,
+      lockEntry,
+      detection,
+      freshCanonicalContent: undefined
+    })
+    if (!withoutFresh.edited || !detection.formatterCommand) return withoutFresh.edited
+    const freshArtifacts = await loadFreshArtifacts()
+    return classifyDiskFile({
+      absolutePath,
+      lockEntry,
+      detection,
+      freshCanonicalContent: freshArtifacts?.[path]
+    }).edited
+  }
 
   for (const [path, entry] of Object.entries(manifest.contents.files)) {
     const absolutePath = join(skmtcRootPath, '..', path)
@@ -164,16 +194,7 @@ export const cleanHeadless = async ({
     // Deleted either way (clean removes the FULL generated set), but a
     // file the lock knows is hand-edited is reported, never destroyed
     // silently. Use --dry-run to see these before a real run.
-    const lockEntry = lock?.files[path]
-    if (
-      lockEntry &&
-      classifyDiskFile({
-        absolutePath,
-        lockEntry,
-        detection,
-        freshCanonicalContent: freshArtifacts?.[path]
-      }).edited
-    ) {
+    if (await isHandEdited(path, absolutePath)) {
       modified.push(path)
     }
 
@@ -225,4 +246,10 @@ export const cleanHeadless = async ({
     manifestRemoved,
     noManifest: false
   }
+}
+
+/** Runs `load` on the first call only; later calls share its result. */
+const once = <T>(load: () => Promise<T>): (() => Promise<T>) => {
+  let result: Promise<T> | undefined
+  return () => (result ??= load())
 }

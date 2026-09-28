@@ -6,15 +6,12 @@
  * `instanceof`. Across two copies of core those checks fail, so a run
  * finds nothing, writes empty files and still reports success.
  *
- * Two sources, for two questions:
- * - the module graph `deno info` resolves for `worker.ts` — what `deno
- *   bundle` will build. It names the packages that import each copy, so
- *   `bundle`, `generate --debug` and `doctor` read it.
- * - `bundle.js` itself — what `generate` is about to run. `deno bundle`
- *   marks each module with a `// <module path>` comment, so the copies it
- *   holds can be read offline, without touching the lockfile.
+ * The check reads the module graph `deno info` resolves for `worker.ts`
+ * — what `deno bundle` will build. It names the packages that import
+ * each copy. Every bundle build runs it, and so does `doctor`.
  */
 
+import { basename } from '@std/path/basename'
 import { dirname } from '@std/path/dirname'
 import { join } from '@std/path/join'
 import { relative } from '@std/path/relative'
@@ -61,10 +58,7 @@ export type PackageCopy = {
    * registry: `0.29.0`, `0.29.0 (npm)`, `0.29.0 (../../core)`.
    */
   version: string
-  /**
-   * Packages and project directories that import this copy directly.
-   * Empty when the copies were read from `bundle.js`, which doesn't say.
-   */
+  /** Packages and project directories that import this copy directly. */
   importedBy: string[]
 }
 
@@ -100,6 +94,11 @@ type CheckModuleGraphOptions = {
   frozen?: boolean
   /** Give up on `deno info` after this long, e.g. on a cold cache with no network. */
   timeoutMs?: number
+  /**
+   * Check this entry instead of the project's `worker.ts`, resolved with
+   * the project's `deno.json`. For a build outside the project directory.
+   */
+  entryPath?: string
 }
 
 export type CheckModuleGraphFn = (
@@ -156,6 +155,8 @@ type ModuleIdentity = {
 type ToIdentityContext = {
   /** Canonical (real) path of the project directory. */
   projectPath: string
+  /** Canonical path of an entry written outside the project. */
+  entryPath?: string
   readManifest: ReadManifestFn
   manifestCache: Map<string, { directory: string; manifest: PackageManifest } | undefined>
 }
@@ -205,10 +206,16 @@ const toLocalIdentity = (specifier: string, context: ToIdentityContext): ModuleI
 
   // Unnamed project files are grouped by their top-level entry — one
   // label per cloned generator directory, not one per source file.
-  const relativePath = relative(context.projectPath, path)
-  const label = isInside(context.projectPath, path)
-    ? relativePath.split(SEPARATOR)[0]
-    : relative(context.projectPath, dirname(path))
+  if (isInside(context.projectPath, path)) {
+    const label = relative(context.projectPath, path).split(SEPARATOR)[0]
+    return { copy: label, label }
+  }
+
+  // An entry written outside the project is named by its file name.
+  const label =
+    toCanonicalPath(path) === context.entryPath
+      ? basename(path)
+      : relative(context.projectPath, dirname(path))
   return { copy: label, label }
 }
 
@@ -282,6 +289,8 @@ type ToModuleGraphCheckArgs = {
   graph: ModuleGraph
   /** Canonical (real) path of the project directory. */
   projectPath: string
+  /** Canonical path of the entry, when it is outside the project. */
+  entryPath?: string
   readManifest?: ReadManifestFn
 }
 
@@ -296,10 +305,16 @@ type ToModuleGraphCheckArgs = {
 export const toModuleGraphCheck = ({
   graph,
   projectPath,
+  entryPath,
   readManifest = readManifestFromDisk
 }: ToModuleGraphCheckArgs): PackageCopiesCheck => {
   const redirects = graph.redirects ?? {}
-  const context: ToIdentityContext = { projectPath, readManifest, manifestCache: new Map() }
+  const context: ToIdentityContext = {
+    projectPath,
+    entryPath,
+    readManifest,
+    manifestCache: new Map()
+  }
   const index: CopyIndex = new Map()
 
   for (const module of graph.modules) {
@@ -354,11 +369,10 @@ const lockfileOutOfDate = 'The lockfile is out of date'
 /**
  * Resolves the project's `worker.ts` graph with `deno info --json` and
  * checks it. Never throws: when the graph can't be read the result is
- * `unavailable` and the caller carries on — `deno bundle` reports an
- * unresolvable graph better than this check could.
+ * `unavailable`.
  */
 export const checkModuleGraph: CheckModuleGraphFn = async (projectPath, options = {}) => {
-  const workerPath = join(projectPath, 'worker.ts')
+  const workerPath = options.entryPath ?? join(projectPath, 'worker.ts')
   if (!existsSync(workerPath)) {
     return { type: 'unavailable', reason: `${workerPath} does not exist yet.` }
   }
@@ -372,10 +386,13 @@ export const checkModuleGraph: CheckModuleGraphFn = async (projectPath, options 
         'info',
         '--json',
         ...(options.frozen ? ['--frozen'] : []),
+        ...(options.entryPath ? ['--config', join(projectPath, 'deno.json')] : []),
         ...toDependencyAgeArgs(),
-        'worker.ts'
+        // Named relative to `cwd`: on Windows an absolute path here gives
+        // a graph with no `@skmtc/core` in it.
+        basename(workerPath)
       ],
-      cwd: projectPath,
+      cwd: dirname(workerPath),
       stdout: 'piped',
       stderr: 'piped',
       signal
@@ -393,7 +410,7 @@ export const checkModuleGraph: CheckModuleGraphFn = async (projectPath, options 
       return {
         type: 'unavailable',
         reason: errorOutput.includes(lockfileOutOfDate)
-          ? 'deno.json no longer matches deno.lock — the pins changed since the last `skmtc bundle`.'
+          ? 'deno.json no longer matches deno.lock — the pins changed since the last build.'
           : `\`deno info\` failed: ${errorOutput}`
       }
     }
@@ -403,7 +420,11 @@ export const checkModuleGraph: CheckModuleGraphFn = async (projectPath, options 
       return { type: 'unavailable', reason: '`deno info --json` output has an unexpected shape.' }
     }
 
-    return toModuleGraphCheck({ graph: parsed.output, projectPath: toCanonicalPath(projectPath) })
+    return toModuleGraphCheck({
+      graph: parsed.output,
+      projectPath: toCanonicalPath(projectPath),
+      entryPath: options.entryPath === undefined ? undefined : toCanonicalPath(options.entryPath)
+    })
   } catch (error) {
     return {
       type: 'unavailable',
@@ -412,43 +433,6 @@ export const checkModuleGraph: CheckModuleGraphFn = async (projectPath, options 
         : error instanceof Error
           ? error.message
           : String(error)
-    }
-  }
-}
-
-/** `deno bundle` starts each module with a `// <module path>` comment. */
-const bundleModuleMarkerPattern = /^\/\/ (\S+)$/gm
-
-/**
- * The `@skmtc/core` and `@skmtc/lang-*` copies `bundle.js` holds, read
- * from its module markers. Registry and npm copies carry their version in
- * the path; a copy loaded from a local directory has no version to read,
- * so only the graph check (at `bundle` time) sees that case.
- */
-export const toBundleCopiesCheck = (bundleSource: string): PackageCopiesCheck => {
-  const index: CopyIndex = new Map()
-
-  for (const [, path] of bundleSource.matchAll(bundleModuleMarkerPattern)) {
-    const match = path.match(packagePathPattern)
-    if (!match) continue
-    const [, scope, name, version] = match
-    const packageName = `${scope}/${name}`
-    if (!isTrackedPackage(packageName)) continue
-    const fromNpm = path.includes('/npm/') || path.includes('registry.npmjs.org')
-    addCopy(index, packageName, fromNpm ? `${version} (npm)` : version)
-  }
-
-  return toCheck(index, 'bundle.js names no registry copy of @skmtc/core or @skmtc/lang-*.')
-}
-
-export const checkBundleCopies = (bundleFsPath: string): PackageCopiesCheck => {
-  try {
-    return toBundleCopiesCheck(Deno.readTextFileSync(bundleFsPath))
-  } catch (error) {
-    return {
-      type: 'unavailable',
-      reason:
-        error instanceof Deno.errors.NotFound ? `${bundleFsPath} does not exist.` : String(error)
     }
   }
 }
@@ -480,11 +464,7 @@ type ToGraphFixHintArgs = {
 
 export const toGraphFixHint = ({ projectName, projectPath }: ToGraphFixHintArgs): string =>
   `Make every package resolve the same version: change the pins in ${join(projectPath, 'deno.json')} ` +
-  `so that the packages listed above agree, then run \`skmtc bundle ${projectName}\`.`
-
-export const toBundleFixHint = (projectName: string): string =>
-  `Rebuild it with \`skmtc bundle ${projectName}\`, which names the packages that import each ` +
-  'copy and refuses to build until the pins agree.'
+  `so that the packages listed above agree, then run \`skmtc generate ${projectName}\` again.`
 
 type ToDuplicatesMessageArgs = {
   projectName: string
@@ -492,7 +472,7 @@ type ToDuplicatesMessageArgs = {
   duplicates: TrackedPackage[]
 }
 
-/** For a module graph with duplicates (`bundle`, `generate --debug`). */
+/** For a module graph with duplicates (every bundle build, `generate --debug`). */
 export const toDuplicatePackagesMessage = ({
   projectName,
   projectPath,
@@ -506,40 +486,34 @@ export const toDuplicatePackagesMessage = ({
     toGraphFixHint({ projectName, projectPath })
   ].join('\n')
 
-type ToBundleDuplicatesMessageArgs = {
-  projectName: string
-  duplicates: TrackedPackage[]
-}
-
-/** For a `bundle.js` with duplicates (`generate`). */
-export const toBundleDuplicatesMessage = ({
-  projectName,
-  duplicates
-}: ToBundleDuplicatesMessageArgs): string =>
-  [
-    `The bundle.js of project "${projectName}" holds more than one copy of ${toNames(duplicates)}:`,
-    toCopiesLines(duplicates),
-    '',
-    emptyFilesExplanation,
-    toBundleFixHint(projectName)
-  ].join('\n')
-
 type ToGraphRefusalArgs = {
   projectName: string
   projectPath: string
+  options?: CheckModuleGraphOptions
 }
 
 /**
  * The refusal for a project whose module graph holds two copies, or
- * `undefined` when it doesn't (or can't be read). Shared by `bundle` and
- * `generate --debug`, which both run the graph.
+ * can't be read — nothing else checks what the build produces — or
+ * `undefined` when it holds one copy of each. Shared by every bundle
+ * build and `generate --debug`, which both run the graph.
  */
 export const toGraphRefusal = async ({
   projectName,
-  projectPath
+  projectPath,
+  options
 }: ToGraphRefusalArgs): Promise<string | undefined> => {
-  const graphCheck = await checkModuleGraph(projectPath)
-  return graphCheck.type === 'duplicates'
-    ? toDuplicatePackagesMessage({ projectName, projectPath, duplicates: graphCheck.duplicates })
-    : undefined
+  const graphCheck = await checkModuleGraph(projectPath, options)
+  switch (graphCheck.type) {
+    case 'duplicates':
+      return toDuplicatePackagesMessage({
+        projectName,
+        projectPath,
+        duplicates: graphCheck.duplicates
+      })
+    case 'unavailable':
+      return `Could not check that project "${projectName}" resolves one copy of @skmtc/core: ${graphCheck.reason}`
+    case 'single-copies':
+      return undefined
+  }
 }
