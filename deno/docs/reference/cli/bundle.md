@@ -70,15 +70,21 @@ The output is captured to `.settings/logs.txt` (stdout) and
 ### One copy of `@skmtc/core`
 
 Before `deno bundle` runs, the CLI resolves the module graph of
-`worker.ts` with `deno info --json`. The graph must hold one version
-of `@skmtc/core` and one of each `@skmtc/lang-*` package. The engine
+`worker.ts` with `deno info --json`. The graph must hold one copy of
+`@skmtc/core` and of each `@skmtc/lang-*` package. The engine
 recognizes definitions and files with `instanceof`, which fails across
 two copies: a bundle with two copies generates empty files and reports
 success.
 
-When the graph holds two versions, `bundle` writes no `bundle.js` and
-exits 1 with a message that names each version and the packages that
-import it:
+A copy is a version from JSR (or another host), from npm, or from a
+local directory — a checkout mapped in `deno.json` beside the JSR
+package is a second copy. `import type` imports don't count, because
+`deno bundle` erases them.
+
+When the graph holds two copies, `bundle` exits 1 with a message that
+names each copy and the packages that import it. It leaves the
+previous `bundle.js` and `worker.ts` in place, so `generate` still
+reports that bundle as out of date:
 
 ```
 Project "api" resolves more than one copy of @skmtc/core:

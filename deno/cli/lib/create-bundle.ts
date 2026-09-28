@@ -27,10 +27,16 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
   const projectPath = project.toPath()
   const bundlePath = toBundlePath(project.toPath())
 
+  const workerPath = join(projectPath, 'worker.ts')
+  const previousWorker = await readTextFileIfExists(workerPath)
+
   await project.createWorker()
 
   const graphCheck = await checkModuleGraph(projectPath)
   if (graphCheck.type === 'duplicates') {
+    // Put back the worker.ts the current bundle.js was built from, so the
+    // freshness gate still reports that bundle as stale against deno.json.
+    await restoreFile(workerPath, previousWorker)
     throw new Error(
       toDuplicatePackagesMessage({
         projectName: project.name,
@@ -86,6 +92,23 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
   }
 
   return bundlePath
+}
+
+const readTextFileIfExists = async (path: string): Promise<string | undefined> => {
+  try {
+    return await Deno.readTextFile(path)
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) return undefined
+    throw error
+  }
+}
+
+const restoreFile = async (path: string, contents: string | undefined): Promise<void> => {
+  if (contents === undefined) {
+    await Deno.remove(path)
+  } else {
+    await Deno.writeTextFile(path, contents)
+  }
 }
 
 type ToBundleFailureMessageArgs = {

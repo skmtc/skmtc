@@ -134,14 +134,29 @@ instead.
 
 ### One copy of `@skmtc/core`
 
-Before generation, in every mode, the CLI resolves the module graph
-of `worker.ts` — the same check `skmtc bundle` runs (see
+`skmtc bundle` refuses a module graph with two copies of
+`@skmtc/core` or of a `@skmtc/lang-*` package (see
 [bundle reference](bundle.md#one-copy-of-skmtccore)). A `bundle.js`
-built before that check, or by an older CLI, can hold two versions of
-`@skmtc/core` or of a `@skmtc/lang-*` package. Generation from it
-would write empty files and exit 0, so `generate` refuses with exit 1
-and names each version and the packages that import it. Remote
-generation (`client.json#serverUrl`) skips the check.
+built before that check, or by an older CLI, can still hold two.
+Generation from it would write empty files and exit 0, so before
+generating, in every mode, `generate` reads the copies from the
+`bundle.js` it is about to run and refuses with exit 1 when there are
+two:
+
+```
+Error: The bundle.js of project "api" holds more than one copy of @skmtc/core:
+  @skmtc/core 0.28.7
+  @skmtc/core 0.29.0
+```
+
+`deno bundle` marks each module with its path, so the check reads the
+file only: no network, no lockfile. A copy loaded from a local
+directory carries no version in its path, so only `bundle` catches
+that case. Run `skmtc bundle <project>` to rebuild; it names the
+packages that import each copy. Remote generation
+(`client.json#serverUrl`) skips the check. `generate --debug` runs
+`worker.ts` source, not `bundle.js`, so it checks the module graph
+the way `bundle` does.
 
 ### Worker spawn and protocol
 

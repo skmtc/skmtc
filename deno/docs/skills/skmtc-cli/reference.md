@@ -423,7 +423,7 @@ reasoning about a specific check without running it.
 | `project-deno-json/<project>` | `deno.json` exists and parses |
 | `project-base-path/<project>` | `client.json#settings.basePath` present and relative |
 | `project-core-pin/<project>` | Project's `@skmtc/core` pin matches the CLI's major.minor |
-| `project-package-copies/<project>` | The `worker.ts` module graph holds one `@skmtc/core` and one of each `@skmtc/lang-*`; `error` names each version and the packages that import it — two copies generate empty files, so `bundle` and `generate` refuse them too |
+| `project-package-copies/<project>` | One copy of `@skmtc/core` and of each `@skmtc/lang-*` in the `worker.ts` module graph (`deno info --frozen`, never writes the lock) and in `bundle.js`; `error` names each copy and, from the graph, the packages that import it — two copies generate empty files, so `bundle` refuses the graph and `generate` refuses the `bundle.js`; `skipped` for `serverUrl` projects; `--offline` reads `bundle.js` only |
 | `project-bundle/<project>` | `bundle.js` exists — every project (remote-only included) generates from it; warning with a `skmtc bundle` hint when missing |
 | `project-enrichments/<project>` | Last generate's `manifest.enrichmentWarnings` has no `warning`-level entries — dead enrichment config (typo'd generator id, path, method or model name) surfaces here between runs; `info` entries keep it `ok` |
 | `project-worker-pin/<project>` | If `worker.ts` exists, `@skmtc/worker` is pinned (the generated worker imports it); ok-noop before the first bundle |

@@ -2,7 +2,10 @@ import { assertEquals } from '@std/assert/equals'
 import { assertStringIncludes } from '@std/assert/string-includes'
 import { generateSwitch } from '@/commands/generate-switch.ts'
 import { withCapturedExit } from '@/tests/strict-mode-helpers.test.ts'
+import { join } from '@std/path/join'
+import { checkModuleGraph } from '@/lib/duplicate-packages.ts'
 import {
+  bundleWithoutCheck,
   twoCoreRegistry,
   withJsrRegistryServer,
   withRegistryProject
@@ -53,26 +56,39 @@ Deno.test('generateSwitch - --json and --watch together fail loudly with exit 2'
   assertStringIncludes(errors[0], 'Pick one')
 })
 
-Deno.test('generateSwitch - refuses a bundle whose graph has two copies of @skmtc/core', async () => {
-  // A bundle.js built before `bundle` checked the graph (or by an older
-  // CLI) is still on disk. Generating from it would write empty files and
-  // exit 0, so generate checks the graph itself.
+Deno.test('generateSwitch - refuses a bundle.js holding two copies of @skmtc/core', async () => {
+  // An older CLI built a two-core bundle.js. The pins were fixed since
+  // without rebundling, so the module graph now holds one core — generate
+  // must judge the bundle.js it is about to run, not the graph.
   await withJsrRegistryServer(twoCoreRegistry, async () => {
-    await withRegistryProject({ generatorVersion: '0.2.0' }, async ({ projectName }) => {
-      const { errors, exitCode } = await withCapturedExit(async () => {
-        await generateSwitch({
-          projectName,
-          schemaSourceString: undefined,
-          watch: undefined,
-          noInputFlag: true
-        })
-      })
+    await withRegistryProject(
+      { generatorVersion: '0.2.0' },
+      async ({ projectName, projectPath }) => {
+        await bundleWithoutCheck(projectPath)
+        const denoJsonPath = join(projectPath, 'deno.json')
+        const denoJson = JSON.parse(await Deno.readTextFile(denoJsonPath))
+        denoJson.imports['@skmtc/gen-a'] = 'jsr:@skmtc/gen-a@0.1.0'
+        await Deno.writeTextFile(denoJsonPath, JSON.stringify(denoJson))
+        assertEquals((await checkModuleGraph(projectPath)).type, 'single-copies')
 
-      assertEquals(exitCode, 1)
-      assertEquals(errors.length, 1)
-      assertStringIncludes(errors[0], 'resolves more than one copy of @skmtc/core')
-      assertStringIncludes(errors[0], '@skmtc/core 0.1.0 ← @skmtc/worker@0.1.0')
-      assertStringIncludes(errors[0], '@skmtc/core 0.2.0 ← @skmtc/gen-a@0.2.0')
-    })
+        const { errors, exitCode } = await withCapturedExit(async () => {
+          await generateSwitch({
+            projectName,
+            schemaSourceString: undefined,
+            watch: undefined,
+            noInputFlag: true
+          })
+        })
+
+        assertEquals(exitCode, 1)
+        assertEquals(errors.length, 1)
+        assertStringIncludes(
+          errors[0],
+          'bundle.js of project "api" holds more than one copy of @skmtc/core'
+        )
+        assertStringIncludes(errors[0], '  @skmtc/core 0.1.0\n  @skmtc/core 0.2.0')
+        assertStringIncludes(errors[0], 'skmtc bundle api')
+      }
+    )
   })
 })

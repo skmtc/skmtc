@@ -3,14 +3,16 @@ import { ensureDir } from '@std/fs/ensure-dir'
 import { join } from '@std/path/join'
 import { homedir } from 'node:os'
 import { toWorker } from '@/lib/to-worker.ts'
+import { toDependencyAgeArgs } from '@/lib/dependency-age.ts'
 
 /** Package name → version → source of the package's `mod.ts`. */
 export type RegistryPackages = Record<string, Record<string, string>>
 
 /**
  * The ticket's shape (#153) in miniature: the worker is built on core
- * 0.1.0; `@skmtc/gen-a@0.1.0` is too, while `@skmtc/gen-a@0.2.0` moved to
- * core 0.2.0 — so pinning gen-a 0.2.0 puts two cores in the graph.
+ * 0.1.0; `@skmtc/gen-a@0.1.0` is too, while `@skmtc/gen-a@0.2.0` and
+ * `@skmtc/gen-b@0.1.0` moved to core 0.2.0 — so pinning either puts two
+ * cores in the graph.
  */
 export const twoCoreRegistry: RegistryPackages = {
   '@skmtc/core': {
@@ -33,6 +35,13 @@ export const twoCoreRegistry: RegistryPackages = {
     '0.2.0': [
       "import { Definition } from 'jsr:@skmtc/core@0.2.0'",
       "export default { id: '@skmtc/gen-a', Definition }",
+      ''
+    ].join('\n')
+  },
+  '@skmtc/gen-b': {
+    '0.1.0': [
+      "import { Definition } from 'jsr:@skmtc/core@0.2.0'",
+      "export default { id: '@skmtc/gen-b', Definition }",
       ''
     ].join('\n')
   }
@@ -120,6 +129,8 @@ const restoreEnv = (name: string, value: string | undefined) => {
 type RegistryProjectArgs = {
   /** `@skmtc/gen-a` version the project pins — `0.2.0` puts two cores in the graph. */
   generatorVersion: '0.1.0' | '0.2.0'
+  /** More `deno.json` imports; `gen-*` keys also go into `worker.ts`. */
+  imports?: Record<string, string>
 }
 
 export type RegistryProject = {
@@ -135,7 +146,7 @@ export type RegistryProject = {
  * names a schema source — and cd's into it for the duration of `fn`.
  */
 export const withRegistryProject = async (
-  { generatorVersion }: RegistryProjectArgs,
+  { generatorVersion, imports = {} }: RegistryProjectArgs,
   fn: (project: RegistryProject) => Promise<void>
 ): Promise<void> => {
   const tempRoot = await Deno.makeTempDir({ dir: homedir(), prefix: 'registry-project-' })
@@ -143,17 +154,20 @@ export const withRegistryProject = async (
   const projectPath = join(tempRoot, '.skmtc', projectName)
   await ensureDir(join(projectPath, '.settings'))
 
+  const projectImports: Record<string, string> = {
+    '@skmtc/core': 'jsr:@skmtc/core@0.1.0',
+    '@skmtc/worker': 'jsr:@skmtc/worker@0.1.0',
+    '@skmtc/gen-a': `jsr:@skmtc/gen-a@${generatorVersion}`,
+    ...imports
+  }
   await Deno.writeTextFile(
     join(projectPath, 'deno.json'),
-    JSON.stringify({
-      imports: {
-        '@skmtc/core': 'jsr:@skmtc/core@0.1.0',
-        '@skmtc/worker': 'jsr:@skmtc/worker@0.1.0',
-        '@skmtc/gen-a': `jsr:@skmtc/gen-a@${generatorVersion}`
-      }
-    })
+    JSON.stringify({ imports: projectImports })
   )
-  await Deno.writeTextFile(join(projectPath, 'worker.ts'), toWorker(['@skmtc/gen-a']))
+  await Deno.writeTextFile(
+    join(projectPath, 'worker.ts'),
+    toWorker(Object.keys(projectImports).filter(key => key.startsWith('@skmtc/gen-')))
+  )
   await Deno.writeTextFile(join(projectPath, 'bundle.js'), 'export default undefined\n')
   await Deno.writeTextFile(
     join(tempRoot, 'openapi.json'),
@@ -172,4 +186,18 @@ export const withRegistryProject = async (
     Deno.chdir(originalCwd)
     await Deno.remove(tempRoot, { recursive: true })
   }
+}
+
+/**
+ * Bundles the project with plain `deno bundle` — the way a CLI without
+ * the package-copies check built `bundle.js`.
+ */
+export const bundleWithoutCheck = async (projectPath: string): Promise<void> => {
+  const { success, stderr } = await new Deno.Command('deno', {
+    args: ['bundle', ...toDependencyAgeArgs(), '-o', 'bundle.js', 'worker.ts'],
+    cwd: projectPath,
+    stdout: 'null',
+    stderr: 'piped'
+  }).output()
+  if (!success) throw new Error(new TextDecoder().decode(stderr))
 }

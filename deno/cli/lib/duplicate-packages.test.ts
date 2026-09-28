@@ -1,22 +1,31 @@
 import { assertEquals } from '@std/assert/equals'
 import { assertStringIncludes } from '@std/assert/string-includes'
+import { existsSync } from '@std/fs/exists'
+import { ensureDir } from '@std/fs/ensure-dir'
 import { join } from '@std/path/join'
 import { resolve } from '@std/path/resolve'
 import { toFileUrl } from '@std/path/to-file-url'
 import {
   checkModuleGraph,
   type ModuleGraph,
+  type ReadManifestFn,
+  toBundleCopiesCheck,
+  toBundleDuplicatesMessage,
   toDuplicatePackagesMessage,
   toModuleGraphCheck
 } from '@/lib/duplicate-packages.ts'
+import { toWorker } from '@/lib/to-worker.ts'
 import {
+  bundleWithoutCheck,
   twoCoreRegistry,
   withJsrRegistryServer,
   withRegistryProject
 } from '@/tests/mocks/jsr-registry-server.mock.ts'
 
-const registryUrl = 'https://jsr.io'
 const projectPath = resolve('/root/.skmtc/api')
+
+/** No local manifests — for graphs whose modules all come from registries. */
+const noManifests: ReadManifestFn = () => undefined
 
 type ModuleArgs = {
   specifier: string
@@ -30,6 +39,9 @@ const toModule = ({ specifier, dependencies = [], error }: ModuleArgs) => ({
   dependencies: dependencies.map(dependency => ({ code: { specifier: dependency } }))
 })
 
+const toLocalUrl = (first: string, ...segments: string[]): string =>
+  toFileUrl(join(first, ...segments)).href
+
 /**
  * The graph from the ticket's reproduction (CLI 0.9.47 + the current
  * stock generators), trimmed to one module per package.
@@ -37,7 +49,7 @@ const toModule = ({ specifier, dependencies = [], error }: ModuleArgs) => ({
 const ticketGraph: ModuleGraph = {
   modules: [
     toModule({
-      specifier: toFileUrl(join(projectPath, 'worker.ts')).href,
+      specifier: toLocalUrl(projectPath, 'worker.ts'),
       dependencies: [
         'jsr:@skmtc/worker@0.3.55',
         'jsr:@skmtc/gen-typescript@0.2.7',
@@ -79,10 +91,11 @@ const ticketGraph: ModuleGraph = {
   }
 }
 
-Deno.test('toModuleGraphCheck - names each core version and the packages that import it', () => {
-  const result = toModuleGraphCheck({ graph: ticketGraph, projectPath, registryUrl })
+const check = (graph: ModuleGraph, readManifest: ReadManifestFn = noManifests) =>
+  toModuleGraphCheck({ graph, projectPath, readManifest })
 
-  assertEquals(result, {
+Deno.test('toModuleGraphCheck - names each core version and the packages that import it', () => {
+  assertEquals(check(ticketGraph), {
     type: 'duplicates',
     duplicates: [
       {
@@ -125,7 +138,7 @@ Deno.test('toModuleGraphCheck - one core is not a duplicate', () => {
     }
   }
 
-  assertEquals(toModuleGraphCheck({ graph, projectPath, registryUrl }), {
+  assertEquals(check(graph), {
     type: 'single-copies',
     packages: [
       {
@@ -163,9 +176,8 @@ Deno.test('toModuleGraphCheck - flags two copies of a lang package', () => {
     ]
   }
 
-  const result = toModuleGraphCheck({ graph, projectPath, registryUrl })
+  const result = check(graph)
 
-  assertEquals(result.type, 'duplicates')
   assertEquals(result.type === 'duplicates' ? result.duplicates : [], [
     {
       name: '@skmtc/lang-typescript',
@@ -177,11 +189,15 @@ Deno.test('toModuleGraphCheck - flags two copies of a lang package', () => {
   ])
 })
 
-Deno.test('toModuleGraphCheck - names a local file that imports a core copy by its project path', () => {
+Deno.test('toModuleGraphCheck - groups the project files that import a copy by top-level directory', () => {
   const graph: ModuleGraph = {
     modules: [
       toModule({
-        specifier: toFileUrl(join(projectPath, 'gen-local', 'mod.ts')).href,
+        specifier: toLocalUrl(projectPath, 'gen-local', 'src', 'model.ts'),
+        dependencies: ['https://jsr.io/@skmtc/core/0.28.3/mod.ts']
+      }),
+      toModule({
+        specifier: toLocalUrl(projectPath, 'gen-local', 'src', 'operation.ts'),
         dependencies: ['https://jsr.io/@skmtc/core/0.28.3/mod.ts']
       }),
       toModule({
@@ -191,15 +207,133 @@ Deno.test('toModuleGraphCheck - names a local file that imports a core copy by i
     ]
   }
 
-  const result = toModuleGraphCheck({ graph, projectPath, registryUrl })
+  const result = check(graph)
 
   assertEquals(result.type === 'duplicates' ? result.duplicates[0].copies : [], [
-    { version: '0.28.3', importedBy: [join('gen-local', 'mod.ts')] },
+    { version: '0.28.3', importedBy: ['gen-local'] },
     { version: '0.29.0', importedBy: ['@skmtc/worker@0.3.56'] }
   ])
 })
 
-Deno.test('toModuleGraphCheck - a partly resolved graph without duplicates is unavailable', () => {
+Deno.test('toModuleGraphCheck - a local checkout of core is a second copy beside the JSR one', () => {
+  // `"@skmtc/core": "../../core/mod.ts"` for a local generator, while the
+  // worker loads jsr:@skmtc/core — same version, two copies at runtime.
+  const coreDirectory = resolve(projectPath, '..', '..', 'core')
+  const readManifest: ReadManifestFn = directory =>
+    directory === coreDirectory ? { name: '@skmtc/core', version: '0.29.0' } : undefined
+  const graph: ModuleGraph = {
+    modules: [
+      toModule({
+        specifier: toLocalUrl(projectPath, 'gen-local', 'mod.ts'),
+        dependencies: [toLocalUrl(coreDirectory, 'mod.ts')]
+      }),
+      toModule({
+        specifier: toLocalUrl(coreDirectory, 'mod.ts'),
+        dependencies: [toLocalUrl(coreDirectory, 'dsl', 'Definition.ts')]
+      }),
+      toModule({
+        specifier: 'https://jsr.io/@skmtc/worker/0.3.56/mod.ts',
+        dependencies: ['https://jsr.io/@skmtc/core/0.29.0/mod.ts']
+      })
+    ]
+  }
+
+  const result = check(graph, readManifest)
+
+  assertEquals(result.type === 'duplicates' ? result.duplicates[0].copies : [], [
+    { version: '0.29.0', importedBy: ['@skmtc/worker@0.3.56'] },
+    { version: `0.29.0 (${join('..', '..', 'core')})`, importedBy: ['gen-local'] }
+  ])
+})
+
+Deno.test('toModuleGraphCheck - an npm copy of core is a second copy beside the JSR one', () => {
+  const graph: ModuleGraph = {
+    modules: [
+      toModule({
+        specifier: 'https://jsr.io/@skmtc/gen-zod/0.2.7/mod.ts',
+        dependencies: ['npm:@skmtc/core@0.29.0']
+      }),
+      toModule({
+        specifier: 'https://jsr.io/@skmtc/worker/0.3.56/mod.ts',
+        dependencies: ['https://jsr.io/@skmtc/core/0.29.0/mod.ts']
+      }),
+      toModule({ specifier: 'npm:/@skmtc/core@0.29.0' })
+    ],
+    redirects: { 'npm:@skmtc/core@0.29.0': 'npm:/@skmtc/core@0.29.0' }
+  }
+
+  const result = check(graph)
+
+  assertEquals(result.type === 'duplicates' ? result.duplicates[0].copies : [], [
+    { version: '0.29.0', importedBy: ['@skmtc/worker@0.3.56'] },
+    { version: '0.29.0 (npm)', importedBy: ['@skmtc/gen-zod@0.2.7'] }
+  ])
+})
+
+Deno.test('toModuleGraphCheck - a copy from another host counts', () => {
+  const graph: ModuleGraph = {
+    modules: [
+      toModule({
+        specifier: 'https://jsr.io/@skmtc/worker/0.3.56/mod.ts',
+        dependencies: [
+          'https://jsr.io/@skmtc/core/0.29.0/mod.ts',
+          'https://esm.sh/@skmtc/core@0.28.7/mod.ts'
+        ]
+      })
+    ]
+  }
+
+  const result = check(graph)
+
+  assertEquals(
+    result.type === 'duplicates' ? result.duplicates[0].copies.map(copy => copy.version) : [],
+    ['0.28.7', '0.29.0']
+  )
+})
+
+Deno.test('toModuleGraphCheck - an `import type` edge is not a runtime copy', () => {
+  const graph: ModuleGraph = {
+    modules: [
+      {
+        specifier: 'https://jsr.io/@skmtc/gen-zod/0.2.7/mod.ts',
+        dependencies: [
+          { code: { specifier: 'https://jsr.io/@skmtc/core/0.29.0/mod.ts' } },
+          // `deno info` records `import type` under `type` only.
+          { specifier: '@skmtc/core-old' }
+        ]
+      },
+      toModule({
+        specifier: 'https://jsr.io/@skmtc/worker/0.3.56/mod.ts',
+        dependencies: ['https://jsr.io/@skmtc/core/0.29.0/mod.ts']
+      })
+    ]
+  }
+
+  assertEquals(check(graph).type, 'single-copies')
+})
+
+Deno.test('toModuleGraphCheck - an unresolved import leaves duplicates visible', () => {
+  const withUnresolved = (graph: ModuleGraph): ModuleGraph => ({
+    ...graph,
+    modules: [
+      ...graph.modules,
+      {
+        specifier: toLocalUrl(projectPath, 'gen-local', 'mod.ts'),
+        dependencies: [
+          { specifier: 'some-lib', code: { error: 'Import "some-lib" not a dependency' } }
+        ]
+      }
+    ]
+  })
+
+  assertEquals(check(withUnresolved(ticketGraph)).type, 'duplicates')
+
+  const single = check(withUnresolved({ modules: ticketGraph.modules.slice(4) }))
+  assertEquals(single.type, 'unavailable')
+  assertStringIncludes(single.type === 'unavailable' ? single.reason : '', 'some-lib')
+})
+
+Deno.test('toModuleGraphCheck - a module that failed to load leaves the check unavailable', () => {
   const graph: ModuleGraph = {
     modules: [
       toModule({
@@ -210,30 +344,56 @@ Deno.test('toModuleGraphCheck - a partly resolved graph without duplicates is un
     ]
   }
 
-  const result = toModuleGraphCheck({ graph, projectPath, registryUrl })
+  const result = check(graph)
 
   assertEquals(result.type, 'unavailable')
   assertStringIncludes(result.type === 'unavailable' ? result.reason : '', 'jsr:@skmtc/gen-zod')
 })
 
-Deno.test('toModuleGraphCheck - a module from another registry is not a JSR package', () => {
+Deno.test('toModuleGraphCheck - finding no core is unavailable, not a pass', () => {
   const graph: ModuleGraph = {
-    modules: [
-      toModule({
-        specifier: 'https://jsr.io/@skmtc/worker/0.3.56/mod.ts',
-        dependencies: [
-          'https://jsr.io/@skmtc/core/0.29.0/mod.ts',
-          'https://esm.sh/@skmtc/core/0.28.7/mod.ts'
-        ]
-      })
-    ]
+    modules: [toModule({ specifier: toLocalUrl(projectPath, 'worker.ts'), dependencies: [] })]
   }
 
-  assertEquals(toModuleGraphCheck({ graph, projectPath, registryUrl }).type, 'single-copies')
+  assertEquals(check(graph).type, 'unavailable')
+})
+
+const toBundleSource = (markers: string[]): string =>
+  markers.map(marker => `// ${marker}\nvar x = 1;`).join('\n')
+
+Deno.test('toBundleCopiesCheck - reads the copies from the module markers', () => {
+  const twoCores = toBundleCopiesCheck(
+    toBundleSource([
+      'deno:https://jsr.io/@skmtc/core/0.28.7/mod.ts',
+      'deno:https://jsr.io/@skmtc/core/0.28.7/dsl/Definition.ts',
+      'deno:https://jsr.io/@skmtc/core/0.29.0/mod.ts',
+      'deno:https://jsr.io/@skmtc/gen-zod/0.2.7/mod.ts',
+      '../../Library/Caches/deno/npm/registry.npmjs.org/@skmtc/lang-typescript/0.12.22/mod.js'
+    ])
+  )
+
+  assertEquals(twoCores, {
+    type: 'duplicates',
+    duplicates: [
+      {
+        name: '@skmtc/core',
+        copies: [
+          { version: '0.28.7', importedBy: [] },
+          { version: '0.29.0', importedBy: [] }
+        ]
+      }
+    ]
+  })
+
+  assertEquals(
+    toBundleCopiesCheck(toBundleSource(['deno:https://jsr.io/@skmtc/core/0.29.0/mod.ts'])).type,
+    'single-copies'
+  )
+  assertEquals(toBundleCopiesCheck('export default 1\n').type, 'unavailable')
 })
 
 Deno.test('toDuplicatePackagesMessage - names the versions, the packages and the fix', () => {
-  const result = toModuleGraphCheck({ graph: ticketGraph, projectPath, registryUrl })
+  const result = check(ticketGraph)
   const message = toDuplicatePackagesMessage({
     projectName: 'api',
     projectPath,
@@ -248,6 +408,28 @@ Deno.test('toDuplicatePackagesMessage - names the versions, the packages and the
   )
   assertStringIncludes(message, 'empty files')
   assertStringIncludes(message, join(projectPath, 'deno.json'))
+  assertStringIncludes(message, 'skmtc bundle api')
+})
+
+Deno.test('toBundleDuplicatesMessage - names the versions and points at bundle', () => {
+  const message = toBundleDuplicatesMessage({
+    projectName: 'api',
+    duplicates: [
+      {
+        name: '@skmtc/core',
+        copies: [
+          { version: '0.28.7', importedBy: [] },
+          { version: '0.29.0', importedBy: [] }
+        ]
+      }
+    ]
+  })
+
+  assertStringIncludes(
+    message,
+    'bundle.js of project "api" holds more than one copy of @skmtc/core'
+  )
+  assertStringIncludes(message, '  @skmtc/core 0.28.7\n  @skmtc/core 0.29.0')
   assertStringIncludes(message, 'skmtc bundle api')
 })
 
@@ -288,12 +470,113 @@ Deno.test('checkModuleGraph - resolves one core from a real `deno info` run', as
   })
 })
 
+Deno.test('checkModuleGraph - finds a local core checkout beside the JSR core', async () => {
+  await withJsrRegistryServer(twoCoreRegistry, async () => {
+    await withRegistryProject(
+      {
+        generatorVersion: '0.1.0',
+        imports: {
+          '@skmtc/core': './localcore/mod.ts',
+          '@skmtc/gen-local': './gen-local/mod.ts'
+        }
+      },
+      async ({ projectPath }) => {
+        // A different version from the JSR core: Deno resolves
+        // jsr:@skmtc/core@0.1.0 to a local package of the same name and
+        // version, which would make it one copy.
+        await ensureDir(join(projectPath, 'localcore'))
+        await ensureDir(join(projectPath, 'gen-local'))
+        await Deno.writeTextFile(
+          join(projectPath, 'localcore', 'deno.json'),
+          JSON.stringify({ name: '@skmtc/core', version: '0.3.0', exports: './mod.ts' })
+        )
+        await Deno.writeTextFile(
+          join(projectPath, 'localcore', 'mod.ts'),
+          'export class Definition {}\n'
+        )
+        await Deno.writeTextFile(
+          join(projectPath, 'gen-local', 'mod.ts'),
+          "import { Definition } from '@skmtc/core'\nexport default { id: '@skmtc/gen-local', Definition }\n"
+        )
+
+        const result = await checkModuleGraph(projectPath)
+
+        assertEquals(result.type === 'duplicates' ? result.duplicates[0].copies : [], [
+          { version: '0.1.0', importedBy: ['@skmtc/gen-a@0.1.0', '@skmtc/worker@0.1.0'] },
+          { version: '0.3.0 (localcore)', importedBy: ['gen-local'] }
+        ])
+      }
+    )
+  })
+})
+
+Deno.test('checkModuleGraph - an unmapped import does not hide two cores', async () => {
+  await withJsrRegistryServer(twoCoreRegistry, async () => {
+    await withRegistryProject({ generatorVersion: '0.2.0' }, async ({ projectPath }) => {
+      await Deno.writeTextFile(
+        join(projectPath, 'worker.ts'),
+        `import 'unmapped-bare'\n${toWorker(['@skmtc/gen-a'])}`
+      )
+
+      assertEquals((await checkModuleGraph(projectPath)).type, 'duplicates')
+    })
+  })
+})
+
+Deno.test('checkModuleGraph - frozen never writes deno.lock', async () => {
+  await withJsrRegistryServer(twoCoreRegistry, async () => {
+    await withRegistryProject({ generatorVersion: '0.2.0' }, async ({ projectPath }) => {
+      const result = await checkModuleGraph(projectPath, { frozen: true })
+
+      assertEquals(result.type, 'unavailable')
+      assertStringIncludes(result.type === 'unavailable' ? result.reason : '', 'deno.lock')
+      assertEquals(existsSync(join(projectPath, 'deno.lock')), false)
+
+      // Once a bundle attempt has written the lock, frozen reads it.
+      await checkModuleGraph(projectPath)
+      assertEquals((await checkModuleGraph(projectPath, { frozen: true })).type, 'duplicates')
+    })
+  })
+})
+
+Deno.test('checkModuleGraph - gives up after the timeout', async () => {
+  await withJsrRegistryServer(twoCoreRegistry, async () => {
+    await withRegistryProject({ generatorVersion: '0.2.0' }, async ({ projectPath }) => {
+      const result = await checkModuleGraph(projectPath, { timeoutMs: 1 })
+
+      assertEquals(result.type, 'unavailable')
+      assertStringIncludes(result.type === 'unavailable' ? result.reason : '', 'took longer')
+    })
+  })
+})
+
 Deno.test('checkModuleGraph - a project without worker.ts is unavailable', async () => {
-  const projectPath = await Deno.makeTempDir()
+  const emptyProjectPath = await Deno.makeTempDir()
   try {
-    const result = await checkModuleGraph(projectPath)
-    assertEquals(result.type, 'unavailable')
+    assertEquals((await checkModuleGraph(emptyProjectPath)).type, 'unavailable')
   } finally {
-    await Deno.remove(projectPath, { recursive: true })
+    await Deno.remove(emptyProjectPath, { recursive: true })
   }
+})
+
+Deno.test('toBundleCopiesCheck - reads the copies of a real `deno bundle` output', async () => {
+  await withJsrRegistryServer(twoCoreRegistry, async () => {
+    await withRegistryProject({ generatorVersion: '0.2.0' }, async ({ projectPath }) => {
+      await bundleWithoutCheck(projectPath)
+
+      const result = toBundleCopiesCheck(await Deno.readTextFile(join(projectPath, 'bundle.js')))
+
+      assertEquals(
+        result.type === 'duplicates' ? result.duplicates[0].copies.map(copy => copy.version) : [],
+        ['0.1.0', '0.2.0']
+      )
+    })
+    await withRegistryProject({ generatorVersion: '0.1.0' }, async ({ projectPath }) => {
+      await bundleWithoutCheck(projectPath)
+
+      const result = toBundleCopiesCheck(await Deno.readTextFile(join(projectPath, 'bundle.js')))
+
+      assertEquals(result.type, 'single-copies')
+    })
+  })
 })
