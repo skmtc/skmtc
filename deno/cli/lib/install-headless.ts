@@ -31,6 +31,10 @@ export type InstallHeadlessResult = {
   bundle: BundleHeadlessResult
 }
 
+/** The `jsr:` module name for a generator given with or without the prefix. */
+export const toJsrModuleName = (generator: string): string =>
+  generator.startsWith('jsr:') ? generator : `jsr:${generator}`
+
 export const installHeadless = async ({
   skmtcRoot,
   projectName,
@@ -40,8 +44,7 @@ export const installHeadless = async ({
   const project = skmtcRoot.findProject(projectName)
 
   for (const generator of generators) {
-    const moduleName = generator.startsWith('jsr:') ? generator : `jsr:${generator}`
-    await project.installGenerator({ moduleName })
+    await project.installGenerator({ moduleName: toJsrModuleName(generator) })
   }
 
   const bundle = await bundleFn({ skmtcRoot, projectName })

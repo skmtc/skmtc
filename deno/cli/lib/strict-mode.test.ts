@@ -1,5 +1,9 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
-import { formatMissingArgError, resolveInputMode } from '@/lib/strict-mode.ts'
+import {
+  formatInvalidArgError,
+  formatMissingArgError,
+  resolveInputMode
+} from '@/lib/strict-mode.ts'
 
 Deno.test('resolveInputMode - --no-input flag forces strict mode even with a TTY', () => {
   assertEquals(resolveInputMode({ noInputFlag: true }), 'strict')
@@ -46,4 +50,25 @@ Deno.test('formatMissingArgError - omits discover line when not provided', () =>
   })
 
   assertEquals(message.includes('Discover'), false)
+})
+
+Deno.test('formatInvalidArgError - includes message, usage, example and discover hint', () => {
+  const message = formatInvalidArgError({
+    message: 'project "x" not found',
+    usage: 'skmtc install <generators...> <project>',
+    example: 'skmtc install @skmtc/gen-zod my-api',
+    discover: 'ls .skmtc/'
+  })
+
+  assertEquals(
+    message,
+    [
+      'Error: project "x" not found',
+      '',
+      'Usage:   skmtc install <generators...> <project>',
+      'Example: skmtc install @skmtc/gen-zod my-api',
+      '',
+      'Discover valid values: ls .skmtc/'
+    ].join('\n')
+  )
 })

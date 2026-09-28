@@ -57,14 +57,17 @@ export type CommandDescriptor = {
  * command. Exposed in case mod.ts wants to apply it via a shared
  * helper.
  */
+export const JSON_DESCRIPTION = 'Emit structured JSON output (implies --no-input).'
+export const NO_INPUT_DESCRIPTION = 'Disable interactive prompts; fail on missing args.'
+
 export const AGENT_MODE_FLAGS: FlagDescriptor[] = [
   {
     flag: '--json',
-    description: 'Emit structured JSON output (implies --no-input).'
+    description: JSON_DESCRIPTION
   },
   {
     flag: '--no-input',
-    description: 'Disable interactive prompts; fail on missing args.'
+    description: NO_INPUT_DESCRIPTION
   }
 ]
 

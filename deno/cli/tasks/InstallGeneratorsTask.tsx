@@ -3,6 +3,7 @@ import { tasksToState, useTask } from '@/components/TaskContext.tsx'
 import { Spinner } from '@/components/Spinner.tsx'
 import invariant from 'tiny-invariant'
 import { useEffect } from 'react'
+import { toJsrModuleName } from '@/lib/install-headless.ts'
 
 export const InstallGeneratorsTask = () => {
   const { state, dispatchMessage } = useSkmtc()
@@ -18,7 +19,7 @@ export const InstallGeneratorsTask = () => {
     const run = async () => {
       await Promise.all(
         generators.map(async generator => {
-          await project.installGenerator({ moduleName: `jsr:${generator}` })
+          await project.installGenerator({ moduleName: toJsrModuleName(generator) })
         })
       )
         .then(() => {

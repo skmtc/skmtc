@@ -117,3 +117,35 @@ export const failWithRecipe = (args: MissingArgArgs): never => {
   console.error(formatMissingArgError(args))
   Deno.exit(2)
 }
+
+type InvalidArgArgs = {
+  message: string
+  usage: string
+  example: string
+  discover?: string
+}
+
+/**
+ * Format an "arguments were given but don't fit" error with the same
+ * usage, example and discovery hint as {@link formatMissingArgError}.
+ */
+export const formatInvalidArgError = ({
+  message,
+  usage,
+  example,
+  discover
+}: InvalidArgArgs): string => {
+  const lines = [`Error: ${message}`, '', `Usage:   ${usage}`, `Example: ${example}`]
+
+  if (discover) {
+    lines.push('', `Discover valid values: ${discover}`)
+  }
+
+  return lines.join('\n')
+}
+
+/** Print an invalid-argument error to stderr and exit 2. */
+export const failWithInvalidArg = (args: InvalidArgArgs): never => {
+  console.error(formatInvalidArgError(args))
+  Deno.exit(2)
+}
