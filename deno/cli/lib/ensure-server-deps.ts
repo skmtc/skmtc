@@ -11,9 +11,8 @@ import { readCliCorePin, readCliServerPin } from '@/lib/doctor-headless.ts'
  *    it is referenced by the CLI-generated entry and not by any
  *    cloned generator's source, so the clone import-collector never
  *    sees it.
- *  - `@skmtc/core` — the generator source and `@skmtc/server` both
- *    import it. Pinning a matching version here avoids the
- *    two-copies-in-bundle hazard if a generator pins an older core.
+ *  - `@skmtc/core` — `server.ts` imports it so this exact pin decides
+ *    the one core the ranged server and generators resolve.
  *
  * Versions come from the CLI's own deno.json, consistent with
  * `ensureWorkerDeps`. The two pins are maintained differently:

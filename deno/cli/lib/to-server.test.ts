@@ -74,3 +74,7 @@ Deno.test('toMod - exports default from createServer', () => {
 
   assertStringIncludes(result, 'export default createServer')
 })
+
+Deno.test('toServer - imports @skmtc/core so the project pin decides which core resolves', () => {
+  assertStringIncludes(toServer(['@skmtc/msw']), "import '@skmtc/core'\n")
+})

@@ -31,6 +31,7 @@ import type { JsrPkgMetaVersions } from '@/lib/jsr.ts'
 import { getJsrBaseUrl } from '@/lib/jsr-registry.ts'
 import { greaterThan } from '@std/semver/greater-than'
 import { parse as parseSemver } from '@std/semver/parse'
+import { canParse as canParseSemver } from '@std/semver/can-parse'
 import {
   DEPENDENCY_AGE_FLAG,
   DEPENDENCY_AGE_WINDOW_HOURS,
@@ -319,8 +320,8 @@ const checkInstallLockfile = (denoVersion?: string): Check => {
 
   try {
     const content = Deno.readTextFileSync(lockPath)
-    const coreVersion = extractPin(content, /jsr:@skmtc\/core@([\d.^~<>=*]+)/)
-    const cliVersion = extractPin(content, /jsr:@skmtc\/cli@([\d.^~<>=*]+)/)
+    const coreVersion = toLockedVersion(content, '@skmtc/core')
+    const cliVersion = toLockedVersion(content, '@skmtc/cli')
 
     return {
       id: 'install-lockfile',
@@ -352,8 +353,14 @@ const checkInstallLockfile = (denoVersion?: string): Check => {
   }
 }
 
-const extractPin = (content: string, pattern: RegExp): string | null => {
-  const match = content.match(pattern)
+/**
+ * The version a `deno.lock` resolved `packageName` to — the value of its
+ * first `"jsr:<name>@<range>": "<version>"` specifier. The key holds the
+ * requested range, which Deno normalizes (`^0.29.0` → `0.29`), so only
+ * the value names the version that runs.
+ */
+export const toLockedVersion = (lockContent: string, packageName: string): string | null => {
+  const match = lockContent.match(new RegExp(`"jsr:${packageName}@[^"]+":\\s*"([^"]+)"`))
   return match?.[1] ?? null
 }
 
@@ -455,61 +462,50 @@ const checkProject = (projectName: string, ctx: CheckProjectContext): Check[] =>
   return checks
 }
 
+const cliImports: Record<string, string | undefined> = cliDenoJson.imports
+
 /**
- * Reads the CLI's own `@skmtc/core` semver pin from
- * `cli/deno.json#imports`. Used to flag projects whose pin doesn't
- * satisfy the CLI's requirement.
- *
- * Returns `null` if the import map is unreadable or missing — that's
- * a separate failure that should surface elsewhere; from doctor's
- * perspective, a null pin means "skip the comparison".
+ * The lower bound of a `jsr:<packageName>@^x.y.z` import (`x.y.z`), or
+ * the version of an exact `jsr:<packageName>@x.y.z`. `null` for anything
+ * else — another package, a non-`jsr:` specifier, or a range such as
+ * `~x.y.z`, `>=x.y.z` or `x.y`.
+ */
+export const toLowerBound = (importValue: string, packageName: string): string | null => {
+  const prefix = `jsr:${packageName}@`
+  if (!importValue.startsWith(prefix)) return null
+  const version = importValue.slice(prefix.length).replace(/^\^/, '')
+  return canParseSemver(version) ? version : null
+}
+
+/**
+ * The version the CLI's own `cli/deno.json` names for `packageName` —
+ * the lower bound of its range — so every pin the CLI writes into a
+ * project's `deno.json` is exact.
  *
  * Imported via JSON module syntax so it's resolved at build time. We
  * don't go through `Deno.readTextFileSync(...)` because the path of
  * `cli/deno.json` depends on the install shape (compiled binary vs
  * deno run vs deno-install launcher) — JSON imports work uniformly.
- *
- * Exported so the pre-flight clone check can reuse it without
- * dragging in the full doctor scaffolding (friction #3 in the
- * follow-up: surface a peer-pin mismatch BEFORE downloading).
  */
-export const readCliCorePin = (): string | null => {
-  // The JSON import lives at the module top to avoid taking a hard
-  // dependency on `cli/deno.json`'s shape inside the function body;
-  // we only read the field we care about.
-  const value = cliDenoJson?.imports?.['@skmtc/core']
-  if (typeof value !== 'string') return null
-  // Strip the `jsr:` prefix and the `@skmtc/core@` segment so we keep
-  // just the version constraint (e.g. `^0.3.0`).
-  const match = value.match(/^jsr:@skmtc\/core@(.+)$/)
-  return match ? match[1] : null
+export const readCliLowerBound = (packageName: string): string | null => {
+  const value = cliImports[packageName]
+  return value === undefined ? null : toLowerBound(value, packageName)
 }
 
 /**
- * The CLI's own `@skmtc/worker` pin, read from `cli/deno.json`.
- * `@skmtc/worker` versions independently of `@skmtc/core`, so it
- * needs its own reader. Mirrors {@link readCliCorePin}; exported so
- * `ensureWorkerDeps` can pin a fresh project to the CLI's version.
+ * The CLI's `@skmtc/core` version. Used to flag projects whose pin
+ * doesn't match the CLI's; `null` means "skip the comparison". Exported
+ * so the pre-flight clone check can reuse it without dragging in the
+ * full doctor scaffolding (friction #3: surface a peer-pin mismatch
+ * BEFORE downloading).
  */
-export const readCliWorkerPin = (): string | null => {
-  const value = cliDenoJson?.imports?.['@skmtc/worker']
-  if (typeof value !== 'string') return null
-  const match = value.match(/^jsr:@skmtc\/worker@(.+)$/)
-  return match ? match[1] : null
-}
+export const readCliCorePin = (): string | null => readCliLowerBound('@skmtc/core')
 
-/**
- * The CLI's own `@skmtc/server` pin, read from `cli/deno.json`.
- * `@skmtc/server` is the Hono wrapper bundled into the CF-Workers
- * `server.js` artifact by `skmtc publish`. Exported so
- * `ensureServerDeps` can pin a fresh project to the CLI's version.
- */
-export const readCliServerPin = (): string | null => {
-  const value = cliDenoJson?.imports?.['@skmtc/server']
-  if (typeof value !== 'string') return null
-  const match = value.match(/^jsr:@skmtc\/server@(.+)$/)
-  return match ? match[1] : null
-}
+/** The CLI's `@skmtc/worker` version, which `ensureWorkerDeps` pins. */
+export const readCliWorkerPin = (): string | null => readCliLowerBound('@skmtc/worker')
+
+/** The CLI's `@skmtc/server` version, which `ensureServerDeps` pins. */
+export const readCliServerPin = (): string | null => readCliLowerBound('@skmtc/server')
 
 /**
  * Compares a project's `@skmtc/core` pin to the CLI's own. Friction

@@ -4,6 +4,7 @@ import {
   assertNoPrivateDeps,
   incrementPatch,
   planRelease,
+  rewriteDepVersion,
   toDependencyOrder,
   toJsrInstallArgs,
   toJsrReinstallCommand,
@@ -29,6 +30,16 @@ Deno.test('toWorkspaceDep - returns null for non-workspace and non-jsr imports',
   assertEquals(toWorkspaceDep('jsr:@std/path@^1', names), null) // not a workspace package
   assertEquals(toWorkspaceDep('npm:valibot@1.1.0', names), null) // not a jsr: specifier
   assertEquals(toWorkspaceDep('./local/mod.ts', names), null) // relative path
+})
+
+Deno.test('rewriteDepVersion - writes a caret range from an exact pin or an older range', () => {
+  assertEquals(rewriteDepVersion('jsr:@skmtc/core@0.29.0', '0.29.1'), 'jsr:@skmtc/core@^0.29.1')
+  assertEquals(rewriteDepVersion('jsr:@skmtc/core@^0.29.0', '0.29.1'), 'jsr:@skmtc/core@^0.29.1')
+  assertEquals(rewriteDepVersion('jsr:@skmtc/core@^0.29.1', '0.30.0'), 'jsr:@skmtc/core@^0.30.0')
+  assertEquals(
+    rewriteDepVersion('jsr:@skmtc/worker@^0.3.2/types', '0.3.3'),
+    'jsr:@skmtc/worker@^0.3.3/types'
+  )
 })
 
 /** Build a WorkspacePackage; deps are derived from its @skmtc/* imports. */
@@ -90,16 +101,35 @@ Deno.test('planRelease - a direct core bump cascades to every dependent', () => 
   assertEquals(plan.get('@skmtc/core')?.version, '0.6.3')
   // worker: cascade — patch-bumped, core pin rewritten.
   assertEquals(plan.get('@skmtc/worker')?.version, '0.3.3')
-  assertEquals(plan.get('@skmtc/worker')?.imports['@skmtc/core'], 'jsr:@skmtc/core@0.6.3')
+  assertEquals(plan.get('@skmtc/worker')?.imports['@skmtc/core'], 'jsr:@skmtc/core@^0.6.3')
   // cli: cascade — patch-bumped, both core and worker pins rewritten
   // (worker to its *cascaded* 0.3.3, not its old version).
   assertEquals(plan.get('@skmtc/cli')?.version, '0.3.5')
-  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/core'], 'jsr:@skmtc/core@0.6.3')
-  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/worker'], 'jsr:@skmtc/worker@0.3.3')
+  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/core'], 'jsr:@skmtc/core@^0.6.3')
+  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/worker'], 'jsr:@skmtc/worker@^0.3.3')
   assertEquals(
     plan.get('@skmtc/cli')?.imports['@skmtc/worker/types'],
-    'jsr:@skmtc/worker@0.3.3/types'
+    'jsr:@skmtc/worker@^0.3.3/types'
   )
+})
+
+Deno.test('planRelease - a dependency release moves a range lower bound forward', () => {
+  const packages = [
+    wp('@skmtc/core', '0.29.1'),
+    wp('@skmtc/lang-typescript', '0.12.22', { '@skmtc/core': 'jsr:@skmtc/core@^0.29.0' }),
+    wp('@skmtc/worker', '0.3.56', { '@skmtc/core': 'jsr:@skmtc/core@^0.29.0' })
+  ]
+  const published = new Set(['@skmtc/lang-typescript@0.12.22', '@skmtc/worker@0.3.56'])
+
+  const plan = planRelease(packages, published)
+
+  assertEquals(plan.get('@skmtc/lang-typescript')?.version, '0.12.23')
+  assertEquals(
+    plan.get('@skmtc/lang-typescript')?.imports['@skmtc/core'],
+    'jsr:@skmtc/core@^0.29.1'
+  )
+  assertEquals(plan.get('@skmtc/worker')?.version, '0.3.57')
+  assertEquals(plan.get('@skmtc/worker')?.imports['@skmtc/core'], 'jsr:@skmtc/core@^0.29.1')
 })
 
 Deno.test('planRelease - nothing to do when every version is already published', () => {
@@ -122,7 +152,7 @@ Deno.test('planRelease - a directly-bumped dependent keeps its own version', () 
   const plan = planRelease(packages, new Set())
 
   assertEquals(plan.get('@skmtc/cli')?.version, '0.4.0')
-  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/core'], 'jsr:@skmtc/core@0.6.3')
+  assertEquals(plan.get('@skmtc/cli')?.imports['@skmtc/core'], 'jsr:@skmtc/core@^0.6.3')
 })
 
 Deno.test('assertNoPrivateDeps - a private package may depend on publishable ones', () => {
@@ -165,7 +195,7 @@ Deno.test('planRelease - a private package still cascade-bumps when a dependency
   const plan = planRelease(packages, new Set())
 
   assertEquals(plan.get('@skmtc/lang-java')?.version, '0.0.2')
-  assertEquals(plan.get('@skmtc/lang-java')?.imports['@skmtc/core'], 'jsr:@skmtc/core@0.6.3')
+  assertEquals(plan.get('@skmtc/lang-java')?.imports['@skmtc/core'], 'jsr:@skmtc/core@^0.6.3')
 })
 
 Deno.test('toJsrInstallArgs - the just-published pin carries the dependency-age flag', () => {

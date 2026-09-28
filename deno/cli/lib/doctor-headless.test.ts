@@ -13,7 +13,12 @@ import { assertEquals } from '@std/assert/equals'
 import { assertStringIncludes } from '@std/assert/string-includes'
 import { join } from '@std/path/join'
 import { ensureDir } from '@std/fs/ensure-dir'
-import { runDoctor as runDoctorWithRegistry, type Check } from '@/lib/doctor-headless.ts'
+import {
+  runDoctor as runDoctorWithRegistry,
+  toLockedVersion,
+  toLowerBound,
+  type Check
+} from '@/lib/doctor-headless.ts'
 import { printDoctorResult } from '@/commands/doctor.ts'
 import { captureStdout } from '@/tests/strict-mode-helpers.test.ts'
 import { assertRejects } from '@std/assert/rejects'
@@ -996,4 +1001,33 @@ Deno.test('runDoctor - skips the package-copies check when neither source can be
     assertEquals(check?.status, 'skipped')
     assertStringIncludes(check?.message ?? '', 'not resolved in tests')
   })
+})
+
+Deno.test('toLowerBound - an exact version from a caret range or an exact pin, null otherwise', () => {
+  assertEquals(toLowerBound('jsr:@skmtc/core@^0.29.0', '@skmtc/core'), '0.29.0')
+  assertEquals(toLowerBound('jsr:@skmtc/core@0.29.0', '@skmtc/core'), '0.29.0')
+  assertEquals(toLowerBound('jsr:@skmtc/core@~0.29.0', '@skmtc/core'), null)
+  assertEquals(toLowerBound('jsr:@skmtc/core@>=0.29.0', '@skmtc/core'), null)
+  assertEquals(toLowerBound('jsr:@skmtc/core@0.29', '@skmtc/core'), null)
+  assertEquals(toLowerBound('jsr:@skmtc/worker@^0.3.57', '@skmtc/core'), null)
+  assertEquals(toLowerBound('../core/mod.ts', '@skmtc/core'), null)
+})
+
+Deno.test('toLockedVersion - reads the resolved version, not the normalized range key', () => {
+  const lock = JSON.stringify(
+    {
+      version: '5',
+      specifiers: {
+        'jsr:@skmtc/cli@0.9.51': '0.9.51',
+        'jsr:@skmtc/core@0.29': '0.29.1'
+      },
+      jsr: { '@skmtc/cli@0.9.51': { dependencies: ['jsr:@skmtc/core@0.29'] } }
+    },
+    null,
+    2
+  )
+
+  assertEquals(toLockedVersion(lock, '@skmtc/core'), '0.29.1')
+  assertEquals(toLockedVersion(lock, '@skmtc/cli'), '0.9.51')
+  assertEquals(toLockedVersion(lock, '@skmtc/worker'), null)
 })

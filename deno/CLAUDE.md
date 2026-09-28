@@ -47,10 +47,17 @@ The script then, against the JSR registry as the source of truth:
 - treats any package whose `deno.json` version is **not yet published** as a
   direct release;
 - **cascades** — every workspace package that depends (directly or
-  transitively) on a releasing package gets its `@skmtc/*` import pins
-  rewritten to the new versions and its own patch version bumped;
+  transitively) on a releasing package gets its `@skmtc/*` import ranges
+  rewritten to `^<new version>` and its own patch version bumped;
 - publishes in dependency order so a dependency is live before its dependents
   resolve against it.
+
+Published packages declare `@skmtc/*` dependencies as caret ranges
+(`jsr:@skmtc/core@^0.29.0`), never exact versions: two packages released a
+patch apart must resolve one copy of core, or generation writes empty files
+(#153, #165). The project `deno.json` the CLI writes keeps exact pins — the
+readers in `cli/lib/doctor-headless.ts` return the lower bound of the CLI's
+own ranges.
 
 Flags: `--reinstall-cli=none|local-compile|jsr-install` controls whether the
 local `skmtc` binary is rebuilt when `@skmtc/cli` is part of the release
@@ -72,7 +79,7 @@ settings (OIDC), then drop the flag.
 `Publish` workflow runs the cascade), do step 1 with `deno task bump <package>
 [--minor|--major] [--dry-run]` instead of hand-editing `deno.json`. It performs
 the **same cascade as release** — bumps the named package(s) and rewrites every
-downstream `@skmtc/*` pin + patch-bumps each dependent across `deno/` — but only
+downstream `@skmtc/*` range + patch-bumps each dependent across `deno/` — but only
 edits the `deno.json` files; it never queries the registry or publishes. Commit
 and merge the result; CI then sees the bumped versions as unpublished and ships
 them. A package may be named by its directory (`core`) or full name

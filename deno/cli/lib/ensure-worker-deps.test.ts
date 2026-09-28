@@ -2,6 +2,7 @@ import { assertEquals } from '@std/assert'
 import { RootDenoJson } from '@/lib/root-deno-json.ts'
 import { ensureWorkerDeps } from '@/lib/ensure-worker-deps.ts'
 import { readCliCorePin, readCliWorkerPin } from '@/lib/doctor-headless.ts'
+import cliDenoJson from '@/deno.json' with { type: 'json' }
 
 Deno.test('ensureWorkerDeps', async t => {
   await t.step('adds @skmtc/worker and @skmtc/core when absent', () => {
@@ -19,6 +20,24 @@ Deno.test('ensureWorkerDeps', async t => {
       `jsr:@skmtc/worker@${readCliWorkerPin()}`
     )
     assertEquals(denoJson.contents.imports?.['@skmtc/core'], `jsr:@skmtc/core@${readCliCorePin()}`)
+  })
+
+  await t.step('pins the exact lower bound of the CLI ranges', () => {
+    // The CLI declares `^x.y.z`; the project keeps an exact pin so it
+    // decides which one copy of core the ranged packages resolve.
+    const denoJson = RootDenoJson.create('test')
+
+    ensureWorkerDeps(denoJson)
+
+    assertEquals(cliDenoJson.imports['@skmtc/core'].startsWith('jsr:@skmtc/core@^'), true)
+    assertEquals(
+      denoJson.contents.imports?.['@skmtc/core'],
+      cliDenoJson.imports['@skmtc/core'].replace('@^', '@')
+    )
+    assertEquals(
+      denoJson.contents.imports?.['@skmtc/worker'],
+      cliDenoJson.imports['@skmtc/worker'].replace('@^', '@')
+    )
   })
 
   await t.step('never overwrites an existing pin (e.g. a local-checkout override)', () => {

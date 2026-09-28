@@ -442,7 +442,7 @@ Deno.test('checkModuleGraph - resolves two cores from a real `deno info` run', a
           {
             name: '@skmtc/core',
             copies: [
-              { version: '0.1.0', importedBy: ['@skmtc/worker@0.1.0'] },
+              { version: '0.1.0', importedBy: ['@skmtc/worker@0.1.0', 'worker.ts'] },
               { version: '0.2.0', importedBy: ['@skmtc/gen-a@0.2.0'] }
             ]
           }
@@ -461,7 +461,10 @@ Deno.test('checkModuleGraph - resolves one core from a real `deno info` run', as
           {
             name: '@skmtc/core',
             copies: [
-              { version: '0.1.0', importedBy: ['@skmtc/gen-a@0.1.0', '@skmtc/worker@0.1.0'] }
+              {
+                version: '0.1.0',
+                importedBy: ['@skmtc/gen-a@0.1.0', '@skmtc/worker@0.1.0', 'worker.ts']
+              }
             ]
           }
         ]
@@ -503,7 +506,7 @@ Deno.test('checkModuleGraph - finds a local core checkout beside the JSR core', 
 
         assertEquals(result.type === 'duplicates' ? result.duplicates[0].copies : [], [
           { version: '0.1.0', importedBy: ['@skmtc/gen-a@0.1.0', '@skmtc/worker@0.1.0'] },
-          { version: '0.3.0 (localcore)', importedBy: ['gen-local'] }
+          { version: '0.3.0 (localcore)', importedBy: ['gen-local', 'worker.ts'] }
         ])
       }
     )

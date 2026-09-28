@@ -33,11 +33,14 @@ export const toServer = (generatorIds: string[]) => {
   // cores in one bundle means the `GenerateContext` the generators receive is
   // from the wrong copy: every subject fails with `context.<method> is not a
   // function` and the run emits zero artifacts, with nothing naming a version.
+  // `import '@skmtc/core'` puts the core pin into the graph, so the ranged
+  // `@skmtc/server` and generators resolve to it.
   // `server.ts` is emitted beside the project's `deno.json`, so the entry can
   // read its own package identity (name, version, description, homepage) for
   // the server's home page. `toStackIdentity` fails soft — a config without
   // those fields yields the generic page.
   const server = `
+import '@skmtc/core'
 import { createServer, toStackIdentity } from '@skmtc/server'
 import denoConfig from './deno.json' with { type: 'json' }
 ${imports}
