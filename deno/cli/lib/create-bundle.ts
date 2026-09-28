@@ -45,7 +45,8 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
     throw new Error(refusal)
   }
 
-  const temporaryBundlePath = join(settingsPath, `bundle-${crypto.randomUUID()}.js`)
+  const temporaryBundleName = join('.settings', `bundle-${crypto.randomUUID()}.js`)
+  const temporaryBundlePath = join(projectPath, temporaryBundleName)
 
   // Without the age flag, `deno bundle` on Deno ≥ 2.9 rejects a freshly
   // released stack — the project's pins name `@skmtc/*` versions that
@@ -53,7 +54,7 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
   // Same rationale as the installer's flag on `deno install`
   // (skmtc-hub/apps/install); see `@/lib/dependency-age.ts`.
   const { success, stdout, stderr } = await new Deno.Command('deno', {
-    args: ['bundle', ...toDependencyAgeArgs(), '-o', temporaryBundlePath, 'worker.ts'],
+    args: ['bundle', ...toDependencyAgeArgs(), '-o', temporaryBundleName, 'worker.ts'],
     cwd: projectPath,
     stdout: 'piped',
     stderr: 'piped'
@@ -157,10 +158,10 @@ export const createReadOnlyBundle = async ({
         denoJsonPath,
         ...toDependencyAgeArgs(),
         '-o',
-        join(directory, 'bundle.js'),
-        workerPath
+        'bundle.js',
+        'worker.ts'
       ],
-      cwd: projectPath,
+      cwd: directory,
       stdout: 'null',
       stderr: 'piped',
       signal

@@ -388,9 +388,11 @@ export const checkModuleGraph: CheckModuleGraphFn = async (projectPath, options 
         ...(options.frozen ? ['--frozen'] : []),
         ...(options.entryPath ? ['--config', join(projectPath, 'deno.json')] : []),
         ...toDependencyAgeArgs(),
-        workerPath
+        // Named relative to `cwd`: on Windows an absolute path here gives
+        // a graph with no `@skmtc/core` in it.
+        basename(workerPath)
       ],
-      cwd: projectPath,
+      cwd: dirname(workerPath),
       stdout: 'piped',
       stderr: 'piped',
       signal
