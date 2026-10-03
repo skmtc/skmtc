@@ -45,3 +45,18 @@ export class TsIdentifier extends IdentifierBase {
     return `${toTsKeyword(this.type)} ${this.name}`
   }
 }
+
+/**
+ * Narrows the neutral {@link IdentifierBase} the engine hands a generator
+ * (`ContentSettings.identifier`) back to the {@link TsIdentifier} this
+ * language built, for a call that needs the concrete type — a `reExports`
+ * entry in `registerInto`, say. Throws on an identifier another language
+ * layer built: that is a misconfiguration, not a case to handle.
+ */
+export const toTsIdentifier = (identifier: IdentifierBase): TsIdentifier => {
+  if (!(identifier instanceof TsIdentifier)) {
+    throw new Error(`'${identifier.name}' was not built by the TypeScript lang layer`)
+  }
+
+  return identifier
+}

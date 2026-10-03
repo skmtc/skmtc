@@ -69,7 +69,12 @@ export {
   type TsAccessibility
 } from './src/TsClass.ts'
 export { TsHeritage, type TsHeritageArgs, type TsHeritageSymbol } from './src/TsHeritage.ts'
-export { TsIdentifier, type TsIdentifierType, type TsIdentifierArgs } from './src/TsIdentifier.ts'
+export {
+  TsIdentifier,
+  toTsIdentifier,
+  type TsIdentifierType,
+  type TsIdentifierArgs
+} from './src/TsIdentifier.ts'
 
 // TypeScript syntax helpers + naming layer (moved from @skmtc/core — F5/F6)
 export * from './src/List.ts'

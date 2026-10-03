@@ -109,7 +109,10 @@ TypeScript output has five entity kinds — `TsEntityType = 'variable' |
 `createInterface`, `createNamespace`. No `'function'` kind: a generated
 function is a `variable` whose value renders as an arrow function. The
 engine's identifier `type` is an opaque string; `isTsEntityType` narrows
-it to the five above.
+it to the five above. `ContentSettings.identifier` is the neutral
+`IdentifierBase`; `toTsIdentifier(identifier)` narrows it back to the
+`TsIdentifier` a `reExports` entry needs (a barrel:
+`registerInto(barrelPath, { reExports: { [exportPath]: [toTsIdentifier(settings.identifier)] } })`).
 
 `toIdentifierType` is one lever with three effects: declaration keyword;
 block form (class/interface/namespace take no `= value;`); and whether
