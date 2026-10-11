@@ -1,6 +1,7 @@
 import { decomposeIntersection } from './decompose-intersection.ts'
 import type { GetRefFn, SchemaOrReference, SchemaObject } from './types.ts'
 import { mergeSchemasOrRefs } from './merge.ts'
+import { derefMember } from './ref-cycle.ts'
 
 type MergeIntersectionArgs = {
   schema: SchemaObject
@@ -15,14 +16,13 @@ export const mergeIntersection = ({ schema, getRef }: MergeIntersectionArgs): Sc
     return decomposed[0]
   }
 
-  const dereffed = decomposed.map(decomposed => {
-    return '$ref' in decomposed ? getRef(decomposed) : decomposed
-  })
+  // Each member is resolved with its own scoped resolver: one that records the
+  // member's `$ref` as being expanded, so anything beneath it pointing back
+  // here stays a reference rather than inlining forever.
+  const result = decomposed.reduce<SchemaOrReference>((acc, member) => {
+    const [value, scoped] = derefMember(member, getRef)
 
-  const result = dereffed.reduce<SchemaOrReference>((acc, decomposed) => {
-    const merged = mergeSchemasOrRefs(acc, decomposed, getRef)
-
-    return merged
+    return mergeSchemasOrRefs(acc, value, scoped)
   }, {} as SchemaObject)
 
   return result
