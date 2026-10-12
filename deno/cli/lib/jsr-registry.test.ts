@@ -5,24 +5,10 @@ import {
   JsrRegistryUnreachableError,
   toJsrUrl
 } from '@/lib/jsr-registry.ts'
+import { withEnv } from '@/tests/mocks/env.mock.ts'
 
-const withJsrUrl = async <T>(value: string | undefined, fn: () => Promise<T> | T): Promise<T> => {
-  const previous = Deno.env.get('JSR_URL')
-  if (value === undefined) {
-    Deno.env.delete('JSR_URL')
-  } else {
-    Deno.env.set('JSR_URL', value)
-  }
-  try {
-    return await fn()
-  } finally {
-    if (previous === undefined) {
-      Deno.env.delete('JSR_URL')
-    } else {
-      Deno.env.set('JSR_URL', previous)
-    }
-  }
-}
+const withJsrUrl = <T>(value: string | undefined, fn: () => Promise<T> | T): Promise<T> =>
+  withEnv({ JSR_URL: value }, fn)
 
 const originalFetch = globalThis.fetch
 

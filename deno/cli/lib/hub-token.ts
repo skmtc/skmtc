@@ -16,6 +16,7 @@
 
 import { join } from '@std/path/join'
 import { dirname } from '@std/path/dirname'
+import { readEnv, readHomeDirectory } from '@/lib/env.ts'
 
 export const DEFAULT_ORIGIN = 'https://api.skmtc.dev'
 
@@ -36,15 +37,11 @@ export const resolveOrigin = (originFlag?: string): string => {
   const fromFlag = originFlag?.trim()
   if (fromFlag) return fromFlag
 
-  const fromOrigin = Deno.env.get('SKMTC_API_ORIGIN')?.trim()
-  if (fromOrigin) return fromOrigin
-
-  return DEFAULT_ORIGIN
+  return readEnv('SKMTC_API_ORIGIN') ?? DEFAULT_ORIGIN
 }
 
 export const toAuthFilePath = (): string => {
-  // HOME on POSIX; USERPROFILE is the Windows equivalent.
-  const home = Deno.env.get('HOME') ?? Deno.env.get('USERPROFILE')
+  const home = readHomeDirectory()
 
   if (!home) {
     throw new Error('Neither HOME nor USERPROFILE env var is set')
@@ -118,7 +115,7 @@ export const resolveHubToken = ({ tokenFlag }: ResolveHubTokenArgs = {}): string
   const fromFlag = tokenFlag?.trim()
   if (fromFlag) return fromFlag
 
-  const fromEnv = Deno.env.get('SKMTC_HUB_TOKEN')?.trim()
+  const fromEnv = readEnv('SKMTC_HUB_TOKEN')
   if (fromEnv) return fromEnv
 
   return readStoredAuth()?.token
@@ -148,12 +145,12 @@ export const resolveHubAuth = ({
   originFlag
 }: ResolveHubAuthArgs = {}): ResolvedHubAuth => {
   const flagToken = tokenFlag?.trim()
-  const envToken = Deno.env.get('SKMTC_HUB_TOKEN')?.trim()
+  const envToken = readEnv('SKMTC_HUB_TOKEN')
   const stored = readStoredAuth()
 
   const token = flagToken || envToken || stored?.token
 
-  const explicitOrigin = originFlag?.trim() || Deno.env.get('SKMTC_API_ORIGIN')?.trim()
+  const explicitOrigin = originFlag?.trim() || readEnv('SKMTC_API_ORIGIN')
   const tokenFromStore = !flagToken && !envToken && stored !== null
   const origin = explicitOrigin ?? (tokenFromStore ? stored.host : DEFAULT_ORIGIN)
 

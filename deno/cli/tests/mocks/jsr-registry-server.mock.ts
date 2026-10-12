@@ -4,6 +4,7 @@ import { join } from '@std/path/join'
 import { homedir } from 'node:os'
 import { toWorker } from '@/lib/to-worker.ts'
 import { toDependencyAgeArgs } from '@/lib/dependency-age.ts'
+import { withEnv } from '@/tests/mocks/env.mock.ts'
 
 /** Package name → version → source of the package's `mod.ts`. */
 export type RegistryPackages = Record<string, Record<string, string>>
@@ -142,27 +143,12 @@ export const withJsrRegistryServer = async (
     handleRequest(packages, request)
   )
   const denoDir = await Deno.makeTempDir({ prefix: 'jsr-registry-deno-dir-' })
-  const originalJsrUrl = Deno.env.get('JSR_URL')
-  const originalDenoDir = Deno.env.get('DENO_DIR')
-
-  Deno.env.set('JSR_URL', `http://127.0.0.1:${server.addr.port}/`)
-  Deno.env.set('DENO_DIR', denoDir)
 
   try {
-    await fn()
+    await withEnv({ JSR_URL: `http://127.0.0.1:${server.addr.port}/`, DENO_DIR: denoDir }, fn)
   } finally {
-    restoreEnv('JSR_URL', originalJsrUrl)
-    restoreEnv('DENO_DIR', originalDenoDir)
     await server.shutdown()
     await Deno.remove(denoDir, { recursive: true })
-  }
-}
-
-const restoreEnv = (name: string, value: string | undefined) => {
-  if (value === undefined) {
-    Deno.env.delete(name)
-  } else {
-    Deno.env.set(name, value)
   }
 }
 

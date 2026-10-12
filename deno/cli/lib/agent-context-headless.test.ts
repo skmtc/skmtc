@@ -1,10 +1,12 @@
 import { assertEquals } from '@std/assert/equals'
 import { assertStringIncludes } from '@std/assert/string-includes'
-import { assert } from '@std/assert'
+import { assert, assertThrows } from '@std/assert'
 import { join } from '@std/path/join'
 import { homedir } from 'node:os'
 import { ensureDir } from '@std/fs/ensure-dir'
 import { runAgentContext } from '@/lib/agent-context-headless.ts'
+import { EnvVariableError } from '@/lib/env.ts'
+import { withEnv } from '@/tests/mocks/env.mock.ts'
 import { printAgentContext } from '@/commands/agent-context.ts'
 import { captureStdout } from '@/tests/strict-mode-helpers.test.ts'
 
@@ -106,20 +108,31 @@ Deno.test("runAgentContext - malformed deno.json yields empty generator lists, d
 })
 
 Deno.test('runAgentContext - reports JSR_URL when env var is set', async () => {
-  const originalJsrUrl = Deno.env.get('JSR_URL')
-  Deno.env.set('JSR_URL', 'https://jsr.example.dev/')
-  try {
-    await withTempSkmtcRoot(async () => {
+  await withEnv({ JSR_URL: 'https://jsr.example.dev/' }, () =>
+    withTempSkmtcRoot(async () => {
       const ctx = runAgentContext({ cliVersion: '0.1.5' })
-      assertEquals(ctx.jsrUrl, 'https://jsr.example.dev/')
+      assertEquals(ctx.jsrUrl, 'https://jsr.example.dev')
     })
-  } finally {
-    if (originalJsrUrl === undefined) {
-      Deno.env.delete('JSR_URL')
-    } else {
-      Deno.env.set('JSR_URL', originalJsrUrl)
-    }
-  }
+  )
+})
+
+Deno.test('runAgentContext - reports the default registry when JSR_URL is empty', async () => {
+  await withEnv({ JSR_URL: '' }, () =>
+    withTempSkmtcRoot(async () => {
+      const ctx = runAgentContext({ cliVersion: '0.1.5' })
+      assertEquals(ctx.jsrUrl, 'https://jsr.io')
+    })
+  )
+})
+
+Deno.test('runAgentContext - a malformed JSR_URL fails naming JSR_URL', async () => {
+  await withEnv({ JSR_URL: 'not-a-url' }, () =>
+    withTempSkmtcRoot(async () => {
+      const error = assertThrows(() => runAgentContext({ cliVersion: '0.1.5' }), EnvVariableError)
+      assertEquals(error.variable, 'JSR_URL')
+      assertStringIncludes(error.message, 'JSR_URL')
+    })
+  )
 })
 
 Deno.test('runAgentContext - command list documents agent-mode classification', async () => {

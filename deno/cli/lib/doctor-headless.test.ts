@@ -21,6 +21,7 @@ import {
 } from '@/lib/doctor-headless.ts'
 import { printDoctorResult } from '@/commands/doctor.ts'
 import { captureStdout } from '@/tests/strict-mode-helpers.test.ts'
+import { withEnv } from '@/tests/mocks/env.mock.ts'
 import { assertRejects } from '@std/assert/rejects'
 import { bundleHeadless } from '@/lib/bundle-headless.ts'
 import { checkModuleGraph, type PackageCopiesCheck } from '@/lib/duplicate-packages.ts'
@@ -507,10 +508,7 @@ Deno.test('runDoctor - hub-auth check reports stored credential shape offline', 
   await withTempSkmtcRoot(async tempRoot => {
     // Point HOME at the temp root so the check reads a hermetic
     // ~/.skmtc/auth.json instead of the operator's real one.
-    const originalHome = Deno.env.get('HOME')
-    Deno.env.set('HOME', tempRoot)
-
-    try {
+    await withEnv({ HOME: tempRoot }, async () => {
       // 1. No auth.json → skipped.
       const noFile = await runDoctor({ cliVersion: '0.0.0' })
       const skipped = noFile.checks.find(check => check.id === 'hub-auth')
@@ -536,13 +534,7 @@ Deno.test('runDoctor - hub-auth check reports stored credential shape offline', 
       assertStringIncludes(ok?.message ?? '', 'https://api.example.test')
       assertStringIncludes(ok?.message ?? '', '…9876')
       assertEquals((ok?.message ?? '').includes('skmtc_pat_secret9876'), false)
-    } finally {
-      if (originalHome === undefined) {
-        Deno.env.delete('HOME')
-      } else {
-        Deno.env.set('HOME', originalHome)
-      }
-    }
+    })
   })
 })
 
@@ -639,6 +631,31 @@ Deno.test('runDoctor - cli-version-current skips when the registry is unreachabl
   assertEquals(check.status, 'skipped')
   // Offline is not a failure: doctor still reports every other check.
   assertStringIncludes(check.message, 'Could not reach')
+})
+
+Deno.test('runDoctor - a malformed JSR_URL is an error naming it, online and offline', async () => {
+  // Doctor is the command you run to diagnose a bad JSR_URL. The fault is
+  // definite (registry commands refuse to start), and no request was sent, so
+  // it is neither `skipped` nor a connectivity problem.
+  await withEnv({ JSR_URL: 'not-a-url' }, async () => {
+    for (const offline of [false, true]) {
+      const found: Check[] = []
+      let summary = ''
+      await withTempSkmtcRoot(async () => {
+        const result = await runDoctorWithRegistry({
+          cliVersion: '0.9.40',
+          offline,
+          getLatestCliMeta: () => Promise.resolve(undefined)
+        })
+        summary = result.summary
+        found.push(...result.checks.filter(c => c.id === 'cli-version-current'))
+      })
+      assertEquals(found[0].status, 'error')
+      assertEquals(summary, 'error')
+      assertStringIncludes(found[0].message, 'JSR_URL')
+      assertEquals(found[0].message.includes('Could not reach'), false)
+    }
+  })
 })
 
 Deno.test('runDoctor - cli-version-current survives a registry answering the wrong shape', async () => {

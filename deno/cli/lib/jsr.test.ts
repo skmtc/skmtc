@@ -2,6 +2,7 @@ import { assertEquals } from '@std/assert/equals'
 import { assertRejects } from '@std/assert/rejects'
 import { Jsr, type JsrPkgVersionInfo, type JsrPkgMetaVersion } from '@/lib/jsr.ts'
 import { Generator } from '@/lib/generator.ts'
+import { withEnv } from '@/tests/mocks/env.mock.ts'
 
 // Define internal type used in tests (not exported from jsr.ts)
 type JsrPkgMetaVersions = {
@@ -62,9 +63,6 @@ Deno.test('Jsr.getLatestMeta - fetches and parses metadata successfully', async 
   // Pin the registry host to the default so the asserted URL is deterministic
   // regardless of the ambient JSR_URL (CI sets it to the .co.uk mirror for
   // `jsr:` import resolution). Mirrors jsr-registry.test.ts's JSR_URL handling.
-  const previousJsrUrl = Deno.env.get('JSR_URL')
-  Deno.env.delete('JSR_URL')
-
   // Mock fetch to return successful response
   globalThis.fetch = async (url: string | URL | Request) => {
     assertEquals(url, 'https://jsr.io/@skmtc/gen-typescript/meta.json')
@@ -76,10 +74,12 @@ Deno.test('Jsr.getLatestMeta - fetches and parses metadata successfully', async 
   }
 
   try {
-    const result = await Jsr.getLatestMeta({
-      scopeName: '@skmtc',
-      packageName: 'gen-typescript'
-    })
+    const result = await withEnv({ JSR_URL: undefined }, () =>
+      Jsr.getLatestMeta({
+        scopeName: '@skmtc',
+        packageName: 'gen-typescript'
+      })
+    )
 
     assertEquals(result.scope, '@skmtc')
     assertEquals(result.name, 'gen-typescript')
@@ -87,11 +87,6 @@ Deno.test('Jsr.getLatestMeta - fetches and parses metadata successfully', async 
     assertEquals(Object.keys(result.versions).length, 5)
   } finally {
     globalThis.fetch = originalFetch
-    if (previousJsrUrl === undefined) {
-      Deno.env.delete('JSR_URL')
-    } else {
-      Deno.env.set('JSR_URL', previousJsrUrl)
-    }
   }
 })
 
