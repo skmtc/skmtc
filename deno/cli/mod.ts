@@ -1,4 +1,5 @@
 import { Command, EnumType } from '@cliffy/command'
+import { EnvVariableError } from '@/lib/env.ts'
 import { assertJsrReachable, JsrRegistryUnreachableError } from '@/lib/jsr-registry.ts'
 import { getCommandDescriptor, JSON_DESCRIPTION, NO_INPUT_DESCRIPTION } from '@/lib/cli-schema.ts'
 import { toInstallCommand } from '@/commands/install-command.ts'
@@ -67,7 +68,7 @@ const run = async () => {
     try {
       await assertJsrReachable()
     } catch (error) {
-      if (error instanceof JsrRegistryUnreachableError) {
+      if (error instanceof JsrRegistryUnreachableError || error instanceof EnvVariableError) {
         console.error(error.message)
         Deno.exit(1)
       }

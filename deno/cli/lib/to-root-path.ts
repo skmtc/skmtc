@@ -3,7 +3,7 @@ import { existsSync } from '@std/fs/exists'
 import { homedir } from 'node:os'
 import { resolve } from '@std/path/resolve'
 import { relative } from '@std/path/relative'
-import { readHomeDirectory } from '@/lib/env.ts'
+import { readEnv } from '@/lib/env.ts'
 
 export const toRootPath = () => {
   let path = Deno.cwd()
@@ -41,7 +41,7 @@ export const toRelativeRootPath = () => {
     return globalThis.__mockToRelativeRootPath
   }
 
-  const homePath = readHomeDirectory()
+  const homePath = readEnv('HOME')
 
   const appRootPath = toAbsoluteRootPath()
 

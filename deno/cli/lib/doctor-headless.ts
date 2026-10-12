@@ -27,6 +27,7 @@ import {
 import { maskToken, readStoredAuth, toAuthFilePath } from '@/lib/hub-token.ts'
 import { Jsr } from '@/lib/jsr.ts'
 import type { JsrPkgMetaVersions } from '@/lib/jsr.ts'
+import { EnvVariableError } from '@/lib/env.ts'
 import { getJsrBaseUrl } from '@/lib/jsr-registry.ts'
 import { greaterThan } from '@std/semver/greater-than'
 import { parse as parseSemver } from '@std/semver/parse'
@@ -171,6 +172,20 @@ const aggregate = (checks: Check[]): CheckStatus => {
   return 'ok'
 }
 
+/**
+ * The registry as a message names it. A malformed `JSR_URL` has no base URL
+ * to name, so the label carries the error instead of letting it escape the
+ * check.
+ */
+const toRegistryLabel = (): string => {
+  try {
+    return getJsrBaseUrl()
+  } catch (error) {
+    if (error instanceof EnvVariableError) return `the JSR registry (${error.message})`
+    throw error
+  }
+}
+
 type CheckCliVersionArgs = {
   cliVersion: string
   denoVersion: string
@@ -205,7 +220,7 @@ const checkCliVersionCurrent = async ({
       status: 'skipped',
       message:
         `Skipped by --offline; the running CLI ${cliVersion} was not compared ` +
-        `against ${getJsrBaseUrl()}.`
+        `against ${toRegistryLabel()}.`
     }
   }
   // Belt and braces with `tryGetLatestMeta`'s shape check: doctor is the
@@ -222,7 +237,7 @@ const checkCliVersionCurrent = async ({
     return {
       id: 'cli-version-current',
       status: 'skipped',
-      message: `Could not reach ${getJsrBaseUrl()} to compare @skmtc/cli versions.`
+      message: `Could not reach ${toRegistryLabel()} to compare @skmtc/cli versions.`
     }
   }
   if (meta.latest === cliVersion) {

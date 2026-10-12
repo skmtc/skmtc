@@ -633,6 +633,24 @@ Deno.test('runDoctor - cli-version-current skips when the registry is unreachabl
   assertStringIncludes(check.message, 'Could not reach')
 })
 
+Deno.test('runDoctor - cli-version-current survives a malformed JSR_URL, naming it', async () => {
+  // Doctor is the command you run to diagnose a bad JSR_URL, so the bad
+  // value must come out as a `skipped` line that names it, not a throw.
+  await withEnv({ JSR_URL: 'not-a-url' }, async () => {
+    const unreachable = await toVersionCheck('0.9.40', () => Promise.resolve(undefined))
+    assertEquals(unreachable.status, 'skipped')
+    assertStringIncludes(unreachable.message, 'JSR_URL')
+
+    const found: Check[] = []
+    await withTempSkmtcRoot(async () => {
+      const result = await runDoctorWithRegistry({ cliVersion: '0.9.40', offline: true })
+      found.push(...result.checks.filter(c => c.id === 'cli-version-current'))
+    })
+    assertEquals(found[0].status, 'skipped')
+    assertStringIncludes(found[0].message, 'JSR_URL')
+  })
+})
+
 Deno.test('runDoctor - cli-version-current survives a registry answering the wrong shape', async () => {
   // A mirror or proxy behind JSR_URL answering 200 with a JSON error
   // object. Doctor is the "everything else is broken" command, so an
