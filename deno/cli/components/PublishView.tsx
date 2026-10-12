@@ -19,6 +19,7 @@ type Stage =
   | { type: 'running' }
   | { type: 'done'; result: PublishHeadlessResult }
   | { type: 'misconfigured'; missing: string[] }
+  | { type: 'invalid-environment'; message: string }
 
 /**
  * Interactive Ink path for `skmtc publish`. Strict / `--json` /
@@ -49,7 +50,7 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
     })()
 
     if (auth instanceof EnvVariableError) {
-      setStage({ type: 'misconfigured', missing: [auth.message] })
+      setStage({ type: 'invalid-environment', message: auth.message })
       dispatchMessage({ error: auth.message })
       if (!state.interactive) exit()
       return
@@ -119,6 +120,8 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
           <Text dimColor>Example: skmtc publish {project.name} --token $SKMTC_HUB_TOKEN</Text>
         </Box>
       )
+    case 'invalid-environment':
+      return <Text color="red">{stage.message}</Text>
     case 'running':
       return (
         <TaskBox active>
