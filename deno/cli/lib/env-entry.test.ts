@@ -1,6 +1,7 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
+import { fromFileUrl } from '@std/path/from-file-url'
 
-const cliDirectory = new URL('..', import.meta.url).pathname
+const cliDirectory = fromFileUrl(new URL('..', import.meta.url))
 
 const runCli = async (args: string[], env: Record<string, string>) => {
   const output = await new Deno.Command(Deno.execPath(), {
