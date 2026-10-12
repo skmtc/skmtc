@@ -21,6 +21,7 @@ import {
 } from '@/lib/doctor-headless.ts'
 import { printDoctorResult } from '@/commands/doctor.ts'
 import { captureStdout } from '@/tests/strict-mode-helpers.test.ts'
+import { withEnv } from '@/tests/mocks/env.mock.ts'
 import { assertRejects } from '@std/assert/rejects'
 import { bundleHeadless } from '@/lib/bundle-headless.ts'
 import { checkModuleGraph, type PackageCopiesCheck } from '@/lib/duplicate-packages.ts'
@@ -507,10 +508,7 @@ Deno.test('runDoctor - hub-auth check reports stored credential shape offline', 
   await withTempSkmtcRoot(async tempRoot => {
     // Point HOME at the temp root so the check reads a hermetic
     // ~/.skmtc/auth.json instead of the operator's real one.
-    const originalHome = Deno.env.get('HOME')
-    Deno.env.set('HOME', tempRoot)
-
-    try {
+    await withEnv({ HOME: tempRoot }, async () => {
       // 1. No auth.json → skipped.
       const noFile = await runDoctor({ cliVersion: '0.0.0' })
       const skipped = noFile.checks.find(check => check.id === 'hub-auth')
@@ -536,13 +534,7 @@ Deno.test('runDoctor - hub-auth check reports stored credential shape offline', 
       assertStringIncludes(ok?.message ?? '', 'https://api.example.test')
       assertStringIncludes(ok?.message ?? '', '…9876')
       assertEquals((ok?.message ?? '').includes('skmtc_pat_secret9876'), false)
-    } finally {
-      if (originalHome === undefined) {
-        Deno.env.delete('HOME')
-      } else {
-        Deno.env.set('HOME', originalHome)
-      }
-    }
+    })
   })
 })
 

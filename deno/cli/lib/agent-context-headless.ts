@@ -18,6 +18,7 @@
 import { join } from '@std/path/join'
 import { homedir } from 'node:os'
 import { existsSync } from '@std/fs/exists'
+import { getJsrBaseUrl } from '@/lib/jsr-registry.ts'
 import { toRootPath } from '@/lib/to-root-path.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import {
@@ -48,7 +49,7 @@ export type AgentContext = {
   skmtcRootPath: string
   /** Global state directory — auth tokens, shadow project caches. */
   globalStateDir: string
-  /** JSR registry URL — `JSR_URL` env var if set. */
+  /** JSR registry URL — `JSR_URL` env var if set, without a trailing slash. */
   jsrUrl: string
   projects: ProjectSnapshot[]
   commands: CommandDescriptor[]
@@ -61,12 +62,11 @@ type RunAgentContextArgs = {
 export const runAgentContext = ({ cliVersion }: RunAgentContextArgs): AgentContext => {
   const skmtcRootPath = toRootPath()
   const globalStateDir = join(homedir(), '.skmtc')
-  const jsrUrl = Deno.env.get('JSR_URL') ?? 'https://jsr.io/'
   return {
     cliVersion,
     skmtcRootPath,
     globalStateDir,
-    jsrUrl,
+    jsrUrl: getJsrBaseUrl(),
     projects: collectProjects(skmtcRootPath),
     commands: COMMAND_DESCRIPTORS
   }

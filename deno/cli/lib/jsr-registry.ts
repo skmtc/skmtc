@@ -13,14 +13,11 @@
  * a worker bundle.
  */
 
-const DEFAULT_JSR_URL = 'https://jsr.io/'
+import { readEnv } from '@/lib/env.ts'
 
 const stripTrailingSlash = (url: string): string => url.replace(/\/+$/, '')
 
-export const getJsrBaseUrl = (): string => {
-  const fromEnv = Deno.env.get('JSR_URL')
-  return stripTrailingSlash(fromEnv && fromEnv.length > 0 ? fromEnv : DEFAULT_JSR_URL)
-}
+export const getJsrBaseUrl = (): string => stripTrailingSlash(readEnv('JSR_URL'))
 
 export const toJsrUrl = (path: string): string => {
   const base = getJsrBaseUrl()

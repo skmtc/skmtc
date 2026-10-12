@@ -5,6 +5,7 @@ import { resolve } from '@std/path/resolve'
 import { ensureDir } from '@std/fs/ensure-dir'
 import { homedir } from 'node:os'
 import { toRootPath, toAbsoluteRootPath, toRelativeRootPath } from '@/lib/to-root-path.ts'
+import { withEnv } from '@/tests/mocks/env.mock.ts'
 
 // Run `fn` with cwd temporarily changed to `dir`, restoring it afterwards.
 const withCwd = async (dir: string, fn: () => Promise<void> | void) => {
@@ -21,19 +22,7 @@ const withCwd = async (dir: string, fn: () => Promise<void> | void) => {
 // `toRootPath` reads the home directory through `homedir()` and
 // `toRelativeRootPath` reads `$HOME` directly; both re-read per call, so the
 // override moves the pair together.
-const withHome = async (dir: string, fn: () => Promise<void> | void) => {
-  const previous = Deno.env.get('HOME')
-  Deno.env.set('HOME', dir)
-  try {
-    await fn()
-  } finally {
-    if (previous === undefined) {
-      Deno.env.delete('HOME')
-    } else {
-      Deno.env.set('HOME', previous)
-    }
-  }
-}
+const withHome = (dir: string, fn: () => Promise<void> | void) => withEnv({ HOME: dir }, fn)
 
 Deno.test('toRootPath - returns path ending with .skmtc', () => {
   const rootPath = toRootPath()

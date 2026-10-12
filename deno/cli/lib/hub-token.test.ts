@@ -1,5 +1,7 @@
 import { assertEquals, assertRejects } from '@std/assert'
+import { dirname } from '@std/path/dirname'
 import { stub } from '@std/testing/mock'
+import { withEnv } from '@/tests/mocks/env.mock.ts'
 import {
   deleteStoredAuth,
   readStoredAuth,
@@ -16,26 +18,11 @@ import {
  * the real ~/.skmtc or be affected by an ambient token.
  */
 const withIsolatedEnv = async (fn: () => void | Promise<void>): Promise<void> => {
-  const originalHome = Deno.env.get('HOME')
-  const originalToken = Deno.env.get('SKMTC_HUB_TOKEN')
   const tempHome = Deno.makeTempDirSync({ prefix: 'skmtc-hub-token-test-' })
 
-  Deno.env.set('HOME', tempHome)
-  Deno.env.delete('SKMTC_HUB_TOKEN')
-
   try {
-    await fn()
+    await withEnv({ HOME: tempHome, SKMTC_HUB_TOKEN: undefined, SKMTC_API_ORIGIN: undefined }, fn)
   } finally {
-    if (originalHome === undefined) {
-      Deno.env.delete('HOME')
-    } else {
-      Deno.env.set('HOME', originalHome)
-    }
-    if (originalToken === undefined) {
-      Deno.env.delete('SKMTC_HUB_TOKEN')
-    } else {
-      Deno.env.set('SKMTC_HUB_TOKEN', originalToken)
-    }
     Deno.removeSync(tempHome, { recursive: true })
   }
 }
@@ -89,7 +76,7 @@ Deno.test('readStoredAuth - null for missing or malformed file', async () => {
   await withIsolatedEnv(() => {
     assertEquals(readStoredAuth(), null)
 
-    Deno.mkdirSync(`${Deno.env.get('HOME')}/.skmtc`, { recursive: true })
+    Deno.mkdirSync(dirname(toAuthFilePath()), { recursive: true })
     Deno.writeTextFileSync(toAuthFilePath(), 'not json')
     assertEquals(readStoredAuth(), null)
 
