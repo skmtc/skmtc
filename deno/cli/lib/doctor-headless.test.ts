@@ -633,21 +633,28 @@ Deno.test('runDoctor - cli-version-current skips when the registry is unreachabl
   assertStringIncludes(check.message, 'Could not reach')
 })
 
-Deno.test('runDoctor - cli-version-current survives a malformed JSR_URL, naming it', async () => {
-  // Doctor is the command you run to diagnose a bad JSR_URL, so the bad
-  // value must come out as a `skipped` line that names it, not a throw.
+Deno.test('runDoctor - a malformed JSR_URL is an error naming it, online and offline', async () => {
+  // Doctor is the command you run to diagnose a bad JSR_URL. The fault is
+  // definite (registry commands refuse to start), and no request was sent, so
+  // it is neither `skipped` nor a connectivity problem.
   await withEnv({ JSR_URL: 'not-a-url' }, async () => {
-    const unreachable = await toVersionCheck('0.9.40', () => Promise.resolve(undefined))
-    assertEquals(unreachable.status, 'skipped')
-    assertStringIncludes(unreachable.message, 'JSR_URL')
-
-    const found: Check[] = []
-    await withTempSkmtcRoot(async () => {
-      const result = await runDoctorWithRegistry({ cliVersion: '0.9.40', offline: true })
-      found.push(...result.checks.filter(c => c.id === 'cli-version-current'))
-    })
-    assertEquals(found[0].status, 'skipped')
-    assertStringIncludes(found[0].message, 'JSR_URL')
+    for (const offline of [false, true]) {
+      const found: Check[] = []
+      let summary = ''
+      await withTempSkmtcRoot(async () => {
+        const result = await runDoctorWithRegistry({
+          cliVersion: '0.9.40',
+          offline,
+          getLatestCliMeta: () => Promise.resolve(undefined)
+        })
+        summary = result.summary
+        found.push(...result.checks.filter(c => c.id === 'cli-version-current'))
+      })
+      assertEquals(found[0].status, 'error')
+      assertEquals(summary, 'error')
+      assertStringIncludes(found[0].message, 'JSR_URL')
+      assertEquals(found[0].message.includes('Could not reach'), false)
+    }
   })
 })
 

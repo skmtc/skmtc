@@ -6,9 +6,10 @@
  *   - a URL variable must be a URL, else {@link EnvVariableError} names it;
  *   - defaults live in the schema.
  *
- * `readEnv` reads one variable when a command needs it — never at
- * start-up, because most commands need none of them, and a malformed
- * `JSR_URL` must not break `skmtc login`.
+ * `readEnv` reads one variable when it is needed, never the whole
+ * environment at once, because most commands need none of them. The one
+ * read before a command runs is `JSR_URL`, by the registry check in
+ * `mod.ts`, and only for commands that use the registry.
  */
 
 import * as v from 'valibot'

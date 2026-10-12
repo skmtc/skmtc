@@ -639,4 +639,12 @@ const run = async () => {
     .parse(Deno.args)
 }
 
-run()
+// A malformed environment variable is read by whichever command needs it;
+// report it once here, as one line, for every entry point.
+run().catch(error => {
+  if (error instanceof EnvVariableError) {
+    console.error(error.message)
+    Deno.exit(1)
+  }
+  throw error
+})

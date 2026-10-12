@@ -173,15 +173,14 @@ const aggregate = (checks: Check[]): CheckStatus => {
 }
 
 /**
- * The registry as a message names it. A malformed `JSR_URL` has no base URL
- * to name, so the label carries the error instead of letting it escape the
- * check.
+ * The registry base URL, or the error a malformed `JSR_URL` raised. Returned
+ * rather than thrown so the check can report it instead of escaping.
  */
-const toRegistryLabel = (): string => {
+const readRegistry = (): string | EnvVariableError => {
   try {
     return getJsrBaseUrl()
   } catch (error) {
-    if (error instanceof EnvVariableError) return `the JSR registry (${error.message})`
+    if (error instanceof EnvVariableError) return error
     throw error
   }
 }
@@ -214,13 +213,24 @@ const checkCliVersionCurrent = async ({
   getLatestCliMeta,
   offline
 }: CheckCliVersionArgs): Promise<Check> => {
+  // A malformed JSR_URL is a definite fault, not a connectivity problem: no
+  // request is sent, and every command that uses the registry refuses to start.
+  const registry = readRegistry()
+  if (registry instanceof EnvVariableError) {
+    return {
+      id: 'cli-version-current',
+      status: 'error',
+      message: `${registry.message}. Commands that use the registry refuse to start until it is fixed.`
+    }
+  }
+
   if (offline) {
     return {
       id: 'cli-version-current',
       status: 'skipped',
       message:
         `Skipped by --offline; the running CLI ${cliVersion} was not compared ` +
-        `against ${toRegistryLabel()}.`
+        `against ${registry}.`
     }
   }
   // Belt and braces with `tryGetLatestMeta`'s shape check: doctor is the
@@ -237,7 +247,7 @@ const checkCliVersionCurrent = async ({
     return {
       id: 'cli-version-current',
       status: 'skipped',
-      message: `Could not reach ${toRegistryLabel()} to compare @skmtc/cli versions.`
+      message: `Could not reach ${registry} to compare @skmtc/cli versions.`
     }
   }
   if (meta.latest === cliVersion) {

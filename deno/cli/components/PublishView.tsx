@@ -7,6 +7,7 @@ import type { ViewStatePublish } from '@/components/SkmtcContext.tsx'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { publishHeadless, type PublishHeadlessResult } from '@/lib/publish-headless.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
+import { EnvVariableError } from '@/lib/env.ts'
 
 type PublishViewProps = {
   project: Project
@@ -36,10 +37,25 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
   const [stage, setStage] = useState<Stage>({ type: 'validating' })
 
   useEffect(() => {
-    const { token, origin } = resolveHubAuth({
-      tokenFlag: view.token,
-      originFlag: view.origin
-    })
+    // Thrown inside an effect, the error would crash the Ink tree rather than
+    // reach the handler in `mod.ts`, so show it here.
+    const auth = (() => {
+      try {
+        return resolveHubAuth({ tokenFlag: view.token, originFlag: view.origin })
+      } catch (error) {
+        if (error instanceof EnvVariableError) return error
+        throw error
+      }
+    })()
+
+    if (auth instanceof EnvVariableError) {
+      setStage({ type: 'misconfigured', missing: [auth.message] })
+      dispatchMessage({ error: auth.message })
+      if (!state.interactive) exit()
+      return
+    }
+
+    const { token, origin } = auth
 
     if (!token) {
       setStage({
