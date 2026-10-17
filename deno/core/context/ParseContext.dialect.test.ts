@@ -3,6 +3,7 @@ import * as log from 'jsr:@std/log@^0.224.0'
 import type { OpenAPIV3 } from 'openapi-types'
 import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
+import { toDocumentObject } from '@/test/toDocumentObject.ts'
 
 // The dialect split lives in ParseContext.parse(): it reads
 // `documentObject.openapi` exactly once and routes to the v3-0, v3-1 or v3-2
@@ -94,16 +95,19 @@ Deno.test('ParseContext dialect split - a 3.2 document routes to v3-2 and parses
   const context = new ParseContext({
     input: {
       type: 'oas',
-      value: {
-        openapi: '3.2.0',
-        info: { title: 't', version: '0' },
-        paths: {
-          '/pets': { get: { responses: { '200': { description: 'ok' } } } }
+      value: toDocumentObject(
+        {
+          openapi: '3.2.0',
+          info: { title: 't', version: '0' },
+          paths: {
+            '/pets': { get: { responses: { '200': { description: 'ok' } } } }
+          },
+          webhooks: {
+            newPet: { post: { responses: { '200': { description: 'ok' } } } }
+          }
         },
-        webhooks: {
-          newPet: { post: { responses: { '200': { description: 'ok' } } } }
-        }
-      } as unknown as OpenAPIV3.Document
+        '3.2 document'
+      )
     },
     logger: new log.Logger('test', 'ERROR'),
     silent: true

@@ -148,21 +148,15 @@ const pendingFields: Array<{ field: string; location: string }> = [
   }
 ]
 
-const parse = () => {
-  const context = new ParseContext({
-    input: { type: 'oas', value: documentObject },
-    logger: new log.Logger('test', 'ERROR'),
-    silent: true
-  })
-  const result = context.parse(new StackTrail(['TEST']))
-  assert(result.type === 'oas')
-  return { context, document: result.value }
-}
+const context = new ParseContext({
+  input: { type: 'oas', value: documentObject },
+  logger: new log.Logger('test', 'ERROR'),
+  silent: true
+})
+const result = context.parse(new StackTrail(['TEST']))
 
 for (const { field, location } of pendingFields) {
   Deno.test(`v3-2 pending fields - ${field} is a skipped-field warning`, () => {
-    const { context } = parse()
-
     const warning = context.issues.find(issue => issue.location === location)
     assertEquals(warning?.level, 'warning')
     assertEquals(warning?.type, 'UNEXPECTED_PROPERTY')
@@ -173,7 +167,8 @@ Deno.test('v3-2 pending fields - only querystring and cookie style drop an opera
   // Known exceptions, left for the operations follow-up: `in: querystring`
   // and `style: cookie` fail the parameter's `v.parse`, which drops the
   // operation. Every other path and component still parses.
-  const { context, document } = parse()
+  assert(result.type === 'oas')
+  const document = result.value
 
   const errors = context.issues.filter(issue => issue.level === 'error')
   assertEquals(

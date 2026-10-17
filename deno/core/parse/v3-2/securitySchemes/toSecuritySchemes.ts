@@ -21,7 +21,7 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import { isRef } from '@/helpers/refFns.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
-import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
+import { toSpecificationExtensionsV3 } from '@/parse/v3-2/specificationExtensions/toSpecificationExtensionsV3.ts'
 export type ToSecuritySchemesArgs = {
   securitySchemes:
     | Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SecuritySchemeObject>
