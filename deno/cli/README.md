@@ -110,7 +110,7 @@ and on JSR at https://jsr.io/@skmtc.
 ## ❓ FAQ
 
 ### **What OpenAPI versions are supported?**
-Skmtc supports OpenAPI v3.0. Swagger 2.0 and OpenAPI v3.1 are automatically converted to OpenAPI v3.0.
+Skmtc supports OpenAPI v3.0, v3.1 and v3.2. Swagger 2.0 is automatically converted to OpenAPI v3.0.
 
 ### **Can I customize the generated code?**
 Yes! Each Transformer specifies its output using plain string templates, which means you can

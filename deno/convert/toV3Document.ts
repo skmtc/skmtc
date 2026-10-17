@@ -2,13 +2,13 @@
  * @fileoverview OpenAPI Document Conversion Utilities
  *
  * This module provides robust utilities for converting OpenAPI documents between
- * different versions (v2/Swagger, v3.0, v3.1) and formats (JSON, YAML). It handles
+ * different versions (v2/Swagger, v3.0, v3.1, v3.2) and formats (JSON, YAML). It handles
  * the complexities of version migration, format detection, and schema validation
  * to ensure seamless OpenAPI document processing within the SKMTC pipeline.
  *
  * ## Key Features
  *
- * - **Multi-Version Support**: Convert between Swagger v2, OpenAPI v3.0, and v3.1
+ * - **Multi-Version Support**: Accept Swagger v2 and OpenAPI v3.0, v3.1 and v3.2
  * - **Format Detection**: Automatic detection of JSON vs YAML input formats
  * - **Version Migration**: Safe migration with schema validation and error handling
  * - **Type Safety**: Full TypeScript support with proper type guards
@@ -63,7 +63,7 @@ import type { AnyOasDocument } from './types.ts'
  *
  * Automatically detects whether the input string is JSON or YAML format based on
  * the content, then parses it into an OpenAPI document object. Supports all
- * OpenAPI versions (2.0, 3.0.x, 3.1.x).
+ * OpenAPI versions (2.0, 3.0.x, 3.1.x, 3.2.x).
  *
  * @param schema - The OpenAPI document as a JSON or YAML string
  * @returns Parsed OpenAPI document object
@@ -106,14 +106,15 @@ export const stringToSchema = (schema: string): AnyOasDocument => {
 /**
  * Normalize an OpenAPI document to a version SKMTC can parse directly.
  *
- * SKMTC parses OpenAPI 3.0 and 3.1 natively (`core/parse/v3-0`,
- * `core/parse/v3-1`), so only Swagger 2.0 is converted:
+ * SKMTC parses OpenAPI 3.0, 3.1 and 3.2 natively (`core/parse/v3-0`,
+ * `core/parse/v3-1`, `core/parse/v3-2`), so only Swagger 2.0 is converted:
  * - OpenAPI 3.0.x (returned as-is)
  * - OpenAPI 3.1.x (returned as-is — parsed natively, no down-convert)
+ * - OpenAPI 3.2.x (returned as-is — parsed natively, no down-convert)
  * - Swagger 2.0 (upgraded to OpenAPI 3.0)
  *
  * @param schema - The OpenAPI / Swagger document to normalize
- * @returns Promise resolving to a 3.0 or 3.1 document (2.0 is converted to 3.0)
+ * @returns Promise resolving to a 3.0, 3.1 or 3.2 document (2.0 is converted to 3.0)
  *
  * @example OpenAPI 3.1 passthrough
  * ```typescript
@@ -172,6 +173,16 @@ export const toV3Document = async (schema: AnyOasDocument): Promise<OpenAPIV3.Do
   }
 
   if (
+    'openapi' in schema &&
+    typeof schema.openapi === 'string' &&
+    schema.openapi.startsWith('3.2')
+  ) {
+    // OpenAPI 3.2 is parsed natively too (core/parse/v3-2), so it passes
+    // through unchanged.
+    return schema as OpenAPIV3.Document
+  }
+
+  if (
     'swagger' in schema &&
     typeof schema.swagger === 'string' &&
     schema.swagger.startsWith('2.0')
@@ -196,6 +207,6 @@ export const toV3Document = async (schema: AnyOasDocument): Promise<OpenAPIV3.Do
         : 'no version field found'
 
   throw new Error(
-    `Unrecognized OpenAPI version (${versionField}). Supported: OpenAPI 3.0.x, 3.1.x, and Swagger 2.0.`
+    `Unrecognized OpenAPI version (${versionField}). Supported: OpenAPI 3.0.x, 3.1.x, 3.2.x, and Swagger 2.0.`
   )
 }

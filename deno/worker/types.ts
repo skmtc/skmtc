@@ -48,7 +48,8 @@ export type SerializableAttribution = {
  *
  * The `document` field is a {@link SkmtcDocumentInput} discriminated
  * union — `{ type: 'oas', value }` carries the OpenAPI v3 document
- * (already converted to 3.0 host-side via `@skmtc/convert`),
+ * (3.0, 3.1 or 3.2; Swagger 2 is converted to 3.0 host-side via
+ * `@skmtc/convert`),
  * `{ type: 'gql', value }` carries the SDL string. The worker hands the
  * union straight to `toArtifacts`, which runs the protocol-specific
  * parser inside the pipeline.

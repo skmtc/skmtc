@@ -644,14 +644,14 @@ export const buildOpenApiDocument = (): OpenAPIV3.Document => ({
     "/to-v3-json": {
       post: {
         operationId: "toV3Json",
-        summary: "Normalize a schema document to OpenAPI 3.0",
+        summary: "Normalize a schema document to OpenAPI 3.x",
         description:
-          "Convert a Swagger 2.0 document to OpenAPI 3.0; 3.0 / 3.1 documents pass " +
+          "Convert a Swagger 2.0 document to OpenAPI 3.0; 3.0 / 3.1 / 3.2 documents pass " +
           "through unchanged. The same normalization the `oas` generate path runs.",
         requestBody: jsonBody(ref("ToV3JsonRequest")),
         responses: {
           "200": jsonResponse(
-            "The normalized OpenAPI 3.0 document.",
+            "The normalized OpenAPI 3.x document.",
             toV3JsonResponse,
           ),
           ...errorResponses,

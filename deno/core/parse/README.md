@@ -9,19 +9,20 @@ core/parse/
   toOasDialect.ts   the ONLY place an OpenAPI version is examined
   v3-0/             the OpenAPI 3.0 parser  (toDocument → … → toSchema → leaves)
   v3-1/             the OpenAPI 3.1 parser  (its own full tree)
-core/oas/           the Oas* IR — the shared target both parsers build
+  v3-2/             the OpenAPI 3.2 parser  (its own full tree, copied from v3-1)
+core/oas/           the Oas* IR — the shared target every parser builds
 ```
 
 ## The one-time dialect split
 
 `ParseContext.parse()` calls `toOasDialect(documentObject.openapi)` once and
-routes the whole document to `v3-0` or `v3-1`. Detection is **explicit and
-fails loud**: an unknown or missing version throws rather than silently
-defaulting to a dialect (a `startsWith('3.1') ? … : …` fallback would route
-every typo / `3.2` / `4.0` / missing field into 3.0 unnoticed). OpenAPI 3.1
-is parsed natively and is **no longer down-converted** to 3.0 (`@skmtc/convert`
-passes it through); only Swagger 2.0 is still converted upstream, by
-`swagger2openapi`.
+routes the whole document to `v3-0`, `v3-1` or `v3-2`. Detection is
+**explicit and fails loud**: an unknown or missing version throws rather than
+silently defaulting to a dialect (a `startsWith('3.1') ? … : …` fallback would
+route every typo / `4.0` / missing field into 3.0 unnoticed). OpenAPI 3.1 and
+3.2 are parsed natively and are **not down-converted** to 3.0
+(`@skmtc/convert` passes them through); only Swagger 2.0 is still converted
+upstream, by `swagger2openapi`.
 
 **Load-bearing invariant:** nothing below the split ever checks a version.
 Every line is either version-specific code living in its own tree (it is
@@ -29,7 +30,7 @@ already in the right one) or a no-branch, dialect-neutral leaf. A 3.0
 document reaching a line of 3.1 logic is therefore *structurally
 impossible* — there is no branch condition to get wrong.
 
-## Why two trees, not one parameterized parser
+## Why one tree per dialect, not one parameterized parser
 
 Duplication is deliberate (Option A). A single dialect-parameterized parser
 spreads each dialect's behavior across leaf + injected strategy + wiring, and
@@ -37,25 +38,32 @@ turns a dialect bug from shallow ("this parser has a stale line" — local,
 testable) into deep ("the shared leaf misbehaves for 3.1 only in some field
 combination" — emergent). Reading one parser top-to-bottom in isolation beats
 DRY at a dialect boundary. Drift between the duplicated trees is caught
-behaviorally by a differential test corpus (`dialect-differential.test.ts` —
-a 3.0 fragment and its 3.1 equivalent must parse to the same IR), not by
-re-coupling the code.
+behaviorally, not by re-coupling the code:
+
+- `dialect-differential.test.ts` — a 3.0 fragment and its 3.1 and 3.2
+  equivalents must parse to the same IR.
+- `v3-2/version-equivalence.test.ts` — two real 3.1 documents
+  (`core/_schemas/openrouter.yaml`, `core/_schemas/remote-com.json`) parsed
+  as `3.1.0` and as `3.2.0` must give the same document and the same
+  error-level issues.
 
 ## Shared vs duplicated
 
-- **Shared** (in `core/oas`, no version branches): the `Oas*` constructors and
-  the dialect-neutral leaf helpers — `_helpers/parseEnum`, `parseExample`,
-  `parseDefault`; `_merge-all-of/`; `discriminator/toDiscriminatorV3`; format
-  enums; sanitization. These take already-resolved inputs and never branch on
-  a version, so they cannot cause spillover.
+- **Shared** (in `core/oas`, no version branches): the `Oas*` constructors,
+  format enums and sanitization.
 - **Duplicated** per tree: the schema dispatcher (`toSchema`), the
   per-type/leaf parsers, the operation layer, and `parseNullable`. These read
   version-specific encodings, so each tree owns its copy.
+- **Duplicated, but dialect-neutral**: the parser leaves `_helpers/`
+  (`parseEnum`, `parseExample`, `parseDefault`), `_merge-all-of/` and
+  `discriminator/toDiscriminatorV3`. They take already-resolved inputs and
+  never branch on a version, yet each tree holds its own copy, so they now
+  exist in three copies. Moving them to one shared place is deferred.
 
 > Naming note: function names still carry the historical `V3` suffix (e.g.
-> `toSchemaV3`) inside both trees; the rename to drop it is deferred. In
-> particular `toRefV31` is the **dialect-neutral** ref parser used by *both*
-> trees (the `V31` is a historical misnomer, not 3.1-specific) — it is a
+> `toSchemaV3`) inside every tree; the rename to drop it is deferred. In
+> particular `toRefV31` is the **dialect-neutral** ref parser used by *every*
+> tree (the `V31` is a historical misnomer, not 3.1-specific) — it is a
 > public `mod.ts` export, so renaming it to `toRef` is a coordinated breaking
 > change folded into the broader suffix cleanup, not done piecemeal. The
 > `Oas*` prefix on the IR is kept — it is "our OpenAPI-family IR", the
@@ -103,6 +111,35 @@ the bare types, so the existing union machinery builds the `OasUnion`. A
 multi-type array carrying type-specific constraints (e.g. `maxLength` next to
 `['string','number']`) keeps the shared annotations on the union and does not
 distribute per-type constraints to the members — a rare case, noted here.
+
+## Dialect differences (v3.1 vs v3.2)
+
+OpenAPI 3.2 is a superset of 3.1 with no schema-layer changes. `v3-2` started
+as a copy of `v3-1`; the 3.2 fields are added to it one at a time. Until a
+field is read into the IR, the parser records it as a skipped-field warning
+(`UNEXPECTED_PROPERTY`) and the parse continues. `v3-2/pending-fields.test.ts`
+holds one case per pending row.
+
+The `v3-2` security-scheme parser also records unknown keys on a security
+scheme and on its `flows` object; `v3-0` and `v3-1` drop them silently.
+
+| 3.2 field | v3.2 (`v3-2`) | Status |
+|---|---|---|
+| Document `$self` | skipped-field warning | ⏳ pending |
+| Path item `query` operation | skipped-field warning | ⏳ pending |
+| Path item `additionalOperations` | skipped-field warning | ⏳ pending |
+| Parameter `in: querystring` | fails the parameter's `v.parse`; the operation is dropped | ⏳ pending |
+| Parameter `style: cookie` | fails the parameter's `v.parse`; the operation is dropped | ⏳ pending |
+| Media type `itemSchema` | skipped-field warning | ⏳ pending |
+| Media type `prefixEncoding` / `itemEncoding` | skipped-field warning | ⏳ pending |
+| `components.mediaTypes` | skipped-field warning | ⏳ pending |
+| Response `summary` | skipped-field warning | ⏳ pending |
+| Example `dataValue` / `serializedValue` | skipped-field warning | ⏳ pending |
+| Tag `parent` / `kind` / `summary` | skipped-field warning | ⏳ pending |
+| Server `name` | skipped-field warning | ⏳ pending |
+| Discriminator `defaultMapping` | skipped-field warning | ⏳ pending |
+| Security scheme `deprecated` / `oauth2MetadataUrl` | skipped-field warning | ⏳ pending |
+| OAuth flow `deviceAuthorization` | skipped-field warning | ⏳ pending |
 
 ## Diagnostic levels
 

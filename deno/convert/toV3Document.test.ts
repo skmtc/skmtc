@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects, assertStringIncludes } from '@std/assert'
+import { assertEquals, assertRejects, assertStrictEquals, assertStringIncludes } from '@std/assert'
 import type { OpenAPIV3_1 } from 'openapi-types'
 import { toV3Document } from './toV3Document.ts'
 
@@ -59,11 +59,40 @@ Deno.test('toV3Document - 3.1 input is passed through unchanged (no down-convert
   assertEquals(Boolean(webhooks?.newPet), true) // webhooks present, not removed
 })
 
+Deno.test('toV3Document - 3.2 input is passed through unchanged', async () => {
+  // SKMTC parses OpenAPI 3.2 natively (core/parse/v3-2): the same document
+  // comes back, 3.2-only fields included.
+  const doc = {
+    openapi: '3.2.0',
+    $self: 'https://example.com/openapi.yaml',
+    info: { title: 'T', version: '1' },
+    paths: {
+      '/pets': {
+        get: { responses: { '200': { description: 'ok' } } },
+        query: { responses: { '200': { description: 'ok' } } }
+      }
+    }
+  }
+
+  const result = await toV3Document(doc)
+
+  assertStrictEquals(result, doc)
+  assertEquals(result.openapi, '3.2.0')
+})
+
 Deno.test('toV3Document - unrecognized version includes version field in error', async () => {
   await assertRejects(
     () => toV3Document({ openapi: '4.2', info: { title: 'T', version: '1' }, paths: {} } as never),
     Error,
     'openapi=4.2'
+  )
+})
+
+Deno.test('toV3Document - unrecognized version error lists every supported version', async () => {
+  await assertRejects(
+    () => toV3Document({ openapi: '4.2', info: { title: 'T', version: '1' }, paths: {} } as never),
+    Error,
+    'Supported: OpenAPI 3.0.x, 3.1.x, 3.2.x, and Swagger 2.0.'
   )
 })
 

@@ -55,8 +55,8 @@ type GenerateResult = {
 
 /**
  * Build the unified `SkmtcDocumentInput` from a resolved schema input. The
- * host-side OAS normalization (Swagger 2 / 3.1 → 3.0 via `@skmtc/convert`)
- * runs here; GQL passes its SDL through unchanged. A document that cannot be
+ * host-side OAS normalization (Swagger 2 → 3.0 via `@skmtc/convert`; 3.0,
+ * 3.1 and 3.2 pass through) runs here; GQL passes its SDL through unchanged. A document that cannot be
  * read at all surfaces as a `SchemaReadError` (→ structured 422), distinct
  * from a readable document with issues (→ 200 + `manifest.parseIssues`).
  */

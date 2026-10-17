@@ -140,7 +140,7 @@ const ENDPOINT_LINES: ReadonlyArray<[string, string]> = [
   ["POST /descriptors", "enrichment configuration schema"],
   ["POST /validate", "check an enrichment config"],
   ["POST /enrichment-defaults", "schema-derived enrichment defaults"],
-  ["POST /to-v3-json", "normalize Swagger 2 / OAS 3.1 to OAS 3.0"],
+  ["POST /to-v3-json", "upgrade Swagger 2 to OAS 3.0; OAS 3.x passes through"],
   ["GET /generators", "generator ids in this stack"],
   ["GET /openapi.json", "this server's own API contract"],
 ];
