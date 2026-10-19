@@ -13,8 +13,13 @@ import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecif
 import { toSecuritySchemesV3 } from '../securitySchemes/toSecuritySchemes.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
+/** An OpenAPI 3.2 Components Object: the 3.0/3.1 maps plus `mediaTypes`. */
+export type ComponentsObjectV32 = OpenAPIV3.ComponentsObject & {
+  mediaTypes?: Record<string, unknown>
+}
+
 export type ToComponentsV3Args = {
-  components: OpenAPIV3.ComponentsObject | undefined
+  components: ComponentsObjectV32 | undefined
   stackTrail: StackTrail
   context: ParseContextType
 }
@@ -28,6 +33,8 @@ export const toComponentsV3 = ({
     return undefined
   }
 
+  // `mediaTypes` is resolved where it is referenced, inside
+  // `toMediaTypeItemsV3`, so it is read here only to keep it off `skipped`.
   const {
     schemas,
     responses,
@@ -37,6 +44,7 @@ export const toComponentsV3 = ({
     headers,
     securitySchemes,
     links,
+    mediaTypes: _mediaTypes,
     ...skipped
   } = components
 

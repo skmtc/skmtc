@@ -78,6 +78,14 @@ failed to parse, removing Y from output`.
 broke the ref target. Fix the upstream schema; the dependent
 `INVALID_DEPENDENCY_REF` issues typically resolve on their own.
 
+**Also when:** In an OpenAPI 3.2 document, a `content` entry has a
+`$ref` that does not resolve to an entry in `components.mediaTypes`.
+The pointer can be outside `components.mediaTypes`, name an entry that
+does not exist, or start a chain of entries that loops back on itself.
+The parser removes that content entry and keeps the others. There is
+no upstream `INVALID_SCHEMA` issue. Correct the pointer, or add the
+entry to `components.mediaTypes`.
+
 **Cascade depth:** one hop. If `Post` references `User` and
 `Comment` references `Post`, breaking `User` prunes `Post` (one
 hop). `Comment` would fail later (at generate time) with a
@@ -124,6 +132,11 @@ position. SKMTC ignores the unknown keys but logs them.
 the property) or accept that the property is being ignored. Common
 sources are vendor extensions written without the conventional
 `x-` prefix.
+
+**Also when:** An OpenAPI 3.2 Media Type Object has `encoding` together
+with `prefixEncoding` or `itemEncoding`. The spec does not allow
+`encoding` next to them. The location names `encoding`. The parser
+keeps all three fields. Remove `encoding` or the other two fields.
 
 ### `INVALID_OPERATION` — error
 

@@ -507,3 +507,61 @@ Deno.test('All security schemes - oasType is consistently "securityScheme"', () 
   assertEquals(oauth2Scheme.oasType, 'securityScheme')
   assertEquals(openIdScheme.oasType, 'securityScheme')
 })
+
+Deno.test('toJsonSchema() emits deprecated on http, apiKey and openIdConnect schemes', () => {
+  assertEquals(new OasHttpSecurityScheme({ scheme: 'basic', deprecated: true }).toJsonSchema(), {
+    type: 'http',
+    description: undefined,
+    deprecated: true,
+    scheme: 'basic',
+    bearerFormat: undefined
+  })
+  assertEquals(
+    new OasApiKeySecurityScheme({ name: 'key', in: 'header', deprecated: true }).toJsonSchema(),
+    { type: 'apiKey', deprecated: true, name: 'key', in: 'header' }
+  )
+  assertEquals(
+    new OasOpenIdSecurityScheme({
+      openIdConnectUrl: 'https://example.com/.well-known/openid-configuration',
+      deprecated: false
+    }).toJsonSchema(),
+    {
+      type: 'openIdConnect',
+      description: undefined,
+      deprecated: false,
+      openIdConnectUrl: 'https://example.com/.well-known/openid-configuration'
+    }
+  )
+})
+
+Deno.test('OasOAuth2SecurityScheme - toJsonSchema() with the OpenAPI 3.2 fields', () => {
+  const scheme = new OasOAuth2SecurityScheme({
+    deprecated: true,
+    oauth2MetadataUrl: 'https://example.com/.well-known/oauth-authorization-server',
+    flows: {
+      deviceAuthorization: {
+        deviceAuthorizationUrl: 'https://example.com/device',
+        tokenUrl: 'https://example.com/token',
+        scopes: { read: 'Read' }
+      }
+    }
+  })
+
+  assertEquals(scheme.toJsonSchema(), {
+    type: 'oauth2',
+    description: undefined,
+    deprecated: true,
+    oauth2MetadataUrl: 'https://example.com/.well-known/oauth-authorization-server',
+    flows: {
+      authorizationCode: undefined,
+      clientCredentials: undefined,
+      implicit: undefined,
+      password: undefined,
+      deviceAuthorization: {
+        deviceAuthorizationUrl: 'https://example.com/device',
+        tokenUrl: 'https://example.com/token',
+        scopes: { read: 'Read' }
+      }
+    }
+  })
+})
