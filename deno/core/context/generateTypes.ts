@@ -205,6 +205,7 @@ export type OasIssueType =
   | 'INVALID_DEPENDENCY_REF'
   | 'EXAMPLE_AND_EXAMPLES_DEFINED'
   | 'INVALID_TAG_PARENT'
+  | 'UNSUPPORTED_OPERATION_METHOD'
 
 /**
  * Valibot schema for {@link OasIssueType}. Annotation deliberately omitted
@@ -232,7 +233,8 @@ export const oasIssueType = v.union([
   v.literal('INVALID_SECURITY_SCHEME'),
   v.literal('INVALID_DEPENDENCY_REF'),
   v.literal('EXAMPLE_AND_EXAMPLES_DEFINED'),
-  v.literal('INVALID_TAG_PARENT')
+  v.literal('INVALID_TAG_PARENT'),
+  v.literal('UNSUPPORTED_OPERATION_METHOD')
 ])
 
 // Compile-time drift detector: this binding fails to type-check if

@@ -99,8 +99,6 @@ const documentObject = toDocumentObject(
 )
 
 const pendingFields: Array<{ field: string; location: string }> = [
-  { field: 'path item query', location: 'TEST:paths:/pets:query' },
-  { field: 'additionalOperations', location: 'TEST:paths:/pets:additionalOperations' },
   {
     field: 'media type itemSchema',
     location: 'TEST:paths:/pets:get:responses:200:content:application/jsonl:itemSchema'
@@ -242,29 +240,41 @@ for (const { field, location, toValue, expected } of readFields) {
   })
 }
 
-Deno.test('v3-2 pending fields - only querystring and cookie style drop an operation', () => {
-  // Known exceptions, left for the operations follow-up: `in: querystring`
-  // and `style: cookie` fail the parameter's `v.parse`, which drops the
-  // operation. Every other path and component still parses.
+Deno.test('v3-2 pending fields - path item query is an operation', () => {
+  assert(result.type === 'oas')
+  assertEquals(
+    context.issues.find(issue => issue.location === 'TEST:paths:/pets:query'),
+    undefined
+  )
+  assert(result.value.operations.some(({ method, path }) => method === 'query' && path === '/pets'))
+})
+
+Deno.test('v3-2 pending fields - additionalOperations is UNSUPPORTED_OPERATION_METHOD', () => {
+  const warning = context.issues.find(
+    issue => issue.location === 'TEST:paths:/pets:additionalOperations:COPY'
+  )
+  assertEquals(warning?.level, 'warning')
+  assertEquals(warning?.type, 'UNSUPPORTED_OPERATION_METHOD')
+  assertEquals(
+    context.issues.find(issue => issue.location === 'TEST:paths:/pets:additionalOperations'),
+    undefined
+  )
+})
+
+Deno.test('v3-2 pending fields - querystring, cookie style and query operations parse', () => {
   assert(result.type === 'oas')
   const document = result.value
 
   const errors = context.issues.filter(issue => issue.level === 'error')
-  assertEquals(
-    errors.map(({ type, location }) => ({ type, location })),
-    [
-      { type: 'INVALID_OPERATION', location: 'TEST:paths:/search:get:get' },
-      { type: 'INVALID_OPERATION', location: 'TEST:paths:/session:get:get' }
-    ]
-  )
+  assertEquals(errors, [])
   assertEquals(
     document.operations.map(operation => `${operation.method} ${operation.path}`),
-    ['get /pets']
+    ['query /pets', 'get /pets', 'get /search', 'get /session']
   )
   assertEquals(Object.keys(document.components?.securitySchemes ?? {}), ['legacyKey', 'oauth'])
 })
 
-Deno.test('v3-2 pending fields - path-level querystring and cookie style skip only their path', () => {
+Deno.test('v3-2 pending fields - path-level querystring and cookie style parse', () => {
   const ok = { responses: { '200': { description: 'ok' } } }
   const querystring = {
     name: 'q',
@@ -282,16 +292,57 @@ Deno.test('v3-2 pending fields - path-level querystring and cookie style skip on
           info: { title: 't', version: '0' },
           paths: {
             '/search': { parameters: [querystring], get: ok },
-            '/session': { parameters: [cookieStyle], get: ok },
-            '/other': { get: ok }
+            '/session': { parameters: [cookieStyle], get: ok }
           },
           webhooks: {
             searched: { parameters: [querystring], post: ok },
-            loggedIn: { parameters: [cookieStyle], post: ok },
+            loggedIn: { parameters: [cookieStyle], post: ok }
+          }
+        },
+        'path-level 3.2 parameters'
+      )
+    },
+    logger: new log.Logger('test', 'ERROR'),
+    silent: true
+  })
+  const pathLevelResult = pathLevelContext.parse(new StackTrail(['TEST']))
+
+  assert(pathLevelResult.type === 'oas')
+  assertEquals(
+    pathLevelContext.issues.filter(issue => issue.level === 'error'),
+    []
+  )
+  assertEquals(
+    pathLevelResult.value.operations.map(operation => `${operation.method} ${operation.path}`),
+    ['get /search', 'get /session']
+  )
+  assertEquals(
+    pathLevelResult.value.webhooks.map(webhook => `${webhook.method} ${webhook.name}`),
+    ['post searched', 'post loggedIn']
+  )
+})
+
+Deno.test('v3-2 pending fields - an invalid path-level parameter skips only its path', () => {
+  const ok = { responses: { '200': { description: 'ok' } } }
+  const body = { name: 'payload', in: 'body', schema: { type: 'object' } }
+
+  const pathLevelContext = new ParseContext({
+    input: {
+      type: 'oas',
+      value: toDocumentObject(
+        {
+          openapi: '3.2.0',
+          info: { title: 't', version: '0' },
+          paths: {
+            '/upload': { parameters: [body], get: ok },
+            '/other': { get: ok }
+          },
+          webhooks: {
+            uploaded: { parameters: [body], post: ok },
             other: { post: ok }
           }
         },
-        'path-level pending fields'
+        'invalid path-level parameter'
       )
     },
     logger: new log.Logger('test', 'ERROR'),
@@ -304,10 +355,8 @@ Deno.test('v3-2 pending fields - path-level querystring and cookie style skip on
   assertEquals(
     errors.map(({ type, location }) => ({ type, location })),
     [
-      { type: 'INVALID_OPERATION', location: 'TEST:paths:/search' },
-      { type: 'INVALID_OPERATION', location: 'TEST:paths:/session' },
-      { type: 'INVALID_OPERATION', location: 'TEST:webhooks:searched' },
-      { type: 'INVALID_OPERATION', location: 'TEST:webhooks:loggedIn' }
+      { type: 'INVALID_OPERATION', location: 'TEST:paths:/upload' },
+      { type: 'INVALID_OPERATION', location: 'TEST:webhooks:uploaded' }
     ]
   )
   assertEquals(

@@ -7,7 +7,9 @@ import { toParameterListV3 } from '../parameter/toParameterV3.ts'
 import { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import { toPathItemResultV3 } from '@/parse/v3-2/pathItem/toPathItemV3.ts'
 import type { OasPathItem } from '@/oas/pathItem/PathItem.ts'
-import { methodValues } from '@/types/Method.ts'
+import { toPathItemMethod, type PathItemObjectV3 } from '@/parse/v3-2/methods.ts'
+import { dropAdditionalOperationsV3 } from '@/parse/v3-2/pathItem/dropAdditionalOperationsV3.ts'
+import { warnQuerystringConflictsV3 } from '@/parse/v3-2/parameter/warnQuerystringConflictsV3.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toSecurityRequirementsV3 } from '../securityRequirement/toSecurityRequirement.ts'
 import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
@@ -36,7 +38,7 @@ export type ToWebhookV3Args = {
 }
 
 type MethodObjects = {
-  rest: OpenAPIV3.PathItemObject
+  rest: PathItemObjectV3
   methodObject: Partial<Record<Method, OpenAPIV3.OperationObject>>
 }
 
@@ -83,6 +85,7 @@ export const toWebhookV3 = ({
   const parsedParameters = stackTrail.trace('parameters', st =>
     toParameterListV3({ parameters, stackTrail: st, context })
   )
+  warnQuerystringConflictsV3({ parameters: parsedParameters, pathItem, stackTrail, context })
   const parsedRequestBody = stackTrail.trace('requestBody', st =>
     toRequestBodyV3({ requestBody, stackTrail: st, context })
   )
@@ -149,18 +152,20 @@ export const toWebhooksV3 = ({ webhooks, stackTrail, context }: ToWebhooksV3Args
         return []
       }
 
-      const cleaned = Object.entries(pathItem).reduce<MethodObjects>(
-        ({ rest, methodObject }, [key, operation]) => {
-          const isMethod = methodValues.includes(key as Method)
+      const fixedFields = dropAdditionalOperationsV3({ pathItem, stackTrail: nameStack, context })
 
-          if (isMethod) {
-            const { [key as Method]: _deleted, ...remaining } = rest
+      const cleaned = Object.entries(fixedFields).reduce<MethodObjects>(
+        ({ rest, methodObject }, [key, operation]) => {
+          const method = toPathItemMethod(key)
+
+          if (method) {
+            const { [method]: _deleted, ...remaining } = rest
 
             return {
               rest: remaining,
               methodObject: {
                 ...methodObject,
-                [key as Method]: operation
+                [method]: operation
               }
             }
           }
@@ -168,7 +173,7 @@ export const toWebhooksV3 = ({ webhooks, stackTrail, context }: ToWebhooksV3Args
           return { rest, methodObject }
         },
         {
-          rest: pathItem,
+          rest: fixedFields,
           methodObject: {}
         }
       )

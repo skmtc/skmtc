@@ -148,7 +148,8 @@ export const oasOperationSource: v.ObjectSchema<
         v.LiteralSchema<'delete', undefined>,
         v.LiteralSchema<'head', undefined>,
         v.LiteralSchema<'options', undefined>,
-        v.LiteralSchema<'trace', undefined>
+        v.LiteralSchema<'trace', undefined>,
+        v.LiteralSchema<'query', undefined>
       ],
       undefined
     >

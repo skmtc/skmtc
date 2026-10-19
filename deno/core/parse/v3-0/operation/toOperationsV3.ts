@@ -7,7 +7,7 @@ import { toParameterListV3 } from '../parameter/toParameterV3.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { toPathItemV3 } from '../pathItem/toPathItemV3.ts'
 import type { OasPathItem } from '@/oas/pathItem/PathItem.ts'
-import { methodValues } from '@/types/Method.ts'
+import { toPathItemMethod } from '@/parse/v3-0/methods.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toSecurityRequirementsV3 } from '../securityRequirement/toSecurityRequirement.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
@@ -132,16 +132,16 @@ export const toOperationsV3 = ({
 
       const cleaned = Object.entries(pathItem).reduce<MethodObjects>(
         ({ rest, methodObject }, [key, operation]) => {
-          const isMethod = methodValues.includes(key as Method)
+          const method = toPathItemMethod(key)
 
-          if (isMethod) {
-            const { [key as Method]: _deleted, ...remaining } = rest
+          if (method) {
+            const { [method]: _deleted, ...remaining } = rest
 
             return {
               rest: remaining,
               methodObject: {
                 ...methodObject,
-                [key as Method]: operation
+                [method]: operation
               }
             }
           }

@@ -34,9 +34,9 @@ export type PathItemResult = { valid: true; pathItem: OasPathItem | undefined } 
 
 /**
  * Parses a path item's shared fields without letting a throw escape. A
- * path-level parameter that fails validation (3.2 `in: querystring` or
- * `style: cookie`) logs one `INVALID_OPERATION` at the path and returns
- * `{ valid: false }`, so the caller skips that path and keeps the rest.
+ * path-level parameter that fails validation (for example `in: body`) logs
+ * one `INVALID_OPERATION` at the path and returns `{ valid: false }`, so
+ * the caller skips that path and keeps the rest.
  */
 export const toPathItemResultV3 = ({
   pathItem,

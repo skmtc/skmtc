@@ -132,10 +132,10 @@ the 3.2 base-URI rules (Appendix F of the spec) are not implemented.
 | 3.2 field | v3.2 (`v3-2`) | Status |
 |---|---|---|
 | Document `$self` | `OasDocument.$self`, stored as a string only (see below) | ✅ done |
-| Path item `query` operation | skipped-field warning | ⏳ pending |
-| Path item `additionalOperations` | skipped-field warning | ⏳ pending |
-| Parameter `in: querystring` | fails the parameter's `v.parse`; on an operation the operation is dropped, on a path item or webhook path item the whole path is dropped (`INVALID_OPERATION`) | ⏳ pending |
-| Parameter `style: cookie` | fails the parameter's `v.parse`; on an operation the operation is dropped, on a path item or webhook path item the whole path is dropped (`INVALID_OPERATION`) | ⏳ pending |
+| Path item `query` operation | an operation with method `query` | ✅ read |
+| Path item `additionalOperations` | one `UNSUPPORTED_OPERATION_METHOD` warning per entry; the operation is dropped | ✅ warned |
+| Parameter `in: querystring` | read; must carry `content` (`INVALID_PARAMETER` error otherwise, the parameter is dropped); a second `querystring`, or one with `in: query`, is an `INVALID_PARAMETER` warning | ✅ read |
+| Parameter `style: cookie` | read for `in: cookie` (default `explode: true`); on another location the operation is dropped (`INVALID_OPERATION`) | ✅ read |
 | Media type `itemSchema` | skipped-field warning | ⏳ pending |
 | Media type `prefixEncoding` / `itemEncoding` | skipped-field warning | ⏳ pending |
 | `components.mediaTypes` | skipped-field warning | ⏳ pending |

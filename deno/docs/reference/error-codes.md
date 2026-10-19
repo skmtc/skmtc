@@ -136,12 +136,33 @@ through the same isolation.
 Causes mirror `INVALID_SCHEMA` (bad `requestBody`, malformed
 parameters, etc.).
 
-### `INVALID_PARAMETER` — error
+### `UNSUPPORTED_OPERATION_METHOD` — warning
 
-**When:** A reusable parameter under `components.parameters` failed
-to parse via `tryParseAt`. The parameter is dropped; any operation
-that `$ref`s it surfaces a cascading `INVALID_DEPENDENCY_REF` /
-generate-time `Ref ... not found`.
+**When:** An OpenAPI 3.2 path item or webhook has an
+`additionalOperations` entry. Skmtc does not model methods outside
+the fixed path item fields, so it drops the operation and logs one
+warning for each entry.
+
+**Example location:** `paths:/files:additionalOperations:COPY`
+
+**Remediation:** None is necessary if you do not need the operation.
+No generator renders a custom method yet.
+
+### `INVALID_PARAMETER` — error or warning
+
+**When (error):** A parameter failed to parse, and Skmtc dropped it:
+
+- A reusable parameter under `components.parameters` failed to parse
+  via `tryParseAt`. Any operation that `$ref`s it surfaces a cascading
+  `INVALID_DEPENDENCY_REF` / generate-time `Ref ... not found`.
+- An OpenAPI 3.2 `in: querystring` parameter has no `content`, or has
+  a `schema`. The operation keeps its other parameters.
+
+**When (warning):** An OpenAPI 3.2 operation, together with its path
+item, has more than one `in: querystring` parameter, or has an
+`in: querystring` parameter and an `in: query` parameter. Skmtc keeps
+the parameters. The check reads only inline parameters, not `$ref`
+parameters.
 
 ### `INVALID_RESPONSE` — error
 

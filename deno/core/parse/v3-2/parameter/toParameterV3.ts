@@ -33,9 +33,45 @@ export const toParameterListV3 = ({
     return undefined
   }
 
-  return parameters.map((parameter, index) => {
-    return stackTrail.trace(`${index}`, st => toParameterV3({ parameter, stackTrail: st, context }))
+  return parameters.flatMap((parameter, index) => {
+    const querystringIssue = toQuerystringIssue(parameter)
+
+    if (querystringIssue) {
+      context.logIssue({
+        key: `${index}`,
+        parent: parameter,
+        level: 'error',
+        message: querystringIssue,
+        stackTrail,
+        type: 'INVALID_PARAMETER'
+      })
+
+      return []
+    }
+
+    return [
+      stackTrail.trace(`${index}`, st => toParameterV3({ parameter, stackTrail: st, context }))
+    ]
   })
+}
+
+/**
+ * A `querystring` parameter describes the whole query string, so it must
+ * carry `content` and not `schema`. Returns the problem, or `undefined`
+ * when the parameter is valid or is not a `querystring` parameter.
+ */
+const toQuerystringIssue = (
+  parameter: OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject
+): string | undefined => {
+  if (isRef(parameter) || parameter.in !== 'querystring') {
+    return undefined
+  }
+
+  if (!parameter.content || parameter.schema) {
+    return `Parameter '${parameter.name}' in querystring must define content, not schema`
+  }
+
+  return undefined
 }
 
 export type ToParametersV3Args = {
@@ -98,6 +134,12 @@ const toParameterV3 = ({
 }: ToParameterV3Args): OasParameter | OasRef<'parameter'> => {
   if (isRef(parameter)) {
     return toRefV31({ ref: parameter, refType: 'parameter', stackTrail, context })
+  }
+
+  const querystringIssue = toQuerystringIssue(parameter)
+
+  if (querystringIssue) {
+    throw new Error(querystringIssue)
   }
 
   const {
@@ -174,8 +216,13 @@ export type ToStyleArgs = {
   stackTrail: StackTrail
 }
 
-const toStyle = ({ style, location, stackTrail }: ToStyleArgs): OasParameterStyle => {
+const toStyle = ({ style, location, stackTrail }: ToStyleArgs): OasParameterStyle | undefined => {
   const parsed = v.parse(v.optional(oasParameterStyle), style)
+
+  if (parsed === 'cookie' && location !== 'cookie') {
+    throw new Error(`Style 'cookie' is only allowed for cookie parameters, not ${location}`)
+  }
+
   if (parsed !== undefined) {
     return parsed
   }
@@ -187,6 +234,9 @@ const toStyle = ({ style, location, stackTrail }: ToStyleArgs): OasParameterStyl
     case 'query':
     case 'cookie':
       return 'form'
+    case 'querystring':
+      // A querystring parameter is serialized by its `content` media type.
+      return undefined
     default: {
       const _exhaustive: never = location
       throw new Error(`Unhandled location: ${_exhaustive}`)
@@ -207,6 +257,7 @@ const toExplode = ({ explode, style, stackTrail }: ToExplodeArgs): boolean => {
 
   switch (style) {
     case 'form':
+    case 'cookie':
       return true
     default:
       return false

@@ -6,7 +6,7 @@ import type { Method } from '@/types/Method.ts'
  * Determines the endpoint type based on HTTP method.
  *
  * @param operation - The OpenAPI operation to analyze
- * @returns 'query' for GET operations, 'mutation' for all others
+ * @returns 'query' for GET and QUERY operations, 'mutation' for all others
  *
  * @example
  * ```typescript
@@ -18,7 +18,8 @@ import type { Method } from '@/types/Method.ts'
  * ```
  */
 export const toEndpointType = (operation: OasOperation): 'query' | 'mutation' => {
-  return operation.method === 'get' ? 'query' : 'mutation'
+  // QUERY is safe and idempotent, like GET.
+  return operation.method === 'get' || operation.method === 'query' ? 'query' : 'mutation'
 }
 
 /**
@@ -89,6 +90,7 @@ export const toArgsName = (operation: OasOperation): string => {
  * console.log(toMethodVerb('put'));  // 'Update'
  * console.log(toMethodVerb('get'));  // 'get'
  * console.log(toMethodVerb('delete')); // 'delete'
+ * console.log(toMethodVerb('query')); // 'Query'
  * ```
  */
 export const toMethodVerb = (method: Method): string => {
