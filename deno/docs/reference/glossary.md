@@ -624,10 +624,10 @@ correct imports under it.
 
 ### Webhook
 
-The OpenAPI 3.1 subject for server-initiated calls: structurally an
-Operation Object keyed by **name** rather than URL path, with inverted
-request/response semantics — a distinct subject (`OasWebhook`), never
-routed through an operation generator. See
+The OpenAPI 3.1 and 3.2 subject for server-initiated calls. It is
+structurally an Operation Object keyed by **name** rather than URL path,
+with inverted request/response semantics. It is a distinct subject
+(`OasWebhook`), never routed through an operation generator. See
 [webhook generators](api/webhook-generators.md).
 
 ### Worker

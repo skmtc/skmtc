@@ -29,7 +29,7 @@ Argument-shape type files:
 - `skmtc/deno/core/dsl/operation/gql/types.ts`
 - `skmtc/deno/core/dsl/model/types.ts`
 
-(A fourth flavor exists for OpenAPI 3.1 webhooks — see
+(A fourth flavor exists for OpenAPI 3.1 and 3.2 webhooks — see
 [webhook generators](webhook-generators.md).)
 
 ## The three factories at a glance

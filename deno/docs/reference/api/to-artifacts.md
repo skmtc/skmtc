@@ -67,8 +67,9 @@ type SkmtcDocumentInput =
 
 Both variants carry the source as `value` — the field name is uniform across
 protocols. For OAS, `value` is an OAS 3.0, 3.1 or 3.2 document, as-is: the
-engine parses each version with its own parser. Only Swagger 2 changes before
-it reaches this boundary — `@skmtc/convert` converts it to 3.0. The type is the
+engine parses each version with its own parser. `toArtifacts` does not accept
+Swagger 2: convert it to 3.0 first with `toV3Document` from `@skmtc/convert`,
+as the CLI does. The type is the
 3.0 `OpenAPIV3.Document`, widened with `webhooks` to carry the 3.1 and 3.2
 webhook map. For GraphQL, `value` is either an SDL string (parsed via
 `buildSchema` inside the pipeline) or a pre-built `GraphQLSchema` instance (used

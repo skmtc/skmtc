@@ -100,8 +100,9 @@ OpenAPI as JSON. Any of:
 - **OpenAPI v3.1.x** — `openapi: "3.1.x"`
 - **OpenAPI v3.2.x** — `openapi: "3.2.x"`
 
-Any other version stops the run with
-`Unrecognized OpenAPI version (openapi=<value>). Supported: OpenAPI 3.0.x, 3.1.x, 3.2.x, and Swagger 2.0.`
+Any other version, or a document with no version field, stops the
+run with an `Unrecognized OpenAPI version` error that lists the
+supported versions.
 
 JSON is the canonical interchange form. Most public OpenAPI specs
 publish as JSON; the CLI handles them directly.
@@ -363,8 +364,9 @@ workspace root.
 
 No. Only Swagger 2 is converted, to OAS 3.0. The engine has one
 parser for each of OAS 3.0, 3.1 and 3.2, and each parser reads its
-version's own syntax. The engine keeps a 3.1 or 3.2 feature that 3.0
-cannot express, such as a schema with more than one type.
+version's own syntax, so a 3.1 schema with more than one type
+becomes a union. The next question lists the 3.1 and 3.2 schema
+keywords that the parsers read.
 
 ### Why doesn't the CLI cache fetched specs?
 
@@ -390,8 +392,12 @@ that the 3.0 form of the schema gives:
 | `const: X` | An enum with the one member `X` |
 | `examples: [A, B]` | The example `A`, when the schema has no `example` |
 | `exclusiveMinimum: 5` (a number) | A minimum of `5` that excludes `5` |
-| `contentMediaType: application/octet-stream` on a string | `format: binary` |
-| `contentEncoding: base64` on a string | `format: byte` |
+| `contentMediaType: application/octet-stream` on a string with no `format` | `format: binary` |
+| `contentEncoding: base64` on a string with no `format` | `format: byte` |
+
+The parsers do not read other JSON Schema 2020-12 keywords, such as
+`unevaluatedProperties`. The model does not include them, and the
+parse records an `UNEXPECTED_PROPERTY` warning for each one.
 
 ### What if my spec has external `$ref`s?
 
