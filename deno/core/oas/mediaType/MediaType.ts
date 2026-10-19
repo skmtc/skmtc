@@ -14,12 +14,18 @@ export type MediaTypeFields = {
   mediaType: string
   /** The schema defining the structure of the content */
   schema?: OasSchema | OasRef<'schema'> | undefined
+  /** The schema of each item in a sequential media type (OpenAPI 3.2) */
+  itemSchema?: OasSchema | OasRef<'schema'> | undefined
   /** Example values for the media type */
   examples?: Record<string, OasExample | OasRef<'example'>> | undefined
   /** Custom extension fields (x-* properties) */
   extensionFields?: Record<string, unknown>
   /** Encoding information for multipart or form data */
   encoding?: Record<string, unknown> | undefined
+  /** Positional Encoding Objects for a multipart array (OpenAPI 3.2) */
+  prefixEncoding?: Record<string, unknown>[] | undefined
+  /** Encoding Object for each array item (OpenAPI 3.2) */
+  itemEncoding?: Record<string, unknown> | undefined
 }
 
 /**
@@ -106,12 +112,18 @@ export class OasMediaType extends OasBase {
   mediaType: string
   /** The schema defining the structure and validation rules for the content */
   schema: OasSchema | OasRef<'schema'> | undefined
+  /** The schema of each item in a sequential media type (OpenAPI 3.2) */
+  itemSchema: OasSchema | OasRef<'schema'> | undefined
   /** Example values demonstrating the media type content */
   examples: Record<string, OasExample | OasRef<'example'>> | undefined
   /** Custom extension fields (x-* properties) defined for this media type */
   extensionFields: Record<string, unknown> | undefined
   /** Encoding information for multipart and form data serialization */
   encoding?: Record<string, unknown> | undefined
+  /** Positional Encoding Objects for a multipart array (OpenAPI 3.2), stored as-is */
+  prefixEncoding?: Record<string, unknown>[] | undefined
+  /** Encoding Object for each array item (OpenAPI 3.2), stored as-is */
+  itemEncoding?: Record<string, unknown> | undefined
   /**
    * Creates a new OasMediaType instance.
    *
@@ -121,8 +133,11 @@ export class OasMediaType extends OasBase {
     super(context)
     this.mediaType = fields.mediaType
     this.schema = fields.schema
+    this.itemSchema = fields.itemSchema
     this.examples = fields.examples
     this.encoding = fields.encoding
+    this.prefixEncoding = fields.prefixEncoding
+    this.itemEncoding = fields.itemEncoding
     this.extensionFields = fields.extensionFields
   }
 

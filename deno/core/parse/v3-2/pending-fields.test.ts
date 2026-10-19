@@ -4,10 +4,11 @@ import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { toDocumentObject } from '@/test/toDocumentObject.ts'
 
-// The v3-2 tree does not read any 3.2-only field into the IR yet. Each one
-// must surface as a skipped-field warning rather than crash the parse. One
-// row per field in the 3.2 dialect table of `core/parse/README.md`; a
-// follow-up that reads a field into the IR removes its row here.
+// Each 3.2-only field the v3-2 tree does not read into the IR yet must
+// surface as a skipped-field warning rather than crash the parse. One row
+// per pending field in the 3.2 dialect table of `core/parse/README.md`; a
+// follow-up that reads a field into the IR replaces its row with a positive
+// assertion below.
 
 const documentObject = toDocumentObject(
   {
@@ -40,7 +41,9 @@ const documentObject = toDocumentObject(
                   schema: { type: 'array', items: { type: 'string' } },
                   prefixEncoding: [{ contentType: 'text/plain' }],
                   itemEncoding: { contentType: 'text/plain' }
-                }
+                },
+                'text/event-stream': { itemSchema: { type: 'string' } },
+                'application/x-ndjson': { $ref: '#/components/mediaTypes/Lines' }
               }
             }
           }
@@ -102,19 +105,6 @@ const pendingFields: Array<{ field: string; location: string }> = [
   { field: '$self', location: 'TEST:$self' },
   { field: 'path item query', location: 'TEST:paths:/pets:query' },
   { field: 'additionalOperations', location: 'TEST:paths:/pets:additionalOperations' },
-  {
-    field: 'media type itemSchema',
-    location: 'TEST:paths:/pets:get:responses:200:content:application/jsonl:itemSchema'
-  },
-  {
-    field: 'media type prefixEncoding',
-    location: 'TEST:paths:/pets:get:responses:200:content:multipart/mixed:prefixEncoding'
-  },
-  {
-    field: 'media type itemEncoding',
-    location: 'TEST:paths:/pets:get:responses:200:content:multipart/mixed:itemEncoding'
-  },
-  { field: 'components.mediaTypes', location: 'TEST:components:mediaTypes' },
   { field: 'response summary', location: 'TEST:paths:/pets:get:responses:200:summary' },
   {
     field: 'example dataValue',
@@ -133,18 +123,6 @@ const pendingFields: Array<{ field: string; location: string }> = [
   {
     field: 'discriminator defaultMapping',
     location: 'TEST:components:schemas:Pet:oneOf:discriminator:defaultMapping'
-  },
-  {
-    field: 'security scheme deprecated',
-    location: 'TEST:components:securitySchemes:legacyKey:deprecated'
-  },
-  {
-    field: 'security scheme oauth2MetadataUrl',
-    location: 'TEST:components:securitySchemes:oauth:oauth2MetadataUrl'
-  },
-  {
-    field: 'OAuth flow deviceAuthorization',
-    location: 'TEST:components:securitySchemes:oauth:flows:deviceAuthorization'
   }
 ]
 
@@ -160,6 +138,101 @@ for (const { field, location } of pendingFields) {
     const warning = context.issues.find(issue => issue.location === location)
     assertEquals(warning?.level, 'warning')
     assertEquals(warning?.type, 'UNEXPECTED_PROPERTY')
+  })
+}
+
+const issuesAt = (location: string) =>
+  context.issues.filter(
+    issue => issue.location === location || issue.location.startsWith(`${location}:`)
+  )
+
+const toPetsContent = () => {
+  assert(result.type === 'oas')
+  const operation = result.value.operations.find(({ path }) => path === '/pets')
+  const response = operation?.responses['200']?.resolve()
+  assert(response?.content)
+  return response.content
+}
+
+const toSecurityScheme = (name: string) => {
+  assert(result.type === 'oas')
+  return result.value.components?.securitySchemes?.[name]?.resolve()
+}
+
+const petsContentLocation = 'TEST:paths:/pets:get:responses:200:content'
+
+const resolvedFields: Array<{ field: string; location: string; assertIr: () => void }> = [
+  {
+    field: 'media type itemSchema',
+    location: `${petsContentLocation}:text/event-stream:itemSchema`,
+    assertIr: () => {
+      assertEquals(toPetsContent()['text/event-stream']?.itemSchema?.type, 'string')
+    }
+  },
+  {
+    field: 'media type prefixEncoding',
+    location: `${petsContentLocation}:multipart/mixed:prefixEncoding`,
+    assertIr: () => {
+      assertEquals(toPetsContent()['multipart/mixed']?.prefixEncoding, [
+        { contentType: 'text/plain' }
+      ])
+    }
+  },
+  {
+    field: 'media type itemEncoding',
+    location: `${petsContentLocation}:multipart/mixed:itemEncoding`,
+    assertIr: () => {
+      assertEquals(toPetsContent()['multipart/mixed']?.itemEncoding, { contentType: 'text/plain' })
+    }
+  },
+  {
+    field: 'components.mediaTypes',
+    location: 'TEST:components:mediaTypes',
+    assertIr: () => {
+      // Not stored on the components; resolved into the content entry that
+      // references it.
+      assertEquals(toPetsContent()['application/x-ndjson']?.itemSchema?.type, 'string')
+      assertEquals(issuesAt(`${petsContentLocation}:application/x-ndjson`), [])
+    }
+  },
+  {
+    field: 'security scheme deprecated',
+    location: 'TEST:components:securitySchemes:legacyKey:deprecated',
+    assertIr: () => {
+      assertEquals(toSecurityScheme('legacyKey')?.deprecated, true)
+    }
+  },
+  {
+    field: 'security scheme oauth2MetadataUrl',
+    location: 'TEST:components:securitySchemes:oauth:oauth2MetadataUrl',
+    assertIr: () => {
+      const scheme = toSecurityScheme('oauth')
+      assert(scheme?.type === 'oauth2')
+      assertEquals(
+        scheme.oauth2MetadataUrl,
+        'https://example.com/.well-known/oauth-authorization-server'
+      )
+    }
+  },
+  {
+    field: 'OAuth flow deviceAuthorization',
+    location: 'TEST:components:securitySchemes:oauth:flows:deviceAuthorization',
+    assertIr: () => {
+      const scheme = toSecurityScheme('oauth')
+      assert(scheme?.type === 'oauth2')
+      assertEquals(scheme.flows.deviceAuthorization, {
+        deviceAuthorizationUrl: 'https://example.com/device',
+        tokenUrl: 'https://example.com/token',
+        scopes: {}
+      })
+    }
+  }
+]
+
+for (const { field, location, assertIr } of resolvedFields) {
+  Deno.test(`v3-2 pending fields - ${field} is on the IR with no warning`, () => {
+    assertIr()
+    assertEquals(issuesAt(location), [])
   })
 }
 

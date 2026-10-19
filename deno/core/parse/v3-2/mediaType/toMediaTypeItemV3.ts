@@ -6,13 +6,25 @@ import { OasMediaType } from '@/oas/mediaType/MediaType.ts'
 import type { MediaTypeFields } from '@/oas/mediaType/MediaType.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { isRef } from '@/helpers/refFns.ts'
+import { unescapeSegment } from '@/types/JsonPointer.ts'
+
+/**
+ * An OpenAPI 3.2 Media Type Object: the 3.0/3.1 fields plus the fields for
+ * sequential and multipart array media types.
+ */
+export type MediaTypeObjectV32 = OpenAPIV3.MediaTypeObject & {
+  itemSchema?: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
+  prefixEncoding?: Record<string, unknown>[]
+  itemEncoding?: Record<string, unknown>
+}
 
 /**
  * Arguments for transforming an OpenAPI v3 media type item into an OAS media type.
  */
 export type ToMediaTypeItemV3Args = {
   /** The OpenAPI v3 media type object to transform */
-  mediaTypeItem: OpenAPIV3.MediaTypeObject
+  mediaTypeItem: MediaTypeObjectV32
   /** The media type string (e.g., 'application/json', 'text/plain') */
   mediaType: string
   /** The stack trail for tracing */
@@ -129,7 +141,16 @@ export const toMediaTypeItemV3 = ({
   stackTrail,
   context
 }: ToMediaTypeItemV3Args): OasMediaType => {
-  const { schema, example, examples, encoding, ...skipped } = mediaTypeItem
+  const {
+    schema,
+    itemSchema,
+    example,
+    examples,
+    encoding,
+    prefixEncoding,
+    itemEncoding,
+    ...skipped
+  } = mediaTypeItem
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -139,11 +160,27 @@ export const toMediaTypeItemV3 = ({
     parentType: 'mediaType'
   })
 
+  if (encoding !== undefined && (prefixEncoding !== undefined || itemEncoding !== undefined)) {
+    context.logIssue({
+      key: 'encoding',
+      level: 'warning',
+      message: `'encoding' must not be present together with 'prefixEncoding' or 'itemEncoding' in ${mediaType}`,
+      parent: mediaTypeItem,
+      stackTrail,
+      type: 'UNEXPECTED_PROPERTY'
+    })
+  }
+
   const fields: MediaTypeFields = {
     mediaType,
     encoding,
+    prefixEncoding,
+    itemEncoding,
     schema: stackTrail.trace('schema', st =>
       toOptionalSchemaV3({ schema, stackTrail: st, context })
+    ),
+    itemSchema: stackTrail.trace('itemSchema', st =>
+      toOptionalSchemaV3({ schema: itemSchema, stackTrail: st, context })
     ),
     examples: stackTrail.trace('examples', st =>
       toExamplesV3({
@@ -164,8 +201,8 @@ export const toMediaTypeItemV3 = ({
  * Arguments for transforming multiple OpenAPI v3 media type items.
  */
 export type ToMediaTypeItemsV3Args = {
-  /** Map of media type strings to OpenAPI v3 MediaType objects */
-  content: Record<string, OpenAPIV3.MediaTypeObject>
+  /** Map of media type strings to MediaType objects or `components.mediaTypes` references */
+  content: Record<string, MediaTypeObjectV32 | OpenAPIV3.ReferenceObject>
   /** The stack trail for tracing */
   stackTrail: StackTrail
   /** The parsing context for tracing and processing */
@@ -264,20 +301,82 @@ export const toMediaTypeItemsV3 = ({
   const entries = Object.entries(content)
 
   for (const [mediaType, value] of entries) {
+    // A `$ref` is replaced by the Media Type Object it names, so a
+    // referenced media type parses exactly like an inline one.
+    const mediaTypeItem = isRef(value) ? toComponentMediaType({ $ref: value.$ref, context }) : value
+
+    if (mediaTypeItem === undefined) {
+      context.logIssue({
+        key: mediaType,
+        level: 'error',
+        message: `Reference ${JSON.stringify(value)} does not resolve to an entry in components.mediaTypes; dropping '${mediaType}'`,
+        parent: value,
+        stackTrail,
+        type: 'INVALID_DEPENDENCY_REF'
+      })
+
+      continue
+    }
+
     output[mediaType] = stackTrail.trace(mediaType, st =>
-      toMediaTypeItemV3({ mediaTypeItem: value, mediaType, stackTrail: st, context })
+      toMediaTypeItemV3({ mediaTypeItem, mediaType, stackTrail: st, context })
     )
   }
 
   return output
 }
 
+const componentMediaTypePrefix = '#/components/mediaTypes/'
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const isMediaTypeObject = (value: unknown): value is MediaTypeObjectV32 =>
+  isRecord(value) && !isRef(value)
+
+type ToComponentMediaTypeArgs = {
+  $ref: string
+  context: ParseContextType
+}
+
+/**
+ * The Media Type Object a `$ref` names in `components.mediaTypes`, read off
+ * the raw document. `undefined` when the `$ref` points elsewhere, names a
+ * missing entry, or names an entry that is itself a `$ref`.
+ */
+const toComponentMediaType = ({
+  $ref,
+  context
+}: ToComponentMediaTypeArgs): MediaTypeObjectV32 | undefined => {
+  if (!$ref.startsWith(componentMediaTypePrefix)) {
+    return undefined
+  }
+
+  const segment = $ref.slice(componentMediaTypePrefix.length)
+
+  if (segment.includes('/')) {
+    return undefined
+  }
+
+  const { components } = context.documentObject
+  const mediaTypes = isRecord(components) ? components.mediaTypes : undefined
+  const name = unescapeSegment(segment)
+
+  if (!isRecord(mediaTypes) || !Object.hasOwn(mediaTypes, name)) {
+    return undefined
+  }
+
+  const mediaTypeItem = mediaTypes[name]
+
+  return isMediaTypeObject(mediaTypeItem) ? mediaTypeItem : undefined
+}
+
 /**
  * Arguments for optionally transforming OpenAPI v3 media type items.
  */
 export type ToOptionalMediaTypeItemsV3Args = {
-  /** Optional map of media type strings to OpenAPI v3 MediaType objects */
-  content: Record<string, OpenAPIV3.MediaTypeObject> | undefined
+  /** Optional map of media type strings to MediaType objects or `components.mediaTypes` references */
+  content: Record<string, MediaTypeObjectV32 | OpenAPIV3.ReferenceObject> | undefined
   /** The stack trail for tracing */
   stackTrail: StackTrail
   /** The parsing context for tracing and processing */

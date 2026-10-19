@@ -507,3 +507,35 @@ Deno.test('All security schemes - oasType is consistently "securityScheme"', () 
   assertEquals(oauth2Scheme.oasType, 'securityScheme')
   assertEquals(openIdScheme.oasType, 'securityScheme')
 })
+
+Deno.test('OasOAuth2SecurityScheme - toJsonSchema() with the OpenAPI 3.2 fields', () => {
+  const scheme = new OasOAuth2SecurityScheme({
+    deprecated: true,
+    oauth2MetadataUrl: 'https://example.com/.well-known/oauth-authorization-server',
+    flows: {
+      deviceAuthorization: {
+        deviceAuthorizationUrl: 'https://example.com/device',
+        tokenUrl: 'https://example.com/token',
+        scopes: { read: 'Read' }
+      }
+    }
+  })
+
+  assertEquals(scheme.toJsonSchema(), {
+    type: 'oauth2',
+    description: undefined,
+    deprecated: true,
+    oauth2MetadataUrl: 'https://example.com/.well-known/oauth-authorization-server',
+    flows: {
+      authorizationCode: undefined,
+      clientCredentials: undefined,
+      implicit: undefined,
+      password: undefined,
+      deviceAuthorization: {
+        deviceAuthorizationUrl: 'https://example.com/device',
+        tokenUrl: 'https://example.com/token',
+        scopes: { read: 'Read' }
+      }
+    }
+  })
+})

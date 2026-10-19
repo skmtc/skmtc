@@ -118,10 +118,24 @@ OpenAPI 3.2 is a superset of 3.1, and its schema-layer changes are additive. `v3
 as a copy of `v3-1`; the 3.2 fields are added to it one at a time. Until a
 field is read into the IR, the parser records it as a skipped-field warning
 (`UNEXPECTED_PROPERTY`) and the parse continues. `v3-2/pending-fields.test.ts`
-holds one case per pending row.
+holds one case per row: a skipped-field warning for a pending row, and the
+IR value with no warning for a done one.
 
-The `v3-2` security-scheme parser also records unknown keys on a security
-scheme and on its `flows` object; `v3-0` and `v3-1` drop them silently.
+All three security-scheme parsers record unknown keys on a security scheme
+and on its `flows` object as skipped-field warnings. The shared valibot
+schemas in `oas/securitySchemes/security-scheme-types.ts` are the 3.0/3.1
+shape; `v3-2` extends them with the 3.2 fields, so on a 3.0 or 3.1 document
+those fields warn and stay off the IR.
+
+`components.mediaTypes` is resolved at parse time: `toMediaTypeItemsV3`
+replaces a `content` entry whose `$ref` points into it with the referenced
+Media Type Object, then parses that like an inline one. A `$ref` that does
+not resolve to a Media Type Object there (a missing entry, a pointer
+elsewhere, or an entry that is itself a `$ref`) logs `INVALID_DEPENDENCY_REF`
+at that content entry and drops it. The map is not stored on `OasComponents`
+and `OasRef` has no `mediaType` bucket: a resolved entry carries the same IR
+as an inline one, so generators read media types the same way in both
+cases and never need to resolve a media type reference themselves.
 
 | 3.2 field | v3.2 (`v3-2`) | Status |
 |---|---|---|
@@ -130,16 +144,16 @@ scheme and on its `flows` object; `v3-0` and `v3-1` drop them silently.
 | Path item `additionalOperations` | skipped-field warning | ⏳ pending |
 | Parameter `in: querystring` | fails the parameter's `v.parse`; on an operation the operation is dropped, on a path item or webhook path item the whole path is dropped (`INVALID_OPERATION`) | ⏳ pending |
 | Parameter `style: cookie` | fails the parameter's `v.parse`; on an operation the operation is dropped, on a path item or webhook path item the whole path is dropped (`INVALID_OPERATION`) | ⏳ pending |
-| Media type `itemSchema` | skipped-field warning | ⏳ pending |
-| Media type `prefixEncoding` / `itemEncoding` | skipped-field warning | ⏳ pending |
-| `components.mediaTypes` | skipped-field warning | ⏳ pending |
+| Media type `itemSchema` | `OasMediaType.itemSchema` (schema or ref) | ✅ done |
+| Media type `prefixEncoding` / `itemEncoding` | stored as-is on `OasMediaType`; a warning when `encoding` is also present | ✅ done |
+| `components.mediaTypes` | resolved into each `content` entry that references it | ✅ done |
 | Response `summary` | skipped-field warning | ⏳ pending |
 | Example `dataValue` / `serializedValue` | skipped-field warning | ⏳ pending |
 | Tag `parent` / `kind` / `summary` | skipped-field warning | ⏳ pending |
 | Server `name` | skipped-field warning | ⏳ pending |
 | Discriminator `defaultMapping` | skipped-field warning | ⏳ pending |
-| Security scheme `deprecated` / `oauth2MetadataUrl` | skipped-field warning | ⏳ pending |
-| OAuth flow `deviceAuthorization` | skipped-field warning | ⏳ pending |
+| Security scheme `deprecated` / `oauth2MetadataUrl` | on the security scheme IR | ✅ done |
+| OAuth flow `deviceAuthorization` | `flows.deviceAuthorization` on `OasOAuth2SecurityScheme` | ✅ done |
 
 ## Diagnostic levels
 

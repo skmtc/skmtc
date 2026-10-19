@@ -22,6 +22,35 @@ import { isRef } from '@/helpers/refFns.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import { toSpecificationExtensionsV3 } from '@/parse/v3-2/specificationExtensions/toSpecificationExtensionsV3.ts'
+
+// The shared schemas are the 3.0/3.1 shape; these add the 3.2 fields.
+const deprecated = v.optional(v.boolean())
+
+const httpSecuritySchemeData = v.object({ ...oasHttpSecuritySchemeData.entries, deprecated })
+
+const apiKeySecuritySchemeData = v.object({ ...oasApiKeySecuritySchemeData.entries, deprecated })
+
+const deviceAuthorizationOAuth2FlowData = v.object({
+  deviceAuthorizationUrl: v.string(),
+  tokenUrl: v.string(),
+  refreshUrl: v.optional(v.string()),
+  scopes: v.optional(v.record(v.string(), v.string()))
+})
+
+const oAuth2FlowsData = v.object({
+  ...oasOAuth2FlowsData.entries,
+  deviceAuthorization: v.optional(deviceAuthorizationOAuth2FlowData)
+})
+
+const oAuth2SecuritySchemeData = v.object({
+  ...oasOAuth2SecuritySchemeData.entries,
+  deprecated,
+  oauth2MetadataUrl: v.optional(v.string()),
+  flows: oAuth2FlowsData
+})
+
+const openIdSecuritySchemeData = v.object({ ...oasOpenIdSecuritySchemeData.entries, deprecated })
+
 export type ToSecuritySchemesArgs = {
   securitySchemes:
     | Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SecuritySchemeObject>
@@ -105,14 +134,14 @@ const toSecuritySchemeV3 = ({
 
   switch (securityScheme.type) {
     case 'http': {
-      const { description, scheme, bearerFormat } = v.parse(
-        oasHttpSecuritySchemeData,
+      const { description, deprecated, scheme, bearerFormat } = v.parse(
+        httpSecuritySchemeData,
         securityScheme
       )
 
       logSkippedKeys({
         value: securityScheme,
-        known: oasHttpSecuritySchemeData.entries,
+        known: httpSecuritySchemeData.entries,
         parentType: 'securityScheme:http',
         stackTrail,
         context
@@ -120,6 +149,7 @@ const toSecuritySchemeV3 = ({
 
       return new OasHttpSecurityScheme({
         description,
+        deprecated,
         scheme,
         bearerFormat
       })
@@ -129,12 +159,13 @@ const toSecuritySchemeV3 = ({
       const {
         in: location,
         description,
+        deprecated,
         name
-      } = v.parse(oasApiKeySecuritySchemeData, securityScheme)
+      } = v.parse(apiKeySecuritySchemeData, securityScheme)
 
       logSkippedKeys({
         value: securityScheme,
-        known: oasApiKeySecuritySchemeData.entries,
+        known: apiKeySecuritySchemeData.entries,
         parentType: 'securityScheme:apiKey',
         stackTrail,
         context
@@ -142,17 +173,21 @@ const toSecuritySchemeV3 = ({
 
       return new OasApiKeySecurityScheme({
         description,
+        deprecated,
         name,
         in: location
       })
     }
 
     case 'oauth2': {
-      const { flows, description } = v.parse(oasOAuth2SecuritySchemeData, securityScheme)
+      const { flows, description, deprecated, oauth2MetadataUrl } = v.parse(
+        oAuth2SecuritySchemeData,
+        securityScheme
+      )
 
       logSkippedKeys({
         value: securityScheme,
-        known: oasOAuth2SecuritySchemeData.entries,
+        known: oAuth2SecuritySchemeData.entries,
         parentType: 'securityScheme:oauth2',
         stackTrail,
         context
@@ -161,7 +196,7 @@ const toSecuritySchemeV3 = ({
       stackTrail.trace('flows', st =>
         logSkippedKeys({
           value: securityScheme.flows,
-          known: oasOAuth2FlowsData.entries,
+          known: oAuth2FlowsData.entries,
           parentType: 'oauthFlows',
           stackTrail: st,
           context
@@ -170,16 +205,21 @@ const toSecuritySchemeV3 = ({
 
       return new OasOAuth2SecurityScheme({
         description,
+        deprecated,
+        oauth2MetadataUrl,
         flows
       })
     }
 
     case 'openIdConnect': {
-      const { description, openIdConnectUrl } = v.parse(oasOpenIdSecuritySchemeData, securityScheme)
+      const { description, deprecated, openIdConnectUrl } = v.parse(
+        openIdSecuritySchemeData,
+        securityScheme
+      )
 
       logSkippedKeys({
         value: securityScheme,
-        known: oasOpenIdSecuritySchemeData.entries,
+        known: openIdSecuritySchemeData.entries,
         parentType: 'securityScheme:openIdConnect',
         stackTrail,
         context
@@ -187,6 +227,7 @@ const toSecuritySchemeV3 = ({
 
       return new OasOpenIdSecurityScheme({
         description,
+        deprecated,
         openIdConnectUrl
       })
     }

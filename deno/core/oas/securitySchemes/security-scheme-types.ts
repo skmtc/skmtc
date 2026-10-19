@@ -1,5 +1,9 @@
 import * as v from 'valibot'
 
+// The valibot schemas in this file are the OpenAPI 3.0/3.1 shape, shared by
+// the `v3-0`, `v3-1` and `v3-2` parsers. The `v3-2` parser extends them from
+// their `.entries` with the 3.2 fields; the data types carry the union of both.
+
 /**
  * Data type for HTTP authentication security schemes.
  *
@@ -11,6 +15,8 @@ export type OasHttpSecuritySchemeData = {
   type: 'http'
   /** Human-readable description of the security scheme */
   description?: string
+  /** Whether the scheme is deprecated (OpenAPI 3.2) */
+  deprecated?: boolean
   /** HTTP authorization scheme (e.g., 'basic', 'bearer') */
   scheme: string
   /** Format hint for bearer tokens (e.g., 'JWT') */
@@ -38,6 +44,8 @@ export type OasApiKeySecuritySchemeData = {
   type: 'apiKey'
   /** Human-readable description of the security scheme */
   description?: string
+  /** Whether the scheme is deprecated (OpenAPI 3.2) */
+  deprecated?: boolean
   /** Name of the header, query parameter, or cookie */
   name: string
   /** Location where the API key should be sent */
@@ -141,11 +149,26 @@ export const oasPasswordOAuth2FlowData = v.object({
   scopes: v.record(v.string(), v.string())
 })
 
+/**
+ * Data type for the OAuth2 device authorization flow (OpenAPI 3.2).
+ */
+export type OasDeviceAuthorizationOAuth2FlowData = {
+  /** URL for the OAuth2 device authorization endpoint */
+  deviceAuthorizationUrl: string
+  /** URL for the OAuth2 token endpoint */
+  tokenUrl: string
+  /** Optional URL for token refresh */
+  refreshUrl?: string | undefined
+  /** Available scopes mapped to their descriptions */
+  scopes?: Record<string, string> | undefined
+}
+
 export type OasOAuth2FlowsData = {
   authorizationCode?: OasAuthorizationCodeOAuth2FlowData
   clientCredentials?: OasClientCredentialsOAuth2FlowData
   implicit?: OasImplicitOAuth2FlowData
   password?: OasPasswordOAuth2FlowData
+  deviceAuthorization?: OasDeviceAuthorizationOAuth2FlowData
 }
 
 export const oasOAuth2FlowsData = v.object({
@@ -158,6 +181,8 @@ export const oasOAuth2FlowsData = v.object({
 export type OasOAuth2SecuritySchemeData = {
   type: 'oauth2'
   description?: string
+  deprecated?: boolean
+  oauth2MetadataUrl?: string
   flows: OasOAuth2FlowsData
 }
 
@@ -170,6 +195,7 @@ export const oasOAuth2SecuritySchemeData = v.object({
 export type OasOpenIdSecuritySchemeData = {
   type: 'openIdConnect'
   description?: string
+  deprecated?: boolean
   openIdConnectUrl: string
 }
 

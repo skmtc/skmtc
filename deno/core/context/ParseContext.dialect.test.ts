@@ -92,7 +92,8 @@ Deno.test('ParseContext dialect split - a rich 3.1 document parses natively end-
 Deno.test('ParseContext dialect split - a 3.2 document routes to v3-2 and parses', () => {
   // The v3-2 tree starts as a copy of v3-1, so a 3.2 document with a path
   // operation and a webhook parses end-to-end with no error-level issues. Only
-  // v3-2 warns on an unknown security-scheme key, which pins the route.
+  // v3-2 reads a security scheme's `deprecated` onto the IR, which pins the
+  // route.
   const context = new ParseContext({
     input: {
       type: 'oas',
@@ -126,11 +127,9 @@ Deno.test('ParseContext dialect split - a 3.2 document routes to v3-2 and parses
   if (result.type === 'oas') {
     assertEquals(result.value.operations.length, 1)
     assertEquals(result.value.webhooks.length, 1)
+    assertEquals(result.value.components?.securitySchemes?.k?.resolve().deprecated, true)
   }
-  const deprecatedWarning = context.issues.find(
-    issue => issue.location === 'TEST:components:securitySchemes:k:deprecated'
-  )
-  assertEquals(deprecatedWarning?.type, 'UNEXPECTED_PROPERTY')
+  assertEquals(context.issues, [])
 })
 
 Deno.test('ParseContext dialect split - an unknown OpenAPI version fails loud', () => {
