@@ -335,16 +335,20 @@ const isMediaTypeObject = (value: unknown): value is MediaTypeObjectV32 =>
 type ToComponentMediaTypeArgs = {
   $ref: string
   context: ParseContextType
+  /** Entry names already followed on this chain of references */
+  visited?: ReadonlySet<string>
 }
 
 /**
  * The Media Type Object a `$ref` names in `components.mediaTypes`, read off
- * the raw document. `undefined` when the `$ref` points elsewhere, names a
- * missing entry, or names an entry that is itself a `$ref`.
+ * the raw document. An entry that is itself a `$ref` is followed. `undefined`
+ * when a `$ref` on the chain points elsewhere or names a missing entry, or
+ * when the chain is a cycle.
  */
 const toComponentMediaType = ({
   $ref,
-  context
+  context,
+  visited = new Set()
 }: ToComponentMediaTypeArgs): MediaTypeObjectV32 | undefined => {
   const segments = $ref.startsWith('#') ? fromJsonPointer($ref) : undefined
 
@@ -353,6 +357,11 @@ const toComponentMediaType = ({
   }
 
   const [, , name] = segments
+
+  if (visited.has(name)) {
+    return undefined
+  }
+
   const { components } = context.documentObject
   const mediaTypes = isRecord(components) ? components.mediaTypes : undefined
 
@@ -361,6 +370,14 @@ const toComponentMediaType = ({
   }
 
   const mediaTypeItem = mediaTypes[name]
+
+  if (isRef(mediaTypeItem)) {
+    return toComponentMediaType({
+      $ref: mediaTypeItem.$ref,
+      context,
+      visited: new Set([...visited, name])
+    })
+  }
 
   return isMediaTypeObject(mediaTypeItem) ? mediaTypeItem : undefined
 }

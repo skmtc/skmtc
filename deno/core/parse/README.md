@@ -131,10 +131,11 @@ those fields warn and stay off the IR.
 
 `components.mediaTypes` is resolved at parse time: `toMediaTypeItemsV3`
 replaces a `content` entry whose `$ref` points into it with the referenced
-Media Type Object, then parses that like an inline one. A `$ref` that does
-not resolve to a Media Type Object there (a missing entry, a pointer
-elsewhere, or an entry that is itself a `$ref`) logs `INVALID_DEPENDENCY_REF`
-at that content entry and drops it. The map is not stored on `OasComponents`
+Media Type Object, then parses that like an inline one. An entry that is
+itself a `$ref` is followed. A `$ref` that does not resolve to a Media Type
+Object there (a missing entry, a pointer elsewhere, or a chain of entries
+that loops back on itself) logs `INVALID_DEPENDENCY_REF` at that content
+entry and drops it. The map is not stored on `OasComponents`
 and `OasRef` has no `mediaType` bucket: a resolved entry carries the same IR
 as an inline one, so generators read media types the same way in both
 cases and never need to resolve a media type reference themselves.

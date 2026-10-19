@@ -23,7 +23,10 @@ const parseContent = (content: Record<string, MediaTypeObjectV32 | OpenAPIV3.Ref
             mediaTypes: {
               Events: { itemSchema: { $ref: '#/components/schemas/Event' } },
               'Lines/v1': { itemSchema: { type: 'string' } },
-              Alias: { $ref: '#/components/mediaTypes/Events' }
+              Alias: { $ref: '#/components/mediaTypes/Events' },
+              AliasOfAlias: { $ref: '#/components/mediaTypes/Alias' },
+              LoopA: { $ref: '#/components/mediaTypes/LoopB' },
+              LoopB: { $ref: '#/components/mediaTypes/LoopA' }
             }
           }
         },
@@ -69,6 +72,20 @@ Deno.test('v3-2 media type - a content $ref is replaced by its components.mediaT
   assertEquals(result['application/jsonl'].itemSchema?.type, 'string')
 })
 
+Deno.test('v3-2 media type - a components.mediaTypes entry that is a $ref is followed', () => {
+  const { result, issues } = parseContent({
+    'text/event-stream': { $ref: '#/components/mediaTypes/Alias' },
+    'application/jsonl': { $ref: '#/components/mediaTypes/AliasOfAlias' }
+  })
+
+  assertEquals(issues, [])
+  for (const mediaType of ['text/event-stream', 'application/jsonl']) {
+    const itemSchema = result[mediaType]?.itemSchema
+    assert(itemSchema?.isRef())
+    assertEquals(itemSchema.$ref, '#/components/schemas/Event')
+  }
+})
+
 Deno.test('v3-2 media type - an unresolvable content $ref drops only that entry', () => {
   const { result, issues } = parseContent({
     'application/json': { schema: { type: 'string' } },
@@ -81,13 +98,13 @@ Deno.test('v3-2 media type - an unresolvable content $ref drops only that entry'
   ])
 })
 
-Deno.test('v3-2 media type - a $ref outside components.mediaTypes or to another $ref is unresolvable', () => {
+Deno.test('v3-2 media type - a $ref outside components.mediaTypes or into a cycle is unresolvable', () => {
   // Each pointer ends in `Events`, which `components.mediaTypes` holds.
   const { result, issues } = parseContent({
     'application/json': { $ref: '#/components/schemas/Events' },
     'application/xml': { $ref: '/components/mediaTypes/Events' },
     'application/yaml': { $ref: '#/components/mediaTypes/Events/itemSchema' },
-    'text/event-stream': { $ref: '#/components/mediaTypes/Alias' }
+    'text/event-stream': { $ref: '#/components/mediaTypes/LoopA' }
   })
 
   assertEquals(result, {})
