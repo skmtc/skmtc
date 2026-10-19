@@ -110,7 +110,7 @@ The mental decomposition:
 | **CLI host** | `@skmtc/cli` | Local developer surface: scaffold, install, bundle, generate, watch. |
 | **HTTP host** | `@skmtc/server` | Hono app — the hosted "Sandbox API". `POST /artifacts`. |
 | **MCP host** | `@skmtc/mcp` | Model Context Protocol server surface. |
-| **Schema normalizer** | `@skmtc/convert`, `@skmtc/openapi-down-convert` | Swagger 2 / OAS 3.1 → OAS 3.0. Runs *before* the engine. |
+| **Schema normalizer** | `@skmtc/convert` | Swagger 2 → OAS 3.0; OAS 3.0, 3.1 and 3.2 pass through and are parsed natively. Runs *before* the engine. |
 | **Generators** | `@skmtc/gen-*` | The actual codegen logic, distributed as JSR packages. |
 
 Every host does the same thing: get a schema, call `toArtifacts`,
@@ -201,8 +201,9 @@ one per run (fact 5). The boundary is `postMessage`, which uses the
 structured-clone algorithm — and that shapes a real asymmetry:
 
 - **OAS is parsed host-side.** A plain `OpenAPIV3.Document` is JSON —
-  it survives structured clone. The host normalizes Swagger 2 / OAS
-  3.1 to 3.0 via `@skmtc/convert`, then posts the plain document.
+  it survives structured clone. The host upgrades Swagger 2 to OAS 3.0
+  via `@skmtc/convert` (OAS 3.0, 3.1 and 3.2 pass through unchanged),
+  then posts the plain document.
 - **GraphQL is parsed Worker-side.** A parsed `GqlDocument` has class
   instances with cyclic back-references — structured clone strips
   methods and prototypes. So the host posts the raw SDL **string**
@@ -403,7 +404,7 @@ the worker-side parser omission, the `doctor` checks:
 ```
 @skmtc/openapi-down-convert   (OAS 3.1 → 3.0, vendored fork)
         ▲
-@skmtc/convert                (Swagger 2 / 3.1 → 3.0; YAML/JSON parse)
+@skmtc/convert                (Swagger 2 → 3.0; YAML/JSON parse)
         ▲
 @skmtc/core ◀───────────────── the engine; depended on by everything
         ▲   ▲   ▲   ▲
@@ -469,7 +470,7 @@ the engine stops and your platform code begins.
 
 | Platform concern | What the engine gives you | What you build |
 |---|---|---|
-| **Hosting APIs (schemas)** | A schema enters `toArtifacts` as `SkmtcDocumentInput` — `{ type:'oas', value: OpenAPIV3.Document }` or `{ type:'gql', value: sdlString }`. `@skmtc/convert` normalizes Swagger 2 / OAS 3.1 to 3.0 *before* the engine. | Schema storage, versioning, ingest validation, the normalize-on-ingest-or-on-run decision. |
+| **Hosting APIs (schemas)** | A schema enters `toArtifacts` as `SkmtcDocumentInput` — `{ type:'oas', value: OpenAPIV3.Document }` or `{ type:'gql', value: sdlString }`. `@skmtc/convert` upgrades Swagger 2 to OAS 3.0 *before* the engine; OAS 3.0, 3.1 and 3.2 pass through. | Schema storage, versioning, ingest validation, the normalize-on-ingest-or-on-run decision. |
 | **Hosting generators** | Generators are ordinary JSR packages (`@skmtc/gen-*`). `jsr.skmtc.dev` is already a JSR-compatible private registry. | A registry UX; discovery, search, featured ranking; the publish pipeline. |
 | **Running generators** | A run needs a **bundle** — `worker.ts` (templated from the import map) compiled to `bundle.js`. `toArtifacts` then executes it. Three reference hosts exist: local Worker (CLI), Hono `POST /artifacts` (`@skmtc/server`), the Worker message protocol (`@skmtc/worker`). | The run service: validate → convert → `toArtifacts` → return/store `{ artifacts, manifest }`. Bundle build & cache. Execution pooling if you need throughput. |
 | **Tracing** | `traceId` / `spanId` / `deploymentId` / `region` already populate the manifest and `StackTrail`; the `results` tree is trace-addressable. | Shipping them to an observability backend; cross-run dashboards. |

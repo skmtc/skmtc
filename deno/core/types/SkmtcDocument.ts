@@ -66,12 +66,12 @@ export const toGqlParsedDocument = (value: GqlDocument): SkmtcParsedDocument => 
  * pipeline runs the protocol-appropriate parser before handing the
  * post-parse {@link SkmtcParsedDocument} to the generate phase.
  *
- * - `oas.value` is an `OpenAPIV3.Document`. Schema versions other than
- *   3.0 (Swagger 2, OpenAPI 3.1) are normalized to 3.0 by
- *   `@skmtc/convert` before reaching `toArtifacts`. 3.1 `webhooks` ride
- *   *on* that document as a retained member (the 3.0 base type omits
- *   `webhooks`, so it is widened here) — the parser flattens them into
- *   {@link OasDocument.webhooks}.
+ * - `oas.value` is an `OpenAPIV3.Document` carrying an OpenAPI 3.0, 3.1 or
+ *   3.2 document; each is parsed natively by its own parser tree. Swagger 2
+ *   is converted to 3.0 by `@skmtc/convert` before reaching `toArtifacts`.
+ *   3.1 and 3.2 `webhooks` ride *on* that document as a retained member
+ *   (the 3.0 base type omits `webhooks`, so it is widened here) — the
+ *   parser flattens them into {@link OasDocument.webhooks}.
  * - `gql.value` is either a raw SDL string or a pre-built
  *   `GraphQLSchema`. Strings are run through `buildSchema` inside the
  *   pipeline; pre-built `GraphQLSchema` instances are used as-is.

@@ -7,7 +7,8 @@ import { fileTypeToProtocol, type FileType } from '@/lib/types.ts'
  * describe).
  *
  * - For OAS (JSON / YAML) sources we run the host-side `@skmtc/convert`
- *   to normalize Swagger 2 / OAS 3.1 → 3.0. The resulting
+ *   to upgrade Swagger 2 → OAS 3.0 (OAS 3.0, 3.1 and 3.2 pass through
+ *   unchanged). The resulting
  *   `OpenAPIV3.Document` is JSON-clone-safe so it crosses the worker
  *   boundary without surprises.
  * - For GraphQL we post the raw SDL string. A pre-parsed `GqlDocument`

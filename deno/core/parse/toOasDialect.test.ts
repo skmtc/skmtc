@@ -11,12 +11,21 @@ Deno.test('toOasDialect - 3.1.x maps to the 3.1 dialect', () => {
   assertEquals(toOasDialect('3.1.1'), '3.1')
 })
 
+Deno.test('toOasDialect - 3.2.x maps to the 3.2 dialect', () => {
+  assertEquals(toOasDialect('3.2.0'), '3.2')
+  assertEquals(toOasDialect('3.2.1'), '3.2')
+})
+
 Deno.test('toOasDialect - an unknown version throws (never a silent default)', () => {
   // The whole point of explicit detection: anything that is not 3.0.x /
-  // 3.1.x must fail loud rather than route to a default dialect.
-  assertThrows(() => toOasDialect('3.2.0'), Error, 'Unsupported OpenAPI version: 3.2.0')
+  // 3.1.x / 3.2.x must fail loud rather than route to a default dialect.
   assertThrows(() => toOasDialect('4.0.0'), Error, 'Unsupported OpenAPI version: 4.0.0')
+  assertThrows(() => toOasDialect('3.3.0'), Error, 'Unsupported OpenAPI version: 3.3.0')
   assertThrows(() => toOasDialect('2.0'), Error, 'Unsupported OpenAPI version: 2.0')
+})
+
+Deno.test('toOasDialect - the error lists every supported version', () => {
+  assertThrows(() => toOasDialect('4.0.0'), Error, 'expected 3.0.x, 3.1.x or 3.2.x')
 })
 
 Deno.test('toOasDialect - a missing version throws', () => {

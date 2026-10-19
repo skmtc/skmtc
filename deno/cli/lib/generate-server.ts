@@ -23,7 +23,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 /**
  * Generate against a DEPLOYED stack server instead of loading the local
  * `bundle.js`. POSTs the raw schema + settings to `{stackUrl}/artifacts` — the
- * `@skmtc/server` contract, which runs the Swagger 2 / OAS 3.1 → 3.0 conversion
+ * `@skmtc/server` contract, which runs the Swagger 2 → 3.0 conversion
  * itself — and returns the same {@link GenerateResponse} shape the local worker
  * produces, so `writeGeneratedFiles` (stale cleanup + byte-identical dedup +
  * manifest write) needs no changes.

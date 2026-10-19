@@ -55,8 +55,8 @@ type GenerateResult = {
 
 /**
  * Build the unified `SkmtcDocumentInput` from a resolved schema input. The
- * host-side OAS normalization (Swagger 2 / 3.1 → 3.0 via `@skmtc/convert`)
- * runs here; GQL passes its SDL through unchanged. A document that cannot be
+ * host-side OAS normalization (Swagger 2 → 3.0 via `@skmtc/convert`; 3.0,
+ * 3.1 and 3.2 pass through) runs here; GQL passes its SDL through unchanged. A document that cannot be
  * read at all surfaces as a `SchemaReadError` (→ structured 422), distinct
  * from a readable document with issues (→ 200 + `manifest.parseIssues`).
  */
@@ -262,7 +262,8 @@ export const createServer = (
   // Capability introspection: which subjects (operations / models) does each
   // configured generator support for this schema? Runs Parse + each generator's
   // `isSupported` only — no transform, no render. Same request body as
-  // `/artifacts` (the OAS branch is normalized v2/3.1 → 3.0 first).
+  // `/artifacts` (the OAS branch converts Swagger 2 → 3.0 first; 3.0, 3.1 and
+  // 3.2 pass through).
   app.post("/subjects", async (c) => {
     const body = v.parse(postArtifactsBody, await readJsonBody(c));
     const resolved = await resolveSchemaInput(body);
@@ -291,8 +292,8 @@ export const createServer = (
   // generator derives from this schema — the "Generate fields from schema"
   // payload the CMS persists, then the user edits. Runs Parse + each generator's
   // `toEnrichmentDefaults` over its supported subjects — no transform, no render.
-  // Same request body as `/subjects` (the OAS branch is normalized v2/3.1 → 3.0
-  // first). The result mirrors the `client.json#settings.enrichments` subtree
+  // Same request body as `/subjects` (the OAS branch converts Swagger 2 → 3.0
+  // first; 3.0, 3.1 and 3.2 pass through). The result mirrors the `client.json#settings.enrichments` subtree
   // (subject scope only), keyed `[id][path][method]['main']` for operations and
   // `[id][refName]['main']` for models.
   app.post("/enrichment-defaults", async (c) => {
@@ -362,7 +363,7 @@ export const createServer = (
       throw new SchemaReadError("No schema input provided.");
     }
 
-    // 3.0/3.1 pass through unchanged; only Swagger 2.0 is converted to 3.0.
+    // 3.0, 3.1 and 3.2 pass through unchanged; only Swagger 2.0 is converted to 3.0.
     try {
       const normalizedDocument = await toV3Document(stringToSchema(schema));
       return c.json({ schema: normalizedDocument });

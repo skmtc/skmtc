@@ -4,9 +4,9 @@
  * OpenAPI document conversion utilities for SKMTC.
  *
  * This module provides functions for converting OpenAPI documents between
- * different versions (Swagger 2.0, OpenAPI 3.0, OpenAPI 3.1) and formats
- * (JSON, YAML). All conversions normalize to OpenAPI 3.0 as the internal
- * processing format for SKMTC.
+ * different versions (Swagger 2.0, OpenAPI 3.0, 3.1 and 3.2) and formats
+ * (JSON, YAML). Swagger 2.0 is converted to OpenAPI 3.0; OpenAPI 3.0, 3.1 and
+ * 3.2 pass through unchanged, because SKMTC parses each of them natively.
  *
  * @example
  * ```typescript

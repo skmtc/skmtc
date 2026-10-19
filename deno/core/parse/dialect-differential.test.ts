@@ -2,14 +2,16 @@ import { assert, assertEquals } from '@std/assert'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { OasRef } from '@/oas/ref/Ref.ts'
-import { toSchemaV3 as parseV30 } from './v3-0/schema/toSchemasV3.ts'
-import { toSchemaV3 as parseV31 } from './v3-1/schema/toSchemasV3.ts'
+import { toSchemaV3 as parseV30 } from '@/parse/v3-0/schema/toSchemasV3.ts'
+import { toSchemaV3 as parseV31 } from '@/parse/v3-1/schema/toSchemasV3.ts'
+import { toSchemaV3 as parseV32 } from '@/parse/v3-2/schema/toSchemasV3.ts'
 
-// Differential corpus — the executable 3.0 ↔ 3.1 equivalence spec. For each
-// construct that the two dialects spell differently, a 3.0 document fragment
-// and its 3.1 equivalent must parse to the SAME IR. This is the drift safety
-// net for the two duplicated parser trees: it catches a copy diverging even
-// when both still compile and their own per-tree tests pass.
+// Differential corpus — the executable 3.0 ↔ 3.1 ↔ 3.2 equivalence spec. For
+// each construct that the dialects spell differently, a 3.0 document fragment
+// and its 3.1 and 3.2 equivalents must parse to the SAME IR. 3.2's
+// schema-layer changes are additive, so its column repeats the 3.1 fragment. This is the
+// drift safety net for the duplicated parser trees: it catches a copy
+// diverging even when every tree still compiles and passes its own tests.
 
 const createContext = (): ParseContextType =>
   ({
@@ -47,31 +49,36 @@ const parse = (parser: typeof parseV30, schemaJson: string) =>
 const snapshot = (schema: unknown): unknown =>
   (schema as { toJsonSchema: () => unknown }).toJsonSchema()
 
-const pairs: Array<{ name: string; v30: string; v31: string }> = [
+const pairs: Array<{ name: string; v30: string; v31: string; v32: string }> = [
   {
     name: 'nullable scalar',
     v30: '{"type":"string","nullable":true}',
-    v31: '{"type":["string","null"]}'
+    v31: '{"type":["string","null"]}',
+    v32: '{"type":["string","null"]}'
   },
   {
     name: 'multi-type union',
     v30: '{"oneOf":[{"type":"string"},{"type":"integer"}]}',
-    v31: '{"type":["string","integer"]}'
+    v31: '{"type":["string","integer"]}',
+    v32: '{"type":["string","integer"]}'
   },
   {
     name: 'literal (enum vs const)',
     v30: '{"type":"string","enum":["active"]}',
-    v31: '{"type":"string","const":"active"}'
+    v31: '{"type":"string","const":"active"}',
+    v32: '{"type":"string","const":"active"}'
   },
   {
     name: 'exclusive bounds (boolean+minimum vs numeric)',
     v30: '{"type":"number","minimum":5,"exclusiveMinimum":true}',
-    v31: '{"type":"number","exclusiveMinimum":5}'
+    v31: '{"type":"number","exclusiveMinimum":5}',
+    v32: '{"type":"number","exclusiveMinimum":5}'
   },
   {
     name: 'schema example vs examples[]',
     v30: '{"type":"string","example":"x"}',
-    v31: '{"type":"string","examples":["x"]}'
+    v31: '{"type":"string","examples":["x"]}',
+    v32: '{"type":"string","examples":["x"]}'
   }
 ]
 
@@ -79,22 +86,28 @@ for (const pair of pairs) {
   Deno.test(`dialect differential - ${pair.name} parses to the same IR`, () => {
     const fromV30 = parse(parseV30, pair.v30)
     const fromV31 = parse(parseV31, pair.v31)
+    const fromV32 = parse(parseV32, pair.v32)
 
     assert(!(fromV30 instanceof OasRef) && !(fromV31 instanceof OasRef))
-    assertEquals(snapshot(fromV30), snapshot(fromV31))
+    assert(!(fromV32 instanceof OasRef))
+    assertEquals(snapshot(fromV31), snapshot(fromV30))
+    assertEquals(snapshot(fromV32), snapshot(fromV31))
   })
 }
 
 Deno.test('dialect differential - nullable reference parses to the same IR', () => {
-  // 3.0 wraps the ref in a single-member oneOf + `nullable`; 3.1 adds a
-  // `{type:'null'}` member. Both land on a nullable OasRef (compared
+  // 3.0 wraps the ref in a single-member oneOf + `nullable`; 3.1 and 3.2 add
+  // a `{type:'null'}` member. All three land on a nullable OasRef (compared
   // structurally — OasRef.toJsonSchema resolves the referent, which the mock
   // document does not hold).
   const fromV30 = parse(parseV30, '{"oneOf":[{"$ref":"#/components/schemas/Foo"}],"nullable":true}')
   const fromV31 = parse(parseV31, '{"oneOf":[{"$ref":"#/components/schemas/Foo"},{"type":"null"}]}')
+  const fromV32 = parse(parseV32, '{"oneOf":[{"$ref":"#/components/schemas/Foo"},{"type":"null"}]}')
 
   assert(fromV30 instanceof OasRef)
   assert(fromV31 instanceof OasRef)
+  assert(fromV32 instanceof OasRef)
   assertEquals(fromV30.nullable, true)
   assertEquals(fromV31.nullable, fromV30.nullable)
+  assertEquals(fromV32.nullable, fromV31.nullable)
 })

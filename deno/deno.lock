@@ -1147,6 +1147,7 @@
           "jsr:@std/log@~0.224.6",
           "jsr:@std/path@^1.0.9",
           "jsr:@std/testing@^1.0.15",
+          "jsr:@std/yaml@^1.1.0",
           "npm:@types/lodash-es@4.17.12",
           "npm:graphql@^16.9.0",
           "npm:lodash-es@4.17.21",

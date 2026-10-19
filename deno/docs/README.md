@@ -212,7 +212,7 @@ Per-generator reference: [`reference/stock-generators/`](reference/stock-generat
 
 **Can I use SKMTC alongside another codegen tool?** Yes. SKMTC writes only to `basePath`.
 
-**Swagger 2 or OpenAPI 3.1?** Normalized to OAS 3.0 via `@skmtc/convert`. Both work.
+**Swagger 2, OpenAPI 3.1 or 3.2?** All work. Swagger 2 is upgraded to OAS 3.0 via `@skmtc/convert`; OpenAPI 3.1 and 3.2 are parsed natively.
 
 **What's the runtime cost?** Zero SKMTC-specific runtime. Output uses whatever libraries the chosen generators target.
 
