@@ -155,8 +155,9 @@ No generator renders a custom method yet.
 - A reusable parameter under `components.parameters` failed to parse
   via `tryParseAt`. Any operation that `$ref`s it surfaces a cascading
   `INVALID_DEPENDENCY_REF` / generate-time `Ref ... not found`.
-- An OpenAPI 3.2 `in: querystring` parameter has no `content`, or has
-  a `schema`. The operation keeps its other parameters.
+- An OpenAPI 3.2 `in: querystring` parameter does not have exactly one
+  `content` media type, or has a `schema`. The operation keeps its other
+  parameters.
 
 **When (warning):** An OpenAPI 3.2 operation, together with its path
 item, has more than one `in: querystring` parameter, or has an

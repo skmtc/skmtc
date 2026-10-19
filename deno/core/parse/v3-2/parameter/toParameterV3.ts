@@ -57,8 +57,9 @@ export const toParameterListV3 = ({
 
 /**
  * A `querystring` parameter describes the whole query string, so it must
- * carry `content` and not `schema`. Returns the problem, or `undefined`
- * when the parameter is valid or is not a `querystring` parameter.
+ * carry `content` with exactly one media type, and no `schema`. Returns
+ * the problem, or `undefined` when the parameter is valid or is not a
+ * `querystring` parameter.
  */
 const toQuerystringIssue = (
   parameter: OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject
@@ -67,8 +68,8 @@ const toQuerystringIssue = (
     return undefined
   }
 
-  if (!parameter.content || parameter.schema) {
-    return `Parameter '${parameter.name}' in querystring must define content, not schema`
+  if (parameter.schema || Object.keys(parameter.content ?? {}).length !== 1) {
+    return `Parameter '${parameter.name}' in querystring must define content with exactly one media type, and no schema`
   }
 
   return undefined

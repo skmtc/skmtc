@@ -134,7 +134,7 @@ the 3.2 base-URI rules (Appendix F of the spec) are not implemented.
 | Document `$self` | `OasDocument.$self`, stored as a string only (see below) | ✅ done |
 | Path item `query` operation | an operation with method `query` | ✅ read |
 | Path item `additionalOperations` | one `UNSUPPORTED_OPERATION_METHOD` warning per entry; the operation is dropped | ✅ warned |
-| Parameter `in: querystring` | read; must carry `content` (`INVALID_PARAMETER` error otherwise, the parameter is dropped); a second `querystring`, or one with `in: query`, is an `INVALID_PARAMETER` warning | ✅ read |
+| Parameter `in: querystring` | read; must carry `content` with exactly one media type and no `schema` (`INVALID_PARAMETER` error otherwise, the parameter is dropped); a second `querystring`, or one with `in: query`, is an `INVALID_PARAMETER` warning | ✅ read |
 | Parameter `style: cookie` | read for `in: cookie` (default `explode: true`); on another location the operation is dropped (`INVALID_OPERATION`) | ✅ read |
 | Media type `itemSchema` | skipped-field warning | ⏳ pending |
 | Media type `prefixEncoding` / `itemEncoding` | skipped-field warning | ⏳ pending |

@@ -107,6 +107,33 @@ Deno.test('v3-2 toParameterV3 - a querystring parameter with schema and content 
   ])
 })
 
+Deno.test('v3-2 toParameterV3 - a querystring parameter with empty or several content entries is INVALID_PARAMETER', () => {
+  const form = { 'application/x-www-form-urlencoded': { schema: { type: 'object' } } }
+  const { issues, document } = parse({
+    paths: {
+      '/search': {
+        get: {
+          ...ok,
+          parameters: [
+            { name: 'empty', in: 'querystring', content: {} },
+            {
+              name: 'several',
+              in: 'querystring',
+              content: { ...form, 'text/plain': { schema: { type: 'string' } } }
+            }
+          ]
+        }
+      }
+    }
+  })
+
+  assertEquals(toIssueSummaries(issues), [
+    { level: 'error', type: 'INVALID_PARAMETER', location: 'TEST:paths:/search:get:parameters:0' },
+    { level: 'error', type: 'INVALID_PARAMETER', location: 'TEST:paths:/search:get:parameters:1' }
+  ])
+  assertEquals(document.operations[0].parameters, [])
+})
+
 Deno.test('v3-2 toParameterV3 - a component querystring parameter with schema is INVALID_PARAMETER', () => {
   const { issues, document } = parse({
     paths: {},
