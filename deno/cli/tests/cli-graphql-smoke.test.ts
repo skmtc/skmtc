@@ -1,7 +1,5 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { dirname, fromFileUrl, join, relative, resolve } from '@std/path'
-import { packageDenoJson } from '@skmtc/core/DenoJson'
-import * as v from 'valibot'
 
 /**
  * End-to-end smoke test for the GraphQL → CLI → output pipeline.
@@ -27,8 +25,8 @@ const WORKSPACE_DIR = resolve(CLI_DIR, '..')
 // `.fixtures/` is gitignored — pure throwaway state.
 const FIXTURES_DIR = join(TEST_DIR, '.fixtures')
 
-/** The workspace members the fixture's `worker.ts` imports, by directory. */
-const LINKED_MEMBERS = ['core', 'worker', 'lang-typescript']
+/** The workspace members `skmtc generate` pins in the project, by directory. */
+const LINKED_MEMBERS = ['core', 'worker']
 
 const PROJECT_NAME = 'gql-smoke'
 
@@ -53,37 +51,24 @@ const FIXTURE_SDL = /* GraphQL */ `
 `
 
 /**
- * The fixture project's `deno.json`: pins at the workspace versions, as
- * the CLI writes them, and `links` to the member directories so those
- * pins resolve to the workspace code, not to JSR.
+ * The fixture project's `deno.json`: only `links` to the workspace
+ * members, so the `jsr:` pins `skmtc generate` adds resolve to the
+ * workspace code, not to JSR.
  *
- * `skmtc generate` writes a `deno.json` into the project, and Deno
- * ignores the parent workspace for a config that isn't a member. So the
- * workspace can't resolve `@skmtc/*` for `deno bundle` or `deno info`.
+ * Deno ignores the parent workspace for a `deno.json` that isn't a
+ * member, so once the project has one, the workspace no longer
+ * resolves `@skmtc/*` for `deno bundle` or `deno info`.
  */
-const toFixtureDenoJson = async (projectPath: string): Promise<string> => {
-  const members = await Promise.all(
-    LINKED_MEMBERS.map(async directory => {
-      const memberPath = join(WORKSPACE_DIR, directory)
-      const { name, version } = v.parse(
-        packageDenoJson,
-        JSON.parse(await Deno.readTextFile(join(memberPath, 'deno.json')))
-      )
-      return { name, version, link: relative(projectPath, memberPath).replaceAll('\\', '/') }
-    })
-  )
-
-  return JSON.stringify(
+const toFixtureDenoJson = (projectPath: string): string =>
+  JSON.stringify(
     {
-      imports: Object.fromEntries(
-        members.map(({ name, version }) => [name, `jsr:${name}@${version}`])
-      ),
-      links: members.map(({ link }) => link)
+      links: LINKED_MEMBERS.map(directory =>
+        relative(projectPath, join(WORKSPACE_DIR, directory)).replaceAll('\\', '/')
+      )
     },
     null,
     2
   )
-}
 
 // Minimal inline model generator. Emits one stub TypeScript type per
 // registered schema (so the CLI summary reports "Generated N files
@@ -146,10 +131,12 @@ const setup = async (uniqueSuffix: string): Promise<SetupResult> => {
   const settingsPath = join(projectPath, '.settings')
   await Deno.mkdir(settingsPath, { recursive: true })
 
-  await Deno.writeTextFile(join(projectPath, 'deno.json'), await toFixtureDenoJson(projectPath))
   await Deno.writeTextFile(join(projectPath, 'worker.ts'), FIXTURE_WORKER)
   await Deno.writeTextFile(join(settingsPath, 'client.json'), FIXTURE_CLIENT_JSON)
 
+  // Built before the project has a `deno.json`, so `deno bundle` walks
+  // up to `skmtc/deno/deno.json` and resolves `@skmtc/*` through the
+  // workspace members.
   const bundleCmd = new Deno.Command('deno', {
     args: ['bundle', '-o', 'bundle.js', 'worker.ts'],
     cwd: projectPath,
@@ -161,6 +148,8 @@ const setup = async (uniqueSuffix: string): Promise<SetupResult> => {
     const err = new TextDecoder().decode(bundleOut.stderr)
     throw new Error(`bundle build failed: ${err}`)
   }
+
+  await Deno.writeTextFile(join(projectPath, 'deno.json'), toFixtureDenoJson(projectPath))
 
   const schemaPath = join(fixtureRoot, 'schema.graphql')
   await Deno.writeTextFile(schemaPath, FIXTURE_SDL)
