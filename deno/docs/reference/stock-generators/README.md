@@ -36,6 +36,6 @@ documented generator — not because they are secret:
   (internal tooling for search indexing)
 - `@skmtc/gen-kotlin-jackson`, `@skmtc/gen-kotlin-spring` — private,
   pre-alpha Kotlin track; not published
-- `@skmtc/gen-ts-webhook` — one handler type per OpenAPI 3.1 webhook;
+- `@skmtc/gen-ts-webhook` — one handler type per OpenAPI 3.1 or 3.2 webhook;
   covered as the worked example in
   [webhook generators](../api/webhook-generators.md)

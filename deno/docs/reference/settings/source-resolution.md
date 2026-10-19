@@ -1,14 +1,14 @@
 # Source resolution
 
-> How the CLI locates the schema source, loads it, and normalizes it
-> to a JSON-cloneable OAS 3.0 document (or a raw GraphQL SDL string)
-> before handing it to the engine.
+> How the CLI locates the schema source, loads it, and turns it into
+> a JSON-cloneable OAS 3.0, 3.1 or 3.2 document (or a raw GraphQL SDL
+> string) before handing it to the engine.
 
 The schema source can come from a CLI argument, the project's
 `client.json`, or — when running interactively — a prompt. The CLI
 walks a precedence chain to find one, fetches it (HTTP or
-filesystem), detects its format, and normalizes it to the engine's
-canonical shape.
+filesystem), detects its format, and converts Swagger 2 to OAS 3.0.
+OAS 3.0, 3.1 and 3.2 documents keep their version.
 
 The work in this doc happens **host-side** — entirely in the CLI
 process, before the worker spawns. This is the same `structuredClone`-
@@ -98,6 +98,11 @@ OpenAPI as JSON. Any of:
 - **OpenAPI v2 (Swagger)** — `swagger: "2.0"`
 - **OpenAPI v3.0.x** — `openapi: "3.0.x"`
 - **OpenAPI v3.1.x** — `openapi: "3.1.x"`
+- **OpenAPI v3.2.x** — `openapi: "3.2.x"`
+
+Any other version, or a document with no version field, stops the
+run with an `Unrecognized OpenAPI version` error that lists the
+supported versions.
 
 JSON is the canonical interchange form. Most public OpenAPI specs
 publish as JSON; the CLI handles them directly.
@@ -149,11 +154,15 @@ the CLI exits with a clear error rather than guessing.
 
 ## Pre-parse normalization
 
-OAS sources are normalized to the engine's canonical shape — **OAS
-3.0**, as a JSON-cloneable object — before crossing into the worker.
+Before an OAS source crosses into the worker, the CLI converts
+Swagger 2 to OAS 3.0. OAS 3.0, 3.1 and 3.2 sources pass through
+unchanged. Every OAS source crosses as a JSON-cloneable object.
 
-This normalization is the load-bearing step that lets the rest of
-the engine assume a single OAS version.
+The engine does not need one OAS version. It has a separate parser
+for each of 3.0, 3.1 and 3.2. It reads the `openapi` field once,
+then parses the whole document with the parser for that version.
+All three parsers build the same internal model, so generators do
+not see which version the source used.
 
 ### Swagger 2 → OAS 3.0
 
@@ -182,27 +191,10 @@ When this happens, the user's options are:
    similar tool) and pass the resulting OAS 3.0 file
 2. Fix the source spec to remove the incompatible extension
 
-### OAS 3.1 → OAS 3.0
-
-OpenAPI 3.1 adopts JSON Schema 2020-12, which introduces semantic
-changes that don't all map cleanly to OAS 3.0:
-
-| OAS 3.1 feature | Handling in 3.0 |
-|-----------------|-----------------|
-| `type: ["string", "null"]` (type arrays) | Rewritten to `type: "string"` + `nullable: true` |
-| `examples` (array, plural) | First entry used as `example` (singular) |
-| `$dynamicRef` | Not supported; surfaces as a parse error |
-| Const-only schemas | Translated to single-element enum |
-| `unevaluatedProperties` | Dropped (not supported in 3.0) |
-
-The conversion is **lossy in places** — specifically when 3.1
-features have no 3.0 equivalent. The CLI produces a warning per
-dropped feature so users know which parts of their spec aren't
-represented in the generated output.
-
 ### GraphQL stays as SDL string
 
-GraphQL is the exception to the "normalize before crossing" rule.
+GraphQL is the exception to the "JSON-cloneable object before
+crossing" rule.
 The CLI:
 
 1. Reads/fetches the SDL content
@@ -332,8 +324,8 @@ Absolute paths are resolved as-is.
 ```
 
 The CLI fetches the URL, detects JSON via the `Content-Type` header,
-runs version normalization (probably no-op for a 3.0 spec), and
-passes the result to the worker.
+checks the version (a 3.0, 3.1 or 3.2 spec passes through unchanged),
+and passes the result to the worker.
 
 ### Local YAML, Swagger 2
 
@@ -368,16 +360,13 @@ workspace root.
 
 ## Common questions
 
-### Why is OAS normalized to 3.0 specifically (not 3.1)?
+### Is OAS 3.1 or 3.2 converted to 3.0?
 
-The engine's parser was first written against OAS 3.0. Upgrading to
-3.1-native would require touching the parser to handle JSON Schema
-2020-12 semantics (type arrays, dynamic refs, etc.). The
-normalize-to-3.0 approach lets the engine stay 3.0-shaped while
-still accepting 3.1 input.
-
-A future engine version may target 3.1 natively, but the
-normalization layer would still exist for 2.0 and 3.0 sources.
+No. Only Swagger 2 is converted, to OAS 3.0. The engine has one
+parser for each of OAS 3.0, 3.1 and 3.2, and each parser reads its
+version's own syntax, so a 3.1 schema with more than one type
+becomes a union. The next question lists the 3.1 and 3.2 schema
+keywords that the parsers read.
 
 ### Why doesn't the CLI cache fetched specs?
 
@@ -389,22 +378,26 @@ sources are caching-free already.
 If repeat-run performance becomes a problem, the workaround is to
 bundle the spec to a local file and point `source` at it.
 
-### What if my spec uses OAS 3.1 features that don't map to 3.0?
+### How are OAS 3.1 and 3.2 schema keywords read?
 
-The CLI surfaces warnings for each dropped feature. The most common
-mismatches:
+OAS 3.2 uses the same schema keywords as 3.1, and both parsers read
+them the same way. Each keyword lands on the same internal model
+that the 3.0 form of the schema gives:
 
-- **Type arrays** (`type: ["string", "null"]`) — translated to
-  `type: "string"` + `nullable: true`. Generators see the
-  `nullable` and handle it.
-- **`$dynamicRef`** — not supported. Parse fails with a clear
-  error. The fix: replace dynamic refs with plain `$ref` (which
-  may require restructuring the spec).
-- **Plural `examples`** — only the first example survives. Spec
-  reads with examples-by-name lose the names.
+| OAS 3.1 / 3.2 schema | Internal model |
+|----------------------|----------------|
+| `type: ["string", "null"]` | A nullable `string` |
+| `type: ["string", "number"]` | A union of `string` and `number` |
+| `type: "null"` or `type: ["null"]` alone | An unknown schema |
+| `const: X` | An enum with the one member `X` |
+| `examples: [A, B]` | The example `A`, when the schema has no `example` |
+| `exclusiveMinimum: 5` (a number) | A minimum of `5` that excludes `5` |
+| `contentMediaType: application/octet-stream` on a string with no `format` | `format: binary` |
+| `contentEncoding: base64` on a string with no `format` | `format: byte` |
 
-For specs that rely heavily on 3.1-specific features, the cleanest
-fix is to author the spec as 3.0 from the start.
+The parsers do not read other JSON Schema 2020-12 keywords, such as
+`unevaluatedProperties`. The model does not include them, and the
+parse records an `UNEXPECTED_PROPERTY` warning for each one.
 
 ### What if my spec has external `$ref`s?
 

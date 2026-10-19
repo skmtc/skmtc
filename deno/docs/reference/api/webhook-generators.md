@@ -1,6 +1,6 @@
 # Webhook generators
 
-> The fourth generator flavor, for OpenAPI 3.1 webhooks: `toWebhookEntry`,
+> The fourth generator flavor, for OpenAPI 3.1 and 3.2 webhooks: `toWebhookEntry`,
 > `toWebhookProjectionBase` (via `toTsWebhookProjectionBase`), and
 > `context.insertWebhook`. Same shape as the operation flavor, with an
 > `OasWebhook` in place of an `OasOperation`.
@@ -16,7 +16,7 @@ Source:
 
 ## What a webhook is
 
-An OpenAPI **3.1** document can declare a top-level `webhooks` map:
+An OpenAPI **3.1** or **3.2** document can declare a top-level `webhooks` map:
 calls the *server* makes to the consumer. Structurally each webhook is
 an Operation Object — the same `parameters`, `requestBody`, `responses`
 — but keyed by a **name** rather than a URL path, and with inverted
@@ -95,7 +95,7 @@ export const WebhookHandlerBase = toTsWebhookProjectionBase({
 
 ### Do webhooks work on OpenAPI 3.0 documents?
 
-No — the `webhooks` map is a 3.1 feature. A 3.0 document has no
+No — the `webhooks` map is a 3.1 and 3.2 feature. A 3.0 document has no
 webhook subjects, so a webhook generator produces nothing (and that is
 not an error).
 

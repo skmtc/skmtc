@@ -402,9 +402,9 @@ the worker-side parser omission, the `doctor` checks:
 ### The `@skmtc/*` packages
 
 ```
-@skmtc/openapi-down-convert   (OAS 3.1 → 3.0, vendored fork)
+@skmtc/swagger2openapi        (Swagger 2 → 3.0, Deno port)
         ▲
-@skmtc/convert                (Swagger 2 → 3.0; YAML/JSON parse)
+@skmtc/convert                (3.0/3.1/3.2 pass through; YAML/JSON parse)
         ▲
 @skmtc/core ◀───────────────── the engine; depended on by everything
         ▲   ▲   ▲   ▲

@@ -30,7 +30,7 @@ register ergonomics):
 - `skmtc/deno/lang-typescript/src/toTsOasOperationProjectionBase.ts`
 - `skmtc/deno/lang-typescript/src/toTsGqlOperationProjectionBase.ts`
 
-A fourth flavor exists for OpenAPI 3.1 webhooks — see
+A fourth flavor exists for OpenAPI 3.1 and 3.2 webhooks — see
 [webhook generators](webhook-generators.md).
 
 ## The three bases
