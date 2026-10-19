@@ -4,10 +4,10 @@ import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { toDocumentObject } from '@/test/toDocumentObject.ts'
 
-// The v3-2 tree does not read any 3.2-only field into the IR yet. Each one
-// must surface as a skipped-field warning rather than crash the parse. One
-// row per field in the 3.2 dialect table of `core/parse/README.md`; a
-// follow-up that reads a field into the IR removes its row here.
+// A 3.2-only field the v3-2 tree does not read into the IR yet must surface
+// as a skipped-field warning rather than crash the parse. One row per field
+// in the 3.2 dialect table of `core/parse/README.md`; a follow-up that reads
+// a field into the IR moves its row from `pendingFields` to `readFields`.
 
 const documentObject = toDocumentObject(
   {
@@ -99,7 +99,6 @@ const documentObject = toDocumentObject(
 )
 
 const pendingFields: Array<{ field: string; location: string }> = [
-  { field: '$self', location: 'TEST:$self' },
   { field: 'path item query', location: 'TEST:paths:/pets:query' },
   { field: 'additionalOperations', location: 'TEST:paths:/pets:additionalOperations' },
   {
@@ -115,25 +114,6 @@ const pendingFields: Array<{ field: string; location: string }> = [
     location: 'TEST:paths:/pets:get:responses:200:content:multipart/mixed:itemEncoding'
   },
   { field: 'components.mediaTypes', location: 'TEST:components:mediaTypes' },
-  { field: 'response summary', location: 'TEST:paths:/pets:get:responses:200:summary' },
-  {
-    field: 'example dataValue',
-    location:
-      'TEST:paths:/pets:get:responses:200:content:application/jsonl:examples:examples:one:dataValue'
-  },
-  {
-    field: 'example serializedValue',
-    location:
-      'TEST:paths:/pets:get:responses:200:content:application/jsonl:examples:examples:one:serializedValue'
-  },
-  { field: 'tag parent', location: 'TEST:tags:parent' },
-  { field: 'tag kind', location: 'TEST:tags:kind' },
-  { field: 'tag summary', location: 'TEST:tags:summary' },
-  { field: 'server name', location: 'TEST:servers:https%3A//api.example.com:name' },
-  {
-    field: 'discriminator defaultMapping',
-    location: 'TEST:components:schemas:Pet:oneOf:discriminator:defaultMapping'
-  },
   {
     field: 'security scheme deprecated',
     location: 'TEST:components:securitySchemes:legacyKey:deprecated'
@@ -160,6 +140,105 @@ for (const { field, location } of pendingFields) {
     const warning = context.issues.find(issue => issue.location === location)
     assertEquals(warning?.level, 'warning')
     assertEquals(warning?.type, 'UNEXPECTED_PROPERTY')
+  })
+}
+
+const toDocument = () => {
+  assert(result.type === 'oas')
+  return result.value
+}
+
+const toPetsResponse = () => {
+  const response = toDocument().operations.find(
+    operation => operation.path === '/pets' && operation.method === 'get'
+  )?.responses['200']
+  assert(response !== undefined && !response.isRef())
+  return response
+}
+
+const toPetsExample = () => {
+  const example = toPetsResponse().content?.['application/jsonl']?.examples?.one
+  assert(example !== undefined && !example.isRef())
+  return example
+}
+
+const readFields: Array<{
+  field: string
+  location: string
+  toValue: () => unknown
+  expected: unknown
+}> = [
+  {
+    field: '$self',
+    location: 'TEST:$self',
+    toValue: () => toDocument().$self,
+    expected: 'https://example.com/openapi.json'
+  },
+  {
+    field: 'response summary',
+    location: 'TEST:paths:/pets:get:responses:200:summary',
+    toValue: () => toPetsResponse().summary,
+    expected: 'A page of pets'
+  },
+  {
+    field: 'example dataValue',
+    location:
+      'TEST:paths:/pets:get:responses:200:content:application/jsonl:examples:examples:one:dataValue',
+    toValue: () => toPetsExample().dataValue,
+    expected: 'a'
+  },
+  {
+    field: 'example serializedValue',
+    location:
+      'TEST:paths:/pets:get:responses:200:content:application/jsonl:examples:examples:one:serializedValue',
+    toValue: () => toPetsExample().serializedValue,
+    expected: '"a"'
+  },
+  {
+    field: 'tag parent',
+    location: 'TEST:tags:parent',
+    toValue: () => toDocument().tags?.map(tag => tag.parent),
+    expected: [undefined, 'pets']
+  },
+  {
+    field: 'tag kind',
+    location: 'TEST:tags:kind',
+    toValue: () => toDocument().tags?.map(tag => tag.kind),
+    expected: ['nav', undefined]
+  },
+  {
+    field: 'tag summary',
+    location: 'TEST:tags:summary',
+    toValue: () => toDocument().tags?.map(tag => tag.summary),
+    expected: ['Pets', undefined]
+  },
+  {
+    field: 'server name',
+    location: 'TEST:servers:https%3A//api.example.com:name',
+    toValue: () => toDocument().servers?.map(server => server.name),
+    expected: ['production']
+  },
+  {
+    field: 'discriminator defaultMapping',
+    location: 'TEST:components:schemas:Pet:oneOf:discriminator:defaultMapping',
+    toValue: () => {
+      const pet = Object.entries(toDocument().components?.schemas ?? {}).find(
+        ([refName]) => refName === 'Pet'
+      )?.[1]
+      assert(pet !== undefined && !pet.isRef() && pet.type === 'union')
+      return pet.discriminator?.defaultMapping
+    },
+    expected: '#/components/schemas/Cat'
+  }
+]
+
+for (const { field, location, toValue, expected } of readFields) {
+  Deno.test(`v3-2 pending fields - ${field} is read into the IR`, () => {
+    assertEquals(toValue(), expected)
+    assertEquals(
+      context.issues.filter(issue => issue.location === location),
+      []
+    )
   })
 }
 

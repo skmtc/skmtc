@@ -225,6 +225,22 @@ Deno.test('OasExample', async t => {
       assertEquals(result.value, { id: 123, name: 'Product A' })
     })
 
+    await t.step('should emit the 3.2 dataValue and serializedValue when set', () => {
+      const example = new OasExample({ dataValue: { id: 1 }, serializedValue: '{"id":1}' })
+
+      const result = example.toJsonSchema({ resolve: false })
+
+      assertEquals(result.dataValue, { id: 1 })
+      assertEquals(result.serializedValue, '{"id":1}')
+    })
+
+    await t.step('should leave out dataValue and serializedValue when unset', () => {
+      const result = new OasExample({ value: 42 }).toJsonSchema({ resolve: false })
+
+      assertEquals('dataValue' in result, false)
+      assertEquals('serializedValue' in result, false)
+    })
+
     await t.step('should handle examples with only value', () => {
       const example = new OasExample({ value: 42 })
 

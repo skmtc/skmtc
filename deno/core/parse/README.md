@@ -55,10 +55,12 @@ behaviorally, not by re-coupling the code:
   per-type/leaf parsers, the operation layer, and `parseNullable`. These read
   version-specific encodings, so each tree owns its copy.
 - **Duplicated, but dialect-neutral**: the parser leaves `_helpers/`
-  (`parseEnum`, `parseExample`, `parseDefault`), `_merge-all-of/` and
-  `discriminator/toDiscriminatorV3`. They take already-resolved inputs and
-  never branch on a version, yet each tree holds its own copy, so they now
-  exist in three copies. Moving them to one shared place is deferred.
+  (`parseEnum`, `parseExample`, `parseDefault`) and `_merge-all-of/`. They
+  take already-resolved inputs and never branch on a version, yet each tree
+  holds its own copy, so they now exist in three copies. Moving them to one
+  shared place is deferred. `discriminator/toDiscriminatorV3` was in this
+  list until the v3-2 copy started to read the 3.2 `defaultMapping`; the
+  v3-0 and v3-1 copies are still identical to each other.
 
 > Naming note: function names still carry the historical `V3` suffix (e.g.
 > `toSchemaV3`) inside every tree; the rename to drop it is deferred. In
@@ -123,9 +125,13 @@ holds one case per pending row.
 The `v3-2` security-scheme parser also records unknown keys on a security
 scheme and on its `flows` object; `v3-0` and `v3-1` drop them silently.
 
+`$self` is stored, but reference resolution does not use it: `toRefName`
+keeps only the last segment of a `$ref` and ignores the rest of the URI, so
+the 3.2 base-URI rules (Appendix F of the spec) are not implemented.
+
 | 3.2 field | v3.2 (`v3-2`) | Status |
 |---|---|---|
-| Document `$self` | skipped-field warning | ⏳ pending |
+| Document `$self` | `OasDocument.$self`, stored as a string only (see below) | ✅ done |
 | Path item `query` operation | skipped-field warning | ⏳ pending |
 | Path item `additionalOperations` | skipped-field warning | ⏳ pending |
 | Parameter `in: querystring` | fails the parameter's `v.parse`; on an operation the operation is dropped, on a path item or webhook path item the whole path is dropped (`INVALID_OPERATION`) | ⏳ pending |
@@ -133,11 +139,11 @@ scheme and on its `flows` object; `v3-0` and `v3-1` drop them silently.
 | Media type `itemSchema` | skipped-field warning | ⏳ pending |
 | Media type `prefixEncoding` / `itemEncoding` | skipped-field warning | ⏳ pending |
 | `components.mediaTypes` | skipped-field warning | ⏳ pending |
-| Response `summary` | skipped-field warning | ⏳ pending |
-| Example `dataValue` / `serializedValue` | skipped-field warning | ⏳ pending |
-| Tag `parent` / `kind` / `summary` | skipped-field warning | ⏳ pending |
-| Server `name` | skipped-field warning | ⏳ pending |
-| Discriminator `defaultMapping` | skipped-field warning | ⏳ pending |
+| Response `summary` | `OasResponse.summary` | ✅ done |
+| Example `dataValue` / `serializedValue` | `OasExample.dataValue` / `serializedValue`. `value` cannot sit next to any other value field, and `serializedValue` cannot sit next to `externalValue`; the field that loses is dropped with `INVALID_EXAMPLE`, by precedence `dataValue`, `value`, `serializedValue`, `externalValue` | ✅ done |
+| Tag `parent` / `kind` / `summary` | `OasTag.parent` / `kind` / `summary`. A `parent` that is not a tag, or that leads back to the tag, is dropped with `INVALID_TAG_PARENT` | ✅ done |
+| Server `name` | `OasServer.name` | ✅ done |
+| Discriminator `defaultMapping` | `OasDiscriminator.defaultMapping` | ✅ done |
 | Security scheme `deprecated` / `oauth2MetadataUrl` | skipped-field warning | ⏳ pending |
 | OAuth flow `deviceAuthorization` | skipped-field warning | ⏳ pending |
 
@@ -174,5 +180,5 @@ silently in the operation parser.
   `patternProperties`)** are not mapped — a deliberate non-goal (rarely
   codegen-able); they fall through as skipped fields.
 - **Document metadata (`info.summary`, `license.identifier`,
-  `jsonSchemaDialect`, `$self`)** is not mapped to the IR; surfaced as
-  skipped-field warnings. Minor.
+  `jsonSchemaDialect`)** is not mapped to the IR; surfaced as skipped-field
+  warnings. Minor. (The 3.2 `$self` is mapped; see the 3.2 table.)

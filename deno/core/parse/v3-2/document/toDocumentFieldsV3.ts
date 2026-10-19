@@ -21,6 +21,8 @@ export type ToDocumentV3Args = {
   documentObject: Omit<OpenAPIV3.Document, 'paths'> & {
     paths?: OpenAPIV3.PathsObject
     webhooks?: WebhooksObject
+    /** The document's own URI (3.2) */
+    $self?: string
   }
   stackTrail: StackTrail
   context: ParseContextType
@@ -33,6 +35,7 @@ export const toDocumentFieldsV3 = ({
 }: ToDocumentV3Args): DocumentFields => {
   const {
     openapi,
+    $self,
     info,
     paths,
     components,
@@ -54,6 +57,7 @@ export const toDocumentFieldsV3 = ({
 
   return {
     openapi,
+    $self,
     info: stackTrail.trace('info', st => toInfoV3({ info, stackTrail: st, context })),
     servers: stackTrail.trace('servers', st =>
       toOptionalServersV3({ servers, stackTrail: st, context })

@@ -4,8 +4,12 @@ import { OasServer } from '@/oas/server/Server.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toOptionalServerVariablesV3 } from '../serverVariable/toServerVariableV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+
+/** A 3.2 Server Object: the 3.0 shape plus `name`. */
+export type ServerObjectV32 = OpenAPIV3.ServerObject & { name?: string }
+
 export type ToServersV3Args = {
-  servers: OpenAPIV3.ServerObject[]
+  servers: ServerObjectV32[]
   stackTrail: StackTrail
   context: ParseContextType
 }
@@ -19,7 +23,7 @@ export const toServersV3 = ({ servers, stackTrail, context }: ToServersV3Args): 
 }
 
 export type ToOptionalServersV3Args = {
-  servers: OpenAPIV3.ServerObject[] | undefined
+  servers: ServerObjectV32[] | undefined
   stackTrail: StackTrail
   context: ParseContextType
 }
@@ -37,13 +41,13 @@ export const toOptionalServersV3 = ({
 }
 
 export type ToServerV3Args = {
-  server: OpenAPIV3.ServerObject
+  server: ServerObjectV32
   stackTrail: StackTrail
   context: ParseContextType
 }
 
 export const toServerV3 = ({ server, stackTrail, context }: ToServerV3Args): OasServer => {
-  const { description, url, variables, ...skipped } = server
+  const { description, name, url, variables, ...skipped } = server
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -55,6 +59,7 @@ export const toServerV3 = ({ server, stackTrail, context }: ToServerV3Args): Oas
 
   return new OasServer({
     description,
+    name,
     url,
     variables: toOptionalServerVariablesV3({ serverVariables: variables, stackTrail, context }),
     extensionFields

@@ -211,6 +211,17 @@ constraint.
 **Remediation:** Fix the offending enum member in the OpenAPI source
 so every member matches the schema's type.
 
+### `INVALID_TAG_PARENT` — warning
+
+**When:** The `parent` of an OpenAPI 3.2 tag names a tag that is not
+in the top-level `tags` list. Or, the chain of `parent` values from
+the tag goes back to the same tag (a cycle). SKMTC removes `parent`
+from the tag and keeps all other fields. In a cycle, each tag on the
+cycle loses its `parent`.
+
+**Remediation:** Point `parent` at the `name` of another tag in the
+top-level `tags` list, and make sure no tag is its own ancestor.
+
 ## GraphQL parse-issue types
 
 ### `INVALID_TYPE_DEFINITION` — error

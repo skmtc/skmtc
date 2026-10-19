@@ -4,8 +4,11 @@ import { OasDiscriminator } from '@/oas/discriminator/Discriminator.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
+/** A 3.2 Discriminator Object: the 3.0 shape plus `defaultMapping`. */
+export type DiscriminatorObjectV32 = OpenAPIV3.DiscriminatorObject & { defaultMapping?: string }
+
 export type ToDiscriminatorV3Args = {
-  discriminator: OpenAPIV3.DiscriminatorObject | undefined
+  discriminator: DiscriminatorObjectV32 | undefined
   stackTrail: StackTrail
   context: ParseContextType
 }
@@ -19,7 +22,7 @@ export const toDiscriminatorV3 = ({
     return undefined
   }
 
-  const { propertyName, mapping, ...skipped } = discriminator
+  const { propertyName, mapping, defaultMapping, ...skipped } = discriminator
 
   if (!isEmpty(skipped)) {
     context.logSkippedFields({
@@ -32,6 +35,7 @@ export const toDiscriminatorV3 = ({
 
   return new OasDiscriminator({
     propertyName,
-    mapping
+    mapping,
+    defaultMapping
   })
 }

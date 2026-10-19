@@ -4,6 +4,8 @@ import { toServerV3, toServersV3, toOptionalServersV3 } from './toServerV3.ts'
 import { assertEquals } from '@std/assert/equals'
 import type { OasServer } from '@/oas/server/Server.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
+import { ParseContext } from '@/context/ParseContext.ts'
+import * as log from '@std/log'
 
 Deno.test('toServerV3 - basic server with only url', () => {
   const stackTrail = new StackTrail(['TEST'])
@@ -190,4 +192,23 @@ Deno.test('toOptionalServersV3 - converts when input is provided', () => {
   assertEquals(result !== undefined, true)
   assertEquals(result?.length, 1)
   assertEquals(result?.[0].url, 'https://api.example.com')
+})
+
+Deno.test('toServerV3 - reads the 3.2 name', () => {
+  const context = new ParseContext({
+    input: {
+      type: 'oas',
+      value: { openapi: '3.2.0', info: { title: 'Test', version: '1.0.0' }, paths: {} }
+    },
+    logger: new log.Logger('test', 'ERROR'),
+    silent: true
+  })
+  const oasServer = toServerV3({
+    server: { url: 'https://api.example.com', name: 'production' },
+    stackTrail: new StackTrail(['TEST']),
+    context
+  })
+
+  assertEquals(oasServer.name, 'production')
+  assertEquals(context.issues, [])
 })

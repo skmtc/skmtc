@@ -4,6 +4,8 @@ import { toDiscriminatorV3 } from './toDiscriminatorV3.ts'
 import { assertEquals, assertExists } from '@std/assert'
 import { OasDiscriminator } from '@/oas/discriminator/Discriminator.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
+import { ParseContext } from '@/context/ParseContext.ts'
+import * as log from '@std/log'
 
 Deno.test('toDiscriminatorV3', async t => {
   await t.step('input handling', async t => {
@@ -394,4 +396,23 @@ Deno.test('toDiscriminatorV3', async t => {
       assertEquals(result.mapping['rectangle'], '#/components/schemas/Rectangle')
     })
   })
+})
+
+Deno.test('toDiscriminatorV3 - reads the 3.2 defaultMapping', () => {
+  const context = new ParseContext({
+    input: {
+      type: 'oas',
+      value: { openapi: '3.2.0', info: { title: 'Test', version: '1.0.0' }, paths: {} }
+    },
+    logger: new log.Logger('test', 'ERROR'),
+    silent: true
+  })
+  const result = toDiscriminatorV3({
+    discriminator: { propertyName: 'kind', defaultMapping: '#/components/schemas/Cat' },
+    stackTrail: new StackTrail(['TEST']),
+    context
+  })
+
+  assertEquals(result?.defaultMapping, '#/components/schemas/Cat')
+  assertEquals(context.issues, [])
 })

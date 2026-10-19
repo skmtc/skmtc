@@ -179,6 +179,20 @@ Deno.test('OasServer - toJsonSchema() with description', () => {
   })
 })
 
+Deno.test('OasServer - toJsonSchema() emits the 3.2 name when set', () => {
+  const server = new OasServer({
+    url: 'https://api.example.com',
+    name: 'production'
+  })
+
+  assertEquals(server.toJsonSchema({ resolve: false }), {
+    description: undefined,
+    name: 'production',
+    url: 'https://api.example.com',
+    variables: undefined
+  })
+})
+
 Deno.test('OasServer - toJsonSchema() with variables', () => {
   const envVar = createServerVariable('api', ['api', 'staging'])
   const server = new OasServer({

@@ -12,6 +12,8 @@ import type { ParseContextType } from '@/context/parseTypes.ts'
  * Constructor fields for {@link OasResponse}.
  */
 export type ResponseFields = {
+  /** A short summary of the response (OpenAPI 3.2) */
+  summary?: string | undefined
   /** A description of the response */
   description?: string | undefined
   /** Response headers that can be sent */
@@ -209,6 +211,7 @@ export type ResponseFields = {
  */
 export class OasResponse extends OasBase {
   oasType: 'response' = 'response'
+  summary: string | undefined
   description: string | undefined
   headers: Record<string, OasHeader | OasRef<'header'>> | undefined
   links: Record<string, OasLink | OasRef<'link'>> | undefined
@@ -216,6 +219,7 @@ export class OasResponse extends OasBase {
   extensionFields: Record<string, unknown> | undefined
   constructor(fields: ResponseFields, context?: ParseContextType) {
     super(context)
+    this.summary = fields.summary
     this.description = fields.description
     this.headers = fields.headers
     this.links = fields.links
@@ -239,8 +243,9 @@ export class OasResponse extends OasBase {
     return this.content?.[mediaType]?.schema
   }
 
-  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ResponseObject {
+  toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ResponseObject & { summary?: string } {
     return {
+      ...(this.summary !== undefined ? { summary: this.summary } : {}),
       description: this.description ?? '',
       headers: this.headers
         ? Object.fromEntries(
