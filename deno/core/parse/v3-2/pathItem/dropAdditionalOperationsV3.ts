@@ -21,7 +21,9 @@ export const dropAdditionalOperationsV3 = ({
   stackTrail,
   context
 }: DropAdditionalOperationsV3Args): OpenAPIV3.PathItemObject => {
-  if (!('additionalOperations' in pathItem)) {
+  // `Object.hasOwn` is false for a primitive path item value, which the
+  // path item parser then reports as a skipped field.
+  if (!Object.hasOwn(pathItem, 'additionalOperations') || !('additionalOperations' in pathItem)) {
     return pathItem
   }
 

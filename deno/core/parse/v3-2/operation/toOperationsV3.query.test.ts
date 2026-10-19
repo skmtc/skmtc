@@ -103,6 +103,26 @@ Deno.test('v3-2 toOperationsV3 - an additionalOperations value that is not an ob
   )
 })
 
+Deno.test('v3-2 toOperationsV3 - a primitive path item does not stop the other paths', () => {
+  const { issues, document } = parse({
+    paths: { '/a': 'oops', '/b': { get: ok } },
+    webhooks: { a: 'oops', b: { post: ok } }
+  })
+
+  assertEquals(
+    issues.filter(({ level }) => level === 'error'),
+    []
+  )
+  assertEquals(
+    document.operations.map(({ method, path }) => `${method} ${path}`),
+    ['get /b']
+  )
+  assertEquals(
+    document.webhooks.map(({ method, name }) => `${method} ${name}`),
+    ['post b']
+  )
+})
+
 Deno.test('v3-2 toOperationsV3 - two querystring parameters are a warning', () => {
   const { issues, document } = parse({
     paths: {
