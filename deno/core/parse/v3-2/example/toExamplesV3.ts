@@ -7,6 +7,13 @@ import type { ExampleFields } from '@/oas/example/Example.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+
+/** A 3.2 Example Object: the 3.0 shape plus `dataValue` and `serializedValue`. */
+export type ExampleObjectV32 = OpenAPIV3.ExampleObject & {
+  dataValue?: unknown
+  serializedValue?: string
+}
+
 export type ToExampleSimpleV3Args = {
   /**
    * The example value itself. The singular `example` field of a media type,
@@ -47,7 +54,7 @@ export type ToExamplesV3Args = {
   /** The singular `example` field — a literal value, not an Example Object */
   example: unknown
   /** Collection of named examples (OpenAPI v3 format) */
-  examples: Record<string, OpenAPIV3.ExampleObject | OpenAPIV3.ReferenceObject> | undefined
+  examples: Record<string, ExampleObjectV32 | OpenAPIV3.ReferenceObject> | undefined
   /** Key name for the example context */
   exampleKey: string
   /** The stack trail for tracing */
@@ -124,7 +131,7 @@ export const toExamplesV3 = ({
 }
 
 export type ToExampleV3Args = {
-  example: OpenAPIV3.ExampleObject | OpenAPIV3.ReferenceObject
+  example: ExampleObjectV32 | OpenAPIV3.ReferenceObject
   stackTrail: StackTrail
   context: ParseContextType
 }
@@ -151,7 +158,8 @@ export const toExampleV3 = ({
   // `externalValue` is the alternative to `value` — an example too large or too
   // awkward to inline. Leaving it in `skipped` both loses it and reports a
   // standard field as an unexpected property.
-  const { summary, description, value, externalValue, ...skipped } = example
+  const { summary, description, value, dataValue, serializedValue, externalValue, ...skipped } =
+    example
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -161,11 +169,77 @@ export const toExampleV3 = ({
     parentType: 'example'
   })
 
+  const kept = toKeptValueFields({
+    present: { dataValue, value, serializedValue, externalValue },
+    example,
+    stackTrail,
+    context
+  })
+
   return new OasExample({
     summary,
     description,
-    value,
-    externalValue,
+    value: kept.has('value') ? value : undefined,
+    dataValue: kept.has('dataValue') ? dataValue : undefined,
+    serializedValue: kept.has('serializedValue') ? serializedValue : undefined,
+    externalValue: kept.has('externalValue') ? externalValue : undefined,
     extensionFields
   })
+}
+
+type ValueField = 'dataValue' | 'value' | 'serializedValue' | 'externalValue'
+
+/** The value fields in the order they are kept when two conflict. */
+const valueFieldPrecedence: ValueField[] = [
+  'dataValue',
+  'value',
+  'serializedValue',
+  'externalValue'
+]
+
+/** The fields the 3.2 spec forbids next to each value field. */
+const valueFieldExclusions: Record<ValueField, ValueField[]> = {
+  dataValue: ['value'],
+  value: ['dataValue', 'serializedValue', 'externalValue'],
+  serializedValue: ['value', 'externalValue'],
+  externalValue: ['value', 'serializedValue']
+}
+
+type ToKeptValueFieldsArgs = {
+  present: Record<ValueField, unknown>
+  example: ExampleObjectV32
+  stackTrail: StackTrail
+  context: ParseContextType
+}
+
+/**
+ * Picks the value fields to keep. A field that conflicts with one already
+ * kept is logged as `INVALID_EXAMPLE` and dropped.
+ */
+const toKeptValueFields = ({
+  present,
+  example,
+  stackTrail,
+  context
+}: ToKeptValueFieldsArgs): Set<ValueField> => {
+  return valueFieldPrecedence
+    .filter(field => present[field] !== undefined)
+    .reduce((kept, field) => {
+      const conflict = valueFieldExclusions[field].find(other => kept.has(other))
+
+      if (conflict === undefined) {
+        return new Set([...kept, field])
+      }
+
+      context.logIssue({
+        key: field,
+        level: 'warning',
+        message: `Example has both '${conflict}' and '${field}', which are mutually exclusive; keeping '${conflict}'`,
+        parent: example,
+        stackTrail,
+        type: 'INVALID_EXAMPLE'
+      })
+
+      return kept
+    }, new Set<ValueField>())
 }

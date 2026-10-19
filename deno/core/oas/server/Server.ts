@@ -10,6 +10,8 @@ import type { OasServerVariable } from '../serverVariable/ServerVariable.ts'
  */
 export type ServerFields = {
   description?: string | undefined
+  /** Name that identifies the server (OpenAPI 3.2) */
+  name?: string | undefined
   url: string
   variables?: Record<string, OasServerVariable> | undefined
   extensionFields?: Record<string, unknown>
@@ -55,6 +57,8 @@ export class OasServer {
   oasType: 'server' = 'server'
   /** Human-readable description of the server */
   description: string | undefined
+  /** Name that identifies the server (OpenAPI 3.2) */
+  name: string | undefined
   /** Server URL with optional variable templating */
   url: string
   /** Variable definitions for URL templating */
@@ -68,6 +72,7 @@ export class OasServer {
    */
   constructor(fields: ServerFields) {
     this.description = fields.description
+    this.name = fields.name
     this.url = fields.url
     this.variables = fields.variables
     this.extensionFields = fields.extensionFields
@@ -104,11 +109,12 @@ export class OasServer {
    * Converts this OAS server to an OpenAPI v3 JSON schema representation.
    *
    * @param _options - Conversion options (currently unused for server objects)
-   * @returns OpenAPI v3 server object with URL, description, and variables
+   * @returns OpenAPI v3 server object with URL, description, variables and, when set, name
    */
-  toJsonSchema(_options: ToJsonSchemaOptions): OpenAPIV3.ServerObject {
+  toJsonSchema(_options: ToJsonSchemaOptions): OpenAPIV3.ServerObject & { name?: string } {
     return {
       description: this.description,
+      ...(this.name !== undefined ? { name: this.name } : {}),
       url: this.url,
       variables: this.variables
     }

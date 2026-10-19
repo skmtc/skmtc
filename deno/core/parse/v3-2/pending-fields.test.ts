@@ -4,11 +4,10 @@ import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { toDocumentObject } from '@/test/toDocumentObject.ts'
 
-// Each 3.2-only field the v3-2 tree does not read into the IR yet must
-// surface as a skipped-field warning rather than crash the parse. One row
-// per pending field in the 3.2 dialect table of `core/parse/README.md`; a
-// follow-up that reads a field into the IR replaces its row with a positive
-// assertion below.
+// A 3.2-only field the v3-2 tree does not read into the IR yet must surface
+// as a skipped-field warning rather than crash the parse. One row per field
+// in the 3.2 dialect table of `core/parse/README.md`; a follow-up that reads
+// a field into the IR moves its row from `pendingFields` to `readFields`.
 
 const documentObject = toDocumentObject(
   {
@@ -102,28 +101,8 @@ const documentObject = toDocumentObject(
 )
 
 const pendingFields: Array<{ field: string; location: string }> = [
-  { field: '$self', location: 'TEST:$self' },
   { field: 'path item query', location: 'TEST:paths:/pets:query' },
-  { field: 'additionalOperations', location: 'TEST:paths:/pets:additionalOperations' },
-  { field: 'response summary', location: 'TEST:paths:/pets:get:responses:200:summary' },
-  {
-    field: 'example dataValue',
-    location:
-      'TEST:paths:/pets:get:responses:200:content:application/jsonl:examples:examples:one:dataValue'
-  },
-  {
-    field: 'example serializedValue',
-    location:
-      'TEST:paths:/pets:get:responses:200:content:application/jsonl:examples:examples:one:serializedValue'
-  },
-  { field: 'tag parent', location: 'TEST:tags:parent' },
-  { field: 'tag kind', location: 'TEST:tags:kind' },
-  { field: 'tag summary', location: 'TEST:tags:summary' },
-  { field: 'server name', location: 'TEST:servers:https%3A//api.example.com:name' },
-  {
-    field: 'discriminator defaultMapping',
-    location: 'TEST:components:schemas:Pet:oneOf:discriminator:defaultMapping'
-  }
+  { field: 'additionalOperations', location: 'TEST:paths:/pets:additionalOperations' }
 ]
 
 const context = new ParseContext({
@@ -141,100 +120,170 @@ for (const { field, location } of pendingFields) {
   })
 }
 
-const issuesAt = (location: string) =>
-  context.issues.filter(
-    issue => issue.location === location || issue.location.startsWith(`${location}:`)
-  )
-
-const toPetsContent = () => {
+const toDocument = () => {
   assert(result.type === 'oas')
-  const operation = result.value.operations.find(({ path }) => path === '/pets')
-  const response = operation?.responses['200']?.resolve()
-  assert(response?.content)
-  return response.content
+  return result.value
 }
 
-const toSecurityScheme = (name: string) => {
-  assert(result.type === 'oas')
-  return result.value.components?.securitySchemes?.[name]?.resolve()
+const toPetsResponse = () => {
+  const response = toDocument().operations.find(
+    operation => operation.path === '/pets' && operation.method === 'get'
+  )?.responses['200']
+  assert(response !== undefined && !response.isRef())
+  return response
+}
+
+const toPetsExample = () => {
+  const example = toPetsResponse().content?.['application/jsonl']?.examples?.one
+  assert(example !== undefined && !example.isRef())
+  return example
+}
+
+const toOAuth2Scheme = () => {
+  const scheme = toDocument().components?.securitySchemes?.oauth?.resolve()
+  assert(scheme?.type === 'oauth2')
+  return scheme
 }
 
 const petsContentLocation = 'TEST:paths:/pets:get:responses:200:content'
 
-const resolvedFields: Array<{ field: string; location: string; assertIr: () => void }> = [
+const readFields: Array<{
+  field: string
+  location: string
+  toValue: () => unknown
+  expected: unknown
+}> = [
+  {
+    field: '$self',
+    location: 'TEST:$self',
+    toValue: () => toDocument().$self,
+    expected: 'https://example.com/openapi.json'
+  },
+  {
+    field: 'response summary',
+    location: 'TEST:paths:/pets:get:responses:200:summary',
+    toValue: () => toPetsResponse().summary,
+    expected: 'A page of pets'
+  },
+  {
+    field: 'example dataValue',
+    location:
+      'TEST:paths:/pets:get:responses:200:content:application/jsonl:examples:examples:one:dataValue',
+    toValue: () => toPetsExample().dataValue,
+    expected: 'a'
+  },
+  {
+    field: 'example serializedValue',
+    location:
+      'TEST:paths:/pets:get:responses:200:content:application/jsonl:examples:examples:one:serializedValue',
+    toValue: () => toPetsExample().serializedValue,
+    expected: '"a"'
+  },
+  {
+    field: 'tag parent',
+    location: 'TEST:tags:parent',
+    toValue: () => toDocument().tags?.map(tag => tag.parent),
+    expected: [undefined, 'pets']
+  },
+  {
+    field: 'tag kind',
+    location: 'TEST:tags:kind',
+    toValue: () => toDocument().tags?.map(tag => tag.kind),
+    expected: ['nav', undefined]
+  },
+  {
+    field: 'tag summary',
+    location: 'TEST:tags:summary',
+    toValue: () => toDocument().tags?.map(tag => tag.summary),
+    expected: ['Pets', undefined]
+  },
+  {
+    field: 'server name',
+    location: 'TEST:servers:https%3A//api.example.com:name',
+    toValue: () => toDocument().servers?.map(server => server.name),
+    expected: ['production']
+  },
+  {
+    field: 'discriminator defaultMapping',
+    location: 'TEST:components:schemas:Pet:oneOf:discriminator:defaultMapping',
+    toValue: () => {
+      const pet = Object.entries(toDocument().components?.schemas ?? {}).find(
+        ([refName]) => refName === 'Pet'
+      )?.[1]
+      assert(pet !== undefined && !pet.isRef() && pet.type === 'union')
+      return pet.discriminator?.defaultMapping
+    },
+    expected: '#/components/schemas/Cat'
+  },
   {
     field: 'media type itemSchema',
     location: `${petsContentLocation}:text/event-stream:itemSchema`,
-    assertIr: () => {
-      assertEquals(toPetsContent()['text/event-stream']?.itemSchema?.type, 'string')
-    }
+    toValue: () => toPetsResponse().content?.['text/event-stream']?.itemSchema?.type,
+    expected: 'string'
   },
   {
     field: 'media type prefixEncoding',
     location: `${petsContentLocation}:multipart/mixed:prefixEncoding`,
-    assertIr: () => {
-      assertEquals(toPetsContent()['multipart/mixed']?.prefixEncoding, [
-        { contentType: 'text/plain' }
-      ])
-    }
+    toValue: () => toPetsResponse().content?.['multipart/mixed']?.prefixEncoding,
+    expected: [{ contentType: 'text/plain' }]
   },
   {
     field: 'media type itemEncoding',
     location: `${petsContentLocation}:multipart/mixed:itemEncoding`,
-    assertIr: () => {
-      assertEquals(toPetsContent()['multipart/mixed']?.itemEncoding, { contentType: 'text/plain' })
-    }
+    toValue: () => toPetsResponse().content?.['multipart/mixed']?.itemEncoding,
+    expected: { contentType: 'text/plain' }
   },
   {
+    // Not stored on the components; resolved into the content entry that
+    // references it.
     field: 'components.mediaTypes',
     location: 'TEST:components:mediaTypes',
-    assertIr: () => {
-      // Not stored on the components; resolved into the content entry that
-      // references it.
-      assertEquals(toPetsContent()['application/x-ndjson']?.itemSchema?.type, 'string')
-      assertEquals(issuesAt(`${petsContentLocation}:application/x-ndjson`), [])
-    }
+    toValue: () => toPetsResponse().content?.['application/x-ndjson']?.itemSchema?.type,
+    expected: 'string'
   },
   {
     field: 'security scheme deprecated',
     location: 'TEST:components:securitySchemes:legacyKey:deprecated',
-    assertIr: () => {
-      assertEquals(toSecurityScheme('legacyKey')?.deprecated, true)
-    }
+    toValue: () => toDocument().components?.securitySchemes?.legacyKey?.resolve().deprecated,
+    expected: true
   },
   {
     field: 'security scheme oauth2MetadataUrl',
     location: 'TEST:components:securitySchemes:oauth:oauth2MetadataUrl',
-    assertIr: () => {
-      const scheme = toSecurityScheme('oauth')
-      assert(scheme?.type === 'oauth2')
-      assertEquals(
-        scheme.oauth2MetadataUrl,
-        'https://example.com/.well-known/oauth-authorization-server'
-      )
-    }
+    toValue: () => toOAuth2Scheme().oauth2MetadataUrl,
+    expected: 'https://example.com/.well-known/oauth-authorization-server'
   },
   {
     field: 'OAuth flow deviceAuthorization',
     location: 'TEST:components:securitySchemes:oauth:flows:deviceAuthorization',
-    assertIr: () => {
-      const scheme = toSecurityScheme('oauth')
-      assert(scheme?.type === 'oauth2')
-      assertEquals(scheme.flows.deviceAuthorization, {
-        deviceAuthorizationUrl: 'https://example.com/device',
-        tokenUrl: 'https://example.com/token',
-        scopes: {}
-      })
+    toValue: () => toOAuth2Scheme().flows.deviceAuthorization,
+    expected: {
+      deviceAuthorizationUrl: 'https://example.com/device',
+      tokenUrl: 'https://example.com/token',
+      scopes: {}
     }
   }
 ]
 
-for (const { field, location, assertIr } of resolvedFields) {
-  Deno.test(`v3-2 pending fields - ${field} is on the IR with no warning`, () => {
-    assertIr()
-    assertEquals(issuesAt(location), [])
+for (const { field, location, toValue, expected } of readFields) {
+  Deno.test(`v3-2 pending fields - ${field} is read into the IR`, () => {
+    assertEquals(toValue(), expected)
+    assertEquals(
+      context.issues.filter(issue => issue.location === location),
+      []
+    )
   })
 }
+
+Deno.test('v3-2 pending fields - a content $ref into components.mediaTypes leaves no issue at its entry', () => {
+  const entryLocation = `${petsContentLocation}:application/x-ndjson`
+  assertEquals(
+    context.issues.filter(
+      issue => issue.location === entryLocation || issue.location.startsWith(`${entryLocation}:`)
+    ),
+    []
+  )
+})
 
 Deno.test('v3-2 pending fields - only querystring and cookie style drop an operation', () => {
   // Known exceptions, left for the operations follow-up: `in: querystring`

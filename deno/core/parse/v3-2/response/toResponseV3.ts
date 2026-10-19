@@ -11,8 +11,14 @@ import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecif
 import { tryParseAt } from '@/context/tryParseAt.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
+/** A 3.2 Response Object: the 3.0 shape plus `summary`. */
+export type ResponseObjectV32 = OpenAPIV3.ResponseObject & { summary?: string }
+
+/** A 3.2 Responses Object: status code to a 3.2 Response Object or a reference. */
+export type ResponsesObjectV32 = Record<string, OpenAPIV3.ReferenceObject | ResponseObjectV32>
+
 export type ToResponsesV3Args = {
-  responses: OpenAPIV3.ResponsesObject
+  responses: ResponsesObjectV32
   stackTrail: StackTrail
   context: ParseContextType
 }
@@ -42,7 +48,7 @@ export const toResponsesV3 = ({
 }
 
 export type ToOptionalResponsesV3Args = {
-  responses: OpenAPIV3.ResponsesObject | undefined
+  responses: ResponsesObjectV32 | undefined
   stackTrail: StackTrail
   context: ParseContextType
 }
@@ -60,7 +66,7 @@ export const toOptionalResponsesV3 = ({
 }
 
 export type ToResponseV3Args = {
-  response: OpenAPIV3.ReferenceObject | OpenAPIV3.ResponseObject
+  response: OpenAPIV3.ReferenceObject | ResponseObjectV32
   stackTrail: StackTrail
   context: ParseContextType
 }
@@ -74,7 +80,7 @@ export const toResponseV3 = ({
     return toRefV31({ ref: response, refType: 'response', stackTrail, context })
   }
 
-  const { description, headers, links, content, ...skipped } = response
+  const { summary, description, headers, links, content, ...skipped } = response
 
   const extensionFields = toSpecificationExtensionsV3({
     skipped,
@@ -97,6 +103,7 @@ export const toResponseV3 = ({
     () =>
       new OasResponse(
         {
+          summary,
           description,
           headers: parsedHeaders,
           links: parsedLinks,

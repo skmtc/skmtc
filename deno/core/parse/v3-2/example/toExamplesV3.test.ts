@@ -1,7 +1,9 @@
 import { mockParseContext } from '@/test/mockParseContext.ts'
-import { toExamplesV3 } from './toExamplesV3.ts'
+import { toExampleV3, toExamplesV3 } from './toExamplesV3.ts'
 import { assertEquals } from '@std/assert/equals'
+import { assert } from '@std/assert'
 import { OasExample } from '@/oas/example/Example.ts'
+import type { OasRef } from '@/oas/ref/Ref.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { ParseContext } from '@/context/ParseContext.ts'
 import * as log from '@std/log'
@@ -187,4 +189,156 @@ Deno.test('toExamplesV3 - examples collection', () => {
   assertEquals(result, {
     basic: new OasExample({ value: 'testings' })
   })
+})
+
+const toContext = () =>
+  new ParseContext({
+    input: {
+      type: 'oas',
+      value: { openapi: '3.2.0', info: { title: 'Test', version: '1.0.0' }, paths: {} }
+    },
+    logger: new log.Logger('test', 'ERROR'),
+    silent: true
+  })
+
+const toValueFields = (example: OasExample | OasRef<'example'>) => {
+  assert(!example.isRef())
+  const { value, dataValue, serializedValue, externalValue } = example
+  return { value, dataValue, serializedValue, externalValue }
+}
+
+const toInvalidExampleIssues = (context: ParseContext) =>
+  context.issues
+    .filter(issue => issue.type === 'INVALID_EXAMPLE')
+    .map(({ level, location, message }) => ({ level, location, message }))
+
+Deno.test('toExampleV3 - reads the 3.2 dataValue and serializedValue', () => {
+  const context = toContext()
+  const result = toExampleV3({
+    example: { summary: 'A pet', dataValue: { id: 1 }, serializedValue: '{"id":1}' },
+    stackTrail: new StackTrail(['TEST']),
+    context
+  })
+
+  assertEquals(toValueFields(result), {
+    value: undefined,
+    dataValue: { id: 1 },
+    serializedValue: '{"id":1}',
+    externalValue: undefined
+  })
+  assertEquals(context.issues, [])
+})
+
+Deno.test('toExampleV3 - dataValue may sit next to externalValue', () => {
+  const context = toContext()
+  const result = toExampleV3({
+    example: { dataValue: 'a', externalValue: 'https://example.com/a.txt' },
+    stackTrail: new StackTrail(['TEST']),
+    context
+  })
+
+  assertEquals(toValueFields(result), {
+    value: undefined,
+    dataValue: 'a',
+    serializedValue: undefined,
+    externalValue: 'https://example.com/a.txt'
+  })
+  assertEquals(context.issues, [])
+})
+
+Deno.test('toExampleV3 - dataValue and value log INVALID_EXAMPLE and keep dataValue', () => {
+  const context = toContext()
+  const result = toExampleV3({
+    example: { dataValue: 'data', value: 'value' },
+    stackTrail: new StackTrail(['TEST']),
+    context
+  })
+
+  assertEquals(toValueFields(result), {
+    value: undefined,
+    dataValue: 'data',
+    serializedValue: undefined,
+    externalValue: undefined
+  })
+  assertEquals(toInvalidExampleIssues(context), [
+    {
+      level: 'warning',
+      location: 'TEST:value',
+      message:
+        "Example has both 'dataValue' and 'value', which are mutually exclusive; keeping 'dataValue'"
+    }
+  ])
+})
+
+Deno.test('toExampleV3 - externalValue next to value or serializedValue is dropped', () => {
+  const context = toContext()
+  const withValue = toExampleV3({
+    example: { value: 'value', externalValue: 'https://example.com/a.txt' },
+    stackTrail: new StackTrail(['VALUE']),
+    context
+  })
+  const withSerializedValue = toExampleV3({
+    example: { serializedValue: 'a', externalValue: 'https://example.com/a.txt' },
+    stackTrail: new StackTrail(['SERIALIZED']),
+    context
+  })
+
+  assertEquals(toValueFields(withValue), {
+    value: 'value',
+    dataValue: undefined,
+    serializedValue: undefined,
+    externalValue: undefined
+  })
+  assertEquals(toValueFields(withSerializedValue), {
+    value: undefined,
+    dataValue: undefined,
+    serializedValue: 'a',
+    externalValue: undefined
+  })
+  assertEquals(
+    toInvalidExampleIssues(context).map(({ location }) => location),
+    ['VALUE:externalValue', 'SERIALIZED:externalValue']
+  )
+})
+
+Deno.test('toExampleV3 - serializedValue next to value is dropped', () => {
+  const context = toContext()
+  const result = toExampleV3({
+    example: { value: 'value', serializedValue: '"value"' },
+    stackTrail: new StackTrail(['TEST']),
+    context
+  })
+
+  assertEquals(toValueFields(result), {
+    value: 'value',
+    dataValue: undefined,
+    serializedValue: undefined,
+    externalValue: undefined
+  })
+  assertEquals(
+    toInvalidExampleIssues(context).map(({ location }) => location),
+    ['TEST:serializedValue']
+  )
+})
+
+Deno.test('toExampleV3 - a dropped value does not block the fields it conflicts with', () => {
+  const context = toContext()
+  // `value` loses to `dataValue`, so `serializedValue` has nothing to conflict
+  // with and stays.
+  const result = toExampleV3({
+    example: { dataValue: 'a', value: 'a', serializedValue: '"a"' },
+    stackTrail: new StackTrail(['TEST']),
+    context
+  })
+
+  assertEquals(toValueFields(result), {
+    value: undefined,
+    dataValue: 'a',
+    serializedValue: '"a"',
+    externalValue: undefined
+  })
+  assertEquals(
+    toInvalidExampleIssues(context).map(({ location }) => location),
+    ['TEST:value']
+  )
 })

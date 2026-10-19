@@ -4,6 +4,8 @@ import { toDocumentFieldsV3 } from './toDocumentFieldsV3.ts'
 import { assertEquals } from '@std/assert/equals'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
+import { ParseContext } from '@/context/ParseContext.ts'
+import * as log from '@std/log'
 Deno.test('toDocumentFieldsV3 - basic document fields', () => {
   const documentObject: OpenAPIV3.Document = {
     openapi: '3.0.0',
@@ -109,4 +111,28 @@ Deno.test('toDocumentFieldsV3 - a webhooks-only document with no `paths` is vali
   const webhooks = documentFields.webhooks ?? []
   assertEquals(webhooks.length, 1)
   assertEquals(webhooks[0].name, 'newPet')
+})
+
+Deno.test('toDocumentFieldsV3 - reads the 3.2 $self', () => {
+  const context = new ParseContext({
+    input: {
+      type: 'oas',
+      value: { openapi: '3.2.0', info: { title: 'Test', version: '1.0.0' }, paths: {} }
+    },
+    logger: new log.Logger('test', 'ERROR'),
+    silent: true
+  })
+  const documentFields = toDocumentFieldsV3({
+    documentObject: {
+      openapi: '3.2.0',
+      $self: 'https://example.com/openapi.json',
+      info: { title: 'Test API', version: '1.0.0' },
+      paths: {}
+    },
+    stackTrail: new StackTrail(['TEST']),
+    context
+  })
+
+  assertEquals(documentFields.$self, 'https://example.com/openapi.json')
+  assertEquals(context.issues, [])
 })

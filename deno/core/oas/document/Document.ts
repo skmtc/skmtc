@@ -21,6 +21,11 @@ import type { OasExternalDocs } from '@/oas/externalDocs/ExternalDocs.ts'
 export type DocumentFields = {
   /** OpenAPI specification version (e.g., '3.0.0', '3.1.0') */
   openapi: string
+  /**
+   * The document's own URI (OpenAPI 3.2 `$self`). Stored only: reference
+   * resolution does not use it.
+   */
+  $self?: string | undefined
   /** API metadata including title, version, description */
   info: OasInfo
   /** Array of server objects providing connectivity information */
@@ -283,6 +288,15 @@ export class OasDocument {
     return this.#fields.openapi
   }
 
+  /** The document's own URI (OpenAPI 3.2 `$self`) */
+  get $self(): string | undefined {
+    if (!this.#fields) {
+      throw new Error(`Accessing '$self' before fields are set`)
+    }
+
+    return this.#fields.$self
+  }
+
   /** API metadata */
   get info(): OasInfo {
     if (!this.#fields) {
@@ -386,6 +400,7 @@ export class OasDocument {
   toJSON(): object {
     return {
       openapi: this.openapi,
+      ...(this.$self !== undefined ? { $self: this.$self } : {}),
       info: this.info,
       servers: this.servers,
       operations: this.operations,
