@@ -78,8 +78,10 @@
     "exclude": [
       "anchors/spike-reanchor.ts",
       "anchors/spike-descend.ts",
-      "_schemas/openrouter.yaml",
-      "_schemas/remote-com.json"
+      "_schemas/",
+      "test/",
+      "**/*.test.ts",
+      ".scripts/*.test.ts"
     ]
   }
 }
