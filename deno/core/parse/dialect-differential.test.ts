@@ -8,8 +8,8 @@ import { toSchemaV3 as parseV32 } from '@/parse/v3-2/schema/toSchemasV3.ts'
 
 // Differential corpus — the executable 3.0 ↔ 3.1 ↔ 3.2 equivalence spec. For
 // each construct that the dialects spell differently, a 3.0 document fragment
-// and its 3.1 and 3.2 equivalents must parse to the SAME IR. 3.2 has no
-// schema-layer changes, so its column repeats the 3.1 fragment. This is the
+// and its 3.1 and 3.2 equivalents must parse to the SAME IR. 3.2's
+// schema-layer changes are additive, so its column repeats the 3.1 fragment. This is the
 // drift safety net for the duplicated parser trees: it catches a copy
 // diverging even when every tree still compiles and passes its own tests.
 
