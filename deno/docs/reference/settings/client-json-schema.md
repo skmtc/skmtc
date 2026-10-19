@@ -80,8 +80,9 @@ absent, `generate` requires the schema as a positional argument.
 
 Supported file types:
 
-- JSON OpenAPI (any of v2, v3, v3.1 — auto-converted to v3)
-- YAML OpenAPI (auto-converted from YAML to JSON, then to v3)
+- JSON OpenAPI (Swagger 2, or OpenAPI 3.0.x, 3.1.x or 3.2.x — Swagger 2
+  is converted to 3.0; 3.0, 3.1 and 3.2 keep their version)
+- YAML OpenAPI (the same versions; converted from YAML to JSON first)
 - GraphQL SDL (`.graphql` extension or content-type-detected)
 
 The file type is inferred from the URL extension first, then the

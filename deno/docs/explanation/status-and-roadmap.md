@@ -215,9 +215,6 @@ unreasonably large, remove unused generators.
 These are speculative; treat them as direction-of-travel, not
 commitments.
 
-- **Native OAS 3.1 support** (not just normalized-to-3.0).
-  Currently 3.1 features that don't map to 3.0 are lossily
-  converted; native handling would preserve them.
 - **Improved cascade pruning** — multi-hop dependent removal so
   partial-state surprises don't surface.
 - **Optional internal formatter** — bundling a lightweight

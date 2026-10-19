@@ -40,7 +40,7 @@ Supported source formats:
 - Absolute paths (`/path/to/openapi.json`)
 
 See [source resolution reference](../../reference/settings/source-resolution.md)
-for format detection, OAS-3.1 → 3.0 normalization, and other
+for format detection, Swagger 2 → OAS 3.0 conversion, and other
 details.
 
 ### Verify resolution
