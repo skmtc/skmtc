@@ -508,6 +508,32 @@ Deno.test('All security schemes - oasType is consistently "securityScheme"', () 
   assertEquals(openIdScheme.oasType, 'securityScheme')
 })
 
+Deno.test('toJsonSchema() emits deprecated on http, apiKey and openIdConnect schemes', () => {
+  assertEquals(new OasHttpSecurityScheme({ scheme: 'basic', deprecated: true }).toJsonSchema(), {
+    type: 'http',
+    description: undefined,
+    deprecated: true,
+    scheme: 'basic',
+    bearerFormat: undefined
+  })
+  assertEquals(
+    new OasApiKeySecurityScheme({ name: 'key', in: 'header', deprecated: true }).toJsonSchema(),
+    { type: 'apiKey', deprecated: true, name: 'key', in: 'header' }
+  )
+  assertEquals(
+    new OasOpenIdSecurityScheme({
+      openIdConnectUrl: 'https://example.com/.well-known/openid-configuration',
+      deprecated: false
+    }).toJsonSchema(),
+    {
+      type: 'openIdConnect',
+      description: undefined,
+      deprecated: false,
+      openIdConnectUrl: 'https://example.com/.well-known/openid-configuration'
+    }
+  )
+})
+
 Deno.test('OasOAuth2SecurityScheme - toJsonSchema() with the OpenAPI 3.2 fields', () => {
   const scheme = new OasOAuth2SecurityScheme({
     deprecated: true,

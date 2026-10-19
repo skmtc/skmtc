@@ -62,6 +62,15 @@ export type OpenIdSecuritySchemeFields = {
   openIdConnectUrl: string
 }
 
+/** `OpenAPIV3.HttpSecurityScheme` with the OpenAPI 3.2 `deprecated` field. */
+export type HttpSecuritySchemeJson = OpenAPIV3.HttpSecurityScheme & { deprecated?: boolean }
+
+/** `OpenAPIV3.ApiKeySecurityScheme` with the OpenAPI 3.2 `deprecated` field. */
+export type ApiKeySecuritySchemeJson = OpenAPIV3.ApiKeySecurityScheme & { deprecated?: boolean }
+
+/** `OpenAPIV3.OpenIdSecurityScheme` with the OpenAPI 3.2 `deprecated` field. */
+export type OpenIdSecuritySchemeJson = OpenAPIV3.OpenIdSecurityScheme & { deprecated?: boolean }
+
 export class OasHttpSecurityScheme {
   oasType: 'securityScheme' = 'securityScheme'
   type: 'http' = 'http'
@@ -89,10 +98,11 @@ export class OasHttpSecurityScheme {
     return this
   }
 
-  toJsonSchema(): OpenAPIV3.HttpSecurityScheme {
+  toJsonSchema(): HttpSecuritySchemeJson {
     return {
       type: 'http',
       description: this.description,
+      ...(this.deprecated === undefined ? {} : { deprecated: this.deprecated }),
       scheme: this.scheme,
       bearerFormat: this.bearerFormat
     }
@@ -126,9 +136,10 @@ export class OasApiKeySecurityScheme {
     return this
   }
 
-  toJsonSchema(): OpenAPIV3.ApiKeySecurityScheme {
+  toJsonSchema(): ApiKeySecuritySchemeJson {
     return {
       type: 'apiKey',
+      ...(this.deprecated === undefined ? {} : { deprecated: this.deprecated }),
       name: this.name,
       in: this.location
     }
@@ -246,10 +257,11 @@ export class OasOpenIdSecurityScheme {
     return this
   }
 
-  toJsonSchema(): OpenAPIV3.OpenIdSecurityScheme {
+  toJsonSchema(): OpenIdSecuritySchemeJson {
     return {
       type: 'openIdConnect',
       description: this.description,
+      ...(this.deprecated === undefined ? {} : { deprecated: this.deprecated }),
       openIdConnectUrl: this.openIdConnectUrl
     }
   }
