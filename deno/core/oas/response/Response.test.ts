@@ -232,6 +232,19 @@ Deno.test('OasResponse - toJsonSchema()', async t => {
     assertEquals(jsonSchema.description, 'Minimal response')
     assertEquals(jsonSchema.headers, undefined)
     assertEquals(jsonSchema.content, undefined)
+    assertEquals('summary' in jsonSchema, false)
+  })
+
+  await t.step('should emit the 3.2 summary when set', () => {
+    const response = new OasResponse({
+      summary: 'A page of pets',
+      description: 'ok'
+    })
+
+    const jsonSchema = response.toJsonSchema(options)
+
+    assertEquals(jsonSchema.summary, 'A page of pets')
+    assertEquals(jsonSchema.description, 'ok')
   })
 
   await t.step('should use empty string for undefined description', () => {

@@ -433,6 +433,18 @@ Deno.test('OasDocument', async t => {
       assertEquals((json as any).security, undefined)
     })
 
+    await t.step('should emit the 3.2 $self only when set', () => {
+      const withSelf = new OasDocument({
+        ...createMinimalFields(),
+        $self: 'https://example.com/openapi.json'
+      }).toJSON()
+      const withoutSelf = new OasDocument(createMinimalFields()).toJSON()
+
+      assert('$self' in withSelf)
+      assertEquals(withSelf.$self, 'https://example.com/openapi.json')
+      assertEquals('$self' in withoutSelf, false)
+    })
+
     await t.step('should spread extension fields at root level', () => {
       const document = new OasDocument(createFullFields())
 

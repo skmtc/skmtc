@@ -12,6 +12,10 @@ export type ExampleFields = {
   description?: string
   /** The example value — absent when the example is given as an `externalValue` */
   value?: unknown
+  /** The example as data that is valid against its schema (OpenAPI 3.2) */
+  dataValue?: unknown
+  /** The example in its serialized form (OpenAPI 3.2) */
+  serializedValue?: string
   /** The external value of the example */
   externalValue?: string
   /** Custom extension fields (x-* properties) */
@@ -25,6 +29,8 @@ export class OasExample {
   summary?: string
   description?: string
   value?: unknown
+  dataValue?: unknown
+  serializedValue?: string
   externalValue?: string
   extensionFields?: Record<string, unknown>
 
@@ -32,6 +38,8 @@ export class OasExample {
     this.summary = fields.summary
     this.description = fields.description
     this.value = fields.value
+    this.dataValue = fields.dataValue
+    this.serializedValue = fields.serializedValue
     this.externalValue = fields.externalValue
     this.extensionFields = fields.extensionFields
   }
@@ -50,11 +58,15 @@ export class OasExample {
     return this
   }
 
-  toJsonSchema(_options: ToJsonSchemaOptions): OpenAPIV3.ExampleObject {
+  toJsonSchema(
+    _options: ToJsonSchemaOptions
+  ): OpenAPIV3.ExampleObject & { dataValue?: unknown; serializedValue?: string } {
     return {
       summary: this.summary,
       description: this.description,
       value: this.value,
+      ...(this.dataValue !== undefined ? { dataValue: this.dataValue } : {}),
+      ...(this.serializedValue !== undefined ? { serializedValue: this.serializedValue } : {}),
       // Without this an `externalValue`-only example round-trips to an Example
       // Object holding neither an inline value nor a pointer to one.
       externalValue: this.externalValue
