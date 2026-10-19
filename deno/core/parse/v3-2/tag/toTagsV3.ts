@@ -27,7 +27,7 @@ export const toTagsV3 = ({ tags, stackTrail, context }: ToTagsV3Args): OasTag[] 
   const parents = new Map(tags.map(({ name, parent }) => [name, parent]))
 
   return tags.map(tag => {
-    const parentError = toParentError({ name: tag.name, parents })
+    const parentError = toParentError({ name: tag.name, parent: tag.parent, parents })
 
     if (!parentError) {
       return toTagV3({ tag, stackTrail, context })
@@ -48,13 +48,12 @@ export const toTagsV3 = ({ tags, stackTrail, context }: ToTagsV3Args): OasTag[] 
 
 type ToParentErrorArgs = {
   name: string
+  parent: string | undefined
   parents: Map<string, string | undefined>
 }
 
 /** Describes why the tag's `parent` is invalid, or returns undefined when it is valid. */
-const toParentError = ({ name, parents }: ToParentErrorArgs): string | undefined => {
-  const parent = parents.get(name)
-
+const toParentError = ({ name, parent, parents }: ToParentErrorArgs): string | undefined => {
   if (parent === undefined) {
     return undefined
   }

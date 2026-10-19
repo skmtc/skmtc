@@ -165,6 +165,13 @@ The scheme must be a valid OAS `http` / `apiKey` / `oauth2` /
 (e.g., a number-typed `example` on a `type: array` schema). The
 example is dropped; the schema is otherwise unchanged.
 
+**Also when:** An OpenAPI 3.2 Example Object has two value fields
+that the spec does not allow together. `value` cannot be next to
+`dataValue`, `serializedValue` or `externalValue`. `serializedValue`
+cannot be next to `externalValue`. The parser keeps one field by the
+order `dataValue`, `value`, `serializedValue`, `externalValue`, and
+removes the other. The location names the removed field.
+
 ### `INVALID_DEFAULT` — warning
 
 **When:** A schema's `default` value doesn't conform to its
@@ -215,8 +222,8 @@ so every member matches the schema's type.
 
 **When:** The `parent` of an OpenAPI 3.2 tag names a tag that is not
 in the top-level `tags` list. Or, the chain of `parent` values from
-the tag goes back to the same tag (a cycle). SKMTC removes `parent`
-from the tag and keeps all other fields. In a cycle, each tag on the
+the tag goes back to the same tag (a cycle). The parser removes
+`parent` from the tag and keeps all other fields. In a cycle, each tag on the
 cycle loses its `parent`.
 
 **Remediation:** Point `parent` at the `name` of another tag in the

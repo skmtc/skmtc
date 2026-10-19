@@ -95,6 +95,23 @@ Deno.test('toTagsV3 - every tag on a parent cycle loses its parent', () => {
   )
 })
 
+Deno.test('toTagsV3 - each tag is checked against its own parent', () => {
+  const context = toContext()
+  // Duplicate names are malformed, but each tag must still be judged by the
+  // parent it declares, not by another tag with the same name.
+  const tags: TagObjectV32[] = [{ name: 'pets', parent: 'ghost' }, { name: 'pets' }]
+  const oasTags = toTagsV3({ tags, stackTrail: new StackTrail(['TEST']), context })
+
+  assertEquals(toParents(oasTags), [
+    { name: 'pets', parent: undefined },
+    { name: 'pets', parent: undefined }
+  ])
+  assertEquals(
+    context.issues.map(({ message }) => message),
+    ["Tag 'pets' names parent 'ghost', which is not a tag; dropping 'parent'"]
+  )
+})
+
 Deno.test('toTagsV3 - a parent chain several levels deep is valid', () => {
   const context = toContext()
   const tags: TagObjectV32[] = [
