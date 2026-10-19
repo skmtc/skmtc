@@ -2,7 +2,7 @@
 name: skmtc-graphql
 version: 0.1.1
 description: |
-  The GraphQL pipeline for SKMTC generators — authoring generators
+  The GraphQL pipeline for Skmtc generators — authoring generators
   whose input schema is GraphQL SDL rather than OpenAPI. Covers
   `toGqlOperationEntry`, `GqlOperation`, `synthesizeArgsObject`
   (mutation args -> object schema), the GQL enrichment routing
@@ -21,7 +21,7 @@ metadata:
   internal: true
 ---
 
-# SKMTC GraphQL pipeline
+# Skmtc GraphQL pipeline
 
 Everything in the `skmtc-generator` skill applies unchanged — same
 axioms, same producers, same register/insert machinery, same

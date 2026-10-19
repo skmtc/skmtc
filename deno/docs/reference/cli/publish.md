@@ -3,7 +3,7 @@
 > Build and publish an immutable **version** of a project's stack to
 > skmtc-hub.
 
-`publish` uploads a local SKMTC project to the hub as a new immutable
+`publish` uploads a local Skmtc project to the hub as a new immutable
 stack version. Stacks are published packages (like generators);
 versions are addressed by semver. Projects on the hub pin a stack
 version and own all execution — deployments, runs, and the

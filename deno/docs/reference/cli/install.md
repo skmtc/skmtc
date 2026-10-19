@@ -1,6 +1,6 @@
 # skmtc install
 
-> Add JSR-hosted generators to a SKMTC project.
+> Add JSR-hosted generators to a Skmtc project.
 
 Adds JSR import entries to the project's `deno.json#imports` and
 writes default settings to `client.json`. Transitive peer

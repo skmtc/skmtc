@@ -371,7 +371,7 @@ they don't construct new ones.
 
 Not supported. The `$ref` is resolved within
 `context.parsedDocument`, which is single-document. Bundle multi-file
-schemas before passing to SKMTC.
+schemas before passing to Skmtc.
 
 ## Cross-references
 

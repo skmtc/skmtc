@@ -5,7 +5,7 @@
 > `OasNumber`, `OasBoolean`, `OasUnknown`. Sibling classes with a
 > shared duck-typed interface — **not a class hierarchy**.
 
-`OasSchema` is one of the most common parameter types in SKMTC
+`OasSchema` is one of the most common parameter types in Skmtc
 generator code. Its shape — a discriminated union of sibling
 classes, not a base class with subclasses — is intentional and
 load-bearing for the type-narrowing behavior generators depend on.
@@ -36,7 +36,7 @@ inheritance.
 ## Why not a class hierarchy?
 
 A common LLM intuition: "These should all extend a `BaseSchema`
-class." SKMTC's design rejects this for specific reasons:
+class." Skmtc's design rejects this for specific reasons:
 
 1. **TypeScript narrowing works on discriminated unions.** With a
    union, `if (schema.type === 'object')` narrows `schema` to
@@ -352,7 +352,7 @@ the `OasSchema` union. The parser would also need a branch in
 
 This is a substantive change — touching every generator's
 `switch (schema.type)` to add the new case. In practice, the eight
-variants cover JSON Schema's primitives plus the SKMTC-specific
+variants cover JSON Schema's primitives plus the Skmtc-specific
 unions/unknown. New variants would be rare.
 
 ### How does `OasUnion` represent `oneOf` vs `anyOf`?

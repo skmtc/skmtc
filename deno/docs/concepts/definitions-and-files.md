@@ -12,7 +12,7 @@
 If you arrive from other codegen tools, you likely carry this model:
 templates run over a schema in a fixed order, each appending text to
 an output buffer, and anything shared between outputs must be
-generated first or wired up by hand. Judged by that model, SKMTC —
+generated first or wired up by hand. Judged by that model, Skmtc —
 many independent generators writing into shared files, in no
 particular order — looks like it shouldn't work. It works because the
 model is different at the bottom: output is not text being appended

@@ -1,18 +1,18 @@
 # Clone vs install
 
-> SKMTC's customization model: a graduated set of levers from "accept
+> Skmtc's customization model: a graduated set of levers from "accept
 > stock defaults" through "edit per-operation overrides" to "edit the
 > generator source itself." Install for stock; configure for narrow
 > tweaks; clone for source-level changes.
 
 The choice between cloning and installing is the first customization
-decision a SKMTC user makes after picking a generator. It determines
+decision a Skmtc user makes after picking a generator. It determines
 how much control they have over output and how much maintenance they
 take on.
 
 ## The customization gradient
 
-SKMTC offers a graduated set of customization levers, in order of
+Skmtc offers a graduated set of customization levers, in order of
 escalating effort:
 
 ```

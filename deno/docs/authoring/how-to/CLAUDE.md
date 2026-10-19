@@ -14,7 +14,7 @@
 | #20911 | " | ✅ | Complete how-to guide for adding enrichment options to generators | ~755 |
 | #20910 | " | ✅ | How-to guide completed for adding field types to form generators | ~692 |
 | #20909 | " | ✅ | How-to guide completed for changing identifier conventions in cloned generators | ~720 |
-| #20908 | 1:40 PM | ✅ | SKMTC documentation improvements - error handling philosophy and project layout corrections | ~900 |
+| #20908 | 1:40 PM | ✅ | Skmtc documentation improvements - error handling philosophy and project layout corrections | ~900 |
 | #20906 | 1:37 PM | ✅ | Generator customization how-to - change export paths guide complete | ~938 |
 | #20732 | 10:19 AM | ✅ | LLM-specific documentation enhanced with operational principles table | ~688 |
 | #20687 | 10:00 AM | ✅ | Documentation structure - authoring/how-to guide for adding field types | ~498 |

@@ -1,19 +1,19 @@
 # Projects and workspaces
 
 > The `.skmtc/<project>/` directory layout — what files exist, which
-> are derived, which are user-edited. A SKMTC project is a generator
-> configuration, not a consuming application: it specifies which
+> are derived, which are user-edited. A Skmtc project is a generator
+> configuration, not a consuming application. It specifies which
 > generators to run against which schema with which settings, and
 > where the output goes.
 
 A project is **not** the consuming app — it's the *generator
 configuration* the consuming app pulls code from. One repository can
-contain multiple SKMTC projects, each generating into a different
+contain multiple Skmtc projects, each generating into a different
 part of the consuming app (or into different apps).
 
 ## The one-paragraph essence
 
-A SKMTC root is a directory containing a `.skmtc/` folder. Inside
+A Skmtc root is a directory containing a `.skmtc/` folder. Inside
 `.skmtc/` is one directory per project. Each project directory holds
 the project's `deno.json` (which generators are installed), its
 `.settings/client.json` (which schema, which output path, which
@@ -23,14 +23,14 @@ local generator source directories for any cloned generators.
 Generated output lands wherever `client.json#settings.basePath`
 points.
 
-## The SKMTC root
+## The Skmtc root
 
-The SKMTC root is the nearest ancestor directory containing a
+The Skmtc root is the nearest ancestor directory containing a
 `.skmtc/` folder. The CLI discovers it by walking up from the current
 working directory.
 
 ```
-my-app/                          ← SKMTC root (nearest .skmtc/ ancestor)
+my-app/                          ← Skmtc root (nearest .skmtc/ ancestor)
 ├── .skmtc/                      ← root marker
 │   ├── my-api/                  ← project "my-api"
 │   ├── my-graphql/              ← project "my-graphql"
@@ -110,7 +110,7 @@ run.
 ### `bundle.js`
 
 The compiled output of `deno bundle worker.ts -o bundle.js`. This is
-what the SKMTC Worker actually loads at generate time.
+what the Skmtc Worker actually loads at generate time.
 
 **Built for every project**, including remote-only ones (all
 generators installed from JSR). `skmtc generate` deletes and
@@ -171,7 +171,7 @@ controls both where on disk generated files land AND the `@` alias
 in the consuming app's bundler resolver.
 
 Example: a Vite app with `vite.config.ts` setting `@` → `./src` would
-configure `basePath: "src/generated"` (relative to the SKMTC root).
+configure `basePath: "src/generated"` (relative to the Skmtc root).
 Generators produce paths like `@/forms/CreateUserForm.generated.tsx`,
 which:
 
@@ -182,12 +182,12 @@ These two paths must match. If they diverge, generated imports break
 at runtime.
 
 For Vite/Next/Webpack/Rollup, the `@` alias is typically configured
-in their respective config files. SKMTC doesn't manage the bundler
+in their respective config files. Skmtc doesn't manage the bundler
 config — you align them manually.
 
 ## Global state at ~/.skmtc/
 
-Not all project state is per-project. SKMTC also maintains a global
+Not all project state is per-project. Skmtc also maintains a global
 state directory:
 
 ```
@@ -249,7 +249,7 @@ and exits cleanly — it's idempotent.
 
 The `basePath` argument:
 
-- **Must be relative** to the SKMTC root. Absolute paths are rejected
+- **Must be relative** to the Skmtc root. Absolute paths are rejected
   with exit code 2 and a recipe error.
 - **Must match the consumer app's bundler alias**. The CLI doesn't
   verify this — the user does — but `skmtc doctor`'s
@@ -313,19 +313,19 @@ A reasonable `.gitignore`:
 .skmtc/**/.settings/*.txt
 ```
 
-### Can SKMTC live outside a Node/pnpm project?
+### Can Skmtc live outside a Node/pnpm project?
 
-Yes. SKMTC requires Deno; the consuming app can be anything (Vite,
+Yes. Skmtc requires Deno; the consuming app can be anything (Vite,
 Next, Bun, even a non-JS project that doesn't import the generated
 code). The CLI doesn't read `package.json`.
 
-### What if I have multiple SKMTC roots in nested directories?
+### What if I have multiple Skmtc roots in nested directories?
 
 The CLI discovers the *nearest* ancestor `.skmtc/`. If you have
 nested roots, only the inner one is found. To work with the outer
 root, run the CLI from a directory outside the inner root.
 
-In practice, one SKMTC root per repository is the convention.
+In practice, one Skmtc root per repository is the convention.
 
 ## Multi-package output
 

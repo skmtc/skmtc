@@ -1,12 +1,12 @@
 # Multi-project monorepo
 
-> One repo, multiple SKMTC projects writing into separate output
+> One repo, multiple Skmtc projects writing into separate output
 > directories — useful when you have several APIs or multiple
 > consumer apps with different generator combinations.
 
 ## What you'll build
 
-A workspace with two or more SKMTC projects under `.skmtc/`,
+A workspace with two or more Skmtc projects under `.skmtc/`,
 each with its own spec source, its own generator set, and its
 own output directory. One CLI install, one Deno install,
 multiple independent generation runs.
@@ -153,4 +153,4 @@ single-project assumption is baked in.
 
 - [`skmtc init` reference](../../reference/cli/init.md)
 - [Projects and workspaces concept](../../concepts/projects-and-workspaces.md)
-- [How to use SKMTC in CI/CD](../how-to/use-in-ci-cd.md)
+- [How to use Skmtc in CI/CD](../how-to/use-in-ci-cd.md)

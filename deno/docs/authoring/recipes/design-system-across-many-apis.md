@@ -8,13 +8,13 @@
 
 A set of cloned, customized generators that encode your team's
 house style (naming conventions, output paths, component
-imports), shared across multiple SKMTC projects. New APIs adopt
+imports), shared across multiple Skmtc projects. New APIs adopt
 the design system by referencing the shared clones — no
 per-project re-customization.
 
 ## Stack
 
-- 2+ SKMTC projects (in the same workspace, multiple workspaces,
+- 2+ Skmtc projects (in the same workspace, multiple workspaces,
   or multiple repos)
 - One source of truth for the cloned generator code
 - The shared clones cover everything that varies "by team house
@@ -176,7 +176,7 @@ re-customization, no copy-paste of generator source.
 ## Source
 
 The "design system as cloned generator" pattern is the most
-mature SKMTC usage pattern. The key insight: customization
+mature Skmtc usage pattern. The key insight: customization
 belongs in source, not config. Config (enrichments) handles
 per-instance variation; cloning handles per-team variation.
 

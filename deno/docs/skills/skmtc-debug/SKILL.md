@@ -2,7 +2,7 @@
 name: skmtc-debug
 version: 0.2.1
 description: |
-  Diagnose failures in SKMTC sessions — no output, wrong output, error
+  Diagnose failures in Skmtc sessions — no output, wrong output, error
   messages, failed bundle builds, parseIssues, "Registered definition
   mismatch", ref cycles, "Module not found" in generated code, or any
   other broken behavior. Applies across both CLI usage and generator
@@ -13,7 +13,7 @@ description: |
   "manifest says X", "bundle failed", "INVALID_SCHEMA",
   "INVALID_DEPENDENCY_REF", "Registered definition mismatch", "Module
   not found" (in generated code), "ConfigValidationError", or reports
-  any other SKMTC failure.
+  any other Skmtc failure.
 
   This skill encodes a **verify-first epistemic stance** — read the
   manifest, check parseIssues, reproduce the failure before proposing
@@ -30,14 +30,14 @@ metadata:
   internal: true
 ---
 
-# SKMTC debugging
+# Skmtc debugging
 
-This skill guides diagnosis of SKMTC failures. The defining feature is
+This skill guides diagnosis of Skmtc failures. The defining feature is
 its **epistemic stance**: gather evidence before proposing fixes.
 
 ## 1. The verification-first stance
 
-When debugging SKMTC, **verify before stating**.
+When debugging Skmtc, **verify before stating**.
 
 - The **manifest** is the canonical record of what happened in the
   last run. Read it before assuming behavior.
@@ -239,7 +239,7 @@ upstream schema is broken.
 - `INVALID_SCHEMA` — top-level schema parse failure
 - `INVALID_DEPENDENCY_REF` — cascade-pruned consumer of a failed ref
 - `MISSING_OBJECT_TYPE` — schema has `properties` but no `type:
-  'object'`; SKMTC inferred object (warning)
+  'object'`; Skmtc inferred object (warning)
 - `MISSING_ARRAY_TYPE` — has `items` but no `type: 'array'` (warning)
 - `MISSING_STRING_TYPE` / `MISSING_BOOLEAN_TYPE` — similar fallback
   inferences (warning)
@@ -548,7 +548,7 @@ missing API helper, a frequently-misunderstood invariant), the
 `skmtc-retro` skill should capture it as a friction-log entry. Don't
 let an interesting diagnostic insight evaporate.
 
-### Suggest a SKMTC code change
+### Suggest a Skmtc code change
 
 If the bug is in `@skmtc/core` or `@skmtc/cli` (not in a generator),
 propose the fix as a PR or GitHub issue. Distinguish between:

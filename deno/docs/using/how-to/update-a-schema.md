@@ -11,7 +11,7 @@ or models the new spec no longer contains.
 
 ## Prerequisites
 
-- A SKMTC project with `source` configured (URL or local path).
+- A Skmtc project with `source` configured (URL or local path).
 - The new schema is reachable (or the local file is updated).
 
 ## Steps

@@ -1,10 +1,10 @@
 # Design philosophy
 
-> The principles that generate SKMTC's design choices — what we value, what we refuse, what we trade.
+> The principles that generate Skmtc's design choices — what we value, what we refuse, what we trade.
 
 ## The core bet
 
-SKMTC bets that generated code should be ordinary source code — committed,
+Skmtc bets that generated code should be ordinary source code — committed,
 readable, reviewable — and that customization should be ordinary source
 code too. Generation is idempotent by construction, so any set of
 generators converges on the same output in any order; parsing is lenient
@@ -18,7 +18,7 @@ clone-to-customize.
 
 ## The principles
 
-Each principle is **contestable** — a choice SKMTC makes that another reasonable codegen tool makes differently. If a claim could equally describe orval, kubb, OpenAPI Generator, and graphql-codegen, it isn't load-bearing for SKMTC and isn't here.
+Each principle is **contestable** — a choice Skmtc makes that another reasonable codegen tool makes differently. If a claim could equally describe orval, kubb, OpenAPI Generator, and graphql-codegen, it isn't load-bearing for Skmtc and isn't here.
 
 ### 1. Clone-to-customize, not configure-to-customize
 
@@ -96,15 +96,15 @@ See [Error handling philosophy](error-handling-philosophy.md).
 
 ### 4. Output as source code, not a runtime library
 
-> SKMTC ships nothing at runtime. Generated TypeScript is committed to the consumer's repo and lives like any other source code.
+> Skmtc ships nothing at runtime. Generated TypeScript is committed to the consumer's repo and lives like any other source code.
 
 #### What it means in practice
 
-A generated file has no runtime dependency on SKMTC — no import, no
+A generated file has no runtime dependency on Skmtc — no import, no
 wrapper, no client object. It imports the same libraries the equivalent
 handwritten file would (zod, Tanstack Query, React) and nothing else.
 You commit it, review schema changes as ordinary diffs in pull requests,
-and refactor or grep it with the tools you already use. SKMTC's
+and refactor or grep it with the tools you already use. Skmtc's
 involvement ends when the files are written.
 
 #### Consequences
@@ -116,7 +116,7 @@ involvement ends when the files are written.
 
 #### Deeper discussion
 
-See [Use SKMTC in CI/CD](../using/how-to/use-in-ci-cd.md) — the drift
+See [Use Skmtc in CI/CD](../using/how-to/use-in-ci-cd.md) — the drift
 check that this principle makes possible.
 
 ### 5. TypeScript-native templates, not template files
@@ -143,33 +143,9 @@ and go-to-definition working across the template boundary.
 
 See [Projections and Snippets](../concepts/projections-and-snippets.md).
 
-### 6. Use Deno's bundler, sandbox and registry; don't write our own
-
-> Deno is the platform: `deno bundle` is the bundler, `new Worker(...)` is the sandbox, Deno permissions are the access control. SKMTC adds the codegen logic.
-
-#### What it means in practice
-
-SKMTC ships no bundler, no sandbox, and no package format of its own.
-`deno bundle` produces the generator bundle, a Worker with network and
-subprocess permissions disabled is the sandbox, and JSR is how
-generators are published and versioned. The engine's job is codegen;
-the platform's job is everything else — which keeps the engine small
-enough to read.
-
-#### Consequences
-
-- The engine is small because most platform-level concerns are delegated
-- Generators run sandboxed by virtue of Deno Worker permissions, not bespoke isolation
-- JSR (Deno's registry) is the distribution channel for generators
-- The project is Deno-locked (acceptable; the platform delegation pays for it)
-
-#### Deeper discussion
-
-See [The worker runtime](../concepts/the-worker-runtime.md) and [The GraphQL asymmetry](the-graphql-asymmetry.md).
-
 ## Tradeoffs accepted
 
-Each principle has a cost. These are the costs SKMTC accepts to get the properties above. Naming them explicitly so contributors and AI assistants can recognize when a principle is being tested.
+Each principle has a cost. These are the costs Skmtc accepts to get the properties above. Naming them explicitly so contributors and AI assistants can recognize when a principle is being tested.
 
 ### Configurability ceiling
 
@@ -189,11 +165,15 @@ Each generate is from cold. Acceptable at typical schema sizes (hundreds of oper
 
 ### Format is the consumer's problem
 
-SKMTC produces valid but unformatted TypeScript. Consumers need a formatter step (pre-commit hook, build script).
+Skmtc produces valid but unformatted TypeScript. Consumers need a formatter step (pre-commit hook, build script).
 
 ### Workers can't reach the network
 
-Some integrations (remote schema fetch at generate time, telemetry, license checks) would benefit from network access. SKMTC chooses safety.
+Some integrations (remote schema fetch at generate time, telemetry, license checks) would benefit from network access. Skmtc chooses safety.
+
+### Deno only
+
+The engine runs only on Deno. `deno bundle` builds the generator bundle, a Deno Worker with network and subprocess permissions off runs it, and generators are published on JSR. See [The worker runtime](../concepts/the-worker-runtime.md). The generated code has no such limit: it runs anywhere TypeScript runs.
 
 ### Documentation cost of cloneable generators
 
@@ -261,6 +241,6 @@ The asymmetry encodes the model: engine is the *platform* (stable, contributor-f
 - [Why clone-to-customize](why-clone-to-customize.md) — deep dive on the central bet
 - [Why three phases](why-three-phases.md) — why Parse, Generate, Render are separate
 - [How idempotency works](how-idempotency-works.md) — the mechanism behind order-independence
-- [The GraphQL asymmetry](the-graphql-asymmetry.md) — building on Deno Workers and `structuredClone`
+- [The GraphQL asymmetry](the-graphql-asymmetry.md) — why GraphQL input crosses the Worker boundary as a string
 - [Security model](security-model.md) — worker sandboxing
 - [Comparison to other tools](comparison-to-other-tools.md) — how these principles differ from other codegen tools

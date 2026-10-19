@@ -4,9 +4,9 @@
 
 ## What you'll build
 
-A SKMTC project with `@skmtc/gen-zod` installed and a few `.ts`
-files generated from an OpenAPI spec — runtime validation schemas
-matching every component schema in the input.
+A Skmtc project with `@skmtc/gen-zod` installed, and a few `.ts`
+files generated from an OpenAPI spec. They hold runtime validation
+schemas for every component schema in the input.
 
 ## Prerequisites
 

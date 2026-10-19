@@ -1,6 +1,6 @@
 # toArtifacts
 
-> The top-level engine function that runs the SKMTC generation pipeline
+> The top-level engine function that runs the Skmtc generation pipeline
 > end-to-end: **Parse → Generate → Render**. Returns the generated artifacts and
 > the manifest. This is what the Worker invokes on `GENERATE` message receipt;
 > direct callers (bench scripts, embedded use cases) can also invoke it.

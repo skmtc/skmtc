@@ -9,7 +9,7 @@ The whole mechanism in one page:
 [Definitions and files](definitions-and-files.md). This page deepens
 its multi-generator side.
 
-Cross-generator coordination in SKMTC is **memoization keyed by
+Cross-generator coordination in Skmtc is **memoization keyed by
 `(identifier.name, exportPath)`**, where both halves of the key are
 pure functions of the input. Same inputs → same key → same cached
 value. Generator execution order does not affect output.
@@ -42,7 +42,7 @@ requires:
 - Coupling generators tightly — generator A has to know it depends
   on generator B
 
-SKMTC's answer: **make order irrelevant**. Coordination happens
+Skmtc's answer: **make order irrelevant**. Coordination happens
 through a Map cache. Whoever needs a definition asks for it; if it's
 already in the cache, return the cached value; if not, construct it.
 Order of asking doesn't matter — same inputs produce the same
@@ -270,7 +270,7 @@ the dispatch chain so the producer's Definition and import are wired.
 ## Type-level coupling between generators
 
 The cache-based coordination above wires *names*, *Definitions*, and
-*imports* at SKMTC's generate time. There's a separate axis where one
+*imports* at Skmtc's generate time. There's a separate axis where one
 generator's emitted output references the *TypeScript type* of another
 generator's emitted value at the consumer app's compile time.
 

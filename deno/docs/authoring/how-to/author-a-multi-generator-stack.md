@@ -25,7 +25,7 @@ covers only the single-peer case.
 ### 1. Declare peer dependencies
 
 Pin your peers in `deno.json#imports`. Use **exact JSR versions**
-for inter-`@skmtc/*` package dependencies inside the SKMTC
+for inter-`@skmtc/*` package dependencies inside the Skmtc
 monorepo; consumer projects can use carets. Importable as named
 exports: `import { TsProjection } from '@skmtc/gen-typescript'`.
 
@@ -144,7 +144,7 @@ coordination doesn't depend on that order. See
 
 ### How tightly should I pin peer versions?
 
-For generators *inside* the SKMTC monorepo (the stock catalogue),
+For generators *inside* the Skmtc monorepo (the stock catalogue),
 use exact JSR versions — peer-pin discipline. For generators
 *outside* (your own clones, your own packages), use whatever
 matches your release cadence. The clone process runs a peer-pin

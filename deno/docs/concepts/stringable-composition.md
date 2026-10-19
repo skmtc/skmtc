@@ -1,6 +1,6 @@
 # Composing output with Stringable
 
-> SKMTC builds generated code by composing typed `Stringable` values
+> Skmtc builds generated code by composing typed `Stringable` values
 > through template-literal interpolation. It is not a templating
 > system (no Mustache, Handlebars, EJS) and not raw string
 > concatenation. Every DSL primitive — `TsDefinition`, `Identifier`,
@@ -11,7 +11,7 @@
 If you have built code generators before, the default expectation
 is one of two shapes: external template files
 (`render('foo.hbs', { name })`) or string concatenation
-(`'export const ' + name + ' = '`). SKMTC works differently.
+(`'export const ' + name + ' = '`). Skmtc works differently.
 Generators write template literals that interpolate other DSL
 values, and the values know how to render themselves. The
 composition is type-checked, IDE-refactorable, and recursive.
@@ -56,7 +56,7 @@ Identifiers, and a raw string all behave the same way inside
 ## The composition mechanism is template-literal interpolation
 
 Template literals in JavaScript call `.toString()` on every
-interpolated value. SKMTC's DSL leans on that:
+interpolated value. Skmtc's DSL leans on that:
 
 ```ts
 // A typical Snippet's toString

@@ -1,8 +1,8 @@
 # Explanation
 
-> Design rationale — why SKMTC is built the way it is, the
+> Design rationale — why Skmtc is built the way it is, the
 > alternatives considered, and the trade-offs accepted. For evaluators
-> deciding whether SKMTC fits, and for the curious after first
+> deciding whether Skmtc fits, and for the curious after first
 > success.
 
 ## Deciding whether to adopt

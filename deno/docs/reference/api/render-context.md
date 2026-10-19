@@ -199,13 +199,13 @@ no entries.
 
 Two reasons:
 
-1. **Format is the consumer's concern.** SKMTC produces syntactically
+1. **Format is the consumer's concern.** Skmtc produces syntactically
    valid TypeScript; aesthetic choices (semis, trailing commas,
    quote style) belong to the consumer's existing tooling.
 2. **Coupling to a specific formatter would create friction.**
    Different consumer projects use different formatters (Prettier,
-   Biome, dprint, custom). Picking one in SKMTC would force every
-   consumer to either accept SKMTC's choice or post-process anyway.
+   Biome, dprint, custom). Picking one in Skmtc would force every
+   consumer to either accept Skmtc's choice or post-process anyway.
 
 The pragmatic stance is "produce valid, let the consumer format."
 
@@ -215,7 +215,7 @@ You could — call Prettier in the host after `writeGeneratedFiles`.
 The CLI doesn't do this, but a consumer running the engine
 programmatically could. The cleanest pattern is a pre-commit hook
 on the generated output directory, which runs Prettier independent
-of SKMTC.
+of Skmtc.
 
 ### Why is Render a separate phase if it's so simple?
 

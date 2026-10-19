@@ -1,10 +1,11 @@
 # The GraphQL pipeline
 
-> How the GraphQL side of SKMTC works: schema vocabulary shared
-> with OAS (GraphQL types are mapped to `OasObject`, `OasUnion`,
-> `OasArray`, `OasRef`), what's GraphQL-specific (containers,
-> operations, scalars, interface-union handling), and what
-> generator authors need to know to target GraphQL.
+> How the GraphQL side of Skmtc works. GraphQL shares its schema
+> vocabulary with OAS: its types map to `OasObject`, `OasUnion`,
+> `OasArray` and `OasRef`. This page also covers what is
+> GraphQL-specific (containers, operations, scalars,
+> interface-union handling) and what generator authors need to
+> know to target GraphQL.
 
 For the asymmetry of *where* parsing happens (host-side for OAS,
 worker-side for GraphQL), see
@@ -58,9 +59,9 @@ verbs). Everything below that level is shared.
 ## Type-mapping rules
 
 The parser at `core/parsers/graphql/` translates GraphQL kinds to
-SKMTC's protocol-neutral classes:
+Skmtc's protocol-neutral classes:
 
-| GraphQL | SKMTC representation |
+| GraphQL | Skmtc representation |
 |---|---|
 | `Int!` | `OasInteger` (`format: 'int32'`, `nullable: false`) |
 | `Float!` | `OasNumber` (`format: 'float'`, `nullable: false`) |
@@ -378,11 +379,10 @@ are deferred:
   available downstream.
 - **Schema-level directive definitions** (the `directive @x ...`
   form) are skipped with a `SKIPPED_FEATURE` warning.
-- **Fragments and fragment masking** aren't handled. SKMTC is a
-  schema-driven generator; document-driven generation (per-
-  `.graphql` operation file with selection-set narrowing, à la
-  graphql-codegen's `typescript-operations`) is a deferred
-  feature.
+- **Fragments and fragment masking** aren't handled. Skmtc generates
+  from the schema. Generation from documents (per-`.graphql`
+  operation file with selection-set narrowing, as in
+  graphql-codegen's `typescript-operations`) is a later feature.
 - **Subscriptions** are typed at the schema level — they appear
   in `gqlDocument.operations` with `rootKind: 'subscription'` —
   but no transport wiring is generated. Stream support is a

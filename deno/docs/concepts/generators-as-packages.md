@@ -1,18 +1,18 @@
 # Generators as packages
 
-> SKMTC generators are JSR packages with a canonical internal layout.
+> Skmtc generators are JSR packages with a canonical internal layout.
 > Understanding the package structure is the foundation for both
 > using generators (install from JSR) and authoring or cloning them
 > (where the source lives).
 
 A generator is not a config block in a YAML file or a plugin loaded
 through a registry. It's a self-contained TypeScript package
-published to JSR. SKMTC's CLI knows how to install, clone, and run
+published to JSR. Skmtc's CLI knows how to install, clone, and run
 these packages, but the packages themselves are ordinary Deno code.
 
 ## The one-paragraph essence
 
-A SKMTC generator is a JSR package (or a local directory mirroring
+A Skmtc generator is a JSR package (or a local directory mirroring
 the same layout). It has a `deno.json` declaring its identity and
 peer dependencies, a `mod.ts` that re-exports the entry default, and
 a `src/` directory with the actual generator code: an entry function
@@ -344,7 +344,7 @@ implementation focused.
 ### Why JSR and not npm?
 
 JSR is Deno-native, supports TypeScript directly (no compilation
-step), and has a simpler version model. SKMTC runs on Deno (the CLI
+step), and has a simpler version model. Skmtc runs on Deno (the CLI
 and Worker are both Deno), so JSR is the natural distribution
 channel. There's no inherent reason a generator couldn't be
 published to npm with the right tooling, but stock generators don't

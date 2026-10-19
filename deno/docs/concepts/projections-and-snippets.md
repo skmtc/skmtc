@@ -25,7 +25,7 @@ stringifiable value that gets _embedded into_ a Projection.
 The split maps onto JSX components vs JSX expressions. Top-level React
 components have names, get imported by other modules, and exist in their own
 files. JSX expressions (`<Button onClick={...} />`) are anonymous and embedded
-in their parent's rendering. SKMTC's DSL makes the same cut.
+in their parent's rendering. Skmtc's DSL makes the same cut.
 
 The alternative — a single "unit" abstraction — would force every snippet to
 have a name and a path, even ones that exist only as an inline `<StringField />`

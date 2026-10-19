@@ -9,7 +9,7 @@
 last `generate` wrote — and deletes each of those files from disk.
 It then prunes the directories those files lived in (only the ones
 it emptied) and removes the manifest itself, returning the project
-to its pre-generation state. It's `make clean` for SKMTC.
+to its pre-generation state. It's `make clean` for Skmtc.
 
 This is distinct from the *incremental* prune that runs inside
 `generate`: that one deletes only the files the **next** run won't
@@ -192,7 +192,7 @@ fresh tree rather than relying on the incremental prune.
   Use [`remove`](remove.md) to uninstall a generator.
 - Does **not** delete files the current manifest doesn't record. If
   you hand-deleted the manifest, or a file was written by a tool
-  other than SKMTC, `clean` won't find it.
+  other than Skmtc, `clean` won't find it.
 - Does **not** prune directories when `basePath` is unset — see
   *Empty directories pruned* above.
 - Does **not** prompt for confirmation. `--dry-run` is the safety

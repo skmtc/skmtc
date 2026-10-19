@@ -3,13 +3,15 @@
 A **variant** is a named axis below `(operation, method)` (OAS),
 `(rootKind, fieldName)` (GraphQL), or `refName` (models) along which
 a single source item can produce *N* Definitions instead of one.
-Variants are how SKMTC handles the case where the consumer's UI or
-runtime naturally produces multiple artifacts from a single endpoint
-or schema — most often **section-edit forms** for a broad `PATCH`
-endpoint, **wizard-step flows** for multi-step `POST`s, **mock-
-scenario flavours** (`success` / `error` / `slow`) for a single
-mocked route, or **coercive vs strict** zod schemas for the same
-component model.
+Variants are how Skmtc handles a consumer whose UI or runtime
+produces multiple artifacts from a single endpoint or schema. The
+common cases:
+
+- **section-edit forms** for a broad `PATCH` endpoint
+- **wizard-step flows** for multi-step `POST`s
+- **mock-scenario flavours** (`success` / `error` / `slow`) for a
+  single mocked route
+- **coercive vs strict** zod schemas for the same component model
 
 ## TL;DR
 
@@ -46,7 +48,7 @@ A single OpenAPI operation can map to several distinct UI artifacts.
 A broad `PATCH /v2/quoting/quotes/{quoteId}` body with 11 fields is
 naturally split, in a FieldPlan-style UI, across 5+ section-edit pages
 — each editing 1–2 fields against the same endpoint. Pre-variants,
-SKMTC assumed a 1:1 between operation and Definition: one form per
+Skmtc assumed a 1:1 between operation and Definition: one form per
 `(operation, method)`. Producing N forms from one endpoint required
 hand-coding the extras.
 

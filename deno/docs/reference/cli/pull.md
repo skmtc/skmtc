@@ -5,7 +5,7 @@
 
 `pull` is the hub→local counterpart to [`push`](push.md). It fetches an
 **existing** hub project's config — the same config the web CMS edits —
-and folds it into the local SKMTC project's `client.json`. The read half
+and folds it into the local Skmtc project's `client.json`. The read half
 of the round-trip: edit enrichments in the hub, `pull` them down,
 regenerate locally, commit.
 

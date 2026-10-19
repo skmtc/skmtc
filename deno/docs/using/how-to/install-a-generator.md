@@ -1,6 +1,6 @@
 # How to install a generator
 
-> Add a stock JSR-hosted generator to an existing SKMTC project.
+> Add a stock JSR-hosted generator to an existing Skmtc project.
 
 ## When to use this
 
@@ -20,7 +20,7 @@ instead.
   `Worker.deno.permissions` API. Without it, `skmtc generate` fails at
   runtime with `Unstable API 'Worker.deno.permissions'`. If you
   already installed without the flag, rerun the install with `-f`.
-- A SKMTC project (run `skmtc init <project>` first if needed).
+- A Skmtc project (run `skmtc init <project>` first if needed).
 - The generator's package name (e.g., `@skmtc/gen-zod`). See the
   [stock generators catalog](../../reference/stock-generators/overview.md).
 

@@ -7,7 +7,7 @@
 
 Several CLI commands assume a service called **skmtc-hub** without
 introducing it. This page is that introduction: the nouns the hub adds
-on top of a local SKMTC workspace, and which command touches which.
+on top of a local Skmtc workspace, and which command touches which.
 
 None of it is required for local generation. `init`, `install`,
 `generate`, `clone` — the whole local loop — work with no account and
@@ -24,7 +24,7 @@ hub then authorizes you per account (org membership included).
 
 ### Stack
 
-A **published, immutable version of a SKMTC project** — the project's
+A **published, immutable version of a Skmtc project** — the project's
 generator set, built and uploaded as a package. A stack's identity is
 the project root `deno.json#name` (`@account/slug`); versions are
 semver, and re-publishing an existing version is rejected. Produced by

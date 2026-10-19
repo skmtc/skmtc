@@ -1,9 +1,9 @@
 ---
-description: Run a SKMTC retrospective on the current session — capture friction and wins to the friction log
+description: Run a Skmtc retrospective on the current session — capture friction and wins to the friction log
 argument-hint: "[topic-summary]"
 ---
 
-Run a SKMTC retrospective on this session.
+Run a Skmtc retrospective on this session.
 
 **If `$ARGUMENTS` is non-empty**, use it as the session-topic hint for
 the filename. Normalize it to lowercase kebab-case (e.g.,
@@ -19,7 +19,7 @@ skill's `SKILL.md`):
 
 1. **Locate the friction-log directory.** Walk up from the current
    working directory looking for `skmtc/deno/docs/friction-log/`. If
-   you can't find a SKMTC root, ask the user where to log to — do not
+   you can't find a Skmtc root, ask the user where to log to — do not
    silently default.
 
 2. **Pick a filename for this session** following the convention

@@ -1,6 +1,6 @@
 # skmtc doctor
 
-> Run health-check diagnostics on a SKMTC workspace. Reports issues
+> Run health-check diagnostics on a Skmtc workspace. Reports issues
 > with project setup, configuration files, generator pins, and
 > filesystem state.
 
@@ -268,7 +268,7 @@ that the named packages agree, then run `skmtc generate <project>`.
 ```
 
 `client.json#settings.basePath` is either unset or absolute.
-`basePath` must be relative to the SKMTC root. Edit `client.json`
+`basePath` must be relative to the Skmtc root. Edit `client.json`
 or re-run `skmtc init` with a relative path.
 
 ### Stale manifest

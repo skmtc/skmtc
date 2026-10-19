@@ -95,7 +95,7 @@ below.
 ### `MISSING_OBJECT_TYPE` — debug
 
 **When:** An OAS 3.0 schema has `properties` but no `type: 'object'`.
-SKMTC infers the type as `object` and proceeds; the debug issue
+Skmtc infers the type as `object` and proceeds; the debug issue
 records the inference. Fires from the 3.0 parser only — type-less
 schemas are valid in 3.1, so the 3.1 parser is silent here.
 
@@ -124,7 +124,7 @@ recognized string `format` (`date`, `date-time`, etc.) without
 ### `UNEXPECTED_PROPERTY` — warning
 
 A schema has properties that aren't part of the OAS 3.0 spec
-position. SKMTC ignores the unknown keys but logs them.
+position. Skmtc ignores the unknown keys but logs them.
 
 **Typical message:** `Unexpected property '<key>' at <location>`.
 
@@ -234,12 +234,12 @@ a build of `@skmtc/core` newer than this doc.
 
 **When:** A schema's `nullable` field conflicts with its other
 type constraints (e.g., `nullable: true` on a schema that has no
-type). SKMTC degrades gracefully and produces a warning.
+type). Skmtc degrades gracefully and produces a warning.
 
 ### `EXAMPLE_AND_EXAMPLES_DEFINED` — warning
 
 **When:** A schema defines both `example` (singular, OAS 3.0) and
-`examples` (plural, OAS 3.1) at the same node. SKMTC picks one
+`examples` (plural, OAS 3.1) at the same node. Skmtc picks one
 deterministically (singular wins) and warns.
 
 ### `INVALID_ENUM` — warning
@@ -290,13 +290,13 @@ is included but its arguments are dropped.
 ### `NESTED_LIST_LOSSY` — warning
 
 **When:** A GraphQL field has a nested-list type (`[[T]]` and
-deeper). SKMTC can't represent nested lists as a single `OasArray`
+deeper). Skmtc can't represent nested lists as a single `OasArray`
 in v1, so it collapses to `OasUnknown`. The field is preserved but
 loses its inner-list shape.
 
 ### `DROPPED_DIRECTIVE` — warning
 
-**When:** A field or type carries a directive SKMTC doesn't model.
+**When:** A field or type carries a directive Skmtc doesn't model.
 The directive is silently dropped; the field/type is preserved
 without the directive.
 

@@ -1,4 +1,4 @@
-# How to use SKMTC in CI/CD
+# How to use Skmtc in CI/CD
 
 > Run `skmtc generate` reliably in continuous integration, with
 > appropriate verification gates.
@@ -11,7 +11,7 @@ or on a schedule (regenerate when the schema changes).
 
 ## Prerequisites
 
-- A working SKMTC project locally.
+- A working Skmtc project locally.
 - A CI runner that supports Deno installation (most do).
 
 ## Steps

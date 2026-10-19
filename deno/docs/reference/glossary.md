@@ -7,7 +7,7 @@
 
 Analogues, not equivalences — landing pads for readers arriving with
 React or generic-codegen priors. Once a term lands, switch to the
-SKMTC-native definition below; the analogues lose detail.
+Skmtc-native definition below; the analogues lose detail.
 
 | Term | ≈ Analogue | The catch |
 |---|---|---|
@@ -50,10 +50,10 @@ SKMTC-native definition below; the analogues lose detail.
 | `ParseIssue` | A non-fatal compile warning | Prunes downstream dependents without aborting the run |
 | `StackTrail` | A breadcrumb trail | Every issue's location is a trail's `toString` |
 
-## SKMTC vocabulary — load-bearing terms
+## Skmtc vocabulary — load-bearing terms
 
 Every term in this list maps to a specific construct in `@skmtc/core`'s
-exported surface. When writing about SKMTC, prefer these terms. Terms
+exported surface. When writing about Skmtc, prefer these terms. Terms
 that don't appear here (and aren't in the alphabetized entries below)
 likely don't have a referent in the code.
 
@@ -93,7 +93,7 @@ app. See
 
 ### Bundle
 
-`bundle.js` — the compiled JS file the SKMTC Worker loads, produced by
+`bundle.js` — the compiled JS file the Skmtc Worker loads, produced by
 `deno bundle worker.ts -o bundle.js`. `skmtc generate` rebuilds it
 before every run. See
 [the-worker-runtime](../concepts/the-worker-runtime.md).
@@ -477,7 +477,7 @@ when two different generators land on the same cache key. See
 
 ### Remote-only project
 
-A SKMTC project whose `deno.json#imports` contains only JSR-installed
+A Skmtc project whose `deno.json#imports` contains only JSR-installed
 generators (no local clones); bundles and generates like any other
 project.
 
@@ -511,12 +511,12 @@ The leaf-value type in the manifest's `results` tree
 ### Sandbox API
 
 A hosted-execution alternative to the local Worker: the host posts the
-schema to a remote SKMTC service, which runs the engine and returns
+schema to a remote Skmtc service, which runs the engine and returns
 artifacts + manifest. Authenticated via a stored token.
 
 ### Schema source
 
-The OAS or GraphQL document SKMTC generates from — positional on
+The OAS or GraphQL document Skmtc generates from — positional on
 `skmtc generate <project> <source>` or pinned in `client.json#source`.
 
 ### `schemaToValueFn`
@@ -553,7 +553,7 @@ it.
 
 ### Stack (hub)
 
-A published, immutable version of a SKMTC project on the hub —
+A published, immutable version of a Skmtc project on the hub —
 identity `deno.json#name` (`@account/slug`), addressed by semver.
 Produced by [publish](cli/publish.md); hub projects pin one.
 
@@ -617,7 +617,7 @@ Defaults to `'main'`. See [variants](../concepts/variants.md).
 ### `verbatimModuleSyntax`
 
 The TypeScript compiler option requiring `import { type X }` for
-type-only imports; SKMTC's `Identifier` tracks entity types to render
+type-only imports; Skmtc's `Identifier` tracks entity types to render
 correct imports under it.
 
 ## W

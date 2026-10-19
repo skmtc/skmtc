@@ -26,7 +26,7 @@ version and exits.
 
 | Command   | Purpose                                         | Reference             |
 | --------- | ----------------------------------------------- | --------------------- |
-| `init`    | Initialize a new SKMTC workspace                | [init](init.md)       |
+| `init`    | Initialize a new Skmtc workspace                | [init](init.md)       |
 | `create`  | Scaffold a new local generator from scratch     | [create](create.md)   |
 | `clone`   | Fork an existing JSR generator into the project | [clone](clone.md)     |
 | `install` | Add a JSR-hosted generator to the project       | [install](install.md) |

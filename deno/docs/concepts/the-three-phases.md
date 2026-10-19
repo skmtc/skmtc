@@ -1,6 +1,6 @@
 # The three phases
 
-A SKMTC generation run is a pipeline. The interesting work happens in three
+A Skmtc generation run is a pipeline. The interesting work happens in three
 sequential phases — **Parse**, **Generate**, and **Render** — each producing an
 immutable artifact that the next consumes.
 
@@ -44,7 +44,7 @@ The phases share a `StackTrail` (for location tracking in diagnostics) and a
 
 You could imagine fewer or more. Single-phase ("everything in one pass") is what
 most simple codegen tools do. Two-phase ("parse and render") is the next step
-up. Three-phase is where SKMTC settles, and the reasons are concrete:
+up. Three-phase is where Skmtc settles, and the reasons are concrete:
 
 **Parse is separate because** the parse-time error model is fundamentally
 different from generate-time. Parsing tolerates partial failure (one bad schema
@@ -147,7 +147,7 @@ and the implementation choices it rests on — is in
 
 `toSchemaV3` (`core/parse/v3-{0,1}/schema/toSchemasV3.ts`) dispatches on
 `schema.type`. But OAS documents in the wild often omit `type` for object-shaped
-schemas. Rather than failing, SKMTC infers:
+schemas. Rather than failing, Skmtc infers:
 
 - Has `properties` → assume `type: 'object'`, log a `MISSING_OBJECT_TYPE`
   warning.
@@ -162,7 +162,7 @@ anyway, but every assumption shows up in the issue log.
 
 ### Forward-reference handling
 
-A `$ref` may point at a definition that hasn't been parsed yet. SKMTC handles
+A `$ref` may point at a definition that hasn't been parsed yet. Skmtc handles
 this without a two-pass scheme by giving each `OasRef` a live reference to the
 in-progress document:
 

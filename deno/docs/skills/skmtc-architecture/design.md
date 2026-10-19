@@ -1,7 +1,7 @@
 # skmtc-architecture skill — design document
 
 > Plan for the skill that gives agents a system-level mental model of
-> SKMTC — for building and extending infrastructure *around* the
+> Skmtc — for building and extending infrastructure *around* the
 > engine rather than authoring generators or running the CLI.
 >
 > The corresponding loadable skill is [`SKILL.md`](SKILL.md) in this
@@ -10,12 +10,12 @@
 
 ## Purpose
 
-Give an AI assistant enough of SKMTC's architecture to **reason about
+Give an AI assistant enough of Skmtc's architecture to **reason about
 the system and build infrastructure around it** — a hosted generation
 service, a schema or generator registry, tracing and provenance
 tooling, a web app or SaaS wrapping the engine.
 
-The skill exists because SKMTC is *deeply counter-intuitive*. An
+The skill exists because Skmtc is *deeply counter-intuitive*. An
 agent extrapolating from generic codegen knowledge (Mustache
 templates, plugin registries, dependency graphs) or generic backend
 infra knowledge (warm pools, incremental builds, retry-on-failure,
@@ -28,7 +28,7 @@ their own surface.
 
 ## Audience
 
-Agents working on SKMTC platform infrastructure:
+Agents working on Skmtc platform infrastructure:
 
 - Building the hosted Sandbox / run API (`@skmtc/server` and beyond).
 - Building a schema or generator registry — the "GitHub for
@@ -45,12 +45,12 @@ day-to-day CLI users (`skmtc-cli`), people debugging a broken run
 
 Intent phrases that should load this skill:
 
-- "what is SKMTC" / "explain SKMTC"
-- "how does the SKMTC engine work" / "SKMTC architecture"
-- "build a service / API / SaaS around SKMTC"
-- "host SKMTC" / "run SKMTC on a server"
-- "SKMTC tracing" / "SKMTC provenance" / "gen-maps"
-- "the SKMTC package graph / dependencies"
+- "what is Skmtc" / "explain Skmtc"
+- "how does the Skmtc engine work" / "Skmtc architecture"
+- "build a service / API / SaaS around Skmtc"
+- "host Skmtc" / "run Skmtc on a server"
+- "Skmtc tracing" / "Skmtc provenance" / "gen-maps"
+- "the Skmtc package graph / dependencies"
 - editing files under `core/run/`, `worker/`, `server/`, `mcp/`,
   `convert/`, or `core/anchors/` for *infrastructure* reasons
 
@@ -67,7 +67,7 @@ Should NOT auto-load on:
 
 - The five facts (canonical four + a fifth tuned to infra:
   cold-start determinism).
-- What SKMTC is — the engine / hosts decomposition.
+- What Skmtc is — the engine / hosts decomposition.
 - Benefits and the when-to-use / when-not table.
 - The three-phase pipeline; the host/Worker boundary; the
   structured-clone OAS/GraphQL asymmetry; sandboxing.
@@ -113,12 +113,12 @@ skill.
 
 ## Content-source mapping
 
-The skill was distilled from the SKMTC source and the docs tree:
+The skill was distilled from the Skmtc source and the docs tree:
 
 | SKILL.md section | Primary sources |
 |---|---|
 | §1 Five facts | `llms.md` ("four facts"); fact 5 from `concepts/the-worker-runtime.md` |
-| §2 What SKMTC is | `core/CLAUDE.md` (name expansion); `docs/README.md`; the package `deno.json` files |
+| §2 What Skmtc is | `core/CLAUDE.md` (name expansion); `docs/README.md`; the package `deno.json` files |
 | §3–4 Benefits / when to use | `docs/README.md`; `explanation/design-philosophy.md`; `explanation/comparison-to-other-tools.md` |
 | §5 Pipeline | `concepts/the-three-phases.md`; `concepts/the-worker-runtime.md`; `core/run/toArtifacts.ts` |
 | §6 Coordination | `concepts/cross-generator-coordination.md`; `explanation/design-philosophy.md` §2, §8 |
@@ -158,6 +158,6 @@ references the concept doc for depth rather than being trimmed away.
 
 `status-and-roadmap.md` lists the hosted Sandbox API as
 experimental. As the SaaS infrastructure this skill targets is built
-out, §11 ("Building infrastructure around SKMTC") will need to track
+out, §11 ("Building infrastructure around Skmtc") will need to track
 what becomes real — and may eventually split into its own
 `authoring/` or `platform/` documentation tree.

@@ -6,7 +6,7 @@
 ## The question
 
 The naive view of a code generator is one phase: take a schema in,
-spit code out. SKMTC explicitly breaks this into three phases —
+spit code out. Skmtc explicitly breaks this into three phases —
 **Parse**, **Generate**, **Render** — each with its own context
 class, its own lifecycle, and its own invariants. Why?
 
@@ -178,7 +178,7 @@ The three-way split makes such swaps a single-phase concern, not
 a system-wide rewrite.
 
 In practice these swaps are rare, but the option's existence
-matters — it means SKMTC isn't locked to OAS+TS forever.
+matters — it means Skmtc isn't locked to OAS+TS forever.
 
 ## See also
 

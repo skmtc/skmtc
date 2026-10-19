@@ -1,6 +1,6 @@
 # The Worker runtime
 
-> How SKMTC generation actually runs: a Deno Worker spawned per
+> How Skmtc generation actually runs: a Deno Worker spawned per
 > generation, sandboxed by Deno's permission model, with a strict
 > three-message protocol across the host/worker boundary. The Worker
 > isn't just an implementation detail — it's where the engine
@@ -232,7 +232,7 @@ agents and CI environments that can't or won't install Deno.
 
 ## Common questions
 
-### Why doesn't SKMTC use a long-running Worker?
+### Why doesn't Skmtc use a long-running Worker?
 
 Two reasons:
 
@@ -289,7 +289,7 @@ on a normal RESULT or ERROR is the only termination signal.
 ### Why aren't artifacts streamed?
 
 Structured clone has reasonable throughput for the artifact sizes
-SKMTC produces (typically hundreds of files, ~MB total). Streaming
+Skmtc produces (typically hundreds of files, ~MB total). Streaming
 would add complexity (message ordering, partial-write recovery)
 without measurable benefit at typical scales.
 

@@ -5,7 +5,7 @@
 
 ## The question
 
-When picking up SKMTC, two things matter: which components can
+When picking up Skmtc, two things matter: which components can
 you depend on, and which are still settling? This doc maps the
 component landscape and names the known limitations explicitly
 so users aren't surprised.
@@ -195,7 +195,7 @@ is fine — generation takes seconds. For very large schemas
 (thousands of operations) it'd be a problem.
 
 **Mitigation:** none in the engine. If you have very large
-schemas, consider partitioning into multiple SKMTC projects.
+schemas, consider partitioning into multiple Skmtc projects.
 
 ### Worker payload size
 
@@ -254,6 +254,6 @@ users on stock get the upgrade when they explicitly bump.
 - [How idempotency works](how-idempotency-works.md) — context for
   the fallback-name gap and the same-name collision limitation
 - [Comparison to other tools](comparison-to-other-tools.md) —
-  how SKMTC's maturity compares to other codegen tools
+  how Skmtc's maturity compares to other codegen tools
 - [API: toArtifacts](../reference/api/to-artifacts.md) — the
   engine entry point whose API is part of the stable contract

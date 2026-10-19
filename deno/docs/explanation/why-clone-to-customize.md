@@ -1,7 +1,7 @@
 # Why clone-to-customize
 
 > The design choice behind treating generators as application code you own — and
-> why this beats configuration-driven customization for SKMTC's intended use.
+> why this beats configuration-driven customization for Skmtc's intended use.
 
 ## The question
 
@@ -14,7 +14,7 @@ different fetch wrapper, a different naming convention, a custom field renderer
 2. **Cloning.** Ship the generator as source code. Users copy it into their
    project and edit the source directly.
 
-SKMTC chose cloning. This doc explains why, and when that's the wrong choice.
+Skmtc chose cloning. This doc explains why, and when that's the wrong choice.
 
 ## The short answer
 
@@ -111,7 +111,7 @@ own once they install them.
 - **Divergence over time.** Five teams cloning `gen-zod` end up with five
   different generators. Each one valid; collectively not interoperable.
 
-## How SKMTC mitigates the cloning downsides
+## How Skmtc mitigates the cloning downsides
 
 The model isn't "ship source code and hope for the best." Several choices reduce
 the friction:
@@ -119,7 +119,7 @@ the friction:
 - **Stock generators are intentionally small.** Most are 200-500 lines of
   TypeScript. The maintenance overhead of cloning one is low. Compare with
   cloning a 5,000-line generator with deep inheritance — that's untenable, and
-  SKMTC's generators stay under that ceiling on purpose.
+  Skmtc's generators stay under that ceiling on purpose.
 - **The engine API (`@skmtc/core`) is stable.** Apache 2.0 licensed,
   semver-honored, intentionally small. Cloned generators depend on `@skmtc/core`
   directly, so its stability is load-bearing. Breaking changes are rare and
@@ -138,7 +138,7 @@ the friction:
 
 ## The mechanical reason stock generators stay small
 
-The pros/cons above describe the philosophy. The mechanical reason SKMTC
+The pros/cons above describe the philosophy. The mechanical reason Skmtc
 actively _resists_ adding configuration flags to stock generators is concrete:
 every config flag is a runtime branch every consumer bundles.
 
@@ -182,7 +182,7 @@ consumers of this package legitimately set this flag to different values?_
 
 Per-operation enrichments occupy a separate axis — they're per-instance content
 (label, description, submit text), not per-consumer behavior. Enrichments don't
-trigger this test; they're how SKMTC handles content variation without requiring
+trigger this test; they're how Skmtc handles content variation without requiring
 a clone.
 
 ## When this is the wrong choice
@@ -207,7 +207,7 @@ It's wrong when:
   Cloning would need to happen per-customer, which is operationally heavy. A
   configuration-based tool fits SaaS better.
 
-SKMTC is designed for teams that:
+Skmtc is designed for teams that:
 
 - Are small enough that one or a few engineers can own the generator code
 - Want full control over generated code's style and conventions
@@ -224,14 +224,14 @@ These aren't binary. Most real tools fall somewhere on a spectrum:
 ```
 pure config            config + plugins         clone-to-customize
    ↑                          ↑                         ↑
-openapi-generator         kubb, hey-api               SKMTC
+openapi-generator         kubb, hey-api               Skmtc
 orval                                                shadcn/ui
 ```
 
 Tools further left optimize for low-friction default usage at the cost of
 customization depth. Tools further right optimize for customization depth at the
-cost of upgrade ergonomics. SKMTC is explicitly at the right end of this
-spectrum — not because it's a better point, but because it's the right point for
+cost of upgrade ergonomics. Skmtc is explicitly at the right end of this
+spectrum. That is not a better point in general; it is the right point for
 its target user.
 
 ## See also
@@ -242,7 +242,7 @@ its target user.
   guidance on which command to use
 - [Generators as packages concept](../concepts/generators-as-packages.md) —
   package shape and lifecycle
-- [Comparison to other tools](comparison-to-other-tools.md) — how SKMTC's
+- [Comparison to other tools](comparison-to-other-tools.md) — how Skmtc's
   position compares against the codegen landscape
 - [Anatomy of a generator](../authoring/anatomy-of-a-generator.md) — what
   you are editing once you clone

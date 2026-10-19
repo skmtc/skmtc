@@ -65,7 +65,7 @@ The algorithm **fails** or **strips class identity** on:
 - **Symbols** — not transferable.
 - **DOM nodes** — not transferable.
 
-The class-instance behavior is the one that matters for SKMTC.
+The class-instance behavior is the one that matters for Skmtc.
 TypeScript classes carry their methods on the prototype; losing
 the prototype means losing the methods. A `OasOperation` that
 arrives in the Worker as a plain object can't have
@@ -149,12 +149,12 @@ guaranteed to survive a generic deep-clone.
 
 ### Why we don't refactor to avoid them
 
-The fix-in-principle would be: build an SKMTC-specific GraphQL
+The fix-in-principle would be: build an Skmtc-specific GraphQL
 AST representation that's structuredClone-safe, similar to how
 OAS has its own discriminator-based model.
 
 This is out of scope. `graphql-js` is the de-facto GraphQL
-parser. Rewriting GraphQL parsing inside SKMTC would mean
+parser. Rewriting GraphQL parsing inside Skmtc would mean
 reimplementing the spec — substantial work, with ongoing
 maintenance burden as the spec evolves. The engineering ROI
 isn't there.
@@ -199,7 +199,7 @@ The asymmetry is uncomfortable, and we've considered three
 alternatives:
 
 1. **Parse both host-side, ship plain-object models across.**
-   Requires the SKMTC-specific GraphQL AST mentioned above.
+   Requires the Skmtc-specific GraphQL AST mentioned above.
    Substantial work; rejected on engineering cost.
 2. **Parse both worker-side, ship strings across.** Forces OAS
    parsing into the Worker. The Worker needs the OAS parser
@@ -227,24 +227,12 @@ host-side. Some parallelism. For GraphQL, the Worker must boot
 In practice this is microseconds. Not a meaningful operational
 difference.
 
-## Why this matters beyond the implementation detail
+## Why the design accepts it
 
-The asymmetry illustrates a broader pattern: **SKMTC uses what
-Deno provides; it does not write its own**. Here that is Deno
-Workers + `structuredClone`. Where Deno has a constraint
-(`structuredClone` is the only host-Worker channel),
-SKMTC accepts the constraint and adapts the design around it
-rather than building its own message transport.
-
-This same pattern shows up elsewhere:
-
-- `deno bundle` as the bundler (not a bespoke bundler)
-- Deno permissions as the sandbox (not a custom security layer)
-- JSR as the distribution channel (not a SKMTC-specific registry)
-
-Using Deno's tools is what keeps the engine small. The cost
-is occasional asymmetries like this one. The benefit is the
-engine staying readable and maintainable.
+`structuredClone` is the only channel between the host and a
+Deno Worker. Skmtc designs around that limit and does not add a
+message format of its own. The cost is an asymmetry like this
+one; the benefit is less engine code to read and maintain.
 
 ## See also
 
@@ -263,5 +251,5 @@ engine staying readable and maintainable.
   a `SkmtcDocumentInput` union: `{ type: 'oas', value: ... }` or
   `{ type: 'gql', value: ... }`. Same field name (`value`) on both
   variants; discrimination is on `type`.
-- [Design philosophy](design-philosophy.md) — principle 6, using
-  Deno's bundler, sandbox and registry instead of our own
+- [Design philosophy](design-philosophy.md) — "Deno only" under
+  the tradeoffs accepted

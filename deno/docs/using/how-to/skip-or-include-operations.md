@@ -12,7 +12,7 @@
 
 ## Prerequisites
 
-- A SKMTC project with at least one generator installed.
+- A Skmtc project with at least one generator installed.
 - The operation IDs or refNames you want to filter.
 
 ## Steps

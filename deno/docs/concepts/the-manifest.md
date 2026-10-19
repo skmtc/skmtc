@@ -1,6 +1,6 @@
 # The manifest
 
-> The structured JSON record of every SKMTC generation run.
+> The structured JSON record of every Skmtc generation run.
 > Captures which files were written, which `(generator, item)`
 > pairs succeeded, failed, or were skipped, what parse issues
 > surfaced, and the source descriptors that tooling uses to map
@@ -75,7 +75,7 @@ after the worker returns its file map. The CLI writes each
 artifact and records the metrics. This is the only section the
 worker doesn't fully control.
 
-A consumer asking "did SKMTC generate the User type?" reads
+A consumer asking "did Skmtc generate the User type?" reads
 `files['./types/User.ts']`. A missing entry means no file was
 written, regardless of what `toArtifacts`'s `results` say.
 
@@ -179,7 +179,7 @@ to declare input adapters or formatters keyed to a specific schema
 type.
 
 Most stock generators don't implement these hooks. The ones that
-do (the form, table, and select generators) feed the SKMTC UI and
+do (the form, table, and select generators) feed the Skmtc UI and
 IDE plugins so users can visually link a generated form back to
 its `POST /users` operation. If your toolchain doesn't have such
 a UI, you can ignore these sections — they don't affect file
@@ -260,7 +260,7 @@ jq '.results | .. | objects | to_entries[] | select(.value == "error")' \
   .skmtc/my-project/.settings/manifest.json
 ```
 
-### IDE plugins / SKMTC UI
+### IDE plugins / Skmtc UI
 
 The UI reads `previews` to render "this form was
 generated from `POST /contacts`." Each preview's `source` field

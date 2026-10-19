@@ -14,7 +14,7 @@ configuration passed from `client.json` to the Projection.
 
 - The generator cloned into your project.
 - Light familiarity with [Valibot](https://valibot.dev/) (the
-  validation library SKMTC uses for enrichment schemas).
+  validation library Skmtc uses for enrichment schemas).
 
 ## Steps
 

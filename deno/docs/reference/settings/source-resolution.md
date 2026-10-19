@@ -415,7 +415,7 @@ auth-required refs, circular refs across files).
 
 So a single spec file at the workspace root can be consumed by
 multiple projects. This matches how most teams structure their
-repos: one OpenAPI spec, one or more SKMTC projects writing
+repos: one OpenAPI spec, one or more Skmtc projects writing
 different generator combinations from it.
 
 For project-private specs, use a path that includes the project

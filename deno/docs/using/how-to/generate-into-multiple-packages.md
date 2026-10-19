@@ -17,7 +17,7 @@ file imports every other file through `@/` from `basePath`.
 
 ## Prerequisites
 
-- A SKMTC project whose generators write export paths under the
+- A Skmtc project whose generators write export paths under the
   package folders you want. Stock generators hardcode paths such as
   `@/types/...`. To put output under `packages/sdk/src/models`, clone
   the generator and
