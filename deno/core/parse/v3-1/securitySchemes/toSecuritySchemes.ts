@@ -11,6 +11,7 @@ import * as v from 'valibot'
 import {
   oasApiKeySecuritySchemeData,
   oasHttpSecuritySchemeData,
+  oasOAuth2FlowsData,
   oasOAuth2SecuritySchemeData,
   oasOpenIdSecuritySchemeData
 } from '@/oas/securitySchemes/security-scheme-types.ts'
@@ -18,9 +19,9 @@ import type { OasSecurityScheme } from '@/oas/securitySchemes/SecurityScheme.ts'
 import { toRefV31 } from '../ref/toRefV31.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { isRef } from '@/helpers/refFns.ts'
-import { isEmpty } from '@/helpers/isEmpty.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { toSpecificationExtensionsV3 } from '@/parse/v3-1/specificationExtensions/toSpecificationExtensionsV3.ts'
 export type ToSecuritySchemesArgs = {
   securitySchemes:
     | Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SecuritySchemeObject>
@@ -67,6 +68,27 @@ export type ToSecuritySchemeV3Args = {
   context: ParseContextType
 }
 
+type LogSkippedKeysArgs = {
+  value: object
+  known: Record<string, unknown>
+  parentType: string
+  stackTrail: StackTrail
+  context: ParseContextType
+}
+
+/**
+ * Log the keys of `value` that `known` does not name as skipped fields.
+ * `v.parse` on a `v.object` schema strips unknown keys, so they are read
+ * off the raw object. `x-` extensions are not logged.
+ */
+const logSkippedKeys = ({ value, known, parentType, stackTrail, context }: LogSkippedKeysArgs) => {
+  const skipped = Object.fromEntries(
+    Object.entries(value).filter(([key]) => !Object.hasOwn(known, key))
+  )
+
+  toSpecificationExtensionsV3({ skipped, parent: value, parentType, stackTrail, context })
+}
+
 const toSecuritySchemeV3 = ({
   securityScheme,
   stackTrail,
@@ -83,22 +105,19 @@ const toSecuritySchemeV3 = ({
 
   switch (securityScheme.type) {
     case 'http': {
-      const {
-        type: _type,
-        description,
-        scheme,
-        bearerFormat,
-        ...skipped
-      } = v.parse(oasHttpSecuritySchemeData, securityScheme)
+      const { description, scheme, bearerFormat } = v.parse(
+        oasHttpSecuritySchemeData,
+        securityScheme
+      )
 
-      if (!isEmpty(skipped)) {
-        context.logSkippedFields({
-          skipped,
-          parent: securityScheme,
-          stackTrail,
-          parentType: 'securityScheme:http'
-        })
-      }
+      logSkippedKeys({
+        value: securityScheme,
+        known: oasHttpSecuritySchemeData.entries,
+        parentType: 'securityScheme:http',
+        stackTrail,
+        context
+      })
+
       return new OasHttpSecurityScheme({
         description,
         scheme,
@@ -108,21 +127,18 @@ const toSecuritySchemeV3 = ({
 
     case 'apiKey': {
       const {
-        type: _type,
         in: location,
         description,
-        name,
-        ...skipped
+        name
       } = v.parse(oasApiKeySecuritySchemeData, securityScheme)
 
-      if (!isEmpty(skipped)) {
-        context.logSkippedFields({
-          skipped,
-          parent: securityScheme,
-          stackTrail,
-          parentType: 'securityScheme:apiKey'
-        })
-      }
+      logSkippedKeys({
+        value: securityScheme,
+        known: oasApiKeySecuritySchemeData.entries,
+        parentType: 'securityScheme:apiKey',
+        stackTrail,
+        context
+      })
 
       return new OasApiKeySecurityScheme({
         description,
@@ -132,21 +148,25 @@ const toSecuritySchemeV3 = ({
     }
 
     case 'oauth2': {
-      const {
-        type: _type,
-        flows,
-        description,
-        ...skipped
-      } = v.parse(oasOAuth2SecuritySchemeData, securityScheme)
+      const { flows, description } = v.parse(oasOAuth2SecuritySchemeData, securityScheme)
 
-      if (!isEmpty(skipped)) {
-        context.logSkippedFields({
-          skipped,
-          parent: securityScheme,
-          stackTrail,
-          parentType: 'securityScheme:oauth2'
+      logSkippedKeys({
+        value: securityScheme,
+        known: oasOAuth2SecuritySchemeData.entries,
+        parentType: 'securityScheme:oauth2',
+        stackTrail,
+        context
+      })
+
+      stackTrail.trace('flows', st =>
+        logSkippedKeys({
+          value: securityScheme.flows,
+          known: oasOAuth2FlowsData.entries,
+          parentType: 'oauthFlows',
+          stackTrail: st,
+          context
         })
-      }
+      )
 
       return new OasOAuth2SecurityScheme({
         description,
@@ -155,21 +175,15 @@ const toSecuritySchemeV3 = ({
     }
 
     case 'openIdConnect': {
-      const {
-        type: _type,
-        description,
-        openIdConnectUrl,
-        ...skipped
-      } = v.parse(oasOpenIdSecuritySchemeData, securityScheme)
+      const { description, openIdConnectUrl } = v.parse(oasOpenIdSecuritySchemeData, securityScheme)
 
-      if (!isEmpty(skipped)) {
-        context.logSkippedFields({
-          skipped,
-          parent: securityScheme,
-          stackTrail,
-          parentType: 'securityScheme:openIdConnect'
-        })
-      }
+      logSkippedKeys({
+        value: securityScheme,
+        known: oasOpenIdSecuritySchemeData.entries,
+        parentType: 'securityScheme:openIdConnect',
+        stackTrail,
+        context
+      })
 
       return new OasOpenIdSecurityScheme({
         description,

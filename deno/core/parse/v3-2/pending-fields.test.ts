@@ -40,7 +40,9 @@ const documentObject = toDocumentObject(
                   schema: { type: 'array', items: { type: 'string' } },
                   prefixEncoding: [{ contentType: 'text/plain' }],
                   itemEncoding: { contentType: 'text/plain' }
-                }
+                },
+                'text/event-stream': { itemSchema: { type: 'string' } },
+                'application/x-ndjson': { $ref: '#/components/mediaTypes/Lines' }
               }
             }
           }
@@ -98,33 +100,7 @@ const documentObject = toDocumentObject(
   '3.2 document'
 )
 
-const pendingFields: Array<{ field: string; location: string }> = [
-  {
-    field: 'media type itemSchema',
-    location: 'TEST:paths:/pets:get:responses:200:content:application/jsonl:itemSchema'
-  },
-  {
-    field: 'media type prefixEncoding',
-    location: 'TEST:paths:/pets:get:responses:200:content:multipart/mixed:prefixEncoding'
-  },
-  {
-    field: 'media type itemEncoding',
-    location: 'TEST:paths:/pets:get:responses:200:content:multipart/mixed:itemEncoding'
-  },
-  { field: 'components.mediaTypes', location: 'TEST:components:mediaTypes' },
-  {
-    field: 'security scheme deprecated',
-    location: 'TEST:components:securitySchemes:legacyKey:deprecated'
-  },
-  {
-    field: 'security scheme oauth2MetadataUrl',
-    location: 'TEST:components:securitySchemes:oauth:oauth2MetadataUrl'
-  },
-  {
-    field: 'OAuth flow deviceAuthorization',
-    location: 'TEST:components:securitySchemes:oauth:flows:deviceAuthorization'
-  }
-]
+const pendingFields: Array<{ field: string; location: string }> = []
 
 const context = new ParseContext({
   input: { type: 'oas', value: documentObject },
@@ -159,6 +135,14 @@ const toPetsExample = () => {
   assert(example !== undefined && !example.isRef())
   return example
 }
+
+const toOAuth2Scheme = () => {
+  const scheme = toDocument().components?.securitySchemes?.oauth?.resolve()
+  assert(scheme?.type === 'oauth2')
+  return scheme
+}
+
+const petsContentLocation = 'TEST:paths:/pets:get:responses:200:content'
 
 const readFields: Array<{
   field: string
@@ -227,6 +211,54 @@ const readFields: Array<{
       return pet.discriminator?.defaultMapping
     },
     expected: '#/components/schemas/Cat'
+  },
+  {
+    field: 'media type itemSchema',
+    location: `${petsContentLocation}:text/event-stream:itemSchema`,
+    toValue: () => toPetsResponse().content?.['text/event-stream']?.itemSchema?.type,
+    expected: 'string'
+  },
+  {
+    field: 'media type prefixEncoding',
+    location: `${petsContentLocation}:multipart/mixed:prefixEncoding`,
+    toValue: () => toPetsResponse().content?.['multipart/mixed']?.prefixEncoding,
+    expected: [{ contentType: 'text/plain' }]
+  },
+  {
+    field: 'media type itemEncoding',
+    location: `${petsContentLocation}:multipart/mixed:itemEncoding`,
+    toValue: () => toPetsResponse().content?.['multipart/mixed']?.itemEncoding,
+    expected: { contentType: 'text/plain' }
+  },
+  {
+    // Not stored on the components; resolved into the content entry that
+    // references it.
+    field: 'components.mediaTypes',
+    location: 'TEST:components:mediaTypes',
+    toValue: () => toPetsResponse().content?.['application/x-ndjson']?.itemSchema?.type,
+    expected: 'string'
+  },
+  {
+    field: 'security scheme deprecated',
+    location: 'TEST:components:securitySchemes:legacyKey:deprecated',
+    toValue: () => toDocument().components?.securitySchemes?.legacyKey?.resolve().deprecated,
+    expected: true
+  },
+  {
+    field: 'security scheme oauth2MetadataUrl',
+    location: 'TEST:components:securitySchemes:oauth:oauth2MetadataUrl',
+    toValue: () => toOAuth2Scheme().oauth2MetadataUrl,
+    expected: 'https://example.com/.well-known/oauth-authorization-server'
+  },
+  {
+    field: 'OAuth flow deviceAuthorization',
+    location: 'TEST:components:securitySchemes:oauth:flows:deviceAuthorization',
+    toValue: () => toOAuth2Scheme().flows.deviceAuthorization,
+    expected: {
+      deviceAuthorizationUrl: 'https://example.com/device',
+      tokenUrl: 'https://example.com/token',
+      scopes: {}
+    }
   }
 ]
 
@@ -239,6 +271,16 @@ for (const { field, location, toValue, expected } of readFields) {
     )
   })
 }
+
+Deno.test('v3-2 pending fields - a content $ref into components.mediaTypes leaves no issue at its entry', () => {
+  const entryLocation = `${petsContentLocation}:application/x-ndjson`
+  assertEquals(
+    context.issues.filter(
+      issue => issue.location === entryLocation || issue.location.startsWith(`${entryLocation}:`)
+    ),
+    []
+  )
+})
 
 Deno.test('v3-2 pending fields - path item query is an operation', () => {
   assert(result.type === 'oas')

@@ -120,10 +120,25 @@ OpenAPI 3.2 is a superset of 3.1, and its schema-layer changes are additive. `v3
 as a copy of `v3-1`; the 3.2 fields are added to it one at a time. Until a
 field is read into the IR, the parser records it as a skipped-field warning
 (`UNEXPECTED_PROPERTY`) and the parse continues. `v3-2/pending-fields.test.ts`
-holds one case per pending row.
+holds one case per row: a skipped-field warning for a pending row, and the
+IR value with no warning for a done one.
 
-The `v3-2` security-scheme parser also records unknown keys on a security
-scheme and on its `flows` object; `v3-0` and `v3-1` drop them silently.
+All three security-scheme parsers record unknown keys on a security scheme
+and on its `flows` object as skipped-field warnings. The shared valibot
+schemas in `oas/securitySchemes/security-scheme-types.ts` are the 3.0/3.1
+shape; `v3-2` extends them with the 3.2 fields, so on a 3.0 or 3.1 document
+those fields warn and stay off the IR.
+
+`components.mediaTypes` is resolved at parse time: `toMediaTypeItemsV3`
+replaces a `content` entry whose `$ref` points into it with the referenced
+Media Type Object, then parses that like an inline one. An entry that is
+itself a `$ref` is followed. A `$ref` that does not resolve to a Media Type
+Object there (a missing entry, a pointer elsewhere, or a chain of entries
+that loops back on itself) logs `INVALID_DEPENDENCY_REF` at that content
+entry and drops it. The map is not stored on `OasComponents`
+and `OasRef` has no `mediaType` bucket: a resolved entry carries the same IR
+as an inline one, so generators read media types the same way in both
+cases and never need to resolve a media type reference themselves.
 
 `$self` is stored, but reference resolution does not use it: `toRefName`
 keeps only the last segment of a `$ref` and ignores the rest of the URI, so
@@ -136,16 +151,16 @@ the 3.2 base-URI rules (Appendix F of the spec) are not implemented.
 | Path item `additionalOperations` | one `UNSUPPORTED_OPERATION_METHOD` warning per entry; the operation is dropped | ✅ warned |
 | Parameter `in: querystring` | read; must carry `content` with exactly one media type and no `schema` (`INVALID_PARAMETER` error otherwise, the parameter is dropped); a second `querystring`, or one with `in: query`, is an `INVALID_PARAMETER` warning | ✅ read |
 | Parameter `style: cookie` | read for `in: cookie` (default `explode: true`). On another location it fails like any invalid parameter: on an operation, the operation is dropped; on a path item or webhook path item, the whole path is dropped (`INVALID_OPERATION`); under `components.parameters`, the parameter is dropped (`INVALID_PARAMETER`) | ✅ read |
-| Media type `itemSchema` | skipped-field warning | ⏳ pending |
-| Media type `prefixEncoding` / `itemEncoding` | skipped-field warning | ⏳ pending |
-| `components.mediaTypes` | skipped-field warning | ⏳ pending |
+| Media type `itemSchema` | `OasMediaType.itemSchema` (schema or ref) | ✅ done |
+| Media type `prefixEncoding` / `itemEncoding` | stored as-is on `OasMediaType`; a warning when `encoding` is also present | ✅ done |
+| `components.mediaTypes` | resolved into each `content` entry that references it | ✅ done |
 | Response `summary` | `OasResponse.summary` | ✅ done |
 | Example `dataValue` / `serializedValue` | `OasExample.dataValue` / `serializedValue`. `value` cannot sit next to any other value field, and `serializedValue` cannot sit next to `externalValue`; the field that loses is dropped with `INVALID_EXAMPLE`, by precedence `dataValue`, `value`, `serializedValue`, `externalValue` | ✅ done |
 | Tag `parent` / `kind` / `summary` | `OasTag.parent` / `kind` / `summary`. A `parent` that is not a tag, or that leads back to the tag, is dropped with `INVALID_TAG_PARENT` | ✅ done |
 | Server `name` | `OasServer.name` | ✅ done |
 | Discriminator `defaultMapping` | `OasDiscriminator.defaultMapping` | ✅ done |
-| Security scheme `deprecated` / `oauth2MetadataUrl` | skipped-field warning | ⏳ pending |
-| OAuth flow `deviceAuthorization` | skipped-field warning | ⏳ pending |
+| Security scheme `deprecated` / `oauth2MetadataUrl` | on the security scheme IR | ✅ done |
+| OAuth flow `deviceAuthorization` | `flows.deviceAuthorization` on `OasOAuth2SecurityScheme` | ✅ done |
 
 ## Diagnostic levels
 
