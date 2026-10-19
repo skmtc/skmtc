@@ -417,10 +417,10 @@ the worker-side parser omission, the `doctor` checks:
 `cli` also depends on `convert` and `worker`. Exact versions live in
 each package's `deno.json` — treat that as canonical, not this skill.
 
-### Built on Deno
+### Deno's bundler, sandbox and registry
 
-SKMTC's design principle "build on Deno, don't rebuild it"
-means **Deno is the platform**:
+SKMTC writes no bundler, sandbox or registry of its own. It uses
+Deno's:
 
 - `deno bundle` is the bundler — it compiles a project's `worker.ts`
   into `bundle.js`.

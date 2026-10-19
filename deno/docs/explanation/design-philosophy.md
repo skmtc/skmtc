@@ -143,7 +143,7 @@ and go-to-definition working across the template boundary.
 
 See [Projections and Snippets](../concepts/projections-and-snippets.md).
 
-### 6. Build on Deno, don't rebuild it
+### 6. Use Deno's bundler, sandbox and registry; don't write our own
 
 > Deno is the platform: `deno bundle` is the bundler, `new Worker(...)` is the sandbox, Deno permissions are the access control. SKMTC adds the codegen logic.
 
