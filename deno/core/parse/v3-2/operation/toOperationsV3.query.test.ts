@@ -103,6 +103,21 @@ Deno.test('v3-2 toOperationsV3 - an additionalOperations value that is not an ob
   )
 })
 
+Deno.test('v3-2 toOperationsV3 - an additionalOperations array is a skipped field', () => {
+  const { issues } = parse({ paths: { '/files': { additionalOperations: [ok], get: ok } } })
+
+  assertEquals(
+    issues.map(({ level, type, location }) => ({ level, type, location })),
+    [
+      {
+        level: 'warning',
+        type: 'UNEXPECTED_PROPERTY',
+        location: 'TEST:paths:/files:additionalOperations'
+      }
+    ]
+  )
+})
+
 Deno.test('v3-2 toOperationsV3 - a primitive path item does not stop the other paths', () => {
   const { issues, document } = parse({
     paths: { '/a': 'oops', '/b': { get: ok } },

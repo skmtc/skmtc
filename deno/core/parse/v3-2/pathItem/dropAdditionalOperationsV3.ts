@@ -13,8 +13,8 @@ export type DropAdditionalOperationsV3Args = {
  * `UNSUPPORTED_OPERATION_METHOD` warning per entry, naming the method. The
  * operations are dropped: no generator renders an arbitrary method yet.
  *
- * A value that is not an object stays on the path item, so the path item
- * parser reports it as a skipped field.
+ * A value that is not a map (a primitive or an array) stays on the path
+ * item, so the path item parser reports it as a skipped field.
  */
 export const dropAdditionalOperationsV3 = ({
   pathItem,
@@ -29,7 +29,11 @@ export const dropAdditionalOperationsV3 = ({
 
   const { additionalOperations, ...rest } = pathItem
 
-  if (typeof additionalOperations !== 'object' || additionalOperations === null) {
+  if (
+    typeof additionalOperations !== 'object' ||
+    additionalOperations === null ||
+    Array.isArray(additionalOperations)
+  ) {
     return pathItem
   }
 
