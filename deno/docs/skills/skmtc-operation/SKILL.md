@@ -57,11 +57,17 @@ a response shape) breaks the moment the schema evolves.
   only what you can render (e.g. mutations require
   `operation.toRequestBody(({ schema }) => schema)` to exist). An
   unfiltered entry constructs subjects it can't handle and fails them
-  one by one.
+  one by one. OpenAPI 3.2 documents add the `query` method:
+  `toEndpointType` counts it as a query, like `get`, and a `switch`
+  over `operation.method` needs a `query` arm. Filter it out when your
+  target has no way to send it.
 - **Inputs**: `operation.toParams(['path'])` / `['query']` /
-  `['header']` for individual parameters;
+  `['header']` / `['cookie']` for individual parameters;
   `operation.toParametersObject()` for all of them as ONE object
-  schema — the form you hand to a model generator (§3).
+  schema — the form you hand to a model generator (§3). A 3.2
+  `querystring` parameter is the whole query string as one schema,
+  taken from its single `content` entry. `['query']` does not include
+  it; ask for `['querystring']`.
 - **Request body**: `operation.toRequestBody(({ schema }) => schema)`.
 - **Response**: `operation.toSuccessResponse()?.resolve().toSchema()
   ?? OasVoid.empty()` — selection and void-fallback in one idiom.
