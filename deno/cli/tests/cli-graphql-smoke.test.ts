@@ -1,5 +1,5 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
-import { dirname, fromFileUrl, join, resolve } from '@std/path'
+import { dirname, fromFileUrl, join, relative, resolve } from '@std/path'
 
 /**
  * End-to-end smoke test for the GraphQL → CLI → output pipeline.
@@ -20,14 +20,13 @@ const TEST_DIR = dirname(fromFileUrl(import.meta.url))
 const CLI_DIR = resolve(TEST_DIR, '..')
 const CLI_MOD = join(CLI_DIR, 'mod.ts')
 const CLI_DENO_JSON = join(CLI_DIR, 'deno.json')
+const WORKSPACE_DIR = resolve(CLI_DIR, '..')
 
-// Fixture projects live inside the workspace (under
-// `cli/tests/.fixtures/`) so `deno bundle` walks up to
-// `skmtc/deno/deno.json` and resolves `@skmtc/core`, `@skmtc/worker`,
-// and their sub-paths via the workspace's member packages. No
-// reaching outside this repo, no file-path entries in the fixture's
-// import map. `.fixtures/` is gitignored — pure throwaway state.
+// `.fixtures/` is gitignored — pure throwaway state.
 const FIXTURES_DIR = join(TEST_DIR, '.fixtures')
+
+/** The workspace members `skmtc generate` pins in the project, by directory. */
+const LINKED_MEMBERS = ['core', 'worker']
 
 const PROJECT_NAME = 'gql-smoke'
 
@@ -51,16 +50,25 @@ const FIXTURE_SDL = /* GraphQL */ `
   }
 `
 
-// Deliberately no `deno.json` inside the fixture project. Deno
-// rejects sub-directory `deno.json` files that aren't declared
-// workspace members ("Config file must be a member of the
-// workspace"), and the fixture project is ephemeral — adding it to
-// `skmtc/deno/deno.json#workspace` would muddy the production layout.
-//
-// Without a fixture-local config, `deno bundle` walks up from the
-// fixture project's `cwd` and finds `skmtc/deno/deno.json` — the
-// workspace root — which already resolves `@skmtc/core`,
-// `@skmtc/worker`, and their sub-paths via member-package `exports`.
+/**
+ * The fixture project's `deno.json`: only `links` to the workspace
+ * members, so the `jsr:` pins `skmtc generate` adds resolve to the
+ * workspace code, not to JSR.
+ *
+ * Deno ignores the parent workspace for a `deno.json` that isn't a
+ * member, so once the project has one, the workspace no longer
+ * resolves `@skmtc/*` for `deno bundle` or `deno info`.
+ */
+const toFixtureDenoJson = (projectPath: string): string =>
+  JSON.stringify(
+    {
+      links: LINKED_MEMBERS.map(directory =>
+        relative(projectPath, join(WORKSPACE_DIR, directory)).replaceAll('\\', '/')
+      )
+    },
+    null,
+    2
+  )
 
 // Minimal inline model generator. Emits one stub TypeScript type per
 // registered schema (so the CLI summary reports "Generated N files
@@ -110,11 +118,9 @@ type SetupResult = {
 }
 
 /**
- * Build the fixture project under `cli/tests/.fixtures/<unique>/`.
- * Inside the workspace so `deno bundle` finds `skmtc/deno/deno.json`
- * walking up and resolves `@skmtc/*` packages through workspace
- * membership. The `<unique>` segment lets the two smoke tests run
- * without colliding on the same directory.
+ * Build the fixture project under `cli/tests/.fixtures/<unique>/`. The
+ * `<unique>` segment lets the two smoke tests run without colliding on
+ * the same directory.
  */
 const setup = async (uniqueSuffix: string): Promise<SetupResult> => {
   const fixtureRoot = join(FIXTURES_DIR, `${PROJECT_NAME}-${uniqueSuffix}`)
@@ -125,14 +131,12 @@ const setup = async (uniqueSuffix: string): Promise<SetupResult> => {
   const settingsPath = join(projectPath, '.settings')
   await Deno.mkdir(settingsPath, { recursive: true })
 
-  // No deno.json in the project — workspace root supplies resolution.
   await Deno.writeTextFile(join(projectPath, 'worker.ts'), FIXTURE_WORKER)
   await Deno.writeTextFile(join(settingsPath, 'client.json'), FIXTURE_CLIENT_JSON)
 
-  // Build bundle.js from worker.ts. The cwd is inside the workspace
-  // so `deno bundle` finds `skmtc/deno/deno.json` walking up and
-  // resolves `@skmtc/*` workspace members via their own `name` +
-  // `exports`. No file-path mappings needed.
+  // Built before the project has a `deno.json`, so `deno bundle` walks
+  // up to `skmtc/deno/deno.json` and resolves `@skmtc/*` through the
+  // workspace members.
   const bundleCmd = new Deno.Command('deno', {
     args: ['bundle', '-o', 'bundle.js', 'worker.ts'],
     cwd: projectPath,
@@ -144,6 +148,8 @@ const setup = async (uniqueSuffix: string): Promise<SetupResult> => {
     const err = new TextDecoder().decode(bundleOut.stderr)
     throw new Error(`bundle build failed: ${err}`)
   }
+
+  await Deno.writeTextFile(join(projectPath, 'deno.json'), toFixtureDenoJson(projectPath))
 
   const schemaPath = join(fixtureRoot, 'schema.graphql')
   await Deno.writeTextFile(schemaPath, FIXTURE_SDL)
