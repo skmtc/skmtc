@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20671 | 10:00 AM | ✅ | SKMTC documentation structure - "using" audience framework | ~638 |
+| #20671 | 10:00 AM | ✅ | Skmtc documentation structure - "using" audience framework | ~638 |
 </claude-mem-context>

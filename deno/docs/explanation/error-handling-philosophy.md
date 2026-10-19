@@ -1,13 +1,13 @@
 # Error handling philosophy
 
-> Why parse fails open and the manifest is the canonical run record: SKMTC
+> Why parse fails open and the manifest is the canonical run record: Skmtc
 > treats partial output with full diagnostics as more valuable than zero output
 > with a single root-cause error. One bad schema shouldn't kill the run.
 
 The philosophy in one sentence: **lenient input, strict diagnostics**.
 
 Many codegen tools fail closed — one parse error halts everything, forcing the
-user to fix the schema before getting any output. SKMTC fails open: it parses
+user to fix the schema before getting any output. Skmtc fails open: it parses
 what it can, prunes what it can't, logs every decision, and produces output for
 the surviving items. The manifest is the structured record of what worked and
 what didn't.
@@ -255,7 +255,7 @@ Imperfect but acceptable. The manifest still records everything.
 ## Type-inference fallbacks (the other lenient lever)
 
 OAS documents in the wild often omit `type` on schemas — the JSON Schema spec
-made it optional. SKMTC infers when it can rather than failing:
+made it optional. Skmtc infers when it can rather than failing:
 
 - Schema has `properties` → assume `type: 'object'`. Logs a
   `MISSING_OBJECT_TYPE` warning.
@@ -369,7 +369,7 @@ manifest — the diagnostic record survives.
 
 ## Why no thrown exceptions to the caller?
 
-A throw-based error model is wrong for SKMTC's use case:
+A throw-based error model is wrong for Skmtc's use case:
 
 1. **Partial output is valuable.** A schema with 100 operations and one broken
    schema can still produce 99 useful files. Throwing on the first error kills

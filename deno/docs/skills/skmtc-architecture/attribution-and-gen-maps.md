@@ -1,6 +1,6 @@
 # Attribution and gen-maps
 
-> SKMTC's **provenance** subsystem. When emission is enabled, a
+> Skmtc's **provenance** subsystem. When emission is enabled, a
 > generation run produces — alongside the code — a **sidecar** per
 > file that maps byte ranges in the generated output back to the
 > generator, schema location, and variant that produced them, plus a
@@ -30,7 +30,7 @@ unconditional; only **emission** of the on-disk artifacts is opt-in
 
 ## Why it exists
 
-SKMTC turns one schema into many files through many generators. Once
+Skmtc turns one schema into many files through many generators. Once
 the output is on disk it is just TypeScript — nothing in the
 generated text says *"this `z.string()` came from
 `#/components/schemas/User/properties/email`, rendered by
@@ -418,7 +418,7 @@ which you opt into.
   cost lives, and it runs only when the run supplies
   `attribution.postPass`.
 
-There is no cross-run state — like every SKMTC run, an
+There is no cross-run state — like every Skmtc run, an
 attribution-enabled run is from cold (see
 [the-worker-runtime.md](../../concepts/the-worker-runtime.md)).
 

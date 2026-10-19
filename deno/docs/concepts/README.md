@@ -1,13 +1,13 @@
 # Concepts
 
-> Mental models shared by SKMTC users and generator authors. These
+> Mental models shared by Skmtc users and generator authors. These
 > pages are routed just-in-time from the tutorials and how-to guides —
 > read the one a task links you to; this is not a syllabus.
 
 ## Start here
 
 - [Definitions and files](definitions-and-files.md) — the
-  create-or-reuse mechanism that makes SKMTC composable, in one page
+  create-or-reuse mechanism that makes Skmtc composable, in one page
 - [The three phases](the-three-phases.md) — Parse → Generate → Render
 
 ## Consuming generators

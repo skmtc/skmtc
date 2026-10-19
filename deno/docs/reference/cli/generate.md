@@ -1,6 +1,6 @@
 # skmtc generate
 
-> Run the SKMTC generation pipeline against a schema.
+> Run the Skmtc generation pipeline against a schema.
 
 The most-used CLI command. Builds the project's bundle, parses the
 schema, runs every installed generator, writes output files, writes
@@ -16,7 +16,7 @@ skmtc generate <project> [schema] [--watch] [--typecheck] [--tsconfig <path>] [-
 
 ### `<project>`
 
-The SKMTC project name — the subdirectory name under
+The Skmtc project name — the subdirectory name under
 `<root>/.skmtc/`. Required in strict mode.
 
 ### `[schema]`
@@ -76,7 +76,7 @@ sidecars plus a generation map under `.skmtc/<project>/.maps/`.
 
 Run generation under the V8 inspector in source mode (not the
 bundle), so a debugger can pause on breakpoints in generator code
-and inspect the live files map at each stop. Pairs with the SKMTC
+and inspect the live files map at each stop. Pairs with the Skmtc
 Debug VS Code extension. Routes to a separate debug code path.
 
 ### `--auto`

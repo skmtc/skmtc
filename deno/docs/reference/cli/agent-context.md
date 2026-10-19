@@ -8,7 +8,7 @@
 
 `agent-context` is the CLI's "tell me everything you know about the
 workspace" command. It's the recommended starting point for agents
-beginning a SKMTC-related task: a single JSON document describing
+beginning a Skmtc-related task: a single JSON document describing
 what the workspace looks like, what generators are present, where
 the spec lives, and what the last successful generation produced.
 
@@ -210,7 +210,7 @@ code — anomalies are reported in-band as part of the output.
 Error: not in a SKMTC workspace (no deno.json found)
 ```
 
-`cd` to a SKMTC workspace root, or run `skmtc init` to create one.
+`cd` to a Skmtc workspace root, or run `skmtc init` to create one.
 
 ### Schema fetch timeout
 

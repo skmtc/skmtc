@@ -12,7 +12,7 @@ argument instead.
 
 ## Prerequisites
 
-- A SKMTC project (run `skmtc init` first if needed).
+- A Skmtc project (run `skmtc init` first if needed).
 - A schema source: HTTPS URL, HTTP URL, or relative/absolute
   filesystem path.
 
@@ -62,7 +62,7 @@ by running `skmtc agent-context --json | jq '.projects[] | select(.name=="<proje
 ## Troubleshooting
 
 - **"GET <url> returned 401"** — The schema endpoint requires
-  auth, but SKMTC doesn't support auth headers in `client.json`
+  auth, but Skmtc doesn't support auth headers in `client.json`
   (for security reasons; see [source-resolution
   reference](../../reference/settings/source-resolution.md#authentication)).
   Bundle the spec to a local file or run a local proxy.

@@ -3,9 +3,9 @@
 ## Purpose
 
 A craft skill: how to write good documentation, loaded at the moment of writing
-or reviewing any docs page. Unlike the `skmtc-*` skills it is not SKMTC-specific
+or reviewing any docs page. Unlike the `skmtc-*` skills it is not Skmtc-specific
 — the content is general documentation craft — but it lives in this ecosystem
-because the SKMTC docs tree is its primary application surface, and because the
+because the Skmtc docs tree is its primary application surface, and because the
 docs tree already instantiates the skill's central framework (Diátaxis) in its
 directory layout (`using/tutorials/`, `using/how-to/`, `using/recipes/`,
 `reference/`, `concepts/`, `explanation/`).
@@ -98,7 +98,7 @@ any project's docs.
 
 **Out of scope, deliberately:**
 
-- _Where SKMTC content goes_ (skill vs `llms.md` vs docs tree, the
+- _Where Skmtc content goes_ (skill vs `llms.md` vs docs tree, the
   selective-duplication policy, canonical homes) — owned by
   `docs/skills/README.md`. The SKILL.md description points there.
 - _Writing SKILL.md files themselves_ — skills are an operational artifact with
@@ -112,7 +112,7 @@ any project's docs.
 ## Design choices
 
 - **Name is unprefixed** (`docs-writing`, not `skmtc-docs-writing`) because the
-  content is project-agnostic. The SKMTC-specific touches — the tree mapping and
+  content is project-agnostic. The Skmtc-specific touches — the tree mapping and
   the `verify-docs.ts` / friction-log pointers — are kept minimal so the skill
   stays portable.
 - **House style preserved**: numbered sections, "principles that override

@@ -1,6 +1,6 @@
 # Skills
 
-Operational skills that guide AI assistants working with SKMTC. Each skill is a
+Operational skills that guide AI assistants working with Skmtc. Each skill is a
 subdirectory containing:
 
 - `SKILL.md` — the loadable skill artifact with YAML frontmatter (`name`,
@@ -157,7 +157,7 @@ could enforce it if drift becomes a problem.
 
 Skills overlap in trigger conditions but should have clear primary ownership:
 
-- **skmtc-architecture** owns: the system mental model — what SKMTC is, how the
+- **skmtc-architecture** owns: the system mental model — what Skmtc is, how the
   engine works, how to build infrastructure around it. The "understand the
   system" path; precedes the other three.
 - **skmtc-cli** owns: installing, configuring, running, integrating with CI. The

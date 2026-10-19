@@ -15,7 +15,7 @@ reading that account.
 
 ## Prerequisites
 
-- A SKMTC project with the generator(s) installed.
+- A Skmtc project with the generator(s) installed.
 - The schema source reachable.
 
 ## Steps
@@ -175,7 +175,7 @@ After the fix, regenerate and confirm:
 - **Different output on each run** — Should be impossible; the
   engine is deterministic. If you see this, file an issue —
   likely a memoization or impurity bug.
-- **The error trace points at SKMTC source** — Usually a real
+- **The error trace points at Skmtc source** — Usually a real
   engine bug. Capture the trace, manifest, and minimal repro.
 
 ## Related

@@ -4,7 +4,7 @@
 > MIT-licensed and intended as **starting points to read, learn from,
 > and clone** — not as polished products to install unchanged.
 
-The stock generators demonstrate the major SKMTC patterns at
+The stock generators demonstrate the major Skmtc patterns at
 production-realistic complexity. Most users will pick one or two as
 templates, clone them via `skmtc clone`, and edit the source to fit
 their own conventions (output paths, naming, peer libraries,

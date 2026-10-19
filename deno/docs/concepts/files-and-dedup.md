@@ -10,7 +10,7 @@
 > collision. Together they are what lets many generators write into
 > the same file without coordinating ahead of time.
 
-A SKMTC run produces a `Map<string, FileBase>` —
+A Skmtc run produces a `Map<string, FileBase>` —
 `GenerateContext.#files` — whose values are concrete language
 files (`TsFile` from `@skmtc/lang-typescript`) plus non-code
 siblings (`JsonFile`, `MarkdownFile`). Each value holds whatever a

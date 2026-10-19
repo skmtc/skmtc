@@ -312,7 +312,7 @@ get gqlDocument(): GqlDocument             // throws on OAS
 ```
 
 `schema` is the `graphql-js` parsed schema. `registry` is the
-SKMTC-side registry of GQL types. `gqlDocument` is the in-progress
+Skmtc-side registry of GQL types. `gqlDocument` is the in-progress
 parsed `GqlDocument` (populated by `parse()`).
 
 ### `parsedDocument` (either)

@@ -1,6 +1,6 @@
 # skmtc init
 
-> Create a new SKMTC project workspace.
+> Create a new Skmtc project workspace.
 
 Creates `.skmtc/<projectName>/` with `deno.json` and
 `.settings/client.json`. Idempotent — re-running on an existing
@@ -27,7 +27,7 @@ established practice.
 
 The `basePath` for generated output. Two-role value:
 
-- The on-disk root for generated files (relative to the SKMTC root)
+- The on-disk root for generated files (relative to the Skmtc root)
 - The `@` alias root in the consuming app's bundler resolver
 
 **Must be relative.** Absolute paths are rejected with exit 2 and a
@@ -148,7 +148,7 @@ machines or CI environments.
 ### Basic interactive
 
 ```bash
-cd ~/projects/my-app/        # the SKMTC root
+cd ~/projects/my-app/        # the Skmtc root
 skmtc init my-api ./src      # creates .skmtc/my-api/
 ```
 
@@ -178,7 +178,7 @@ app's bundler config. Common configurations:
 ```ts
 resolve: { alias: { '@': '/src' } }
 ```
-→ `basePath: "src"` (relative to the SKMTC root)
+→ `basePath: "src"` (relative to the Skmtc root)
 
 **Next.js** (`tsconfig.json`):
 ```json
@@ -194,7 +194,7 @@ resolve: { alias: { '@': '/mobile-app/src' } }
 
 Generators produce paths like `@/forms/CreateUserForm.generated.tsx`.
 At runtime the bundler resolves `@/...` to the alias root. On disk,
-SKMTC writes to `<basePath>/forms/CreateUserForm.generated.tsx`. For
+Skmtc writes to `<basePath>/forms/CreateUserForm.generated.tsx`. For
 these to match, the two paths must point at the same directory.
 
 The CLI doesn't verify the alignment — it can't read the consumer's

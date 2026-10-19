@@ -1,7 +1,7 @@
 # Full-stack TypeScript app
 
 > Generate types, validators, query hooks, mocks, and forms from
-> one OpenAPI document — the standard SKMTC combination for a
+> one OpenAPI document — the standard Skmtc combination for a
 > TypeScript/React app.
 
 This recipe exists for one moment: add a field to the schema,
@@ -28,7 +28,7 @@ need it.
 
 ## Stack
 
-- Vite or Next.js (your existing app, no SKMTC-runtime needed)
+- Vite or Next.js (your existing app, no Skmtc-runtime needed)
 - React + Tanstack Query + shadcn/ui
 - MSW (for dev-only mocks)
 
@@ -199,7 +199,7 @@ property is what the recipe exists to demonstrate.
 
 ## Source
 
-This recipe's stack is the most common SKMTC usage pattern. Real
+This recipe's stack is the most common Skmtc usage pattern. Real
 projects typically clone one or two of the generators (the
 fetch wrapper, the form's submit-flow) to match team conventions.
 The schema-level generators (`gen-typescript`, `gen-zod`,

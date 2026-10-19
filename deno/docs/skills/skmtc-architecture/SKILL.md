@@ -2,18 +2,18 @@
 name: skmtc-architecture
 version: 0.1.1
 description: |
-  Understand what SKMTC is, how its engine works, and the
+  Understand what Skmtc is, how its engine works, and the
   architectural invariants — for agents building or extending
-  infrastructure *around* SKMTC rather than authoring generators or
+  infrastructure *around* Skmtc rather than authoring generators or
   running the CLI. Covers the three-phase pipeline, the host/Worker
   boundary, cross-generator coordination, the manifest, the
   attribution / gen-maps (provenance) subsystem, the package graph,
-  the dependency substrate, and the design decisions that make SKMTC
+  the Deno and JSR platform, and the design decisions that make Skmtc
   behave unlike a typical codegen tool.
 
-  Use this skill when the user asks "what is SKMTC", "how does the
-  SKMTC engine work", "explain the SKMTC architecture", or is
-  building platform infrastructure around SKMTC — a hosted generate
+  Use this skill when the user asks "what is Skmtc", "how does the
+  Skmtc engine work", "explain the Skmtc architecture", or is
+  building platform infrastructure around Skmtc — a hosted generate
   API, a schema or generator registry, tracing or provenance
   tooling, a web app or SaaS that wraps the engine, or
   platform-level CI integration. This skill is the system mental
@@ -31,17 +31,17 @@ metadata:
   internal: true
 ---
 
-# SKMTC architecture
+# Skmtc architecture
 
 This skill is the **system mental model** for agents building
-infrastructure around SKMTC — a hosted generation service, a schema
+infrastructure around Skmtc — a hosted generation service, a schema
 or generator registry, provenance and tracing tooling, a web app
-that wraps the engine. It explains *what SKMTC is, how it works, and
+that wraps the engine. It explains *what Skmtc is, how it works, and
 why it behaves the way it does* — deeply enough to reason about and
 extend, without the generator-authoring or CLI-operating detail the
 sibling skills carry.
 
-SKMTC is **counter-intuitive on purpose**. Most of what generic
+Skmtc is **counter-intuitive on purpose**. Most of what generic
 codegen and generic backend-infra training data would suggest is
 actively wrong here. The fastest way to make a bad architectural
 proposal is to extrapolate from another tool. Read §1 and §11 before
@@ -50,7 +50,7 @@ proposing anything.
 ## 1. The five facts that override default LLM intuitions
 
 These override what training-data priors suggest about codegen
-tools. They apply across every SKMTC interaction; an infra builder
+tools. They apply across every Skmtc interaction; an infra builder
 needs facts 1, 2 and 5 most.
 
 1. **No plugin registry, no dependency graph, no topological sort.**
@@ -81,15 +81,15 @@ needs facts 1, 2 and 5 most.
    speed deliberately — **caching belongs outside the engine**, keyed
    on input hashes.
 
-## 2. What SKMTC is
+## 2. What Skmtc is
 
-> SKMTC is a code generator. It takes one **OpenAPI v3** document or
+> Skmtc is a code generator. It takes one **OpenAPI v3** document or
 > one **GraphQL SDL** schema and produces
 > **source files** — types, runtime validators, query hooks, forms,
 > mocks, server routes — all derived from that one schema, in one
 > run, all consistent with each other. The output is committed to the
 > consumer's repository like any other source code; there is **zero
-> SKMTC runtime** in the consumer's bundle. The engine is
+> Skmtc runtime** in the consumer's bundle. The engine is
 > **language-blind** (core 0.8.0+): a generator declares its target
 > language by importing its projection-base factories and snippet
 > base from a `@skmtc/lang-*` package — the import graph alone
@@ -99,7 +99,7 @@ needs facts 1, 2 and 5 most.
 > production languages; other `lang-*` packages (C#, …) are the
 > roadmap.
 
-The crucial reframing for an infrastructure builder: **SKMTC is an
+The crucial reframing for an infrastructure builder: **Skmtc is an
 engine with several thin hosts, not a CLI.** The CLI is one host.
 The mental decomposition:
 
@@ -141,7 +141,7 @@ another host of the same engine.**
 - **OAS and GraphQL through one engine.** The GraphQL pipeline reuses
   the same DSL, the same renderer, the same manifest.
 
-## 4. When to use SKMTC — and when not to
+## 4. When to use Skmtc — and when not to
 
 | Verdict | Situation |
 |---|---|
@@ -149,7 +149,7 @@ another host of the same engine.**
 | **Overkill** | You only need types (`openapi-typescript`); you only need a typed fetch client (`@hey-api/openapi-ts`); schemas are dynamic at runtime (use a runtime renderer). |
 | **Wrong tool** | Can't run Deno *and* won't use the hosted Sandbox API; you need production output in a language with no `@skmtc/lang-*` package yet (today that is everything except TypeScript — use `openapi-generator`). |
 
-SKMTC's closest peer is `kubb` — multi-target, TypeScript-native.
+Skmtc's closest peer is `kubb` — multi-target, TypeScript-native.
 The distinguishing bet is the **customization model**: clones (source
 you own) over plugins (configured packages), plus **coordination by
 name** (memoization) over explicit composition. Full landscape:
@@ -302,7 +302,7 @@ you should recognize the vocabulary (defer authoring to
   of anything `Stringable`. (Generators are *authored* in
   TypeScript/Deno regardless of the target language they emit.)
 
-**Vocabulary discipline:** in SKMTC prose use `register`, `insert`,
+**Vocabulary discipline:** in Skmtc prose use `register`, `insert`,
 `render`. Avoid *emit*, *dispatch*, *stitch* — they map to no
 exported surface. See
 [`reference/glossary.md`](../../reference/glossary.md#skmtc-vocabulary--load-bearing-terms).
@@ -417,10 +417,7 @@ the worker-side parser omission, the `doctor` checks:
 `cli` also depends on `convert` and `worker`. Exact versions live in
 each package's `deno.json` — treat that as canonical, not this skill.
 
-### The substrate
-
-SKMTC's design principle "build on the substrate, don't rebuild it"
-means **Deno is the platform**:
+### Runs on Deno
 
 - `deno bundle` is the bundler — it compiles a project's `worker.ts`
   into `bundle.js`.
@@ -428,7 +425,7 @@ means **Deno is the platform**:
 - **JSR** is the package registry. Generators and packages are
   *ordinary JSR packages* — there is no bespoke registry layer (that
   was explicitly rejected). Two registries are in play: `jsr.io`
-  (public) and `jsr.skmtc.dev` (the SKMTC private registry).
+  (public) and `jsr.skmtc.dev` (the Skmtc private registry).
 - The hosted Sandbox API runs on **Deno Deploy** (hence
   `DENO_DEPLOYMENT_ID` / `DENO_REGION` flowing into the manifest).
 
@@ -459,7 +456,7 @@ so that pin is the one version every range settles on. `skmtc doctor`
 checks that it matches the CLI's.
 Lower bounds *can* lag between packages; always read `deno.json`.
 
-## 11. Building infrastructure around SKMTC
+## 11. Building infrastructure around Skmtc
 
 The user's context: a **GitHub-like SaaS** for hosting APIs and
 generators, running them, and supporting tracing and provenance.
@@ -490,7 +487,7 @@ The MCP host already calls a deployed instance of this server.
 The engine deliberately does **schema in → artifacts out** and
 nothing else. It has **no notion of**:
 
-- **Users, identity, auth, multi-tenancy.** A SKMTC "project" is a
+- **Users, identity, auth, multi-tenancy.** A Skmtc "project" is a
   *generator configuration*, **not a tenant**. Tenancy is entirely
   yours to build.
 - **Persistence or run history.** `toArtifacts` returns a value; the
@@ -508,9 +505,9 @@ nothing else. It has **no notion of**:
 ## 12. Counter-intuitive facts for infrastructure builders
 
 Beyond the five facts in §1. Left column = a reflex from generic
-backend / platform training data; right column = SKMTC reality.
+backend / platform training data; right column = Skmtc reality.
 
-| Infra reflex | SKMTC reality |
+| Infra reflex | Skmtc reality |
 |---|---|
 | Keep a warm worker pool for throughput | One Worker per run, spawned cold, terminated after `RESULT`. Determinism depends on fresh contexts. Pool *containers*, not engine contexts. |
 | Do incremental builds — only regenerate changed operations | There are none. Every run is whole-document and from cold. Cache the *whole result* by input hash instead. |
@@ -522,7 +519,7 @@ backend / platform training data; right column = SKMTC reality.
 | The on-disk `manifest.json` is the run record | It is overwritten every run. Persist each manifest yourself for history. |
 | Add an engine plugin/hook API for the platform | Rejected design. Extend by cloning generators or adding a host. |
 | A "project" is a tenant / a customer | A project is a *generator configuration*. It is not a unit of tenancy, identity, or billing. |
-| Generated code needs the SKMTC runtime at deploy time | Zero runtime. Output is plain committed source; the engine never ships to the consumer's bundle. |
+| Generated code needs the Skmtc runtime at deploy time | Zero runtime. Output is plain committed source; the engine never ships to the consumer's bundle. |
 
 ## 13. Boundaries with other skills
 
@@ -530,7 +527,7 @@ backend / platform training data; right column = SKMTC reality.
   Snippets, the DSL, customization seams). Load when *writing
   generator code*.
 - **skmtc-cli** — running the CLI, configuring `client.json`,
-  enrichments, skip/include. Load when *operating* SKMTC.
+  enrichments, skip/include. Load when *operating* Skmtc.
 - **skmtc-debug** — diagnosing broken runs (no output, wrong output,
   errors). Verify-first stance. Load when *something is broken*.
 - **skmtc-retro** — end-of-session reflection / friction capture.

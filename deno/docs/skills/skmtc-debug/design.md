@@ -1,6 +1,6 @@
 # skmtc-debug skill outline
 
-> Plan for a proposed new skill — diagnose failures in SKMTC
+> Plan for a proposed new skill — diagnose failures in Skmtc
 > sessions. Applies across CLI and generator-authoring contexts.
 
 ## Status: proposed
@@ -8,7 +8,7 @@
 This skill does not yet exist. The argument for adding it:
 
 Debugging requires a fundamentally different epistemic stance than
-building. When *doing* SKMTC work, the LLM should propose solutions
+building. When *doing* Skmtc work, the LLM should propose solutions
 from operational principles. When *debugging*, the LLM should
 **verify before stating** — read the manifest, check parseIssues
 against actual files, reproduce the failure before suggesting fixes.
@@ -20,7 +20,7 @@ automatically when symptoms suggest something is broken.
 
 ## Purpose
 
-Diagnose failures in SKMTC sessions:
+Diagnose failures in Skmtc sessions:
 
 - No output produced for an operation that was expected to produce some
 - Wrong output (compiles but is incorrect, or doesn't compile)
@@ -34,7 +34,7 @@ before solution-proposing.
 
 ## Audience
 
-Anyone with broken SKMTC behavior — users debugging configuration,
+Anyone with broken Skmtc behavior — users debugging configuration,
 authors debugging generators, integrators debugging CI failures. The
 defining characteristic is the *symptom*, not the role. When something
 is broken, this skill takes priority over the user/author skills.
@@ -88,7 +88,7 @@ Should NOT auto-load on:
   don't propose fixes without reproducing; don't extrapolate from
   training data; don't read docstrings as ground truth
 - **When to escalate** — clone a stock generator for inspection;
-  surface to the friction log; suggest a SKMTC code change
+  surface to the friction log; suggest a Skmtc code change
 
 ### Deferred to docs
 
@@ -105,7 +105,7 @@ Should NOT auto-load on:
   config.
 - **skmtc-generator**: same — debug owns diagnosis. Once the bug is
   located in generator source, generator skill helps with the fix.
-- **skmtc-retro**: end-of-session. If debugging surfaced a SKMTC-level
+- **skmtc-retro**: end-of-session. If debugging surfaced a Skmtc-level
   pattern worth recording, retro captures it.
 
 The boundary heuristic: **this skill is active while the LLM doesn't
@@ -120,7 +120,7 @@ The actual `SKILL.md` should have approximately these sections:
 
 The foundational principle. A short paragraph stating:
 
-> When debugging SKMTC, **verify before stating**. The manifest is
+> When debugging Skmtc, **verify before stating**. The manifest is
 > the canonical record of what happened. The code is the canonical
 > record of what runs. Docstrings, comments, and training-data priors
 > are not evidence. Read the manifest first. Reproduce the failure
@@ -263,7 +263,7 @@ The defaults to override when debugging:
 - **Surface to the friction log** — if the diagnosis revealed a
   pattern (e.g., a confusing error message, a missing API helper),
   the retro skill should capture it.
-- **Suggest a SKMTC code change** — if the bug is in `@skmtc/core` or
+- **Suggest a Skmtc code change** — if the bug is in `@skmtc/core` or
   `@skmtc/cli` itself, propose the fix as a PR or issue. Distinguish
   from "fix in cloned generator" (immediate, local) vs "fix in core"
   (slower, upstream).
@@ -324,7 +324,7 @@ other skills.
 
 ### When does the debug skill produce a friction-log entry?
 
-Many debug sessions surface SKMTC-level patterns (confusing error
+Many debug sessions surface Skmtc-level patterns (confusing error
 messages, missing diagnostic surfaces, recurring failure modes).
 Currently the user invokes `skmtc-retro` after debugging; the retro
 captures observations.

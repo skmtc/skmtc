@@ -1,20 +1,20 @@
 # Consuming generators
 
-> Install generators, configure them, and run SKMTC to generate code
+> Install generators, configure them, and run Skmtc to generate code
 > from your schemas.
 
-SKMTC generates TypeScript from an OpenAPI v3 or GraphQL schema — types,
+Skmtc generates TypeScript from an OpenAPI v3 or GraphQL schema — types,
 validators, query hooks, forms, mocks, and server routes, all from one
 schema in one run, all consistent with each other. Add a field to the
 schema, regenerate, and every artifact updates together. The output is
-ordinary source code you commit; nothing SKMTC-specific runs in your
-app. Deciding whether SKMTC fits your project at all? Start with the
-[project README](../README.md) — its "When to use SKMTC" section is the
+ordinary source code you commit; nothing Skmtc-specific runs in your
+app. Deciding whether Skmtc fits your project at all? Start with the
+[project README](../README.md) — its "When to use Skmtc" section is the
 honest fit test.
 
 ## Who this is for
 
-You have an OpenAPI v3 or GraphQL schema and want code generated from it. Everything in this tree works with installed generators and JSON configuration — using SKMTC never requires writing or reading generator source code.
+You have an OpenAPI v3 or GraphQL schema and want code generated from it. Everything in this tree works with installed generators and JSON configuration — using Skmtc never requires writing or reading generator source code.
 
 If you find yourself wanting to change a hardcoded value in a generator, that's the one thing configuration can't do: see [`authoring/`](../authoring/) (authoring generators) when you get there.
 
@@ -45,7 +45,7 @@ Recipes for specific problems.
 - [Pin the schema source](how-to/pin-schema-source.md)
 - [Skip or include operations](how-to/skip-or-include-operations.md)
 - [Generate into multiple packages](how-to/generate-into-multiple-packages.md)
-- [Use SKMTC in CI/CD](how-to/use-in-ci-cd.md)
+- [Use Skmtc in CI/CD](how-to/use-in-ci-cd.md)
 - [Update a schema and regenerate](how-to/update-a-schema.md)
 - [Debug a failing generation](how-to/debug-failing-generation.md)
 

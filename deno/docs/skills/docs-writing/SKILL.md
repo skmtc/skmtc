@@ -19,7 +19,7 @@ description: |
   feature", "improve this page", "review these docs", "write a
   tutorial / how-to / reference page", "structure the docs",
   "write API documentation", "write a README / changelog", or when
-  authoring any file under a `docs/` tree. For SKMTC docs
+  authoring any file under a `docs/` tree. For Skmtc docs
   specifically, this skill governs the *craft* (what makes the page
   good); the content split between skills, `llms.md`, and the docs
   tree is governed by `docs/skills/README.md`.
@@ -175,7 +175,7 @@ how-to" is Diátaxis's most common and most harmful misreading — classify by
 study-vs-work, never by difficulty.
 
 Navigation should mirror the split: Getting Started → Guides → Reference →
-Concepts. The SKMTC docs tree instantiates this as `using/tutorials/` +
+Concepts. The Skmtc docs tree instantiates this as `using/tutorials/` +
 `using/how-to/` + `using/recipes/`, `authoring/` (same trio), `reference/`, and
 `concepts/` + `explanation/`. **Recipes are how-to guides in recipe form** — the
 recipe is Diátaxis's own model for the type (assumes competence, answers one

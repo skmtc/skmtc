@@ -189,7 +189,7 @@ running it. The lack of an opaque plugin API means there's
 nowhere for malicious code to hide.
 
 The contrast with plugin-based systems: a generator with a
-plugin API can ship a binary plugin you can't read. SKMTC's
+plugin API can ship a binary plugin you can't read. Skmtc's
 "source-code or nothing" approach makes inspection the default.
 
 ### Manifest as forensic record
@@ -225,7 +225,7 @@ defense. Several CI patterns add layers:
 - **Generator-source review** as part of clone hygiene (review
   any change to a cloned generator's source)
 
-## What SKMTC doesn't protect against
+## What Skmtc doesn't protect against
 
 To be explicit about the threat model's limits:
 
@@ -233,7 +233,7 @@ To be explicit about the threat model's limits:
   compromises a stock generator's JSR publish, users who pull
   the new version run the compromised code. The mitigations are
   generic to the JSR ecosystem (lockfiles, integrity checks),
-  not SKMTC-specific.
+  not Skmtc-specific.
 - **Determined adversaries with code-execution intent.** The
   Worker is a damage-limiting boundary, not a cryptographic one.
   An attacker who controls a generator's source can do anything
@@ -246,7 +246,7 @@ To be explicit about the threat model's limits:
 - **Side-channel attacks** (timing, memory observation, etc.).
   Not in scope.
 
-The model: SKMTC ships a sandbox that's strict enough to make
+The model: Skmtc ships a sandbox that's strict enough to make
 casual abuse hard, but not strict enough to defeat motivated
 attackers. Defense-in-depth at the CI/review layer covers what
 the sandbox doesn't.
@@ -276,7 +276,7 @@ the system.
   the operational details of Worker spawning
 - [Generators as packages concept](../concepts/generators-as-packages.md) —
   how generators are installed and updated
-- [Design philosophy](design-philosophy.md) — "build on the
-  substrate" as it applies to Deno permissions
+- [Design philosophy](design-philosophy.md) — "Workers can't reach
+  the network" and "Deno only" under the tradeoffs accepted
 - [Manifest format](../reference/manifest-format.md) — the
   manifest-as-forensic-record surface

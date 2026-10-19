@@ -10,7 +10,7 @@
 
 Capture observations only the LLM can see — guesses, default
 overrides, surprises, idiomatic gaps, and patterns worth preserving —
-from a SKMTC session, and write them to a per-session dated file in
+from a Skmtc session, and write them to a per-session dated file in
 the project's friction log so they can be reviewed and acted on later.
 
 Distinct from the other three skills by being **meta-work**:
@@ -19,7 +19,7 @@ something. `skmtc-retro` guides reflecting *on* what was done.
 
 ## Audience
 
-Anyone who's just completed a substantive SKMTC session. Not
+Anyone who's just completed a substantive Skmtc session. Not
 role-specific; applies to users, authors, and debuggers alike.
 
 The defining trigger is **end-of-session reflection**, not a kind of

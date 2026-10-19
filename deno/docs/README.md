@@ -1,4 +1,4 @@
-# SKMTC
+# Skmtc
 
 Generate idiomatic TypeScript source code from an OpenAPI v3 or GraphQL schema. Types, validators, query hooks, mocks, forms, and server routes — all from one schema, in one run, all consistent with each other.
 
@@ -39,7 +39,7 @@ paths:
                 role: { type: string, enum: [admin, user] }
 ```
 
-…SKMTC produces (with the right generators installed) five coherent artifacts:
+…Skmtc produces (with the right generators installed) five coherent artifacts:
 
 | File | Generator | Purpose |
 |---|---|---|
@@ -53,7 +53,7 @@ One schema, five files. Add a field, regenerate, all five update consistently. F
 
 ---
 
-## When to use SKMTC
+## When to use Skmtc
 
 **Strong fit:**
 - You have an OpenAPI v3 or GraphQL schema as your contract.
@@ -120,7 +120,7 @@ Same philosophy as shadcn/ui: not a configurable dependency, but vendored source
 
 ## Authoring generators
 
-You don't need this section to use SKMTC — stock generators cover the common stacks, and configuration goes a long way. But generators are designed to be written, not just used, and two ideas make that practical.
+You don't need this section to use Skmtc — stock generators cover the common stacks, and configuration goes a long way. But generators are designed to be written, not just used, and two ideas make that practical.
 
 **Generators are string templates, not ASTs.** A generator builds its output with ordinary template literals inside a TypeScript class — no AST node factories, no printer configuration. This is the real code that renders each query hook in `gen-tanstack-query-fetch-zod` (abridged from [`QueryFn.ts`](https://github.com/skmtc/skmtc-generators/blob/main/gen-tanstack-query-fetch-zod/src/QueryFn.ts)):
 
@@ -206,15 +206,15 @@ Per-generator reference: [`reference/stock-generators/`](reference/stock-generat
 
 ## FAQ
 
-**Is SKMTC production-ready?** Engine and CLI are stable. Stock generators vary in maturity — TypeScript / Zod / Tanstack Query are well-tested; GraphQL pipeline is less battle-tested. See [`explanation/status-and-roadmap.md`](explanation/status-and-roadmap.md).
+**Is Skmtc production-ready?** Engine and CLI are stable. Stock generators vary in maturity — TypeScript / Zod / Tanstack Query are well-tested; GraphQL pipeline is less battle-tested. See [`explanation/status-and-roadmap.md`](explanation/status-and-roadmap.md).
 
-**Does SKMTC format the output?** No. Run Prettier or Biome as a separate step.
+**Does Skmtc format the output?** No. Run Prettier or Biome as a separate step.
 
-**Can I use SKMTC alongside another codegen tool?** Yes. SKMTC writes only to `basePath`.
+**Can I use Skmtc alongside another codegen tool?** Yes. Skmtc writes only to `basePath`.
 
 **Swagger 2, OpenAPI 3.1 or 3.2?** All work. Swagger 2 is upgraded to OAS 3.0 via `@skmtc/convert`; OpenAPI 3.1 and 3.2 are parsed natively.
 
-**What's the runtime cost?** Zero SKMTC-specific runtime. Output uses whatever libraries the chosen generators target.
+**What's the runtime cost?** Zero Skmtc-specific runtime. Output uses whatever libraries the chosen generators target.
 
 **Are generators sandboxed?** Yes — `net: false`, `run: false` in the Worker. Can read env vars. See [`explanation/security-model.md`](explanation/security-model.md).
 

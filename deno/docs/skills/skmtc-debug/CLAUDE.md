@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20769 | 11:43 AM | 🟣 | SKMTC debugging skill created with verification-first diagnostic approach | ~580 |
+| #20769 | 11:43 AM | 🟣 | Skmtc debugging skill created with verification-first diagnostic approach | ~580 |
 </claude-mem-context>

@@ -14,7 +14,7 @@ regenerate step, and the iteration loop.
 
 ## Prerequisites
 
-- A SKMTC project (use the one from [`using/`'s tutorial 01](../../using/tutorials/01-your-first-generation.md)
+- A Skmtc project (use the one from [`using/`'s tutorial 01](../../using/tutorials/01-your-first-generation.md)
   if you haven't built one yet).
 - Deno + `skmtc` CLI installed.
 

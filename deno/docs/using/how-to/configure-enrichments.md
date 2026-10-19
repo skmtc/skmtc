@@ -14,7 +14,7 @@ instead.
 
 ## Prerequisites
 
-- A SKMTC project with the target generator installed (e.g.,
+- A Skmtc project with the target generator installed (e.g.,
   `@skmtc/gen-shadcn-form`).
 - The paths and methods (or model refNames) you want to customize,
   as they appear in the source document. Routing uses the literal

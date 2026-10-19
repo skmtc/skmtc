@@ -15,7 +15,7 @@ clone → Snippet → dispatch → consumer component → regenerate.
 
 - React + shadcn/ui (or compatible Tailwind component library)
 - `react-day-picker` (or any date-picker component you prefer)
-- A SKMTC project with `@skmtc/gen-shadcn-form` cloned
+- A Skmtc project with `@skmtc/gen-shadcn-form` cloned
 
 ## Setup
 

@@ -15,7 +15,7 @@ If you have written generators for other tools (orval,
 openapi-generator, kubb, graphql-codegen) you probably expect the
 following: the engine walks the schema, calls your transform for
 each item, and writes whatever your transform returns to disk.
-Maybe with templates as the rendering step. SKMTC works
+Maybe with templates as the rendering step. Skmtc works
 differently in two specific ways that, if missed, lead to silent
 no-output bugs no error message will ever explain.
 

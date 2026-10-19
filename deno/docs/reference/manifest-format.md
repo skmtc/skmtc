@@ -1,7 +1,7 @@
 # Manifest format
 
 > The shape and contents of `manifest.json` — the canonical record of
-> every SKMTC generation run.
+> every Skmtc generation run.
 
 The manifest is overwritten on every `skmtc generate` (and every
 `skmtc dev` rebuild). It records every file written, every
@@ -9,7 +9,7 @@ The manifest is overwritten on every `skmtc generate` (and every
 previews. Treat it as the **source of truth** for what happened in
 the last run.
 
-> **Two JSON shapes — read carefully.** SKMTC produces two
+> **Two JSON shapes — read carefully.** Skmtc produces two
 > structurally different JSON outputs. This document describes the
 > **on-disk manifest** at
 > `.skmtc/<project>/.settings/manifest.json`. The **`skmtc generate
@@ -118,7 +118,7 @@ with a `source` descriptor pointing back at the operation, webhook,
 or model it was generated from. Populated only by entries that
 supply `toPreviewModule`.
 
-This field is most useful to tooling that wraps SKMTC (the Sandbox
+This field is most useful to tooling that wraps Skmtc (the Sandbox
 API dashboard, for example). For everyday agent work, it can be
 ignored.
 
@@ -410,4 +410,4 @@ the CLI's output stream.
 - [Error codes](error-codes.md) — full list of `parseIssue.type` values
 - [How to debug a failing generation](../using/how-to/debug-failing-generation.md) — diagnostic workflows over this format
 - [`skmtc generate` reference](cli/generate.md) — the command that writes the manifest
-- [Use SKMTC in CI/CD](../using/how-to/use-in-ci-cd.md) — archiving the manifest in CI
+- [Use Skmtc in CI/CD](../using/how-to/use-in-ci-cd.md) — archiving the manifest in CI

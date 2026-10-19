@@ -12,7 +12,7 @@ visitor with overridable per-type hooks (openapi-generator's
 `AbstractTypeScriptCodegen`, graphql-codegen's
 `BaseVisitor`/`BaseTypesVisitor`, etc.), the default expectation is:
 "I extend the base, override `visitStringSchema`, get TypeScript
-output for free." SKMTC does not work this way. Every model
+output for free." Skmtc does not work this way. Every model
 generator implements the whole `schemaToValueFn` — string, integer,
 number, boolean, object, array, union, unknown, void, ref, custom —
 itself.
@@ -320,7 +320,7 @@ See [how-generators-produce-output.md](how-generators-produce-output.md#contexti
 
 Most codegen frameworks ship a base class implementing a default
 visitor with sensible language defaults; you override only what
-differs. SKMTC requires each model generator to implement the full
+differs. Skmtc requires each model generator to implement the full
 `schemaToValueFn` itself. The design choice is deliberate:
 
 1. **Target-language opinions don't generalize.** `TsString.toString()`
@@ -336,7 +336,7 @@ differs. SKMTC requires each model generator to implement the full
    `toTsValue`'s `with({ type: 'string' }, ...)` branch directly.
    A base class would force the customizer to either subclass
    (more indirection) or wire in a config flag (the configuration
-   approach SKMTC consciously rejected). See
+   approach Skmtc consciously rejected). See
    [clone-vs-install.md](clone-vs-install.md).
 3. **Exhaustiveness is type-safe.** A `ts-pattern`
    `.exhaustive()` call on the union forces every generator to

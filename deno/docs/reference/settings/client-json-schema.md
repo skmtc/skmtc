@@ -5,7 +5,7 @@
 
 `client.json` is where users specify the schema source, the output
 location, the operation filters, and per-generator enrichments. It's
-the most-edited file in a SKMTC project after `deno.json`.
+the most-edited file in a Skmtc project after `deno.json`.
 
 ## Location
 
@@ -72,7 +72,7 @@ URL or path to the OpenAPI / GraphQL schema. Supported forms:
 
 - HTTPS URL: `"https://api.example.com/openapi.json"`
 - HTTP URL: `"http://localhost:3000/schema.json"`
-- Relative path: `"./openapi.json"` (relative to the SKMTC root)
+- Relative path: `"./openapi.json"` (relative to the Skmtc root)
 - Absolute path: `"/path/to/openapi.json"`
 
 When set, `skmtc generate <project>` reads the source from here. When

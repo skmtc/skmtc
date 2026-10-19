@@ -167,7 +167,7 @@ Error: workspace has no projects (looked under .skmtc/)
 ```
 
 You're in a workspace without `init`ed projects, or you're not in a
-SKMTC workspace at all. Check the current directory and the workspace
+Skmtc workspace at all. Check the current directory and the workspace
 `deno.json`.
 
 ## See also

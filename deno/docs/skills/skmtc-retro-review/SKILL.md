@@ -30,7 +30,7 @@ metadata:
   internal: true
 ---
 
-# SKMTC retro review
+# Skmtc retro review
 
 The friction log is a sensor. This skill is the actuator. Its job is to
 read accumulated observations, detect patterns the per-session view cannot
@@ -209,19 +209,19 @@ These are the most expensive to fix but also have the highest impact.
 If it's an architectural limit: flag for core roadmap with a description
 of what the API surface should look like. Label: `skmtc-core-feature`.
 
-**4. Is this a wrong LLM prior about SKMTC behavior?**
+**4. Is this a wrong LLM prior about Skmtc behavior?**
 
 The LLM's training data includes many frameworks. It applies defaults from
-those frameworks to SKMTC. When the SKMTC behavior differs from the prior,
+those frameworks to Skmtc. When the Skmtc behavior differs from the prior,
 friction occurs even when the behavior is correctly documented — because the
 LLM didn't reach for the docs.
 
 Skill updates override priors at task time. They are most effective when
-they name the prior explicitly: "In TypeScript you would do X. In SKMTC
+they name the prior explicitly: "In TypeScript you would do X. In Skmtc
 you do Y instead, because Z."
 
 If a wrong prior: add an operational principle to the relevant skill with
-the pattern `"In <other> you would... In SKMTC you... because..."`. Label:
+the pattern `"In <other> you would... In Skmtc you... because..."`. Label:
 `skill-update`.
 
 **5. Is this a knowledge gap in docs?**
@@ -256,7 +256,7 @@ not pseudocode. Label: `example-addition`.
 
 Sometimes the right fix is deletion. If an API creates persistent footguns
 with no clean fix, or a generator's design is fundamentally incompatible
-with SKMTC's regeneration contract, removing it is higher leverage than
+with Skmtc's regeneration contract, removing it is higher leverage than
 continuing to document around it. The GraphQL thin-wrapper generators were
 deleted rather than fixed.
 
@@ -504,7 +504,7 @@ Full flow:
 The user decides which action plan items to execute. The review skill does
 not execute them — it produces decisions. Each action item is a unit of
 work for the relevant skill (`skmtc-generator`, `skmtc-cli`, docs editing,
-or filing a SKMTC code issue).
+or filing a Skmtc code issue).
 
 When an action item is completed, update the corresponding retro file
 entries' `**Status:**` lines and the `## Index` rows. Also update the

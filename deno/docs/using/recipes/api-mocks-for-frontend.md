@@ -122,7 +122,7 @@ ready, swap MSW out by gating the import on
 
 ## Source
 
-The MSW-driven workflow is one of the highest-value SKMTC
+The MSW-driven workflow is one of the highest-value Skmtc
 use cases — schema-first frontend development without a running
 backend. Stock generators cover ~80% of the need; the remaining
 20% is typically swapping in realistic data generation or making

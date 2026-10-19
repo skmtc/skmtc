@@ -19,7 +19,7 @@ accumulate but nothing systematically improves. The review is where
 ## Audience
 
 The user (Dmitri), running the review periodically. Not intended for
-invocation during active SKMTC work — it's a reflection-and-decision
+invocation during active Skmtc work — it's a reflection-and-decision
 tool run at session boundaries or on a monthly/pre-release cadence.
 
 ## Triggers

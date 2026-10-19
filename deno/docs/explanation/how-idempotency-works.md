@@ -7,7 +7,7 @@
 
 A code generator pipeline that runs multiple generators against
 the same schema typically has to answer: **what if two generators
-want to produce the same thing?** In SKMTC, two generators producing
+want to produce the same thing?** In Skmtc, two generators producing
 `Foo` schemas in the same file converge on one definition — the
 file ends up with one `export const foo = ...`, not two.
 

@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #20672 | 10:00 AM | ✅ | Documentation structure created for extending SKMTC generators | ~721 |
+| #20672 | 10:00 AM | ✅ | Documentation structure created for extending Skmtc generators | ~721 |
 </claude-mem-context>

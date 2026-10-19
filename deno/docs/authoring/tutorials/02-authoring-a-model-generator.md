@@ -22,7 +22,7 @@ not the output's complexity.
 
 ## Prerequisites
 
-- A SKMTC project initialized.
+- A Skmtc project initialized.
 - Familiarity with [the projections-and-snippets concept](../../concepts/projections-and-snippets.md).
 - Light TypeScript fluency.
 

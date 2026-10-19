@@ -1,9 +1,9 @@
 ---
-description: Aggregate SKMTC friction log entries into a review — cluster patterns, classify interventions, calculate convergence metrics, produce an action plan
+description: Aggregate Skmtc friction log entries into a review — cluster patterns, classify interventions, calculate convergence metrics, produce an action plan
 argument-hint: "[period]"
 ---
 
-Run a SKMTC friction log review.
+Run a Skmtc friction log review.
 
 **If `$ARGUMENTS` is non-empty**, use it as the period description.
 Accepted forms:

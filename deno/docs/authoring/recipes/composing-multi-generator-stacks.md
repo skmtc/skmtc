@@ -7,10 +7,9 @@
 
 ## What you'll learn
 
-The pattern that the SKMTC stock catalogue calls "UI" generators
-— the ones that compose tier-1 (types, validators) and tier-2
-(query hooks, MSW handlers) output into a rendered React
-component. By the end you'll be able to read `ShadcnForm.ts` and
+The pattern that the Skmtc stock catalogue calls "UI" generators.
+These compose tier-1 (types, validators) and tier-2 (query hooks,
+MSW handlers) output into a rendered React component. By the end you'll be able to read `ShadcnForm.ts` and
 know exactly what each `insert*` call buys you. When you're ready
 to write your own, the distilled steps are in
 [author a multi-generator stack](../how-to/author-a-multi-generator-stack.md).
@@ -51,7 +50,7 @@ Two concrete generators serve as the reference:
 }
 ```
 
-The dependency declaration is at the package level. SKMTC itself
+The dependency declaration is at the package level. Skmtc itself
 has no plugin registry; you import what you need directly.
 
 ## The coordination pattern

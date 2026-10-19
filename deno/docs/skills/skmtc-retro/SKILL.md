@@ -2,7 +2,7 @@
 name: skmtc-retro
 version: 0.2.0
 description: |
-  Run a self-retrospective on a SKMTC-related session — generator
+  Run a self-retrospective on a Skmtc-related session — generator
   authoring, CLI configuration, debugging, or any sustained interaction
   involving `@skmtc/core`, `@skmtc/cli`, or `@skmtc/gen-*` packages.
   Captures three distinct outputs: (1) friction entries (mistakes,
@@ -15,9 +15,9 @@ description: |
 
   Use this skill when the user asks to "retro", "skmtc retro", "log
   friction", "reflect on this session", "what did we learn", "run a
-  retrospective", or after substantive SKMTC work (generator authoring,
+  retrospective", or after substantive Skmtc work (generator authoring,
   multi-step debugging, non-trivial CLI configuration) where capturing
-  observations would help improve skills, docs, or SKMTC itself.
+  observations would help improve skills, docs, or Skmtc itself.
 
   Distinct from the `skmtc-cli` and `skmtc-generator` skills — those
   guide *doing* the work; this skill captures observations *about* the
@@ -34,7 +34,7 @@ metadata:
   internal: true
 ---
 
-# SKMTC retro
+# Skmtc retro
 
 Capture the three categories of output only the LLM can produce —
 friction entries, knowledge acquired, and a priority ranking — and
@@ -45,7 +45,7 @@ logging when they identify something uncodified.
 
 ## 1. When to invoke
 
-**Run a retro after substantive SKMTC work:**
+**Run a retro after substantive Skmtc work:**
 
 - Authoring a new generator (scaffold → working output)
 - Cloning a stock generator and editing it
@@ -164,7 +164,7 @@ questions explicitly. They are the leverage of this skill.
 - What did you have to **guess** about? (Naming conventions, file
   layout, where a helper lives, which method to call.)
 - Where did you **spend multiple cycles** fighting the same thing?
-- What did you write that **felt non-idiomatic** — a sense that SKMTC
+- What did you write that **felt non-idiomatic** — a sense that Skmtc
   has a better way that you couldn't find?
 - Where was an **error message unhelpful** for diagnosing the cause?
 - What **invariant** did you almost violate and have to back out from?
@@ -187,7 +187,7 @@ with zero wins is normal and preferable to fabricated signal.
 ### For knowledge acquired
 
 This is the highest-value section for improving docs. Ask: *What do I
-now know about SKMTC that I did not know at the start of this session?*
+now know about Skmtc that I did not know at the start of this session?*
 These are not friction entries — they are knowledge-gap closures.
 
 - What **API shape, method signature, or runtime behaviour** did you
@@ -225,7 +225,7 @@ The session file structure:
 | K1 | <concise fact — API shape, constraint, naming rule, invariant> | <skill / how-to doc / API reference / none> |
 | K2 | ... | ... |
 
-*If nothing genuinely new was learned, write: "No new SKMTC knowledge
+*If nothing genuinely new was learned, write: "No new Skmtc knowledge
 acquired this session — all patterns matched prior training or
 existing documentation."*
 
@@ -249,12 +249,12 @@ existing documentation."*
 ## Priority for docs/skills
 
 Top findings from this session, ranked by leverage for improving docs,
-skills, or SKMTC itself. The user uses this list to decide what to act
+skills, or Skmtc itself. The user uses this list to decide what to act
 on first — be specific about the action path.
 
 | Rank | Entry | Why it matters | Action path |
 |------|-------|----------------|-------------|
-| 1 | #N — <heading> | <one sentence> | skill update / how-to doc / API reference / SKMTC code |
+| 1 | #N — <heading> | <one sentence> | skill update / how-to doc / API reference / Skmtc code |
 | 2 | ... | ... | ... |
 
 Limit to 3 entries. If fewer than 3 stand out, list only those that do.
@@ -365,10 +365,10 @@ self-contained.
   acquired` — the doc's existence doesn't mean it's working.
 - Trivial typos or one-line corrections that aren't part of a pattern.
 - Domain-specific decisions from the consumer project (e.g., the
-  naming of a field in someone's app) — only observations about SKMTC
+  naming of a field in someone's app) — only observations about Skmtc
   itself.
 - Things the user already explicitly flagged during the session.
-- "I made a mistake" without a SKMTC-level lesson — a tutorial gap, a
+- "I made a mistake" without a Skmtc-level lesson — a tutorial gap, a
   skill gap, an API surprise, or a generalisable pattern is what makes
   an observation worth logging.
 
@@ -479,7 +479,7 @@ principles table. Logging it adds noise without signal.
 
 Retro files are append-only for **entry bodies**. The user reviews
 them daily and decides whether each entry becomes a skill update, a
-doc update, a SKMTC code change, or a deferred reflection point. Do
+doc update, a Skmtc code change, or a deferred reflection point. Do
 not pre-commit to those resolutions in the entry — leave the
 "Possible fixes" section open-ended. When an entry is resolved, the
 user (or the skill, on its next pass through the file) updates **two

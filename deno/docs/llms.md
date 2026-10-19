@@ -1,8 +1,8 @@
-# SKMTC for AI Assistants
+# Skmtc for AI Assistants
 
-A primer for AI coding assistants and agents working with SKMTC code. **Flat and self-contained** — every section is independent, ordered by priority rather than narrative. Skim once, then jump to whichever section your task needs.
+A primer for AI coding assistants and agents working with Skmtc code. **Flat and self-contained** — every section is independent, ordered by priority rather than narrative. Skim once, then jump to whichever section your task needs.
 
-> **If you read nothing else:** SKMTC is a code generator. Generators are TypeScript classes that run inside a sandboxed Deno Worker. Generation is writing **Definition** objects (identifier → value) into **File** objects that double as a cache; every producer creates its own dependencies, so cross-generator coordination is **memoization keyed by `(identifier.name, exportPath)`**, not a dependency graph. Most defaults from generic codegen patterns (Mustache templates, plugin registries, formatting passes, dependency ordering) do **not** apply here. Verify before stating.
+> **If you read nothing else:** Skmtc is a code generator. Generators are TypeScript classes that run inside a sandboxed Deno Worker. Generation is writing **Definition** objects (identifier → value) into **File** objects that double as a cache; every producer creates its own dependencies, so cross-generator coordination is **memoization keyed by `(identifier.name, exportPath)`**, not a dependency graph. Most defaults from generic codegen patterns (Mustache templates, plugin registries, formatting passes, dependency ordering) do **not** apply here. Verify before stating.
 
 ---
 
@@ -32,11 +32,11 @@ A primer for AI coding assistants and agents working with SKMTC code. **Flat and
 
 The user you're helping is in one of two roles. Identify which, then read only the sections listed.
 
-### CLI user (running SKMTC, configuring projects)
+### CLI user (running Skmtc, configuring projects)
 
 | Task | Read these sections (in order) |
 |---|---|
-| Explain SKMTC to a user | Quick reference → The generation model → What SKMTC is → Pipeline |
+| Explain Skmtc to a user | Quick reference → The generation model → What Skmtc is → Pipeline |
 | Set up a project | Quick reference → User task cards: Setup |
 | Generate from a schema | Pipeline → User task cards: Generation |
 | Debug a failed run | Verification → Anti-patterns: Pattern-level → User task cards: Debugging |
@@ -53,7 +53,7 @@ The user you're helping is in one of two roles. Identify which, then read only t
 | Understand cross-generator coordination | Cross-generator coordination → DSL |
 | Swap a peer dependency | Customization seams → Author task cards: Swapping peer deps |
 
-If unsure which role applies: read **The generation model** + **Read this first** + **Verification protocol** + **What SKMTC is / is NOT**, then route by question.
+If unsure which role applies: read **The generation model** + **Read this first** + **Verification protocol** + **What Skmtc is / is NOT**, then route by question.
 
 ---
 
@@ -103,16 +103,16 @@ The facts below pin the highest-drift corollaries of the model — the assertion
 
 ## Operational principles for proposing changes
 
-The six facts above are the *highest-priority* overrides. The table below is the broader operational principle list — apply these when proposing solutions for SKMTC code. Each row pairs a *default suggestion an LLM would reach for from generic TypeScript / codegen training data* with *what SKMTC actually requires*.
+The six facts above are the *highest-priority* overrides. The table below is the broader operational principle list — apply these when proposing solutions for Skmtc code. Each row pairs a *default suggestion an LLM would reach for from generic TypeScript / codegen training data* with *what Skmtc actually requires*.
 
-These overrides exist because well-intentioned TS conventions frequently break SKMTC's invariants. If your proposed solution matches the left column, the right column is almost always the correct alternative.
+These overrides exist because well-intentioned TS conventions frequently break Skmtc's invariants. If your proposed solution matches the left column, the right column is almost always the correct alternative.
 
-| Default intuition (from training data) | SKMTC's stance | Why |
+| Default intuition (from training data) | Skmtc's stance | Why |
 |---|---|---|
 | Add a config flag to make X customizable | `skmtc clone` the generator and edit | Customization is via source code, not configuration |
 | Add a plugin API for extensibility | Generators coordinate via memoization; there is no plugin registry | Cross-generator coordination is a `Map` cache keyed by `(name, exportPath)` |
 | Run Prettier or Biome in the pipeline | Don't — produce valid output and stop | Format is the consumer's concern; pipeline renders unformatted output by design |
-| Provide a runtime client library | Output is committed source code | Zero SKMTC runtime in consumer bundles; generated files are reviewed via git |
+| Provide a runtime client library | Output is committed source code | Zero Skmtc runtime in consumer bundles; generated files are reviewed via git |
 | Fail closed on bad schema input | Fail open, log `ParseIssue`s, prune dependents via `removeErroredItems` | One bad schema mustn't kill the run; manifest is the canonical record |
 | Templates as `.hbs` / `.mustache` files | Templates as template literals inside TypeScript classes | Type safety on interpolated values; full IDE refactoring |
 | Cache between runs for speed | Each generate is from cold; spawn a fresh Worker per run | Determinism > marginal speed; no state leaks between runs |
@@ -141,7 +141,7 @@ These overrides exist because well-intentioned TS conventions frequently break S
 | Emit a file-scope export by calling `defineAndRegister` with a Snippet value | Make it a Projection, dispatch via `insertOperation` | A `defineAndRegister`'d Snippet is keyed by the caller-chosen name string, not by `(Producer.toIdentifierName(...), Producer.toExportPath(...))`. Other generators cannot reach it via `insertOperation` (no class to pass); the identifier name lives at the caller, so a rename changes two sites instead of one |
 | Return a duck-typed `{ toString: () => '...' }` from a helper function in a render path | Make it a `SnippetBase` descendant class | The duck-typed object has no `context` (so `register({ imports, destinationPath })` is unavailable), no `generatorKey` (invisible to `affirmDefinition`), and isn't `instanceof SnippetBase` (rejected by generic code over the family) |
 | Expose a sole-caller-hardcoded value as a Snippet constructor parameter | Inline it in the Snippet's `toString()` template | Each parameter that all callers pass identically still adds call-site verbosity, typing surface, and an invitation for a mismatched-value bug — for zero gain |
-| Use casual codegen verbs like *emit*, *dispatch*, *dispatcher*, *stitch* | Name the SKMTC primitive: `register`, `insertOperation`, `insertModel`, `insertNormalizedModel`, `defineAndRegister`, `findDefinition` | These words map to no exported surface in `@skmtc/core`. Using them in code or prose fabricates a mental model that doesn't connect to the API. See [glossary § SKMTC vocabulary](reference/glossary.md#skmtc-vocabulary--load-bearing-terms) |
+| Use casual codegen verbs like *emit*, *dispatch*, *dispatcher*, *stitch* | Name the Skmtc primitive: `register`, `insertOperation`, `insertModel`, `insertNormalizedModel`, `defineAndRegister`, `findDefinition` | These words map to no exported surface in `@skmtc/core`. Using them in code or prose fabricates a mental model that doesn't connect to the API. See [glossary § Skmtc vocabulary](reference/glossary.md#skmtc-vocabulary--load-bearing-terms) |
 
 Full discussion: [`explanation/design-philosophy.md`](explanation/design-philosophy.md). Code-level failure modes for these violations: see **Anti-patterns** below.
 
@@ -173,13 +173,13 @@ Before stating any architectural claim from this document, verify against the ci
 
 ---
 
-## What SKMTC is
+## What Skmtc is
 
 A code generator. Input: an OpenAPI v3 document or a GraphQL SDL string. Output: a tree of source files (TypeScript types, Zod schemas, React hooks, MSW mocks, forms, server routes) determined by installed generators. Generated files are idiomatic source code committed to the consumer's repo — TypeScript from the published stock generators; the language is set per generator by its lang package (see fact 6).
 
 Engine = `@skmtc/core`. CLI = `@skmtc/cli`. Stock generators = `@skmtc/gen-*`.
 
-## What SKMTC is NOT
+## What Skmtc is NOT
 
 - **Not a runtime library.** Build-time only.
 - **Not a templating engine.** Template literals inside TS classes, not Mustache/Handlebars/EJS files.
@@ -490,7 +490,7 @@ Reference example: `skmtc-generators/gen-shadcn-form/src/`.
 | Mutating `this` in `toString()` | May be called multiple times; set state in constructor |
 | Reading another generator's `toString()` | Coordination is by *identifier name*, not source text |
 
-### SKMTC-specific (code style and architectural invariants)
+### Skmtc-specific (code style and architectural invariants)
 
 | Anti-pattern | Why it fails |
 |---|---|
@@ -513,7 +513,7 @@ Self-contained playbooks. Read only the one you need.
 
 ### User task cards
 
-#### Setting up SKMTC in a project
+#### Setting up Skmtc in a project
 
 1. Install the CLI: `curl -fsSL https://skmtc.dev/install | sh` — bootstraps Deno if needed and pins a version via `SKMTC_VERSION=<version>`. The script bakes in the required `--unstable-worker-options` flag (`@skmtc/worker` uses Deno's `Worker.deno.permissions` API, which sits behind it); a hand-rolled `deno install` without that flag makes the first `skmtc generate` exit with `Unstable API 'Worker.deno.permissions'`.
 2. `skmtc init <project-name> ./` creates `.skmtc/<project>/`.
@@ -562,7 +562,7 @@ Self-contained playbooks. Read only the one you need.
 2. `skmtc generate <project>`. Files overwritten.
 3. Files no longer produced are *not* auto-deleted — clean manually or run before generating.
 
-#### Using SKMTC in CI
+#### Using Skmtc in CI
 
 1. Pin Deno version.
 2. Install CLI in CI: `SKMTC_VERSION=<version> curl -fsSL https://skmtc.dev/install | sh` — the pin keeps runs reproducible.
@@ -639,7 +639,7 @@ If you see `Registered definition mismatch: 'X' in file 'Y'`:
 - Settings and source pinning
 - Recent run state
 
-Use this as the first read when an agent enters a SKMTC project cold.
+Use this as the first read when an agent enters a Skmtc project cold.
 
 ---
 
@@ -661,14 +661,14 @@ Use this as the first read when an agent enters a SKMTC project cold.
 - **Stringable** — anything with a `toString()` method; the common interface for DSL composition.
 - **clone-to-customize** — the design philosophy: stock generators are opinionated; non-default behavior comes from editing cloned source.
 
-### Avoid: words that map to no SKMTC surface
+### Avoid: words that map to no Skmtc surface
 
-When writing about SKMTC, do not use these generic-codegen verbs — each sounds like a SKMTC primitive but maps to no exported surface in `@skmtc/core`; name the actual method or class instead.
+In text about Skmtc, do not use these generic-codegen verbs. Each sounds like a Skmtc primitive but maps to no exported surface in `@skmtc/core`; name the actual method or class instead.
 
 | Don't write | Write instead (context-dependent) |
 |---|---|
 | **emit** / **emission** / **emitted** | `register` / Definition registration / `insert`-family call / rendered output |
-| **dispatch** (as a SKMTC verb) | `insertOperation` / `insertModel` / `insertNormalizedModel` — name the method |
+| **dispatch** (as a Skmtc verb) | `insertOperation` / `insertModel` / `insertNormalizedModel` — name the method |
 | **dispatcher** (referring to the engine loop) | `GenerateContext`'s iteration over `(generator × item)` pairs — name the actual class and what it iterates |
 | **dispatch on `.type`** (TypeScript discriminator usage) | switch on `.type` / narrow on `.type` |
 | **field-type dispatch** (referring to `schemaToField`-style code) | field-type routing |

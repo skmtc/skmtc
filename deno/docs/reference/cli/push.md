@@ -3,8 +3,8 @@
 > Push a local project's `client.json` (config + enrichments) to its
 > skmtc-hub **project**.
 
-`push` uploads a local SKMTC project's `client.json` to an **existing**
-hub project, where it becomes that project's editable config — the same
+`push` uploads a local Skmtc project's `client.json` to an **existing**
+hub project. There it becomes that project's editable config, the same
 flat config the web CMS edits. It is the project-level counterpart to
 [`publish`](publish.md): `publish` ships an immutable *stack* version;
 `push` updates a *project's* config.

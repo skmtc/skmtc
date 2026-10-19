@@ -1,11 +1,11 @@
 # Refs and resolution
 
 > How OpenAPI `$ref`s are parsed, tracked, and resolved through the
-> SKMTC pipeline: `OasRef` as a sibling-class to schema variants,
+> Skmtc pipeline: `OasRef` as a sibling-class to schema variants,
 > lazy resolution with cycle protection, forward-reference handling
 > via shared mutable document, and cascade pruning when refs fail.
 
-OAS documents express reuse through `$ref`. SKMTC's job is to make
+OAS documents express reuse through `$ref`. Skmtc's job is to make
 refs first-class without forcing them to resolve at parse time —
 which would require either two passes or strict topological ordering.
 
@@ -26,7 +26,7 @@ ref, the document has been populated, so the lookup succeeds.
 A common LLM intuition: "Refs are wrappers around schemas; they
 should be a subclass of schema."
 
-SKMTC's design is different. `OasSchema` is a discriminated union:
+Skmtc's design is different. `OasSchema` is a discriminated union:
 
 ```ts
 type OasSchema =
@@ -101,7 +101,7 @@ A naive parser would need either:
 3. **Lazy resolution**: store the ref, resolve when needed. Requires
    the resolution target to be accessible at resolution time.
 
-SKMTC takes path 3. The trick: `OasRef` is constructed during the
+Skmtc takes path 3. The trick: `OasRef` is constructed during the
 walk with a reference to `context.parsedDocument`, which is the
 *in-progress* parsed document. The document is **mutated as the walk
 progresses** — when `User` finishes parsing, it's added to
@@ -307,7 +307,7 @@ Not currently. The `$ref` is resolved within `context.parsedDocument`,
 which is single-document. External `$ref`s (e.g.,
 `$ref: 'other.yaml#/User'`) aren't supported. If your OAS uses
 multi-file refs, bundle them into a single document before passing
-to SKMTC (tools like `@redocly/cli bundle` do this).
+to Skmtc (tools like `@redocly/cli bundle` do this).
 
 ### Does Render phase resolve refs?
 
