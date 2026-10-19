@@ -8,7 +8,7 @@ description: |
   running the CLI. Covers the three-phase pipeline, the host/Worker
   boundary, cross-generator coordination, the manifest, the
   attribution / gen-maps (provenance) subsystem, the package graph,
-  the dependency substrate, and the design decisions that make SKMTC
+  the Deno and JSR platform, and the design decisions that make SKMTC
   behave unlike a typical codegen tool.
 
   Use this skill when the user asks "what is SKMTC", "how does the
@@ -417,9 +417,9 @@ the worker-side parser omission, the `doctor` checks:
 `cli` also depends on `convert` and `worker`. Exact versions live in
 each package's `deno.json` — treat that as canonical, not this skill.
 
-### The substrate
+### Built on Deno
 
-SKMTC's design principle "build on the substrate, don't rebuild it"
+SKMTC's design principle "build on Deno, don't rebuild it"
 means **Deno is the platform**:
 
 - `deno bundle` is the bundler — it compiles a project's `worker.ts`

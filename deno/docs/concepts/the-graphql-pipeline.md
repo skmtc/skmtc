@@ -24,7 +24,7 @@ Containers and operations are GraphQL-specific (`GqlDocument`,
 (`gen-typescript`, `gen-zod`, etc.) work unchanged across both
 protocols because the schema vocabulary is protocol-neutral.
 
-## The shared substrate
+## The shared schema vocabulary
 
 The single most clarifying fact about the GraphQL pipeline: at
 the schema level, **the vocabulary is identical to OAS**. A
@@ -343,7 +343,7 @@ available when you do.
 
 ### Authoring differences vs OAS
 
-The pipelines share substrate, and the operation-entry shape is
+The pipelines share the schema vocabulary, and the operation-entry shape is
 largely symmetric: `transform` has the same `({ context, operation,
 variant }) => void` signature, enrichments are pre-resolved the same
 way (the projection base's static `toEnrichments` reads

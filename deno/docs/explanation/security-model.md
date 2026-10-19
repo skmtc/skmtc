@@ -276,7 +276,7 @@ the system.
   the operational details of Worker spawning
 - [Generators as packages concept](../concepts/generators-as-packages.md) —
   how generators are installed and updated
-- [Design philosophy](design-philosophy.md) — "build on the
-  substrate" as it applies to Deno permissions
+- [Design philosophy](design-philosophy.md) — building on
+  Deno, as it applies to Deno permissions
 - [Manifest format](../reference/manifest-format.md) — the
   manifest-as-forensic-record surface

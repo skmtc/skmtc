@@ -143,7 +143,7 @@ and go-to-definition working across the template boundary.
 
 See [Projections and Snippets](../concepts/projections-and-snippets.md).
 
-### 6. Build on the substrate, don't rebuild it
+### 6. Build on Deno, don't rebuild it
 
 > Deno is the platform: `deno bundle` is the bundler, `new Worker(...)` is the sandbox, Deno permissions are the access control. SKMTC adds the codegen logic.
 
@@ -261,6 +261,6 @@ The asymmetry encodes the model: engine is the *platform* (stable, contributor-f
 - [Why clone-to-customize](why-clone-to-customize.md) — deep dive on the central bet
 - [Why three phases](why-three-phases.md) — why Parse, Generate, Render are separate
 - [How idempotency works](how-idempotency-works.md) — the mechanism behind order-independence
-- [The GraphQL asymmetry](the-graphql-asymmetry.md) — building on the structuredClone substrate
+- [The GraphQL asymmetry](the-graphql-asymmetry.md) — building on Deno Workers and `structuredClone`
 - [Security model](security-model.md) — worker sandboxing
 - [Comparison to other tools](comparison-to-other-tools.md) — how these principles differ from other codegen tools

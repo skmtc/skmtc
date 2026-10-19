@@ -230,8 +230,8 @@ difference.
 ## Why this matters beyond the implementation detail
 
 The asymmetry illustrates a broader pattern: **SKMTC builds on
-the substrate rather than rebuilding it**. The substrate here is
-Deno Workers + `structuredClone`. Where the substrate has a
+Deno rather than rebuilding what Deno provides**. Here that is
+Deno Workers + `structuredClone`. Where Deno has a
 constraint (`structuredClone` is the only host-Worker channel),
 SKMTC accepts the constraint and adapts the design around it
 rather than building its own message transport.
@@ -242,7 +242,7 @@ This same pattern shows up elsewhere:
 - Deno permissions as the sandbox (not a custom security layer)
 - JSR as the distribution channel (not a SKMTC-specific registry)
 
-Adopting the substrate is what keeps the engine small. The cost
+Building on Deno is what keeps the engine small. The cost
 is occasional asymmetries like this one. The benefit is the
 engine staying readable and maintainable.
 
@@ -263,5 +263,5 @@ engine staying readable and maintainable.
   a `SkmtcDocumentInput` union: `{ type: 'oas', value: ... }` or
   `{ type: 'gql', value: ... }`. Same field name (`value`) on both
   variants; discrimination is on `type`.
-- [Design philosophy](design-philosophy.md) — "build on the
-  substrate, don't rebuild it" as a principle
+- [Design philosophy](design-philosophy.md) — "build on Deno,
+  don't rebuild it" as a principle

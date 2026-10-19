@@ -81,7 +81,7 @@ Should NOT auto-load on:
 - The manifest as the run contract: tracing IDs, the results tree,
   parseIssues-derived exit status, no run history.
 - The attribution / gen-maps provenance subsystem.
-- The package graph, the Deno + JSR substrate, key third-party
+- The package graph, the Deno + JSR platform, key third-party
   dependencies, the version-pin discipline.
 - The infrastructure integration map — engine concept → platform
   concern, and explicitly where the engine stops.
