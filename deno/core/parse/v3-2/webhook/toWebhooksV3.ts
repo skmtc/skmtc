@@ -5,12 +5,11 @@ import { toRequestBodyV3 } from '../requestBody/toRequestBodiesV3.ts'
 import { toResponsesV3 } from '../response/toResponseV3.ts'
 import { toParameterListV3 } from '../parameter/toParameterV3.ts'
 import { OasWebhook } from '@/oas/webhook/Webhook.ts'
-import { toPathItemV3 } from '../pathItem/toPathItemV3.ts'
+import { toPathItemResultV3 } from '@/parse/v3-2/pathItem/toPathItemV3.ts'
 import type { OasPathItem } from '@/oas/pathItem/PathItem.ts'
 import { methodValues } from '@/types/Method.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toSecurityRequirementsV3 } from '../securityRequirement/toSecurityRequirement.ts'
-import { isEmpty } from '@/helpers/isEmpty.ts'
 import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
 import { toOptionalServersV3 } from '../server/toServerV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
@@ -174,9 +173,17 @@ export const toWebhooksV3 = ({ webhooks, stackTrail, context }: ToWebhooksV3Args
         }
       )
 
-      const pathItemObject = !isEmpty(cleaned.rest)
-        ? toPathItemV3({ pathItem: cleaned.rest, stackTrail: nameStack, context })
-        : undefined
+      const pathItemResult = toPathItemResultV3({
+        pathItem: cleaned.rest,
+        stackTrail: nameStack,
+        context
+      })
+
+      if (!pathItemResult.valid) {
+        return []
+      }
+
+      const pathItemObject = pathItemResult.pathItem
 
       return Object.entries(cleaned.methodObject)
         .map(([method, operation]) => {

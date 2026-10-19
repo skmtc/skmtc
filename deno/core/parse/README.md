@@ -44,8 +44,8 @@ behaviorally, not by re-coupling the code:
   equivalents must parse to the same IR.
 - `v3-2/version-equivalence.test.ts` — two real 3.1 documents
   (`core/_schemas/openrouter.yaml`, `core/_schemas/remote-com.json`) parsed
-  as `3.1.0` and as `3.2.0` must give the same document and the same
-  error-level issues.
+  as `3.1.0` and as `3.2.0` must give the same document, the same component
+  maps and the same error-level issues.
 
 ## Shared vs duplicated
 
@@ -114,7 +114,7 @@ distribute per-type constraints to the members — a rare case, noted here.
 
 ## Dialect differences (v3.1 vs v3.2)
 
-OpenAPI 3.2 is a superset of 3.1 with no schema-layer changes. `v3-2` started
+OpenAPI 3.2 is a superset of 3.1, and its schema-layer changes are additive. `v3-2` started
 as a copy of `v3-1`; the 3.2 fields are added to it one at a time. Until a
 field is read into the IR, the parser records it as a skipped-field warning
 (`UNEXPECTED_PROPERTY`) and the parse continues. `v3-2/pending-fields.test.ts`
@@ -128,8 +128,8 @@ scheme and on its `flows` object; `v3-0` and `v3-1` drop them silently.
 | Document `$self` | skipped-field warning | ⏳ pending |
 | Path item `query` operation | skipped-field warning | ⏳ pending |
 | Path item `additionalOperations` | skipped-field warning | ⏳ pending |
-| Parameter `in: querystring` | fails the parameter's `v.parse`; the operation is dropped | ⏳ pending |
-| Parameter `style: cookie` | fails the parameter's `v.parse`; the operation is dropped | ⏳ pending |
+| Parameter `in: querystring` | fails the parameter's `v.parse`; on an operation the operation is dropped, on a path item or webhook path item the whole path is dropped (`INVALID_OPERATION`) | ⏳ pending |
+| Parameter `style: cookie` | fails the parameter's `v.parse`; on an operation the operation is dropped, on a path item or webhook path item the whole path is dropped (`INVALID_OPERATION`) | ⏳ pending |
 | Media type `itemSchema` | skipped-field warning | ⏳ pending |
 | Media type `prefixEncoding` / `itemEncoding` | skipped-field warning | ⏳ pending |
 | `components.mediaTypes` | skipped-field warning | ⏳ pending |

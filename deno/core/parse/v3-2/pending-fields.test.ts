@@ -184,3 +184,59 @@ Deno.test('v3-2 pending fields - only querystring and cookie style drop an opera
   )
   assertEquals(Object.keys(document.components?.securitySchemes ?? {}), ['legacyKey', 'oauth'])
 })
+
+Deno.test('v3-2 pending fields - path-level querystring and cookie style skip only their path', () => {
+  const ok = { responses: { '200': { description: 'ok' } } }
+  const querystring = {
+    name: 'q',
+    in: 'querystring',
+    content: { 'application/x-www-form-urlencoded': { schema: { type: 'object' } } }
+  }
+  const cookieStyle = { name: 'id', in: 'cookie', style: 'cookie', schema: { type: 'string' } }
+
+  const pathLevelContext = new ParseContext({
+    input: {
+      type: 'oas',
+      value: toDocumentObject(
+        {
+          openapi: '3.2.0',
+          info: { title: 't', version: '0' },
+          paths: {
+            '/search': { parameters: [querystring], get: ok },
+            '/session': { parameters: [cookieStyle], get: ok },
+            '/other': { get: ok }
+          },
+          webhooks: {
+            searched: { parameters: [querystring], post: ok },
+            loggedIn: { parameters: [cookieStyle], post: ok },
+            other: { post: ok }
+          }
+        },
+        'path-level pending fields'
+      )
+    },
+    logger: new log.Logger('test', 'ERROR'),
+    silent: true
+  })
+  const pathLevelResult = pathLevelContext.parse(new StackTrail(['TEST']))
+
+  assert(pathLevelResult.type === 'oas')
+  const errors = pathLevelContext.issues.filter(issue => issue.level === 'error')
+  assertEquals(
+    errors.map(({ type, location }) => ({ type, location })),
+    [
+      { type: 'INVALID_OPERATION', location: 'TEST:paths:/search' },
+      { type: 'INVALID_OPERATION', location: 'TEST:paths:/session' },
+      { type: 'INVALID_OPERATION', location: 'TEST:webhooks:searched' },
+      { type: 'INVALID_OPERATION', location: 'TEST:webhooks:loggedIn' }
+    ]
+  )
+  assertEquals(
+    pathLevelResult.value.operations.map(operation => `${operation.method} ${operation.path}`),
+    ['get /other']
+  )
+  assertEquals(
+    pathLevelResult.value.webhooks.map(webhook => `${webhook.method} ${webhook.name}`),
+    ['post other']
+  )
+})
