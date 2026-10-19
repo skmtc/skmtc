@@ -599,8 +599,8 @@ export const isGeneratorKey = (arg: unknown): arg is GeneratorKey => {
  * Type guard to check if a value is a valid OasOperationGeneratorKey.
  *
  * Validates that the argument is a string with the correct format:
- * `generatorId|path|method` where each part is non-empty and method
- * is a valid HTTP method.
+ * `generatorId|path|method|variant` where each part is non-empty, path
+ * starts with `/` and method is a valid HTTP method.
  *
  * @param arg - Value to check
  * @returns True if the value is a valid OasOperationGeneratorKey
@@ -636,7 +636,10 @@ export const isOasOperationGeneratorKey = (arg: unknown): arg is OasOperationGen
     return false
   }
 
-  if (typeof path !== 'string' || !path.length) {
+  // An OpenAPI path starts with `/`. Checking it keeps a GraphQL key whose
+  // field name is also an HTTP method (`gen|mutation|query|main`) from
+  // parsing as an operation.
+  if (typeof path !== 'string' || !path.startsWith('/')) {
     return false
   }
 

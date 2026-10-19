@@ -5,7 +5,9 @@ import * as v from 'valibot'
  *
  * This constant array includes all HTTP methods that can be used
  * in OpenAPI path operations, as defined by the OpenAPI specification.
- * All methods are in lowercase to match OpenAPI conventions.
+ * All methods are in lowercase to match OpenAPI conventions. `query` is
+ * an OpenAPI 3.2 method; each parser tree reads its own list from
+ * `parse/v3-X/methods.ts`.
  */
 export const methodValues = [
   'get',
@@ -15,7 +17,8 @@ export const methodValues = [
   'options',
   'head',
   'patch',
-  'trace'
+  'trace',
+  'query'
 ] as const
 
 /**
@@ -24,7 +27,16 @@ export const methodValues = [
  * This is a filtered version of {@link methodValues} that excludes the TRACE method,
  * which is sometimes excluded from API operations for security reasons.
  */
-export const methodValuesNoTrace = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch']
+export const methodValuesNoTrace = [
+  'get',
+  'put',
+  'post',
+  'delete',
+  'options',
+  'head',
+  'patch',
+  'query'
+]
 
 export const method: v.UnionSchema<
   [
@@ -35,7 +47,8 @@ export const method: v.UnionSchema<
     v.LiteralSchema<'delete', undefined>,
     v.LiteralSchema<'head', undefined>,
     v.LiteralSchema<'options', undefined>,
-    v.LiteralSchema<'trace', undefined>
+    v.LiteralSchema<'trace', undefined>,
+    v.LiteralSchema<'query', undefined>
   ],
   undefined
 > = v.union([
@@ -46,10 +59,20 @@ export const method: v.UnionSchema<
   v.literal('delete'),
   v.literal('head'),
   v.literal('options'),
-  v.literal('trace')
+  v.literal('trace'),
+  v.literal('query')
 ])
 
-export type Method = 'get' | 'put' | 'post' | 'delete' | 'options' | 'head' | 'patch' | 'trace'
+export type Method =
+  | 'get'
+  | 'put'
+  | 'post'
+  | 'delete'
+  | 'options'
+  | 'head'
+  | 'patch'
+  | 'trace'
+  | 'query'
 
 export const methods: v.ArraySchema<typeof method, undefined> = v.array(method)
 

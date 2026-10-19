@@ -6,7 +6,29 @@ import {
   toArgsName,
   toMethodVerb
 } from './naming.ts'
-import type { OasOperation } from '../oas/operation/Operation.ts'
+import { OasOperation } from '@/oas/operation/Operation.ts'
+
+Deno.test('toEndpointType - returns query for QUERY method', () => {
+  const operation = new OasOperation({
+    method: 'query',
+    path: '/users',
+    pathItem: undefined,
+    responses: {}
+  })
+
+  assertEquals(toEndpointType(operation), 'query')
+})
+
+Deno.test('toEndpointName - generates name for QUERY', () => {
+  const operation = new OasOperation({
+    method: 'query',
+    path: '/users',
+    pathItem: undefined,
+    responses: {}
+  })
+
+  assertEquals(toEndpointName(operation), 'QueryApiUsers')
+})
 
 Deno.test('toEndpointType - returns query for GET method', () => {
   const operation = {

@@ -397,3 +397,48 @@ Deno.test('GeneratorKey round-trip - GQL variant survives serialize → parse', 
     assertEquals(parsed.variant, 'description')
   }
 })
+
+Deno.test('GeneratorKey round-trip - OAS query method survives serialize → parse', () => {
+  const key = toOasOperationGeneratorKey({
+    generatorId: 'gen',
+    path: '/pets',
+    method: 'query',
+    variant: 'main'
+  })
+
+  assertEquals(key, 'gen|/pets|query|main')
+
+  const parsed = fromGeneratorKey(key)
+
+  assertEquals(parsed, {
+    type: 'oasOperation',
+    generatorId: 'gen',
+    path: '/pets',
+    method: 'query',
+    variant: 'main'
+  })
+})
+
+Deno.test('fromGeneratorKey - a GQL key whose field is named query stays a GQL key', () => {
+  // `query` is an HTTP method too; the OAS guard rejects `mutation` as a
+  // path because it does not start with `/`.
+  const key = toGqlOperationGeneratorKey({
+    generatorId: 'gen',
+    rootKind: 'mutation',
+    fieldName: 'query',
+    variant: 'main'
+  })
+
+  assertEquals(key, 'gen|mutation|query|main')
+  assertEquals(isOasOperationGeneratorKey(key), false)
+
+  const parsed = fromGeneratorKey(key)
+
+  assertEquals(parsed, {
+    type: 'gqlOperation',
+    generatorId: 'gen',
+    rootKind: 'mutation',
+    fieldName: 'query',
+    variant: 'main'
+  })
+})

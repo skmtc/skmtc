@@ -269,7 +269,8 @@ export class OasParameter extends OasBase {
    * Extracts the schema for this parameter.
    *
    * Returns the direct schema if available, or extracts schema from content
-   * for the specified media type.
+   * for the specified media type. When `content` has exactly one entry, its
+   * schema is used whatever the media type.
    *
    * @param mediaType - Media type to extract schema from when using content definitions
    * @returns The parameter's schema object
@@ -280,7 +281,10 @@ export class OasParameter extends OasBase {
       return this.schema
     }
 
-    const schema = this.content?.[mediaType]?.schema
+    const contentEntries = Object.values(this.content ?? {})
+    const onlyEntry = contentEntries.length === 1 ? contentEntries[0] : undefined
+
+    const schema = this.content?.[mediaType]?.schema ?? onlyEntry?.schema
 
     if (!schema) {
       throw new Error(`Schema not found for media type ${mediaType}`)

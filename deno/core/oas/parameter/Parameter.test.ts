@@ -247,6 +247,38 @@ Deno.test('OasParameter - toSchema() extracts schema from custom media type', ()
   assertStrictEquals(result, schema)
 })
 
+Deno.test('OasParameter - toSchema() falls back to the only content entry', () => {
+  const schema = new OasString()
+  const param = new OasParameter({
+    name: 'q',
+    location: 'querystring',
+    content: {
+      'application/x-www-form-urlencoded': new OasMediaType({
+        mediaType: 'application/x-www-form-urlencoded',
+        schema
+      })
+    }
+  })
+
+  assertStrictEquals(param.toSchema(), schema)
+})
+
+Deno.test('OasParameter - toSchema() throws when content has several entries and none matches', () => {
+  const param = new OasParameter({
+    name: 'q',
+    location: 'querystring',
+    content: {
+      'application/x-www-form-urlencoded': new OasMediaType({
+        mediaType: 'application/x-www-form-urlencoded',
+        schema: new OasString()
+      }),
+      'text/plain': new OasMediaType({ mediaType: 'text/plain', schema: new OasString() })
+    }
+  })
+
+  assertThrows(() => param.toSchema(), Error, 'Schema not found for media type application/json')
+})
+
 Deno.test('OasParameter - toSchema() throws error when schema not found', () => {
   const param = new OasParameter({
     name: 'noSchema',

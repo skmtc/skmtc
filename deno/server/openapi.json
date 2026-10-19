@@ -995,6 +995,9 @@
                             },
                             {
                               "const": "trace"
+                            },
+                            {
+                              "const": "query"
                             }
                           ]
                         },
@@ -1184,6 +1187,9 @@
                             },
                             {
                               "const": "INVALID_TAG_PARENT"
+                            },
+                            {
+                              "const": "UNSUPPORTED_OPERATION_METHOD"
                             }
                           ]
                         },
@@ -1270,6 +1276,9 @@
                             },
                             {
                               "const": "INVALID_TAG_PARENT"
+                            },
+                            {
+                              "const": "UNSUPPORTED_OPERATION_METHOD"
                             }
                           ]
                         },
@@ -1355,6 +1364,9 @@
                             },
                             {
                               "const": "INVALID_TAG_PARENT"
+                            },
+                            {
+                              "const": "UNSUPPORTED_OPERATION_METHOD"
                             }
                           ]
                         },

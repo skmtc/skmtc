@@ -145,7 +145,8 @@ The path template (e.g., `'/users/{id}'`) and HTTP method (`'get'`,
 the document.
 
 The `Method` type is the lowercase union of HTTP verbs:
-`'get' | 'put' | 'post' | 'delete' | 'options' | 'head' | 'patch' | 'trace'`.
+`'get' | 'put' | 'post' | 'delete' | 'options' | 'head' | 'patch' | 'trace' | 'query'`.
+Only an OpenAPI 3.2 document produces `'query'`.
 
 #### `operationId: string | undefined`
 
@@ -158,7 +159,7 @@ When absent, generators fall back to deriving a name from `path` +
 
 #### `parameters: (OasParameter | OasRef<'parameter'>)[] | undefined`
 
-The operation's parameters — path, query, header, cookie. May be
+The operation's parameters — path, query, `querystring`, header, cookie. May be
 inline or refs. Use `toParams()` or `toParametersObject()` to access
 them after resolving refs.
 
@@ -326,7 +327,7 @@ The `toSchema()` shortcut is the same.
 class OasParameter {
   oasType: 'parameter'
   name: string
-  location: OasParameterLocation               // 'path' | 'query' | 'header' | 'cookie'
+  location: OasParameterLocation               // 'path' | 'query' | 'querystring' | 'header' | 'cookie'
   description: string | undefined
   required: boolean | undefined
   schema: OasSchema | OasRef<'schema'> | undefined
@@ -522,10 +523,10 @@ type OasComponentType =
   | OasSecurityScheme
 
 // HTTP method literal
-type Method = 'get' | 'put' | 'post' | 'delete' | 'options' | 'head' | 'patch' | 'trace'
+type Method = 'get' | 'put' | 'post' | 'delete' | 'options' | 'head' | 'patch' | 'trace' | 'query'
 
 // Parameter location
-type OasParameterLocation = 'path' | 'query' | 'header' | 'cookie'
+type OasParameterLocation = 'path' | 'query' | 'querystring' | 'header' | 'cookie'
 ```
 
 ## See also

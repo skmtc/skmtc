@@ -1,12 +1,7 @@
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
 import { isRef } from '@/helpers/refFns.ts'
-import {
-  oasParameterLocation,
-  oasParameterStyle,
-  type OasParameterLocation,
-  type OasParameterStyle
-} from '@/oas/parameter/parameter-types.ts'
+import type { OasParameterLocation, OasParameterStyle } from '@/oas/parameter/parameter-types.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { toExamplesV3 } from '../example/toExamplesV3.ts'
 import { toRefV31 } from '../ref/toRefV31.ts'
@@ -18,6 +13,29 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import * as v from 'valibot'
 import type { StackTrail } from '@/context/StackTrail.ts'
+
+// `in: querystring` and `style: cookie` are OpenAPI 3.2 values; this tree
+// rejects them.
+type ParameterLocation = Exclude<OasParameterLocation, 'querystring'>
+type ParameterStyle = Exclude<OasParameterStyle, 'cookie'>
+
+const parameterLocation: v.GenericSchema<ParameterLocation> = v.enum({
+  query: 'query',
+  header: 'header',
+  path: 'path',
+  cookie: 'cookie'
+})
+
+const parameterStyle: v.GenericSchema<ParameterStyle> = v.enum({
+  matrix: 'matrix',
+  label: 'label',
+  form: 'form',
+  simple: 'simple',
+  spaceDelimited: 'spaceDelimited',
+  pipeDelimited: 'pipeDelimited',
+  deepObject: 'deepObject'
+})
+
 export type ToParameterListV3Args = {
   parameters: (OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject)[] | undefined
   stackTrail: StackTrail
@@ -125,7 +143,7 @@ const toParameterV3 = ({
     parentType: 'parameter'
   })
 
-  const parsedLocation = v.parse(oasParameterLocation, location)
+  const parsedLocation = v.parse(parameterLocation, location)
 
   if (parsedLocation === 'path' && !required) {
     console.warn(`Path parameters must be required`)
@@ -170,12 +188,12 @@ const toParameterV3 = ({
 
 export type ToStyleArgs = {
   style: string | undefined
-  location: OasParameterLocation
+  location: ParameterLocation
   stackTrail: StackTrail
 }
 
-const toStyle = ({ style, location, stackTrail }: ToStyleArgs): OasParameterStyle => {
-  const parsed = v.parse(v.optional(oasParameterStyle), style)
+const toStyle = ({ style, location, stackTrail }: ToStyleArgs): ParameterStyle => {
+  const parsed = v.parse(v.optional(parameterStyle), style)
   if (parsed !== undefined) {
     return parsed
   }

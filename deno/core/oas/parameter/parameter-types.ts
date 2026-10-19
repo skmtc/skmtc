@@ -1,14 +1,23 @@
 import * as v from 'valibot'
 
-export type OasParameterLocation = 'query' | 'header' | 'path' | 'cookie'
+/**
+ * Parameter locations across OpenAPI 3.0 to 3.2. `querystring` is new in
+ * 3.2; each parser tree accepts its own subset.
+ */
+export type OasParameterLocation = 'query' | 'querystring' | 'header' | 'path' | 'cookie'
 
 export const oasParameterLocation: v.GenericSchema<OasParameterLocation> = v.enum({
   query: 'query',
+  querystring: 'querystring',
   header: 'header',
   path: 'path',
   cookie: 'cookie'
 })
 
+/**
+ * Parameter styles across OpenAPI 3.0 to 3.2. `cookie` is new in 3.2; each
+ * parser tree accepts its own subset.
+ */
 export type OasParameterStyle =
   | 'matrix'
   | 'label'
@@ -17,6 +26,7 @@ export type OasParameterStyle =
   | 'spaceDelimited'
   | 'pipeDelimited'
   | 'deepObject'
+  | 'cookie'
 
 export const oasParameterStyle: v.GenericSchema<OasParameterStyle> = v.enum({
   matrix: 'matrix',
@@ -25,5 +35,6 @@ export const oasParameterStyle: v.GenericSchema<OasParameterStyle> = v.enum({
   simple: 'simple',
   spaceDelimited: 'spaceDelimited',
   pipeDelimited: 'pipeDelimited',
-  deepObject: 'deepObject'
+  deepObject: 'deepObject',
+  cookie: 'cookie'
 })

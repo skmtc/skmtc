@@ -140,7 +140,7 @@ The TypeScript-level utility types and interfaces.
 | `IdentifierType` | `{ type: string; typeName?; exported? }` — the non-name identifier parts `toIdentifierType` returns; the per-language declaration vocabulary (`TsEntityType`, `'variable' \| 'type' \| 'class' \| 'interface' \| 'namespace'`) and its keyword mapping live in `@skmtc/lang-typescript` |
 | `GeneratedValue` | Base structural type for what `DefinitionBase` wraps |
 | `Method` | HTTP method literal type |
-| `OasParameterLocation` | `'path' \| 'query' \| 'header' \| 'cookie'` |
+| `OasParameterLocation` | `'path' \| 'query' \| 'querystring' \| 'header' \| 'cookie'` |
 | `OasComponentType` | Union of all top-level OAS component classes |
 | `Stringable` | Anything with a `toString(): string` — every DSL primitive implements it |
 | `InsertOptions` | `{ destinationPath?, noExport?, variant?, options }` — the trailing argument of `insertModel` / `insertOperation`; `PeerInsertOptions` is the same without `destinationPath` (the projection-base wrappers fill it) |
