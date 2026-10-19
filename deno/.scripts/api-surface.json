@@ -1,6 +1,6 @@
 {
   "@skmtc/core": {
-    "minor": "0.29",
+    "minor": "0.30",
     "deno": "2.9.7",
     "exports": {
       "AddPropertyArgs": "6922b41f66aabe95",
