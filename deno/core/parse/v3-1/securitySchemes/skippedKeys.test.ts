@@ -5,7 +5,9 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import { toDocumentObject } from '@/test/toDocumentObject.ts'
 import {
   OasApiKeySecurityScheme,
-  OasOAuth2SecurityScheme
+  OasHttpSecurityScheme,
+  OasOAuth2SecurityScheme,
+  OasOpenIdSecurityScheme
 } from '@/oas/securitySchemes/SecurityScheme.ts'
 import { toSecuritySchemesV3 } from '@/parse/v3-1/securitySchemes/toSecuritySchemes.ts'
 
@@ -38,6 +40,12 @@ const parseSecuritySchemes = (securitySchemes: unknown) => {
 
 Deno.test('v3-1 security schemes - unknown keys warn and stay off the IR', () => {
   const { result, issues } = parseSecuritySchemes({
+    basic: { type: 'http', scheme: 'basic', deprecated: true },
+    oidc: {
+      type: 'openIdConnect',
+      openIdConnectUrl: 'https://example.com/.well-known/openid-configuration',
+      deprecated: true
+    },
     legacyKey: {
       type: 'apiKey',
       name: 'key',
@@ -59,6 +67,8 @@ Deno.test('v3-1 security schemes - unknown keys warn and stay off the IR', () =>
   })
 
   assertEquals(issues, [
+    { level: 'warning', type: 'UNEXPECTED_PROPERTY', location: 'TEST:basic:deprecated' },
+    { level: 'warning', type: 'UNEXPECTED_PROPERTY', location: 'TEST:oidc:deprecated' },
     { level: 'warning', type: 'UNEXPECTED_PROPERTY', location: 'TEST:legacyKey:deprecated' },
     { level: 'warning', type: 'UNEXPECTED_PROPERTY', location: 'TEST:oauth:oauth2MetadataUrl' },
     {
@@ -69,6 +79,10 @@ Deno.test('v3-1 security schemes - unknown keys warn and stay off the IR', () =>
   ])
 
   assertEquals(result, {
+    basic: new OasHttpSecurityScheme({ scheme: 'basic' }),
+    oidc: new OasOpenIdSecurityScheme({
+      openIdConnectUrl: 'https://example.com/.well-known/openid-configuration'
+    }),
     legacyKey: new OasApiKeySecurityScheme({ name: 'key', in: 'header' }),
     oauth: new OasOAuth2SecurityScheme({
       flows: {
