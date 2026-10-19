@@ -7,7 +7,7 @@ import type { MediaTypeFields } from '@/oas/mediaType/MediaType.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import { isRef } from '@/helpers/refFns.ts'
-import { unescapeSegment } from '@/types/JsonPointer.ts'
+import { fromJsonPointer } from '@/types/JsonPointer.ts'
 
 /**
  * An OpenAPI 3.2 Media Type Object: the 3.0/3.1 fields plus the fields for
@@ -326,8 +326,6 @@ export const toMediaTypeItemsV3 = ({
   return output
 }
 
-const componentMediaTypePrefix = '#/components/mediaTypes/'
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -348,19 +346,15 @@ const toComponentMediaType = ({
   $ref,
   context
 }: ToComponentMediaTypeArgs): MediaTypeObjectV32 | undefined => {
-  if (!$ref.startsWith(componentMediaTypePrefix)) {
+  const segments = $ref.startsWith('#') ? fromJsonPointer($ref) : undefined
+
+  if (segments?.length !== 3 || segments[0] !== 'components' || segments[1] !== 'mediaTypes') {
     return undefined
   }
 
-  const segment = $ref.slice(componentMediaTypePrefix.length)
-
-  if (segment.includes('/')) {
-    return undefined
-  }
-
+  const [, , name] = segments
   const { components } = context.documentObject
   const mediaTypes = isRecord(components) ? components.mediaTypes : undefined
-  const name = unescapeSegment(segment)
 
   if (!isRecord(mediaTypes) || !Object.hasOwn(mediaTypes, name)) {
     return undefined

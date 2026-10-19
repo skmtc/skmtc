@@ -82,14 +82,19 @@ Deno.test('v3-2 media type - an unresolvable content $ref drops only that entry'
 })
 
 Deno.test('v3-2 media type - a $ref outside components.mediaTypes or to another $ref is unresolvable', () => {
+  // Each pointer ends in `Events`, which `components.mediaTypes` holds.
   const { result, issues } = parseContent({
-    'application/json': { $ref: '#/components/schemas/Event' },
+    'application/json': { $ref: '#/components/schemas/Events' },
+    'application/xml': { $ref: '/components/mediaTypes/Events' },
+    'application/yaml': { $ref: '#/components/mediaTypes/Events/itemSchema' },
     'text/event-stream': { $ref: '#/components/mediaTypes/Alias' }
   })
 
   assertEquals(result, {})
   assertEquals(issues, [
     { level: 'error', type: 'INVALID_DEPENDENCY_REF', location: 'TEST:application/json' },
+    { level: 'error', type: 'INVALID_DEPENDENCY_REF', location: 'TEST:application/xml' },
+    { level: 'error', type: 'INVALID_DEPENDENCY_REF', location: 'TEST:application/yaml' },
     { level: 'error', type: 'INVALID_DEPENDENCY_REF', location: 'TEST:text/event-stream' }
   ])
 })

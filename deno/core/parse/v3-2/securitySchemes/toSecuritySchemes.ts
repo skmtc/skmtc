@@ -24,11 +24,17 @@ import type { StackTrail } from '@/context/StackTrail.ts'
 import { toSpecificationExtensionsV3 } from '@/parse/v3-2/specificationExtensions/toSpecificationExtensionsV3.ts'
 
 // The shared schemas are the 3.0/3.1 shape; these add the 3.2 fields.
-const deprecated = v.optional(v.boolean())
+const deprecatedField = v.optional(v.boolean())
 
-const httpSecuritySchemeData = v.object({ ...oasHttpSecuritySchemeData.entries, deprecated })
+const httpSecuritySchemeData = v.object({
+  ...oasHttpSecuritySchemeData.entries,
+  deprecated: deprecatedField
+})
 
-const apiKeySecuritySchemeData = v.object({ ...oasApiKeySecuritySchemeData.entries, deprecated })
+const apiKeySecuritySchemeData = v.object({
+  ...oasApiKeySecuritySchemeData.entries,
+  deprecated: deprecatedField
+})
 
 const deviceAuthorizationOAuth2FlowData = v.object({
   deviceAuthorizationUrl: v.string(),
@@ -44,12 +50,15 @@ const oAuth2FlowsData = v.object({
 
 const oAuth2SecuritySchemeData = v.object({
   ...oasOAuth2SecuritySchemeData.entries,
-  deprecated,
+  deprecated: deprecatedField,
   oauth2MetadataUrl: v.optional(v.string()),
   flows: oAuth2FlowsData
 })
 
-const openIdSecuritySchemeData = v.object({ ...oasOpenIdSecuritySchemeData.entries, deprecated })
+const openIdSecuritySchemeData = v.object({
+  ...oasOpenIdSecuritySchemeData.entries,
+  deprecated: deprecatedField
+})
 
 export type ToSecuritySchemesArgs = {
   securitySchemes:
