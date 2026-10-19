@@ -429,7 +429,8 @@ const toV3JsonResponse: Schema = {
     schema: {
       type: "object",
       additionalProperties: true,
-      description: "The input document normalized to an OpenAPI 3.0 document.",
+      description:
+        "The input document as an OpenAPI 3 document: Swagger 2 is converted to 3.0; 3.0, 3.1 and 3.2 are returned unchanged.",
     },
   },
 };

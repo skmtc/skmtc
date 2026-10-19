@@ -70,7 +70,8 @@ export const renderDebug = async ({
   }
 
   // Build the schema document host-side exactly as `generate` does — load the
-  // schema and normalize Swagger 2 / OAS 3.1 → 3.0 to a clone-safe document.
+  // schema, convert Swagger 2 → 3.0 (3.0, 3.1 and 3.2 pass through) and make a
+  // clone-safe document.
   const schemaContents = await toSchemaContents(source)
   const document = await toDocumentInput(schemaContents.contents, schemaContents.fileType)
   const clientSettings = project.clientJson.contents?.settings
