@@ -5,12 +5,14 @@
  * function whose message is JSON; `measure.ts` turns those into tables.
  *
  * Producer detection copies `skmtc/method-discipline`
- * (`deno/lint-plugin/src/rules/method-discipline.ts`).
+ * (`deno/lint-plugin/src/rules/method-discipline.ts`), and any other class
+ * with an instance `toString` is scored too.
  *
  * Counted as decisions: `if`, `? :`, `for`/`for-in`/`for-of`/`while`/
  * `do-while`, `catch`, each non-default `case`, `&&`, `||`, `??`, `&&=`,
- * `||=`, `??=`, and each ts-pattern `.with(` / `.when(`. Not counted: `?.`
- * and default parameter values.
+ * `||=`, `??=`, and each `.with(` / `.when(` in a ts-pattern `match(…)` chain.
+ * Not counted: `?.`, default parameter values, and the `Maybe` forms, whose
+ * decision lives in the framework class.
  */
 
 const PROJECTION_BASE_FACTORY = /^to[A-Z]\w*ProjectionBase$/
@@ -45,6 +47,18 @@ const keyName = (key: Deno.lint.Node): string =>
       ? `#${key.name}`
       : '<computed>'
 
+/**
+ * True when a call chain starts at ts-pattern's `match(…)`, so that
+ * `Maybe.when(…)` and other `.when`/`.with` methods are not counted as arms.
+ */
+const isMatchChain = (node: Deno.lint.Node): boolean => {
+  if (node.type === 'CallExpression') {
+    if (node.callee.type === 'Identifier') return node.callee.name === 'match'
+    return node.callee.type === 'MemberExpression' && isMatchChain(node.callee.object)
+  }
+  return node.type === 'MemberExpression' && isMatchChain(node.object)
+}
+
 const toDecisions = (sourceCode: Deno.lint.SourceCode, root: Deno.lint.Node, name: string) => {
   const tests: string[] = []
   const text = (node: Deno.lint.Node): string =>
@@ -67,7 +81,8 @@ const toDecisions = (sourceCode: Deno.lint.SourceCode, root: Deno.lint.Node, nam
       node.type === 'CallExpression' &&
       node.callee.type === 'MemberExpression' &&
       node.callee.property.type === 'Identifier' &&
-      MATCH_ARMS.has(node.callee.property.name)
+      MATCH_ARMS.has(node.callee.property.name) &&
+      isMatchChain(node.callee.object)
     ) {
       const [pattern] = node.arguments
       return `match.${node.callee.property.name}: ${pattern === undefined ? '' : text(pattern)}`
@@ -176,7 +191,16 @@ const plugin: Deno.lint.Plugin = {
 
             for (const classNode of classes) {
               const name = classNode.id?.name
-              if (name === undefined || !producers.has(name)) continue
+              // Score every class that renders, not only detected producers: a
+              // plain `Stringable` class (no Snippet base) is still generator
+              // code, and leaving it out understates a package's complexity.
+              const renders = classNode.body.body.some(
+                member =>
+                  (member.type === 'MethodDefinition' || member.type === 'PropertyDefinition') &&
+                  !member.static &&
+                  keyName(member.key) === 'toString'
+              )
+              if (name === undefined || !(producers.has(name) || renders)) continue
               const members = classNode.body.body.flatMap(member => {
                 if (member.type !== 'MethodDefinition' && member.type !== 'PropertyDefinition') {
                   return []

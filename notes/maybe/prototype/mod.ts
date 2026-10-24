@@ -1,23 +1,30 @@
 /**
- * Prototype of the four composable rendering classes proposed in
+ * Prototype of the composable rendering classes proposed in
  * `notes/maybe/README.md`. Standalone so the types can be checked and the
  * behaviour tested before anything lands in `@skmtc/core`.
  *
- * Two kinds of absence, checked at different times:
+ * Absence follows fp-ts, which keeps three ideas apart:
  *
- * - Value absence (`undefined`, `null`, `''`, `false`, `[]`) is checked when
- *   a `Maybe` is constructed. It decides whether `build` or `otherwise` runs.
- * - Structural emptiness (`Nothing`, an empty `Loop`, a `Maybe` that is
- *   Nothing) is checked during render, from each instance's current state.
- *   Instances can change until render; during render they are stable.
+ * - A missing value is `undefined` or `null`, and nothing else
+ *   (`O.fromNullable`). `''`, `false`, `0` and `[]` are values and render.
+ * - A condition is a boolean you test (`boolean.match`): `Maybe.when`.
+ * - An empty value is a Monoid's empty: `[]` for lists (`NEA.fromArray`) and
+ *   `''` for text. Asking for a non-empty one is explicit: `Maybe.nonEmpty`
+ *   and `Maybe.nonEmptyText`.
  *
- * Nothing here renders a child to find out whether it is empty.
+ * Presence is decided when a `Maybe` is constructed, except for a `Loop`
+ * subject, whose emptiness is read at render. Instances can change until
+ * render; during render they are stable. Nothing here renders a child to find
+ * out whether it is empty.
  */
 
 /** Same shape as `Stringable` in `@skmtc/core/dsl/Stringable.ts`. */
 export type Stringable = {
   toString: () => string
 }
+
+/** A list with at least one item, as fp-ts `NonEmptyArray`. */
+export type NonEmpty<T> = readonly [T, ...T[]]
 
 /** Renders `''`. The empty value every other class collapses to. */
 export class Nothing implements Stringable {
@@ -26,59 +33,48 @@ export class Nothing implements Stringable {
   }
 }
 
-/** Value absence: decides at construction whether `Maybe` builds its value. */
-const isBlank = (value: unknown): boolean =>
-  value === '' || value === false || (Array.isArray(value) && value.length === 0)
+const isNonEmpty = <T>(items: readonly T[]): items is NonEmpty<T> => items.length > 0
 
 /**
- * Structural emptiness: read at render time from current state. Never calls
- * `toString()` on the value it inspects.
+ * Structural emptiness of the composition classes, read at render time from
+ * current state. Never calls `toString()` on the value it inspects.
  */
 const isEmpty = (value: unknown): boolean =>
   value instanceof Nothing ||
   (value instanceof Maybe && value.isNothing()) ||
   (value instanceof Loop && value.isEmpty())
 
+/** What `Loop` keeps, as fp-ts `A.compact`: everything except absent items. */
 const isPresent = <T>(item: T | undefined | null): item is NonNullable<T> =>
-  item !== undefined && item !== null && !isBlank(item) && !isEmpty(item)
-
-const isAbsentValue = (value: unknown): value is undefined | null =>
-  value === undefined || value === null || isBlank(value)
+  item !== undefined && item !== null && !isEmpty(item)
 
 /**
  * Renders `value` when `subject` is present, the `otherwise` value when it is
- * absent, and `''` when it is absent and there is no `otherwise`.
+ * absent, and `''` when it is absent with no `otherwise`.
  *
- * - `new Maybe(t)` renders `t` when present.
+ * - `new Maybe(t)` renders `t` unless it is `undefined` or `null`.
  * - `new Maybe(t, title => new Wrap([...]))` builds the value only when `t`
  *   is present, so an absent value never constructs (and never registers
  *   imports from) the Snippets that would render it.
  * - `new Maybe(anchor, a => link(a), () => plain)` is the two-way form
- *   (fp-ts `fold`). Only the branch that is needed is built.
+ *   (fp-ts `O.match`). Only the branch that is needed is built.
  * - A `Loop` subject is never absent at construction (the object exists), so
  *   `build` always runs, and `otherwise` runs too because the Loop may still
  *   be empty at render. Neither may register anything.
  *
  * `build` and `otherwise` run here, in the constructor, never during render.
  */
-export class Maybe<
-  T extends Stringable,
-  U extends Stringable = NonNullable<T>,
-  V extends Stringable = Nothing
-> implements Stringable
+export class Maybe<T extends Stringable, U extends Stringable = T, V extends Stringable = Nothing>
+  implements Stringable
 {
   subject: T | undefined | null
-  value: U | NonNullable<T> | undefined
+  value: U | T | undefined
   fallback: V | undefined
 
-  constructor(
-    subject: T | undefined | null,
-    build?: (present: NonNullable<T>) => U,
-    otherwise?: () => V
-  ) {
+  constructor(subject: T | undefined | null, build?: (present: T) => U, otherwise?: () => V) {
     this.subject = subject
 
-    if (isAbsentValue(subject)) {
+    if (subject === undefined || subject === null) {
       this.value = undefined
       this.fallback = otherwise?.()
       return
@@ -86,6 +82,56 @@ export class Maybe<
 
     this.value = build === undefined ? subject : build(subject)
     this.fallback = subject instanceof Loop ? otherwise?.() : undefined
+  }
+
+  /** fp-ts `boolean.match`: builds the value when `condition` is true. */
+  static when<U extends Stringable, V extends Stringable = Nothing>(
+    condition: boolean,
+    build: () => U,
+    otherwise?: () => V
+  ): Maybe<true, U, V> {
+    return new Maybe(condition ? true : undefined, build, otherwise)
+  }
+
+  /**
+   * fp-ts `O.fromPredicate`: builds the value when `value` is present and
+   * `predicate` holds. `build` receives the value with `undefined` and `null`
+   * removed, which `Maybe.when` cannot do.
+   */
+  static fromPredicate<T extends Stringable, U extends Stringable, V extends Stringable = Nothing>(
+    value: T | undefined | null,
+    predicate: (present: T) => boolean,
+    build: (present: T) => U,
+    otherwise?: () => V
+  ): Maybe<T, U, V> {
+    return value !== undefined && value !== null && predicate(value)
+      ? new Maybe(value, build, otherwise)
+      : new Maybe<T, U, V>(undefined, undefined, otherwise)
+  }
+
+  /**
+   * fp-ts `NEA.fromArray`: builds the value when `items` has at least one
+   * item. `build` receives the list typed as non-empty.
+   */
+  static nonEmpty<T, U extends Stringable, V extends Stringable = Nothing>(
+    items: readonly T[] | undefined | null,
+    build: (present: NonEmpty<T>) => U,
+    otherwise?: () => V
+  ): Maybe<true, U, V> {
+    return items !== undefined && items !== null && isNonEmpty(items)
+      ? new Maybe(true, () => build(items), otherwise)
+      : new Maybe<true, U, V>(undefined, undefined, otherwise)
+  }
+
+  /** Builds the value when `text` is a string other than `''`. */
+  static nonEmptyText<U extends Stringable, V extends Stringable = Nothing>(
+    text: string | undefined | null,
+    build: (present: string) => U,
+    otherwise?: () => V
+  ): Maybe<true, U, V> {
+    return text !== undefined && text !== null && text !== ''
+      ? new Maybe(true, () => build(text), otherwise)
+      : new Maybe<true, U, V>(undefined, undefined, otherwise)
   }
 
   /** True when the present branch does not render. */
@@ -109,9 +155,9 @@ export type LoopOptions = {
 
 /**
  * A list: items joined by a separator. Absent items (`undefined`, `null`,
- * `''`, `false`, `Nothing`, empty `Loop`s, `Maybe`s that are Nothing) are
- * skipped at render. No bookends and no `skipEmpty`: wrap it in `Wrap` for
- * bookends and in `Maybe` to make an empty list disappear.
+ * `Nothing`, empty `Loop`s, `Maybe`s that are Nothing) are skipped at render.
+ * `''` is a value and keeps its separator. No bookends: use `Wrap`. To make an
+ * empty list disappear, use it as the subject of a `Maybe`.
  */
 export class Loop<T extends Stringable = Stringable> implements Stringable {
   items: (T | undefined | null)[]

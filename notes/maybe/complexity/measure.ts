@@ -1,7 +1,10 @@
 /**
  * Measure cyclomatic complexity across a generators checkout.
  *
- *   deno run -A notes/maybe/complexity/measure.ts <path-to-skmtc-generators>
+ *   deno run -A notes/maybe/complexity/measure.ts <path-to-skmtc-generators> [--exclude <file>]...
+ *
+ * `--exclude Maybe.ts` leaves out a local copy of framework classes, so the
+ * numbers cover generator code only.
  *
  * Runs `plugin.ts` over the non-test files under each generator's `src`
  * folder (`gen-<name>/src`), then prints
@@ -19,7 +22,10 @@ type Diagnostic = {
 
 type Row = Entry & { path: string; gen: string; score: number; worst: string }
 
-const root = Deno.args[0]
+const [root, ...flags] = Deno.args
+const excluded = new Set(
+  flags.flatMap((flag, index) => (flag === '--exclude' ? [flags[index + 1]] : []))
+)
 if (root === undefined) throw new Error('usage: measure.ts <path-to-skmtc-generators>')
 
 const here = new URL('.', import.meta.url).pathname
@@ -30,7 +36,12 @@ const toFiles = async (dir: string): Promise<string[]> => {
     const path = `${dir}/${entry.name}`
     if (entry.isDirectory && entry.name !== 'test' && entry.name !== 'node_modules') {
       files.push(...(await toFiles(path)))
-    } else if (entry.isFile && entry.name.endsWith('.ts') && !entry.name.endsWith('.test.ts')) {
+    } else if (
+      entry.isFile &&
+      entry.name.endsWith('.ts') &&
+      !entry.name.endsWith('.test.ts') &&
+      !excluded.has(entry.name)
+    ) {
       files.push(path)
     }
   }
@@ -128,5 +139,22 @@ console.log(`\nproducer decisions: ${tests.length}`)
 for (const [category, count] of [...counted].sort((a, b) => b[1] - a[1])) {
   console.log(
     `${String(count).padStart(4)}  ${String(Math.round((100 * count) / tests.length)).padStart(3)}%  ${category}`
+  )
+}
+
+// Per generator: the sum of every producer and module-function score.
+const perGenerator = new Map<string, { total: number; branches: number; units: number }>()
+for (const row of rows) {
+  const entry = perGenerator.get(row.gen) ?? { total: 0, branches: 0, units: 0 }
+  entry.total += row.score
+  entry.branches += row.score - 1
+  entry.units++
+  perGenerator.set(row.gen, entry)
+}
+
+console.log('\nper generator: total, branches, classes + module functions')
+for (const [gen, entry] of [...perGenerator].sort((a, b) => b[1].total - a[1].total)) {
+  console.log(
+    `${gen.padEnd(34)} ${String(entry.total).padStart(4)} ${String(entry.branches).padStart(4)} ${String(entry.units).padStart(4)}`
   )
 }

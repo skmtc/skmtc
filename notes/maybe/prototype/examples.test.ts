@@ -17,8 +17,14 @@ class TableHeading implements Stringable {
   constructor({ title, description }: TableHeadingArgs) {
     const children = new Loop(
       [
-        new Maybe(title, t => new Wrap(['<h2 className="text-2xl font-semibold">', t, '</h2>'])),
-        new Maybe(description, d => new Wrap(['<p className="text-muted-foreground">', d, '</p>']))
+        Maybe.nonEmptyText(
+          title,
+          t => new Wrap(['<h2 className="text-2xl font-semibold">', t, '</h2>'])
+        ),
+        Maybe.nonEmptyText(
+          description,
+          d => new Wrap(['<p className="text-muted-foreground">', d, '</p>'])
+        )
       ],
       { separator: '\n' }
     )
@@ -191,18 +197,36 @@ Deno.test('loop subject: never filled renders nothing', () => {
   assertEquals(`${handlers}`, '')
 })
 
-// --- Example 6: boolean subject ----------------------------------------------
+// --- Example 6: a condition is Maybe.when -----------------------------------
+// fp-ts `boolean.match`. `false` is a value, not an absence, so a condition
+// goes through `when` rather than the constructor.
 
-Deno.test('boolean subject: false skips build, true builds', () => {
+Deno.test('when: false skips build, true builds', () => {
   const pagination = 'paginate={true}'
 
-  assertEquals(`${new Maybe(false, () => pagination)}`, '')
-  assertEquals(`${new Maybe(true, () => pagination)}`, 'paginate={true}')
+  assertEquals(`${Maybe.when(false, () => pagination)}`, '')
+  assertEquals(`${Maybe.when(true, () => pagination)}`, 'paginate={true}')
+})
+
+// --- Example 6b: '', false and 0 are values ---------------------------------
+// fp-ts `O.fromNullable`: only undefined and null are absent. Data that must
+// render (`default: false`, `title: ""`, `minimum: 0`) renders.
+
+const toDefault = (value: boolean | undefined) =>
+  new Maybe(value, v => new Wrap(['default: `', String(v), '`']))
+const toFrontmatterTitle = (value: string | undefined) =>
+  new Maybe(value, v => new Wrap(['title: "', v, '"']))
+
+Deno.test('fromNullable: empty and falsy values render', () => {
+  assertEquals(`${toDefault(false)}`, 'default: `false`')
+  assertEquals(`${toDefault(undefined)}`, '')
+  assertEquals(`${toFrontmatterTitle('')}`, 'title: ""')
+  assertEquals(`${toFrontmatterTitle(undefined)}`, '')
 })
 
 // --- Example 7: absence propagates through every layer ----------------------
 
-Deno.test('absence: Nothing, empty Loops and empty Maybes are skipped by Loop', () => {
+Deno.test('absence: Loop skips absent items and keeps empty values', () => {
   const loop = new Loop<Stringable>([
     'a',
     new Nothing(),
@@ -214,7 +238,8 @@ Deno.test('absence: Nothing, empty Loops and empty Maybes are skipped by Loop', 
     'b'
   ])
 
-  assertEquals(`${loop}`, 'a, b')
+  // fp-ts `A.compact`: absent items go, '' is a value and keeps its separator.
+  assertEquals(`${loop}`, 'a, , b')
   assertEquals(new Loop([new Nothing(), new Maybe(undefined)]).isEmpty(), true)
 })
 
@@ -259,7 +284,7 @@ Deno.test('otherwise: renders the present branch or the fallback', () => {
 Deno.test('otherwise: only the needed branch is built', () => {
   const imports: string[] = []
   const toLazy = (recursive: boolean) =>
-    new Maybe(
+    Maybe.when(
       recursive,
       () => new Registered({ name: 'z.lazy(() => Pet)', imports }),
       () => new Registered({ name: 'Pet', imports })
@@ -283,14 +308,20 @@ Deno.test('otherwise: a Loop subject still empty at render renders the fallback'
   assertEquals(`${auth}`, 'Auth: bearer')
 })
 
-// --- Example 10: an empty array is absent -----------------------------------
+// --- Example 10: a non-empty list is Maybe.nonEmpty -------------------------
+// fp-ts `NEA.fromArray`. `build` receives the list typed as non-empty, so
+// destructuring the first item needs no check.
 
-const toParameters = (names: string[]): Maybe<string[], Wrap> =>
-  new Maybe(names, present => new Wrap(['Parameters: ', new Loop(present)]))
+const toParameters = (names: string[]): Maybe<true, Wrap> =>
+  Maybe.nonEmpty(
+    names,
+    ([first, ...rest]) => new Wrap(['Parameters: ', new Loop([first, ...rest])])
+  )
 
-Deno.test('empty array: absent at construction, so the child is not built', () => {
+Deno.test('nonEmpty: an empty list builds nothing, a non-empty one is typed non-empty', () => {
   assertEquals(`${toParameters([])}`, '')
   assertEquals(`${toParameters(['id', 'name'])}`, 'Parameters: id, name')
+  assertEquals(`${new Maybe<string[], string>([], items => `count: ${items.length}`)}`, 'count: 0')
 })
 
 // --- Example 11: the parent decides presence --------------------------------
@@ -383,4 +414,21 @@ Deno.test('switch: each object shape renders its variant', () => {
     `${new ZodObjectShape({ objectProperties: null, recordProperties: null })}`,
     'z.object({})'
   )
+})
+
+// --- Example 13: a value that must also pass a test is Maybe.fromPredicate ---
+// fp-ts `O.fromPredicate`. `Maybe.when(min !== undefined && min > 0, …)` cannot
+// narrow `min` inside build; `fromPredicate` hands build the present value.
+
+const toMinLength = (minLength: number | undefined) =>
+  Maybe.fromPredicate(
+    minLength,
+    value => value > 0,
+    value => new ZodConstraint({ name: 'min', value })
+  )
+
+Deno.test('fromPredicate: builds only for a present value that passes', () => {
+  assertEquals(`${toMinLength(3)}`, '.min(3)')
+  assertEquals(`${toMinLength(0)}`, '')
+  assertEquals(`${toMinLength(undefined)}`, '')
 })
