@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.14.0
+version: 0.15.0
 description: >
   Author and edit Skmtc generators — packages that project an OpenAPI
   domain model into application code. Method: clone the nearest stock
@@ -86,6 +86,12 @@ module specifiers, literals, a cached peer *name*, and final syntax
 assembled **inside a `toString()` body** from already-structured fields.
 Prefer composing even render-time syntax inside `toString()` over helper
 functions that return strings — helpers drift.
+
+**Instances model the schema; render produces the code.** A constructor
+stores facts about the schema as fields (`minLength: number | undefined`,
+child producers), not pre-rendered fragments. Wording belongs to render: a
+keyword-to-label table read in `toString()` keeps the constructor free of
+output text.
 
 ## 4. What imitation can't teach: the engine rules
 
@@ -206,7 +212,51 @@ functions that return strings — helpers drift.
   provenance wrapping). Errors are isolated per subject — a throw kills
   one artifact, not the run.
 
-## 5. Verify against the run
+## 5. Where branches go
+
+Measured across the stock generators (2026-10), only 4% of the branches inside
+producers choose by schema type. The rest decide what to render when a value is
+missing or empty, and they multiply fastest. Give each kind one place:
+
+- **Dispatch once, then read typed fields.** One router — a `switch` on
+  `schema.type` with a `never` default, so a new schema type is a compile
+  error — picks a class per type, and each class reads `schema.minLength` from
+  a schema the switch has narrowed. One class that renders every type ends up
+  guarding each field with `'minLength' in schema ? schema.minLength : undefined`.
+- **Only `undefined` and `null` are absent.** `''`, `false`, `0` and `[]` are
+  values: `default: false` and `minimum: 0` must render. A truthiness test
+  (`x ? … : ''`, `x || undefined`, `x && …`) drops them silently. Test
+  `!== undefined && !== null`, and make "non-empty" a stated choice
+  (`items.length > 0`).
+- **The parent decides whether a child exists.** If a child might have
+  nothing to render, the parent holds the data that decides, leaves the field
+  `undefined`, and renders through `List`, which drops `undefined` items and,
+  with `skipEmpty: true`, renders `''` bookends included. A child never decides
+  its own emptiness, and nothing calls `toString()` to find out: render is a
+  one-way read of finished state.
+- **Hold framework classes; don't extend them.** Subclassing `List` to
+  inherit its rendering gives the subclass `values`, a separator and mutation
+  it does not need.
+- **Real variants: a flat `switch`, never nested ternaries.** When optional
+  parts combine into different outputs (properties, a record, both, neither),
+  write `switch (true)` in the constructor; TypeScript narrows in each case.
+
+```ts
+switch (schema.type) {
+  case 'string':
+    return new StringConstraints({ context, schema })
+  case 'integer':
+  case 'number':
+    return new NumericConstraints({ context, schema })
+  // …every member of OasSchema
+  default: {
+    const unhandled: never = schema
+    return unhandled
+  }
+}
+```
+
+## 6. Verify against the run
 
 **Never guess a signature.** Skmtc has almost no training-data presence;
 your recalled API shapes are unreliable. Exact signatures for core
@@ -230,7 +280,7 @@ first** (missing import = a string swallowed a snippet), then the body;
 and your file imports it. Never "fix" missing output by concatenating
 the text into a template.
 
-## 6. Pitfalls
+## 7. Pitfalls
 
 | Symptom | Fix |
 |---|---|
@@ -244,11 +294,13 @@ the text into a template.
 | Output edits vanish | You edited generated files; customize the generator |
 | Router misroutes custom values | `schema.type === 'custom'` is a real dispatch case — presence-test with `'readOnly' in schema`-style guards, not type equality |
 | `null` slips through an optional guard | `!== undefined` lets `null` pass on Nullable generics — check both |
+| `default: false`, `minimum: 0` or `title: ""` missing from output | A truthiness test (`x ? …`, `x \|\| undefined`) treated a value as absent — test `!== undefined && !== null` |
+| `'field' in schema ? schema.field : undefined` on every field | One class renders every schema type — dispatch once per type, then read typed fields |
 | `insertResult.identifier` is a type error | You have an `Inserted` handle (from `insertModel`) — use `.toName()`/`.definition`; only `insertNormalizedModel` returns the definition |
 | `` toRefName(`...${name}`) `` anywhere | Fabricated ref — go through a peer's two doors, never its statics |
 | Reading fields off a peer's value beyond the definition/name | Coupled to the peer's PRIVATE snippet shape — it will change silently |
 
-## 7. The lang layer
+## 8. The lang layer
 
 The engine is language-blind; the import graph declares the language —
 a generator imports its projection-base factories and snippet base from
