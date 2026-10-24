@@ -34,7 +34,10 @@ import { toKeyName } from '../shared/nodes.ts'
  *   convention every stock generator's projection base follows
  *   (`ZodBase`, `KtModelBase`, `TanstackQueryBase`, `CsRecordBase`);
  * - `extends <Name>` where `<Name>` is a producer class declared in the
- *   same file (transitivity, within the file).
+ *   same file (transitivity, within the file);
+ * - no producer base at all, but an instance `toString()` member — a plain
+ *   `Stringable` class, which generator code uses as a building block
+ *   alongside Snippets.
  *
  * ## The accumulator exemption is approximated
  *
@@ -180,6 +183,17 @@ export const methodDiscipline: Deno.lint.Rule = {
       )
     }
 
+    // A plain class that renders through its own instance `toString()` is a
+    // producer too: generator code builds `Stringable` classes with no
+    // Snippet base, and they follow the same constructor/toString contract.
+    const declaresToString = (classNode: ClassNode): boolean =>
+      classNode.body.body.some(
+        member =>
+          (member.type === 'MethodDefinition' || member.type === 'PropertyDefinition') &&
+          !member.static &&
+          toKeyName(member.key) === 'toString'
+      )
+
     const classifyClasses = (): void => {
       // Fixed point, so a subclass declared before its base is still
       // classified.
@@ -187,7 +201,9 @@ export const methodDiscipline: Deno.lint.Rule = {
         classNodes.reduce((changed, classNode) => {
           const name = classNode.id?.name
           if (name === undefined || producerClassNames.has(name)) return changed
-          if (!isProducerSuperClass(classNode.superClass)) return changed
+          if (!isProducerSuperClass(classNode.superClass) && !declaresToString(classNode)) {
+            return changed
+          }
           producerClassNames.add(name)
           return true
         }, false)

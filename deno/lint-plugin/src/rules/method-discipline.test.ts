@@ -145,3 +145,27 @@ Deno.test('method-discipline: silent in test files', () => {
     }`
   assertEquals(lint(RULE, source, '/gen-thing/src/Value.test.ts'), [])
 })
+
+Deno.test('method-discipline: flags a plain Stringable class with no producer base', () => {
+  const messages = messagesFrom(
+    RULE,
+    `class ZodModifiers implements Stringable {
+       constructor(args: Args) { this.calls = args.calls }
+       toSuffix(): string { return this.calls.join('') }
+       toString(): string { return this.toSuffix() }
+     }`
+  )
+  assertEquals(messages.length, 1)
+  assertStringIncludes(messages[0] ?? '', 'method toSuffix() on producer ZodModifiers')
+})
+
+Deno.test('method-discipline: ignores a plain class with no instance toString', () => {
+  const messages = messagesFrom(
+    RULE,
+    `class Registry {
+       lookup(name: string): string | undefined { return this.names[name] }
+       static toString(): string { return 'Registry' }
+     }`
+  )
+  assertEquals(messages, [])
+})
