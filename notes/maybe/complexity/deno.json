@@ -1,0 +1,7 @@
+{
+  "lock": false,
+  "lint": {
+    "rules": { "tags": [], "include": [] },
+    "plugins": ["./plugin.ts"]
+  }
+}
