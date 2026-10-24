@@ -111,27 +111,47 @@ export class Maybe<T extends Stringable, U extends Stringable = T, V extends Str
 
   /**
    * fp-ts `NEA.fromArray`: builds the value when `items` has at least one
-   * item. `build` receives the list typed as non-empty.
+   * item. `build` receives the list typed as non-empty. Without `build`,
+   * renders the list itself.
    */
+  static nonEmpty<T extends Stringable>(items: readonly T[] | undefined | null): Maybe<NonEmpty<T>>
   static nonEmpty<T, U extends Stringable, V extends Stringable = Nothing>(
     items: readonly T[] | undefined | null,
     build: (present: NonEmpty<T>) => U,
     otherwise?: () => V
-  ): Maybe<true, U, V> {
-    return items !== undefined && items !== null && isNonEmpty(items)
-      ? new Maybe(true, () => build(items), otherwise)
-      : new Maybe<true, U, V>(undefined, undefined, otherwise)
+  ): Maybe<true, U, V>
+  static nonEmpty<T, U extends Stringable, V extends Stringable = Nothing>(
+    items: readonly T[] | undefined | null,
+    build?: (present: NonEmpty<T>) => U,
+    otherwise?: () => V
+  ): Maybe<true, U, V> | Maybe<NonEmpty<T>> {
+    const present = items !== undefined && items !== null && isNonEmpty(items) ? items : undefined
+    if (build === undefined) return new Maybe<NonEmpty<T>>(present)
+    return present === undefined
+      ? new Maybe<true, U, V>(undefined, undefined, otherwise)
+      : new Maybe<true, U, V>(true, () => build(present), otherwise)
   }
 
-  /** Builds the value when `text` is a string other than `''`. */
+  /**
+   * Builds the value when `text` is a string other than `''`. Without
+   * `build`, renders the text itself.
+   */
+  static nonEmptyText(text: string | undefined | null): Maybe<string>
   static nonEmptyText<U extends Stringable, V extends Stringable = Nothing>(
     text: string | undefined | null,
     build: (present: string) => U,
     otherwise?: () => V
-  ): Maybe<true, U, V> {
-    return text !== undefined && text !== null && text !== ''
-      ? new Maybe(true, () => build(text), otherwise)
-      : new Maybe<true, U, V>(undefined, undefined, otherwise)
+  ): Maybe<true, U, V>
+  static nonEmptyText<U extends Stringable, V extends Stringable = Nothing>(
+    text: string | undefined | null,
+    build?: (present: string) => U,
+    otherwise?: () => V
+  ): Maybe<true, U, V> | Maybe<string> {
+    const present = text === undefined || text === null || text === '' ? undefined : text
+    if (build === undefined) return new Maybe<string>(present)
+    return present === undefined
+      ? new Maybe<true, U, V>(undefined, undefined, otherwise)
+      : new Maybe<true, U, V>(true, () => build(present), otherwise)
   }
 
   /** True when the present branch does not render. */
