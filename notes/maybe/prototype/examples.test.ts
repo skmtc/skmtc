@@ -1,6 +1,6 @@
 import { assertEquals } from '@std/assert'
-import { Loop, Maybe, Nothing, Wrap } from './mod.ts'
-import type { Stringable } from './mod.ts'
+import { Group, Loop, Maybe, Nothing, Wrap } from '@/mod.ts'
+import type { Stringable } from '@/mod.ts'
 
 // Every code example in notes/maybe/README.md is one of these tests.
 
@@ -101,10 +101,12 @@ class ZodConstraint implements Stringable {
   }
 }
 
+type ZodIntegerArgs = { schema: IntegerSchema }
+
 class ZodInteger implements Stringable {
   constraints: Loop
 
-  constructor({ schema }: { schema: IntegerSchema }) {
+  constructor({ schema }: ZodIntegerArgs) {
     this.constraints = new Loop(
       [
         new Maybe(
@@ -141,10 +143,12 @@ Deno.test('constraints: zero is a value, not an absence', () => {
 // Constructors have side effects (register imports). An absent value must not
 // construct the Snippet that would render it, or the import leaks into output.
 
+type RegisteredArgs = { name: string; imports: string[] }
+
 class Registered implements Stringable {
   name: string
 
-  constructor({ name, imports }: { name: string; imports: string[] }) {
+  constructor({ name, imports }: RegisteredArgs) {
     this.name = name
     imports.push(name)
   }
@@ -328,10 +332,12 @@ Deno.test('nonEmpty: an empty list builds nothing, a non-empty one is typed non-
 // The child always renders; it has no Maybe of its own and no `content` field
 // for parents to read. The parent keys a Maybe on the source data.
 
+type NameArgs = { name: string }
+
 class Name implements Stringable {
   name: string
 
-  constructor({ name }: { name: string }) {
+  constructor({ name }: NameArgs) {
     this.name = name
   }
 
@@ -367,16 +373,15 @@ Deno.test('parent decides: an absent child is never built and leaves no separato
 // not absence. A flat `switch (true)` narrows in each case; no nested
 // ternaries and no ts-pattern in core.
 
+type ZodObjectShapeArgs = {
+  objectProperties: Stringable | null
+  recordProperties: Stringable | null
+}
+
 class ZodObjectShape implements Stringable {
   content: Stringable
 
-  constructor({
-    objectProperties,
-    recordProperties
-  }: {
-    objectProperties: Stringable | null
-    recordProperties: Stringable | null
-  }) {
+  constructor({ objectProperties, recordProperties }: ZodObjectShapeArgs) {
     switch (true) {
       case objectProperties !== null && recordProperties !== null:
         this.content = new Wrap([objectProperties, '.and(', recordProperties, ')'])
@@ -445,4 +450,131 @@ Deno.test('nonEmptyText: without build renders the text itself', () => {
 Deno.test('nonEmpty: without build renders the list itself', () => {
   assertEquals(`${Maybe.nonEmpty(['a', 'b'])}`, 'a,b')
   assertEquals(`${Maybe.nonEmpty([])}`, '')
+})
+
+// --- Example 15: a data class made of optional parts is a Group --------------
+// The instance models the schema: each constraint is a field holding data
+// (`Constraint { keyword, value }`), not text. `parts` lists the rendered
+// fields once; the framework reads it to tell whether the instance is empty,
+// so the parenthetical in the parent drops out without the parent looking in.
+
+type ConstraintKeyword = 'minLength' | 'maxLength' | 'pattern' | 'default'
+
+const LABELS: Record<ConstraintKeyword, string> = {
+  minLength: 'min length',
+  maxLength: 'max length',
+  pattern: 'pattern',
+  default: 'default'
+}
+
+type CodeArgs = { value: Stringable }
+
+class Code implements Stringable {
+  value: Stringable
+
+  constructor({ value }: CodeArgs) {
+    this.value = value
+  }
+
+  toString(): string {
+    return `\`${this.value}\``
+  }
+}
+
+type KeywordConstraintArgs = { keyword: ConstraintKeyword; value: Stringable }
+
+class Constraint implements Stringable {
+  keyword: ConstraintKeyword
+  value: Stringable
+
+  constructor({ keyword, value }: KeywordConstraintArgs) {
+    this.keyword = keyword
+    this.value = value
+  }
+
+  toString(): string {
+    return `${LABELS[this.keyword]}: ${this.value}`
+  }
+}
+
+type StringSchema = { minLength?: number; maxLength?: number; pattern?: string; default?: string }
+
+type StringSchemaArgs = { schema: StringSchema }
+
+class StringConstraints extends Group {
+  minLength: Maybe<number, Constraint>
+  maxLength: Maybe<number, Constraint>
+  pattern: Maybe<string, Constraint>
+  default: Maybe<string, Constraint>
+
+  constructor({ schema }: StringSchemaArgs) {
+    super()
+    this.minLength = new Maybe(
+      schema.minLength,
+      value => new Constraint({ keyword: 'minLength', value })
+    )
+    this.maxLength = new Maybe(
+      schema.maxLength,
+      value => new Constraint({ keyword: 'maxLength', value })
+    )
+    this.pattern = new Maybe(
+      schema.pattern,
+      value => new Constraint({ keyword: 'pattern', value: new Code({ value }) })
+    )
+    this.default = new Maybe(
+      schema.default,
+      value => new Constraint({ keyword: 'default', value: new Code({ value }) })
+    )
+    this.parts = new Loop([this.minLength, this.maxLength, this.pattern, this.default], {
+      separator: ', '
+    })
+  }
+}
+
+class StringTypeInfo implements Stringable {
+  parts: Loop
+
+  constructor({ schema }: StringSchemaArgs) {
+    const constraints = new StringConstraints({ schema })
+    this.parts = new Loop(['`string`', new Maybe(constraints, c => new Wrap(['(', c, ')']))], {
+      separator: ' '
+    })
+  }
+
+  toString(): string {
+    return `${this.parts}`
+  }
+}
+
+Deno.test('group: a data class renders its parts and is empty when they are', () => {
+  assertEquals(
+    `${new StringTypeInfo({ schema: { minLength: 3, pattern: '^a' } })}`,
+    '`string` (min length: 3, pattern: `^a`)'
+  )
+  assertEquals(`${new StringTypeInfo({ schema: {} })}`, '`string`')
+  assertEquals(`${new StringTypeInfo({ schema: { default: '' } })}`, '`string` (default: ``)')
+})
+
+Deno.test('group: the data stays readable as data', () => {
+  const constraints = new StringConstraints({ schema: { minLength: 3 } })
+
+  // `value` is typed `Constraint | number`: without `build` the value is the
+  // subject itself, and a class cannot type that per call. Reading the data
+  // back takes a narrowing step.
+  const minLength = constraints.minLength.value
+  assertEquals(minLength instanceof Constraint ? minLength.keyword : undefined, 'minLength')
+  assertEquals(constraints.maxLength.isNothing(), true)
+})
+
+// --- Example 16: the subject can be any type ---------------------------------
+
+Deno.test('subject: unknown data renders once undefined and null are removed', () => {
+  const toDefault = (value: unknown) =>
+    new Maybe(
+      value,
+      present => new Constraint({ keyword: 'default', value: new Code({ value: present }) })
+    )
+
+  assertEquals(`${toDefault(false)}`, 'default: `false`')
+  assertEquals(`${toDefault(null)}`, '')
 })
