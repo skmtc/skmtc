@@ -11,7 +11,7 @@
  * the producer distribution, the most complex producers and module
  * functions, and the producer branches grouped by what they test.
  */
-import type { Entry } from './plugin.ts'
+import type { Entry } from '@/plugin.ts'
 
 type Diagnostic = {
   filename: string

@@ -12,10 +12,11 @@
  *   `''` for text. Asking for a non-empty one is explicit: `Maybe.nonEmpty`
  *   and `Maybe.nonEmptyText`.
  *
- * Presence is decided when a `Maybe` is constructed, except for a `Loop`
- * subject, whose emptiness is read at render. Instances can change until
- * render; during render they are stable. Nothing here renders a child to find
- * out whether it is empty.
+ * Presence is decided when a `Maybe` is constructed, except for a `Loop` or
+ * `Group` subject, whose emptiness is read at render from its structure.
+ * Instances can change until render; during render they are stable. Nothing
+ * here renders a child to find out whether it is empty: any other instance is
+ * present.
  */
 
 /** Same shape as `Stringable` in `@skmtc/core/dsl/Stringable.ts`. */
@@ -42,7 +43,8 @@ const isNonEmpty = <T>(items: readonly T[]): items is NonEmpty<T> => items.lengt
 const isEmpty = (value: unknown): boolean =>
   value instanceof Nothing ||
   (value instanceof Maybe && value.isNothing()) ||
-  (value instanceof Loop && value.isEmpty())
+  (value instanceof Loop && value.isEmpty()) ||
+  (value instanceof Group && isEmpty(value.parts))
 
 /** What `Loop` keeps, as fp-ts `A.compact`: everything except absent items. */
 const isPresent = <T>(item: T | undefined | null): item is NonNullable<T> =>
@@ -58,20 +60,26 @@ const isPresent = <T>(item: T | undefined | null): item is NonNullable<T> =>
  *   imports from) the Snippets that would render it.
  * - `new Maybe(anchor, a => link(a), () => plain)` is the two-way form
  *   (fp-ts `O.match`). Only the branch that is needed is built.
- * - A `Loop` subject is never absent at construction (the object exists), so
- *   `build` always runs, and `otherwise` runs too because the Loop may still
- *   be empty at render. Neither may register anything.
+ * - The subject can be any type, `unknown` included: once `undefined` and
+ *   `null` are removed, every value renders.
+ * - A `Loop` or `Group` subject is never absent at construction (the object
+ *   exists), so `build` always runs, and `otherwise` runs too because the
+ *   subject may still be empty at render. Neither may register anything.
  *
  * `build` and `otherwise` run here, in the constructor, never during render.
  */
-export class Maybe<T extends Stringable, U extends Stringable = T, V extends Stringable = Nothing>
+export class Maybe<T, U extends Stringable = NonNullable<T>, V extends Stringable = Nothing>
   implements Stringable
 {
   subject: T | undefined | null
-  value: U | T | undefined
+  value: U | NonNullable<T> | undefined
   fallback: V | undefined
 
-  constructor(subject: T | undefined | null, build?: (present: T) => U, otherwise?: () => V) {
+  constructor(
+    subject: T | undefined | null,
+    build?: (present: NonNullable<T>) => U,
+    otherwise?: () => V
+  ) {
     this.subject = subject
 
     if (subject === undefined || subject === null) {
@@ -81,7 +89,7 @@ export class Maybe<T extends Stringable, U extends Stringable = T, V extends Str
     }
 
     this.value = build === undefined ? subject : build(subject)
-    this.fallback = subject instanceof Loop ? otherwise?.() : undefined
+    this.fallback = subject instanceof Loop || subject instanceof Group ? otherwise?.() : undefined
   }
 
   /** fp-ts `boolean.match`: builds the value when `condition` is true. */
@@ -216,5 +224,20 @@ export class Wrap implements Stringable {
 
   toString(): string {
     return this.parts.join('')
+  }
+}
+
+/**
+ * Base for a data class made of optional parts. The subclass keeps its data as
+ * named fields (`minLength: Maybe<number, Constraint>`) and lists the ones it
+ * renders in `parts`, once, at the end of its constructor. Rendering
+ * interpolates `parts`. The framework reads `parts` to tell whether the
+ * instance is empty; parents never do. In core this is a slot on `SnippetBase`.
+ */
+export class Group implements Stringable {
+  parts: Stringable = new Nothing()
+
+  toString(): string {
+    return `${this.parts}`
   }
 }

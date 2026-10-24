@@ -1,6 +1,7 @@
 {
   "lock": false,
   "imports": {
+    "@/": "./",
     "@std/assert": "jsr:@std/assert@^1.0.10"
   },
   "tasks": {

@@ -1,7 +1,7 @@
 # Fewer branches in generators: Nothing, Maybe, Loop and Wrap
 
 Plan, 2026-10-24, updated after the first trial in gen-md-docs and gen-zod
-(see [Trial](#trial-gen-md-docs-and-gen-zod)). Nothing here is in `@skmtc/core` yet. The four classes
+(see [Trial](#trial-gen-md-docs-and-gen-zod)). Nothing here is in `@skmtc/core` yet. The classes
 exist as a prototype in [`prototype/`](prototype/), with tests for every
 example on this page.
 
@@ -79,9 +79,20 @@ Two more findings:
   render. Building Snippets or calling `register` during render breaks
   `tostring-purity`.
 - No class renders a child to find out whether it is empty. Emptiness is read
-  from state.
+  from structure that was settled during generation. Instances are always
+  present; only the framework classes (`Nothing`, `Maybe`, `Loop`, `Group`)
+  can be empty.
+- Instances represent the underlying data, not generated text. The generate
+  phase produces well-structured objects (`StringConstraints { minLength:
+  Maybe<number, Constraint> }`, `Constraint { keyword, value }`); the render
+  phase turns them into code by `toString()` interpolation, top-down, once. A
+  constructor that goes straight from schema to text skips that step.
+- Framework classes are held, not extended for behavior. The one base meant
+  for extension is `Group`.
+- Constructor parameters use named `Args` types, not inline object types.
+  Imports inside a package use the `@/` alias, not relative paths.
 
-## The four classes
+## The classes
 
 Each class has one job.
 
@@ -91,6 +102,7 @@ Each class has one job.
 | `Maybe`   | Renders a value or `''`. The only class that decides presence.       |
 | `Loop`    | Joins items with a separator and skips absent items.                 |
 | `Wrap`    | Joins its parts in order with no separator. Always renders every part. |
+| `Group`   | Base for a data class made of optional parts. Renders its `parts`, and is empty when they are. |
 
 `Loop` replaces the list part of `List`. `Wrap` replaces bookends. `Maybe`
 replaces `skipEmpty`. A `Loop` has no `skipEmpty` option: wrap it in `Maybe`
@@ -151,19 +163,24 @@ const isNonEmpty = <T>(items: readonly T[]): items is NonEmpty<T> => items.lengt
 const isEmpty = (value: unknown): boolean =>
   value instanceof Nothing ||
   (value instanceof Maybe && value.isNothing()) ||
-  (value instanceof Loop && value.isEmpty())
+  (value instanceof Loop && value.isEmpty()) ||
+  (value instanceof Group && isEmpty(value.parts))
 
 const isPresent = <T>(item: T | undefined | null): item is NonNullable<T> =>
   item !== undefined && item !== null && !isEmpty(item)
 
-export class Maybe<T extends Stringable, U extends Stringable = T, V extends Stringable = Nothing>
+export class Maybe<T, U extends Stringable = NonNullable<T>, V extends Stringable = Nothing>
   implements Stringable
 {
   subject: T | undefined | null
-  value: U | T | undefined
+  value: U | NonNullable<T> | undefined
   fallback: V | undefined
 
-  constructor(subject: T | undefined | null, build?: (present: T) => U, otherwise?: () => V) {
+  constructor(
+    subject: T | undefined | null,
+    build?: (present: NonNullable<T>) => U,
+    otherwise?: () => V
+  ) {
     this.subject = subject
 
     if (subject === undefined || subject === null) {
@@ -173,7 +190,7 @@ export class Maybe<T extends Stringable, U extends Stringable = T, V extends Str
     }
 
     this.value = build === undefined ? subject : build(subject)
-    this.fallback = subject instanceof Loop ? otherwise?.() : undefined
+    this.fallback = subject instanceof Loop || subject instanceof Group ? otherwise?.() : undefined
   }
 
     static when<U extends Stringable, V extends Stringable = Nothing>(
@@ -282,6 +299,14 @@ export class Wrap implements Stringable {
     return this.parts.join('')
   }
 }
+
+export class Group implements Stringable {
+  parts: Stringable = new Nothing()
+
+  toString(): string {
+    return `${this.parts}`
+  }
+}
 ```
 
 Notes on the types:
@@ -384,6 +409,60 @@ So `Loop` never needs to know whether a Snippet renders empty. When a child's
 emptiness only appears after its own work, move that work into the parent and
 pass the result as the subject. When a child is filled later (an accumulator),
 create its `Loop` in the parent, pass it in, and key the `Maybe` on it.
+
+### Data classes: `Group`
+
+The parent can only decide presence when it holds the data that decides it.
+For a data class whose presence follows from several of its own fields, the
+class extends `Group`. It keeps its data as named fields and lists the ones it
+renders in `parts`, once, at the end of its constructor. The framework reads
+`parts` to tell whether the instance is empty; parents never do, and nothing
+renders to find out.
+
+```ts
+type StringConstraintsArgs = {
+  schema: OasString
+}
+
+export class StringConstraints extends Group {
+  minLength: Maybe<number, Constraint>
+  maxLength: Maybe<number, Constraint>
+  pattern: Maybe<string, Constraint>
+  default: Maybe<string, Constraint>
+
+  constructor({ schema }: StringConstraintsArgs) {
+    super()
+    this.minLength = new Maybe(schema.minLength, value => new Constraint({ keyword: 'minLength', value }))
+    this.maxLength = new Maybe(schema.maxLength, value => new Constraint({ keyword: 'maxLength', value }))
+    this.pattern = new Maybe(schema.pattern, value => new Constraint({ keyword: 'pattern', value: new Code({ value }) }))
+    this.default = new Maybe(schema.default, value => new Constraint({ keyword: 'default', value: new Code({ value }) }))
+    this.parts = new Loop([this.minLength, this.maxLength, this.pattern, this.default], { separator: ', ' })
+  }
+}
+
+// Constraint { keyword, value } renders `${LABELS[this.keyword]}: ${this.value}`
+// TypeInfo: new Maybe(constraints, c => new Wrap(['(', c, ')'])) drops out when it is empty
+```
+
+Each field is named twice, as a field and in `parts`. That is deliberate: the
+alternative, the framework finding every `Maybe` field by itself, is implicit.
+In core `Group` becomes a `parts` slot on `SnippetBase`, so a data class can
+also use `context` and `register`.
+
+Reading the data back has one wart: `Maybe<number, Constraint>.value` is typed
+`Constraint | number`, because without `build` the value is the subject
+itself, and a class cannot type that per call. Reading it takes a narrowing
+step.
+
+Two ways of deciding presence were tried and rejected:
+
+- **Rendering the child to see whether it is `''`.** Rendering in Skmtc is a
+  one-way interpolation of finished state. Using output as a query goes
+  against that, and it conflates an instance that renders nothing with a `''`
+  value.
+- **Extending `Loop` so a data class inherits its emptiness.** It inherits
+  `add()` and a public `items` array it should not have, and it is the
+  `.content` problem hidden in inheritance.
 
 ## Examples
 
@@ -515,7 +594,7 @@ A condition always goes through `Maybe.when`. Passed to the constructor,
 
 ## Trial: gen-md-docs and gen-zod
 
-Branch `exp/maybe-classes` in skmtc-generators (`b2e7c97`). Each generator
+Branch `exp/maybe-classes` in skmtc-generators (`76afcd9`). Each generator
 carries a local copy of the classes in `src/Maybe.ts`, identical to
 [`prototype/mod.ts`](prototype/mod.ts). Output is byte-identical to `main`:
 md-docs' existing golden passes unchanged, and gen-zod got a new 49-schema
@@ -528,14 +607,19 @@ detected producers) and counts `.with`/`.when` only in a ts-pattern `match`
 chain, so no `Maybe` form counts as a branch: the decision lives in the
 framework class.
 
-| | md-docs `main` | round 1 | round 2 | zod `main` | round 1 | round 2 |
-| --- | --- | --- | --- | --- | --- | --- |
-| Total | 279 | 170 | **160** | 73 | 54 | **48** |
-| Branches | 222 | 119 | **109** | 54 | 34 | **28** |
+| | md-docs `main` | round 1 | round 2 | round 3 | zod `main` | round 1 | round 2 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Total | 279 | 170 | 160 | **157** | 73 | 54 | **48** |
+| Branches | 222 | 119 | 109 | **101** | 54 | 34 | **28** |
+| Highest score | 20 | | 23 | **12** | 13 | | **13** |
 
 Round 1 introduced the four classes and the parent-decides rule. Round 2 moved
 to fp-ts absence (`when`, `fromPredicate`, `nonEmpty`, `nonEmptyText`), added
-`otherwise`, and used a flat `switch` for ZodObject. Earlier versions of this
+`otherwise`, and used a flat `switch` for ZodObject. Round 3 split md-docs'
+constraints into data classes per schema type behind one router
+(`toConstraints`), each a `Group`, which took `TypeInfo` from 23 to 10 and
+removed 13 of its 20 `'field' in r` checks. zod's highest score is its
+`toZodValue` router. Earlier versions of this
 note quoted 164 and 47: the tool then skipped plain `Stringable` classes, which
 overstated the gain.
 
@@ -557,11 +641,16 @@ Findings:
 | Real variants (ZodObject's four shapes) | Resolved: [flat `switch`](#variants-a-flat-switch) |
 | `''`, `false` and `[]` treated as absent broke data that must render (`default: false`, `title: ""`) | Resolved: [fp-ts absence](#absence-conditions-and-empty-values). Every old truthiness check is now an explicit `when`, `nonEmpty` or `nonEmptyText` |
 | `Maybe.when(x !== undefined && x > 0, …)` does not narrow `x` in `build` | Resolved: `Maybe.fromPredicate(x, v => v > 0, build)` |
-| The complexity tool skipped plain `Stringable` classes and counted `Maybe.when` as a ts-pattern arm | Resolved in the tool. The `method-discipline` rule still misses plain classes: open |
+| The complexity tool skipped plain `Stringable` classes and counted `Maybe.when` as a ts-pattern arm | Resolved in the tool. `method-discipline` covers plain classes on branch `fix/method-discipline-plain-classes` (not merged) |
 | `Maybe.nonEmptyText(format, format => format)` needed an identity `build` | Resolved: `build` is optional on `nonEmpty` and `nonEmptyText` (overloads, no casts) |
 | `nonEmpty` hands `build` a readonly list, so children had to take `readonly X[]` | Keep. Children should accept readonly input |
-| Core types use `null` (`TypeSystemObject`), and fields exist only on some `OasSchema` members (`'field' in r ? r.field : undefined`) | Open. Needs a core change; most of the ~19 single ternaries left in md-docs constructors |
-| `unknown` fields (`default`) are not `Stringable`, so they need a conversion with its own checks | Open. Same core change |
+| `'minLength' in r ? r.minLength : undefined` for every constraint, because one class rendered every schema type | Resolved: one data class per schema type behind `toConstraints`, an exhaustive `switch` on `schema.type` |
+| `default` typed `unknown` needed a ternary and `String()` before `Maybe` would take it | Resolved: `default` is typed per schema class, and the `Maybe` subject may be any type |
+| A data class whose presence follows from its own fields | Resolved: [`Group`](#data-classes-group) |
+| 7 annotation checks remain in `TypeInfo` (`format`, `nullable`, `deprecated`, `readOnly`, `writeOnly`, `enums`, `default`): core declares them on some `OasSchema` members only (`OasArray` calls its default `defaultValue`) | Open. Core change: the same annotation fields on every member |
+| The parser infers a missing `type` from `properties`, `items`, `default` and `example`, not from constraint keywords, so a typeless `{ minLength: 3 }` becomes `OasUnknown` and loses its constraints | Open. Core change, same behavior as `main` |
+| `TypeSystemObject` uses `X \| null` fields | Accepted. Other generators read them as a contract; 2 branches in ZodObject |
+| `Maybe<T, U>.value` is typed `U \| T`, so reading data back needs narrowing | Open |
 | A choice on a value filled after construction (`OperationCount`'s plural) stays a ternary in `toString` | Accepted. It reads state that is final at render |
 | ZodRef's two setups (lazy and plain) each have side effects and set several fields | Accepted. `if`/`else` in the constructor; not a rendering choice |
 | `Loop.items` is `(T \| undefined \| null)[]` and has only `add` | Open. Sorted insertion splices `items` directly |
@@ -582,7 +671,7 @@ Findings:
 
 ## Other branch sources in the same style
 
-These are not part of the four classes, but they follow the same rules and
+These are not part of these classes, but they follow the same rules and
 cover most of the remaining "fallback for a missing value" group:
 
 - **Missing schemas go through the router.** `toTsValue`, `toZodValue` and
@@ -618,17 +707,15 @@ cover most of the remaining "fallback for a missing value" group:
 
 ## Steps
 
-1. Land `Nothing`, `Maybe`, `Loop` and `Wrap` in `core/dsl` with these tests.
+1. Land `Nothing`, `Maybe`, `Loop`, `Wrap` and `Group` (as a `SnippetBase` slot) in `core/dsl` with these tests.
    They are language-neutral, so Kotlin can use them too. Release through
    `deno task release`.
-2. Trial: done for gen-md-docs and gen-zod, two rounds (see Trial). Next,
-   make `build` optional on `nonEmpty` / `nonEmptyText`, then land in core.
+2. Trial: gen-md-docs and gen-zod, three rounds (see Trial). Nothing lands in
+   core until the improvement is clear. Next is the data-first approach across
+   both generators, beyond constraints.
 3. Rewrite the skill skeleton and add the skill table.
 4. Add the `producer-complexity` lint rule and the gen-eval package total.
-5. Run gen-eval with the old and new skills and compare the complexity of the
-   code agents write. This shows whether the change works where earlier skill
-   and lint changes did not.
-6. Move the generators over one at a time. Mark the `lang-typescript` `List`
+5. Move the generators over one at a time. Mark the `lang-typescript` `List`
    deprecated, and delete it when nothing imports it.
 
 ## Open questions
