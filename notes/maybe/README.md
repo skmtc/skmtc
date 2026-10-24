@@ -195,24 +195,40 @@ export class Maybe<T extends Stringable, U extends Stringable = T, V extends Str
       : new Maybe<T, U, V>(undefined, undefined, otherwise)
   }
 
-    static nonEmpty<T, U extends Stringable, V extends Stringable = Nothing>(
+    static nonEmpty<T extends Stringable>(items: readonly T[] | undefined | null): Maybe<NonEmpty<T>>
+  static nonEmpty<T, U extends Stringable, V extends Stringable = Nothing>(
     items: readonly T[] | undefined | null,
     build: (present: NonEmpty<T>) => U,
     otherwise?: () => V
-  ): Maybe<true, U, V> {
-    return items !== undefined && items !== null && isNonEmpty(items)
-      ? new Maybe(true, () => build(items), otherwise)
-      : new Maybe<true, U, V>(undefined, undefined, otherwise)
+  ): Maybe<true, U, V>
+  static nonEmpty<T, U extends Stringable, V extends Stringable = Nothing>(
+    items: readonly T[] | undefined | null,
+    build?: (present: NonEmpty<T>) => U,
+    otherwise?: () => V
+  ): Maybe<true, U, V> | Maybe<NonEmpty<T>> {
+    const present = items !== undefined && items !== null && isNonEmpty(items) ? items : undefined
+    if (build === undefined) return new Maybe<NonEmpty<T>>(present)
+    return present === undefined
+      ? new Maybe<true, U, V>(undefined, undefined, otherwise)
+      : new Maybe<true, U, V>(true, () => build(present), otherwise)
   }
 
-    static nonEmptyText<U extends Stringable, V extends Stringable = Nothing>(
+    static nonEmptyText(text: string | undefined | null): Maybe<string>
+  static nonEmptyText<U extends Stringable, V extends Stringable = Nothing>(
     text: string | undefined | null,
     build: (present: string) => U,
     otherwise?: () => V
-  ): Maybe<true, U, V> {
-    return text !== undefined && text !== null && text !== ''
-      ? new Maybe(true, () => build(text), otherwise)
-      : new Maybe<true, U, V>(undefined, undefined, otherwise)
+  ): Maybe<true, U, V>
+  static nonEmptyText<U extends Stringable, V extends Stringable = Nothing>(
+    text: string | undefined | null,
+    build?: (present: string) => U,
+    otherwise?: () => V
+  ): Maybe<true, U, V> | Maybe<string> {
+    const present = text === undefined || text === null || text === '' ? undefined : text
+    if (build === undefined) return new Maybe<string>(present)
+    return present === undefined
+      ? new Maybe<true, U, V>(undefined, undefined, otherwise)
+      : new Maybe<true, U, V>(true, () => build(present), otherwise)
   }
 
     isAbsent(): boolean {
@@ -542,7 +558,7 @@ Findings:
 | `''`, `false` and `[]` treated as absent broke data that must render (`default: false`, `title: ""`) | Resolved: [fp-ts absence](#absence-conditions-and-empty-values). Every old truthiness check is now an explicit `when`, `nonEmpty` or `nonEmptyText` |
 | `Maybe.when(x !== undefined && x > 0, …)` does not narrow `x` in `build` | Resolved: `Maybe.fromPredicate(x, v => v > 0, build)` |
 | The complexity tool skipped plain `Stringable` classes and counted `Maybe.when` as a ts-pattern arm | Resolved in the tool. The `method-discipline` rule still misses plain classes: open |
-| `Maybe.nonEmptyText(format, format => format)` needs an identity `build` | Open. Make `build` optional on `nonEmpty` and `nonEmptyText` |
+| `Maybe.nonEmptyText(format, format => format)` needed an identity `build` | Resolved: `build` is optional on `nonEmpty` and `nonEmptyText` (overloads, no casts) |
 | `nonEmpty` hands `build` a readonly list, so children had to take `readonly X[]` | Keep. Children should accept readonly input |
 | Core types use `null` (`TypeSystemObject`), and fields exist only on some `OasSchema` members (`'field' in r ? r.field : undefined`) | Open. Needs a core change; most of the ~19 single ternaries left in md-docs constructors |
 | `unknown` fields (`default`) are not `Stringable`, so they need a conversion with its own checks | Open. Same core change |

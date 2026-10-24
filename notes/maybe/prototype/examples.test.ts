@@ -432,3 +432,17 @@ Deno.test('fromPredicate: builds only for a present value that passes', () => {
   assertEquals(`${toMinLength(0)}`, '')
   assertEquals(`${toMinLength(undefined)}`, '')
 })
+
+// --- Example 14: nonEmpty and nonEmptyText without build ---------------------
+
+Deno.test('nonEmptyText: without build renders the text itself', () => {
+  const format: string | undefined = ['date-time', undefined][0]
+  assertEquals(`${Maybe.nonEmptyText(format)}`, 'date-time')
+  assertEquals(`${Maybe.nonEmptyText('')}`, '')
+  assertEquals(`${new Loop([Maybe.nonEmptyText(''), 'nullable'], { separator: ' ' })}`, 'nullable')
+})
+
+Deno.test('nonEmpty: without build renders the list itself', () => {
+  assertEquals(`${Maybe.nonEmpty(['a', 'b'])}`, 'a,b')
+  assertEquals(`${Maybe.nonEmpty([])}`, '')
+})
