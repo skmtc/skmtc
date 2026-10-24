@@ -1,6 +1,7 @@
 # Fewer branches in generators: Nothing, Maybe, Loop and Wrap
 
-Plan, 2026-10-24. Nothing here is in `@skmtc/core` yet. The four classes
+Plan, 2026-10-24, updated after the first trial in gen-md-docs and gen-zod
+(see [Trial 1](#trial-1-gen-md-docs-and-gen-zod)). Nothing here is in `@skmtc/core` yet. The four classes
 exist as a prototype in [`prototype/`](prototype/), with tests for every
 example on this page.
 
@@ -99,10 +100,12 @@ to make it disappear when it is empty.
 
 | Kind                  | What counts                                      | When it is checked | What it controls        |
 | --------------------- | ------------------------------------------------ | ------------------ | ----------------------- |
-| Value absence         | `undefined`, `null`, `''`, `false`               | Construction       | Whether `build` runs    |
+| Value absence         | `undefined`, `null`, `''`, `false`, `[]`         | Construction       | Whether `build` or `otherwise` runs |
 | Structural emptiness  | `Nothing`, an empty `Loop`, a `Maybe` that is Nothing | Render        | Whether output is `''`  |
 
-`0` is a value. `minimum: 0` renders. A `false` that must render as text is
+`0` is a value. `minimum: 0` renders. An empty array is absent, so
+`new Maybe(operation.toParams(['path']), …)` builds nothing when there are no
+parameters. A `false` that must render as text is
 passed as `'false'`.
 
 A `Loop` is never absent at construction, because the object exists. Its
@@ -124,7 +127,8 @@ export class Nothing implements Stringable {
   }
 }
 
-const isBlank = (value: unknown): boolean => value === '' || value === false
+const isBlank = (value: unknown): boolean =>
+  value === '' || value === false || (Array.isArray(value) && value.length === 0)
 
 const isEmpty = (value: unknown): boolean =>
   value instanceof Nothing ||
@@ -134,31 +138,46 @@ const isEmpty = (value: unknown): boolean =>
 const isPresent = <T>(item: T | undefined | null): item is NonNullable<T> =>
   item !== undefined && item !== null && !isBlank(item) && !isEmpty(item)
 
-const toValue = <T extends Stringable, U extends Stringable>(
-  subject: T | undefined | null,
-  build: ((present: NonNullable<T>) => U) | undefined
-): U | NonNullable<T> | undefined => {
-  if (subject === undefined || subject === null || isBlank(subject)) return undefined
-  return build === undefined ? subject : build(subject)
-}
+const isAbsentValue = (value: unknown): value is undefined | null =>
+  value === undefined || value === null || isBlank(value)
 
-export class Maybe<T extends Stringable, U extends Stringable = NonNullable<T>>
-  implements Stringable
+export class Maybe<
+  T extends Stringable,
+  U extends Stringable = NonNullable<T>,
+  V extends Stringable = Nothing
+> implements Stringable
 {
   subject: T | undefined | null
   value: U | NonNullable<T> | undefined
+  fallback: V | undefined
 
-  constructor(subject: T | undefined | null, build?: (present: NonNullable<T>) => U) {
+  constructor(
+    subject: T | undefined | null,
+    build?: (present: NonNullable<T>) => U,
+    otherwise?: () => V
+  ) {
     this.subject = subject
-    this.value = toValue(subject, build)
+
+    if (isAbsentValue(subject)) {
+      this.value = undefined
+      this.fallback = otherwise?.()
+      return
+    }
+
+    this.value = build === undefined ? subject : build(subject)
+    this.fallback = subject instanceof Loop ? otherwise?.() : undefined
   }
 
-  isNothing(): boolean {
+    isAbsent(): boolean {
     return this.value === undefined || isEmpty(this.subject) || isEmpty(this.value)
   }
 
+    isNothing(): boolean {
+    return this.isAbsent() && (this.fallback === undefined || isEmpty(this.fallback))
+  }
+
   toString(): string {
-    return this.isNothing() || this.value === undefined ? '' : `${this.value}`
+    return this.isAbsent() ? `${this.fallback ?? ''}` : `${this.value}`
   }
 }
 
@@ -175,7 +194,7 @@ export class Loop<T extends Stringable = Stringable> implements Stringable {
     this.separator = separator
   }
 
-  add(item: T | undefined | null): this {
+    add(item: T | undefined | null): this {
     this.items.push(item)
     return this
   }
@@ -209,8 +228,11 @@ Notes on the types:
   so `U` alone would need an `as` cast.
 - `build` receives `NonNullable<T>`. Inside it, `title` is a `string`, not
   `string | undefined`, so no `!` or `as` is needed.
-- `isEmpty` and `isNothing` are methods, not fields, because they must read
-  the state at render time.
+- `isEmpty`, `isAbsent` and `isNothing` are methods, not fields, because they
+  must read the state at render time.
+- `isAbsent()` means the present branch does not render. `isNothing()` means
+  nothing renders at all: absent, and no `otherwise` that renders.
+- `fallback` is typed `V`, which defaults to `Nothing`.
 
 ### `Maybe` argument order
 
@@ -219,6 +241,83 @@ The deciding input comes first and the value comes second. Haskell
 (`cond.then(|| v)`) use the same order. `build` is a function, so the value is
 built only for a present subject, the same way Scala takes `value` by name and
 Rust has `then` next to the eager `then_some`.
+
+### The two-way form: `otherwise`
+
+Most choices left after the trial were "this when present, that when absent":
+enum literals or the base type, `discriminatedUnion` or `union`, a link or
+plain text, a list of schemes or `_no authentication_`, `z.lazy(…)` or a plain
+ref. `Maybe` takes a third argument for the absent case (fp-ts `fold`,
+Haskell `maybe default f m`):
+
+```ts
+new Maybe(anchor, a => new Wrap(['[`', type, '`](#', a, ')']), () => new Wrap(['`', type, '`']))
+new Maybe(isRecursive, () => new ZodLazyRef({ … }), () => new ZodPlainRef({ … }))
+```
+
+`otherwise` is lazy like `build`, so only the branch that is needed is built
+and registers anything. With a `Loop` subject both run in the constructor,
+because the Loop may still be empty at render:
+
+```ts
+const schemes = new Loop<string>([], { separator: ', ' })
+const auth = new Maybe(schemes, loop => new Wrap(['Auth: ', loop]), () => '_no authentication_')
+// renders '_no authentication_' until a scheme is added
+```
+
+### Variants: a flat `switch`
+
+Several optional parts that combine into different outputs are variants, not
+absence. ZodObject has four: properties, a record, both, or neither. Nesting
+`Maybe` with `otherwise` would be nested ternaries in another form. Use a flat
+`switch (true)` in the constructor. TypeScript narrows inside each case:
+
+```ts
+switch (true) {
+  case objectProperties !== null && recordProperties !== null:
+    this.content = new Wrap([objectProperties, '.and(', recordProperties, ')'])
+    break
+  case objectProperties !== null:
+    this.content = objectProperties
+    break
+  case recordProperties !== null:
+    this.content = recordProperties
+    break
+  default:
+    this.content = 'z.object({})'
+}
+```
+
+No `Match` class in core: it would be a small copy of ts-pattern, and
+narrowing does not carry into callbacks in an object of cases. ts-pattern
+stays out of core because of its load time. Generator routers may keep it.
+
+A `switch` like this still scores 4, because the alternatives are real. The
+aim is not zero branches. It is that every branch left is a real variant,
+flat, in one place.
+
+### The parent decides presence
+
+A Snippet is never empty. If it may have nothing to render, the parent does
+not build it: it wraps the construction in a `Maybe` keyed on the source
+data. The child renders unconditionally and has no `Maybe` of its own and no
+`content` field for parents to read.
+
+```ts
+new Loop([
+  new Maybe(name, present => new Name({ context, name: present })),
+  new Maybe(operation.externalDocs, docs => new ExternalDocs({ context, externalDocs: docs })),
+  new Maybe(operation.toParams(['path']), params =>
+    new Parameters({ context, title: 'Path parameters', parameters: params })
+  )
+])
+// Name.toString(): `**${this.name}**`
+```
+
+So `Loop` never needs to know whether a Snippet renders empty. When a child's
+emptiness only appears after its own work, move that work into the parent and
+pass the result as the subject. When a child is filled later (an accumulator),
+create its `Loop` in the parent, pass it in, and key the `Maybe` on it.
 
 ## Examples
 
@@ -345,6 +444,45 @@ new Maybe(isPaginated, () => pagination) // false: build does not run
 makes sense with `build`. TypeScript cannot express this through overloads
 here, so it is a lint hint, not a type error.
 
+## Trial 1: gen-md-docs and gen-zod
+
+Branch `exp/maybe-classes` in skmtc-generators. Each generator carries a local
+copy of the classes in `src/Maybe.ts`. Output is byte-identical: md-docs'
+existing golden passes unchanged, and gen-zod got a new 49-schema golden
+before the rewrite. Scores exclude `Maybe.ts`, which moves to core.
+
+| | gen-md-docs before | after | gen-zod before | after |
+| --- | --- | --- | --- | --- |
+| Total | 279 | 164 | 73 | 47 |
+| Branches | 222 | 118 | 54 | 34 |
+| Module functions | 32 | 15 | 5 | 2 |
+| Mean producer score | 4.8 | 3.4 | 3.9 | 2.4 |
+
+- md-docs lost 17 helpers that rendered text (`toConstraints`,
+  `toParameterNote`, the security and index helpers) and every use of `List`.
+  The 15 module functions left compute data. TypeInfo and Parameter went up
+  (20 → 24, 10 → 16) because they absorbed the helpers they called: 53 points
+  became 24, and 27 became 16.
+- gen-zod replaced `applyModifiers` / `withNullable` / `withOptional` with one
+  `ZodModifiers` class (a `Loop` of `Maybe`s). ZodInteger and ZodNumber went
+  from 9 to 2. Every `toString()` is a single interpolation.
+
+Findings, and where they stand:
+
+| Finding | Status |
+| --- | --- |
+| A Snippet that renders empty still gets a separator in a `Loop`; md-docs exposed `.content` fields to work around it | Resolved: [the parent decides presence](#the-parent-decides-presence). No `.content` reads remain |
+| No "otherwise": two-way choices stayed ternaries | Resolved: [`otherwise`](#the-two-way-form-otherwise) (prototype only, not yet on the branch) |
+| Real variants (ZodObject's four shapes) | Resolved: [flat `switch`](#variants-a-flat-switch) |
+| An empty array did not count as absent | Resolved: `[]` is value absence |
+| Old code tested truthiness: ZodString drops `minLength: 0` | Open. Kept byte-identical with `minLength \|\| undefined`. A rewrite can change output wherever old code tested truthiness; the golden catches it |
+| `''` and `false` as absent are wrong for data that must render (`default: false`, `title: ""`) | Open. Worked around with a boolean subject and a comment |
+| Core types use `null` (`TypeSystemObject`), and fields exist only on some `OasSchema` members (`'field' in r ? r.field : undefined`) | Open. Needs a core change; half of TypeInfo's remaining branches |
+| Plain `Stringable` classes are not detected as producers by the complexity tool or `method-discipline` | Open. Producer detection has to include them |
+| Narrowing in the constructor does not reach `build` callbacks | Open. Read the field into a local first |
+| `Loop.items` is `(T \| undefined \| null)[]` and has only `add` | Open. Sorted insertion splices `items` directly |
+| `new Maybe(flag, () => '"')` as a part of a `Wrap` makes conditional quotes and suffixes cheap | Pattern worth naming in the skill |
+
 ## Mapping from `List`
 
 | `List` today                      | With the new classes                                  |
@@ -399,8 +537,8 @@ cover most of the remaining "fallback for a missing value" group:
 1. Land `Nothing`, `Maybe`, `Loop` and `Wrap` in `core/dsl` with these tests.
    They are language-neutral, so Kotlin can use them too. Release through
    `deno task release`.
-2. Rewrite ShadcnTable and ZodInteger with them. Measure before and after
-   with `complexity/measure.ts`.
+2. Trial: done for gen-md-docs and gen-zod (see Trial 1). Next, apply
+   `otherwise` and the flat `switch` on the branch and measure again.
 3. Rewrite the skill skeleton and add the skill table.
 4. Add the `producer-complexity` lint rule and the gen-eval package total.
 5. Run gen-eval with the old and new skills and compare the complexity of the
@@ -410,6 +548,10 @@ cover most of the remaining "fallback for a missing value" group:
    deprecated, and delete it when nothing imports it.
 
 ## Open questions
+
+- Whether `''` and `false` should stay value absence, given md-docs data
+  that must render them. The alternative is absence = `undefined`, `null` and
+  `[]` only, with a boolean subject for the rest.
 
 - Names: `isNothing()` on `Maybe` and `isEmpty()` on `Loop` say different
   things on purpose (absent compared with no items). Check that this reads

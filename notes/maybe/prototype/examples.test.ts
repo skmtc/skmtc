@@ -228,3 +228,159 @@ Deno.test('build: argument is narrowed to the present type', () => {
   assertEquals(`${toTitle('pets')}`, '# PETS')
   assertEquals(`${toTitle(undefined)}`, '')
 })
+
+// --- Example 9: the two-way form (otherwise) --------------------------------
+// fp-ts `fold`: one branch when present, another when absent. Only the branch
+// that is needed is built.
+
+type TypeRefArgs = { type: string; anchor: string | undefined }
+
+class TypeRef implements Stringable {
+  ref: Maybe<string, Wrap, Wrap>
+
+  constructor({ type, anchor }: TypeRefArgs) {
+    this.ref = new Maybe(
+      anchor,
+      a => new Wrap(['[`', type, '`](#', a, ')']),
+      () => new Wrap(['`', type, '`'])
+    )
+  }
+
+  toString(): string {
+    return `${this.ref}`
+  }
+}
+
+Deno.test('otherwise: renders the present branch or the fallback', () => {
+  assertEquals(`${new TypeRef({ type: 'Pet', anchor: 'pet' })}`, '[`Pet`](#pet)')
+  assertEquals(`${new TypeRef({ type: 'string', anchor: undefined })}`, '`string`')
+})
+
+Deno.test('otherwise: only the needed branch is built', () => {
+  const imports: string[] = []
+  const toLazy = (recursive: boolean) =>
+    new Maybe(
+      recursive,
+      () => new Registered({ name: 'z.lazy(() => Pet)', imports }),
+      () => new Registered({ name: 'Pet', imports })
+    )
+
+  assertEquals(`${toLazy(true)}`, 'z.lazy(() => Pet)')
+  assertEquals(`${toLazy(false)}`, 'Pet')
+  assertEquals(imports, ['z.lazy(() => Pet)', 'Pet'])
+})
+
+Deno.test('otherwise: a Loop subject still empty at render renders the fallback', () => {
+  const schemes = new Loop<string>([], { separator: ', ' })
+  const auth = new Maybe(
+    schemes,
+    loop => new Wrap(['Auth: ', loop]),
+    () => '_no authentication_'
+  )
+
+  assertEquals(`${auth}`, '_no authentication_')
+  schemes.add('bearer')
+  assertEquals(`${auth}`, 'Auth: bearer')
+})
+
+// --- Example 10: an empty array is absent -----------------------------------
+
+const toParameters = (names: string[]): Maybe<string[], Wrap> =>
+  new Maybe(names, present => new Wrap(['Parameters: ', new Loop(present)]))
+
+Deno.test('empty array: absent at construction, so the child is not built', () => {
+  assertEquals(`${toParameters([])}`, '')
+  assertEquals(`${toParameters(['id', 'name'])}`, 'Parameters: id, name')
+})
+
+// --- Example 11: the parent decides presence --------------------------------
+// The child always renders; it has no Maybe of its own and no `content` field
+// for parents to read. The parent keys a Maybe on the source data.
+
+class Name implements Stringable {
+  name: string
+
+  constructor({ name }: { name: string }) {
+    this.name = name
+  }
+
+  toString(): string {
+    return `**${this.name}**`
+  }
+}
+
+type FieldArgs = { name: string | undefined; description: string | undefined }
+
+class Field implements Stringable {
+  parts: Loop
+
+  constructor({ name, description }: FieldArgs) {
+    this.parts = new Loop(
+      [new Maybe(name, present => new Name({ name: present })), new Maybe(description)],
+      { separator: ' ' }
+    )
+  }
+
+  toString(): string {
+    return `${this.parts}`
+  }
+}
+
+Deno.test('parent decides: an absent child is never built and leaves no separator', () => {
+  assertEquals(`${new Field({ name: 'id', description: 'The pet id' })}`, '**id** The pet id')
+  assertEquals(`${new Field({ name: undefined, description: 'The pet id' })}`, 'The pet id')
+})
+
+// --- Example 12: real variants use a flat switch ----------------------------
+// Several optional parts that combine into different outputs are variants,
+// not absence. A flat `switch (true)` narrows in each case; no nested
+// ternaries and no ts-pattern in core.
+
+class ZodObjectShape implements Stringable {
+  content: Stringable
+
+  constructor({
+    objectProperties,
+    recordProperties
+  }: {
+    objectProperties: Stringable | null
+    recordProperties: Stringable | null
+  }) {
+    switch (true) {
+      case objectProperties !== null && recordProperties !== null:
+        this.content = new Wrap([objectProperties, '.and(', recordProperties, ')'])
+        break
+      case objectProperties !== null:
+        this.content = objectProperties
+        break
+      case recordProperties !== null:
+        this.content = recordProperties
+        break
+      default:
+        this.content = 'z.object({})'
+    }
+  }
+
+  toString(): string {
+    return `${this.content}`
+  }
+}
+
+Deno.test('switch: each object shape renders its variant', () => {
+  const props = 'z.object({id: z.string()})'
+  const record = 'z.record(z.string(), z.number())'
+
+  assertEquals(
+    `${new ZodObjectShape({ objectProperties: props, recordProperties: record })}`,
+    `${props}.and(${record})`
+  )
+  assertEquals(`${new ZodObjectShape({ objectProperties: props, recordProperties: null })}`, props)
+  assertEquals(
+    `${new ZodObjectShape({ objectProperties: null, recordProperties: record })}`,
+    record
+  )
+  assertEquals(
+    `${new ZodObjectShape({ objectProperties: null, recordProperties: null })}`,
+    'z.object({})'
+  )
+})
