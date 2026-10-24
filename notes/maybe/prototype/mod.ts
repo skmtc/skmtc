@@ -5,8 +5,8 @@
  *
  * Two kinds of absence, checked at different times:
  *
- * - Value absence (`undefined`, `null`, `''`, `false`) is checked when a
- *   `Maybe` is constructed. It decides whether `build` runs.
+ * - Value absence (`undefined`, `null`, `''`, `false`, `[]`) is checked when
+ *   a `Maybe` is constructed. It decides whether `build` or `otherwise` runs.
  * - Structural emptiness (`Nothing`, an empty `Loop`, a `Maybe` that is
  *   Nothing) is checked during render, from each instance's current state.
  *   Instances can change until render; during render they are stable.
@@ -27,7 +27,8 @@ export class Nothing implements Stringable {
 }
 
 /** Value absence: decides at construction whether `Maybe` builds its value. */
-const isBlank = (value: unknown): boolean => value === '' || value === false
+const isBlank = (value: unknown): boolean =>
+  value === '' || value === false || (Array.isArray(value) && value.length === 0)
 
 /**
  * Structural emptiness: read at render time from current state. Never calls
@@ -41,42 +42,64 @@ const isEmpty = (value: unknown): boolean =>
 const isPresent = <T>(item: T | undefined | null): item is NonNullable<T> =>
   item !== undefined && item !== null && !isBlank(item) && !isEmpty(item)
 
-const toValue = <T extends Stringable, U extends Stringable>(
-  subject: T | undefined | null,
-  build: ((present: NonNullable<T>) => U) | undefined
-): U | NonNullable<T> | undefined => {
-  if (subject === undefined || subject === null || isBlank(subject)) return undefined
-  return build === undefined ? subject : build(subject)
-}
+const isAbsentValue = (value: unknown): value is undefined | null =>
+  value === undefined || value === null || isBlank(value)
 
 /**
- * Renders `value` when `subject` is present, `''` otherwise.
+ * Renders `value` when `subject` is present, the `otherwise` value when it is
+ * absent, and `''` when it is absent and there is no `otherwise`.
  *
  * - `new Maybe(t)` renders `t` when present.
  * - `new Maybe(t, title => new Wrap([...]))` builds the value only when `t`
  *   is present, so an absent value never constructs (and never registers
- *   imports from) the Snippets that would render it. `build` runs here, in
- *   the constructor, never during render.
+ *   imports from) the Snippets that would render it.
+ * - `new Maybe(anchor, a => link(a), () => plain)` is the two-way form
+ *   (fp-ts `fold`). Only the branch that is needed is built.
  * - A `Loop` subject is never absent at construction (the object exists), so
- *   `build` always runs; whether it renders is decided at render time.
+ *   `build` always runs, and `otherwise` runs too because the Loop may still
+ *   be empty at render. Neither may register anything.
+ *
+ * `build` and `otherwise` run here, in the constructor, never during render.
  */
-export class Maybe<T extends Stringable, U extends Stringable = NonNullable<T>>
-  implements Stringable
+export class Maybe<
+  T extends Stringable,
+  U extends Stringable = NonNullable<T>,
+  V extends Stringable = Nothing
+> implements Stringable
 {
   subject: T | undefined | null
   value: U | NonNullable<T> | undefined
+  fallback: V | undefined
 
-  constructor(subject: T | undefined | null, build?: (present: NonNullable<T>) => U) {
+  constructor(
+    subject: T | undefined | null,
+    build?: (present: NonNullable<T>) => U,
+    otherwise?: () => V
+  ) {
     this.subject = subject
-    this.value = toValue(subject, build)
+
+    if (isAbsentValue(subject)) {
+      this.value = undefined
+      this.fallback = otherwise?.()
+      return
+    }
+
+    this.value = build === undefined ? subject : build(subject)
+    this.fallback = subject instanceof Loop ? otherwise?.() : undefined
   }
 
-  isNothing(): boolean {
+  /** True when the present branch does not render. */
+  isAbsent(): boolean {
     return this.value === undefined || isEmpty(this.subject) || isEmpty(this.value)
   }
 
+  /** True when nothing renders at all: absent, and no fallback that renders. */
+  isNothing(): boolean {
+    return this.isAbsent() && (this.fallback === undefined || isEmpty(this.fallback))
+  }
+
   toString(): string {
-    return this.isNothing() || this.value === undefined ? '' : `${this.value}`
+    return this.isAbsent() ? `${this.fallback ?? ''}` : `${this.value}`
   }
 }
 
