@@ -24,7 +24,7 @@ plugin manifest does not list them.
 
 | Skill | Purpose | Version |
 | --- | --- | --- |
-| [`skmtc-generator/`](skmtc-generator/) | Generator authoring — the engine mental model (object trees over string concatenation), then clone-and-adapt | 0.14.0 |
+| [`skmtc-generator/`](skmtc-generator/) | Generator authoring — the engine mental model (object trees over string concatenation), then clone-and-adapt | 0.15.0 |
 | [`skmtc-lang-typescript/`](skmtc-lang-typescript/) | The TypeScript target-language layer — the shape of emitted TS | 0.2.3 |
 | [`skmtc-model/`](skmtc-model/) | Model-generator SHAPE layer: engine-tested fill-in skeleton + model edge cases (refs, recursion, visibility) | 0.1.4 |
 | [`skmtc-operation/`](skmtc-operation/) | Operation-generator SHAPE layer: decomposition of (path, method) subjects + peer-consumption rules | 0.1.2 |
