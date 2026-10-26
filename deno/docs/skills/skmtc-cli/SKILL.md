@@ -1,6 +1,6 @@
 ---
 name: skmtc-cli
-version: 0.5.1
+version: 0.5.2
 description: |
   Use the Skmtc CLI to scaffold projects, install or clone generators
   from JSR, configure schema sources and enrichments, and produce code
@@ -22,7 +22,7 @@ description: |
   failed bundle build), verify before proposing a fix: read the manifest and the
   parse issues, and reproduce the failure first.
 allowed-tools:
-  - Bash
+  - Bash(skmtc:*)
   - Read
   - Glob
   - Grep
