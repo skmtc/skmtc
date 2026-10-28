@@ -6,6 +6,7 @@ import {
   DeviceLoginError,
   formatUserCode,
   pollForTokens,
+  refreshTokens,
   requestDeviceCode
 } from '@/lib/device-login.ts'
 import { readStoredAuth } from '@/lib/hub-token.ts'
@@ -50,14 +51,14 @@ const tokens = json(200, {
 
 /** A clock the sleeps move forward, so polling runs without waiting. */
 const fakeClock = () => {
-  let time = 0
+  const clock = { time: 0 }
   const sleeps: number[] = []
   return {
     sleeps,
-    now: () => time,
+    now: () => clock.time,
     sleep: (ms: number) => {
       sleeps.push(ms)
-      time += ms
+      clock.time += ms
       return Promise.resolve()
     }
   }
@@ -177,6 +178,87 @@ Deno.test('pollForTokens - stops at the code expiry instead of polling forever',
     assertEquals(fetchMock.requests.length, 3)
   } finally {
     fetchMock.restore()
+  }
+})
+
+// RFC 8628 3.5: a client waits longer and retries when the server fails,
+// rather than ending a sign-in the user is still approving.
+Deno.test('pollForTokens - retries after no answer and a 5xx, waiting longer each time', async () => {
+  const clock = fakeClock()
+  const answers: (() => Response)[] = [
+    () => new Response('<html>bad gateway</html>', { status: 502 }),
+    json(400, { error: 'temporarily_unavailable' }),
+    tokens
+  ]
+  const fetchStub = stub(globalThis, 'fetch', () => {
+    if (clock.sleeps.length === 1) return Promise.reject(new TypeError('offline'))
+    const next = answers.shift()
+    return next ? Promise.resolve(next()) : Promise.reject(new Error('unexpected request'))
+  })
+
+  try {
+    const result = await pollForTokens({ env: 'local', code, sleep: clock.sleep, now: clock.now })
+    assertEquals(result.accessToken, 'access')
+    assertEquals(clock.sleeps, [5000, 10_000, 20_000, 40_000])
+  } finally {
+    fetchStub.restore()
+  }
+})
+
+Deno.test('pollForTokens - waits at least 5 seconds when identity sends interval 0', async () => {
+  const clock = fakeClock()
+  const fetchMock = stubFetch([tokens])
+
+  try {
+    await pollForTokens({
+      env: 'local',
+      code: { ...code, interval: 0 },
+      sleep: clock.sleep,
+      now: clock.now
+    })
+    assertEquals(clock.sleeps, [5000])
+  } finally {
+    fetchMock.restore()
+  }
+})
+
+Deno.test('refreshTokens - only invalid_grant says to sign in again', async () => {
+  const fetchMock = stubFetch([
+    json(400, { error: 'invalid_grant' }),
+    json(503, { error: 'temporarily_unavailable' })
+  ])
+
+  try {
+    const revoked = await assertRejects(
+      () => refreshTokens({ env: 'local', refreshToken: 'r1' }),
+      DeviceLoginError,
+      'skmtc login --env local'
+    )
+    assertEquals(revoked.code, 'invalid_grant')
+
+    const busy = await assertRejects(
+      () => refreshTokens({ env: 'local', refreshToken: 'r1' }),
+      DeviceLoginError
+    )
+    assertEquals(busy.code, 'temporarily_unavailable')
+    assertEquals(busy.message.includes('skmtc login'), false)
+  } finally {
+    fetchMock.restore()
+  }
+})
+
+Deno.test('refreshTokens - no answer from identity is a DeviceLoginError, not an uncaught TypeError', async () => {
+  const fetchStub = stub(globalThis, 'fetch', () => Promise.reject(new TypeError('offline')))
+
+  try {
+    const error = await assertRejects(
+      () => refreshTokens({ env: 'local', refreshToken: 'r1' }),
+      DeviceLoginError,
+      'offline'
+    )
+    assertEquals(error.code, 'unavailable')
+  } finally {
+    fetchStub.restore()
   }
 })
 

@@ -1,4 +1,5 @@
 import { assertEquals, assertRejects } from '@std/assert'
+import { EnvVariableError } from '@/lib/env.ts'
 import { dirname } from '@std/path/dirname'
 import { stub } from '@std/testing/mock'
 import { withEnv } from '@/tests/mocks/env.mock.ts'
@@ -269,16 +270,16 @@ Deno.test('toFreshStoredAuth - refreshes an expired token and stores the new one
       )
     })
 
+    const stored = {
+      env: 'local' as const,
+      token: 'access-1',
+      refreshToken: 'r1',
+      expiresAt: 30_000
+    }
+    writeStoredAuth(stored)
+
     try {
-      const fresh = await toFreshStoredAuth(
-        {
-          env: 'local',
-          token: 'access-1',
-          refreshToken: 'r1',
-          expiresAt: 30_000
-        },
-        () => 0
-      )
+      const fresh = await toFreshStoredAuth(stored, () => 0)
 
       const expected = {
         env: 'local' as const,
@@ -323,5 +324,88 @@ Deno.test('toFreshStoredAuth - a revoked refresh token says to run skmtc login a
     } finally {
       fetchStub.restore()
     }
+  })
+})
+
+const refreshedTokens = (access: string, refresh: string): Response =>
+  new Response(JSON.stringify({ access_token: access, refresh_token: refresh, expires_in: 3600 }), {
+    status: 200
+  })
+
+// Identity revokes the whole sign-in when a used refresh token comes back.
+// Two commands that find the same expired token must send it once.
+Deno.test('toFreshStoredAuth - two commands at once refresh the token once', async () => {
+  await withIsolatedEnv(async () => {
+    const stored = { env: 'local' as const, token: 'access-1', refreshToken: 'r1', expiresAt: 0 }
+    writeStoredAuth(stored)
+    const sent: string[] = []
+    const fetchStub = stub(globalThis, 'fetch', async (_input, init) => {
+      sent.push(new URLSearchParams(String(init?.body)).get('refresh_token') ?? '')
+      await new Promise(resolve => setTimeout(resolve, 20))
+      return refreshedTokens('access-2', 'r2')
+    })
+
+    try {
+      const [first, second] = await Promise.all([
+        toFreshStoredAuth(stored, () => 0),
+        toFreshStoredAuth(stored, () => 0)
+      ])
+      assertEquals(sent, ['r1'])
+      assertEquals([first.refreshToken, second.refreshToken], ['r2', 'r2'])
+    } finally {
+      fetchStub.restore()
+    }
+  })
+})
+
+Deno.test('toFreshStoredAuth - uses a token another command has already refreshed', async () => {
+  await withIsolatedEnv(async () => {
+    const newer = {
+      env: 'local' as const,
+      token: 'access-2',
+      refreshToken: 'r2',
+      expiresAt: 10 * 60_000
+    }
+    writeStoredAuth(newer)
+    const fetchStub = stub(globalThis, 'fetch', () => Promise.reject(new Error('no request')))
+
+    try {
+      const fresh = await toFreshStoredAuth(
+        { env: 'local', token: 'access-1', refreshToken: 'r1', expiresAt: 0 },
+        () => 0
+      )
+      assertEquals(fresh, newer)
+      assertEquals(fetchStub.calls.length, 0)
+    } finally {
+      fetchStub.restore()
+    }
+  })
+})
+
+Deno.test('toFreshStoredAuth - releases the lock after a failed refresh', async () => {
+  await withIsolatedEnv(async () => {
+    const stored = { env: 'local' as const, token: 'access-1', refreshToken: 'r1', expiresAt: 0 }
+    writeStoredAuth(stored)
+    const fetchStub = stub(globalThis, 'fetch', () => Promise.reject(new TypeError('offline')))
+
+    try {
+      await assertRejects(() => toFreshStoredAuth(stored, () => 0), Error, 'offline')
+      assertEquals(
+        [...Deno.readDirSync(dirname(toAuthFilePath()))].map(entry => entry.name),
+        ['auth.json']
+      )
+    } finally {
+      fetchStub.restore()
+    }
+  })
+})
+
+// The old variable must not be ignored: CI that still sets it would send a
+// staging or local token to production.
+Deno.test('resolveHubAuth - fails when the retired SKMTC_API_ORIGIN is set', async () => {
+  await withIsolatedEnv(async () => {
+    await withEnv({ SKMTC_API_ORIGIN: 'https://api.skmtc.co.uk' }, async () => {
+      await assertRejects(() => resolveHubAuth(), EnvVariableError, 'SKMTC_ENV')
+    })
   })
 })

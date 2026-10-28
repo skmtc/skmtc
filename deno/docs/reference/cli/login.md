@@ -82,9 +82,11 @@ waits for the command to exit.
 
 1. **Browser sign-in.** The CLI asks identity for a device code. It
    prints the link and the code. Then it polls the token endpoint at the
-   interval that identity gives. When identity answers `slow_down`, the
-   CLI polls more slowly. The code expires after 15 minutes. A denied or
-   expired code exits 1.
+   interval that identity gives, and at most once in 5 seconds. When
+   identity answers `slow_down`, the CLI polls more slowly. If identity
+   does not answer or sends a server error, the CLI tries again. It
+   doubles the wait each time, to not more than one minute. The code expires
+   after 15 minutes. A denied or expired code exits 1.
 2. **Validation before storage.** The token is checked with
    `GET /v1/user`. The hub allows this for any authenticated token
    regardless of scopes, so a least-privilege PAT works. The file is
@@ -93,14 +95,20 @@ waits for the command to exit.
 3. **Storage.** `~/.skmtc/auth.json`, mode `0600`, shape
    `{ "env": "<env>", "token": "..." }`. A browser sign-in adds
    `refreshToken` and `expiresAt`. The file holds one login: a sign-in
-   to another environment replaces it. An older CLI wrote the shape
+   to another environment replaces it. The CLI then revokes the refresh
+   token of the old login. An older CLI wrote the shape
    `{ "host", "token" }`. The CLI reads that file and finds the
    environment whose API is `host`.
 4. **Refresh.** A token expires after a time. Before a hub command uses
    a stored token, the CLI checks its expiry. If the token expires
-   within a minute, the CLI refreshes it and stores the new token. If you revoke the token, the hub refuses
-   the refresh. The command then fails with a message to run
-   `skmtc login`.
+   within a minute, the CLI refreshes it and stores the new token. Each
+   refresh token works one time only, so the CLI holds the lock file
+   `~/.skmtc/auth.json.lock` during the refresh. A second command
+   waits, then uses the token that the first command stored. If you
+   revoke the token, the hub refuses the refresh, and the command fails
+   with a message to run `skmtc login`. If identity does not answer, the
+   command fails with a message to try again, and the stored login
+   stays.
 5. **Already logged in.** Plain `skmtc login` with a stored token for
    the same environment reports `Logged in as <handle> (token …last4)`.
    Without `--env` or `$SKMTC_ENV`, the environment is the one stored
@@ -122,7 +130,11 @@ The environment is `--env`, then `$SKMTC_ENV`, then (when the token
 comes from the stored file) the stored environment, then `production`.
 The CLI uses a stored token only for its own environment: with
 `--env production` and a stored `local` login, the command has no
-token.
+token. `skmtc generate` with a stack server sends the token only when
+the server is on the API of the token's environment.
+
+The CLI does not read `$SKMTC_API_ORIGIN`. If your shell sets it,
+every hub command fails and tells you to use `$SKMTC_ENV`.
 
 ## Exit codes
 

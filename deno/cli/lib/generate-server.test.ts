@@ -1,4 +1,6 @@
 import { assertEquals, assertRejects } from '@std/assert'
+import { withEnv } from '@/tests/mocks/env.mock.ts'
+import { writeStoredAuth } from '@/lib/hub-token.ts'
 import { generateWithServer } from '@/lib/generate-server.ts'
 
 const originalFetch = globalThis.fetch
@@ -24,13 +26,16 @@ Deno.test('generateWithServer POSTs to {url}/artifacts with protocol + schema + 
   try {
     const result = await generateWithServer({
       // trailing slash should be trimmed before appending /artifacts
-      stackUrl: 'https://api.test/v1/stacks/ada/react-stack/servers/3.0.1/',
+      stackUrl: 'https://api.skmtc.dev/v1/stacks/ada/react-stack/servers/3.0.1/',
       schemaContents: '{"openapi":"3.0.0"}',
       fileType: 'json',
       clientSettings: { basePath: 'src' }
     })
 
-    assertEquals(capturedUrl, 'https://api.test/v1/stacks/ada/react-stack/servers/3.0.1/artifacts')
+    assertEquals(
+      capturedUrl,
+      'https://api.skmtc.dev/v1/stacks/ada/react-stack/servers/3.0.1/artifacts'
+    )
     assertEquals(capturedInit?.method, 'POST')
     const headers = capturedInit?.headers as Record<string, string>
     assertEquals(headers.authorization, 'Bearer pat-123')
@@ -125,5 +130,65 @@ Deno.test('generateWithServer throws on an unexpected response shape', async () 
     )
   } finally {
     globalThis.fetch = originalFetch
+  }
+})
+
+/** Capture the authorization header of the one generate request. */
+const captureAuthorization = () => {
+  const seen: { authorization?: string; urls: string[] } = { urls: [] }
+  globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    seen.urls.push(String(input))
+    if (String(input).includes('/oauth2/token')) {
+      return Promise.reject(new TypeError('offline'))
+    }
+    const headers = new Headers(init?.headers)
+    seen.authorization = headers.get('authorization') ?? undefined
+    return Promise.resolve(okJson({ artifacts: {}, manifest: { files: {} } }))
+  }
+  return seen
+}
+
+// A token belongs to one environment. A client.json can name any host, so
+// the token goes only to its own environment's API.
+Deno.test('generateWithServer - never sends the token to a host outside its environment', async () => {
+  const seen = captureAuthorization()
+  try {
+    await withEnv({ SKMTC_HUB_TOKEN: 'pat-123', SKMTC_ENV: 'local' }, async () => {
+      await generateWithServer({
+        stackUrl: 'https://api.skmtc.dev/v1/stacks/ada/s/servers/1.0',
+        schemaContents: '{}',
+        fileType: 'json',
+        clientSettings: undefined
+      })
+    })
+    assertEquals(seen.authorization, undefined)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+// A public stack needs no token, so a stored sign-in that cannot be
+// refreshed must not stop the generate.
+Deno.test('generateWithServer - generates without a token when the refresh fails', async () => {
+  const home = Deno.makeTempDirSync({ prefix: 'skmtc-generate-server-test-' })
+  const seen = captureAuthorization()
+  try {
+    await withEnv({ HOME: home, SKMTC_HUB_TOKEN: undefined, SKMTC_ENV: undefined }, async () => {
+      writeStoredAuth({ env: 'local', token: 'access-1', refreshToken: 'r1', expiresAt: 0 })
+      await generateWithServer({
+        stackUrl: 'https://api.skmtc.co.uk/v1/stacks/ada/s/servers/1.0',
+        schemaContents: '{}',
+        fileType: 'json',
+        clientSettings: undefined
+      })
+    })
+    assertEquals(seen.urls, [
+      'https://skmtc.co.uk/api/auth/oauth2/token',
+      'https://api.skmtc.co.uk/v1/stacks/ada/s/servers/1.0/artifacts'
+    ])
+    assertEquals(seen.authorization, undefined)
+  } finally {
+    globalThis.fetch = originalFetch
+    Deno.removeSync(home, { recursive: true })
   }
 })

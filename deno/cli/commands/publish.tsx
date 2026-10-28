@@ -7,7 +7,7 @@ import type { InkRenderFn } from '@/commands/types.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { publishHeadless, type PublishHeadlessResult } from '@/lib/publish-headless.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
-import type { HubEnv } from '@/lib/hub-env.ts'
+import { type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
 
 export const description =
   'Build and publish an immutable version of this project to skmtc-hub. Versions are addressed by semver; re-publishing an existing version is rejected.'
@@ -51,7 +51,11 @@ export const renderPublish = async ({
   }
 
   if (mode === 'strict') {
-    const { token: resolvedToken, origin: resolvedOrigin } = await resolveHubAuth({
+    const {
+      token: resolvedToken,
+      origin: resolvedOrigin,
+      env: resolvedEnv
+    } = await resolveHubAuth({
       tokenFlag: token,
       envFlag: env
     })
@@ -62,8 +66,7 @@ export const renderPublish = async ({
         arg: '--token',
         usage: USAGE,
         example: EXAMPLE,
-        discover:
-          'Run `skmtc login`, set $SKMTC_HUB_TOKEN, or pass --token. Mint a PAT at https://skmtc.dev/settings/tokens.'
+        discover: toMissingTokenHint(resolvedEnv)
       })
     }
 

@@ -3,6 +3,9 @@ import { stub } from '@std/testing/mock'
 import { withEnv } from '@/tests/mocks/env.mock.ts'
 import { readStoredAuth, writeStoredAuth } from '@/lib/hub-token.ts'
 import { logout } from '@/commands/logout.ts'
+import { isRejectedLogin, replaceStoredAuth } from '@/commands/login.tsx'
+import { DeviceLoginError } from '@/lib/device-login.ts'
+import { HubTokenRejectedError } from '@/lib/hub-token.ts'
 
 const withTempHome = async (fn: () => Promise<void>): Promise<void> => {
   const home = Deno.makeTempDirSync({ prefix: 'skmtc-logout-test-' })
@@ -76,4 +79,39 @@ Deno.test('logout - a stored PAT is deleted without a request', async () => {
       fetchStub.restore()
     }
   })
+})
+
+// Replacing a login must end the old grant too, or a copy of the old file
+// keeps a working refresh token.
+Deno.test('replaceStoredAuth - revokes the replaced sign-in', async () => {
+  await withTempHome(async () => {
+    writeStoredAuth(oauthLogin)
+    const revoked: string[] = []
+    const fetchStub = stub(globalThis, 'fetch', (input, init) => {
+      const body = init?.body
+      if (body instanceof URLSearchParams) revoked.push(`${String(input)} ${body.get('token')}`)
+      return Promise.resolve(new Response(null, { status: 200 }))
+    })
+
+    try {
+      await replaceStoredAuth({ env: 'production', token: 'skmtc_pat' })
+      assertEquals(revoked, ['https://skmtc.co.uk/api/auth/oauth2/revoke refresh-1'])
+      assertEquals(readStoredAuth(), { env: 'production', token: 'skmtc_pat' })
+    } finally {
+      fetchStub.restore()
+    }
+  })
+})
+
+Deno.test('isRejectedLogin - only a refused token or grant tells the user to log out', () => {
+  assertEquals(
+    [
+      isRejectedLogin(new HubTokenRejectedError(401, 'unauthorized')),
+      isRejectedLogin(new DeviceLoginError('invalid_grant', 'revoked')),
+      isRejectedLogin(new DeviceLoginError('unavailable', 'offline')),
+      isRejectedLogin(new Error('token validation failed (503)')),
+      isRejectedLogin(new TypeError('offline'))
+    ],
+    [true, true, false, false, false]
+  )
 })

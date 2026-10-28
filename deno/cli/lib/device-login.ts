@@ -9,7 +9,7 @@
  */
 
 import * as v from 'valibot'
-import { HUB_HOSTS, type HubEnv } from '@/lib/hub-env.ts'
+import { HUB_HOSTS, type HubEnv, toLoginCommand } from '@/lib/hub-env.ts'
 
 export const CLI_CLIENT_ID = 'skmtc-cli'
 export const CLI_RESOURCE = 'urn:skmtc:cli'
@@ -119,10 +119,9 @@ export const requestDeviceCode = async (env: HubEnv): Promise<DeviceCode> => {
 
 type TokenResult =
   | { type: 'tokens'; tokens: OauthTokens }
-  | {
-      type: 'error'
-      code: string
-    }
+  | { type: 'error'; code: string }
+  /** Identity could not be reached, or answered 5xx without an OAuth error. */
+  | { type: 'unavailable'; detail: string }
 
 const requestToken = async (
   env: HubEnv,
@@ -132,10 +131,17 @@ const requestToken = async (
   const response = await postForm(toAuthUrl(env, '/oauth2/token'), {
     ...fields,
     client_id: CLI_CLIENT_ID
-  })
-  const body = await readJson(response)
+  }).catch((error: unknown) => (error instanceof Error ? error : new Error(String(error))))
 
-  if (response.ok) {
+  if (response instanceof Error) {
+    return { type: 'unavailable', detail: response.message }
+  }
+
+  const body = await readJson(response).catch((error: unknown) =>
+    error instanceof Error ? error : new Error(String(error))
+  )
+
+  if (response.ok && !(body instanceof Error)) {
     const token = v.parse(tokenSchema, body)
     return {
       type: 'tokens',
@@ -148,12 +154,21 @@ const requestToken = async (
   }
 
   const parsed = v.safeParse(tokenErrorSchema, body)
-  if (!parsed.success) {
-    throw new Error(`identity answered ${response.status} from the token endpoint`)
-  }
+  if (parsed.success) return { type: 'error', code: parsed.output.error }
 
-  return { type: 'error', code: parsed.output.error }
+  const detail = body instanceof Error ? body.message : `identity answered ${response.status}`
+  if (response.status >= 500) return { type: 'unavailable', detail }
+
+  throw new Error(detail)
 }
+
+/** OAuth error codes that say identity is busy or failing, not that the grant is bad. */
+const TRANSIENT_ERRORS = new Set(['server_error', 'temporarily_unavailable'])
+
+/** Never poll faster than this, whatever interval identity sends. */
+const MIN_INTERVAL_SECONDS = 5
+/** The longest wait between polls after transient failures. */
+const MAX_INTERVAL_SECONDS = 60
 
 type PollArgs = {
   env: HubEnv
@@ -166,18 +181,26 @@ const defaultSleep = (ms: number): Promise<void> => new Promise(resolve => setTi
 
 /**
  * Poll the token endpoint until the user approves or denies the code, or it
- * expires. `slow_down` adds 5 seconds to the interval (RFC 8628, 3.5).
+ * expires. `slow_down` adds 5 seconds to the interval, and a transient
+ * failure (no answer, a 5xx, `server_error`, `temporarily_unavailable`)
+ * doubles it, up to a minute (RFC 8628, 3.5).
  */
-export const pollForTokens = async ({
+export const pollForTokens = ({
   env,
   code,
   sleep = defaultSleep,
   now = Date.now
 }: PollArgs): Promise<OauthTokens> => {
   const deadline = now() + code.expiresIn * 1000
-  let interval = code.interval
 
-  while (now() < deadline) {
+  const poll = async (interval: number): Promise<OauthTokens> => {
+    if (now() >= deadline) {
+      throw new DeviceLoginError(
+        'expired_token',
+        `The code expired. Run \`${toLoginCommand(env)}\` again.`
+      )
+    }
+
     await sleep(interval * 1000)
 
     const result = await requestToken(
@@ -188,23 +211,28 @@ export const pollForTokens = async ({
 
     if (result.type === 'tokens') return result.tokens
 
-    if (result.code === 'authorization_pending') continue
-
-    if (result.code === 'slow_down') {
-      interval += 5
-      continue
+    if (result.type === 'unavailable' || TRANSIENT_ERRORS.has(result.code)) {
+      return poll(Math.min(interval * 2, MAX_INTERVAL_SECONDS))
     }
 
-    if (result.code === 'access_denied') {
-      throw new DeviceLoginError(result.code, 'The sign-in was denied in the browser.')
+    switch (result.code) {
+      case 'authorization_pending':
+        return poll(interval)
+      case 'slow_down':
+        return poll(interval + 5)
+      case 'access_denied':
+        throw new DeviceLoginError(result.code, 'The sign-in was denied in the browser.')
+      case 'expired_token':
+        throw new DeviceLoginError(
+          result.code,
+          `The code expired. Run \`${toLoginCommand(env)}\` again.`
+        )
+      default:
+        throw new DeviceLoginError(result.code, `Sign-in failed (${result.code}).`)
     }
-
-    if (result.code === 'expired_token') break
-
-    throw new DeviceLoginError(result.code, `Sign-in failed (${result.code}).`)
   }
 
-  throw new DeviceLoginError('expired_token', 'The code expired. Run `skmtc login` again.')
+  return poll(Math.max(code.interval, MIN_INTERVAL_SECONDS))
 }
 
 /**
@@ -230,7 +258,12 @@ export const revokeRefreshToken = async ({
   }
 }
 
-/** Exchange a refresh token for new tokens. */
+/**
+ * Exchange a refresh token for new tokens. Every failure is a
+ * `DeviceLoginError`: `invalid_grant` means the sign-in expired or was
+ * revoked; any other code, or no answer, is reported as it is, because
+ * trying again later can work.
+ */
 export const refreshTokens = async ({
   env,
   refreshToken,
@@ -244,12 +277,31 @@ export const refreshTokens = async ({
     env,
     { grant_type: 'refresh_token', refresh_token: refreshToken },
     now
+  ).catch(
+    (error: unknown): TokenResult => ({
+      type: 'unavailable',
+      detail: error instanceof Error ? error.message : String(error)
+    })
   )
 
-  if (result.type === 'tokens') return result.tokens
-
-  throw new DeviceLoginError(
-    result.code,
-    'Your sign-in expired or was revoked. Run `skmtc login` to sign in again.'
-  )
+  switch (result.type) {
+    case 'tokens':
+      return result.tokens
+    case 'unavailable':
+      throw new DeviceLoginError(
+        'unavailable',
+        `Could not refresh your sign-in at ${HUB_HOSTS[env].web}: ${result.detail}. Try again.`
+      )
+    case 'error':
+      if (result.code === 'invalid_grant') {
+        throw new DeviceLoginError(
+          result.code,
+          `Your sign-in expired or was revoked. Run \`${toLoginCommand(env)}\` to sign in again.`
+        )
+      }
+      throw new DeviceLoginError(
+        result.code,
+        `Identity refused to refresh your sign-in (${result.code}). Try again.`
+      )
+  }
 }

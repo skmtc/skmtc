@@ -28,8 +28,11 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  * produces, so `writeGeneratedFiles` (stale cleanup + byte-identical dedup +
  * manifest write) needs no changes.
  *
- * Attaches the hub PAT when available (`$SKMTC_HUB_TOKEN` → `~/.skmtc/auth.json`)
- * for private stacks; public stacks generate anonymously.
+ * Attaches the hub token (`$SKMTC_HUB_TOKEN` → `~/.skmtc/auth.json`) for
+ * private stacks, but only when `stackUrl` is the API of the token's
+ * environment: a token is never sent to another host. When the stored
+ * sign-in cannot be refreshed, it warns and generates anonymously, so a
+ * public stack still works.
  */
 export const generateWithServer = async ({
   stackUrl,
@@ -46,8 +49,14 @@ export const generateWithServer = async ({
   const protocol = fileTypeToProtocol(fileType)
 
   const headers: Record<string, string> = { 'content-type': 'application/json' }
-  const { token } = await resolveHubAuth()
-  if (token) headers.authorization = `Bearer ${token}`
+  const auth = await resolveHubAuth().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn(`Generating without a hub token: ${message}`)
+    return undefined
+  })
+  if (auth?.token && auth.origin === endpointUrl.origin) {
+    headers.authorization = `Bearer ${auth.token}`
+  }
 
   let response: Response
   try {

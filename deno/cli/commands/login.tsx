@@ -21,21 +21,24 @@
  */
 
 import { failWithRecipe, resolveOutputFormat } from '@/lib/strict-mode.ts'
-import { readEnv } from '@/lib/env.ts'
-import { HUB_HOSTS, type HubEnv, toTokenSettingsUrl } from '@/lib/hub-env.ts'
+import { HUB_HOSTS, type HubEnv, toLoginCommand, toTokenSettingsUrl } from '@/lib/hub-env.ts'
 import {
+  HubTokenRejectedError,
   maskToken,
+  readHubEnvVariable,
   readStoredAuth,
-  resolveHubEnv,
+  type StoredAuth,
   toFreshStoredAuth,
   validateHubToken,
   writeStoredAuth
 } from '@/lib/hub-token.ts'
 import {
   type DeviceCode,
+  DeviceLoginError,
   formatUserCode,
   pollForTokens,
-  requestDeviceCode
+  requestDeviceCode,
+  revokeRefreshToken
 } from '@/lib/device-login.ts'
 
 const USAGE = 'skmtc login [--env production|staging|local] [--with-token]'
@@ -45,7 +48,6 @@ type RenderLoginArgs = {
   env: HubEnv | undefined
   withToken: boolean | undefined
   jsonFlag?: boolean
-  noInputFlag?: boolean
 }
 
 type Format = 'text' | 'json'
@@ -101,6 +103,25 @@ type DeviceLoginArgs = {
   sleep?: (ms: number) => Promise<void>
 }
 
+/**
+ * Store `auth`, replacing the stored login. The replaced login's refresh
+ * token is revoked, so a copy of the old file cannot keep the sign-in alive.
+ * A failed revoke does not stop the login; it is reported on stderr.
+ */
+export const replaceStoredAuth = async (auth: StoredAuth): Promise<void> => {
+  const previous = readStoredAuth()
+  writeStoredAuth(auth)
+
+  if (!previous?.refreshToken || previous.refreshToken === auth.refreshToken) return
+
+  await revokeRefreshToken({ env: previous.env, refreshToken: previous.refreshToken }).catch(() => {
+    console.error(
+      `Could not revoke the previous sign-in at ${HUB_HOSTS[previous.env].web}. ` +
+        'Revoke the Skmtc CLI in Settings > Connected apps.'
+    )
+  })
+}
+
 /** Run the browser sign-in, store the token and return the handle. */
 export const deviceLogin = async ({ env, onCode, sleep }: DeviceLoginArgs): Promise<string> => {
   const code = await requestDeviceCode(env)
@@ -112,7 +133,7 @@ export const deviceLogin = async ({ env, onCode, sleep }: DeviceLoginArgs): Prom
     token: tokens.accessToken
   })
 
-  writeStoredAuth({
+  await replaceStoredAuth({
     env,
     token: tokens.accessToken,
     refreshToken: tokens.refreshToken,
@@ -121,6 +142,15 @@ export const deviceLogin = async ({ env, onCode, sleep }: DeviceLoginArgs): Prom
 
   return handle
 }
+
+/**
+ * Whether the hub refused the stored login itself. Only then is a logout the
+ * fix: after a network error or a 5xx the stored sign-in is still good, and a
+ * retry works.
+ */
+export const isRejectedLogin = (error: unknown): boolean =>
+  error instanceof HubTokenRejectedError ||
+  (error instanceof DeviceLoginError && error.code === 'invalid_grant')
 
 const fail = (error: unknown): never => {
   console.error(error instanceof Error ? error.message : String(error))
@@ -135,7 +165,7 @@ export const renderLogin = async ({
   const format = resolveOutputFormat({ jsonFlag })
   // Without --env, the whoami answers for the stored login's environment.
   const stored = readStoredAuth()
-  const env = envFlag ?? readEnv('SKMTC_ENV') ?? stored?.env ?? resolveHubEnv()
+  const env = envFlag ?? readHubEnvVariable() ?? stored?.env ?? 'production'
   const origin = HUB_HOSTS[env].api
 
   if (withToken) {
@@ -153,7 +183,7 @@ export const renderLogin = async ({
 
     try {
       const handle = await validateHubToken({ origin, token })
-      writeStoredAuth({ env, token })
+      await replaceStoredAuth({ env, token })
       printLoginResult({ type: 'logged-in', env, handle }, { format })
       Deno.exit(0)
     } catch (error) {
@@ -172,10 +202,12 @@ export const renderLogin = async ({
         { format, tokenLast4: maskToken(fresh.token) }
       )
       Deno.exit(0)
-    } catch {
+    } catch (error) {
       console.error(
-        'A token is stored in ~/.skmtc/auth.json but the hub rejected it. ' +
-          'Run `skmtc logout`, then `skmtc login` again.'
+        isRejectedLogin(error)
+          ? 'A token is stored in ~/.skmtc/auth.json but the hub rejected it. ' +
+              `Run \`skmtc logout\`, then \`${toLoginCommand(env)}\` again.`
+          : `Could not check the stored login: ${error instanceof Error ? error.message : String(error)}`
       )
       Deno.exit(1)
     }

@@ -26,11 +26,18 @@ export const HUB_HOSTS: Record<HubEnv, HubHosts> = {
   local: { api: 'https://api.skmtc.co.uk', web: 'https://skmtc.co.uk' }
 }
 
-export const isHubEnv = (value: unknown): value is HubEnv => HUB_ENVS.some(env => env === value)
-
 /** The environment whose API is `api`, for an `auth.json` written before `--env`. */
 export const toHubEnvFromApi = (api: string): HubEnv | undefined =>
   HUB_ENVS.find(env => HUB_HOSTS[env].api === api.replace(/\/+$/, ''))
 
 /** Where a user mints a personal access token. */
 export const toTokenSettingsUrl = (env: HubEnv): string => `${HUB_HOSTS[env].web}/settings/tokens`
+
+/** The `skmtc login` command that signs in to `env`. */
+export const toLoginCommand = (env: HubEnv): string =>
+  env === DEFAULT_HUB_ENV ? 'skmtc login' : `skmtc login --env ${env}`
+
+/** The recipe hint for a hub command that has no token for `env`. */
+export const toMissingTokenHint = (env: HubEnv): string =>
+  `Run \`${toLoginCommand(env)}\`, set $SKMTC_HUB_TOKEN, or pass --token. ` +
+  `Mint a PAT at ${toTokenSettingsUrl(env)}.`

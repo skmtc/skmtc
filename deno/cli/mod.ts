@@ -2,7 +2,13 @@ import { Command, EnumType } from '@cliffy/command'
 import { EnvVariableError } from '@/lib/env.ts'
 import { HUB_ENVS } from '@/lib/hub-env.ts'
 import { assertJsrReachable, JsrRegistryUnreachableError } from '@/lib/jsr-registry.ts'
-import { getCommandDescriptor, JSON_DESCRIPTION, NO_INPUT_DESCRIPTION } from '@/lib/cli-schema.ts'
+import { DeviceLoginError } from '@/lib/device-login.ts'
+import {
+  ENV_DESCRIPTION,
+  getCommandDescriptor,
+  JSON_DESCRIPTION,
+  NO_INPUT_DESCRIPTION
+} from '@/lib/cli-schema.ts'
 import { toInstallCommand } from '@/commands/install-command.ts'
 import denoJson from './deno.json' with { type: 'json' }
 
@@ -61,8 +67,7 @@ const shouldSkipRegistryCheck = (args: readonly string[]): boolean => {
 // `cli-schema.ts`, whose {@link AGENT_MODE_FLAGS} `agent-context` reports.
 const NO_INPUT_DESC = NO_INPUT_DESCRIPTION
 const JSON_DESC = JSON_DESCRIPTION
-const ENV_DESC =
-  'Hub environment: production, staging or local. Defaults to $SKMTC_ENV, then the environment of the stored login, then production.'
+const ENV_DESC = ENV_DESCRIPTION
 const FORCE_DESC =
   "Bypass the pre-flight @skmtc/core peer-pin check. Cloning over a mismatched pin produces a generator that won't bundle — only use this when you know the skew is safe."
 
@@ -460,13 +465,12 @@ const run = async () => {
     )
     .type('hubEnv', hubEnv)
     .option('--env <env:hubEnv>', ENV_DESC)
-    .action(async ({ json, input, withToken, env }) => {
+    .action(async ({ json, withToken, env }) => {
       const { renderLogin } = await import('@/commands/login.tsx')
       await renderLogin({
         env,
         withToken,
-        jsonFlag: json,
-        noInputFlag: input === false
+        jsonFlag: json
       })
     })
 
@@ -647,10 +651,11 @@ const run = async () => {
     .parse(Deno.args)
 }
 
-// A malformed environment variable is read by whichever command needs it;
-// report it once here, as one line, for every entry point.
+// A malformed environment variable, or a stored sign-in that cannot be
+// refreshed, surfaces in whichever command needs it; report it once here, as
+// one line, for every entry point.
 run().catch(error => {
-  if (error instanceof EnvVariableError) {
+  if (error instanceof EnvVariableError || error instanceof DeviceLoginError) {
     console.error(error.message)
     Deno.exit(1)
   }

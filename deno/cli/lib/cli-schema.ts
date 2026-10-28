@@ -59,6 +59,9 @@ export type CommandDescriptor = {
  */
 export const JSON_DESCRIPTION = 'Emit structured JSON output (implies --no-input).'
 export const NO_INPUT_DESCRIPTION = 'Disable interactive prompts; fail on missing args.'
+/** The `--env` help of every hub command. */
+export const ENV_DESCRIPTION =
+  'Hub environment: production, staging or local. Defaults to $SKMTC_ENV, then the environment of the stored login, then production.'
 
 export const AGENT_MODE_FLAGS: FlagDescriptor[] = [
   {
@@ -194,8 +197,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       },
       {
         flag: '--env <env>',
-        description:
-          'Hub environment: production, staging or local. Defaults to $SKMTC_ENV, then the environment of the stored login, then production.'
+        description: ENV_DESCRIPTION
       },
       {
         flag: '--version <semver>',
@@ -218,8 +220,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       },
       {
         flag: '--env <env>',
-        description:
-          'Hub environment: production, staging or local. Defaults to $SKMTC_ENV, then the environment of the stored login, then production.'
+        description: ENV_DESCRIPTION
       },
       {
         flag: '--project <ref>',
@@ -257,8 +258,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       },
       {
         flag: '--env <env>',
-        description:
-          'Hub environment: production, staging or local. Defaults to $SKMTC_ENV, then the environment of the stored login, then production.'
+        description: ENV_DESCRIPTION
       },
       {
         flag: '--project <ref>',
@@ -285,8 +285,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       },
       {
         flag: '--env <env>',
-        description:
-          'Hub environment: production, staging or local. Defaults to $SKMTC_ENV, then the environment of the stored login, then production.'
+        description: ENV_DESCRIPTION
       }
     ],
     agentMode: 'full'

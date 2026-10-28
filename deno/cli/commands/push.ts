@@ -3,7 +3,7 @@ import { Manager } from '@/lib/manager.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { pushHeadless, type PushHeadlessResult } from '@/lib/push-headless.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
-import type { HubEnv } from '@/lib/hub-env.ts'
+import { type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
 import { collectBaseFiles } from '@/lib/source-upload.ts'
 import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 import { dirname } from '@std/path/dirname'
@@ -82,7 +82,11 @@ export const renderPush = async ({
     })
   }
 
-  const { token: resolvedToken, origin: resolvedOrigin } = await resolveHubAuth({
+  const {
+    token: resolvedToken,
+    origin: resolvedOrigin,
+    env: resolvedEnv
+  } = await resolveHubAuth({
     tokenFlag: token,
     envFlag: env
   })
@@ -93,8 +97,7 @@ export const renderPush = async ({
       arg: '--token',
       usage: USAGE,
       example: EXAMPLE,
-      discover:
-        'Run `skmtc login`, set $SKMTC_HUB_TOKEN, or pass --token. Mint a PAT at https://skmtc.dev/settings/tokens.'
+      discover: toMissingTokenHint(resolvedEnv)
     })
   }
 

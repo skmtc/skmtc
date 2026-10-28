@@ -8,7 +8,7 @@ import {
   type RmResult
 } from '@/lib/project-headless.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
-import type { HubEnv } from '@/lib/hub-env.ts'
+import { type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
 import { collectProjectBaseFiles } from '@/commands/push.ts'
 
 export const description =
@@ -63,7 +63,11 @@ export const renderProjectCreate = async ({
     })
   }
 
-  const { token: resolvedToken, origin: resolvedOrigin } = await resolveHubAuth({
+  const {
+    token: resolvedToken,
+    origin: resolvedOrigin,
+    env: resolvedEnv
+  } = await resolveHubAuth({
     tokenFlag: token,
     envFlag: env
   })
@@ -73,7 +77,7 @@ export const renderProjectCreate = async ({
       arg: '--token',
       usage: CREATE_USAGE,
       example: CREATE_EXAMPLE,
-      discover: 'Run `skmtc login`, set $SKMTC_HUB_TOKEN, or pass --token.'
+      discover: toMissingTokenHint(resolvedEnv)
     })
   }
 
@@ -184,7 +188,11 @@ export const renderProjectRm = async ({
     })
   }
 
-  const { token: resolvedToken, origin: resolvedOrigin } = await resolveHubAuth({
+  const {
+    token: resolvedToken,
+    origin: resolvedOrigin,
+    env: resolvedEnv
+  } = await resolveHubAuth({
     tokenFlag: token,
     envFlag: env
   })
@@ -194,8 +202,7 @@ export const renderProjectRm = async ({
       arg: '--token',
       usage: RM_USAGE,
       example: RM_EXAMPLE,
-      discover:
-        'Run `skmtc login`, set $SKMTC_HUB_TOKEN, or pass --token. Deleting needs the admin:resource scope.'
+      discover: `${toMissingTokenHint(resolvedEnv)} Deleting needs the admin:resource scope.`
     })
   }
 
