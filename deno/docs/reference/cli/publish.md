@@ -81,22 +81,29 @@ See the [overview](overview.md#shared-flags).
      Missing → fail at stage `version`. The stack `@account/slug` comes
      from deno.json#name; missing/unscoped → fail at stage `identity`.
 
-2. bundleDeploy(project)
-     → <project>/server.js   (one self-contained bundle: the generator
-        composition + createServer + @skmtc/server + @skmtc/core, all
-        inlined, nothing external)
+2. Collect the source tree and check it
+     deno.lock missing → fail at stage `source`. If deno.json does not
+     pin @skmtc/server at the CLI's version, add the pin, run
+     `deno install` to refresh deno.lock, and collect the tree again.
 
 3. POST /v1/stacks/{account}/{slug}/versions   (multipart, atomic)
-     One `version` part (semver) + one `bundle` part (server.js) + N
-     `files` parts (one per project source file). The hub writes the
-     bundle + source to R2, authorizes you as a `writer` on the
-     account/stack, reconciles the generator composition from the
-     uploaded deno.json, and returns the complete StackVersion.
+     One `version` part (semver) + N `files` parts (one per project
+     source file). The hub writes the source to R2, authorizes you as a
+     `writer` on the account/stack, reconciles the generator
+     composition from the uploaded deno.json, and returns the complete
+     StackVersion.
 ```
 
-There is no metadata-only intermediate state — the publish is atomic
-(version + bundle + source in one request). Each step has its own
-failure stage in the result envelope (below).
+The CLI uploads source, not a compiled bundle. To deploy a version, the
+hub writes its own `server.ts`, which imports `@skmtc/server` through
+the uploaded `deno.json`. A version without that import cannot deploy,
+so publish adds it. When publish changes `deno.json`, it prints a line
+on stderr: commit `deno.json` and `deno.lock`. Publish does not change a
+local path for `@skmtc/server` (a checkout of the package).
+
+There is no metadata-only intermediate state. The publish is atomic
+(version + source in one request). Each step has its own failure stage
+in the result envelope (below).
 
 The hub auto-creates the stack on first publish (the "git push creates
 the repo" behavior), under the `@account` from deno.json#name — which may
@@ -121,9 +128,7 @@ When `--no-input` or `--json` is set:
 {
   "type": "published",
   "projectName": "my-api",
-  "bundlePath": ".skmtc/my-api/server.js",
-  "bundleBytes": 1228801,
-  "bundleSha256": "e3b0c44298fc1c14...",
+  "sourceHash": "e3b0c44298fc1c14...",
   "stack": { "account": "ada", "slug": "my-api" },
   "version": "3.0.1",
   "versionUrl": "https://skmtc.dev/ada/stacks/my-api/versions/3.0.1",
@@ -152,7 +157,7 @@ Possible `stage` values:
 |---|---|
 | `version` | No version to publish — no `deno.json#version` and no `--version`. Fails before any network call. |
 | `identity` | No stack name — `deno.json#name` is missing or not a scoped `@account/slug`. Fails before any network call. |
-| `bundle` | `bundleDeploy` — Deno bundling failed locally, or reading the bundle / walking the source tree failed |
+| `source` | Reading the source tree failed, `deno.lock` is missing, or `deno install` failed after publish added the `@skmtc/server` pin |
 | `publish` | `POST /v1/stacks/.../versions` failed (commonly: `409` — that version is already published) |
 
 ## Text-mode output
@@ -161,10 +166,8 @@ Possible `stage` values:
 
 ```
 Published "my-api" → ada/my-api@3.0.1
-  bundle: .skmtc/my-api/server.js
-  bytes: 1228801
-  sha256: e3b0c44298fc1c14...
   source: 28 files, 96512 bytes
+  sourceHash: e3b0c44298fc1c14...
   version: https://skmtc.dev/ada/stacks/my-api/versions/3.0.1
 ```
 
@@ -176,12 +179,6 @@ Publish failed for "my-api" at publish:
 ```
 
 ## What gets uploaded
-
-### Bundle (one file)
-
-`<project>/server.js` — the compiled CF-Workers entry point produced
-by `bundleDeploy`. One self-contained bundle: `@skmtc/core` and
-`@skmtc/server` are inlined, nothing external (~1.2 MB).
 
 ### Source tree (N files)
 

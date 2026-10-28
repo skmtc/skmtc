@@ -272,3 +272,52 @@ Deno.test("resolveStackName - rejects a name that isn't @account/slug", async ()
     await Deno.remove(projectPath, { recursive: true })
   }
 })
+
+Deno.test('publishHeadless - pins @skmtc/server before upload and refreshes the lock', async () => {
+  const projectPath = await Deno.makeTempDir()
+  await Deno.writeTextFile(
+    `${projectPath}/deno.json`,
+    JSON.stringify({ name: '@acme/my-api', version: '3.0.1', imports: {} })
+  )
+  await Deno.writeTextFile(`${projectPath}/deno.lock`, '{}')
+  const skmtcRoot = {
+    findProject: () => ({ toPath: () => projectPath })
+  } as unknown as SkmtcRoot
+
+  const refreshed: string[] = []
+  let uploadedDenoJson: string | undefined
+  globalThis.fetch = async (_url: string | URL | Request, options?: RequestInit) => {
+    const body = options?.body
+    if (body instanceof FormData) {
+      const part = body
+        .getAll('files')
+        .find(file => file instanceof File && file.name === 'deno.json')
+      if (part instanceof File) uploadedDenoJson = await part.text()
+    }
+    return new Response(JSON.stringify(stackVersionPayload), {
+      status: 201,
+      headers: { 'content-type': 'application/json' }
+    })
+  }
+
+  try {
+    const result = await publishHeadless({
+      skmtcRoot,
+      projectName: 'my-api',
+      token: 'pat-123',
+      refreshLock: path => {
+        refreshed.push(path)
+        return Promise.resolve()
+      }
+    })
+
+    assertEquals(result.type, 'published')
+    assertEquals(refreshed, [projectPath])
+    // The hub reads the pin from the upload, so check the uploaded copy, not
+    // only the file on disk.
+    assertStringIncludes(uploadedDenoJson ?? '', '"@skmtc/server": "jsr:@skmtc/server@')
+  } finally {
+    globalThis.fetch = originalFetch
+    await Deno.remove(projectPath, { recursive: true })
+  }
+})

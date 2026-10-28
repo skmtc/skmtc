@@ -16,7 +16,9 @@
  *      by built-in defaults + the project's optional `.skmtcignore`. The hub
  *      REQUIRES `deno.lock` in the upload (deterministic resolution + the
  *      single-`@skmtc/core` check happen at publish, where the author is
- *      watching).
+ *      watching). When the project `deno.json` lacks the `@skmtc/server`
+ *      pin the hub's synthesized `server.ts` needs, it is added, `deno.lock`
+ *      is refreshed, and the tree is collected again.
  *   4. `POST /v1/stacks/{account}/{stack}/versions` (multipart) with the
  *      `version` part + one `files` part per source file. The hub writes the
  *      source to R2, computes the content identity (`sourceHash`), reconciles
@@ -33,6 +35,7 @@ import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { collectSourceFiles, type SourceFile } from '@/lib/source-upload.ts'
 import { parseScopedName } from '@/lib/scoped-name.ts'
 import { toProjectInstallCommand } from '@/lib/dependency-age.ts'
+import { pinServerForPublish, refreshProjectLock } from '@/lib/publish-server-pin.ts'
 // One definition, in the module that owns the stored-auth shape. This file
 // used to declare its own copy of the same literal, which is how a default
 // hub silently drifts between `login` and `publish`.
@@ -50,6 +53,8 @@ type PublishHeadlessArgs = {
    * from the project root `deno.json#version`.
    */
   version?: string
+  /** Refresh `deno.lock` after the server pin changes `deno.json`; a seam for tests. */
+  refreshLock?: (projectPath: string) => Promise<void>
 }
 
 export type PublishHeadlessResult =
@@ -250,7 +255,8 @@ export const publishHeadless = async ({
   projectName,
   token,
   origin = HUB_HOSTS[DEFAULT_HUB_ENV].api,
-  version: versionFlag
+  version: versionFlag,
+  refreshLock = refreshProjectLock
 }: PublishHeadlessArgs): Promise<PublishHeadlessResult> => {
   const project = skmtcRoot.findProject(projectName)
 
@@ -299,6 +305,16 @@ export const publishHeadless = async ({
         `deno.lock not found in the upload — the hub requires it. Run \`${toProjectInstallCommand()}\` ` +
           'in the project (and make sure .skmtcignore does not exclude deno.lock), then re-publish.'
       )
+    }
+    // Without this pin the hub cannot build the version's server, and the
+    // failure would only show at deploy time.
+    if (await pinServerForPublish(project.toPath())) {
+      await refreshLock(project.toPath())
+      console.error(
+        'Pinned @skmtc/server in deno.json so the hub can deploy this version. ' +
+          'Commit deno.json and deno.lock.'
+      )
+      files = await collectSourceFiles(project.toPath())
     }
   } catch (err) {
     return {
