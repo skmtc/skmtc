@@ -304,9 +304,9 @@ Publishing creates an immutable semver version of the stack; a hub
 ```bash
 # 1. Set the version — `version` in .skmtc/<project>/deno.json,
 #    or pass --version. The CLI never invents or auto-bumps one.
-# 2a. One-off: log in once (paste a PAT from Settings → Access tokens;
-#     write:releases scope is enough), then publish with no token flags:
-skmtc login            # or: echo $PAT | skmtc login --with-token
+# 2a. One-off: log in once (approve the printed code in the browser),
+#     then publish with no token flags:
+skmtc login            # or store a PAT: echo $PAT | skmtc login --with-token
 skmtc publish <project> --json
 # 2b. CI: pass the token explicitly (flag or env beats the stored login):
 skmtc publish <project> --token $SKMTC_HUB_TOKEN --json

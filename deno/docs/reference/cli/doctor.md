@@ -59,7 +59,7 @@ fails the suite. Workspace-scoped checks plus per-project checks:
 | `cli-version-current` | The running CLI against the newest published `@skmtc/cli`. The only registry lookup (2s bound; `skipped` when unreachable, and `skmtc doctor --offline` skips the lookup outright). When the newest release is still inside Deno's 24h minimum-dependency-age window, the hint says so — a reinstall without `--minimum-dependency-age=0` silently resolves an older release. |
 | `install-lockfile` | The installed CLI's `deno.lock` (under `~/.deno/bin/.skmtc/`) exists and pins `@skmtc/cli` and `@skmtc/core` to compatible versions |
 | `deno-version` | The running Deno satisfies the `>= 2.4.0` floor for the esbuild-based `deno bundle` |
-| `hub-auth` | `~/.skmtc/auth.json` (written by `skmtc login`) parses to the expected `{ host, token }` shape. Offline only — no network call; `skipped` when not logged in, `warning` with a logout/login hint when malformed. Reports at most the token's last 4 characters. |
+| `hub-auth` | `~/.skmtc/auth.json` (written by `skmtc login`) parses to the expected `{ env, token }` shape, and reports the environment of the login. A file from an older CLI (`{ host, token }`) is also read. Offline only — no network call; `skipped` when not logged in, `warning` with a logout/login hint when malformed. Reports at most the token's last 4 characters. |
 
 #### Per-project checks
 
