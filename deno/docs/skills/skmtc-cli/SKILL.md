@@ -61,7 +61,7 @@ diagnosing failures see
 | Bundle | `<root>/.skmtc/<project>/bundle.js` | Compiled worker entry. Rebuilt before every run by `generate`/`dev`, and by `bundle`/`clone`/`install`. `describe`/`status`/`clean` build their own copy outside the project. |
 | Manifest | `<root>/.skmtc/<project>/.settings/manifest.json` | Per-run record of every file written and every (generator × item) outcome |
 | Generator | JSR package or local folder | Local: `<root>/.skmtc/<project>/<gen-name>/` |
-| **Global state** | `~/.skmtc/` | `auth.json` (the hub PAT stored by `skmtc login`), shadow project state, schema caches. **Check this when local state alone doesn't explain a failure.** |
+| **Global state** | `~/.skmtc/` | `auth.json` (the hub login stored by `skmtc login`: its environment and token), shadow project state, schema caches. **Check this when local state alone doesn't explain a failure.** |
 
 A "project" is **not** the consuming app — it's the *generator
 configuration* the consuming app pulls code from.
