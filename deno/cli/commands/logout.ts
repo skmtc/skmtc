@@ -12,7 +12,7 @@
  * `$SKMTC_HUB_TOKEN` are the caller's to manage.
  */
 
-import { deleteStoredAuth, readStoredAuth } from '@/lib/hub-token.ts'
+import { deleteStoredAuth, readStoredAuth, withAuthLock } from '@/lib/hub-token.ts'
 import { revokeRefreshToken } from '@/lib/device-login.ts'
 import { HUB_HOSTS } from '@/lib/hub-env.ts'
 import { resolveOutputFormat } from '@/lib/strict-mode.ts'
@@ -23,21 +23,26 @@ type RenderLogoutArgs = {
 
 type Revoked = 'revoked' | 'not-applicable' | 'failed'
 
-export const logout = async (): Promise<{ removed: boolean; revoked: Revoked }> => {
-  const stored = readStoredAuth()
+/**
+ * Revoke and delete under the auth lock, so a refresh in another command
+ * cannot write a new auth.json after the delete.
+ */
+export const logout = (): Promise<{ removed: boolean; revoked: Revoked }> =>
+  withAuthLock(async () => {
+    const stored = readStoredAuth()
 
-  const revoked: Revoked = await (async () => {
-    if (!stored?.refreshToken) return 'not-applicable'
-    try {
-      await revokeRefreshToken({ env: stored.env, refreshToken: stored.refreshToken })
-      return 'revoked'
-    } catch {
-      return 'failed'
-    }
-  })()
+    const revoked: Revoked = await (async () => {
+      if (!stored?.refreshToken) return 'not-applicable'
+      try {
+        await revokeRefreshToken({ env: stored.env, refreshToken: stored.refreshToken })
+        return 'revoked'
+      } catch {
+        return 'failed'
+      }
+    })()
 
-  return { removed: deleteStoredAuth(), revoked }
-}
+    return { removed: deleteStoredAuth(), revoked }
+  })
 
 export const renderLogout = async ({ jsonFlag }: RenderLogoutArgs): Promise<void> => {
   const stored = readStoredAuth()

@@ -10,8 +10,10 @@ import {
   toAuthFilePath,
   toFreshStoredAuth,
   validateHubToken,
+  withAuthLock,
   writeStoredAuth
 } from '@/lib/hub-token.ts'
+import { DeviceLoginError } from '@/lib/device-login.ts'
 
 /**
  * Run `fn` with HOME pointed at a fresh temp dir and SKMTC_HUB_TOKEN
@@ -407,5 +409,26 @@ Deno.test('resolveHubAuth - fails when the retired SKMTC_API_ORIGIN is set', asy
     await withEnv({ SKMTC_API_ORIGIN: 'https://api.skmtc.co.uk' }, async () => {
       await assertRejects(() => resolveHubAuth(), EnvVariableError, 'SKMTC_ENV')
     })
+  })
+})
+
+// A lock timeout must reach the one-line handler in mod.ts, not crash.
+Deno.test('withAuthLock - a lock held by another command fails as a DeviceLoginError', async () => {
+  await withIsolatedEnv(async () => {
+    writeStoredAuth({ env: 'local', token: 'access' })
+    Deno.writeTextFileSync(`${toAuthFilePath()}.lock`, '1')
+    const ran: string[] = []
+
+    const error = await assertRejects(
+      () =>
+        withAuthLock(
+          () => Promise.resolve(ran.push('ran')),
+          () => Promise.resolve()
+        ),
+      DeviceLoginError,
+      'Try again'
+    )
+    assertEquals(error.code, 'auth_locked')
+    assertEquals(ran, [])
   })
 })

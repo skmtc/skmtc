@@ -4,6 +4,7 @@ import type { GenerationMapEntry, Sidecar } from '@skmtc/core/Anchors'
 import { type FileType, fileTypeToProtocol } from '@/lib/types.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
+import { toHubEnvFromApi } from '@/lib/hub-env.ts'
 
 type GenerateWithServerArgs = {
   /**
@@ -49,11 +50,15 @@ export const generateWithServer = async ({
   const protocol = fileTypeToProtocol(fileType)
 
   const headers: Record<string, string> = { 'content-type': 'application/json' }
-  const auth = await resolveHubAuth().catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error)
-    console.warn(`Generating without a hub token: ${message}`)
-    return undefined
-  })
+  // A host that is no hub API never gets a token, so do not resolve (or
+  // refresh) one for it.
+  const auth = !toHubEnvFromApi(endpointUrl.origin)
+    ? undefined
+    : await resolveHubAuth().catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error)
+        console.warn(`Generating without a hub token: ${message}`)
+        return undefined
+      })
   if (auth?.token && auth.origin === endpointUrl.origin) {
     headers.authorization = `Bearer ${auth.token}`
   }

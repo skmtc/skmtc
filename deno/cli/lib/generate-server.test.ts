@@ -192,3 +192,24 @@ Deno.test('generateWithServer - generates without a token when the refresh fails
     Deno.removeSync(home, { recursive: true })
   }
 })
+
+Deno.test('generateWithServer - a host that is no hub API gets no token and causes no refresh', async () => {
+  const home = Deno.makeTempDirSync({ prefix: 'skmtc-generate-server-test-' })
+  const seen = captureAuthorization()
+  try {
+    await withEnv({ HOME: home, SKMTC_HUB_TOKEN: undefined, SKMTC_ENV: undefined }, async () => {
+      writeStoredAuth({ env: 'local', token: 'access-1', refreshToken: 'r1', expiresAt: 0 })
+      await generateWithServer({
+        stackUrl: 'https://stacks.example.com/v1/stacks/ada/s/servers/1.0',
+        schemaContents: '{}',
+        fileType: 'json',
+        clientSettings: undefined
+      })
+    })
+    assertEquals(seen.urls, ['https://stacks.example.com/v1/stacks/ada/s/servers/1.0/artifacts'])
+    assertEquals(seen.authorization, undefined)
+  } finally {
+    globalThis.fetch = originalFetch
+    Deno.removeSync(home, { recursive: true })
+  }
+})

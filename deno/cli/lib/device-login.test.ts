@@ -247,6 +247,21 @@ Deno.test('refreshTokens - only invalid_grant says to sign in again', async () =
   }
 })
 
+Deno.test('refreshTokens - a rate-limit page from the edge says to try again', async () => {
+  const fetchMock = stubFetch([() => new Response('<html>rate limited</html>', { status: 429 })])
+
+  try {
+    const error = await assertRejects(
+      () => refreshTokens({ env: 'local', refreshToken: 'r1' }),
+      DeviceLoginError,
+      'Try again'
+    )
+    assertEquals(error.code, 'unavailable')
+  } finally {
+    fetchMock.restore()
+  }
+})
+
 Deno.test('refreshTokens - no answer from identity is a DeviceLoginError, not an uncaught TypeError', async () => {
   const fetchStub = stub(globalThis, 'fetch', () => Promise.reject(new TypeError('offline')))
 

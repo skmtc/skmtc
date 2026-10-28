@@ -21,7 +21,13 @@
  */
 
 import { failWithRecipe, resolveOutputFormat } from '@/lib/strict-mode.ts'
-import { HUB_HOSTS, type HubEnv, toLoginCommand, toTokenSettingsUrl } from '@/lib/hub-env.ts'
+import {
+  DEFAULT_HUB_ENV,
+  HUB_HOSTS,
+  type HubEnv,
+  toLoginCommand,
+  toTokenSettingsUrl
+} from '@/lib/hub-env.ts'
 import {
   HubTokenRejectedError,
   maskToken,
@@ -30,6 +36,7 @@ import {
   type StoredAuth,
   toFreshStoredAuth,
   validateHubToken,
+  withAuthLock,
   writeStoredAuth
 } from '@/lib/hub-token.ts'
 import {
@@ -109,8 +116,12 @@ type DeviceLoginArgs = {
  * A failed revoke does not stop the login; it is reported on stderr.
  */
 export const replaceStoredAuth = async (auth: StoredAuth): Promise<void> => {
-  const previous = readStoredAuth()
-  writeStoredAuth(auth)
+  // Under the lock, so a refresh in another command cannot overwrite the new login.
+  const previous = await withAuthLock(() => {
+    const current = readStoredAuth()
+    writeStoredAuth(auth)
+    return Promise.resolve(current)
+  })
 
   if (!previous?.refreshToken || previous.refreshToken === auth.refreshToken) return
 
@@ -165,7 +176,7 @@ export const renderLogin = async ({
   const format = resolveOutputFormat({ jsonFlag })
   // Without --env, the whoami answers for the stored login's environment.
   const stored = readStoredAuth()
-  const env = envFlag ?? readHubEnvVariable() ?? stored?.env ?? 'production'
+  const env = envFlag ?? readHubEnvVariable() ?? stored?.env ?? DEFAULT_HUB_ENV
   const origin = HUB_HOSTS[env].api
 
   if (withToken) {

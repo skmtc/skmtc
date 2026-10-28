@@ -123,7 +123,11 @@ export const writeStoredAuth = (auth: StoredAuth): string => {
   return filePath
 }
 
-/** A lock older than this belongs to a process that died, and is taken over. */
+/**
+ * A lock older than this belongs to a process that died, and is taken over.
+ * It must stay above the identity request timeout in `device-login.ts`, so a
+ * live refresh never loses its lock.
+ */
 const LOCK_STALE_MS = 30_000
 /** How long to wait for another process to finish its refresh. */
 const LOCK_WAIT_MS = 10_000
@@ -174,9 +178,9 @@ export const withAuthLock = async <T>(
     }
 
     if (waited >= LOCK_WAIT_MS) {
-      throw new Error(
-        `Another skmtc command holds ${lockPath}. ` +
-          'If no other skmtc command is running, delete the file and try again.'
+      throw new DeviceLoginError(
+        'auth_locked',
+        'Another skmtc command is refreshing the sign-in. Try again in a moment.'
       )
     }
 

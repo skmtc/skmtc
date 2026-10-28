@@ -64,6 +64,13 @@ export class DeviceLoginError extends Error {
   }
 }
 
+/**
+ * Every identity request ends within this time. It must stay below the auth
+ * lock's stale age in `hub-token.ts`: a refresh that outlived the lock would
+ * let a second command send the same refresh token.
+ */
+const IDENTITY_TIMEOUT_MS = 20_000
+
 const postForm = (url: string, fields: Record<string, string>): Promise<Response> =>
   fetch(url, {
     method: 'POST',
@@ -71,7 +78,8 @@ const postForm = (url: string, fields: Record<string, string>): Promise<Response
       'content-type': 'application/x-www-form-urlencoded',
       accept: 'application/json'
     },
-    body: new URLSearchParams(fields)
+    body: new URLSearchParams(fields),
+    signal: AbortSignal.timeout(IDENTITY_TIMEOUT_MS)
   })
 
 const readJson = async (response: Response): Promise<unknown> => {
@@ -120,7 +128,7 @@ export const requestDeviceCode = async (env: HubEnv): Promise<DeviceCode> => {
 type TokenResult =
   | { type: 'tokens'; tokens: OauthTokens }
   | { type: 'error'; code: string }
-  /** Identity could not be reached, or answered 5xx without an OAuth error. */
+  /** Identity could not be reached, or answered 429 or 5xx without an OAuth error. */
   | { type: 'unavailable'; detail: string }
 
 const requestToken = async (
@@ -157,7 +165,8 @@ const requestToken = async (
   if (parsed.success) return { type: 'error', code: parsed.output.error }
 
   const detail = body instanceof Error ? body.message : `identity answered ${response.status}`
-  if (response.status >= 500) return { type: 'unavailable', detail }
+  // 429 is rate limiting, often an HTML page from the edge: wait and retry.
+  if (response.status === 429 || response.status >= 500) return { type: 'unavailable', detail }
 
   throw new Error(detail)
 }
