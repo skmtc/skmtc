@@ -21,6 +21,7 @@
  */
 
 import { failWithRecipe, resolveOutputFormat } from '@/lib/strict-mode.ts'
+import { readEnv } from '@/lib/env.ts'
 import { HUB_HOSTS, type HubEnv, toTokenSettingsUrl } from '@/lib/hub-env.ts'
 import {
   maskToken,
@@ -132,7 +133,9 @@ export const renderLogin = async ({
   jsonFlag
 }: RenderLoginArgs): Promise<void> => {
   const format = resolveOutputFormat({ jsonFlag })
-  const env = resolveHubEnv(envFlag)
+  // Without --env, the whoami answers for the stored login's environment.
+  const stored = readStoredAuth()
+  const env = envFlag ?? readEnv('SKMTC_ENV') ?? stored?.env ?? resolveHubEnv()
   const origin = HUB_HOSTS[env].api
 
   if (withToken) {
@@ -160,8 +163,6 @@ export const renderLogin = async ({
 
   // Already logged in to this environment → report status instead of signing
   // in again. Re-login is `skmtc logout` first.
-  const stored = readStoredAuth()
-
   if (stored && stored.env === env) {
     try {
       const fresh = await toFreshStoredAuth(stored)

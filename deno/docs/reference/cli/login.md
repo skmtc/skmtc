@@ -103,6 +103,8 @@ waits for the command to exit.
    `skmtc login`.
 5. **Already logged in.** Plain `skmtc login` with a stored token for
    the same environment reports `Logged in as <handle> (token …last4)`.
+   Without `--env` or `$SKMTC_ENV`, the environment is the one stored
+   with the login.
    It does not start a new sign-in. This is the `whoami`. To sign in
    again, run `skmtc logout` first, or pipe a new token with
    `--with-token`.
@@ -148,6 +150,6 @@ skmtc login --json
 
 ## See also
 
-- [`logout`](logout.md) — delete the stored credential
+- [`logout`](logout.md) — revoke the sign-in and delete the stored credential
 - [`publish`](publish.md) — a consumer of the stored token
 - [`doctor`](doctor.md) — offline `hub-auth` shape check of `auth.json`

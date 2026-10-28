@@ -207,6 +207,29 @@ export const pollForTokens = async ({
   throw new DeviceLoginError('expired_token', 'The code expired. Run `skmtc login` again.')
 }
 
+/**
+ * Revoke a refresh token at identity (RFC 7009). Revoking the refresh token
+ * ends the grant, so the CLI loses access until the next `skmtc login`.
+ * Identity answers 200 also for a token it does not know.
+ */
+export const revokeRefreshToken = async ({
+  env,
+  refreshToken
+}: {
+  env: HubEnv
+  refreshToken: string
+}): Promise<void> => {
+  const response = await postForm(toAuthUrl(env, '/oauth2/revoke'), {
+    token: refreshToken,
+    token_type_hint: 'refresh_token',
+    client_id: CLI_CLIENT_ID
+  })
+
+  if (!response.ok) {
+    throw new Error(`identity refused to revoke the token (${response.status})`)
+  }
+}
+
 /** Exchange a refresh token for new tokens. */
 export const refreshTokens = async ({
   env,

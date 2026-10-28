@@ -293,7 +293,8 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
   },
   {
     name: 'logout',
-    description: 'Delete the stored skmtc-hub token (~/.skmtc/auth.json). Idempotent.',
+    description:
+      'Sign out of skmtc-hub: revoke a browser sign-in at identity and delete the stored token (~/.skmtc/auth.json). Idempotent.',
     args: [],
     flags: [{ flag: '--json', description: 'Emit structured JSON output.' }],
     agentMode: 'json-only'

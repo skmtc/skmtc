@@ -475,7 +475,7 @@ const run = async () => {
     .option('--json', 'Emit structured JSON output.')
     .action(async ({ json }) => {
       const { renderLogout } = await import('@/commands/logout.ts')
-      renderLogout({ jsonFlag: json })
+      await renderLogout({ jsonFlag: json })
     })
 
   const doctorCommand = new Command()

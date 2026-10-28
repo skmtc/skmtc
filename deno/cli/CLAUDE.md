@@ -60,7 +60,8 @@ store written by `skmtc login` (`~/.skmtc/auth.json`, mode 0600).
 it prints a link and a code, the user approves the code at `/login/device`,
 and the CLI stores the access token, the refresh token and the expiry.
 `resolveHubAuth` refreshes an expired stored token before use. `--with-token`
-stores a PAT from stdin instead. `skmtc logout` deletes the store.
+stores a PAT from stdin instead. `skmtc logout` revokes a browser sign-in's
+refresh token at identity (`/oauth2/revoke`), then deletes the store.
 
 `--env production|staging|local` (then `$SKMTC_ENV`, then the stored env,
 then production) picks the hub. `lib/hub-env.ts` holds each environment's
