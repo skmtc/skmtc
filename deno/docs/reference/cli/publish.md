@@ -29,7 +29,7 @@ introduces the nouns this page assumes (account, stack, project, PAT).
 ## Synopsis
 
 ```
-skmtc publish <project> --token <pat> [--version <semver>] [--origin <url>] [--json] [--no-input]
+skmtc publish <project> --token <pat> [--version <semver>] [--env <env>] [--json] [--no-input]
 ```
 
 ## Arguments
@@ -61,13 +61,13 @@ The version to publish. Defaults to the project root
 `deno.json#version`. If neither is present, publish fails fast (before
 any network call) with a recipe-style error.
 
-### `--origin <url>`
+### `--env <env>`
 
-Hub origin (base URL). Defaults to `$SKMTC_API_ORIGIN`; then — only when the
-token came from the stored `skmtc login` file — the `host` recorded
-in that file; then `https://api.skmtc.dev`. The stored-host step
-keeps token and destination coherent: a token minted against a local
-dev hub is never silently sent to production.
+The hub environment: `production`, `staging` or `local`. Defaults to
+`$SKMTC_ENV`. Then, when the token comes from the stored `skmtc login`
+file, the environment in that file. Then `production`. The CLI sends a
+stored token only to its own environment. [`login`](login.md#--env-env)
+lists the hosts of each environment.
 
 ### `--no-input` / `--json`
 
@@ -231,7 +231,7 @@ All errors use the uniform `ApiError` envelope (`{ code, message, … }`):
 | Variable | Purpose | Equivalent flag |
 |---|---|---|
 | `SKMTC_HUB_TOKEN` | Default PAT | `--token` |
-| `SKMTC_API_ORIGIN` | Default hub origin (base URL) | `--origin` |
+| `SKMTC_ENV` | Default hub environment | `--env` |
 
 CLI flags always win over env vars; env vars win over the stored
 `skmtc login` credential (so CI can override a developer login).

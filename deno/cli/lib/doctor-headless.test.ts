@@ -522,16 +522,16 @@ Deno.test('runDoctor - hub-auth check reports stored credential shape offline', 
       assertEquals(warning?.status, 'warning')
       assertStringIncludes(warning?.hint ?? '', 'skmtc logout')
 
-      // 3. Valid file → ok; message shows host + last 4 only, never
+      // 3. Valid file → ok; message shows env + last 4 only, never
       //    the full token.
       await Deno.writeTextFile(
         join(tempRoot, '.skmtc', 'auth.json'),
-        JSON.stringify({ host: 'https://api.example.test', token: 'skmtc_pat_secret9876' })
+        JSON.stringify({ env: 'local', token: 'skmtc_pat_secret9876' })
       )
       const valid = await runDoctor({ cliVersion: '0.0.0' })
       const ok = valid.checks.find(check => check.id === 'hub-auth')
       assertEquals(ok?.status, 'ok')
-      assertStringIncludes(ok?.message ?? '', 'https://api.example.test')
+      assertStringIncludes(ok?.message ?? '', 'local')
       assertStringIncludes(ok?.message ?? '', '…9876')
       assertEquals((ok?.message ?? '').includes('skmtc_pat_secret9876'), false)
     })
@@ -663,18 +663,15 @@ Deno.test('runDoctor - cli-version-current survives a registry answering the wro
   // object. Doctor is the "everything else is broken" command, so an
   // unreadable answer must be one `skipped` line, not a throw that takes
   // the other twelve checks with it.
-  const check = await toVersionCheck(
-    '0.9.40',
-    () => Promise.resolve(JSON.parse('{"error":"nope"}'))
+  const check = await toVersionCheck('0.9.40', () =>
+    Promise.resolve(JSON.parse('{"error":"nope"}'))
   )
 
   assertEquals(check.status, 'skipped')
 })
 
 Deno.test('runDoctor - cli-version-current survives a rejected registry lookup', async () => {
-  const check = await toVersionCheck('0.9.40', () =>
-    Promise.reject(new Error('socket hang up'))
-  )
+  const check = await toVersionCheck('0.9.40', () => Promise.reject(new Error('socket hang up')))
 
   assertEquals(check.status, 'skipped')
 })

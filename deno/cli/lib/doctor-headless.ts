@@ -114,8 +114,7 @@ export const runDoctor = async ({
   cliVersion,
   denoVersion = Deno.version.deno,
   // `scopeName` carries its `@` — `toJsrUrl` joins the parts verbatim.
-  getLatestCliMeta = () =>
-    Jsr.tryGetLatestMeta({ scopeName: '@skmtc', packageName: 'cli' }),
+  getLatestCliMeta = () => Jsr.tryGetLatestMeta({ scopeName: '@skmtc', packageName: 'cli' }),
   offline = false,
   checkModuleGraph = checkModuleGraphDefault
 }: RunDoctorArgs): Promise<DoctorResult> => {
@@ -124,9 +123,7 @@ export const runDoctor = async ({
   const projects = listProjects(skmtcRootPath)
   const checks: Check[] = []
 
-  checks.push(
-    await checkCliVersionCurrent({ cliVersion, denoVersion, getLatestCliMeta, offline })
-  )
+  checks.push(await checkCliVersionCurrent({ cliVersion, denoVersion, getLatestCliMeta, offline }))
   checks.push(checkInstallLockfile(denoVersion))
   checks.push(checkDenoVersion(denoVersion))
   checks.push(checkHubAuth())
@@ -242,7 +239,9 @@ const checkCliVersionCurrent = async ({
   // injected or refactored `getLatestCliMeta` that throws SYNCHRONOUSLY
   // never produces a promise for `.catch` to attach to, so the throw
   // escapes past exactly the guard this comment is describing.
-  const meta = await Promise.resolve().then(getLatestCliMeta).catch(() => undefined)
+  const meta = await Promise.resolve()
+    .then(getLatestCliMeta)
+    .catch(() => undefined)
   if (typeof meta?.latest !== 'string' || typeof meta.versions !== 'object') {
     return {
       id: 'cli-version-current',
@@ -408,7 +407,7 @@ const checkHubAuth = (): Check => {
     return {
       id: 'hub-auth',
       status: 'warning',
-      message: `${authPath} exists but is not the expected { host, token } shape.`,
+      message: `${authPath} exists but is not the expected { env, token } shape.`,
       hint: 'Run `skmtc logout` to delete it, then `skmtc login` to store a fresh token.',
       data: { authPath }
     }
@@ -417,8 +416,8 @@ const checkHubAuth = (): Check => {
   return {
     id: 'hub-auth',
     status: 'ok',
-    message: `Stored hub credential for ${stored.host} (token ${maskToken(stored.token)}).`,
-    data: { authPath, host: stored.host }
+    message: `Stored hub credential for ${stored.env} (token ${maskToken(stored.token)}).`,
+    data: { authPath, env: stored.env }
   }
 }
 

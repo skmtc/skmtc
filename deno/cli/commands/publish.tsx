@@ -7,6 +7,7 @@ import type { InkRenderFn } from '@/commands/types.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { publishHeadless, type PublishHeadlessResult } from '@/lib/publish-headless.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
+import type { HubEnv } from '@/lib/hub-env.ts'
 
 export const description =
   'Build and publish an immutable version of this project to skmtc-hub. Versions are addressed by semver; re-publishing an existing version is rejected.'
@@ -15,7 +16,7 @@ type RenderPublishArgs = {
   skmtcRoot?: SkmtcRoot
   projectName: string | undefined
   token: string | undefined
-  origin: string | undefined
+  env: HubEnv | undefined
   version: string | undefined
   jsonFlag?: boolean
   noInputFlag?: boolean
@@ -30,7 +31,7 @@ export const renderPublish = async ({
   skmtcRoot: providedSkmtcRoot,
   projectName,
   token,
-  origin,
+  env,
   version,
   jsonFlag,
   noInputFlag,
@@ -50,9 +51,9 @@ export const renderPublish = async ({
   }
 
   if (mode === 'strict') {
-    const { token: resolvedToken, origin: resolvedOrigin } = resolveHubAuth({
+    const { token: resolvedToken, origin: resolvedOrigin } = await resolveHubAuth({
       tokenFlag: token,
-      originFlag: origin
+      envFlag: env
     })
 
     if (!resolvedToken) {
@@ -87,7 +88,7 @@ export const renderPublish = async ({
       page: 'publish',
       projectName,
       token,
-      origin,
+      env,
       version
     },
     skmtcRoot,

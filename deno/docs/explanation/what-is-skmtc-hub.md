@@ -73,4 +73,4 @@ version.
 - [`publish`](../reference/cli/publish.md) — stack identity, versioning, and the 409 rule
 - [`push`](../reference/cli/push.md) / [`pull`](../reference/cli/pull.md) — config
   ownership in both directions
-- [`login`](../reference/cli/login.md) — PAT storage and `--origin`
+- [`login`](../reference/cli/login.md) — browser sign-in, PAT storage and `--env`

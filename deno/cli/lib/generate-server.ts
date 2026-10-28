@@ -3,7 +3,7 @@ import type { ManifestContent } from '@skmtc/core/Manifest'
 import type { GenerationMapEntry, Sidecar } from '@skmtc/core/Anchors'
 import { type FileType, fileTypeToProtocol } from '@/lib/types.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
-import { resolveHubToken } from '@/lib/hub-token.ts'
+import { resolveHubAuth } from '@/lib/hub-token.ts'
 
 type GenerateWithServerArgs = {
   /**
@@ -46,7 +46,7 @@ export const generateWithServer = async ({
   const protocol = fileTypeToProtocol(fileType)
 
   const headers: Record<string, string> = { 'content-type': 'application/json' }
-  const token = resolveHubToken()
+  const { token } = await resolveHubAuth()
   if (token) headers.authorization = `Bearer ${token}`
 
   let response: Response

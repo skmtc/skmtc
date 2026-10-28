@@ -8,6 +8,7 @@ import {
   type RmResult
 } from '@/lib/project-headless.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
+import type { HubEnv } from '@/lib/hub-env.ts'
 import { collectProjectBaseFiles } from '@/commands/push.ts'
 
 export const description =
@@ -27,7 +28,7 @@ type RenderCreateArgs = {
   name: string | undefined
   from: string | undefined
   token: string | undefined
-  origin: string | undefined
+  env: HubEnv | undefined
   stackVersion?: string
   visibility?: string
   baseFiles?: boolean
@@ -43,7 +44,7 @@ export const renderProjectCreate = async ({
   name,
   from,
   token,
-  origin,
+  env,
   stackVersion,
   visibility,
   baseFiles: baseFilesFlag,
@@ -62,9 +63,9 @@ export const renderProjectCreate = async ({
     })
   }
 
-  const { token: resolvedToken, origin: resolvedOrigin } = resolveHubAuth({
+  const { token: resolvedToken, origin: resolvedOrigin } = await resolveHubAuth({
     tokenFlag: token,
-    originFlag: origin
+    envFlag: env
   })
   if (!resolvedToken) {
     return failWithRecipe({
@@ -154,7 +155,7 @@ type RenderRmArgs = {
   name: string | undefined
   from: string | undefined
   token: string | undefined
-  origin: string | undefined
+  env: HubEnv | undefined
   jsonFlag?: boolean
   noInputFlag?: boolean
 }
@@ -167,7 +168,7 @@ export const renderProjectRm = async ({
   name,
   from,
   token,
-  origin,
+  env,
   jsonFlag,
   noInputFlag
 }: RenderRmArgs) => {
@@ -183,9 +184,9 @@ export const renderProjectRm = async ({
     })
   }
 
-  const { token: resolvedToken, origin: resolvedOrigin } = resolveHubAuth({
+  const { token: resolvedToken, origin: resolvedOrigin } = await resolveHubAuth({
     tokenFlag: token,
-    originFlag: origin
+    envFlag: env
   })
   if (!resolvedToken) {
     return failWithRecipe({

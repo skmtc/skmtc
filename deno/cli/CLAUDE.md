@@ -51,13 +51,22 @@ The CLI features a React/Ink-based interactive interface:
 
 ### Authentication
 
-The only credential is a skmtc-hub personal access token (PAT), used by
-the hub commands (`publish`, `push`, `pull`, `project`). Resolution
-order: `--token`, then `$SKMTC_HUB_TOKEN`, then the store written by
-`skmtc login` (`~/.skmtc/auth.json`, mode 0600). `skmtc login` validates
-and stores a pasted PAT (`--with-token` reads it from stdin); `skmtc
-logout` deletes it. There is no OAuth browser flow — login is
-paste-a-PAT only.
+The hub commands (`publish`, `push`, `pull`, `project`) take a skmtc-hub
+token: an OAuth token from `skmtc login`, or a personal access token
+(PAT). Resolution order: `--token`, then `$SKMTC_HUB_TOKEN`, then the
+store written by `skmtc login` (`~/.skmtc/auth.json`, mode 0600).
+
+`skmtc login` signs in with the OAuth device grant (`lib/device-login.ts`):
+it prints a link and a code, the user approves the code at `/login/device`,
+and the CLI stores the access token, the refresh token and the expiry.
+`resolveHubAuth` refreshes an expired stored token before use. `--with-token`
+stores a PAT from stdin instead. `skmtc logout` deletes the store.
+
+`--env production|staging|local` (then `$SKMTC_ENV`, then the stored env,
+then production) picks the hub. `lib/hub-env.ts` holds each environment's
+API and site hosts; the client id, resource and scopes are constants in
+`lib/device-login.ts`, registered in skmtc-hub's identity Worker. A stored
+token is never sent to another environment.
 
 ### Generator System
 

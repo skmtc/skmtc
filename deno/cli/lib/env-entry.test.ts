@@ -31,13 +31,13 @@ Deno.test('mod.ts - a malformed JSR_URL in agent-context is one readable line, e
   assertEquals(stderr.split('\n').length, 1)
 })
 
-Deno.test('mod.ts - a malformed SKMTC_API_ORIGIN in pull is one readable line, exit 1', async () => {
+Deno.test('mod.ts - an unknown SKMTC_ENV in pull is one readable line, exit 1', async () => {
   const { code, stderr } = await runCli(['pull', 'demo', '--json', '--no-input'], {
-    SKMTC_API_ORIGIN: 'not-a-url',
+    SKMTC_ENV: 'prod',
     SKMTC_HUB_TOKEN: 'pat-123'
   })
 
   assertEquals(code, 1)
-  assertStringIncludes(stderr, 'SKMTC_API_ORIGIN')
+  assertStringIncludes(stderr, 'SKMTC_ENV')
   assertEquals(stderr.includes('Uncaught'), false)
 })

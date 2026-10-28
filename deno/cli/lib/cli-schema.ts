@@ -193,9 +193,9 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
           'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
       },
       {
-        flag: '--origin <url>',
+        flag: '--env <env>',
         description:
-          'Hub origin (base URL). Defaults to $SKMTC_API_ORIGIN or https://api.skmtc.dev.'
+          'Hub environment: production, staging or local. Defaults to $SKMTC_ENV, then the environment of the stored login, then production.'
       },
       {
         flag: '--version <semver>',
@@ -217,9 +217,9 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
           'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
       },
       {
-        flag: '--origin <url>',
+        flag: '--env <env>',
         description:
-          'Hub origin (base URL). Defaults to $SKMTC_API_ORIGIN or https://api.skmtc.dev.'
+          'Hub environment: production, staging or local. Defaults to $SKMTC_ENV, then the environment of the stored login, then production.'
       },
       {
         flag: '--project <ref>',
@@ -256,9 +256,9 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
           'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
       },
       {
-        flag: '--origin <url>',
+        flag: '--env <env>',
         description:
-          'Hub origin (base URL). Defaults to $SKMTC_API_ORIGIN or https://api.skmtc.dev.'
+          'Hub environment: production, staging or local. Defaults to $SKMTC_ENV, then the environment of the stored login, then production.'
       },
       {
         flag: '--project <ref>',
@@ -275,19 +275,18 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
   {
     name: 'login',
     description:
-      'Validate and store a skmtc-hub personal access token (paste-a-PAT login). When a token is already stored, reports the logged-in handle instead of prompting.',
+      'Sign in to skmtc-hub in the browser: prints a link and a code to approve, then stores the token. --with-token stores a personal access token from stdin instead. When a token for the environment is already stored, reports the logged-in handle.',
     args: [],
     flags: [
       ...AGENT_MODE_FLAGS,
       {
         flag: '--with-token',
-        description:
-          'Read the token from stdin instead of prompting (works in non-interactive mode).'
+        description: 'Read a personal access token from stdin instead of signing in in the browser.'
       },
       {
-        flag: '--origin <url>',
+        flag: '--env <env>',
         description:
-          'Hub origin (base URL) to validate against. Defaults to $SKMTC_API_ORIGIN or https://api.skmtc.dev.'
+          'Hub environment: production, staging or local. Defaults to $SKMTC_ENV, then the environment of the stored login, then production.'
       }
     ],
     agentMode: 'full'

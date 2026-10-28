@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/cli",
-  "version": "0.9.56",
+  "version": "0.9.57",
   "license": "Apache-2.0",
   "exports": "./mod.ts",
   "imports": {
@@ -38,7 +38,12 @@
       ],
       "net": [
         "jsr.io",
-        "api.skmtc.dev"
+        "api.skmtc.dev",
+        "skmtc.dev",
+        "api.skmtc.net",
+        "skmtc.net",
+        "api.skmtc.co.uk",
+        "skmtc.co.uk"
       ]
     }
   },

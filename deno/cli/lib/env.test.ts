@@ -1,7 +1,7 @@
 import { assertEquals, assertRejects, assertStringIncludes, assertThrows } from '@std/assert'
 import { EnvVariableError, readEnv, readHomeDirectory } from '@/lib/env.ts'
 import { assertJsrReachable, getJsrBaseUrl, toJsrUrl } from '@/lib/jsr-registry.ts'
-import { resolveHubAuth, resolveHubToken, resolveOrigin } from '@/lib/hub-token.ts'
+import { resolveHubAuth, resolveHubEnv } from '@/lib/hub-token.ts'
 import { withEnv } from '@/tests/mocks/env.mock.ts'
 
 const originalFetch = globalThis.fetch
@@ -25,15 +25,16 @@ Deno.test('readEnv - JSR_URL defaults to jsr.io when unset or empty', async () =
   await withEnv({ JSR_URL: '' }, () => assertEquals(readEnv('JSR_URL'), 'https://jsr.io/'))
 })
 
-Deno.test('readEnv - SKMTC_API_ORIGIN has no default of its own', async () => {
-  await withEnv({ SKMTC_API_ORIGIN: undefined }, () =>
-    assertEquals(readEnv('SKMTC_API_ORIGIN'), undefined)
-  )
+Deno.test('readEnv - SKMTC_ENV has no default of its own', async () => {
+  await withEnv({ SKMTC_ENV: undefined }, () => assertEquals(readEnv('SKMTC_ENV'), undefined))
 })
 
-Deno.test('readEnv - a malformed URL fails with an error naming the variable', async () => {
-  for (const name of ['JSR_URL', 'SKMTC_API_ORIGIN'] as const) {
-    await withEnv({ [name]: 'not-a-url' }, () => {
+Deno.test('readEnv - a malformed value fails with an error naming the variable', async () => {
+  for (const [name, value] of [
+    ['JSR_URL', 'not-a-url'],
+    ['SKMTC_ENV', 'prod']
+  ] as const) {
+    await withEnv({ [name]: value }, () => {
       const error = assertThrows(() => readEnv(name), EnvVariableError)
 
       assertEquals(error.variable, name)
@@ -92,20 +93,30 @@ Deno.test('JSR_URL=not-a-url fails with an error naming JSR_URL from every calle
   })
 })
 
-Deno.test('hub credentials - empty SKMTC_HUB_TOKEN and SKMTC_API_ORIGIN are unset', async () => {
-  await withEnv({ SKMTC_HUB_TOKEN: '', SKMTC_API_ORIGIN: '', HOME: '/nonexistent-home' }, () => {
-    assertEquals(resolveOrigin(), 'https://api.skmtc.dev')
-    assertEquals(resolveHubToken(), undefined)
-    assertEquals(resolveHubAuth(), { token: undefined, origin: 'https://api.skmtc.dev' })
-  })
+Deno.test('hub credentials - empty SKMTC_HUB_TOKEN and SKMTC_ENV are unset', async () => {
+  await withEnv(
+    {
+      SKMTC_HUB_TOKEN: '',
+      SKMTC_ENV: '',
+      HOME: '/nonexistent-home'
+    },
+    async () => {
+      assertEquals(resolveHubEnv(), 'production')
+      assertEquals(await resolveHubAuth(), {
+        token: undefined,
+        env: 'production',
+        origin: 'https://api.skmtc.dev'
+      })
+    }
+  )
 })
 
-Deno.test('hub credentials - a malformed SKMTC_API_ORIGIN fails naming SKMTC_API_ORIGIN', async () => {
-  await withEnv({ SKMTC_API_ORIGIN: 'not-a-url' }, () => {
-    assertEquals(assertThrows(() => resolveOrigin(), EnvVariableError).variable, 'SKMTC_API_ORIGIN')
+Deno.test('hub credentials - an unknown SKMTC_ENV fails naming SKMTC_ENV', async () => {
+  await withEnv({ SKMTC_ENV: 'prod' }, async () => {
+    assertEquals(assertThrows(() => resolveHubEnv(), EnvVariableError).variable, 'SKMTC_ENV')
     assertEquals(
-      assertThrows(() => resolveHubAuth(), EnvVariableError).variable,
-      'SKMTC_API_ORIGIN'
+      (await assertRejects(() => resolveHubAuth(), EnvVariableError)).variable,
+      'SKMTC_ENV'
     )
   })
 })
