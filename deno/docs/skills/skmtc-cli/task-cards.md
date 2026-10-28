@@ -316,9 +316,9 @@ Key facts:
 
 - **Token resolution is `--token` → `$SKMTC_HUB_TOKEN` → the
   `skmtc login` store** (`~/.skmtc/auth.json`). When the token comes
-  from the store, the store's `host` is also the default hub URL —
-  a token minted against a local dev hub is never silently sent to
-  production. Explicit `--origin` / `$SKMTC_ORIGIN` always win.
+  from the store, the store's `env` is also the default hub
+  environment, and the CLI never sends a stored token to another
+  environment. Explicit `--env` / `$SKMTC_ENV` always win.
 - **The stack identity is the project `deno.json#name`** (`@account/slug`,
   the JSR-style package name) — the `@account` scope may be a user OR an
   **org**, so org-owned stacks are reachable: the PAT authenticates, the hub
@@ -350,7 +350,7 @@ a project (create it in the web app first).
 
 ```bash
 # Destination is the `project: "@account/slug"` field in client.json.
-skmtc login                                   # once; stores PAT + origin
+skmtc login                                   # once; browser sign-in, stores the token + env
 skmtc push <project> --json
 # First push to an org project — records the destination for next time:
 skmtc push <project> --project @acme-org/petstore-client --json
@@ -378,8 +378,8 @@ Key facts:
   (`dirname(basePath)`) via the same `.skmtcignore` methodology as publish,
   minus `.skmtc/` and the manifest's generated files. Default push is
   config-only (config changes often, base files rarely).
-- Token + origin resolve exactly like `publish` (`--token` /
-  `$SKMTC_HUB_TOKEN` / store; `--origin` / `$SKMTC_ORIGIN` / store host).
+- Token + environment resolve exactly like `publish` (`--token` /
+  `$SKMTC_HUB_TOKEN` / store; `--env` / `$SKMTC_ENV` / store env).
 
 Full reference: [`reference/cli/push.md`](https://github.com/skmtc/skmtc/blob/main/deno/docs/reference/cli/push.md).
 

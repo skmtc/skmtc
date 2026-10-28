@@ -12,7 +12,7 @@ before it overwrites). It composes existing hub endpoints; it never silently
 updates.
 
 ```
-skmtc project create <name> [--from <project>] [--stack-version <v>] [--visibility public|private] [--base-files] [--origin <url>] [--token <pat>] [--json] [--no-input]
+skmtc project create <name> [--from <project>] [--stack-version <v>] [--visibility public|private] [--base-files] [--env <env>] [--token <pat>] [--json] [--no-input]
 ```
 
 What it does:
@@ -44,7 +44,7 @@ What it does:
 | `--stack-version <v>`  | Pin the stack to an exact published version. Default: `latest`.                                               |
 | `--visibility <v>`     | `private` (default) or `public`.                                                                              |
 | `--base-files`         | Also seed the app tree (needed for the live preview iframe).                                                  |
-| `--token` / `--origin` | As for [`push`](push.md) / [`pull`](pull.md).                                                                 |
+| `--token` / `--env`    | As for [`push`](push.md) / [`pull`](pull.md).                                                                 |
 
 ### JSON output
 
@@ -70,7 +70,7 @@ already exists**, or 422 → stack not published), or `seed`.
 Deletes a hub project.
 
 ```
-skmtc project rm <name> [--from <project>] [--origin <url>] [--token <pat>] [--json] [--no-input]
+skmtc project rm <name> [--from <project>] [--env <env>] [--token <pat>] [--json] [--no-input]
 ```
 
 > **Scope:** deleting needs the **`admin:resource`** scope (creating only needs
@@ -92,12 +92,12 @@ account when `<name>` is a bare slug.
   overwriting). They never share a path, so you can't accidentally clobber a
   project's config by re-running `create`.
 
-## Gotcha — `--token` and `--origin` together
+## Gotcha — `--token` and `--env` together
 
-`--origin` only inherits the `skmtc login` store host when the token came from
-the store. Passing `--token` explicitly (e.g. an `admin:resource` PAT for `rm`)
-against a non-default hub (local / staging) → **also pass `--origin`**, else it
-defaults to `https://api.skmtc.dev`.
+The environment comes from the `skmtc login` store only when the token comes
+from the store. If you give `--token` (for example an `admin:resource` PAT for
+`rm`) for a hub other than production, **also give `--env`**. Else the command
+goes to production.
 
 ## See also
 

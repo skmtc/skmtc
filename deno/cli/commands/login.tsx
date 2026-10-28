@@ -1,85 +1,183 @@
 /**
- * `skmtc login` — paste-a-PAT login (the npm-login pattern).
- *
- * The user mints a PAT in the hub UI, pastes it once, the CLI
- * validates it against `GET /v1/user` and stores it in
- * `~/.skmtc/auth.json` (mode 0600). No OAuth, no localhost server,
- * no browser automation — and no auto-opened browser: the
- * recommended install grants `--allow-run=deno,sh` only, so we print
- * the URL instead of spawning `open`.
+ * `skmtc login` — sign in to skmtc-hub.
  *
  * Forms:
- *   - `skmtc login`                interactive masked prompt; when a
- *                                  token is already stored, reports
- *                                  `Logged in as <handle> (token …last4)`
- *                                  instead of prompting (the `whoami`).
- *   - `skmtc login --with-token`   reads the PAT from stdin (the `gh`
- *                                  pattern) — works in strict mode.
- *   - `--json`                     `{ "type": "logged-in", "handle": ... }`
- *                                  on success; recipe error (exit 2) on
- *                                  missing input.
+ *   - `skmtc login`                browser sign-in (OAuth device grant): prints
+ *                                  a link and a code, the user approves the code
+ *                                  at `/login/device`, and the CLI stores the
+ *                                  token. When a token for the environment is
+ *                                  already stored, reports `Logged in as
+ *                                  <handle>` instead (the `whoami`).
+ *   - `skmtc login --with-token`   reads a personal access token from stdin
+ *                                  (the `gh` pattern), for CI.
+ *   - `--env <env>`                production (default), staging or local.
+ *   - `--json`                     one JSON object per line: the device code
+ *                                  (`{ "type": "device-code", ... }`), then
+ *                                  `{ "type": "logged-in", "handle": ... }`.
  *
- * The token is stored only after a 200 from the hub — a failed
- * validation never writes the file. Output never echoes more than the
- * token's last 4 characters.
+ * No browser is opened: the recommended install grants `--allow-run=deno,sh`
+ * only, so the link is printed. A token is stored only after the hub accepts
+ * it, and output never echoes more than its last 4 characters.
  */
 
-import { Box, render, Text, useApp } from 'ink'
-import { useEffect, useState } from 'react'
-import { PasswordInput } from '@inkjs/ui'
-import { Spinner } from '@/components/Spinner.tsx'
-import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
+import { failWithRecipe, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import {
-  HUB_TOKEN_SETTINGS_URL,
+  DEFAULT_HUB_ENV,
+  HUB_HOSTS,
+  type HubEnv,
+  toLoginCommand,
+  toTokenSettingsUrl
+} from '@/lib/hub-env.ts'
+import {
+  HubTokenRejectedError,
   maskToken,
+  readHubEnvVariable,
   readStoredAuth,
-  resolveOrigin,
+  type StoredAuth,
+  toFreshStoredAuth,
   validateHubToken,
+  withAuthLock,
   writeStoredAuth
 } from '@/lib/hub-token.ts'
+import {
+  type DeviceCode,
+  DeviceLoginError,
+  formatUserCode,
+  pollForTokens,
+  requestDeviceCode,
+  revokeRefreshToken
+} from '@/lib/device-login.ts'
 
-const USAGE = 'skmtc login [--with-token] [--origin <url>]'
+const USAGE = 'skmtc login [--env production|staging|local] [--with-token]'
 const EXAMPLE = 'echo $SKMTC_HUB_TOKEN | skmtc login --with-token'
-const SCOPE_HINT = `Mint a PAT at ${HUB_TOKEN_SETTINGS_URL} — the write:releases scope is enough for publishing.`
 
 type RenderLoginArgs = {
-  origin: string | undefined
+  env: HubEnv | undefined
   withToken: boolean | undefined
   jsonFlag?: boolean
-  noInputFlag?: boolean
 }
+
+type Format = 'text' | 'json'
 
 type LoginResult = {
   type: 'logged-in'
+  env: HubEnv
   handle: string
 }
 
 const printLoginResult = (
   result: LoginResult,
-  { format, tokenLast4 }: { format: 'text' | 'json'; tokenLast4?: string }
+  { format, tokenLast4 }: { format: Format; tokenLast4?: string }
 ): void => {
   if (format === 'json') {
-    console.log(JSON.stringify(result, null, 2))
+    console.log(JSON.stringify(result))
     return
   }
 
   const suffix = tokenLast4 ? ` (token ${tokenLast4})` : ''
-  console.log(`Logged in as ${result.handle}${suffix}`)
+  const where = result.env === 'production' ? '' : ` on ${result.env}`
+  console.log(`Logged in as ${result.handle}${where}${suffix}`)
+}
+
+const printDeviceCode = (code: DeviceCode, format: Format): void => {
+  const userCode = formatUserCode(code.userCode)
+
+  if (format === 'json') {
+    console.log(
+      JSON.stringify({
+        type: 'device-code',
+        verificationUri: code.verificationUri,
+        verificationUriComplete: code.verificationUriComplete,
+        userCode,
+        expiresIn: code.expiresIn
+      })
+    )
+    return
+  }
+
+  console.log(`To sign in, open ${code.verificationUriComplete}`)
+  console.log(`and check that it shows the code ${userCode}.`)
+  console.log('Waiting for approval...')
 }
 
 const readStdinToEnd = async (): Promise<string> => {
   return await new Response(Deno.stdin.readable).text()
 }
 
+type DeviceLoginArgs = {
+  env: HubEnv
+  onCode: (code: DeviceCode) => void
+  sleep?: (ms: number) => Promise<void>
+}
+
+/**
+ * Store `auth`, replacing the stored login. The replaced login's refresh
+ * token is revoked, so a copy of the old file cannot keep the sign-in alive.
+ * A failed revoke does not stop the login; it is reported on stderr.
+ */
+export const replaceStoredAuth = async (auth: StoredAuth): Promise<void> => {
+  // Under the lock, so a refresh in another command cannot overwrite the new login.
+  const previous = await withAuthLock(() => {
+    const current = readStoredAuth()
+    writeStoredAuth(auth)
+    return Promise.resolve(current)
+  })
+
+  if (!previous?.refreshToken || previous.refreshToken === auth.refreshToken) return
+
+  await revokeRefreshToken({ env: previous.env, refreshToken: previous.refreshToken }).catch(() => {
+    console.error(
+      `Could not revoke the previous sign-in at ${HUB_HOSTS[previous.env].web}. ` +
+        'Revoke the Skmtc CLI in Settings > Connected apps.'
+    )
+  })
+}
+
+/** Run the browser sign-in, store the token and return the handle. */
+export const deviceLogin = async ({ env, onCode, sleep }: DeviceLoginArgs): Promise<string> => {
+  const code = await requestDeviceCode(env)
+  onCode(code)
+
+  const tokens = await pollForTokens({ env, code, sleep })
+  const handle = await validateHubToken({
+    origin: HUB_HOSTS[env].api,
+    token: tokens.accessToken
+  })
+
+  await replaceStoredAuth({
+    env,
+    token: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    expiresAt: tokens.expiresAt
+  })
+
+  return handle
+}
+
+/**
+ * Whether the hub refused the stored login itself. Only then is a logout the
+ * fix: after a network error or a 5xx the stored sign-in is still good, and a
+ * retry works.
+ */
+export const isRejectedLogin = (error: unknown): boolean =>
+  error instanceof HubTokenRejectedError ||
+  (error instanceof DeviceLoginError && error.code === 'invalid_grant')
+
+const fail = (error: unknown): never => {
+  console.error(error instanceof Error ? error.message : String(error))
+  Deno.exit(1)
+}
+
 export const renderLogin = async ({
-  origin: originFlag,
+  env: envFlag,
   withToken,
-  jsonFlag,
-  noInputFlag
+  jsonFlag
 }: RenderLoginArgs): Promise<void> => {
-  const mode = resolveInputMode({ noInputFlag, jsonFlag })
   const format = resolveOutputFormat({ jsonFlag })
-  const origin = resolveOrigin(originFlag)
+  // Without --env, the whoami answers for the stored login's environment.
+  const stored = readStoredAuth()
+  const env = envFlag ?? readHubEnvVariable() ?? stored?.env ?? DEFAULT_HUB_ENV
+  const origin = HUB_HOSTS[env].api
 
   if (withToken) {
     const token = (await readStdinToEnd()).trim()
@@ -90,126 +188,50 @@ export const renderLogin = async ({
         arg: '--with-token (stdin was empty)',
         usage: USAGE,
         example: EXAMPLE,
-        discover: SCOPE_HINT
+        discover: `Mint a personal access token at ${toTokenSettingsUrl(env)}.`
       })
     }
 
     try {
       const handle = await validateHubToken({ origin, token })
-      writeStoredAuth({ host: origin, token })
-      printLoginResult({ type: 'logged-in', handle }, { format })
+      await replaceStoredAuth({ env, token })
+      printLoginResult({ type: 'logged-in', env, handle }, { format })
       Deno.exit(0)
     } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error))
-      Deno.exit(1)
+      fail(error)
     }
   }
 
-  // Already logged in → report status instead of prompting (in both
-  // modes). Re-login is `skmtc logout` first, or `--with-token`.
-  const stored = readStoredAuth()
-
-  if (stored) {
+  // Already logged in to this environment → report status instead of signing
+  // in again. Re-login is `skmtc logout` first.
+  if (stored && stored.env === env) {
     try {
-      const handle = await validateHubToken({
-        origin: stored.host,
-        token: stored.token
-      })
+      const fresh = await toFreshStoredAuth(stored)
+      const handle = await validateHubToken({ origin, token: fresh.token })
       printLoginResult(
-        { type: 'logged-in', handle },
-        { format, tokenLast4: maskToken(stored.token) }
+        { type: 'logged-in', env, handle },
+        { format, tokenLast4: maskToken(fresh.token) }
       )
       Deno.exit(0)
-    } catch {
+    } catch (error) {
       console.error(
-        'A token is stored in ~/.skmtc/auth.json but the hub rejected it. ' +
-          'Run `skmtc logout`, then log in again with a fresh token.'
+        isRejectedLogin(error)
+          ? 'A token is stored in ~/.skmtc/auth.json but the hub rejected it. ' +
+              `Run \`skmtc logout\`, then \`${toLoginCommand(env)}\` again.`
+          : `Could not check the stored login: ${error instanceof Error ? error.message : String(error)}`
       )
       Deno.exit(1)
     }
   }
 
-  if (mode === 'strict') {
-    return failWithRecipe({
-      command: 'login',
-      arg: '--with-token',
-      usage: USAGE,
-      example: EXAMPLE,
-      discover: SCOPE_HINT
+  try {
+    const handle = await deviceLogin({
+      env,
+      onCode: code => printDeviceCode(code, format)
     })
+    printLoginResult({ type: 'logged-in', env, handle }, { format })
+    Deno.exit(0)
+  } catch (error) {
+    fail(error)
   }
-
-  const outcome: { handle: string | null } = { handle: null }
-
-  const instance = render(<LoginPrompt origin={origin} outcome={outcome} />)
-
-  await instance.waitUntilExit()
-
-  Deno.exit(outcome.handle ? 0 : 1)
-}
-
-type LoginPromptProps = {
-  origin: string
-  outcome: { handle: string | null }
-}
-
-const LoginPrompt = ({ origin, outcome }: LoginPromptProps) => {
-  const { exit } = useApp()
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [handle, setHandle] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (handle) {
-      exit()
-    }
-  }, [handle])
-
-  const onSubmit = (value: string) => {
-    const token = value.trim()
-
-    if (!token) {
-      setError('Token is empty — paste the PAT and press enter.')
-      return
-    }
-
-    setSubmitting(true)
-    setError(null)
-
-    validateHubToken({ origin, token })
-      .then(validatedHandle => {
-        writeStoredAuth({ host: origin, token })
-        outcome.handle = validatedHandle
-        setHandle(validatedHandle)
-      })
-      .catch(validationError => {
-        setError(
-          validationError instanceof Error ? validationError.message : String(validationError)
-        )
-      })
-      .finally(() => {
-        setSubmitting(false)
-      })
-  }
-
-  if (handle) {
-    return <Text>Logged in as {handle}</Text>
-  }
-
-  return (
-    <Box flexDirection="column">
-      <Text>
-        Mint a personal access token at <Text color="cyan">{HUB_TOKEN_SETTINGS_URL}</Text>
-      </Text>
-      <Text dimColor>The write:releases scope is enough for publishing.</Text>
-      <Box marginTop={1}>
-        {submitting ? (
-          <Spinner label="Validating token..." />
-        ) : (
-          <PasswordInput placeholder="Paste token and press enter" onSubmit={onSubmit} />
-        )}
-      </Box>
-      {error && <Text color="red">{error}</Text>}
-    </Box>
-  )
 }

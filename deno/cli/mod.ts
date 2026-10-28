@@ -1,7 +1,14 @@
 import { Command, EnumType } from '@cliffy/command'
 import { EnvVariableError } from '@/lib/env.ts'
+import { HUB_ENVS } from '@/lib/hub-env.ts'
 import { assertJsrReachable, JsrRegistryUnreachableError } from '@/lib/jsr-registry.ts'
-import { getCommandDescriptor, JSON_DESCRIPTION, NO_INPUT_DESCRIPTION } from '@/lib/cli-schema.ts'
+import { DeviceLoginError } from '@/lib/device-login.ts'
+import {
+  ENV_DESCRIPTION,
+  getCommandDescriptor,
+  JSON_DESCRIPTION,
+  NO_INPUT_DESCRIPTION
+} from '@/lib/cli-schema.ts'
 import { toInstallCommand } from '@/commands/install-command.ts'
 import denoJson from './deno.json' with { type: 'json' }
 
@@ -60,6 +67,7 @@ const shouldSkipRegistryCheck = (args: readonly string[]): boolean => {
 // `cli-schema.ts`, whose {@link AGENT_MODE_FLAGS} `agent-context` reports.
 const NO_INPUT_DESC = NO_INPUT_DESCRIPTION
 const JSON_DESC = JSON_DESCRIPTION
+const ENV_DESC = ENV_DESCRIPTION
 const FORCE_DESC =
   "Bypass the pre-flight @skmtc/core peer-pin check. Cloning over a mismatched pin produces a generator that won't bundle — only use this when you know the skew is safe."
 
@@ -77,6 +85,7 @@ const run = async () => {
   }
 
   const generatorType = new EnumType(['operation', 'model'])
+  const hubEnv = new EnumType(HUB_ENVS)
   const generatorLanguage = new EnumType(['typescript', 'kotlin'])
 
   // The descriptors in `lib/cli-schema.ts` are the source of truth for
@@ -109,12 +118,21 @@ const run = async () => {
     .type('generatorType', generatorType)
     .type('generatorLanguage', generatorLanguage)
     .arguments('<project:string> <generator:string> <type:generatorType>')
-    .option('-l, --lang <language:generatorLanguage>', 'Target output language for the scaffolded generator.', {
-      default: 'typescript' as const
-    })
+    .option(
+      '-l, --lang <language:generatorLanguage>',
+      'Target output language for the scaffolded generator.',
+      {
+        default: 'typescript' as const
+      }
+    )
     .action(async (options, projectName, generator, type) => {
       const { renderCreate } = await import('@/commands/create.tsx')
-      await renderCreate({ projectName, generator, type, language: options.lang })
+      await renderCreate({
+        projectName,
+        generator,
+        type,
+        language: options.lang
+      })
     })
 
   const cloneCommand = new Command()
@@ -218,7 +236,11 @@ const run = async () => {
       ) => {
         if (debug) {
           const { renderDebug } = await import('@/commands/debug.ts')
-          await renderDebug({ projectName, schemaSourceString, autoFlag: auto })
+          await renderDebug({
+            projectName,
+            schemaSourceString,
+            autoFlag: auto
+          })
           return
         }
         const { generateSwitch } = await import('@/commands/generate-switch.ts')
@@ -342,20 +364,18 @@ const run = async () => {
     .option('--no-input', NO_INPUT_DESC)
     .option('--json', JSON_DESC)
     .option('--token <token:string>', 'Personal access token. Defaults to $SKMTC_HUB_TOKEN.')
-    .option(
-      '--origin <url:string>',
-      'Hub origin (base URL). Defaults to $SKMTC_API_ORIGIN or https://api.skmtc.dev.'
-    )
+    .type('hubEnv', hubEnv)
+    .option('--env <env:hubEnv>', ENV_DESC)
     .option(
       '--version <version:string>',
       "Version to publish. Defaults to the project root deno.json's `version`."
     )
-    .action(async ({ json, input, token, origin, version }, projectName) => {
+    .action(async ({ json, input, token, env, version }, projectName) => {
       const { renderPublish } = await import('@/commands/publish.tsx')
       await renderPublish({
         projectName,
         token,
-        origin,
+        env,
         version,
         jsonFlag: json,
         noInputFlag: input === false
@@ -371,10 +391,8 @@ const run = async () => {
       '--token <token:string>',
       'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
     )
-    .option(
-      '--origin <url:string>',
-      'Hub origin (base URL). Defaults to $SKMTC_API_ORIGIN or https://api.skmtc.dev.'
-    )
+    .type('hubEnv', hubEnv)
+    .option('--env <env:hubEnv>', ENV_DESC)
     .option(
       '--project <ref:string>',
       'Hub destination as @account/slug. Defaults to the `project` field in client.json.'
@@ -390,14 +408,14 @@ const run = async () => {
     )
     .action(
       async (
-        { json, input, token, origin, project, force, baseFiles, baseFilesOnly },
+        { json, input, token, env, project, force, baseFiles, baseFilesOnly },
         projectName
       ) => {
         const { renderPush } = await import('@/commands/push.ts')
         await renderPush({
           projectName,
           token,
-          origin,
+          env,
           project,
           force,
           baseFiles,
@@ -417,21 +435,19 @@ const run = async () => {
       '--token <token:string>',
       'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
     )
-    .option(
-      '--origin <url:string>',
-      'Hub origin (base URL). Defaults to $SKMTC_API_ORIGIN or https://api.skmtc.dev.'
-    )
+    .type('hubEnv', hubEnv)
+    .option('--env <env:hubEnv>', ENV_DESC)
     .option(
       '--project <ref:string>',
       'Hub destination as @account/slug. Defaults to the `project` field in client.json.'
     )
     .option('--force', 'Overwrite the local config without the confirmation prompt.')
-    .action(async ({ json, input, token, origin, project, force }, projectName) => {
+    .action(async ({ json, input, token, env, project, force }, projectName) => {
       const { renderPull } = await import('@/commands/pull.ts')
       await renderPull({
         projectName,
         token,
-        origin,
+        env,
         project,
         force,
         jsonFlag: json,
@@ -443,18 +459,18 @@ const run = async () => {
     .description(getCommandDescriptor('login').description)
     .option('--no-input', NO_INPUT_DESC)
     .option('--json', JSON_DESC)
-    .option('--with-token', 'Read the token from stdin instead of prompting.')
     .option(
-      '--origin <url:string>',
-      'Hub origin (base URL) to validate against. Defaults to $SKMTC_API_ORIGIN or https://api.skmtc.dev.'
+      '--with-token',
+      'Read a personal access token from stdin instead of signing in in the browser.'
     )
-    .action(async ({ json, input, withToken, origin }) => {
+    .type('hubEnv', hubEnv)
+    .option('--env <env:hubEnv>', ENV_DESC)
+    .action(async ({ json, withToken, env }) => {
       const { renderLogin } = await import('@/commands/login.tsx')
       await renderLogin({
-        origin,
+        env,
         withToken,
-        jsonFlag: json,
-        noInputFlag: input === false
+        jsonFlag: json
       })
     })
 
@@ -463,7 +479,7 @@ const run = async () => {
     .option('--json', 'Emit structured JSON output.')
     .action(async ({ json }) => {
       const { renderLogout } = await import('@/commands/logout.ts')
-      renderLogout({ jsonFlag: json })
+      await renderLogout({ jsonFlag: json })
     })
 
   const doctorCommand = new Command()
@@ -497,10 +513,8 @@ const run = async () => {
       '--token <token:string>',
       'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
     )
-    .option(
-      '--origin <url:string>',
-      'Hub origin (base URL). Defaults to $SKMTC_API_ORIGIN or https://api.skmtc.dev.'
-    )
+    .type('hubEnv', hubEnv)
+    .option('--env <env:hubEnv>', ENV_DESC)
     .option(
       '--from <project:string>',
       'Local project (.skmtc/<project>) to build from. Defaults to the only project when there is one.'
@@ -515,13 +529,13 @@ const run = async () => {
       "Also seed the app's base files (needed for the live preview container)."
     )
     .action(
-      async ({ json, input, token, origin, from, stackVersion, visibility, baseFiles }, name) => {
+      async ({ json, input, token, env, from, stackVersion, visibility, baseFiles }, name) => {
         const { renderProjectCreate } = await import('@/commands/project.ts')
         await renderProjectCreate({
           name,
           from,
           token,
-          origin,
+          env,
           stackVersion,
           visibility,
           baseFiles,
@@ -540,21 +554,19 @@ const run = async () => {
       '--token <token:string>',
       'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
     )
-    .option(
-      '--origin <url:string>',
-      'Hub origin (base URL). Defaults to $SKMTC_API_ORIGIN or https://api.skmtc.dev.'
-    )
+    .type('hubEnv', hubEnv)
+    .option('--env <env:hubEnv>', ENV_DESC)
     .option(
       '--from <project:string>',
       'Local project whose account scopes a bare <name>. Defaults to the only project.'
     )
-    .action(async ({ json, input, token, origin, from }, name) => {
+    .action(async ({ json, input, token, env, from }, name) => {
       const { renderProjectRm } = await import('@/commands/project.ts')
       await renderProjectRm({
         name,
         from,
         token,
-        origin,
+        env,
         jsonFlag: json,
         noInputFlag: input === false
       })
@@ -639,10 +651,11 @@ const run = async () => {
     .parse(Deno.args)
 }
 
-// A malformed environment variable is read by whichever command needs it;
-// report it once here, as one line, for every entry point.
+// A malformed environment variable, or a stored sign-in that cannot be
+// refreshed, surfaces in whichever command needs it; report it once here, as
+// one line, for every entry point.
 run().catch(error => {
-  if (error instanceof EnvVariableError) {
+  if (error instanceof EnvVariableError || error instanceof DeviceLoginError) {
     console.error(error.message)
     Deno.exit(1)
   }

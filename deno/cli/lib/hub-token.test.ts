@@ -1,4 +1,5 @@
 import { assertEquals, assertRejects } from '@std/assert'
+import { EnvVariableError } from '@/lib/env.ts'
 import { dirname } from '@std/path/dirname'
 import { stub } from '@std/testing/mock'
 import { withEnv } from '@/tests/mocks/env.mock.ts'
@@ -6,11 +7,13 @@ import {
   deleteStoredAuth,
   readStoredAuth,
   resolveHubAuth,
-  resolveHubToken,
   toAuthFilePath,
+  toFreshStoredAuth,
   validateHubToken,
+  withAuthLock,
   writeStoredAuth
 } from '@/lib/hub-token.ts'
+import { DeviceLoginError } from '@/lib/device-login.ts'
 
 /**
  * Run `fn` with HOME pointed at a fresh temp dir and SKMTC_HUB_TOKEN
@@ -21,36 +24,43 @@ const withIsolatedEnv = async (fn: () => void | Promise<void>): Promise<void> =>
   const tempHome = Deno.makeTempDirSync({ prefix: 'skmtc-hub-token-test-' })
 
   try {
-    await withEnv({ HOME: tempHome, SKMTC_HUB_TOKEN: undefined, SKMTC_API_ORIGIN: undefined }, fn)
+    await withEnv(
+      {
+        HOME: tempHome,
+        SKMTC_HUB_TOKEN: undefined,
+        SKMTC_ENV: undefined
+      },
+      fn
+    )
   } finally {
     Deno.removeSync(tempHome, { recursive: true })
   }
 }
 
-Deno.test('resolveHubToken - flag beats env beats stored file', async () => {
-  await withIsolatedEnv(() => {
-    writeStoredAuth({ host: 'https://api.example.test', token: 'file-token' })
+Deno.test('resolveHubAuth - flag beats env beats stored file', async () => {
+  await withIsolatedEnv(async () => {
+    writeStoredAuth({ env: 'production', token: 'file-token' })
     Deno.env.set('SKMTC_HUB_TOKEN', 'env-token')
 
-    assertEquals(resolveHubToken({ tokenFlag: 'flag-token' }), 'flag-token')
-    assertEquals(resolveHubToken(), 'env-token')
+    assertEquals((await resolveHubAuth({ tokenFlag: 'flag-token' })).token, 'flag-token')
+    assertEquals((await resolveHubAuth()).token, 'env-token')
 
     Deno.env.delete('SKMTC_HUB_TOKEN')
-    assertEquals(resolveHubToken(), 'file-token')
+    assertEquals((await resolveHubAuth()).token, 'file-token')
   })
 })
 
-Deno.test('resolveHubToken - undefined when no source has a token', async () => {
-  await withIsolatedEnv(() => {
-    assertEquals(resolveHubToken(), undefined)
-    assertEquals(resolveHubToken({ tokenFlag: '   ' }), undefined)
+Deno.test('resolveHubAuth - undefined when no source has a token', async () => {
+  await withIsolatedEnv(async () => {
+    assertEquals((await resolveHubAuth()).token, undefined)
+    assertEquals((await resolveHubAuth({ tokenFlag: '   ' })).token, undefined)
   })
 })
 
 Deno.test('writeStoredAuth - writes auth.json with mode 0600', async () => {
   await withIsolatedEnv(() => {
     const filePath = writeStoredAuth({
-      host: 'https://api.example.test',
+      env: 'local',
       token: 'abcd1234'
     })
 
@@ -66,7 +76,7 @@ Deno.test('writeStoredAuth - writes auth.json with mode 0600', async () => {
     }
 
     assertEquals(readStoredAuth(), {
-      host: 'https://api.example.test',
+      env: 'local',
       token: 'abcd1234'
     })
   })
@@ -87,7 +97,7 @@ Deno.test('readStoredAuth - null for missing or malformed file', async () => {
 
 Deno.test('deleteStoredAuth - removes the file and is idempotent', async () => {
   await withIsolatedEnv(() => {
-    writeStoredAuth({ host: 'https://api.example.test', token: 'abcd1234' })
+    writeStoredAuth({ env: 'local', token: 'abcd1234' })
 
     assertEquals(deleteStoredAuth(), true)
     assertEquals(readStoredAuth(), null)
@@ -143,7 +153,7 @@ Deno.test('login flow - failed validation never writes auth.json', async () => {
           origin: 'https://api.example.test',
           token: 'bad'
         })
-        writeStoredAuth({ host: 'https://api.example.test', token: 'bad' })
+        writeStoredAuth({ env: 'local', token: 'bad' })
         return handle
       })
 
@@ -154,44 +164,271 @@ Deno.test('login flow - failed validation never writes auth.json', async () => {
   })
 })
 
-Deno.test('resolveHubAuth - stored host rides along only with the stored token', async () => {
+Deno.test('readStoredAuth - reads a file written before --env by its API host', async () => {
   await withIsolatedEnv(() => {
-    writeStoredAuth({ host: 'http://localhost:4812', token: 'file-token' })
+    Deno.mkdirSync(dirname(toAuthFilePath()), { recursive: true })
 
-    // Token from the file → hub URL defaults to the file's host.
-    assertEquals(resolveHubAuth(), {
+    Deno.writeTextFileSync(
+      toAuthFilePath(),
+      JSON.stringify({ host: 'https://api.skmtc.co.uk/', token: 'old-pat' })
+    )
+    assertEquals(readStoredAuth(), { env: 'local', token: 'old-pat' })
+
+    // A host that is no environment's API (an old `--origin`) is not logged in.
+    Deno.writeTextFileSync(
+      toAuthFilePath(),
+      JSON.stringify({ host: 'http://localhost:4812', token: 'old-pat' })
+    )
+    assertEquals(readStoredAuth(), null)
+  })
+})
+
+Deno.test('resolveHubAuth - the stored env applies only with the stored token', async () => {
+  await withIsolatedEnv(async () => {
+    writeStoredAuth({ env: 'local', token: 'file-token' })
+
+    // Token from the file → the environment defaults to the file's.
+    assertEquals(await resolveHubAuth(), {
       token: 'file-token',
-      origin: 'http://localhost:4812'
+      env: 'local',
+      origin: 'https://api.skmtc.co.uk'
     })
 
-    // Explicit --origin flag still wins over the stored host.
-    assertEquals(resolveHubAuth({ originFlag: 'http://other.test' }), {
-      token: 'file-token',
-      origin: 'http://other.test'
-    })
-
-    // Token from env → stored host does NOT apply (the token and the
-    // host must come from the same place).
+    // Token from env → the stored env does NOT apply (the token and the
+    // environment must come from the same place).
     Deno.env.set('SKMTC_HUB_TOKEN', 'env-token')
-    assertEquals(resolveHubAuth(), {
+    assertEquals(await resolveHubAuth(), {
       token: 'env-token',
+      env: 'production',
       origin: 'https://api.skmtc.dev'
     })
     Deno.env.delete('SKMTC_HUB_TOKEN')
 
     // Token from the flag → same.
-    assertEquals(resolveHubAuth({ tokenFlag: 'flag-token' }), {
+    assertEquals(await resolveHubAuth({ tokenFlag: 'flag-token' }), {
       token: 'flag-token',
+      env: 'production',
       origin: 'https://api.skmtc.dev'
     })
   })
 })
 
-Deno.test('resolveHubAuth - production default when nothing is stored', async () => {
-  await withIsolatedEnv(() => {
-    assertEquals(resolveHubAuth(), {
+Deno.test('resolveHubAuth - a stored token is never sent to another environment', async () => {
+  await withIsolatedEnv(async () => {
+    writeStoredAuth({ env: 'local', token: 'local-token' })
+
+    assertEquals(await resolveHubAuth({ envFlag: 'production' }), {
       token: undefined,
+      env: 'production',
       origin: 'https://api.skmtc.dev'
     })
+
+    Deno.env.set('SKMTC_ENV', 'staging')
+    assertEquals((await resolveHubAuth()).token, undefined)
+  })
+})
+
+Deno.test('resolveHubAuth - production default when nothing is stored', async () => {
+  await withIsolatedEnv(async () => {
+    assertEquals(await resolveHubAuth(), {
+      token: undefined,
+      env: 'production',
+      origin: 'https://api.skmtc.dev'
+    })
+  })
+})
+
+Deno.test('toFreshStoredAuth - keeps a token that has not expired, without a request', async () => {
+  await withIsolatedEnv(async () => {
+    const fetchStub = stub(globalThis, 'fetch', () => Promise.reject(new Error('no request')))
+    const stored = {
+      env: 'local' as const,
+      token: 'access',
+      refreshToken: 'r1',
+      expiresAt: 10 * 60_000
+    }
+
+    try {
+      assertEquals(await toFreshStoredAuth(stored, () => 0), stored)
+      assertEquals(fetchStub.calls.length, 0)
+    } finally {
+      fetchStub.restore()
+    }
+  })
+})
+
+Deno.test('toFreshStoredAuth - refreshes an expired token and stores the new one', async () => {
+  await withIsolatedEnv(async () => {
+    const requests: { url: string; body: string }[] = []
+    const fetchStub = stub(globalThis, 'fetch', async (input, init) => {
+      requests.push({ url: String(input), body: String(init?.body) })
+      return new Response(
+        JSON.stringify({
+          access_token: 'access-2',
+          refresh_token: 'r2',
+          expires_in: 3600
+        }),
+        { status: 200 }
+      )
+    })
+
+    const stored = {
+      env: 'local' as const,
+      token: 'access-1',
+      refreshToken: 'r1',
+      expiresAt: 30_000
+    }
+    writeStoredAuth(stored)
+
+    try {
+      const fresh = await toFreshStoredAuth(stored, () => 0)
+
+      const expected = {
+        env: 'local' as const,
+        token: 'access-2',
+        refreshToken: 'r2',
+        expiresAt: 3_600_000
+      }
+      assertEquals(fresh, expected)
+      assertEquals(readStoredAuth(), expected)
+      assertEquals(requests[0].url, 'https://skmtc.co.uk/api/auth/oauth2/token')
+      assertEquals(Object.fromEntries(new URLSearchParams(requests[0].body)), {
+        grant_type: 'refresh_token',
+        refresh_token: 'r1',
+        client_id: 'skmtc-cli'
+      })
+    } finally {
+      fetchStub.restore()
+    }
+  })
+})
+
+Deno.test('toFreshStoredAuth - a revoked refresh token says to run skmtc login and keeps the file', async () => {
+  await withIsolatedEnv(async () => {
+    const stored = {
+      env: 'local' as const,
+      token: 'access-1',
+      refreshToken: 'r1',
+      expiresAt: 0
+    }
+    writeStoredAuth(stored)
+    const fetchStub = stub(globalThis, 'fetch', () =>
+      Promise.resolve(
+        new Response(JSON.stringify({ error: 'invalid_grant' }), {
+          status: 400
+        })
+      )
+    )
+
+    try {
+      await assertRejects(() => toFreshStoredAuth(stored, () => 0), Error, 'skmtc login')
+      assertEquals(readStoredAuth(), stored)
+    } finally {
+      fetchStub.restore()
+    }
+  })
+})
+
+const refreshedTokens = (access: string, refresh: string): Response =>
+  new Response(JSON.stringify({ access_token: access, refresh_token: refresh, expires_in: 3600 }), {
+    status: 200
+  })
+
+// Identity revokes the whole sign-in when a used refresh token comes back.
+// Two commands that find the same expired token must send it once.
+Deno.test('toFreshStoredAuth - two commands at once refresh the token once', async () => {
+  await withIsolatedEnv(async () => {
+    const stored = { env: 'local' as const, token: 'access-1', refreshToken: 'r1', expiresAt: 0 }
+    writeStoredAuth(stored)
+    const sent: string[] = []
+    const fetchStub = stub(globalThis, 'fetch', async (_input, init) => {
+      sent.push(new URLSearchParams(String(init?.body)).get('refresh_token') ?? '')
+      await new Promise(resolve => setTimeout(resolve, 20))
+      return refreshedTokens('access-2', 'r2')
+    })
+
+    try {
+      const [first, second] = await Promise.all([
+        toFreshStoredAuth(stored, () => 0),
+        toFreshStoredAuth(stored, () => 0)
+      ])
+      assertEquals(sent, ['r1'])
+      assertEquals([first.refreshToken, second.refreshToken], ['r2', 'r2'])
+    } finally {
+      fetchStub.restore()
+    }
+  })
+})
+
+Deno.test('toFreshStoredAuth - uses a token another command has already refreshed', async () => {
+  await withIsolatedEnv(async () => {
+    const newer = {
+      env: 'local' as const,
+      token: 'access-2',
+      refreshToken: 'r2',
+      expiresAt: 10 * 60_000
+    }
+    writeStoredAuth(newer)
+    const fetchStub = stub(globalThis, 'fetch', () => Promise.reject(new Error('no request')))
+
+    try {
+      const fresh = await toFreshStoredAuth(
+        { env: 'local', token: 'access-1', refreshToken: 'r1', expiresAt: 0 },
+        () => 0
+      )
+      assertEquals(fresh, newer)
+      assertEquals(fetchStub.calls.length, 0)
+    } finally {
+      fetchStub.restore()
+    }
+  })
+})
+
+Deno.test('toFreshStoredAuth - releases the lock after a failed refresh', async () => {
+  await withIsolatedEnv(async () => {
+    const stored = { env: 'local' as const, token: 'access-1', refreshToken: 'r1', expiresAt: 0 }
+    writeStoredAuth(stored)
+    const fetchStub = stub(globalThis, 'fetch', () => Promise.reject(new TypeError('offline')))
+
+    try {
+      await assertRejects(() => toFreshStoredAuth(stored, () => 0), Error, 'offline')
+      assertEquals(
+        [...Deno.readDirSync(dirname(toAuthFilePath()))].map(entry => entry.name),
+        ['auth.json']
+      )
+    } finally {
+      fetchStub.restore()
+    }
+  })
+})
+
+// The old variable must not be ignored: CI that still sets it would send a
+// staging or local token to production.
+Deno.test('resolveHubAuth - fails when the retired SKMTC_API_ORIGIN is set', async () => {
+  await withIsolatedEnv(async () => {
+    await withEnv({ SKMTC_API_ORIGIN: 'https://api.skmtc.co.uk' }, async () => {
+      await assertRejects(() => resolveHubAuth(), EnvVariableError, 'SKMTC_ENV')
+    })
+  })
+})
+
+// A lock timeout must reach the one-line handler in mod.ts, not crash.
+Deno.test('withAuthLock - a lock held by another command fails as a DeviceLoginError', async () => {
+  await withIsolatedEnv(async () => {
+    writeStoredAuth({ env: 'local', token: 'access' })
+    Deno.writeTextFileSync(`${toAuthFilePath()}.lock`, '1')
+    const ran: string[] = []
+
+    const error = await assertRejects(
+      () =>
+        withAuthLock(
+          () => Promise.resolve(ran.push('ran')),
+          () => Promise.resolve()
+        ),
+      DeviceLoginError,
+      'Try again'
+    )
+    assertEquals(error.code, 'auth_locked')
+    assertEquals(ran, [])
   })
 })

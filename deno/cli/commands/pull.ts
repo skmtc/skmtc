@@ -3,6 +3,7 @@ import { Manager } from '@/lib/manager.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { pullHeadless, type PullHeadlessResult } from '@/lib/pull-headless.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
+import { type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
 
 export const description =
   'Pull this project\'s config (enrichments + filters) from its skmtc-hub project into the local client.json. The destination is the `project: "@account/slug"` field in client.json (or --project). Replaces the local enrichments/include/skip; preserves local basePath/packages/source. The project must already exist on the hub.'
@@ -11,7 +12,7 @@ type RenderPullArgs = {
   skmtcRoot?: SkmtcRoot
   projectName: string | undefined
   token: string | undefined
-  origin: string | undefined
+  env: HubEnv | undefined
   /** `--project` destination override (`@account/slug`). */
   project: string | undefined
   force?: boolean
@@ -26,7 +27,7 @@ export const renderPull = async ({
   skmtcRoot: providedSkmtcRoot,
   projectName,
   token,
-  origin,
+  env,
   project: projectFlag,
   force,
   jsonFlag,
@@ -44,9 +45,13 @@ export const renderPull = async ({
     })
   }
 
-  const { token: resolvedToken, origin: resolvedOrigin } = resolveHubAuth({
+  const {
+    token: resolvedToken,
+    origin: resolvedOrigin,
+    env: resolvedEnv
+  } = await resolveHubAuth({
     tokenFlag: token,
-    originFlag: origin
+    envFlag: env
   })
 
   if (!resolvedToken) {
@@ -55,8 +60,7 @@ export const renderPull = async ({
       arg: '--token',
       usage: USAGE,
       example: EXAMPLE,
-      discover:
-        'Run `skmtc login`, set $SKMTC_HUB_TOKEN, or pass --token. Mint a PAT at https://skmtc.dev/settings/tokens.'
+      discover: toMissingTokenHint(resolvedEnv)
     })
   }
 

@@ -23,7 +23,7 @@ introduces the nouns this page assumes (account, stack, project, PAT).
 ## Synopsis
 
 ```
-skmtc pull <project> [--project <@account/slug>] [--origin <url>] [--token <pat>] [--force] [--json] [--no-input]
+skmtc pull <project> [--project <@account/slug>] [--env <env>] [--token <pat>] [--force] [--json] [--no-input]
 ```
 
 ## Arguments
@@ -55,11 +55,11 @@ token stored by [`skmtc login`](login.md). The PAT authenticates you; the
 hub authorizes the read against the **source** project (`read:catalog`;
 `write:catalog` implies it).
 
-### `--origin <url>`
+### `--env <env>`
 
-Hub origin (base URL). Defaults to `$SKMTC_API_ORIGIN`; then — only when the
-token came from the stored `skmtc login` file — the `host` recorded there;
-then `https://api.skmtc.dev`.
+The hub environment: `production`, `staging` or `local`. Defaults to
+`$SKMTC_ENV`. Then, when the token comes from the stored `skmtc login`
+file, the environment in that file. Then `production`.
 
 ### `--force`
 
@@ -189,7 +189,7 @@ An in-sync pull prints `Already up to date — "my-api" matches acme-org/petstor
 | Variable | Purpose | Equivalent flag |
 |---|---|---|
 | `SKMTC_HUB_TOKEN` | Default PAT | `--token` |
-| `SKMTC_API_ORIGIN` | Default hub origin (base URL) | `--origin` |
+| `SKMTC_ENV` | Default hub environment | `--env` |
 
 ## Exit codes
 
@@ -216,5 +216,5 @@ SKMTC_HUB_TOKEN=$PAT skmtc pull my-api --json --no-input
 
 - [`push`](push.md) — push a project's config up to the hub (the write half)
 - [`generate`](generate.md) — regenerate locally after a pull
-- [`login`](login.md) — store the hub PAT + origin
+- [`login`](login.md) — sign in and store the token + environment
 - [overview](overview.md) — shared flags and strict-mode semantics

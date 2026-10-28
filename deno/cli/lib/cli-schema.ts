@@ -59,6 +59,9 @@ export type CommandDescriptor = {
  */
 export const JSON_DESCRIPTION = 'Emit structured JSON output (implies --no-input).'
 export const NO_INPUT_DESCRIPTION = 'Disable interactive prompts; fail on missing args.'
+/** The `--env` help of every hub command. */
+export const ENV_DESCRIPTION =
+  'Hub environment: production, staging or local. Defaults to $SKMTC_ENV, then the environment of the stored login, then production.'
 
 export const AGENT_MODE_FLAGS: FlagDescriptor[] = [
   {
@@ -193,9 +196,8 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
           'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
       },
       {
-        flag: '--origin <url>',
-        description:
-          'Hub origin (base URL). Defaults to $SKMTC_API_ORIGIN or https://api.skmtc.dev.'
+        flag: '--env <env>',
+        description: ENV_DESCRIPTION
       },
       {
         flag: '--version <semver>',
@@ -217,9 +219,8 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
           'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
       },
       {
-        flag: '--origin <url>',
-        description:
-          'Hub origin (base URL). Defaults to $SKMTC_API_ORIGIN or https://api.skmtc.dev.'
+        flag: '--env <env>',
+        description: ENV_DESCRIPTION
       },
       {
         flag: '--project <ref>',
@@ -256,9 +257,8 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
           'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
       },
       {
-        flag: '--origin <url>',
-        description:
-          'Hub origin (base URL). Defaults to $SKMTC_API_ORIGIN or https://api.skmtc.dev.'
+        flag: '--env <env>',
+        description: ENV_DESCRIPTION
       },
       {
         flag: '--project <ref>',
@@ -275,26 +275,25 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
   {
     name: 'login',
     description:
-      'Validate and store a skmtc-hub personal access token (paste-a-PAT login). When a token is already stored, reports the logged-in handle instead of prompting.',
+      'Sign in to skmtc-hub in the browser: prints a link and a code to approve, then stores the token. --with-token stores a personal access token from stdin instead. When a token for the environment is already stored, reports the logged-in handle.',
     args: [],
     flags: [
       ...AGENT_MODE_FLAGS,
       {
         flag: '--with-token',
-        description:
-          'Read the token from stdin instead of prompting (works in non-interactive mode).'
+        description: 'Read a personal access token from stdin instead of signing in in the browser.'
       },
       {
-        flag: '--origin <url>',
-        description:
-          'Hub origin (base URL) to validate against. Defaults to $SKMTC_API_ORIGIN or https://api.skmtc.dev.'
+        flag: '--env <env>',
+        description: ENV_DESCRIPTION
       }
     ],
     agentMode: 'full'
   },
   {
     name: 'logout',
-    description: 'Delete the stored skmtc-hub token (~/.skmtc/auth.json). Idempotent.',
+    description:
+      'Sign out of skmtc-hub: revoke a browser sign-in at identity and delete the stored token (~/.skmtc/auth.json). Idempotent.',
     args: [],
     flags: [{ flag: '--json', description: 'Emit structured JSON output.' }],
     agentMode: 'json-only'

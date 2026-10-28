@@ -7,7 +7,6 @@ import type { ViewStatePublish } from '@/components/SkmtcContext.tsx'
 import { useSkmtc } from '@/components/SkmtcContext.tsx'
 import { publishHeadless, type PublishHeadlessResult } from '@/lib/publish-headless.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
-import { EnvVariableError } from '@/lib/env.ts'
 
 type PublishViewProps = {
   project: Project
@@ -19,7 +18,7 @@ type Stage =
   | { type: 'running' }
   | { type: 'done'; result: PublishHeadlessResult }
   | { type: 'misconfigured'; missing: string[] }
-  | { type: 'invalid-environment'; message: string }
+  | { type: 'error'; message: string }
 
 /**
  * Interactive Ink path for `skmtc publish`. Strict / `--json` /
@@ -38,38 +37,23 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
   const [stage, setStage] = useState<Stage>({ type: 'validating' })
 
   useEffect(() => {
-    // Thrown inside an effect, the error would crash the Ink tree rather than
-    // reach the handler in `mod.ts`, so show it here.
-    const auth = (() => {
-      try {
-        return resolveHubAuth({ tokenFlag: view.token, originFlag: view.origin })
-      } catch (error) {
-        if (error instanceof EnvVariableError) return error
-        throw error
-      }
-    })()
-
-    if (auth instanceof EnvVariableError) {
-      setStage({ type: 'invalid-environment', message: auth.message })
-      dispatchMessage({ error: auth.message })
-      if (!state.interactive) exit()
-      return
-    }
-
-    const { token, origin } = auth
-
-    if (!token) {
-      setStage({
-        type: 'misconfigured',
-        missing: ['--token <pat> (or $SKMTC_HUB_TOKEN, or `skmtc login`)']
-      })
-      dispatchMessage({ error: 'Publish is missing required arguments' })
-      if (!state.interactive) exit()
-      return
-    }
-
-    setStage({ type: 'running' })
     const run = async () => {
+      const { token, origin } = await resolveHubAuth({
+        tokenFlag: view.token,
+        envFlag: view.env
+      })
+
+      if (!token) {
+        setStage({
+          type: 'misconfigured',
+          missing: ['--token <pat> (or $SKMTC_HUB_TOKEN, or `skmtc login`)']
+        })
+        dispatchMessage({ error: 'Publish is missing required arguments' })
+        if (!state.interactive) exit()
+        return
+      }
+
+      setStage({ type: 'running' })
       const result = await publishHeadless({
         skmtcRoot: state.skmtcRoot,
         projectName: project.name,
@@ -100,7 +84,14 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
       }
     }
 
-    run()
+    // Thrown inside an effect, an error would stop the Ink app rather than
+    // reach the handler in `mod.ts`, so every failure is shown here.
+    run().catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error)
+      setStage({ type: 'error', message })
+      dispatchMessage({ error: message })
+      if (!state.interactive) exit()
+    })
   }, [])
 
   switch (stage.type) {
@@ -120,7 +111,7 @@ export const PublishView = ({ project, view }: PublishViewProps) => {
           <Text dimColor>Example: skmtc publish {project.name} --token $SKMTC_HUB_TOKEN</Text>
         </Box>
       )
-    case 'invalid-environment':
+    case 'error':
       return <Text color="red">{stage.message}</Text>
     case 'running':
       return (

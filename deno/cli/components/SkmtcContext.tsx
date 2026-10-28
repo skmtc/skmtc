@@ -3,6 +3,7 @@ import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import type { Project } from '@/lib/project.ts'
 import type { Key } from 'ink'
 import type { Generator } from '@/types/generator.ts'
+import type { HubEnv } from '@/lib/hub-env.ts'
 
 export type ErrorMessage = {
   error: ReactNode
@@ -71,9 +72,8 @@ export type ViewStatePublish = {
   projectName: string
   /** PAT for the hub. From --token or `SKMTC_HUB_TOKEN`. */
   token?: string
-  /** Hub origin (base URL) override (defaults to https://api.skmtc.dev or
-   *  `SKMTC_API_ORIGIN`). */
-  origin?: string
+  /** Hub environment from --env (defaults to `SKMTC_ENV`, then production). */
+  env?: HubEnv
   /** Version override from --version. Defaults to the project root
    *  `deno.json#version`. */
   version?: string

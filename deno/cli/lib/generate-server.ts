@@ -3,7 +3,8 @@ import type { ManifestContent } from '@skmtc/core/Manifest'
 import type { GenerationMapEntry, Sidecar } from '@skmtc/core/Anchors'
 import { type FileType, fileTypeToProtocol } from '@/lib/types.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
-import { resolveHubToken } from '@/lib/hub-token.ts'
+import { resolveHubAuth } from '@/lib/hub-token.ts'
+import { toHubEnvFromApi } from '@/lib/hub-env.ts'
 
 type GenerateWithServerArgs = {
   /**
@@ -28,8 +29,11 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  * produces, so `writeGeneratedFiles` (stale cleanup + byte-identical dedup +
  * manifest write) needs no changes.
  *
- * Attaches the hub PAT when available (`$SKMTC_HUB_TOKEN` → `~/.skmtc/auth.json`)
- * for private stacks; public stacks generate anonymously.
+ * Attaches the hub token (`$SKMTC_HUB_TOKEN` → `~/.skmtc/auth.json`) for
+ * private stacks, but only when `stackUrl` is the API of the token's
+ * environment: a token is never sent to another host. When the stored
+ * sign-in cannot be refreshed, it warns and generates anonymously, so a
+ * public stack still works.
  */
 export const generateWithServer = async ({
   stackUrl,
@@ -46,8 +50,18 @@ export const generateWithServer = async ({
   const protocol = fileTypeToProtocol(fileType)
 
   const headers: Record<string, string> = { 'content-type': 'application/json' }
-  const token = resolveHubToken()
-  if (token) headers.authorization = `Bearer ${token}`
+  // A host that is no hub API never gets a token, so do not resolve (or
+  // refresh) one for it.
+  const auth = !toHubEnvFromApi(endpointUrl.origin)
+    ? undefined
+    : await resolveHubAuth().catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error)
+        console.warn(`Generating without a hub token: ${message}`)
+        return undefined
+      })
+  if (auth?.token && auth.origin === endpointUrl.origin) {
+    headers.authorization = `Bearer ${auth.token}`
+  }
 
   let response: Response
   try {

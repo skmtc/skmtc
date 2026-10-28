@@ -36,7 +36,7 @@ import { toProjectInstallCommand } from '@/lib/dependency-age.ts'
 // One definition, in the module that owns the stored-auth shape. This file
 // used to declare its own copy of the same literal, which is how a default
 // hub silently drifts between `login` and `publish`.
-import { DEFAULT_ORIGIN } from '@/lib/hub-token.ts'
+import { DEFAULT_HUB_ENV, HUB_HOSTS } from '@/lib/hub-env.ts'
 
 type PublishHeadlessArgs = {
   skmtcRoot: SkmtcRoot
@@ -72,7 +72,6 @@ export type PublishHeadlessResult =
       reason: string
       stage: 'version' | 'identity' | 'source' | 'publish'
     }
-
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
@@ -250,7 +249,7 @@ export const publishHeadless = async ({
   skmtcRoot,
   projectName,
   token,
-  origin = DEFAULT_ORIGIN,
+  origin = HUB_HOSTS[DEFAULT_HUB_ENV].api,
   version: versionFlag
 }: PublishHeadlessArgs): Promise<PublishHeadlessResult> => {
   const project = skmtcRoot.findProject(projectName)

@@ -13,12 +13,20 @@
  */
 
 import * as v from 'valibot'
+import { HUB_ENVS } from '@/lib/hub-env.ts'
 
 const envSchema = v.object({
   /** JSR registry the CLI resolves generators against. */
   JSR_URL: v.optional(v.pipe(v.string(), v.url()), 'https://jsr.io/'),
-  /** skmtc-hub API base URL. No default here: the default ends a precedence chain. */
-  SKMTC_API_ORIGIN: v.optional(v.pipe(v.string(), v.url())),
+  /** skmtc-hub environment. No default here: the default ends a precedence chain. */
+  SKMTC_ENV: v.optional(v.picklist(HUB_ENVS)),
+  /**
+   * Retired: `SKMTC_ENV` replaced it. Setting it fails, so a shell or CI job
+   * that still exports it does not send its token to production by default.
+   */
+  SKMTC_API_ORIGIN: v.optional(
+    v.never('it is no longer read. Use SKMTC_ENV=production|staging|local instead.')
+  ),
   SKMTC_HUB_TOKEN: v.optional(v.string()),
   HOME: v.optional(v.string()),
   /** The Windows equivalent of `HOME`. */
@@ -52,5 +60,4 @@ export const readEnv = <Name extends EnvVariableName>(
 }
 
 /** The user's home directory: `HOME` on POSIX, `USERPROFILE` on Windows. */
-export const readHomeDirectory = (): string | undefined =>
-  readEnv('HOME') ?? readEnv('USERPROFILE')
+export const readHomeDirectory = (): string | undefined => readEnv('HOME') ?? readEnv('USERPROFILE')
