@@ -175,8 +175,10 @@ Parse issues carry one of three severities (`core/context/ParseIssue.ts`):
   from the default view; never affects exit status.
 
 `debug` keeps the record without the noise. Routed here: the v3-0
-type-less-object inference (above), and a number/integer `format` the IR's
-format enum can't hold (dropped — the lost hint is informational). A custom
+type-less-object inference (above), a number/integer `format` the IR's
+format enum can't hold (dropped — the lost hint is informational), and
+`NO_JSON_MEDIA_TYPE` (a body whose keys include a media type range that no
+lookup reads). A custom
 string `format` is spec-legal (open vocabulary) and preserved on the IR, so it
 is not recorded at all; `callbacks` is a deliberate non-goal and dropped
 silently in the operation parser.

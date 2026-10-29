@@ -15,7 +15,7 @@ description: >
   Load ALONGSIDE skmtc-generator and the emitted language's skill.
 metadata:
   describes:
-    '@skmtc/core': '0.30'
+    '@skmtc/core': '0.31'
 ---
 
 # Operation generators: decompose the operation, reference the models
@@ -71,6 +71,15 @@ a response shape) breaks the moment the schema evolves.
 - **Request body**: `operation.toRequestBody(({ schema }) => schema)`.
 - **Response**: `operation.toSuccessResponse()?.resolve().toSchema()
   ?? OasVoid.empty()` — selection and void-fallback in one idiom.
+- **Media type**: with no argument, both lookups read the JSON media
+  type: `application/json`, else the first `application/…+json` or
+  `application/json;…` key, else `*/*` when its schema is an object,
+  array, union or `$ref` (the parser logs a `WILDCARD_MEDIA_TYPE` warning
+  for that body). A body with only `text/plain`, `application/*` or a
+  scalar under `*/*` gives `undefined`; to read it, pass the media type,
+  for example `toSchema('text/plain')`. `toJsonContent()` names the key it
+  chose (`mediaType`) and the type to send it as (`contentType`:
+  `application/json` for `*/*`); `toRequestBody`'s map gets both.
 - **Request line**: `operation.path` and `operation.method` are stored
   facts; the target-syntax path template (`/users/${id}` vs
   `"/users/{id}"`) is RENDER-time work done by your lang layer's

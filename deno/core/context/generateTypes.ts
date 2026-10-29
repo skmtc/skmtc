@@ -184,6 +184,18 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  * The TS type and the valibot schema below stay in sync via the
  * `v.GenericSchema<OasIssueType>` annotation — adding a variant in one
  * place without the other fails to type-check.
+ *
+ * Media type issues, at most one per response or request body, from the
+ * choice `toJsonContent` makes on its parsed `content`:
+ *
+ * - `WILDCARD_MEDIA_TYPE` (`warning`) — the body has no JSON media type
+ *   (see `isJsonMediaType`) and is read from `*\/*` as JSON, since its schema
+ *   there is an object, array, union or `$ref`. The document does not say the
+ *   format; springdoc writes `*\/*` for every response.
+ * - `NO_JSON_MEDIA_TYPE` (`debug`) — no lookup without a media type reads the
+ *   body, and its keys include a range: `application/*`, or `*\/*` with a
+ *   scalar schema (a text body or a file). A body with only specific
+ *   non-JSON types (`multipart/form-data`, `text/plain`) logs nothing.
  */
 export type OasIssueType =
   | 'UNEXPECTED_PROPERTY'
@@ -206,6 +218,8 @@ export type OasIssueType =
   | 'EXAMPLE_AND_EXAMPLES_DEFINED'
   | 'INVALID_TAG_PARENT'
   | 'UNSUPPORTED_OPERATION_METHOD'
+  | 'WILDCARD_MEDIA_TYPE'
+  | 'NO_JSON_MEDIA_TYPE'
 
 /**
  * Valibot schema for {@link OasIssueType}. Annotation deliberately omitted
@@ -234,7 +248,9 @@ export const oasIssueType = v.union([
   v.literal('INVALID_DEPENDENCY_REF'),
   v.literal('EXAMPLE_AND_EXAMPLES_DEFINED'),
   v.literal('INVALID_TAG_PARENT'),
-  v.literal('UNSUPPORTED_OPERATION_METHOD')
+  v.literal('UNSUPPORTED_OPERATION_METHOD'),
+  v.literal('WILDCARD_MEDIA_TYPE'),
+  v.literal('NO_JSON_MEDIA_TYPE')
 ])
 
 // Compile-time drift detector: this binding fails to type-check if

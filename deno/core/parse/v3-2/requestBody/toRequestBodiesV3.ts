@@ -8,6 +8,7 @@ import type { RequestBodyFields } from '@/oas/requestBody/RequestBody.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { logBodyMediaTypes } from '@/parse/logBodyMediaTypes.ts'
 export type ToRequestBodyV3Args = {
   requestBody: OpenAPIV3.ReferenceObject | OpenAPIV3.RequestBodyObject | undefined
   forceRef?: boolean
@@ -47,7 +48,11 @@ export const toRequestBodyV3 = ({
     extensionFields
   }
 
-  return context.withStackTrail(stackTrail, () => new OasRequestBody(fields, context))
+  const parsed = context.withStackTrail(stackTrail, () => new OasRequestBody(fields, context))
+
+  logBodyMediaTypes({ content: fields.content, stackTrail, context })
+
+  return parsed
 }
 
 export type ToRequestBodiesV3Args = {
