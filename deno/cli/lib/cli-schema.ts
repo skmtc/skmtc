@@ -296,7 +296,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       {
         flag: '--token <pat>',
         description:
-          'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
+          'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`, then, in GitHub Actions with `id-token: write`, a linked repository token for the API.'
       },
       {
         flag: '--env <env>',

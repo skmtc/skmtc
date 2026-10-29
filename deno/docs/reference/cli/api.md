@@ -41,11 +41,54 @@ does not make a version.
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `--api <ref>`           | The hub API as `@account/slug`. Required.                                                                                                                                            |
 | `--visibility <v>`      | `public` or `private`. Makes the API when it does not exist.                                                                                                                         |
-| `--origin-url <url>`    | The URL where these bytes are available. The command sends it on both routes. The revisions route records it as the revision source. The create route records it once the hub accepts it. |
-| `--token` / `--env`     | As for [`push`](push.md) / [`pull`](pull.md).                                                                                                                                        |
+| `--origin-url <url>`    | The URL where these bytes are available. The command sends it on both routes. The revisions route records it as the revision source. The create route records it once the hub accepts it. It needs `--token`, `$SKMTC_HUB_TOKEN` or `skmtc login`, not a linked repository token. |
+| `--token <pat>`         | A personal access token. Without it, the command uses `$SKMTC_HUB_TOKEN`, then the token from `skmtc login`, then, in GitHub Actions, a linked repository token. See [Sign in from GitHub Actions](#sign-in-from-github-actions). |
+| `--env <env>`           | As for [`pull`](pull.md).                                                                                                                                                            |
 
 The command exits `2` when you give no `<file>`, no `--api`, an
-`--api` that is not `@account/slug`, or no token.
+`--api` that is not `@account/slug`, or no token. In GitHub Actions,
+"no token" also means a job without `id-token: write`.
+
+### Sign in from GitHub Actions
+
+In GitHub Actions, the command needs no stored token. When `--token`,
+`$SKMTC_HUB_TOKEN` and `skmtc login` give no token, the command:
+
+1. Gets an OIDC token for the job from GitHub. Its audience is the hub
+   API URL, for example `https://api.skmtc.dev`.
+2. Sends the OIDC token to the hub. The hub gives a linked repository
+   token for this API only. The token expires after 15 minutes.
+3. Publishes with the linked repository token.
+
+The command does these steps only when `GITHUB_ACTIONS` is `true`. A
+token that you give always wins, and then the command does not get an
+OIDC token.
+
+Before the first run:
+
+- An admin of the API links the repository on skmtc.dev. The repository
+  must be public. The link names the workflow file, and an environment
+  if you set one.
+- The API must exist. A linked repository token never makes an API, so
+  the first publish needs `skmtc login` or a PAT. A `--visibility` that
+  is different from the API's visibility fails with `conflict`.
+- A linked repository token cannot add a source. With `--origin-url`,
+  the command fails with `bad-request` before it gets an OIDC token.
+- The job needs the `id-token: write` permission:
+
+```yaml
+permissions:
+  contents: read
+  id-token: write
+```
+
+GitHub gives no OIDC token to a job without this permission, or to a
+pull request from a fork. Then the command exits `2` and names the
+permission. For more about the OIDC token, see
+[OpenID Connect](https://docs.github.com/en/actions/reference/security/oidc)
+in the GitHub docs.
+
+The command never prints the OIDC token or the linked repository token.
 
 ### JSON output
 
@@ -77,7 +120,7 @@ The command exits `2` when you give no `<file>`, no `--api`, an
 | `code`             | Cause                                                                     |
 | ------------------ | ------------------------------------------------------------------------- |
 | `file-unreadable`  | The command cannot read `<file>`.                                         |
-| `bad-request`      | 400: an empty or too-large document, or a slug that is not canonical.    |
+| `bad-request`      | 400: an empty or too-large document, or a slug that is not canonical. Also `--origin-url` with a linked repository token, with no `status`: the command refuses it before any request. |
 | `unauthorized`     | 401: the hub refused the token. Run `skmtc login` again.                 |
 | `forbidden`        | 403: the token has no `publish:schemas` scope or no write access.        |
 | `not-found`        | 404: the API does not exist, or you cannot see it.                       |
@@ -85,9 +128,12 @@ The command exits `2` when you give no `<file>`, no `--api`, an
 | `invalid-document` | 422: the document is not a valid OpenAPI document.                       |
 | `network`          | The command cannot reach the hub.                                         |
 | `hub-error`        | Another answer from the hub.                                              |
+| `oidc-token`       | GitHub gave no OIDC token: an error, an answer with no token, or no connection. |
+| `oidc-exchange`    | The hub gave no linked repository token for the OIDC token. A `403` means that no linked repository matches this workflow run, that the repository is not public, or that the API does not exist. |
 
-`status` is there when the hub answered. `requestId` and `details` are
-there when its answer carried them.
+`status` is there when the hub answered. It is not there for
+`oidc-token`, because the hub did not answer. `requestId` and `details`
+are there when the hub's answer carried them.
 
 ## See also
 

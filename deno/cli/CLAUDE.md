@@ -55,6 +55,10 @@ The hub commands (`publish`, `push`, `pull`, `project`, `api`) take a skmtc-hub
 token: an OAuth token from `skmtc login`, or a personal access token
 (PAT). Resolution order: `--token`, then `$SKMTC_HUB_TOKEN`, then the
 store written by `skmtc login` (`~/.skmtc/auth.json`, mode 0600).
+`api publish` only then tries GitHub Actions OIDC (`lib/github-oidc.ts`):
+when `GITHUB_ACTIONS` is `true`, it exchanges the job's OIDC token at the
+hub for a linked repository token scoped to the API. `resolveHubAuth`
+itself never does this.
 
 `skmtc login` signs in with the OAuth device grant (`lib/device-login.ts`):
 it prints a link and a code, the user approves the code at `/login/device`,

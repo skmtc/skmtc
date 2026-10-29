@@ -27,8 +27,25 @@ export type ApiPublishFailureCode =
   | 'invalid-document'
   | 'network'
   | 'hub-error'
+  | 'oidc-token'
+  | 'oidc-exchange'
 
 export type ApiErrorDetail = { field?: string; message: string }
+
+export type ApiPublishFailure = {
+  type: 'failed'
+  code: ApiPublishFailureCode
+  status?: number
+  message: string
+  requestId?: string
+  details?: ApiErrorDetail[]
+}
+
+/**
+ * `explicit`: from `--token`, `$SKMTC_HUB_TOKEN` or `skmtc login`. `oidc`: a
+ * linked repository token, from a GitHub Actions OIDC token.
+ */
+export type ApiPublishTokenSource = 'explicit' | 'oidc'
 
 export type ApiPublishResult =
   | {
@@ -43,14 +60,7 @@ export type ApiPublishResult =
       created: boolean
       origin: string
     }
-  | {
-      type: 'failed'
-      code: ApiPublishFailureCode
-      status?: number
-      message: string
-      requestId?: string
-      details?: ApiErrorDetail[]
-    }
+  | ApiPublishFailure
 
 type ApiPublishArgs = {
   /** Path to the document, relative to the current directory. */
@@ -61,6 +71,7 @@ type ApiPublishArgs = {
   /** Where these bytes can be fetched. */
   originUrl?: string
   token: string
+  tokenSource: ApiPublishTokenSource
   origin: string
   env: HubEnv
 }
@@ -68,7 +79,8 @@ type ApiPublishArgs = {
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err))
+export const errorMessage = (err: unknown): string =>
+  err instanceof Error ? err.message : String(err)
 
 const STATUS_CODES: Record<number, ApiPublishFailureCode> = {
   400: 'bad-request',
@@ -112,7 +124,7 @@ export const toApiPublishUrl = ({
  * The hub's `ApiError` body, when the response carries one. Any other body,
  * such as a gateway's HTML page, yields nothing.
  */
-const readApiError = async (
+export const readApiError = async (
   res: Response
 ): Promise<{ message?: string; requestId?: string; details?: ApiErrorDetail[] }> => {
   const text = await res.text()
@@ -142,13 +154,17 @@ const readApiError = async (
   }
 }
 
-const toSentence = (text: string): string => (/[.!?]$/.test(text) ? text : `${text}.`)
+export const toSentence = (text: string): string => (/[.!?]$/.test(text) ? text : `${text}.`)
 
-/** What to do next, for the failures the caller can fix. */
+/**
+ * What to do next, for the failures the caller can fix. A linked repository
+ * token gets none: signing in or another token is not the fix in CI.
+ */
 const toHint = (
   code: ApiPublishFailureCode,
-  { api, env }: { api: Scoped; env: HubEnv }
+  { api, env, tokenSource }: { api: Scoped; env: HubEnv; tokenSource: ApiPublishTokenSource }
 ): string | undefined => {
+  if (tokenSource === 'oidc') return undefined
   switch (code) {
     case 'unauthorized':
       return `Sign in again with \`${toLoginCommand(env)}\`, or pass a valid --token.`
@@ -162,18 +178,47 @@ const toHint = (
   }
 }
 
+/** The lead sentence the CLI writes itself, in place of the hub's message. */
+const toOwnLead = (
+  code: ApiPublishFailureCode,
+  {
+    api,
+    visibility,
+    tokenSource
+  }: { api: Scoped; visibility?: ApiVisibility; tokenSource: ApiPublishTokenSource }
+): string | undefined => {
+  if (tokenSource === 'oidc') {
+    switch (code) {
+      case 'unauthorized':
+        return 'The linked repository token was refused: it expired or its link was removed. Run the job again.'
+      case 'not-found':
+        return `API @${api.account}/${api.slug} not found. The first publish needs \`skmtc login\` or a PAT.`
+      default:
+        return undefined
+    }
+  }
+  return code === 'not-found' && !visibility
+    ? `API @${api.account}/${api.slug} not found, or you cannot see it. ` +
+        'Check the name, or pass --visibility public|private to create it.'
+    : undefined
+}
+
 const toFailure = async (
   res: Response,
-  { api, visibility, env }: { api: Scoped; visibility?: ApiVisibility; env: HubEnv }
+  {
+    api,
+    visibility,
+    env,
+    tokenSource
+  }: { api: Scoped; visibility?: ApiVisibility; env: HubEnv; tokenSource: ApiPublishTokenSource }
 ): Promise<ApiPublishResult> => {
   const code = STATUS_CODES[res.status] ?? 'hub-error'
   const apiError = await readApiError(res)
   const lead =
-    code === 'not-found' && !visibility
-      ? `API @${api.account}/${api.slug} not found, or you cannot see it. ` +
-        'Check the name, or pass --visibility public|private to create it.'
-      : (apiError.message ?? `the hub answered ${res.status}`)
-  const hint = toHint(code, { api, env })
+    toOwnLead(code, { api, visibility, tokenSource }) ??
+    apiError.message ??
+    `the hub answered ${res.status}`
+  const hint = toHint(code, { api, env, tokenSource })
   return {
     type: 'failed',
     code,
@@ -223,6 +268,7 @@ export const apiPublishHeadless = async ({
   visibility,
   originUrl,
   token,
+  tokenSource,
   origin,
   env
 }: ApiPublishArgs): Promise<ApiPublishResult> => {
@@ -250,7 +296,7 @@ export const apiPublishHeadless = async ({
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/octet-stream' },
       body: read.bytes
     })
-    if (!res.ok) return await toFailure(res, { api, visibility, env })
+    if (!res.ok) return await toFailure(res, { api, visibility, env, tokenSource })
     const body: unknown = await res.json().catch(() => undefined)
     return toPublished(body, res.status, origin)
   } catch (err) {
