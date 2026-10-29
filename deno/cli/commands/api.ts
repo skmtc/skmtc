@@ -29,7 +29,7 @@ type RenderApiPublishArgs = {
 }
 
 const PUBLISH_USAGE =
-  'skmtc api publish <file> --api @<account>/<slug> [--visibility public|private] [--origin-url <url>]'
+  'skmtc api publish <file> --api @<account>/<slug> [--visibility public|private] [--origin-url <url>] [--env <env>] [--token <pat>]'
 const PUBLISH_EXAMPLE = 'skmtc api publish openapi.yaml --api @acme/pets'
 
 export const renderApiPublish = async ({

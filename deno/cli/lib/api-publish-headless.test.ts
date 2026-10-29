@@ -290,6 +290,33 @@ Deno.test('apiPublishHeadless - 400, 401, 403 and 500 each have their own code',
   )
 })
 
+Deno.test('apiPublishHeadless - a non-JSON error body falls back to the status, not the page', async () => {
+  const root = await makeFolder()
+  const responses = [
+    new Response('<!doctype html><title>530</title>', { status: 530 }),
+    new Response('', { status: 401 })
+  ]
+
+  await withFolder(
+    root,
+    root,
+    () => responses.shift() ?? new Response('', { status: 500 }),
+    async () => {
+      const gateway = await apiPublishHeadless(BASE)
+      const unauthorized = await apiPublishHeadless(BASE)
+
+      if (gateway.type !== 'failed' || unauthorized.type !== 'failed') {
+        throw new Error('expected failed results')
+      }
+      assertEquals(gateway.message, 'the hub answered 530')
+      assertEquals(
+        unauthorized.message,
+        'the hub answered 401. Sign in again with `skmtc login`, or pass a valid --token.'
+      )
+    }
+  )
+})
+
 Deno.test('apiPublishHeadless - a network error is a network failure', async () => {
   const root = await makeFolder()
 
@@ -349,22 +376,34 @@ Deno.test('apiPublishHeadless - runs from a folder with no .skmtc and creates no
 
 Deno.test('apiPublishHeadless - reads <file> against the cwd, not a .skmtc ancestor', async () => {
   // A workspace root above the cwd: resolving through it would miss the file.
-  const root = await Deno.makeTempDir()
-  await Deno.mkdir(join(root, '.skmtc'))
-  const cwd = join(root, 'service')
+  // The workspace lookup walks up only inside the home folder, so the temp
+  // folder stands in for it.
+  // The real path: on macOS the temp folder is a symlink, and the cwd is not.
+  const root = await Deno.realPath(await Deno.makeTempDir())
+  const workspace = join(root, 'workspace')
+  await Deno.mkdir(join(workspace, '.skmtc'), { recursive: true })
+  const cwd = join(workspace, 'service')
   await Deno.mkdir(join(cwd, 'schemas'), { recursive: true })
   await Deno.writeTextFile(join(cwd, 'schemas', 'openapi.yaml'), DOCUMENT)
+  const homeVariable = Deno.build.os === 'windows' ? 'USERPROFILE' : 'HOME'
+  const originalHome = Deno.env.get(homeVariable)
+  Deno.env.set(homeVariable, root)
 
-  await withFolder(
-    root,
-    cwd,
-    () => json(imported(), 201),
-    async () => {
-      const result = await apiPublishHeadless(BASE)
+  try {
+    await withFolder(
+      root,
+      cwd,
+      () => json(imported(), 201),
+      async () => {
+        const result = await apiPublishHeadless(BASE)
 
-      assertEquals(result.type, 'published')
-    }
-  )
+        assertEquals(result.type, 'published')
+      }
+    )
+  } finally {
+    if (originalHome === undefined) Deno.env.delete(homeVariable)
+    else Deno.env.set(homeVariable, originalHome)
+  }
 })
 
 Deno.test('apiPublishHeadless - takes the filename after a Windows separator', async () => {

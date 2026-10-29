@@ -108,14 +108,17 @@ export const toApiPublishUrl = ({
   return `${origin}/v1/apis/${toScopedPath(api)}/revisions?${query}`
 }
 
-/** The hub's `ApiError` body, when the response carries one. */
+/**
+ * The hub's `ApiError` body, when the response carries one. Any other body,
+ * such as a gateway's HTML page, yields nothing.
+ */
 const readApiError = async (
   res: Response
 ): Promise<{ message?: string; requestId?: string; details?: ApiErrorDetail[] }> => {
   const text = await res.text()
   try {
     const body: unknown = JSON.parse(text)
-    if (!isObject(body)) return { message: text.slice(0, 300) || undefined }
+    if (!isObject(body)) return {}
     const details = Array.isArray(body.details)
       ? body.details
           .filter(isObject)
@@ -135,9 +138,11 @@ const readApiError = async (
       details: details.length > 0 ? details : undefined
     }
   } catch {
-    return { message: text.slice(0, 300) || undefined }
+    return {}
   }
 }
+
+const toSentence = (text: string): string => (/[.!?]$/.test(text) ? text : `${text}.`)
 
 /** What to do next, for the failures the caller can fix. */
 const toHint = (
@@ -173,7 +178,7 @@ const toFailure = async (
     type: 'failed',
     code,
     status: res.status,
-    message: hint ? `${lead} ${hint}` : lead,
+    message: hint ? `${toSentence(lead)} ${hint}` : lead,
     requestId: apiError.requestId,
     details: apiError.details
   }

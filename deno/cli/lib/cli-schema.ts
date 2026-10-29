@@ -286,7 +286,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       {
         flag: '--visibility <visibility>',
         description:
-          'public or private. Creates the API when it is missing; differs from an existing API → conflict.'
+          'public or private. Creates the API when it is missing; without it the API must exist.'
       },
       {
         flag: '--origin-url <url>',
