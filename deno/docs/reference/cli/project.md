@@ -24,9 +24,10 @@ What it does:
             to that API as a revision (POST /v1/apis/{account}/{api}/revisions)
             — schemaStep "revision-added"; an unchanged file adds nothing —
             "unchanged". A URL source is not uploaded — "url-not-uploaded" —
-            and with no source nothing is sent — "no-source". In both, the
-            project binds the hub's latest revision of the API, which can be
-            older than the document at the URL now.
+            and the project binds the hub's latest revision of the API, which
+            can be older than the document at the URL now. With no source,
+            nothing is sent and the project binds that latest revision —
+            "no-source".
             Without client.json#api, register client.json#source —
             /v1/apis/upload (a file) or /v1/apis/import (a URL) — and write the
             resulting @account/slug back into client.json#api — "registered".

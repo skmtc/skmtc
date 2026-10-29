@@ -385,7 +385,8 @@ Deno.test('printCreateResult - text says there was no source', () => {
 Deno.test('printCreateResult - the schema line follows the api line', () => {
   const { out } = capture(() => printCreateResult(CREATED, { format: 'text' }))
 
-  assertEquals(out.slice(3, 5), [
+  const apiLine = out.indexOf('  api: acme/pets')
+  assertEquals(out.slice(apiLine, apiLine + 2), [
     '  api: acme/pets',
     '  schema: added a new revision from the local file'
   ])

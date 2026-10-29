@@ -253,7 +253,7 @@ export const createHeadless = async ({
   // 2. API — use client.json#api, else register the schema and remember it.
   let apiRegistered = false
   let api: Scoped | undefined
-  let schemaStep: SchemaStep = 'no-source'
+  let schemaStep: SchemaStep
   if (contents.api?.trim()) {
     api = parseScopedName(contents.api.trim()) ?? undefined
     if (!api) {
@@ -264,6 +264,8 @@ export const createHeadless = async ({
       const uploaded = await uploadSchemaRevision(contents.source.trim(), api, origin, token)
       if ('error' in uploaded) return fail(projectName, uploaded.error, 'api')
       schemaStep = uploaded.step
+    } else {
+      schemaStep = 'no-source'
     }
   } else {
     if (!contents.source?.trim()) {
