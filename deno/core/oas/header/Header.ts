@@ -101,7 +101,7 @@ export class OasHeader {
   /** Returns schema for the header. Either, `schema` property if
    * definedor value matching `mediaType` from `content` property.
    *
-   * @param mediaType - Optional media type to get schema for, an exact lookup. Omitted: the JSON media type (`application/json`, else the first JSON-like type).
+   * @param mediaType - Optional media type to get schema for, an exact lookup. Omitted: the JSON media type (`application/json`, else the first JSON-like type, else `*\/*`).
    */
   toSchema(mediaType?: string): OasSchema | OasRef<'schema'> {
     if (this.schema) {

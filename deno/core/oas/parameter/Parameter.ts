@@ -273,7 +273,7 @@ export class OasParameter extends OasBase {
    * for the specified media type. When `content` has exactly one entry, its
    * schema is used whatever the media type.
    *
-   * @param mediaType - Media type to extract schema from when using content definitions, an exact lookup. Omitted: the JSON media type (`application/json`, else the first JSON-like type).
+   * @param mediaType - Media type to extract schema from when using content definitions, an exact lookup. Omitted: the JSON media type (`application/json`, else the first JSON-like type, else `*\/*`).
    * @returns The parameter's schema object
    * @throws Error if no schema is found for the specified media type
    */

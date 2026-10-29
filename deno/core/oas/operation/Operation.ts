@@ -151,7 +151,7 @@ export class OasOperation extends OasBase {
    * Maps the request body schema to a custom value using the provided mapping function.
    *
    * @param map - Function to transform the request body schema and metadata
-   * @param mediaType - Media type to extract schema from, an exact lookup. Omitted: the JSON media type `OasRequestBody.toJsonContent` picks.
+   * @param mediaType - Media type to extract schema from, an exact lookup. Omitted: the media type `OasRequestBody.toJsonContent` picks.
    * @returns Mapped value or undefined if no request body schema found
    */
   toRequestBody<V>(
@@ -173,7 +173,7 @@ export class OasOperation extends OasBase {
    * {@link traverseSchema}.
    *
    * @param path - Schema path; `path[0]` must be `'SuccessResponse'` or `'RequestBody'`.
-   * @param mediaType - Media type the body schema is read from, an exact lookup. Omitted: the JSON media type (`application/json`, else the first JSON-like type).
+   * @param mediaType - Media type the body schema is read from, an exact lookup. Omitted: the JSON media type (`application/json`, else the first JSON-like type, else `*\/*`).
    * @returns The schema at the path (may be an unresolved `$ref`).
    * @throws Error on an unknown root, a missing response/request body, or a non-navigable segment.
    */

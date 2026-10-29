@@ -266,25 +266,26 @@ top-level `tags` list, and make sure no tag is its own ancestor.
 
 ### `WILDCARD_MEDIA_TYPE` — warning
 
-**When:** A response or request body has a `content` map whose keys
-are all media type ranges, such as `*/*` or `application/*`. The
-document does not say the format of the body. Thus a JSON lookup
-(`OasResponse.toSchema()`, `OasOperation.traverse`) reads no schema,
-and a generator writes no type for the body. There is one issue for
-each response or body, at its `content` key. A common source is a Swagger 2.0
-operation with no `produces`: the conversion to OpenAPI 3 writes
-`*/*`.
+**When:** A response or request body has a `content` map with a
+`*/*` key and no JSON media type. The lookups without a media type
+(`OasResponse.toSchema()`, `OasOperation.traverse`) then read the
+schema under `*/*` as JSON, but the document does not say the format
+of the body. There is one issue for each response or body, at its
+`content` key. Common sources are a Swagger 2.0 operation with no
+`produces` (the conversion to OpenAPI 3 writes `*/*`) and springdoc,
+which writes `*/*` for every response.
 
 **Remediation:** Name the media type in the source document, for
 example `application/json`, or `produces` in Swagger 2.0.
 
 ### `NO_JSON_MEDIA_TYPE` — debug
 
-**When:** A response or request body has a `content` map with
-specific media types, none of them JSON (for example `text/plain` or
-`application/octet-stream`). The body is usually text or binary, so
-no JSON lookup reads its schema. Read it with an explicit media type:
-`toSchema('text/plain')`.
+**When:** A response or request body has a `content` map with no
+JSON media type and no `*/*` key: specific types (for example
+`text/plain` or `application/octet-stream`) or a narrower range such
+as `application/*`. The body is usually text or binary, so no lookup
+without a media type reads its schema. Read it with an explicit media
+type: `toSchema('text/plain')`.
 
 A media type counts as JSON when its type and subtype, with
 parameters removed, are `application/json` or end in `+json`

@@ -33,17 +33,26 @@ export const isJsonMediaType = (mediaType: string): boolean => {
 export const isMediaTypeRange = (mediaType: string): boolean =>
   toMediaTypeEssence(mediaType).endsWith('/*')
 
-/** The JSON media type chosen from a `content` map, and its schema. */
+/** True when the media type is the full range `*\/*`, parameters and case ignored. */
+export const isAnyMediaType = (mediaType: string): boolean =>
+  toMediaTypeEssence(mediaType) === '*/*'
+
+/** The media type a body is read from (JSON-like, or `*\/*`), and its schema. */
 export type JsonContent = {
   mediaType: string
   schema: OasSchema | OasRef<'schema'> | undefined
 }
 
 /**
- * Choose the JSON media type of a `content` map: `application/json` exactly
- * when it is a key, else the first JSON-like key in document order (see
- * {@link isJsonMediaType}). `undefined` when no key is JSON-like; there is no
- * fall back to a non-JSON type, since a consumer would read that body as JSON.
+ * Choose the media type a body is read from: `application/json` exactly when
+ * it is a key, else the first JSON-like key in document order (see
+ * {@link isJsonMediaType}), else the `*\/*` key. `*\/*` admits JSON, and
+ * documents use it for JSON bodies (springdoc writes it for every response;
+ * a Swagger 2.0 conversion writes it when there is no `produces`); the parser
+ * logs `WILDCARD_MEDIA_TYPE` for every body read this way. `undefined`
+ * otherwise: there is no fall back to a specific non-JSON type or to a
+ * narrower range such as `application/*`, since a consumer would read that
+ * body as JSON.
  */
 export const toJsonContent = (
   content: Record<string, OasMediaType> | undefined
@@ -52,8 +61,11 @@ export const toJsonContent = (
     return undefined
   }
 
+  const mediaTypes = Object.keys(content)
   const mediaType =
-    'application/json' in content ? 'application/json' : Object.keys(content).find(isJsonMediaType)
+    'application/json' in content
+      ? 'application/json'
+      : (mediaTypes.find(isJsonMediaType) ?? mediaTypes.find(isAnyMediaType))
 
   return mediaType === undefined ? undefined : { mediaType, schema: content[mediaType]?.schema }
 }

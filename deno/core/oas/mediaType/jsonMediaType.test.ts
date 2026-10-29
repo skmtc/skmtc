@@ -8,6 +8,7 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import {
   isJsonMediaType,
+  isAnyMediaType,
   isMediaTypeRange,
   toMediaTypeEssence
 } from '@/oas/mediaType/jsonMediaType.ts'
@@ -49,6 +50,13 @@ Deno.test('isJsonMediaType - truth table', () => {
   }
 })
 
+Deno.test('isAnyMediaType - only the full range', () => {
+  assert(isAnyMediaType('*/*'))
+  assert(isAnyMediaType(' */*; q=0.8 '))
+  assert(!isAnyMediaType('application/*'))
+  assert(!isAnyMediaType('application/json'))
+})
+
 Deno.test('isMediaTypeRange - only ranges', () => {
   assert(isMediaTypeRange('*/*'))
   assert(isMediaTypeRange('application/*'))
@@ -84,7 +92,9 @@ const cases = {
   '/text': ['text/plain'],
   '/wild': ['*/*'],
   '/range': ['application/*'],
-  '/rangeAndText': ['*/*', 'text/plain']
+  '/rangeAndText': ['*/*', 'text/plain'],
+  '/wildAfterText': ['text/plain', '*/*; q=0.8'],
+  '/wildAndJson': ['*/*', 'application/json;v=1.0']
 }
 
 const toDocument = (openapi: string) => {
@@ -128,7 +138,8 @@ const toDocument = (openapi: string) => {
                   'X-Json': {
                     content: toContent(['application/vnd.meta+json'])
                   },
-                  'X-Text': { content: toContent(['text/plain']) }
+                  'X-Text': { content: toContent(['text/plain']) },
+                  'X-Wild': { content: toContent(['*/*']) }
                 }
               }
             }
@@ -185,9 +196,12 @@ const expectedPick: Record<string, string | undefined> = {
   '/suffix': 'application/vnd.api+json',
   '/mixed': 'application/problem+json',
   '/text': undefined,
-  '/wild': undefined,
+  // `*/*` is read after the JSON-like keys, never before them.
+  '/wild': '*/*',
   '/range': undefined,
-  '/rangeAndText': undefined
+  '/rangeAndText': '*/*',
+  '/wildAfterText': '*/*; q=0.8',
+  '/wildAndJson': 'application/json;v=1.0'
 }
 
 for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
@@ -238,6 +252,12 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
       markOf(toOperation(document, 'post', '/mixed').traverse(['RequestBody'])),
       'application/problem+json'
     )
+    assertEquals(markOf(toOperation(document, 'get', '/wild').traverse(['SuccessResponse'])), '*/*')
+    assertThrows(
+      () => toOperation(document, 'get', '/range').traverse(['SuccessResponse']),
+      Error,
+      'has no success response schema for a JSON media type'
+    )
     assertThrows(
       () => toOperation(document, 'get', '/text').traverse(['SuccessResponse']),
       Error,
@@ -264,6 +284,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     const text = headers?.['X-Text']?.resolve()
     assertEquals(markOf(json?.toSchema()), 'application/vnd.meta+json')
     assertThrows(() => text?.toSchema(), Error, 'Schema not found for media type application/json')
+    assertEquals(markOf(headers?.['X-Wild']?.resolve().toSchema()), '*/*')
     assertEquals(markOf(text?.toSchema('text/plain')), 'text/plain')
   })
 
@@ -274,48 +295,37 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
       .map(({ level, type, location }) => ({ level, type, location }))
       .sort((a, b) => a.location.localeCompare(b.location))
 
-    assertEquals(mediaTypeIssues, [
-      {
-        level: 'warning',
-        type: 'WILDCARD_MEDIA_TYPE',
-        location: 'TEST:paths:/range:get:responses:200:content'
-      },
-      {
-        level: 'warning',
-        type: 'WILDCARD_MEDIA_TYPE',
-        location: 'TEST:paths:/range:post:requestBody:content'
-      },
-      {
-        level: 'debug',
-        type: 'NO_JSON_MEDIA_TYPE',
-        location: 'TEST:paths:/rangeAndText:get:responses:200:content'
-      },
-      {
-        level: 'debug',
-        type: 'NO_JSON_MEDIA_TYPE',
-        location: 'TEST:paths:/rangeAndText:post:requestBody:content'
-      },
-      {
-        level: 'debug',
-        type: 'NO_JSON_MEDIA_TYPE',
-        location: 'TEST:paths:/text:get:responses:200:content'
-      },
-      {
-        level: 'debug',
-        type: 'NO_JSON_MEDIA_TYPE',
-        location: 'TEST:paths:/text:post:requestBody:content'
-      },
-      {
-        level: 'warning',
-        type: 'WILDCARD_MEDIA_TYPE',
-        location: 'TEST:paths:/wild:get:responses:200:content'
-      },
-      {
-        level: 'warning',
-        type: 'WILDCARD_MEDIA_TYPE',
-        location: 'TEST:paths:/wild:post:requestBody:content'
-      }
-    ])
+    // `/wildAndJson` has a JSON-like key, so it logs nothing. `application/*`
+    // alone is not read by any lookup, so it is the debug issue, not the warning.
+    assertEquals(
+      mediaTypeIssues,
+      [
+        ...['/range', '/text'].flatMap(path => [
+          {
+            level: 'debug',
+            type: 'NO_JSON_MEDIA_TYPE',
+            location: `TEST:paths:${path}:get:responses:200:content`
+          },
+          {
+            level: 'debug',
+            type: 'NO_JSON_MEDIA_TYPE',
+            location: `TEST:paths:${path}:post:requestBody:content`
+          }
+        ]),
+        ...['/rangeAndText', '/wild', '/wildAfterText'].flatMap(path => [
+          {
+            level: 'warning',
+            type: 'WILDCARD_MEDIA_TYPE',
+            location: `TEST:paths:${path}:get:responses:200:content`
+          },
+          {
+            level: 'warning',
+            type: 'WILDCARD_MEDIA_TYPE',
+            location: `TEST:paths:${path}:post:requestBody:content`
+          }
+        ])
+      ].sort((a, b) => a.location.localeCompare(b.location))
+    )
   })
 }
 

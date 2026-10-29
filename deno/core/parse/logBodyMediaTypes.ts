@@ -1,6 +1,6 @@
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
-import { isJsonMediaType, isMediaTypeRange } from '@/oas/mediaType/jsonMediaType.ts'
+import { isAnyMediaType, isJsonMediaType } from '@/oas/mediaType/jsonMediaType.ts'
 
 export type LogBodyMediaTypesArgs = {
   /** The raw `content` map of a response or request body. */
@@ -14,11 +14,13 @@ export type LogBodyMediaTypesArgs = {
 
 /**
  * Log one issue for a response or request body whose non-empty `content` has
- * no JSON media type, so a JSON lookup (`OasResponse.toSchema()`) finds no
- * schema. Shared by every parser version: the rule reads only media type keys.
+ * no JSON media type. Shared by every parser version: the rule reads only
+ * media type keys, and matches the choice of `toJsonContent`.
  *
- * `WILDCARD_MEDIA_TYPE` (`warning`) when every key is a range such as `*\/*`;
- * `NO_JSON_MEDIA_TYPE` (`debug`) when the keys name specific non-JSON types.
+ * `WILDCARD_MEDIA_TYPE` (`warning`) when a key is `*\/*`: the lookups read the
+ * schema under it as JSON, though the document does not say the format.
+ * `NO_JSON_MEDIA_TYPE` (`debug`) otherwise: specific non-JSON types or a
+ * narrower range such as `application/*`, which the lookups do not read.
  */
 export const logBodyMediaTypes = ({
   content,
@@ -34,12 +36,12 @@ export const logBodyMediaTypes = ({
 
   const listed = mediaTypes.map(mediaType => `"${mediaType}"`).join(', ')
 
-  if (mediaTypes.every(isMediaTypeRange)) {
+  if (mediaTypes.some(isAnyMediaType)) {
     context.logIssue({
       key: 'content',
       level: 'warning',
       type: 'WILDCARD_MEDIA_TYPE',
-      message: `Content lists only the media type range ${listed}, so the body format is unknown and a JSON lookup reads no schema`,
+      message: `Content has no JSON media type (${listed}), so the body is read from "*/*" as JSON although the document does not say its format`,
       parent,
       stackTrail
     })
