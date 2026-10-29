@@ -137,12 +137,12 @@ async function registerSchema(
 }
 
 /**
- * Append the local schema to an existing hub API as a version, so the new project
+ * Add the local schema to an existing hub API as a revision, so the new project
  * binds the current local schema. Content-addressed on the hub, so an unchanged
- * schema is a no-op (`deduped`). File sources only — a URL-sourced API re-versions
- * through its source refresh, not an upload.
+ * schema is a no-op (`deduped`). File sources only — a URL-sourced API gets new
+ * revisions through a refetch of its source, not an upload.
  */
-async function uploadSchemaVersion(
+async function uploadSchemaRevision(
   source: string,
   api: Scoped,
   origin: string,
@@ -156,7 +156,7 @@ async function uploadSchemaVersion(
   }
   const filename = source.split('/').pop() ?? 'schema.json'
   const res = await fetch(
-    `${origin}/v1/apis/${api.account}/${api.slug}/versions?filename=${encodeURIComponent(filename)}`,
+    `${origin}/v1/apis/${api.account}/${api.slug}/revisions?filename=${encodeURIComponent(filename)}`,
     {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/octet-stream' },
@@ -165,7 +165,7 @@ async function uploadSchemaVersion(
   )
   if (!res.ok) {
     const text = await res.text()
-    return { error: `schema version upload failed (${res.status}): ${text.slice(0, 300)}` }
+    return { error: `schema revision upload failed (${res.status}): ${text.slice(0, 300)}` }
   }
   await res.text()
   return { ok: true }
@@ -219,8 +219,8 @@ export const createHeadless = async ({
     }
     // Append the current local schema so the project binds it (no-op if unchanged).
     if (contents.source?.trim()) {
-      const versioned = await uploadSchemaVersion(contents.source.trim(), api, origin, token)
-      if ('error' in versioned) return fail(projectName, versioned.error, 'api')
+      const uploaded = await uploadSchemaRevision(contents.source.trim(), api, origin, token)
+      if ('error' in uploaded) return fail(projectName, uploaded.error, 'api')
     }
   } else {
     if (!contents.source?.trim()) {
