@@ -29,6 +29,7 @@
  */
 
 export { ConvertError, convertObj, convertStr, targetVersion } from '@/converter.ts'
+export type { ConvertResultWithInference } from '@/converter.ts'
 
 export { convertFile, convertObjResolve, convertStream, convertUrl } from '@/io.ts'
 
