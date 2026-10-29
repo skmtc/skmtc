@@ -118,7 +118,7 @@ export const runApiPublish = async ({
   originUrl: string | undefined
   tokenFlag: string | undefined
   envFlag: HubEnv | undefined
-}): Promise<ApiPublishResult | { type: 'missing'; discover: string }> => {
+}): Promise<ApiPublishResult | ApiPublishMissing> => {
   const auth = await resolveApiPublishAuth({ tokenFlag, envFlag, api })
   if (auth.type !== 'token') return auth
 
@@ -142,9 +142,11 @@ export type ApiPublishAuth =
       origin: string
       env: HubEnv
     }
-  /** No token and no way to get one: the caller prints the recipe, exit 2. */
-  | { type: 'missing'; discover: string }
+  | ApiPublishMissing
   | ApiPublishFailure
+
+/** No token and no way to get one: the caller prints the recipe, exit 2. */
+export type ApiPublishMissing = { type: 'missing'; discover: string }
 
 /**
  * The token `api publish` sends: `--token`, `$SKMTC_HUB_TOKEN` or the
