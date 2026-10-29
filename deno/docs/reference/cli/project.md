@@ -20,7 +20,10 @@ What it does:
 ```
 1. Stack    deno.json#name — the local stack, which must already be published
             (skmtc publish). Pinned to `latest`, or --stack-version <v>.
-2. API      client.json#api if set; else register client.json#source —
+2. API      client.json#api if set. A file client.json#source is then added
+            to that API as a revision (POST /v1/apis/{account}/{api}/revisions);
+            an unchanged file adds nothing. A URL source is not uploaded.
+            Without client.json#api, register client.json#source —
             /v1/apis/upload (a file) or /v1/apis/import (a URL) — and write the
             resulting @account/slug back into client.json#api.
 3. Project  POST /v1/projects binding the two. A 409 (already exists) STOPS the
@@ -61,9 +64,13 @@ What it does:
 }
 ```
 
-`failed` carries a `stage`: `read` (no client.json / bad name), `stack` (no
-scoped `deno.json#name`), `api` (no schema / register failed), `create` (**409 →
-already exists**, or 422 → stack not published), or `seed`.
+`failed` carries a `stage`:
+
+- `read`: no client.json, or a bad name.
+- `stack`: no scoped `deno.json#name`.
+- `api`: no schema, the register failed, or the schema revision upload failed.
+- `create`: **409 → already exists**, or 422 → stack not published.
+- `seed`.
 
 ## `skmtc project rm <name>`
 

@@ -5,9 +5,11 @@
  * `create <name>` is **create-only** (never updates an existing project — that's
  * `push`, which confirms before overwriting). It composes existing hub endpoints:
  *   1. Stack  — `deno.json#name` (must already be published via `skmtc publish`).
- *   2. API    — `client.json#api` if set; else register `client.json#source`
- *               (`/v1/apis/upload` for a file, `/v1/apis/import` for a URL) and
- *               write the resulting `@account/slug` back into `client.json#api`.
+ *   2. API    — `client.json#api` if set, adding a file `client.json#source` to it
+ *               as a revision (`/v1/apis/{account}/{api}/revisions`, a no-op when
+ *               unchanged); else register `client.json#source` (`/v1/apis/upload`
+ *               for a file, `/v1/apis/import` for a URL) and write the resulting
+ *               `@account/slug` back into `client.json#api`.
  *   3. Project — `POST /v1/projects` binding the two. A 409 means it already
  *               exists → we STOP (no silent overwrite).
  *   4. Seed    — `PUT …/client-config` (+ `…/preview/base-files` with --base-files).
@@ -88,6 +90,31 @@ const fail = (
   stage: 'read' | 'stack' | 'api' | 'create' | 'seed'
 ): CreateResult => ({ type: 'failed', projectName, reason, stage })
 
+const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err))
+
+/** `account/slug` as path segments; `parseScopedName` lets `?` and `#` through. */
+const toScopedPath = ({ account, slug }: Scoped): string =>
+  `${encodeURIComponent(account)}/${encodeURIComponent(slug)}`
+
+const isUrlSource = (source: string): boolean => /^https?:\/\//i.test(source)
+
+/**
+ * Read a file `client.json#source` from the workspace root, with the filename
+ * the hub reads to tell JSON from YAML.
+ */
+async function readSchemaFile(
+  source: string
+): Promise<{ bytes: Uint8Array<ArrayBuffer>; filename: string } | { error: string }> {
+  const path = join(toAbsoluteRootPath(), source)
+  const bytes = await Deno.readFile(path).catch(() => null)
+  if (bytes === null) {
+    return { error: `cannot read schema source "${source}" (${path})` }
+  }
+  // Both separators: a Windows-style `schemas\api.json` has no `/`.
+  const filename = source.split(/[\\/]/).pop() || 'schema.json'
+  return { bytes, filename }
+}
+
 /** Register `client.json#source` as a hub API; returns its `@account/slug`. */
 async function registerSchema(
   source: string,
@@ -96,44 +123,43 @@ async function registerSchema(
   token: string
 ): Promise<{ api: Scoped } | { error: string }> {
   const headers = { authorization: `Bearer ${token}` }
-  const isUrl = /^https?:\/\//i.test(source)
-  let res: Response
-  if (isUrl) {
-    res = await fetch(`${origin}/v1/apis/import`, {
-      method: 'POST',
-      headers: { ...headers, 'content-type': 'application/json' },
-      body: JSON.stringify({ url: source, owner })
-    })
-  } else {
-    const path = join(toAbsoluteRootPath(), source)
-    const bytes = await Deno.readFile(path).catch(() => null)
-    if (bytes === null) {
-      return { error: `cannot read schema source "${source}" (${path})` }
+  try {
+    let res: Response
+    if (isUrlSource(source)) {
+      res = await fetch(`${origin}/v1/apis/import`, {
+        method: 'POST',
+        headers: { ...headers, 'content-type': 'application/json' },
+        body: JSON.stringify({ url: source, owner })
+      })
+    } else {
+      const file = await readSchemaFile(source)
+      if ('error' in file) return file
+      const query = `?owner=${encodeURIComponent(owner)}&filename=${encodeURIComponent(file.filename)}`
+      res = await fetch(`${origin}/v1/apis/upload${query}`, {
+        method: 'POST',
+        headers: { ...headers, 'content-type': 'application/octet-stream' },
+        body: file.bytes
+      })
     }
-    const filename = source.split('/').pop() ?? 'schema.json'
-    const query = `?owner=${encodeURIComponent(owner)}&filename=${encodeURIComponent(filename)}`
-    res = await fetch(`${origin}/v1/apis/upload${query}`, {
-      method: 'POST',
-      headers: { ...headers, 'content-type': 'application/octet-stream' },
-      body: bytes
-    })
-  }
-  if (!res.ok) {
-    const text = await res.text()
-    return {
-      error: `schema register failed (${res.status}): ${text.slice(0, 300)}`
+    if (!res.ok) {
+      const text = await res.text()
+      return {
+        error: `schema register failed (${res.status}): ${text.slice(0, 300)}`
+      }
     }
-  }
-  const body: unknown = await res.json()
-  const api = isObject(body) ? body.api : undefined
-  const ownerHandle = isObject(api) && isObject(api.owner) ? api.owner.handle : undefined
-  const slug = isObject(api) ? api.slug : undefined
-  if (typeof ownerHandle !== 'string' || typeof slug !== 'string') {
-    return {
-      error: 'schema registered but the response had no api owner/slug'
+    const body: unknown = await res.json()
+    const api = isObject(body) ? body.api : undefined
+    const ownerHandle = isObject(api) && isObject(api.owner) ? api.owner.handle : undefined
+    const slug = isObject(api) ? api.slug : undefined
+    if (typeof ownerHandle !== 'string' || typeof slug !== 'string') {
+      return {
+        error: 'schema registered but the response had no api owner/slug'
+      }
     }
+    return { api: { account: ownerHandle, slug } }
+  } catch (err) {
+    return { error: `schema register failed: ${errorMessage(err)}` }
   }
-  return { api: { account: ownerHandle, slug } }
 }
 
 /**
@@ -148,27 +174,27 @@ async function uploadSchemaRevision(
   origin: string,
   token: string
 ): Promise<{ ok: true } | { error: string }> {
-  if (/^https?:\/\//i.test(source)) return { ok: true }
-  const path = join(toAbsoluteRootPath(), source)
-  const bytes = await Deno.readFile(path).catch(() => null)
-  if (bytes === null) {
-    return { error: `cannot read schema source "${source}" (${path})` }
-  }
-  const filename = source.split('/').pop() ?? 'schema.json'
-  const res = await fetch(
-    `${origin}/v1/apis/${api.account}/${api.slug}/revisions?filename=${encodeURIComponent(filename)}`,
-    {
-      method: 'POST',
-      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/octet-stream' },
-      body: bytes
+  if (isUrlSource(source)) return { ok: true }
+  const file = await readSchemaFile(source)
+  if ('error' in file) return file
+  try {
+    const res = await fetch(
+      `${origin}/v1/apis/${toScopedPath(api)}/revisions?filename=${encodeURIComponent(file.filename)}`,
+      {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/octet-stream' },
+        body: file.bytes
+      }
+    )
+    if (!res.ok) {
+      const text = await res.text()
+      return { error: `schema revision upload failed (${res.status}): ${text.slice(0, 300)}` }
     }
-  )
-  if (!res.ok) {
-    const text = await res.text()
-    return { error: `schema revision upload failed (${res.status}): ${text.slice(0, 300)}` }
+    await res.text()
+    return { ok: true }
+  } catch (err) {
+    return { error: `schema revision upload failed: ${errorMessage(err)}` }
   }
-  await res.text()
-  return { ok: true }
 }
 
 export const createHeadless = async ({
@@ -217,7 +243,7 @@ export const createHeadless = async ({
     if (!api) {
       return fail(projectName, `invalid client.json#api "${contents.api}"`, 'api')
     }
-    // Append the current local schema so the project binds it (no-op if unchanged).
+    // Add the current local schema as a revision so the project binds it (no-op if unchanged).
     if (contents.source?.trim()) {
       const uploaded = await uploadSchemaRevision(contents.source.trim(), api, origin, token)
       if ('error' in uploaded) return fail(projectName, uploaded.error, 'api')
@@ -285,7 +311,7 @@ export const createHeadless = async ({
       projectUrl = body.htmlUrl
     }
   } catch (err) {
-    return fail(projectName, err instanceof Error ? err.message : String(err), 'create')
+    return fail(projectName, errorMessage(err), 'create')
   }
 
   // 4. Seed config (+ base files).
@@ -303,7 +329,7 @@ export const createHeadless = async ({
         inputDirs: settings.inputDirs
       }
     }
-    const res = await fetch(`${origin}/v1/projects/${dest.account}/${dest.slug}/client-config`, {
+    const res = await fetch(`${origin}/v1/projects/${toScopedPath(dest)}/client-config`, {
       method: 'PUT',
       headers: { ...headers, 'content-type': 'application/json' },
       body: JSON.stringify(body)
@@ -319,20 +345,17 @@ export const createHeadless = async ({
     const seeded: unknown = await res.json()
     enrichmentCount = isObject(seeded) ? arrayLen(seeded.enrichments) : 0
   } catch (err) {
-    return fail(projectName, err instanceof Error ? err.message : String(err), 'seed')
+    return fail(projectName, errorMessage(err), 'seed')
   }
 
   let baseFilesPushed: number | undefined
   if (baseFiles && Object.keys(baseFiles).length > 0) {
     try {
-      const res = await fetch(
-        `${origin}/v1/projects/${dest.account}/${dest.slug}/preview/base-files`,
-        {
-          method: 'PUT',
-          headers: { ...headers, 'content-type': 'application/json' },
-          body: JSON.stringify({ files: baseFiles })
-        }
-      )
+      const res = await fetch(`${origin}/v1/projects/${toScopedPath(dest)}/preview/base-files`, {
+        method: 'PUT',
+        headers: { ...headers, 'content-type': 'application/json' },
+        body: JSON.stringify({ files: baseFiles })
+      })
       if (!res.ok) {
         const text = await res.text()
         return fail(
@@ -344,7 +367,7 @@ export const createHeadless = async ({
       await res.text()
       baseFilesPushed = Object.keys(baseFiles).length
     } catch (err) {
-      return fail(projectName, err instanceof Error ? err.message : String(err), 'seed')
+      return fail(projectName, errorMessage(err), 'seed')
     }
   }
 
@@ -430,7 +453,7 @@ export const rmHeadless = async ({
     }
   }
   try {
-    const res = await fetch(`${origin}/v1/projects/${dest.account}/${dest.slug}`, {
+    const res = await fetch(`${origin}/v1/projects/${toScopedPath(dest)}`, {
       method: 'DELETE',
       headers: { authorization: `Bearer ${token}` }
     })
@@ -468,7 +491,7 @@ export const rmHeadless = async ({
     return {
       type: 'failed',
       projectName,
-      reason: err instanceof Error ? err.message : String(err),
+      reason: errorMessage(err),
       stage: 'delete'
     }
   }
