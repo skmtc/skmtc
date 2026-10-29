@@ -773,6 +773,34 @@ Deno.test('runApiPublish - in GitHub Actions without the variables the recipe na
   )
 })
 
+Deno.test('runApiPublish - --origin-url under OIDC is refused before any call', async () => {
+  await withOidcRun({}, async calls => {
+    const result = await runApiPublish({ ...RUN, originUrl: 'https://example.test/openapi.yaml' })
+
+    assertEquals(result, {
+      type: 'failed',
+      code: 'bad-request',
+      message:
+        '--origin-url needs `skmtc login` or a PAT: a linked repository token cannot add a source.'
+    })
+    assertEquals(calls, [])
+  })
+})
+
+Deno.test('runApiPublish - --origin-url with an explicit token is still sent', async () => {
+  await withOidcRun({}, async calls => {
+    const result = await runApiPublish({
+      ...RUN,
+      tokenFlag: 'pat-flag',
+      originUrl: 'https://example.test/openapi.yaml'
+    })
+
+    assertEquals(result.type, 'published')
+    assertEquals(calls.length, 1)
+    assertStringIncludes(calls[0].url, '&originUrl=https%3A%2F%2Fexample.test%2Fopenapi.yaml')
+  })
+})
+
 Deno.test('runApiPublish - a GitHub or exchange failure stops before the publish', async () => {
   const cases: Array<{ routes: OidcRoutes; code: string; calls: number }> = [
     {

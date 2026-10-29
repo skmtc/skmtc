@@ -41,7 +41,7 @@ does not make a version.
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `--api <ref>`           | The hub API as `@account/slug`. Required.                                                                                                                                            |
 | `--visibility <v>`      | `public` or `private`. Makes the API when it does not exist.                                                                                                                         |
-| `--origin-url <url>`    | The URL where these bytes are available. The command sends it on both routes. The revisions route records it as the revision source. The create route records it once the hub accepts it. |
+| `--origin-url <url>`    | The URL where these bytes are available. The command sends it on both routes. The revisions route records it as the revision source. The create route records it once the hub accepts it. It needs `--token`, `$SKMTC_HUB_TOKEN` or `skmtc login`, not a linked repository token. |
 | `--token <pat>`         | A personal access token. Without it, the command uses `$SKMTC_HUB_TOKEN`, then the token from `skmtc login`, then, in GitHub Actions, a linked repository token. See [Sign in from GitHub Actions](#sign-in-from-github-actions). |
 | `--env <env>`           | As for [`pull`](pull.md).                                                                                                                                                            |
 
@@ -72,6 +72,8 @@ Before the first run:
 - The API must exist. A linked repository token never makes an API, so
   the first publish needs `skmtc login` or a PAT. A `--visibility` that
   is different from the API's visibility fails with `conflict`.
+- A linked repository token cannot add a source. With `--origin-url`,
+  the command fails with `bad-request` before it gets an OIDC token.
 - The job needs the `id-token: write` permission:
 
 ```yaml
@@ -118,7 +120,7 @@ The command never prints the OIDC token or the linked repository token.
 | `code`             | Cause                                                                     |
 | ------------------ | ------------------------------------------------------------------------- |
 | `file-unreadable`  | The command cannot read `<file>`.                                         |
-| `bad-request`      | 400: an empty or too-large document, or a slug that is not canonical.    |
+| `bad-request`      | 400: an empty or too-large document, or a slug that is not canonical. Also `--origin-url` with a linked repository token, with no `status`: the command refuses it before any request. |
 | `unauthorized`     | 401: the hub refused the token. Run `skmtc login` again.                 |
 | `forbidden`        | 403: the token has no `publish:schemas` scope or no write access.        |
 | `not-found`        | 404: the API does not exist, or you cannot see it.                       |

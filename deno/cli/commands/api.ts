@@ -119,7 +119,7 @@ export const runApiPublish = async ({
   tokenFlag: string | undefined
   envFlag: HubEnv | undefined
 }): Promise<ApiPublishResult | ApiPublishMissing> => {
-  const auth = await resolveApiPublishAuth({ tokenFlag, envFlag, api })
+  const auth = await resolveApiPublishAuth({ tokenFlag, envFlag, api, originUrl })
   if (auth.type !== 'token') return auth
 
   return await apiPublishHeadless({
@@ -157,11 +157,13 @@ export type ApiPublishMissing = { type: 'missing'; discover: string }
 export const resolveApiPublishAuth = async ({
   tokenFlag,
   envFlag,
-  api
+  api,
+  originUrl
 }: {
   tokenFlag: string | undefined
   envFlag: HubEnv | undefined
   api: { account: string; slug: string }
+  originUrl: string | undefined
 }): Promise<ApiPublishAuth> => {
   const resolved = await resolveHubAuth({ tokenFlag, envFlag })
   if (resolved.token) {
@@ -186,6 +188,17 @@ export const resolveApiPublishAuth = async ({
         'Running in GitHub Actions without an OIDC token. Add `permissions: id-token: write` ' +
         'to the job (a pull request from a fork never gets one), or ' +
         `${missingTokenHint[0].toLowerCase()}${missingTokenHint.slice(1)}`
+    }
+  }
+
+  // The hub refuses a source from a linked repository token on both routes.
+  // Refuse it here, before the single-use OIDC token is spent.
+  if (originUrl !== undefined) {
+    return {
+      type: 'failed',
+      code: 'bad-request',
+      message:
+        '--origin-url needs `skmtc login` or a PAT: a linked repository token cannot add a source.'
     }
   }
 
