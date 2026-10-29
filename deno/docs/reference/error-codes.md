@@ -264,6 +264,34 @@ cycle loses its `parent`.
 **Remediation:** Point `parent` at the `name` of another tag in the
 top-level `tags` list, and make sure no tag is its own ancestor.
 
+### `WILDCARD_MEDIA_TYPE` — warning
+
+**When:** A response or request body has a `content` map whose keys
+are all media type ranges, such as `*/*` or `application/*`. The
+document does not say the format of the body. Thus a JSON lookup
+(`OasResponse.toSchema()`, `OasOperation.traverse`) reads no schema,
+and a generator writes no type for the body. There is one issue for
+each response or body, at its `content` key. A common source is a Swagger 2.0
+operation with no `produces`: the conversion to OpenAPI 3 writes
+`*/*`.
+
+**Remediation:** Name the media type in the source document, for
+example `application/json`, or `produces` in Swagger 2.0.
+
+### `NO_JSON_MEDIA_TYPE` — debug
+
+**When:** A response or request body has a `content` map with
+specific media types, none of them JSON (for example `text/plain` or
+`application/octet-stream`). The body is usually text or binary, so
+no JSON lookup reads its schema. Read it with an explicit media type:
+`toSchema('text/plain')`.
+
+A media type counts as JSON when its type and subtype, with
+parameters removed, are `application/json` or end in `+json`
+(`application/json;v=1.0`, `application/vnd.api+json`,
+`application/problem+json`). `text/json`, `application/x-ndjson` and
+names without the suffix, such as `application/vnd.goa.error`, do not.
+
 ## GraphQL parse-issue types
 
 ### `INVALID_TYPE_DEFINITION` — error

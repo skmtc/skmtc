@@ -151,17 +151,17 @@ export class OasOperation extends OasBase {
    * Maps the request body schema to a custom value using the provided mapping function.
    *
    * @param map - Function to transform the request body schema and metadata
-   * @param mediaType - Media type to extract schema from (default: 'application/json')
+   * @param mediaType - Media type to extract schema from, an exact lookup. Omitted: the JSON media type `OasRequestBody.toJsonContent` picks.
    * @returns Mapped value or undefined if no request body schema found
    */
   toRequestBody<V>(
     map: ({ schema, requestBody }: ToRequestBodyMapArgs) => V,
-    mediaType = 'application/json'
+    mediaType?: string
   ): V | undefined {
     const requestBody = this.requestBody?.resolve()
-    const schema = requestBody?.content[mediaType]?.schema
+    const schema = requestBody?.toSchema(mediaType)
 
-    return schema ? map({ schema, requestBody }) : undefined
+    return requestBody && schema ? map({ schema, requestBody }) : undefined
   }
 
   /**
@@ -173,11 +173,11 @@ export class OasOperation extends OasBase {
    * {@link traverseSchema}.
    *
    * @param path - Schema path; `path[0]` must be `'SuccessResponse'` or `'RequestBody'`.
-   * @param mediaType - Media type the body schema is read from (default `application/json`).
+   * @param mediaType - Media type the body schema is read from, an exact lookup. Omitted: the JSON media type (`application/json`, else the first JSON-like type).
    * @returns The schema at the path (may be an unresolved `$ref`).
    * @throws Error on an unknown root, a missing response/request body, or a non-navigable segment.
    */
-  traverse(path: SchemaPath, mediaType: string = 'application/json'): OasSchema | OasRef<'schema'> {
+  traverse(path: SchemaPath, mediaType?: string): OasSchema | OasRef<'schema'> {
     const [root, ...rest] = path
 
     let rootSchema: OasSchema | OasRef<'schema'> | undefined
@@ -196,8 +196,10 @@ export class OasOperation extends OasBase {
 
     if (!rootSchema) {
       const label = root === 'SuccessResponse' ? 'success response' : 'request body'
+      const mediaTypeLabel =
+        mediaType === undefined ? 'a JSON media type' : `media type "${mediaType}"`
       throw new Error(
-        `Operation "${this.method} ${this.path}" has no ${label} schema for media type "${mediaType}"`
+        `Operation "${this.method} ${this.path}" has no ${label} schema for ${mediaTypeLabel}`
       )
     }
 

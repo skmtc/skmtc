@@ -10,6 +10,7 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { logBodyMediaTypes } from '@/parse/logBodyMediaTypes.ts'
 
 export type ToResponsesV3Args = {
   responses: OpenAPIV3.ResponsesObject
@@ -88,6 +89,8 @@ export const toResponseV3 = ({
     toHeadersV3({ headers, stackTrail: st, context })
   )
   const parsedLinks = stackTrail.trace('links', st => toLinksV3({ links, stackTrail: st, context }))
+  logBodyMediaTypes({ content, stackTrail, context, parent: response })
+
   const parsedContent = stackTrail.trace('content', st =>
     toOptionalMediaTypeItemsV3({ content, stackTrail: st, context })
   )

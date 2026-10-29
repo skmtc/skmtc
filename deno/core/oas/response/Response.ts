@@ -7,6 +7,8 @@ import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { OasBase } from '@/types/OasBase.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
+import { toContentSchema, toJsonContent } from '@/oas/mediaType/jsonMediaType.ts'
+import type { JsonContent } from '@/oas/mediaType/jsonMediaType.ts'
 
 /**
  * Constructor fields for {@link OasResponse}.
@@ -239,8 +241,20 @@ export class OasResponse extends OasBase {
     return this
   }
 
-  toSchema(mediaType: string = 'application/json'): OasSchema | OasRef<'schema'> | undefined {
-    return this.content?.[mediaType]?.schema
+  /**
+   * The body schema for `mediaType`, an exact key lookup. Without
+   * `mediaType`, the schema of the JSON media type that {@link toJsonContent}
+   * picks: `application/json`, else the first JSON-like type such as
+   * `application/json;v=1.0` or `application/vnd.api+json`. `undefined`
+   * when there is no such media type or it has no schema.
+   */
+  toSchema(mediaType?: string): OasSchema | OasRef<'schema'> | undefined {
+    return toContentSchema(this.content, mediaType)
+  }
+
+  /** The JSON media type this response is read from, and its schema. See {@link toJsonContent}. */
+  toJsonContent(): JsonContent | undefined {
+    return toJsonContent(this.content)
   }
 
   toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ResponseObject & { summary?: string } {

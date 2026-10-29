@@ -4,6 +4,7 @@ import type { OasExample } from '../example/Example.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
+import { toContentSchema } from '@/oas/mediaType/jsonMediaType.ts'
 
 /**
  * Constructor fields for {@link OasHeader}.
@@ -100,17 +101,17 @@ export class OasHeader {
   /** Returns schema for the header. Either, `schema` property if
    * definedor value matching `mediaType` from `content` property.
    *
-   * @param mediaType - Optional media type to get schema for. Defaults to `application/json`
+   * @param mediaType - Optional media type to get schema for, an exact lookup. Omitted: the JSON media type (`application/json`, else the first JSON-like type).
    */
-  toSchema(mediaType: string = 'application/json'): OasSchema | OasRef<'schema'> {
+  toSchema(mediaType?: string): OasSchema | OasRef<'schema'> {
     if (this.schema) {
       return this.schema
     }
 
-    const schema = this.content?.[mediaType]?.schema
+    const schema = toContentSchema(this.content, mediaType)
 
     if (!schema) {
-      throw new Error(`Schema not found for media type ${mediaType}`)
+      throw new Error(`Schema not found for media type ${mediaType ?? 'application/json'}`)
     }
 
     return schema

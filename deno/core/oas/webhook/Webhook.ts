@@ -138,13 +138,13 @@ export class OasWebhook extends OasBase {
   }
 
   /**
-   * The schema of the received payload for `mediaType` (default
-   * `application/json`) — the inbound body shape a handler generator emits a
-   * type for. `undefined` when there is no body or no schema for that media
-   * type.
+   * The schema of the received payload for `mediaType`, an exact lookup —
+   * the inbound body shape a handler generator writes a type for. Without
+   * `mediaType`, the JSON media type `OasRequestBody.toJsonContent` picks.
+   * `undefined` when there is no body or no schema for that media type.
    */
-  toPayloadSchema(mediaType = 'application/json'): OasSchema | OasRef<'schema'> | undefined {
-    return this.toPayload()?.content[mediaType]?.schema
+  toPayloadSchema(mediaType?: string): OasSchema | OasRef<'schema'> | undefined {
+    return this.toPayload()?.toSchema(mediaType)
   }
 
   /**

@@ -1190,6 +1190,12 @@
                             },
                             {
                               "const": "UNSUPPORTED_OPERATION_METHOD"
+                            },
+                            {
+                              "const": "WILDCARD_MEDIA_TYPE"
+                            },
+                            {
+                              "const": "NO_JSON_MEDIA_TYPE"
                             }
                           ]
                         },
@@ -1279,6 +1285,12 @@
                             },
                             {
                               "const": "UNSUPPORTED_OPERATION_METHOD"
+                            },
+                            {
+                              "const": "WILDCARD_MEDIA_TYPE"
+                            },
+                            {
+                              "const": "NO_JSON_MEDIA_TYPE"
                             }
                           ]
                         },
@@ -1367,6 +1379,12 @@
                             },
                             {
                               "const": "UNSUPPORTED_OPERATION_METHOD"
+                            },
+                            {
+                              "const": "WILDCARD_MEDIA_TYPE"
+                            },
+                            {
+                              "const": "NO_JSON_MEDIA_TYPE"
                             }
                           ]
                         },
