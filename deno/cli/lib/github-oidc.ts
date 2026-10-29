@@ -99,8 +99,8 @@ const toExchangeLead = (
     case 403:
       return (
         `No linked repository of @${api.account}/${api.slug} matches this workflow run, ` +
-        'or the API does not exist yet. A linked repository must be public and name this ' +
-        'workflow file (and environment, if set). The first publish needs `skmtc login` or a PAT.'
+        'or the API does not exist yet. The link must name this repository and this workflow ' +
+        'file (and environment, if set). The first publish needs `skmtc login` or a PAT.'
       )
     case 503:
       return "The hub cannot check GitHub's signing keys right now (503). Run the job again in a few minutes."

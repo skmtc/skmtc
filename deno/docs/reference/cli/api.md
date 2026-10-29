@@ -66,9 +66,10 @@ OIDC token.
 
 Before the first run:
 
-- An admin of the API links the repository on skmtc.dev. The repository
-  must be public. The link names the workflow file, and an environment
-  if you set one.
+- An admin of the API links the repository on skmtc.dev. The link names
+  the workflow file, and an environment if you set one. The first run of
+  the workflow confirms the link. A repository that you rename before
+  that run does not match.
 - The API must exist. A linked repository token never makes an API, so
   the first publish needs `skmtc login` or a PAT. A `--visibility` that
   is different from the API's visibility fails with `conflict`.
@@ -129,7 +130,7 @@ The command never prints the OIDC token or the linked repository token.
 | `network`          | The command cannot reach the hub.                                         |
 | `hub-error`        | Another answer from the hub.                                              |
 | `oidc-token`       | GitHub gave no OIDC token: an error, an answer with no token, or no connection. |
-| `oidc-exchange`    | The hub gave no linked repository token for the OIDC token. A `403` means that no linked repository matches this workflow run, that the repository is not public, or that the API does not exist. |
+| `oidc-exchange`    | The hub gave no linked repository token for the OIDC token. A `403` means that no linked repository matches this workflow run, or that the API does not exist. |
 
 `status` is there when the hub answered. It is not there for
 `oidc-token`, because the hub did not answer. `requestId` and `details`

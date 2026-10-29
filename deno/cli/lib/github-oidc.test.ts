@@ -297,7 +297,7 @@ Deno.test('exchangeLinkedRepositoryToken - each refusal has its text, status and
       },
       message:
         'No linked repository of @acme/pets matches this workflow run, or the API does not ' +
-        'exist yet. A linked repository must be public and name this workflow file (and ' +
+        'exist yet. The link must name this repository and this workflow file (and ' +
         'environment, if set). The first publish needs `skmtc login` or a PAT.'
     },
     {
@@ -330,6 +330,10 @@ Deno.test('exchangeLinkedRepositoryToken - each refusal has its text, status and
           requestId: `req-${status}`,
           details: undefined
         })
+
+        if (status === 403) {
+          assertEquals(message.includes('public'), false)
+        }
       }
     )
   }
