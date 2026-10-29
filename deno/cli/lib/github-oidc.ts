@@ -3,8 +3,8 @@
  *
  * The job's OIDC token is exchanged at the hub for a short-lived linked
  * repository token, scoped to one API. Neither token is ever printed: a
- * failure echoes at most the first 200 characters of an error body, never a
- * success body.
+ * GitHub failure echoes at most the first 200 characters of its body, and a
+ * hub failure echoes only the hub's `message`, `requestId` and `details`.
  */
 
 import * as v from 'valibot'
