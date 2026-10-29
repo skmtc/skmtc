@@ -273,6 +273,39 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     agentMode: 'full'
   },
   {
+    name: 'api publish',
+    description:
+      'Publish an OpenAPI document to skmtc-hub as a revision of the API @account/slug. Needs no Skmtc workspace; <file> is relative to the current directory. Without --visibility the API must already exist; with --visibility it is created when missing.',
+    args: ['[file]'],
+    flags: [
+      ...AGENT_MODE_FLAGS,
+      {
+        flag: '--api <ref>',
+        description: 'The hub API as @account/slug. Required.'
+      },
+      {
+        flag: '--visibility <visibility>',
+        description:
+          'public or private. Creates the API when it is missing; without it the API must exist.'
+      },
+      {
+        flag: '--origin-url <url>',
+        description:
+          'Where these bytes can be fetched. The revisions route records it as the revision source; the create route (--visibility) records it once the hub accepts it.'
+      },
+      {
+        flag: '--token <pat>',
+        description:
+          'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
+      },
+      {
+        flag: '--env <env>',
+        description: ENV_DESCRIPTION
+      }
+    ],
+    agentMode: 'full'
+  },
+  {
     name: 'login',
     description:
       'Sign in to skmtc-hub in the browser: prints a link and a code to approve, then stores the token. --with-token stores a personal access token from stdin instead. When a token for the environment is already stored, reports the logged-in handle.',

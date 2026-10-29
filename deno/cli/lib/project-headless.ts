@@ -19,7 +19,7 @@
 
 import { join } from '@std/path/join'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
-import { parseScopedName } from '@/lib/scoped-name.ts'
+import { parseScopedName, toScopedPath } from '@/lib/scoped-name.ts'
 import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -91,10 +91,6 @@ const fail = (
 ): CreateResult => ({ type: 'failed', projectName, reason, stage })
 
 const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err))
-
-/** `account/slug` as path segments; `parseScopedName` lets `?` and `#` through. */
-const toScopedPath = ({ account, slug }: Scoped): string =>
-  `${encodeURIComponent(account)}/${encodeURIComponent(slug)}`
 
 const isUrlSource = (source: string): boolean => /^https?:\/\//i.test(source)
 

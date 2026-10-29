@@ -81,6 +81,20 @@ Deno.test('cli-schema - toArgsString handles empty args', () => {
   )
 })
 
+Deno.test('cli-schema - api publish declares an optional <file> and its hub flags', () => {
+  // A CI run discovers the command through agent-context. The file is
+  // optional in Cliffy so a missing one reaches the recipe; the schema
+  // must say the same.
+  const apiPublish = getCommandDescriptor('api publish')
+
+  assertEquals(apiPublish.args, ['[file]'])
+  assertEquals(apiPublish.agentMode, 'full')
+  assertEquals(
+    apiPublish.flags.map(f => f.flag.split(' ')[0]),
+    ['--json', '--no-input', '--api', '--visibility', '--origin-url', '--token', '--env']
+  )
+})
+
 Deno.test('cli-schema - doctor declares --offline, which agents discover through this schema', () => {
   // `agent-context` prints these descriptors verbatim, and the audience
   // for `--offline` is an automated run — which reads the schema, not
