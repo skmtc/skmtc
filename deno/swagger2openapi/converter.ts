@@ -840,12 +840,13 @@ const inferMediaTypes = (
 ): { mediaTypes: string[]; schemaKind: ResponseSchemaKind | undefined } => {
   summary.responses += 1
   const exampleTypes = isJsonObject(response.examples) ? Object.keys(response.examples) : []
+  const schemaKind = toSchemaKind(response.schema, openapi)
   if (exampleTypes.length) {
     summary.fromExamples += 1
     for (const mediaType of exampleTypes) countMediaType(summary, mediaType)
-    return { mediaTypes: exampleTypes, schemaKind: undefined }
+    // The kind still decides the binary rewrite of a `$ref` to a `file` schema.
+    return { mediaTypes: exampleTypes, schemaKind }
   }
-  const schemaKind = toSchemaKind(response.schema, openapi)
   summary.schemaKinds[schemaKind] += 1
   const mediaType = mediaTypeOfKind[schemaKind]
   countMediaType(summary, mediaType)
@@ -1569,6 +1570,12 @@ export const prepare = (swagger: JsonObject, options: ConvertOptions): Prepared 
 // --- public API -----------------------------------------------------------------
 
 /**
+ * A {@link ConvertResult} as the converters in this package return it, with
+ * the media type summary always set.
+ */
+export type ConvertResultWithInference = ConvertResult & { mediaTypeInference: MediaTypeInference }
+
+/**
  * Assemble a {@link ConvertResult}.
  *
  * @internal Exported for `./io.ts`; not part of the package's public API.
@@ -1578,7 +1585,7 @@ export const toResult = (
   externals: External[],
   sourceYaml: boolean,
   mediaTypeInference: MediaTypeInference
-): ConvertResult => ({
+): ConvertResultWithInference => ({
   openapi,
   externals,
   sourceYaml,
@@ -1591,7 +1598,10 @@ export const toResult = (
  * `convertObjResolve` (from `@skmtc/swagger2openapi`) for external reference
  * resolution.
  */
-export const convertObj = (swagger: JsonValue, options: ConvertOptions = {}): ConvertResult => {
+export const convertObj = (
+  swagger: JsonValue,
+  options: ConvertOptions = {}
+): ConvertResultWithInference => {
   if (!isJsonObject(swagger)) throw new ConvertError('Document must be an object')
   if (options.resolve) {
     throwError('convertObj is synchronous; use convertObjResolve when options.resolve is set')
@@ -1631,10 +1641,5 @@ export const convertStr = (str: string, options: ConvertOptions = {}): ConvertRe
   const parsed = parseInput(str)
   if (!parsed) throw new ConvertError('Could not parse the input as JSON or YAML')
   const result = convertObj(parsed.value, options)
-  return toResult(
-    result.openapi,
-    result.externals,
-    parsed.yaml,
-    result.mediaTypeInference ?? toMediaTypeInference()
-  )
+  return toResult(result.openapi, result.externals, parsed.yaml, result.mediaTypeInference)
 }

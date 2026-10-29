@@ -23,6 +23,7 @@ import {
 import { clone, jptr, recurse, type RecurseState } from '@/reftools.ts'
 import {
   ConvertError,
+  type ConvertResultWithInference,
   main,
   parseInput,
   prepare,
@@ -171,7 +172,7 @@ const resolveExternalRefs = async (
 export const convertObjResolve = async (
   swagger: JsonValue,
   options: ConvertOptions = {}
-): Promise<ConvertResult> => {
+): Promise<ConvertResultWithInference> => {
   if (!isJsonObject(swagger)) throw new ConvertError('Document must be an object')
   const externals: External[] = []
   const { openapi, isV2 } = prepare(swagger, options)
@@ -185,12 +186,7 @@ const convertStrResolve = async (str: string, options: ConvertOptions): Promise<
   const parsed = parseInput(str)
   if (!parsed) throw new ConvertError('Could not parse the input as JSON or YAML')
   const result = await convertObjResolve(parsed.value, options)
-  return toResult(
-    result.openapi,
-    result.externals,
-    parsed.yaml,
-    result.mediaTypeInference ?? toMediaTypeInference()
-  )
+  return toResult(result.openapi, result.externals, parsed.yaml, result.mediaTypeInference)
 }
 
 /** Reads, parses, and converts a local file (resolving external `$ref`s when requested). */

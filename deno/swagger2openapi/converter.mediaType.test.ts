@@ -170,6 +170,18 @@ Deno.test('no produces - a $ref to a file schema is a binary string too', () => 
   })
 })
 
+Deno.test('no produces - a $ref to a file schema under example media types is a binary string', () => {
+  // The example names choose the media type, so the schema kind used to be
+  // skipped and the `$ref` to `type: file` stayed in place.
+  const result = convertOne({
+    schema: { $ref: '#/definitions/Report' },
+    definitions: { Report: { type: 'file' } },
+    examples: { 'application/pdf': 'x' }
+  })
+  assertEquals(result.mediaTypes, ['application/pdf'])
+  assertEquals(obj(result.content['application/pdf']).schema, { type: 'string', format: 'binary' })
+})
+
 Deno.test('no produces - a string schema keeps */*', () => {
   // A bare string could be text/plain or a JSON string; nothing says which.
   const result = convertOne({ schema: { type: 'string' } })
