@@ -290,7 +290,8 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       },
       {
         flag: '--origin-url <url>',
-        description: 'Where these bytes can be fetched; the hub records it as the revision source.'
+        description:
+          'Where these bytes can be fetched. The revisions route records it as the revision source; the create route (--visibility) records it once the hub accepts it.'
       },
       {
         flag: '--token <pat>',

@@ -86,7 +86,8 @@ The command exits `2` when you give no `<file>`, no `--api`, an
 | `network`          | The command cannot reach the hub.                                         |
 | `hub-error`        | Another answer from the hub.                                              |
 
-`status`, `requestId` and `details` are there when the hub answered.
+`status` is there when the hub answered. `requestId` and `details` are
+there when its answer carried them.
 
 ## See also
 

@@ -317,6 +317,23 @@ Deno.test('apiPublishHeadless - a non-JSON error body falls back to the status, 
   )
 })
 
+Deno.test('apiPublishHeadless - a 201 with an unexpected body is a hub-error that keeps the status', async () => {
+  const root = await makeFolder()
+
+  await withFolder(
+    root,
+    root,
+    () => json({ unexpected: true }, 201),
+    async () => {
+      const result = await apiPublishHeadless(BASE)
+
+      if (result.type !== 'failed') throw new Error('expected a failed result')
+      assertEquals(result.code, 'hub-error')
+      assertEquals(result.status, 201)
+    }
+  )
+})
+
 Deno.test('apiPublishHeadless - a network error is a network failure', async () => {
   const root = await makeFolder()
 

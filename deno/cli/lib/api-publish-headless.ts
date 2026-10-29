@@ -185,7 +185,7 @@ const toFailure = async (
 }
 
 /** Read the success body (`ImportApiResult`). */
-const toPublished = (body: unknown, origin: string): ApiPublishResult => {
+const toPublished = (body: unknown, status: number, origin: string): ApiPublishResult => {
   const api = isObject(body) && isObject(body.api) ? body.api : undefined
   const owner = api && isObject(api.owner) ? api.owner.handle : undefined
   const slug = api?.slug
@@ -202,6 +202,7 @@ const toPublished = (body: unknown, origin: string): ApiPublishResult => {
     return {
       type: 'failed',
       code: 'hub-error',
+      status,
       message: 'the hub accepted the document, but its answer had no API or revision'
     }
   }
@@ -251,7 +252,7 @@ export const apiPublishHeadless = async ({
     })
     if (!res.ok) return await toFailure(res, { api, visibility, env })
     const body: unknown = await res.json().catch(() => undefined)
-    return toPublished(body, origin)
+    return toPublished(body, res.status, origin)
   } catch (err) {
     return {
       type: 'failed',

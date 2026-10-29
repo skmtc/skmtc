@@ -601,7 +601,7 @@ const run = async () => {
     )
     .option(
       '--origin-url <url:string>',
-      'Where these bytes can be fetched; the hub records it as the revision source.'
+      'Where these bytes can be fetched. The revisions route records it as the revision source; the create route (--visibility) records it once the hub accepts it.'
     )
     .option(
       '--token <token:string>',
