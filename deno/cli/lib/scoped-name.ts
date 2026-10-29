@@ -10,3 +10,7 @@ export const parseScopedName = (spec: string): { account: string; slug: string }
   if (!match) return null
   return { account: match[1], slug: match[2] }
 }
+
+/** `account/slug` as path segments; `parseScopedName` lets `?` and `#` through. */
+export const toScopedPath = ({ account, slug }: { account: string; slug: string }): string =>
+  `${encodeURIComponent(account)}/${encodeURIComponent(slug)}`

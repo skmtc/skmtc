@@ -2,7 +2,7 @@
 
 > Sign in to skmtc-hub in the browser, or store a personal access token
 > (PAT) from stdin. The stored token becomes the default credential for
-> `publish`, `push`, `pull` and `project`.
+> `publish`, `push`, `pull`, `project` and `api`.
 
 `skmtc login` uses the OAuth device authorization grant (RFC 8628). It
 prints a link and a code. You open the link, sign in to the hub, check
@@ -119,7 +119,7 @@ waits for the command to exit.
 
 ## Token resolution elsewhere
 
-Every hub command (`publish`, `push`, `pull`, `project`) resolves the
+Every hub command (`publish`, `push`, `pull`, `project`, `api`) resolves the
 credential through one helper with this precedence:
 
 1. `--token` flag (explicit beats ambient)

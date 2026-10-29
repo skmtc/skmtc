@@ -51,7 +51,7 @@ The CLI features a React/Ink-based interactive interface:
 
 ### Authentication
 
-The hub commands (`publish`, `push`, `pull`, `project`) take a skmtc-hub
+The hub commands (`publish`, `push`, `pull`, `project`, `api`) take a skmtc-hub
 token: an OAuth token from `skmtc login`, or a personal access token
 (PAT). Resolution order: `--token`, then `$SKMTC_HUB_TOKEN`, then the
 store written by `skmtc login` (`~/.skmtc/auth.json`, mode 0600).

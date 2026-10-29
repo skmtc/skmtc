@@ -58,6 +58,7 @@ directly).
 | [`push`](../reference/cli/push.md) | project config | local `client.json` → hub project |
 | [`pull`](../reference/cli/pull.md) | project config | hub project → local `client.json` |
 | [`project`](../reference/cli/project.md) | project | create / remove a hub project from the local setup |
+| [`api publish`](../reference/cli/api.md) | API revision | OpenAPI document → new revision of a hub API |
 
 ## The division of labor
 

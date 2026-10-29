@@ -1,6 +1,7 @@
 import { Command, EnumType } from '@cliffy/command'
 import { EnvVariableError } from '@/lib/env.ts'
 import { HUB_ENVS } from '@/lib/hub-env.ts'
+import { API_VISIBILITIES } from '@/lib/api-publish-headless.ts'
 import { assertJsrReachable, JsrRegistryUnreachableError } from '@/lib/jsr-registry.ts'
 import { DeviceLoginError } from '@/lib/device-login.ts'
 import {
@@ -51,7 +52,9 @@ const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
   'push',
   'pull',
   // project fork/rm manage hub projects; they never touch JSR.
-  'project'
+  'project',
+  // api publish uploads a document to the hub; it never touches JSR.
+  'api'
 ])
 
 const shouldSkipRegistryCheck = (args: readonly string[]): boolean => {
@@ -86,6 +89,7 @@ const run = async () => {
 
   const generatorType = new EnumType(['operation', 'model'])
   const hubEnv = new EnumType(HUB_ENVS)
+  const apiVisibility = new EnumType(API_VISIBILITIES)
   const generatorLanguage = new EnumType(['typescript', 'kotlin'])
 
   // The descriptors in `lib/cli-schema.ts` are the source of truth for
@@ -584,6 +588,51 @@ const run = async () => {
     .command('create', projectCreateCommand)
     .command('rm', projectRmCommand)
 
+  const apiPublishCommand = new Command()
+    .description(getCommandDescriptor('api publish').description)
+    .arguments('[file:string]')
+    .option('--no-input', NO_INPUT_DESC)
+    .option('--json', JSON_DESC)
+    .option('--api <ref:string>', 'The hub API as @account/slug. Required.')
+    .type('visibility', apiVisibility)
+    .option(
+      '--visibility <visibility:visibility>',
+      'public or private. Creates the API when it is missing; without it the API must exist.'
+    )
+    .option(
+      '--origin-url <url:string>',
+      'Where these bytes can be fetched; the hub records it as the revision source.'
+    )
+    .option(
+      '--token <token:string>',
+      'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
+    )
+    .type('hubEnv', hubEnv)
+    .option('--env <env:hubEnv>', ENV_DESC)
+    .action(async ({ json, input, api, visibility, originUrl, token, env }, file) => {
+      const { renderApiPublish } = await import('@/commands/api.ts')
+      await renderApiPublish({
+        file,
+        api,
+        visibility,
+        originUrl,
+        token,
+        env,
+        jsonFlag: json,
+        noInputFlag: input === false
+      })
+    })
+
+  const apiCommand = new Command()
+    .description('Manage hub APIs (publish).')
+    .action(() => {
+      console.error('Usage: skmtc api <subcommand>')
+      console.error('Subcommands:')
+      console.error('  publish <file> --api @account/slug   Add a document as an API revision.')
+      Deno.exit(2)
+    })
+    .command('publish', apiPublishCommand)
+
   const migrateVariantsCommand = new Command()
     .description(
       "Migrate a project's client.json to the variant-aware shape introduced in @skmtc/core@0.5.0. " +
@@ -642,6 +691,7 @@ const run = async () => {
     .command('push', pushCommand)
     .command('pull', pullCommand)
     .command('project', projectCommand)
+    .command('api', apiCommand)
     .command('login', loginCommand)
     .command('logout', logoutCommand)
     .command('dev', devCommand)
