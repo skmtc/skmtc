@@ -21,11 +21,15 @@ What it does:
 1. Stack    deno.json#name — the local stack, which must already be published
             (skmtc publish). Pinned to `latest`, or --stack-version <v>.
 2. API      client.json#api if set. A file client.json#source is then added
-            to that API as a revision (POST /v1/apis/{account}/{api}/revisions);
-            an unchanged file adds nothing. A URL source is not uploaded.
+            to that API as a revision (POST /v1/apis/{account}/{api}/revisions)
+            — schemaStep "revision-added"; an unchanged file adds nothing —
+            "unchanged". A URL source is not uploaded — "url-not-uploaded" —
+            and with no source nothing is sent — "no-source". In both, the
+            project binds the hub's latest revision of the API, which can be
+            older than the document at the URL now.
             Without client.json#api, register client.json#source —
             /v1/apis/upload (a file) or /v1/apis/import (a URL) — and write the
-            resulting @account/slug back into client.json#api.
+            resulting @account/slug back into client.json#api — "registered".
 3. Project  POST /v1/projects binding the two. A 409 (already exists) STOPS the
             command — nothing is overwritten.
 4. Seed     PUT …/client-config (config) + …/preview/base-files (--base-files).
@@ -58,6 +62,7 @@ What it does:
   "stack": "acme/petstore-stack",
   "api": { "account": "acme", "slug": "petstore" },
   "apiRegistered": false,
+  "schemaStep": "revision-added",
   "enrichmentCount": 19,
   "remoteWritten": true,
   "url": "https://…/acme/projects/petstore-sandbox"
