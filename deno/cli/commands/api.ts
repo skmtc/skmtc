@@ -134,7 +134,7 @@ export const runApiPublish = async ({
   })
 }
 
-export type ApiPublishAuth =
+type ApiPublishAuth =
   | {
       type: 'token'
       token: string
@@ -154,7 +154,7 @@ export type ApiPublishMissing = { type: 'missing'; discover: string }
  * gives a token, and the command runs in GitHub Actions, the job's OIDC
  * token is exchanged for a linked repository token.
  */
-export const resolveApiPublishAuth = async ({
+const resolveApiPublishAuth =async ({
   tokenFlag,
   envFlag,
   api,

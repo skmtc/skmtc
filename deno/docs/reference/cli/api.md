@@ -129,7 +129,7 @@ The command never prints the OIDC token or the linked repository token.
 | `network`          | The command cannot reach the hub.                                         |
 | `hub-error`        | Another answer from the hub.                                              |
 | `oidc-token`       | GitHub gave no OIDC token: an error, an answer with no token, or no connection. |
-| `oidc-exchange`    | The hub gave no linked repository token for the OIDC token. A `403` means that no linked repository matches this workflow run, or that the API does not exist. |
+| `oidc-exchange`    | The hub gave no linked repository token for the OIDC token. A `403` means that no linked repository matches this workflow run, that the repository is not public, or that the API does not exist. |
 
 `status` is there when the hub answered. It is not there for
 `oidc-token`, because the hub did not answer. `requestId` and `details`
