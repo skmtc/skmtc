@@ -7,9 +7,11 @@
  *   1. Stack  — `deno.json#name` (must already be published via `skmtc publish`).
  *   2. API    — `client.json#api` if set, adding a file `client.json#source` to it
  *               as a revision (`/v1/apis/{account}/{api}/revisions`, a no-op when
- *               unchanged); else register `client.json#source` (`/v1/apis/upload`
- *               for a file, `/v1/apis/import` for a URL) and write the resulting
- *               `@account/slug` back into `client.json#api`.
+ *               unchanged; a URL source is not uploaded); else register
+ *               `client.json#source` (`/v1/apis/upload` for a file,
+ *               `/v1/apis/import` for a URL) and write the resulting
+ *               `@account/slug` back into `client.json#api`. The result's
+ *               `schemaStep` names which branch ran.
  *   3. Project — `POST /v1/projects` binding the two. A 409 means it already
  *               exists → we STOP (no silent overwrite).
  *   4. Seed    — `PUT …/client-config` (+ `…/preview/base-files` with --base-files).
@@ -61,6 +63,21 @@ type CreateArgs = {
   baseFiles?: Record<string, string>
 }
 
+/**
+ * What step 2 did with `client.json#source`:
+ * - `registered`: no `client.json#api`; the source was registered as a new API.
+ * - `revision-added`: the file was added to `client.json#api` as a new revision.
+ * - `unchanged`: the hub already had the file (`deduped`).
+ * - `url-not-uploaded`: a URL source; the project binds the API's latest revision.
+ * - `no-source`: no `client.json#source`; the project binds the API's latest revision.
+ */
+export type SchemaStep =
+  | 'registered'
+  | 'revision-added'
+  | 'unchanged'
+  | 'url-not-uploaded'
+  | 'no-source'
+
 export type CreateResult =
   | {
       type: 'created'
@@ -71,6 +88,7 @@ export type CreateResult =
       api: Scoped
       /** Whether the API was registered now (vs taken from client.json#api). */
       apiRegistered: boolean
+      schemaStep: SchemaStep
       enrichmentCount: number
       baseFilesPushed?: number
       /** Whether `api`/`project` were written back into client.json. */
@@ -160,16 +178,18 @@ async function registerSchema(
 /**
  * Add the local schema to an existing hub API as a revision, so the new project
  * binds the current local schema. Content-addressed on the hub, so an unchanged
- * schema is a no-op (`deduped`). File sources only — a URL-sourced API gets new
- * revisions through a refetch of its source, not an upload.
+ * schema is a no-op (`deduped`), reported as `unchanged`. File sources only — a
+ * URL-sourced API gets new revisions through a refetch of its source, not an
+ * upload, so a URL source returns `url-not-uploaded` without contacting the hub.
+ * A 201 body without `deduped: true` counts as `revision-added`.
  */
 async function uploadSchemaRevision(
   source: string,
   api: Scoped,
   origin: string,
   token: string
-): Promise<{ ok: true } | { error: string }> {
-  if (isUrlSource(source)) return { ok: true }
+): Promise<{ step: 'revision-added' | 'unchanged' | 'url-not-uploaded' } | { error: string }> {
+  if (isUrlSource(source)) return { step: 'url-not-uploaded' }
   const file = await readSchemaFile(source)
   if ('error' in file) return file
   try {
@@ -185,8 +205,8 @@ async function uploadSchemaRevision(
       const text = await res.text()
       return { error: `schema revision upload failed (${res.status}): ${text.slice(0, 300)}` }
     }
-    await res.text()
-    return { ok: true }
+    const body: unknown = await res.json().catch(() => null)
+    return { step: isObject(body) && body.deduped === true ? 'unchanged' : 'revision-added' }
   } catch (err) {
     return { error: `schema revision upload failed: ${errorMessage(err)}` }
   }
@@ -233,6 +253,7 @@ export const createHeadless = async ({
   // 2. API — use client.json#api, else register the schema and remember it.
   let apiRegistered = false
   let api: Scoped | undefined
+  let schemaStep: SchemaStep
   if (contents.api?.trim()) {
     api = parseScopedName(contents.api.trim()) ?? undefined
     if (!api) {
@@ -242,6 +263,9 @@ export const createHeadless = async ({
     if (contents.source?.trim()) {
       const uploaded = await uploadSchemaRevision(contents.source.trim(), api, origin, token)
       if ('error' in uploaded) return fail(projectName, uploaded.error, 'api')
+      schemaStep = uploaded.step
+    } else {
+      schemaStep = 'no-source'
     }
   } else {
     if (!contents.source?.trim()) {
@@ -257,6 +281,7 @@ export const createHeadless = async ({
     }
     api = registered.api
     apiRegistered = true
+    schemaStep = 'registered'
   }
 
   // 3. Project — create-only. A 409 means it exists; STOP (no overwrite).
@@ -394,6 +419,7 @@ export const createHeadless = async ({
     stack: `${stack.account}/${stack.slug}`,
     api,
     apiRegistered,
+    schemaStep,
     enrichmentCount,
     baseFilesPushed,
     remoteWritten,

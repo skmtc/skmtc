@@ -5,7 +5,8 @@ import {
   createHeadless,
   type CreateResult,
   rmHeadless,
-  type RmResult
+  type RmResult,
+  type SchemaStep
 } from '@/lib/project-headless.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
 import { type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
@@ -112,6 +113,28 @@ export const renderProjectCreate = async ({
   Deno.exit(result.type === 'failed' ? 1 : 0)
 }
 
+const toSchemaStepText = (
+  schemaStep: SchemaStep,
+  api: { account: string; slug: string }
+): string => {
+  switch (schemaStep) {
+    case 'registered':
+      return 'registered from client.json#source'
+    case 'revision-added':
+      return 'added a new revision from the local file'
+    case 'unchanged':
+      return 'unchanged (the hub already had this file)'
+    case 'url-not-uploaded':
+      return `not uploaded (URL source); bound the hub's latest revision of ${api.account}/${api.slug}, which may be older than the document at the URL now`
+    case 'no-source':
+      return `no client.json#source; bound the hub's latest revision of ${api.account}/${api.slug}`
+    default: {
+      const _exhaustive: never = schemaStep
+      throw new Error(`Unhandled schema step: ${JSON.stringify(_exhaustive)}`)
+    }
+  }
+}
+
 export const printCreateResult = (
   result: CreateResult,
   { format }: { format: 'text' | 'json' }
@@ -130,6 +153,7 @@ export const printCreateResult = (
           result.apiRegistered ? ' (registered now)' : ''
         }`
       )
+      console.log(`  schema: ${toSchemaStepText(result.schemaStep, result.api)}`)
       console.log(`  enrichments: ${result.enrichmentCount}`)
       if (result.baseFilesPushed !== undefined) {
         console.log(`  base files: ${result.baseFilesPushed}`)
