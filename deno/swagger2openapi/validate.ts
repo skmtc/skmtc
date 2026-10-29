@@ -12,8 +12,8 @@
 import * as ajvDraft04 from 'ajv-draft-04'
 import * as ajvFormats from 'ajv-formats'
 import type { ValidateFunction } from 'ajv'
-import openapi30Schema from './schemas/openapi-3.0.json' with { type: 'json' }
-import jsonV5Schema from './schemas/json_v5.json' with { type: 'json' }
+import openapi30Schema from '@/schemas/openapi-3.0.json' with { type: 'json' }
+import jsonV5Schema from '@/schemas/json_v5.json' with { type: 'json' }
 import {
   isBoolean,
   isJsonArray,
@@ -23,13 +23,13 @@ import {
   isString,
   type JsonObject,
   type JsonValue
-} from './json.ts'
-import { hasDuplicates, parameterTypeProperties, resolveInternal } from './common.ts'
-import { resolveExternal } from './io.ts'
-import { jpescape, jptr, recurse, type RecurseState } from './reftools.ts'
-import { getDefaultState, walkSchema, type WalkSchemaState } from './walkSchema.ts'
-import { lint as defaultLinter } from './linter.ts'
-import type { External, ValidateOptions } from './types.ts'
+} from '@/json.ts'
+import { hasDuplicates, parameterTypeProperties, resolveInternal } from '@/common.ts'
+import { resolveExternal } from '@/io.ts'
+import { jpescape, jptr, recurse, type RecurseState } from '@/reftools.ts'
+import { getDefaultState, walkSchema, type WalkSchemaState } from '@/walkSchema.ts'
+import { lint as defaultLinter } from '@/linter.ts'
+import type { External, ValidateOptions } from '@/types.ts'
 
 // `ajv-draft-04` and `ajv-formats` are CommonJS with a TypeScript `export default`.
 // Deno's CJS interop wraps `module.exports` in a synthetic default, so the real

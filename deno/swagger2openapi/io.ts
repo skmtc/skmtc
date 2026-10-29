@@ -19,10 +19,18 @@ import {
   type JsonObject,
   type JsonValue,
   toJson
-} from './json.ts'
-import { clone, jptr, recurse, type RecurseState } from './reftools.ts'
-import { ConvertError, main, parseInput, prepare, toResult } from './converter.ts'
-import type { ConvertOptions, ConvertResult, External, ResolveOptions } from './types.ts'
+} from '@/json.ts'
+import { clone, jptr, recurse, type RecurseState } from '@/reftools.ts'
+import {
+  ConvertError,
+  type ConvertResultWithInference,
+  main,
+  parseInput,
+  prepare,
+  toMediaTypeInference,
+  toResult
+} from '@/converter.ts'
+import type { ConvertOptions, ConvertResult, External, ResolveOptions } from '@/types.ts'
 
 const tryParse = (text: string): JsonValue | undefined => {
   try {
@@ -164,20 +172,21 @@ const resolveExternalRefs = async (
 export const convertObjResolve = async (
   swagger: JsonValue,
   options: ConvertOptions = {}
-): Promise<ConvertResult> => {
+): Promise<ConvertResultWithInference> => {
   if (!isJsonObject(swagger)) throw new ConvertError('Document must be an object')
   const externals: External[] = []
   const { openapi, isV2 } = prepare(swagger, options)
   if (options.resolve) await resolveExternalRefs(openapi, options, externals)
-  if (isV2) main(openapi, options)
-  return toResult(openapi, externals, false)
+  const summary = toMediaTypeInference()
+  if (isV2) main(openapi, options, summary)
+  return toResult(openapi, externals, false, summary)
 }
 
 const convertStrResolve = async (str: string, options: ConvertOptions): Promise<ConvertResult> => {
   const parsed = parseInput(str)
   if (!parsed) throw new ConvertError('Could not parse the input as JSON or YAML')
   const result = await convertObjResolve(parsed.value, options)
-  return toResult(result.openapi, result.externals, parsed.yaml)
+  return toResult(result.openapi, result.externals, parsed.yaml, result.mediaTypeInference)
 }
 
 /** Reads, parses, and converts a local file (resolving external `$ref`s when requested). */
