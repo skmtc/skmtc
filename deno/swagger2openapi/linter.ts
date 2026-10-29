@@ -9,9 +9,9 @@
  * @module
  */
 
-import rulesData from './rules.json' with { type: 'json' }
-import { isJsonArray, isJsonObject, isNumber, isString, type JsonValue, toJson } from './json.ts'
-import type { Linter, LinterRule, ValidateOptions } from './types.ts'
+import rulesData from '@/rules.json' with { type: 'json' }
+import { isJsonArray, isJsonObject, isNumber, isString, type JsonValue, toJson } from '@/json.ts'
+import type { Linter, LinterRule, ValidateOptions } from '@/types.ts'
 
 const asStringArray = (value: JsonValue | undefined): string[] | undefined => {
   if (isString(value)) return [value]

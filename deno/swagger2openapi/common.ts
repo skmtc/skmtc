@@ -7,7 +7,7 @@
  * @module
  */
 
-import { jptr } from './reftools.ts'
+import { jptr } from '@/reftools.ts'
 
 /** Version of this package, recorded in `x-origin` converter provenance entries. */
 export const VERSION = '0.1.0'

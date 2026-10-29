@@ -6,7 +6,7 @@
  * @module
  */
 
-import { isJsonArray, isJsonObject, type JsonObject, type JsonValue } from './json.ts'
+import { isJsonArray, isJsonObject, type JsonObject, type JsonValue } from '@/json.ts'
 
 /** State threaded through {@link walkSchema}. */
 export interface WalkSchemaState {

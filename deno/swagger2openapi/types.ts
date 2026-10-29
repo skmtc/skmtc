@@ -4,7 +4,7 @@
  * @module
  */
 
-import type { JsonObject, JsonValue } from './json.ts'
+import type { JsonObject, JsonValue } from '@/json.ts'
 
 /** A resolved external reference recorded during `$ref` resolution. */
 export interface External {
@@ -40,7 +40,7 @@ export interface ResolveOptions {
   handlers?: Record<string, ExternalHandler>
 }
 
-/** Options for {@link import('./converter.ts').convertObj} and friends. */
+/** Options for {@link import('@/converter.ts').convertObj} and friends. */
 export interface ConvertOptions extends ResolveOptions {
   /** Fix up small, recoverable errors in the source definition instead of throwing. */
   patch?: boolean
@@ -66,6 +66,40 @@ export interface ConvertResult {
   externals: External[]
   /** `true` when the source string was parsed as YAML rather than JSON. */
   sourceYaml: boolean
+  /**
+   * How the converter chose media types for response schemas that Swagger 2.0
+   * gave none for. The converters in this package always set it; it is
+   * optional so that code building a `ConvertResult` itself still type-checks.
+   */
+  mediaTypeInference?: MediaTypeInference
+}
+
+/**
+ * What a response schema resolves to. An `object` or `array` schema is JSON, a
+ * `file` schema is a binary body, and `other` (a scalar, an untyped schema or a
+ * `$ref` that does not resolve) gives no answer, so it keeps the `*\/*` range
+ * swagger2openapi has always written.
+ */
+export type ResponseSchemaKind = 'object' | 'array' | 'file' | 'other'
+
+/**
+ * A summary of the responses whose media type the converter chose. It chooses
+ * one for an operation's response when neither the operation nor the document
+ * has a `produces` key, and for a shared response under `#/responses` when no
+ * `produces` key appears anywhere in the document. The names in a response's
+ * `examples` are used first; otherwise the schema decides.
+ */
+export interface MediaTypeInference {
+  /** Responses whose media type the converter chose. */
+  responses: number
+  /** How often each media type was chosen. A response with several `examples` names counts once per name. */
+  mediaTypes: Record<string, number>
+  /** Responses decided by their schema, by what the schema resolved to. */
+  schemaKinds: Record<ResponseSchemaKind, number>
+  /** Responses whose media types came from the names in their `examples`. */
+  fromExamples: number
+  /** JSON Pointers to the first five responses that kept `*\/*`, e.g. `#/paths/~1pets/get/responses/200`. */
+  unknownSample: string[]
 }
 
 /** A single linter rule (loaded from `rules.json`). */
@@ -92,7 +126,7 @@ export interface LintViolation {
 /** Function signature for a linter, allowing a custom implementation to be injected. */
 export type Linter = (objectName: string, object: JsonValue, options: ValidateOptions) => void
 
-/** Options for {@link import('./validate.ts').validateSync}. */
+/** Options for {@link import('@/validate.ts').validateSync}. */
 export interface ValidateOptions extends ResolveOptions {
   /** Run the linter while validating. */
   lint?: boolean
