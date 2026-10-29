@@ -123,24 +123,23 @@ async function registerSchema(
   token: string
 ): Promise<{ api: Scoped } | { error: string }> {
   const headers = { authorization: `Bearer ${token}` }
+  const file = isUrlSource(source) ? null : await readSchemaFile(source)
+  if (file && 'error' in file) return file
   try {
-    let res: Response
-    if (isUrlSource(source)) {
-      res = await fetch(`${origin}/v1/apis/import`, {
-        method: 'POST',
-        headers: { ...headers, 'content-type': 'application/json' },
-        body: JSON.stringify({ url: source, owner })
-      })
-    } else {
-      const file = await readSchemaFile(source)
-      if ('error' in file) return file
-      const query = `?owner=${encodeURIComponent(owner)}&filename=${encodeURIComponent(file.filename)}`
-      res = await fetch(`${origin}/v1/apis/upload${query}`, {
-        method: 'POST',
-        headers: { ...headers, 'content-type': 'application/octet-stream' },
-        body: file.bytes
-      })
-    }
+    const res = file
+      ? await fetch(
+          `${origin}/v1/apis/upload?owner=${encodeURIComponent(owner)}&filename=${encodeURIComponent(file.filename)}`,
+          {
+            method: 'POST',
+            headers: { ...headers, 'content-type': 'application/octet-stream' },
+            body: file.bytes
+          }
+        )
+      : await fetch(`${origin}/v1/apis/import`, {
+          method: 'POST',
+          headers: { ...headers, 'content-type': 'application/json' },
+          body: JSON.stringify({ url: source, owner })
+        })
     if (!res.ok) {
       const text = await res.text()
       return {

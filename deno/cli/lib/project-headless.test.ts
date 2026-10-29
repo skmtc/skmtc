@@ -1,44 +1,31 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { join } from '@std/path/join'
 import { createHeadless } from '@/lib/project-headless.ts'
-import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import { Manager } from '@/lib/manager.ts'
+import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 
 const originalFetch = globalThis.fetch
 const originalCwd = Deno.cwd()
 
 type Call = { url: string; method?: string }
 
-type Fixture = {
-  root: string
-  skmtcRoot: SkmtcRoot
-}
-
 /**
  * A workspace root outside any `.skmtc` ancestor, so `toAbsoluteRootPath`
  * resolves to the cwd: the test runs with the root as its cwd.
  */
-const makeFixture = async ({ api, source }: { api: string; source: string }): Promise<Fixture> => {
+const makeFixture = async ({ api, source }: { api?: string; source: string }): Promise<string> => {
   const root = await Deno.makeTempDir()
   const projectPath = join(root, '.skmtc', 'pets')
-  await Deno.mkdir(projectPath, { recursive: true })
+  await Deno.mkdir(join(projectPath, '.settings'), { recursive: true })
   await Deno.writeTextFile(join(projectPath, 'deno.json'), JSON.stringify({ name: '@acme/stack' }))
+  await Deno.writeTextFile(
+    join(projectPath, '.settings', 'client.json'),
+    JSON.stringify({ api, source, settings: { basePath: '.' } })
+  )
   await Deno.mkdir(join(root, 'schemas'), { recursive: true })
   await Deno.writeTextFile(join(root, source), 'openapi: 3.1.0\n')
 
-  const contents = {
-    api,
-    source,
-    project: '@acme/pets-app',
-    settings: { basePath: '.', packages: [] }
-  }
-  const skmtcRoot = {
-    findProject: () => ({
-      toPath: () => projectPath,
-      clientJson: { contents, write: () => Promise.resolve() }
-    })
-  } as unknown as SkmtcRoot
-
-  return { root, skmtcRoot }
+  return root
 }
 
 const json = (body: unknown, status = 200): Response =>
@@ -51,35 +38,36 @@ const hubResponse = (url: string): Response =>
     : json({ enrichments: [] })
 
 const withFixture = async (
-  fixture: Fixture,
+  root: string,
   fetchStub: (call: Call) => Response | Promise<Response>,
-  run: () => Promise<void>
+  run: (skmtcRoot: SkmtcRoot) => Promise<void>
 ): Promise<void> => {
-  globalThis.fetch = (input: string | URL | Request, init?: RequestInit) =>
-    Promise.resolve(fetchStub({ url: input.toString(), method: init?.method }))
-  Deno.chdir(fixture.root)
+  Deno.chdir(root)
   try {
-    await run()
+    const skmtcRoot = await SkmtcRoot.open(new Manager())
+    globalThis.fetch = (input: string | URL | Request, init?: RequestInit) =>
+      Promise.resolve(fetchStub({ url: input.toString(), method: init?.method }))
+    await run(skmtcRoot)
   } finally {
     globalThis.fetch = originalFetch
     Deno.chdir(originalCwd)
-    await Deno.remove(fixture.root, { recursive: true })
+    await Deno.remove(root, { recursive: true })
   }
 }
 
 Deno.test('createHeadless - adds the local file schema as a revision of client.json#api', async () => {
-  const fixture = await makeFixture({ api: '@acme/pets', source: 'schemas/openapi.yaml' })
+  const root = await makeFixture({ api: '@acme/pets', source: 'schemas/openapi.yaml' })
   const calls: Call[] = []
 
   await withFixture(
-    fixture,
+    root,
     call => {
       calls.push(call)
       return call.url.includes('/revisions') ? json({ deduped: true }, 201) : hubResponse(call.url)
     },
-    async () => {
+    async skmtcRoot => {
       const result = await createHeadless({
-        skmtcRoot: fixture.skmtcRoot,
+        skmtcRoot,
         projectName: 'pets',
         name: 'pets-app',
         token: 'pat-123',
@@ -87,8 +75,6 @@ Deno.test('createHeadless - adds the local file schema as a revision of client.j
       })
 
       assertEquals(result.type, 'created')
-      // The revision goes to the current route, not the `/versions` path the
-      // hub only reaches through its 308 redirect.
       assertEquals(calls[0], {
         url: 'https://hub.test/v1/apis/acme/pets/revisions?filename=openapi.yaml',
         method: 'POST'
@@ -106,18 +92,18 @@ Deno.test('createHeadless - adds the local file schema as a revision of client.j
 })
 
 Deno.test('createHeadless - a network error during the revision upload is a failed api stage', async () => {
-  const fixture = await makeFixture({ api: '@acme/pets', source: 'schemas/openapi.yaml' })
+  const root = await makeFixture({ api: '@acme/pets', source: 'schemas/openapi.yaml' })
   const calls: Call[] = []
 
   await withFixture(
-    fixture,
+    root,
     call => {
       calls.push(call)
       throw new TypeError('error sending request: dns error')
     },
-    async () => {
+    async skmtcRoot => {
       const result = await createHeadless({
-        skmtcRoot: fixture.skmtcRoot,
+        skmtcRoot,
         projectName: 'pets',
         name: 'pets-app',
         token: 'pat-123',
@@ -136,18 +122,18 @@ Deno.test('createHeadless - a network error during the revision upload is a fail
 Deno.test('createHeadless - encodes the API account and slug as path segments', async () => {
   // `parseScopedName` accepts `?` and `#`; unencoded, they would cut the path
   // and send the upload to another route.
-  const fixture = await makeFixture({ api: '@acme/pets?x=1', source: 'schemas/openapi.yaml' })
+  const root = await makeFixture({ api: '@acme/pets?x=1', source: 'schemas/openapi.yaml' })
   const calls: Call[] = []
 
   await withFixture(
-    fixture,
+    root,
     call => {
       calls.push(call)
       return call.url.includes('/revisions') ? json({ deduped: false }, 201) : hubResponse(call.url)
     },
-    async () => {
+    async skmtcRoot => {
       await createHeadless({
-        skmtcRoot: fixture.skmtcRoot,
+        skmtcRoot,
         projectName: 'pets',
         name: 'pets-app',
         token: 'pat-123',
@@ -163,18 +149,18 @@ Deno.test('createHeadless - encodes the API account and slug as path segments', 
 })
 
 Deno.test('createHeadless - takes the filename after a Windows-style separator', async () => {
-  const fixture = await makeFixture({ api: '@acme/pets', source: 'schemas\\openapi.json' })
+  const root = await makeFixture({ api: '@acme/pets', source: 'schemas\\openapi.json' })
   const calls: Call[] = []
 
   await withFixture(
-    fixture,
+    root,
     call => {
       calls.push(call)
       return call.url.includes('/revisions') ? json({ deduped: false }, 201) : hubResponse(call.url)
     },
-    async () => {
+    async skmtcRoot => {
       await createHeadless({
-        skmtcRoot: fixture.skmtcRoot,
+        skmtcRoot,
         projectName: 'pets',
         name: 'pets-app',
         token: 'pat-123',
@@ -184,6 +170,36 @@ Deno.test('createHeadless - takes the filename after a Windows-style separator',
       assertEquals(
         calls[0]?.url,
         'https://hub.test/v1/apis/acme/pets/revisions?filename=openapi.json'
+      )
+    }
+  )
+})
+
+Deno.test('createHeadless - a network error while registering the schema is a failed api stage', async () => {
+  const root = await makeFixture({ source: 'schemas/openapi.yaml' })
+  const calls: Call[] = []
+
+  await withFixture(
+    root,
+    call => {
+      calls.push(call)
+      throw new TypeError('error sending request: dns error')
+    },
+    async skmtcRoot => {
+      const result = await createHeadless({
+        skmtcRoot,
+        projectName: 'pets',
+        name: 'pets-app',
+        token: 'pat-123',
+        origin: 'https://hub.test'
+      })
+
+      if (result.type !== 'failed') throw new Error('expected a failed result')
+      assertEquals(result.stage, 'api')
+      assertStringIncludes(result.reason, 'schema register failed: error sending request')
+      assertEquals(
+        calls.map(call => call.url),
+        ['https://hub.test/v1/apis/upload?owner=acme&filename=openapi.yaml']
       )
     }
   )
