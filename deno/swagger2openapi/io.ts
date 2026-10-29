@@ -22,7 +22,13 @@ import {
 } from './json.ts'
 import { clone, jptr, recurse, type RecurseState } from './reftools.ts'
 import { ConvertError, main, parseInput, prepare, toResult } from './converter.ts'
-import type { ConvertOptions, ConvertResult, External, ResolveOptions } from './types.ts'
+import type {
+  ConvertOptions,
+  ConvertResult,
+  External,
+  InferredMediaType,
+  ResolveOptions
+} from './types.ts'
 
 const tryParse = (text: string): JsonValue | undefined => {
   try {
@@ -169,15 +175,16 @@ export const convertObjResolve = async (
   const externals: External[] = []
   const { openapi, isV2 } = prepare(swagger, options)
   if (options.resolve) await resolveExternalRefs(openapi, options, externals)
-  if (isV2) main(openapi, options)
-  return toResult(openapi, externals, false)
+  const inferred: InferredMediaType[] = []
+  if (isV2) main(openapi, options, inferred)
+  return toResult(openapi, externals, false, inferred)
 }
 
 const convertStrResolve = async (str: string, options: ConvertOptions): Promise<ConvertResult> => {
   const parsed = parseInput(str)
   if (!parsed) throw new ConvertError('Could not parse the input as JSON or YAML')
   const result = await convertObjResolve(parsed.value, options)
-  return toResult(result.openapi, result.externals, parsed.yaml)
+  return toResult(result.openapi, result.externals, parsed.yaml, result.inferredMediaTypes)
 }
 
 /** Reads, parses, and converts a local file (resolving external `$ref`s when requested). */

@@ -41,6 +41,7 @@ export type {
   ConvertResult,
   External,
   ExternalHandler,
+  InferredMediaType,
   Linter,
   LinterRule,
   LintViolation,

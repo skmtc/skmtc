@@ -66,6 +66,26 @@ export interface ConvertResult {
   externals: External[]
   /** `true` when the source string was parsed as YAML rather than JSON. */
   sourceYaml: boolean
+  /**
+   * One entry for each response with a schema whose operation, and the
+   * document, list no `produces`. Swagger 2.0 then says nothing about the
+   * media type, so the converter chooses one from the schema.
+   */
+  inferredMediaTypes: InferredMediaType[]
+}
+
+/**
+ * The media type chosen for a response schema when no `produces` applies.
+ * `schemaKind` is what the schema resolved to: an `object` or `array` schema
+ * is JSON, a `file` schema is a binary body, and `other` (a scalar, an untyped
+ * schema or a `$ref` that does not resolve) gives no answer, so it keeps the
+ * `*\/*` range swagger2openapi has always written.
+ */
+export interface InferredMediaType {
+  /** JSON Pointer to the Swagger 2.0 response, e.g. `#/paths/~1pets/get/responses/200`. */
+  location: string
+  schemaKind: 'object' | 'array' | 'file' | 'other'
+  mediaType: 'application/json' | 'application/octet-stream' | '*/*'
 }
 
 /** A single linter rule (loaded from `rules.json`). */

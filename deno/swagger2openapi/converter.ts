@@ -39,12 +39,12 @@ import {
 import { clone, jpescape, recurse } from './reftools.ts'
 import { walkSchema } from './walkSchema.ts'
 import { statusCodes } from './statusCodes.ts'
-import type { ConvertOptions, ConvertResult, External } from './types.ts'
+import type { ConvertOptions, ConvertResult, External, InferredMediaType } from './types.ts'
 
 // Re-exported so consumers that only need the converter (e.g. `@skmtc/convert`)
 // can import value + types from `@skmtc/swagger2openapi/converter` without
 // pulling in the validator's ajv graph via the package root (`mod.ts`).
-export type { ConvertOptions, ConvertResult } from './types.ts'
+export type { ConvertOptions, ConvertResult, InferredMediaType } from './types.ts'
 export type { JsonObject, JsonValue } from './json.ts'
 
 /** Target OpenAPI version produced by the converter. */
@@ -708,12 +708,50 @@ const resolveValueOrKeep = (root: JsonValue, pointer: string): JsonValue => {
 
 // --- responses ------------------------------------------------------------------
 
+/**
+ * What a response schema resolves to, for choosing a media type when no
+ * `produces` applies. By this point the converter has moved `definitions` to
+ * `components.schemas` and rewritten every `$ref`, so a ref resolves against
+ * the document being converted. `seen` stops a ref cycle.
+ */
+const toSchemaKind = (
+  schema: JsonValue | undefined,
+  openapi: JsonObject,
+  seen: Set<string> = new Set()
+): InferredMediaType['schemaKind'] => {
+  if (!isJsonObject(schema)) return 'other'
+  if (isString(schema.$ref)) {
+    if (seen.has(schema.$ref) || !schema.$ref.startsWith('#/')) return 'other'
+    const resolved = resolveInternal(openapi, schema.$ref)
+    return isJsonObject(resolved)
+      ? toSchemaKind(resolved, openapi, new Set([...seen, schema.$ref]))
+      : 'other'
+  }
+  if (schema.type === 'object' || schema.type === 'array' || schema.type === 'file') {
+    return schema.type
+  }
+  if (typeof schema.type !== 'undefined') return 'other'
+  const objectShaped = ['properties', 'allOf', 'additionalProperties'].some(
+    key => typeof schema[key] !== 'undefined'
+  )
+  return objectShaped ? 'object' : 'other'
+}
+
+const mediaTypeOfKind: Record<InferredMediaType['schemaKind'], InferredMediaType['mediaType']> = {
+  object: 'application/json',
+  array: 'application/json',
+  file: 'application/octet-stream',
+  other: '*/*'
+}
+
 const processResponse = (
   response: JsonObject,
   name: string,
   op: JsonObject | null,
   openapi: JsonObject,
-  options: ConvertOptions
+  options: ConvertOptions,
+  location: string,
+  inferred: InferredMediaType[]
 ): void => {
   if (isString(response.$ref)) {
     if (response.$ref.indexOf('#/definitions/') >= 0) {
@@ -750,7 +788,14 @@ const processResponse = (
     const produces = (opProduces ?? (isJsonArray(openapi.produces) ? openapi.produces : []))
       .filter(uniqueOnly)
       .filter(isString)
-    const mimes = produces.length ? produces : ['*/*']
+    // Swagger 2.0 with no `produces` says nothing about the media type;
+    // upstream writes `*/*`, which hides a JSON schema from every reader that
+    // looks under `application/json`. Choose from the schema instead.
+    const schemaKind = produces.length ? undefined : toSchemaKind(response.schema, openapi)
+    if (schemaKind) {
+      inferred.push({ location, schemaKind, mediaType: mediaTypeOfKind[schemaKind] })
+    }
+    const mimes = schemaKind ? [mediaTypeOfKind[schemaKind]] : produces
 
     const content = ensureObj(response, 'content')
     const examples = isJsonObject(response.examples) ? response.examples : undefined
@@ -812,7 +857,8 @@ const processPaths = (
   containerName: string,
   options: ConvertOptions,
   requestBodyCache: Record<number, RequestBodyEntry>,
-  openapi: JsonObject
+  openapi: JsonObject,
+  inferred: InferredMediaType[]
 ): void => {
   for (const p of Object.keys(container)) {
     const path = container[p]
@@ -886,7 +932,10 @@ const processPaths = (
       if (isJsonObject(responses)) {
         for (const r of Object.keys(responses)) {
           const response = responses[r]
-          if (isJsonObject(response)) processResponse(response, r, op, openapi, options)
+          if (isJsonObject(response)) {
+            const location = `#/${containerName}/${jpescape(p)}/${method}/responses/${jpescape(r)}`
+            processResponse(response, r, op, openapi, options, location, inferred)
+          }
         }
       }
 
@@ -1031,7 +1080,11 @@ const processXmsExamples = (
  *
  * @internal Exported for `./io.ts`; not part of the package's public API.
  */
-export const main = (openapi: JsonObject, options: ConvertOptions): JsonObject => {
+export const main = (
+  openapi: JsonObject,
+  options: ConvertOptions,
+  inferred: InferredMediaType[] = []
+): JsonObject => {
   const requestBodyCache: Record<number, RequestBodyEntry> = {}
   const componentNames: ComponentNames = { schemas: {} }
   const components = ensureObj(openapi, 'components')
@@ -1099,7 +1152,15 @@ export const main = (openapi: JsonObject, options: ConvertOptions): JsonObject =
       }
       const response = responses[sname]
       if (isJsonObject(response)) {
-        processResponse(response, sname, null, openapi, options)
+        processResponse(
+          response,
+          sname,
+          null,
+          openapi,
+          options,
+          `#/responses/${jpescape(r)}`,
+          inferred
+        )
         if (isJsonObject(response.headers)) {
           for (const h of Object.keys(response.headers)) {
             if (h.toLowerCase() === 'status code') {
@@ -1125,10 +1186,10 @@ export const main = (openapi: JsonObject, options: ConvertOptions): JsonObject =
   }
 
   if (isJsonObject(openapi.paths)) {
-    processPaths(openapi.paths, 'paths', options, requestBodyCache, openapi)
+    processPaths(openapi.paths, 'paths', options, requestBodyCache, openapi, inferred)
   }
   if (isJsonObject(openapi['x-ms-paths'])) {
-    processPaths(openapi['x-ms-paths'], 'x-ms-paths', options, requestBodyCache, openapi)
+    processPaths(openapi['x-ms-paths'], 'x-ms-paths', options, requestBodyCache, openapi, inferred)
   }
 
   if (!options.debug && parameters) {
@@ -1395,11 +1456,13 @@ export const prepare = (swagger: JsonObject, options: ConvertOptions): Prepared 
 export const toResult = (
   openapi: JsonObject,
   externals: External[],
-  sourceYaml: boolean
+  sourceYaml: boolean,
+  inferredMediaTypes: InferredMediaType[] = []
 ): ConvertResult => ({
   openapi,
   externals,
-  sourceYaml
+  sourceYaml,
+  inferredMediaTypes
 })
 
 /**
@@ -1414,8 +1477,9 @@ export const convertObj = (swagger: JsonValue, options: ConvertOptions = {}): Co
     throwError('convertObj is synchronous; use convertObjResolve when options.resolve is set')
   }
   const { openapi, isV2 } = prepare(swagger, options)
-  if (isV2) main(openapi, options)
-  return toResult(openapi, [], false)
+  const inferred: InferredMediaType[] = []
+  if (isV2) main(openapi, options, inferred)
+  return toResult(openapi, [], false, inferred)
 }
 
 /** Parsed JSON/YAML input plus whether the source was YAML. @internal */
@@ -1447,5 +1511,5 @@ export const convertStr = (str: string, options: ConvertOptions = {}): ConvertRe
   const parsed = parseInput(str)
   if (!parsed) throw new ConvertError('Could not parse the input as JSON or YAML')
   const result = convertObj(parsed.value, options)
-  return toResult(result.openapi, result.externals, parsed.yaml)
+  return toResult(result.openapi, result.externals, parsed.yaml, result.inferredMediaTypes)
 }
