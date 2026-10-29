@@ -19,8 +19,8 @@ import {
   type JsonObject,
   type JsonValue,
   toJson
-} from './json.ts'
-import { clone, jptr, recurse, type RecurseState } from './reftools.ts'
+} from '@/json.ts'
+import { clone, jptr, recurse, type RecurseState } from '@/reftools.ts'
 import {
   ConvertError,
   main,
@@ -28,8 +28,8 @@ import {
   prepare,
   toMediaTypeInference,
   toResult
-} from './converter.ts'
-import type { ConvertOptions, ConvertResult, External, ResolveOptions } from './types.ts'
+} from '@/converter.ts'
+import type { ConvertOptions, ConvertResult, External, ResolveOptions } from '@/types.ts'
 
 const tryParse = (text: string): JsonValue | undefined => {
   try {

@@ -1,6 +1,6 @@
 import { assertEquals } from '@std/assert'
-import { convertObj, type MediaTypeInference, toMediaTypeInference } from './converter.ts'
-import { isJsonObject, type JsonObject, type JsonValue } from './json.ts'
+import { convertObj, type MediaTypeInference, toMediaTypeInference } from '@/converter.ts'
+import { isJsonObject, type JsonObject, type JsonValue } from '@/json.ts'
 
 // A Swagger 2.0 response says nothing about its media type unless `produces`
 // lists one. Upstream swagger2openapi then files the schema under `*/*`, which

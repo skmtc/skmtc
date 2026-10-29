@@ -4,7 +4,7 @@
  * @module
  */
 
-import type { JsonObject, JsonValue } from './json.ts'
+import type { JsonObject, JsonValue } from '@/json.ts'
 
 /** A resolved external reference recorded during `$ref` resolution. */
 export interface External {
@@ -40,7 +40,7 @@ export interface ResolveOptions {
   handlers?: Record<string, ExternalHandler>
 }
 
-/** Options for {@link import('./converter.ts').convertObj} and friends. */
+/** Options for {@link import('@/converter.ts').convertObj} and friends. */
 export interface ConvertOptions extends ResolveOptions {
   /** Fix up small, recoverable errors in the source definition instead of throwing. */
   patch?: boolean
@@ -126,7 +126,7 @@ export interface LintViolation {
 /** Function signature for a linter, allowing a custom implementation to be injected. */
 export type Linter = (objectName: string, object: JsonValue, options: ValidateOptions) => void
 
-/** Options for {@link import('./validate.ts').validateSync}. */
+/** Options for {@link import('@/validate.ts').validateSync}. */
 export interface ValidateOptions extends ResolveOptions {
   /** Run the linter while validating. */
   lint?: boolean

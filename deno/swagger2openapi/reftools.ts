@@ -13,7 +13,7 @@ import {
   type JsonContainer,
   type JsonObject,
   type JsonValue
-} from './json.ts'
+} from '@/json.ts'
 
 /** Deep-clones a JSON value (equivalent to a `JSON.parse(JSON.stringify(...))` round-trip). */
 export const clone = (value: JsonValue): JsonValue => {

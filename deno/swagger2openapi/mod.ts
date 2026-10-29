@@ -28,13 +28,13 @@
  * @module
  */
 
-export { ConvertError, convertObj, convertStr, targetVersion } from './converter.ts'
+export { ConvertError, convertObj, convertStr, targetVersion } from '@/converter.ts'
 
-export { convertFile, convertObjResolve, convertStream, convertUrl } from './io.ts'
+export { convertFile, convertObjResolve, convertStream, convertUrl } from '@/io.ts'
 
-export { lint, loadRules } from './linter.ts'
+export { lint, loadRules } from '@/linter.ts'
 
-export { validate, validateSync, ValidationError } from './validate.ts'
+export { validate, validateSync, ValidationError } from '@/validate.ts'
 
 export type {
   ConvertOptions,
@@ -48,6 +48,6 @@ export type {
   ResolveOptions,
   ResponseSchemaKind,
   ValidateOptions
-} from './types.ts'
+} from '@/types.ts'
 
-export type { JsonObject, JsonValue } from './json.ts'
+export type { JsonObject, JsonValue } from '@/json.ts'

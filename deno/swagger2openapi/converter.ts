@@ -23,7 +23,7 @@ import {
   type JsonObject,
   type JsonValue,
   toJson
-} from './json.ts'
+} from '@/json.ts'
 import {
   arrayProperties,
   hash,
@@ -35,17 +35,17 @@ import {
   toCamelCase,
   uniqueOnly,
   VERSION
-} from './common.ts'
-import { clone, jpescape, recurse } from './reftools.ts'
-import { walkSchema } from './walkSchema.ts'
-import { statusCodes } from './statusCodes.ts'
+} from '@/common.ts'
+import { clone, jpescape, recurse } from '@/reftools.ts'
+import { walkSchema } from '@/walkSchema.ts'
+import { statusCodes } from '@/statusCodes.ts'
 import type {
   ConvertOptions,
   ConvertResult,
   External,
   MediaTypeInference,
   ResponseSchemaKind
-} from './types.ts'
+} from '@/types.ts'
 
 // Re-exported so consumers that only need the converter (e.g. `@skmtc/convert`)
 // can import value + types from `@skmtc/swagger2openapi/converter` without
@@ -55,8 +55,8 @@ export type {
   ConvertResult,
   MediaTypeInference,
   ResponseSchemaKind
-} from './types.ts'
-export type { JsonObject, JsonValue } from './json.ts'
+} from '@/types.ts'
+export type { JsonObject, JsonValue } from '@/json.ts'
 
 /** Target OpenAPI version produced by the converter. */
 export const targetVersion = '3.0.0'

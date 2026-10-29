@@ -1,9 +1,9 @@
 import { assert, assertEquals, assertThrows } from '@std/assert'
 import { fromFileUrl } from '@std/path'
-import { convertObj } from './converter.ts'
-import { validateSync, ValidationError } from './validate.ts'
-import { type JsonValue, toJson } from './json.ts'
-import type { ValidateOptions } from './types.ts'
+import { convertObj } from '@/converter.ts'
+import { validateSync, ValidationError } from '@/validate.ts'
+import { type JsonValue, toJson } from '@/json.ts'
+import type { ValidateOptions } from '@/types.ts'
 
 const readFixture = async (name: string): Promise<JsonValue> => {
   const path = fromFileUrl(new URL(`./fixtures/${name}`, import.meta.url))
