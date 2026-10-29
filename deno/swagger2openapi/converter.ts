@@ -221,6 +221,16 @@ const fixUpSchema = (schema: JsonObject, options: ConvertOptions): void => {
   })
 }
 
+/** Rewrites every `type: file` in `schema` to a binary string. OpenAPI 3.0 has no `file` type. */
+const fixUpFileSchema = (schema: JsonObject): void => {
+  walkSchema(schema, {}, {}, sub => {
+    if (sub.type === 'file') {
+      sub.type = 'string'
+      sub.format = 'binary'
+    }
+  })
+}
+
 // --- reference fix-ups ----------------------------------------------------------
 
 interface ComponentNames {
@@ -1311,6 +1321,13 @@ export const main = (
   }
   if (isJsonObject(openapi['x-ms-paths'])) {
     processPaths(openapi['x-ms-paths'], 'x-ms-paths', options, requestBodyCache, openapi, inference)
+  }
+
+  // After the paths: media type inference reads `type: file` through a `$ref`.
+  if (schemas) {
+    for (const schema of Object.values(schemas)) {
+      if (isJsonObject(schema)) fixUpFileSchema(schema)
+    }
   }
 
   if (!options.debug && parameters) {
