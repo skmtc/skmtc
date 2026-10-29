@@ -31,7 +31,13 @@ const envSchema = v.object({
   HOME: v.optional(v.string()),
   /** The Windows equivalent of `HOME`. */
   USERPROFILE: v.optional(v.string()),
-  DENO_DIR: v.optional(v.string())
+  DENO_DIR: v.optional(v.string()),
+  /** `true` in a GitHub Actions run. */
+  GITHUB_ACTIONS: v.optional(v.string()),
+  /** Set in a GitHub Actions job that has `id-token: write`. */
+  ACTIONS_ID_TOKEN_REQUEST_URL: v.optional(v.pipe(v.string(), v.url())),
+  /** The bearer for `ACTIONS_ID_TOKEN_REQUEST_URL`. */
+  ACTIONS_ID_TOKEN_REQUEST_TOKEN: v.optional(v.string())
 })
 
 export type EnvVariableName = keyof typeof envSchema.entries

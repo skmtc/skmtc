@@ -30,7 +30,7 @@ allowed-tools:
   - Edit
 metadata:
   describes:
-    '@skmtc/cli': '0.9'
+    '@skmtc/cli': '0.10'
 ---
 
 # Skmtc CLI
@@ -123,7 +123,7 @@ skmtc <cmd> -h      # full flags for one command
 ```
 
 The newer commands' help descriptions (`status`, `eject`, `adopt`,
-`publish`, `push`, `pull`) carry their full semantics — read them
+`publish`, `push`, `pull`, `api publish`) carry their full semantics — read them
 there rather than guessing from the names. One naming trap help
 cannot intercept: there is **no `skmtc deploy`** — stacks are
 *published* (`skmtc publish`) as immutable semver versions;

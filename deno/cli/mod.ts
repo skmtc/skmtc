@@ -605,7 +605,7 @@ const run = async () => {
     )
     .option(
       '--token <token:string>',
-      'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
+      'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`, then, in GitHub Actions with `id-token: write`, a linked repository token for the API.'
     )
     .type('hubEnv', hubEnv)
     .option('--env <env:hubEnv>', ENV_DESC)

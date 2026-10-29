@@ -5,10 +5,17 @@ import {
   resolveOutputFormat
 } from '@/lib/strict-mode.ts'
 import {
+  type ApiPublishFailure,
   apiPublishHeadless,
   type ApiPublishResult,
+  type ApiPublishTokenSource,
   type ApiVisibility
 } from '@/lib/api-publish-headless.ts'
+import {
+  exchangeLinkedRepositoryToken,
+  readGithubOidcEnv,
+  requestGithubOidcToken
+} from '@/lib/github-oidc.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
 import { type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
 import { parseScopedName } from '@/lib/scoped-name.ts'
@@ -73,36 +80,130 @@ export const renderApiPublish = async ({
     })
   }
 
-  const {
-    token: resolvedToken,
-    origin: resolvedOrigin,
-    env: resolvedEnv
-  } = await resolveHubAuth({
+  const result = await runApiPublish({
+    file,
+    api: scoped,
+    visibility,
+    originUrl,
     tokenFlag: token,
     envFlag: env
   })
-  if (!resolvedToken) {
+
+  if (result.type === 'missing') {
     return failWithRecipe({
       command: 'api publish',
       arg: '--token',
       usage: PUBLISH_USAGE,
       example: PUBLISH_EXAMPLE,
-      discover: toMissingTokenHint(resolvedEnv)
+      discover: result.discover
     })
   }
 
-  const result = await apiPublishHeadless({
-    file,
-    api: scoped,
-    visibility,
-    originUrl,
-    token: resolvedToken,
-    origin: resolvedOrigin,
-    env: resolvedEnv
-  })
-
   printApiPublishResult(result, { format: resolveOutputFormat({ jsonFlag }) })
   Deno.exit(result.type === 'failed' ? 1 : 0)
+}
+
+/** Resolve the token, then publish. `missing` when there is no token to send. */
+export const runApiPublish = async ({
+  file,
+  api,
+  visibility,
+  originUrl,
+  tokenFlag,
+  envFlag
+}: {
+  file: string
+  api: { account: string; slug: string }
+  visibility: ApiVisibility | undefined
+  originUrl: string | undefined
+  tokenFlag: string | undefined
+  envFlag: HubEnv | undefined
+}): Promise<ApiPublishResult | { type: 'missing'; discover: string }> => {
+  const auth = await resolveApiPublishAuth({ tokenFlag, envFlag, api })
+  if (auth.type !== 'token') return auth
+
+  return await apiPublishHeadless({
+    file,
+    api,
+    visibility,
+    originUrl,
+    token: auth.token,
+    tokenSource: auth.tokenSource,
+    origin: auth.origin,
+    env: auth.env
+  })
+}
+
+export type ApiPublishAuth =
+  | {
+      type: 'token'
+      token: string
+      tokenSource: ApiPublishTokenSource
+      origin: string
+      env: HubEnv
+    }
+  /** No token and no way to get one: the caller prints the recipe, exit 2. */
+  | { type: 'missing'; discover: string }
+  | ApiPublishFailure
+
+/**
+ * The token `api publish` sends: `--token`, `$SKMTC_HUB_TOKEN` or the
+ * `skmtc login` store, through `resolveHubAuth`. Only when none of them
+ * gives a token, and the command runs in GitHub Actions, the job's OIDC
+ * token is exchanged for a linked repository token.
+ */
+export const resolveApiPublishAuth = async ({
+  tokenFlag,
+  envFlag,
+  api
+}: {
+  tokenFlag: string | undefined
+  envFlag: HubEnv | undefined
+  api: { account: string; slug: string }
+}): Promise<ApiPublishAuth> => {
+  const resolved = await resolveHubAuth({ tokenFlag, envFlag })
+  if (resolved.token) {
+    return {
+      type: 'token',
+      token: resolved.token,
+      tokenSource: 'explicit',
+      origin: resolved.origin,
+      env: resolved.env
+    }
+  }
+
+  const githubOidc = readGithubOidcEnv()
+  if (githubOidc === undefined) {
+    return { type: 'missing', discover: toMissingTokenHint(resolved.env) }
+  }
+  if (githubOidc === 'missing-permission') {
+    const missingTokenHint = toMissingTokenHint(resolved.env)
+    return {
+      type: 'missing',
+      discover:
+        'Running in GitHub Actions without an OIDC token. Add `permissions: id-token: write` ' +
+        'to the job (a pull request from a fork never gets one), or ' +
+        `${missingTokenHint[0].toLowerCase()}${missingTokenHint.slice(1)}`
+    }
+  }
+
+  const githubToken = await requestGithubOidcToken({ ...githubOidc, audience: resolved.origin })
+  if (githubToken.type === 'failed') return githubToken
+
+  const linked = await exchangeLinkedRepositoryToken({
+    origin: resolved.origin,
+    api,
+    githubToken: githubToken.token
+  })
+  if (linked.type === 'failed') return linked
+
+  return {
+    type: 'token',
+    token: linked.token,
+    tokenSource: 'oidc',
+    origin: resolved.origin,
+    env: resolved.env
+  }
 }
 
 export const printApiPublishResult = (

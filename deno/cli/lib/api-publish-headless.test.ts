@@ -1,7 +1,8 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { join } from '@std/path/join'
 import { apiPublishHeadless, type ApiPublishResult } from '@/lib/api-publish-headless.ts'
-import { printApiPublishResult } from '@/commands/api.ts'
+import { printApiPublishResult, runApiPublish } from '@/commands/api.ts'
+import { withEnv } from '@/tests/mocks/env.mock.ts'
 
 const originalFetch = globalThis.fetch
 const originalCwd = Deno.cwd()
@@ -61,6 +62,7 @@ const BASE = {
   file: 'schemas/openapi.yaml',
   api: { account: 'acme', slug: 'pets' },
   token: 'pat-123',
+  tokenSource: 'explicit' as const,
   origin: 'https://hub.test',
   env: 'production' as const
 }
@@ -556,4 +558,325 @@ Deno.test('printApiPublishResult - failure JSON keeps code, status and requestId
     message: 'visibility differs',
     requestId: 'req-2'
   })
+})
+
+// --- runApiPublish: GitHub Actions OIDC ------------------------------------------
+
+const GITHUB_REQUEST_URL = 'https://pipelines.actions.githubusercontent.com/token?api-version=2.0'
+const GITHUB_REQUEST_TOKEN = 'gh-request-token-secret'
+const GITHUB_JWT = 'eyJhbGciOiJSUzI1NiJ9.gh-jwt-secret'
+const LINKED_TOKEN = 'skmtc_lr_linked-secret'
+const EXCHANGE_URL = 'https://api.skmtc.dev/v1/apis/acme/pets/linked-repositories/exchange'
+
+type OidcCall = { url: string; method?: string; authorization?: string; body?: string }
+
+/** The answers of GitHub, the exchange and the publish; each may be overridden. */
+type OidcRoutes = {
+  github?: () => Response
+  exchange?: () => Response
+  publish?: () => Response
+}
+
+const isGithubCall = (url: string): boolean =>
+  url.startsWith('https://pipelines.actions.githubusercontent.com/')
+
+/**
+ * Run `run` in a folder holding `schemas/openapi.yaml`, with a home folder of
+ * its own (so no real `auth.json` is read), every token variable set (or
+ * deleted) explicitly, and `fetch` stubbed for the three routes.
+ */
+const withOidcRun = async (
+  {
+    env = {},
+    routes = {},
+    storedToken
+  }: {
+    env?: Record<string, string | undefined>
+    routes?: OidcRoutes
+    storedToken?: string
+  },
+  run: (calls: OidcCall[]) => Promise<void>
+): Promise<void> => {
+  const root = await Deno.realPath(await makeFolder())
+  if (storedToken) {
+    await Deno.mkdir(join(root, '.skmtc'))
+    await Deno.writeTextFile(
+      join(root, '.skmtc', 'auth.json'),
+      JSON.stringify({ env: 'production', token: storedToken })
+    )
+  }
+  const calls: OidcCall[] = []
+  await withEnv(
+    {
+      HOME: root,
+      USERPROFILE: root,
+      SKMTC_HUB_TOKEN: undefined,
+      SKMTC_ENV: undefined,
+      SKMTC_API_ORIGIN: undefined,
+      GITHUB_ACTIONS: 'true',
+      ACTIONS_ID_TOKEN_REQUEST_URL: GITHUB_REQUEST_URL,
+      ACTIONS_ID_TOKEN_REQUEST_TOKEN: GITHUB_REQUEST_TOKEN,
+      ...env
+    },
+    async () => {
+      Deno.chdir(root)
+      globalThis.fetch = (input: string | URL | Request, init?: RequestInit) => {
+        const url = input.toString()
+        calls.push({
+          url,
+          method: init?.method,
+          authorization: new Headers(init?.headers).get('authorization') ?? undefined,
+          body: typeof init?.body === 'string' ? init.body : undefined
+        })
+        if (isGithubCall(url))
+          return Promise.resolve(routes.github?.() ?? json({ value: GITHUB_JWT }))
+        if (url === EXCHANGE_URL) {
+          return Promise.resolve(
+            routes.exchange?.() ??
+              json({ accessToken: LINKED_TOKEN, expiresAt: '2026-10-29T12:15:00Z' }, 201)
+          )
+        }
+        return Promise.resolve(routes.publish?.() ?? json(imported(), 201))
+      }
+      try {
+        await run(calls)
+      } finally {
+        globalThis.fetch = originalFetch
+        Deno.chdir(originalCwd)
+        await Deno.remove(root, { recursive: true })
+      }
+    }
+  )
+}
+
+const RUN = {
+  file: 'schemas/openapi.yaml',
+  api: { account: 'acme', slug: 'pets' },
+  visibility: undefined,
+  originUrl: undefined,
+  tokenFlag: undefined,
+  envFlag: undefined
+}
+
+Deno.test('runApiPublish - with no token in GitHub Actions, publishes with the exchanged token', async () => {
+  await withOidcRun({}, async calls => {
+    const result = await runApiPublish(RUN)
+
+    assertEquals(result.type, 'published')
+    assertEquals(calls.length, 3)
+
+    const github = new URL(calls[0].url)
+    assertEquals(calls[0].method, 'GET')
+    assertEquals(
+      `${github.origin}${github.pathname}`,
+      'https://pipelines.actions.githubusercontent.com/token'
+    )
+    assertEquals(github.searchParams.get('audience'), 'https://api.skmtc.dev')
+    assertEquals(calls[0].authorization, `bearer ${GITHUB_REQUEST_TOKEN}`)
+
+    assertEquals(calls[1], {
+      url: EXCHANGE_URL,
+      method: 'POST',
+      authorization: undefined,
+      body: JSON.stringify({ token: GITHUB_JWT })
+    })
+
+    assertEquals(
+      calls[2].url,
+      'https://api.skmtc.dev/v1/apis/acme/pets/revisions?filename=openapi.yaml'
+    )
+    assertEquals(calls[2].authorization, `Bearer ${LINKED_TOKEN}`)
+  })
+})
+
+Deno.test('runApiPublish - the audience follows --env', async () => {
+  await withOidcRun({}, async calls => {
+    await runApiPublish({ ...RUN, envFlag: 'staging' })
+
+    assertEquals(new URL(calls[0].url).searchParams.get('audience'), 'https://api.skmtc.net')
+    assertEquals(
+      calls[1].url,
+      'https://api.skmtc.net/v1/apis/acme/pets/linked-repositories/exchange'
+    )
+  })
+})
+
+Deno.test('runApiPublish - --token skips OIDC', async () => {
+  await withOidcRun({}, async calls => {
+    const result = await runApiPublish({ ...RUN, tokenFlag: 'pat-flag' })
+
+    assertEquals(result.type, 'published')
+    assertEquals(
+      calls.filter(call => isGithubCall(call.url) || call.url === EXCHANGE_URL),
+      []
+    )
+    assertEquals(
+      calls.map(call => call.authorization),
+      ['Bearer pat-flag']
+    )
+  })
+})
+
+Deno.test('runApiPublish - $SKMTC_HUB_TOKEN skips OIDC', async () => {
+  await withOidcRun({ env: { SKMTC_HUB_TOKEN: 'pat-env' } }, async calls => {
+    const result = await runApiPublish(RUN)
+
+    assertEquals(result.type, 'published')
+    assertEquals(
+      calls.map(call => call.authorization),
+      ['Bearer pat-env']
+    )
+  })
+})
+
+Deno.test('runApiPublish - a stored login skips OIDC', async () => {
+  await withOidcRun({ storedToken: 'stored-token' }, async calls => {
+    const result = await runApiPublish(RUN)
+
+    assertEquals(result.type, 'published')
+    assertEquals(
+      calls.map(call => call.authorization),
+      ['Bearer stored-token']
+    )
+  })
+})
+
+Deno.test('runApiPublish - outside GitHub Actions the variables are ignored: the old recipe, no call', async () => {
+  await withOidcRun({ env: { GITHUB_ACTIONS: undefined } }, async calls => {
+    const result = await runApiPublish(RUN)
+
+    assertEquals(result, {
+      type: 'missing',
+      discover:
+        'Run `skmtc login`, set $SKMTC_HUB_TOKEN, or pass --token. ' +
+        'Mint a PAT at https://skmtc.dev/settings/tokens.'
+    })
+    assertEquals(calls, [])
+  })
+})
+
+Deno.test('runApiPublish - in GitHub Actions without the variables the recipe names id-token: write', async () => {
+  await withOidcRun(
+    { env: { ACTIONS_ID_TOKEN_REQUEST_URL: undefined, ACTIONS_ID_TOKEN_REQUEST_TOKEN: undefined } },
+    async calls => {
+      const result = await runApiPublish(RUN)
+
+      assertEquals(result, {
+        type: 'missing',
+        discover:
+          'Running in GitHub Actions without an OIDC token. Add `permissions: id-token: write` ' +
+          'to the job (a pull request from a fork never gets one), or run `skmtc login`, ' +
+          'set $SKMTC_HUB_TOKEN, or pass --token. Mint a PAT at https://skmtc.dev/settings/tokens.'
+      })
+      assertEquals(calls, [])
+    }
+  )
+})
+
+Deno.test('runApiPublish - a GitHub or exchange failure stops before the publish', async () => {
+  const cases: Array<{ routes: OidcRoutes; code: string; calls: number }> = [
+    {
+      routes: { github: () => new Response('boom', { status: 500 }) },
+      code: 'oidc-token',
+      calls: 1
+    },
+    { routes: { github: () => json({}) }, code: 'oidc-token', calls: 1 },
+    {
+      routes: { exchange: () => json({ message: 'No linked repository' }, 403) },
+      code: 'oidc-exchange',
+      calls: 2
+    }
+  ]
+  for (const { routes, code, calls: expectedCalls } of cases) {
+    await withOidcRun({ routes }, async calls => {
+      const result = await runApiPublish(RUN)
+
+      if (result.type !== 'failed') throw new Error('expected a failed result')
+      assertEquals(result.code, code)
+      assertEquals(calls.length, expectedCalls)
+    })
+  }
+})
+
+Deno.test('runApiPublish - under OIDC a publish 401 or 403 gives no skmtc login, scope or --visibility remedy', async () => {
+  const cases: Array<{ status: number; message: string }> = [
+    {
+      status: 401,
+      message:
+        'The linked repository token was refused: it expired or its link was removed. Run the job again.'
+    },
+    { status: 403, message: 'This token cannot publish here.' }
+  ]
+  for (const { status, message } of cases) {
+    await withOidcRun(
+      { routes: { publish: () => json({ message: 'This token cannot publish here.' }, status) } },
+      async () => {
+        const result = await runApiPublish(RUN)
+
+        if (result.type !== 'failed') throw new Error('expected a failed result')
+        assertEquals(result.message, message)
+      }
+    )
+  }
+})
+
+Deno.test('runApiPublish - under OIDC a publish 404 gives only the first-publish hint, with or without --visibility', async () => {
+  for (const visibility of [undefined, 'public' as const]) {
+    await withOidcRun(
+      { routes: { publish: () => json({ message: 'API not found' }, 404) } },
+      async () => {
+        const result = await runApiPublish({ ...RUN, visibility })
+
+        if (result.type !== 'failed') throw new Error('expected a failed result')
+        assertEquals(result.code, 'not-found')
+        assertEquals(
+          result.message,
+          'API @acme/pets not found. The first publish needs `skmtc login` or a PAT.'
+        )
+      }
+    )
+  }
+})
+
+Deno.test('runApiPublish - no failure prints either token, as text or JSON', async () => {
+  const failures: OidcRoutes[] = [
+    { github: () => new Response('boom', { status: 500 }) },
+    { github: () => json({}) },
+    {
+      github: () => {
+        throw new TypeError('error sending request')
+      }
+    },
+    ...[400, 401, 403, 503, 502].map(status => ({
+      exchange: () => json({ message: 'refused', requestId: 'req-x' }, status)
+    })),
+    { exchange: () => json({ token: 'x' }, 201) },
+    {
+      exchange: () => {
+        throw new TypeError('error sending request')
+      }
+    },
+    ...[400, 401, 403, 404, 409, 422, 500].map(status => ({
+      publish: () => json({ message: 'refused', requestId: 'req-y' }, status)
+    })),
+    { publish: () => json({ unexpected: true }, 201) },
+    {
+      publish: () => {
+        throw new TypeError('error sending request')
+      }
+    }
+  ]
+  for (const routes of failures) {
+    await withOidcRun({ routes }, async () => {
+      const result = await runApiPublish(RUN)
+
+      if (result.type !== 'failed') throw new Error('expected a failed result')
+      const text = capture(() => printApiPublishResult(result, { format: 'text' }))
+      const asJson = capture(() => printApiPublishResult(result, { format: 'json' }))
+      const printed = [...text.out, ...text.err, ...asJson.out, ...asJson.err].join('\n')
+      for (const secret of [GITHUB_REQUEST_TOKEN, GITHUB_JWT, LINKED_TOKEN, 'skmtc_lr_']) {
+        assertEquals(printed.includes(secret), false, `${result.code} printed ${secret}`)
+      }
+    })
+  }
 })
