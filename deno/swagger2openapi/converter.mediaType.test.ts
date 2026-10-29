@@ -171,8 +171,8 @@ Deno.test('no produces - a $ref to a file schema is a binary string too', () => 
 })
 
 Deno.test('no produces - a $ref to a file schema under example media types is a binary string', () => {
-  // The example names choose the media type, so the schema kind used to be
-  // skipped and the `$ref` to `type: file` stayed in place.
+  // Example names choose the media type; the schema kind still decides the
+  // binary rewrite.
   const result = convertOne({
     schema: { $ref: '#/definitions/Report' },
     definitions: { Report: { type: 'file' } },
@@ -180,6 +180,21 @@ Deno.test('no produces - a $ref to a file schema under example media types is a 
   })
   assertEquals(result.mediaTypes, ['application/pdf'])
   assertEquals(obj(result.content['application/pdf']).schema, { type: 'string', format: 'binary' })
+  assertEquals(result.summary.schemaKinds.file, 1)
+})
+
+Deno.test('no produces - a file schema is a binary string under every example media type', () => {
+  // `type: file` says the body is a file whatever the example is named, and
+  // OpenAPI 3.0 has no `type: file` to keep under the JSON name.
+  const result = convertOne({
+    schema: { $ref: '#/definitions/Report' },
+    definitions: { Report: { type: 'file' } },
+    examples: { 'application/json': { id: 1 }, 'application/pdf': 'x' }
+  })
+  assertEquals(result.mediaTypes, ['application/json', 'application/pdf'])
+  for (const mediaType of result.mediaTypes) {
+    assertEquals(obj(result.content[mediaType]).schema, { type: 'string', format: 'binary' })
+  }
 })
 
 Deno.test('no produces - a string schema keeps */*', () => {
@@ -233,6 +248,7 @@ Deno.test('no produces - the media types named in examples come before the schem
   const expected = toMediaTypeInference()
   expected.responses = 1
   expected.fromExamples = 1
+  expected.schemaKinds.object = 1
   expected.mediaTypes['application/xml'] = 1
   assertEquals(result.summary, expected)
 })

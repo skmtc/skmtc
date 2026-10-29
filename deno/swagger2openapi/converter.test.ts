@@ -126,6 +126,21 @@ paths: {}
   assertEquals(obj(result.openapi).openapi, targetVersion)
 })
 
+Deno.test('convertStr - returns the media type inference summary', () => {
+  const result = convertStr(
+    JSON.stringify({
+      swagger: '2.0',
+      info: { title: 't', version: '1' },
+      paths: {
+        '/pets': {
+          get: { responses: { '200': { description: 'ok', schema: { type: 'object' } } } }
+        }
+      }
+    })
+  )
+  assertEquals(result.mediaTypeInference.responses, 1)
+})
+
 Deno.test('convertObj - body parameter becomes a requestBody', () => {
   const { openapi } = convertObj({
     swagger: '2.0',

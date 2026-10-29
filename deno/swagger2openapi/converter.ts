@@ -837,17 +837,17 @@ const inferMediaTypes = (
   openapi: JsonObject,
   toLocation: () => string,
   summary: MediaTypeInference
-): { mediaTypes: string[]; schemaKind: ResponseSchemaKind | undefined } => {
+): { mediaTypes: string[]; schemaKind: ResponseSchemaKind } => {
   summary.responses += 1
   const exampleTypes = isJsonObject(response.examples) ? Object.keys(response.examples) : []
   const schemaKind = toSchemaKind(response.schema, openapi)
+  summary.schemaKinds[schemaKind] += 1
   if (exampleTypes.length) {
     summary.fromExamples += 1
     for (const mediaType of exampleTypes) countMediaType(summary, mediaType)
     // The kind still decides the binary rewrite of a `$ref` to a `file` schema.
     return { mediaTypes: exampleTypes, schemaKind }
   }
-  summary.schemaKinds[schemaKind] += 1
   const mediaType = mediaTypeOfKind[schemaKind]
   countMediaType(summary, mediaType)
   if (schemaKind === 'other' && summary.unknownSample.length < UNKNOWN_SAMPLE_SIZE) {
@@ -1637,7 +1637,10 @@ export const parseInput = (str: string): ParsedInput | undefined => {
 }
 
 /** Parses a JSON/YAML string and converts it. Synchronous (no external resolution). */
-export const convertStr = (str: string, options: ConvertOptions = {}): ConvertResult => {
+export const convertStr = (
+  str: string,
+  options: ConvertOptions = {}
+): ConvertResultWithInference => {
   const parsed = parseInput(str)
   if (!parsed) throw new ConvertError('Could not parse the input as JSON or YAML')
   const result = convertObj(parsed.value, options)
