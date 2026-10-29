@@ -41,11 +41,12 @@ export type {
   ConvertResult,
   External,
   ExternalHandler,
-  InferredMediaType,
   Linter,
   LinterRule,
   LintViolation,
+  MediaTypeInference,
   ResolveOptions,
+  ResponseSchemaKind,
   ValidateOptions
 } from './types.ts'
 

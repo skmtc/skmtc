@@ -67,25 +67,39 @@ export interface ConvertResult {
   /** `true` when the source string was parsed as YAML rather than JSON. */
   sourceYaml: boolean
   /**
-   * One entry for each response with a schema whose operation, and the
-   * document, list no `produces`. Swagger 2.0 then says nothing about the
-   * media type, so the converter chooses one from the schema.
+   * How the converter chose media types for response schemas that Swagger 2.0
+   * gave none for. The converters in this package always set it; it is
+   * optional so that code building a `ConvertResult` itself still type-checks.
    */
-  inferredMediaTypes: InferredMediaType[]
+  mediaTypeInference?: MediaTypeInference
 }
 
 /**
- * The media type chosen for a response schema when no `produces` applies.
- * `schemaKind` is what the schema resolved to: an `object` or `array` schema
- * is JSON, a `file` schema is a binary body, and `other` (a scalar, an untyped
- * schema or a `$ref` that does not resolve) gives no answer, so it keeps the
- * `*\/*` range swagger2openapi has always written.
+ * What a response schema resolves to. An `object` or `array` schema is JSON, a
+ * `file` schema is a binary body, and `other` (a scalar, an untyped schema or a
+ * `$ref` that does not resolve) gives no answer, so it keeps the `*\/*` range
+ * swagger2openapi has always written.
  */
-export interface InferredMediaType {
-  /** JSON Pointer to the Swagger 2.0 response, e.g. `#/paths/~1pets/get/responses/200`. */
-  location: string
-  schemaKind: 'object' | 'array' | 'file' | 'other'
-  mediaType: 'application/json' | 'application/octet-stream' | '*/*'
+export type ResponseSchemaKind = 'object' | 'array' | 'file' | 'other'
+
+/**
+ * A summary of the responses whose media type the converter chose. It chooses
+ * one for an operation's response when neither the operation nor the document
+ * has a `produces` key, and for a shared response under `#/responses` when no
+ * `produces` key appears anywhere in the document. The names in a response's
+ * `examples` are used first; otherwise the schema decides.
+ */
+export interface MediaTypeInference {
+  /** Responses whose media type the converter chose. */
+  responses: number
+  /** How often each media type was chosen. A response with several `examples` names counts once per name. */
+  mediaTypes: Record<string, number>
+  /** Responses decided by their schema, by what the schema resolved to. */
+  schemaKinds: Record<ResponseSchemaKind, number>
+  /** Responses whose media types came from the names in their `examples`. */
+  fromExamples: number
+  /** JSON Pointers to the first five responses that kept `*\/*`, e.g. `#/paths/~1pets/get/responses/200`. */
+  unknownSample: string[]
 }
 
 /** A single linter rule (loaded from `rules.json`). */

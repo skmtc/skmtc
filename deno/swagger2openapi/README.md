@@ -81,11 +81,16 @@ onto `options.violations` and lets validation continue.
 - The CLI and the corpus `testRunner` harness are not ported; the test suite uses native
   `Deno.test`.
 - The linter reports rather than aborts (see above).
-- A response schema with no `produces` on its operation or the document gets a media type from
-  its schema, where upstream always writes `*/*`: an object or array schema (also one with
-  `properties`, `allOf` or `additionalProperties` and no `type`) is `application/json`, a `file`
-  schema is `application/octet-stream`, and any other schema keeps `*/*`. A `$ref` resolves to
-  the schema it names first. Each such choice is listed in the result's `inferredMediaTypes`.
+- A response schema that no `produces` key applies to gets a media type, where upstream always
+  writes `*/*`. That is an operation's response when neither the operation nor the document has a
+  `produces` key (an empty `produces: []` counts as a key), and a shared response under
+  `#/responses` when no `produces` key appears anywhere in the document. The media types named in
+  the response's `examples` come first. Otherwise the schema decides: an object or array schema is
+  `application/json` (also one with `properties`, `additionalProperties` or `items` and no `type`,
+  or an `allOf`, `anyOf` or `oneOf` with an object or array member), a `file` schema is
+  `application/octet-stream` with the schema written as a binary string, and any other schema
+  keeps `*/*`. A `$ref` resolves to the schema it names first. The result's `mediaTypeInference`
+  counts these choices and lists the first five responses that kept `*/*`.
 
 ## Development
 

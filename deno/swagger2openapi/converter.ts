@@ -39,12 +39,23 @@ import {
 import { clone, jpescape, recurse } from './reftools.ts'
 import { walkSchema } from './walkSchema.ts'
 import { statusCodes } from './statusCodes.ts'
-import type { ConvertOptions, ConvertResult, External, InferredMediaType } from './types.ts'
+import type {
+  ConvertOptions,
+  ConvertResult,
+  External,
+  MediaTypeInference,
+  ResponseSchemaKind
+} from './types.ts'
 
 // Re-exported so consumers that only need the converter (e.g. `@skmtc/convert`)
 // can import value + types from `@skmtc/swagger2openapi/converter` without
 // pulling in the validator's ajv graph via the package root (`mod.ts`).
-export type { ConvertOptions, ConvertResult, InferredMediaType } from './types.ts'
+export type {
+  ConvertOptions,
+  ConvertResult,
+  MediaTypeInference,
+  ResponseSchemaKind
+} from './types.ts'
 export type { JsonObject, JsonValue } from './json.ts'
 
 /** Target OpenAPI version produced by the converter. */
@@ -708,6 +719,50 @@ const resolveValueOrKeep = (root: JsonValue, pointer: string): JsonValue => {
 
 // --- responses ------------------------------------------------------------------
 
+/** An empty {@link MediaTypeInference}, for the converter to count into. @internal */
+export const toMediaTypeInference = (): MediaTypeInference => ({
+  responses: 0,
+  mediaTypes: {},
+  schemaKinds: { object: 0, array: 0, file: 0, other: 0 },
+  fromExamples: 0,
+  unknownSample: []
+})
+
+/** How many `*\/*` locations {@link MediaTypeInference.unknownSample} keeps. */
+const UNKNOWN_SAMPLE_SIZE = 5
+
+/** What the converter needs to choose response media types for one document. */
+interface Inference {
+  /**
+   * Whether the Swagger 2.0 document has a `produces` key at the top level or
+   * on any operation. It is read before the conversion removes those keys.
+   */
+  documentHasProduces: boolean
+  summary: MediaTypeInference
+}
+
+const hasProducesKey = (value: JsonValue | undefined): boolean =>
+  isJsonObject(value) && 'produces' in value
+
+const toDocumentHasProduces = (swagger: JsonObject): boolean =>
+  hasProducesKey(swagger) ||
+  [swagger.paths, swagger['x-ms-paths']].some(
+    paths =>
+      isJsonObject(paths) &&
+      Object.values(paths).some(
+        pathItem => isJsonObject(pathItem) && Object.values(pathItem).some(hasProducesKey)
+      )
+  )
+
+/** `resolveInternal` decodes the pointer, which throws on a malformed `%` escape. */
+const tryResolveInternal = (root: JsonObject, pointer: string): JsonValue | false | undefined => {
+  try {
+    return resolveInternal(root, pointer)
+  } catch {
+    return undefined
+  }
+}
+
 /**
  * What a response schema resolves to, for choosing a media type when no
  * `produces` applies. By this point the converter has moved `definitions` to
@@ -718,11 +773,11 @@ const toSchemaKind = (
   schema: JsonValue | undefined,
   openapi: JsonObject,
   seen: Set<string> = new Set()
-): InferredMediaType['schemaKind'] => {
+): ResponseSchemaKind => {
   if (!isJsonObject(schema)) return 'other'
   if (isString(schema.$ref)) {
     if (seen.has(schema.$ref) || !schema.$ref.startsWith('#/')) return 'other'
-    const resolved = resolveInternal(openapi, schema.$ref)
+    const resolved = tryResolveInternal(openapi, schema.$ref)
     return isJsonObject(resolved)
       ? toSchemaKind(resolved, openapi, new Set([...seen, schema.$ref]))
       : 'other'
@@ -731,17 +786,73 @@ const toSchemaKind = (
     return schema.type
   }
   if (typeof schema.type !== 'undefined') return 'other'
-  const objectShaped = ['properties', 'allOf', 'additionalProperties'].some(
-    key => typeof schema[key] !== 'undefined'
-  )
-  return objectShaped ? 'object' : 'other'
+  if (
+    typeof schema.properties !== 'undefined' ||
+    typeof schema.additionalProperties !== 'undefined'
+  ) {
+    return 'object'
+  }
+  if (typeof schema.items !== 'undefined') return 'array'
+  return toMembersKind(schema, openapi, seen)
 }
 
-const mediaTypeOfKind: Record<InferredMediaType['schemaKind'], InferredMediaType['mediaType']> = {
+/**
+ * The kind of a schema with no `type` that composes others. `fixUpSchema` has
+ * already turned `x-anyOf`, `x-oneOf` and multi-value `type` into `anyOf` and
+ * `oneOf`. A wrapper around a scalar (`allOf: [{ $ref: Status }]` with a
+ * `description`) stays a scalar.
+ */
+const toMembersKind = (
+  schema: JsonObject,
+  openapi: JsonObject,
+  seen: Set<string>
+): ResponseSchemaKind => {
+  const kinds = ['allOf', 'anyOf', 'oneOf'].flatMap(key => {
+    const members = schema[key]
+    return isJsonArray(members) ? members.map(member => toSchemaKind(member, openapi, seen)) : []
+  })
+  if (kinds.includes('object')) return 'object'
+  if (kinds.includes('array')) return 'array'
+  return 'other'
+}
+
+const mediaTypeOfKind: Record<ResponseSchemaKind, string> = {
   object: 'application/json',
   array: 'application/json',
   file: 'application/octet-stream',
   other: '*/*'
+}
+
+const countMediaType = (summary: MediaTypeInference, mediaType: string): void => {
+  summary.mediaTypes[mediaType] = (summary.mediaTypes[mediaType] ?? 0) + 1
+}
+
+/**
+ * Choose the media types of a response with a schema and no `produces`. The
+ * names in its `examples` are the only media types the response states, so
+ * they come first; otherwise the schema decides.
+ */
+const inferMediaTypes = (
+  response: JsonObject,
+  openapi: JsonObject,
+  toLocation: () => string,
+  summary: MediaTypeInference
+): { mediaTypes: string[]; schemaKind: ResponseSchemaKind | undefined } => {
+  summary.responses += 1
+  const exampleTypes = isJsonObject(response.examples) ? Object.keys(response.examples) : []
+  if (exampleTypes.length) {
+    summary.fromExamples += 1
+    for (const mediaType of exampleTypes) countMediaType(summary, mediaType)
+    return { mediaTypes: exampleTypes, schemaKind: undefined }
+  }
+  const schemaKind = toSchemaKind(response.schema, openapi)
+  summary.schemaKinds[schemaKind] += 1
+  const mediaType = mediaTypeOfKind[schemaKind]
+  countMediaType(summary, mediaType)
+  if (schemaKind === 'other' && summary.unknownSample.length < UNKNOWN_SAMPLE_SIZE) {
+    summary.unknownSample.push(toLocation())
+  }
+  return { mediaTypes: [mediaType], schemaKind }
 }
 
 const processResponse = (
@@ -750,8 +861,8 @@ const processResponse = (
   op: JsonObject | null,
   openapi: JsonObject,
   options: ConvertOptions,
-  location: string,
-  inferred: InferredMediaType[]
+  toLocation: () => string,
+  inference: Inference
 ): void => {
   if (isString(response.$ref)) {
     if (response.$ref.indexOf('#/definitions/') >= 0) {
@@ -790,12 +901,17 @@ const processResponse = (
       .filter(isString)
     // Swagger 2.0 with no `produces` says nothing about the media type;
     // upstream writes `*/*`, which hides a JSON schema from every reader that
-    // looks under `application/json`. Choose from the schema instead.
-    const schemaKind = produces.length ? undefined : toSchemaKind(response.schema, openapi)
-    if (schemaKind) {
-      inferred.push({ location, schemaKind, mediaType: mediaTypeOfKind[schemaKind] })
-    }
-    const mimes = schemaKind ? [mediaTypeOfKind[schemaKind]] : produces
+    // looks under `application/json`. Choose one only where no `produces` key
+    // could apply: a shared response can be used by any operation, so any
+    // `produces` in the document keeps it at `*/*`. An explicit empty
+    // `produces` also keeps `*/*`.
+    const mayInfer = op
+      ? !hasProducesKey(op) && !hasProducesKey(openapi)
+      : !inference.documentHasProduces
+    const inferred = mayInfer
+      ? inferMediaTypes(response, openapi, toLocation, inference.summary)
+      : undefined
+    const mimes = inferred ? inferred.mediaTypes : produces.length ? produces : ['*/*']
 
     const content = ensureObj(response, 'content')
     const examples = isJsonObject(response.examples) ? response.examples : undefined
@@ -808,7 +924,9 @@ const processResponse = (
         exampleContainer.response = { value: examples[mimetype] }
         delete examples[mimetype]
       }
-      if (isJsonObject(cloned) && cloned.type === 'file') {
+      // A `$ref` to a `file` schema is a binary body too, so its schema
+      // matches the `application/octet-stream` media type chosen for it.
+      if ((isJsonObject(cloned) && cloned.type === 'file') || inferred?.schemaKind === 'file') {
         media.schema = { type: 'string', format: 'binary' }
       }
     }
@@ -858,7 +976,7 @@ const processPaths = (
   options: ConvertOptions,
   requestBodyCache: Record<number, RequestBodyEntry>,
   openapi: JsonObject,
-  inferred: InferredMediaType[]
+  inference: Inference
 ): void => {
   for (const p of Object.keys(container)) {
     const path = container[p]
@@ -933,8 +1051,9 @@ const processPaths = (
         for (const r of Object.keys(responses)) {
           const response = responses[r]
           if (isJsonObject(response)) {
-            const location = `#/${containerName}/${jpescape(p)}/${method}/responses/${jpescape(r)}`
-            processResponse(response, r, op, openapi, options, location, inferred)
+            const toLocation = () =>
+              `#/${containerName}/${jpescape(p)}/${method}/responses/${jpescape(r)}`
+            processResponse(response, r, op, openapi, options, toLocation, inference)
           }
         }
       }
@@ -1083,8 +1202,9 @@ const processXmsExamples = (
 export const main = (
   openapi: JsonObject,
   options: ConvertOptions,
-  inferred: InferredMediaType[] = []
+  summary: MediaTypeInference
 ): JsonObject => {
+  const inference: Inference = { documentHasProduces: toDocumentHasProduces(openapi), summary }
   const requestBodyCache: Record<number, RequestBodyEntry> = {}
   const componentNames: ComponentNames = { schemas: {} }
   const components = ensureObj(openapi, 'components')
@@ -1158,8 +1278,8 @@ export const main = (
           null,
           openapi,
           options,
-          `#/responses/${jpescape(r)}`,
-          inferred
+          () => `#/responses/${jpescape(r)}`,
+          inference
         )
         if (isJsonObject(response.headers)) {
           for (const h of Object.keys(response.headers)) {
@@ -1186,10 +1306,10 @@ export const main = (
   }
 
   if (isJsonObject(openapi.paths)) {
-    processPaths(openapi.paths, 'paths', options, requestBodyCache, openapi, inferred)
+    processPaths(openapi.paths, 'paths', options, requestBodyCache, openapi, inference)
   }
   if (isJsonObject(openapi['x-ms-paths'])) {
-    processPaths(openapi['x-ms-paths'], 'x-ms-paths', options, requestBodyCache, openapi, inferred)
+    processPaths(openapi['x-ms-paths'], 'x-ms-paths', options, requestBodyCache, openapi, inference)
   }
 
   if (!options.debug && parameters) {
@@ -1457,12 +1577,12 @@ export const toResult = (
   openapi: JsonObject,
   externals: External[],
   sourceYaml: boolean,
-  inferredMediaTypes: InferredMediaType[] = []
+  mediaTypeInference: MediaTypeInference
 ): ConvertResult => ({
   openapi,
   externals,
   sourceYaml,
-  inferredMediaTypes
+  mediaTypeInference
 })
 
 /**
@@ -1477,9 +1597,9 @@ export const convertObj = (swagger: JsonValue, options: ConvertOptions = {}): Co
     throwError('convertObj is synchronous; use convertObjResolve when options.resolve is set')
   }
   const { openapi, isV2 } = prepare(swagger, options)
-  const inferred: InferredMediaType[] = []
-  if (isV2) main(openapi, options, inferred)
-  return toResult(openapi, [], false, inferred)
+  const summary = toMediaTypeInference()
+  if (isV2) main(openapi, options, summary)
+  return toResult(openapi, [], false, summary)
 }
 
 /** Parsed JSON/YAML input plus whether the source was YAML. @internal */
@@ -1511,5 +1631,10 @@ export const convertStr = (str: string, options: ConvertOptions = {}): ConvertRe
   const parsed = parseInput(str)
   if (!parsed) throw new ConvertError('Could not parse the input as JSON or YAML')
   const result = convertObj(parsed.value, options)
-  return toResult(result.openapi, result.externals, parsed.yaml, result.inferredMediaTypes)
+  return toResult(
+    result.openapi,
+    result.externals,
+    parsed.yaml,
+    result.mediaTypeInference ?? toMediaTypeInference()
+  )
 }
