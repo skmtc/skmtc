@@ -50,7 +50,10 @@ const convertOne = ({
   )
   const response = obj(obj(obj(obj(obj(openapi.paths)['/pets']).get).responses)['200'])
   const content = obj(response.content)
-  return { content, mediaTypes: Object.keys(content), summary: mediaTypeInference }
+  // The converter drops an empty `components`.
+  const components = isJsonObject(openapi.components) ? openapi.components : {}
+  const schemas = isJsonObject(components.schemas) ? components.schemas : {}
+  return { content, mediaTypes: Object.keys(content), summary: mediaTypeInference, schemas }
 }
 
 /** The summary for one response at `/pets` decided by its schema. */
@@ -171,8 +174,8 @@ Deno.test('no produces - a $ref to a file schema is a binary string too', () => 
 })
 
 Deno.test('no produces - a $ref to a file schema under example media types is a binary string', () => {
-  // The example names choose the media type, so the schema kind used to be
-  // skipped and the `$ref` to `type: file` stayed in place.
+  // Example names choose the media type; the schema kind still decides the
+  // binary rewrite.
   const result = convertOne({
     schema: { $ref: '#/definitions/Report' },
     definitions: { Report: { type: 'file' } },
@@ -180,6 +183,21 @@ Deno.test('no produces - a $ref to a file schema under example media types is a 
   })
   assertEquals(result.mediaTypes, ['application/pdf'])
   assertEquals(obj(result.content['application/pdf']).schema, { type: 'string', format: 'binary' })
+  assertEquals(result.summary.schemaKinds.file, 1)
+})
+
+Deno.test('no produces - a file schema is a binary string under every example media type', () => {
+  // `type: file` says the body is a file whatever the example is named, and
+  // OpenAPI 3.0 has no `type: file` to keep under the JSON name.
+  const result = convertOne({
+    schema: { $ref: '#/definitions/Report' },
+    definitions: { Report: { type: 'file' } },
+    examples: { 'application/json': { id: 1 }, 'application/pdf': 'x' }
+  })
+  assertEquals(result.mediaTypes, ['application/json', 'application/pdf'])
+  for (const mediaType of result.mediaTypes) {
+    assertEquals(obj(result.content[mediaType]).schema, { type: 'string', format: 'binary' })
+  }
 })
 
 Deno.test('no produces - a string schema keeps */*', () => {
@@ -233,6 +251,7 @@ Deno.test('no produces - the media types named in examples come before the schem
   const expected = toMediaTypeInference()
   expected.responses = 1
   expected.fromExamples = 1
+  expected.schemaKinds.object = 1
   expected.mediaTypes['application/xml'] = 1
   assertEquals(result.summary, expected)
 })
@@ -248,6 +267,46 @@ Deno.test('top-level produces wins over the schema', () => {
   const result = convertOne({ schema: { type: 'object' }, topProduces: ['text/csv'] })
   assertEquals(result.mediaTypes, ['text/csv'])
   assertEquals(result.summary, toMediaTypeInference())
+})
+
+Deno.test('a file definition is a binary string and an explicit produces keeps its $ref', () => {
+  const result = convertOne({
+    schema: { $ref: '#/definitions/Report' },
+    definitions: { Report: { type: 'file' } },
+    produces: ['application/pdf']
+  })
+  assertEquals(result.schemas.Report, { type: 'string', format: 'binary' })
+  assertEquals(obj(result.content['application/pdf']).schema, {
+    $ref: '#/components/schemas/Report'
+  })
+})
+
+Deno.test('a nested file schema in a definition is a binary string and keeps its siblings', () => {
+  const result = convertOne({
+    schema: { type: 'object' },
+    definitions: {
+      Report: { type: 'file', description: 'A report' },
+      Upload: { type: 'object', properties: { data: { type: 'file', 'x-kind': 'upload' } } },
+      Uploads: { type: 'array', items: { type: 'file' } }
+    }
+  })
+  assertEquals(result.schemas.Report, { type: 'string', format: 'binary', description: 'A report' })
+  assertEquals(result.schemas.Upload, {
+    type: 'object',
+    properties: { data: { type: 'string', format: 'binary', 'x-kind': 'upload' } }
+  })
+  assertEquals(result.schemas.Uploads, {
+    type: 'array',
+    items: { type: 'string', format: 'binary' }
+  })
+})
+
+Deno.test('an inline file schema under an explicit produces is a binary string', () => {
+  const result = convertOne({ schema: { type: 'file' }, produces: ['application/pdf'] })
+  assertEquals(obj(result.content['application/pdf']).schema, {
+    type: 'string',
+    format: 'binary'
+  })
 })
 
 Deno.test('an explicit empty operation produces keeps */*', () => {

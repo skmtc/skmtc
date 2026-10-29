@@ -221,6 +221,16 @@ const fixUpSchema = (schema: JsonObject, options: ConvertOptions): void => {
   })
 }
 
+/** Rewrites every `type: file` in `schema` to a binary string. OpenAPI 3.0 has no `file` type. */
+const fixUpFileSchema = (schema: JsonObject): void => {
+  walkSchema(schema, {}, {}, sub => {
+    if (sub.type === 'file') {
+      sub.type = 'string'
+      sub.format = 'binary'
+    }
+  })
+}
+
 // --- reference fix-ups ----------------------------------------------------------
 
 interface ComponentNames {
@@ -837,17 +847,17 @@ const inferMediaTypes = (
   openapi: JsonObject,
   toLocation: () => string,
   summary: MediaTypeInference
-): { mediaTypes: string[]; schemaKind: ResponseSchemaKind | undefined } => {
+): { mediaTypes: string[]; schemaKind: ResponseSchemaKind } => {
   summary.responses += 1
   const exampleTypes = isJsonObject(response.examples) ? Object.keys(response.examples) : []
   const schemaKind = toSchemaKind(response.schema, openapi)
+  summary.schemaKinds[schemaKind] += 1
   if (exampleTypes.length) {
     summary.fromExamples += 1
     for (const mediaType of exampleTypes) countMediaType(summary, mediaType)
     // The kind still decides the binary rewrite of a `$ref` to a `file` schema.
     return { mediaTypes: exampleTypes, schemaKind }
   }
-  summary.schemaKinds[schemaKind] += 1
   const mediaType = mediaTypeOfKind[schemaKind]
   countMediaType(summary, mediaType)
   if (schemaKind === 'other' && summary.unknownSample.length < UNKNOWN_SAMPLE_SIZE) {
@@ -1313,6 +1323,13 @@ export const main = (
     processPaths(openapi['x-ms-paths'], 'x-ms-paths', options, requestBodyCache, openapi, inference)
   }
 
+  // After the paths: media type inference reads `type: file` through a `$ref`.
+  if (schemas) {
+    for (const schema of Object.values(schemas)) {
+      if (isJsonObject(schema)) fixUpFileSchema(schema)
+    }
+  }
+
   if (!options.debug && parameters) {
     for (const p of Object.keys(parameters)) {
       const param = parameters[p]
@@ -1637,7 +1654,10 @@ export const parseInput = (str: string): ParsedInput | undefined => {
 }
 
 /** Parses a JSON/YAML string and converts it. Synchronous (no external resolution). */
-export const convertStr = (str: string, options: ConvertOptions = {}): ConvertResult => {
+export const convertStr = (
+  str: string,
+  options: ConvertOptions = {}
+): ConvertResultWithInference => {
   const parsed = parseInput(str)
   if (!parsed) throw new ConvertError('Could not parse the input as JSON or YAML')
   const result = convertObj(parsed.value, options)

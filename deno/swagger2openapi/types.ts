@@ -94,7 +94,7 @@ export interface MediaTypeInference {
   responses: number
   /** How often each media type was chosen. A response with several `examples` names counts once per name. */
   mediaTypes: Record<string, number>
-  /** Responses decided by their schema, by what the schema resolved to. */
+  /** Responses whose media type the converter chose, by what the schema resolved to. Sums to `responses`. */
   schemaKinds: Record<ResponseSchemaKind, number>
   /** Responses whose media types came from the names in their `examples`. */
   fromExamples: number

@@ -91,6 +91,9 @@ onto `options.violations` and lets validation continue.
   `application/octet-stream` with the schema written as a binary string, and any other schema
   keeps `*/*`. A `$ref` resolves to the schema it names first. The result's `mediaTypeInference`
   counts these choices and lists the first five responses that kept `*/*`.
+- A `type: file` anywhere in a definition, nested ones included, becomes `type: string` with
+  `format: binary` in `components.schemas`, where upstream keeps `type: file`. The other keywords of
+  the schema stay. OpenAPI 3.0 has no `file` type.
 
 ## Development
 
