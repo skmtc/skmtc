@@ -185,17 +185,17 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  * `v.GenericSchema<OasIssueType>` annotation — adding a variant in one
  * place without the other fails to type-check.
  *
- * Media type issues, one per response or request body with a non-empty
- * `content` that has no JSON media type (see `isJsonMediaType`):
+ * Media type issues, at most one per response or request body, from the
+ * choice `toJsonContent` makes on its parsed `content`:
  *
- * - `WILDCARD_MEDIA_TYPE` (`warning`) — a key is `*\/*`, so lookups such as
- *   `OasResponse.toSchema()` read the schema under it as JSON. The document
- *   does not say the format; often a format lost upstream, e.g. a Swagger
- *   2.0 operation with no `produces`, or springdoc's default.
- * - `NO_JSON_MEDIA_TYPE` (`debug`) — no key is JSON or `*\/*`: specific
- *   non-JSON types (`text/plain`, `application/octet-stream`, …) or a
- *   narrower range such as `application/*`. No lookup without a media type
- *   reads the schema. Usually a real text or binary body.
+ * - `WILDCARD_MEDIA_TYPE` (`warning`) — the body has no JSON media type
+ *   (see `isJsonMediaType`) and is read from `*\/*` as JSON, since its schema
+ *   there is an object, array, union or `$ref`. The document does not say the
+ *   format; springdoc writes `*\/*` for every response.
+ * - `NO_JSON_MEDIA_TYPE` (`debug`) — no lookup without a media type reads the
+ *   body, and its keys include a range: `application/*`, or `*\/*` with a
+ *   scalar schema (a text body or a file). A body with only specific
+ *   non-JSON types (`multipart/form-data`, `text/plain`) logs nothing.
  */
 export type OasIssueType =
   | 'UNEXPECTED_PROPERTY'

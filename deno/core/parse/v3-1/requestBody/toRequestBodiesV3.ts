@@ -39,8 +39,6 @@ export const toRequestBodyV3 = ({
     parentType: 'requestBody'
   })
 
-  logBodyMediaTypes({ content, stackTrail, context, parent: requestBody })
-
   const fields: RequestBodyFields = {
     description,
     content: stackTrail.trace('content', st => {
@@ -50,7 +48,11 @@ export const toRequestBodyV3 = ({
     extensionFields
   }
 
-  return context.withStackTrail(stackTrail, () => new OasRequestBody(fields, context))
+  const parsed = context.withStackTrail(stackTrail, () => new OasRequestBody(fields, context))
+
+  logBodyMediaTypes({ content: fields.content, stackTrail, context })
+
+  return parsed
 }
 
 export type ToRequestBodiesV3Args = {

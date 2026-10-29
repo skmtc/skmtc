@@ -242,11 +242,7 @@ Deno.test('OasHeader', async t => {
     await t.step('should throw error when neither schema nor content exists', () => {
       const header = new OasHeader({ description: 'No schema' })
 
-      assertThrows(
-        () => header.toSchema(),
-        Error,
-        'Schema not found for media type application/json'
-      )
+      assertThrows(() => header.toSchema(), Error, 'Schema not found for a JSON media type')
     })
 
     await t.step(
@@ -331,21 +327,21 @@ Deno.test('OasHeader', async t => {
       assertEquals(result, directSchema) // Verify it's the direct schema, not content schema
     })
 
-    await t.step('should throw error for missing media type in content', () => {
+    await t.step('reads the only content entry whatever the media type', () => {
+      // Header `content` has exactly one entry, so it is read for any media
+      // type, as `OasParameter.toSchema` does.
+      const xmlSchema = new OasString()
       const header = new OasHeader({
         content: {
           'application/xml': new OasMediaType({
             mediaType: 'application/xml',
-            schema: new OasString()
+            schema: xmlSchema
           })
         }
       })
 
-      assertThrows(
-        () => header.toSchema('application/json'),
-        Error,
-        'Schema not found for media type application/json'
-      )
+      assertEquals(header.toSchema(), xmlSchema)
+      assertEquals(header.toSchema('application/json'), xmlSchema)
     })
 
     await t.step('should throw error when content exists but has no schema', () => {
@@ -361,7 +357,7 @@ Deno.test('OasHeader', async t => {
       assertThrows(
         () => header.toSchema('application/json'),
         Error,
-        'Schema not found for media type application/json'
+        'Schema not found for media type "application/json"'
       )
     })
   })

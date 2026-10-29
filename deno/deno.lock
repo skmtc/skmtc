@@ -1117,7 +1117,7 @@
           "jsr:@deno/graph@0.111.0",
           "jsr:@skmtc/convert@~0.1.19",
           "jsr:@skmtc/core@0.31",
-          "jsr:@skmtc/server@~0.3.10",
+          "jsr:@skmtc/server@~0.3.11",
           "jsr:@skmtc/worker@~0.3.60",
           "npm:@inkjs/ui@2",
           "npm:@types/react@19",

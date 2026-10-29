@@ -63,6 +63,14 @@ export type OperationFields = {
 export type ToRequestBodyMapArgs = {
   schema: OasSchema | OasRef<'schema'>
   requestBody: OasRequestBody
+  /** The `content` key the schema was read from. */
+  mediaType: string
+  /**
+   * The media type to send the body as: the explicit media type when one was
+   * passed, else `contentType` of `OasRequestBody.toJsonContent` (the
+   * JSON-like key, or `application/json` for a body read from `*\/*`).
+   */
+  contentType: string
 }
 
 export class OasOperation extends OasBase {
@@ -159,9 +167,24 @@ export class OasOperation extends OasBase {
     mediaType?: string
   ): V | undefined {
     const requestBody = this.requestBody?.resolve()
-    const schema = requestBody?.toSchema(mediaType)
 
-    return requestBody && schema ? map({ schema, requestBody }) : undefined
+    if (!requestBody) {
+      return undefined
+    }
+
+    const chosen =
+      mediaType === undefined
+        ? requestBody.toJsonContent()
+        : { mediaType, contentType: mediaType, schema: requestBody.toSchema(mediaType) }
+
+    return chosen?.schema
+      ? map({
+          schema: chosen.schema,
+          requestBody,
+          mediaType: chosen.mediaType,
+          contentType: chosen.contentType
+        })
+      : undefined
   }
 
   /**

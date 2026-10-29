@@ -7,7 +7,7 @@ import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { OasBase } from '@/types/OasBase.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
-import { toContentSchema } from '@/oas/mediaType/jsonMediaType.ts'
+import { toContentSchema } from '@/oas/mediaType/toContentSchema.ts'
 
 // @TODO It might be a good idea to set up separate classes for
 // path, query, header, and cookie parameters
@@ -288,7 +288,11 @@ export class OasParameter extends OasBase {
     const schema = toContentSchema(this.content, mediaType) ?? onlyEntry?.schema
 
     if (!schema) {
-      throw new Error(`Schema not found for media type ${mediaType ?? 'application/json'}`)
+      throw new Error(
+        mediaType === undefined
+          ? 'Schema not found for a JSON media type'
+          : `Schema not found for media type "${mediaType}"`
+      )
     }
 
     return schema

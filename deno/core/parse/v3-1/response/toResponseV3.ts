@@ -89,13 +89,11 @@ export const toResponseV3 = ({
     toHeadersV3({ headers, stackTrail: st, context })
   )
   const parsedLinks = stackTrail.trace('links', st => toLinksV3({ links, stackTrail: st, context }))
-  logBodyMediaTypes({ content, stackTrail, context, parent: response })
-
   const parsedContent = stackTrail.trace('content', st =>
     toOptionalMediaTypeItemsV3({ content, stackTrail: st, context })
   )
 
-  return context.withStackTrail(
+  const parsed = context.withStackTrail(
     stackTrail,
     () =>
       new OasResponse(
@@ -109,4 +107,8 @@ export const toResponseV3 = ({
         context
       )
   )
+
+  logBodyMediaTypes({ content: parsedContent, stackTrail, context })
+
+  return parsed
 }

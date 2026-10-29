@@ -9,7 +9,6 @@ import type { OasSchema } from '@/oas/schema/Schema.ts'
 import {
   isJsonMediaType,
   isAnyMediaType,
-  isMediaTypeRange,
   toMediaTypeEssence
 } from '@/oas/mediaType/jsonMediaType.ts'
 import { toDocumentObject } from '@/test/toDocumentObject.ts'
@@ -57,14 +56,6 @@ Deno.test('isAnyMediaType - only the full range', () => {
   assert(!isAnyMediaType('application/json'))
 })
 
-Deno.test('isMediaTypeRange - only ranges', () => {
-  assert(isMediaTypeRange('*/*'))
-  assert(isMediaTypeRange('application/*'))
-  assert(isMediaTypeRange('*/*; q=0.8'))
-  assert(!isMediaTypeRange('application/json'))
-  assert(!isMediaTypeRange('text/plain'))
-})
-
 Deno.test('toMediaTypeEssence - drops parameters, trims, lowercases', () => {
   assertEquals(toMediaTypeEssence('Application/JSON; charset=utf-8'), 'application/json')
   assertEquals(toMediaTypeEssence('text/plain'), 'text/plain')
@@ -80,6 +71,12 @@ const marked = (label: string) => ({
 const toContent = (mediaTypes: string[]) =>
   Object.fromEntries(mediaTypes.map(mediaType => [mediaType, { schema: marked(mediaType) }]))
 
+// A `*/*` body with a scalar schema: springdoc's `String` return and file download.
+const scalarSchemas: Record<string, Record<string, string>> = {
+  '/wildText': { type: 'string' },
+  '/wildBinary': { type: 'string', format: 'binary' }
+}
+
 const ok = (mediaTypes: string[]) => ({
   '200': { description: 'ok', content: toContent(mediaTypes) }
 })
@@ -94,21 +91,28 @@ const cases = {
   '/range': ['application/*'],
   '/rangeAndText': ['*/*', 'text/plain'],
   '/wildAfterText': ['text/plain', '*/*; q=0.8'],
-  '/wildAndJson': ['*/*', 'application/json;v=1.0']
+  '/wildAndJson': ['*/*', 'application/json;v=1.0'],
+  '/forms': ['multipart/form-data', 'application/octet-stream'],
+  '/wildText': ['*/*'],
+  '/wildBinary': ['*/*']
 }
 
 const toDocument = (openapi: string) => {
   const paths = Object.fromEntries(
-    Object.entries(cases).map(([path, mediaTypes]) => [
-      path,
-      {
-        get: { responses: ok(mediaTypes) },
-        post: {
-          requestBody: { content: toContent(mediaTypes) },
-          responses: { '204': { description: 'none' } }
+    Object.entries(cases).map(([path, mediaTypes]) => {
+      const scalar = scalarSchemas[path]
+      const content = scalar ? { '*/*': { schema: scalar } } : toContent(mediaTypes)
+      return [
+        path,
+        {
+          get: { responses: { '200': { description: 'ok', content } } },
+          post: {
+            requestBody: { content },
+            responses: { '204': { description: 'none' } }
+          }
         }
-      }
-    ])
+      ]
+    })
   )
 
   return toDocumentObject(
@@ -139,6 +143,7 @@ const toDocument = (openapi: string) => {
                     content: toContent(['application/vnd.meta+json'])
                   },
                   'X-Text': { content: toContent(['text/plain']) },
+                  'X-Two': { content: toContent(['text/plain', 'text/csv']) },
                   'X-Wild': { content: toContent(['*/*']) }
                 }
               }
@@ -190,6 +195,10 @@ const toOperation = (document: OasDocument, method: string, path: string): OasOp
   return operation
 }
 
+/** A body read from `*\/*` is sent and expected as `application/json`. */
+const toContentType = (mediaType: string | undefined): string | undefined =>
+  mediaType === undefined ? undefined : isAnyMediaType(mediaType) ? 'application/json' : mediaType
+
 const expectedPick: Record<string, string | undefined> = {
   '/exact': 'application/json',
   '/param': 'application/json;v=1.0',
@@ -201,7 +210,11 @@ const expectedPick: Record<string, string | undefined> = {
   '/range': undefined,
   '/rangeAndText': '*/*',
   '/wildAfterText': '*/*; q=0.8',
-  '/wildAndJson': 'application/json;v=1.0'
+  '/wildAndJson': 'application/json;v=1.0',
+  '/forms': undefined,
+  // A scalar under `*/*` is a text body or a file, not JSON.
+  '/wildText': undefined,
+  '/wildBinary': undefined
 }
 
 for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
@@ -212,6 +225,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
       assert(response, path)
       assertEquals(markOf(response.toSchema()), expected, path)
       assertEquals(response.toJsonContent()?.mediaType, expected, path)
+      assertEquals(response.toJsonContent()?.contentType, toContentType(expected), path)
       assertEquals(markOf(response.toJsonContent()?.schema), expected, path)
     }
   })
@@ -225,6 +239,13 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
       assertEquals(markOf(requestBody.toSchema()), expected, path)
       assertEquals(requestBody.toJsonContent()?.mediaType, expected, path)
       assertEquals(markOf(operation.toRequestBody(({ schema }) => schema)), expected, path)
+      assertEquals(
+        operation.toRequestBody(({ mediaType, contentType }) => ({ mediaType, contentType })),
+        expected === undefined
+          ? undefined
+          : { mediaType: expected, contentType: toContentType(expected) },
+        path
+      )
     }
   })
 
@@ -240,6 +261,13 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
 
     const wild = toOperation(document, 'post', '/wild')
     assertEquals(markOf(wild.toRequestBody(({ schema }) => schema, '*/*')), '*/*')
+    assertEquals(
+      toOperation(document, 'post', '/text').toRequestBody(
+        ({ mediaType, contentType }) => ({ mediaType, contentType }),
+        'text/plain'
+      ),
+      { mediaType: 'text/plain', contentType: 'text/plain' }
+    )
   })
 
   Deno.test(`${openapi} - OasOperation.traverse reads the JSON media type`, () => {
@@ -283,7 +311,18 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     const json = headers?.['X-Json']?.resolve()
     const text = headers?.['X-Text']?.resolve()
     assertEquals(markOf(json?.toSchema()), 'application/vnd.meta+json')
-    assertThrows(() => text?.toSchema(), Error, 'Schema not found for media type application/json')
+    // Header `content` has exactly one entry, so it is read whatever its type.
+    assertEquals(markOf(text?.toSchema()), 'text/plain')
+    assertThrows(
+      () => headers?.['X-Two']?.resolve().toSchema(),
+      Error,
+      'Schema not found for a JSON media type'
+    )
+    assertThrows(
+      () => headers?.['X-Two']?.resolve().toSchema('application/json'),
+      Error,
+      'Schema not found for media type "application/json"'
+    )
     assertEquals(markOf(headers?.['X-Wild']?.resolve().toSchema()), '*/*')
     assertEquals(markOf(text?.toSchema('text/plain')), 'text/plain')
   })
@@ -295,12 +334,13 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
       .map(({ level, type, location }) => ({ level, type, location }))
       .sort((a, b) => a.location.localeCompare(b.location))
 
-    // `/wildAndJson` has a JSON-like key, so it logs nothing. `application/*`
-    // alone is not read by any lookup, so it is the debug issue, not the warning.
+    // A JSON-like key (`/wildAndJson`) or only specific types (`/text`,
+    // `/forms`) log nothing. A body read from `*/*` is the warning. A range no
+    // lookup reads (`application/*`, a scalar under `*/*`) is the debug issue.
     assertEquals(
       mediaTypeIssues,
       [
-        ...['/range', '/text'].flatMap(path => [
+        ...['/range', '/wildBinary', '/wildText'].flatMap(path => [
           {
             level: 'debug',
             type: 'NO_JSON_MEDIA_TYPE',
