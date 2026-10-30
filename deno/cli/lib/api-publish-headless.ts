@@ -10,6 +10,7 @@
 import { resolve } from '@std/path/resolve'
 import { type HubEnv, toLoginCommand } from '@/lib/hub-env.ts'
 import { toScopedPath } from '@/lib/scoped-name.ts'
+import type { HubTarget } from '@/lib/hub-token.ts'
 
 type Scoped = { account: string; slug: string }
 
@@ -48,10 +49,7 @@ export type ApiPublishFailure = {
 export type ApiPublishTokenSource = 'explicit' | 'oidc'
 
 /** The hub a publish was sent to, or would have been. */
-export type ApiPublishTarget = {
-  origin: string
-  env: HubEnv
-}
+export type ApiPublishTarget = Pick<HubTarget, 'origin' | 'env'>
 
 /** A failed publish, with the hub it targeted. */
 export type ApiPublishFailed = ApiPublishFailure & ApiPublishTarget
