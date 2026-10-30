@@ -1,7 +1,8 @@
 # skmtc api
 
 > Manage hub APIs: `publish` adds an OpenAPI document to an API as a
-> revision.
+> revision. `link` makes a link request, so that a GitHub workflow can
+> publish to the API.
 
 ## `skmtc api publish <file>`
 
@@ -142,6 +143,95 @@ and the publish has 120 seconds.
 `status` is there when the hub answered. It is not there for
 `oidc-token`, because the hub did not answer. `requestId` and `details`
 are there when the hub's answer carried them.
+
+## `skmtc api link`
+
+Makes a link request on skmtc-hub for the API `@account/slug`, then
+opens the request page in the browser. On the page, an admin of the API
+checks the values and selects **Link repository**. Then the workflow can
+publish with a linked repository token. See
+[Sign in from GitHub Actions](#sign-in-from-github-actions).
+
+```
+skmtc api link --api @<account>/<slug> [--repo <owner>/<repo>] [--workflow <path>] [--environment <name>] [--no-open] [--env <env>] [--token <pat>] [--json] [--no-input]
+```
+
+Run the command in the folder of the repository. It finds the values
+for the request:
+
+- **The repository** comes from `git remote get-url origin`. The
+  command accepts only a GitHub URL: `https://github.com/<owner>/<repo>`,
+  `git@github.com:<owner>/<repo>` or `ssh://git@github.com/<owner>/<repo>`,
+  with or without `.git`. `--repo` sets a different repository.
+- **The workflow** is the one file in `.github/workflows/` that uses
+  `skmtc/publish-action` or runs `skmtc api publish`. `--workflow` sets
+  a different file.
+- **The environment** is the value of `--environment`. Without it, the
+  link accepts a job in any environment.
+
+The request expires after 15 minutes. An API can have 10 open requests.
+
+### Options
+
+| Option                 | Meaning                                                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `--api <ref>`          | The hub API as `@account/slug`. Required.                                                                      |
+| `--repo <owner/repo>`  | The GitHub repository. Without it, the command uses the `origin` remote.                                       |
+| `--workflow <path>`    | The workflow file, for example `.github/workflows/publish.yml`. It must be a `.yml` or `.yaml` file in `.github/workflows/`. |
+| `--environment <name>` | The GitHub environment of the workflow job. The hub trims it and makes it lowercase.                           |
+| `--no-open`            | Do not open the browser. The command prints the page.                                                          |
+| `--token <pat>`        | A personal access token. Without it, the command uses `$SKMTC_HUB_TOKEN`, then the token from `skmtc login`.   |
+| `--env <env>`          | As for [`pull`](pull.md).                                                                                      |
+
+The command exits `2` when:
+
+- you give no `--api`, or an `--api` that is not `@account/slug`;
+- there is no `origin` remote, or the remote is not on GitHub;
+- no workflow publishes, or two or more workflows publish;
+- `--repo` or `--workflow` is not a value that the hub accepts;
+- there is no token.
+
+The message names the option that solves the problem. The command
+reads git and the workflows before it looks for a token, so it sends
+no request in these cases. A linked repository token cannot make a
+link request, so the command does not get an OIDC token in GitHub
+Actions.
+
+The command opens the browser through `sh`, with `open` on macOS and
+`xdg-open` on Linux. It does not open the browser on Windows, with
+`--no-open`, or when `GITHUB_ACTIONS` or `CI` is `true`. It opens only
+a page on the site of the hub environment. An agent gives `--no-open`.
+
+### JSON output
+
+```jsonc
+{
+  "type": "requested",
+  "api": { "account": "acme", "slug": "pets" },
+  "repository": "acme/pets",
+  "workflow": ".github/workflows/publish.yml",
+  "environment": null,
+  "id": "…",
+  "url": "https://skmtc.dev/acme/apis/pets/settings?linkRequest=…",
+  "expiresAt": "2026-10-30T12:15:00.000Z",
+  "origin": "https://api.skmtc.dev",
+  "opened": false
+}
+```
+
+`environment` is `null` when you give no `--environment`. `opened` is
+`true` when the command opened the browser. A failure exits `1`, with
+the same shape as for `api publish`:
+
+| `code`         | Cause                                                                           |
+| -------------- | ------------------------------------------------------------------------------- |
+| `bad-request`  | 400: the hub refused a value. `details` names it.                               |
+| `unauthorized` | 401: the hub refused the token. Run `skmtc login` again.                        |
+| `forbidden`    | 403: you are not an admin of the API.                                           |
+| `not-found`    | 404: the API does not exist, or you cannot see it.                              |
+| `rate-limited` | 429: the API has 10 open requests. Wait 15 minutes, or decline one on the settings page. |
+| `network`      | The command cannot reach the hub, or the hub did not answer in 20 seconds.      |
+| `hub-error`    | Another answer from the hub.                                                    |
 
 ## See also
 

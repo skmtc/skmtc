@@ -18,10 +18,15 @@ import {
   requestGithubOidcToken
 } from '@/lib/github-oidc.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
-import { type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
+import { HUB_HOSTS, type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
 import { parseScopedName } from '@/lib/scoped-name.ts'
+import { type ApiLinkFailure, apiLinkHeadless } from '@/lib/api-link-headless.ts'
+import { resolveRepository, resolveWorkflow } from '@/lib/linked-repo-detect.ts'
+import { openUrl } from '@/lib/open-url.ts'
+import { readEnv } from '@/lib/env.ts'
 
-export const description = 'Manage hub APIs: `publish` adds an OpenAPI document as a revision.'
+export const description =
+  'Manage hub APIs: `publish` adds an OpenAPI document as a revision; `link` makes a link request for a GitHub repository.'
 
 // --- publish ----------------------------------------------------------------
 
@@ -263,6 +268,219 @@ export const printApiPublishResult = (
     default: {
       const _exhaustive: never = result
       throw new Error(`Unhandled api publish result: ${JSON.stringify(_exhaustive)}`)
+    }
+  }
+}
+
+// --- link -------------------------------------------------------------------
+
+type RenderApiLinkArgs = {
+  api: string | undefined
+  repo: string | undefined
+  workflow: string | undefined
+  environment: string | undefined
+  /** `false` with `--no-open`. */
+  open: boolean
+  token: string | undefined
+  env: HubEnv | undefined
+  jsonFlag?: boolean
+  noInputFlag?: boolean
+}
+
+const LINK_USAGE =
+  'skmtc api link --api @<account>/<slug> [--repo <owner>/<repo>] [--workflow <path>] [--environment <name>] [--no-open] [--env <env>] [--token <pat>]'
+const LINK_EXAMPLE = 'skmtc api link --api @acme/pets'
+
+export const renderApiLink = async ({
+  api,
+  repo,
+  workflow,
+  environment,
+  open,
+  token,
+  env,
+  jsonFlag,
+  noInputFlag
+}: RenderApiLinkArgs) => {
+  resolveInputMode({ noInputFlag, jsonFlag })
+
+  if (api === undefined) {
+    return failWithRecipe({
+      command: 'api link',
+      arg: '--api',
+      usage: LINK_USAGE,
+      example: LINK_EXAMPLE,
+      discover: 'The hub API as @account/slug, e.g. @acme/pets.'
+    })
+  }
+
+  const scoped = parseScopedName(api)
+  if (!scoped) {
+    return failWithInvalidArg({
+      message: `invalid --api "${api}" — expected @account/slug`,
+      usage: LINK_USAGE,
+      example: LINK_EXAMPLE
+    })
+  }
+
+  const result = await runApiLink({
+    api: scoped,
+    repoFlag: repo,
+    workflowFlag: workflow,
+    environment,
+    openFlag: open,
+    tokenFlag: token,
+    envFlag: env
+  })
+
+  if (result.type === 'invalid') {
+    return failWithInvalidArg({ message: result.message, usage: LINK_USAGE, example: LINK_EXAMPLE })
+  }
+
+  if (result.type === 'missing') {
+    return failWithRecipe({
+      command: 'api link',
+      arg: '--token',
+      usage: LINK_USAGE,
+      example: LINK_EXAMPLE,
+      discover: result.discover
+    })
+  }
+
+  printApiLinkResult(result, { format: resolveOutputFormat({ jsonFlag }) })
+  Deno.exit(result.type === 'failed' ? 1 : 0)
+}
+
+export type ApiLinkResult =
+  | {
+      type: 'requested'
+      api: { account: string; slug: string }
+      repository: string
+      workflow: string
+      /** `null`: any environment. */
+      environment: string | null
+      id: string
+      url: string
+      expiresAt: string
+      origin: string
+      /** The browser was opened on `url`. */
+      opened: boolean
+    }
+  | ApiLinkFailure
+
+/** A repository or workflow the command cannot send: the caller exits 2. */
+export type ApiLinkInvalid = { type: 'invalid'; message: string }
+
+/**
+ * Read the repository and the workflow, resolve the token, then make the
+ * link request and open the browser. Git and the workflows come first: a
+ * bad input refreshes no stored login.
+ */
+export const runApiLink = async ({
+  api,
+  repoFlag,
+  workflowFlag,
+  environment,
+  openFlag,
+  tokenFlag,
+  envFlag,
+  cwd = Deno.cwd(),
+  open = openUrl
+}: {
+  api: { account: string; slug: string }
+  repoFlag: string | undefined
+  workflowFlag: string | undefined
+  environment: string | undefined
+  openFlag: boolean
+  tokenFlag: string | undefined
+  envFlag: HubEnv | undefined
+  cwd?: string
+  open?: (url: string) => Promise<boolean>
+}): Promise<ApiLinkResult | ApiLinkInvalid | ApiPublishMissing> => {
+  const repository = await resolveRepository({ repoFlag, cwd })
+  if (repository.type === 'invalid') return repository
+
+  const workflow = await resolveWorkflow({ workflowFlag, cwd })
+  if (workflow.type === 'invalid') return workflow
+
+  // A linked repository token gets 403 on this route: no OIDC exchange.
+  const auth = await resolveHubAuth({ tokenFlag, envFlag })
+  if (!auth.token) return { type: 'missing', discover: toMissingTokenHint(auth.env) }
+
+  const requested = await apiLinkHeadless({
+    api,
+    repository: repository.repository,
+    workflow: workflow.workflow,
+    environment,
+    token: auth.token,
+    origin: auth.origin,
+    env: auth.env
+  })
+  if (requested.type === 'failed') return requested
+
+  const shouldOpen = openFlag && !isCi() && isSiteUrl(requested.url, auth.env)
+
+  return {
+    type: 'requested',
+    api,
+    repository: repository.repository,
+    workflow: workflow.workflow,
+    environment: environment ?? null,
+    id: requested.id,
+    url: requested.url,
+    expiresAt: requested.expiresAt,
+    origin: auth.origin,
+    opened: shouldOpen ? await open(requested.url) : false
+  }
+}
+
+const isCi = (): boolean => readEnv('GITHUB_ACTIONS') === 'true' || readEnv('CI') === 'true'
+
+/** Only a page on the environment's own site is opened. */
+const isSiteUrl = (url: string, env: HubEnv): boolean => {
+  try {
+    return new URL(url).origin === HUB_HOSTS[env].web
+  } catch {
+    return false
+  }
+}
+
+export const printApiLinkResult = (
+  result: ApiLinkResult,
+  { format }: { format: 'text' | 'json' }
+): void => {
+  if (format === 'json') {
+    console.log(JSON.stringify(result, null, 2))
+    return
+  }
+  switch (result.type) {
+    case 'requested': {
+      console.log(`Link request made for @${result.api.account}/${result.api.slug}`)
+      console.log(`  repository:  ${result.repository}`)
+      console.log(`  workflow:    ${result.workflow}`)
+      console.log(`  environment: ${result.environment ?? 'any'}`)
+      console.log(
+        result.opened
+          ? 'Check these values on the page opened in your browser, then select Link repository:'
+          : 'Open this page, check these values, then select Link repository:'
+      )
+      console.log(`  ${result.url}`)
+      console.log(`  expires ${result.expiresAt}`)
+      return
+    }
+    case 'failed': {
+      console.error(
+        `Link request failed (${result.code}${result.status ? `, ${result.status}` : ''}): ${result.message}`
+      )
+      for (const detail of result.details ?? []) {
+        console.error(`  ${detail.field ? `${detail.field}: ` : ''}${detail.message}`)
+      }
+      if (result.requestId) console.error(`  request id: ${result.requestId}`)
+      return
+    }
+    default: {
+      const _exhaustive: never = result
+      throw new Error(`Unhandled api link result: ${JSON.stringify(_exhaustive)}`)
     }
   }
 }

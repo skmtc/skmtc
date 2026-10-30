@@ -53,7 +53,7 @@ const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
   'pull',
   // project fork/rm manage hub projects; they never touch JSR.
   'project',
-  // api publish uploads a document to the hub; it never touches JSR.
+  // api publish and api link talk to the hub; they never touch JSR.
   'api'
 ])
 
@@ -623,15 +623,58 @@ const run = async () => {
       })
     })
 
+  const apiLinkCommand = new Command()
+    .description(getCommandDescriptor('api link').description)
+    .option('--no-input', NO_INPUT_DESC)
+    .option('--json', JSON_DESC)
+    .option('--api <ref:string>', 'The hub API as @account/slug. Required.')
+    .option(
+      '--repo <repo:string>',
+      'The GitHub repository as <owner>/<repo>. Defaults to the origin remote.'
+    )
+    .option(
+      '--workflow <path:string>',
+      'The workflow file, e.g. .github/workflows/publish.yml. Defaults to the only workflow that publishes.'
+    )
+    .option(
+      '--environment <name:string>',
+      'The GitHub environment the workflow job runs in. Unset: any environment.'
+    )
+    .option('--no-open', 'Print the page and do not open the browser.')
+    .option(
+      '--token <token:string>',
+      'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
+    )
+    .type('hubEnv', hubEnv)
+    .option('--env <env:hubEnv>', ENV_DESC)
+    .action(async ({ json, input, api, repo, workflow, environment, open, token, env }) => {
+      const { renderApiLink } = await import('@/commands/api.ts')
+      await renderApiLink({
+        api,
+        repo,
+        workflow,
+        environment,
+        open,
+        token,
+        env,
+        jsonFlag: json,
+        noInputFlag: input === false
+      })
+    })
+
   const apiCommand = new Command()
-    .description('Manage hub APIs (publish).')
+    .description('Manage hub APIs (publish, link).')
     .action(() => {
       console.error('Usage: skmtc api <subcommand>')
       console.error('Subcommands:')
       console.error('  publish <file> --api @account/slug   Add a document as an API revision.')
+      console.error(
+        '  link --api @account/slug             Make a link request for a GitHub repository.'
+      )
       Deno.exit(2)
     })
     .command('publish', apiPublishCommand)
+    .command('link', apiLinkCommand)
 
   const migrateVariantsCommand = new Command()
     .description(

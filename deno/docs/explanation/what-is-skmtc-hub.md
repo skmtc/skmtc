@@ -59,6 +59,7 @@ directly).
 | [`pull`](../reference/cli/pull.md) | project config | hub project → local `client.json` |
 | [`project`](../reference/cli/project.md) | project | create / remove a hub project from the local setup |
 | [`api publish`](../reference/cli/api.md) | API revision | OpenAPI document → new revision of a hub API |
+| [`api link`](../reference/cli/api.md#skmtc-api-link) | link request | GitHub repository + workflow → request page for an API admin |
 
 ## The division of labor
 

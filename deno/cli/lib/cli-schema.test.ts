@@ -95,6 +95,27 @@ Deno.test('cli-schema - api publish declares an optional <file> and its hub flag
   )
 })
 
+Deno.test('cli-schema - api link declares no arguments and its hub flags', () => {
+  const apiLink = getCommandDescriptor('api link')
+
+  assertEquals(apiLink.args, [])
+  assertEquals(apiLink.agentMode, 'full')
+  assertEquals(
+    apiLink.flags.map(f => f.flag.split(' ')[0]),
+    [
+      '--json',
+      '--no-input',
+      '--api',
+      '--repo',
+      '--workflow',
+      '--environment',
+      '--no-open',
+      '--token',
+      '--env'
+    ]
+  )
+})
+
 Deno.test('cli-schema - doctor declares --offline, which agents discover through this schema', () => {
   // `agent-context` prints these descriptors verbatim, and the audience
   // for `--offline` is an automated run — which reads the schema, not
