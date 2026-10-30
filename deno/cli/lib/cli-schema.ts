@@ -331,7 +331,8 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
       },
       {
         flag: '--no-open',
-        description: 'Print the page and do not open the browser.'
+        description:
+          'Print the page and do not open the browser. --json alone still opens it; an agent passes --no-open.'
       },
       {
         flag: '--token <pat>',

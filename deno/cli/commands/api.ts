@@ -15,6 +15,7 @@ import {
 import {
   exchangeLinkedRepositoryToken,
   readGithubOidcEnv,
+  readIfAllowed,
   requestGithubOidcToken
 } from '@/lib/github-oidc.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
@@ -444,7 +445,9 @@ export const runApiLink = async ({
   }
 }
 
-const isCi = (): boolean => readEnv('GITHUB_ACTIONS') === 'true' || readEnv('CI') === 'true'
+const isCi = (): boolean =>
+  readIfAllowed(() => readEnv('GITHUB_ACTIONS')) === 'true' ||
+  readIfAllowed(() => readEnv('CI')) === 'true'
 
 /** Only a page on the environment's own site is opened. */
 const isSiteUrl = (url: string, env: HubEnv): boolean => {

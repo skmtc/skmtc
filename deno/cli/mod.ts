@@ -640,7 +640,10 @@ const run = async () => {
       '--environment <name:string>',
       'The GitHub environment the workflow job runs in. Unset: any environment.'
     )
-    .option('--no-open', 'Print the page and do not open the browser.')
+    .option(
+      '--no-open',
+      'Print the page and do not open the browser. --json alone still opens it; an agent passes --no-open.'
+    )
     .option(
       '--token <token:string>',
       'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
