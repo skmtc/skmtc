@@ -53,12 +53,21 @@ const oidcTokenFailure = (message: string): ApiPublishFailure => ({
   message
 })
 
+/**
+ * Each sign-in request ends within this time, as the identity requests do.
+ * Without it, a provider that never answers holds the CI job until its
+ * `timeout-minutes`.
+ */
+export const OIDC_REQUEST_TIMEOUT_MS = 20_000
+export const OIDC_EXCHANGE_TIMEOUT_MS = 20_000
+
 /** Request the job's OIDC token for `audience`. One try, no retries. */
 export const requestGithubOidcToken = async ({
   requestUrl,
   requestToken,
-  audience
-}: GithubOidcEnv & { audience: string }): Promise<
+  audience,
+  timeoutMs = OIDC_REQUEST_TIMEOUT_MS
+}: GithubOidcEnv & { audience: string; timeoutMs?: number }): Promise<
   { type: 'token'; token: string } | ApiPublishFailure
 > => {
   try {
@@ -66,7 +75,8 @@ export const requestGithubOidcToken = async ({
     url.searchParams.set('audience', audience)
     const res = await fetch(url, {
       method: 'GET',
-      headers: { authorization: `bearer ${requestToken}`, accept: 'application/json' }
+      headers: { authorization: `bearer ${requestToken}`, accept: 'application/json' },
+      signal: AbortSignal.timeout(timeoutMs)
     })
     if (!res.ok) {
       const body = (await res.text()).slice(0, 200)
@@ -113,17 +123,20 @@ const toExchangeLead = (
 export const exchangeLinkedRepositoryToken = async ({
   origin,
   api,
-  githubToken
+  githubToken,
+  timeoutMs = OIDC_EXCHANGE_TIMEOUT_MS
 }: {
   origin: string
   api: Scoped
   githubToken: string
+  timeoutMs?: number
 }): Promise<{ type: 'token'; token: string } | ApiPublishFailure> => {
   try {
     const res = await fetch(`${origin}/v1/apis/${toScopedPath(api)}/linked-repositories/exchange`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ token: githubToken })
+      body: JSON.stringify({ token: githubToken }),
+      signal: AbortSignal.timeout(timeoutMs)
     })
     if (res.status !== 201) {
       const apiError = await readApiError(res)

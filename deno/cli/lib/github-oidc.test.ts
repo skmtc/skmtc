@@ -1,10 +1,13 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import {
   exchangeLinkedRepositoryToken,
+  OIDC_EXCHANGE_TIMEOUT_MS,
+  OIDC_REQUEST_TIMEOUT_MS,
   readGithubOidcEnv,
   requestGithubOidcToken
 } from '@/lib/github-oidc.ts'
 import { withEnv } from '@/tests/mocks/env.mock.ts'
+import { withNeverAnsweringFetch } from '@/tests/mocks/never-answering-fetch.mock.ts'
 
 const originalFetch = globalThis.fetch
 
@@ -237,6 +240,23 @@ Deno.test('requestGithubOidcToken - a network failure or a narrow --allow-net is
   }
 })
 
+Deno.test('requestGithubOidcToken - a provider that never answers is oidc-token after the timeout', async () => {
+  await withNeverAnsweringFetch(async () => {
+    const result = await requestGithubOidcToken({ ...REQUEST, timeoutMs: 10 })
+
+    if (result.type !== 'failed') throw new Error('expected a failed result')
+    assertEquals(result.code, 'oidc-token')
+    assertEquals(
+      result.message,
+      "cannot reach GitHub's OIDC provider: The operation was aborted due to timeout"
+    )
+  })
+})
+
+Deno.test('requestGithubOidcToken - waits 20 s by default', () => {
+  assertEquals(OIDC_REQUEST_TIMEOUT_MS, 20_000)
+})
+
 // --- exchangeLinkedRepositoryToken ----------------------------------------------
 
 Deno.test('exchangeLinkedRepositoryToken - POSTs the GitHub token to the API exchange route, unauthenticated', async () => {
@@ -400,4 +420,26 @@ Deno.test('exchangeLinkedRepositoryToken - a network failure stays network', asy
       assertStringIncludes(result.message, 'cannot reach the hub at https://api.skmtc.dev')
     }
   )
+})
+
+Deno.test('exchangeLinkedRepositoryToken - a hub that never answers is network after the timeout', async () => {
+  await withNeverAnsweringFetch(async () => {
+    const result = await exchangeLinkedRepositoryToken({
+      origin: ORIGIN,
+      api: API,
+      githubToken: 'gh-jwt',
+      timeoutMs: 10
+    })
+
+    if (result.type !== 'failed') throw new Error('expected a failed result')
+    assertEquals(result.code, 'network')
+    assertEquals(
+      result.message,
+      'cannot reach the hub at https://api.skmtc.dev: The operation was aborted due to timeout'
+    )
+  })
+})
+
+Deno.test('exchangeLinkedRepositoryToken - waits 20 s by default', () => {
+  assertEquals(OIDC_EXCHANGE_TIMEOUT_MS, 20_000)
 })

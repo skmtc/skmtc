@@ -132,6 +132,10 @@ The command never prints the OIDC token or the linked repository token.
 | `oidc-token`       | GitHub gave no OIDC token: an error, an answer with no token, or no connection. |
 | `oidc-exchange`    | The hub gave no linked repository token for the OIDC token. A `403` means that no linked repository matches this workflow run, or that the API does not exist. |
 
+A request with no answer in time ends as `network`, or as `oidc-token`
+for the request to GitHub. GitHub and the exchange have 20 seconds each,
+and the publish has 120 seconds.
+
 `status` is there when the hub answered. It is not there for
 `oidc-token`, because the hub did not answer. `requestId` and `details`
 are there when the hub's answer carried them.

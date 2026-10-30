@@ -62,9 +62,17 @@ export type ApiPublishResult =
     }
   | ApiPublishFailure
 
+/**
+ * The publish ends within this time. It uploads the whole document and the
+ * hub parses it, so it gets longer than the sign-in requests.
+ */
+export const PUBLISH_TIMEOUT_MS = 120_000
+
 type ApiPublishArgs = {
-  /** Path to the document, relative to the current directory. */
-  file: string
+  /** The document, from `readPublishFile`. */
+  bytes: Uint8Array<ArrayBuffer>
+  /** The document's file name, from `readPublishFile`. */
+  filename: string
   api: Scoped
   /** Set: create the API when it is missing. Unset: the API must exist. */
   visibility?: ApiVisibility
@@ -74,6 +82,7 @@ type ApiPublishArgs = {
   tokenSource: ApiPublishTokenSource
   origin: string
   env: HubEnv
+  timeoutMs?: number
 }
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -262,16 +271,12 @@ const toPublished = (body: unknown, status: number, origin: string): ApiPublishR
   }
 }
 
-export const apiPublishHeadless = async ({
-  file,
-  api,
-  visibility,
-  originUrl,
-  token,
-  tokenSource,
-  origin,
-  env
-}: ApiPublishArgs): Promise<ApiPublishResult> => {
+/** Read `<file>` and take its file name. The caller reads it before any sign-in. */
+export const readPublishFile = async (
+  file: string
+): Promise<
+  { type: 'read'; bytes: Uint8Array<ArrayBuffer>; filename: string } | ApiPublishFailure
+> => {
   // Against the current directory, never a `.skmtc` ancestor: the command
   // needs no workspace.
   const path = resolve(Deno.cwd(), file)
@@ -289,12 +294,27 @@ export const apiPublishHeadless = async ({
   // Both separators: a Windows-style `schemas\api.json` has no `/`. The hub
   // reads the extension to tell JSON from YAML.
   const filename = file.split(/[\\/]/).pop() || 'openapi.json'
+  return { type: 'read', bytes: read.bytes, filename }
+}
 
+export const apiPublishHeadless = async ({
+  bytes,
+  filename,
+  api,
+  visibility,
+  originUrl,
+  token,
+  tokenSource,
+  origin,
+  env,
+  timeoutMs = PUBLISH_TIMEOUT_MS
+}: ApiPublishArgs): Promise<ApiPublishResult> => {
   try {
     const res = await fetch(toApiPublishUrl({ api, visibility, originUrl, filename, origin }), {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/octet-stream' },
-      body: read.bytes
+      body: bytes,
+      signal: AbortSignal.timeout(timeoutMs)
     })
     if (!res.ok) return await toFailure(res, { api, visibility, env, tokenSource })
     const body: unknown = await res.json().catch(() => undefined)
