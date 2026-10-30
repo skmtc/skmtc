@@ -1,5 +1,6 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { fromFileUrl } from '@std/path/from-file-url'
+import { join } from '@std/path/join'
 
 const cliDirectory = fromFileUrl(new URL('..', import.meta.url))
 
@@ -61,11 +62,15 @@ const toDenoDir = async (): Promise<string> => {
  * Run `api publish` with no token from anywhere: a home folder of its own and
  * every token variable set, an empty value counting as unset (the child
  * inherits the parent's environment, which on CI is a GitHub Actions run).
+ * The document sits in the home folder: the command reads it before any
+ * sign-in.
  */
 const runApiPublish = async (variables: Record<string, string>, args: string[] = []) => {
   const home = await Deno.realPath(await Deno.makeTempDir())
+  const document = join(home, 'openapi.yaml')
+  await Deno.writeTextFile(document, 'openapi: 3.1.0\n')
   try {
-    return await runCli(['api', 'publish', 'openapi.yaml', '--api', '@acme/pets', ...args], {
+    return await runCli(['api', 'publish', document, '--api', '@acme/pets', ...args], {
       // The cache follows the home folder; keep the parent's, or the child
       // downloads every dependency again and logs it to stderr.
       DENO_DIR: await toDenoDir(),

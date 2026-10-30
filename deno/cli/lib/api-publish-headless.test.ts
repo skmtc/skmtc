@@ -1,8 +1,17 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { join } from '@std/path/join'
-import { apiPublishHeadless, type ApiPublishResult } from '@/lib/api-publish-headless.ts'
+import {
+  apiPublishHeadless,
+  type ApiPublishResult,
+  readPublishFile
+} from '@/lib/api-publish-headless.ts'
 import { printApiPublishResult, runApiPublish } from '@/commands/api.ts'
 import { withEnv } from '@/tests/mocks/env.mock.ts'
+import {
+  recordTimeouts,
+  withNeverAnsweringFetch,
+  withStallingBodyFetch
+} from '@/tests/mocks/never-answering-fetch.mock.ts'
 
 const originalFetch = globalThis.fetch
 const originalCwd = Deno.cwd()
@@ -59,7 +68,8 @@ const withFolder = async (
 }
 
 const BASE = {
-  file: 'schemas/openapi.yaml',
+  bytes: new TextEncoder().encode(DOCUMENT),
+  filename: 'openapi.yaml',
   api: { account: 'acme', slug: 'pets' },
   token: 'pat-123',
   tokenSource: 'explicit' as const,
@@ -355,25 +365,60 @@ Deno.test('apiPublishHeadless - a network error is a network failure', async () 
   )
 })
 
-Deno.test('apiPublishHeadless - an unreadable file fails before any request', async () => {
-  const root = await makeFolder()
-  const calls: Call[] = []
+Deno.test('apiPublishHeadless - a hub that never answers is network after the timeout', async () => {
+  await withNeverAnsweringFetch(async () => {
+    const result = await apiPublishHeadless({ ...BASE, timeoutMs: 10 })
 
-  await withFolder(
-    root,
-    root,
-    call => {
-      calls.push(call)
-      return json(imported(), 201)
-    },
-    async () => {
-      const result = await apiPublishHeadless({ ...BASE, file: 'missing.yaml' })
+    if (result.type !== 'failed') throw new Error('expected a failed result')
+    assertEquals(result.code, 'network')
+    assertEquals(
+      result.message,
+      'cannot reach the hub at https://hub.test: The operation was aborted due to timeout'
+    )
+  })
+})
 
-      if (result.type !== 'failed') throw new Error('expected a failed result')
-      assertEquals(result.code, 'file-unreadable')
-      assertEquals(calls.length, 0)
-    }
-  )
+Deno.test('apiPublishHeadless - a body that stalls after the 201 is network after the timeout', async () => {
+  await withStallingBodyFetch(201, async () => {
+    const result = await apiPublishHeadless({ ...BASE, timeoutMs: 10 })
+
+    if (result.type !== 'failed') throw new Error('expected a failed result')
+    assertEquals(result.code, 'network')
+    assertEquals(result.status, undefined)
+    assertEquals(
+      result.message,
+      'cannot reach the hub at https://hub.test: The operation was aborted due to timeout'
+    )
+  })
+})
+
+Deno.test('apiPublishHeadless - waits 120 s by default', async () => {
+  globalThis.fetch = () => Promise.resolve(json(imported(), 201))
+  try {
+    assertEquals(await recordTimeouts(() => apiPublishHeadless(BASE)), [120_000])
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+// --- readPublishFile ----------------------------------------------------------
+
+Deno.test('readPublishFile - an unreadable file is file-unreadable with the file and its path', async () => {
+  const root = await Deno.realPath(await makeFolder())
+  Deno.chdir(root)
+  try {
+    const result = await readPublishFile('missing.yaml')
+
+    if (result.type !== 'failed') throw new Error('expected a failed result')
+    assertEquals(result.code, 'file-unreadable')
+    assertStringIncludes(
+      result.message,
+      `cannot read "missing.yaml" (${join(root, 'missing.yaml')}): `
+    )
+  } finally {
+    Deno.chdir(originalCwd)
+    await Deno.remove(root, { recursive: true })
+  }
 })
 
 Deno.test('apiPublishHeadless - runs from a folder with no .skmtc and creates none', async () => {
@@ -384,7 +429,9 @@ Deno.test('apiPublishHeadless - runs from a folder with no .skmtc and creates no
     root,
     () => json(imported(), 201),
     async () => {
-      const result = await apiPublishHeadless(BASE)
+      const read = await readPublishFile('schemas/openapi.yaml')
+      if (read.type !== 'read') throw new Error('expected the file to be read')
+      const result = await apiPublishHeadless({ ...BASE, bytes: read.bytes })
 
       assertEquals(result.type, 'published')
       const entries = [...Deno.readDirSync(root)].map(entry => entry.name)
@@ -393,7 +440,7 @@ Deno.test('apiPublishHeadless - runs from a folder with no .skmtc and creates no
   )
 })
 
-Deno.test('apiPublishHeadless - reads <file> against the cwd, not a .skmtc ancestor', async () => {
+Deno.test('readPublishFile - reads <file> against the cwd, not a .skmtc ancestor', async () => {
   // A workspace root above the cwd: resolving through it would miss the file.
   // The workspace lookup walks up only inside the home folder, so the temp
   // folder stands in for it.
@@ -414,9 +461,10 @@ Deno.test('apiPublishHeadless - reads <file> against the cwd, not a .skmtc ances
       cwd,
       () => json(imported(), 201),
       async () => {
-        const result = await apiPublishHeadless(BASE)
+        const result = await readPublishFile('schemas/openapi.yaml')
 
-        assertEquals(result.type, 'published')
+        if (result.type !== 'read') throw new Error('expected the file to be read')
+        assertEquals(new TextDecoder().decode(result.bytes), DOCUMENT)
       }
     )
   } finally {
@@ -425,24 +473,21 @@ Deno.test('apiPublishHeadless - reads <file> against the cwd, not a .skmtc ances
   }
 })
 
-Deno.test('apiPublishHeadless - takes the filename after a Windows separator', async () => {
+Deno.test('readPublishFile - takes the filename after a Windows separator', async () => {
   const root = await makeFolder()
-  const calls: Call[] = []
 
   await withFolder(
     root,
     root,
-    call => {
-      calls.push(call)
-      return json(imported(), 201)
-    },
+    () => json(imported(), 201),
     async () => {
       // On POSIX the backslash is part of the name, so write the file under it.
       const file = Deno.build.os === 'windows' ? 'schemas\\openapi.yaml' : 'a\\openapi.yaml'
       if (Deno.build.os !== 'windows') await Deno.writeTextFile(join(root, file), DOCUMENT)
-      await apiPublishHeadless({ ...BASE, file })
+      const result = await readPublishFile(file)
 
-      assertStringIncludes(calls[0].url, '?filename=openapi.yaml')
+      if (result.type !== 'read') throw new Error('expected the file to be read')
+      assertEquals(result.filename, 'openapi.yaml')
     }
   )
 })
@@ -589,20 +634,24 @@ const withOidcRun = async (
   {
     env = {},
     routes = {},
-    storedToken
+    storedToken,
+    storedRefreshToken
   }: {
     env?: Record<string, string | undefined>
     routes?: OidcRoutes
     storedToken?: string
+    /** Store the login as an expired browser sign-in, which refreshes before use. */
+    storedRefreshToken?: string
   },
   run: (calls: OidcCall[]) => Promise<void>
 ): Promise<void> => {
   const root = await Deno.realPath(await makeFolder())
   if (storedToken) {
+    const expired = storedRefreshToken ? { refreshToken: storedRefreshToken, expiresAt: 0 } : {}
     await Deno.mkdir(join(root, '.skmtc'))
     await Deno.writeTextFile(
       join(root, '.skmtc', 'auth.json'),
-      JSON.stringify({ env: 'production', token: storedToken })
+      JSON.stringify({ env: 'production', token: storedToken, ...expired })
     )
   }
   const calls: OidcCall[] = []
@@ -799,6 +848,31 @@ Deno.test('runApiPublish - --origin-url with an explicit token is still sent', a
     assertEquals(calls.length, 1)
     assertStringIncludes(calls[0].url, '&originUrl=https%3A%2F%2Fexample.test%2Fopenapi.yaml')
   })
+})
+
+Deno.test('runApiPublish - a missing file under GitHub Actions makes no call', async () => {
+  await withOidcRun({}, async calls => {
+    const result = await runApiPublish({ ...RUN, file: 'missing.yaml' })
+
+    if (result.type !== 'failed') throw new Error('expected a failed result')
+    assertEquals(result.code, 'file-unreadable')
+    assertStringIncludes(result.message, 'cannot read "missing.yaml" (')
+    assertEquals(calls, [])
+  })
+})
+
+Deno.test('runApiPublish - a missing file with an expired stored login makes no refresh call', async () => {
+  await withOidcRun(
+    { storedToken: 'stored-token', storedRefreshToken: 'stored-refresh' },
+    async calls => {
+      const result = await runApiPublish({ ...RUN, file: 'missing.yaml' })
+
+      if (result.type !== 'failed') throw new Error('expected a failed result')
+      assertEquals(result.code, 'file-unreadable')
+      assertStringIncludes(result.message, 'cannot read "missing.yaml" (')
+      assertEquals(calls, [])
+    }
+  )
 })
 
 Deno.test('runApiPublish - a GitHub or exchange failure stops before the publish', async () => {

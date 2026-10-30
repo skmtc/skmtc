@@ -9,7 +9,8 @@ import {
   apiPublishHeadless,
   type ApiPublishResult,
   type ApiPublishTokenSource,
-  type ApiVisibility
+  type ApiVisibility,
+  readPublishFile
 } from '@/lib/api-publish-headless.ts'
 import {
   exchangeLinkedRepositoryToken,
@@ -103,7 +104,11 @@ export const renderApiPublish = async ({
   Deno.exit(result.type === 'failed' ? 1 : 0)
 }
 
-/** Resolve the token, then publish. `missing` when there is no token to send. */
+/**
+ * Read `<file>`, resolve the token, then publish. `missing` when there is no
+ * token to send. The file comes first: an unreadable file spends no
+ * single-use OIDC token and refreshes no stored login.
+ */
 export const runApiPublish = async ({
   file,
   api,
@@ -119,11 +124,15 @@ export const runApiPublish = async ({
   tokenFlag: string | undefined
   envFlag: HubEnv | undefined
 }): Promise<ApiPublishResult | ApiPublishMissing> => {
+  const read = await readPublishFile(file)
+  if (read.type === 'failed') return read
+
   const auth = await resolveApiPublishAuth({ tokenFlag, envFlag, api, originUrl })
   if (auth.type !== 'token') return auth
 
   return await apiPublishHeadless({
-    file,
+    bytes: read.bytes,
+    filename: read.filename,
     api,
     visibility,
     originUrl,
