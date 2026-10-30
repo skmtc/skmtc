@@ -25,7 +25,7 @@ import {
   DEFAULT_HUB_ENV,
   HUB_HOSTS,
   type HubEnv,
-  toLoginCommand,
+  toRejectedStoredLoginMessage,
   toTokenSettingsUrl
 } from '@/lib/hub-env.ts'
 import {
@@ -216,8 +216,7 @@ export const renderLogin = async ({
     } catch (error) {
       console.error(
         isRejectedLogin(error)
-          ? 'A token is stored in ~/.skmtc/auth.json but the hub rejected it. ' +
-              `Run \`skmtc logout\`, then \`${toLoginCommand(env)}\` again.`
+          ? toRejectedStoredLoginMessage(env)
           : `Could not check the stored login: ${error instanceof Error ? error.message : String(error)}`
       )
       Deno.exit(1)

@@ -373,6 +373,25 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     agentMode: 'json-only'
   },
   {
+    name: 'whoami',
+    description:
+      'Show the skmtc-hub account, environment and API origin that hub commands such as `api publish` would use, and where the token comes from (--token, $SKMTC_HUB_TOKEN or the stored login).',
+    args: [],
+    flags: [
+      ...AGENT_MODE_FLAGS,
+      {
+        flag: '--token <pat>',
+        description:
+          'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
+      },
+      {
+        flag: '--env <env>',
+        description: ENV_DESCRIPTION
+      }
+    ],
+    agentMode: 'full'
+  },
+  {
     name: 'generate',
     description: 'Generate artifacts from a schema',
     args: ['<project>', '[schema]'],

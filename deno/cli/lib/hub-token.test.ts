@@ -7,6 +7,7 @@ import {
   deleteStoredAuth,
   readStoredAuth,
   resolveHubAuth,
+  resolveHubTarget,
   toAuthFilePath,
   toFreshStoredAuth,
   validateHubToken,
@@ -191,7 +192,8 @@ Deno.test('resolveHubAuth - the stored env applies only with the stored token', 
     assertEquals(await resolveHubAuth(), {
       token: 'file-token',
       env: 'local',
-      origin: 'https://api.skmtc.co.uk'
+      origin: 'https://api.skmtc.co.uk',
+      tokenSource: 'stored'
     })
 
     // Token from env → the stored env does NOT apply (the token and the
@@ -200,7 +202,8 @@ Deno.test('resolveHubAuth - the stored env applies only with the stored token', 
     assertEquals(await resolveHubAuth(), {
       token: 'env-token',
       env: 'production',
-      origin: 'https://api.skmtc.dev'
+      origin: 'https://api.skmtc.dev',
+      tokenSource: 'env'
     })
     Deno.env.delete('SKMTC_HUB_TOKEN')
 
@@ -208,7 +211,8 @@ Deno.test('resolveHubAuth - the stored env applies only with the stored token', 
     assertEquals(await resolveHubAuth({ tokenFlag: 'flag-token' }), {
       token: 'flag-token',
       env: 'production',
-      origin: 'https://api.skmtc.dev'
+      origin: 'https://api.skmtc.dev',
+      tokenSource: 'flag'
     })
   })
 })
@@ -220,7 +224,8 @@ Deno.test('resolveHubAuth - a stored token is never sent to another environment'
     assertEquals(await resolveHubAuth({ envFlag: 'production' }), {
       token: undefined,
       env: 'production',
-      origin: 'https://api.skmtc.dev'
+      origin: 'https://api.skmtc.dev',
+      tokenSource: undefined
     })
 
     Deno.env.set('SKMTC_ENV', 'staging')
@@ -233,8 +238,28 @@ Deno.test('resolveHubAuth - production default when nothing is stored', async ()
     assertEquals(await resolveHubAuth(), {
       token: undefined,
       env: 'production',
-      origin: 'https://api.skmtc.dev'
+      origin: 'https://api.skmtc.dev',
+      tokenSource: undefined
     })
+  })
+})
+
+Deno.test('resolveHubTarget - names the hub and the token source without a refresh', async () => {
+  await withIsolatedEnv(async () => {
+    writeStoredAuth({ env: 'staging', token: 'old', refreshToken: 'refresh', expiresAt: 0 })
+    const fetchStub = stub(globalThis, 'fetch', () => Promise.reject(new Error('no request')))
+
+    try {
+      assertEquals(resolveHubTarget(), {
+        env: 'staging',
+        origin: 'https://api.skmtc.net',
+        tokenSource: 'stored'
+      })
+      assertEquals(resolveHubTarget({ envFlag: 'production' }).tokenSource, undefined)
+      assertEquals(fetchStub.calls.length, 0)
+    } finally {
+      fetchStub.restore()
+    }
   })
 })
 

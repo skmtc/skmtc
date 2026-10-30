@@ -7,6 +7,7 @@ import {
 } from '@/lib/api-publish-headless.ts'
 import { printApiPublishResult, runApiPublish } from '@/commands/api.ts'
 import { withEnv } from '@/tests/mocks/env.mock.ts'
+import type { HubEnv } from '@/lib/hub-env.ts'
 import {
   recordTimeouts,
   withNeverAnsweringFetch,
@@ -106,7 +107,8 @@ Deno.test('apiPublishHeadless - without --visibility posts the bytes to /revisio
         url: 'https://skmtc.test/acme/apis/pets/revisions/1a2b3c4d5e6f',
         deduped: false,
         created: false,
-        origin: 'https://hub.test'
+        origin: 'https://hub.test',
+        env: 'production'
       })
     }
   )
@@ -240,7 +242,9 @@ Deno.test('apiPublishHeadless - a 409 is a conflict carrying the hub message', a
         status: 409,
         message: 'These schema bytes already belong to other/pets.',
         requestId: 'req-2',
-        details: undefined
+        details: undefined,
+        origin: 'https://hub.test',
+        env: 'production'
       })
     }
   )
@@ -517,16 +521,18 @@ const PUBLISHED: ApiPublishResult = {
   url: 'https://skmtc.test/acme/apis/pets/revisions/1a2b3c4d5e6f',
   deduped: false,
   created: true,
-  origin: 'https://hub.test'
+  origin: 'https://hub.test',
+  env: 'staging'
 }
 
-Deno.test('printApiPublishResult - text names the API, the revision, a new API and the URL', () => {
+Deno.test('printApiPublishResult - text names the API, the revision, a new API, the URL and the hub', () => {
   const { out } = capture(() => printApiPublishResult(PUBLISHED, { format: 'text' }))
 
   assertEquals(out, [
     'Published @acme/pets revision 1a2b3c4d5e6f',
     '  created API',
-    '  https://skmtc.test/acme/apis/pets/revisions/1a2b3c4d5e6f'
+    '  https://skmtc.test/acme/apis/pets/revisions/1a2b3c4d5e6f',
+    '  hub: https://hub.test (staging)'
   ])
 })
 
@@ -556,11 +562,12 @@ Deno.test('printApiPublishResult - JSON output shape', () => {
     url: 'https://skmtc.test/acme/apis/pets/revisions/1a2b3c4d5e6f',
     deduped: false,
     created: true,
-    origin: 'https://hub.test'
+    origin: 'https://hub.test',
+    env: 'staging'
   })
 })
 
-Deno.test('printApiPublishResult - a failure prints the message, then the details', () => {
+Deno.test('printApiPublishResult - a failure prints the message, the details and the hub', () => {
   const { err } = capture(() =>
     printApiPublishResult(
       {
@@ -569,7 +576,9 @@ Deno.test('printApiPublishResult - a failure prints the message, then the detail
         status: 422,
         message: 'The document is not valid OpenAPI.',
         requestId: 'req-3',
-        details: [{ field: 'paths', message: 'must be an object' }]
+        details: [{ field: 'paths', message: 'must be an object' }],
+        origin: 'https://api.skmtc.net',
+        env: 'staging'
       },
       { format: 'text' }
     )
@@ -578,11 +587,12 @@ Deno.test('printApiPublishResult - a failure prints the message, then the detail
   assertEquals(err, [
     'Publish failed (invalid-document, 422): The document is not valid OpenAPI.',
     '  paths: must be an object',
-    '  request id: req-3'
+    '  request id: req-3',
+    '  hub: https://api.skmtc.net (staging)'
   ])
 })
 
-Deno.test('printApiPublishResult - failure JSON keeps code, status and requestId', () => {
+Deno.test('printApiPublishResult - failure JSON keeps code, status, requestId, origin and env', () => {
   const { out } = capture(() =>
     printApiPublishResult(
       {
@@ -590,7 +600,9 @@ Deno.test('printApiPublishResult - failure JSON keeps code, status and requestId
         code: 'conflict',
         status: 409,
         message: 'visibility differs',
-        requestId: 'req-2'
+        requestId: 'req-2',
+        origin: 'https://api.skmtc.net',
+        env: 'staging'
       },
       { format: 'json' }
     )
@@ -601,7 +613,50 @@ Deno.test('printApiPublishResult - failure JSON keeps code, status and requestId
     code: 'conflict',
     status: 409,
     message: 'visibility differs',
-    requestId: 'req-2'
+    requestId: 'req-2',
+    origin: 'https://api.skmtc.net',
+    env: 'staging'
+  })
+})
+
+Deno.test('runApiPublish - every failure carries the origin and env it targeted', async () => {
+  const cases: Array<{
+    run: Partial<Parameters<typeof runApiPublish>[0]>
+    routes: OidcRoutes
+    code: string
+  }> = [
+    { run: { file: 'missing.yaml' }, routes: {}, code: 'file-unreadable' },
+    { run: {}, routes: { github: () => json({}) }, code: 'oidc-token' },
+    { run: { tokenFlag: 'pat-1' }, routes: { publish: () => json({}, 500) }, code: 'hub-error' }
+  ]
+  for (const { run, routes, code } of cases) {
+    await withOidcRun({ env: { SKMTC_ENV: 'staging' }, routes }, async () => {
+      const result = await runApiPublish({ ...RUN, ...run })
+
+      if (result.type !== 'failed') throw new Error('expected a failed result')
+      assertEquals(
+        { code: result.code, origin: result.origin, env: result.env },
+        { code, origin: 'https://api.skmtc.net', env: 'staging' }
+      )
+    })
+  }
+})
+
+Deno.test('runApiPublish - a stored staging login sends the publish to staging and says so', async () => {
+  await withOidcRun({ storedToken: 'staging-token', storedEnv: 'staging' }, async calls => {
+    const result = await runApiPublish(RUN)
+
+    if (result.type !== 'published') throw new Error('expected a published result')
+    assertEquals(
+      { origin: result.origin, env: result.env },
+      {
+        origin: 'https://api.skmtc.net',
+        env: 'staging'
+      }
+    )
+    assertStringIncludes(calls[0].url, 'https://api.skmtc.net/')
+    const { out } = capture(() => printApiPublishResult(result, { format: 'text' }))
+    assertEquals(out.at(-1), '  hub: https://api.skmtc.net (staging)')
   })
 })
 
@@ -635,11 +690,13 @@ const withOidcRun = async (
     env = {},
     routes = {},
     storedToken,
+    storedEnv = 'production',
     storedRefreshToken
   }: {
     env?: Record<string, string | undefined>
     routes?: OidcRoutes
     storedToken?: string
+    storedEnv?: HubEnv
     /** Store the login as an expired browser sign-in, which refreshes before use. */
     storedRefreshToken?: string
   },
@@ -651,7 +708,7 @@ const withOidcRun = async (
     await Deno.mkdir(join(root, '.skmtc'))
     await Deno.writeTextFile(
       join(root, '.skmtc', 'auth.json'),
-      JSON.stringify({ env: 'production', token: storedToken, ...expired })
+      JSON.stringify({ env: storedEnv, token: storedToken, ...expired })
     )
   }
   const calls: OidcCall[] = []
@@ -830,7 +887,9 @@ Deno.test('runApiPublish - --origin-url under OIDC is refused before any call', 
       type: 'failed',
       code: 'bad-request',
       message:
-        '--origin-url needs `skmtc login` or a PAT: a linked repository token cannot add a source.'
+        '--origin-url needs `skmtc login` or a PAT: a linked repository token cannot add a source.',
+      origin: 'https://api.skmtc.dev',
+      env: 'production'
     })
     assertEquals(calls, [])
   })

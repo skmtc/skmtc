@@ -8,6 +8,7 @@ import {
   type ApiPublishFailure,
   apiPublishHeadless,
   type ApiPublishResult,
+  type ApiPublishTarget,
   type ApiPublishTokenSource,
   type ApiVisibility,
   readPublishFile
@@ -18,7 +19,7 @@ import {
   readIfAllowed,
   requestGithubOidcToken
 } from '@/lib/github-oidc.ts'
-import { resolveHubAuth } from '@/lib/hub-token.ts'
+import { resolveHubAuth, resolveHubTarget } from '@/lib/hub-token.ts'
 import { HUB_HOSTS, type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
 import { parseScopedName } from '@/lib/scoped-name.ts'
 import { type ApiLinkFailure, apiLinkHeadless } from '@/lib/api-link-headless.ts'
@@ -134,10 +135,14 @@ export const runApiPublish = async ({
   tokenFlag: string | undefined
   envFlag: HubEnv | undefined
 }): Promise<ApiPublishResult | ApiPublishMissing> => {
+  // The hub the publish targets, named on every failure. No refresh, no request.
+  const { origin, env } = resolveHubTarget({ tokenFlag, envFlag })
+
   const read = await readPublishFile(file)
-  if (read.type === 'failed') return read
+  if (read.type === 'failed') return { ...read, origin, env }
 
   const auth = await resolveApiPublishAuth({ tokenFlag, envFlag, api, originUrl })
+  if (auth.type === 'failed') return { ...auth, origin, env }
   if (auth.type !== 'token') return auth
 
   return await apiPublishHeadless({
@@ -258,10 +263,12 @@ export const printApiPublishResult = (
       )
       if (result.created) console.log('  created API')
       console.log(`  ${result.url}`)
+      console.log(`  hub: ${toTargetText(result)}`)
       return
     }
     case 'failed': {
       printFailure('Publish failed', result)
+      console.error(`  hub: ${toTargetText(result)}`)
       return
     }
     default: {
@@ -270,6 +277,9 @@ export const printApiPublishResult = (
     }
   }
 }
+
+/** The hub a publish targeted, e.g. `https://api.skmtc.dev (production)`. */
+const toTargetText = ({ origin, env }: ApiPublishTarget): string => `${origin} (${env})`
 
 /** A hub failure as text: the lead line, each detail, then the request id. */
 const printFailure = (lead: string, failure: ApiPublishFailure | ApiLinkFailure): void => {

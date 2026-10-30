@@ -48,6 +48,25 @@ Deno.test('mod.ts - an unknown SKMTC_ENV in pull is one readable line, exit 1', 
   assertEquals(stderr.includes('Uncaught'), false)
 })
 
+Deno.test('mod.ts - whoami with no token exits 2 with the login recipe', async () => {
+  const home = await Deno.makeTempDir()
+  try {
+    const { code, stdout, stderr } = await runCli(['whoami', '--json', '--env', 'staging'], {
+      HOME: home,
+      USERPROFILE: home,
+      SKMTC_HUB_TOKEN: '',
+      SKMTC_ENV: '',
+      SKMTC_API_ORIGIN: ''
+    })
+
+    assertEquals(code, 2)
+    assertEquals(stdout, '')
+    assertStringIncludes(stderr, 'Run `skmtc login --env staging`, set $SKMTC_HUB_TOKEN')
+  } finally {
+    await Deno.remove(home, { recursive: true })
+  }
+})
+
 // --- api publish from GitHub Actions ---------------------------------------------
 
 const toDenoDir = async (): Promise<string> => {
@@ -163,7 +182,9 @@ Deno.test('mod.ts - api publish with a failing OIDC provider exits 1 with code o
     assertEquals(JSON.parse(stdout), {
       type: 'failed',
       code: 'oidc-token',
-      message: "GitHub's OIDC provider answered 500: provider down"
+      message: "GitHub's OIDC provider answered 500: provider down",
+      origin: 'https://api.skmtc.dev',
+      env: 'production'
     })
     assertEquals(`${stdout}${stderr}`.includes('request-token-secret'), false)
   })

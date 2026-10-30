@@ -44,10 +44,11 @@ const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
   // --debug is covered by 'generate' above — it runs the local worker.ts
   // source.)
   'describe',
-  // login/logout talk to the hub (or just the local filesystem), not
-  // the JSR registry.
+  // login/logout/whoami talk to the hub (or just the local filesystem),
+  // not the JSR registry.
   'login',
   'logout',
+  'whoami',
   // push/pull move client.json to/from the hub; neither touches JSR.
   'push',
   'pull',
@@ -486,6 +487,21 @@ const run = async () => {
       await renderLogout({ jsonFlag: json })
     })
 
+  const whoamiCommand = new Command()
+    .description(getCommandDescriptor('whoami').description)
+    .option('--no-input', NO_INPUT_DESC)
+    .option('--json', JSON_DESC)
+    .option(
+      '--token <token:string>',
+      'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
+    )
+    .type('hubEnv', hubEnv)
+    .option('--env <env:hubEnv>', ENV_DESC)
+    .action(async ({ json, input, token, env }) => {
+      const { renderWhoami } = await import('@/commands/whoami.ts')
+      await renderWhoami({ token, env, jsonFlag: json, noInputFlag: input === false })
+    })
+
   const doctorCommand = new Command()
     .description(getCommandDescriptor('doctor').description)
     .option('--json', 'Emit structured JSON output.')
@@ -740,6 +756,7 @@ const run = async () => {
     .command('api', apiCommand)
     .command('login', loginCommand)
     .command('logout', logoutCommand)
+    .command('whoami', whoamiCommand)
     .command('dev', devCommand)
     .command('doctor', doctorCommand)
     .command('agent-context', agentContextCommand)

@@ -105,7 +105,8 @@ Deno.test('hub credentials - empty SKMTC_HUB_TOKEN and SKMTC_ENV are unset', asy
       assertEquals(await resolveHubAuth(), {
         token: undefined,
         env: 'production',
-        origin: 'https://api.skmtc.dev'
+        origin: 'https://api.skmtc.dev',
+        tokenSource: undefined
       })
     }
   )
