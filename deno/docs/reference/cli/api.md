@@ -45,12 +45,12 @@ does not make a version.
 | `--token <pat>`         | A personal access token. Without it, the command uses `$SKMTC_HUB_TOKEN`, then the token from `skmtc login`, then, in GitHub Actions, a linked repository token. See [Sign in from GitHub Actions](#sign-in-from-github-actions). |
 | `--env <env>`           | As for [`pull`](pull.md).                                                                                                                                                            |
 
-The command exits `2` when you give no `<file>`, no `--api`, an
-`--api` that is not `@account/slug`, or no token. In GitHub Actions,
-"no token" also means a job without `id-token: write`.
-
-The command reads `<file>` before it looks for a token. An unreadable
-file fails with `file-unreadable` before any sign-in request.
+The command exits `2` when you give no `<file>`, no `--api`, or an
+`--api` that is not `@account/slug`. Then it reads `<file>`: an
+unreadable file fails with `file-unreadable` before any sign-in
+request. Only then does it look for a token, and it exits `2` when
+there is none. In GitHub Actions, "no token" also means a job without
+`id-token: write`.
 
 ### Sign in from GitHub Actions
 
@@ -132,7 +132,7 @@ The command never prints the OIDC token or the linked repository token.
 | `invalid-document` | 422: the document is not a valid OpenAPI document.                       |
 | `network`          | The command cannot reach the hub.                                         |
 | `hub-error`        | Another answer from the hub.                                              |
-| `oidc-token`       | GitHub gave no OIDC token: an error, an answer with no token, or no connection. |
+| `oidc-token`       | GitHub gave no OIDC token: an error, an answer with no token, no connection, or no answer in time. |
 | `oidc-exchange`    | The hub gave no linked repository token for the OIDC token. A `403` means that no linked repository matches this workflow run, or that the API does not exist. |
 
 A request with no answer in time ends as `network`, or as `oidc-token`
