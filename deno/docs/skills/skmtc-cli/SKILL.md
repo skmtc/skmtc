@@ -61,7 +61,7 @@ diagnosing failures see
 | Bundle | `<root>/.skmtc/<project>/bundle.js` | Compiled worker entry. Rebuilt before every run by `generate`/`dev`, and by `bundle`/`clone`/`install`. `describe`/`status`/`clean` build their own copy outside the project. |
 | Manifest | `<root>/.skmtc/<project>/.settings/manifest.json` | Per-run record of every file written and every (generator × item) outcome |
 | Generator | JSR package or local folder | Local: `<root>/.skmtc/<project>/<gen-name>/` |
-| **Global state** | `~/.skmtc/` | `auth.json` (the hub login stored by `skmtc login`: its environment and token), shadow project state, schema caches. **Check this when local state alone doesn't explain a failure.** |
+| **Global state** | `~/.skmtc/` | `auth.json` (the hub login stored by `skmtc login`: its environment and token; `skmtc whoami` shows the account, environment and origin a hub command will use), shadow project state, schema caches. **Check this when local state alone doesn't explain a failure.** |
 
 A "project" is **not** the consuming app — it's the *generator
 configuration* the consuming app pulls code from.
@@ -213,6 +213,9 @@ This skill ends at the CLI surface. Hand off when:
   verify before proposing: manifest, parse issues, then a reproduction
   ([debug-failing-generation](https://github.com/skmtc/skmtc/blob/main/deno/docs/using/how-to/debug-failing-generation.md),
   [error codes](https://github.com/skmtc/skmtc/blob/main/deno/docs/reference/error-codes.md))
+- The cause is in Skmtc itself, or the user wants a feature → with the
+  user's agreement, send it with `skmtc feedback --kind problem|feature_request`
+  (no tokens or personal data: it becomes a public GitHub issue)
 
 ## Companion files
 

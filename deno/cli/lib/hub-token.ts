@@ -24,7 +24,10 @@ import {
   HUB_ENVS,
   HUB_HOSTS,
   type HubEnv,
-  toHubEnvFromApi
+  toHubEnvFromApi,
+  toLoginCommand,
+  toRejectedStoredLoginMessage,
+  toTokenSettingsUrl
 } from '@/lib/hub-env.ts'
 import { DeviceLoginError, refreshTokens } from '@/lib/device-login.ts'
 
@@ -263,44 +266,87 @@ type ResolveHubAuthArgs = {
   envFlag?: HubEnv
 }
 
-export type ResolvedHubAuth = {
-  token: string | undefined
+/** `--token`, `$SKMTC_HUB_TOKEN` or the `skmtc login` store. */
+export type HubTokenSource = 'flag' | 'env' | 'stored'
+
+/** The hub a command talks to, and where its token comes from. */
+export type HubTarget = {
   env: HubEnv
   /** The environment's API base URL. */
   origin: string
+  /** `undefined`: no token for `env`. */
+  tokenSource: HubTokenSource | undefined
+}
+
+export type ResolvedHubAuth = HubTarget & {
+  token: string | undefined
+}
+
+type HubCredential = {
+  env: HubEnv
+  explicit?: { token: string; tokenSource: 'flag' | 'env' }
+  stored?: StoredAuth
 }
 
 /**
- * Resolve token AND hub environment together so they stay coherent. The
- * token follows the standard precedence (flag → env → stored file). The
+ * Pick the token and the hub environment together so they stay coherent.
+ * The token follows the standard precedence (flag → env → stored file). The
  * environment is `--env` → `$SKMTC_ENV` → the stored file's `env` (when no
  * flag or env var supplies the token) → production. So after
  * `skmtc login --env local`, later commands talk to local without `--env`.
  */
-export const resolveHubAuth = async ({
-  tokenFlag,
-  envFlag
-}: ResolveHubAuthArgs = {}): Promise<ResolvedHubAuth> => {
+const toHubCredential = ({ tokenFlag, envFlag }: ResolveHubAuthArgs): HubCredential => {
   const flagToken = tokenFlag?.trim()
   const envToken = readEnv('SKMTC_HUB_TOKEN')
   const explicitEnv = envFlag ?? readHubEnvVariable()
 
-  if (flagToken || envToken) {
-    const env = explicitEnv ?? DEFAULT_HUB_ENV
-    return { token: flagToken || envToken, env, origin: HUB_HOSTS[env].api }
+  if (flagToken) {
+    return {
+      env: explicitEnv ?? DEFAULT_HUB_ENV,
+      explicit: { token: flagToken, tokenSource: 'flag' }
+    }
+  }
+  if (envToken) {
+    return {
+      env: explicitEnv ?? DEFAULT_HUB_ENV,
+      explicit: { token: envToken, tokenSource: 'env' }
+    }
   }
 
   const stored = readStoredAuth()
   const env = explicitEnv ?? stored?.env ?? DEFAULT_HUB_ENV
 
   // A stored token belongs to one environment and is never sent to another.
-  if (!stored || stored.env !== env) {
-    return { token: undefined, env, origin: HUB_HOSTS[env].api }
-  }
+  return stored && stored.env === env ? { env, stored } : { env }
+}
 
-  const fresh = await toFreshStoredAuth(stored)
+const toHubTarget = (credential: HubCredential): HubTarget => ({
+  env: credential.env,
+  origin: HUB_HOSTS[credential.env].api,
+  tokenSource: credential.explicit?.tokenSource ?? (credential.stored ? 'stored' : undefined)
+})
 
-  return { token: fresh.token, env, origin: HUB_HOSTS[env].api }
+/**
+ * The hub `resolveHubAuth` would pick, without refreshing a stored token or
+ * making any request.
+ */
+export const resolveHubTarget = (args: ResolveHubAuthArgs = {}): HubTarget =>
+  toHubTarget(toHubCredential(args))
+
+/**
+ * Resolve the token and the hub environment (see `toHubCredential`). A
+ * stored OAuth token that has expired is refreshed first.
+ */
+export const resolveHubAuth = async (args: ResolveHubAuthArgs = {}): Promise<ResolvedHubAuth> => {
+  const credential = toHubCredential(args)
+  const target = toHubTarget(credential)
+
+  if (credential.explicit) return { ...target, token: credential.explicit.token }
+  if (!credential.stored) return { ...target, token: undefined }
+
+  const fresh = await toFreshStoredAuth(credential.stored)
+
+  return { ...target, token: fresh.token }
 }
 
 /** Last-4 display form — never echo more of a token than this. */
@@ -314,6 +360,40 @@ export class HubTokenRejectedError extends Error {
     super(`token validation failed (${status}): ${detail}`)
     this.name = 'HubTokenRejectedError'
     this.status = status
+  }
+}
+
+/**
+ * Whether the hub refused the stored login itself. Only then is a logout the
+ * fix: after a network error or a 5xx the stored sign-in is still good, and a
+ * retry works.
+ */
+export const isRejectedLogin = (error: unknown): boolean =>
+  error instanceof HubTokenRejectedError ||
+  (error instanceof DeviceLoginError && error.code === 'invalid_grant')
+
+/** How the user names each token source. */
+export const TOKEN_SOURCE_LABELS: Record<HubTokenSource, string> = {
+  flag: '--token',
+  env: '$SKMTC_HUB_TOKEN',
+  stored: 'skmtc login (~/.skmtc/auth.json)'
+}
+
+/** What to do when the hub refuses (401 or 403) a token from `tokenSource`. */
+export const toRejectedTokenMessage = (env: HubEnv, tokenSource: HubTokenSource): string => {
+  switch (tokenSource) {
+    case 'stored':
+      return toRejectedStoredLoginMessage(env)
+    case 'flag':
+      return (
+        'The hub rejected the token from --token. Pass a valid token ' +
+        `(mint a PAT at ${toTokenSettingsUrl(env)}), or drop --token and run \`${toLoginCommand(env)}\`.`
+      )
+    case 'env':
+      return (
+        'The hub rejected the token from $SKMTC_HUB_TOKEN. Set a valid token ' +
+        `(mint a PAT at ${toTokenSettingsUrl(env)}), or unset it and run \`${toLoginCommand(env)}\`.`
+      )
   }
 }
 

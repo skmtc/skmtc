@@ -25,11 +25,11 @@ import {
   DEFAULT_HUB_ENV,
   HUB_HOSTS,
   type HubEnv,
-  toLoginCommand,
+  toRejectedStoredLoginMessage,
   toTokenSettingsUrl
 } from '@/lib/hub-env.ts'
 import {
-  HubTokenRejectedError,
+  isRejectedLogin,
   maskToken,
   readHubEnvVariable,
   readStoredAuth,
@@ -41,7 +41,6 @@ import {
 } from '@/lib/hub-token.ts'
 import {
   type DeviceCode,
-  DeviceLoginError,
   formatUserCode,
   pollForTokens,
   requestDeviceCode,
@@ -154,15 +153,6 @@ export const deviceLogin = async ({ env, onCode, sleep }: DeviceLoginArgs): Prom
   return handle
 }
 
-/**
- * Whether the hub refused the stored login itself. Only then is a logout the
- * fix: after a network error or a 5xx the stored sign-in is still good, and a
- * retry works.
- */
-export const isRejectedLogin = (error: unknown): boolean =>
-  error instanceof HubTokenRejectedError ||
-  (error instanceof DeviceLoginError && error.code === 'invalid_grant')
-
 const fail = (error: unknown): never => {
   console.error(error instanceof Error ? error.message : String(error))
   Deno.exit(1)
@@ -216,8 +206,7 @@ export const renderLogin = async ({
     } catch (error) {
       console.error(
         isRejectedLogin(error)
-          ? 'A token is stored in ~/.skmtc/auth.json but the hub rejected it. ' +
-              `Run \`skmtc logout\`, then \`${toLoginCommand(env)}\` again.`
+          ? toRejectedStoredLoginMessage(env)
           : `Could not check the stored login: ${error instanceof Error ? error.message : String(error)}`
       )
       Deno.exit(1)

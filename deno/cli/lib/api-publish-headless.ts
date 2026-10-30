@@ -10,6 +10,7 @@
 import { resolve } from '@std/path/resolve'
 import { type HubEnv, toLoginCommand } from '@/lib/hub-env.ts'
 import { toScopedPath } from '@/lib/scoped-name.ts'
+import type { HubTarget } from '@/lib/hub-token.ts'
 
 type Scoped = { account: string; slug: string }
 
@@ -47,8 +48,14 @@ export type ApiPublishFailure = {
  */
 export type ApiPublishTokenSource = 'explicit' | 'oidc'
 
+/** The hub a publish was sent to, or would have been. */
+export type ApiPublishTarget = Pick<HubTarget, 'origin' | 'env'>
+
+/** A failed publish, with the hub it targeted. */
+export type ApiPublishFailed = ApiPublishFailure & ApiPublishTarget
+
 export type ApiPublishResult =
-  | {
+  | ({
       type: 'published'
       api: Scoped
       /** The revision's content ref. */
@@ -58,9 +65,8 @@ export type ApiPublishResult =
       deduped: boolean
       /** The publish created the API. */
       created: boolean
-      origin: string
-    }
-  | ApiPublishFailure
+    } & ApiPublishTarget)
+  | ApiPublishFailed
 
 /**
  * The publish ends within this time. It uploads the whole document and the
@@ -227,9 +233,16 @@ const toFailure = async (
     api,
     visibility,
     env,
-    tokenSource
-  }: { api: Scoped; visibility?: ApiVisibility; env: HubEnv; tokenSource: ApiPublishTokenSource }
-): Promise<ApiPublishResult> => {
+    tokenSource,
+    origin
+  }: {
+    api: Scoped
+    visibility?: ApiVisibility
+    env: HubEnv
+    tokenSource: ApiPublishTokenSource
+    origin: string
+  }
+): Promise<ApiPublishFailed> => {
   const code = STATUS_CODES[res.status] ?? 'hub-error'
   const apiError = await readApiError(res)
   const lead =
@@ -243,12 +256,18 @@ const toFailure = async (
     status: res.status,
     message: hint ? `${toSentence(lead)} ${hint}` : lead,
     requestId: apiError.requestId,
-    details: apiError.details
+    details: apiError.details,
+    origin,
+    env
   }
 }
 
 /** Read the success body (`ImportApiResult`). */
-const toPublished = (body: unknown, status: number, origin: string): ApiPublishResult => {
+const toPublished = (
+  body: unknown,
+  status: number,
+  { origin, env }: ApiPublishTarget
+): ApiPublishResult => {
   const api = isObject(body) && isObject(body.api) ? body.api : undefined
   const owner = api && isObject(api.owner) ? api.owner.handle : undefined
   const slug = api?.slug
@@ -266,7 +285,9 @@ const toPublished = (body: unknown, status: number, origin: string): ApiPublishR
       type: 'failed',
       code: 'hub-error',
       status,
-      message: 'the hub accepted the document, but its answer had no API or revision'
+      message: 'the hub accepted the document, but its answer had no API or revision',
+      origin,
+      env
     }
   }
   return {
@@ -276,7 +297,8 @@ const toPublished = (body: unknown, status: number, origin: string): ApiPublishR
     url,
     deduped: body.deduped === true,
     created: body.isNewApi === true,
-    origin
+    origin,
+    env
   }
 }
 
@@ -325,14 +347,16 @@ export const apiPublishHeadless = async ({
       body: bytes,
       signal: AbortSignal.timeout(timeoutMs)
     })
-    if (!res.ok) return await toFailure(res, { api, visibility, env, tokenSource })
+    if (!res.ok) return await toFailure(res, { api, visibility, env, tokenSource, origin })
     const body: unknown = await res.json().catch(rethrowTimeout)
-    return toPublished(body, res.status, origin)
+    return toPublished(body, res.status, { origin, env })
   } catch (err) {
     return {
       type: 'failed',
       code: 'network',
-      message: `cannot reach the hub at ${origin}: ${errorMessage(err)}`
+      message: `cannot reach the hub at ${origin}: ${errorMessage(err)}`,
+      origin,
+      env
     }
   }
 }

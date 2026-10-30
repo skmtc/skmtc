@@ -113,9 +113,10 @@ waits for the command to exit.
    the same environment reports `Logged in as <handle> (token …last4)`.
    Without `--env` or `$SKMTC_ENV`, the environment is the one stored
    with the login.
-   It does not start a new sign-in. This is the `whoami`. To sign in
-   again, run `skmtc logout` first, or pipe a new token with
-   `--with-token`.
+   It does not start a new sign-in. To sign in again, run
+   `skmtc logout` first, or pipe a new token with `--with-token`. To
+   see the account, environment and origin of any token (also from
+   `--token` or `$SKMTC_HUB_TOKEN`), run [`skmtc whoami`](whoami.md).
 
 ## Token resolution elsewhere
 
@@ -156,12 +157,16 @@ skmtc login --env local
 # Non-interactive / CI bootstrap with a PAT
 echo $PAT | skmtc login --with-token --json
 
-# Status check ("whoami")
+# Status check of the stored login
 skmtc login --json
+
+# The account, environment and origin a hub command would use
+skmtc whoami
 ```
 
 ## See also
 
+- [`whoami`](whoami.md) — the account, environment and origin a hub command uses
 - [`logout`](logout.md) — revoke the sign-in and delete the stored credential
 - [`publish`](publish.md) — a consumer of the stored token
 - [`doctor`](doctor.md) — offline `hub-auth` shape check of `auth.json`

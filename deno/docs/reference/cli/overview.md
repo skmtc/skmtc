@@ -68,6 +68,8 @@ version and exits.
 | `api`     | `api publish`: add an OpenAPI document to a hub API as a revision (no workspace needed); `api link`: make a link request for a GitHub repository | [api](api.md)         |
 | `login`   | Validate + store a hub PAT (paste-a-PAT; becomes publish's default credential)                    | [login](login.md)     |
 | `logout`  | Delete the stored hub credential (idempotent)                                                     | [logout](logout.md)   |
+| `whoami`  | Show the hub account, environment and origin that hub commands use, and the token's source        | [whoami](whoami.md)   |
+| `feedback` | Send a problem or a feature request to the Skmtc team; prints the feedback id and GitHub issue URL | [feedback](feedback.md) |
 
 ### Diagnostics
 

@@ -37,6 +37,11 @@ export const toTokenSettingsUrl = (env: HubEnv): string => `${HUB_HOSTS[env].web
 export const toLoginCommand = (env: HubEnv): string =>
   env === DEFAULT_HUB_ENV ? 'skmtc login' : `skmtc login --env ${env}`
 
+/** The message when the hub refuses the token stored for `env`. */
+export const toRejectedStoredLoginMessage = (env: HubEnv): string =>
+  'A token is stored in ~/.skmtc/auth.json but the hub rejected it. ' +
+  `Run \`skmtc logout\`, then \`${toLoginCommand(env)}\` again.`
+
 /** The recipe hint for a hub command that has no token for `env`. */
 export const toMissingTokenHint = (env: HubEnv): string =>
   `Run \`${toLoginCommand(env)}\`, set $SKMTC_HUB_TOKEN, or pass --token. ` +

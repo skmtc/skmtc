@@ -95,6 +95,24 @@ Deno.test('cli-schema - api publish declares an optional <file> and its hub flag
   )
 })
 
+Deno.test('cli-schema - whoami and feedback declare their hub flags', () => {
+  const flagsOf = (name: string) => getCommandDescriptor(name).flags.map(f => f.flag.split(' ')[0])
+
+  assertEquals(flagsOf('whoami'), ['--json', '--no-input', '--token', '--env'])
+  assertEquals(flagsOf('feedback'), [
+    '--json',
+    '--no-input',
+    '--kind',
+    '--summary',
+    '--details',
+    '--operation',
+    '--resource',
+    '--request-id',
+    '--token',
+    '--env'
+  ])
+})
+
 Deno.test('cli-schema - api link declares no arguments and its hub flags', () => {
   const apiLink = getCommandDescriptor('api link')
 

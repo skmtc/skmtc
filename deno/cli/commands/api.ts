@@ -5,9 +5,10 @@ import {
   resolveOutputFormat
 } from '@/lib/strict-mode.ts'
 import {
-  type ApiPublishFailure,
+  type ApiPublishFailed,
   apiPublishHeadless,
   type ApiPublishResult,
+  type ApiPublishTarget,
   type ApiPublishTokenSource,
   type ApiVisibility,
   readPublishFile
@@ -18,7 +19,7 @@ import {
   readIfAllowed,
   requestGithubOidcToken
 } from '@/lib/github-oidc.ts'
-import { resolveHubAuth } from '@/lib/hub-token.ts'
+import { resolveHubAuth, resolveHubTarget } from '@/lib/hub-token.ts'
 import { HUB_HOSTS, type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
 import { parseScopedName } from '@/lib/scoped-name.ts'
 import { type ApiLinkFailure, apiLinkHeadless } from '@/lib/api-link-headless.ts'
@@ -28,6 +29,7 @@ import {
   resolveWorkflow
 } from '@/lib/linked-repo-detect.ts'
 import { openUrl } from '@/lib/open-url.ts'
+import { printHubFailure } from '@/lib/print-hub-failure.ts'
 import { readEnv } from '@/lib/env.ts'
 
 export const description =
@@ -135,7 +137,11 @@ export const runApiPublish = async ({
   envFlag: HubEnv | undefined
 }): Promise<ApiPublishResult | ApiPublishMissing> => {
   const read = await readPublishFile(file)
-  if (read.type === 'failed') return read
+  if (read.type === 'failed') {
+    // Before any sign-in: name the hub the publish would target. No refresh, no request.
+    const { origin, env } = resolveHubTarget({ tokenFlag, envFlag })
+    return { ...read, origin, env }
+  }
 
   const auth = await resolveApiPublishAuth({ tokenFlag, envFlag, api, originUrl })
   if (auth.type !== 'token') return auth
@@ -162,7 +168,7 @@ type ApiPublishAuth =
       env: HubEnv
     }
   | ApiPublishMissing
-  | ApiPublishFailure
+  | ApiPublishFailed
 
 /** No token and no way to get one: the caller prints the recipe, exit 2. */
 export type ApiPublishMissing = { type: 'missing'; discover: string }
@@ -212,24 +218,26 @@ const resolveApiPublishAuth = async ({
 
   // The hub refuses a source from a linked repository token on both routes.
   // Refuse it here, before the single-use OIDC token is spent.
+  const target = { origin: resolved.origin, env: resolved.env }
   if (originUrl !== undefined) {
     return {
       type: 'failed',
       code: 'bad-request',
       message:
-        '--origin-url needs `skmtc login` or a PAT: a linked repository token cannot add a source.'
+        '--origin-url needs `skmtc login` or a PAT: a linked repository token cannot add a source.',
+      ...target
     }
   }
 
   const githubToken = await requestGithubOidcToken({ ...githubOidc, audience: resolved.origin })
-  if (githubToken.type === 'failed') return githubToken
+  if (githubToken.type === 'failed') return { ...githubToken, ...target }
 
   const linked = await exchangeLinkedRepositoryToken({
     origin: resolved.origin,
     api,
     githubToken: githubToken.token
   })
-  if (linked.type === 'failed') return linked
+  if (linked.type === 'failed') return { ...linked, ...target }
 
   return {
     type: 'token',
@@ -258,10 +266,12 @@ export const printApiPublishResult = (
       )
       if (result.created) console.log('  created API')
       console.log(`  ${result.url}`)
+      console.log(`  hub: ${toTargetText(result)}`)
       return
     }
     case 'failed': {
-      printFailure('Publish failed', result)
+      printHubFailure('Publish failed', result)
+      console.error(`  hub: ${toTargetText(result)}`)
       return
     }
     default: {
@@ -271,16 +281,8 @@ export const printApiPublishResult = (
   }
 }
 
-/** A hub failure as text: the lead line, each detail, then the request id. */
-const printFailure = (lead: string, failure: ApiPublishFailure | ApiLinkFailure): void => {
-  console.error(
-    `${lead} (${failure.code}${failure.status ? `, ${failure.status}` : ''}): ${failure.message}`
-  )
-  for (const detail of failure.details ?? []) {
-    console.error(`  ${detail.field ? `${detail.field}: ` : ''}${detail.message}`)
-  }
-  if (failure.requestId) console.error(`  request id: ${failure.requestId}`)
-}
+/** The hub a publish targeted, e.g. `https://api.skmtc.dev (production)`. */
+const toTargetText = ({ origin, env }: ApiPublishTarget): string => `${origin} (${env})`
 
 // --- link -------------------------------------------------------------------
 
@@ -482,7 +484,7 @@ export const printApiLinkResult = (
       return
     }
     case 'failed': {
-      printFailure('Link request failed', result)
+      printHubFailure('Link request failed', result)
       return
     }
     default: {

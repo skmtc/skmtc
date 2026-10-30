@@ -48,6 +48,35 @@ Deno.test('mod.ts - an unknown SKMTC_ENV in pull is one readable line, exit 1', 
   assertEquals(stderr.includes('Uncaught'), false)
 })
 
+Deno.test('mod.ts - whoami with no token exits 2 with the login recipe', async () => {
+  const home = await Deno.makeTempDir()
+  try {
+    const { code, stdout, stderr } = await runCli(['whoami', '--json', '--env', 'staging'], {
+      HOME: home,
+      USERPROFILE: home,
+      SKMTC_HUB_TOKEN: '',
+      SKMTC_ENV: '',
+      SKMTC_API_ORIGIN: ''
+    })
+
+    assertEquals(code, 2)
+    assertEquals(stdout, '')
+    assertStringIncludes(stderr, 'Run `skmtc login --env staging`, set $SKMTC_HUB_TOKEN')
+  } finally {
+    await Deno.remove(home, { recursive: true })
+  }
+})
+
+Deno.test('mod.ts - feedback refuses an unknown --kind and exits 2 on a missing --summary', async () => {
+  const unknownKind = await runCli(['feedback', '--kind', 'bug', '--json'], {})
+  assertEquals(unknownKind.code, 2)
+  assertStringIncludes(unknownKind.stderr, 'problem')
+
+  const noSummary = await runCli(['feedback', '--kind', 'feature_request', '--json'], {})
+  assertEquals(noSummary.code, 2)
+  assertStringIncludes(noSummary.stderr, 'missing required argument: --summary')
+})
+
 // --- api publish from GitHub Actions ---------------------------------------------
 
 const toDenoDir = async (): Promise<string> => {
@@ -163,7 +192,9 @@ Deno.test('mod.ts - api publish with a failing OIDC provider exits 1 with code o
     assertEquals(JSON.parse(stdout), {
       type: 'failed',
       code: 'oidc-token',
-      message: "GitHub's OIDC provider answered 500: provider down"
+      message: "GitHub's OIDC provider answered 500: provider down",
+      origin: 'https://api.skmtc.dev',
+      env: 'production'
     })
     assertEquals(`${stdout}${stderr}`.includes('request-token-secret'), false)
   })

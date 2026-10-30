@@ -46,6 +46,18 @@ does not make a version.
 | `--token <pat>`         | A personal access token. Without it, the command uses `$SKMTC_HUB_TOKEN`, then the token from `skmtc login`, then, in GitHub Actions, a linked repository token. See [Sign in from GitHub Actions](#sign-in-from-github-actions). |
 | `--env <env>`           | As for [`pull`](pull.md).                                                                                                                                                            |
 
+### The target hub
+
+A stored login from `skmtc login` sets the environment of the publish,
+unless you set `--env` or `$SKMTC_ENV`. Thus a stored `local` or
+`staging` login sends a publish without `--env` to that environment,
+not to production. Run [`skmtc whoami`](whoami.md) before the publish
+to see the environment and the origin.
+
+The command names the API origin and the environment on each result.
+The text output has the line `hub: <origin> (<env>)`, and the JSON
+output has `origin` and `env`, also for a failure.
+
 The command exits `2` when you give no `<file>`, no `--api`, or an
 `--api` that is not `@account/slug`. Then it reads `<file>`: an
 unreadable file fails with `file-unreadable` before any sign-in
@@ -105,7 +117,8 @@ The command never prints the OIDC token or the linked repository token.
   "url": "https://skmtc.dev/…",
   "deduped": false,
   "created": true,
-  "origin": "https://api.skmtc.dev"
+  "origin": "https://api.skmtc.dev",
+  "env": "production"
 }
 ```
 
@@ -118,7 +131,9 @@ The command never prints the OIDC token or the linked repository token.
   "status": 404,
   "message": "API @acme/pets not found, or you cannot see it. …",
   "requestId": "…",
-  "details": [{ "field": "…", "message": "…" }]
+  "details": [{ "field": "…", "message": "…" }],
+  "origin": "https://api.skmtc.dev",
+  "env": "production"
 }
 ```
 
@@ -142,7 +157,8 @@ and the publish has 120 seconds.
 
 `status` is there when the hub answered. It is not there for
 `oidc-token`, because the hub did not answer. `requestId` and `details`
-are there when the hub's answer carried them.
+are there when the hub's answer carried them. `origin` and `env` are
+always there.
 
 ## `skmtc api link`
 
@@ -221,7 +237,7 @@ a page on the site of the hub environment. An agent gives `--no-open`.
 
 `environment` is `null` when you give no `--environment`. `opened` is
 `true` when the command opened the browser. A failure exits `1`, with
-the same shape as for `api publish`:
+the same shape as for `api publish`, but with no `origin` or `env`:
 
 | `code`         | Cause                                                                           |
 | -------------- | ------------------------------------------------------------------------------- |
@@ -237,4 +253,5 @@ the same shape as for `api publish`:
 
 - [`project`](project.md): make a hub project from the local setup
 - [`login`](login.md): sign in, so that the command has a token
+- [`whoami`](whoami.md): the account, environment and origin of the token
 - [overview](overview.md): shared flags and exit codes

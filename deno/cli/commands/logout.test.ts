@@ -1,11 +1,15 @@
 import { assertEquals } from '@std/assert'
 import { stub } from '@std/testing/mock'
 import { withEnv } from '@/tests/mocks/env.mock.ts'
-import { readStoredAuth, writeStoredAuth } from '@/lib/hub-token.ts'
+import {
+  HubTokenRejectedError,
+  isRejectedLogin,
+  readStoredAuth,
+  writeStoredAuth
+} from '@/lib/hub-token.ts'
 import { logout } from '@/commands/logout.ts'
-import { isRejectedLogin, replaceStoredAuth } from '@/commands/login.tsx'
+import { replaceStoredAuth } from '@/commands/login.tsx'
 import { DeviceLoginError } from '@/lib/device-login.ts'
-import { HubTokenRejectedError } from '@/lib/hub-token.ts'
 
 const withTempHome = async (fn: () => Promise<void>): Promise<void> => {
   const home = Deno.makeTempDirSync({ prefix: 'skmtc-logout-test-' })
