@@ -4,6 +4,7 @@ import { withEnv } from '@/tests/mocks/env.mock.ts'
 import { withCapturedExit } from '@/tests/mocks/exit.mock.ts'
 import { writeStoredAuth } from '@/lib/hub-token.ts'
 import { renderWhoami } from '@/commands/whoami.ts'
+import { toRejectedStoredLoginMessage } from '@/lib/hub-env.ts'
 
 type Env = Record<string, string | undefined>
 
@@ -164,6 +165,29 @@ Deno.test('whoami - no token at all exits 2 with the recipe for the env', async 
       assertStringIncludes(run.stderr, 'Run `skmtc login --env local`')
       assertEquals(requests, [])
     })
+  })
+})
+
+Deno.test('whoami - a stored login whose refresh is refused exits 1 with the logout and login text', async () => {
+  await withTempHome({}, async () => {
+    writeStoredAuth({ env: 'staging', token: 'expired', refreshToken: 'r1', expiresAt: 0 })
+    await withUserRoute(
+      () => new Response(JSON.stringify({ error: 'invalid_grant' }), { status: 400 }),
+      async requests => {
+        const run = await withCapturedExit(() =>
+          renderWhoami({ token: undefined, env: undefined, jsonFlag: true })
+        )
+
+        assertEquals(run.exitCode, 1)
+        assertEquals(run.stdout, '')
+        assertEquals(run.stderr, toRejectedStoredLoginMessage('staging'))
+        // The refresh was refused, so no identity check followed.
+        assertEquals(
+          requests.map(request => request.url).filter(url => url.endsWith('/v1/user')),
+          []
+        )
+      }
+    )
   })
 })
 

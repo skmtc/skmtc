@@ -267,7 +267,14 @@ Deno.test('toFeedbackInputProblem - refuses what the hub would refuse', () => {
 
 Deno.test('toWaitText - rounds up to seconds, minutes or hours', () => {
   assertEquals(
-    [toWaitText(30), toWaitText(119), toWaitText(121), toWaitText(3600), toWaitText(7201)],
-    ['30 seconds', '119 seconds', '3 minutes', '60 minutes', '3 hours']
+    [
+      toWaitText(1),
+      toWaitText(30),
+      toWaitText(119),
+      toWaitText(121),
+      toWaitText(3600),
+      toWaitText(7201)
+    ],
+    ['1 second', '30 seconds', '119 seconds', '3 minutes', '60 minutes', '3 hours']
   )
 })

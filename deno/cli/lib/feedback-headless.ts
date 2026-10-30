@@ -112,8 +112,9 @@ const readRetryAfter = (res: Response): number | undefined => {
   return Number(value.trim())
 }
 
-/** `90` → `2 minutes`: rounded up, so the user never retries too soon. */
+/** `90` → `90 seconds`, `150` → `3 minutes`: rounded up, so the user never retries too soon. */
 export const toWaitText = (seconds: number): string => {
+  if (seconds === 1) return '1 second'
   if (seconds < 120) return `${seconds} seconds`
   if (seconds < 7200) return `${Math.ceil(seconds / 60)} minutes`
   return `${Math.ceil(seconds / 3600)} hours`
