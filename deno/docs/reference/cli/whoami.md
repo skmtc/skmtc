@@ -63,7 +63,7 @@ Logged in as acme (token …1a2b)
 | Code | Meaning |
 | ---- | ------- |
 | `0`  | The hub accepted the token |
-| `1`  | The hub refused the token (401 or 403), or did not answer. For a stored login, the message tells you to run `skmtc logout`, then `skmtc login` |
+| `1`  | The hub refused the token (401 or 403), or answered with an error, or the connection failed. For a stored login, the message tells you to run `skmtc logout`, then `skmtc login` |
 | `2`  | No token for the environment (recipe error naming `skmtc login`, `$SKMTC_HUB_TOKEN` and `--token`) |
 
 ## See also

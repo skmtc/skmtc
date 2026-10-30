@@ -11,18 +11,16 @@ import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/str
 import {
   HubTokenRejectedError,
   type HubTokenSource,
+  isRejectedLogin,
   maskToken,
   resolveHubAuth,
   resolveHubTarget,
+  TOKEN_SOURCE_LABELS,
+  toRejectedTokenMessage,
   validateHubToken
 } from '@/lib/hub-token.ts'
-import {
-  type HubEnv,
-  toMissingTokenHint,
-  toRejectedStoredLoginMessage,
-  toTokenSettingsUrl
-} from '@/lib/hub-env.ts'
-import { isRejectedLogin } from '@/commands/login.tsx'
+import { type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
+import { errorMessage } from '@/lib/api-publish-headless.ts'
 
 const USAGE = 'skmtc whoami [--env production|staging|local] [--token <pat>]'
 const EXAMPLE = 'skmtc whoami --json'
@@ -40,22 +38,6 @@ type WhoamiOutcome =
   | { type: 'missing'; env: HubEnv }
   | { type: 'failed'; message: string }
 
-const TOKEN_SOURCE_LABELS: Record<HubTokenSource, string> = {
-  flag: '--token',
-  env: '$SKMTC_HUB_TOKEN',
-  stored: 'skmtc login (~/.skmtc/auth.json)'
-}
-
-const toErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error)
-
-/** The message for a token the hub refused, by where the token came from. */
-const toRejectedMessage = (env: HubEnv, tokenSource: HubTokenSource): string =>
-  tokenSource === 'stored'
-    ? toRejectedStoredLoginMessage(env)
-    : `The hub rejected the token from ${TOKEN_SOURCE_LABELS[tokenSource]}. ` +
-      `Pass a valid token; mint a PAT at ${toTokenSettingsUrl(env)}.`
-
 /** Resolve the token, then ask the hub whose it is. */
 export const runWhoami = async ({
   tokenFlag,
@@ -64,6 +46,7 @@ export const runWhoami = async ({
   tokenFlag: string | undefined
   envFlag: HubEnv | undefined
 }): Promise<WhoamiOutcome> => {
+  const target = resolveHubTarget({ tokenFlag, envFlag })
   const auth = await resolveHubAuth({ tokenFlag, envFlag }).catch((error: unknown) => {
     // A stored sign-in whose refresh identity refused.
     if (isRejectedLogin(error)) return undefined
@@ -71,8 +54,7 @@ export const runWhoami = async ({
   })
   if (auth === undefined) {
     // Only a stored login refreshes, so the refusal is the stored login's.
-    const { env } = resolveHubTarget({ tokenFlag, envFlag })
-    return { type: 'failed', message: toRejectedStoredLoginMessage(env) }
+    return { type: 'failed', message: toRejectedTokenMessage(target.env, 'stored') }
   }
   if (!auth.token || !auth.tokenSource) return { type: 'missing', env: auth.env }
 
@@ -94,8 +76,8 @@ export const runWhoami = async ({
       type: 'failed',
       message:
         error instanceof HubTokenRejectedError
-          ? toRejectedMessage(auth.env, auth.tokenSource)
-          : `Could not check the token at ${auth.origin}: ${toErrorMessage(error)}`
+          ? toRejectedTokenMessage(auth.env, auth.tokenSource)
+          : `Could not check the token at ${auth.origin}: ${errorMessage(error)}`
     }
   }
 }

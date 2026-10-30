@@ -157,8 +157,11 @@ Deno.test('feedback - a 401 exits 1 with the skmtc login recipe', async () => {
         const run = await withCapturedExit(() => renderFeedback(ARGS))
 
         assertEquals(run.exitCode, 1)
-        assertStringIncludes(run.stderr, 'Feedback failed (unauthorized, 401): Unauthorized.')
-        assertStringIncludes(run.stderr, 'Run `skmtc login`')
+        assertStringIncludes(
+          run.stderr,
+          'Feedback failed (unauthorized, 401): The hub rejected the token from $SKMTC_HUB_TOKEN.'
+        )
+        assertStringIncludes(run.stderr, 'run `skmtc login`')
       }
     )
   })

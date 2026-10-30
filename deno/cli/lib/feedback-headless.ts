@@ -6,7 +6,8 @@
  */
 
 import * as v from 'valibot'
-import { type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
+import type { HubEnv } from '@/lib/hub-env.ts'
+import { type HubTokenSource, toRejectedTokenMessage } from '@/lib/hub-token.ts'
 import {
   type ApiErrorDetail,
   errorMessage,
@@ -123,12 +124,14 @@ const toFailureMessage = (
   {
     env,
     origin,
+    tokenSource,
     hubMessage,
     status,
     retryAfterSeconds
   }: {
     env: HubEnv
     origin: string
+    tokenSource: HubTokenSource
     hubMessage?: string
     status: number
     retryAfterSeconds?: number
@@ -136,12 +139,14 @@ const toFailureMessage = (
 ): string => {
   switch (code) {
     case 'unauthorized':
-      return `${toSentence(hubMessage ?? 'The hub refused the token')} ${toMissingTokenHint(env)}`
+      return toRejectedTokenMessage(env, tokenSource)
     case 'rate-limited':
-      return retryAfterSeconds === undefined
-        ? 'Too many feedback requests. Try again later.'
-        : `${toSentence(hubMessage ?? 'Too many feedback requests')} ` +
-            `Try again in ${toWaitText(retryAfterSeconds)}.`
+      return (
+        `${toSentence(hubMessage ?? 'Too many feedback requests')} ` +
+        (retryAfterSeconds === undefined
+          ? 'Try again later.'
+          : `Try again in ${toWaitText(retryAfterSeconds)}.`)
+      )
     case 'bad-gateway':
       return 'GitHub did not confirm the feedback issue, and the hub stored nothing. Try again later.'
     case 'unavailable':
@@ -153,7 +158,7 @@ const toFailureMessage = (
 
 const toFailure = async (
   res: Response,
-  { env, origin }: { env: HubEnv; origin: string }
+  { env, origin, tokenSource }: { env: HubEnv; origin: string; tokenSource: HubTokenSource }
 ): Promise<FeedbackFailure> => {
   const code = STATUS_CODES[res.status] ?? 'hub-error'
   const retryAfterSeconds = code === 'rate-limited' ? readRetryAfter(res) : undefined
@@ -165,6 +170,7 @@ const toFailure = async (
     message: toFailureMessage(code, {
       env,
       origin,
+      tokenSource,
       hubMessage: apiError.message,
       status: res.status,
       retryAfterSeconds
@@ -196,6 +202,7 @@ type FeedbackArgs = {
   details: string
   context: FeedbackContext
   token: string
+  tokenSource: HubTokenSource
   origin: string
   env: HubEnv
   timeoutMs?: number
@@ -207,6 +214,7 @@ export const feedbackHeadless = async ({
   details,
   context,
   token,
+  tokenSource,
   origin,
   env,
   timeoutMs = FEEDBACK_TIMEOUT_MS
@@ -218,7 +226,7 @@ export const feedbackHeadless = async ({
       body: JSON.stringify({ kind, summary, details, context }),
       signal: AbortSignal.timeout(timeoutMs)
     })
-    if (!res.ok) return await toFailure(res, { env, origin })
+    if (!res.ok) return await toFailure(res, { env, origin, tokenSource })
     const body: unknown = await res.json().catch(rethrowTimeout)
     return toSent(body, res.status)
   } catch (err) {

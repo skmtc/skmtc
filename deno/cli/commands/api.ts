@@ -5,7 +5,7 @@ import {
   resolveOutputFormat
 } from '@/lib/strict-mode.ts'
 import {
-  type ApiPublishFailure,
+  type ApiPublishFailed,
   apiPublishHeadless,
   type ApiPublishResult,
   type ApiPublishTarget,
@@ -136,14 +136,14 @@ export const runApiPublish = async ({
   tokenFlag: string | undefined
   envFlag: HubEnv | undefined
 }): Promise<ApiPublishResult | ApiPublishMissing> => {
-  // The hub the publish targets, named on every failure. No refresh, no request.
-  const { origin, env } = resolveHubTarget({ tokenFlag, envFlag })
-
   const read = await readPublishFile(file)
-  if (read.type === 'failed') return { ...read, origin, env }
+  if (read.type === 'failed') {
+    // Before any sign-in: name the hub the publish would target. No refresh, no request.
+    const { origin, env } = resolveHubTarget({ tokenFlag, envFlag })
+    return { ...read, origin, env }
+  }
 
   const auth = await resolveApiPublishAuth({ tokenFlag, envFlag, api, originUrl })
-  if (auth.type === 'failed') return { ...auth, origin, env }
   if (auth.type !== 'token') return auth
 
   return await apiPublishHeadless({
@@ -168,7 +168,7 @@ type ApiPublishAuth =
       env: HubEnv
     }
   | ApiPublishMissing
-  | ApiPublishFailure
+  | ApiPublishFailed
 
 /** No token and no way to get one: the caller prints the recipe, exit 2. */
 export type ApiPublishMissing = { type: 'missing'; discover: string }
@@ -218,24 +218,26 @@ const resolveApiPublishAuth = async ({
 
   // The hub refuses a source from a linked repository token on both routes.
   // Refuse it here, before the single-use OIDC token is spent.
+  const target = { origin: resolved.origin, env: resolved.env }
   if (originUrl !== undefined) {
     return {
       type: 'failed',
       code: 'bad-request',
       message:
-        '--origin-url needs `skmtc login` or a PAT: a linked repository token cannot add a source.'
+        '--origin-url needs `skmtc login` or a PAT: a linked repository token cannot add a source.',
+      ...target
     }
   }
 
   const githubToken = await requestGithubOidcToken({ ...githubOidc, audience: resolved.origin })
-  if (githubToken.type === 'failed') return githubToken
+  if (githubToken.type === 'failed') return { ...githubToken, ...target }
 
   const linked = await exchangeLinkedRepositoryToken({
     origin: resolved.origin,
     api,
     githubToken: githubToken.token
   })
-  if (linked.type === 'failed') return linked
+  if (linked.type === 'failed') return { ...linked, ...target }
 
   return {
     type: 'token',

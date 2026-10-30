@@ -42,6 +42,7 @@ const BASE = {
   details: 'Run generate on pets.yaml.',
   context: { clientName: 'skmtc-cli', clientVersion: '1.2.3' },
   token: 'pat-123',
+  tokenSource: 'stored' as const,
   origin: 'https://hub.test',
   env: 'staging' as const
 }
@@ -80,24 +81,44 @@ Deno.test('feedbackHeadless - posts the SendFeedbackRequest body and reads SentF
   )
 })
 
-Deno.test('feedbackHeadless - a 401 gives the skmtc login recipe for the env', async () => {
-  await withFetch(
-    () => json({ message: 'Unauthorized', requestId: 'req-1' }, 401),
-    async () => {
-      const result = await feedbackHeadless(BASE)
-
-      assertEquals(result, {
-        type: 'failed',
-        code: 'unauthorized',
-        status: 401,
-        message:
-          'Unauthorized. Run `skmtc login --env staging`, set $SKMTC_HUB_TOKEN, or pass --token. ' +
-          'Mint a PAT at https://skmtc.net/settings/tokens.',
-        requestId: 'req-1',
-        details: undefined
-      })
+Deno.test('feedbackHeadless - a 401 gives the skmtc login recipe for the token source', async () => {
+  const cases = [
+    {
+      tokenSource: 'stored' as const,
+      message:
+        'A token is stored in ~/.skmtc/auth.json but the hub rejected it. ' +
+        'Run `skmtc logout`, then `skmtc login --env staging` again.'
+    },
+    {
+      tokenSource: 'flag' as const,
+      message:
+        'The hub rejected the token from --token. Pass a valid token ' +
+        '(mint a PAT at https://skmtc.net/settings/tokens), or drop --token and run `skmtc login --env staging`.'
+    },
+    {
+      tokenSource: 'env' as const,
+      message:
+        'The hub rejected the token from $SKMTC_HUB_TOKEN. Set a valid token ' +
+        '(mint a PAT at https://skmtc.net/settings/tokens), or unset it and run `skmtc login --env staging`.'
     }
-  )
+  ]
+  for (const { tokenSource, message } of cases) {
+    await withFetch(
+      () => json({ message: 'Unauthorized', requestId: 'req-1' }, 401),
+      async () => {
+        const result = await feedbackHeadless({ ...BASE, tokenSource })
+
+        assertEquals(result, {
+          type: 'failed',
+          code: 'unauthorized',
+          status: 401,
+          message,
+          requestId: 'req-1',
+          details: undefined
+        })
+      }
+    )
+  }
 })
 
 Deno.test('feedbackHeadless - a 429 with Retry-After says when to try again', async () => {
@@ -114,18 +135,24 @@ Deno.test('feedbackHeadless - a 429 with Retry-After says when to try again', as
   )
 })
 
-Deno.test('feedbackHeadless - a 429 without Retry-After has the plain message', async () => {
-  await withFetch(
-    () => json({ message: 'Too many requests' }, 429),
-    async () => {
-      const result = await feedbackHeadless(BASE)
+Deno.test('feedbackHeadless - a 429 without Retry-After keeps the hub message and says later', async () => {
+  const cases = [
+    { body: { message: 'Too many requests' }, message: 'Too many requests. Try again later.' },
+    { body: {}, message: 'Too many feedback requests. Try again later.' }
+  ]
+  for (const { body, message } of cases) {
+    await withFetch(
+      () => json(body, 429),
+      async () => {
+        const result = await feedbackHeadless(BASE)
 
-      if (result.type !== 'failed') throw new Error('expected a failed result')
-      assertEquals(result.code, 'rate-limited')
-      assertEquals('retryAfterSeconds' in result, false)
-      assertEquals(result.message, 'Too many feedback requests. Try again later.')
-    }
-  )
+        if (result.type !== 'failed') throw new Error('expected a failed result')
+        assertEquals(result.code, 'rate-limited')
+        assertEquals('retryAfterSeconds' in result, false)
+        assertEquals(result.message, message)
+      }
+    )
+  }
 })
 
 Deno.test('feedbackHeadless - 400, 502 and 503 each have their own code and message', async () => {

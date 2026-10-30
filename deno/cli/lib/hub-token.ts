@@ -24,7 +24,10 @@ import {
   HUB_ENVS,
   HUB_HOSTS,
   type HubEnv,
-  toHubEnvFromApi
+  toHubEnvFromApi,
+  toLoginCommand,
+  toRejectedStoredLoginMessage,
+  toTokenSettingsUrl
 } from '@/lib/hub-env.ts'
 import { DeviceLoginError, refreshTokens } from '@/lib/device-login.ts'
 
@@ -357,6 +360,40 @@ export class HubTokenRejectedError extends Error {
     super(`token validation failed (${status}): ${detail}`)
     this.name = 'HubTokenRejectedError'
     this.status = status
+  }
+}
+
+/**
+ * Whether the hub refused the stored login itself. Only then is a logout the
+ * fix: after a network error or a 5xx the stored sign-in is still good, and a
+ * retry works.
+ */
+export const isRejectedLogin = (error: unknown): boolean =>
+  error instanceof HubTokenRejectedError ||
+  (error instanceof DeviceLoginError && error.code === 'invalid_grant')
+
+/** How the user names each token source. */
+export const TOKEN_SOURCE_LABELS: Record<HubTokenSource, string> = {
+  flag: '--token',
+  env: '$SKMTC_HUB_TOKEN',
+  stored: 'skmtc login (~/.skmtc/auth.json)'
+}
+
+/** What to do when the hub refuses (401 or 403) a token from `tokenSource`. */
+export const toRejectedTokenMessage = (env: HubEnv, tokenSource: HubTokenSource): string => {
+  switch (tokenSource) {
+    case 'stored':
+      return toRejectedStoredLoginMessage(env)
+    case 'flag':
+      return (
+        'The hub rejected the token from --token. Pass a valid token ' +
+        `(mint a PAT at ${toTokenSettingsUrl(env)}), or drop --token and run \`${toLoginCommand(env)}\`.`
+      )
+    case 'env':
+      return (
+        'The hub rejected the token from $SKMTC_HUB_TOKEN. Set a valid token ' +
+        `(mint a PAT at ${toTokenSettingsUrl(env)}), or unset it and run \`${toLoginCommand(env)}\`.`
+      )
   }
 }
 

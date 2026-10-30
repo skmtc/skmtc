@@ -29,7 +29,7 @@ import {
   toTokenSettingsUrl
 } from '@/lib/hub-env.ts'
 import {
-  HubTokenRejectedError,
+  isRejectedLogin,
   maskToken,
   readHubEnvVariable,
   readStoredAuth,
@@ -41,7 +41,6 @@ import {
 } from '@/lib/hub-token.ts'
 import {
   type DeviceCode,
-  DeviceLoginError,
   formatUserCode,
   pollForTokens,
   requestDeviceCode,
@@ -153,15 +152,6 @@ export const deviceLogin = async ({ env, onCode, sleep }: DeviceLoginArgs): Prom
 
   return handle
 }
-
-/**
- * Whether the hub refused the stored login itself. Only then is a logout the
- * fix: after a network error or a 5xx the stored sign-in is still good, and a
- * retry works.
- */
-export const isRejectedLogin = (error: unknown): boolean =>
-  error instanceof HubTokenRejectedError ||
-  (error instanceof DeviceLoginError && error.code === 'invalid_grant')
 
 const fail = (error: unknown): never => {
   console.error(error instanceof Error ? error.message : String(error))

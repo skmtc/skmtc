@@ -78,7 +78,9 @@ export const renderFeedback = async ({
   }
 
   const auth = await resolveHubAuth({ tokenFlag: token, envFlag: env })
-  if (!auth.token) return requireFlag('--token', toMissingTokenHint(auth.env))
+  if (!auth.token || !auth.tokenSource) {
+    return requireFlag('--token', toMissingTokenHint(auth.env))
+  }
 
   const result = await feedbackHeadless({
     kind,
@@ -92,6 +94,7 @@ export const renderFeedback = async ({
       clientVersion: denoJson.version
     },
     token: auth.token,
+    tokenSource: auth.tokenSource,
     origin: auth.origin,
     env: auth.env
   })
