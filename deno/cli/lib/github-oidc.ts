@@ -14,6 +14,7 @@ import {
   type ApiPublishFailure,
   errorMessage,
   readApiError,
+  rethrowTimeout,
   toSentence
 } from '@/lib/api-publish-headless.ts'
 
@@ -86,7 +87,7 @@ export const requestGithubOidcToken = async ({
           : `GitHub's OIDC provider answered ${res.status}`
       )
     }
-    const parsed = v.safeParse(githubTokenSchema, await res.json().catch(() => undefined))
+    const parsed = v.safeParse(githubTokenSchema, await res.json().catch(rethrowTimeout))
     return parsed.success
       ? { type: 'token', token: parsed.output.value }
       : oidcTokenFailure("GitHub's OIDC provider returned no token")
@@ -149,7 +150,7 @@ export const exchangeLinkedRepositoryToken = async ({
         details: apiError.details
       }
     }
-    const parsed = v.safeParse(linkedRepositoryTokenSchema, await res.json().catch(() => undefined))
+    const parsed = v.safeParse(linkedRepositoryTokenSchema, await res.json().catch(rethrowTimeout))
     return parsed.success
       ? { type: 'token', token: parsed.output.accessToken }
       : {

@@ -7,7 +7,8 @@ import {
 import { withEnv } from '@/tests/mocks/env.mock.ts'
 import {
   recordTimeouts,
-  withNeverAnsweringFetch
+  withNeverAnsweringFetch,
+  withStallingBodyFetch
 } from '@/tests/mocks/never-answering-fetch.mock.ts'
 
 const originalFetch = globalThis.fetch
@@ -254,6 +255,19 @@ Deno.test('requestGithubOidcToken - a provider that never answers is oidc-token 
   })
 })
 
+Deno.test('requestGithubOidcToken - a body that stalls after the 200 is oidc-token after the timeout', async () => {
+  await withStallingBodyFetch(200, async () => {
+    const result = await requestGithubOidcToken({ ...REQUEST, timeoutMs: 10 })
+
+    if (result.type !== 'failed') throw new Error('expected a failed result')
+    assertEquals(result.code, 'oidc-token')
+    assertEquals(
+      result.message,
+      "cannot reach GitHub's OIDC provider: The operation was aborted due to timeout"
+    )
+  })
+})
+
 Deno.test('requestGithubOidcToken - waits 20 s by default', async () => {
   await withFetch(
     () => json({ value: 'gh-jwt' }),
@@ -439,6 +453,25 @@ Deno.test('exchangeLinkedRepositoryToken - a hub that never answers is network a
 
     if (result.type !== 'failed') throw new Error('expected a failed result')
     assertEquals(result.code, 'network')
+    assertEquals(
+      result.message,
+      'cannot reach the hub at https://api.skmtc.dev: The operation was aborted due to timeout'
+    )
+  })
+})
+
+Deno.test('exchangeLinkedRepositoryToken - a body that stalls after the 201 is network after the timeout', async () => {
+  await withStallingBodyFetch(201, async () => {
+    const result = await exchangeLinkedRepositoryToken({
+      origin: ORIGIN,
+      api: API,
+      githubToken: 'gh-jwt',
+      timeoutMs: 10
+    })
+
+    if (result.type !== 'failed') throw new Error('expected a failed result')
+    assertEquals(result.code, 'network')
+    assertEquals(result.status, undefined)
     assertEquals(
       result.message,
       'cannot reach the hub at https://api.skmtc.dev: The operation was aborted due to timeout'

@@ -91,6 +91,15 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 export const errorMessage = (err: unknown): string =>
   err instanceof Error ? err.message : String(err)
 
+/**
+ * For `res.json().catch(...)`: an unreadable body counts as no body, but a
+ * timeout while reading it goes on to the caller's catch, as for the headers.
+ */
+export const rethrowTimeout = (error: unknown): undefined => {
+  if (error instanceof DOMException && error.name === 'TimeoutError') throw error
+  return undefined
+}
+
 const STATUS_CODES: Record<number, ApiPublishFailureCode> = {
   400: 'bad-request',
   401: 'unauthorized',
@@ -317,7 +326,7 @@ export const apiPublishHeadless = async ({
       signal: AbortSignal.timeout(timeoutMs)
     })
     if (!res.ok) return await toFailure(res, { api, visibility, env, tokenSource })
-    const body: unknown = await res.json().catch(() => undefined)
+    const body: unknown = await res.json().catch(rethrowTimeout)
     return toPublished(body, res.status, origin)
   } catch (err) {
     return {

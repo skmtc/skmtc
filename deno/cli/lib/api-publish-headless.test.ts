@@ -9,7 +9,8 @@ import { printApiPublishResult, runApiPublish } from '@/commands/api.ts'
 import { withEnv } from '@/tests/mocks/env.mock.ts'
 import {
   recordTimeouts,
-  withNeverAnsweringFetch
+  withNeverAnsweringFetch,
+  withStallingBodyFetch
 } from '@/tests/mocks/never-answering-fetch.mock.ts'
 
 const originalFetch = globalThis.fetch
@@ -370,6 +371,20 @@ Deno.test('apiPublishHeadless - a hub that never answers is network after the ti
 
     if (result.type !== 'failed') throw new Error('expected a failed result')
     assertEquals(result.code, 'network')
+    assertEquals(
+      result.message,
+      'cannot reach the hub at https://hub.test: The operation was aborted due to timeout'
+    )
+  })
+})
+
+Deno.test('apiPublishHeadless - a body that stalls after the 201 is network after the timeout', async () => {
+  await withStallingBodyFetch(201, async () => {
+    const result = await apiPublishHeadless({ ...BASE, timeoutMs: 10 })
+
+    if (result.type !== 'failed') throw new Error('expected a failed result')
+    assertEquals(result.code, 'network')
+    assertEquals(result.status, undefined)
     assertEquals(
       result.message,
       'cannot reach the hub at https://hub.test: The operation was aborted due to timeout'
