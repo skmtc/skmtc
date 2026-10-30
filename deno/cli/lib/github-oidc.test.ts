@@ -1,13 +1,14 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import {
   exchangeLinkedRepositoryToken,
-  OIDC_EXCHANGE_TIMEOUT_MS,
-  OIDC_REQUEST_TIMEOUT_MS,
   readGithubOidcEnv,
   requestGithubOidcToken
 } from '@/lib/github-oidc.ts'
 import { withEnv } from '@/tests/mocks/env.mock.ts'
-import { withNeverAnsweringFetch } from '@/tests/mocks/never-answering-fetch.mock.ts'
+import {
+  recordTimeouts,
+  withNeverAnsweringFetch
+} from '@/tests/mocks/never-answering-fetch.mock.ts'
 
 const originalFetch = globalThis.fetch
 
@@ -253,8 +254,13 @@ Deno.test('requestGithubOidcToken - a provider that never answers is oidc-token 
   })
 })
 
-Deno.test('requestGithubOidcToken - waits 20 s by default', () => {
-  assertEquals(OIDC_REQUEST_TIMEOUT_MS, 20_000)
+Deno.test('requestGithubOidcToken - waits 20 s by default', async () => {
+  await withFetch(
+    () => json({ value: 'gh-jwt' }),
+    async () => {
+      assertEquals(await recordTimeouts(() => requestGithubOidcToken(REQUEST)), [20_000])
+    }
+  )
 })
 
 // --- exchangeLinkedRepositoryToken ----------------------------------------------
@@ -440,6 +446,14 @@ Deno.test('exchangeLinkedRepositoryToken - a hub that never answers is network a
   })
 })
 
-Deno.test('exchangeLinkedRepositoryToken - waits 20 s by default', () => {
-  assertEquals(OIDC_EXCHANGE_TIMEOUT_MS, 20_000)
+Deno.test('exchangeLinkedRepositoryToken - waits 20 s by default', async () => {
+  await withFetch(
+    () => json({ accessToken: 'linked' }, 201),
+    async () => {
+      const timeouts = await recordTimeouts(() =>
+        exchangeLinkedRepositoryToken({ origin: ORIGIN, api: API, githubToken: 'gh-jwt' })
+      )
+      assertEquals(timeouts, [20_000])
+    }
+  )
 })

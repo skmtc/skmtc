@@ -66,7 +66,7 @@ export type ApiPublishResult =
  * The publish ends within this time. It uploads the whole document and the
  * hub parses it, so it gets longer than the sign-in requests.
  */
-export const PUBLISH_TIMEOUT_MS = 120_000
+const PUBLISH_TIMEOUT_MS = 120_000
 
 type ApiPublishArgs = {
   /** The document, from `readPublishFile`. */

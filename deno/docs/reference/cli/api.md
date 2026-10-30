@@ -49,6 +49,9 @@ The command exits `2` when you give no `<file>`, no `--api`, an
 `--api` that is not `@account/slug`, or no token. In GitHub Actions,
 "no token" also means a job without `id-token: write`.
 
+The command reads `<file>` before it looks for a token. An unreadable
+file fails with `file-unreadable` before any sign-in request.
+
 ### Sign in from GitHub Actions
 
 In GitHub Actions, the command needs no stored token. When `--token`,

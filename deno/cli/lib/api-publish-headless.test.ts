@@ -3,12 +3,14 @@ import { join } from '@std/path/join'
 import {
   apiPublishHeadless,
   type ApiPublishResult,
-  PUBLISH_TIMEOUT_MS,
   readPublishFile
 } from '@/lib/api-publish-headless.ts'
 import { printApiPublishResult, runApiPublish } from '@/commands/api.ts'
 import { withEnv } from '@/tests/mocks/env.mock.ts'
-import { withNeverAnsweringFetch } from '@/tests/mocks/never-answering-fetch.mock.ts'
+import {
+  recordTimeouts,
+  withNeverAnsweringFetch
+} from '@/tests/mocks/never-answering-fetch.mock.ts'
 
 const originalFetch = globalThis.fetch
 const originalCwd = Deno.cwd()
@@ -375,8 +377,13 @@ Deno.test('apiPublishHeadless - a hub that never answers is network after the ti
   })
 })
 
-Deno.test('apiPublishHeadless - waits 120 s by default', () => {
-  assertEquals(PUBLISH_TIMEOUT_MS, 120_000)
+Deno.test('apiPublishHeadless - waits 120 s by default', async () => {
+  globalThis.fetch = () => Promise.resolve(json(imported(), 201))
+  try {
+    assertEquals(await recordTimeouts(() => apiPublishHeadless(BASE)), [120_000])
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 })
 
 // --- readPublishFile ----------------------------------------------------------

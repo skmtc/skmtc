@@ -58,8 +58,8 @@ const oidcTokenFailure = (message: string): ApiPublishFailure => ({
  * Without it, a provider that never answers holds the CI job until its
  * `timeout-minutes`.
  */
-export const OIDC_REQUEST_TIMEOUT_MS = 20_000
-export const OIDC_EXCHANGE_TIMEOUT_MS = 20_000
+const OIDC_REQUEST_TIMEOUT_MS = 20_000
+const OIDC_EXCHANGE_TIMEOUT_MS = 20_000
 
 /** Request the job's OIDC token for `audience`. One try, no retries. */
 export const requestGithubOidcToken = async ({

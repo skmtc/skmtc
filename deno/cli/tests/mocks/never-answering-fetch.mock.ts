@@ -9,6 +9,7 @@ export const withNeverAnsweringFetch = async <T>(fn: () => Promise<T>): Promise<
   globalThis.fetch = (_input: string | URL | Request, init?: RequestInit) => {
     const signal = init?.signal
     if (!signal) return Promise.reject(new Error('the request has no signal'))
+    if (signal.aborted) return Promise.reject(signal.reason)
     return new Promise((_resolve, reject) =>
       signal.addEventListener('abort', () => reject(signal.reason))
     )
@@ -17,5 +18,21 @@ export const withNeverAnsweringFetch = async <T>(fn: () => Promise<T>): Promise<
     return await fn()
   } finally {
     globalThis.fetch = originalFetch
+  }
+}
+
+/** Run `fn` and return each time it passed to `AbortSignal.timeout`, in order. */
+export const recordTimeouts = async (fn: () => Promise<unknown>): Promise<number[]> => {
+  const originalTimeout = AbortSignal.timeout
+  const timeouts: number[] = []
+  AbortSignal.timeout = (milliseconds: number) => {
+    timeouts.push(milliseconds)
+    return originalTimeout(milliseconds)
+  }
+  try {
+    await fn()
+    return timeouts
+  } finally {
+    AbortSignal.timeout = originalTimeout
   }
 }
