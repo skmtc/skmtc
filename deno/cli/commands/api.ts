@@ -21,7 +21,11 @@ import { resolveHubAuth } from '@/lib/hub-token.ts'
 import { HUB_HOSTS, type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
 import { parseScopedName } from '@/lib/scoped-name.ts'
 import { type ApiLinkFailure, apiLinkHeadless } from '@/lib/api-link-headless.ts'
-import { resolveRepository, resolveWorkflow } from '@/lib/linked-repo-detect.ts'
+import {
+  type LinkTargetInvalid,
+  resolveRepository,
+  resolveWorkflow
+} from '@/lib/linked-repo-detect.ts'
 import { openUrl } from '@/lib/open-url.ts'
 import { readEnv } from '@/lib/env.ts'
 
@@ -256,13 +260,7 @@ export const printApiPublishResult = (
       return
     }
     case 'failed': {
-      console.error(
-        `Publish failed (${result.code}${result.status ? `, ${result.status}` : ''}): ${result.message}`
-      )
-      for (const detail of result.details ?? []) {
-        console.error(`  ${detail.field ? `${detail.field}: ` : ''}${detail.message}`)
-      }
-      if (result.requestId) console.error(`  request id: ${result.requestId}`)
+      printFailure('Publish failed', result)
       return
     }
     default: {
@@ -270,6 +268,17 @@ export const printApiPublishResult = (
       throw new Error(`Unhandled api publish result: ${JSON.stringify(_exhaustive)}`)
     }
   }
+}
+
+/** A hub failure as text: the lead line, each detail, then the request id. */
+const printFailure = (lead: string, failure: ApiPublishFailure | ApiLinkFailure): void => {
+  console.error(
+    `${lead} (${failure.code}${failure.status ? `, ${failure.status}` : ''}): ${failure.message}`
+  )
+  for (const detail of failure.details ?? []) {
+    console.error(`  ${detail.field ? `${detail.field}: ` : ''}${detail.message}`)
+  }
+  if (failure.requestId) console.error(`  request id: ${failure.requestId}`)
 }
 
 // --- link -------------------------------------------------------------------
@@ -368,9 +377,6 @@ export type ApiLinkResult =
     }
   | ApiLinkFailure
 
-/** A repository or workflow the command cannot send: the caller exits 2. */
-export type ApiLinkInvalid = { type: 'invalid'; message: string }
-
 /**
  * Read the repository and the workflow, resolve the token, then make the
  * link request and open the browser. Git and the workflows come first: a
@@ -396,7 +402,7 @@ export const runApiLink = async ({
   envFlag: HubEnv | undefined
   cwd?: string
   open?: (url: string) => Promise<boolean>
-}): Promise<ApiLinkResult | ApiLinkInvalid | ApiPublishMissing> => {
+}): Promise<ApiLinkResult | LinkTargetInvalid | ApiPublishMissing> => {
   const repository = await resolveRepository({ repoFlag, cwd })
   if (repository.type === 'invalid') return repository
 
@@ -406,6 +412,10 @@ export const runApiLink = async ({
   // A linked repository token gets 403 on this route: no OIDC exchange.
   const auth = await resolveHubAuth({ tokenFlag, envFlag })
   if (!auth.token) return { type: 'missing', discover: toMissingTokenHint(auth.env) }
+
+  // Read before the request: an environment read that fails must not end
+  // the command after the hub made a request.
+  const mayOpen = openFlag && !isCi()
 
   const requested = await apiLinkHeadless({
     api,
@@ -418,7 +428,7 @@ export const runApiLink = async ({
   })
   if (requested.type === 'failed') return requested
 
-  const shouldOpen = openFlag && !isCi() && isSiteUrl(requested.url, auth.env)
+  const shouldOpen = mayOpen && isSiteUrl(requested.url, auth.env)
 
   return {
     type: 'requested',
@@ -469,13 +479,7 @@ export const printApiLinkResult = (
       return
     }
     case 'failed': {
-      console.error(
-        `Link request failed (${result.code}${result.status ? `, ${result.status}` : ''}): ${result.message}`
-      )
-      for (const detail of result.details ?? []) {
-        console.error(`  ${detail.field ? `${detail.field}: ` : ''}${detail.message}`)
-      }
-      if (result.requestId) console.error(`  request id: ${result.requestId}`)
+      printFailure('Link request failed', result)
       return
     }
     default: {

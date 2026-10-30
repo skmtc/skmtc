@@ -66,7 +66,7 @@ const withFetch = async (
 
 // --- the request ------------------------------------------------------------
 
-Deno.test('apiLinkHeadless - posts repository, workflowPath and environment with the bearer token', async () => {
+Deno.test('apiLinkHeadless - posts provider, repository, workflowPath and environment with the bearer token', async () => {
   const calls: Call[] = []
   await withFetch(
     call => {
@@ -82,6 +82,7 @@ Deno.test('apiLinkHeadless - posts repository, workflowPath and environment with
           method: 'POST',
           authorization: 'Bearer pat-123',
           body: {
+            provider: 'github',
             repository: 'acme/pets',
             workflowPath: '.github/workflows/publish.yml',
             environment: 'Production'
@@ -108,6 +109,7 @@ Deno.test('apiLinkHeadless - without --environment the body has no environment',
     async () => {
       await apiLinkHeadless(BASE)
       assertEquals(calls[0].body, {
+        provider: 'github',
         repository: 'acme/pets',
         workflowPath: '.github/workflows/publish.yml'
       })
@@ -305,6 +307,7 @@ Deno.test('runApiLink - in a repo with one publish workflow, requests the right 
               [
                 'https://api.skmtc.dev/v1/apis/acme/pets/linked-repository-requests',
                 {
+                  provider: 'github',
                   repository: 'acme/pets',
                   workflowPath: '.github/workflows/publish.yml',
                   environment: 'production'

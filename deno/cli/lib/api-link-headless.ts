@@ -6,6 +6,7 @@
  * checks the values there and links the repository.
  */
 
+import * as v from 'valibot'
 import { type HubEnv, toLoginCommand } from '@/lib/hub-env.ts'
 import { toScopedPath } from '@/lib/scoped-name.ts'
 import {
@@ -68,9 +69,6 @@ type ApiLinkArgs = {
   timeoutMs?: number
 }
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
 export const toApiLinkUrl = ({ api, origin }: { api: Scoped; origin: string }): string =>
   `${origin}/v1/apis/${toScopedPath(api)}/linked-repository-requests`
 
@@ -121,13 +119,11 @@ const toFailure = async (
   }
 }
 
+const createdSchema = v.object({ id: v.string(), url: v.string(), expiresAt: v.string() })
+
 const toRequested = (body: unknown, status: number): ApiLinkHeadlessResult => {
-  if (
-    !isObject(body) ||
-    typeof body.id !== 'string' ||
-    typeof body.url !== 'string' ||
-    typeof body.expiresAt !== 'string'
-  ) {
+  const created = v.safeParse(createdSchema, body)
+  if (!created.success) {
     return {
       type: 'failed',
       code: 'hub-error',
@@ -135,7 +131,7 @@ const toRequested = (body: unknown, status: number): ApiLinkHeadlessResult => {
       message: 'the hub accepted the link request, but its answer had no id, url or expiresAt'
     }
   }
-  return { type: 'requested', id: body.id, url: body.url, expiresAt: body.expiresAt }
+  return { type: 'requested', ...created.output }
 }
 
 export const apiLinkHeadless = async ({
@@ -153,6 +149,7 @@ export const apiLinkHeadless = async ({
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
       body: JSON.stringify({
+        provider: 'github',
         repository,
         workflowPath: workflow,
         ...(environment === undefined ? {} : { environment })
