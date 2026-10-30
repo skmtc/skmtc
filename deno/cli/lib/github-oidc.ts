@@ -23,7 +23,7 @@ type Scoped = { account: string; slug: string }
 export type GithubOidcEnv = { requestUrl: string; requestToken: string }
 
 /** A variable the process may not read (a narrow `--allow-env`) counts as unset. */
-const readIfAllowed = <T>(read: () => T): T | undefined => {
+export const readIfAllowed = <T>(read: () => T): T | undefined => {
   try {
     return read()
   } catch (error) {

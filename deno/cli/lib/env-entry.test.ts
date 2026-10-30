@@ -1,6 +1,11 @@
 import { assertEquals, assertStringIncludes } from '@std/assert'
 import { fromFileUrl } from '@std/path/from-file-url'
 import { join } from '@std/path/join'
+import {
+  makeLinkRepo,
+  PUBLISH_ACTION_WORKFLOW,
+  PUBLISH_CLI_WORKFLOW
+} from '@/tests/mocks/link-repo.mock.ts'
 
 const cliDirectory = fromFileUrl(new URL('..', import.meta.url))
 
@@ -162,4 +167,120 @@ Deno.test('mod.ts - api publish with a failing OIDC provider exits 1 with code o
     })
     assertEquals(`${stdout}${stderr}`.includes('request-token-secret'), false)
   })
+})
+
+// --- api link ---------------------------------------------------------------------
+
+/** The permissions of the recommended install: it spawns only `deno` and `sh`. */
+const INSTALL_PERMISSIONS = [
+  '--allow-read',
+  '--allow-write',
+  '--allow-net',
+  '--allow-env',
+  '--allow-run=deno,sh',
+  '--allow-sys=homedir',
+  '--allow-ffi'
+]
+
+/**
+ * Run `api link` under the install's permissions in a repository made by
+ * `makeLinkRepo`, with no token from anywhere and no CI variables.
+ */
+const runApiLink = async (repo: Parameters<typeof makeLinkRepo>[0], args: string[] = []) => {
+  const root = await makeLinkRepo(repo)
+  const home = await Deno.realPath(await Deno.makeTempDir())
+  try {
+    const output = await new Deno.Command(Deno.execPath(), {
+      args: [
+        'run',
+        ...INSTALL_PERMISSIONS,
+        '--config',
+        join(cliDirectory, 'deno.json'),
+        join(cliDirectory, 'mod.ts'),
+        'api',
+        'link',
+        '--api',
+        '@acme/pets',
+        '--no-open',
+        ...args
+      ],
+      cwd: root,
+      env: {
+        DENO_DIR: await toDenoDir(),
+        HOME: home,
+        USERPROFILE: home,
+        SKMTC_HUB_TOKEN: '',
+        SKMTC_ENV: '',
+        SKMTC_API_ORIGIN: '',
+        GITHUB_ACTIONS: '',
+        CI: '',
+        // A hook exports these; git would read the repository the hook runs in.
+        GIT_DIR: join(root, '.git'),
+        GIT_WORK_TREE: root
+      },
+      stdout: 'piped',
+      stderr: 'piped'
+    }).output()
+    return {
+      code: output.code,
+      stdout: new TextDecoder().decode(output.stdout),
+      stderr: new TextDecoder().decode(output.stderr).trim()
+    }
+  } finally {
+    await Deno.remove(root, { recursive: true })
+    await Deno.remove(home, { recursive: true })
+  }
+}
+
+const ONE_WORKFLOW = { 'publish.yml': PUBLISH_ACTION_WORKFLOW }
+
+Deno.test('mod.ts - api link reads the remote through sh and, with no login, exits 2 naming skmtc login', async () => {
+  const { code, stdout, stderr } = await runApiLink({
+    remote: 'git@github.com:acme/pets.git',
+    workflows: ONE_WORKFLOW
+  })
+
+  assertEquals(code, 2)
+  assertEquals(stdout, '')
+  assertStringIncludes(stderr, 'Run `skmtc login`')
+  assertEquals(stderr.includes('Uncaught'), false)
+})
+
+Deno.test('mod.ts - api link with a non-GitHub remote exits 2 naming --repo', async () => {
+  const { code, stderr } = await runApiLink({
+    remote: 'https://gitlab.com/acme/pets.git',
+    workflows: ONE_WORKFLOW
+  })
+
+  assertEquals(code, 2)
+  assertStringIncludes(stderr, 'is not a GitHub repository. Pass --repo')
+})
+
+Deno.test('mod.ts - api link with no remote exits 2 naming --repo', async () => {
+  const { code, stderr } = await runApiLink({ workflows: ONE_WORKFLOW })
+
+  assertEquals(code, 2)
+  assertStringIncludes(stderr, 'no git remote')
+  assertStringIncludes(stderr, '--repo')
+})
+
+Deno.test('mod.ts - api link with two publish workflows exits 2 naming --workflow', async () => {
+  const { code, stderr } = await runApiLink({
+    remote: 'https://github.com/acme/pets',
+    workflows: { 'a.yml': PUBLISH_ACTION_WORKFLOW, 'b.yml': PUBLISH_CLI_WORKFLOW }
+  })
+
+  assertEquals(code, 2)
+  assertStringIncludes(stderr, '2 workflows publish')
+  assertStringIncludes(stderr, '--workflow')
+})
+
+Deno.test('mod.ts - api link with a --workflow outside .github/workflows/ exits 2', async () => {
+  const { code, stderr } = await runApiLink(
+    { remote: 'https://github.com/acme/pets', workflows: ONE_WORKFLOW },
+    ['--workflow', 'ci/publish.yml', '--token', 'pat-123']
+  )
+
+  assertEquals(code, 2)
+  assertStringIncludes(stderr, 'invalid --workflow "ci/publish.yml"')
 })

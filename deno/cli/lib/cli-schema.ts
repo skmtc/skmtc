@@ -306,6 +306,47 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     agentMode: 'full'
   },
   {
+    name: 'api link',
+    description:
+      'Make a link request on skmtc-hub for a GitHub repository to publish to the API @account/slug, then open the page where an admin checks it and selects Link repository. The repository comes from the origin remote and the workflow from the only file in .github/workflows/ that publishes, unless --repo or --workflow names them. Needs `skmtc login` or a PAT; does not open the browser with --no-open or in CI.',
+    args: [],
+    flags: [
+      ...AGENT_MODE_FLAGS,
+      {
+        flag: '--api <ref>',
+        description: 'The hub API as @account/slug. Required.'
+      },
+      {
+        flag: '--repo <owner/repo>',
+        description: 'The GitHub repository as <owner>/<repo>. Defaults to the origin remote.'
+      },
+      {
+        flag: '--workflow <path>',
+        description:
+          'The workflow file, e.g. .github/workflows/publish.yml. Defaults to the only workflow that publishes.'
+      },
+      {
+        flag: '--environment <name>',
+        description: 'The GitHub environment the workflow job runs in. Unset: any environment.'
+      },
+      {
+        flag: '--no-open',
+        description:
+          'Print the page and do not open the browser. --json alone still opens it; an agent passes --no-open.'
+      },
+      {
+        flag: '--token <pat>',
+        description:
+          'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
+      },
+      {
+        flag: '--env <env>',
+        description: ENV_DESCRIPTION
+      }
+    ],
+    agentMode: 'full'
+  },
+  {
     name: 'login',
     description:
       'Sign in to skmtc-hub in the browser: prints a link and a code to approve, then stores the token. --with-token stores a personal access token from stdin instead. When a token for the environment is already stored, reports the logged-in handle.',
