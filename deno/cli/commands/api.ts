@@ -29,6 +29,7 @@ import {
   resolveWorkflow
 } from '@/lib/linked-repo-detect.ts'
 import { openUrl } from '@/lib/open-url.ts'
+import { printHubFailure } from '@/lib/print-hub-failure.ts'
 import { readEnv } from '@/lib/env.ts'
 
 export const description =
@@ -267,7 +268,7 @@ export const printApiPublishResult = (
       return
     }
     case 'failed': {
-      printFailure('Publish failed', result)
+      printHubFailure('Publish failed', result)
       console.error(`  hub: ${toTargetText(result)}`)
       return
     }
@@ -280,17 +281,6 @@ export const printApiPublishResult = (
 
 /** The hub a publish targeted, e.g. `https://api.skmtc.dev (production)`. */
 const toTargetText = ({ origin, env }: ApiPublishTarget): string => `${origin} (${env})`
-
-/** A hub failure as text: the lead line, each detail, then the request id. */
-const printFailure = (lead: string, failure: ApiPublishFailure | ApiLinkFailure): void => {
-  console.error(
-    `${lead} (${failure.code}${failure.status ? `, ${failure.status}` : ''}): ${failure.message}`
-  )
-  for (const detail of failure.details ?? []) {
-    console.error(`  ${detail.field ? `${detail.field}: ` : ''}${detail.message}`)
-  }
-  if (failure.requestId) console.error(`  request id: ${failure.requestId}`)
-}
 
 // --- link -------------------------------------------------------------------
 
@@ -492,7 +482,7 @@ export const printApiLinkResult = (
       return
     }
     case 'failed': {
-      printFailure('Link request failed', result)
+      printHubFailure('Link request failed', result)
       return
     }
     default: {

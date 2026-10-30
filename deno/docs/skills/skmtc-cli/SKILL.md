@@ -213,6 +213,9 @@ This skill ends at the CLI surface. Hand off when:
   verify before proposing: manifest, parse issues, then a reproduction
   ([debug-failing-generation](https://github.com/skmtc/skmtc/blob/main/deno/docs/using/how-to/debug-failing-generation.md),
   [error codes](https://github.com/skmtc/skmtc/blob/main/deno/docs/reference/error-codes.md))
+- The cause is in Skmtc itself, or the user wants a feature → with the
+  user's agreement, send it with `skmtc feedback --kind problem|feature_request`
+  (no tokens or personal data: it becomes a public GitHub issue)
 
 ## Companion files
 

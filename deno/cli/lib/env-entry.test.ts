@@ -67,6 +67,16 @@ Deno.test('mod.ts - whoami with no token exits 2 with the login recipe', async (
   }
 })
 
+Deno.test('mod.ts - feedback refuses an unknown --kind and exits 2 on a missing --summary', async () => {
+  const unknownKind = await runCli(['feedback', '--kind', 'bug', '--json'], {})
+  assertEquals(unknownKind.code, 2)
+  assertStringIncludes(unknownKind.stderr, 'problem')
+
+  const noSummary = await runCli(['feedback', '--kind', 'feature_request', '--json'], {})
+  assertEquals(noSummary.code, 2)
+  assertStringIncludes(noSummary.stderr, 'missing required argument: --summary')
+})
+
 // --- api publish from GitHub Actions ---------------------------------------------
 
 const toDenoDir = async (): Promise<string> => {

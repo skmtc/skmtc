@@ -373,6 +373,34 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     agentMode: 'json-only'
   },
   {
+    name: 'feedback',
+    description:
+      'Send a problem or a feature request to the Skmtc team. skmtc-hub files it as a GitHub issue and the command prints its id and URL. Sends the CLI name and version with it. Do not put tokens or personal data in the text.',
+    args: [],
+    flags: [
+      ...AGENT_MODE_FLAGS,
+      { flag: '--kind <kind>', description: 'problem or feature_request. Required.' },
+      { flag: '--summary <text>', description: 'One line, at most 200 characters. Required.' },
+      { flag: '--details <text>', description: 'At most 8000 characters. Required.' },
+      {
+        flag: '--operation <name>',
+        description: 'The command or operation the feedback is about.'
+      },
+      { flag: '--resource <ref>', description: 'The resource it is about, such as @acme/pets.' },
+      { flag: '--request-id <id>', description: 'The request id from a failed hub command.' },
+      {
+        flag: '--token <pat>',
+        description:
+          'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
+      },
+      {
+        flag: '--env <env>',
+        description: ENV_DESCRIPTION
+      }
+    ],
+    agentMode: 'full'
+  },
+  {
     name: 'whoami',
     description:
       'Show the skmtc-hub account, environment and API origin that hub commands such as `api publish` would use, and where the token comes from (--token, $SKMTC_HUB_TOKEN or the stored login).',
