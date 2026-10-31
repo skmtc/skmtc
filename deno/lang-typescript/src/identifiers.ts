@@ -7,7 +7,7 @@ import { isIdentifierName } from 'npm:@babel/helper-validator-identifier@7.27.1'
  * This function determines whether a property key needs to be quoted in JavaScript/TypeScript
  * object literals based on identifier naming rules. Valid identifiers are left unquoted,
  * while invalid identifiers (containing spaces, special characters, starting with numbers, etc.)
- * are wrapped in single quotes.
+ * are wrapped in single quotes, with `\`, `'` and line terminators escaped.
  *
  * @param key - The property key to format
  * @returns The key as-is if it's a valid identifier, otherwise wrapped in quotes
@@ -81,7 +81,7 @@ import { isIdentifierName } from 'npm:@babel/helper-validator-identifier@7.27.1'
  * ```
  */
 export const handleKey = (key: string): string => {
-  return isIdentifierName(key) ? key : `'${key}'`
+  return isIdentifierName(key) ? key : toQuotedString(key)
 }
 
 /**
@@ -165,5 +165,21 @@ export const handleKey = (key: string): string => {
  * ```
  */
 export const handlePropertyName = (name: string, parent: string): string => {
-  return isIdentifierName(name) ? `${parent}.${name}` : `${parent}['${name}']`
+  return isIdentifierName(name) ? `${parent}.${name}` : `${parent}[${toQuotedString(name)}]`
+}
+
+const escapedCharacters = new Map<string, string>([
+  ['\\', '\\\\'],
+  ["'", "\\'"],
+  ['\n', '\\n'],
+  ['\r', '\\r'],
+  [String.fromCharCode(0x2028), '\\u2028'],
+  [String.fromCharCode(0x2029), '\\u2029']
+])
+
+/** Wraps `value` in single quotes, escaping each character a string literal cannot hold as is. */
+const toQuotedString = (value: string): string => {
+  const escaped = Array.from(value, character => escapedCharacters.get(character) ?? character)
+
+  return `'${escaped.join('')}'`
 }
