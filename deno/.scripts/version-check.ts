@@ -10,12 +10,14 @@
  * Usage:
  *   deno task version-check --base origin/main
  *
- * CI runs it on every pull request with the base commit of the pull request.
- * It needs the network (the registry lookup) and git history back to the
+ * CI runs it on every pull request with the base commit of the pull request,
+ * and the Publish workflow runs it after each merge to main with the commit
+ * main was at before the push. It needs the network (the registry lookup) and git history back to the
  * merge base, so it is not part of `deno task check`.
  */
 
 import { dirname, fromFileUrl, join, relative, SEPARATOR } from '@std/path'
+import { lessThan, parse } from '@std/semver'
 import { discoverWorkspace, isPublished, toJsrUrl, type WorkspacePackage } from './release.ts'
 import { runGit } from './run-git.ts'
 
@@ -51,8 +53,8 @@ export type VersionProblemsInput = {
 
 /**
  * One line per publishable package that changed but will not ship: its
- * version equals the base's, or is already on the registry. Each line names
- * the command that fixes it.
+ * version equals the base's, is lower than the base's, or is already on the
+ * registry. Each line names the command that fixes it.
  */
 export const toVersionProblems = ({
   packages,
@@ -65,8 +67,12 @@ export const toVersionProblems = ({
     if (!changedFiles.some(file => isShippedChange(pkg.directory, file))) return []
 
     const fix = `run \`deno task bump ${pkg.directory}\``
-    if (baseVersions.get(pkg.name) === pkg.version) {
+    const baseVersion = baseVersions.get(pkg.name)
+    if (baseVersion === pkg.version) {
       return [`${pkg.name}: files changed but version ${pkg.version} equals the base's; ${fix}`]
+    }
+    if (baseVersion !== undefined && lessThan(parse(pkg.version), parse(baseVersion))) {
+      return [`${pkg.name}: version ${pkg.version} is lower than the base's ${baseVersion}; ${fix}`]
     }
     if (published.has(`${pkg.name}@${pkg.version}`)) {
       return [`${pkg.name}: version ${pkg.version} is already published on JSR; ${fix}`]

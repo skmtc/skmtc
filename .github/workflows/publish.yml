@@ -12,6 +12,14 @@
 # ("nothing to publish"). Bump versions with `deno task bump <package>`
 # and merge — that IS the release.
 #
+# Before the release, each push runs `deno task version-check` against
+# the commit main was at before the push, the same check CI runs on each
+# pull request. A package whose files changed but whose version equals
+# the previous one, is lower, or is already on JSR fails the job before
+# anything publishes. The fix is a new PR that runs
+# `deno task bump <dir>`; its merge publishes everything still
+# unpublished. Re-runs and workflow_dispatch skip the check.
+#
 # After a failed Publish, re-run it with workflow_dispatch
 # (already-published packages are skipped on re-run). A later retro or
 # docs-only merge does not retry it, and neither does an empty commit:
@@ -64,13 +72,27 @@ jobs:
       contents: read
       id-token: write
     steps:
+      # Full history, so the version check can reach github.event.before.
       - name: Clone repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Deno
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+
+      # A changed package must carry a version that will publish: not the
+      # version main had before the push, not a lower one, and not one
+      # already on JSR. Two PRs bumped from the same base pick the same
+      # version and merge without a conflict. Only the first attempt of a
+      # push runs it: workflow_dispatch has no `before`, and a re-run after a
+      # partial publish would find its own versions on JSR.
+      - name: Check changed packages have a fresh version
+        if: github.event_name == 'push' && github.run_attempt == 1
+        working-directory: deno
+        run: deno task version-check --base ${{ github.event.before }}
 
       - name: Release via cascade to jsr.io
         working-directory: deno
