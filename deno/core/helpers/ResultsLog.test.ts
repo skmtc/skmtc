@@ -150,6 +150,45 @@ Deno.test('ResultsLog - a literal %3A frame and a colon frame are different resu
   assertEquals(log.toTree(), { 'a:b': 'success', 'a%3Ab': 'error' })
 })
 
+Deno.test('ResultsLog - Object.prototype member names are ordinary keys', () => {
+  const log = new ResultsLog()
+  log.capture(trail('query', 'toString', 'variant', 'main'), 'error')
+  log.capture(trail('query', 'constructor', 'variant', 'main'), 'error')
+  log.capture(trail('query', '__proto__', 'variant', 'main'), 'error')
+
+  assertEquals(
+    JSON.stringify(log.toTree()),
+    '{"query":{"toString":{"variant":{"main":"error"}},"constructor":{"variant":{"main":"error"}},"__proto__":{"variant":{"main":"error"}}}}'
+  )
+  assertEquals(Object.hasOwn(Object.prototype.toString, 'variant'), false)
+})
+
+Deno.test('ResultsLog - an integer-string frame keeps its named siblings', () => {
+  const log = new ResultsLog()
+  log.capture(trail('op', 'variant', '2'), 'success')
+  log.capture(trail('op', 'variant', 'main'), 'error')
+
+  assertEquals(JSON.parse(JSON.stringify(log.toTree())), {
+    op: { variant: { '2': 'success', main: 'error' } }
+  })
+})
+
+Deno.test('ResultsLog - handles complex multi-level hierarchy', () => {
+  const log = new ResultsLog()
+  log.capture(trail('api', 'models', 'User'), 'success')
+  log.capture(trail('api', 'models', 'Product'), 'error')
+  log.capture(trail('api', 'operations', 'getUser'), 'success')
+  log.capture(trail('types', 'Status'), 'success')
+
+  assertEquals(log.toTree(), {
+    api: {
+      models: { User: 'success', Product: 'error' },
+      operations: { getUser: 'success' }
+    },
+    types: { Status: 'success' }
+  })
+})
+
 Deno.test('ResultsLog - a capture inside nested trace keeps its frames after trace returns', () => {
   const log = new ResultsLog()
 

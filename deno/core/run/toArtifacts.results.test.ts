@@ -103,6 +103,8 @@ Deno.test('toArtifacts - results nest rootKind, fieldName and variant for GraphQ
   const sdl = /* GraphQL */ `
     type Query {
       getUser: String
+      constructor: String
+      toString: String
     }
   `
 
@@ -111,7 +113,11 @@ Deno.test('toArtifacts - results nest rootKind, fieldName and variant for GraphQ
     gql: toGqlOperationEntry({
       id: 'gql',
       toEnrichmentSchema: () => variantEnrichmentSchema,
-      transform: () => {}
+      transform: ({ operation }) => {
+        if (operation.fieldName === 'constructor') {
+          throw new Error('constructor fails')
+        }
+      }
     })
   })
 
@@ -126,13 +132,20 @@ Deno.test('toArtifacts - results nest rootKind, fieldName and variant for GraphQ
     stackTrail: new StackTrail(['TEST'])
   })
 
-  assertEquals(result.manifest.results, {
-    TEST: {
-      generate: {
-        gql: { query: { getUser: { variant: { main: 'success', admin: 'success' } } } }
-      }
-    }
-  })
+  // Parsed from JSON: TypeScript widens object-literal values under the
+  // keys `constructor` and `toString`. ResultsHandler also records each
+  // logged error at `SKIPPED`.
+  assertEquals(
+    JSON.parse(JSON.stringify(result.manifest.results)),
+    JSON.parse(`{
+      "TEST": { "generate": { "gql": { "query": {
+        "getUser": { "variant": { "main": "success", "admin": "success" } },
+        "constructor": { "variant": { "main": "error" } },
+        "toString": { "variant": { "main": "success" } }
+      } } } },
+      "SKIPPED": "error"
+    }`)
+  )
 
   assertEquals(JSON.stringify(result.manifest.results).includes('%3A'), false)
 })

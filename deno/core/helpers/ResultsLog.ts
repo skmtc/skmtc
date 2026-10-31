@@ -1,5 +1,3 @@
-// @deno-types="npm:@types/lodash-es@4.17.12/set.d.ts"
-import set from 'lodash-es/set'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import type { ResultsItem, ResultType } from '@/types/Results.ts'
 
@@ -21,7 +19,10 @@ import type { ResultsItem, ResultType } from '@/types/Results.ts'
  * ```
  */
 export class ResultsLog {
-  /** Keyed by `StackTrail.toString()`, which is one-to-one with the frames. */
+  /**
+   * Keyed by `StackTrail.toString()`. The key is one-to-one with the frames,
+   * except that `[]` and `['']` both give `''`.
+   */
   #results: Map<string, { frames: string[]; result: ResultType }>
 
   constructor() {
@@ -53,17 +54,43 @@ export class ResultsLog {
 
   /**
    * Nests the captured results by their frames, one object level per frame.
-   * Frames are used as keys verbatim.
+   * Frames are used as own-property keys verbatim, so a frame such as
+   * `constructor`, `toString` or `0` is a key like any other. A result
+   * captured at the empty trail has no key and is left out.
    */
   toTree(): ResultsItem {
     const tree: ResultsItem = {}
 
     this.#results.forEach(({ frames, result }) => {
-      set(tree, frames, result)
+      const leafFrame = frames.at(-1)
+
+      if (leafFrame === undefined) {
+        return
+      }
+
+      const parent = frames.slice(0, -1).reduce<ResultsItem>((node, frame) => {
+        const existing = Object.hasOwn(node, frame) ? node[frame] : undefined
+
+        if (typeof existing === 'object' && existing !== null && !Array.isArray(existing)) {
+          return existing
+        }
+
+        const child: ResultsItem = {}
+        defineOwn(node, frame, child)
+
+        return child
+      }, tree)
+
+      defineOwn(parent, leafFrame, result)
     })
 
     return tree
   }
+}
+
+/** Writes an own, enumerable property, even for keys such as `__proto__`. */
+const defineOwn = (node: ResultsItem, key: string, value: ResultsItem | ResultType) => {
+  Object.defineProperty(node, key, { value, enumerable: true, writable: true, configurable: true })
 }
 
 /**
