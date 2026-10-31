@@ -29,7 +29,7 @@
 import { join } from '@std/path/join'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { collectSourceFiles, type SourceFile } from '@/lib/source-upload.ts'
-import { parseScopedName } from '@/lib/scoped-name.ts'
+import { parseScopedName, toScopedPath } from '@/lib/scoped-name.ts'
 import { toProjectInstallCommand } from '@/lib/dependency-age.ts'
 import { pinServerForPublish, refreshProjectLock } from '@/lib/publish-server-pin.ts'
 import {
@@ -42,7 +42,7 @@ import {
 // One definition, in the module that owns the stored-auth shape. This file
 // used to declare its own copy of the same literal, which is how a default
 // hub silently drifts between `login` and `deploy`.
-import { DEFAULT_HUB_ENV, HUB_HOSTS } from '@/lib/hub-env.ts'
+import { DEFAULT_HUB_ENV, HUB_HOSTS, type HubEnv } from '@/lib/hub-env.ts'
 
 /** The deploy waits until the server is ready, so it gets a long timeout. */
 export const DEPLOY_TIMEOUT_MS = 120_000
@@ -67,6 +67,8 @@ type DeployHeadlessArgs = {
    * from the project root `deno.json#version`.
    */
   version?: string
+  /** The `--env` flag, for the commands the failure messages suggest. */
+  envFlag?: HubEnv
   /** Deploy the version already stored on the hub, without uploading. */
   existing?: boolean
   /** Refresh `deno.lock` after the server pin changes `deno.json`; a seam for tests. */
@@ -124,19 +126,42 @@ export const toDeployExitCode = (result: DeployHeadlessResult): number => {
   return result.stage === 'exists' ? 2 : 1
 }
 
-/** The run again command, with or without `--existing`. */
-const toDeployInvocation = (projectName: string, existing = false): string =>
-  `skmtc deploy ${projectName}${existing ? ' --existing' : ''}`
+/** How this run was invoked: the flags a suggested command must keep. */
+export type DeployInvocation = {
+  projectName: string
+  /** The version, when `--version` gave it. */
+  version?: string
+  /** The hub, when `--env` gave it. */
+  env?: HubEnv
+}
+
+/** `skmtc deploy <project> --existing`, with this run's `--version` and `--env`. */
+const toRetryCommand = ({ projectName, version, env }: DeployInvocation): string =>
+  [
+    `skmtc deploy ${projectName}`,
+    version ? `--version ${version}` : '',
+    env ? `--env ${env}` : '',
+    '--existing'
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+/**
+ * `skmtc deploy <project>` with this run's `--env`. Without `--version`: the
+ * next run deploys a new version.
+ */
+const toRerunCommand = ({ projectName, env }: DeployInvocation): string =>
+  `skmtc deploy ${projectName}${env ? ` --env ${env}` : ''}`
 
 /** The recipe when the version is already on the hub. */
-export const toVersionExistsMessage = (version: string, projectName: string): string =>
+export const toVersionExistsMessage = (version: string, invocation: DeployInvocation): string =>
   `Version ${version} already exists. Bump \`version\` in deno.json, or run ` +
-  `\`${toDeployInvocation(projectName, true)}\` to deploy the stored version.`
+  `\`${toRetryCommand(invocation)}\` to deploy the stored version.`
 
 /** What a stored version that did not deploy needs: a fix and a new version. */
-export const toStoredFixMessage = (version: string, projectName: string): string =>
+export const toStoredFixMessage = (version: string, invocation: DeployInvocation): string =>
   `Version ${version} is stored and cannot change. Fix the problem, bump \`version\` ` +
-  `in deno.json, and run \`${toDeployInvocation(projectName)}\` again.`
+  `in deno.json, and run \`${toRerunCommand(invocation)}\` again.`
 
 /**
  * The lines that report a deployed result, shared by the text output and the
@@ -157,7 +182,7 @@ export const toDeployedLines = (
   lines.push(`deploy: ${result.deploy.status}`)
   if (result.deploy.status === 'error') {
     lines.push(`  reason: ${result.deploy.statusReason ?? '(the hub gave no reason)'}`)
-    lines.push(toStoredFixMessage(result.version, result.projectName))
+    lines.push(toStoredFixMessage(result.version, { projectName: result.projectName }))
     return lines
   }
   if (result.deploy.url) lines.push(`  url: ${result.deploy.url}`)
@@ -272,7 +297,7 @@ export const isVersionStored = async ({
 }): Promise<boolean> => {
   try {
     const response = await fetch(
-      `${origin}/v1/stacks/${account}/${slug}/versions/${encodeURIComponent(version)}`,
+      `${origin}/v1/stacks/${toScopedPath({ account, slug })}/versions/${encodeURIComponent(version)}`,
       {
         headers: { authorization: `Bearer ${token}` },
         signal: AbortSignal.timeout(EXISTS_TIMEOUT_MS)
@@ -301,7 +326,7 @@ export const uploadVersion = async ({
   account,
   slug,
   version,
-  projectName,
+  invocation,
   files
 }: {
   origin: string
@@ -309,7 +334,8 @@ export const uploadVersion = async ({
   account: string
   slug: string
   version: string
-  projectName: string
+  /** For the commands the failure messages suggest. */
+  invocation: DeployInvocation
   files: SourceFile[]
 }): Promise<{ version: string; upload: StackUpload }> => {
   if (files.length === 0) throw new Error('no source files to upload')
@@ -323,7 +349,7 @@ export const uploadVersion = async ({
     form.append('files', new Blob([file.bytes], { type: file.contentType }), file.path)
   }
 
-  const response = await fetch(`${origin}/v1/stacks/${account}/${slug}/versions`, {
+  const response = await fetch(`${origin}/v1/stacks/${toScopedPath({ account, slug })}/versions`, {
     method: 'POST',
     headers: { authorization: `Bearer ${token}` },
     body: form
@@ -333,19 +359,20 @@ export const uploadVersion = async ({
     const text = await response.text()
     if (response.status === 409) {
       throw new VersionExistsError(
-        `${toVersionExistsMessage(version, projectName)} Hub said: ${text.slice(0, 500)}`
+        `${toVersionExistsMessage(version, invocation)} Hub said: ${text.slice(0, 500)}`
       )
     }
     throw new Error(`version upload failed (${response.status}): ${text.slice(0, 500)}`)
   }
 
   // A 2xx means the hub stored the version, whatever the body says.
-  const unreadable = new StoredVersionUnreadableError(
-    `the hub stored version ${version} but answered with an unexpected payload. ` +
-      `Run \`${toDeployInvocation(projectName, true)}\` to deploy it.`
-  )
+  const unreadable = () =>
+    new StoredVersionUnreadableError(
+      `the hub stored version ${version} but answered with an unexpected payload. ` +
+        `Run \`${toRetryCommand(invocation)}\` to deploy it.`
+    )
   const payload: unknown = await response.json().catch(() => undefined)
-  if (!isObject(payload)) throw unreadable
+  if (!isObject(payload)) throw unreadable()
   const storedVersion = payload['version']
   const versionUrl = payload['htmlUrl']
   const sourceHash = payload['sourceHash']
@@ -356,12 +383,12 @@ export const uploadVersion = async ({
     typeof sourceHash !== 'string' ||
     !isObject(sourceField)
   ) {
-    throw unreadable
+    throw unreadable()
   }
   const sourceFileCount = sourceField['fileCount']
   const sourceTotalBytes = sourceField['totalBytes']
   if (typeof sourceFileCount !== 'number' || typeof sourceTotalBytes !== 'number') {
-    throw unreadable
+    throw unreadable()
   }
   return {
     version: storedVersion,
@@ -382,10 +409,11 @@ type DeployVersionOutcome =
 /**
  * Deploy a stored version: `POST /v1/stacks/{account}/{slug}/servers` with
  * `{ version }` only, never `promote`. The route is idempotent, so a run
- * after a timeout deploys the same version again.
+ * after a timeout deploys the same version again; while the first deploy is
+ * still running, the hub answers 409.
  *
- * With `existing`, a 404 or 422 means the version may not be stored: the
- * advice is the upload, without `--existing`.
+ * With `existing`, a 404 means the version is not stored: the advice is the
+ * upload, without `--existing`.
  *
  * Exported for tests.
  */
@@ -395,7 +423,7 @@ export const deployVersion = async ({
   account,
   slug,
   version,
-  projectName,
+  invocation,
   existing = false,
   timeoutMs = DEPLOY_TIMEOUT_MS
 }: {
@@ -404,12 +432,13 @@ export const deployVersion = async ({
   account: string
   slug: string
   version: string
-  projectName: string
+  /** For the commands the failure messages suggest. */
+  invocation: DeployInvocation
   existing?: boolean
   timeoutMs?: number
 }): Promise<DeployVersionOutcome> => {
   try {
-    const response = await fetch(`${origin}/v1/stacks/${account}/${slug}/servers`, {
+    const response = await fetch(`${origin}/v1/stacks/${toScopedPath({ account, slug })}/servers`, {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
       body: JSON.stringify({ version }),
@@ -419,7 +448,7 @@ export const deployVersion = async ({
     if (!response.ok) {
       const { message, requestId } = await readApiError(response)
       const hubMessage =
-        toSentence(message ?? 'the hub gave no reason') +
+        toSentence(message || 'the hub gave no reason') +
         (requestId ? ` (request id: ${requestId})` : '')
       const status = response.status
       if (status === 401 || status === 403) {
@@ -431,21 +460,32 @@ export const deployVersion = async ({
             `${hubMessage} The token needs the \`write:releases\` scope.`
         }
       }
-      if (existing && (status === 404 || status === 422)) {
+      // The hub stores no such version for this stack.
+      if (existing && status === 404) {
         return {
           type: 'failed',
           stored: false,
           reason:
             `The hub cannot deploy version ${version} (${status}): ${hubMessage} ` +
-            `If the version is not stored yet, run \`${toDeployInvocation(projectName)}\` without \`--existing\`.`
+            `If the version is not stored yet, run \`${toRerunCommand(invocation)}\` without \`--existing\`.`
         }
       }
-      // The version cannot deploy as it is.
-      if ([400, 404, 409, 422].includes(status)) {
+      // An earlier deploy of this version is still running.
+      if (status === 409) {
         return {
           type: 'failed',
           stored: true,
-          reason: `deploy failed (${status}): ${hubMessage} ${toStoredFixMessage(version, projectName)}`
+          reason:
+            `deploy failed (${status}): ${hubMessage} Version ${version} is stored and is still ` +
+            `deploying. Wait a minute, then run \`${toRetryCommand(invocation)}\`.`
+        }
+      }
+      // The version cannot deploy as it is.
+      if ([400, 404, 422].includes(status)) {
+        return {
+          type: 'failed',
+          stored: true,
+          reason: `deploy failed (${status}): ${hubMessage} ${toStoredFixMessage(version, invocation)}`
         }
       }
       // Any other status says nothing about the version: deploy it again.
@@ -454,7 +494,7 @@ export const deployVersion = async ({
         stored: true,
         reason:
           `deploy failed (${status}): ${hubMessage} Version ${version} is stored. ` +
-          `Run \`${toDeployInvocation(projectName, true)}\` to deploy it again.`
+          `Run \`${toRetryCommand(invocation)}\` to deploy it again.`
       }
     }
 
@@ -465,7 +505,7 @@ export const deployVersion = async ({
         stored: true,
         reason:
           `the hub answered the deploy with an unexpected payload. Version ${version} is stored; ` +
-          `check it on the hub, or run \`${toDeployInvocation(projectName, true)}\` to deploy it again.`
+          `check it on the hub, or run \`${toRetryCommand(invocation)}\` to deploy it again.`
       }
     }
     return {
@@ -486,7 +526,7 @@ export const deployVersion = async ({
       stored: true,
       reason:
         `${lead} Version ${version} is stored; it may still deploy. ` +
-        `Run \`${toDeployInvocation(projectName, true)}\` to deploy it again.`
+        `Run \`${toRetryCommand(invocation)}\` to deploy it again.`
     }
   }
 }
@@ -497,10 +537,17 @@ export const deployHeadless = async ({
   token,
   origin = HUB_HOSTS[DEFAULT_HUB_ENV].api,
   version: versionFlag,
+  envFlag,
   existing = false,
   refreshLock = refreshProjectLock
 }: DeployHeadlessArgs): Promise<DeployHeadlessResult> => {
   const project = skmtcRoot.findProject(projectName)
+  // The flags a suggested command keeps: `--version` only when this run had it.
+  const toInvocation = (version: string): DeployInvocation => ({
+    projectName,
+    version: versionFlag ? version : undefined,
+    env: envFlag
+  })
   const fail = (stage: DeployFailureStage, err: unknown, stored = false): DeployHeadlessResult => ({
     type: 'failed',
     projectName,
@@ -533,7 +580,7 @@ export const deployHeadless = async ({
   let upload: StackUpload | null = null
   if (!existing) {
     if (await isVersionStored({ origin, token, account, slug, version })) {
-      return fail('exists', toVersionExistsMessage(version, projectName))
+      return fail('exists', toVersionExistsMessage(version, toInvocation(version)), true)
     }
 
     let files: SourceFile[]
@@ -545,7 +592,7 @@ export const deployHeadless = async ({
       if (!files.some(file => file.path === 'deno.lock')) {
         throw new Error(
           `deno.lock not found in the upload — the hub requires it. Run \`${toProjectInstallCommand()}\` ` +
-            `in the project (and make sure .skmtcignore does not exclude deno.lock), then run \`${toDeployInvocation(projectName)}\` again.`
+            `in the project (and make sure .skmtcignore does not exclude deno.lock), then run \`${toRerunCommand(toInvocation(version))}\` again.`
         )
       }
       // Without this pin the hub cannot build the version's server.
@@ -568,14 +615,14 @@ export const deployHeadless = async ({
         account,
         slug,
         version,
-        projectName,
+        invocation: toInvocation(version),
         files
       })
       // Deploy and report the version as the hub stored it.
       version = stored.version
       upload = stored.upload
     } catch (err) {
-      if (err instanceof VersionExistsError) return fail('exists', err)
+      if (err instanceof VersionExistsError) return fail('exists', err, true)
       return fail('upload', err, err instanceof StoredVersionUnreadableError)
     }
   }
@@ -586,7 +633,7 @@ export const deployHeadless = async ({
     account,
     slug,
     version,
-    projectName,
+    invocation: toInvocation(version),
     existing
   })
   if (deployed.type === 'failed') {

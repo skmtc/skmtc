@@ -66,6 +66,7 @@ export const DeployView = ({ project, view, runDeploy = deployHeadless }: Deploy
         token,
         origin,
         version: view.version,
+        envFlag: view.env,
         existing: view.existing
       })
 

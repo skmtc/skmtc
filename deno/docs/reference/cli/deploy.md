@@ -62,10 +62,16 @@ network call with a recipe-style error.
 Deploy the version that is already stored on the hub. The CLI does not
 check for the version, collect the source or upload it; it only calls the
 deploy route. Use it after a deploy that was not confirmed, or after a fix
-on the hub. The deploy route is idempotent, so a second call is safe.
+on the hub. The deploy route is idempotent: a second call deploys the same
+version. If an earlier deploy of the version has not finished, the hub
+answers `409`; wait a minute, then run it again.
 
-If the hub does not have the version (`404` or `422`), the message tells
-you to run `skmtc deploy <project>` without `--existing`.
+If the hub does not have the version (`404`), the message tells you to run
+`skmtc deploy <project>` without `--existing`. A `422` means that the hub
+has the version but cannot build it: fix the problem and bump the version.
+
+The commands that failure messages suggest keep this run's `--version` and
+`--env`.
 
 ### `--env <env>`
 
@@ -126,7 +132,8 @@ in step 5 fails, the output says that the version is stored:
 | What happened | Output | Exit |
 |---|---|---|
 | The server status is `error` | `deploy: error` and the `statusReason`. Fix the problem, bump `version`, deploy again. | 1 |
-| `400`, `404`, `409` or `422` from the deploy | The hub's reason, for example `Stack version '3.0.1' failed to deploy: <reason>`. Fix the problem, bump `version`, deploy again. | 1 |
+| `400`, `404` or `422` from the deploy | The hub's reason, for example `Stack version '3.0.1' failed to deploy: <reason>`. Fix the problem, bump `version`, deploy again. | 1 |
+| `409` from the deploy | An earlier deploy of the version is still running. Wait a minute, then run `skmtc deploy <project> --existing`. | 1 |
 | `401` or `403` from the deploy | The hub refused the deploy; the token needs the `write:releases` scope. | 1 |
 | Another status from the deploy, for example `503` | The hub's reason. Run `skmtc deploy <project> --existing`. | 1 |
 | No answer in 120 s | `deploy not confirmed`. Run `skmtc deploy <project> --existing`. | 1 |
@@ -183,7 +190,7 @@ and exits 1.
   "reason": "Version 3.0.1 already exists. Bump `version` in deno.json, or run `skmtc deploy my-api --existing` to deploy the stored version.",
   "stage": "exists",
   // true: the version is stored on the hub and cannot change.
-  "stored": false
+  "stored": true
 }
 ```
 

@@ -302,7 +302,7 @@ const isPrivateName = (hostname: string): boolean => {
  * address is pinned for the connection, which `fetch` does not expose.
  *
  * So network isolation, not this function, is the control that has to hold —
- * see "Network isolation" in `docs/reference/cli/publish.md`. Anyone running
+ * see "Network isolation" in `docs/reference/cli/deploy.md`. Anyone running
  * a stack server outside an isolated runtime needs an egress policy in front
  * of it; this check alone is not one.
  */

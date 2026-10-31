@@ -87,6 +87,7 @@ export const renderDeploy = async ({
       token: resolvedToken,
       origin: resolvedOrigin,
       version,
+      envFlag: env,
       existing
     })
     printDeployResult(result, { format: resolveOutputFormat({ jsonFlag }) })

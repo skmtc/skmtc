@@ -17,6 +17,7 @@ import {
   makeStackProject,
   stackVersionPayload,
   toJsonResponse,
+  toPinnedImports,
   toStackServer,
   withStackHub
 } from '@/tests/mocks/stack-hub.mock.ts'
@@ -104,7 +105,7 @@ Deno.test('uploadVersion - POSTs multipart version + files to the versions endpo
       account: 'acme',
       slug: 'my-api',
       version: '3.0.1',
-      projectName: 'my-api',
+      invocation: { projectName: 'my-api' },
       files: createSourceFiles()
     })
 
@@ -148,7 +149,7 @@ Deno.test('uploadVersion - a 409 is the version-exists recipe, never "published"
         account: 'acme',
         slug: 'my-api',
         version: '3.0.1',
-        projectName: 'my-api',
+        invocation: { projectName: 'my-api' },
         files: createSourceFiles()
       })
     )
@@ -366,7 +367,25 @@ for (const status of ['deploying', 'idle', 'paused'] as const) {
   })
 }
 
-for (const status of [400, 404, 409, 422]) {
+Deno.test('deployHeadless - a 409 from the deploy says still deploying: wait, then --existing', async () => {
+  const { result } = await runDeploy({
+    deploy: () =>
+      toJsonResponse(
+        { message: "Stack version '3.0.1' is already deploying - retry shortly." },
+        409
+      )
+  })
+
+  const failed = toFailed(result)
+  assertEquals(failed.stage, 'deploy')
+  assertEquals(failed.stored, true)
+  assertStringIncludes(failed.reason, 'Version 3.0.1 is stored and is still deploying')
+  assertStringIncludes(failed.reason, '`skmtc deploy my-api --existing`')
+  assertEquals(failed.reason.includes('bump'), false)
+  assertEquals(toDeployExitCode(result), 1)
+})
+
+for (const status of [400, 404, 422]) {
   Deno.test(`deployHeadless - a ${status} from the deploy says stored, fix and bump, exit 1`, async () => {
     const reason = "Stack version '3.0.1' failed to deploy: Module not found: x.ts"
     const { result } = await runDeploy({
@@ -406,7 +425,7 @@ Deno.test('deployVersion - no answer is "deploy not confirmed" with the --existi
       account: 'acme',
       slug: 'my-api',
       version: '3.0.1',
-      projectName: 'my-api',
+      invocation: { projectName: 'my-api' },
       timeoutMs: 10
     })
   )
@@ -425,7 +444,7 @@ Deno.test('deployVersion - a stalled body counts as "deploy not confirmed"', asy
       account: 'acme',
       slug: 'my-api',
       version: '3.0.1',
-      projectName: 'my-api',
+      invocation: { projectName: 'my-api' },
       timeoutMs: 10
     })
   )
@@ -441,6 +460,7 @@ Deno.test('deployHeadless - a 200 from the version check exits 2 and uploads not
 
   const failed = toFailed(result)
   assertEquals(failed.stage, 'exists')
+  assertEquals(failed.stored, true)
   assertEquals(
     failed.reason,
     'Version 3.0.1 already exists. Bump `version` in deno.json, or run ' +
@@ -469,6 +489,7 @@ Deno.test('deployHeadless - a 403 check then a 409 upload is the same recipe, ex
 
   const failed = toFailed(result)
   assertEquals(failed.stage, 'exists')
+  assertEquals(failed.stored, true)
   assertStringIncludes(failed.reason, 'Version 3.0.1 already exists.')
   assertEquals(toDeployExitCode(result), 2)
   // Never deployed.
@@ -488,21 +509,79 @@ Deno.test('deployHeadless - --existing only calls the deploy route', async () =>
   assertStringIncludes(toDeployedLines(deployed)[0], 'Already stored acme/my-api@3.0.1')
 })
 
-for (const status of [404, 422]) {
-  Deno.test(`deployHeadless - --existing and a ${status} says to drop --existing`, async () => {
-    const { result } = await runDeploy(
-      { deploy: () => toJsonResponse({ code: 'x', message: 'no such version' }, status) },
-      { existing: true }
-    )
+Deno.test('deployHeadless - --existing and a 404 says to drop --existing', async () => {
+  const { result } = await runDeploy(
+    { deploy: () => toJsonResponse({ code: 'x', message: 'no such version' }, 404) },
+    { existing: true }
+  )
 
-    const failed = toFailed(result)
-    assertEquals(failed.stage, 'deploy')
-    assertEquals(failed.stored, false)
-    assertStringIncludes(failed.reason, 'no such version')
-    assertStringIncludes(failed.reason, 'run `skmtc deploy my-api` without `--existing`')
-    assertEquals(toDeployExitCode(result), 1)
+  const failed = toFailed(result)
+  assertEquals(failed.stage, 'deploy')
+  assertEquals(failed.stored, false)
+  assertStringIncludes(failed.reason, 'no such version')
+  assertStringIncludes(failed.reason, 'run `skmtc deploy my-api` without `--existing`')
+  assertEquals(toDeployExitCode(result), 1)
+})
+
+Deno.test('deployHeadless - --existing and a 422 build failure says stored, fix and bump', async () => {
+  const reason = "Stack version '3.0.1' failed to deploy: Module not found: x.ts"
+  const { result } = await runDeploy(
+    { deploy: () => toJsonResponse({ message: reason }, 422) },
+    { existing: true }
+  )
+
+  const failed = toFailed(result)
+  assertEquals(failed.stored, true)
+  assertStringIncludes(failed.reason, reason)
+  assertStringIncludes(failed.reason, 'Fix the problem, bump `version`')
+  assertEquals(failed.reason.includes('without `--existing`'), false)
+})
+
+Deno.test("deployHeadless - suggested commands keep this run's --version and --env", async () => {
+  await using project = await makeStackProject()
+  let outcome: DeployHeadlessResult | undefined
+  await withStackHub({ deploy: () => toJsonResponse({ message: 'down' }, 503) }, async () => {
+    outcome = await deployHeadless({
+      skmtcRoot: project.skmtcRoot,
+      projectName: 'my-api',
+      token: 'pat-123',
+      origin: 'https://hub.test',
+      version: '2.0.0',
+      envFlag: 'staging',
+      existing: true
+    })
   })
-}
+  if (!outcome) throw new Error('deployHeadless returned nothing')
+  assertStringIncludes(
+    toFailed(outcome).reason,
+    '`skmtc deploy my-api --version 2.0.0 --env staging --existing`'
+  )
+})
+
+Deno.test('deployHeadless - the hub URLs encode the stack name', async () => {
+  await using project = await makeStackProject({
+    name: '@acme/my-api#2',
+    version: '3.0.1',
+    imports: toPinnedImports()
+  })
+  const calls = await withStackHub({}, () =>
+    deployHeadless({
+      skmtcRoot: project.skmtcRoot,
+      projectName: 'my-api',
+      token: 'pat-123',
+      origin: 'https://hub.test',
+      refreshLock: noRefresh
+    })
+  )
+  assertEquals(
+    calls.map(call => call.path),
+    [
+      '/v1/stacks/acme/my-api%232/versions/3.0.1',
+      '/v1/stacks/acme/my-api%232/versions',
+      '/v1/stacks/acme/my-api%232/servers'
+    ]
+  )
+})
 
 for (const status of [500, 502, 503]) {
   Deno.test(`deployHeadless - a ${status} from the deploy says to deploy again, not to bump`, async () => {
@@ -546,7 +625,7 @@ Deno.test('deployVersion - with --existing, no answer is still stored', async ()
       account: 'acme',
       slug: 'my-api',
       version: '3.0.1',
-      projectName: 'my-api',
+      invocation: { projectName: 'my-api' },
       existing: true,
       timeoutMs: 10
     })

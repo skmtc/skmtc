@@ -343,14 +343,15 @@ both → exit 2 with a recipe error.
 //   "source"   — source collection failed, or deno.lock is missing
 //   "upload"   — POST .../versions failed
 //   "deploy"   — POST .../servers failed, was refused (needs the
-//                write:releases scope) or was not confirmed (re-run
-//                with --existing; the route is idempotent)
+//                write:releases scope), is still deploying (409: wait,
+//                then --existing) or was not confirmed (re-run with
+//                --existing; the route is idempotent)
 {
   "type": "failed",
   "projectName": "my-api",
   "reason": "Version 3.0.1 already exists. Bump `version` in deno.json, or run `skmtc deploy my-api --existing` to deploy the stored version.",
   "stage": "exists",
-  "stored": false
+  "stored": true
 }
 ```
 
