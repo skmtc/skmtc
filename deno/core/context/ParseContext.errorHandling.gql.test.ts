@@ -22,7 +22,9 @@ import { assertEquals } from '@std/assert'
 import type * as log from '@std/log'
 import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
+import { tryParseAt } from '@/context/tryParseAt.ts'
 import { OasObject } from '@/oas/object/Object.ts'
+import { OasUnion } from '@/oas/union/Union.ts'
 import type { RefName } from '@/types/RefName.ts'
 
 const mockLogger: log.Logger = {
@@ -81,7 +83,8 @@ Deno.test('ParseContext (gql) - registerRef during field parse records consumer 
     throw new Error('expected a gql error issue')
   }
   assertEquals(issue.location, 'User:posts')
-  assertEquals(issue.message, 'Post is malformed')
+  // Registered without a location, so the message names the error only.
+  assertEquals(issue.message, "Depends on 'Post', removed because of the error: Post is malformed")
   assertEquals(issue.cause instanceof Error, true)
 
   // And the User registry entry should no longer carry a `posts` field.
@@ -201,4 +204,147 @@ Deno.test('ParseContext (gql) - union member references to errored type are prun
   assertEquals(depRef.length, 1)
   // Union members are addressed as `[UnionName, members, <index>]`.
   assertEquals(depRef[0].location.startsWith('Content:members:'), true)
+})
+
+Deno.test('ParseContext (gql) - two errored members of one union each remove their own member', () => {
+  const ctx = makeGqlContext(`
+    type A { id: ID! }
+    type B { id: ID! }
+    type C { id: ID! }
+    union Content = A | B | C
+    type Query { _: Boolean }
+  `)
+  ctx.registerRefError(new Error('A failed'), 'A')
+  ctx.registerRefError(new Error('B failed'), 'B')
+  ctx.parse(new StackTrail(['t', 's', 'parse']))
+  // A second run finds nothing more to remove.
+  ctx.removeErroredItems()
+
+  const content = ctx.registry.schemas['Content' as RefName]
+  if (!(content instanceof OasUnion)) throw new Error('expected Content to be an OasUnion')
+  assertEquals(
+    content.members.map(member => (member.isRef() ? member.toRefName() : member.type)),
+    ['C']
+  )
+  assertEquals(ctx.issues.filter(i => i.type === 'INVALID_DEPENDENCY_REF').length, 2)
+})
+
+Deno.test('ParseContext (gql) - a root field shared by Query and Mutation removes only the one that holds the ref', () => {
+  const ctx = makeGqlContext(`
+    type Post { id: ID! }
+    type Query { item: Int }
+    type Mutation { item: Post }
+  `)
+  ctx.registerRefError(new Error('Post failed'), 'Post')
+  const parsed = ctx.parse(new StackTrail(['t', 's', 'parse']))
+  if (parsed.type !== 'gql') throw new Error('expected gql')
+
+  assertEquals(
+    parsed.value.operations.map(o => `${o.rootKind}.${o.fieldName}`),
+    ['query.item']
+  )
+  assertEquals(
+    ctx.issues.filter(i => i.type === 'INVALID_DEPENDENCY_REF').map(i => i.location),
+    ['t:s:parse:Mutation:item:return']
+  )
+})
+
+Deno.test('ParseContext (gql) - an errored implementer is removed from the synthesized interface union', () => {
+  const ctx = makeGqlContext(`
+    interface Node { id: ID! }
+    type A implements Node { id: ID! }
+    type B implements Node { id: ID! }
+    type Query { node: Node }
+  `)
+  ctx.registerRefError(new Error('A failed'), 'A')
+  ctx.parse(new StackTrail(['t', 's', 'parse']))
+
+  const nodeUnion = ctx.registry.schemas['NodeUnion' as RefName]
+  if (!(nodeUnion instanceof OasUnion)) throw new Error('expected NodeUnion to be an OasUnion')
+  assertEquals(
+    nodeUnion.members.map(member => (member.isRef() ? member.toRefName() : member.type)),
+    ['B']
+  )
+  assertEquals(
+    ctx.issues.filter(i => i.type === 'INVALID_DEPENDENCY_REF').map(i => i.location),
+    ['t:s:parse:NodeUnion:members:0']
+  )
+})
+
+Deno.test('ParseContext (gql) - a type that throws in tryParseAt names its location in the pruned consumer', () => {
+  const ctx = makeGqlContext(`
+    type Post { id: ID! }
+    type Query { post: Post }
+  `)
+  ctx.parse(new StackTrail(['t', 's', 'parse']))
+
+  tryParseAt({
+    stackTrail: new StackTrail(['t', 's', 'parse']),
+    key: 'Post',
+    context: ctx,
+    type: 'INVALID_TYPE_DEFINITION',
+    refKey: 'Post',
+    fn: () => {
+      throw new Error('Post failed')
+    }
+  })
+  ctx.removeErroredItems()
+
+  assertEquals(
+    ctx.issues.map(({ type, location, message }) => ({ type, location, message })),
+    [
+      { type: 'INVALID_TYPE_DEFINITION', location: 't:s:parse:Post', message: 'Post failed' },
+      {
+        type: 'INVALID_DEPENDENCY_REF',
+        location: 't:s:parse:Query:post:return',
+        message: "Depends on 'Post', removed because of the error at 't:s:parse:Post': Post failed"
+      }
+    ]
+  )
+})
+
+Deno.test('ParseContext (gql) - consumers are pruned when parse runs under a trace, span and parse prefix', () => {
+  // `toArtifacts` parses inside `[traceId, spanId, 'parse']`, so every
+  // consumer trail carries that prefix. The error is registered before
+  // `parse()` so the prune that `parse()` runs is the one under test.
+  const sdl = `
+    type Post { id: ID! }
+    type User {
+      id: ID!
+      posts: [Post!]!
+    }
+    type Query {
+      post: Post
+      me: User
+    }
+  `
+  const toResult = (frames: string[]) => {
+    const ctx = makeGqlContext(sdl)
+    ctx.registerRefError(new Error('Post failed'), 'Post')
+    const parsed = ctx.parse(new StackTrail(frames))
+    if (parsed.type !== 'gql') throw new Error('expected gql')
+
+    const user = ctx.registry.schemas['User' as RefName]
+    if (!(user instanceof OasObject)) throw new Error('expected User OasObject')
+
+    return {
+      operations: parsed.value.operations.map(o => o.fieldName).sort(),
+      userFields: Object.keys(user.properties ?? {}).sort(),
+      depRefLocations: ctx.issues
+        .filter(i => i.type === 'INVALID_DEPENDENCY_REF')
+        .map(i => i.location)
+        .sort()
+    }
+  }
+
+  assertEquals(toResult(['t', 's', 'parse']), {
+    operations: ['me'],
+    userFields: ['id'],
+    depRefLocations: ['t:s:parse:Query:post:return', 't:s:parse:User:posts']
+  })
+  assertEquals(toResult([]), {
+    operations: ['me'],
+    userFields: ['id'],
+    depRefLocations: ['Query:post:return', 'User:posts']
+  })
 })

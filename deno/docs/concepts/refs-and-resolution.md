@@ -244,13 +244,15 @@ for that address-bridging step.
 ## Cascade pruning
 
 At end-of-parse, `removeErroredItems` walks both maps together.
-For each failed schema, every consumer (anything that `$ref`-ed it)
-is pruned from the parsed document. Each pruning logs an
-`INVALID_DEPENDENCY_REF` issue at the consumer's location.
+It removes each component that has an error, also an error in
+only one property. It removes every consumer (anything that
+`$ref`-ed it) from the parsed document. Each removal logs one
+`INVALID_DEPENDENCY_REF` issue at the location of the consumer.
 
-This cascade is **one-hop deep**. Transitive consumers
-(consumers-of-consumers) are not pruned at this stage. They may
-fail at generate time when the now-missing ref is resolved.
+This cascade is **transitive**. A removed consumer can be a
+component. Then `removeErroredItems` removes the consumers of that
+component too, at all depths. No item that stays has a ref to a
+removed component.
 
 See [error handling philosophy](../explanation/error-handling-philosophy.md#tier-2-cross-ref-via-removeerroreditems)
 for more on the cascade model.
@@ -280,10 +282,12 @@ via `resolve()`. The intermediate `OasRef` is followed transparently.
 
 ### What if I resolve a ref that was pruned?
 
-`resolveOnce()` throws `Ref "..." not found`. This typically happens
-when a generator runs against the parsed document and a depth-2+
-cascade missed pruning the consumer. The generator's try/catch
-catches it; the operation is marked `'error'` in the manifest.
+`resolveOnce()` throws `Ref "..." not found`. A parse error does not
+cause this: the cascade removes every item that reaches a removed
+component, at all depths. The throw can still come from a `$ref` to a
+component that the document does not define. The generator's
+try/catch catches it; the operation is marked `'error'` in the
+manifest.
 
 ### When should I use `resolve()` vs `resolveOnce()`?
 

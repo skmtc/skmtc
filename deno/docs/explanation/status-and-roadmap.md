@@ -131,22 +131,16 @@ issue; the engine can't fully repair it.
 See [how idempotency works](how-idempotency-works.md#inline-schema-fallback-names)
 for the deeper discussion.
 
-### One-hop cascade pruning
+### Cascade pruning removes whole operations
 
-When a schema fails to parse, its **direct dependents** are
-pruned from the model (via `removeErroredItems`). Second-order
-dependents — items that depend on a pruned dependent — aren't
-automatically pruned.
+When a component has a parse error, `removeErroredItems` removes
+the component and all items that reach it, at all depths. It also
+removes an operation that reaches it only through a response, when
+the generators do not use that response.
 
-In practice this means a single bad schema may leave some
-operations in a half-valid state: the schema is pruned, an
-operation referencing it has its parameter pruned, but a second
-operation that referenced the first via some transitive path may
-still try to render and surface a confusing error.
-
-**Mitigation:** the diagnostic stream surfaces all pruning
-events. Users should treat the *first* failure in a chain as the
-root cause, even if it produces noise downstream.
+**Mitigation:** each removed item has an `INVALID_DEPENDENCY_REF`
+issue that names the root error. Correct that error and the
+removed items come back.
 
 ### Render does not format output
 

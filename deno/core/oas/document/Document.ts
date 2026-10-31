@@ -1,5 +1,5 @@
 import type { OasTag } from '@/oas/tag/Tag.ts'
-import type { OasComponents } from '@/oas/components/Components.ts'
+import type { ComponentsEntry, OasComponents } from '@/oas/components/Components.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import type { OasInfo } from '@/oas/info/Info.ts'
@@ -7,8 +7,6 @@ import type { OasServer } from '@/oas/server/Server.ts'
 import type { OasSecurityRequirement } from '@/oas/securityRequirement/SecurityRequirement.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import type { RefName } from '@/types/RefName.ts'
-import type { OasSchema } from '@/oas/schema/Schema.ts'
-import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasExternalDocs } from '@/oas/externalDocs/ExternalDocs.ts'
 
 /**
@@ -187,10 +185,12 @@ export class OasDocument {
    * Removes an item from the document based on a stack trail path.
    *
    * This method is used internally during document processing to remove
-   * specific operations or schema components. The stack trail indicates
-   * the path to the item within the document structure.
+   * specific operations, webhooks or components. The stack trail indicates
+   * the path to the item within the document structure. A
+   * `components:<bucket>:<name>` trail removes the entry from that bucket
+   * (`components:requestBodies:X` removes request body `X`, not schema `X`).
    *
-   * @param stackTrail - Path to the item to remove
+   * @param stackTrail - Document-relative path to the item to remove
    * @returns The removed item, or undefined if not found
    *
    * @internal This method is primarily used by the processing pipeline
@@ -204,9 +204,7 @@ export class OasDocument {
    * const removedSchema = document.removeItem(new StackTrail(['components', 'schemas', 'User']));
    * ```
    */
-  removeItem(
-    stackTrail: StackTrail
-  ): OasOperation | OasWebhook | OasSchema | OasRef<'schema'> | undefined {
+  removeItem(stackTrail: StackTrail): OasOperation | OasWebhook | ComponentsEntry | undefined {
     const [first, second, third] = stackTrail.stackTrail
 
     switch (first) {
@@ -247,7 +245,7 @@ export class OasDocument {
           throw new Error(`RefName cannot be a number: ${third}`)
         }
 
-        return this.#fields!.components!.removeSchema(third as RefName)
+        return this.#fields?.components?.removeEntry(second, third as RefName)
       }
 
       default:

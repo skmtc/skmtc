@@ -68,7 +68,7 @@ export type ToPathParameterListArgs<Entry, Parameter> = {
 const toError = (error: unknown): Error =>
   error instanceof Error ? error : new Error(String(error))
 
-const toNameAndIn = (parameter: unknown): Pick<BrokenPathParameter, 'name' | 'in'> => {
+export const toNameAndIn = (parameter: unknown): Pick<BrokenPathParameter, 'name' | 'in'> => {
   if (
     typeof parameter === 'object' &&
     parameter !== null &&
@@ -159,7 +159,7 @@ export const toPathParameterList = <Entry, Parameter>({
  * A `$ref` operation parameter cannot be resolved during parse, so it
  * overrides nothing.
  */
-const toApplyingBrokenParameter = ({
+export const toApplyingBrokenParameter = ({
   broken,
   operation
 }: {
