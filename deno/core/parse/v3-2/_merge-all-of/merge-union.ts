@@ -1,15 +1,21 @@
 import { decomposeUnion } from './decompose-union.ts'
-import type { GetRefFn, SchemaOrReference, SchemaObject } from './types.ts'
+import type { GetRefFn, NormalizeFn, SchemaOrReference, SchemaObject } from './types.ts'
 import { mergeSchemasOrRefs } from './merge.ts'
 import { crossProduct } from './cross-product.ts'
 import { isRef } from '@/helpers/refFns.ts'
 type MergeUnionArgs = {
   schema: SchemaObject
   getRef: GetRefFn
+  normalize: NormalizeFn
   groupType: 'oneOf' | 'anyOf'
 }
 
-export const mergeUnion = ({ schema, getRef, groupType }: MergeUnionArgs): SchemaOrReference => {
+export const mergeUnion = ({
+  schema,
+  getRef,
+  normalize,
+  groupType
+}: MergeUnionArgs): SchemaOrReference => {
   const { beforeExcluded, decomposed, afterExcluded } = decomposeUnion({ schema, groupType })
 
   // if (decomposed.length === 1) {
@@ -30,7 +36,13 @@ export const mergeUnion = ({ schema, getRef, groupType }: MergeUnionArgs): Schem
   })
 
   const result = dereffed.reduce<SchemaObject>((acc, decomposed) => {
-    const merged = mergeCrossProduct({ first: acc, second: decomposed, getRef, groupType })
+    const merged = mergeCrossProduct({
+      first: acc,
+      second: decomposed,
+      getRef,
+      normalize,
+      groupType
+    })
 
     return merged
   }, {} as SchemaObject)
@@ -48,6 +60,7 @@ type MergeCrossProductArgs = {
   first: SchemaObject
   second: SchemaObject
   getRef: GetRefFn
+  normalize: NormalizeFn
   groupType: 'oneOf' | 'anyOf'
 }
 
@@ -55,6 +68,7 @@ export const mergeCrossProduct = ({
   first,
   second,
   getRef,
+  normalize,
   groupType
 }: MergeCrossProductArgs): SchemaObject => {
   const firstGroup = Array.isArray(first[groupType]) ? first[groupType] : [first]
@@ -63,7 +77,7 @@ export const mergeCrossProduct = ({
   const mergedGroup = crossProduct(firstGroup, secondGroup)
     .map(([firstItem, secondItem]) => {
       try {
-        const result = mergeSchemasOrRefs(firstItem, secondItem, getRef)
+        const result = mergeSchemasOrRefs(firstItem, secondItem, getRef, normalize)
 
         return result
       } catch (_error) {

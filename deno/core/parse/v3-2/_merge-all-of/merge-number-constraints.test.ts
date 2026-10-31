@@ -3,6 +3,7 @@ import { assertThrows } from '@std/assert/throws'
 import { mergeNumberConstraints } from './merge-number-constraints.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { GetRefFn } from './types.ts'
+import { normalizeMergeMember } from '@/parse/v3-2/schema/normalize-schema-shape.ts'
 Deno.test('mergeNumberConstraints - merges overlapping ranges', () => {
   const getRef: GetRefFn = () => ({})
 
@@ -16,7 +17,7 @@ Deno.test('mergeNumberConstraints - merges overlapping ranges', () => {
     minimum: 5,
     maximum: 15
   }
-  const result = mergeNumberConstraints(a, b, getRef)
+  const result = mergeNumberConstraints(a, b, getRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'number',
     minimum: 5,
@@ -33,7 +34,7 @@ Deno.test('mergeNumberConstraints - handles missing constraints', () => {
     minimum: 5,
     maximum: 15
   }
-  const result = mergeNumberConstraints(a, b, getRef)
+  const result = mergeNumberConstraints(a, b, getRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'number',
     minimum: 5,
@@ -56,7 +57,7 @@ Deno.test('mergeNumberConstraints - handles exclusive bounds', () => {
     minimum: 5,
     maximum: 15
   }
-  const result = mergeNumberConstraints(a, b, getRef)
+  const result = mergeNumberConstraints(a, b, getRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'number',
     minimum: 5,
@@ -83,7 +84,7 @@ Deno.test('mergeNumberConstraints - handles exclusive bounds with non-exclusive 
     exclusiveMinimum: false,
     exclusiveMaximum: false
   }
-  const result = mergeNumberConstraints(a, b, getRef)
+  const result = mergeNumberConstraints(a, b, getRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'number',
     minimum: 5,
@@ -104,7 +105,7 @@ Deno.test('mergeNumberConstraints - handles multipleOf', () => {
     type: 'number',
     multipleOf: 3
   }
-  const result = mergeNumberConstraints(a, b, getRef)
+  const result = mergeNumberConstraints(a, b, getRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'number',
     multipleOf: 6
@@ -121,7 +122,7 @@ Deno.test('mergeNumberConstraints - handles multipleOf', () => {
   const b: OpenAPIV3.SchemaObject = {
     type: 'number'
   }
-  const result = mergeNumberConstraints(a, b, getRef)
+  const result = mergeNumberConstraints(a, b, getRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'number',
     multipleOf: 2
@@ -139,7 +140,7 @@ Deno.test('mergeNumberConstraints - merges enum values when both schemas have en
     type: 'number',
     enum: [2.2, 3.3, 4.4]
   }
-  const result = mergeNumberConstraints(a, b, getRef)
+  const result = mergeNumberConstraints(a, b, getRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'number',
     enum: [2.2, 3.3]
@@ -154,7 +155,7 @@ Deno.test('mergeNumberConstraints - takes enum from second schema when first has
     type: 'number',
     enum: [1.1, 2.2, 3.3]
   }
-  const result = mergeNumberConstraints(a, b, getRef)
+  const result = mergeNumberConstraints(a, b, getRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'number',
     enum: [1.1, 2.2, 3.3]
@@ -169,7 +170,7 @@ Deno.test('mergeNumberConstraints - takes enum from first schema when second has
     enum: [1.1, 2.2, 3.3]
   }
   const b: OpenAPIV3.SchemaObject = { type: 'number' }
-  const result = mergeNumberConstraints(a, b, getRef)
+  const result = mergeNumberConstraints(a, b, getRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'number',
     enum: [1.1, 2.2, 3.3]
@@ -188,7 +189,7 @@ Deno.test('mergeNumberConstraints - throws when enum intersection is empty', () 
     enum: [4.4, 5.5, 6.6]
   }
   assertThrows(
-    () => mergeNumberConstraints(a, b, getRef),
+    () => mergeNumberConstraints(a, b, getRef, normalizeMergeMember),
     Error,
     'Merged schema has empty enum array'
   )

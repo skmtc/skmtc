@@ -1,5 +1,11 @@
 import { isRef } from '@/helpers/refFns.ts'
-import type { SchemaOrReference, ReferenceObject, SchemaObject, GetRefFn } from './types.ts'
+import type {
+  SchemaOrReference,
+  ReferenceObject,
+  SchemaObject,
+  GetRefFn,
+  NormalizeFn
+} from './types.ts'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
 import { checkReadOnlyWriteOnlyConflicts } from './check-read-only-write-only-conflicts.ts'
 import { checkFormatConflicts } from './check-format-conflicts.ts'
@@ -20,12 +26,16 @@ import { isEmpty } from '@/helpers/isEmpty.ts'
 import { isNullOnly, mergeNullOnly } from './nullable-merge.ts'
 
 export const mergeSchemasOrRefs = (
-  first: SchemaOrReference,
-  second: SchemaOrReference,
-  getRef: GetRefFn
+  inputFirst: SchemaOrReference,
+  inputSecond: SchemaOrReference,
+  getRef: GetRefFn,
+  normalize: NormalizeFn
 ): SchemaOrReference => {
+  const first = isRef(inputFirst) ? inputFirst : normalize(inputFirst)
+  const second = isRef(inputSecond) ? inputSecond : normalize(inputSecond)
+
   if (containsRef(first, second)) {
-    return mergeWithRef(first, second, getRef)
+    return mergeWithRef(first, second, getRef, normalize)
   }
 
   if (isRef(first)) {
@@ -37,21 +47,23 @@ export const mergeSchemasOrRefs = (
   }
 
   if (containsAllOf(first) || containsAllOf(second)) {
-    const mergedFirst = containsAllOf(first) ? mergeIntersection({ schema: first, getRef }) : first
+    const mergedFirst = containsAllOf(first)
+      ? mergeIntersection({ schema: first, getRef, normalize })
+      : first
 
     const mergedSecond = containsAllOf(second)
-      ? mergeIntersection({ schema: second, getRef })
+      ? mergeIntersection({ schema: second, getRef, normalize })
       : second
 
-    return mergeSchemasOrRefs(mergedFirst, mergedSecond, getRef)
+    return mergeSchemasOrRefs(mergedFirst, mergedSecond, getRef, normalize)
   }
 
   if (containsOneOf(first, second)) {
-    return mergeCrossProduct({ first, second, getRef, groupType: 'oneOf' })
+    return mergeCrossProduct({ first, second, getRef, normalize, groupType: 'oneOf' })
   }
 
   if (containsAnyOf(first, second)) {
-    return mergeCrossProduct({ first, second, getRef, groupType: 'anyOf' })
+    return mergeCrossProduct({ first, second, getRef, normalize, groupType: 'anyOf' })
   }
 
   if (isNullOnly(first)) {
@@ -62,7 +74,7 @@ export const mergeSchemasOrRefs = (
     return mergeNullOnly(first)
   }
 
-  return mergeSchemas(first, second, getRef)
+  return mergeSchemas(first, second, getRef, normalize)
 }
 
 const containsAllOf = (schema: SchemaObject): boolean => {
@@ -124,7 +136,8 @@ const containsRef = (first: SchemaOrReference, second: SchemaOrReference): boole
 const mergeSchemas = (
   first: SchemaObject,
   second: SchemaObject,
-  getRef: GetRefFn
+  getRef: GetRefFn,
+  normalize: NormalizeFn
 ): SchemaObject => {
   try {
     checkTypeConflicts(first, second)
@@ -142,36 +155,41 @@ const mergeSchemas = (
     throw new Error('Merging schemas with "not" keyword is not supported')
   }
 
-  return typedMerge(first, second, getRef)
+  return typedMerge(first, second, getRef, normalize)
 }
 
-const typedMerge = (first: SchemaObject, second: SchemaObject, getRef: GetRefFn): SchemaObject => {
+const typedMerge = (
+  first: SchemaObject,
+  second: SchemaObject,
+  getRef: GetRefFn,
+  normalize: NormalizeFn
+): SchemaObject => {
   if (!first.type && !second.type) {
-    return genericMerge(first, second, getRef)
+    return genericMerge(first, second, getRef, normalize)
   }
 
   if (checkAtLeastOneTypeMatch(first, second, 'object')) {
-    return mergeObjectConstraints(first, second, getRef)
+    return mergeObjectConstraints(first, second, getRef, normalize)
   }
 
   if (checkAtLeastOneTypeMatch(first, second, 'array')) {
-    return mergeArrayConstraints(first, second, getRef)
+    return mergeArrayConstraints(first, second, getRef, normalize)
   }
 
   if (checkAtLeastOneTypeMatch(first, second, 'string')) {
-    return mergeStringConstraints(first, second, getRef)
+    return mergeStringConstraints(first, second, getRef, normalize)
   }
 
   if (checkAtLeastOneTypeMatch(first, second, 'number')) {
-    return mergeNumberConstraints(first, second, getRef)
+    return mergeNumberConstraints(first, second, getRef, normalize)
   }
 
   if (checkAtLeastOneTypeMatch(first, second, 'integer')) {
-    return mergeIntegerConstraints(first, second, getRef)
+    return mergeIntegerConstraints(first, second, getRef, normalize)
   }
 
   if (checkAtLeastOneTypeMatch(first, second, 'boolean')) {
-    return mergeBooleanConstraints(first, second, getRef)
+    return mergeBooleanConstraints(first, second, getRef, normalize)
   }
 
   throw new Error(`Cannot merge schemas with type "${first.type}" with type "${second.type}"`)
@@ -180,8 +198,11 @@ const typedMerge = (first: SchemaObject, second: SchemaObject, getRef: GetRefFn)
 const mergeWithRef = (
   first: SchemaOrReference,
   second: SchemaOrReference,
-  getRef: (ref: ReferenceObject) => SchemaObject
+  getRef: GetRefFn,
+  normalize: NormalizeFn
 ): SchemaOrReference => {
+  const readRef = (ref: ReferenceObject): SchemaObject => normalize(getRef(ref))
+
   if (isRef(first) && isRef(second)) {
     if (first.$ref === second.$ref) {
       return {
@@ -189,18 +210,18 @@ const mergeWithRef = (
         ...second
       }
     } else {
-      return mergeSchemas(getRef(first), getRef(second), getRef)
+      return mergeSchemas(readRef(first), readRef(second), getRef, normalize)
     }
   }
 
   if (isRef(first) && !isRef(second)) {
-    const merged = isEmpty(second) ? first : mergeSchemas(getRef(first), second, getRef)
+    const merged = isEmpty(second) ? first : mergeSchemas(readRef(first), second, getRef, normalize)
 
     return merged
   }
 
   if (!isRef(first) && isRef(second)) {
-    const merged = isEmpty(first) ? second : mergeSchemas(first, getRef(second), getRef)
+    const merged = isEmpty(first) ? second : mergeSchemas(first, readRef(second), getRef, normalize)
 
     return merged
   }
