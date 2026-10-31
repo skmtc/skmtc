@@ -32,7 +32,13 @@ import { collectSourceFiles, type SourceFile } from '@/lib/source-upload.ts'
 import { parseScopedName } from '@/lib/scoped-name.ts'
 import { toProjectInstallCommand } from '@/lib/dependency-age.ts'
 import { pinServerForPublish, refreshProjectLock } from '@/lib/publish-server-pin.ts'
-import { errorMessage, rethrowTimeout } from '@/lib/api-publish-headless.ts'
+import {
+  errorMessage,
+  isTimeoutError,
+  readApiError,
+  rethrowTimeout,
+  toSentence
+} from '@/lib/api-publish-headless.ts'
 // One definition, in the module that owns the stored-auth shape. This file
 // used to declare its own copy of the same literal, which is how a default
 // hub silently drifts between `login` and `deploy`.
@@ -119,18 +125,18 @@ export const toDeployExitCode = (result: DeployHeadlessResult): number => {
 }
 
 /** The run again command, with or without `--existing`. */
-const toDeployCommand = (projectName: string, existing = false): string =>
+const toDeployInvocation = (projectName: string, existing = false): string =>
   `skmtc deploy ${projectName}${existing ? ' --existing' : ''}`
 
 /** The recipe when the version is already on the hub. */
 export const toVersionExistsMessage = (version: string, projectName: string): string =>
   `Version ${version} already exists. Bump \`version\` in deno.json, or run ` +
-  `\`${toDeployCommand(projectName, true)}\` to deploy the stored version.`
+  `\`${toDeployInvocation(projectName, true)}\` to deploy the stored version.`
 
 /** What a stored version that did not deploy needs: a fix and a new version. */
 export const toStoredFixMessage = (version: string, projectName: string): string =>
   `Version ${version} is stored and cannot change. Fix the problem, bump \`version\` ` +
-  `in deno.json, and run \`${toDeployCommand(projectName)}\` again.`
+  `in deno.json, and run \`${toDeployInvocation(projectName)}\` again.`
 
 /**
  * The lines that report a deployed result, shared by the text output and the
@@ -161,9 +167,6 @@ export const toDeployedLines = (
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
-
-const isTimeout = (error: unknown): boolean =>
-  error instanceof DOMException && error.name === 'TimeoutError'
 
 /**
  * Read the project root `deno.json` field `key` as a string, or `undefined`
@@ -239,6 +242,14 @@ export class VersionExistsError extends Error {
   }
 }
 
+/** The upload succeeded, but its answer could not be read: the version is stored. */
+export class StoredVersionUnreadableError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'StoredVersionUnreadableError'
+  }
+}
+
 /**
  * Whether `version` is already stored. Only a 200 counts as stored: a 404, a
  * refusal or no answer lets the upload go ahead, and its 409 still catches a
@@ -278,7 +289,9 @@ export const isVersionStored = async ({
  * POST the version + source tree in one atomic multipart request and parse
  * the returned StackVersion. The hub writes R2, computes the source content
  * identity, reconciles the composition, and returns the complete version.
- * A 409 throws {@link VersionExistsError}.
+ * Returns the version as the hub stored it. A 409 throws
+ * {@link VersionExistsError}; a 2xx with an unreadable body throws
+ * {@link StoredVersionUnreadableError}.
  *
  * Exported for tests.
  */
@@ -298,7 +311,7 @@ export const uploadVersion = async ({
   version: string
   projectName: string
   files: SourceFile[]
-}): Promise<StackUpload> => {
+}): Promise<{ version: string; upload: StackUpload }> => {
   if (files.length === 0) throw new Error('no source files to upload')
 
   const form = new FormData()
@@ -326,24 +339,33 @@ export const uploadVersion = async ({
     throw new Error(`version upload failed (${response.status}): ${text.slice(0, 500)}`)
   }
 
-  const payload: unknown = await response.json()
-  if (!isObject(payload)) throw new Error('hub returned non-object payload')
+  // A 2xx means the hub stored the version, whatever the body says.
+  const unreadable = new StoredVersionUnreadableError(
+    `the hub stored version ${version} but answered with an unexpected payload. ` +
+      `Run \`${toDeployInvocation(projectName, true)}\` to deploy it.`
+  )
+  const payload: unknown = await response.json().catch(() => undefined)
+  if (!isObject(payload)) throw unreadable
+  const storedVersion = payload['version']
   const versionUrl = payload['htmlUrl']
   const sourceHash = payload['sourceHash']
   const sourceField = payload['source']
-  if (typeof versionUrl !== 'string' || typeof sourceHash !== 'string' || !isObject(sourceField)) {
-    throw new Error('hub stack version payload had unexpected shape')
+  if (
+    typeof storedVersion !== 'string' ||
+    typeof versionUrl !== 'string' ||
+    typeof sourceHash !== 'string' ||
+    !isObject(sourceField)
+  ) {
+    throw unreadable
   }
   const sourceFileCount = sourceField['fileCount']
   const sourceTotalBytes = sourceField['totalBytes']
   if (typeof sourceFileCount !== 'number' || typeof sourceTotalBytes !== 'number') {
-    throw new Error('hub stack version payload had unexpected source shape')
+    throw unreadable
   }
   return {
-    versionUrl,
-    sourceHash,
-    sourceFileCount,
-    sourceTotalBytes
+    version: storedVersion,
+    upload: { versionUrl, sourceHash, sourceFileCount, sourceTotalBytes }
   }
 }
 
@@ -352,17 +374,6 @@ const isStatus = (value: unknown): value is StackServerStatus =>
 
 const toNullableString = (value: unknown): string | null =>
   typeof value === 'string' ? value : null
-
-/** The hub's error message from a JSON `{ message }` body, else the raw text. */
-const toHubMessage = (text: string): string => {
-  try {
-    const parsed: unknown = JSON.parse(text)
-    if (isObject(parsed) && typeof parsed['message'] === 'string') return parsed['message']
-  } catch {
-    // Not JSON: the text itself.
-  }
-  return text.slice(0, 500) || '(empty response)'
-}
 
 type DeployVersionOutcome =
   | { type: 'deployed'; deploy: StackDeploy }
@@ -373,8 +384,8 @@ type DeployVersionOutcome =
  * `{ version }` only, never `promote`. The route is idempotent, so a run
  * after a timeout deploys the same version again.
  *
- * `existing` changes the advice: a version the hub does not have needs the
- * upload, and a stored version cannot be assumed.
+ * With `existing`, a 404 or 422 means the version may not be stored: the
+ * advice is the upload, without `--existing`.
  *
  * Exported for tests.
  */
@@ -406,16 +417,18 @@ export const deployVersion = async ({
     })
 
     if (!response.ok) {
-      const hubMessage = toHubMessage(await response.text())
+      const { message, requestId } = await readApiError(response)
+      const hubMessage =
+        toSentence(message ?? 'the hub gave no reason') +
+        (requestId ? ` (request id: ${requestId})` : '')
       const status = response.status
       if (status === 401 || status === 403) {
-        const refused = existing
-          ? `The hub refused to deploy version ${version}`
-          : `Version ${version} is stored, but the hub refused the deploy`
         return {
           type: 'failed',
-          stored: !existing,
-          reason: `${refused} (${status}): ${hubMessage}. The token needs the \`write:releases\` scope.`
+          stored: true,
+          reason:
+            `Version ${version} is stored, but the hub refused the deploy (${status}): ` +
+            `${hubMessage} The token needs the \`write:releases\` scope.`
         }
       }
       if (existing && (status === 404 || status === 422)) {
@@ -423,15 +436,25 @@ export const deployVersion = async ({
           type: 'failed',
           stored: false,
           reason:
-            `The hub cannot deploy version ${version} (${status}): ${hubMessage}. ` +
-            `If the version is not stored yet, run \`${toDeployCommand(projectName)}\` without \`--existing\`.`
+            `The hub cannot deploy version ${version} (${status}): ${hubMessage} ` +
+            `If the version is not stored yet, run \`${toDeployInvocation(projectName)}\` without \`--existing\`.`
         }
       }
+      // The version cannot deploy as it is.
+      if ([400, 404, 409, 422].includes(status)) {
+        return {
+          type: 'failed',
+          stored: true,
+          reason: `deploy failed (${status}): ${hubMessage} ${toStoredFixMessage(version, projectName)}`
+        }
+      }
+      // Any other status says nothing about the version: deploy it again.
       return {
         type: 'failed',
         stored: true,
         reason:
-          `deploy failed (${status}): ${hubMessage}. ` + toStoredFixMessage(version, projectName)
+          `deploy failed (${status}): ${hubMessage} Version ${version} is stored. ` +
+          `Run \`${toDeployInvocation(projectName, true)}\` to deploy it again.`
       }
     }
 
@@ -442,7 +465,7 @@ export const deployVersion = async ({
         stored: true,
         reason:
           `the hub answered the deploy with an unexpected payload. Version ${version} is stored; ` +
-          `check it on the hub, or run \`${toDeployCommand(projectName, true)}\` to deploy it again.`
+          `check it on the hub, or run \`${toDeployInvocation(projectName, true)}\` to deploy it again.`
       }
     }
     return {
@@ -455,16 +478,15 @@ export const deployVersion = async ({
       }
     }
   } catch (err) {
-    const lead = isTimeout(err)
+    const lead = isTimeoutError(err)
       ? `deploy not confirmed: the hub did not answer within ${timeoutMs / 1000} s.`
       : `deploy not confirmed: cannot reach the hub at ${origin}: ${errorMessage(err)}.`
-    const stored = existing ? `Version ${version}` : `Version ${version} is stored; it`
     return {
       type: 'failed',
-      stored: !existing,
+      stored: true,
       reason:
-        `${lead} ${stored} may still deploy. ` +
-        `Run \`${toDeployCommand(projectName, true)}\` to deploy it again.`
+        `${lead} Version ${version} is stored; it may still deploy. ` +
+        `Run \`${toDeployInvocation(projectName, true)}\` to deploy it again.`
     }
   }
 }
@@ -523,7 +545,7 @@ export const deployHeadless = async ({
       if (!files.some(file => file.path === 'deno.lock')) {
         throw new Error(
           `deno.lock not found in the upload — the hub requires it. Run \`${toProjectInstallCommand()}\` ` +
-            `in the project (and make sure .skmtcignore does not exclude deno.lock), then run \`${toDeployCommand(projectName)}\` again.`
+            `in the project (and make sure .skmtcignore does not exclude deno.lock), then run \`${toDeployInvocation(projectName)}\` again.`
         )
       }
       // Without this pin the hub cannot build the version's server.
@@ -540,9 +562,21 @@ export const deployHeadless = async ({
     }
 
     try {
-      upload = await uploadVersion({ origin, token, account, slug, version, projectName, files })
+      const stored = await uploadVersion({
+        origin,
+        token,
+        account,
+        slug,
+        version,
+        projectName,
+        files
+      })
+      // Deploy and report the version as the hub stored it.
+      version = stored.version
+      upload = stored.upload
     } catch (err) {
-      return fail(err instanceof VersionExistsError ? 'exists' : 'upload', err)
+      if (err instanceof VersionExistsError) return fail('exists', err)
+      return fail('upload', err, err instanceof StoredVersionUnreadableError)
     }
   }
 

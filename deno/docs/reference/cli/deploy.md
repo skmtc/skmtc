@@ -128,7 +128,9 @@ in step 5 fails, the output says that the version is stored:
 | The server status is `error` | `deploy: error` and the `statusReason`. Fix the problem, bump `version`, deploy again. | 1 |
 | `400`, `404`, `409` or `422` from the deploy | The hub's reason, for example `Stack version '3.0.1' failed to deploy: <reason>`. Fix the problem, bump `version`, deploy again. | 1 |
 | `401` or `403` from the deploy | The hub refused the deploy; the token needs the `write:releases` scope. | 1 |
+| Another status from the deploy, for example `503` | The hub's reason. Run `skmtc deploy <project> --existing`. | 1 |
 | No answer in 120 s | `deploy not confirmed`. Run `skmtc deploy <project> --existing`. | 1 |
+| A `2xx` from the upload that the CLI cannot read | Stage `upload`, `stored: true`. Run `skmtc deploy <project> --existing`. | 1 |
 
 The statuses `deploying`, `idle` and `paused` print as the hub returns
 them and exit 0. Only `error` exits 1.

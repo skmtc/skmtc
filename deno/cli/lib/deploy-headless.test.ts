@@ -68,7 +68,7 @@ const toDeployed = (result: DeployHeadlessResult) => {
 /** Run a full deploy of the fixture project against `answers`. */
 const runDeploy = async (
   answers: Parameters<typeof withStackHub>[0],
-  { existing = false }: { existing?: boolean } = {}
+  { existing = false, version }: { existing?: boolean; version?: string } = {}
 ) => {
   await using project = await makeStackProject()
   let result: DeployHeadlessResult | undefined
@@ -79,6 +79,7 @@ const runDeploy = async (
       token: 'pat-123',
       origin: 'https://hub.test',
       existing,
+      version,
       refreshLock: noRefresh
     })
   })
@@ -122,10 +123,13 @@ Deno.test('uploadVersion - POSTs multipart version + files to the versions endpo
     assertEquals(filenames, ['deno.json', 'src/mod.ts'])
 
     assertEquals(result, {
-      versionUrl: 'https://skmtc.dev/acme/stacks/my-api/versions/3.0.1',
-      sourceHash: 'cafef00d',
-      sourceFileCount: 2,
-      sourceTotalBytes: 11
+      version: '3.0.1',
+      upload: {
+        versionUrl: 'https://skmtc.dev/acme/stacks/my-api/versions/3.0.1',
+        sourceHash: 'cafef00d',
+        sourceFileCount: 2,
+        sourceTotalBytes: 11
+      }
     })
   } finally {
     globalThis.fetch = originalFetch
@@ -493,8 +497,81 @@ for (const status of [404, 422]) {
 
     const failed = toFailed(result)
     assertEquals(failed.stage, 'deploy')
+    assertEquals(failed.stored, false)
     assertStringIncludes(failed.reason, 'no such version')
     assertStringIncludes(failed.reason, 'run `skmtc deploy my-api` without `--existing`')
     assertEquals(toDeployExitCode(result), 1)
   })
 }
+
+for (const status of [500, 502, 503]) {
+  Deno.test(`deployHeadless - a ${status} from the deploy says to deploy again, not to bump`, async () => {
+    const { result } = await runDeploy({
+      deploy: () => toJsonResponse({ code: 'x', message: 'bad gateway' }, status)
+    })
+
+    const failed = toFailed(result)
+    assertEquals(failed.stored, true)
+    assertStringIncludes(failed.reason, 'Version 3.0.1 is stored')
+    assertStringIncludes(failed.reason, '`skmtc deploy my-api --existing`')
+    assertEquals(failed.reason.includes('bump'), false)
+    assertEquals(toDeployExitCode(result), 1)
+  })
+}
+
+Deno.test('deployHeadless - a hub message ending in a period gets no second one', async () => {
+  const { result } = await runDeploy({
+    deploy: () => toJsonResponse({ message: 'Module not found.', requestId: 'req-42' }, 422)
+  })
+  const reason = toFailed(result).reason
+  assertStringIncludes(reason, 'Module not found. (request id: req-42)')
+  assertEquals(reason.includes('..'), false)
+})
+
+for (const answers of [
+  { deploy: () => toJsonResponse({ message: 'no' }, 403) },
+  { deploy: () => toJsonResponse({ message: 'down' }, 503) }
+]) {
+  Deno.test('deployHeadless - with --existing, a refused or failed deploy is still stored', async () => {
+    const { result } = await runDeploy(answers, { existing: true })
+    assertEquals(toFailed(result).stored, true)
+  })
+}
+
+Deno.test('deployVersion - with --existing, no answer is still stored', async () => {
+  const outcome = await withNeverAnsweringFetch(() =>
+    deployVersion({
+      origin: 'https://hub.test',
+      token: 'pat-123',
+      account: 'acme',
+      slug: 'my-api',
+      version: '3.0.1',
+      projectName: 'my-api',
+      existing: true,
+      timeoutMs: 10
+    })
+  )
+  if (outcome.type !== 'failed') throw new Error('expected a failure')
+  assertEquals(outcome.stored, true)
+})
+
+Deno.test('deployHeadless - a 2xx upload with an unreadable body is stored and not deployed', async () => {
+  const { result, calls } = await runDeploy({
+    upload: () => new Response('not json', { status: 201 })
+  })
+
+  const failed = toFailed(result)
+  assertEquals(failed.stage, 'upload')
+  assertEquals(failed.stored, true)
+  assertStringIncludes(failed.reason, '`skmtc deploy my-api --existing`')
+  assertEquals(calls.map(call => call.path).includes(DEPLOY_PATH), false)
+})
+
+Deno.test('deployHeadless - deploys and reports the version as the hub stored it', async () => {
+  const { result, calls } = await runDeploy({}, { version: 'v3.0.1' })
+
+  const deployBody = calls.find(call => call.path === DEPLOY_PATH)?.body
+  if (typeof deployBody !== 'string') throw new Error('expected a deploy body')
+  assertEquals(JSON.parse(deployBody), { version: '3.0.1' })
+  assertEquals(toDeployed(result).version, '3.0.1')
+})
