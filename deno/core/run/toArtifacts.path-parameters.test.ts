@@ -71,4 +71,14 @@ Deno.test('toArtifacts - a malformed path-level parameter drops only its operati
       { level: 'error', type: 'INVALID_OPERATION', location: 'parse:paths:/games/{appid}:get' }
     ]
   )
+
+  // The message names the entry by its place in the document, without the
+  // run's `parse` frame.
+  const operationMessages = result.manifest.parseIssues
+    .filter(({ type }) => type === 'INVALID_OPERATION')
+    .map(({ message }) => message.split(' failed to parse: ')[0])
+  assertEquals(operationMessages, [
+    'Path-level parameter paths:/molecules:parameters',
+    'Path-level parameter paths:/games/{appid}:parameters:0'
+  ])
 })

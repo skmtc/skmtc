@@ -215,8 +215,8 @@ That parameter overrides the entry, and Skmtc keeps the operation.
 An entry without a string `name` and `in`, or a path-level
 `parameters` field that is not a list, applies to every operation on
 the path. The message is `Path-level parameter <location> failed to
-parse: <message>`, where `<location>` is the location of the
-`INVALID_PARAMETER` error.
+parse: <message>`. The `<location>` is the place of the entry in the
+document, for example `paths:/items:parameters:0`.
 
 **Example location:** `paths:/accounts:post` (operation),
 `servers:1` (servers entry)

@@ -217,6 +217,24 @@ export class StackTrail {
    * ```
    */
   toSchemaPointer(): JsonPointer {
+    return toJsonPointer(this.#toDocumentFrames())
+  }
+
+  /**
+   * The document-relative trail in {@link toString} form: the frames that
+   * {@link toSchemaPointer} keeps, joined with `:`.
+   *
+   * @example
+   * ```typescript
+   * new StackTrail(['trace-1', 'span-1', 'parse', 'paths', '/pets', 'parameters', '0'])
+   *   .toDocumentString() // 'paths:/pets:parameters:0'
+   * ```
+   */
+  toDocumentString(): string {
+    return toTrailString(this.#toDocumentFrames())
+  }
+
+  #toDocumentFrames(): string[] {
     // Phase frames seeded by `CoreContext.toArtifacts` (PhaseType plus the
     // `post-pass` trace). The operational phase always sits before any
     // document key, so the FIRST match is the boundary — a document key
@@ -224,9 +242,8 @@ export class StackTrail {
     // `parse`) appears later and is unaffected.
     const phaseFrames = new Set(['parse', 'generate', 'render', 'post-pass'])
     const phaseIndex = this.#stack.findIndex(frame => phaseFrames.has(frame))
-    const documentFrames = phaseIndex === -1 ? this.#stack : this.#stack.slice(phaseIndex + 1)
 
-    return toJsonPointer(documentFrames)
+    return phaseIndex === -1 ? this.#stack : this.#stack.slice(phaseIndex + 1)
   }
 
   toStackRef(): string | undefined {
@@ -325,9 +342,7 @@ export class StackTrail {
    * ```
    */
   toString(): string {
-    return this.#stack
-      .map(frame => frame.replace(/[%:]/g, character => escapes[character]))
-      .join(':')
+    return toTrailString(this.#stack)
   }
 
   /**
@@ -357,3 +372,6 @@ export class StackTrail {
 const escapes: Record<string, string> = { '%': '%25', ':': '%3A' }
 
 const decodes: Record<string, string> = { '25': '%', '3A': ':' }
+
+const toTrailString = (frames: string[]): string =>
+  frames.map(frame => frame.replace(/[%:]/g, character => escapes[character])).join(':')

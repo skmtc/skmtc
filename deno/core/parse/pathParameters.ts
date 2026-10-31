@@ -42,7 +42,7 @@ export const toParameterEntries = <Entry>({
 
 /** A path-level parameter entry, or the whole field, that failed to parse. */
 export type BrokenPathParameter = {
-  /** Trail of the entry, or of the `parameters` field when it is not an array. */
+  /** Document-relative trail of the entry, or of the `parameters` field when it is not an array. */
   location: string
   /** Set only when the raw entry has string `name` and `in`. */
   name?: string
@@ -105,7 +105,7 @@ export const toPathParameterList = <Entry, Parameter>({
       type: 'INVALID_PARAMETER'
     })
 
-    return { location: st.toString(), message: normalized.message }
+    return { location: st.toDocumentString(), message: normalized.message }
   }
 
   const readEntries = (): { entries: Entry[] | undefined } | { broken: BrokenPathParameter } => {
@@ -158,7 +158,7 @@ export const toPathParameterList = <Entry, Parameter>({
  * A `$ref` operation parameter cannot be resolved during parse, so it
  * overrides nothing.
  */
-export const toApplyingBrokenParameter = ({
+const toApplyingBrokenParameter = ({
   broken,
   operation
 }: {
@@ -166,6 +166,10 @@ export const toApplyingBrokenParameter = ({
   /** The raw operation object. */
   operation: unknown
 }): BrokenPathParameter | undefined => {
+  if (broken.length === 0) {
+    return undefined
+  }
+
   const operationParameters =
     typeof operation === 'object' &&
     operation !== null &&
@@ -189,19 +193,30 @@ export const toApplyingBrokenParameter = ({
   )
 }
 
-/** Logs the `INVALID_OPERATION` error for an operation dropped because of a path-level parameter. */
-export const logPathParameterDrop = ({
-  broken,
+/**
+ * True when a broken path-level parameter applies to the operation. Logs
+ * one `INVALID_OPERATION` error at the operation that names the first
+ * such entry.
+ */
+export const isDroppedByPathParameter = ({
+  brokenParameters,
   operation,
   stackTrail,
   context
 }: {
-  broken: BrokenPathParameter
+  brokenParameters: BrokenPathParameter[]
+  /** The raw operation object. */
   operation: unknown
   /** Trail that ends in the operation's method. */
   stackTrail: StackTrail
   context: ParseContextType
-}) => {
+}): boolean => {
+  const broken = toApplyingBrokenParameter({ broken: brokenParameters, operation })
+
+  if (!broken) {
+    return false
+  }
+
   context.logIssueNoKey({
     parent: operation,
     level: 'error',
@@ -209,4 +224,6 @@ export const logPathParameterDrop = ({
     stackTrail,
     type: 'INVALID_OPERATION'
   })
+
+  return true
 }
