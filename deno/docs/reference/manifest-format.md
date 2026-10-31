@@ -335,13 +335,16 @@ The CLI writes the lines to
 `.skmtc/<project>/.settings/logs.ndjson`, one JSON object on each line.
 Each run replaces the file. A bundle that pins a core without `logs`
 gives no lines, and the CLI then removes the old file. `skmtc deploy`
-does not upload the file, because the stacks hold local paths.
+does not upload this file or `manifest.json`, because the stacks in
+them hold local paths.
 `@skmtc/server` returns the lines in the `logs` array of its
 `POST /artifacts` response.
 
-The `trail` of a line is its key in `results`. Split it on `:` (with
-`StackTrail.fromString`), and use the frames in sequence as keys into
-`results`. The frames of an `ERROR` line end at a leaf
+The `trail` of a line is its key in `results`. Read it back with
+`StackTrail.fromString`, and use the frames in sequence as keys into
+`results`. In other languages, split the trail on `:`, then change
+`%3A` to `:` and `%25` to `%` in each frame. A frame such as the path
+`/v1/{name}:cancel` holds these characters. The frames of an `ERROR` line end at a leaf
 that is `'error'`. To list the errors with their items:
 
 ```bash

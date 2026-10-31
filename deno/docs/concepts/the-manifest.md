@@ -157,7 +157,11 @@ reads `'warning'`. A line logged outside an item records no result.
 A leaf says *that* an item failed. The log lines that `toArtifacts`
 returns beside the manifest (`logs`) say *why*. When a transform logs
 a line, the line carries the stack trail of the item in `trail`. That
-string is the key of the item in `results`, split on `:`. Thus the
+string is the key of the item in `results`.
+
+`StackTrail.fromString`
+reads it back into the frames. It also decodes `%3A` and `%25`, which
+stand for a `:` or `%` inside a frame. Thus the
 `ERROR` line of a failed item and its `'error'` leaf join by the
 trail, and the manifest carries no messages or stacks:
 
