@@ -74,7 +74,7 @@ a path share its path-level `parameters` entries, so a broken
 parameter there removes each of those operations.
 
 **Typical message:** `Depends on '#/components/schemas/X', removed
-because of the error at 'parse:components:schemas:X:properties:p': <the
+because of the error at '<traceId>:<spanId>:parse:components:schemas:X:properties:p': <the
 error's message>`. The location and message are those of the error
 that started the removal. The location is the same string as the
 `location` of that error in `parseIssues`.

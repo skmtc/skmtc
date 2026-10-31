@@ -24,6 +24,7 @@ import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
 import { OasObject } from '@/oas/object/Object.ts'
+import { OasUnion } from '@/oas/union/Union.ts'
 import type { RefName } from '@/types/RefName.ts'
 
 const mockLogger: log.Logger = {
@@ -203,6 +204,29 @@ Deno.test('ParseContext (gql) - union member references to errored type are prun
   assertEquals(depRef.length, 1)
   // Union members are addressed as `[UnionName, members, <index>]`.
   assertEquals(depRef[0].location.startsWith('Content:members:'), true)
+})
+
+Deno.test('ParseContext (gql) - two errored members of one union each remove their own member', () => {
+  const ctx = makeGqlContext(`
+    type A { id: ID! }
+    type B { id: ID! }
+    type C { id: ID! }
+    union Content = A | B | C
+    type Query { _: Boolean }
+  `)
+  ctx.registerRefError(new Error('A failed'), 'A')
+  ctx.registerRefError(new Error('B failed'), 'B')
+  ctx.parse(new StackTrail(['t', 's', 'parse']))
+  // A second run finds nothing more to remove.
+  ctx.removeErroredItems()
+
+  const content = ctx.registry.schemas['Content' as RefName]
+  if (!(content instanceof OasUnion)) throw new Error('expected Content to be an OasUnion')
+  assertEquals(
+    content.members.map(member => (member.isRef() ? member.toRefName() : member.type)),
+    ['C']
+  )
+  assertEquals(ctx.issues.filter(i => i.type === 'INVALID_DEPENDENCY_REF').length, 2)
 })
 
 Deno.test('ParseContext (gql) - a type that throws in tryParseAt names its location in the pruned consumer', () => {

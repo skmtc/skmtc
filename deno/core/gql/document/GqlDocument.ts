@@ -5,6 +5,8 @@ import type { OasInfo } from '@/oas/info/Info.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import { OasObject } from '@/oas/object/Object.ts'
 import { OasUnion } from '@/oas/union/Union.ts'
+import type { OasSchema } from '@/oas/schema/Schema.ts'
+import type { OasRef } from '@/oas/ref/Ref.ts'
 
 /**
  * Fields used to construct (or populate) a {@link GqlDocument}.
@@ -49,6 +51,8 @@ export class GqlDocument {
 
   /** @internal Private fields storage — set after parsing. */
   #fields: GqlDocumentFields | undefined
+  /** Members of each union as they were before `removeItem` first removed one. */
+  #parseTimeMembers: WeakMap<OasUnion, (OasSchema | OasRef<'schema'>)[]> = new WeakMap()
 
   /**
    * Creates a new GqlDocument instance.
@@ -153,9 +157,15 @@ export class GqlDocument {
     if (second === 'members' && typeof third === 'string') {
       const parent = registry.schemas[first as keyof typeof registry.schemas]
       if (parent instanceof OasUnion) {
-        const idx = Number.parseInt(third, 10)
-        if (!Number.isFinite(idx) || idx < 0 || idx >= parent.members.length) return undefined
-        const [removed] = parent.members.splice(idx, 1)
+        // The index is the member's position at parse time. Look the member up
+        // in the list as it was before the first removal, so an earlier
+        // removal does not shift it.
+        const parseTimeMembers = this.#parseTimeMembers.get(parent) ?? [...parent.members]
+        this.#parseTimeMembers.set(parent, parseTimeMembers)
+        const member = parseTimeMembers[Number.parseInt(third, 10)]
+        const index = member === undefined ? -1 : parent.members.indexOf(member)
+        if (index === -1) return undefined
+        const [removed] = parent.members.splice(index, 1)
         return removed
       }
       return undefined
