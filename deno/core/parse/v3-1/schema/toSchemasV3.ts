@@ -18,6 +18,7 @@ import { mergeUnion } from '../_merge-all-of/merge-union.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import {
+  isNullOnlyType,
   normalizeMergeMember,
   normalizeSchemaShape
 } from '@/parse/v3-1/schema/normalize-schema-shape.ts'
@@ -113,16 +114,14 @@ const withoutWrapperUnevaluatedProperties = ({
 }
 
 /**
- * Is this a 3.1 `{ type: 'null' }` schema member? (`'null'` is a 3.1 type
- * literal the 3.0-typed SchemaObject does not model, so read it loosely.)
+ * Is this a 3.1 null-only schema member (`type: 'null'` or `['null']`)?
  */
 const isNullTypeSchema = (member: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject): boolean => {
   if (isRef(member)) {
     return false
   }
 
-  const type: unknown = member.type
-  return type === 'null'
+  return isNullOnlyType(member.type)
 }
 
 /**

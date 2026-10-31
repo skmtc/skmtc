@@ -215,6 +215,16 @@ Deno.test('merge member normalization', async t => {
     assertEquals(schemas.ReasoningConfig.nullable, true)
   })
 
+  await t.step("a oneOf member with type ['null'] makes the union nullable", () => {
+    const { schemas, errors } = parseSchemas({
+      Name: { oneOf: [{ type: 'string' }, { type: ['null'] }] }
+    })
+
+    assertEquals(errors, [])
+    assert(schemas.Name instanceof OasString)
+    assertEquals(schemas.Name.nullable, true)
+  })
+
   await t.step("shape 5: 'array' against ['array', 'null']", () => {
     const { schemas, errors } = parseSchemas({
       Items: {

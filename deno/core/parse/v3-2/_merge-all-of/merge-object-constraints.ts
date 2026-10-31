@@ -3,7 +3,7 @@ import { mergeSchemasOrRefs } from './merge.ts'
 import { genericMerge } from './generic-merge.ts'
 import * as v from 'valibot'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
-import type { GetRefFn, NormalizeFn } from './types.ts'
+import type { GetRefFn, NormalizeFn } from '@/parse/v3-2/_merge-all-of/types.ts'
 type SchemaObject = OpenAPIV3.SchemaObject
 
 export const mergeObjectConstraints = (

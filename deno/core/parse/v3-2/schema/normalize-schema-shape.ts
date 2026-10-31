@@ -249,7 +249,7 @@ export const normalizeSchemaShape = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.
  * Is `type` only `null` (`'null'` or `['null']`)? `'null'` is a 3.1 type the
  * 3.0-typed SchemaObject does not model, so read it loosely.
  */
-const isNullOnlyType = (type: unknown): boolean =>
+export const isNullOnlyType = (type: unknown): boolean =>
   type === 'null' || (Array.isArray(type) && type.length > 0 && type.every(item => item === 'null'))
 
 /**
