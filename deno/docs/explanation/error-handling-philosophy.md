@@ -298,8 +298,16 @@ reports a summary; the manifest reports every decision.
 
 ### The `results` map
 
-Nested: `traceId → spanId → "generate" → generatorId → identifier →
-ResultType`.
+Nested: `traceId → spanId → "generate" → generatorId → item →
+"variant" → variant → ResultType`. The item is one to three levels:
+
+- OAS operation: `[path][method]`
+- Webhook: `["webhook"][name][method]`
+- GraphQL operation: `[rootKind][fieldName]`
+- Model: `[refName]`
+
+See
+[manifest format → results](../reference/manifest-format.md#results).
 
 ```jsonc
 {
@@ -307,11 +315,15 @@ ResultType`.
     "span-1778185255674": {
       "generate": {
         "@skmtc/gen-shadcn-form": {
-          "mutation_CreateApplicant": "success",
-          "query_GetApplicants": "notSupported"
+          "mutation": {
+            "CreateApplicant": { "variant": { "main": "success" } }
+          },
+          "query": {
+            "GetApplicants": { "variant": { "main": "notSupported" } }
+          }
         },
         "@skmtc/gen-zod": {
-          "ApplicantModel": "error"
+          "ApplicantModel": { "variant": { "main": "error" } }
         }
       }
     }

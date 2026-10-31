@@ -110,7 +110,7 @@ jq '.results[][].generate | [paths(. == "skipped")]' \
 ```
 
 Each result is the path to one skipped item, for example
-`["@skmtc/gen-zod", "/pets", "get", "variant", "main"]`.
+`["@skmtc/gen-md-docs", "/pets", "get", "variant", "main"]`.
 
 Each leaf in `results` is one of `success`, `warning`, `error`,
 `skipped`, or `notSupported`. `skipped` means an item matched a
