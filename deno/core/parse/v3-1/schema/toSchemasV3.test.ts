@@ -1329,16 +1329,39 @@ Deno.test('toSchemaV3 - OpenAPI 3.1 unevaluatedProperties', async t => {
     assertEquals(context.issues, [])
   })
 
-  await t.step('with if/then on the schema, it is not read as additionalProperties', () => {
-    const result = parse(
-      '{"type":"object","if":{"required":["a"]},"then":{"required":["b"]},"unevaluatedProperties":false}'
-    )
+  const applicatorCases = [
+    {
+      name: 'if/then',
+      json: '{"type":"object","if":{"required":["a"]},"then":{"required":["b"]},"unevaluatedProperties":false}'
+    },
+    {
+      name: '$dynamicRef',
+      json: '{"type":"object","$dynamicRef":"#node","unevaluatedProperties":false}'
+    }
+  ]
 
-    assert(result instanceof OasObject)
-    assertEquals(result.additionalProperties, undefined)
-  })
+  for (const { name, json } of applicatorCases) {
+    await t.step(`with ${name} on the schema, it is not read as additionalProperties`, () => {
+      const context = realContext()
+      const result = parse(json, context)
+
+      assert(result instanceof OasObject)
+      assertEquals(result.additionalProperties, undefined)
+      assert(
+        context.issues.some(
+          issue =>
+            issue.type === 'UNEXPECTED_PROPERTY' &&
+            issue.message.includes("'unevaluatedProperties'")
+        )
+      )
+    })
+  }
 
   const composedCases = [
+    {
+      name: 'anyOf',
+      json: '{"anyOf":[{"type":"object","properties":{"a":{"type":"string"}}},{"type":"object","properties":{"b":{"type":"string"}}}],"unevaluatedProperties":false}'
+    },
     {
       name: 'allOf',
       json: '{"allOf":[{"type":"object","properties":{"a":{"type":"string"}}},{"type":"object","properties":{"b":{"type":"string"}}}],"unevaluatedProperties":false}'

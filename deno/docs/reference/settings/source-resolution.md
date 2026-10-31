@@ -394,11 +394,17 @@ that the 3.0 form of the schema gives:
 | `exclusiveMinimum: 5` (a number) | A minimum of `5` that excludes `5` |
 | `contentMediaType: application/octet-stream` on a string with no `format` | `format: binary` |
 | `contentEncoding: base64` on a string with no `format` | `format: byte` |
-| `unevaluatedProperties` with no `allOf`, `oneOf`, `anyOf`, `if`, `then`, `else` or `dependentSchemas` | `additionalProperties` with the same value |
+| `unevaluatedProperties` with no `additionalProperties` and no `allOf`, `oneOf`, `anyOf`, `if`, `then`, `else`, `dependentSchemas` or `$dynamicRef` | `additionalProperties` with the same value |
+
+When the schema also has `additionalProperties`, the parsers keep
+`additionalProperties` and drop `unevaluatedProperties` without a
+warning.
 
 When a schema has `unevaluatedProperties` together with `allOf`,
 `oneOf` or `anyOf`, the parsers do not read it. The parse removes it
-and records an `UNEXPECTED_PROPERTY` warning.
+and records an `UNEXPECTED_PROPERTY` warning. With `if`, `then`,
+`else`, `dependentSchemas` or `$dynamicRef`, the parsers also do not
+read it, and the parse records the same warning.
 
 ### What if my spec has external `$ref`s?
 

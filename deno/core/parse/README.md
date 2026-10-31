@@ -195,8 +195,10 @@ silently in the operation parser.
 - **`unevaluatedProperties` next to `allOf`/`oneOf`/`anyOf`** is not mapped.
   The parser removes it from the wrapper before the merge and records an
   `UNEXPECTED_PROPERTY` warning. With none of `allOf`, `oneOf`, `anyOf`,
-  `if`, `then`, `else` or `dependentSchemas` on the schema, it is read as
-  `additionalProperties`.
+  `if`, `then`, `else`, `dependentSchemas` or `$dynamicRef` on the schema, it
+  is read as `additionalProperties`. When the schema also has
+  `additionalProperties`, that keyword is kept and `unevaluatedProperties` is
+  dropped without a warning.
 - **Conditional schemas (`if`/`then`/`else`, `dependentSchemas`,
   `patternProperties`)** are not mapped — a deliberate non-goal (rarely
   codegen-able); they fall through as skipped fields.

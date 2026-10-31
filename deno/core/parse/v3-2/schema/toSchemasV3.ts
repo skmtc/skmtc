@@ -240,7 +240,16 @@ const normalizeContentFormat = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.Schem
  * In-place applicators that evaluate keys `unevaluatedProperties` would
  * otherwise see. `$ref` and `not` never reach `normalizeSchemaShape`.
  */
-const inPlaceApplicators = ['allOf', 'oneOf', 'anyOf', 'if', 'then', 'else', 'dependentSchemas']
+const inPlaceApplicators = [
+  'allOf',
+  'oneOf',
+  'anyOf',
+  'if',
+  'then',
+  'else',
+  'dependentSchemas',
+  '$dynamicRef'
+]
 
 /**
  * With no in-place applicator on the same schema, `unevaluatedProperties`
