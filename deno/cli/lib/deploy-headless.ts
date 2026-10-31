@@ -135,16 +135,15 @@ export type DeployInvocation = {
   env?: HubEnv
 }
 
-/** `skmtc deploy <project> --existing`, with this run's `--version` and `--env`. */
-const toRetryCommand = ({ projectName, version, env }: DeployInvocation): string =>
-  [
-    `skmtc deploy ${projectName}`,
-    version ? `--version ${version}` : '',
-    env ? `--env ${env}` : '',
-    '--existing'
-  ]
+/** `skmtc deploy <project>`, with this run's `--version` and `--env`: the same version again. */
+const toUploadCommand = ({ projectName, version, env }: DeployInvocation): string =>
+  [`skmtc deploy ${projectName}`, version ? `--version ${version}` : '', env ? `--env ${env}` : '']
     .filter(Boolean)
     .join(' ')
+
+/** `skmtc deploy <project> --existing`, with this run's `--version` and `--env`. */
+const toRetryCommand = (invocation: DeployInvocation): string =>
+  `${toUploadCommand(invocation)} --existing`
 
 /**
  * `skmtc deploy <project>` with this run's `--env`. Without `--version`: the
@@ -467,7 +466,7 @@ export const deployVersion = async ({
           stored: false,
           reason:
             `The hub cannot deploy version ${version} (${status}): ${hubMessage} ` +
-            `If the version is not stored yet, run \`${toRerunCommand(invocation)}\` without \`--existing\`.`
+            `If the version is not stored yet, run \`${toUploadCommand(invocation)}\` without \`--existing\`.`
         }
       }
       // An earlier deploy of this version is still running.
@@ -592,7 +591,7 @@ export const deployHeadless = async ({
       if (!files.some(file => file.path === 'deno.lock')) {
         throw new Error(
           `deno.lock not found in the upload — the hub requires it. Run \`${toProjectInstallCommand()}\` ` +
-            `in the project (and make sure .skmtcignore does not exclude deno.lock), then run \`${toRerunCommand(toInvocation(version))}\` again.`
+            `in the project (and make sure .skmtcignore does not exclude deno.lock), then run \`${toUploadCommand(toInvocation(version))}\` again.`
         )
       }
       // Without this pin the hub cannot build the version's server.

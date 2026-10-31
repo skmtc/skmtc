@@ -558,6 +558,30 @@ Deno.test("deployHeadless - suggested commands keep this run's --version and --e
   )
 })
 
+Deno.test('deployHeadless - --existing and a 404 keeps --version in the upload command', async () => {
+  await using project = await makeStackProject()
+  let outcome: DeployHeadlessResult | undefined
+  await withStackHub(
+    { deploy: () => toJsonResponse({ message: 'no such version' }, 404) },
+    async () => {
+      outcome = await deployHeadless({
+        skmtcRoot: project.skmtcRoot,
+        projectName: 'my-api',
+        token: 'pat-123',
+        origin: 'https://hub.test',
+        version: '2.0.0',
+        envFlag: 'staging',
+        existing: true
+      })
+    }
+  )
+  if (!outcome) throw new Error('deployHeadless returned nothing')
+  assertStringIncludes(
+    toFailed(outcome).reason,
+    'run `skmtc deploy my-api --version 2.0.0 --env staging` without `--existing`'
+  )
+})
+
 Deno.test('deployHeadless - the hub URLs encode the stack name', async () => {
   await using project = await makeStackProject({
     name: '@acme/my-api#2',
