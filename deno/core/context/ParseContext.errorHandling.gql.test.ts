@@ -202,3 +202,49 @@ Deno.test('ParseContext (gql) - union member references to errored type are prun
   // Union members are addressed as `[UnionName, members, <index>]`.
   assertEquals(depRef[0].location.startsWith('Content:members:'), true)
 })
+
+Deno.test('ParseContext (gql) - consumers are pruned when parse runs under a trace, span and parse prefix', () => {
+  // `toArtifacts` parses inside `[traceId, spanId, 'parse']`, so every
+  // consumer trail carries that prefix. The error is registered before
+  // `parse()` so the prune that `parse()` runs is the one under test.
+  const sdl = `
+    type Post { id: ID! }
+    type User {
+      id: ID!
+      posts: [Post!]!
+    }
+    type Query {
+      post: Post
+      me: User
+    }
+  `
+  const toResult = (frames: string[]) => {
+    const ctx = makeGqlContext(sdl)
+    ctx.registerRefError(new Error('Post failed'), 'Post')
+    const parsed = ctx.parse(new StackTrail(frames))
+    if (parsed.type !== 'gql') throw new Error('expected gql')
+
+    const user = ctx.registry.schemas['User' as RefName]
+    if (!(user instanceof OasObject)) throw new Error('expected User OasObject')
+
+    return {
+      operations: parsed.value.operations.map(o => o.fieldName).sort(),
+      userFields: Object.keys(user.properties ?? {}).sort(),
+      depRefLocations: ctx.issues
+        .filter(i => i.type === 'INVALID_DEPENDENCY_REF')
+        .map(i => i.location)
+        .sort()
+    }
+  }
+
+  assertEquals(toResult(['t', 's', 'parse']), {
+    operations: ['me'],
+    userFields: ['id'],
+    depRefLocations: ['t:s:parse:Query:post:return', 't:s:parse:User:posts']
+  })
+  assertEquals(toResult([]), {
+    operations: ['me'],
+    userFields: ['id'],
+    depRefLocations: ['Query:post:return', 'User:posts']
+  })
+})

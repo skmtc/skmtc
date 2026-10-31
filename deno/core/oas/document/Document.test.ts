@@ -9,6 +9,8 @@ import { OasSecurityRequirement } from '../securityRequirement/SecurityRequireme
 import { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
 import type { OasString } from '../string/String.ts'
 import { OasObject } from '../object/Object.ts'
+import { OasRequestBody } from '@/oas/requestBody/RequestBody.ts'
+import { OasHeader } from '@/oas/header/Header.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import type { RefName } from '@/types/RefName.ts'
 
@@ -384,6 +386,58 @@ Deno.test('OasDocument', async t => {
       const removed = document.removeItem(stackTrail)
 
       assertExists(removed)
+    })
+  })
+
+  await t.step('removeItem() - components removal follows the bucket', async t => {
+    // Same name in three buckets: each trail removes only its own bucket's entry.
+    const toDocument = () => {
+      const user = 'User' as RefName
+      return new OasDocument({
+        ...createFullFields(),
+        components: new OasComponents({
+          schemas: { [user]: new OasObject({ title: 'User' }) },
+          requestBodies: { [user]: new OasRequestBody({ content: {} }) },
+          headers: { [user]: new OasHeader({ description: 'user header' }) }
+        })
+      })
+    }
+    const toBuckets = (document: OasDocument) => ({
+      schemas: Object.keys(document.components?.schemas ?? {}),
+      requestBodies: Object.keys(document.components?.requestBodies ?? {}),
+      headers: Object.keys(document.components?.headers ?? {})
+    })
+
+    await t.step('a request body trail removes the request body, not the schema', () => {
+      const document = toDocument()
+      const removed = document.removeItem(new StackTrail(['components', 'requestBodies', 'User']))
+
+      assert(removed instanceof OasRequestBody)
+      assertEquals(toBuckets(document), { schemas: ['User'], requestBodies: [], headers: ['User'] })
+    })
+
+    await t.step('a header trail removes the header, not the schema', () => {
+      const document = toDocument()
+      const removed = document.removeItem(new StackTrail(['components', 'headers', 'User']))
+
+      assert(removed instanceof OasHeader)
+      assertEquals(toBuckets(document), {
+        schemas: ['User'],
+        requestBodies: ['User'],
+        headers: []
+      })
+    })
+
+    await t.step('a bucket outside the components keys removes nothing', () => {
+      const document = toDocument()
+      const removed = document.removeItem(new StackTrail(['components', 'pathItems', 'User']))
+
+      assertEquals(removed, undefined)
+      assertEquals(toBuckets(document), {
+        schemas: ['User'],
+        requestBodies: ['User'],
+        headers: ['User']
+      })
     })
   })
 

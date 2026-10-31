@@ -115,6 +115,12 @@ export class ParseContext {
   // use type names. The maps don't care about the encoding.
   #refConsumers: Map<string, StackTrail[]> = new Map()
   #refErrors: Map<string, unknown[]> = new Map()
+  /**
+   * Frames of the trail `parse()` was called with (`[traceId, spanId,
+   * 'parse']` through `toArtifacts`). Every trail built during the walk
+   * starts with them; {@link toDocumentTrail} strips them.
+   */
+  #rootFrames: string[] = []
 
   constructor({ input, logger, silent = true, options }: ConstructorArgs) {
     this.logger = logger
@@ -226,6 +232,8 @@ export class ParseContext {
    * and ignored by GQL (which uses pre-computed schema addresses).
    */
   parse(stackTrail: StackTrail): SkmtcParsedDocument {
+    this.#rootFrames = [...stackTrail.stackTrail]
+
     switch (this.protocol.type) {
       case 'oas': {
         const oasState = this.protocol
@@ -314,7 +322,7 @@ export class ParseContext {
           for (const error of errors) {
             const consumers = this.#refConsumers.get(refKey) ?? []
             for (const stackTrail of consumers) {
-              const removed = oasState.oasDocument.removeItem(stackTrail)
+              const removed = oasState.oasDocument.removeItem(this.#toDocumentTrail(stackTrail))
               if (removed) {
                 this.issues.push({
                   protocol: 'oas',
@@ -336,7 +344,7 @@ export class ParseContext {
           for (const error of errors) {
             const consumers = this.#refConsumers.get(refKey) ?? []
             for (const stackTrail of consumers) {
-              const removed = gqlState.gqlDocument.removeItem(stackTrail)
+              const removed = gqlState.gqlDocument.removeItem(this.#toDocumentTrail(stackTrail))
               if (removed) {
                 this.issues.push({
                   protocol: 'gql',
@@ -357,6 +365,23 @@ export class ParseContext {
         throw new Error(`Unhandled protocol type: ${JSON.stringify(_exhaustive)}`)
       }
     }
+  }
+
+  /**
+   * `stackTrail` without the frames `parse()` was called with, so it starts
+   * at a document key (`components`, `paths`, a GraphQL type name). A trail
+   * that does not start with those frames, such as one `log()` builds from a
+   * location, is returned unchanged.
+   */
+  #toDocumentTrail(stackTrail: StackTrail): StackTrail {
+    const frames = stackTrail.stackTrail
+    const rootFrames = this.#rootFrames
+    const startsWithRoot =
+      rootFrames.length > 0 &&
+      frames.length >= rootFrames.length &&
+      rootFrames.every((frame, index) => frames[index] === frame)
+
+    return startsWithRoot ? new StackTrail(frames.slice(rootFrames.length)) : stackTrail
   }
 
   /**
@@ -467,7 +492,10 @@ export class ParseContext {
         // points at. No-op for non-component trails (and for GQL
         // trails) because `toStackRef` returns `undefined` and
         // `registerRefError` ignores undefined refs.
-        this.registerRefError(issue.cause ?? issue.message, stackTrail.toStackRef())
+        this.registerRefError(
+          issue.cause ?? issue.message,
+          this.#toDocumentTrail(stackTrail).toStackRef()
+        )
         this.logIssueAt(
           {
             protocol,
