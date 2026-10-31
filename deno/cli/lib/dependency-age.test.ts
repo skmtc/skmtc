@@ -103,7 +103,7 @@ Deno.test('enforcesDependencyAgeGate - the holdback starts at Deno 2.9, not 2.5.
 })
 
 Deno.test('toProjectInstallCommand - the publish remediation carries the flag', () => {
-  // `skmtc publish` tells you to run this inside `.skmtc/<project>/`,
+  // `skmtc deploy` tells you to run this inside `.skmtc/<project>/`,
   // whose deno.json holds EXACT @skmtc/* pins written at the CLI's own
   // version — the hard-error face of the gate on a fresh release.
   assertStringIncludes(toProjectInstallCommand('2.9.4'), DEPENDENCY_AGE_FLAG)

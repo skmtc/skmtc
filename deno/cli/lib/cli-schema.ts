@@ -74,6 +74,29 @@ export const AGENT_MODE_FLAGS: FlagDescriptor[] = [
   }
 ]
 
+/** The flags of `deploy`, and of `publish`, its old name. */
+const DEPLOY_FLAGS: FlagDescriptor[] = [
+  ...AGENT_MODE_FLAGS,
+  {
+    flag: '--token <pat>',
+    description:
+      'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
+  },
+  {
+    flag: '--env <env>',
+    description: ENV_DESCRIPTION
+  },
+  {
+    flag: '--version <semver>',
+    description: "Version to store and deploy. Defaults to the project root deno.json's `version`."
+  },
+  {
+    flag: '--existing',
+    description:
+      'Deploy the version already stored on the hub, without uploading. Use it after a deploy that was not confirmed, or after a fix on the hub.'
+  }
+]
+
 export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
   {
     name: 'init',
@@ -184,26 +207,19 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
     agentMode: 'json-only'
   },
   {
+    name: 'deploy',
+    description:
+      'Store a new immutable version of this project on skmtc-hub, then deploy it as a stack server and report its status. The stack is the project deno.json#name (@account/slug, the package name; the scope may be an org); versions are addressed by semver. A version already on the hub stops before any upload (exit 2) unless --existing deploys it as it is. Deploying never moves the production alias. Exits 1 when the deploy fails, is refused or is not confirmed; the version stays stored.',
+    args: ['<project>'],
+    flags: DEPLOY_FLAGS,
+    agentMode: 'full'
+  },
+  {
     name: 'publish',
     description:
-      'Build and publish an immutable version of this project to skmtc-hub. The stack is the project deno.json#name (@account/slug, the package name; the scope may be an org); versions are addressed by semver and re-publishing an existing version is rejected.',
+      'The old name of `deploy`, kept for one release: runs `skmtc deploy` with the same options and exit codes, after a one-line notice on stderr.',
     args: ['<project>'],
-    flags: [
-      ...AGENT_MODE_FLAGS,
-      {
-        flag: '--token <pat>',
-        description:
-          'Personal access token. Defaults to $SKMTC_HUB_TOKEN, then the token stored by `skmtc login`.'
-      },
-      {
-        flag: '--env <env>',
-        description: ENV_DESCRIPTION
-      },
-      {
-        flag: '--version <semver>',
-        description: "Version to publish. Defaults to the project root deno.json's `version`."
-      }
-    ],
+    flags: DEPLOY_FLAGS,
     agentMode: 'full'
   },
   {

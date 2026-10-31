@@ -36,7 +36,7 @@ This is the SKMTC CLI - a Deno-based command-line tool for generating code from 
 ### Command Structure
 
 Commands are organized into categories:
-- `commands/*` - One module per CLI command (init, create, clone, install, list, remove, generate, bundle, clean, dev, doctor, agent-context, publish)
+- `commands/*` - One module per CLI command (init, create, clone, install, list, remove, generate, bundle, clean, dev, doctor, agent-context, deploy)
 - `workspaces/*` - Workspace management (serve)
 - `lib/*` - Core business logic and utilities
 
@@ -51,7 +51,7 @@ The CLI features a React/Ink-based interactive interface:
 
 ### Authentication
 
-The hub commands (`publish`, `push`, `pull`, `project`, `api`) take a skmtc-hub
+The hub commands (`deploy`, `push`, `pull`, `project`, `api`) take a skmtc-hub
 token: an OAuth token from `skmtc login`, or a personal access token
 (PAT). Resolution order: `--token`, then `$SKMTC_HUB_TOKEN`, then the
 store written by `skmtc login` (`~/.skmtc/auth.json`, mode 0600).
@@ -83,7 +83,7 @@ Key generator operations:
 - `create` - Scaffold a new local generator in a project
 - `clone` - Pull generator source into the project for editing
 - `install` - Add JSR generators to a project
-- `publish` - Build and publish an immutable stack version to skmtc-hub
+- `deploy` - Store an immutable stack version on skmtc-hub and deploy it (`publish` is its old name, kept for one release)
 
 ## Development Patterns
 

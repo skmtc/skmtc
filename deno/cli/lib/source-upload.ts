@@ -1,6 +1,6 @@
 /**
- * Source collection for `publish`. Walks the project root and returns the
- * user-authored source files. `publish-headless` then posts these (one
+ * Source collection for `deploy`. Walks the project root and returns the
+ * user-authored source files. `deploy-headless` then posts these (one
  * multipart `files` part each) alongside the `version` part in the single
  * atomic `POST /v1/stacks/{account}/{stack}/versions` request — source is
  * the deliverable (the hub deploys it directly; there is no bundle part); the hub writes the tree to R2, reconciles the stack's
@@ -91,18 +91,18 @@ export const SKMTC_IGNORE_FILE = '.skmtcignore'
 /**
  * Seed `.skmtcignore` written into new projects by `init`. The built-in
  * defaults above already cover derived bundles, deps, secrets and binaries, so
- * the seed is mostly a documented starting point — plus the publish/generate
+ * the seed is mostly a documented starting point — plus the deploy/generate
  * logs, which live under `.settings` (kept for `client.json`) and are pure
  * noise in an upload.
  */
-export const SKMTCIGNORE_TEMPLATE = `# .skmtcignore — files to exclude from \`skmtc publish\` uploads (gitignore syntax).
+export const SKMTCIGNORE_TEMPLATE = `# .skmtcignore — files to exclude from \`skmtc deploy\` uploads (gitignore syntax).
 #
 # Built-in defaults already skip derived bundles (server.ts/js, bundle.js,
 # worker.ts), node_modules, .git, secrets (.env*), and binary assets.
 # Add project-specific exclusions below; use \`!pattern\` to re-include something
 # a default excludes.
 
-# publish / generate logs
+# deploy / generate logs
 .settings/logs.txt
 .settings/error-logs.txt
 `
@@ -193,7 +193,7 @@ export const collectSourceFiles = async (projectRoot: string): Promise<SourceFil
  * --base-files`. Walks `appRoot` with the same gitignore-style methodology as
  * {@link collectSourceFiles} (built-in defaults + the app root's
  * `.skmtcignore`), additionally excluding `.skmtc/` (the stack workspace,
- * published separately as a version) and `generatedPaths` (manifest-recorded
+ * deployed separately as a version) and `generatedPaths` (manifest-recorded
  * output, regenerated in the preview). Returns `{ path: textContent }` keyed by
  * app-root-relative path — the shape the `/preview/base-files` upload expects.
  */

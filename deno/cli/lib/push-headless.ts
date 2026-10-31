@@ -2,7 +2,7 @@
  * Headless `push` path. Pushes a local project's `client.json` to an EXISTING
  * skmtc-hub project, where it becomes the project's editable config (the web
  * CMS edits the same flat config). This is the project-level counterpart to
- * `publish` (which publishes an immutable *stack* version).
+ * `deploy` (which stores and deploys an immutable *stack* version).
  *
  * Flow:
  *   1. Resolve the hub destination — `--project @account/slug` wins, else the

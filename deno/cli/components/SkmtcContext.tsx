@@ -67,8 +67,8 @@ export type ViewStateGenerate = {
   watchMode?: boolean
 }
 
-export type ViewStatePublish = {
-  page: 'publish'
+export type ViewStateDeploy = {
+  page: 'deploy'
   projectName: string
   /** PAT for the hub. From --token or `SKMTC_HUB_TOKEN`. */
   token?: string
@@ -77,6 +77,8 @@ export type ViewStatePublish = {
   /** Version override from --version. Defaults to the project root
    *  `deno.json#version`. */
   version?: string
+  /** From --existing: deploy the version already on the hub. */
+  existing?: boolean
 }
 
 export type ViewStateBundle = {
@@ -133,7 +135,7 @@ export type ViewState =
   | ViewStateCreateProject
   | ViewStateProject
   | ViewStateGenerate
-  | ViewStatePublish
+  | ViewStateDeploy
   | ViewStateBundle
   | ViewStateListGenerators
   | ViewStateAddGenerator
@@ -224,7 +226,7 @@ export const toProjectName = ({ view }: ToProjectNameArgs) => {
     case 'create-generator':
     case 'create-project':
     case 'project':
-    case 'publish':
+    case 'deploy':
     case 'bundle':
     case 'list-generators':
     case 'install-generator':

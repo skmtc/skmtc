@@ -5,7 +5,7 @@ import { SkmtcProvider, useSkmtc } from '@/components/SkmtcContext.tsx'
 import { CreateProjectView } from './CreateProjectView.tsx'
 import { AppInfo } from '@/components/AppInfo.tsx'
 import { GenerateView } from '@/components/GenerateView.tsx'
-import { PublishView } from '@/components/PublishView.tsx'
+import { DeployView } from '@/components/DeployView.tsx'
 import { BundleView } from '@/components/BundleView.tsx'
 import { ListGeneratorsView } from '@/components/ListGeneratorsView.tsx'
 import { AddGeneratorView } from '@/components/AddGeneratorView.tsx'
@@ -62,9 +62,9 @@ export const ViewManager = () => {
         />
       )
     }
-    case 'publish': {
+    case 'deploy': {
       const view = state.view
-      return <PublishView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
+      return <DeployView project={state.skmtcRoot.findProject(view.projectName)} view={view} />
     }
     case 'bundle': {
       const view = state.view

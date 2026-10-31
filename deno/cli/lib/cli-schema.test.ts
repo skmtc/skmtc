@@ -81,6 +81,20 @@ Deno.test('cli-schema - toArgsString handles empty args', () => {
   )
 })
 
+Deno.test('cli-schema - deploy is a full agent-mode command with --existing', () => {
+  const deploy = getCommandDescriptor('deploy')
+
+  assertEquals(deploy.args, ['<project>'])
+  assertEquals(deploy.agentMode, 'full')
+  assertEquals(
+    deploy.flags.map(f => f.flag.split(' ')[0]),
+    ['--json', '--no-input', '--token', '--env', '--version', '--existing']
+  )
+  // A stack is deployed, never published; only the alias names `publish`.
+  assert(!deploy.description.toLowerCase().includes('publish'))
+  assert(getCommandDescriptor('publish').description.includes('`deploy`'))
+})
+
 Deno.test('cli-schema - api publish declares an optional <file> and its hub flags', () => {
   // A CI run discovers the command through agent-context. The file is
   // optional in Cliffy so a missing one reaches the recipe; the schema

@@ -11,7 +11,7 @@ the token in `~/.skmtc/auth.json`, so later hub commands need no
 `--token` flag or `$SKMTC_HUB_TOKEN`.
 
 The token can create and update APIs, projects and pipelines, publish
-schemas, publish stack versions and create deployments
+schemas, store stack versions and deploy them
 (`write:catalog`, `write:releases`). It stays valid until you revoke it
 in the hub at **Settings > Connected apps**: the CLI refreshes it when
 it expires.
