@@ -1,5 +1,6 @@
 import type { OasParameter } from '../parameter/Parameter.ts'
 import type { OasRef } from '../ref/Ref.ts'
+import type { OasServer } from '../server/Server.ts'
 
 /**
  * Constructor fields for {@link OasPathItem}.
@@ -11,6 +12,8 @@ export type PathItemFields = {
   description?: string | undefined
   /** Parameters that are applicable for all operations on this path */
   parameters?: (OasParameter | OasRef<'parameter'>)[] | undefined
+  /** Servers that replace the document's servers for all operations on this path */
+  servers?: OasServer[] | undefined
   /** Custom extension fields (x-* properties) */
   extensionFields?: Record<string, unknown>
 }
@@ -105,12 +108,15 @@ export class OasPathItem {
   summary: string | undefined
   description: string | undefined
   parameters: (OasParameter | OasRef<'parameter'>)[] | undefined
+  /** Servers that replace the document's servers for all operations on this path */
+  servers: OasServer[] | undefined
   extensionFields: Record<string, unknown> | undefined
 
   constructor(fields: PathItemFields = {}) {
     this.summary = fields.summary
     this.description = fields.description
     this.parameters = fields.parameters
+    this.servers = fields.servers
     this.extensionFields = fields.extensionFields
   }
 }

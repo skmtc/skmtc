@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/lang-csharp",
-  "version": "0.6.22",
+  "version": "0.6.23",
   "private": true,
   "license": "Apache-2.0",
   "exports": {
@@ -11,6 +11,6 @@
     "test": "deno test --allow-all"
   },
   "imports": {
-    "@skmtc/core": "jsr:@skmtc/core@^0.31.0"
+    "@skmtc/core": "jsr:@skmtc/core@^0.32.0"
   }
 }
