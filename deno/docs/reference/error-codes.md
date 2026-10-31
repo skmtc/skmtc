@@ -155,7 +155,8 @@ continues with the operations.
 
 **Remediation:** Read the operation at the indicated location.
 Causes mirror `INVALID_SCHEMA` (bad `requestBody`, malformed
-parameters, etc.).
+parameters, etc.). For a `servers` entry, make the entry a Server
+Object with a string `url`, or remove it.
 
 ### `UNSUPPORTED_OPERATION_METHOD` — warning
 
