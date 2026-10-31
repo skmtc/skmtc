@@ -265,7 +265,7 @@ export const applyPlan = async (
 }
 
 /** Whether `name@version` is already published on the registry. */
-const isPublished = async (jsrUrl: string, name: string, version: string): Promise<boolean> => {
+export const isPublished = async (jsrUrl: string, name: string, version: string): Promise<boolean> => {
   const res = await fetch(`${jsrUrl}${name}/meta.json`)
   if (res.status === 404) {
     await res.body?.cancel()

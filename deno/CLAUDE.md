@@ -88,6 +88,14 @@ and merge the result; CI then sees the bumped versions as unpublished and ships
 them. A package may be named by its directory (`core`) or full name
 (`@skmtc/core`).
 
+**Version check (`deno task version-check --base origin/main`):** CI runs it on
+every pull request. It fails when a publishable package has changed files (not
+counting its `deno.json` and its test files) and its version equals the base's
+or is already on JSR. Two branches bumped from the same base pick the same
+version and merge without a conflict, so rerun `deno task bump <package>` after
+you merge main. It needs the network and git history, so it is not part of
+`deno task check`.
+
 **Cascade trigger caveat:** the cascade fires only for dependents of packages
 that are *pending* on the registry. If you publish a dependency manually, that
 trigger is spent — re-running `release` will report "nothing to publish" while

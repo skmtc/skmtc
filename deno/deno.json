@@ -44,6 +44,7 @@
   "tasks": {
     "release": "deno run --allow-read --allow-write --allow-env --allow-net --allow-run .scripts/release.ts",
     "bump": "deno run --allow-read --allow-write .scripts/bump.ts",
+    "version-check": "deno run --allow-read --allow-env --allow-net --allow-run=git .scripts/version-check.ts",
     "bump-plugin": "deno run --allow-read --allow-write --allow-env --allow-run=git .scripts/bump-plugin.ts",
     "skills": "deno run --allow-read --allow-write --allow-env --allow-run=git .scripts/skills.ts",
     "record-api-surface": "deno run --allow-read --allow-write --allow-env --allow-run=deno .scripts/api-surface.ts",
