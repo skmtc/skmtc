@@ -339,3 +339,23 @@ Deno.test('toServersV3 - a string url is not a trail frame', () => {
     ['TEST:servers:0:unexpected']
   )
 })
+
+Deno.test('toServersV3 - a link server is not checked by the servers entry guard', () => {
+  const { issues, document } = parseDocument({
+    paths: {
+      '/pets': {
+        get: {
+          responses: {
+            '200': {
+              description: 'ok',
+              links: { self: { operationId: 'getPets', server: { url: { 'Fn::Sub': 'x' } } } }
+            }
+          }
+        }
+      }
+    }
+  })
+
+  assertEquals(issues, [])
+  assertEquals(Object.keys(document.operations[0].responses), ['200'])
+})

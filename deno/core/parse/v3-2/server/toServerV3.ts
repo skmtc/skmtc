@@ -23,7 +23,15 @@ export const toServersV3 = ({ servers, stackTrail, context }: ToServersV3Args): 
       context,
       type: 'INVALID_OPERATION',
       parent: servers,
-      fn: st => toServerV3({ server, stackTrail: st, context })
+      fn: st => {
+        if (typeof server?.url !== 'string') {
+          throw new Error(
+            `Expected a Server Object with a string url, got: ${JSON.stringify(server)}`
+          )
+        }
+
+        return toServerV3({ server, stackTrail: st, context })
+      }
     })
 
     return parsed ? [parsed] : []
@@ -55,10 +63,6 @@ export type ToServerV3Args = {
 }
 
 export const toServerV3 = ({ server, stackTrail, context }: ToServerV3Args): OasServer => {
-  if (typeof server?.url !== 'string') {
-    throw new Error(`Expected a Server Object with a string url, got: ${JSON.stringify(server)}`)
-  }
-
   const { description, name, url, variables, ...skipped } = server
 
   const extensionFields = toSpecificationExtensionsV3({
