@@ -52,6 +52,8 @@ import type { SerializedError } from '@/types/SerializedError.ts'
  *   implementer references a type that failed to parse, and the
  *   consumer was pruned by `removeErroredItems`. Mirrors OAS's
  *   identically-named issue.
+ * - `RUN_FAILED` — the run itself failed outside the per-item catches.
+ *   Mirrors OAS's identically-named issue.
  */
 export type GqlIssueType =
   | 'NESTED_LIST_LOSSY'
@@ -61,6 +63,7 @@ export type GqlIssueType =
   | 'SKIPPED_FEATURE'
   | 'INVALID_TYPE_DEFINITION'
   | 'INVALID_DEPENDENCY_REF'
+  | 'RUN_FAILED'
 
 /**
  * Valibot schema for {@link GqlIssueType}. Annotation deliberately
@@ -75,7 +78,8 @@ export const gqlIssueType = v.union([
   v.literal('SKIPPED_FIELD_ARGUMENTS'),
   v.literal('SKIPPED_FEATURE'),
   v.literal('INVALID_TYPE_DEFINITION'),
-  v.literal('INVALID_DEPENDENCY_REF')
+  v.literal('INVALID_DEPENDENCY_REF'),
+  v.literal('RUN_FAILED')
 ])
 
 const _gqlIssueTypeDriftCheck: v.GenericSchema<GqlIssueType> = gqlIssueType

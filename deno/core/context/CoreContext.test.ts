@@ -313,7 +313,7 @@ Deno.test('CoreContext - toArtifacts() synthesizes an error parseIssue when pars
   // "generated"` with 0 files when the worker's `toArtifacts`
   // caught a top-level failure — there was no signal in the
   // returned shape that anything had gone wrong. The catch now
-  // adds an `INVALID_SCHEMA` parseIssue so consumers can detect
+  // adds a `RUN_FAILED` parseIssue so consumers can detect
   // crashed runs.
   //
   // We trigger the catch by passing an OAS document whose
@@ -346,11 +346,10 @@ Deno.test('CoreContext - toArtifacts() synthesizes an error parseIssue when pars
   const errorIssue = result.parseIssues.find(i => i.level === 'error')
   assertExists(errorIssue)
   if (errorIssue?.level === 'error') {
-    assertEquals(errorIssue.type, 'INVALID_SCHEMA')
-    assertEquals(errorIssue.location, 'toArtifacts')
-    // `cause` carries the original error so downstream consumers
-    // can rehydrate a stack trace if they need to.
-    assert(errorIssue.cause !== undefined)
+    assertEquals(errorIssue.type, 'RUN_FAILED')
+    assertEquals(errorIssue.location, 'toArtifacts:parse')
+    // `cause` carries the original error, with its stack.
+    assertEquals(typeof errorIssue.cause?.stack, 'string')
   }
 })
 

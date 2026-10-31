@@ -411,8 +411,8 @@ Generators _can_ throw — and the catch in `#runOasOperationGenerator` will
 convert the throw into a `result: 'error'` for that operation. That's the right
 path for "this operation is malformed and I can't produce sensible output."
 
-Whole-run failure (exit 1) is achieved by logging an `INVALID_SCHEMA` issue at
-parse time (which already happens for top-level parse errors). User-level "stop
+Whole-run failure (exit 1) comes from any `error` issue. A throw outside the
+per-item catches gives a `RUN_FAILED` issue that names the phase that failed. User-level "stop
 the world" controls aren't first-class — the model assumes partial output is
 always preferable to no output.
 

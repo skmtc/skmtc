@@ -205,6 +205,10 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  *   body, and its keys include a range: `application/*`, or `*\/*` with a
  *   scalar schema (a text body or a file). A body with only specific
  *   non-JSON types (`multipart/form-data`, `text/plain`) logs nothing.
+ *
+ * `RUN_FAILED` (`error`) — the run itself failed outside the per-item
+ * catches. Its `location` names the entry and phase, for example
+ * `toArtifacts:render`.
  */
 export type OasIssueType =
   | 'UNEXPECTED_PROPERTY'
@@ -236,6 +240,7 @@ export type OasIssueType =
   | 'UNSUPPORTED_OPERATION_METHOD'
   | 'WILDCARD_MEDIA_TYPE'
   | 'NO_JSON_MEDIA_TYPE'
+  | 'RUN_FAILED'
 
 /**
  * Valibot schema for {@link OasIssueType}. Annotation deliberately omitted
@@ -273,7 +278,8 @@ export const oasIssueType = v.union([
   v.literal('INVALID_EXTERNAL_DOCS'),
   v.literal('UNSUPPORTED_OPERATION_METHOD'),
   v.literal('WILDCARD_MEDIA_TYPE'),
-  v.literal('NO_JSON_MEDIA_TYPE')
+  v.literal('NO_JSON_MEDIA_TYPE'),
+  v.literal('RUN_FAILED')
 ])
 
 // Compile-time drift detector: this binding fails to type-check if

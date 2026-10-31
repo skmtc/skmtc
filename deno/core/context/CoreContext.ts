@@ -10,7 +10,7 @@ import type { Logger } from '@/types/Logger.ts'
 import { ResultsHandler } from '@/context/ResultsHandler.ts'
 import { LogLinesHandler } from '@/context/LogLinesHandler.ts'
 import type { LogLineLevel } from '@/types/LogLine.ts'
-import type { StackTrail } from '@/context/StackTrail.ts'
+import { StackTrail } from '@/context/StackTrail.ts'
 import { ResultsLog } from '@/helpers/ResultsLog.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
 import type { CaptureChannel } from '@/anchors/CaptureSink.ts'
@@ -143,6 +143,15 @@ export type ToArtifactsArgs = {
   inspect?: boolean
 }
 
+type RunPhaseName = 'parse' | 'generate' | 'render'
+
+type ToRunFailedIssueArgs = {
+  /** The `CoreContext` method that failed. */
+  entry: 'toArtifacts' | 'toSupportedSubjects' | 'toEnrichmentDefaults'
+  protocol: SkmtcDocumentInput['type']
+  error: unknown
+}
+
 type SetupLoggerArgs = {
   spanId: string
   logsPath?: string
@@ -210,6 +219,12 @@ export class CoreContext {
 
   /** Keeps this run's log lines for `toArtifacts` to return. */
   #logLines: LogLinesHandler
+
+  /**
+   * The phase that is running. Set when a phase starts, before its
+   * context is set up, so a failure names the phase it happened in.
+   */
+  #phaseName: RunPhaseName = 'parse'
 
   /**
    * Creates a new CoreContext instance.
@@ -417,6 +432,8 @@ export class CoreContext {
       // Parse phase: one unified ParseContext handles both protocols
       // via its internal protocol-discriminated state. `parse()` returns
       // a SkmtcParsedDocument; we collect issues from `context.issues`.
+      // A throw while the parse context is set up counts as parse.
+      this.#phaseName = 'parse'
       const phase = this.#setupParsePhase(document)
       this.#phase = phase
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
@@ -432,6 +449,7 @@ export class CoreContext {
       const { files, previews, inspection, enrichmentWarnings } = stackTrail.trace(
         'generate',
         st => {
+          this.#phaseName = 'generate'
           const generatePhase = this.#setupGeneratePhase({
             toGeneratorConfigMap,
             document: parsedDocument,
@@ -458,6 +476,7 @@ export class CoreContext {
       // post-pass, no re-render — the old `_rendered` cache that faked
       // "render once" across two passes is gone.
       const renderOutput = stackTrail.trace('render', st => {
+        this.#phaseName = 'render'
         this.#phase = this.#setupRenderPhase({
           files,
           previews,
@@ -485,27 +504,16 @@ export class CoreContext {
       // Surface the fatal error as a synthesized parse-issue so
       // downstream consumers (CLI `generate`, the manifest writer)
       // can tell a successful 0-file run apart from a crashed run.
-      // Before this, the catch returned `parseIssues: []` and an
-      // empty `artifacts`, which read on the CLI side as "everything
-      // generated, just nothing emitted" — silent failure.
       //
       // We pull whatever parse-phase issues were already recorded
       // before the throw, so any incremental diagnostics aren't lost,
-      // and append the top-level failure on the end. Protocol is
-      // hardcoded to 'oas' because the synthesized issue is
-      // post-protocol-dispatch and we don't have a discriminator at
-      // this catch site; OAS is the more common case and the
-      // location format ('toArtifacts') is unambiguous regardless.
+      // and append the top-level failure on the end.
       const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
-      const message = error instanceof Error ? error.message : String(error)
-      const fatalIssue = {
-        protocol: 'oas' as const,
-        level: 'error' as const,
-        type: 'INVALID_SCHEMA' as const,
-        location: 'toArtifacts',
-        message: `Top-level toArtifacts failure: ${message}`,
-        cause: toSerializedError(error)
-      }
+      const fatalIssue = this.#toRunFailedIssue({
+        entry: 'toArtifacts',
+        protocol: document.type,
+        error
+      })
 
       return {
         artifacts: {},
@@ -540,6 +548,7 @@ export class CoreContext {
     parseIssues: ParseIssue[]
   } {
     try {
+      this.#phaseName = 'parse'
       const phase = this.#setupParsePhase(document)
       this.#phase = phase
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
@@ -547,6 +556,7 @@ export class CoreContext {
       )
 
       const subjects = stackTrail.trace('generate', () => {
+        this.#phaseName = 'generate'
         // Capability probing never renders, so the capture interval never
         // opens — a throwaway channel satisfies the wiring.
         const generatePhase = this.#setupGeneratePhase({
@@ -565,20 +575,12 @@ export class CoreContext {
       this.logger.error(toSerializedError(error).message, error)
 
       const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
-      const message = error instanceof Error ? error.message : String(error)
 
       return {
         subjects: {},
         parseIssues: [
           ...priorIssues,
-          {
-            protocol: 'oas' as const,
-            level: 'error' as const,
-            type: 'INVALID_SCHEMA' as const,
-            location: 'toSupportedSubjects',
-            message: `Top-level toSupportedSubjects failure: ${message}`,
-            cause: toSerializedError(error)
-          }
+          this.#toRunFailedIssue({ entry: 'toSupportedSubjects', protocol: document.type, error })
         ]
       }
     }
@@ -602,6 +604,7 @@ export class CoreContext {
     parseIssues: ParseIssue[]
   } {
     try {
+      this.#phaseName = 'parse'
       const phase = this.#setupParsePhase(document)
       this.#phase = phase
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
@@ -609,6 +612,7 @@ export class CoreContext {
       )
 
       const enrichmentDefaults = stackTrail.trace('generate', () => {
+        this.#phaseName = 'generate'
         // Seeding never renders, so the capture interval never opens — a
         // throwaway channel satisfies the wiring.
         const generatePhase = this.#setupGeneratePhase({
@@ -627,21 +631,36 @@ export class CoreContext {
       this.logger.error(toSerializedError(error).message, error)
 
       const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
-      const message = error instanceof Error ? error.message : String(error)
 
       return {
         enrichmentDefaults: {},
         parseIssues: [
           ...priorIssues,
-          {
-            protocol: 'oas' as const,
-            level: 'error' as const,
-            type: 'INVALID_SCHEMA' as const,
-            location: 'toEnrichmentDefaults',
-            message: `Top-level toEnrichmentDefaults failure: ${message}`,
-            cause: toSerializedError(error)
-          }
+          this.#toRunFailedIssue({ entry: 'toEnrichmentDefaults', protocol: document.type, error })
         ]
+      }
+    }
+  }
+
+  /**
+   * The issue for a run that failed outside the per-item catches. Its
+   * `location` names the entry and the phase, for example
+   * `toArtifacts:render`.
+   */
+  #toRunFailedIssue({ entry, protocol, error }: ToRunFailedIssueArgs): ParseIssue {
+    const phaseName = this.#phaseName
+    const cause = toSerializedError(error)
+    const location = new StackTrail([entry, phaseName]).toString()
+    const message = `${phaseName} phase failed: ${cause.message}`
+
+    switch (protocol) {
+      case 'oas':
+        return { protocol, level: 'error', type: 'RUN_FAILED', location, message, cause }
+      case 'gql':
+        return { protocol, level: 'error', type: 'RUN_FAILED', location, message, cause }
+      default: {
+        const _exhaustive: never = protocol
+        throw new Error(`Unhandled protocol type: ${JSON.stringify(_exhaustive)}`)
       }
     }
   }

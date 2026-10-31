@@ -352,9 +352,10 @@ No schema argument needed.
 ## Worker-side failures
 
 When the worker encounters an unrecoverable error
-(`toArtifacts` throws), it synthesizes an `INVALID_SCHEMA` issue
-at `location: "toArtifacts"` with `level: "error"` and posts it via
-the manifest. The CLI sees the issue, writes the manifest as
+(`toArtifacts` throws), it synthesizes a `RUN_FAILED` issue with
+`level: "error"` and posts it via the manifest. Its `location` names
+the phase that failed, for example `toArtifacts:render`, and its
+`cause` holds the stack. The CLI sees the issue, writes the manifest as
 normal, and exits 1.
 
 This means: **fatal failures still produce a manifest with
