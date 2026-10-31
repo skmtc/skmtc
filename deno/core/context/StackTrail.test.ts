@@ -293,13 +293,9 @@ Deno.test('StackTrail - traceAsync with an array appends one frame per element',
 })
 
 Deno.test('StackTrail - trace pops the array frames from the trail passed to fn', () => {
-  let inner: StackTrail | undefined
+  const inner = new StackTrail(['generate']).trace(['/pets', 'get'], st => st)
 
-  new StackTrail(['generate']).trace(['/pets', 'get'], st => {
-    inner = st
-  })
-
-  assertEquals(inner?.stackTrail, ['generate'])
+  assertEquals(inner.stackTrail, ['generate'])
 })
 
 // toJSON() Method Tests

@@ -257,7 +257,7 @@ automatically populate `#refErrors`.
 ### `log({ location, parent, type, ...issue }): void`
 
 Convenience for logging an issue at a pre-computed string
-location (e.g., a GraphQL `Query.fieldName` address). Constructs a
+location (e.g., `@auth` for a GraphQL directive definition). Constructs a
 `StackTrail` with `StackTrail.fromString(location)` and delegates to
 `logIssueNoKey`.
 
