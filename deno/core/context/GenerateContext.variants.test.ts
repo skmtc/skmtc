@@ -82,7 +82,7 @@ const buildContext = (args: {
 
 /**
  * Per-variant report: parse the `StackTrail` produced by the engine
- * loop. The frames are `[<root>, <gen-id>, '<path>:<method>', 'variant: <name>']`.
+ * loop. The frames are `[<root>, <gen-id>, <path>, <method>, 'variant', <name>]`.
  *
  * Returns one entry per *variant* capture (the engine emits one
  * `captureCurrentResult` per variant inside each operation frame).
@@ -92,26 +92,20 @@ type VariantResult = { path: string; method: string; variant: string; result: Re
 const toVariantResults = (captures: CaptureEntry[], generatorId: string): VariantResult[] => {
   const out: VariantResult[] = []
   for (const c of captures) {
-    const segments = c.frames
-    const idIdx = segments.indexOf(generatorId)
-    if (idIdx === -1 || idIdx + 2 >= segments.length) continue
+    const idIdx = c.frames.indexOf(generatorId)
+    if (idIdx === -1) continue
 
-    const opLeaf = segments[idIdx + 1] ?? ''
-    const opColon = opLeaf.lastIndexOf(':')
-    if (opColon === -1) continue
+    const [path, method, variantFrame, variant] = c.frames.slice(idIdx + 1)
+    if (
+      path === undefined ||
+      method === undefined ||
+      variantFrame !== 'variant' ||
+      variant === undefined
+    ) {
+      continue
+    }
 
-    const variantLeaf = segments[idIdx + 2] ?? ''
-    // Leaf shape: `variant: <name>` — split off the prefix.
-    const variantPrefix = 'variant: '
-    if (!variantLeaf.startsWith(variantPrefix)) continue
-    const variant = variantLeaf.slice(variantPrefix.length)
-
-    out.push({
-      path: opLeaf.slice(0, opColon),
-      method: opLeaf.slice(opColon + 1),
-      variant,
-      result: c.result
-    })
+    out.push({ path, method, variant, result: c.result })
   }
   return out
 }
@@ -324,10 +318,8 @@ Deno.test('variants - StackTrail nests the variant frame inside the operation fr
   // variant frames *siblings* of operation frames in the trail,
   // not children — manifest entries lost their operation context.
   //
-  // The correct shape is operation → variant. Asserted here by
-  // checking the trail prefix for every captured variant entry:
-  // it must start with `root:gen-id:<operation>` BEFORE the
-  // `variant: <name>` leaf.
+  // The correct shape is operation → variant: path and method frames
+  // sit between the generator id and the variant frames.
   const { context, captures } = buildContext({
     document: makeOasDoc([{ path: '/quotes/{id}', method: 'patch' }]),
     settings: {
@@ -343,23 +335,15 @@ Deno.test('variants - StackTrail nests the variant frame inside the operation fr
   })
   context.toArtifacts(new StackTrail(['test']))
 
-  const variantCaptures = captures.filter(c => c.frames.some(frame => frame.startsWith('variant')))
-  assertEquals(variantCaptures.length, 2)
+  const variantCaptures = captures.filter(c => c.frames.includes('variant'))
 
-  for (const c of variantCaptures) {
-    // Frames: `['test', 'form-gen', '/quotes/{id}:patch', 'variant: <name>']`.
-    const segments = c.frames
-    const variantIdx = segments.findIndex(s => s.startsWith('variant: '))
-    // Variant frame must NOT be the immediate child of the
-    // generator-id frame — there has to be an operation frame
-    // between them.
-    const generatorIdx = segments.indexOf('form-gen')
-    assertEquals(
-      variantIdx,
-      generatorIdx + 2,
-      `Variant frame at position ${variantIdx} should sit two segments after gen-id at ${generatorIdx} (operation frame in between). Frames: ${JSON.stringify(c.frames)}`
-    )
-  }
+  assertEquals(
+    variantCaptures.map(c => c.frames),
+    [
+      ['test', 'form-gen', '/quotes/{id}', 'patch', 'variant', 'main'],
+      ['test', 'form-gen', '/quotes/{id}', 'patch', 'variant', 'customer']
+    ]
+  )
 })
 
 // ─── Case 5: variants-unaware peer sees `variant: 'main'` ──────────

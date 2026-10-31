@@ -131,7 +131,8 @@ the next `generate`/`dev` cycle overwrites it.
 ### `results` — what worked and what didn't
 
 `results` is a **deeply nested record** keyed by trace → span →
-`"generate"` → generator package id → identifier:
+`"generate"` → generator package id → item → `"variant"` → variant.
+Each key is a stack trail frame as it is, with no `%3A` escapes:
 
 ```jsonc
 {
@@ -139,18 +140,26 @@ the next `generate`/`dev` cycle overwrites it.
     "span-1778185255674": {
       "generate": {
         "@skmtc/gen-shadcn-form": {
-          "get_Applicants":        "notSupported",
-          "get_ApplicantById":     "success",
-          "post_CreateApplicant":  "error"
+          "/applicants": {
+            "get":  { "variant": { "main": "notSupported" } },
+            "post": { "variant": { "main": "error" } }
+          },
+          "/applicants/{id}": {
+            "get":  { "variant": { "main": "success" } }
+          }
         },
         "@skmtc/gen-zod": {
-          "ApplicantModel": "success"
+          "ApplicantModel": { "variant": { "main": "success" } }
         }
       }
     }
   }
 }
 ```
+
+The item levels: `[path][method]` for an OAS operation,
+`["webhook"][name][method]` for a webhook, `[rootKind][fieldName]`
+for a GraphQL operation and `[refName]` for a model.
 
 Each leaf is a `ResultType`:
 
@@ -170,10 +179,9 @@ Each leaf is a `ResultType`:
    expected and that the right generators are installed.
 
 2. **"It generated less than expected"** — grep the `results` subtree
-   for the generator in question. Find which identifiers came back
-   `notSupported`/`skipped` vs `success`. Identifier format is
-   `<protocol>_<operationId>` for operations (`query_…`, `mutation_…`,
-   `get_…`, `post_…`) and the model name for models.
+   for the generator in question. Find which items came back
+   `notSupported`/`skipped` vs `success`. The item levels are listed
+   above.
 
 3. **"A specific output is missing"** — check `files` first. If the
    `destinationPath` isn't there, find the corresponding identifier in
@@ -191,9 +199,10 @@ M=<root>/.skmtc/<project>/.settings/manifest.json
 # Count by status across all generators in the most recent run:
 jq '[.. | strings] | group_by(.) | map({status: .[0], n: length})' "$M"
 
-# All non-success identifiers under a specific generator:
+# Path and status of every non-success item under a specific generator:
 jq '.results[][].generate["@skmtc/gen-shadcn-form"]
-    | to_entries | map(select(.value != "success"))' "$M"
+    | [paths(type == "string") as $p | {path: $p, status: getpath($p)}]
+    | map(select(.status != "success"))' "$M"
 
 # Files written by output subdirectory:
 jq '.files | to_entries | group_by(.value.destinationPath | split("/")[1])
@@ -255,7 +264,7 @@ Full reference: [`reference/error-codes.md`](../../reference/error-codes.md).
 operation produced no files.
 
 1. Open `manifest.json`. Find the per-operation result for the
-   missing operation in `manifest.results[traceId][spanId].generate[generatorId][identifier]`.
+   missing operation in `manifest.results[traceId][spanId].generate[generatorId][path][method].variant[variant]`.
 2. Branches:
    - **`'notSupported'`**: The generator's `isSupported` predicate
      rejected this operation. Check the predicate in

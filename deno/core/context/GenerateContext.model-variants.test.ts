@@ -90,20 +90,16 @@ type VariantResult = { refName: string; variant: string; result: ResultType }
 
 /**
  * Parse the variant capture from the `StackTrail`. The frames produced
- * by `#runModelGenerator` are `[<root>, <gen-id>, <refName>, 'variant: <name>']`.
+ * by `#runModelGenerator` are `[<root>, <gen-id>, <refName>, 'variant', <name>]`.
  */
 const toVariantResults = (captures: CaptureEntry[], generatorId: string): VariantResult[] => {
   const out: VariantResult[] = []
   for (const c of captures) {
-    const segments = c.frames
-    const idIdx = segments.indexOf(generatorId)
-    if (idIdx === -1 || idIdx + 2 >= segments.length) continue
+    const idIdx = c.frames.indexOf(generatorId)
+    if (idIdx === -1) continue
 
-    const refName = segments[idIdx + 1] ?? ''
-    const variantLeaf = segments[idIdx + 2] ?? ''
-    const variantPrefix = 'variant: '
-    if (!variantLeaf.startsWith(variantPrefix)) continue
-    const variant = variantLeaf.slice(variantPrefix.length)
+    const [refName, variantFrame, variant] = c.frames.slice(idIdx + 1)
+    if (refName === undefined || variantFrame !== 'variant' || variant === undefined) continue
 
     out.push({ refName, variant, result: c.result })
   }

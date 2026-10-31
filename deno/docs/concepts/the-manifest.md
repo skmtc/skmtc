@@ -90,21 +90,38 @@ interface ResultsItem {
 }
 ```
 
-A recursive nested tree. Keys come from `stackTrail.toString()`
-captured at each call site. A typical path:
+A recursive nested tree. Each frame of the `StackTrail` at the call
+site is one level, and each key is the frame text as it is. A
+typical path:
 
 ```
 trace-1778185255674
 └── span-1778185255674
     └── generate
         ├── @skmtc/gen-shadcn-form
-        │   ├── mutation_CreateApplicant: "success"
-        │   ├── query_GetApplicants:      "notSupported"
-        │   └── mutation_UpdateApplicant: "skipped"
+        │   └── /applicants
+        │       ├── post
+        │       │   └── variant
+        │       │       ├── main:     "success"
+        │       │       └── customer: "skipped"
+        │       └── get
+        │           └── variant
+        │               └── main:     "notSupported"
         └── @skmtc/gen-zod
-            ├── ApplicantModel:           "success"
-            └── ErrorResponseModel:       "error"
+            ├── ApplicantModel
+            │   └── variant
+            │       └── main:         "success"
+            └── ErrorResponseModel
+                └── variant
+                    └── main:         "error"
 ```
+
+Under a generator ID, the levels are:
+
+- OAS operation: `[path][method]['variant'][variant]`
+- Webhook: `['webhook'][name][method]['variant'][variant]`
+- GraphQL operation: `[rootKind][fieldName]['variant'][variant]`
+- Model: `[refName]['variant'][variant]`
 
 Each leaf is one of five `ResultType` values:
 
@@ -256,9 +273,12 @@ A CI script that wants per-item granularity reads `results` and
 filters for `'error'` leaves:
 
 ```bash
-jq '.results | .. | objects | to_entries[] | select(.value == "error")' \
+jq '.results | [paths(. == "error")]' \
   .skmtc/my-project/.settings/manifest.json
 ```
+
+Each result is the full path to an `error` leaf, for example
+`["trace-1", "span-1", "generate", "@skmtc/gen-zod", "User", "variant", "main"]`.
 
 ### IDE plugins / Skmtc UI
 

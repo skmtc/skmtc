@@ -105,13 +105,12 @@ After regenerating, check the on-disk manifest's `results` tree
 only in `.skmtc/<project>/.settings/manifest.json`):
 
 ```bash
-jq '.results[][].generate
-    | to_entries[]
-    | { gen: .key, skipped: (.value | to_entries
-        | map(select(.value == "skipped"))
-        | map(.key)) }' \
+jq '.results[][].generate | [paths(. == "skipped")]' \
   .skmtc/<project>/.settings/manifest.json
 ```
+
+Each result is the path to one skipped item, for example
+`["@skmtc/gen-zod", "/pets", "get", "variant", "main"]`.
 
 Each leaf in `results` is one of `success`, `warning`, `error`,
 `skipped`, or `notSupported`. `skipped` means an item matched a
