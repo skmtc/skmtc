@@ -132,7 +132,7 @@ export const generateSwitch = async ({
     // If any parseIssue came back at `error` level, the run isn't a
     // success even when the JSON payload has `type: "generated"`.
     // Core's CoreContext catches top-level failures and synthesizes
-    // an INVALID_SCHEMA error so this branch can detect them — see
+    // a RUN_FAILED error so this branch can detect them — see
     // `core/context/CoreContext.ts` around the toArtifacts catch.
     //
     // `?? []` covers the case where the project's bundle.js is from

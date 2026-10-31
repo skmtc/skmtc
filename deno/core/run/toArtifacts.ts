@@ -7,7 +7,7 @@ import type { SkmtcDocumentInput } from '../types/SkmtcDocument.ts'
 import type { AttributionState } from '../types/AttributionState.ts'
 import type { Sidecar } from '../anchors/sidecar.ts'
 import type { GenerationMapEntry } from '../anchors/generationMap.ts'
-import type { LogLine, LogLineLevel } from '../types/LogLine.ts'
+import type { LogLine, LogLineLevel } from '@/types/LogLine.ts'
 
 /**
  * Arguments for the {@link toArtifacts} transformation function.

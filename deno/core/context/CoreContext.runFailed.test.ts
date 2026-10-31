@@ -213,3 +213,27 @@ Deno.test('toSupportedSubjects and toEnrichmentDefaults - the failure names the 
     consoleStub.restore()
   }
 })
+
+Deno.test('toSupportedSubjects and toEnrichmentDefaults - write and close the log file', () => {
+  const logsPath = Deno.makeTempDirSync()
+  const args = {
+    document: { type: 'oas' as const, value: { ...oasDocument, openapi: '4.0.0' } },
+    settings: undefined,
+    toGeneratorConfigMap: operationGenerators,
+    stackTrail: new StackTrail(['TEST'])
+  }
+  const consoleStub = stub(console, 'log')
+
+  try {
+    new CoreContext({ spanId: 'subjects', logsPath, silent: true }).toSupportedSubjects(args)
+    new CoreContext({ spanId: 'defaults', logsPath, silent: true }).toEnrichmentDefaults(args)
+
+    for (const spanId of ['subjects', 'defaults']) {
+      const written = Deno.readTextFileSync(`${logsPath}/${spanId}.txt`)
+      assertEquals(written.includes('Unsupported OpenAPI version: 4.0.0'), true)
+    }
+  } finally {
+    consoleStub.restore()
+    Deno.removeSync(logsPath, { recursive: true })
+  }
+})

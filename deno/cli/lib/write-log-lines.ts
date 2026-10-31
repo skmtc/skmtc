@@ -18,8 +18,8 @@ export const toLogLinesPath = (manifestPath: string): string =>
  * Writes the run's log lines to `logs.ndjson` beside the manifest, one
  * JSON object per line, replacing the previous run's file. The file is
  * empty when the run logged nothing. When `logs` is `undefined` (a bundle
- * that pins an older core), any old file is removed, so the file never
- * describes an earlier run.
+ * that pins an older core), any old file is removed, so a run without
+ * lines does not leave the lines of an earlier run beside its manifest.
  */
 export const writeLogLines = ({ manifestPath, logs }: WriteLogLinesArgs): void => {
   const logLinesPath = toLogLinesPath(manifestPath)

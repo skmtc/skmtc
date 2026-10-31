@@ -525,11 +525,7 @@ export class CoreContext {
         logs: [...this.#logLines.lines]
       }
     } finally {
-      this.logger.handlers.forEach(handler => {
-        if (handler instanceof log.FileHandler) {
-          handler.destroy()
-        }
-      })
+      this.#closeFileHandlers()
     }
   }
 
@@ -583,6 +579,8 @@ export class CoreContext {
           this.#toRunFailedIssue({ entry: 'toSupportedSubjects', protocol: document.type, error })
         ]
       }
+    } finally {
+      this.#closeFileHandlers()
     }
   }
 
@@ -639,7 +637,18 @@ export class CoreContext {
           this.#toRunFailedIssue({ entry: 'toEnrichmentDefaults', protocol: document.type, error })
         ]
       }
+    } finally {
+      this.#closeFileHandlers()
     }
+  }
+
+  /** Writes and closes the log file, which the constructor opened when `logsPath` was set. */
+  #closeFileHandlers(): void {
+    this.logger.handlers.forEach(handler => {
+      if (handler instanceof log.FileHandler) {
+        handler.destroy()
+      }
+    })
   }
 
   /**
