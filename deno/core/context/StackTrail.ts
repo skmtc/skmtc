@@ -44,7 +44,8 @@ export class StackTrail {
   }
 
   /**
-   * Gets a copy of the current stack frames.
+   * The live array of stack frames, not a copy: {@link trace} pops it after
+   * `fn` returns. Copy it (`[...trail.stackTrail]`) to keep the frames.
    *
    * @returns Array of stack frames in order
    *
@@ -97,7 +98,11 @@ export class StackTrail {
     throw new Error(`Unexpected stack frame: ${frame}`)
   }
 
-  trace<T>(key: string, fn: (st: StackTrail) => T): T {
+  /**
+   * Runs `fn` on a copy of the trail with `key` appended: one frame for a
+   * string, one frame per element for an array.
+   */
+  trace<T>(key: string | string[], fn: (st: StackTrail) => T): T {
     const stackTrail = this.clone()
     stackTrail.append(key)
     try {
@@ -113,7 +118,8 @@ export class StackTrail {
     }
   }
 
-  async traceAsync<T>(key: string, fn: (st: StackTrail) => Promise<T>): Promise<T> {
+  /** Async form of {@link trace}. */
+  async traceAsync<T>(key: string | string[], fn: (st: StackTrail) => Promise<T>): Promise<T> {
     const stackTrail = this.clone()
     stackTrail.append(key)
     try {
@@ -304,28 +310,50 @@ export class StackTrail {
   }
 
   /**
-   * Converts the trail to a colon-separated string representation.
+   * Converts the trail to a colon-separated string.
    *
-   * Colons within frame names are escaped as '%3A' to avoid conflicts
-   * with the separator character.
-   *
-   * @returns String representation of the trail
+   * Inside a frame, `%` is escaped as `%25` and `:` as `%3A`, so
+   * {@link StackTrail.fromString} reads the same frames back.
    *
    * @example
    * ```typescript
-   * const trail = new StackTrail(['components', 'schemas', 'User']);
-   * console.log(trail.toString()); // 'components:schemas:User'
+   * new StackTrail(['components', 'schemas', 'User']).toString()
+   * // 'components:schemas:User'
    *
-   * // With colon in frame name
-   * const trailWithColon = new StackTrail(['components', 'schemas', 'User:Type']);
-   * console.log(trailWithColon.toString()); // 'components:schemas:User%3AType'
+   * new StackTrail(['paths', '/pets/{id}:archive', '100%']).toString()
+   * // 'paths:/pets/{id}%3Aarchive:100%25'
    * ```
    */
   toString(): string {
     return this.#stack
-      .map(item => {
-        return typeof item === 'string' ? item.replaceAll(':', '%3A') : item
-      })
+      .map(frame => frame.replace(/[%:]/g, character => escapes[character]))
       .join(':')
   }
+
+  /**
+   * Reads a string written by {@link StackTrail.toString} back into a trail.
+   *
+   * Splits on `:` and decodes `%25` and `%3A` in each frame. The empty
+   * string gives the empty trail, so a trail of one empty frame is the one
+   * trail that does not round-trip.
+   *
+   * @example
+   * ```typescript
+   * StackTrail.fromString('paths:/pets/{id}%3Aarchive:post').stackTrail
+   * // ['paths', '/pets/{id}:archive', 'post']
+   * ```
+   */
+  static fromString(value: string): StackTrail {
+    if (value === '') {
+      return new StackTrail([])
+    }
+
+    return new StackTrail(
+      value.split(':').map(frame => frame.replace(/%(25|3A)/g, (_, code: string) => decodes[code]))
+    )
+  }
 }
+
+const escapes: Record<string, string> = { '%': '%25', ':': '%3A' }
+
+const decodes: Record<string, string> = { '25': '%', '3A': ':' }

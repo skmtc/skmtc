@@ -74,6 +74,26 @@ Deno.test('ParseContext - logIssueNoKey records errors with cause and oas protoc
   assertEquals(issue.type, 'INVALID_SCHEMA')
 })
 
+Deno.test('ParseContext - log reads its location with StackTrail.fromString', () => {
+  const parseContext = new ParseContext({
+    input: oasInput(),
+    logger: console as unknown as Logger,
+    silent: true
+  })
+
+  const location = new StackTrail(['paths', '/pets/{id}:archive', '100%']).toString()
+
+  parseContext.log({
+    level: 'warning',
+    location,
+    parent: {},
+    message: 'Custom directive',
+    type: 'DROPPED_DIRECTIVE'
+  })
+
+  assertEquals(parseContext.issues[0]?.location, 'paths:/pets/{id}%3Aarchive:100%25')
+})
+
 Deno.test('ParseContext - logIssueNoKey records warnings with message and oas protocol', () => {
   const parseContext = new ParseContext({
     input: oasInput(),

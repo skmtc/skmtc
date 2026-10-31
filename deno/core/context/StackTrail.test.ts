@@ -222,6 +222,86 @@ Deno.test('StackTrail - toString handles multiple colons in frame name', () => {
   assertEquals(trail.toString(), 'a%3Ab%3Ac')
 })
 
+Deno.test('StackTrail - toString escapes % as %25 and : as %3A', () => {
+  const trail = new StackTrail(['100%', 'a%3Ab', 'c%25d', 'e:f'])
+
+  assertEquals(trail.toString(), '100%25:a%253Ab:c%2525d:e%3Af')
+})
+
+// fromString() Tests
+Deno.test('StackTrail - fromString splits on : and decodes %3A and %25', () => {
+  assertEquals(StackTrail.fromString('paths:/pets/{id}%3Aarchive:100%25').stackTrail, [
+    'paths',
+    '/pets/{id}:archive',
+    '100%'
+  ])
+})
+
+Deno.test('StackTrail - fromString decodes in one pass', () => {
+  // `%253A` is an escaped `%` followed by `3A`, not an escaped `:`.
+  assertEquals(StackTrail.fromString('a%253Ab').stackTrail, ['a%3Ab'])
+})
+
+Deno.test('StackTrail - fromString leaves other percent sequences alone', () => {
+  assertEquals(StackTrail.fromString('a%20b:%7B').stackTrail, ['a%20b', '%7B'])
+})
+
+Deno.test('StackTrail - fromString of the empty string is the empty trail', () => {
+  assertEquals(StackTrail.fromString('').stackTrail, [])
+})
+
+Deno.test('StackTrail - fromString(toString()) round-trips', () => {
+  const cases = [
+    [],
+    ['components', 'schemas', 'User'],
+    ['generate', 'gen', '/pets/{id}:archive', 'post'],
+    ['a:b:c', '::'],
+    ['100%', '%%'],
+    ['a%3Ab', 'c%25d', '%253A'],
+    ['', 'x'],
+    ['x', '']
+  ]
+
+  cases.forEach(frames => {
+    assertEquals(StackTrail.fromString(new StackTrail(frames).toString()).stackTrail, frames)
+  })
+})
+
+Deno.test('StackTrail - a trail of one empty frame does not round-trip', () => {
+  assertEquals(new StackTrail(['']).toString(), '')
+  assertEquals(StackTrail.fromString('').stackTrail, [])
+})
+
+// trace() with an array key
+Deno.test('StackTrail - trace with an array appends one frame per element', () => {
+  const trail = new StackTrail(['generate'])
+
+  const seen = trail.trace(['/pets', 'get'], st => [...st.stackTrail])
+
+  assertEquals(seen, ['generate', '/pets', 'get'])
+  assertEquals(trail.stackTrail, ['generate'])
+})
+
+Deno.test('StackTrail - traceAsync with an array appends one frame per element', async () => {
+  const trail = new StackTrail(['generate'])
+
+  const seen = await trail.traceAsync(['webhook', 'petAdded', 'post'], st =>
+    Promise.resolve([...st.stackTrail])
+  )
+
+  assertEquals(seen, ['generate', 'webhook', 'petAdded', 'post'])
+})
+
+Deno.test('StackTrail - trace pops the array frames from the trail passed to fn', () => {
+  let inner: StackTrail | undefined
+
+  new StackTrail(['generate']).trace(['/pets', 'get'], st => {
+    inner = st
+  })
+
+  assertEquals(inner?.stackTrail, ['generate'])
+})
+
 // toJSON() Method Tests
 Deno.test('StackTrail - toJSON returns string representation', () => {
   const trail = new StackTrail(['components', 'schemas', 'User'])

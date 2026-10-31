@@ -26,12 +26,13 @@ class StackTrail {
   remove(frame: string | string[]): StackTrail
 
   // Scoped descent
-  trace<T>(key: string, fn: (st: StackTrail) => T): T
-  traceAsync<T>(key: string, fn: (st: StackTrail) => Promise<T>): Promise<T>
+  trace<T>(key: string | string[], fn: (st: StackTrail) => T): T
+  traceAsync<T>(key: string | string[], fn: (st: StackTrail) => Promise<T>): Promise<T>
 
   // Snapshots and conversions
   clone(): StackTrail
   toString(): string
+  static fromString(value: string): StackTrail
   toJSON(): string
   toStackRef(): string | undefined
 }
@@ -44,9 +45,9 @@ new StackTrail(stack: string[] = [])
 ```
 
 Initializes a trail with the given frames. The argument is stored
-by reference (no defensive copy) — typical use is either no
-argument (empty trail) or `location.split(':')` (reconstruction
-from a manifest location string).
+by reference (no defensive copy). To read a trail back from a
+location string, use [`StackTrail.fromString`](#fromstringvalue-stacktrail),
+not the constructor.
 
 Tests and the `parse(stackTrail)` entry point construct the root
 trail. Parser code receives a trail from its caller and produces
@@ -61,6 +62,9 @@ array, not a copy — mutating the returned array mutates the
 trail. The getter exists for inspection (e.g.
 `OasDocument.removeItem` destructures `[first, second, third]`),
 not as a public mutation surface.
+
+`trace` pops its frames from this array after `fn` returns. To
+keep the frames, copy them: `[...trail.stackTrail]`.
 
 ## Methods
 
@@ -95,10 +99,19 @@ wrong order. For arrays, frames are removed in reverse order
 ### `trace(key, fn): T`
 
 ```ts
-trace<T>(key: string, fn: (st: StackTrail) => T): T
+trace<T>(key: string | string[], fn: (st: StackTrail) => T): T
 ```
 
-Descends into a child position. Internally:
+Descends into a child position. A string `key` adds one frame. An
+array adds one frame for each element:
+
+```ts
+stackTrail.trace(['/pets', 'get'], opTrail => {
+  // opTrail is stackTrail plus the frames '/pets' and 'get'
+})
+```
+
+Internally:
 
 1. Clones the trail (`this.clone()`).
 2. Appends `key` to the clone.
@@ -123,7 +136,7 @@ Important properties:
 
 ```ts
 traceAsync<T>(
-  key: string,
+  key: string | string[],
   fn: (st: StackTrail) => Promise<T>
 ): Promise<T>
 ```
@@ -158,12 +171,36 @@ Two production call sites use `clone` outside of `trace`:
 toString(): string
 ```
 
-Returns the frames joined by `:`. Any literal `:` inside a frame
-is URL-encoded as `%3A` to keep the separator unambiguous.
+Returns the frames joined by `:`. Inside a frame, `%` becomes
+`%25` and `:` becomes `%3A`, in one pass.
 
-The output is what every `ParseIssue.location` carries. Manifest
-readers can `split(':')` to recover segment boundaries; embedded
-colons remain encoded (`%3A`).
+```ts
+new StackTrail(['paths', '/pets/{id}:archive', '100%']).toString()
+// → 'paths:/pets/{id}%3Aarchive:100%25'
+```
+
+The output is what every `ParseIssue.location` carries. Do not
+`split(':')` it: use `StackTrail.fromString` to get the frames
+back.
+
+### `fromString(value): StackTrail`
+
+```ts
+static fromString(value: string): StackTrail
+```
+
+The inverse of `toString()`. Splits `value` on `:`, then decodes
+`%25` to `%` and `%3A` to `:` in each frame, in one pass. Other
+`%` sequences stay as they are.
+
+```ts
+StackTrail.fromString('paths:/pets/{id}%3Aarchive:100%25').stackTrail
+// → ['paths', '/pets/{id}:archive', '100%']
+```
+
+`fromString(t.toString())` gives the frames of `t` for all trails
+but one. `fromString('')` returns the empty trail, so a trail of
+one empty frame (`['']`) does not round-trip.
 
 ### `toJSON(): string`
 
@@ -230,16 +267,13 @@ export const toSomeFieldsV3 = ({
 
 ```ts
 // Inside ParseContext.log
-const stackTrail = new StackTrail(location.split(':'))
+const stackTrail = StackTrail.fromString(location)
 ```
 
-This is the inverse operation of `toString()`. Used when the
-natural address for an issue isn't a tree position — e.g., a
-GraphQL `Query.fieldName.return` schema-level address.
-
-Note: `split(':')` does not decode `%3A`, so frames that
-originally contained literal colons round-trip as frames
-containing `%3A` literals.
+`ParseContext.log` takes a location string, not a trail. The
+GraphQL parser calls it when the natural address for an issue is
+not a tree position, for example a schema-level `@directive`
+definition.
 
 ### Snapshotting for deferred use
 

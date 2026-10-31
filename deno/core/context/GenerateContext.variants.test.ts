@@ -44,7 +44,7 @@ type TransformArgs = {
   variant: string
 }
 
-type CaptureEntry = { result: ResultType; trail: string }
+type CaptureEntry = { result: ResultType; frames: string[] }
 
 const makeOasDoc = (ops: Array<{ path: string; method: 'get' | 'post' | 'put' | 'patch' }>) =>
   new OasDocument({
@@ -63,7 +63,7 @@ const buildContext = (args: {
   const captures: CaptureEntry[] = []
   const captureCurrentResult: Spy<undefined, [ResultType, StackTrail], void> = spy(
     (result: ResultType, trail: StackTrail) => {
-      captures.push({ result, trail: trail.toString() })
+      captures.push({ result, frames: [...trail.stackTrail] })
     }
   )
 
@@ -82,9 +82,7 @@ const buildContext = (args: {
 
 /**
  * Per-variant report: parse the `StackTrail` produced by the engine
- * loop. The trail format is
- * `<root>:<gen-id>:<path>%3A<method>:variant%3A <name>` — both inner
- * `:` get URL-escaped to `%3A` since the trail joins with `:`.
+ * loop. The frames are `[<root>, <gen-id>, '<path>:<method>', 'variant: <name>']`.
  *
  * Returns one entry per *variant* capture (the engine emits one
  * `captureCurrentResult` per variant inside each operation frame).
@@ -94,15 +92,15 @@ type VariantResult = { path: string; method: string; variant: string; result: Re
 const toVariantResults = (captures: CaptureEntry[], generatorId: string): VariantResult[] => {
   const out: VariantResult[] = []
   for (const c of captures) {
-    const segments = c.trail.split(':')
+    const segments = c.frames
     const idIdx = segments.indexOf(generatorId)
     if (idIdx === -1 || idIdx + 2 >= segments.length) continue
 
-    const opLeaf = segments[idIdx + 1]?.replaceAll('%3A', ':') ?? ''
+    const opLeaf = segments[idIdx + 1] ?? ''
     const opColon = opLeaf.lastIndexOf(':')
     if (opColon === -1) continue
 
-    const variantLeaf = segments[idIdx + 2]?.replaceAll('%3A', ':') ?? ''
+    const variantLeaf = segments[idIdx + 2] ?? ''
     // Leaf shape: `variant: <name>` — split off the prefix.
     const variantPrefix = 'variant: '
     if (!variantLeaf.startsWith(variantPrefix)) continue
@@ -345,16 +343,13 @@ Deno.test('variants - StackTrail nests the variant frame inside the operation fr
   })
   context.toArtifacts(new StackTrail(['test']))
 
-  const variantCaptures = captures.filter(c => c.trail.includes('variant'))
+  const variantCaptures = captures.filter(c => c.frames.some(frame => frame.startsWith('variant')))
   assertEquals(variantCaptures.length, 2)
 
   for (const c of variantCaptures) {
-    // `:` is the separator, so an operation frame containing `:`
-    // (e.g. `/quotes/{id}:patch`) is URL-encoded to
-    // `/quotes/{id}%3Apatch`. The trail therefore looks like
-    // `test:form-gen:/quotes/{id}%3Apatch:variant%3A <name>`.
-    const segments = c.trail.split(':')
-    const variantIdx = segments.findIndex(s => s.startsWith('variant%3A'))
+    // Frames: `['test', 'form-gen', '/quotes/{id}:patch', 'variant: <name>']`.
+    const segments = c.frames
+    const variantIdx = segments.findIndex(s => s.startsWith('variant: '))
     // Variant frame must NOT be the immediate child of the
     // generator-id frame — there has to be an operation frame
     // between them.
@@ -362,7 +357,7 @@ Deno.test('variants - StackTrail nests the variant frame inside the operation fr
     assertEquals(
       variantIdx,
       generatorIdx + 2,
-      `Variant frame at position ${variantIdx} should sit two segments after gen-id at ${generatorIdx} (operation frame in between). Trail: ${c.trail}`
+      `Variant frame at position ${variantIdx} should sit two segments after gen-id at ${generatorIdx} (operation frame in between). Frames: ${JSON.stringify(c.frames)}`
     )
   }
 })

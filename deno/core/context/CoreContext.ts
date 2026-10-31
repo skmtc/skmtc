@@ -653,35 +653,22 @@ export class CoreContext {
   }
 
   /**
-   * Captures a result at the current execution position in the stack trail.
-   *
-   * This method records processing results (success, warning, error, etc.) at the
-   * current location in the document traversal stack. Results are associated with
-   * the current stack trail position, enabling detailed error reporting and
-   * debugging of OpenAPI processing issues.
+   * Captures a result at `stackTrail`. Each frame of the trail becomes one
+   * level of the `manifest.results` tree.
    *
    * @param result - The type of result to capture (success, warning, error, etc.)
+   * @param stackTrail - The trail the result belongs to
    *
-   * @example Capturing a warning result
+   * @example
    * ```typescript
-   * context.captureCurrentResult('warning');
-   * // Result captured at current stack position like: "components.schemas.User.properties.email"
-   * ```
-   *
-   * @example Usage during schema processing
-   * ```typescript
-   * context.trace(['components', 'schemas', 'User'], () => {
-   *   try {
-   *     processUserSchema();
-   *     context.captureCurrentResult('success');
-   *   } catch (error) {
-   *     context.captureCurrentResult('error');
-   *   }
-   * });
+   * stackTrail.trace(['/pets', 'get'], opTrail => {
+   *   context.captureCurrentResult('success', opTrail)
+   * })
+   * // manifest.results: { …, '/pets': { get: 'success' } }
    * ```
    */
   captureCurrentResult(result: ResultType, stackTrail: StackTrail): void {
-    this.#results.capture(stackTrail.toString(), result)
+    this.#results.capture(stackTrail, result)
   }
 
   #setupRenderPhase({

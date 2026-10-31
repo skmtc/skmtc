@@ -527,13 +527,13 @@ export class ParseContext {
    * For tree-position issues, prefer {@link logIssueNoKey} so the
    * stack trail composes with the surrounding traces.
    *
-   * Internally constructs a `StackTrail` from `location.split(':')`
+   * Internally constructs a `StackTrail` with `StackTrail.fromString(location)`
    * and delegates to {@link logIssueNoKey} — the underlying issue
    * recording logic (protocol tagging, optional ref-error
    * auto-registration, logger mirror with parent context) is shared.
    */
   log({ location, parent, type, ...issue }: LogAtArgs): void {
-    const stackTrail = new StackTrail(location.split(':'))
+    const stackTrail = StackTrail.fromString(location)
     this.logIssueNoKey({ stackTrail, parent, type, ...issue })
   }
 
