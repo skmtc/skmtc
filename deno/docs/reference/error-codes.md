@@ -296,7 +296,7 @@ No generator renders a custom method yet.
   error. See [`EMPTY_PARAMETER`](#empty_parameter--warning). This
   applies to webhooks too. Skmtc drops each operation that the
   parameter applies to, with an
-  [`INVALID_OPERATION`](#invalid_operation--error) error, and keeps
+  [`INVALID_OPERATION`](#invalid_operation--error-or-warning) error, and keeps
   the other operations. The location is `paths:<path>:parameters:<index>`,
   or `paths:<path>:parameters` for a broken field.
 
