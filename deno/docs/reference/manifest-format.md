@@ -177,23 +177,17 @@ Each leaf is a `ResultType` string:
 'warning' | 'error' | 'skipped' | 'notSupported'`. There is no
 companion `message`, `stack`, or `cause` field on an errored leaf.
 When you see `"identifier": "error"` in the tree, the manifest is
-telling you *that* the item failed, not *why*.
+telling you *that* the item failed, not *why*. The *why* is in the
+log lines of the run (see [`logs` beside the manifest](#logs-beside-the-manifest)).
 
 Where the exception text lives, by failure phase:
 
 | Phase that failed | Where the message and stack appear |
 |---|---|
 | **Bundle** (the build at the start of `generate`, `skmtc bundle`, or the build inside `clone` / `install` / `dev`) | `.skmtc/<project>/.settings/error-logs.txt`. The CLI writes the `deno bundle` subprocess stderr there on every build |
-| **Generate** (`skmtc generate` / `skmtc dev` re-run) | Live stderr of the invocation only. The host does not persist generate-time worker errors to disk |
+| **Generate** (`skmtc generate` / `skmtc dev` re-run) | `.skmtc/<project>/.settings/logs.ndjson`, one `ERROR` line for each item that failed, and the live stderr of the invocation |
+| **`@skmtc/server` run** | The `logs` array of the `POST /artifacts` response |
 | **Hosted Sandbox API run** | `skmtc workspaces runtime-logs <project>` fetches them from the service using `manifest.spanId` |
-
-Operational consequence for agentic `--json` workflows: `--json`
-sends the structured result to stdout but stderr still carries the
-human-readable message for any item that errored. Capture both:
-`skmtc generate <project> --json 2>generate.stderr.log`. Parsing the
-JSON tells you *which* identifiers errored; the stderr file tells
-you *what each exception said*. The manifest's `results` tree is not
-self-sufficient for this.
 
 Item-identifier formats under `generate`:
 
@@ -211,22 +205,10 @@ Item-identifier formats under `generate`:
 
 A generator with no variants configured has the one variant `main`.
 
-#### Edge case: no matches at all
-
-When nothing the engine generated produced a result (no generators
-matched any item), the tree collapses to a flat `SKIPPED` marker
-instead of the nested trace/span shape:
-
-```jsonc
-{
-  "results": {
-    "SKIPPED": "error"
-  }
-}
-```
-
-Recipes that walk the tree should handle both forms — for example,
-checking `.results.SKIPPED` first before descending into trace keys.
+When a generator logs a warning or error through `context.logger`
+inside its transform, the engine records it at the leaf of that item.
+Thus an item that logs a warning and then completes has the result
+`'warning'`. A line logged outside an item records no result.
 
 ### `parseIssues`
 
@@ -240,16 +222,38 @@ levels (`'error'`, `'warning'`, `'debug'`):
 
 ```ts
 type ParseIssue =
-  | { protocol: 'oas'; level: 'error';   type: OasIssueType; location: string; message: string; cause?: unknown }
+  | { protocol: 'oas'; level: 'error';   type: OasIssueType; location: string; message: string; cause?: SerializedError }
   | { protocol: 'oas'; level: 'warning'; type: OasIssueType; location: string; message: string }
   | { protocol: 'oas'; level: 'debug';   type: OasIssueType; location: string; message: string }
-  | { protocol: 'gql'; level: 'error';   type: GqlIssueType; location: string; message: string; cause?: unknown }
+  | { protocol: 'gql'; level: 'error';   type: GqlIssueType; location: string; message: string; cause?: SerializedError }
   | { protocol: 'gql'; level: 'warning'; type: GqlIssueType; location: string; message: string }
   | { protocol: 'gql'; level: 'debug';   type: GqlIssueType; location: string; message: string }
 ```
 
 Note that `cause` exists **only** on `level: 'error'` shapes (and
 is optional there) — warnings and debug entries never carry it.
+
+`cause` is the error that caused the issue, as data. Its name,
+message and stack stay in the JSON:
+
+```ts
+type SerializedError = {
+  name: string
+  message: string
+  stack?: string
+  cause?: SerializedError
+}
+```
+
+`cause.cause` holds the cause of that error, to a depth of five. A
+thrown value that is not an `Error` has the name `'NonError'`. Its
+`message` is the value as a string or as JSON. Core exports the type,
+the `serializedError` schema and `toSerializedError` from
+`@skmtc/core/SerializedError`.
+
+A manifest from an earlier core can hold `cause: {}` or a string.
+The `manifestContent` schema reads such a value and changes it to a
+`SerializedError` with the name `'NonError'`.
 `debug` is informational: the parser handled the input gracefully
 and is recording what it did. The `type` field is constrained to
 the protocol's `OasIssueType` or `GqlIssueType` literal union — see
@@ -298,6 +302,53 @@ only the actionable ones:
 
 ```bash
 jq '.enrichmentWarnings // [] | map(select(.level == "warning"))' manifest.json
+```
+
+## `logs` beside the manifest
+
+`toArtifacts` returns the log lines of the run in `logs`, next to the
+manifest and not in it. The manifest stays a small record of
+statuses. The lines hold the detail: messages, and errors with their
+stacks.
+
+```ts
+type LogLine = {
+  /** Position of the line in the run, from 0 */
+  seq: number
+  /** A CRITICAL record is recorded as 'ERROR' */
+  level: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'
+  /** The trail of the subject that logged the line. Absent outside a subject */
+  trail?: string
+  message: string
+  /** The first Error that the line was logged with (see SerializedError above) */
+  error?: SerializedError
+  /** Unix milliseconds */
+  time: number
+}
+```
+
+`logs` keeps the lines at the `logLevel` of `toArtifacts` and above.
+The default is `'WARN'`. When a transform throws, the engine logs one
+`ERROR` line with the message of the error and the error itself.
+
+The CLI writes the lines to
+`.skmtc/<project>/.settings/logs.ndjson`, one JSON object on each line.
+Each run replaces the file. A bundle that pins a core without `logs`
+gives no lines, and the CLI then removes the old file. `skmtc deploy`
+does not upload this file or `manifest.json`, because the stacks in
+them hold local paths.
+`@skmtc/server` returns the lines in the `logs` array of its
+`POST /artifacts` response.
+
+The `trail` of a line is its key in `results`. Read it back with
+`StackTrail.fromString`, and use the frames in sequence as keys into
+`results`. In other languages, split the trail on `:`, then change
+`%3A` to `:` and `%25` to `%` in each frame. A frame such as the path
+`/v1/{name}:cancel` holds these characters. The frames of an `ERROR` line end at a leaf
+that is `'error'`. To list the errors with their items:
+
+```bash
+jq -c 'select(.level == "ERROR") | {trail, message}' .skmtc/<project>/.settings/logs.ndjson
 ```
 
 ## Diagnostic workflow against the manifest

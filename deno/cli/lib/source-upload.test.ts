@@ -25,6 +25,9 @@ Deno.test('collectSourceFiles - keeps authored source, drops derived/secret/bina
     await write(root, 'server.ts')
     await write(root, 'server.js')
     await write(root, 'bundle.js')
+    // dropped — the run's log lines, whose stacks hold local paths
+    await write(root, '.settings/logs.ndjson', '{}\n')
+    await write(root, '.settings/manifest.json', '{}')
     // dropped — secrets / OS cruft
     await write(root, '.env', 'SECRET=1')
     await write(root, '.DS_Store')

@@ -73,8 +73,8 @@ export const generateWithWorker = ({
 
         case 'RESULT': {
           worker.terminate()
-          const { artifacts, manifest, sidecars, generationMap } = e.data
-          resolve({ artifacts, manifest, sidecars, generationMap })
+          const { artifacts, manifest, logs, sidecars, generationMap } = e.data
+          resolve({ artifacts, manifest, logs, sidecars, generationMap })
           break
         }
 

@@ -8,7 +8,9 @@ import type { ResultType } from '@/types/Results.ts'
 import * as log from '@std/log'
 import type { Logger } from '@/types/Logger.ts'
 import { ResultsHandler } from '@/context/ResultsHandler.ts'
-import type { StackTrail } from '@/context/StackTrail.ts'
+import { LogLinesHandler } from '@/context/LogLinesHandler.ts'
+import type { LogLineLevel } from '@/types/LogLine.ts'
+import { StackTrail } from '@/context/StackTrail.ts'
 import { ResultsLog } from '@/helpers/ResultsLog.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
 import type { CaptureChannel } from '@/anchors/CaptureSink.ts'
@@ -24,6 +26,7 @@ import type { AttributionState } from '@/types/AttributionState.ts'
 import type { SupportedSubjects } from '@/types/SupportedSubjects.ts'
 import type { EnrichmentDefaults } from '@/types/EnrichmentDefaults.ts'
 import type { ParseIssue } from '@/context/ParseIssue.ts'
+import { toSerializedError } from '@/types/SerializedError.ts'
 
 /**
  * Represents the parse phase of the SKMTC pipeline.
@@ -84,6 +87,8 @@ type CoreContextArgs = {
   spanId: string
   logsPath?: string
   silent: boolean
+  /** The lowest level kept in the returned `logs`. Defaults to `'WARN'`. */
+  logLevel?: LogLineLevel
 }
 
 type RenderArgs = {
@@ -138,9 +143,19 @@ export type ToArtifactsArgs = {
   inspect?: boolean
 }
 
+type RunPhaseName = 'parse' | 'generate' | 'render'
+
+type ToRunFailedIssueArgs = {
+  /** The `CoreContext` method that failed. */
+  entry: 'toArtifacts' | 'toSupportedSubjects' | 'toEnrichmentDefaults'
+  protocol: SkmtcDocumentInput['type']
+  error: unknown
+}
+
 type SetupLoggerArgs = {
   spanId: string
   logsPath?: string
+  logLines: LogLinesHandler
 }
 
 /**
@@ -202,6 +217,21 @@ export class CoreContext {
   /** Whether to suppress console output */
   silent: boolean
 
+  /** Keeps this run's log lines for `toArtifacts` to return. */
+  #logLines: LogLinesHandler
+
+  /**
+   * The phase that is running. Set when a phase starts, before its
+   * context is set up, so a failure names the phase it happened in.
+   */
+  #phaseName: RunPhaseName = 'parse'
+
+  /**
+   * The issues of this run's parse context, kept after the generate and
+   * render phases replace `#phase`, so a later failure still returns them.
+   */
+  #parseIssues: ParseIssue[] = []
+
   /**
    * Creates a new CoreContext instance.
    *
@@ -226,53 +256,64 @@ export class CoreContext {
    * });
    * ```
    */
-  constructor({ spanId, logsPath, silent }: CoreContextArgs) {
+  constructor({ spanId, logsPath, silent, logLevel = 'WARN' }: CoreContextArgs) {
     this.#results = new ResultsLog()
 
-    this.logger = this.#setupLogger({ spanId, logsPath })
+    this.#logLines = new LogLinesHandler(logLevel, {
+      toTrail: () => this.currentSubjectTrail?.toString()
+    })
+
+    this.logger = this.#setupLogger({ spanId, logsPath, logLines: this.#logLines })
 
     this.silent = silent
   }
 
-  #setupLogger({ spanId, logsPath }: SetupLoggerArgs) {
-    const filename = join(logsPath ?? '', `${spanId}.txt`)
+  /**
+   * Builds this run's own `Logger`. It does not call `log.setup` or
+   * `log.getLogger`, which replace or share process-global state, so a
+   * host's loggers and other runs' loggers are left alone.
+   */
+  #setupLogger({ spanId, logsPath, logLines }: SetupLoggerArgs): Logger {
+    const fileHandlers = logsPath
+      ? [
+          new log.FileHandler('DEBUG', {
+            filename: join(logsPath, `${spanId}.txt`),
+            // JSON format for file logs (easier to parse and analyze)
+            formatter: logRecord =>
+              skmtcJsonFormatter({ logRecord, stackTrail: this.#toLogTrail() })
+          })
+        ]
+      : []
 
-    log.setup({
-      handlers: {
-        [`${spanId}-logs`]: new log.ConsoleHandler('DEBUG', {
-          formatter: logRecord =>
-            skmtcFormatter({
-              logRecord,
-              stackTrail: 'SKIPPED'
-            }),
+    fileHandlers.forEach(handler => handler.setup())
+
+    return new log.Logger(spanId, 'DEBUG', {
+      handlers: [
+        new log.ConsoleHandler('DEBUG', {
+          formatter: logRecord => skmtcFormatter({ logRecord, stackTrail: this.#toLogTrail() }),
           useColors: true
         }),
-        ...(logsPath && {
-          file: new log.FileHandler('DEBUG', {
-            filename,
-            // JSON format for file logs (easier to parse and analyze)
-            formatter: logRecord => {
-              return skmtcJsonFormatter({
-                logRecord,
-                stackTrail: 'SKIPPED'
-              })
-            }
-          })
-        }),
-        [`${spanId}-results`]: new ResultsHandler('WARN', {
+        ...fileHandlers,
+        logLines,
+        new ResultsHandler('WARN', {
           formatter: ({ levelName }) => levelName,
           context: this
         })
-      },
-      loggers: {
-        [spanId]: {
-          level: 'DEBUG',
-          handlers: [`${spanId}-logs`, `${spanId}-results`, 'file']
-        }
-      }
+      ]
     })
+  }
 
-    return log.getLogger(spanId)
+  /**
+   * The trail of the subject being generated, or `undefined` outside one
+   * (parse, render, and generate work that is not a subject's variant).
+   */
+  get currentSubjectTrail(): StackTrail | undefined {
+    return this.#phase?.type === 'generate' ? this.#phase.context.currentSubjectTrail : undefined
+  }
+
+  /** The trail a log line prints: the subject's, or `'SKIPPED'` outside one. */
+  #toLogTrail(): string {
+    return this.currentSubjectTrail?.toString() ?? 'SKIPPED'
   }
 
   /**
@@ -397,8 +438,12 @@ export class CoreContext {
       // Parse phase: one unified ParseContext handles both protocols
       // via its internal protocol-discriminated state. `parse()` returns
       // a SkmtcParsedDocument; we collect issues from `context.issues`.
+      // A throw while the parse context is set up counts as parse.
+      this.#phaseName = 'parse'
+      this.#parseIssues = []
       const phase = this.#setupParsePhase(document)
       this.#phase = phase
+      this.#parseIssues = phase.context.issues
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
         phase.context.parse(st)
       )
@@ -412,6 +457,7 @@ export class CoreContext {
       const { files, previews, inspection, enrichmentWarnings } = stackTrail.trace(
         'generate',
         st => {
+          this.#phaseName = 'generate'
           const generatePhase = this.#setupGeneratePhase({
             toGeneratorConfigMap,
             document: parsedDocument,
@@ -438,6 +484,7 @@ export class CoreContext {
       // post-pass, no re-render — the old `_rendered` cache that faked
       // "render once" across two passes is gone.
       const renderOutput = stackTrail.trace('render', st => {
+        this.#phaseName = 'render'
         this.#phase = this.#setupRenderPhase({
           files,
           previews,
@@ -454,37 +501,27 @@ export class CoreContext {
         results: this.#results.toTree(),
         parseIssues: phase.context.issues,
         enrichmentWarnings,
-        inspection
+        inspection,
+        logs: [...this.#logLines.lines]
       }
     } catch (error) {
       console.error(error)
 
-      this.logger.error(error)
+      this.logger.error(toSerializedError(error).message, error)
 
       // Surface the fatal error as a synthesized parse-issue so
       // downstream consumers (CLI `generate`, the manifest writer)
       // can tell a successful 0-file run apart from a crashed run.
-      // Before this, the catch returned `parseIssues: []` and an
-      // empty `artifacts`, which read on the CLI side as "everything
-      // generated, just nothing emitted" — silent failure.
       //
-      // We pull whatever parse-phase issues were already recorded
-      // before the throw, so any incremental diagnostics aren't lost,
-      // and append the top-level failure on the end. Protocol is
-      // hardcoded to 'oas' because the synthesized issue is
-      // post-protocol-dispatch and we don't have a discriminator at
-      // this catch site; OAS is the more common case and the
-      // location format ('toArtifacts') is unambiguous regardless.
-      const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
-      const message = error instanceof Error ? error.message : String(error)
-      const fatalIssue = {
-        protocol: 'oas' as const,
-        level: 'error' as const,
-        type: 'INVALID_SCHEMA' as const,
-        location: 'toArtifacts',
-        message: `Top-level toArtifacts failure: ${message}`,
-        cause: error
-      }
+      // The parse issues recorded before the throw are kept, in any
+      // phase, so incremental diagnostics aren't lost, and the
+      // top-level failure is appended on the end.
+      const priorIssues = this.#parseIssues
+      const fatalIssue = this.#toRunFailedIssue({
+        entry: 'toArtifacts',
+        protocol: document.type,
+        error
+      })
 
       return {
         artifacts: {},
@@ -492,14 +529,11 @@ export class CoreContext {
         previews: {},
         results: this.#results.toTree(),
         parseIssues: [...priorIssues, fatalIssue],
-        enrichmentWarnings: []
+        enrichmentWarnings: [],
+        logs: [...this.#logLines.lines]
       }
     } finally {
-      this.logger.handlers.forEach(handler => {
-        if (handler instanceof log.FileHandler) {
-          handler.flush()
-        }
-      })
+      this.#closeFileHandlers()
     }
   }
 
@@ -518,13 +552,17 @@ export class CoreContext {
     parseIssues: ParseIssue[]
   } {
     try {
+      this.#phaseName = 'parse'
+      this.#parseIssues = []
       const phase = this.#setupParsePhase(document)
       this.#phase = phase
+      this.#parseIssues = phase.context.issues
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
         phase.context.parse(st)
       )
 
       const subjects = stackTrail.trace('generate', () => {
+        this.#phaseName = 'generate'
         // Capability probing never renders, so the capture interval never
         // opens — a throwaway channel satisfies the wiring.
         const generatePhase = this.#setupGeneratePhase({
@@ -540,25 +578,19 @@ export class CoreContext {
 
       return { subjects, parseIssues: phase.context.issues }
     } catch (error) {
-      this.logger.error(error)
+      this.logger.error(toSerializedError(error).message, error)
 
-      const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
-      const message = error instanceof Error ? error.message : String(error)
+      const priorIssues = this.#parseIssues
 
       return {
         subjects: {},
         parseIssues: [
           ...priorIssues,
-          {
-            protocol: 'oas' as const,
-            level: 'error' as const,
-            type: 'INVALID_SCHEMA' as const,
-            location: 'toSupportedSubjects',
-            message: `Top-level toSupportedSubjects failure: ${message}`,
-            cause: error
-          }
+          this.#toRunFailedIssue({ entry: 'toSupportedSubjects', protocol: document.type, error })
         ]
       }
+    } finally {
+      this.#closeFileHandlers()
     }
   }
 
@@ -580,13 +612,17 @@ export class CoreContext {
     parseIssues: ParseIssue[]
   } {
     try {
+      this.#phaseName = 'parse'
+      this.#parseIssues = []
       const phase = this.#setupParsePhase(document)
       this.#phase = phase
+      this.#parseIssues = phase.context.issues
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
         phase.context.parse(st)
       )
 
       const enrichmentDefaults = stackTrail.trace('generate', () => {
+        this.#phaseName = 'generate'
         // Seeding never renders, so the capture interval never opens — a
         // throwaway channel satisfies the wiring.
         const generatePhase = this.#setupGeneratePhase({
@@ -602,24 +638,50 @@ export class CoreContext {
 
       return { enrichmentDefaults, parseIssues: phase.context.issues }
     } catch (error) {
-      this.logger.error(error)
+      this.logger.error(toSerializedError(error).message, error)
 
-      const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
-      const message = error instanceof Error ? error.message : String(error)
+      const priorIssues = this.#parseIssues
 
       return {
         enrichmentDefaults: {},
         parseIssues: [
           ...priorIssues,
-          {
-            protocol: 'oas' as const,
-            level: 'error' as const,
-            type: 'INVALID_SCHEMA' as const,
-            location: 'toEnrichmentDefaults',
-            message: `Top-level toEnrichmentDefaults failure: ${message}`,
-            cause: error
-          }
+          this.#toRunFailedIssue({ entry: 'toEnrichmentDefaults', protocol: document.type, error })
         ]
+      }
+    } finally {
+      this.#closeFileHandlers()
+    }
+  }
+
+  /** Writes and closes the log file, which the constructor opened when `logsPath` was set. */
+  #closeFileHandlers(): void {
+    this.logger.handlers.forEach(handler => {
+      if (handler instanceof log.FileHandler) {
+        handler.destroy()
+      }
+    })
+  }
+
+  /**
+   * The issue for a run that failed outside the per-item catches. Its
+   * `location` names the entry and the phase, for example
+   * `toArtifacts:render`.
+   */
+  #toRunFailedIssue({ entry, protocol, error }: ToRunFailedIssueArgs): ParseIssue {
+    const phaseName = this.#phaseName
+    const cause = toSerializedError(error)
+    const location = new StackTrail([entry, phaseName]).toString()
+    const message = `${phaseName} phase failed: ${cause.message}`
+
+    switch (protocol) {
+      case 'oas':
+        return { protocol, level: 'error', type: 'RUN_FAILED', location, message, cause }
+      case 'gql':
+        return { protocol, level: 'error', type: 'RUN_FAILED', location, message, cause }
+      default: {
+        const _exhaustive: never = protocol
+        throw new Error(`Unhandled protocol type: ${JSON.stringify(_exhaustive)}`)
       }
     }
   }
@@ -774,7 +836,7 @@ export function skmtcFormatter({ logRecord, stackTrail }: JsonFormatterArgs): st
   const stackTrailLine = stackTrail !== 'SKIPPED' ? `\n${gray('Stack:')} ${stackTrail}` : ''
 
   // Format the message (preserve multi-line errors and stack traces)
-  const formattedMessage = msg
+  const formattedMessage = toMessageWithStack(logRecord)
 
   return `${header}${stackTrailLine}\n${formattedMessage}\n`
 }
@@ -810,9 +872,26 @@ export function skmtcJsonFormatter({ logRecord, stackTrail }: JsonFormatterArgs)
 }
 
 function flattenArgs(args: unknown[]): unknown {
-  if (args.length === 1) {
-    return args[0]
-  } else if (args.length > 1) {
-    return args
+  const serializable = args.map(arg => (arg instanceof Error ? toSerializedError(arg) : arg))
+
+  if (serializable.length === 1) {
+    return serializable[0]
+  } else if (serializable.length > 1) {
+    return serializable
   }
+}
+
+/**
+ * `msg`, followed by the stack of the first `Error` in `args`. A line
+ * logged as `logger.error(error.message, error)` prints the stack alone,
+ * which starts with the message.
+ */
+function toMessageWithStack({ msg, args }: JsonFormatterArgs['logRecord']): string {
+  const error = args.find(arg => arg instanceof Error)
+
+  if (error?.stack === undefined) {
+    return msg
+  }
+
+  return error.message === msg ? error.stack : `${msg}\n${error.stack}`
 }

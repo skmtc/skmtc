@@ -253,8 +253,6 @@ The manifest is overwritten on every run. See
 
   For example, a failed `GET /pets` is
   `[…, "generate", "@skmtc/gen-md-docs", "/pets", "get", "variant", "main"]`.
-  A run that logs an error also has the entry `["SKIPPED"]`: the
-  engine records each logged warning or error at `results.SKIPPED`.
   `errors[i][0]` is **not** a file path. To find the file of an
   error, look up the item with the `toExportPath` of the generator.
 - **`parseIssues`**: forwarded verbatim from
@@ -354,9 +352,10 @@ No schema argument needed.
 ## Worker-side failures
 
 When the worker encounters an unrecoverable error
-(`toArtifacts` throws), it synthesizes an `INVALID_SCHEMA` issue
-at `location: "toArtifacts"` with `level: "error"` and posts it via
-the manifest. The CLI sees the issue, writes the manifest as
+(`toArtifacts` throws), it synthesizes a `RUN_FAILED` issue with
+`level: "error"` and posts it via the manifest. Its `location` names
+the phase that failed, for example `toArtifacts:render`, and its
+`cause` holds the stack. The CLI sees the issue, writes the manifest as
 normal, and exits 1.
 
 This means: **fatal failures still produce a manifest with

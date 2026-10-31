@@ -2,7 +2,6 @@ import { type LevelName, LogLevels } from '@std/log/levels'
 import type { LogRecord } from '@std/log/logger'
 import { BaseHandler } from '@std/log/base-handler'
 import type { CoreContext } from '@/context/CoreContext.ts'
-import { StackTrail } from './StackTrail.ts'
 
 /**
  * Base log handler interface for extending Deno standard library handlers.
@@ -86,10 +85,11 @@ export class ResultsHandler extends BaseHandler implements LogHandlerBase {
   /**
    * Captures log messages as results in the context.
    *
-   * Converts log level names to result types and captures them
-   * in the associated CoreContext for later analysis.
+   * Converts log level names to result types and captures them in the
+   * associated CoreContext at the trail of the subject being generated.
+   * A line logged outside a subject records nothing.
    *
-   * @param levelName - The log level name ('WARN' or 'ERROR')
+   * @param levelName - The log level name ('WARN', 'ERROR' or 'CRITICAL')
    *
    * @throws {Error} When an unsupported log level is provided
    *
@@ -98,6 +98,7 @@ export class ResultsHandler extends BaseHandler implements LogHandlerBase {
    * // This is called automatically by the logging system
    * handler.log('WARN'); // Captures as 'warning' result
    * handler.log('ERROR'); // Captures as 'error' result
+   * handler.log('CRITICAL'); // Captures as 'error' result
    * ```
    */
   log(levelName: string) {
@@ -107,13 +108,19 @@ export class ResultsHandler extends BaseHandler implements LogHandlerBase {
         resultType = 'warning'
         break
       case 'ERROR':
+      case 'CRITICAL':
         resultType = 'error'
         break
       default:
         throw new Error(`Unexpected log level name: ${levelName}`)
     }
 
-    this.context.captureCurrentResult(resultType, new StackTrail(['SKIPPED']))
+    // Outside a subject there is no result to record against.
+    const subjectTrail = this.context.currentSubjectTrail
+
+    if (subjectTrail !== undefined) {
+      this.context.captureCurrentResult(resultType, subjectTrail)
+    }
   }
 
   /**

@@ -29,22 +29,29 @@ skmtc generate <project> --json >generate-output.json 2>generate-stderr.log
 The JSON form has the same data as the human output but
 machine-parseable. Pipe into `jq` for targeted inspection.
 
-**Capture stderr too.** The manifest's `results` tree stores only
-status per item (`success` / `warning` / `error` / `skipped` /
-`notSupported`) — it does *not* carry the exception message or
-stack for errored items. The human-readable error text appears on
-the generate command's stderr stream only. Without redirecting
-stderr, you see "this operation errored" without seeing why. Two
-related logs to know about:
+**Read the log lines for the why.** The manifest's `results` tree
+stores only status per item (`success` / `warning` / `error` /
+`skipped` / `notSupported`) — it does *not* carry the exception
+message or stack for errored items. Two logs hold that text:
+
+- `.skmtc/<project>/.settings/logs.ndjson` — the log lines of the
+  last generate run, one JSON object on each line. Each item that
+  failed has one `ERROR` line with the message and the error with its
+  stack. Its `trail` is the key of the item in `results` (see
+  [manifest format: `logs`](../../reference/manifest-format.md#logs-beside-the-manifest)):
+
+  ```bash
+  jq -c 'select(.level == "ERROR") | {trail, message}' .skmtc/<project>/.settings/logs.ndjson
+  ```
 
 - `.skmtc/<project>/.settings/error-logs.txt` — written by the
   bundle build (inside `generate`, `bundle`, `clone`, `install` and
   `dev`). Contains the `deno bundle` subprocess
   stderr. **Generate-time worker errors do not land here**; only
   bundle-time errors do.
-- Stderr from `skmtc generate` — the live stream is where
-  generate-time exceptions are reported. Persist it via shell
-  redirection if you want it later.
+
+The stderr of `skmtc generate` shows the same generate-time errors
+live.
 
 ### Inspect parseIssues
 

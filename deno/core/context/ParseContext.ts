@@ -41,6 +41,7 @@ import type {
   LogSkippedValuesArgs
 } from '@/context/parseTypes.ts'
 import type { ParseIssue } from '@/context/ParseIssue.ts'
+import { toSerializedError } from '@/types/SerializedError.ts'
 
 // Re-exports kept here for backwards-compat with the previous flat
 // surface. New parser helpers should `import type` from
@@ -96,6 +97,27 @@ type LogDependencyIssueArgs = {
   refKey: string
   /** The error that started the removal. */
   rootCause: RefError
+}
+
+/** The stored form of an issue: an error's `cause` as a `SerializedError`. */
+const toParseIssue = (issue: LogIssueAtArgs): ParseIssue => {
+  if (issue.level !== 'error') {
+    return issue
+  }
+
+  const { protocol, location, message } = issue
+  const cause = issue.cause === undefined ? {} : { cause: toSerializedError(issue.cause) }
+
+  switch (protocol) {
+    case 'oas':
+      return { protocol, level: 'error', type: issue.type, location, message, ...cause }
+    case 'gql':
+      return { protocol, level: 'error', type: issue.type, location, message, ...cause }
+    default: {
+      const _exhaustive: never = protocol
+      throw new Error(`Unhandled protocol type: ${JSON.stringify(_exhaustive)}`)
+    }
+  }
 }
 
 type ConstructorArgs = {
@@ -489,7 +511,7 @@ export class ParseContext {
           type: 'INVALID_DEPENDENCY_REF',
           location,
           message,
-          cause: error
+          cause: toSerializedError(error)
         })
         break
       case 'gql':
@@ -499,7 +521,7 @@ export class ParseContext {
           type: 'INVALID_DEPENDENCY_REF',
           location,
           message,
-          cause: error
+          cause: toSerializedError(error)
         })
         break
       default: {
@@ -597,7 +619,7 @@ export class ParseContext {
    * manifest).
    */
   logIssueAt(issue: LogIssueAtArgs, parent?: unknown): void {
-    this.issues.push(issue)
+    this.issues.push(toParseIssue(issue))
 
     if (!this.silent) {
       this.logger.warn({

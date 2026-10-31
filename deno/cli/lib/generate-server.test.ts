@@ -2,6 +2,7 @@ import { assertEquals, assertRejects } from '@std/assert'
 import { withEnv } from '@/tests/mocks/env.mock.ts'
 import { writeStoredAuth } from '@/lib/hub-token.ts'
 import { generateWithServer } from '@/lib/generate-server.ts'
+import type { LogLine } from '@skmtc/core/LogLine'
 
 const originalFetch = globalThis.fetch
 
@@ -50,6 +51,33 @@ Deno.test('generateWithServer POSTs to {url}/artifacts with protocol + schema + 
   } finally {
     globalThis.fetch = originalFetch
     Deno.env.delete('SKMTC_HUB_TOKEN')
+  }
+})
+
+Deno.test('generateWithServer returns the server logs only when they are log lines', async () => {
+  const logs: LogLine[] = [{ seq: 0, level: 'ERROR', trail: 't:s', message: 'boom', time: 1 }]
+  const responses = [
+    { artifacts: {}, manifest: { files: {} }, logs },
+    { artifacts: {}, manifest: { files: {} }, logs: 'not an array' },
+    { artifacts: {}, manifest: { files: {} } }
+  ]
+  const results: (LogLine[] | undefined)[] = []
+
+  try {
+    for (const response of responses) {
+      globalThis.fetch = (): Promise<Response> => Promise.resolve(okJson(response))
+      const result = await generateWithServer({
+        stackUrl: 'https://api.test/s',
+        schemaContents: '{}',
+        fileType: 'json',
+        clientSettings: undefined
+      })
+      results.push(result.logs)
+    }
+
+    assertEquals(results, [logs, undefined, undefined])
+  } finally {
+    globalThis.fetch = originalFetch
   }
 })
 

@@ -3,11 +3,11 @@
  * GraphQL parsing. Each variant stands on its own — no shared base —
  * so TypeScript narrows cleanly on `protocol` and `level`.
  *
- * `cause?: unknown` is only present on the error variants. Warnings and
- * `debug` issues are synthesized by the parser with all the information
- * needed for the `message`; errors usually wrap a thrown `Error`, which
- * we keep in `cause` for debugging without forcing renderers to know
- * about it.
+ * `cause?: SerializedError` is only present on the error variants.
+ * Warnings and `debug` issues are synthesized by the parser with all the
+ * information needed for the `message`; errors usually wrap a thrown
+ * `Error`, which is stored in `cause` as a {@link SerializedError} so its
+ * name, message and stack survive `JSON.stringify`.
  *
  * Three severities: `error` (broken — drives exit status), `warning` (a
  * real deviation that was handled, e.g. a 3.0 schema missing `type`), and
@@ -24,6 +24,7 @@
 
 import * as v from 'valibot'
 import type { OasIssueType } from '@/context/generateTypes.ts'
+import type { SerializedError } from '@/types/SerializedError.ts'
 
 /**
  * Categories of issues recorded during GraphQL → OAS mapping.
@@ -51,6 +52,8 @@ import type { OasIssueType } from '@/context/generateTypes.ts'
  *   implementer references a type that failed to parse, and the
  *   consumer was pruned by `removeErroredItems`. Mirrors OAS's
  *   identically-named issue.
+ * - `RUN_FAILED` — the run itself failed outside the per-item catches.
+ *   Mirrors OAS's identically-named issue.
  */
 export type GqlIssueType =
   | 'NESTED_LIST_LOSSY'
@@ -60,6 +63,7 @@ export type GqlIssueType =
   | 'SKIPPED_FEATURE'
   | 'INVALID_TYPE_DEFINITION'
   | 'INVALID_DEPENDENCY_REF'
+  | 'RUN_FAILED'
 
 /**
  * Valibot schema for {@link GqlIssueType}. Annotation deliberately
@@ -74,7 +78,8 @@ export const gqlIssueType = v.union([
   v.literal('SKIPPED_FIELD_ARGUMENTS'),
   v.literal('SKIPPED_FEATURE'),
   v.literal('INVALID_TYPE_DEFINITION'),
-  v.literal('INVALID_DEPENDENCY_REF')
+  v.literal('INVALID_DEPENDENCY_REF'),
+  v.literal('RUN_FAILED')
 ])
 
 const _gqlIssueTypeDriftCheck: v.GenericSchema<GqlIssueType> = gqlIssueType
@@ -87,7 +92,7 @@ export type ParseIssue =
       type: OasIssueType
       location: string
       message: string
-      cause?: unknown
+      cause?: SerializedError
     }
   | {
       protocol: 'oas'
@@ -109,7 +114,7 @@ export type ParseIssue =
       type: GqlIssueType
       location: string
       message: string
-      cause?: unknown
+      cause?: SerializedError
     }
   | {
       protocol: 'gql'

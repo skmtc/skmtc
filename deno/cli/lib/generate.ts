@@ -1,5 +1,6 @@
 import { GenerateArtifacts } from '@/lib/generate-artifacts.ts'
 import { writeGeneratedFiles } from '@/lib/write-generated-files.ts'
+import { writeLogLines } from '@/lib/write-log-lines.ts'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import type { Project } from '@/lib/project.ts'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
@@ -34,7 +35,7 @@ export const generate = async ({
   stackUrl
 }: GenerateArgs) => {
   try {
-    const { artifacts, manifest } = await GenerateArtifacts.generateWithWorker({
+    const { artifacts, manifest, logs } = await GenerateArtifacts.generateWithWorker({
       bundlePath,
       schemaContents,
       fileType,
@@ -50,6 +51,8 @@ export const generate = async ({
       manifest,
       clientSettings
     })
+
+    writeLogLines({ manifestPath, logs })
 
     const stats = toGenerationStats({ manifest, artifacts })
 

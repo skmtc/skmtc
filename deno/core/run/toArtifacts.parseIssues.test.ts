@@ -113,6 +113,73 @@ Deno.test('manifestContent schema - round-trips a manifest carrying mixed parseI
   assertEquals(parsed.parseIssues[1].protocol, 'gql')
 })
 
+Deno.test('toArtifacts (oas) - a parse error keeps its name, message and stack through JSON', () => {
+  const result = toArtifacts({
+    traceId: 't',
+    spanId: 's',
+    document: {
+      type: 'oas',
+      value: {
+        ...oasDoc,
+        components: {
+          schemas: {
+            // `minLength` must be a number, so the string schema throws.
+            A: { type: 'object', properties: { x: { type: 'string', minLength: 'oops' } } }
+          }
+        }
+      } as unknown as OpenAPIV3.Document
+    },
+    settings: undefined,
+    toGeneratorConfigMap: emptyGenerators,
+    startAt: Date.now(),
+    silent: true,
+    stackTrail: new StackTrail(['test'])
+  })
+
+  const written = v.parse(manifestContent, JSON.parse(JSON.stringify(result.manifest)))
+  const issue = written.parseIssues.find(i => i.level === 'error')
+
+  if (issue?.level !== 'error' || issue.cause === undefined) {
+    throw new Error('expected an error issue with a cause')
+  }
+  assertEquals(issue.cause.name, 'ValiError')
+  assertEquals(issue.cause.message, issue.message)
+  assertEquals(issue.cause.stack?.startsWith('ValiError: '), true)
+})
+
+Deno.test('manifestContent schema - reads a legacy cause as a SerializedError', () => {
+  const legacyIssue = (cause: unknown) => ({
+    protocol: 'oas',
+    level: 'error',
+    type: 'INVALID_SCHEMA',
+    location: 'components.schemas.User',
+    message: 'bad',
+    cause
+  })
+  const manifest = {
+    deploymentId: 'd',
+    traceId: 't',
+    spanId: 's',
+    files: {},
+    previews: {},
+    results: {},
+    // An Error written by `JSON.stringify` before core serialized it, and a string.
+    parseIssues: [legacyIssue({}), legacyIssue('text')],
+    startAt: 0,
+    endAt: 1
+  }
+
+  const parsed = v.parse(manifestContent, manifest)
+  const causes = parsed.parseIssues.map(issue =>
+    issue.level === 'error' ? issue.cause : undefined
+  )
+
+  assertEquals(causes, [
+    { name: 'NonError', message: '{}' },
+    { name: 'NonError', message: 'text' }
+  ])
+})
+
 Deno.test('manifestContent schema - rejects a parseIssue with an unknown protocol', () => {
   const manifest = {
     deploymentId: 'd',

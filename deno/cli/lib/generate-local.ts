@@ -8,6 +8,7 @@ import { type GenerationStats, toGenerationStats } from '@/lib/generationStats.t
 import type { FileType } from '@/lib/types.ts'
 import type { EnrichmentWarning, ParseIssue } from '@skmtc/core'
 import { toAttributionPayload } from '@/lib/to-attribution-payload.ts'
+import { writeLogLines } from '@/lib/write-log-lines.ts'
 
 type GenerateLocalArgs = {
   /** URL of the bundle the caller just built. Unused with `stackUrl`. */
@@ -121,7 +122,7 @@ export const generateLocal = async ({
       flagOverride: anchorsFlag
     })
 
-    const { artifacts, manifest, sidecars, generationMap } =
+    const { artifacts, manifest, logs, sidecars, generationMap } =
       await GenerateArtifacts.generateWithWorker({
         bundlePath,
         schemaContents,
@@ -137,6 +138,8 @@ export const generateLocal = async ({
       manifest,
       clientSettings
     })
+
+    writeLogLines({ manifestPath, logs })
 
     let anchorsStats: GenerateLocalAnchorsStats | undefined
     if (sidecars && generationMap) {

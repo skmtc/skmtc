@@ -28,6 +28,8 @@ import type { GqlOperationProjection } from '@/dsl/operation/gql/types.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type { AttributionState } from '@/types/AttributionState.ts'
+import type { Logger } from '@/types/Logger.ts'
+import type { LogLine } from '@/types/LogLine.ts'
 import type { EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
 import type { CaptureSink } from '@/anchors/CaptureSink.ts'
 import type { Sidecar } from '@/anchors/sidecar.ts'
@@ -171,6 +173,13 @@ export type ToArtifactsResult = RenderResult & {
    * the VS Code debugger views.
    */
   inspection?: unknown
+  /**
+   * The lines the run's logger received at or above the `logLevel`
+   * `toArtifacts` was called with (`'WARN'` by default), in order. A
+   * line logged while a subject was generated carries the subject's
+   * trail, which is also its key in `results`.
+   */
+  logs: LogLine[]
 }
 
 /**
@@ -196,6 +205,10 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  *   body, and its keys include a range: `application/*`, or `*\/*` with a
  *   scalar schema (a text body or a file). A body with only specific
  *   non-JSON types (`multipart/form-data`, `text/plain`) logs nothing.
+ *
+ * `RUN_FAILED` (`error`) — the run itself failed outside the per-item
+ * catches. Its `location` names the entry and phase, for example
+ * `toArtifacts:render`.
  */
 export type OasIssueType =
   | 'UNEXPECTED_PROPERTY'
@@ -227,6 +240,7 @@ export type OasIssueType =
   | 'UNSUPPORTED_OPERATION_METHOD'
   | 'WILDCARD_MEDIA_TYPE'
   | 'NO_JSON_MEDIA_TYPE'
+  | 'RUN_FAILED'
 
 /**
  * Valibot schema for {@link OasIssueType}. Annotation deliberately omitted
@@ -264,7 +278,8 @@ export const oasIssueType = v.union([
   v.literal('INVALID_EXTERNAL_DOCS'),
   v.literal('UNSUPPORTED_OPERATION_METHOD'),
   v.literal('WILDCARD_MEDIA_TYPE'),
-  v.literal('NO_JSON_MEDIA_TYPE')
+  v.literal('NO_JSON_MEDIA_TYPE'),
+  v.literal('RUN_FAILED')
 ])
 
 // Compile-time drift detector: this binding fails to type-check if
@@ -549,6 +564,12 @@ export type InsertNormalizedModelReturn<
 
 export type GenerateContextType = {
   settings: ClientSettings | undefined
+  /**
+   * The run's logger. A line logged inside a transform carries the
+   * subject's stack trail, and a `warn` or `error` line sets the
+   * subject's result to `'warning'` or `'error'`.
+   */
+  logger: Logger
   modelDepth: Record<string, number>
   document: SkmtcParsedDocument
   /**
