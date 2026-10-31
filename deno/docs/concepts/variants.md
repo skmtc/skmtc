@@ -82,10 +82,10 @@ The variant flows through:
   models went from 2 to 3 segments, with `variant` appended in both
   cases (`id|path|method|variant`, `id|rootKind|fieldName|variant`,
   `id|refName|variant`).
-- **`StackTrail`** — each variant gets its own frame nested inside
-  the item frame (`<root>:<gen-id>:<path>:<method>:variant: <name>`
-  for operations; `<root>:<gen-id>:<refName>:variant: <name>` for
-  models).
+- **`StackTrail`** — each variant adds the frames `variant` and
+  `<name>` after the item frames (`[<root>, <gen-id>, <path>, <method>,
+  'variant', <name>]` for operations; `[<root>, <gen-id>, <refName>,
+  'variant', <name>]` for models).
 - **Manifest source** — `OasOperationSource`, `GqlOperationSource`,
   and `ModelSource` all carry the variant; one manifest entry per
   `(item, variant)`.
@@ -172,8 +172,8 @@ under `gen-shadcn-form`:
    `enrichments[id][path][method]`, computes the variant list via
    `toVariantList` (`['main', 'customer']`), and runs an inner
    `forEach` over them.
-2. For each variant, the engine pushes a `variant: <name>` frame to
-   the `StackTrail`, then invokes the generator's `transform({
+2. For each variant, the engine adds the frames `variant` and
+   `<name>` to the `StackTrail`. Then it invokes the generator's `transform({
    context, operation, variant })`.
 3. `transform` typically calls `context.insertOperation({ projection:
    ShadcnForm, operation, variant })`. The variant flows into the

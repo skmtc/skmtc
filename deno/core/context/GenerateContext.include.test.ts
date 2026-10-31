@@ -38,7 +38,7 @@ const mockLogger: log.Logger = {
   critical: () => {}
 } as unknown as log.Logger
 
-type CaptureEntry = { result: ResultType; trail: string }
+type CaptureEntry = { result: ResultType; frames: string[] }
 
 const makeOasDoc = (
   ops: Array<{ path: string; method: 'get' | 'post' | 'put' | 'delete' }>,
@@ -66,7 +66,7 @@ const buildContext = (args: {
   const captures: CaptureEntry[] = []
   const captureCurrentResult: Spy<undefined, [ResultType, StackTrail], void> = spy(
     (result: ResultType, trail: StackTrail) => {
-      captures.push({ result, trail: trail.toString() })
+      captures.push({ result, frames: [...trail.stackTrail] })
     }
   )
 
@@ -88,37 +88,24 @@ type OpResult = { path: string; method: string; result: ResultType }
 /**
  * Helper: turn raw `captures` from the spy into a per-op report.
  *
- * `StackTrail.toString()` joins its stack with `:`, and any `:`
- * INSIDE a frame name is URL-escaped to `%3A`. So a trail built by
- *   `new StackTrail(['test']).trace(generatorId, …).trace('${path}:${method}', …)`
- * comes out as `test:gen-id:/customers%3Apost`.
- *
- * Parse it back by splitting on `:` and unescaping the leaf.
+ * Path and method are the two frames after the generator id:
+ * `['test', 'gen-id', '/customers', 'post', 'variant', 'main']`.
  */
 const toOpResults = (captures: CaptureEntry[], generatorId: string): OpResult[] => {
   const out: OpResult[] = []
   for (const c of captures) {
-    const segments = c.trail.split(':')
-    // Only operation-level captures have the gen-id followed by an
-    // op-shaped leaf. Find the gen-id segment; the leaf must come
-    // immediately after.
-    const idIdx = segments.indexOf(generatorId)
-    if (idIdx === -1 || idIdx >= segments.length - 1) continue
-    const leaf = segments[idIdx + 1]?.replaceAll('%3A', ':') ?? ''
-    const colon = leaf.lastIndexOf(':')
-    if (colon === -1) continue
-    out.push({
-      path: leaf.slice(0, colon),
-      method: leaf.slice(colon + 1),
-      result: c.result
-    })
+    const idIdx = c.frames.indexOf(generatorId)
+    const path = c.frames[idIdx + 1]
+    const method = c.frames[idIdx + 2]
+    if (idIdx === -1 || path === undefined || method === undefined) continue
+    out.push({ path, method, result: c.result })
   }
   return out
 }
 
 /**
- * Helper for model-generator tests: refNames are the leaf in a trail
- * like `test:ts-gen:User`. Returns a refName → result map.
+ * Helper for model-generator tests: refNames are the frame after the
+ * generator id, as in `['test', 'ts-gen', 'User', 'variant', 'main']`. Returns a refName → result map.
  */
 const toModelResults = (
   captures: CaptureEntry[],
@@ -126,7 +113,7 @@ const toModelResults = (
 ): Record<string, ResultType> => {
   const out: Record<string, ResultType> = {}
   for (const c of captures) {
-    const segments = c.trail.split(':')
+    const segments = c.frames
     const idIdx = segments.indexOf(generatorId)
     if (idIdx === -1 || idIdx >= segments.length - 1) continue
     const refName = segments[idIdx + 1]

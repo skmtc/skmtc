@@ -744,7 +744,7 @@ export class GenerateContext implements GenerateContextType {
     stackTrail: StackTrail
   ) {
     oasDocument.operations.forEach(operation => {
-      stackTrail.trace(`${operation.path}:${operation.method}`, opTrail => {
+      stackTrail.trace([operation.path, operation.method], opTrail => {
         // Resolve the variant list to fan out over. The consumer's
         // enrichments are keyed `[generatorId][path][method][variant]`;
         // the block at `[path][method]` is therefore a record of
@@ -769,7 +769,7 @@ export class GenerateContext implements GenerateContextType {
         })
 
         variants.forEach(variant => {
-          opTrail.trace(`variant: ${variant}`, st => {
+          opTrail.trace(['variant', variant], st => {
             try {
               if (
                 typeof generatorConfig?.isSupported === 'function' &&
@@ -858,7 +858,7 @@ export class GenerateContext implements GenerateContextType {
     stackTrail: StackTrail
   ) {
     oasDocument.webhooks.forEach(webhook => {
-      stackTrail.trace(`webhook:${webhook.name}:${webhook.method}`, webhookTrail => {
+      stackTrail.trace(['webhook', webhook.name, webhook.method], webhookTrail => {
         // Variant fan-out, keyed `[generatorId][name][method][variant]` —
         // the webhook analogue of the operation routing. `toVariantList`
         // handles absent / non-object / object enrichment blocks and
@@ -876,7 +876,7 @@ export class GenerateContext implements GenerateContextType {
         })
 
         variants.forEach(variant => {
-          webhookTrail.trace(`variant: ${variant}`, st => {
+          webhookTrail.trace(['variant', variant], st => {
             try {
               if (
                 typeof generatorConfig?.isSupported === 'function' &&
@@ -962,7 +962,7 @@ export class GenerateContext implements GenerateContextType {
     stackTrail: StackTrail
   ) {
     gqlDocument.operations.forEach(operation => {
-      stackTrail.trace(operation.identifier, opTrail => {
+      stackTrail.trace([operation.rootKind, operation.fieldName], opTrail => {
         // GraphQL enrichment routing key is
         // `[generatorId][rootKind][fieldName][variant]`.
         const opEnrichments: unknown = this.readEnrichment([
@@ -978,7 +978,7 @@ export class GenerateContext implements GenerateContextType {
         })
 
         variants.forEach(variant => {
-          opTrail.trace(`variant: ${variant}`, st => {
+          opTrail.trace(['variant', variant], st => {
             try {
               if (
                 typeof generatorConfig.isSupported === 'function' &&
@@ -1050,7 +1050,7 @@ export class GenerateContext implements GenerateContextType {
         })
 
         variants.forEach(variant => {
-          refTrail.trace(`variant: ${variant}`, st => {
+          refTrail.trace(['variant', variant], st => {
             try {
               if (
                 typeof generatorConfig.isSupported === 'function' &&

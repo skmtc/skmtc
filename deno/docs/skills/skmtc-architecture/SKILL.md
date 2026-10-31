@@ -333,9 +333,11 @@ What an infra builder must internalize:
 
 - **Tracing is built in.** `traceId` / `spanId` are
   OpenTelemetry-shaped. The `StackTrail` carries them as its root
-  frames, and the `results` tree is keyed by stack-trail strings —
-  so an outcome is addressable as
-  `traceId → spanId → generate → generatorId → item`. `deploymentId`
+  frames, and each frame is one level of the `results` tree — so an
+  outcome is addressable as
+  `traceId → spanId → generate → generatorId → item → "variant" → variant`,
+  where the item is one to three levels (`[path][method]`,
+  `["webhook"][name][method]`, `[rootKind][fieldName]` or `[refName]`). `deploymentId`
   and `region` come from Deno Deploy env vars on the hosted path.
   Wire these straight into an observability backend.
 - **Exit / status derives from `parseIssues`, not from throws.** The

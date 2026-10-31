@@ -46,7 +46,7 @@ type TransformArgs = {
   variant: string
 }
 
-type CaptureEntry = { result: ResultType; trail: string }
+type CaptureEntry = { result: ResultType; frames: string[] }
 
 const makeOasDoc = (schemaNames: string[]) =>
   new OasDocument({
@@ -69,7 +69,7 @@ const buildContext = (args: {
   const captures: CaptureEntry[] = []
   const captureCurrentResult: Spy<undefined, [ResultType, StackTrail], void> = spy(
     (result: ResultType, trail: StackTrail) => {
-      captures.push({ result, trail: trail.toString() })
+      captures.push({ result, frames: [...trail.stackTrail] })
     }
   )
 
@@ -89,23 +89,17 @@ const buildContext = (args: {
 type VariantResult = { refName: string; variant: string; result: ResultType }
 
 /**
- * Parse the variant capture from the `StackTrail`. The trail produced
- * by `#runModelGenerator` is `<root>:<gen-id>:<refName>:variant%3A <name>`
- * — the inner `:` in the variant leaf gets URL-escaped to `%3A` since
- * `StackTrail.toString()` joins with `:`.
+ * Parse the variant capture from the `StackTrail`. The frames produced
+ * by `#runModelGenerator` are `[<root>, <gen-id>, <refName>, 'variant', <name>]`.
  */
 const toVariantResults = (captures: CaptureEntry[], generatorId: string): VariantResult[] => {
   const out: VariantResult[] = []
   for (const c of captures) {
-    const segments = c.trail.split(':')
-    const idIdx = segments.indexOf(generatorId)
-    if (idIdx === -1 || idIdx + 2 >= segments.length) continue
+    const idIdx = c.frames.indexOf(generatorId)
+    if (idIdx === -1) continue
 
-    const refName = segments[idIdx + 1] ?? ''
-    const variantLeaf = segments[idIdx + 2]?.replaceAll('%3A', ':') ?? ''
-    const variantPrefix = 'variant: '
-    if (!variantLeaf.startsWith(variantPrefix)) continue
-    const variant = variantLeaf.slice(variantPrefix.length)
+    const [refName, variantFrame, variant] = c.frames.slice(idIdx + 1)
+    if (refName === undefined || variantFrame !== 'variant' || variant === undefined) continue
 
     out.push({ refName, variant, result: c.result })
   }

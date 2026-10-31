@@ -289,10 +289,11 @@ refuses with exit 2 before any state mutation. `--force` overrides
   "stats": { "tokens": 201029, "lines": 1234, "files": 753, "totalTimeMs": 180 },
   "files": ["mobile-app/src/types/User.generated.ts", "..."],
   // errors: array of paths through manifest.results ending at 'error' leaves.
-  // Shape: [traceId, spanId, "generate", generatorId, identifier]
+  // Shape: [traceId, spanId, "generate", generatorId, ...item, "variant", variant]
+  // item: path, method (OAS) | "webhook", name, method | rootKind, fieldName (GraphQL) | refName (model)
   "errors": [
     ["trace-1778185255674", "span-1778185255674", "generate",
-     "@skmtc/gen-zod", "BrokenModel"]
+     "@skmtc/gen-zod", "BrokenModel", "variant", "main"]
   ],
   "parseIssues": [
     { "protocol": "oas", "level": "warning", "type": "MISSING_OBJECT_TYPE",

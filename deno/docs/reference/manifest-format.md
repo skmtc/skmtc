@@ -125,8 +125,9 @@ ignored.
 ### `results`
 
 The most-consulted field for debugging. A deeply nested record
-keyed by trace → span → phase → generator package ID → item
-identifier (verified against real manifests, not extrapolated):
+keyed by trace → span → phase → generator package ID → item → variant.
+Each frame of the engine's stack trail is one level, and each key
+is the frame text as it is. Skmtc does not escape it:
 
 ```jsonc
 {
@@ -134,13 +135,17 @@ identifier (verified against real manifests, not extrapolated):
     "span-1763060002688": {
       "generate": {
         "@skmtc/gen-express": {
-          "/accounts%3Aget": "success",
-          "/accounts%3Apost": "success",
-          "/deployments/{deploymentId}%3Aget": "success"
+          "/accounts": {
+            "get": { "variant": { "main": "success" } },
+            "post": { "variant": { "main": "success", "admin": "success" } }
+          },
+          "/pets/{id}:archive": {
+            "post": { "variant": { "main": "success" } }
+          }
         },
         "@skmtc/gen-valibot": {
-          "ApplicantModel": "success",
-          "BrokenModel": "error"
+          "ApplicantModel": { "variant": { "main": "success" } },
+          "BrokenModel": { "variant": { "main": "error" } }
         }
       },
       "render": {
@@ -192,15 +197,19 @@ self-sufficient for this.
 
 Item-identifier formats under `generate`:
 
-- **OAS operation generators**: `<path>%3A<method>` — URL-encoded colon
-  separates the OpenAPI path from the lowercase HTTP method (matches
-  the `StackTrail.toString()` format used throughout the engine).
-  Examples: `/accounts%3Aget`, `/deployments/{deploymentId}%3Aput`,
-  `/users/{userId}/avatar%3Apost`.
-- **GraphQL operation generators**: `<rootKind>%3A<fieldName>` — e.g.,
-  `query%3AgetApplicants`, `mutation%3AcreateApplicant`.
-- **Model generators**: the refName directly — e.g., `UserModel`,
-  `ApplicantModel`.
+- **OAS operation generators**: `[path][method]['variant'][variant]`.
+  The OpenAPI path and the lowercase HTTP method are two levels.
+  Example: `["/accounts"]["get"]["variant"]["main"]`. A colon in the
+  path stays as it is: `["/pets/{id}:archive"]["post"]["variant"]["main"]`.
+- **Webhook generators**: `['webhook'][name][method]['variant'][variant]`.
+  Example: `["webhook"]["newPet"]["post"]["variant"]["main"]`.
+- **GraphQL operation generators**: `[rootKind][fieldName]['variant'][variant]`.
+  Example: `["query"]["getApplicants"]["variant"]["main"]`,
+  `["mutation"]["createApplicant"]["variant"]["main"]`.
+- **Model generators**: `[refName]['variant'][variant]`. Example:
+  `["UserModel"]["variant"]["main"]`.
+
+A generator with no variants configured has the one variant `main`.
 
 #### Edge case: no matches at all
 
@@ -309,12 +318,14 @@ expected and that the right generators are installed.
 
 ```bash
 jq '.results[][].generate["@skmtc/gen-X"]
-    | to_entries | map(select(.value != "success"))' manifest.json
+    | [paths(type == "string") as $p | {path: $p, status: getpath($p)}]
+    | map(select(.status != "success"))' manifest.json
 ```
 
-Replace `@skmtc/gen-X` with the generator of interest. Returns every
-identifier under that generator that wasn't `success`, with its
-status.
+Replace `@skmtc/gen-X` with the generator of interest. Returns the
+path and status of each item under that generator that is not
+`success`, for example
+`{"path": ["/accounts", "get", "variant", "main"], "status": "error"}`.
 
 ### "A specific output is missing"
 
