@@ -311,6 +311,25 @@ Deno.test('merge member normalization', async t => {
   })
 })
 
+Deno.test('merge member normalization - the tighter numeric bound keeps its exclusivity', () => {
+  // `exclusiveMinimum`/`exclusiveMaximum` carry the bound itself.
+  const { schemas, errors } = parseSchemas({
+    Bounded: {
+      allOf: [
+        { type: 'number', exclusiveMinimum: 0, exclusiveMaximum: 10 },
+        { type: 'number', minimum: 5, maximum: 10 }
+      ]
+    }
+  })
+
+  assertEquals(errors, [])
+  assert(schemas.Bounded instanceof OasNumber)
+  assertEquals(schemas.Bounded.minimum, 5)
+  assertEquals(schemas.Bounded.exclusiveMinimum, undefined)
+  assertEquals(schemas.Bounded.maximum, 10)
+  assertEquals(schemas.Bounded.exclusiveMaximum, true)
+})
+
 Deno.test('merge member normalization - openrouter.yaml has no merge error', async () => {
   const text = await Deno.readTextFile(
     new URL('../../../_schemas/openrouter.yaml', import.meta.url)
