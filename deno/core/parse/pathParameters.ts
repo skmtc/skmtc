@@ -65,10 +65,10 @@ export type ToPathParameterListArgs<Entry, Parameter> = {
   toEntry: (args: { parameter: Entry; index: number }) => Parameter[]
 }
 
-const toMessage = (error: unknown): Error =>
+const toError = (error: unknown): Error =>
   error instanceof Error ? error : new Error(String(error))
 
-const toNameAndLocation = (parameter: unknown): Pick<BrokenPathParameter, 'name' | 'in'> => {
+const toNameAndIn = (parameter: unknown): Pick<BrokenPathParameter, 'name' | 'in'> => {
   if (
     typeof parameter === 'object' &&
     parameter !== null &&
@@ -96,7 +96,7 @@ export const toPathParameterList = <Entry, Parameter>({
   toEntry
 }: ToPathParameterListArgs<Entry, Parameter>): PathParameterList<Parameter> => {
   const logBroken = (st: StackTrail, parent: unknown, error: unknown): BrokenPathParameter => {
-    const normalized = toMessage(error)
+    const normalized = toError(error)
     context.logIssueNoKey({
       level: 'error',
       stackTrail: st,
@@ -138,7 +138,7 @@ export const toPathParameterList = <Entry, Parameter>({
           broken: [
             {
               ...stackTrail.trace(`${index}`, st => logBroken(st, parameter, error)),
-              ...toNameAndLocation(parameter)
+              ...toNameAndIn(parameter)
             }
           ]
         }
@@ -181,8 +181,8 @@ const toApplyingBrokenParameter = ({
 
   const overrides = new Set(
     operationParameters.flatMap((parameter: unknown) => {
-      const { name, in: location } = toNameAndLocation(parameter)
-      return name === undefined || location === undefined ? [] : [`${location}:${name}`]
+      const { name, in: parameterIn } = toNameAndIn(parameter)
+      return name === undefined || parameterIn === undefined ? [] : [`${parameterIn}:${name}`]
     })
   )
 
