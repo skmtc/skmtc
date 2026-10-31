@@ -394,7 +394,7 @@ that the 3.0 form of the schema gives:
 | `exclusiveMinimum: 5` (a number) | A minimum of `5` that excludes `5` |
 | `contentMediaType: application/octet-stream` on a string with no `format` | `format: binary` |
 | `contentEncoding: base64` on a string with no `format` | `format: byte` |
-| `unevaluatedProperties` with no `allOf`, `oneOf` or `anyOf` | `additionalProperties` with the same value |
+| `unevaluatedProperties` with no `allOf`, `oneOf`, `anyOf`, `if`, `then`, `else` or `dependentSchemas` | `additionalProperties` with the same value |
 
 When a schema has `unevaluatedProperties` together with `allOf`,
 `oneOf` or `anyOf`, the parsers do not read it. The parse removes it

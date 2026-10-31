@@ -194,7 +194,8 @@ silently in the operation parser.
   shape, added on demand when a generator can use the extra fidelity.
 - **`unevaluatedProperties` next to `allOf`/`oneOf`/`anyOf`** is not mapped.
   The parser removes it from the wrapper before the merge and records an
-  `UNEXPECTED_PROPERTY` warning. With no composition keyword, it is read as
+  `UNEXPECTED_PROPERTY` warning. With none of `allOf`, `oneOf`, `anyOf`,
+  `if`, `then`, `else` or `dependentSchemas` on the schema, it is read as
   `additionalProperties`.
 - **Conditional schemas (`if`/`then`/`else`, `dependentSchemas`,
   `patternProperties`)** are not mapped — a deliberate non-goal (rarely

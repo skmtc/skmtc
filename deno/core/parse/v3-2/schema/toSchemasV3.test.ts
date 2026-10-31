@@ -1284,6 +1284,7 @@ Deno.test('toSchemaV3 - single-member nullable reference collapse', async t => {
     assertEquals(result.nullable, undefined)
   })
 })
+
 Deno.test('toSchemaV3 - OpenAPI 3.1 unevaluatedProperties', async t => {
   // With no allOf/oneOf/anyOf/if/then/else/dependentSchemas on the same
   // schema, `unevaluatedProperties` means the same as `additionalProperties`.
@@ -1326,6 +1327,15 @@ Deno.test('toSchemaV3 - OpenAPI 3.1 unevaluatedProperties', async t => {
     assert(result instanceof OasObject)
     assert(result.additionalProperties instanceof OasInteger)
     assertEquals(context.issues, [])
+  })
+
+  await t.step('with if/then on the schema, it is not read as additionalProperties', () => {
+    const result = parse(
+      '{"type":"object","if":{"required":["a"]},"then":{"required":["b"]},"unevaluatedProperties":false}'
+    )
+
+    assert(result instanceof OasObject)
+    assertEquals(result.additionalProperties, undefined)
   })
 
   const composedCases = [
