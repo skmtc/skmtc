@@ -65,8 +65,8 @@ Deno.test('v3-0 toOperationsV3 - 3.2 operation keys behave as before 3.2 support
         type: 'UNEXPECTED_PROPERTY',
         location: 'TEST:paths:/pets:additionalOperations'
       },
-      { level: 'error', type: 'INVALID_OPERATION', location: 'TEST:paths:/search:get:get' },
-      { level: 'error', type: 'INVALID_OPERATION', location: 'TEST:paths:/session:get:get' }
+      { level: 'error', type: 'INVALID_OPERATION', location: 'TEST:paths:/search:get' },
+      { level: 'error', type: 'INVALID_OPERATION', location: 'TEST:paths:/session:get' }
     ]
   )
   assertEquals(

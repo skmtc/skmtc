@@ -213,8 +213,7 @@ export const toWebhooksV3 = ({ webhooks, stackTrail, context }: ToWebhooksV3Args
               })
             } catch (error) {
               const normalized = error instanceof Error ? error : new Error(String(error))
-              context.logIssue({
-                key: method,
+              context.logIssueNoKey({
                 parent: operation,
                 level: 'error',
                 message: normalized.message,
