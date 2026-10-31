@@ -55,6 +55,7 @@ Deno.test('v3-2 toParameterV3 - a querystring parameter with content is on the I
   assert(parameter instanceof OasParameter)
   assertEquals(parameter.location, 'querystring')
   assertEquals(parameter.style, undefined)
+  assertEquals(parameter.explode, false)
   assertEquals(Object.keys(parameter.content ?? {}), ['application/x-www-form-urlencoded'])
 })
 

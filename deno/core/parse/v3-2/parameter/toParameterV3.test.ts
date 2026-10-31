@@ -313,3 +313,77 @@ Deno.test('toParameterListV3 - threads named examples through under their own ke
     byName: new OasExample({ summary: 'Alphabetical', value: 'name' })
   })
 })
+
+Deno.test('toParameterListV3 - query and cookie with no style default to form, explode true', () => {
+  const stackTrail = new StackTrail(['TEST'])
+  const result = toParameterListV3({
+    stackTrail,
+    parameters: [
+      { name: 'tags', in: 'query', schema: { type: 'array', items: { type: 'string' } } },
+      { name: 'tags', in: 'cookie', schema: { type: 'array', items: { type: 'string' } } }
+    ],
+    context: mockParseContext
+  })
+
+  assertEquals(
+    result?.map(parameter =>
+      parameter instanceof OasParameter
+        ? { style: parameter.style, explode: parameter.explode }
+        : undefined
+    ),
+    [
+      { style: 'form', explode: true },
+      { style: 'form', explode: true }
+    ]
+  )
+})
+
+Deno.test('toParameterListV3 - path and header with no style default to simple, explode false', () => {
+  const stackTrail = new StackTrail(['TEST'])
+  const result = toParameterListV3({
+    stackTrail,
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'array', items: { type: 'string' } }
+      },
+      { name: 'X-Ids', in: 'header', schema: { type: 'array', items: { type: 'string' } } }
+    ],
+    context: mockParseContext
+  })
+
+  assertEquals(
+    result?.map(parameter =>
+      parameter instanceof OasParameter
+        ? { style: parameter.style, explode: parameter.explode }
+        : undefined
+    ),
+    [
+      { style: 'simple', explode: false },
+      { style: 'simple', explode: false }
+    ]
+  )
+})
+
+Deno.test('toParameterListV3 - explicit explode false on a query parameter stays false', () => {
+  const stackTrail = new StackTrail(['TEST'])
+  const result = toParameterListV3({
+    stackTrail,
+    parameters: [
+      {
+        name: 'tags',
+        in: 'query',
+        explode: false,
+        schema: { type: 'array', items: { type: 'string' } }
+      }
+    ],
+    context: mockParseContext
+  })
+
+  const parameter = result?.[0]
+  assert(parameter instanceof OasParameter)
+  assertEquals(parameter.style, 'form')
+  assertEquals(parameter.explode, false)
+})
