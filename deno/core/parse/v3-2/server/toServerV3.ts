@@ -16,6 +16,18 @@ export type ToServersV3Args = {
 }
 
 export const toServersV3 = ({ servers, stackTrail, context }: ToServersV3Args): OasServer[] => {
+  if (!Array.isArray(servers)) {
+    context.logIssueNoKey({
+      level: 'error',
+      stackTrail,
+      parent: servers,
+      message: '"servers" must be an array; left out',
+      type: 'INVALID_OPERATION'
+    })
+
+    return []
+  }
+
   return servers.flatMap((server, index) => {
     const parsed = tryParseAt({
       stackTrail,
@@ -49,7 +61,7 @@ export const toOptionalServersV3 = ({
   stackTrail,
   context
 }: ToOptionalServersV3Args): OasServer[] | undefined => {
-  if (!servers) {
+  if (servers === undefined || servers === null) {
     return undefined
   }
 

@@ -359,3 +359,50 @@ Deno.test('toServersV3 - a link server is not checked by the servers entry guard
   assertEquals(issues, [])
   assertEquals(Object.keys(document.operations[0].responses), ['200'])
 })
+
+for (const [shape, servers] of [
+  ['an object', { url: 'https://x' }],
+  ['a string', 'https://x']
+] as const) {
+  Deno.test(`toServersV3 - ${shape} at document level is one issue and the operations generate`, () => {
+    const { issues, document } = parseDocument({ servers })
+
+    assertEquals(issues, [invalidServer('TEST:servers')])
+    assertEquals(toUrls(document.servers), [])
+    assertEquals(
+      document.operations.map(({ path }) => path),
+      ['/pets']
+    )
+  })
+
+  Deno.test(`toServersV3 - ${shape} at path-item level is one issue and the operations generate`, () => {
+    const { issues, document } = parseDocument({ paths: { '/pets': { servers, get: ok } } })
+
+    assertEquals(issues, [invalidServer('TEST:paths:/pets:servers')])
+    assertEquals(toUrls(document.operations[0].pathItem?.servers), [])
+    assertEquals(
+      document.operations.map(({ path }) => path),
+      ['/pets']
+    )
+  })
+
+  Deno.test(`toServersV3 - ${shape} at operation level is one issue and the operations generate`, () => {
+    const { issues, document } = parseDocument({
+      paths: { '/pets': { get: { ...ok, servers } } }
+    })
+
+    assertEquals(issues, [invalidServer('TEST:paths:/pets:get:servers')])
+    assertEquals(toUrls(document.operations[0].servers), [])
+    assertEquals(
+      document.operations.map(({ path }) => path),
+      ['/pets']
+    )
+  })
+}
+
+Deno.test('toServersV3 - a null servers is missing and records no issue', () => {
+  const { issues, document } = parseDocument({ servers: null })
+
+  assertEquals(issues, [])
+  assertEquals(toUrls(document.servers), undefined)
+})

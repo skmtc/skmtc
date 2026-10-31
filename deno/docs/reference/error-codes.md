@@ -205,7 +205,10 @@ through the same isolation.
 Parse also logs this code for a bad `servers` entry at the document,
 path item, operation or webhook level. A bad entry is not a Server
 Object, or its `url` is not a string. Parse drops only that entry and
-continues with the operations.
+continues with the operations. A `servers` field that is not an array
+(an object or a string) gets one error at `servers`, with the message
+`"servers" must be an array; left out`. Parse reads the field as no
+servers and continues with the operations.
 
 Parse also logs this code for an operation or webhook that a broken
 path-level parameter applies to. Each broken entry first gets an
@@ -259,7 +262,9 @@ Causes mirror `INVALID_SCHEMA` (bad `requestBody`, malformed
 parameters, etc.). If the message names a path-level parameter, fix
 that parameter: it drops each operation it applies to. For a
 `servers` entry, make the entry a Server Object with a string `url`,
-or remove it. A `responses` that is not
+or remove it. Make a `servers` field an array.
+
+A `responses` that is not
 an object (an array, a string, a number) also drops the operation.
 The message is `"responses" must be an object of status codes, got
 <type>`. An operation without `responses` is not an error: see
