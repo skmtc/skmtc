@@ -159,8 +159,10 @@ Deno.test('ParseContext (oas) - end-to-end: errored component prunes its consume
   )
   // The errored component itself is removed too.
   assertEquals(ctx.oasDocument.components?.toSchemasRefNames(), [])
-  // The original error rides along as `cause`.
-  assertEquals(issue.cause instanceof Error, true)
+  // The original error rides along as `cause`, serialized.
+  assertEquals(issue.cause?.name, 'Error')
+  assertEquals(issue.cause?.message, 'Analytics schema malformed')
+  assertEquals(typeof issue.cause?.stack, 'string')
 })
 
 Deno.test('ParseContext (oas) - multiple consumers of the same errored target all get kicked out', () => {

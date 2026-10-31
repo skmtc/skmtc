@@ -1226,7 +1226,43 @@
                         "message": {
                           "type": "string"
                         },
-                        "cause": {}
+                        "cause": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "message": {
+                                  "type": "string"
+                                },
+                                "stack": {
+                                  "type": "string"
+                                },
+                                "cause": {
+                                  "$ref": "#/components/schemas/ManifestDef1"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "message"
+                              ]
+                            },
+                            {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {},
+                                  "required": []
+                                }
+                              ]
+                            }
+                          ]
+                        }
                       },
                       "required": [
                         "protocol",
@@ -1510,7 +1546,25 @@
                         "message": {
                           "type": "string"
                         },
-                        "cause": {}
+                        "cause": {
+                          "anyOf": [
+                            {
+                              "$ref": "#/components/schemas/ManifestDef1"
+                            },
+                            {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {},
+                                  "required": []
+                                }
+                              ]
+                            }
+                          ]
+                        }
                       },
                       "required": [
                         "protocol",
@@ -1720,6 +1774,27 @@
             }
           ]
         }
+      },
+      "ManifestDef1": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "stack": {
+            "type": "string"
+          },
+          "cause": {
+            "$ref": "#/components/schemas/ManifestDef1"
+          }
+        },
+        "required": [
+          "name",
+          "message"
+        ]
       },
       "Sidecar": {
         "type": "object",

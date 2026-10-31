@@ -240,16 +240,38 @@ levels (`'error'`, `'warning'`, `'debug'`):
 
 ```ts
 type ParseIssue =
-  | { protocol: 'oas'; level: 'error';   type: OasIssueType; location: string; message: string; cause?: unknown }
+  | { protocol: 'oas'; level: 'error';   type: OasIssueType; location: string; message: string; cause?: SerializedError }
   | { protocol: 'oas'; level: 'warning'; type: OasIssueType; location: string; message: string }
   | { protocol: 'oas'; level: 'debug';   type: OasIssueType; location: string; message: string }
-  | { protocol: 'gql'; level: 'error';   type: GqlIssueType; location: string; message: string; cause?: unknown }
+  | { protocol: 'gql'; level: 'error';   type: GqlIssueType; location: string; message: string; cause?: SerializedError }
   | { protocol: 'gql'; level: 'warning'; type: GqlIssueType; location: string; message: string }
   | { protocol: 'gql'; level: 'debug';   type: GqlIssueType; location: string; message: string }
 ```
 
 Note that `cause` exists **only** on `level: 'error'` shapes (and
 is optional there) — warnings and debug entries never carry it.
+
+`cause` is the error that caused the issue, as data. Its name,
+message and stack stay in the JSON:
+
+```ts
+type SerializedError = {
+  name: string
+  message: string
+  stack?: string
+  cause?: SerializedError
+}
+```
+
+`cause.cause` holds the cause of that error, to a depth of five. A
+thrown value that is not an `Error` has the name `'NonError'`. Its
+`message` is the value as a string or as JSON. Core exports the type,
+the `serializedError` schema and `toSerializedError` from
+`@skmtc/core/SerializedError`.
+
+A manifest from an earlier core can hold `cause: {}` or a string.
+The `manifestContent` schema reads such a value and changes it to a
+`SerializedError` with the name `'NonError'`.
 `debug` is informational: the parser handled the input gracefully
 and is recording what it did. The `type` field is constrained to
 the protocol's `OasIssueType` or `GqlIssueType` literal union — see

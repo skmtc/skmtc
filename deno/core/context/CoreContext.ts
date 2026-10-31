@@ -24,6 +24,7 @@ import type { AttributionState } from '@/types/AttributionState.ts'
 import type { SupportedSubjects } from '@/types/SupportedSubjects.ts'
 import type { EnrichmentDefaults } from '@/types/EnrichmentDefaults.ts'
 import type { ParseIssue } from '@/context/ParseIssue.ts'
+import { toSerializedError } from '@/types/SerializedError.ts'
 
 /**
  * Represents the parse phase of the SKMTC pipeline.
@@ -483,7 +484,7 @@ export class CoreContext {
         type: 'INVALID_SCHEMA' as const,
         location: 'toArtifacts',
         message: `Top-level toArtifacts failure: ${message}`,
-        cause: error
+        cause: toSerializedError(error)
       }
 
       return {
@@ -555,7 +556,7 @@ export class CoreContext {
             type: 'INVALID_SCHEMA' as const,
             location: 'toSupportedSubjects',
             message: `Top-level toSupportedSubjects failure: ${message}`,
-            cause: error
+            cause: toSerializedError(error)
           }
         ]
       }
@@ -617,7 +618,7 @@ export class CoreContext {
             type: 'INVALID_SCHEMA' as const,
             location: 'toEnrichmentDefaults',
             message: `Top-level toEnrichmentDefaults failure: ${message}`,
-            cause: error
+            cause: toSerializedError(error)
           }
         ]
       }

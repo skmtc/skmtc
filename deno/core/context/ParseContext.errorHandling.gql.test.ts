@@ -85,7 +85,9 @@ Deno.test('ParseContext (gql) - registerRef during field parse records consumer 
   assertEquals(issue.location, 'User:posts')
   // Registered without a location, so the message names the error only.
   assertEquals(issue.message, "Depends on 'Post', removed because of the error: Post is malformed")
-  assertEquals(issue.cause instanceof Error, true)
+  assertEquals(issue.cause?.name, 'Error')
+  assertEquals(issue.cause?.message, 'Post is malformed')
+  assertEquals(typeof issue.cause?.stack, 'string')
 
   // And the User registry entry should no longer carry a `posts` field.
   const user = ctx.registry.schemas['User' as RefName]

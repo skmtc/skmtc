@@ -77,16 +77,37 @@ import type { ParseIssue } from '@/context/ParseIssue.ts'
 import { enrichmentWarning, type EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
 import { oasIssueType } from '@/context/generateTypes.ts'
 import { gqlIssueType } from '@/context/ParseIssue.ts'
+import {
+  serializedError,
+  toSerializedError,
+  type SerializedError
+} from '@/types/SerializedError.ts'
 import * as v from 'valibot'
+
+/**
+ * The `cause` of an error issue. Manifests written before core stored a
+ * {@link SerializedError} hold `{}` (an `Error` after `JSON.stringify`)
+ * or a string; those are read and converted with {@link toSerializedError}.
+ */
+const legacyCause = v.union([v.string(), v.looseObject({})])
+
+const issueCause: v.GenericSchema<unknown, SerializedError> = v.union([
+  serializedError,
+  v.pipe(
+    legacyCause,
+    v.transform((legacy: v.InferOutput<typeof legacyCause>) => toSerializedError(legacy))
+  )
+])
 
 /**
  * Valibot schema for the unified {@link ParseIssue} discriminated union.
  *
  * The TS type and this schema stay in sync via the
- * `v.GenericSchema<ParseIssue>` annotation — adding a variant on one
- * side without the other fails to type-check.
+ * `v.GenericSchema<unknown, ParseIssue>` annotation — adding a variant on
+ * one side without the other fails to type-check. The input is `unknown`
+ * because a legacy `cause` is converted while it is read.
  */
-const parseIssue: v.GenericSchema<ParseIssue> = v.variant('protocol', [
+const parseIssue: v.GenericSchema<unknown, ParseIssue> = v.variant('protocol', [
   v.variant('level', [
     v.object({
       protocol: v.literal('oas'),
@@ -94,7 +115,7 @@ const parseIssue: v.GenericSchema<ParseIssue> = v.variant('protocol', [
       type: oasIssueType,
       location: v.string(),
       message: v.string(),
-      cause: v.optional(v.unknown())
+      cause: v.optional(issueCause)
     }),
     v.object({
       protocol: v.literal('oas'),
@@ -118,7 +139,7 @@ const parseIssue: v.GenericSchema<ParseIssue> = v.variant('protocol', [
       type: gqlIssueType,
       location: v.string(),
       message: v.string(),
-      cause: v.optional(v.unknown())
+      cause: v.optional(issueCause)
     }),
     v.object({
       protocol: v.literal('gql'),
@@ -195,7 +216,7 @@ export type ManifestContent = {
   endAt: number
 }
 
-export const manifestContent: v.GenericSchema<ManifestContent> = v.object({
+export const manifestContent: v.GenericSchema<unknown, ManifestContent> = v.object({
   deploymentId: v.string(),
   traceId: v.string(),
   spanId: v.string(),

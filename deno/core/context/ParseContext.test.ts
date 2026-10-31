@@ -70,7 +70,7 @@ Deno.test('ParseContext - logIssueNoKey records errors with cause and oas protoc
   }
   assertEquals(issue.location, 'paths:/test:get')
   assertEquals(issue.message, 'Test error')
-  assertEquals(issue.cause, error)
+  assertEquals(issue.cause, { name: 'Error', message: 'Test error', stack: error.stack })
   assertEquals(issue.type, 'INVALID_SCHEMA')
 })
 
