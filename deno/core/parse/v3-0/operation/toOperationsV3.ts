@@ -173,7 +173,9 @@ export const toOperationsV3 = ({
               return
             }
 
-            if (isDroppedByPathParameter({ brokenParameters, operation, stackTrail: st, context })) {
+            if (
+              isDroppedByPathParameter({ brokenParameters, operation, stackTrail: st, context })
+            ) {
               return undefined
             }
 

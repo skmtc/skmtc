@@ -68,7 +68,11 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
 
     assertEquals(operations, ['get /items/{id}', 'get /other'])
     assertEquals(toTypeAndLocation(logged), [
-      { type: 'INVALID_PARAMETER', level: 'error', location: 'TEST:paths:/items/{id}:parameters:0' },
+      {
+        type: 'INVALID_PARAMETER',
+        level: 'error',
+        location: 'TEST:paths:/items/{id}:parameters:0'
+      },
       { type: 'INVALID_OPERATION', level: 'error', location: 'TEST:paths:/items/{id}:post' }
     ])
     const [parameterIssue, operationIssue] = logged
@@ -112,8 +116,16 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(
       toTypeAndLocation(logged).filter(({ level }) => level === 'error'),
       [
-        { type: 'INVALID_PARAMETER', level: 'error', location: 'TEST:paths:/games/{appid}:parameters:0' },
-        { type: 'INVALID_PARAMETER', level: 'error', location: 'TEST:paths:/games/{appid}:parameters:1' },
+        {
+          type: 'INVALID_PARAMETER',
+          level: 'error',
+          location: 'TEST:paths:/games/{appid}:parameters:0'
+        },
+        {
+          type: 'INVALID_PARAMETER',
+          level: 'error',
+          location: 'TEST:paths:/games/{appid}:parameters:1'
+        },
         { type: 'INVALID_OPERATION', level: 'error', location: 'TEST:paths:/games/{appid}:get' },
         { type: 'INVALID_OPERATION', level: 'error', location: 'TEST:paths:/games/{appid}:post' }
       ]

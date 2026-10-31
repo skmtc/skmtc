@@ -191,7 +191,9 @@ export const toWebhooksV3 = ({ webhooks, stackTrail, context }: ToWebhooksV3Args
               return
             }
 
-            if (isDroppedByPathParameter({ brokenParameters, operation, stackTrail: st, context })) {
+            if (
+              isDroppedByPathParameter({ brokenParameters, operation, stackTrail: st, context })
+            ) {
               return undefined
             }
 
