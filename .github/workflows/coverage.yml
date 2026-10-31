@@ -28,13 +28,24 @@ jobs:
     # whenever it wasn't.
 
     steps:
+      # Full history, so the version check can reach the pull request's base.
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+
+      # A changed package must carry a version that will publish: not the
+      # base's, and not one already on JSR. Two PRs bumped from the same base
+      # pick the same version and merge without a conflict.
+      - name: Check changed packages have a fresh version
+        if: github.event_name == 'pull_request'
+        working-directory: deno
+        run: deno task version-check --base ${{ github.event.pull_request.base.sha }}
 
       - name: Verify docs sync (skill chain + discrepancy catalog)
         working-directory: deno
