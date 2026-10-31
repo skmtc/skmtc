@@ -1,5 +1,6 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import { mergeIntersection } from './merge-intersection.ts'
+import { normalizeMergeMember } from '@/parse/v3-1/schema/normalize-schema-shape.ts'
 import { assertEquals } from '@std/assert/equals'
 import { mergeUnion } from './merge-union.ts'
 
@@ -105,7 +106,7 @@ Deno.test('mergeAllOf - complex oneOf', () => {
     ]
   }
 
-  const result = mergeIntersection({ schema: input, getRef })
+  const result = mergeIntersection({ schema: input, getRef, normalize: normalizeMergeMember })
 
   assertEquals(result, expected)
 })
@@ -204,7 +205,12 @@ Deno.test('mergeAllOf - even more complex oneOf', () => {
     }
   }
 
-  const result = mergeUnion({ schema: input, getRef, groupType: 'oneOf' })
+  const result = mergeUnion({
+    schema: input,
+    getRef,
+    normalize: normalizeMergeMember,
+    groupType: 'oneOf'
+  })
 
   assertEquals(result, expected)
 })

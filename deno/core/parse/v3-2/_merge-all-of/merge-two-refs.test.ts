@@ -1,5 +1,6 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import { mergeIntersection } from './merge-intersection.ts'
+import { normalizeMergeMember } from '@/parse/v3-2/schema/normalize-schema-shape.ts'
 import { assertEquals } from '@std/assert/equals'
 import { assertThrows } from '@std/assert/throws'
 
@@ -208,7 +209,7 @@ Deno.test('mergeAllOf - merges two deep refs', () => {
     type: 'object'
   }
 
-  const result = mergeIntersection({ schema: input, getRef })
+  const result = mergeIntersection({ schema: input, getRef, normalize: normalizeMergeMember })
 
   const expected: OpenAPIV3.SchemaObject = {
     properties: {
@@ -296,7 +297,7 @@ Deno.test('mergeAllOf - merges two refs chunks', () => {
     type: 'object'
   }
 
-  const result = mergeIntersection({ schema: input, getRef })
+  const result = mergeIntersection({ schema: input, getRef, normalize: normalizeMergeMember })
 
   const expected: OpenAPIV3.SchemaObject = {
     properties: {
@@ -345,7 +346,7 @@ Deno.test('mergeAllOf - merges two deep refs', () => {
   }
 
   assertThrows(
-    () => mergeIntersection({ schema: input, getRef }),
+    () => mergeIntersection({ schema: input, getRef, normalize: normalizeMergeMember }),
     Error,
     'Cannot merge schemas: enum values have no intersection'
   )

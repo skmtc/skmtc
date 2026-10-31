@@ -181,7 +181,7 @@ Deno.test('v3-2 toParameterV3 - style cookie on a query parameter drops the oper
   })
 
   assertEquals(toIssueSummaries(issues), [
-    { level: 'error', type: 'INVALID_OPERATION', location: 'TEST:paths:/session:get:get' }
+    { level: 'error', type: 'INVALID_OPERATION', location: 'TEST:paths:/session:get' }
   ])
   assertEquals(document.operations, [])
 })

@@ -2,6 +2,13 @@ import type { OpenAPIV3 } from 'openapi-types'
 import * as v from 'valibot'
 export type GetRefFn = (ref: OpenAPIV3.ReferenceObject) => OpenAPIV3.SchemaObject
 
+/**
+ * Maps a schema the merge reads (a member, a nested property or item schema,
+ * a `$ref` target) onto the shape the merge understands. The caller supplies
+ * it, so the merge holds no dialect rules of its own. Must be idempotent.
+ */
+export type NormalizeFn = (schema: OpenAPIV3.SchemaObject) => OpenAPIV3.SchemaObject
+
 export type OneOfObject = {
   oneOf?: (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]
 } & OpenAPIV3.SchemaObject

@@ -2,6 +2,7 @@ import { assertEquals } from '@std/assert/equals'
 import { assertThrows } from '@std/assert/throws'
 import { mergeObjectConstraints } from './merge-object-constraints.ts'
 import type { OpenAPIV3 } from 'openapi-types'
+import { normalizeMergeMember } from '@/parse/v3-1/schema/normalize-schema-shape.ts'
 
 const mockGetRef = (_ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
   throw new Error('Not implemented')
@@ -23,7 +24,7 @@ Deno.test('mergeObjectConstraints - merges property constraints', () => {
       age: { type: 'number' }
     }
   }
-  const result = mergeObjectConstraints(a, b, mockGetRef)
+  const result = mergeObjectConstraints(a, b, mockGetRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'object',
     minProperties: 5,
@@ -50,7 +51,7 @@ Deno.test('mergeObjectConstraints - handles missing constraints', () => {
       age: { type: 'number' }
     }
   }
-  const result = mergeObjectConstraints(a, b, mockGetRef)
+  const result = mergeObjectConstraints(a, b, mockGetRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'object',
     minProperties: 5,
@@ -76,7 +77,7 @@ Deno.test('mergeObjectConstraints - handles additionalProperties', () => {
       age: { type: 'number' }
     }
   }
-  const result = mergeObjectConstraints(a, b, mockGetRef)
+  const result = mergeObjectConstraints(a, b, mockGetRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'object',
     additionalProperties: false,
@@ -102,7 +103,7 @@ Deno.test('mergeObjectConstraints - merges required properties', () => {
     },
     required: ['age']
   }
-  const result = mergeObjectConstraints(a, b, mockGetRef)
+  const result = mergeObjectConstraints(a, b, mockGetRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'object',
     properties: {
@@ -148,7 +149,7 @@ Deno.test('mergeObjectConstraints - merges additionalProperties with schema', ()
   }
 
   assertThrows(
-    () => mergeObjectConstraints(a, b, mockGetRef),
+    () => mergeObjectConstraints(a, b, mockGetRef, normalizeMergeMember),
     Error,
     `Cannot merge schemas: conflicting types 'string' and 'number'`
   )
@@ -169,7 +170,7 @@ Deno.test('mergeObjectConstraints - handles property conflicts', () => {
   }
 
   assertThrows(
-    () => mergeObjectConstraints(a, b, mockGetRef),
+    () => mergeObjectConstraints(a, b, mockGetRef, normalizeMergeMember),
     Error,
     `Cannot merge schemas: conflicting types 'string' and 'number'`
   )
@@ -186,7 +187,7 @@ Deno.test('mergeObjectConstraints - handles empty properties', () => {
       name: { type: 'string' }
     }
   }
-  const result = mergeObjectConstraints(a, b, mockGetRef)
+  const result = mergeObjectConstraints(a, b, mockGetRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'object',
     properties: {
@@ -209,7 +210,7 @@ Deno.test('mergeObjectConstraints - throws error when merging object with non-ob
   }
 
   assertThrows(
-    () => mergeObjectConstraints(a, b, mockGetRef),
+    () => mergeObjectConstraints(a, b, mockGetRef, normalizeMergeMember),
     Error,
     "Cannot merge schemas: conflicting types 'object' and 'string'"
   )
@@ -224,7 +225,7 @@ Deno.test('mergeObjectConstraints - merges enum values when both schemas have en
     type: 'object',
     enum: [{ baz: 'qux' }, { quux: 'corge' }]
   }
-  const result = mergeObjectConstraints(a, b, mockGetRef)
+  const result = mergeObjectConstraints(a, b, mockGetRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'object',
     enum: [{ baz: 'qux' }]
@@ -237,7 +238,7 @@ Deno.test('mergeObjectConstraints - takes enum from second schema when first has
     type: 'object',
     enum: [{ foo: 'bar' }, { baz: 'qux' }]
   }
-  const result = mergeObjectConstraints(a, b, mockGetRef)
+  const result = mergeObjectConstraints(a, b, mockGetRef, normalizeMergeMember)
   assertEquals(result, {
     type: 'object',
     enum: [{ foo: 'bar' }, { baz: 'qux' }]
@@ -252,7 +253,7 @@ Deno.test('mergeObjectConstraints - takes enum from first schema when second has
 
   const b: OpenAPIV3.SchemaObject = { type: 'object' }
 
-  const result = mergeObjectConstraints(a, b, mockGetRef)
+  const result = mergeObjectConstraints(a, b, mockGetRef, normalizeMergeMember)
 
   assertEquals(result, {
     type: 'object',
@@ -270,7 +271,7 @@ Deno.test('mergeObjectConstraints - throws when enum intersection is empty', () 
     enum: [{ quux: 'corge' }, { grault: 'garply' }]
   }
   assertThrows(
-    () => mergeObjectConstraints(a, b, mockGetRef),
+    () => mergeObjectConstraints(a, b, mockGetRef, normalizeMergeMember),
     Error,
     'Merged schema has empty enum array'
   )

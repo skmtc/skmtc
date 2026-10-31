@@ -3,6 +3,7 @@ import { assertThrows } from '@std/assert/throws'
 import { mergeStringConstraints } from './merge-string-constraints.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { GetRefFn } from './types.ts'
+import { normalizeMergeMember } from '@/parse/v3-2/schema/normalize-schema-shape.ts'
 
 const getRef: GetRefFn = () => ({})
 
@@ -17,7 +18,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         minLength: 5
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         minLength: 5
@@ -32,7 +33,7 @@ Deno.test('mergeStringConstraints', async t => {
       const b: OpenAPIV3.SchemaObject = {
         type: 'string'
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         minLength: 3
@@ -47,7 +48,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         minLength: 7
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         minLength: 7
@@ -61,7 +62,7 @@ Deno.test('mergeStringConstraints', async t => {
       const b: OpenAPIV3.SchemaObject = {
         type: 'string'
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string'
       })
@@ -75,7 +76,7 @@ Deno.test('mergeStringConstraints', async t => {
       const b: OpenAPIV3.SchemaObject = {
         type: 'string'
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result.minLength, 0)
     })
   })
@@ -90,7 +91,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         maxLength: 5
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         maxLength: 5
@@ -105,7 +106,7 @@ Deno.test('mergeStringConstraints', async t => {
       const b: OpenAPIV3.SchemaObject = {
         type: 'string'
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         maxLength: 15
@@ -120,7 +121,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         maxLength: 20
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         maxLength: 20
@@ -134,7 +135,7 @@ Deno.test('mergeStringConstraints', async t => {
       const b: OpenAPIV3.SchemaObject = {
         type: 'string'
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string'
       })
@@ -152,7 +153,7 @@ Deno.test('mergeStringConstraints', async t => {
         pattern: '^[a-z0-9]+$'
       }
       assertThrows(
-        () => mergeStringConstraints(a, b, getRef),
+        () => mergeStringConstraints(a, b, getRef, normalizeMergeMember),
         Error,
         "Cannot merge schemas: conflicting patterns '^[a-z]+$' and '^[a-z0-9]+$'"
       )
@@ -167,7 +168,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         pattern: '^[a-z]+$'
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         pattern: '^[a-z]+$'
@@ -182,7 +183,7 @@ Deno.test('mergeStringConstraints', async t => {
       const b: OpenAPIV3.SchemaObject = {
         type: 'string'
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         pattern: '^test$'
@@ -197,7 +198,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         pattern: '^example$'
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         pattern: '^example$'
@@ -215,7 +216,11 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         format: 'uri'
       }
-      assertThrows(() => mergeStringConstraints(a, b, getRef), Error, 'Incompatible string formats')
+      assertThrows(
+        () => mergeStringConstraints(a, b, getRef, normalizeMergeMember),
+        Error,
+        'Incompatible string formats'
+      )
     })
 
     await t.step('should merge when both have same format', () => {
@@ -227,7 +232,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         format: 'email'
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         format: 'email'
@@ -242,7 +247,7 @@ Deno.test('mergeStringConstraints', async t => {
       const b: OpenAPIV3.SchemaObject = {
         type: 'string'
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         format: 'uuid'
@@ -257,7 +262,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         format: 'date-time'
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         format: 'date-time'
@@ -275,7 +280,7 @@ Deno.test('mergeStringConstraints', async t => {
         const b: OpenAPIV3.SchemaObject = {
           type: 'string'
         }
-        const result = mergeStringConstraints(a, b, getRef)
+        const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
         assertEquals(result.format, format)
       })
     })
@@ -291,7 +296,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         enum: ['b', 'c', 'd']
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         enum: ['b', 'c']
@@ -304,7 +309,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         enum: ['a', 'b', 'c']
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         enum: ['a', 'b', 'c']
@@ -317,7 +322,7 @@ Deno.test('mergeStringConstraints', async t => {
         enum: ['a', 'b', 'c']
       }
       const b: OpenAPIV3.SchemaObject = { type: 'string' }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         enum: ['a', 'b', 'c']
@@ -334,7 +339,7 @@ Deno.test('mergeStringConstraints', async t => {
         enum: ['d', 'e', 'f']
       }
       assertThrows(
-        () => mergeStringConstraints(a, b, getRef),
+        () => mergeStringConstraints(a, b, getRef, normalizeMergeMember),
         Error,
         'Merged schema has empty enum array'
       )
@@ -353,7 +358,7 @@ Deno.test('mergeStringConstraints', async t => {
         minLength: 3,
         maxLength: 15
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         minLength: 5,
@@ -370,7 +375,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         pattern: '^[a-z]+$'
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         minLength: 3,
@@ -387,7 +392,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         format: 'email'
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         maxLength: 100,
@@ -409,7 +414,7 @@ Deno.test('mergeStringConstraints', async t => {
         pattern: '^[a-zA-Z0-9]+$',
         format: 'password'
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         minLength: 5,
@@ -430,7 +435,7 @@ Deno.test('mergeStringConstraints', async t => {
         maxLength: 3,
         enum: ['abc', 'abcd', 'abcde']
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         minLength: 2,
@@ -450,7 +455,7 @@ Deno.test('mergeStringConstraints', async t => {
         pattern: '^[a-z]+@[a-z]+\\.[a-z]+$',
         format: 'email'
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {
         type: 'string',
         pattern: '^[a-z]+@[a-z]+\\.[a-z]+$',
@@ -470,7 +475,7 @@ Deno.test('mergeStringConstraints', async t => {
         minimum: 0
       }
       assertThrows(
-        () => mergeStringConstraints(a, b, getRef),
+        () => mergeStringConstraints(a, b, getRef, normalizeMergeMember),
         Error,
         "Cannot merge schemas: conflicting types 'string' and 'number'"
       )
@@ -479,7 +484,7 @@ Deno.test('mergeStringConstraints', async t => {
     await t.step('should handle schemas without type', () => {
       const a: OpenAPIV3.SchemaObject = {}
       const b: OpenAPIV3.SchemaObject = {}
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result, {})
     })
 
@@ -491,7 +496,7 @@ Deno.test('mergeStringConstraints', async t => {
       const b: OpenAPIV3.SchemaObject = {
         maxLength: 10
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result.type, 'string')
       assertEquals(result.minLength, 5)
       assertEquals(result.maxLength, 10)
@@ -508,7 +513,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         minLength: 0
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result.minLength, 0)
     })
 
@@ -521,7 +526,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         maxLength: 1000000
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result.maxLength, 999999)
     })
 
@@ -534,7 +539,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         pattern: ''
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result.pattern, '')
     })
 
@@ -548,7 +553,7 @@ Deno.test('mergeStringConstraints', async t => {
         type: 'string',
         pattern
       }
-      const result = mergeStringConstraints(a, b, getRef)
+      const result = mergeStringConstraints(a, b, getRef, normalizeMergeMember)
       assertEquals(result.pattern, pattern)
     })
   })

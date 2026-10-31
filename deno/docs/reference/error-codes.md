@@ -145,9 +145,18 @@ threw. The single `(path, method)` pair is dropped; the rest of the
 document continues to parse. Webhook operations fire the same code
 through the same isolation.
 
+Parse also logs this code for a bad `servers` entry at the document,
+path item, operation or webhook level. A bad entry is not a Server
+Object, or its `url` is not a string. Parse drops only that entry and
+continues with the operations.
+
+**Example location:** `paths:/accounts:post` (operation),
+`servers:1` (servers entry)
+
 **Remediation:** Read the operation at the indicated location.
 Causes mirror `INVALID_SCHEMA` (bad `requestBody`, malformed
-parameters, etc.).
+parameters, etc.). For a `servers` entry, make the entry a Server
+Object with a string `url`, or remove it.
 
 ### `UNSUPPORTED_OPERATION_METHOD` — warning
 
