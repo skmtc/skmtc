@@ -220,6 +220,8 @@ export type OasIssueType =
   | 'INVALID_DEPENDENCY_REF'
   | 'EXAMPLE_AND_EXAMPLES_DEFINED'
   | 'INVALID_TAG_PARENT'
+  | 'INVALID_TAG'
+  | 'INVALID_EXTERNAL_DOCS'
   | 'UNSUPPORTED_OPERATION_METHOD'
   | 'WILDCARD_MEDIA_TYPE'
   | 'NO_JSON_MEDIA_TYPE'
@@ -254,6 +256,8 @@ export const oasIssueType = v.union([
   v.literal('INVALID_DEPENDENCY_REF'),
   v.literal('EXAMPLE_AND_EXAMPLES_DEFINED'),
   v.literal('INVALID_TAG_PARENT'),
+  v.literal('INVALID_TAG'),
+  v.literal('INVALID_EXTERNAL_DOCS'),
   v.literal('UNSUPPORTED_OPERATION_METHOD'),
   v.literal('WILDCARD_MEDIA_TYPE'),
   v.literal('NO_JSON_MEDIA_TYPE')

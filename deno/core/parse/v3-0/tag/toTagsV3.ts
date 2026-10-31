@@ -5,6 +5,7 @@ import type { TagFields } from '@/oas/tag/Tag.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { isValidTag, toTagList } from '@/parse/descriptiveFields.ts'
 
 export type ToTagsV3Args = {
   tags: OpenAPIV3.TagObject[] | undefined
@@ -17,7 +18,15 @@ export const toTagsV3 = ({ tags, stackTrail, context }: ToTagsV3Args): OasTag[] 
     return undefined
   }
 
-  return tags.map(tag => toTagV3({ tag, stackTrail, context }))
+  // A malformed entry, or a `tags` that is not an array, is left out with a
+  // warning: tags do not change how an operation renders.
+  return toTagList({ tags, stackTrail, context })?.flatMap((tag, index) =>
+    stackTrail.trace(`${index}`, st =>
+      isValidTag({ tag, stackTrail: st, context })
+        ? [toTagV3({ tag, stackTrail: st, context })]
+        : []
+    )
+  )
 }
 
 export type ToTagV3Args = {

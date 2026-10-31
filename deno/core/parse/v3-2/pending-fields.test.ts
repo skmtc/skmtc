@@ -178,19 +178,19 @@ const readFields: Array<{
   },
   {
     field: 'tag parent',
-    location: 'TEST:tags:parent',
+    location: 'TEST:tags:1:parent',
     toValue: () => toDocument().tags?.map(tag => tag.parent),
     expected: [undefined, 'pets']
   },
   {
     field: 'tag kind',
-    location: 'TEST:tags:kind',
+    location: 'TEST:tags:0:kind',
     toValue: () => toDocument().tags?.map(tag => tag.kind),
     expected: ['nav', undefined]
   },
   {
     field: 'tag summary',
-    location: 'TEST:tags:summary',
+    location: 'TEST:tags:0:summary',
     toValue: () => toDocument().tags?.map(tag => tag.summary),
     expected: ['Pets', undefined]
   },

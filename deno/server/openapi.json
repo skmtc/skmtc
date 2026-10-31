@@ -1198,6 +1198,12 @@
                               "const": "INVALID_TAG_PARENT"
                             },
                             {
+                              "const": "INVALID_TAG"
+                            },
+                            {
+                              "const": "INVALID_EXTERNAL_DOCS"
+                            },
+                            {
                               "const": "UNSUPPORTED_OPERATION_METHOD"
                             },
                             {
@@ -1302,6 +1308,12 @@
                               "const": "INVALID_TAG_PARENT"
                             },
                             {
+                              "const": "INVALID_TAG"
+                            },
+                            {
+                              "const": "INVALID_EXTERNAL_DOCS"
+                            },
+                            {
                               "const": "UNSUPPORTED_OPERATION_METHOD"
                             },
                             {
@@ -1403,6 +1415,12 @@
                             },
                             {
                               "const": "INVALID_TAG_PARENT"
+                            },
+                            {
+                              "const": "INVALID_TAG"
+                            },
+                            {
+                              "const": "INVALID_EXTERNAL_DOCS"
                             },
                             {
                               "const": "UNSUPPORTED_OPERATION_METHOD"

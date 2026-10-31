@@ -324,8 +324,44 @@ the tag goes back to the same tag (a cycle). The parser removes
 `parent` from the tag and keeps all other fields. In a cycle, each tag on the
 cycle loses its `parent`.
 
+**Example location:** `tags:2:parent`
+
 **Remediation:** Point `parent` at the `name` of another tag in the
 top-level `tags` list, and make sure no tag is its own ancestor.
+
+### `INVALID_TAG` — warning
+
+**When:** An entry of the top-level `tags` list is not an object, or
+its `name` is not a string. Skmtc leaves the entry out and keeps the
+other tags. When `tags` is not an array, Skmtc reads the document as
+a document with no tags and logs one warning at `tags`. Operations
+keep the tag names that they list, also the names of tags that
+Skmtc left out.
+
+**Typical messages:** `Tag is not an object with a string name; left
+out`, `"tags" must be an array; left out`.
+
+**Example location:** `tags:3`
+
+**Remediation:** Give each tag a string `name`, and write `tags` as
+a list.
+
+### `INVALID_EXTERNAL_DOCS` — warning
+
+**When:** An `externalDocs` object has no string `url`, or its
+`description` is not a string. Skmtc leaves out that `externalDocs`
+object and keeps its parent: the document, a tag, an operation, a
+webhook or a schema. Skmtc can copy the `externalDocs` of a oneOf
+or anyOf schema to each member. Then it logs the warning for each
+member.
+
+**Typical message:** `External docs object is invalid (Invalid key:
+Expected "url" but received undefined); left out`.
+
+**Example location:** `tags:1:externalDocs`
+
+**Remediation:** Add a string `url` to the `externalDocs` object, or
+remove the object.
 
 ### `WILDCARD_MEDIA_TYPE` — warning
 

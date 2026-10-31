@@ -5,6 +5,7 @@ import type { TagFields } from '@/oas/tag/Tag.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { isValidTag, toTagList } from '@/parse/descriptiveFields.ts'
 
 /** A 3.2 Tag Object: the 3.0 shape plus `summary`, `parent` and `kind`. */
 export type TagObjectV32 = OpenAPIV3.TagObject & {
@@ -24,26 +25,40 @@ export const toTagsV3 = ({ tags, stackTrail, context }: ToTagsV3Args): OasTag[] 
     return undefined
   }
 
-  const parents = new Map(tags.map(({ name, parent }) => [name, parent]))
+  // A malformed entry, or a `tags` that is not an array, is left out with a
+  // warning: tags do not change how an operation renders.
+  const validTags = toTagList({ tags, stackTrail, context })?.flatMap((tag, index) =>
+    stackTrail.trace(`${index}`, st =>
+      isValidTag({ tag, stackTrail: st, context }) ? [{ tag, index }] : []
+    )
+  )
 
-  return tags.map(tag => {
-    const parentError = toParentError({ name: tag.name, parent: tag.parent, parents })
+  if (!validTags) {
+    return undefined
+  }
 
-    if (!parentError) {
-      return toTagV3({ tag, stackTrail, context })
-    }
+  const parents = new Map(validTags.map(({ tag: { name, parent } }) => [name, parent]))
 
-    context.logIssue({
-      key: 'parent',
-      level: 'warning',
-      message: `Tag '${tag.name}' ${parentError}; dropping 'parent'`,
-      parent: tag,
-      stackTrail,
-      type: 'INVALID_TAG_PARENT'
+  return validTags.map(({ tag, index }) =>
+    stackTrail.trace(`${index}`, st => {
+      const parentError = toParentError({ name: tag.name, parent: tag.parent, parents })
+
+      if (!parentError) {
+        return toTagV3({ tag, stackTrail: st, context })
+      }
+
+      context.logIssue({
+        key: 'parent',
+        level: 'warning',
+        message: `Tag '${tag.name}' ${parentError}; dropping 'parent'`,
+        parent: tag,
+        stackTrail: st,
+        type: 'INVALID_TAG_PARENT'
+      })
+
+      return toTagV3({ tag: { ...tag, parent: undefined }, stackTrail: st, context })
     })
-
-    return toTagV3({ tag: { ...tag, parent: undefined }, stackTrail, context })
-  })
+  )
 }
 
 type ToParentErrorArgs = {
