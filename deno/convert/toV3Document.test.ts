@@ -1,6 +1,7 @@
 import { assertEquals, assertRejects, assertStrictEquals, assertStringIncludes } from '@std/assert'
 import type { OpenAPIV3_1 } from 'openapi-types'
 import { toV3Document } from './toV3Document.ts'
+import type { AnyOasDocument } from './types.ts'
 
 Deno.test('toV3Document - 3.0 input is returned unchanged', async () => {
   const doc = {
@@ -102,4 +103,23 @@ Deno.test('toV3Document - missing version field is reported clearly', async () =
     Error
   )
   assertStringIncludes(err.message, 'no version field found')
+})
+
+Deno.test('toV3Document - a 2.0 operation without responses arrives with a default response', async () => {
+  // Core reads a missing `responses` as no documented responses and warns.
+  // A converted 2.0 document never reaches that path: the converter fills a
+  // missing `responses` with a `default` response.
+  const doc: AnyOasDocument = JSON.parse(
+    JSON.stringify({
+      swagger: '2.0',
+      info: { title: 'T', version: '1' },
+      paths: { '/pets': { get: { operationId: 'listPets' } } }
+    })
+  )
+
+  const result = await toV3Document(doc)
+
+  assertEquals(result.paths['/pets']?.get?.responses, {
+    default: { description: 'Default response' }
+  })
 })

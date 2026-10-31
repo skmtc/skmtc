@@ -115,6 +115,37 @@ Same shape as `MISSING_OBJECT_TYPE` but for arrays — schema has
 
 Schema has a boolean `default` or `example` without `type: 'boolean'`.
 
+### `EMPTY_PARAMETER` — warning
+
+**When:** An entry in a `parameters` list or in
+`components.parameters` is an empty object `{}` or `null`. The list
+can be on a path item, an operation or a webhook. The entry has no
+data, so Skmtc removes it and parses the other parameters. A `$ref`
+entry, or an entry with at least one key, does not get this warning.
+
+**Typical message:** `Empty parameter object; skipped`.
+
+**Example location:** `paths:/mi:parameters:0` or
+`components:parameters:<name>`
+
+**Remediation:** Remove the empty entry from the OpenAPI document.
+
+### `MISSING_RESPONSES` — warning
+
+**When:** An operation or webhook has no `responses`, or `responses`
+is `null`. Skmtc keeps the operation and reads it as an operation
+with no documented responses. Generators get no responses for it.
+`responses` is required in OpenAPI 3.0 and optional in 3.1 and 3.2.
+All three versions log this warning. A `responses: {}` logs nothing.
+
+**Typical message:** `Operation has no responses; read as no
+documented responses`.
+
+**Example location:** `paths:/pets:post:responses`
+
+**Remediation:** Add the operation's responses to the OpenAPI
+document if generators must make response types for it.
+
 ### `MISSING_STRING_TYPE` — warning
 
 Schema has a string `default`, `example`, string-only `enum`, or a
@@ -156,7 +187,11 @@ continues with the operations.
 **Remediation:** Read the operation at the indicated location.
 Causes mirror `INVALID_SCHEMA` (bad `requestBody`, malformed
 parameters, etc.). For a `servers` entry, make the entry a Server
-Object with a string `url`, or remove it.
+Object with a string `url`, or remove it. A `responses` that is not
+an object (an array, a string, a number) also drops the operation.
+The message is `"responses" must be an object of status codes, got
+<type>`. An operation without `responses` is not an error: see
+[`MISSING_RESPONSES`](#missing_responses--warning).
 
 ### `UNSUPPORTED_OPERATION_METHOD` — warning
 

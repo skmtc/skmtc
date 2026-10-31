@@ -11,18 +11,41 @@ import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecif
 import { tryParseAt } from '@/context/tryParseAt.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import { logBodyMediaTypes } from '@/parse/logBodyMediaTypes.ts'
+import { toPresentResponses } from '@/parse/toPresentResponses.ts'
 
 export type ToResponsesV3Args = {
-  responses: OpenAPIV3.ResponsesObject
+  responses?: OpenAPIV3.ResponsesObject | null
   stackTrail: StackTrail
   context: ParseContextType
 }
 
+/**
+ * Parses the `responses` of an operation or webhook. A missing or `null`
+ * `responses` reads as no documented responses; see {@link toPresentResponses}.
+ */
 export const toResponsesV3 = ({
   responses,
   stackTrail,
   context
 }: ToResponsesV3Args): Record<string, OasResponse | OasRef<'response'>> => {
+  const present = toPresentResponses({ responses, stackTrail, context })
+
+  return present === undefined
+    ? {}
+    : toResponseEntriesV3({ responses: present, stackTrail, context })
+}
+
+type ToResponseEntriesV3Args = {
+  responses: OpenAPIV3.ResponsesObject
+  stackTrail: StackTrail
+  context: ParseContextType
+}
+
+const toResponseEntriesV3 = ({
+  responses,
+  stackTrail,
+  context
+}: ToResponseEntriesV3Args): Record<string, OasResponse | OasRef<'response'>> => {
   const output: Record<string, OasResponse | OasRef<'response'>> = {}
   const entries = Object.entries(responses)
 
@@ -57,7 +80,7 @@ export const toOptionalResponsesV3 = ({
     return undefined
   }
 
-  return toResponsesV3({ responses, stackTrail, context })
+  return toResponseEntriesV3({ responses, stackTrail, context })
 }
 
 export type ToResponseV3Args = {

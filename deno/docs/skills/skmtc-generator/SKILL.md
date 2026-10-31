@@ -12,7 +12,7 @@ description: >
   (skmtc-lang-typescript).
 metadata:
   describes:
-    '@skmtc/core': '0.32'
+    '@skmtc/core': '0.33'
 ---
 
 # Authoring Skmtc generators
