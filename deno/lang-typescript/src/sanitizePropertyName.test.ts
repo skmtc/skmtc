@@ -1,6 +1,21 @@
 import { assertEquals } from '@std/assert/equals'
 import { sanitizePropertyName } from './sanitizePropertyName.ts'
 
+Deno.test('sanitizePropertyName escapes a quoted name so the destructuring pattern parses', () => {
+  for (const name of ["it's", 'a\\b', 'line\nbreak']) {
+    const pattern = sanitizePropertyName(name).toString()
+    // Destructure with the pattern, then rebuild the object from the same key and binding.
+    const roundTrip: unknown = new Function('o', `const { ${pattern} } = o; return { ${pattern} }`)(
+      {
+        [name]: 1
+      }
+    )
+
+    assertEquals(roundTrip, { [name]: 1 })
+  }
+  assertEquals(sanitizePropertyName("it's").toString(), "'it\\'s': itS")
+})
+
 // Protected Keywords Tests
 // Note: These keywords are in the protectedKeywords map and get converted to key-value format
 Deno.test('sanitizePropertyName converts "return" protected keyword to key-value format', () => {

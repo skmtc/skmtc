@@ -153,16 +153,20 @@ const toParameterV3 = ({
   const defaultRequired =
     typeof required === 'undefined' ? (parsedLocation === 'path' ? true : false) : required
 
+  const parsedStyle = stackTrail.trace('style', st =>
+    toStyle({ style, location: parsedLocation, stackTrail: st })
+  )
+
   const fields: ParameterFields = {
     name,
     location: parsedLocation,
     description,
     required: defaultRequired,
     deprecated,
-    style: stackTrail.trace('style', st =>
-      toStyle({ style, location: parsedLocation, stackTrail: st })
+    style: parsedStyle,
+    explode: stackTrail.trace('explode', st =>
+      toExplode({ explode, style: parsedStyle, stackTrail: st })
     ),
-    explode: stackTrail.trace('explode', st => toExplode({ explode, style, stackTrail: st })),
     allowEmptyValue,
     allowReserved,
     schema: stackTrail.trace('schema', st =>
@@ -214,7 +218,7 @@ const toStyle = ({ style, location, stackTrail }: ToStyleArgs): ParameterStyle =
 
 export type ToExplodeArgs = {
   explode: boolean | undefined
-  style: string | undefined
+  style: ParameterStyle
   stackTrail: StackTrail
 }
 

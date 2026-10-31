@@ -1,6 +1,6 @@
 {
   "@skmtc/core": {
-    "minor": "0.31",
+    "minor": "0.32",
     "deno": "2.9.8",
     "exports": {
       "AddPropertyArgs": "6922b41f66aabe95",
@@ -223,7 +223,7 @@
       "OasParameterRefData": "62769fc424aef3b3",
       "OasParameterStyle": "9f8fb6b2c04384e7",
       "OasPathEnrichments": "64e8272c9e444c0f",
-      "OasPathItem": "dbe84a16447aabfe",
+      "OasPathItem": "76e4626ab49cea34",
       "OasRef": "3fdcd47378257c7c",
       "OasRefData": "d99f4fda6c84562a",
       "OasRequestBody": "60ec4a6119385624",
@@ -262,7 +262,7 @@
       "ParsePhase": "974eac8268093580",
       "ParseWarningInput": "3f1eec2a1e990b73",
       "ParsedModuleName": "1d34c2741849a864",
-      "PathItemFields": "c6750a7cb4f4c962",
+      "PathItemFields": "958098f59c1f85cd",
       "PeerInsertOptions": "f05320d754efa304",
       "PeerInsertSettings": "ed28e36786d436dc",
       "PhaseType": "06a5d943770837ee",

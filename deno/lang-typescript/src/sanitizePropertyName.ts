@@ -3,6 +3,7 @@ import { isIdentifierName } from 'npm:@babel/helper-validator-identifier@7.27.1'
 import { List } from './List.ts'
 import { camelCase } from '@skmtc/core'
 import { protectedKeywords } from './protectedKeywords.ts'
+import { handleKey } from '@/src/identifiers.ts'
 import type { Stringable } from '@skmtc/core'
 
 export const sanitizePropertyName = (propertyName: string): string | Stringable => {
@@ -13,7 +14,7 @@ export const sanitizePropertyName = (propertyName: string): string | Stringable 
   }
 
   if (!isIdentifierName(propertyName)) {
-    return List.toKeyValue(`'${propertyName}'`, camelCase(propertyName))
+    return List.toKeyValue(handleKey(propertyName), camelCase(propertyName))
   }
 
   return propertyName
