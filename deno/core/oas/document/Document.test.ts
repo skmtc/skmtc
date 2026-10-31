@@ -2,7 +2,12 @@ import { assert, assertEquals, assertExists, assertThrows } from '@std/assert'
 import { OasDocument, type DocumentFields } from './Document.ts'
 import { OasInfo } from '../info/Info.ts'
 import { OasOperation } from '../operation/Operation.ts'
-import { OasComponents } from '../components/Components.ts'
+import { OasComponents, componentsKeys } from '../components/Components.ts'
+import { OasResponse } from '@/oas/response/Response.ts'
+import { OasParameter } from '@/oas/parameter/Parameter.ts'
+import { OasExample } from '@/oas/example/Example.ts'
+import { OasHttpSecurityScheme } from '@/oas/securitySchemes/SecurityScheme.ts'
+import { OasLink } from '@/oas/link/Link.ts'
 import { OasServer } from '../server/Server.ts'
 import { OasTag } from '../tag/Tag.ts'
 import { OasSecurityRequirement } from '../securityRequirement/SecurityRequirement.ts'
@@ -390,54 +395,71 @@ Deno.test('OasDocument', async t => {
   })
 
   await t.step('removeItem() - components removal follows the bucket', async t => {
-    // Same name in three buckets: each trail removes only its own bucket's entry.
-    const toDocument = () => {
-      const user = 'User' as RefName
-      return new OasDocument({
+    // An entry named `User` in every bucket: each trail removes only its own bucket's entry.
+    const user = 'User' as RefName
+    const toEntries = () => ({
+      schemas: new OasObject({ title: 'User' }),
+      responses: new OasResponse({ description: 'user response' }),
+      parameters: new OasParameter({ name: 'user', location: 'query' }),
+      examples: new OasExample({ value: 'user' }),
+      requestBodies: new OasRequestBody({ content: {} }),
+      headers: new OasHeader({ description: 'user header' }),
+      securitySchemes: new OasHttpSecurityScheme({ scheme: 'bearer' }),
+      links: new OasLink({ operationId: 'getUser' })
+    })
+    const toDocument = (entries: ReturnType<typeof toEntries>) =>
+      new OasDocument({
         ...createFullFields(),
         components: new OasComponents({
-          schemas: { [user]: new OasObject({ title: 'User' }) },
-          requestBodies: { [user]: new OasRequestBody({ content: {} }) },
-          headers: { [user]: new OasHeader({ description: 'user header' }) }
+          schemas: { [user]: entries.schemas },
+          responses: { [user]: entries.responses },
+          parameters: { [user]: entries.parameters },
+          examples: { [user]: entries.examples },
+          requestBodies: { [user]: entries.requestBodies },
+          headers: { [user]: entries.headers },
+          securitySchemes: { [user]: entries.securitySchemes },
+          links: { [user]: entries.links }
         })
       })
+    const toBuckets = (document: OasDocument) => {
+      const components = document.components
+      return {
+        schemas: Object.keys(components?.schemas ?? {}),
+        responses: Object.keys(components?.responses ?? {}),
+        parameters: Object.keys(components?.parameters ?? {}),
+        examples: Object.keys(components?.examples ?? {}),
+        requestBodies: Object.keys(components?.requestBodies ?? {}),
+        headers: Object.keys(components?.headers ?? {}),
+        securitySchemes: Object.keys(components?.securitySchemes ?? {}),
+        links: Object.keys(components?.links ?? {})
+      }
     }
-    const toBuckets = (document: OasDocument) => ({
-      schemas: Object.keys(document.components?.schemas ?? {}),
-      requestBodies: Object.keys(document.components?.requestBodies ?? {}),
-      headers: Object.keys(document.components?.headers ?? {})
-    })
 
-    await t.step('a request body trail removes the request body, not the schema', () => {
-      const document = toDocument()
-      const removed = document.removeItem(new StackTrail(['components', 'requestBodies', 'User']))
+    assertEquals(Object.keys(toEntries()), componentsKeys)
 
-      assert(removed instanceof OasRequestBody)
-      assertEquals(toBuckets(document), { schemas: ['User'], requestBodies: [], headers: ['User'] })
-    })
+    for (const bucket of componentsKeys) {
+      await t.step(`a components:${bucket} trail removes only that bucket's entry`, () => {
+        const entries = toEntries()
+        const document = toDocument(entries)
+        const removed = document.removeItem(new StackTrail(['components', bucket, 'User']))
+        const expected = Object.fromEntries(
+          componentsKeys.map(key => [key, key === bucket ? [] : ['User']])
+        )
 
-    await t.step('a header trail removes the header, not the schema', () => {
-      const document = toDocument()
-      const removed = document.removeItem(new StackTrail(['components', 'headers', 'User']))
-
-      assert(removed instanceof OasHeader)
-      assertEquals(toBuckets(document), {
-        schemas: ['User'],
-        requestBodies: ['User'],
-        headers: []
+        assert(removed === Object.entries(entries).find(([key]) => key === bucket)?.[1])
+        assertEquals(toBuckets(document), expected)
       })
-    })
+    }
 
     await t.step('a bucket outside the components keys removes nothing', () => {
-      const document = toDocument()
+      const document = toDocument(toEntries())
       const removed = document.removeItem(new StackTrail(['components', 'pathItems', 'User']))
 
       assertEquals(removed, undefined)
-      assertEquals(toBuckets(document), {
-        schemas: ['User'],
-        requestBodies: ['User'],
-        headers: ['User']
-      })
+      assertEquals(
+        toBuckets(document),
+        Object.fromEntries(componentsKeys.map(key => [key, ['User']]))
+      )
     })
   })
 
