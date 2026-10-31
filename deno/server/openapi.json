@@ -1150,6 +1150,9 @@
                               "const": "MISSING_RESPONSES"
                             },
                             {
+                              "const": "EMPTY_PARAMETER"
+                            },
+                            {
                               "const": "INVALID_EXAMPLE"
                             },
                             {
@@ -1248,6 +1251,9 @@
                               "const": "MISSING_RESPONSES"
                             },
                             {
+                              "const": "EMPTY_PARAMETER"
+                            },
+                            {
                               "const": "INVALID_EXAMPLE"
                             },
                             {
@@ -1343,6 +1349,9 @@
                             },
                             {
                               "const": "MISSING_RESPONSES"
+                            },
+                            {
+                              "const": "EMPTY_PARAMETER"
                             },
                             {
                               "const": "INVALID_EXAMPLE"

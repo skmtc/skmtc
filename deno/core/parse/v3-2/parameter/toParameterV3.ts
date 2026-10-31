@@ -18,6 +18,8 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import * as v from 'valibot'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { isEmptyParameter, logEmptyParameter } from '@/parse/emptyParameter.ts'
+
 export type ToParameterListV3Args = {
   parameters: (OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject)[] | undefined
   stackTrail: StackTrail
@@ -34,6 +36,11 @@ export const toParameterListV3 = ({
   }
 
   return parameters.flatMap((parameter, index) => {
+    if (isEmptyParameter(parameter)) {
+      stackTrail.trace(`${index}`, st => logEmptyParameter({ parameter, stackTrail: st, context }))
+      return []
+    }
+
     const querystringIssue = toQuerystringIssue(parameter)
 
     if (querystringIssue) {
@@ -89,6 +96,11 @@ export const toParametersV3 = ({
   const output: Record<string, OasParameter | OasRef<'parameter'>> = {}
   const entries = Object.entries(parameters)
   for (const [key, parameter] of entries) {
+    if (isEmptyParameter(parameter)) {
+      stackTrail.trace(key, st => logEmptyParameter({ parameter, stackTrail: st, context }))
+      continue
+    }
+
     const parsed = tryParseAt({
       stackTrail,
       key,

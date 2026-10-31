@@ -115,6 +115,21 @@ Same shape as `MISSING_OBJECT_TYPE` but for arrays — schema has
 
 Schema has a boolean `default` or `example` without `type: 'boolean'`.
 
+### `EMPTY_PARAMETER` — warning
+
+**When:** An entry in a `parameters` list or in
+`components.parameters` is an empty object `{}` or `null`. The list
+can be on a path item, an operation or a webhook. The entry has no data, so Skmtc removes it and
+parses the other parameters. A `$ref` entry, or an entry with at
+least one key, does not get this warning.
+
+**Typical message:** `Empty parameter object; skipped`.
+
+**Example location:** `paths:/mi:parameters:0` or
+`components:parameters:<name>`
+
+**Remediation:** Remove the empty entry from the OpenAPI document.
+
 ### `MISSING_RESPONSES` — warning
 
 **When:** An operation or webhook has no `responses`, or `responses`
