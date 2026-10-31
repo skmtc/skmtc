@@ -41,8 +41,9 @@ The canonical flow:
 2. Commit and merge to main — the `Publish` workflow runs `deno task release`
    automatically on every merge (no-op when nothing is pending), except a
    merge that touches only paths in its `paths-ignore` list (retros, notes,
-   assets, root docs). After a failed Publish, re-run it with
-   `workflow_dispatch`; a later retro-only merge will not retry it. Running
+   assets, root docs). After a Publish that failed past the version check,
+   re-run it with `workflow_dispatch`; a later retro-only merge will not retry
+   it. A failed version check needs a new PR instead (see "Version check"). Running
    `deno task release` locally from `skmtc/deno/` does the same against the
    ambient `JSR_URL` registry.
 

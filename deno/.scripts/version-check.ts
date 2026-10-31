@@ -12,8 +12,9 @@
  *
  * CI runs it on every pull request with the base commit of the pull request,
  * and the Publish workflow runs it after each merge to main with the commit
- * main was at before the push. It needs the network (the registry lookup) and git history back to the
- * merge base, so it is not part of `deno task check`.
+ * main was at before the push. It needs the network (the registry lookup)
+ * and git history back to the merge base, so it is not part of
+ * `deno task check`.
  */
 
 import { dirname, fromFileUrl, join, relative, SEPARATOR } from '@std/path'

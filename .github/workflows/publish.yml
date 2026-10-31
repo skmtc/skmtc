@@ -20,7 +20,7 @@
 # `deno task bump <dir>`; its merge publishes everything still
 # unpublished. Re-runs and workflow_dispatch skip the check.
 #
-# After a failed Publish, re-run it with workflow_dispatch
+# After a Publish that failed in a later step, re-run it with workflow_dispatch
 # (already-published packages are skipped on re-run). A later retro or
 # docs-only merge does not retry it, and neither does an empty commit:
 # GitHub starts no run for a push with no changed files once a path
