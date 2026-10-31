@@ -34,12 +34,17 @@ type Fixture = {
   root?: unknown
   /** Operation name → its own `security` (`undefined` leaves it out). */
   operations: Record<string, unknown>
+  /** `components.securitySchemes`; the `apiKey` + `broken` pair when not given. */
+  schemes?: Record<string, unknown>
 }
 
 // Each operation is `GET /<name>` and webhook `<name>` (POST). The
 // documents carry malformed `security` on purpose, so they are built
 // from JSON.
-const toDocument = ({ root, operations }: Fixture, on: 'paths' | 'webhooks'): DocumentObject => {
+const toDocument = (
+  { root, operations, schemes = securitySchemes }: Fixture,
+  on: 'paths' | 'webhooks'
+): DocumentObject => {
   const items = Object.fromEntries(
     Object.entries(operations).map(([name, security]) => [
       on === 'paths' ? `/${name}` : name,
@@ -53,7 +58,7 @@ const toDocument = ({ root, operations }: Fixture, on: 'paths' | 'webhooks'): Do
       info: { title: 't', version: '0' },
       paths: on === 'paths' ? items : {},
       webhooks: on === 'webhooks' ? items : undefined,
-      components: { securitySchemes },
+      components: { securitySchemes: schemes },
       security: root
     })
   )
@@ -140,15 +145,74 @@ for (const { dialect, toDocumentFieldsV3 } of trees) {
     })
 
     Deno.test(`${label}: a root requirement on a broken scheme drops the operations that inherit it`, () => {
-      const { kept, logged } = parse({
+      const { kept, logged, security } = parse({
         root: [{ broken: [] }],
         operations: { inherits: undefined, ownGood: [{ apiKey: [] }], public: [] }
       })
 
       assertEquals(kept, ['ownGood', 'public'])
+      assertEquals(security, undefined)
       assertEquals(logged.filter(({ type }) => type === 'INVALID_OPERATION'), [
-        dropped('inherits', on, failedMessage)
+        {
+          type: 'INVALID_OPERATION',
+          level: 'warning',
+          message:
+            "Root security requires security scheme 'broken', which failed to parse; root security is left out and operations that inherit it are dropped",
+          location: 'security'
+        },
+        dropped(
+          'inherits',
+          on,
+          "Inherits root security, which requires security scheme 'broken', which failed to parse"
+        )
       ])
+    })
+
+    Deno.test(`${label}: a root requirement on an undefined scheme is left out with a warning when nothing inherits it`, () => {
+      const { kept, logged, security } = parse({
+        root: [{ missing: [] }],
+        operations: { ownGood: [{ apiKey: [] }], public: [] }
+      })
+
+      assertEquals(kept, ['ownGood', 'public'])
+      assertEquals(security, undefined)
+      assertEquals(logged.filter(({ type }) => type === 'INVALID_OPERATION'), [
+        {
+          type: 'INVALID_OPERATION',
+          level: 'warning',
+          message:
+            "Root security requires security scheme 'missing', which is not defined in components.securitySchemes; root security is left out and operations that inherit it are dropped",
+          location: 'security'
+        }
+      ])
+    })
+
+    Deno.test(`${label}: a usable root security is kept on the document`, () => {
+      const { kept, security } = parse({
+        root: [{ apiKey: [] }],
+        operations: { inherits: undefined }
+      })
+
+      assertEquals(kept, ['inherits'])
+      assertEquals(
+        security?.map(({ requirement }) => requirement),
+        [{ apiKey: [] }]
+      )
+    })
+
+    Deno.test(`${label}: a mutualTLS scheme core does not parse yet does not drop its operations`, () => {
+      const { kept, logged, security } = parse({
+        schemes: { mtls: { type: 'mutualTLS' } },
+        root: [{ mtls: [] }],
+        operations: { inherits: undefined, own: [{ mtls: [] }] }
+      })
+
+      assertEquals(kept, ['inherits', 'own'])
+      assertEquals(
+        security?.map(({ requirement }) => requirement),
+        [{ mtls: [] }]
+      )
+      assertEquals(logged.filter(({ type }) => type === 'INVALID_OPERATION'), [])
     })
 
     Deno.test(`${label}: a requirement naming an undefined scheme drops its operation`, () => {

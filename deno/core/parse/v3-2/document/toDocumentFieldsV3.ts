@@ -11,7 +11,7 @@ import { toOptionalServersV3 } from '@/parse/v3-2/server/toServerV3.ts'
 import { toSecurityRequirementsV3 } from '@/parse/v3-2/securityRequirement/toSecurityRequirement.ts'
 import { toExternalDocs } from '@/parse/v3-2/externalDocs/toExternalDocs.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
-import { toOperationsWithValidSecurity, toRootSecurity } from '@/parse/securityRequirements.ts'
+import { toOperationsWithValidSecurity, toSecurityCheck } from '@/parse/securityRequirements.ts'
 
 export type ToDocumentV3Args = {
   // Native 3.1 plumbing. The base 3.0 type has no `webhooks` and makes
@@ -70,31 +70,26 @@ export const toDocumentFieldsV3 = ({
     toComponentsV3({ components, stackTrail: st, context })
   )
   const parsedTags = stackTrail.trace('tags', st => toTagsV3({ tags, stackTrail: st, context }))
-  const rootSecurity = stackTrail.trace('security', st =>
-    toRootSecurity({
+  const securityCheck = stackTrail.trace('security', st =>
+    toSecurityCheck({
       parse: () => toSecurityRequirementsV3({ security, stackTrail: st, context }),
+      declared: components?.securitySchemes,
+      parsed: parsedComponents?.securitySchemes,
       stackTrail: st,
       context
     })
   )
-
-  const securityCheck = {
-    rootSecurity,
-    declaredSchemes: Object.keys(components?.securitySchemes ?? {}),
-    parsedSchemes: Object.keys(parsedComponents?.securitySchemes ?? {}),
-    context
-  }
 
   return {
     openapi,
     $self,
     info: parsedInfo,
     servers: parsedServers,
-    operations: toOperationsWithValidSecurity({ items: parsedOperations, ...securityCheck }),
-    webhooks: toOperationsWithValidSecurity({ items: parsedWebhooks, ...securityCheck }),
+    operations: toOperationsWithValidSecurity({ items: parsedOperations, check: securityCheck }),
+    webhooks: toOperationsWithValidSecurity({ items: parsedWebhooks, check: securityCheck }),
     components: parsedComponents,
     tags: parsedTags,
-    security: rootSecurity.valid ? rootSecurity.security : undefined,
+    security: securityCheck.rootSecurity,
     extensionFields,
     externalDocs: stackTrail.trace('externalDocs', st =>
       toExternalDocs({ externalDocs, stackTrail: st, context })
