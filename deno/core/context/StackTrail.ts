@@ -1,5 +1,6 @@
 import { componentsKeys } from '@/oas/components/Components.ts'
 import { toJsonPointer, type JsonPointer } from '@/types/JsonPointer.ts'
+import { toDocumentFrames, toTrailString } from '@/context/documentTrail.ts'
 
 export class StackTrail {
   /** Internal stack of traversal frames */
@@ -217,16 +218,7 @@ export class StackTrail {
    * ```
    */
   toSchemaPointer(): JsonPointer {
-    // Phase frames seeded by `CoreContext.toArtifacts` (PhaseType plus the
-    // `post-pass` trace). The operational phase always sits before any
-    // document key, so the FIRST match is the boundary — a document key
-    // that happens to share a phase name (e.g. a schema literally named
-    // `parse`) appears later and is unaffected.
-    const phaseFrames = new Set(['parse', 'generate', 'render', 'post-pass'])
-    const phaseIndex = this.#stack.findIndex(frame => phaseFrames.has(frame))
-    const documentFrames = phaseIndex === -1 ? this.#stack : this.#stack.slice(phaseIndex + 1)
-
-    return toJsonPointer(documentFrames)
+    return toJsonPointer(toDocumentFrames(this.#stack))
   }
 
   toStackRef(): string | undefined {
@@ -325,9 +317,7 @@ export class StackTrail {
    * ```
    */
   toString(): string {
-    return this.#stack
-      .map(frame => frame.replace(/[%:]/g, character => escapes[character]))
-      .join(':')
+    return toTrailString(this.#stack)
   }
 
   /**
@@ -353,7 +343,5 @@ export class StackTrail {
     )
   }
 }
-
-const escapes: Record<string, string> = { '%': '%25', ':': '%3A' }
 
 const decodes: Record<string, string> = { '25': '%', '3A': ':' }

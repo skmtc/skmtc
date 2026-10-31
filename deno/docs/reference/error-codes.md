@@ -130,12 +130,18 @@ can be on a path item, an operation or a webhook. The entry has no
 data, so Skmtc removes it and parses the other parameters. A `$ref`
 entry, or an entry with at least one key, does not get this warning.
 
-**Typical message:** `Empty parameter object; skipped`.
+Skmtc also logs this warning for a `parameters` field that is `{}` or
+`null` instead of a list. The field can be on a path item, an
+operation or a webhook. Skmtc reads the field as no parameters.
 
-**Example location:** `paths:/mi:parameters:0` or
-`components:parameters:<name>`
+**Typical message:** `Empty parameter object; skipped` (entry) or
+`Empty parameters field; read as no parameters` (field).
 
-**Remediation:** Remove the empty entry from the OpenAPI document.
+**Example location:** `paths:/mi:parameters:0`,
+`components:parameters:<name>` or `paths:/mi:parameters` (field)
+
+**Remediation:** Remove the empty entry or the empty field from the
+OpenAPI document.
 
 ### `MISSING_RESPONSES` — warning
 
@@ -195,7 +201,7 @@ with `prefixEncoding` or `itemEncoding`. The spec does not allow
 `encoding` next to them. The location names `encoding`. The parser
 keeps all three fields. Remove `encoding` or the other two fields.
 
-### `INVALID_OPERATION` — error
+### `INVALID_OPERATION` — error or warning
 
 **When:** A path operation (`tryParseAt`-wrapped per-method parser)
 threw. The single `(path, method)` pair is dropped; the rest of the
@@ -207,17 +213,67 @@ path item, operation or webhook level. A bad entry is not a Server
 Object, or its `url` is not a string. Parse drops only that entry and
 continues with the operations.
 
+Parse also logs this code for an operation or webhook that a broken
+path-level parameter applies to. Each broken entry first gets an
+[`INVALID_PARAMETER`](#invalid_parameter--error-or-warning) error.
+The entry applies to every operation on the path, unless the
+operation has an inline parameter with the same `name` and `in`.
+That parameter overrides the entry, and Skmtc keeps the operation.
+
+An entry without a string `name` and `in` applies to every operation
+on the path. A path-level `parameters` field that is not a list also
+applies to every operation on the path. The exception is `{}` or
+`null`: see [`EMPTY_PARAMETER`](#empty_parameter--warning). The
+message is `Path-level parameter <location> failed to parse:
+<message>`. The `<location>` is the place of the entry in the
+document, for example `paths:/items:parameters:0`.
+
+Parse also drops an operation or webhook when its
+effective security names a scheme it cannot use. The effective
+security is the operation's own `security`, or the root `security`
+when the operation has none. `security: []` inherits nothing, and an
+empty requirement `{}` names no scheme, so neither drops anything.
+The messages are:
+
+- `Requires security scheme '<name>', which failed to parse`: the
+  scheme is in `components.securitySchemes` but has its own
+  [`INVALID_SECURITY_SCHEME`](#invalid_security_scheme--error) error.
+- `Requires security scheme '<name>', which is not defined in
+  components.securitySchemes`: no scheme has that name.
+- `Inherits root security, which is not a list of security
+  requirement objects`: the root `security` has the wrong shape.
+- `Inherits root security, which requires security scheme '<name>',
+  …`: the root `security` has one of the two scheme problems above.
+
+One message names all the schemes of one kind. Parse also drops an
+operation when its `security` is not a list. The same occurs when an
+entry does not map each scheme name to a list of scopes.
+
+A root `security` with one of these problems logs this code as a
+`warning` at `security`. Parse leaves the root `security` out of the
+document and drops the operations that inherit it.
+
+A scheme of type `mutualTLS` does not drop its operations. Skmtc does
+not parse this type yet, so the scheme logs `INVALID_SECURITY_SCHEME`
+and parse keeps its operations.
+
 **Example location:** `paths:/accounts:post` (operation),
-`servers:1` (servers entry)
+`servers:1` (servers entry), `security` (root `security`)
 
 **Remediation:** Read the operation at the indicated location.
 Causes mirror `INVALID_SCHEMA` (bad `requestBody`, malformed
-parameters, etc.). For a `servers` entry, make the entry a Server
-Object with a string `url`, or remove it. A `responses` that is not
+parameters, etc.). If the message names a path-level parameter, fix
+that parameter: it drops each operation it applies to. For a
+`servers` entry, make the entry a Server Object with a string `url`,
+or remove it. A `responses` that is not
 an object (an array, a string, a number) also drops the operation.
 The message is `"responses" must be an object of status codes, got
 <type>`. An operation without `responses` is not an error: see
 [`MISSING_RESPONSES`](#missing_responses--warning).
+
+For a security message, fix or define the scheme that the message
+names. For a shape problem, make `security` a list of objects. Each
+object maps a scheme name to a list of scopes.
 
 ### `UNSUPPORTED_OPERATION_METHOD` — warning
 
@@ -241,6 +297,14 @@ No generator renders a custom method yet.
 - An OpenAPI 3.2 `in: querystring` parameter does not have exactly one
   `content` media type, or has a `schema`. The operation keeps its other
   parameters.
+- A path-level parameter failed to parse, or the path-level
+  `parameters` field is not a list. A `{}` or `null` field is not an
+  error. See [`EMPTY_PARAMETER`](#empty_parameter--warning). This
+  applies to webhooks too. Skmtc drops each operation that the
+  parameter applies to, with an
+  [`INVALID_OPERATION`](#invalid_operation--error-or-warning) error, and keeps
+  the other operations. The location is `paths:<path>:parameters:<index>`,
+  or `paths:<path>:parameters` for a broken field.
 
 **When (warning):** An OpenAPI 3.2 operation, together with its path
 item, has more than one `in: querystring` parameter, or has an
@@ -285,7 +349,9 @@ fails with `Ref "…" not found`. Only that artifact fails.
 
 **When:** A security scheme under `components.securitySchemes`
 failed to parse via `tryParseAt`. The single scheme is dropped; the
-rest of the record continues to parse.
+rest of the record continues to parse. Parse also drops each operation
+or webhook that requires the scheme, with an `INVALID_OPERATION`
+error. See its [security case](#invalid_operation--error-or-warning).
 
 **Remediation:** Read the security scheme at the indicated location.
 The scheme must be a valid OAS `http` / `apiKey` / `oauth2` /

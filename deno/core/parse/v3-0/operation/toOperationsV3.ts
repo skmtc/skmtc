@@ -14,6 +14,7 @@ import { isEmpty } from '@/helpers/isEmpty.ts'
 import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
 import { toOptionalServersV3 } from '../server/toServerV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { isDroppedByPathParameter } from '@/parse/pathParameters.ts'
 
 type OperationInfo = {
   method: Method
@@ -154,9 +155,11 @@ export const toOperationsV3 = ({
         }
       )
 
-      const pathItemObject = !isEmpty(cleaned.rest)
+      const pathItemResult = !isEmpty(cleaned.rest)
         ? toPathItemV3({ pathItem: cleaned.rest, stackTrail: pathStack, context })
         : undefined
+      const pathItemObject = pathItemResult?.pathItem
+      const brokenParameters = pathItemResult?.brokenParameters ?? []
 
       return Object.entries(cleaned.methodObject)
         .map(([method, operation]) => {
@@ -168,6 +171,12 @@ export const toOperationsV3 = ({
           return pathStack.trace(method, st => {
             if (!operation) {
               return
+            }
+
+            if (
+              isDroppedByPathParameter({ brokenParameters, operation, stackTrail: st, context })
+            ) {
+              return undefined
             }
 
             try {
