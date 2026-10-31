@@ -200,8 +200,29 @@ path item, operation or webhook level. A bad entry is not a Server
 Object, or its `url` is not a string. Parse drops only that entry and
 continues with the operations.
 
+Parse also drops an operation or webhook when its
+effective security names a scheme it cannot use. The effective
+security is the operation's own `security`, or the root `security`
+when the operation has none. `security: []` inherits nothing, and an
+empty requirement `{}` names no scheme, so neither drops anything.
+The messages are:
+
+- `Requires security scheme '<name>', which failed to parse`: the
+  scheme is in `components.securitySchemes` but has its own
+  [`INVALID_SECURITY_SCHEME`](#invalid_security_scheme--error) error.
+- `Requires security scheme '<name>', which is not defined in
+  components.securitySchemes`: no scheme has that name.
+- `Inherits root security, which is not a list of security
+  requirement objects`: the root `security` has the wrong shape.
+
+One message names all the schemes of one kind. Parse also drops an
+operation when its `security` is not a list. The same occurs when an
+entry does not map each scheme name to a list of scopes. At the root,
+the same problem logs this code as a `warning` at `security`. Parse
+then drops the operations that inherit the root.
+
 **Example location:** `paths:/accounts:post` (operation),
-`servers:1` (servers entry)
+`servers:1` (servers entry), `security` (root `security`)
 
 **Remediation:** Read the operation at the indicated location.
 Causes mirror `INVALID_SCHEMA` (bad `requestBody`, malformed
@@ -211,6 +232,10 @@ an object (an array, a string, a number) also drops the operation.
 The message is `"responses" must be an object of status codes, got
 <type>`. An operation without `responses` is not an error: see
 [`MISSING_RESPONSES`](#missing_responses--warning).
+
+For a security message, fix or define the scheme that the message
+names. For a shape problem, make `security` a list of objects. Each
+object maps a scheme name to a list of scopes.
 
 ### `UNSUPPORTED_OPERATION_METHOD` — warning
 
@@ -278,7 +303,9 @@ fails with `Ref "…" not found`. Only that artifact fails.
 
 **When:** A security scheme under `components.securitySchemes`
 failed to parse via `tryParseAt`. The single scheme is dropped; the
-rest of the record continues to parse.
+rest of the record continues to parse. Parse also drops each operation
+or webhook that requires the scheme, with an `INVALID_OPERATION`
+error. See its [security case](#invalid_operation--error).
 
 **Remediation:** Read the security scheme at the indicated location.
 The scheme must be a valid OAS `http` / `apiKey` / `oauth2` /
