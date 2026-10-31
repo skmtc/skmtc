@@ -1,6 +1,56 @@
 import { assertEquals } from '@std/assert/equals'
 import { mergeNullOnly, isNullOnly } from './nullable-merge.ts'
 import type { OpenAPIV3 } from 'openapi-types'
+import { mergeIntersection } from '@/parse/v3-2/_merge-all-of/merge-intersection.ts'
+import { mergeUnion } from '@/parse/v3-2/_merge-all-of/merge-union.ts'
+import { normalizeMergeMember } from '@/parse/v3-2/schema/normalize-schema-shape.ts'
+
+// `{ nullable: true }` is how a `{ type: 'null' }` member reads once
+// `normalizeMergeMember` has run.
+const nullOnlyUnion: OpenAPIV3.SchemaObject = { oneOf: [{ nullable: true }] }
+const getRef = () => ({})
+
+Deno.test('null-only union - an allOf member reads as nullable', () => {
+  const result = mergeIntersection({
+    schema: { allOf: [{ type: 'string' }, nullOnlyUnion] },
+    getRef,
+    normalize: normalizeMergeMember
+  })
+
+  assertEquals(result, { type: 'string', nullable: true })
+})
+
+Deno.test('null-only union - a nested oneOf member makes the union nullable', () => {
+  const result = mergeUnion({
+    schema: { oneOf: [{ type: 'string' }, nullOnlyUnion] },
+    getRef,
+    normalize: normalizeMergeMember,
+    groupType: 'oneOf'
+  })
+
+  assertEquals(result, { oneOf: [{ type: 'string' }], nullable: true })
+})
+
+Deno.test('null-only union - a nested anyOf member makes the union nullable', () => {
+  const result = mergeUnion({
+    schema: { anyOf: [{ type: 'string' }, { anyOf: [{ nullable: true }] }] },
+    getRef,
+    normalize: normalizeMergeMember,
+    groupType: 'anyOf'
+  })
+
+  assertEquals(result, { anyOf: [{ type: 'string' }], nullable: true })
+})
+
+Deno.test('null-only union - inside a oneOf inside an allOf, no "Empty oneOf"', () => {
+  const result = mergeIntersection({
+    schema: { allOf: [{ oneOf: [nullOnlyUnion] }, { description: 'x' }] },
+    getRef,
+    normalize: normalizeMergeMember
+  })
+
+  assertEquals(result, { nullable: true, description: 'x' })
+})
 
 Deno.test('mergeNullOnly - sets nullable to true', () => {
   const schema: OpenAPIV3.SchemaObject = {

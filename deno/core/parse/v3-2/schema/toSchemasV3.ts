@@ -14,7 +14,7 @@ import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
 import { toGetRef } from '@/helpers/refFns.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
-import { mergeUnion } from '../_merge-all-of/merge-union.ts'
+import { collapseNullOnlyUnion, mergeUnion } from '../_merge-all-of/merge-union.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import {
@@ -258,6 +258,12 @@ export const toSchemaV3 = ({
       context
     })
 
+    const collapsed = collapseNullOnlyUnion(wrapper, normalizeMergeMember)
+
+    if (collapsed !== wrapper) {
+      return toSchemaV3({ schema: collapsed, stackTrail, context })
+    }
+
     return stackTrail.trace('oneOf', st => {
       // 3.1: a `{ type: 'null' }` member makes the union nullable. Fold it
       // into a `nullable` flag the collapse/union logic already understands.
@@ -324,6 +330,12 @@ export const toSchemaV3 = ({
       stackTrail,
       context
     })
+
+    const collapsed = collapseNullOnlyUnion(wrapper, normalizeMergeMember)
+
+    if (collapsed !== wrapper) {
+      return toSchemaV3({ schema: collapsed, stackTrail, context })
+    }
 
     return stackTrail.trace('anyOf', st => {
       // deno-lint-ignore ban-ts-comment

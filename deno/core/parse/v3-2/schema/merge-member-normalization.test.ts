@@ -10,6 +10,7 @@ import { OasNumber } from '@/oas/number/Number.ts'
 import { OasObject } from '@/oas/object/Object.ts'
 import { OasString } from '@/oas/string/String.ts'
 import { OasUnion } from '@/oas/union/Union.ts'
+import { OasUnknown } from '@/oas/unknown/Unknown.ts'
 
 // Each `allOf`/`oneOf`/`anyOf` member is normalized with the 3.1 rules as it
 // enters the merge. The documents here use 3.1 encodings inside merged
@@ -324,6 +325,39 @@ Deno.test('merge member normalization - a multi-type member keeps its sibling ke
   assertEquals(errors, [])
   assert(schemas.Code instanceof OasString)
   assertEquals(schemas.Code.minLength, 2)
+})
+
+Deno.test('merge member normalization - a nested null-only oneOf parses', async t => {
+  const nullOnly = { oneOf: [{ type: 'null' }] }
+
+  await t.step('as an allOf member', () => {
+    const { schemas, errors } = parseSchemas({ A: { allOf: [{ type: 'string' }, nullOnly] } })
+
+    assertEquals(errors, [])
+    assert(schemas.A instanceof OasString)
+    assertEquals(schemas.A.nullable, true)
+  })
+
+  await t.step('as a oneOf member', () => {
+    const { schemas, errors } = parseSchemas({ A: { oneOf: [{ type: 'string' }, nullOnly] } })
+
+    assertEquals(errors, [])
+    assert(schemas.A instanceof OasString)
+    assertEquals(schemas.A.nullable, true)
+  })
+
+  await t.step('as the only member of a oneOf', () => {
+    const { schemas, errors } = parseSchemas({
+      A: { oneOf: [nullOnly] },
+      B: { allOf: [{ oneOf: [nullOnly] }, { description: 'x' }] }
+    })
+
+    assertEquals(errors, [])
+    assert(schemas.A instanceof OasUnknown)
+    assertEquals(schemas.A.nullable, true)
+    assert(schemas.B instanceof OasUnknown)
+    assertEquals(schemas.B.nullable, true)
+  })
 })
 
 Deno.test('merge member normalization - the tighter numeric bound keeps its exclusivity', () => {

@@ -165,9 +165,39 @@ const isNullableOnly = (member: SchemaOrReference, normalize: NormalizeFn): bool
     return false
   }
 
-  const normalized = normalize(member)
+  const normalized = collapseNullOnlyUnion(normalize(member), normalize)
 
   return normalized.nullable === true && Object.keys(normalized).length === 1
+}
+
+/**
+ * A `oneOf`/`anyOf` whose every member is null-only (for example
+ * `oneOf: [{ type: 'null' }]`) reads as nullable with no other type, not
+ * as an empty union: the group is replaced by `nullable: true`. Any other
+ * schema is returned unchanged.
+ */
+export const collapseNullOnlyUnion = (
+  schema: SchemaObject,
+  normalize: NormalizeFn
+): SchemaObject => {
+  const isNullOnlyGroup = (members: SchemaOrReference[] | undefined): boolean =>
+    Array.isArray(members) &&
+    members.length > 0 &&
+    members.every(member => isNullableOnly(member, normalize))
+
+  if (isNullOnlyGroup(schema.oneOf)) {
+    const { oneOf: _oneOf, ...rest } = schema
+
+    return { ...rest, nullable: true }
+  }
+
+  if (isNullOnlyGroup(schema.anyOf)) {
+    const { anyOf: _anyOf, ...rest } = schema
+
+    return { ...rest, nullable: true }
+  }
+
+  return schema
 }
 
 /** Is this a `oneOf`/`anyOf` group wrapper that already carries `nullable`? */
