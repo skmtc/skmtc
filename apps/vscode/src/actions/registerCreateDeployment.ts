@@ -172,6 +172,7 @@ const toAssets = async (skmtcPath: string): Promise<Record<string, DenoFile>> =>
         filePath.startsWith('.logs/') ||
         filePath.startsWith('.settings/files.json') ||
         filePath.startsWith('.settings/manifest.json') ||
+        filePath.startsWith('.settings/logs.ndjson') ||
         filePath.startsWith('.settings/client.json')
       ) {
         return

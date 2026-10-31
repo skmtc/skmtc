@@ -7,6 +7,7 @@ import type { SkmtcDocumentInput } from '../types/SkmtcDocument.ts'
 import type { AttributionState } from '../types/AttributionState.ts'
 import type { Sidecar } from '../anchors/sidecar.ts'
 import type { GenerationMapEntry } from '../anchors/generationMap.ts'
+import type { LogLine, LogLineLevel } from '../types/LogLine.ts'
 
 /**
  * Arguments for the {@link toArtifacts} transformation function.
@@ -51,6 +52,11 @@ type TransformArgs = {
   startAt: number
   /** Whether to suppress console output during generation */
   silent: boolean
+  /**
+   * The lowest level kept in the returned `logs`. Defaults to `'WARN'`,
+   * so `DEBUG` and `INFO` lines are left out unless asked for.
+   */
+  logLevel?: LogLineLevel
   /**
    * Optional attribution (gen-maps) state. When set with a
    * `postPass` block, the pipeline emits sidecars + a generation-map index
@@ -142,17 +148,20 @@ export const toArtifacts = ({
   logsPath,
   startAt,
   silent,
+  logLevel,
   stackTrail,
   attribution,
   inspect
 }: TransformArgs): {
   artifacts: Record<string, string>
   manifest: ManifestContent
+  /** The run's log lines (see {@link LogLine}). Not part of the manifest. */
+  logs: LogLine[]
   sidecars?: Record<string, Sidecar>
   generationMap?: GenerationMapEntry[]
   inspection?: unknown
 } => {
-  const context = new CoreContext({ spanId, logsPath, silent })
+  const context = new CoreContext({ spanId, logsPath, silent, logLevel })
 
   const {
     artifacts,
@@ -163,7 +172,8 @@ export const toArtifacts = ({
     enrichmentWarnings,
     sidecars,
     generationMap,
-    inspection
+    inspection,
+    logs
   } = context.toArtifacts({
     settings,
     toGeneratorConfigMap,
@@ -188,5 +198,5 @@ export const toArtifacts = ({
     endAt: Date.now()
   }
 
-  return { artifacts, manifest, sidecars, generationMap, inspection }
+  return { artifacts, manifest, logs, sidecars, generationMap, inspection }
 }

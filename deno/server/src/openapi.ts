@@ -2,6 +2,8 @@ import { toJsonSchema } from "@valibot/to-json-schema";
 import type { GenericSchema } from "valibot";
 import type { OpenAPIV3 } from "openapi-types";
 import { manifestContent } from "@skmtc/core/Manifest";
+import { logLine } from "@skmtc/core/LogLine";
+import { serializedError } from "@skmtc/core/SerializedError";
 import { generationMapEntry, sidecarSchema } from "@skmtc/core/Anchors";
 import {
   postArtifactsBody,
@@ -159,6 +161,10 @@ const parseIssue: Schema = {
       description: "Document pointer / path of the issue.",
     },
     message: { type: "string" },
+    cause: {
+      ...ref("SerializedError"),
+      description: "The error that caused an `error` issue, as data.",
+    },
   },
 };
 
@@ -342,7 +348,7 @@ const errorResponse: Schema = {
 
 const artifactsResponse = (): Schema => ({
   type: "object",
-  required: ["artifacts", "manifest"],
+  required: ["artifacts", "manifest", "logs"],
   properties: {
     artifacts: {
       type: "object",
@@ -350,6 +356,14 @@ const artifactsResponse = (): Schema => ({
       description: "Generated file contents keyed by output path.",
     },
     manifest: ref("Manifest"),
+    logs: {
+      type: "array",
+      items: ref("LogLine"),
+      description:
+        "The run's structured log lines at WARN and above. A line logged " +
+        "while a subject was generated carries the subject's trail, which " +
+        "is its key in `manifest.results`.",
+    },
     sidecars: {
       type: "object",
       additionalProperties: ref("Sidecar"),
@@ -691,6 +705,8 @@ export const buildOpenApiDocument = (): OpenAPIV3.Document => ({
         "ToV3JsonRequest",
       ),
       ...derive("Manifest", manifestContent),
+      ...derive("LogLine", logLine),
+      ...derive("SerializedError", serializedError),
       ...derive("Sidecar", sidecarSchema),
       ...derive("GenerationMapEntry", generationMapEntry),
       // Modeled — these payloads are function-return types with no runtime schema.

@@ -29,6 +29,7 @@ import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type { AttributionState } from '@/types/AttributionState.ts'
 import type { Logger } from '@/types/Logger.ts'
+import type { LogLine } from '@/types/LogLine.ts'
 import type { EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
 import type { CaptureSink } from '@/anchors/CaptureSink.ts'
 import type { Sidecar } from '@/anchors/sidecar.ts'
@@ -172,6 +173,13 @@ export type ToArtifactsResult = RenderResult & {
    * the VS Code debugger views.
    */
   inspection?: unknown
+  /**
+   * The lines the run's logger received at or above the `logLevel`
+   * `toArtifacts` was called with (`'WARN'` by default), in order. A
+   * line logged while a subject was generated carries the subject's
+   * trail, which is also its key in `results`.
+   */
+  logs: LogLine[]
 }
 
 /**

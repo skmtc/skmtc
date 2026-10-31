@@ -94,6 +94,7 @@ import type { GqlOperationEntry } from '@/dsl/operation/gql/toGqlOperationEntry.
 import type { ModelEntry } from '@/dsl/model/toModelEntry.ts'
 import type { ModelProjection, NormalizedModelProjection } from '@/dsl/model/types.ts'
 import { EnrichmentAudit, hasVariantEnrichment } from '@/enrichments/EnrichmentAudit.ts'
+import { toSerializedError } from '@/types/SerializedError.ts'
 import { formatEnrichmentPath, type EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
 
 type ConstructorArgs = {
@@ -380,6 +381,11 @@ export class GenerateContext implements GenerateContextType {
    */
   get captureSink(): CaptureSink | undefined {
     return this.#captureChannel?.sink
+  }
+
+  /** Logs a caught error with its message, keeping the error for the line's `error` field. */
+  #logError(error: unknown): void {
+    this.logger.error(toSerializedError(error).message, error)
   }
 
   /**
@@ -757,7 +763,7 @@ export class GenerateContext implements GenerateContextType {
       const { subject } = umbrella
       return isEnrichmentLeaf(subject) ? subject : undefined
     } catch (error) {
-      this.logger.error(error)
+      this.#logError(error)
       return undefined
     }
   }
@@ -867,7 +873,7 @@ export class GenerateContext implements GenerateContextType {
 
                 this.captureCurrentResult('success', st)
               } catch (error) {
-                this.logger.error(error)
+                this.#logError(error)
 
                 this.captureCurrentResult('error', st)
               }
@@ -975,7 +981,7 @@ export class GenerateContext implements GenerateContextType {
 
                 this.captureCurrentResult('success', st)
               } catch (error) {
-                this.logger.error(error)
+                this.#logError(error)
 
                 this.captureCurrentResult('error', st)
               }
@@ -1038,7 +1044,7 @@ export class GenerateContext implements GenerateContextType {
 
                 this.captureCurrentResult('success', st)
               } catch (error) {
-                this.logger.error(error)
+                this.#logError(error)
                 this.captureCurrentResult('error', st)
               }
             })
@@ -1139,7 +1145,7 @@ export class GenerateContext implements GenerateContextType {
 
                 this.captureCurrentResult('success', st)
               } catch (error) {
-                this.logger.error(error)
+                this.#logError(error)
                 this.captureCurrentResult('error', st)
               }
             })

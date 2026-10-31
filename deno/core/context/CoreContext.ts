@@ -8,6 +8,8 @@ import type { ResultType } from '@/types/Results.ts'
 import * as log from '@std/log'
 import type { Logger } from '@/types/Logger.ts'
 import { ResultsHandler } from '@/context/ResultsHandler.ts'
+import { LogLinesHandler } from '@/context/LogLinesHandler.ts'
+import type { LogLineLevel } from '@/types/LogLine.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import { ResultsLog } from '@/helpers/ResultsLog.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
@@ -85,6 +87,8 @@ type CoreContextArgs = {
   spanId: string
   logsPath?: string
   silent: boolean
+  /** The lowest level kept in the returned `logs`. Defaults to `'WARN'`. */
+  logLevel?: LogLineLevel
 }
 
 type RenderArgs = {
@@ -142,6 +146,7 @@ export type ToArtifactsArgs = {
 type SetupLoggerArgs = {
   spanId: string
   logsPath?: string
+  logLines: LogLinesHandler
 }
 
 /**
@@ -203,6 +208,9 @@ export class CoreContext {
   /** Whether to suppress console output */
   silent: boolean
 
+  /** Keeps this run's log lines for `toArtifacts` to return. */
+  #logLines: LogLinesHandler
+
   /**
    * Creates a new CoreContext instance.
    *
@@ -227,10 +235,14 @@ export class CoreContext {
    * });
    * ```
    */
-  constructor({ spanId, logsPath, silent }: CoreContextArgs) {
+  constructor({ spanId, logsPath, silent, logLevel = 'WARN' }: CoreContextArgs) {
     this.#results = new ResultsLog()
 
-    this.logger = this.#setupLogger({ spanId, logsPath })
+    this.#logLines = new LogLinesHandler(logLevel, {
+      toTrail: () => this.currentSubjectTrail?.toString()
+    })
+
+    this.logger = this.#setupLogger({ spanId, logsPath, logLines: this.#logLines })
 
     this.silent = silent
   }
@@ -240,7 +252,7 @@ export class CoreContext {
    * `log.getLogger`, which replace or share process-global state, so a
    * host's loggers and other runs' loggers are left alone.
    */
-  #setupLogger({ spanId, logsPath }: SetupLoggerArgs): Logger {
+  #setupLogger({ spanId, logsPath, logLines }: SetupLoggerArgs): Logger {
     const fileHandlers = logsPath
       ? [
           new log.FileHandler('DEBUG', {
@@ -261,6 +273,7 @@ export class CoreContext {
           useColors: true
         }),
         ...fileHandlers,
+        logLines,
         new ResultsHandler('WARN', {
           formatter: ({ levelName }) => levelName,
           context: this
@@ -461,12 +474,13 @@ export class CoreContext {
         results: this.#results.toTree(),
         parseIssues: phase.context.issues,
         enrichmentWarnings,
-        inspection
+        inspection,
+        logs: [...this.#logLines.lines]
       }
     } catch (error) {
       console.error(error)
 
-      this.logger.error(error)
+      this.logger.error(toSerializedError(error).message, error)
 
       // Surface the fatal error as a synthesized parse-issue so
       // downstream consumers (CLI `generate`, the manifest writer)
@@ -499,7 +513,8 @@ export class CoreContext {
         previews: {},
         results: this.#results.toTree(),
         parseIssues: [...priorIssues, fatalIssue],
-        enrichmentWarnings: []
+        enrichmentWarnings: [],
+        logs: [...this.#logLines.lines]
       }
     } finally {
       this.logger.handlers.forEach(handler => {
@@ -547,7 +562,7 @@ export class CoreContext {
 
       return { subjects, parseIssues: phase.context.issues }
     } catch (error) {
-      this.logger.error(error)
+      this.logger.error(toSerializedError(error).message, error)
 
       const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
       const message = error instanceof Error ? error.message : String(error)
@@ -609,7 +624,7 @@ export class CoreContext {
 
       return { enrichmentDefaults, parseIssues: phase.context.issues }
     } catch (error) {
-      this.logger.error(error)
+      this.logger.error(toSerializedError(error).message, error)
 
       const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
       const message = error instanceof Error ? error.message : String(error)
@@ -781,7 +796,7 @@ export function skmtcFormatter({ logRecord, stackTrail }: JsonFormatterArgs): st
   const stackTrailLine = stackTrail !== 'SKIPPED' ? `\n${gray('Stack:')} ${stackTrail}` : ''
 
   // Format the message (preserve multi-line errors and stack traces)
-  const formattedMessage = msg
+  const formattedMessage = toMessageWithStack(logRecord)
 
   return `${header}${stackTrailLine}\n${formattedMessage}\n`
 }
@@ -817,9 +832,26 @@ export function skmtcJsonFormatter({ logRecord, stackTrail }: JsonFormatterArgs)
 }
 
 function flattenArgs(args: unknown[]): unknown {
-  if (args.length === 1) {
-    return args[0]
-  } else if (args.length > 1) {
-    return args
+  const serializable = args.map(arg => (arg instanceof Error ? toSerializedError(arg) : arg))
+
+  if (serializable.length === 1) {
+    return serializable[0]
+  } else if (serializable.length > 1) {
+    return serializable
   }
+}
+
+/**
+ * `msg`, followed by the stack of the first `Error` in `args`. A line
+ * logged as `logger.error(error.message, error)` prints the stack alone,
+ * which starts with the message.
+ */
+function toMessageWithStack({ msg, args }: JsonFormatterArgs['logRecord']): string {
+  const error = args.find(arg => arg instanceof Error)
+
+  if (error?.stack === undefined) {
+    return msg
+  }
+
+  return error.message === msg ? error.stack : `${msg}\n${error.stack}`
 }

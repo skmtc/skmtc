@@ -55,6 +55,9 @@ const DEFAULT_IGNORE = [
   // baseline cache. Both are rebuilt by `skmtc generate`.
   '.maps/',
   '.baselines/',
+  // The run's structured log lines: rewritten each run, and their stacks
+  // hold local paths.
+  '.settings/logs.ndjson',
   '.git/',
   'node_modules/',
   '.DS_Store',
@@ -105,6 +108,7 @@ export const SKMTCIGNORE_TEMPLATE = `# .skmtcignore — files to exclude from \`
 # deploy / generate logs
 .settings/logs.txt
 .settings/error-logs.txt
+.settings/logs.ndjson
 `
 
 /**

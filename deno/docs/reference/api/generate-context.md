@@ -80,9 +80,11 @@ CLI before passing through).
 
 ### `logger: Logger`
 
-The structured logger. Generators rarely log directly — output goes
-through the manifest. The logger is used by the engine for trace
-events and is occasionally useful for diagnostic logging.
+The structured logger of the run. A transform can log through it, for
+example `context.logger.warn('could not collate example')`. A line
+that a transform logs carries the stack trail of the item, and
+`toArtifacts` returns it in `logs`. A `warn` line sets the result of
+the item to `'warning'`, and an `error` line sets it to `'error'`.
 
 ### `captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void`
 
@@ -376,7 +378,9 @@ not a coordination surface).
 `#runOasOperationGenerator` (and the GQL/model variants) catches
 the throw, marks the per-item result as `'error'` in the manifest,
 and continues to the next operation. The error doesn't propagate
-to the caller — generator errors are per-item isolated.
+to the caller — generator errors are per-item isolated. The engine
+logs one `ERROR` line with the message and stack of the error, at
+the trail of the item. `toArtifacts` returns the line in `logs`.
 
 ### Can I `insertOperation` against a generator that isn't installed?
 

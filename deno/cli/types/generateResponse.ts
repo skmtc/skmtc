@@ -1,5 +1,6 @@
 import type { ManifestContent } from '@skmtc/core/Manifest'
 import type { Sidecar, GenerationMapEntry } from '@skmtc/core/Anchors'
+import type { LogLine } from '@skmtc/core/LogLine'
 
 /**
  * Host-side wire shape posted back by `@skmtc/worker` after a generate
@@ -14,6 +15,11 @@ import type { Sidecar, GenerationMapEntry } from '@skmtc/core/Anchors'
 export type GenerateResponse = {
   artifacts: Record<string, string>
   manifest: ManifestContent
+  /**
+   * The run's structured log lines. Absent when the project bundle pins a
+   * core that does not return them.
+   */
+  logs?: LogLine[]
   sidecars?: Record<string, Sidecar>
   generationMap?: GenerationMapEntry[]
 }

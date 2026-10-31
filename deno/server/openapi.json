@@ -92,7 +92,8 @@
                   "type": "object",
                   "required": [
                     "artifacts",
-                    "manifest"
+                    "manifest",
+                    "logs"
                   ],
                   "properties": {
                     "artifacts": {
@@ -104,6 +105,13 @@
                     },
                     "manifest": {
                       "$ref": "#/components/schemas/Manifest"
+                    },
+                    "logs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LogLine"
+                      },
+                      "description": "The run's structured log lines at WARN and above. A line logged while a subject was generated carries the subject's trail, which is its key in `manifest.results`."
                     },
                     "sidecars": {
                       "type": "object",
@@ -1796,6 +1804,121 @@
           "message"
         ]
       },
+      "LogLine": {
+        "type": "object",
+        "properties": {
+          "seq": {
+            "type": "number"
+          },
+          "level": {
+            "enum": [
+              "DEBUG",
+              "INFO",
+              "WARN",
+              "ERROR"
+            ]
+          },
+          "trail": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "stack": {
+                "type": "string"
+              },
+              "cause": {
+                "$ref": "#/components/schemas/LogLineDef0"
+              }
+            },
+            "required": [
+              "name",
+              "message"
+            ]
+          },
+          "time": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "seq",
+          "level",
+          "message",
+          "time"
+        ]
+      },
+      "LogLineDef0": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "stack": {
+            "type": "string"
+          },
+          "cause": {
+            "$ref": "#/components/schemas/LogLineDef0"
+          }
+        },
+        "required": [
+          "name",
+          "message"
+        ]
+      },
+      "SerializedError": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "stack": {
+            "type": "string"
+          },
+          "cause": {
+            "$ref": "#/components/schemas/SerializedErrorDef0"
+          }
+        },
+        "required": [
+          "name",
+          "message"
+        ]
+      },
+      "SerializedErrorDef0": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "stack": {
+            "type": "string"
+          },
+          "cause": {
+            "$ref": "#/components/schemas/SerializedErrorDef0"
+          }
+        },
+        "required": [
+          "name",
+          "message"
+        ]
+      },
       "Sidecar": {
         "type": "object",
         "properties": {
@@ -2001,6 +2124,10 @@
           },
           "message": {
             "type": "string"
+          },
+          "cause": {
+            "$ref": "#/components/schemas/SerializedError",
+            "description": "The error that caused an `error` issue, as data."
           }
         }
       },

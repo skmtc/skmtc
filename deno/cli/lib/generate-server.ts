@@ -1,6 +1,8 @@
 import type { ClientSettings } from '@skmtc/core/Settings'
 import type { ManifestContent } from '@skmtc/core/Manifest'
 import type { GenerationMapEntry, Sidecar } from '@skmtc/core/Anchors'
+import { logLine, type LogLine } from '@skmtc/core/LogLine'
+import * as v from 'valibot'
 import { type FileType, fileTypeToProtocol } from '@/lib/types.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
@@ -20,6 +22,13 @@ type GenerateWithServerArgs = {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
+
+/** The server's `logs`, or `undefined` when a server on an older core sends none. */
+const toLogLines = (value: unknown): LogLine[] | undefined => {
+  const parsed = v.safeParse(v.array(logLine), value)
+
+  return parsed.success ? parsed.output : undefined
+}
 
 /**
  * Generate against a DEPLOYED stack server instead of loading the local
@@ -92,6 +101,7 @@ export const generateWithServer = async ({
   return {
     artifacts: body.artifacts as Record<string, string>,
     manifest: body.manifest as ManifestContent,
+    logs: toLogLines(body.logs),
     sidecars: body.sidecars as Record<string, Sidecar> | undefined,
     generationMap: body.generationMap as GenerationMapEntry[] | undefined
   }

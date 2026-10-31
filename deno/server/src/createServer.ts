@@ -9,6 +9,7 @@ import {
 } from "@skmtc/core";
 import type { GeneratorsMapContainer, SkmtcDocumentInput } from "@skmtc/core";
 import type { ManifestContent } from "@skmtc/core/Manifest";
+import type { LogLine } from "@skmtc/core/LogLine";
 import type { GenerationMapEntry, Sidecar } from "@skmtc/core/Anchors";
 import { stringToSchema, toV3Document } from "@skmtc/convert";
 import * as v from "valibot";
@@ -46,6 +47,9 @@ const readJsonBody = async (c: Context): Promise<unknown> => {
 type GenerateResult = {
   artifacts: Record<string, string>;
   manifest: ManifestContent;
+  /** The run's structured log lines at `WARN` and above. Each line logged
+   *  while a subject was generated carries the subject's `results` key. */
+  logs: LogLine[];
   /** Per-file attribution sidecars (byte-range → producer). Present
    *  because attribution is always enabled with a post-pass below. */
   sidecars?: Record<string, Sidecar>;
@@ -117,7 +121,7 @@ const dispatchArtifacts = async ({
   // paths are empty but byte ranges, generators, schema pointers and
   // variants are still captured — enough for the hub's gen-map. The
   // host can re-anchor with a parser later if full AST data is needed.
-  const { artifacts, manifest, sidecars, generationMap } = toArtifacts({
+  const { artifacts, manifest, logs, sidecars, generationMap } = toArtifacts({
     traceId,
     spanId,
     startAt,
@@ -135,7 +139,7 @@ const dispatchArtifacts = async ({
     },
   });
 
-  return { artifacts, manifest, sidecars, generationMap };
+  return { artifacts, manifest, logs, sidecars, generationMap };
 };
 
 type CreateServerArgs = {
@@ -241,7 +245,7 @@ export const createServer = (
     const body = v.parse(postArtifactsBody, await readJsonBody(c));
     const resolved = await resolveSchemaInput(body);
 
-    const { artifacts, manifest, sidecars, generationMap } =
+    const { artifacts, manifest, logs, sidecars, generationMap } =
       await dispatchArtifacts({
         resolved,
         schemaSrc: body.schemaSrc,
@@ -253,6 +257,7 @@ export const createServer = (
     return c.json({
       artifacts,
       manifest,
+      logs,
       sidecars,
       generationMap,
       ...(resolved.source !== undefined ? { source: resolved.source } : {}),

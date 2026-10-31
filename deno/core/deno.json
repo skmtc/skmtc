@@ -31,6 +31,7 @@
     "./ModuleExport": "./types/ModuleExport.ts",
     "./SchemaPath": "./types/SchemaPath.ts",
     "./SerializedError": "./types/SerializedError.ts",
+    "./LogLine": "./types/LogLine.ts",
     "./EnrichmentDescriptor": "./enrichments/toEnrichmentDescriptor.ts",
     "./Preview": "./types/Preview.ts",
     "./RefName": "./types/RefName.ts",

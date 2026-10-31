@@ -145,12 +145,40 @@ stackTrail)` at four points in each per-item iteration (see
 - On `transform` returning normally → `'success'`
 - On `transform` throwing → `'error'` (in the catch block)
 
-Additionally, the `ResultsHandler` (a Deno log handler attached to
-the pipeline's logger) converts any `logger.warn` call to a
-`'warning'` result and any `logger.error` call to an `'error'`
-result. So a generator that logs a warning mid-execution
-contributes a `'warning'` leaf alongside whatever final state
-`toArtifacts` captures.
+Additionally, the `ResultsHandler` (a Deno log handler on the
+pipeline's logger) records the log calls of a transform at the leaf
+of that item. A `context.logger.warn` call gives `'warning'`, and a
+`context.logger.error` call gives `'error'`. The leaf keeps the most
+severe result, so an item that logs a warning and then completes
+reads `'warning'`. A line logged outside an item records no result.
+
+### Joining results to log lines
+
+A leaf says *that* an item failed. The log lines that `toArtifacts`
+returns beside the manifest (`logs`) say *why*. When a transform logs
+a line, the line carries the stack trail of the item in `trail`. That
+string is the key of the item in `results`, split on `:`. Thus the
+`ERROR` line of a failed item and its `'error'` leaf join by the
+trail, and the manifest carries no messages or stacks:
+
+```jsonc
+// manifest.results
+{ "trace-1": { "span-1": { "generate": { "@skmtc/gen-zod": {
+  "User": { "variant": { "main": "error" } }
+} } } } }
+
+// one line of logs
+{ "seq": 0, "level": "ERROR",
+  "trail": "trace-1:span-1:generate:@skmtc/gen-zod:User:variant:main",
+  "message": "Depth limit reached",
+  "error": { "name": "Error", "message": "Depth limit reached", "stack": "Error: Depth limit reached\n    at …" },
+  "time": 1793465088787 }
+```
+
+The CLI writes `logs` to `.settings/logs.ndjson` beside
+`manifest.json`. See
+[manifest format: `logs`](../reference/manifest-format.md#logs-beside-the-manifest)
+for the shape.
 
 Two mental models worth keeping clear:
 

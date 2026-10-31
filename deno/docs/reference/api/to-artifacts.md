@@ -22,6 +22,7 @@ export async function toArtifacts<E = undefined>(
 ): Promise<{
   artifacts: Record<string, string>;
   manifest: ManifestContent;
+  logs: LogLine[];
 }>;
 
 export type TransformArgs<E> = {
@@ -34,6 +35,7 @@ export type TransformArgs<E> = {
   toGeneratorConfigMap: () => GeneratorsMapContainer<E>;
   startAt: number;
   silent: boolean;
+  logLevel?: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
 };
 ```
 
@@ -138,6 +140,12 @@ The CLI sets `logsPath` to a per-invocation directory under the project's
 When `true`, suppresses log output. The CLI sets `silent: false` for normal
 runs; bench scripts and tests typically set `silent: true`.
 
+#### `logLevel`
+
+The lowest level that the returned `logs` keep. The default is `'WARN'`,
+so `logs` has no `DEBUG` or `INFO` lines unless you ask for them. The
+console output does not change.
+
 #### `startAt`
 
 A `performance.now()` (or `Date.now()`) snapshot taken before `toArtifacts` is
@@ -151,6 +159,7 @@ total elapsed time.
 Promise<{
   artifacts: Record<string, string>;
   manifest: ManifestContent;
+  logs: LogLine[];
 }>;
 ```
 
@@ -183,6 +192,16 @@ The manifest summarizes what was generated:
 
 The CLI writes the manifest to `manifest.json` alongside the artifacts. Direct
 callers can inspect it for diagnostics or skip writing it.
+
+### `logs`
+
+The log lines of the run, at `logLevel` and above, in order. They are not
+part of the manifest. A line that a subject logs carries the subject's
+`trail`, which is also its key in `manifest.results`. When a transform
+throws, its `ERROR` line holds the message and the error with its stack.
+See [manifest format: `logs`](../manifest-format.md#logs-beside-the-manifest)
+for the shape. The CLI writes the lines to `.settings/logs.ndjson`, and
+`@skmtc/server` returns them from `POST /artifacts`.
 
 ## Behavior
 

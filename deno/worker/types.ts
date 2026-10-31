@@ -8,6 +8,7 @@ import type {
 } from '@skmtc/core'
 import type { RegistryEntry, Sidecar, GenerationMapEntry } from '@skmtc/core/Anchors'
 import type { ManifestContent } from '@skmtc/core/Manifest'
+import type { LogLine } from '@skmtc/core/LogLine'
 
 /**
  * Wire-protocol types for `@skmtc/worker`.
@@ -112,6 +113,8 @@ export type WorkerResult = {
   type: 'RESULT'
   artifacts: Record<string, string>
   manifest: ManifestContent
+  /** The run's structured log lines, at `WARN` and above. Not part of the manifest. */
+  logs: LogLine[]
   sidecars?: Record<string, Sidecar>
   generationMap?: GenerationMapEntry[]
   /**

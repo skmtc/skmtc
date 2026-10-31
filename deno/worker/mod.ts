@@ -129,7 +129,7 @@ const toWorker = (
           // descent.
           const attribution = buildAttributionState(payload.attribution)
 
-          const { artifacts, manifest, sidecars, generationMap, inspection } = toArtifacts({
+          const { artifacts, manifest, logs, sidecars, generationMap, inspection } = toArtifacts({
             traceId,
             spanId,
             startAt,
@@ -147,6 +147,7 @@ const toWorker = (
             type: 'RESULT',
             artifacts,
             manifest,
+            logs,
             sidecars,
             generationMap,
             inspection

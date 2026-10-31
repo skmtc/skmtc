@@ -196,6 +196,7 @@ Deno.test('generateWithWorker - resolves with artifacts and manifest on RESULT m
     'file2.ts': 'content2'
   }
   const mockManifest = createMockManifest()
+  const mockLogs = [{ seq: 0, level: 'ERROR', message: 'boom', time: 1 }]
 
   globalThis.Worker = class {
     constructor(url: string | URL, options?: WorkerOptions) {
@@ -208,7 +209,8 @@ Deno.test('generateWithWorker - resolves with artifacts and manifest on RESULT m
           instance.simulateMessage({
             type: 'RESULT',
             artifacts: mockArtifacts,
-            manifest: mockManifest
+            manifest: mockManifest,
+            logs: mockLogs
           })
         }, 10)
       }, 0)
@@ -227,6 +229,7 @@ Deno.test('generateWithWorker - resolves with artifacts and manifest on RESULT m
 
     assertEquals(result.artifacts, mockArtifacts)
     assertEquals(result.manifest, mockManifest)
+    assertEquals(result.logs, mockLogs)
   } finally {
     globalThis.Worker = OriginalWorker
   }

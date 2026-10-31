@@ -229,6 +229,44 @@ Deno.test("POST /artifacts - rejects body with invalid protocol", async () => {
   assertEquals(body.error, "invalid_request");
 });
 
+Deno.test("POST /artifacts - returns the run's log lines beside the manifest", async () => {
+  const modelGen: ModelEntry<Enrichments> = {
+    id: "modelGen",
+    type: "model",
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
+    isSupported: () => true,
+    supportsVariant: () => false,
+    transform(_args: TransformModelArgs): void {
+      throw new Error("modelGen failed");
+    },
+  };
+  const app = createServer({
+    toGeneratorConfigMap: (() => ({ modelGen })) as <
+      EnrichmentType = undefined,
+    >() => GeneratorsMapContainer<EnrichmentType>,
+  });
+
+  const res = await app.request("/artifacts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      schema: JSON.stringify({
+        ...minimalOas,
+        components: { schemas: { User: { type: "string" } } },
+      }),
+    }),
+  });
+
+  assertEquals(res.status, 200);
+  const body = await res.json();
+  const [line] = body.logs;
+  assertEquals(line.level, "ERROR");
+  assertEquals(line.message, "modelGen failed");
+  assertEquals(line.trail.endsWith(":generate:modelGen:User:variant:main"), true);
+  assertEquals(line.error.stack.startsWith("Error: modelGen failed"), true);
+  assertEquals("logs" in body.manifest, false);
+});
+
 Deno.test("GET /generators - lists configured generator IDs", async () => {
   const modelGen: ModelEntry<Enrichments> = {
     id: "modelGen",
