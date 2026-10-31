@@ -58,10 +58,12 @@ OpenAPI document. The cause is typically:
 - Missing `items` on an array schema
 - Cycle in `allOf` references
 
-**Warning-level variant:** an array schema with no `items` logs
-`INVALID_SCHEMA` at level `warning` instead — the parse fails open,
-treating the items as unknown values — with the message `Array
-schema has no "items" — treating as an array of unknown values`.
+**Warning-level variant:** in an OpenAPI 3.0 document, an array schema
+with no `items` logs `INVALID_SCHEMA` at level `warning`. The message is
+`Array schema has no "items" — treating as an array of unknown values`.
+The parse continues, and the items are unknown values. In OpenAPI 3.1
+and 3.2, `items` is optional. These documents get unknown items and no
+issue.
 
 ### `INVALID_DEPENDENCY_REF` — error
 
