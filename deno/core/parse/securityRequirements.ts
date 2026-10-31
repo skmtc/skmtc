@@ -10,8 +10,28 @@ const describe = (value: unknown): string => {
   return Array.isArray(value) ? 'an array' : typeof value
 }
 
-const isScopeList = (value: unknown): boolean =>
-  Array.isArray(value) && value.every(scope => typeof scope === 'string')
+const isScopeList = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((scope: unknown) => typeof scope === 'string')
+
+const toRequirementObject = (requirement: unknown, index: number): Record<string, string[]> => {
+  if (typeof requirement !== 'object' || requirement === null || Array.isArray(requirement)) {
+    throw new Error(
+      `"security" entry ${index} must be a security requirement object, got ${describe(requirement)}`
+    )
+  }
+
+  return Object.fromEntries(
+    Object.entries(requirement).map(([name, scopes]: [string, unknown]) => {
+      if (!isScopeList(scopes)) {
+        throw new Error(
+          `"security" entry ${index} must map each scheme name to a list of scopes; '${name}' does not`
+        )
+      }
+
+      return [name, scopes]
+    })
+  )
+}
 
 /**
  * Check a `security` field before its requirements are parsed. Shared by
@@ -21,7 +41,7 @@ const isScopeList = (value: unknown): boolean =>
  * - Not an array, or an entry that is not an object of scheme name to a
  *   list of string scopes: throws, so the operation is dropped as
  *   `INVALID_OPERATION`. At the root, `toDocumentFieldsV3` catches it.
- * - Otherwise: returns `security`.
+ * - Otherwise: returns the checked requirement objects.
  */
 export const toSecurityRequirementObjects = (
   security: unknown
@@ -36,23 +56,9 @@ export const toSecurityRequirementObjects = (
     )
   }
 
-  security.forEach((requirement: unknown, index) => {
-    if (typeof requirement !== 'object' || requirement === null || Array.isArray(requirement)) {
-      throw new Error(
-        `"security" entry ${index} must be a security requirement object, got ${describe(requirement)}`
-      )
-    }
-
-    const badName = Object.entries(requirement).find(([, scopes]) => !isScopeList(scopes))?.[0]
-
-    if (badName !== undefined) {
-      throw new Error(
-        `"security" entry ${index} must map each scheme name to a list of scopes; '${badName}' does not`
-      )
-    }
-  })
-
-  return security
+  return security.map((requirement: unknown, index: number) =>
+    toRequirementObject(requirement, index)
+  )
 }
 
 /** The parsed root `security`, or `invalid` when it threw. */

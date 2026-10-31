@@ -4,7 +4,8 @@ import type { StackTrail } from '@/context/StackTrail.ts'
 import { toSecurityRequirementObjects } from '@/parse/securityRequirements.ts'
 
 export type ToSecurityRequirementsV3Args = {
-  security: Record<string, string[]>[] | undefined
+  /** Raw `security`; malformed input throws (see `toSecurityRequirementObjects`). */
+  security: unknown
   stackTrail: StackTrail
   context: ParseContextType
 }
