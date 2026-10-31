@@ -189,7 +189,7 @@ with `prefixEncoding` or `itemEncoding`. The spec does not allow
 `encoding` next to them. The location names `encoding`. The parser
 keeps all three fields. Remove `encoding` or the other two fields.
 
-### `INVALID_OPERATION` — error
+### `INVALID_OPERATION` — error or warning
 
 **When:** A path operation (`tryParseAt`-wrapped per-method parser)
 threw. The single `(path, method)` pair is dropped; the rest of the
@@ -215,12 +215,20 @@ The messages are:
   components.securitySchemes`: no scheme has that name.
 - `Inherits root security, which is not a list of security
   requirement objects`: the root `security` has the wrong shape.
+- `Inherits root security, which requires security scheme '<name>',
+  …`: the root `security` has one of the two scheme problems above.
 
 One message names all the schemes of one kind. Parse also drops an
 operation when its `security` is not a list. The same occurs when an
-entry does not map each scheme name to a list of scopes. At the root,
-the same problem logs this code as a `warning` at `security`. Parse
-then drops the operations that inherit the root.
+entry does not map each scheme name to a list of scopes.
+
+A root `security` with one of these problems logs this code as a
+`warning` at `security`. Parse leaves the root `security` out of the
+document and drops the operations that inherit it.
+
+A scheme of type `mutualTLS` does not drop its operations. Skmtc does
+not parse this type yet, so the scheme logs `INVALID_SECURITY_SCHEME`
+and parse keeps its operations.
 
 **Example location:** `paths:/accounts:post` (operation),
 `servers:1` (servers entry), `security` (root `security`)
@@ -306,7 +314,7 @@ fails with `Ref "…" not found`. Only that artifact fails.
 failed to parse via `tryParseAt`. The single scheme is dropped; the
 rest of the record continues to parse. Parse also drops each operation
 or webhook that requires the scheme, with an `INVALID_OPERATION`
-error. See its [security case](#invalid_operation--error).
+error. See its [security case](#invalid_operation--error-or-warning).
 
 **Remediation:** Read the security scheme at the indicated location.
 The scheme must be a valid OAS `http` / `apiKey` / `oauth2` /
