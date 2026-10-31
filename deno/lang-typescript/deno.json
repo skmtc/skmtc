@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/lang-typescript",
-  "version": "0.12.33",
+  "version": "0.12.34",
   "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts"
@@ -11,6 +11,6 @@
   },
   "imports": {
     "@/": "./",
-    "@skmtc/core": "jsr:@skmtc/core@^0.34.0"
+    "@skmtc/core": "jsr:@skmtc/core@^0.34.1"
   }
 }
