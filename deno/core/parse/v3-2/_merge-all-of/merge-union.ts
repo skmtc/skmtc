@@ -1,4 +1,4 @@
-import { decomposeUnion } from './decompose-union.ts'
+import { decomposeUnion, isUnionLevelKey } from './decompose-union.ts'
 import type { GetRefFn, NormalizeFn, SchemaOrReference, SchemaObject } from './types.ts'
 import { mergeSchemasOrRefs } from './merge.ts'
 import { crossProduct } from './cross-product.ts'
@@ -85,7 +85,10 @@ export const mergeCrossProduct = ({
     firstGroup.length !== firstMembers.length ||
     secondGroup.length !== secondMembers.length
 
-  const mergedGroup = crossProduct(firstGroup, secondGroup)
+  const mergedGroup = crossProduct(
+    withGroupSiblings({ schema: first, members: firstGroup, getRef, normalize, groupType }),
+    withGroupSiblings({ schema: second, members: secondGroup, getRef, normalize, groupType })
+  )
     .map(([firstItem, secondItem]) => {
       try {
         const result = mergeSchemasOrRefs(firstItem, secondItem, getRef, normalize)
@@ -107,6 +110,54 @@ export const mergeCrossProduct = ({
     }),
     ...(nullable ? { nullable: true } : {})
   }
+}
+
+type WithGroupSiblingsArgs = {
+  schema: SchemaObject
+  members: SchemaOrReference[]
+  getRef: GetRefFn
+  normalize: NormalizeFn
+  groupType: 'oneOf' | 'anyOf'
+}
+
+/**
+ * Merge the sibling keys of a `oneOf`/`anyOf` wrapper into each of its
+ * `members`. A 3.1 `type: ['string', 'number']` with `minLength` normalizes
+ * to a `oneOf` with `minLength` beside it. Union-level keys (`nullable`,
+ * `description`, …) are not merged in. A member that conflicts with the
+ * siblings is dropped, as in the cross product. A schema with no group is
+ * its own only member and is returned unchanged.
+ */
+const withGroupSiblings = ({
+  schema,
+  members,
+  getRef,
+  normalize,
+  groupType
+}: WithGroupSiblingsArgs): SchemaOrReference[] => {
+  if (!Array.isArray(schema[groupType])) {
+    return members
+  }
+
+  const siblings: [string, unknown][] = Object.entries(schema).filter(
+    ([key]) => key !== groupType && !isUnionLevelKey(key)
+  )
+
+  if (siblings.length === 0) {
+    return members
+  }
+
+  const siblingSchema: SchemaObject = Object.fromEntries(siblings)
+
+  return members
+    .map(member => {
+      try {
+        return mergeSchemasOrRefs(siblingSchema, member, getRef, normalize)
+      } catch (_error) {
+        return undefined
+      }
+    })
+    .filter(member => member !== undefined)
 }
 
 const isNullableOnly = (member: SchemaOrReference, normalize: NormalizeFn): boolean => {

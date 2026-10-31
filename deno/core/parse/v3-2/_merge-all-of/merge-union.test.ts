@@ -1,7 +1,7 @@
 import type { GetRefFn, ReferenceObject, SchemaObject } from './types.ts'
 import { normalizeMergeMember } from '@/parse/v3-2/schema/normalize-schema-shape.ts'
 import { assertEquals } from '@std/assert/equals'
-import { mergeUnion } from './merge-union.ts'
+import { mergeCrossProduct, mergeUnion } from './merge-union.ts'
 
 const getRef = (ref: ReferenceObject): SchemaObject => {
   if (ref.$ref === '#/components/schemas/File') {
@@ -255,6 +255,34 @@ Deno.test('mergeUnion - simple oneOf', () => {
 // Union-level metadata (description/title/…) must stay on the union, not be
 // merged into members — merging it in would resolve the $ref members and lose
 // their names. getRef throws so any resolution attempt fails the test.
+Deno.test('mergeCrossProduct - a group member keeps its sibling keys', () => {
+  const mockGetRef: GetRefFn = () => ({})
+
+  // A 3.2 `type: ['string', 'number', 'null']` with `minLength` normalizes
+  // to this shape: a `oneOf` of the bare types with the siblings beside it.
+  const multiType: SchemaObject = {
+    oneOf: [{ type: 'string' }, { type: 'number' }],
+    minLength: 2,
+    nullable: true
+  }
+
+  const result = mergeCrossProduct({
+    first: { oneOf: [{ type: 'string' }, { type: 'number' }] },
+    second: multiType,
+    getRef: mockGetRef,
+    normalize: normalizeMergeMember,
+    groupType: 'oneOf'
+  })
+
+  assertEquals(result, {
+    oneOf: [
+      { type: 'string', minLength: 2 },
+      { type: 'number', minLength: 2 }
+    ],
+    nullable: true
+  })
+})
+
 Deno.test('mergeUnion - metadata stays on the union; $ref members preserved', () => {
   const failingGetRef: GetRefFn = ref => {
     throw new Error(`getRef must not be called — $ref must be preserved: ${ref.$ref}`)

@@ -311,6 +311,21 @@ Deno.test('merge member normalization', async t => {
   })
 })
 
+Deno.test('merge member normalization - a multi-type member keeps its sibling keys', () => {
+  const { schemas, errors } = parseSchemas({
+    Code: {
+      allOf: [
+        { oneOf: [{ type: 'string' }, { type: 'boolean' }] },
+        { type: ['string', 'number'], minLength: 2 }
+      ]
+    }
+  })
+
+  assertEquals(errors, [])
+  assert(schemas.Code instanceof OasString)
+  assertEquals(schemas.Code.minLength, 2)
+})
+
 Deno.test('merge member normalization - the tighter numeric bound keeps its exclusivity', () => {
   // `exclusiveMinimum`/`exclusiveMaximum` carry the bound itself.
   const { schemas, errors } = parseSchemas({
