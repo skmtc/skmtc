@@ -9,6 +9,8 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import { logBodyMediaTypes } from '@/parse/logBodyMediaTypes.ts'
+import { assertEntryObject } from '@/parse/assertEntryObject.ts'
+import { tryParseAt } from '@/context/tryParseAt.ts'
 export type ToRequestBodyV3Args = {
   requestBody: OpenAPIV3.ReferenceObject | OpenAPIV3.RequestBodyObject | undefined
   forceRef?: boolean
@@ -70,16 +72,25 @@ export const toRequestBodiesV3 = ({
     return undefined
   }
 
-  const entries = Object.entries(requestBodies)
-    .map(([key, value]) => {
-      return [
+  // Each entry parses inside its own boundary: a broken one is dropped with
+  // an INVALID_REQUEST_BODY error, and the others are kept.
+  const entries = Object.entries(requestBodies).flatMap(
+    ([key, requestBody]): [string, OasRequestBody | OasRef<'requestBody'>][] => {
+      const parsed = tryParseAt({
+        stackTrail,
         key,
-        stackTrail.trace(key, st =>
-          toRequestBodyV3({ requestBody: value, stackTrail: st, context })
-        )
-      ]
-    })
-    .filter(([, value]) => Boolean(value))
+        context,
+        type: 'INVALID_REQUEST_BODY',
+        parent: requestBody,
+        fn: st => {
+          assertEntryObject({ value: requestBody, label: 'Request body' })
+          return toRequestBodyV3({ requestBody, stackTrail: st, context })
+        }
+      })
+
+      return parsed ? [[key, parsed]] : []
+    }
+  )
 
   return Object.fromEntries(entries)
 }

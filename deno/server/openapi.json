@@ -1174,6 +1174,12 @@
                               "const": "INVALID_RESPONSE"
                             },
                             {
+                              "const": "INVALID_REQUEST_BODY"
+                            },
+                            {
+                              "const": "INVALID_HEADER"
+                            },
+                            {
                               "const": "INVALID_FORMAT"
                             },
                             {
@@ -1284,6 +1290,12 @@
                               "const": "INVALID_RESPONSE"
                             },
                             {
+                              "const": "INVALID_REQUEST_BODY"
+                            },
+                            {
+                              "const": "INVALID_HEADER"
+                            },
+                            {
                               "const": "INVALID_FORMAT"
                             },
                             {
@@ -1391,6 +1403,12 @@
                             },
                             {
                               "const": "INVALID_RESPONSE"
+                            },
+                            {
+                              "const": "INVALID_REQUEST_BODY"
+                            },
+                            {
+                              "const": "INVALID_HEADER"
                             },
                             {
                               "const": "INVALID_FORMAT"

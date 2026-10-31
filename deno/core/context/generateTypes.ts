@@ -212,6 +212,8 @@ export type OasIssueType =
   | 'INVALID_NULLABLE'
   | 'UNEXPECTED_FORMAT'
   | 'INVALID_RESPONSE'
+  | 'INVALID_REQUEST_BODY'
+  | 'INVALID_HEADER'
   | 'INVALID_FORMAT'
   | 'INVALID_OPERATION'
   | 'INVALID_SCHEMA'
@@ -248,6 +250,8 @@ export const oasIssueType = v.union([
   v.literal('INVALID_NULLABLE'),
   v.literal('UNEXPECTED_FORMAT'),
   v.literal('INVALID_RESPONSE'),
+  v.literal('INVALID_REQUEST_BODY'),
+  v.literal('INVALID_HEADER'),
   v.literal('INVALID_FORMAT'),
   v.literal('INVALID_OPERATION'),
   v.literal('INVALID_SCHEMA'),

@@ -247,6 +247,33 @@ parameters.
 failed to parse via `tryParseAt`. The single `(status, response)`
 pair is dropped.
 
+### `INVALID_REQUEST_BODY` — error
+
+**When:** An entry under `components.requestBodies` failed to parse
+in `tryParseAt`. Skmtc drops that entry and keeps the other entries
+and the operations. Examples: the entry is `null`, its `content` is
+absent or `null`, or its schema has an empty `oneOf` or `anyOf`.
+
+**Example location:** `components:requestBodies:UpdatePet`
+
+**Remediation:** Fix the entry in the OpenAPI document. Until you
+do, the artifact of an operation that references the entry by
+`$ref` fails with `Ref "…" not found`. Only that artifact fails.
+
+### `INVALID_HEADER` — error
+
+**When:** An entry under `components.headers` failed to parse in
+`tryParseAt`. Skmtc drops that entry and keeps the other entries and
+the operations. Examples: the entry is `null`, or its schema has an
+empty `oneOf` or `anyOf`. When a header inside a response has one of
+these errors, Skmtc drops that response as `INVALID_RESPONSE`.
+
+**Example location:** `components:headers:X-Trace-ID`
+
+**Remediation:** Fix the entry in the OpenAPI document. Until you
+do, the artifact of a response that references the entry by `$ref`
+fails with `Ref "…" not found`. Only that artifact fails.
+
 ### `INVALID_SECURITY_SCHEME` — error
 
 **When:** A security scheme under `components.securitySchemes`
