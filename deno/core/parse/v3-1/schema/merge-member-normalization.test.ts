@@ -225,6 +225,43 @@ Deno.test('merge member normalization', async t => {
     assertEquals(schemas.Name.nullable, true)
   })
 
+  await t.step('a nullable anyOf $ref inside an allOf stays a nullable member type', () => {
+    const { schemas, errors } = parseSchemas({
+      N: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+      A: {
+        type: 'object',
+        properties: {
+          p: { allOf: [{ $ref: '#/components/schemas/N' }, { description: 'x' }] },
+          q: { allOf: [{ oneOf: [{ type: 'string' }, { type: 'null' }] }, { description: 'x' }] }
+        }
+      }
+    })
+
+    assertEquals(errors, [])
+    assert(schemas.A instanceof OasObject)
+    for (const property of [schemas.A.properties?.p, schemas.A.properties?.q]) {
+      assert(property instanceof OasString)
+      assertEquals(property.nullable, true)
+      assertEquals(property.description, 'x')
+    }
+  })
+
+  await t.step('array items with equal type arrays merge (shape 2 one level down)', () => {
+    const { schemas, errors } = parseSchemas({
+      A: {
+        allOf: [
+          { type: 'array', items: { type: ['string', 'null'] } },
+          { type: 'array', items: { type: ['string', 'null'], minLength: 1 } }
+        ]
+      }
+    })
+
+    assertEquals(errors, [])
+    assert(schemas.A instanceof OasArray)
+    assert(schemas.A.items instanceof OasString)
+    assertEquals(schemas.A.items.nullable, true)
+  })
+
   await t.step("shape 5: 'array' against ['array', 'null']", () => {
     const { schemas, errors } = parseSchemas({
       Items: {

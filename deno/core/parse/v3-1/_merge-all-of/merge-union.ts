@@ -71,8 +71,19 @@ export const mergeCrossProduct = ({
   normalize,
   groupType
 }: MergeCrossProductArgs): SchemaObject => {
-  const firstGroup = Array.isArray(first[groupType]) ? first[groupType] : [first]
-  const secondGroup = Array.isArray(second[groupType]) ? second[groupType] : [second]
+  const firstMembers = Array.isArray(first[groupType]) ? first[groupType] : [first]
+  const secondMembers = Array.isArray(second[groupType]) ? second[groupType] : [second]
+
+  // A member that normalizes to exactly `{ nullable: true }` is a null-only
+  // member: it makes the union nullable instead of joining the cross product.
+  const firstGroup = firstMembers.filter(member => !isNullableOnly(member, normalize))
+  const secondGroup = secondMembers.filter(member => !isNullableOnly(member, normalize))
+
+  const nullable =
+    isNullableGroup(first, groupType) ||
+    isNullableGroup(second, groupType) ||
+    firstGroup.length !== firstMembers.length ||
+    secondGroup.length !== secondMembers.length
 
   const mergedGroup = crossProduct(firstGroup, secondGroup)
     .map(([firstItem, secondItem]) => {
@@ -93,6 +104,21 @@ export const mergeCrossProduct = ({
       }
 
       return [item]
-    })
+    }),
+    ...(nullable ? { nullable: true } : {})
   }
 }
+
+const isNullableOnly = (member: SchemaOrReference, normalize: NormalizeFn): boolean => {
+  if (isRef(member)) {
+    return false
+  }
+
+  const normalized = normalize(member)
+
+  return normalized.nullable === true && Object.keys(normalized).length === 1
+}
+
+/** Is this a `oneOf`/`anyOf` group wrapper that already carries `nullable`? */
+const isNullableGroup = (schema: SchemaObject, groupType: 'oneOf' | 'anyOf'): boolean =>
+  Array.isArray(schema[groupType]) && schema.nullable === true

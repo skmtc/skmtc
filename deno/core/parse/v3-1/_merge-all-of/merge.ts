@@ -149,7 +149,7 @@ const mergeSchemas = (
   checkFormatConflicts(first, second)
   checkEnumConflicts(first, second)
   checkNumberConstraintsConflicts(first, second)
-  checkArrayItemTypeConflicts(first, second)
+  checkArrayItemTypeConflicts(first, second, normalize)
 
   if (first.not || second.not) {
     throw new Error('Merging schemas with "not" keyword is not supported')
