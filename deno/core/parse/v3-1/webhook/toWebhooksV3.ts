@@ -14,6 +14,7 @@ import { isEmpty } from '@/helpers/isEmpty.ts'
 import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
 import { toOptionalServersV3 } from '../server/toServerV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { logPathParameterDrop, toApplyingBrokenParameter } from '@/parse/pathParameters.ts'
 
 /**
  * The 3.1 `webhooks` object: a map of webhook NAME → PathItem, identical
@@ -174,9 +175,11 @@ export const toWebhooksV3 = ({ webhooks, stackTrail, context }: ToWebhooksV3Args
         }
       )
 
-      const pathItemObject = !isEmpty(cleaned.rest)
+      const pathItemResult = !isEmpty(cleaned.rest)
         ? toPathItemV3({ pathItem: cleaned.rest, stackTrail: nameStack, context })
         : undefined
+      const pathItemObject = pathItemResult?.pathItem
+      const brokenParameters = pathItemResult?.brokenParameters ?? []
 
       return Object.entries(cleaned.methodObject)
         .map(([method, operation]) => {
@@ -186,6 +189,16 @@ export const toWebhooksV3 = ({ webhooks, stackTrail, context }: ToWebhooksV3Args
           return nameStack.trace(method, st => {
             if (!operation) {
               return
+            }
+
+            const brokenParameter = toApplyingBrokenParameter({
+              broken: brokenParameters,
+              operation
+            })
+
+            if (brokenParameter) {
+              logPathParameterDrop({ broken: brokenParameter, operation, stackTrail: st, context })
+              return undefined
             }
 
             try {

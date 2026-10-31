@@ -5,7 +5,8 @@ import { toRequestBodyV3 } from '../requestBody/toRequestBodiesV3.ts'
 import { toResponsesV3 } from '../response/toResponseV3.ts'
 import { toParameterListV3 } from '../parameter/toParameterV3.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
-import { toPathItemResultV3 } from '@/parse/v3-2/pathItem/toPathItemV3.ts'
+import { toPathItemV3 } from '@/parse/v3-2/pathItem/toPathItemV3.ts'
+import { isEmpty } from '@/helpers/isEmpty.ts'
 import type { OasPathItem } from '@/oas/pathItem/PathItem.ts'
 import { toPathItemMethod, type PathItemObjectV3 } from '@/parse/v3-2/methods.ts'
 import { dropAdditionalOperationsV3 } from '@/parse/v3-2/pathItem/dropAdditionalOperationsV3.ts'
@@ -15,6 +16,7 @@ import { toSecurityRequirementsV3 } from '../securityRequirement/toSecurityRequi
 import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
 import { toOptionalServersV3 } from '../server/toServerV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { logPathParameterDrop, toApplyingBrokenParameter } from '@/parse/pathParameters.ts'
 
 type OperationInfo = {
   method: Method
@@ -164,17 +166,11 @@ export const toOperationsV3 = ({
         }
       )
 
-      const pathItemResult = toPathItemResultV3({
-        pathItem: cleaned.rest,
-        stackTrail: pathStack,
-        context
-      })
-
-      if (!pathItemResult.valid) {
-        return []
-      }
-
-      const pathItemObject = pathItemResult.pathItem
+      const pathItemResult = !isEmpty(cleaned.rest)
+        ? toPathItemV3({ pathItem: cleaned.rest, stackTrail: pathStack, context })
+        : undefined
+      const pathItemObject = pathItemResult?.pathItem
+      const brokenParameters = pathItemResult?.brokenParameters ?? []
 
       return Object.entries(cleaned.methodObject)
         .map(([method, operation]) => {
@@ -186,6 +182,16 @@ export const toOperationsV3 = ({
           return pathStack.trace(method, st => {
             if (!operation) {
               return
+            }
+
+            const brokenParameter = toApplyingBrokenParameter({
+              broken: brokenParameters,
+              operation
+            })
+
+            if (brokenParameter) {
+              logPathParameterDrop({ broken: brokenParameter, operation, stackTrail: st, context })
+              return undefined
             }
 
             try {

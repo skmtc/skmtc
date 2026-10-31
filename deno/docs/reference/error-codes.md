@@ -123,12 +123,18 @@ can be on a path item, an operation or a webhook. The entry has no
 data, so Skmtc removes it and parses the other parameters. A `$ref`
 entry, or an entry with at least one key, does not get this warning.
 
-**Typical message:** `Empty parameter object; skipped`.
+Skmtc also logs this warning for a `parameters` field that is `{}` or
+`null` instead of a list. The field can be on a path item, an
+operation or a webhook. Skmtc reads the field as no parameters.
 
-**Example location:** `paths:/mi:parameters:0` or
-`components:parameters:<name>`
+**Typical message:** `Empty parameter object; skipped` (entry) or
+`Empty parameters field; read as no parameters` (field).
 
-**Remediation:** Remove the empty entry from the OpenAPI document.
+**Example location:** `paths:/mi:parameters:0`,
+`components:parameters:<name>` or `paths:/mi:parameters` (field)
+
+**Remediation:** Remove the empty entry or the empty field from the
+OpenAPI document.
 
 ### `MISSING_RESPONSES` — warning
 
@@ -200,13 +206,27 @@ path item, operation or webhook level. A bad entry is not a Server
 Object, or its `url` is not a string. Parse drops only that entry and
 continues with the operations.
 
+Parse also logs this code for an operation or webhook that a broken
+path-level parameter applies to. Each broken entry first gets an
+[`INVALID_PARAMETER`](#invalid_parameter--error-or-warning) error.
+The entry applies to every operation on the path, unless the
+operation has an inline parameter with the same `name` and `in`.
+That parameter overrides the entry, and Skmtc keeps the operation.
+An entry without a string `name` and `in`, or a path-level
+`parameters` field that is not a list, applies to every operation on
+the path. The message is `Path-level parameter <location> failed to
+parse: <message>`, where `<location>` is the location of the
+`INVALID_PARAMETER` error.
+
 **Example location:** `paths:/accounts:post` (operation),
 `servers:1` (servers entry)
 
 **Remediation:** Read the operation at the indicated location.
 Causes mirror `INVALID_SCHEMA` (bad `requestBody`, malformed
-parameters, etc.). For a `servers` entry, make the entry a Server
-Object with a string `url`, or remove it. A `responses` that is not
+parameters, etc.). If the message names a path-level parameter, fix
+that parameter: it drops each operation it applies to. For a
+`servers` entry, make the entry a Server Object with a string `url`,
+or remove it. A `responses` that is not
 an object (an array, a string, a number) also drops the operation.
 The message is `"responses" must be an object of status codes, got
 <type>`. An operation without `responses` is not an error: see
@@ -234,6 +254,12 @@ No generator renders a custom method yet.
 - An OpenAPI 3.2 `in: querystring` parameter does not have exactly one
   `content` media type, or has a `schema`. The operation keeps its other
   parameters.
+- A path-level parameter failed to parse, or the path-level
+  `parameters` field is not a list. This applies to webhooks too. Skmtc
+  drops each operation that the parameter applies to, with an
+  [`INVALID_OPERATION`](#invalid_operation--error) error, and keeps
+  the other operations. The location is `paths:<path>:parameters:<index>`,
+  or `paths:<path>:parameters` for a field that is not a list.
 
 **When (warning):** An OpenAPI 3.2 operation, together with its path
 item, has more than one `in: querystring` parameter, or has an
