@@ -29,6 +29,8 @@ import { parseGqlDocument } from '@/gql/document/parseGqlDocument.ts'
 import type { Logger } from '@/types/Logger.ts'
 export type { AttributionState } from '@/types/AttributionState.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
+import { isPlainObject } from '@/parse/isPlainObject.ts'
+import { toApplyingBrokenParameter, toNameAndIn } from '@/parse/pathParameters.ts'
 import type { SkmtcDocumentInput, SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type {
   GqlParseOptions,
@@ -367,38 +369,21 @@ export class ParseContext {
   /**
    * Removes the item `consumer` sits in and returns the location of each
    * removed item: `consumer` itself, or for a path-level parameter
-   * (`paths:<path>:parameters:…`, `webhooks:<name>:parameters:…`) each
-   * operation on that path, which all share the parameter.
+   * (`paths:<path>:parameters:<index>:…`, `webhooks:<name>:parameters:<index>:…`)
+   * each operation on that path that the parameter applies to.
    */
   #removeConsumer(consumer: StackTrail, documentTrail: StackTrail): string[] {
     switch (this.protocol.type) {
       case 'oas': {
-        const oasDocument = this.protocol.oasDocument
-        const [first, second, third] = documentTrail.stackTrail
+        const [first, , third] = documentTrail.stackTrail
 
         if ((first === 'paths' || first === 'webhooks') && third === 'parameters') {
-          const prefix = consumer.stackTrail.slice(
-            0,
-            consumer.stackTrail.length - documentTrail.stackTrail.length
-          )
-          const methods =
-            first === 'paths'
-              ? oasDocument.operations
-                  .filter(({ path }) => path === second)
-                  .map(({ method }) => method)
-              : oasDocument.webhooks
-                  .filter(({ name }) => name === second)
-                  .map(({ method }) => method)
-
-          return methods.flatMap(method => {
-            const removed = oasDocument.removeItem(new StackTrail([first, second, method]))
-            return removed === undefined
-              ? []
-              : [new StackTrail([...prefix, first, second, method]).toString()]
-          })
+          return this.#removePathParameterConsumer(consumer, documentTrail)
         }
 
-        return oasDocument.removeItem(documentTrail) === undefined ? [] : [consumer.toString()]
+        return this.protocol.oasDocument.removeItem(documentTrail) === undefined
+          ? []
+          : [consumer.toString()]
       }
       case 'gql':
         return this.protocol.gqlDocument.removeItem(documentTrail) === undefined
@@ -409,6 +394,85 @@ export class ParseContext {
         throw new Error(`Unhandled protocol type: ${JSON.stringify(_exhaustive)}`)
       }
     }
+  }
+
+  /**
+   * A broken path-level parameter applies to every operation on the path
+   * except one whose own `parameters` override it by `name` and `in`, the
+   * rule `isDroppedByPathParameter` uses for an inline entry. The operations
+   * it applies to are removed. The entry is taken out of the shared path item,
+   * so the operations that stay hold no ref to it.
+   */
+  #removePathParameterConsumer(consumer: StackTrail, documentTrail: StackTrail): string[] {
+    if (this.protocol.type !== 'oas') {
+      return []
+    }
+
+    const { oasDocument, documentObject } = this.protocol
+    const [first, second, , index] = documentTrail.stackTrail
+    const prefix = consumer.stackTrail.slice(
+      0,
+      consumer.stackTrail.length - documentTrail.stackTrail.length
+    )
+
+    const items: unknown =
+      first === 'paths'
+        ? documentObject.paths
+        : 'webhooks' in documentObject
+          ? documentObject.webhooks
+          : undefined
+    const rawPathItem = isPlainObject(items) ? items[second] : undefined
+    const rawEntries =
+      isPlainObject(rawPathItem) && Array.isArray(rawPathItem.parameters)
+        ? rawPathItem.parameters
+        : []
+    const rawEntry: unknown = rawEntries[Number(index)]
+    const entryRef =
+      isPlainObject(rawEntry) && typeof rawEntry.$ref === 'string' ? rawEntry.$ref : undefined
+    const nameAndIn = toNameAndIn(
+      entryRef === undefined ? rawEntry : this.#toRawComponentParameter(entryRef)
+    )
+    const broken = [{ location: documentTrail.toString(), message: '', ...nameAndIn }]
+
+    const operations =
+      first === 'paths'
+        ? oasDocument.operations.filter(({ path }) => path === second)
+        : oasDocument.webhooks.filter(({ name }) => name === second)
+
+    const removedLocations = operations.flatMap(({ method, pathItem }) => {
+      const rawOperation = isPlainObject(rawPathItem) ? rawPathItem[method] : undefined
+
+      if (toApplyingBrokenParameter({ broken, operation: rawOperation }) === undefined) {
+        if (pathItem?.parameters) {
+          pathItem.parameters = pathItem.parameters.filter(parameter =>
+            parameter.isRef()
+              ? parameter.$ref !== entryRef
+              : entryRef !== undefined ||
+                parameter.name !== nameAndIn.name ||
+                parameter.location !== nameAndIn.in
+          )
+        }
+        return []
+      }
+
+      return oasDocument.removeItem(new StackTrail([first, second, method])) === undefined
+        ? []
+        : [new StackTrail([...prefix, first, second, method]).toString()]
+    })
+
+    return removedLocations
+  }
+
+  /** The raw `components.parameters` entry a local `$ref` names. */
+  #toRawComponentParameter($ref: string): unknown {
+    if (this.protocol.type !== 'oas') {
+      return undefined
+    }
+
+    const match = /^#\/components\/parameters\/(.+)$/.exec($ref)
+    const parameters: unknown = this.protocol.documentObject.components?.parameters
+
+    return match && isPlainObject(parameters) ? parameters[match[1]] : undefined
   }
 
   #logDependencyIssue({ location, refKey, rootCause }: LogDependencyIssueArgs): void {

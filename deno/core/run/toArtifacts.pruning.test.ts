@@ -225,10 +225,8 @@ Deno.test('toArtifacts pruning - empty trail, prefixed trail and a direct parse 
   assertEquals(parseDirectly(document), prefixed)
 })
 
-// A request body and a header with an error each share a name with a schema
-// that an unrelated operation uses. The error removes the request body and
-// the header, and leaves the schemas.
-// A path-level parameter is shared by every operation on its path.
+// A path-level parameter applies to every operation on its path, except one
+// that declares its own parameter with the same `name` and `in`.
 const pathParameterDocument = toDocument({
   openapi: '3.1.0',
   info: { title: 't', version: '0' },
@@ -236,7 +234,12 @@ const pathParameterDocument = toDocument({
     '/shared': {
       parameters: [{ $ref: '#/components/parameters/Filter' }],
       get: { operationId: 'listShared', responses: { '204': { description: 'ok' } } },
-      post: { operationId: 'createShared', responses: { '204': { description: 'ok' } } }
+      post: { operationId: 'createShared', responses: { '204': { description: 'ok' } } },
+      put: {
+        operationId: 'replaceShared',
+        parameters: [{ name: 'filter', in: 'query', schema: { type: 'string' } }],
+        responses: { '204': { description: 'ok' } }
+      }
     },
     '/other': { get: { operationId: 'listOther', responses: { '204': { description: 'ok' } } } }
   },
@@ -251,10 +254,10 @@ const pathParameterDocument = toDocument({
   }
 })
 
-Deno.test('toArtifacts pruning - a broken path-level parameter removes every operation on its path', () => {
+Deno.test('toArtifacts pruning - a broken path-level parameter removes the operations it applies to', () => {
   const result = withoutPrefix(run(pathParameterDocument, ['t', 's']), 't:s:parse:')
 
-  assertEquals(result.operations, ['get /other'])
+  assertEquals(result.operations, ['get /other', 'put /shared'])
   assertEquals(
     result.issues.map(({ type, location }) => ({ type, location })),
     [
@@ -266,8 +269,23 @@ Deno.test('toArtifacts pruning - a broken path-level parameter removes every ope
       { type: 'INVALID_DEPENDENCY_REF', location: 'paths:/shared:post' }
     ]
   )
+
+  // The operation that stays no longer holds the ref to the removed parameter.
+  const context = new ParseContext({
+    input: { type: 'oas', value: pathParameterDocument },
+    logger: new log.Logger('test', 'ERROR'),
+    silent: true
+  })
+  context.parse(new StackTrail(['t', 's', 'parse']))
+  const [put] = context.oasDocument.operations.filter(({ path }) => path === '/shared')
+
+  assertEquals(put.method, 'put')
+  assertEquals(put.pathItem?.parameters, [])
 })
 
+// A request body and a header with an error each share a name with a schema
+// that an unrelated operation uses. The error removes the request body and
+// the header, and leaves the schemas.
 const bucketDocument = toDocument({
   openapi: '3.1.0',
   info: { title: 't', version: '0' },
