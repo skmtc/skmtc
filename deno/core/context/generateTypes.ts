@@ -204,6 +204,7 @@ export type OasIssueType =
   | 'MISSING_ARRAY_TYPE'
   | 'MISSING_BOOLEAN_TYPE'
   | 'MISSING_RESPONSES'
+  | 'MISSING_INFO'
   | 'EMPTY_PARAMETER'
   | 'INVALID_EXAMPLE'
   | 'INVALID_ENUM'
@@ -211,6 +212,8 @@ export type OasIssueType =
   | 'INVALID_NULLABLE'
   | 'UNEXPECTED_FORMAT'
   | 'INVALID_RESPONSE'
+  | 'INVALID_REQUEST_BODY'
+  | 'INVALID_HEADER'
   | 'INVALID_FORMAT'
   | 'INVALID_OPERATION'
   | 'INVALID_SCHEMA'
@@ -219,6 +222,8 @@ export type OasIssueType =
   | 'INVALID_DEPENDENCY_REF'
   | 'EXAMPLE_AND_EXAMPLES_DEFINED'
   | 'INVALID_TAG_PARENT'
+  | 'INVALID_TAG'
+  | 'INVALID_EXTERNAL_DOCS'
   | 'UNSUPPORTED_OPERATION_METHOD'
   | 'WILDCARD_MEDIA_TYPE'
   | 'NO_JSON_MEDIA_TYPE'
@@ -237,6 +242,7 @@ export const oasIssueType = v.union([
   v.literal('MISSING_ARRAY_TYPE'),
   v.literal('MISSING_BOOLEAN_TYPE'),
   v.literal('MISSING_RESPONSES'),
+  v.literal('MISSING_INFO'),
   v.literal('EMPTY_PARAMETER'),
   v.literal('INVALID_EXAMPLE'),
   v.literal('INVALID_ENUM'),
@@ -244,6 +250,8 @@ export const oasIssueType = v.union([
   v.literal('INVALID_NULLABLE'),
   v.literal('UNEXPECTED_FORMAT'),
   v.literal('INVALID_RESPONSE'),
+  v.literal('INVALID_REQUEST_BODY'),
+  v.literal('INVALID_HEADER'),
   v.literal('INVALID_FORMAT'),
   v.literal('INVALID_OPERATION'),
   v.literal('INVALID_SCHEMA'),
@@ -252,6 +260,8 @@ export const oasIssueType = v.union([
   v.literal('INVALID_DEPENDENCY_REF'),
   v.literal('EXAMPLE_AND_EXAMPLES_DEFINED'),
   v.literal('INVALID_TAG_PARENT'),
+  v.literal('INVALID_TAG'),
+  v.literal('INVALID_EXTERNAL_DOCS'),
   v.literal('UNSUPPORTED_OPERATION_METHOD'),
   v.literal('WILDCARD_MEDIA_TYPE'),
   v.literal('NO_JSON_MEDIA_TYPE')

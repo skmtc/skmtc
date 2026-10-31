@@ -1150,6 +1150,9 @@
                               "const": "MISSING_RESPONSES"
                             },
                             {
+                              "const": "MISSING_INFO"
+                            },
+                            {
                               "const": "EMPTY_PARAMETER"
                             },
                             {
@@ -1169,6 +1172,12 @@
                             },
                             {
                               "const": "INVALID_RESPONSE"
+                            },
+                            {
+                              "const": "INVALID_REQUEST_BODY"
+                            },
+                            {
+                              "const": "INVALID_HEADER"
                             },
                             {
                               "const": "INVALID_FORMAT"
@@ -1193,6 +1202,12 @@
                             },
                             {
                               "const": "INVALID_TAG_PARENT"
+                            },
+                            {
+                              "const": "INVALID_TAG"
+                            },
+                            {
+                              "const": "INVALID_EXTERNAL_DOCS"
                             },
                             {
                               "const": "UNSUPPORTED_OPERATION_METHOD"
@@ -1251,6 +1266,9 @@
                               "const": "MISSING_RESPONSES"
                             },
                             {
+                              "const": "MISSING_INFO"
+                            },
+                            {
                               "const": "EMPTY_PARAMETER"
                             },
                             {
@@ -1270,6 +1288,12 @@
                             },
                             {
                               "const": "INVALID_RESPONSE"
+                            },
+                            {
+                              "const": "INVALID_REQUEST_BODY"
+                            },
+                            {
+                              "const": "INVALID_HEADER"
                             },
                             {
                               "const": "INVALID_FORMAT"
@@ -1294,6 +1318,12 @@
                             },
                             {
                               "const": "INVALID_TAG_PARENT"
+                            },
+                            {
+                              "const": "INVALID_TAG"
+                            },
+                            {
+                              "const": "INVALID_EXTERNAL_DOCS"
                             },
                             {
                               "const": "UNSUPPORTED_OPERATION_METHOD"
@@ -1351,6 +1381,9 @@
                               "const": "MISSING_RESPONSES"
                             },
                             {
+                              "const": "MISSING_INFO"
+                            },
+                            {
                               "const": "EMPTY_PARAMETER"
                             },
                             {
@@ -1370,6 +1403,12 @@
                             },
                             {
                               "const": "INVALID_RESPONSE"
+                            },
+                            {
+                              "const": "INVALID_REQUEST_BODY"
+                            },
+                            {
+                              "const": "INVALID_HEADER"
                             },
                             {
                               "const": "INVALID_FORMAT"
@@ -1394,6 +1433,12 @@
                             },
                             {
                               "const": "INVALID_TAG_PARENT"
+                            },
+                            {
+                              "const": "INVALID_TAG"
+                            },
+                            {
+                              "const": "INVALID_EXTERNAL_DOCS"
                             },
                             {
                               "const": "UNSUPPORTED_OPERATION_METHOD"

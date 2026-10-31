@@ -1,5 +1,5 @@
 import { toOptionalResponsesV3 } from '../response/toResponseV3.ts'
-import { toHeadersV3 } from '../header/toHeadersV3.ts'
+import { toComponentHeadersV3 } from '@/parse/v3-1/header/toHeadersV3.ts'
 import { toLinksV3 } from '../link/toLinksV3.ts'
 import { toOptionalSchemasV3 } from '../schema/toSchemasV3.ts'
 import { toOptionalParametersV3 } from '../parameter/toParameterV3.ts'
@@ -68,7 +68,9 @@ export const toComponentsV3 = ({
     requestBodies: stackTrail.trace('requestBodies', st =>
       toRequestBodiesV3({ requestBodies, stackTrail: st, context })
     ),
-    headers: stackTrail.trace('headers', st => toHeadersV3({ headers, stackTrail: st, context })),
+    headers: stackTrail.trace('headers', st =>
+      toComponentHeadersV3({ headers, stackTrail: st, context })
+    ),
     securitySchemes: stackTrail.trace('securitySchemes', st =>
       toSecuritySchemesV3({ securitySchemes, stackTrail: st, context })
     ),

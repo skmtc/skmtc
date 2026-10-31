@@ -10,6 +10,7 @@ import type { HeaderFields } from '@/oas/header/Header.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { toComponentEntries } from '@/parse/toComponentEntries.ts'
 export type ToHeadersV3Args = {
   headers: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.HeaderObject> | undefined
   stackTrail: StackTrail
@@ -35,6 +36,38 @@ export const toHeadersV3 = ({
   }
 
   return output
+}
+
+export type ToComponentHeadersV3Args = {
+  headers: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.HeaderObject> | undefined
+  stackTrail: StackTrail
+  context: ParseContextType
+}
+
+/**
+ * Parse `components.headers`. Each entry parses inside its own boundary: a
+ * broken one is dropped with an INVALID_HEADER error, and the others are
+ * kept. Headers inside a response stay with {@link toHeadersV3}, where a
+ * broken header drops the response.
+ */
+export const toComponentHeadersV3 = ({
+  headers,
+  stackTrail,
+  context
+}: ToComponentHeadersV3Args): Record<string, OasHeader | OasRef<'header'>> | undefined => {
+  if (!headers) {
+    return undefined
+  }
+
+  return toComponentEntries({
+    entries: headers,
+    stackTrail,
+    context,
+    type: 'INVALID_HEADER',
+    label: 'Header',
+    parse: ({ key, entry, stackTrail: st }) =>
+      toHeaderV3({ header: entry, name: key, stackTrail: st, context })
+  })
 }
 
 export type ToHeaderV3Args = {

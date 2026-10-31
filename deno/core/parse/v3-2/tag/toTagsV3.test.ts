@@ -55,7 +55,7 @@ Deno.test('toTagsV3 - a parent that is not a tag is dropped with INVALID_TAG_PAR
   assertEquals(oasTags?.[0].summary, 'Cats')
   assertEquals(
     context.issues.map(({ level, type, location }) => ({ level, type, location })),
-    [{ level: 'warning', type: 'INVALID_TAG_PARENT', location: 'TEST:parent' }]
+    [{ level: 'warning', type: 'INVALID_TAG_PARENT', location: 'TEST:0:parent' }]
   )
 })
 
