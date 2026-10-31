@@ -16,7 +16,7 @@
  */
 
 import { dirname, fromFileUrl, join, relative, SEPARATOR } from '@std/path'
-import { discoverWorkspace, isPublished, type WorkspacePackage } from './release.ts'
+import { discoverWorkspace, isPublished, toJsrUrl, type WorkspacePackage } from './release.ts'
 import { runGit } from './run-git.ts'
 
 export type VersionCheckPackage = Pick<WorkspacePackage, 'name' | 'version' | 'private'> & {
@@ -101,7 +101,7 @@ const readVersionAt = async (
 export const versionCheck = async (): Promise<string[]> => {
   const { base } = parseVersionCheckArgs(Deno.args)
   const rootDir = join(dirname(fromFileUrl(import.meta.url)), '..')
-  const jsrUrl = (Deno.env.get('JSR_URL') ?? 'https://jsr.io/').replace(/\/*$/, '/')
+  const jsrUrl = toJsrUrl()
 
   const packages: VersionCheckPackage[] = (await discoverWorkspace(rootDir)).map(pkg => ({
     name: pkg.name,
@@ -111,9 +111,10 @@ export const versionCheck = async (): Promise<string[]> => {
   }))
 
   // `base...HEAD` diffs from the merge base, so a stale branch does not
-  // count main's newer commits as its own changes.
+  // count main's newer commits as its own changes. `--no-renames` lists both
+  // sides of a move, so the package a file left counts as changed too.
   const changedFiles = (
-    await runGit(rootDir, ['diff', '--name-only', '--relative', `${base}...HEAD`])
+    await runGit(rootDir, ['diff', '--name-only', '--no-renames', '--relative', `${base}...HEAD`])
   )
     .split('\n')
     .filter(line => line !== '')

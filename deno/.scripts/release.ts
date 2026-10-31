@@ -264,8 +264,16 @@ export const applyPlan = async (
   }
 }
 
+/** The registry to check and publish to: `JSR_URL`, else jsr.io, with one trailing slash. */
+export const toJsrUrl = (): string =>
+  (Deno.env.get('JSR_URL') ?? 'https://jsr.io/').replace(/\/*$/, '/')
+
 /** Whether `name@version` is already published on the registry. */
-export const isPublished = async (jsrUrl: string, name: string, version: string): Promise<boolean> => {
+export const isPublished = async (
+  jsrUrl: string,
+  name: string,
+  version: string
+): Promise<boolean> => {
   const res = await fetch(`${jsrUrl}${name}/meta.json`)
   if (res.status === 404) {
     await res.body?.cancel()
@@ -504,7 +512,7 @@ const assertSkillDeclarations = async (
 export const release = async (): Promise<void> => {
   const reinstallMode = parseReinstallMode(Deno.args)
   const rootDir = join(dirname(fromFileUrl(import.meta.url)), '..')
-  const jsrUrl = (Deno.env.get('JSR_URL') ?? 'https://jsr.io/').replace(/\/*$/, '/')
+  const jsrUrl = toJsrUrl()
 
   console.log(`Registry: ${jsrUrl}\n`)
   const packages = await discoverWorkspace(rootDir)
