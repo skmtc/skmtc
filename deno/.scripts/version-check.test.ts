@@ -33,6 +33,36 @@ Deno.test('toVersionProblems - a changed package at the base version fails and n
   ])
 })
 
+Deno.test('toVersionProblems - a changed package below the base version fails and names the bump', () => {
+  assertEquals(problemsFor(['core/src/parse.ts', 'core/deno.json'], { baseVersion: '0.33.0' }), [
+    "@skmtc/core: version 0.32.2 is lower than the base's 0.33.0; run `deno task bump core`"
+  ])
+})
+
+Deno.test('toVersionProblems - a version below the base is reported before one already on JSR', () => {
+  assertEquals(
+    problemsFor(['core/src/parse.ts'], {
+      baseVersion: '0.33.0',
+      published: ['@skmtc/core@0.32.2', '@skmtc/core@0.33.0']
+    }),
+    ["@skmtc/core: version 0.32.2 is lower than the base's 0.33.0; run `deno task bump core`"]
+  )
+})
+
+Deno.test('toVersionProblems - a version equal to the base gives the equals message, not the lower one', () => {
+  assertEquals(
+    problemsFor(['core/src/parse.ts'], {
+      baseVersion: '0.32.2',
+      published: ['@skmtc/core@0.32.2']
+    }),
+    ["@skmtc/core: files changed but version 0.32.2 equals the base's; run `deno task bump core`"]
+  )
+})
+
+Deno.test('toVersionProblems - a version above the base that is not on JSR passes', () => {
+  assertEquals(problemsFor(['core/src/parse.ts'], { baseVersion: '0.32.1' }), [])
+})
+
 Deno.test('toVersionProblems - a bumped version already on JSR fails', () => {
   assertEquals(
     problemsFor(['core/src/parse.ts'], {
