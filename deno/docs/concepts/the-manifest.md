@@ -309,12 +309,11 @@ captures per-`(generator, item)` outcomes (a tree keyed by
 
 ### Can a single item appear multiple times in `results`?
 
-Yes. `toArtifacts` captures a final outcome at the end of each
-iteration. But `ResultsHandler` may capture intermediate
-`warning` / `error` results if the generator logged via the
-logger during its run. The two land at different positions in the
-tree (the intermediate ones get a `'SKIPPED'` placeholder trail —
-see `ResultsHandler.ts`).
+No. `toArtifacts` captures a final outcome at the end of each
+iteration. When the generator logs a warning or error through
+`context.logger` during the iteration, `ResultsHandler` captures it
+at the same leaf. The leaf keeps the most severe result, so an item
+that logs a warning and then completes reads `'warning'`.
 
 ### What if a generator produces no output but doesn't throw?
 

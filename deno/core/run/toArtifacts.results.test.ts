@@ -133,8 +133,8 @@ Deno.test('toArtifacts - results nest rootKind, fieldName and variant for GraphQ
   })
 
   // Parsed from JSON: TypeScript widens object-literal values under the
-  // keys `constructor` and `toString`. ResultsHandler also records each
-  // logged error at `SKIPPED`.
+  // keys `constructor` and `toString`. No `SKIPPED` key: a logged error
+  // is recorded at the subject's trail.
   assertEquals(
     JSON.parse(JSON.stringify(result.manifest.results)),
     JSON.parse(`{
@@ -142,8 +142,7 @@ Deno.test('toArtifacts - results nest rootKind, fieldName and variant for GraphQ
         "getUser": { "variant": { "main": "success", "admin": "success" } },
         "constructor": { "variant": { "main": "error" } },
         "toString": { "variant": { "main": "success" } }
-      } } } },
-      "SKIPPED": "error"
+      } } } }
     }`)
   )
 

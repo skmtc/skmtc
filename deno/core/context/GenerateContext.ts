@@ -307,6 +307,9 @@ export class GenerateContext implements GenerateContextType {
    */
   #enrichmentAudit: EnrichmentAudit
 
+  /** See {@link currentSubjectTrail}. */
+  #currentSubjectTrail: StackTrail | undefined
+
   constructor({
     document,
     settings,
@@ -377,6 +380,29 @@ export class GenerateContext implements GenerateContextType {
    */
   get captureSink(): CaptureSink | undefined {
     return this.#captureChannel?.sink
+  }
+
+  /**
+   * The trail of the subject whose variant is being generated, or
+   * `undefined` outside one. Log lines and the results the logger
+   * records are addressed by it.
+   */
+  get currentSubjectTrail(): StackTrail | undefined {
+    return this.#currentSubjectTrail
+  }
+
+  /**
+   * Runs `fn` with {@link currentSubjectTrail} set to `stackTrail`, and
+   * restores the previous value afterwards.
+   */
+  withSubjectTrail<T>(stackTrail: StackTrail, fn: () => T): T {
+    const previous = this.#currentSubjectTrail
+    this.#currentSubjectTrail = stackTrail
+    try {
+      return fn()
+    } finally {
+      this.#currentSubjectTrail = previous
+    }
   }
 
   /**
@@ -769,82 +795,84 @@ export class GenerateContext implements GenerateContextType {
         })
 
         variants.forEach(variant => {
-          opTrail.trace(['variant', variant], st => {
-            try {
-              if (
-                typeof generatorConfig?.isSupported === 'function' &&
-                !generatorConfig.isSupported({ operation, context: this, variant })
-              ) {
-                this.captureCurrentResult('notSupported', st)
-                return
-              }
+          opTrail.trace(['variant', variant], st =>
+            this.withSubjectTrail(st, () => {
+              try {
+                if (
+                  typeof generatorConfig?.isSupported === 'function' &&
+                  !generatorConfig.isSupported({ operation, context: this, variant })
+                ) {
+                  this.captureCurrentResult('notSupported', st)
+                  return
+                }
 
-              // Order: isSupported (capability) → include (allow) → skip
-              // (deny). Match is now on `(path, method, variant)`. An
-              // empty variant array on a method means "every variant of
-              // this method"; a populated array names the variants the
-              // entry applies to.
-              if (
-                include !== undefined &&
-                !matchesPathFilter({
-                  paths: include,
-                  path: operation.path,
-                  method: operation.method,
+                // Order: isSupported (capability) → include (allow) → skip
+                // (deny). Match is now on `(path, method, variant)`. An
+                // empty variant array on a method means "every variant of
+                // this method"; a populated array names the variants the
+                // entry applies to.
+                if (
+                  include !== undefined &&
+                  !matchesPathFilter({
+                    paths: include,
+                    path: operation.path,
+                    method: operation.method,
+                    variant
+                  })
+                ) {
+                  this.#reportSkippedEnrichment(opEnrichments, variant, [
+                    generatorConfig.id,
+                    operation.path,
+                    operation.method,
+                    variant
+                  ])
+                  this.captureCurrentResult('skipped', st)
+                  return
+                }
+
+                if (
+                  matchesPathFilter({
+                    paths: skip,
+                    path: operation.path,
+                    method: operation.method,
+                    variant
+                  })
+                ) {
+                  this.#reportSkippedEnrichment(opEnrichments, variant, [
+                    generatorConfig.id,
+                    operation.path,
+                    operation.method,
+                    variant
+                  ])
+                  this.captureCurrentResult('skipped', st)
+                  return
+                }
+
+                generatorConfig.transform({
+                  context: this,
+                  operation,
                   variant
                 })
-              ) {
-                this.#reportSkippedEnrichment(opEnrichments, variant, [
-                  generatorConfig.id,
-                  operation.path,
-                  operation.method,
-                  variant
-                ])
-                this.captureCurrentResult('skipped', st)
-                return
-              }
 
-              if (
-                matchesPathFilter({
-                  paths: skip,
-                  path: operation.path,
-                  method: operation.method,
+                const source = toOasOperationSource({
+                  operation,
+                  generatorId: generatorConfig.id,
                   variant
                 })
-              ) {
-                this.#reportSkippedEnrichment(opEnrichments, variant, [
-                  generatorConfig.id,
-                  operation.path,
-                  operation.method,
-                  variant
-                ])
-                this.captureCurrentResult('skipped', st)
-                return
+
+                this.#addPreview(
+                  source,
+                  generatorConfig.toPreviewModule?.({ context: this, operation, variant })
+                )
+
+                this.captureCurrentResult('success', st)
+              } catch (error) {
+                this.logger.error(error)
+
+                this.captureCurrentResult('error', st)
               }
-
-              generatorConfig.transform({
-                context: this,
-                operation,
-                variant
-              })
-
-              const source = toOasOperationSource({
-                operation,
-                generatorId: generatorConfig.id,
-                variant
-              })
-
-              this.#addPreview(
-                source,
-                generatorConfig.toPreviewModule?.({ context: this, operation, variant })
-              )
-
-              this.captureCurrentResult('success', st)
-            } catch (error) {
-              this.logger.error(error)
-
-              this.captureCurrentResult('error', st)
-            }
-          })
+            })
+          )
         })
       })
     })
@@ -876,81 +904,83 @@ export class GenerateContext implements GenerateContextType {
         })
 
         variants.forEach(variant => {
-          webhookTrail.trace(['variant', variant], st => {
-            try {
-              if (
-                typeof generatorConfig?.isSupported === 'function' &&
-                !generatorConfig.isSupported({ webhook, context: this, variant })
-              ) {
-                this.captureCurrentResult('notSupported', st)
-                return
-              }
+          webhookTrail.trace(['variant', variant], st =>
+            this.withSubjectTrail(st, () => {
+              try {
+                if (
+                  typeof generatorConfig?.isSupported === 'function' &&
+                  !generatorConfig.isSupported({ webhook, context: this, variant })
+                ) {
+                  this.captureCurrentResult('notSupported', st)
+                  return
+                }
 
-              // Order: isSupported (capability) → include (allow) → skip
-              // (deny). The skip/include shape is structurally identical to
-              // operations (the webhook name occupies the `path` slot), so
-              // `matchesPathFilter` is reused with `path: webhook.name`.
-              if (
-                include !== undefined &&
-                !matchesPathFilter({
-                  paths: include,
-                  path: webhook.name,
-                  method: webhook.method,
+                // Order: isSupported (capability) → include (allow) → skip
+                // (deny). The skip/include shape is structurally identical to
+                // operations (the webhook name occupies the `path` slot), so
+                // `matchesPathFilter` is reused with `path: webhook.name`.
+                if (
+                  include !== undefined &&
+                  !matchesPathFilter({
+                    paths: include,
+                    path: webhook.name,
+                    method: webhook.method,
+                    variant
+                  })
+                ) {
+                  this.#reportSkippedEnrichment(webhookEnrichments, variant, [
+                    generatorConfig.id,
+                    webhook.name,
+                    webhook.method,
+                    variant
+                  ])
+                  this.captureCurrentResult('skipped', st)
+                  return
+                }
+
+                if (
+                  matchesPathFilter({
+                    paths: skip,
+                    path: webhook.name,
+                    method: webhook.method,
+                    variant
+                  })
+                ) {
+                  this.#reportSkippedEnrichment(webhookEnrichments, variant, [
+                    generatorConfig.id,
+                    webhook.name,
+                    webhook.method,
+                    variant
+                  ])
+                  this.captureCurrentResult('skipped', st)
+                  return
+                }
+
+                generatorConfig.transform({
+                  context: this,
+                  webhook,
                   variant
                 })
-              ) {
-                this.#reportSkippedEnrichment(webhookEnrichments, variant, [
-                  generatorConfig.id,
-                  webhook.name,
-                  webhook.method,
-                  variant
-                ])
-                this.captureCurrentResult('skipped', st)
-                return
-              }
 
-              if (
-                matchesPathFilter({
-                  paths: skip,
-                  path: webhook.name,
-                  method: webhook.method,
+                const source = toWebhookSource({
+                  webhook,
+                  generatorId: generatorConfig.id,
                   variant
                 })
-              ) {
-                this.#reportSkippedEnrichment(webhookEnrichments, variant, [
-                  generatorConfig.id,
-                  webhook.name,
-                  webhook.method,
-                  variant
-                ])
-                this.captureCurrentResult('skipped', st)
-                return
+
+                this.#addPreview(
+                  source,
+                  generatorConfig.toPreviewModule?.({ context: this, webhook, variant })
+                )
+
+                this.captureCurrentResult('success', st)
+              } catch (error) {
+                this.logger.error(error)
+
+                this.captureCurrentResult('error', st)
               }
-
-              generatorConfig.transform({
-                context: this,
-                webhook,
-                variant
-              })
-
-              const source = toWebhookSource({
-                webhook,
-                generatorId: generatorConfig.id,
-                variant
-              })
-
-              this.#addPreview(
-                source,
-                generatorConfig.toPreviewModule?.({ context: this, webhook, variant })
-              )
-
-              this.captureCurrentResult('success', st)
-            } catch (error) {
-              this.logger.error(error)
-
-              this.captureCurrentResult('error', st)
-            }
-          })
+            })
+          )
         })
       })
     })
@@ -978,39 +1008,41 @@ export class GenerateContext implements GenerateContextType {
         })
 
         variants.forEach(variant => {
-          opTrail.trace(['variant', variant], st => {
-            try {
-              if (
-                typeof generatorConfig.isSupported === 'function' &&
-                !generatorConfig.isSupported({ operation, context: this, variant })
-              ) {
-                this.captureCurrentResult('notSupported', st)
-                return
+          opTrail.trace(['variant', variant], st =>
+            this.withSubjectTrail(st, () => {
+              try {
+                if (
+                  typeof generatorConfig.isSupported === 'function' &&
+                  !generatorConfig.isSupported({ operation, context: this, variant })
+                ) {
+                  this.captureCurrentResult('notSupported', st)
+                  return
+                }
+
+                generatorConfig.transform({
+                  context: this,
+                  operation,
+                  variant
+                })
+
+                const source = toGqlOperationSource({
+                  operation,
+                  generatorId: generatorConfig.id,
+                  variant
+                })
+
+                this.#addPreview(
+                  source,
+                  generatorConfig.toPreviewModule?.({ context: this, operation, variant })
+                )
+
+                this.captureCurrentResult('success', st)
+              } catch (error) {
+                this.logger.error(error)
+                this.captureCurrentResult('error', st)
               }
-
-              generatorConfig.transform({
-                context: this,
-                operation,
-                variant
-              })
-
-              const source = toGqlOperationSource({
-                operation,
-                generatorId: generatorConfig.id,
-                variant
-              })
-
-              this.#addPreview(
-                source,
-                generatorConfig.toPreviewModule?.({ context: this, operation, variant })
-              )
-
-              this.captureCurrentResult('success', st)
-            } catch (error) {
-              this.logger.error(error)
-              this.captureCurrentResult('error', st)
-            }
-          })
+            })
+          )
         })
       })
     })
@@ -1050,63 +1082,68 @@ export class GenerateContext implements GenerateContextType {
         })
 
         variants.forEach(variant => {
-          refTrail.trace(['variant', variant], st => {
-            try {
-              if (
-                typeof generatorConfig.isSupported === 'function' &&
-                !generatorConfig.isSupported({ refName, context: this, variant })
-              ) {
-                this.captureCurrentResult('notSupported', st)
-                return
-              }
+          refTrail.trace(['variant', variant], st =>
+            this.withSubjectTrail(st, () => {
+              try {
+                if (
+                  typeof generatorConfig.isSupported === 'function' &&
+                  !generatorConfig.isSupported({ refName, context: this, variant })
+                ) {
+                  this.captureCurrentResult('notSupported', st)
+                  return
+                }
 
-              // Order: isSupported (capability) → include (allow) → skip
-              // (deny). Match is on `(refName, variant)`. An empty variant
-              // array on a refName means "every variant of this refName"; a
-              // populated array names the variants the entry applies to.
-              if (include !== undefined && !matchesRefFilter({ refs: include, refName, variant })) {
-                this.#reportSkippedEnrichment(modelEnrichments, variant, [
-                  generatorConfig.id,
+                // Order: isSupported (capability) → include (allow) → skip
+                // (deny). Match is on `(refName, variant)`. An empty variant
+                // array on a refName means "every variant of this refName"; a
+                // populated array names the variants the entry applies to.
+                if (
+                  include !== undefined &&
+                  !matchesRefFilter({ refs: include, refName, variant })
+                ) {
+                  this.#reportSkippedEnrichment(modelEnrichments, variant, [
+                    generatorConfig.id,
+                    refName,
+                    variant
+                  ])
+                  this.captureCurrentResult('skipped', st)
+                  return
+                }
+
+                if (matchesRefFilter({ refs: skip, refName, variant })) {
+                  this.#reportSkippedEnrichment(modelEnrichments, variant, [
+                    generatorConfig.id,
+                    refName,
+                    variant
+                  ])
+                  this.captureCurrentResult('skipped', st)
+                  return
+                }
+
+                generatorConfig.transform({
+                  context: this,
                   refName,
                   variant
-                ])
-                this.captureCurrentResult('skipped', st)
-                return
-              }
+                })
 
-              if (matchesRefFilter({ refs: skip, refName, variant })) {
-                this.#reportSkippedEnrichment(modelEnrichments, variant, [
-                  generatorConfig.id,
+                const source = toModelSource({
                   refName,
+                  generatorId: generatorConfig.id,
                   variant
-                ])
-                this.captureCurrentResult('skipped', st)
-                return
+                })
+
+                this.#addPreview(
+                  source,
+                  generatorConfig.toPreviewModule?.({ context: this, refName, variant })
+                )
+
+                this.captureCurrentResult('success', st)
+              } catch (error) {
+                this.logger.error(error)
+                this.captureCurrentResult('error', st)
               }
-
-              generatorConfig.transform({
-                context: this,
-                refName,
-                variant
-              })
-
-              const source = toModelSource({
-                refName,
-                generatorId: generatorConfig.id,
-                variant
-              })
-
-              this.#addPreview(
-                source,
-                generatorConfig.toPreviewModule?.({ context: this, refName, variant })
-              )
-
-              this.captureCurrentResult('success', st)
-            } catch (error) {
-              this.logger.error(error)
-              this.captureCurrentResult('error', st)
-            }
-          })
+            })
+          )
         })
       })
     })

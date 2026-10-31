@@ -211,22 +211,10 @@ Item-identifier formats under `generate`:
 
 A generator with no variants configured has the one variant `main`.
 
-#### Edge case: no matches at all
-
-When nothing the engine generated produced a result (no generators
-matched any item), the tree collapses to a flat `SKIPPED` marker
-instead of the nested trace/span shape:
-
-```jsonc
-{
-  "results": {
-    "SKIPPED": "error"
-  }
-}
-```
-
-Recipes that walk the tree should handle both forms — for example,
-checking `.results.SKIPPED` first before descending into trace keys.
+When a generator logs a warning or error through `context.logger`
+inside its transform, the engine records it at the leaf of that item.
+Thus an item that logs a warning and then completes has the result
+`'warning'`. A line logged outside an item records no result.
 
 ### `parseIssues`
 

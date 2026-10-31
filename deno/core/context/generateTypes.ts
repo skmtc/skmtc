@@ -28,6 +28,7 @@ import type { GqlOperationProjection } from '@/dsl/operation/gql/types.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type { AttributionState } from '@/types/AttributionState.ts'
+import type { Logger } from '@/types/Logger.ts'
 import type { EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
 import type { CaptureSink } from '@/anchors/CaptureSink.ts'
 import type { Sidecar } from '@/anchors/sidecar.ts'
@@ -549,6 +550,12 @@ export type InsertNormalizedModelReturn<
 
 export type GenerateContextType = {
   settings: ClientSettings | undefined
+  /**
+   * The run's logger. A line logged inside a transform carries the
+   * subject's stack trail, and a `warn` or `error` line sets the
+   * subject's result to `'warning'` or `'error'`.
+   */
+  logger: Logger
   modelDepth: Record<string, number>
   document: SkmtcParsedDocument
   /**

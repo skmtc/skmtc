@@ -253,8 +253,6 @@ The manifest is overwritten on every run. See
 
   For example, a failed `GET /pets` is
   `[…, "generate", "@skmtc/gen-md-docs", "/pets", "get", "variant", "main"]`.
-  A run that logs an error also has the entry `["SKIPPED"]`: the
-  engine records each logged warning or error at `results.SKIPPED`.
   `errors[i][0]` is **not** a file path. To find the file of an
   error, look up the item with the `toExportPath` of the generator.
 - **`parseIssues`**: forwarded verbatim from

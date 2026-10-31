@@ -235,45 +235,51 @@ export class CoreContext {
     this.silent = silent
   }
 
-  #setupLogger({ spanId, logsPath }: SetupLoggerArgs) {
-    const filename = join(logsPath ?? '', `${spanId}.txt`)
+  /**
+   * Builds this run's own `Logger`. It does not call `log.setup` or
+   * `log.getLogger`, which replace or share process-global state, so a
+   * host's loggers and other runs' loggers are left alone.
+   */
+  #setupLogger({ spanId, logsPath }: SetupLoggerArgs): Logger {
+    const fileHandlers = logsPath
+      ? [
+          new log.FileHandler('DEBUG', {
+            filename: join(logsPath, `${spanId}.txt`),
+            // JSON format for file logs (easier to parse and analyze)
+            formatter: logRecord =>
+              skmtcJsonFormatter({ logRecord, stackTrail: this.#toLogTrail() })
+          })
+        ]
+      : []
 
-    log.setup({
-      handlers: {
-        [`${spanId}-logs`]: new log.ConsoleHandler('DEBUG', {
-          formatter: logRecord =>
-            skmtcFormatter({
-              logRecord,
-              stackTrail: 'SKIPPED'
-            }),
+    fileHandlers.forEach(handler => handler.setup())
+
+    return new log.Logger(spanId, 'DEBUG', {
+      handlers: [
+        new log.ConsoleHandler('DEBUG', {
+          formatter: logRecord => skmtcFormatter({ logRecord, stackTrail: this.#toLogTrail() }),
           useColors: true
         }),
-        ...(logsPath && {
-          file: new log.FileHandler('DEBUG', {
-            filename,
-            // JSON format for file logs (easier to parse and analyze)
-            formatter: logRecord => {
-              return skmtcJsonFormatter({
-                logRecord,
-                stackTrail: 'SKIPPED'
-              })
-            }
-          })
-        }),
-        [`${spanId}-results`]: new ResultsHandler('WARN', {
+        ...fileHandlers,
+        new ResultsHandler('WARN', {
           formatter: ({ levelName }) => levelName,
           context: this
         })
-      },
-      loggers: {
-        [spanId]: {
-          level: 'DEBUG',
-          handlers: [`${spanId}-logs`, `${spanId}-results`, 'file']
-        }
-      }
+      ]
     })
+  }
 
-    return log.getLogger(spanId)
+  /**
+   * The trail of the subject being generated, or `undefined` outside one
+   * (parse, render, and generate work that is not a subject's variant).
+   */
+  get currentSubjectTrail(): StackTrail | undefined {
+    return this.#phase?.type === 'generate' ? this.#phase.context.currentSubjectTrail : undefined
+  }
+
+  /** The trail a log line prints: the subject's, or `'SKIPPED'` outside one. */
+  #toLogTrail(): string {
+    return this.currentSubjectTrail?.toString() ?? 'SKIPPED'
   }
 
   /**
@@ -498,7 +504,7 @@ export class CoreContext {
     } finally {
       this.logger.handlers.forEach(handler => {
         if (handler instanceof log.FileHandler) {
-          handler.flush()
+          handler.destroy()
         }
       })
     }
