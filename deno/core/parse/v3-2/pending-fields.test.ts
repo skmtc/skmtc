@@ -364,7 +364,7 @@ Deno.test('v3-2 pending fields - path-level querystring and cookie style parse',
   )
 })
 
-Deno.test('v3-2 pending fields - an invalid path-level parameter skips only its path', () => {
+Deno.test('v3-2 pending fields - an invalid path-level parameter drops only the operations it applies to', () => {
   const ok = { responses: { '200': { description: 'ok' } } }
   const body = { name: 'payload', in: 'body', schema: { type: 'object' } }
 
@@ -397,8 +397,10 @@ Deno.test('v3-2 pending fields - an invalid path-level parameter skips only its 
   assertEquals(
     errors.map(({ type, location }) => ({ type, location })),
     [
-      { type: 'INVALID_OPERATION', location: 'TEST:paths:/upload' },
-      { type: 'INVALID_OPERATION', location: 'TEST:webhooks:uploaded' }
+      { type: 'INVALID_PARAMETER', location: 'TEST:paths:/upload:parameters:0' },
+      { type: 'INVALID_OPERATION', location: 'TEST:paths:/upload:get' },
+      { type: 'INVALID_PARAMETER', location: 'TEST:webhooks:uploaded:parameters:0' },
+      { type: 'INVALID_OPERATION', location: 'TEST:webhooks:uploaded:post' }
     ]
   )
   assertEquals(

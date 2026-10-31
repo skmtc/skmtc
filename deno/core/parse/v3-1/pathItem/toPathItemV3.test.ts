@@ -11,9 +11,14 @@ import { toDocumentObject } from '@/test/toDocumentObject.ts'
 Deno.test('toPathItemV3 - basic path item', () => {
   const stackTrail = new StackTrail(['TEST'])
   const pathItem: OpenAPIV3.PathItemObject = {}
-  const oasPathItem = toPathItemV3({ pathItem, stackTrail, context: mockParseContext })
+  const { pathItem: oasPathItem, brokenParameters } = toPathItemV3({
+    pathItem,
+    stackTrail,
+    context: mockParseContext
+  })
 
   assertEquals(oasPathItem, new OasPathItem())
+  assertEquals(brokenParameters, [])
 })
 
 const ok = { responses: { '200': { description: 'ok' } } }
