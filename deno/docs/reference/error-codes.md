@@ -147,6 +147,25 @@ documented responses`.
 **Remediation:** Add the operation's responses to the OpenAPI
 document if generators must make response types for it.
 
+### `MISSING_INFO` — warning
+
+**When:** The document has no `info` object, `info` is `null`, or
+`info` is not an object. Skmtc reads it as an empty title and
+version, and parses and generates the operations as usual. Skmtc
+also logs this warning for each of `info.title` and `info.version`
+that is absent or not a string, and reads that field as `''`. The
+YAML number `version: 1.0` is not a string. `info`, `title` and `version` are
+required in OpenAPI 3.0, 3.1 and 3.2.
+
+**Typical messages:** `Document has no info object; read as empty
+title and version`, `Info has no string title; read as ''`.
+
+**Example locations:** `info`, `info:version`
+
+**Remediation:** Add `info` with a string `title` and `version` to
+the OpenAPI document. Generators that print the title get an empty
+one until you do.
+
 ### `MISSING_STRING_TYPE` — warning
 
 Schema has a string `default`, `example`, string-only `enum`, or a
@@ -229,6 +248,33 @@ parameters.
 failed to parse via `tryParseAt`. The single `(status, response)`
 pair is dropped.
 
+### `INVALID_REQUEST_BODY` — error
+
+**When:** An entry under `components.requestBodies` failed to parse
+in `tryParseAt`. Skmtc drops that entry and keeps the other entries
+and the operations. Examples: the entry is `null`, its `content` is
+absent or `null`, or its schema has an empty `oneOf` or `anyOf`.
+
+**Example location:** `components:requestBodies:UpdatePet`
+
+**Remediation:** Fix the entry in the OpenAPI document. Until you
+do, the artifact of an operation that references the entry by
+`$ref` fails with `Ref "…" not found`. Only that artifact fails.
+
+### `INVALID_HEADER` — error
+
+**When:** An entry under `components.headers` failed to parse in
+`tryParseAt`. Skmtc drops that entry and keeps the other entries and
+the operations. Examples: the entry is `null`, or its schema has an
+empty `oneOf` or `anyOf`. When a header inside a response has one of
+these errors, Skmtc drops that response as `INVALID_RESPONSE`.
+
+**Example location:** `components:headers:X-Trace-ID`
+
+**Remediation:** Fix the entry in the OpenAPI document. Until you
+do, the artifact of a response that references the entry by `$ref`
+fails with `Ref "…" not found`. Only that artifact fails.
+
 ### `INVALID_SECURITY_SCHEME` — error
 
 **When:** A security scheme under `components.securitySchemes`
@@ -306,8 +352,45 @@ the tag goes back to the same tag (a cycle). The parser removes
 `parent` from the tag and keeps all other fields. In a cycle, each tag on the
 cycle loses its `parent`.
 
+**Example location:** `tags:2:parent`
+
 **Remediation:** Point `parent` at the `name` of another tag in the
 top-level `tags` list, and make sure no tag is its own ancestor.
+
+### `INVALID_TAG` — warning
+
+**When:** An entry of the top-level `tags` list is not an object, or
+its `name` is not a string. Skmtc leaves the entry out and keeps the
+other tags. When `tags` is not an array, Skmtc reads the document as
+a document with no tags and logs one warning at `tags`. Operations
+keep the tag names that they list, also the names of tags that
+Skmtc left out.
+
+**Typical messages:** `Tag is not an object with a string name; left
+out`, `"tags" must be an array; left out`.
+
+**Example location:** `tags:3`
+
+**Remediation:** Give each tag a string `name`, and write `tags` as
+a list.
+
+### `INVALID_EXTERNAL_DOCS` — warning
+
+**When:** An `externalDocs` value is not an object, has no string
+`url`, or has a `description` that is not a string. A `null` value
+also gets this warning. Skmtc leaves out that `externalDocs`
+object and keeps its parent: the document, a tag, an operation, a
+webhook or a schema. Skmtc can copy the `externalDocs` of a oneOf
+or anyOf schema to each member. Then it logs the warning for each
+member.
+
+**Typical message:** `External docs object is invalid (Invalid key:
+Expected "url" but received undefined); left out`.
+
+**Example location:** `tags:1:externalDocs`
+
+**Remediation:** Add a string `url` to the `externalDocs` object, or
+remove the object.
 
 ### `WILDCARD_MEDIA_TYPE` — warning
 

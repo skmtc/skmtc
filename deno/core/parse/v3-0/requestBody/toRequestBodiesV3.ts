@@ -9,6 +9,7 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import { logBodyMediaTypes } from '@/parse/logBodyMediaTypes.ts'
+import { toComponentEntries } from '@/parse/toComponentEntries.ts'
 export type ToRequestBodyV3Args = {
   requestBody: OpenAPIV3.ReferenceObject | OpenAPIV3.RequestBodyObject | undefined
   forceRef?: boolean
@@ -70,16 +71,13 @@ export const toRequestBodiesV3 = ({
     return undefined
   }
 
-  const entries = Object.entries(requestBodies)
-    .map(([key, value]) => {
-      return [
-        key,
-        stackTrail.trace(key, st =>
-          toRequestBodyV3({ requestBody: value, stackTrail: st, context })
-        )
-      ]
-    })
-    .filter(([, value]) => Boolean(value))
-
-  return Object.fromEntries(entries)
+  return toComponentEntries({
+    entries: requestBodies,
+    stackTrail,
+    context,
+    type: 'INVALID_REQUEST_BODY',
+    label: 'Request body',
+    parse: ({ entry, stackTrail: st }) =>
+      toRequestBodyV3({ requestBody: entry, stackTrail: st, context })
+  })
 }

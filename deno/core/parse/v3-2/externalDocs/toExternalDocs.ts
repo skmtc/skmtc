@@ -1,30 +1,34 @@
 import { OasExternalDocs } from '@/oas/externalDocs/ExternalDocs.ts'
-import * as v from 'valibot'
-import { oasExternalDocsData } from '@/oas/externalDocs/externalDocsTypes.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { toValidExternalDocs } from '@/parse/descriptiveFields.ts'
 
 export type ToExternalDocsArgs = {
   externalDocs: OpenAPIV3.ExternalDocumentationObject | undefined
+  /** Trail that ends in the `externalDocs` key. */
   stackTrail: StackTrail
   context: ParseContextType
 }
 
+/** An invalid `externalDocs` is left out with a warning; its parent is kept. */
 export const toExternalDocs = ({
   externalDocs,
-  stackTrail
+  stackTrail,
+  context
 }: ToExternalDocsArgs): OasExternalDocs | undefined => {
-  if (!externalDocs) {
+  if (externalDocs === undefined) {
     return undefined
   }
 
-  if (!v.is(oasExternalDocsData, externalDocs)) {
-    v.parse(oasExternalDocsData, externalDocs)
+  const valid = toValidExternalDocs({ externalDocs, stackTrail, context })
+
+  if (!valid) {
+    return undefined
   }
 
   return new OasExternalDocs({
-    url: externalDocs.url,
-    description: externalDocs.description
+    url: valid.url,
+    description: valid.description
   })
 }
