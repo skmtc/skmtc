@@ -47,6 +47,41 @@ export type ComponentsFields = {
   extensionFields?: Record<string, unknown>
 }
 
+/** One entry of any {@link ComponentsFields} bucket. */
+export type ComponentsEntry =
+  | OasSchema
+  | OasRef<'schema'>
+  | OasResponse
+  | OasRef<'response'>
+  | OasParameter
+  | OasRef<'parameter'>
+  | OasExample
+  | OasRef<'example'>
+  | OasRequestBody
+  | OasRef<'requestBody'>
+  | OasHeader
+  | OasRef<'header'>
+  | OasSecurityScheme
+  | OasRef<'securityScheme'>
+  | OasLink
+  | OasRef<'link'>
+
+/** Copy of `record` without `name`, and the value it held. */
+const withoutEntry = <K extends string, T>(
+  record: Record<K, T> | undefined,
+  name: K
+): { removed: T | undefined; rest: Record<K, T> | undefined } => {
+  if (!record || !Object.hasOwn(record, name)) {
+    return { removed: undefined, rest: record }
+  }
+
+  const rest = { ...record }
+  const removed = rest[name]
+  delete rest[name]
+
+  return { removed, rest }
+}
+
 /**
  * Represents the OpenAPI Components Object in the SKMTC OAS processing system.
  *
@@ -312,6 +347,62 @@ export class OasComponents {
     this.#fields.schemas = rest
 
     return removed
+  }
+
+  /**
+   * Removes the entry `refName` from the `bucket` record (`schemas`,
+   * `requestBodies`, `headers`, …) and returns it.
+   *
+   * Returns `undefined` when the bucket has no such entry, and for a bucket
+   * outside {@link componentsKeys}.
+   */
+  removeEntry(bucket: string, refName: RefName): ComponentsEntry | undefined {
+    const fields = this.#fields
+
+    switch (bucket) {
+      case 'schemas': {
+        const { removed, rest } = withoutEntry(fields.schemas, refName)
+        fields.schemas = rest
+        return removed
+      }
+      case 'responses': {
+        const { removed, rest } = withoutEntry(fields.responses, refName)
+        fields.responses = rest
+        return removed
+      }
+      case 'parameters': {
+        const { removed, rest } = withoutEntry(fields.parameters, refName)
+        fields.parameters = rest
+        return removed
+      }
+      case 'examples': {
+        const { removed, rest } = withoutEntry(fields.examples, refName)
+        fields.examples = rest
+        return removed
+      }
+      case 'requestBodies': {
+        const { removed, rest } = withoutEntry(fields.requestBodies, refName)
+        fields.requestBodies = rest
+        return removed
+      }
+      case 'headers': {
+        const { removed, rest } = withoutEntry(fields.headers, refName)
+        fields.headers = rest
+        return removed
+      }
+      case 'securitySchemes': {
+        const { removed, rest } = withoutEntry(fields.securitySchemes, refName)
+        fields.securitySchemes = rest
+        return removed
+      }
+      case 'links': {
+        const { removed, rest } = withoutEntry(fields.links, refName)
+        fields.links = rest
+        return removed
+      }
+      default:
+        return undefined
+    }
   }
 
   /** Record holding re-usable {@link OasResponse} objects or Refs  */

@@ -238,10 +238,11 @@ is to find the *upstream* `INVALID_SCHEMA` and fix it; the
 `INVALID_DEPENDENCY_REF` downstream issues typically resolve on
 their own.
 
-Cascade pruning is **one hop deep** by current design — transitive
-dependents of pruned items may fail later (at generate time) with
-`Ref "..." not found` errors. Treat that as a hint that an even-more-
-upstream schema is broken.
+Cascade pruning is **transitive**: an error in one property removes
+the whole component, and every item that reaches it is pruned at any
+depth. Each `INVALID_DEPENDENCY_REF` message names the root error
+(`Depends on '<ref>', removed because of the error at '<location>':
+<message>`), so read the location from the message to find it.
 
 ### Issue types you'll see
 

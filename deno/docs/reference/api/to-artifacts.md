@@ -202,7 +202,7 @@ flow.
 
 The phases are sequential and synchronous within the engine (the function is
 `async` for I/O readiness, not concurrency). Errors from Parse cascade to
-Generate via `removeErroredItems` (one-hop pruning); Generate errors don't
+Generate via `removeErroredItems` (transitive pruning); Generate errors don't
 cascade to Render — the partial output is returned.
 
 ## Example

@@ -179,9 +179,9 @@ producing an immutable artifact the next consumes:
 
 - **Parse** — schema → typed object model (`OasDocument` /
   `GqlDocument`). Lenient: a per-item parser that throws becomes a
-  `ParseIssue`; `removeErroredItems` then prunes one hop of `$ref`
-  consumers of any failed component. Generate can trust every
-  surviving item.
+  `ParseIssue`; `removeErroredItems` then removes any component with
+  an error and prunes every `$ref` consumer that reaches it, at any
+  depth. Generate can trust every surviving item.
 - **Generate** — walk the configured generators over the parsed
   document, producing an in-memory `Map<path, File>`. Generators
   produce output via side effects (`register` / `insert*`), never by

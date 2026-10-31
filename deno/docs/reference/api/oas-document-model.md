@@ -434,6 +434,13 @@ they're never refs themselves. Refs in nested positions (e.g., a
 property of a component schema pointing at another component) are
 preserved as refs.
 
+`removeEntry(bucket, refName)` removes one entry from the named
+dictionary (`'schemas'`, `'requestBodies'`, `'headers'`, …) and
+returns it as a `ComponentsEntry`, the union of all dictionary value
+types. It returns `undefined` when the entry is not there.
+`removeErroredItems` uses it to remove a component that failed to
+parse.
+
 ## Common patterns
 
 ### Reading the request body schema
