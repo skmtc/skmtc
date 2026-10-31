@@ -375,8 +375,9 @@ a list.
 
 ### `INVALID_EXTERNAL_DOCS` — warning
 
-**When:** An `externalDocs` object has no string `url`, or its
-`description` is not a string. Skmtc leaves out that `externalDocs`
+**When:** An `externalDocs` value is not an object, has no string
+`url`, or has a `description` that is not a string. A `null` value
+also gets this warning. Skmtc leaves out that `externalDocs`
 object and keeps its parent: the document, a tag, an operation, a
 webhook or a schema. Skmtc can copy the `externalDocs` of a oneOf
 or anyOf schema to each member. Then it logs the warning for each
