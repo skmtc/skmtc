@@ -80,7 +80,7 @@ Deno.test('toPathItemV3 - servers that is not an array logs an issue instead of 
   assertEquals(
     document.operations.map(({ path, pathItem }) => ({ path, servers: pathItem?.servers })),
     [
-      { path: '/pets', servers: undefined },
+      { path: '/pets', servers: [] },
       { path: '/owners', servers: undefined }
     ]
   )
