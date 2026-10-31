@@ -168,5 +168,5 @@ skmtc whoami
 
 - [`whoami`](whoami.md) — the account, environment and origin a hub command uses
 - [`logout`](logout.md) — revoke the sign-in and delete the stored credential
-- [`publish`](publish.md) — a consumer of the stored token
+- [`deploy`](deploy.md) — a consumer of the stored token
 - [`doctor`](doctor.md) — offline `hub-auth` shape check of `auth.json`
