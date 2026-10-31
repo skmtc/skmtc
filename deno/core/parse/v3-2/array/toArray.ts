@@ -191,23 +191,10 @@ export const toParsedArray = <Nullable extends boolean | undefined>({
           nullable,
           defaultValue,
           items: stackTrail.trace('items', st => {
-            // An array schema with no `items` is invalid OAS but must not
-            // kill the run (fail open): log the issue and treat the items
-            // as unknown — `{}` falls through toSchemaV3 to OasUnknown.
-            if (items === undefined) {
-              context.logIssue({
-                key: 'items',
-                level: 'warning',
-                message: 'Array schema has no "items" — treating as an array of unknown values',
-                parent: value,
-                stackTrail: st,
-                type: 'INVALID_SCHEMA'
-              })
-
-              return toSchemaV3({ schema: {}, stackTrail: st, context })
-            }
-
-            return toSchemaV3({ schema: items, stackTrail: st, context })
+            // `items` is optional in JSON Schema 2020-12: an array schema
+            // without it has unknown items — `{}` falls through toSchemaV3
+            // to OasUnknown.
+            return toSchemaV3({ schema: items ?? {}, stackTrail: st, context })
           }),
           extensionFields,
           example,

@@ -61,7 +61,6 @@ Deno.test('mergeNumberConstraints - handles exclusive bounds', () => {
   assertEquals(result, {
     type: 'number',
     minimum: 5,
-    exclusiveMinimum: true,
     maximum: 10,
     exclusiveMaximum: true
   })
@@ -88,7 +87,6 @@ Deno.test('mergeNumberConstraints - handles exclusive bounds with non-exclusive 
   assertEquals(result, {
     type: 'number',
     minimum: 5,
-    exclusiveMinimum: true,
     maximum: 10,
     exclusiveMaximum: true
   })
@@ -193,4 +191,50 @@ Deno.test('mergeNumberConstraints - throws when enum intersection is empty', () 
     Error,
     'Merged schema has empty enum array'
   )
+})
+
+Deno.test('mergeNumberConstraints - a larger inclusive bound stays inclusive', () => {
+  const getRef: GetRefFn = () => ({})
+
+  const a: OpenAPIV3.SchemaObject = {
+    type: 'number',
+    minimum: 0,
+    exclusiveMinimum: true,
+    maximum: 10
+  }
+  const b: OpenAPIV3.SchemaObject = {
+    type: 'number',
+    minimum: 5,
+    maximum: 15,
+    exclusiveMaximum: true
+  }
+  assertEquals(mergeNumberConstraints(a, b, getRef, normalizeMergeMember), {
+    type: 'number',
+    minimum: 5,
+    maximum: 10
+  })
+})
+
+Deno.test('mergeNumberConstraints - equal bounds: exclusive wins', () => {
+  const getRef: GetRefFn = () => ({})
+
+  const a: OpenAPIV3.SchemaObject = {
+    type: 'number',
+    minimum: 5,
+    exclusiveMinimum: true,
+    maximum: 10
+  }
+  const b: OpenAPIV3.SchemaObject = {
+    type: 'number',
+    minimum: 5,
+    maximum: 10,
+    exclusiveMaximum: true
+  }
+  assertEquals(mergeNumberConstraints(a, b, getRef, normalizeMergeMember), {
+    type: 'number',
+    minimum: 5,
+    exclusiveMinimum: true,
+    maximum: 10,
+    exclusiveMaximum: true
+  })
 })

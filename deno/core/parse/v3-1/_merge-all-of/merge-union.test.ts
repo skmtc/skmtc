@@ -1,7 +1,7 @@
 import type { GetRefFn, ReferenceObject, SchemaObject } from './types.ts'
 import { normalizeMergeMember } from '@/parse/v3-1/schema/normalize-schema-shape.ts'
 import { assertEquals } from '@std/assert/equals'
-import { mergeUnion } from './merge-union.ts'
+import { mergeCrossProduct, mergeUnion } from './merge-union.ts'
 
 const getRef = (ref: ReferenceObject): SchemaObject => {
   if (ref.$ref === '#/components/schemas/File') {
@@ -248,6 +248,89 @@ Deno.test('mergeUnion - simple oneOf', () => {
         title: 'Messages',
         type: 'object'
       }
+    ]
+  })
+})
+
+Deno.test('mergeCrossProduct - a group member keeps its sibling keys', () => {
+  const mockGetRef: GetRefFn = () => ({})
+
+  // A 3.1 `type: ['string', 'number', 'null']` with `minLength` normalizes
+  // to this shape: a `oneOf` of the bare types with the siblings beside it.
+  const multiType: SchemaObject = {
+    oneOf: [{ type: 'string' }, { type: 'number' }],
+    minLength: 2,
+    nullable: true
+  }
+
+  const result = mergeCrossProduct({
+    first: { oneOf: [{ type: 'string' }, { type: 'number' }] },
+    second: multiType,
+    getRef: mockGetRef,
+    normalize: normalizeMergeMember,
+    groupType: 'oneOf'
+  })
+
+  assertEquals(result, {
+    oneOf: [
+      { type: 'string', minLength: 2 },
+      { type: 'number', minLength: 2 }
+    ],
+    nullable: true
+  })
+})
+
+Deno.test('mergeUnion - a nested nullable group keeps the union nullable', () => {
+  const mockGetRef: GetRefFn = () => ({})
+
+  // `type: ['string', 'number', 'null']` normalizes to this nested group.
+  const input: SchemaObject = {
+    oneOf: [
+      { oneOf: [{ type: 'string' }, { type: 'number' }], nullable: true },
+      { type: 'boolean' }
+    ]
+  }
+
+  const result = mergeUnion({
+    schema: input,
+    getRef: mockGetRef,
+    normalize: normalizeMergeMember,
+    groupType: 'oneOf'
+  })
+
+  assertEquals(result, {
+    oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }],
+    nullable: true
+  })
+})
+
+Deno.test('mergeUnion - a group sibling key leaves $ref members unresolved', () => {
+  const failingGetRef: GetRefFn = ref => {
+    throw new Error(`getRef must not be called — $ref must be preserved: ${ref.$ref}`)
+  }
+
+  const input: SchemaObject = {
+    oneOf: [
+      {
+        type: 'object',
+        oneOf: [{ $ref: '#/components/schemas/Cat' }, { $ref: '#/components/schemas/Dog' }]
+      },
+      { type: 'string' }
+    ]
+  }
+
+  const result = mergeUnion({
+    schema: input,
+    getRef: failingGetRef,
+    normalize: normalizeMergeMember,
+    groupType: 'oneOf'
+  })
+
+  assertEquals(result, {
+    oneOf: [
+      { $ref: '#/components/schemas/Cat' },
+      { $ref: '#/components/schemas/Dog' },
+      { type: 'string' }
     ]
   })
 })

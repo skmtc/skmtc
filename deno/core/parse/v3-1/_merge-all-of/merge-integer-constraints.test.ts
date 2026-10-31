@@ -62,7 +62,6 @@ Deno.test('mergeIntegerConstraints - handles exclusive bounds', () => {
   assertEquals(result, {
     type: 'integer',
     minimum: 5,
-    exclusiveMinimum: true,
     maximum: 10,
     exclusiveMaximum: true
   })
@@ -89,7 +88,6 @@ Deno.test('mergeIntegerConstraints - handles exclusive bounds with non-exclusive
   assertEquals(result, {
     type: 'integer',
     minimum: 5,
-    exclusiveMinimum: true,
     maximum: 10,
     exclusiveMaximum: true
   })

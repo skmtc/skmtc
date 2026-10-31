@@ -1,4 +1,4 @@
-import { decomposeUnion } from './decompose-union.ts'
+import { decomposeUnion, isUnionLevelKey } from './decompose-union.ts'
 import type { GetRefFn, NormalizeFn, SchemaOrReference, SchemaObject } from './types.ts'
 import { mergeSchemasOrRefs } from './merge.ts'
 import { crossProduct } from './cross-product.ts'
@@ -74,8 +74,9 @@ export const mergeCrossProduct = ({
   const firstMembers = Array.isArray(first[groupType]) ? first[groupType] : [first]
   const secondMembers = Array.isArray(second[groupType]) ? second[groupType] : [second]
 
-  // A member that normalizes to exactly `{ nullable: true }` is a null-only
-  // member: it makes the union nullable instead of joining the cross product.
+  // A member that normalizes to `{ nullable: true }`, with at most union-level
+  // keys beside it, is a null-only member: it makes the union nullable
+  // instead of joining the cross product.
   const firstGroup = firstMembers.filter(member => !isNullableOnly(member, normalize))
   const secondGroup = secondMembers.filter(member => !isNullableOnly(member, normalize))
 
@@ -85,7 +86,10 @@ export const mergeCrossProduct = ({
     firstGroup.length !== firstMembers.length ||
     secondGroup.length !== secondMembers.length
 
-  const mergedGroup = crossProduct(firstGroup, secondGroup)
+  const mergedGroup = crossProduct(
+    withGroupSiblings({ schema: first, members: firstGroup, getRef, normalize, groupType }),
+    withGroupSiblings({ schema: second, members: secondGroup, getRef, normalize, groupType })
+  )
     .map(([firstItem, secondItem]) => {
       try {
         const result = mergeSchemasOrRefs(firstItem, secondItem, getRef, normalize)
@@ -97,6 +101,11 @@ export const mergeCrossProduct = ({
     })
     .filter(item => item !== undefined)
 
+  // A nested group is spread into this one below; its `nullable` carries over.
+  const nestedNullable = mergedGroup.some(
+    item => !isRef(item) && Array.isArray(item[groupType]) && item.nullable === true
+  )
+
   return {
     [groupType]: mergedGroup.flatMap(item => {
       if (!isRef(item) && Array.isArray(item[groupType])) {
@@ -105,8 +114,62 @@ export const mergeCrossProduct = ({
 
       return [item]
     }),
-    ...(nullable ? { nullable: true } : {})
+    ...(nullable || nestedNullable ? { nullable: true } : {})
   }
+}
+
+type WithGroupSiblingsArgs = {
+  schema: SchemaObject
+  members: SchemaOrReference[]
+  getRef: GetRefFn
+  normalize: NormalizeFn
+  groupType: 'oneOf' | 'anyOf'
+}
+
+/**
+ * Merge the sibling keys of a `oneOf`/`anyOf` wrapper into each of its
+ * `members`. A 3.1 `type: ['string', 'number']` with `minLength` normalizes
+ * to a `oneOf` with `minLength` beside it. Union-level keys (`nullable`,
+ * `description`, …) are not merged in, and a `$ref` member is returned
+ * unchanged. A member that conflicts with the
+ * siblings is dropped, as in the cross product. A schema with no group is
+ * its own only member and is returned unchanged.
+ */
+const withGroupSiblings = ({
+  schema,
+  members,
+  getRef,
+  normalize,
+  groupType
+}: WithGroupSiblingsArgs): SchemaOrReference[] => {
+  if (!Array.isArray(schema[groupType])) {
+    return members
+  }
+
+  const siblings: [string, unknown][] = Object.entries(schema).filter(
+    ([key]) => key !== groupType && !isUnionLevelKey(key)
+  )
+
+  if (siblings.length === 0) {
+    return members
+  }
+
+  const siblingSchema: SchemaObject = Object.fromEntries(siblings)
+
+  return members
+    .map(member => {
+      // Merging into a `$ref` member would resolve it and lose its name.
+      if (isRef(member)) {
+        return member
+      }
+
+      try {
+        return mergeSchemasOrRefs(siblingSchema, member, getRef, normalize)
+      } catch (_error) {
+        return undefined
+      }
+    })
+    .filter(member => member !== undefined)
 }
 
 const isNullableOnly = (member: SchemaOrReference, normalize: NormalizeFn): boolean => {
@@ -114,9 +177,41 @@ const isNullableOnly = (member: SchemaOrReference, normalize: NormalizeFn): bool
     return false
   }
 
-  const normalized = normalize(member)
+  const normalized = collapseNullOnlyUnion(normalize(member), normalize)
 
-  return normalized.nullable === true && Object.keys(normalized).length === 1
+  // Union-level keys (`description`, `title`, …) do not change what a
+  // null-only member allows.
+  return normalized.nullable === true && Object.keys(normalized).every(isUnionLevelKey)
+}
+
+/**
+ * A `oneOf`/`anyOf` whose every member is null-only (for example
+ * `oneOf: [{ type: 'null' }]`) reads as nullable with no other type, not
+ * as an empty union: the group is replaced by `nullable: true`. Any other
+ * schema is returned unchanged.
+ */
+export const collapseNullOnlyUnion = (
+  schema: SchemaObject,
+  normalize: NormalizeFn
+): SchemaObject => {
+  const isNullOnlyGroup = (members: SchemaOrReference[] | undefined): boolean =>
+    Array.isArray(members) &&
+    members.length > 0 &&
+    members.every(member => isNullableOnly(member, normalize))
+
+  if (isNullOnlyGroup(schema.oneOf)) {
+    const { oneOf: _oneOf, ...rest } = schema
+
+    return { ...rest, nullable: true }
+  }
+
+  if (isNullOnlyGroup(schema.anyOf)) {
+    const { anyOf: _anyOf, ...rest } = schema
+
+    return { ...rest, nullable: true }
+  }
+
+  return schema
 }
 
 /** Is this a `oneOf`/`anyOf` group wrapper that already carries `nullable`? */

@@ -4,6 +4,7 @@ import { genericMerge } from './generic-merge.ts'
 import type { GetRefFn, NormalizeFn } from './types.ts'
 import * as v from 'valibot'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
+import { mergeBounds } from '@/parse/v3-2/_merge-all-of/merge-bounds.ts'
 export function mergeNumberConstraints(
   first: OpenAPIV3.SchemaObject,
   second: OpenAPIV3.SchemaObject,
@@ -18,29 +19,7 @@ export function mergeNumberConstraints(
   // Then merge other constraints
   result.type = 'number'
 
-  // Merge minimum and exclusiveMinimum
-  if (first.minimum !== undefined || second.minimum !== undefined) {
-    const minA = first.minimum ?? -Infinity
-    const minB = second.minimum ?? -Infinity
-    result.minimum = Math.max(minA, minB)
-
-    // If either minimum is exclusive, the result is exclusive
-    if (first.exclusiveMinimum || second.exclusiveMinimum) {
-      result.exclusiveMinimum = true
-    }
-  }
-
-  // Merge maximum and exclusiveMaximum
-  if (first.maximum !== undefined || second.maximum !== undefined) {
-    const maxA = first.maximum ?? Infinity
-    const maxB = second.maximum ?? Infinity
-    result.maximum = Math.min(maxA, maxB)
-
-    // If either maximum is exclusive, the result is exclusive
-    if (first.exclusiveMaximum || second.exclusiveMaximum) {
-      result.exclusiveMaximum = true
-    }
-  }
+  mergeBounds(result, first, second)
 
   // Merge multipleOf
   if (first.multipleOf !== undefined && second.multipleOf !== undefined) {
