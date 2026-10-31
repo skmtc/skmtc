@@ -17,6 +17,8 @@ import { assertEquals, assertExists } from '@std/assert'
 import { toWebhooksV3 } from './toWebhooksV3.ts'
 import { mockParseContext } from '@/test/mockParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
+import { ParseContext } from '@/context/ParseContext.ts'
+import * as log from '@std/log'
 
 const run = (webhooks: Record<string, OpenAPIV3.PathItemObject> | undefined) =>
   toWebhooksV3({ webhooks, stackTrail: new StackTrail(['TEST']), context: mockParseContext })
@@ -126,4 +128,33 @@ Deno.test('toWebhooksV3 - a PathItem $ref is currently dropped (documented limit
   })
 
   assertEquals(webhooks, [])
+})
+
+Deno.test('toWebhooksV3 - a webhook that fails to parse names its method once in the issue location', () => {
+  const context = new ParseContext({
+    input: {
+      type: 'oas',
+      value: { openapi: '3.2.0', info: { title: 't', version: '0' }, paths: {} }
+    },
+    logger: new log.Logger('test', 'ERROR'),
+    silent: true
+  })
+  const webhooks = toWebhooksV3({
+    webhooks: {
+      newPet: {
+        post: {
+          responses: { '200': { description: 'ok' } },
+          parameters: [{ name: 'id', in: 'query', style: 'cookie', schema: { type: 'string' } }]
+        }
+      }
+    },
+    stackTrail: new StackTrail(['TEST', 'webhooks']),
+    context
+  })
+
+  assertEquals(webhooks, [])
+  assertEquals(
+    context.issues.map(({ level, type, location }) => ({ level, type, location })),
+    [{ level: 'error', type: 'INVALID_OPERATION', location: 'TEST:webhooks:newPet:post' }]
+  )
 })

@@ -4,6 +4,7 @@ import { OasServer } from '@/oas/server/Server.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import { toOptionalServerVariablesV3 } from '../serverVariable/toServerVariableV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { tryParseAt } from '@/context/tryParseAt.ts'
 
 /** A 3.2 Server Object: the 3.0 shape plus `name`. */
 export type ServerObjectV32 = OpenAPIV3.ServerObject & { name?: string }
@@ -15,10 +16,25 @@ export type ToServersV3Args = {
 }
 
 export const toServersV3 = ({ servers, stackTrail, context }: ToServersV3Args): OasServer[] => {
-  return servers.map((server, index) => {
-    return stackTrail.trace(server.url ?? index, st =>
-      toServerV3({ server, stackTrail: st, context })
-    )
+  return servers.flatMap((server, index) => {
+    const parsed = tryParseAt({
+      stackTrail,
+      key: `${index}`,
+      context,
+      type: 'INVALID_OPERATION',
+      parent: servers,
+      fn: st => {
+        if (typeof server?.url !== 'string') {
+          throw new Error(
+            `Expected a Server Object with a string url, got: ${JSON.stringify(server)}`
+          )
+        }
+
+        return toServerV3({ server, stackTrail: st, context })
+      }
+    })
+
+    return parsed ? [parsed] : []
   })
 }
 
