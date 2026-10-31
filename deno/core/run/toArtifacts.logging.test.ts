@@ -355,6 +355,43 @@ Deno.test('toArtifacts - a run nested in a transform keeps its lines apart', () 
   )
 })
 
+Deno.test('toArtifacts - a critical line in a transform is one ERROR line and an error result', () => {
+  const criticalGenerators = <E = undefined>(): GeneratorsMapContainer<E> => ({
+    // @ts-expect-error see above
+    ops: toOasOperationEntry({
+      id: 'ops',
+      transform: ({ context, operation }) => {
+        if (operation.path === '/pets') {
+          context.logger.critical('critical thing')
+        }
+      }
+    })
+  })
+
+  const { value: result } = captureConsole(() => runWith(criticalGenerators))
+
+  assertEquals(
+    result.logs.map(({ level, trail, message }) => ({ level, trail, message })),
+    [
+      {
+        level: 'ERROR',
+        trail: 'TEST:generate:ops:/pets:get:variant:main',
+        message: 'critical thing'
+      }
+    ]
+  )
+  assertEquals(result.manifest.results, {
+    TEST: {
+      generate: {
+        ops: {
+          '/pets': { get: { variant: { main: 'error' } } },
+          '/users': { get: { variant: { main: 'success' } } }
+        }
+      }
+    }
+  })
+})
+
 Deno.test('toArtifacts - two runs started together return only their own lines', async () => {
   const consoleStub = stub(console, 'log')
 

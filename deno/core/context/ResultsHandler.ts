@@ -89,7 +89,7 @@ export class ResultsHandler extends BaseHandler implements LogHandlerBase {
    * associated CoreContext at the trail of the subject being generated.
    * A line logged outside a subject records nothing.
    *
-   * @param levelName - The log level name ('WARN' or 'ERROR')
+   * @param levelName - The log level name ('WARN', 'ERROR' or 'CRITICAL')
    *
    * @throws {Error} When an unsupported log level is provided
    *
@@ -98,6 +98,7 @@ export class ResultsHandler extends BaseHandler implements LogHandlerBase {
    * // This is called automatically by the logging system
    * handler.log('WARN'); // Captures as 'warning' result
    * handler.log('ERROR'); // Captures as 'error' result
+   * handler.log('CRITICAL'); // Captures as 'error' result
    * ```
    */
   log(levelName: string) {
@@ -107,6 +108,7 @@ export class ResultsHandler extends BaseHandler implements LogHandlerBase {
         resultType = 'warning'
         break
       case 'ERROR':
+      case 'CRITICAL':
         resultType = 'error'
         break
       default:
