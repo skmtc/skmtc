@@ -394,12 +394,6 @@ Deno.test('StackTrail - toSchemaPointer leaves an already document-relative trai
   assertEquals(trail.toSchemaPointer(), '#/components/schemas/User')
 })
 
-Deno.test('StackTrail - toDocumentString strips the prefix and escapes frames', () => {
-  const trail = new StackTrail(['trace-1', 'span-1', 'parse', 'paths', '/pets:archive', 'get'])
-  assertEquals(trail.toDocumentString(), 'paths:/pets%3Aarchive:get')
-  assertEquals(new StackTrail(['paths', '/pets']).toDocumentString(), 'paths:/pets')
-})
-
 Deno.test('StackTrail - toSchemaPointer for an operation path strips the prefix', () => {
   const trail = new StackTrail(['trace-1', 'span-1', 'parse', 'paths', '/users/{id}', 'get'])
   assertEquals(trail.toSchemaPointer(), '#/paths/~1users~1{id}/get')

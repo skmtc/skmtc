@@ -1,6 +1,7 @@
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import { isEmptyParameter } from '@/parse/emptyParameter.ts'
+import { toDocumentString } from '@/context/documentTrail.ts'
 
 /**
  * Reads a `parameters` field. `undefined` is no parameters. `{}` or `null`
@@ -105,7 +106,7 @@ export const toPathParameterList = <Entry, Parameter>({
       type: 'INVALID_PARAMETER'
     })
 
-    return { location: st.toDocumentString(), message: normalized.message }
+    return { location: toDocumentString(st.stackTrail), message: normalized.message }
   }
 
   const readEntries = (): { entries: Entry[] | undefined } | { broken: BrokenPathParameter } => {
