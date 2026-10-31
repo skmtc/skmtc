@@ -14,7 +14,7 @@ import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
 import { toGetRef } from '@/helpers/refFns.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
-import { mergeUnion } from '../_merge-all-of/merge-union.ts'
+import { collapseNullOnlyUnion, mergeUnion } from '../_merge-all-of/merge-union.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import {
@@ -248,6 +248,14 @@ export const toSchemaV3 = ({
 
       return toSchemaV3({ schema: merged, stackTrail: st, context })
     })
+  }
+
+  // A `oneOf`/`anyOf` of only null members reads as nullable, not as an
+  // empty union.
+  const collapsed = collapseNullOnlyUnion(schema, normalizeMergeMember)
+
+  if (collapsed !== schema) {
+    return toSchemaV3({ schema: collapsed, stackTrail, context })
   }
 
   if ('oneOf' in schema && Array.isArray(schema.oneOf)) {

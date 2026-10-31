@@ -1116,9 +1116,9 @@
           "jsr:@cliffy/command@1.1.0",
           "jsr:@deno/graph@0.111.0",
           "jsr:@skmtc/convert@~0.1.20",
-          "jsr:@skmtc/core@0.35",
-          "jsr:@skmtc/server@~0.3.19",
-          "jsr:@skmtc/worker@~0.3.67",
+          "jsr:@skmtc/core@~0.35.1",
+          "jsr:@skmtc/server@~0.3.20",
+          "jsr:@skmtc/worker@~0.3.68",
           "npm:@inkjs/ui@2",
           "npm:@types/react@19",
           "npm:chokidar@^4.0.3",
@@ -1158,33 +1158,33 @@
       },
       "lang-csharp": {
         "dependencies": [
-          "jsr:@skmtc/core@0.35"
+          "jsr:@skmtc/core@~0.35.1"
         ]
       },
       "lang-go": {
         "dependencies": [
-          "jsr:@skmtc/core@0.35"
+          "jsr:@skmtc/core@~0.35.1"
         ]
       },
       "lang-kotlin": {
         "dependencies": [
-          "jsr:@skmtc/core@0.35",
+          "jsr:@skmtc/core@~0.35.1",
           "jsr:@std/path@^1.0.9"
         ]
       },
       "lang-php": {
         "dependencies": [
-          "jsr:@skmtc/core@0.35"
+          "jsr:@skmtc/core@~0.35.1"
         ]
       },
       "lang-rust": {
         "dependencies": [
-          "jsr:@skmtc/core@0.35"
+          "jsr:@skmtc/core@~0.35.1"
         ]
       },
       "lang-typescript": {
         "dependencies": [
-          "jsr:@skmtc/core@0.35"
+          "jsr:@skmtc/core@~0.35.1"
         ]
       },
       "lint-plugin": {
@@ -1214,7 +1214,7 @@
       "server": {
         "dependencies": [
           "jsr:@skmtc/convert@~0.1.20",
-          "jsr:@skmtc/core@0.35",
+          "jsr:@skmtc/core@~0.35.1",
           "npm:@valibot/to-json-schema@1.3.0",
           "npm:hono@4.7.2"
         ]
@@ -1230,7 +1230,7 @@
       },
       "worker": {
         "dependencies": [
-          "jsr:@skmtc/core@0.35",
+          "jsr:@skmtc/core@~0.35.1",
           "npm:openapi-types@^12.1.3"
         ]
       }

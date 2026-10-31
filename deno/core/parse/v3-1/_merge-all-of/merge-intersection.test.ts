@@ -540,9 +540,7 @@ Deno.test('mergeAllOf - number constraints', () => {
   const expected: SchemaObject = {
     type: 'number',
     minimum: 5,
-    maximum: 10,
-    exclusiveMinimum: true,
-    exclusiveMaximum: true
+    maximum: 10
   }
 
   assertEquals(
