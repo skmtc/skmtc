@@ -1,24 +1,27 @@
 import { mergeSchemasOrRefs } from './merge.ts'
-import type { ArraySchemaObject, GetRefFn, SchemaObject, SchemaOrReference } from './types.ts'
+import type {
+  ArraySchemaObject,
+  GetRefFn,
+  NormalizeFn,
+  SchemaObject,
+  SchemaOrReference
+} from './types.ts'
 import { genericMerge } from './generic-merge.ts'
 import * as v from 'valibot'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
 export function mergeArrayConstraints(
   first: ArraySchemaObject | SchemaObject,
   second: ArraySchemaObject | SchemaObject,
-  getRef: GetRefFn
-): ArraySchemaObject {
+  getRef: GetRefFn,
+  normalize: NormalizeFn
+): SchemaObject {
   checkTypeConflicts(first, second)
 
-  if (!('items' in first) && !('items' in second)) {
-    throw new Error('Cannot merge array constraints: no items found')
-  }
+  const merged = genericMerge(first, second, getRef, normalize, v.array(v.any()))
+  const items = mergeItems(first, second, getRef, normalize)
 
-  const result: ArraySchemaObject = {
-    ...genericMerge(first, second, getRef, v.array(v.any())),
-    type: 'array',
-    items: mergeItems(first, second, getRef)
-  }
+  // With no `items` on either side, `items` stays absent (unknown items).
+  const result: SchemaObject = items === undefined ? merged : { ...merged, type: 'array', items }
 
   // Merge minItems
   if (first.minItems !== undefined || second.minItems !== undefined) {
@@ -45,10 +48,11 @@ export function mergeArrayConstraints(
 const mergeItems = (
   first: ArraySchemaObject | SchemaObject,
   second: ArraySchemaObject | SchemaObject,
-  getRef: GetRefFn
-): SchemaOrReference => {
+  getRef: GetRefFn,
+  normalize: NormalizeFn
+): SchemaOrReference | undefined => {
   if ('items' in first && 'items' in second && first.items && second.items) {
-    return mergeSchemasOrRefs(first.items, second.items, getRef)
+    return mergeSchemasOrRefs(first.items, second.items, getRef, normalize)
   }
 
   if ('items' in first && first.items) {
@@ -59,5 +63,5 @@ const mergeItems = (
     return second.items
   }
 
-  throw new Error('Cannot merge array constraints: no items found')
+  return undefined
 }
