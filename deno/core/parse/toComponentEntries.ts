@@ -56,5 +56,6 @@ export const toComponentEntries = <Entry, Parsed>({
   return Object.fromEntries(parsedEntries)
 }
 
-const toKind = (value: unknown): string =>
+/** Name the kind of a value for an error message: `null`, `an array`, or its `typeof`. */
+export const toKind = (value: unknown): string =>
   value === null ? 'null' : Array.isArray(value) ? 'an array' : typeof value

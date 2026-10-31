@@ -1,27 +1,21 @@
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import type { OasSecurityRequirement } from '@/oas/securityRequirement/SecurityRequirement.ts'
-
-const describe = (value: unknown): string => {
-  if (value === null) {
-    return 'null'
-  }
-
-  return Array.isArray(value) ? 'an array' : typeof value
-}
+import { isPlainObject } from '@/parse/isPlainObject.ts'
+import { toKind } from '@/parse/toComponentEntries.ts'
 
 const isScopeList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((scope: unknown) => typeof scope === 'string')
 
 const toRequirementObject = (requirement: unknown, index: number): Record<string, string[]> => {
-  if (typeof requirement !== 'object' || requirement === null || Array.isArray(requirement)) {
+  if (!isPlainObject(requirement)) {
     throw new Error(
-      `"security" entry ${index} must be a security requirement object, got ${describe(requirement)}`
+      `"security" entry ${index} must be a security requirement object, got ${toKind(requirement)}`
     )
   }
 
   return Object.fromEntries(
-    Object.entries(requirement).map(([name, scopes]: [string, unknown]) => {
+    Object.entries(requirement).map(([name, scopes]) => {
       if (!isScopeList(scopes)) {
         throw new Error(
           `"security" entry ${index} must map each scheme name to a list of scopes; '${name}' does not`
@@ -52,7 +46,7 @@ export const toSecurityRequirementObjects = (
 
   if (!Array.isArray(security)) {
     throw new Error(
-      `"security" must be a list of security requirement objects, got ${describe(security)}`
+      `"security" must be a list of security requirement objects, got ${toKind(security)}`
     )
   }
 
