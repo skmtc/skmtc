@@ -167,7 +167,8 @@ const normalizeContentFormat = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.Schem
 
 /**
  * In-place applicators that evaluate keys `unevaluatedProperties` would
- * otherwise see. `$ref` and `not` never reach `normalizeSchemaShape`.
+ * otherwise see. `$ref` never reaches `normalizeSchemaShape`, and both the
+ * dispatcher and the merge refuse a schema with `not`.
  */
 const inPlaceApplicators = [
   'allOf',

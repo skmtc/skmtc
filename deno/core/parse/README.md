@@ -57,7 +57,9 @@ behaviorally, not by re-coupling the code:
 - **Duplicated, but dialect-neutral**: the parser leaves `_helpers/`
   (`parseEnum`, `parseExample`, `parseDefault`) and `_merge-all-of/`. They
   take already-resolved inputs and never branch on a version, yet each tree
-  holds its own copy, so they now exist in three copies. Moving them to one
+  holds its own copy, so they now exist in three copies. In v3-1 and v3-2,
+  the merge gets the tree's normalizer as an argument and applies it to each
+  schema it reads, so the merge itself has no 3.1 rules. Moving them to one
   shared place is deferred. `discriminator/toDiscriminatorV3` was in this
   list until the v3-2 copy started to read the 3.2 `defaultMapping`; the
   v3-0 and v3-1 copies are still identical to each other.
@@ -106,7 +108,11 @@ flag comes from:
   `type: ['T','null']` into `{ type: 'T', nullable: true }`, and
   `partitionNullMember` folds a `{type:'null'}` member of a `oneOf`/`anyOf`
   into the same flag. After that folding, v3-1 reuses the same
-  collapse/union/leaf logic.
+  collapse/union/leaf logic. Each `allOf`/`oneOf`/`anyOf` merge member, `$ref`
+  target and nested schema that the merge reads goes through
+  `normalizeMergeMember` (`schema/normalize-schema-shape.ts`). It applies the
+  same rules and also turns a null-only member (`type: 'null'`) into
+  `{ nullable: true }`.
 
 Multi-type arrays (`type: ['string','number']`) are modelled as a `oneOf` of
 the bare types, so the existing union machinery builds the `OasUnion`. A
