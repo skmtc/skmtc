@@ -55,7 +55,6 @@ OpenAPI document. The cause is typically:
 
 - Conflicting `allOf` members (incompatible types or constraints)
 - Empty `oneOf` / `anyOf` arrays
-- Missing `items` on an array schema
 - Cycle in `allOf` references
 
 **Warning-level variant:** in an OpenAPI 3.0 document, an array schema

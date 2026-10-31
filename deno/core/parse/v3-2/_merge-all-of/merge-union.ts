@@ -74,8 +74,9 @@ export const mergeCrossProduct = ({
   const firstMembers = Array.isArray(first[groupType]) ? first[groupType] : [first]
   const secondMembers = Array.isArray(second[groupType]) ? second[groupType] : [second]
 
-  // A member that normalizes to exactly `{ nullable: true }` is a null-only
-  // member: it makes the union nullable instead of joining the cross product.
+  // A member that normalizes to `{ nullable: true }`, with at most union-level
+  // keys beside it, is a null-only member: it makes the union nullable
+  // instead of joining the cross product.
   const firstGroup = firstMembers.filter(member => !isNullableOnly(member, normalize))
   const secondGroup = secondMembers.filter(member => !isNullableOnly(member, normalize))
 
@@ -167,7 +168,9 @@ const isNullableOnly = (member: SchemaOrReference, normalize: NormalizeFn): bool
 
   const normalized = collapseNullOnlyUnion(normalize(member), normalize)
 
-  return normalized.nullable === true && Object.keys(normalized).length === 1
+  // Union-level keys (`description`, `title`, …) do not change what a
+  // null-only member allows.
+  return normalized.nullable === true && Object.keys(normalized).every(isUnionLevelKey)
 }
 
 /**

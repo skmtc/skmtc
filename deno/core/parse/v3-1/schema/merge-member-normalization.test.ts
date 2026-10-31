@@ -358,6 +358,19 @@ Deno.test('merge member normalization - a nested null-only oneOf parses', async 
     assert(schemas.B instanceof OasUnknown)
     assertEquals(schemas.B.nullable, true)
   })
+
+  await t.step('with union-level keys beside the null member', () => {
+    const { schemas, errors } = parseSchemas({
+      A: { oneOf: [{ type: 'null', title: 'Null' }] },
+      B: { anyOf: [{ type: 'string' }, { oneOf: [{ type: 'null' }], description: 'n' }] }
+    })
+
+    assertEquals(errors, [])
+    assert(schemas.A instanceof OasUnknown)
+    assertEquals(schemas.A.nullable, true)
+    assert(schemas.B instanceof OasString)
+    assertEquals(schemas.B.nullable, true)
+  })
 })
 
 Deno.test('merge member normalization - the tighter numeric bound keeps its exclusivity', () => {

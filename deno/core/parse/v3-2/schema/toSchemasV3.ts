@@ -250,6 +250,14 @@ export const toSchemaV3 = ({
     })
   }
 
+  // A `oneOf`/`anyOf` of only null members reads as nullable, not as an
+  // empty union.
+  const collapsed = collapseNullOnlyUnion(schema, normalizeMergeMember)
+
+  if (collapsed !== schema) {
+    return toSchemaV3({ schema: collapsed, stackTrail, context })
+  }
+
   if ('oneOf' in schema && Array.isArray(schema.oneOf)) {
     const wrapper = withoutWrapperUnevaluatedProperties({
       schema,
@@ -257,12 +265,6 @@ export const toSchemaV3 = ({
       stackTrail,
       context
     })
-
-    const collapsed = collapseNullOnlyUnion(wrapper, normalizeMergeMember)
-
-    if (collapsed !== wrapper) {
-      return toSchemaV3({ schema: collapsed, stackTrail, context })
-    }
 
     return stackTrail.trace('oneOf', st => {
       // 3.1: a `{ type: 'null' }` member makes the union nullable. Fold it
@@ -330,12 +332,6 @@ export const toSchemaV3 = ({
       stackTrail,
       context
     })
-
-    const collapsed = collapseNullOnlyUnion(wrapper, normalizeMergeMember)
-
-    if (collapsed !== wrapper) {
-      return toSchemaV3({ schema: collapsed, stackTrail, context })
-    }
 
     return stackTrail.trace('anyOf', st => {
       // deno-lint-ignore ban-ts-comment

@@ -194,11 +194,7 @@ export const toParsedArray = <Nullable extends boolean | undefined>({
             // `items` is optional in JSON Schema 2020-12: an array schema
             // without it has unknown items — `{}` falls through toSchemaV3
             // to OasUnknown.
-            if (items === undefined) {
-              return toSchemaV3({ schema: {}, stackTrail: st, context })
-            }
-
-            return toSchemaV3({ schema: items, stackTrail: st, context })
+            return toSchemaV3({ schema: items ?? {}, stackTrail: st, context })
           }),
           extensionFields,
           example,
