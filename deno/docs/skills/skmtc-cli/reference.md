@@ -308,39 +308,55 @@ A `failed` typecheck → exit 1; generated files stay on disk.
 single result and exits; `--watch` is a long-running stream. Passing
 both → exit 2 with a recipe error.
 
-### `publish`
+### `deploy`
 
 ```jsonc
-// Success — a StackVersion was published. No deploymentId/shortId:
-// versions are addressed by semver.
+// Deployed — the version is stored, then deployed as a stack server.
+// Exit 0, except `deploy.status: "error"` → exit 1.
 {
-  "type": "published",
+  "type": "deployed",
   "projectName": "my-api",
-  "bundlePath": ".skmtc/my-api/server.js",
-  "bundleBytes": 1228801,
-  "bundleSha256": "e3b0c44298fc1c14...",
   "stack": { "account": "ada", "slug": "my-api" },
   "version": "3.0.1",
-  "versionUrl": "https://skmtc.dev/ada/stacks/my-api/versions/3.0.1",
-  "sourceFileCount": 28,
-  "sourceTotalBytes": 96512
+  // null with --existing (nothing uploaded)
+  "upload": {
+    "sourceHash": "e3b0c44298fc1c14...",
+    "versionUrl": "https://skmtc.dev/ada/stacks/my-api/versions/3.0.1",
+    "sourceFileCount": 28,
+    "sourceTotalBytes": 96512
+  },
+  "deploy": {
+    "status": "active",          // deploying | active | idle | paused | error
+    "statusReason": null,        // set when status is "error"
+    "endpointUrl": "https://ada-my-api.deno.dev/api",
+    "url": "https://api.skmtc.dev/v1/stacks/ada/my-api/servers/3.0.1"
+  }
 }
 
-// Failure — `stage` pinpoints where:
-//   "version"  — no deno.json#version and no --version (fails before
-//                any network call)
-//   "identity" — GET /v1/user failed (usually a bad PAT)
-//   "bundle"   — local Deno bundling / source collection failed
-//   "publish"  — POST .../versions failed (commonly 409: that version
-//                is already published; versions are immutable — bump
-//                and re-publish)
+// Failure — `stage` pinpoints where; `stored: true` means the version
+// is on the hub and cannot change (fix, bump the version, deploy again):
+//   "version"  — no deno.json#version and no --version (before any
+//                network call)
+//   "identity" — deno.json#name missing or not @account/slug
+//   "exists"   — the version is already stored (exit 2): bump it, or
+//                `skmtc deploy <project> --existing`
+//   "source"   — source collection failed, or deno.lock is missing
+//   "upload"   — POST .../versions failed
+//   "deploy"   — POST .../servers failed, was refused (needs the
+//                write:releases scope), is still deploying (409: wait,
+//                then --existing) or was not confirmed (re-run with
+//                --existing; the route is idempotent)
 {
   "type": "failed",
   "projectName": "my-api",
-  "reason": "version 3.0.1 is already published for ada/my-api — ...",
-  "stage": "publish"
+  "reason": "Version 3.0.1 already exists. Bump `version` in deno.json, or run `skmtc deploy my-api --existing` to deploy the stored version.",
+  "stage": "exists",
+  "stored": true
 }
 ```
+
+`skmtc publish` is the old name of `deploy`: same output and exit
+codes, after one notice line on stderr.
 
 ## 11. Operational principles (user-facing subset)
 
@@ -356,7 +372,7 @@ work:
 | Manually edit `bundle.js` or `worker.ts` | They're derived; `skmtc generate` rebuilds both on every run |
 | Mock the database in tests | Use real Supabase / real DB (project convention) |
 | Use `process.env.X` | Use `Deno.env.get('X')` — Deno codebase |
-| Use `skmtc deploy` to put a stack on the hub | The command is `skmtc publish` — `deploy` no longer exists. Stacks are published as immutable semver versions (`POST /v1/stacks/{account}/{stack}/versions`); there is no deploymentId/shortId/production alias in the CLI. Deployments and the `production` alias belong to hub *projects*, driven from the web app. |
+| "Publish" a stack to the hub, then deploy it later | One step: `skmtc deploy` stores the immutable semver version (`POST /v1/stacks/{account}/{stack}/versions`) and deploys it (`POST /v1/stacks/{account}/{stack}/servers`), so a version that cannot build fails at once. `skmtc publish` is its old name. Deploying never moves the `production` alias — that belongs to hub *projects*, driven from the web app. |
 | After bumping to `@skmtc/core@0.5.0+`, treat the existing operation-level enrichment as still-valid | Wrap each `[id][path][method]` block in `{ "main": { … } }`. The variant level is now mandatory whenever an operation-level block exists — the engine throws at start with `"must include a 'main' variant"` if it's missing. See `concepts/variants.md`. |
 | Switch a generator between `install` and `clone` by editing only deno.json (or only the on-disk folder) | They're mutually exclusive states. A `jsr:` import in deno.json AND a `gen-X/` folder for the same name in the project root is a silent-failure footgun — deno's workspace resolver picks the local folder over the JSR pin, so the engine runs the vendored source even though the user thinks they're running the pinned version. See the *Imported vs cloned exclusivity* section below. |
 

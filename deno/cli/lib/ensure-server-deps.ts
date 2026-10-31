@@ -4,7 +4,7 @@ import { readCliCorePin, readCliServerPin } from '@/lib/doctor-headless.ts'
 /**
  * Ensure a project's deno.json pins the peer packages that the
  * CLI-generated `server.ts` (the CF-Workers entry built by
- * `skmtc publish`) needs in order to bundle:
+ * `skmtc deploy`) needs in order to bundle:
  *
  *  - `@skmtc/server` — `server.ts` does `import { createServer } from
  *    '@skmtc/server'`. Like `@skmtc/worker` for the Deno-Worker path,
@@ -19,7 +19,7 @@ import { readCliCorePin, readCliServerPin } from '@/lib/doctor-headless.ts'
  *
  *  - `@skmtc/server` is a JSR pin the CLI OWNS. Nothing but the
  *    generated `server.ts` imports it, and that file is rewritten from
- *    the CLI's own template on every publish — so a stale JSR pin in an
+ *    the CLI's own template on every deploy — so a stale JSR pin in an
  *    already-initialized project is repinned to the CLI's version. It
  *    has to be: an entry emitted by a newer CLI can import a symbol an
  *    older `@skmtc/server` does not export, and the project fails at

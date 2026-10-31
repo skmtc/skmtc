@@ -8,10 +8,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
 /**
- * Pin `@skmtc/server` in the project `deno.json` before a publish. The hub
- * deploys a version by synthesizing a `server.ts` that imports
- * `@skmtc/server` through the uploaded import map, so a version published
- * without the pin can never deploy. The rule is `ensureServerDeps`'s: add the
+ * Pin `@skmtc/server` in the project `deno.json` before a deploy uploads the
+ * version. The hub deploys a version by synthesizing a `server.ts` that
+ * imports `@skmtc/server` through the uploaded import map, so a version
+ * stored without the pin can never deploy. The rule is `ensureServerDeps`'s: add the
  * pin when absent, repin a different JSR version to the CLI's, and leave a
  * non-JSR override (a local checkout) alone.
  *

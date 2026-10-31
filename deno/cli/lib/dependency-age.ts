@@ -103,7 +103,7 @@ export const toCliInstallCommand = (denoVersion?: string): string =>
   ].join(' ')
 
 /**
- * `deno install` for a PROJECT directory — the one `skmtc publish` tells
+ * `deno install` for a PROJECT directory — the one `skmtc deploy` tells
  * you to run when the upload has no `deno.lock`. That directory's
  * `deno.json` carries the exact `@skmtc/*` pins `ensureWorkerDeps` /
  * `ensureServerDeps` wrote at the CLI's own version, so on a CLI

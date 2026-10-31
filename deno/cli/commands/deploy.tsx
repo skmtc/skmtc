@@ -5,44 +5,54 @@ import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
-import { publishHeadless, type PublishHeadlessResult } from '@/lib/publish-headless.ts'
+import {
+  deployHeadless,
+  type DeployHeadlessResult,
+  toDeployedLines,
+  toDeployExitCode
+} from '@/lib/deploy-headless.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
 import { type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
 
 export const description =
-  'Build and publish an immutable version of this project to skmtc-hub. Versions are addressed by semver; re-publishing an existing version is rejected.'
+  'Store a new immutable version of this project on skmtc-hub and deploy it. Versions are addressed by semver; an existing version is refused unless --existing deploys it as it is.'
 
-type RenderPublishArgs = {
+/** The one line `skmtc publish` prints to stderr before it runs `deploy`. */
+export const PUBLISH_ALIAS_NOTICE = '`skmtc publish` is now `skmtc deploy`'
+
+type RenderDeployArgs = {
   skmtcRoot?: SkmtcRoot
   projectName: string | undefined
   token: string | undefined
   env: HubEnv | undefined
   version: string | undefined
+  existing?: boolean
   jsonFlag?: boolean
   noInputFlag?: boolean
   renderFn?: InkRenderFn
   AppComponent?: typeof App
 }
 
-const USAGE = 'skmtc publish <project> --token <pat> [--version <semver>]'
-const EXAMPLE = 'skmtc publish my-api --token $SKMTC_HUB_TOKEN'
+const USAGE = 'skmtc deploy <project> --token <pat> [--version <semver>] [--existing]'
+const EXAMPLE = 'skmtc deploy my-api --token $SKMTC_HUB_TOKEN'
 
-export const renderPublish = async ({
+export const renderDeploy = async ({
   skmtcRoot: providedSkmtcRoot,
   projectName,
   token,
   env,
   version,
+  existing,
   jsonFlag,
   noInputFlag,
   renderFn = render,
   AppComponent = App
-}: RenderPublishArgs) => {
+}: RenderDeployArgs) => {
   const mode = resolveInputMode({ noInputFlag, jsonFlag })
 
   if (projectName === undefined) {
     return failWithRecipe({
-      command: 'publish',
+      command: 'deploy',
       arg: '<project>',
       usage: USAGE,
       example: EXAMPLE,
@@ -62,7 +72,7 @@ export const renderPublish = async ({
 
     if (!resolvedToken) {
       return failWithRecipe({
-        command: 'publish',
+        command: 'deploy',
         arg: '--token',
         usage: USAGE,
         example: EXAMPLE,
@@ -71,28 +81,31 @@ export const renderPublish = async ({
     }
 
     const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
-    const result = await publishHeadless({
+    const result = await deployHeadless({
       skmtcRoot,
       projectName,
       token: resolvedToken,
       origin: resolvedOrigin,
-      version
+      version,
+      envFlag: env,
+      existing
     })
-    printPublishResult(result, { format: resolveOutputFormat({ jsonFlag }) })
-    Deno.exit(result.type === 'published' ? 0 : 1)
+    printDeployResult(result, { format: resolveOutputFormat({ jsonFlag }) })
+    Deno.exit(toDeployExitCode(result))
   }
 
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
-  // Thread the CLI args through to the Ink view so the PublishView
-  // can run `publishHeadless` without re-resolving env vars.
+  // Thread the CLI args through to the Ink view so the DeployView
+  // can run `deployHeadless` without re-resolving env vars.
   const initialState: SkmtcState = {
     view: {
-      page: 'publish',
+      page: 'deploy',
       projectName,
       token,
       env,
-      version
+      version,
+      existing
     },
     skmtcRoot,
     message: null,
@@ -104,13 +117,22 @@ export const renderPublish = async ({
   renderFn(<AppComponent initialState={initialState} />)
 }
 
-type PrintPublishResultOptions = {
+/**
+ * `skmtc publish`, the old name of `deploy`: the notice on stderr, so
+ * `--json` stdout stays one document, then the same code as `deploy`.
+ */
+export const renderPublishAlias = async (args: RenderDeployArgs) => {
+  console.error(PUBLISH_ALIAS_NOTICE)
+  await renderDeploy(args)
+}
+
+type PrintDeployResultOptions = {
   format: 'text' | 'json'
 }
 
-export const printPublishResult = (
-  result: PublishHeadlessResult,
-  { format }: PrintPublishResultOptions
+export const printDeployResult = (
+  result: DeployHeadlessResult,
+  { format }: PrintDeployResultOptions
 ): void => {
   switch (format) {
     case 'json': {
@@ -119,23 +141,18 @@ export const printPublishResult = (
     }
     case 'text': {
       switch (result.type) {
-        case 'published': {
-          console.log(
-            `Published "${result.projectName}" → ${result.stack.account}/${result.stack.slug}@${result.version}`
-          )
-          console.log(`  source: ${result.sourceFileCount} files, ${result.sourceTotalBytes} bytes`)
-          console.log(`  sourceHash: ${result.sourceHash}`)
-          console.log(`  version: ${result.versionUrl}`)
+        case 'deployed': {
+          for (const line of toDeployedLines(result)) console.log(line)
           return
         }
         case 'failed': {
-          console.error(`Publish failed for "${result.projectName}" at ${result.stage}:`)
+          console.error(`Deploy failed for "${result.projectName}" at ${result.stage}:`)
           console.error(`  ${result.reason}`)
           return
         }
         default: {
           const _exhaustive: never = result
-          throw new Error(`Unhandled publish result: ${JSON.stringify(_exhaustive)}`)
+          throw new Error(`Unhandled deploy result: ${JSON.stringify(_exhaustive)}`)
         }
       }
     }

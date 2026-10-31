@@ -43,6 +43,7 @@ Deno.test('runAgentContext - empty root returns no projects', async () => {
     assert(names.includes('generate'))
     assert(names.includes('doctor'))
     assert(names.includes('agent-context'))
+    assert(names.includes('deploy'))
   })
 })
 

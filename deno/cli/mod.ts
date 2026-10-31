@@ -4,6 +4,7 @@ import { HUB_ENVS } from '@/lib/hub-env.ts'
 import { API_VISIBILITIES } from '@/lib/api-publish-headless.ts'
 import { FEEDBACK_KINDS } from '@/lib/feedback-headless.ts'
 import { assertJsrReachable, JsrRegistryUnreachableError } from '@/lib/jsr-registry.ts'
+import { shouldSkipRegistryCheck } from '@/lib/registry-check.ts'
 import { DeviceLoginError } from '@/lib/device-login.ts'
 import {
   ENV_DESCRIPTION,
@@ -17,58 +18,6 @@ import denoJson from './deno.json' with { type: 'json' }
 // Sentry.init({
 //   dsn: 'https://9904234a7aabfeff2145622ccb0824e3@o4508018789646336.ingest.de.sentry.io/4509532871262288'
 // })
-
-// Commands that don't need JSR to do their job are allow-listed here so
-// they keep working offline. Adding new commands defaults to "requires
-// registry" — make it an explicit decision when something can skip the
-// check. `doctor` is a partial exception: its `cli-version-current`
-// check asks the registry which CLI version is current, and
-// `project-package-copies` runs `deno info`, which downloads on a cold
-// cache. Both are bounded and degrade to `skipped`, so doctor still
-// reports every other check offline (`--offline` skips both outright).
-const COMMANDS_THAT_SKIP_REGISTRY_CHECK = new Set<string>([
-  'generate',
-  'dev',
-  'doctor',
-  'agent-context',
-  'clean',
-  // status is read-only against the local manifest + lock. Its fresh
-  // render builds a bundle outside the project from the locked pins,
-  // bounded by a timeout, and degrades when that fails.
-  'status',
-  // eject/adopt move files between engine and user ownership — pure
-  // local filesystem + config operations.
-  'eject',
-  'adopt',
-  // describe builds the project's bundle outside the project from the
-  // locked pins, then runs it to read generator capabilities. (generate
-  // --debug is covered by 'generate' above — it runs the local worker.ts
-  // source.)
-  'describe',
-  // login/logout/whoami talk to the hub (or just the local filesystem),
-  // not the JSR registry.
-  'login',
-  'logout',
-  'whoami',
-  // feedback sends a problem or a feature request to the hub.
-  'feedback',
-  // push/pull move client.json to/from the hub; neither touches JSR.
-  'push',
-  'pull',
-  // project fork/rm manage hub projects; they never touch JSR.
-  'project',
-  // api publish and api link talk to the hub; they never touch JSR.
-  'api'
-])
-
-const shouldSkipRegistryCheck = (args: readonly string[]): boolean => {
-  // `skmtc --version` / `-v` prints a local constant — it must stay
-  // instant and work offline, so never gate it behind the JSR check.
-  if (args[0] === '--version' || args[0] === '-v') return true
-  const firstArg = args.find(arg => !arg.startsWith('-'))
-  if (!firstArg) return false
-  return COMMANDS_THAT_SKIP_REGISTRY_CHECK.has(firstArg)
-}
 
 // Strings reused on every agent-mode command. They come from
 // `cli-schema.ts`, whose {@link AGENT_MODE_FLAGS} `agent-context` reports.
@@ -367,29 +316,37 @@ const run = async () => {
       await dev({ projectName, schemaSourceString })
     })
 
-  const publishCommand = new Command()
-    .description(getCommandDescriptor('publish').description)
-    .arguments('<project:string>')
-    .option('--no-input', NO_INPUT_DESC)
-    .option('--json', JSON_DESC)
-    .option('--token <token:string>', 'Personal access token. Defaults to $SKMTC_HUB_TOKEN.')
-    .type('hubEnv', hubEnv)
-    .option('--env <env:hubEnv>', ENV_DESC)
-    .option(
-      '--version <version:string>',
-      "Version to publish. Defaults to the project root deno.json's `version`."
-    )
-    .action(async ({ json, input, token, env, version }, projectName) => {
-      const { renderPublish } = await import('@/commands/publish.tsx')
-      await renderPublish({
-        projectName,
-        token,
-        env,
-        version,
-        jsonFlag: json,
-        noInputFlag: input === false
+  // `publish` is the old name of `deploy`: the same options and the same
+  // code, after a one-line notice on stderr.
+  const toDeployCommand = (name: 'deploy' | 'publish') =>
+    new Command()
+      .description(getCommandDescriptor(name).description)
+      .arguments('<project:string>')
+      .option('--no-input', NO_INPUT_DESC)
+      .option('--json', JSON_DESC)
+      .option('--token <token:string>', 'Personal access token. Defaults to $SKMTC_HUB_TOKEN.')
+      .type('hubEnv', hubEnv)
+      .option('--env <env:hubEnv>', ENV_DESC)
+      .option(
+        '--version <version:string>',
+        "Version to store and deploy. Defaults to the project root deno.json's `version`."
+      )
+      .option('--existing', 'Deploy the version already stored on the hub, without uploading.')
+      .action(async ({ json, input, token, env, version, existing }, projectName) => {
+        const { renderDeploy, renderPublishAlias } = await import('@/commands/deploy.tsx')
+        await (name === 'publish' ? renderPublishAlias : renderDeploy)({
+          projectName,
+          token,
+          env,
+          version,
+          existing,
+          jsonFlag: json,
+          noInputFlag: input === false
+        })
       })
-    })
+
+  const deployCommand = toDeployCommand('deploy')
+  const publishCommand = toDeployCommand('publish')
 
   const pushCommand = new Command()
     .description(getCommandDescriptor('push').description)
@@ -591,7 +548,7 @@ const run = async () => {
     )
     .option(
       '--stack-version <version:string>',
-      'Pin the stack to an exact published version. Defaults to `latest`.'
+      'Pin the stack to an exact stored version. Defaults to `latest`.'
     )
     .option('--visibility <vis:string>', 'Project visibility: public or private (default private).')
     .option(
@@ -772,7 +729,7 @@ const run = async () => {
 
   await new Command()
     .description('Generate code from an OpenAPI or GraphQL schema')
-    // Root-local (not global) so it never clashes with `publish
+    // Root-local (not global) so it never clashes with `deploy
     // --version <v>`. `standalone` means it can't be combined with a
     // subcommand; the action prints the version and exits.
     .option('-v, --version', 'Show the SKMTC CLI version and exit.', {
@@ -799,6 +756,7 @@ const run = async () => {
     .command('eject', ejectCommand)
     .command('adopt', adoptCommand)
     .command('describe', describeCommand)
+    .command('deploy', deployCommand)
     .command('publish', publishCommand)
     .command('push', pushCommand)
     .command('pull', pullCommand)

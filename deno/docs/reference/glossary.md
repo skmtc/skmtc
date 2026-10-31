@@ -259,8 +259,8 @@ failure.
 
 ### Hub (skmtc-hub)
 
-The hosted service behind `login`, `publish`, `push`, and `pull`:
-accounts (users or orgs) own published stacks and the projects that
+The hosted service behind `login`, `deploy`, `push`, and `pull`:
+accounts (users or orgs) own deployed stacks and the projects that
 run them. See
 [what-is-skmtc-hub](../explanation/what-is-skmtc-hub.md).
 
@@ -553,9 +553,9 @@ it.
 
 ### Stack (hub)
 
-A published, immutable version of a Skmtc project on the hub —
+An immutable, deployed version of a Skmtc project on the hub —
 identity `deno.json#name` (`@account/slug`), addressed by semver.
-Produced by [publish](cli/publish.md); hub projects pin one.
+Stored and deployed by [deploy](cli/deploy.md); hub projects pin one.
 
 ### `StackTrail`
 

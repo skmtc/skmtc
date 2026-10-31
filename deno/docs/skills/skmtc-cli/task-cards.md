@@ -294,22 +294,25 @@ env vars, spawns only `deno` (bundle) and `sh` (typecheck), and needs
 imports, so those grants are dropped. Empirically validated against
 `doctor` / `generate` / `bundle`.
 
-### Card: Publishing a stack version to skmtc-hub
+### Card: Deploying a stack version to skmtc-hub
 
-Use when the project should be shared on the hub as a stack package.
-Publishing creates an immutable semver version of the stack; a hub
-*project* later pins that version and runs it (deployments and the
-`production` alias are project concerns, driven from the web app).
+Use when the project should run on the hub as a stack. `skmtc deploy`
+stores an immutable semver version of the stack, then deploys it as a
+stack server and reports its status. A hub *project* pins a version;
+the `production` alias is a project concern, driven from the web app,
+and deploying never moves it.
 
 ```bash
 # 1. Set the version — `version` in .skmtc/<project>/deno.json,
 #    or pass --version. The CLI never invents or auto-bumps one.
 # 2a. One-off: log in once (approve the printed code in the browser),
-#     then publish with no token flags:
+#     then deploy with no token flags:
 skmtc login            # or store a PAT: echo $PAT | skmtc login --with-token
-skmtc publish <project> --json
+skmtc deploy <project> --json
 # 2b. CI: pass the token explicitly (flag or env beats the stored login):
-skmtc publish <project> --token $SKMTC_HUB_TOKEN --json
+skmtc deploy <project> --token $SKMTC_HUB_TOKEN --json
+# 3. A deploy that was not confirmed (timeout): deploy the stored version again.
+skmtc deploy <project> --existing --json
 ```
 
 Key facts:
@@ -324,28 +327,33 @@ Key facts:
   **org**, so org-owned stacks are reachable: the PAT authenticates, the hub
   authorizes you as a `writer` on that account/stack. `name` is required —
   recipe error (stage `identity`) if missing or not a scoped `@account/slug`.
-- **The hub auto-creates the stack on first publish** ("git push
+- **The hub auto-creates the stack on the first deploy** ("git push
   creates the repo").
-- **Versions are immutable.** Re-publishing an existing semver →
-  `409`, surfaced as `stage: "publish"` with an "already published"
-  reason. Bump the version and re-run.
+- **Versions are immutable.** A version already on the hub stops
+  before any upload: `stage: "exists"`, exit 2, with the recipe "bump
+  `version`, or run `skmtc deploy <project> --existing`".
 - **Missing version fails fast** (`stage: "version"`, exit 1, before
   any network call) with the recipe: set `deno.json#version` or pass
   `--version`.
-- The upload is atomic: `version` + compiled `server.js` bundle + the
-  source tree (filtered by built-in defaults + `.skmtcignore`) in one
-  multipart request. The root `deno.json` must be in the upload — the
-  hub reconciles the version's generator composition from it.
-- Read `version` / `versionUrl` from the JSON output. There is no
-  `deploymentId` or `shortId` anymore.
+- **Only `deploy.status: "error"` exits 1** among deployed results
+  (`statusReason` says why). A failed, refused (`write:releases`
+  scope) or unconfirmed deploy is `stage: "deploy"`, exit 1, with
+  `stored: true`: the version stays on the hub, so fix the problem
+  and bump the version — or, after a timeout, re-run with
+  `--existing`.
+- The upload is atomic: `version` + the source tree (filtered by
+  built-in defaults + `.skmtcignore`) in one multipart request. The
+  root `deno.json` must be in the upload — the hub reconciles the
+  version's generator composition from it.
+- `skmtc publish` is the old name: same code, plus a notice on stderr.
 
-Full reference: [`reference/cli/publish.md`](https://github.com/skmtc/skmtc/blob/main/deno/docs/reference/cli/publish.md).
+Full reference: [`reference/cli/deploy.md`](https://github.com/skmtc/skmtc/blob/main/deno/docs/reference/cli/deploy.md).
 
 ### Card: Pushing a project's config to skmtc-hub
 
 Use when local `client.json` edits (config + enrichments) should land
 on the project's hub project — the project-level counterpart to
-`publish`. `push` overwrites the hub project's config; it never creates
+`deploy`. `push` overwrites the hub project's config; it never creates
 a project (create it in the web app first).
 
 ```bash
@@ -375,10 +383,10 @@ Key facts:
   (org writers pass).
 - **`--base-files`** also pushes the app tree (package.json, components,
   css…) to `/preview/base-files`. Collected from the **app root**
-  (`dirname(basePath)`) via the same `.skmtcignore` methodology as publish,
+  (`dirname(basePath)`) via the same `.skmtcignore` methodology as deploy,
   minus `.skmtc/` and the manifest's generated files. Default push is
   config-only (config changes often, base files rarely).
-- Token + environment resolve exactly like `publish` (`--token` /
+- Token + environment resolve exactly like `deploy` (`--token` /
   `$SKMTC_HUB_TOKEN` / store; `--env` / `$SKMTC_ENV` / store env).
 
 Full reference: [`reference/cli/push.md`](https://github.com/skmtc/skmtc/blob/main/deno/docs/reference/cli/push.md).

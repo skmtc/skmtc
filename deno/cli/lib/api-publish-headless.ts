@@ -102,9 +102,13 @@ export const errorMessage = (err: unknown): string =>
  * timeout while reading it goes on to the caller's catch, as for the headers.
  */
 export const rethrowTimeout = (error: unknown): undefined => {
-  if (error instanceof DOMException && error.name === 'TimeoutError') throw error
+  if (isTimeoutError(error)) throw error
   return undefined
 }
+
+/** Whether `error` is the abort of an `AbortSignal.timeout`. */
+export const isTimeoutError = (error: unknown): boolean =>
+  error instanceof DOMException && error.name === 'TimeoutError'
 
 const STATUS_CODES: Record<number, ApiPublishFailureCode> = {
   400: 'bad-request',

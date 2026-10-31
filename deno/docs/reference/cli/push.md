@@ -6,7 +6,7 @@
 `push` uploads a local Skmtc project's `client.json` to an **existing**
 hub project. There it becomes that project's editable config, the same
 flat config the web CMS edits. It is the project-level counterpart to
-[`publish`](publish.md): `publish` ships an immutable *stack* version;
+[`deploy`](deploy.md): `deploy` ships and deploys an immutable *stack* version;
 `push` updates a *project's* config.
 
 The destination is recorded in `client.json` as the `project` field —
@@ -71,8 +71,8 @@ generated code imports (package.json, components, css…) — to
 `/preview/base-files`, replacing the project's stored set. Without this flag
 `push` sends only the config (client.json). Base files are collected from the
 **app root** (`dirname(basePath)`, scoped to this app) via the same
-gitignore-style methodology as `publish` (built-in defaults + the app root's
-`.skmtcignore`), always excluding `.skmtc/` (the stack, published separately)
+gitignore-style methodology as `deploy` (built-in defaults + the app root's
+`.skmtcignore`), always excluding `.skmtc/` (the stack, deployed separately)
 and the **manifest-recorded generated files** (regenerated in the preview).
 Curate what's included with `.skmtcignore`.
 
@@ -211,6 +211,6 @@ SKMTC_HUB_TOKEN=$PAT skmtc push my-api --json --no-input
 
 ## See also
 
-- [`publish`](publish.md) — publish an immutable stack version (vs. push a project's config)
+- [`deploy`](deploy.md) — store and deploy an immutable stack version (vs. push a project's config)
 - [`login`](login.md) — sign in and store the token + environment
 - [overview](overview.md) — shared flags and strict-mode semantics

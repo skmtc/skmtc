@@ -4,7 +4,7 @@
  *
  * `create <name>` is **create-only** (never updates an existing project — that's
  * `push`, which confirms before overwriting). It composes existing hub endpoints:
- *   1. Stack  — `deno.json#name` (must already be published via `skmtc publish`).
+ *   1. Stack  — `deno.json#name` (must already be deployed via `skmtc deploy`).
  *   2. API    — `client.json#api` if set, adding a file `client.json#source` to it
  *               as a revision (`/v1/apis/{account}/{api}/revisions`, a no-op when
  *               unchanged; a URL source is not uploaded); else register
@@ -234,7 +234,7 @@ export const createHeadless = async ({
   if (!stack) {
     return fail(
       projectName,
-      `no stack — set a scoped \`name\` (@account/slug) in ${projectName}/deno.json and publish it (skmtc publish)`,
+      `no stack — set a scoped \`name\` (@account/slug) in ${projectName}/deno.json and deploy it (skmtc deploy)`,
       'stack'
     )
   }
@@ -318,7 +318,7 @@ export const createHeadless = async ({
         res.status === 403
           ? ` — not authorized to create under ${dest.account}`
           : res.status === 422
-            ? ` — check the stack ${stack.account}/${stack.slug} is published`
+            ? ` — check the stack ${stack.account}/${stack.slug} is deployed`
             : ''
       return fail(
         projectName,

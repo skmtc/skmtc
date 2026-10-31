@@ -18,8 +18,8 @@ skmtc project create <name> [--from <project>] [--stack-version <v>] [--visibili
 What it does:
 
 ```
-1. Stack    deno.json#name — the local stack, which must already be published
-            (skmtc publish). Pinned to `latest`, or --stack-version <v>.
+1. Stack    deno.json#name — the local stack, which must already be deployed
+            (skmtc deploy). Pinned to `latest`, or --stack-version <v>.
 2. API      client.json#api if set. A file client.json#source is then added
             to that API as a revision (POST /v1/apis/{account}/{api}/revisions)
             — schemaStep "revision-added"; an unchanged file adds nothing —
@@ -49,7 +49,7 @@ What it does:
 | Option                 | Meaning                                                                                                       |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `--from <project>`     | Local project under `.skmtc/<project>/` to build from. Defaults to the only project when there's exactly one. |
-| `--stack-version <v>`  | Pin the stack to an exact published version. Default: `latest`.                                               |
+| `--stack-version <v>`  | Pin the stack to an exact stored version. Default: `latest`.                                                  |
 | `--visibility <v>`     | `private` (default) or `public`.                                                                              |
 | `--base-files`         | Also seed the app tree (needed for the live preview iframe).                                                  |
 | `--token` / `--env`    | As for [`push`](push.md) / [`pull`](pull.md).                                                                 |
@@ -75,7 +75,7 @@ What it does:
 - `read`: no client.json, or a bad name.
 - `stack`: no scoped `deno.json#name`.
 - `api`: no schema, the register failed, or the schema revision upload failed.
-- `create`: **409 → already exists**, or 422 → stack not published.
+- `create`: **409 → already exists**, or 422 → stack not deployed.
 - `seed`.
 
 ## `skmtc project rm <name>`
@@ -95,7 +95,7 @@ account when `<name>` is a bare slug.
 ## How identity & create-vs-update work
 
 - **Stack** — identity is the explicit `deno.json#name`. The hub creates the
-  stack on first `publish`, appends a version after; you bump
+  stack on first `deploy`, appends a version after; you bump
   `deno.json#version`.
 - **API** — uploads don't self-identify (the hub can't match a local file to an
   existing API). So `create` records the registered `@account/slug` in
@@ -116,5 +116,5 @@ goes to production.
 
 - [`pull`](pull.md) — pull a project's config back into client.json
 - [`push`](push.md) — push config to an existing project (the _update_ path)
-- [`publish`](publish.md) — publish the stack the project binds
+- [`deploy`](deploy.md) — deploy the stack the project binds
 - [overview](overview.md) — shared flags

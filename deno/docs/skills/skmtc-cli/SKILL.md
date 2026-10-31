@@ -14,8 +14,8 @@ description: |
   Use this skill when the user asks to "run skmtc", "generate code
   from an OpenAPI schema", "install a skmtc generator", "scaffold a
   skmtc project", "watch a skmtc project", "configure enrichments",
-  "publish a stack", "deploy to skmtc-hub" (the command is `publish`;
-  there is no `deploy`), "skmtc in CI", or invokes any CLI
+  "deploy a stack", "deploy to skmtc-hub" (the command is `deploy`;
+  `publish` is its old name), "skmtc in CI", or invokes any CLI
   subcommand. For *authoring* a generator package (Projections,
   Snippets, transform functions), defer to `skmtc-generator`. When
   something is broken (no output, wrong output, error messages, a
@@ -123,12 +123,13 @@ skmtc <cmd> -h      # full flags for one command
 ```
 
 The newer commands' help descriptions (`status`, `eject`, `adopt`,
-`publish`, `push`, `pull`, `api publish`, `api link`) carry their full semantics — read them
+`deploy`, `push`, `pull`, `api publish`, `api link`) carry their full semantics — read them
 there rather than guessing from the names. One naming trap help
-cannot intercept: there is **no `skmtc deploy`** — stacks are
-*published* (`skmtc publish`) as immutable semver versions;
-deployments and the `production` alias belong to hub projects and are
-driven from the web app, not the CLI.
+cannot intercept: a stack is **deployed, not published**. `skmtc
+deploy` stores a new immutable semver version and deploys it in one
+step; `skmtc publish` is its old name, kept for one release. Deploying
+never moves the `production` alias — that belongs to hub projects and
+is driven from the web app.
 
 ## 4. First steps in a workspace
 

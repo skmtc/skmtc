@@ -172,9 +172,9 @@ export class Project {
    * Generate the `server.ts` entry that wraps the project's installed
    * generators in `createServer({ toGeneratorConfigMap })` from
    * `@skmtc/server` — the local counterpart of the entry the hub
-   * synthesizes when deploying a published version as a Deno Deploy app.
-   * (The compile-to-`server.js` publish step is retired: publish uploads
-   * source only.)
+   * synthesizes when deploying a stored version as a Deno Deploy app.
+   * (The compile-to-`server.js` step is retired: deploy uploads source
+   * only.)
    */
   async createServer() {
     const mod = toServer(this.toGeneratorIds())
