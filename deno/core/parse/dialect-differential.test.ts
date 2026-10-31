@@ -1,6 +1,7 @@
 import { assert, assertEquals } from '@std/assert'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
+import { OasObject } from '@/oas/object/Object.ts'
 import { OasRef } from '@/oas/ref/Ref.ts'
 import { toSchemaV3 as parseV30 } from '@/parse/v3-0/schema/toSchemasV3.ts'
 import { toSchemaV3 as parseV31 } from '@/parse/v3-1/schema/toSchemasV3.ts'
@@ -79,8 +80,29 @@ const pairs: Array<{ name: string; v30: string; v31: string; v32: string }> = [
     v30: '{"type":"string","example":"x"}',
     v31: '{"type":"string","examples":["x"]}',
     v32: '{"type":"string","examples":["x"]}'
+  },
+  {
+    name: 'record values (additionalProperties vs unevaluatedProperties)',
+    v30: '{"type":"object","additionalProperties":{"type":"string"}}',
+    v31: '{"type":"object","unevaluatedProperties":{"type":"string"}}',
+    v32: '{"type":"object","unevaluatedProperties":{"type":"string"}}'
+  },
+  {
+    name: 'closed object (additionalProperties vs unevaluatedProperties false)',
+    v30: '{"type":"object","additionalProperties":false}',
+    v31: '{"type":"object","unevaluatedProperties":false}',
+    v32: '{"type":"object","unevaluatedProperties":false}'
   }
 ]
+
+Deno.test('dialect differential - 3.0 does not read unevaluatedProperties', () => {
+  // `unevaluatedProperties` is not a 3.0 keyword; the v3-0 tree is unchanged
+  // and does not map it to additionalProperties.
+  const fromV30 = parse(parseV30, '{"type":"object","unevaluatedProperties":false}')
+
+  assert(fromV30 instanceof OasObject)
+  assertEquals(fromV30.additionalProperties, undefined)
+})
 
 for (const pair of pairs) {
   Deno.test(`dialect differential - ${pair.name} parses to the same IR`, () => {
@@ -92,6 +114,14 @@ for (const pair of pairs) {
     assert(!(fromV32 instanceof OasRef))
     assertEquals(snapshot(fromV31), snapshot(fromV30))
     assertEquals(snapshot(fromV32), snapshot(fromV31))
+
+    // The snapshot writes `additionalProperties: false` when the IR field is
+    // undefined, so compare the field itself.
+    if (fromV30 instanceof OasObject) {
+      assert(fromV31 instanceof OasObject && fromV32 instanceof OasObject)
+      assertEquals(fromV31.additionalProperties, fromV30.additionalProperties)
+      assertEquals(fromV32.additionalProperties, fromV31.additionalProperties)
+    }
   })
 }
 

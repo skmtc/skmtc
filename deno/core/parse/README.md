@@ -190,9 +190,12 @@ silently in the operation parser.
   is an additive IR enrichment for when a generator needs it.
 - **`$ref` `summary`/`description` siblings** (3.1) are ignored — `OasRef`
   has no field for them yet.
-- **Tuples (`prefixItems`) and closed objects (`unevaluatedProperties`)** are
-  not parsed — they need an additive IR shape, added on demand when a
-  generator can use the extra fidelity.
+- **Tuples (`prefixItems`)** are not parsed — they need an additive IR
+  shape, added on demand when a generator can use the extra fidelity.
+- **`unevaluatedProperties` next to `allOf`/`oneOf`/`anyOf`** is not mapped.
+  The parser removes it from the wrapper before the merge and records an
+  `UNEXPECTED_PROPERTY` warning. With no composition keyword, it is read as
+  `additionalProperties`.
 - **Conditional schemas (`if`/`then`/`else`, `dependentSchemas`,
   `patternProperties`)** are not mapped — a deliberate non-goal (rarely
   codegen-able); they fall through as skipped fields.

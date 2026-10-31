@@ -1284,3 +1284,80 @@ Deno.test('toSchemaV3 - single-member nullable reference collapse', async t => {
     assertEquals(result.nullable, undefined)
   })
 })
+Deno.test('toSchemaV3 - OpenAPI 3.1 unevaluatedProperties', async t => {
+  // With no allOf/oneOf/anyOf/if/then/else/dependentSchemas on the same
+  // schema, `unevaluatedProperties` means the same as `additionalProperties`.
+  // `@typespec/openapi3` writes every `Record<T>` this way for 3.1.
+  const parse = (json: string, context: ParseContextType = createTestContext()) => {
+    const schema: OpenAPIV3.SchemaObject = JSON.parse(json)
+    return toSchemaV3({ schema, stackTrail: new StackTrail(['TEST']), context })
+  }
+
+  await t.step('a $ref value gives the same IR as additionalProperties', () => {
+    const fromUnevaluated = parse(
+      '{"type":"object","unevaluatedProperties":{"$ref":"#/components/schemas/ChangeDelta"}}'
+    )
+    const fromAdditional = parse(
+      '{"type":"object","additionalProperties":{"$ref":"#/components/schemas/ChangeDelta"}}'
+    )
+
+    assert(fromUnevaluated instanceof OasObject)
+    assert(fromUnevaluated.additionalProperties instanceof OasRef)
+    assertEquals(fromUnevaluated.additionalProperties.$ref, '#/components/schemas/ChangeDelta')
+    assertEquals(fromUnevaluated, fromAdditional)
+  })
+
+  await t.step('true gives the same IR as additionalProperties: true', () => {
+    const fromUnevaluated = parse('{"type":"object","unevaluatedProperties":true}')
+    const fromAdditional = parse('{"type":"object","additionalProperties":true}')
+
+    assert(fromUnevaluated instanceof OasObject)
+    assertEquals(fromUnevaluated.additionalProperties, true)
+    assertEquals(fromUnevaluated, fromAdditional)
+  })
+
+  await t.step('with both keywords, additionalProperties wins and no warning is recorded', () => {
+    const context = realContext()
+    const result = parse(
+      '{"type":"object","additionalProperties":{"type":"integer"},"unevaluatedProperties":false}',
+      context
+    )
+
+    assert(result instanceof OasObject)
+    assert(result.additionalProperties instanceof OasInteger)
+    assertEquals(context.issues, [])
+  })
+
+  const composedCases = [
+    {
+      name: 'allOf',
+      json: '{"allOf":[{"type":"object","properties":{"a":{"type":"string"}}},{"type":"object","properties":{"b":{"type":"string"}}}],"unevaluatedProperties":false}'
+    },
+    {
+      name: 'oneOf',
+      json: '{"oneOf":[{"type":"object","properties":{"a":{"type":"string"}}},{"type":"object","properties":{"b":{"type":"string"}}}],"unevaluatedProperties":false}'
+    },
+    {
+      name: 'single-member allOf',
+      json: '{"allOf":[{"type":"object","properties":{"a":{"type":"string"}}}],"unevaluatedProperties":false}'
+    }
+  ]
+
+  for (const { name, json } of composedCases) {
+    await t.step(`${name} wrapper: keyword is skipped with one warning, not mapped`, () => {
+      const context = realContext()
+      const result = parse(json, context)
+
+      const objects = result instanceof OasUnion ? result.members : [result]
+      assert(objects.length > 0)
+      objects.forEach(object => {
+        assert(object instanceof OasObject)
+        assertEquals(object.additionalProperties, undefined)
+      })
+
+      const warnings = context.issues.filter(issue => issue.type === 'UNEXPECTED_PROPERTY')
+      assertEquals(warnings.length, 1)
+      assert(warnings[0].message.includes("'unevaluatedProperties'"))
+    })
+  }
+})

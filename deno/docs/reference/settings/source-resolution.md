@@ -394,10 +394,11 @@ that the 3.0 form of the schema gives:
 | `exclusiveMinimum: 5` (a number) | A minimum of `5` that excludes `5` |
 | `contentMediaType: application/octet-stream` on a string with no `format` | `format: binary` |
 | `contentEncoding: base64` on a string with no `format` | `format: byte` |
+| `unevaluatedProperties` with no `allOf`, `oneOf` or `anyOf` | `additionalProperties` with the same value |
 
-The parsers do not read other JSON Schema 2020-12 keywords, such as
-`unevaluatedProperties`. The model does not include them, and the
-parse records an `UNEXPECTED_PROPERTY` warning for each one.
+When a schema has `unevaluatedProperties` together with `allOf`,
+`oneOf` or `anyOf`, the parsers do not read it. The parse removes it
+and records an `UNEXPECTED_PROPERTY` warning.
 
 ### What if my spec has external `$ref`s?
 

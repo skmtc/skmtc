@@ -237,16 +237,107 @@ const normalizeContentFormat = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.Schem
 }
 
 /**
+ * In-place applicators that evaluate keys `unevaluatedProperties` would
+ * otherwise see. `$ref` and `not` never reach `normalizeSchemaShape`.
+ */
+const inPlaceApplicators = ['allOf', 'oneOf', 'anyOf', 'if', 'then', 'else', 'dependentSchemas']
+
+/**
+ * With no in-place applicator on the same schema, `unevaluatedProperties`
+ * means the same as `additionalProperties` (JSON Schema 2020-12 §11.3,
+ * §10.3.2.3), so rename it. When `additionalProperties` is also present it
+ * evaluates every remaining key, so `unevaluatedProperties` is dropped.
+ */
+const normalizeUnevaluatedProperties = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObject => {
+  if (!('unevaluatedProperties' in schema)) {
+    return schema
+  }
+
+  if (inPlaceApplicators.some(keyword => keyword in schema)) {
+    return schema
+  }
+
+  // `unevaluatedProperties` is a 3.1 keyword the 3.0-typed SchemaObject does
+  // not model; read it via an annotated destructure.
+  const {
+    unevaluatedProperties,
+    ...rest
+  }: OpenAPIV3.SchemaObject & {
+    unevaluatedProperties?: unknown
+  } = schema
+
+  if ('additionalProperties' in rest) {
+    return rest
+  }
+
+  if (!isAdditionalPropertiesValue(unevaluatedProperties)) {
+    return schema
+  }
+
+  return { ...rest, additionalProperties: unevaluatedProperties }
+}
+
+/**
+ * Is this a value `additionalProperties` accepts: a boolean, or a schema or
+ * `$ref` object?
+ */
+const isAdditionalPropertiesValue = (
+  value: unknown
+): value is OpenAPIV3.SchemaObject['additionalProperties'] =>
+  typeof value === 'boolean' ||
+  (typeof value === 'object' && value !== null && !Array.isArray(value))
+
+/**
+ * Remove `unevaluatedProperties` from an `allOf`/`oneOf`/`anyOf` wrapper and
+ * log it as skipped. Left in place, it would be renamed to
+ * `additionalProperties` when the merged or collapsed schema is dispatched
+ * again with no composition keyword left.
+ */
+const withoutWrapperUnevaluatedProperties = ({
+  schema,
+  parentType,
+  stackTrail,
+  context
+}: {
+  schema: OpenAPIV3.SchemaObject
+  parentType: string
+  stackTrail: StackTrail
+  context: ParseContextType
+}): OpenAPIV3.SchemaObject => {
+  if (!('unevaluatedProperties' in schema)) {
+    return schema
+  }
+
+  const {
+    unevaluatedProperties,
+    ...rest
+  }: OpenAPIV3.SchemaObject & { unevaluatedProperties?: unknown } = schema
+
+  context.logSkippedFields({
+    skipped: { unevaluatedProperties },
+    parent: schema,
+    parentType,
+    stackTrail
+  })
+
+  return rest
+}
+
+/**
  * Map the 3.1-only schema-shape encodings onto the shared IR shape before
- * dispatching: type arrays, `const`, `examples[]`, numeric exclusive bounds,
- * and binary/base64 content keywords. Each step returns its input unchanged
- * when it does not apply, so the composed result is referentially equal to
- * `schema` when nothing matched — letting the dispatcher re-dispatch only when
- * needed.
+ * dispatching: `unevaluatedProperties`, type arrays, `const`, `examples[]`,
+ * numeric exclusive bounds, and binary/base64 content keywords. Each step
+ * returns its input unchanged when it does not apply, so the composed result
+ * is referentially equal to `schema` when nothing matched — letting the
+ * dispatcher re-dispatch only when needed.
  */
 const normalizeSchemaShape = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.SchemaObject => {
   return normalizeExclusiveBounds(
-    normalizeExamples(normalizeConst(normalizeContentFormat(normalizeTypeArray(schema))))
+    normalizeExamples(
+      normalizeConst(
+        normalizeContentFormat(normalizeTypeArray(normalizeUnevaluatedProperties(schema)))
+      )
+    )
   )
 }
 
@@ -340,6 +431,13 @@ export const toSchemaV3 = ({
   }
 
   if ('allOf' in schema && Array.isArray(schema.allOf)) {
+    const wrapper = withoutWrapperUnevaluatedProperties({
+      schema,
+      parentType: 'allOf',
+      stackTrail,
+      context
+    })
+
     return stackTrail.trace('allOf', st => {
       // A single-member allOf collapses to its sole member — the value must
       // satisfy exactly that one schema. When the member is a `$ref`, keep it
@@ -349,7 +447,7 @@ export const toSchemaV3 = ({
       // self-referential, and eagerly resolving it would not terminate. The
       // ref resolves at use time like every other ref. Mirrors the
       // single-member oneOf/anyOf handling below.
-      const { allOf, ...value } = schema
+      const { allOf, ...value } = wrapper
       const members = allOf ?? []
 
       if (members.length === 1) {
@@ -373,7 +471,7 @@ export const toSchemaV3 = ({
       }
 
       const merged = mergeIntersection({
-        schema,
+        schema: wrapper,
         getRef: toGetRef(context.documentObject)
       })
 
@@ -382,15 +480,22 @@ export const toSchemaV3 = ({
   }
 
   if ('oneOf' in schema && Array.isArray(schema.oneOf)) {
+    const wrapper = withoutWrapperUnevaluatedProperties({
+      schema,
+      parentType: 'oneOf',
+      stackTrail,
+      context
+    })
+
     return stackTrail.trace('oneOf', st => {
       // 3.1: a `{ type: 'null' }` member makes the union nullable. Fold it
       // into a `nullable` flag the collapse/union logic already understands.
       const { members: oneOfWithoutNull, nullable: hasNullMember } = partitionNullMember(
-        schema.oneOf ?? []
+        wrapper.oneOf ?? []
       )
       const withoutNull: OpenAPIV3.SchemaObject = hasNullMember
-        ? { ...schema, oneOf: oneOfWithoutNull, nullable: true }
-        : schema
+        ? { ...wrapper, oneOf: oneOfWithoutNull, nullable: true }
+        : wrapper
 
       const merged = mergeUnion({
         schema: withoutNull,
@@ -441,22 +546,29 @@ export const toSchemaV3 = ({
   }
 
   if ('anyOf' in schema && Array.isArray(schema.anyOf)) {
+    const wrapper = withoutWrapperUnevaluatedProperties({
+      schema,
+      parentType: 'anyOf',
+      stackTrail,
+      context
+    })
+
     return stackTrail.trace('anyOf', st => {
       // deno-lint-ignore ban-ts-comment
       // @ts-expect-error
-      if (schema['x-expansionResources'] && Array.isArray(schema.anyOf)) {
-        const { anyOf, ...value } = schema
+      if (wrapper['x-expansionResources'] && Array.isArray(wrapper.anyOf)) {
+        const { anyOf, ...value } = wrapper
         return toUnion({ value, members: anyOf, parentType: 'anyOf', stackTrail: st, context })
       }
 
       // 3.1: a `{ type: 'null' }` member makes the union nullable (mirrors
       // the oneOf branch above).
       const { members: anyOfWithoutNull, nullable: hasNullMember } = partitionNullMember(
-        schema.anyOf ?? []
+        wrapper.anyOf ?? []
       )
       const withoutNull: OpenAPIV3.SchemaObject = hasNullMember
-        ? { ...schema, anyOf: anyOfWithoutNull, nullable: true }
-        : schema
+        ? { ...wrapper, anyOf: anyOfWithoutNull, nullable: true }
+        : wrapper
 
       const merged = mergeUnion({
         schema: withoutNull,
