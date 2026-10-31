@@ -119,9 +119,9 @@ Schema has a boolean `default` or `example` without `type: 'boolean'`.
 
 **When:** An entry in a `parameters` list or in
 `components.parameters` is an empty object `{}` or `null`. The list
-can be on a path item, an operation or a webhook. The entry has no data, so Skmtc removes it and
-parses the other parameters. A `$ref` entry, or an entry with at
-least one key, does not get this warning.
+can be on a path item, an operation or a webhook. The entry has no
+data, so Skmtc removes it and parses the other parameters. A `$ref`
+entry, or an entry with at least one key, does not get this warning.
 
 **Typical message:** `Empty parameter object; skipped`.
 
@@ -134,9 +134,9 @@ least one key, does not get this warning.
 
 **When:** An operation or webhook has no `responses`, or `responses`
 is `null`. Skmtc keeps the operation and reads it as an operation
-with no documented responses. Generators get no responses for it. `responses` is required in OpenAPI 3.0 and optional in 3.1
-and 3.2, so all three versions log this warning. A
-`responses: {}` logs nothing.
+with no documented responses. Generators get no responses for it.
+`responses` is required in OpenAPI 3.0 and optional in 3.1 and 3.2.
+All three versions log this warning. A `responses: {}` logs nothing.
 
 **Typical message:** `Operation has no responses; read as no
 documented responses`.
@@ -188,8 +188,8 @@ continues with the operations.
 Causes mirror `INVALID_SCHEMA` (bad `requestBody`, malformed
 parameters, etc.). For a `servers` entry, make the entry a Server
 Object with a string `url`, or remove it. A `responses` that is not
-an object (an array, a string, a number) also drops the operation,
-with the message `"responses" must be an object of status codes, got
+an object (an array, a string, a number) also drops the operation.
+The message is `"responses" must be an object of status codes, got
 <type>`. An operation without `responses` is not an error: see
 [`MISSING_RESPONSES`](#missing_responses--warning).
 
