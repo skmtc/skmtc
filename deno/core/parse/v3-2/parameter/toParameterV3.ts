@@ -251,7 +251,7 @@ const toStyle = ({ style, location, stackTrail }: ToStyleArgs): OasParameterStyl
 
 export type ToExplodeArgs = {
   explode: boolean | undefined
-  style: string | undefined
+  style: OasParameterStyle | undefined
   stackTrail: StackTrail
 }
 

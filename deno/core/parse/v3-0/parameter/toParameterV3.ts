@@ -218,7 +218,7 @@ const toStyle = ({ style, location, stackTrail }: ToStyleArgs): ParameterStyle =
 
 export type ToExplodeArgs = {
   explode: boolean | undefined
-  style: string | undefined
+  style: ParameterStyle
   stackTrail: StackTrail
 }
 
