@@ -1,4 +1,11 @@
 import type { OpenAPIV3 } from 'openapi-types'
+import {
+  toMaximum,
+  toMinimum,
+  toTighterMaximum,
+  toTighterMinimum,
+  writeBounds
+} from '@/parse/v3-1/_merge-all-of/merge-bounds.ts'
 
 /**
  * OpenAPI 3.1 lets a schema's `type` be an ARRAY (e.g. `['string', 'null']`),
@@ -111,17 +118,21 @@ const normalizeExclusiveBounds = (schema: OpenAPIV3.SchemaObject): OpenAPIV3.Sch
     return schema
   }
 
+  // A schema may carry both `minimum` and a numeric `exclusiveMinimum`:
+  // keep the tighter of the two (the same for maximum).
+  const minimum =
+    typeof exclusiveMinimum === 'number'
+      ? toTighterMinimum(toMinimum(schema), { value: exclusiveMinimum, exclusive: true })
+      : undefined
+
+  const maximum =
+    typeof exclusiveMaximum === 'number'
+      ? toTighterMaximum(toMaximum(schema), { value: exclusiveMaximum, exclusive: true })
+      : undefined
+
   const next: OpenAPIV3.SchemaObject = { ...schema }
 
-  if (typeof exclusiveMinimum === 'number') {
-    next.minimum = exclusiveMinimum
-    next.exclusiveMinimum = true
-  }
-
-  if (typeof exclusiveMaximum === 'number') {
-    next.maximum = exclusiveMaximum
-    next.exclusiveMaximum = true
-  }
+  writeBounds(next, minimum, maximum)
 
   return next
 }

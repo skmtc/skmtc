@@ -83,6 +83,9 @@ const excludedProperties = [
   'deprecated'
 ]
 
+/** Is `key` a union-level key, kept on the union rather than merged into each member? */
+export const isUnionLevelKey = (key: string): boolean => excludedProperties.includes(key)
+
 type ExcludeOutput = {
   retained: [string, unknown][]
   excluded: [string, unknown][]
@@ -91,7 +94,7 @@ type ExcludeOutput = {
 const exclude = (entries: [string, unknown][]): ExcludeOutput => {
   return entries.reduce<ExcludeOutput>(
     (acc, [key, value]) => {
-      if (excludedProperties.includes(key)) {
+      if (isUnionLevelKey(key)) {
         acc.excluded.push([key, value])
       } else {
         acc.retained.push([key, value])

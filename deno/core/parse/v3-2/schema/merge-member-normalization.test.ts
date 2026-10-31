@@ -10,6 +10,7 @@ import { OasNumber } from '@/oas/number/Number.ts'
 import { OasObject } from '@/oas/object/Object.ts'
 import { OasString } from '@/oas/string/String.ts'
 import { OasUnion } from '@/oas/union/Union.ts'
+import { OasUnknown } from '@/oas/unknown/Unknown.ts'
 
 // Each `allOf`/`oneOf`/`anyOf` member is normalized with the 3.1 rules as it
 // enters the merge. The documents here use 3.1 encodings inside merged
@@ -309,6 +310,119 @@ Deno.test('merge member normalization', async t => {
     assert(schemas.Maybe instanceof OasObject)
     assertEquals(schemas.Maybe.nullable, true)
   })
+})
+
+Deno.test('merge member normalization - a multi-type member keeps its sibling keys', () => {
+  const { schemas, errors } = parseSchemas({
+    Code: {
+      allOf: [
+        { oneOf: [{ type: 'string' }, { type: 'boolean' }] },
+        { type: ['string', 'number'], minLength: 2 }
+      ]
+    }
+  })
+
+  assertEquals(errors, [])
+  assert(schemas.Code instanceof OasString)
+  assertEquals(schemas.Code.minLength, 2)
+})
+
+Deno.test('merge member normalization - a nested null-only oneOf parses', async t => {
+  const nullOnly = { oneOf: [{ type: 'null' }] }
+
+  await t.step('as an allOf member', () => {
+    const { schemas, errors } = parseSchemas({ A: { allOf: [{ type: 'string' }, nullOnly] } })
+
+    assertEquals(errors, [])
+    assert(schemas.A instanceof OasString)
+    assertEquals(schemas.A.nullable, true)
+  })
+
+  await t.step('as a oneOf member', () => {
+    const { schemas, errors } = parseSchemas({ A: { oneOf: [{ type: 'string' }, nullOnly] } })
+
+    assertEquals(errors, [])
+    assert(schemas.A instanceof OasString)
+    assertEquals(schemas.A.nullable, true)
+  })
+
+  await t.step('as the only member of a oneOf', () => {
+    const { schemas, errors } = parseSchemas({
+      A: { oneOf: [nullOnly] },
+      B: { allOf: [{ oneOf: [nullOnly] }, { description: 'x' }] }
+    })
+
+    assertEquals(errors, [])
+    assert(schemas.A instanceof OasUnknown)
+    assertEquals(schemas.A.nullable, true)
+    assert(schemas.B instanceof OasUnknown)
+    assertEquals(schemas.B.nullable, true)
+  })
+
+  await t.step('with union-level keys beside the null member', () => {
+    const { schemas, errors } = parseSchemas({
+      A: { oneOf: [{ type: 'null', title: 'Null' }] },
+      B: { anyOf: [{ type: 'string' }, { oneOf: [{ type: 'null' }], description: 'n' }] }
+    })
+
+    assertEquals(errors, [])
+    assert(schemas.A instanceof OasUnknown)
+    assertEquals(schemas.A.nullable, true)
+    assert(schemas.B instanceof OasString)
+    assertEquals(schemas.B.nullable, true)
+  })
+})
+
+Deno.test('merge member normalization - minimum beside a numeric exclusiveMinimum', () => {
+  const { schemas, errors } = parseSchemas({
+    Alone: { type: 'number', minimum: 10, exclusiveMinimum: 5, maximum: 20, exclusiveMaximum: 30 },
+    Merged: {
+      allOf: [
+        { type: 'number', minimum: 10, exclusiveMinimum: 5 },
+        { type: 'number', minimum: 7 }
+      ]
+    }
+  })
+
+  assertEquals(errors, [])
+  assert(schemas.Alone instanceof OasNumber)
+  assertEquals(schemas.Alone.minimum, 10)
+  assertEquals(schemas.Alone.exclusiveMinimum, undefined)
+  assertEquals(schemas.Alone.maximum, 20)
+  assertEquals(schemas.Alone.exclusiveMaximum, undefined)
+  assert(schemas.Merged instanceof OasNumber)
+  assertEquals(schemas.Merged.minimum, 10)
+  assertEquals(schemas.Merged.exclusiveMinimum, undefined)
+})
+
+Deno.test('merge member normalization - a nullable multi-type member keeps the union nullable', () => {
+  const { schemas, errors } = parseSchemas({
+    N: { oneOf: [{ type: ['string', 'number', 'null'] }, { type: 'boolean' }] }
+  })
+
+  assertEquals(errors, [])
+  assert(schemas.N instanceof OasUnion)
+  assertEquals(schemas.N.nullable, true)
+  assertEquals(schemas.N.members.length, 3)
+})
+
+Deno.test('merge member normalization - the tighter numeric bound keeps its exclusivity', () => {
+  // `exclusiveMinimum`/`exclusiveMaximum` carry the bound itself.
+  const { schemas, errors } = parseSchemas({
+    Bounded: {
+      allOf: [
+        { type: 'number', exclusiveMinimum: 0, exclusiveMaximum: 10 },
+        { type: 'number', minimum: 5, maximum: 10 }
+      ]
+    }
+  })
+
+  assertEquals(errors, [])
+  assert(schemas.Bounded instanceof OasNumber)
+  assertEquals(schemas.Bounded.minimum, 5)
+  assertEquals(schemas.Bounded.exclusiveMinimum, undefined)
+  assertEquals(schemas.Bounded.maximum, 10)
+  assertEquals(schemas.Bounded.exclusiveMaximum, true)
 })
 
 Deno.test('merge member normalization - openrouter.yaml has no merge error', async () => {

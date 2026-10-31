@@ -5,6 +5,7 @@ import { assertEquals, assertExists } from '@std/assert'
 import type { OasArray } from '@/oas/array/Array.ts'
 import type { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
+import { toArrayWithoutItemsIssues } from '@/test/toArrayWithoutItemsIssues.ts'
 
 Deno.test('toArray', async t => {
   await t.step('basic array parsing', async t => {
@@ -19,22 +20,18 @@ Deno.test('toArray', async t => {
       assertEquals(oasArray.items.type, 'unknown')
     })
 
-    await t.step(
-      'should fail open on a missing items field (invalid OAS): unknown items + logged issue',
-      () => {
-        // Real-world regression: the Sequence API schema declares a query
-        // parameter as `{ "type": "array" }` with NO items — invalid per
-        // the spec, but it must produce a parse issue, not a TypeError
-        // ("Cannot use 'in' operator to search for 'allOf' in undefined").
-        const stackTrail = new StackTrail(['TEST'])
-        const schema = { type: 'array' } as OpenAPIV3.ArraySchemaObject
-        const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
+    await t.step('should parse a missing items field as unknown items with no issue', () => {
+      // `items` is optional in JSON Schema 2020-12, so a valid document
+      // gets no warning (3.0 keeps its warning).
+      const stackTrail = new StackTrail(['TEST'])
+      const schema = { type: 'array' } as OpenAPIV3.ArraySchemaObject
+      const oasArray = toArray({ value: schema, stackTrail, context: mockParseContext })
 
-        assertEquals(oasArray.type, 'array')
-        assertExists(oasArray.items)
-        assertEquals(oasArray.items.type, 'unknown')
-      }
-    )
+      assertEquals(oasArray.type, 'array')
+      assertExists(oasArray.items)
+      assertEquals(oasArray.items.type, 'unknown')
+      assertEquals(toArrayWithoutItemsIssues('3.1.0'), [])
+    })
 
     await t.step('should parse array with string items', () => {
       const stackTrail = new StackTrail(['TEST'])

@@ -21,7 +21,7 @@ import { mergeBooleanConstraints } from './merge-boolean-constraints.ts'
 import { genericMerge } from './generic-merge.ts'
 import { checkAtLeastOneTypeMatch } from './check-at-least-one-type-match.ts'
 import { mergeIntersection } from './merge-intersection.ts'
-import { mergeCrossProduct } from './merge-union.ts'
+import { collapseNullOnlyUnion, mergeCrossProduct } from './merge-union.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
 import { isNullOnly, mergeNullOnly } from './nullable-merge.ts'
 
@@ -31,8 +31,12 @@ export const mergeSchemasOrRefs = (
   getRef: GetRefFn,
   normalize: NormalizeFn
 ): SchemaOrReference => {
-  const first = isRef(inputFirst) ? inputFirst : normalize(inputFirst)
-  const second = isRef(inputSecond) ? inputSecond : normalize(inputSecond)
+  const first = isRef(inputFirst)
+    ? inputFirst
+    : collapseNullOnlyUnion(normalize(inputFirst), normalize)
+  const second = isRef(inputSecond)
+    ? inputSecond
+    : collapseNullOnlyUnion(normalize(inputSecond), normalize)
 
   if (containsRef(first, second)) {
     return mergeWithRef(first, second, getRef, normalize)

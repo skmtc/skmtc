@@ -5,6 +5,7 @@ import { assertEquals, assertExists } from '@std/assert'
 import type { OasArray } from '@/oas/array/Array.ts'
 import type { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
+import { toArrayWithoutItemsIssues } from '@/test/toArrayWithoutItemsIssues.ts'
 
 Deno.test('toArray', async t => {
   await t.step('basic array parsing', async t => {
@@ -33,6 +34,12 @@ Deno.test('toArray', async t => {
         assertEquals(oasArray.type, 'array')
         assertExists(oasArray.items)
         assertEquals(oasArray.items.type, 'unknown')
+        assertEquals(toArrayWithoutItemsIssues('3.0.3'), [
+          {
+            level: 'warning',
+            message: 'Array schema has no "items" — treating as an array of unknown values'
+          }
+        ])
       }
     )
 
