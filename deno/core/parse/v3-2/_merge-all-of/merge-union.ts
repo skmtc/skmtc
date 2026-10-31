@@ -125,7 +125,8 @@ type WithGroupSiblingsArgs = {
  * Merge the sibling keys of a `oneOf`/`anyOf` wrapper into each of its
  * `members`. A 3.1 `type: ['string', 'number']` with `minLength` normalizes
  * to a `oneOf` with `minLength` beside it. Union-level keys (`nullable`,
- * `description`, …) are not merged in. A member that conflicts with the
+ * `description`, …) are not merged in, and a `$ref` member is returned
+ * unchanged. A member that conflicts with the
  * siblings is dropped, as in the cross product. A schema with no group is
  * its own only member and is returned unchanged.
  */
@@ -152,6 +153,11 @@ const withGroupSiblings = ({
 
   return members
     .map(member => {
+      // Merging into a `$ref` member would resolve it and lose its name.
+      if (isRef(member)) {
+        return member
+      }
+
       try {
         return mergeSchemasOrRefs(siblingSchema, member, getRef, normalize)
       } catch (_error) {

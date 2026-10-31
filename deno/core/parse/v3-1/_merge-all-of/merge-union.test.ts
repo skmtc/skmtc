@@ -280,6 +280,37 @@ Deno.test('mergeCrossProduct - a group member keeps its sibling keys', () => {
   })
 })
 
+Deno.test('mergeUnion - a group sibling key leaves $ref members unresolved', () => {
+  const failingGetRef: GetRefFn = ref => {
+    throw new Error(`getRef must not be called — $ref must be preserved: ${ref.$ref}`)
+  }
+
+  const input: SchemaObject = {
+    oneOf: [
+      {
+        type: 'object',
+        oneOf: [{ $ref: '#/components/schemas/Cat' }, { $ref: '#/components/schemas/Dog' }]
+      },
+      { type: 'string' }
+    ]
+  }
+
+  const result = mergeUnion({
+    schema: input,
+    getRef: failingGetRef,
+    normalize: normalizeMergeMember,
+    groupType: 'oneOf'
+  })
+
+  assertEquals(result, {
+    oneOf: [
+      { $ref: '#/components/schemas/Cat' },
+      { $ref: '#/components/schemas/Dog' },
+      { type: 'string' }
+    ]
+  })
+})
+
 // Union-level metadata (description/title/…) must stay on the union, not be
 // merged into members — merging it in would resolve the $ref members and lose
 // their names. getRef throws so any resolution attempt fails the test.
