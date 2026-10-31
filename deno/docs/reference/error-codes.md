@@ -146,6 +146,25 @@ documented responses`.
 **Remediation:** Add the operation's responses to the OpenAPI
 document if generators must make response types for it.
 
+### `MISSING_INFO` — warning
+
+**When:** The document has no `info` object, `info` is `null`, or
+`info` is not an object. Skmtc reads it as an empty title and
+version, and parses and generates the operations as usual. Skmtc
+also logs this warning for each of `info.title` and `info.version`
+that is absent or not a string, and reads that field as `''`. The
+YAML number `version: 1.0` is not a string. `info`, `title` and `version` are
+required in OpenAPI 3.0, 3.1 and 3.2.
+
+**Typical messages:** `Document has no info object; read as empty
+title and version`, `Info has no string title; read as ''`.
+
+**Example locations:** `info`, `info:version`
+
+**Remediation:** Add `info` with a string `title` and `version` to
+the OpenAPI document. Generators that print the title get an empty
+one until you do.
+
 ### `MISSING_STRING_TYPE` — warning
 
 Schema has a string `default`, `example`, string-only `enum`, or a

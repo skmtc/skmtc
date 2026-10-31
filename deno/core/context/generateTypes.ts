@@ -204,6 +204,7 @@ export type OasIssueType =
   | 'MISSING_ARRAY_TYPE'
   | 'MISSING_BOOLEAN_TYPE'
   | 'MISSING_RESPONSES'
+  | 'MISSING_INFO'
   | 'EMPTY_PARAMETER'
   | 'INVALID_EXAMPLE'
   | 'INVALID_ENUM'
@@ -237,6 +238,7 @@ export const oasIssueType = v.union([
   v.literal('MISSING_ARRAY_TYPE'),
   v.literal('MISSING_BOOLEAN_TYPE'),
   v.literal('MISSING_RESPONSES'),
+  v.literal('MISSING_INFO'),
   v.literal('EMPTY_PARAMETER'),
   v.literal('INVALID_EXAMPLE'),
   v.literal('INVALID_ENUM'),
