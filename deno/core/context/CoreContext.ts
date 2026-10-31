@@ -227,6 +227,12 @@ export class CoreContext {
   #phaseName: RunPhaseName = 'parse'
 
   /**
+   * The issues of this run's parse context, kept after the generate and
+   * render phases replace `#phase`, so a later failure still returns them.
+   */
+  #parseIssues: ParseIssue[] = []
+
+  /**
    * Creates a new CoreContext instance.
    *
    * @param args - Configuration for the context
@@ -434,8 +440,10 @@ export class CoreContext {
       // a SkmtcParsedDocument; we collect issues from `context.issues`.
       // A throw while the parse context is set up counts as parse.
       this.#phaseName = 'parse'
+      this.#parseIssues = []
       const phase = this.#setupParsePhase(document)
       this.#phase = phase
+      this.#parseIssues = phase.context.issues
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
         phase.context.parse(st)
       )
@@ -505,10 +513,10 @@ export class CoreContext {
       // downstream consumers (CLI `generate`, the manifest writer)
       // can tell a successful 0-file run apart from a crashed run.
       //
-      // We pull whatever parse-phase issues were already recorded
-      // before the throw, so any incremental diagnostics aren't lost,
-      // and append the top-level failure on the end.
-      const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
+      // The parse issues recorded before the throw are kept, in any
+      // phase, so incremental diagnostics aren't lost, and the
+      // top-level failure is appended on the end.
+      const priorIssues = this.#parseIssues
       const fatalIssue = this.#toRunFailedIssue({
         entry: 'toArtifacts',
         protocol: document.type,
@@ -545,8 +553,10 @@ export class CoreContext {
   } {
     try {
       this.#phaseName = 'parse'
+      this.#parseIssues = []
       const phase = this.#setupParsePhase(document)
       this.#phase = phase
+      this.#parseIssues = phase.context.issues
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
         phase.context.parse(st)
       )
@@ -570,7 +580,7 @@ export class CoreContext {
     } catch (error) {
       this.logger.error(toSerializedError(error).message, error)
 
-      const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
+      const priorIssues = this.#parseIssues
 
       return {
         subjects: {},
@@ -603,8 +613,10 @@ export class CoreContext {
   } {
     try {
       this.#phaseName = 'parse'
+      this.#parseIssues = []
       const phase = this.#setupParsePhase(document)
       this.#phase = phase
+      this.#parseIssues = phase.context.issues
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
         phase.context.parse(st)
       )
@@ -628,7 +640,7 @@ export class CoreContext {
     } catch (error) {
       this.logger.error(toSerializedError(error).message, error)
 
-      const priorIssues = this.#phase?.type === 'parse' ? this.#phase.context.issues : []
+      const priorIssues = this.#parseIssues
 
       return {
         enrichmentDefaults: {},

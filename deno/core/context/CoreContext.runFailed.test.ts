@@ -145,6 +145,33 @@ Deno.test('toArtifacts - a throw in Render names the render phase', () => {
   )
 })
 
+Deno.test('toArtifacts - a throw in Render keeps the parse issues recorded before it', () => {
+  const issues = runToArtifacts({
+    document: {
+      type: 'oas',
+      value: {
+        ...oasDocument,
+        components: {
+          schemas: {
+            User: { type: 'string' },
+            // `minLength` must be a number: one INVALID_SCHEMA error in Parse.
+            Bad: { type: 'string', minLength: 'oops' } as unknown as OpenAPIV3.SchemaObject
+          }
+        }
+      }
+    },
+    toGeneratorConfigMap: renderFailingGenerators
+  })
+
+  assertEquals(
+    issues.map(({ type, location }) => [type, location]),
+    [
+      ['INVALID_SCHEMA', 'TEST:parse:components:schemas:Bad'],
+      ['RUN_FAILED', 'toArtifacts:render']
+    ]
+  )
+})
+
 Deno.test('toArtifacts - a throw in Parse names the parse phase', () => {
   assertRunFailed(
     runToArtifacts({ document: { type: 'oas', value: { ...oasDocument, openapi: '4.0.0' } } }),

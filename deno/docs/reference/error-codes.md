@@ -104,7 +104,8 @@ prunes both `Post` and `Comment`. Each gets its own
 ### `RUN_FAILED` — error
 
 **When:** The run itself failed outside the per-item catches. The
-engine returns no artifacts and records this one issue. The issue
+engine returns no artifacts. It keeps the parse issues that it
+recorded before the failure, and adds this one issue. The issue
 names the phase that failed. It does not claim that the schema is
 invalid. A throw in the `toString()` of a generator during Render is
 an example: that is a bug in the generator.
