@@ -131,7 +131,7 @@ export class ParseContext {
   /**
    * Frames of the trail `parse()` was called with (`[traceId, spanId,
    * 'parse']` through `toArtifacts`). Every trail built during the walk
-   * starts with them; {@link toDocumentTrail} strips them.
+   * starts with them; `#toDocumentTrail` strips them.
    */
   #rootFrames: string[] = []
 
@@ -240,9 +240,9 @@ export class ParseContext {
 
   /**
    * Runs the protocol-appropriate parse step and returns the result
-   * wrapped in {@link SkmtcParsedDocument}. `stackTrail` is required
-   * for OAS (used by `toDocumentFieldsV3` for issue location tracking)
-   * and ignored by GQL (which uses pre-computed schema addresses).
+   * wrapped in {@link SkmtcParsedDocument}. Both protocols walk under
+   * `stackTrail`, so issue locations start with its frames; pruning
+   * removes those frames before it reads a trail as a document address.
    */
   parse(stackTrail: StackTrail): SkmtcParsedDocument {
     this.#rootFrames = [...stackTrail.stackTrail]
