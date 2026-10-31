@@ -1,5 +1,5 @@
 import { toOptionalResponsesV3 } from '../response/toResponseV3.ts'
-import { toComponentHeadersV3 } from '../header/toHeadersV3.ts'
+import { toComponentHeadersV3 } from '@/parse/v3-2/header/toHeadersV3.ts'
 import { toLinksV3 } from '../link/toLinksV3.ts'
 import { toOptionalSchemasV3 } from '../schema/toSchemasV3.ts'
 import { toOptionalParametersV3 } from '../parameter/toParameterV3.ts'

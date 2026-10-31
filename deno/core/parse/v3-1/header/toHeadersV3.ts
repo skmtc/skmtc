@@ -10,8 +10,7 @@ import type { HeaderFields } from '@/oas/header/Header.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
-import { assertEntryObject } from '@/parse/assertEntryObject.ts'
-import { tryParseAt } from '@/context/tryParseAt.ts'
+import { toComponentEntries } from '@/parse/toComponentEntries.ts'
 export type ToHeadersV3Args = {
   headers: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.HeaderObject> | undefined
   stackTrail: StackTrail
@@ -60,25 +59,15 @@ export const toComponentHeadersV3 = ({
     return undefined
   }
 
-  const entries = Object.entries(headers).flatMap(
-    ([key, header]): [string, OasHeader | OasRef<'header'>][] => {
-      const parsed = tryParseAt({
-        stackTrail,
-        key,
-        context,
-        type: 'INVALID_HEADER',
-        parent: header,
-        fn: st => {
-          assertEntryObject({ value: header, label: 'Header' })
-          return toHeaderV3({ header, name: key, stackTrail: st, context })
-        }
-      })
-
-      return parsed ? [[key, parsed]] : []
-    }
-  )
-
-  return Object.fromEntries(entries)
+  return toComponentEntries({
+    entries: headers,
+    stackTrail,
+    context,
+    type: 'INVALID_HEADER',
+    label: 'Header',
+    parse: ({ key, entry, stackTrail: st }) =>
+      toHeaderV3({ header: entry, name: key, stackTrail: st, context })
+  })
 }
 
 export type ToHeaderV3Args = {

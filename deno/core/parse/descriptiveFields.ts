@@ -1,6 +1,7 @@
 import * as v from 'valibot'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { isPlainObject } from '@/parse/isPlainObject.ts'
 import {
   oasExternalDocsData,
   type OasExternalDocsData
@@ -53,13 +54,7 @@ export type IsValidTagArgs = {
  * logs one `INVALID_TAG` warning, and the caller leaves it out.
  */
 export const isValidTag = ({ tag, stackTrail, context }: IsValidTagArgs): boolean => {
-  if (
-    typeof tag === 'object' &&
-    tag !== null &&
-    !Array.isArray(tag) &&
-    'name' in tag &&
-    typeof tag.name === 'string'
-  ) {
+  if (isPlainObject(tag) && typeof tag.name === 'string') {
     return true
   }
 

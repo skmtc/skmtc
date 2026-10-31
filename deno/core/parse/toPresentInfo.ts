@@ -1,5 +1,6 @@
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { isPlainObject } from '@/parse/isPlainObject.ts'
 
 export type ToPresentInfoArgs<Info extends object> = {
   info: Info | null | undefined
@@ -20,7 +21,7 @@ export const toPresentInfo = <Info extends object>({
   stackTrail,
   context
 }: ToPresentInfoArgs<Info>): Info | undefined => {
-  if (info === undefined || info === null || typeof info !== 'object' || Array.isArray(info)) {
+  if (!isPlainObject(info)) {
     context.logIssueNoKey({
       stackTrail,
       parent: info,

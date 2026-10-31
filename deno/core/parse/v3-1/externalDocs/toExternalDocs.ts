@@ -17,7 +17,7 @@ export const toExternalDocs = ({
   stackTrail,
   context
 }: ToExternalDocsArgs): OasExternalDocs | undefined => {
-  if (!externalDocs) {
+  if (externalDocs === undefined) {
     return undefined
   }
 

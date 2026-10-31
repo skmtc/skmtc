@@ -14,7 +14,7 @@ export type ToTagsV3Args = {
 }
 
 export const toTagsV3 = ({ tags, stackTrail, context }: ToTagsV3Args): OasTag[] | undefined => {
-  if (!tags) {
+  if (tags === undefined) {
     return undefined
   }
 

@@ -166,25 +166,43 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     )
   })
 
-  Deno.test(`${openapi} tags that is not an array is read as no tags with one warning`, () => {
-    const { document, logged } = parse(
-      toDocument(openapi, {
-        tags: { name: 'pets' },
-        paths: { '/pets': { get: operationWith(undefined) } }
-      })
-    )
+  for (const [label, tags] of [
+    ['an object', { name: 'pets' }],
+    ['false', false],
+    ['null', null]
+  ] as const) {
+    Deno.test(`${openapi} tags that is ${label} is read as no tags with one warning`, () => {
+      const { document, logged } = parse(
+        toDocument(openapi, {
+          tags,
+          paths: { '/pets': { get: operationWith(undefined) } }
+        })
+      )
 
-    assertEquals(logged, [
-      {
-        type: 'INVALID_TAG',
-        level: 'warning',
-        message: '"tags" must be an array; left out',
-        location: 'TEST:tags'
-      }
-    ])
-    assertEquals(document.tags, undefined)
-    assertEquals(document.operations.length, 1)
-  })
+      assertEquals(logged, [
+        {
+          type: 'INVALID_TAG',
+          level: 'warning',
+          message: '"tags" must be an array; left out',
+          location: 'TEST:tags'
+        }
+      ])
+      assertEquals(document.tags, undefined)
+      assertEquals(document.operations.length, 1)
+    })
+  }
+
+  for (const [label, externalDocs, reason] of [
+    ['an empty string', '', 'Invalid type: Expected Object but received ""'],
+    ['null', null, 'Invalid type: Expected Object but received null']
+  ] as const) {
+    Deno.test(`${openapi} externalDocs that is ${label} is left out with one warning`, () => {
+      const { document, logged } = parse(toDocument(openapi, { externalDocs }))
+
+      assertEquals(logged, [invalidExternalDocs('TEST:externalDocs', reason)])
+      assertEquals(document.externalDocs, undefined)
+    })
+  }
 }
 
 Deno.test('3.2.0 a malformed tag entry is left out before parents are checked', () => {
