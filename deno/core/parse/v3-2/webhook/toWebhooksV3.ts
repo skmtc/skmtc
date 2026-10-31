@@ -5,7 +5,8 @@ import { toRequestBodyV3 } from '../requestBody/toRequestBodiesV3.ts'
 import { toResponsesV3 } from '../response/toResponseV3.ts'
 import { toParameterListV3 } from '../parameter/toParameterV3.ts'
 import { OasWebhook } from '@/oas/webhook/Webhook.ts'
-import { toPathItemResultV3 } from '@/parse/v3-2/pathItem/toPathItemV3.ts'
+import { toPathItemV3 } from '@/parse/v3-2/pathItem/toPathItemV3.ts'
+import { isEmpty } from '@/helpers/isEmpty.ts'
 import type { OasPathItem } from '@/oas/pathItem/PathItem.ts'
 import { toPathItemMethod, type PathItemObjectV3 } from '@/parse/v3-2/methods.ts'
 import { dropAdditionalOperationsV3 } from '@/parse/v3-2/pathItem/dropAdditionalOperationsV3.ts'
@@ -15,6 +16,7 @@ import { toSecurityRequirementsV3 } from '../securityRequirement/toSecurityRequi
 import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
 import { toOptionalServersV3 } from '../server/toServerV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { isDroppedByPathParameter } from '@/parse/pathParameters.ts'
 
 /**
  * The 3.1 `webhooks` object: a map of webhook NAME → PathItem, identical
@@ -178,17 +180,11 @@ export const toWebhooksV3 = ({ webhooks, stackTrail, context }: ToWebhooksV3Args
         }
       )
 
-      const pathItemResult = toPathItemResultV3({
-        pathItem: cleaned.rest,
-        stackTrail: nameStack,
-        context
-      })
-
-      if (!pathItemResult.valid) {
-        return []
-      }
-
-      const pathItemObject = pathItemResult.pathItem
+      const pathItemResult = !isEmpty(cleaned.rest)
+        ? toPathItemV3({ pathItem: cleaned.rest, stackTrail: nameStack, context })
+        : undefined
+      const pathItemObject = pathItemResult?.pathItem
+      const brokenParameters = pathItemResult?.brokenParameters ?? []
 
       return Object.entries(cleaned.methodObject)
         .map(([method, operation]) => {
@@ -198,6 +194,12 @@ export const toWebhooksV3 = ({ webhooks, stackTrail, context }: ToWebhooksV3Args
           return nameStack.trace(method, st => {
             if (!operation) {
               return
+            }
+
+            if (
+              isDroppedByPathParameter({ brokenParameters, operation, stackTrail: st, context })
+            ) {
+              return undefined
             }
 
             try {

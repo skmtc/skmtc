@@ -1,6 +1,7 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContextType } from '@/context/parseTypes.ts'
-import { toParameterListV3 } from '../parameter/toParameterV3.ts'
+import { toPathParameterListV3 } from '@/parse/v3-0/parameter/toParameterV3.ts'
+import type { BrokenPathParameter } from '@/parse/pathParameters.ts'
 import { OasPathItem } from '@/oas/pathItem/PathItem.ts'
 import { toOptionalServersV3 } from '@/parse/v3-0/server/toServerV3.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
@@ -12,15 +13,23 @@ export type ToPathItemV3Args = {
   context: ParseContextType
 }
 
-export const toPathItemV3 = ({ pathItem, stackTrail, context }: ToPathItemV3Args): OasPathItem => {
+export type PathItemV3 = {
+  pathItem: OasPathItem
+  /** Path-level parameters that failed to parse; the caller drops each operation they apply to. */
+  brokenParameters: BrokenPathParameter[]
+}
+
+export const toPathItemV3 = ({ pathItem, stackTrail, context }: ToPathItemV3Args): PathItemV3 => {
   const { summary, description, parameters, servers, ...skipped } = pathItem
 
-  return new OasPathItem({
+  const pathParameters = stackTrail.trace('parameters', st =>
+    toPathParameterListV3({ parameters, stackTrail: st, context })
+  )
+
+  const oasPathItem = new OasPathItem({
     summary,
     description,
-    parameters: stackTrail.trace('parameters', st =>
-      toParameterListV3({ parameters, stackTrail: st, context })
-    ),
+    parameters: pathParameters.parameters,
     servers: tryParseAt({
       stackTrail,
       key: 'servers',
@@ -37,4 +46,6 @@ export const toPathItemV3 = ({ pathItem, stackTrail, context }: ToPathItemV3Args
       parentType: 'pathItem'
     })
   })
+
+  return { pathItem: oasPathItem, brokenParameters: pathParameters.broken }
 }

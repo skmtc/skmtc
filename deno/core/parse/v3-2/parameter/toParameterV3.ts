@@ -19,6 +19,11 @@ import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecif
 import * as v from 'valibot'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import { isEmptyParameter, logEmptyParameter } from '@/parse/emptyParameter.ts'
+import {
+  toParameterEntries,
+  toPathParameterList,
+  type PathParameterList
+} from '@/parse/pathParameters.ts'
 
 export type ToParameterListV3Args = {
   parameters: (OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject)[] | undefined
@@ -30,36 +35,63 @@ export const toParameterListV3 = ({
   parameters,
   stackTrail,
   context
-}: ToParameterListV3Args): (OasParameter | OasRef<'parameter'>)[] | undefined => {
-  if (!parameters) {
-    return undefined
+}: ToParameterListV3Args): (OasParameter | OasRef<'parameter'>)[] | undefined =>
+  toParameterEntries({ parameters, stackTrail, context })?.flatMap((parameter, index) =>
+    toParameterEntryV3({ parameter, index, stackTrail, context })
+  )
+
+/**
+ * Path-level `parameters`: like {@link toParameterListV3}, but an entry
+ * that fails to parse is logged and returned in `broken` instead of
+ * throwing.
+ */
+export const toPathParameterListV3 = ({
+  parameters,
+  stackTrail,
+  context
+}: ToParameterListV3Args): PathParameterList<OasParameter | OasRef<'parameter'>> =>
+  toPathParameterList({
+    parameters,
+    stackTrail,
+    context,
+    toEntry: ({ parameter, index }) => toParameterEntryV3({ parameter, index, stackTrail, context })
+  })
+
+type ToParameterEntryV3Args = {
+  parameter: OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject
+  index: number
+  /** Trail that ends in `parameters`. */
+  stackTrail: StackTrail
+  context: ParseContextType
+}
+
+const toParameterEntryV3 = ({
+  parameter,
+  index,
+  stackTrail,
+  context
+}: ToParameterEntryV3Args): (OasParameter | OasRef<'parameter'>)[] => {
+  if (isEmptyParameter(parameter)) {
+    stackTrail.trace(`${index}`, st => logEmptyParameter({ parameter, stackTrail: st, context }))
+    return []
   }
 
-  return parameters.flatMap((parameter, index) => {
-    if (isEmptyParameter(parameter)) {
-      stackTrail.trace(`${index}`, st => logEmptyParameter({ parameter, stackTrail: st, context }))
-      return []
-    }
+  const querystringIssue = toQuerystringIssue(parameter)
 
-    const querystringIssue = toQuerystringIssue(parameter)
+  if (querystringIssue) {
+    context.logIssue({
+      key: `${index}`,
+      parent: parameter,
+      level: 'error',
+      message: querystringIssue,
+      stackTrail,
+      type: 'INVALID_PARAMETER'
+    })
 
-    if (querystringIssue) {
-      context.logIssue({
-        key: `${index}`,
-        parent: parameter,
-        level: 'error',
-        message: querystringIssue,
-        stackTrail,
-        type: 'INVALID_PARAMETER'
-      })
+    return []
+  }
 
-      return []
-    }
-
-    return [
-      stackTrail.trace(`${index}`, st => toParameterV3({ parameter, stackTrail: st, context }))
-    ]
-  })
+  return [stackTrail.trace(`${index}`, st => toParameterV3({ parameter, stackTrail: st, context }))]
 }
 
 /**
