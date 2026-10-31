@@ -116,8 +116,9 @@ manifest outcome. See
 
 ### Cascade pruning
 
-The `removeErroredItems` mechanism that prunes consumers of a failed
-`$ref` from the parsed document, one hop deep. See
+The `removeErroredItems` mechanism that removes a component with a
+parse error and prunes every item that reaches it from the parsed
+document, at any depth. See
 [error-handling-philosophy](../explanation/error-handling-philosophy.md#tier-2-cross-ref-via-removeerroreditems).
 
 ### clone-to-customize

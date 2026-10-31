@@ -12,12 +12,8 @@
  * `logSkippedFields` with a pre-computed `location` string) accepts a
  * raw string. Both funnel into the shared {@link ParseContext.logIssueAt}.
  *
- * `removeErroredItems` is universal but its body dispatches on
- * `protocol.type` — the cleanup step is document-shaped. The GQL branch
- * is a no-op stub today; the infrastructure (the `#refConsumers` /
- * `#refErrors` maps, `registerRef` / `registerRefError`) is in place
- * for GQL parsers to populate when type-reference invalidation is
- * needed.
+ * `removeErroredItems` is universal; the removal it runs dispatches on
+ * `protocol.type` because the cleanup step is document-shaped.
  */
 
 import type { OpenAPIV3 } from 'openapi-types'
@@ -85,6 +81,21 @@ type GqlProtocolState = {
 
 type ProtocolState = OasProtocolState | GqlProtocolState
 
+/** An error registered against a ref key, and the location it was logged at. */
+type RefError = {
+  error: unknown
+  location: string | undefined
+}
+
+type LogDependencyIssueArgs = {
+  /** Full trail of the removed consumer. */
+  location: string
+  /** The removed ref the consumer depends on. */
+  refKey: string
+  /** The error that started the removal. */
+  rootCause: RefError
+}
+
 type ConstructorArgs = {
   input: SkmtcDocumentInput
   logger: Logger
@@ -114,7 +125,7 @@ export class ParseContext {
   // encounter references. OAS uses `$ref` strings as keys; GQL would
   // use type names. The maps don't care about the encoding.
   #refConsumers: Map<string, StackTrail[]> = new Map()
-  #refErrors: Map<string, unknown[]> = new Map()
+  #refErrors: Map<string, RefError[]> = new Map()
   /**
    * Frames of the trail `parse()` was called with (`[traceId, spanId,
    * 'parse']` through `toArtifacts`). Every trail built during the walk
@@ -293,73 +304,140 @@ export class ParseContext {
   }
 
   /**
-   * Walks any registered ref errors and prunes their consumers from
-   * the parsed document. Symmetric across protocols: OAS prunes via
-   * `OasDocument.removeItem`, GQL via `GqlDocument.removeItem`. Each
-   * pruned consumer yields an `INVALID_DEPENDENCY_REF` issue.
+   * Removes every item that depends on a ref with a registered error.
    *
-   * Pruning is deliberately **single-level** — only the direct
-   * consumers of a parse-errored schema are removed. Anything those
-   * removals leave with a dangling reference is left in place: if a
-   * generator never resolves it, it is harmless; if one does, that
-   * single artifact fails at generate time and is isolated there. We
-   * do not cascade transitively.
+   * OAS: a component with an error is removed, even when the error is in
+   * one of its properties. Each consumer of a removed component is removed
+   * too. A consumer that is itself a component (its trail starts
+   * `components:<bucket>:<name>`) has its own consumers removed next, at any
+   * depth. GraphQL removes the consuming field, union member or operation,
+   * which leaves no ref to follow.
    *
-   * Known coarseness, intentionally left as-is for now: a `paths:P:M:…`
-   * consumer trail resolves to the *whole operation*, so an operation
-   * that references a broken schema is pruned even when the reference
-   * is only through a response it does not generate from. A finer
-   * design — don't prune operations for response-position refs and let
-   * generate-time isolation handle the dangling ref — is deferred; the
-   * single-level + generate-time-isolation contract above keeps the
-   * dangling ref safe in the meantime.
+   * Each removed consumer yields one `INVALID_DEPENDENCY_REF` at its
+   * location. The message names the ref it depends on and the error that
+   * started the removal; that error is the `cause`.
+   *
+   * A `paths:P:M:…` consumer trail resolves to the whole operation, so an
+   * operation is removed even when the ref is only in a response it does
+   * not generate from.
    */
   removeErroredItems(): void {
+    const pending = [...this.#refErrors].flatMap(([refKey, [rootCause]]) =>
+      rootCause === undefined ? [] : [{ refKey, rootCause }]
+    )
+    pending.forEach(({ refKey }) => this.#removeComponent(refKey))
+
+    // `pending` grows while it is walked: each removed component queues its own consumers.
+    for (const { refKey, rootCause } of pending) {
+      for (const consumer of this.#refConsumers.get(refKey) ?? []) {
+        const documentTrail = this.#toDocumentTrail(consumer)
+        const removedLocations = this.#removeConsumer(consumer, documentTrail)
+
+        removedLocations.forEach(location =>
+          this.#logDependencyIssue({ location, refKey, rootCause })
+        )
+
+        // A removed consumer that is a component has consumers of its own.
+        // `removeItem` finds a component only once, so each is queued once and a cycle ends.
+        const removedRefKey =
+          this.protocol.type === 'oas' && removedLocations.length > 0
+            ? documentTrail.toStackRef()
+            : undefined
+
+        if (removedRefKey !== undefined) {
+          pending.push({ refKey: removedRefKey, rootCause })
+        }
+      }
+    }
+  }
+
+  /** Removes the OAS component a `#/components/<bucket>/<name>` ref key names. */
+  #removeComponent(refKey: string): void {
+    if (this.protocol.type !== 'oas') {
+      return
+    }
+
+    const match = /^#\/components\/([^/]+)\/(.+)$/.exec(refKey)
+
+    if (match) {
+      this.protocol.oasDocument.removeItem(new StackTrail(['components', match[1], match[2]]))
+    }
+  }
+
+  /**
+   * Removes the item `consumer` sits in and returns the location of each
+   * removed item: `consumer` itself, or for a path-level parameter
+   * (`paths:<path>:parameters:…`, `webhooks:<name>:parameters:…`) each
+   * operation on that path, which all share the parameter.
+   */
+  #removeConsumer(consumer: StackTrail, documentTrail: StackTrail): string[] {
     switch (this.protocol.type) {
       case 'oas': {
-        const oasState = this.protocol
-        for (const [refKey, errors] of this.#refErrors) {
-          for (const error of errors) {
-            const consumers = this.#refConsumers.get(refKey) ?? []
-            for (const stackTrail of consumers) {
-              const removed = oasState.oasDocument.removeItem(this.#toDocumentTrail(stackTrail))
-              if (removed) {
-                this.issues.push({
-                  protocol: 'oas',
-                  level: 'error',
-                  type: 'INVALID_DEPENDENCY_REF',
-                  location: stackTrail.toString(),
-                  message: error instanceof Error ? error.message : String(error),
-                  cause: error
-                })
-              }
-            }
-          }
+        const oasDocument = this.protocol.oasDocument
+        const [first, second, third] = documentTrail.stackTrail
+
+        if ((first === 'paths' || first === 'webhooks') && third === 'parameters') {
+          const prefix = consumer.stackTrail.slice(
+            0,
+            consumer.stackTrail.length - documentTrail.stackTrail.length
+          )
+          const methods =
+            first === 'paths'
+              ? oasDocument.operations
+                  .filter(({ path }) => path === second)
+                  .map(({ method }) => method)
+              : oasDocument.webhooks
+                  .filter(({ name }) => name === second)
+                  .map(({ method }) => method)
+
+          return methods.flatMap(method => {
+            const removed = oasDocument.removeItem(new StackTrail([first, second, method]))
+            return removed === undefined
+              ? []
+              : [new StackTrail([...prefix, first, second, method]).toString()]
+          })
         }
-        break
+
+        return oasDocument.removeItem(documentTrail) === undefined ? [] : [consumer.toString()]
       }
-      case 'gql': {
-        const gqlState = this.protocol
-        for (const [refKey, errors] of this.#refErrors) {
-          for (const error of errors) {
-            const consumers = this.#refConsumers.get(refKey) ?? []
-            for (const stackTrail of consumers) {
-              const removed = gqlState.gqlDocument.removeItem(this.#toDocumentTrail(stackTrail))
-              if (removed) {
-                this.issues.push({
-                  protocol: 'gql',
-                  level: 'error',
-                  type: 'INVALID_DEPENDENCY_REF',
-                  location: stackTrail.toString(),
-                  message: error instanceof Error ? error.message : String(error),
-                  cause: error
-                })
-              }
-            }
-          }
-        }
-        break
+      case 'gql':
+        return this.protocol.gqlDocument.removeItem(documentTrail) === undefined
+          ? []
+          : [consumer.toString()]
+      default: {
+        const _exhaustive: never = this.protocol
+        throw new Error(`Unhandled protocol type: ${JSON.stringify(_exhaustive)}`)
       }
+    }
+  }
+
+  #logDependencyIssue({ location, refKey, rootCause }: LogDependencyIssueArgs): void {
+    const { error } = rootCause
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const at = rootCause.location === undefined ? '' : ` at '${rootCause.location}'`
+    const message = `Depends on '${refKey}', removed because of the error${at}: ${errorMessage}`
+
+    switch (this.protocol.type) {
+      case 'oas':
+        this.issues.push({
+          protocol: 'oas',
+          level: 'error',
+          type: 'INVALID_DEPENDENCY_REF',
+          location,
+          message,
+          cause: error
+        })
+        break
+      case 'gql':
+        this.issues.push({
+          protocol: 'gql',
+          level: 'error',
+          type: 'INVALID_DEPENDENCY_REF',
+          location,
+          message,
+          cause: error
+        })
+        break
       default: {
         const _exhaustive: never = this.protocol
         throw new Error(`Unhandled protocol type: ${JSON.stringify(_exhaustive)}`)
@@ -427,15 +505,17 @@ export class ParseContext {
    * target of a `$ref` (or type reference) fails to parse. `undefined`
    * `refKey` is a deliberate no-op: callers may pass the result of
    * `StackTrail.toStackRef()` directly, which is `undefined` for
-   * non-component stack trails.
+   * non-component stack trails. `location` is where the error was logged;
+   * each `INVALID_DEPENDENCY_REF` it causes names it.
    */
-  registerRefError(error: unknown, refKey: string | undefined): void {
+  registerRefError(error: unknown, refKey: string | undefined, location?: string): void {
     if (!refKey) return
+    const refError = { error, location }
     const existing = this.#refErrors.get(refKey)
     if (existing) {
-      existing.push(error)
+      existing.push(refError)
     } else {
-      this.#refErrors.set(refKey, [error])
+      this.#refErrors.set(refKey, [refError])
     }
   }
 
@@ -494,7 +574,8 @@ export class ParseContext {
         // `registerRefError` ignores undefined refs.
         this.registerRefError(
           issue.cause ?? issue.message,
-          this.#toDocumentTrail(stackTrail).toStackRef()
+          this.#toDocumentTrail(stackTrail).toStackRef(),
+          location
         )
         this.logIssueAt(
           {

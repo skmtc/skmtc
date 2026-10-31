@@ -68,10 +68,16 @@ issue.
 
 **When:** A schema or operation referenced a `$ref` target that
 failed to parse. The referencing item is cascade-pruned from the
-output.
+output. An error in one property of a component removes the whole
+component, and the parser prunes its consumers too. All operations on
+a path share its path-level `parameters` entries, so a broken
+parameter there removes each of those operations.
 
-**Typical message:** something like `Schema "X" referenced by Y
-failed to parse, removing Y from output`.
+**Typical message:** `Depends on '#/components/schemas/X', removed
+because of the error at 'parse:components:schemas:X:properties:p': <the
+error's message>`. The location and message are those of the error
+that started the removal. The location is the same string as the
+`location` of that error in `parseIssues`.
 
 **Example location:** `paths./users.post.requestBody`
 
@@ -87,11 +93,11 @@ The parser removes that content entry and keeps the others. There is
 no upstream `INVALID_SCHEMA` issue. Correct the pointer, or add the
 entry to `components.mediaTypes`.
 
-**Cascade depth:** one hop. If `Post` references `User` and
-`Comment` references `Post`, breaking `User` prunes `Post` (one
-hop). `Comment` would fail later (at generate time) with a
-`Ref "..." not found` exception — see the generate-time errors
-below.
+**Cascade depth:** transitive. If `Post` references `User` and
+`Comment` references `Post`, an error in `User` removes `User` and
+prunes both `Post` and `Comment`. Each gets its own
+`INVALID_DEPENDENCY_REF`, and each message names the error in
+`User`.
 
 ### `MISSING_OBJECT_TYPE` — debug
 
@@ -436,7 +442,8 @@ dropped from the registry; downstream consumers are pruned.
 The GraphQL flavor of the shared `INVALID_DEPENDENCY_REF` code (the
 same identifier appears in both `OasIssueType` and `GqlIssueType`).
 Cascade-prunes consumers when a referenced GraphQL type fails to
-parse.
+parse. The parser removes the field, union member or operation that
+holds the ref; the parent type stays.
 
 **Discriminator:** `protocol: 'gql'` on the `ParseIssue` —
 generators that read by code alone should also check `protocol`.

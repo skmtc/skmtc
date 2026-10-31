@@ -19,7 +19,7 @@ class ParseContext {
   protocol: ProtocolState                    // discriminated union
 
   #refConsumers: Map<string, StackTrail[]>   // private
-  #refErrors: Map<string, unknown[]>         // private
+  #refErrors: Map<string, { error: unknown; location: string | undefined }[]> // private
 
   constructor(args: {
     input: SkmtcDocumentInput
@@ -143,11 +143,11 @@ Inverse index: "who pointed at this ref?" Populated by `registerRef`
 during the parse walk. Used by `removeErroredItems` to identify
 which items to prune when their referenced schemas failed.
 
-### `#refErrors: Map<string, unknown[]>` (private)
+### `#refErrors: Map<string, { error: unknown; location: string | undefined }[]>` (private)
 
-"What went wrong with this ref?" Populated by `registerRefError`
-when a ref's target fails to parse. Cross-referenced with
-`#refConsumers` during cascade pruning.
+"What went wrong with this ref, and where?" Populated by
+`registerRefError` when a ref's target fails to parse. Cross-referenced
+with `#refConsumers` during cascade pruning.
 
 ## Methods
 
@@ -172,13 +172,25 @@ than the input.
 ### `removeErroredItems(): void`
 
 The cascade-pruning step. Walks `#refErrors` and `#refConsumers`
-together. For each failed ref, prunes every consumer from the
-parsed document and logs an `INVALID_DEPENDENCY_REF` issue at the
-consumer's location.
+together. For OAS, it removes each component with a registered error
+from the bucket its ref names, even when the error is in one
+property. Then it removes every consumer of a removed component and
+logs one `INVALID_DEPENDENCY_REF` issue at the consumer's location.
+The message names the ref and the error that started the removal:
+`Depends on '<ref>', removed because of the error at '<location>':
+<message>`. That error is the issue's `cause`.
 
-**Cascade depth: one hop.** Transitive consumers (consumers of
-pruned items) aren't recursively pruned. They typically fail later
-at generate time with `Ref "..." not found`.
+**Cascade depth: transitive.** A removed consumer can be a
+component (its trail starts `components:<bucket>:<name>`). Then the
+method removes the consumers of that component too, at all depths.
+It visits each component one time, so cycles stop. GraphQL removes
+the field, union member or operation that holds the ref, and keeps
+the parent type. Thus no other ref points at a removed item.
+
+Trails start with the frames of the trail that `parse()` gets
+(`[traceId, spanId, 'parse']` through `toArtifacts`). The method
+removes these frames before it reads a trail as a document address.
+Issue locations keep the full trail.
 
 ### `registerRef(consumer: StackTrail, refKey: string): void`
 
@@ -194,11 +206,14 @@ The `refKey` is typically the literal `$ref` string. The clone is
 necessary because `StackTrail` is mutable; without cloning, the
 stored value would change as the walk progresses.
 
-### `registerRefError(error: unknown, refKey: string | undefined): void`
+### `registerRefError(error: unknown, refKey: string | undefined, location?: string): void`
 
 Called when a parse failure occurs at a component position. Stores
 the error against the ref key. `undefined` `refKey` is a deliberate
 no-op (used when the failure is at a non-component position).
+`location` is the location of the logged error. Each
+`INVALID_DEPENDENCY_REF` that the error causes names it. Without it,
+the message names only the error.
 
 Auto-called by `logIssueNoKey` for issues at component locations.
 Parser code rarely calls this directly.
@@ -403,13 +418,14 @@ the now-filled registry.
 This is the forward-reference resolution trick described in
 [refs-and-resolution](../../concepts/refs-and-resolution.md#the-forward-ref-problem).
 
-### Why does cascade pruning only go one hop?
+### Why does cascade pruning remove the whole component and go to any depth?
 
-Implementation complexity. Transitive pruning requires walking the
-ref graph to a fixpoint, which is non-trivial (cycles, iteration
-order, idempotency). Deferred. Transitive failures surface at
-generate time as `Ref not found` exceptions, which the generator's
-per-item try/catch handles gracefully.
+The unit of failure is the component. A component without the
+property that failed is a wrong form of that component. Thus all
+items that reach it would also render wrongly. When the cascade
+removes all items that reach a removed component, no item that
+stays has a ref to a removed item. See
+[error handling philosophy](../../explanation/error-handling-philosophy.md).
 
 ### Can I log issues from generator code (not parser code)?
 

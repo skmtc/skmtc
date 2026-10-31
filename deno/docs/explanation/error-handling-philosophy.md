@@ -65,45 +65,49 @@ During the parse walk, every `$ref` encounter calls
 `context.registerRef(stackTrail.clone(), $ref)`. This builds a map:
 `#refConsumers: Map<refKey, StackTrail[]>` — "who pointed at this ref?"
 
-When a parse error happens at a component position, `logIssueNoKey`
-auto-registers the error against the ref by calling
-`context.registerRefError(issue.cause, stackTrail.toStackRef())`. This builds:
-`#refErrors: Map<refKey, unknown[]>` — "what went wrong with this ref?"
+A parser can log an error-level issue anywhere inside a component, for example
+at `components:schemas:User:properties:email`. Then `logIssueNoKey` registers
+the error against the ref of that component (`#/components/schemas/User`) with
+`context.registerRefError(error, refKey, location)`. This builds:
+`#refErrors: Map<refKey, { error, location }[]>` — "what went wrong with this
+ref, and where?" A warning never registers a ref error.
+
+Both maps hold document trails. `parse(stackTrail)` records the frames of its
+trail (`[traceId, spanId, 'parse']` through `toArtifacts`). `removeErroredItems`
+removes these frames before it reads a trail as a document address.
 
 After the main walk finishes, `removeErroredItems` walks both maps together:
 
-```ts
-for (const [refKey, errors] of this.#refErrors) {
-  for (const error of errors) {
-    const consumers = this.#refConsumers.get(refKey) ?? []
-    for (const stackTrail of consumers) {
-      const removed = oasState.oasDocument.removeItem(stackTrail)
-      if (removed) {
-        this.issues.push({
-          type: 'INVALID_DEPENDENCY_REF',
-          level: 'error',
-          location: stackTrail.toString(),
-          ...
-        })
-      }
-    }
-  }
-}
-```
+1. It removes each component that has a registered error. It removes the entry
+   from the bucket that the ref names: `#/components/requestBodies/X` removes
+   request body `X`, not schema `X`.
+2. It removes each consumer of a removed component. Each removal logs one
+   `INVALID_DEPENDENCY_REF` at the location of the consumer.
+3. A removed consumer can be a component (its trail starts
+   `components:<bucket>:<name>`). Then `removeErroredItems` removes the
+   consumers of that component too, at all depths. It does not visit a
+   component two times, so cycles stop.
 
 So if `User` fails to parse and `CreateUserRequest.parameters[0]` referenced
 `User`, that operation gets pruned from `oasDocument.operations`, with an
 `INVALID_DEPENDENCY_REF` issue at the operation's location explaining why.
 
-The cascade is **one hop deep** by current design. If `Post` references `User`
-and `Comment` references `Post`, breaking `User` prunes `Post` (one hop).
-`Comment` would then fail later when it tries to resolve a now-missing `Post` —
-but that failure happens at generate time, not in `removeErroredItems`.
+The cascade is **transitive**. If `Post` references `User` and `Comment`
+references `Post`, an error in `User` removes `User`, `Post` and `Comment`.
+Each removed item gets one `INVALID_DEPENDENCY_REF`. Its message names the ref
+of the item, and the error that started the removal:
+`Depends on '#/components/schemas/Post', removed because of the error at
+'components:schemas:User:properties:email': <message>`. That error is the
+`cause` of the issue.
+
+GraphQL keeps its own consumer model. It removes the field, union member or
+operation that holds the ref, and the parent type stays. Thus no other ref
+points at a removed item.
 
 ## How the mechanism is engineered
 
 The high-level model (parse fails open, refs are cloned, cascade prunes
-consumers one hop) rests on four small implementation choices, each easy to
+consumers) rests on four small implementation choices, each easy to
 overlook on a casual read. None of them are load-bearing in isolation; together
 they are what makes the model true rather than aspirational.
 
@@ -232,25 +236,22 @@ instead of `components:schemas`.
 This is also why issues stay accurately located even though the trail itself is
 mutable and shared across the walker.
 
-## Why one-hop cascade pruning?
+## Why remove the whole component, and all items that reach it?
 
-The honest answer: depth-2+ pruning was deferred. Implementing it robustly
-requires walking the ref graph transitively, which is non-trivial because:
+The unit of failure is the component. An error in one property `p` of `X`
+removes all of `X`, not only `p`. `X` without `p` is a wrong form of `X`, thus
+all items that reach `X` would also render wrongly. Skmtc does not record
+failures for each property.
 
-- The ref graph can have cycles (handled by `MAX_LOOKUPS` at resolution time,
-  but graph walking needs its own cycle protection)
-- A single ref can be referenced by many consumers; ordering matters
-- Removing items can trigger their own cascades — the algorithm becomes
-  iterative-to-fixpoint
+The cascade goes to all depths for the same reason. When `removeErroredItems`
+removes a consumer of `X` that is a component, the consumers of that component
+point at a missing component. `removeErroredItems` removes them too. Thus no
+item that stays in the document has a ref to a removed item. The generate phase
+never gets a `Ref "..." not found` because of a parse error.
 
-In practice, depth-2 failures show up at generate time as `Ref "Post" not found`
-exceptions in generator code. The generator's own `try/catch` handles these
-gracefully (the operation is marked `'error'` in the manifest results). The user
-sees the chain in the manifest: `User` is `INVALID_SCHEMA`, `Post` is
-`INVALID_DEPENDENCY_REF`, `Comment` operations are individually marked `'error'`
-with `Ref "Post" not found` as the message.
-
-Imperfect but acceptable. The manifest still records everything.
+The cost: this rule removes more operations than a rule for each property.
+The manifest records each removal. It shows the root `INVALID_SCHEMA`, and each
+removed item has an `INVALID_DEPENDENCY_REF` that names that error.
 
 ## Type-inference fallbacks (the other lenient lever)
 

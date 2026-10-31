@@ -22,6 +22,7 @@ import { assertEquals } from '@std/assert'
 import type * as log from '@std/log'
 import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
+import { tryParseAt } from '@/context/tryParseAt.ts'
 import { OasObject } from '@/oas/object/Object.ts'
 import type { RefName } from '@/types/RefName.ts'
 
@@ -81,7 +82,8 @@ Deno.test('ParseContext (gql) - registerRef during field parse records consumer 
     throw new Error('expected a gql error issue')
   }
   assertEquals(issue.location, 'User:posts')
-  assertEquals(issue.message, 'Post is malformed')
+  // Registered without a location, so the message names the error only.
+  assertEquals(issue.message, "Depends on 'Post', removed because of the error: Post is malformed")
   assertEquals(issue.cause instanceof Error, true)
 
   // And the User registry entry should no longer carry a `posts` field.
@@ -201,6 +203,38 @@ Deno.test('ParseContext (gql) - union member references to errored type are prun
   assertEquals(depRef.length, 1)
   // Union members are addressed as `[UnionName, members, <index>]`.
   assertEquals(depRef[0].location.startsWith('Content:members:'), true)
+})
+
+Deno.test('ParseContext (gql) - a type that throws in tryParseAt names its location in the pruned consumer', () => {
+  const ctx = makeGqlContext(`
+    type Post { id: ID! }
+    type Query { post: Post }
+  `)
+  ctx.parse(new StackTrail(['t', 's', 'parse']))
+
+  tryParseAt({
+    stackTrail: new StackTrail(['t', 's', 'parse']),
+    key: 'Post',
+    context: ctx,
+    type: 'INVALID_TYPE_DEFINITION',
+    refKey: 'Post',
+    fn: () => {
+      throw new Error('Post failed')
+    }
+  })
+  ctx.removeErroredItems()
+
+  assertEquals(
+    ctx.issues.map(({ type, location, message }) => ({ type, location, message })),
+    [
+      { type: 'INVALID_TYPE_DEFINITION', location: 't:s:parse:Post', message: 'Post failed' },
+      {
+        type: 'INVALID_DEPENDENCY_REF',
+        location: 't:s:parse:Query:post:return',
+        message: "Depends on 'Post', removed because of the error at 't:s:parse:Post': Post failed"
+      }
+    ]
+  )
 })
 
 Deno.test('ParseContext (gql) - consumers are pruned when parse runs under a trace, span and parse prefix', () => {

@@ -152,7 +152,13 @@ Deno.test('ParseContext (oas) - end-to-end: errored component prunes its consume
   }
   // Kick-out location points at the consumer, not the failing target.
   assertEquals(issue.location.startsWith('paths:'), true)
-  assertEquals(issue.message, 'Analytics schema malformed')
+  // Registered without a location, so the message names the ref and the error only.
+  assertEquals(
+    issue.message,
+    `Depends on '${REF_KEY}', removed because of the error: Analytics schema malformed`
+  )
+  // The errored component itself is removed too.
+  assertEquals(ctx.oasDocument.components?.toSchemasRefNames(), [])
   // The original error rides along as `cause`.
   assertEquals(issue.cause instanceof Error, true)
 })

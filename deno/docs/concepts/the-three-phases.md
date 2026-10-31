@@ -134,12 +134,14 @@ A throw inside `toSchemaV3` becomes a `level: 'error'` `ParseIssue`, and the key
 is skipped in the output map.
 
 **Tier 2 — cascade pruning via `removeErroredItems`.** During the walk, every
-`$ref` consumer is recorded; when a component fails to parse, everything that
-referenced it is pruned from the document with an `INVALID_DEPENDENCY_REF`
-issue at the consumer's location. The downstream Generate phase sees a smaller
-document with all surviving items guaranteed valid. The cascade is one hop
-deep by design; a transitive consumer fails later, at generate time, as a
-per-operation error. The mechanism in full — the two maps, the pruning walk,
+`$ref` consumer is recorded. When a component has a parse error,
+`removeErroredItems` removes the component. It removes each item that
+referenced it, with an `INVALID_DEPENDENCY_REF` issue at the location of that
+item. The cascade is transitive: when it removes a component, it also removes
+the consumers of that component, at all depths.
+
+The downstream Generate phase sees a smaller document with all surviving items
+guaranteed valid. The mechanism in full — the two maps, the pruning walk,
 and the implementation choices it rests on — is in
 [error handling philosophy](../explanation/error-handling-philosophy.md#tier-2-cross-ref-via-removeerroreditems).
 
