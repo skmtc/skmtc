@@ -2,7 +2,7 @@ import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import type { OasIssueType } from '@/context/generateTypes.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
-import { isPlainObject } from '@/parse/isPlainObject.ts'
+import { isPlainObject, toKind } from '@/parse/isPlainObject.ts'
 
 export type ToComponentEntriesArgs<Entry, Parsed> = {
   entries: Record<string, Entry>
@@ -55,7 +55,3 @@ export const toComponentEntries = <Entry, Parsed>({
 
   return Object.fromEntries(parsedEntries)
 }
-
-/** Name the kind of a value for an error message: `null`, `an array`, or its `typeof`. */
-export const toKind = (value: unknown): string =>
-  value === null ? 'null' : Array.isArray(value) ? 'an array' : typeof value

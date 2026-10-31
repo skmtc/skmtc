@@ -1,8 +1,7 @@
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import type { OasSecurityRequirement } from '@/oas/securityRequirement/SecurityRequirement.ts'
-import { isPlainObject } from '@/parse/isPlainObject.ts'
-import { toKind } from '@/parse/toComponentEntries.ts'
+import { isPlainObject, toKind } from '@/parse/isPlainObject.ts'
 
 const isScopeList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((scope: unknown) => typeof scope === 'string')
