@@ -1,4 +1,5 @@
 import type { GetRefFn, ReferenceObject, SchemaObject } from './types.ts'
+import { normalizeMergeMember } from '@/parse/v3-2/schema/normalize-schema-shape.ts'
 import { assertEquals } from '@std/assert/equals'
 import { mergeUnion } from './merge-union.ts'
 
@@ -145,7 +146,12 @@ const expected: SchemaObject = {
 }
 
 Deno.test('mergeAllOf - with top-level oneOf', () => {
-  const result = mergeUnion({ schema: input, getRef, groupType: 'oneOf' })
+  const result = mergeUnion({
+    schema: input,
+    getRef,
+    normalize: normalizeMergeMember,
+    groupType: 'oneOf'
+  })
 
   assertEquals(result, expected)
 })
@@ -198,6 +204,7 @@ Deno.test('mergeUnion - simple oneOf', () => {
   const result = mergeUnion({
     schema: input,
     getRef: mockGetRef,
+    normalize: normalizeMergeMember,
     groupType: 'oneOf'
   })
 
@@ -265,6 +272,7 @@ Deno.test('mergeUnion - metadata stays on the union; $ref members preserved', ()
   const result = mergeUnion({
     schema: input,
     getRef: failingGetRef,
+    normalize: normalizeMergeMember,
     groupType: 'anyOf'
   })
 

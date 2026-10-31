@@ -1,6 +1,7 @@
 import { assertEquals } from '@std/assert/equals'
 import type { OpenAPIV3 } from 'openapi-types'
 import { mergeIntersection } from './merge-intersection.ts'
+import { normalizeMergeMember } from '@/parse/v3-1/schema/normalize-schema-shape.ts'
 
 // Mock getRef function for testing
 const mockGetRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
@@ -29,5 +30,8 @@ Deno.test('mergeAllOf - basic property merging', () => {
     nullable: true
   }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+  assertEquals(
+    mergeIntersection({ schema, getRef: mockGetRef, normalize: normalizeMergeMember }),
+    expected
+  )
 })

@@ -3,18 +3,25 @@ import { mergeSchemasOrRefs } from './merge.ts'
 import { genericMerge } from './generic-merge.ts'
 import * as v from 'valibot'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
+import type { GetRefFn, NormalizeFn } from '@/parse/v3-2/_merge-all-of/types.ts'
 type SchemaObject = OpenAPIV3.SchemaObject
-type ReferenceObject = OpenAPIV3.ReferenceObject
 
 export const mergeObjectConstraints = (
   first: SchemaObject,
   second: SchemaObject,
-  getRef: (ref: ReferenceObject) => SchemaObject
+  getRef: GetRefFn,
+  normalize: NormalizeFn
 ): SchemaObject => {
   // Check for type conflicts
   checkTypeConflicts(first, second)
 
-  const result: SchemaObject = genericMerge(first, second, getRef, v.record(v.string(), v.any()))
+  const result: SchemaObject = genericMerge(
+    first,
+    second,
+    getRef,
+    normalize,
+    v.record(v.string(), v.any())
+  )
 
   if (
     typeof second.additionalProperties === 'object' &&
@@ -24,7 +31,8 @@ export const mergeObjectConstraints = (
     result.additionalProperties = mergeSchemasOrRefs(
       first.additionalProperties,
       second.additionalProperties,
-      getRef
+      getRef,
+      normalize
     )
   } else if (second.additionalProperties !== undefined) {
     result.additionalProperties = second.additionalProperties
