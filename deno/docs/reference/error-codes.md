@@ -594,7 +594,9 @@ any parser. Reserved for future use; treat similarly to
 
 These aren't `ParseIssue`s — they're exceptions raised during the
 Generate phase. They typically appear as per-operation result
-`'error'` in the manifest with the exception message as the cause.
+`'error'` in the manifest. The exception message and stack are in
+the `ERROR` line for the item in `.settings/logs.ndjson` (see
+[manifest format: `logs`](manifest-format.md#logs-beside-the-manifest)).
 
 ### `Registered definition mismatch`
 

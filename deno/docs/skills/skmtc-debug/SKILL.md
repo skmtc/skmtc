@@ -275,9 +275,10 @@ operation produced no files.
    - **`'success'` but no file**: The generator's `transform`
      returned content (which is discarded) instead of calling
      `register` or `insertOperation`. Read the generator source.
-   - **`'error'`**: Read the error message in the manifest (or
-     stderr from the run). The generator's constructor or `toString`
-     threw.
+   - **`'error'`**: Read the `ERROR` line for the item in
+     `.skmtc/<project>/.settings/logs.ndjson`: its `trail` is the
+     item's key in `results`, and it holds the message and stack.
+     The generator's constructor or `toString` threw.
 3. If the result is missing entirely (operation not present in
    `manifest.results`): the operation was pruned at parse time (look
    for `INVALID_SCHEMA` / `INVALID_DEPENDENCY_REF` in `parseIssues`
