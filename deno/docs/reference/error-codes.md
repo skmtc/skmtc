@@ -212,10 +212,13 @@ path-level parameter applies to. Each broken entry first gets an
 The entry applies to every operation on the path, unless the
 operation has an inline parameter with the same `name` and `in`.
 That parameter overrides the entry, and Skmtc keeps the operation.
-An entry without a string `name` and `in`, or a path-level
-`parameters` field that is not a list, applies to every operation on
-the path. The message is `Path-level parameter <location> failed to
-parse: <message>`. The `<location>` is the place of the entry in the
+
+An entry without a string `name` and `in` applies to every operation
+on the path. A path-level `parameters` field that is not a list also
+applies to every operation on the path. The exception is `{}` or
+`null`: see [`EMPTY_PARAMETER`](#empty_parameter--warning). The
+message is `Path-level parameter <location> failed to parse:
+<message>`. The `<location>` is the place of the entry in the
 document, for example `paths:/items:parameters:0`.
 
 **Example location:** `paths:/accounts:post` (operation),
@@ -255,11 +258,13 @@ No generator renders a custom method yet.
   `content` media type, or has a `schema`. The operation keeps its other
   parameters.
 - A path-level parameter failed to parse, or the path-level
-  `parameters` field is not a list. This applies to webhooks too. Skmtc
-  drops each operation that the parameter applies to, with an
+  `parameters` field is not a list. A `{}` or `null` field is not an
+  error. See [`EMPTY_PARAMETER`](#empty_parameter--warning). This
+  applies to webhooks too. Skmtc drops each operation that the
+  parameter applies to, with an
   [`INVALID_OPERATION`](#invalid_operation--error) error, and keeps
   the other operations. The location is `paths:<path>:parameters:<index>`,
-  or `paths:<path>:parameters` for a field that is not a list.
+  or `paths:<path>:parameters` for a broken field.
 
 **When (warning):** An OpenAPI 3.2 operation, together with its path
 item, has more than one `in: querystring` parameter, or has an
