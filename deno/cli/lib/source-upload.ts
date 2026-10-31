@@ -55,8 +55,9 @@ const DEFAULT_IGNORE = [
   // baseline cache. Both are rebuilt by `skmtc generate`.
   '.maps/',
   '.baselines/',
-  // The run's structured log lines: rewritten each run, and their stacks
-  // hold local paths.
+  // The run's record and structured log lines: rewritten each run, and
+  // the error stacks they hold carry local paths.
+  '.settings/manifest.json',
   '.settings/logs.ndjson',
   '.git/',
   'node_modules/',
