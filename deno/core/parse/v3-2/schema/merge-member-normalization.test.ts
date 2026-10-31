@@ -373,6 +373,28 @@ Deno.test('merge member normalization - a nested null-only oneOf parses', async 
   })
 })
 
+Deno.test('merge member normalization - minimum beside a numeric exclusiveMinimum', () => {
+  const { schemas, errors } = parseSchemas({
+    Alone: { type: 'number', minimum: 10, exclusiveMinimum: 5, maximum: 20, exclusiveMaximum: 30 },
+    Merged: {
+      allOf: [
+        { type: 'number', minimum: 10, exclusiveMinimum: 5 },
+        { type: 'number', minimum: 7 }
+      ]
+    }
+  })
+
+  assertEquals(errors, [])
+  assert(schemas.Alone instanceof OasNumber)
+  assertEquals(schemas.Alone.minimum, 10)
+  assertEquals(schemas.Alone.exclusiveMinimum, undefined)
+  assertEquals(schemas.Alone.maximum, 20)
+  assertEquals(schemas.Alone.exclusiveMaximum, undefined)
+  assert(schemas.Merged instanceof OasNumber)
+  assertEquals(schemas.Merged.minimum, 10)
+  assertEquals(schemas.Merged.exclusiveMinimum, undefined)
+})
+
 Deno.test('merge member normalization - a nullable multi-type member keeps the union nullable', () => {
   const { schemas, errors } = parseSchemas({
     N: { oneOf: [{ type: ['string', 'number', 'null'] }, { type: 'boolean' }] }
