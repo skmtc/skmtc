@@ -101,6 +101,11 @@ export const mergeCrossProduct = ({
     })
     .filter(item => item !== undefined)
 
+  // A nested group is spread into this one below; its `nullable` carries over.
+  const nestedNullable = mergedGroup.some(
+    item => !isRef(item) && Array.isArray(item[groupType]) && item.nullable === true
+  )
+
   return {
     [groupType]: mergedGroup.flatMap(item => {
       if (!isRef(item) && Array.isArray(item[groupType])) {
@@ -109,7 +114,7 @@ export const mergeCrossProduct = ({
 
       return [item]
     }),
-    ...(nullable ? { nullable: true } : {})
+    ...(nullable || nestedNullable ? { nullable: true } : {})
   }
 }
 

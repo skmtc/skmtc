@@ -373,6 +373,17 @@ Deno.test('merge member normalization - a nested null-only oneOf parses', async 
   })
 })
 
+Deno.test('merge member normalization - a nullable multi-type member keeps the union nullable', () => {
+  const { schemas, errors } = parseSchemas({
+    N: { oneOf: [{ type: ['string', 'number', 'null'] }, { type: 'boolean' }] }
+  })
+
+  assertEquals(errors, [])
+  assert(schemas.N instanceof OasUnion)
+  assertEquals(schemas.N.nullable, true)
+  assertEquals(schemas.N.members.length, 3)
+})
+
 Deno.test('merge member normalization - the tighter numeric bound keeps its exclusivity', () => {
   // `exclusiveMinimum`/`exclusiveMaximum` carry the bound itself.
   const { schemas, errors } = parseSchemas({

@@ -280,6 +280,30 @@ Deno.test('mergeCrossProduct - a group member keeps its sibling keys', () => {
   })
 })
 
+Deno.test('mergeUnion - a nested nullable group keeps the union nullable', () => {
+  const mockGetRef: GetRefFn = () => ({})
+
+  // `type: ['string', 'number', 'null']` normalizes to this nested group.
+  const input: SchemaObject = {
+    oneOf: [
+      { oneOf: [{ type: 'string' }, { type: 'number' }], nullable: true },
+      { type: 'boolean' }
+    ]
+  }
+
+  const result = mergeUnion({
+    schema: input,
+    getRef: mockGetRef,
+    normalize: normalizeMergeMember,
+    groupType: 'oneOf'
+  })
+
+  assertEquals(result, {
+    oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }],
+    nullable: true
+  })
+})
+
 Deno.test('mergeUnion - a group sibling key leaves $ref members unresolved', () => {
   const failingGetRef: GetRefFn = ref => {
     throw new Error(`getRef must not be called — $ref must be preserved: ${ref.$ref}`)
