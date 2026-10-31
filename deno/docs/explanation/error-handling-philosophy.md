@@ -94,8 +94,11 @@ So if `User` fails to parse and `CreateUserRequest.parameters[0]` referenced
 
 The cascade is **transitive**. If `Post` references `User` and `Comment`
 references `Post`, an error in `User` removes `User`, `Post` and `Comment`.
-Each removed item gets one `INVALID_DEPENDENCY_REF`. Its message names the ref
-of the item, and the error that started the removal:
+
+Each item that a dependency removes gets one `INVALID_DEPENDENCY_REF`. The
+component with the error keeps its own issue. The message names the ref that
+the item depends on, and the error that started the removal. This is the
+issue for `Comment`:
 `Depends on '#/components/schemas/Post', removed because of the error at
 'components:schemas:User:properties:email': <message>`. That error is the
 `cause` of the issue.

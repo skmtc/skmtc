@@ -69,9 +69,11 @@ issue.
 **When:** A schema or operation referenced a `$ref` target that
 failed to parse. The referencing item is cascade-pruned from the
 output. An error in one property of a component removes the whole
-component, and the parser prunes its consumers too. All operations on
-a path share its path-level `parameters` entries, so a broken
-parameter there removes each of those operations.
+component, and the parser prunes its consumers too. A broken
+parameter in a path-level `parameters` list removes each operation
+on the path that it applies to. An operation that declares its own
+parameter with the same `name` and `in` stays, without the broken
+parameter.
 
 **Typical message:** `Depends on '#/components/schemas/X', removed
 because of the error at '<traceId>:<spanId>:parse:components:schemas:X:properties:p': <the
@@ -293,7 +295,7 @@ No generator renders a custom method yet.
 
 - A reusable parameter under `components.parameters` failed to parse
   via `tryParseAt`. Any operation that `$ref`s it surfaces a cascading
-  `INVALID_DEPENDENCY_REF` / generate-time `Ref ... not found`.
+  `INVALID_DEPENDENCY_REF`.
 - An OpenAPI 3.2 `in: querystring` parameter does not have exactly one
   `content` media type, or has a `schema`. The operation keeps its other
   parameters.

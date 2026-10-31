@@ -282,10 +282,12 @@ via `resolve()`. The intermediate `OasRef` is followed transparently.
 
 ### What if I resolve a ref that was pruned?
 
-`resolveOnce()` throws `Ref "..." not found`. This typically happens
-when a generator runs against the parsed document and a depth-2+
-cascade missed pruning the consumer. The generator's try/catch
-catches it; the operation is marked `'error'` in the manifest.
+`resolveOnce()` throws `Ref "..." not found`. A parse error does not
+cause this: the cascade removes every item that reaches a removed
+component, at all depths. The throw can still come from a `$ref` to a
+component that the document does not define. The generator's
+try/catch catches it; the operation is marked `'error'` in the
+manifest.
 
 ### When should I use `resolve()` vs `resolveOnce()`?
 
