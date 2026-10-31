@@ -206,9 +206,11 @@ const addNamedType = ({
     // `refKey: name` (the type's own name, not `refName`) preserves the
     // prior behavior where an interface-union failure marks the base
     // type as errored so dependents of either form get pruned together.
+    // `key: refName` traces the synthesized interface union under its own
+    // registered name, so its member trails name the union.
     const value = tryParseAt({
       stackTrail,
-      key: name,
+      key: refName,
       context,
       type: 'INVALID_TYPE_DEFINITION',
       parent: type,

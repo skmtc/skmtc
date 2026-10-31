@@ -229,6 +229,48 @@ Deno.test('ParseContext (gql) - two errored members of one union each remove the
   assertEquals(ctx.issues.filter(i => i.type === 'INVALID_DEPENDENCY_REF').length, 2)
 })
 
+Deno.test('ParseContext (gql) - a root field shared by Query and Mutation removes only the one that holds the ref', () => {
+  const ctx = makeGqlContext(`
+    type Post { id: ID! }
+    type Query { item: Int }
+    type Mutation { item: Post }
+  `)
+  ctx.registerRefError(new Error('Post failed'), 'Post')
+  const parsed = ctx.parse(new StackTrail(['t', 's', 'parse']))
+  if (parsed.type !== 'gql') throw new Error('expected gql')
+
+  assertEquals(
+    parsed.value.operations.map(o => `${o.rootKind}.${o.fieldName}`),
+    ['query.item']
+  )
+  assertEquals(
+    ctx.issues.filter(i => i.type === 'INVALID_DEPENDENCY_REF').map(i => i.location),
+    ['t:s:parse:Mutation:item:return']
+  )
+})
+
+Deno.test('ParseContext (gql) - an errored implementer is removed from the synthesized interface union', () => {
+  const ctx = makeGqlContext(`
+    interface Node { id: ID! }
+    type A implements Node { id: ID! }
+    type B implements Node { id: ID! }
+    type Query { node: Node }
+  `)
+  ctx.registerRefError(new Error('A failed'), 'A')
+  ctx.parse(new StackTrail(['t', 's', 'parse']))
+
+  const nodeUnion = ctx.registry.schemas['NodeUnion' as RefName]
+  if (!(nodeUnion instanceof OasUnion)) throw new Error('expected NodeUnion to be an OasUnion')
+  assertEquals(
+    nodeUnion.members.map(member => (member.isRef() ? member.toRefName() : member.type)),
+    ['B']
+  )
+  assertEquals(
+    ctx.issues.filter(i => i.type === 'INVALID_DEPENDENCY_REF').map(i => i.location),
+    ['t:s:parse:NodeUnion:members:0']
+  )
+})
+
 Deno.test('ParseContext (gql) - a type that throws in tryParseAt names its location in the pruned consumer', () => {
   const ctx = makeGqlContext(`
     type Post { id: ID! }

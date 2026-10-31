@@ -147,7 +147,10 @@ export class GqlDocument {
     const isRootType =
       first === rootTypes.query || first === rootTypes.mutation || first === rootTypes.subscription
     if (isRootType) {
-      const index = operations.findIndex(op => op.fieldName === second)
+      // Query and Mutation can share a field name: match the root type too.
+      const index = operations.findIndex(
+        op => op.fieldName === second && rootTypes[op.rootKind] === first
+      )
       if (index === -1) return undefined
       const [removed] = operations.splice(index, 1)
       return removed
