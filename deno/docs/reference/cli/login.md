@@ -11,8 +11,11 @@ the token in `~/.skmtc/auth.json`, so later hub commands need no
 `--token` flag or `$SKMTC_HUB_TOKEN`.
 
 The token can create and update APIs, projects and pipelines, publish
-schemas, store stack versions and deploy them
-(`write:catalog`, `write:releases`). It stays valid until you revoke it
+schemas, store stack versions and deploy them, and create organizations
+and edit the ones you own, such as an organization's icon
+(`write:catalog`, `write:releases`, `admin:org`). A token from an
+earlier `skmtc login` keeps its old scopes: run `skmtc logout` and
+`skmtc login` to get the new one. It stays valid until you revoke it
 in the hub at **Settings > Connected apps**: the CLI refreshes it when
 it expires.
 

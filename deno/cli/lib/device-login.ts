@@ -13,7 +13,7 @@ import { HUB_HOSTS, type HubEnv, toLoginCommand } from '@/lib/hub-env.ts'
 
 export const CLI_CLIENT_ID = 'skmtc-cli'
 export const CLI_RESOURCE = 'urn:skmtc:cli'
-export const CLI_SCOPE = 'write:catalog write:releases offline_access'
+export const CLI_SCOPE = 'write:catalog write:releases admin:org offline_access'
 
 const DEVICE_CODE_GRANT = 'urn:ietf:params:oauth:grant-type:device_code'
 

@@ -88,7 +88,7 @@ Deno.test('requestDeviceCode - asks the environment for the CLI client, resource
         url: 'https://skmtc.co.uk/api/auth/device/code',
         fields: {
           client_id: 'skmtc-cli',
-          scope: 'write:catalog write:releases offline_access',
+          scope: 'write:catalog write:releases admin:org offline_access',
           resource: 'urn:skmtc:cli'
         }
       }
