@@ -778,3 +778,74 @@ Deno.test('OasUnion', async t => {
     })
   })
 })
+
+Deno.test('OasUnion.isDiscriminable', async t => {
+  const discriminator = new OasDiscriminator({ propertyName: 'type' })
+  const member = (type: OasString, required: string[] = ['type']) =>
+    new OasObject({ properties: { type, size: new OasNumber() }, required })
+
+  await t.step('true when each object member requires the key with its own string literals', () => {
+    const union = new OasUnion({
+      discriminator,
+      members: [member(new OasString({ enums: ['a'] })), member(new OasString({ enums: ['b', 'c'] }))]
+    })
+
+    assertEquals(union.isDiscriminable(), true)
+  })
+
+  await t.step('false without a discriminator, though the members would allow one', () => {
+    const union = new OasUnion({
+      members: [member(new OasString({ enums: ['a'] })), member(new OasString({ enums: ['b'] }))]
+    })
+
+    assertEquals(union.isDiscriminable(), false)
+  })
+
+  await t.step('false when a member does not require the key', () => {
+    const union = new OasUnion({
+      discriminator,
+      members: [member(new OasString({ enums: ['a'] }), []), member(new OasString({ enums: ['b'] }))]
+    })
+
+    assertEquals(union.isDiscriminable(), false)
+  })
+
+  await t.step('false when the key allows any string, or null', () => {
+    const anyString = new OasUnion({
+      discriminator,
+      members: [member(new OasString()), member(new OasString({ enums: ['b'] }))]
+    })
+    const withNull = new OasUnion({
+      discriminator,
+      members: [member(new OasString({ enums: ['a', null] })), member(new OasString({ enums: ['b'] }))]
+    })
+
+    assertEquals([anyString.isDiscriminable(), withNull.isDiscriminable()], [false, false])
+  })
+
+  await t.step('false when two members allow the same value', () => {
+    const union = new OasUnion({
+      discriminator,
+      members: [member(new OasString({ enums: ['a'] })), member(new OasString({ enums: ['b', 'a'] }))]
+    })
+
+    assertEquals(union.isDiscriminable(), false)
+  })
+
+  await t.step('false when a member is nullable, a union or not an object', () => {
+    const nullable = new OasObject({
+      properties: { type: new OasString({ enums: ['a'] }) },
+      required: ['type'],
+      nullable: true
+    })
+    const nested = new OasUnion({ discriminator, members: [member(new OasString({ enums: ['a'] }))] })
+    const b = member(new OasString({ enums: ['b'] }))
+
+    assertEquals(
+      [nullable, nested, new OasString()].map(first =>
+        new OasUnion({ discriminator, members: [first, b] }).isDiscriminable()
+      ),
+      [false, false, false]
+    )
+  })
+})
