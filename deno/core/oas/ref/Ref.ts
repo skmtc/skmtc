@@ -168,7 +168,70 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
   oasType: 'ref' = 'ref'
   /** Type identifier */
   type: 'ref' = 'ref'
-  #fields: RefFields<T>
+  /** The kind of component the reference points to. */
+  refType: T
+  /** The JSON Reference: `#/components/<bucket>/<name>`. */
+  $ref: string
+  /**
+   * Use-site nullability (see {@link SiblingKeywords.nullable}). Assigned
+   * even when `undefined`, so `'nullable' in ref` is always true and the
+   * value-function nullable read picks it up uniformly.
+   */
+  nullable: SiblingKeywords['nullable']
+  /** Use-site `readOnly` (see {@link SiblingKeywords.readOnly}). */
+  readOnly: SiblingKeywords['readOnly']
+  /** Use-site `writeOnly` (see {@link SiblingKeywords.writeOnly}). */
+  writeOnly: SiblingKeywords['writeOnly']
+  /** The `type` written next to this reference (see {@link SiblingKeywords._type}). */
+  _type: SiblingKeywords['_type']
+  /** The `title` next to this reference (see {@link SiblingKeywords}). */
+  title: SiblingKeywords['title']
+  /** The `description` next to this reference (see {@link SiblingKeywords}). */
+  description: SiblingKeywords['description']
+  /** The `deprecated` next to this reference (see {@link SiblingKeywords}). */
+  deprecated: SiblingKeywords['deprecated']
+  /** The `example` next to this reference (see {@link SiblingKeywords}). */
+  example: SiblingKeywords['example']
+  /** The `default` next to this reference (see {@link SiblingKeywords}). */
+  default: SiblingKeywords['default']
+  /** The `enum` next to this reference (see {@link SiblingKeywords}). */
+  enums: SiblingKeywords['enums']
+  /** The extensions (`x-*`) next to this reference (see {@link SiblingKeywords}). */
+  extensionFields: SiblingKeywords['extensionFields']
+  /** The `format` next to this reference (see {@link SiblingKeywords}). */
+  format: SiblingKeywords['format']
+  /** The `minLength` next to this reference (see {@link SiblingKeywords}). */
+  minLength: SiblingKeywords['minLength']
+  /** The `maxLength` next to this reference (see {@link SiblingKeywords}). */
+  maxLength: SiblingKeywords['maxLength']
+  /** The `pattern` next to this reference (see {@link SiblingKeywords}). */
+  pattern: SiblingKeywords['pattern']
+  /** The `multipleOf` next to this reference (see {@link SiblingKeywords}). */
+  multipleOf: SiblingKeywords['multipleOf']
+  /** The `minimum` next to this reference (see {@link SiblingKeywords}). */
+  minimum: SiblingKeywords['minimum']
+  /** The `maximum` next to this reference (see {@link SiblingKeywords}). */
+  maximum: SiblingKeywords['maximum']
+  /** The `exclusiveMinimum` next to this reference (see {@link SiblingKeywords}). */
+  exclusiveMinimum: SiblingKeywords['exclusiveMinimum']
+  /** The `exclusiveMaximum` next to this reference (see {@link SiblingKeywords}). */
+  exclusiveMaximum: SiblingKeywords['exclusiveMaximum']
+  /** The `minItems` next to this reference (see {@link SiblingKeywords}). */
+  minItems: SiblingKeywords['minItems']
+  /** The `maxItems` next to this reference (see {@link SiblingKeywords}). */
+  maxItems: SiblingKeywords['maxItems']
+  /** The `uniqueItems` next to this reference (see {@link SiblingKeywords}). */
+  uniqueItems: SiblingKeywords['uniqueItems']
+  /** The `properties` next to this reference (see {@link SiblingKeywords}). */
+  properties: SiblingKeywords['properties']
+  /** The `required` next to this reference (see {@link SiblingKeywords}). */
+  required: SiblingKeywords['required']
+  /** The `additionalProperties` next to this reference (see {@link SiblingKeywords}). */
+  additionalProperties: SiblingKeywords['additionalProperties']
+  /** The `minProperties` next to this reference (see {@link SiblingKeywords}). */
+  minProperties: SiblingKeywords['minProperties']
+  /** The `maxProperties` next to this reference (see {@link SiblingKeywords}). */
+  maxProperties: SiblingKeywords['maxProperties']
   #document: SkmtcParsedDocument
 
   /**
@@ -183,7 +246,36 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    */
   constructor(fields: RefFields<T>, context: RefContext) {
     super(context)
-    this.#fields = fields
+    this.refType = fields.refType
+    this.$ref = fields.$ref
+    this.nullable = fields.nullable
+    this.readOnly = fields.readOnly
+    this.writeOnly = fields.writeOnly
+    this._type = fields._type
+    this.title = fields.title
+    this.description = fields.description
+    this.deprecated = fields.deprecated
+    this.example = fields.example
+    this.default = fields.default
+    this.enums = fields.enums
+    this.extensionFields = fields.extensionFields
+    this.format = fields.format
+    this.minLength = fields.minLength
+    this.maxLength = fields.maxLength
+    this.pattern = fields.pattern
+    this.multipleOf = fields.multipleOf
+    this.minimum = fields.minimum
+    this.maximum = fields.maximum
+    this.exclusiveMinimum = fields.exclusiveMinimum
+    this.exclusiveMaximum = fields.exclusiveMaximum
+    this.minItems = fields.minItems
+    this.maxItems = fields.maxItems
+    this.uniqueItems = fields.uniqueItems
+    this.properties = fields.properties
+    this.required = fields.required
+    this.additionalProperties = fields.additionalProperties
+    this.minProperties = fields.minProperties
+    this.maxProperties = fields.maxProperties
     this.#document = context.parsedDocument
   }
 
@@ -247,7 +339,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
         : this.#resolveGqlOnce(this.#document.value, refName)
 
     if (!resolved) {
-      throw new Error(`Ref "${this.#fields.$ref}" not found`)
+      throw new Error(`Ref "${this.$ref}" not found`)
     }
 
     if (resolved.isRef()) {
@@ -305,7 +397,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
   }
 
   toRefName(): RefName {
-    return toRefName(this.#fields.$ref)
+    return toRefName(this.$ref)
   }
 
   /**
@@ -340,158 +432,6 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     return traverseSchema(this, path)
   }
 
-  get $ref(): string {
-    return this.#fields.$ref
-  }
-
-  get refType(): OasRefData['refType'] {
-    return this.#fields.refType
-  }
-
-  /**
-   * Use-site nullability of this reference (see {@link RefFields.nullable}).
-   * The getter exists on the prototype, so `'nullable' in ref` is always
-   * true and the value-function nullable read picks it up uniformly.
-   */
-  get nullable(): boolean | undefined {
-    return this.#fields.nullable
-  }
-
-  /** Use-site `readOnly` of this reference (see {@link SiblingKeywords.readOnly}). */
-  get readOnly(): boolean | undefined {
-    return this.#fields.readOnly
-  }
-
-  /** Use-site `writeOnly` of this reference (see {@link SiblingKeywords.writeOnly}). */
-  get writeOnly(): boolean | undefined {
-    return this.#fields.writeOnly
-  }
-
-  /** The `type` written next to this reference (see {@link SiblingKeywords._type}). */
-  get _type(): SiblingKeywords['_type'] {
-    return this.#fields._type
-  }
-
-  /** The `title` next to this reference (see {@link SiblingKeywords}). */
-  get title(): SiblingKeywords['title'] {
-    return this.#fields.title
-  }
-
-  /** The `description` next to this reference (see {@link SiblingKeywords}). */
-  get description(): SiblingKeywords['description'] {
-    return this.#fields.description
-  }
-
-  /** The `deprecated` next to this reference (see {@link SiblingKeywords}). */
-  get deprecated(): SiblingKeywords['deprecated'] {
-    return this.#fields.deprecated
-  }
-
-  /** The `example` next to this reference (see {@link SiblingKeywords}). */
-  get example(): SiblingKeywords['example'] {
-    return this.#fields.example
-  }
-
-  /** The `default` next to this reference (see {@link SiblingKeywords}). */
-  get default(): SiblingKeywords['default'] {
-    return this.#fields.default
-  }
-
-  /** The `enum` next to this reference (see {@link SiblingKeywords}). */
-  get enums(): SiblingKeywords['enums'] {
-    return this.#fields.enums
-  }
-
-  /** The extensions (`x-*`) next to this reference (see {@link SiblingKeywords}). */
-  get extensionFields(): SiblingKeywords['extensionFields'] {
-    return this.#fields.extensionFields
-  }
-
-  /** The `format` next to this reference (see {@link SiblingKeywords}). */
-  get format(): SiblingKeywords['format'] {
-    return this.#fields.format
-  }
-
-  /** The `minLength` next to this reference (see {@link SiblingKeywords}). */
-  get minLength(): SiblingKeywords['minLength'] {
-    return this.#fields.minLength
-  }
-
-  /** The `maxLength` next to this reference (see {@link SiblingKeywords}). */
-  get maxLength(): SiblingKeywords['maxLength'] {
-    return this.#fields.maxLength
-  }
-
-  /** The `pattern` next to this reference (see {@link SiblingKeywords}). */
-  get pattern(): SiblingKeywords['pattern'] {
-    return this.#fields.pattern
-  }
-
-  /** The `multipleOf` next to this reference (see {@link SiblingKeywords}). */
-  get multipleOf(): SiblingKeywords['multipleOf'] {
-    return this.#fields.multipleOf
-  }
-
-  /** The `minimum` next to this reference (see {@link SiblingKeywords}). */
-  get minimum(): SiblingKeywords['minimum'] {
-    return this.#fields.minimum
-  }
-
-  /** The `maximum` next to this reference (see {@link SiblingKeywords}). */
-  get maximum(): SiblingKeywords['maximum'] {
-    return this.#fields.maximum
-  }
-
-  /** The `exclusiveMinimum` next to this reference (see {@link SiblingKeywords}). */
-  get exclusiveMinimum(): SiblingKeywords['exclusiveMinimum'] {
-    return this.#fields.exclusiveMinimum
-  }
-
-  /** The `exclusiveMaximum` next to this reference (see {@link SiblingKeywords}). */
-  get exclusiveMaximum(): SiblingKeywords['exclusiveMaximum'] {
-    return this.#fields.exclusiveMaximum
-  }
-
-  /** The `minItems` next to this reference (see {@link SiblingKeywords}). */
-  get minItems(): SiblingKeywords['minItems'] {
-    return this.#fields.minItems
-  }
-
-  /** The `maxItems` next to this reference (see {@link SiblingKeywords}). */
-  get maxItems(): SiblingKeywords['maxItems'] {
-    return this.#fields.maxItems
-  }
-
-  /** The `uniqueItems` next to this reference (see {@link SiblingKeywords}). */
-  get uniqueItems(): SiblingKeywords['uniqueItems'] {
-    return this.#fields.uniqueItems
-  }
-
-  /** The `properties` next to this reference (see {@link SiblingKeywords}). */
-  get properties(): SiblingKeywords['properties'] {
-    return this.#fields.properties
-  }
-
-  /** The `required` next to this reference (see {@link SiblingKeywords}). */
-  get required(): SiblingKeywords['required'] {
-    return this.#fields.required
-  }
-
-  /** The `additionalProperties` next to this reference (see {@link SiblingKeywords}). */
-  get additionalProperties(): SiblingKeywords['additionalProperties'] {
-    return this.#fields.additionalProperties
-  }
-
-  /** The `minProperties` next to this reference (see {@link SiblingKeywords}). */
-  get minProperties(): SiblingKeywords['minProperties'] {
-    return this.#fields.minProperties
-  }
-
-  /** The `maxProperties` next to this reference (see {@link SiblingKeywords}). */
-  get maxProperties(): SiblingKeywords['maxProperties'] {
-    return this.#fields.maxProperties
-  }
-
   /**
    * Whether this reference adds anything at its site: a use-site flag
    * (`nullable`, `readOnly`, `writeOnly`) or another keyword next to it (see
@@ -512,7 +452,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    */
   clone(ref?: OasRef<'schema'>): OasRef<T> {
     const copy = new OasRef<T>(
-      { refType: this.#fields.refType, $ref: this.#fields.$ref, ...mergeSiblingKeywords(this, ref) },
+      { refType: this.refType, $ref: this.$ref, ...mergeSiblingKeywords(this, ref) },
       { parsedDocument: this.#document, currentStackTrail: undefined }
     )
     copy.stackTrail = this.stackTrail
