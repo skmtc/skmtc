@@ -59,6 +59,11 @@ export abstract class DefinitionBase<
     this.identifier = identifier
   }
 
+  /** False: a registered Definition is constructed and holds its value. See {@link PendingDefinition}. */
+  isPending(): this is PendingDefinition {
+    return false
+  }
+
   /** Renders the definition's code. Implemented by the concrete subclass. */
   abstract override toString(): string
 }

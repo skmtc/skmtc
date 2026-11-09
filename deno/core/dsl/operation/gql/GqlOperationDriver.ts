@@ -11,6 +11,7 @@ import { toGqlOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 import { readProjectionOptions, toValueOptions } from '@/types/ProjectionOptions.ts'
 import isEqual from 'lodash-es/isEqual'
+import { assertNotPending } from '@/dsl/PendingDefinition.ts'
 
 /**
  * The `insertOperation` call plus the context. The Driver defaults
@@ -140,10 +141,10 @@ export class GqlOperationDriver<
   }
 
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): DefinitionBase<V> {
-    const cachedDefinition = this.context.findDefinition({
-      name: identifier.name,
-      exportPath
-    })
+    const cachedDefinition = assertNotPending(
+      this.context.findDefinition({ name: identifier.name, exportPath }),
+      { name: identifier.name, exportPath }
+    )
 
     if (this.affirmDefinition<V>(cachedDefinition, exportPath)) {
       return cachedDefinition

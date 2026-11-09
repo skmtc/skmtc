@@ -88,7 +88,8 @@ const toModels = (graph: Graph, shared: string[] = []) => {
   })
 
   const valueOf = (refName: string): Model => {
-    const value = context.findDefinition({ name: refName, exportPath: toPath(refName) })?.value
+    const found = context.findDefinition({ name: refName, exportPath: toPath(refName) })
+    const value = found === undefined || found.isPending() ? undefined : found.value
 
     if (!(value instanceof Model)) {
       throw new Error(`${refName} has no Definition`)

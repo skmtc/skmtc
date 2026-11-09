@@ -130,10 +130,6 @@ const createMockContext = (): GenerateContextType => {
       files.set(file.path, file)
       return file
     }),
-    findPendingDefinition: ({ name, exportPath }: { name: string; exportPath: string }) => {
-      const file = files.get(exportPath)
-      return file instanceof CodeFileBase ? file.pendingDefinitions.get(name) : undefined
-    },
     stackTrail: { slice: () => ({ stackTrail: [] }) }
   } as unknown as GenerateContextType
 
@@ -200,10 +196,9 @@ Deno.test('ModelDriver', async t => {
         variant: 'main'
       })
 
-      assertEquals(
-        context.findPendingDefinition({ name: refName, exportPath: driver.settings.exportPath }),
-        undefined
-      )
+      const file = context.getFile(driver.settings.exportPath)
+
+      assertEquals(file instanceof CodeFileBase ? file.pendingDefinitions.size : undefined, 0)
       assertEquals(context.pendingStack, [])
     })
 

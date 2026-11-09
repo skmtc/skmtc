@@ -1,5 +1,6 @@
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import type { DefinitionBase } from '@/dsl/Definition.ts'
 
 type PendingDefinitionArgs = {
   identifier: IdentifierBase
@@ -8,7 +9,12 @@ type PendingDefinitionArgs = {
 }
 
 /**
- * A model whose projection is being constructed. The `ModelDriver` puts it
+ * A model whose projection is being constructed: the pending state of a
+ * Definition. `findDefinition` returns `DefinitionBase | PendingDefinition`,
+ * as a schema lookup returns `OasSchema | OasRef`, and `isPending()` tells
+ * the two apart, as `isRef()` does.
+ *
+ * The `ModelDriver` puts it
  * in the model's File before it runs the projection's constructor, and takes
  * it out when the constructor returns, just before it registers the
  * Definition.
@@ -47,4 +53,37 @@ export class PendingDefinition {
     this.generatorKey = generatorKey
     this.options = options
   }
+
+  /** True: the model's projection is being constructed, so there is no value yet. */
+  isPending(): this is PendingDefinition {
+    return true
+  }
+}
+
+type AssertNotPendingArgs = {
+  name: string
+  exportPath: string
+}
+
+/**
+ * `found`, where only a constructed Definition can serve: an operation's
+ * Definition, an inline model, a container. Only a model is ever pending, so
+ * a pending one here shares the name and file of a model being constructed:
+ * a clash, which throws.
+ */
+export const assertNotPending = (
+  found: DefinitionBase | PendingDefinition | undefined,
+  { name, exportPath }: AssertNotPendingArgs
+): DefinitionBase | undefined => {
+  if (found === undefined) {
+    return undefined
+  }
+
+  if (found.isPending()) {
+    throw new Error(
+      `Registered definition mismatch: '${name}' in file '${exportPath}' is a model being constructed (key '${found.generatorKey}').`
+    )
+  }
+
+  return found
 }

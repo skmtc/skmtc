@@ -134,30 +134,29 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
   }
 
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): DefinitionBase<V> {
-    const cachedDefinition = this.context.findDefinition({
-      name: identifier.name,
-      exportPath
-    })
-
-    if (this.affirmDefinition<V>(cachedDefinition, exportPath)) {
-      return cachedDefinition
-    }
-
     const generatorKey = toModelGeneratorKey({
       generatorId: this.projection.id,
       refName: this.refName,
       variant: this.settings.variant
     })
 
-    const pending = this.context.findPendingDefinition({ name: identifier.name, exportPath })
+    // One lookup: a constructed Definition, or the pending marker of a model
+    // whose projection is being constructed further up the stack.
+    const found = this.context.findDefinition({ name: identifier.name, exportPath })
 
-    if (pending) {
-      assertSameKey({ name: identifier.name, exportPath, cachedKey: pending.generatorKey, generatorKey })
-      assertSameOptions({ name: identifier.name, exportPath, cachedOptions: pending.options, options: this.options })
+    if (found !== undefined) {
+      if (found.isPending()) {
+        assertSameKey({ name: identifier.name, exportPath, cachedKey: found.generatorKey, generatorKey })
+        assertSameOptions({ name: identifier.name, exportPath, cachedOptions: found.options, options: this.options })
 
-      throw new Error(
-        `'${identifier.name}' in file '${exportPath}' is being constructed further up the stack. A reference back to it goes through toModelRef, which returns it suspended; a second projection would never finish.`
-      )
+        throw new Error(
+          `'${identifier.name}' in file '${exportPath}' is being constructed further up the stack. A reference back to it goes through toModelRef, which returns it suspended; a second projection would never finish.`
+        )
+      }
+
+      if (this.affirmDefinition<V>(found, exportPath)) {
+        return found
+      }
     }
 
     // The marker is in the File while the constructor runs: an insert of this
@@ -338,7 +337,11 @@ const stitchModelImport = ({ context, lang, identifier, exportPath, destinationP
  */
 export const isModelPending = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
   args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
-): boolean => toPendingDefinition(args) !== undefined
+): boolean => {
+  const found = toReferencedDefinition(args)
+
+  return found !== undefined && found.isPending()
+}
 
 /**
  * Whether a reference to `projection`'s model for `refName`, made now, is
@@ -349,19 +352,18 @@ export const isModelPending = <V extends GeneratedValue, EnrichmentType, Project
 export const isReferenceDeferred = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
   args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
 ): boolean => {
-  const settings = toReferencedSettings(args)
-  const location = { name: settings.identifier.name, exportPath: settings.exportPath }
+  const found = toReferencedDefinition(args)
 
-  if (args.context.findPendingDefinition(location)) {
-    return true
+  if (found === undefined) {
+    return false
   }
 
-  return toOpenReaches(args.context.findDefinition(location)).length > 0
+  return found.isPending() || toOpenReaches(found).length > 0
 }
 
 /** The models `definition`'s construction reached that are still pending. */
-const toOpenReaches = (definition: DefinitionBase | undefined): PendingDefinition[] =>
-  [...(definition?.reaches ?? [])].filter(reached => reached.pending)
+const toOpenReaches = (definition: DefinitionBase): PendingDefinition[] =>
+  [...(definition.reaches ?? [])].filter(reached => reached.pending)
 
 /**
  * Whether anything referred back to the model of `settings` while its
@@ -370,12 +372,12 @@ const toOpenReaches = (definition: DefinitionBase | undefined): PendingDefinitio
  * value is built, while the model is still pending.
  */
 export const isReferencedBack = ({ context, settings }: IsReferencedBackArgs): boolean => {
-  const pending = context.findPendingDefinition({
+  const found = context.findDefinition({
     name: settings.identifier.name,
     exportPath: settings.exportPath
   })
 
-  return pending !== undefined && pending.backReferences > 0
+  return found !== undefined && found.isPending() && found.backReferences > 0
 }
 
 type IsReferencedBackArgs = {
@@ -383,13 +385,13 @@ type IsReferencedBackArgs = {
   settings: { identifier: { name: string }; exportPath: string }
 }
 
-/** The settings of the model a reference names, and its marker when it is pending. */
-const toPendingDefinition = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
+/** What the File holds for the model a reference names: its Definition, its pending marker, or nothing. */
+const toReferencedDefinition = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
   args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
-): PendingDefinition | undefined => {
+): DefinitionBase | PendingDefinition | undefined => {
   const settings = toReferencedSettings(args)
 
-  return args.context.findPendingDefinition({
+  return args.context.findDefinition({
     name: settings.identifier.name,
     exportPath: settings.exportPath
   })
@@ -444,12 +446,14 @@ export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionO
 ): ModelRef<V, EnrichmentType> => {
   const { context, projection, refName, destinationPath, variant = DEFAULT_VARIANT } = args
   const settings = toReferencedSettings(args)
-  const pending = context.findPendingDefinition({
+  const found = context.findDefinition({
     name: settings.identifier.name,
     exportPath: settings.exportPath
   })
 
-  if (pending) {
+  if (found !== undefined && found.isPending()) {
+    const pending = found
+
     const generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName, variant })
 
     assertSameKey({
