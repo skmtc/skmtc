@@ -27,7 +27,10 @@ own: a `marketplace.json` entry whose source is the `skmtc-cli/` folder, with no
 `plugin.json`. It stays out of `skmtc` because its CI deploy steps read
 `$SKMTC_HUB_TOKEN` and its install step runs `curl … | sh`, which the directory
 holds for review. So `skmtc-cli/` must not link to files outside its folder: an
-install copies only that folder. Both plugins share one version, which
+install copies only that folder. The `skmtc` marketplace entry lists
+`skmtc-cli` under `dependencies`, so installing `skmtc` installs both. The
+dependency is in `marketplace.json`, not `plugin.json`, so the directory copy
+of `skmtc` depends on nothing. Both plugins share one version, which
 `deno task bump-plugin` moves together.
 
 ### Published
