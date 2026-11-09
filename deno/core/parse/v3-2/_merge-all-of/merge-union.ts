@@ -68,6 +68,16 @@ type MergeCrossProductArgs = {
   groupType: 'oneOf' | 'anyOf'
 }
 
+/**
+ * The `system` a member's own `allOf` merges under: the `client.json`
+ * setting, also in the first pass over a cross product's pairs.
+ */
+export const toOwnSystem = (system: MergeSystem): MergeSystem => ({
+  ...system,
+  allOf: system.setting ?? system.allOf,
+  setting: undefined
+})
+
 /** Arguments for {@link mergePairs}. */
 type MergePairsArgs = {
   pairs: [SchemaOrReference, SchemaOrReference][]
@@ -82,6 +92,12 @@ type MergePairsArgs = {
  * under `strict`. Only when every pair contradicts does `latestWins` merge
  * them again, the later member winning, without duplicates: Cloudflare's
  * collections say `result` is an object or a string, then an array.
+ *
+ * The first pass is strict between the two members of a pair only. A
+ * member's own `allOf` merges under the `client.json` setting
+ * ({@link toOwnSystem}). Inside an outer first pass under `latestWins`, a
+ * cross product with no pair that merges fails its pair: the outer pass then
+ * leaves the pair out, or lets the later member win.
  */
 const mergePairs = ({ pairs, merge, system }: MergePairsArgs): SchemaOrReference[] => {
   const mergeEach = (pairSystem: MergeSystem): SchemaOrReference[] =>
@@ -93,9 +109,17 @@ const mergePairs = ({ pairs, merge, system }: MergePairsArgs): SchemaOrReference
       }
     })
 
-  const strict = mergeEach({ ...system, allOf: 'strict' })
+  const strict = mergeEach({ ...system, allOf: 'strict', setting: system.setting ?? system.allOf })
 
-  if (strict.length > 0 || system.allOf === 'strict') {
+  if (strict.length > 0) {
+    return strict
+  }
+
+  if (system.allOf === 'strict' && system.setting === 'latestWins') {
+    throw new Error('No pair of the cross product merges')
+  }
+
+  if (system.allOf === 'strict') {
     return strict
   }
 

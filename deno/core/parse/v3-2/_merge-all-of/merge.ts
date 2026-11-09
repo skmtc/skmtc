@@ -21,7 +21,7 @@ import { mergeBooleanConstraints } from './merge-boolean-constraints.ts'
 import { genericMerge } from './generic-merge.ts'
 import { checkAtLeastOneTypeMatch } from './check-at-least-one-type-match.ts'
 import { mergeIntersection } from './merge-intersection.ts'
-import { collapseNullOnlyUnion, mergeCrossProduct } from './merge-union.ts'
+import { collapseNullOnlyUnion, mergeCrossProduct, toOwnSystem } from './merge-union.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
 import { isNullOnly, mergeNullOnly } from './nullable-merge.ts'
 
@@ -52,12 +52,15 @@ export const mergeSchemasOrRefs = ({
   }
 
   if (containsAllOf(first) || containsAllOf(second)) {
+    // Each member's own `allOf` merges under the `client.json` setting, also in
+    // the strict first pass over a cross product's pairs.
+    const ownSystem = toOwnSystem(system)
     const mergedFirst = containsAllOf(first)
-      ? mergeIntersection({ schema: first, getRef, normalize, system })
+      ? mergeIntersection({ schema: first, getRef, normalize, system: ownSystem })
       : first
 
     const mergedSecond = containsAllOf(second)
-      ? mergeIntersection({ schema: second, getRef, normalize, system })
+      ? mergeIntersection({ schema: second, getRef, normalize, system: ownSystem })
       : second
 
     return mergeSchemasOrRefs({ first: mergedFirst, second: mergedSecond, getRef, normalize, system })

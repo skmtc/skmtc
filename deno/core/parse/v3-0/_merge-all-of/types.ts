@@ -12,6 +12,12 @@ export type MergeSystem = {
   allOf: 'strict' | 'latestWins'
   /** `unknown`: a member with `not` merges, its `not` carried as written. Left out: `strict`, which refuses it. */
   not?: 'strict' | 'unknown'
+  /**
+   * `client.json` `system.allOf`, kept while the first pass over a cross
+   * product's pairs sets `allOf` to `strict`. A member's own `allOf` merges
+   * under this setting in every pass. Left out: `allOf` is the setting.
+   */
+  setting?: 'strict' | 'latestWins'
   replaced: Set<string>
 }
 
