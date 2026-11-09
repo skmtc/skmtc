@@ -38,3 +38,35 @@ Deno.test('strict, the default: a contradiction still fails the merge, and nothi
   assertThrows(() => mergeIntersection({ schema: envelope, getRef, normalize: (schema: OpenAPIV3.SchemaObject) => schema, system: strict }), Error, 'enum values have no intersection')
   assertEquals(strict.replaced.size, 0)
 })
+
+Deno.test('latestWins: in a cross product, the pairs that do not contradict are kept as under strict', () => {
+  // Cloudflare's observability needle: any scalar, and a string of at most 1000 characters.
+  const latestWins = system('latestWins')
+  const schema: OpenAPIV3.SchemaObject = {
+    allOf: [
+      { anyOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }] },
+      { type: 'string', maxLength: 1000 }
+    ]
+  }
+
+  // The trap: the later string replaced each member, and the union held the same string three times.
+  assertEquals(mergeIntersection({ schema, getRef, normalize: (schema: OpenAPIV3.SchemaObject) => schema, system: latestWins }), {
+    anyOf: [{ type: 'string', maxLength: 1000 }]
+  })
+  assertEquals(latestWins.replaced.size, 0)
+})
+
+Deno.test('latestWins: when every pair of a cross product contradicts, the later member wins in each, once', () => {
+  // Cloudflare's collections: the common response says an object or a string, the collection an array.
+  const latestWins = system('latestWins')
+  const schema: OpenAPIV3.SchemaObject = {
+    allOf: [{ anyOf: [{ type: 'object' }, { type: 'string' }] }, { type: 'array', items: { type: 'string' } }]
+  }
+
+  assertEquals(mergeIntersection({ schema, getRef, normalize: (schema: OpenAPIV3.SchemaObject) => schema, system: latestWins }), {
+    anyOf: [{ type: 'array', items: { type: 'string' } }]
+  })
+  assertEquals([...latestWins.replaced], ['type'])
+  // Under strict, no pair is left.
+  assertEquals(mergeIntersection({ schema, getRef, normalize: (schema: OpenAPIV3.SchemaObject) => schema, system: system('strict') }), { anyOf: [] })
+})

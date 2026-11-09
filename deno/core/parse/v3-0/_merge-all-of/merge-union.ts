@@ -53,6 +53,42 @@ type MergeCrossProductArgs = {
   groupType: 'oneOf' | 'anyOf'
 }
 
+/** Arguments for {@link mergePairs}. */
+type MergePairsArgs = {
+  pairs: [SchemaOrReference, SchemaOrReference][]
+  /** Merges one pair of the cross product under `pairSystem`. */
+  merge: (pair: [SchemaOrReference, SchemaOrReference], pairSystem: MergeSystem) => SchemaOrReference
+  system: MergeSystem
+}
+
+/**
+ * The merge of each pair of the cross product whose members do not
+ * contradict. Such a pair is no value of the union, so it is left out, as
+ * under `strict`. Only when every pair contradicts does `latestWins` merge
+ * them again, the later member winning, without duplicates: Cloudflare's
+ * collections say `result` is an object or a string, then an array.
+ */
+const mergePairs = ({ pairs, merge, system }: MergePairsArgs): SchemaOrReference[] => {
+  const mergeEach = (pairSystem: MergeSystem): SchemaOrReference[] =>
+    pairs.flatMap(pair => {
+      try {
+        return [merge(pair, pairSystem)]
+      } catch (_error) {
+        return []
+      }
+    })
+
+  const strict = mergeEach({ allOf: 'strict', replaced: system.replaced })
+
+  if (strict.length > 0 || system.allOf === 'strict') {
+    return strict
+  }
+
+  const latest = mergeEach(system).map(item => ({ item, key: JSON.stringify(item) }))
+
+  return latest.filter(({ key }, index) => latest.findIndex(other => other.key === key) === index).map(({ item }) => item)
+}
+
 export const mergeCrossProduct = ({
   first,
   second,
@@ -63,17 +99,12 @@ export const mergeCrossProduct = ({
   const firstGroup = Array.isArray(first[groupType]) ? first[groupType] : [first]
   const secondGroup = Array.isArray(second[groupType]) ? second[groupType] : [second]
 
-  const mergedGroup = crossProduct(firstGroup, secondGroup)
-    .map(([firstItem, secondItem]) => {
-      try {
-        const result = mergeSchemasOrRefs({ first: firstItem, second: secondItem, getRef, system })
-
-        return result
-      } catch (_error) {
-        return undefined
-      }
-    })
-    .filter(item => item !== undefined)
+  const mergedGroup = mergePairs({
+    pairs: crossProduct(firstGroup, secondGroup),
+    merge: ([firstItem, secondItem], pairSystem) =>
+      mergeSchemasOrRefs({ first: firstItem, second: secondItem, getRef, system: pairSystem }),
+    system
+  })
 
   return {
     [groupType]: mergedGroup.flatMap(item => {

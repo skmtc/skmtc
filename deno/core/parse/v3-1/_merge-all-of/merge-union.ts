@@ -68,6 +68,42 @@ type MergeCrossProductArgs = {
   groupType: 'oneOf' | 'anyOf'
 }
 
+/** Arguments for {@link mergePairs}. */
+type MergePairsArgs = {
+  pairs: [SchemaOrReference, SchemaOrReference][]
+  /** Merges one pair of the cross product under `pairSystem`. */
+  merge: (pair: [SchemaOrReference, SchemaOrReference], pairSystem: MergeSystem) => SchemaOrReference
+  system: MergeSystem
+}
+
+/**
+ * The merge of each pair of the cross product whose members do not
+ * contradict. Such a pair is no value of the union, so it is left out, as
+ * under `strict`. Only when every pair contradicts does `latestWins` merge
+ * them again, the later member winning, without duplicates: Cloudflare's
+ * collections say `result` is an object or a string, then an array.
+ */
+const mergePairs = ({ pairs, merge, system }: MergePairsArgs): SchemaOrReference[] => {
+  const mergeEach = (pairSystem: MergeSystem): SchemaOrReference[] =>
+    pairs.flatMap(pair => {
+      try {
+        return [merge(pair, pairSystem)]
+      } catch (_error) {
+        return []
+      }
+    })
+
+  const strict = mergeEach({ allOf: 'strict', replaced: system.replaced })
+
+  if (strict.length > 0 || system.allOf === 'strict') {
+    return strict
+  }
+
+  const latest = mergeEach(system).map(item => ({ item, key: JSON.stringify(item) }))
+
+  return latest.filter(({ key }, index) => latest.findIndex(other => other.key === key) === index).map(({ item }) => item)
+}
+
 export const mergeCrossProduct = ({
   first,
   second,
@@ -91,20 +127,15 @@ export const mergeCrossProduct = ({
     firstGroup.length !== firstMembers.length ||
     secondGroup.length !== secondMembers.length
 
-  const mergedGroup = crossProduct(
-    withGroupSiblings({ schema: first, members: firstGroup, getRef, normalize, system, groupType }),
-    withGroupSiblings({ schema: second, members: secondGroup, getRef, normalize, system, groupType })
-  )
-    .map(([firstItem, secondItem]) => {
-      try {
-        const result = mergeSchemasOrRefs({ first: firstItem, second: secondItem, getRef, normalize, system })
-
-        return result
-      } catch (_error) {
-        return undefined
-      }
-    })
-    .filter(item => item !== undefined)
+  const mergedGroup = mergePairs({
+    pairs: crossProduct(
+      withGroupSiblings({ schema: first, members: firstGroup, getRef, normalize, system, groupType }),
+      withGroupSiblings({ schema: second, members: secondGroup, getRef, normalize, system, groupType })
+    ),
+    merge: ([firstItem, secondItem], pairSystem) =>
+      mergeSchemasOrRefs({ first: firstItem, second: secondItem, getRef, normalize, system: pairSystem }),
+    system
+  })
 
   // A nested group is spread into this one below; its `nullable` carries over.
   const nestedNullable = mergedGroup.some(
