@@ -1,5 +1,5 @@
 import { CodeFileBase, matchDefinitions } from '@skmtc/core'
-import { toImportModule } from './toImportModule.ts'
+import { toRenderedModule } from './toImportModule.ts'
 import type { ClientSettings, ModulePackage, DefinitionBase, IdentifierBase, PendingDefinition } from '@skmtc/core'
 import { TsImport } from './TsImport.ts'
 import type { TsDefinition } from './TsDefinition.ts'
@@ -232,13 +232,7 @@ export class TsFile extends CodeFileBase {
 
   /** The module as this file writes it: rewritten by package when `packages` is set. */
   #toRenderedModule(module: string): string {
-    return this.packages
-      ? toImportModule({
-          destinationPath: this.path,
-          module,
-          packages: this.packages
-        })
-      : module
+    return toRenderedModule({ destinationPath: this.path, module, packages: this.packages })
   }
 }
 
