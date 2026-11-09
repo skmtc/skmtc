@@ -5,6 +5,7 @@ import { isEmpty } from '@/helpers/isEmpty.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
+import { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { toArray } from '@/parse/v3-1/array/toArray.ts'
 import { toObject } from '../object/toObject.ts'
 import { toInteger } from '../integer/toInteger.ts'
@@ -191,11 +192,34 @@ export const toSchemaV3 = ({
 
   // OpenAPI `not` has no faithful TypeScript representation: a generated type
   // that ignored it would *widen* the contract (accepting shapes the schema
-  // forbids). Refuse the schema rather than emit a type that lies. The throw
-  // is isolated by `tryParseAt` into an `INVALID_SCHEMA` issue, and consumers
-  // of this schema are pruned via `removeErroredItems` (INVALID_DEPENDENCY_REF).
+  // forbids). Under `client.json` `system.not: strict` (the default) the schema
+  // is refused rather than emit a type that lies. The throw is isolated by
+  // `tryParseAt` into an `INVALID_SCHEMA` issue, and consumers of this schema
+  // are pruned via `removeErroredItems` (INVALID_DEPENDENCY_REF).
+  //
+  // Under `system.not: unknown` the schema parses with its other keywords, and
+  // its `not` is kept as an `OasUnknown` that core does not read: a generator
+  // can see that the document says "not something".
   if ('not' in schema) {
-    throw new Error('Schema uses unsupported "not" keyword')
+    // A test's mock context may have no `system`.
+    if (context.system?.not !== 'unknown') {
+      throw new Error('Schema uses unsupported "not" keyword')
+    }
+
+    const { not: _not, ...keywords } = schema
+    const parsed = toSchemaV3({ schema: keywords, stackTrail, context })
+
+    // Only a one-member `allOf` of a `$ref` parses to a reference, and a
+    // reference has no field for a `not`. Fail rather than lose it.
+    if (parsed.isRef()) {
+      throw new Error('Schema uses "not" next to a one-member allOf reference, which cannot keep it')
+    }
+
+    parsed.not = stackTrail.trace('not', notTrail =>
+      context.withStackTrail(notTrail, () => new OasUnknown({}, context))
+    )
+
+    return parsed
   }
 
   const normalized = normalizeSchemaShape(schema)

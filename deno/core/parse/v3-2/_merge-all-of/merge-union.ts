@@ -93,7 +93,7 @@ const mergePairs = ({ pairs, merge, system }: MergePairsArgs): SchemaOrReference
       }
     })
 
-  const strict = mergeEach({ allOf: 'strict', replaced: system.replaced })
+  const strict = mergeEach({ ...system, allOf: 'strict' })
 
   if (strict.length > 0 || system.allOf === 'strict') {
     return strict

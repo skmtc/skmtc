@@ -47,6 +47,13 @@ export class OasUnknown extends OasBase {
   example: unknown | undefined
   /** Whether the unknown type is nullable */
   nullable: boolean | undefined
+  /**
+   * The schema's `not`, kept as an `OasUnknown` under `client.json`
+   * `system.not: unknown`: the document says "not something", and core does
+   * not read what. `undefined` otherwise.
+   */
+  not: OasUnknown | undefined = undefined
+
   constructor(fields: UnknownFields = {}, context?: ParseContextType) {
     super(context)
     this.title = fields.title
@@ -85,6 +92,7 @@ export class OasUnknown extends OasBase {
       nullable,
     })
     copy.stackTrail = this.stackTrail
+    copy.not = this.not
 
     return copy
   }

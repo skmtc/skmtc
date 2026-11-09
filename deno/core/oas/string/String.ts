@@ -1,3 +1,4 @@
+import type { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
 import { toSiblingAnnotations, toSiblingEnums, toSiblingValue, isStringValue } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
@@ -105,6 +106,13 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
    * Whether the string is deprecated.
    */
   deprecated: boolean | undefined
+  /**
+   * The schema's `not`, kept as an `OasUnknown` under `client.json`
+   * `system.not: unknown`: the document says "not something", and core does
+   * not read what. `undefined` otherwise.
+   */
+  not: OasUnknown | undefined = undefined
+
   constructor(fields: StringFields<Nullable> = {}, context?: ParseContextType) {
     super(context)
     this.title = fields.title
@@ -161,6 +169,7 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
       deprecated: ref?.deprecated ?? this.deprecated,
     })
     copy.stackTrail = this.stackTrail
+    copy.not = this.not
 
     return copy
   }

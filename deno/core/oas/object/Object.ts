@@ -1,3 +1,4 @@
+import type { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
 import { toSiblingAnnotations, toSiblingEnums, toSiblingValue, isObjectValue } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
@@ -241,6 +242,13 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
    * });
    * ```
    */
+  /**
+   * The schema's `not`, kept as an `OasUnknown` under `client.json`
+   * `system.not: unknown`: the document says "not something", and core does
+   * not read what. `undefined` otherwise.
+   */
+  not: OasUnknown | undefined = undefined
+
   constructor(fields: OasObjectFields<Nullable> = {}, context?: ParseContextType) {
     super(context)
     this.title = fields.title
@@ -446,6 +454,7 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
       enums: toSiblingEnums(ref?.enums, isObjectValue, nullable) ?? this.enums,
     })
     copy.stackTrail = this.stackTrail
+    copy.not = this.not
 
     return copy
   }

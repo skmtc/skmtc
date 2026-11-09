@@ -204,7 +204,7 @@ const mergeChecked = ({ first, second, getRef, normalize, system }: MergeArgs<Sc
   checkNumberConstraintsConflicts(first, second)
   checkArrayItemTypeConflicts(first, second, normalize)
 
-  if (first.not || second.not) {
+  if ((first.not || second.not) && system.not !== 'unknown') {
     throw new Error('Merging schemas with "not" keyword is not supported')
   }
 

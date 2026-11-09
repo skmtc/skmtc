@@ -17,6 +17,8 @@ export type NormalizeFn = (schema: OpenAPIV3.SchemaObject) => OpenAPIV3.SchemaOb
 export type MergeSystem = {
   /** `strict`: a contradiction between members fails the merge. `latestWins`: the later member's keyword wins. */
   allOf: 'strict' | 'latestWins'
+  /** `unknown`: a member with `not` merges, its `not` carried as written. Left out: `strict`, which refuses it. */
+  not?: 'strict' | 'unknown'
   replaced: Set<string>
 }
 

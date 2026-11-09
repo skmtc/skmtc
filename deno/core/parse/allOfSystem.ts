@@ -4,6 +4,7 @@ import type { StackTrail } from '@/context/StackTrail.ts'
 /** What the `allOf` merge reads of `client.json#settings.system`, and what it reports back. */
 type AllOfSystem = {
   allOf: 'strict' | 'latestWins'
+  not: 'strict' | 'unknown'
   /** The keywords a later member replaced under `latestWins`. */
   replaced: Set<string>
 }
@@ -16,6 +17,7 @@ type AllOfSystem = {
 export const toAllOfSystem = (context: ParseContextType): AllOfSystem => ({
   // A test's mock context may have no `system`.
   allOf: context.system?.allOf ?? 'strict',
+  not: context.system?.not ?? 'strict',
   replaced: new Set()
 })
 

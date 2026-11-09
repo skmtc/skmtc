@@ -1,3 +1,4 @@
+import type { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
 import { toSiblingAnnotations, toSiblingEnums, toSiblingValue, isBooleanValue } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
@@ -89,6 +90,13 @@ export class OasBoolean<
    *                  enabled, the current StackTrail is snapshotted onto the
    *                  instance (via the {@link OasBase} base).
    */
+  /**
+   * The schema's `not`, kept as an `OasUnknown` under `client.json`
+   * `system.not: unknown`: the document says "not something", and core does
+   * not read what. `undefined` otherwise.
+   */
+  not: OasUnknown | undefined = undefined
+
   constructor(fields: BooleanFields<Nullable> = {}, context?: ParseContextType) {
     super(context)
     this.title = fields.title
@@ -142,6 +150,7 @@ export class OasBoolean<
       deprecated: ref?.deprecated ?? this.deprecated,
     })
     copy.stackTrail = this.stackTrail
+    copy.not = this.not
 
     return copy
   }

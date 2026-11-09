@@ -10,6 +10,8 @@ export type GetRefFn = (ref: OpenAPIV3.ReferenceObject) => OpenAPIV3.SchemaObjec
 export type MergeSystem = {
   /** `strict`: a contradiction between members fails the merge. `latestWins`: the later member's keyword wins. */
   allOf: 'strict' | 'latestWins'
+  /** `unknown`: a member with `not` merges, its `not` carried as written. Left out: `strict`, which refuses it. */
+  not?: 'strict' | 'unknown'
   replaced: Set<string>
 }
 
