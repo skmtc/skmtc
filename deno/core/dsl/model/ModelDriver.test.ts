@@ -13,6 +13,8 @@ import { toModelGeneratorKey } from '../GeneratorKeys.ts'
 import type { GeneratorKey } from '../GeneratorKeys.ts'
 import type { Lang, LangToDefinitionArgs } from '@/dsl/Lang.ts'
 import { typescript } from '@skmtc/lang-typescript'
+import type { FileBase } from '@/dsl/FileBase.ts'
+import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
 
 // The Driver reads the projection's language off the projection CLASS — the
 // static `lang` inherited from the language snippet base (declared directly
@@ -108,6 +110,9 @@ class MockProjectionUnsupported extends MockProjection {
 }
 
 const createMockContext = (): GenerateContextType => {
+  // Files are kept: the Driver puts a model's pending marker in its File
+  // while the constructor runs, and looks markers up there.
+  const files = new Map<string, FileBase>()
   const mockContext = {
     modelDepth: {} as Record<string, number>,
     toModelContentSettings: spy(({ refName, variant }: { refName: RefName; variant: string }) => ({
@@ -120,8 +125,15 @@ const createMockContext = (): GenerateContextType => {
     register: spy(() => {}),
     // The Driver pre-ensures destination files caller-side through the
     // projection's static lang: file-miss → `addFile(lang.createFile(...))`.
-    getFile: spy(() => undefined),
-    addFile: spy(() => {}),
+    getFile: spy((path: string) => files.get(path)),
+    addFile: spy((file: FileBase) => {
+      files.set(file.path, file)
+      return file
+    }),
+    findPendingDefinition: ({ name, exportPath }: { name: string; exportPath: string }) => {
+      const file = files.get(exportPath)
+      return file instanceof CodeFileBase ? file.pendingDefinitions.get(name) : undefined
+    },
     stackTrail: { slice: () => ({ stackTrail: [] }) }
   } as unknown as GenerateContextType
 

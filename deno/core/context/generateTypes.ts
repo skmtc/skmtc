@@ -6,6 +6,7 @@ import type { ResultsItem } from '@/types/Results.ts'
 import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
+import type { PendingDefinition } from '@/dsl/PendingDefinition.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { OasOperationProjection } from '@/dsl/operation/oas/types.ts'
 import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
@@ -642,6 +643,8 @@ export type GenerateContextType = {
   ) => ContentSettings<EnrichmentType>
   resolveSchemaRefOnce: (refName: RefName, generatorId: string) => OasSchema | OasRef<'schema'>
   findDefinition: ({ name, exportPath, into }: FindDefinitionArgs) => DefinitionBase | undefined
+  /** The marker of a model named `name` in `exportPath` whose projection is being constructed, if any. */
+  findPendingDefinition: ({ name, exportPath }: PickArgs) => PendingDefinition | undefined
   /**
    * The recording enrichment accessor — the single choke point every
    * enrichment lookup routes through. Reads the node at

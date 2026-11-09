@@ -12,6 +12,8 @@ import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 import { readProjectionOptions, toValueOptions } from '@/types/ProjectionOptions.ts'
 import isEqual from 'lodash-es/isEqual'
 import type { Lang } from '@/dsl/Lang.ts'
+import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
+import { PendingDefinition } from '@/dsl/PendingDefinition.ts'
 
 /**
  * The `insertModel` call plus the context. The Driver defaults `variant`
@@ -124,6 +126,17 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
     return ensureFile({ context: this.context, lang: this.projection.lang, path })
   }
 
+  /** The code File at `path`, created through the projection's language on first use. */
+  private ensureCodeFile(path: string): CodeFileBase {
+    const file = this.context.getFile(this.ensureFile(path))
+
+    if (!(file instanceof CodeFileBase)) {
+      throw new Error(`File at '${path}' is not a code file: a model Definition cannot go there.`)
+    }
+
+    return file
+  }
+
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): DefinitionBase<V> {
     const cachedDefinition = this.context.findDefinition({
       name: identifier.name,
@@ -134,14 +147,40 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
       return cachedDefinition
     }
 
-    const value = new this.projection({
+    const generatorKey = toModelGeneratorKey({
+      generatorId: this.projection.id,
       refName: this.refName,
-      context: this.context,
-      settings: this.settings,
-      destinationPath: this.settings.exportPath,
-      rootRef: this.rootRef,
-      options: this.options
+      variant: this.settings.variant
     })
+
+    const pending = this.context.findPendingDefinition({ name: identifier.name, exportPath })
+
+    if (pending) {
+      assertSameKey({ name: identifier.name, exportPath, cachedKey: pending.generatorKey, generatorKey })
+      assertSameOptions({ name: identifier.name, exportPath, cachedOptions: pending.options, options: this.options })
+
+      throw new Error(
+        `'${identifier.name}' in file '${exportPath}' is being constructed further up the stack. A reference back to it goes through toModelRef, which returns it suspended; a second projection would never finish.`
+      )
+    }
+
+    // The marker is in the File while the constructor runs: an insert of this
+    // model from inside it (a cycle) finds the marker, not a cache miss. The
+    // Definition is registered after the constructor returns, so it lands
+    // after the models it refers to (post-order), as before the marker.
+    const file = this.ensureCodeFile(exportPath)
+    const marker = new PendingDefinition({ identifier, generatorKey, options: this.options })
+
+    const value = whilePending({ file, marker }, () =>
+      new this.projection({
+        refName: this.refName,
+        context: this.context,
+        settings: this.settings,
+        destinationPath: this.settings.exportPath,
+        rootRef: this.rootRef,
+        options: this.options
+      })
+    )
 
     const definition = this.projection.lang.toDefinition({
       context: this.context,
@@ -150,7 +189,6 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
       noExport: this.noExport
     })
 
-    this.ensureFile(exportPath)
     this.context.register({
       definitions: [definition],
       destinationPath: exportPath
@@ -173,11 +211,12 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
       variant: this.settings.variant
     })
 
-    if (currentKey !== definition.generatorKey) {
-      throw new Error(
-        `Registered definition mismatch: '${definition.identifier.name}' in file '${exportPath}'. Cached key '${definition.generatorKey}' does not match new key '${currentKey}'`
-      )
-    }
+    assertSameKey({
+      name: definition.identifier.name,
+      exportPath,
+      cachedKey: definition.generatorKey,
+      generatorKey: currentKey
+    })
 
     if (!(definition.value instanceof this.projection)) {
       return false
@@ -185,15 +224,62 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
 
     // Options are identity, like the variant, but cannot ride the key: a hit
     // is checked against the options its value was built with.
-    const cachedOptions = toValueOptions(definition.value)
-
-    if (!isEqual(cachedOptions, this.options)) {
-      throw new Error(
-        `Registered definition mismatch: '${definition.identifier.name}' in file '${exportPath}'. Cached options ${JSON.stringify(cachedOptions)} do not match new options ${JSON.stringify(this.options)}. Fold options into toIdentifierName.`
-      )
-    }
+    assertSameOptions({
+      name: definition.identifier.name,
+      exportPath,
+      cachedOptions: toValueOptions(definition.value),
+      options: this.options
+    })
 
     return true
+  }
+}
+
+type AssertSameKeyArgs = {
+  name: string
+  exportPath: string
+  cachedKey: string | undefined
+  generatorKey: string
+}
+
+/** Two generators, subjects or variants that claim one name in one file collide: `Registered definition mismatch`. */
+const assertSameKey = ({ name, exportPath, cachedKey, generatorKey }: AssertSameKeyArgs): void => {
+  if (cachedKey !== generatorKey) {
+    throw new Error(
+      `Registered definition mismatch: '${name}' in file '${exportPath}'. Cached key '${cachedKey}' does not match new key '${generatorKey}'`
+    )
+  }
+}
+
+type AssertSameOptionsArgs = {
+  name: string
+  exportPath: string
+  cachedOptions: unknown
+  options: unknown
+}
+
+/** One name in one file built with other caller options collides too: options are identity. */
+const assertSameOptions = ({ name, exportPath, cachedOptions, options }: AssertSameOptionsArgs): void => {
+  if (!isEqual(cachedOptions, options)) {
+    throw new Error(
+      `Registered definition mismatch: '${name}' in file '${exportPath}'. Cached options ${JSON.stringify(cachedOptions)} do not match new options ${JSON.stringify(options)}. Fold options into toIdentifierName.`
+    )
+  }
+}
+
+type WhilePendingArgs = {
+  file: CodeFileBase
+  marker: PendingDefinition
+}
+
+/** Run `construct` with `marker` in `file`, and take it out however `construct` ends. */
+const whilePending = <T>({ file, marker }: WhilePendingArgs, construct: () => T): T => {
+  file.pendingDefinitions.set(marker.identifier.name, marker)
+
+  try {
+    return construct()
+  } finally {
+    file.pendingDefinitions.delete(marker.identifier.name)
   }
 }
 
@@ -240,53 +326,108 @@ const stitchModelImport = ({ context, lang, identifier, exportPath, destinationP
   })
 }
 
-type IsModelOpenArgs = {
+/**
+ * Whether `projection`'s model for `refName` is pending: its projection is
+ * being constructed further up the stack, so a reference to it now is a
+ * back-reference, which {@link toModelRef} returns suspended. Answered from
+ * the model's File, as the cache probe is.
+ */
+export const isModelPending = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
+  args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
+): boolean => toPendingDefinition(args) !== undefined
+
+/**
+ * Whether anything referred back to the model of `settings` while its
+ * projection was being constructed: the model is recursive, on its own or in
+ * a cycle with others. Call it from the projection's constructor, after the
+ * value is built, while the model is still pending.
+ */
+export const isReferencedBack = ({ context, settings }: IsReferencedBackArgs): boolean => {
+  const pending = context.findPendingDefinition({
+    name: settings.identifier.name,
+    exportPath: settings.exportPath
+  })
+
+  return pending !== undefined && pending.backReferences > 0
+}
+
+type IsReferencedBackArgs = {
   context: GenerateContextType
-  projection: { id: string }
-  refName: RefName
+  settings: { identifier: { name: string }; exportPath: string }
+}
+
+/** The settings of the model a reference names, and its marker when it is pending. */
+const toPendingDefinition = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
+  args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
+): PendingDefinition | undefined => {
+  const settings = toReferencedSettings(args)
+
+  return args.context.findPendingDefinition({
+    name: settings.identifier.name,
+    exportPath: settings.exportPath
+  })
+}
+
+const toReferencedSettings = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
+  args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
+): ContentSettings<EnrichmentType> => {
+  const { context, projection, refName, variant = DEFAULT_VARIANT } = args
+
+  return context.toModelContentSettings({
+    refName,
+    projection,
+    variant,
+    options: readProjectionOptions<ProjectionOptions>(args)
+  })
 }
 
 /**
- * Whether `projection`'s model for `refName` is still being built further
- * up the walk: a reference to it now is a back-reference, which
- * {@link toModelRef} suspends.
- */
-export const isModelOpen = ({ context, projection, refName }: IsModelOpenArgs): boolean =>
-  context.modelDepth[`${projection.id}:${refName}`] > 0
-
-/**
  * What a ref snippet gets for a reference to a model: `suspended` when the
- * model is still being built further up the walk (a back-reference, which
- * the snippet renders deferred, e.g. `z.lazy(() => Name)`), else the
- * definition the Driver built or found.
+ * model is pending (a back-reference, which the snippet renders deferred,
+ * e.g. `z.lazy(() => Name)`: the value does not exist yet), else the
+ * Definition the Driver constructed or found.
  */
 export type ModelRef<V extends GeneratedValue, EnrichmentType> =
   | { suspended: true; settings: ContentSettings<EnrichmentType> }
   | { suspended: false; settings: ContentSettings<EnrichmentType>; definition: GeneratedDefinition<V> }
 
 /**
- * Reference a model from a ref snippet. A model still open on the build
- * stack (`modelDepth > 0`) is a back-reference: its depth is bumped, so its
- * projection can tell that it is recursive (`> 1`) once its value is built,
- * and its import is stitched into `destinationPath` as for any reference.
- * The import matters when the back-reference crosses files: in a cycle of
- * two or more models, the model that refers back lives in another file.
- * Any other model goes through the {@link ModelDriver}.
+ * Reference a model from a ref snippet. A pending model (its projection is
+ * being constructed further up the stack) is a back-reference: its marker
+ * counts it, so its projection can tell that it is recursive
+ * ({@link isReferencedBack}), and its import is stitched into
+ * `destinationPath` as for any reference. The import matters when the
+ * back-reference crosses files: in a cycle of two or more models, the model
+ * that refers back lives in another file. Any other model goes through the
+ * {@link ModelDriver}.
  */
 export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
   args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
 ): ModelRef<V, EnrichmentType> => {
   const { context, projection, refName, destinationPath, variant = DEFAULT_VARIANT } = args
+  const settings = toReferencedSettings(args)
+  const pending = context.findPendingDefinition({
+    name: settings.identifier.name,
+    exportPath: settings.exportPath
+  })
 
-  if (isModelOpen({ context, projection, refName })) {
-    context.modelDepth[`${projection.id}:${refName}`]++
+  if (pending) {
+    const generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName, variant })
 
-    const settings = context.toModelContentSettings({
-      refName,
-      projection,
-      variant,
+    assertSameKey({
+      name: settings.identifier.name,
+      exportPath: settings.exportPath,
+      cachedKey: pending.generatorKey,
+      generatorKey
+    })
+    assertSameOptions({
+      name: settings.identifier.name,
+      exportPath: settings.exportPath,
+      cachedOptions: pending.options,
       options: readProjectionOptions<ProjectionOptions>(args)
     })
+
+    pending.backReferences++
 
     stitchModelImport({
       context,
@@ -299,9 +440,9 @@ export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionO
     return { suspended: true, settings }
   }
 
-  const { settings, definition } = new ModelDriver(args)
+  const driver = new ModelDriver(args)
 
-  return { suspended: false, settings, definition }
+  return { suspended: false, settings: driver.settings, definition: driver.definition }
 }
 
 type AssertPeerVariantExistsArgs = {

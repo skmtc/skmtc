@@ -1,6 +1,7 @@
 import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 import { applyGeneratedSuffix, DEFAULT_GENERATED_SUFFIX } from '@/helpers/applyGeneratedSuffix.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
+import type { PendingDefinition } from '@/dsl/PendingDefinition.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
@@ -1738,6 +1739,16 @@ export class GenerateContext implements GenerateContextType {
     const place = into === undefined ? file : this.#findContainer(file, into)
 
     return place?.findDefinitions({ name })?.[0]
+  }
+
+  /**
+   * The marker of a model named `name` in `exportPath` whose projection is
+   * being constructed, or `undefined`. Pure lookup, like `findDefinition`.
+   */
+  findPendingDefinition({ name, exportPath }: PickArgs): PendingDefinition | undefined {
+    const file = this.getFile(exportPath)
+
+    return file instanceof CodeFileBase ? file.pendingDefinitions.get(name) : undefined
   }
 
   /**

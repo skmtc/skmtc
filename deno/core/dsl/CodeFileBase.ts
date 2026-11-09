@@ -3,6 +3,7 @@ import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { ImportBase } from '@/dsl/ImportBase.ts'
 import type { ReExportBase } from '@/dsl/ReExportBase.ts'
+import type { PendingDefinition } from '@/dsl/PendingDefinition.ts'
 
 /**
  * Query for {@link CodeFileBase.findDefinitions}. `name` filters by identifier
@@ -64,6 +65,13 @@ export const matchDefinitions = (
  * via `findDefinitions({ name })?.[0]`.
  */
 export abstract class CodeFileBase extends FileBase {
+  /**
+   * The models of this File whose projection is being constructed, by name.
+   * The cache probe sees them; render does not, and they hold no position
+   * among the Definitions. See {@link PendingDefinition}.
+   */
+  pendingDefinitions: Map<string, PendingDefinition> = new Map()
+
   /**
    * Add a definition, applying the language's duplication rule (e.g.
    * TypeScript declaration merging). Called by the engine's `register`.

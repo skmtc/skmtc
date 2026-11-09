@@ -1,0 +1,41 @@
+import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
+import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
+
+type PendingDefinitionArgs = {
+  identifier: IdentifierBase
+  generatorKey: GeneratorKey
+  options: unknown
+}
+
+/**
+ * A model whose projection is being constructed. The `ModelDriver` puts it
+ * in the model's File before it runs the projection's constructor, and takes
+ * it out when the constructor returns, just before it registers the
+ * Definition.
+ *
+ * An insert of the model from inside that constructor (a cycle: the model
+ * refers to itself, or to a model that refers back to it) finds this marker
+ * instead of a cache miss. It gets the model's identity, which is all a
+ * reference by name needs, and no value: the value does not exist yet. A
+ * second projection for the model is never constructed.
+ *
+ * The marker is present for the cache probe only. It takes no position among
+ * the File's Definitions, so each Definition still lands after the models it
+ * refers to (post-order), which keeps `const` declarations in one file in a
+ * working order. A marker left at render is an engine bug, and fails the run.
+ */
+export class PendingDefinition {
+  identifier: IdentifierBase
+  /** The key the Definition will carry: the identity check runs on the marker too. */
+  generatorKey: GeneratorKey
+  /** The caller's options the projection is constructed with: identity, like the key. */
+  options: unknown
+  /** How many inserts found the model pending: references back to it from inside its own construction. */
+  backReferences = 0
+
+  constructor({ identifier, generatorKey, options }: PendingDefinitionArgs) {
+    this.identifier = identifier
+    this.generatorKey = generatorKey
+    this.options = options
+  }
+}

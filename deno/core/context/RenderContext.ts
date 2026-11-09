@@ -121,6 +121,22 @@ type RenderOutput = {
   >
 }
 
+/**
+ * Fail the run if a model is still pending at render. The `ModelDriver`
+ * takes every marker out when the constructor returns, however it returns,
+ * so a marker left here is an engine bug: rendering would drop that
+ * Definition without a word.
+ */
+const assertNothingPending = (files: Map<string, FileBase>): void => {
+  const pending = [...files].flatMap(([path, file]) =>
+    file instanceof CodeFileBase ? [...file.pendingDefinitions.keys()].map(name => `'${name}' in '${path}'`) : []
+  )
+
+  if (pending.length > 0) {
+    throw new Error(`Definitions still pending at render, an engine bug: ${pending.join(', ')}`)
+  }
+}
+
 export class RenderContext {
   /** Map of generated files to render */
   files: Map<string, FileBase>
@@ -206,6 +222,8 @@ export class RenderContext {
    * ```
    */
   render(stackTrail: StackTrail): RenderPhaseResult {
+    assertNothingPending(this.files)
+
     const postPassConfig = this.attribution?.postPass
 
     // No emission configured → plain render, no capture: the capture
