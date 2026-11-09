@@ -11,6 +11,7 @@ import { toModelGeneratorKey } from '../GeneratorKeys.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 import { readProjectionOptions, toValueOptions } from '@/types/ProjectionOptions.ts'
 import isEqual from 'lodash-es/isEqual'
+import type { Lang } from '@/dsl/Lang.ts'
 
 /**
  * The `insertModel` call plus the context. The Driver defaults `variant`
@@ -102,20 +103,13 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
 
     const definition = this.getDefinition({ identifier, exportPath })
 
-    if (
-      destinationPath &&
-      normalizeWorkspacePath(exportPath) !== normalizeWorkspacePath(destinationPath)
-    ) {
-      // Cross-file import of the peer's identifier from its export path.
-      // The language builds the import object (`toImport`) and creates the
-      // destination file on first write (caller-side); the engine stores
-      // via the pure-data `context.register`.
-      this.ensureFile(destinationPath)
-      this.context.register({
-        imports: [this.projection.lang.toImport({ identifier, module: exportPath })],
-        destinationPath
-      })
-    }
+    stitchModelImport({
+      context: this.context,
+      lang: this.projection.lang,
+      identifier,
+      exportPath,
+      destinationPath
+    })
 
     return definition
   }
@@ -127,15 +121,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
    * cache-hit path). Returns the normalized path.
    */
   private ensureFile(path: string): string {
-    const normalizedPath = normalizeWorkspacePath(path)
-
-    if (!this.context.getFile(normalizedPath)) {
-      this.context.addFile(
-        this.projection.lang.createFile({ path: normalizedPath, settings: this.context.settings })
-      )
-    }
-
-    return normalizedPath
+    return ensureFile({ context: this.context, lang: this.projection.lang, path })
   }
 
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): DefinitionBase<V> {
@@ -209,6 +195,100 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
 
     return true
   }
+}
+
+type EnsureFileArgs = {
+  context: GenerateContextType
+  lang: Lang
+  path: string
+}
+
+/** Ensure the file at `path` exists, creating it through `lang` on first write. Returns the normalized path. */
+const ensureFile = ({ context, lang, path }: EnsureFileArgs): string => {
+  const normalizedPath = normalizeWorkspacePath(path)
+
+  if (!context.getFile(normalizedPath)) {
+    context.addFile(lang.createFile({ path: normalizedPath, settings: context.settings }))
+  }
+
+  return normalizedPath
+}
+
+type StitchModelImportArgs = {
+  context: GenerateContextType
+  lang: Lang
+  identifier: IdentifierBase
+  exportPath: string
+  destinationPath?: string
+}
+
+/**
+ * Import a model's identifier from its export path into `destinationPath`,
+ * unless the two are one file. The language builds the import object
+ * (`toImport`) and creates the destination file on first write; the engine
+ * stores it via the pure-data `context.register`.
+ */
+const stitchModelImport = ({ context, lang, identifier, exportPath, destinationPath }: StitchModelImportArgs): void => {
+  if (!destinationPath || normalizeWorkspacePath(exportPath) === normalizeWorkspacePath(destinationPath)) {
+    return
+  }
+
+  ensureFile({ context, lang, path: destinationPath })
+  context.register({
+    imports: [lang.toImport({ identifier, module: exportPath })],
+    destinationPath
+  })
+}
+
+/**
+ * What a ref snippet gets for a reference to a model: `suspended` when the
+ * model is still being built further up the walk (a back-reference, which
+ * the snippet renders deferred, e.g. `z.lazy(() => Name)`), else the
+ * definition the Driver built or found.
+ */
+export type ModelRef<V extends GeneratedValue, EnrichmentType> =
+  | { suspended: true; settings: ContentSettings<EnrichmentType> }
+  | { suspended: false; settings: ContentSettings<EnrichmentType>; definition: GeneratedDefinition<V> }
+
+/**
+ * Reference a model from a ref snippet. A model still open on the build
+ * stack (`modelDepth > 0`) is a back-reference: its depth is bumped, so its
+ * projection can tell that it is recursive (`> 1`) once its value is built,
+ * and its import is stitched into `destinationPath` as for any reference.
+ * The import matters when the back-reference crosses files: in a cycle of
+ * two or more models, the model that refers back lives in another file.
+ * Any other model goes through the {@link ModelDriver}.
+ */
+export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
+  args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
+): ModelRef<V, EnrichmentType> => {
+  const { context, projection, refName, destinationPath, variant = DEFAULT_VARIANT } = args
+  const depthKey = `${projection.id}:${refName}`
+
+  if (context.modelDepth[depthKey] > 0) {
+    context.modelDepth[depthKey]++
+
+    const settings = context.toModelContentSettings({
+      refName,
+      projection,
+      variant,
+      options: readProjectionOptions<ProjectionOptions>(args)
+    })
+
+    stitchModelImport({
+      context,
+      lang: projection.lang,
+      identifier: settings.identifier,
+      exportPath: settings.exportPath,
+      destinationPath
+    })
+
+    return { suspended: true, settings }
+  }
+
+  const { settings, definition } = new ModelDriver(args)
+
+  return { suspended: false, settings, definition }
 }
 
 type AssertPeerVariantExistsArgs = {
