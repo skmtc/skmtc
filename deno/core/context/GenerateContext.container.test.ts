@@ -58,20 +58,18 @@ const createContext = () =>
 class TestFile extends CodeFileBase {
   definitions: DefinitionBase[] = []
 
-  override addDefinition(definition: DefinitionBase): void {
-    this.definitions.push(definition)
+  // No model is pending in these tests: containers only.
+  override addDefinition(entry: DefinitionBase | PendingDefinition): void {
+    if (entry.isPending()) {
+      throw new Error('not used here')
+    }
+
+    this.definitions.push(entry)
   }
   override addImports(_imports: ImportBase[]): void {}
   override addReExports(_reExports: ReExportBase[]): void {}
   override findDefinitions(query?: FindDefinitionsQuery): DefinitionBase[] | undefined {
     return matchDefinitions(this.definitions, query, () => undefined)
-  }
-  // No model is pending in these tests: containers only.
-  override addPendingDefinition(_pending: PendingDefinition): void {
-    throw new Error('not used here')
-  }
-  override resolvePendingDefinition(_pending: PendingDefinition, _definition: DefinitionBase): void {
-    throw new Error('not used here')
   }
   override removePendingDefinition(_pending: PendingDefinition): void {}
   override findPendingDefinitions(_name?: string): PendingDefinition[] {

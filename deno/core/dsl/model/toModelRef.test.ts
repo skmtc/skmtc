@@ -209,7 +209,7 @@ Deno.test('the Driver refuses to construct a second projection for a pending mod
   // would never finish.
   const { Model, context } = toModels({})
   const file = context.addFile(new TsFile({ path: '@/types/Loop.generated.ts', settings: undefined }))
-  file.addPendingDefinition(
+  file.addDefinition(
     new PendingDefinition({
       identifier: createVariable('Loop'),
       generatorKey: toModelGeneratorKey({ generatorId: '@test/models', refName: 'Loop' as RefName, variant: 'main' }),
@@ -222,7 +222,7 @@ Deno.test('the Driver refuses to construct a second projection for a pending mod
 
 Deno.test('render fails the run when a pending entry is left', () => {
   const file = new TsFile({ path: '@/types/Left.ts', settings: undefined })
-  file.addPendingDefinition(
+  file.addDefinition(
     new PendingDefinition({
       identifier: createVariable('Left'),
       generatorKey: toModelGeneratorKey({ generatorId: '@test/models', refName: 'Left' as RefName, variant: 'main' }),

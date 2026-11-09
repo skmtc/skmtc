@@ -78,21 +78,18 @@ export class MockFile extends CodeFileBase {
     super({ path })
   }
 
-  override addDefinition(definition: DefinitionBase): void {
-    if (!this.definitions.has(definition.identifier.name)) {
-      this.definitions.set(definition.identifier.name, definition)
-      this.#renderOrder.push(definition.identifier.name)
+  override addDefinition(entry: DefinitionBase | PendingDefinition): void {
+    const name = entry.identifier.name
+    const current = this.definitions.get(name)
+
+    if (current === undefined || (current.isPending() && !entry.isPending())) {
+      invariant(current === undefined || current.generatorKey === entry.generatorKey, 'Registered definition mismatch')
+      this.definitions.set(name, entry)
+
+      if (!entry.isPending()) {
+        this.#renderOrder.push(name)
+      }
     }
-  }
-
-  override addPendingDefinition(pending: PendingDefinition): void {
-    this.definitions.set(pending.identifier.name, pending)
-  }
-
-  override resolvePendingDefinition(pending: PendingDefinition, definition: DefinitionBase): void {
-    invariant(this.definitions.get(pending.identifier.name) === pending, 'no pending entry to resolve')
-    this.definitions.set(pending.identifier.name, definition)
-    this.#renderOrder.push(pending.identifier.name)
   }
 
   override removePendingDefinition(pending: PendingDefinition): void {

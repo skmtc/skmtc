@@ -14,10 +14,10 @@ type PendingDefinitionArgs = {
  * as a schema lookup returns `OasSchema | OasRef`, and `isPending()` tells
  * the two apart, as `isRef()` does.
  *
- * The `ModelDriver` adds it to the model's File (`addPendingDefinition`)
- * before it runs the projection's constructor. When the constructor returns,
- * the entry becomes the Definition in place (`resolvePendingDefinition`); if
- * the constructor throws, the entry is taken out.
+ * The `ModelDriver` adds it to the model's File (`addDefinition`) before it
+ * runs the projection's constructor. When the constructor returns, the Driver
+ * adds the Definition, which takes the pending entry's slot; if the
+ * constructor throws, the entry is taken out (`removePendingDefinition`).
  *
  * An insert of the model from inside that constructor (a cycle: the model
  * refers to itself, or to a model that refers back to it) finds this marker

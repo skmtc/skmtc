@@ -66,10 +66,20 @@ export const matchDefinitions = (
  */
 export abstract class CodeFileBase extends FileBase {
   /**
-   * Add a definition, applying the language's duplication rule (e.g.
-   * TypeScript declaration merging). Called by the engine's `register`.
+   * Add an entry, applying the language's duplication rule (e.g. TypeScript
+   * declaration merging). Called by the engine's `register` and the
+   * `ModelDriver`. Narrow with `isPending()`:
+   *
+   * - A pending entry (a model whose projection is about to be constructed)
+   *   takes the slot its Definition will have. `findPendingDefinitions` finds
+   *   it; `findDefinitions` and render do not. See {@link PendingDefinition}.
+   * - A Definition whose slot holds that model's pending entry (same generator
+   *   key) becomes the entry: the same slot. Another generator's Definition
+   *   there is a `Registered definition mismatch`.
+   * - A Definition renders after every Definition added before it, so a
+   *   declaration lands after the models it refers to.
    */
-  abstract addDefinition(definition: DefinitionBase): void
+  abstract addDefinition(entry: DefinitionBase | PendingDefinition): void
 
   /**
    * Merge imports in, applying the language's collapse rule (typically
@@ -93,21 +103,6 @@ export abstract class CodeFileBase extends FileBase {
    * {@link matchDefinitions}.
    */
   abstract findDefinitions(query?: FindDefinitionsQuery): DefinitionBase[] | undefined
-
-  /**
-   * Add the entry of a model whose projection is about to be constructed,
-   * under the key its Definition will have. `findPendingDefinitions` finds
-   * it; `findDefinitions` and render do not. See {@link PendingDefinition}.
-   */
-  abstract addPendingDefinition(pending: PendingDefinition): void
-
-  /**
-   * The pending entry becomes the constructed Definition: the same entry,
-   * under the same key. From now on `findDefinitions` finds it, and it
-   * renders after every Definition that became one before it, so a
-   * declaration lands after the models it refers to.
-   */
-  abstract resolvePendingDefinition(pending: PendingDefinition, definition: DefinitionBase): void
 
   /** Take a pending entry out: its projection's constructor threw. */
   abstract removePendingDefinition(pending: PendingDefinition): void

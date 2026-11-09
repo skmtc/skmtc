@@ -40,7 +40,7 @@ export class TsFile extends CodeFileBase {
    *
    * A model's slot holds its pending entry while its projection is being
    * constructed, and then its Definition: the same slot, the entry replaced
-   * in place ({@link resolvePendingDefinition}).
+   * in place ({@link addDefinition}).
    */
   definitions: Map<string, TsDefinition | PendingDefinition> = new Map()
 
@@ -74,37 +74,46 @@ export class TsFile extends CodeFileBase {
    * a name but differ in type occupy *different* slots and both render — that
    * is TypeScript declaration merging (a `class Foo` and its `declare
    * namespace Foo`).
+   *
+   * A pending entry (a model whose projection is about to be constructed)
+   * takes its slot and does not render. The model's Definition, added when
+   * the constructor returns, takes the pending entry's slot: the one exception
+   * to "first wins". Render follows the order Definitions were added.
    */
-  override addDefinition(definition: TsDefinition): void {
-    const key = definition.identifier.declarationKey()
+  override addDefinition(entry: TsDefinition | PendingDefinition): void {
+    const key = toDeclarationKey(entry.identifier)
+    const current = this.definitions.get(key)
 
-    if (!this.definitions.has(key)) {
-      this.definitions.set(key, definition)
+    if (current === undefined) {
+      this.definitions.set(key, entry)
+
+      if (!entry.isPending()) {
+        this.#renderOrder.push(key)
+      }
+
+      return
+    }
+
+    // The Driver looks a model up before it marks it pending: a pending entry
+    // for a taken slot is an engine bug.
+    if (entry.isPending()) {
+      throw new Error(`'${entry.identifier.name}' already has a declaration in '${this.path}'`)
+    }
+
+    // The model's Definition takes the slot of its pending entry, and renders
+    // after every Definition added before it.
+    if (current.isPending()) {
+      if (current.generatorKey !== entry.generatorKey) {
+        throw new Error(
+          `Registered definition mismatch: '${entry.identifier.name}' in file '${this.path}'. Pending key '${current.generatorKey}' does not match new key '${entry.generatorKey}'`
+        )
+      }
+
+      this.definitions.set(key, entry)
       this.#renderOrder.push(key)
     }
-  }
 
-  /** The pending entry takes the slot its Definition will have; nothing renders yet. */
-  override addPendingDefinition(pending: PendingDefinition): void {
-    const key = toDeclarationKey(pending.identifier)
-
-    if (this.definitions.has(key)) {
-      throw new Error(`'${pending.identifier.name}' already has a declaration in '${this.path}'`)
-    }
-
-    this.definitions.set(key, pending)
-  }
-
-  /** The pending entry becomes the Definition in its slot, and renders after every Definition before it. */
-  override resolvePendingDefinition(pending: PendingDefinition, definition: TsDefinition): void {
-    const key = definition.identifier.declarationKey()
-
-    if (this.definitions.get(key) !== pending) {
-      throw new Error(`'${definition.identifier.name}' in '${this.path}' has no pending entry to resolve`)
-    }
-
-    this.definitions.set(key, definition)
-    this.#renderOrder.push(key)
+    // Otherwise the slot holds a Definition: the first one wins (see above).
   }
 
   override removePendingDefinition(pending: PendingDefinition): void {

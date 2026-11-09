@@ -161,8 +161,8 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
 
     // The model's entry in the File is pending while the constructor runs:
     // an insert of this model from inside it (a cycle) finds the entry, not a
-    // cache miss. When the constructor returns, the entry becomes the
-    // Definition in place, and renders after the models it refers to.
+    // cache miss. When the constructor returns, the Definition takes its slot,
+    // and renders after the models it refers to.
     const file = this.ensureCodeFile(exportPath)
     const marker = new PendingDefinition({ identifier, generatorKey, options: this.options })
 
@@ -185,7 +185,8 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
     })
     definition.reaches = marker.reaches
 
-    file.resolvePendingDefinition(marker, definition)
+    // The Definition takes the slot of the pending entry.
+    file.addDefinition(definition)
 
     return definition
   }
@@ -273,7 +274,7 @@ type WhilePendingArgs = {
  * resolve into the Definition.
  */
 const whilePending = <T>({ context, file, marker }: WhilePendingArgs, construct: () => T): T => {
-  file.addPendingDefinition(marker)
+  file.addDefinition(marker)
   context.pendingStack.push(marker)
 
   try {
