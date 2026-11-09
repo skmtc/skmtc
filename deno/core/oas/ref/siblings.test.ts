@@ -79,7 +79,7 @@ const parse = () => {
     return schema
   }
 
-  return { site: toObject('Site').properties ?? {}, node: toObject('Node'), issues: context.issues }
+  return { site: toObject('Site').properties ?? {}, node: toObject('Node'), issues: context.issues, schemas }
 }
 
 /** The schema at a property's site. */
@@ -140,14 +140,42 @@ Deno.test('a self-reference with keywords parses, and its copy shares the target
   assertStrictEquals(copy.type === 'object' ? copy.properties?.next : undefined, next)
 })
 
-Deno.test('a reference with no keywords next to it resolves to the shared instance itself', () => {
+Deno.test('a reference with nothing next to it resolves to the shared instance itself', () => {
   const { site } = parse()
 
   assertStrictEquals(atSite(site.plain), site.plain?.resolve())
-  // Use-site flags alone are no siblings.
-  const flagged = site.flagged
+})
 
-  assertEquals(flagged?.isRef() ? [flagged.nullable, flagged.siblings] : [], [true, undefined])
+Deno.test('a use-site flag alone is a sibling: the reference resolves to a copy with it', () => {
+  const { site } = parse()
+  const flagged = site.flagged
+  const copy = atSite(flagged)
+
+  assertEquals(flagged?.isRef() ? flagged.hasSiblings() : undefined, true)
+  assertEquals(copy.type === 'string' ? [copy.nullable, copy.description] : [], [true, 'A name.'])
+  // The trap: the shared Name does not become nullable.
+  assertEquals(atSite(site.plain).nullable, undefined)
+  // `nullable` changes values, but a reference renders it by name (`name.nullable()`).
+  assertEquals(flagged?.isRef() ? flagged.hasValueSiblings() : undefined, false)
+})
+
+Deno.test('OasRef.clone(ref) merges another site\'s keywords over its own, and points at the same target', () => {
+  const { site, schemas } = parse()
+  // Short is `{ allOf: [Name], maxLength: 10 }`; the site adds minLength 2.
+  const short = schemas?.[toRefName('#/components/schemas/Short')]
+  const at = site.short
+
+  if (!short?.isRef() || !at?.isRef() || !at.isSchemaRef()) {
+    throw new Error('expected references')
+  }
+
+  const copy = short.clone(at)
+
+  assertEquals([copy.toRefName(), copy.minLength, copy.maxLength], ['Name', 2, 10])
+  const resolved = copy.resolve()
+  assertEquals(resolved.type === 'string' ? [resolved.minLength, resolved.maxLength] : [], [2, 10])
+  // The trap: Short keeps only its own keyword.
+  assertEquals([short.minLength, short.maxLength], [undefined, 10])
 })
 
 Deno.test('clone(ref) carries the use-site flags onto the copy at a site with keywords', () => {

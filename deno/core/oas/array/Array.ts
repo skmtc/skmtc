@@ -156,27 +156,26 @@ export class OasArray<Nullable extends boolean | undefined = boolean | undefined
 
   /**
    * A copy of this schema with what `ref` adds at its site applied: its
-   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`RefFields.siblings`) that
+   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`SiblingKeywords`) that
    * this type takes, a sibling's value winning. A value that does not fit
    * this type is left out (the parser reports it). For `OasRef.resolve()`.
    * This schema does not change, and the copy shares its child schemas.
    */
   clone(ref?: OasRef<'schema'>): OasArray {
-    const siblings = ref?.siblings
     const nullable = this.nullable || ref?.nullable || undefined
     const copy = new OasArray<boolean | undefined>({
-      ...toSiblingAnnotations(this, siblings),
-      example: toSiblingValue(siblings?.example, isArrayValue) ?? this.example,
+      ...toSiblingAnnotations(this, ref),
+      example: toSiblingValue(ref?.example, isArrayValue) ?? this.example,
       items: this.items,
       nullable,
-      uniqueItems: siblings?.uniqueItems ?? this.uniqueItems,
-      maxItems: siblings?.maxItems ?? this.maxItems,
-      minItems: siblings?.minItems ?? this.minItems,
-      enums: toSiblingEnums(siblings?.enums, isArrayValue, nullable) ?? this.enums,
-      defaultValue: toSiblingValue(siblings?.default, isArrayValue) ?? this.defaultValue,
+      uniqueItems: ref?.uniqueItems ?? this.uniqueItems,
+      maxItems: ref?.maxItems ?? this.maxItems,
+      minItems: ref?.minItems ?? this.minItems,
+      enums: toSiblingEnums(ref?.enums, isArrayValue, nullable) ?? this.enums,
+      defaultValue: toSiblingValue(ref?.default, isArrayValue) ?? this.defaultValue,
       readOnly: this.readOnly || ref?.readOnly || undefined,
       writeOnly: this.writeOnly || ref?.writeOnly || undefined,
-      deprecated: siblings?.deprecated ?? this.deprecated,
+      deprecated: ref?.deprecated ?? this.deprecated,
     })
     copy.stackTrail = this.stackTrail
 

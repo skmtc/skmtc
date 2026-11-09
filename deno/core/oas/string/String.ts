@@ -139,27 +139,26 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
 
   /**
    * A copy of this schema with what `ref` adds at its site applied: its
-   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`RefFields.siblings`) that
+   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`SiblingKeywords`) that
    * this type takes, a sibling's value winning. A value that does not fit
    * this type is left out (the parser reports it). For `OasRef.resolve()`.
    * This schema does not change, and the copy shares its child schemas.
    */
   clone(ref?: OasRef<'schema'>): OasString {
-    const siblings = ref?.siblings
     const nullable = this.nullable || ref?.nullable || undefined
     const copy = new OasString<boolean | undefined>({
-      ...toSiblingAnnotations(this, siblings),
-      example: toSiblingValue(siblings?.example, isStringValue) ?? this.example,
-      format: siblings?.format ?? this.format,
-      enums: toSiblingEnums(siblings?.enums, isStringValue, nullable) ?? this.enums,
+      ...toSiblingAnnotations(this, ref),
+      example: toSiblingValue(ref?.example, isStringValue) ?? this.example,
+      format: ref?.format ?? this.format,
+      enums: toSiblingEnums(ref?.enums, isStringValue, nullable) ?? this.enums,
       nullable,
-      maxLength: siblings?.maxLength ?? this.maxLength,
-      minLength: siblings?.minLength ?? this.minLength,
-      pattern: siblings?.pattern ?? this.pattern,
-      default: toSiblingValue(siblings?.default, isStringValue) ?? this.default,
+      maxLength: ref?.maxLength ?? this.maxLength,
+      minLength: ref?.minLength ?? this.minLength,
+      pattern: ref?.pattern ?? this.pattern,
+      default: toSiblingValue(ref?.default, isStringValue) ?? this.default,
       readOnly: this.readOnly || ref?.readOnly || undefined,
       writeOnly: this.writeOnly || ref?.writeOnly || undefined,
-      deprecated: siblings?.deprecated ?? this.deprecated,
+      deprecated: ref?.deprecated ?? this.deprecated,
     })
     copy.stackTrail = this.stackTrail
 

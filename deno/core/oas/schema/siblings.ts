@@ -19,8 +19,12 @@ import { integerFormat } from '@/oas/integer/integer-types.ts'
  * `clone` leaves out, for a generator to log.
  */
 export type SiblingKeywords = {
-  /** A `type` written next to the reference. It must agree with the target's. */
-  type?: unknown
+  /**
+   * The `type` written next to the reference, merged in from the schema that
+   * holds the one-member `allOf`. It must agree with the target's; the copy
+   * always has the target's type. Not `type`, which on an `OasRef` is `'ref'`.
+   */
+  _type?: unknown
   title?: string
   description?: string
   deprecated?: boolean
@@ -47,8 +51,8 @@ export type SiblingKeywords = {
   maxProperties?: number
 }
 
-/** A keyword `clone` can apply. `type` only has to agree. */
-export type SiblingKeyword = Exclude<keyof SiblingKeywords, 'type'>
+/** A keyword `clone` can apply. `_type` only has to agree. */
+export type SiblingKeyword = Exclude<keyof SiblingKeywords, '_type'>
 
 const DESCRIBING: SiblingKeyword[] = ['title', 'description', 'extensionFields', 'example']
 const NUMERIC: SiblingKeyword[] = [
@@ -84,6 +88,49 @@ export const SIBLINGS_BY_TYPE: Record<OasSchema['type'], SiblingKeyword[]> = {
   union: [...DESCRIBING, 'default'],
   unknown: DESCRIBING
 }
+
+/** Every keyword `clone` can apply, for any type. */
+const SIBLING_KEYWORDS: SiblingKeyword[] = [...new Set(Object.values(SIBLINGS_BY_TYPE).flat())]
+
+/**
+ * The keywords of `over` merged over those of `base`, for a reference copied
+ * with what another site adds (`OasRef.clone`): a keyword `over` sets wins,
+ * extension fields and `properties` merge, and `required` names add up, as
+ * each schema class's `clone` merges them into a schema.
+ */
+export const mergeSiblingKeywords = (base: SiblingKeywords, over: SiblingKeywords | undefined): SiblingKeywords => ({
+  _type: over?._type ?? base._type,
+  title: over?.title ?? base.title,
+  description: over?.description ?? base.description,
+  deprecated: over?.deprecated ?? base.deprecated,
+  example: over?.example ?? base.example,
+  default: over?.default ?? base.default,
+  enums: over?.enums ?? base.enums,
+  extensionFields: base.extensionFields === undefined && over?.extensionFields === undefined
+    ? undefined
+    : { ...base.extensionFields, ...over?.extensionFields },
+  format: over?.format ?? base.format,
+  minLength: over?.minLength ?? base.minLength,
+  maxLength: over?.maxLength ?? base.maxLength,
+  pattern: over?.pattern ?? base.pattern,
+  multipleOf: over?.multipleOf ?? base.multipleOf,
+  minimum: over?.minimum ?? base.minimum,
+  maximum: over?.maximum ?? base.maximum,
+  exclusiveMinimum: over?.exclusiveMinimum ?? base.exclusiveMinimum,
+  exclusiveMaximum: over?.exclusiveMaximum ?? base.exclusiveMaximum,
+  minItems: over?.minItems ?? base.minItems,
+  maxItems: over?.maxItems ?? base.maxItems,
+  uniqueItems: over?.uniqueItems ?? base.uniqueItems,
+  properties: over?.properties === undefined ? base.properties : { ...base.properties, ...over.properties },
+  required: over?.required === undefined ? base.required : [...new Set([...(base.required ?? []), ...over.required])],
+  additionalProperties: over?.additionalProperties ?? base.additionalProperties,
+  minProperties: over?.minProperties ?? base.minProperties,
+  maxProperties: over?.maxProperties ?? base.maxProperties
+})
+
+/** Whether `siblings` holds any keyword. */
+export const hasSiblingKeywords = (siblings: SiblingKeywords): boolean =>
+  siblings._type !== undefined || SIBLING_KEYWORDS.some(keyword => siblings[keyword] !== undefined)
 
 /** The keywords that change which values a site accepts, not only how it is described. */
 const VALUE_KEYWORDS: SiblingKeyword[] = [
@@ -155,16 +202,11 @@ export const toSkippedSiblings = (
     }
   }
 
-  const type = siblings.type !== undefined && !agrees(siblings.type, target, 0) ? ['type'] : []
-  const others = Object.entries(siblings).flatMap(([keyword, value]) =>
-    isSiblingKeyword(keyword) && isSkipped(keyword, value) ? [toDocumentKeyword(keyword)] : []
-  )
+  const type = siblings._type !== undefined && !agrees(siblings._type, target, 0) ? ['type'] : []
+  const others = SIBLING_KEYWORDS.filter(keyword => isSkipped(keyword, siblings[keyword])).map(toDocumentKeyword)
 
   return [...type, ...others]
 }
-
-const isSiblingKeyword = (keyword: string): keyword is SiblingKeyword =>
-  keyword !== 'type' && Object.values(SIBLINGS_BY_TYPE).some(keywords => keywords.some(taken => taken === keyword))
 
 /** How deep {@link agrees} follows union members, so a union that contains itself ends. */
 const MAX_DEPTH = 10

@@ -124,23 +124,22 @@ export class OasBoolean<
 
   /**
    * A copy of this schema with what `ref` adds at its site applied: its
-   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`RefFields.siblings`) that
+   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`SiblingKeywords`) that
    * this type takes, a sibling's value winning. A value that does not fit
    * this type is left out (the parser reports it). For `OasRef.resolve()`.
    * This schema does not change, and the copy shares its child schemas.
    */
   clone(ref?: OasRef<'schema'>): OasBoolean {
-    const siblings = ref?.siblings
     const nullable = this.nullable || ref?.nullable || undefined
     const copy = new OasBoolean<boolean | undefined>({
-      ...toSiblingAnnotations(this, siblings),
-      example: toSiblingValue(siblings?.example, isBooleanValue) ?? this.example,
+      ...toSiblingAnnotations(this, ref),
+      example: toSiblingValue(ref?.example, isBooleanValue) ?? this.example,
       nullable,
-      enums: toSiblingEnums(siblings?.enums, isBooleanValue, nullable) ?? this.enums,
-      default: toSiblingValue(siblings?.default, isBooleanValue) ?? this.default,
+      enums: toSiblingEnums(ref?.enums, isBooleanValue, nullable) ?? this.enums,
+      default: toSiblingValue(ref?.default, isBooleanValue) ?? this.default,
       readOnly: this.readOnly || ref?.readOnly || undefined,
       writeOnly: this.writeOnly || ref?.writeOnly || undefined,
-      deprecated: siblings?.deprecated ?? this.deprecated,
+      deprecated: ref?.deprecated ?? this.deprecated,
     })
     copy.stackTrail = this.stackTrail
 

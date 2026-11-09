@@ -422,29 +422,28 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
 
   /**
    * A copy of this schema with what `ref` adds at its site applied: its
-   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`RefFields.siblings`) that
+   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`SiblingKeywords`) that
    * this type takes, a sibling's value winning. A value that does not fit
    * this type is left out (the parser reports it). For `OasRef.resolve()`.
    * This schema does not change, and the copy shares its child schemas.
    */
   clone(ref?: OasRef<'schema'>): OasObject {
-    const siblings = ref?.siblings
     const nullable = this.nullable || ref?.nullable || undefined
     const copy = new OasObject<boolean | undefined>({
-      ...toSiblingAnnotations(this, siblings),
-      example: toSiblingValue(siblings?.example, isObjectValue) ?? this.example,
+      ...toSiblingAnnotations(this, ref),
+      example: toSiblingValue(ref?.example, isObjectValue) ?? this.example,
       externalDocs: this.externalDocs,
-      properties: siblings?.properties === undefined ? (this.properties ?? undefined) : { ...this.properties, ...siblings.properties },
-      required: siblings?.required === undefined ? this.required : [...new Set([...(this.required ?? []), ...siblings.required])],
-      additionalProperties: siblings?.additionalProperties ?? this.additionalProperties,
+      properties: ref?.properties === undefined ? (this.properties ?? undefined) : { ...this.properties, ...ref.properties },
+      required: ref?.required === undefined ? this.required : [...new Set([...(this.required ?? []), ...ref.required])],
+      additionalProperties: ref?.additionalProperties ?? this.additionalProperties,
       nullable,
-      default: toSiblingValue(siblings?.default, isObjectValue) ?? this.default,
-      maxProperties: siblings?.maxProperties ?? this.maxProperties,
-      minProperties: siblings?.minProperties ?? this.minProperties,
+      default: toSiblingValue(ref?.default, isObjectValue) ?? this.default,
+      maxProperties: ref?.maxProperties ?? this.maxProperties,
+      minProperties: ref?.minProperties ?? this.minProperties,
       readOnly: this.readOnly || ref?.readOnly || undefined,
       writeOnly: this.writeOnly || ref?.writeOnly || undefined,
-      deprecated: siblings?.deprecated ?? this.deprecated,
-      enums: toSiblingEnums(siblings?.enums, isObjectValue, nullable) ?? this.enums,
+      deprecated: ref?.deprecated ?? this.deprecated,
+      enums: toSiblingEnums(ref?.enums, isObjectValue, nullable) ?? this.enums,
     })
     copy.stackTrail = this.stackTrail
 

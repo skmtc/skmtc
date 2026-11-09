@@ -19,7 +19,7 @@ type ToRefV31Args<T extends OasRefData['refType']> = {
   /** Use-site `readOnly` and `writeOnly` (see `RefFields.readOnly`): from a one-member `allOf`. */
   readOnly?: boolean
   writeOnly?: boolean
-  /** The other keywords next to the reference in a one-member `allOf` (see `RefFields.siblings`). */
+  /** The other keywords next to the reference in a one-member `allOf`, for `RefFields` (see `SiblingKeywords`). */
   siblings?: SiblingKeywords
 }
 
@@ -41,5 +41,5 @@ export const toRefV31 = <T extends OasRefData['refType']>({
 
   context.registerRef(stackTrail.clone(), $ref)
 
-  return context.withStackTrail(stackTrail, () => new OasRef({ refType, $ref, nullable, readOnly, writeOnly, siblings }, context))
+  return context.withStackTrail(stackTrail, () => new OasRef({ ...siblings, refType, $ref, nullable, readOnly, writeOnly }, context))
 }

@@ -82,7 +82,7 @@ export const toSiblingKeywords = ({
   }
 
   const siblings: SiblingKeywords = {
-    type,
+    _type: type,
     title,
     description,
     deprecated,

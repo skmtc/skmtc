@@ -155,29 +155,28 @@ export class OasNumber<Nullable extends boolean | undefined = boolean | undefine
 
   /**
    * A copy of this schema with what `ref` adds at its site applied: its
-   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`RefFields.siblings`) that
+   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`SiblingKeywords`) that
    * this type takes, a sibling's value winning. A value that does not fit
    * this type is left out (the parser reports it). For `OasRef.resolve()`.
    * This schema does not change, and the copy shares its child schemas.
    */
   clone(ref?: OasRef<'schema'>): OasNumber {
-    const siblings = ref?.siblings
     const nullable = this.nullable || ref?.nullable || undefined
     const copy = new OasNumber<boolean | undefined>({
-      ...toSiblingAnnotations(this, siblings),
-      example: toSiblingValue(siblings?.example, isNumberValue) ?? this.example,
+      ...toSiblingAnnotations(this, ref),
+      example: toSiblingValue(ref?.example, isNumberValue) ?? this.example,
       nullable,
-      default: toSiblingValue(siblings?.default, isNumberValue) ?? this.default,
-      enums: toSiblingEnums(siblings?.enums, isNumberValue, nullable) ?? this.enums,
-      format: toSiblingValue(siblings?.format, isNumberFormat) ?? this.format,
-      multipleOf: siblings?.multipleOf ?? this.multipleOf,
-      maximum: siblings?.maximum ?? this.maximum,
-      exclusiveMaximum: siblings?.exclusiveMaximum ?? this.exclusiveMaximum,
-      minimum: siblings?.minimum ?? this.minimum,
-      exclusiveMinimum: siblings?.exclusiveMinimum ?? this.exclusiveMinimum,
+      default: toSiblingValue(ref?.default, isNumberValue) ?? this.default,
+      enums: toSiblingEnums(ref?.enums, isNumberValue, nullable) ?? this.enums,
+      format: toSiblingValue(ref?.format, isNumberFormat) ?? this.format,
+      multipleOf: ref?.multipleOf ?? this.multipleOf,
+      maximum: ref?.maximum ?? this.maximum,
+      exclusiveMaximum: ref?.exclusiveMaximum ?? this.exclusiveMaximum,
+      minimum: ref?.minimum ?? this.minimum,
+      exclusiveMinimum: ref?.exclusiveMinimum ?? this.exclusiveMinimum,
       readOnly: this.readOnly || ref?.readOnly || undefined,
       writeOnly: this.writeOnly || ref?.writeOnly || undefined,
-      deprecated: siblings?.deprecated ?? this.deprecated,
+      deprecated: ref?.deprecated ?? this.deprecated,
     })
     copy.stackTrail = this.stackTrail
 

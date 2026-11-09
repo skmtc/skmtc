@@ -1725,29 +1725,38 @@ export class GenerateContext implements GenerateContextType {
    * @throws if schema is not found
    */
   resolveSchemaRefOnce(refName: RefName): OasSchema | OasRef<'schema'> {
-    const component = this.document.type === 'oas' ? this.document.value.components?.schemas?.[refName] : undefined
-    // A component written as a one-member `allOf` with keywords next to the
-    // reference (`{ allOf: [{ $ref: Name }], maxLength: 10 }`) is its own
-    // model: the target with those keywords, so it resolves in full. A plain
-    // alias stays one step, so its model refers to the next model by name.
-    const schema =
-      this.document.type === 'oas'
-        ? component?.isRef() && component.siblings !== undefined
-          ? component.resolve()
-          : component?.resolveOnce()
-        : this.document.value.registry.schemas[refName]
+    switch (this.document.type) {
+      case 'oas': {
+        const component = this.document.value.components?.schemas?.[refName]
 
-    if (!schema) {
-      throw new Error(`Schema not found: ${refName}`)
+        if (!component) {
+          throw new Error(`Schema not found: ${refName}`)
+        }
+
+        const target = component.resolveOnce()
+
+        // One step, with what the component adds next to its reference
+        // (`{ allOf: [{ $ref: Name }], maxLength: 10, nullable: true }`)
+        // applied to a copy: the model is the target at this site. When the
+        // step is itself a reference, the copy is a reference, and the
+        // model's router decides whether it renders inline or by name.
+        return component.isRef() && component.hasSiblings() ? target.clone(component) : target
+      }
+      case 'gql': {
+        const schema = this.document.value.registry.schemas[refName]
+
+        if (!schema) {
+          throw new Error(`Schema not found: ${refName}`)
+        }
+
+        // GqlRegistry stores OasSchema | OasRef entries: one step, as for OAS.
+        return schema.resolveOnce()
+      }
+      default: {
+        const _exhaustive: never = this.document
+        throw new Error(`Unhandled document type: ${JSON.stringify(_exhaustive)}`)
+      }
     }
-
-    // GqlRegistry stores raw OasSchema | OasRef entries that we need to
-    // resolve once for parity with the OAS code path.
-    if (this.document.type === 'gql' && 'resolveOnce' in schema) {
-      return (schema as OasRef<'schema'>).resolveOnce()
-    }
-
-    return schema
   }
 
   /**

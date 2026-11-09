@@ -16,7 +16,14 @@ import type { RefName } from '../../types/RefName.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
 import { OasBase } from '@/types/OasBase.ts'
-import { changesValues, isInlineLoop, type SiblingKeywords, toSkippedSiblings } from '@/oas/schema/siblings.ts'
+import {
+  changesValues,
+  hasSiblingKeywords,
+  mergeSiblingKeywords,
+  isInlineLoop,
+  type SiblingKeywords,
+  toSkippedSiblings
+} from '@/oas/schema/siblings.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 
 const MAX_LOOKUPS = 10
@@ -50,11 +57,22 @@ function refTypeToPluralPath(refType: OasRefData['refType']): string {
 }
 
 /**
- * Field data for creating OAS reference objects.
+ * What a reference reads from the parse context when it is made: the document
+ * it resolves through, and the trail it records. `clone` passes them itself.
+ */
+type RefContext = Pick<ParseContextType, 'parsedDocument' | 'currentStackTrail'>
+
+/**
+ * Field data for creating OAS reference objects: the reference, its use-site
+ * flags, and the other keywords next to it in a one-member `allOf`
+ * (`{ allOf: [{ $ref }], minLength: 3, description: '…' }`), parsed without
+ * the target's type (see {@link SiblingKeywords}). {@link OasRef.resolve}
+ * applies the keywords to a copy of the target, so the shared target never
+ * changes, and the reference stays lazy, so a self-reference still ends.
  *
  * @template T - The type of component being referenced (e.g., 'schema', 'response')
  */
-export type RefFields<T extends OasRefData['refType']> = {
+export type RefFields<T extends OasRefData['refType']> = SiblingKeywords & {
   refType: T
   $ref: string
   /**
@@ -78,15 +96,6 @@ export type RefFields<T extends OasRefData['refType']> = {
   readOnly?: boolean
   /** Use-site `writeOnly`, as {@link readOnly}. */
   writeOnly?: boolean
-  /**
-   * The other keywords next to the reference in a one-member `allOf`
-   * (`{ allOf: [{ $ref }], minLength: 3, description: '…' }`), parsed
-   * without the target's type (see {@link SiblingKeywords}).
-   * {@link OasRef.resolve} applies them to a copy of the target, so the
-   * shared target never changes, and the reference stays lazy, so a
-   * self-reference still ends.
-   */
-  siblings?: SiblingKeywords
 }
 
 /**
@@ -187,12 +196,13 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    * Creates a new OAS reference instance.
    *
    * @param fields - Reference field data including refType and $ref
-   * @param document - Discriminated document containing the referenced
-   *   component. For OAS, refs resolve through the document's components;
-   *   for GQL, through the document's registry (GQL only ever creates
-   *   schema refs).
+   * @param context - The parse context, or what `clone` passes in its place:
+   *   the discriminated document containing the referenced component (for
+   *   OAS, refs resolve through the document's components; for GQL, through
+   *   the document's registry, as GQL only ever creates schema refs) and the
+   *   current trail.
    */
-  constructor(fields: RefFields<T>, context: ParseContextType) {
+  constructor(fields: RefFields<T>, context: RefContext) {
     super(context)
     this.#fields = fields
     this.#document = context.parsedDocument
@@ -213,7 +223,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    * Follows reference chains until reaching a non-reference component,
    * with protection against infinite loops. A schema reference returns the
    * schema at this site: the keywords next to it, and next to each reference
-   * on the chain ({@link RefFields.siblings}), apply to a copy of the target.
+   * on the chain ({@link SiblingKeywords}), apply to a copy of the target.
    * Without siblings it returns the shared target itself. `resolveOnce()`
    * applies no siblings.
    *
@@ -233,7 +243,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
 
     // `oasType` narrows the target and `isSchemaRef()` this reference;
     // resolveOnce() has checked that the two agree.
-    if (this.#fields.siblings === undefined || component.oasType !== 'schema' || !this.isSchemaRef()) {
+    if (!this.hasSiblings() || component.oasType !== 'schema' || !this.isSchemaRef()) {
       return target
     }
 
@@ -378,9 +388,164 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     return this.#fields.writeOnly
   }
 
-  /** The keywords next to this reference (see {@link RefFields.siblings}). */
-  get siblings(): SiblingKeywords | undefined {
-    return this.#fields.siblings
+  /** The `type` written next to this reference (see {@link SiblingKeywords._type}). */
+  get _type(): SiblingKeywords['_type'] {
+    return this.#fields._type
+  }
+
+  /** The `title` next to this reference (see {@link SiblingKeywords}). */
+  get title(): SiblingKeywords['title'] {
+    return this.#fields.title
+  }
+
+  /** The `description` next to this reference (see {@link SiblingKeywords}). */
+  get description(): SiblingKeywords['description'] {
+    return this.#fields.description
+  }
+
+  /** The `deprecated` next to this reference (see {@link SiblingKeywords}). */
+  get deprecated(): SiblingKeywords['deprecated'] {
+    return this.#fields.deprecated
+  }
+
+  /** The `example` next to this reference (see {@link SiblingKeywords}). */
+  get example(): SiblingKeywords['example'] {
+    return this.#fields.example
+  }
+
+  /** The `default` next to this reference (see {@link SiblingKeywords}). */
+  get default(): SiblingKeywords['default'] {
+    return this.#fields.default
+  }
+
+  /** The `enum` next to this reference (see {@link SiblingKeywords}). */
+  get enums(): SiblingKeywords['enums'] {
+    return this.#fields.enums
+  }
+
+  /** The extensions (`x-*`) next to this reference (see {@link SiblingKeywords}). */
+  get extensionFields(): SiblingKeywords['extensionFields'] {
+    return this.#fields.extensionFields
+  }
+
+  /** The `format` next to this reference (see {@link SiblingKeywords}). */
+  get format(): SiblingKeywords['format'] {
+    return this.#fields.format
+  }
+
+  /** The `minLength` next to this reference (see {@link SiblingKeywords}). */
+  get minLength(): SiblingKeywords['minLength'] {
+    return this.#fields.minLength
+  }
+
+  /** The `maxLength` next to this reference (see {@link SiblingKeywords}). */
+  get maxLength(): SiblingKeywords['maxLength'] {
+    return this.#fields.maxLength
+  }
+
+  /** The `pattern` next to this reference (see {@link SiblingKeywords}). */
+  get pattern(): SiblingKeywords['pattern'] {
+    return this.#fields.pattern
+  }
+
+  /** The `multipleOf` next to this reference (see {@link SiblingKeywords}). */
+  get multipleOf(): SiblingKeywords['multipleOf'] {
+    return this.#fields.multipleOf
+  }
+
+  /** The `minimum` next to this reference (see {@link SiblingKeywords}). */
+  get minimum(): SiblingKeywords['minimum'] {
+    return this.#fields.minimum
+  }
+
+  /** The `maximum` next to this reference (see {@link SiblingKeywords}). */
+  get maximum(): SiblingKeywords['maximum'] {
+    return this.#fields.maximum
+  }
+
+  /** The `exclusiveMinimum` next to this reference (see {@link SiblingKeywords}). */
+  get exclusiveMinimum(): SiblingKeywords['exclusiveMinimum'] {
+    return this.#fields.exclusiveMinimum
+  }
+
+  /** The `exclusiveMaximum` next to this reference (see {@link SiblingKeywords}). */
+  get exclusiveMaximum(): SiblingKeywords['exclusiveMaximum'] {
+    return this.#fields.exclusiveMaximum
+  }
+
+  /** The `minItems` next to this reference (see {@link SiblingKeywords}). */
+  get minItems(): SiblingKeywords['minItems'] {
+    return this.#fields.minItems
+  }
+
+  /** The `maxItems` next to this reference (see {@link SiblingKeywords}). */
+  get maxItems(): SiblingKeywords['maxItems'] {
+    return this.#fields.maxItems
+  }
+
+  /** The `uniqueItems` next to this reference (see {@link SiblingKeywords}). */
+  get uniqueItems(): SiblingKeywords['uniqueItems'] {
+    return this.#fields.uniqueItems
+  }
+
+  /** The `properties` next to this reference (see {@link SiblingKeywords}). */
+  get properties(): SiblingKeywords['properties'] {
+    return this.#fields.properties
+  }
+
+  /** The `required` next to this reference (see {@link SiblingKeywords}). */
+  get required(): SiblingKeywords['required'] {
+    return this.#fields.required
+  }
+
+  /** The `additionalProperties` next to this reference (see {@link SiblingKeywords}). */
+  get additionalProperties(): SiblingKeywords['additionalProperties'] {
+    return this.#fields.additionalProperties
+  }
+
+  /** The `minProperties` next to this reference (see {@link SiblingKeywords}). */
+  get minProperties(): SiblingKeywords['minProperties'] {
+    return this.#fields.minProperties
+  }
+
+  /** The `maxProperties` next to this reference (see {@link SiblingKeywords}). */
+  get maxProperties(): SiblingKeywords['maxProperties'] {
+    return this.#fields.maxProperties
+  }
+
+  /**
+   * Whether this reference adds anything at its site: a use-site flag
+   * (`nullable`, `readOnly`, `writeOnly`) or another keyword next to it (see
+   * {@link RefFields}). {@link resolve} then returns a copy of the target with
+   * them applied, not the shared target.
+   */
+  hasSiblings(): boolean {
+    return this.nullable === true || this.readOnly === true || this.writeOnly === true ||
+      hasSiblingKeywords(this.#fields)
+  }
+
+  /**
+   * A copy of this reference with what `ref` adds at its site merged in: its
+   * flags, and its keywords over this reference's own
+   * ({@link mergeSiblingKeywords}). It points at the same target. Each schema
+   * class's `clone` does the same for a schema, so one step along a chain of
+   * references can carry a site's keywords (`resolveSchemaRefOnce`). This
+   * reference does not change.
+   */
+  clone(ref?: OasRef<'schema'>): OasRef<T> {
+    const copy = new OasRef<T>(
+      {
+        ...this.#fields,
+        ...mergeSiblingKeywords(this.#fields, ref),
+        nullable: this.nullable || ref?.nullable || undefined,
+        readOnly: this.readOnly || ref?.readOnly || undefined,
+        writeOnly: this.writeOnly || ref?.writeOnly || undefined
+      },
+      { parsedDocument: this.#document, currentStackTrail: undefined }
+    )
+    copy.stackTrail = this.stackTrail
+
+    return copy
   }
 
   /**
@@ -392,15 +557,13 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    * {@link changesValues}.
    */
   hasValueSiblings(): boolean {
-    const siblings = this.#fields.siblings
-
-    if (siblings === undefined) {
+    if (!this.hasSiblings()) {
       return false
     }
 
     const component: OasComponentType = this.resolve()
 
-    return component.oasType === 'schema' && changesValues(component, siblings)
+    return component.oasType === 'schema' && changesValues(component, this)
   }
 
   /**
@@ -411,15 +574,13 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    * generator logs them when it renders the site. See {@link toSkippedSiblings}.
    */
   toSkippedSiblings(): string[] {
-    const siblings = this.#fields.siblings
-
-    if (siblings === undefined) {
+    if (!this.hasSiblings()) {
       return []
     }
 
     const component: OasComponentType = this.resolve()
 
-    return component.oasType === 'schema' ? toSkippedSiblings(component, siblings, component.nullable) : []
+    return component.oasType === 'schema' ? toSkippedSiblings(component, this, component.nullable) : []
   }
 
   /**

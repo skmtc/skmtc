@@ -156,29 +156,28 @@ export class OasInteger<
 
   /**
    * A copy of this schema with what `ref` adds at its site applied: its
-   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`RefFields.siblings`) that
+   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`SiblingKeywords`) that
    * this type takes, a sibling's value winning. A value that does not fit
    * this type is left out (the parser reports it). For `OasRef.resolve()`.
    * This schema does not change, and the copy shares its child schemas.
    */
   clone(ref?: OasRef<'schema'>): OasInteger {
-    const siblings = ref?.siblings
     const nullable = this.nullable || ref?.nullable || undefined
     const copy = new OasInteger<boolean | undefined>({
-      ...toSiblingAnnotations(this, siblings),
-      example: toSiblingValue(siblings?.example, isIntegerValue) ?? this.example,
+      ...toSiblingAnnotations(this, ref),
+      example: toSiblingValue(ref?.example, isIntegerValue) ?? this.example,
       nullable,
-      format: toSiblingValue(siblings?.format, isIntegerFormat) ?? this.format,
-      enums: toSiblingEnums(siblings?.enums, isIntegerValue, nullable) ?? this.enums,
-      multipleOf: siblings?.multipleOf ?? this.multipleOf,
-      maximum: siblings?.maximum ?? this.maximum,
-      exclusiveMaximum: siblings?.exclusiveMaximum ?? this.exclusiveMaximum,
-      minimum: siblings?.minimum ?? this.minimum,
-      exclusiveMinimum: siblings?.exclusiveMinimum ?? this.exclusiveMinimum,
-      default: toSiblingValue(siblings?.default, isIntegerValue) ?? this.default,
+      format: toSiblingValue(ref?.format, isIntegerFormat) ?? this.format,
+      enums: toSiblingEnums(ref?.enums, isIntegerValue, nullable) ?? this.enums,
+      multipleOf: ref?.multipleOf ?? this.multipleOf,
+      maximum: ref?.maximum ?? this.maximum,
+      exclusiveMaximum: ref?.exclusiveMaximum ?? this.exclusiveMaximum,
+      minimum: ref?.minimum ?? this.minimum,
+      exclusiveMinimum: ref?.exclusiveMinimum ?? this.exclusiveMinimum,
+      default: toSiblingValue(ref?.default, isIntegerValue) ?? this.default,
       readOnly: this.readOnly || ref?.readOnly || undefined,
       writeOnly: this.writeOnly || ref?.writeOnly || undefined,
-      deprecated: siblings?.deprecated ?? this.deprecated,
+      deprecated: ref?.deprecated ?? this.deprecated,
     })
     copy.stackTrail = this.stackTrail
 
