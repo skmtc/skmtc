@@ -354,6 +354,48 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
   }
 
   /**
+   * Whether the value is `readOnly` at this site, as Forge reads it: on this
+   * reference (`{ allOf: [{ $ref }], readOnly: true }`), or on what it points
+   * to, through any chain of references. A `readOnly: false` does not undo
+   * another's `true`. `false` for a reference to anything but a schema.
+   *
+   * @param lookupsPerformed - Internal counter that stops a chain of references with no schema
+   */
+  isReadOnly(lookupsPerformed: number = 0): boolean {
+    if (this.readOnly === true) {
+      return true
+    }
+
+    if (lookupsPerformed >= MAX_LOOKUPS) {
+      return false
+    }
+
+    const resolved = this.resolveOnce()
+
+    return resolved.isRef() ? resolved.isReadOnly(lookupsPerformed + 1) : 'isReadOnly' in resolved && resolved.isReadOnly()
+  }
+
+  /**
+   * Whether the value is `writeOnly` at this site: on this reference, or on
+   * what it points to, as {@link isReadOnly} reads `readOnly`.
+   *
+   * @param lookupsPerformed - Internal counter that stops a chain of references with no schema
+   */
+  isWriteOnly(lookupsPerformed: number = 0): boolean {
+    if (this.writeOnly === true) {
+      return true
+    }
+
+    if (lookupsPerformed >= MAX_LOOKUPS) {
+      return false
+    }
+
+    const resolved = this.resolveOnce()
+
+    return resolved.isRef() ? resolved.isWriteOnly(lookupsPerformed + 1) : 'isWriteOnly' in resolved && resolved.isWriteOnly()
+  }
+
+  /**
    * Returns the discriminated parsed document this ref resolves
    * through. OAS variant carries the parent `OasDocument`; GQL variant
    * carries the parent `GqlDocument` (whose registry holds the

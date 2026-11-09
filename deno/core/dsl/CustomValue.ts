@@ -54,6 +54,16 @@ export class CustomValue extends SnippetBase {
     return false
   }
 
+  /** Always `false`: this value has no `readOnly`. */
+  isReadOnly(): boolean {
+    return false
+  }
+
+  /** Always `false`: this value has no `writeOnly`. */
+  isWriteOnly(): boolean {
+    return false
+  }
+
   /**
    * Resolves this custom value.
    *

@@ -142,6 +142,16 @@ export class OasNumber<Nullable extends boolean | undefined = boolean | undefine
     return false
   }
 
+  /** Whether the value is `readOnly`: sent by the API only, never in a request. */
+  isReadOnly(): boolean {
+    return this.readOnly === true
+  }
+
+  /** Whether the value is `writeOnly`: sent in a request only, never by the API. */
+  isWriteOnly(): boolean {
+    return this.writeOnly === true
+  }
+
   traverse(path: SchemaPath): OasSchema | OasRef<'schema'> {
     return traverseSchema(this, path)
   }

@@ -209,6 +209,16 @@ export class OasUnion extends OasBase {
     return false
   }
 
+  /** Always `false`: this schema has no `readOnly`. */
+  isReadOnly(): boolean {
+    return false
+  }
+
+  /** Always `false`: this schema has no `writeOnly`. */
+  isWriteOnly(): boolean {
+    return false
+  }
+
   traverse(path: SchemaPath): OasSchema | OasRef<'schema'> {
     return traverseSchema(this, path)
   }

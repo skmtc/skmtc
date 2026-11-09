@@ -255,6 +255,7 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
     this.maxProperties = fields.maxProperties
     this.minProperties = fields.minProperties
     this.readOnly = fields.readOnly
+    this.writeOnly = fields.writeOnly
     this.deprecated = fields.deprecated
     this.enums = fields.enums
   }
@@ -406,6 +407,16 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
 
   isRef(): this is OasRef<'schema'> {
     return false
+  }
+
+  /** Whether the value is `readOnly`: sent by the API only, never in a request. */
+  isReadOnly(): boolean {
+    return this.readOnly === true
+  }
+
+  /** Whether the value is `writeOnly`: sent in a request only, never by the API. */
+  isWriteOnly(): boolean {
+    return this.writeOnly === true
   }
 
   traverse(path: SchemaPath): OasSchema | OasRef<'schema'> {
