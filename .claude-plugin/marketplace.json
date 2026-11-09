@@ -31,6 +31,9 @@
         "./skmtc-lang-typescript",
         "./skmtc-model",
         "./skmtc-operation"
+      ],
+      "dependencies": [
+        "skmtc-cli"
       ]
     },
     {
