@@ -240,6 +240,20 @@ const stitchModelImport = ({ context, lang, identifier, exportPath, destinationP
   })
 }
 
+type IsModelOpenArgs = {
+  context: GenerateContextType
+  projection: { id: string }
+  refName: RefName
+}
+
+/**
+ * Whether `projection`'s model for `refName` is still being built further
+ * up the walk: a reference to it now is a back-reference, which
+ * {@link toModelRef} suspends.
+ */
+export const isModelOpen = ({ context, projection, refName }: IsModelOpenArgs): boolean =>
+  context.modelDepth[`${projection.id}:${refName}`] > 0
+
 /**
  * What a ref snippet gets for a reference to a model: `suspended` when the
  * model is still being built further up the walk (a back-reference, which
@@ -263,10 +277,9 @@ export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionO
   args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
 ): ModelRef<V, EnrichmentType> => {
   const { context, projection, refName, destinationPath, variant = DEFAULT_VARIANT } = args
-  const depthKey = `${projection.id}:${refName}`
 
-  if (context.modelDepth[depthKey] > 0) {
-    context.modelDepth[depthKey]++
+  if (isModelOpen({ context, projection, refName })) {
+    context.modelDepth[`${projection.id}:${refName}`]++
 
     const settings = context.toModelContentSettings({
       refName,
