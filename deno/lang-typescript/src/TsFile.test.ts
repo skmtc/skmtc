@@ -6,8 +6,8 @@ import {
   createType,
   createVariable
 } from './createIdentifier.ts'
-import { toGeneratorOnlyKey } from '@skmtc/core'
-import type { GeneratedValue, GenerateContextType } from '@skmtc/core'
+import { PendingDefinition, toGeneratorOnlyKey, toModelGeneratorKey } from '@skmtc/core'
+import type { GeneratedValue, GenerateContextType, RefName } from '@skmtc/core'
 import { TsDefinition } from './TsDefinition.ts'
 import { TsFile } from './TsFile.ts'
 import { TsImport } from './TsImport.ts'
@@ -398,4 +398,61 @@ Deno.test('TsFile without packages keeps each spelling as written — no merge a
     tsFile.toString(),
     `import {A} from './models/User.generated.ts'\nimport {B} from '@/models/User.generated.ts'`
   )
+})
+
+const pendingFor = (name: string): PendingDefinition =>
+  new PendingDefinition({
+    identifier: createVariable(name),
+    generatorKey: toModelGeneratorKey({ generatorId: 'test', refName: name as RefName, variant: 'main' }),
+    options: undefined
+  })
+
+const constDefinition = (name: string, content: string): TsDefinition =>
+  new TsDefinition({ context: mockContext, identifier: createVariable(name), value: value(content) })
+
+Deno.test('a pending entry holds its slot, and only findPendingDefinitions sees it', () => {
+  const tsFile = new TsFile({ path: '@/types/models.ts', settings: undefined })
+  const pending = pendingFor('group')
+
+  tsFile.addPendingDefinition(pending)
+
+  assertEquals(tsFile.definitions.size, 1)
+  assertEquals(tsFile.findPendingDefinitions(), [pending])
+  assertEquals(tsFile.findPendingDefinitions('group'), [pending])
+  // The cache probe for a constructed Definition, and render, do not see it.
+  assertEquals(tsFile.findDefinitions({ name: 'group' }), undefined)
+  assertEquals(tsFile.toString(), '')
+})
+
+Deno.test('a pending entry becomes its Definition in the same slot, and renders after the Definitions before it', () => {
+  // `group` refers to `condition`: group's entry is pending first, then
+  // condition is constructed, then group's entry becomes its Definition.
+  const tsFile = new TsFile({ path: '@/types/models.ts', settings: undefined })
+  const pending = pendingFor('group')
+  const group = constDefinition('group', 'z.object({ conditions: z.array(condition) })')
+
+  tsFile.addPendingDefinition(pending)
+  tsFile.addDefinition(constDefinition('condition', 'z.string()'))
+  tsFile.resolvePendingDefinition(pending, group)
+
+  // One entry per declaration: the pending entry was replaced in its slot.
+  assertEquals([...tsFile.definitions.values()].map(({ identifier }) => identifier.name), ['group', 'condition'])
+  assertEquals(tsFile.findPendingDefinitions(), [])
+  assertEquals(tsFile.findDefinitions({ name: 'group' }), [group])
+  // The trap: slot order would put `group` above `condition`, which it reads
+  // when the module loads.
+  assertEquals(
+    tsFile.toString(),
+    'export const condition = z.string();\n\nexport const group = z.object({ conditions: z.array(condition) });\n'
+  )
+})
+
+Deno.test('a pending entry whose constructor threw is taken out', () => {
+  const tsFile = new TsFile({ path: '@/types/models.ts', settings: undefined })
+  const pending = pendingFor('broken')
+
+  tsFile.addPendingDefinition(pending)
+  tsFile.removePendingDefinition(pending)
+
+  assertEquals(tsFile.definitions.size, 0)
 })

@@ -14,10 +14,10 @@ type PendingDefinitionArgs = {
  * as a schema lookup returns `OasSchema | OasRef`, and `isPending()` tells
  * the two apart, as `isRef()` does.
  *
- * The `ModelDriver` puts it
- * in the model's File before it runs the projection's constructor, and takes
- * it out when the constructor returns, just before it registers the
- * Definition.
+ * The `ModelDriver` adds it to the model's File (`addPendingDefinition`)
+ * before it runs the projection's constructor. When the constructor returns,
+ * the entry becomes the Definition in place (`resolvePendingDefinition`); if
+ * the constructor throws, the entry is taken out.
  *
  * An insert of the model from inside that constructor (a cycle: the model
  * refers to itself, or to a model that refers back to it) finds this marker
@@ -25,10 +25,11 @@ type PendingDefinitionArgs = {
  * reference by name needs, and no value: the value does not exist yet. A
  * second projection for the model is never constructed.
  *
- * The marker is present for the cache probe only. It takes no position among
- * the File's Definitions, so each Definition still lands after the models it
- * refers to (post-order), which keeps `const` declarations in one file in a
- * working order. A marker left at render is an engine bug, and fails the run.
+ * The entry has its slot among the File's Definitions from the start, but a
+ * File renders its Definitions in the order each became one: each still lands
+ * after the models it refers to (post-order), which keeps `const`
+ * declarations in one file in a working order. A pending entry left at render
+ * is an engine bug, and fails the run.
  */
 export class PendingDefinition {
   identifier: IdentifierBase

@@ -9,6 +9,7 @@
  * pair a file is, with the order independence that gives.
  */
 import { assertEquals, assertThrows } from '@std/assert'
+import type { PendingDefinition } from '@/dsl/PendingDefinition.ts'
 import type * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { CodeFileBase, matchDefinitions } from '@/dsl/CodeFileBase.ts'
@@ -64,6 +65,17 @@ class TestFile extends CodeFileBase {
   override addReExports(_reExports: ReExportBase[]): void {}
   override findDefinitions(query?: FindDefinitionsQuery): DefinitionBase[] | undefined {
     return matchDefinitions(this.definitions, query, () => undefined)
+  }
+  // No model is pending in these tests: containers only.
+  override addPendingDefinition(_pending: PendingDefinition): void {
+    throw new Error('not used here')
+  }
+  override resolvePendingDefinition(_pending: PendingDefinition, _definition: DefinitionBase): void {
+    throw new Error('not used here')
+  }
+  override removePendingDefinition(_pending: PendingDefinition): void {}
+  override findPendingDefinitions(_name?: string): PendingDefinition[] {
+    return []
   }
   override toString(): string {
     return this.definitions.join('\n')

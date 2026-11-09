@@ -198,7 +198,7 @@ Deno.test('ModelDriver', async t => {
 
       const file = context.getFile(driver.settings.exportPath)
 
-      assertEquals(file instanceof CodeFileBase ? file.pendingDefinitions.size : undefined, 0)
+      assertEquals(file instanceof CodeFileBase ? file.findPendingDefinitions().length : undefined, 0)
       assertEquals(context.pendingStack, [])
     })
 
@@ -501,24 +501,26 @@ Deno.test('ModelDriver', async t => {
       assertEquals(driver.definition.value instanceof MockProjection, true)
     })
 
-    await t.step('should register definition with context', () => {
+    await t.step('puts the Definition in its File, where its pending entry was', () => {
       const context = createMockContext()
       const projection = createMockProjection()
       const refName = 'User' as RefName
 
-      new ModelDriver({
+      const driver = new ModelDriver({
         context,
         projection,
         refName,
         variant: 'main'
       })
 
-      const registerCalls = (context.register as any).calls
-      const definitionCall = registerCalls.find((call: any) => call.args[0].definitions)
+      // The pending entry became the Definition; nothing went through
+      // `register`, which would add a second entry.
+      const file = context.getFile('@/path/to/export.ts')
 
-      assertEquals(definitionCall !== undefined, true)
-      assertEquals(definitionCall.args[0].definitions.length, 1)
-      assertEquals(definitionCall.args[0].destinationPath, '@/path/to/export.ts')
+      assertEquals(file instanceof CodeFileBase ? file.findDefinitions({ name: refName }) : undefined, [
+        driver.definition
+      ])
+      assertEquals(file instanceof CodeFileBase ? file.findPendingDefinitions() : undefined, [])
     })
 
     await t.step('should pass noExport to Definition', () => {

@@ -129,7 +129,9 @@ type RenderOutput = {
  */
 const assertNothingPending = (files: Map<string, FileBase>): void => {
   const pending = [...files].flatMap(([path, file]) =>
-    file instanceof CodeFileBase ? [...file.pendingDefinitions.keys()].map(name => `'${name}' in '${path}'`) : []
+    file instanceof CodeFileBase
+      ? file.findPendingDefinitions().map(({ identifier }) => `'${identifier.name}' in '${path}'`)
+      : []
   )
 
   if (pending.length > 0) {

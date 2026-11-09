@@ -36,7 +36,7 @@ class FakeSnippet extends SnippetBase {
 const makeFile = (defs: MockDefinition[]): MockFile => {
   const file = new MockFile({ path: 'out.ts' })
   for (const def of defs) {
-    file.definitions.set(def.identifier.name, def)
+    file.addDefinition(def)
   }
   return file
 }

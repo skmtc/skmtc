@@ -1,6 +1,6 @@
 import { CodeFileBase, matchDefinitions } from '@skmtc/core'
 import { toImportModule } from './toImportModule.ts'
-import type { ClientSettings, ModulePackage, DefinitionBase } from '@skmtc/core'
+import type { ClientSettings, ModulePackage, DefinitionBase, IdentifierBase, PendingDefinition } from '@skmtc/core'
 import { TsImport } from './TsImport.ts'
 import type { TsDefinition } from './TsDefinition.ts'
 import { TsIdentifier } from './TsIdentifier.ts'
@@ -37,8 +37,20 @@ export class TsFile extends CodeFileBase {
    * — that is how TypeScript declaration merging is represented, no separate
    * collection needed. The cross-generator cache resolves a name to its
    * first-registered definition through {@link findDefinitions}.
+   *
+   * A model's slot holds its pending entry while its projection is being
+   * constructed, and then its Definition: the same slot, the entry replaced
+   * in place ({@link resolvePendingDefinition}).
    */
-  definitions: Map<string, TsDefinition> = new Map()
+  definitions: Map<string, TsDefinition | PendingDefinition> = new Map()
+
+  /**
+   * The slots of the constructed Definitions, in the order each became one.
+   * Render follows this, not the map: a model's pending entry takes its slot
+   * before the models it refers to are constructed, and its Definition must
+   * still land after them, or a `const` would read one before it is defined.
+   */
+  #renderOrder: string[] = []
 
   /** Imports keyed by {@link TsImport.mergeKey} (the module path). */
   imports: Map<string, TsImport> = new Map()
@@ -68,7 +80,45 @@ export class TsFile extends CodeFileBase {
 
     if (!this.definitions.has(key)) {
       this.definitions.set(key, definition)
+      this.#renderOrder.push(key)
     }
+  }
+
+  /** The pending entry takes the slot its Definition will have; nothing renders yet. */
+  override addPendingDefinition(pending: PendingDefinition): void {
+    const key = toDeclarationKey(pending.identifier)
+
+    if (this.definitions.has(key)) {
+      throw new Error(`'${pending.identifier.name}' already has a declaration in '${this.path}'`)
+    }
+
+    this.definitions.set(key, pending)
+  }
+
+  /** The pending entry becomes the Definition in its slot, and renders after every Definition before it. */
+  override resolvePendingDefinition(pending: PendingDefinition, definition: TsDefinition): void {
+    const key = definition.identifier.declarationKey()
+
+    if (this.definitions.get(key) !== pending) {
+      throw new Error(`'${definition.identifier.name}' in '${this.path}' has no pending entry to resolve`)
+    }
+
+    this.definitions.set(key, definition)
+    this.#renderOrder.push(key)
+  }
+
+  override removePendingDefinition(pending: PendingDefinition): void {
+    const key = toDeclarationKey(pending.identifier)
+
+    if (this.definitions.get(key) === pending) {
+      this.definitions.delete(key)
+    }
+  }
+
+  override findPendingDefinitions(name?: string): PendingDefinition[] {
+    return [...this.definitions.values()].filter(
+      (entry): entry is PendingDefinition => entry.isPending() && (name === undefined || entry.identifier.name === name)
+    )
   }
 
   /**
@@ -99,13 +149,19 @@ export class TsFile extends CodeFileBase {
     name?: string
     type?: TsEntityType
   }): DefinitionBase[] | undefined {
-    return matchDefinitions([...this.definitions.values()], query, identifier =>
+    return matchDefinitions(this.#constructedDefinitions(), query, identifier =>
       identifier instanceof TsIdentifier ? identifier.type : undefined
     )
   }
 
+  /** The Definitions in their slots, leaving out pending entries. */
+  #constructedDefinitions(): TsDefinition[] {
+    return [...this.definitions.values()].filter((entry): entry is TsDefinition => !entry.isPending())
+  }
+
   /**
-   * Definitions in render order: primaries first (insertion order), then
+   * Definitions in render order: primaries first (the order each became a
+   * Definition: registered, or resolved from pending), then
    * same-name companions. A companion is a definition whose name an earlier
    * definition already claimed under a different declaration kind — e.g. a
    * `declare namespace Foo` companion of `class Foo`. TypeScript declaration
@@ -117,8 +173,13 @@ export class TsFile extends CodeFileBase {
     const seenNames = new Set<string>()
     const primaries: TsDefinition[] = []
     const companions: TsDefinition[] = []
+    const constructed = this.#renderOrder.flatMap(key => {
+      const entry = this.definitions.get(key)
 
-    for (const definition of this.definitions.values()) {
+      return entry === undefined || entry.isPending() ? [] : [entry]
+    })
+
+    for (const definition of constructed) {
       if (seenNames.has(definition.identifier.name)) {
         companions.push(definition)
       } else {
@@ -200,4 +261,13 @@ const mergeInto = <Entry extends { mergeKey(): string }>(
 
     target.set(key, existing ? merge(existing, entry) : entry)
   }
+}
+
+/** A pending entry's slot: the declaration key its Definition will have. */
+const toDeclarationKey = (identifier: IdentifierBase): string => {
+  if (!(identifier instanceof TsIdentifier)) {
+    throw new Error(`'${identifier.name}' has no TypeScript identifier, so it has no declaration slot`)
+  }
+
+  return identifier.declarationKey()
 }

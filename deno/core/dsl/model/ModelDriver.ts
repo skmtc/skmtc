@@ -159,10 +159,10 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
       }
     }
 
-    // The marker is in the File while the constructor runs: an insert of this
-    // model from inside it (a cycle) finds the marker, not a cache miss. The
-    // Definition is registered after the constructor returns, so it lands
-    // after the models it refers to (post-order), as before the marker.
+    // The model's entry in the File is pending while the constructor runs:
+    // an insert of this model from inside it (a cycle) finds the entry, not a
+    // cache miss. When the constructor returns, the entry becomes the
+    // Definition in place, and renders after the models it refers to.
     const file = this.ensureCodeFile(exportPath)
     const marker = new PendingDefinition({ identifier, generatorKey, options: this.options })
 
@@ -185,10 +185,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
     })
     definition.reaches = marker.reaches
 
-    this.context.register({
-      definitions: [definition],
-      destinationPath: exportPath
-    })
+    file.resolvePendingDefinition(marker, definition)
 
     return definition
   }
@@ -270,18 +267,22 @@ type WhilePendingArgs = {
 }
 
 /**
- * Run `construct` with `marker` in `file` and on top of the context's pending
- * stack, and take it out of both however `construct` ends.
+ * Run `construct` with `marker` as a pending entry in `file` and on top of
+ * the context's pending stack. The stack is popped however `construct` ends;
+ * the entry is taken out if it throws, and otherwise stays for the Driver to
+ * resolve into the Definition.
  */
 const whilePending = <T>({ context, file, marker }: WhilePendingArgs, construct: () => T): T => {
-  file.pendingDefinitions.set(marker.identifier.name, marker)
+  file.addPendingDefinition(marker)
   context.pendingStack.push(marker)
 
   try {
     return construct()
+  } catch (error) {
+    file.removePendingDefinition(marker)
+    throw error
   } finally {
     context.pendingStack.pop()
-    file.pendingDefinitions.delete(marker.identifier.name)
     marker.pending = false
   }
 }

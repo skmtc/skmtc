@@ -103,7 +103,7 @@ const toModels = (graph: Graph, shared: string[] = []) => {
 
 const pendingNames = (context: GenerateContext): string[] =>
   [...context.inspectedFiles.values()].flatMap(file =>
-    file instanceof CodeFileBase ? [...file.pendingDefinitions.keys()] : []
+    file instanceof CodeFileBase ? file.findPendingDefinitions().map(({ identifier }) => identifier.name) : []
   )
 
 Deno.test('a cycle across two files: the reference back is suspended, imported, and counted', () => {
@@ -173,25 +173,33 @@ Deno.test('a model that refers to itself is suspended in its own file, with no i
   assertEquals(`${context.getFile('@/types/Node.generated.ts')}`.includes('import'), false)
 })
 
-Deno.test('in one file, a Definition still lands after the models it refers to', () => {
-  // The marker takes no position: A is marked pending first, but B is
-  // registered first, as before markers. `const A = [B]` above `const B`
-  // would fail when the module loads.
+Deno.test('a pending entry becomes its Definition in its own slot, and renders after what it refers to', () => {
   const { Model, context, toPath } = toModels({ A: ['B'], B: [] }, ['A', 'B'])
 
   context.insertModel(Model, 'A' as RefName)
 
   const file = context.getFile(toPath('A'))
-  const names = file instanceof TsFile ? file.findDefinitions()?.map(({ identifier }) => identifier.name) : undefined
 
-  assertEquals(names, ['B', 'A'])
+  if (!(file instanceof TsFile)) {
+    throw new Error('no TsFile for A and B')
+  }
+
+  // A took its slot when it became pending, before B was constructed, and
+  // its Definition replaced the pending entry in that slot.
+  assertEquals([...file.definitions.values()].map(({ identifier }) => identifier.name), ['A', 'B'])
+  assertEquals(file.findPendingDefinitions(), [])
+  // The trap: render in slot order puts `const A = [B]` above `const B`,
+  // and the module fails when it loads. A File renders its Definitions in
+  // the order each became one.
+  const rendered = `${file}`
+  assertEquals(rendered.indexOf('export const B') < rendered.indexOf('export const A'), true)
 })
 
-Deno.test('a constructor that throws takes its marker with it', () => {
+Deno.test('a constructor that throws takes its pending entry with it', () => {
   const { Model, context } = toModels({})
 
   assertThrows(() => context.insertModel(Model, 'Broken' as RefName), Error, 'Broken cannot be constructed')
-  // A marker left behind would answer every later insert of Broken.
+  // A pending entry left behind would answer every later insert of Broken.
   assertEquals(pendingNames(context), [])
 })
 
@@ -201,8 +209,7 @@ Deno.test('the Driver refuses to construct a second projection for a pending mod
   // would never finish.
   const { Model, context } = toModels({})
   const file = context.addFile(new TsFile({ path: '@/types/Loop.generated.ts', settings: undefined }))
-  file.pendingDefinitions.set(
-    'Loop',
+  file.addPendingDefinition(
     new PendingDefinition({
       identifier: createVariable('Loop'),
       generatorKey: toModelGeneratorKey({ generatorId: '@test/models', refName: 'Loop' as RefName, variant: 'main' }),
@@ -213,10 +220,9 @@ Deno.test('the Driver refuses to construct a second projection for a pending mod
   assertThrows(() => context.insertModel(Model, 'Loop' as RefName), Error, 'is being constructed further up the stack')
 })
 
-Deno.test('render fails the run when a marker is left', () => {
+Deno.test('render fails the run when a pending entry is left', () => {
   const file = new TsFile({ path: '@/types/Left.ts', settings: undefined })
-  file.pendingDefinitions.set(
-    'Left',
+  file.addPendingDefinition(
     new PendingDefinition({
       identifier: createVariable('Left'),
       generatorKey: toModelGeneratorKey({ generatorId: '@test/models', refName: 'Left' as RefName, variant: 'main' }),

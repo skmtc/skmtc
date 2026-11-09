@@ -63,7 +63,7 @@ Deno.test('postPass - single Definition produces one anchor with landmark', () =
     value
   })
   const file = new TsFile({ path: 'out.ts', settings: undefined })
-  file.definitions.set(def.identifier.name, def)
+  file.addDefinition(def)
 
   const sidecar = postPass({
     ...renderFile(file),
@@ -95,7 +95,7 @@ Deno.test('postPass - anchor srcPtr matches the model key shape', () => {
     value
   })
   const file = new TsFile({ path: 'out.ts', settings: undefined })
-  file.definitions.set(def.identifier.name, def)
+  file.addDefinition(def)
 
   const sidecar = postPass({
     ...renderFile(file),
@@ -129,8 +129,8 @@ Deno.test('postPass - multiple Definitions land under their own landmarks', () =
     value: new FakeSnippet(c, () => '2', keyB)
   })
   const file = new TsFile({ path: 'out.ts', settings: undefined })
-  file.definitions.set('A', defA)
-  file.definitions.set('B', defB)
+  file.addDefinition(defA)
+  file.addDefinition(defB)
 
   const sidecar = postPass({
     ...renderFile(file),
@@ -159,7 +159,7 @@ Deno.test('postPass - generatorMeta lookup populates generator entries', () => {
     value: new FakeSnippet(c, () => "'x'", key)
   })
   const file = new TsFile({ path: 'out.ts', settings: undefined })
-  file.definitions.set('User', def)
+  file.addDefinition(def)
 
   const sidecar = postPass({
     ...renderFile(file),
@@ -189,7 +189,7 @@ Deno.test('postPass - anchor bytes survive a slice through the rendered source',
     value
   })
   const file = new TsFile({ path: 'out.ts', settings: undefined })
-  file.definitions.set('Whole', def)
+  file.addDefinition(def)
 
   const rendered = renderFile(file)
   const sidecar = postPass({

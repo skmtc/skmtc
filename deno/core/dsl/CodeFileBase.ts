@@ -66,13 +66,6 @@ export const matchDefinitions = (
  */
 export abstract class CodeFileBase extends FileBase {
   /**
-   * The models of this File whose projection is being constructed, by name.
-   * The cache probe sees them; render does not, and they hold no position
-   * among the Definitions. See {@link PendingDefinition}.
-   */
-  pendingDefinitions: Map<string, PendingDefinition> = new Map()
-
-  /**
    * Add a definition, applying the language's duplication rule (e.g.
    * TypeScript declaration merging). Called by the engine's `register`.
    */
@@ -100,4 +93,25 @@ export abstract class CodeFileBase extends FileBase {
    * {@link matchDefinitions}.
    */
   abstract findDefinitions(query?: FindDefinitionsQuery): DefinitionBase[] | undefined
+
+  /**
+   * Add the entry of a model whose projection is about to be constructed,
+   * under the key its Definition will have. `findPendingDefinitions` finds
+   * it; `findDefinitions` and render do not. See {@link PendingDefinition}.
+   */
+  abstract addPendingDefinition(pending: PendingDefinition): void
+
+  /**
+   * The pending entry becomes the constructed Definition: the same entry,
+   * under the same key. From now on `findDefinitions` finds it, and it
+   * renders after every Definition that became one before it, so a
+   * declaration lands after the models it refers to.
+   */
+  abstract resolvePendingDefinition(pending: PendingDefinition, definition: DefinitionBase): void
+
+  /** Take a pending entry out: its projection's constructor threw. */
+  abstract removePendingDefinition(pending: PendingDefinition): void
+
+  /** The pending entries, all of them or those named `name`. */
+  abstract findPendingDefinitions(name?: string): PendingDefinition[]
 }

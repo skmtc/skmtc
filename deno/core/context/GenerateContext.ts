@@ -1769,9 +1769,9 @@ export class GenerateContext implements GenerateContextType {
     const definition = place?.findDefinitions({ name })?.[0]
 
     // A model whose projection is being constructed has no Definition yet,
-    // only its pending marker in the File (a file-level name, never a member).
+    // only its pending entry in the File (a file-level name, never a member).
     if (definition === undefined && into === undefined) {
-      return file.pendingDefinitions.get(name)
+      return file.findPendingDefinitions(name)[0]
     }
 
     return definition
