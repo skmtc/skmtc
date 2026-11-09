@@ -189,18 +189,21 @@ const mergeWithRef = (
         ...second
       }
     } else {
-      return mergeSchemas(getRef(first), getRef(second), getRef)
+      return mergeSchemasOrRefs(getRef(first), getRef(second), getRef)
     }
   }
 
+  // A target followed through its reference merges as any schema does: a
+  // `oneOf` or `anyOf` in either one is crossed with the other, not kept
+  // beside the merged properties.
   if (isRef(first) && !isRef(second)) {
-    const merged = isEmpty(second) ? first : mergeSchemas(getRef(first), second, getRef)
+    const merged = isEmpty(second) ? first : mergeSchemasOrRefs(getRef(first), second, getRef)
 
     return merged
   }
 
   if (!isRef(first) && isRef(second)) {
-    const merged = isEmpty(first) ? second : mergeSchemas(first, getRef(second), getRef)
+    const merged = isEmpty(first) ? second : mergeSchemasOrRefs(first, getRef(second), getRef)
 
     return merged
   }

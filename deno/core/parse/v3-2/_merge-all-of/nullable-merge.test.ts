@@ -132,7 +132,7 @@ Deno.test('mergeNullOnly - returns the modified schema object', () => {
   assertEquals(result.nullable, true)
 })
 
-Deno.test('mergeNullOnly - mutates the original schema', () => {
+Deno.test('mergeNullOnly - returns a nullable copy and leaves the original as it was', () => {
   const schema: OpenAPIV3.SchemaObject = {
     type: 'number',
     enum: [1, 2, 3]
@@ -140,11 +140,9 @@ Deno.test('mergeNullOnly - mutates the original schema', () => {
 
   const result = mergeNullOnly(schema)
 
-  // Verify it's the same object (reference equality)
-  assertEquals(result === schema, true)
-  // Verify the original was mutated
-  assertEquals(schema.nullable, true)
-  assertEquals(schema.enum, [1, 2, 3, null])
+  assertEquals(result, { type: 'number', enum: [1, 2, 3, null], nullable: true })
+  // The trap: `schema` can be a component that every reference shares, so changing it made it nullable everywhere.
+  assertEquals(schema, { type: 'number', enum: [1, 2, 3] })
 })
 
 Deno.test('isNullOnly - returns true for valid null-only schema', () => {
