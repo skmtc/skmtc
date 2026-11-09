@@ -104,7 +104,11 @@
 
 import { dirname, fromFileUrl, join } from 'jsr:@std/path@^1'
 import { parse as parseYaml } from 'jsr:@std/yaml@^1'
-import { computeSkillsDigest } from '../.scripts/plugin-digest.ts'
+import {
+  computeSkillsDigest,
+  readPublishedNames,
+  readSingleSkillPlugins
+} from '../.scripts/plugin-digest.ts'
 import {
   computeApiSurface,
   diffApiSurface,
@@ -728,11 +732,9 @@ const regexLint = (name: string, explain: string, regex: RegExp): ReaderLintPatt
 
 // The published skills are reader-facing artifacts — a reader page may
 // link to one. Every OTHER skill directory is still an internal layer.
-// The plugin manifest is the source of truth for which is which, so the
+// The plugin manifests are the source of truth for which is which, so the
 // two cannot drift apart.
-const publishedSkillNames: string[] = JSON.parse(
-  await Deno.readTextFile(join(docsDir, 'skills', '.claude-plugin', 'plugin.json'))
-).skills.map((path: string) => path.replace(/^\.\//, ''))
+const publishedSkillNames = await readPublishedNames(join(docsDir, 'skills'))
 
 // Anything under skills/ — a published skill, an unpublished one, a
 // file sitting directly in skills/, or the bare directory link. Only a
@@ -1507,6 +1509,9 @@ const marketplaceEntry = marketplaceManifest.plugins.find(
 )
 
 const skillsDigest = await computeSkillsDigest(skillsDir, publishedSkillNames)
+const staleSingle = (await readSingleSkillPlugins(skillsDir)).find(
+  ({ entry }) => entry.version !== pluginManifest.version
+)
 
 if (!marketplaceEntry) {
   fail(`plugin version: marketplace.json has no plugin named ${pluginManifest.name}`)
@@ -1519,6 +1524,12 @@ if (!marketplaceEntry) {
   fail(
     `plugin version: plugin.json and marketplace.json describe the plugin differently — the ` +
       `catalogue shows one and the installed plugin the other`
+  )
+} else if (staleSingle) {
+  fail(
+    `plugin version: marketplace.json gives ${staleSingle.entry.name} ` +
+      `${String(staleSingle.entry.version)} and plugin.json says ${pluginManifest.version} — ` +
+      'every plugin from docs/skills shares one version; re-run `deno task bump-plugin`'
   )
 } else if (pluginRecord.digest !== skillsDigest) {
   fail(

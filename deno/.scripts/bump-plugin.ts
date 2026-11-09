@@ -16,7 +16,7 @@
  * other conflict: rebase and re-run this.
  */
 import { dirname, fromFileUrl, join } from 'jsr:@std/path@^1'
-import { computeSkillsDigest, readPublishedNames } from './plugin-digest.ts'
+import { computeSkillsDigest, readPublishedNames, readSingleSkillPlugins } from './plugin-digest.ts'
 
 const denoDir = join(dirname(fromFileUrl(import.meta.url)), '..')
 const skillsDir = join(denoDir, 'docs', 'skills')
@@ -53,15 +53,20 @@ if (parts.length !== 3 || parts.some(part => !Number.isFinite(part))) {
 }
 const next = `${parts[0]}.${parts[1]}.${parts[2] + 1}`
 
-// By name, not by index: a second marketplace entry must not take the bump.
-const entry = marketplace.plugins.find((candidate: { name: string }) => candidate.name === plugin.name)
-if (!entry) {
+// The bump goes to the entries that ship from this folder (the plugin.json
+// plugin and each single-skill plugin), by name. Any other entry keeps its version.
+const singleNames = (await readSingleSkillPlugins(skillsDir)).map(({ entry }) => entry.name)
+const bumpedNames = [plugin.name, ...singleNames]
+const entries = marketplace.plugins.filter((candidate: { name: string }) =>
+  bumpedNames.includes(candidate.name)
+)
+if (!entries.some((candidate: { name: string }) => candidate.name === plugin.name)) {
   console.error(`marketplace.json has no plugin named ${plugin.name}`)
   Deno.exit(1)
 }
 
 plugin.version = next
-entry.version = next
+for (const entry of entries) entry.version = next
 await Deno.writeTextFile(pluginPath, `${JSON.stringify(plugin, null, 2)}\n`)
 await Deno.writeTextFile(marketplacePath, `${JSON.stringify(marketplace, null, 2)}\n`)
 await Deno.writeTextFile(

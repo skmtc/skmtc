@@ -9,7 +9,9 @@
  * and this digest is what forces it.
  *
  * The digest covers what an install DELIVERS: the files of every published
- * skill, plus the plugin manifest that ships with them.
+ * skill, plus the manifests that ship them (plugin.json, and the marketplace
+ * entry of each single-skill plugin). Every plugin from this folder shares
+ * one version, so one bump covers them all.
  *
  * Changing what goes into the digest changes its value without anything
  * shipping differently, so re-record `plugin-release.json` in the same commit
@@ -92,6 +94,11 @@ export const computeSkillsDigest = async (
     }
   }
   parts.push(`.claude-plugin/plugin.json\n${await manifestWithoutVersion(skillsDir)}`)
+  // A single-skill plugin has no plugin.json: its marketplace entry is its manifest.
+  for (const { entry } of await readSingleSkillPlugins(skillsDir)) {
+    const { version: _version, ...shipped } = entry
+    parts.push(`marketplace.json#${entry.name}\n${JSON.stringify(shipped, null, 2)}`)
+  }
 
   const bytes = new TextEncoder().encode(parts.join('\0'))
   const hash = await crypto.subtle.digest('SHA-256', bytes)
@@ -99,7 +106,46 @@ export const computeSkillsDigest = async (
   return `sha256:${hex}`
 }
 
-/** The published set, from the manifest that ships it. */
+export const toMarketplacePath = (skillsDir: string): string =>
+  join(skillsDir, '..', '..', '..', '.claude-plugin', 'marketplace.json')
+
+const SKILL_PLUGIN_SOURCE = /^\.\/deno\/docs\/skills\/([\w-]+)$/
+
+export type MarketplaceEntry = Record<string, unknown> & { name: string }
+
+/** Every marketplace entry, checked to be an object with a name. */
+export const readMarketplaceEntries = async (skillsDir: string): Promise<MarketplaceEntry[]> => {
+  const marketplace: unknown = JSON.parse(await Deno.readTextFile(toMarketplacePath(skillsDir)))
+  if (!isRecord(marketplace) || !Array.isArray(marketplace.plugins)) {
+    throw new Error('marketplace.json has no `plugins` array')
+  }
+  return marketplace.plugins.map((entry: unknown) => {
+    if (!isRecord(entry) || typeof entry.name !== 'string') {
+      throw new Error(`marketplace.json entry has no name: ${JSON.stringify(entry)}`)
+    }
+    return { ...entry, name: entry.name }
+  })
+}
+
+/**
+ * The marketplace entries that ship one skill as a plugin of its own, with
+ * the skill directory each one ships. `skmtc-cli` ships this way so the
+ * `skmtc` plugin submitted to the Claude directory leaves it out.
+ */
+export const readSingleSkillPlugins = async (
+  skillsDir: string
+): Promise<{ entry: MarketplaceEntry; directory: string }[]> =>
+  (await readMarketplaceEntries(skillsDir)).flatMap(entry => {
+    const directory = typeof entry.source === 'string'
+      ? entry.source.match(SKILL_PLUGIN_SOURCE)?.[1]
+      : undefined
+    return directory === undefined ? [] : [{ entry, directory }]
+  })
+
+/**
+ * The published set: the skills `plugin.json` ships, plus every skill that
+ * ships as a plugin of its own.
+ */
 export const readPublishedNames = async (skillsDir: string): Promise<string[]> => {
   const manifest: unknown = JSON.parse(
     await Deno.readTextFile(join(skillsDir, '.claude-plugin', 'plugin.json'))
@@ -107,10 +153,14 @@ export const readPublishedNames = async (skillsDir: string): Promise<string[]> =
   if (!isRecord(manifest) || !Array.isArray(manifest.skills)) {
     throw new Error('plugin.json has no `skills` array')
   }
-  return manifest.skills.map(entry => {
+  const singles = (await readSingleSkillPlugins(skillsDir)).map(({ directory }) => directory)
+  return [...readManifestSkills(manifest.skills), ...singles]
+}
+
+const readManifestSkills = (skills: unknown[]): string[] =>
+  skills.map(entry => {
     if (typeof entry !== 'string') {
       throw new Error(`plugin.json skills entry is not a string: ${JSON.stringify(entry)}`)
     }
     return entry.replace(/^\.\//, '')
   })
-}

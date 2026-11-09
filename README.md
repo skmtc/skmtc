@@ -45,7 +45,8 @@ skmtc
 Five skills teach a coding agent to author Skmtc generators, and ship from the
 same commit as the code they describe: `skmtc-generator` (engine rules),
 `skmtc-lang-typescript` (the emitted TypeScript), `skmtc-model` and
-`skmtc-operation` (the two generator shapes), and `skmtc-cli`.
+`skmtc-operation` (the two generator shapes), and `skmtc-cli`. In Claude Code,
+`skmtc-cli` is a plugin of its own, and installing `skmtc` installs it too.
 
 ```bash
 # Claude Code
