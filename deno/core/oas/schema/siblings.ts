@@ -7,9 +7,9 @@ import { integerFormat } from '@/oas/integer/integer-types.ts'
 
 /**
  * The keywords next to a reference in a one-member `allOf`
- * (`{ allOf: [{ $ref }], minLength: 3, description: '…' }`), other than the
- * use-site flags `nullable`, `readOnly` and `writeOnly`, which ride the
- * reference on their own (`RefFields`).
+ * (`{ allOf: [{ $ref }], minLength: 3, description: '…' }`), the use-site
+ * flags `nullable`, `readOnly` and `writeOnly` among them: the fields a
+ * reference adds at its site (`RefFields`).
  *
  * The parser reads them without knowing the target's type: the reference
  * stays lazy. Each schema class's `clone(ref)` takes the keywords its type
@@ -19,6 +19,27 @@ import { integerFormat } from '@/oas/integer/integer-types.ts'
  * `clone` leaves out, for a generator to log.
  */
 export type SiblingKeywords = {
+  /**
+   * Use-site nullability. A `$ref` is a per-reference node: the same
+   * refName may be referenced nullable at one site and non-nullable at
+   * another, so nullability rides the reference, not the shared referent.
+   * Set by the single-member `oneOf`/`anyOf` collapse for the 3.1
+   * `oneOf:[{$ref},{type:null}]` idiom, and next to a one-member `allOf`.
+   * Generators read it off the reference (`'nullable' in schema ?
+   * schema.nullable`) to render `Foo | null`, while `ModelDriver` builds the
+   * un-nullable shared model from the refName.
+   */
+  nullable?: boolean
+  /**
+   * Use-site `readOnly`: set where a property marks a reference read-only,
+   * `{ allOf: [{ $ref }], readOnly: true }` (the 3.0 idiom, as keywords next
+   * to a bare `$ref` are ignored there). Like `nullable`, it rides the
+   * reference: the shared model is not read-only everywhere. Read it through
+   * `isReadOnly`, which also looks at what the reference points to.
+   */
+  readOnly?: boolean
+  /** Use-site `writeOnly`, as {@link readOnly}. */
+  writeOnly?: boolean
   /**
    * The `type` written next to the reference, merged in from the schema that
    * holds the one-member `allOf`. It must agree with the target's; the copy
@@ -54,7 +75,14 @@ export type SiblingKeywords = {
 /** A keyword `clone` can apply. `_type` only has to agree. */
 export type SiblingKeyword = Exclude<keyof SiblingKeywords, '_type'>
 
-const DESCRIBING: SiblingKeyword[] = ['title', 'description', 'extensionFields', 'example']
+/**
+ * The use-site flags, taken by every type, so they are never reported as
+ * left out. A union's or unknown's copy has no `readOnly` or `writeOnly`
+ * field, but the reference still answers `isReadOnly()` and
+ * `isWriteOnly()` from its own flag.
+ */
+const FLAGS: SiblingKeyword[] = ['nullable', 'readOnly', 'writeOnly']
+const DESCRIBING: SiblingKeyword[] = [...FLAGS, 'title', 'description', 'extensionFields', 'example']
 const NUMERIC: SiblingKeyword[] = [
   'deprecated',
   'default',
@@ -94,11 +122,15 @@ const SIBLING_KEYWORDS: SiblingKeyword[] = [...new Set(Object.values(SIBLINGS_BY
 
 /**
  * The keywords of `over` merged over those of `base`, for a reference copied
- * with what another site adds (`OasRef.clone`): a keyword `over` sets wins,
- * extension fields and `properties` merge, and `required` names add up, as
- * each schema class's `clone` merges them into a schema.
+ * with what another site adds (`OasRef.clone`): a flag set on either stays
+ * set, a keyword `over` sets wins, extension fields and `properties` merge,
+ * and `required` names add up, as each schema class's `clone` merges them
+ * into a schema.
  */
 export const mergeSiblingKeywords = (base: SiblingKeywords, over: SiblingKeywords | undefined): SiblingKeywords => ({
+  nullable: base.nullable || over?.nullable || undefined,
+  readOnly: base.readOnly || over?.readOnly || undefined,
+  writeOnly: base.writeOnly || over?.writeOnly || undefined,
   _type: over?._type ?? base._type,
   title: over?.title ?? base.title,
   description: over?.description ?? base.description,

@@ -75,27 +75,6 @@ type RefContext = Pick<ParseContextType, 'parsedDocument' | 'currentStackTrail'>
 export type RefFields<T extends OasRefData['refType']> = SiblingKeywords & {
   refType: T
   $ref: string
-  /**
-   * Use-site nullability. A `$ref` is a per-reference node: the same
-   * refName may be referenced nullable at one site and non-nullable at
-   * another, so nullability rides the reference, not the shared referent.
-   * Set by the single-member `oneOf`/`anyOf` collapse for the 3.1
-   * `oneOf:[{$ref},{type:null}]` idiom; consumed directly by generators
-   * (`'nullable' in schema ? schema.nullable`) to render `Foo | null`,
-   * while `ModelDriver` builds the un-nullable shared model from the
-   * refName.
-   */
-  nullable?: boolean
-  /**
-   * Use-site `readOnly`: set where a property marks a reference read-only,
-   * `{ allOf: [{ $ref }], readOnly: true }` (the 3.0 idiom, as keywords next
-   * to a bare `$ref` are ignored there). Like `nullable`, it rides the
-   * reference: the shared model is not read-only everywhere. Read it through
-   * `isReadOnly`, which also looks at what the reference points to.
-   */
-  readOnly?: boolean
-  /** Use-site `writeOnly`, as {@link readOnly}. */
-  writeOnly?: boolean
 }
 
 /**
@@ -378,12 +357,12 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     return this.#fields.nullable
   }
 
-  /** Use-site `readOnly` of this reference (see {@link RefFields.readOnly}). */
+  /** Use-site `readOnly` of this reference (see {@link SiblingKeywords.readOnly}). */
   get readOnly(): boolean | undefined {
     return this.#fields.readOnly
   }
 
-  /** Use-site `writeOnly` of this reference (see {@link RefFields.writeOnly}). */
+  /** Use-site `writeOnly` of this reference (see {@link SiblingKeywords.writeOnly}). */
   get writeOnly(): boolean | undefined {
     return this.#fields.writeOnly
   }
@@ -520,8 +499,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    * them applied, not the shared target.
    */
   hasSiblings(): boolean {
-    return this.nullable === true || this.readOnly === true || this.writeOnly === true ||
-      hasSiblingKeywords(this.#fields)
+    return hasSiblingKeywords(this)
   }
 
   /**
@@ -534,13 +512,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    */
   clone(ref?: OasRef<'schema'>): OasRef<T> {
     const copy = new OasRef<T>(
-      {
-        ...this.#fields,
-        ...mergeSiblingKeywords(this.#fields, ref),
-        nullable: this.nullable || ref?.nullable || undefined,
-        readOnly: this.readOnly || ref?.readOnly || undefined,
-        writeOnly: this.writeOnly || ref?.writeOnly || undefined
-      },
+      { refType: this.#fields.refType, $ref: this.#fields.$ref, ...mergeSiblingKeywords(this, ref) },
       { parsedDocument: this.#document, currentStackTrail: undefined }
     )
     copy.stackTrail = this.stackTrail
