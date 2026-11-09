@@ -1725,9 +1725,16 @@ export class GenerateContext implements GenerateContextType {
    * @throws if schema is not found
    */
   resolveSchemaRefOnce(refName: RefName): OasSchema | OasRef<'schema'> {
+    const component = this.document.type === 'oas' ? this.document.value.components?.schemas?.[refName] : undefined
+    // A component written as a one-member `allOf` with keywords next to the
+    // reference (`{ allOf: [{ $ref: Name }], maxLength: 10 }`) is its own
+    // model: the target with those keywords, so it resolves in full. A plain
+    // alias stays one step, so its model refers to the next model by name.
     const schema =
       this.document.type === 'oas'
-        ? this.document.value.components?.schemas?.[refName]?.resolveOnce()
+        ? component?.isRef() && component.siblings !== undefined
+          ? component.resolve()
+          : component?.resolveOnce()
         : this.document.value.registry.schemas[refName]
 
     if (!schema) {

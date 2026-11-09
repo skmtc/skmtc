@@ -72,10 +72,10 @@ const atSite = (property: OasSchema | OasRef<'schema'> | CustomValue | undefined
     throw new Error('expected a reference')
   }
 
-  return property.resolveWithSiblings()
+  return property.resolve()
 }
 
-Deno.test('resolveWithSiblings() applies the keywords next to a reference to a copy of the target', () => {
+Deno.test('resolve() applies the keywords next to a reference to a copy of the target', () => {
   const { site } = parse()
   const title = atSite(site.title)
 
@@ -83,6 +83,10 @@ Deno.test('resolveWithSiblings() applies the keywords next to a reference to a c
   assertEquals(title.type === 'string' ? title.minLength : undefined, 3)
   assertEquals(title.description, 'The title.')
   assertEquals(title.extensionFields?.['x-fern-property-name'], 'heading')
+
+  // resolveOnce() applies no siblings: it is one step along the chain.
+  const once = site.title?.isRef() ? site.title.resolveOnce() : undefined
+  assertEquals(once?.type === 'string' ? once.minLength : 'not a string', undefined)
 
   // The trap: the shared Name is not changed by one site's keywords.
   const name = atSite(site.plain)

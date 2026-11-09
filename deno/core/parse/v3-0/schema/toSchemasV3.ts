@@ -151,8 +151,8 @@ export const toSchemaV3 = ({
         // reference, which stays lazy, so a self-reference still ends:
         // `nullable`, `readOnly` and `writeOnly` ride it as use-site flags,
         // and the others are parsed as a schema of the target's type
-        // (`siblings`), which `resolveWithSiblings()` applies to a copy of
-        // the target at generate time. The shared model never changes.
+        // (`siblings`), which `resolve()` applies to a copy of the target
+        // at generate time. The shared model never changes.
         if (isRef(member)) {
           const { nullable, readOnly, writeOnly, ...keywords } = value
           const parsed =

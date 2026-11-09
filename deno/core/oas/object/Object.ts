@@ -420,14 +420,9 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
     return this.writeOnly === true
   }
 
-  /** This schema: it is no reference, so no keywords sit next to one. */
-  resolveWithSiblings(): OasObject {
-    return this
-  }
-
   /**
    * A copy of this schema with the keywords next to a reference to it
-   * applied (`RefFields.siblings`): a sibling's value wins. Annotations
+   * applied (`RefFields.siblings`), for `OasRef.resolve()`: a sibling's value wins. Annotations
    * apply from siblings of any type; the rest only from siblings of the
    * same type. This schema does not change.
    */
