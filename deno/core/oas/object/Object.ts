@@ -1,5 +1,5 @@
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
-import { toSiblingAnnotations, toSiblingDeprecated } from '@/oas/schema/siblings.ts'
+import { toSiblingAnnotations, toSiblingEnums, toSiblingValue, isObjectValue } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
@@ -421,28 +421,30 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
   }
 
   /**
-   * A copy of this schema with the keywords next to a reference to it
-   * applied (`RefFields.siblings`), for `OasRef.resolve()`: a sibling's value wins. Annotations
-   * apply from siblings of any type; the rest only from siblings of the
-   * same type. This schema does not change.
+   * A copy of this schema with what `ref` adds at its site applied: its
+   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`RefFields.siblings`) that
+   * this type takes, a sibling's value winning. A value that does not fit
+   * this type is left out (the parser reports it). For `OasRef.resolve()`.
+   * This schema does not change, and the copy shares its child schemas.
    */
-  withSiblings(siblings: OasSchema): OasObject {
-    const same = siblings.type === 'object' ? siblings : undefined
+  clone(ref?: OasRef<'schema'>): OasObject {
+    const siblings = ref?.siblings
+    const nullable = this.nullable || ref?.nullable || undefined
     const copy = new OasObject<boolean | undefined>({
       ...toSiblingAnnotations(this, siblings),
-      example: same?.example ?? this.example,
+      example: toSiblingValue(siblings?.example, isObjectValue) ?? this.example,
       externalDocs: this.externalDocs,
-      properties: same?.properties === undefined ? (this.properties ?? undefined) : { ...this.properties, ...same.properties },
-      required: same?.required === undefined ? this.required : [...new Set([...(this.required ?? []), ...same.required])],
-      additionalProperties: same?.additionalProperties ?? this.additionalProperties,
-      nullable: this.nullable,
-      default: same?.default ?? this.default,
-      maxProperties: same?.maxProperties ?? this.maxProperties,
-      minProperties: same?.minProperties ?? this.minProperties,
-      readOnly: this.readOnly,
-      writeOnly: this.writeOnly,
-      deprecated: toSiblingDeprecated(siblings) ?? this.deprecated,
-      enums: same?.enums ?? this.enums,
+      properties: siblings?.properties === undefined ? (this.properties ?? undefined) : { ...this.properties, ...siblings.properties },
+      required: siblings?.required === undefined ? this.required : [...new Set([...(this.required ?? []), ...siblings.required])],
+      additionalProperties: siblings?.additionalProperties ?? this.additionalProperties,
+      nullable,
+      default: toSiblingValue(siblings?.default, isObjectValue) ?? this.default,
+      maxProperties: siblings?.maxProperties ?? this.maxProperties,
+      minProperties: siblings?.minProperties ?? this.minProperties,
+      readOnly: this.readOnly || ref?.readOnly || undefined,
+      writeOnly: this.writeOnly || ref?.writeOnly || undefined,
+      deprecated: siblings?.deprecated ?? this.deprecated,
+      enums: toSiblingEnums(siblings?.enums, isObjectValue, nullable) ?? this.enums,
     })
     copy.stackTrail = this.stackTrail
 

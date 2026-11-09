@@ -1,5 +1,5 @@
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
-import { toSiblingAnnotations, toSiblingDeprecated } from '@/oas/schema/siblings.ts'
+import { toSiblingAnnotations, toSiblingEnums, toSiblingValue, isArrayValue } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasSchema, ToJsonSchemaOptions } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
@@ -155,26 +155,28 @@ export class OasArray<Nullable extends boolean | undefined = boolean | undefined
   }
 
   /**
-   * A copy of this schema with the keywords next to a reference to it
-   * applied (`RefFields.siblings`), for `OasRef.resolve()`: a sibling's value wins. Annotations
-   * apply from siblings of any type; the rest only from siblings of the
-   * same type. This schema does not change.
+   * A copy of this schema with what `ref` adds at its site applied: its
+   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`RefFields.siblings`) that
+   * this type takes, a sibling's value winning. A value that does not fit
+   * this type is left out (the parser reports it). For `OasRef.resolve()`.
+   * This schema does not change, and the copy shares its child schemas.
    */
-  withSiblings(siblings: OasSchema): OasArray {
-    const same = siblings.type === 'array' ? siblings : undefined
+  clone(ref?: OasRef<'schema'>): OasArray {
+    const siblings = ref?.siblings
+    const nullable = this.nullable || ref?.nullable || undefined
     const copy = new OasArray<boolean | undefined>({
       ...toSiblingAnnotations(this, siblings),
-      example: same?.example ?? this.example,
+      example: toSiblingValue(siblings?.example, isArrayValue) ?? this.example,
       items: this.items,
-      nullable: this.nullable,
-      uniqueItems: same?.uniqueItems ?? this.uniqueItems,
-      maxItems: same?.maxItems ?? this.maxItems,
-      minItems: same?.minItems ?? this.minItems,
-      enums: same?.enums ?? this.enums,
-      defaultValue: same?.defaultValue ?? this.defaultValue,
-      readOnly: this.readOnly,
-      writeOnly: this.writeOnly,
-      deprecated: toSiblingDeprecated(siblings) ?? this.deprecated,
+      nullable,
+      uniqueItems: siblings?.uniqueItems ?? this.uniqueItems,
+      maxItems: siblings?.maxItems ?? this.maxItems,
+      minItems: siblings?.minItems ?? this.minItems,
+      enums: toSiblingEnums(siblings?.enums, isArrayValue, nullable) ?? this.enums,
+      defaultValue: toSiblingValue(siblings?.default, isArrayValue) ?? this.defaultValue,
+      readOnly: this.readOnly || ref?.readOnly || undefined,
+      writeOnly: this.writeOnly || ref?.writeOnly || undefined,
+      deprecated: siblings?.deprecated ?? this.deprecated,
     })
     copy.stackTrail = this.stackTrail
 

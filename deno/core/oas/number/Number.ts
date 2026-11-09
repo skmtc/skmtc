@@ -1,5 +1,5 @@
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
-import { toSiblingAnnotations, toSiblingDeprecated } from '@/oas/schema/siblings.ts'
+import { toSiblingAnnotations, toSiblingEnums, toSiblingValue, isNumberValue, isNumberFormat } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { OpenAPIV3 } from 'openapi-types'
@@ -154,28 +154,30 @@ export class OasNumber<Nullable extends boolean | undefined = boolean | undefine
   }
 
   /**
-   * A copy of this schema with the keywords next to a reference to it
-   * applied (`RefFields.siblings`), for `OasRef.resolve()`: a sibling's value wins. Annotations
-   * apply from siblings of any type; the rest only from siblings of the
-   * same type. This schema does not change.
+   * A copy of this schema with what `ref` adds at its site applied: its
+   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`RefFields.siblings`) that
+   * this type takes, a sibling's value winning. A value that does not fit
+   * this type is left out (the parser reports it). For `OasRef.resolve()`.
+   * This schema does not change, and the copy shares its child schemas.
    */
-  withSiblings(siblings: OasSchema): OasNumber {
-    const same = siblings.type === 'number' ? siblings : undefined
+  clone(ref?: OasRef<'schema'>): OasNumber {
+    const siblings = ref?.siblings
+    const nullable = this.nullable || ref?.nullable || undefined
     const copy = new OasNumber<boolean | undefined>({
       ...toSiblingAnnotations(this, siblings),
-      example: same?.example ?? this.example,
-      nullable: this.nullable,
-      default: same?.default ?? this.default,
-      enums: same?.enums ?? this.enums,
-      format: same?.format ?? this.format,
-      multipleOf: same?.multipleOf ?? this.multipleOf,
-      maximum: same?.maximum ?? this.maximum,
-      exclusiveMaximum: same?.exclusiveMaximum ?? this.exclusiveMaximum,
-      minimum: same?.minimum ?? this.minimum,
-      exclusiveMinimum: same?.exclusiveMinimum ?? this.exclusiveMinimum,
-      readOnly: this.readOnly,
-      writeOnly: this.writeOnly,
-      deprecated: toSiblingDeprecated(siblings) ?? this.deprecated,
+      example: toSiblingValue(siblings?.example, isNumberValue) ?? this.example,
+      nullable,
+      default: toSiblingValue(siblings?.default, isNumberValue) ?? this.default,
+      enums: toSiblingEnums(siblings?.enums, isNumberValue, nullable) ?? this.enums,
+      format: toSiblingValue(siblings?.format, isNumberFormat) ?? this.format,
+      multipleOf: siblings?.multipleOf ?? this.multipleOf,
+      maximum: siblings?.maximum ?? this.maximum,
+      exclusiveMaximum: siblings?.exclusiveMaximum ?? this.exclusiveMaximum,
+      minimum: siblings?.minimum ?? this.minimum,
+      exclusiveMinimum: siblings?.exclusiveMinimum ?? this.exclusiveMinimum,
+      readOnly: this.readOnly || ref?.readOnly || undefined,
+      writeOnly: this.writeOnly || ref?.writeOnly || undefined,
+      deprecated: siblings?.deprecated ?? this.deprecated,
     })
     copy.stackTrail = this.stackTrail
 

@@ -14,7 +14,8 @@ import { toString } from '../string/toString.ts'
 import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
 import { toGetRef } from '@/helpers/refFns.ts'
-import { toSiblingSchema } from '@/parse/toSiblingSchema.ts'
+import { toSiblingKeywords } from '@/parse/toSiblingKeywords.ts'
+import { toAdditionalPropertiesV3 } from '../object/toAdditionalPropertiesV3.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
 import { collapseNullOnlyUnion, mergeUnion } from '../_merge-all-of/merge-union.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
@@ -228,22 +229,29 @@ export const toSchemaV3 = ({
         // Keywords next to the one member say how this site uses the
         // reference, which stays lazy, so a self-reference still ends:
         // `nullable`, `readOnly` and `writeOnly` ride it as use-site flags,
-        // and the others are parsed as a schema of the target's type
-        // (`siblings`), which `resolve()` applies to a copy of the target
-        // at generate time. The shared model never changes.
+        // and the others are read without the target's type (`siblings`).
+        // `resolve()` applies them to a copy of the target at generate time;
+        // the ones its type cannot take are left out there. The shared model
+        // never changes.
         if (isRef(member)) {
           const { nullable, readOnly, writeOnly, ...keywords } = value
-          const parsed =
-            isEmpty(keywords)
-              ? undefined
-              : st.trace('siblings', siblingTrail =>
-                  toSchemaV3({
-                    schema: toSiblingSchema({ keywords, ref: member, documentObject: context.documentObject }),
-                    stackTrail: siblingTrail,
+          const siblings = isEmpty(keywords)
+            ? undefined
+            : toSiblingKeywords({
+                keywords,
+                properties: stackTrail.trace('properties', propertiesTrail =>
+                  toOptionalSchemasV3({ schemas: keywords.properties, stackTrail: propertiesTrail, context })
+                ),
+                additionalProperties: stackTrail.trace('additionalProperties', additionalTrail =>
+                  toAdditionalPropertiesV3({
+                    additionalProperties: keywords.additionalProperties,
+                    stackTrail: additionalTrail,
                     context
                   })
-                )
-          const siblings = parsed === undefined || parsed.isRef() ? undefined : parsed
+                ),
+                stackTrail,
+                context
+              })
 
           if (nullable || readOnly || writeOnly || siblings) {
             return toRefV31({

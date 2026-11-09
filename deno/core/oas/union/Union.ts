@@ -221,20 +221,23 @@ export class OasUnion extends OasBase {
   }
 
   /**
-   * A copy of this schema with the keywords next to a reference to it
-   * applied (`RefFields.siblings`), for `OasRef.resolve()`: a sibling's value wins. Annotations
-   * apply from siblings of any type; the rest only from siblings of the
-   * same type. This schema does not change.
+   * A copy of this schema with what `ref` adds at its site applied: its
+   * `nullable` and the keywords next to it (`RefFields.siblings`) that
+   * this type takes, a sibling's value winning. A value that does not fit
+   * this type is left out (the parser reports it). For `OasRef.resolve()`.
+   * This schema does not change, and the copy shares its child schemas.
    */
-  withSiblings(siblings: OasSchema): OasUnion {
+  clone(ref?: OasRef<'schema'>): OasUnion {
+    const siblings = ref?.siblings
+    const nullable = this.nullable || ref?.nullable || undefined
     const copy = new OasUnion({
       ...toSiblingAnnotations(this, siblings),
-      example: siblings.example ?? this.example,
+      example: siblings?.example ?? this.example,
       externalDocs: this.externalDocs,
-      nullable: this.nullable,
+      nullable,
       discriminator: this.discriminator,
       members: this.members,
-      default: ('default' in siblings ? siblings.default : undefined) ?? this.default,
+      default: siblings?.default ?? this.default,
     })
     copy.stackTrail = this.stackTrail
 

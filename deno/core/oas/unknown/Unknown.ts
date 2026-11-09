@@ -71,16 +71,19 @@ export class OasUnknown extends OasBase {
   }
 
   /**
-   * A copy of this schema with the keywords next to a reference to it
-   * applied (`RefFields.siblings`), for `OasRef.resolve()`: a sibling's value wins. Annotations
-   * apply from siblings of any type; the rest only from siblings of the
-   * same type. This schema does not change.
+   * A copy of this schema with what `ref` adds at its site applied: its
+   * `nullable` and the keywords next to it (`RefFields.siblings`) that
+   * this type takes, a sibling's value winning. A value that does not fit
+   * this type is left out (the parser reports it). For `OasRef.resolve()`.
+   * This schema does not change, and the copy shares its child schemas.
    */
-  withSiblings(siblings: OasSchema): OasUnknown {
+  clone(ref?: OasRef<'schema'>): OasUnknown {
+    const siblings = ref?.siblings
+    const nullable = this.nullable || ref?.nullable || undefined
     const copy = new OasUnknown({
       ...toSiblingAnnotations(this, siblings),
-      example: siblings.example ?? this.example,
-      nullable: this.nullable,
+      example: siblings?.example ?? this.example,
+      nullable,
     })
     copy.stackTrail = this.stackTrail
 

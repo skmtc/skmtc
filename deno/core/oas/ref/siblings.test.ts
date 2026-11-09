@@ -38,19 +38,35 @@ const document = {
           pet: { allOf: [ref('Pet')], description: 'A pet.' },
           short: { allOf: [ref('Short')], minLength: 2 },
           plain: ref('Name'),
-          flagged: { allOf: [ref('Name')], nullable: true }
+          flagged: { allOf: [ref('Name')], nullable: true },
+          nick: { allOf: [ref('Name')], nullable: true, readOnly: true, maxLength: 5 },
+          letter: { allOf: [ref('Letter')], minLength: 1 },
+          longTags: { allOf: [ref('Tags')], minLength: 3 },
+          typed: { allOf: [ref('Name')], type: 'integer', minimum: 1 },
+          wrongExample: { allOf: [ref('Name')], example: 5, description: 'Still described.' },
+          sameType: { allOf: [ref('Name')], type: 'string', minLength: 4 },
+          extra: { allOf: [ref('Name')], items: { type: 'string' } },
+          // Every member of Animal is an object, so `type: object` agrees.
+          animal: { allOf: [ref('Animal')], type: 'object', description: 'An animal.' },
+          // Pet has a string member and an integer one, so `type: string` does not.
+          narrowPet: { allOf: [ref('Pet')], type: 'string' }
         }
-      }
+      },
+      // No `type`: the parser reads an `enum` of strings as a string.
+      Letter: { enum: ['a', 'b'] },
+      Cat: { type: 'object', properties: { purrs: { type: 'boolean' } } },
+      Animal: { oneOf: [ref('Cat'), { type: 'object', properties: { barks: { type: 'boolean' } } }] }
     }
   }
 } as OpenAPIV3.Document
 
 const parse = () => {
-  const parsed = new ParseContext({
+  const context = new ParseContext({
     input: { type: 'oas', value: document },
     logger: new log.Logger('test', 'ERROR'),
     silent: true
-  }).parse(new StackTrail(['TEST']))
+  })
+  const parsed = context.parse(new StackTrail(['TEST']))
 
   const schemas = parsed.type === 'oas' ? parsed.value.components?.schemas : undefined
   const toObject = (name: string): OasObject => {
@@ -63,7 +79,7 @@ const parse = () => {
     return schema
   }
 
-  return { site: toObject('Site').properties ?? {}, node: toObject('Node') }
+  return { site: toObject('Site').properties ?? {}, node: toObject('Node'), issues: context.issues }
 }
 
 /** The schema at a property's site. */
@@ -132,4 +148,104 @@ Deno.test('a reference with no keywords next to it resolves to the shared instan
   const flagged = site.flagged
 
   assertEquals(flagged?.isRef() ? [flagged.nullable, flagged.siblings] : [], [true, undefined])
+})
+
+Deno.test('clone(ref) carries the use-site flags onto the copy at a site with keywords', () => {
+  const { site } = parse()
+  const nick = atSite(site.nick)
+
+  assertEquals(nick.type === 'string' ? [nick.maxLength, nick.nullable, nick.isReadOnly()] : [], [5, true, true])
+
+  // The trap: the shared Name is neither nullable nor read-only.
+  const name = atSite(site.plain)
+  assertEquals(name.type === 'string' ? [name.nullable, name.isReadOnly()] : [], [undefined, false])
+})
+
+Deno.test('keywords apply to a target the parser types without a `type` keyword', () => {
+  // Parsing the keywords used to need the target's `type` from the document,
+  // so an `enum` with no `type` lost the `minLength` next to it.
+  const { site } = parse()
+  const letter = atSite(site.letter)
+
+  assertEquals(letter.type === 'string' ? [letter.minLength, letter.enums] : [], [1, ['a', 'b']])
+})
+
+Deno.test('toSkippedSiblings() names what clone leaves out, and the copy goes without it', () => {
+  const { site } = parse()
+  const skipped = (name: string): string[] => {
+    const property = site[name]
+
+    return property?.isRef() ? property.toSkippedSiblings() : ['not a reference']
+  }
+
+  assertEquals(skipped('longTags'), ['minLength'])
+  assertEquals(skipped('typed'), ['type', 'minimum'])
+  assertEquals(skipped('wrongExample'), ['example'])
+  assertEquals(skipped('sameType'), [])
+  assertEquals(skipped('animal'), [])
+  assertEquals(skipped('narrowPet'), ['type'])
+  assertEquals(skipped('title'), [])
+  assertEquals(skipped('plain'), [])
+
+  const longTags = atSite(site.longTags)
+  const wrongExample = atSite(site.wrongExample)
+
+  assertEquals('minLength' in longTags, false)
+  assertEquals([wrongExample.example, wrongExample.description], [undefined, 'Still described.'])
+})
+
+Deno.test('hasValueSiblings() counts only the keywords the target takes', () => {
+  const { site } = parse()
+  const changes = (name: string): boolean => {
+    const property = site[name]
+
+    return property?.isRef() === true && property.hasValueSiblings()
+  }
+
+  assertEquals(changes('title'), true)
+  assertEquals(changes('sameType'), true)
+  // `minLength` next to an array changes nothing: an array is not a string.
+  assertEquals(changes('longTags'), false)
+  assertEquals(changes('pet'), false)
+  assertEquals(changes('plain'), false)
+})
+
+Deno.test('a keyword no schema has next to a reference is reported while parsing', () => {
+  const { site, issues } = parse()
+  const extra = site.extra
+
+  assertEquals(
+    issues.filter(issue => issue.location.includes('extra')).map(issue => issue.message),
+    ["Unexpected property 'items' in 'schema:siblings'"]
+  )
+  // Nothing else is next to it, so the reference resolves to the shared Name.
+  assertStrictEquals(atSite(extra), site.plain?.resolve())
+})
+
+const document31 = {
+  openapi: '3.1.0',
+  info: { title: 'Siblings 3.1', version: '1' },
+  paths: {},
+  components: {
+    schemas: {
+      MaybeName: { type: ['string', 'null'] },
+      Site: { type: 'object', properties: { maybe: { allOf: [ref('MaybeName')], minLength: 3 } } }
+    }
+  }
+  // A 3.1 type list is not in the 3.0 types, as in ParseContext.dialect.test.ts.
+} as unknown as OpenAPIV3.Document
+
+Deno.test('keywords apply next to a 3.1 type list', () => {
+  // `type: ['string', 'null']` is a nullable string once parsed; read from
+  // the document as written, it named no single type, and `minLength` was lost.
+  const parsed = new ParseContext({
+    input: { type: 'oas', value: document31 },
+    logger: new log.Logger('test', 'ERROR'),
+    silent: true
+  }).parse(new StackTrail(['TEST']))
+  const schemas = parsed.type === 'oas' ? parsed.value.components?.schemas : undefined
+  const site = schemas?.[toRefName('#/components/schemas/Site')]
+  const maybe = atSite(site?.type === 'object' ? site.properties?.maybe : undefined)
+
+  assertEquals(maybe.type === 'string' ? [maybe.minLength, maybe.nullable] : [], [3, true])
 })

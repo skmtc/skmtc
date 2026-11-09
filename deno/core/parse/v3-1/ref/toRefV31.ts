@@ -1,5 +1,5 @@
 import type { OpenAPIV3_1 } from 'openapi-types'
-import type { OasSchema } from '@/oas/schema/Schema.ts'
+import type { SiblingKeywords } from '@/oas/schema/siblings.ts'
 import type { OasRefData } from '@/oas/ref/ref-types.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasRef } from '@/oas/ref/Ref.ts'
@@ -19,8 +19,8 @@ type ToRefV31Args<T extends OasRefData['refType']> = {
   /** Use-site `readOnly` and `writeOnly` (see `RefFields.readOnly`): from a one-member `allOf`. */
   readOnly?: boolean
   writeOnly?: boolean
-  /** The other keywords next to the reference in a one-member `allOf`, parsed (see `RefFields.siblings`). */
-  siblings?: OasSchema
+  /** The other keywords next to the reference in a one-member `allOf` (see `RefFields.siblings`). */
+  siblings?: SiblingKeywords
 }
 
 export const toRefV31 = <T extends OasRefData['refType']>({

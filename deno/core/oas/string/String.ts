@@ -1,5 +1,5 @@
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
-import { toSiblingAnnotations, toSiblingDeprecated } from '@/oas/schema/siblings.ts'
+import { toSiblingAnnotations, toSiblingEnums, toSiblingValue, isStringValue } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
@@ -138,26 +138,28 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
   }
 
   /**
-   * A copy of this schema with the keywords next to a reference to it
-   * applied (`RefFields.siblings`), for `OasRef.resolve()`: a sibling's value wins. Annotations
-   * apply from siblings of any type; the rest only from siblings of the
-   * same type. This schema does not change.
+   * A copy of this schema with what `ref` adds at its site applied: its
+   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`RefFields.siblings`) that
+   * this type takes, a sibling's value winning. A value that does not fit
+   * this type is left out (the parser reports it). For `OasRef.resolve()`.
+   * This schema does not change, and the copy shares its child schemas.
    */
-  withSiblings(siblings: OasSchema): OasString {
-    const same = siblings.type === 'string' ? siblings : undefined
+  clone(ref?: OasRef<'schema'>): OasString {
+    const siblings = ref?.siblings
+    const nullable = this.nullable || ref?.nullable || undefined
     const copy = new OasString<boolean | undefined>({
       ...toSiblingAnnotations(this, siblings),
-      example: same?.example ?? this.example,
-      format: same?.format ?? this.format,
-      enums: same?.enums ?? this.enums,
-      nullable: this.nullable,
-      maxLength: same?.maxLength ?? this.maxLength,
-      minLength: same?.minLength ?? this.minLength,
-      pattern: same?.pattern ?? this.pattern,
-      default: same?.default ?? this.default,
-      readOnly: this.readOnly,
-      writeOnly: this.writeOnly,
-      deprecated: toSiblingDeprecated(siblings) ?? this.deprecated,
+      example: toSiblingValue(siblings?.example, isStringValue) ?? this.example,
+      format: siblings?.format ?? this.format,
+      enums: toSiblingEnums(siblings?.enums, isStringValue, nullable) ?? this.enums,
+      nullable,
+      maxLength: siblings?.maxLength ?? this.maxLength,
+      minLength: siblings?.minLength ?? this.minLength,
+      pattern: siblings?.pattern ?? this.pattern,
+      default: toSiblingValue(siblings?.default, isStringValue) ?? this.default,
+      readOnly: this.readOnly || ref?.readOnly || undefined,
+      writeOnly: this.writeOnly || ref?.writeOnly || undefined,
+      deprecated: siblings?.deprecated ?? this.deprecated,
     })
     copy.stackTrail = this.stackTrail
 

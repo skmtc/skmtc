@@ -16,6 +16,7 @@ import type { RefName } from '../../types/RefName.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
 import { OasBase } from '@/types/OasBase.ts'
+import { changesValues, isInlineLoop, type SiblingKeywords, toSkippedSiblings } from '@/oas/schema/siblings.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 
 const MAX_LOOKUPS = 10
@@ -79,12 +80,13 @@ export type RefFields<T extends OasRefData['refType']> = {
   writeOnly?: boolean
   /**
    * The other keywords next to the reference in a one-member `allOf`
-   * (`{ allOf: [{ $ref }], minLength: 3, description: '…' }`), parsed as a
-   * schema of the target's type. {@link OasRef.resolve} applies them to a
-   * copy of the target, so the shared target never changes, and
-   * the reference stays lazy, so a self-reference still ends.
+   * (`{ allOf: [{ $ref }], minLength: 3, description: '…' }`), parsed
+   * without the target's type (see {@link SiblingKeywords}).
+   * {@link OasRef.resolve} applies them to a copy of the target, so the
+   * shared target never changes, and the reference stays lazy, so a
+   * self-reference still ends.
    */
-  siblings?: OasSchema
+  siblings?: SiblingKeywords
 }
 
 /**
@@ -226,17 +228,18 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
 
     const resolved = this.resolveOnce()
     const target = resolved.isRef() ? resolved.resolve(lookupsPerformed + 1) : resolved
-    const siblings = this.#fields.siblings
     // Widened from the generic ResolvedRef<T>, so `oasType` narrows it.
     const component: OasComponentType = target
 
-    if (siblings === undefined || component.oasType !== 'schema') {
+    // `oasType` narrows the target and `isSchemaRef()` this reference;
+    // resolveOnce() has checked that the two agree.
+    if (this.#fields.siblings === undefined || component.oasType !== 'schema' || !this.isSchemaRef()) {
       return target
     }
 
     // A schema's copy is a schema of the same class. TypeScript cannot relate
     // OasSchema to ResolvedRef<T> for a generic T, as in resolveOnce().
-    return component.withSiblings(siblings) as ResolvedRef<T>
+    return component.clone(this) as ResolvedRef<T>
   }
 
   /**
@@ -376,8 +379,57 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
   }
 
   /** The keywords next to this reference (see {@link RefFields.siblings}). */
-  get siblings(): OasSchema | undefined {
+  get siblings(): SiblingKeywords | undefined {
     return this.#fields.siblings
+  }
+
+  /**
+   * Whether the keywords next to this reference change which values it
+   * accepts (`minLength` next to a string, `properties` next to an object),
+   * not only how it is described (`description`, `deprecated`, `x-*`). No
+   * shared model accepts the same values as such a site, so a generator that
+   * refers to models by name renders it from {@link resolve}. See
+   * {@link changesValues}.
+   */
+  hasValueSiblings(): boolean {
+    const siblings = this.#fields.siblings
+
+    if (siblings === undefined) {
+      return false
+    }
+
+    const component: OasComponentType = this.resolve()
+
+    return component.oasType === 'schema' && changesValues(component, siblings)
+  }
+
+  /**
+   * The keywords next to this reference that {@link resolve} leaves out, by
+   * their names in the document: ones the target's type does not take
+   * (`minLength` next to an array), a `type` that disagrees, and values that
+   * do not fit. The parser cannot tell them while the reference is lazy, so a
+   * generator logs them when it renders the site. See {@link toSkippedSiblings}.
+   */
+  toSkippedSiblings(): string[] {
+    const siblings = this.#fields.siblings
+
+    if (siblings === undefined) {
+      return []
+    }
+
+    const component: OasComponentType = this.resolve()
+
+    return component.oasType === 'schema' ? toSkippedSiblings(component, siblings, component.nullable) : []
+  }
+
+  /**
+   * Whether rendering this site from {@link resolve} would not end: the copy
+   * reaches, through other sites with {@link hasValueSiblings}, a reference
+   * to a model already being rendered that way. `false` for a reference to
+   * anything but a schema. See {@link isInlineLoop}.
+   */
+  isSiblingLoop(): boolean {
+    return this.isSchemaRef() && isInlineLoop(this)
   }
 
   /**
