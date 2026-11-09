@@ -99,6 +99,7 @@ export const toUnion = ({
           default: defaultValue,
           discriminator: discriminatorParsed,
           members: membersParsed,
+          exclusive: parentType === 'oneOf',
           example,
           extensionFields
         },
