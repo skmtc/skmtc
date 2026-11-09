@@ -86,6 +86,22 @@ Deno.test('addFile throws on a duplicate path', () => {
   )
 })
 
+Deno.test('addFile throws on a path that differs from another only in case', () => {
+  // Models `Foo` and `foo` are two files here, and one file on macOS's or
+  // Windows' default file system: written out, the second replaced the first
+  // without a word.
+  const context = createContext()
+  context.addFile(new LangFile({ path: '@/types/Foo.generated.ts' }))
+
+  assertThrows(
+    () => context.addFile(new LangFile({ path: '@/types/foo.generated.ts' })),
+    Error,
+    `File '@/types/foo.generated.ts' differs from '@/types/Foo.generated.ts' only in case`
+  )
+  // The first file is kept, and no second one is stored.
+  assertEquals([...context.inspectedFiles.keys()], ['@/types/Foo.generated.ts'])
+})
+
 Deno.test('JsonFile is a FileBase that round-trips through the neutral primitives', () => {
   const json = new JsonFile({ path: 'config.json', content: { a: 1 } })
 

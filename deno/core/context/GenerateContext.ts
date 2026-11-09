@@ -277,6 +277,8 @@ const isEnrichmentLeaf = (value: unknown): value is EnrichmentDefaultsLeaf =>
 
 export class GenerateContext implements GenerateContextType {
   #files: Map<string, FileBase>
+  /** Each file's path folded (case, Unicode form) → the path: a file system that ignores case sees one file. */
+  #foldedPaths: Map<string, string> = new Map()
   #previews: Record<string, Preview>
   /**
    * Parsed source document, wrapped in the {@link SkmtcParsedDocument}
@@ -1268,7 +1270,20 @@ export class GenerateContext implements GenerateContextType {
       throw new Error(`File already exists: ${normalizedPath}`)
     }
 
+    // Two paths that differ only in case are one file on a file system that
+    // ignores case, as macOS's and Windows' do by default: writing the
+    // second would replace the first without a word.
+    const foldedPath = normalizedPath.normalize('NFD').toLowerCase()
+    const existingPath = this.#foldedPaths.get(foldedPath)
+
+    if (existingPath !== undefined) {
+      throw new Error(
+        `File '${normalizedPath}' differs from '${existingPath}' only in case. On a file system that ignores case, as macOS's and Windows' do by default, they are one file.`
+      )
+    }
+
     this.#files.set(normalizedPath, file)
+    this.#foldedPaths.set(foldedPath, normalizedPath)
 
     return file
   }
