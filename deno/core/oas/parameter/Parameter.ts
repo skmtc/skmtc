@@ -248,6 +248,16 @@ export class OasParameter extends OasBase {
     return false
   }
 
+  /** Always `false`: `readOnly` is a schema keyword. */
+  isReadOnly(): boolean {
+    return false
+  }
+
+  /** Always `false`: `writeOnly` is a schema keyword. */
+  isWriteOnly(): boolean {
+    return false
+  }
+
   /**
    * Resolves this parameter object.
    *

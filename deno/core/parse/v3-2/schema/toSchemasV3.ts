@@ -1,6 +1,7 @@
 import { toRefV31 } from '@/parse/v3-2/ref/toRefV31.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import { isRef } from '@/helpers/refFns.ts'
+import { isEmpty } from '@/helpers/isEmpty.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
@@ -233,7 +234,7 @@ export const toSchemaV3 = ({
         if (isRef(member)) {
           const { nullable, readOnly, writeOnly, ...keywords } = value
           const parsed =
-            Object.keys(keywords).length === 0
+            isEmpty(keywords)
               ? undefined
               : st.trace('siblings', siblingTrail =>
                   toSchemaV3({

@@ -227,15 +227,16 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     const resolved = this.resolveOnce()
     const target = resolved.isRef() ? resolved.resolve(lookupsPerformed + 1) : resolved
     const siblings = this.#fields.siblings
+    // Widened from the generic ResolvedRef<T>, so `oasType` narrows it.
+    const component: OasComponentType = target
 
-    if (siblings === undefined || !('withSiblings' in target)) {
+    if (siblings === undefined || component.oasType !== 'schema') {
       return target
     }
 
-    // Only a schema reference has siblings, and a schema's copy is a schema of
-    // the same class, so it is a ResolvedRef<'schema'>. TypeScript cannot
-    // narrow the generic T from `'withSiblings' in target`.
-    return target.withSiblings(siblings) as ResolvedRef<T>
+    // A schema's copy is a schema of the same class. TypeScript cannot relate
+    // OasSchema to ResolvedRef<T> for a generic T, as in resolveOnce().
+    return component.withSiblings(siblings) as ResolvedRef<T>
   }
 
   /**
@@ -398,7 +399,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
 
     const resolved = this.resolveOnce()
 
-    return resolved.isRef() ? resolved.isReadOnly(lookupsPerformed + 1) : 'isReadOnly' in resolved && resolved.isReadOnly()
+    return resolved.isRef() ? resolved.isReadOnly(lookupsPerformed + 1) : resolved.isReadOnly()
   }
 
   /**
@@ -418,7 +419,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
 
     const resolved = this.resolveOnce()
 
-    return resolved.isRef() ? resolved.isWriteOnly(lookupsPerformed + 1) : 'isWriteOnly' in resolved && resolved.isWriteOnly()
+    return resolved.isRef() ? resolved.isWriteOnly(lookupsPerformed + 1) : resolved.isWriteOnly()
   }
 
   /**
