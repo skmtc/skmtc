@@ -117,7 +117,17 @@ const containsRef = (first: SchemaOrReference, second: SchemaOrReference): boole
   return isRef(first) || isRef(second)
 }
 
+/** Whether one member says `number` and the other `integer`. */
+const isNumberAndInteger = (first: SchemaObject, second: SchemaObject): boolean =>
+  (first.type === 'number' && second.type === 'integer') || (first.type === 'integer' && second.type === 'number')
+
 const mergeSchemas = ({ first, second, getRef, system }: MergeArgs<SchemaObject>): SchemaObject => {
+  // Every integer is a number, so a `number` merged with an `integer` is an
+  // `integer` with the constraints of both. Nothing contradicts.
+  if (isNumberAndInteger(first, second)) {
+    return mergeSchemas({ first: { ...first, type: 'integer' }, second: { ...second, type: 'integer' }, getRef, system })
+  }
+
   if (system.allOf === 'latestWins') {
     // The later member wins a contradiction: a type it disagrees with makes
     // it the whole schema, and any other keyword it disagrees with is left
