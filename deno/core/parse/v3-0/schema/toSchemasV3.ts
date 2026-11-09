@@ -146,11 +146,16 @@ export const toSchemaV3 = ({
       if (members.length === 1) {
         const [member] = members
 
-        if (isRef(member) && value.nullable) {
+        // Keywords next to the one member that only say how this site uses
+        // the reference ride the reference itself, which stays lazy: the
+        // shared model is neither nullable nor read-only everywhere.
+        if (isRef(member) && (value.nullable || value.readOnly || value.writeOnly)) {
           return toRefV31({
             ref: member,
             refType: 'schema',
-            nullable: true,
+            nullable: value.nullable || undefined,
+            readOnly: value.readOnly || undefined,
+            writeOnly: value.writeOnly || undefined,
             stackTrail: st,
             context
           })

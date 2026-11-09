@@ -252,6 +252,38 @@ Deno.test('toSchemaV3 - allOf', async t => {
     assert(result instanceof OasString)
   })
 
+  await t.step('a one-member allOf of a $ref with readOnly stays a reference that carries readOnly', () => {
+    // The 3.0 idiom for a read-only reference: keywords next to a bare $ref
+    // are ignored, so authors wrap it. Collapsing to the bare reference lost
+    // `readOnly`, and a read-only field was offered as input.
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema: OpenAPIV3.SchemaObject = {
+      allOf: [{ $ref: '#/components/schemas/Timestamp' }],
+      readOnly: true
+    }
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasRef)
+    assertEquals(result.readOnly, true)
+    assertEquals(result.nullable, undefined)
+  })
+
+  await t.step('a one-member allOf of a $ref with no use-site keyword is the bare reference', () => {
+    const context = createTestContext()
+    const stackTrail = new StackTrail(['TEST'])
+    const schema: OpenAPIV3.SchemaObject = {
+      allOf: [{ $ref: '#/components/schemas/Timestamp' }],
+      description: 'When it was made.'
+    }
+
+    const result = toSchemaV3({ schema, stackTrail, context })
+
+    assert(result instanceof OasRef)
+    assertEquals(result.readOnly, undefined)
+  })
+
   await t.step('should use StackTrail.trace for allOf', () => {
     const context = createTestContext()
     const stackTrail = new StackTrail(['TEST'])

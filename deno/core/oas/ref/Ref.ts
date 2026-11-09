@@ -67,6 +67,16 @@ export type RefFields<T extends OasRefData['refType']> = {
    * refName.
    */
   nullable?: boolean
+  /**
+   * Use-site `readOnly`: set where a property marks a reference read-only,
+   * `{ allOf: [{ $ref }], readOnly: true }` (the 3.0 idiom, as keywords next
+   * to a bare `$ref` are ignored there). Like `nullable`, it rides the
+   * reference: the shared model is not read-only everywhere. Read it through
+   * `isReadOnly`, which also looks at what the reference points to.
+   */
+  readOnly?: boolean
+  /** Use-site `writeOnly`, as {@link readOnly}. */
+  writeOnly?: boolean
 }
 
 /**
@@ -331,6 +341,16 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    */
   get nullable(): boolean | undefined {
     return this.#fields.nullable
+  }
+
+  /** Use-site `readOnly` of this reference (see {@link RefFields.readOnly}). */
+  get readOnly(): boolean | undefined {
+    return this.#fields.readOnly
+  }
+
+  /** Use-site `writeOnly` of this reference (see {@link RefFields.writeOnly}). */
+  get writeOnly(): boolean | undefined {
+    return this.#fields.writeOnly
   }
 
   /**

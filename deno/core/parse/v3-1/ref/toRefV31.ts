@@ -15,6 +15,9 @@ type ToRefV31Args<T extends OasRefData['refType']> = {
    * reference; omitted everywhere else (a plain `$ref` is non-nullable).
    */
   nullable?: boolean
+  /** Use-site `readOnly` and `writeOnly` (see `RefFields.readOnly`): from a one-member `allOf`. */
+  readOnly?: boolean
+  writeOnly?: boolean
 }
 
 export const toRefV31 = <T extends OasRefData['refType']>({
@@ -22,7 +25,9 @@ export const toRefV31 = <T extends OasRefData['refType']>({
   refType,
   stackTrail,
   context,
-  nullable
+  nullable,
+  readOnly,
+  writeOnly
 }: ToRefV31Args<T>): OasRef<T> => {
   const { $ref, ...skipped } = ref
 
@@ -32,5 +37,5 @@ export const toRefV31 = <T extends OasRefData['refType']>({
 
   context.registerRef(stackTrail.clone(), $ref)
 
-  return context.withStackTrail(stackTrail, () => new OasRef({ refType, $ref, nullable }, context))
+  return context.withStackTrail(stackTrail, () => new OasRef({ refType, $ref, nullable, readOnly, writeOnly }, context))
 }
