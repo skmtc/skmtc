@@ -67,10 +67,12 @@ export class MockDefinition<V extends GeneratedValue = GeneratedValue> extends D
  * import/re-export merge, definitions joined by blank lines).
  */
 export class MockFile extends CodeFileBase {
-  /** One entry per name: a Definition, or a pending entry that becomes one in place. */
+  /**
+   * One entry per name: a Definition, or a pending entry. The map's order is
+   * the render order: a model's Definition replaces its pending entry and
+   * moves to the end, as a language's File does.
+   */
   definitions: Map<string, DefinitionBase | PendingDefinition> = new Map()
-  /** The names, in the order each entry became a Definition: render follows it, as a language's File does. */
-  #renderOrder: string[] = []
   imports: Map<string, ImportBase> = new Map()
   reExports: Map<string, ReExportBase> = new Map()
 
@@ -84,11 +86,8 @@ export class MockFile extends CodeFileBase {
 
     if (current === undefined || (current.isPending() && !entry.isPending())) {
       invariant(current === undefined || current.generatorKey === entry.generatorKey, 'Registered definition mismatch')
+      this.definitions.delete(name)
       this.definitions.set(name, entry)
-
-      if (!entry.isPending()) {
-        this.#renderOrder.push(name)
-      }
     }
   }
 
@@ -129,11 +128,8 @@ export class MockFile extends CodeFileBase {
   }
 
   override toString(): string {
-    return this.#renderOrder
-      .flatMap(name => {
-        const entry = this.definitions.get(name)
-        return entry === undefined || entry.isPending() ? [] : [entry.toString()]
-      })
+    return this.#constructed()
+      .map(definition => definition.toString())
       .join('\n\n')
   }
 }

@@ -39,18 +39,14 @@ export class TsFile extends CodeFileBase {
    * first-registered definition through {@link findDefinitions}.
    *
    * A model's slot holds its pending entry while its projection is being
-   * constructed, and then its Definition: the same slot, the entry replaced
-   * in place ({@link addDefinition}).
+   * constructed, and then its Definition ({@link addDefinition}).
+   *
+   * The map's order is the render order: each Definition in the order it was
+   * added. A model's Definition replaces its pending entry and moves to the
+   * end, so it lands after the models its constructor added before it, or a
+   * `const` would read one before it is defined.
    */
   definitions: Map<string, TsDefinition | PendingDefinition> = new Map()
-
-  /**
-   * The slots of the constructed Definitions, in the order each became one.
-   * Render follows this, not the map: a model's pending entry takes its slot
-   * before the models it refers to are constructed, and its Definition must
-   * still land after them, or a `const` would read one before it is defined.
-   */
-  #renderOrder: string[] = []
 
   /** Imports keyed by {@link TsImport.mergeKey} (the module path). */
   imports: Map<string, TsImport> = new Map()
@@ -77,8 +73,9 @@ export class TsFile extends CodeFileBase {
    *
    * A pending entry (a model whose projection is about to be constructed)
    * takes its slot and does not render. The model's Definition, added when
-   * the constructor returns, takes the pending entry's slot: the one exception
-   * to "first wins". Render follows the order Definitions were added.
+   * the constructor returns, replaces the pending entry and moves to the end
+   * of the map: the one exception to "first wins". Render follows the map,
+   * so it follows the order Definitions were added.
    */
   override addDefinition(entry: TsDefinition | PendingDefinition): void {
     const key = toDeclarationKey(entry.identifier)
@@ -86,10 +83,6 @@ export class TsFile extends CodeFileBase {
 
     if (current === undefined) {
       this.definitions.set(key, entry)
-
-      if (!entry.isPending()) {
-        this.#renderOrder.push(key)
-      }
 
       return
     }
@@ -100,8 +93,8 @@ export class TsFile extends CodeFileBase {
       throw new Error(`'${entry.identifier.name}' already has a declaration in '${this.path}'`)
     }
 
-    // The model's Definition takes the slot of its pending entry, and renders
-    // after every Definition added before it.
+    // The model's Definition replaces its pending entry. Deleting first moves
+    // it to the end of the map, after every Definition added before it.
     if (current.isPending()) {
       if (current.generatorKey !== entry.generatorKey) {
         throw new Error(
@@ -109,8 +102,8 @@ export class TsFile extends CodeFileBase {
         )
       }
 
+      this.definitions.delete(key)
       this.definitions.set(key, entry)
-      this.#renderOrder.push(key)
     }
 
     // Otherwise the slot holds a Definition: the first one wins (see above).
@@ -163,14 +156,14 @@ export class TsFile extends CodeFileBase {
     )
   }
 
-  /** The Definitions in their slots, leaving out pending entries. */
+  /** The Definitions in the order they were added, leaving out pending entries. */
   #constructedDefinitions(): TsDefinition[] {
     return [...this.definitions.values()].filter((entry): entry is TsDefinition => !entry.isPending())
   }
 
   /**
-   * Definitions in render order: primaries first (the order each became a
-   * Definition: registered, or resolved from pending), then
+   * Definitions in render order: primaries first (the order each was added:
+   * a model's when its constructor returned), then
    * same-name companions. A companion is a definition whose name an earlier
    * definition already claimed under a different declaration kind — e.g. a
    * `declare namespace Foo` companion of `class Foo`. TypeScript declaration
@@ -182,13 +175,7 @@ export class TsFile extends CodeFileBase {
     const seenNames = new Set<string>()
     const primaries: TsDefinition[] = []
     const companions: TsDefinition[] = []
-    const constructed = this.#renderOrder.flatMap(key => {
-      const entry = this.definitions.get(key)
-
-      return entry === undefined || entry.isPending() ? [] : [entry]
-    })
-
-    for (const definition of constructed) {
+    for (const definition of this.#constructedDefinitions()) {
       if (seenNames.has(definition.identifier.name)) {
         companions.push(definition)
       } else {

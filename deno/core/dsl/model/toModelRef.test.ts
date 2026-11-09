@@ -173,7 +173,7 @@ Deno.test('a model that refers to itself is suspended in its own file, with no i
   assertEquals(`${context.getFile('@/types/Node.generated.ts')}`.includes('import'), false)
 })
 
-Deno.test('a pending entry becomes its Definition in its own slot, and renders after what it refers to', () => {
+Deno.test("a model's Definition replaces its pending entry, and renders after what it refers to", () => {
   const { Model, context, toPath } = toModels({ A: ['B'], B: [] }, ['A', 'B'])
 
   context.insertModel(Model, 'A' as RefName)
@@ -184,13 +184,12 @@ Deno.test('a pending entry becomes its Definition in its own slot, and renders a
     throw new Error('no TsFile for A and B')
   }
 
-  // A took its slot when it became pending, before B was constructed, and
-  // its Definition replaced the pending entry in that slot.
-  assertEquals([...file.definitions.values()].map(({ identifier }) => identifier.name), ['A', 'B'])
+  // A's entry went in pending, before B was constructed; its Definition
+  // replaced it and moved to the end, after B.
+  assertEquals([...file.definitions.values()].map(({ identifier }) => identifier.name), ['B', 'A'])
   assertEquals(file.findPendingDefinitions(), [])
-  // The trap: render in slot order puts `const A = [B]` above `const B`,
-  // and the module fails when it loads. A File renders its Definitions in
-  // the order each became one.
+  // The trap: left where it went in pending, `const A = [B]` renders above
+  // `const B`, and the module fails when it loads.
   const rendered = `${file}`
   assertEquals(rendered.indexOf('export const B') < rendered.indexOf('export const A'), true)
 })

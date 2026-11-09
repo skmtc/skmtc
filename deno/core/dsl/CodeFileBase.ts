@@ -74,10 +74,11 @@ export abstract class CodeFileBase extends FileBase {
    *   takes the slot its Definition will have. `findPendingDefinitions` finds
    *   it; `findDefinitions` and render do not. See {@link PendingDefinition}.
    * - A Definition whose slot holds that model's pending entry (same generator
-   *   key) becomes the entry: the same slot. Another generator's Definition
-   *   there is a `Registered definition mismatch`.
-   * - A Definition renders after every Definition added before it, so a
-   *   declaration lands after the models it refers to.
+   *   key) replaces it. Another generator's Definition there is a
+   *   `Registered definition mismatch`.
+   * - A Definition renders after every Definition added before it, a model's
+   *   counted from when its constructor returned, so a declaration lands
+   *   after the models it refers to.
    */
   abstract addDefinition(entry: DefinitionBase | PendingDefinition): void
 

@@ -16,7 +16,7 @@ type PendingDefinitionArgs = {
  *
  * The `ModelDriver` adds it to the model's File (`addDefinition`) before it
  * runs the projection's constructor. When the constructor returns, the Driver
- * adds the Definition, which takes the pending entry's slot; if the
+ * adds the Definition, which replaces the pending entry; if the
  * constructor throws, the entry is taken out (`removePendingDefinition`).
  *
  * An insert of the model from inside that constructor (a cycle: the model
@@ -25,11 +25,11 @@ type PendingDefinitionArgs = {
  * reference by name needs, and no value: the value does not exist yet. A
  * second projection for the model is never constructed.
  *
- * The entry has its slot among the File's Definitions from the start, but a
- * File renders its Definitions in the order each became one: each still lands
- * after the models it refers to (post-order), which keeps `const`
- * declarations in one file in a working order. A pending entry left at render
- * is an engine bug, and fails the run.
+ * The entry goes into the File's Definitions before the constructor runs,
+ * and does not render. The Definition that replaces it takes its place at the
+ * end, after the models the constructor added (post-order), which keeps
+ * `const` declarations in one file in a working order. A pending entry left
+ * at render is an engine bug, and fails the run.
  */
 export class PendingDefinition {
   identifier: IdentifierBase

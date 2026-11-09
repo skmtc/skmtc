@@ -432,7 +432,7 @@ Deno.test('a pending entry holds its slot, and only findPendingDefinitions sees 
   assertEquals(tsFile.toString(), '')
 })
 
-Deno.test('a pending entry becomes its Definition in the same slot, and renders after the Definitions before it', () => {
+Deno.test('a Definition replaces its pending entry at the end, so it renders after the Definitions before it', () => {
   // `group` refers to `condition`: group's entry is pending first, then
   // condition is constructed, then group's entry becomes its Definition.
   const tsFile = new TsFile({ path: '@/types/models.ts', settings: undefined })
@@ -443,12 +443,12 @@ Deno.test('a pending entry becomes its Definition in the same slot, and renders 
   tsFile.addDefinition(constDefinition('condition', 'z.string()'))
   tsFile.addDefinition(group)
 
-  // One entry per declaration: the pending entry was replaced in its slot.
-  assertEquals([...tsFile.definitions.values()].map(({ identifier }) => identifier.name), ['group', 'condition'])
+  // One entry per declaration: the pending entry was replaced, and moved to the end.
+  assertEquals([...tsFile.definitions.values()].map(({ identifier }) => identifier.name), ['condition', 'group'])
   assertEquals(tsFile.findPendingDefinitions(), [])
   assertEquals(tsFile.findDefinitions({ name: 'group' }), [group])
-  // The trap: slot order would put `group` above `condition`, which it reads
-  // when the module loads.
+  // The trap: left in its first place, `group` renders above `condition`,
+  // which it reads when the module loads.
   assertEquals(
     tsFile.toString(),
     'export const condition = z.string();\n\nexport const group = z.object({ conditions: z.array(condition) });\n'
