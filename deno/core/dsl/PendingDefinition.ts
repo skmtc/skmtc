@@ -32,6 +32,15 @@ export class PendingDefinition {
   options: unknown
   /** How many inserts found the model pending: references back to it from inside its own construction. */
   backReferences = 0
+  /** True while the projection's constructor runs; false once it returned, however it returned. */
+  pending = true
+  /**
+   * The models this model's construction reached while they were pending:
+   * the targets of its references back, and what the models it refers to
+   * reached. When the constructor returns, the Driver hands the set to the
+   * Definition (`DefinitionBase.reaches`).
+   */
+  reaches: Set<PendingDefinition> = new Set()
 
   constructor({ identifier, generatorKey, options }: PendingDefinitionArgs) {
     this.identifier = identifier

@@ -572,6 +572,12 @@ export type GenerateContextType = {
    */
   logger: Logger
   modelDepth: Record<string, number>
+  /**
+   * The pending models, outermost first: the last is the model whose
+   * projection constructor is running, the source of any reference made now.
+   * Kept by the `ModelDriver`.
+   */
+  pendingStack: PendingDefinition[]
   document: SkmtcParsedDocument
   /**
    * Attribution (gen-maps) state. When set, every `SnippetBase`

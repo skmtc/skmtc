@@ -2,6 +2,7 @@ import type { GenerateContextType } from '../context/generateTypes.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
 import type { GeneratedValue } from './GeneratedValue.ts'
+import type { PendingDefinition } from '@/dsl/PendingDefinition.ts'
 
 /**
  * Constructor arguments for {@link DefinitionBase}.
@@ -40,6 +41,16 @@ export abstract class DefinitionBase<
 
   /** The generated value content */
   value: V
+
+  /**
+   * The models this Definition's model reached while its projection was
+   * being constructed that were pending then: the models further up the
+   * stack it refers back to, directly or through the models it refers to.
+   * A reference to this model is inside a cycle while one of them is still
+   * pending. Set by the `ModelDriver`; `undefined` for a Definition it did
+   * not construct.
+   */
+  reaches: ReadonlySet<PendingDefinition> | undefined
 
   constructor({ context, identifier, value }: DefinitionBaseArgs<V>) {
     super({ context, generatorKey: value.generatorKey })

@@ -115,6 +115,7 @@ const createMockContext = (): GenerateContextType => {
   const files = new Map<string, FileBase>()
   const mockContext = {
     modelDepth: {} as Record<string, number>,
+    pendingStack: [],
     toModelContentSettings: spy(({ refName, variant }: { refName: RefName; variant: string }) => ({
       identifier: createType(refName),
       exportPath: '@/path/to/export.ts',

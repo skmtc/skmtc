@@ -295,6 +295,8 @@ export class GenerateContext implements GenerateContextType {
 
   /** Tracking model nesting depth to prevent infinite recursion */
   modelDepth: Record<string, number>
+  /** The pending models, outermost first: the last is the model whose projection constructor is running. */
+  pendingStack: PendingDefinition[] = []
   /**
    * Creates a new GenerateContext instance for the generation phase.
    *

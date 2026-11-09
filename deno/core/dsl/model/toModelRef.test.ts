@@ -40,8 +40,8 @@ const toModels = (graph: Graph, shared: string[] = []) => {
     // deno-lint-ignore no-explicit-any -- test stub; insertNormalizedModel isn't exercised
     static schemaToValueFn: any = () => ({ toString: () => '' })
     static createIdentifier = createVariable
-    /** Each reference this model made: the name, and whether it came back suspended. */
-    refs: { name: string; suspended: boolean }[]
+    /** Each reference this model made: the name, whether it came back suspended, and whether it is inside a cycle. */
+    refs: { name: string; suspended: boolean; inCycle: boolean }[]
     recursive: boolean
 
     constructor(args: ModelProjectionConstructorArgs<EmptyEnrichments>) {
@@ -59,7 +59,7 @@ const toModels = (graph: Graph, shared: string[] = []) => {
           destinationPath: args.settings.exportPath
         })
 
-        return { name: ref.settings.identifier.name, suspended: ref.suspended }
+        return { name: ref.settings.identifier.name, suspended: ref.suspended, inCycle: !ref.suspended && ref.inCycle }
       })
       this.recursive = isReferencedBack({ context: args.context, settings: args.settings })
     }
@@ -111,13 +111,16 @@ Deno.test('a cycle across two files: the reference back is suspended, imported, 
 
   context.insertModel(Model, 'Group' as RefName)
 
-  assertEquals(valueOf('Group').refs, [{ name: 'Condition', suspended: false }])
+  // Group → Condition is inside the cycle too: Condition reached Group while
+  // Group was pending. Either model can be the first one loaded, so both
+  // references in the cycle must be deferred, not only the one back.
+  assertEquals(valueOf('Group').refs, [{ name: 'Condition', suspended: false, inCycle: true }])
   assertEquals(valueOf('Condition').refs, [
-    { name: 'Scalar', suspended: false },
+    { name: 'Scalar', suspended: false, inCycle: false },
     // The trap: Group's constructor has not returned, so its Definition is
     // not in the File. Without the marker the probe missed, and a second
     // Group projection was constructed, and a second Condition, without end.
-    { name: 'Group', suspended: true }
+    { name: 'Group', suspended: true, inCycle: false }
   ])
   // Only the model the cycle came back to is recursive.
   assertEquals(valueOf('Group').recursive, true)
@@ -128,12 +131,43 @@ Deno.test('a cycle across two files: the reference back is suspended, imported, 
   assertEquals(pendingNames(context), [])
 })
 
+Deno.test('a second reference into the cycle, found in the cache, is inside the cycle too', () => {
+  // A → B → C → A, and A → C again. C is constructed through B, so A's own
+  // reference to C is a cache hit: no construction runs to show the cycle.
+  // C's Definition carries what its construction reached (A, still pending).
+  const { Model, context, valueOf } = toModels({ A: ['B', 'C'], B: ['C'], C: ['A'] })
+
+  context.insertModel(Model, 'A' as RefName)
+
+  assertEquals(valueOf('A').refs, [
+    { name: 'B', suspended: false, inCycle: true },
+    { name: 'C', suspended: false, inCycle: true }
+  ])
+  assertEquals(valueOf('B').refs, [{ name: 'C', suspended: false, inCycle: true }])
+  assertEquals(valueOf('C').refs, [{ name: 'A', suspended: true, inCycle: false }])
+})
+
+Deno.test('a reference into a cycle from outside it is not inside the cycle', () => {
+  // Once Group's constructor returned, nothing of the cycle is pending: a
+  // model outside the cycle refers to Condition directly.
+  const { Model, context, valueOf } = toModels({
+    Group: ['Condition'],
+    Condition: ['Group'],
+    Outside: ['Condition']
+  })
+
+  context.insertModel(Model, 'Group' as RefName)
+  context.insertModel(Model, 'Outside' as RefName)
+
+  assertEquals(valueOf('Outside').refs, [{ name: 'Condition', suspended: false, inCycle: false }])
+})
+
 Deno.test('a model that refers to itself is suspended in its own file, with no import', () => {
   const { Model, context, valueOf } = toModels({ Node: ['Node'] })
 
   context.insertModel(Model, 'Node' as RefName)
 
-  assertEquals(valueOf('Node').refs, [{ name: 'Node', suspended: true }])
+  assertEquals(valueOf('Node').refs, [{ name: 'Node', suspended: true, inCycle: false }])
   assertEquals(valueOf('Node').recursive, true)
   assertEquals(`${context.getFile('@/types/Node.generated.ts')}`.includes('import'), false)
 })

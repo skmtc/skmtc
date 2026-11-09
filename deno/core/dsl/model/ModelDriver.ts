@@ -171,7 +171,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
     const file = this.ensureCodeFile(exportPath)
     const marker = new PendingDefinition({ identifier, generatorKey, options: this.options })
 
-    const value = whilePending({ file, marker }, () =>
+    const value = whilePending({ context: this.context, file, marker }, () =>
       new this.projection({
         refName: this.refName,
         context: this.context,
@@ -188,6 +188,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
       value,
       noExport: this.noExport
     })
+    definition.reaches = marker.reaches
 
     this.context.register({
       definitions: [definition],
@@ -268,18 +269,25 @@ const assertSameOptions = ({ name, exportPath, cachedOptions, options }: AssertS
 }
 
 type WhilePendingArgs = {
+  context: GenerateContextType
   file: CodeFileBase
   marker: PendingDefinition
 }
 
-/** Run `construct` with `marker` in `file`, and take it out however `construct` ends. */
-const whilePending = <T>({ file, marker }: WhilePendingArgs, construct: () => T): T => {
+/**
+ * Run `construct` with `marker` in `file` and on top of the context's pending
+ * stack, and take it out of both however `construct` ends.
+ */
+const whilePending = <T>({ context, file, marker }: WhilePendingArgs, construct: () => T): T => {
   file.pendingDefinitions.set(marker.identifier.name, marker)
+  context.pendingStack.push(marker)
 
   try {
     return construct()
   } finally {
+    context.pendingStack.pop()
     file.pendingDefinitions.delete(marker.identifier.name)
+    marker.pending = false
   }
 }
 
@@ -337,6 +345,29 @@ export const isModelPending = <V extends GeneratedValue, EnrichmentType, Project
 ): boolean => toPendingDefinition(args) !== undefined
 
 /**
+ * Whether a reference to `projection`'s model for `refName`, made now, is
+ * deferred: the model is pending (a reference back), or it reached a model
+ * that is still pending (the reference is inside a cycle). This is what
+ * {@link toModelRef} reports as `suspended` or `inCycle`.
+ */
+export const isReferenceDeferred = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
+  args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
+): boolean => {
+  const settings = toReferencedSettings(args)
+  const location = { name: settings.identifier.name, exportPath: settings.exportPath }
+
+  if (args.context.findPendingDefinition(location)) {
+    return true
+  }
+
+  return toOpenReaches(args.context.findDefinition(location)).length > 0
+}
+
+/** The models `definition`'s construction reached that are still pending. */
+const toOpenReaches = (definition: DefinitionBase | undefined): PendingDefinition[] =>
+  [...(definition?.reaches ?? [])].filter(reached => reached.pending)
+
+/**
  * Whether anything referred back to the model of `settings` while its
  * projection was being constructed: the model is recursive, on its own or in
  * a cycle with others. Call it from the projection's constructor, after the
@@ -389,7 +420,18 @@ const toReferencedSettings = <V extends GeneratedValue, EnrichmentType, Projecti
  */
 export type ModelRef<V extends GeneratedValue, EnrichmentType> =
   | { suspended: true; settings: ContentSettings<EnrichmentType> }
-  | { suspended: false; settings: ContentSettings<EnrichmentType>; definition: GeneratedDefinition<V> }
+  | {
+    suspended: false
+    settings: ContentSettings<EnrichmentType>
+    definition: GeneratedDefinition<V>
+    /**
+     * The model reached a model that is still pending, so this reference is
+     * inside a cycle. Every reference inside a cycle must be deferred where
+     * the target language reads the value when the module loads (zod's
+     * `z.lazy`): any model of the cycle can be the first one loaded.
+     */
+    inCycle: boolean
+  }
 
 /**
  * Reference a model from a ref snippet. A pending model (its projection is
@@ -428,6 +470,8 @@ export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionO
     })
 
     pending.backReferences++
+    // The model whose constructor is running reached a pending model.
+    context.pendingStack.at(-1)?.reaches.add(pending)
 
     stitchModelImport({
       context,
@@ -441,8 +485,15 @@ export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionO
   }
 
   const driver = new ModelDriver(args)
+  // What the model reached that is still pending, the source reaches too:
+  // through this reference. Constructed now or found in the cache, the
+  // Definition carries what its construction reached.
+  const open = toOpenReaches(driver.definition)
+  const source = context.pendingStack.at(-1)
 
-  return { suspended: false, settings: driver.settings, definition: driver.definition }
+  open.forEach(reached => source?.reaches.add(reached))
+
+  return { suspended: false, settings: driver.settings, definition: driver.definition, inCycle: open.length > 0 }
 }
 
 type AssertPeerVariantExistsArgs = {
