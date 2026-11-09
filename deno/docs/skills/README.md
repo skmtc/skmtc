@@ -18,7 +18,17 @@ Five skills are **published**: installable by anyone with a skills-capable
 agent, listed in `.claude-plugin/marketplace.json`, and rendered on skmtc.dev.
 The rest are **internal** — they stay in this directory, carry
 `metadata.internal: true` in frontmatter so `npx skills` hides them, and the
-plugin manifest does not list them.
+plugin manifests do not list them.
+
+The published skills ship as two Claude Code plugins. `skmtc` (this folder's
+`.claude-plugin/plugin.json`) carries the four generator-authoring skills and
+is the plugin submitted to the Claude directory. `skmtc-cli` is a plugin of its
+own: a `marketplace.json` entry whose source is the `skmtc-cli/` folder, with no
+`plugin.json`. It stays out of `skmtc` because its CI deploy steps read
+`$SKMTC_HUB_TOKEN` and its install step runs `curl … | sh`, which the directory
+holds for review. So `skmtc-cli/` must not link to files outside its folder: an
+install copies only that folder. Both plugins share one version, which
+`deno task bump-plugin` moves together.
 
 ### Published
 
@@ -71,7 +81,7 @@ authority and acted on without checking. Every guard below runs in
 | Fact-anchor sync | An `llms.md` fact clause missing from `skmtc-generator` | `verify-docs` |
 | Lang source↔skill sync | An identifier factory or value-protocol guard the lang skill never mentions, or an entity-kind count that moved (Kotlin and TypeScript) | `verify-docs` |
 | CLI reference sync | A `cli/mod.ts` command missing from the reference pages, in both directions | `verify-docs` |
-| Skills catalogue sync | A README row, frontmatter version, `metadata.internal` flag or plugin.json membership disagreeing with the others | `verify-docs` |
+| Skills catalogue sync | A README row, frontmatter version, `metadata.internal` flag or plugin manifest membership disagreeing with the others | `verify-docs` |
 | Generated-appendix coverage | An export missing from the appendix, because it was not regenerated after the API moved | `verify-docs` (names, not formatting — `deno doc`'s layout shifts between patch releases; `generate-skill-api-appendix.ts --check` does the exact comparison locally) |
 | Declared-version sync | A skill still declaring a package minor the workspace has moved past | `verify-docs` |
 | Public-API-surface sync | An export of `@skmtc/core` or `@skmtc/lang-typescript` added, removed or re-shaped while the package minor stayed put — the change declared-version sync cannot see. Blind spot: a factory that returns an anonymous class (`toModelProjectionBase` and siblings, the lang veneers) has no return type in `deno doc`, so the class it returns (the insert wrappers, `register`, `this.options`) is outside the digest; those exports are listed as `unresolved` in the record | `verify-docs` (per-export digests in `.scripts/api-surface.json`; fix with `deno task bump <package> --minor`, which hands the reread to declared-version sync, then `deno task record-api-surface`) |
