@@ -1,5 +1,5 @@
 import { decomposeUnion, isUnionLevelKey } from './decompose-union.ts'
-import type { GetRefFn, NormalizeFn, SchemaOrReference, SchemaObject } from './types.ts'
+import type { GetRefFn, NormalizeFn, SchemaOrReference, SchemaObject, MergeSystem } from './types.ts'
 import { mergeSchemasOrRefs } from './merge.ts'
 import { crossProduct } from './cross-product.ts'
 import { isRef } from '@/helpers/refFns.ts'
@@ -7,6 +7,7 @@ type MergeUnionArgs = {
   schema: SchemaObject
   getRef: GetRefFn
   normalize: NormalizeFn
+  system: MergeSystem
   groupType: 'oneOf' | 'anyOf'
 }
 
@@ -14,6 +15,7 @@ export const mergeUnion = ({
   schema,
   getRef,
   normalize,
+  system,
   groupType
 }: MergeUnionArgs): SchemaOrReference => {
   const { beforeExcluded, decomposed, afterExcluded } = decomposeUnion({ schema, groupType })
@@ -41,6 +43,7 @@ export const mergeUnion = ({
       second: decomposed,
       getRef,
       normalize,
+      system,
       groupType
     })
 
@@ -61,6 +64,7 @@ type MergeCrossProductArgs = {
   second: SchemaObject
   getRef: GetRefFn
   normalize: NormalizeFn
+  system: MergeSystem
   groupType: 'oneOf' | 'anyOf'
 }
 
@@ -69,6 +73,7 @@ export const mergeCrossProduct = ({
   second,
   getRef,
   normalize,
+  system,
   groupType
 }: MergeCrossProductArgs): SchemaObject => {
   const firstMembers = Array.isArray(first[groupType]) ? first[groupType] : [first]
@@ -87,12 +92,12 @@ export const mergeCrossProduct = ({
     secondGroup.length !== secondMembers.length
 
   const mergedGroup = crossProduct(
-    withGroupSiblings({ schema: first, members: firstGroup, getRef, normalize, groupType }),
-    withGroupSiblings({ schema: second, members: secondGroup, getRef, normalize, groupType })
+    withGroupSiblings({ schema: first, members: firstGroup, getRef, normalize, system, groupType }),
+    withGroupSiblings({ schema: second, members: secondGroup, getRef, normalize, system, groupType })
   )
     .map(([firstItem, secondItem]) => {
       try {
-        const result = mergeSchemasOrRefs(firstItem, secondItem, getRef, normalize)
+        const result = mergeSchemasOrRefs({ first: firstItem, second: secondItem, getRef, normalize, system })
 
         return result
       } catch (_error) {
@@ -123,6 +128,7 @@ type WithGroupSiblingsArgs = {
   members: SchemaOrReference[]
   getRef: GetRefFn
   normalize: NormalizeFn
+  system: MergeSystem
   groupType: 'oneOf' | 'anyOf'
 }
 
@@ -140,6 +146,7 @@ const withGroupSiblings = ({
   members,
   getRef,
   normalize,
+  system,
   groupType
 }: WithGroupSiblingsArgs): SchemaOrReference[] => {
   if (!Array.isArray(schema[groupType])) {
@@ -164,7 +171,7 @@ const withGroupSiblings = ({
       }
 
       try {
-        return mergeSchemasOrRefs(siblingSchema, member, getRef, normalize)
+        return mergeSchemasOrRefs({ first: siblingSchema, second: member, getRef, normalize, system })
       } catch (_error) {
         return undefined
       }

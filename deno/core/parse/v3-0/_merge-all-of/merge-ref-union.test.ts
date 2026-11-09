@@ -1,6 +1,9 @@
 import { assertEquals } from '@std/assert'
 import type { OpenAPIV3 } from 'openapi-types'
 import { mergeSchemasOrRefs } from './merge.ts'
+import type { MergeSystem } from './types.ts'
+const strict = (): MergeSystem => ({ allOf: 'strict', replaced: new Set() })
+
 
 const getRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
   if (ref.$ref === '#/components/schemas/Healthcheck') {
@@ -20,7 +23,7 @@ Deno.test('a oneOf merged with a reference is crossed with its target, as with a
 
   // The trap: the oneOf was kept beside the target's merged properties, and the parse then failed.
   // A string cannot also be the Healthcheck object, so only the object member is left.
-  assertEquals(mergeSchemasOrRefs(first, healthcheck, getRef), {
+  assertEquals(mergeSchemasOrRefs({ first, second: healthcheck, getRef, system: strict() }), {
     oneOf: [{ type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' } } }],
   })
 })
@@ -29,7 +32,7 @@ Deno.test('a null-only member merged with a reference gives a nullable copy, and
   const acl: OpenAPIV3.SchemaObject = { type: 'object', properties: { name: { type: 'string' } } }
   const nullOnly: OpenAPIV3.SchemaObject = { nullable: true, enum: [null] }
 
-  const merged = mergeSchemasOrRefs({ $ref: '#/components/schemas/Acl' }, nullOnly, () => acl)
+  const merged = mergeSchemasOrRefs({ first: { $ref: '#/components/schemas/Acl' }, second: nullOnly, getRef: () => acl, system: strict() })
 
   assertEquals(merged, { type: 'object', properties: { name: { type: 'string' } }, nullable: true })
   // The trap: the component every reference shares became nullable everywhere.

@@ -1,15 +1,16 @@
 import { decomposeUnion } from './decompose-union.ts'
-import type { GetRefFn, SchemaOrReference, SchemaObject } from './types.ts'
+import type { GetRefFn, SchemaOrReference, SchemaObject, MergeSystem } from './types.ts'
 import { mergeSchemasOrRefs } from './merge.ts'
 import { crossProduct } from './cross-product.ts'
 import { isRef } from '@/helpers/refFns.ts'
 type MergeUnionArgs = {
   schema: SchemaObject
   getRef: GetRefFn
+  system: MergeSystem
   groupType: 'oneOf' | 'anyOf'
 }
 
-export const mergeUnion = ({ schema, getRef, groupType }: MergeUnionArgs): SchemaOrReference => {
+export const mergeUnion = ({ schema, getRef, system, groupType }: MergeUnionArgs): SchemaOrReference => {
   const { beforeExcluded, decomposed, afterExcluded } = decomposeUnion({ schema, groupType })
 
   // if (decomposed.length === 1) {
@@ -30,7 +31,7 @@ export const mergeUnion = ({ schema, getRef, groupType }: MergeUnionArgs): Schem
   })
 
   const result = dereffed.reduce<SchemaObject>((acc, decomposed) => {
-    const merged = mergeCrossProduct({ first: acc, second: decomposed, getRef, groupType })
+    const merged = mergeCrossProduct({ first: acc, second: decomposed, getRef, system, groupType })
 
     return merged
   }, {} as SchemaObject)
@@ -48,6 +49,7 @@ type MergeCrossProductArgs = {
   first: SchemaObject
   second: SchemaObject
   getRef: GetRefFn
+  system: MergeSystem
   groupType: 'oneOf' | 'anyOf'
 }
 
@@ -55,6 +57,7 @@ export const mergeCrossProduct = ({
   first,
   second,
   getRef,
+  system,
   groupType
 }: MergeCrossProductArgs): SchemaObject => {
   const firstGroup = Array.isArray(first[groupType]) ? first[groupType] : [first]
@@ -63,7 +66,7 @@ export const mergeCrossProduct = ({
   const mergedGroup = crossProduct(firstGroup, secondGroup)
     .map(([firstItem, secondItem]) => {
       try {
-        const result = mergeSchemasOrRefs(firstItem, secondItem, getRef)
+        const result = mergeSchemasOrRefs({ first: firstItem, second: secondItem, getRef, system })
 
         return result
       } catch (_error) {

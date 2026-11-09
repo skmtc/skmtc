@@ -4,6 +4,9 @@ import type { OpenAPIV3 } from 'openapi-types'
 import { mergeIntersection } from '@/parse/v3-1/_merge-all-of/merge-intersection.ts'
 import { mergeUnion } from '@/parse/v3-1/_merge-all-of/merge-union.ts'
 import { normalizeMergeMember } from '@/parse/v3-1/schema/normalize-schema-shape.ts'
+import type { MergeSystem } from './types.ts'
+const strict = (): MergeSystem => ({ allOf: 'strict', replaced: new Set() })
+
 
 // `{ nullable: true }` is how a `{ type: 'null' }` member reads once
 // `normalizeMergeMember` has run.
@@ -14,7 +17,8 @@ Deno.test('null-only union - an allOf member reads as nullable', () => {
   const result = mergeIntersection({
     schema: { allOf: [{ type: 'string' }, nullOnlyUnion] },
     getRef,
-    normalize: normalizeMergeMember
+    normalize: normalizeMergeMember,
+    system: strict()
   })
 
   assertEquals(result, { type: 'string', nullable: true })
@@ -25,6 +29,7 @@ Deno.test('null-only union - a nested oneOf member makes the union nullable', ()
     schema: { oneOf: [{ type: 'string' }, nullOnlyUnion] },
     getRef,
     normalize: normalizeMergeMember,
+    system: strict(),
     groupType: 'oneOf'
   })
 
@@ -36,6 +41,7 @@ Deno.test('null-only union - a nested anyOf member makes the union nullable', ()
     schema: { anyOf: [{ type: 'string' }, { anyOf: [{ nullable: true }] }] },
     getRef,
     normalize: normalizeMergeMember,
+    system: strict(),
     groupType: 'anyOf'
   })
 
@@ -46,7 +52,8 @@ Deno.test('null-only union - inside a oneOf inside an allOf, no "Empty oneOf"', 
   const result = mergeIntersection({
     schema: { allOf: [{ oneOf: [nullOnlyUnion] }, { description: 'x' }] },
     getRef,
-    normalize: normalizeMergeMember
+    normalize: normalizeMergeMember,
+    system: strict()
   })
 
   assertEquals(result, { nullable: true, description: 'x' })

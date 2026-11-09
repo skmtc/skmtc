@@ -4,6 +4,9 @@ import { mergeBooleanConstraints } from './merge-boolean-constraints.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { GetRefFn } from './types.ts'
 import { normalizeMergeMember } from '@/parse/v3-2/schema/normalize-schema-shape.ts'
+import type { MergeSystem } from './types.ts'
+const strict = (): MergeSystem => ({ allOf: 'strict', replaced: new Set() })
+
 Deno.test('mergeBooleanConstraints - takes type from second schema when defined', () => {
   const getRef: GetRefFn = () => ({})
 
@@ -15,7 +18,7 @@ Deno.test('mergeBooleanConstraints - takes type from second schema when defined'
     type: 'boolean'
   }
 
-  const result = mergeBooleanConstraints(a, b, getRef, normalizeMergeMember)
+  const result = mergeBooleanConstraints({ first: a, second: b, getRef, normalize: normalizeMergeMember, system: strict() })
   assertEquals(result.type, 'boolean')
 })
 
@@ -28,7 +31,7 @@ Deno.test('mergeBooleanConstraints - preserves type from first schema when secon
 
   const b: OpenAPIV3.SchemaObject = {}
 
-  const result = mergeBooleanConstraints(a, b, getRef, normalizeMergeMember)
+  const result = mergeBooleanConstraints({ first: a, second: b, getRef, normalize: normalizeMergeMember, system: strict() })
   assertEquals(result.type, 'boolean')
 })
 
@@ -41,7 +44,7 @@ Deno.test('mergeBooleanConstraints - takes type from second schema when first ha
     type: 'boolean'
   }
 
-  const result = mergeBooleanConstraints(a, b, getRef, normalizeMergeMember)
+  const result = mergeBooleanConstraints({ first: a, second: b, getRef, normalize: normalizeMergeMember, system: strict() })
   assertEquals(result.type, 'boolean')
 })
 
@@ -56,7 +59,7 @@ Deno.test('mergeBooleanConstraints - merges enum values when both schemas have e
     type: 'boolean',
     enum: [false]
   }
-  const result = mergeBooleanConstraints(a, b, getRef, normalizeMergeMember)
+  const result = mergeBooleanConstraints({ first: a, second: b, getRef, normalize: normalizeMergeMember, system: strict() })
   assertEquals(result, {
     type: 'boolean',
     enum: [false]
@@ -71,7 +74,7 @@ Deno.test('mergeBooleanConstraints - takes enum from second schema when first ha
     type: 'boolean',
     enum: [true]
   }
-  const result = mergeBooleanConstraints(a, b, getRef, normalizeMergeMember)
+  const result = mergeBooleanConstraints({ first: a, second: b, getRef, normalize: normalizeMergeMember, system: strict() })
   assertEquals(result, {
     type: 'boolean',
     enum: [true]
@@ -86,7 +89,7 @@ Deno.test('mergeBooleanConstraints - takes enum from first schema when second ha
     enum: [false]
   }
   const b: OpenAPIV3.SchemaObject = { type: 'boolean' }
-  const result = mergeBooleanConstraints(a, b, getRef, normalizeMergeMember)
+  const result = mergeBooleanConstraints({ first: a, second: b, getRef, normalize: normalizeMergeMember, system: strict() })
   assertEquals(result, {
     type: 'boolean',
     enum: [false]
@@ -105,7 +108,7 @@ Deno.test('mergeBooleanConstraints - throws when enum intersection is empty', ()
     enum: [false]
   }
   assertThrows(
-    () => mergeBooleanConstraints(a, b, getRef, normalizeMergeMember),
+    () => mergeBooleanConstraints({ first: a, second: b, getRef, normalize: normalizeMergeMember, system: strict() }),
     Error,
     'Merged schema has empty enum array'
   )

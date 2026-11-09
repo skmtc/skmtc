@@ -207,6 +207,10 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  *   scalar schema (a text body or a file). A body with only specific
  *   non-JSON types (`multipart/form-data`, `text/plain`) logs nothing.
  *
+ * `ALLOF_CONTRADICTION` (`warning`) — `allOf` members contradict, and
+ * `system.allOf: latestWins` kept the later member's keywords. One for each
+ * schema; the message names the keywords.
+ *
  * `RUN_FAILED` (`error`) — the run itself failed outside the per-item
  * catches. Its `location` names the entry and phase, for example
  * `toArtifacts:render`.
@@ -241,6 +245,7 @@ export type OasIssueType =
   | 'UNSUPPORTED_OPERATION_METHOD'
   | 'WILDCARD_MEDIA_TYPE'
   | 'NO_JSON_MEDIA_TYPE'
+  | 'ALLOF_CONTRADICTION'
   | 'RUN_FAILED'
 
 /**
@@ -280,6 +285,7 @@ export const oasIssueType = v.union([
   v.literal('UNSUPPORTED_OPERATION_METHOD'),
   v.literal('WILDCARD_MEDIA_TYPE'),
   v.literal('NO_JSON_MEDIA_TYPE'),
+  v.literal('ALLOF_CONTRADICTION'),
   v.literal('RUN_FAILED')
 ])
 

@@ -2,6 +2,9 @@ import { assertEquals } from '@std/assert/equals'
 import { assertThrows } from '@std/assert/throws'
 import { mergeArrayConstraints } from './merge-array-constraints.ts'
 import type { GetRefFn, ArraySchemaObject } from './types.ts'
+import type { MergeSystem } from './types.ts'
+const strict = (): MergeSystem => ({ allOf: 'strict', replaced: new Set() })
+
 
 Deno.test('mergeArrayConstraints - merges length constraints', () => {
   const getRef: GetRefFn = () => ({})
@@ -18,7 +21,7 @@ Deno.test('mergeArrayConstraints - merges length constraints', () => {
     maxItems: 15,
     items: { type: 'string' }
   }
-  const result = mergeArrayConstraints(a, b, getRef)
+  const result = mergeArrayConstraints({ first: a, second: b, getRef, system: strict() })
 
   assertEquals(result, {
     type: 'array',
@@ -41,7 +44,7 @@ Deno.test('mergeArrayConstraints - handles missing constraints', () => {
     maxItems: 15,
     items: { type: 'string' }
   }
-  const result = mergeArrayConstraints(a, b, getRef)
+  const result = mergeArrayConstraints({ first: a, second: b, getRef, system: strict() })
 
   assertEquals(result, {
     type: 'array',
@@ -63,7 +66,7 @@ Deno.test('mergeArrayConstraints - handles single uniqueItems', () => {
     type: 'array',
     items: { type: 'string' }
   }
-  const result = mergeArrayConstraints(a, b, getRef)
+  const result = mergeArrayConstraints({ first: a, second: b, getRef, system: strict() })
   assertEquals(result, {
     type: 'array',
     uniqueItems: true,
@@ -84,7 +87,7 @@ Deno.test('mergeArrayConstraints - handles conflicting uniqueItems', () => {
     uniqueItems: false,
     items: { type: 'string' }
   }
-  const result = mergeArrayConstraints(a, b, getRef)
+  const result = mergeArrayConstraints({ first: a, second: b, getRef, system: strict() })
   assertEquals(result, {
     type: 'array',
     uniqueItems: true,
@@ -111,7 +114,7 @@ Deno.test('mergeArrayConstraints - merges enum values when both schemas have enu
       ['e', 'f']
     ]
   }
-  const result = mergeArrayConstraints(a, b, getRef)
+  const result = mergeArrayConstraints({ first: a, second: b, getRef, system: strict() })
   assertEquals(result, {
     type: 'array',
     items: { type: 'string' },
@@ -134,7 +137,7 @@ Deno.test('mergeArrayConstraints - takes enum from second schema when first has 
       ['c', 'd']
     ]
   }
-  const result = mergeArrayConstraints(a, b, getRef)
+  const result = mergeArrayConstraints({ first: a, second: b, getRef, system: strict() })
   assertEquals(result, {
     type: 'array',
     items: { type: 'string' },
@@ -160,7 +163,7 @@ Deno.test('mergeArrayConstraints - takes enum from first schema when second has 
     type: 'array',
     items: { type: 'string' }
   }
-  const result = mergeArrayConstraints(a, b, getRef)
+  const result = mergeArrayConstraints({ first: a, second: b, getRef, system: strict() })
   assertEquals(result, {
     type: 'array',
     items: { type: 'string' },
@@ -191,7 +194,7 @@ Deno.test('mergeArrayConstraints - throws when enum intersection is empty', () =
     ]
   }
   assertThrows(
-    () => mergeArrayConstraints(a, b, getRef),
+    () => mergeArrayConstraints({ first: a, second: b, getRef, system: strict() }),
     Error,
     'Merged schema has empty enum array'
   )

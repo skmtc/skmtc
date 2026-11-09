@@ -242,8 +242,8 @@ export const anchorsSettings: v.GenericSchema<AnchorsSettings> = v.object({
   out: v.optional(v.string())
 })
 
-/** Valibot schema for {@link OasParseSettings}: `client.json#settings.parse`. */
-export const oasParseSettings: v.GenericSchema<OasParseSettings> = v.object({
+/** Valibot schema for {@link SystemSettings}: `client.json#settings.system`. */
+export const systemSettings: v.GenericSchema<SystemSettings> = v.object({
   allOf: v.optional(v.picklist(['strict', 'latestWins'])),
   responseContradictions: v.optional(v.picklist(['strict', 'unknown'])),
   not: v.optional(v.picklist(['strict', 'unknown']))
@@ -271,7 +271,7 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   include: v.optional(v.array(include)),
   skip: v.optional(v.array(skip)),
   anchors: v.optional(anchorsSettings),
-  parse: v.optional(oasParseSettings),
+  system: v.optional(systemSettings),
   inputDirs: v.optional(v.array(v.string())),
   formatter: v.optional(v.string()),
   generatedSuffix: v.optional(v.string()),
@@ -557,10 +557,10 @@ export type AnchorsSettings = {
 
 /**
  * How the OpenAPI parser treats what it cannot read faithfully
- * (`client.json#settings.parse`). Each setting is `strict` by default: the
+ * (`client.json#settings.system`). Each setting is `strict` by default: the
  * schema fails, and `removeErroredItems` removes each item that uses it.
  */
-export type OasParseSettings = {
+export type SystemSettings = {
   /**
    * `latestWins`: where `allOf` members contradict, the later member's
    * keyword wins, with one warning for each schema where it happens.
@@ -601,8 +601,8 @@ export type ClientSettings = {
    * in v1. See {@link AnchorsSettings}.
    */
   anchors?: AnchorsSettings
-  /** How the OpenAPI parser treats what it cannot read faithfully. See {@link OasParseSettings}. */
-  parse?: OasParseSettings
+  /** How the OpenAPI parser treats what it cannot read faithfully. See {@link SystemSettings}. */
+  system?: SystemSettings
   /**
    * Preview input-matcher discovery directories (project-root relative, e.g.
    * `src/fields`, `src/inputs`). A preview/hub concern: the generation engine

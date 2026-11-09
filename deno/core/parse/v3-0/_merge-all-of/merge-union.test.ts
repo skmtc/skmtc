@@ -1,6 +1,9 @@
 import type { GetRefFn, ReferenceObject, SchemaObject } from './types.ts'
 import { assertEquals } from '@std/assert/equals'
 import { mergeUnion } from './merge-union.ts'
+import type { MergeSystem } from './types.ts'
+const strict = (): MergeSystem => ({ allOf: 'strict', replaced: new Set() })
+
 
 const getRef = (ref: ReferenceObject): SchemaObject => {
   if (ref.$ref === '#/components/schemas/File') {
@@ -145,7 +148,7 @@ const expected: SchemaObject = {
 }
 
 Deno.test('mergeAllOf - with top-level oneOf', () => {
-  const result = mergeUnion({ schema: input, getRef, groupType: 'oneOf' })
+  const result = mergeUnion({ schema: input, getRef, system: strict(), groupType: 'oneOf' })
 
   assertEquals(result, expected)
 })
@@ -198,6 +201,7 @@ Deno.test('mergeUnion - simple oneOf', () => {
   const result = mergeUnion({
     schema: input,
     getRef: mockGetRef,
+    system: strict(),
     groupType: 'oneOf'
   })
 
@@ -265,6 +269,7 @@ Deno.test('mergeUnion - metadata stays on the union; $ref members preserved', ()
   const result = mergeUnion({
     schema: input,
     getRef: failingGetRef,
+    system: strict(),
     groupType: 'anyOf'
   })
 

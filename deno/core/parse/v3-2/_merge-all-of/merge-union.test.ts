@@ -2,6 +2,9 @@ import type { GetRefFn, ReferenceObject, SchemaObject } from './types.ts'
 import { normalizeMergeMember } from '@/parse/v3-2/schema/normalize-schema-shape.ts'
 import { assertEquals } from '@std/assert/equals'
 import { mergeCrossProduct, mergeUnion } from './merge-union.ts'
+import type { MergeSystem } from './types.ts'
+const strict = (): MergeSystem => ({ allOf: 'strict', replaced: new Set() })
+
 
 const getRef = (ref: ReferenceObject): SchemaObject => {
   if (ref.$ref === '#/components/schemas/File') {
@@ -150,6 +153,7 @@ Deno.test('mergeAllOf - with top-level oneOf', () => {
     schema: input,
     getRef,
     normalize: normalizeMergeMember,
+    system: strict(),
     groupType: 'oneOf'
   })
 
@@ -205,6 +209,7 @@ Deno.test('mergeUnion - simple oneOf', () => {
     schema: input,
     getRef: mockGetRef,
     normalize: normalizeMergeMember,
+    system: strict(),
     groupType: 'oneOf'
   })
 
@@ -268,6 +273,7 @@ Deno.test('mergeCrossProduct - a group member keeps its sibling keys', () => {
     second: multiType,
     getRef: mockGetRef,
     normalize: normalizeMergeMember,
+    system: strict(),
     groupType: 'oneOf'
   })
 
@@ -295,6 +301,7 @@ Deno.test('mergeUnion - a nested nullable group keeps the union nullable', () =>
     schema: input,
     getRef: mockGetRef,
     normalize: normalizeMergeMember,
+    system: strict(),
     groupType: 'oneOf'
   })
 
@@ -323,6 +330,7 @@ Deno.test('mergeUnion - a group sibling key leaves $ref members unresolved', () 
     schema: input,
     getRef: failingGetRef,
     normalize: normalizeMergeMember,
+    system: strict(),
     groupType: 'oneOf'
   })
 
@@ -356,6 +364,7 @@ Deno.test('mergeUnion - metadata stays on the union; $ref members preserved', ()
     schema: input,
     getRef: failingGetRef,
     normalize: normalizeMergeMember,
+    system: strict(),
     groupType: 'anyOf'
   })
 

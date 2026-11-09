@@ -691,7 +691,7 @@ export class CoreContext {
       input,
       logger: this.logger,
       silent: this.silent,
-      options: { oas: settings?.parse }
+      system: settings?.system
     })
 
     return { type: 'parse', context: parseContext }

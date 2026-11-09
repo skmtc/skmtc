@@ -3,6 +3,9 @@ import { assertThrows } from '@std/assert/throws'
 import { mergeIntegerConstraints } from './merge-integer-constraints.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { GetRefFn } from './types.ts'
+import type { MergeSystem } from './types.ts'
+const strict = (): MergeSystem => ({ allOf: 'strict', replaced: new Set() })
+
 
 Deno.test('mergeIntegerConstraints - merges overlapping ranges', () => {
   const getRef: GetRefFn = () => ({})
@@ -17,7 +20,7 @@ Deno.test('mergeIntegerConstraints - merges overlapping ranges', () => {
     minimum: 5,
     maximum: 15
   }
-  const result = mergeIntegerConstraints(a, b, getRef)
+  const result = mergeIntegerConstraints({ first: a, second: b, getRef, system: strict() })
   assertEquals(result, {
     type: 'integer',
     minimum: 5,
@@ -34,7 +37,7 @@ Deno.test('mergeIntegerConstraints - handles missing constraints', () => {
     minimum: 5,
     maximum: 15
   }
-  const result = mergeIntegerConstraints(a, b, getRef)
+  const result = mergeIntegerConstraints({ first: a, second: b, getRef, system: strict() })
   assertEquals(result, {
     type: 'integer',
     minimum: 5,
@@ -57,7 +60,7 @@ Deno.test('mergeIntegerConstraints - handles exclusive bounds', () => {
     minimum: 5,
     maximum: 15
   }
-  const result = mergeIntegerConstraints(a, b, getRef)
+  const result = mergeIntegerConstraints({ first: a, second: b, getRef, system: strict() })
   assertEquals(result, {
     type: 'integer',
     minimum: 5,
@@ -83,7 +86,7 @@ Deno.test('mergeIntegerConstraints - handles exclusive bounds with non-exclusive
     exclusiveMinimum: false,
     exclusiveMaximum: false
   }
-  const result = mergeIntegerConstraints(a, b, getRef)
+  const result = mergeIntegerConstraints({ first: a, second: b, getRef, system: strict() })
   assertEquals(result, {
     type: 'integer',
     minimum: 5,
@@ -103,7 +106,7 @@ Deno.test('mergeIntegerConstraints - handles multipleOf', () => {
     type: 'integer',
     multipleOf: 3
   }
-  const result = mergeIntegerConstraints(a, b, getRef)
+  const result = mergeIntegerConstraints({ first: a, second: b, getRef, system: strict() })
   assertEquals(result, {
     type: 'integer',
     multipleOf: 6
@@ -120,7 +123,7 @@ Deno.test('mergeIntegerConstraints - preserves multipleOf when only one schema h
   const b: OpenAPIV3.SchemaObject = {
     type: 'integer'
   }
-  const result = mergeIntegerConstraints(a, b, getRef)
+  const result = mergeIntegerConstraints({ first: a, second: b, getRef, system: strict() })
   assertEquals(result, {
     type: 'integer',
     multipleOf: 2
@@ -138,7 +141,7 @@ Deno.test('mergeIntegerConstraints - merges enum values when both schemas have e
     type: 'integer',
     enum: [2, 3, 4]
   }
-  const result = mergeIntegerConstraints(a, b, getRef)
+  const result = mergeIntegerConstraints({ first: a, second: b, getRef, system: strict() })
   assertEquals(result, {
     type: 'integer',
     enum: [2, 3]
@@ -153,7 +156,7 @@ Deno.test('mergeIntegerConstraints - takes enum from second schema when first ha
     type: 'integer',
     enum: [1, 2, 3]
   }
-  const result = mergeIntegerConstraints(a, b, getRef)
+  const result = mergeIntegerConstraints({ first: a, second: b, getRef, system: strict() })
   assertEquals(result, {
     type: 'integer',
     enum: [1, 2, 3]
@@ -168,7 +171,7 @@ Deno.test('mergeIntegerConstraints - takes enum from first schema when second ha
     enum: [1, 2, 3]
   }
   const b: OpenAPIV3.SchemaObject = { type: 'integer' }
-  const result = mergeIntegerConstraints(a, b, getRef)
+  const result = mergeIntegerConstraints({ first: a, second: b, getRef, system: strict() })
   assertEquals(result, {
     type: 'integer',
     enum: [1, 2, 3]
@@ -187,7 +190,7 @@ Deno.test('mergeIntegerConstraints - throws when enum intersection is empty', ()
     enum: [4, 5, 6]
   }
   assertThrows(
-    () => mergeIntegerConstraints(a, b, getRef),
+    () => mergeIntegerConstraints({ first: a, second: b, getRef, system: strict() }),
     Error,
     'Merged schema has empty enum array'
   )

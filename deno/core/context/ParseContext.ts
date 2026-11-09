@@ -22,7 +22,7 @@ import { toDocumentFieldsV3 } from '@/parse/v3-0/document/toDocumentFieldsV3.ts'
 import { toDocumentFieldsV3 as toDocumentFieldsV31 } from '@/parse/v3-1/document/toDocumentFieldsV3.ts'
 import { toDocumentFieldsV3 as toDocumentFieldsV32 } from '@/parse/v3-2/document/toDocumentFieldsV3.ts'
 import { toOasDialect } from '@/parse/toOasDialect.ts'
-import type { OasParseSettings } from '@/types/Settings.ts'
+import type { SystemSettings } from '@/types/Settings.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import { GqlDocument } from '@/gql/document/GqlDocument.ts'
@@ -127,10 +127,12 @@ type ConstructorArgs = {
   silent?: boolean
   /**
    * Protocol-specific parse options. Only the matching protocol's
-   * entry is consulted; the rest are ignored. `oas` is
-   * `client.json#settings.parse`.
+   * entry is consulted; the rest are ignored. Today only GQL uses
+   * this; adding more is additive.
    */
-  options?: { gql?: GqlParseOptions; oas?: OasParseSettings }
+  options?: { gql?: GqlParseOptions }
+  /** `client.json#settings.system`: how the OpenAPI parsers treat what they cannot read faithfully. */
+  system?: SystemSettings
 }
 
 export class ParseContext {
@@ -148,9 +150,9 @@ export class ParseContext {
 
   /**
    * How the OpenAPI parsers treat what they cannot read faithfully
-   * (`client.json#settings.parse`). Each setting left out is `strict`.
+   * (`client.json#settings.system`). Each setting left out is `strict`.
    */
-  oasSettings: OasParseSettings
+  system: SystemSettings
 
   // Universal dependency-ref tracking. Populated by parsers as they
   // encounter references. OAS uses `$ref` strings as keys; GQL would
@@ -164,10 +166,10 @@ export class ParseContext {
    */
   #rootFrames: readonly string[] = []
 
-  constructor({ input, logger, silent = true, options }: ConstructorArgs) {
+  constructor({ input, logger, silent = true, options, system }: ConstructorArgs) {
     this.logger = logger
     this.silent = silent
-    this.oasSettings = options?.oas ?? {}
+    this.system = system ?? {}
 
     switch (input.type) {
       case 'oas': {

@@ -3,6 +3,9 @@ import { mergeIntersection } from './merge-intersection.ts'
 import { normalizeMergeMember } from '@/parse/v3-2/schema/normalize-schema-shape.ts'
 import { assertEquals } from '@std/assert/equals'
 import { mergeUnion } from './merge-union.ts'
+import type { MergeSystem } from './types.ts'
+const strict = (): MergeSystem => ({ allOf: 'strict', replaced: new Set() })
+
 
 const getRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
   if (ref.$ref === '#/components/schemas/File') {
@@ -106,7 +109,7 @@ Deno.test('mergeAllOf - complex oneOf', () => {
     ]
   }
 
-  const result = mergeIntersection({ schema: input, getRef, normalize: normalizeMergeMember })
+  const result = mergeIntersection({ schema: input, getRef, normalize: normalizeMergeMember, system: strict() })
 
   assertEquals(result, expected)
 })
@@ -209,6 +212,7 @@ Deno.test('mergeAllOf - even more complex oneOf', () => {
     schema: input,
     getRef,
     normalize: normalizeMergeMember,
+    system: strict(),
     groupType: 'oneOf'
   })
 

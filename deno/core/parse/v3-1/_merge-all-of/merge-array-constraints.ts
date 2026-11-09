@@ -1,24 +1,18 @@
+import type { MergeArgs } from './types.ts'
 import { mergeSchemasOrRefs } from './merge.ts'
 import type {
   ArraySchemaObject,
-  GetRefFn,
-  NormalizeFn,
   SchemaObject,
   SchemaOrReference
 } from './types.ts'
 import { genericMerge } from './generic-merge.ts'
 import * as v from 'valibot'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
-export function mergeArrayConstraints(
-  first: ArraySchemaObject | SchemaObject,
-  second: ArraySchemaObject | SchemaObject,
-  getRef: GetRefFn,
-  normalize: NormalizeFn
-): SchemaObject {
+export function mergeArrayConstraints({ first, second, getRef, normalize, system }: MergeArgs<ArraySchemaObject | SchemaObject>): SchemaObject {
   checkTypeConflicts(first, second)
 
-  const merged = genericMerge(first, second, getRef, normalize, v.array(v.any()))
-  const items = mergeItems(first, second, getRef, normalize)
+  const merged = genericMerge({ first, second, getRef, normalize, system, typeCheck: v.array(v.any()) })
+  const items = mergeItems({ first, second, getRef, normalize, system })
 
   // With no `items` on either side, `items` stays absent (unknown items).
   const result: SchemaObject = items === undefined ? merged : { ...merged, type: 'array', items }
@@ -45,14 +39,9 @@ export function mergeArrayConstraints(
   return result
 }
 
-const mergeItems = (
-  first: ArraySchemaObject | SchemaObject,
-  second: ArraySchemaObject | SchemaObject,
-  getRef: GetRefFn,
-  normalize: NormalizeFn
-): SchemaOrReference | undefined => {
+const mergeItems = ({ first, second, getRef, normalize, system }: MergeArgs<ArraySchemaObject | SchemaObject>): SchemaOrReference | undefined => {
   if ('items' in first && 'items' in second && first.items && second.items) {
-    return mergeSchemasOrRefs(first.items, second.items, getRef, normalize)
+    return mergeSchemasOrRefs({ first: first.items, second: second.items, getRef, normalize, system })
   }
 
   if ('items' in first && first.items) {

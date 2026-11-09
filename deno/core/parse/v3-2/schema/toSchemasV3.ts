@@ -15,6 +15,7 @@ import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
 import { toGetRef } from '@/helpers/refFns.ts'
 import { toSiblingKeywords } from '@/parse/toSiblingKeywords.ts'
+import { logAllOfContradictions, toAllOfSystem } from '@/parse/allOfSystem.ts'
 import { toAdditionalPropertiesV3 } from '../object/toAdditionalPropertiesV3.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
 import { collapseNullOnlyUnion, mergeUnion } from '../_merge-all-of/merge-union.ts'
@@ -274,11 +275,15 @@ export const toSchemaV3 = ({
         })
       }
 
+      const system = toAllOfSystem(context)
       const merged = mergeIntersection({
         schema: wrapper,
         getRef: toGetRef(context.documentObject),
-        normalize: normalizeMergeMember
+        normalize: normalizeMergeMember,
+        system
       })
+
+      logAllOfContradictions({ system, stackTrail, parent: schema, context })
 
       return toSchemaV3({ schema: merged, stackTrail: st, context })
     })
@@ -310,12 +315,16 @@ export const toSchemaV3 = ({
         ? { ...wrapper, oneOf: oneOfWithoutNull, nullable: true }
         : wrapper
 
+      const system = toAllOfSystem(context)
       const merged = mergeUnion({
         schema: withoutNull,
         getRef: toGetRef(context.documentObject),
         normalize: normalizeMergeMember,
+        system,
         groupType: 'oneOf'
       })
+
+      logAllOfContradictions({ system, stackTrail, parent: schema, context })
 
       if (!('oneOf' in merged) || !Array.isArray(merged.oneOf)) {
         throw new Error('Missing "oneOf" array')
@@ -384,12 +393,16 @@ export const toSchemaV3 = ({
         ? { ...wrapper, anyOf: anyOfWithoutNull, nullable: true }
         : wrapper
 
+      const system = toAllOfSystem(context)
       const merged = mergeUnion({
         schema: withoutNull,
         getRef: toGetRef(context.documentObject),
         normalize: normalizeMergeMember,
+        system,
         groupType: 'anyOf'
       })
+
+      logAllOfContradictions({ system, stackTrail, parent: schema, context })
 
       if (!('anyOf' in merged) || !Array.isArray(merged.anyOf)) {
         throw new Error('Missing "anyOf" array')

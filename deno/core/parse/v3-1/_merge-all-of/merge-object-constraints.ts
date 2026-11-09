@@ -1,39 +1,23 @@
+import type { MergeArgs } from './types.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { mergeSchemasOrRefs } from './merge.ts'
 import { genericMerge } from './generic-merge.ts'
 import * as v from 'valibot'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
-import type { GetRefFn, NormalizeFn } from '@/parse/v3-1/_merge-all-of/types.ts'
 type SchemaObject = OpenAPIV3.SchemaObject
 
-export const mergeObjectConstraints = (
-  first: SchemaObject,
-  second: SchemaObject,
-  getRef: GetRefFn,
-  normalize: NormalizeFn
-): SchemaObject => {
+export const mergeObjectConstraints = ({ first, second, getRef, normalize, system }: MergeArgs<SchemaObject>): SchemaObject => {
   // Check for type conflicts
   checkTypeConflicts(first, second)
 
-  const result: SchemaObject = genericMerge(
-    first,
-    second,
-    getRef,
-    normalize,
-    v.record(v.string(), v.any())
-  )
+  const result: SchemaObject = genericMerge({ first, second, getRef, normalize, system, typeCheck: v.record(v.string(), v.any()) })
 
   if (
     typeof second.additionalProperties === 'object' &&
     typeof first.additionalProperties === 'object'
   ) {
     // If both have additionalProperties as schemas, merge them
-    result.additionalProperties = mergeSchemasOrRefs(
-      first.additionalProperties,
-      second.additionalProperties,
-      getRef,
-      normalize
-    )
+    result.additionalProperties = mergeSchemasOrRefs({ first: first.additionalProperties, second: second.additionalProperties, getRef, normalize, system })
   } else if (second.additionalProperties !== undefined) {
     result.additionalProperties = second.additionalProperties
   } else if (first.additionalProperties !== undefined) {

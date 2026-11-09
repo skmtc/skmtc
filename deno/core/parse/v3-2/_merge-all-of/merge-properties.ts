@@ -1,11 +1,6 @@
-import type { SchemaObject, GetRefFn, NormalizeFn } from './types.ts'
+import type { SchemaObject, MergeArgs } from './types.ts'
 import { mergeSchemasOrRefs } from './merge.ts'
-export const mergeProperties = (
-  first: SchemaObject,
-  second: SchemaObject,
-  getRef: GetRefFn,
-  normalize: NormalizeFn
-): SchemaObject | undefined => {
+export const mergeProperties = ({ first, second, getRef, normalize, system }: MergeArgs<SchemaObject>): SchemaObject | undefined => {
   if (containsProperties(first, second)) {
     const properties = { ...first.properties }
 
@@ -17,12 +12,7 @@ export const mergeProperties = (
 
     for (const key in second.properties) {
       if (key in properties) {
-        properties[key] = mergeSchemasOrRefs(
-          properties[key],
-          second.properties[key],
-          getRef,
-          normalize
-        )
+        properties[key] = mergeSchemasOrRefs({ first: properties[key], second: second.properties[key], getRef, normalize, system })
       } else {
         properties[key] = second.properties[key]
       }

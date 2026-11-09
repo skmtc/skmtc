@@ -15,6 +15,7 @@ import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
 import { toGetRef } from '@/helpers/refFns.ts'
 import { toSiblingKeywords } from '@/parse/toSiblingKeywords.ts'
+import { logAllOfContradictions, toAllOfSystem } from '@/parse/allOfSystem.ts'
 import { toAdditionalPropertiesV3 } from '../object/toAdditionalPropertiesV3.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
 import { mergeUnion } from '../_merge-all-of/merge-union.ts'
@@ -197,10 +198,14 @@ export const toSchemaV3 = ({
         })
       }
 
+      const system = toAllOfSystem(context)
       const merged = mergeIntersection({
         schema,
-        getRef: toGetRef(context.documentObject)
+        getRef: toGetRef(context.documentObject),
+        system
       })
+
+      logAllOfContradictions({ system, stackTrail, parent: schema, context })
 
       return toSchemaV3({ schema: merged, stackTrail: st, context })
     })
@@ -208,11 +213,15 @@ export const toSchemaV3 = ({
 
   if ('oneOf' in schema && Array.isArray(schema.oneOf)) {
     return stackTrail.trace('oneOf', st => {
+      const system = toAllOfSystem(context)
       const merged = mergeUnion({
         schema,
         getRef: toGetRef(context.documentObject),
+        system,
         groupType: 'oneOf'
       })
+
+      logAllOfContradictions({ system, stackTrail, parent: schema, context })
 
       if (!('oneOf' in merged) || !Array.isArray(merged.oneOf)) {
         throw new Error('Missing "oneOf" array')
@@ -265,11 +274,15 @@ export const toSchemaV3 = ({
         return toUnion({ value, members: anyOf, parentType: 'anyOf', stackTrail: st, context })
       }
 
+      const system = toAllOfSystem(context)
       const merged = mergeUnion({
         schema,
         getRef: toGetRef(context.documentObject),
+        system,
         groupType: 'anyOf'
       })
+
+      logAllOfContradictions({ system, stackTrail, parent: schema, context })
 
       if (!('anyOf' in merged) || !Array.isArray(merged.anyOf)) {
         throw new Error('Missing "anyOf" array')
