@@ -441,7 +441,7 @@ export class CoreContext {
       // A throw while the parse context is set up counts as parse.
       this.#phaseName = 'parse'
       this.#parseIssues = []
-      const phase = this.#setupParsePhase(document)
+      const phase = this.#setupParsePhase(document, settings)
       this.#phase = phase
       this.#parseIssues = phase.context.issues
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
@@ -554,7 +554,7 @@ export class CoreContext {
     try {
       this.#phaseName = 'parse'
       this.#parseIssues = []
-      const phase = this.#setupParsePhase(document)
+      const phase = this.#setupParsePhase(document, settings)
       this.#phase = phase
       this.#parseIssues = phase.context.issues
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
@@ -614,7 +614,7 @@ export class CoreContext {
     try {
       this.#phaseName = 'parse'
       this.#parseIssues = []
-      const phase = this.#setupParsePhase(document)
+      const phase = this.#setupParsePhase(document, settings)
       this.#phase = phase
       this.#parseIssues = phase.context.issues
       const parsedDocument: SkmtcParsedDocument = stackTrail.trace('parse', st =>
@@ -686,11 +686,12 @@ export class CoreContext {
     }
   }
 
-  #setupParsePhase(input: SkmtcDocumentInput): ParsePhase {
+  #setupParsePhase(input: SkmtcDocumentInput, settings?: ClientSettings): ParsePhase {
     const parseContext = new ParseContext({
       input,
       logger: this.logger,
-      silent: this.silent
+      silent: this.silent,
+      options: { oas: settings?.parse }
     })
 
     return { type: 'parse', context: parseContext }

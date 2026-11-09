@@ -242,6 +242,13 @@ export const anchorsSettings: v.GenericSchema<AnchorsSettings> = v.object({
   out: v.optional(v.string())
 })
 
+/** Valibot schema for {@link OasParseSettings}: `client.json#settings.parse`. */
+export const oasParseSettings: v.GenericSchema<OasParseSettings> = v.object({
+  allOf: v.optional(v.picklist(['strict', 'latestWins'])),
+  responseContradictions: v.optional(v.picklist(['strict', 'unknown'])),
+  not: v.optional(v.picklist(['strict', 'unknown']))
+})
+
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   basePath: v.optional(
     v.pipe(
@@ -264,6 +271,7 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   include: v.optional(v.array(include)),
   skip: v.optional(v.array(skip)),
   anchors: v.optional(anchorsSettings),
+  parse: v.optional(oasParseSettings),
   inputDirs: v.optional(v.array(v.string())),
   formatter: v.optional(v.string()),
   generatedSuffix: v.optional(v.string()),
@@ -547,6 +555,29 @@ export type AnchorsSettings = {
   out?: string
 }
 
+/**
+ * How the OpenAPI parser treats what it cannot read faithfully
+ * (`client.json#settings.parse`). Each setting is `strict` by default: the
+ * schema fails, and `removeErroredItems` removes each item that uses it.
+ */
+export type OasParseSettings = {
+  /**
+   * `latestWins`: where `allOf` members contradict, the later member's
+   * keyword wins, with one warning for each schema where it happens.
+   */
+  allOf?: 'strict' | 'latestWins'
+  /**
+   * `unknown`: a response whose schema fails gets an `unknown` schema (any
+   * body), with an error at the response, and the operation stays.
+   */
+  responseContradictions?: 'strict' | 'unknown'
+  /**
+   * `unknown`: a schema with `not` parses with its other keywords, and keeps
+   * its `not` as an `OasUnknown`.
+   */
+  not?: 'strict' | 'unknown'
+}
+
 export type ClientSettings = {
   /** Base output path for generated files */
   basePath?: string
@@ -570,6 +601,8 @@ export type ClientSettings = {
    * in v1. See {@link AnchorsSettings}.
    */
   anchors?: AnchorsSettings
+  /** How the OpenAPI parser treats what it cannot read faithfully. See {@link OasParseSettings}. */
+  parse?: OasParseSettings
   /**
    * Preview input-matcher discovery directories (project-root relative, e.g.
    * `src/fields`, `src/inputs`). A preview/hub concern: the generation engine
