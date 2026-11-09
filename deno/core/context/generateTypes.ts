@@ -571,7 +571,6 @@ export type GenerateContextType = {
    * subject's result to `'warning'` or `'error'`.
    */
   logger: Logger
-  modelDepth: Record<string, number>
   /**
    * The pending models, outermost first: the last is the model whose
    * projection constructor is running, the source of any reference made now.
@@ -647,7 +646,7 @@ export type GenerateContextType = {
   toModelContentSettings: <V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
     args: BuildModelSettingsArgs<V, EnrichmentType, ProjectionOptions>
   ) => ContentSettings<EnrichmentType>
-  resolveSchemaRefOnce: (refName: RefName, generatorId: string) => OasSchema | OasRef<'schema'>
+  resolveSchemaRefOnce: (refName: RefName) => OasSchema | OasRef<'schema'>
   findDefinition: ({ name, exportPath, into }: FindDefinitionArgs) => DefinitionBase | undefined
   /** The marker of a model named `name` in `exportPath` whose projection is being constructed, if any. */
   findPendingDefinition: ({ name, exportPath }: PickArgs) => PendingDefinition | undefined

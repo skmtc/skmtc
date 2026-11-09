@@ -66,7 +66,7 @@ export type ModelEntry<EnrichmentType = undefined> = {
  * @param args.isSupported - Optional capability gate; a model whose predicate
  *   returns `false` is recorded `notSupported` and its `transform` is skipped.
  *   Resolve the schema inside the predicate when needed
- *   (`context.resolveSchemaRefOnce(refName, id)`). Defaults to supporting every model.
+ *   (`context.resolveSchemaRefOnce(refName)`). Defaults to supporting every model.
  * @param args.toPreviewModule - Optional function to generate preview modules
  * @param args.toEnrichmentSchema - Optional function to provide enrichment validation
  * @param args.toEnrichmentRequest - Optional function to request enrichments

@@ -114,7 +114,6 @@ const createMockContext = (): GenerateContextType => {
   // while the constructor runs, and looks markers up there.
   const files = new Map<string, FileBase>()
   const mockContext = {
-    modelDepth: {} as Record<string, number>,
     pendingStack: [],
     toModelContentSettings: spy(({ refName, variant }: { refName: RefName; variant: string }) => ({
       identifier: createType(refName),
@@ -189,20 +188,23 @@ Deno.test('ModelDriver', async t => {
       assertEquals(driver.noExport, true)
     })
 
-    await t.step('should initialize modelDepth to 0', () => {
+    await t.step('leaves no pending marker once the constructor returned', () => {
       const context = createMockContext()
       const projection = createMockProjection()
       const refName = 'User' as RefName
-      const key = `${projection.id}:${refName}`
 
-      new ModelDriver({
+      const driver = new ModelDriver({
         context,
         projection,
         refName,
         variant: 'main'
       })
 
-      assertEquals(context.modelDepth[key], 0)
+      assertEquals(
+        context.findPendingDefinition({ name: refName, exportPath: driver.settings.exportPath }),
+        undefined
+      )
+      assertEquals(context.pendingStack, [])
     })
 
     await t.step('should call toModelContentSettings on context', () => {
@@ -273,22 +275,6 @@ Deno.test('ModelDriver', async t => {
         assertEquals(driver.definition instanceof TsDefinition, false)
       }
     )
-
-    await t.step('should reset modelDepth to 0 after construction', () => {
-      const context = createMockContext()
-      const projection = createMockProjection()
-      const refName = 'User' as RefName
-      const key = `${projection.id}:${refName}`
-
-      new ModelDriver({
-        context,
-        projection,
-        refName,
-        variant: 'main'
-      })
-
-      assertEquals(context.modelDepth[key], 0)
-    })
 
     await t.step('should work with different refName values', () => {
       const context = createMockContext()
@@ -931,7 +917,7 @@ Deno.test('ModelDriver', async t => {
       assertEquals(driver.refName, refName)
       assertEquals(driver.settings !== undefined, true)
       assertEquals(driver.definition instanceof TsDefinition, true)
-      assertEquals(context.modelDepth[`${projection.id}:${refName}`], 0)
+      assertEquals(context.pendingStack, [])
     })
 
     await t.step('should handle multiple drivers with same refName using cache', () => {
@@ -1020,24 +1006,6 @@ Deno.test('ModelDriver', async t => {
       const importCall = registerCalls.find((call: any) => call.args[0].imports)
 
       assertEquals(importCall, undefined)
-    })
-
-    await t.step('should maintain modelDepth throughout lifecycle', () => {
-      const context = createMockContext()
-      const projection = createMockProjection()
-      const refName = 'User' as RefName
-      const key = `${projection.id}:${refName}`
-
-      assertEquals(context.modelDepth[key], undefined)
-
-      new ModelDriver({
-        context,
-        projection,
-        refName,
-        variant: 'main'
-      })
-
-      assertEquals(context.modelDepth[key], 0)
     })
 
     await t.step('should handle noExport flag throughout lifecycle', () => {

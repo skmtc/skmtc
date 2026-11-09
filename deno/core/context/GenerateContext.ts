@@ -293,8 +293,6 @@ export class GenerateContext implements GenerateContextType {
   /** Function that returns the generator configuration map */
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 
-  /** Tracking model nesting depth to prevent infinite recursion */
-  modelDepth: Record<string, number>
   /** The pending models, outermost first: the last is the model whose projection constructor is running. */
   pendingStack: PendingDefinition[] = []
   /**
@@ -329,7 +327,6 @@ export class GenerateContext implements GenerateContextType {
     this.settings = settings
     this.captureCurrentResult = captureCurrentResult
     this.toGeneratorConfigMap = toGeneratorConfigMap
-    this.modelDepth = {}
     this.#captureChannel = captureChannel
     this.#enrichmentAudit = new EnrichmentAudit()
   }
@@ -1696,9 +1693,7 @@ export class GenerateContext implements GenerateContextType {
    * @returns Matching schema or ref
    * @throws if schema is not found
    */
-  resolveSchemaRefOnce(refName: RefName, generatorId: string): OasSchema | OasRef<'schema'> {
-    this.modelDepth[`${generatorId}:${refName}`]++
-
+  resolveSchemaRefOnce(refName: RefName): OasSchema | OasRef<'schema'> {
     const schema =
       this.document.type === 'oas'
         ? this.document.value.components?.schemas?.[refName]?.resolveOnce()

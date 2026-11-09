@@ -78,8 +78,6 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
     this.variant = variant
     this.options = readProjectionOptions<ProjectionOptions>(args)
 
-    this.context.modelDepth[`${projection.id}:${refName}`] = 0
-
     assertPeerVariantExists({
       context,
       generatorId: projection.id,
@@ -96,8 +94,6 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
       options: this.options
     })
     this.definition = this.apply({ destinationPath })
-
-    this.context.modelDepth[`${projection.id}:${refName}`] = 0
   }
 
   private apply({ destinationPath }: ApplyArgs = {}): GeneratedDefinition<V> {

@@ -54,7 +54,7 @@ export type TransformModelArgs = {
  * entry/dispatch boundary. The capability counterpart of
  * {@link TransformModelArgs}: it carries the resolved enrichment umbrella so
  * the predicate can gate on user config, but no schema — the predicate
- * resolves the schema itself (`context.resolveSchemaRefOnce(refName, id)`)
+ * resolves the schema itself (`context.resolveSchemaRefOnce(refName)`)
  * when it needs it, mirroring how `transform` works.
  */
 export type IsSupportedModelArgs = {
