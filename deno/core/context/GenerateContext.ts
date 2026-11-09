@@ -277,6 +277,8 @@ const isEnrichmentLeaf = (value: unknown): value is EnrichmentDefaultsLeaf =>
 
 export class GenerateContext implements GenerateContextType {
   #files: Map<string, FileBase>
+  /** Each subject whose generation threw: its trail and the error message. */
+  #failedItems: string[] = []
   /** Each file's path folded (case, Unicode form) → the path: a file system that ignores case sees one file. */
   #foldedPaths: Map<string, string> = new Map()
   #previews: Record<string, Preview>
@@ -388,6 +390,17 @@ export class GenerateContext implements GenerateContextType {
   /** Logs a caught error with its message, keeping the error for the line's `error` field. */
   #logError(error: unknown): void {
     this.logger.error(toSerializedError(error).message, error)
+  }
+
+  /**
+   * One subject's generation threw: log it and record `error` on the
+   * subject, so the run reports every subject that failed, and remember it.
+   * `toArtifacts` fails the run once every generator has run.
+   */
+  #failItem(error: unknown, stackTrail: StackTrail): void {
+    this.#logError(error)
+    this.captureCurrentResult('error', stackTrail)
+    this.#failedItems.push(`${stackTrail}: ${toSerializedError(error).message}`)
   }
 
   /**
@@ -524,6 +537,16 @@ export class GenerateContext implements GenerateContextType {
         (entry): entry is string => typeof entry === 'string'
       )
     })
+
+    // Generation runs our code over a document parsing has already made
+    // safe, so an error here is a bug to fix, not data to tolerate: the run
+    // fails, and writes nothing. Every subject that failed is in the log
+    // and in the results.
+    if (this.#failedItems.length > 0) {
+      throw new Error(
+        `Generation failed for ${this.#failedItems.length} subject(s):\n${this.#failedItems.join('\n')}`
+      )
+    }
 
     return {
       files: this.#files,
@@ -875,9 +898,7 @@ export class GenerateContext implements GenerateContextType {
 
                 this.captureCurrentResult('success', st)
               } catch (error) {
-                this.#logError(error)
-
-                this.captureCurrentResult('error', st)
+                this.#failItem(error, st)
               }
             })
           )
@@ -983,9 +1004,7 @@ export class GenerateContext implements GenerateContextType {
 
                 this.captureCurrentResult('success', st)
               } catch (error) {
-                this.#logError(error)
-
-                this.captureCurrentResult('error', st)
+                this.#failItem(error, st)
               }
             })
           )
@@ -1046,8 +1065,7 @@ export class GenerateContext implements GenerateContextType {
 
                 this.captureCurrentResult('success', st)
               } catch (error) {
-                this.#logError(error)
-                this.captureCurrentResult('error', st)
+                this.#failItem(error, st)
               }
             })
           )
@@ -1147,8 +1165,7 @@ export class GenerateContext implements GenerateContextType {
 
                 this.captureCurrentResult('success', st)
               } catch (error) {
-                this.#logError(error)
-                this.captureCurrentResult('error', st)
+                this.#failItem(error, st)
               }
             })
           )

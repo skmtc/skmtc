@@ -402,12 +402,11 @@ Deno.test('toArtifacts - two runs started together return only their own lines',
 
   assertEquals(first.logs.length > 0, true)
   assertEquals(second.logs.length > 0, true)
-  assertEquals(
-    first.logs.every(({ trail }) => trail?.startsWith('first:')),
-    true
-  )
-  assertEquals(
-    second.logs.every(({ trail }) => trail?.startsWith('second:')),
-    true
-  )
+  // A subject's line carries its trail. The line that fails the run (a
+  // subject threw) has none, and names the failed subject's trail instead.
+  const isOwnLine = (prefix: string) => ({ trail, message }: LogLine) =>
+    trail === undefined ? message.includes(prefix) : trail.startsWith(prefix)
+
+  assertEquals(first.logs.every(isOwnLine('first:')), true)
+  assertEquals(second.logs.every(isOwnLine('second:')), true)
 })

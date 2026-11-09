@@ -11,7 +11,7 @@
  * IdentifierBase) — core tests stay language-agnostic.
  */
 
-import { assertEquals, assertExists, assertInstanceOf } from '@std/assert'
+import { assertEquals, assertExists, assertInstanceOf, assertThrows } from '@std/assert'
 import { Logger } from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
@@ -179,13 +179,15 @@ Deno.test('export paths - a Windows-spelled destinationPath registers into the e
   assertEquals([...file.imports.keys()], ['@/types/y.ts'])
 })
 
-Deno.test('export paths - a toExportPath that escapes basePath fails the item and adds no file', () => {
+Deno.test('export paths - a toExportPath that escapes basePath fails the item, adds no file, and fails the run', () => {
   for (const escaping of ['@/../escape.ts', '../escape.ts', 'C:\\escape.ts', '@/']) {
     const { context, results } = buildContext({ toExportPath: () => escaping })
-    const { files } = context.toArtifacts(new StackTrail(['test']))
 
+    // A generate error is a bug, not data to tolerate: the run fails once
+    // every subject ran, after the item recorded its own error.
+    assertThrows(() => context.toArtifacts(new StackTrail(['test'])), Error, 'Generation failed for ')
     assertEquals(results.includes('error'), true, `toExportPath: '${escaping}' should fail`)
-    assertEquals(files.size, 0, `toExportPath: '${escaping}' should add no file`)
+    assertEquals(context.inspectedFiles.size, 0, `toExportPath: '${escaping}' should add no file`)
   }
 })
 
