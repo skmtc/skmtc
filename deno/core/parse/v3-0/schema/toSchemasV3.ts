@@ -13,6 +13,7 @@ import { toString } from '../string/toString.ts'
 import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
 import { toGetRef } from '@/helpers/refFns.ts'
+import { toSiblingSchema } from '@/parse/toSiblingSchema.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
 import { mergeUnion } from '../_merge-all-of/merge-union.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
@@ -146,19 +147,38 @@ export const toSchemaV3 = ({
       if (members.length === 1) {
         const [member] = members
 
-        // Keywords next to the one member that only say how this site uses
-        // the reference ride the reference itself, which stays lazy: the
-        // shared model is neither nullable nor read-only everywhere.
-        if (isRef(member) && (value.nullable || value.readOnly || value.writeOnly)) {
-          return toRefV31({
-            ref: member,
-            refType: 'schema',
-            nullable: value.nullable || undefined,
-            readOnly: value.readOnly || undefined,
-            writeOnly: value.writeOnly || undefined,
-            stackTrail: st,
-            context
-          })
+        // Keywords next to the one member say how this site uses the
+        // reference, which stays lazy, so a self-reference still ends:
+        // `nullable`, `readOnly` and `writeOnly` ride it as use-site flags,
+        // and the others are parsed as a schema of the target's type
+        // (`siblings`), which `resolveWithSiblings()` applies to a copy of
+        // the target at generate time. The shared model never changes.
+        if (isRef(member)) {
+          const { nullable, readOnly, writeOnly, ...keywords } = value
+          const parsed =
+            Object.keys(keywords).length === 0
+              ? undefined
+              : st.trace('siblings', siblingTrail =>
+                  toSchemaV3({
+                    schema: toSiblingSchema({ keywords, ref: member, documentObject: context.documentObject }),
+                    stackTrail: siblingTrail,
+                    context
+                  })
+                )
+          const siblings = parsed === undefined || parsed.isRef() ? undefined : parsed
+
+          if (nullable || readOnly || writeOnly || siblings) {
+            return toRefV31({
+              ref: member,
+              refType: 'schema',
+              nullable: nullable || undefined,
+              readOnly: readOnly || undefined,
+              writeOnly: writeOnly || undefined,
+              siblings,
+              stackTrail: st,
+              context
+            })
+          }
         }
 
         return toSchemaV3({

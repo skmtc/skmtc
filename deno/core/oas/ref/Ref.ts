@@ -77,6 +77,14 @@ export type RefFields<T extends OasRefData['refType']> = {
   readOnly?: boolean
   /** Use-site `writeOnly`, as {@link readOnly}. */
   writeOnly?: boolean
+  /**
+   * The other keywords next to the reference in a one-member `allOf`
+   * (`{ allOf: [{ $ref }], minLength: 3, description: '…' }`), parsed as a
+   * schema of the target's type. {@link OasRef.resolveWithSiblings} applies
+   * them to a copy of the target, so the shared target never changes, and
+   * the reference stays lazy, so a self-reference still ends.
+   */
+  siblings?: OasSchema
 }
 
 /**
@@ -351,6 +359,39 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
   /** Use-site `writeOnly` of this reference (see {@link RefFields.writeOnly}). */
   get writeOnly(): boolean | undefined {
     return this.#fields.writeOnly
+  }
+
+  /** The keywords next to this reference (see {@link RefFields.siblings}). */
+  get siblings(): OasSchema | undefined {
+    return this.#fields.siblings
+  }
+
+  /**
+   * The schema at this site: what the reference resolves to, with the
+   * keywords next to it ({@link RefFields.siblings}) applied to a copy, at
+   * each step of a chain of references. With no keywords on the chain, it
+   * is the instance `resolve()` returns.
+   *
+   * @param lookupsPerformed - Internal counter to prevent infinite recursion
+   * @throws Error if maximum lookup depth is exceeded
+   */
+  resolveWithSiblings(lookupsPerformed: number = 0): ResolvedRef<T> {
+    if (lookupsPerformed >= MAX_LOOKUPS) {
+      throw new Error('Max lookups reached')
+    }
+
+    const resolved = this.resolveOnce()
+    const target = resolved.isRef() ? resolved.resolveWithSiblings(lookupsPerformed + 1) : resolved
+    const siblings = this.#fields.siblings
+
+    if (siblings === undefined || !('withSiblings' in target)) {
+      return target
+    }
+
+    // Only a schema reference has siblings, and a schema's copy is a schema of
+    // the same class, so it is a ResolvedRef<'schema'>. TypeScript cannot
+    // narrow the generic T from `'withSiblings' in target`.
+    return target.withSiblings(siblings) as ResolvedRef<T>
   }
 
   /**

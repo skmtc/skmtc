@@ -1,4 +1,5 @@
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
+import { toSiblingAnnotations, toSiblingDeprecated } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasSchema, ToJsonSchemaOptions } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
@@ -151,6 +152,38 @@ export class OasArray<Nullable extends boolean | undefined = boolean | undefined
   /** Whether the value is `writeOnly`: sent in a request only, never by the API. */
   isWriteOnly(): boolean {
     return this.writeOnly === true
+  }
+
+  /** This schema: it is no reference, so no keywords sit next to one. */
+  resolveWithSiblings(): OasArray {
+    return this
+  }
+
+  /**
+   * A copy of this schema with the keywords next to a reference to it
+   * applied (`RefFields.siblings`): a sibling's value wins. Annotations
+   * apply from siblings of any type; the rest only from siblings of the
+   * same type. This schema does not change.
+   */
+  withSiblings(siblings: OasSchema): OasArray {
+    const same = siblings.type === 'array' ? siblings : undefined
+    const copy = new OasArray<boolean | undefined>({
+      ...toSiblingAnnotations(this, siblings),
+      example: same?.example ?? this.example,
+      items: this.items,
+      nullable: this.nullable,
+      uniqueItems: same?.uniqueItems ?? this.uniqueItems,
+      maxItems: same?.maxItems ?? this.maxItems,
+      minItems: same?.minItems ?? this.minItems,
+      enums: same?.enums ?? this.enums,
+      defaultValue: same?.defaultValue ?? this.defaultValue,
+      readOnly: this.readOnly,
+      writeOnly: this.writeOnly,
+      deprecated: toSiblingDeprecated(siblings) ?? this.deprecated,
+    })
+    copy.stackTrail = this.stackTrail
+
+    return copy
   }
 
   traverse(path: SchemaPath): OasSchema | OasRef<'schema'> {

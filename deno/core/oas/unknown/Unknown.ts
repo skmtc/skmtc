@@ -1,4 +1,5 @@
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
+import { toSiblingAnnotations } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasRef } from '../ref/Ref.ts'
@@ -67,6 +68,28 @@ export class OasUnknown extends OasBase {
   /** Always `false`: this schema has no `writeOnly`. */
   isWriteOnly(): boolean {
     return false
+  }
+
+  /** This schema: it is no reference, so no keywords sit next to one. */
+  resolveWithSiblings(): OasUnknown {
+    return this
+  }
+
+  /**
+   * A copy of this schema with the keywords next to a reference to it
+   * applied (`RefFields.siblings`): a sibling's value wins. Annotations
+   * apply from siblings of any type; the rest only from siblings of the
+   * same type. This schema does not change.
+   */
+  withSiblings(siblings: OasSchema): OasUnknown {
+    const copy = new OasUnknown({
+      ...toSiblingAnnotations(this, siblings),
+      example: siblings.example ?? this.example,
+      nullable: this.nullable,
+    })
+    copy.stackTrail = this.stackTrail
+
+    return copy
   }
 
   traverse(path: SchemaPath): OasSchema | OasRef<'schema'> {

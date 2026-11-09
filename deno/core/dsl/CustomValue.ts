@@ -64,6 +64,11 @@ export class CustomValue extends SnippetBase {
     return false
   }
 
+  /** This value: it is no reference, so no keywords sit next to one. */
+  resolveWithSiblings(): CustomValue {
+    return this
+  }
+
   /**
    * Resolves this custom value.
    *

@@ -1,4 +1,5 @@
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
+import { toSiblingAnnotations, toSiblingDeprecated } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
@@ -417,6 +418,40 @@ export class OasObject<Nullable extends boolean | undefined = boolean | undefine
   /** Whether the value is `writeOnly`: sent in a request only, never by the API. */
   isWriteOnly(): boolean {
     return this.writeOnly === true
+  }
+
+  /** This schema: it is no reference, so no keywords sit next to one. */
+  resolveWithSiblings(): OasObject {
+    return this
+  }
+
+  /**
+   * A copy of this schema with the keywords next to a reference to it
+   * applied (`RefFields.siblings`): a sibling's value wins. Annotations
+   * apply from siblings of any type; the rest only from siblings of the
+   * same type. This schema does not change.
+   */
+  withSiblings(siblings: OasSchema): OasObject {
+    const same = siblings.type === 'object' ? siblings : undefined
+    const copy = new OasObject<boolean | undefined>({
+      ...toSiblingAnnotations(this, siblings),
+      example: same?.example ?? this.example,
+      externalDocs: this.externalDocs,
+      properties: same?.properties === undefined ? (this.properties ?? undefined) : { ...this.properties, ...same.properties },
+      required: same?.required === undefined ? this.required : [...new Set([...(this.required ?? []), ...same.required])],
+      additionalProperties: same?.additionalProperties ?? this.additionalProperties,
+      nullable: this.nullable,
+      default: same?.default ?? this.default,
+      maxProperties: same?.maxProperties ?? this.maxProperties,
+      minProperties: same?.minProperties ?? this.minProperties,
+      readOnly: this.readOnly,
+      writeOnly: this.writeOnly,
+      deprecated: toSiblingDeprecated(siblings) ?? this.deprecated,
+      enums: same?.enums ?? this.enums,
+    })
+    copy.stackTrail = this.stackTrail
+
+    return copy
   }
 
   traverse(path: SchemaPath): OasSchema | OasRef<'schema'> {

@@ -1,4 +1,5 @@
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
+import { toSiblingAnnotations, toSiblingDeprecated } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { OpenAPIV3 } from 'openapi-types'
@@ -150,6 +151,40 @@ export class OasNumber<Nullable extends boolean | undefined = boolean | undefine
   /** Whether the value is `writeOnly`: sent in a request only, never by the API. */
   isWriteOnly(): boolean {
     return this.writeOnly === true
+  }
+
+  /** This schema: it is no reference, so no keywords sit next to one. */
+  resolveWithSiblings(): OasNumber {
+    return this
+  }
+
+  /**
+   * A copy of this schema with the keywords next to a reference to it
+   * applied (`RefFields.siblings`): a sibling's value wins. Annotations
+   * apply from siblings of any type; the rest only from siblings of the
+   * same type. This schema does not change.
+   */
+  withSiblings(siblings: OasSchema): OasNumber {
+    const same = siblings.type === 'number' ? siblings : undefined
+    const copy = new OasNumber<boolean | undefined>({
+      ...toSiblingAnnotations(this, siblings),
+      example: same?.example ?? this.example,
+      nullable: this.nullable,
+      default: same?.default ?? this.default,
+      enums: same?.enums ?? this.enums,
+      format: same?.format ?? this.format,
+      multipleOf: same?.multipleOf ?? this.multipleOf,
+      maximum: same?.maximum ?? this.maximum,
+      exclusiveMaximum: same?.exclusiveMaximum ?? this.exclusiveMaximum,
+      minimum: same?.minimum ?? this.minimum,
+      exclusiveMinimum: same?.exclusiveMinimum ?? this.exclusiveMinimum,
+      readOnly: this.readOnly,
+      writeOnly: this.writeOnly,
+      deprecated: toSiblingDeprecated(siblings) ?? this.deprecated,
+    })
+    copy.stackTrail = this.stackTrail
+
+    return copy
   }
 
   traverse(path: SchemaPath): OasSchema | OasRef<'schema'> {

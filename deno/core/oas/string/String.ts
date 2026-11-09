@@ -1,4 +1,5 @@
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
+import { toSiblingAnnotations, toSiblingDeprecated } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
@@ -134,6 +135,38 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
   /** Whether the value is `writeOnly`: sent in a request only, never by the API. */
   isWriteOnly(): boolean {
     return this.writeOnly === true
+  }
+
+  /** This schema: it is no reference, so no keywords sit next to one. */
+  resolveWithSiblings(): OasString {
+    return this
+  }
+
+  /**
+   * A copy of this schema with the keywords next to a reference to it
+   * applied (`RefFields.siblings`): a sibling's value wins. Annotations
+   * apply from siblings of any type; the rest only from siblings of the
+   * same type. This schema does not change.
+   */
+  withSiblings(siblings: OasSchema): OasString {
+    const same = siblings.type === 'string' ? siblings : undefined
+    const copy = new OasString<boolean | undefined>({
+      ...toSiblingAnnotations(this, siblings),
+      example: same?.example ?? this.example,
+      format: same?.format ?? this.format,
+      enums: same?.enums ?? this.enums,
+      nullable: this.nullable,
+      maxLength: same?.maxLength ?? this.maxLength,
+      minLength: same?.minLength ?? this.minLength,
+      pattern: same?.pattern ?? this.pattern,
+      default: same?.default ?? this.default,
+      readOnly: this.readOnly,
+      writeOnly: this.writeOnly,
+      deprecated: toSiblingDeprecated(siblings) ?? this.deprecated,
+    })
+    copy.stackTrail = this.stackTrail
+
+    return copy
   }
 
   traverse(path: SchemaPath): OasSchema | OasRef<'schema'> {
