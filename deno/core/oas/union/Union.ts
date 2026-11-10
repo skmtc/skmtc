@@ -32,8 +32,6 @@ export type UnionFields = {
   default?: unknown
   /** Array of schemas that make up the union members */
   members: (OasSchema | OasRef<'schema'>)[]
-  /** `true` for a `oneOf`, `false` for an `anyOf`. Left out for a union the document does not write as either. */
-  exclusive?: boolean
   /** Custom extension fields (x-* properties) */
   extensionFields?: Record<string, unknown>
 }
@@ -184,12 +182,6 @@ export class OasUnion extends OasBase {
    * Array of schemas or references to schemas that are part of the union.
    */
   members: (OasSchema | OasRef<'schema'>)[]
-  /**
-   * `true` for a `oneOf`, where a value matches exactly one member; `false`
-   * for an `anyOf`, where it matches one or more. `undefined` for a union
-   * the document does not write as either, such as a GraphQL union.
-   */
-  exclusive: boolean | undefined
 
   /** Specification Extension fields */
   extensionFields: Record<string, unknown> | undefined
@@ -217,7 +209,6 @@ export class OasUnion extends OasBase {
     this.nullable = fields.nullable
     this.discriminator = fields.discriminator
     this.members = fields.members
-    this.exclusive = fields.exclusive
     this.extensionFields = fields.extensionFields
     this.example = fields.example
     this.default = fields.default
@@ -253,7 +244,6 @@ export class OasUnion extends OasBase {
       nullable,
       discriminator: this.discriminator,
       members: this.members,
-      exclusive: this.exclusive,
       default: ref?.default ?? this.default,
     })
     copy.stackTrail = this.stackTrail

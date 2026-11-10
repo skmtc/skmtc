@@ -21,7 +21,7 @@ Deno.test('toUnion - basic anyOf union type', () => {
     context: mockParseContext
   })
 
-  assertEquals(oasUnion, new OasUnion({ members: [new OasString()], exclusive: false }))
+  assertEquals(oasUnion, new OasUnion({ members: [new OasString()] }))
 })
 
 Deno.test('toUnion - allows default:null on a nullable union', () => {
@@ -41,7 +41,7 @@ Deno.test('toUnion - allows default:null on a nullable union', () => {
 
   assertEquals(
     oasUnion,
-    new OasUnion({ members: [new OasString()], exclusive: false, nullable: true, default: null })
+    new OasUnion({ members: [new OasString()], nullable: true, default: null })
   )
 })
 
@@ -58,7 +58,7 @@ Deno.test('toUnion - keeps a non-null default value', () => {
     context: mockParseContext
   })
 
-  assertEquals(oasUnion, new OasUnion({ members: [new OasString()], exclusive: false, default: 'hello' }))
+  assertEquals(oasUnion, new OasUnion({ members: [new OasString()], default: 'hello' }))
 })
 
 Deno.test('toUnion - rejects null default on a non-nullable union', () => {
@@ -75,7 +75,7 @@ Deno.test('toUnion - rejects null default on a non-nullable union', () => {
     context: mockParseContext
   })
 
-  assertEquals(oasUnion, new OasUnion({ members: [new OasString()], exclusive: false }))
+  assertEquals(oasUnion, new OasUnion({ members: [new OasString()] }))
   assertSpyCalls(contextSpy, 1)
   contextSpy.restore()
 })
@@ -96,7 +96,7 @@ Deno.test('toUnion - validates the nullable flag', () => {
     context: mockParseContext
   })
 
-  assertEquals(oasUnion, new OasUnion({ members: [new OasString()], exclusive: false }))
+  assertEquals(oasUnion, new OasUnion({ members: [new OasString()] }))
   assertSpyCalls(contextSpy, 1)
   contextSpy.restore()
 })

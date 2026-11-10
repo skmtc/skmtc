@@ -22,8 +22,7 @@ const toDocument = (openapi: string) =>
               description: 'The sink.',
               oneOf: [{ $ref: '#/components/schemas/R2' }, { $ref: '#/components/schemas/Catalog' }],
               'x-fern-property-name': 'sink-config'
-            },
-            origin: { anyOf: [{ $ref: '#/components/schemas/R2' }, { $ref: '#/components/schemas/Catalog' }] }
+            }
           }
         }
       }
@@ -41,7 +40,7 @@ const parseSink = (openapi: string) => {
   const sink = parsed.type === 'oas' ? parsed.value.components?.schemas?.[toRefName('#/components/schemas/Sink')] : undefined
   const properties = sink?.type === 'object' ? sink.properties : undefined
 
-  return { config: properties?.config, origin: properties?.origin }
+  return { config: properties?.config }
 }
 
 for (const openapi of ['3.0.3', '3.1.0']) {
@@ -55,12 +54,5 @@ for (const openapi of ['3.0.3', '3.1.0']) {
       config?.type === 'union' ? config.members.map(member => (member.isRef() ? member.toRefName() : member.type)) : [],
       ['R2', 'Catalog']
     )
-  })
-
-  Deno.test(`${openapi} a union says whether it is a oneOf or an anyOf`, () => {
-    const { config, origin } = parseSink(openapi)
-
-    assertEquals(config?.type === 'union' ? config.exclusive : undefined, true)
-    assertEquals(origin?.type === 'union' ? origin.exclusive : undefined, false)
   })
 }
