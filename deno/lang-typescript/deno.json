@@ -11,6 +11,6 @@
   },
   "imports": {
     "@/": "./",
-    "@skmtc/core": "jsr:@skmtc/core@^0.37.1"
+    "@skmtc/core": "jsr:@skmtc/core@^0.38.0"
   }
 }
