@@ -4,9 +4,12 @@
  * AST-resolve each span's landmark + path, and build the sidecar.
  *
  * Pure function over its inputs — no I/O, no global state, no `toString`,
- * no pipeline hooks. The caller is `RenderContext` (folded in after the
- * single capture render), running this once per File when the run supplies
- * `attribution.postPass`. The CLI handles disk writes via a separate
+ * no pipeline hooks. The caller is `RenderContext`, which runs this right
+ * after each File renders, once per File, when the run supplies
+ * `attribution.postPass`. The capture channel's sink is still set at that
+ * point; it records nothing only because the sink is outside a
+ * `captureFile` call between files. So do not render snippets or call
+ * `toString` here. The CLI handles disk writes via a separate
  * `writeSidecar` wrapper.
  */
 

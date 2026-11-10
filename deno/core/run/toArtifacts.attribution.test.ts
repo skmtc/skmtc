@@ -193,3 +193,53 @@ Deno.test('toArtifacts - generatorMeta lookup flows through to sidecar entries',
   assertEquals(ourGen!.version, '1.2.3')
   assertEquals(sidecar.R[ourGen!.r], { host: 'jsr.skmtc.dev', type: 'jsr-private' })
 })
+
+Deno.test('toArtifacts - a post-pass that throws stops the render at that file', () => {
+  // The post-pass runs as each file renders, inside that file's trace. A
+  // throw on the second file fails the run, the first file keeps its
+  // render result, and the second file gets none.
+  const twoSchemaDoc: OpenAPIV3.Document = {
+    ...oasDoc,
+    components: {
+      schemas: {
+        User: { type: 'object', properties: { id: { type: 'string' } } },
+        Pet: { type: 'object', properties: { name: { type: 'string' } } }
+      }
+    }
+  }
+
+  const result = toArtifacts({
+    traceId: 't',
+    spanId: 's',
+    document: { type: 'oas', value: twoSchemaDoc },
+    settings: undefined,
+    toGeneratorConfigMap: buildGenerators,
+    startAt: Date.now(),
+    silent: true,
+    stackTrail: new StackTrail(['test']),
+    attribution: {
+      postPass: {
+        parser: {
+          ...oxcAdapter,
+          parse: (filePath, source) => {
+            if (filePath.endsWith('Pet.generated.ts')) {
+              throw new Error('parser refused Pet')
+            }
+
+            return oxcAdapter.parse(filePath, source)
+          }
+        },
+        schemaSrc: 'openapi.json'
+      }
+    }
+  })
+
+  const runFailed = result.manifest.parseIssues.at(-1)
+  assertEquals(runFailed?.type, 'RUN_FAILED')
+  assert(runFailed?.message.includes('parser refused Pet'), runFailed?.message)
+  assertEquals(result.sidecars, undefined)
+
+  const results = JSON.stringify(result.manifest.results)
+  assert(results.includes('User.generated.ts'), results)
+  assert(!results.includes('Pet.generated.ts'), results)
+})
