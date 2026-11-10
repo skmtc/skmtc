@@ -21,16 +21,25 @@ import type { Sidecar } from '@/anchors/sidecar.ts'
 import type { Span } from '@/anchors/types.ts'
 
 /**
- * One file's render output retained for the attribution post-pass:
- * the file's own path, the rendered text, and the byte spans the
- * `CaptureSink` resolved. Populated by {@link RenderContext.collate}
- * during the single capture render, consumed by {@link RenderContext.render}.
+ * One file's render output handed to the attribution post-pass: the
+ * file's own path, the rendered text, and the byte spans the
+ * `CaptureSink` resolved.
  */
 type FileCapture = {
   destinationPath: string
   filePath: string
   source: string
   spans: Span[]
+}
+
+/**
+ * Attribution output of one capturing render. {@link RenderContext.collate}
+ * adds each file's sidecar as that file renders, so the spans of one file
+ * are released before the next file renders.
+ */
+type AttributionOutput = {
+  sidecars: Record<string, Sidecar>
+  generationMap: GenerationMapEntry[]
 }
 
 /**
@@ -137,10 +146,11 @@ export class RenderContext {
    */
   #sink: CaptureSink | undefined
   /**
-   * Per-file render output retained during a capturing render, consumed
-   * by `render` to build sidecars. Reset each capturing render.
+   * Sidecars and generation map of the capturing render in progress, or
+   * `undefined` when rendering without attribution. Set + cleared by
+   * `render`, filled by `collate`.
    */
-  #captures: FileCapture[] = []
+  #attributionOutput: AttributionOutput | undefined
 
   /**
    * Creates a new RenderContext instance with the specified configuration.
@@ -217,8 +227,9 @@ export class RenderContext {
     // `finally`. Snippets' self-installed `toString` wrappers observe into
     // the sink; `collate` routes each File's render through it.
     const sink = new CaptureSink()
+    const attributionOutput: AttributionOutput = { sidecars: {}, generationMap: [] }
     this.#sink = sink
-    this.#captures = []
+    this.#attributionOutput = attributionOutput
     if (this.#captureChannel) {
       this.#captureChannel.sink = sink
     }
@@ -231,39 +242,41 @@ export class RenderContext {
         this.#captureChannel.sink = undefined
       }
       this.#sink = undefined
+      this.#attributionOutput = undefined
     }
-
-    // Build one sidecar per captured File from the spans the sink
-    // resolved (no re-render, no `toString`). Keyed by the resolved artifact
-    // path, matching `artifacts` and the manifest, so a sidecar sits at
-    // `<outDir>/<artifact key>.skm.json` where doctor looks for it.
-    const { parser, schemaSrc, generatorMeta } = postPassConfig
-    const sidecars: Record<string, Sidecar> = {}
-    const generationMap: GenerationMapEntry[] = []
-    for (const capture of this.#captures) {
-      const sidecar = postPass({
-        filePath: capture.filePath,
-        source: capture.source,
-        spans: capture.spans,
-        schemaSrc,
-        parser,
-        generatorMeta
-      })
-      const artifactPath = toResolvedArtifactPath({
-        basePath: this.basePath,
-        destinationPath: capture.destinationPath
-      })
-      sidecars[artifactPath] = sidecar
-      generationMap.push(...entriesForSidecar(sidecar))
-    }
-    this.#captures = []
 
     return {
       artifacts: result.artifacts,
       files: result.files,
       previews: this.previews,
-      sidecars,
-      generationMap
+      sidecars: attributionOutput.sidecars,
+      generationMap: attributionOutput.generationMap
+    }
+  }
+
+  /**
+   * Builds the sidecar of one captured File from the spans the sink
+   * resolved (no re-render, no `toString`) and adds it to the output of
+   * the capturing render. Keyed by the resolved artifact path, matching
+   * `artifacts` and the manifest, so a sidecar sits at
+   * `<outDir>/<artifact key>.skm.json` where doctor looks for it.
+   */
+  #addSidecar({ destinationPath, filePath, source, spans }: FileCapture): void {
+    const postPassConfig = this.attribution?.postPass
+    const output = this.#attributionOutput
+
+    if (!postPassConfig || !output) {
+      return
+    }
+
+    const { parser, schemaSrc, generatorMeta } = postPassConfig
+    const sidecar = postPass({ filePath, source, spans, schemaSrc, parser, generatorMeta })
+    const artifactPath = toResolvedArtifactPath({ basePath: this.basePath, destinationPath })
+
+    output.sidecars[artifactPath] = sidecar
+
+    for (const entry of entriesForSidecar(sidecar)) {
+      output.generationMap.push(entry)
     }
   }
 
@@ -309,7 +322,7 @@ export class RenderContext {
           if (this.#sink && file instanceof CodeFileBase) {
             const captured = this.#sink.captureFile(() => file.toString())
             content = captured.text
-            this.#captures.push({
+            this.#addSidecar({
               destinationPath,
               filePath: file.path,
               source: captured.text,
