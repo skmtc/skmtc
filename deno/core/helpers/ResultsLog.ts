@@ -33,14 +33,14 @@ export class ResultsLog {
    * Captures `result` at `stackTrail`, unless a more severe result is
    * already recorded there.
    *
-   * Stores a copy of the frames: `StackTrail.trace` pops the live array
-   * after its callback returns.
+   * Stores the frames as they are now: `StackTrail.trace` removes its
+   * frame from the trail after its callback returns.
    */
   capture(stackTrail: StackTrail, result: ResultType) {
     const key = stackTrail.toString()
 
     if (this.#incomingResultIsWorse(this.#results.get(key)?.result, result)) {
-      this.#results.set(key, { frames: [...stackTrail.stackTrail], result })
+      this.#results.set(key, { frames: stackTrail.stackTrail, result })
     }
   }
 

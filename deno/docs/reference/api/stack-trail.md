@@ -57,14 +57,16 @@ children via `trace`; it does not call the constructor directly.
 
 ### `stackTrail: string[]`
 
-Read access to the underlying frame array. Returns the live
-array, not a copy — mutating the returned array mutates the
-trail. The getter exists for inspection (e.g.
-`OasDocument.removeItem` destructures `[first, second, third]`),
-not as a public mutation surface.
+The frames of the trail. Each read builds a new array, so a
+change to the returned array does not change the trail. Use the
+getter for inspection (for example, `OasDocument.removeItem`
+destructures `[first, second, third]`).
 
-`trace` pops its frames from this array after `fn` returns. To
-keep the frames, copy them: `[...trail.stackTrail]`.
+Trails share their frames: `clone` and `trace` make a new trail
+that points at the same frames and copies nothing.
+
+`trace` removes its frames from the trail after `fn` returns. To
+keep the frames, read `trail.stackTrail` inside `fn`.
 
 ## Methods
 

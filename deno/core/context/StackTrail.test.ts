@@ -409,3 +409,44 @@ Deno.test('StackTrail - toSchemaPointer matches the first phase frame, not a sam
   const trail = new StackTrail(['trace-1', 'span-1', 'parse', 'components', 'schemas', 'parse'])
   assertEquals(trail.toSchemaPointer(), '#/components/schemas/parse')
 })
+
+Deno.test('StackTrail - a change to the frames array does not change the trail', () => {
+  // The getter builds a new array on each read. A caller that pushes to
+  // it must not add a frame to the trail or to a trail that shares frames.
+  const trail = new StackTrail(['components', 'schemas'])
+  const copy = trail.clone()
+
+  trail.stackTrail.push('User')
+
+  assertEquals(trail.stackTrail, ['components', 'schemas'])
+  assertEquals(copy.stackTrail, ['components', 'schemas'])
+})
+
+Deno.test('StackTrail - trails that share frames grow apart', () => {
+  // `trace` gives each callback a trail that shares the frames of its
+  // source. Two trails traced from one source must not see the frames of
+  // the other, and the source must not see either.
+  const source = new StackTrail(['paths'])
+  const kept: StackTrail[] = []
+
+  source.trace('/pets', st => kept.push(st.clone()))
+  source.trace('/users', st => kept.push(st.clone()))
+
+  assertEquals(
+    kept.map(trail => trail.stackTrail),
+    [
+      ['paths', '/pets'],
+      ['paths', '/users']
+    ]
+  )
+  assertEquals(source.stackTrail, ['paths'])
+})
+
+Deno.test('StackTrail - a mismatched remove still removes the last frame', () => {
+  // The frame leaves the trail before the check, as `Array.pop` did.
+  const trail = new StackTrail(['components', 'schemas'])
+
+  assertThrows(() => trail.remove('paths'))
+
+  assertEquals(trail.stackTrail, ['components'])
+})

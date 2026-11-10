@@ -2,12 +2,35 @@ import { componentsKeys } from '@/oas/components/Components.ts'
 import { toJsonPointer, type JsonPointer } from '@/types/JsonPointer.ts'
 import { toDocumentFrames, toTrailString } from '@/context/documentTrail.ts'
 
+/**
+ * One frame of a trail, linked to the frame before it. Frames are never
+ * changed after they are made, so trails share them: a trail made by
+ * {@link StackTrail.clone} or {@link StackTrail.trace} points at the same
+ * frames as its source and adds no copy.
+ */
+type TrailFrame = {
+  frame: string
+  parent: TrailFrame | undefined
+  /** Number of frames from the root up to and including this one. */
+  depth: number
+}
+
+const toTrailFrame = (parent: TrailFrame | undefined, frame: string): TrailFrame => ({
+  frame,
+  parent,
+  depth: (parent?.depth ?? 0) + 1
+})
+
 export class StackTrail {
-  /** Internal stack of traversal frames */
-  #stack: string[]
+  /**
+   * Last frame of the trail; `undefined` for the empty trail. A parsed
+   * document holds one trail per node, so the frames are a shared linked
+   * list and not one array per trail.
+   */
+  #last: TrailFrame | undefined
 
   constructor(stack: string[] = []) {
-    this.#stack = stack
+    this.#last = stack.reduce<TrailFrame | undefined>(toTrailFrame, undefined)
   }
 
   /**
@@ -22,13 +45,14 @@ export class StackTrail {
 
   /** True when the trail holds no frames (a synthetic / positionless node). */
   isEmpty(): boolean {
-    return this.#stack.length === 0
+    return this.#last === undefined
   }
 
   /**
-   * Creates a shallow copy of the stack trail.
+   * Creates an independent trail with the same frames. The frames are
+   * shared, not copied.
    *
-   * @returns A new StackTrail instance with copied frames
+   * @returns A new StackTrail instance with the same frames
    *
    * @example
    * ```typescript
@@ -41,12 +65,16 @@ export class StackTrail {
    * ```
    */
   clone(): StackTrail {
-    return new StackTrail([...this.#stack])
+    const copy = new StackTrail()
+    copy.#last = this.#last
+
+    return copy
   }
 
   /**
-   * The live array of stack frames, not a copy: {@link trace} pops it after
-   * `fn` returns. Copy it (`[...trail.stackTrail]`) to keep the frames.
+   * The frames of the trail as a new array, built on each read. The trail
+   * itself is live: {@link trace} removes its frame after `fn` returns, so
+   * read the frames inside `fn` to keep them.
    *
    * @returns Array of stack frames in order
    *
@@ -58,7 +86,13 @@ export class StackTrail {
    * ```
    */
   get stackTrail(): string[] {
-    return this.#stack
+    const frames = new Array<string>(this.#last?.depth ?? 0)
+
+    for (let node = this.#last; node !== undefined; node = node.parent) {
+      frames[node.depth - 1] = node.frame
+    }
+
+    return frames
   }
 
   /**
@@ -85,7 +119,7 @@ export class StackTrail {
    */
   append(frame: string | string[]): StackTrail {
     if (typeof frame === 'string') {
-      this.#stack.push(frame)
+      this.#last = toTrailFrame(this.#last, frame)
 
       return this
     }
@@ -184,7 +218,7 @@ export class StackTrail {
    * ```
    */
   toJsonPointer(): JsonPointer {
-    return toJsonPointer(this.#stack)
+    return toJsonPointer(this.stackTrail)
   }
 
   /**
@@ -218,7 +252,7 @@ export class StackTrail {
    * ```
    */
   toSchemaPointer(): JsonPointer {
-    return toJsonPointer(toDocumentFrames(this.#stack))
+    return toJsonPointer(toDocumentFrames(this.stackTrail))
   }
 
   toStackRef(): string | undefined {
@@ -264,10 +298,14 @@ export class StackTrail {
    */
   remove(frame: string | string[]): StackTrail {
     if (typeof frame === 'string') {
-      const lastItem = this.#stack.pop()
+      const last = this.#last
 
-      if (lastItem !== frame) {
-        throw new Error(`Expected to remove frame '${frame}' but found '${lastItem}'`)
+      // The last frame leaves the trail whether or not it matches, as
+      // `Array.pop` did before the check.
+      this.#last = last?.parent
+
+      if (last?.frame !== frame) {
+        throw new Error(`Expected to remove frame '${frame}' but found '${last?.frame}'`)
       }
 
       return this
@@ -317,7 +355,7 @@ export class StackTrail {
    * ```
    */
   toString(): string {
-    return toTrailString(this.#stack)
+    return toTrailString(this.stackTrail)
   }
 
   /**
