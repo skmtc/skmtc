@@ -35,18 +35,8 @@ import type {
   ToOperationSettingsArgs,
   ToWebhookSettingsArgs
 } from './generateTypes.ts'
-import type {
-  ClientSettings,
-  IncludeModelRefs,
-  IncludeModels,
-  IncludeOperations,
-  IncludePaths,
-  SkipModelRefs,
-  SkipModels,
-  SkipOperations,
-  SkipPaths
-} from '@/types/Settings.ts'
-import type { Method } from '@/types/Method.ts'
+import type { ClientSettings, IncludeModelRefs, IncludePaths, SkipModelRefs, SkipPaths } from '@/types/Settings.ts'
+import { isMethod, type Method } from '@/types/Method.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import { OasOperationDriver } from '@/dsl/operation/oas/OasOperationDriver.ts'
@@ -448,11 +438,8 @@ export class GenerateContext implements GenerateContextType {
         // (Whole-generator opt-out is `skip`. A bare-string `include`
         // entry carries no per-operation filter and is a no-op.)
 
-        const skip: SkipOperations | SkipModels | undefined = this.settings?.skip?.find(
-          (skip): skip is SkipOperations | SkipModels => {
-            return typeof skip === 'object' && Boolean(skip[generatorConfig.id])
-          }
-        )
+        // skmtc#330: every object entry for this generator, merged, not only the first one.
+        const skip = toGeneratorFilter(this.settings?.skip, generatorConfig.id)
 
         // Extract the per-generator include slice (if any). Same
         // dispatch shape as skip: object entries get matched by key,
@@ -460,11 +447,7 @@ export class GenerateContext implements GenerateContextType {
         // "everything from this generator is included", which is
         // semantically equivalent to "no per-op filter" once the
         // whole-generator gate above has admitted us).
-        const include: IncludeOperations | IncludeModels | undefined = this.settings?.include?.find(
-          (entry): entry is IncludeOperations | IncludeModels => {
-            return typeof entry === 'object' && Boolean(entry[generatorConfig.id])
-          }
-        )
+        const include = toGeneratorFilter(this.settings?.include, generatorConfig.id)
 
         switch (generatorConfig.type) {
           case 'oasOperation':
@@ -2014,8 +1997,83 @@ export const toModelSource = ({
   variant
 })
 
+/** One generator's `skip` or `include` filter for operations: path → method → variants. */
+type PathsFilter = Record<string, Partial<Record<Method, string[]>>>
+
+/** One generator's `skip` or `include` filter for models: refName → variants. */
+type ModelsFilter = Record<string, string[]>
+
+/** A `skip` or `include` object entry: generator id → its filter. */
+type GeneratorFilter = Record<string, PathsFilter | ModelsFilter>
+
+/** Variants of one subject. `[]` is every variant, so it wins a merge. */
+const mergeVariants = (a: string[], b: string[]): string[] =>
+  a.length === 0 || b.length === 0 ? [] : [...new Set([...a, ...b])]
+
+/** Whether a filter is operation-shaped: its values are records of methods, not lists of variants. */
+const isPathsFilter = (filter: PathsFilter | ModelsFilter): filter is PathsFilter =>
+  Object.values(filter).every(value => !Array.isArray(value))
+
+const mergePathsFilters = (a: PathsFilter, b: PathsFilter): PathsFilter =>
+  Object.entries(b).reduce<PathsFilter>((merged, [path, methods]) => {
+    const existing = merged[path] ?? {}
+    const combined = Object.entries(methods).reduce<Partial<Record<Method, string[]>>>(
+      (acc, [method, variants]) => {
+        if (!isMethod(method) || variants === undefined) {
+          return acc
+        }
+
+        const current = acc[method]
+
+        return { ...acc, [method]: current === undefined ? variants : mergeVariants(current, variants) }
+      },
+      { ...existing }
+    )
+
+    return { ...merged, [path]: combined }
+  }, { ...a })
+
+const mergeModelsFilters = (a: ModelsFilter, b: ModelsFilter): ModelsFilter =>
+  Object.entries(b).reduce<ModelsFilter>((merged, [refName, variants]) => {
+    const current = merged[refName]
+
+    return { ...merged, [refName]: current === undefined ? variants : mergeVariants(current, variants) }
+  }, { ...a })
+
+/** Two filters of one generator, merged. Filters of two shapes cannot merge: the first stays. */
+const mergeFilters = (a: PathsFilter | ModelsFilter, b: PathsFilter | ModelsFilter): PathsFilter | ModelsFilter => {
+  if (isPathsFilter(a) && isPathsFilter(b)) {
+    return mergePathsFilters(a, b)
+  }
+
+  if (!isPathsFilter(a) && !isPathsFilter(b)) {
+    return mergeModelsFilters(a, b)
+  }
+
+  return a
+}
+
+/**
+ * The `skip` or `include` filter of one generator: every object entry that
+ * names it, merged (skmtc#330). Before, only the first entry applied, and a
+ * later one was ignored with no warning. `undefined` when no entry names it.
+ */
+const toGeneratorFilter = (
+  entries: readonly (string | GeneratorFilter)[] | undefined,
+  generatorId: string
+): GeneratorFilter | undefined => {
+  const filters = (entries ?? []).flatMap(entry => {
+    const filter = typeof entry === 'object' ? entry[generatorId] : undefined
+
+    return filter === undefined ? [] : [filter]
+  })
+  const [first, ...rest] = filters
+
+  return first === undefined ? undefined : { [generatorId]: rest.reduce(mergeFilters, first) }
+}
+
 const toSkipPaths = (
-  skip: SkipOperations | SkipModels | undefined,
+  skip: GeneratorFilter | undefined,
   generatorId: string
 ): SkipPaths | undefined => {
   const generatorSkip = skip?.[generatorId]
@@ -2044,7 +2102,7 @@ const toSkipPaths = (
 }
 
 const toSkipModels = (
-  skip: SkipOperations | SkipModels | undefined,
+  skip: GeneratorFilter | undefined,
   generatorId: string
 ): SkipModelRefs | undefined => {
   const generatorSkip = skip?.[generatorId]
@@ -2075,7 +2133,7 @@ const toSkipModels = (
  * "no per-op filter active" as the semantics.
  */
 const toIncludePaths = (
-  include: IncludeOperations | IncludeModels | undefined,
+  include: GeneratorFilter | undefined,
   generatorId: string
 ): IncludePaths | undefined => {
   const generatorInclude = include?.[generatorId]
@@ -2104,7 +2162,7 @@ const toIncludePaths = (
  * isn't model-shaped for this generator.
  */
 const toIncludeModels = (
-  include: IncludeOperations | IncludeModels | undefined,
+  include: GeneratorFilter | undefined,
   generatorId: string
 ): IncludeModelRefs | undefined => {
   const generatorInclude = include?.[generatorId]
