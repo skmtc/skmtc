@@ -50,6 +50,14 @@ const toDocument = (openapi: string) =>
         Duration: { type: 'string' },
         Port: { anyOf: [{ type: 'integer' }, { type: 'string' }] },
         Retention: { anyOf: [{ $ref: '#/components/schemas/Duration' }, { type: 'integer' }] },
+        // Cloudflare's browser-run `gotoOptions.waitUntil`: a `default` next to an `anyOf` of strings and a list.
+        WaitUntil: {
+          default: 'load',
+          anyOf: [
+            { type: 'string', enum: ['load'] },
+            { type: 'array', items: { type: 'string', enum: ['load'] } }
+          ]
+        },
         // A nullable reference, as each version writes one with `anyOf`.
         MaybeNamed: openapi.startsWith('3.0') ? { anyOf: [named], nullable: true } : { anyOf: [named, { type: 'null' }] }
       }
@@ -102,6 +110,14 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
 
     assertEquals(toSchema('PurgeCache')?.type, 'unknown')
     assertEquals(warningsAt('PurgeCache'), 1)
+  })
+
+  Deno.test(`${openapi} system.anyOf unknown: a default next to the anyOf gives it no type`, () => {
+    const { toSchema, warningsAt } = parse({ openapi, system: { anyOf: 'unknown' } })
+
+    // The trap: without the members, `{ default: 'load' }` looked like a string with no type.
+    assertEquals(toSchema('WaitUntil')?.type, 'unknown')
+    assertEquals(warningsAt('WaitUntil'), 1)
   })
 
   Deno.test(`${openapi} system.anyOf unknown: an allOf member's anyOf is left out of the merge`, () => {

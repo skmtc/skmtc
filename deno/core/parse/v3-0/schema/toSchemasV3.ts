@@ -17,7 +17,13 @@ import { toUnion } from '../union/toUnion.ts'
 import { toGetRef } from '@/helpers/refFns.ts'
 import { toSiblingKeywords } from '@/parse/toSiblingKeywords.ts'
 import { logAllOfContradictions, toAllOfSystem } from '@/parse/allOfSystem.ts'
-import { isUnknownAnyOf, logMergedUnknownAnyOf, logUnknownAnyOf, withoutUnknownAnyOf } from '@/parse/anyOfSystem.ts'
+import {
+  hasShapeKeyword,
+  isUnknownAnyOf,
+  logMergedUnknownAnyOf,
+  logUnknownAnyOf,
+  withoutUnknownAnyOf
+} from '@/parse/anyOfSystem.ts'
 import { toAdditionalPropertiesV3 } from '../object/toAdditionalPropertiesV3.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
 import { mergeUnion } from '../_merge-all-of/merge-union.ts'
@@ -299,11 +305,16 @@ export const toSchemaV3 = ({
     if (isUnknownAnyOf({ members: schema.anyOf, setting: context.system?.anyOf, getRef: toGetRef(context.documentObject) })) {
       logUnknownAnyOf({ stackTrail, parent: schema, context })
 
-      return toSchemaV3({
-        schema: withoutUnknownAnyOf({ schema, setting: context.system?.anyOf, getRef: toGetRef(context.documentObject) }),
-        stackTrail,
-        context
+      const keywords = withoutUnknownAnyOf({
+        schema,
+        setting: context.system?.anyOf,
+        getRef: toGetRef(context.documentObject)
       })
+
+      // A `default` alone is no type: the parser would guess one from it.
+      return hasShapeKeyword(keywords)
+        ? toSchemaV3({ schema: keywords, stackTrail, context })
+        : toUnknown({ value: keywords, stackTrail, context })
     }
 
     return stackTrail.trace('anyOf', st => {

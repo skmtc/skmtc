@@ -115,6 +115,29 @@ export const withoutUnknownAnyOf = ({ schema, setting, getRef }: WithoutUnknownA
   return hasNullMember(members) ? { ...keywords, nullable: true } : keywords
 }
 
+/** The keywords that give a schema its own shape, so it is more than any value. */
+const SHAPE_KEYWORDS: readonly string[] = [
+  'type',
+  'properties',
+  'additionalProperties',
+  'items',
+  'enum',
+  'const',
+  'allOf',
+  'oneOf',
+  '$ref'
+]
+
+/**
+ * Whether the keywords that are left when an `anyOf` is read as any value
+ * ({@link withoutUnknownAnyOf}) give the schema a shape of its own:
+ * `properties` next to the `anyOf` do. A `default`, an `example` or a
+ * `format` alone does not. The parser must not guess a type from them, as it
+ * does for a schema that has no type (`MISSING_STRING_TYPE`): the members
+ * were the type, and they are gone.
+ */
+export const hasShapeKeyword = (schema: object): boolean => SHAPE_KEYWORDS.some(keyword => keyword in schema)
+
 /** Arguments for {@link logUnknownAnyOf}. */
 type LogUnknownAnyOfArgs = {
   /** The trail of the schema whose `anyOf` was read as any value. */
