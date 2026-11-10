@@ -293,14 +293,17 @@ export class RenderContext {
           // installed wrapper is inert while the sink is not in a
           // `captureFile` call.
           const capture = this.#capture
-          if (capture && file instanceof CodeFileBase) {
-            const captured = capture.sink.captureFile(() => file.toString())
-            const renderedFile = renderFile({
-              content: captured.text,
-              destinationPath,
-              basePath: this.basePath
-            })
+          const captured = capture && file instanceof CodeFileBase
+            ? capture.sink.captureFile(() => file.toString())
+            : undefined
 
+          const renderedFile = renderFile({
+            content: captured?.text ?? file.toString(),
+            destinationPath,
+            basePath: this.basePath
+          })
+
+          if (capture && captured) {
             // The post-pass runs inside this file's trace, so a post-pass
             // that throws stops the render here: this file and the files
             // after it get no result, and the run fails with RUN_FAILED.
@@ -310,17 +313,7 @@ export class RenderContext {
               source: captured.text,
               spans: captured.spans
             })
-
-            this.captureCurrentResult('success', st)
-
-            return renderedFile
           }
-
-          const renderedFile = renderFile({
-            content: file.toString(),
-            destinationPath,
-            basePath: this.basePath
-          })
 
           this.captureCurrentResult('success', st)
 
@@ -430,6 +423,24 @@ type RenderFileArgs = {
 }
 
 /**
+ * Builds the sidecar of one captured File from the spans the sink
+ * resolved (no re-render, no `toString`) and adds it to the capturing
+ * render. Keyed by the resolved artifact path, matching `artifacts` and
+ * the manifest, so a sidecar sits at `<outDir>/<artifact key>.skm.json`
+ * where doctor looks for it.
+ */
+const addSidecar = (capture: CaptureState, { artifactPath, filePath, source, spans }: FileCapture): void => {
+  const { parser, schemaSrc, generatorMeta } = capture.postPass
+  const sidecar = postPass({ filePath, source, spans, schemaSrc, parser, generatorMeta })
+
+  capture.sidecars[artifactPath] = sidecar
+
+  for (const entry of entriesForSidecar(sidecar)) {
+    capture.generationMap.push(entry)
+  }
+}
+
+/**
  * Renders a single file with metadata calculation.
  *
  * This function processes a single file through the rendering pipeline,
@@ -453,24 +464,6 @@ type RenderFileArgs = {
  * console.log(fileObject.characters); // 12
  * ```
  */
-/**
- * Builds the sidecar of one captured File from the spans the sink
- * resolved (no re-render, no `toString`) and adds it to the capturing
- * render. Keyed by the resolved artifact path, matching `artifacts` and
- * the manifest, so a sidecar sits at `<outDir>/<artifact key>.skm.json`
- * where doctor looks for it.
- */
-const addSidecar = (capture: CaptureState, { artifactPath, filePath, source, spans }: FileCapture): void => {
-  const { parser, schemaSrc, generatorMeta } = capture.postPass
-  const sidecar = postPass({ filePath, source, spans, schemaSrc, parser, generatorMeta })
-
-  capture.sidecars[artifactPath] = sidecar
-
-  for (const entry of entriesForSidecar(sidecar)) {
-    capture.generationMap.push(entry)
-  }
-}
-
 const renderFile = ({ content, destinationPath, basePath }: RenderFileArgs): FileObject => {
   const path = toResolvedArtifactPath({ basePath, destinationPath })
 
