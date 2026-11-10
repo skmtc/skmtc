@@ -246,7 +246,8 @@ export const anchorsSettings: v.GenericSchema<AnchorsSettings> = v.object({
 export const systemSettings: v.GenericSchema<SystemSettings> = v.object({
   allOf: v.optional(v.picklist(['strict', 'latestWins'])),
   responseContradictions: v.optional(v.picklist(['strict', 'unknown'])),
-  not: v.optional(v.picklist(['strict', 'unknown']))
+  not: v.optional(v.picklist(['strict', 'unknown'])),
+  anyOf: v.optional(v.picklist(['union', 'unknown']))
 })
 
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
@@ -556,9 +557,10 @@ export type AnchorsSettings = {
 }
 
 /**
- * How the OpenAPI parser treats what it cannot read faithfully
- * (`client.json#settings.system`). Each setting is `strict` by default: the
- * schema fails, and `removeErroredItems` removes each item that uses it.
+ * How the OpenAPI parser treats what it cannot read faithfully, or reads
+ * another way (`client.json#settings.system`). Each setting's default parses
+ * as core always did: `strict` fails the schema, and `removeErroredItems`
+ * removes each item that uses it.
  */
 export type SystemSettings = {
   /**
@@ -576,6 +578,13 @@ export type SystemSettings = {
    * its `not` as an `OasUnknown`.
    */
   not?: 'strict' | 'unknown'
+  /**
+   * `union` (the default): an `anyOf` is a union, as a `oneOf` is, and the
+   * keywords next to it merge into each member. `unknown`: as Cloudflare's
+   * `cf` reads it, an `anyOf` is any value. The schema parses with its other
+   * keywords and without the `anyOf`, with one warning for each schema.
+   */
+  anyOf?: 'union' | 'unknown'
 }
 
 export type ClientSettings = {

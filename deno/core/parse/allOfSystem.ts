@@ -5,8 +5,11 @@ import type { StackTrail } from '@/context/StackTrail.ts'
 type AllOfSystem = {
   allOf: 'strict' | 'latestWins'
   not: 'strict' | 'unknown'
+  anyOf: 'union' | 'unknown'
   /** The keywords a later member replaced under `latestWins`. */
   replaced: Set<string>
+  /** The keywords the merge read as any value: `anyOf` under `system.anyOf: unknown`. */
+  unknown: Set<string>
 }
 
 /**
@@ -18,7 +21,9 @@ export const toAllOfSystem = (context: ParseContextType): AllOfSystem => ({
   // A test's mock context may have no `system`.
   allOf: context.system?.allOf ?? 'strict',
   not: context.system?.not ?? 'strict',
-  replaced: new Set()
+  anyOf: context.system?.anyOf ?? 'union',
+  replaced: new Set(),
+  unknown: new Set()
 })
 
 type LogAllOfContradictionsArgs = {

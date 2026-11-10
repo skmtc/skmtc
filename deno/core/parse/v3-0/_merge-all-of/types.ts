@@ -19,6 +19,10 @@ export type MergeSystem = {
    */
   setting?: 'strict' | 'latestWins'
   replaced: Set<string>
+  /** `unknown`: an `anyOf` of two or more members is any value, so it adds nothing to the merge. Left out: `union`. */
+  anyOf?: 'union' | 'unknown'
+  /** The keywords the merge read as any value: `anyOf` under `system.anyOf: unknown`. */
+  unknown?: Set<string>
 }
 
 export type OneOfObject = {

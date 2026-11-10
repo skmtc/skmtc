@@ -211,6 +211,10 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  * `system.allOf: latestWins` kept the later member's keywords. One for each
  * schema; the message names the keywords.
  *
+ * `ANYOF_AS_UNKNOWN` (`warning`) — `system.anyOf: unknown` read an `anyOf`
+ * of two or more members as any value. The schema keeps its other keywords.
+ * One for each schema.
+ *
  * `RUN_FAILED` (`error`) — the run itself failed outside the per-item
  * catches. Its `location` names the entry and phase, for example
  * `toArtifacts:render`.
@@ -246,6 +250,7 @@ export type OasIssueType =
   | 'WILDCARD_MEDIA_TYPE'
   | 'NO_JSON_MEDIA_TYPE'
   | 'ALLOF_CONTRADICTION'
+  | 'ANYOF_AS_UNKNOWN'
   | 'RUN_FAILED'
 
 /**
@@ -286,6 +291,7 @@ export const oasIssueType = v.union([
   v.literal('WILDCARD_MEDIA_TYPE'),
   v.literal('NO_JSON_MEDIA_TYPE'),
   v.literal('ALLOF_CONTRADICTION'),
+  v.literal('ANYOF_AS_UNKNOWN'),
   v.literal('RUN_FAILED')
 ])
 

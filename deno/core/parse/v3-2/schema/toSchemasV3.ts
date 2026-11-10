@@ -17,6 +17,7 @@ import { toUnion } from '../union/toUnion.ts'
 import { toGetRef } from '@/helpers/refFns.ts'
 import { toSiblingKeywords } from '@/parse/toSiblingKeywords.ts'
 import { logAllOfContradictions, toAllOfSystem } from '@/parse/allOfSystem.ts'
+import { isUnknownAnyOf, logMergedUnknownAnyOf, logUnknownAnyOf, withoutUnknownAnyOf } from '@/parse/anyOfSystem.ts'
 import { toAdditionalPropertiesV3 } from '../object/toAdditionalPropertiesV3.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
 import { collapseNullOnlyUnion, mergeUnion } from '../_merge-all-of/merge-union.ts'
@@ -308,6 +309,7 @@ export const toSchemaV3 = ({
       })
 
       logAllOfContradictions({ system, stackTrail, parent: schema, context })
+      logMergedUnknownAnyOf({ system, stackTrail, parent: schema, context })
 
       return toSchemaV3({ schema: merged, stackTrail: st, context })
     })
@@ -349,6 +351,7 @@ export const toSchemaV3 = ({
       })
 
       logAllOfContradictions({ system, stackTrail, parent: schema, context })
+      logMergedUnknownAnyOf({ system, stackTrail, parent: schema, context })
 
       if (!('oneOf' in merged) || !Array.isArray(merged.oneOf)) {
         throw new Error('Missing "oneOf" array')
@@ -400,6 +403,19 @@ export const toSchemaV3 = ({
       context
     })
 
+    // Under `system.anyOf: unknown`, as Cloudflare's `cf` reads it, an `anyOf`
+    // of two or more members is any value: the schema parses with its other
+    // keywords, so the properties next to it stay, without the members.
+    if (isUnknownAnyOf({ members: wrapper.anyOf ?? [], setting: context.system?.anyOf })) {
+      logUnknownAnyOf({ stackTrail, parent: schema, context })
+
+      return toSchemaV3({
+        schema: withoutUnknownAnyOf({ schema: wrapper, setting: context.system?.anyOf }),
+        stackTrail,
+        context
+      })
+    }
+
     return stackTrail.trace('anyOf', st => {
       // deno-lint-ignore ban-ts-comment
       // @ts-expect-error
@@ -427,6 +443,7 @@ export const toSchemaV3 = ({
       })
 
       logAllOfContradictions({ system, stackTrail, parent: schema, context })
+      logMergedUnknownAnyOf({ system, stackTrail, parent: schema, context })
 
       if (!('anyOf' in merged) || !Array.isArray(merged.anyOf)) {
         throw new Error('Missing "anyOf" array')

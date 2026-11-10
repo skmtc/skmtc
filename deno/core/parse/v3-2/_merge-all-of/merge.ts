@@ -24,6 +24,7 @@ import { mergeIntersection } from './merge-intersection.ts'
 import { collapseNullOnlyUnion, mergeCrossProduct, toOwnSystem } from './merge-union.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
 import { isNullOnly, mergeNullOnly } from './nullable-merge.ts'
+import { withoutUnknownAnyOf } from '@/parse/anyOfSystem.ts'
 
 export const mergeSchemasOrRefs = ({
   first: inputFirst,
@@ -49,6 +50,18 @@ export const mergeSchemasOrRefs = ({
 
   if (isRef(second)) {
     throw new Error('Ref in second')
+  }
+
+  // Under `system.anyOf: unknown` an `anyOf` of two or more members is any
+  // value, so it adds nothing to the merge: its members are left out, and the
+  // keywords next to it merge as usual.
+  const firstKeywords = withoutUnknownAnyOf({ schema: first, setting: system.anyOf })
+  const secondKeywords = withoutUnknownAnyOf({ schema: second, setting: system.anyOf })
+
+  if (firstKeywords !== first || secondKeywords !== second) {
+    system.unknown?.add('anyOf')
+
+    return mergeSchemasOrRefs({ first: firstKeywords, second: secondKeywords, getRef, normalize, system })
   }
 
   if (containsAllOf(first) || containsAllOf(second)) {
