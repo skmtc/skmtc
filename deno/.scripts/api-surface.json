@@ -1,6 +1,6 @@
 {
   "@skmtc/core": {
-    "minor": "0.37",
+    "minor": "0.38",
     "deno": "2.9.8",
     "exports": {
       "AddPropertyArgs": "6922b41f66aabe95",
@@ -313,7 +313,7 @@
       "SkmtcProtocol": "2eac8bd68a17d67d",
       "SnippetBase": "57c4eaa45417dc11",
       "SnippetBaseArgs": "e2f41d5c5fd1e524",
-      "StackTrail": "381d0aa30857bd3e",
+      "StackTrail": "d84bf12134ba011a",
       "StringFields": "eb48dd4959f53239",
       "StringFormat": "d086575574fe78bf",
       "Stringable": "a336b20a0ebedc9b",

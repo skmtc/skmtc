@@ -46,7 +46,7 @@ type TransformArgs = {
   variant: string
 }
 
-type CaptureEntry = { result: ResultType; frames: string[] }
+type CaptureEntry = { result: ResultType; frames: readonly string[] }
 
 const makeOasDoc = (schemaNames: string[]) =>
   new OasDocument({
@@ -69,7 +69,7 @@ const buildContext = (args: {
   const captures: CaptureEntry[] = []
   const captureCurrentResult: Spy<undefined, [ResultType, StackTrail], void> = spy(
     (result: ResultType, trail: StackTrail) => {
-      captures.push({ result, frames: [...trail.stackTrail] })
+      captures.push({ result, frames: trail.stackTrail })
     }
   )
 

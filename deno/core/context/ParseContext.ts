@@ -155,7 +155,7 @@ export class ParseContext {
    * 'parse']` through `toArtifacts`). Every trail built during the walk
    * starts with them; `#toDocumentTrail` strips them.
    */
-  #rootFrames: string[] = []
+  #rootFrames: readonly string[] = []
 
   constructor({ input, logger, silent = true, options }: ConstructorArgs) {
     this.logger = logger
@@ -267,7 +267,7 @@ export class ParseContext {
    * removes those frames before it reads a trail as a document address.
    */
   parse(stackTrail: StackTrail): SkmtcParsedDocument {
-    this.#rootFrames = [...stackTrail.stackTrail]
+    this.#rootFrames = stackTrail.stackTrail
 
     switch (this.protocol.type) {
       case 'oas': {

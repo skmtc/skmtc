@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from '@std/assert'
+import { assertEquals, assertNotStrictEquals, assertRejects, assertThrows } from '@std/assert'
 import { StackTrail } from '@/context/StackTrail.ts'
 
 // Constructor Tests
@@ -408,4 +408,107 @@ Deno.test('StackTrail - toSchemaPointer matches the first phase frame, not a sam
   // frame; only the operational one (earliest) is the boundary.
   const trail = new StackTrail(['trace-1', 'span-1', 'parse', 'components', 'schemas', 'parse'])
   assertEquals(trail.toSchemaPointer(), '#/components/schemas/parse')
+})
+
+Deno.test('StackTrail - each read of the frames is a new array', () => {
+  // The type is read-only, but plain JavaScript can still change the
+  // array. A new array on each read keeps that change away from the trail
+  // and from every trail that shares its frames.
+  const trail = new StackTrail(['components', 'schemas'])
+
+  assertNotStrictEquals(trail.stackTrail, trail.stackTrail)
+  assertEquals(trail.stackTrail, ['components', 'schemas'])
+})
+
+Deno.test('StackTrail - remove on a clone does not change the original', () => {
+  // Clones share frames. `remove` must move the clone's own last frame,
+  // never change a frame both trails point at.
+  const original = new StackTrail(['x', 'y'])
+  const copy = original.clone()
+
+  copy.remove('y')
+
+  assertEquals(original.stackTrail, ['x', 'y'])
+  assertEquals(copy.stackTrail, ['x'])
+})
+
+Deno.test('StackTrail - trace rethrows the error from fn, not a frame check', () => {
+  // `fn` leaves an extra frame and then throws. A frame check on the way
+  // out would throw "Expected to remove frame 'a'" and hide the cause.
+  const trail = new StackTrail(['root'])
+
+  assertThrows(
+    () =>
+      trail.trace('a', st => {
+        st.append('b')
+        throw new Error('real cause')
+      }),
+    Error,
+    'real cause'
+  )
+  assertEquals(trail.stackTrail, ['root'])
+})
+
+Deno.test('StackTrail - traceAsync rethrows the error from fn, not a frame check', async () => {
+  const trail = new StackTrail(['root'])
+
+  await assertRejects(
+    () =>
+      trail.traceAsync('a', st => {
+        st.append('b')
+        return Promise.reject(new Error('real cause'))
+      }),
+    Error,
+    'real cause'
+  )
+  assertEquals(trail.stackTrail, ['root'])
+})
+
+Deno.test('StackTrail - trace still checks the frame when fn returns', () => {
+  // Only the throw path skips the check. A callback that returns with an
+  // extra frame is a bug, and `remove` reports it.
+  const trail = new StackTrail(['root'])
+
+  assertThrows(
+    () => trail.trace('a', st => st.append('b')),
+    Error,
+    "Expected to remove frame 'a' but found 'b'"
+  )
+})
+
+Deno.test('StackTrail - toStackRef reads only the first three frames', () => {
+  const trail = new StackTrail(['components', 'schemas', 'User', 'properties', 'id'])
+
+  assertEquals(trail.toStackRef(), '#/components/schemas/User')
+  assertEquals(new StackTrail(['components', 'schemas']).toStackRef(), undefined)
+  assertEquals(new StackTrail(['components', 'unknown', 'User']).toStackRef(), undefined)
+})
+
+Deno.test('StackTrail - trails that share frames grow apart', () => {
+  // `trace` gives each callback a trail that shares the frames of its
+  // source. Two trails traced from one source must not see the frames of
+  // the other, and the source must not see either.
+  const source = new StackTrail(['paths'])
+  const kept: StackTrail[] = []
+
+  source.trace('/pets', st => kept.push(st.clone()))
+  source.trace('/users', st => kept.push(st.clone()))
+
+  assertEquals(
+    kept.map(trail => trail.stackTrail),
+    [
+      ['paths', '/pets'],
+      ['paths', '/users']
+    ]
+  )
+  assertEquals(source.stackTrail, ['paths'])
+})
+
+Deno.test('StackTrail - a mismatched remove still removes the last frame', () => {
+  // The frame leaves the trail before the check, as `Array.pop` did.
+  const trail = new StackTrail(['components', 'schemas'])
+
+  assertThrows(() => trail.remove('paths'))
+
+  assertEquals(trail.stackTrail, ['components'])
 })

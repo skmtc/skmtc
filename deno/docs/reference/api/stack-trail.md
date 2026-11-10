@@ -17,9 +17,9 @@ This page is the API-level reference.
 
 ```ts
 class StackTrail {
-  constructor(stack?: string[])
+  constructor(stack?: readonly string[])
 
-  get stackTrail(): string[]
+  get stackTrail(): readonly string[]
 
   // Mutation
   append(frame: string | string[]): StackTrail
@@ -41,11 +41,12 @@ class StackTrail {
 ## Constructor
 
 ```ts
-new StackTrail(stack: string[] = [])
+new StackTrail(stack: readonly string[] = [])
 ```
 
-Initializes a trail with the given frames. The argument is stored
-by reference (no defensive copy). To read a trail back from a
+Initializes a trail with the given frames. The trail builds its own
+linked frames from the array, so a later change to the array does
+not change the trail. To read a trail back from a
 location string, use [`StackTrail.fromString`](#fromstringvalue-stacktrail),
 not the constructor.
 
@@ -55,16 +56,19 @@ children via `trace`; it does not call the constructor directly.
 
 ## Properties
 
-### `stackTrail: string[]`
+### `stackTrail: readonly string[]`
 
-Read access to the underlying frame array. Returns the live
-array, not a copy — mutating the returned array mutates the
-trail. The getter exists for inspection (e.g.
-`OasDocument.removeItem` destructures `[first, second, third]`),
-not as a public mutation surface.
+The frames of the trail, as a new read-only array on each read.
+Change the trail with `append`, `remove` or `trace`, not through
+this array. Use the
+getter for inspection (for example, `OasDocument.removeItem`
+destructures `[first, second, third]`).
 
-`trace` pops its frames from this array after `fn` returns. To
-keep the frames, copy them: `[...trail.stackTrail]`.
+Trails share their frames: `clone` and `trace` make a new trail
+that points at the same frames and copies nothing.
+
+`trace` removes its frames from the trail after `fn` returns. To
+keep the frames, read `trail.stackTrail` inside `fn`.
 
 ## Methods
 
@@ -116,8 +120,10 @@ Internally:
 1. Clones the trail (`this.clone()`).
 2. Appends `key` to the clone.
 3. Runs `fn(clone)`.
-4. Removes `key` from the clone (whether `fn` returned or threw).
-5. Re-throws any error from `fn`.
+4. When `fn` returns, removes `key` from the clone with `remove`,
+   which checks the frame.
+5. When `fn` throws, sets the clone back to its start frames. It
+   does not check the frame. It re-throws the error from `fn`.
 
 The caller's trail is never mutated. The clone is what `fn`
 receives, and the clone is what gets restored. This is the
@@ -125,10 +131,11 @@ primary scoped-descent primitive used throughout parser code.
 
 Important properties:
 
-- The frame is popped on both the success and exception paths.
-- The assertion in `remove` runs on both paths, so a parser that
-  pushes extra frames without matching pops will fail loudly
-  whether or not it threw.
+- `trace` removes the frame on both the success and exception paths.
+- The frame check in `remove` runs only when `fn` returns. A parser
+  that pushes extra frames without matching pops then fails loudly.
+  When `fn` throws, the caller gets the error from `fn`. A frame
+  check on that path would replace it.
 - Multiple `trace` calls at the same level are independent (each
   clones from the parent).
 
@@ -153,9 +160,10 @@ path. The GraphQL parser uses sync `trace`.
 clone(): StackTrail
 ```
 
-Returns a new `StackTrail` whose internal frame array is a shallow
-copy of this trail's. Strings are immutable, so the result is
-fully independent.
+Returns a new `StackTrail` that points at the same frames as this
+trail and copies nothing. A frame never changes, so the two trails
+are independent: an `append` or `remove` on one does not show in
+the other.
 
 Two production call sites use `clone` outside of `trace`:
 

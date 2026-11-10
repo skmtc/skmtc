@@ -4,20 +4,26 @@ const escapes: Record<string, string> = { '%': '%25', ':': '%3A' }
 // `post-pass` trace).
 const phaseFrames = new Set(['parse', 'generate', 'render', 'post-pass'])
 
+/** Escapes `%` as `%25` and `:` as `%3A` inside one trail frame. */
+export const escapeTrailFrame = (frame: string): string =>
+  frame.replace(/[%:]/g, character => escapes[character])
+
+/** True for a phase frame that `CoreContext.toArtifacts` seeds. */
+export const isPhaseFrame = (frame: string): boolean => phaseFrames.has(frame)
+
 /** Joins trail frames with `:`, escaping `%` as `%25` and `:` as `%3A` inside a frame. */
-export const toTrailString = (frames: string[]): string =>
-  frames.map(frame => frame.replace(/[%:]/g, character => escapes[character])).join(':')
+export const toTrailString = (frames: readonly string[]): string => frames.map(escapeTrailFrame).join(':')
 
 /**
  * The frames of a trail that address the input document: everything after
  * the first phase frame, or every frame when there is no phase frame.
  */
-export const toDocumentFrames = (frames: string[]): string[] => {
+export const toDocumentFrames = (frames: readonly string[]): readonly string[] => {
   // The operational phase always sits before any document key, so the
   // FIRST match is the boundary — a document key that happens to share a
   // phase name (e.g. a schema literally named `parse`) appears later and
   // is unaffected.
-  const phaseIndex = frames.findIndex(frame => phaseFrames.has(frame))
+  const phaseIndex = frames.findIndex(isPhaseFrame)
 
   return phaseIndex === -1 ? frames : frames.slice(phaseIndex + 1)
 }
@@ -31,5 +37,5 @@ export const toDocumentFrames = (frames: string[]): string[] => {
  * // 'paths:/pets:parameters:0'
  * ```
  */
-export const toDocumentString = (frames: string[]): string =>
+export const toDocumentString = (frames: readonly string[]): string =>
   toTrailString(toDocumentFrames(frames))

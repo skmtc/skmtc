@@ -1,13 +1,38 @@
 import { componentsKeys } from '@/oas/components/Components.ts'
 import { toJsonPointer, type JsonPointer } from '@/types/JsonPointer.ts'
-import { toDocumentFrames, toTrailString } from '@/context/documentTrail.ts'
+import { escapeTrailFrame, isPhaseFrame } from '@/context/documentTrail.ts'
+
+/**
+ * One frame of a trail, linked to the frame before it. Frames are never
+ * changed after they are made, so trails share them: a trail made by
+ * {@link StackTrail.clone} or {@link StackTrail.trace} points at the same
+ * frames as its source and adds no copy.
+ */
+type TrailFrame = {
+  readonly frame: string
+  readonly parent: TrailFrame | undefined
+  /** Number of frames from the root up to and including this one. */
+  readonly depth: number
+}
+
+const toTrailFrame = (parent: TrailFrame | undefined, frame: string): TrailFrame => ({
+  frame,
+  parent,
+  depth: (parent?.depth ?? 0) + 1
+})
+
+const asIs = (frame: string): string => frame
 
 export class StackTrail {
-  /** Internal stack of traversal frames */
-  #stack: string[]
+  /**
+   * Last frame of the trail; `undefined` for the empty trail. A parsed
+   * document holds one trail per node, so the frames are a shared linked
+   * list and not one array per trail.
+   */
+  #last: TrailFrame | undefined
 
-  constructor(stack: string[] = []) {
-    this.#stack = stack
+  constructor(stack: readonly string[] = []) {
+    this.#last = stack.reduce<TrailFrame | undefined>(toTrailFrame, undefined)
   }
 
   /**
@@ -22,13 +47,14 @@ export class StackTrail {
 
   /** True when the trail holds no frames (a synthetic / positionless node). */
   isEmpty(): boolean {
-    return this.#stack.length === 0
+    return this.#last === undefined
   }
 
   /**
-   * Creates a shallow copy of the stack trail.
+   * Creates an independent trail with the same frames. The frames are
+   * shared, not copied.
    *
-   * @returns A new StackTrail instance with copied frames
+   * @returns A new StackTrail instance with the same frames
    *
    * @example
    * ```typescript
@@ -41,12 +67,18 @@ export class StackTrail {
    * ```
    */
   clone(): StackTrail {
-    return new StackTrail([...this.#stack])
+    const copy = new StackTrail()
+    copy.#last = this.#last
+
+    return copy
   }
 
   /**
-   * The live array of stack frames, not a copy: {@link trace} pops it after
-   * `fn` returns. Copy it (`[...trail.stackTrail]`) to keep the frames.
+   * The frames of the trail as a new read-only array, built on each read.
+   * Change the trail with {@link append}, {@link remove} or {@link trace},
+   * not through this array. The trail itself is live: {@link trace}
+   * removes its frame after `fn` returns, so read the frames inside `fn`
+   * to keep them.
    *
    * @returns Array of stack frames in order
    *
@@ -57,8 +89,49 @@ export class StackTrail {
    * console.log(frames); // ['components', 'schemas', 'User']
    * ```
    */
-  get stackTrail(): string[] {
-    return this.#stack
+  get stackTrail(): readonly string[] {
+    return this.#mapFrames(asIs)
+  }
+
+  /**
+   * The frames from the root to the last frame, each passed through `fn`,
+   * in one walk of the list. With `above`, that frame and every frame
+   * before it are left out.
+   */
+  #mapFrames(fn: (frame: string) => string, above?: TrailFrame): string[] {
+    // Pushed and then reversed, so the array stays packed. An array made
+    // with `new Array(n)` stays holey in V8 after it is filled.
+    const frames: string[] = []
+
+    for (let node = this.#last; node !== undefined && node !== above; node = node.parent) {
+      frames.push(fn(node.frame))
+    }
+
+    return frames.reverse()
+  }
+
+  /** The phase frame nearest the root, or `undefined` when the trail has none. */
+  #rootPhaseFrame(): TrailFrame | undefined {
+    let found: TrailFrame | undefined
+
+    for (let node = this.#last; node !== undefined; node = node.parent) {
+      if (isPhaseFrame(node.frame)) {
+        found = node
+      }
+    }
+
+    return found
+  }
+
+  /** The frame at `depth` (1 is the root), or `undefined` when the trail is shorter. */
+  #frameAtDepth(depth: number): TrailFrame | undefined {
+    let node = this.#last
+
+    while (node !== undefined && node.depth > depth) {
+      node = node.parent
+    }
+
+    return node?.depth === depth ? node : undefined
   }
 
   /**
@@ -85,7 +158,7 @@ export class StackTrail {
    */
   append(frame: string | string[]): StackTrail {
     if (typeof frame === 'string') {
-      this.#stack.push(frame)
+      this.#last = toTrailFrame(this.#last, frame)
 
       return this
     }
@@ -102,8 +175,13 @@ export class StackTrail {
   /**
    * Runs `fn` on a copy of the trail with `key` appended: one frame for a
    * string, one frame per element for an array.
+   *
+   * When `fn` returns, `key` is removed and must be the last frame. When
+   * `fn` throws, the copy goes back to the frames it started with and the
+   * error from `fn` is rethrown: a frame check there would replace it.
    */
   trace<T>(key: string | string[], fn: (st: StackTrail) => T): T {
+    const start = this.#last
     const stackTrail = this.clone()
     stackTrail.append(key)
     try {
@@ -113,7 +191,7 @@ export class StackTrail {
 
       return result
     } catch (error) {
-      stackTrail.remove(key)
+      stackTrail.#last = start
 
       throw error
     }
@@ -121,6 +199,7 @@ export class StackTrail {
 
   /** Async form of {@link trace}. */
   async traceAsync<T>(key: string | string[], fn: (st: StackTrail) => Promise<T>): Promise<T> {
+    const start = this.#last
     const stackTrail = this.clone()
     stackTrail.append(key)
     try {
@@ -130,7 +209,7 @@ export class StackTrail {
 
       return result
     } catch (error) {
-      stackTrail.remove(key)
+      stackTrail.#last = start
 
       throw error
     }
@@ -184,7 +263,7 @@ export class StackTrail {
    * ```
    */
   toJsonPointer(): JsonPointer {
-    return toJsonPointer(this.#stack)
+    return toJsonPointer(this.stackTrail)
   }
 
   /**
@@ -218,25 +297,24 @@ export class StackTrail {
    * ```
    */
   toSchemaPointer(): JsonPointer {
-    return toJsonPointer(toDocumentFrames(this.#stack))
+    return toJsonPointer(this.#mapFrames(asIs, this.#rootPhaseFrame()))
   }
 
   toStackRef(): string | undefined {
-    const [first, second, third] = this.stackTrail
+    // Reads the first three frames only, without building the whole array.
+    const third = this.#frameAtDepth(3)
+    const second = third?.parent
+    const first = second?.parent
 
-    if (first !== 'components') {
+    if (third === undefined || second === undefined || first?.frame !== 'components') {
       return
     }
 
-    if (typeof second !== 'string' || !componentsKeys.includes(second)) {
+    if (!componentsKeys.includes(second.frame)) {
       return
     }
 
-    if (typeof third !== 'string') {
-      return
-    }
-
-    return `#/${first}/${second}/${third}`
+    return `#/${first.frame}/${second.frame}/${third.frame}`
   }
 
   /**
@@ -264,10 +342,14 @@ export class StackTrail {
    */
   remove(frame: string | string[]): StackTrail {
     if (typeof frame === 'string') {
-      const lastItem = this.#stack.pop()
+      const last = this.#last
 
-      if (lastItem !== frame) {
-        throw new Error(`Expected to remove frame '${frame}' but found '${lastItem}'`)
+      // The last frame leaves the trail whether or not it matches, as
+      // `Array.pop` did before the check.
+      this.#last = last?.parent
+
+      if (last?.frame !== frame) {
+        throw new Error(`Expected to remove frame '${frame}' but found '${last?.frame}'`)
       }
 
       return this
@@ -317,7 +399,7 @@ export class StackTrail {
    * ```
    */
   toString(): string {
-    return toTrailString(this.#stack)
+    return this.#mapFrames(escapeTrailFrame).join(':')
   }
 
   /**
