@@ -1,6 +1,6 @@
 import { componentsKeys } from '@/oas/components/Components.ts'
 import { toJsonPointer, type JsonPointer } from '@/types/JsonPointer.ts'
-import { toDocumentFrames, toTrailString } from '@/context/documentTrail.ts'
+import { escapeTrailFrame, isPhaseFrame } from '@/context/documentTrail.ts'
 
 /**
  * One frame of a trail, linked to the frame before it. Frames are never
@@ -9,10 +9,10 @@ import { toDocumentFrames, toTrailString } from '@/context/documentTrail.ts'
  * frames as its source and adds no copy.
  */
 type TrailFrame = {
-  frame: string
-  parent: TrailFrame | undefined
+  readonly frame: string
+  readonly parent: TrailFrame | undefined
   /** Number of frames from the root up to and including this one. */
-  depth: number
+  readonly depth: number
 }
 
 const toTrailFrame = (parent: TrailFrame | undefined, frame: string): TrailFrame => ({
@@ -20,6 +20,8 @@ const toTrailFrame = (parent: TrailFrame | undefined, frame: string): TrailFrame
   parent,
   depth: (parent?.depth ?? 0) + 1
 })
+
+const asIs = (frame: string): string => frame
 
 export class StackTrail {
   /**
@@ -29,7 +31,7 @@ export class StackTrail {
    */
   #last: TrailFrame | undefined
 
-  constructor(stack: string[] = []) {
+  constructor(stack: readonly string[] = []) {
     this.#last = stack.reduce<TrailFrame | undefined>(toTrailFrame, undefined)
   }
 
@@ -72,9 +74,11 @@ export class StackTrail {
   }
 
   /**
-   * The frames of the trail as a new array, built on each read. The trail
-   * itself is live: {@link trace} removes its frame after `fn` returns, so
-   * read the frames inside `fn` to keep them.
+   * The frames of the trail as a new read-only array, built on each read.
+   * Change the trail with {@link append}, {@link remove} or {@link trace},
+   * not through this array. The trail itself is live: {@link trace}
+   * removes its frame after `fn` returns, so read the frames inside `fn`
+   * to keep them.
    *
    * @returns Array of stack frames in order
    *
@@ -85,14 +89,49 @@ export class StackTrail {
    * console.log(frames); // ['components', 'schemas', 'User']
    * ```
    */
-  get stackTrail(): string[] {
-    const frames = new Array<string>(this.#last?.depth ?? 0)
+  get stackTrail(): readonly string[] {
+    return this.#mapFrames(asIs)
+  }
 
-    for (let node = this.#last; node !== undefined; node = node.parent) {
-      frames[node.depth - 1] = node.frame
+  /**
+   * The frames from the root to the last frame, each passed through `fn`,
+   * in one walk of the list. With `above`, that frame and every frame
+   * before it are left out.
+   */
+  #mapFrames(fn: (frame: string) => string, above?: TrailFrame): string[] {
+    // Pushed and then reversed, so the array stays packed. An array made
+    // with `new Array(n)` stays holey in V8 after it is filled.
+    const frames: string[] = []
+
+    for (let node = this.#last; node !== undefined && node !== above; node = node.parent) {
+      frames.push(fn(node.frame))
     }
 
-    return frames
+    return frames.reverse()
+  }
+
+  /** The phase frame nearest the root, or `undefined` when the trail has none. */
+  #rootPhaseFrame(): TrailFrame | undefined {
+    let found: TrailFrame | undefined
+
+    for (let node = this.#last; node !== undefined; node = node.parent) {
+      if (isPhaseFrame(node.frame)) {
+        found = node
+      }
+    }
+
+    return found
+  }
+
+  /** The frame at `depth` (1 is the root), or `undefined` when the trail is shorter. */
+  #frameAtDepth(depth: number): TrailFrame | undefined {
+    let node = this.#last
+
+    while (node !== undefined && node.depth > depth) {
+      node = node.parent
+    }
+
+    return node?.depth === depth ? node : undefined
   }
 
   /**
@@ -136,8 +175,13 @@ export class StackTrail {
   /**
    * Runs `fn` on a copy of the trail with `key` appended: one frame for a
    * string, one frame per element for an array.
+   *
+   * When `fn` returns, `key` is removed and must be the last frame. When
+   * `fn` throws, the copy goes back to the frames it started with and the
+   * error from `fn` is rethrown: a frame check there would replace it.
    */
   trace<T>(key: string | string[], fn: (st: StackTrail) => T): T {
+    const start = this.#last
     const stackTrail = this.clone()
     stackTrail.append(key)
     try {
@@ -147,7 +191,7 @@ export class StackTrail {
 
       return result
     } catch (error) {
-      stackTrail.remove(key)
+      stackTrail.#last = start
 
       throw error
     }
@@ -155,6 +199,7 @@ export class StackTrail {
 
   /** Async form of {@link trace}. */
   async traceAsync<T>(key: string | string[], fn: (st: StackTrail) => Promise<T>): Promise<T> {
+    const start = this.#last
     const stackTrail = this.clone()
     stackTrail.append(key)
     try {
@@ -164,7 +209,7 @@ export class StackTrail {
 
       return result
     } catch (error) {
-      stackTrail.remove(key)
+      stackTrail.#last = start
 
       throw error
     }
@@ -252,25 +297,24 @@ export class StackTrail {
    * ```
    */
   toSchemaPointer(): JsonPointer {
-    return toJsonPointer(toDocumentFrames(this.stackTrail))
+    return toJsonPointer(this.#mapFrames(asIs, this.#rootPhaseFrame()))
   }
 
   toStackRef(): string | undefined {
-    const [first, second, third] = this.stackTrail
+    // Reads the first three frames only, without building the whole array.
+    const third = this.#frameAtDepth(3)
+    const second = third?.parent
+    const first = second?.parent
 
-    if (first !== 'components') {
+    if (third === undefined || second === undefined || first?.frame !== 'components') {
       return
     }
 
-    if (typeof second !== 'string' || !componentsKeys.includes(second)) {
+    if (!componentsKeys.includes(second.frame)) {
       return
     }
 
-    if (typeof third !== 'string') {
-      return
-    }
-
-    return `#/${first}/${second}/${third}`
+    return `#/${first.frame}/${second.frame}/${third.frame}`
   }
 
   /**
@@ -355,7 +399,7 @@ export class StackTrail {
    * ```
    */
   toString(): string {
-    return toTrailString(this.stackTrail)
+    return this.#mapFrames(escapeTrailFrame).join(':')
   }
 
   /**

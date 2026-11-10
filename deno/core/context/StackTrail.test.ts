@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from '@std/assert'
+import { assertEquals, assertNotStrictEquals, assertRejects, assertThrows } from '@std/assert'
 import { StackTrail } from '@/context/StackTrail.ts'
 
 // Constructor Tests
@@ -410,16 +410,78 @@ Deno.test('StackTrail - toSchemaPointer matches the first phase frame, not a sam
   assertEquals(trail.toSchemaPointer(), '#/components/schemas/parse')
 })
 
-Deno.test('StackTrail - a change to the frames array does not change the trail', () => {
-  // The getter builds a new array on each read. A caller that pushes to
-  // it must not add a frame to the trail or to a trail that shares frames.
+Deno.test('StackTrail - each read of the frames is a new array', () => {
+  // The type is read-only, but plain JavaScript can still change the
+  // array. A new array on each read keeps that change away from the trail
+  // and from every trail that shares its frames.
   const trail = new StackTrail(['components', 'schemas'])
-  const copy = trail.clone()
 
-  trail.stackTrail.push('User')
-
+  assertNotStrictEquals(trail.stackTrail, trail.stackTrail)
   assertEquals(trail.stackTrail, ['components', 'schemas'])
-  assertEquals(copy.stackTrail, ['components', 'schemas'])
+})
+
+Deno.test('StackTrail - remove on a clone does not change the original', () => {
+  // Clones share frames. `remove` must move the clone's own last frame,
+  // never change a frame both trails point at.
+  const original = new StackTrail(['x', 'y'])
+  const copy = original.clone()
+
+  copy.remove('y')
+
+  assertEquals(original.stackTrail, ['x', 'y'])
+  assertEquals(copy.stackTrail, ['x'])
+})
+
+Deno.test('StackTrail - trace rethrows the error from fn, not a frame check', () => {
+  // `fn` leaves an extra frame and then throws. A frame check on the way
+  // out would throw "Expected to remove frame 'a'" and hide the cause.
+  const trail = new StackTrail(['root'])
+
+  assertThrows(
+    () =>
+      trail.trace('a', st => {
+        st.append('b')
+        throw new Error('real cause')
+      }),
+    Error,
+    'real cause'
+  )
+  assertEquals(trail.stackTrail, ['root'])
+})
+
+Deno.test('StackTrail - traceAsync rethrows the error from fn, not a frame check', async () => {
+  const trail = new StackTrail(['root'])
+
+  await assertRejects(
+    () =>
+      trail.traceAsync('a', st => {
+        st.append('b')
+        return Promise.reject(new Error('real cause'))
+      }),
+    Error,
+    'real cause'
+  )
+  assertEquals(trail.stackTrail, ['root'])
+})
+
+Deno.test('StackTrail - trace still checks the frame when fn returns', () => {
+  // Only the throw path skips the check. A callback that returns with an
+  // extra frame is a bug, and `remove` reports it.
+  const trail = new StackTrail(['root'])
+
+  assertThrows(
+    () => trail.trace('a', st => st.append('b')),
+    Error,
+    "Expected to remove frame 'a' but found 'b'"
+  )
+})
+
+Deno.test('StackTrail - toStackRef reads only the first three frames', () => {
+  const trail = new StackTrail(['components', 'schemas', 'User', 'properties', 'id'])
+
+  assertEquals(trail.toStackRef(), '#/components/schemas/User')
+  assertEquals(new StackTrail(['components', 'schemas']).toStackRef(), undefined)
+  assertEquals(new StackTrail(['components', 'unknown', 'User']).toStackRef(), undefined)
 })
 
 Deno.test('StackTrail - trails that share frames grow apart', () => {

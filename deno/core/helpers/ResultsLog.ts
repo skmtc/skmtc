@@ -1,4 +1,5 @@
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { toTrailString } from '@/context/documentTrail.ts'
 import type { ResultsItem, ResultType } from '@/types/Results.ts'
 
 /**
@@ -23,7 +24,7 @@ export class ResultsLog {
    * Keyed by `StackTrail.toString()`. The key is one-to-one with the frames,
    * except that `[]` and `['']` both give `''`.
    */
-  #results: Map<string, { frames: string[]; result: ResultType }>
+  #results: Map<string, { frames: readonly string[]; result: ResultType }>
 
   constructor() {
     this.#results = new Map()
@@ -37,10 +38,12 @@ export class ResultsLog {
    * frame from the trail after its callback returns.
    */
   capture(stackTrail: StackTrail, result: ResultType) {
-    const key = stackTrail.toString()
+    // `stackTrail` builds a new array on each read, so read it once.
+    const frames = stackTrail.stackTrail
+    const key = toTrailString(frames)
 
     if (this.#incomingResultIsWorse(this.#results.get(key)?.result, result)) {
-      this.#results.set(key, { frames: stackTrail.stackTrail, result })
+      this.#results.set(key, { frames, result })
     }
   }
 
