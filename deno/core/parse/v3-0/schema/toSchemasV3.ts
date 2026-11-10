@@ -27,8 +27,25 @@ import {
 import { toAdditionalPropertiesV3 } from '../object/toAdditionalPropertiesV3.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
 import { mergeUnion } from '../_merge-all-of/merge-union.ts'
+import { isNullOnly } from '../_merge-all-of/nullable-merge.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+/**
+ * `schema` without the members of its `oneOf` or `anyOf` that are 3.0's way to
+ * write null (`{ nullable: true, enum: [null] }`, which Cloudflare writes
+ * with `type: object` too), and nullable when it had one, as the 3.1 parser
+ * folds `{ type: 'null' }` (`partitionNullMember`). A union of null only is
+ * left as it is.
+ */
+const withoutNullMembers = (schema: OpenAPIV3.SchemaObject, groupType: 'oneOf' | 'anyOf'): OpenAPIV3.SchemaObject => {
+  const members = schema[groupType] ?? []
+  const nonNull = members.filter(member => isRef(member) || !isNullOnly(member))
+
+  return nonNull.length === 0 || nonNull.length === members.length
+    ? schema
+    : { ...schema, [groupType]: nonNull, nullable: true }
+}
+
 export type ToSchemasV3Args = {
   schemas: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject>
   stackTrail: StackTrail
@@ -247,7 +264,8 @@ export const toSchemaV3 = ({
     return stackTrail.trace('oneOf', st => {
       const system = toAllOfSystem(context)
       const merged = mergeUnion({
-        schema,
+        // A null member makes the union nullable: `oneOf: [$ref, null]` is a nullable reference.
+        schema: withoutNullMembers(schema, 'oneOf'),
         getRef: toGetRef(context.documentObject),
         system,
         groupType: 'oneOf'
@@ -327,7 +345,7 @@ export const toSchemaV3 = ({
 
       const system = toAllOfSystem(context)
       const merged = mergeUnion({
-        schema,
+        schema: withoutNullMembers(schema, 'anyOf'),
         getRef: toGetRef(context.documentObject),
         system,
         groupType: 'anyOf'

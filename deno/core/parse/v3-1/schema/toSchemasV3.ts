@@ -27,6 +27,7 @@ import {
 import { toAdditionalPropertiesV3 } from '../object/toAdditionalPropertiesV3.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
 import { collapseNullOnlyUnion, mergeUnion } from '../_merge-all-of/merge-union.ts'
+import { isNullOnly } from '../_merge-all-of/nullable-merge.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import {
@@ -126,14 +127,16 @@ const withoutWrapperUnevaluatedProperties = ({
 }
 
 /**
- * Is this a 3.1 null-only schema member (`type: 'null'` or `['null']`)?
+ * Is this a null-only schema member: 3.1's `type: 'null'` or `['null']`, or
+ * 3.0's `{ nullable: true, enum: [null] }`?
  */
 const isNullTypeSchema = (member: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject): boolean => {
   if (isRef(member)) {
     return false
   }
 
-  return isNullOnlyType(member.type)
+  // 3.0's way to write null too: `{ nullable: true, enum: [null] }`, as the 3.0 parser reads it.
+  return isNullOnlyType(member.type) || isNullOnly(member)
 }
 
 /**
