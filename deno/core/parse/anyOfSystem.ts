@@ -19,28 +19,82 @@ const isNullMember = (member: object): boolean => {
 /** Whether one of the members of an `anyOf` is only `null`. */
 export const hasNullMember = (members: readonly object[]): boolean => members.some(isNullMember)
 
+/** The types of a single value: a member of one of them is a scalar. */
+const SCALAR_TYPES: readonly unknown[] = ['string', 'number', 'integer', 'boolean']
+
+/** The JavaScript types of a scalar enum value. */
+const SCALAR_VALUE_TYPES: readonly string[] = ['string', 'number', 'boolean']
+
+/**
+ * Whether an `anyOf` member, followed through its references, is a single
+ * value: its `type` is a string, number, integer or boolean (besides `null`),
+ * or it has no `type` and an `enum` of such values.
+ */
+const isScalarMember = (member: object): boolean => {
+  const fields: Record<string, unknown> = Object.fromEntries(Object.entries(member))
+  const types = Array.isArray(fields.type) ? fields.type.filter(type => type !== 'null') : [fields.type]
+
+  if (fields.type !== undefined) {
+    return types.length > 0 && types.every(type => SCALAR_TYPES.includes(type))
+  }
+
+  return (
+    Array.isArray(fields.enum) &&
+    fields.enum.every(value => value === null || SCALAR_VALUE_TYPES.includes(typeof value))
+  )
+}
+
+/** Follows a member through its references, to the schema it names. Stops after 10 steps, at a cycle. */
+const toMemberSchema = (
+  member: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject,
+  getRef: GetRefFn,
+  steps = 0
+): OpenAPIV3.SchemaObject | undefined => {
+  if (!('$ref' in member)) {
+    return member
+  }
+
+  return steps < 10 ? toMemberSchema(getRef(member), getRef, steps + 1) : undefined
+}
+
+/** Follows a reference to the schema it names, as the parsers' `GetRefFn` does. */
+type GetRefFn = (ref: OpenAPIV3.ReferenceObject) => OpenAPIV3.SchemaObject
+
 /** Arguments for {@link isUnknownAnyOf}. */
 type IsUnknownAnyOfArgs = {
   /** The `anyOf` members, as the document writes them. */
-  members: readonly object[]
+  members: readonly (OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject)[]
   /** `client.json` `system.anyOf`. A test's mock context may have none. */
   setting: 'union' | 'unknown' | undefined
+  getRef: GetRefFn
 }
 
 /**
  * Whether `system.anyOf: unknown` reads an `anyOf` as any value, as
  * Cloudflare's `cf` reads it: when it has two or more members, not counting a
- * `null` one. An `anyOf` with one member is read as before, so `anyOf: [{
- * $ref }, { type: 'null' }]` stays a nullable reference.
+ * `null` one, and one of them is not a single value.
+ *
+ * - An `anyOf` with one member is read as before, so `anyOf: [{ $ref }, {
+ *   type: 'null' }]` stays a nullable reference.
+ * - An `anyOf` of single values stays a union (`string | number`): cf gives
+ *   it one flag.
  */
-export const isUnknownAnyOf = ({ members, setting }: IsUnknownAnyOfArgs): boolean =>
-  setting === 'unknown' && members.filter(member => !isNullMember(member)).length > 1
+export const isUnknownAnyOf = ({ members, setting, getRef }: IsUnknownAnyOfArgs): boolean => {
+  if (setting !== 'unknown') {
+    return false
+  }
+
+  const values = members.filter(member => !isNullMember(member)).map(member => toMemberSchema(member, getRef))
+
+  return values.length > 1 && !values.every(value => value !== undefined && isScalarMember(value))
+}
 
 /** Arguments for {@link withoutUnknownAnyOf}. */
 type WithoutUnknownAnyOfArgs = {
   schema: OpenAPIV3.SchemaObject
   /** `client.json` `system.anyOf`. */
   setting: 'union' | 'unknown' | undefined
+  getRef: GetRefFn
 }
 
 /**
@@ -49,10 +103,10 @@ type WithoutUnknownAnyOfArgs = {
  * properties next to the `anyOf` stay. A `null` member makes it nullable. Any
  * other schema is returned as it is.
  */
-export const withoutUnknownAnyOf = ({ schema, setting }: WithoutUnknownAnyOfArgs): OpenAPIV3.SchemaObject => {
+export const withoutUnknownAnyOf = ({ schema, setting, getRef }: WithoutUnknownAnyOfArgs): OpenAPIV3.SchemaObject => {
   const members = schema.anyOf ?? []
 
-  if (!isUnknownAnyOf({ members, setting })) {
+  if (!isUnknownAnyOf({ members, setting, getRef })) {
     return schema
   }
 

@@ -406,11 +406,11 @@ export const toSchemaV3 = ({
     // Under `system.anyOf: unknown`, as Cloudflare's `cf` reads it, an `anyOf`
     // of two or more members is any value: the schema parses with its other
     // keywords, so the properties next to it stay, without the members.
-    if (isUnknownAnyOf({ members: wrapper.anyOf ?? [], setting: context.system?.anyOf })) {
+    if (isUnknownAnyOf({ members: wrapper.anyOf ?? [], setting: context.system?.anyOf, getRef: toGetRef(context.documentObject) })) {
       logUnknownAnyOf({ stackTrail, parent: schema, context })
 
       return toSchemaV3({
-        schema: withoutUnknownAnyOf({ schema: wrapper, setting: context.system?.anyOf }),
+        schema: withoutUnknownAnyOf({ schema: wrapper, setting: context.system?.anyOf, getRef: toGetRef(context.documentObject) }),
         stackTrail,
         context
       })

@@ -46,6 +46,10 @@ const toDocument = (openapi: string) =>
             }
           ]
         },
+        // Cloudflare's spectrum `origin_port` and workflows retention: single values, one through a reference.
+        Duration: { type: 'string' },
+        Port: { anyOf: [{ type: 'integer' }, { type: 'string' }] },
+        Retention: { anyOf: [{ $ref: '#/components/schemas/Duration' }, { type: 'integer' }] },
         // A nullable reference, as each version writes one with `anyOf`.
         MaybeNamed: openapi.startsWith('3.0') ? { anyOf: [named], nullable: true } : { anyOf: [named, { type: 'null' }] }
       }
@@ -118,6 +122,15 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(maybeNamed?.isRef(), true)
     assertEquals(maybeNamed?.isRef() ? maybeNamed.nullable : undefined, true)
     assertEquals(warningsAt('MaybeNamed'), 0)
+  })
+
+  Deno.test(`${openapi} system.anyOf unknown: an anyOf of single values stays a union`, () => {
+    const { toSchema, warningsAt } = parse({ openapi, system: { anyOf: 'unknown' } })
+
+    // The trap: cf gives these one flag (`--origin-port 22` or `--origin-port 22-25`); any value would lose it.
+    assertEquals(toSchema('Port')?.type, 'union')
+    assertEquals(toSchema('Retention')?.type, 'union')
+    assertEquals([warningsAt('Port'), warningsAt('Retention')], [0, 0])
   })
 
   Deno.test(`${openapi} with no system settings, an anyOf is a union, as before`, () => {

@@ -36,8 +36,8 @@ export const mergeSchemasOrRefs = ({ first, second, getRef, system }: MergeArgs<
   // Under `system.anyOf: unknown` an `anyOf` of two or more members is any
   // value, so it adds nothing to the merge: its members are left out, and the
   // keywords next to it merge as usual.
-  const firstKeywords = withoutUnknownAnyOf({ schema: first, setting: system.anyOf })
-  const secondKeywords = withoutUnknownAnyOf({ schema: second, setting: system.anyOf })
+  const firstKeywords = withoutUnknownAnyOf({ schema: first, setting: system.anyOf, getRef })
+  const secondKeywords = withoutUnknownAnyOf({ schema: second, setting: system.anyOf, getRef })
 
   if (firstKeywords !== first || secondKeywords !== second) {
     system.unknown?.add('anyOf')
