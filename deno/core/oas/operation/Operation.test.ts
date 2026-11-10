@@ -9,6 +9,7 @@ import { OasInteger } from '../integer/Integer.ts'
 import { OasObject } from '../object/Object.ts'
 import { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
 import { OasServer } from '../server/Server.ts'
+import { OasPathItem } from '../pathItem/PathItem.ts'
 import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 
 // Helper to create basic ToJsonSchemaOptions
@@ -681,6 +682,52 @@ Deno.test('OasOperation', async t => {
       assertEquals(params.length, 0)
       assertEquals(Array.isArray(params), true)
     })
+
+    await t.step(
+      "should include the path item's parameters, which the operation's own replace by name and location",
+      () => {
+        const parameter = (name: string, location: 'path' | 'query', description: string) =>
+          new OasParameter({
+            name,
+            location,
+            description,
+            required: location === 'path',
+            schema: new OasString(),
+            style: location === 'path' ? 'simple' : 'form',
+            explode: location === 'query'
+          })
+
+        const operation = new OasOperation({
+          path: '/apps/{app_id}/streams',
+          method: 'get',
+          // The trap: an operation that has parameters of its own still takes the path item's.
+          pathItem: new OasPathItem({
+            parameters: [
+              parameter('app_id', 'path', 'shared'),
+              parameter('limit', 'query', 'shared'),
+              // Same name, another location: not replaced.
+              parameter('status', 'path', 'shared')
+            ]
+          }),
+          parameters: [parameter('limit', 'query', 'own'), parameter('status', 'query', 'own')],
+          responses: {}
+        })
+
+        assertEquals(
+          operation.toParams().map(({ name, location, description }) => [name, location, description]),
+          [
+            ['app_id', 'path', 'shared'],
+            ['status', 'path', 'shared'],
+            ['limit', 'query', 'own'],
+            ['status', 'query', 'own']
+          ]
+        )
+        assertEquals(
+          operation.toParams(['path']).map(({ name }) => name),
+          ['app_id', 'status']
+        )
+      }
+    )
   })
 
   await t.step('toParametersObject() method', async t => {

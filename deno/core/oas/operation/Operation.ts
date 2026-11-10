@@ -230,16 +230,23 @@ export class OasOperation extends OasBase {
   }
 
   /**
-   * Resolve all parameters and optionally filter by location
+   * Resolve all parameters and optionally filter by location.
+   *
+   * As OpenAPI defines them: the path item's parameters apply to each of its
+   * operations, and an operation's own parameter with the same name and
+   * location replaces the path item's. The path item's come first.
    *
    * @param filter - only include parameters from specified locations
    * @returns
    */
   toParams(filter?: OasParameterLocation[]): OasParameter[] {
-    return (
-      this.parameters
-        ?.map(param => param.resolve())
-        .filter(param => (filter?.length ? filter.includes(param.location) : true)) ?? []
+    const own = this.parameters?.map(param => param.resolve()) ?? []
+    const shared = (this.pathItem?.parameters ?? [])
+      .map(param => param.resolve())
+      .filter(param => !own.some(({ name, location }) => name === param.name && location === param.location))
+
+    return [...shared, ...own].filter(param =>
+      filter?.length ? filter.includes(param.location) : true
     )
   }
 
