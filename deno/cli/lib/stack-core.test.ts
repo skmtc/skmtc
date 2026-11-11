@@ -97,9 +97,17 @@ Deno.test('toWorkerModule - a jsr core with the worker entry imports it from cor
   assertEquals(toWorkerModule({ '@skmtc/core': 'jsr:@skmtc/core@1.0.0' }), '@skmtc/core/worker')
 })
 
+Deno.test('toWorkerModule - a range whose every match ships the worker entry imports it from core', () => {
+  // Deno may resolve the range to any match, so each one must have ./worker.
+  assertEquals(toWorkerModule({ '@skmtc/core': 'jsr:@skmtc/core@^0.39.0' }), '@skmtc/core/worker')
+  assertEquals(toWorkerModule({ '@skmtc/core': 'jsr:@skmtc/core@~0.39.1' }), '@skmtc/core/worker')
+  assertEquals(toWorkerModule({ '@skmtc/core': 'jsr:@skmtc/core@>=0.38.0' }), '@skmtc/worker')
+  assertEquals(toWorkerModule({ '@skmtc/core': 'jsr:@skmtc/core@latest' }), '@skmtc/worker')
+})
+
 Deno.test('toWorkerModule - an older, ranged, npm or missing core keeps @skmtc/worker', () => {
   assertEquals(toWorkerModule({ '@skmtc/core': 'jsr:@skmtc/core@0.38.0' }), '@skmtc/worker')
-  assertEquals(toWorkerModule({ '@skmtc/core': 'jsr:@skmtc/core@^0.39.0' }), '@skmtc/worker')
+  assertEquals(toWorkerModule({ '@skmtc/core': 'jsr:@skmtc/core@^0.38.0' }), '@skmtc/worker')
   // The npm build has no ./worker entry point.
   assertEquals(toWorkerModule({ '@skmtc/core': 'npm:@skmtc/core@0.39.0' }), '@skmtc/worker')
   assertEquals(toWorkerModule(undefined), '@skmtc/worker')
@@ -119,6 +127,29 @@ Deno.test('planCorePin - pins one exact version for a project with no pin', () =
   assertEquals(
     planCorePin({ current: undefined, requirements: [{ generatorId: '@skmtc/gen-zod', range: '0.38.0' }] }),
     { type: 'set', version: '0.38.0' }
+  )
+})
+
+Deno.test('planCorePin - finds the lowest match however a range is written', () => {
+  // The candidates come from the parsed comparators, not the range text, so a
+  // range with no leading version is not a conflict on its own.
+  assertEquals(
+    planCorePin({ current: undefined, requirements: [{ generatorId: '@skmtc/gen-a', range: '>=0.38.0 <0.39.0' }] }),
+    { type: 'set', version: '0.38.0' }
+  )
+  assertEquals(
+    planCorePin({ current: undefined, requirements: [{ generatorId: '@skmtc/gen-a', range: '0.38' }] }),
+    { type: 'set', version: '0.38.0' }
+  )
+  assertEquals(
+    planCorePin({
+      current: undefined,
+      requirements: [
+        { generatorId: '@skmtc/gen-a', range: '0.38.0 || 0.39.0' },
+        { generatorId: '@skmtc/gen-b', range: '^0.39.0' }
+      ]
+    }),
+    { type: 'set', version: '0.39.0' }
   )
 })
 

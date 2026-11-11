@@ -1,5 +1,7 @@
 import { compare } from '@std/semver/compare'
 import { greaterOrEqual } from '@std/semver/greater-or-equal'
+import { parseRange } from '@std/semver/parse-range'
+import { rangeIntersects } from '@std/semver/range-intersects'
 import { satisfies } from '@std/semver/satisfies'
 import { tryParse } from '@std/semver/try-parse'
 import { tryParseRange } from '@std/semver/try-parse-range'
@@ -64,7 +66,8 @@ type Imports = Record<string, string> | undefined
 
 /**
  * The module `worker.ts` imports `toWorker` from. A jsr core takes it from
- * core from {@link FIRST_CORE_WITH_WORKER} on. A local core takes it from
+ * core from {@link FIRST_CORE_WITH_WORKER} on, and a jsr range does when
+ * none of its matches is older than that. A local core takes it from
  * core only when the import map names `@skmtc/core/worker`, since a map
  * entry that points at a file resolves no subpaths ({@link ensureWorkerDeps}
  * adds that entry when the checkout exports `./worker`).
@@ -80,6 +83,15 @@ export const toWorkerModule = (imports: Imports): WorkerModule => {
 
   if (pin.type === 'exact') {
     return isAtLeast({ version: pin.version, minimum: FIRST_CORE_WITH_WORKER })
+      ? '@skmtc/core/worker'
+      : '@skmtc/worker'
+  }
+
+  // A range takes the worker from core only when every version it can
+  // resolve to ships `./worker`, so Deno's choice of match can't matter.
+  if (pin.type === 'range') {
+    const range = tryParseRange(pin.range)
+    return range !== undefined && !rangeIntersects(range, parseRange(`<${FIRST_CORE_WITH_WORKER}`))
       ? '@skmtc/core/worker'
       : '@skmtc/worker'
   }
@@ -297,12 +309,22 @@ export const planCorePin = ({ current, requirements }: PlanCorePinArgs): CorePla
     : { type: 'set', version: `${best.major}.${best.minor}.${best.patch}` }
 }
 
-/** The versions the ranges name (`^0.38.2` names 0.38.2), as candidates for the pin. */
+/**
+ * The lowest version each range accepts, as candidates for the pin:
+ * `^0.38.2` gives 0.38.2, `>=0.38.0 <0.39.0` and `0.38` give 0.38.0, and
+ * `0.39.0 || 0.40.0` gives both. Read from the parsed comparators, so
+ * the way a range is written doesn't matter.
+ */
 const toNamedVersions = (requirements: ParsedRequirement[]): SemVer[] =>
-  requirements.flatMap(({ range }) => {
-    const version = tryParse(range.replace(/^[\^~=v<>\s]+/, ''))
-    return version === undefined ? [] : [version]
-  })
+  requirements.flatMap(({ parsed }) =>
+    parsed.flatMap(comparators =>
+      comparators.flatMap(({ operator, major, minor, patch }) =>
+        operator === undefined || operator === '>=' || operator === '='
+          ? [{ major, minor, patch, prerelease: [], build: [] }]
+          : []
+      )
+    )
+  )
 
 /**
  * No one `@skmtc/core` version satisfies every generator in the project.

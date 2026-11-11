@@ -87,6 +87,15 @@ Deno.test('ensureWorkerDeps', async t => {
     assertEquals(denoJson.contents.imports?.['@skmtc/worker'], undefined)
   })
 
+  await t.step('a core range that only matches cores with the worker entry needs no worker pin', async () => {
+    const denoJson = toDenoJson({ '@skmtc/core': 'jsr:@skmtc/core@^0.39.0' })
+
+    const changed = await ensureWorkerDeps(denoJson)
+
+    assertEquals(changed, false)
+    assertEquals(denoJson.contents.imports?.['@skmtc/worker'], undefined)
+  })
+
   await t.step('a local core that exports ./worker gets the @skmtc/core/worker map entry', async () => {
     await withFolder(
       { 'core/deno.json': JSON.stringify({ name: '@skmtc/core', exports: { '.': './mod.ts', './worker': './worker/mod.ts' } }) },
