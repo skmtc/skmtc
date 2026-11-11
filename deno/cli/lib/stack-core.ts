@@ -52,7 +52,8 @@ export const toCorePin = (value: string): CorePin => {
     return tryParse(range) === undefined ? { type: 'range', range } : { type: 'exact', version: range }
   }
 
-  if (/^[a-z][a-z0-9+.-]*:/i.test(value) && !value.startsWith('file:')) {
+  // A URL scheme has two or more characters, so a Windows drive (`C:\…`) stays a path.
+  if (/^[a-z][a-z0-9+.-]+:/i.test(value) && !value.startsWith('file:')) {
     return { type: 'other', value }
   }
 

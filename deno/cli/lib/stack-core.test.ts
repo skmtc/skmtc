@@ -88,6 +88,8 @@ Deno.test('toCorePin - sorts a core import by what the CLI may do with it', () =
   assertEquals(toCorePin('jsr:@skmtc/core@latest'), { type: 'range', range: 'latest' })
   assertEquals(toCorePin('../../skmtc/deno/core/mod.ts'), { type: 'local', path: '../../skmtc/deno/core/mod.ts' })
   assertEquals(toCorePin('npm:@skmtc/core@0.38.0'), { type: 'other', value: 'npm:@skmtc/core@0.38.0' })
+  // A drive letter is not a URL scheme.
+  assertEquals(toCorePin('C:\\Users\\dev\\core\\mod.ts'), { type: 'local', path: 'C:\\Users\\dev\\core\\mod.ts' })
 })
 
 Deno.test('toWorkerModule - a jsr core with the worker entry imports it from core', () => {
