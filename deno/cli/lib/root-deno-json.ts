@@ -103,6 +103,19 @@ export class RootDenoJson {
     }
   }
 
+  removeImport(key: string) {
+    if (this.contents.imports === undefined || !(key in this.contents.imports)) {
+      return
+    }
+
+    this.contents = {
+      ...this.contents,
+      imports: Object.fromEntries(
+        Object.entries(this.contents.imports).filter(([name]) => name !== key)
+      )
+    }
+  }
+
   addWorkspace(path: string) {
     this.contents = {
       ...this.contents,

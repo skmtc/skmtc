@@ -482,7 +482,7 @@ Deno.test('checkModuleGraph - an unmapped import does not hide two cores', async
     await withRegistryProject({ generatorVersion: '0.2.0' }, async ({ projectPath }) => {
       await Deno.writeTextFile(
         join(projectPath, 'worker.ts'),
-        `import 'unmapped-bare'\n${toWorker(['@skmtc/gen-a'])}`
+        `import 'unmapped-bare'\n${toWorker({ generatorIds: ['@skmtc/gen-a'], workerModule: '@skmtc/worker' })}`
       )
 
       assertEquals((await checkModuleGraph(projectPath)).type, 'duplicates')

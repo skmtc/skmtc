@@ -12,6 +12,7 @@ import {
 } from '@/lib/strict-mode.ts'
 import { INSTALL_EXAMPLE, INSTALL_STRICT_USAGE } from '@/lib/install-arguments.ts'
 import { installHeadless, type InstallHeadlessResult } from '@/lib/install-headless.ts'
+import { CoreConflictError } from '@/lib/stack-core.ts'
 
 type RenderInstallArgs = {
   skmtcRoot?: SkmtcRoot
@@ -82,14 +83,24 @@ export const renderInstall = async ({
       })
     }
 
-    const result = await installHeadless({
-      skmtcRoot,
-      projectName,
-      generators
-    })
+    try {
+      const result = await installHeadless({
+        skmtcRoot,
+        projectName,
+        generators
+      })
 
-    printInstallResult(result, { format: resolveOutputFormat({ jsonFlag }) })
-    Deno.exit(0)
+      printInstallResult(result, { format: resolveOutputFormat({ jsonFlag }) })
+      Deno.exit(0)
+    } catch (error) {
+      if (error instanceof CoreConflictError) {
+        // One project runs one core (#333): the generator needs a different
+        // core from the project's other generators. deno.json is unchanged.
+        console.error(`Error: @skmtc/core conflict\n\n${error.message}\n`)
+        Deno.exit(2)
+      }
+      throw error
+    }
   }
 
   // Instantiate Manager and SkmtcRoot if not provided (for testing)

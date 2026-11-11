@@ -1,37 +1,37 @@
 import type { RootDenoJson } from '@/lib/root-deno-json.ts'
 import { readCliCorePin, readCliWorkerPin } from '@/lib/doctor-headless.ts'
+import { toWorkerModule } from '@/lib/stack-core.ts'
 
 /**
- * Ensure a project's deno.json pins the peer packages that the
- * CLI-generated `worker.ts` needs in order to bundle:
+ * Ensure a project's deno.json pins what the CLI-generated `worker.ts`
+ * imports, so it bundles:
  *
- *  - `@skmtc/worker` — `worker.ts` does `import toWorker from
- *    '@skmtc/worker'`. It is imported by the CLI-generated worker, not
- *    by any cloned generator's source, so the `clone` import-collector
- *    never sees it and never adds it.
- *  - `@skmtc/core` — `worker.ts` imports it so this exact pin decides
- *    the one core the ranged worker and generators resolve.
+ *  - `@skmtc/core` — the generator stack decides it (#333): `install` and
+ *    `clone` pin the core each generator needs. The CLI's own core is only
+ *    the fallback for a project that has no pin yet, such as one whose
+ *    generators are all local.
+ *  - `@skmtc/worker` — only for a project whose core predates
+ *    `@skmtc/core/worker`. A current core ships the worker entry, so
+ *    `worker.ts` imports it from the project's core and no worker pin is
+ *    needed.
  *
  * Pins are added only when **absent** — an existing pin (e.g. a
- * local-checkout override) is never overwritten. Versions come from
- * the CLI's own deno.json so the project tracks the CLI it was built
- * with, consistent with the `@skmtc/core` peer-pin check that `clone`
- * already enforces.
+ * local-checkout override) is never overwritten.
  *
  * Returns `true` if any pin was added.
  */
 export const ensureWorkerDeps = (rootDenoJson: RootDenoJson): boolean => {
-  let changed = false
-
-  const ensurePin = (packageName: string, version: string | null) => {
-    if (version === null) return
-    if (rootDenoJson.contents.imports?.[packageName] !== undefined) return
+  const ensurePin = (packageName: string, version: string | null): boolean => {
+    if (version === null) return false
+    if (rootDenoJson.contents.imports?.[packageName] !== undefined) return false
     rootDenoJson.addImport(packageName, `jsr:${packageName}@${version}`)
-    changed = true
+    return true
   }
 
-  ensurePin('@skmtc/worker', readCliWorkerPin())
-  ensurePin('@skmtc/core', readCliCorePin())
+  const addedCore = ensurePin('@skmtc/core', readCliCorePin())
 
-  return changed
+  const workerModule = toWorkerModule(rootDenoJson.contents.imports?.['@skmtc/core'])
+  const addedWorker = workerModule === '@skmtc/worker' && ensurePin('@skmtc/worker', readCliWorkerPin())
+
+  return addedCore || addedWorker
 }

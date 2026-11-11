@@ -8,6 +8,7 @@ import { toGraphRefusal } from '@/lib/duplicate-packages.ts'
 import { parseOrExplain } from '@/lib/parse-or-explain.ts'
 import { toGeneratorIds } from '@/lib/root-deno-json.ts'
 import { toWorker } from '@/lib/to-worker.ts'
+import { toWorkerModule } from '@/lib/stack-core.ts'
 
 /**
  * Build a project's bundle from its generated `worker.ts`.
@@ -122,7 +123,9 @@ export const createReadOnlyBundle = async ({
     JSON.parse(await Deno.readTextFile(denoJsonPath)),
     `deno.json at ${denoJsonPath}`
   )
-  const missingPins = ['@skmtc/worker', '@skmtc/core'].filter(name => imports?.[name] === undefined)
+  const workerModule = toWorkerModule(imports?.['@skmtc/core'])
+  const neededPins = workerModule === '@skmtc/worker' ? ['@skmtc/worker', '@skmtc/core'] : ['@skmtc/core']
+  const missingPins = neededPins.filter(name => imports?.[name] === undefined)
   if (missingPins.length > 0) {
     throw new Error(
       `Project "${projectName}" does not pin ${missingPins.join(' or ')}. ` +
@@ -138,7 +141,10 @@ export const createReadOnlyBundle = async ({
 
   try {
     const workerPath = join(directory, 'worker.ts')
-    await Deno.writeTextFile(workerPath, toWorker(toGeneratorIds(imports)))
+    await Deno.writeTextFile(
+      workerPath,
+      toWorker({ generatorIds: toGeneratorIds(imports), workerModule })
+    )
 
     const refusal = await toGraphRefusal({
       projectName,

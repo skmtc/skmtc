@@ -6,7 +6,7 @@ import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { cloneHeadless, type CloneHeadlessResult } from '@/lib/clone-headless.ts'
-import { CorePinMismatchError } from '@/lib/generator.ts'
+import { CoreConflictError } from '@/lib/stack-core.ts'
 
 export const description = 'Clone generator'
 
@@ -69,16 +69,11 @@ export const renderClone = async ({
       printCloneResult(result, { format: resolveOutputFormat({ jsonFlag }) })
       Deno.exit(0)
     } catch (error) {
-      if (error instanceof CorePinMismatchError) {
-        // Peer-pin mismatch is a recipe-shaped failure: there's a
-        // specific remediation the operator can execute, so route
-        // through the same error path as missing args.
-        console.error(
-          `Error: @skmtc/core peer-pin mismatch\n\n` +
-            `Project pins:  ${error.projectPin}\n` +
-            `CLI requires:  ${error.cliCorePin}\n\n` +
-            `${error.hint}\n`
-        )
+      if (error instanceof CoreConflictError) {
+        // The generator needs a different core from the project's other
+        // generators: a recipe-shaped failure with a specific fix, so it
+        // exits like a missing argument. Pass --force to clone anyway.
+        console.error(`Error: @skmtc/core conflict\n\n${error.message}\n`)
         Deno.exit(2)
       }
       throw error

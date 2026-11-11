@@ -29,6 +29,7 @@ import { Jsr } from '@/lib/jsr.ts'
 import type { JsrPkgMetaVersions } from '@/lib/jsr.ts'
 import { EnvVariableError } from '@/lib/env.ts'
 import { getJsrBaseUrl } from '@/lib/jsr-registry.ts'
+import { toWorkerModule } from '@/lib/stack-core.ts'
 import { greaterThan } from '@std/semver/greater-than'
 import { parse as parseSemver } from '@std/semver/parse'
 import { canParse as canParseSemver } from '@std/semver/can-parse'
@@ -592,6 +593,16 @@ const checkProjectCorePin = (
     }
   }
   const projectPin = projectMatch[1]
+  // The generator stack decides the core (#333). A core that ships the
+  // worker entry runs whatever version the stack pins, so a CLI on another
+  // core is fine; only an older stack still needs the CLI's core.
+  if (toWorkerModule(projectCoreValueRaw) === '@skmtc/core/worker') {
+    return {
+      id: `project-core-pin/${projectName}`,
+      status: 'ok',
+      message: `Project "${projectName}" runs @skmtc/core ${projectPin}, the core its generators pin.`
+    }
+  }
   const cliMajorMinor = toMajorMinor(cliCorePin)
   const projectMajorMinor = toMajorMinor(projectPin)
   if (cliMajorMinor === null || projectMajorMinor === null) {
@@ -835,6 +846,15 @@ const checkProjectWorkerPin = (
       id: `project-worker-pin/${projectName}`,
       status: 'ok',
       message: `Project "${projectName}" has no worker.ts yet; the first build (\`skmtc generate\` or \`skmtc bundle\`) writes it along with the @skmtc/worker pin.`
+    }
+  }
+
+  const corePin = imports['@skmtc/core']
+  if (typeof corePin === 'string' && toWorkerModule(corePin) === '@skmtc/core/worker') {
+    return {
+      id: `project-worker-pin/${projectName}`,
+      status: 'ok',
+      message: `Project "${projectName}" takes its worker entry from @skmtc/core/worker; no @skmtc/worker pin needed.`
     }
   }
 
