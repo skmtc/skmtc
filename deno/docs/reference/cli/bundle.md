@@ -43,7 +43,8 @@ The CLI regenerates `<project>/worker.ts` from the current
 `deno.json#imports`. The file is templated as:
 
 ```ts
-import toWorker from '@skmtc/worker'
+import '@skmtc/core'
+import toWorker from '@skmtc/core/worker' // '@skmtc/worker' on a core before 0.39.0
 import gen1 from '@skmtc/gen-zod'
 import gen2 from './gen-typescript/mod.ts'  // local
 // ... one import per generator

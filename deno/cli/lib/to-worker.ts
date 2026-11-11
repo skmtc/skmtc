@@ -1,11 +1,18 @@
 import { camelCase } from '@skmtc/core/strings'
+import type { WorkerModule } from '@/lib/stack-core.ts'
 
 type GeneratorsAcc = {
   imports: string[]
   generators: string[]
 }
 
-export const toWorker = (generatorIds: string[]) => {
+type ToWorkerArgs = {
+  generatorIds: string[]
+  /** Where `toWorker` comes from: the project's core, or `@skmtc/worker` for an older core. */
+  workerModule: WorkerModule
+}
+
+export const toWorker = ({ generatorIds, workerModule }: ToWorkerArgs) => {
   const generatorAcc = generatorIds.reduce<GeneratorsAcc>(
     (acc, generatorId) => {
       const name = camelCase(generatorId)
@@ -24,17 +31,16 @@ export const toWorker = (generatorIds: string[]) => {
   const imports = generatorAcc.imports.join('\n')
   const generators = generatorAcc.generators.join(',\n')
 
-  // Emit a bare specifier for `@skmtc/worker` so the project's import
-  // map can route it (e.g. to a local checkout for iteration). When no
-  // override is present, Deno still resolves it to the JSR-published
-  // package via the project's deno.json import map.
+  // Emit bare specifiers so the project's import map routes them (e.g. to
+  // a local checkout for iteration).
   //
   // `import '@skmtc/core'` puts the project's exact core pin into the
-  // graph. Without it the pin is never resolved, and the ranged worker and
-  // generators settle on the newest core rather than the project's.
+  // graph first, so ranged dependencies settle on it rather than on the
+  // newest core. With `@skmtc/core/worker`, the worker entry is part of
+  // that same core, so the core that runs is the one the stack pins (#333).
   const server = `
 import '@skmtc/core'
-import toWorker from '@skmtc/worker'
+import toWorker from '${workerModule}'
 ${imports}
 
 export default toWorker(() => Object.fromEntries([${generators}].map(g => [g.id, g])))`

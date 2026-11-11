@@ -127,7 +127,8 @@ generated file — the CLI templates it from `deno.json#imports`:
 
 ```ts
 // .skmtc/<project>/worker.ts (templated)
-import toWorker from '@skmtc/worker'
+import '@skmtc/core'
+import toWorker from '@skmtc/core/worker' // '@skmtc/worker' on a core before 0.39.0
 import gen1 from '@skmtc/gen-zod'
 import gen2 from '@skmtc/gen-typescript'
 import gen3 from './gen-shadcn-form/mod.ts'  // local clone
@@ -139,7 +140,12 @@ export default toWorker(() =>
 
 The template:
 
-- Default-imports `toWorker` from `@skmtc/worker` (the engine wrapper)
+- Imports `@skmtc/core` first, so the project's exact core pin decides
+  the one core that the bundle loads
+- Default-imports `toWorker` (the engine wrapper) from the project's
+  own core, `@skmtc/core/worker`. A project on a core before 0.39.0
+  imports it from `@skmtc/worker`, at the worker version that the
+  CLI pins for that core
 - Imports each installed generator (JSR or local path)
 - `export default toWorker(() => …)` with the generators keyed by `g.id`
 

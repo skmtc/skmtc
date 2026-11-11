@@ -322,6 +322,35 @@ Deno.test('runDoctor - reports ok when a project pins @skmtc/worker', async () =
   })
 })
 
+Deno.test('runDoctor - a stack on a core with the worker entry passes whatever the CLI core', async () => {
+  // The generator stack decides the core (#333): a project on a core that
+  // ships @skmtc/core/worker runs it, so a CLI on another minor is fine and
+  // no @skmtc/worker pin is needed.
+  await withTempSkmtcRoot(async tempRoot => {
+    const projectPath = join(tempRoot, '.skmtc', 'stack-core')
+    await ensureDir(join(projectPath, '.settings'))
+    await Deno.writeTextFile(
+      join(projectPath, 'deno.json'),
+      JSON.stringify({ imports: { '@skmtc/core': 'jsr:@skmtc/core@9.0.0' } })
+    )
+    await Deno.writeTextFile(join(projectPath, 'worker.ts'), "import toWorker from '@skmtc/core/worker'\n")
+    await Deno.writeTextFile(
+      join(projectPath, '.settings', 'client.json'),
+      JSON.stringify({ settings: { basePath: './src' } })
+    )
+
+    const result = await runDoctor({ cliVersion: '0.1.5' })
+
+    const pinCheck = result.checks.find(c => c.id === 'project-core-pin/stack-core')
+    assertEquals(pinCheck?.status, 'ok')
+    assertStringIncludes(pinCheck?.message ?? '', 'the core its generators pin')
+
+    const workerCheck = result.checks.find(c => c.id === 'project-worker-pin/stack-core')
+    assertEquals(workerCheck?.status, 'ok')
+    assertStringIncludes(workerCheck?.message ?? '', '@skmtc/core/worker')
+  })
+})
+
 Deno.test('runDoctor - warns when Deno is below the `deno bundle` floor', async () => {
   await withTempSkmtcRoot(async () => {
     const result = await runDoctor({ cliVersion: '0.1.5', denoVersion: '2.1.4' })

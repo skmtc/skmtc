@@ -1,7 +1,7 @@
 import { assertEquals, assertRejects } from '@std/assert'
 import { generateWithWorker, description } from './generate-worker.ts'
 import type { ManifestContent } from '@skmtc/core/Manifest'
-import type { GeneratePayload } from '@skmtc/worker/types'
+import type { GeneratePayload } from '@skmtc/core/worker/types'
 
 // Store original Worker constructor
 const OriginalWorker = globalThis.Worker

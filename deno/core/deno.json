@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/core",
-  "version": "0.38.0",
+  "version": "0.39.0",
   "license": "Apache-2.0",
   "imports": {
     "@/": "./",
@@ -52,7 +52,9 @@
     "./oas": "./oas/mod.ts",
     "./Anchors": "./anchors/mod.ts",
     "./Anchors/oxc": "./anchors/oxcAdapter.ts",
-    "./AttributionState": "./types/AttributionState.ts"
+    "./AttributionState": "./types/AttributionState.ts",
+    "./worker": "./worker/mod.ts",
+    "./worker/types": "./worker/types.ts"
   },
   "tasks": {
     "publish": "deno task publish:deno",

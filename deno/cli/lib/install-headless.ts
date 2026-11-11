@@ -43,9 +43,8 @@ export const installHeadless = async ({
 }: InstallHeadlessArgs): Promise<InstallHeadlessResult> => {
   const project = skmtcRoot.findProject(projectName)
 
-  for (const generator of generators) {
-    await project.installGenerator({ moduleName: toJsrModuleName(generator) })
-  }
+  // One call, so every generator's core is checked before anything is written.
+  await project.installGenerators({ moduleNames: generators.map(toJsrModuleName) })
 
   const bundle = await bundleFn({ skmtcRoot, projectName })
 

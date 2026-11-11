@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects } from '@std/assert'
 import { describeWithWorker } from './describe-worker.ts'
-import type { DescribePayload } from '@skmtc/worker/types'
+import type { DescribePayload } from '@skmtc/core/worker/types'
 
 // Store original Worker constructor
 const OriginalWorker = globalThis.Worker

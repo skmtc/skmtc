@@ -16,21 +16,28 @@ const stubBundleFn = ({ projectName }: { projectName: string }): Promise<BundleH
 
 type InstallCall = { moduleName: string }
 
+type InstallGeneratorsArgs = { moduleNames: string[] }
+
 type FakeProject = {
   name: string
   installs: InstallCall[]
-  installGenerator: (args: InstallCall) => Promise<void>
+  /** How many installGenerators calls ran: one per command, so every core is checked before a write. */
+  calls: number
+  installGenerators: (args: InstallGeneratorsArgs) => Promise<void>
 }
 
 const createFakeProject = (name: string): FakeProject => {
-  const installs: InstallCall[] = []
-  return {
+  const project: FakeProject = {
     name,
-    installs,
-    installGenerator: async (args: InstallCall) => {
-      installs.push(args)
+    installs: [],
+    calls: 0,
+    installGenerators: ({ moduleNames }: InstallGeneratorsArgs) => {
+      project.calls += 1
+      project.installs.push(...moduleNames.map(moduleName => ({ moduleName })))
+      return Promise.resolve()
     }
   }
+  return project
 }
 
 type FakeRoot = {
@@ -63,6 +70,8 @@ Deno.test('installHeadless - installs each generator with jsr: prefix', async ()
     { moduleName: 'jsr:@skmtc/gen-zod' },
     { moduleName: 'jsr:@skmtc/gen-tanstack-query' }
   ])
+  // One call for the whole command, not one per generator.
+  assertEquals(project.calls, 1)
   assertEquals(result.projectName, 'my-api')
   assertEquals(result.installed, ['@skmtc/gen-zod', '@skmtc/gen-tanstack-query'])
 })
@@ -104,9 +113,7 @@ Deno.test('installHeadless - surfaces underlying install error instead of swallo
   // empty" bug — Project.installGenerator now re-throws on failure so
   // installHeadless propagates it to the caller.
   const project = createFakeProject('my-api')
-  project.installGenerator = async () => {
-    throw new Error('JSR returned 404')
-  }
+  project.installGenerators = () => Promise.reject(new Error('JSR returned 404'))
   const root = createFakeRoot([project])
 
   await assertRejects(

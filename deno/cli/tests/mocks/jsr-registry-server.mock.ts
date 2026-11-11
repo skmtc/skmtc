@@ -192,7 +192,11 @@ export const withRegistryProject = async (
   )
   await Deno.writeTextFile(
     join(projectPath, 'worker.ts'),
-    toWorker(Object.keys(projectImports).filter(key => key.startsWith('@skmtc/gen-')))
+    toWorker({
+      generatorIds: Object.keys(projectImports).filter(key => key.startsWith('@skmtc/gen-')),
+      // The fixture pins @skmtc/worker 0.1.0, so its worker.ts imports that.
+      workerModule: '@skmtc/worker'
+    })
   )
   await Deno.writeTextFile(join(projectPath, 'bundle.js'), 'export default undefined\n')
   await Deno.writeTextFile(

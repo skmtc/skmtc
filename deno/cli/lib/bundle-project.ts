@@ -4,6 +4,7 @@ import type { Manager } from '@/lib/manager.ts'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { toWorker } from '@/lib/to-worker.ts'
 import { ensureWorkerDeps } from '@/lib/ensure-worker-deps.ts'
+import { toWorkerModule } from '@/lib/stack-core.ts'
 
 /** What a bundle build needs from a project. `Project` satisfies it. */
 export type BundleProject = {
@@ -28,19 +29,23 @@ export const writeWorker = async ({
 }: WriteWorkerArgs): Promise<string> => {
   const workerPath = join(projectPath, 'worker.ts')
 
+  // worker.ts imports `@skmtc/core` and the worker entry — neither is
+  // added by the clone import-collector (worker.ts is CLI-generated, not
+  // part of any cloned package). Pin them first, since the core pin
+  // decides which module the worker entry comes from, then persist so the
+  // `deno bundle` subprocess reads the updated import map.
+  if (await ensureWorkerDeps(rootDenoJson)) {
+    await rootDenoJson.write()
+  }
+
   await writeFileAtomic({
     projectPath,
     path: workerPath,
-    contents: toWorker(rootDenoJson.toGeneratorIds())
+    contents: toWorker({
+      generatorIds: rootDenoJson.toGeneratorIds(),
+      workerModule: toWorkerModule(rootDenoJson.contents.imports)
+    })
   })
-
-  // worker.ts imports `@skmtc/worker` and `@skmtc/core` — neither is
-  // added by the clone import-collector (worker.ts is CLI-generated,
-  // not part of any cloned package). Ensure both are pinned, then
-  // persist so the `deno bundle` subprocess reads the updated import map.
-  if (ensureWorkerDeps(rootDenoJson)) {
-    await rootDenoJson.write()
-  }
 
   return workerPath
 }

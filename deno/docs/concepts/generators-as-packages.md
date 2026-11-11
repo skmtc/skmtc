@@ -226,28 +226,32 @@ consuming project's pins. If `gen-x` is built against
 bundling will fail with cryptic `No matching export …` errors deep
 in `deno bundle` output.
 
-### The peer-pin check
+### The generators decide the core
 
-`skmtc clone` performs a pre-flight check that the cloned
-generator's `@skmtc/core` peer version matches the project's. On
-mismatch, it refuses with exit code 2 and a recipe error pointing at
-the canonical remediation. See
-[clone vs install](clone-vs-install.md#why-is-there-a-peer-pin-check-on-clone).
+A project runs one `@skmtc/core`, and its generators decide which
+one. The CLI's own core version does not matter.
 
-`skmtc doctor`'s `project-core-pin/<project>` check surfaces the
-same mismatch for already-installed setups.
+`skmtc install` and `skmtc clone` read the core range of each
+generator they add and of each generator that stays. Then they pin
+one exact core version that satisfies all of those ranges. If no
+version satisfies all of them, the command stops with exit code 2.
+It does not change `deno.json`, and it names each generator and the
+core that the generator needs. See
+[clone vs install](clone-vs-install.md#why-is-there-a-core-check-on-clone).
+
+`skmtc doctor`'s `project-core-pin/<project>` check reports a
+project whose core predates `@skmtc/core/worker` and differs from
+the CLI's core.
 
 ### Updating peer pins
 
-When a generator updates its `@skmtc/core` pin (e.g., from `^0.2.x`
-to `^0.3.x`), every project using the generator needs to:
-
-1. Update its own `@skmtc/core` pin in `deno.json`
-2. Run `skmtc generate` — it rebuilds the bundle against the new pin
-
-The CLI doesn't auto-update peer pins on `skmtc install` or
-`skmtc clone` — that would risk breaking the project's other
-generators. The user resolves peer-pin drift explicitly.
+When generators move to a new core minor, install all of them in one
+command, for example
+`skmtc install @skmtc/gen-zod @skmtc/gen-typescript my-api`. The
+command checks the new versions together, so the project core moves
+in one step. If you install the generators one at a time, each
+install conflicts with the generators that are still on the old
+core.
 
 ## JSR publishing
 

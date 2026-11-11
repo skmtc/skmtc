@@ -1,9 +1,10 @@
+import { assertEquals } from '@std/assert/equals'
 import { assertStringIncludes } from '@std/assert/string-includes'
 import { toWorker } from './to-worker.ts'
 
 Deno.test('toMod - generates server code with single generator', () => {
   const generatorIds = ['@skmtc/shadcn-ui']
-  const result = toWorker(generatorIds)
+  const result = toWorker({ generatorIds, workerModule: '@skmtc/worker' })
 
   assertStringIncludes(result, "import toWorker from '@skmtc/worker'")
   assertStringIncludes(result, "import skmtcShadcnUi from '@skmtc/shadcn-ui'")
@@ -13,7 +14,7 @@ Deno.test('toMod - generates server code with single generator', () => {
 
 Deno.test('toMod - generates server code with multiple generators', () => {
   const generatorIds = ['@skmtc/shadcn-ui', '@skmtc/msw', '@skmtc/tanstack-query']
-  const result = toWorker(generatorIds)
+  const result = toWorker({ generatorIds, workerModule: '@skmtc/worker' })
 
   console.log(result)
 
@@ -31,7 +32,7 @@ skmtcTanstackQuery].map(g => [g.id, g]))`
 
 Deno.test('toMod - handles generator IDs with hyphens correctly', () => {
   const generatorIds = ['@skmtc/my-custom-generator']
-  const result = toWorker(generatorIds)
+  const result = toWorker({ generatorIds, workerModule: '@skmtc/worker' })
 
   assertStringIncludes(result, "import toWorker from '@skmtc/worker'")
   // camelCase conversion should change @skmtc/my-custom-generator to skmtcMyCustomGenerator
@@ -44,7 +45,7 @@ Deno.test('toMod - handles generator IDs with hyphens correctly', () => {
 
 Deno.test('toMod - generates empty generators array when no generators provided', () => {
   const generatorIds: string[] = []
-  const result = toWorker(generatorIds)
+  const result = toWorker({ generatorIds, workerModule: '@skmtc/worker' })
 
   assertStringIncludes(result, "import toWorker from '@skmtc/worker'")
   assertStringIncludes(result, '() => Object.fromEntries([].map(g => [g.id, g]))')
@@ -52,14 +53,14 @@ Deno.test('toMod - generates empty generators array when no generators provided'
 
 Deno.test('toMod - generates correct Object.fromEntries mapping structure', () => {
   const generatorIds = ['@skmtc/zod']
-  const result = toWorker(generatorIds)
+  const result = toWorker({ generatorIds, workerModule: '@skmtc/worker' })
 
   assertStringIncludes(result, 'Object.fromEntries([skmtcZod].map(g => [g.id, g]))')
 })
 
 Deno.test('toMod - handles scoped packages correctly', () => {
   const generatorIds = ['@company/my-generator', '@other/another-gen']
-  const result = toWorker(generatorIds)
+  const result = toWorker({ generatorIds, workerModule: '@skmtc/worker' })
 
   assertStringIncludes(result, "import companyMyGenerator from '@company/my-generator'")
   assertStringIncludes(result, "import otherAnotherGen from '@other/another-gen'")
@@ -69,18 +70,26 @@ Deno.test('toMod - handles scoped packages correctly', () => {
 
 // Deno.test('toMod - includes logsPath: undefined in worker config', () => {
 //   const generatorIds = ['@skmtc/test']
-//   const result = toWorker(generatorIds)
+//   const result = toWorker({ generatorIds, workerModule: '@skmtc/worker' })
 
 //   assertStringIncludes(result, 'logsPath: undefined')
 // })
 
 Deno.test('toMod - exports default from toWorker', () => {
   const generatorIds = ['@skmtc/generator']
-  const result = toWorker(generatorIds)
+  const result = toWorker({ generatorIds, workerModule: '@skmtc/worker' })
 
   assertStringIncludes(result, 'export default toWorker')
 })
 
 Deno.test('toWorker - imports @skmtc/core so the project pin decides which core resolves', () => {
-  assertStringIncludes(toWorker(['@skmtc/msw']), "import '@skmtc/core'\n")
+  assertStringIncludes(toWorker({ generatorIds: ['@skmtc/msw'], workerModule: '@skmtc/worker' }), "import '@skmtc/core'\n")
+})
+
+Deno.test('toWorker - imports toWorker from the project core when it ships the worker entry', () => {
+  const result = toWorker({ generatorIds: ['@skmtc/msw'], workerModule: '@skmtc/core/worker' })
+
+  assertStringIncludes(result, "import toWorker from '@skmtc/core/worker'")
+  // The worker entry and the core pin are one package, so no @skmtc/worker import remains.
+  assertEquals(result.includes("'@skmtc/worker'"), false)
 })

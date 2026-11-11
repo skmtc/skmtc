@@ -11,7 +11,7 @@ import type { Project } from '@/lib/project.ts'
 import invariant from 'tiny-invariant'
 import { toBareSpecifiers, type SourceFile } from '@/lib/to-bare-specifiers.ts'
 import { Jsr } from '@/lib/jsr.ts'
-import { readCliCorePin, toMajorMinor } from '@/lib/doctor-headless.ts'
+import { readCoreRange, reconcileCorePin } from '@/lib/stack-core.ts'
 
 type GeneratorArgs = {
   projectName: string
@@ -31,9 +31,9 @@ type CloneArgs = {
   denoJson: RootDenoJson
   manager: Manager
   /**
-   * When `true`, bypass the pre-flight `@skmtc/core` peer-pin check
-   * that normally refuses to clone if the project's pin doesn't match
-   * the CLI's. Use this only when the operator has explicitly
+   * When `true`, skip the `@skmtc/core` check that refuses a clone
+   * whose generator needs a different core from the project's other
+   * generators. Use this only when the operator has explicitly
    * acknowledged the skew (e.g. a `--force` flag at the CLI level).
    */
   force?: boolean
@@ -42,26 +42,6 @@ type CloneArgs = {
 type CloneResult = {
   /** The concrete JSR version that was downloaded. */
   version: string
-}
-
-/**
- * Thrown by `Generator.clone` when the project's `@skmtc/core` pin
- * doesn't share a major.minor with the CLI's. Carries both pins and
- * a remediation hint so callers can emit a recipe-style error.
- */
-export class CorePinMismatchError extends Error {
-  readonly projectPin: string
-  readonly cliCorePin: string
-  readonly hint: string
-  constructor(args: { projectPin: string; cliCorePin: string; hint: string }) {
-    super(
-      `Project @skmtc/core pin "${args.projectPin}" doesn't match the CLI's "${args.cliCorePin}". ${args.hint}`
-    )
-    this.name = 'CorePinMismatchError'
-    this.projectPin = args.projectPin
-    this.cliCorePin = args.cliCorePin
-    this.hint = args.hint
-  }
 }
 
 type InstallArgs = {
@@ -176,45 +156,23 @@ export class Generator {
    * to the user (e.g. `skmtc clone … → @scope/pkg@0.0.55`).
    */
   async clone({ denoJson, manager, force }: CloneArgs): Promise<CloneResult> {
-    // Pre-flight: refuse to clone into a project whose @skmtc/core
-    // pin doesn't match the CLI's major.minor. Catches friction #3
-    // before it surfaces as a cryptic "No matching export" error
-    // during the next `bundle`. Same comparison heuristic doctor
-    // uses (`project-core-pin/<project>` check); we just run it
-    // earlier and refuse rather than warn.
-    if (!force) {
-      const cliCorePin = readCliCorePin()
-      const projectCoreValue = denoJson.contents.imports?.['@skmtc/core']
-      // Skip the check when either side is unreadable — the existing
-      // doctor check covers the same cases as warnings; refusing to
-      // clone on an unparseable pin would be more obstruction than
-      // help.
-      if (cliCorePin && typeof projectCoreValue === 'string') {
-        const match = projectCoreValue.match(/^jsr:@skmtc\/core@(.+)$/)
-        if (match) {
-          const projectPin = match[1]
-          const cliMajorMinor = toMajorMinor(cliCorePin)
-          const projectMajorMinor = toMajorMinor(projectPin)
-          if (
-            cliMajorMinor !== null &&
-            projectMajorMinor !== null &&
-            cliMajorMinor !== projectMajorMinor
-          ) {
-            throw new CorePinMismatchError({
-              projectPin,
-              cliCorePin,
-              hint:
-                `Update the project's "@skmtc/core" pin to "jsr:@skmtc/core@${cliCorePin}" ` +
-                `before cloning, or re-run with --force to skip this check. ` +
-                `Cloning over a mismatched pin produces a generator that won't bundle ` +
-                `against the project's core version.`
-            })
-          }
-        }
-      }
-    }
-
     const { files, version } = await Jsr.download(this)
+
+    // The generator stack decides the project's core (#333). The download
+    // is only in memory so far: plan the core pin for this version and the
+    // generators that stay, and stop before any file is written when no
+    // core fits them all.
+    if (!force) {
+      await reconcileCorePin({
+        denoJson,
+        adding: [
+          {
+            generatorId: this.toModuleName(),
+            range: await readCoreRange(JSON.parse(files['/deno.json'] ?? '{}'))
+          }
+        ]
+      })
+    }
 
     // Pin the local generator to the actual version we just pulled, so
     // subsequent `skmtc list` / `doctor` calls can report it accurately.

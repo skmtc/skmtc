@@ -93,7 +93,8 @@ reproducible installs across machines.
 A **derived file** — the CLI templates it from `deno.json#imports`:
 
 ```ts
-import toWorker from '@skmtc/worker'
+import '@skmtc/core'
+import toWorker from '@skmtc/core/worker' // '@skmtc/worker' on a core before 0.39.0
 import gen1 from '@skmtc/gen-zod'
 import gen2 from '@skmtc/gen-typescript'
 // ... one import per generator

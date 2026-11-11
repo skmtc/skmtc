@@ -208,19 +208,20 @@ Not directly. Each project's clone is its own copy under
 The clone-to-customize model assumes the clone is project-local. The
 "share across projects" path is publishing your customized version.
 
-### Why is there a peer-pin check on clone?
+### Why is there a core check on clone?
 
-`@skmtc/core` is the engine's public API. Generators are written
-against specific core versions. Cloning a generator built for a
-different `@skmtc/core` version than your project pins would produce
-a clone that fails to bundle with cryptic
-`No matching export … SnippetBase` errors deep in `deno bundle`
-output.
+`@skmtc/core` is the engine's public API, and each generator names
+the core range that it uses. One bundle holds one core. Sometimes no
+single core version satisfies the cloned generator and the project's
+generators. Then the bundle loads two copies of core, and generation
+writes empty files.
 
-The pre-flight check catches the mismatch at `skmtc clone` time —
-before any state mutation — and surfaces a recipe error with the
-canonical remediation. Override with `--force` only for intentional
-cross-version testing.
+`skmtc clone` reads the core range of the version it downloads and
+the ranges of the generators that stay. Then it pins one core
+version that satisfies all of them. If none does, it stops with exit
+code 2 before it writes any file, and it names each generator and
+the core it needs. Use `--force` to skip the check, but only for
+intentional cross-version testing.
 
 ### What does "customization seam" actually mean in source?
 
