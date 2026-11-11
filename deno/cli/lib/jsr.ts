@@ -71,6 +71,15 @@ type GetLatestVersionArgs = {
   semver: string
 }
 
+type GetVersionFileArgs = {
+  scopeName: string
+  packageName: string
+  /** An exact version: the registry serves files only under one. */
+  version: string
+  path: string
+  timeoutMs?: number
+}
+
 export class Jsr {
   static async getLatestMeta({
     scopeName,
@@ -127,6 +136,34 @@ export class Jsr {
     } catch {
       return undefined
     }
+  }
+
+  /**
+   * One file of a published version, such as its `deno.json`. `null` when
+   * the registry has no such file (a package published with `jsr.json`
+   * has no `deno.json`). Any other failure throws, naming the URL.
+   */
+  static async tryGetVersionFile({
+    scopeName,
+    packageName,
+    version,
+    path,
+    timeoutMs = 10_000
+  }: GetVersionFileArgs): Promise<string | null> {
+    const url = toJsrUrl(`${scopeName}/${packageName}/${version}/${path}`)
+    const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) })
+
+    if (res.status === 404) {
+      await res.body?.cancel()
+      return null
+    }
+
+    if (!res.ok) {
+      await res.body?.cancel()
+      throw new Error(`Could not read ${url}: ${res.status} ${res.statusText}.`)
+    }
+
+    return await res.text()
   }
 
   static async getLatestVersion({

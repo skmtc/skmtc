@@ -123,7 +123,7 @@ export const createReadOnlyBundle = async ({
     JSON.parse(await Deno.readTextFile(denoJsonPath)),
     `deno.json at ${denoJsonPath}`
   )
-  const workerModule = toWorkerModule(imports?.['@skmtc/core'])
+  const workerModule = toWorkerModule(imports)
   const neededPins = workerModule === '@skmtc/worker' ? ['@skmtc/worker', '@skmtc/core'] : ['@skmtc/core']
   const missingPins = neededPins.filter(name => imports?.[name] === undefined)
   if (missingPins.length > 0) {

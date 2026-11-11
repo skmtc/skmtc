@@ -43,7 +43,7 @@ export const writeWorker = async ({
     path: workerPath,
     contents: toWorker({
       generatorIds: rootDenoJson.toGeneratorIds(),
-      workerModule: toWorkerModule(rootDenoJson.contents.imports?.['@skmtc/core'])
+      workerModule: toWorkerModule(rootDenoJson.contents.imports)
     })
   })
 

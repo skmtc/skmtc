@@ -1,5 +1,5 @@
 import type { ClientSettings } from '@skmtc/core/Settings'
-import type { SerializableAttribution } from '@skmtc/worker/types'
+import type { SerializableAttribution } from '@skmtc/core/worker/types'
 import { toDocumentInput } from '@/lib/document-input.ts'
 import type { FileType } from '@/lib/types.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'

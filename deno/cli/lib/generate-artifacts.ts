@@ -1,5 +1,5 @@
 import type { ClientSettings } from '@skmtc/core/Settings'
-import type { SerializableAttribution } from '@skmtc/worker/types'
+import type { SerializableAttribution } from '@skmtc/core/worker/types'
 import { generateWithWorker } from './generate-worker.ts'
 import { generateWithServer } from './generate-server.ts'
 import type { GenerateResponse } from '@/types/generateResponse.ts'

@@ -10,7 +10,7 @@
  */
 
 import type { AnchorsSettings } from '@skmtc/core/Settings'
-import type { SerializableAttribution } from '@skmtc/worker/types'
+import type { SerializableAttribution } from '@skmtc/core/worker/types'
 
 export type ToAttributionPayloadArgs = {
   anchors: AnchorsSettings | undefined

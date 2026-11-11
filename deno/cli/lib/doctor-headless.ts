@@ -520,8 +520,6 @@ export const readCliLowerBound = (packageName: string): string | null => {
  */
 export const readCliCorePin = (): string | null => readCliLowerBound('@skmtc/core')
 
-/** The CLI's `@skmtc/worker` version, which `ensureWorkerDeps` pins. */
-export const readCliWorkerPin = (): string | null => readCliLowerBound('@skmtc/worker')
 
 /** The CLI's `@skmtc/server` version, which `ensureServerDeps` pins. */
 export const readCliServerPin = (): string | null => readCliLowerBound('@skmtc/server')
@@ -596,7 +594,7 @@ const checkProjectCorePin = (
   // The generator stack decides the core (#333). A core that ships the
   // worker entry runs whatever version the stack pins, so a CLI on another
   // core is fine; only an older stack still needs the CLI's core.
-  if (toWorkerModule(projectCoreValueRaw) === '@skmtc/core/worker') {
+  if (toWorkerModule({ '@skmtc/core': projectCoreValueRaw }) === '@skmtc/core/worker') {
     return {
       id: `project-core-pin/${projectName}`,
       status: 'ok',
@@ -849,8 +847,10 @@ const checkProjectWorkerPin = (
     }
   }
 
-  const corePin = imports['@skmtc/core']
-  if (typeof corePin === 'string' && toWorkerModule(corePin) === '@skmtc/core/worker') {
+  const stringImports = Object.fromEntries(
+    Object.entries(imports).flatMap(([key, value]) => (typeof value === 'string' ? [[key, value]] : []))
+  )
+  if (toWorkerModule(stringImports) === '@skmtc/core/worker') {
     return {
       id: `project-worker-pin/${projectName}`,
       status: 'ok',

@@ -1,4 +1,6 @@
-import { assertEquals } from '@std/assert'
+import { assertEquals, assertRejects } from '@std/assert'
+import { exists } from '@std/fs/exists'
+import { CoreConflictError } from '@/lib/stack-core.ts'
 import { join } from '@std/path/join'
 import { ensureDir } from '@std/fs/ensure-dir'
 import { homedir } from 'node:os'
@@ -355,4 +357,109 @@ Deno.test('Generator.clone - rewrites versioned imports to bare specifiers', asy
     Deno.chdir(prevCwd)
     await Deno.remove(tempRoot, { recursive: true })
   }
+})
+
+type CloneProjectArgs = {
+  imports: Record<string, string>
+  /** Extra files inside the project folder, by path relative to it. */
+  files?: Record<string, string>
+}
+
+type CloneProject = {
+  projectPath: string
+  denoJson: RootDenoJson
+  manager: Manager
+  generator: Generator
+}
+
+/** A project in a temp root, with fetch answering for the gen-fixture package. */
+const withCloneProject = async ({ imports, files = {} }: CloneProjectArgs, fn: (project: CloneProject) => Promise<void>) => {
+  const tempRoot = await Deno.makeTempDir({ prefix: 'skmtc-clone-', dir: homedir() })
+  const prevCwd = Deno.cwd()
+  const originalFetch = globalThis.fetch
+
+  try {
+    const projectName = 'clone-test'
+    const projectPath = join(tempRoot, '.skmtc', projectName)
+    await ensureDir(projectPath)
+    await Deno.writeTextFile(join(projectPath, 'deno.json'), JSON.stringify({ imports }))
+
+    for (const [path, content] of Object.entries(files)) {
+      await ensureDir(join(projectPath, path, '..'))
+      await Deno.writeTextFile(join(projectPath, path), content)
+    }
+
+    Deno.chdir(tempRoot)
+    globalThis.fetch = (input: string | URL | Request) => {
+      const url = input instanceof Request ? input.url : input.toString()
+      return Promise.resolve(toFixtureResponse(url))
+    }
+
+    const manager = new Manager()
+    const denoJson = await RootDenoJson.open(projectName, manager)
+    const generator = Generator.create({ projectName, scopeName: '@skmtc', packageName: 'gen-fixture', version: '0.2.8' })
+
+    await fn({ projectPath, denoJson, manager, generator })
+  } finally {
+    globalThis.fetch = originalFetch
+    Deno.chdir(prevCwd)
+    await Deno.remove(tempRoot, { recursive: true })
+  }
+}
+
+Deno.test('Generator.clone - pins the core the cloned version needs', async () => {
+  // gen-fixture 0.2.8 pins core 0.29.0 exactly; nothing else in the
+  // project names a core, so the project moves from 0.29.1 to 0.29.0.
+  await withCloneProject(
+    { imports: { '@skmtc/core': 'jsr:@skmtc/core@0.29.1', '@skmtc/gen-typescript': './gen-typescript/mod.ts' } },
+    async ({ denoJson, manager, generator }) => {
+      await generator.clone({ denoJson, manager })
+
+      assertEquals(denoJson.contents.imports?.['@skmtc/core'], 'jsr:@skmtc/core@0.29.0')
+      await manager.cleanup()
+    }
+  )
+})
+
+Deno.test('Generator.clone - refuses a version on another core and writes no files', async () => {
+  // The local gen-typescript is on core 0.28.0 exactly; gen-fixture needs
+  // 0.29.0. One bundle holds one core, so the clone stops.
+  await withCloneProject(
+    {
+      imports: { '@skmtc/core': 'jsr:@skmtc/core@0.28.0', '@skmtc/gen-typescript': './gen-typescript/mod.ts' },
+      files: {
+        'gen-typescript/deno.json': JSON.stringify({ imports: { '@skmtc/core': 'jsr:@skmtc/core@0.28.0' } })
+      }
+    },
+    async ({ projectPath, denoJson, manager, generator }) => {
+      const error = await assertRejects(() => generator.clone({ denoJson, manager }), CoreConflictError)
+
+      assertEquals(
+        error.requirements.map(({ generatorId }) => generatorId).sort(),
+        ['@skmtc/gen-fixture', '@skmtc/gen-typescript']
+      )
+      assertEquals(denoJson.contents.imports?.['@skmtc/core'], 'jsr:@skmtc/core@0.28.0')
+      // The download stayed in memory: no clone folder exists.
+      assertEquals(await exists(join(projectPath, 'gen-fixture')), false)
+      await manager.cleanup()
+    }
+  )
+})
+
+Deno.test('Generator.clone - --force skips the core check and keeps the pin', async () => {
+  await withCloneProject(
+    {
+      imports: { '@skmtc/core': 'jsr:@skmtc/core@0.28.0', '@skmtc/gen-typescript': './gen-typescript/mod.ts' },
+      files: {
+        'gen-typescript/deno.json': JSON.stringify({ imports: { '@skmtc/core': 'jsr:@skmtc/core@0.28.0' } })
+      }
+    },
+    async ({ projectPath, denoJson, manager, generator }) => {
+      await generator.clone({ denoJson, manager, force: true })
+
+      assertEquals(denoJson.contents.imports?.['@skmtc/core'], 'jsr:@skmtc/core@0.28.0')
+      assertEquals(await exists(join(projectPath, 'gen-fixture')), true)
+      await manager.cleanup()
+    }
+  )
 })

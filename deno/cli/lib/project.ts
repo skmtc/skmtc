@@ -13,7 +13,7 @@ import { Manifest } from '@/lib/manifest.ts'
 import type { Generator as GeneratorType } from '@/types/generator.ts'
 import { toServer } from './to-server.ts'
 import { writeWorker } from '@/lib/bundle-project.ts'
-import { readPublishedCoreRequirement, reconcileCorePin } from '@/lib/stack-core.ts'
+import { CoreConflictError, readPublishedCoreRange, reconcileCorePin } from '@/lib/stack-core.ts'
 import { ensureServerDeps } from './ensure-server-deps.ts'
 import { SKMTC_IGNORE_FILE, SKMTCIGNORE_TEMPLATE } from '@/lib/source-upload.ts'
 
@@ -49,6 +49,10 @@ type ConstructorArgs = {
 
 type InstallGeneratorArgs = {
   moduleName: string
+}
+
+type InstallGeneratorsArgs = {
+  moduleNames: string[]
 }
 
 type RemoveGeneratorArgs = {
@@ -203,45 +207,56 @@ export class Project {
   }
 
   async installGenerator({ moduleName }: InstallGeneratorArgs) {
+    const [generator] = await this.installGenerators({ moduleNames: [moduleName] })
+    return generator
+  }
+
+  /**
+   * Adds published generators to the project. The generator stack decides
+   * the project's core (#333): every generator's core range is read first,
+   * together with the ranges of the generators that stay, and the core pin
+   * moves to one version that satisfies them all. When none does, this
+   * throws `CoreConflictError` before deno.json changes, so a command that
+   * moves several generators to a new core works in one step and a failed
+   * one writes nothing.
+   */
+  async installGenerators({ moduleNames }: InstallGeneratorsArgs) {
     try {
-      const { scopeName, packageName, version } = parseModuleName(moduleName)
+      const generators = await Promise.all(
+        moduleNames.map(async moduleName => {
+          const { scopeName, packageName, version } = parseModuleName(moduleName)
 
-      // invariant(scheme === 'jsr', 'Only JSR registry generators are supported')
-      invariant(scopeName, 'Scope name is required')
+          invariant(scopeName, 'Scope name is required')
 
-      const resolvedVersion = version ?? (await Jsr.getLatestMeta({ scopeName, packageName })).latest
+          const resolvedVersion = version ?? (await Jsr.getLatestMeta({ scopeName, packageName })).latest
 
-      const generator = Generator.fromName({
-        projectName: this.name,
-        scopeName,
-        packageName,
-        version: resolvedVersion
-      })
+          const generator = Generator.fromName({
+            projectName: this.name,
+            scopeName,
+            packageName,
+            version: resolvedVersion
+          })
 
-      // The generator stack decides the project's core (#333): pin the
-      // core this version needs, or stop before deno.json changes when the
-      // project's other generators run on a different one.
-      reconcileCorePin({
-        denoJson: this.rootDenoJson,
-        generatorId: generator.toModuleName(),
-        requirement: await readPublishedCoreRequirement({
-          scopeName,
-          packageName,
-          version: resolvedVersion
+          return { generator, range: await readPublishedCoreRange(generator.toFullName()) }
         })
+      )
+
+      await reconcileCorePin({
+        denoJson: this.rootDenoJson,
+        adding: generators.map(({ generator, range }) => ({ generatorId: generator.toModuleName(), range }))
       })
 
-      generator.install({ denoJson: this.rootDenoJson })
+      generators.forEach(({ generator }) => generator.install({ denoJson: this.rootDenoJson }))
 
       await this.rootDenoJson.write()
 
-      return generator
+      return generators.map(({ generator }) => generator)
     } catch (error) {
-      console.error(error)
-
-      // Sentry.captureException(error)
-
-      // await Sentry.flush()
+      // A core conflict is reported by the command, as a recipe; logging it
+      // here too would print it twice.
+      if (!(error instanceof CoreConflictError)) {
+        console.error(error)
+      }
 
       throw error
     } finally {

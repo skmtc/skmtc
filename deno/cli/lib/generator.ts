@@ -11,7 +11,7 @@ import type { Project } from '@/lib/project.ts'
 import invariant from 'tiny-invariant'
 import { toBareSpecifiers, type SourceFile } from '@/lib/to-bare-specifiers.ts'
 import { Jsr } from '@/lib/jsr.ts'
-import { reconcileCorePin, toCoreRequirementFromDenoJson } from '@/lib/stack-core.ts'
+import { readCoreRange, reconcileCorePin } from '@/lib/stack-core.ts'
 
 type GeneratorArgs = {
   projectName: string
@@ -159,13 +159,18 @@ export class Generator {
     const { files, version } = await Jsr.download(this)
 
     // The generator stack decides the project's core (#333). The download
-    // is only in memory so far: stop before any file is written when this
-    // version needs a core the project's other generators don't run on.
+    // is only in memory so far: plan the core pin for this version and the
+    // generators that stay, and stop before any file is written when no
+    // core fits them all.
     if (!force) {
-      reconcileCorePin({
+      await reconcileCorePin({
         denoJson,
-        generatorId: this.toModuleName(),
-        requirement: toCoreRequirementFromDenoJson(JSON.parse(files['/deno.json'] ?? '{}'))
+        adding: [
+          {
+            generatorId: this.toModuleName(),
+            range: await readCoreRange(JSON.parse(files['/deno.json'] ?? '{}'))
+          }
+        ]
       })
     }
 

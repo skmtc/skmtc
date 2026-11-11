@@ -3,7 +3,7 @@ import { describeHeadless } from '@/lib/describe-headless.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { createMockProject } from '@/tests/mocks/project.mock.ts'
 import { mockClientJsonContents } from '@/tests/fixtures/client-json.fixture.ts'
-import type { DescribePayload } from '@skmtc/worker/types'
+import type { DescribePayload } from '@skmtc/core/worker/types'
 
 const OriginalWorker = globalThis.Worker
 

@@ -83,11 +83,7 @@ export class RootDenoJson {
       })
     }
 
-    if (this.contents.imports) {
-      this.contents.imports = Object.fromEntries(
-        Object.entries(this.contents.imports).filter(([key]) => key !== moduleName)
-      )
-    }
+    this.removeImport(moduleName)
 
     if (isLocal && this.contents.workspace) {
       const generatorPath = generator.toPath({ relative: true })

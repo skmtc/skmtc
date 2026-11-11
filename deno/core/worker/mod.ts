@@ -63,23 +63,6 @@ const buildAttributionState = (
 }
 
 /**
- * Worker entry that runs the SKMTC code-generation pipeline in a
- * background thread.
- *
- * The worker accepts a single `GENERATE` message whose payload carries
- * a {@link SkmtcDocumentInput} `document` field. `toArtifacts` runs the
- * protocol-specific parse step inside the pipeline based on
- * `document.type` — the worker itself doesn't branch on protocol.
- *
- * `parseIssues` are nested inside the manifest now; the worker forwards
- * the manifest as-is and no separate field travels on the wire.
- *
- * When `payload.attribution.postPass` is set, the worker also
- * reconstitutes the full `AttributionState` (with `oxcAdapter` + a
- * lookup fn rebuilt from the plain `generatorMeta` map) and forwards
- * the resulting `sidecars` + `generationMap` in the RESULT message.
- */
-/**
  * The parts of a Web Worker's global scope that `toWorker` uses. Core is
  * type-checked with the window lib, where `self` has no `postMessage` or
  * `onmessage`, so the worker scope is narrowed from `globalThis` at runtime.
@@ -104,6 +87,23 @@ const toWorkerScope = (): WorkerScope => {
   return globalScope
 }
 
+/**
+ * Worker entry that runs the SKMTC code-generation pipeline in a
+ * background thread.
+ *
+ * The worker accepts a single `GENERATE` message whose payload carries
+ * a {@link SkmtcDocumentInput} `document` field. `toArtifacts` runs the
+ * protocol-specific parse step inside the pipeline based on
+ * `document.type` — the worker itself doesn't branch on protocol.
+ *
+ * `parseIssues` are nested inside the manifest now; the worker forwards
+ * the manifest as-is and no separate field travels on the wire.
+ *
+ * When `payload.attribution.postPass` is set, the worker also
+ * reconstitutes the full `AttributionState` (with `oxcAdapter` + a
+ * lookup fn rebuilt from the plain `generatorMeta` map) and forwards
+ * the resulting `sidecars` + `generationMap` in the RESULT message.
+ */
 const toWorker = (
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 ) => {
