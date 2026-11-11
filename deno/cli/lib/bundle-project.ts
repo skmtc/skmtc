@@ -34,7 +34,7 @@ export const writeWorker = async ({
   // part of any cloned package). Pin them first, since the core pin
   // decides which module the worker entry comes from, then persist so the
   // `deno bundle` subprocess reads the updated import map.
-  if (ensureWorkerDeps(rootDenoJson)) {
+  if (await ensureWorkerDeps(rootDenoJson)) {
     await rootDenoJson.write()
   }
 

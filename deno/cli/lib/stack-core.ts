@@ -1,3 +1,4 @@
+import { compare } from '@std/semver/compare'
 import { greaterOrEqual } from '@std/semver/greater-or-equal'
 import { tryParse } from '@std/semver/try-parse'
 import { toJsrUrl } from '@/lib/jsr-registry.ts'
@@ -90,6 +91,63 @@ const satisfies = ({ projectVersion, requirement }: SatisfiesArgs): boolean => {
   return (
     project.major === needed.major && project.minor === needed.minor && greaterOrEqual(project, needed)
   )
+}
+
+/** How many `@skmtc/worker` versions, newest first, {@link findWorkerVersionForCore} reads. */
+const WORKER_SEARCH_LIMIT = 40
+
+type WorkerMeta = {
+  versions: Record<string, { yanked?: boolean }>
+}
+
+const isWorkerMeta = (value: unknown): value is WorkerMeta =>
+  typeof value === 'object' &&
+  value !== null &&
+  'versions' in value &&
+  typeof value.versions === 'object' &&
+  value.versions !== null
+
+/**
+ * The newest published `@skmtc/worker` version that runs on `coreVersion`,
+ * for a stack whose core predates `@skmtc/core/worker`. The CLI's own
+ * worker pin follows the CLI's core, so it can't serve a stack on another
+ * core. `null` when no recent worker version matches.
+ */
+export const findWorkerVersionForCore = async (coreVersion: string): Promise<string | null> => {
+  const metaUrl = toJsrUrl('@skmtc/worker/meta.json')
+  const metaResponse = await fetch(metaUrl)
+
+  if (!metaResponse.ok) {
+    await metaResponse.body?.cancel()
+    throw new Error(`Could not read ${metaUrl}: ${metaResponse.status} ${metaResponse.statusText}.`)
+  }
+
+  const meta: unknown = await metaResponse.json()
+
+  if (!isWorkerMeta(meta)) {
+    throw new Error(`${metaUrl} does not list versions.`)
+  }
+
+  const candidates = Object.entries(meta.versions)
+    .filter(([, info]) => info.yanked !== true)
+    .map(([version]) => ({ version, parsed: tryParse(version) }))
+    .flatMap(({ version, parsed }) => (parsed === undefined ? [] : [{ version, parsed }]))
+    .sort((a, b) => compare(b.parsed, a.parsed))
+    .slice(0, WORKER_SEARCH_LIMIT)
+
+  for (const { version } of candidates) {
+    const requirement = await readPublishedCoreRequirement({
+      scopeName: '@skmtc',
+      packageName: 'worker',
+      version
+    })
+
+    if (requirement !== null && satisfies({ projectVersion: coreVersion, requirement })) {
+      return version
+    }
+  }
+
+  return null
 }
 
 type ReadPublishedCoreArgs = {
