@@ -133,7 +133,7 @@ const toWorker = (
       })
   }
 
-  scope.onmessage = async (e: MessageEvent) => {
+  scope.onmessage = (e: MessageEvent) => {
     // Boundary cast of the structured-clone payload, as elsewhere in
     // this handler. `message` is the discriminated union; `rawType` is
     // captured separately so the malformed-message `default` can report
