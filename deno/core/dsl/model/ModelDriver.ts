@@ -331,38 +331,6 @@ const stitchModelImport = ({ context, lang, identifier, exportPath, destinationP
   })
 }
 
-/**
- * Whether `projection`'s model for `refName` is pending: its projection is
- * being constructed further up the stack, so a reference to it now is a
- * back-reference, which {@link toModelRef} returns suspended. Answered from
- * the model's File, as the cache probe is.
- */
-export const isModelPending = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
-  args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
-): boolean => {
-  const found = toReferencedDefinition(args)
-
-  return found !== undefined && found.isPending()
-}
-
-/**
- * Whether a reference to `projection`'s model for `refName`, made now, is
- * deferred: the model is pending (a reference back), or it reached a model
- * that is still pending (the reference is inside a cycle). This is what
- * {@link toModelRef} reports as `suspended` or `inCycle`.
- */
-export const isReferenceDeferred = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
-  args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
-): boolean => {
-  const found = toReferencedDefinition(args)
-
-  if (found === undefined) {
-    return false
-  }
-
-  return found.isPending() || toOpenReaches(found).length > 0
-}
-
 /** The models `definition`'s construction reached that are still pending. */
 const toOpenReaches = (definition: DefinitionBase): PendingDefinition[] =>
   [...(definition.reaches ?? [])].filter(reached => reached.pending)
@@ -385,18 +353,6 @@ export const isReferencedBack = ({ context, settings }: IsReferencedBackArgs): b
 type IsReferencedBackArgs = {
   context: GenerateContextType
   settings: { identifier: { name: string }; exportPath: string }
-}
-
-/** What the File holds for the model a reference names: its Definition, its pending marker, or nothing. */
-const toReferencedDefinition = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
-  args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
-): DefinitionBase | PendingDefinition | undefined => {
-  const settings = toReferencedSettings(args)
-
-  return args.context.findDefinition({
-    name: settings.identifier.name,
-    exportPath: settings.exportPath
-  })
 }
 
 const toReferencedSettings = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
