@@ -404,6 +404,45 @@ Deno.test('writeGeneratedFiles - skips rewriting a file whose content is unchang
   }
 })
 
+Deno.test('writeGeneratedFiles - a failed run keeps the previous files and manifest', async () => {
+  const tempDir = await Deno.makeTempDir()
+  const originalCwd = Deno.cwd()
+  try {
+    Deno.chdir(tempDir)
+    const manifestPath = join(tempDir, 'manifest.json')
+    const artifactPath = join(tempDir, 'out.ts')
+
+    writeGeneratedFiles({
+      manifestPath,
+      artifacts: { 'out.ts': 'export const a = 1\n' },
+      manifest: manifestFor('out.ts')
+    })
+    const previousManifest = Deno.readTextFileSync(manifestPath)
+
+    // The engine returns no artifacts for a failed run, and one RUN_FAILED issue.
+    const failed = v.parse(manifestContent, {
+      ...createManifest({}),
+      parseIssues: [
+        {
+          protocol: 'oas',
+          level: 'error',
+          type: 'RUN_FAILED',
+          location: 'toArtifacts:generate',
+          message: 'generate phase failed: Generation failed for 1 subject(s)'
+        }
+      ]
+    })
+
+    writeGeneratedFiles({ manifestPath, artifacts: {}, manifest: failed })
+
+    assertEquals(Deno.readTextFileSync(artifactPath), 'export const a = 1\n')
+    assertEquals(Deno.readTextFileSync(manifestPath), previousManifest)
+  } finally {
+    Deno.chdir(originalCwd)
+    await Deno.remove(tempDir, { recursive: true })
+  }
+})
+
 Deno.test('writeGeneratedFiles - rewrites a file whose content changed', async () => {
   const tempDir = await Deno.makeTempDir()
   const originalCwd = Deno.cwd()
