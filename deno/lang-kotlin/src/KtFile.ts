@@ -1,5 +1,11 @@
 import { CodeFileBase, matchDefinitions } from '@skmtc/core'
-import type { ClientSettings, DefinitionBase, ImportBase, ReExportBase } from '@skmtc/core'
+import type {
+  ClientSettings,
+  DefinitionBase,
+  ImportBase,
+  PendingDefinition,
+  ReExportBase
+} from '@skmtc/core'
 import { KtImport } from './KtImport.ts'
 import { KtIdentifier } from './KtIdentifier.ts'
 import type { KtEntityType } from './createIdentifier.ts'
@@ -51,8 +57,12 @@ export class KtFile extends CodeFileBase {
   /** Threaded into package derivation and same-package suppression. */
   settings: ClientSettings | undefined
 
-  /** Definitions keyed by identifier name (first write wins; Kotlin has no declaration merging). */
-  definitions: Map<string, DefinitionBase> = new Map()
+  /**
+   * Definitions keyed by identifier name (first write wins; Kotlin has no
+   * declaration merging). A model's name holds its pending entry while its
+   * projection is constructed, then its Definition ({@link addDefinition}).
+   */
+  definitions: Map<string, DefinitionBase | PendingDefinition> = new Map()
 
   /** Imports keyed by {@link ImportBase.mergeKey}. */
   imports: Map<string, ImportBase> = new Map()
@@ -66,10 +76,58 @@ export class KtFile extends CodeFileBase {
     this.settings = settings
   }
 
-  override addDefinition(definition: DefinitionBase): void {
-    if (!this.definitions.has(definition.identifier.name)) {
-      this.definitions.set(definition.identifier.name, definition)
+  /**
+   * The first Definition for a name wins. A model's pending entry takes the
+   * name before its projection is constructed, and does not render. The
+   * model's Definition then replaces it and moves to the end of the map, so
+   * it renders after the models its constructor added.
+   */
+  override addDefinition(entry: DefinitionBase | PendingDefinition): void {
+    const name = entry.identifier.name
+    const current = this.definitions.get(name)
+
+    if (current === undefined) {
+      this.definitions.set(name, entry)
+
+      return
     }
+
+    // The Driver looks a model up before it marks it pending: a pending entry
+    // for a taken name is an engine bug.
+    if (entry.isPending()) {
+      throw new Error(`'${name}' already has a declaration in '${this.path}'`)
+    }
+
+    if (current.isPending()) {
+      if (current.generatorKey !== entry.generatorKey) {
+        throw new Error(
+          `Registered definition mismatch: '${name}' in file '${this.path}'. Pending key '${current.generatorKey}' does not match new key '${entry.generatorKey}'`
+        )
+      }
+
+      this.definitions.delete(name)
+      this.definitions.set(name, entry)
+    }
+  }
+
+  override removePendingDefinition(pending: PendingDefinition): void {
+    if (this.definitions.get(pending.identifier.name) === pending) {
+      this.definitions.delete(pending.identifier.name)
+    }
+  }
+
+  override findPendingDefinitions(name?: string): PendingDefinition[] {
+    return [...this.definitions.values()].filter(
+      (entry): entry is PendingDefinition =>
+        entry.isPending() && (name === undefined || entry.identifier.name === name)
+    )
+  }
+
+  /** The Definitions in the order they were added, leaving out pending entries. */
+  #constructedDefinitions(): DefinitionBase[] {
+    return [...this.definitions.values()].filter(
+      (entry): entry is DefinitionBase => !entry.isPending()
+    )
   }
 
   override addImports(incoming: ImportBase[]): void {
@@ -92,7 +150,7 @@ export class KtFile extends CodeFileBase {
     name?: string
     type?: KtEntityType
   }): DefinitionBase[] | undefined {
-    return matchDefinitions([...this.definitions.values()], query, identifier =>
+    return matchDefinitions(this.#constructedDefinitions(), query, identifier =>
       identifier instanceof KtIdentifier ? identifier.type : undefined
     )
   }
@@ -114,7 +172,7 @@ export class KtFile extends CodeFileBase {
       })
       .sort()
 
-    const definitions = Array.from(this.definitions.values())
+    const definitions = this.#constructedDefinitions()
       .map(definition => definition.toString())
       .join('\n\n')
 
