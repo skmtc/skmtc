@@ -19,7 +19,6 @@ import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 import type { OasOperationProjectionConstructorArgs } from '@/dsl/operation/oas/types.ts'
 import type { OasOperationContainerConstructorArgs } from '@/dsl/operation/oas/toOasOperationContainerBase.ts'
 import type { EmptyEnrichments } from '@/types/Enrichments.ts'
-import { assertNotPending } from '@/dsl/PendingDefinition.ts'
 
 const mockLogger: log.Logger = {
   debug: () => {},
@@ -259,11 +258,7 @@ Deno.test('a container applies a duplication rule, as a file does', () => {
   context.insertOperation({ projection: ServiceMethod, operation: getUsers })
 
   const path = '@/api/UsersApi.generated.ts'
-  // A container is never pending: only a model is.
-  const container = assertNotPending(context.findDefinition({ name: 'UsersService', exportPath: path }), {
-    name: 'UsersService',
-    exportPath: path
-  })
+  const container = context.findDefinition({ name: 'UsersService', exportPath: path })
 
   // A second definition of a member already present — what a caller using
   // `register({ into })` without a preceding lookup produces. A file

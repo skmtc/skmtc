@@ -1,90 +1,61 @@
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
-import type { DefinitionBase } from '@/dsl/Definition.ts'
 
 type PendingDefinitionArgs = {
   identifier: IdentifierBase
+  exportPath: string
   generatorKey: GeneratorKey
   options: unknown
+  projection: unknown
 }
 
 /**
- * A model whose projection is being constructed: the pending state of a
- * Definition. `findDefinition` returns `DefinitionBase | PendingDefinition`,
- * as a schema lookup returns `OasSchema | OasRef`, and `isPending()` tells
- * the two apart, as `isRef()` does.
+ * A model whose projection is being constructed. The `ModelDriver` pushes it
+ * onto the context's `pendingStack` before it runs the projection's
+ * constructor, and pops it however the constructor ends, so the stack holds
+ * exactly the models under construction. The model's File does not see it:
+ * the Driver adds the Definition when the constructor returns.
  *
- * The `ModelDriver` adds it to the model's File (`addDefinition`) before it
- * runs the projection's constructor. When the constructor returns, the Driver
- * adds the Definition, which replaces the pending entry; if the
- * constructor throws, the entry is taken out (`removePendingDefinition`).
- *
- * An insert of the model from inside that constructor (a cycle: the model
- * refers to itself, or to a model that refers back to it) finds this marker
- * instead of a cache miss. It gets the model's identity, which is all a
- * reference by name needs, and no value: the value does not exist yet. A
- * second projection for the model is never constructed.
- *
- * The entry goes into the File's Definitions before the constructor runs,
- * and does not render. The Definition that replaces it takes its place at the
- * end, after the models the constructor added (post-order), which keeps
- * `const` declarations in one file in a working order. A pending entry left
- * at render is an engine bug, and fails the run.
+ * A reference to the model from inside that constructor (a cycle: the model
+ * refers to itself, or to a model that refers back to it) finds this entry,
+ * not a cache miss. `toModelRef` returns it suspended: the reference gets the
+ * model's identity, which is all a reference by name needs, and no value,
+ * which does not exist yet. A second projection for the model is never
+ * constructed.
  */
 export class PendingDefinition {
   identifier: IdentifierBase
-  /** The key the Definition will carry: the identity check runs on the marker too. */
+  /** The file the Definition will go to, normalized. */
+  exportPath: string
+  /** The key the Definition will carry: the identity check runs on the entry too. */
   generatorKey: GeneratorKey
   /** The caller's options the projection is constructed with: identity, like the key. */
   options: unknown
-  /** How many inserts found the model pending: references back to it from inside its own construction. */
+  /** The projection class being constructed: another class under this name and file is a clash. */
+  projection: unknown
+  /** How many references found the model under construction: references back to it. */
   backReferences = 0
   /** True while the projection's constructor runs; false once it returned, however it returned. */
   pending = true
   /**
-   * The models this model's construction reached while they were pending:
-   * the targets of its references back, and what the models it refers to
-   * reached. When the constructor returns, the Driver hands the set to the
-   * Definition (`DefinitionBase.reaches`).
+   * The models this model's construction reached while they were under
+   * construction: the targets of its references back, and what the models it
+   * refers to reached. When the constructor returns, the Driver hands the set
+   * to the Definition (`DefinitionBase.reaches`).
    */
   reaches: Set<PendingDefinition> = new Set()
 
-  constructor({ identifier, generatorKey, options }: PendingDefinitionArgs) {
+  constructor({
+    identifier,
+    exportPath,
+    generatorKey,
+    options,
+    projection
+  }: PendingDefinitionArgs) {
     this.identifier = identifier
+    this.exportPath = exportPath
     this.generatorKey = generatorKey
     this.options = options
+    this.projection = projection
   }
-
-  /** True: the model's projection is being constructed, so there is no value yet. */
-  isPending(): this is PendingDefinition {
-    return true
-  }
-}
-
-type AssertNotPendingArgs = {
-  name: string
-  exportPath: string
-}
-
-/**
- * `found`, where only a constructed Definition can serve: an operation's
- * Definition, an inline model, a container. Only a model is ever pending, so
- * a pending one here shares the name and file of a model being constructed:
- * a clash, which throws.
- */
-export const assertNotPending = (
-  found: DefinitionBase | PendingDefinition | undefined,
-  { name, exportPath }: AssertNotPendingArgs
-): DefinitionBase | undefined => {
-  if (found === undefined) {
-    return undefined
-  }
-
-  if (found.isPending()) {
-    throw new Error(
-      `Registered definition mismatch: '${name}' in file '${exportPath}' is a model being constructed (key '${found.generatorKey}').`
-    )
-  }
-
-  return found
 }

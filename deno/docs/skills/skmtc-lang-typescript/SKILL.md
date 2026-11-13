@@ -92,8 +92,7 @@ two statics: `schemaToValueFn` (your router) and `createIdentifier`.
 Free functions for transform-level code: `register(context, args)`;
 `defineAndRegister(context, { identifier, value, destinationPath })` —
 no cache check (pair with `context.findDefinition` for the accumulator
-get-or-create idiom; it can also return a model's pending entry, so
-narrow with `isPending()` before reading `.value`). Args:
+get-or-create idiom). Args:
 `{ imports?: Record<module, ImportNameArg[]>, reExports?, definitions?,
 custom? }`. `register` creates the file on first write and drops
 self-imports, so register imports unconditionally — per-leaf
@@ -174,8 +173,7 @@ Render order: custom banner → re-exports → imports → definitions;
 first-wins per definition slot makes output order-independent.
 Definitions render in the order they were added, a model's when its
 constructor returned, so a `const` lands after the models it refers
-to. While a model's projection is constructed, its slot holds a
-pending entry that does not render. You
+to. You
 almost never construct `TsFile`/`TsImport`/`TsDefinition` yourself —
 `register` and the Drivers do.
 

@@ -100,10 +100,9 @@ functions that return strings — helpers drift.
   dependencies. Generator order does not affect output; never propose
   ordering, priorities, or a pre-generation pass. On a peer reference the Driver probes
   `findDefinition`; hit → reuse (constructor never runs) + auto-stitched
-  import; miss → construct recursively. While a model's projection is
-  constructed, `findDefinition` returns the model's pending entry
-  (narrow with `isPending()`); a reference back to it, from inside a
-  cycle, goes through `toModelRef` (see skmtc-model). So: never hardcode a peer's name
+  import; miss → construct recursively. A reference back to a model whose
+  projection is still being constructed (a cycle) goes through
+  `toModelRef` (see skmtc-model). So: never hardcode a peer's name
   or path — insert and read the result, minding the two return shapes:
   `insertModel(Peer, refName)` returns an **Inserted handle** (name via
   `.toName()`, definition via `.definition`), while
@@ -117,8 +116,7 @@ functions that return strings — helpers drift.
   entry calls `insertModel`/`insertOperation`) and accumulator (many
   subjects append into one definition — entry does
   `context.findDefinition(...) ?? defineAndRegister(context, {...})`
-  then mutates the container value, after `isPending()` rules out a
-  pending entry; the sanctioned exception to "no
+  then mutates the container value; the sanctioned exception to "no
   methods beyond constructor and toString"). `defineAndRegister` is a
   **lang-package free function** (import it from your lang package) —
   there is no `context.defineAndRegister`; that API was deleted.

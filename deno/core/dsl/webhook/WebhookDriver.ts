@@ -11,7 +11,6 @@ import type { GenerateContextType, InsertWebhookArgs } from '@/context/generateT
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 import { readProjectionOptions, toValueOptions } from '@/types/ProjectionOptions.ts'
 import isEqual from 'lodash-es/isEqual'
-import { assertNotPending } from '@/dsl/PendingDefinition.ts'
 
 /**
  * The `insertWebhook` call plus the context. The Driver defaults `variant`
@@ -134,10 +133,7 @@ export class WebhookDriver<
   }
 
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): DefinitionBase<V> {
-    const cachedDefinition = assertNotPending(
-      this.context.findDefinition({ name: identifier.name, exportPath }),
-      { name: identifier.name, exportPath }
-    )
+    const cachedDefinition = this.context.findDefinition({ name: identifier.name, exportPath })
 
     if (this.affirmDefinition<V>(cachedDefinition, exportPath)) {
       return cachedDefinition

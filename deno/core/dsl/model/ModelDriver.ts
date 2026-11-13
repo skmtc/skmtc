@@ -140,20 +140,26 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
       variant: this.settings.variant
     })
 
-    // One lookup: a constructed Definition, or the pending marker of a model
-    // whose projection is being constructed further up the stack.
+    const pending = findPending({ context: this.context, name: identifier.name, exportPath })
+
+    if (pending !== undefined) {
+      assertSamePending({
+        pending,
+        name: identifier.name,
+        exportPath,
+        generatorKey,
+        options: this.options,
+        projection: this.projection
+      })
+
+      throw new Error(
+        `'${identifier.name}' in file '${exportPath}' is being constructed further up the stack. A reference back to it goes through toModelRef, which returns it suspended; a second projection would never finish.`
+      )
+    }
+
     const found = this.context.findDefinition({ name: identifier.name, exportPath })
 
     if (found !== undefined) {
-      if (found.isPending()) {
-        assertSameKey({ name: identifier.name, exportPath, cachedKey: found.generatorKey, generatorKey })
-        assertSameOptions({ name: identifier.name, exportPath, cachedOptions: found.options, options: this.options })
-
-        throw new Error(
-          `'${identifier.name}' in file '${exportPath}' is being constructed further up the stack. A reference back to it goes through toModelRef, which returns it suspended; a second projection would never finish.`
-        )
-      }
-
       if (this.affirmDefinition<V>(found, exportPath)) {
         return found
       }
@@ -163,22 +169,28 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
       )
     }
 
-    // The model's entry in the File is pending while the constructor runs:
-    // an insert of this model from inside it (a cycle) finds the entry, not a
-    // cache miss. When the constructor returns, the Definition takes its slot,
-    // and renders after the models it refers to.
-    const file = this.ensureCodeFile(exportPath)
-    const marker = new PendingDefinition({ identifier, generatorKey, options: this.options })
+    // While the constructor runs, the model is on the context's pending
+    // stack: an insert of it from inside the constructor (a cycle) finds it
+    // there, not a cache miss.
+    const marker = new PendingDefinition({
+      identifier,
+      exportPath: normalizeWorkspacePath(exportPath),
+      generatorKey,
+      options: this.options,
+      projection: this.projection
+    })
 
-    const value = whilePending({ context: this.context, file, marker }, () =>
-      new this.projection({
-        refName: this.refName,
-        context: this.context,
-        settings: this.settings,
-        destinationPath: this.settings.exportPath,
-        rootRef: this.rootRef,
-        options: this.options
-      })
+    const value = whilePending(
+      { context: this.context, marker },
+      () =>
+        new this.projection({
+          refName: this.refName,
+          context: this.context,
+          settings: this.settings,
+          destinationPath: this.settings.exportPath,
+          rootRef: this.rootRef,
+          options: this.options
+        })
     )
 
     const definition = this.projection.lang.toDefinition({
@@ -189,8 +201,20 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
     })
     definition.reaches = marker.reaches
 
-    // The Definition takes the slot of the pending entry.
-    file.addDefinition(definition)
+    // Added once the constructor returned, so the Definition renders after
+    // the models it refers to, and a constructor that throws adds no file.
+    const taken = this.context.findDefinition({ name: identifier.name, exportPath })
+
+    if (taken !== undefined) {
+      assertSameKey({
+        name: identifier.name,
+        exportPath,
+        cachedKey: taken.generatorKey,
+        generatorKey
+      })
+    }
+
+    this.ensureCodeFile(exportPath).addDefinition(definition)
 
     return definition
   }
@@ -257,7 +281,12 @@ type AssertSameOptionsArgs = {
 }
 
 /** One name in one file built with other caller options collides too: options are identity. */
-const assertSameOptions = ({ name, exportPath, cachedOptions, options }: AssertSameOptionsArgs): void => {
+const assertSameOptions = ({
+  name,
+  exportPath,
+  cachedOptions,
+  options
+}: AssertSameOptionsArgs): void => {
   if (!isEqual(cachedOptions, options)) {
     throw new Error(
       `Registered definition mismatch: '${name}' in file '${exportPath}'. Cached options ${JSON.stringify(cachedOptions)} do not match new options ${JSON.stringify(options)}. Fold options into toIdentifierName.`
@@ -267,29 +296,71 @@ const assertSameOptions = ({ name, exportPath, cachedOptions, options }: AssertS
 
 type WhilePendingArgs = {
   context: GenerateContextType
-  file: CodeFileBase
   marker: PendingDefinition
 }
 
-/**
- * Run `construct` with `marker` as a pending entry in `file` and on top of
- * the context's pending stack. The stack is popped however `construct` ends;
- * the entry is taken out if it throws, and otherwise stays for the Driver to
- * resolve into the Definition.
- */
-const whilePending = <T>({ context, file, marker }: WhilePendingArgs, construct: () => T): T => {
-  file.addDefinition(marker)
+/** Run `construct` with `marker` on top of the context's pending stack, popped however `construct` ends. */
+const whilePending = <T>({ context, marker }: WhilePendingArgs, construct: () => T): T => {
   context.pendingStack.push(marker)
 
   try {
     return construct()
-  } catch (error) {
-    file.removePendingDefinition(marker)
-    throw error
   } finally {
     context.pendingStack.pop()
     marker.pending = false
   }
+}
+
+type FindPendingArgs = {
+  context: GenerateContextType
+  name: string
+  exportPath: string
+}
+
+/**
+ * The model under construction named `name` in `exportPath`, if any. The
+ * pending stack holds exactly the models whose constructors are running, so
+ * the search is as long as the chain of models being built.
+ */
+const findPending = ({
+  context,
+  name,
+  exportPath
+}: FindPendingArgs): PendingDefinition | undefined => {
+  const path = normalizeWorkspacePath(exportPath)
+
+  return context.pendingStack.find(
+    pending => pending.identifier.name === name && pending.exportPath === path
+  )
+}
+
+type AssertSamePendingArgs = {
+  pending: PendingDefinition
+  name: string
+  exportPath: string
+  generatorKey: string
+  options: unknown
+  projection: unknown
+}
+
+/** A model under construction is this model only with the same key, projection class and options. */
+const assertSamePending = ({
+  pending,
+  name,
+  exportPath,
+  generatorKey,
+  options,
+  projection
+}: AssertSamePendingArgs): void => {
+  assertSameKey({ name, exportPath, cachedKey: pending.generatorKey, generatorKey })
+
+  if (pending.projection !== projection) {
+    throw new Error(
+      `Registered definition mismatch: '${name}' in file '${exportPath}' is being built by another projection class with the same generator key '${generatorKey}'. Two copies of one generator package, or two projection classes under one generator id, claim it.`
+    )
+  }
+
+  assertSameOptions({ name, exportPath, cachedOptions: pending.options, options })
 }
 
 type EnsureFileArgs = {
@@ -323,8 +394,17 @@ type StitchModelImportArgs = {
  * (`toImport`) and creates the destination file on first write; the engine
  * stores it via the pure-data `context.register`.
  */
-const stitchModelImport = ({ context, lang, identifier, exportPath, destinationPath }: StitchModelImportArgs): void => {
-  if (!destinationPath || normalizeWorkspacePath(exportPath) === normalizeWorkspacePath(destinationPath)) {
+const stitchModelImport = ({
+  context,
+  lang,
+  identifier,
+  exportPath,
+  destinationPath
+}: StitchModelImportArgs): void => {
+  if (
+    !destinationPath ||
+    normalizeWorkspacePath(exportPath) === normalizeWorkspacePath(destinationPath)
+  ) {
     return
   }
 
@@ -346,12 +426,13 @@ const toOpenReaches = (definition: DefinitionBase): PendingDefinition[] =>
  * value is built, while the model is still pending.
  */
 export const isReferencedBack = ({ context, settings }: IsReferencedBackArgs): boolean => {
-  const found = context.findDefinition({
+  const pending = findPending({
+    context,
     name: settings.identifier.name,
     exportPath: settings.exportPath
   })
 
-  return found !== undefined && found.isPending() && found.backReferences > 0
+  return pending !== undefined && pending.backReferences > 0
 }
 
 type IsReferencedBackArgs = {
@@ -359,7 +440,11 @@ type IsReferencedBackArgs = {
   settings: { identifier: { name: string }; exportPath: string }
 }
 
-const toReferencedSettings = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
+const toReferencedSettings = <
+  V extends GeneratedValue,
+  EnrichmentType,
+  ProjectionOptions = undefined
+>(
   args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
 ): ContentSettings<EnrichmentType> => {
   const { context, projection, refName, variant = DEFAULT_VARIANT } = args
@@ -381,17 +466,17 @@ const toReferencedSettings = <V extends GeneratedValue, EnrichmentType, Projecti
 export type ModelRef<V extends GeneratedValue, EnrichmentType> =
   | { suspended: true; settings: ContentSettings<EnrichmentType> }
   | {
-    suspended: false
-    settings: ContentSettings<EnrichmentType>
-    definition: GeneratedDefinition<V>
-    /**
-     * The model reached a model that is still pending, so this reference is
-     * inside a cycle. Every reference inside a cycle must be deferred where
-     * the target language reads the value when the module loads (zod's
-     * `z.lazy`): any model of the cycle can be the first one loaded.
-     */
-    inCycle: boolean
-  }
+      suspended: false
+      settings: ContentSettings<EnrichmentType>
+      definition: GeneratedDefinition<V>
+      /**
+       * The model reached a model that is still pending, so this reference is
+       * inside a cycle. Every reference inside a cycle must be deferred where
+       * the target language reads the value when the module loads (zod's
+       * `z.lazy`): any model of the cycle can be the first one loaded.
+       */
+      inCycle: boolean
+    }
 
 /**
  * Reference a model from a ref snippet. A pending model (its projection is
@@ -408,27 +493,20 @@ export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionO
 ): ModelRef<V, EnrichmentType> => {
   const { context, projection, refName, destinationPath, variant = DEFAULT_VARIANT } = args
   const settings = toReferencedSettings(args)
-  const found = context.findDefinition({
+  const pending = findPending({
+    context,
     name: settings.identifier.name,
     exportPath: settings.exportPath
   })
 
-  if (found !== undefined && found.isPending()) {
-    const pending = found
-
-    const generatorKey = toModelGeneratorKey({ generatorId: projection.id, refName, variant })
-
-    assertSameKey({
+  if (pending !== undefined) {
+    assertSamePending({
+      pending,
       name: settings.identifier.name,
       exportPath: settings.exportPath,
-      cachedKey: pending.generatorKey,
-      generatorKey
-    })
-    assertSameOptions({
-      name: settings.identifier.name,
-      exportPath: settings.exportPath,
-      cachedOptions: pending.options,
-      options: readProjectionOptions<ProjectionOptions>(args)
+      generatorKey: toModelGeneratorKey({ generatorId: projection.id, refName, variant }),
+      options: readProjectionOptions<ProjectionOptions>(args),
+      projection
     })
 
     pending.backReferences++
@@ -455,7 +533,12 @@ export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionO
 
   open.forEach(reached => source?.reaches.add(reached))
 
-  return { suspended: false, settings: driver.settings, definition: driver.definition, inCycle: open.length > 0 }
+  return {
+    suspended: false,
+    settings: driver.settings,
+    definition: driver.definition,
+    inCycle: open.length > 0
+  }
 }
 
 type AssertPeerVariantExistsArgs = {

@@ -1,7 +1,7 @@
 import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 import { applyGeneratedSuffix, DEFAULT_GENERATED_SUFFIX } from '@/helpers/applyGeneratedSuffix.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
-import { assertNotPending, type PendingDefinition } from '@/dsl/PendingDefinition.ts'
+import type { PendingDefinition } from '@/dsl/PendingDefinition.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
@@ -1486,10 +1486,7 @@ export class GenerateContext implements GenerateContextType {
       return definition as InsertNormalizedModelReturn<V, Schema>
     }
 
-    const cachedDefinition = assertNotPending(
-      this.findDefinition({ name: fallbackName, exportPath: destinationPath }),
-      { name: fallbackName, exportPath: destinationPath }
-    )
+    const cachedDefinition = this.findDefinition({ name: fallbackName, exportPath: destinationPath })
 
     // @TODO add check to make sure retrieved definition
     // used same generator and same schema #SKM-47
@@ -1748,7 +1745,7 @@ export class GenerateContext implements GenerateContextType {
    * @param { name, exportPath }
    * @returns Matching definition if found or `undefined` otherwise
    */
-  findDefinition({ name, exportPath, into }: FindDefinitionArgs): DefinitionBase | PendingDefinition | undefined {
+  findDefinition({ name, exportPath, into }: FindDefinitionArgs): DefinitionBase | undefined {
     // Pure lookup — no file is created on a miss. Definitions live on the
     // code-file subclass, so narrow; a non-code file (`JsonFile`) has none.
     // The cache wants the single primary for the name → first match.
@@ -1764,15 +1761,7 @@ export class GenerateContext implements GenerateContextType {
     // it.
     const place = into === undefined ? file : this.#findContainer(file, into)
 
-    const definition = place?.findDefinitions({ name })?.[0]
-
-    // A model whose projection is being constructed has no Definition yet,
-    // only its pending entry in the File (a file-level name, never a member).
-    if (definition === undefined && into === undefined) {
-      return file.findPendingDefinitions(name)[0]
-    }
-
-    return definition
+    return place?.findDefinitions({ name })?.[0]
   }
 
   /**

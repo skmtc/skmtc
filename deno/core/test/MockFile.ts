@@ -5,7 +5,6 @@ import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import { ImportBase } from '@/dsl/ImportBase.ts'
 import type { ReExportBase } from '@/dsl/ReExportBase.ts'
 import invariant from 'tiny-invariant'
-import type { PendingDefinition } from '@/dsl/PendingDefinition.ts'
 
 /**
  * A neutral {@link ImportBase} for core tests: named symbols from one module,
@@ -67,12 +66,7 @@ export class MockDefinition<V extends GeneratedValue = GeneratedValue> extends D
  * import/re-export merge, definitions joined by blank lines).
  */
 export class MockFile extends CodeFileBase {
-  /**
-   * One entry per name: a Definition, or a pending entry. The map's order is
-   * the render order: a model's Definition replaces its pending entry and
-   * moves to the end, as a language's File does.
-   */
-  definitions: Map<string, DefinitionBase | PendingDefinition> = new Map()
+  definitions: Map<string, DefinitionBase> = new Map()
   imports: Map<string, ImportBase> = new Map()
   reExports: Map<string, ReExportBase> = new Map()
 
@@ -80,31 +74,10 @@ export class MockFile extends CodeFileBase {
     super({ path })
   }
 
-  override addDefinition(entry: DefinitionBase | PendingDefinition): void {
-    const name = entry.identifier.name
-    const current = this.definitions.get(name)
-
-    if (current === undefined || (current.isPending() && !entry.isPending())) {
-      invariant(current === undefined || current.generatorKey === entry.generatorKey, 'Registered definition mismatch')
-      this.definitions.delete(name)
-      this.definitions.set(name, entry)
+  override addDefinition(definition: DefinitionBase): void {
+    if (!this.definitions.has(definition.identifier.name)) {
+      this.definitions.set(definition.identifier.name, definition)
     }
-  }
-
-  override removePendingDefinition(pending: PendingDefinition): void {
-    if (this.definitions.get(pending.identifier.name) === pending) {
-      this.definitions.delete(pending.identifier.name)
-    }
-  }
-
-  override findPendingDefinitions(name?: string): PendingDefinition[] {
-    return [...this.definitions.values()].filter(
-      (entry): entry is PendingDefinition => entry.isPending() && (name === undefined || entry.identifier.name === name)
-    )
-  }
-
-  #constructed(): DefinitionBase[] {
-    return [...this.definitions.values()].filter((entry): entry is DefinitionBase => !entry.isPending())
   }
 
   override addImports(incoming: ImportBase[]): void {
@@ -124,12 +97,10 @@ export class MockFile extends CodeFileBase {
   }
 
   override findDefinitions(query?: FindDefinitionsQuery): DefinitionBase[] | undefined {
-    return matchDefinitions(this.#constructed(), query, () => undefined)
+    return matchDefinitions([...this.definitions.values()], query, () => undefined)
   }
 
   override toString(): string {
-    return this.#constructed()
-      .map(definition => definition.toString())
-      .join('\n\n')
+    return [...this.definitions.values()].map(definition => definition.toString()).join('\n\n')
   }
 }

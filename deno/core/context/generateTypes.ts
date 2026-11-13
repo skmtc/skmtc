@@ -659,12 +659,8 @@ export type GenerateContextType = {
     args: BuildModelSettingsArgs<V, EnrichmentType, ProjectionOptions>
   ) => ContentSettings<EnrichmentType>
   resolveSchemaRefOnce: (refName: RefName) => OasSchema | OasRef<'schema'>
-  /**
-   * The Definition named `name` in `exportPath`, or the pending marker of a
-   * model of that name whose projection is being constructed: narrow with
-   * `isPending()`.
-   */
-  findDefinition: ({ name, exportPath, into }: FindDefinitionArgs) => DefinitionBase | PendingDefinition | undefined
+  /** The Definition named `name` in `exportPath` (or inside the declaration `into`), or `undefined`. */
+  findDefinition: ({ name, exportPath, into }: FindDefinitionArgs) => DefinitionBase | undefined
   /**
    * The recording enrichment accessor — the single choke point every
    * enrichment lookup routes through. Reads the node at

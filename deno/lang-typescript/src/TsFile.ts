@@ -1,6 +1,6 @@
 import { CodeFileBase, matchDefinitions } from '@skmtc/core'
 import { toRenderedModule } from './toImportModule.ts'
-import type { ClientSettings, ModulePackage, DefinitionBase, IdentifierBase, PendingDefinition } from '@skmtc/core'
+import type { ClientSettings, ModulePackage, DefinitionBase } from '@skmtc/core'
 import { TsImport } from './TsImport.ts'
 import type { TsDefinition } from './TsDefinition.ts'
 import { TsIdentifier } from './TsIdentifier.ts'
@@ -38,15 +38,12 @@ export class TsFile extends CodeFileBase {
    * collection needed. The cross-generator cache resolves a name to its
    * first-registered definition through {@link findDefinitions}.
    *
-   * A model's slot holds its pending entry while its projection is being
-   * constructed, and then its Definition ({@link addDefinition}).
-   *
    * The map's order is the render order: each Definition in the order it was
-   * added. A model's Definition replaces its pending entry and moves to the
-   * end, so it lands after the models its constructor added before it, or a
-   * `const` would read one before it is defined.
+   * added. A model's Definition is added when its constructor returns, so it
+   * lands after the models its constructor added, and a `const` never reads
+   * one before it is defined.
    */
-  definitions: Map<string, TsDefinition | PendingDefinition> = new Map()
+  definitions: Map<string, TsDefinition> = new Map()
 
   /** Imports keyed by {@link TsImport.mergeKey} (the module path). */
   imports: Map<string, TsImport> = new Map()
@@ -70,57 +67,13 @@ export class TsFile extends CodeFileBase {
    * a name but differ in type occupy *different* slots and both render — that
    * is TypeScript declaration merging (a `class Foo` and its `declare
    * namespace Foo`).
-   *
-   * A pending entry (a model whose projection is about to be constructed)
-   * takes its slot and does not render. The model's Definition, added when
-   * the constructor returns, replaces the pending entry and moves to the end
-   * of the map: the one exception to "first wins". Render follows the map,
-   * so it follows the order Definitions were added.
    */
-  override addDefinition(entry: TsDefinition | PendingDefinition): void {
-    const key = toDeclarationKey(entry.identifier)
-    const current = this.definitions.get(key)
+  override addDefinition(definition: TsDefinition): void {
+    const key = definition.identifier.declarationKey()
 
-    if (current === undefined) {
-      this.definitions.set(key, entry)
-
-      return
+    if (!this.definitions.has(key)) {
+      this.definitions.set(key, definition)
     }
-
-    // The Driver looks a model up before it marks it pending: a pending entry
-    // for a taken slot is an engine bug.
-    if (entry.isPending()) {
-      throw new Error(`'${entry.identifier.name}' already has a declaration in '${this.path}'`)
-    }
-
-    // The model's Definition replaces its pending entry. Deleting first moves
-    // it to the end of the map, after every Definition added before it.
-    if (current.isPending()) {
-      if (current.generatorKey !== entry.generatorKey) {
-        throw new Error(
-          `Registered definition mismatch: '${entry.identifier.name}' in file '${this.path}'. Pending key '${current.generatorKey}' does not match new key '${entry.generatorKey}'`
-        )
-      }
-
-      this.definitions.delete(key)
-      this.definitions.set(key, entry)
-    }
-
-    // Otherwise the slot holds a Definition: the first one wins (see above).
-  }
-
-  override removePendingDefinition(pending: PendingDefinition): void {
-    const key = toDeclarationKey(pending.identifier)
-
-    if (this.definitions.get(key) === pending) {
-      this.definitions.delete(key)
-    }
-  }
-
-  override findPendingDefinitions(name?: string): PendingDefinition[] {
-    return [...this.definitions.values()].filter(
-      (entry): entry is PendingDefinition => entry.isPending() && (name === undefined || entry.identifier.name === name)
-    )
   }
 
   /**
@@ -151,14 +104,9 @@ export class TsFile extends CodeFileBase {
     name?: string
     type?: TsEntityType
   }): DefinitionBase[] | undefined {
-    return matchDefinitions(this.#constructedDefinitions(), query, identifier =>
+    return matchDefinitions([...this.definitions.values()], query, identifier =>
       identifier instanceof TsIdentifier ? identifier.type : undefined
     )
-  }
-
-  /** The Definitions in the order they were added, leaving out pending entries. */
-  #constructedDefinitions(): TsDefinition[] {
-    return [...this.definitions.values()].filter((entry): entry is TsDefinition => !entry.isPending())
   }
 
   /**
@@ -175,7 +123,7 @@ export class TsFile extends CodeFileBase {
     const seenNames = new Set<string>()
     const primaries: TsDefinition[] = []
     const companions: TsDefinition[] = []
-    for (const definition of this.#constructedDefinitions()) {
+    for (const definition of this.definitions.values()) {
       if (seenNames.has(definition.identifier.name)) {
         companions.push(definition)
       } else {
@@ -251,13 +199,4 @@ const mergeInto = <Entry extends { mergeKey(): string }>(
 
     target.set(key, existing ? merge(existing, entry) : entry)
   }
-}
-
-/** A pending entry's slot: the declaration key its Definition will have. */
-const toDeclarationKey = (identifier: IdentifierBase): string => {
-  if (!(identifier instanceof TsIdentifier)) {
-    throw new Error(`'${identifier.name}' has no TypeScript identifier, so it has no declaration slot`)
-  }
-
-  return identifier.declarationKey()
 }

@@ -3,7 +3,6 @@ import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { ImportBase } from '@/dsl/ImportBase.ts'
 import type { ReExportBase } from '@/dsl/ReExportBase.ts'
-import type { PendingDefinition } from '@/dsl/PendingDefinition.ts'
 
 /**
  * Query for {@link CodeFileBase.findDefinitions}. `name` filters by identifier
@@ -66,21 +65,10 @@ export const matchDefinitions = (
  */
 export abstract class CodeFileBase extends FileBase {
   /**
-   * Add an entry, applying the language's duplication rule (e.g. TypeScript
-   * declaration merging). Called by the engine's `register` and the
-   * `ModelDriver`. Narrow with `isPending()`:
-   *
-   * - A pending entry (a model whose projection is about to be constructed)
-   *   takes the slot its Definition will have. `findPendingDefinitions` finds
-   *   it; `findDefinitions` and render do not. See {@link PendingDefinition}.
-   * - A Definition whose slot holds that model's pending entry (same generator
-   *   key) replaces it. Another generator's Definition there is a
-   *   `Registered definition mismatch`.
-   * - A Definition renders after every Definition added before it, a model's
-   *   counted from when its constructor returned, so a declaration lands
-   *   after the models it refers to.
+   * Add a definition, applying the language's duplication rule (e.g.
+   * TypeScript declaration merging). Called by the engine's `register`.
    */
-  abstract addDefinition(entry: DefinitionBase | PendingDefinition): void
+  abstract addDefinition(definition: DefinitionBase): void
 
   /**
    * Merge imports in, applying the language's collapse rule (typically
@@ -104,10 +92,4 @@ export abstract class CodeFileBase extends FileBase {
    * {@link matchDefinitions}.
    */
   abstract findDefinitions(query?: FindDefinitionsQuery): DefinitionBase[] | undefined
-
-  /** Take a pending entry out: its projection's constructor threw. */
-  abstract removePendingDefinition(pending: PendingDefinition): void
-
-  /** The pending entries, all of them or those named `name`. */
-  abstract findPendingDefinitions(name?: string): PendingDefinition[]
 }

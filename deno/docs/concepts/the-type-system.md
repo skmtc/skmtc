@@ -443,7 +443,7 @@ A ref snippet asks for its model through `toModelRef`:
 5.  isReferencedBack({ context, settings })  → true for User
        │   the projection sets settings.identifier.typeName
        ▼
-6.  The constructor returns: the Definition replaces the pending entry
+6.  The constructor returns: the entry leaves the stack, the Definition goes into the file
 ```
 
 The same protocol covers a cycle of two or more models. When `Employee`
@@ -512,10 +512,11 @@ self-recursive model and a cycle of two models.
 
 ### Why `ModelDriver` keeps the entry, not the Projection
 
-`ModelDriver` adds the `PendingDefinition` entry before it
-constructs the projection. It removes the entry if the constructor throws. When
-the constructor returns, the Definition replaces the entry. A
-projection cannot do this itself: the entry must exist before its
+`ModelDriver` puts the `PendingDefinition` entry on
+`context.pendingStack` before it constructs the projection. It takes the entry
+off when the constructor ends, also when the constructor throws. When
+the constructor returns, the Driver adds the Definition to the file.
+A projection cannot do this itself: the entry must exist before its
 constructor runs.
 
 Operation Drivers don't need this. OAS operations and GraphQL

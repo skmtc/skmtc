@@ -1,17 +1,16 @@
 /**
- * Pending Definitions: the marker a model's File holds while its projection
- * is being constructed, and `toModelRef`, which finds it. Real Drivers and a
- * real `GenerateContext`; each test model's constructor references the
- * models its test graph lists, so a cycle in the graph is a cycle of inserts.
+ * Pending Definitions: the entry on the context's pending stack while a
+ * model's projection is being constructed, and `toModelRef`, which finds it.
+ * Real Drivers and a real `GenerateContext`; each test model's constructor
+ * references the models its test graph lists, so a cycle in the graph is a
+ * cycle of inserts.
  */
 import { createVariable, toTsModelProjectionBase, TsFile } from '@skmtc/lang-typescript'
 import { assertEquals, assertStringIncludes, assertThrows } from '@std/assert'
 import type * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
-import { RenderContext } from '@/context/RenderContext.ts'
-import { StackTrail } from '@/context/StackTrail.ts'
-import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
 import { PendingDefinition } from '@/dsl/PendingDefinition.ts'
+import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 import { isReferencedBack, toModelRef } from '@/dsl/model/ModelDriver.ts'
 import type { ModelProjectionConstructorArgs } from '@/dsl/model/types.ts'
 import { toModelGeneratorKey } from '@/dsl/GeneratorKeys.ts'
@@ -22,13 +21,20 @@ import { OasString } from '@/oas/string/String.ts'
 import { emptyEnrichmentSchema, type EmptyEnrichments } from '@/types/Enrichments.ts'
 import type { RefName } from '@/types/RefName.ts'
 
-const logger = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, critical: () => {} } as unknown as log.Logger
+const logger = {
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  critical: () => {}
+} as unknown as log.Logger
 
 type Graph = Record<string, string[]>
 
 /** The models of `graph`, a model in its own file unless `shared` names it, and a context to insert them. */
 const toModels = (graph: Graph, shared: string[] = []) => {
-  const toPath = (refName: string) => shared.includes(refName) ? '@/types/shared.generated.ts' : `@/types/${refName}.generated.ts`
+  const toPath = (refName: string) =>
+    shared.includes(refName) ? '@/types/shared.generated.ts' : `@/types/${refName}.generated.ts`
 
   class Model extends toTsModelProjectionBase({
     id: '@test/models',
@@ -59,7 +65,11 @@ const toModels = (graph: Graph, shared: string[] = []) => {
           destinationPath: args.settings.exportPath
         })
 
-        return { name: ref.settings.identifier.name, suspended: ref.suspended, inCycle: !ref.suspended && ref.inCycle }
+        return {
+          name: ref.settings.identifier.name,
+          suspended: ref.suspended,
+          inCycle: !ref.suspended && ref.inCycle
+        }
       })
       this.recursive = isReferencedBack({ context: args.context, settings: args.settings })
     }
@@ -77,7 +87,9 @@ const toModels = (graph: Graph, shared: string[] = []) => {
         info: new OasInfo({ title: 'Test', version: '1.0.0' }),
         operations: [],
         components: new OasComponents({
-          schemas: Object.fromEntries([...Object.keys(graph), 'Broken'].map(name => [name, new OasString({})]))
+          schemas: Object.fromEntries(
+            [...Object.keys(graph), 'Broken'].map(name => [name, new OasString({})])
+          )
         })
       })
     },
@@ -89,7 +101,7 @@ const toModels = (graph: Graph, shared: string[] = []) => {
 
   const valueOf = (refName: string): Model => {
     const found = context.findDefinition({ name: refName, exportPath: toPath(refName) })
-    const value = found === undefined || found.isPending() ? undefined : found.value
+    const value = found?.value
 
     if (!(value instanceof Model)) {
       throw new Error(`${refName} has no Definition`)
@@ -102,13 +114,29 @@ const toModels = (graph: Graph, shared: string[] = []) => {
 }
 
 const pendingNames = (context: GenerateContext): string[] =>
-  [...context.inspectedFiles.values()].flatMap(file =>
-    file instanceof CodeFileBase ? file.findPendingDefinitions().map(({ identifier }) => identifier.name) : []
-  )
+  context.pendingStack.map(({ identifier }) => identifier.name)
+
+/** A model of `projection` under construction, as the Driver puts it on the stack. */
+const toPending = (name: string, projection: unknown) =>
+  new PendingDefinition({
+    identifier: createVariable(name),
+    exportPath: normalizeWorkspacePath(`@/types/${name}.generated.ts`),
+    generatorKey: toModelGeneratorKey({
+      generatorId: '@test/models',
+      refName: name as RefName,
+      variant: 'main'
+    }),
+    options: undefined,
+    projection
+  })
 
 Deno.test('a cycle across two files: the reference back is suspended, imported, and counted', () => {
   // Cloudflare's email rules: a group holds conditions, and a condition can be a group.
-  const { Model, context, valueOf } = toModels({ Group: ['Condition'], Condition: ['Scalar', 'Group'], Scalar: [] })
+  const { Model, context, valueOf } = toModels({
+    Group: ['Condition'],
+    Condition: ['Scalar', 'Group'],
+    Scalar: []
+  })
 
   context.insertModel(Model, 'Group' as RefName)
 
@@ -127,7 +155,10 @@ Deno.test('a cycle across two files: the reference back is suspended, imported, 
   assertEquals(valueOf('Group').recursive, true)
   assertEquals(valueOf('Condition').recursive, false)
   // The reference back crosses files, so Condition's file imports Group.
-  assertStringIncludes(`${context.getFile('@/types/Condition.generated.ts')}`, `import {Group} from '@/types/Group.generated.ts'`)
+  assertStringIncludes(
+    `${context.getFile('@/types/Condition.generated.ts')}`,
+    `import {Group} from '@/types/Group.generated.ts'`
+  )
   // Every marker is gone once its constructor returned.
   assertEquals(pendingNames(context), [])
 })
@@ -173,7 +204,7 @@ Deno.test('a model that refers to itself is suspended in its own file, with no i
   assertEquals(`${context.getFile('@/types/Node.generated.ts')}`.includes('import'), false)
 })
 
-Deno.test("a model's Definition replaces its pending entry, and renders after what it refers to", () => {
+Deno.test("a model's Definition is added when its constructor returns, after what it refers to", () => {
   const { Model, context, toPath } = toModels({ A: ['B'], B: [] }, ['A', 'B'])
 
   context.insertModel(Model, 'A' as RefName)
@@ -184,57 +215,54 @@ Deno.test("a model's Definition replaces its pending entry, and renders after wh
     throw new Error('no TsFile for A and B')
   }
 
-  // A's entry went in pending, before B was constructed; its Definition
-  // replaced it and moved to the end, after B.
-  assertEquals([...file.definitions.values()].map(({ identifier }) => identifier.name), ['B', 'A'])
-  assertEquals(file.findPendingDefinitions(), [])
-  // The trap: left where it went in pending, `const A = [B]` renders above
-  // `const B`, and the module fails when it loads.
+  // B's constructor returned first, so its Definition went in first.
+  assertEquals(
+    [...file.definitions.values()].map(({ identifier }) => identifier.name),
+    ['B', 'A']
+  )
+  // The trap: `const A = [B]` above `const B`, and the module fails when it loads.
   const rendered = `${file}`
   assertEquals(rendered.indexOf('export const B') < rendered.indexOf('export const A'), true)
 })
 
-Deno.test('a constructor that throws takes its pending entry with it', () => {
-  const { Model, context } = toModels({})
+Deno.test('a constructor that throws leaves no pending entry and no file', () => {
+  const { Model, context, toPath } = toModels({})
 
-  assertThrows(() => context.insertModel(Model, 'Broken' as RefName), Error, 'Broken cannot be constructed')
+  assertThrows(
+    () => context.insertModel(Model, 'Broken' as RefName),
+    Error,
+    'Broken cannot be constructed'
+  )
   // A pending entry left behind would answer every later insert of Broken.
   assertEquals(pendingNames(context), [])
+  // The trap: a file made before the constructor ran stays, empty, and renders.
+  assertEquals(context.getFile(toPath('Broken')), undefined)
 })
 
 Deno.test('the Driver refuses to construct a second projection for a pending model', () => {
   // A reference back must go through toModelRef. insertModel is the Driver:
-  // it finds the marker and throws instead of starting a construction that
+  // it finds the entry and throws instead of starting a construction that
   // would never finish.
   const { Model, context } = toModels({})
-  const file = context.addFile(new TsFile({ path: '@/types/Loop.generated.ts', settings: undefined }))
-  file.addDefinition(
-    new PendingDefinition({
-      identifier: createVariable('Loop'),
-      generatorKey: toModelGeneratorKey({ generatorId: '@test/models', refName: 'Loop' as RefName, variant: 'main' }),
-      options: undefined
-    })
-  )
+  context.pendingStack.push(toPending('Loop', Model))
 
-  assertThrows(() => context.insertModel(Model, 'Loop' as RefName), Error, 'is being constructed further up the stack')
+  assertThrows(
+    () => context.insertModel(Model, 'Loop' as RefName),
+    Error,
+    'is being constructed further up the stack'
+  )
 })
 
-Deno.test('render fails the run when a pending entry is left', () => {
-  const file = new TsFile({ path: '@/types/Left.ts', settings: undefined })
-  file.addDefinition(
-    new PendingDefinition({
-      identifier: createVariable('Left'),
-      generatorKey: toModelGeneratorKey({ generatorId: '@test/models', refName: 'Left' as RefName, variant: 'main' }),
-      options: undefined
-    })
-  )
-  const render = new RenderContext({
-    files: new Map([[file.path, file]]),
-    previews: {},
-    basePath: undefined,
-    logger,
-    captureCurrentResult: () => {}
-  })
+Deno.test('another projection class under the name of a pending model is a clash', () => {
+  // Same generator key, other class: two copies of one generator package, or
+  // two projection classes under one generator id.
+  const { Model, context } = toModels({})
+  const { Model: OtherModel } = toModels({})
+  context.pendingStack.push(toPending('Loop', OtherModel))
 
-  assertThrows(() => render.render(new StackTrail([])), Error, `'Left' in '@/types/Left.ts'`)
+  assertThrows(
+    () => context.insertModel(Model, 'Loop' as RefName),
+    Error,
+    "Registered definition mismatch: 'Loop' in file '@/types/Loop.generated.ts' is being built by another projection class"
+  )
 })

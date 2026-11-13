@@ -12,7 +12,6 @@ import { toOasOperationGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 import { readProjectionOptions, toValueOptions } from '@/types/ProjectionOptions.ts'
 import isEqual from 'lodash-es/isEqual'
-import { assertNotPending } from '@/dsl/PendingDefinition.ts'
 
 /**
  * The `insertOperation` call plus the context. The Driver defaults
@@ -197,14 +196,11 @@ export class OasOperationDriver<
 
     // Spread rather than always-pass: a non-member's call shape is exactly
     // what it was, so nothing downstream sees a key it never had.
-    const cachedDefinition = assertNotPending(
-      this.context.findDefinition({
-        name: identifier.name,
-        exportPath,
-        ...(into !== undefined ? { into } : {})
-      }),
-      { name: identifier.name, exportPath }
-    )
+    const cachedDefinition = this.context.findDefinition({
+      name: identifier.name,
+      exportPath,
+      ...(into !== undefined ? { into } : {})
+    })
 
     if (this.affirmDefinition<V>(cachedDefinition, exportPath)) {
       return cachedDefinition

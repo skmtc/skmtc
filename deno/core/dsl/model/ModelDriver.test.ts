@@ -196,9 +196,7 @@ Deno.test('ModelDriver', async t => {
         variant: 'main'
       })
 
-      const file = context.getFile(driver.settings.exportPath)
-
-      assertEquals(file instanceof CodeFileBase ? file.findPendingDefinitions().length : undefined, 0)
+      assertExists(context.getFile(driver.settings.exportPath))
       assertEquals(context.pendingStack, [])
     })
 
@@ -317,7 +315,8 @@ Deno.test('ModelDriver', async t => {
         variant: 'main'
       })
 
-      assertSpyCalls(context.findDefinition as any, 1)
+      // A miss: the probe, then the check that nothing took the slot while the constructor ran.
+      assertSpyCalls(context.findDefinition as any, 2)
     })
 
     await t.step('should register import when destinationPath differs from exportPath', () => {
@@ -442,7 +441,8 @@ Deno.test('ModelDriver', async t => {
         variant: 'main'
       })
 
-      assertSpyCalls(context.findDefinition as any, 1)
+      // A miss: the probe, then the check that nothing took the slot while the constructor ran.
+      assertSpyCalls(context.findDefinition as any, 2)
       assertSpyCall(context.findDefinition as any, 0, {
         args: [
           {
@@ -513,14 +513,12 @@ Deno.test('ModelDriver', async t => {
         variant: 'main'
       })
 
-      // The pending entry became the Definition; nothing went through
-      // `register`, which would add a second entry.
+      // One Definition; nothing went through `register`, which would add a second.
       const file = context.getFile('@/path/to/export.ts')
 
       assertEquals(file instanceof CodeFileBase ? file.findDefinitions({ name: refName }) : undefined, [
         driver.definition
       ])
-      assertEquals(file instanceof CodeFileBase ? file.findPendingDefinitions() : undefined, [])
     })
 
     await t.step('should pass noExport to Definition', () => {
