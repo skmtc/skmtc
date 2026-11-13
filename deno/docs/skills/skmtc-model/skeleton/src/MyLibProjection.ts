@@ -1,4 +1,4 @@
-import { camelCase, capitalize } from '@skmtc/core'
+import { camelCase, capitalize, isReferencedBack } from '@skmtc/core'
 import type {
   ContentSettings,
   GenerateContextType,
@@ -26,7 +26,7 @@ export class MyLibProjection extends MyLibBase {
   ) {
     super({ context, refName, settings })
 
-    const schema = context.resolveSchemaRefOnce(refName, MyLibBase.id)
+    const schema = context.resolveSchemaRefOnce(refName)
 
     this.value = toMyLibValue({
       schema,
@@ -39,13 +39,11 @@ export class MyLibProjection extends MyLibBase {
     // A recursive schema renders a lazy back-reference (see MyLibRef).
     // The enclosing `export const` then references its own initializer,
     // which TypeScript cannot type by inference — TS7022/TS7024.
-    // Detected via `modelDepth`, not by rendering: `resolveSchemaRefOnce`
-    // above set this key to 1 and every terminal back-reference bumps it,
-    // so `> 1` means a cycle was emitted into this model's value.
-    // (Rendering here instead would orphan every inner snippet from the
-    // attribution map.) Self-recursion is what OpenAPI schemas produce;
-    // mutual recursion is NOT detected by this check.
-    if (context.modelDepth[`${MyLibBase.id}:${refName}`] > 1) {
+    // `isReferencedBack` asks the model's pending entry, which counts each
+    // reference back to it while this constructor runs, on its own or in a
+    // cycle of several models. (Rendering here instead would orphan every
+    // inner snippet from the attribution map.)
+    if (isReferencedBack({ context, settings })) {
       // SLOT(recursion-annotation): a type expression that breaks the
       // cycle, valid in the emitted file (zod: `z.ZodType<Order>`, with
       // the type supplied by a peer type generator).

@@ -154,8 +154,9 @@ class MyLibObjectProperties extends TsSnippet {
       Object.entries(properties).map(([key, property]) => [
         key,
         {
-          readOnly: 'readOnly' in property && property.readOnly === true,
-          writeOnly: 'writeOnly' in property && property.writeOnly === true,
+          // On a reference too: on the reference or on what it points to.
+          readOnly: property.isReadOnly(),
+          writeOnly: property.isWriteOnly(),
         },
       ]),
     )

@@ -8,7 +8,8 @@
  *
  * Fixture coverage: enum, array-of-ref, shared ref (Address ×2 →
  * ONE definition), optional, nullable, additionalProperties record,
- * self-recursion (Category → Category).
+ * self-recursion (Category → Category), a cycle of two models
+ * (Employee → Team → Employee).
  */
 import { StackTrail, toArtifacts } from '@skmtc/core'
 import { assertEquals, assertStringIncludes } from '@std/assert'
@@ -68,6 +69,24 @@ const fixture = {
         },
       },
       Metadata: { type: 'object', additionalProperties: { type: 'string' } },
+      Employee: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string' },
+          team: { $ref: '#/components/schemas/Team' },
+        },
+      },
+      Team: {
+        type: 'object',
+        required: ['members'],
+        properties: {
+          members: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/Employee' },
+          },
+        },
+      },
     },
   },
 }
@@ -101,10 +120,12 @@ Deno.test('every model renders to its own file', () => {
   assertEquals(paths, [
     'models/address.generated.ts',
     'models/category.generated.ts',
+    'models/employee.generated.ts',
     'models/metadata.generated.ts',
     'models/order.generated.ts',
     'models/orderItem.generated.ts',
     'models/orderStatus.generated.ts',
+    'models/team.generated.ts',
   ])
 })
 
@@ -152,6 +173,31 @@ Deno.test('self-recursion renders lazy and annotates the identifier', () => {
   assertStringIncludes(
     category,
     'export const category: MyLibSchema<Category> =',
+  )
+})
+
+Deno.test('a cycle of two models renders every reference in it lazy', () => {
+  const { artifacts } = generate()
+
+  const employee = artifacts['models/employee.generated.ts']
+  const team = artifacts['models/team.generated.ts']
+
+  // Any model of a cycle can be the first one loaded, so both references
+  // are deferred, and each file imports the other.
+  assertStringIncludes(employee, 'team: m.lazy(() => team).optional()')
+  assertStringIncludes(team, 'members: m.array(m.lazy(() => employee))')
+  assertStringIncludes(
+    employee,
+    `import {team} from '@/models/team.generated.ts'`,
+  )
+  assertStringIncludes(
+    team,
+    `import {employee} from '@/models/employee.generated.ts'`,
+  )
+  // The model the cycle started from is the one referred back to.
+  assertStringIncludes(
+    employee,
+    'export const employee: MyLibSchema<Employee> =',
   )
 })
 

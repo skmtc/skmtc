@@ -13,8 +13,8 @@ description: >
   and skmtc-lang-typescript (TS layer).
 metadata:
   describes:
-    '@skmtc/core': '0.39'
-    '@skmtc/lang-typescript': '0.12'
+    '@skmtc/core': '0.40'
+    '@skmtc/lang-typescript': '0.13'
 ---
 
 # Model generators: fill the skeleton
@@ -32,7 +32,7 @@ engine-tested model generator that renders a placeholder syntax
 (`m.object({...})`). Author by transplant, not from scratch:
 
 1. **Copy** `skeleton/` to your package location; run
-   `deno test --allow-env --allow-sys --allow-read` — 6 green tests
+   `deno test --allow-env --allow-sys --allow-read` — 7 green tests
    prove the machinery before you touch anything.
 2. **Rename**: `name` in `deno.json`; `MyLib` → `YourLib` in class
    names and filenames; `myLibEntry` → `yourLibEntry`; then
@@ -69,17 +69,21 @@ engine machinery — modifying it is almost always a mistake.
 ## 3. Edge cases the skeleton already handles — keep them working
 
 - **Refs are names, never expansions.** `MyLibRef` puts only the peer's
-  NAME in the value tree; the `ModelDriver` resolves the definition
-  (cache hit → reuse, miss → construct) and stitches the cross-file
-  import. Inline-expanding a ref, or hand-writing its import, is how
-  shared models duplicate.
-- **Recursion is a protocol, not a special case.** A back-reference to
-  a model still open on the build stack (`context.modelDepth` > 0)
-  renders via SLOT(lazy) and bumps the depth; the projection then sees
-  `> 1` and sets `settings.identifier.typeName` (SLOT
+  NAME in the value tree; `toModelRef` resolves the definition through
+  the `ModelDriver` (cache hit → reuse, miss → construct) and stitches
+  the cross-file import. Inline-expanding a ref, or hand-writing its
+  import, is how shared models duplicate.
+- **Recursion is a protocol, not a special case.** While a model's
+  projection is constructed, the model has a pending entry. A reference
+  back to it comes out of `toModelRef` as `suspended`; any other
+  reference inside the cycle comes out with `inCycle`. Both render via
+  SLOT(lazy), since any model of a cycle can be the first one loaded.
+  The model's projection then sees `isReferencedBack({ context,
+  settings })` and sets `settings.identifier.typeName` (SLOT
   recursion-annotation) so the emitted `export const` doesn't die of
-  circular inference (TS7022/7024). Self-recursion only — mutual
-  recursion is not detected.
+  circular inference (TS7022/7024). This covers self-recursion and a
+  cycle of several models; in a cycle, the model the cycle started from
+  carries the annotation.
 - **Optional and nullable are different axes.** `required` comes from
   the PARENT object's `required` list and flows into each property
   leaf's `modifiers`; `nullable` sits on the node itself. Both render
@@ -128,7 +132,10 @@ engine machinery — modifying it is almost always a mistake.
 - **Property keys** go through `handleKey` — `'first-name'` renders
   quoted; never assume keys are identifiers.
 - **Visibility.** `readOnly`/`writeOnly` are captured per property in
-  `MyLibObjectProperties.visibility`. Default policy ignores them; if
+  `MyLibObjectProperties.visibility`, through `isReadOnly()` and
+  `isWriteOnly()`. On a reference these read the reference's own
+  keyword (`{ allOf: [{ $ref }], readOnly: true }`) and what it points
+  to. Default policy ignores them; if
   the target needs them, annotate the value (e.g. `.readonly()`) or
   emit request/response variants via `variant` threading — decide at
   SLOT(visibility). Caller options are the third route: declare the
@@ -147,7 +154,8 @@ engine machinery — modifying it is almost always a mistake.
 
 The shipped `mod.test.ts` runs the REAL pipeline (`toArtifacts`) over a
 fixture with an enum, an array-of-ref, a shared ref (×2 → one
-definition), optional + nullable, a record, and a self-recursive model.
+definition), optional + nullable, a record, a self-recursive model, and
+a cycle of two models.
 It is your regression gate: green before you start, green after every
 slot. Read failures in this order: import header first (a missing
 import means a string swallowed a snippet), then the body, then
@@ -158,7 +166,8 @@ import means a string swallowed a snippet), then the body, then
 | Symptom | Fix |
 |---|---|
 | Shared model duplicated per consumer | A ref was rendered/expanded instead of flowing through `MyLibRef` |
-| Stack overflow on recursive schema | The `modelDepth` branch in `MyLibRef` was removed or bypassed |
+| `'X' … is being constructed further up the stack` | A ref bypassed `toModelRef` (for example `new ModelDriver(...)` in `MyLibRef`): a reference back must come out `suspended` |
+| Generated module throws `Cannot access 'x' before initialization` | A reference inside a cycle rendered without SLOT(lazy): defer on `suspended \|\| inCycle`, not on `suspended` alone |
 | Emitted file dies of TS7022/7024 | SLOT(recursion-annotation) not set for the target |
 | `.optional()` doubled or missing | Modifiers applied outside `applyModifiers`, or a second owner added |
 | Enum with `null` member renders `'null'` | Keep the `literal()` null-guard from `MyLibString` |

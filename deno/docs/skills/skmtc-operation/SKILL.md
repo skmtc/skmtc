@@ -15,7 +15,7 @@ description: >
   Load ALONGSIDE skmtc-generator and the emitted language's skill.
 metadata:
   describes:
-    '@skmtc/core': '0.39'
+    '@skmtc/core': '0.40'
 ---
 
 # Operation generators: decompose the operation, reference the models
@@ -67,7 +67,9 @@ a response shape) breaks the moment the schema evolves.
   schema — the form you hand to a model generator (§3). A 3.2
   `querystring` parameter is the whole query string as one schema,
   taken from its single `content` entry. `['query']` does not include
-  it; ask for `['querystring']`.
+  it; ask for `['querystring']`. Both include the path item's
+  `parameters`; an operation's own parameter with the same name and
+  location replaces the path item's.
 - **Request body**: `operation.toRequestBody(({ schema }) => schema)`.
 - **Response**: `operation.toSuccessResponse()?.resolve().toSchema()
   ?? OasVoid.empty()` — selection and void-fallback in one idiom.
