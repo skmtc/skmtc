@@ -5,6 +5,36 @@ import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { SiblingKeywords } from '@/oas/schema/siblings.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
+import * as v from 'valibot'
+
+/**
+ * The checks the type parsers make (`oasStringData`, `oasNumberData`, …) on
+ * the keywords that do not depend on the target's type. `default`, `enum`
+ * and `example` do, so `clone` checks them once the target is known.
+ */
+const SIBLING_CHECKS = {
+  title: v.string(),
+  description: v.string(),
+  deprecated: v.boolean(),
+  format: v.string(),
+  minLength: v.number(),
+  maxLength: v.number(),
+  pattern: v.string(),
+  multipleOf: v.number(),
+  minimum: v.number(),
+  maximum: v.number(),
+  // 3.1's numeric form is normalized to `minimum` plus `true` before this point.
+  exclusiveMinimum: v.boolean(),
+  exclusiveMaximum: v.boolean(),
+  minItems: v.number(),
+  maxItems: v.number(),
+  uniqueItems: v.boolean(),
+  required: v.array(v.string()),
+  minProperties: v.number(),
+  maxProperties: v.number()
+}
+
+type CheckedKeyword = keyof typeof SIBLING_CHECKS
 
 type ToSiblingKeywordsArgs = {
   /** The keywords next to the one member, without `allOf` and the use-site flags. */
@@ -67,7 +97,12 @@ export const toSiblingKeywords = ({
   const skipped = Object.fromEntries(entries.filter(([key]) => !key.startsWith('x-')))
 
   if (!isEmpty(skipped)) {
-    context.logSkippedFields({ skipped, parent: keywords, parentType: 'schema:siblings', stackTrail })
+    context.logSkippedFields({
+      skipped,
+      parent: keywords,
+      parentType: 'schema:siblings',
+      stackTrail
+    })
   }
 
   if (enums !== undefined && !Array.isArray(enums)) {
@@ -81,32 +116,57 @@ export const toSiblingKeywords = ({
     })
   }
 
+  // A value the type parsers would refuse is left out, with a warning: the
+  // rest of the site still parses, as a schema's other faults do.
+  const checked = <Value>(key: CheckedKeyword, value: Value): Value | undefined => {
+    if (value === undefined) {
+      return undefined
+    }
+
+    const result = v.safeParse(SIBLING_CHECKS[key], value)
+
+    if (result.success) {
+      return value
+    }
+
+    context.logIssue({
+      key,
+      level: 'warning',
+      message: `Removed invalid ${key} next to a reference: ${result.issues[0].message}`,
+      parent: keywords,
+      stackTrail,
+      type: 'INVALID_SCHEMA'
+    })
+
+    return undefined
+  }
+
   const siblings: SiblingKeywords = {
     _type: type,
-    title,
-    description,
-    deprecated,
+    title: checked('title', title),
+    description: checked('description', description),
+    deprecated: checked('deprecated', deprecated),
     example,
     default: defaultValue,
     enums: Array.isArray(enums) ? enums : undefined,
     extensionFields: isEmpty(extensionFields) ? undefined : extensionFields,
-    format,
-    minLength,
-    maxLength,
-    pattern,
-    multipleOf,
-    minimum,
-    maximum,
-    exclusiveMinimum,
-    exclusiveMaximum,
-    minItems,
-    maxItems,
-    uniqueItems,
+    format: checked('format', format),
+    minLength: checked('minLength', minLength),
+    maxLength: checked('maxLength', maxLength),
+    pattern: checked('pattern', pattern),
+    multipleOf: checked('multipleOf', multipleOf),
+    minimum: checked('minimum', minimum),
+    maximum: checked('maximum', maximum),
+    exclusiveMinimum: checked('exclusiveMinimum', exclusiveMinimum),
+    exclusiveMaximum: checked('exclusiveMaximum', exclusiveMaximum),
+    minItems: checked('minItems', minItems),
+    maxItems: checked('maxItems', maxItems),
+    uniqueItems: checked('uniqueItems', uniqueItems),
     properties,
-    required,
+    required: checked('required', required),
     additionalProperties,
-    minProperties,
-    maxProperties
+    minProperties: checked('minProperties', minProperties),
+    maxProperties: checked('maxProperties', maxProperties)
   }
 
   return Object.values(siblings).some(value => value !== undefined) ? siblings : undefined

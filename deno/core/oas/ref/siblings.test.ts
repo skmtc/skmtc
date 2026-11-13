@@ -32,7 +32,12 @@ const document = {
       Site: {
         type: 'object',
         properties: {
-          title: { allOf: [ref('Name')], minLength: 3, description: 'The title.', 'x-fern-property-name': 'heading' },
+          title: {
+            allOf: [ref('Name')],
+            minLength: 3,
+            description: 'The title.',
+            'x-fern-property-name': 'heading'
+          },
           tags: { allOf: [ref('Tags')], minItems: 1 },
           base: { allOf: [ref('Base')], required: ['b'], properties: { b: { type: 'integer' } } },
           pet: { allOf: [ref('Pet')], description: 'A pet.' },
@@ -55,7 +60,9 @@ const document = {
       // No `type`: the parser reads an `enum` of strings as a string.
       Letter: { enum: ['a', 'b'] },
       Cat: { type: 'object', properties: { purrs: { type: 'boolean' } } },
-      Animal: { oneOf: [ref('Cat'), { type: 'object', properties: { barks: { type: 'boolean' } } }] }
+      Animal: {
+        oneOf: [ref('Cat'), { type: 'object', properties: { barks: { type: 'boolean' } } }]
+      }
     }
   }
 } as OpenAPIV3.Document
@@ -79,7 +86,12 @@ const parse = () => {
     return schema
   }
 
-  return { site: toObject('Site').properties ?? {}, node: toObject('Node'), issues: context.issues, schemas }
+  return {
+    site: toObject('Site').properties ?? {},
+    node: toObject('Node'),
+    issues: context.issues,
+    schemas
+  }
 }
 
 /** The schema at a property's site. */
@@ -106,7 +118,10 @@ Deno.test('resolve() applies the keywords next to a reference to a copy of the t
 
   // The trap: the shared Name is not changed by one site's keywords.
   const name = atSite(site.plain)
-  assertEquals(name.type === 'string' ? [name.minLength, name.description] : [], [undefined, 'A name.'])
+  assertEquals(name.type === 'string' ? [name.minLength, name.description] : [], [
+    undefined,
+    'A name.'
+  ])
 })
 
 Deno.test('object keywords add properties and required names; array keywords keep the items', () => {
@@ -159,7 +174,7 @@ Deno.test('a use-site flag alone is a sibling: the reference resolves to a copy 
   assertEquals(flagged?.isRef() ? flagged.hasValueSiblings() : undefined, false)
 })
 
-Deno.test('OasRef.clone(ref) merges another site\'s keywords over its own, and points at the same target', () => {
+Deno.test("OasRef.clone(ref) merges another site's keywords over its own, and points at the same target", () => {
   const { site, schemas } = parse()
   // Short is `{ allOf: [Name], maxLength: 10 }`; the site adds minLength 2.
   const short = schemas?.[toRefName('#/components/schemas/Short')]
@@ -182,7 +197,11 @@ Deno.test('clone(ref) carries the use-site flags onto the copy at a site with ke
   const { site } = parse()
   const nick = atSite(site.nick)
 
-  assertEquals(nick.type === 'string' ? [nick.maxLength, nick.nullable, nick.isReadOnly()] : [], [5, true, true])
+  assertEquals(nick.type === 'string' ? [nick.maxLength, nick.nullable, nick.isReadOnly()] : [], [
+    5,
+    true,
+    true
+  ])
 
   // The trap: the shared Name is neither nullable nor read-only.
   const name = atSite(site.plain)
@@ -248,6 +267,68 @@ Deno.test('a keyword no schema has next to a reference is reported while parsing
   )
   // Nothing else is next to it, so the reference resolves to the shared Name.
   assertStrictEquals(atSite(extra), site.plain?.resolve())
+})
+
+const badValues = {
+  openapi: '3.0.3',
+  info: { title: 'Bad siblings', version: '1' },
+  paths: {},
+  components: {
+    schemas: {
+      Name: { type: 'string' },
+      Base: { type: 'object', required: ['a'], properties: { a: { type: 'string' } } },
+      Site: {
+        type: 'object',
+        properties: {
+          // Values the type parsers refuse: a string length, and `required` as one name.
+          badLength: { allOf: [ref('Name')], maxLength: '10' },
+          badRequired: { allOf: [ref('Base')], required: 'id', minProperties: 1 }
+        }
+      }
+    }
+  }
+  // Values of the wrong type are not in the OpenAPI types.
+} as unknown as OpenAPIV3.Document
+
+Deno.test('a keyword next to a reference with a value of the wrong type is left out and reported', () => {
+  const context = new ParseContext({
+    input: { type: 'oas', value: badValues },
+    logger: new log.Logger('test', 'ERROR'),
+    silent: true
+  })
+  const parsed = context.parse(new StackTrail(['TEST']))
+  const schemas = parsed.type === 'oas' ? parsed.value.components?.schemas : undefined
+  const siteSchema = schemas?.[toRefName('#/components/schemas/Site')]
+  const site = siteSchema?.type === 'object' ? (siteSchema.properties ?? {}) : {}
+  const issues = context.issues
+  const badLength = atSite(site.badLength)
+  const badRequired = atSite(site.badRequired)
+
+  // The trap: `.max("10")`, and `required: ['i', 'd']` from spreading the string.
+  assertEquals(badLength.type === 'string' ? badLength.maxLength : 'not a string', undefined)
+  assertEquals(
+    badRequired.type === 'object'
+      ? [badRequired.required, badRequired.minProperties]
+      : 'not an object',
+    [['a'], 1]
+  )
+  assertEquals(
+    issues
+      .filter(({ location }) => location.includes('badLength') || location.includes('badRequired'))
+      .map(({ type, level, message }) => [type, level, message]),
+    [
+      [
+        'INVALID_SCHEMA',
+        'warning',
+        'Removed invalid maxLength next to a reference: Invalid type: Expected number but received "10"'
+      ],
+      [
+        'INVALID_SCHEMA',
+        'warning',
+        'Removed invalid required next to a reference: Invalid type: Expected Array but received "id"'
+      ]
+    ]
+  )
 })
 
 const document31 = {

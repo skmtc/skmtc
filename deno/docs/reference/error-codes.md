@@ -69,6 +69,12 @@ The parse continues, and the items are unknown values. In OpenAPI 3.1
 and 3.2, `items` is optional. These documents get unknown items and no
 issue.
 
+A keyword next to a `$ref` in a one-member `allOf` can also log
+`INVALID_SCHEMA` at level `warning`. This occurs when the value has the
+wrong type, for example `maxLength: '10'` or `required: 'id'`. The message starts
+with `Removed invalid <keyword> next to a reference`. The parser
+removes that keyword and keeps the reference and its other keywords.
+
 ### `INVALID_DEPENDENCY_REF` — error
 
 **When:** A schema or operation referenced a `$ref` target that
