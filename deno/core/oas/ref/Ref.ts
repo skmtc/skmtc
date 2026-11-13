@@ -20,7 +20,6 @@ import {
   changesValues,
   hasSiblingKeywords,
   mergeSiblingKeywords,
-  isInlineLoop,
   type SiblingKeywords,
   toSkippedSiblings
 } from '@/oas/schema/siblings.ts'
@@ -464,8 +463,8 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    * Whether the keywords next to this reference change which values it
    * accepts (`minLength` next to a string, `properties` next to an object),
    * not only how it is described (`description`, `deprecated`, `x-*`). No
-   * shared model accepts the same values as such a site, so a generator that
-   * refers to models by name renders it from {@link resolve}. See
+   * shared model accepts the same values as such a site, so a generator
+   * applies these keywords where it renders the reference by name. See
    * {@link changesValues}.
    */
   hasValueSiblings(): boolean {
@@ -493,16 +492,6 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     const component: OasComponentType = this.resolve()
 
     return component.oasType === 'schema' ? toSkippedSiblings(component, this, component.nullable) : []
-  }
-
-  /**
-   * Whether rendering this site from {@link resolve} would not end: the copy
-   * reaches, through other sites with {@link hasValueSiblings}, a reference
-   * to a model already being rendered that way. `false` for a reference to
-   * anything but a schema. See {@link isInlineLoop}.
-   */
-  isSiblingLoop(): boolean {
-    return this.isSchemaRef() && isInlineLoop(this)
   }
 
   /**

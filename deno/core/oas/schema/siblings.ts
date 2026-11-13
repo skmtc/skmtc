@@ -1,7 +1,6 @@
 import * as v from 'valibot'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
-import type { CustomValue } from '@/dsl/CustomValue.ts'
 import { numberFormat } from '@/oas/number/number-types.ts'
 import { integerFormat } from '@/oas/integer/integer-types.ts'
 
@@ -322,49 +321,3 @@ export const toSiblingEnums = <T>(
   nullable: boolean | undefined
 ): (T | null)[] | undefined =>
   enums?.every((item): item is T | null => check(item) || (nullable === true && item === null)) ? enums : undefined
-
-/**
- * Whether inlining the schema at this site would not end: the copy reaches,
- * through other sites a generator inlines (`OasRef.hasValueSiblings`), a site
- * that refers to a model already being inlined. A reference without such
- * keywords renders by name, so it stops the walk. The engine behind
- * `OasRef.isSiblingLoop`.
- */
-export const isInlineLoop = (ref: OasRef<'schema'>): boolean => reachesInlined(ref, new Set())
-
-const reachesInlined = (ref: OasRef<'schema'>, inlining: Set<string>): boolean => {
-  const name = ref.toRefName()
-
-  if (inlining.has(name)) {
-    return true
-  }
-
-  const next = new Set([...inlining, name])
-
-  return childrenOf(ref.resolve()).some(child => reachesThrough(child, next))
-}
-
-const reachesThrough = (child: OasSchema | OasRef<'schema'> | CustomValue, inlining: Set<string>): boolean => {
-  if (child.isRef()) {
-    return child.hasValueSiblings() && reachesInlined(child, inlining)
-  }
-
-  return child.type !== 'custom' && childrenOf(child).some(grandchild => reachesThrough(grandchild, inlining))
-}
-
-/** The schemas a schema renders inside itself: properties, a record's values, items, members. */
-const childrenOf = (schema: OasSchema): (OasSchema | OasRef<'schema'> | CustomValue)[] => {
-  switch (schema.type) {
-    case 'object':
-      return [
-        ...Object.values(schema.properties ?? {}),
-        ...(typeof schema.additionalProperties === 'object' ? [schema.additionalProperties] : [])
-      ]
-    case 'array':
-      return [schema.items]
-    case 'union':
-      return schema.members
-    default:
-      return []
-  }
-}
