@@ -175,16 +175,23 @@ version follows that version's rules:
 
 In every version, the keywords stay on the `OasRef`, and the
 referenced model does not change. `resolve()` returns the schema at
-the site: a copy of the target with the keywords of the reference
-applied. A reference with no keywords resolves to the shared model.
+the site. When the keywords of the reference change the target, the
+result is a copy of the target with the keywords applied. When they
+change nothing, the result is the shared model. A keyword changes
+nothing in three cases. The type of the target does not take it, the
+target already has the flag, or the target has the same value.
+
+Other code can get the same object from `resolve()`, so do not change
+it. The shared model is what every reference to it sees. A reference
+builds its copy one time, keeps it, and returns it on every call.
 
 A generator renders a reference in one of two ways. It renders the
 reference by name and applies the keywords of the reference. Or it
 renders the resolved schema and uses only the keywords of that
 schema. It never does both, or a keyword such as `nullable` applies
-twice. Each `resolve()` of a reference with keywords returns a new
-copy, so compare reference names to find out whether two sites point
-at one model.
+twice. Two sites can point at one model and still resolve to two
+different copies. So compare reference names to find out whether two
+sites point at one model.
 
 ## Type integrity check on resolution
 

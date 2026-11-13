@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import isEqual from 'lodash-es/isEqual'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { numberFormat } from '@/oas/number/number-types.ts'
@@ -185,15 +186,47 @@ const VALUE_KEYWORDS: SiblingKeyword[] = [
   'maxProperties'
 ]
 
+/** Keywords that `clone` merges with `||`: `false` and absent mean the same. */
+const BOOLEAN_KEYWORDS: SiblingKeyword[] = [
+  'nullable',
+  'readOnly',
+  'writeOnly',
+  'deprecated',
+  'exclusiveMinimum',
+  'exclusiveMaximum',
+  'uniqueItems'
+]
+
+/**
+ * The keywords next to a reference that make `copy` (the target with them
+ * applied) differ from `target`. A keyword the target's type does not take,
+ * a flag the target already has, and a value equal to the target's change
+ * nothing.
+ */
+const toChangedKeywords = (copy: OasSchema, target: OasSchema, siblings: SiblingKeywords): SiblingKeyword[] =>
+  SIBLINGS_BY_TYPE[target.type].filter(keyword => {
+    if (siblings[keyword] === undefined) {
+      return false
+    }
+
+    const applied: unknown = Reflect.get(copy, keyword)
+    const original: unknown = Reflect.get(target, keyword)
+
+    return BOOLEAN_KEYWORDS.includes(keyword) ? (applied === true) !== (original === true) : !isEqual(applied, original)
+  })
+
+/** Whether the keywords next to a reference change `target` at that site. The engine behind `OasRef.resolve`. */
+export const changesTarget = (copy: OasSchema, target: OasSchema, siblings: SiblingKeywords): boolean =>
+  toChangedKeywords(copy, target, siblings).length > 0
+
 /**
  * Whether the keywords next to a reference change which values `target`
  * accepts at that site (`minLength` next to a string, `properties` next to an
  * object), not only how it is described (`description`, `deprecated`,
- * `default`, `x-*`). A keyword the target's type does not take changes
- * nothing. The engine behind `OasRef.hasValueSiblings`.
+ * `default`, `x-*`). The engine behind `OasRef.hasValueSiblings`.
  */
-export const changesValues = (target: OasSchema, siblings: SiblingKeywords): boolean =>
-  SIBLINGS_BY_TYPE[target.type].some(keyword => VALUE_KEYWORDS.includes(keyword) && siblings[keyword] !== undefined)
+export const changesValues = (copy: OasSchema, target: OasSchema, siblings: SiblingKeywords): boolean =>
+  toChangedKeywords(copy, target, siblings).some(keyword => VALUE_KEYWORDS.includes(keyword))
 
 /**
  * The keywords next to a reference that `clone` leaves out for `target`, by

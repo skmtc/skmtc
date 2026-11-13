@@ -17,6 +17,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
 import { OasBase } from '@/types/OasBase.ts'
 import {
+  changesTarget,
   changesValues,
   hasSiblingKeywords,
   mergeSiblingKeywords,
@@ -232,6 +233,12 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
   /** The `maxProperties` next to this reference (see {@link SiblingKeywords}). */
   maxProperties: SiblingKeywords['maxProperties']
   #document: SkmtcParsedDocument
+  /**
+   * What {@link resolve} found, kept for every later call: the target, and
+   * the result (the target, or the copy with this reference's keywords). The
+   * document does not change after parse, so neither does the answer.
+   */
+  #resolution: Resolution<T> | undefined
 
   /**
    * Creates a new OAS reference instance.
@@ -292,22 +299,43 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    *
    * Follows reference chains until reaching a non-reference component,
    * with protection against infinite loops. A schema reference returns the
-   * schema at this site: the keywords next to it, and next to each reference
-   * on the chain ({@link SiblingKeywords}), apply to a copy of the target.
-   * Without siblings it returns the shared target itself. `resolveOnce()`
-   * applies no siblings.
+   * schema at this site: when the keywords next to it, or next to a
+   * reference on the chain ({@link SiblingKeywords}), change the target, a
+   * copy of the target with them applied. When they change nothing, the
+   * shared target itself. `resolveOnce()` applies no siblings.
+   *
+   * The result is shared, so do not modify it: the shared target is the
+   * model every reference to it sees, and a copy is built once, kept on
+   * this reference, and returned on every call.
    *
    * @param lookupsPerformed - Internal counter to prevent infinite recursion
    * @returns The resolved component
    * @throws Error if maximum lookup depth is exceeded
    */
   resolve(lookupsPerformed: number = 0): ResolvedRef<T> {
+    return this.#toResolution(lookupsPerformed).resolved
+  }
+
+  #toResolution(lookupsPerformed: number): Resolution<T> {
+    if (this.#resolution !== undefined) {
+      return this.#resolution
+    }
+
     if (lookupsPerformed >= MAX_LOOKUPS) {
       throw new Error('Max lookups reached')
     }
 
     const resolved = this.resolveOnce()
     const target = resolved.isRef() ? resolved.resolve(lookupsPerformed + 1) : resolved
+    const resolution: Resolution<T> = { target, resolved: this.#toSiteSchema(target) }
+
+    this.#resolution = resolution
+
+    return resolution
+  }
+
+  /** `target` with this reference's keywords applied when they change it; otherwise `target` itself. */
+  #toSiteSchema(target: ResolvedRef<T>): ResolvedRef<T> {
     // Widened from the generic ResolvedRef<T>, so `oasType` narrows it.
     const component: OasComponentType = target
 
@@ -317,9 +345,11 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
       return target
     }
 
+    const copy = component.clone(this)
+
     // A schema's copy is a schema of the same class. TypeScript cannot relate
     // OasSchema to ResolvedRef<T> for a generic T, as in resolveOnce().
-    return component.clone(this) as ResolvedRef<T>
+    return changesTarget(copy, component, this) ? (copy as ResolvedRef<T>) : target
   }
 
   /**
@@ -472,9 +502,17 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
       return false
     }
 
-    const component: OasComponentType = this.resolve()
+    const { target, resolved } = this.#toResolution(0)
+    // Widened from the generic ResolvedRef<T>, so `oasType` narrows them.
+    const original: OasComponentType = target
+    const applied: OasComponentType = resolved
 
-    return component.oasType === 'schema' && changesValues(component, this)
+    return (
+      applied !== original &&
+      applied.oasType === 'schema' &&
+      original.oasType === 'schema' &&
+      changesValues(applied, original, this)
+    )
   }
 
   /**
@@ -606,3 +644,9 @@ export type OasComponentType =
  * @template T - The type of component being referenced (e.g., 'schema', 'response')
  */
 export type ResolvedRef<T extends OasRefData['refType']> = Extract<OasComponentType, { oasType: T }>
+
+/** What `OasRef.resolve` found: the target, and the result at the reference's site. */
+type Resolution<T extends OasRefData['refType']> = {
+  target: ResolvedRef<T>
+  resolved: ResolvedRef<T>
+}
