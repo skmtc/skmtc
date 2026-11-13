@@ -58,7 +58,14 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
   /** The caller's options, as passed to `insertModel`. */
   options: ProjectionOptions
 
-  constructor(args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>) {
+  /**
+   * @param settings - The model's content settings, when the caller has
+   *   already built them with the same `args` (`toModelRef` does).
+   */
+  constructor(
+    args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>,
+    settings: ContentSettings<EnrichmentType> = toModelSettings(args)
+  ) {
     const {
       context,
       projection,
@@ -77,22 +84,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
     this.noExport = noExport
     this.variant = variant
     this.options = readProjectionOptions<ProjectionOptions>(args)
-
-    assertPeerVariantExists({
-      context,
-      generatorId: projection.id,
-      refName,
-      variant
-    })
-
-    assertPeerSupported({ context, projection, refName, variant })
-
-    this.settings = this.context.toModelContentSettings({
-      refName,
-      projection,
-      variant,
-      options: this.options
-    })
+    this.settings = settings
     this.definition = this.apply({ destinationPath })
   }
 
@@ -440,14 +432,14 @@ type IsReferencedBackArgs = {
   settings: { identifier: { name: string }; exportPath: string }
 }
 
-const toReferencedSettings = <
-  V extends GeneratedValue,
-  EnrichmentType,
-  ProjectionOptions = undefined
->(
+/** A model's content settings, once the peer is known to have the variant and to support the model. */
+const toModelSettings = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
   args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
 ): ContentSettings<EnrichmentType> => {
   const { context, projection, refName, variant = DEFAULT_VARIANT } = args
+
+  assertPeerVariantExists({ context, generatorId: projection.id, refName, variant })
+  assertPeerSupported({ context, projection, refName, variant })
 
   return context.toModelContentSettings({
     refName,
@@ -492,7 +484,7 @@ export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionO
   args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
 ): ModelRef<V, EnrichmentType> => {
   const { context, projection, refName, destinationPath, variant = DEFAULT_VARIANT } = args
-  const settings = toReferencedSettings(args)
+  const settings = toModelSettings(args)
   const pending = findPending({
     context,
     name: settings.identifier.name,
@@ -524,7 +516,7 @@ export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionO
     return { suspended: true, settings }
   }
 
-  const driver = new ModelDriver(args)
+  const driver = new ModelDriver(args, settings)
   // What the model reached that is still pending, the source reaches too:
   // through this reference. Constructed now or found in the cache, the
   // Definition carries what its construction reached.

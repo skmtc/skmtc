@@ -7,6 +7,7 @@
  */
 import { createVariable, toTsModelProjectionBase, TsFile } from '@skmtc/lang-typescript'
 import { assertEquals, assertStringIncludes, assertThrows } from '@std/assert'
+import { assertSpyCalls, spy } from '@std/testing/mock'
 import type * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { PendingDefinition } from '@/dsl/PendingDefinition.ts'
@@ -262,4 +263,19 @@ Deno.test('another projection class under the name of a pending model is a clash
     Error,
     "Registered definition mismatch: 'Loop' in file '@/types/Loop.generated.ts' is being built by another projection class"
   )
+})
+
+Deno.test("toModelRef builds a model's content settings once", () => {
+  // A's insert builds A's settings; A's reference to B builds B's, and the
+  // Driver that constructs B reuses them.
+  const { Model, context } = toModels({ A: ['B'], B: [] })
+  const toModelContentSettings = spy(context, 'toModelContentSettings')
+
+  try {
+    context.insertModel(Model, 'A' as RefName)
+
+    assertSpyCalls(toModelContentSettings, 2)
+  } finally {
+    toModelContentSettings.restore()
+  }
 })
