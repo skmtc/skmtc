@@ -201,7 +201,7 @@ capability), exactly as the operation static is by `insertOperation`.
 
 ```ts
 isSupported({ context, refName }) {
-  const schema = context.resolveSchemaRefOnce(refName, MyBase.id)
+  const schema = context.resolveSchemaRefOnce(refName)
   return !schema.isRef() && schema.type === 'object'
 }
 ```
@@ -340,12 +340,12 @@ const metaEntry = toModelEntry<EnrichmentSchema>({
   // gets `refName`, not a schema — resolve it yourself. Omit to support
   // every refName.
   isSupported({ context, refName }) {
-    const schema = context.resolveSchemaRefOnce(refName, MetaProjection.id)
+    const schema = context.resolveSchemaRefOnce(refName)
     return !schema.isRef() && schema.type === 'object'
   },
 
   transform({ context, refName }) {
-    const schema = context.resolveSchemaRefOnce(refName, MetaProjection.id)
+    const schema = context.resolveSchemaRefOnce(refName)
     if (schema.isRef() || schema.type !== 'object') return
 
     context.insertModel(MetaProjection, refName)

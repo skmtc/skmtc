@@ -60,7 +60,7 @@ scaffold:
 
 For models the constructor receives `refName`, not a schema —
 the schema is resolved internally inside the Projection
-constructor via `context.resolveSchemaRefOnce(refName, BaseId)`.
+constructor via `context.resolveSchemaRefOnce(refName)`.
 (The scaffold itself wraps these canonical args with optional
 `destinationPath` and `rootRef?` fields exposed to user code.)
 

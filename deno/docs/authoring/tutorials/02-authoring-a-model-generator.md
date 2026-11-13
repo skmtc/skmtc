@@ -130,7 +130,7 @@ export class SchemaMetaProjection extends SchemaMetaBase {
     super({ context, refName, settings })
 
     // The schema is resolved here, from refName.
-    const schema = context.resolveSchemaRefOnce(refName, SchemaMetaBase.id)
+    const schema = context.resolveSchemaRefOnce(refName)
 
     if (schema.isRef() || schema.type !== 'object') {
       this.propNames = []
@@ -151,7 +151,7 @@ export class SchemaMetaProjection extends SchemaMetaBase {
 Two things to note:
 
 - The constructor receives `refName`, not a schema. The schema is
-  resolved inside via `context.resolveSchemaRefOnce(refName, baseId)`.
+  resolved inside via `context.resolveSchemaRefOnce(refName)`.
 - `super(args)` only passes the three canonical fields
   (`context`, `refName`, `settings`). `destinationPath` and
   `rootRef` are scaffold-added fields available on the args but
@@ -206,7 +206,7 @@ Two things to internalize:
 
 ```ts
 isSupported({ context, refName }) {
-  const schema = context.resolveSchemaRefOnce(refName, SchemaMetaBase.id)
+  const schema = context.resolveSchemaRefOnce(refName)
   return !schema.isRef() && schema.type === 'object'
 }
 ```

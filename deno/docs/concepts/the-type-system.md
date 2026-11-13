@@ -275,7 +275,7 @@ on the schema being rendered:
 // skmtc-generators/gen-typescript/src/TsProjection.ts
 constructor({ context, refName, settings, rootRef }: ConstructorArgs) {
   super({ context, refName, settings })
-  const schema = context.resolveSchemaRefOnce(refName, TypescriptBase.id)
+  const schema = context.resolveSchemaRefOnce(refName)
   this.value = toTsValue({
     schema, required: true, destinationPath: settings.exportPath,
     context, rootRef
@@ -393,7 +393,7 @@ The Ref Snippet is what enables cross-file linking. When a
 includes `address: Address`, and the file's `imports` map gains
 `import { Address } from '...'`.
 
-## Handling recursive types — the `modelDepth` counter
+## Handling recursive types — pending entries
 
 A naive `schemaToValueFn` would infinitely recurse on
 self-referential schemas:
@@ -409,149 +409,114 @@ User:
 ```
 
 Rendering `User` would hit the ref to `User`, which would render
-`User`, which would hit the ref to `User`, and so on. The pipeline
-breaks the cycle with a per-`(generatorId, refName)` counter on
-`GenerateContext`:
+`User`, which would hit the ref to `User`, and so on. The engine
+stops the cycle with a `PendingDefinition` entry. While the
+constructor of a model's projection runs, `ModelDriver` keeps this
+entry for that model. A reference to the model during that time finds the entry,
+not a cache miss, so the engine never constructs a second
+projection for it.
 
-```ts
-// core/context/GenerateContext.ts
-modelDepth: Record<string, number>
-```
-
-`ModelDriver` brackets every model render with a known-zero state,
-and `resolveSchemaRefOnce` increments the counter when the
-Projection's constructor asks for its schema:
+A ref snippet asks for its model through `toModelRef`:
 
 ```
 1.  context.insertModel(ZodProjection, 'User')
        │
        ▼
-2.  new ModelDriver({ projection: ZodProjection, refName: 'User', ... })
+2.  ModelDriver: cache miss  →  pending entry for User
        │
-       ├─ ModelDriver.ts  →  modelDepth['@skmtc/gen-zod:User'] = 0
-       │
-       │   (cache miss path)
        ▼
 3.  new ZodProjection({ context, refName: 'User', ... })
+       │   context.resolveSchemaRefOnce('User')
+       │   toZodValue({ schema, ... })   ← walks the User schema
        │
+       │   for each ref in the schema, the ref snippet calls:
        ▼
-4.  context.resolveSchemaRefOnce('User', '@skmtc/gen-zod')
+4.  toModelRef({ context, refName, destinationPath, projection: ZodProjection, ... })
        │
-       │   GenerateContext.ts  →  modelDepth['@skmtc/gen-zod:User']++
-       │                                                          (now 1)
+       ├─ refName === 'User'     → User is pending: a reference back
+       │                           ├─ { suspended: true }  (no new projection)
+       │                           └─ the entry counts the reference
+       │
+       └─ refName === 'Address'  → not built yet: ModelDriver constructs it
+                                   └─ { suspended: false, inCycle: false, definition }
        ▼
-5.  toZodValue({ schema, ... })   ← walks the User schema
-       │
-       │   for each ref encountered in the schema:
+5.  isReferencedBack({ context, settings })  → true for User
+       │   the projection sets settings.identifier.typeName
        ▼
-6.  new ZodRef({ refName, ... })
-       │
-       │   ZodRef.ts  →  is modelDepth['@skmtc/gen-zod:<refName>'] > 0?
-       │
-       ├─ refName === 'User'      → YES (was set to 1 in step 4)
-       │                            ├─ skip recursion (no new ModelDriver)
-       │                            └─ terminal = true  → renders as z.lazy(() => User)
-       │
-       └─ refName === 'Address'   → NO (different key, value is 0/undefined)
-                                    ├─ recurse: new ModelDriver({ refName: 'Address', ... })
-                                    │   which brackets *its* counter at 0,
-                                    │   increments to 1, etc.
-                                    └─ terminal = false → renders as Address (no wrapper)
-       ▼
-7.  ZodProjection constructor returns
-       │
-       ▼
-8.  ModelDriver.ts  →  modelDepth['@skmtc/gen-zod:User'] = 0  (cleanup)
+6.  The constructor returns: the Definition replaces the pending entry
 ```
 
-The depth counter is, in practice, **binary** — always 0 or 1.
-The `> 0` check in `ZodRef`/`TsRef` is the cycle break: it asks
-"am I currently inside this `refName`'s render?" The `Record<string, number>`
-type leaves headroom for a future depth-N budget, but the current
-design uses it as a presence flag.
+The same protocol covers a cycle of two or more models. When `Employee`
+refers to `Team` and `Team` refers back to `Employee`, the reference
+from `Team` comes back `suspended`. The reference from `Employee` to
+`Team` comes back with `inCycle: true`, because `Team` reached a
+model whose constructor was still in progress. `isReferencedBack` is true for
+`Employee`, the model that the cycle started from.
+
+The Definition takes its place in the file when the constructor
+returns, after the models that the constructor added. So a `const`
+always comes after the models that it refers to.
 
 ### The render-time effect
 
-`ZodRef.toString()` wraps the terminal branch in `z.lazy`:
+A language that reads a value when the module loads must defer each
+reference inside a cycle. Zod is an example: a plain reference to a
+model that the module has not defined yet fails with `Cannot access
+'X' before initialization`. Any model of a cycle can be the first one that
+loads, so defer on `suspended || inCycle`, not on `suspended` alone:
 
 ```ts
-// skmtc-generators/gen-zod/src/ZodRef.ts
 override toString(): string {
-  const out = applyModifiers(this.name, this.modifiers)
-  return this.terminal ? `z.lazy(() => ${out})` : out
+  // SLOT(lazy) in the skmtc-model skeleton's MyLibRef
+  return this.deferred
+    ? applyModifiers(`z.lazy(() => ${this.name})`, this.modifiers)
+    : applyModifiers(this.name, this.modifiers)
 }
 ```
 
-The wrapper is **Zod-specific**. Zod evaluates the schema graph
-eagerly at module load time, so a recursive reference would reach
-an undefined name during initialization. `z.lazy(() => User)`
-defers the lookup until the schema is actually used.
+The modifiers go outside the lazy wrapper:
+`z.lazy(() => node).optional()` gives an optional key, and
+`z.lazy(() => node.optional())` does not.
 
-`TsRef.toString()` does *not* wrap:
+TypeScript type aliases refer to themselves natively
+(`type User = { friends: User[] }`), so `gen-typescript` needs no
+wrapper. It still goes through `toModelRef`: a ref snippet that
+constructs the model itself gets the error `'User' … is being
+constructed further up the stack`.
 
-```ts
-// skmtc-generators/gen-typescript/src/TsRef.ts
-override toString(): string {
-  return applyModifiers(this.name, this.modifiers)
-}
-```
-
-TypeScript type aliases self-reference natively
-(`type User = { friends: User[] }` works without ceremony), so no
-wrapper is needed. The depth check still runs — without it,
-`TsRef`'s constructor would recursively invoke `ModelDriver` for
-the same `refName` and blow the stack — but the rendered output
-is identical to a non-recursive ref.
-
-Other target languages diverge similarly: `gen-valibot` wraps in
-`v.lazy(() => ...)`, `gen-arktype` uses ArkType's thunk syntax,
-and so on. The cycle-break is universal; the render-time
-expression of "this is a deferred reference" varies by language.
+TypeScript cannot infer the type of a `const` that refers to its own
+initializer (TS7022/TS7024). So a projection that `isReferencedBack`
+reports as recursive sets `settings.identifier.typeName`, for
+example `z.ZodType<User>`.
 
 ### What a model-generator author must do
 
 When you write a model generator that has a `'ref'` branch in
 `schemaToValueFn`, the `Ref` Snippet must:
 
-1. **Check** `context.modelDepth[`${yourGeneratorId}:${refName}`] > 0`
-   **before** recursing into `new ModelDriver(...)`. Without this,
-   the first self-referential schema in the input will stack-
-   overflow.
-2. **On terminal (`> 0`)**: look up the peer's settings via
-   `context.toModelContentSettings({ refName, projection: YourProjection })`
-   and capture the identifier name. Do **not** construct a new
-   `ModelDriver` — the outer one is already handling this
-   `refName`.
-3. **On non-terminal**: instantiate `new ModelDriver({ context,
-   refName, destinationPath, projection: YourProjection, rootRef })`
-   normally. The recursive case is the common case for most refs;
-   the terminal case only fires on actual cycles.
-4. **In both branches**, register the import from the peer's
-   `exportPath` into `destinationPath`. Even terminal refs need
-   the import to resolve at consumer compile time.
-5. **In `toString()`**, wrap terminal refs in your target
-   language's lazy primitive (`z.lazy(() => Name)`,
-   `v.lazy(() => Name)`, etc.) if the language requires it.
-   Non-terminal refs render as the bare identifier.
+1. **Call** `toModelRef({ context, refName, destinationPath,
+   rootRef, projection: YourProjection, variant })`. It constructs
+   the model, reuses it, or returns it `suspended`. It also stitches
+   the import into `destinationPath`.
+2. **Take the name** from `ref.settings.identifier.name`.
+3. **Defer** in `toString()` when `ref.suspended || ref.inCycle`, if
+   the target language reads values at module load.
 
-Failing step 1 stack-overflows on the first recursive schema.
-Failing step 5 produces a runtime module that fails on `import`
-time evaluation (for Zod/Valibot) or never terminates (for
-arrays-of-self type evaluation, in extreme cases).
+The projection, after it builds its value, calls
+`isReferencedBack({ context, settings })` and sets the type
+annotation if the result is true.
 
-### Why `ModelDriver` does the bracketing, not the Projection
+The `skmtc-model` skill's skeleton (`MyLibRef.ts`,
+`MyLibProjection.ts`) is a tested example of these steps, with a
+self-recursive model and a cycle of two models.
 
-The two `modelDepth = 0` assignments in `ModelDriver.ts` and
-`ModelDriver.ts` bracket the entire Projection-construction
-window. They run regardless of whether the inner Projection
-constructor throws.
+### Why `ModelDriver` keeps the entry, not the Projection
 
-If a Projection tracked its own depth, two separate `insertModel`
-calls for the same `refName` (e.g., two consumer Projections both
-asking for `User` independently) could leave depth in an
-indeterminate state. `ModelDriver` runs once per `insertModel`
-call and brackets the work with a known-zero state, so the
-counter is always reliable across nested invocations.
+`ModelDriver` adds the `PendingDefinition` entry before it
+constructs the projection. It removes the entry if the constructor throws. When
+the constructor returns, the Definition replaces the entry. A
+projection cannot do this itself: the entry must exist before its
+constructor runs.
 
 Operation Drivers don't need this. OAS operations and GraphQL
 operations are leaf entities — operations can reference models,

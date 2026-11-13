@@ -158,13 +158,12 @@ full construction (with its own `insertNormalizedModel` calls for
 the Zod schema and TS type) before returning. By the time
 `insertOperation` returns, the dependency chain is fully populated.
 
-`ModelDriver` also brackets each invocation with a
-`context.modelDepth[`${generatorId}:${refName}`] = 0` reset
-before and after the Projection's construction. This is the
-*model-recursion* cycle-break — orthogonal to the cache key, and
-used by `Ref` Snippets (`ZodRef`, `TsRef`, etc.) to detect
-self-referential schemas and avoid stack overflow. See
-[the-type-system.md §Handling recursive types](the-type-system.md#handling-recursive-types--the-modeldepth-counter).
+`ModelDriver` also keeps a `PendingDefinition` entry for the model
+while the Projection's constructor runs. This is the
+*model-recursion* cycle-break. A `Ref` Snippet that calls
+`toModelRef` for a model in that state gets it back `suspended`,
+so a self-referential schema does not recurse. See
+[the-type-system.md §Handling recursive types](the-type-system.md#handling-recursive-types--pending-entries).
 
 ## Why order doesn't matter
 

@@ -359,13 +359,6 @@ The constant `10` in `OasRef` limiting `$ref` chain resolution depth;
 exceedance throws "Max lookups reached", catching cycles and
 pathologically deep chains.
 
-### `modelDepth`
-
-The per-`(generatorId, refName)` counter on `GenerateContext` that
-detects self-referential schemas at generate time, letting a `Ref`
-Snippet render a deferred form instead of recursing. See
-[the-type-system §Handling recursive types](../concepts/the-type-system.md#handling-recursive-types--the-modeldepth-counter).
-
 ### `Modifiers`
 
 The `{ required?, nullable?, description? }` triple on every
@@ -428,6 +421,14 @@ A structured diagnostic entry produced during parse. See
 The pre-flight verification on `skmtc clone` that the cloned
 generator's `@skmtc/core` version matches the project's pin; override
 with `--force`.
+
+### `PendingDefinition`
+
+The entry that `ModelDriver` keeps for a model while the constructor
+of the model's projection runs. A reference back to the model in that
+time finds this entry: `toModelRef` returns it `suspended`, and the
+engine does not make a second projection. See
+[the-type-system §Handling recursive types](../concepts/the-type-system.md#handling-recursive-types--pending-entries).
 
 ### Preview (manifest)
 
