@@ -56,6 +56,11 @@ OpenAPI document. The cause is typically:
 - Conflicting `allOf` members (incompatible types or constraints)
 - Empty `oneOf` / `anyOf` arrays
 - Cycle in `allOf` references
+- A `not` keyword
+
+[`settings.system`](settings/client-json-schema.md#settingssystem-optional)
+can make the parser read `allOf` members that contradict, and `not`,
+another way.
 
 **Warning-level variant:** in an OpenAPI 3.0 document, an array schema
 with no `items` logs `INVALID_SCHEMA` at level `warning`. The message is
@@ -528,6 +533,31 @@ parameters removed, are `application/json` or end in `+json`
 (`application/json;v=1.0`, `application/vnd.api+json`,
 `application/problem+json`). `text/json`, `application/x-ndjson` and
 names without the suffix, such as `application/vnd.goa.error`, do not.
+
+### `ALLOF_CONTRADICTION` — warning
+
+**When:** The members of an `allOf` contradict, and `client.json` sets
+`settings.system.allOf` to `latestWins`. The parser keeps the value of
+the later member. There is one issue for each schema. The message
+names the keywords that contradict.
+
+**Remediation:** Make the `allOf` members agree in the source
+document. If the values of the later member are correct, no action is
+necessary. With the default, `strict`, the schema fails with
+`INVALID_SCHEMA`. See
+[`settings.system`](settings/client-json-schema.md#settingssystem-optional).
+
+### `ANYOF_AS_UNKNOWN` — warning
+
+**When:** `client.json` sets `settings.system.anyOf` to `unknown`,
+and the parser reads an `anyOf` as any value. The schema keeps its
+other keywords, without the `anyOf` members. There is one issue for
+each schema.
+
+**Remediation:** If any value is correct for the schema, no action is
+necessary. To get a union, set `settings.system.anyOf` to `union`
+(the default), or remove it. See
+[`settings.system`](settings/client-json-schema.md#settingssystem-optional).
 
 ## GraphQL parse-issue types
 
