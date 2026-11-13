@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.14.0
+version: 0.15.0
 description: >
   Author and edit Skmtc generators — packages that project an OpenAPI
   domain model into application code. Method: clone the nearest stock
@@ -163,6 +163,17 @@ functions that return strings — helpers drift.
   a producer that never needed to be one costs a few lines; a string
   that later needed to be a producer severs the chain for everything
   built on it. Assume your value will be built upon.
+- **A choice's field has the union of the snippets it can pick.** A
+  class or a function that picks one snippet of several types its
+  result as the union of those classes, not as the lang package's
+  snippet base: `statement: SentRequest | IncludingResponse`, not
+  `statement: TsSnippet`. The field then shows each case; the compiler
+  checks that the choice returns only those; and a new case changes
+  the type where each consumer sees it. A consumer refers to the
+  choice's field by indexed access (`SentRequestChoice['statement']`),
+  so the union is written once. Keep the base type only where any
+  snippet is correct by design: a wrapper whose inner value can be
+  any field snippet, another wrapper too.
 - **The variant axis fans out at the engine, not the generator.** One
   subject can produce N definitions via named variants declared in
   enrichments; `'main'` is always present. Thread the variant:
