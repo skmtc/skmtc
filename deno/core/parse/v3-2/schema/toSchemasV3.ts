@@ -197,7 +197,13 @@ export const toSchemaV3 = ({
   context
 }: ToSchemaV3Args): OasSchema | OasRef<'schema'> => {
   if (isRef(schema)) {
-    return toRefV31({ ref: schema, refType: 'schema', stackTrail, context })
+    // In 3.2, as in JSON Schema 2020-12, keywords beside `$ref` apply with
+    // the target: the same as a one-member `allOf` with them beside it.
+    const { $ref, ...keywords } = schema
+
+    return Object.keys(keywords).length > 0
+      ? toSchemaV3({ schema: { allOf: [{ $ref }], ...keywords }, stackTrail, context })
+      : toRefV31({ ref: schema, refType: 'schema', stackTrail, context })
   }
 
   // OpenAPI `not` has no faithful TypeScript representation: a generated type

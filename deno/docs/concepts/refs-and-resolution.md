@@ -159,6 +159,33 @@ if (schema.type === 'object') {
 }
 ```
 
+## Keywords next to a reference
+
+A document can write keywords next to a reference, for example
+`nullable`, `description` or `maxLength`. The parser for each OpenAPI
+version follows that version's rules:
+
+- **OpenAPI 3.0** ignores keywords written directly beside `$ref`, as
+  its spec says. The parser reports each one as `UNEXPECTED_PROPERTY`.
+  To add keywords to a reference, a 3.0 document wraps it in a
+  one-member `allOf`: `{ allOf: [{ $ref }], nullable: true }`.
+- **OpenAPI 3.1 and 3.2** apply keywords beside `$ref` together with
+  the target, as JSON Schema 2020-12 does. The parser reads
+  `{ $ref, maxLength: 3 }` the same as the `allOf` form.
+
+In every version, the keywords stay on the `OasRef`, and the
+referenced model does not change. `resolve()` returns the schema at
+the site: a copy of the target with the keywords of the reference
+applied. A reference with no keywords resolves to the shared model.
+
+A generator renders a reference in one of two ways. It renders the
+reference by name and applies the keywords of the reference. Or it
+renders the resolved schema and uses only the keywords of that
+schema. It never does both, or a keyword such as `nullable` applies
+twice. Each `resolve()` of a reference with keywords returns a new
+copy, so compare reference names to find out whether two sites point
+at one model.
+
 ## Type integrity check on resolution
 
 `resolveOnce()` performs a type-integrity check. The check ensures
