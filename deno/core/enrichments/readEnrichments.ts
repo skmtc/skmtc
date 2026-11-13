@@ -24,9 +24,10 @@
  * @module readEnrichments
  */
 
-import * as v from 'valibot'
+import type * as v from 'valibot'
 import type { ClientSettings } from '@/types/Settings.ts'
 import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichments.ts'
+import { parseEnrichmentValue } from '@/enrichments/parseEnrichmentValue.ts'
 
 /**
  * Minimal structural view of the read context. Any `GenerateContext`
@@ -50,16 +51,21 @@ type EnrichmentReadContext = {
  * `v.object({...})` (a missing block then throws); one with all-optional
  * config passes `v.optional(v.object({...}))`.
  *
- * @throws on a malformed block. The generator's item is then recorded as
- *   `error` and the run continues (fail-open), exactly like a bad subject
- *   leaf.
+ * @throws on a malformed block, naming each wrong value's place in
+ *   `client.json`. The item is recorded as `error`, and the run fails once
+ *   every generator has run, exactly as for a bad subject leaf.
  */
 export const toGeneratorEnrichment = <EnrichmentType>(
   context: EnrichmentReadContext,
   generatorId: string,
   schema: v.GenericSchema<EnrichmentType>
 ): EnrichmentType =>
-  v.parse(schema, context.settings?.enrichments?.[generatorId]?.[GENERATOR_ENRICHMENT_KEY])
+  parseEnrichmentValue({
+    schema,
+    value: context.settings?.enrichments?.[generatorId]?.[GENERATOR_ENRICHMENT_KEY],
+    generatorId,
+    toRoutingPath: path => [generatorId, GENERATOR_ENRICHMENT_KEY, ...path]
+  })
 
 /**
  * Read the **stack-scoped** enrichment — the run-constant leaf at
@@ -72,9 +78,15 @@ export const toGeneratorEnrichment = <EnrichmentType>(
  * `v.object` ignores unknown keys, so fields other generators consume
  * don't interfere. The return type is inferred from `schema`.
  *
- * @throws on a malformed block (fail-open, as above).
+ * @throws on a malformed block, as above.
  */
 export const toStackEnrichment = <EnrichmentType>(
   context: EnrichmentReadContext,
   schema: v.GenericSchema<EnrichmentType>
-): EnrichmentType => v.parse(schema, context.settings?.enrichments?.[STACK_ENRICHMENT_KEY])
+): EnrichmentType =>
+  parseEnrichmentValue({
+    schema,
+    value: context.settings?.enrichments?.[STACK_ENRICHMENT_KEY],
+    generatorId: undefined,
+    toRoutingPath: path => [STACK_ENRICHMENT_KEY, ...path]
+  })

@@ -28,11 +28,39 @@ Deno.test('toGeneratorEnrichment — absent block + optional schema → undefine
   assertEquals(toGeneratorEnrichment(ctx, '@scope/gen-x', schema), undefined)
 })
 
-Deno.test('toGeneratorEnrichment — required schema + absent block throws (fail-open at call site)', () => {
+Deno.test('toGeneratorEnrichment — required schema + absent block throws, naming the block', () => {
   const schema = v.object({ basePackage: v.string() })
   const ctx = settings({})
 
-  assertThrows(() => toGeneratorEnrichment(ctx, '@scope/gen-x', schema))
+  assertThrows(
+    () => toGeneratorEnrichment(ctx, '@scope/gen-x', schema),
+    Error,
+    `Enrichments for '@scope/gen-x' do not match its enrichment schema. Fix them in client.json (settings.enrichments):\n` +
+      `- '@scope/gen-x → _generator': Invalid type: Expected Object but received undefined`
+  )
+})
+
+Deno.test('toGeneratorEnrichment — a wrong-typed value throws, naming its place in client.json', () => {
+  const schema = v.object({ basePackage: v.string() })
+  const ctx = settings({ '@scope/gen-x': { _generator: { basePackage: 7 } } })
+
+  assertThrows(
+    () => toGeneratorEnrichment(ctx, '@scope/gen-x', schema),
+    Error,
+    `- '@scope/gen-x → _generator → basePackage': Invalid type: Expected string but received 7`
+  )
+})
+
+Deno.test('toStackEnrichment — a wrong-typed value throws, naming its place under _stack', () => {
+  const schema = v.object({ basePackage: v.string() })
+  const ctx = settings({ _stack: { basePackage: false } })
+
+  assertThrows(
+    () => toStackEnrichment(ctx, schema),
+    Error,
+    `Stack enrichments do not match the schema a generator reads them with. Fix them in client.json (settings.enrichments):\n` +
+      `- '_stack → basePackage': Invalid type: Expected string but received false`
+  )
 })
 
 Deno.test('toStackEnrichment — reads the _stack leaf, typed', () => {

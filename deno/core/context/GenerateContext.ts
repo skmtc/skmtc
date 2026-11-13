@@ -85,6 +85,7 @@ import type { ModelEntry } from '@/dsl/model/toModelEntry.ts'
 import type { ModelProjection, NormalizedModelProjection } from '@/dsl/model/types.ts'
 import { EnrichmentAudit, hasVariantEnrichment } from '@/enrichments/EnrichmentAudit.ts'
 import { toSerializedError } from '@/types/SerializedError.ts'
+import { toGenerationFailure, type FailedItem } from '@/context/toGenerationFailure.ts'
 import { formatEnrichmentPath, type EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
 
 type ConstructorArgs = {
@@ -267,7 +268,7 @@ const isEnrichmentLeaf = (value: unknown): value is EnrichmentDefaultsLeaf =>
 export class GenerateContext implements GenerateContextType {
   #files: Map<string, FileBase>
   /** Each subject whose generation threw: its trail and the error message. */
-  #failedItems: string[] = []
+  #failedItems: FailedItem[] = []
   /** Each file's path folded (case, Unicode form) → the path: a file system that ignores case sees one file. */
   #foldedPaths: Map<string, string> = new Map()
   #previews: Record<string, Preview>
@@ -389,7 +390,7 @@ export class GenerateContext implements GenerateContextType {
   #failItem(error: unknown, stackTrail: StackTrail): void {
     this.#logError(error)
     this.captureCurrentResult('error', stackTrail)
-    this.#failedItems.push(`${stackTrail}: ${toSerializedError(error).message}`)
+    this.#failedItems.push({ trail: `${stackTrail}`, message: toSerializedError(error).message })
   }
 
   /**
@@ -525,9 +526,7 @@ export class GenerateContext implements GenerateContextType {
     // fails, and writes nothing. Every subject that failed is in the log
     // and in the results.
     if (this.#failedItems.length > 0) {
-      throw new Error(
-        `Generation failed for ${this.#failedItems.length} subject(s):\n${this.#failedItems.join('\n')}`
-      )
+      throw new Error(toGenerationFailure(this.#failedItems))
     }
 
     return {
