@@ -873,6 +873,39 @@ Deno.test('OasOperation', async t => {
   })
 
   await t.step('toJsonSchema() method', async t => {
+    await t.step("should write the path item's parameters, which the operation's own replace", () => {
+      const parameter = (name: string, description: string) =>
+        new OasParameter({
+          name,
+          location: 'query',
+          description,
+          required: false,
+          schema: new OasString(),
+          style: 'form',
+          explode: true
+        })
+
+      const operation = new OasOperation({
+        path: '/apps/{app_id}/streams',
+        method: 'get',
+        pathItem: new OasPathItem({
+          parameters: [parameter('page', 'shared'), parameter('limit', 'shared')]
+        }),
+        parameters: [parameter('limit', 'own')],
+        responses: {}
+      })
+
+      const parameters = operation.toJsonSchema(createMockOptions()).parameters ?? []
+
+      assertEquals(
+        parameters.map(param => ('name' in param ? [param.name, param.description] : param.$ref)),
+        [
+          ['page', 'shared'],
+          ['limit', 'own']
+        ]
+      )
+    })
+
     await t.step('should convert to OpenAPI v3 OperationObject format', () => {
       const operation = new OasOperation({
         path: '/users',

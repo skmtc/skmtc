@@ -17,6 +17,7 @@ import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
 import type { OasServer } from '../server/Server.ts'
 import { OasBase } from '@/types/OasBase.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
+import { toEffectiveParameters } from '@/oas/operation/toEffectiveParameters.ts'
 
 /**
  * Fields for configuring an OpenAPI operation object.
@@ -240,14 +241,9 @@ export class OasOperation extends OasBase {
    * @returns
    */
   toParams(filter?: OasParameterLocation[]): OasParameter[] {
-    const own = this.parameters?.map(param => param.resolve()) ?? []
-    const shared = (this.pathItem?.parameters ?? [])
+    return toEffectiveParameters({ own: this.parameters, shared: this.pathItem?.parameters })
       .map(param => param.resolve())
-      .filter(param => !own.some(({ name, location }) => name === param.name && location === param.location))
-
-    return [...shared, ...own].filter(param =>
-      filter?.length ? filter.includes(param.location) : true
-    )
+      .filter(param => (filter?.length ? filter.includes(param.location) : true))
   }
 
   /**
@@ -275,12 +271,21 @@ export class OasOperation extends OasBase {
    * @returns OpenAPI v3 operation object
    */
   toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.OperationObject {
+    const parameters = toEffectiveParameters({
+      own: this.parameters,
+      shared: this.pathItem?.parameters
+    })
+
     return {
       tags: this.tags,
       summary: this.summary,
       description: this.description,
       operationId: this.operationId,
-      parameters: this.parameters?.map(param => param.toJsonSchema(options)),
+      // The path item's parameters too: the operation is written on its own.
+      parameters:
+        parameters.length > 0 || this.parameters !== undefined
+          ? parameters.map(param => param.toJsonSchema(options))
+          : undefined,
       requestBody: this.requestBody?.toJsonSchema(options),
       responses: Object.fromEntries(
         Object.entries(this.responses).map(([key, value]) => [key, value.toJsonSchema(options)])
