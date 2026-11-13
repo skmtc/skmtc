@@ -557,6 +557,12 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     return this.#document
   }
 
+  /**
+   * The reference as JSON Schema. With `resolve`, the schema at this site,
+   * with the keywords next to the reference applied. Without it, only
+   * `{ $ref }`: the keywords next to the reference are not written yet
+   * (skmtc/skmtc#338).
+   */
   toJsonSchema({
     resolve
   }: ToJsonSchemaOptions): OpenAPIV3.ReferenceObject | ResolvedRefJsonType<T> {
@@ -573,6 +579,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     return ref
   }
 
+  /** `{ $ref }` only, as {@link toJsonSchema} without `resolve` (skmtc/skmtc#338). */
   toJSON(): object {
     return {
       $ref: `#/components/${refTypeToPluralPath(this.refType)}/${this.toRefName()}`
