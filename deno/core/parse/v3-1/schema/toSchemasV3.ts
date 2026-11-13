@@ -200,10 +200,22 @@ export const toSchemaV3 = ({
     // In 3.1, as in JSON Schema 2020-12, keywords beside `$ref` apply with
     // the target: the same as an `allOf` that starts with the reference.
     const { $ref, ...keywords } = schema
-    const allOf = 'allOf' in keywords && Array.isArray(keywords.allOf) ? keywords.allOf : []
+    const allOf = 'allOf' in keywords ? keywords.allOf : undefined
+
+    // An `allOf` that is not an array holds no members: reported, and the reference kept.
+    if (allOf !== undefined && !Array.isArray(allOf)) {
+      context.logSkippedFields({
+        skipped: { allOf },
+        parent: schema,
+        parentType: 'ref',
+        stackTrail
+      })
+    }
+
+    const members = Array.isArray(allOf) ? allOf : []
 
     return Object.keys(keywords).length > 0
-      ? toSchemaV3({ schema: { ...keywords, allOf: [{ $ref }, ...allOf] }, stackTrail, context })
+      ? toSchemaV3({ schema: { ...keywords, allOf: [{ $ref }, ...members] }, stackTrail, context })
       : toRefV31({ ref: schema, refType: 'schema', stackTrail, context })
   }
 

@@ -21,7 +21,12 @@ const toDocument = (openapi: string) =>
             // Keywords written directly beside the reference, with no allOf around it.
             bare: { $ref: '#/components/schemas/Name', description: 'A short name.', maxLength: 3 },
             // An allOf beside the reference: both apply.
-            both: { $ref: '#/components/schemas/Base', allOf: [{ $ref: '#/components/schemas/Extra' }] }
+            both: {
+              $ref: '#/components/schemas/Base',
+              allOf: [{ $ref: '#/components/schemas/Extra' }]
+            },
+            // An allOf that is not an array, beside the reference.
+            notArray: { $ref: '#/components/schemas/Name', allOf: 'not an array' }
           }
         }
       }
@@ -83,6 +88,31 @@ for (const openapi of ['3.1.0', '3.2.0']) {
     assertEquals(
       resolved?.type === 'object' ? Object.keys(resolved.properties ?? {}).toSorted() : resolved?.type,
       ['a', 'b']
+    )
+  })
+
+  Deno.test(`${openapi}: an allOf beside a bare $ref that is not an array is reported, and the reference kept`, () => {
+    const context = new ParseContext({
+      input: { type: 'oas', value: toDocument(openapi) },
+      logger: new log.Logger('test', 'ERROR'),
+      silent: true
+    })
+    const parsed = context.parse(new StackTrail(['TEST']))
+    const site =
+      parsed.type === 'oas'
+        ? parsed.value.components?.schemas?.[toRefName('#/components/schemas/Site')]
+        : undefined
+    const notArray = site?.type === 'object' ? site.properties?.notArray : undefined
+
+    assertEquals(notArray?.isRef() ? notArray.toRefName() : notArray?.type, 'Name')
+    // The trap: the allOf was replaced by `[{ $ref }]` with no warning.
+    assertEquals(
+      context.issues
+        .filter(
+          ({ type, location }) => type === 'UNEXPECTED_PROPERTY' && location.includes('notArray')
+        )
+        .map(({ location }) => location.split(':').at(-1)),
+      ['allOf']
     )
   })
 }
