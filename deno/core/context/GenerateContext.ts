@@ -85,7 +85,7 @@ import type { ModelEntry } from '@/dsl/model/toModelEntry.ts'
 import type { ModelProjection, NormalizedModelProjection } from '@/dsl/model/types.ts'
 import { EnrichmentAudit, hasVariantEnrichment } from '@/enrichments/EnrichmentAudit.ts'
 import { toSerializedError } from '@/types/SerializedError.ts'
-import { toGenerationFailure, type FailedItem } from '@/context/toGenerationFailure.ts'
+import { GenerationFailure, type FailedItem } from '@/context/toGenerationFailure.ts'
 import { formatEnrichmentPath, type EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
 
 type ConstructorArgs = {
@@ -526,7 +526,7 @@ export class GenerateContext implements GenerateContextType {
     // fails, and writes nothing. Every subject that failed is in the log
     // and in the results.
     if (this.#failedItems.length > 0) {
-      throw new Error(toGenerationFailure(this.#failedItems))
+      throw new GenerationFailure(this.#failedItems, enrichmentWarnings)
     }
 
     return {

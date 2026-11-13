@@ -27,6 +27,8 @@ import type { SupportedSubjects } from '@/types/SupportedSubjects.ts'
 import type { EnrichmentDefaults } from '@/types/EnrichmentDefaults.ts'
 import type { ParseIssue } from '@/context/ParseIssue.ts'
 import { toSerializedError } from '@/types/SerializedError.ts'
+import type { EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
+import { GenerationFailure } from '@/context/toGenerationFailure.ts'
 
 /**
  * Represents the parse phase of the SKMTC pipeline.
@@ -231,6 +233,12 @@ export class CoreContext {
    * render phases replace `#phase`, so a later failure still returns them.
    */
   #parseIssues: ParseIssue[] = []
+
+  /**
+   * The enrichment warnings of this run, kept so a failure in generate or
+   * render still returns them: a misaddressed enrichment is often the cause.
+   */
+  #enrichmentWarnings: EnrichmentWarning[] = []
 
   /**
    * Creates a new CoreContext instance.
@@ -441,6 +449,7 @@ export class CoreContext {
       // A throw while the parse context is set up counts as parse.
       this.#phaseName = 'parse'
       this.#parseIssues = []
+      this.#enrichmentWarnings = []
       const phase = this.#setupParsePhase(document, settings)
       this.#phase = phase
       this.#parseIssues = phase.context.issues
@@ -467,6 +476,7 @@ export class CoreContext {
           this.#phase = generatePhase
 
           const generated = generatePhase.context.toArtifacts(st)
+          this.#enrichmentWarnings = generated.enrichmentWarnings
 
           // Opt-in snapshot of the live files graph, taken after generate populates
           // it and before render replaces the phase. Off unless `inspect` is set.
@@ -529,7 +539,8 @@ export class CoreContext {
         previews: {},
         results: this.#results.toTree(),
         parseIssues: [...priorIssues, fatalIssue],
-        enrichmentWarnings: [],
+        enrichmentWarnings:
+          error instanceof GenerationFailure ? error.enrichmentWarnings : this.#enrichmentWarnings,
         logs: [...this.#logLines.lines]
       }
     } finally {

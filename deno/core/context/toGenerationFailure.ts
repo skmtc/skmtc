@@ -1,3 +1,5 @@
+import type { EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
+
 /** A subject whose generation threw: its trail and the error message. */
 export type FailedItem = {
   trail: string
@@ -27,4 +29,19 @@ export const toGenerationFailure = (failedItems: readonly FailedItem[]): string 
   })
 
   return `Generation failed for ${failedItems.length} subject(s):\n${paragraphs.join('\n\n')}`
+}
+
+/**
+ * The error a run that failed in generate throws. It carries the
+ * enrichment warnings the audit found, since a misaddressed enrichment is
+ * often why a subject failed.
+ */
+export class GenerationFailure extends Error {
+  enrichmentWarnings: EnrichmentWarning[]
+
+  constructor(failedItems: readonly FailedItem[], enrichmentWarnings: EnrichmentWarning[]) {
+    super(toGenerationFailure(failedItems))
+    this.name = 'GenerationFailure'
+    this.enrichmentWarnings = enrichmentWarnings
+  }
 }

@@ -205,6 +205,57 @@ Deno.test('toArtifacts - a GraphQL input gives a gql RUN_FAILED issue', () => {
   assertEquals(issue.location, 'toArtifacts:render')
 })
 
+const throwingOperationGenerators = <E = undefined>(): GeneratorsMapContainer<E> => ({
+  // @ts-expect-error see above
+  ops: toOasOperationEntry({
+    id: 'ops',
+    transform: () => {
+      throw new Error('cannot generate')
+    }
+  })
+})
+
+// A typo'd generator id: one UNKNOWN_GENERATOR_ID warning from the audit.
+const typoSettings: ClientSettings = { enrichments: { opz: { '/pets': { get: { main: {} } } } } }
+
+const toEnrichmentWarningTypes = (toGeneratorConfigMap: RunArgs['toGeneratorConfigMap']) => {
+  const consoleStubs = [stub(console, 'log'), stub(console, 'error')]
+
+  try {
+    const { parseIssues, enrichmentWarnings } = new CoreContext({
+      spanId: 's',
+      silent: true
+    }).toArtifacts({
+      document: { type: 'oas', value: oasDocument },
+      settings: typoSettings,
+      toGeneratorConfigMap: toGeneratorConfigMap ?? operationGenerators,
+      stackTrail: new StackTrail(['TEST']),
+      silent: true
+    })
+
+    return {
+      failed: runFailedIssues(parseIssues).map(({ location }) => location),
+      warnings: enrichmentWarnings.map(({ type }) => type)
+    }
+  } finally {
+    consoleStubs.forEach(consoleStub => consoleStub.restore())
+  }
+}
+
+Deno.test('toArtifacts - a failed subject keeps the enrichment warnings', () => {
+  assertEquals(toEnrichmentWarningTypes(throwingOperationGenerators), {
+    failed: ['toArtifacts:generate'],
+    warnings: ['UNKNOWN_GENERATOR_ID']
+  })
+})
+
+Deno.test('toArtifacts - a throw in Render keeps the enrichment warnings', () => {
+  assertEquals(toEnrichmentWarningTypes(renderFailingGenerators), {
+    failed: ['toArtifacts:render'],
+    warnings: ['UNKNOWN_GENERATOR_ID']
+  })
+})
+
 Deno.test('toSupportedSubjects and toEnrichmentDefaults - the failure names the entry and phase', () => {
   const context = new CoreContext({ spanId: 's', silent: true })
   const args = {
