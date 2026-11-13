@@ -1,17 +1,19 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
+import { isNullOnlyType } from '@/parse/v3-2/schema/normalize-schema-shape.ts'
 
 /**
  * Whether an `anyOf` member is only `null`: 3.0's `{ nullable: true, enum:
- * [null] }`, or 3.1's `{ type: 'null' }`.
+ * [null] }`, or 3.1's `{ type: 'null' }` or `{ type: ['null'] }`, as the
+ * parsers read a null member.
  */
 const isNullMember = (member: object): boolean => {
   const fields: Record<string, unknown> = Object.fromEntries(Object.entries(member))
   const values = fields.enum
 
   return (
-    fields.type === 'null' ||
+    isNullOnlyType(fields.type) ||
     (fields.nullable === true && Array.isArray(values) && values.length === 1 && values[0] === null)
   )
 }

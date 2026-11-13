@@ -59,7 +59,9 @@ const toDocument = (openapi: string) =>
           ]
         },
         // A nullable reference, as each version writes one with `anyOf`.
-        MaybeNamed: openapi.startsWith('3.0') ? { anyOf: [named], nullable: true } : { anyOf: [named, { type: 'null' }] }
+        MaybeNamed: openapi.startsWith('3.0') ? { anyOf: [named], nullable: true } : { anyOf: [named, { type: 'null' }] },
+        // The same, with 3.1's list form of the null type.
+        MaybeNamedList: openapi.startsWith('3.0') ? { anyOf: [named], nullable: true } : { anyOf: [named, { type: ['null'] }] }
       }
     }
   }) as OpenAPIV3.Document
@@ -138,6 +140,15 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(maybeNamed?.isRef(), true)
     assertEquals(maybeNamed?.isRef() ? maybeNamed.nullable : undefined, true)
     assertEquals(warningsAt('MaybeNamed'), 0)
+  })
+
+  Deno.test(`${openapi} system.anyOf unknown: a null member written type: ['null'] is null too`, () => {
+    const { toSchema, warningsAt } = parse({ openapi, system: { anyOf: 'unknown' } })
+    const maybeNamed = toSchema('MaybeNamedList')
+
+    assertEquals(maybeNamed?.isRef(), true)
+    assertEquals(maybeNamed?.isRef() ? maybeNamed.nullable : undefined, true)
+    assertEquals(warningsAt('MaybeNamedList'), 0)
   })
 
   Deno.test(`${openapi} system.anyOf unknown: an anyOf of single values stays a union`, () => {
