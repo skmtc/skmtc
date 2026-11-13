@@ -320,8 +320,10 @@ export class OasUnion extends OasBase {
  * with string literals only.
  */
 const toDiscriminatorValues = (member: OasSchema | OasRef<'schema'>, key: string): string[] | undefined => {
+  // `resolve()`, not `resolveOnce()`: the schema at this site, with the
+  // keywords next to the reference (`properties`, `required`) applied.
   if (member.isRef()) {
-    return member.nullable ? undefined : toDiscriminatorValues(member.resolveOnce(), key)
+    return member.nullable ? undefined : toDiscriminatorValues(member.resolve(), key)
   }
 
   if (member.type !== 'object' || member.nullable) {
@@ -336,7 +338,7 @@ const toDiscriminatorValues = (member: OasSchema | OasRef<'schema'>, key: string
 /** The string literals a schema allows, or `undefined` when it allows anything else too. */
 const toLiteralValues = (schema: OasSchema | OasRef<'schema'> | CustomValue): string[] | undefined => {
   if (schema.isRef()) {
-    return schema.nullable ? undefined : toLiteralValues(schema.resolveOnce())
+    return schema.nullable ? undefined : toLiteralValues(schema.resolve())
   }
 
   if (schema.type !== 'string' || schema.nullable || schema.enums === undefined) {
