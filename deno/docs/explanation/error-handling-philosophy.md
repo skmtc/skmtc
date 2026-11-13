@@ -19,9 +19,9 @@ visibility into what was sacrificed.
 
 ## The one-line definition
 
-Parse never throws to its caller. Generator transforms catch errors per item.
-The manifest records every outcome. Exit codes are derived from the manifest,
-not from process throws.
+Parse never throws to its caller. Generator transforms catch errors per item,
+and any such error then fails the run. The manifest records every outcome. Exit
+codes are derived from the manifest, not from process throws.
 
 ## Two-tier error isolation in Parse
 
@@ -407,14 +407,14 @@ A throw-based error model is wrong for Skmtc's use case:
 
 ### What if my generator wants to fail loudly?
 
-Generators _can_ throw — and the catch in `#runOasOperationGenerator` will
-convert the throw into a `result: 'error'` for that operation. That's the right
-path for "this operation is malformed and I can't produce sensible output."
+Generators _can_ throw. The catch in `#runOasOperationGenerator` records
+`result: 'error'` for that operation, and the run fails when every generator has
+run. A generator that cannot make correct output for an operation should
+throw: the run then writes nothing, rather than code that is wrong.
 
 Whole-run failure (exit 1) comes from any `error` issue. A throw outside the
-per-item catches gives a `RUN_FAILED` issue that names the phase that failed. User-level "stop
-the world" controls aren't first-class — the model assumes partial output is
-always preferable to no output.
+per-item catches, or any per-item error during generation, gives a `RUN_FAILED`
+issue that names the phase that failed.
 
 ### Why are warnings still mirrored to stderr instead of just the manifest?
 
@@ -436,11 +436,18 @@ There's no `--strict-parse` flag. You can post-process the manifest: if
 discard the partial output. CI flows often do this with a follow-up `jq` check
 after `skmtc generate`.
 
-### Does this philosophy apply to Generate phase errors too?
+### Does this philosophy apply to errors during generation too?
 
-Yes. Each `(generator, operation)` pair runs inside a try/catch in
-`#runOasOperationGenerator`. A generator throwing for one operation doesn't
-affect siblings. The manifest records the per-operation result.
+No. Parse reads outside input, the schema, so it tolerates faults and reports
+them. Generation runs your own code, the generators and their enrichments, over
+a document that Parse has already made safe. An error there is a bug or a wrong
+value to fix, so the run fails and writes no files.
+
+Each `(generator, operation)` pair still runs inside a try/catch in
+`#runOasOperationGenerator`, so one throw does not hide the others. The manifest
+records the result of each operation, and the `RUN_FAILED` message lists each
+distinct error once, with the items it failed. A wrong enrichment value names
+its place in `client.json`.
 
 The Render phase is intentionally simpler — it's pure serialization of the file
 map produced by Generate. Errors at Render time typically indicate a structural

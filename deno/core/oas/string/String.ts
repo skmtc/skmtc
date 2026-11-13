@@ -1,4 +1,6 @@
+import type { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
+import { toSiblingAnnotations, toSiblingEnums, toSiblingValue, isStringValue } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasRef } from '../ref/Ref.ts'
 import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
@@ -104,6 +106,13 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
    * Whether the string is deprecated.
    */
   deprecated: boolean | undefined
+  /**
+   * The schema's `not`, kept as an `OasUnknown` under `client.json`
+   * `system.not: unknown`: the document says "not something", and core does
+   * not read what. `undefined` otherwise.
+   */
+  not: OasUnknown | undefined = undefined
+
   constructor(fields: StringFields<Nullable> = {}, context?: ParseContextType) {
     super(context)
     this.title = fields.title
@@ -124,6 +133,45 @@ export class OasString<Nullable extends boolean | undefined = boolean | undefine
 
   isRef(): this is OasRef<'schema'> {
     return false
+  }
+
+  /** Whether the value is `readOnly`: sent by the API only, never in a request. */
+  isReadOnly(): boolean {
+    return this.readOnly === true
+  }
+
+  /** Whether the value is `writeOnly`: sent in a request only, never by the API. */
+  isWriteOnly(): boolean {
+    return this.writeOnly === true
+  }
+
+  /**
+   * A copy of this schema with what `ref` adds at its site applied: its
+   * `nullable`, `readOnly`, `writeOnly` and the keywords next to it (`SiblingKeywords`) that
+   * this type takes, a sibling's value winning. A value that does not fit
+   * this type is left out (the parser reports it). For `OasRef.resolve()`.
+   * This schema does not change, and the copy shares its child schemas.
+   */
+  clone(ref?: OasRef<'schema'>): OasString {
+    const nullable = this.nullable || ref?.nullable || undefined
+    const copy = new OasString<boolean | undefined>({
+      ...toSiblingAnnotations(this, ref),
+      example: toSiblingValue(ref?.example, isStringValue) ?? this.example,
+      format: ref?.format ?? this.format,
+      enums: toSiblingEnums(ref?.enums, isStringValue, nullable) ?? this.enums,
+      nullable,
+      maxLength: ref?.maxLength ?? this.maxLength,
+      minLength: ref?.minLength ?? this.minLength,
+      pattern: ref?.pattern ?? this.pattern,
+      default: toSiblingValue(ref?.default, isStringValue) ?? this.default,
+      readOnly: this.readOnly || ref?.readOnly || undefined,
+      writeOnly: this.writeOnly || ref?.writeOnly || undefined,
+      deprecated: ref?.deprecated ?? this.deprecated,
+    })
+    copy.stackTrail = this.stackTrail
+    copy.not = this.not
+
+    return copy
   }
 
   traverse(path: SchemaPath): OasSchema | OasRef<'schema'> {

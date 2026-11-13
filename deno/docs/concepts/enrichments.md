@@ -212,10 +212,11 @@ the actual routing details and complete examples.
 
 ### Validation and warnings
 
-Three loud layers validate enrichments: a structurally invalid block
-fails at CLI load, a wrongly-typed value in a reached leaf fails that
-item's generation (the run completes; the manifest records the error
-with the path), and a declared variant block missing `main` throws.
+Three loud layers validate enrichments. A structurally invalid block
+fails at CLI load. A wrongly-typed value in a reached leaf fails the
+run: the run writes no files, and the error names each wrong value's
+place in `client.json`. A declared variant block missing `main`
+throws.
 
 What those layers cannot see is *addressing* — a typo'd generator id,
 path, method, or model name makes the lookup miss silently, and an
@@ -232,7 +233,7 @@ warnings" block in CLI output):
 | `SKIPPED_SUBJECT_ENRICHMENT` | info | Addressed correctly, but the subject is excluded by `skip`/`include` |
 | `SKIPPED_GENERATOR_ENRICHMENT` | info | The whole generator is skipped while enrichments for it exist |
 
-Warnings never affect output — generation stays fail-open. If a
+Warnings never affect output or fail the run. If a
 customization silently doesn't land, this is the first place to look:
 `jq '.manifest.enrichmentWarnings' out.json`. Full shape:
 [manifest format](../reference/manifest-format.md#enrichmentwarnings).
@@ -382,8 +383,8 @@ the extensions-vs-enrichments decision, and the AI-driven
 
 Yes, at three levels. A structurally invalid `enrichments` block fails
 at CLI load (`ConfigValidationError`). A wrongly-typed value in a leaf
-the routing reaches fails that item's generation — the run completes,
-the manifest records the error, and the message names the path. And
+the routing reaches fails the run. The run writes no files, and the
+message names each wrong value's place in `client.json`. And
 since `@skmtc/core@0.28.0`, the addressing layer warns too: see
 "Validation and warnings" above.
 

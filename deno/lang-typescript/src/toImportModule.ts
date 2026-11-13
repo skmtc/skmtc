@@ -166,3 +166,22 @@ const toMissingModuleNameMessage = ({
 
   return `${message} — a nested root is a subpath export and needs its own name, like '${outermost.moduleName}/${subpath}'.`
 }
+
+/** Arguments for {@link toRenderedModule}. */
+export type ToRenderedModuleArgs = {
+  /** The file the import is written in. */
+  destinationPath: string
+  /** The module as registered: an export path (`@/…`) or a module specifier. */
+  module: string
+  packages: ToImportModuleArgs['packages']
+}
+
+/**
+ * The module text an import in `destinationPath` renders: the module through
+ * {@link toImportModule} when the settings declare packages, else as it was
+ * registered. Header imports (`TsFile`) and dynamic imports
+ * (`TsDynamicImport`) both render through this, so one module is never
+ * written two ways.
+ */
+export const toRenderedModule = ({ destinationPath, module, packages }: ToRenderedModuleArgs): string =>
+  packages ? toImportModule({ destinationPath, module, packages }) : module

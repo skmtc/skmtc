@@ -1,4 +1,5 @@
 import type { OpenAPIV3_1 } from 'openapi-types'
+import type { SiblingKeywords } from '@/oas/schema/siblings.ts'
 import type { OasRefData } from '@/oas/ref/ref-types.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import { OasRef } from '@/oas/ref/Ref.ts'
@@ -15,6 +16,11 @@ type ToRefV31Args<T extends OasRefData['refType']> = {
    * reference; omitted everywhere else (a plain `$ref` is non-nullable).
    */
   nullable?: boolean
+  /** Use-site `readOnly` and `writeOnly` (see `RefFields.readOnly`): from a one-member `allOf`. */
+  readOnly?: boolean
+  writeOnly?: boolean
+  /** The other keywords next to the reference in a one-member `allOf`, for `RefFields` (see `SiblingKeywords`). */
+  siblings?: SiblingKeywords
 }
 
 export const toRefV31 = <T extends OasRefData['refType']>({
@@ -22,7 +28,10 @@ export const toRefV31 = <T extends OasRefData['refType']>({
   refType,
   stackTrail,
   context,
-  nullable
+  nullable,
+  readOnly,
+  writeOnly,
+  siblings
 }: ToRefV31Args<T>): OasRef<T> => {
   const { $ref, ...skipped } = ref
 
@@ -32,5 +41,5 @@ export const toRefV31 = <T extends OasRefData['refType']>({
 
   context.registerRef(stackTrail.clone(), $ref)
 
-  return context.withStackTrail(stackTrail, () => new OasRef({ refType, $ref, nullable }, context))
+  return context.withStackTrail(stackTrail, () => new OasRef({ ...siblings, refType, $ref, nullable, readOnly, writeOnly }, context))
 }

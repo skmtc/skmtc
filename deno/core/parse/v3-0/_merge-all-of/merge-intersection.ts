@@ -1,14 +1,15 @@
 import { decomposeIntersection } from './decompose-intersection.ts'
-import type { GetRefFn, SchemaOrReference, SchemaObject } from './types.ts'
+import type { GetRefFn, SchemaOrReference, SchemaObject, MergeSystem } from './types.ts'
 import { mergeSchemasOrRefs } from './merge.ts'
 
 type MergeIntersectionArgs = {
   schema: SchemaObject
   getRef: GetRefFn
+  system: MergeSystem
   throwOnConflict?: boolean
 }
 
-export const mergeIntersection = ({ schema, getRef }: MergeIntersectionArgs): SchemaOrReference => {
+export const mergeIntersection = ({ schema, getRef, system }: MergeIntersectionArgs): SchemaOrReference => {
   const decomposed = decomposeIntersection({ schema })
 
   if (decomposed.length === 1) {
@@ -20,7 +21,7 @@ export const mergeIntersection = ({ schema, getRef }: MergeIntersectionArgs): Sc
   })
 
   const result = dereffed.reduce<SchemaOrReference>((acc, decomposed) => {
-    const merged = mergeSchemasOrRefs(acc, decomposed, getRef)
+    const merged = mergeSchemasOrRefs({ first: acc, second: decomposed, getRef, system })
 
     return merged
   }, {} as SchemaObject)

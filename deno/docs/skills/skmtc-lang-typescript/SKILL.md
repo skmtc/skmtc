@@ -11,8 +11,8 @@ description: >
   skills.
 metadata:
   describes:
-    '@skmtc/lang-typescript': '0.12'
-    '@skmtc/core': '0.39'
+    '@skmtc/lang-typescript': '0.13'
+    '@skmtc/core': '0.40'
 ---
 
 # The TypeScript layer (@skmtc/lang-typescript)
@@ -134,6 +134,13 @@ against `@/…` export paths, where `@/` is the workspace root. At render
 root's `moduleName`; no root → as written. A package file that imports
 a workspace-root path under no root throws at render.
 
+A module loaded on demand is a snippet, not an import:
+`new TsDynamicImport({ context, module, destinationPath })` renders
+`import('<module>')` where it stands, with the module re-keyed as a
+header import in that file would be. Do not also import that module in
+the file's header (the module would load at startup after all); a
+type-only header import is fine.
+
 ## 5. Composition helpers
 
 All `Stringable`, all deferring joins to render — use them instead of
@@ -163,7 +170,10 @@ hand-roll keyword lists.
 ## 7. Files
 
 Render order: custom banner → re-exports → imports → definitions;
-first-wins per definition slot makes output order-independent. You
+first-wins per definition slot makes output order-independent.
+Definitions render in the order they were added, a model's when its
+constructor returned, so a `const` lands after the models it refers
+to. You
 almost never construct `TsFile`/`TsImport`/`TsDefinition` yourself —
 `register` and the Drivers do.
 

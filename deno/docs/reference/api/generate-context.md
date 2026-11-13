@@ -19,7 +19,6 @@ class GenerateContext implements GenerateContextType {
   logger: Logger
   captureCurrentResult: (result: ResultType, stackTrail: StackTrail) => void
   toGeneratorConfigMap: <E = undefined>() => GeneratorsMapContainer<E>
-  modelDepth: Record<string, number>
 
   #files: Map<string, FileBase>            // private
   #previews: Record<string, Preview>       // private
@@ -45,7 +44,7 @@ class GenerateContext implements GenerateContextType {
   findDefinition(args: PickArgs): DefinitionBase | undefined
   toOperationContentSettings<V, E, P>(args: ToOperationSettingsArgs<V, E, P>): ContentSettings<E>
   toModelContentSettings<V, E, P>(args: BuildModelSettingsArgs<V, E, P>): ContentSettings<E>
-  resolveSchemaRefOnce(refName: RefName, generatorId: string): OasSchema | OasRef<'schema'>
+  resolveSchemaRefOnce(refName: RefName): OasSchema | OasRef<'schema'>
 }
 ```
 
@@ -96,12 +95,6 @@ manifest. Generators don't call this directly.
 
 A function returning the configured generator map. Called by
 `toArtifacts` to iterate generators. Generators don't call this.
-
-### `modelDepth: Record<string, number>`
-
-Tracking model nesting depth per `(generatorId, refName)` to prevent
-infinite recursion. Used by the engine; generators don't read this
-directly.
 
 ### `#files`, `#previews` (private)
 
@@ -287,10 +280,12 @@ generators rarely call directly. `args` carries `options` on the same
 terms as the insert calls: required when the projection declares
 options, absent otherwise.
 
-### `resolveSchemaRefOnce(refName, generatorId): OasSchema | OasRef<'schema'>`
+### `resolveSchemaRefOnce(refName): OasSchema | OasRef<'schema'>`
 
-One-step ref resolution from the component bucket, with depth
-tracking. Throws `Schema not found` if the refName isn't present.
+One-step ref resolution from the component bucket. Throws `Schema
+not found` if the refName isn't present. A model's recursion goes
+through `toModelRef`, not through this call (see
+[recursive types in the type system](../../concepts/the-type-system.md#handling-recursive-types--pending-entries)).
 
 Used internally during model dispatch; generators reaching for
 schemas usually use `OasRef.resolve()` instead.

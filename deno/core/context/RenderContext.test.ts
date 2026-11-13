@@ -32,7 +32,7 @@ const createFileWithDefinition = (path: string, name: string, content: string): 
       toString: () => content
     }
   })
-  file.definitions.set(name, definition)
+  file.addDefinition(definition)
   return file
 }
 
@@ -424,7 +424,7 @@ Deno.test('RenderContext', async t => {
         }
       })
 
-      file.definitions.set('User', userDefinition)
+      file.addDefinition(userDefinition)
 
       const files = new Map<string, FileBase>()
       files.set('@/types.ts', file)
@@ -536,7 +536,7 @@ Deno.test('RenderContext', async t => {
         }
       })
 
-      file.definitions.set('User', userDefinition)
+      file.addDefinition(userDefinition)
 
       const files = new Map<string, FileBase>()
       files.set('@/models/User.ts', file)

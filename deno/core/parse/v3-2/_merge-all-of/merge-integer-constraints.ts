@@ -1,20 +1,14 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { SchemaObject } from './types.ts'
+import type { SchemaObject, MergeArgs } from './types.ts'
 import { genericMerge } from './generic-merge.ts'
-import type { GetRefFn, NormalizeFn } from './types.ts'
 import * as v from 'valibot'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
 import { mergeBounds } from '@/parse/v3-2/_merge-all-of/merge-bounds.ts'
-export function mergeIntegerConstraints(
-  first: OpenAPIV3.SchemaObject,
-  second: OpenAPIV3.SchemaObject,
-  getRef: GetRefFn,
-  normalize: NormalizeFn
-): OpenAPIV3.SchemaObject {
+export function mergeIntegerConstraints({ first, second, getRef, normalize, system }: MergeArgs<OpenAPIV3.SchemaObject>): OpenAPIV3.SchemaObject {
   checkTypeConflicts(first, second)
 
   // First merge enum values if present
-  const result: SchemaObject = genericMerge(first, second, getRef, normalize, v.number())
+  const result: SchemaObject = genericMerge({ first, second, getRef, normalize, system, typeCheck: v.number() })
 
   // Then merge other constraints
   result.type = 'integer'

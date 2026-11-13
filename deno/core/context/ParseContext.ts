@@ -22,6 +22,7 @@ import { toDocumentFieldsV3 } from '@/parse/v3-0/document/toDocumentFieldsV3.ts'
 import { toDocumentFieldsV3 as toDocumentFieldsV31 } from '@/parse/v3-1/document/toDocumentFieldsV3.ts'
 import { toDocumentFieldsV3 as toDocumentFieldsV32 } from '@/parse/v3-2/document/toDocumentFieldsV3.ts'
 import { toOasDialect } from '@/parse/toOasDialect.ts'
+import type { SystemSettings } from '@/types/Settings.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { GqlRegistry } from '@/gql/registry/GqlRegistry.ts'
 import { GqlDocument } from '@/gql/document/GqlDocument.ts'
@@ -130,6 +131,8 @@ type ConstructorArgs = {
    * this; adding more is additive.
    */
   options?: { gql?: GqlParseOptions }
+  /** `client.json#settings.system`: how the OpenAPI parsers treat what they cannot read faithfully. */
+  system?: SystemSettings
 }
 
 export class ParseContext {
@@ -145,6 +148,12 @@ export class ParseContext {
    */
   currentStackTrail: StackTrail | undefined
 
+  /**
+   * How the OpenAPI parsers treat what they cannot read faithfully
+   * (`client.json#settings.system`). Each setting left out is `strict`.
+   */
+  system: SystemSettings
+
   // Universal dependency-ref tracking. Populated by parsers as they
   // encounter references. OAS uses `$ref` strings as keys; GQL would
   // use type names. The maps don't care about the encoding.
@@ -157,9 +166,10 @@ export class ParseContext {
    */
   #rootFrames: readonly string[] = []
 
-  constructor({ input, logger, silent = true, options }: ConstructorArgs) {
+  constructor({ input, logger, silent = true, options, system }: ConstructorArgs) {
     this.logger = logger
     this.silent = silent
+    this.system = system ?? {}
 
     switch (input.type) {
       case 'oas': {

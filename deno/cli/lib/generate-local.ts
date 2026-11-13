@@ -1,6 +1,10 @@
 import { join } from '@std/path'
 import { GenerateArtifacts } from '@/lib/generate-artifacts.ts'
-import { writeGeneratedFiles, type WriteGeneratedFilesResult } from '@/lib/write-generated-files.ts'
+import {
+  isFailedRun,
+  writeGeneratedFiles,
+  type WriteGeneratedFilesResult
+} from '@/lib/write-generated-files.ts'
 import type { ClientSettings } from '@skmtc/core/Settings'
 import { reanchorSidecar, upgradeSidecar, writeSidecars } from '@skmtc/core/Anchors'
 import { isValidWorkspacePath, toResolvedArtifactPath } from '@skmtc/core'
@@ -142,7 +146,7 @@ export const generateLocal = async ({
     writeLogLines({ manifestPath, logs })
 
     let anchorsStats: GenerateLocalAnchorsStats | undefined
-    if (sidecars && generationMap) {
+    if (sidecars && generationMap && !isFailedRun(manifest)) {
       // Host-side post-pass, two steps per sidecar:
       // 1. `upgradeSidecar` — the worker built sidecars without a parser
       //    (empty AST paths); re-resolve landmarks + paths against the

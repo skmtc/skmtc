@@ -83,8 +83,14 @@ const excludedProperties = [
   'deprecated'
 ]
 
-/** Is `key` a union-level key, kept on the union rather than merged into each member? */
-export const isUnionLevelKey = (key: string): boolean => excludedProperties.includes(key)
+/**
+ * Is `key` a union-level key, kept on the union rather than merged into each
+ * member? A specification extension (`x-…`) is one too: it says something
+ * about the union, as Fern's `x-fern-property-name` renames the property,
+ * and `toUnion` keeps it. Merged into each member, it was lost, and each
+ * `$ref` member was resolved to merge it.
+ */
+export const isUnionLevelKey = (key: string): boolean => excludedProperties.includes(key) || key.startsWith('x-')
 
 type ExcludeOutput = {
   retained: [string, unknown][]

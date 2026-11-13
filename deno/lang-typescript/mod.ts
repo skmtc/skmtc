@@ -56,6 +56,7 @@ export { ReactRouterPathParams } from './src/ReactRouterPathParams.ts'
 export { TsFile, type TsFileArgs } from './src/TsFile.ts'
 export { TsDefinition, type TsDefinitionArgs } from './src/TsDefinition.ts'
 export { TsImport, type TsImportSpecifier, type ImportNameArg } from './src/TsImport.ts'
+export { TsDynamicImport, type TsDynamicImportArgs } from './src/TsDynamicImport.ts'
 export { TsReExport } from './src/TsReExport.ts'
 export {
   TsClass,

@@ -1,13 +1,9 @@
 import { mergeSchemasOrRefs } from './merge.ts'
-import type { ArraySchemaObject, GetRefFn, SchemaObject, SchemaOrReference } from './types.ts'
+import type { ArraySchemaObject, SchemaObject, SchemaOrReference, MergeArgs } from './types.ts'
 import { genericMerge } from './generic-merge.ts'
 import * as v from 'valibot'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
-export function mergeArrayConstraints(
-  first: ArraySchemaObject | SchemaObject,
-  second: ArraySchemaObject | SchemaObject,
-  getRef: GetRefFn
-): ArraySchemaObject {
+export function mergeArrayConstraints({ first, second, getRef, system }: MergeArgs<ArraySchemaObject | SchemaObject>): ArraySchemaObject {
   checkTypeConflicts(first, second)
 
   if (!('items' in first) && !('items' in second)) {
@@ -15,9 +11,9 @@ export function mergeArrayConstraints(
   }
 
   const result: ArraySchemaObject = {
-    ...genericMerge(first, second, getRef, v.array(v.any())),
+    ...genericMerge({ first, second, getRef, system, typeCheck: v.array(v.any()) }),
     type: 'array',
-    items: mergeItems(first, second, getRef)
+    items: mergeItems({ first, second, getRef, system })
   }
 
   // Merge minItems
@@ -42,13 +38,9 @@ export function mergeArrayConstraints(
   return result
 }
 
-const mergeItems = (
-  first: ArraySchemaObject | SchemaObject,
-  second: ArraySchemaObject | SchemaObject,
-  getRef: GetRefFn
-): SchemaOrReference => {
+const mergeItems = ({ first, second, getRef, system }: MergeArgs<ArraySchemaObject | SchemaObject>): SchemaOrReference => {
   if ('items' in first && 'items' in second && first.items && second.items) {
-    return mergeSchemasOrRefs(first.items, second.items, getRef)
+    return mergeSchemasOrRefs({ first: first.items, second: second.items, getRef, system })
   }
 
   if ('items' in first && first.items) {

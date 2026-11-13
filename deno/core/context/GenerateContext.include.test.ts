@@ -448,3 +448,45 @@ Deno.test('include - an include array containing a GQL generator is handled clea
   const result = context.toArtifacts(stackTrail)
   assertExists(result)
 })
+
+// ─── skmtc#330: several entries for one generator merge ──────────
+
+const twoOperations = [
+  { path: '/a', method: 'get' as const },
+  { path: '/b', method: 'get' as const }
+]
+
+/** The result of each of the two operations, as `[/a, /b]`. */
+const resultsOf = (settings: unknown): ResultType[] => {
+  const { context, captures } = buildContext({
+    document: makeOasDoc(twoOperations),
+    settings,
+    generators: { gen: makeGen('gen') }
+  })
+  context.toArtifacts(new StackTrail(['test']))
+
+  const results = toOpResults(captures, 'gen')
+
+  return ['/a', '/b'].map(path => results.find(result => result.path === path)?.result ?? 'success')
+}
+
+Deno.test('skip - every object entry for a generator applies, whatever their order (skmtc#330)', () => {
+  // The trap: core read the first entry with `find`, so the second was ignored with no warning.
+  assertEquals(resultsOf({ skip: [{ gen: { '/a': { get: [] } } }, { gen: { '/b': { get: [] } } }] }), [
+    'skipped',
+    'skipped'
+  ])
+  assertEquals(resultsOf({ skip: [{ gen: { '/b': { get: [] } } }, { gen: { '/a': { get: [] } } }] }), [
+    'skipped',
+    'skipped'
+  ])
+})
+
+Deno.test('include - every object entry for a generator applies, so their operations together are allowed (skmtc#330)', () => {
+  assertEquals(resultsOf({ include: [{ gen: { '/a': { get: [] } } }, { gen: { '/b': { get: [] } } }] }), [
+    'success',
+    'success'
+  ])
+  // One entry alone still allows only its operations.
+  assertEquals(resultsOf({ include: [{ gen: { '/a': { get: [] } } }] }), ['success', 'skipped'])
+})

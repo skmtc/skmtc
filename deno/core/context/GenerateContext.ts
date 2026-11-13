@@ -1,6 +1,7 @@
 import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 import { applyGeneratedSuffix, DEFAULT_GENERATED_SUFFIX } from '@/helpers/applyGeneratedSuffix.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
+import type { PendingDefinition } from '@/dsl/PendingDefinition.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
@@ -25,7 +26,6 @@ import type {
   InsertNormalizedModelReturn,
   InsertOperationArgs,
   InsertWebhookArgs,
-  PickArgs,
   FindDefinitionArgs,
   ContextRegisterArgs,
   RegisterJsonArgs,
@@ -35,18 +35,8 @@ import type {
   ToOperationSettingsArgs,
   ToWebhookSettingsArgs
 } from './generateTypes.ts'
-import type {
-  ClientSettings,
-  IncludeModelRefs,
-  IncludeModels,
-  IncludeOperations,
-  IncludePaths,
-  SkipModelRefs,
-  SkipModels,
-  SkipOperations,
-  SkipPaths
-} from '@/types/Settings.ts'
-import type { Method } from '@/types/Method.ts'
+import type { ClientSettings, IncludeModelRefs, IncludePaths, SkipModelRefs, SkipPaths } from '@/types/Settings.ts'
+import { isMethod, type Method } from '@/types/Method.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import { OasOperationDriver } from '@/dsl/operation/oas/OasOperationDriver.ts'
@@ -95,6 +85,7 @@ import type { ModelEntry } from '@/dsl/model/toModelEntry.ts'
 import type { ModelProjection, NormalizedModelProjection } from '@/dsl/model/types.ts'
 import { EnrichmentAudit, hasVariantEnrichment } from '@/enrichments/EnrichmentAudit.ts'
 import { toSerializedError } from '@/types/SerializedError.ts'
+import { GenerationFailure, type FailedItem } from '@/context/toGenerationFailure.ts'
 import { formatEnrichmentPath, type EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
 
 type ConstructorArgs = {
@@ -276,6 +267,10 @@ const isEnrichmentLeaf = (value: unknown): value is EnrichmentDefaultsLeaf =>
 
 export class GenerateContext implements GenerateContextType {
   #files: Map<string, FileBase>
+  /** Each subject whose generation threw: its trail and the error message. */
+  #failedItems: FailedItem[] = []
+  /** Each file's path folded (case, Unicode form) → the path: a file system that ignores case sees one file. */
+  #foldedPaths: Map<string, string> = new Map()
   #previews: Record<string, Preview>
   /**
    * Parsed source document, wrapped in the {@link SkmtcParsedDocument}
@@ -292,8 +287,8 @@ export class GenerateContext implements GenerateContextType {
   /** Function that returns the generator configuration map */
   toGeneratorConfigMap: <EnrichmentType = undefined>() => GeneratorsMapContainer<EnrichmentType>
 
-  /** Tracking model nesting depth to prevent infinite recursion */
-  modelDepth: Record<string, number>
+  /** The pending models, outermost first: the last is the model whose projection constructor is running. */
+  pendingStack: PendingDefinition[] = []
   /**
    * Creates a new GenerateContext instance for the generation phase.
    *
@@ -326,7 +321,6 @@ export class GenerateContext implements GenerateContextType {
     this.settings = settings
     this.captureCurrentResult = captureCurrentResult
     this.toGeneratorConfigMap = toGeneratorConfigMap
-    this.modelDepth = {}
     this.#captureChannel = captureChannel
     this.#enrichmentAudit = new EnrichmentAudit()
   }
@@ -389,6 +383,17 @@ export class GenerateContext implements GenerateContextType {
   }
 
   /**
+   * One subject's generation threw: log it and record `error` on the
+   * subject, so the run reports every subject that failed, and remember it.
+   * `toArtifacts` fails the run once every generator has run.
+   */
+  #failItem(error: unknown, stackTrail: StackTrail): void {
+    this.#logError(error)
+    this.captureCurrentResult('error', stackTrail)
+    this.#failedItems.push({ trail: `${stackTrail}`, message: toSerializedError(error).message })
+  }
+
+  /**
    * The trail of the subject whose variant is being generated, or
    * `undefined` outside one. Log lines and the results the logger
    * records are addressed by it.
@@ -434,11 +439,8 @@ export class GenerateContext implements GenerateContextType {
         // (Whole-generator opt-out is `skip`. A bare-string `include`
         // entry carries no per-operation filter and is a no-op.)
 
-        const skip: SkipOperations | SkipModels | undefined = this.settings?.skip?.find(
-          (skip): skip is SkipOperations | SkipModels => {
-            return typeof skip === 'object' && Boolean(skip[generatorConfig.id])
-          }
-        )
+        // skmtc#330: every object entry for this generator, merged, not only the first one.
+        const skip = toGeneratorFilter(this.settings?.skip, generatorConfig.id)
 
         // Extract the per-generator include slice (if any). Same
         // dispatch shape as skip: object entries get matched by key,
@@ -446,11 +448,7 @@ export class GenerateContext implements GenerateContextType {
         // "everything from this generator is included", which is
         // semantically equivalent to "no per-op filter" once the
         // whole-generator gate above has admitted us).
-        const include: IncludeOperations | IncludeModels | undefined = this.settings?.include?.find(
-          (entry): entry is IncludeOperations | IncludeModels => {
-            return typeof entry === 'object' && Boolean(entry[generatorConfig.id])
-          }
-        )
+        const include = toGeneratorFilter(this.settings?.include, generatorConfig.id)
 
         switch (generatorConfig.type) {
           case 'oasOperation':
@@ -522,6 +520,14 @@ export class GenerateContext implements GenerateContextType {
         (entry): entry is string => typeof entry === 'string'
       )
     })
+
+    // Generation runs our code over a document parsing has already made
+    // safe, so an error here is a bug to fix, not data to tolerate: the run
+    // fails, and writes nothing. Every subject that failed is in the log
+    // and in the results.
+    if (this.#failedItems.length > 0) {
+      throw new GenerationFailure(this.#failedItems, enrichmentWarnings)
+    }
 
     return {
       files: this.#files,
@@ -873,9 +879,7 @@ export class GenerateContext implements GenerateContextType {
 
                 this.captureCurrentResult('success', st)
               } catch (error) {
-                this.#logError(error)
-
-                this.captureCurrentResult('error', st)
+                this.#failItem(error, st)
               }
             })
           )
@@ -981,9 +985,7 @@ export class GenerateContext implements GenerateContextType {
 
                 this.captureCurrentResult('success', st)
               } catch (error) {
-                this.#logError(error)
-
-                this.captureCurrentResult('error', st)
+                this.#failItem(error, st)
               }
             })
           )
@@ -1044,8 +1046,7 @@ export class GenerateContext implements GenerateContextType {
 
                 this.captureCurrentResult('success', st)
               } catch (error) {
-                this.#logError(error)
-                this.captureCurrentResult('error', st)
+                this.#failItem(error, st)
               }
             })
           )
@@ -1145,8 +1146,7 @@ export class GenerateContext implements GenerateContextType {
 
                 this.captureCurrentResult('success', st)
               } catch (error) {
-                this.#logError(error)
-                this.captureCurrentResult('error', st)
+                this.#failItem(error, st)
               }
             })
           )
@@ -1268,7 +1268,20 @@ export class GenerateContext implements GenerateContextType {
       throw new Error(`File already exists: ${normalizedPath}`)
     }
 
+    // Two paths that differ only in case are one file on a file system that
+    // ignores case, as macOS's and Windows' do by default: writing the
+    // second would replace the first without a word.
+    const foldedPath = normalizedPath.normalize('NFD').toLowerCase()
+    const existingPath = this.#foldedPaths.get(foldedPath)
+
+    if (existingPath !== undefined) {
+      throw new Error(
+        `File '${normalizedPath}' differs from '${existingPath}' only in case. On a file system that ignores case, as macOS's and Windows' do by default, they are one file.`
+      )
+    }
+
     this.#files.set(normalizedPath, file)
+    this.#foldedPaths.set(foldedPath, normalizedPath)
 
     return file
   }
@@ -1473,10 +1486,7 @@ export class GenerateContext implements GenerateContextType {
       return definition as InsertNormalizedModelReturn<V, Schema>
     }
 
-    const cachedDefinition = this.findDefinition({
-      name: fallbackName,
-      exportPath: destinationPath
-    })
+    const cachedDefinition = this.findDefinition({ name: fallbackName, exportPath: destinationPath })
 
     // @TODO add check to make sure retrieved definition
     // used same generator and same schema #SKM-47
@@ -1693,25 +1703,39 @@ export class GenerateContext implements GenerateContextType {
    * @returns Matching schema or ref
    * @throws if schema is not found
    */
-  resolveSchemaRefOnce(refName: RefName, generatorId: string): OasSchema | OasRef<'schema'> {
-    this.modelDepth[`${generatorId}:${refName}`]++
+  resolveSchemaRefOnce(refName: RefName): OasSchema | OasRef<'schema'> {
+    switch (this.document.type) {
+      case 'oas': {
+        const component = this.document.value.components?.schemas?.[refName]
 
-    const schema =
-      this.document.type === 'oas'
-        ? this.document.value.components?.schemas?.[refName]?.resolveOnce()
-        : this.document.value.registry.schemas[refName]
+        if (!component) {
+          throw new Error(`Schema not found: ${refName}`)
+        }
 
-    if (!schema) {
-      throw new Error(`Schema not found: ${refName}`)
+        const target = component.resolveOnce()
+
+        // One step, with what the component adds next to its reference
+        // (`{ allOf: [{ $ref: Name }], maxLength: 10, nullable: true }`)
+        // applied to a copy: the model is the target at this site. When the
+        // step is itself a reference, the copy is a reference, and the
+        // model's router decides whether it renders inline or by name.
+        return component.isRef() && component.hasSiblings() ? target.clone(component) : target
+      }
+      case 'gql': {
+        const schema = this.document.value.registry.schemas[refName]
+
+        if (!schema) {
+          throw new Error(`Schema not found: ${refName}`)
+        }
+
+        // GqlRegistry stores OasSchema | OasRef entries: one step, as for OAS.
+        return schema.resolveOnce()
+      }
+      default: {
+        const _exhaustive: never = this.document
+        throw new Error(`Unhandled document type: ${JSON.stringify(_exhaustive)}`)
+      }
     }
-
-    // GqlRegistry stores raw OasSchema | OasRef entries that we need to
-    // resolve once for parity with the OAS code path.
-    if (this.document.type === 'gql' && 'resolveOnce' in schema) {
-      return (schema as OasRef<'schema'>).resolveOnce()
-    }
-
-    return schema
   }
 
   /**
@@ -1961,8 +1985,83 @@ export const toModelSource = ({
   variant
 })
 
+/** One generator's `skip` or `include` filter for operations: path → method → variants. */
+type PathsFilter = Record<string, Partial<Record<Method, string[]>>>
+
+/** One generator's `skip` or `include` filter for models: refName → variants. */
+type ModelsFilter = Record<string, string[]>
+
+/** A `skip` or `include` object entry: generator id → its filter. */
+type GeneratorFilter = Record<string, PathsFilter | ModelsFilter>
+
+/** Variants of one subject. `[]` is every variant, so it wins a merge. */
+const mergeVariants = (a: string[], b: string[]): string[] =>
+  a.length === 0 || b.length === 0 ? [] : [...new Set([...a, ...b])]
+
+/** Whether a filter is operation-shaped: its values are records of methods, not lists of variants. */
+const isPathsFilter = (filter: PathsFilter | ModelsFilter): filter is PathsFilter =>
+  Object.values(filter).every(value => !Array.isArray(value))
+
+const mergePathsFilters = (a: PathsFilter, b: PathsFilter): PathsFilter =>
+  Object.entries(b).reduce<PathsFilter>((merged, [path, methods]) => {
+    const existing = merged[path] ?? {}
+    const combined = Object.entries(methods).reduce<Partial<Record<Method, string[]>>>(
+      (acc, [method, variants]) => {
+        if (!isMethod(method) || variants === undefined) {
+          return acc
+        }
+
+        const current = acc[method]
+
+        return { ...acc, [method]: current === undefined ? variants : mergeVariants(current, variants) }
+      },
+      { ...existing }
+    )
+
+    return { ...merged, [path]: combined }
+  }, { ...a })
+
+const mergeModelsFilters = (a: ModelsFilter, b: ModelsFilter): ModelsFilter =>
+  Object.entries(b).reduce<ModelsFilter>((merged, [refName, variants]) => {
+    const current = merged[refName]
+
+    return { ...merged, [refName]: current === undefined ? variants : mergeVariants(current, variants) }
+  }, { ...a })
+
+/** Two filters of one generator, merged. Filters of two shapes cannot merge: the first stays. */
+const mergeFilters = (a: PathsFilter | ModelsFilter, b: PathsFilter | ModelsFilter): PathsFilter | ModelsFilter => {
+  if (isPathsFilter(a) && isPathsFilter(b)) {
+    return mergePathsFilters(a, b)
+  }
+
+  if (!isPathsFilter(a) && !isPathsFilter(b)) {
+    return mergeModelsFilters(a, b)
+  }
+
+  return a
+}
+
+/**
+ * The `skip` or `include` filter of one generator: every object entry that
+ * names it, merged (skmtc#330). Before, only the first entry applied, and a
+ * later one was ignored with no warning. `undefined` when no entry names it.
+ */
+const toGeneratorFilter = (
+  entries: readonly (string | GeneratorFilter)[] | undefined,
+  generatorId: string
+): GeneratorFilter | undefined => {
+  const filters = (entries ?? []).flatMap(entry => {
+    const filter = typeof entry === 'object' ? entry[generatorId] : undefined
+
+    return filter === undefined ? [] : [filter]
+  })
+  const [first, ...rest] = filters
+
+  return first === undefined ? undefined : { [generatorId]: rest.reduce(mergeFilters, first) }
+}
+
 const toSkipPaths = (
-  skip: SkipOperations | SkipModels | undefined,
+  skip: GeneratorFilter | undefined,
   generatorId: string
 ): SkipPaths | undefined => {
   const generatorSkip = skip?.[generatorId]
@@ -1991,7 +2090,7 @@ const toSkipPaths = (
 }
 
 const toSkipModels = (
-  skip: SkipOperations | SkipModels | undefined,
+  skip: GeneratorFilter | undefined,
   generatorId: string
 ): SkipModelRefs | undefined => {
   const generatorSkip = skip?.[generatorId]
@@ -2022,7 +2121,7 @@ const toSkipModels = (
  * "no per-op filter active" as the semantics.
  */
 const toIncludePaths = (
-  include: IncludeOperations | IncludeModels | undefined,
+  include: GeneratorFilter | undefined,
   generatorId: string
 ): IncludePaths | undefined => {
   const generatorInclude = include?.[generatorId]
@@ -2051,7 +2150,7 @@ const toIncludePaths = (
  * isn't model-shaped for this generator.
  */
 const toIncludeModels = (
-  include: IncludeOperations | IncludeModels | undefined,
+  include: GeneratorFilter | undefined,
   generatorId: string
 ): IncludeModelRefs | undefined => {
   const generatorInclude = include?.[generatorId]

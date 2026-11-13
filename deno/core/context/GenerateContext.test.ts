@@ -79,18 +79,12 @@ Deno.test('GenerateContext - Constructor', async t => {
     assertEquals(context.logger, mockLogger)
     assertEquals(context.captureCurrentResult, captureCurrentResult)
     assertEquals(context.toGeneratorConfigMap, toGeneratorConfigMap)
-    assertExists(context.modelDepth)
-    assertEquals(Object.keys(context.modelDepth).length, 0)
+    assertEquals(context.pendingStack, [])
   })
 
   await t.step('should initialize with undefined settings', () => {
     const { context } = createTestContext({ settings: undefined })
     assertEquals(context.settings, undefined)
-  })
-
-  await t.step('should initialize modelDepth as empty object', () => {
-    const { context } = createTestContext()
-    assertEquals(context.modelDepth, {})
   })
 
   await t.step('should initialize internal files map', () => {
@@ -443,19 +437,6 @@ Deno.test('GenerateContext - Integration', async t => {
     assertEquals(result.files instanceof Map, true)
   })
 
-  await t.step('should track modelDepth for recursion prevention', () => {
-    const { context } = createTestContext()
-
-    // ModelDepth starts empty
-    assertEquals(Object.keys(context.modelDepth).length, 0)
-
-    // Could be modified during model generation
-    context.modelDepth['User'] = 1
-    context.modelDepth['Product'] = 2
-
-    assertEquals(context.modelDepth['User'], 1)
-    assertEquals(context.modelDepth['Product'], 2)
-  })
 })
 
 // Helper for GraphQL-side testing

@@ -3,6 +3,7 @@ import { checkArrayItemTypeConflicts } from './check-array-item-type-conflicts.t
 import type { OpenAPIV3 } from 'openapi-types'
 import { normalizeMergeMember } from '@/parse/v3-2/schema/normalize-schema-shape.ts'
 
+
 Deno.test('checkArrayItemTypeConflicts - no conflict when item types match', () => {
   const a: OpenAPIV3.SchemaObject = {
     type: 'array',

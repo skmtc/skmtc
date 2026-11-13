@@ -291,7 +291,8 @@ when changing parser or generator behavior.
   type per "logical" type.
 - **Self-referential types are common in GraphQL** (`User { friends:
   [User!]! }`). Refs handle this fine; ensure model generators
-  respect `context.modelDepth` to avoid unbounded recursion.
+  reference models through `toModelRef`, which returns a reference
+  back to a pending model suspended instead of constructing it again.
 
 
 <claude-mem-context>

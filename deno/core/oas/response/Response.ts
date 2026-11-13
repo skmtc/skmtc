@@ -234,6 +234,16 @@ export class OasResponse extends OasBase {
     return false
   }
 
+  /** Always `false`: `readOnly` is a schema keyword. */
+  isReadOnly(): boolean {
+    return false
+  }
+
+  /** Always `false`: `writeOnly` is a schema keyword. */
+  isWriteOnly(): boolean {
+    return false
+  }
+
   resolve(): OasResponse {
     return this
   }

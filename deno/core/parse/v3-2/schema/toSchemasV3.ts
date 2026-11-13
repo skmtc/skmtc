@@ -1,9 +1,11 @@
 import { toRefV31 } from '@/parse/v3-2/ref/toRefV31.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import { isRef } from '@/helpers/refFns.ts'
+import { isEmpty } from '@/helpers/isEmpty.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
+import { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { toArray } from '@/parse/v3-2/array/toArray.ts'
 import { toObject } from '../object/toObject.ts'
 import { toInteger } from '../integer/toInteger.ts'
@@ -13,8 +15,19 @@ import { toString } from '../string/toString.ts'
 import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
 import { toGetRef } from '@/helpers/refFns.ts'
+import { toSiblingKeywords } from '@/parse/toSiblingKeywords.ts'
+import { logAllOfContradictions, toAllOfSystem } from '@/parse/allOfSystem.ts'
+import {
+  hasShapeKeyword,
+  isUnknownAnyOf,
+  logMergedUnknownAnyOf,
+  logUnknownAnyOf,
+  withoutUnknownAnyOf
+} from '@/parse/anyOfSystem.ts'
+import { toAdditionalPropertiesV3 } from '../object/toAdditionalPropertiesV3.ts'
 import { mergeIntersection } from '../_merge-all-of/merge-intersection.ts'
 import { collapseNullOnlyUnion, mergeUnion } from '../_merge-all-of/merge-union.ts'
+import { isNullOnly } from '../_merge-all-of/nullable-merge.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import {
@@ -114,14 +127,16 @@ const withoutWrapperUnevaluatedProperties = ({
 }
 
 /**
- * Is this a 3.1 null-only schema member (`type: 'null'` or `['null']`)?
+ * Is this a null-only schema member: 3.1's `type: 'null'` or `['null']`, or
+ * 3.0's `{ nullable: true, enum: [null] }`?
  */
 const isNullTypeSchema = (member: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject): boolean => {
   if (isRef(member)) {
     return false
   }
 
-  return isNullOnlyType(member.type)
+  // 3.0's way to write null too: `{ nullable: true, enum: [null] }`, as the 3.0 parser reads it.
+  return isNullOnlyType(member.type) || isNullOnly(member)
 }
 
 /**
@@ -182,16 +197,58 @@ export const toSchemaV3 = ({
   context
 }: ToSchemaV3Args): OasSchema | OasRef<'schema'> => {
   if (isRef(schema)) {
-    return toRefV31({ ref: schema, refType: 'schema', stackTrail, context })
+    // In 3.2, as in JSON Schema 2020-12, keywords beside `$ref` apply with
+    // the target: the same as an `allOf` that starts with the reference.
+    const { $ref, ...keywords } = schema
+    const allOf = 'allOf' in keywords ? keywords.allOf : undefined
+
+    // An `allOf` that is not an array holds no members: reported, and the reference kept.
+    if (allOf !== undefined && !Array.isArray(allOf)) {
+      context.logSkippedFields({
+        skipped: { allOf },
+        parent: schema,
+        parentType: 'ref',
+        stackTrail
+      })
+    }
+
+    const members = Array.isArray(allOf) ? allOf : []
+
+    return Object.keys(keywords).length > 0
+      ? toSchemaV3({ schema: { ...keywords, allOf: [{ $ref }, ...members] }, stackTrail, context })
+      : toRefV31({ ref: schema, refType: 'schema', stackTrail, context })
   }
 
   // OpenAPI `not` has no faithful TypeScript representation: a generated type
   // that ignored it would *widen* the contract (accepting shapes the schema
-  // forbids). Refuse the schema rather than emit a type that lies. The throw
-  // is isolated by `tryParseAt` into an `INVALID_SCHEMA` issue, and consumers
-  // of this schema are pruned via `removeErroredItems` (INVALID_DEPENDENCY_REF).
+  // forbids). Under `client.json` `system.not: strict` (the default) the schema
+  // is refused rather than emit a type that lies. The throw is isolated by
+  // `tryParseAt` into an `INVALID_SCHEMA` issue, and consumers of this schema
+  // are pruned via `removeErroredItems` (INVALID_DEPENDENCY_REF).
+  //
+  // Under `system.not: unknown` the schema parses with its other keywords, and
+  // its `not` is kept as an `OasUnknown` that core does not read: a generator
+  // can see that the document says "not something".
   if ('not' in schema) {
-    throw new Error('Schema uses unsupported "not" keyword')
+    // A test's mock context may have no `system`.
+    if (context.system?.not !== 'unknown') {
+      throw new Error('Schema uses unsupported "not" keyword')
+    }
+
+    const { not: _not, ...keywords } = schema
+    const parsed = toSchemaV3({ schema: keywords, stackTrail, context })
+
+    // Only a one-member `allOf` of a `$ref` parses to a reference, and a
+    // reference has no field for a `not`. Fail rather than lose it.
+    if (parsed.isRef()) {
+      throw new Error('Schema uses "not" next to a one-member allOf reference, which cannot keep it')
+    }
+
+    parsed.not = stackTrail.trace('not', notTrail =>
+      context.withStackTrail(notTrail, () => new OasUnknown({}, context))
+    )
+
+    return parsed
   }
 
   const normalized = normalizeSchemaShape(schema)
@@ -223,14 +280,45 @@ export const toSchemaV3 = ({
       if (members.length === 1) {
         const [member] = members
 
-        if (isRef(member) && value.nullable) {
-          return toRefV31({
-            ref: member,
-            refType: 'schema',
-            nullable: true,
-            stackTrail: st,
-            context
-          })
+        // Keywords next to the one member say how this site uses the
+        // reference, which stays lazy, so a self-reference still ends:
+        // `nullable`, `readOnly` and `writeOnly` ride it as use-site flags,
+        // and the others are read without the target's type (`siblings`).
+        // `resolve()` applies them to a copy of the target at generate time;
+        // the ones its type cannot take are left out there. The shared model
+        // never changes.
+        if (isRef(member)) {
+          const { nullable, readOnly, writeOnly, ...keywords } = value
+          const siblings = isEmpty(keywords)
+            ? undefined
+            : toSiblingKeywords({
+                keywords,
+                properties: stackTrail.trace('properties', propertiesTrail =>
+                  toOptionalSchemasV3({ schemas: keywords.properties, stackTrail: propertiesTrail, context })
+                ),
+                additionalProperties: stackTrail.trace('additionalProperties', additionalTrail =>
+                  toAdditionalPropertiesV3({
+                    additionalProperties: keywords.additionalProperties,
+                    stackTrail: additionalTrail,
+                    context
+                  })
+                ),
+                stackTrail,
+                context
+              })
+
+          if (nullable || readOnly || writeOnly || siblings) {
+            return toRefV31({
+              ref: member,
+              refType: 'schema',
+              nullable: nullable || undefined,
+              readOnly: readOnly || undefined,
+              writeOnly: writeOnly || undefined,
+              siblings,
+              stackTrail: st,
+              context
+            })
+          }
         }
 
         return toSchemaV3({
@@ -240,11 +328,16 @@ export const toSchemaV3 = ({
         })
       }
 
+      const system = toAllOfSystem(context)
       const merged = mergeIntersection({
         schema: wrapper,
         getRef: toGetRef(context.documentObject),
-        normalize: normalizeMergeMember
+        normalize: normalizeMergeMember,
+        system
       })
+
+      logAllOfContradictions({ system, stackTrail, parent: schema, context })
+      logMergedUnknownAnyOf({ system, stackTrail, parent: schema, context })
 
       return toSchemaV3({ schema: merged, stackTrail: st, context })
     })
@@ -276,12 +369,17 @@ export const toSchemaV3 = ({
         ? { ...wrapper, oneOf: oneOfWithoutNull, nullable: true }
         : wrapper
 
+      const system = toAllOfSystem(context)
       const merged = mergeUnion({
         schema: withoutNull,
         getRef: toGetRef(context.documentObject),
         normalize: normalizeMergeMember,
+        system,
         groupType: 'oneOf'
       })
+
+      logAllOfContradictions({ system, stackTrail, parent: schema, context })
+      logMergedUnknownAnyOf({ system, stackTrail, parent: schema, context })
 
       if (!('oneOf' in merged) || !Array.isArray(merged.oneOf)) {
         throw new Error('Missing "oneOf" array')
@@ -333,6 +431,24 @@ export const toSchemaV3 = ({
       context
     })
 
+    // Under `system.anyOf: unknown`, as Cloudflare's `cf` reads it, an `anyOf`
+    // of two or more members is any value: the schema parses with its other
+    // keywords, so the properties next to it stay, without the members.
+    if (isUnknownAnyOf({ members: wrapper.anyOf ?? [], setting: context.system?.anyOf, getRef: toGetRef(context.documentObject) })) {
+      logUnknownAnyOf({ stackTrail, parent: schema, context })
+
+      const keywords = withoutUnknownAnyOf({
+        schema: wrapper,
+        setting: context.system?.anyOf,
+        getRef: toGetRef(context.documentObject)
+      })
+
+      // A `default` alone is no type: the parser would guess one from it.
+      return hasShapeKeyword(keywords)
+        ? toSchemaV3({ schema: keywords, stackTrail, context })
+        : toUnknown({ value: keywords, stackTrail, context })
+    }
+
     return stackTrail.trace('anyOf', st => {
       // deno-lint-ignore ban-ts-comment
       // @ts-expect-error
@@ -350,12 +466,17 @@ export const toSchemaV3 = ({
         ? { ...wrapper, anyOf: anyOfWithoutNull, nullable: true }
         : wrapper
 
+      const system = toAllOfSystem(context)
       const merged = mergeUnion({
         schema: withoutNull,
         getRef: toGetRef(context.documentObject),
         normalize: normalizeMergeMember,
+        system,
         groupType: 'anyOf'
       })
+
+      logAllOfContradictions({ system, stackTrail, parent: schema, context })
+      logMergedUnknownAnyOf({ system, stackTrail, parent: schema, context })
 
       if (!('anyOf' in merged) || !Array.isArray(merged.anyOf)) {
         throw new Error('Missing "anyOf" array')

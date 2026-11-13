@@ -12,7 +12,8 @@ This file is the lookup reference for specific codes.
 
 | Where you saw it | What it looks like | Jump to |
 |---|---|---|
-| `manifest.parseIssues[].type` (OAS source) | `INVALID_SCHEMA`, `INVALID_DEPENDENCY_REF`, `RUN_FAILED`, `MISSING_*_TYPE`, `UNEXPECTED_PROPERTY`, `INVALID_OPERATION`, … | [OAS parse-issue types](#oas-parse-issue-types) |
+| `manifest.parseIssues[].type` (OAS source) | `INVALID_SCHEMA`, `INVALID_DEPENDENCY_REF`, `MISSING_*_TYPE`, `UNEXPECTED_PROPERTY`, `INVALID_OPERATION`, … | [OAS parse-issue types](#oas-parse-issue-types) |
+| Output of `skmtc generate` (`parseIssues` with `--json`); the manifest on disk keeps the last good run | `RUN_FAILED` | [RUN_FAILED](#run_failed--error) |
 | `manifest.parseIssues[].type` (GraphQL source) | `INVALID_TYPE_DEFINITION`, `SKIPPED_FIELD_ARGUMENTS`, `NESTED_LIST_LOSSY`, `DROPPED_DIRECTIVE`, … | [GraphQL parse-issue types](#graphql-parse-issue-types) |
 | Thrown on stderr during generate | `Registered definition mismatch: '<X>' in file '<Y>' …` | [Registered definition mismatch](#registered-definition-mismatch) |
 | Thrown on stderr during generate | `Max lookups reached` | [Max lookups reached](#max-lookups-reached) |
@@ -56,6 +57,11 @@ OpenAPI document. The cause is typically:
 - Conflicting `allOf` members (incompatible types or constraints)
 - Empty `oneOf` / `anyOf` arrays
 - Cycle in `allOf` references
+- A `not` keyword
+
+[`settings.system`](settings/client-json-schema.md#settingssystem-optional)
+can make the parser read `allOf` members that contradict, and `not`,
+another way.
 
 **Warning-level variant:** in an OpenAPI 3.0 document, an array schema
 with no `items` logs `INVALID_SCHEMA` at level `warning`. The message is
@@ -63,6 +69,12 @@ with no `items` logs `INVALID_SCHEMA` at level `warning`. The message is
 The parse continues, and the items are unknown values. In OpenAPI 3.1
 and 3.2, `items` is optional. These documents get unknown items and no
 issue.
+
+A keyword next to a `$ref` in a one-member `allOf` can also log
+`INVALID_SCHEMA` at level `warning`. This occurs when the value has the
+wrong type, for example `maxLength: '10'` or `required: 'id'`. The message starts
+with `Removed invalid <keyword> next to a reference`. The parser
+removes that keyword and keeps the reference and its other keywords.
 
 ### `INVALID_DEPENDENCY_REF` — error
 
@@ -103,16 +115,35 @@ prunes both `Post` and `Comment`. Each gets its own
 
 ### `RUN_FAILED` — error
 
-**When:** The run itself failed outside the per-item catches. The
-engine returns no artifacts. It keeps the parse issues that it
+**When:** The run failed. There are two causes:
+
+- A throw outside the per-item catches. A throw in the `toString()`
+  of a generator during Render is an example: that is a bug in the
+  generator.
+- One or more items that failed during generation. A generator threw,
+  or an enrichment value does not match the schema of its generator.
+  Each such item has `error` in `results`. The engine runs all other
+  items first, so that the issue lists every failure.
+
+The engine returns no artifacts. It keeps the parse issues that it
 recorded before the failure, and adds this one issue. The issue
 names the phase that failed. It does not claim that the schema is
-invalid. A throw in the `toString()` of a generator during Render is
-an example: that is a bug in the generator.
+invalid.
+
+**Where you see it:** the CLI writes no files for a failed run. The
+files and the manifest of the last good run stay as they are, so the
+manifest on disk does not show this issue. `skmtc generate` prints
+it, and with `--json` it is in `parseIssues`.
+`.skmtc/<project>/.settings/logs.ndjson` has an `ERROR` line for each
+item that failed, with the message and the stack.
 
 **Typical message:** `<phase> phase failed: <the error's message>`,
 for example `render phase failed: Cannot read properties of
-undefined`.
+undefined`. For failed items, the message starts with
+`generate phase failed: Generation failed for <n> subject(s):`. Then
+it shows each different error one time, with the first five items
+that it failed. A wrong enrichment value names its place in
+`settings.enrichments`.
 
 **Example location:** `toArtifacts:render`. The location is the
 entry and the phase: `toArtifacts`, `toSupportedSubjects` or
@@ -528,6 +559,31 @@ parameters removed, are `application/json` or end in `+json`
 (`application/json;v=1.0`, `application/vnd.api+json`,
 `application/problem+json`). `text/json`, `application/x-ndjson` and
 names without the suffix, such as `application/vnd.goa.error`, do not.
+
+### `ALLOF_CONTRADICTION` — warning
+
+**When:** The members of an `allOf` contradict, and `client.json` sets
+`settings.system.allOf` to `latestWins`. The parser keeps the value of
+the later member. There is one issue for each schema. The message
+names the keywords that contradict.
+
+**Remediation:** Make the `allOf` members agree in the source
+document. If the values of the later member are correct, no action is
+necessary. With the default, `strict`, the schema fails with
+`INVALID_SCHEMA`. See
+[`settings.system`](settings/client-json-schema.md#settingssystem-optional).
+
+### `ANYOF_AS_UNKNOWN` — warning
+
+**When:** `client.json` sets `settings.system.anyOf` to `unknown`,
+and the parser reads an `anyOf` as any value. The schema keeps its
+other keywords, without the `anyOf` members. There is one issue for
+each schema.
+
+**Remediation:** If any value is correct for the schema, no action is
+necessary. To get a union, set `settings.system.anyOf` to `union`
+(the default), or remove it. See
+[`settings.system`](settings/client-json-schema.md#settingssystem-optional).
 
 ## GraphQL parse-issue types
 

@@ -196,12 +196,25 @@ export type WriteGeneratedFilesResult = {
   }
 }
 
+/**
+ * Whether the engine failed the run (a `RUN_FAILED` issue). A failed run
+ * returns no artifacts: that does not mean every generated file is stale.
+ */
+export const isFailedRun = (manifest: ManifestContent): boolean =>
+  manifest.parseIssues.some(({ type }) => type === 'RUN_FAILED')
+
 export const writeGeneratedFiles = ({
   manifestPath,
   artifacts,
   manifest,
   clientSettings
 }: WriteGeneratedFilesArgs): WriteGeneratedFilesResult => {
+  // Keep the last good files and the manifest that lists them: the next
+  // run's prune reads that manifest.
+  if (isFailedRun(manifest)) {
+    return { manifest, artifacts, protectedPaths: [], onDiskDrift: {}, escaped: [] }
+  }
+
   const skmtcRootPath = toRootPath()
   const appRoot = resolve(skmtcRootPath, '..')
 

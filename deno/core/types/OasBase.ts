@@ -38,7 +38,7 @@ export class OasBase {
    */
   stackTrail: StackTrail
 
-  constructor(context?: ParseContextType) {
+  constructor(context?: Pick<ParseContextType, 'currentStackTrail'>) {
     // Attribution is always on — snapshot the position when parsing
     // within an active stack-trail scope; otherwise the node is
     // synthetic and carries the empty (positionless) trail.

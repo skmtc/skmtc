@@ -46,7 +46,7 @@ Deno.test('OasObject', async t => {
       assertEquals(obj.example, { id: '123', name: 'John' })
       assertEquals(obj.default, { id: '0', name: 'Guest' })
       assertEquals(obj.readOnly, true)
-      assertEquals(obj.writeOnly, undefined)
+      assertEquals(obj.writeOnly, false)
       assertEquals(obj.deprecated, true)
       assertEquals(obj.extensionFields, { 'x-custom': 'value' })
       assertEquals(obj.enums?.length, 2)

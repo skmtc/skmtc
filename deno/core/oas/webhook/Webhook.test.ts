@@ -68,6 +68,28 @@ Deno.test('OasWebhook - toParams resolves inbound params and filters by location
   assertEquals(hook.toParams(['cookie']).length, 0)
 })
 
+Deno.test("OasWebhook - toParams includes the path item's parameters", () => {
+  const hook = webhook({
+    // A signature header declared once for every method of the webhook.
+    parameters: [
+      { name: 'X-Signature', in: 'header', schema: { type: 'string' } },
+      { name: 'tenant', in: 'query', description: 'shared', schema: { type: 'string' } }
+    ],
+    post: {
+      parameters: [{ name: 'tenant', in: 'query', description: 'own', schema: { type: 'string' } }],
+      responses: { '200': { description: 'ok' } }
+    }
+  })
+
+  assertEquals(
+    hook.toParams().map(({ name, description }) => [name, description]),
+    [
+      ['X-Signature', undefined],
+      ['tenant', 'own']
+    ]
+  )
+})
+
 Deno.test('OasWebhook - toAckResponseCode picks the lowest 2xx the handler returns', () => {
   const hook = webhook({
     post: {

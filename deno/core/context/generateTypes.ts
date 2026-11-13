@@ -6,6 +6,7 @@ import type { ResultsItem } from '@/types/Results.ts'
 import type { OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
+import type { PendingDefinition } from '@/dsl/PendingDefinition.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { OasOperationProjection } from '@/dsl/operation/oas/types.ts'
 import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
@@ -206,6 +207,14 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  *   scalar schema (a text body or a file). A body with only specific
  *   non-JSON types (`multipart/form-data`, `text/plain`) logs nothing.
  *
+ * `ALLOF_CONTRADICTION` (`warning`) — `allOf` members contradict, and
+ * `system.allOf: latestWins` kept the later member's keywords. One for each
+ * schema; the message names the keywords.
+ *
+ * `ANYOF_AS_UNKNOWN` (`warning`) — `system.anyOf: unknown` read an `anyOf`
+ * of two or more members as any value. The schema keeps its other keywords.
+ * One for each schema.
+ *
  * `RUN_FAILED` (`error`) — the run itself failed outside the per-item
  * catches. Its `location` names the entry and phase, for example
  * `toArtifacts:render`.
@@ -240,6 +249,8 @@ export type OasIssueType =
   | 'UNSUPPORTED_OPERATION_METHOD'
   | 'WILDCARD_MEDIA_TYPE'
   | 'NO_JSON_MEDIA_TYPE'
+  | 'ALLOF_CONTRADICTION'
+  | 'ANYOF_AS_UNKNOWN'
   | 'RUN_FAILED'
 
 /**
@@ -279,6 +290,8 @@ export const oasIssueType = v.union([
   v.literal('UNSUPPORTED_OPERATION_METHOD'),
   v.literal('WILDCARD_MEDIA_TYPE'),
   v.literal('NO_JSON_MEDIA_TYPE'),
+  v.literal('ALLOF_CONTRADICTION'),
+  v.literal('ANYOF_AS_UNKNOWN'),
   v.literal('RUN_FAILED')
 ])
 
@@ -570,7 +583,12 @@ export type GenerateContextType = {
    * subject's result to `'warning'` or `'error'`.
    */
   logger: Logger
-  modelDepth: Record<string, number>
+  /**
+   * The pending models, outermost first: the last is the model whose
+   * projection constructor is running, the source of any reference made now.
+   * Kept by the `ModelDriver`.
+   */
+  pendingStack: PendingDefinition[]
   document: SkmtcParsedDocument
   /**
    * Attribution (gen-maps) state. When set, every `SnippetBase`
@@ -640,7 +658,8 @@ export type GenerateContextType = {
   toModelContentSettings: <V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
     args: BuildModelSettingsArgs<V, EnrichmentType, ProjectionOptions>
   ) => ContentSettings<EnrichmentType>
-  resolveSchemaRefOnce: (refName: RefName, generatorId: string) => OasSchema | OasRef<'schema'>
+  resolveSchemaRefOnce: (refName: RefName) => OasSchema | OasRef<'schema'>
+  /** The Definition named `name` in `exportPath` (or inside the declaration `into`), or `undefined`. */
   findDefinition: ({ name, exportPath, into }: FindDefinitionArgs) => DefinitionBase | undefined
   /**
    * The recording enrichment accessor — the single choke point every

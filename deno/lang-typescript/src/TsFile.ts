@@ -1,5 +1,5 @@
 import { CodeFileBase, matchDefinitions } from '@skmtc/core'
-import { toImportModule } from './toImportModule.ts'
+import { toRenderedModule } from './toImportModule.ts'
 import type { ClientSettings, ModulePackage, DefinitionBase } from '@skmtc/core'
 import { TsImport } from './TsImport.ts'
 import type { TsDefinition } from './TsDefinition.ts'
@@ -37,6 +37,11 @@ export class TsFile extends CodeFileBase {
    * — that is how TypeScript declaration merging is represented, no separate
    * collection needed. The cross-generator cache resolves a name to its
    * first-registered definition through {@link findDefinitions}.
+   *
+   * The map's order is the render order: each Definition in the order it was
+   * added. A model's Definition is added when its constructor returns, so it
+   * lands after the models its constructor added, and a `const` never reads
+   * one before it is defined.
    */
   definitions: Map<string, TsDefinition> = new Map()
 
@@ -105,7 +110,8 @@ export class TsFile extends CodeFileBase {
   }
 
   /**
-   * Definitions in render order: primaries first (insertion order), then
+   * Definitions in render order: primaries first (the order each was added:
+   * a model's when its constructor returned), then
    * same-name companions. A companion is a definition whose name an earlier
    * definition already claimed under a different declaration kind — e.g. a
    * `declare namespace Foo` companion of `class Foo`. TypeScript declaration
@@ -117,7 +123,6 @@ export class TsFile extends CodeFileBase {
     const seenNames = new Set<string>()
     const primaries: TsDefinition[] = []
     const companions: TsDefinition[] = []
-
     for (const definition of this.definitions.values()) {
       if (seenNames.has(definition.identifier.name)) {
         companions.push(definition)
@@ -175,13 +180,7 @@ export class TsFile extends CodeFileBase {
 
   /** The module as this file writes it: rewritten by package when `packages` is set. */
   #toRenderedModule(module: string): string {
-    return this.packages
-      ? toImportModule({
-          destinationPath: this.path,
-          module,
-          packages: this.packages
-        })
-      : module
+    return toRenderedModule({ destinationPath: this.path, module, packages: this.packages })
   }
 }
 

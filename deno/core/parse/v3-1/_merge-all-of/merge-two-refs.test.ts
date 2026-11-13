@@ -3,6 +3,9 @@ import { mergeIntersection } from './merge-intersection.ts'
 import { normalizeMergeMember } from '@/parse/v3-1/schema/normalize-schema-shape.ts'
 import { assertEquals } from '@std/assert/equals'
 import { assertThrows } from '@std/assert/throws'
+import type { MergeSystem } from './types.ts'
+const strict = (): MergeSystem => ({ allOf: 'strict', replaced: new Set() })
+
 
 const getRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
   if (ref.$ref === '#/components/schemas/custom-pages_custom_pages_response_collection') {
@@ -209,7 +212,7 @@ Deno.test('mergeAllOf - merges two deep refs', () => {
     type: 'object'
   }
 
-  const result = mergeIntersection({ schema: input, getRef, normalize: normalizeMergeMember })
+  const result = mergeIntersection({ schema: input, getRef, normalize: normalizeMergeMember, system: strict() })
 
   const expected: OpenAPIV3.SchemaObject = {
     properties: {
@@ -297,7 +300,7 @@ Deno.test('mergeAllOf - merges two refs chunks', () => {
     type: 'object'
   }
 
-  const result = mergeIntersection({ schema: input, getRef, normalize: normalizeMergeMember })
+  const result = mergeIntersection({ schema: input, getRef, normalize: normalizeMergeMember, system: strict() })
 
   const expected: OpenAPIV3.SchemaObject = {
     properties: {
@@ -346,7 +349,7 @@ Deno.test('mergeAllOf - merges two deep refs', () => {
   }
 
   assertThrows(
-    () => mergeIntersection({ schema: input, getRef, normalize: normalizeMergeMember }),
+    () => mergeIntersection({ schema: input, getRef, normalize: normalizeMergeMember, system: strict() }),
     Error,
     'Cannot merge schemas: enum values have no intersection'
   )

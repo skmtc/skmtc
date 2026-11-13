@@ -89,6 +89,16 @@ export class OasHeader {
     return false
   }
 
+  /** Always `false`: `readOnly` is a schema keyword. */
+  isReadOnly(): boolean {
+    return false
+  }
+
+  /** Always `false`: `writeOnly` is a schema keyword. */
+  isWriteOnly(): boolean {
+    return false
+  }
+
   /** Returns itself */
   resolve(): OasHeader {
     return this

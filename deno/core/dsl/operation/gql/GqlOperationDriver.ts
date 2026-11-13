@@ -140,10 +140,7 @@ export class GqlOperationDriver<
   }
 
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): DefinitionBase<V> {
-    const cachedDefinition = this.context.findDefinition({
-      name: identifier.name,
-      exportPath
-    })
+    const cachedDefinition = this.context.findDefinition({ name: identifier.name, exportPath })
 
     if (this.affirmDefinition<V>(cachedDefinition, exportPath)) {
       return cachedDefinition

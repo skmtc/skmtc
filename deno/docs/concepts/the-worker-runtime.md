@@ -30,7 +30,8 @@ Three reasons, in order of importance:
    code can do.
 
 2. **Process isolation.** The engine catches generator errors per
-   operation — one bad operation doesn't crash the whole run. But
+   operation and records each one. Then it fails the run with a list
+   of every failure. But
    "catching" still leaves the host process polluted with whatever
    memory state the failed generator left behind. A Worker is a
    separate JS context; a runaway generator can corrupt the Worker

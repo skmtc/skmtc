@@ -333,16 +333,17 @@ Projections give you (a) cross-generator coordination via the
 
 `toArtifacts` catches it (`GenerateContext.ts`), logs to
 `logger.error`, and marks the item `'error'` in the manifest
-results. Siblings continue. The throw does not propagate out of
-the generator's pass.
+results. The other items still run, so the run reports every
+failure. When every generator has run, any error fails the run
+with a `RUN_FAILED` issue, and the run writes no files.
 
 ### What if I throw from a Projection's constructor?
 
 The throw propagates out of the `new MyProjection(...)` call
 inside the Driver, up through `insertOperation` / `insertModel`,
 into whatever `transform` called it — and is caught by
-`toArtifacts`'s outer try/catch. Same outcome: item marked
-`'error'`, siblings continue.
+`toArtifacts`'s outer try/catch. Same outcome: `toArtifacts` marks
+the item `'error'`, the other items still run, and then the run fails.
 
 ### What's the order of operations within one `transform` call?
 

@@ -47,9 +47,9 @@ This means:
 - **Refs work the same way.** GraphQL cross-type references
   become `OasRef<'schema'>`. The same `resolve()` /
   `resolveOnce()` machinery, the same lazy-resolution model, the
-  same cycle detection via `modelDepth`. See
+  same cycle detection through `toModelRef`. See
   [refs-and-resolution.md](refs-and-resolution.md) and
-  [the-type-system.md §Handling recursive types](the-type-system.md#handling-recursive-types--the-modeldepth-counter).
+  [the-type-system.md §Handling recursive types](the-type-system.md#handling-recursive-types--pending-entries).
 
 What's GraphQL-specific is the *container* layer
 (`GqlDocument`, `GqlRegistry`, `GqlOperation`, `GqlArgument`) and

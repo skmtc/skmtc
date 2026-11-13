@@ -373,7 +373,7 @@ present (engine throws via `toVariantList` otherwise). See
 
 The payload shape beneath the routing keys is declared per-generator via Valibot in `gen-x/src/enrichments.ts`. **To know what keys a generator accepts, read its `enrichments.ts`.**
 
-Misaddressed config never errors: every read goes through `context.readEnrichment`, and after the run the engine reports paths nothing read (`UNCONSUMED_ENRICHMENT`, `UNKNOWN_GENERATOR_ID`) and keys the schema dropped (`UNKNOWN_ENRICHMENT_KEY`, with a suggestion) on `manifest.enrichmentWarnings`. A wrong-typed value fails only that item.
+Misaddressed config never errors: every read goes through `context.readEnrichment`, and after the run the engine reports paths nothing read (`UNCONSUMED_ENRICHMENT`, `UNKNOWN_GENERATOR_ID`) and keys the schema dropped (`UNKNOWN_ENRICHMENT_KEY`, with a suggestion) on `manifest.enrichmentWarnings`. A wrong-typed value fails the run (`RUN_FAILED`, no files written), and the message names each wrong value's place in `settings.enrichments`.
 
 ### Skip and include filters
 

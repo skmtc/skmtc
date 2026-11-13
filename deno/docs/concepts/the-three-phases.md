@@ -449,8 +449,11 @@ host-side, but GraphQL parsing happens worker-side. See
 
 `#runOasOperationGenerator` (`core/context/GenerateContext.ts`) catches
 it, logs an error, and marks the operation as `'error'` in the manifest. The
-rest of the run continues. Errors are scoped to one (generator × operation)
-pair.
+other operations still run, so the manifest records every failure. When every
+generator has run, any error fails the run: a `RUN_FAILED` issue at
+`toArtifacts:generate` lists the failed items, and the run writes no files.
+The parser tolerates faults in the schema. Generators and enrichments are
+your own code and configuration, so an error in them is a bug to fix.
 
 **What happens if I throw in a Projection's _constructor_?**
 

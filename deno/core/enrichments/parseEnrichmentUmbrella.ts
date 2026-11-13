@@ -18,9 +18,9 @@
  * declares only the fields it reads — keys other generators own are
  * expected, not typos.
  *
- * A wrong-typed value still throws exactly as before — the `v.parse` at
- * the end is unchanged, and unknown-key detection runs first so a
- * throwing leaf doesn't hide a dropped key.
+ * A wrong-typed value throws ({@link parseEnrichmentValue}), naming each
+ * wrong value's place in `client.json`. Unknown-key detection runs first,
+ * so a throwing leaf doesn't hide a dropped key.
  *
  * @module parseEnrichmentUmbrella
  */
@@ -29,6 +29,7 @@ import * as v from 'valibot'
 import { GENERATOR_ENRICHMENT_KEY, STACK_ENRICHMENT_KEY } from '@/types/Enrichments.ts'
 import { findUnknownKeys } from '@/enrichments/findUnknownKeys.ts'
 import { formatEnrichmentPath, type EnrichmentWarning } from '@/enrichments/EnrichmentWarning.ts'
+import { parseEnrichmentValue } from '@/enrichments/parseEnrichmentValue.ts'
 
 /**
  * Minimal structural view of the context the parse needs. Any
@@ -60,9 +61,8 @@ type ParseEnrichmentUmbrellaArgs<EnrichmentType> = {
  * umbrella, recording the reads for the consumption audit and reporting
  * schema-dropped keys.
  *
- * @throws on a wrong-typed value, exactly like the raw `v.parse` this
- *   wraps — the generator's item is then recorded as `error` and the run
- *   continues (fail-open).
+ * @throws on a wrong-typed value. The generator's item is recorded as
+ *   `error`, and the run fails once every generator has run.
  */
 export const parseEnrichmentUmbrella = <EnrichmentType>({
   context,
@@ -100,5 +100,21 @@ export const parseEnrichmentUmbrella = <EnrichmentType>({
     })
   }
 
-  return v.parse(schema, raw)
+  return parseEnrichmentValue({
+    schema,
+    value: raw,
+    generatorId,
+    toRoutingPath: ([scope, ...leafPath]) => {
+      switch (scope) {
+        case 'subject':
+          return [generatorId, ...subjectSegments, ...leafPath]
+        case 'generator':
+          return [generatorId, GENERATOR_ENRICHMENT_KEY, ...leafPath]
+        case 'stack':
+          return [STACK_ENRICHMENT_KEY, ...leafPath]
+        default:
+          return [generatorId]
+      }
+    }
+  })
 }

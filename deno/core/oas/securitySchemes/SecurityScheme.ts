@@ -90,6 +90,16 @@ export class OasHttpSecurityScheme {
     return false
   }
 
+  /** Always `false`: `readOnly` is a schema keyword. */
+  isReadOnly(): boolean {
+    return false
+  }
+
+  /** Always `false`: `writeOnly` is a schema keyword. */
+  isWriteOnly(): boolean {
+    return false
+  }
+
   resolve(): OasHttpSecurityScheme {
     return this
   }
@@ -125,6 +135,16 @@ export class OasApiKeySecurityScheme {
   }
 
   isRef(): this is OasRef<'securityScheme'> {
+    return false
+  }
+
+  /** Always `false`: `readOnly` is a schema keyword. */
+  isReadOnly(): boolean {
+    return false
+  }
+
+  /** Always `false`: `writeOnly` is a schema keyword. */
+  isWriteOnly(): boolean {
     return false
   }
 
@@ -203,6 +223,16 @@ export class OasOAuth2SecurityScheme {
     return false
   }
 
+  /** Always `false`: `readOnly` is a schema keyword. */
+  isReadOnly(): boolean {
+    return false
+  }
+
+  /** Always `false`: `writeOnly` is a schema keyword. */
+  isWriteOnly(): boolean {
+    return false
+  }
+
   resolve(): OasOAuth2SecurityScheme {
     return this
   }
@@ -246,6 +276,16 @@ export class OasOpenIdSecurityScheme {
   }
 
   isRef(): this is OasRef<'securityScheme'> {
+    return false
+  }
+
+  /** Always `false`: `readOnly` is a schema keyword. */
+  isReadOnly(): boolean {
+    return false
+  }
+
+  /** Always `false`: `writeOnly` is a schema keyword. */
+  isWriteOnly(): boolean {
     return false
   }
 

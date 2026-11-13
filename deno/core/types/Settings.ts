@@ -242,6 +242,14 @@ export const anchorsSettings: v.GenericSchema<AnchorsSettings> = v.object({
   out: v.optional(v.string())
 })
 
+/** Valibot schema for {@link SystemSettings}: `client.json#settings.system`. */
+export const systemSettings: v.GenericSchema<SystemSettings> = v.object({
+  allOf: v.optional(v.picklist(['strict', 'latestWins'])),
+  responseContradictions: v.optional(v.picklist(['strict', 'unknown'])),
+  not: v.optional(v.picklist(['strict', 'unknown'])),
+  anyOf: v.optional(v.picklist(['union', 'unknown']))
+})
+
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   basePath: v.optional(
     v.pipe(
@@ -264,6 +272,7 @@ export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
   include: v.optional(v.array(include)),
   skip: v.optional(v.array(skip)),
   anchors: v.optional(anchorsSettings),
+  system: v.optional(systemSettings),
   inputDirs: v.optional(v.array(v.string())),
   formatter: v.optional(v.string()),
   generatedSuffix: v.optional(v.string()),
@@ -547,6 +556,37 @@ export type AnchorsSettings = {
   out?: string
 }
 
+/**
+ * How the OpenAPI parser treats what it cannot read faithfully, or reads
+ * another way (`client.json#settings.system`). Each setting's default parses
+ * as core always did: `strict` fails the schema, and `removeErroredItems`
+ * removes each item that uses it.
+ */
+export type SystemSettings = {
+  /**
+   * `latestWins`: where `allOf` members contradict, the later member's
+   * keyword wins, with one warning for each schema where it happens.
+   */
+  allOf?: 'strict' | 'latestWins'
+  /**
+   * `unknown`: a response whose schema fails gets an `unknown` schema (any
+   * body), with an error at the response, and the operation stays.
+   */
+  responseContradictions?: 'strict' | 'unknown'
+  /**
+   * `unknown`: a schema with `not` parses with its other keywords, and keeps
+   * its `not` as an `OasUnknown`.
+   */
+  not?: 'strict' | 'unknown'
+  /**
+   * `union` (the default): an `anyOf` is a union, as a `oneOf` is, and the
+   * keywords next to it merge into each member. `unknown`: as Cloudflare's
+   * `cf` reads it, an `anyOf` is any value. The schema parses with its other
+   * keywords and without the `anyOf`, with one warning for each schema.
+   */
+  anyOf?: 'union' | 'unknown'
+}
+
 export type ClientSettings = {
   /** Base output path for generated files */
   basePath?: string
@@ -570,6 +610,8 @@ export type ClientSettings = {
    * in v1. See {@link AnchorsSettings}.
    */
   anchors?: AnchorsSettings
+  /** How the OpenAPI parser treats what it cannot read faithfully. See {@link SystemSettings}. */
+  system?: SystemSettings
   /**
    * Preview input-matcher discovery directories (project-root relative, e.g.
    * `src/fields`, `src/inputs`). A preview/hub concern: the generation engine

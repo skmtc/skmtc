@@ -8,10 +8,24 @@
 Generation didn't produce the files you expected, the files have
 unexpected contents, or the CLI exited non-zero.
 
-One thing to trust from the start: a failed item never kills the
-run. Everything unaffected still generates, and the manifest names
-exactly what was skipped or errored and why. This page is about
-reading that account.
+Two rules decide what a failed item costs. A schema item that the
+parser cannot read does not stop the run. The parser removes it and
+the items that depend on it, and the run writes all other items.
+
+An error during generation stops the run: a generator threw, or an
+enrichment value does not match the generator's schema. The run writes
+no files, and the files and the manifest of the last good run stay as
+they are. So the manifest on disk does not show the failure. Read it
+in two other places:
+
+- The output of `skmtc generate` shows a `RUN_FAILED` issue that lists
+  each failed item and its error. With `--json`, the issue is in
+  `parseIssues`.
+- `.skmtc/<project>/.settings/logs.ndjson` has an `ERROR` line for
+  each failed item, with the message and the stack.
+
+After a run that completes, the manifest names exactly what was
+skipped or errored and why. This page is about reading that account.
 
 ## Prerequisites
 

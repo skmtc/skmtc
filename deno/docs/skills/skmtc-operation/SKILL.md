@@ -15,7 +15,7 @@ description: >
   Load ALONGSIDE skmtc-generator and the emitted language's skill.
 metadata:
   describes:
-    '@skmtc/core': '0.39'
+    '@skmtc/core': '0.40'
 ---
 
 # Operation generators: decompose the operation, reference the models
@@ -56,8 +56,8 @@ a response shape) breaks the moment the schema evolves.
 - **Filter**: `isSupported({ operation })` in the entry config — claim
   only what you can render (e.g. mutations require
   `operation.toRequestBody(({ schema }) => schema)` to exist). An
-  unfiltered entry constructs subjects it can't handle and fails them
-  one by one. OpenAPI 3.2 documents add the `query` method:
+  unfiltered entry constructs subjects it can't handle, and each one
+  that throws fails the run. OpenAPI 3.2 documents add the `query` method:
   `toEndpointType` counts it as a query, like `get`, and a `switch`
   over `operation.method` needs a `query` arm. Filter it out when your
   target has no way to send it.
@@ -67,7 +67,9 @@ a response shape) breaks the moment the schema evolves.
   schema — the form you hand to a model generator (§3). A 3.2
   `querystring` parameter is the whole query string as one schema,
   taken from its single `content` entry. `['query']` does not include
-  it; ask for `['querystring']`.
+  it; ask for `['querystring']`. Both include the path item's
+  `parameters`; an operation's own parameter with the same name and
+  location replaces the path item's.
 - **Request body**: `operation.toRequestBody(({ schema }) => schema)`.
 - **Response**: `operation.toSuccessResponse()?.resolve().toSchema()
   ?? OasVoid.empty()` — selection and void-fallback in one idiom.

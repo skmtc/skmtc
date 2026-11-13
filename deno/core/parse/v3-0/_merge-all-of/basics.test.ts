@@ -1,6 +1,9 @@
 import { assertEquals } from '@std/assert/equals'
 import type { OpenAPIV3 } from 'openapi-types'
 import { mergeIntersection } from './merge-intersection.ts'
+import type { MergeSystem } from './types.ts'
+const strict = (): MergeSystem => ({ allOf: 'strict', replaced: new Set() })
+
 
 // Mock getRef function for testing
 const mockGetRef = (ref: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject => {
@@ -29,5 +32,5 @@ Deno.test('mergeAllOf - basic property merging', () => {
     nullable: true
   }
 
-  assertEquals(mergeIntersection({ schema, getRef: mockGetRef }), expected)
+  assertEquals(mergeIntersection({ schema, getRef: mockGetRef, system: strict() }), expected)
 })

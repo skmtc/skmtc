@@ -30,7 +30,7 @@ Deno.test('single-dispatch: silent inside the metadata policies', () => {
   const source = `export const KtModelBase = toKtModelProjectionBase({
       id: denoJson.name,
       toIdentifierType: (refName, context): KtIdentifierType => {
-        const schema = context.resolveSchemaRefOnce(refName, denoJson.name).resolve()
+        const schema = context.resolveSchemaRefOnce(refName).resolve()
         return { type: schema.type === 'object' ? 'data-class' : 'typealias' }
       },
       isSupported: ({ schema }) => schema.type !== 'unknown'

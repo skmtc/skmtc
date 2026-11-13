@@ -17,6 +17,7 @@ import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
 import type { OasServer } from '../server/Server.ts'
 import { OasBase } from '@/types/OasBase.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
+import { toEffectiveParameters } from '@/oas/operation/toEffectiveParameters.ts'
 
 /**
  * Fields for configuring an OpenAPI operation object.
@@ -230,17 +231,19 @@ export class OasOperation extends OasBase {
   }
 
   /**
-   * Resolve all parameters and optionally filter by location
+   * Resolve all parameters and optionally filter by location.
+   *
+   * As OpenAPI defines them: the path item's parameters apply to each of its
+   * operations, and an operation's own parameter with the same name and
+   * location replaces the path item's. The path item's come first.
    *
    * @param filter - only include parameters from specified locations
    * @returns
    */
   toParams(filter?: OasParameterLocation[]): OasParameter[] {
-    return (
-      this.parameters
-        ?.map(param => param.resolve())
-        .filter(param => (filter?.length ? filter.includes(param.location) : true)) ?? []
-    )
+    return toEffectiveParameters({ own: this.parameters, shared: this.pathItem?.parameters })
+      .map(param => param.resolve())
+      .filter(param => (filter?.length ? filter.includes(param.location) : true))
   }
 
   /**
@@ -268,12 +271,21 @@ export class OasOperation extends OasBase {
    * @returns OpenAPI v3 operation object
    */
   toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.OperationObject {
+    const parameters = toEffectiveParameters({
+      own: this.parameters,
+      shared: this.pathItem?.parameters
+    })
+
     return {
       tags: this.tags,
       summary: this.summary,
       description: this.description,
       operationId: this.operationId,
-      parameters: this.parameters?.map(param => param.toJsonSchema(options)),
+      // The path item's parameters too: the operation is written on its own.
+      parameters:
+        parameters.length > 0 || this.parameters !== undefined
+          ? parameters.map(param => param.toJsonSchema(options))
+          : undefined,
       requestBody: this.requestBody?.toJsonSchema(options),
       responses: Object.fromEntries(
         Object.entries(this.responses).map(([key, value]) => [key, value.toJsonSchema(options)])

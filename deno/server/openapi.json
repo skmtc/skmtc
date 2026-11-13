@@ -673,6 +673,36 @@
                   "enabled"
                 ]
               },
+              "system": {
+                "type": "object",
+                "properties": {
+                  "allOf": {
+                    "enum": [
+                      "strict",
+                      "latestWins"
+                    ]
+                  },
+                  "responseContradictions": {
+                    "enum": [
+                      "strict",
+                      "unknown"
+                    ]
+                  },
+                  "not": {
+                    "enum": [
+                      "strict",
+                      "unknown"
+                    ]
+                  },
+                  "anyOf": {
+                    "enum": [
+                      "union",
+                      "unknown"
+                    ]
+                  }
+                },
+                "required": []
+              },
               "inputDirs": {
                 "type": "array",
                 "items": {
@@ -853,6 +883,36 @@
                 "required": [
                   "enabled"
                 ]
+              },
+              "system": {
+                "type": "object",
+                "properties": {
+                  "allOf": {
+                    "enum": [
+                      "strict",
+                      "latestWins"
+                    ]
+                  },
+                  "responseContradictions": {
+                    "enum": [
+                      "strict",
+                      "unknown"
+                    ]
+                  },
+                  "not": {
+                    "enum": [
+                      "strict",
+                      "unknown"
+                    ]
+                  },
+                  "anyOf": {
+                    "enum": [
+                      "union",
+                      "unknown"
+                    ]
+                  }
+                },
+                "required": []
               },
               "inputDirs": {
                 "type": "array",
@@ -1227,6 +1287,12 @@
                               "const": "NO_JSON_MEDIA_TYPE"
                             },
                             {
+                              "const": "ALLOF_CONTRADICTION"
+                            },
+                            {
+                              "const": "ANYOF_AS_UNKNOWN"
+                            },
+                            {
                               "const": "RUN_FAILED"
                             }
                           ]
@@ -1382,6 +1448,12 @@
                               "const": "NO_JSON_MEDIA_TYPE"
                             },
                             {
+                              "const": "ALLOF_CONTRADICTION"
+                            },
+                            {
+                              "const": "ANYOF_AS_UNKNOWN"
+                            },
+                            {
                               "const": "RUN_FAILED"
                             }
                           ]
@@ -1498,6 +1570,12 @@
                             },
                             {
                               "const": "NO_JSON_MEDIA_TYPE"
+                            },
+                            {
+                              "const": "ALLOF_CONTRADICTION"
+                            },
+                            {
+                              "const": "ANYOF_AS_UNKNOWN"
                             },
                             {
                               "const": "RUN_FAILED"

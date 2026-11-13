@@ -1,4 +1,6 @@
+import type { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
+import { toSiblingAnnotations } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasDiscriminator } from '../discriminator/Discriminator.ts'
 import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
@@ -8,6 +10,7 @@ import type { ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { OasBase } from '@/types/OasBase.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
+import type { CustomValue } from '@/dsl/CustomValue.ts'
 
 /**
  * Constructor fields for {@link OasUnion}.
@@ -191,6 +194,13 @@ export class OasUnion extends OasBase {
    */
   default?: unknown
 
+  /**
+   * The schema's `not`, kept as an `OasUnknown` under `client.json`
+   * `system.not: unknown`: the document says "not something", and core does
+   * not read what. `undefined` otherwise.
+   */
+  not: OasUnknown | undefined = undefined
+
   constructor(fields: UnionFields, context?: ParseContextType) {
     super(context)
     this.title = fields.title
@@ -208,6 +218,40 @@ export class OasUnion extends OasBase {
     return false
   }
 
+  /** Always `false`: this schema has no `readOnly`. */
+  isReadOnly(): boolean {
+    return false
+  }
+
+  /** Always `false`: this schema has no `writeOnly`. */
+  isWriteOnly(): boolean {
+    return false
+  }
+
+  /**
+   * A copy of this schema with what `ref` adds at its site applied: its
+   * `nullable` and the keywords next to it (`SiblingKeywords`) that
+   * this type takes, a sibling's value winning. A value that does not fit
+   * this type is left out (the parser reports it). For `OasRef.resolve()`.
+   * This schema does not change, and the copy shares its child schemas.
+   */
+  clone(ref?: OasRef<'schema'>): OasUnion {
+    const nullable = this.nullable || ref?.nullable || undefined
+    const copy = new OasUnion({
+      ...toSiblingAnnotations(this, ref),
+      example: ref?.example ?? this.example,
+      externalDocs: this.externalDocs,
+      nullable,
+      discriminator: this.discriminator,
+      members: this.members,
+      default: ref?.default ?? this.default,
+    })
+    copy.stackTrail = this.stackTrail
+    copy.not = this.not
+
+    return copy
+  }
+
   traverse(path: SchemaPath): OasSchema | OasRef<'schema'> {
     return traverseSchema(this, path)
   }
@@ -220,6 +264,44 @@ export class OasUnion extends OasBase {
     return this
   }
 
+  /**
+   * Whether the discriminator alone picks the member of a value: the union
+   * names a discriminator, and each member, followed through references, is
+   * an object that is not nullable, that requires the discriminator's
+   * property, and that allows only string literals for it. No value may
+   * belong to two members. A member that is a union, or anything other than
+   * an object, makes it `false`.
+   *
+   * It reads the schemas only. A generator may refuse more: one that leaves
+   * out `readOnly` properties cannot discriminate on one.
+   */
+  isDiscriminable(): boolean {
+    const key = this.discriminator?.propertyName
+
+    if (key === undefined) {
+      return false
+    }
+
+    const seen = new Set<string>()
+
+    return this.members.every(member => {
+      const values = toDiscriminatorValues(member, key)
+
+      return (
+        values !== undefined &&
+        values.every(value => {
+          if (seen.has(value)) {
+            return false
+          }
+
+          seen.add(value)
+
+          return true
+        })
+      )
+    })
+  }
+
   toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject {
     return {
       title: this.title,
@@ -230,4 +312,41 @@ export class OasUnion extends OasBase {
       oneOf: this.members.map(member => member.toJsonSchema(options))
     }
   }
+}
+
+/**
+ * The values a member allows for the discriminator `key`, or `undefined`
+ * when the member is not an object, is nullable, or does not require `key`
+ * with string literals only.
+ */
+const toDiscriminatorValues = (member: OasSchema | OasRef<'schema'>, key: string): string[] | undefined => {
+  // `resolve()`, not `resolveOnce()`: the schema at this site, with the
+  // keywords next to the reference (`properties`, `required`) applied.
+  if (member.isRef()) {
+    return member.nullable ? undefined : toDiscriminatorValues(member.resolve(), key)
+  }
+
+  if (member.type !== 'object' || member.nullable) {
+    return undefined
+  }
+
+  const property = member.properties?.[key]
+
+  return property === undefined || !member.required?.includes(key) ? undefined : toLiteralValues(property)
+}
+
+/** The string literals a schema allows, or `undefined` when it allows anything else too. */
+const toLiteralValues = (schema: OasSchema | OasRef<'schema'> | CustomValue): string[] | undefined => {
+  if (schema.isRef()) {
+    return schema.nullable ? undefined : toLiteralValues(schema.resolve())
+  }
+
+  if (schema.type !== 'string' || schema.nullable || schema.enums === undefined) {
+    return undefined
+  }
+
+  const enums: (string | null)[] = schema.enums
+  const strings = enums.filter((value): value is string => value !== null)
+
+  return strings.length > 0 && strings.length === enums.length ? strings : undefined
 }

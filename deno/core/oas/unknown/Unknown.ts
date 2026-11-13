@@ -1,4 +1,5 @@
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
+import { toSiblingAnnotations } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasRef } from '../ref/Ref.ts'
@@ -46,6 +47,13 @@ export class OasUnknown extends OasBase {
   example: unknown | undefined
   /** Whether the unknown type is nullable */
   nullable: boolean | undefined
+  /**
+   * The schema's `not`, kept as an `OasUnknown` under `client.json`
+   * `system.not: unknown`: the document says "not something", and core does
+   * not read what. `undefined` otherwise.
+   */
+  not: OasUnknown | undefined = undefined
+
   constructor(fields: UnknownFields = {}, context?: ParseContextType) {
     super(context)
     this.title = fields.title
@@ -57,6 +65,36 @@ export class OasUnknown extends OasBase {
 
   isRef(): this is OasRef<'schema'> {
     return false
+  }
+
+  /** Always `false`: this schema has no `readOnly`. */
+  isReadOnly(): boolean {
+    return false
+  }
+
+  /** Always `false`: this schema has no `writeOnly`. */
+  isWriteOnly(): boolean {
+    return false
+  }
+
+  /**
+   * A copy of this schema with what `ref` adds at its site applied: its
+   * `nullable` and the keywords next to it (`SiblingKeywords`) that
+   * this type takes, a sibling's value winning. A value that does not fit
+   * this type is left out (the parser reports it). For `OasRef.resolve()`.
+   * This schema does not change, and the copy shares its child schemas.
+   */
+  clone(ref?: OasRef<'schema'>): OasUnknown {
+    const nullable = this.nullable || ref?.nullable || undefined
+    const copy = new OasUnknown({
+      ...toSiblingAnnotations(this, ref),
+      example: ref?.example ?? this.example,
+      nullable,
+    })
+    copy.stackTrail = this.stackTrail
+    copy.not = this.not
+
+    return copy
   }
 
   traverse(path: SchemaPath): OasSchema | OasRef<'schema'> {

@@ -1,24 +1,18 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import type { SchemaObject } from './types.ts'
+import type { SchemaObject, MergeArgs } from './types.ts'
 import { genericMerge } from './generic-merge.ts'
-import type { GetRefFn, NormalizeFn } from './types.ts'
 import * as v from 'valibot'
 import { checkTypeConflicts } from './check-type-conflicts.ts'
 import { checkAtLeastOneTypeMatch } from './check-at-least-one-type-match.ts'
-export function mergeStringConstraints(
-  first: OpenAPIV3.SchemaObject,
-  second: OpenAPIV3.SchemaObject,
-  getRef: GetRefFn,
-  normalize: NormalizeFn
-): OpenAPIV3.SchemaObject {
+export function mergeStringConstraints({ first, second, getRef, normalize, system }: MergeArgs<OpenAPIV3.SchemaObject>): OpenAPIV3.SchemaObject {
   checkTypeConflicts(first, second)
 
   if (!checkAtLeastOneTypeMatch(first, second, 'string')) {
-    return genericMerge(first, second, getRef, normalize)
+    return genericMerge({ first, second, getRef, normalize, system })
   }
 
   // First merge enum values if present
-  const result: SchemaObject = genericMerge(first, second, getRef, normalize, v.string())
+  const result: SchemaObject = genericMerge({ first, second, getRef, normalize, system, typeCheck: v.string() })
 
   // Then merge other constraints
   result.type = 'string'

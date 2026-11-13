@@ -55,6 +55,9 @@ individual fields.
     // Optional. Gen-maps (provenance sidecars) — off unless enabled.
     "anchors": { "enabled": true, "out": ".maps" },
 
+    // Optional. How the OpenAPI parser reads schemas it cannot read faithfully.
+    "system": { "allOf": "latestWins" },
+
     // Optional. Preview/hub concern; ignored by the engine.
     "inputDirs": ["src/fields"]
   }
@@ -263,9 +266,10 @@ not start with `_`. A generator accepts a value at a reserved key only
 when its schema declares that scope; a scope declared `v.undefined()`
 rejects any value.
 
-A wrong-typed value fails that item's generation: the run completes,
-the manifest records `error` for that generator, item and variant,
-and the Valibot message is in the log. A key the schema
+A wrong-typed value fails the run. The run writes no files, and the
+files and manifest of the last good run stay. The `RUN_FAILED` issue
+in the output of `skmtc generate` (`parseIssues` with `--json`) names
+each wrong value's place in `settings.enrichments`. A key the schema
 does not declare is dropped and reported as `UNKNOWN_ENRICHMENT_KEY`
 on `manifest.enrichmentWarnings`; a routing key that matches nothing
 is reported as `UNCONSUMED_ENRICHMENT` or `UNKNOWN_GENERATOR_ID`.
@@ -315,6 +319,38 @@ Gen-maps (provenance) configuration. Two fields:
   by default, since sidecars are build output, not source.
 
 The sidecar and generation-map formats are engine-internal; the keys above are the full user-facing surface.
+
+### `settings.system` (optional)
+
+Sets how the OpenAPI parser reads a schema that it cannot read
+faithfully. All fields are optional. The default of each field gives
+the usual parse. Default: `{}`.
+
+- **`allOf`** — `"strict"` (default) or `"latestWins"`. With
+  `latestWins`, where the members of an `allOf` contradict, the value
+  of the later member wins. Each such schema logs one
+  `ALLOF_CONTRADICTION` warning.
+- **`not`** — `"strict"` (default) or `"unknown"`. With `unknown`, a
+  schema with `not` parses with its other keywords. The `not` stays on
+  the schema as an unknown value that core does not read.
+- **`anyOf`** — `"union"` (default) or `"unknown"`. With `union`, the
+  parser reads an `anyOf` as a union, the same as a `oneOf`. It merges
+  the keywords next to the `anyOf` into each member. With `unknown`,
+  the parser reads some `anyOf` schemas as any value. This occurs when
+  two or more members are not `null`, and one of them is not a single
+  value.
+  The schema keeps its other keywords, and a `null` member makes it
+  nullable. Each such schema logs one `ANYOF_AS_UNKNOWN` warning. An
+  `anyOf` with one member, or an `anyOf` of single values such as
+  `string | number`, parses as it does with `union`.
+- **`responseContradictions`** — `"strict"` (default) or `"unknown"`.
+  Reserved. The validator accepts it, but the parser does not read it.
+
+With `strict`, a schema whose `allOf` members contradict, or a schema
+with `not`, fails with an `INVALID_SCHEMA` error. The parser then
+removes each item that refers to that schema
+(`INVALID_DEPENDENCY_REF`). See
+[error codes](../error-codes.md).
 
 ### `settings.inputDirs` (optional)
 
