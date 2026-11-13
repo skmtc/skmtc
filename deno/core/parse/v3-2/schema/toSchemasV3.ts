@@ -198,11 +198,12 @@ export const toSchemaV3 = ({
 }: ToSchemaV3Args): OasSchema | OasRef<'schema'> => {
   if (isRef(schema)) {
     // In 3.2, as in JSON Schema 2020-12, keywords beside `$ref` apply with
-    // the target: the same as a one-member `allOf` with them beside it.
+    // the target: the same as an `allOf` that starts with the reference.
     const { $ref, ...keywords } = schema
+    const allOf = 'allOf' in keywords && Array.isArray(keywords.allOf) ? keywords.allOf : []
 
     return Object.keys(keywords).length > 0
-      ? toSchemaV3({ schema: { allOf: [{ $ref }], ...keywords }, stackTrail, context })
+      ? toSchemaV3({ schema: { ...keywords, allOf: [{ $ref }, ...allOf] }, stackTrail, context })
       : toRefV31({ ref: schema, refType: 'schema', stackTrail, context })
   }
 
