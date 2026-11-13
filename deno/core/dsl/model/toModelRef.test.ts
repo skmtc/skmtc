@@ -43,9 +43,6 @@ const toModels = (graph: Graph, shared: string[] = []) => {
     toExportPath: ({ refName }) => toPath(refName),
     toEnrichmentSchema: () => emptyEnrichmentSchema
   }) {
-    // deno-lint-ignore no-explicit-any -- test stub; insertNormalizedModel isn't exercised
-    static schemaToValueFn: any = () => ({ toString: () => '' })
-    static createIdentifier = createVariable
     /** Each reference this model made: the name, whether it came back suspended, and whether it is inside a cycle. */
     refs: { name: string; suspended: boolean; inCycle: boolean }[]
     recursive: boolean
