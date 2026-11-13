@@ -744,6 +744,33 @@ Deno.test('ModelDriver', async t => {
       )
     })
 
+    await t.step('should name the cause when another projection class holds the same key', () => {
+      const context = createMockContext()
+      const projection = createMockProjection()
+      const refName = 'User' as RefName
+
+      // The same generator key, but a value of another class: two copies of
+      // one generator package, or two projection classes under one id.
+      const mockDefinition = new TsDefinition({
+        context,
+        value: new MockGeneratedValue(),
+        identifier: createType(refName)
+      })
+      mockDefinition.generatorKey = toModelGeneratorKey({
+        generatorId: projection.id,
+        refName,
+        variant: 'main'
+      }) as GeneratorKey
+
+      context.findDefinition = (() => mockDefinition) as any
+
+      assertThrows(
+        () => new ModelDriver({ context, projection, refName, variant: 'main' }),
+        Error,
+        "Registered definition mismatch: 'User' in file '@/path/to/export.ts' was built by another projection class with the same generator key"
+      )
+    })
+
     await t.step('should include refName in error message', () => {
       const context = createMockContext()
       const projection = createMockProjection()

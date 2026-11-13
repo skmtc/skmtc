@@ -157,6 +157,10 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
       if (this.affirmDefinition<V>(found, exportPath)) {
         return found
       }
+
+      throw new Error(
+        `Registered definition mismatch: '${identifier.name}' in file '${exportPath}' was built by another projection class with the same generator key '${generatorKey}'. Two copies of one generator package, or two projection classes under one generator id, claim it.`
+      )
     }
 
     // The model's entry in the File is pending while the constructor runs:
