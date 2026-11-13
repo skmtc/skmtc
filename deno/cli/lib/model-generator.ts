@@ -88,7 +88,7 @@ export class ${mainModule}Projection extends ${mainModule}Base {
   constructor({ context, refName, settings, destinationPath, rootRef }: ConstructorArgs) {
     super({ context, refName, settings })
 
-    const schema = context.resolveSchemaRefOnce(refName, ${mainModule}Base.id)
+    const schema = context.resolveSchemaRefOnce(refName)
 
     this.value = to${mainModule}Value({
       schema,

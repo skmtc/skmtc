@@ -110,7 +110,7 @@ export const KtModelBase = toKtModelProjectionBase({
   toIdentifierType: (refName, context): KtIdentifierType => {
     // \`.resolve()\` is identity on concrete schemas — call it
     // unconditionally; never \`schema.isRef() ? schema.resolve() : schema\`.
-    const schema = context.resolveSchemaRefOnce(refName, denoJson.name).resolve()
+    const schema = context.resolveSchemaRefOnce(refName).resolve()
 
     // Skeleton policy: objects are data classes, everything else a
     // typealias. Extend alongside the toKtValue router when a schema
@@ -649,7 +649,7 @@ export class ${mainModule}Projection extends KtModelBase {
 
     const { context, refName } = args
     const destinationPath = this.settings.exportPath
-    const schema = context.resolveSchemaRefOnce(refName, KtModelBase.id).resolve()
+    const schema = context.resolveSchemaRefOnce(refName).resolve()
 
     // Everything flows through the router — 'object' is a case like any
     // other, not a special case here.
