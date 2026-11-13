@@ -251,9 +251,9 @@ Outcomes:
   `manifest.enrichmentWarnings` with a nearest-key suggestion.
 - **Missing optional keys**: arrive as `undefined`.
 - **Wrong-typed value**: the parse throws, and the run fails. The run
-  writes no files. The message names each wrong value's place in
-  `client.json`, and the manifest records `error` for each item that
-  read it.
+  writes no files, and the files and manifest of the last good run
+  stay. The `RUN_FAILED` issue in the output of `skmtc generate` names
+  each wrong value's place in `client.json`.
 - **Whole payload missing**: most stock generators wrap their
   subject schema in `v.optional(...)`, so the value arrives as
   `undefined`.

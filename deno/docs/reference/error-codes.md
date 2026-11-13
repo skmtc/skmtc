@@ -12,7 +12,8 @@ This file is the lookup reference for specific codes.
 
 | Where you saw it | What it looks like | Jump to |
 |---|---|---|
-| `manifest.parseIssues[].type` (OAS source) | `INVALID_SCHEMA`, `INVALID_DEPENDENCY_REF`, `RUN_FAILED`, `MISSING_*_TYPE`, `UNEXPECTED_PROPERTY`, `INVALID_OPERATION`, … | [OAS parse-issue types](#oas-parse-issue-types) |
+| `manifest.parseIssues[].type` (OAS source) | `INVALID_SCHEMA`, `INVALID_DEPENDENCY_REF`, `MISSING_*_TYPE`, `UNEXPECTED_PROPERTY`, `INVALID_OPERATION`, … | [OAS parse-issue types](#oas-parse-issue-types) |
+| Output of `skmtc generate` (`parseIssues` with `--json`); the manifest on disk keeps the last good run | `RUN_FAILED` | [RUN_FAILED](#run_failed--error) |
 | `manifest.parseIssues[].type` (GraphQL source) | `INVALID_TYPE_DEFINITION`, `SKIPPED_FIELD_ARGUMENTS`, `NESTED_LIST_LOSSY`, `DROPPED_DIRECTIVE`, … | [GraphQL parse-issue types](#graphql-parse-issue-types) |
 | Thrown on stderr during generate | `Registered definition mismatch: '<X>' in file '<Y>' …` | [Registered definition mismatch](#registered-definition-mismatch) |
 | Thrown on stderr during generate | `Max lookups reached` | [Max lookups reached](#max-lookups-reached) |
@@ -128,6 +129,13 @@ The engine returns no artifacts. It keeps the parse issues that it
 recorded before the failure, and adds this one issue. The issue
 names the phase that failed. It does not claim that the schema is
 invalid.
+
+**Where you see it:** the CLI writes no files for a failed run. The
+files and the manifest of the last good run stay as they are, so the
+manifest on disk does not show this issue. `skmtc generate` prints
+it, and with `--json` it is in `parseIssues`.
+`.skmtc/<project>/.settings/logs.ndjson` has an `ERROR` line for each
+item that failed, with the message and the stack.
 
 **Typical message:** `<phase> phase failed: <the error's message>`,
 for example `render phase failed: Cannot read properties of

@@ -13,12 +13,19 @@ parser cannot read does not stop the run. The parser removes it and
 the items that depend on it, and the run writes all other items.
 
 An error during generation stops the run: a generator threw, or an
-enrichment value does not match the generator's schema. The manifest
-records `error` for each item that failed, a `RUN_FAILED` issue lists
-them, and the run writes no files.
+enrichment value does not match the generator's schema. The run writes
+no files, and the files and the manifest of the last good run stay as
+they are. So the manifest on disk does not show the failure. Read it
+in two other places:
 
-In both cases the manifest names exactly what was skipped or errored
-and why. This page is about reading that account.
+- The output of `skmtc generate` shows a `RUN_FAILED` issue that lists
+  each failed item and its error. With `--json`, the issue is in
+  `parseIssues`.
+- `.skmtc/<project>/.settings/logs.ndjson` has an `ERROR` line for
+  each failed item, with the message and the stack.
+
+After a run that completes, the manifest names exactly what was
+skipped or errored and why. This page is about reading that account.
 
 ## Prerequisites
 

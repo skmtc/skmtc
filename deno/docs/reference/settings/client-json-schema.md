@@ -266,10 +266,10 @@ not start with `_`. A generator accepts a value at a reserved key only
 when its schema declares that scope; a scope declared `v.undefined()`
 rejects any value.
 
-A wrong-typed value fails the run, and the run writes no files. The
-manifest records `error` for each generator, item and variant that
-read the value. The `RUN_FAILED` message names each wrong value's
-place in `settings.enrichments`. A key the schema
+A wrong-typed value fails the run. The run writes no files, and the
+files and manifest of the last good run stay. The `RUN_FAILED` issue
+in the output of `skmtc generate` (`parseIssues` with `--json`) names
+each wrong value's place in `settings.enrichments`. A key the schema
 does not declare is dropped and reported as `UNKNOWN_ENRICHMENT_KEY`
 on `manifest.enrichmentWarnings`; a routing key that matches nothing
 is reported as `UNCONSUMED_ENRICHMENT` or `UNKNOWN_GENERATOR_ID`.
