@@ -12,7 +12,7 @@ description: >
   (skmtc-lang-typescript).
 metadata:
   describes:
-    '@skmtc/core': '0.39'
+    '@skmtc/core': '0.40'
 ---
 
 # Authoring Skmtc generators
@@ -100,7 +100,10 @@ functions that return strings — helpers drift.
   dependencies. Generator order does not affect output; never propose
   ordering, priorities, or a pre-generation pass. On a peer reference the Driver probes
   `findDefinition`; hit → reuse (constructor never runs) + auto-stitched
-  import; miss → construct recursively. So: never hardcode a peer's name
+  import; miss → construct recursively. While a model's projection is
+  constructed, `findDefinition` returns the model's pending entry
+  (narrow with `isPending()`); a reference back to it, from inside a
+  cycle, goes through `toModelRef` (see skmtc-model). So: never hardcode a peer's name
   or path — insert and read the result, minding the two return shapes:
   `insertModel(Peer, refName)` returns an **Inserted handle** (name via
   `.toName()`, definition via `.definition`), while
@@ -114,7 +117,8 @@ functions that return strings — helpers drift.
   entry calls `insertModel`/`insertOperation`) and accumulator (many
   subjects append into one definition — entry does
   `context.findDefinition(...) ?? defineAndRegister(context, {...})`
-  then mutates the container value; the sanctioned exception to "no
+  then mutates the container value, after `isPending()` rules out a
+  pending entry; the sanctioned exception to "no
   methods beyond constructor and toString"). `defineAndRegister` is a
   **lang-package free function** (import it from your lang package) —
   there is no `context.defineAndRegister`; that API was deleted.
@@ -146,7 +150,7 @@ functions that return strings — helpers drift.
   (`components`/`paths`), never absolute indices — the trail's head
   carries per-run tracing frames (`trace-*`/`span-*`/`parse`); and
   throw on an unrecognized or empty trail rather than invent a name
-  (the engine isolates the throw to that subject). Worked example:
+  (the throw fails the run, and its message names that subject). Worked example:
   `toSynthesizedName.ts` in the kotlin-debug rig's gen-kotlin-jackson
   (verified end-to-end 2026-08-04, compiler-clean).
   Only when the known solution needs machinery the engine genuinely
@@ -182,7 +186,8 @@ functions that return strings — helpers drift.
   `v.undefined()` rejects any value at its key (so `_stack` needs
   every generator in the run to declare `stack`; check each
   generator's `enrichments.ts` — most stock ones declare `subject` only).
-  A wrong-typed value fails that item only; keys the schema drops and
+  A wrong-typed value fails the run, and the message names its place in
+  `client.json`; keys the schema drops and
   routing paths nothing read land on `manifest.enrichmentWarnings`.
   Options come from the CALLING generator, on the insert:
   `this.insertModel(Peer, refName, { options: { suffix: 'Input' } })`.
@@ -203,8 +208,11 @@ functions that return strings — helpers drift.
   `operationId` — spec-author-controlled; no stock generator reads it.
 - **Registration at construction; `toString()` is a prototype method**
   reading precomputed fields (an arrow-function `toString` field breaks
-  provenance wrapping). Errors are isolated per subject — a throw kills
-  one artifact, not the run.
+  provenance wrapping). A throw fails the run: the engine records
+  `error` on that subject, runs the others so the `RUN_FAILED` issue
+  lists every failure, and writes no files. Parse tolerates faults in
+  the schema; generate does not tolerate a bug in a generator or a
+  wrong enrichment value.
 
 ## 5. Verify against the run
 

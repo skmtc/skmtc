@@ -108,16 +108,28 @@ prunes both `Post` and `Comment`. Each gets its own
 
 ### `RUN_FAILED` — error
 
-**When:** The run itself failed outside the per-item catches. The
-engine returns no artifacts. It keeps the parse issues that it
+**When:** The run failed. There are two causes:
+
+- A throw outside the per-item catches. A throw in the `toString()`
+  of a generator during Render is an example: that is a bug in the
+  generator.
+- One or more items that failed during generation. A generator threw,
+  or an enrichment value does not match the schema of its generator.
+  Each such item has `error` in `results`. The engine runs all other
+  items first, so that the issue lists every failure.
+
+The engine returns no artifacts. It keeps the parse issues that it
 recorded before the failure, and adds this one issue. The issue
 names the phase that failed. It does not claim that the schema is
-invalid. A throw in the `toString()` of a generator during Render is
-an example: that is a bug in the generator.
+invalid.
 
 **Typical message:** `<phase> phase failed: <the error's message>`,
 for example `render phase failed: Cannot read properties of
-undefined`.
+undefined`. For failed items, the message starts with
+`generate phase failed: Generation failed for <n> subject(s):`. Then
+it shows each different error one time, with the first five items
+that it failed. A wrong enrichment value names its place in
+`settings.enrichments`.
 
 **Example location:** `toArtifacts:render`. The location is the
 entry and the phase: `toArtifacts`, `toSupportedSubjects` or

@@ -183,7 +183,9 @@ Each leaf is a `ResultType`:
    `notSupported`/`skipped` vs `success`. The item levels are listed
    above.
 
-3. **"A specific output is missing"** — check `files` first. If the
+3. **"A specific output is missing"** — check `parseIssues` for
+   `RUN_FAILED` first: any `error` in `results` fails the run, and then
+   no file is written at all. Otherwise check `files`. If the
    `destinationPath` isn't there, find the corresponding identifier in
    `results`. `error` means the generator failed; `notSupported`
    means the engine never reached it.
@@ -278,7 +280,10 @@ operation produced no files.
    - **`'error'`**: Read the `ERROR` line for the item in
      `.skmtc/<project>/.settings/logs.ndjson`: its `trail` is the
      item's key in `results`, and it holds the message and stack.
-     The generator's constructor or `toString` threw.
+     The generator's constructor or `toString` threw, or an enrichment
+     value does not match the generator's schema (the message names
+     its place in `settings.enrichments`). Any `error` fails the run,
+     so fix every one before you look for missing files.
 3. If the result is missing entirely (operation not present in
    `manifest.results`): the operation was pruned at parse time (look
    for `INVALID_SCHEMA` / `INVALID_DEPENDENCY_REF` in `parseIssues`

@@ -95,8 +95,8 @@ for all three routing shapes.
 
 Two validation behaviors worth knowing before you edit: a
 wrongly-typed value (a number where `title` expects a string) fails
-that operation's generation — the run completes, and the manifest
-records the error with the path. A misspelled key can't fail
+the run. The run writes nothing, and the error names the value's
+place in `client.json`. A misspelled key can't fail
 anything (the schema ignores unknown keys), so the engine warns
 about it instead — step 5 shows that warning in action.
 

@@ -184,7 +184,9 @@ and re-read by `skmtc doctor` as `project-enrichments/<project>`): a
 typo'd id, path, method, model name or leaf key is reported with the
 nearest match. Routing is the literal path plus lowercase method,
 never `operationId`, under a `main` variant key. A wrong-typed value
-fails only that item, recorded as `error` in the manifest.
+fails the run and nothing is written: the `RUN_FAILED` message names
+each wrong value's place in `settings.enrichments`, and each item that
+read it is `error` in the manifest.
 
 `settings.skip` / `settings.include` accept a whole generator, a
 per-operation entry (`path → method → variant[]`), or a per-model

@@ -250,12 +250,16 @@ Outcomes:
 - **Unknown keys**: dropped, and reported on
   `manifest.enrichmentWarnings` with a nearest-key suggestion.
 - **Missing optional keys**: arrive as `undefined`.
-- **Wrong-typed value**: the parse throws; that item is recorded as
-  `error` in the manifest and the run continues.
+- **Wrong-typed value**: the parse throws, and the run fails. The run
+  writes no files. The message names each wrong value's place in
+  `client.json`, and the manifest records `error` for each item that
+  read it.
 - **Whole payload missing**: most stock generators wrap their
   subject schema in `v.optional(...)`, so the value arrives as
   `undefined`.
-- **A value at a scope declared `v.undefined()`**: the parse throws.
+- **A value at a scope declared `v.undefined()`**: the parse throws,
+  and the run fails. The message says that the generator reads no
+  enrichments there.
 - **A routing key nothing read**: reported after the run as
   `UNCONSUMED_ENRICHMENT` or `UNKNOWN_GENERATOR_ID`; see
   [error codes](../error-codes.md#enrichment-warnings).

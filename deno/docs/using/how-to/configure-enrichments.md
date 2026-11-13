@@ -124,12 +124,14 @@ either:
   variants: …`** — the value sits directly under the item key
   (`"post": { "title": … }`), so its keys were read as variant names.
   Nest it under `main`: `"post": { "main": { "title": … } }`.
-- **The item is reported as `error` in the manifest** — a value has
-  the wrong type for the generator's schema. The manifest records
-  only the status, keyed by generator, item and variant; the Valibot
-  message (`Invalid type: Expected string but received …`) is in the
-  run's log output. The rest of the run completes. Re-check the
-  generator's `enrichments.ts`.
+- **The run fails with `Enrichments for '<generator>' do not match its
+  enrichment schema`.** A value has the wrong type for the generator's
+  schema. Or the value is at a scope that the generator does not read.
+  The run writes no files. The message lists each wrong value at its
+  place in `settings.enrichments`. For example:
+  `'@skmtc/gen-x → /pets → post → main → title': Invalid type:
+  Expected string but received 3`. Correct each value. Where the
+  message says the generator reads no enrichments, remove the value.
 - **The field you want does not exist** — the generator's schema does
   not declare it. Clone the generator and add it (see
   [add enrichment options](../../authoring/how-to/add-enrichment-options.md)).
