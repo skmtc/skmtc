@@ -1,34 +1,49 @@
 /**
  * Pending Definitions: the entry on the context's pending stack while a
  * model's projection is being constructed, and `toModelRef`, which finds it.
- * Real Drivers and a real `GenerateContext`; each test model's constructor
- * references the models its test graph lists, so a cycle in the graph is a
- * cycle of inserts.
+ * Real Drivers and a real `GenerateContext` with a neutral language (the
+ * `MockFile` doubles); each test model's constructor references the models
+ * its test graph lists, so a cycle in the graph is a cycle of inserts.
  */
-import { createVariable, toTsModelProjectionBase, TsFile } from '@skmtc/lang-typescript'
-import { assertEquals, assertStringIncludes, assertThrows } from '@std/assert'
+import { assertArrayIncludes, assertEquals, assertThrows } from '@std/assert'
 import { assertSpyCalls, spy } from '@std/testing/mock'
-import type * as log from '@std/log'
+import * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
+import { IdentifierBase } from '@/dsl/IdentifierBase.ts'
+import type { Lang } from '@/dsl/Lang.ts'
 import { PendingDefinition } from '@/dsl/PendingDefinition.ts'
+import { SnippetBase } from '@/dsl/SnippetBase.ts'
 import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 import { isReferencedBack, toModelRef } from '@/dsl/model/ModelDriver.ts'
+import { toModelProjectionBase } from '@/dsl/model/toModelProjectionBase.ts'
 import type { ModelProjectionConstructorArgs } from '@/dsl/model/types.ts'
 import { toModelGeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import { OasComponents } from '@/oas/components/Components.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasString } from '@/oas/string/String.ts'
+import { MockDefinition, MockFile, MockImport } from '@/test/MockFile.ts'
 import { emptyEnrichmentSchema, type EmptyEnrichments } from '@/types/Enrichments.ts'
 import type { RefName } from '@/types/RefName.ts'
 
-const logger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-  critical: () => {}
-} as unknown as log.Logger
+// A named logger with no handlers is silent.
+const logger: log.Logger = log.getLogger('toModelRef-test-silent')
+
+const neutralLang: Lang = {
+  createFile: ({ path }) => new MockFile({ path }),
+  toDefinition: ({ context, identifier, value }) =>
+    new MockDefinition({ context, identifier, value }),
+  toImport: ({ identifier, module }) => new MockImport({ names: [identifier.name], module }),
+  toIdentifier: ({ name, typeName }) => new IdentifierBase({ name, typeName })
+}
+
+class NeutralSnippet extends SnippetBase {
+  static lang: Lang = neutralLang
+
+  override toString(): string {
+    return ''
+  }
+}
 
 type Graph = Record<string, string[]>
 
@@ -37,10 +52,10 @@ const toModels = (graph: Graph, shared: string[] = []) => {
   const toPath = (refName: string) =>
     shared.includes(refName) ? '@/types/shared.generated.ts' : `@/types/${refName}.generated.ts`
 
-  class Model extends toTsModelProjectionBase({
+  class Model extends toModelProjectionBase<EmptyEnrichments>(NeutralSnippet, {
     id: '@test/models',
     toIdentifierName: ({ refName }) => refName,
-    toIdentifierType: () => ({ type: 'variable' }),
+    toIdentifierType: () => ({ type: 'entity' }),
     toExportPath: ({ refName }) => toPath(refName),
     toEnrichmentSchema: () => emptyEnrichmentSchema
   }) {
@@ -114,10 +129,24 @@ const toModels = (graph: Graph, shared: string[] = []) => {
 const pendingNames = (context: GenerateContext): string[] =>
   context.pendingStack.map(({ identifier }) => identifier.name)
 
+const toMockFile = (context: GenerateContext, path: string): MockFile => {
+  const file = context.getFile(path)
+
+  if (!(file instanceof MockFile)) {
+    throw new Error(`no MockFile at '${path}'`)
+  }
+
+  return file
+}
+
+/** The imports of the file at `path`, as they render. */
+const toImports = (context: GenerateContext, path: string): string[] =>
+  [...toMockFile(context, path).imports.values()].map(String)
+
 /** A model of `projection` under construction, as the Driver puts it on the stack. */
 const toPending = (name: string, projection: unknown) =>
   new PendingDefinition({
-    identifier: createVariable(name),
+    identifier: new IdentifierBase({ name }),
     exportPath: normalizeWorkspacePath(`@/types/${name}.generated.ts`),
     generatorKey: toModelGeneratorKey({
       generatorId: '@test/models',
@@ -153,10 +182,9 @@ Deno.test('a cycle across two files: the reference back is suspended, imported, 
   assertEquals(valueOf('Group').recursive, true)
   assertEquals(valueOf('Condition').recursive, false)
   // The reference back crosses files, so Condition's file imports Group.
-  assertStringIncludes(
-    `${context.getFile('@/types/Condition.generated.ts')}`,
-    `import {Group} from '@/types/Group.generated.ts'`
-  )
+  assertArrayIncludes(toImports(context, '@/types/Condition.generated.ts'), [
+    `import { Group } from '@/types/Group.generated.ts'`
+  ])
   // Every marker is gone once its constructor returned.
   assertEquals(pendingNames(context), [])
 })
@@ -199,7 +227,7 @@ Deno.test('a model that refers to itself is suspended in its own file, with no i
 
   assertEquals(valueOf('Node').refs, [{ name: 'Node', suspended: true, inCycle: false }])
   assertEquals(valueOf('Node').recursive, true)
-  assertEquals(`${context.getFile('@/types/Node.generated.ts')}`.includes('import'), false)
+  assertEquals(toImports(context, '@/types/Node.generated.ts'), [])
 })
 
 Deno.test("a model's Definition is added when its constructor returns, after what it refers to", () => {
@@ -207,20 +235,16 @@ Deno.test("a model's Definition is added when its constructor returns, after wha
 
   context.insertModel(Model, 'A' as RefName)
 
-  const file = context.getFile(toPath('A'))
-
-  if (!(file instanceof TsFile)) {
-    throw new Error('no TsFile for A and B')
-  }
+  const file = toMockFile(context, toPath('A'))
 
   // B's constructor returned first, so its Definition went in first.
   assertEquals(
     [...file.definitions.values()].map(({ identifier }) => identifier.name),
     ['B', 'A']
   )
-  // The trap: `const A = [B]` above `const B`, and the module fails when it loads.
+  // The trap: A, which reads B, rendered above B, and the module fails when it loads.
   const rendered = `${file}`
-  assertEquals(rendered.indexOf('export const B') < rendered.indexOf('export const A'), true)
+  assertEquals(rendered.indexOf('def B') < rendered.indexOf('def A'), true)
 })
 
 Deno.test('a constructor that throws leaves no pending entry and no file', () => {
