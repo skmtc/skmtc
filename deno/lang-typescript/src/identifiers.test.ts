@@ -1,5 +1,23 @@
 import { assertEquals } from '@std/assert'
-import { handleKey, handlePropertyName } from './identifiers.ts'
+import { handleKey, handlePropertyName, toStringLiteral } from './identifiers.ts'
+
+// The trap: `'${value}'` or `"${value}"` compiles for ordinary strings, and
+// breaks the generated file on the first quote or line break in a schema
+// string. Each literal is evaluated as a generated file would read it.
+Deno.test('toStringLiteral - every string comes back unchanged from its literal', () => {
+  const values = ['id', 'a.b', 'a/b', 'a"b', "a'b", 'a\\b', 'a\nb', 'a\r\nb', 'a\u2028b', 'a\u2029b', '$ref', 'count()', '']
+
+  for (const value of values) {
+    const literal = toStringLiteral(value)
+    assertEquals(new Function(`return ${literal}`)(), value, `the literal ${literal}`)
+  }
+})
+
+Deno.test('toStringLiteral - single quotes, with only what needs it escaped', () => {
+  assertEquals(toStringLiteral('a.b'), "'a.b'")
+  assertEquals(toStringLiteral('a"b'), `'a"b'`)
+  assertEquals(toStringLiteral("it's"), "'it\\'s'")
+})
 
 Deno.test('handleKey - valid identifier unchanged', () => {
   assertEquals(handleKey('name'), 'name')

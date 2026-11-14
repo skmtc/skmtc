@@ -81,7 +81,7 @@ import { isIdentifierName } from 'npm:@babel/helper-validator-identifier@7.27.1'
  * ```
  */
 export const handleKey = (key: string): string => {
-  return isIdentifierName(key) ? key : toQuotedString(key)
+  return isIdentifierName(key) ? key : toStringLiteral(key)
 }
 
 /**
@@ -165,7 +165,7 @@ export const handleKey = (key: string): string => {
  * ```
  */
 export const handlePropertyName = (name: string, parent: string): string => {
-  return isIdentifierName(name) ? `${parent}.${name}` : `${parent}[${toQuotedString(name)}]`
+  return isIdentifierName(name) ? `${parent}.${name}` : `${parent}[${toStringLiteral(name)}]`
 }
 
 const escapedCharacters = new Map<string, string>([
@@ -177,8 +177,22 @@ const escapedCharacters = new Map<string, string>([
   [String.fromCharCode(0x2029), '\\u2029']
 ])
 
-/** Wraps `value` in single quotes, escaping each character a string literal cannot hold as is. */
-const toQuotedString = (value: string): string => {
+/**
+ * Any string as a TypeScript string literal: wrapped in single quotes, with
+ * `\`, `'`, `\n`, `\r`, U+2028 and U+2029 escaped. Use it wherever a schema
+ * string (a property name, a description, an enum value) is written into
+ * generated code as a string, in place of `'${value}'` or `"${value}"`,
+ * which break on a quote or a line break in the value.
+ *
+ * @example
+ * ```typescript
+ * toStringLiteral('a.b')  // "'a.b'"
+ * toStringLiteral('a"b')  // `'a"b'`
+ * toStringLiteral("it's") // "'it\\'s'"
+ * toStringLiteral('a\nb') // "'a\\nb'"
+ * ```
+ */
+export const toStringLiteral = (value: string): string => {
   const escaped = Array.from(value, character => escapedCharacters.get(character) ?? character)
 
   return `'${escaped.join('')}'`

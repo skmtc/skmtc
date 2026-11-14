@@ -11,6 +11,38 @@ import {
   isBlockType,
   isTypeOnly
 } from './createIdentifier.ts'
+import { typescript } from './tsLang.ts'
+
+// The trap: a model named `Default`, `Delete` or `2FA` gave
+// `export const default = …` or `export const 2FA = …`, which do not parse.
+// Every identifier is built through TsIdentifier, so the factories and the
+// engine's `toIdentifier` seam must give the same, valid name.
+Deno.test('identifiers - a reserved word or a leading digit becomes a valid binding', () => {
+  const cases: Array<[string, string]> = [
+    ['default', 'defaultValue'],
+    ['delete', 'deleteValue'],
+    ['class', 'classValue'],
+    ['2FA', '_2FA'],
+    ['user', 'user'],
+    ['Default', 'Default']
+  ]
+
+  for (const [name, expected] of cases) {
+    const built: Array<[string, string]> = [
+      ['createVariable', createVariable(name).name],
+      ['createType', createType(name).name],
+      ['createClass', createClass(name).name],
+      ['createInterface', createInterface(name).name],
+      ['createNamespace', createNamespace(name).name],
+      ['toIdentifier', typescript.toIdentifier({ name, type: 'variable' }).name]
+    ]
+
+    for (const [via, builtName] of built) {
+      assertEquals(builtName, expected, `${name} through ${via}`)
+      new Function(`const ${builtName} = 1`)
+    }
+  }
+})
 
 Deno.test('createVariable - creates untyped variable', () => {
   const identifier = createVariable('userName')

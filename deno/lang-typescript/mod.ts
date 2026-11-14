@@ -89,6 +89,7 @@ export * from './src/keyValues.ts'
 export * from './src/withDescription.ts'
 export * from './src/sanitizePropertyName.ts'
 export * from './src/sanitizeIdentifier.ts'
+export * from './src/patterns.ts'
 export {
   createVariable,
   createType,
