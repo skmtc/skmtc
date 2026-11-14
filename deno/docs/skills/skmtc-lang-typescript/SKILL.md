@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-typescript
-version: 0.2.3
+version: 0.3.0
 description: >
   The TypeScript target-language layer for Skmtc generators
   (@skmtc/lang-typescript): projection base factories, TsSnippet, the
@@ -11,7 +11,7 @@ description: >
   skills.
 metadata:
   describes:
-    '@skmtc/lang-typescript': '0.13'
+    '@skmtc/lang-typescript': '0.14'
     '@skmtc/core': '0.40'
 ---
 
@@ -30,11 +30,11 @@ The declaration is the import graph — no `lang` config field exists.
 which carries the `static lang` Drivers read pre-construction.
 
 ```ts fragment
-import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
+import { sanitizeIdentifier, toTsModelProjectionBase } from '@skmtc/lang-typescript'
 
 export const MyBase = toTsModelProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
-  toIdentifierName({ refName }) { return decapitalize(camelCase(refName)) },
+  toIdentifierName({ refName }) { return sanitizeIdentifier(decapitalize(camelCase(refName))) },
   toIdentifierType: () => ({ type: 'variable' }),
   toExportPath({ refName, enrichments, variant }) {
     const name = this.toIdentifierName({ refName, enrichments, variant })
@@ -161,11 +161,30 @@ provenance):
 
 ## 6. Sanitizing emitted names
 
-Two different questions: `sanitizeIdentifier(name)` for **binding
-names** (`export const <name>`; repairs `'2fa'` → `'_2fa'`, reserved →
-suffixed) vs `sanitizePropertyName(name)` for **property keys /
-destructuring** (returns a rename pair when repair is needed). Never
-hand-roll keyword lists.
+A string from the schema (a model name, a property name, a description, a
+pattern) can hold any character: `a.b`, `count()`, `a"b`, a line break.
+Each place it lands in TypeScript has one helper. Never quote, escape or
+hand-roll keyword lists yourself:
+
+| Where the string lands | Helper |
+|---|---|
+| a binding name (`export const <name>`, a type, a class) | `sanitizeIdentifier(name)` inside `toIdentifierName`, and on a `fallbackName` built from schema text (`default` → `defaultValue`, `2fa` → `_2fa`). A `TsIdentifier` stores the name as given, so the name you return is the name peers insert and `findDefinition` finds. |
+| an object key | `handleKey(key)`: quotes it only when needed |
+| a property access | `handlePropertyName(name, parent)` |
+| a destructured property | `sanitizePropertyName(name)`: a rename pair when needed |
+| a string literal | `toStringLiteral(value)`, never `'${value}'` or `"${value}"` |
+| a JSDoc comment | `withDescription(value, { description })`: escapes `*/` |
+| a regex that matches exact text | `escapeRegExpText(text)` |
+| a regex for any string except some names | `toAnyStringExceptPattern({ names })` |
+| a regex literal in code | `toRegExpLiteral(source, flags?)` |
+
+`toRegExpLiteral` throws a `SyntaxError` on a pattern or flags that are not
+valid JavaScript (`(?i)`, a trailing `\`, `'gg'`). Catch it where you read
+`pattern` and leave that pattern out, or let the one item fail.
+
+Sanitizing is lossy: `default` and `defaultValue` give one binding. In one
+file the second insert throws `Registered definition mismatch`, naming both
+schemas.
 
 ## 7. Files
 

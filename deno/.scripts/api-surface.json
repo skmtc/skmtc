@@ -631,7 +631,7 @@
     ]
   },
   "@skmtc/lang-typescript": {
-    "minor": "0.13",
+    "minor": "0.14",
     "deno": "2.9.8",
     "exports": {
       "BookendsType": "0f89585728b82193",
@@ -659,6 +659,7 @@
       "ReactRouterPathParams": "f1d664b0e84f643c",
       "RegularParameter": "129936c153a73f3f",
       "SkipEmptyOption": "db68bd231c774442",
+      "ToAnyStringExceptPatternArgs": "1efb00f1f4f1c7ee",
       "TsAccessibility": "22520b9308d03ea0",
       "TsClass": "f4873550cbaf8cb6",
       "TsClassArgs": "f94ccf7cec4f2c18",
@@ -694,6 +695,7 @@
       "createType": "8cfc5a474d9def5f",
       "createVariable": "011b8e1829c1714b",
       "defineAndRegister": "dda890fa5dc8cfa0",
+      "escapeRegExpText": "6aff3ac4b1246770",
       "fileExtensions": "01cbb453e3e4488b",
       "handleKey": "7d2cd6bb37f37755",
       "handlePropertyName": "33c8fd2ee69d6a1b",
@@ -705,8 +707,11 @@
       "register": "1a936b0ecb1fd505",
       "sanitizeIdentifier": "f9969fb62c83d3de",
       "sanitizePropertyName": "9e9683efbd44b96b",
+      "toAnyStringExceptPattern": "4610e7634112873a",
       "toPathParams": "a90ef74a89ee858d",
       "toPathTemplate": "91c04c188640b6df",
+      "toRegExpLiteral": "e52a690b06f723c4",
+      "toStringLiteral": "92d188ce1039ea80",
       "toTsEntityType": "d7c7e32bd2625a6b",
       "toTsGqlOperationProjectionBase": "dba806e5bd361715",
       "toTsIdentifier": "8c84989bd47a7793",

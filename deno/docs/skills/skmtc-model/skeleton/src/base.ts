@@ -1,5 +1,5 @@
 import { camelCase, decapitalize } from '@skmtc/core'
-import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
+import { sanitizeIdentifier, toTsModelProjectionBase } from '@skmtc/lang-typescript'
 import denoJson from '../deno.json' with { type: 'json' }
 import { type EnrichmentSchema, toEnrichmentSchema } from './enrichments.ts'
 
@@ -8,8 +8,10 @@ export const MyLibBase = toTsModelProjectionBase<EnrichmentSchema>({
 
   // SLOT(naming): the emitted binding name, derived from refName ONLY
   // (deterministic; never operationId, never construction-dependent).
+  // The engine stores the name as returned, so return a valid binding:
+  // a schema named `Default` would otherwise give `export const default`.
   toIdentifierName({ refName }): string {
-    return decapitalize(camelCase(refName))
+    return sanitizeIdentifier(decapitalize(camelCase(refName)))
   },
 
   // SLOT(identifier-kind): 'variable' for schema values; 'type' or

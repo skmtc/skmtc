@@ -1,5 +1,46 @@
 import { assertEquals } from '@std/assert'
-import { handleKey, handlePropertyName } from './identifiers.ts'
+import { handleKey, handlePropertyName, toStringLiteral } from './identifiers.ts'
+
+// The trap: `'${value}'` or `"${value}"` compiles for ordinary strings, and
+// breaks the generated file on the first quote or line break in a schema
+// string.
+Deno.test('toStringLiteral - escapes the characters that end a string literal', () => {
+  const cases: Array<[string, string]> = [
+    ['id', "'id'"],
+    ['a/b', "'a/b'"],
+    ["a'b", "'a\\'b'"],
+    ['a\\b', "'a\\\\b'"],
+    ['a\nb', "'a\\nb'"],
+    ['a\r\nb', "'a\\r\\nb'"],
+    ['a\u2028b', "'a\\u2028b'"],
+    ['a\u2029b', "'a\\u2029b'"],
+    ['$ref', "'$ref'"],
+    ['', "''"]
+  ]
+
+  for (const [value, expected] of cases) {
+    assertEquals(toStringLiteral(value), expected, JSON.stringify(value))
+  }
+})
+
+Deno.test('toStringLiteral - single quotes, with only what needs it escaped', () => {
+  assertEquals(toStringLiteral('a.b'), "'a.b'")
+  assertEquals(toStringLiteral('a"b'), `'a"b'`)
+  assertEquals(toStringLiteral("it's"), "'it\\'s'")
+})
+
+// The trap: a pinned string can be wrong in the same way as the code that
+// writes it. Each literal is read back in strict mode, as a generated module
+// reads it, and must give back the string it was made from.
+Deno.test('toStringLiteral - each literal reads back as the string it was made from', () => {
+  const values = ['id', 'a.b', 'a/b', 'a"b', "a'b", "it's", 'a\\b', 'a\nb', 'a\r\nb', 'a b', 'a b', '$ref', 'count()', '']
+
+  for (const value of values) {
+    const literal = toStringLiteral(value)
+
+    assertEquals(new Function(`'use strict'; return ${literal}`)(), value, `the literal ${literal}`)
+  }
+})
 
 Deno.test('handleKey - valid identifier unchanged', () => {
   assertEquals(handleKey('name'), 'name')

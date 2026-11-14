@@ -14,7 +14,7 @@ description: >
 metadata:
   describes:
     '@skmtc/core': '0.40'
-    '@skmtc/lang-typescript': '0.13'
+    '@skmtc/lang-typescript': '0.14'
 ---
 
 # Model generators: fill the skeleton

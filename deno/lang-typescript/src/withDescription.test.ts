@@ -37,6 +37,27 @@ Deno.test('withDescription - description with asterisks', () => {
   assertEquals(result, '/**\n * This * has * asterisks\n */\nconst x = 1')
 })
 
+// The trap: a `*/` in an API document's description ends the comment early,
+// and the rest of the text becomes code that does not compile.
+Deno.test('withDescription - a */ in the text does not end the comment', () => {
+  const result = withDescription('const x = 1', { description: 'Globs such as src/**/*.ts' })
+  assertEquals(result, '/**\n * Globs such as src/**\\/*.ts\n */\nconst x = 1')
+})
+
+Deno.test('withDescription - a blank line has no trailing space', () => {
+  const result = withDescription('const x = 1', { description: 'Summary\n\nDetails' })
+  assertEquals(result, '/**\n * Summary\n *\n * Details\n */\nconst x = 1')
+})
+
+// The trap: split on `\n` alone, a Windows-written description keeps a `\r`
+// on every line, and its blank line becomes ` * \r` with the trailing space.
+Deno.test('withDescription - \\r\\n and \\r line breaks render as \\n', () => {
+  const expected = '/**\n * Summary\n *\n * Details\n */\nconst x = 1'
+
+  assertEquals(withDescription('const x = 1', { description: 'Summary\r\n\r\nDetails' }), expected)
+  assertEquals(withDescription('const x = 1', { description: 'Summary\r\rDetails' }), expected)
+})
+
 Deno.test('withDescription - long description', () => {
   const desc = 'This is a very long description that explains many things'
   const result = withDescription('const x = 1', { description: desc })
