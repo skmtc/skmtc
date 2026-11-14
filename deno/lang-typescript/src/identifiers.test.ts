@@ -29,6 +29,19 @@ Deno.test('toStringLiteral - single quotes, with only what needs it escaped', ()
   assertEquals(toStringLiteral("it's"), "'it\\'s'")
 })
 
+// The trap: a pinned string can be wrong in the same way as the code that
+// writes it. Each literal is read back in strict mode, as a generated module
+// reads it, and must give back the string it was made from.
+Deno.test('toStringLiteral - each literal reads back as the string it was made from', () => {
+  const values = ['id', 'a.b', 'a/b', 'a"b', "a'b", "it's", 'a\\b', 'a\nb', 'a\r\nb', 'a b', 'a b', '$ref', 'count()', '']
+
+  for (const value of values) {
+    const literal = toStringLiteral(value)
+
+    assertEquals(new Function(`'use strict'; return ${literal}`)(), value, `the literal ${literal}`)
+  }
+})
+
 Deno.test('handleKey - valid identifier unchanged', () => {
   assertEquals(handleKey('name'), 'name')
   assertEquals(handleKey('userName'), 'userName')
