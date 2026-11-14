@@ -1,6 +1,6 @@
 ---
 name: skmtc-model
-version: 0.1.4
+version: 0.1.5
 description: >
   The model-generator shape for Skmtc: one definition per component
   schema, built by copying the shipped SKELETON package and filling its
@@ -142,7 +142,7 @@ engine machinery — modifying it is almost always a mistake.
   second type parameter of `toTsModelProjectionBase`, let the calling
   generator pass `{ options }` on the insert, and fold them into the name.
 - **Unknown never throws.** Untyped schemas route to the unknown
-  fallback so one odd schema can't kill the subject. `custom` values
+  fallback, since one throw fails the whole run. `custom` values
   pass through untouched.
 - **TypeSystem contracts.** Each snippet class carries the fields peers
   rely on (`TypeSystemString` needs `format` + `enums`; objects expose

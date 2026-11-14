@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-typescript
-version: 0.3.0
+version: 0.3.1
 description: >
   The TypeScript target-language layer for Skmtc generators
   (@skmtc/lang-typescript): projection base factories, TsSnippet, the
@@ -179,12 +179,14 @@ hand-roll keyword lists yourself:
 | a regex literal in code | `toRegExpLiteral(source, flags?)` |
 
 `toRegExpLiteral` throws a `SyntaxError` on a pattern or flags that are not
-valid JavaScript (`(?i)`, a trailing `\`, `'gg'`). Catch it where you read
-`pattern` and leave that pattern out, or let the one item fail.
+valid JavaScript (`(?i)`, a trailing `\`, `'gg'`). A throw fails the whole
+run, so where you read `pattern` from a document, catch it, leave that check
+out, and say so in the output with `withDescription` (gen-effect-schema's
+`EffectString` does this).
 
 Sanitizing is lossy: `default` and `defaultValue` give one binding. In one
 file the second insert throws `Registered definition mismatch`, naming both
-schemas.
+schemas, and the run fails.
 
 ## 7. Files
 
