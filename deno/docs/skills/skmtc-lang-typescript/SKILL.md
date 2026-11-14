@@ -30,11 +30,11 @@ The declaration is the import graph — no `lang` config field exists.
 which carries the `static lang` Drivers read pre-construction.
 
 ```ts fragment
-import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
+import { sanitizeIdentifier, toTsModelProjectionBase } from '@skmtc/lang-typescript'
 
 export const MyBase = toTsModelProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
-  toIdentifierName({ refName }) { return decapitalize(camelCase(refName)) },
+  toIdentifierName({ refName }) { return sanitizeIdentifier(decapitalize(camelCase(refName))) },
   toIdentifierType: () => ({ type: 'variable' }),
   toExportPath({ refName, enrichments, variant }) {
     const name = this.toIdentifierName({ refName, enrichments, variant })
@@ -168,7 +168,7 @@ hand-roll keyword lists yourself:
 
 | Where the string lands | Helper |
 |---|---|
-| a binding name (`export const <name>`, a type, a class) | none needed: every `TsIdentifier` applies `sanitizeIdentifier` (`default` → `defaultValue`, `2fa` → `_2fa`), so the engine's identifiers and the `create*` factories agree. Call `sanitizeIdentifier` yourself only for a name you write into a template. |
+| a binding name (`export const <name>`, a type, a class) | `sanitizeIdentifier(name)` inside `toIdentifierName`, and on a `fallbackName` built from schema text (`default` → `defaultValue`, `2fa` → `_2fa`). A `TsIdentifier` stores the name as given, so the name you return is the name peers insert and `findDefinition` finds. |
 | an object key | `handleKey(key)`: quotes it only when needed |
 | a property access | `handlePropertyName(name, parent)` |
 | a destructured property | `sanitizePropertyName(name)`: a rename pair when needed |
@@ -178,9 +178,13 @@ hand-roll keyword lists yourself:
 | a regex for any string except some names | `toAnyStringExceptPattern({ names })` |
 | a regex literal in code | `toRegExpLiteral(source, flags?)` |
 
-`toRegExpLiteral` does not check the pattern: a pattern written for another
-engine (`(?i)`) renders, and the generated file then fails to compile.
-Check patterns where they are read.
+`toRegExpLiteral` throws a `SyntaxError` on a pattern or flags that are not
+valid JavaScript (`(?i)`, a trailing `\`, `'gg'`). Catch it where you read
+`pattern` and leave that pattern out, or let the one item fail.
+
+Sanitizing is lossy: `default` and `defaultValue` give one binding. In one
+file the second insert throws `Registered definition mismatch`, naming both
+schemas.
 
 ## 7. Files
 

@@ -9,25 +9,16 @@
  *   exactly that text (`a.b` must not match `aXb`).
  * - {@link toRegExpLiteral}: write a pattern into generated code as a
  *   `/…/` literal that the file can parse (a `/` or a line break must not
- *   end it).
+ *   end it), or throw when the pattern is not valid JavaScript.
  *
  * {@link toAnyStringExceptPattern} builds on the first for "any key except
  * the named ones", which a record beside named properties needs.
  */
 
+import { lineTerminatorEscapes } from '@/src/lineTerminators.ts'
+
 /** Characters a pattern reads as syntax; each is escaped with `\`. */
 const SYNTAX_CHARACTERS = new Set(['\\', '^', '$', '.', '*', '+', '?', '(', ')', '[', ']', '{', '}', '|', '/'])
-
-/**
- * Line terminators as escapes: a regex literal cannot hold one as is. Each
- * escape matches the same character, with or without the `u` flag.
- */
-const LINE_TERMINATOR_ESCAPES = new Map<string, string>([
-  ['\n', '\\n'],
-  ['\r', '\\r'],
-  [String.fromCharCode(0x2028), '\\u2028'],
-  [String.fromCharCode(0x2029), '\\u2029']
-])
 
 /**
  * A pattern that matches exactly `text`: each syntax character is escaped
@@ -44,7 +35,7 @@ const LINE_TERMINATOR_ESCAPES = new Map<string, string>([
  */
 export const escapeRegExpText = (text: string): string =>
   Array.from(text, character => {
-    return LINE_TERMINATOR_ESCAPES.get(character) ?? (SYNTAX_CHARACTERS.has(character) ? `\\${character}` : character)
+    return lineTerminatorEscapes.get(character) ?? (SYNTAX_CHARACTERS.has(character) ? `\\${character}` : character)
   }).join('')
 
 /** Arguments for {@link toAnyStringExceptPattern}. */
@@ -72,14 +63,19 @@ export const toAnyStringExceptPattern = ({ names }: ToAnyStringExceptPatternArgs
 /**
  * A pattern as a regex literal in generated code: `/source/flags`.
  *
- * The pattern keeps its meaning. Only what would break the literal changes:
- * a `/` outside a character class gains a `\`, and a line terminator becomes
- * its escape (`\n`, `\r`, `\u2028`, `\u2029`). An escaped `\/` stays as it
- * is. An empty pattern renders as `/(?:)/`, since `//` starts a comment.
+ * The JavaScript engine writes the literal. `new RegExp(source, flags)`
+ * checks the pattern and the flags, and its `toString()` escapes only what
+ * would break the literal: a `/` outside a character class, and a line
+ * terminator (`\n`, `\r`, `\u2028`, `\u2029`). An empty pattern renders as
+ * `/(?:)/`, since `//` starts a comment. So the literal always parses, and it
+ * matches what the pattern matches.
  *
- * It does not check that the pattern is valid: a pattern written for another
- * engine (`(?i)`) renders, and the generated file then fails to compile.
- * Check patterns where they are read.
+ * Throws a `SyntaxError` when the pattern or the flags are not valid
+ * JavaScript: a trailing `\`, which would escape the closing `/`; a leading
+ * `*`, which would open a block comment; a pattern written for another engine
+ * (`(?i)`); or flags such as `'gg'`, `'uv'` or `'g;run()//'`. A generator that
+ * reads `pattern` from a schema catches it and leaves that pattern out, or
+ * lets that one item fail.
  *
  * @example
  * ```typescript
@@ -87,37 +83,7 @@ export const toAnyStringExceptPattern = ({ names }: ToAnyStringExceptPatternArgs
  * toRegExpLiteral('^[/]$')        // '/^[/]$/'
  * toRegExpLiteral('^x-', 'u')     // '/^x-/u'
  * toRegExpLiteral('')             // '/(?:)/'
+ * toRegExpLiteral('*x')           // throws SyntaxError
  * ```
  */
-export const toRegExpLiteral = (source: string, flags = ''): string => {
-  let body = ''
-  let inClass = false
-  let escaped = false
-
-  for (const character of source) {
-    const lineTerminator = LINE_TERMINATOR_ESCAPES.get(character)
-
-    if (lineTerminator !== undefined) {
-      // After a `\`, the escape's own `\` is already written.
-      body += escaped ? lineTerminator.slice(1) : lineTerminator
-      escaped = false
-      continue
-    }
-
-    if (escaped) {
-      escaped = false
-    } else if (character === '\\') {
-      escaped = true
-    } else if (character === '[') {
-      inClass = true
-    } else if (character === ']') {
-      inClass = false
-    } else if (character === '/' && !inClass) {
-      body += '\\'
-    }
-
-    body += character
-  }
-
-  return `/${body === '' ? '(?:)' : body}/${flags}`
-}
+export const toRegExpLiteral = (source: string, flags = ''): string => new RegExp(source, flags).toString()

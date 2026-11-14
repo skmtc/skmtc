@@ -49,6 +49,15 @@ Deno.test('withDescription - a blank line has no trailing space', () => {
   assertEquals(result, '/**\n * Summary\n *\n * Details\n */\nconst x = 1')
 })
 
+// The trap: split on `\n` alone, a Windows-written description keeps a `\r`
+// on every line, and its blank line becomes ` * \r` with the trailing space.
+Deno.test('withDescription - \\r\\n and \\r line breaks render as \\n', () => {
+  const expected = '/**\n * Summary\n *\n * Details\n */\nconst x = 1'
+
+  assertEquals(withDescription('const x = 1', { description: 'Summary\r\n\r\nDetails' }), expected)
+  assertEquals(withDescription('const x = 1', { description: 'Summary\r\rDetails' }), expected)
+})
+
 Deno.test('withDescription - long description', () => {
   const desc = 'This is a very long description that explains many things'
   const result = withDescription('const x = 1', { description: desc })

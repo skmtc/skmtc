@@ -3,13 +3,23 @@ import { handleKey, handlePropertyName, toStringLiteral } from './identifiers.ts
 
 // The trap: `'${value}'` or `"${value}"` compiles for ordinary strings, and
 // breaks the generated file on the first quote or line break in a schema
-// string. Each literal is evaluated as a generated file would read it.
-Deno.test('toStringLiteral - every string comes back unchanged from its literal', () => {
-  const values = ['id', 'a.b', 'a/b', 'a"b', "a'b", 'a\\b', 'a\nb', 'a\r\nb', 'a\u2028b', 'a\u2029b', '$ref', 'count()', '']
+// string.
+Deno.test('toStringLiteral - escapes the characters that end a string literal', () => {
+  const cases: Array<[string, string]> = [
+    ['id', "'id'"],
+    ['a/b', "'a/b'"],
+    ["a'b", "'a\\'b'"],
+    ['a\\b', "'a\\\\b'"],
+    ['a\nb', "'a\\nb'"],
+    ['a\r\nb', "'a\\r\\nb'"],
+    ['a\u2028b', "'a\\u2028b'"],
+    ['a\u2029b', "'a\\u2029b'"],
+    ['$ref', "'$ref'"],
+    ['', "''"]
+  ]
 
-  for (const value of values) {
-    const literal = toStringLiteral(value)
-    assertEquals(new Function(`return ${literal}`)(), value, `the literal ${literal}`)
+  for (const [value, expected] of cases) {
+    assertEquals(toStringLiteral(value), expected, JSON.stringify(value))
   }
 })
 

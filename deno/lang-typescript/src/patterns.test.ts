@@ -1,4 +1,4 @@
-import { assert, assertEquals, assertFalse } from '@std/assert'
+import { assert, assertEquals, assertFalse, assertThrows } from '@std/assert'
 import { escapeRegExpText, toAnyStringExceptPattern, toRegExpLiteral } from '@/src/patterns.ts'
 
 /** Property names from real documents and the characters that break code. */
@@ -19,9 +19,6 @@ const AWKWARD_NAMES = [
   '24h',
   ''
 ]
-
-/** Evaluates a regex literal the way a generated file would. */
-const evaluateLiteral = (literal: string): RegExp => new Function(`return ${literal}`)()
 
 Deno.test('escapeRegExpText - each name matches itself exactly and nothing near it', () => {
   for (const name of AWKWARD_NAMES) {
@@ -64,29 +61,25 @@ Deno.test('toAnyStringExceptPattern - renders the names in order, escaped', () =
   assertEquals(toAnyStringExceptPattern({ names: ['id', 'a.b'] }), '^(?!(?:id|a\\.b)$)')
 })
 
-Deno.test('toRegExpLiteral - the literal parses and matches what the pattern matches', () => {
-  const cases: Array<{ source: string; matches: string[]; misses: string[] }> = [
-    { source: '^a/b$', matches: ['a/b'], misses: ['ab'] },
+// The trap: a `/` or a line break written into a literal as it is ends the
+// literal, and the rest of the line becomes code.
+Deno.test('toRegExpLiteral - escapes only what would end the literal', () => {
+  const cases: Array<[string, string]> = [
+    ['^a/b$', '/^a\\/b$/'],
     // An already-escaped slash stays as it is.
-    { source: '^a\\/b$', matches: ['a/b'], misses: ['ab'] },
+    ['^a\\/b$', '/^a\\/b$/'],
     // A slash inside a class does not end the literal and needs no escape.
-    { source: '^[/]$', matches: ['/'], misses: ['a'] },
-    { source: '^[a\\]/]+$', matches: ['a]/'], misses: ['b'] },
-    { source: '^x-', matches: ['x-rate'], misses: ['rate-x-'] },
-    { source: 'a\nb', matches: ['a\nb'], misses: ['ab'] },
-    { source: 'a\u2028b', matches: ['a\u2028b'], misses: ['ab'] },
+    ['^[/]$', '/^[/]$/'],
+    ['^[a\\]/]+$', '/^[a\\]/]+$/'],
+    ['a\nb', '/a\\nb/'],
+    ['a\u2028b', '/a\\u2028b/'],
     // A raw line break after a backslash is an escape of that line break.
-    { source: 'a\\\nb', matches: ['a\nb'], misses: ['ab'] },
-    { source: '', matches: ['', 'anything'], misses: [] },
-    { source: toAnyStringExceptPattern({ names: ['a/b', 'a\nb'] }), matches: ['ab', 'x'], misses: ['a/b', 'a\nb'] }
+    ['a\\\nb', '/a\\nb/'],
+    [toAnyStringExceptPattern({ names: ['a/b', 'a\nb'] }), '/^(?!(?:a\\/b|a\\nb)$)/']
   ]
 
-  for (const { source, matches, misses } of cases) {
-    const literal = toRegExpLiteral(source)
-    const pattern = evaluateLiteral(literal)
-
-    for (const text of matches) assert(pattern.test(text), `${literal} should match ${JSON.stringify(text)}`)
-    for (const text of misses) assertFalse(pattern.test(text), `${literal} should not match ${JSON.stringify(text)}`)
+  for (const [source, expected] of cases) {
+    assertEquals(toRegExpLiteral(source), expected, JSON.stringify(source))
   }
 })
 
@@ -94,4 +87,22 @@ Deno.test('toRegExpLiteral - writes flags, and an empty pattern as /(?:)/', () =
   assertEquals(toRegExpLiteral('^x-', 'u'), '/^x-/u')
   // The trap: `//` would start a comment.
   assertEquals(toRegExpLiteral(''), '/(?:)/')
+})
+
+// The trap: each of these, written into the literal, breaks the file around
+// it rather than one regex. A trailing `\` escapes the closing `/`, a leading
+// `*` opens a block comment, and flags are written into code as they are.
+Deno.test('toRegExpLiteral - throws on a pattern or flags that are not valid JavaScript', () => {
+  const cases: Array<[string, string]> = [
+    ['abc\\', ''],
+    ['*x', ''],
+    ['(?i)abc', ''],
+    ['a', 'g;run()//'],
+    ['a', 'gg'],
+    ['a', 'uv']
+  ]
+
+  for (const [source, flags] of cases) {
+    assertThrows(() => toRegExpLiteral(source, flags), SyntaxError, undefined, `${JSON.stringify(source)} /${flags}`)
+  }
 })

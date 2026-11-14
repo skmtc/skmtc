@@ -1,5 +1,6 @@
 // @deno-types="npm:@types/babel__helper-validator-identifier@7.15.2"
 import { isIdentifierName } from 'npm:@babel/helper-validator-identifier@7.27.1'
+import { lineTerminatorEscapes } from '@/src/lineTerminators.ts'
 
 /**
  * Safely formats a key for use in object literals, adding quotes if needed.
@@ -168,14 +169,7 @@ export const handlePropertyName = (name: string, parent: string): string => {
   return isIdentifierName(name) ? `${parent}.${name}` : `${parent}[${toStringLiteral(name)}]`
 }
 
-const escapedCharacters = new Map<string, string>([
-  ['\\', '\\\\'],
-  ["'", "\\'"],
-  ['\n', '\\n'],
-  ['\r', '\\r'],
-  [String.fromCharCode(0x2028), '\\u2028'],
-  [String.fromCharCode(0x2029), '\\u2029']
-])
+const escapedCharacters = new Map<string, string>([['\\', '\\\\'], ["'", "\\'"], ...lineTerminatorEscapes])
 
 /**
  * Any string as a TypeScript string literal: wrapped in single quotes, with

@@ -21,10 +21,12 @@ export const withDescription = (value: Stringable, { description }: Modifiers): 
     return `${value}`
   }
 
-  // A `*/` in the text would end the comment early and break the file.
+  // A `*/` in the text would end the comment early and break the file. A
+  // `\r\n` or `\r` line break becomes `\n`, so the output has one kind of
+  // line ending and no line keeps a `\r` before its end.
   const lines = description
     .replaceAll('*/', '*\\/')
-    .split('\n')
+    .split(/\r\n|\r|\n/)
     // A blank line gets no trailing space: an editor that trims it on save
     // would otherwise change a generated file.
     .map(line => (line === '' ? ' *' : ` * ${line}`))

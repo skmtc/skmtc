@@ -1,7 +1,6 @@
 import { IdentifierBase } from '@skmtc/core'
 import type { IdentifierBaseArgs, IdentifierType } from '@skmtc/core'
 import { toTsKeyword, type TsEntityType } from './createIdentifier.ts'
-import { sanitizeIdentifier } from './sanitizeIdentifier.ts'
 
 /**
  * The non-`name` parts of a TypeScript identifier — core's neutral
@@ -31,12 +30,7 @@ export class TsIdentifier extends IdentifierBase {
   type: TsEntityType
 
   constructor({ name, typeName, exported, type }: TsIdentifierArgs) {
-    // Every TypeScript identifier is built here: the engine's
-    // `lang.toIdentifier` and the `create*` factories both come through this
-    // constructor. So a name from a schema (`Default`, `2FA`) becomes a
-    // valid binding (`defaultValue`, `_2FA`) once, and a peer that inserts
-    // the model reads the same name. A valid name passes unchanged.
-    super({ name: sanitizeIdentifier(name), typeName, exported })
+    super({ name, typeName, exported })
     this.type = type
   }
 

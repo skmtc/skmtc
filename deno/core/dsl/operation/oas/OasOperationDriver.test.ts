@@ -1334,9 +1334,7 @@ Deno.test('OasOperationDriver', async t => {
       })
 
       assertExists(driver.definition)
-      // The TypeScript lang layer makes the name a valid binding:
-      // `export const get-users_by-id.v2 = …` would not parse.
-      assertEquals(driver.settings.identifier.name, 'getusers_byidv2')
+      assertEquals(driver.settings.identifier.name, 'get-users_by-id.v2')
     })
 
     await t.step('should handle operations without operationId', () => {
