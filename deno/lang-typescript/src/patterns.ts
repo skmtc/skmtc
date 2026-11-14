@@ -67,8 +67,13 @@ export const toAnyStringExceptPattern = ({ names }: ToAnyStringExceptPatternArgs
  * checks the pattern and the flags, and its `toString()` escapes only what
  * would break the literal: a `/` outside a character class, and a line
  * terminator (`\n`, `\r`, `\u2028`, `\u2029`). An empty pattern renders as
- * `/(?:)/`, since `//` starts a comment. So the literal always parses, and it
- * matches what the pattern matches.
+ * `/(?:)/`, since `//` starts a comment. So the literal parses wherever the
+ * pattern does, and it matches what the pattern matches.
+ *
+ * The check is the generator's own JavaScript engine. Syntax newer than the
+ * consumer's engine or TypeScript target, such as `(?i:a)` modifiers or
+ * duplicate named groups, passes here and then fails to parse in the
+ * generated file.
  *
  * Throws a `SyntaxError` when the pattern or the flags are not valid
  * JavaScript: a trailing `\`, which would escape the closing `/`; a leading
