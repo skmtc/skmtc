@@ -9,6 +9,8 @@ skmtc install @skmtc/gen-typescript @skmtc/gen-zod @skmtc/gen-tanstack-query-fet
 skmtc generate my-api ./openapi.json
 ```
 
+On Windows, install in PowerShell with `irm https://skmtc.dev/install.ps1 | iex`.
+
 ## Where to start
 
 - **[Consuming generators](using/)** — install generators, configure them, generate. **Start here.** Consuming generators never requires writing one: you install generators the way you install packages, and configure them with JSON. Most teams stop there.
@@ -75,7 +77,7 @@ See [`explanation/comparison-to-other-tools.md`](explanation/comparison-to-other
 
 ## Quick start
 
-1. Install the CLI: `curl -fsSL https://skmtc.dev/install | sh`
+1. Install the CLI: `curl -fsSL https://skmtc.dev/install | sh` (on Windows, in PowerShell: `irm https://skmtc.dev/install.ps1 | iex`)
 2. Create a project: `skmtc init my-api ./`
 3. Install generators: `skmtc install @skmtc/gen-typescript @skmtc/gen-zod my-api`
 4. Configure a schema source in `.skmtc/my-api/.settings/client.json`
