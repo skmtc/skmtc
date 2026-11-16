@@ -18,8 +18,16 @@ If you don't have one handy, use the canonical Petstore spec:
 
 ## Step 1: Install the CLI
 
+On macOS and Linux:
+
 ```bash
 curl -fsSL https://skmtc.dev/install | sh
+```
+
+On Windows, in PowerShell:
+
+```powershell
+irm https://skmtc.dev/install.ps1 | iex
 ```
 
 The installer bootstraps Deno if it isn't already on your machine and

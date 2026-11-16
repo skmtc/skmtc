@@ -11,9 +11,13 @@ instead.
 
 ## Prerequisites
 
-- The `skmtc` CLI:
+- The `skmtc` CLI. On macOS and Linux:
   ```bash
   curl -fsSL https://skmtc.dev/install | sh
+  ```
+  On Windows, in PowerShell:
+  ```powershell
+  irm https://skmtc.dev/install.ps1 | iex
   ```
   The installer bootstraps Deno if needed and bakes in the
   `--unstable-worker-options` flag. The flag is required so the per-project Worker can use Deno's

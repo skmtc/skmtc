@@ -119,8 +119,9 @@ flag must be provided.
 binary at install time, so a binary installed without it fails here.
 
 Fix: reinstall the CLI with the flag. The `curl` installer
-(`curl -fsSL https://skmtc.dev/install | sh`) includes it; if you installed
-with a bare `deno install`, overwrite the binary:
+(`curl -fsSL https://skmtc.dev/install | sh`) includes it, and so does the
+PowerShell installer on Windows (`irm https://skmtc.dev/install.ps1 | iex`).
+If you installed with a bare `deno install`, overwrite the binary:
 
 ```bash
 deno install -gAf --minimum-dependency-age=0 --unstable-worker-options \
