@@ -46,6 +46,7 @@ import { toSerializedError } from '@/types/SerializedError.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasRefData } from '@/oas/ref/ref-types.ts'
 import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
+import { toRefName } from '@/helpers/refFns.ts'
 
 // Re-exports kept here for backwards-compat with the previous flat
 // surface. New parser helpers should `import type` from
@@ -107,6 +108,20 @@ type LogDependencyIssueArgs = {
 type WrittenRef = {
   consumer: StackTrail
   ref: { $ref: string; refType: OasRefData['refType']; resolveOnce(): unknown }
+}
+
+/**
+ * The key a `$ref`'s consumers and errors are kept under. A
+ * `#/components/<bucket>/…` ref is keyed by the name it resolves (`toRefName`
+ * unescapes it), which is the key `StackTrail.toStackRef()` gives that
+ * component's own errors: `#/components/schemas/Foo%20Bar` is kept under
+ * `#/components/schemas/Foo Bar`. Any other `$ref` is its own key.
+ */
+const toRefKey = ($ref: string): string => {
+  // The last segment is not empty, so `toRefName` does not throw.
+  const bucket = /^#\/components\/([^/]+)\/.*[^/]$/.exec($ref)?.[1]
+
+  return bucket === undefined ? $ref : `#/components/${bucket}/${toRefName($ref)}`
 }
 
 /** The stored form of an issue: an error's `cause` as a `SerializedError`. */
@@ -610,11 +625,12 @@ export class ParseContext {
 
   /**
    * Register an OAS `$ref` at its consumer site, as {@link registerRef}
-   * does with its `$ref` string, and keep the ref with that site, so that
-   * once the document is parsed `#checkRefs` can resolve it there.
+   * does, under the key {@link toRefKey} gives its `$ref`, and keep the ref
+   * with that site, so that once the document is parsed `#checkRefs` can
+   * resolve it there.
    */
   registerOasRef<T extends OasRefData['refType']>(consumer: StackTrail, ref: OasRef<T>): void {
-    this.registerRef(consumer, ref.$ref)
+    this.registerRef(consumer, toRefKey(ref.$ref))
     this.#oasRefs.push({ consumer, ref })
   }
 
@@ -630,14 +646,15 @@ export class ParseContext {
    *   types or clients.
    * - A ref to a component of the wrong kind, such as a request body that is
    *   a `$ref` to `#/components/schemas/Pet`, logs a `REF_TYPE_MISMATCH`
-   *   warning. The ref stays, and resolving it throws.
+   *   warning. The ref stays, and resolving it throws. Resolving a ref
+   *   throws no other error.
    *
    * A ref whose target failed to parse is left out: the target's error
    * removes what holds it.
    */
   #checkRefs(): void {
     this.#oasRefs.forEach(({ consumer, ref }) => {
-      if (this.#refErrors.has(ref.$ref)) {
+      if (this.#refErrors.has(toRefKey(ref.$ref))) {
         return
       }
 

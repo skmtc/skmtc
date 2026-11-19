@@ -380,4 +380,78 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(schema.resolve().type, 'object')
     assertEquals(issuesOf('DANGLING_REF'), [])
   })
+
+  // `%20` and `~1` refs to `Foo Bar` and `a/b`, held by operations and by a schema.
+  const escapedRefHolders = {
+    '/r': { get: { responses: ok({ $ref: '#/components/schemas/Foo%20Bar' }) } },
+    '/s': { get: { responses: ok({ $ref: '#/components/schemas/a~1b' }) } }
+  }
+  const usesEscaped = {
+    type: 'object',
+    properties: { r: { $ref: '#/components/schemas/Foo%20Bar' }, s: { $ref: '#/components/schemas/a~1b' } }
+  }
+
+  Deno.test(`${openapi} an escaped ref to a schema that fails to parse goes with it, under either setting`, () => {
+    for (const system of [undefined, { danglingRefs: 'keep' } satisfies SystemSettings]) {
+      const broken = { not: { type: 'string' } }
+      const { toSchema, toOperation, issuesOf } = parse({
+        openapi,
+        system,
+        document: {
+          paths: escapedRefHolders,
+          components: { schemas: { 'Foo Bar': broken, 'a/b': broken, UsesEscaped: usesEscaped } }
+        }
+      })
+
+      assertEquals(toOperation('/r'), undefined)
+      assertEquals(toOperation('/s'), undefined)
+      assertEquals(toSchema('UsesEscaped'), undefined)
+      assertEquals(issuesOf('DANGLING_REF'), [])
+      assertEquals(
+        issuesOf('INVALID_DEPENDENCY_REF').map(({ location }) => location).sort(),
+        [
+          // Removed by the first of its two refs; the second finds it gone.
+          'TEST:components:schemas:UsesEscaped:properties:r',
+          'TEST:paths:/r:get:responses:200:content:application/json:schema',
+          'TEST:paths:/s:get:responses:200:content:application/json:schema'
+        ]
+      )
+    }
+  })
+
+  Deno.test(`${openapi} system.danglingRefs strict: an escaped ref goes with a schema that holds a dangling ref`, () => {
+    const holdsDangling = { type: 'object', properties: { ghost: { $ref: '#/components/schemas/Missing' } } }
+    const { toSchema, toOperation, issuesOf } = parse({
+      openapi,
+      system: undefined,
+      document: {
+        paths: escapedRefHolders,
+        components: { schemas: { 'Foo Bar': holdsDangling, 'a/b': holdsDangling, UsesEscaped: usesEscaped } }
+      }
+    })
+
+    assertEquals(toSchema('Foo Bar'), undefined)
+    assertEquals(toSchema('UsesEscaped'), undefined)
+    assertEquals(toOperation('/r'), undefined)
+    assertEquals(toOperation('/s'), undefined)
+    assertEquals(
+      issuesOf('DANGLING_REF').map(({ location }) => location),
+      ['TEST:components:schemas:Foo Bar:properties:ghost', 'TEST:components:schemas:a/b:properties:ghost']
+    )
+  })
+
+  Deno.test(`${openapi} a $ref with no name names nothing`, () => {
+    const { toOperation, issuesOf } = parse({
+      openapi,
+      system: undefined,
+      document: { paths: { '/slash': { get: { responses: ok({ $ref: '#/components/schemas/' }) } } } }
+    })
+
+    assertEquals(toOperation('/slash'), undefined)
+    assertEquals(
+      issuesOf('DANGLING_REF').map(({ level, location }) => ({ level, location })),
+      [{ level: 'error', location: 'TEST:paths:/slash:get:responses:200:content:application/json:schema' }]
+    )
+    assertEquals(issuesOf('REF_TYPE_MISMATCH'), [])
+  })
 }

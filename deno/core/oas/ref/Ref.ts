@@ -58,6 +58,18 @@ function refTypeToPluralPath(refType: OasRefData['refType']): string {
 }
 
 /**
+ * The name `resolveOnce` looks up. `toRefName` throws for a `$ref` whose last
+ * segment is empty (`#/components/schemas/`): that `$ref` names nothing.
+ */
+const toLookupName = ($ref: string): RefName => {
+  try {
+    return toRefName($ref)
+  } catch {
+    throw new DanglingRefError($ref)
+  }
+}
+
+/**
  * What a reference reads from the parse context when it is made: the document
  * it resolves through, and the trail it records. `clone` passes them itself.
  */
@@ -360,12 +372,13 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    *
    * @returns Either the resolved component or another reference in the chain
    * @throws {DanglingRefError} when the reference names nothing in the
-   * document (kept under `client.json` `system.danglingRefs: keep`)
+   * document (kept under `client.json` `system.danglingRefs: keep`),
+   * including a `$ref` with no name, such as `#/components/schemas/`
    * @throws Error when it names a component of another kind, such as a
    * `requestBody` ref to `#/components/schemas/…`
    */
   resolveOnce(): OasRef<T> | ResolvedRef<T> {
-    const refName = toRefName(this.$ref)
+    const refName = toLookupName(this.$ref)
 
     const resolved =
       this.#document.type === 'oas'
