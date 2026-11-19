@@ -711,7 +711,8 @@
                         "header",
                         "securityScheme",
                         "example",
-                        "link"
+                        "link",
+                        "allOfMember"
                       ]
                     }
                   }
@@ -937,7 +938,8 @@
                         "header",
                         "securityScheme",
                         "example",
-                        "link"
+                        "link",
+                        "allOfMember"
                       ]
                     }
                   }

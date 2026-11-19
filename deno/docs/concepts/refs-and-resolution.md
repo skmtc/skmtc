@@ -311,10 +311,13 @@ A `$ref` to a component that failed to parse already has an error in
 `#refErrors`. That `$ref` gets no `DANGLING_REF`.
 
 Some `$ref`s are not `OasRef`s. Core resolves them during the parse to
-merge the members of an `allOf`. When a member names nothing and the
-list has `schema`, core leaves the member out of the merge
-(`A & unknown` is `A`). Otherwise the item that has the `allOf` gets a
-`DANGLING_REF` error, and the parser removes it.
+merge the members of an `allOf`, so a generator does not see them. When
+a member names nothing and the list has `allOfMember`, core leaves the
+member out of the merge (`A & unknown` is `A`). The model then has no
+properties from that member. Otherwise the item that has the `allOf`
+gets a `DANGLING_REF` error, and the parser removes it. The list has
+`allOfMember` apart from `schema` because here core, not the generator,
+makes the decision.
 
 An operation depends on each security scheme in its `security`, also
 when it gets them from the root `security`. The parser registers the

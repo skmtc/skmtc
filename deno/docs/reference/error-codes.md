@@ -601,19 +601,20 @@ for each place that has the `$ref`. The location is that place.
   `DanglingRefError`.
 
 The kinds are `schema`, `parameter`, `requestBody`, `response`,
-`header`, `securityScheme`, `example` and `link`.
+`header`, `securityScheme`, `example`, `link` and `allOfMember`.
 
-Core merges the members of an `allOf` during the parse. When a member
-names nothing and the list has `schema`, core leaves the member out of
-the merge and gives a warning. When the list does not have `schema`,
-core gives an error, and the parser removes the item that has the
-`allOf`. The location is that item.
+Core merges the members of an `allOf` during the parse, so a generator
+does not see them. When a member names nothing and the list has
+`allOfMember`, core leaves the member out of the merge and gives a
+warning. The model then has no properties from that member. When the
+list does not have `allOfMember`, core gives an error, and the parser
+removes the item that has the `allOf`. The location is that item.
 
 **Typical messages:**
 
 - `Ref "#/components/schemas/X" names nothing in the document, so what holds it is removed. To keep it, list 'schema' in system.danglingRefs.`
 - `Ref "#/components/schemas/X" names nothing in the document. It is kept (system.danglingRefs lists 'schema'), and resolving it throws DanglingRefError.`
-- `Ref "#/components/schemas/X" names nothing in the document. It is left out of the allOf merge (system.danglingRefs lists 'schema').`
+- `Ref "#/components/schemas/X" names nothing in the document. It is left out of the allOf merge (system.danglingRefs lists 'allOfMember').`
 - `Ref "#/components/schemas/X" names nothing in the document. Core resolves it while it parses, so what holds it is removed.`
 
 **Remediation:** Add the target to `components` in the source

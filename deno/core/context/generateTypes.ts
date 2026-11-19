@@ -218,10 +218,10 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  * `DANGLING_REF` — a `$ref` names nothing in the document. One for each
  * place the `$ref` is written. A `warning` when `system.danglingRefs` lists
  * the `$ref`'s kind: the ref stays, and resolving it throws
- * `DanglingRefError`; a listed `schema` member of an `allOf` that core merges
- * is left out of the merge. Otherwise (the default lists none) an `error`:
- * what holds the ref is removed, and each item that uses it gets an
- * `INVALID_DEPENDENCY_REF`.
+ * `DanglingRefError`; with `allOfMember` listed, a member of an `allOf` that
+ * core merges is left out of the merge. Otherwise (the default lists none)
+ * an `error`: what holds the ref is removed, and each item that uses it gets
+ * an `INVALID_DEPENDENCY_REF`.
  *
  * `REF_TYPE_MISMATCH` (`error`) — a `$ref` names a component of the wrong
  * kind, such as a request body that is a `$ref` to

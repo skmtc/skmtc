@@ -738,21 +738,23 @@ export class ParseContext {
 
   /**
    * What an `allOf` merge reads in place of a member `$ref` that names
-   * nothing. When `system.danglingRefs` lists `schema`, it is `{}`, which adds
-   * nothing to the merge (`A & unknown` is `A`), and a `DANGLING_REF` warning
-   * at `stackTrail`. Otherwise it throws `DanglingRefError`, and what holds
-   * the `allOf` is removed.
+   * nothing. When `system.danglingRefs` lists `allOfMember`, it is `{}`, which
+   * adds nothing to the merge (`A & unknown` is `A`), and a `DANGLING_REF`
+   * warning at `stackTrail`: the model has no properties from that member.
+   * Otherwise it throws `DanglingRefError`, and what holds the `allOf` is
+   * removed. It is separate from `schema`: here core decides, at parse, and
+   * the generator never sees the member.
    */
   toDanglingAllOfMember({ $ref, stackTrail }: ToDanglingAllOfMemberArgs): OpenAPIV3.SchemaObject {
     const error = new DanglingRefError($ref)
 
-    if (!this.system.danglingRefs?.includes('schema')) {
+    if (!this.system.danglingRefs?.includes('allOfMember')) {
       throw error
     }
 
     this.logIssueNoKey({
       level: 'warning',
-      message: `${error.message}. It is left out of the allOf merge (system.danglingRefs lists 'schema').`,
+      message: `${error.message}. It is left out of the allOf merge (system.danglingRefs lists 'allOfMember').`,
       parent: { $ref },
       stackTrail,
       type: 'DANGLING_REF'

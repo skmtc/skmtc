@@ -345,9 +345,9 @@ the usual parse. Default: `{}`.
   `string | number`, parses as it does with `union`.
 - **`danglingRefs`** — the kinds of `$ref` that can name nothing in the
   document. The kinds are `"schema"`, `"parameter"`, `"requestBody"`,
-  `"response"`, `"header"`, `"securityScheme"`, `"example"` and
-  `"link"`. The default is `[]`. Each place that has such a `$ref` logs
-  one `DANGLING_REF` issue.
+  `"response"`, `"header"`, `"securityScheme"`, `"example"`, `"link"`
+  and `"allOfMember"`. The default is `[]`. Each place that has such a
+  `$ref` logs one `DANGLING_REF` issue.
   - A kind that is not in the list gives an error. The parser removes
     the item that has the `$ref`, and each item that refers to that item
     (`INVALID_DEPENDENCY_REF`).
@@ -355,9 +355,11 @@ the usual parse. Default: `{}`.
     generator resolves the `$ref`, core throws a `DanglingRefError`. The
     generator can catch the error and write a different value, for
     example `unknown`.
-  - Core merges the members of an `allOf` during the parse. With
-    `"schema"` in the list, core leaves out a member that names nothing.
-    Without it, the parser removes the item that has the `allOf`.
+  - Core merges the members of an `allOf` during the parse, so a
+    generator does not see them. With `"allOfMember"` in the list, core
+    leaves out a member that names nothing. The model then has no
+    properties from that member. Without it, the parser removes the item
+    that has the `allOf`. `"schema"` does not cover this case.
 
   A `$ref` to an item of the wrong kind (`REF_TYPE_MISMATCH`) is always
   an error, and this field does not change it.

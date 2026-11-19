@@ -389,11 +389,18 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(all.issuesOf('DANGLING_REF').filter(({ level }) => level === 'error'), [])
   })
 
-  Deno.test(`${openapi} a dangling member of an allOf that core merges: removed by default, left out of the merge when 'schema' is listed`, () => {
-    for (const listed of [false, true]) {
+  Deno.test(`${openapi} a dangling member of an allOf that core merges: removed unless 'allOfMember' is listed, then left out of the merge`, () => {
+    // `schema` does not cover it: here core, not the generator, decides.
+    const cases = [
+      { system: undefined, listed: false },
+      { system: { danglingRefs: ['schema'] } satisfies SystemSettings, listed: false },
+      { system: { danglingRefs: ['allOfMember'] } satisfies SystemSettings, listed: true }
+    ]
+
+    for (const { system, listed } of cases) {
       const { toSchema, issuesOf } = parse({
         openapi,
-        system: listed ? { danglingRefs: ['schema'] } : undefined,
+        system,
         document: {
           components: {
             schemas: {

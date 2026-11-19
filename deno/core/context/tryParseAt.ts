@@ -67,7 +67,7 @@ export type TryParseAtArgs<T> = {
  *     given `type` and the thrown value as `cause`. A `DanglingRefError`
  *     is logged as `DANGLING_REF`: core resolved a ref while it parsed (a
  *     member of an `allOf` it merges, when `system.danglingRefs` does not
- *     list `schema`)
+ *     list `allOfMember`)
  *   - registers a ref error if `refKey` is provided
  *   - returns `undefined`
  *
