@@ -2,6 +2,7 @@ import * as v from 'valibot'
 import isEqual from 'lodash-es/isEqual'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 import { numberFormat } from '@/oas/number/number-types.ts'
 import { integerFormat } from '@/oas/integer/integer-types.ts'
 
@@ -283,8 +284,17 @@ const MAX_DEPTH = 10
  */
 const agrees = (type: unknown, target: OasSchema, depth: number): boolean => {
   if (target.type === 'union') {
-    return depth < MAX_DEPTH &&
-      target.members.every(member => agrees(type, member.isRef() ? member.resolve() : member, depth + 1))
+    try {
+      return depth < MAX_DEPTH &&
+        target.members.every(member => agrees(type, member.isRef() ? member.resolve() : member, depth + 1))
+    } catch (error) {
+      // A member that is a dangling reference has no known type, so it does not agree.
+      if (DanglingRefError.is(error)) {
+        return false
+      }
+
+      throw error
+    }
   }
 
   return type === target.type || (type === 'number' && target.type === 'integer')

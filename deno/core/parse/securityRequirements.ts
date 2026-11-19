@@ -197,6 +197,12 @@ export type ToOperationsWithValidSecurityArgs<Item extends SecuredItem> = {
  * failed to parse or is not defined, or that has no `security` and
  * inherits an unusable root. Each dropped item logs one `INVALID_OPERATION`
  * error on its own trail. `security: []` inherits nothing and is kept.
+ *
+ * A kept item depends on each scheme its security names (its own, else the
+ * root's), as it would on a `$ref` to it, so it is registered as a consumer
+ * of the scheme. When the parser removes the scheme later (one that is a
+ * `$ref` that names nothing), the item goes with it, and so is never kept
+ * without its auth.
  */
 export const toOperationsWithValidSecurity = <Item extends SecuredItem>({
   items,
@@ -208,6 +214,14 @@ export const toOperationsWithValidSecurity = <Item extends SecuredItem>({
       : check.rootProblem
 
     if (message === undefined) {
+      const names = (item.security ?? check.rootSecurity ?? []).flatMap(({ requirement }) =>
+        Object.keys(requirement)
+      )
+
+      new Set(names).forEach(name =>
+        check.context.registerRef(item.stackTrail.clone(), `#/components/securitySchemes/${name}`)
+      )
+
       return true
     }
 

@@ -282,8 +282,8 @@ options, absent otherwise.
 
 ### `resolveSchemaRefOnce(refName): OasSchema | OasRef<'schema'>`
 
-One-step ref resolution from the component bucket. Throws `Schema
-not found` if the refName isn't present. A model's recursion goes
+One-step ref resolution from the component bucket. Throws
+`DanglingRefError` if the refName isn't present. A model's recursion goes
 through `toModelRef`, not through this call (see
 [recursive types in the type system](../../concepts/the-type-system.md#handling-recursive-types--pending-entries)).
 

@@ -97,7 +97,9 @@ that started the removal. The location is the same string as the
 
 **Remediation:** Find the *upstream* `INVALID_SCHEMA` issue that
 broke the ref target. Fix the upstream schema; the dependent
-`INVALID_DEPENDENCY_REF` issues typically resolve on their own.
+`INVALID_DEPENDENCY_REF` issues typically resolve on their own. If
+the upstream issue is a `DANGLING_REF`, the target does not exist
+(see [`DANGLING_REF`](#dangling_ref--error-or-warning)).
 
 **Also when:** In an OpenAPI 3.2 document, a `content` entry has a
 `$ref` that does not resolve to an entry in `components.mediaTypes`.
@@ -584,6 +586,56 @@ each schema.
 necessary. To get a union, set `settings.system.anyOf` to `union`
 (the default), or remove it. See
 [`settings.system`](settings/client-json-schema.md#settingssystem-optional).
+
+### `DANGLING_REF` — error or warning
+
+**When:** A `$ref` names nothing in the document. There is one issue
+for each place that has the `$ref`. The location is that place.
+
+- **error:** `settings.system.danglingRefs` is `strict` (the
+  default). The parser removes the item that has the `$ref`. Each item
+  that refers to that item gets an `INVALID_DEPENDENCY_REF`.
+- **warning:** `settings.system.danglingRefs` is `keep`. The `$ref`
+  stays. When a generator resolves it, core throws a
+  `DanglingRefError`.
+
+The setting does not apply to two kinds of `$ref`:
+
+- A `$ref` to an example or a link gives a warning with both values.
+  The item that has the `$ref` stays, because generators do not use
+  examples or links to write types or clients.
+- A `$ref` that core resolves during the parse gives an error with
+  both values. An example is a member of an `allOf` that core merges.
+  The location is the item that has the `allOf`, and the parser
+  removes that item.
+
+**Typical message:** `Ref "#/components/schemas/X" names nothing in
+the document, so what holds it is removed (system.danglingRefs is
+strict).`
+
+**Remediation:** Add the target to `components` in the source
+document, or correct the `$ref`. To keep the items that have the `$ref`, set
+`settings.system.danglingRefs` to `keep`, and use generators that
+catch `DanglingRefError`. To find the error, use
+`DanglingRefError.is(error)`, not `instanceof`: a generator bundle can
+have a different copy of `@skmtc/core`. See
+[`settings.system`](settings/client-json-schema.md#settingssystem-optional).
+
+### `REF_TYPE_MISMATCH` — warning
+
+**When:** A `$ref` names an item in `components` of a different kind
+than its place needs, for example a request body with
+`$ref: '#/components/schemas/Pet'`. There is one issue for each place
+that has the `$ref`. The location is that place. The `$ref` stays, and
+the item that it names stays. When a generator resolves the `$ref`,
+core throws an error.
+
+**Typical message:** `Ref type mismatch for "#/components/schemas/Pet".
+Expected a ref into "components/requestBodies" but it names one in
+"components/schemas". It is kept, and resolving it throws.`
+
+**Remediation:** Correct the `$ref` so that it names an item of the
+correct kind, for example `#/components/requestBodies/Pet`.
 
 ## GraphQL parse-issue types
 

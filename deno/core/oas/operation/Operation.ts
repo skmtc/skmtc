@@ -17,7 +17,7 @@ import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
 import type { OasServer } from '../server/Server.ts'
 import { OasBase } from '@/types/OasBase.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
-import { toEffectiveParameters } from '@/oas/operation/toEffectiveParameters.ts'
+import { toEffectiveParameters, toResolvedParameters } from '@/oas/operation/toEffectiveParameters.ts'
 
 /**
  * Fields for configuring an OpenAPI operation object.
@@ -235,15 +235,18 @@ export class OasOperation extends OasBase {
    *
    * As OpenAPI defines them: the path item's parameters apply to each of its
    * operations, and an operation's own parameter with the same name and
-   * location replaces the path item's. The path item's come first.
+   * location replaces the path item's. The path item's come first. A
+   * reference that names nothing (kept under `system.danglingRefs: keep`) is
+   * left out: it has no name or location, and the parser logged a
+   * `DANGLING_REF` warning for it.
    *
    * @param filter - only include parameters from specified locations
    * @returns
    */
   toParams(filter?: OasParameterLocation[]): OasParameter[] {
-    return toEffectiveParameters({ own: this.parameters, shared: this.pathItem?.parameters })
-      .map(param => param.resolve())
-      .filter(param => (filter?.length ? filter.includes(param.location) : true))
+    return toResolvedParameters(
+      toEffectiveParameters({ own: this.parameters, shared: this.pathItem?.parameters })
+    ).filter(param => (filter?.length ? filter.includes(param.location) : true))
   }
 
   /**

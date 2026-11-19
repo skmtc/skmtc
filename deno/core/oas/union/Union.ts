@@ -11,6 +11,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import { OasBase } from '@/types/OasBase.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { CustomValue } from '@/dsl/CustomValue.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 
 /**
  * Constructor fields for {@link OasUnion}.
@@ -270,7 +271,8 @@ export class OasUnion extends OasBase {
    * an object that is not nullable, that requires the discriminator's
    * property, and that allows only string literals for it. No value may
    * belong to two members. A member that is a union, or anything other than
-   * an object, makes it `false`.
+   * an object, makes it `false`, as does a reference on the way that names
+   * nothing in the document (kept under `system.danglingRefs: keep`).
    *
    * It reads the schemas only. A generator may refuse more: one that leaves
    * out `readOnly` properties cannot discriminate on one.
@@ -284,22 +286,31 @@ export class OasUnion extends OasBase {
 
     const seen = new Set<string>()
 
-    return this.members.every(member => {
-      const values = toDiscriminatorValues(member, key)
+    try {
+      return this.members.every(member => {
+        const values = toDiscriminatorValues(member, key)
 
-      return (
-        values !== undefined &&
-        values.every(value => {
-          if (seen.has(value)) {
-            return false
-          }
+        return (
+          values !== undefined &&
+          values.every(value => {
+            if (seen.has(value)) {
+              return false
+            }
 
-          seen.add(value)
+            seen.add(value)
 
-          return true
-        })
-      )
-    })
+            return true
+          })
+        )
+      })
+    } catch (error) {
+      // A dangling reference: the schema it stands for is not known.
+      if (DanglingRefError.is(error)) {
+        return false
+      }
+
+      throw error
+    }
   }
 
   toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.NonArraySchemaObject {

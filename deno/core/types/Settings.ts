@@ -247,7 +247,8 @@ export const systemSettings: v.GenericSchema<SystemSettings> = v.object({
   allOf: v.optional(v.picklist(['strict', 'latestWins'])),
   responseContradictions: v.optional(v.picklist(['strict', 'unknown'])),
   not: v.optional(v.picklist(['strict', 'unknown'])),
-  anyOf: v.optional(v.picklist(['union', 'unknown']))
+  anyOf: v.optional(v.picklist(['union', 'unknown'])),
+  danglingRefs: v.optional(v.picklist(['strict', 'keep']))
 })
 
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
@@ -585,6 +586,16 @@ export type SystemSettings = {
    * keywords and without the `anyOf`, with one warning for each schema.
    */
   anyOf?: 'union' | 'unknown'
+  /**
+   * `strict` (the default): a `$ref` that names nothing in the document is a
+   * parse error, and what holds it is removed, with what uses that. `keep`:
+   * the `$ref` stays, with a warning, and resolving it throws
+   * `DanglingRefError`, which a generator can catch to render something
+   * else. With either, a `$ref` to an example or a link is a warning and
+   * stays, and a `$ref` that core resolves while it parses (an `allOf`
+   * member that it merges) is an error, and what holds it is removed.
+   */
+  danglingRefs?: 'strict' | 'keep'
 }
 
 export type ClientSettings = {

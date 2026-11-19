@@ -145,15 +145,14 @@ export const toMediaTypeItemV3 = ({
     schema: stackTrail.trace('schema', st =>
       toOptionalSchemaV3({ schema, stackTrail: st, context })
     ),
-    examples: stackTrail.trace('examples', st =>
-      toExamplesV3({
-        example,
-        examples,
-        exampleKey: mediaType,
-        stackTrail: st,
-        context
-      })
-    ),
+    // toExamplesV3 traces `examples` (or `example`) itself.
+    examples: toExamplesV3({
+      example,
+      examples,
+      exampleKey: mediaType,
+      stackTrail,
+      context
+    }),
     extensionFields
   }
 

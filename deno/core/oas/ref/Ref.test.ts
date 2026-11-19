@@ -1,5 +1,6 @@
 import { assertEquals, assertExists, assertThrows, assertStrictEquals } from '@std/assert'
 import { OasRef } from './Ref.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 import { toRefParseContextStub } from '@/test/mockParseContext.ts'
 import { OasDocument } from '../document/Document.ts'
 import { OasInfo } from '../info/Info.ts'
@@ -489,8 +490,8 @@ Deno.test('OasRef', async t => {
 
       assertThrows(
         () => ref.resolveOnce(),
-        Error,
-        'Ref "#/components/schemas/NonExistent" not found'
+        DanglingRefError,
+        'Ref "#/components/schemas/NonExistent" names nothing in the document'
       )
     })
 
@@ -509,7 +510,7 @@ Deno.test('OasRef', async t => {
         toRefParseContextStub({ type: 'oas', value: document })
       )
 
-      assertThrows(() => ref.resolveOnce(), Error, 'not found')
+      assertThrows(() => ref.resolveOnce(), DanglingRefError, 'names nothing in the document')
     })
 
     await t.step('should throw on refType mismatch when target is ref', () => {
@@ -602,7 +603,7 @@ Deno.test('OasRef', async t => {
         toRefParseContextStub({ type: 'oas', value: document })
       )
 
-      assertThrows(() => ref.resolveOnce(), Error, 'not found')
+      assertThrows(() => ref.resolveOnce(), DanglingRefError, 'names nothing in the document')
     })
   })
 

@@ -5,6 +5,7 @@ import type { PendingDefinition } from '@/dsl/PendingDefinition.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type { SupportedSubjects } from '@/types/SupportedSubjects.ts'
@@ -1701,7 +1702,7 @@ export class GenerateContext implements GenerateContextType {
    * Perform one lookup of schema by `refName`.
    * @param refName
    * @returns Matching schema or ref
-   * @throws if schema is not found
+   * @throws {DanglingRefError} when no schema has that name
    */
   resolveSchemaRefOnce(refName: RefName): OasSchema | OasRef<'schema'> {
     switch (this.document.type) {
@@ -1709,7 +1710,7 @@ export class GenerateContext implements GenerateContextType {
         const component = this.document.value.components?.schemas?.[refName]
 
         if (!component) {
-          throw new Error(`Schema not found: ${refName}`)
+          throw new DanglingRefError(refName)
         }
 
         const target = component.resolveOnce()
@@ -1725,7 +1726,7 @@ export class GenerateContext implements GenerateContextType {
         const schema = this.document.value.registry.schemas[refName]
 
         if (!schema) {
-          throw new Error(`Schema not found: ${refName}`)
+          throw new DanglingRefError(refName)
         }
 
         // GqlRegistry stores OasSchema | OasRef entries: one step, as for OAS.

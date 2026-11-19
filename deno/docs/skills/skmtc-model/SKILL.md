@@ -13,7 +13,7 @@ description: >
   and skmtc-lang-typescript (TS layer).
 metadata:
   describes:
-    '@skmtc/core': '0.40'
+    '@skmtc/core': '0.41'
     '@skmtc/lang-typescript': '0.14'
 ---
 
@@ -73,6 +73,14 @@ engine machinery — modifying it is almost always a mistake.
   the `ModelDriver` (cache hit → reuse, miss → construct) and stitches
   the cross-file import. Inline-expanding a ref, or hand-writing its
   import, is how shared models duplicate.
+- **A ref can name nothing.** With the default
+  `settings.system.danglingRefs: strict`, the parser removes what holds
+  such a `$ref`, so your generator never sees it. With `keep`, the
+  `$ref` stays, and inserting or resolving it throws `DanglingRefError`
+  (from `@skmtc/core`). To render the item, catch it in your ref
+  snippet and render the unknown fallback. Test it with
+  `DanglingRefError.is(error)` and throw any other error again;
+  `instanceof` is false when your bundle has another copy of core.
 - **Recursion is a protocol, not a special case.** While a model's
   projection is constructed, the model has a pending entry. A reference
   back to it comes out of `toModelRef` as `suspended`; any other

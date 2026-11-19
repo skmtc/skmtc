@@ -16,6 +16,7 @@ import type { RefName } from '../../types/RefName.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
 import { OasBase } from '@/types/OasBase.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 import {
   changesTarget,
   changesValues,
@@ -53,6 +54,18 @@ function refTypeToPluralPath(refType: OasRefData['refType']): string {
       const _exhaustive: never = refType
       throw new Error(`Unhandled ref type: ${_exhaustive}`)
     }
+  }
+}
+
+/**
+ * The name `resolveOnce` looks up. `toRefName` throws for a `$ref` whose last
+ * segment is empty (`#/components/schemas/`): that `$ref` names nothing.
+ */
+const toLookupName = ($ref: string): RefName => {
+  try {
+    return toRefName($ref)
+  } catch {
+    throw new DanglingRefError($ref)
   }
 }
 
@@ -358,9 +371,14 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    * reads from `document.registry.schemas`.
    *
    * @returns Either the resolved component or another reference in the chain
+   * @throws {DanglingRefError} when the reference names nothing in the
+   * document (kept under `client.json` `system.danglingRefs: keep`),
+   * including a `$ref` with no name, such as `#/components/schemas/`
+   * @throws Error when it names a component of another kind, such as a
+   * `requestBody` ref to `#/components/schemas/…`
    */
   resolveOnce(): OasRef<T> | ResolvedRef<T> {
-    const refName = toRefName(this.$ref)
+    const refName = toLookupName(this.$ref)
 
     const resolved =
       this.#document.type === 'oas'
@@ -368,7 +386,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
         : this.#resolveGqlOnce(this.#document.value, refName)
 
     if (!resolved) {
-      throw new Error(`Ref "${this.$ref}" not found`)
+      throw new DanglingRefError(this.$ref)
     }
 
     if (resolved.isRef()) {
@@ -389,6 +407,18 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
   }
 
   #resolveOasOnce(document: OasDocument, refName: RefName): ResolvedRef<T> | OasRef<T> | undefined {
+    // A `#/components/<bucket>/<name>` ref names its bucket. A request body
+    // that is a `$ref` to `#/components/schemas/Pet` names a schema, so it is
+    // never looked up in the request bodies.
+    const bucket = /^#\/components\/([^/]+)\//.exec(this.$ref)?.[1]
+    const expected = refTypeToPluralPath(this.refType)
+
+    if (bucket !== undefined && bucket !== expected) {
+      throw new Error(
+        `Ref type mismatch for "${this.$ref}". Expected a ref into "components/${expected}" but it names one in "components/${bucket}"`
+      )
+    }
+
     const c = document.components
     const refType: OasRefData['refType'] = this.refType
     switch (refType) {

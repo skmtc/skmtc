@@ -43,6 +43,10 @@ import type {
 } from '@/context/parseTypes.ts'
 import type { ParseIssue } from '@/context/ParseIssue.ts'
 import { toSerializedError } from '@/types/SerializedError.ts'
+import type { OasRef } from '@/oas/ref/Ref.ts'
+import type { OasRefData } from '@/oas/ref/ref-types.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
+import { toRefName } from '@/helpers/refFns.ts'
 
 // Re-exports kept here for backwards-compat with the previous flat
 // surface. New parser helpers should `import type` from
@@ -98,6 +102,26 @@ type LogDependencyIssueArgs = {
   refKey: string
   /** The error that started the removal. */
   rootCause: RefError
+}
+
+/** An OAS ref and the place it is written, which `#checkRefs` resolves. */
+type WrittenRef = {
+  consumer: StackTrail
+  ref: { $ref: string; refType: OasRefData['refType']; resolveOnce(): unknown }
+}
+
+/**
+ * The key a `$ref`'s consumers and errors are kept under. A
+ * `#/components/<bucket>/…` ref is keyed by the name it resolves (`toRefName`
+ * unescapes it), which is the key `StackTrail.toStackRef()` gives that
+ * component's own errors: `#/components/schemas/Foo%20Bar` is kept under
+ * `#/components/schemas/Foo Bar`. Any other `$ref` is its own key.
+ */
+const toRefKey = ($ref: string): string => {
+  // The last segment is not empty, so `toRefName` does not throw.
+  const bucket = /^#\/components\/([^/]+)\/.*[^/]$/.exec($ref)?.[1]
+
+  return bucket === undefined ? $ref : `#/components/${bucket}/${toRefName($ref)}`
 }
 
 /** The stored form of an issue: an error's `cause` as a `SerializedError`. */
@@ -159,6 +183,8 @@ export class ParseContext {
   // use type names. The maps don't care about the encoding.
   #refConsumers: Map<string, StackTrail[]> = new Map()
   #refErrors: Map<string, RefError[]> = new Map()
+  /** Each OAS ref and the place it is written, which `#checkRefs` resolves once the document is parsed. */
+  #oasRefs: WrittenRef[] = []
   /**
    * Frames of the trail `parse()` was called with (`[traceId, spanId,
    * 'parse']` through `toArtifacts`). Every trail built during the walk
@@ -313,6 +339,7 @@ export class ParseContext {
             throw new Error(`Unhandled OAS dialect: ${JSON.stringify(_exhaustive)}`)
           }
         }
+        this.#checkRefs()
         this.removeErroredItems()
         return { type: 'oas', value: oasState.oasDocument }
       }
@@ -594,6 +621,106 @@ export class ParseContext {
     } else {
       this.#refConsumers.set(refKey, [consumer])
     }
+  }
+
+  /**
+   * Register an OAS `$ref` at its consumer site, as {@link registerRef}
+   * does, under the key {@link toRefKey} gives its `$ref`, and keep the ref
+   * with that site, so that once the document is parsed `#checkRefs` can
+   * resolve it there.
+   */
+  registerOasRef<T extends OasRefData['refType']>(consumer: StackTrail, ref: OasRef<T>): void {
+    this.registerRef(consumer, toRefKey(ref.$ref))
+    this.#oasRefs.push({ consumer, ref })
+  }
+
+  /**
+   * Resolves each OAS ref once the document is parsed, at each place it is
+   * written, and logs an issue there when it does not resolve:
+   *
+   * - A ref that names nothing logs `DANGLING_REF`. Under `client.json`
+   *   `system.danglingRefs: strict` (the default) it is an error: what holds
+   *   the ref is removed, and what uses that. Under `keep` it is a warning,
+   *   and the ref stays for a generator to handle. A ref to an example or a
+   *   link is a warning in both modes: no generator needs one to render
+   *   types or clients.
+   * - A ref to a component of the wrong kind, such as a request body that is
+   *   a `$ref` to `#/components/schemas/Pet`, logs a `REF_TYPE_MISMATCH`
+   *   warning. The ref stays, and resolving it throws. Resolving a ref
+   *   throws no other error.
+   *
+   * A ref whose target failed to parse is left out: the target's error
+   * removes what holds it.
+   */
+  #checkRefs(): void {
+    this.#oasRefs.forEach(({ consumer, ref }) => {
+      if (this.#refErrors.has(toRefKey(ref.$ref))) {
+        return
+      }
+
+      try {
+        ref.resolveOnce()
+      } catch (error) {
+        if (DanglingRefError.is(error)) {
+          this.#logDanglingRef({ consumer, ref, error })
+        } else {
+          this.logIssueNoKey({
+            level: 'warning',
+            message: `${error instanceof Error ? error.message : String(error)}. It is kept, and resolving it throws.`,
+            parent: { $ref: ref.$ref },
+            stackTrail: consumer,
+            type: 'REF_TYPE_MISMATCH'
+          })
+        }
+      }
+    })
+  }
+
+  #logDanglingRef({ consumer, ref, error }: WrittenRef & { error: DanglingRefError }): void {
+    const exampleOrLink = ref.refType === 'example' || ref.refType === 'link'
+
+    if (exampleOrLink || this.system.danglingRefs === 'keep') {
+      this.logIssueNoKey({
+        level: 'warning',
+        message: exampleOrLink
+          ? `${error.message}. It is kept, as a ref to an example or a link is in both system.danglingRefs modes, and resolving it throws DanglingRefError.`
+          : `${error.message}. It is kept (system.danglingRefs is keep), and resolving it throws DanglingRefError.`,
+        parent: { $ref: ref.$ref },
+        stackTrail: consumer,
+        type: 'DANGLING_REF'
+      })
+
+      return
+    }
+
+    // An error inside a component removes that component, and what uses it
+    // (`removeErroredItems`).
+    this.logIssueNoKey({
+      level: 'error',
+      message: `${error.message}, so what holds it is removed (system.danglingRefs is strict).`,
+      cause: error,
+      parent: { $ref: ref.$ref },
+      stackTrail: consumer,
+      type: 'DANGLING_REF'
+    })
+
+    // What holds the ref outside the components (an operation, a webhook, a
+    // path-level parameter) is removed here. Its own location has the
+    // DANGLING_REF already; an operation that a path-level parameter applies
+    // to gets an INVALID_DEPENDENCY_REF.
+    const documentTrail = this.#toDocumentTrail(consumer)
+
+    if (documentTrail.toStackRef() !== undefined) {
+      return
+    }
+
+    const location = consumer.toString()
+
+    this.#removeConsumer(consumer, documentTrail)
+      .filter(removed => removed !== location)
+      .forEach(removed =>
+        this.#logDependencyIssue({ location: removed, refKey: ref.$ref, rootCause: { error, location } })
+      )
   }
 
   /**

@@ -23,7 +23,7 @@ const createTestContext = (): ParseContextType =>
     logSkippedFields(): void {},
     logIssue(): void {},
     logIssueNoKey(): void {},
-    registerRef(): void {},
+    registerOasRef(): void {},
     documentObject: {} as unknown,
     withStackTrail<T>(_stackTrail: unknown, fn: () => T): T {
       return fn()

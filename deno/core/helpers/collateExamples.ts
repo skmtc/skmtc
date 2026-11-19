@@ -1,6 +1,7 @@
 import type { OasRef } from '../oas/ref/Ref.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
 import { isEmpty } from './isEmpty.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 
 /**
  * Arguments for collating examples from OpenAPI schemas.
@@ -190,11 +191,20 @@ export const collateExamples = ({ objectSchema, depth, seen }: CollatedExampleAr
         return undefined
       }
 
-      return collateExamples({
-        objectSchema: objectSchema.resolve(),
-        depth: depth + 1,
-        seen: new Set(seen ?? []).add(objectSchema.$ref)
-      })
+      try {
+        return collateExamples({
+          objectSchema: objectSchema.resolve(),
+          depth: depth + 1,
+          seen: new Set(seen ?? []).add(objectSchema.$ref)
+        })
+      } catch (error) {
+        // A dangling reference names no schema, so it has no example either.
+        if (DanglingRefError.is(error)) {
+          return undefined
+        }
+
+        throw error
+      }
     }
 
     case 'object': {

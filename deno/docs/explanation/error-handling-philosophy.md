@@ -62,7 +62,7 @@ parameter — whatever the level the `tryParseAt` wraps.
 What happens when a parsed item references a _failed_ item via `$ref`?
 
 During the parse walk, every `$ref` encounter calls
-`context.registerRef(stackTrail.clone(), $ref)`. This builds a map:
+`context.registerOasRef(stackTrail.clone(), oasRef)`. This builds a map:
 `#refConsumers: Map<refKey, StackTrail[]>` — "who pointed at this ref?"
 
 A parser can log an error-level issue anywhere inside a component, for example
@@ -121,12 +121,14 @@ they are what makes the model true rather than aspirational.
 holds a reference to `context.parsedDocument`, which wraps that same instance:
 
 ```ts
-// core/parse/v3-{0,1}/ref/toRefV31.ts
-context.registerRef(stackTrail.clone(), $ref)
-
-return context.withStackTrail(stackTrail, () =>
+// core/parse/v3-{0,1,2}/ref/toRefV31.ts
+const oasRef = context.withStackTrail(stackTrail, () =>
   new OasRef({ refType, $ref, nullable }, context)
 )
+
+context.registerOasRef(stackTrail.clone(), oasRef)
+
+return oasRef
 ```
 
 `OasDocument.#fields` is `undefined` at this point — every getter throws
@@ -250,7 +252,7 @@ The cascade goes to all depths for the same reason. When `removeErroredItems`
 removes a consumer of `X` that is a component, the consumers of that component
 point at a missing component. `removeErroredItems` removes them too. Thus no
 item that stays in the document has a ref to a removed item. The generate phase
-never gets a `Ref "..." not found` because of a parse error.
+never gets a `DanglingRefError` because of a parse error.
 
 The cost: this rule removes more operations than a rule for each property.
 The manifest records each removal. It shows the root `INVALID_SCHEMA`, and each

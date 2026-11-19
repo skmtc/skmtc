@@ -1,6 +1,7 @@
 import type { RefName } from '../types/RefName.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { ReferenceObject } from '../parse/v3-0/_merge-all-of/types.ts'
+import { DanglingRefError } from '../oas/ref/DanglingRefError.ts'
 
 /**
  * Extracts a reference name from an OpenAPI $ref string.
@@ -8,6 +9,10 @@ import type { ReferenceObject } from '../parse/v3-0/_merge-all-of/types.ts'
  * This function parses JSON Pointer references (like '#/components/schemas/User')
  * and extracts the final component as a branded RefName type. It's used throughout
  * the SKMTC system to convert string references into type-safe reference names.
+ *
+ * A `$ref` is a URI fragment that holds a JSON pointer (RFC 6901), so the name
+ * is unescaped as one: `%20` is a space, and `~1` and `~0` are `/` and `~`.
+ * `#/components/schemas/Foo%20Bar` names the component `Foo Bar`.
  *
  * @param $ref - The OpenAPI reference string (e.g., '#/components/schemas/User')
  * @returns The extracted reference name as a branded RefName type
@@ -44,14 +49,27 @@ import type { ReferenceObject } from '../parse/v3-0/_merge-all-of/types.ts'
  * ```
  */
 export const toRefName = ($ref: string): RefName => {
-  // TODO: Add validation here to ensure reference exists
-  const refName = $ref.split('/').slice(-1)[0]
+  const segment = $ref.split('/').slice(-1)[0]
 
-  if (!refName) {
+  if (!segment) {
     throw new Error('Invalid reference')
   }
 
-  return refName as RefName
+  return toUnescapedSegment(segment) as RefName
+}
+
+/** A JSON pointer segment of a URI fragment, unescaped: percent escapes first, then `~1` and `~0`. */
+const toUnescapedSegment = (segment: string): string => {
+  return toPercentDecoded(segment).replaceAll('~1', '/').replaceAll('~0', '~')
+}
+
+const toPercentDecoded = (segment: string): string => {
+  try {
+    return decodeURIComponent(segment)
+  } catch {
+    // A `%` that starts no valid escape is read as written.
+    return segment
+  }
 }
 
 /**
@@ -135,7 +153,7 @@ export const isRef = (value: unknown): value is Ref => {
  * @param oasDocument - The OpenAPI document containing the schemas to resolve against
  * @returns A function that resolves reference objects to schema objects
  *
- * @throws {Error} When a reference cannot be resolved or points to a non-existent schema
+ * @throws {DanglingRefError} When a reference names no schema in the document
  *
  * @example Basic usage
  * ```typescript
@@ -166,7 +184,7 @@ export const isRef = (value: unknown): value is Ref => {
  *   const schema = resolver({ $ref: '#/components/schemas/NonExistent' });
  * } catch (error) {
  *   console.error('Reference resolution failed:', error.message);
- *   // Error: Invalid reference: #/components/schemas/NonExistent
+ *   // Ref "#/components/schemas/NonExistent" names nothing in the document
  * }
  * ```
  *
@@ -200,5 +218,5 @@ export const toGetRef =
       return item
     }
 
-    throw new Error(`Invalid reference: ${$ref}`)
+    throw new DanglingRefError($ref)
   }
