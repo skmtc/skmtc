@@ -592,47 +592,55 @@ necessary. To get a union, set `settings.system.anyOf` to `union`
 **When:** A `$ref` names nothing in the document. There is one issue
 for each place that has the `$ref`. The location is that place.
 
-- **error:** `settings.system.danglingRefs` is `strict` (the
-  default). The parser removes the item that has the `$ref`. Each item
-  that refers to that item gets an `INVALID_DEPENDENCY_REF`.
-- **warning:** `settings.system.danglingRefs` is `keep`. The `$ref`
-  stays. When a generator resolves it, core throws a
+- **error:** `settings.system.danglingRefs` does not list the kind of
+  the `$ref`. The default list is empty. The parser removes the item
+  that has the `$ref`. Each item that refers to that item gets an
+  `INVALID_DEPENDENCY_REF`.
+- **warning:** `settings.system.danglingRefs` lists the kind of the
+  `$ref`. The `$ref` stays. When a generator resolves it, core throws a
   `DanglingRefError`.
 
-The setting does not apply to two kinds of `$ref`:
+The kinds are `schema`, `parameter`, `requestBody`, `response`,
+`header`, `securityScheme`, `example`, `link` and `allOfMember`.
 
-- A `$ref` to an example or a link gives a warning with both values.
-  The item that has the `$ref` stays, because generators do not use
-  examples or links to write types or clients.
-- A `$ref` that core resolves during the parse gives an error with
-  both values. An example is a member of an `allOf` that core merges.
-  The location is the item that has the `allOf`, and the parser
-  removes that item.
+Core merges the members of an `allOf` during the parse, so a generator
+does not see them. When a member names nothing and the list has
+`allOfMember`, core leaves the member out of the merge and gives a
+warning. The model then has no properties from that member. When the
+list does not have `allOfMember`, core gives an error, and the parser
+removes the item that has the `allOf`. The location is that item.
 
-**Typical message:** `Ref "#/components/schemas/X" names nothing in
-the document, so what holds it is removed (system.danglingRefs is
-strict).`
+Core also merges in a `oneOf` or an `anyOf`: the `allOf` of a member,
+and each member with the keywords next to the union. The same rule
+applies to these `$ref`s. The location is the item that has the union.
+
+**Typical messages:**
+
+- `Ref "#/components/schemas/X" names nothing in the document, so what holds it is removed. To keep it, list 'schema' in system.danglingRefs.`
+- `Ref "#/components/schemas/X" names nothing in the document. It is kept (system.danglingRefs lists 'schema'), and resolving it throws DanglingRefError.`
+- `Ref "#/components/schemas/X" names nothing in the document. It is left out of the allOf merge (system.danglingRefs lists 'allOfMember').`
+- `Ref "#/components/schemas/X" names nothing in the document. Core resolves it while it parses, so what holds it is removed.`
 
 **Remediation:** Add the target to `components` in the source
-document, or correct the `$ref`. To keep the items that have the `$ref`, set
-`settings.system.danglingRefs` to `keep`, and use generators that
-catch `DanglingRefError`. To find the error, use
+document, or correct the `$ref`. To keep the items that have the
+`$ref`, list its kind in `settings.system.danglingRefs`, and use
+generators that catch `DanglingRefError`. To find the error, use
 `DanglingRefError.is(error)`, not `instanceof`: a generator bundle can
 have a different copy of `@skmtc/core`. See
 [`settings.system`](settings/client-json-schema.md#settingssystem-optional).
 
-### `REF_TYPE_MISMATCH` — warning
+### `REF_TYPE_MISMATCH` — error
 
 **When:** A `$ref` names an item in `components` of a different kind
 than its place needs, for example a request body with
 `$ref: '#/components/schemas/Pet'`. There is one issue for each place
-that has the `$ref`. The location is that place. The `$ref` stays, and
-the item that it names stays. When a generator resolves the `$ref`,
-core throws an error.
+that has the `$ref`. The location is that place. The parser removes the
+item that has the `$ref`, because it gives a generator only what the
+place promises. The item that the `$ref` names stays.
+`settings.system.danglingRefs` does not apply.
 
-**Typical message:** `Ref type mismatch for "#/components/schemas/Pet".
-Expected a ref into "components/requestBodies" but it names one in
-"components/schemas". It is kept, and resolving it throws.`
+**Typical message:**
+`Ref type mismatch for "#/components/schemas/Pet". Expected a ref into "components/requestBodies" but it names one in "components/schemas", so what holds it is removed.`
 
 **Remediation:** Correct the `$ref` so that it names an item of the
 correct kind, for example `#/components/requestBodies/Pet`.

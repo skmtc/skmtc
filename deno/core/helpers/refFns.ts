@@ -204,19 +204,26 @@ export const isRef = (value: unknown): value is Ref => {
  * ```
  */
 export const toGetRef =
-  (oasDocument: OpenAPIV3.Document) =>
+  (oasDocument: OpenAPIV3.Document, onDangling?: OnDangling) =>
   ({ $ref }: ReferenceObject): OpenAPIV3.SchemaObject => {
     const refName = toRefName($ref)
 
     const item = oasDocument.components?.schemas?.[refName]
 
     if (isRef(item)) {
-      return toGetRef(oasDocument)(item)
+      return toGetRef(oasDocument, onDangling)(item)
     }
 
     if (item) {
       return item
     }
 
+    if (onDangling) {
+      return onDangling($ref)
+    }
+
     throw new DanglingRefError($ref)
   }
+
+/** What a resolver reads in place of a `$ref` that names nothing; it may throw. */
+type OnDangling = ($ref: string) => OpenAPIV3.SchemaObject

@@ -222,11 +222,8 @@ asserts `response.status === 200`).
 
 #### `toParams(filter?): OasParameter[]`
 
-Returns the resolved parameters (refs resolved). It leaves out a ref
-that names nothing: such a ref has no name or location. Such a ref is in the
-model only under `settings.system.danglingRefs: keep`, and the parser
-logs a `DANGLING_REF` warning for it. The optional `filter` parameter
-restricts by location:
+Returns the resolved parameters (refs resolved). The optional
+`filter` parameter restricts by location:
 
 ```ts
 const pathParams = operation.toParams(['path'])

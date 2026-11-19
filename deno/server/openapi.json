@@ -701,10 +701,20 @@
                     ]
                   },
                   "danglingRefs": {
-                    "enum": [
-                      "strict",
-                      "keep"
-                    ]
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "schema",
+                        "parameter",
+                        "requestBody",
+                        "response",
+                        "header",
+                        "securityScheme",
+                        "example",
+                        "link",
+                        "allOfMember"
+                      ]
+                    }
                   }
                 },
                 "required": []
@@ -918,10 +928,20 @@
                     ]
                   },
                   "danglingRefs": {
-                    "enum": [
-                      "strict",
-                      "keep"
-                    ]
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "schema",
+                        "parameter",
+                        "requestBody",
+                        "response",
+                        "header",
+                        "securityScheme",
+                        "example",
+                        "link",
+                        "allOfMember"
+                      ]
+                    }
                   }
                 },
                 "required": []

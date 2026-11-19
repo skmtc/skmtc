@@ -3,6 +3,7 @@ import type { GetRefFn, SchemaOrReference, SchemaObject, MergeSystem } from './t
 import { mergeSchemasOrRefs } from './merge.ts'
 import { crossProduct } from './cross-product.ts'
 import { isRef } from '@/helpers/refFns.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 type MergeUnionArgs = {
   schema: SchemaObject
   getRef: GetRefFn
@@ -83,13 +84,21 @@ type MergePairsArgs = {
  * ({@link toOwnSystem}). Inside an outer first pass under `latestWins`, a
  * cross product with no pair that merges fails its pair: the outer pass then
  * leaves the pair out, or lets the later member win.
+ *
+ * A `$ref` that names nothing is not a contradiction, so its pair is not left
+ * out for it: the `DanglingRefError` is thrown on, and `system.danglingRefs`
+ * decides (`allOfMember`).
  */
 const mergePairs = ({ pairs, merge, system }: MergePairsArgs): SchemaOrReference[] => {
   const mergeEach = (pairSystem: MergeSystem): SchemaOrReference[] =>
     pairs.flatMap(pair => {
       try {
         return [merge(pair, pairSystem)]
-      } catch (_error) {
+      } catch (error) {
+        if (DanglingRefError.is(error)) {
+          throw error
+        }
+
         return []
       }
     })

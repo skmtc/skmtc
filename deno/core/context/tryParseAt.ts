@@ -65,9 +65,9 @@ export type TryParseAtArgs<T> = {
  *
  *   - logs a `level: 'error'` issue at the child location with the
  *     given `type` and the thrown value as `cause`. A `DanglingRefError`
- *     is logged as `DANGLING_REF`: core resolved a ref while it parsed (an
- *     `allOf` member it merges, say), so the ref cannot be kept, whatever
- *     `system.danglingRefs` is
+ *     is logged as `DANGLING_REF`: core resolved a ref while it parsed (one
+ *     it merges, in an `allOf` or a `oneOf` or `anyOf` member, when
+ *     `system.danglingRefs` does not list `allOfMember`)
  *   - registers a ref error if `refKey` is provided
  *   - returns `undefined`
  *
@@ -96,7 +96,7 @@ export const tryParseAt = <T>({
         stackTrail: childStack,
         parent,
         message: dangling
-          ? `${normalized.message}. Core resolves it while it parses, so what holds it is removed whatever system.danglingRefs is.`
+          ? `${normalized.message}. Core resolves it while it parses, so what holds it is removed.`
           : normalized.message,
         cause: normalized,
         type: dangling ? 'DANGLING_REF' : type

@@ -331,7 +331,9 @@ export const toSchemaV3 = ({
       const system = toAllOfSystem(context)
       const merged = mergeIntersection({
         schema: wrapper,
-        getRef: toGetRef(context.documentObject),
+        getRef: toGetRef(context.documentObject, $ref =>
+          context.toDanglingAllOfMember({ $ref, stackTrail })
+        ),
         normalize: normalizeMergeMember,
         system
       })
@@ -372,7 +374,11 @@ export const toSchemaV3 = ({
       const system = toAllOfSystem(context)
       const merged = mergeUnion({
         schema: withoutNull,
-        getRef: toGetRef(context.documentObject),
+        // A member's own `allOf`, or a member merged with the keywords beside
+        // the `oneOf`, is merged here, so it follows `allOfMember` too.
+        getRef: toGetRef(context.documentObject, $ref =>
+          context.toDanglingAllOfMember({ $ref, stackTrail })
+        ),
         normalize: normalizeMergeMember,
         system,
         groupType: 'oneOf'
@@ -469,7 +475,10 @@ export const toSchemaV3 = ({
       const system = toAllOfSystem(context)
       const merged = mergeUnion({
         schema: withoutNull,
-        getRef: toGetRef(context.documentObject),
+        // As for `oneOf`: what is merged here follows `allOfMember`.
+        getRef: toGetRef(context.documentObject, $ref =>
+          context.toDanglingAllOfMember({ $ref, stackTrail })
+        ),
         normalize: normalizeMergeMember,
         system,
         groupType: 'anyOf'

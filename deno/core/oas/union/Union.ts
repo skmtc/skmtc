@@ -272,7 +272,7 @@ export class OasUnion extends OasBase {
    * property, and that allows only string literals for it. No value may
    * belong to two members. A member that is a union, or anything other than
    * an object, makes it `false`, as does a reference on the way that names
-   * nothing in the document (kept under `system.danglingRefs: keep`).
+   * nothing in the document (kept when `system.danglingRefs` lists `schema`).
    *
    * It reads the schemas only. A generator may refuse more: one that leaves
    * out `readOnly` properties cannot discriminate on one.

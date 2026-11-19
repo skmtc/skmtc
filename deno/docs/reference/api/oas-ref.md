@@ -129,13 +129,14 @@ target is itself a `$ref`, follows the chain.
 - `Max lookups reached` if the chain depth exceeds `MAX_LOOKUPS` (10)
 - `DanglingRefError` (`Ref "<$ref>" names nothing in the document`)
   if a link in the chain names nothing in the document. The parser
-  removes such a ref unless `client.json` sets
-  `settings.system.danglingRefs` to `keep`. Test for it with
+  removes such a ref, unless `client.json`
+  `settings.system.danglingRefs` lists its kind. Test for it with
   `DanglingRefError.is(error)`.
 - `Ref type mismatch for "<$ref>"` if the `$ref` names the wrong part
   of `components` for `refType`. An example is a `requestBody` ref to
   `#/components/schemas/Pet`. The parser logs a `REF_TYPE_MISMATCH`
-  warning for it.
+  error and removes what holds such a ref, so a parsed document has
+  none.
 - `Ref type mismatch for "<$ref>"` if the resolved target has the
   wrong `oasType` (e.g., a `OasRef<'schema'>` that resolves to a
   parameter)
