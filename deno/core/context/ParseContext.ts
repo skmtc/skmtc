@@ -43,6 +43,9 @@ import type {
 } from '@/context/parseTypes.ts'
 import type { ParseIssue } from '@/context/ParseIssue.ts'
 import { toSerializedError } from '@/types/SerializedError.ts'
+import type { OasRef } from '@/oas/ref/Ref.ts'
+import type { OasRefData } from '@/oas/ref/ref-types.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 
 // Re-exports kept here for backwards-compat with the previous flat
 // surface. New parser helpers should `import type` from
@@ -159,6 +162,8 @@ export class ParseContext {
   // use type names. The maps don't care about the encoding.
   #refConsumers: Map<string, StackTrail[]> = new Map()
   #refErrors: Map<string, RefError[]> = new Map()
+  /** One OAS ref for each `$ref`, which `#logDanglingRefs` resolves once the document is parsed. */
+  #oasRefs: Map<string, { resolveOnce(): unknown }> = new Map()
   /**
    * Frames of the trail `parse()` was called with (`[traceId, spanId,
    * 'parse']` through `toArtifacts`). Every trail built during the walk
@@ -313,6 +318,7 @@ export class ParseContext {
             throw new Error(`Unhandled OAS dialect: ${JSON.stringify(_exhaustive)}`)
           }
         }
+        this.#logDanglingRefs()
         this.removeErroredItems()
         return { type: 'oas', value: oasState.oasDocument }
       }
@@ -593,6 +599,79 @@ export class ParseContext {
       existing.push(consumer)
     } else {
       this.#refConsumers.set(refKey, [consumer])
+    }
+  }
+
+  /**
+   * Register an OAS `$ref` at its consumer site, as {@link registerRef}
+   * does with its `$ref` string, and keep the ref, so that once the
+   * document is parsed `#logDanglingRefs` can resolve it.
+   */
+  registerOasRef<T extends OasRefData['refType']>(consumer: StackTrail, ref: OasRef<T>): void {
+    this.registerRef(consumer, ref.$ref)
+
+    if (!this.#oasRefs.has(ref.$ref)) {
+      this.#oasRefs.set(ref.$ref, ref)
+    }
+  }
+
+  /**
+   * Logs a `DANGLING_REF` at each place a ref that names nothing in the
+   * document is written: one that resolving throws `DanglingRefError` for.
+   * Under `client.json` `system.danglingRefs: strict` (the default) it is an
+   * error, so {@link removeErroredItems} removes what holds the ref, and
+   * what uses that. Under `keep` it is a warning, and the ref stays for a
+   * generator to handle. A ref whose target failed to parse is left out: its
+   * target's error removes what holds it.
+   */
+  #logDanglingRefs(): void {
+    for (const [refKey, ref] of this.#oasRefs) {
+      if (this.#refErrors.has(refKey)) {
+        continue
+      }
+
+      try {
+        ref.resolveOnce()
+      } catch (error) {
+        // Any other error (a target of the wrong type) is not this check's:
+        // it is thrown again where the ref is resolved.
+        if (error instanceof DanglingRefError) {
+          this.#logDanglingRef(refKey, error)
+        }
+      }
+    }
+  }
+
+  #logDanglingRef(refKey: string, error: DanglingRefError): void {
+    const strict = this.system.danglingRefs !== 'keep'
+    const consumers = this.#refConsumers.get(refKey) ?? []
+
+    consumers.forEach(consumer => {
+      if (strict) {
+        this.logIssueNoKey({
+          level: 'error',
+          message: `${error.message}, so what holds it is removed (system.danglingRefs is strict).`,
+          cause: error,
+          parent: { $ref: refKey },
+          stackTrail: consumer,
+          type: 'DANGLING_REF'
+        })
+      } else {
+        this.logIssueNoKey({
+          level: 'warning',
+          message: `${error.message}. It is kept (system.danglingRefs is keep), and resolving it throws DanglingRefError.`,
+          parent: { $ref: refKey },
+          stackTrail: consumer,
+          type: 'DANGLING_REF'
+        })
+      }
+    })
+
+    // An error logged at a consumer inside a component removes that
+    // component. This removes a consumer anywhere else, such as an
+    // operation that holds the ref.
+    if (strict) {
+      this.registerRefError(error, refKey, consumers[0]?.toString())
     }
   }
 

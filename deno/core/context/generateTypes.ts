@@ -215,6 +215,12 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  * of two or more members as any value. The schema keeps its other keywords.
  * One for each schema.
  *
+ * `DANGLING_REF` — a `$ref` names nothing in the document. One for each
+ * place the `$ref` is written. An `error` under `system.danglingRefs:
+ * strict` (the default): what holds the ref is removed, and each item that
+ * uses it gets an `INVALID_DEPENDENCY_REF`. A `warning` under `keep`: the
+ * ref stays, and resolving it throws `DanglingRefError`.
+ *
  * `RUN_FAILED` (`error`) — the run itself failed outside the per-item
  * catches. Its `location` names the entry and phase, for example
  * `toArtifacts:render`.
@@ -251,6 +257,7 @@ export type OasIssueType =
   | 'NO_JSON_MEDIA_TYPE'
   | 'ALLOF_CONTRADICTION'
   | 'ANYOF_AS_UNKNOWN'
+  | 'DANGLING_REF'
   | 'RUN_FAILED'
 
 /**
@@ -292,6 +299,7 @@ export const oasIssueType = v.union([
   v.literal('NO_JSON_MEDIA_TYPE'),
   v.literal('ALLOF_CONTRADICTION'),
   v.literal('ANYOF_AS_UNKNOWN'),
+  v.literal('DANGLING_REF'),
   v.literal('RUN_FAILED')
 ])
 

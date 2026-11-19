@@ -699,6 +699,12 @@
                       "union",
                       "unknown"
                     ]
+                  },
+                  "danglingRefs": {
+                    "enum": [
+                      "strict",
+                      "keep"
+                    ]
                   }
                 },
                 "required": []
@@ -909,6 +915,12 @@
                     "enum": [
                       "union",
                       "unknown"
+                    ]
+                  },
+                  "danglingRefs": {
+                    "enum": [
+                      "strict",
+                      "keep"
                     ]
                   }
                 },
@@ -1293,6 +1305,9 @@
                               "const": "ANYOF_AS_UNKNOWN"
                             },
                             {
+                              "const": "DANGLING_REF"
+                            },
+                            {
                               "const": "RUN_FAILED"
                             }
                           ]
@@ -1454,6 +1469,9 @@
                               "const": "ANYOF_AS_UNKNOWN"
                             },
                             {
+                              "const": "DANGLING_REF"
+                            },
+                            {
                               "const": "RUN_FAILED"
                             }
                           ]
@@ -1576,6 +1594,9 @@
                             },
                             {
                               "const": "ANYOF_AS_UNKNOWN"
+                            },
+                            {
+                              "const": "DANGLING_REF"
                             },
                             {
                               "const": "RUN_FAILED"

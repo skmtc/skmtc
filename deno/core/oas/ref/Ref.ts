@@ -16,6 +16,7 @@ import type { RefName } from '../../types/RefName.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
 import { OasBase } from '@/types/OasBase.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 import {
   changesTarget,
   changesValues,
@@ -358,6 +359,8 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    * reads from `document.registry.schemas`.
    *
    * @returns Either the resolved component or another reference in the chain
+   * @throws {DanglingRefError} when the reference names nothing in the
+   * document (kept under `client.json` `system.danglingRefs: keep`)
    */
   resolveOnce(): OasRef<T> | ResolvedRef<T> {
     const refName = toRefName(this.$ref)
@@ -368,7 +371,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
         : this.#resolveGqlOnce(this.#document.value, refName)
 
     if (!resolved) {
-      throw new Error(`Ref "${this.$ref}" not found`)
+      throw new DanglingRefError(this.$ref)
     }
 
     if (resolved.isRef()) {

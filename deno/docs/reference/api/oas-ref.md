@@ -127,7 +127,10 @@ target is itself a `$ref`, follows the chain.
 **Throws:**
 
 - `Max lookups reached` if the chain depth exceeds `MAX_LOOKUPS` (10)
-- `Ref "<$ref>" not found` if any link in the chain is missing
+- `DanglingRefError` (`Ref "<$ref>" names nothing in the document`)
+  if a link in the chain names nothing in the document. The parser
+  removes such a ref unless `client.json` sets
+  `settings.system.danglingRefs` to `keep`.
 - `Ref type mismatch for "<$ref>"` if the resolved target has the
   wrong `oasType` (e.g., a `OasRef<'schema'>` that resolves to a
   parameter)

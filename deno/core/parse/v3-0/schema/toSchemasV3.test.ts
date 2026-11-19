@@ -38,7 +38,7 @@ const createTestContext = (): ParseContextType =>
     logSkippedFields(): void {},
     logIssue(): void {},
     logIssueNoKey(): void {},
-    registerRef(): void {},
+    registerOasRef(): void {},
     stackTrail: {
       append: () => {},
       remove: () => {},

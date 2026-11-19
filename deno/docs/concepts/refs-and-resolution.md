@@ -109,12 +109,14 @@ progresses** — when `User` finishes parsing, it's added to
 calls `someRef.resolve()`, the document is fully populated.
 
 ```ts
-// core/parse/v3-{0,1}/ref/toRefV31.ts
-context.registerRef(stackTrail.clone(), $ref)
-
-return context.withStackTrail(stackTrail, () =>
+// core/parse/v3-{0,1,2}/ref/toRefV31.ts
+const oasRef = context.withStackTrail(stackTrail, () =>
   new OasRef({ refType, $ref, nullable }, context)
 )
+
+context.registerOasRef(stackTrail.clone(), oasRef)
+
+return oasRef
 ```
 
 The `OasRef` constructor stores `context.parsedDocument`, so the
@@ -204,7 +206,7 @@ resolveOnce(): OasRef<T> | ResolvedRef<T> {
   const resolved = this.#resolveOasOnce(...) ?? this.#resolveGqlOnce(...)
 
   if (!resolved) {
-    throw new Error(`Ref "${this.#fields.$ref}" not found`)
+    throw new DanglingRefError(this.$ref)
   }
 
   if (resolved.isRef()) {
@@ -254,7 +256,9 @@ always a cycle or a pathological schema worth flagging.
 Two maps live on `ParseContext`:
 
 - **`#refConsumers: Map<refKey, StackTrail[]>`** — every `$ref`
-  encounter calls `context.registerRef(stackTrail.clone(), $ref)`.
+  encounter calls `context.registerOasRef(stackTrail.clone(), oasRef)`,
+  which records the consumer under the `$ref` string. (The GraphQL
+  parser calls `context.registerRef(stackTrail.clone(), typeName)`.)
   This builds the "who pointed at this ref?" inverse index. The
   `.clone()` is essential: trails are mutable, and an
   un-cloned trail would mutate as the walk returned through parent
@@ -274,6 +278,24 @@ document; error registration populates `#refErrors` from the
 *current trail* converted via `StackTrail.toStackRef()`. See
 [the StackTrail reference](../reference/api/stack-trail.md)
 for that address-bridging step.
+
+## Refs that name nothing
+
+`registerOasRef` also keeps one `OasRef` for each `$ref` string. At
+end-of-parse, before the cascade, `ParseContext` resolves each one
+once. When a `$ref` names nothing in the document, `resolveOnce()`
+throws `DanglingRefError`. Each place that has that `$ref` then logs
+a `DANGLING_REF` issue. The `client.json` setting
+`settings.system.danglingRefs` sets the level:
+
+- `strict` (the default): an error. The error goes into
+  `#refErrors`, so the cascade removes what holds the `$ref`.
+- `keep`: a warning. The `$ref` stays, and `resolveOnce()` throws
+  `DanglingRefError` for it. A generator can catch the error and write a
+  different value.
+
+A `$ref` to a component that failed to parse already has an error in
+`#refErrors`. That `$ref` gets no `DANGLING_REF`.
 
 ## Cascade pruning
 
@@ -316,11 +338,13 @@ via `resolve()`. The intermediate `OasRef` is followed transparently.
 
 ### What if I resolve a ref that was pruned?
 
-`resolveOnce()` throws `Ref "..." not found`. A parse error does not
+`resolveOnce()` throws `DanglingRefError`. A parse error does not
 cause this: the cascade removes every item that reaches a removed
-component, at all depths. The throw can still come from a `$ref` to a
-component that the document does not define. The generator's
-try/catch catches it; the operation is marked `'error'` in the
+component, at all depths. With the default
+`settings.system.danglingRefs: strict`, the cascade also removes a
+`$ref` to a component that the document does not define. With
+`keep`, that `$ref` stays, and `resolveOnce()` throws for it. If the generator
+does not catch the error, the engine marks the item `'error'` in the
 manifest.
 
 ### When should I use `resolve()` vs `resolveOnce()`?

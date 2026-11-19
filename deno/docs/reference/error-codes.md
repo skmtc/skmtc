@@ -97,7 +97,9 @@ that started the removal. The location is the same string as the
 
 **Remediation:** Find the *upstream* `INVALID_SCHEMA` issue that
 broke the ref target. Fix the upstream schema; the dependent
-`INVALID_DEPENDENCY_REF` issues typically resolve on their own.
+`INVALID_DEPENDENCY_REF` issues typically resolve on their own. If
+the upstream issue is a `DANGLING_REF`, the target does not exist
+(see [`DANGLING_REF`](#dangling_ref--error-or-warning)).
 
 **Also when:** In an OpenAPI 3.2 document, a `content` entry has a
 `$ref` that does not resolve to an entry in `components.mediaTypes`.
@@ -583,6 +585,28 @@ each schema.
 **Remediation:** If any value is correct for the schema, no action is
 necessary. To get a union, set `settings.system.anyOf` to `union`
 (the default), or remove it. See
+[`settings.system`](settings/client-json-schema.md#settingssystem-optional).
+
+### `DANGLING_REF` — error or warning
+
+**When:** A `$ref` names nothing in the document. There is one issue
+for each place that has the `$ref`. The location is that place.
+
+- **error:** `settings.system.danglingRefs` is `strict` (the
+  default). The parser removes the item that has the `$ref`. Each item
+  that refers to that item gets an `INVALID_DEPENDENCY_REF`.
+- **warning:** `settings.system.danglingRefs` is `keep`. The `$ref`
+  stays. When a generator resolves it, core throws a
+  `DanglingRefError`.
+
+**Typical message:** `Ref "#/components/schemas/X" names nothing in
+the document, so what holds it is removed (system.danglingRefs is
+strict).`
+
+**Remediation:** Add the target to `components` in the source
+document, or correct the `$ref`. To keep the items that have the `$ref`, set
+`settings.system.danglingRefs` to `keep`, and use generators that
+catch `DanglingRefError`. See
 [`settings.system`](settings/client-json-schema.md#settingssystem-optional).
 
 ## GraphQL parse-issue types

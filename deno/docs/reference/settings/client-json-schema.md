@@ -343,6 +343,15 @@ the usual parse. Default: `{}`.
   nullable. Each such schema logs one `ANYOF_AS_UNKNOWN` warning. An
   `anyOf` with one member, or an `anyOf` of single values such as
   `string | number`, parses as it does with `union`.
+- **`danglingRefs`** — `"strict"` (default) or `"keep"`. This field
+  sets what the parser does with a `$ref` that names nothing in the
+  document. With `strict`, each place that has such a `$ref` logs a
+  `DANGLING_REF` error. The parser removes the item that has the `$ref`, and each
+  item that refers to that item (`INVALID_DEPENDENCY_REF`). With
+  `keep`, each place logs a `DANGLING_REF` warning, and the `$ref`
+  stays. When a generator resolves the `$ref`, core throws a
+  `DanglingRefError`. The generator can catch the error and write a
+  different value, for example `unknown`.
 - **`responseContradictions`** — `"strict"` (default) or `"unknown"`.
   Reserved. The validator accepts it, but the parser does not read it.
 
