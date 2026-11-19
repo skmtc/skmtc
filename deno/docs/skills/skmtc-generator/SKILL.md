@@ -263,7 +263,7 @@ the text into a template.
 | `null` slips through an optional guard | `!== undefined` lets `null` pass on Nullable generics — check both |
 | `insertResult.identifier` is a type error | You have an `Inserted` handle (from `insertModel`) — use `.toName()`/`.definition`; only `insertNormalizedModel` returns the definition |
 | `` toRefName(`...${name}`) `` anywhere | Fabricated ref — go through a peer's two doors, never its statics |
-| `DanglingRefError` from `insertModel` or `resolve()` | The `$ref` names nothing, and `client.json` sets `settings.system.danglingRefs: keep`. Catch that error class where you insert or resolve the ref, and render a fallback; with the default `strict` the parser removes such refs |
+| `DanglingRefError` from `insertModel` or `resolve()` | The `$ref` names nothing, and `client.json` sets `settings.system.danglingRefs: keep`. Catch it where you insert or resolve the ref, test it with `DanglingRefError.is(error)` (not `instanceof`: your bundle can have another copy of core), throw any other error again, and render a fallback; with the default `strict` the parser removes such refs |
 | Reading fields off a peer's value beyond the definition/name | Coupled to the peer's PRIVATE snippet shape — it will change silently |
 
 ## 7. The lang layer

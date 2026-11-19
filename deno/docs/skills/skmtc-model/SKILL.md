@@ -77,8 +77,10 @@ engine machinery — modifying it is almost always a mistake.
   `settings.system.danglingRefs: strict`, the parser removes what holds
   such a `$ref`, so your generator never sees it. With `keep`, the
   `$ref` stays, and inserting or resolving it throws `DanglingRefError`
-  (from `@skmtc/core`). To render the item, catch that error class (no
-  other) in your ref snippet and render the unknown fallback.
+  (from `@skmtc/core`). To render the item, catch it in your ref
+  snippet and render the unknown fallback. Test it with
+  `DanglingRefError.is(error)` and throw any other error again;
+  `instanceof` is false when your bundle has another copy of core.
 - **Recursion is a protocol, not a special case.** While a model's
   projection is constructed, the model has a pending entry. A reference
   back to it comes out of `toModelRef` as `suspended`; any other

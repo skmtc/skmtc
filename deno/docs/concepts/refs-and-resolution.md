@@ -228,11 +228,13 @@ resolveOnce(): OasRef<T> | ResolvedRef<T> {
 ```
 
 So a `OasRef<'schema'>` that resolves to a parameter (different
-`refType`) throws at resolution time. This catches authoring mistakes
-in the OAS document — e.g., a path that says `$ref:
-'#/components/parameters/userId'` in a request-body schema position
-(wrong component bucket) would throw on `.resolve()` with a clear
-error.
+`refType`) throws at resolution time. This catches mistakes in the
+OAS document. A `$ref` also names the part of `components` that
+it reads, and `#resolveOasOnce` compares that part with `refType`
+before the lookup. A request-body schema with `$ref:
+'#/components/parameters/userId'` throws `Ref type mismatch` on
+`.resolve()`. The parser logs a `REF_TYPE_MISMATCH` warning at each
+such place (see [Refs that name nothing](#refs-that-name-nothing)).
 
 ## Cycle protection: MAX_LOOKUPS
 
@@ -281,21 +283,38 @@ for that address-bridging step.
 
 ## Refs that name nothing
 
-`registerOasRef` also keeps one `OasRef` for each `$ref` string. At
-end-of-parse, before the cascade, `ParseContext` resolves each one
-once. When a `$ref` names nothing in the document, `resolveOnce()`
-throws `DanglingRefError`. Each place that has that `$ref` then logs
-a `DANGLING_REF` issue. The `client.json` setting
+`registerOasRef` also keeps each `OasRef` with the place that has it.
+At end-of-parse, before the cascade, `ParseContext` resolves each one
+once, at that place. When a `$ref` names nothing in the document,
+`resolveOnce()` throws `DanglingRefError`, and the place logs a
+`DANGLING_REF` issue. The `client.json` setting
 `settings.system.danglingRefs` sets the level:
 
-- `strict` (the default): an error. The error goes into
-  `#refErrors`, so the cascade removes what holds the `$ref`.
+- `strict` (the default): an error. In a component, the error goes
+  into `#refErrors`, so the cascade removes the component and what
+  uses it. Outside the components, `ParseContext` removes what holds
+  the `$ref` at once. That is the operation that has the `$ref`. For a
+  path-level parameter, it is each operation on the path.
 - `keep`: a warning. The `$ref` stays, and `resolveOnce()` throws
   `DanglingRefError` for it. A generator can catch the error and write a
-  different value.
+  different value. Test for it with `DanglingRefError.is(error)`.
+
+A `$ref` to an example or a link is a warning with both values. When
+`resolveOnce()` throws another error, the `$ref` names an item of the
+wrong kind, and the place logs a `REF_TYPE_MISMATCH` warning.
 
 A `$ref` to a component that failed to parse already has an error in
 `#refErrors`. That `$ref` gets no `DANGLING_REF`.
+
+Some `$ref`s are not `OasRef`s. Core resolves them during the parse,
+for example to merge the members of an `allOf`. When one of these
+names nothing, the item that has it gets a `DANGLING_REF` error with
+both values, and the parser removes it.
+
+An operation depends on each security scheme in its `security`, also
+when it gets them from the root `security`. The parser registers the
+operation as a consumer of each scheme, so the cascade removes the
+operation together with the scheme.
 
 ## Cascade pruning
 

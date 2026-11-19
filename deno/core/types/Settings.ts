@@ -591,7 +591,9 @@ export type SystemSettings = {
    * parse error, and what holds it is removed, with what uses that. `keep`:
    * the `$ref` stays, with a warning, and resolving it throws
    * `DanglingRefError`, which a generator can catch to render something
-   * else.
+   * else. With either, a `$ref` to an example or a link is a warning and
+   * stays, and a `$ref` that core resolves while it parses (an `allOf`
+   * member that it merges) is an error, and what holds it is removed.
    */
   danglingRefs?: 'strict' | 'keep'
 }

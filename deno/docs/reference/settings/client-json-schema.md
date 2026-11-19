@@ -351,7 +351,11 @@ the usual parse. Default: `{}`.
   `keep`, each place logs a `DANGLING_REF` warning, and the `$ref`
   stays. When a generator resolves the `$ref`, core throws a
   `DanglingRefError`. The generator can catch the error and write a
-  different value, for example `unknown`.
+  different value, for example `unknown`. With both values, a `$ref`
+  to an example or a link gives a warning and stays. A `$ref` that core
+  resolves during the parse gives an error, and the parser removes the
+  item that has it. An example is a member of an `allOf` that core
+  merges.
 - **`responseContradictions`** — `"strict"` (default) or `"unknown"`.
   Reserved. The validator accepts it, but the parser does not read it.
 

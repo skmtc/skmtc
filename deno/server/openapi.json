@@ -1308,6 +1308,9 @@
                               "const": "DANGLING_REF"
                             },
                             {
+                              "const": "REF_TYPE_MISMATCH"
+                            },
+                            {
                               "const": "RUN_FAILED"
                             }
                           ]
@@ -1472,6 +1475,9 @@
                               "const": "DANGLING_REF"
                             },
                             {
+                              "const": "REF_TYPE_MISMATCH"
+                            },
+                            {
                               "const": "RUN_FAILED"
                             }
                           ]
@@ -1597,6 +1603,9 @@
                             },
                             {
                               "const": "DANGLING_REF"
+                            },
+                            {
+                              "const": "REF_TYPE_MISMATCH"
                             },
                             {
                               "const": "RUN_FAILED"

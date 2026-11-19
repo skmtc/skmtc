@@ -130,7 +130,12 @@ target is itself a `$ref`, follows the chain.
 - `DanglingRefError` (`Ref "<$ref>" names nothing in the document`)
   if a link in the chain names nothing in the document. The parser
   removes such a ref unless `client.json` sets
-  `settings.system.danglingRefs` to `keep`.
+  `settings.system.danglingRefs` to `keep`. Test for it with
+  `DanglingRefError.is(error)`.
+- `Ref type mismatch for "<$ref>"` if the `$ref` names the wrong part
+  of `components` for `refType`. An example is a `requestBody` ref to
+  `#/components/schemas/Pet`. The parser logs a `REF_TYPE_MISMATCH`
+  warning for it.
 - `Ref type mismatch for "<$ref>"` if the resolved target has the
   wrong `oasType` (e.g., a `OasRef<'schema'>` that resolves to a
   parameter)
@@ -221,13 +226,14 @@ construction.
 The trick that lets `OasRef` work without two-pass parsing:
 
 ```ts
-// core/oas/ref/toRefV31.ts
-context.registerRef(stackTrail.clone(), $ref)
-
-return new OasRef(
-  { refType, $ref },
-  context.parsedDocument  // ← reference to mutable document
+// core/parse/v3-1/ref/toRefV31.ts
+const oasRef = context.withStackTrail(stackTrail, () =>
+  new OasRef({ ...siblings, refType, $ref }, context)  // ← holds the mutable document
 )
+
+context.registerOasRef(stackTrail.clone(), oasRef)
+
+return oasRef
 ```
 
 `context.parsedDocument` returns the **same mutable instance** that
@@ -380,5 +386,5 @@ schemas before passing to Skmtc.
 
 - [Refs and resolution concept](../../concepts/refs-and-resolution.md) — the mental model
 - [OAS schema variants](oas-schema-variants.md) — the union `OasRef` resolves into
-- [Error codes](../error-codes.md) — `Max lookups reached`, `Ref not found`, type mismatch
+- [Error codes](../error-codes.md) — `DANGLING_REF`, `REF_TYPE_MISMATCH`
 - [API: ParseContext](parse-context.md) — where `OasRef`s get constructed during parse
