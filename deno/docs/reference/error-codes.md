@@ -610,6 +610,10 @@ warning. The model then has no properties from that member. When the
 list does not have `allOfMember`, core gives an error, and the parser
 removes the item that has the `allOf`. The location is that item.
 
+Core also merges in a `oneOf` or an `anyOf`: the `allOf` of a member,
+and each member with the keywords next to the union. The same rule
+applies to these `$ref`s. The location is the item that has the union.
+
 **Typical messages:**
 
 - `Ref "#/components/schemas/X" names nothing in the document, so what holds it is removed. To keep it, list 'schema' in system.danglingRefs.`

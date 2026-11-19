@@ -425,6 +425,48 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     }
   })
 
+  Deno.test(`${openapi} a dangling ref that core merges in a oneOf or anyOf: removed unless 'allOfMember' is listed, then left out of the merge`, () => {
+    const missing = { $ref: '#/components/schemas/Missing' }
+    const objectWith = (name: string) => ({ type: 'object', properties: { [name]: { type: 'string' } } })
+    // Core merges a member's own `allOf`, and each member with the keywords
+    // beside the union. Each member is listed by its properties, or its type.
+    const unions = [
+      { U: { oneOf: [{ allOf: [missing, objectWith('u')] }, { type: 'string' }] }, members: ['u', 'string'] },
+      { U: { anyOf: [{ allOf: [missing, objectWith('u')] }, { type: 'string' }] }, members: ['u', 'string'] },
+      { U: { ...objectWith('id'), oneOf: [missing, objectWith('b')] }, members: ['id', 'id,b'] }
+    ]
+    const cases = [
+      { system: undefined, listed: false },
+      { system: { danglingRefs: ['schema'] } satisfies SystemSettings, listed: false },
+      { system: { danglingRefs: ['allOfMember'] } satisfies SystemSettings, listed: true }
+    ]
+    const toMember = (member: OasSchema | OasRef<'schema'>): string => {
+      if (member.isRef()) {
+        return member.$ref
+      }
+
+      return member.type === 'object' ? Object.keys(member.properties ?? {}).join(',') : member.type
+    }
+
+    for (const { U, members } of unions) {
+      for (const { system, listed } of cases) {
+        const { toSchema, issuesOf } = parse({ openapi, system, document: { components: { schemas: { U } } } })
+
+        // Never a union with the member dropped and no issue.
+        const u = toSchema('U')
+        assertEquals(u !== undefined, listed)
+        if (u !== undefined) {
+          assert(!u.isRef() && u.type === 'union')
+          assertEquals(u.members.map(toMember), members)
+        }
+        assertEquals(
+          issuesOf('DANGLING_REF').map(({ level, location }) => ({ level, location })),
+          [{ level: listed ? 'warning' : 'error', location: 'TEST:components:schemas:U' }]
+        )
+      }
+    }
+  })
+
   Deno.test(`${openapi} a percent-encoded ref names the component it encodes`, () => {
     const { toOperation, issuesOf } = parse({
       openapi,

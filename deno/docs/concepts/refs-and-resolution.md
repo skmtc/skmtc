@@ -319,6 +319,12 @@ gets a `DANGLING_REF` error, and the parser removes it. The list has
 `allOfMember` apart from `schema` because here core, not the generator,
 makes the decision.
 
+Core also merges in a `oneOf` or an `anyOf`: the `allOf` of a member,
+and each member with the keywords next to the union. The same rule
+applies to these `$ref`s. The union merge removes a pair of members that
+contradict. A `$ref` that names nothing is not a contradiction, so the
+merge does not remove a member for it.
+
 An operation depends on each security scheme in its `security`, also
 when it gets them from the root `security`. The parser registers the
 operation as a consumer of each scheme, so the cascade removes the

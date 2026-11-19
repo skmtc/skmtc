@@ -359,7 +359,10 @@ the usual parse. Default: `{}`.
     generator does not see them. With `"allOfMember"` in the list, core
     leaves out a member that names nothing. The model then has no
     properties from that member. Without it, the parser removes the item
-    that has the `allOf`. `"schema"` does not cover this case.
+    that has the `allOf`. `"schema"` does not cover this case. Core also
+    merges in a `oneOf` or an `anyOf`. It merges the `allOf` of a member,
+    and each member with the keywords next to the union. The same rule
+    applies there.
 
   A `$ref` to an item of the wrong kind (`REF_TYPE_MISMATCH`) is always
   an error, and this field does not change it.

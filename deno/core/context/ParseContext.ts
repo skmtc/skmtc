@@ -737,8 +737,10 @@ export class ParseContext {
   }
 
   /**
-   * What an `allOf` merge reads in place of a member `$ref` that names
-   * nothing. When `system.danglingRefs` lists `allOfMember`, it is `{}`, which
+   * What a merge reads in place of a `$ref` that names nothing: an `allOf`
+   * member, or in a `oneOf` or `anyOf`, a member's own `allOf` member or a
+   * member merged with the keywords beside the union. When
+   * `system.danglingRefs` lists `allOfMember`, it is `{}`, which
    * adds nothing to the merge (`A & unknown` is `A`), and a `DANGLING_REF`
    * warning at `stackTrail`: the model has no properties from that member.
    * Otherwise it throws `DanglingRefError`, and what holds the `allOf` is

@@ -245,7 +245,9 @@ export const anchorsSettings: v.GenericSchema<AnchorsSettings> = v.object({
 
 /**
  * What `client.json#settings.system.danglingRefs` can list: each kind of
- * `$ref`, and `allOfMember`, a member of an `allOf` that core merges at parse.
+ * `$ref`, and `allOfMember`, a `$ref` that core merges at parse: a member of
+ * an `allOf`, also one inside a `oneOf` or `anyOf` member, or a `oneOf` or
+ * `anyOf` member merged with the keywords beside the union.
  */
 export const danglingRefKinds = [
   'schema',
@@ -611,9 +613,11 @@ export type SystemSettings = {
    * `$ref` of a listed kind stays, with a warning, and resolving it throws
    * `DanglingRefError` for the generator to handle. A dangling `$ref` of any
    * other kind is a parse error, and what holds it is removed, with what uses
-   * that. `allOfMember` is core's own choice, made at parse: a member of an
-   * `allOf` that core merges is left out of the merge, so its properties are
-   * not in the model. The default, `[]`, lists none.
+   * that. `allOfMember` is core's own choice, made at parse: a `$ref` that
+   * core merges (a member of an `allOf`, also inside a `oneOf` or `anyOf`
+   * member, or a union member merged with the keywords beside the union) is
+   * left out of the merge, so its properties are not in the model. The
+   * default, `[]`, lists none.
    */
   danglingRefs?: DanglingRefKind[]
 }
