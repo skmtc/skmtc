@@ -231,17 +231,32 @@ export class OasOperation extends OasBase {
   }
 
   /**
-   * Resolve all parameters and optionally filter by location.
+   * The parameters that apply to this operation, as OpenAPI defines them: the
+   * path item's parameters apply to each of its operations, and an operation's
+   * own parameter with the same name and location replaces the path item's.
+   * The path item's come first.
    *
-   * As OpenAPI defines them: the path item's parameters apply to each of its
-   * operations, and an operation's own parameter with the same name and
-   * location replaces the path item's. The path item's come first.
+   * References stay references, so a caller can resolve each one on its own.
+   * A reference that names nothing (kept when `system.danglingRefs` lists
+   * `parameter`) keeps its place, and resolving it throws `DanglingRefError`.
+   * {@link OasOperation.toParams} resolves them all.
+   *
+   * @returns the parameters, path item's first
+   */
+  toEffectiveParameters(): (OasParameter | OasRef<'parameter'>)[] {
+    return toEffectiveParameters({ own: this.parameters, shared: this.pathItem?.parameters })
+  }
+
+  /**
+   * Resolve all parameters and optionally filter by location: the resolved
+   * {@link OasOperation.toEffectiveParameters}.
    *
    * @param filter - only include parameters from specified locations
    * @returns
+   * @throws {DanglingRefError} when a parameter is a reference that names nothing
    */
   toParams(filter?: OasParameterLocation[]): OasParameter[] {
-    return toEffectiveParameters({ own: this.parameters, shared: this.pathItem?.parameters })
+    return this.toEffectiveParameters()
       .map(param => param.resolve())
       .filter(param => (filter?.length ? filter.includes(param.location) : true))
   }
@@ -271,10 +286,7 @@ export class OasOperation extends OasBase {
    * @returns OpenAPI v3 operation object
    */
   toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.OperationObject {
-    const parameters = toEffectiveParameters({
-      own: this.parameters,
-      shared: this.pathItem?.parameters
-    })
+    const parameters = this.toEffectiveParameters()
 
     return {
       tags: this.tags,

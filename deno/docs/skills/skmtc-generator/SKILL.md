@@ -12,7 +12,7 @@ description: >
   (skmtc-lang-typescript).
 metadata:
   describes:
-    '@skmtc/core': '0.42'
+    '@skmtc/core': '0.43'
 ---
 
 # Authoring Skmtc generators
@@ -263,7 +263,7 @@ the text into a template.
 | `null` slips through an optional guard | `!== undefined` lets `null` pass on Nullable generics — check both |
 | `insertResult.identifier` is a type error | You have an `Inserted` handle (from `insertModel`) — use `.toName()`/`.definition`; only `insertNormalizedModel` returns the definition |
 | `` toRefName(`...${name}`) `` anywhere | Fabricated ref — go through a peer's two doors, never its statics |
-| `DanglingRefError` from `insertModel`, `resolve()` or an accessor such as `toParams()` | A `$ref` names nothing, and `client.json` `settings.system.danglingRefs` lists its kind (`schema`, `parameter`, `requestBody`, `response`, `header`, `securityScheme`, `example`, `link`). Catch it where you insert or resolve that kind, test it with `DanglingRefError.is(error)` (not `instanceof`: your bundle can have another copy of core), throw any other error again, and decide: render a fallback (`unknown` for a schema) or fail the item. A kind the list leaves out never reaches you: by default (`[]`) the parser removes what holds it |
+| `DanglingRefError` from `insertModel`, `resolve()` or an accessor such as `toParams()` | A `$ref` names nothing, and `client.json` `settings.system.danglingRefs` lists its kind (`schema`, `parameter`, `requestBody`, `response`, `header`, `securityScheme`, `example`, `link`). Catch it where you insert or resolve that kind (for parameters, resolve each entry of `operation.toEffectiveParameters()`), test it with `DanglingRefError.is(error)` (not `instanceof`: your bundle can have another copy of core), throw any other error again, and decide: render a fallback (`unknown` for a schema) or fail the item. A kind the list leaves out never reaches you: by default (`[]`) the parser removes what holds it |
 | Reading fields off a peer's value beyond the definition/name | Coupled to the peer's PRIVATE snippet shape — it will change silently |
 
 ## 7. The lang layer

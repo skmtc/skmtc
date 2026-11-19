@@ -149,13 +149,26 @@ export class OasWebhook extends OasBase {
   }
 
   /**
+   * The inbound parameters that apply to this webhook, path item parameters
+   * included, with references unresolved. Mirrors
+   * {@link OasOperation.toEffectiveParameters}.
+   *
+   * @returns the parameters, path item's first
+   */
+  toEffectiveParameters(): (OasParameter | OasRef<'parameter'>)[] {
+    return toEffectiveParameters({ own: this.parameters, shared: this.pathItem?.parameters })
+  }
+
+  /**
    * Resolve the inbound parameters (e.g. the signature/headers a handler
    * receives), optionally filtered by location. Mirrors
    * {@link OasOperation.toParams}, path item parameters included; the
    * parameters carry the same shape, only their direction is inbound.
+   *
+   * @throws {DanglingRefError} when a parameter is a reference that names nothing
    */
   toParams(filter?: OasParameterLocation[]): OasParameter[] {
-    return toEffectiveParameters({ own: this.parameters, shared: this.pathItem?.parameters })
+    return this.toEffectiveParameters()
       .map(param => param.resolve())
       .filter(param => (filter?.length ? filter.includes(param.location) : true))
   }

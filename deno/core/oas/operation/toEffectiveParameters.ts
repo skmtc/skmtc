@@ -1,5 +1,6 @@
 import type { OasParameter } from '@/oas/parameter/Parameter.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 
 type Parameter = OasParameter | OasRef<'parameter'>
 
@@ -14,6 +15,10 @@ type ToEffectiveParametersArgs = {
  * The parameters that apply to an operation or webhook, as OpenAPI defines
  * them: the path item's first, then its own. An own parameter with the same
  * name and location replaces the path item's. References stay references.
+ *
+ * A reference that names nothing (kept when `system.danglingRefs` lists
+ * `parameter`) has no name or location. It keeps its place, and only the
+ * same `$ref` replaces it.
  */
 export const toEffectiveParameters = ({
   own = [],
@@ -25,7 +30,19 @@ export const toEffectiveParameters = ({
 }
 
 const toParameterKey = (parameter: Parameter): string => {
-  const { name, location } = parameter.resolve()
+  if (!parameter.isRef()) {
+    return `${parameter.location}:${parameter.name}`
+  }
 
-  return `${location}:${name}`
+  try {
+    const { name, location } = parameter.resolve()
+
+    return `${location}:${name}`
+  } catch (error) {
+    if (DanglingRefError.is(error)) {
+      return `$ref:${parameter.$ref}`
+    }
+
+    throw error
+  }
 }
