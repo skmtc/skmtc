@@ -1,6 +1,6 @@
 {
   "@skmtc/core": {
-    "minor": "0.40",
+    "minor": "0.41",
     "deno": "2.9.8",
     "exports": {
       "AddPropertyArgs": "6922b41f66aabe95",
@@ -27,6 +27,7 @@
       "CustomValue": "1c02c56ab3e2bc05",
       "DEFAULT_GENERATED_SUFFIX": "92387e879945c3fc",
       "DEFAULT_VARIANT": "97c016b3d9102998",
+      "DanglingRefError": "759a736288376224",
       "DefinitionBase": "2ff1b22d970cf9df",
       "DefinitionContainer": "2dd86760262c3abf",
       "DiscriminatorFields": "2a73fcfa7713424d",
@@ -198,7 +199,7 @@
       "OasInfoData": "c219af7b9e6f0353",
       "OasInteger": "b36bd0d8909fa20c",
       "OasIntegerData": "fe715ae76ee14321",
-      "OasIssueType": "e2102daa09215ff1",
+      "OasIssueType": "0feb9d9c23744ca3",
       "OasLicense": "a2c7b47f701f3f83",
       "OasLicenseData": "10fce47c16c703e0",
       "OasLink": "1cbb066fc23229f0",
@@ -258,7 +259,7 @@
       "PackageDenoJson": "89b58e8b93789782",
       "PackageMatch": "d633ac2162980c8d",
       "ParameterFields": "7bb64fd240f70952",
-      "ParseContext": "6c55d0f1815d2635",
+      "ParseContext": "6ecab3269a20a691",
       "ParseContextType": "5cb968c87d696959",
       "ParseErrorInput": "5eda50158bf0054f",
       "ParseIssue": "a6ca841b96276332",
@@ -324,7 +325,7 @@
       "SupportedOasOperation": "7160e71dd4dde0ab",
       "SupportedSubjects": "9ac0132fb967c626",
       "SupportedWebhook": "db7d94054a27c998",
-      "SystemSettings": "298a390a0a3ba5bd",
+      "SystemSettings": "35ff50403ef9e4e0",
       "TagFields": "525108eaf603e0b8",
       "ToArrayArgs": "6f0fbe1740e57bc3",
       "ToArtifactsArgs": "257d987f0aab798f",
