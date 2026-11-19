@@ -233,8 +233,9 @@ OAS document. A `$ref` also names the part of `components` that
 it reads, and `#resolveOasOnce` compares that part with `refType`
 before the lookup. A request-body schema with `$ref:
 '#/components/parameters/userId'` throws `Ref type mismatch` on
-`.resolve()`. The parser logs a `REF_TYPE_MISMATCH` warning at each
-such place (see [Refs that name nothing](#refs-that-name-nothing)).
+`.resolve()`. The parser logs a `REF_TYPE_MISMATCH` error at each
+such place and removes what holds the `$ref`. A generator never gets
+one (see [Refs that name nothing](#refs-that-name-nothing)).
 
 ## Cycle protection: MAX_LOOKUPS
 
@@ -288,31 +289,32 @@ At end-of-parse, before the cascade, `ParseContext` resolves each one
 once, at that place. When a `$ref` names nothing in the document,
 `resolveOnce()` throws `DanglingRefError`, and the place logs a
 `DANGLING_REF` issue. The `client.json` setting
-`settings.system.danglingRefs` sets the level:
+`settings.system.danglingRefs` lists the kinds of `$ref` that can name
+nothing. The default list is empty.
 
-- `strict` (the default): an error. In a component, the error goes
-  into `#refErrors`, so the cascade removes the component and what
+- A kind that is not in the list: an error. In a component, the error
+  goes into `#refErrors`, so the cascade removes the component and what
   uses it. Outside the components, `ParseContext` removes what holds
   the `$ref` at once. That is the operation that has the `$ref`. For a
   path-level parameter, it is each operation on the path.
-- `keep`: a warning for a schema `$ref`. The `$ref` stays, and
-  `resolveOnce()` throws `DanglingRefError` for it. A generator can
-  catch the error and write a different value, for example `unknown`.
-  Test for it with `DanglingRefError.is(error)`. A `$ref` of a different
-  kind is an error, as with `strict`. A generator cannot write a
-  parameter, a body or a response that it cannot see.
+- A kind in the list: a warning. The `$ref` stays, and `resolveOnce()`
+  throws `DanglingRefError` for it. The generator decides what to do.
+  For example, it writes `unknown` for a schema, or fails the operation
+  for a parameter. Test for the error with `DanglingRefError.is(error)`.
 
-A `$ref` to an example or a link is a warning with both values. When
-`resolveOnce()` throws another error, the `$ref` names an item of the
-wrong kind, and the place logs a `REF_TYPE_MISMATCH` warning.
+When `resolveOnce()` throws another error, the `$ref` names an item of
+the wrong kind. The place logs a `REF_TYPE_MISMATCH` error, and the
+parser removes what holds the `$ref` in the same way. The list does not
+apply: the parser gives a generator only what the place promises.
 
 A `$ref` to a component that failed to parse already has an error in
 `#refErrors`. That `$ref` gets no `DANGLING_REF`.
 
-Some `$ref`s are not `OasRef`s. Core resolves them during the parse,
-for example to merge the members of an `allOf`. When one of these
-names nothing, the item that has it gets a `DANGLING_REF` error with
-both values, and the parser removes it.
+Some `$ref`s are not `OasRef`s. Core resolves them during the parse to
+merge the members of an `allOf`. When a member names nothing and the
+list has `schema`, core leaves the member out of the merge
+(`A & unknown` is `A`). Otherwise the item that has the `allOf` gets a
+`DANGLING_REF` error, and the parser removes it.
 
 An operation depends on each security scheme in its `security`, also
 when it gets them from the root `security`. The parser registers the
@@ -362,10 +364,10 @@ via `resolve()`. The intermediate `OasRef` is followed transparently.
 
 `resolveOnce()` throws `DanglingRefError`. A parse error does not
 cause this: the cascade removes every item that reaches a removed
-component, at all depths. With the default
-`settings.system.danglingRefs: strict`, the cascade also removes a
-`$ref` to a component that the document does not define. With
-`keep`, a schema `$ref` of that kind stays, and `resolveOnce()` throws for it. If the generator
+component, at all depths. By default, the cascade also removes a
+`$ref` to a component that the document does not define. When
+`settings.system.danglingRefs` lists the kind of the `$ref`, it stays,
+and `resolveOnce()` throws for it. If the generator
 does not catch the error, the engine marks the item `'error'` in the
 manifest.
 

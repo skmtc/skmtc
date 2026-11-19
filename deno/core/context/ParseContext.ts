@@ -124,6 +124,18 @@ const toRefKey = ($ref: string): string => {
   return bucket === undefined ? $ref : `#/components/${bucket}/${toRefName($ref)}`
 }
 
+type RemoveHolderArgs = WrittenRef & {
+  error: unknown
+  type: 'DANGLING_REF' | 'REF_TYPE_MISMATCH'
+  message: string
+}
+
+type ToDanglingAllOfMemberArgs = {
+  $ref: string
+  /** The schema that holds the `allOf`. */
+  stackTrail: StackTrail
+}
+
 /** The stored form of an issue: an error's `cause` as a `SerializedError`. */
 const toParseIssue = (issue: LogIssueAtArgs): ParseIssue => {
   if (issue.level !== 'error') {
@@ -638,18 +650,15 @@ export class ParseContext {
    * Resolves each OAS ref once the document is parsed, at each place it is
    * written, and logs an issue there when it does not resolve:
    *
-   * - A ref that names nothing logs `DANGLING_REF`. Under `client.json`
-   *   `system.danglingRefs: strict` (the default) it is an error: what holds
-   *   the ref is removed, and what uses that. Under `keep`, a schema ref is a
-   *   warning and stays, for a generator to write something in its place
-   *   (`unknown`). A ref of any other kind is an error as under `strict`: a
-   *   generator has nothing to write for a parameter, a body or a response
-   *   it cannot see. A ref to an example or a link is a warning in both
-   *   modes: no generator needs one to render types or clients.
+   * - A ref that names nothing logs `DANGLING_REF`. When `client.json`
+   *   `system.danglingRefs` lists its kind, it is a warning: the ref stays,
+   *   and resolving it throws `DanglingRefError` for the generator to handle.
+   *   Otherwise (the default, `[]`, lists none) it is an error, and what holds
+   *   the ref is removed, with what uses that.
    * - A ref to a component of the wrong kind, such as a request body that is
    *   a `$ref` to `#/components/schemas/Pet`, logs a `REF_TYPE_MISMATCH`
-   *   warning. The ref stays, and resolving it throws. Resolving a ref
-   *   throws no other error.
+   *   error, and what holds it is removed: the parser hands a generator what
+   *   the place promises, or nothing. Resolving a ref throws no other error.
    *
    * A ref whose target failed to parse is left out: the target's error
    * removes what holds it.
@@ -663,56 +672,55 @@ export class ParseContext {
       try {
         ref.resolveOnce()
       } catch (error) {
-        if (DanglingRefError.is(error)) {
-          this.#logDanglingRef({ consumer, ref, error })
-        } else {
+        if (!DanglingRefError.is(error)) {
+          const message = error instanceof Error ? error.message : String(error)
+
+          this.#removeHolder({
+            consumer,
+            ref,
+            error,
+            type: 'REF_TYPE_MISMATCH',
+            message: `${message}, so what holds it is removed.`
+          })
+        } else if (this.system.danglingRefs?.includes(ref.refType)) {
           this.logIssueNoKey({
             level: 'warning',
-            message: `${error instanceof Error ? error.message : String(error)}. It is kept, and resolving it throws.`,
+            message: `${error.message}. It is kept (system.danglingRefs lists '${ref.refType}'), and resolving it throws DanglingRefError.`,
             parent: { $ref: ref.$ref },
             stackTrail: consumer,
-            type: 'REF_TYPE_MISMATCH'
+            type: 'DANGLING_REF'
+          })
+        } else {
+          this.#removeHolder({
+            consumer,
+            ref,
+            error,
+            type: 'DANGLING_REF',
+            message: `${error.message}, so what holds it is removed. To keep it, list '${ref.refType}' in system.danglingRefs.`
           })
         }
       }
     })
   }
 
-  #logDanglingRef({ consumer, ref, error }: WrittenRef & { error: DanglingRefError }): void {
-    const exampleOrLink = ref.refType === 'example' || ref.refType === 'link'
-    const keep = this.system.danglingRefs === 'keep'
-
-    if (exampleOrLink || (keep && ref.refType === 'schema')) {
-      this.logIssueNoKey({
-        level: 'warning',
-        message: exampleOrLink
-          ? `${error.message}. It is kept, as a ref to an example or a link is in both system.danglingRefs modes, and resolving it throws DanglingRefError.`
-          : `${error.message}. It is kept (system.danglingRefs is keep), and resolving it throws DanglingRefError.`,
-        parent: { $ref: ref.$ref },
-        stackTrail: consumer,
-        type: 'DANGLING_REF'
-      })
-
-      return
-    }
-
-    // An error inside a component removes that component, and what uses it
-    // (`removeErroredItems`).
+  /**
+   * Logs an error at the place a ref is written and removes what holds it.
+   * An error inside a component removes that component, and what uses it
+   * (`removeErroredItems`). What holds the ref outside the components (an
+   * operation, a webhook, a path-level parameter) is removed here. Its own
+   * location has the error already; an operation that a path-level parameter
+   * applies to gets an `INVALID_DEPENDENCY_REF`.
+   */
+  #removeHolder({ consumer, ref, error, type, message }: RemoveHolderArgs): void {
     this.logIssueNoKey({
       level: 'error',
-      message: keep
-        ? `${error.message}, so what holds it is removed (system.danglingRefs: keep keeps a schema ref only).`
-        : `${error.message}, so what holds it is removed (system.danglingRefs is strict).`,
+      message,
       cause: error,
       parent: { $ref: ref.$ref },
       stackTrail: consumer,
-      type: 'DANGLING_REF'
+      type
     })
 
-    // What holds the ref outside the components (an operation, a webhook, a
-    // path-level parameter) is removed here. Its own location has the
-    // DANGLING_REF already; an operation that a path-level parameter applies
-    // to gets an INVALID_DEPENDENCY_REF.
     const documentTrail = this.#toDocumentTrail(consumer)
 
     if (documentTrail.toStackRef() !== undefined) {
@@ -726,6 +734,31 @@ export class ParseContext {
       .forEach(removed =>
         this.#logDependencyIssue({ location: removed, refKey: ref.$ref, rootCause: { error, location } })
       )
+  }
+
+  /**
+   * What an `allOf` merge reads in place of a member `$ref` that names
+   * nothing. When `system.danglingRefs` lists `schema`, it is `{}`, which adds
+   * nothing to the merge (`A & unknown` is `A`), and a `DANGLING_REF` warning
+   * at `stackTrail`. Otherwise it throws `DanglingRefError`, and what holds
+   * the `allOf` is removed.
+   */
+  toDanglingAllOfMember({ $ref, stackTrail }: ToDanglingAllOfMemberArgs): OpenAPIV3.SchemaObject {
+    const error = new DanglingRefError($ref)
+
+    if (!this.system.danglingRefs?.includes('schema')) {
+      throw error
+    }
+
+    this.logIssueNoKey({
+      level: 'warning',
+      message: `${error.message}. It is left out of the allOf merge (system.danglingRefs lists 'schema').`,
+      parent: { $ref },
+      stackTrail,
+      type: 'DANGLING_REF'
+    })
+
+    return {}
   }
 
   /**

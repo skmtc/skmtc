@@ -51,6 +51,7 @@
 
 import { type GeneratorEnrichments, generatorEnrichments } from './Enrichments.ts'
 import * as v from 'valibot'
+import type { OasRefData } from '@/oas/ref/ref-types.ts'
 import { type Method, method } from './Method.ts'
 import {
   hasParentSegment,
@@ -242,13 +243,28 @@ export const anchorsSettings: v.GenericSchema<AnchorsSettings> = v.object({
   out: v.optional(v.string())
 })
 
+/** The kinds of `$ref` that `client.json#settings.system.danglingRefs` can list. */
+export const danglingRefKinds = [
+  'schema',
+  'parameter',
+  'requestBody',
+  'response',
+  'header',
+  'securityScheme',
+  'example',
+  'link'
+] as const satisfies readonly OasRefData['refType'][]
+
+/** A kind of `$ref` that `system.danglingRefs` can let name nothing. */
+export type DanglingRefKind = (typeof danglingRefKinds)[number]
+
 /** Valibot schema for {@link SystemSettings}: `client.json#settings.system`. */
 export const systemSettings: v.GenericSchema<SystemSettings> = v.object({
   allOf: v.optional(v.picklist(['strict', 'latestWins'])),
   responseContradictions: v.optional(v.picklist(['strict', 'unknown'])),
   not: v.optional(v.picklist(['strict', 'unknown'])),
   anyOf: v.optional(v.picklist(['union', 'unknown'])),
-  danglingRefs: v.optional(v.picklist(['strict', 'keep']))
+  danglingRefs: v.optional(v.array(v.picklist(danglingRefKinds)))
 })
 
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
@@ -587,18 +603,14 @@ export type SystemSettings = {
    */
   anyOf?: 'union' | 'unknown'
   /**
-   * `strict` (the default): a `$ref` that names nothing in the document is a
-   * parse error, and what holds it is removed, with what uses that. `keep`:
-   * a schema `$ref` stays, with a warning, and resolving it throws
-   * `DanglingRefError`, which a generator can catch to render something
-   * else, such as `unknown`. A `$ref` of any other kind (a parameter, a
-   * request body, a response, a header, a security scheme) is removed as
-   * under `strict`: a generator has nothing to write in its place. With
-   * either, a `$ref` to an example or a link is a warning and stays, and a
-   * `$ref` that core resolves while it parses (an `allOf` member that it
-   * merges) is an error, and what holds it is removed.
+   * The kinds of `$ref` that may name nothing in the document. A dangling
+   * `$ref` of a listed kind stays, with a warning, and resolving it throws
+   * `DanglingRefError` for the generator to handle; a listed `schema` member
+   * of an `allOf` that core merges is left out of the merge. A dangling
+   * `$ref` of any other kind is a parse error, and what holds it is removed,
+   * with what uses that. The default, `[]`, lists none.
    */
-  danglingRefs?: 'strict' | 'keep'
+  danglingRefs?: DanglingRefKind[]
 }
 
 export type ClientSettings = {

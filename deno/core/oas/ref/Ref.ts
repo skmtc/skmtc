@@ -372,7 +372,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    *
    * @returns Either the resolved component or another reference in the chain
    * @throws {DanglingRefError} when the reference names nothing in the
-   * document (kept under `client.json` `system.danglingRefs: keep`),
+   * document (kept when `client.json` `system.danglingRefs` lists its kind),
    * including a `$ref` with no name, such as `#/components/schemas/`
    * @throws Error when it names a component of another kind, such as a
    * `requestBody` ref to `#/components/schemas/…`

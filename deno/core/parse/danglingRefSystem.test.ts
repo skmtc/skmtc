@@ -99,8 +99,8 @@ const parse = ({ openapi, system, document: fields }: ParseArgs) => {
 }
 
 for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
-  Deno.test(`${openapi} system.danglingRefs strict: what holds a dangling ref is removed, with what uses it`, () => {
-    for (const system of [undefined, { danglingRefs: 'strict' } satisfies SystemSettings]) {
+  Deno.test(`${openapi} by default, what holds a dangling ref is removed, with what uses it`, () => {
+    for (const system of [undefined, { danglingRefs: [] } satisfies SystemSettings]) {
       const { toSchema, toOperation, issuesOf } = parse({ openapi, system })
 
       assertEquals(toSchema('Owner'), undefined)
@@ -124,8 +124,8 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     }
   })
 
-  Deno.test(`${openapi} system.danglingRefs keep: a dangling schema ref stays, with a warning, and resolving it throws`, () => {
-    const { toSchema, toOperation, issuesOf } = parse({ openapi, system: { danglingRefs: 'keep' } })
+  Deno.test(`${openapi} system.danglingRefs ['schema']: a dangling schema ref stays, with a warning, and resolving it throws`, () => {
+    const { toSchema, toOperation, issuesOf } = parse({ openapi, system: { danglingRefs: ['schema'] } })
     const owner = toSchema('Owner')
 
     assert(owner !== undefined && !owner.isRef() && owner.type === 'object')
@@ -134,7 +134,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertThrows(() => ghost.resolve(), DanglingRefError, 'Ref "#/components/schemas/Missing" names nothing in the document')
     assert(toSchema('UsesOwner') !== undefined)
 
-    // A parameter that names nothing has no name to write, so it goes as under `strict`.
+    // `parameter` is not listed, so the operation that holds it goes.
     assertEquals(toOperation('/pets'), undefined)
     assert(toOperation('/pet') !== undefined)
 
@@ -147,8 +147,8 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(issuesOf('INVALID_DEPENDENCY_REF').filter(issue => issue.location.includes('Owner')), [])
   })
 
-  Deno.test(`${openapi} system.danglingRefs keep: core's own walks read a dangling ref as unknown`, () => {
-    const { toSchema } = parse({ openapi, system: { danglingRefs: 'keep' } })
+  Deno.test(`${openapi} system.danglingRefs ['schema']: core's own walks read a dangling ref as unknown`, () => {
+    const { toSchema } = parse({ openapi, system: { danglingRefs: ['schema'] } })
     const shape = toSchema('Shape')
     const knownShape = toSchema('KnownShape')
     const typedShape = toSchema('TypedShape')
@@ -167,7 +167,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
   })
 
   Deno.test(`${openapi} a ref to a schema that fails to parse is not reported as dangling`, () => {
-    for (const system of [undefined, { danglingRefs: 'keep' } satisfies SystemSettings]) {
+    for (const system of [undefined, { danglingRefs: ['schema'] } satisfies SystemSettings]) {
       const { toSchema, issuesOf } = parse({ openapi, system })
 
       assertEquals(toSchema('UsesBroken'), undefined)
@@ -182,31 +182,33 @@ const petSchema = { type: 'object', properties: { id: { type: 'string' } } }
 const apiKey = { type: 'apiKey', name: 'X-Key', in: 'header' }
 
 for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
-  Deno.test(`${openapi} a ref into the wrong bucket is a REF_TYPE_MISMATCH, and what it names stays`, () => {
-    // The wrong-bucket ref comes first, in `paths`, before the schema refs.
-    const { toSchema, toOperation, issuesOf, issues } = parse({
-      openapi,
-      system: undefined,
-      document: {
-        paths: {
-          '/a': { post: { requestBody: pet, responses: ok(pet) } },
-          '/b': { get: { responses: ok(pet) } }
-        },
-        components: { schemas: { Pet: petSchema, Owner: { type: 'object', properties: { pet } } } }
-      }
-    })
+  Deno.test(`${openapi} a ref into the wrong bucket removes what holds it, whatever system.danglingRefs lists, and what it names stays`, () => {
+    for (const system of [undefined, { danglingRefs: ['schema', 'requestBody'] } satisfies SystemSettings]) {
+      // The wrong-bucket ref comes first, in `paths`, before the schema refs.
+      const { toSchema, toOperation, issues } = parse({
+        openapi,
+        system,
+        document: {
+          paths: {
+            '/a': { post: { requestBody: pet, responses: ok(pet) } },
+            '/b': { get: { responses: ok(pet) } }
+          },
+          components: { schemas: { Pet: petSchema, Owner: { type: 'object', properties: { pet } } } }
+        }
+      })
 
-    assert(toSchema('Pet') !== undefined && toSchema('Owner') !== undefined)
-    assert(toOperation('/a', 'post') !== undefined && toOperation('/b') !== undefined)
-    assertEquals(
-      issuesOf('REF_TYPE_MISMATCH').map(({ level, location }) => ({ level, location })),
-      [{ level: 'warning', location: 'TEST:paths:/a:post:requestBody' }]
-    )
-    assertEquals(issues.filter(issue => issue.level === 'error'), [])
+      assert(toSchema('Pet') !== undefined && toSchema('Owner') !== undefined)
+      assertEquals(toOperation('/a', 'post'), undefined)
+      assert(toOperation('/b') !== undefined)
+      assertEquals(
+        issues.filter(issue => issue.level === 'error').map(({ type, location }) => ({ type, location })),
+        [{ type: 'REF_TYPE_MISMATCH', location: 'TEST:paths:/a:post:requestBody' }]
+      )
+    }
   })
 
-  Deno.test(`${openapi} an operation goes with a security scheme that names nothing, under either setting`, () => {
-    const cases = [undefined, { danglingRefs: 'keep' } satisfies SystemSettings].flatMap(system =>
+  Deno.test(`${openapi} an operation goes with a security scheme that names nothing, unless system.danglingRefs lists it`, () => {
+    const cases = [undefined, { danglingRefs: ['schema'] } satisfies SystemSettings].flatMap(system =>
       [undefined, [{ alias: [] }]].map(root => ({ system, root }))
     )
 
@@ -239,42 +241,64 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
         )
       )
     }
+
+    // Listed, the scheme stays, and resolving it throws for the generator to handle.
+    const { toOperation } = parse({
+      openapi,
+      system: { danglingRefs: ['securityScheme'] },
+      document: {
+        paths: { '/own': { get: { security: [{ alias: [] }], responses: ok(pet) } } },
+        components: {
+          schemas: { Pet: petSchema },
+          securitySchemes: { alias: { $ref: '#/components/securitySchemes/Missing' } }
+        }
+      }
+    })
+    const requirement = toOperation('/own')?.security?.[0]
+    assert(requirement !== undefined)
+    assertThrows(() => requirement.toSecurityScheme(), DanglingRefError)
   })
 
-  Deno.test(`${openapi} system.danglingRefs strict: an example ref that names nothing is a warning, and the operation stays`, () => {
-    const { toOperation, issuesOf } = parse({
-      openapi,
-      system: undefined,
-      document: {
-        paths: {
-          '/ex': {
-            get: {
-              responses: {
-                '200': {
-                  description: 'ok',
-                  content: {
-                    'application/json': { schema: pet, examples: { a: { $ref: '#/components/examples/Typo' } } }
+  Deno.test(`${openapi} an example ref that names nothing removes the operation, unless system.danglingRefs lists 'example'`, () => {
+    for (const listed of [false, true]) {
+      const { toOperation, issuesOf } = parse({
+        openapi,
+        system: listed ? { danglingRefs: ['example'] } : undefined,
+        document: {
+          paths: {
+            '/ex': {
+              get: {
+                responses: {
+                  '200': {
+                    description: 'ok',
+                    content: {
+                      'application/json': { schema: pet, examples: { a: { $ref: '#/components/examples/Typo' } } }
+                    }
                   }
                 }
               }
             }
-          }
-        },
-        components: { schemas: { Pet: petSchema } }
-      }
-    })
+          },
+          components: { schemas: { Pet: petSchema } }
+        }
+      })
 
-    assert(toOperation('/ex') !== undefined)
-    // At the place the `$ref` is written: `examples` is traced once.
-    assertEquals(
-      issuesOf('DANGLING_REF').map(({ level, location }) => ({ level, location })),
-      [{ level: 'warning', location: 'TEST:paths:/ex:get:responses:200:content:application/json:examples:a' }]
-    )
-    assertEquals(issuesOf('INVALID_DEPENDENCY_REF'), [])
+      assertEquals(toOperation('/ex') !== undefined, listed)
+      // At the place the `$ref` is written: `examples` is traced once.
+      assertEquals(
+        issuesOf('DANGLING_REF').map(({ level, location }) => ({ level, location })),
+        [
+          {
+            level: listed ? 'warning' : 'error',
+            location: 'TEST:paths:/ex:get:responses:200:content:application/json:examples:a'
+          }
+        ]
+      )
+    }
   })
 
-  Deno.test(`${openapi} a parameter that names nothing removes what holds it under either setting, with one issue at the holder`, () => {
-    for (const system of [undefined, { danglingRefs: 'keep' } satisfies SystemSettings]) {
+  Deno.test(`${openapi} a parameter that names nothing removes what holds it unless listed, with one issue at the holder`, () => {
+    for (const system of [undefined, { danglingRefs: ['schema'] } satisfies SystemSettings]) {
       const { toOperation, issuesOf } = parse({
         openapi,
         system,
@@ -313,56 +337,63 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     }
   })
 
-  Deno.test(`${openapi} system.danglingRefs keep: only a schema ref stays; a ref of any other kind goes as under strict`, () => {
+  Deno.test(`${openapi} system.danglingRefs: only a dangling ref of a listed kind stays`, () => {
     const missing = (bucket: string) => ({ $ref: `#/components/${bucket}/Missing` })
-    const { toOperation, issuesOf } = parse({
-      openapi,
-      system: { danglingRefs: 'keep' },
-      document: {
-        paths: {
-          // A schema ref in each place a schema goes.
-          '/schemas': {
-            post: {
-              parameters: [{ name: 'mode', in: 'query', schema: missing('schemas') }],
-              requestBody: { content: { 'application/json': { schema: missing('schemas') } } },
-              responses: ok(missing('schemas'))
-            }
-          },
-          '/parameter': { get: { parameters: [missing('parameters')], responses: ok(pet) } },
-          '/body': { post: { requestBody: missing('requestBodies'), responses: ok(pet) } },
-          '/response': { get: { responses: { '200': missing('responses') } } },
-          // Also a response that a client does not read: removal takes the whole operation.
-          '/error-response': { get: { responses: { ...ok(pet), '404': missing('responses') } } },
-          '/header': {
-            get: { responses: { '200': { description: 'ok', headers: { 'X-Rate': missing('headers') } } } }
+    const document = {
+      paths: {
+        // A schema ref in each place a schema goes.
+        '/schemas': {
+          post: {
+            parameters: [{ name: 'mode', in: 'query', schema: missing('schemas') }],
+            requestBody: { content: { 'application/json': { schema: missing('schemas') } } },
+            responses: ok(missing('schemas'))
           }
         },
-        components: { schemas: { Pet: petSchema } }
-      }
-    })
-
-    const operation = toOperation('/schemas', 'post')
-    assert(operation !== undefined)
-    assertEquals(operation.toParams().map(({ name }) => name), ['mode'])
-    assertEquals(toOperation('/body', 'post'), undefined)
-    for (const path of ['/parameter', '/response', '/error-response', '/header']) {
-      assertEquals(toOperation(path), undefined, path)
+        '/parameter': { get: { parameters: [missing('parameters')], responses: ok(pet) } },
+        '/body': { post: { requestBody: missing('requestBodies'), responses: ok(pet) } },
+        '/response': { get: { responses: { '200': missing('responses') } } },
+        // A response that a client does not read: unless listed, removal takes the whole operation.
+        '/error-response': { get: { responses: { ...ok(pet), '404': missing('responses') } } },
+        '/header': {
+          get: { responses: { '200': { description: 'ok', headers: { 'X-Rate': missing('headers') } } } }
+        }
+      },
+      components: { schemas: { Pet: petSchema } }
     }
 
-    const dangling = issuesOf('DANGLING_REF')
-    const warnings = dangling.filter(({ level }) => level === 'warning')
-    const errors = dangling.filter(({ level }) => level === 'error')
-    assertEquals(warnings.length, 3)
-    assert(warnings.every(({ location }) => location.startsWith('TEST:paths:/schemas:post')))
+    const schemaOnly = parse({ openapi, system: { danglingRefs: ['schema'] }, document })
+    const schemas = schemaOnly.toOperation('/schemas', 'post')
+    assert(schemas !== undefined)
+    assertEquals(schemas.toParams().map(({ name }) => name), ['mode'])
+    assertEquals(schemaOnly.toOperation('/body', 'post'), undefined)
+    for (const path of ['/parameter', '/response', '/error-response', '/header']) {
+      assertEquals(schemaOnly.toOperation(path), undefined, path)
+    }
+    const errors = schemaOnly.issuesOf('DANGLING_REF').filter(({ level }) => level === 'error')
     assertEquals(errors.length, 5)
-    assert(errors.every(({ message }) => message.includes('keeps a schema ref only')))
+    assert(errors.every(({ message }) => /To keep it, list '\w+' in system\.danglingRefs\./.test(message)))
+
+    // Each listed kind stays, and the generator decides: `toParams()` throws for a parameter.
+    const all = parse({
+      openapi,
+      system: { danglingRefs: ['schema', 'parameter', 'requestBody', 'response', 'header'] },
+      document
+    })
+    const parameter = all.toOperation('/parameter')
+    assert(parameter !== undefined)
+    assertThrows(() => parameter.toParams(), DanglingRefError)
+    assert(all.toOperation('/body', 'post') !== undefined)
+    for (const path of ['/response', '/error-response', '/header']) {
+      assert(all.toOperation(path) !== undefined, path)
+    }
+    assertEquals(all.issuesOf('DANGLING_REF').filter(({ level }) => level === 'error'), [])
   })
 
-  Deno.test(`${openapi} a dangling ref in an allOf that core merges removes the schema under either setting`, () => {
-    for (const system of [undefined, { danglingRefs: 'keep' } satisfies SystemSettings]) {
+  Deno.test(`${openapi} a dangling member of an allOf that core merges: removed by default, left out of the merge when 'schema' is listed`, () => {
+    for (const listed of [false, true]) {
       const { toSchema, issuesOf } = parse({
         openapi,
-        system,
+        system: listed ? { danglingRefs: ['schema'] } : undefined,
         document: {
           components: {
             schemas: {
@@ -372,10 +403,16 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
         }
       })
 
-      assertEquals(toSchema('G'), undefined)
+      const g = toSchema('G')
+      assertEquals(g !== undefined, listed)
+      // `A & unknown` is `A`: the merge is the other member.
+      if (g !== undefined) {
+        assert(!g.isRef() && g.type === 'object')
+        assertEquals(Object.keys(g.properties ?? {}), ['id'])
+      }
       assertEquals(
         issuesOf('DANGLING_REF').map(({ level, location }) => ({ level, location })),
-        [{ level: 'error', location: 'TEST:components:schemas:G' }]
+        [{ level: listed ? 'warning' : 'error', location: 'TEST:components:schemas:G' }]
       )
       assertEquals(issuesOf('INVALID_SCHEMA'), [])
     }
@@ -408,7 +445,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
   }
 
   Deno.test(`${openapi} an escaped ref to a schema that fails to parse goes with it, under either setting`, () => {
-    for (const system of [undefined, { danglingRefs: 'keep' } satisfies SystemSettings]) {
+    for (const system of [undefined, { danglingRefs: ['schema'] } satisfies SystemSettings]) {
       const broken = { not: { type: 'string' } }
       const { toSchema, toOperation, issuesOf } = parse({
         openapi,
@@ -435,7 +472,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     }
   })
 
-  Deno.test(`${openapi} system.danglingRefs strict: an escaped ref goes with a schema that holds a dangling ref`, () => {
+  Deno.test(`${openapi} by default, an escaped ref goes with a schema that holds a dangling ref`, () => {
     const holdsDangling = { type: 'object', properties: { ghost: { $ref: '#/components/schemas/Missing' } } }
     const { toSchema, toOperation, issuesOf } = parse({
       openapi,

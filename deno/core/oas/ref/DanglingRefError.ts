@@ -1,9 +1,9 @@
 /**
  * Thrown when a reference that names nothing in the document is resolved.
  *
- * Under `client.json` `system.danglingRefs: strict` (the default) the parser
- * removes what holds such a reference, so a generator never meets one. Under
- * `keep` the reference stays, and a generator that resolves it can catch
+ * By default the parser removes what holds such a reference, so a generator
+ * never meets one. When `client.json` `system.danglingRefs` lists the
+ * reference's kind, it stays, and a generator that resolves it can catch
  * this error and render something else in its place. Test for it with
  * {@link DanglingRefError.is}, not `instanceof`.
  */

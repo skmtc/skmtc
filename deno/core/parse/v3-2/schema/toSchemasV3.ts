@@ -331,7 +331,9 @@ export const toSchemaV3 = ({
       const system = toAllOfSystem(context)
       const merged = mergeIntersection({
         schema: wrapper,
-        getRef: toGetRef(context.documentObject),
+        getRef: toGetRef(context.documentObject, $ref =>
+          context.toDanglingAllOfMember({ $ref, stackTrail })
+        ),
         normalize: normalizeMergeMember,
         system
       })

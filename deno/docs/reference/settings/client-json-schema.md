@@ -343,22 +343,24 @@ the usual parse. Default: `{}`.
   nullable. Each such schema logs one `ANYOF_AS_UNKNOWN` warning. An
   `anyOf` with one member, or an `anyOf` of single values such as
   `string | number`, parses as it does with `union`.
-- **`danglingRefs`** — `"strict"` (default) or `"keep"`. This field
-  sets what the parser does with a `$ref` that names nothing in the
-  document. With `strict`, each place that has such a `$ref` logs a
-  `DANGLING_REF` error. The parser removes the item that has the `$ref`, and each
-  item that refers to that item (`INVALID_DEPENDENCY_REF`). With
-  `keep`, a `$ref` in a place for a schema logs a `DANGLING_REF`
-  warning, and the `$ref` stays. When a generator resolves the `$ref`,
-  core throws a `DanglingRefError`. The generator can catch the error
-  and write a different value, for example `unknown`. With `keep`, a
-  `$ref` of a different kind also gives an error. The parser removes the
-  item that has it. These kinds are a parameter, a request body, a
-  response, a header and a security scheme. With both values, a `$ref`
-  to an example or a link gives a warning and stays. A `$ref` that core
-  resolves during the parse gives an error, and the parser removes the
-  item that has it. An example is a member of an `allOf` that core
-  merges.
+- **`danglingRefs`** — the kinds of `$ref` that can name nothing in the
+  document. The kinds are `"schema"`, `"parameter"`, `"requestBody"`,
+  `"response"`, `"header"`, `"securityScheme"`, `"example"` and
+  `"link"`. The default is `[]`. Each place that has such a `$ref` logs
+  one `DANGLING_REF` issue.
+  - A kind that is not in the list gives an error. The parser removes
+    the item that has the `$ref`, and each item that refers to that item
+    (`INVALID_DEPENDENCY_REF`).
+  - A kind in the list gives a warning, and the `$ref` stays. When a
+    generator resolves the `$ref`, core throws a `DanglingRefError`. The
+    generator can catch the error and write a different value, for
+    example `unknown`.
+  - Core merges the members of an `allOf` during the parse. With
+    `"schema"` in the list, core leaves out a member that names nothing.
+    Without it, the parser removes the item that has the `allOf`.
+
+  A `$ref` to an item of the wrong kind (`REF_TYPE_MISMATCH`) is always
+  an error, and this field does not change it.
 - **`responseContradictions`** — `"strict"` (default) or `"unknown"`.
   Reserved. The validator accepts it, but the parser does not read it.
 
