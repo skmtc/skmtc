@@ -218,8 +218,9 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  * `DANGLING_REF` — a `$ref` names nothing in the document. One for each
  * place the `$ref` is written. An `error` under `system.danglingRefs:
  * strict` (the default): what holds the ref is removed, and each item that
- * uses it gets an `INVALID_DEPENDENCY_REF`. A `warning` under `keep`: the
- * ref stays, and resolving it throws `DanglingRefError`. A ref to an example
+ * uses it gets an `INVALID_DEPENDENCY_REF`. Under `keep`, a schema ref is a
+ * `warning`: the ref stays, and resolving it throws `DanglingRefError`. A
+ * ref of any other kind is an `error`, as under `strict`. A ref to an example
  * or a link is a `warning` in both modes. A ref that core resolves while it
  * parses (an `allOf` member that it merges) is an `error` in both modes, at
  * the item that holds it.

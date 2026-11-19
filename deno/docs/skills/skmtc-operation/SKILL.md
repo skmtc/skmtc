@@ -15,7 +15,7 @@ description: >
   Load ALONGSIDE skmtc-generator and the emitted language's skill.
 metadata:
   describes:
-    '@skmtc/core': '0.41'
+    '@skmtc/core': '0.42'
 ---
 
 # Operation generators: decompose the operation, reference the models

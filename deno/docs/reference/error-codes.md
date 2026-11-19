@@ -595,9 +595,14 @@ for each place that has the `$ref`. The location is that place.
 - **error:** `settings.system.danglingRefs` is `strict` (the
   default). The parser removes the item that has the `$ref`. Each item
   that refers to that item gets an `INVALID_DEPENDENCY_REF`.
-- **warning:** `settings.system.danglingRefs` is `keep`. The `$ref`
-  stays. When a generator resolves it, core throws a
-  `DanglingRefError`.
+- **warning:** `settings.system.danglingRefs` is `keep`, and the `$ref`
+  is in a place for a schema. The `$ref` stays. When a generator
+  resolves it, core throws a `DanglingRefError`.
+
+With `keep`, a `$ref` of a different kind gives an error, as with
+`strict`. These kinds are a parameter, a request body, a response, a
+header and a security scheme. A generator cannot write a parameter
+without its name, or a body or a response without its content.
 
 The setting does not apply to two kinds of `$ref`:
 
@@ -614,8 +619,8 @@ the document, so what holds it is removed (system.danglingRefs is
 strict).`
 
 **Remediation:** Add the target to `components` in the source
-document, or correct the `$ref`. To keep the items that have the `$ref`, set
-`settings.system.danglingRefs` to `keep`, and use generators that
+document, or correct the `$ref`. To keep the items that have a schema
+`$ref`, set `settings.system.danglingRefs` to `keep`, and use generators that
 catch `DanglingRefError`. To find the error, use
 `DanglingRefError.is(error)`, not `instanceof`: a generator bundle can
 have a different copy of `@skmtc/core`. See

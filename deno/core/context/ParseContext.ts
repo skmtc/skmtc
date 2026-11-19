@@ -640,10 +640,12 @@ export class ParseContext {
    *
    * - A ref that names nothing logs `DANGLING_REF`. Under `client.json`
    *   `system.danglingRefs: strict` (the default) it is an error: what holds
-   *   the ref is removed, and what uses that. Under `keep` it is a warning,
-   *   and the ref stays for a generator to handle. A ref to an example or a
-   *   link is a warning in both modes: no generator needs one to render
-   *   types or clients.
+   *   the ref is removed, and what uses that. Under `keep`, a schema ref is a
+   *   warning and stays, for a generator to write something in its place
+   *   (`unknown`). A ref of any other kind is an error as under `strict`: a
+   *   generator has nothing to write for a parameter, a body or a response
+   *   it cannot see. A ref to an example or a link is a warning in both
+   *   modes: no generator needs one to render types or clients.
    * - A ref to a component of the wrong kind, such as a request body that is
    *   a `$ref` to `#/components/schemas/Pet`, logs a `REF_TYPE_MISMATCH`
    *   warning. The ref stays, and resolving it throws. Resolving a ref
@@ -678,8 +680,9 @@ export class ParseContext {
 
   #logDanglingRef({ consumer, ref, error }: WrittenRef & { error: DanglingRefError }): void {
     const exampleOrLink = ref.refType === 'example' || ref.refType === 'link'
+    const keep = this.system.danglingRefs === 'keep'
 
-    if (exampleOrLink || this.system.danglingRefs === 'keep') {
+    if (exampleOrLink || (keep && ref.refType === 'schema')) {
       this.logIssueNoKey({
         level: 'warning',
         message: exampleOrLink
@@ -697,7 +700,9 @@ export class ParseContext {
     // (`removeErroredItems`).
     this.logIssueNoKey({
       level: 'error',
-      message: `${error.message}, so what holds it is removed (system.danglingRefs is strict).`,
+      message: keep
+        ? `${error.message}, so what holds it is removed (system.danglingRefs: keep keeps a schema ref only).`
+        : `${error.message}, so what holds it is removed (system.danglingRefs is strict).`,
       cause: error,
       parent: { $ref: ref.$ref },
       stackTrail: consumer,

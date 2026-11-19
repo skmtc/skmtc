@@ -12,7 +12,7 @@ description: >
 metadata:
   describes:
     '@skmtc/lang-typescript': '0.14'
-    '@skmtc/core': '0.41'
+    '@skmtc/core': '0.42'
 ---
 
 # The TypeScript layer (@skmtc/lang-typescript)

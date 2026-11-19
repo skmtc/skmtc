@@ -295,9 +295,12 @@ once, at that place. When a `$ref` names nothing in the document,
   uses it. Outside the components, `ParseContext` removes what holds
   the `$ref` at once. That is the operation that has the `$ref`. For a
   path-level parameter, it is each operation on the path.
-- `keep`: a warning. The `$ref` stays, and `resolveOnce()` throws
-  `DanglingRefError` for it. A generator can catch the error and write a
-  different value. Test for it with `DanglingRefError.is(error)`.
+- `keep`: a warning for a schema `$ref`. The `$ref` stays, and
+  `resolveOnce()` throws `DanglingRefError` for it. A generator can
+  catch the error and write a different value, for example `unknown`.
+  Test for it with `DanglingRefError.is(error)`. A `$ref` of a different
+  kind is an error, as with `strict`. A generator cannot write a
+  parameter, a body or a response that it cannot see.
 
 A `$ref` to an example or a link is a warning with both values. When
 `resolveOnce()` throws another error, the `$ref` names an item of the
@@ -362,7 +365,7 @@ cause this: the cascade removes every item that reaches a removed
 component, at all depths. With the default
 `settings.system.danglingRefs: strict`, the cascade also removes a
 `$ref` to a component that the document does not define. With
-`keep`, that `$ref` stays, and `resolveOnce()` throws for it. If the generator
+`keep`, a schema `$ref` of that kind stays, and `resolveOnce()` throws for it. If the generator
 does not catch the error, the engine marks the item `'error'` in the
 manifest.
 

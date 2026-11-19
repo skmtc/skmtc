@@ -12,7 +12,7 @@ import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
 import type { OasServer } from '../server/Server.ts'
 import { OasBase } from '@/types/OasBase.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
-import { toEffectiveParameters, toResolvedParameters } from '@/oas/operation/toEffectiveParameters.ts'
+import { toEffectiveParameters } from '@/oas/operation/toEffectiveParameters.ts'
 
 /**
  * Fields for an OpenAPI 3.1 webhook.
@@ -155,9 +155,9 @@ export class OasWebhook extends OasBase {
    * parameters carry the same shape, only their direction is inbound.
    */
   toParams(filter?: OasParameterLocation[]): OasParameter[] {
-    return toResolvedParameters(
-      toEffectiveParameters({ own: this.parameters, shared: this.pathItem?.parameters })
-    ).filter(param => (filter?.length ? filter.includes(param.location) : true))
+    return toEffectiveParameters({ own: this.parameters, shared: this.pathItem?.parameters })
+      .map(param => param.resolve())
+      .filter(param => (filter?.length ? filter.includes(param.location) : true))
   }
 
   /**

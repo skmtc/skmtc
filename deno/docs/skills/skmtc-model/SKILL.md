@@ -13,7 +13,7 @@ description: >
   and skmtc-lang-typescript (TS layer).
 metadata:
   describes:
-    '@skmtc/core': '0.41'
+    '@skmtc/core': '0.42'
     '@skmtc/lang-typescript': '0.14'
 ---
 
@@ -75,8 +75,8 @@ engine machinery — modifying it is almost always a mistake.
   import, is how shared models duplicate.
 - **A ref can name nothing.** With the default
   `settings.system.danglingRefs: strict`, the parser removes what holds
-  such a `$ref`, so your generator never sees it. With `keep`, the
-  `$ref` stays, and inserting or resolving it throws `DanglingRefError`
+  such a `$ref`, so your generator never sees it. With `keep`, a
+  schema `$ref` stays, and inserting or resolving it throws `DanglingRefError`
   (from `@skmtc/core`). To render the item, catch it in your ref
   snippet and render the unknown fallback. Test it with
   `DanglingRefError.is(error)` and throw any other error again;

@@ -348,10 +348,13 @@ the usual parse. Default: `{}`.
   document. With `strict`, each place that has such a `$ref` logs a
   `DANGLING_REF` error. The parser removes the item that has the `$ref`, and each
   item that refers to that item (`INVALID_DEPENDENCY_REF`). With
-  `keep`, each place logs a `DANGLING_REF` warning, and the `$ref`
-  stays. When a generator resolves the `$ref`, core throws a
-  `DanglingRefError`. The generator can catch the error and write a
-  different value, for example `unknown`. With both values, a `$ref`
+  `keep`, a `$ref` in a place for a schema logs a `DANGLING_REF`
+  warning, and the `$ref` stays. When a generator resolves the `$ref`,
+  core throws a `DanglingRefError`. The generator can catch the error
+  and write a different value, for example `unknown`. With `keep`, a
+  `$ref` of a different kind also gives an error. The parser removes the
+  item that has it. These kinds are a parameter, a request body, a
+  response, a header and a security scheme. With both values, a `$ref`
   to an example or a link gives a warning and stays. A `$ref` that core
   resolves during the parse gives an error, and the parser removes the
   item that has it. An example is a member of an `allOf` that core
