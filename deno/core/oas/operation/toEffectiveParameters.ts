@@ -29,20 +29,34 @@ export const toEffectiveParameters = ({
   return [...shared.filter(parameter => !ownKeys.has(toParameterKey(parameter))), ...own]
 }
 
-const toParameterKey = (parameter: Parameter): string => {
+/**
+ * True for a parameter `$ref` that names nothing in the document, which the
+ * parser keeps when `system.danglingRefs` lists `parameter`.
+ */
+export const namesNothing = (parameter: Parameter): boolean => {
   if (!parameter.isRef()) {
-    return `${parameter.location}:${parameter.name}`
+    return false
   }
 
   try {
-    const { name, location } = parameter.resolve()
+    parameter.resolve()
 
-    return `${location}:${name}`
+    return false
   } catch (error) {
     if (DanglingRefError.is(error)) {
-      return `$ref:${parameter.$ref}`
+      return true
     }
 
     throw error
   }
+}
+
+const toParameterKey = (parameter: Parameter): string => {
+  if (parameter.isRef() && namesNothing(parameter)) {
+    return `$ref:${parameter.$ref}`
+  }
+
+  const { name, location } = parameter.resolve()
+
+  return `${location}:${name}`
 }

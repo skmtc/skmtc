@@ -17,7 +17,8 @@ import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
 import type { OasServer } from '../server/Server.ts'
 import { OasBase } from '@/types/OasBase.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
-import { toEffectiveParameters } from '@/oas/operation/toEffectiveParameters.ts'
+import { namesNothing, toEffectiveParameters } from '@/oas/operation/toEffectiveParameters.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 
 /**
  * Fields for configuring an OpenAPI operation object.
@@ -284,9 +285,18 @@ export class OasOperation extends OasBase {
    *
    * @param options - Conversion options for nested components
    * @returns OpenAPI v3 operation object
+   * @throws {DanglingRefError} when a parameter is a reference that names
+   * nothing, as {@link OasOperation.toParams} does: there is no parameter to
+   * write, and the caller decides what to do
    */
   toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.OperationObject {
     const parameters = this.toEffectiveParameters()
+
+    for (const parameter of parameters) {
+      if (parameter.isRef() && namesNothing(parameter)) {
+        throw new DanglingRefError(parameter.$ref)
+      }
+    }
 
     return {
       tags: this.tags,

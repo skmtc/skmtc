@@ -283,6 +283,11 @@ for diagnostics and pass-through (e.g., re-rendering the original spec
 into a generated artifact). Not used by stock generators in their
 hot paths.
 
+It writes the parameters of `toEffectiveParameters()`. When one of them
+is a `$ref` that names nothing, it throws `DanglingRefError`, as
+`toParams()` does. It does not write a `$ref` to nothing, and it does not
+leave the parameter out.
+
 ### Examples
 
 #### Generating a typed fetch wrapper
