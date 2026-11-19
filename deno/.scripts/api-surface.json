@@ -1,6 +1,6 @@
 {
   "@skmtc/core": {
-    "minor": "0.42",
+    "minor": "0.43",
     "deno": "2.9.8",
     "exports": {
       "AddPropertyArgs": "6922b41f66aabe95",
@@ -212,7 +212,7 @@
       "OasObject": "f023917ae1aaba1f",
       "OasObjectFields": "635bc9939122b5c2",
       "OasOpenIdSecurityScheme": "007caa5687511afc",
-      "OasOperation": "cf649ac7445d5f4d",
+      "OasOperation": "b666af04c1726102",
       "OasOperationContainerBaseConfig": "8898743c5f52447e",
       "OasOperationContainerConstructorArgs": "08ca0accfc6c47ed",
       "OasOperationContainerProjection": "26911645e4c99070",
@@ -251,7 +251,7 @@
       "OasUnknown": "6754ddafe0e29c21",
       "OasUnknownData": "8291a1f21b21e3d8",
       "OasVoid": "784952f04184332e",
-      "OasWebhook": "a865d721611a8a3f",
+      "OasWebhook": "7fea3171221495fb",
       "OasWebhookEnrichments": "fea3c73bac2959a2",
       "OpenIdSecuritySchemeFields": "97c112f69d09be22",
       "OpenIdSecuritySchemeJson": "94965b693c51875e",

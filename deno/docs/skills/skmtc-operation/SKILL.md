@@ -15,7 +15,7 @@ description: >
   Load ALONGSIDE skmtc-generator and the emitted language's skill.
 metadata:
   describes:
-    '@skmtc/core': '0.42'
+    '@skmtc/core': '0.43'
 ---
 
 # Operation generators: decompose the operation, reference the models
@@ -69,7 +69,12 @@ a response shape) breaks the moment the schema evolves.
   taken from its single `content` entry. `['query']` does not include
   it; ask for `['querystring']`. Both include the path item's
   `parameters`; an operation's own parameter with the same name and
-  location replaces the path item's.
+  location replaces the path item's. `operation.toEffectiveParameters()`
+  is the same merged list with refs unresolved: use it to resolve each
+  parameter by itself, for example to render a `$ref` that names nothing
+  when `danglingRefs` lists `parameter`. Do not read
+  `operation.parameters` for this: it holds the operation's own
+  parameters only.
 - **Request body**: `operation.toRequestBody(({ schema }) => schema)`.
 - **Response**: `operation.toSuccessResponse()?.resolve().toSchema()
   ?? OasVoid.empty()` — selection and void-fallback in one idiom.

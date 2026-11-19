@@ -455,8 +455,14 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     return document.registry.schemas[refName] as ResolvedRef<T> | OasRef<T> | undefined
   }
 
+  /**
+   * The component name the reference looks up.
+   *
+   * @throws {DanglingRefError} when the `$ref` has no name, such as
+   * `#/components/schemas/`: it names nothing
+   */
   toRefName(): RefName {
-    return toRefName(this.$ref)
+    return toLookupName(this.$ref)
   }
 
   /**

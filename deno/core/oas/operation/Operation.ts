@@ -17,7 +17,8 @@ import type { OasExternalDocs } from '../externalDocs/ExternalDocs.ts'
 import type { OasServer } from '../server/Server.ts'
 import { OasBase } from '@/types/OasBase.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
-import { toEffectiveParameters } from '@/oas/operation/toEffectiveParameters.ts'
+import { namesNothing, toEffectiveParameters } from '@/oas/operation/toEffectiveParameters.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 
 /**
  * Fields for configuring an OpenAPI operation object.
@@ -231,17 +232,32 @@ export class OasOperation extends OasBase {
   }
 
   /**
-   * Resolve all parameters and optionally filter by location.
+   * The parameters that apply to this operation, as OpenAPI defines them: the
+   * path item's parameters apply to each of its operations, and an operation's
+   * own parameter with the same name and location replaces the path item's.
+   * The path item's come first.
    *
-   * As OpenAPI defines them: the path item's parameters apply to each of its
-   * operations, and an operation's own parameter with the same name and
-   * location replaces the path item's. The path item's come first.
+   * References stay references, so a caller can resolve each one on its own.
+   * A reference that names nothing (kept when `system.danglingRefs` lists
+   * `parameter`) keeps its place, and resolving it throws `DanglingRefError`.
+   * {@link OasOperation.toParams} resolves them all.
+   *
+   * @returns the parameters, path item's first
+   */
+  toEffectiveParameters(): (OasParameter | OasRef<'parameter'>)[] {
+    return toEffectiveParameters({ own: this.parameters, shared: this.pathItem?.parameters })
+  }
+
+  /**
+   * Resolve all parameters and optionally filter by location: the resolved
+   * {@link OasOperation.toEffectiveParameters}.
    *
    * @param filter - only include parameters from specified locations
    * @returns
+   * @throws {DanglingRefError} when a parameter is a reference that names nothing
    */
   toParams(filter?: OasParameterLocation[]): OasParameter[] {
-    return toEffectiveParameters({ own: this.parameters, shared: this.pathItem?.parameters })
+    return this.toEffectiveParameters()
       .map(param => param.resolve())
       .filter(param => (filter?.length ? filter.includes(param.location) : true))
   }
@@ -269,12 +285,18 @@ export class OasOperation extends OasBase {
    *
    * @param options - Conversion options for nested components
    * @returns OpenAPI v3 operation object
+   * @throws {DanglingRefError} when a parameter is a reference that names
+   * nothing, as {@link OasOperation.toParams} does: there is no parameter to
+   * write, and the caller decides what to do
    */
   toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.OperationObject {
-    const parameters = toEffectiveParameters({
-      own: this.parameters,
-      shared: this.pathItem?.parameters
-    })
+    const parameters = this.toEffectiveParameters()
+
+    for (const parameter of parameters) {
+      if (parameter.isRef() && namesNothing(parameter)) {
+        throw new DanglingRefError(parameter.$ref)
+      }
+    }
 
     return {
       tags: this.tags,

@@ -165,6 +165,10 @@ Extracts the bare name from the `$ref` string. For
 The `RefName` brand type narrows the return for type-safe lookup
 into component buckets.
 
+**Throws:** `DanglingRefError` if the `$ref` has no name, such as
+`#/components/schemas/`. That `$ref` names nothing. Test for it with
+`DanglingRefError.is(error)`.
+
 ### `toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ReferenceObject | ResolvedRefJsonType<T>`
 
 Converts the ref back to OpenAPI JSON representation.
@@ -176,10 +180,13 @@ Converts the ref back to OpenAPI JSON representation.
   JSON schema, inlining the ref. Cycle protection from `resolve()`
   applies.
 
+**Throws:** the errors of `toRefName()` when `options.resolve` is
+false, and the errors of `resolve()` when it is true.
+
 ### `toJSON(): object`
 
 Serialization for `JSON.stringify`. Returns the same shape as
-`toJsonSchema({ resolve: false })`.
+`toJsonSchema({ resolve: false })`, and throws the same errors.
 
 ## Getters
 
