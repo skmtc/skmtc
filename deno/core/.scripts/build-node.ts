@@ -17,6 +17,7 @@ await build({
     { name: './Brand', path: './types/Brand.ts' },
     { name: './collateExamples', path: './helpers/collateExamples.ts' },
     { name: './CustomValue', path: './dsl/CustomValue.ts' },
+    { name: './DanglingRefError', path: './oas/ref/DanglingRefError.ts' },
     { name: './DenoJson', path: './types/DenoJson.ts' },
     { name: './EnrichmentRequest', path: './types/EnrichmentRequest.ts' },
     { name: './Enrichments', path: './types/Enrichments.ts' },

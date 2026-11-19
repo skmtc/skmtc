@@ -289,7 +289,7 @@ const agrees = (type: unknown, target: OasSchema, depth: number): boolean => {
         target.members.every(member => agrees(type, member.isRef() ? member.resolve() : member, depth + 1))
     } catch (error) {
       // A member that is a dangling reference has no known type, so it does not agree.
-      if (error instanceof DanglingRefError) {
+      if (DanglingRefError.is(error)) {
         return false
       }
 

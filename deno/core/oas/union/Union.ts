@@ -305,7 +305,7 @@ export class OasUnion extends OasBase {
       })
     } catch (error) {
       // A dangling reference: the schema it stands for is not known.
-      if (error instanceof DanglingRefError) {
+      if (DanglingRefError.is(error)) {
         return false
       }
 

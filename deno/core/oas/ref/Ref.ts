@@ -361,6 +361,8 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    * @returns Either the resolved component or another reference in the chain
    * @throws {DanglingRefError} when the reference names nothing in the
    * document (kept under `client.json` `system.danglingRefs: keep`)
+   * @throws Error when it names a component of another kind, such as a
+   * `requestBody` ref to `#/components/schemas/…`
    */
   resolveOnce(): OasRef<T> | ResolvedRef<T> {
     const refName = toRefName(this.$ref)
@@ -392,6 +394,18 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
   }
 
   #resolveOasOnce(document: OasDocument, refName: RefName): ResolvedRef<T> | OasRef<T> | undefined {
+    // A `#/components/<bucket>/<name>` ref names its bucket. A request body
+    // that is a `$ref` to `#/components/schemas/Pet` names a schema, so it is
+    // never looked up in the request bodies.
+    const bucket = /^#\/components\/([^/]+)\//.exec(this.$ref)?.[1]
+    const expected = refTypeToPluralPath(this.refType)
+
+    if (bucket !== undefined && bucket !== expected) {
+      throw new Error(
+        `Ref type mismatch for "${this.$ref}". Expected a ref into "components/${expected}" but it names one in "components/${bucket}"`
+      )
+    }
+
     const c = document.components
     const refType: OasRefData['refType'] = this.refType
     switch (refType) {

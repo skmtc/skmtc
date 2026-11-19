@@ -7,13 +7,16 @@ import { StackTrail } from '@/context/StackTrail.ts'
 // Each `components.requestBodies` and `components.headers` entry parses
 // inside its own boundary. A broken entry is dropped with one
 // INVALID_REQUEST_BODY / INVALID_HEADER error at its location; the other
-// entries and the operations are kept.
+// entries and the operations are kept. An entry broken by a ref that names
+// nothing logs DANGLING_REF there instead.
 
 const emptyOneOf = { oneOf: [] }
 const emptyAnyOf = { anyOf: [] }
 const danglingAllOf = { allOf: [{ $ref: '#/components/schemas/Missing' }, { type: 'object' }] }
 
-const requestBodyCases: Array<{ label: string; entry: unknown; message: RegExp }> = [
+type Case = { label: string; entry: unknown; message: RegExp; type?: 'DANGLING_REF' }
+
+const requestBodyCases: Case[] = [
   { label: 'null', entry: null, message: /^Request body must be an object, got null$/ },
   { label: 'a string', entry: 'x', message: /^Request body must be an object, got string$/ },
   { label: 'content: null', entry: { content: null }, message: /null to object/ },
@@ -31,16 +34,22 @@ const requestBodyCases: Array<{ label: string; entry: unknown; message: RegExp }
   {
     label: 'an allOf with a dangling ref',
     entry: { content: { 'application/json': { schema: danglingAllOf } } },
-    message: /Missing/
+    message: /Missing/,
+    type: 'DANGLING_REF'
   }
 ]
 
-const headerCases: Array<{ label: string; entry: unknown; message: RegExp }> = [
+const headerCases: Case[] = [
   { label: 'null', entry: null, message: /^Header must be an object, got null$/ },
   { label: 'an array', entry: [], message: /^Header must be an object, got an array$/ },
   { label: 'an empty oneOf', entry: { schema: emptyOneOf }, message: /"oneOf" array is empty/ },
   { label: 'an empty anyOf', entry: { schema: emptyAnyOf }, message: /"anyOf" array is empty/ },
-  { label: 'an allOf with a dangling ref', entry: { schema: danglingAllOf }, message: /Missing/ }
+  {
+    label: 'an allOf with a dangling ref',
+    entry: { schema: danglingAllOf },
+    message: /Missing/,
+    type: 'DANGLING_REF'
+  }
 ]
 
 // Documents in the wild hold entries the parser's input type does not allow.
@@ -72,7 +81,7 @@ const parse = (document: OpenAPIV3.Document) => {
 }
 
 for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
-  for (const { label, entry, message } of requestBodyCases) {
+  for (const { label, entry, message, type = 'INVALID_REQUEST_BODY' } of requestBodyCases) {
     Deno.test(`${openapi} a component request body that is ${label} is dropped with one error`, () => {
       const { document, issues } = parse(
         toDocument(openapi, {
@@ -88,7 +97,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
         [
           {
             level: 'error',
-            type: 'INVALID_REQUEST_BODY',
+            type,
             location: 'TEST:components:requestBodies:Bad'
           }
         ]
@@ -99,7 +108,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     })
   }
 
-  for (const { label, entry, message } of headerCases) {
+  for (const { label, entry, message, type = 'INVALID_HEADER' } of headerCases) {
     Deno.test(`${openapi} a component header that is ${label} is dropped with one error`, () => {
       const { document, issues } = parse(
         toDocument(openapi, {
@@ -112,7 +121,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
 
       assertEquals(
         issues.map(({ level, type, location }) => ({ level, type, location })),
-        [{ level: 'error', type: 'INVALID_HEADER', location: 'TEST:components:headers:Bad' }]
+        [{ level: 'error', type, location: 'TEST:components:headers:Bad' }]
       )
       assertMatch(issues[0].message, message)
       assertEquals(Object.keys(document.components?.headers ?? {}), ['Good'])

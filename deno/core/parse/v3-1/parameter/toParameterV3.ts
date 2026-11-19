@@ -218,15 +218,14 @@ const toParameterV3 = ({
     schema: stackTrail.trace('schema', st =>
       toOptionalSchemaV3({ schema, stackTrail: st, context })
     ),
-    examples: stackTrail.trace('examples', st =>
-      toExamplesV3({
-        examples,
-        example,
-        exampleKey: `${name}-${parsedLocation}`,
-        stackTrail: st,
-        context
-      })
-    ),
+    // toExamplesV3 traces `examples` (or `example`) itself.
+    examples: toExamplesV3({
+      examples,
+      example,
+      exampleKey: `${name}-${parsedLocation}`,
+      stackTrail,
+      context
+    }),
     content: stackTrail.trace('content', st =>
       toOptionalMediaTypeItemsV3({ content, stackTrail: st, context })
     ),

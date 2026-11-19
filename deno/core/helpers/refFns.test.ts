@@ -1,6 +1,7 @@
 import { assertEquals, assertThrows } from '@std/assert'
 import { toRefName, isRef, toGetRef } from './refFns.ts'
 import type { OpenAPIV3 } from 'openapi-types'
+import { DanglingRefError } from '../oas/ref/DanglingRefError.ts'
 
 Deno.test('toRefName - extracts name from schema reference', () => {
   const refName = toRefName('#/components/schemas/User')
@@ -15,6 +16,14 @@ Deno.test('toRefName - extracts name from response reference', () => {
 Deno.test('toRefName - extracts name from parameter reference', () => {
   const refName = toRefName('#/components/parameters/LimitParam')
   assertEquals(refName, 'LimitParam')
+})
+
+Deno.test('toRefName - unescapes the name as a JSON pointer in a URI fragment', () => {
+  assertEquals(toRefName('#/components/schemas/Foo%20Bar'), 'Foo Bar')
+  // `~01` is `~1` escaped once: unescaping `~1` before `~0` keeps it `~1`.
+  assertEquals(toRefName('#/components/schemas/a~1b~01'), 'a/b~1')
+  // A `%` that starts no valid escape stays as written.
+  assertEquals(toRefName('#/components/schemas/100%'), '100%')
 })
 
 Deno.test('toRefName - throws error for invalid reference', () => {
@@ -120,8 +129,8 @@ Deno.test('toGetRef - throws error for non-existent reference', () => {
 
   assertThrows(
     () => resolver({ $ref: '#/components/schemas/NonExistent' }),
-    Error,
-    'Invalid reference: #/components/schemas/NonExistent'
+    DanglingRefError,
+    'Ref "#/components/schemas/NonExistent" names nothing in the document'
   )
 })
 
@@ -136,7 +145,7 @@ Deno.test('toGetRef - throws error when components is missing', () => {
 
   assertThrows(
     () => resolver({ $ref: '#/components/schemas/User' }),
-    Error,
-    'Invalid reference: #/components/schemas/User'
+    DanglingRefError,
+    'Ref "#/components/schemas/User" names nothing in the document'
   )
 })

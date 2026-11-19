@@ -219,7 +219,15 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  * place the `$ref` is written. An `error` under `system.danglingRefs:
  * strict` (the default): what holds the ref is removed, and each item that
  * uses it gets an `INVALID_DEPENDENCY_REF`. A `warning` under `keep`: the
- * ref stays, and resolving it throws `DanglingRefError`.
+ * ref stays, and resolving it throws `DanglingRefError`. A ref to an example
+ * or a link is a `warning` in both modes. A ref that core resolves while it
+ * parses (an `allOf` member that it merges) is an `error` in both modes, at
+ * the item that holds it.
+ *
+ * `REF_TYPE_MISMATCH` (`warning`) — a `$ref` names a component of the wrong
+ * kind, such as a request body that is a `$ref` to
+ * `#/components/schemas/Pet`. One for each place the `$ref` is written. The
+ * ref stays, and resolving it throws.
  *
  * `RUN_FAILED` (`error`) — the run itself failed outside the per-item
  * catches. Its `location` names the entry and phase, for example
@@ -258,6 +266,7 @@ export type OasIssueType =
   | 'ALLOF_CONTRADICTION'
   | 'ANYOF_AS_UNKNOWN'
   | 'DANGLING_REF'
+  | 'REF_TYPE_MISMATCH'
   | 'RUN_FAILED'
 
 /**
@@ -300,6 +309,7 @@ export const oasIssueType = v.union([
   v.literal('ALLOF_CONTRADICTION'),
   v.literal('ANYOF_AS_UNKNOWN'),
   v.literal('DANGLING_REF'),
+  v.literal('REF_TYPE_MISMATCH'),
   v.literal('RUN_FAILED')
 ])
 

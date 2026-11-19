@@ -199,7 +199,7 @@ export const collateExamples = ({ objectSchema, depth, seen }: CollatedExampleAr
         })
       } catch (error) {
         // A dangling reference names no schema, so it has no example either.
-        if (error instanceof DanglingRefError) {
+        if (DanglingRefError.is(error)) {
           return undefined
         }
 
