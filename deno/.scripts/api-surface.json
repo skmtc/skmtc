@@ -1,6 +1,6 @@
 {
   "@skmtc/core": {
-    "minor": "0.43",
+    "minor": "0.44",
     "deno": "2.9.8",
     "exports": {
       "AddPropertyArgs": "6922b41f66aabe95",
@@ -27,7 +27,7 @@
       "CustomValue": "1c02c56ab3e2bc05",
       "DEFAULT_GENERATED_SUFFIX": "92387e879945c3fc",
       "DEFAULT_VARIANT": "97c016b3d9102998",
-      "DanglingRefError": "fb7192b66230e4ee",
+      "DanglingRefError": "7551d5d761e7f7d9",
       "DanglingRefKind": "9adb8333903c86d6",
       "DefinitionBase": "2ff1b22d970cf9df",
       "DefinitionContainer": "2dd86760262c3abf",
@@ -230,7 +230,7 @@
       "OasParameterStyle": "9f8fb6b2c04384e7",
       "OasPathEnrichments": "64e8272c9e444c0f",
       "OasPathItem": "76e4626ab49cea34",
-      "OasRef": "d1f4bae51bf7910d",
+      "OasRef": "26b7f683bab574bc",
       "OasRefData": "d99f4fda6c84562a",
       "OasRequestBody": "9094dc0a04c35fb8",
       "OasRequestBodyRefData": "ece3028647ba949e",
