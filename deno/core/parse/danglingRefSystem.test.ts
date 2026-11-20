@@ -1,4 +1,4 @@
-import { assert, assertEquals, assertThrows } from '@std/assert'
+import { assert, assertEquals, assertStrictEquals, assertThrows } from '@std/assert'
 import * as log from '@std/log'
 import type { OpenAPIV3 } from 'openapi-types'
 import { ParseContext } from '@/context/ParseContext.ts'
@@ -556,4 +556,160 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     )
     assertEquals(issuesOf('REF_TYPE_MISMATCH'), [])
   })
+
+  Deno.test(`${openapi} a loop of parameter $refs names nothing: by default what uses it goes, and an operation without it stays`, () => {
+    const { toOperation, issuesOf } = parse({ openapi, system: undefined, document: parameterLoop })
+
+    assertEquals(toOperation('/a'), undefined)
+    assert(toOperation('/b') !== undefined)
+    // At the first `$ref` of the loop. Removing `P1` removes what uses it: `P2`,
+    // the rest of the loop, and `/a`, whose own `$ref` names `P1`.
+    assertEquals(
+      issuesOf('DANGLING_REF').map(({ level, location, message }) => ({ level, location, message })),
+      [
+        {
+          level: 'error',
+          location: 'TEST:components:parameters:P1',
+          message:
+            "Ref \"#/components/parameters/P2\" names nothing in the document: its $refs loop (#/components/parameters/P2 → #/components/parameters/P1 → #/components/parameters/P2), so what holds it is removed. To keep it, list 'parameter' in system.danglingRefs."
+        }
+      ]
+    )
+    assertEquals(
+      issuesOf('INVALID_DEPENDENCY_REF').map(({ location }) => location),
+      ['TEST:paths:/a:get:parameters:0', 'TEST:components:parameters:P2']
+    )
+  })
+
+  Deno.test(`${openapi} system.danglingRefs ['parameter']: a loop of parameter $refs stays, with a warning, and resolving it throws DanglingRefError`, () => {
+    const { toOperation, issuesOf } = parse({ openapi, system: { danglingRefs: ['parameter'] }, document: parameterLoop })
+    const a = toOperation('/a')
+
+    assert(a !== undefined)
+    assert(toOperation('/b') !== undefined)
+
+    // It threw `Max lookups reached` here, before a generator saw the parameter.
+    const parameters = a.toEffectiveParameters()
+    const [parameter] = parameters
+
+    assertEquals(parameters.length, 1)
+    assert(parameter?.isRef())
+    assertEquals(assertThrows(() => parameter.resolve(), DanglingRefError).loop, [
+      '#/components/parameters/P2',
+      '#/components/parameters/P1'
+    ])
+    assertEquals(
+      issuesOf('DANGLING_REF').map(({ level, location }) => ({ level, location })),
+      [
+        { level: 'warning', location: 'TEST:components:parameters:P1' },
+        { level: 'warning', location: 'TEST:components:parameters:P2' }
+      ]
+    )
+  })
+
+  Deno.test(`${openapi} a loop of schema $refs names nothing, and a $ref into it is reported at the loop, not where it is written`, () => {
+    const removed = parse({ openapi, system: undefined, document: schemaLoop })
+
+    assertEquals(removed.toSchema('A'), undefined)
+    assertEquals(removed.toSchema('B'), undefined)
+    assertEquals(removed.toSchema('Owner'), undefined)
+    assertEquals(removed.toOperation('/owner'), undefined)
+    assert(removed.toOperation('/pet') !== undefined)
+    // `Owner`'s `$ref` names `A`, which is there: it goes as an item that uses `A`.
+    assertEquals(removed.issuesOf('DANGLING_REF').map(({ location }) => location), ['TEST:components:schemas:A'])
+    assertEquals(
+      removed.issuesOf('INVALID_DEPENDENCY_REF').map(({ location }) => location),
+      [
+        'TEST:components:schemas:B',
+        'TEST:components:schemas:Owner:properties:a',
+        'TEST:paths:/owner:get:responses:200:content:application/json:schema'
+      ]
+    )
+
+    const kept = parse({ openapi, system: { danglingRefs: ['schema'] }, document: schemaLoop })
+    const owner = kept.toSchema('Owner')
+
+    assert(owner !== undefined && !owner.isRef() && owner.type === 'object')
+    const a = owner.properties?.a
+    assert(a !== undefined && a.isRef())
+    // One step still names a component, so a generator can link to it.
+    assertStrictEquals(a.resolveOnce(), kept.toSchema('A'))
+    assertThrows(() => a.resolve(), DanglingRefError)
+    assertEquals(
+      kept.issuesOf('DANGLING_REF').map(({ level, location }) => ({ level, location })),
+      [
+        { level: 'warning', location: 'TEST:components:schemas:A' },
+        { level: 'warning', location: 'TEST:components:schemas:B' }
+      ]
+    )
+  })
+
+  Deno.test(`${openapi} a loop of response $refs names nothing, unless system.danglingRefs lists 'response'`, () => {
+    const removed = parse({ openapi, system: undefined, document: responseLoop })
+
+    assertEquals(removed.toOperation('/r'), undefined)
+    assert(removed.toOperation('/pet') !== undefined)
+    assertEquals(
+      removed.issuesOf('DANGLING_REF').map(({ level, location }) => ({ level, location })),
+      [{ level: 'error', location: 'TEST:components:responses:R1' }]
+    )
+
+    const kept = parse({ openapi, system: { danglingRefs: ['response'] }, document: responseLoop })
+    const response = kept.toOperation('/r')?.responses['200']
+
+    assert(response !== undefined && response.isRef())
+    assertThrows(() => response.resolve(), DanglingRefError)
+    assertEquals(
+      kept.issuesOf('DANGLING_REF').map(({ level, location }) => ({ level, location })),
+      [
+        { level: 'warning', location: 'TEST:components:responses:R1' },
+        { level: 'warning', location: 'TEST:components:responses:R2' }
+      ]
+    )
+  })
+}
+
+// skmtc/skmtc#364. Each step of a loop names a component, so the parser kept
+// it, and resolving it threw a plain `Max lookups reached` that failed the run.
+const parameterLoop = {
+  paths: {
+    '/a': { get: { parameters: [{ $ref: '#/components/parameters/P1' }], responses: ok(pet) } },
+    '/b': { get: { responses: ok(pet) } }
+  },
+  components: {
+    schemas: { Pet: petSchema },
+    parameters: {
+      P1: { $ref: '#/components/parameters/P2' },
+      P2: { $ref: '#/components/parameters/P1' }
+    }
+  }
+}
+
+const schemaLoop = {
+  paths: {
+    '/owner': { get: { responses: ok({ $ref: '#/components/schemas/Owner' }) } },
+    '/pet': { get: { responses: ok(pet) } }
+  },
+  components: {
+    schemas: {
+      Pet: petSchema,
+      A: { $ref: '#/components/schemas/B' },
+      B: { $ref: '#/components/schemas/A' },
+      Owner: { type: 'object', properties: { a: { $ref: '#/components/schemas/A' } } }
+    }
+  }
+}
+
+const responseLoop = {
+  paths: {
+    '/r': { get: { responses: { '200': { $ref: '#/components/responses/R1' } } } },
+    '/pet': { get: { responses: ok(pet) } }
+  },
+  components: {
+    schemas: { Pet: petSchema },
+    responses: {
+      R1: { $ref: '#/components/responses/R2' },
+      R2: { $ref: '#/components/responses/R1' }
+    }
+  }
 }

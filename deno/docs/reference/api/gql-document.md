@@ -109,10 +109,10 @@ The named-type registry. Parallel to `OasComponents.schemas`.
 `GqlRegistry` owns a private `OasDocument` mirror whose
 `components.schemas` is **the same `Record` instance** as
 `registry.schemas`. Refs created via `registry.createRef(refName)`
-point at this internal mirror. This lets GraphQL types use the
-existing `OasRef` machinery — including the `MAX_LOOKUPS` cycle
-guard and the type-integrity check at resolve time — without
-subclassing or modifying `OasRef`.
+point at this internal mirror. GraphQL types then use the existing
+`OasRef` machinery without subclassing or modifying `OasRef`. That
+machinery includes the check for a loop of `$ref`s and the
+type-integrity check at resolve time.
 
 Consumers see only `registry.schemas`; the mirror is an
 implementation detail. **Do not construct `OasRef` directly when

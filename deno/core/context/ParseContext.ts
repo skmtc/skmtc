@@ -107,7 +107,12 @@ type LogDependencyIssueArgs = {
 /** An OAS ref and the place it is written, which `#checkRefs` resolves. */
 type WrittenRef = {
   consumer: StackTrail
-  ref: { $ref: string; refType: OasRefData['refType']; resolveOnce(): unknown }
+  ref: {
+    $ref: string
+    refType: OasRefData['refType']
+    resolveOnce(): unknown
+    toLoop(): { $ref: string }[] | undefined
+  }
 }
 
 /**
@@ -650,7 +655,9 @@ export class ParseContext {
    * Resolves each OAS ref once the document is parsed, at each place it is
    * written, and logs an issue there when it does not resolve:
    *
-   * - A ref that names nothing logs `DANGLING_REF`. When `client.json`
+   * - A ref that names nothing logs `DANGLING_REF`: no component has its
+   *   name, or it is part of a loop of `$ref`s (`A` is a `$ref` to `B`, and
+   *   `B` to `A`), which never reaches a component. When `client.json`
    *   `system.danglingRefs` lists its kind, it is a warning: the ref stays,
    *   and resolving it throws `DanglingRefError` for the generator to handle.
    *   Otherwise (the default, `[]`, lists none) it is an error, and what holds
@@ -669,9 +676,9 @@ export class ParseContext {
         return
       }
 
-      try {
-        ref.resolveOnce()
-      } catch (error) {
+      const error = this.#toRefError(ref)
+
+      if (error !== undefined) {
         if (!DanglingRefError.is(error)) {
           const message = error instanceof Error ? error.message : String(error)
 
@@ -701,6 +708,39 @@ export class ParseContext {
         }
       }
     })
+  }
+
+  /**
+   * Why `ref` does not resolve where it is written, or `undefined` when it
+   * does: what `resolveOnce()` throws, or a `DanglingRefError` when `ref` is
+   * part of a loop of `$ref`s (`OasRef.toLoop`).
+   *
+   * A ref that leads into a loop, or to a ref that names nothing or the
+   * wrong kind, resolves here: the refs further on report it where they are
+   * written, and what holds them goes with what uses it.
+   */
+  #toRefError(ref: WrittenRef['ref']): unknown {
+    try {
+      ref.resolveOnce()
+    } catch (error) {
+      return error
+    }
+
+    const loop = this.#toLoopOf(ref)
+
+    return loop === undefined ? undefined : new DanglingRefError(ref.$ref, { loop: loop.map(({ $ref }) => $ref) })
+  }
+
+  /** The loop of `$ref`s that `ref` is part of, or `undefined`. */
+  #toLoopOf(ref: WrittenRef['ref']): { $ref: string }[] | undefined {
+    try {
+      const loop = ref.toLoop()
+
+      return loop?.includes(ref) ? loop : undefined
+    } catch {
+      // A ref further on names nothing or the wrong kind: it reports that itself.
+      return undefined
+    }
   }
 
   /**

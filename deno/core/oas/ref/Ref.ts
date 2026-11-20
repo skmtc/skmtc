@@ -310,8 +310,8 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
   /**
    * Recursively resolves this reference to its final target component.
    *
-   * Follows reference chains until reaching a non-reference component,
-   * with protection against infinite loops. A schema reference returns the
+   * Follows the chain of references until it reaches a component that is
+   * not a reference. A schema reference returns the
    * schema at this site: when the keywords next to it, or next to a
    * reference on the chain ({@link SiblingKeywords}), change the target, a
    * copy of the target with them applied. When they change nothing, the
@@ -321,25 +321,30 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    * model every reference to it sees, and a copy is built once, kept on
    * this reference, and returned on every call.
    *
-   * @param lookupsPerformed - Internal counter to prevent infinite recursion
    * @returns The resolved component
-   * @throws Error if maximum lookup depth is exceeded
+   * @throws {DanglingRefError} when a reference on the chain names nothing,
+   * or the chain loops ({@link toLoop}), so it never reaches a component.
+   * The parser keeps either one only when `system.danglingRefs` lists its kind.
+   * @throws Error when a reference on the chain names a component of another
+   * kind (see {@link resolveOnce})
    */
-  resolve(lookupsPerformed: number = 0): ResolvedRef<T> {
-    return this.#toResolution(lookupsPerformed).resolved
+  resolve(): ResolvedRef<T> {
+    return this.#toResolution().resolved
   }
 
-  #toResolution(lookupsPerformed: number): Resolution<T> {
+  #toResolution(): Resolution<T> {
     if (this.#resolution !== undefined) {
       return this.#resolution
     }
 
-    if (lookupsPerformed >= MAX_LOOKUPS) {
-      throw new Error('Max lookups reached')
+    const loop = this.toLoop()
+
+    if (loop !== undefined) {
+      throw new DanglingRefError(this.$ref, { loop: loop.map(({ $ref }) => $ref) })
     }
 
     const resolved = this.resolveOnce()
-    const target = resolved.isRef() ? resolved.resolve(lookupsPerformed + 1) : resolved
+    const target = resolved.isRef() ? resolved.resolve() : resolved
     const resolution: Resolution<T> = { target, resolved: this.#toSiteSchema(target) }
 
     this.#resolution = resolution
@@ -363,6 +368,32 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     // A schema's copy is a schema of the same class. TypeScript cannot relate
     // OasSchema to ResolvedRef<T> for a generic T, as in resolveOnce().
     return changesTarget(copy, component, this) ? (copy as ResolvedRef<T>) : target
+  }
+
+  /**
+   * The references that form the loop this reference's chain comes back to,
+   * starting with the first one it comes back to, or `undefined` when the
+   * chain reaches a component. `A` a `$ref` to `B`, and `B` to `A`, form a
+   * loop: from `A` the chain goes to `B`, then to `A` again, and never
+   * reaches a component. A reference that leads into a loop is not part of it.
+   *
+   * @throws what {@link resolveOnce} throws, at any step of the chain
+   */
+  toLoop(): OasRef<T>[] | undefined {
+    return this.#toLoop([this])
+  }
+
+  /** {@link toLoop} from this reference, which `followed` ends with. */
+  #toLoop(followed: OasRef<T>[]): OasRef<T>[] | undefined {
+    const next = this.resolveOnce()
+
+    if (!next.isRef()) {
+      return undefined
+    }
+
+    const index = followed.indexOf(next)
+
+    return index === -1 ? next.#toLoop([...followed, next]) : followed.slice(index)
   }
 
   /**
@@ -538,7 +569,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
       return false
     }
 
-    const { target, resolved } = this.#toResolution(0)
+    const { target, resolved } = this.#toResolution()
     // Widened from the generic ResolvedRef<T>, so `oasType` narrows them.
     const original: OasComponentType = target
     const applied: OasComponentType = resolved

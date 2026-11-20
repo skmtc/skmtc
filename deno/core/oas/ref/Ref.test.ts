@@ -757,7 +757,7 @@ Deno.test('OasRef', async t => {
   })
 
   await t.step('resolve() - circular reference detection', async t => {
-    await t.step('should detect simple circular reference', () => {
+    await t.step('a loop of two $refs names nothing: resolve() throws DanglingRefError, which lists the loop', () => {
       const document = new OasDocument({
         openapi: '3.0.0',
         info: new OasInfo({ title: 'Test', version: '1.0.0' }),
@@ -792,7 +792,62 @@ Deno.test('OasRef', async t => {
         components
       }
 
-      assertThrows(() => refA.resolve(), Error, 'Max lookups reached')
+      const error = assertThrows(() => refA.resolve(), DanglingRefError)
+
+      assertEquals(error.ref, '#/components/schemas/B')
+      assertEquals(error.loop, ['#/components/schemas/B', '#/components/schemas/A'])
+      assertEquals(
+        error.message,
+        'Ref "#/components/schemas/B" names nothing in the document: its $refs loop (#/components/schemas/B → #/components/schemas/A → #/components/schemas/B)'
+      )
+
+      assertEquals(refA.toLoop(), [refA, refB])
+      assertEquals(refB.toLoop(), [refB, refA])
+    })
+
+    await t.step('a $ref that leads into a loop is not part of it, and resolving it throws DanglingRefError', () => {
+      const document = new OasDocument({
+        openapi: '3.0.0',
+        info: new OasInfo({ title: 'Test', version: '1.0.0' }),
+        operations: []
+      })
+      const context = toRefParseContextStub({ type: 'oas', value: document })
+      const refA = new OasRef({ refType: 'schema', $ref: '#/components/schemas/B' }, context)
+      const refB = new OasRef({ refType: 'schema', $ref: '#/components/schemas/A' }, context)
+      // A property, say, that is a `$ref` to `A`.
+      const site = new OasRef({ refType: 'schema', $ref: '#/components/schemas/A' }, context)
+
+      document.fields = {
+        ...document.fields!,
+        components: new OasComponents({ schemas: { A: refA, B: refB } as Record<RefName, OasRef<'schema'>> })
+      }
+
+      assertEquals(site.toLoop(), [refA, refB])
+
+      const error = assertThrows(() => site.resolve(), DanglingRefError)
+
+      assertEquals(error.ref, '#/components/schemas/A')
+      assertEquals(error.loop, ['#/components/schemas/B', '#/components/schemas/A'])
+    })
+
+    await t.step('a $ref to itself is a loop of one', () => {
+      const document = new OasDocument({
+        openapi: '3.0.0',
+        info: new OasInfo({ title: 'Test', version: '1.0.0' }),
+        operations: []
+      })
+      const refA = new OasRef(
+        { refType: 'schema', $ref: '#/components/schemas/A' },
+        toRefParseContextStub({ type: 'oas', value: document })
+      )
+
+      document.fields = {
+        ...document.fields!,
+        components: new OasComponents({ schemas: { A: refA } as Record<RefName, OasRef<'schema'>> })
+      }
+
+      assertEquals(refA.toLoop(), [refA])
+      assertEquals(assertThrows(() => refA.resolve(), DanglingRefError).loop, ['#/components/schemas/A'])
     })
 
     await t.step('should detect three-way circular reference', () => {
@@ -839,17 +894,21 @@ Deno.test('OasRef', async t => {
         components
       }
 
-      assertThrows(() => refA.resolve(), Error, 'Max lookups reached')
+      assertEquals(assertThrows(() => refA.resolve(), DanglingRefError).loop, [
+        '#/components/schemas/B',
+        '#/components/schemas/C',
+        '#/components/schemas/A'
+      ])
     })
 
-    await t.step('should throw at MAX_LOOKUPS (10 levels)', () => {
+    await t.step('a chain of 11 $refs that reaches a component resolves: only a loop throws', () => {
       const document = new OasDocument({
         openapi: '3.0.0',
         info: new OasInfo({ title: 'Test', version: '1.0.0' }),
         operations: []
       })
 
-      // Create a chain of 11 references (exceeds MAX_LOOKUPS of 10)
+      // Longer than the 10 lookups `resolve()` allowed before it looked for a loop.
       const schemas: Record<string, OasRef<'schema'> | OasSchema> = {}
 
       for (let i = 0; i < 11; i++) {
@@ -862,7 +921,8 @@ Deno.test('OasRef', async t => {
         )
       }
 
-      schemas['Schema11'] = new OasString()
+      const finalSchema = new OasString()
+      schemas['Schema11'] = finalSchema
 
       const components = new OasComponents({
         schemas: schemas as Record<RefName, OasSchema | OasRef<'schema'>>
@@ -875,7 +935,8 @@ Deno.test('OasRef', async t => {
 
       const firstRef = schemas['Schema0'] as OasRef<'schema'>
 
-      assertThrows(() => firstRef.resolve(), Error, 'Max lookups reached')
+      assertEquals(firstRef.toLoop(), undefined)
+      assertStrictEquals(firstRef.resolve(), finalSchema)
     })
 
     await t.step('should succeed with near-max lookups (9 levels)', () => {

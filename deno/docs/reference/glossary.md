@@ -353,11 +353,14 @@ to `.skmtc/<project>/.settings/manifest.json` and overwritten per run.
 See [the-manifest](../concepts/the-manifest.md) and the
 [manifest-format reference](manifest-format.md).
 
-### `MAX_LOOKUPS`
+### Loop of `$ref`s
 
-The constant `10` in `OasRef` limiting `$ref` chain resolution depth;
-exceedance throws "Max lookups reached", catching cycles and
-pathologically deep chains.
+A chain of `$ref`s that comes back to a `$ref` it has passed: `A` is a
+`$ref` to `B`, and `B` to `A`. The chain never gets to a component that
+is not a `$ref`, so it names nothing, the same as a `$ref` to no
+component. The parser logs `DANGLING_REF`, and `OasRef.resolve()`
+throws `DanglingRefError`. `OasRef.toLoop()` gives the references of
+the loop.
 
 ### `Modifiers`
 

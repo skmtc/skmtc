@@ -347,7 +347,8 @@ the usual parse. Default: `{}`.
   document. The kinds are `"schema"`, `"parameter"`, `"requestBody"`,
   `"response"`, `"header"`, `"securityScheme"`, `"example"`, `"link"`
   and `"allOfMember"`. The default is `[]`. Each place that has such a
-  `$ref` logs one `DANGLING_REF` issue.
+  `$ref` logs one `DANGLING_REF` issue. A `$ref` in a loop of `$ref`s
+  (`A` is a `$ref` to `B`, and `B` to `A`) also names nothing.
   - A kind that is not in the list gives an error. The parser removes
     the item that has the `$ref`, and each item that refers to that item
     (`INVALID_DEPENDENCY_REF`).

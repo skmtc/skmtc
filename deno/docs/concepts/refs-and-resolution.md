@@ -147,8 +147,8 @@ implementation choices.
 
 - **`resolve()`** — recursively chases until reaching a non-ref. If
   there are 5 layers of `$ref → $ref → $ref → $ref → schema`, returns
-  the schema at depth 5. Throws if the chain exceeds `MAX_LOOKUPS`
-  (10).
+  the schema at depth 5. Throws `DanglingRefError` if the chain loops
+  (see [Loops of `$ref`s](#loops-of-refs)).
 
 Most consumers want `resolve()` — they don't care whether the path
 is direct or indirect, they want the underlying schema.
@@ -237,22 +237,27 @@ before the lookup. A request-body schema with `$ref:
 such place and removes what holds the `$ref`. A generator never gets
 one (see [Refs that name nothing](#refs-that-name-nothing)).
 
-## Cycle protection: MAX_LOOKUPS
+## Loops of `$ref`s
 
-What about `A → B → A → B → ...` cycles?
+In a loop of `$ref`s, `A` is a `$ref` to `B`, and `B` is a `$ref` to
+`A`. Each `resolveOnce()` names a component, but the chain never
+reaches a component that is not a `$ref`. Such a chain names nothing,
+the same as a `$ref` to no component:
 
-```ts
-// core/oas/ref/Ref.ts
-const MAX_LOOKUPS = 10
-```
+- `toLoop()` gives the references that make the loop, or `undefined`
+  when the chain reaches a component. A reference that leads into a
+  loop is not part of the loop.
+- `resolve()` throws `DanglingRefError` for a chain that loops. The
+  error's `loop` lists the `$ref`s of the loop.
+- The parser logs `DANGLING_REF` at the `$ref`s of the loop, as in
+  [Refs that name nothing](#refs-that-name-nothing).
 
-`resolve()` tracks recursion depth. If it exceeds 10 hops, it throws
-`Max lookups reached`. This catches cycles before they crash with
-stack overflow.
+A schema that holds itself through a property, such as a tree whose
+`children` are `$ref`s to the tree, is not a loop of `$ref`s. Each
+step reaches an object schema.
 
-The number 10 is deliberately small. Real OAS schemas almost never
-need a ref chain longer than 2-3 hops. A 10-hop chain is essentially
-always a cycle or a pathological schema worth flagging.
+A long chain that reaches a component resolves. There is no limit on
+the number of steps.
 
 ## Ref tracking during parse
 
@@ -288,7 +293,9 @@ for that address-bridging step.
 At end-of-parse, before the cascade, `ParseContext` resolves each one
 once, at that place. When a `$ref` names nothing in the document,
 `resolveOnce()` throws `DanglingRefError`, and the place logs a
-`DANGLING_REF` issue. The `client.json` setting
+`DANGLING_REF` issue. A `$ref` in a [loop](#loops-of-refs) also names
+nothing, and its place logs a `DANGLING_REF` issue too. The
+`client.json` setting
 `settings.system.danglingRefs` lists the kinds of `$ref` that can name
 nothing. The default list is empty.
 
@@ -298,7 +305,9 @@ nothing. The default list is empty.
   the `$ref` at once. That is the operation that has the `$ref`. For a
   path-level parameter, it is each operation on the path.
 - A kind in the list: a warning. The `$ref` stays, and `resolveOnce()`
-  throws `DanglingRefError` for it. The generator decides what to do.
+  throws `DanglingRefError` for it. In a loop, `resolveOnce()` still
+  names the next component, and `resolve()` throws `DanglingRefError`.
+  The generator decides what to do.
   For example, it writes `unknown` for a schema, or fails the operation
   for a parameter. Test for the error with `DanglingRefError.is(error)`.
 
@@ -367,7 +376,8 @@ Yes. `$ref: '#/components/schemas/AliasToUser'` where `AliasToUser`
 is itself `{ $ref: '#/components/schemas/User' }` resolves correctly
 via `resolve()`. The intermediate `OasRef` is followed transparently.
 
-`MAX_LOOKUPS` caps the chain length at 10.
+A chain of any length resolves when it reaches a component. A chain
+that loops names nothing (see [Loops of `$ref`s](#loops-of-refs)).
 
 ### What if I resolve a ref that was pruned?
 

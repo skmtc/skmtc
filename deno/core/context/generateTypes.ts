@@ -215,8 +215,9 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  * of two or more members as any value. The schema keeps its other keywords.
  * One for each schema.
  *
- * `DANGLING_REF` — a `$ref` names nothing in the document. One for each
- * place the `$ref` is written. A `warning` when `system.danglingRefs` lists
+ * `DANGLING_REF` — a `$ref` names nothing in the document: no component has
+ * its name, or it is part of a loop of `$ref`s (`A` is a `$ref` to `B`, and
+ * `B` to `A`). One for each place the `$ref` is written. A `warning` when `system.danglingRefs` lists
  * the `$ref`'s kind: the ref stays, and resolving it throws
  * `DanglingRefError`; with `allOfMember` listed, a `$ref` that core merges
  * (in an `allOf`, or in a `oneOf` or `anyOf` member) is left out of the
