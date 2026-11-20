@@ -32,6 +32,7 @@
 
 import { dirname, fromFileUrl, join } from 'jsr:@std/path@^1'
 import { encodeHex } from '@std/encoding/hex'
+import { stripAnsiCode } from '@std/fmt/colors'
 
 export type SurfaceTarget = { packageName: string; directory: string }
 
@@ -74,11 +75,16 @@ export const isApiSurface = (value: unknown): value is ApiSurface =>
   value.unresolved.every(name => typeof name === 'string')
 
 /**
- * Drop positions and doc comments and sort keys, so the digest is a
- * function of the declaration alone: moving a file or editing a comment
- * is not an API change.
+ * Drop positions and doc comments, sort keys and remove terminal color
+ * codes, so the digest is a function of the declaration alone: moving a
+ * file or editing a comment is not an API change.
+ *
+ * `deno doc --json` writes color codes into the `repr` of a template
+ * literal type (`${string}|${string}`) unless `NO_COLOR` is set, and the
+ * `deno` it runs inherits `NO_COLOR` from whoever runs the check.
  */
 export const normalizeDeclaration = (value: unknown): unknown => {
+  if (typeof value === 'string') return stripAnsiCode(value)
   if (Array.isArray(value)) return value.map(normalizeDeclaration)
   if (!isRecord(value)) return value
 
