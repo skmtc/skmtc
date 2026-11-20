@@ -503,7 +503,7 @@ Reference example: `skmtc-generators/gen-shadcn-form/src/`.
 | Direct mutation of `context.#files` | Private for a reason; go through `register` |
 | Reading `OasSchema` params without `.resolve()` | The common parameter type is `OasSchema \| OasRef<'schema'>` |
 | Guarding resolution — `schema.isRef() ? schema.resolve() : schema` | `.resolve()` is identity on concrete schemas; call it unconditionally. `.isRef()` is for branches that genuinely differ |
-| Calling `resolve()` without expecting cycle throw | `MAX_LOOKUPS = 10` will throw on cycles |
+| Calling `resolve()` without expecting `DanglingRefError` | It throws for a `$ref` that names nothing or a loop of `$ref`s, when `system.danglingRefs` keeps one; test with `DanglingRefError.is` |
 
 ---
 

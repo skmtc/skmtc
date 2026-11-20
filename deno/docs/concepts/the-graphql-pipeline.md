@@ -456,10 +456,10 @@ for what happens at the worker boundary.
 `GqlRegistry` owns a private `OasDocument` whose
 `components.schemas` is **the same `Record` instance** as
 `registry.schemas`. Refs created via `registry.createRef(refName)`
-point at this internal mirror — which lets GraphQL types reuse
-the existing `OasRef` machinery (lazy resolution, the
-`MAX_LOOKUPS` cycle guard, the type-integrity check at resolve
-time) without subclassing or modifying `OasRef`.
+point at this internal mirror. GraphQL types then use the existing
+`OasRef` machinery without subclassing or modifying `OasRef`. That
+machinery includes lazy resolution, the check for a loop of `$ref`s,
+and the type-integrity check at resolve time.
 
 Consumers see only `registry.schemas`; the mirror is an
 implementation detail. **Don't construct `OasRef` directly when

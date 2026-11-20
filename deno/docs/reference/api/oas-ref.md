@@ -1,8 +1,8 @@
 # OasRef
 
 > The class representing an OpenAPI `$ref`. Lazy resolution against a
-> mutable parsed document; type-integrity checked at resolve time;
-> cycle-protected by a depth counter.
+> mutable parsed document; type-integrity checked at resolve time; a
+> loop of `$ref`s names nothing.
 
 ## Source
 
@@ -19,8 +19,9 @@ class OasRef<T extends OasRefData['refType']> {
 
   // Methods
   isRef(): this is OasRef<T>
-  resolve(lookupsPerformed?: number): ResolvedRef<T>
+  resolve(): ResolvedRef<T>
   resolveOnce(): OasRef<T> | ResolvedRef<T>
+  toLoop(): OasRef<T>[] | undefined
   toRefName(): RefName
   toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ReferenceObject | ResolvedRefJsonType<T>
   toJSON(): object
@@ -48,16 +49,6 @@ ref target. One of:
 Different `refType`s are distinct types. A function declaring
 `OasRef<'schema'>` won't accept `OasRef<'parameter'>` at compile
 time.
-
-## Constants
-
-```ts
-const MAX_LOOKUPS = 10
-```
-
-The maximum depth `resolve()` will chase through chained `$ref`s
-before throwing `Max lookups reached`. Catches cycles and
-pathologically deep ref chains.
 
 ## Constructor
 
@@ -119,19 +110,21 @@ function handle(value: OasSchema | OasRef<'schema'>) {
 }
 ```
 
-### `resolve(lookupsPerformed?: number): ResolvedRef<T>`
+### `resolve(): ResolvedRef<T>`
 
 Recursively resolves the ref to its final non-ref target. If the
-target is itself a `$ref`, follows the chain.
+target is itself a `$ref`, follows the chain. A chain of any length
+resolves when it gets to a component that is not a `$ref`.
 
 **Throws:**
 
-- `Max lookups reached` if the chain depth exceeds `MAX_LOOKUPS` (10)
 - `DanglingRefError` (`Ref "<$ref>" names nothing in the document`)
-  if a link in the chain names nothing in the document. The parser
-  removes such a ref, unless `client.json`
-  `settings.system.danglingRefs` lists its kind. Test for it with
-  `DanglingRefError.is(error)`.
+  if a link in the chain names nothing in the document, or if the
+  chain loops (see [`toLoop()`](#toloop-oasreft--undefined)). For a
+  loop, the message says `leads into a loop of $refs (…)`, and the error's
+  `loop` lists the `$ref`s of the loop. The parser removes such a ref,
+  unless `client.json` `settings.system.danglingRefs` lists its kind.
+  Test for it with `DanglingRefError.is(error)`.
 - `Ref type mismatch for "<$ref>"` if the `$ref` names the wrong part
   of `components` for `refType`. An example is a `requestBody` ref to
   `#/components/schemas/Pet`. The parser logs a `REF_TYPE_MISMATCH`
@@ -140,9 +133,6 @@ target is itself a `$ref`, follows the chain.
 - `Ref type mismatch for "<$ref>"` if the resolved target has the
   wrong `oasType` (e.g., a `OasRef<'schema'>` that resolves to a
   parameter)
-
-`lookupsPerformed` is the internal recursion counter; callers should
-omit it.
 
 ### `resolveOnce(): OasRef<T> | ResolvedRef<T>`
 
@@ -153,8 +143,22 @@ resolved value.
 Useful when you specifically want to detect ref chains. Most callers
 want `resolve()` instead.
 
-**Throws same errors as `resolve()`** except `Max lookups reached`
-(which only applies to chained resolution).
+**Throws same errors as `resolve()`** for this one step. A `$ref` in a
+loop names a component, so `resolveOnce()` returns the next `OasRef`
+for it.
+
+### `toLoop(): OasRef<T>[] | undefined`
+
+The references that make the loop this ref's chain comes back to, from
+the first one it comes back to. `undefined` when the chain gets to a
+component that is not a `$ref`.
+
+For `A` a `$ref` to `B`, and `B` a `$ref` to `A`, `A.toLoop()` is
+`[A, B]`, and `B.toLoop()` is `[B, A]`. A property that is a `$ref` to
+`A` leads into the loop but is not part of it: its `toLoop()` is
+`[A, B]` too.
+
+**Throws:** what `resolveOnce()` throws at a step of the chain.
 
 ### `toRefName(): RefName`
 
@@ -345,23 +349,20 @@ function describeChain(ref: OasRef<'schema'>): string[] {
 
 ## Common questions
 
-### Can I detect cycles before they throw `Max lookups reached`?
+### Can I find a loop of `$ref`s before `resolve()` throws?
 
-Walk the chain with `resolveOnce()` and a `Set<string>` of seen
-`$ref` strings:
+Call `toLoop()`. It is `undefined` when the chain gets to a component:
 
 ```ts
-function detectCycle(ref: OasRef<'schema'>): boolean {
-  const seen = new Set<string>([ref.$ref])
-  let current = ref.resolveOnce()
-  while (current.isRef()) {
-    if (seen.has(current.$ref)) return true
-    seen.add(current.$ref)
-    current = current.resolveOnce()
-  }
-  return false
+const loop = ref.toLoop()
+
+if (loop !== undefined) {
+  // `ref` names nothing: `loop` holds the references of the loop
 }
 ```
+
+The parser keeps a loop only when `system.danglingRefs` lists its
+kind, so a generator meets one only then.
 
 ### What's the difference between `oasType` and `refType`?
 

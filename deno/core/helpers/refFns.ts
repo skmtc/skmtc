@@ -153,7 +153,8 @@ export const isRef = (value: unknown): value is Ref => {
  * @param oasDocument - The OpenAPI document containing the schemas to resolve against
  * @returns A function that resolves reference objects to schema objects
  *
- * @throws {DanglingRefError} When a reference names no schema in the document
+ * @throws {DanglingRefError} When a reference names no schema in the document,
+ * or its chain of references loops, unless `onDangling` reads something in its place
  *
  * @example Basic usage
  * ```typescript
@@ -205,25 +206,58 @@ export const isRef = (value: unknown): value is Ref => {
  */
 export const toGetRef =
   (oasDocument: OpenAPIV3.Document, onDangling?: OnDangling) =>
-  ({ $ref }: ReferenceObject): OpenAPIV3.SchemaObject => {
-    const refName = toRefName($ref)
+  ({ $ref }: ReferenceObject): OpenAPIV3.SchemaObject =>
+    toTargetSchema({ oasDocument, onDangling, $ref, followed: [] })
 
-    const item = oasDocument.components?.schemas?.[refName]
+/**
+ * What a resolver reads in place of a `$ref` that names nothing: no schema
+ * has its name, or its chain of `$ref`s loops. It may throw `error`.
+ */
+type OnDangling = (error: DanglingRefError) => OpenAPIV3.SchemaObject
 
-    if (isRef(item)) {
-      return toGetRef(oasDocument, onDangling)(item)
-    }
+type ToTargetSchemaArgs = {
+  oasDocument: OpenAPIV3.Document
+  onDangling: OnDangling | undefined
+  /** The `$ref` to look up. */
+  $ref: string
+  /** The `$ref`s followed before `$ref`, from the one asked for. */
+  followed: string[]
+}
 
-    if (item) {
-      return item
-    }
+/**
+ * The schema at the end of the chain of `$ref`s. A `$ref` that names nothing,
+ * or a chain that comes back to a component it has passed (`A` is a `$ref`
+ * to `B`, and `B` to `A`), gives `onDangling` a `DanglingRefError`, or throws it.
+ */
+const toTargetSchema = ({ oasDocument, onDangling, $ref, followed }: ToTargetSchemaArgs): OpenAPIV3.SchemaObject => {
+  const item = oasDocument.components?.schemas?.[toRefName($ref)]
 
-    if (onDangling) {
-      return onDangling($ref)
-    }
-
-    throw new DanglingRefError($ref)
+  if (!item) {
+    return toDangling(onDangling, new DanglingRefError($ref))
   }
 
-/** What a resolver reads in place of a `$ref` that names nothing; it may throw. */
-type OnDangling = ($ref: string) => OpenAPIV3.SchemaObject
+  if (!isRef(item)) {
+    return item
+  }
+
+  const passed = [...followed, $ref]
+  const loopStart = passed.findIndex(each => toRefName(each) === toRefName(item.$ref))
+
+  if (loopStart === -1) {
+    return toTargetSchema({ oasDocument, onDangling, $ref: item.$ref, followed: passed })
+  }
+
+  // The `$ref`s written in the loop's components: each one after the `$ref`
+  // that first named one of them, as `OasRef.toLoop` gives them.
+  const loop = [...passed.slice(loopStart + 1), item.$ref]
+
+  return toDangling(onDangling, new DanglingRefError(passed[0] ?? $ref, { loop }))
+}
+
+const toDangling = (onDangling: OnDangling | undefined, error: DanglingRefError): OpenAPIV3.SchemaObject => {
+  if (onDangling) {
+    return onDangling(error)
+  }
+
+  throw error
+}

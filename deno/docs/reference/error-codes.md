@@ -592,6 +592,13 @@ necessary. To get a union, set `settings.system.anyOf` to `union`
 **When:** A `$ref` names nothing in the document. There is one issue
 for each place that has the `$ref`. The location is that place.
 
+A `$ref` in a loop of `$ref`s also names nothing. In a loop, `A` is a
+`$ref` to `B`, and `B` to `A`. The chain never gets to a component that
+is not a `$ref`. The issue is at the `$ref`s of the loop. A `$ref` that leads
+into the loop does not get one. When the parser removes a `$ref` of the
+loop, the rest of the loop and the items that refer to it get an
+`INVALID_DEPENDENCY_REF`.
+
 - **error:** `settings.system.danglingRefs` does not list the kind of
   the `$ref`. The default list is empty. The parser removes the item
   that has the `$ref`. Each item that refers to that item gets an
@@ -604,7 +611,8 @@ The kinds are `schema`, `parameter`, `requestBody`, `response`,
 `header`, `securityScheme`, `example`, `link` and `allOfMember`.
 
 Core merges the members of an `allOf` during the parse, so a generator
-does not see them. When a member names nothing and the list has
+does not see them. A member names nothing when no schema has its name,
+or when it leads into a loop of `$ref`s. When a member names nothing and the list has
 `allOfMember`, core leaves the member out of the merge and gives a
 warning. The model then has no properties from that member. When the
 list does not have `allOfMember`, core gives an error, and the parser
@@ -620,6 +628,7 @@ applies to these `$ref`s. The location is the item that has the union.
 - `Ref "#/components/schemas/X" names nothing in the document. It is kept (system.danglingRefs lists 'schema'), and resolving it throws DanglingRefError.`
 - `Ref "#/components/schemas/X" names nothing in the document. It is left out of the allOf merge (system.danglingRefs lists 'allOfMember').`
 - `Ref "#/components/schemas/X" names nothing in the document. Core resolves it while it parses, so what holds it is removed.`
+- `Ref "#/components/parameters/P2" leads into a loop of $refs (#/components/parameters/P2 → #/components/parameters/P1 → #/components/parameters/P2) and never reaches a component, so what holds it is removed. To keep it, list 'parameter' in system.danglingRefs.`
 
 **Remediation:** Add the target to `components` in the source
 document, or correct the `$ref`. To keep the items that have the
@@ -747,17 +756,14 @@ mismatch. Check `client.json` variant keys first.
 
 **Full message:** `Max lookups reached`
 
-**When:** `OasRef.resolve()` chased a ref chain deeper than 10 hops.
-Indicates either a cycle in the OAS document's `$ref`s or a
-pathologically deep chain.
+**When:** `@skmtc/core` before 0.44.0 threw it from `OasRef.resolve()`
+for a loop of `$ref`s, or for a chain of more than 10 `$ref`s. From
+0.44.0, a loop of `$ref`s is a
+[`DANGLING_REF`](#dangling_ref--error-or-warning), and a long chain
+resolves.
 
-**Remediation:**
-
-- Inspect the OpenAPI document at the location indicated in the
-  surrounding error context.
-- Look for circular `$ref`s (`A → B → A`) or deeply nested ref
-  chains.
-- Refactor the schema to break the cycle or flatten the chain.
+**Remediation:** Upgrade `@skmtc/core`. Or find the loop (`A → B → A`)
+in the document and point one `$ref` of it at a real component.
 
 ### `Ref "<$ref>" not found`
 
