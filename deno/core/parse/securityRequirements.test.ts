@@ -310,3 +310,36 @@ for (const { dialect, toDocumentFieldsV3 } of trees) {
     }
   }
 }
+
+// A whole parse, not only the check above: a kept item is registered as a
+// consumer of each scheme it names, and the parser removes the consumers of a
+// scheme that logged an error. A mutualTLS scheme logs INVALID_SECURITY_SCHEME.
+for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
+  Deno.test(`${openapi}: a whole parse keeps an operation that names a mutualTLS scheme, alone or beside another`, () => {
+    const value = JSON.parse(
+      JSON.stringify({
+        openapi,
+        info: { title: 't', version: '0' },
+        paths: {
+          '/mtls': { get: { security: [{ mtls: [] }], responses: { '200': { description: 'ok' } } } },
+          '/either': {
+            get: { security: [{ mtls: [] }, { apiKey: [] }], responses: { '200': { description: 'ok' } } }
+          }
+        },
+        components: { securitySchemes: { mtls: { type: 'mutualTLS' }, apiKey: securitySchemes.apiKey } }
+      })
+    )
+    const context = new ParseContext({
+      input: { type: 'oas', value },
+      logger: new log.Logger('test', 'ERROR'),
+      silent: true
+    })
+    const parsed = context.parse(new StackTrail(['TEST']))
+
+    assertEquals(parsed.type === 'oas' ? parsed.value.operations.map(({ path }) => path).sort() : [], [
+      '/either',
+      '/mtls'
+    ])
+    assertEquals(context.issues.filter(({ type }) => type === 'INVALID_DEPENDENCY_REF'), [])
+  })
+}
