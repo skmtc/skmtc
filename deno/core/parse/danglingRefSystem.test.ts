@@ -571,7 +571,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
           level: 'error',
           location: 'TEST:components:parameters:P1',
           message:
-            "Ref \"#/components/parameters/P2\" names nothing in the document: its $refs loop (#/components/parameters/P2 → #/components/parameters/P1 → #/components/parameters/P2), so what holds it is removed. To keep it, list 'parameter' in system.danglingRefs."
+            "Ref \"#/components/parameters/P2\" leads into a loop of $refs (#/components/parameters/P2 → #/components/parameters/P1 → #/components/parameters/P2) and never reaches a component, so what holds it is removed. To keep it, list 'parameter' in system.danglingRefs."
         }
       ]
     )
@@ -642,6 +642,37 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
         { level: 'warning', location: 'TEST:components:schemas:B' }
       ]
     )
+  })
+
+  Deno.test(`${openapi} an allOf member that leads into a loop of $refs is a member that names nothing`, () => {
+    // Core follows the member's `$ref`s itself to merge the `allOf`, and it
+    // followed the loop until the stack overflowed: an INVALID_SCHEMA for `G`.
+    for (const listed of [false, true]) {
+      const { toSchema, issuesOf } = parse({
+        openapi,
+        system: listed ? { danglingRefs: ['allOfMember'] } : undefined,
+        document: {
+          components: {
+            schemas: {
+              A: { $ref: '#/components/schemas/B' },
+              B: { $ref: '#/components/schemas/A' },
+              G: { allOf: [{ $ref: '#/components/schemas/A' }, { type: 'object', properties: { id: { type: 'string' } } }] }
+            }
+          }
+        }
+      })
+
+      const g = toSchema('G')
+      assertEquals(g !== undefined, listed)
+      if (g !== undefined) {
+        assert(!g.isRef() && g.type === 'object')
+        assertEquals(Object.keys(g.properties ?? {}), ['id'])
+      }
+      const atG = issuesOf('DANGLING_REF').filter(({ location }) => location === 'TEST:components:schemas:G')
+      assertEquals(atG.map(({ level }) => level), [listed ? 'warning' : 'error'])
+      assert(atG.every(({ message }) => message.includes('leads into a loop of $refs')))
+      assertEquals(issuesOf('INVALID_SCHEMA'), [])
+    }
   })
 
   Deno.test(`${openapi} a loop of response $refs names nothing, unless system.danglingRefs lists 'response'`, () => {

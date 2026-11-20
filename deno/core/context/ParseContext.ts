@@ -136,7 +136,8 @@ type RemoveHolderArgs = WrittenRef & {
 }
 
 type ToDanglingAllOfMemberArgs = {
-  $ref: string
+  /** Why the member names nothing: no schema has its name, or its `$ref`s loop. */
+  error: DanglingRefError
   /** The schema that holds the `allOf`. */
   stackTrail: StackTrail
 }
@@ -787,9 +788,7 @@ export class ParseContext {
    * removed. It is separate from `schema`: here core decides, at parse, and
    * the generator never sees the member.
    */
-  toDanglingAllOfMember({ $ref, stackTrail }: ToDanglingAllOfMemberArgs): OpenAPIV3.SchemaObject {
-    const error = new DanglingRefError($ref)
-
+  toDanglingAllOfMember({ error, stackTrail }: ToDanglingAllOfMemberArgs): OpenAPIV3.SchemaObject {
     if (!this.system.danglingRefs?.includes('allOfMember')) {
       throw error
     }
@@ -797,7 +796,7 @@ export class ParseContext {
     this.logIssueNoKey({
       level: 'warning',
       message: `${error.message}. It is left out of the allOf merge (system.danglingRefs lists 'allOfMember').`,
-      parent: { $ref },
+      parent: { $ref: error.ref },
       stackTrail,
       type: 'DANGLING_REF'
     })

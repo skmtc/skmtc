@@ -121,7 +121,7 @@ resolves when it gets to a component that is not a `$ref`.
 - `DanglingRefError` (`Ref "<$ref>" names nothing in the document`)
   if a link in the chain names nothing in the document, or if the
   chain loops (see [`toLoop()`](#toloop-oasreft--undefined)). For a
-  loop, the message ends with `its $refs loop (…)`, and the error's
+  loop, the message says `leads into a loop of $refs (…)`, and the error's
   `loop` lists the `$ref`s of the loop. The parser removes such a ref,
   unless `client.json` `settings.system.danglingRefs` lists its kind.
   Test for it with `DanglingRefError.is(error)`.

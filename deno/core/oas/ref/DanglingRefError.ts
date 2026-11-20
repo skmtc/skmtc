@@ -30,7 +30,7 @@ export class DanglingRefError extends Error {
     super(
       loop === undefined
         ? `Ref "${ref}" names nothing in the document`
-        : `Ref "${ref}" names nothing in the document: its $refs loop (${[...loop, ...loop.slice(0, 1)].join(' → ')})`
+        : `Ref "${ref}" leads into a loop of $refs (${[...loop, ...loop.slice(0, 1)].join(' → ')}) and never reaches a component`
     )
     this.name = 'DanglingRefError'
     this.ref = ref

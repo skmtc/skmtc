@@ -611,7 +611,8 @@ The kinds are `schema`, `parameter`, `requestBody`, `response`,
 `header`, `securityScheme`, `example`, `link` and `allOfMember`.
 
 Core merges the members of an `allOf` during the parse, so a generator
-does not see them. When a member names nothing and the list has
+does not see them. A member names nothing when no schema has its name,
+or when it leads into a loop of `$ref`s. When a member names nothing and the list has
 `allOfMember`, core leaves the member out of the merge and gives a
 warning. The model then has no properties from that member. When the
 list does not have `allOfMember`, core gives an error, and the parser
@@ -627,7 +628,7 @@ applies to these `$ref`s. The location is the item that has the union.
 - `Ref "#/components/schemas/X" names nothing in the document. It is kept (system.danglingRefs lists 'schema'), and resolving it throws DanglingRefError.`
 - `Ref "#/components/schemas/X" names nothing in the document. It is left out of the allOf merge (system.danglingRefs lists 'allOfMember').`
 - `Ref "#/components/schemas/X" names nothing in the document. Core resolves it while it parses, so what holds it is removed.`
-- `Ref "#/components/parameters/P2" names nothing in the document: its $refs loop (#/components/parameters/P2 → #/components/parameters/P1 → #/components/parameters/P2), so what holds it is removed. To keep it, list 'parameter' in system.danglingRefs.`
+- `Ref "#/components/parameters/P2" leads into a loop of $refs (#/components/parameters/P2 → #/components/parameters/P1 → #/components/parameters/P2) and never reaches a component, so what holds it is removed. To keep it, list 'parameter' in system.danglingRefs.`
 
 **Remediation:** Add the target to `components` in the source
 document, or correct the `$ref`. To keep the items that have the

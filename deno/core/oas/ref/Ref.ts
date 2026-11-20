@@ -27,8 +27,6 @@ import {
 } from '@/oas/schema/siblings.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
 
-const MAX_LOOKUPS = 10
-
 /**
  * Converts a ref type to its plural components path.
  */
@@ -102,7 +100,7 @@ export type RefFields<T extends OasRefData['refType']> = SiblingKeywords & {
  * - **Type Safety**: Generic parameter ensures resolved types match the reference type
  * - **Lazy Resolution**: References are resolved on-demand, not during construction
  * - **Chain Resolution**: Handles references that point to other references
- * - **Circular Detection**: Prevents infinite loops with maximum lookup limits
+ * - **Loop Detection**: A chain of references that loops names nothing ({@link OasRef.toLoop})
  * - **Type Validation**: Ensures resolved objects match expected reference types
  *
  * @template T - The type of component this reference points to
@@ -332,6 +330,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     return this.#toResolution().resolved
   }
 
+  /** The resolution, once the chain from here is known not to loop. */
   #toResolution(): Resolution<T> {
     if (this.#resolution !== undefined) {
       return this.#resolution
@@ -343,8 +342,20 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
       throw new DanglingRefError(this.$ref, { loop: loop.map(({ $ref }) => $ref) })
     }
 
+    return this.#toChainResolution()
+  }
+
+  /**
+   * The resolution, following the chain. {@link #toResolution} has looked for
+   * a loop once, so each later step of the chain does not look again.
+   */
+  #toChainResolution(): Resolution<T> {
+    if (this.#resolution !== undefined) {
+      return this.#resolution
+    }
+
     const resolved = this.resolveOnce()
-    const target = resolved.isRef() ? resolved.resolve() : resolved
+    const target = resolved.isRef() ? resolved.#toChainResolution().resolved : resolved
     const resolution: Resolution<T> = { target, resolved: this.#toSiteSchema(target) }
 
     this.#resolution = resolution
@@ -603,42 +614,39 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    * Whether the value is `readOnly` at this site, as Forge reads it: on this
    * reference (`{ allOf: [{ $ref }], readOnly: true }`), or on what it points
    * to, through any chain of references. A `readOnly: false` does not undo
-   * another's `true`. `false` for a reference to anything but a schema.
-   *
-   * @param lookupsPerformed - Internal counter that stops a chain of references with no schema
+   * another's `true`. `false` for a reference to anything but a schema. In a
+   * loop ({@link toLoop}), which reaches no schema, only the references count.
    */
-  isReadOnly(lookupsPerformed: number = 0): boolean {
-    if (this.readOnly === true) {
-      return true
-    }
-
-    if (lookupsPerformed >= MAX_LOOKUPS) {
-      return false
-    }
-
-    const resolved = this.resolveOnce()
-
-    return resolved.isRef() ? resolved.isReadOnly(lookupsPerformed + 1) : resolved.isReadOnly()
+  isReadOnly(): boolean {
+    return this.#someOnChain({ onRef: ref => ref.readOnly === true, onTarget: target => target.isReadOnly() })
   }
 
   /**
    * Whether the value is `writeOnly` at this site: on this reference, or on
    * what it points to, as {@link isReadOnly} reads `readOnly`.
-   *
-   * @param lookupsPerformed - Internal counter that stops a chain of references with no schema
    */
-  isWriteOnly(lookupsPerformed: number = 0): boolean {
-    if (this.writeOnly === true) {
+  isWriteOnly(): boolean {
+    return this.#someOnChain({ onRef: ref => ref.writeOnly === true, onTarget: target => target.isWriteOnly() })
+  }
+
+  /**
+   * Whether `onRef` holds for a reference on the chain from this one, or
+   * `onTarget` for the component the chain reaches. A loop reaches no
+   * component, so the walk ends when it comes back to a reference it has
+   * passed.
+   */
+  #someOnChain(check: ChainCheck<T>, passed: ReadonlySet<OasRef<T>> = new Set()): boolean {
+    if (check.onRef(this)) {
       return true
     }
 
-    if (lookupsPerformed >= MAX_LOOKUPS) {
+    if (passed.has(this)) {
       return false
     }
 
-    const resolved = this.resolveOnce()
+    const next = this.resolveOnce()
 
-    return resolved.isRef() ? resolved.isWriteOnly(lookupsPerformed + 1) : resolved.isWriteOnly()
+    return next.isRef() ? next.#someOnChain(check, new Set([...passed, this])) : check.onTarget(next)
   }
 
   /**
@@ -716,4 +724,12 @@ export type ResolvedRef<T extends OasRefData['refType']> = Extract<OasComponentT
 type Resolution<T extends OasRefData['refType']> = {
   target: ResolvedRef<T>
   resolved: ResolvedRef<T>
+}
+
+/** What `OasRef.isReadOnly` and `isWriteOnly` look for on a chain of references. */
+type ChainCheck<T extends OasRefData['refType']> = {
+  /** True for a reference on the chain that has the keyword. */
+  onRef: (ref: OasRef<T>) => boolean
+  /** True for the component the chain reaches. */
+  onTarget: (target: ResolvedRef<T>) => boolean
 }
