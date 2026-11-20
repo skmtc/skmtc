@@ -46,18 +46,14 @@ const isScalarMember = (member: object): boolean => {
   )
 }
 
-/** Follows a member through its references, to the schema it names. Stops after 10 steps, at a cycle. */
+/**
+ * The schema a member names. `getRef` follows the whole chain of `$ref`s, and
+ * a chain that loops names nothing, as in `toGetRef`.
+ */
 const toMemberSchema = (
   member: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject,
-  getRef: GetRefFn,
-  steps = 0
-): OpenAPIV3.SchemaObject | undefined => {
-  if (!('$ref' in member)) {
-    return member
-  }
-
-  return steps < 10 ? toMemberSchema(getRef(member), getRef, steps + 1) : undefined
-}
+  getRef: GetRefFn
+): OpenAPIV3.SchemaObject => ('$ref' in member ? getRef(member) : member)
 
 /** Follows a reference to the schema it names, as the parsers' `GetRefFn` does. */
 type GetRefFn = (ref: OpenAPIV3.ReferenceObject) => OpenAPIV3.SchemaObject
@@ -88,7 +84,7 @@ export const isUnknownAnyOf = ({ members, setting, getRef }: IsUnknownAnyOfArgs)
 
   const values = members.filter(member => !isNullMember(member)).map(member => toMemberSchema(member, getRef))
 
-  return values.length > 1 && !values.every(value => value !== undefined && isScalarMember(value))
+  return values.length > 1 && !values.every(isScalarMember)
 }
 
 /** Arguments for {@link withoutUnknownAnyOf}. */

@@ -675,6 +675,41 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     }
   })
 
+  Deno.test(`${openapi} system.anyOf unknown follows an anyOf member through any chain, and a loop names nothing`, () => {
+    // Core reads each member to decide whether the `anyOf` is any value. It
+    // followed a loop until the stack overflowed: an INVALID_SCHEMA for `L`.
+    const chain = Object.fromEntries(
+      Array.from({ length: 12 }, (_, index) => [`S${index}`, { $ref: `#/components/schemas/S${index + 1}` }])
+    )
+    const { toSchema, issuesOf } = parse({
+      openapi,
+      system: { anyOf: 'unknown' },
+      document: {
+        components: {
+          schemas: {
+            A: { $ref: '#/components/schemas/B' },
+            B: { $ref: '#/components/schemas/A' },
+            L: { anyOf: [{ $ref: '#/components/schemas/A' }, { type: 'object', properties: { id: { type: 'string' } } }] },
+            ...chain,
+            S12: { type: 'string' },
+            // Two single values, so a union: `S0` is a string 12 `$ref`s away.
+            C: { anyOf: [{ $ref: '#/components/schemas/S0' }, { type: 'number' }] }
+          }
+        }
+      }
+    })
+
+    assertEquals(toSchema('L'), undefined)
+    const atL = issuesOf('DANGLING_REF').filter(({ location }) => location === 'TEST:components:schemas:L')
+    assertEquals(atL.map(({ level }) => level), ['error'])
+    assert(atL.every(({ message }) => message.includes('leads into a loop of $refs')))
+    assertEquals(issuesOf('INVALID_SCHEMA'), [])
+
+    const c = toSchema('C')
+    assert(c !== undefined && !c.isRef())
+    assertEquals(c.type, 'union')
+  })
+
   Deno.test(`${openapi} a loop of response $refs names nothing, unless system.danglingRefs lists 'response'`, () => {
     const removed = parse({ openapi, system: undefined, document: responseLoop })
 
