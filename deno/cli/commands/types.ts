@@ -1,5 +1,5 @@
-import type { Instance, RenderOptions } from 'ink'
-export type InkRenderFn = (
-  node: React.ReactNode,
-  options?: NodeJS.WriteStream | RenderOptions
-) => Instance
+import type { render } from 'ink'
+
+// Taken from ink so the type follows ink's own signature across majors.
+// Ink 8 changed the stream argument from `NodeJS.WriteStream` to `Writable`.
+export type InkRenderFn = typeof render

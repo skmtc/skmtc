@@ -523,6 +523,7 @@
               "oas",
               "gql"
             ],
+            "type": "string",
             "description": "Schema protocol. Optional — inferred from the document content when omitted (a JSON/YAML document with an `openapi` or `swagger` key is `oas`; anything else is treated as GraphQL SDL)."
           },
           "schema": {
@@ -562,23 +563,41 @@
               },
               "enrichments": {
                 "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
                 "additionalProperties": {
                   "anyOf": [
                     {
                       "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {}
                     },
                     {
                       "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {
                         "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
                         "additionalProperties": {}
                       }
                     },
                     {
                       "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {
                         "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
                         "additionalProperties": {}
                       }
                     }
@@ -591,10 +610,47 @@
                   "anyOf": [
                     {
                       "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {
                         "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
                         "additionalProperties": {
                           "type": "object",
+                          "propertyNames": {
+                            "anyOf": [
+                              {
+                                "const": "get"
+                              },
+                              {
+                                "const": "post"
+                              },
+                              {
+                                "const": "put"
+                              },
+                              {
+                                "const": "patch"
+                              },
+                              {
+                                "const": "delete"
+                              },
+                              {
+                                "const": "head"
+                              },
+                              {
+                                "const": "options"
+                              },
+                              {
+                                "const": "trace"
+                              },
+                              {
+                                "const": "query"
+                              }
+                            ]
+                          },
                           "additionalProperties": {
                             "type": "array",
                             "items": {
@@ -606,8 +662,14 @@
                     },
                     {
                       "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {
                         "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
                         "additionalProperties": {
                           "type": "array",
                           "items": {
@@ -628,10 +690,47 @@
                   "anyOf": [
                     {
                       "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {
                         "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
                         "additionalProperties": {
                           "type": "object",
+                          "propertyNames": {
+                            "anyOf": [
+                              {
+                                "const": "get"
+                              },
+                              {
+                                "const": "post"
+                              },
+                              {
+                                "const": "put"
+                              },
+                              {
+                                "const": "patch"
+                              },
+                              {
+                                "const": "delete"
+                              },
+                              {
+                                "const": "head"
+                              },
+                              {
+                                "const": "options"
+                              },
+                              {
+                                "const": "trace"
+                              },
+                              {
+                                "const": "query"
+                              }
+                            ]
+                          },
                           "additionalProperties": {
                             "type": "array",
                             "items": {
@@ -643,8 +742,14 @@
                     },
                     {
                       "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {
                         "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
                         "additionalProperties": {
                           "type": "array",
                           "items": {
@@ -680,25 +785,29 @@
                     "enum": [
                       "strict",
                       "latestWins"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "responseContradictions": {
                     "enum": [
                       "strict",
                       "unknown"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "not": {
                     "enum": [
                       "strict",
                       "unknown"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "anyOf": {
                     "enum": [
                       "union",
                       "unknown"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "danglingRefs": {
                     "type": "array",
@@ -713,7 +822,8 @@
                         "example",
                         "link",
                         "allOfMember"
-                      ]
+                      ],
+                      "type": "string"
                     }
                   }
                 },
@@ -789,23 +899,41 @@
               },
               "enrichments": {
                 "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
                 "additionalProperties": {
                   "anyOf": [
                     {
                       "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {}
                     },
                     {
                       "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {
                         "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
                         "additionalProperties": {}
                       }
                     },
                     {
                       "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {
                         "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
                         "additionalProperties": {}
                       }
                     }
@@ -818,10 +946,47 @@
                   "anyOf": [
                     {
                       "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {
                         "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
                         "additionalProperties": {
                           "type": "object",
+                          "propertyNames": {
+                            "anyOf": [
+                              {
+                                "const": "get"
+                              },
+                              {
+                                "const": "post"
+                              },
+                              {
+                                "const": "put"
+                              },
+                              {
+                                "const": "patch"
+                              },
+                              {
+                                "const": "delete"
+                              },
+                              {
+                                "const": "head"
+                              },
+                              {
+                                "const": "options"
+                              },
+                              {
+                                "const": "trace"
+                              },
+                              {
+                                "const": "query"
+                              }
+                            ]
+                          },
                           "additionalProperties": {
                             "type": "array",
                             "items": {
@@ -833,8 +998,14 @@
                     },
                     {
                       "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {
                         "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
                         "additionalProperties": {
                           "type": "array",
                           "items": {
@@ -855,10 +1026,47 @@
                   "anyOf": [
                     {
                       "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {
                         "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
                         "additionalProperties": {
                           "type": "object",
+                          "propertyNames": {
+                            "anyOf": [
+                              {
+                                "const": "get"
+                              },
+                              {
+                                "const": "post"
+                              },
+                              {
+                                "const": "put"
+                              },
+                              {
+                                "const": "patch"
+                              },
+                              {
+                                "const": "delete"
+                              },
+                              {
+                                "const": "head"
+                              },
+                              {
+                                "const": "options"
+                              },
+                              {
+                                "const": "trace"
+                              },
+                              {
+                                "const": "query"
+                              }
+                            ]
+                          },
                           "additionalProperties": {
                             "type": "array",
                             "items": {
@@ -870,8 +1078,14 @@
                     },
                     {
                       "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {
                         "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
                         "additionalProperties": {
                           "type": "array",
                           "items": {
@@ -907,25 +1121,29 @@
                     "enum": [
                       "strict",
                       "latestWins"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "responseContradictions": {
                     "enum": [
                       "strict",
                       "unknown"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "not": {
                     "enum": [
                       "strict",
                       "unknown"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "anyOf": {
                     "enum": [
                       "union",
                       "unknown"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "danglingRefs": {
                     "type": "array",
@@ -940,7 +1158,8 @@
                         "example",
                         "link",
                         "allOfMember"
-                      ]
+                      ],
+                      "type": "string"
                     }
                   }
                 },
@@ -1013,6 +1232,9 @@
           },
           "files": {
             "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
             "additionalProperties": {
               "type": "object",
               "properties": {
@@ -1038,6 +1260,9 @@
           },
           "previews": {
             "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
             "additionalProperties": {
               "type": "object",
               "properties": {
@@ -1057,7 +1282,7 @@
                   ]
                 },
                 "source": {
-                  "anyOf": [
+                  "oneOf": [
                     {
                       "type": "object",
                       "properties": {
@@ -1127,7 +1352,8 @@
                             "query",
                             "mutation",
                             "subscription"
-                          ]
+                          ],
+                          "type": "string"
                         },
                         "fieldName": {
                           "type": "string"
@@ -1178,6 +1404,9 @@
           },
           "results": {
             "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
             "additionalProperties": {
               "anyOf": [
                 {
@@ -1217,9 +1446,9 @@
           "parseIssues": {
             "type": "array",
             "items": {
-              "anyOf": [
+              "oneOf": [
                 {
-                  "anyOf": [
+                  "oneOf": [
                     {
                       "type": "object",
                       "properties": {
@@ -1650,7 +1879,7 @@
                   ]
                 },
                 {
-                  "anyOf": [
+                  "oneOf": [
                     {
                       "type": "object",
                       "properties": {
@@ -1840,7 +2069,8 @@
                   "enum": [
                     "warning",
                     "info"
-                  ]
+                  ],
+                  "type": "string"
                 },
                 "type": {
                   "enum": [
@@ -1849,7 +2079,8 @@
                     "UNKNOWN_ENRICHMENT_KEY",
                     "SKIPPED_SUBJECT_ENRICHMENT",
                     "SKIPPED_GENERATOR_ENRICHMENT"
-                  ]
+                  ],
+                  "type": "string"
                 },
                 "path": {
                   "type": "array",
@@ -1893,6 +2124,9 @@
       },
       "ManifestDef0": {
         "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
         "additionalProperties": {
           "anyOf": [
             {
@@ -1962,7 +2196,8 @@
               "INFO",
               "WARN",
               "ERROR"
-            ]
+            ],
+            "type": "string"
           },
           "trail": {
             "type": "string"

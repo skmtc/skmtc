@@ -7,6 +7,16 @@ import type { Key } from 'ink'
 import { Text } from 'ink'
 import { useEffect } from 'react'
 
+// Waits until `condition` holds or `timeoutMs` passes. A fixed sleep is not
+// enough: ink 8 can take longer than 20 ms to run effects on slow CI runners
+// (seen on Windows), so the shortcut was not in state yet.
+const waitFor = async (condition: () => boolean, timeoutMs = 2000) => {
+  const start = Date.now()
+  while (!condition() && Date.now() - start < timeoutMs) {
+    await new Promise(resolve => setTimeout(resolve, 10))
+  }
+}
+
 // Test component that uses the useShortcut hook
 function TestComponent({
   shortcutKey,
@@ -68,8 +78,7 @@ Deno.test('useShortcut - dispatches add-shortcut event after mount', async () =>
     </SkmtcProvider>
   )
 
-  // Wait for React effects to run
-  await new Promise(resolve => setTimeout(resolve, 20))
+  await waitFor(() => capturedShortcuts.length > 0)
 
   // Verify that a shortcut was added to the state
   assertEquals(capturedShortcuts.length, 1, 'Expected one shortcut to be added')
@@ -161,8 +170,7 @@ Deno.test('useShortcut - dispatches when interactive is true and key is esc', as
     </SkmtcProvider>
   )
 
-  // Wait for React effects to run
-  await new Promise(resolve => setTimeout(resolve, 20))
+  await waitFor(() => capturedShortcuts.length > 0)
 
   // When interactive is true, the shortcut SHOULD be added even if key is 'esc'
   assertEquals(
