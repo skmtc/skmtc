@@ -106,6 +106,12 @@ export const renderInstall = async ({
   // Instantiate Manager and SkmtcRoot if not provided (for testing)
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
+  // A named folder that did not load throws its load error here; the Ink
+  // view would treat it as missing and offer the project picker (#374).
+  if (projectName !== undefined) {
+    skmtcRoot.lookupProject(projectName)
+  }
+
   const initialState: SkmtcState = {
     view: { page: 'install-generator', projectName, generators },
     skmtcRoot,

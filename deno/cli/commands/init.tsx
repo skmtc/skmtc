@@ -74,6 +74,13 @@ export const renderInit = async ({
   // Instantiate Manager and SkmtcRoot if not provided (for testing)
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
+  // A named folder that exists, loaded or not, is never created over: the
+  // name argument skips the prompt that checks it (#374).
+  if (projectName !== undefined && skmtcRoot.toProjectNames().includes(projectName)) {
+    printInitResult({ type: 'existed', projectName }, { format: 'text' })
+    Deno.exit(0)
+  }
+
   const initialState: SkmtcState = {
     view: { page: 'create-project', projectName, basePath },
     skmtcRoot,
