@@ -143,7 +143,9 @@ export class Project {
   /**
    * Clones published generators into the project with one core check for
    * all of them (`cloneGenerators`), so a command that moves several clones
-   * to a new core works in one step and a failed one writes nothing.
+   * to a new core works in one step. A refused core check writes nothing.
+   * The manager's cleanup in `finally` saves the root `deno.json` even when
+   * a later clone fails, so the clones written before it are recorded.
    */
   async cloneGenerators({
     moduleNames,
@@ -154,7 +156,7 @@ export class Project {
         moduleNames.map(async moduleName => {
           const { scopeName, packageName, version } = parseModuleName(moduleName)
 
-      invariant(scopeName, 'Scope name is required')
+          invariant(scopeName, 'Scope name is required')
 
           return Generator.fromName({
             projectName: this.name,

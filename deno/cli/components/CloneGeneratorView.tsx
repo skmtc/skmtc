@@ -14,7 +14,7 @@ type CloneGeneratorViewProps = {
   view: ViewStateCloneGenerator
 }
 
-export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
+export const CloneGeneratorView = ({ project, view }: CloneGeneratorViewProps) => {
   const { dispatch, dispatchMessage } = useSkmtc()
   const [cloning, setCloning] = useState(false)
 
@@ -61,7 +61,7 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
     setCloning(true)
 
     project
-      .cloneGenerators({ moduleNames: selectedValues })
+      .cloneGenerators({ moduleNames: selectedValues, force: view.force })
       .then(results => {
         const summary =
           results.length > 0 ? results.map(r => `${r.moduleName}@${r.version}`).join(', ') : ''
@@ -74,7 +74,13 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
       })
       .catch(error => {
         if (error instanceof CoreConflictError) {
-          dispatchMessage({ error: toCloneConflictText(error) })
+          dispatchMessage({
+            error: toCloneConflictText({
+              error,
+              projectName: project.name,
+              generators: selectedValues
+            })
+          })
           return
         }
 

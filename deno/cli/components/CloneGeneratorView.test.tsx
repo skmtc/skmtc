@@ -61,10 +61,15 @@ const createInitialState = (project: Project): SkmtcState => {
 type RenderCloneGeneratorViewProps = {
   initialState: SkmtcState
   project: Project
+  force?: boolean
 }
 
 // Test helper to render component with context
-const renderCloneGeneratorView = ({ initialState, project }: RenderCloneGeneratorViewProps) => {
+const renderCloneGeneratorView = ({
+  initialState,
+  project,
+  force
+}: RenderCloneGeneratorViewProps) => {
   const mockExit = () => {}
 
   return render(
@@ -73,7 +78,8 @@ const renderCloneGeneratorView = ({ initialState, project }: RenderCloneGenerato
         project={project}
         view={{
           page: 'clone-generator',
-          projectName: project.name
+          projectName: project.name,
+          force
         }}
       />
     </SkmtcProvider>
@@ -179,7 +185,7 @@ ${pointer} @skmtc/gen-typescript ${tick}
 
     await new Promise(resolve => setTimeout(resolve, 250))
 
-    assertEquals(cloneCalls, [{ moduleNames: ['@skmtc/gen-typescript'] }])
+    assertEquals(cloneCalls, [{ moduleNames: ['@skmtc/gen-typescript'], force: undefined }])
 
     unmount()
   }
@@ -401,11 +407,45 @@ ${pointer} @skmtc/gen-zod ${tick}
       // One call for both, so the core check sees them together (#375).
       assertEquals(cloneCalls, [
         {
-          moduleNames: ['@skmtc/gen-typescript', '@skmtc/gen-zod']
+          moduleNames: ['@skmtc/gen-typescript', '@skmtc/gen-zod'],
+          force: undefined
         }
       ])
 
       unmount()
     }
+  }
+)
+
+Deno.test(
+  'CloneGeneratorView - `skmtc clone <project> --force` passes force to the clone',
+  { sanitizeResources: false, sanitizeOps: false },
+  async () => {
+    const cloneCalls: unknown[] = []
+
+    const mockProject = createMockProject(['@skmtc/gen-typescript'])
+    mockProject.cloneGenerators = (args: CloneGeneratorsCall) => {
+      cloneCalls.push(args)
+      return Promise.resolve(
+        args.moduleNames.map(moduleName => ({ moduleName, version: '0.0.55' }))
+      )
+    }
+
+    const { unmount, stdin } = renderCloneGeneratorView({
+      initialState: createInitialState(mockProject),
+      project: mockProject,
+      force: true
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 100))
+    stdin.write(' ')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    stdin.write('\r')
+    await new Promise(resolve => setTimeout(resolve, 250))
+
+    // The conflict text says to pass --force, so the picker must honor it.
+    assertEquals(cloneCalls, [{ moduleNames: ['@skmtc/gen-typescript'], force: true }])
+
+    unmount()
   }
 )

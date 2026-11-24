@@ -83,9 +83,14 @@ No one @skmtc/core version satisfies every generator in this project, and one pr
 Install versions of these generators built on the same core minor, or remove one of them.
 
 A local copy keeps the @skmtc/core its own deno.json names: @skmtc/gen-typescript.
-Change that pin, or name the copy in the same clone command to replace it with the published version (this overwrites its edits).
+Change that pin. Or, if the copy is a clone of a published generator, replace it with the published version (this overwrites its edits):
+  skmtc clone my-api -g @skmtc/gen-zod -g @skmtc/gen-typescript --no-input
 Pass --force to clone without this check.
 ```
+
+The suggested command passes `--no-input`, because the interactive
+picker lists only published generators and cannot name a local copy.
+`--force` works in the picker too: `skmtc clone my-api --force`.
 
 ### Local copy written
 

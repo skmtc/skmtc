@@ -71,7 +71,9 @@ export const renderClone = async ({
         // The generator needs a different core from the project's other
         // generators: a recipe-shaped failure with a specific fix, so it
         // exits like a missing argument. Pass --force to clone anyway.
-        console.error(`Error: @skmtc/core conflict\n\n${toCloneConflictText(error)}\n`)
+        console.error(
+          `Error: @skmtc/core conflict\n\n${toCloneConflictText({ error, projectName, generators })}\n`
+        )
         Deno.exit(2)
       }
       throw error
@@ -82,7 +84,7 @@ export const renderClone = async ({
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
   const initialState: SkmtcState = {
-    view: { page: 'clone-generator', projectName },
+    view: { page: 'clone-generator', projectName, force },
     skmtcRoot,
     message: null,
     interactive: false,

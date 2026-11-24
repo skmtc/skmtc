@@ -248,9 +248,21 @@ const peerFiles: Record<string, string> = {
   '/mod.ts': `export const peer = 'peer'\n`
 }
 
+/** gen-zod, which gen-fixture's published deno.json imports, on the same core. */
+const zodFiles: Record<string, string> = {
+  '/deno.json': JSON.stringify({
+    name: '@skmtc/gen-zod',
+    version: '0.2.7',
+    exports: './mod.ts',
+    imports: { '@skmtc/core': 'jsr:@skmtc/core@0.29.0' }
+  }),
+  '/mod.ts': `export const zod = 'zod'\n`
+}
+
 const fixturePackages: Record<string, { version: string; files: Record<string, string> }> = {
   'gen-fixture': { version: '0.2.8', files: publishedFiles },
-  'gen-peer': { version: '0.3.0', files: peerFiles }
+  'gen-peer': { version: '0.3.0', files: peerFiles },
+  'gen-zod': { version: '0.2.7', files: zodFiles }
 }
 
 const notFound = () => new Response('not found', { status: 404 })
@@ -589,3 +601,53 @@ Deno.test(
     )
   }
 )
+
+Deno.test('cloneGenerators - a peer named later in the command resolves to its local copy too', async () => {
+  // gen-fixture's published deno.json pins jsr:@skmtc/gen-zod. Cloned first,
+  // it used to keep that pin while the root pointed gen-zod at ./gen-zod, so
+  // the bundle loaded two copies of gen-zod.
+  await withCloneProject(
+    { imports: { '@skmtc/core': 'jsr:@skmtc/core@0.29.0' } },
+    async ({ projectPath, denoJson, manager, generator }) => {
+      const zod = Generator.create({
+        projectName: 'clone-test',
+        scopeName: '@skmtc',
+        packageName: 'gen-zod',
+        version: '0.2.7'
+      })
+
+      await cloneGenerators({ generators: [generator, zod], denoJson, manager })
+      await manager.cleanup()
+
+      const fixtureDenoJson = JSON.parse(
+        await Deno.readTextFile(join(projectPath, 'gen-fixture', 'deno.json'))
+      )
+      assertEquals('@skmtc/gen-zod' in fixtureDenoJson.imports, false)
+      assertEquals(denoJson.contents.imports?.['@skmtc/gen-zod'], './gen-zod/mod.ts')
+    }
+  )
+})
+
+Deno.test('cloneGenerators - a failed write keeps the clones before it, recorded in the root', async () => {
+  // A file where gen-peer's folder would go makes its write fail.
+  await withCloneProject(
+    {
+      imports: {
+        '@skmtc/core': 'jsr:@skmtc/core@0.28.0',
+        '@skmtc/gen-fixture': './gen-fixture/mod.ts'
+      },
+      files: { 'gen-fixture/deno.json': onCore('0.28.0'), 'gen-peer': 'not a folder' }
+    },
+    async ({ projectPath, denoJson, manager, generator }) => {
+      await assertRejects(() => cloneGenerators({ generators: [generator, toPeer()], denoJson, manager }))
+      // The manager's cleanup is what `Project.cloneGenerators` runs in `finally`.
+      await manager.cleanup()
+
+      const root = JSON.parse(await Deno.readTextFile(join(projectPath, 'deno.json')))
+      assertEquals(root.imports['@skmtc/core'], 'jsr:@skmtc/core@0.29.0')
+      assertEquals(root.imports['@skmtc/gen-fixture'], './gen-fixture/mod.ts')
+      assertEquals('@skmtc/gen-peer' in root.imports, false)
+      assertEquals(await exists(join(projectPath, 'gen-fixture', 'src', 'QueryFn.ts')), true)
+    }
+  )
+})

@@ -6,6 +6,11 @@ import { OperationGenerator } from '@/lib/operation-generator.ts'
 import { ModelGenerator } from '@/lib/model-generator.ts'
 import { KotlinModelGenerator } from '@/lib/kotlin-model-generator.ts'
 import { PackageDenoJson } from '@/lib/package-deno-json.ts'
+import { parseOrExplain } from '@/lib/parse-or-explain.ts'
+import {
+  packageDenoJson as packageDenoJsonSchema,
+  type PackageDenoJson as PackageDenoJsonContents
+} from '@skmtc/core/DenoJson'
 import type { Manager } from '@/lib/manager.ts'
 import type { Project } from '@/lib/project.ts'
 import invariant from 'tiny-invariant'
@@ -50,18 +55,31 @@ type CloneResult = {
   version: string
 }
 
-/** A published version's files, in memory until the core check passes. */
+/**
+ * A published version, downloaded and rewritten in memory. Nothing is
+ * written until every generator in the command has one and the core check
+ * passes.
+ */
 type CloneDownload = {
-  files: Record<string, string>
   version: string
   /** The `@skmtc/core` range the version's `deno.json` names, `null` when none. */
   range: string | null
+  /** Every file that is not a source file, as published. */
+  otherFiles: SourceFile[]
+  /** Source files with each versioned specifier rewritten to a bare one. */
+  sourceFiles: SourceFile[]
+  /** The published `deno.json`. */
+  packageDenoJson: PackageDenoJsonContents
+  /** The published imports, plus a pin for each bare name they did not name. */
+  imports: Record<string, string>
 }
 
 type WriteCloneArgs = {
   denoJson: RootDenoJson
   manager: Manager
   download: CloneDownload
+  /** Every generator the command clones: a clone resolves each one through the root. */
+  cloning: string[]
 }
 
 type InstallArgs = {
@@ -182,11 +200,32 @@ export class Generator {
 
   async download(): Promise<CloneDownload> {
     const { files, version } = await Jsr.download(this)
-    return { files, version, range: await readCoreRange(JSON.parse(files['/deno.json'] ?? '{}')) }
+
+    const packageDenoJson = parseOrExplain(
+      packageDenoJsonSchema,
+      JSON.parse(files['/deno.json'] ?? '{}'),
+      `deno.json of ${this.toModuleName()}@${version}`
+    )
+    const publishedImports = packageDenoJson.imports ?? {}
+
+    const downloaded = Object.entries(files).map(([path, content]) => ({ path, content }))
+    const bare = await toBareSpecifiers({
+      files: downloaded.filter(({ path }) => isSourceFile(path)),
+      imports: publishedImports
+    })
+
+    return {
+      version,
+      range: await readCoreRange(packageDenoJson),
+      otherFiles: downloaded.filter(({ path }) => !isSourceFile(path)),
+      sourceFiles: bare.files,
+      packageDenoJson,
+      imports: { ...publishedImports, ...bare.pins }
+    }
   }
 
-  async writeClone({ denoJson, manager, download }: WriteCloneArgs): Promise<CloneResult> {
-    const { files, version } = download
+  async writeClone({ denoJson, manager, download, cloning }: WriteCloneArgs): Promise<CloneResult> {
+    const { version } = download
 
     // Pin the local generator to the actual version we just pulled, so
     // subsequent `skmtc list` / `doctor` calls can report it accurately.
@@ -201,28 +240,26 @@ export class Generator {
       await Deno.writeTextFile(toClonePath(path), content)
     }
 
-    const downloaded = Object.entries(files).map(([path, content]) => ({ path, content }))
-    const sourceFiles = downloaded.filter(({ path }) => isSourceFile(path))
+    await Promise.all([...download.otherFiles, ...download.sourceFiles].map(writeFile))
 
-    await Promise.all(downloaded.filter(({ path }) => !isSourceFile(path)).map(writeFile))
-
-    const packageDenoJson = await PackageDenoJson.open(toClonePath('deno.json'), manager)
-    const publishedImports = packageDenoJson.contents.imports ?? {}
-
-    const bare = await toBareSpecifiers({ files: sourceFiles, imports: publishedImports })
-
-    await Promise.all(bare.files.map(writeFile))
-
+    // The root decides every name it pins, and every generator this command
+    // clones resolves to its local copy through the root, whatever the order.
     const rootImports = denoJson.contents.imports ?? {}
 
-    packageDenoJson.contents = {
-      ...packageDenoJson.contents,
-      imports: Object.fromEntries(
-        Object.entries({ ...publishedImports, ...bare.pins }).filter(
-          ([key]) => !(key in rootImports)
-        )
-      )
-    }
+    PackageDenoJson.create(
+      {
+        path: toClonePath('deno.json'),
+        contents: {
+          ...download.packageDenoJson,
+          imports: Object.fromEntries(
+            Object.entries(download.imports).filter(
+              ([key]) => !(key in rootImports) && !cloning.includes(key)
+            )
+          )
+        }
+      },
+      manager
+    )
 
     denoJson.addImport(this.toModuleName(), this.toModPath({ relative: true }))
     denoJson.addWorkspace(this.toPath({ relative: true }))
@@ -269,11 +306,13 @@ const isSourceFile = (path: string): boolean => /\.[cm]?[jt]sx?$/.test(path)
 
 /**
  * Clones several published generators with one core check. The generator
- * stack decides the project's core (#333): every version is downloaded
- * first, and the core pin is planned once for all of them plus the
- * generators that stay. The old copies of the generators being cloned do
- * not count, so one command moves a set of clones to a new core together
- * (#375). No file is written until the check passes.
+ * stack decides the project's core (#333): every version is downloaded and
+ * its sources rewritten first, and the core pin is planned once for all of
+ * them plus the generators that stay. The old copies of the generators
+ * being cloned do not count, so one command moves a set of clones to a new
+ * core together (#375). No file is written until all of that passes; then
+ * the clones are written one at a time, and a failed write leaves the ones
+ * before it complete.
  */
 export const cloneGenerators = async ({
   generators,
@@ -295,11 +334,11 @@ export const cloneGenerators = async ({
     })
   }
 
-  // One at a time: each clone reads the root imports the previous one wrote,
-  // so a peer cloned earlier in the command resolves to its local copy.
+  // One at a time, so a failed write leaves the clones before it complete.
+  const cloning = generators.map(generator => generator.toModuleName())
   const results: CloneResult[] = []
   for (const { generator, download } of downloads) {
-    results.push(await generator.writeClone({ denoJson, manager, download }))
+    results.push(await generator.writeClone({ denoJson, manager, download, cloning }))
   }
 
   return results

@@ -19,22 +19,39 @@ import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { bundleHeadless, type BundleHeadlessResult } from '@/lib/bundle-headless.ts'
 import type { CoreConflictError } from '@/lib/stack-core.ts'
 
+type ToCloneConflictTextArgs = {
+  error: CoreConflictError
+  projectName: string
+  /** The generators the command or the picker asked to clone. */
+  generators: string[]
+}
+
 /**
- * The text `clone` prints for a core conflict. A local copy (cloned or
- * created) keeps the core its own `deno.json` names, so when one is in the
- * way the text says how to move it.
+ * The text `clone` prints for a core conflict, in strict mode and in the
+ * picker. A local copy (cloned or created) keeps the core its own
+ * `deno.json` names, so when one is in the way the text says how to move
+ * it. The command it suggests passes `--no-input`, because the picker lists
+ * only published generators and cannot name a local copy.
  */
-export const toCloneConflictText = (error: CoreConflictError): string => {
+export const toCloneConflictText = ({
+  error,
+  projectName,
+  generators
+}: ToCloneConflictTextArgs): string => {
   const localCopies = error.requirements.flatMap(({ generatorId, localPath }) =>
     localPath === undefined ? [] : [generatorId]
   )
+
+  const toCommand = (ids: string[]) =>
+    `skmtc clone ${projectName} ${ids.map(id => `-g ${id}`).join(' ')} --no-input`
 
   const localLines =
     localCopies.length === 0
       ? []
       : [
           `A local copy keeps the @skmtc/core its own deno.json names: ${localCopies.join(', ')}.`,
-          'Change that pin, or name the copy in the same clone command to replace it with the published version (this overwrites its edits).'
+          'Change that pin. Or, if the copy is a clone of a published generator, replace it with the published version (this overwrites its edits):',
+          `  ${toCommand([...generators, ...localCopies.filter(id => !generators.includes(id))])}`
         ]
 
   return [error.message, '', ...localLines, 'Pass --force to clone without this check.'].join('\n')
