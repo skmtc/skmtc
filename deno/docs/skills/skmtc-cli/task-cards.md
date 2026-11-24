@@ -304,7 +304,9 @@ and deploying never moves it.
 
 ```bash
 # 1. Set the version — `version` in .skmtc/<project>/deno.json,
-#    or pass --version. The CLI never invents or auto-bumps one.
+#    or pass --version. When the hub already stores the deno.json version,
+#    the CLI deploys the next patch after the newest stored one (it does
+#    not write it to deno.json). A stored --version is refused (exit 2).
 # 2a. One-off: log in once (approve the printed code in the browser),
 #     then deploy with no token flags:
 skmtc login            # or store a PAT: echo $PAT | skmtc login --with-token

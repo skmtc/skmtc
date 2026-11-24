@@ -40,9 +40,21 @@ export const toStackServer = (overrides: Record<string, unknown> = {}) => ({
 export const toJsonResponse = (body: unknown, status: number): Response =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 
+/** One page of the versions list, with `nextCursor` when another page follows. */
+export const toVersionsPage = (versions: string[], nextCursor?: string): Response =>
+  toJsonResponse(
+    {
+      items: versions.map(version => ({ ...stackVersionPayload, version })),
+      pagination: nextCursor ? { hasMore: true, nextCursor } : { hasMore: false }
+    },
+    200
+  )
+
 export type HubAnswers = {
   /** `GET …/versions/{v}`. Default 404. */
   exists?: () => Response
+  /** `GET …/versions`, with the page's `cursor` query. Default one empty page. */
+  versions?: (cursor: string | null) => Response
   /** `POST …/versions`. Default 201 StackVersion. */
   upload?: () => Response
   /** `POST …/servers`. Default 201 active StackServer. */
@@ -61,13 +73,27 @@ export const withStackHub = async (
   const calls: HubCall[] = []
   globalThis.fetch = (input: string | URL | Request, init?: RequestInit) => {
     const method = init?.method ?? 'GET'
-    const path = new URL(input.toString()).pathname
+    const url = new URL(input.toString())
+    const path = url.pathname
     calls.push({ method, path, body: init?.body })
     if (method === 'GET' && path.includes('/versions/')) {
       return Promise.resolve(answers.exists?.() ?? toJsonResponse({ code: 'not-found' }, 404))
     }
+    if (method === 'GET' && path.endsWith('/versions')) {
+      const cursor = url.searchParams.get('cursor')
+      return Promise.resolve(answers.versions?.(cursor) ?? toVersionsPage([]))
+    }
     if (method === 'POST' && path.endsWith('/versions')) {
-      return Promise.resolve(answers.upload?.() ?? toJsonResponse(stackVersionPayload, 201))
+      // The default answer stores the version the upload names.
+      const body = init?.body
+      const version = body instanceof FormData ? body.get('version') : null
+      return Promise.resolve(
+        answers.upload?.() ??
+          toJsonResponse(
+            typeof version === 'string' ? { ...stackVersionPayload, version } : stackVersionPayload,
+            201
+          )
+      )
     }
     if (method === 'POST' && path.endsWith('/servers')) {
       return Promise.resolve(answers.deploy?.() ?? toJsonResponse(toStackServer(), 201))
