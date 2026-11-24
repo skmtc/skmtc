@@ -82,8 +82,9 @@ No one @skmtc/core version satisfies every generator in this project, and one pr
   @skmtc/gen-zod needs @skmtc/core 0.44.2
 Install versions of these generators built on the same core minor, or remove one of them.
 
-A local copy keeps the core it was cloned on: @skmtc/gen-typescript.
-Name each local copy in the same clone command to move them to a new core together, or pass --force to skip this check.
+A local copy keeps the @skmtc/core its own deno.json names: @skmtc/gen-typescript.
+Change that pin, or name the copy in the same clone command to replace it with the published version (this overwrites its edits).
+Pass --force to clone without this check.
 ```
 
 ### Local copy written

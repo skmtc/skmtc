@@ -6,6 +6,8 @@ import { MultiSelect } from '@inkjs/ui'
 import { Spinner } from '@/components/Spinner.tsx'
 import { parseModuleName } from '@skmtc/core/parseModuleName'
 import { useShortcut } from './useShortcut.tsx'
+import { toCloneConflictText } from '@/lib/clone-headless.ts'
+import { CoreConflictError } from '@/lib/stack-core.ts'
 
 type CloneGeneratorViewProps = {
   project: Project
@@ -71,6 +73,11 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
         })
       })
       .catch(error => {
+        if (error instanceof CoreConflictError) {
+          dispatchMessage({ error: toCloneConflictText(error) })
+          return
+        }
+
         console.error(error)
 
         dispatchMessage({ error: `Failed to clone generator(s)` })

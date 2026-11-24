@@ -18,16 +18,22 @@ Deno.test('toCloneConflictText - names a local copy in the way, and both ways pa
     text,
     '@skmtc/gen-typescript needs @skmtc/core 0.28.0 (local copy in ./gen-typescript)'
   )
-  assertStringIncludes(text, 'A local copy keeps the core it was cloned on: @skmtc/gen-typescript.')
-  assertStringIncludes(text, 'Name each local copy in the same clone command')
-  assertStringIncludes(text, '--force')
+  assertStringIncludes(
+    text,
+    'A local copy keeps the @skmtc/core its own deno.json names: @skmtc/gen-typescript.'
+  )
+  assertStringIncludes(text, 'name the copy in the same clone command')
+  assertStringIncludes(text, 'Pass --force to clone without this check.')
 })
 
-Deno.test('toCloneConflictText - adds nothing when only published generators conflict', () => {
+Deno.test('toCloneConflictText - only published generators: names --force and no local copy', () => {
   const error = new CoreConflictError([
     { generatorId: '@skmtc/gen-typescript', range: '^0.28.0' },
     { generatorId: '@skmtc/gen-zod', range: '^0.44.2' }
   ])
 
-  assertEquals(toCloneConflictText(error), error.message)
+  assertEquals(
+    toCloneConflictText(error),
+    `${error.message}\n\nPass --force to clone without this check.`
+  )
 })

@@ -17,10 +17,8 @@ type RenderCloneArgs = {
   jsonFlag?: boolean
   noInputFlag?: boolean
   /**
-   * Bypass the pre-flight `@skmtc/core` peer-pin check. Without this
-   * flag, clone refuses if the project's core pin doesn't share a
-   * major.minor with the CLI's — cloning over a mismatch produces a
-   * generator that won't bundle.
+   * Skip the `@skmtc/core` check, which refuses a clone when no one core
+   * fits every generator in the project (`cloneGenerators`).
    */
   force?: boolean
   // Optional dependencies for testing

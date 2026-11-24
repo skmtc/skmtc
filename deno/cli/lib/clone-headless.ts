@@ -3,7 +3,7 @@
  * without any Ink rendering. Strict mode invokes this directly; the
  * Ink `CloneGeneratorView` collects the same args via a MultiSelect
  * picker and then takes an identical path through
- * `project.cloneGenerator()`.
+ * `project.cloneGenerators()`.
  *
  * Source of truth is JSR (the same registry `install` uses), pinned
  * to the version that satisfies the user-supplied semver constraint
@@ -20,24 +20,24 @@ import { bundleHeadless, type BundleHeadlessResult } from '@/lib/bundle-headless
 import type { CoreConflictError } from '@/lib/stack-core.ts'
 
 /**
- * The text `clone` prints for a core conflict. A local copy keeps the core
- * it was cloned on, so when one is in the way the text says how to move it.
+ * The text `clone` prints for a core conflict. A local copy (cloned or
+ * created) keeps the core its own `deno.json` names, so when one is in the
+ * way the text says how to move it.
  */
 export const toCloneConflictText = (error: CoreConflictError): string => {
   const localCopies = error.requirements.flatMap(({ generatorId, localPath }) =>
     localPath === undefined ? [] : [generatorId]
   )
 
-  if (localCopies.length === 0) {
-    return error.message
-  }
+  const localLines =
+    localCopies.length === 0
+      ? []
+      : [
+          `A local copy keeps the @skmtc/core its own deno.json names: ${localCopies.join(', ')}.`,
+          'Change that pin, or name the copy in the same clone command to replace it with the published version (this overwrites its edits).'
+        ]
 
-  return [
-    error.message,
-    '',
-    `A local copy keeps the core it was cloned on: ${localCopies.join(', ')}.`,
-    'Name each local copy in the same clone command to move them to a new core together, or pass --force to skip this check.'
-  ].join('\n')
+  return [error.message, '', ...localLines, 'Pass --force to clone without this check.'].join('\n')
 }
 
 type CloneHeadlessArgs = {

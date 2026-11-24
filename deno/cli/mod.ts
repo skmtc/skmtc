@@ -25,7 +25,7 @@ const NO_INPUT_DESC = NO_INPUT_DESCRIPTION
 const JSON_DESC = JSON_DESCRIPTION
 const ENV_DESC = ENV_DESCRIPTION
 const FORCE_DESC =
-  "Bypass the pre-flight @skmtc/core peer-pin check. Cloning over a mismatched pin produces a generator that won't bundle — only use this when you know the skew is safe."
+  'Skip the @skmtc/core check. Without it, clone refuses when no one core fits every generator in the project, because the bundle would load two cores.'
 
 const run = async () => {
   if (!shouldSkipRegistryCheck(Deno.args)) {
