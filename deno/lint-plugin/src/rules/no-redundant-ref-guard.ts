@@ -18,7 +18,7 @@ import { toInlineText } from '../shared/nodes.ts'
  * to the next reader. The correct form is `schema.resolve()`.
  *
  * `.isRef()` is for genuine branching — where the two branches do
- * different things, e.g. `toRefName()` (a method only refs have) versus a
+ * different things, e.g. `refName` (a field only refs have) versus a
  * fallback name. Only the exact identity shape is matched, in either
  * branch order, so a real `.isRef()` ternary never fires.
  *
@@ -37,7 +37,7 @@ const RESOLVE_METHODS = new Set(['resolve', 'resolveOnce'])
 const HINT =
   'resolve() and resolveOnce() are identity (return this) on every concrete schema variant — ' +
   'call resolve() unconditionally. Keep isRef() for branches that genuinely differ, e.g. ' +
-  'toRefName() versus a fallback name.'
+  'refName versus a fallback name.'
 
 export const noRedundantRefGuard: Deno.lint.Rule = {
   create(context) {

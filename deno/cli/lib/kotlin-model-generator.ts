@@ -517,7 +517,7 @@ export class RefValue extends KtSnippet {
     // imports Kt.ts, which imports this. That cycle is expected and
     // safe for the same reason as ArrayValue's — constructor-body
     // references, never module top level.
-    this.name = context.insertModel(${mainModule}Projection, ref.toRefName()).toName()
+    this.name = context.insertModel(${mainModule}Projection, ref.refName, { refPath: ref.refPath }).toName()
     this.modifiers = modifiers
   }
 

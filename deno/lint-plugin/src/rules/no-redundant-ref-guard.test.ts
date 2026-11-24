@@ -20,7 +20,7 @@ Deno.test('no-redundant-ref-guard: flags resolveOnce and offers it as the fix', 
 })
 
 Deno.test('no-redundant-ref-guard: silent on genuine isRef branching', () => {
-  const source = `const name = schema.isRef() ? schema.toRefName() : fallbackName
+  const source = `const name = schema.isRef() ? schema.refName : fallbackName
     const kind = schema.isRef() ? 'ref' : schema.type`
   assertEquals(lint(RULE, source), [])
 })
