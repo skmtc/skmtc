@@ -17,6 +17,8 @@ type MyLibRefArgs = {
   destinationPath: string
   modifiers: Modifiers
   refName: RefName
+  /** Where the ref points (`OasRef.refPath`): a component, or a place inside one, such as a `$defs` entry. */
+  refPath: string
   rootRef?: RefName
   /** The originating ref schema node — for fine-grained attribution. */
   schema?: OasSchema | OasRef<'schema'>
@@ -37,7 +39,7 @@ export class MyLibRef extends TsSnippet {
   deferred: boolean
 
   constructor(
-    { context, refName, destinationPath, modifiers, rootRef, schema }:
+    { context, refName, refPath, destinationPath, modifiers, rootRef, schema }:
       MyLibRefArgs,
   ) {
     super({
@@ -45,6 +47,7 @@ export class MyLibRef extends TsSnippet {
       generatorKey: toModelGeneratorKey({
         generatorId: myLibEntry.id,
         refName,
+        refPath,
         variant: 'main',
       }),
       stackTrail: schema?.stackTrail.clone(),
@@ -59,6 +62,7 @@ export class MyLibRef extends TsSnippet {
     const ref = toModelRef({
       context,
       refName,
+      refPath,
       destinationPath,
       rootRef,
       projection: MyLibProjection,

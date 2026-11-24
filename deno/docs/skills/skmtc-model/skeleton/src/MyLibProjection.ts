@@ -14,6 +14,8 @@ type ConstructorArgs = {
   context: GenerateContextType
   destinationPath: string
   refName: RefName
+  /** Where the ref to this model points; absent for a component. */
+  refPath?: string
   settings: ContentSettings<EnrichmentSchema>
   rootRef?: RefName
 }
@@ -22,11 +24,11 @@ export class MyLibProjection extends MyLibBase {
   value: TypeSystemValue
 
   constructor(
-    { context, refName, settings, destinationPath, rootRef }: ConstructorArgs,
+    { context, refName, refPath, settings, destinationPath, rootRef }: ConstructorArgs,
   ) {
-    super({ context, refName, settings })
+    super({ context, refName, refPath, settings })
 
-    const schema = context.resolveSchemaRefOnce(refName)
+    const schema = context.resolveSchemaRefOnce(refName, refPath)
 
     this.value = toMyLibValue({
       schema,
