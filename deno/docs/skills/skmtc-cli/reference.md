@@ -325,7 +325,8 @@ both → exit 2 with a recipe error.
   "type": "deployed",
   "projectName": "my-api",
   "stack": { "account": "ada", "slug": "my-api" },
-  "version": "3.0.1",
+  "version": "3.0.1",            // the version stored and deployed
+  "versionPicked": false,        // true: deno.json's version was stored, the CLI picked this one
   // null with --existing (nothing uploaded)
   "upload": {
     "sourceHash": "e3b0c44298fc1c14...",
@@ -346,12 +347,13 @@ both → exit 2 with a recipe error.
 // Failure — `stage` pinpoints where; `stored: true` means the version
 // is on the hub and cannot change (fix, bump the version, deploy again):
 //   "version"  — no deno.json#version and no --version (before any
-//                network call)
+//                network call), or the deno.json version is stored and
+//                the next patch cannot be picked (versions list unreadable)
 //   "identity" — deno.json#name missing or not @account/slug
-//   "exists"   — the version is already stored (exit 2): bump it, or
-//                `skmtc deploy <project> --existing`
+//   "exists"   — the --version version is already stored (exit 2): pick
+//                another, or `skmtc deploy <project> --version <v> --existing`
 //   "source"   — source collection failed, or deno.lock is missing
-//   "upload"   — POST .../versions failed
+//   "upload"   — POST .../versions failed, or 409'd again after a re-pick
 //   "deploy"   — POST .../servers failed, was refused (needs the
 //                write:releases scope), is still deploying (409: wait,
 //                then --existing) or was not confirmed (re-run with
@@ -359,11 +361,22 @@ both → exit 2 with a recipe error.
 {
   "type": "failed",
   "projectName": "my-api",
-  "reason": "Version 3.0.1 already exists. Bump `version` in deno.json, or run `skmtc deploy my-api --existing` to deploy the stored version.",
+  "reason": "Version 3.0.1 already exists. Pass another `--version`, run `skmtc deploy my-api` to deploy the deno.json version (or the next patch when it is stored), or run `skmtc deploy my-api --version 3.0.1 --existing` to deploy the stored version.",
   "stage": "exists",
   "stored": true
 }
 ```
+
+**Version rule.** `--version <v>` is exact: stored → exit 2. Without it,
+the `deno.json` version deploys as it is when the hub does not store it.
+When the hub does, the CLI deploys the next patch after the stack's newest
+stored release (semver; prereleases do not count; every page of
+`GET /v1/stacks/{account}/{slug}/versions`), prints
+`Version 0.1.5 is stored: deploying 0.1.6.` on stderr, and sets
+`versionPicked: true`. It never writes the picked version into
+`deno.json` — the hub holds the versions. An upload `409` for a version
+the CLI did not get from `--version` picks again once; a second `409` →
+stage `upload`, exit 1. So CI can deploy every change without bumping.
 
 `skmtc publish` is the old name of `deploy`: same output and exit
 codes, after one notice line on stderr.

@@ -26,6 +26,7 @@ const deployedResult: DeployHeadlessResult = {
   projectName: 'my-api',
   stack: { account: 'acme', slug: 'my-api' },
   version: '3.0.1',
+  versionPicked: false,
   upload: {
     sourceHash: 'deadbeef',
     versionUrl: 'https://skmtc.dev/acme/stacks/my-api/versions/3.0.1',
@@ -84,7 +85,11 @@ Deno.test('printDeployResult - a failed result reports the stage and reason', as
 })
 
 /** Run `skmtc deploy my-api --json` in strict mode against `answers`. */
-const runStrictDeploy = async (answers: Parameters<typeof withStackHub>[0], existing = false) => {
+const runStrictDeploy = async (
+  answers: Parameters<typeof withStackHub>[0],
+  existing = false,
+  version?: string
+) => {
   await using project = await makeStackProject()
   const manager = createMockManager()
   const mockProject = createMockProject(manager, { name: 'my-api' })
@@ -99,7 +104,7 @@ const runStrictDeploy = async (answers: Parameters<typeof withStackHub>[0], exis
         projectName: 'my-api',
         token: 'pat-123',
         env: 'staging',
-        version: undefined,
+        version,
         existing,
         jsonFlag: true
       })
@@ -138,10 +143,12 @@ Deno.test('renderDeploy - a refused deploy exits 1 and the JSON says the version
   assertEquals(parsed.stored, true)
 })
 
-Deno.test('renderDeploy - a stored version exits 2', async () => {
-  const { exitCode, stdout } = await runStrictDeploy({
-    exists: () => toJsonResponse(stackVersionPayload, 200)
-  })
+Deno.test('renderDeploy - a stored --version exits 2', async () => {
+  const { exitCode, stdout } = await runStrictDeploy(
+    { exists: () => toJsonResponse(stackVersionPayload, 200) },
+    false,
+    '3.0.1'
+  )
   assertEquals(exitCode, 2)
   assertEquals(JSON.parse(stdout).stage, 'exists')
 })
@@ -157,7 +164,7 @@ Deno.test('renderPublishAlias - the notice is on stderr only; stdout is the depl
     projectName: 'my-api',
     token: 'pat-123',
     env: 'staging' as const,
-    version: undefined,
+    version: '3.0.1',
     jsonFlag: true
   }
 

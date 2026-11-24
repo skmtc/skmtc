@@ -88,7 +88,8 @@ const DEPLOY_FLAGS: FlagDescriptor[] = [
   },
   {
     flag: '--version <semver>',
-    description: "Version to store and deploy. Defaults to the project root deno.json's `version`."
+    description:
+      "Version to store and deploy, exactly; refused when already stored. Defaults to the project root deno.json's `version`, or the next patch when that is stored."
   },
   {
     flag: '--existing',
@@ -209,7 +210,7 @@ export const COMMAND_DESCRIPTORS: CommandDescriptor[] = [
   {
     name: 'deploy',
     description:
-      'Store a new immutable version of this project on skmtc-hub, then deploy it as a stack server and report its status. The stack is the project deno.json#name (@account/slug, the package name; the scope may be an org); versions are addressed by semver. A version already on the hub stops before any upload (exit 2) unless --existing deploys it as it is. Deploying never moves the production alias. Exits 1 when the deploy fails, is refused or is not confirmed; the version stays stored.',
+      'Store a new immutable version of this project on skmtc-hub, then deploy it as a stack server and report its status. The stack is the project deno.json#name (@account/slug, the package name; the scope may be an org); versions are addressed by semver. When the deno.json version is already on the hub, the next patch after the newest stored version is deployed; a --version already on the hub stops before any upload (exit 2) unless --existing deploys it as it is. Deploying never moves the production alias. Exits 1 when the deploy fails, is refused or is not confirmed; the version stays stored.',
     args: ['<project>'],
     flags: DEPLOY_FLAGS,
     agentMode: 'full'

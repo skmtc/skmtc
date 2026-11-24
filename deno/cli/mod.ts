@@ -330,7 +330,7 @@ const run = async () => {
       .option('--env <env:hubEnv>', ENV_DESC)
       .option(
         '--version <version:string>',
-        "Version to store and deploy. Defaults to the project root deno.json's `version`."
+        "Version to store and deploy, exactly; refused when already stored. Defaults to the project root deno.json's `version`, or the next patch when that is stored."
       )
       .option('--existing', 'Deploy the version already stored on the hub, without uploading.')
       .action(async ({ json, input, token, env, version, existing }, projectName) => {
