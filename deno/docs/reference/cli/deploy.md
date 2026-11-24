@@ -99,18 +99,24 @@ See the [overview](overview.md#shared-flags).
 
 3. Collect the source tree and check it
      deno.lock missing → fail at stage `source`. Then choose the
-     @skmtc/server pin: the newest published server, no newer than the
-     CLI's own pin, whose @skmtc/core range accepts the project's exact
-     core pin. Without an exact core pin, it is the CLI's version. No
-     server accepts the core → fail at stage `source`, before the
-     upload. If the CLI's own server cannot be read from the registry,
-     the pin is the CLI's version, with a warning. If that version does
-     not fit and the registry then fails, fail at stage `source`. If
-     the pin changes, write it to
-     deno.json, print it, run `deno install` to refresh deno.lock, and
-     collect the tree again. A local override (a path, not a jsr: pin)
-     is not changed. A failed result carries `serverPin` when the pin
-     changed before the failure.
+     @skmtc/server pin: the newest published server whose @skmtc/core
+     range accepts the project's core. The pin is no newer than the
+     CLI's own pin, and no older than 0.1.0, the first server that
+     reads the hub's request. A yanked version is never chosen.
+     The project's core is its exact @skmtc/core pin. For a range, it
+     is the one version deno.lock resolves; with none, or more than
+     one, fail at stage `source`. With a local core, the pin is the
+     CLI's version.
+     No server accepts the core → fail at stage `source`, before the
+     upload. If the CLI's own server cannot be read from the registry
+     (an error, or no such version), the pin is the CLI's version, with
+     a warning. If that version does not fit and the registry then
+     fails, fail at stage `source`.
+     If the pin changes, write it to deno.json and print it. Then run
+     `deno install` to refresh deno.lock, and collect the tree again.
+     A local override (a path, not a jsr: pin) is not changed. A failed
+     result carries `serverPin` when the pin changed before the
+     failure.
 
 4. POST /v1/stacks/{account}/{slug}/versions   (multipart, atomic)
      One `version` part + one `files` part per source file. The hub

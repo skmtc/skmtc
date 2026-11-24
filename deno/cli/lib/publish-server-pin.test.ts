@@ -7,7 +7,7 @@ import { withEnv } from '@/tests/mocks/env.mock.ts'
 import { NoServerForCoreError, pinServerForPublish } from '@/lib/publish-server-pin.ts'
 
 /** Published `@skmtc/server` versions and the core range each one imports. */
-type ServerRelease = { core: string; yanked?: boolean }
+type ServerRelease = { core: string; yanked?: boolean; /** Its deno.json answers 500. */ broken?: boolean }
 
 const servers: Record<string, ServerRelease> = {
   '0.3.32': { core: '^0.44.0' },
@@ -54,6 +54,10 @@ const withRegistry = async (
     const release = pathname.match(/^\/@skmtc\/server\/([^/]+)\/deno\.json$/)
     const found = release === null ? undefined : releases[release[1]]
 
+    if (found?.broken) {
+      return new Response('unavailable', { status: 500 })
+    }
+
     return found === undefined
       ? new Response('not found', { status: 404 })
       : Response.json({
@@ -74,12 +78,20 @@ const withRegistry = async (
 
 const withProject = async (
   imports: Record<string, string>,
-  run: (projectPath: string) => Promise<void>
+  run: (projectPath: string) => Promise<void>,
+  { lockedCores = [] }: { lockedCores?: string[] } = {}
 ): Promise<void> => {
   const projectPath = await Deno.makeTempDir()
   await Deno.writeTextFile(
     join(projectPath, 'deno.json'),
     JSON.stringify({ name: '@acme/my-api', version: '1.0.0', imports })
+  )
+  await Deno.writeTextFile(
+    join(projectPath, 'deno.lock'),
+    JSON.stringify({
+      version: '5',
+      jsr: Object.fromEntries(lockedCores.map(version => [`@skmtc/core@${version}`, { integrity: 'x' }]))
+    })
   )
   try {
     await run(projectPath)
@@ -107,8 +119,8 @@ Deno.test(
         })
       })
     })
-    // The common case reads one file and no listing.
-    assertEquals(requests, ['/@skmtc/server/0.3.34/deno.json'])
+    // The common case reads the CLI version's deno.json and the listing, together.
+    assertEquals(requests.sort(), ['/@skmtc/server/0.3.34/deno.json', '/@skmtc/server/meta.json'])
   }
 )
 
@@ -169,7 +181,7 @@ Deno.test(
         assertEquals(
           error.message,
           "No published @skmtc/server accepts the project's @skmtc/core 0.43.0 (tried 3 versions, 0.3.34 down to 0.3.32). " +
-            "Move the project's generators to a core that a server accepts, or update the CLI."
+            "Move the project's generators to a core that a published server accepts."
         )
         assertEquals(await Deno.readTextFile(join(projectPath, 'deno.json')), before)
       })
@@ -215,10 +227,12 @@ Deno.test(
           NoServerForCoreError
         )
         assertStringIncludes(error.message, '@skmtc/core 0.45.0 (tried 0.3.34)')
-        assertStringIncludes(error.message, 'or update the CLI')
+        // Only here can a newer CLI help.
+        assertStringIncludes(error.message, 'update the CLI')
+        assertEquals(error.reason, 'core-too-new')
       })
     })
-    assertEquals(requests, ['/@skmtc/server/0.3.34/deno.json'])
+    assertEquals(requests.sort(), ['/@skmtc/server/0.3.34/deno.json', '/@skmtc/server/meta.json'])
   }
 )
 
@@ -291,3 +305,100 @@ Deno.test(
     )
   }
 )
+
+Deno.test("pinServerForPublish - never picks a server below 0.1.0, which cannot read the hub's request", async () => {
+  // 0.0.900 takes core 0.43 but predates `protocol` in `/artifacts`.
+  const releases = {
+    '0.0.900': { core: '^0.43.0' },
+    '0.3.33': { core: '^0.44.1' },
+    '0.3.34': { core: '^0.44.2' }
+  }
+  await withRegistry(releases, async () => {
+    await withProject({ '@skmtc/core': 'jsr:@skmtc/core@0.43.0' }, async projectPath => {
+      const error = await assertRejects(
+        () => pinServerForPublish(projectPath, { cliVersion }),
+        NoServerForCoreError
+      )
+      assertStringIncludes(error.message, '(tried 2 versions, 0.3.34 down to 0.3.33)')
+    })
+  })
+})
+
+Deno.test('pinServerForPublish - a failed read after a fitting newer version does not stop the search', async () => {
+  // 0.3.33 fits; 0.3.32, read in the same batch, answers 500.
+  const releases = { ...servers, '0.3.32': { core: '^0.44.0', broken: true } }
+  await withRegistry(releases, async () => {
+    await withProject({ '@skmtc/core': 'jsr:@skmtc/core@0.44.1' }, async projectPath => {
+      const change = await pinServerForPublish(projectPath, { cliVersion })
+      assertEquals(change?.to, 'jsr:@skmtc/server@0.3.33')
+    })
+  })
+})
+
+Deno.test('pinServerForPublish - a failed read before any version fits stops, with the version named', async () => {
+  const releases = { ...servers, '0.3.33': { core: '^0.44.1', broken: true } }
+  await withRegistry(releases, async () => {
+    await withProject({ '@skmtc/core': 'jsr:@skmtc/core@0.44.1' }, async projectPath => {
+      const error = await assertRejects(() => pinServerForPublish(projectPath, { cliVersion }))
+      assertStringIncludes(String(error), 'could not read @skmtc/server 0.3.33')
+    })
+  })
+})
+
+Deno.test('pinServerForPublish - the CLI version missing from the registry pins it, with a warning', async () => {
+  const warnings: string[] = []
+  const errorStub = stub(console, 'error', (...args: unknown[]) => {
+    warnings.push(args.map(String).join(' '))
+  })
+  try {
+    await withRegistry(servers, async () => {
+      await withProject({ '@skmtc/core': 'jsr:@skmtc/core@0.44.1' }, async projectPath => {
+        // A mirror without the CLI's server version: a 404, not a search.
+        const change = await pinServerForPublish(projectPath, { cliVersion: '0.3.40' })
+        assertEquals(change?.to, 'jsr:@skmtc/server@0.3.40')
+      })
+    })
+  } finally {
+    errorStub.restore()
+  }
+  assertEquals(warnings.length, 1)
+  assertStringIncludes(warnings[0], 'could not read @skmtc/server 0.3.40 from the registry')
+})
+
+Deno.test('pinServerForPublish - a yanked CLI version is not pinned', async () => {
+  const releases = { ...servers, '0.3.34': { core: '^0.44.1', yanked: true } }
+  await withRegistry(releases, async () => {
+    await withProject({ '@skmtc/core': 'jsr:@skmtc/core@0.44.1' }, async projectPath => {
+      const change = await pinServerForPublish(projectPath, { cliVersion })
+      assertEquals(change?.to, 'jsr:@skmtc/server@0.3.33')
+    })
+  })
+})
+
+Deno.test('pinServerForPublish - a ranged core pin uses the version deno.lock resolves', async () => {
+  // #3652 again with a range: the lock holds 0.44.1, so 0.3.34 (^0.44.2) would add a second core.
+  await withRegistry(servers, async () => {
+    await withProject(
+      { '@skmtc/core': 'jsr:@skmtc/core@^0.44.1' },
+      async projectPath => {
+        const change = await pinServerForPublish(projectPath, { cliVersion })
+        assertEquals(change?.to, 'jsr:@skmtc/server@0.3.33')
+      },
+      { lockedCores: ['0.44.1'] }
+    )
+  })
+})
+
+Deno.test('pinServerForPublish - a ranged core pin with no single locked core stops', async () => {
+  await withRegistry(servers, async () => {
+    await withProject(
+      { '@skmtc/core': 'jsr:@skmtc/core@^0.44.1' },
+      async projectPath => {
+        const error = await assertRejects(() => pinServerForPublish(projectPath, { cliVersion }))
+        assertStringIncludes(String(error), 'more than one @skmtc/core (0.44.1, 0.44.2)')
+        assertStringIncludes(String(error), 'Pin @skmtc/core exactly in deno.json')
+      },
+      { lockedCores: ['0.44.1', '0.44.2'] }
+    )
+  })
+})

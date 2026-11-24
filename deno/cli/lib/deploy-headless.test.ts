@@ -722,7 +722,7 @@ Deno.test(
 
 Deno.test('deployHeadless - no server for the project core stops before the upload', async () => {
   const { result, calls } = await runDeployWithPin(() =>
-    Promise.reject(new NoServerForCoreError({ core: '0.43.0', tried: ['0.3.34', '0.3.32'] }))
+    Promise.reject(new NoServerForCoreError({ core: '0.43.0', tried: ['0.3.34', '0.3.32'], reason: 'no-server' }))
   )
 
   const failed = toFailed(result)

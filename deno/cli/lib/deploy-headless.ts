@@ -616,9 +616,10 @@ export const deployHeadless = async ({
         // Printed before the lock refresh: deno.json has changed even if that fails.
         console.error(
           `Pinned ${serverPin.package} ${serverPin.from ?? '(none)'} -> ${serverPin.to} in deno.json ` +
-            'so the hub can deploy this version. Commit deno.json and deno.lock.'
+            'so the hub can deploy this version.'
         )
         await refreshLock(project.toPath())
+        console.error('Refreshed deno.lock. Commit deno.json and deno.lock.')
         files = await collectSourceFiles(project.toPath())
       }
     } catch (err) {
