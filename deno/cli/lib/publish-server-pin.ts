@@ -99,24 +99,48 @@ type FindServerForCoreArgs = {
 
 /**
  * The newest published server, no newer than `cliVersion`, whose core range
- * accepts `core`. When the registry cannot be read, the CLI's own version,
- * as before #373, with a warning.
+ * accepts `core`. The CLI's own version is checked first, with one request.
  */
 const findServerForCore = async ({ core, cliVersion }: FindServerForCoreArgs): Promise<string> => {
   const coreVersion = tryParse(core)
   if (coreVersion === undefined) return cliVersion
 
+  const cliFit = await readCliFit({ cliVersion, coreVersion })
+  if (cliFit === 'accepts') return cliVersion
+  if (cliFit === 'older') throw new NoServerForCoreError({ core, tried: [cliVersion] })
+
   try {
-    return await searchServerForCore({ core, coreVersion, cliVersion })
+    return await searchOlderServers({ core, coreVersion, cliVersion })
   } catch (error) {
     if (error instanceof NoServerForCoreError) throw error
 
+    // The CLI's version is known not to fit, so pinning it would put two
+    // cores in deno.lock: stop instead.
+    const reason = error instanceof Error ? error.message : String(error)
+    throw new Error(
+      `${SERVER_PACKAGE} ${cliVersion} does not accept the project's @skmtc/core ${core}, ` +
+        `and the registry could not be read to find a version that does: ${reason}`
+    )
+  }
+}
+
+type ReadCliFitArgs = { cliVersion: string; coreVersion: SemVer }
+
+/**
+ * The fit of the CLI's own server. When the registry cannot be read, it
+ * counts as a fit, with a warning: the pin is then the CLI's version, as
+ * before #373.
+ */
+const readCliFit = async ({ cliVersion, coreVersion }: ReadCliFitArgs): Promise<ServerFit> => {
+  try {
+    return await toServerFit({ version: cliVersion, coreVersion })
+  } catch (error) {
     const reason = error instanceof Error ? error.message : String(error)
     console.error(
-      `Warning: could not read ${SERVER_PACKAGE} versions from the registry (${reason}). ` +
-        `Pinning the CLI's version, ${cliVersion}.`
+      `Warning: could not read ${SERVER_PACKAGE} ${cliVersion} from the registry (${reason}). ` +
+        `Pinning the CLI's version.`
     )
-    return cliVersion
+    return 'accepts'
   }
 }
 
@@ -150,16 +174,12 @@ const toServerFit = async ({
 
 type SearchServerForCoreArgs = FindServerForCoreArgs & { coreVersion: SemVer }
 
-const searchServerForCore = async ({
+/** The versions older than the CLI's, newest first, for a CLI version that does not fit. */
+const searchOlderServers = async ({
   core,
   coreVersion,
   cliVersion
 }: SearchServerForCoreArgs): Promise<string> => {
-  // The common case: the CLI's own server fits, read with one request.
-  const cliFit = await toServerFit({ version: cliVersion, coreVersion })
-  if (cliFit === 'accepts') return cliVersion
-  if (cliFit === 'older') throw new NoServerForCoreError({ core, tried: [cliVersion] })
-
   const ceiling = tryParse(cliVersion)
   const { versions } = await Jsr.getLatestMeta({ scopeName: '@skmtc', packageName: 'server' })
   const older = Object.entries(versions)

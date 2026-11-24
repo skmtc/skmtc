@@ -103,8 +103,10 @@ See the [overview](overview.md#shared-flags).
      CLI's own pin, whose @skmtc/core range accepts the project's exact
      core pin. Without an exact core pin, it is the CLI's version. No
      server accepts the core → fail at stage `source`, before the
-     upload. If the registry cannot be read, the pin is the CLI's
-     version, with a warning. If the pin changes, write it to
+     upload. If the CLI's own server cannot be read from the registry,
+     the pin is the CLI's version, with a warning. If that version does
+     not fit and the registry then fails, fail at stage `source`. If
+     the pin changes, write it to
      deno.json, print it, run `deno install` to refresh deno.lock, and
      collect the tree again. A local override (a path, not a jsr: pin)
      is not changed. A failed result carries `serverPin` when the pin

@@ -22,19 +22,20 @@ const cliVersion = '0.3.34'
 
 /**
  * Serves `releases` as JSR's `meta.json` and `<version>/deno.json`, with
- * `JSR_URL` pointed at it. `down` answers every request with a 500.
+ * `JSR_URL` pointed at it. `down` answers every request with a 500, and
+ * `listingDown` only the `meta.json` listing.
  */
 const withRegistry = async (
   releases: Record<string, ServerRelease>,
   fn: () => Promise<void>,
-  { down = false }: { down?: boolean } = {}
+  { down = false, listingDown = false }: { down?: boolean; listingDown?: boolean } = {}
 ) => {
   const requests: string[] = []
   const server = Deno.serve({ hostname: '127.0.0.1', port: 0, onListen: () => {} }, request => {
     const { pathname } = new URL(request.url)
     requests.push(pathname)
 
-    if (down) {
+    if (down || (listingDown && pathname.endsWith('/meta.json'))) {
       return new Response('unavailable', { status: 500 })
     }
 
@@ -265,6 +266,28 @@ Deno.test(
       errorStub.restore()
     }
     assertEquals(warnings.length, 1)
-    assertStringIncludes(warnings[0], "Pinning the CLI's version, 0.3.34.")
+    assertStringIncludes(warnings[0], 'could not read @skmtc/server 0.3.34 from the registry')
+  }
+)
+
+Deno.test(
+  'pinServerForPublish - an unreadable listing after the CLI version does not fit stops the deploy',
+  async () => {
+    // Falling back to 0.3.34 here would put two cores in deno.lock, the #3652 failure.
+    await withRegistry(
+      servers,
+      async () => {
+        await withProject({ '@skmtc/core': 'jsr:@skmtc/core@0.44.1' }, async projectPath => {
+          const before = await Deno.readTextFile(join(projectPath, 'deno.json'))
+          const error = await assertRejects(() => pinServerForPublish(projectPath, { cliVersion }))
+          assertStringIncludes(
+            String(error),
+            "@skmtc/server 0.3.34 does not accept the project's @skmtc/core 0.44.1"
+          )
+          assertEquals(await Deno.readTextFile(join(projectPath, 'deno.json')), before)
+        })
+      },
+      { listingDown: true }
+    )
   }
 )
