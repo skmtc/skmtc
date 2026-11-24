@@ -778,13 +778,15 @@ const run = async () => {
 // refreshed, surfaces in whichever command needs it; report it once here, as
 // one line, for every entry point.
 run().catch(error => {
-  if (
-    error instanceof EnvVariableError ||
-    error instanceof DeviceLoginError ||
-    error instanceof ProjectLoadError
-  ) {
+  if (error instanceof EnvVariableError || error instanceof DeviceLoginError) {
     console.error(error.message)
     Deno.exit(1)
+  }
+  // Exit 2, as a recipe error: exit 1 already means something else for
+  // some commands, such as "dirty" for `status --check`.
+  if (error instanceof ProjectLoadError) {
+    console.error(error.message)
+    Deno.exit(2)
   }
   throw error
 })

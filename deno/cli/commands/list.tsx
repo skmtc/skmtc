@@ -6,6 +6,7 @@ import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { listHeadless, type ListHeadlessResult } from '@/lib/list-headless.ts'
+import { renderApp } from '@/commands/render-app.tsx'
 
 type RenderListArgs = {
   skmtcRoot?: SkmtcRoot
@@ -65,7 +66,7 @@ export const renderList = async ({
     generators: []
   }
 
-  renderFn(<AppComponent initialState={initialState} />)
+  renderApp({ renderFn, AppComponent, initialState })
 }
 
 type PrintListResultOptions = {

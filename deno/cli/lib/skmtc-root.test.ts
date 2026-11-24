@@ -157,13 +157,18 @@ Deno.test('SkmtcRoot.upgradeCheck - logs when upgrade available', async () => {
 })
 
 // Tests for createProject method
-Deno.test('SkmtcRoot.createProject - creates project and adds to projects array', async () => {
+Deno.test('SkmtcRoot.createProject - returns the project, listed once', async () => {
   const manager = createMockManager()
   const skmtcRoot = new SkmtcRoot([], manager)
 
   const mockProject = { name: 'new-project' } as Project
 
-  const projectCreateStub = stub(Project, 'create', () => Promise.resolve(mockProject))
+  // `Project.create` adds the project to the root, as the real one does; the
+  // Ink tasks call it directly. createProject used to add it a second time.
+  const projectCreateStub = stub(Project, 'create', ({ skmtcRoot: root }) => {
+    root.projects.push(mockProject)
+    return Promise.resolve(mockProject)
+  })
 
   try {
     const result = await skmtcRoot.createProject({

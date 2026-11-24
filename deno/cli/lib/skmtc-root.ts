@@ -96,7 +96,8 @@ export class SkmtcRoot {
       availableGenerators
     })
 
-    this.projects.push(project)
+    // `Project.create` already adds the project to `projects`: the Ink tasks
+    // call it directly.
 
     await this.manager.cleanup()
 

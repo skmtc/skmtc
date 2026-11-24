@@ -5,6 +5,7 @@ import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { initHeadless, InvalidBasePathError, type InitHeadlessResult } from '@/lib/init-headless.ts'
+import { renderApp } from '@/commands/render-app.tsx'
 
 type RenderInitArgs = {
   skmtcRoot?: SkmtcRoot
@@ -90,7 +91,7 @@ export const renderInit = async ({
     generators: []
   }
 
-  renderFn(<AppComponent initialState={initialState} />)
+  renderApp({ renderFn, AppComponent, initialState })
 }
 
 type PrintInitResultOptions = {

@@ -13,6 +13,7 @@ import {
 import { INSTALL_EXAMPLE, INSTALL_STRICT_USAGE } from '@/lib/install-arguments.ts'
 import { installHeadless, type InstallHeadlessResult } from '@/lib/install-headless.ts'
 import { CoreConflictError } from '@/lib/stack-core.ts'
+import { renderApp } from '@/commands/render-app.tsx'
 
 type RenderInstallArgs = {
   skmtcRoot?: SkmtcRoot
@@ -106,12 +107,6 @@ export const renderInstall = async ({
   // Instantiate Manager and SkmtcRoot if not provided (for testing)
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
-  // A named folder that did not load throws its load error here; the Ink
-  // view would treat it as missing and offer the project picker (#374).
-  if (projectName !== undefined) {
-    skmtcRoot.lookupProject(projectName)
-  }
-
   const initialState: SkmtcState = {
     view: { page: 'install-generator', projectName, generators },
     skmtcRoot,
@@ -121,7 +116,7 @@ export const renderInstall = async ({
     generators: []
   }
 
-  renderFn(<AppComponent initialState={initialState} />)
+  renderApp({ renderFn, AppComponent, initialState })
 }
 
 type PrintInstallResultOptions = {

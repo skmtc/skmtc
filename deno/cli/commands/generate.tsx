@@ -6,6 +6,7 @@ import { render } from 'ink'
 import { App } from '@/components/App.tsx'
 import type { SuccessMessage, SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
+import { renderApp } from '@/commands/render-app.tsx'
 
 type RenderGenerateArgs = {
   skmtcRoot?: SkmtcRoot
@@ -45,7 +46,7 @@ export const renderGenerate = async ({
     generators: []
   }
 
-  renderFn(<AppComponent initialState={initialState} />)
+  renderApp({ renderFn, AppComponent, initialState })
 }
 
 export const toGenerateMessage = (stats: GenerationStats): SuccessMessage => {

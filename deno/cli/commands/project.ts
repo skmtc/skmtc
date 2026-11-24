@@ -236,7 +236,16 @@ export const renderProjectRm = async ({
   }
 
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
-  const projectName = resolveFrom(skmtcRoot, from) ?? skmtcRoot.toProjectNames()[0] ?? ''
+  const projectName = resolveFrom(skmtcRoot, from)
+  if (projectName === undefined) {
+    return failWithRecipe({
+      command: 'project rm',
+      arg: '--from',
+      usage: RM_USAGE,
+      example: RM_EXAMPLE,
+      discover: 'ls .skmtc/  (no project, or more than one: pass --from <project>)'
+    })
+  }
 
   const result = await rmHeadless({
     skmtcRoot,
