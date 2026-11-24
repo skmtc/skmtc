@@ -34,7 +34,8 @@ Deno.test('renderClone - interactive mode mounts the Ink App with the expected s
           initialState={{
             view: {
               page: 'clone-generator',
-              projectName: testProjectName
+              projectName: testProjectName,
+              force: undefined
             },
             skmtcRoot,
             message: null,

@@ -3,7 +3,7 @@
  * without any Ink rendering. Strict mode invokes this directly; the
  * Ink `CloneGeneratorView` collects the same args via a MultiSelect
  * picker and then takes an identical path through
- * `project.cloneGenerator()`.
+ * `project.cloneGenerators()`.
  *
  * Source of truth is JSR (the same registry `install` uses), pinned
  * to the version that satisfies the user-supplied semver constraint
@@ -17,18 +17,54 @@
 
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { bundleHeadless, type BundleHeadlessResult } from '@/lib/bundle-headless.ts'
+import type { CoreConflictError } from '@/lib/stack-core.ts'
+
+type ToCloneConflictTextArgs = {
+  error: CoreConflictError
+  projectName: string
+  /** The generators the command or the picker asked to clone. */
+  generators: string[]
+}
+
+/**
+ * The text `clone` prints for a core conflict, in strict mode and in the
+ * picker. A local generator (cloned or created) keeps the core its own
+ * `deno.json` names, so when one is in the way the text says how to move
+ * it. The command it suggests passes `--no-input`, because the picker lists
+ * only published generators and cannot name a local one.
+ */
+export const toCloneConflictText = ({
+  error,
+  projectName,
+  generators
+}: ToCloneConflictTextArgs): string => {
+  const local = error.requirements.flatMap(({ generatorId, localPath }) =>
+    localPath === undefined ? [] : [generatorId]
+  )
+
+  const toCommand = (ids: string[]) =>
+    `skmtc clone ${projectName} ${ids.map(id => `-g ${id}`).join(' ')} --force --no-input`
+
+  const localLines =
+    local.length === 0
+      ? []
+      : [
+          `A local generator keeps the @skmtc/core its own deno.json names: ${local.join(', ')}.`,
+          'Change that pin. Or, if it is a clone of a published generator, replace it with the published version (this deletes its folder and its edits):',
+          `  ${toCommand([...generators, ...local.filter(id => !generators.includes(id))])}`
+        ]
+
+  return localLines.length === 0 ? error.message : [error.message, '', ...localLines].join('\n')
+}
 
 type CloneHeadlessArgs = {
   skmtcRoot: SkmtcRoot
   projectName: string
   generators: string[]
   /**
-   * Bypass the pre-flight `@skmtc/core` peer-pin check. Default
-   * behavior refuses to clone into a project whose pin doesn't
-   * share a major.minor with the CLI's — cloning over a mismatch
-   * produces a generator that won't bundle. `--force` is the escape
-   * hatch when the operator has already accepted the risk (e.g.
-   * intentionally testing an old CLI against new generator source).
+   * Replace each named generator that is already cloned: delete its folder
+   * and clone the published version again. The `@skmtc/core` check still
+   * runs, and a conflict still refuses.
    */
   force?: boolean
 }
@@ -65,11 +101,7 @@ export const cloneHeadless = async ({
 }: CloneHeadlessArgs): Promise<CloneHeadlessResult> => {
   const project = skmtcRoot.findProject(projectName)
 
-  const cloned: ClonedGenerator[] = []
-  for (const moduleName of generators) {
-    const result = await project.cloneGenerator({ moduleName, projectName, force })
-    cloned.push(result)
-  }
+  const cloned: ClonedGenerator[] = await project.cloneGenerators({ moduleNames: generators, force })
 
   // Confirm the cloned generator bundles, and refuse a clone that puts
   // two copies of `@skmtc/core` in the graph.
