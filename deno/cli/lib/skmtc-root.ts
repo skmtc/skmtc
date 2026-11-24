@@ -8,6 +8,7 @@ import { compare } from '@std/semver/compare'
 import { parse } from '@std/semver/parse'
 import invariant from 'tiny-invariant'
 import type { Generator } from '@/types/generator.ts'
+import { ProjectLoadError, type UnloadedProject } from '@/lib/project-load-error.ts'
 
 type CreateProjectArgs = {
   name: string
@@ -19,10 +20,24 @@ type CreateProjectArgs = {
 export class SkmtcRoot {
   projects: Project[]
   manager: Manager
+  /**
+   * Projects that failed to open. A command fails only when it names one
+   * of them; the others still run (#374).
+   */
+  unloadedProjects: UnloadedProject[]
 
-  constructor(projects: Project[], manager: Manager) {
+  constructor(projects: Project[], manager: Manager, unloadedProjects: UnloadedProject[] = []) {
     this.projects = projects
     this.manager = manager
+    this.unloadedProjects = unloadedProjects
+  }
+
+  /** Every project folder's name, including the ones that did not load. */
+  toProjectNames(): string[] {
+    return [
+      ...this.projects.map(({ name }) => name),
+      ...this.unloadedProjects.map(({ name }) => name)
+    ]
   }
 
   static toPath() {
@@ -49,8 +64,23 @@ export class SkmtcRoot {
     console.log(`Skmtc CLI v${latestVersion} is available. You are running v${thisVersion}.`)
   }
 
+  /**
+   * The project with this name, `undefined` when no folder has it. Throws
+   * {@link ProjectLoadError} when the folder exists but did not load, so a
+   * command reports the load error rather than "not found".
+   */
+  lookupProject(projectName: string): Project | undefined {
+    const unloaded = this.unloadedProjects.find(({ name }) => name === projectName)
+
+    if (unloaded !== undefined) {
+      throw new ProjectLoadError(unloaded)
+    }
+
+    return this.projects.find(({ name }) => name === projectName)
+  }
+
   findProject(projectName: string): Project {
-    const project = this.projects.find(({ name }) => name === projectName)
+    const project = this.lookupProject(projectName)
 
     invariant(project, `Project "${projectName}" not found`)
 
@@ -66,7 +96,8 @@ export class SkmtcRoot {
       availableGenerators
     })
 
-    this.projects.push(project)
+    // `Project.create` already adds the project to `projects`: the Ink tasks
+    // call it directly.
 
     await this.manager.cleanup()
 
@@ -86,10 +117,20 @@ export class SkmtcRoot {
       return item.isDirectory && !item.name.startsWith('@')
     })
 
-    const projectPromises = projectDirs.map(projectDir => Project.open(projectDir.name, manager))
+    const opened = await Promise.allSettled(
+      projectDirs.map(projectDir => Project.open(projectDir.name, manager))
+    )
 
-    const projects = await Promise.all(projectPromises)
+    const projects = opened.flatMap(result => (result.status === 'fulfilled' ? [result.value] : []))
+    const unloadedProjects = opened.flatMap((result, index) =>
+      result.status === 'rejected' ? [{ name: projectDirs[index].name, error: result.reason }] : []
+    )
 
-    return new SkmtcRoot(projects, manager)
+    // stderr, so a strict-mode command's stdout stays one JSON document.
+    unloadedProjects.forEach(unloaded =>
+      console.error(`Warning: ${new ProjectLoadError(unloaded).message}`)
+    )
+
+    return new SkmtcRoot(projects, manager, unloadedProjects)
   }
 }

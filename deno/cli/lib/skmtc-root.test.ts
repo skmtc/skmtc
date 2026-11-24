@@ -1,6 +1,10 @@
-import { assertEquals } from '@std/assert'
+import { assertEquals, assertStringIncludes, assertThrows } from '@std/assert'
 import { stub, assertSpyCalls } from '@std/testing/mock'
+import { ensureDir } from '@std/fs/ensure-dir'
+import { join } from '@std/path/join'
+import { homedir } from 'node:os'
 import { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import { ProjectLoadError } from '@/lib/project-load-error.ts'
 import { Project } from '@/lib/project.ts'
 import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { Jsr } from '@/lib/jsr.ts'
@@ -153,13 +157,18 @@ Deno.test('SkmtcRoot.upgradeCheck - logs when upgrade available', async () => {
 })
 
 // Tests for createProject method
-Deno.test('SkmtcRoot.createProject - creates project and adds to projects array', async () => {
+Deno.test('SkmtcRoot.createProject - returns the project, listed once', async () => {
   const manager = createMockManager()
   const skmtcRoot = new SkmtcRoot([], manager)
 
   const mockProject = { name: 'new-project' } as Project
 
-  const projectCreateStub = stub(Project, 'create', () => Promise.resolve(mockProject))
+  // `Project.create` adds the project to the root, as the real one does; the
+  // Ink tasks call it directly. createProject used to add it a second time.
+  const projectCreateStub = stub(Project, 'create', ({ skmtcRoot: root }) => {
+    root.projects.push(mockProject)
+    return Promise.resolve(mockProject)
+  })
 
   try {
     const result = await skmtcRoot.createProject({
@@ -280,3 +289,52 @@ Deno.test('SkmtcRoot.open - filters out @ prefixed directories', async () => {
     projectOpenStub.restore()
   }
 })
+
+Deno.test(
+  'SkmtcRoot.open - a project whose schema file is missing does not stop the others',
+  async () => {
+    const tempRoot = await Deno.makeTempDir({ prefix: 'skmtc-root-', dir: homedir() })
+    const prevCwd = Deno.cwd()
+    const warnings: string[] = []
+    const errorStub = stub(console, 'error', (...args: unknown[]) => {
+      warnings.push(args.map(String).join(' '))
+    })
+
+    try {
+      for (const name of ['good', 'broken']) {
+        await ensureDir(join(tempRoot, '.skmtc', name, '.settings'))
+        await Deno.writeTextFile(
+          join(tempRoot, '.skmtc', name, 'deno.json'),
+          JSON.stringify({ imports: {} })
+        )
+      }
+      // As skmtc-hub's skmtc-control in a fresh checkout (#374): its schema is
+      // a build output that does not exist yet.
+      await Deno.writeTextFile(
+        join(tempRoot, '.skmtc', 'broken', '.settings', 'client.json'),
+        JSON.stringify({
+          settings: { basePath: './src' },
+          source: 'packages/api/dist/openapi.missing.json'
+        })
+      )
+      Deno.chdir(tempRoot)
+
+      const skmtcRoot = await SkmtcRoot.open(createMockManager())
+
+      assertEquals(skmtcRoot.findProject('good').name, 'good')
+      assertEquals(skmtcRoot.toProjectNames().sort(), ['broken', 'good'])
+
+      // A command that names the broken project still fails, with its name and cause.
+      const error = assertThrows(() => skmtcRoot.findProject('broken'), ProjectLoadError)
+      assertStringIncludes(error.message, 'Project "broken" did not load')
+      assertStringIncludes(error.message, 'openapi.missing.json')
+
+      assertEquals(warnings.length, 1)
+      assertStringIncludes(warnings[0], 'Warning: Project "broken" did not load')
+    } finally {
+      errorStub.restore()
+      Deno.chdir(prevCwd)
+      await Deno.remove(tempRoot, { recursive: true })
+    }
+  }
+)

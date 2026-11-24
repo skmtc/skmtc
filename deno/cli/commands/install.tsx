@@ -13,6 +13,7 @@ import {
 import { INSTALL_EXAMPLE, INSTALL_STRICT_USAGE } from '@/lib/install-arguments.ts'
 import { installHeadless, type InstallHeadlessResult } from '@/lib/install-headless.ts'
 import { CoreConflictError } from '@/lib/stack-core.ts'
+import { renderApp } from '@/commands/render-app.tsx'
 
 type RenderInstallArgs = {
   skmtcRoot?: SkmtcRoot
@@ -74,7 +75,7 @@ export const renderInstall = async ({
 
     const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
-    if (!skmtcRoot.projects.some(({ name }) => name === projectName)) {
+    if (skmtcRoot.lookupProject(projectName) === undefined) {
       return failWithInvalidArg({
         message: `project "${projectName}" not found`,
         usage: INSTALL_STRICT_USAGE,
@@ -115,7 +116,7 @@ export const renderInstall = async ({
     generators: []
   }
 
-  renderFn(<AppComponent initialState={initialState} />)
+  renderApp({ renderFn, AppComponent, initialState })
 }
 
 type PrintInstallResultOptions = {

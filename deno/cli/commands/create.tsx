@@ -5,6 +5,7 @@ import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '../components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
 import { resolveInputMode } from '@/lib/strict-mode.ts'
+import { renderApp } from '@/commands/render-app.tsx'
 
 export const description = 'Create new generator'
 
@@ -58,5 +59,5 @@ export const renderCreate = async ({
     generators: []
   }
 
-  renderFn(<AppComponent initialState={initialState} />)
+  renderApp({ renderFn, AppComponent, initialState })
 }

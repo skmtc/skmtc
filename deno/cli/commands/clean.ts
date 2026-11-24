@@ -42,7 +42,7 @@ export const renderClean = async ({
   // clean nothing.
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
-  const project = skmtcRoot.projects.find(({ name }) => name === projectName)
+  const project = skmtcRoot.lookupProject(projectName)
 
   if (project === undefined) {
     return failWithRecipe({

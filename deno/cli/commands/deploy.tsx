@@ -13,6 +13,7 @@ import {
 } from '@/lib/deploy-headless.ts'
 import { resolveHubAuth } from '@/lib/hub-token.ts'
 import { type HubEnv, toMissingTokenHint } from '@/lib/hub-env.ts'
+import { renderApp } from '@/commands/render-app.tsx'
 
 export const description =
   'Store a new immutable version of this project on skmtc-hub and deploy it. Versions are addressed by semver; an existing version is refused unless --existing deploys it as it is.'
@@ -114,7 +115,7 @@ export const renderDeploy = async ({
     generators: []
   }
 
-  renderFn(<AppComponent initialState={initialState} />)
+  renderApp({ renderFn, AppComponent, initialState })
 }
 
 /**
