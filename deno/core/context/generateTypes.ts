@@ -243,6 +243,8 @@ export type OasIssueType =
   | 'MISSING_RESPONSES'
   | 'MISSING_INFO'
   | 'EMPTY_PARAMETER'
+  | 'MISSING_PARAMETER_SCHEMA'
+  | 'MISSING_HEADER_SCHEMA'
   | 'INVALID_EXAMPLE'
   | 'INVALID_ENUM'
   | 'INVALID_DEFAULT'
@@ -286,6 +288,8 @@ export const oasIssueType = v.union([
   v.literal('MISSING_RESPONSES'),
   v.literal('MISSING_INFO'),
   v.literal('EMPTY_PARAMETER'),
+  v.literal('MISSING_PARAMETER_SCHEMA'),
+  v.literal('MISSING_HEADER_SCHEMA'),
   v.literal('INVALID_EXAMPLE'),
   v.literal('INVALID_ENUM'),
   v.literal('INVALID_DEFAULT'),

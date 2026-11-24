@@ -204,6 +204,44 @@ operation or a webhook. Skmtc reads the field as no parameters.
 **Remediation:** Remove the empty entry or the empty field from the
 OpenAPI document.
 
+### `MISSING_PARAMETER_SCHEMA` — warning
+
+**When:** A parameter has neither `schema` nor `content`. OpenAPI
+requires one of the two. Skmtc keeps the parameter and gives it the
+empty schema `{}`, which allows any value. Generators read it as an
+unknown schema, and the operation still generates. A parameter with
+`schema` or `content` does not get this warning. All three versions
+(3.0, 3.1 and 3.2) log it.
+
+An OpenAPI 3.2 `in: querystring` parameter
+without `content` is an
+[`INVALID_PARAMETER`](#invalid_parameter--error-or-warning) error
+instead.
+
+**Typical message:** `Parameter 'home_street' in path has neither
+schema nor content; read as an empty schema {}`.
+
+**Example location:** `paths:/home_streets/{home_street}/firms:get:parameters:0`
+or `components:parameters:<name>`
+
+**Remediation:** Add a `schema` to the parameter in the OpenAPI
+document, for example `schema: { type: string }`.
+
+### `MISSING_HEADER_SCHEMA` — warning
+
+**When:** A header object has neither `schema` nor `content`. The
+header follows the parameter rules, so Skmtc does the same as for
+[`MISSING_PARAMETER_SCHEMA`](#missing_parameter_schema--warning): it
+keeps the header and gives it the empty schema `{}`.
+
+**Typical message:** `Header 'X-Rate-Limit' has neither schema nor
+content; read as an empty schema {}`.
+
+**Example location:** `paths:/pets:get:responses:200:headers:X-Rate-Limit`
+or `components:headers:<name>`
+
+**Remediation:** Add a `schema` to the header in the OpenAPI document.
+
 ### `MISSING_RESPONSES` — warning
 
 **When:** An operation or webhook has no `responses`, or `responses`

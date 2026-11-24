@@ -242,7 +242,7 @@ Deno.test('OasHeader', async t => {
     await t.step('should throw error when neither schema nor content exists', () => {
       const header = new OasHeader({ description: 'No schema' })
 
-      assertThrows(() => header.toSchema(), Error, 'Schema not found for a JSON media type')
+      assertThrows(() => header.toSchema(), Error, 'Header has neither schema nor content')
     })
 
     await t.step(
