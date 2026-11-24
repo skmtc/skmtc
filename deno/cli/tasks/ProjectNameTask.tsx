@@ -13,8 +13,8 @@ export const ProjectNameTask = () => {
       setValue={value => {
         const { skmtcRoot } = state
 
-        const existingNames = skmtcRoot.projects.map(p => p.name)
-        const result = validateProjectName(value, existingNames)
+        // A folder that did not load still takes its name.
+        const result = validateProjectName(value, skmtcRoot.toProjectNames())
 
         if (!result.valid) {
           console.error(result.error)

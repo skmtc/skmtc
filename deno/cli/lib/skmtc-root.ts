@@ -16,13 +16,45 @@ type CreateProjectArgs = {
   availableGenerators: Generator[]
 }
 
+/** A project folder whose files did not load, with the error that stopped it. */
+export type UnloadedProject = {
+  name: string
+  error: unknown
+}
+
+/** A command named a project whose files did not load. */
+export class ProjectLoadError extends Error {
+  readonly projectName: string
+
+  constructor({ name, error }: UnloadedProject) {
+    const reason = error instanceof Error ? error.message : String(error)
+    super(`Project "${name}" did not load: ${reason}`, { cause: error })
+    this.name = 'ProjectLoadError'
+    this.projectName = name
+  }
+}
+
 export class SkmtcRoot {
   projects: Project[]
   manager: Manager
+  /**
+   * Projects that failed to open. A command fails only when it names one
+   * of them; the others still run (#374).
+   */
+  unloadedProjects: UnloadedProject[]
 
-  constructor(projects: Project[], manager: Manager) {
+  constructor(projects: Project[], manager: Manager, unloadedProjects: UnloadedProject[] = []) {
     this.projects = projects
     this.manager = manager
+    this.unloadedProjects = unloadedProjects
+  }
+
+  /** Every project folder's name, including the ones that did not load. */
+  toProjectNames(): string[] {
+    return [
+      ...this.projects.map(({ name }) => name),
+      ...this.unloadedProjects.map(({ name }) => name)
+    ]
   }
 
   static toPath() {
@@ -50,6 +82,12 @@ export class SkmtcRoot {
   }
 
   findProject(projectName: string): Project {
+    const unloaded = this.unloadedProjects.find(({ name }) => name === projectName)
+
+    if (unloaded !== undefined) {
+      throw new ProjectLoadError(unloaded)
+    }
+
     const project = this.projects.find(({ name }) => name === projectName)
 
     invariant(project, `Project "${projectName}" not found`)
@@ -86,10 +124,20 @@ export class SkmtcRoot {
       return item.isDirectory && !item.name.startsWith('@')
     })
 
-    const projectPromises = projectDirs.map(projectDir => Project.open(projectDir.name, manager))
+    const opened = await Promise.allSettled(
+      projectDirs.map(projectDir => Project.open(projectDir.name, manager))
+    )
 
-    const projects = await Promise.all(projectPromises)
+    const projects = opened.flatMap(result => (result.status === 'fulfilled' ? [result.value] : []))
+    const unloadedProjects = opened.flatMap((result, index) =>
+      result.status === 'rejected' ? [{ name: projectDirs[index].name, error: result.reason }] : []
+    )
 
-    return new SkmtcRoot(projects, manager)
+    // stderr, so a strict-mode command's stdout stays one JSON document.
+    unloadedProjects.forEach(unloaded =>
+      console.error(`Warning: ${new ProjectLoadError(unloaded).message}`)
+    )
+
+    return new SkmtcRoot(projects, manager, unloadedProjects)
   }
 }
