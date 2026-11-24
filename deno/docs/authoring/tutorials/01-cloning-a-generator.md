@@ -115,8 +115,8 @@ edited `ZodProjection.ts` instead, the contents would change.
 `skmtc clone` is a fork operation. It copies upstream source to
 your project, switches the import in `deno.json` to a local
 path, and builds the bundle. From that point on, the local source is
-authoritative — JSR updates don't reach you unless you re-clone
-or manually merge.
+authoritative — JSR updates don't reach you. `skmtc clone --force`
+replaces the clone with a newer version, and deletes your edits.
 
 The `(identifier.name, exportPath)` cache key for definitions
 incorporates `exportPath` directly, so changing `toExportPath`
