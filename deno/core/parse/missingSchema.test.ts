@@ -103,6 +103,40 @@ for (const { dialect, toParameterListV3, toHeadersV3 } of trees) {
     assertEquals(toLogged(), [])
   })
 
+  Deno.test(`${dialect} a null schema or content reads as missing`, () => {
+    const { context, toLogged } = toRecordingContext()
+
+    // Documents in the wild hold `null` where the parser's input type does not allow it.
+    const parameters =
+      toParameterListV3({
+        parameters: [
+          JSON.parse('{ "name": "a", "in": "query", "schema": null }'),
+          JSON.parse('{ "name": "b", "in": "query", "content": null }')
+        ],
+        stackTrail: new StackTrail(['paths', '/firms', 'get', 'parameters']),
+        context
+      }) ?? []
+    const headers = toHeadersV3({
+      headers: { 'X-Null': JSON.parse('{ "schema": null }') },
+      stackTrail: new StackTrail(['paths', '/firms', 'get', 'responses', '200', 'headers']),
+      context
+    })
+
+    parameters.forEach(parameter => assertIsEmptySchema(parameter.resolve().toSchema()))
+    Object.values(headers ?? {}).forEach(header => assertIsEmptySchema(header.resolve().toSchema()))
+    assertEquals(
+      toLogged().map(({ type, location }) => ({ type, location })),
+      [
+        { type: 'MISSING_PARAMETER_SCHEMA', location: 'paths:/firms:get:parameters:0' },
+        { type: 'MISSING_PARAMETER_SCHEMA', location: 'paths:/firms:get:parameters:1' },
+        {
+          type: 'MISSING_HEADER_SCHEMA',
+          location: 'paths:/firms:get:responses:200:headers:X-Null'
+        }
+      ]
+    )
+  })
+
   Deno.test(`${dialect} a schema written as false is not read as a missing schema`, () => {
     const { context, toLogged } = toRecordingContext()
 

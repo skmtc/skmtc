@@ -120,7 +120,8 @@ const toHeaderV3 = ({
     extensionFields
   }
 
-  if (schema === undefined && content === undefined) {
+  // A `null` schema or content reads as absent; a boolean schema does not.
+  if (typeof schema !== 'boolean' && fields.schema === undefined && fields.content === undefined) {
     fields.schema = toMissingHeaderSchema({ header, name, stackTrail, context })
   }
 
