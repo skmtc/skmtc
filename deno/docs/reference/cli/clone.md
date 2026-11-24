@@ -34,9 +34,15 @@ Required in strict mode — at least one `-g` must be provided.
 
 ### `--force`
 
-Bypass the pre-flight `@skmtc/core` peer-pin check. Use only for
-intentional cross-version testing; the resulting clone is unlikely
-to bundle cleanly.
+Replace each named generator that the project already has a clone of.
+The CLI deletes its folder, with your edits, and clones the published
+version again. Without `--force`, `clone` refuses a generator that the
+project already has a clone of (see "One clone for each generator"
+below).
+
+`--force` does not skip the core check (see "Core check" below). A
+conflict refuses with exit code 2, and the CLI deletes no folder. To test
+across core versions, change the core pin in `deno.json` yourself.
 
 ### `--no-input`
 
@@ -56,31 +62,72 @@ constraint). The same registry `install` reads from.
 
 Source of truth is JSR. No GitHub mirror is consulted.
 
-### Pre-flight peer-pin check
+### One clone for each generator
 
-Before downloading anything, the CLI compares:
-
-- The project's `@skmtc/core` pin in `<project>/deno.json`
-- The CLI's own `@skmtc/core` version (which the published
-  generator was built against)
-
-If they don't match by major.minor, the CLI refuses with exit code
-2 and a recipe error:
+A clone is a one-time copy of a published generator, made so that you
+can edit it. If a generator the command names already has a folder in
+the project, `clone` refuses with exit code 2 and writes nothing:
 
 ```
-Error: @skmtc/core peer-pin mismatch
+Error: already cloned
 
-Project pins:  ^0.0.974
-CLI requires:  ^0.3.7
-
-Update the project's "@skmtc/core" pin to "jsr:@skmtc/core@^0.3.7"
-before cloning, or re-run with --force to skip this check.
+Already cloned: @skmtc/gen-zod (./gen-zod).
+Pass --force to replace it with the published version. This deletes the folder and its edits.
 ```
 
-The gate runs **before** any state mutation — a refused clone
-leaves the project untouched.
+The folder is `./<package>`, with no scope. So `clone` counts a folder
+as a clone only when its `deno.json` names the same generator. If the
+folder holds another generator, or a `deno.json` with no name, `clone`
+refuses with exit code 2, with or without `--force`, and deletes
+nothing:
 
-### Local copy written
+```
+Error: folder in use
+
+./gen-zod holds @acme/gen-zod, not @skmtc/gen-zod.
+skmtc clone does not write @skmtc/gen-zod there, with or without --force. Move or remove that folder first.
+```
+
+### Core check
+
+One bundle holds one `@skmtc/core`. The CLI downloads every
+generator the command names and reads the core range of each one.
+Then it plans one exact `@skmtc/core` pin that satisfies those ranges
+and the ranges of the generators that stay, and writes it into
+`<project>/deno.json`.
+
+The clones that the command replaces do not count. So one command
+moves two or more clones to a new core together:
+
+```bash
+skmtc clone my-api -g @skmtc/gen-zod@0.4.6 -g @skmtc/gen-typescript@0.2.21 --force
+```
+
+If no version satisfies every range, the CLI refuses with exit code
+2 before it writes any file:
+
+```
+Error: @skmtc/core conflict
+
+No one @skmtc/core version satisfies every generator in this project, and one project runs one core:
+  @skmtc/gen-typescript needs @skmtc/core 0.28.0 (local generator in ./gen-typescript)
+  @skmtc/gen-zod needs @skmtc/core 0.44.2
+Install versions of these generators built on the same core minor, or remove one of them.
+
+A local generator keeps the @skmtc/core its own deno.json names: @skmtc/gen-typescript.
+Change that pin. Or, if it is a clone of a published generator, replace it with the published version (this deletes its folder and its edits):
+  skmtc clone my-api -g @skmtc/gen-zod -g @skmtc/gen-typescript --force --no-input
+```
+
+If a generator that stays still conflicts, that command refuses too,
+before it deletes any folder.
+
+The suggested command passes `--no-input`, because the interactive
+picker lists only published generators and cannot name a local
+generator. `--force` works in the picker too:
+`skmtc clone my-api --force`.
+
+### Clone written
 
 For each cloned generator, the CLI writes:
 
@@ -122,8 +169,8 @@ package, was written that way on purpose and stays versioned.
 The clone's `deno.json` keeps the package's own pins, except for any
 name the project's root `deno.json` already pins. Those are dropped,
 so the root decides their version: the clone runs on the project's
-`@skmtc/core`, and a peer generator the project already cloned
-resolves to its local copy.
+`@skmtc/core`. A peer generator that the project already cloned, or
+that the same command clones, resolves to its clone.
 
 After you edit a pin in either `deno.json`, run `skmtc generate`
 again. It rebuilds the bundle from the current pins on every run.
@@ -224,15 +271,14 @@ skmtc clone my-api
 The CLI launches an Ink MultiSelect picker showing available
 installed generators. Use space to toggle, enter to confirm.
 
-### Force-clone with peer mismatch
+### Replace a clone
 
 ```bash
 skmtc clone my-api -g @skmtc/gen-zod --force
 ```
 
-Bypasses the pre-flight check. The clone lands on disk but the next
-bundle will likely fail with cryptic peer-version errors. Useful for
-intentional cross-version testing.
+Deletes `./gen-zod`, with your edits, and clones the newest published
+gen-zod. Files that the new version dropped are gone too.
 
 ## When to clone vs install
 
@@ -264,7 +310,7 @@ for what you are editing.
 |---|---|
 | `0` | Success — at least one generator cloned and bundled |
 | `1` | Registry unreachable, version not found, bundle failure |
-| `2` | Required argument missing OR peer-pin mismatch (without `--force`) |
+| `2` | Required argument missing, a generator already cloned, or a `@skmtc/core` conflict (each without `--force`) |
 
 ## See also
 

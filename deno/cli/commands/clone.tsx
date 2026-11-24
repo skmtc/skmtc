@@ -5,8 +5,9 @@ import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
-import { cloneHeadless, type CloneHeadlessResult } from '@/lib/clone-headless.ts'
+import { cloneHeadless, type CloneHeadlessResult, toCloneConflictText } from '@/lib/clone-headless.ts'
 import { CoreConflictError } from '@/lib/stack-core.ts'
+import { AlreadyClonedError, FolderInUseError } from '@/lib/generator.ts'
 
 export const description = 'Clone generator'
 
@@ -17,10 +18,9 @@ type RenderCloneArgs = {
   jsonFlag?: boolean
   noInputFlag?: boolean
   /**
-   * Bypass the pre-flight `@skmtc/core` peer-pin check. Without this
-   * flag, clone refuses if the project's core pin doesn't share a
-   * major.minor with the CLI's — cloning over a mismatch produces a
-   * generator that won't bundle.
+   * Replace each named generator that is already cloned: delete its folder
+   * and clone the published version again. The `@skmtc/core` check still
+   * runs, and a conflict still refuses.
    */
   force?: boolean
   // Optional dependencies for testing
@@ -69,11 +69,20 @@ export const renderClone = async ({
       printCloneResult(result, { format: resolveOutputFormat({ jsonFlag }) })
       Deno.exit(0)
     } catch (error) {
+      // Both are recipe-shaped failures with a specific fix, so they exit
+      // like a missing argument.
+      if (error instanceof AlreadyClonedError) {
+        console.error(`Error: already cloned\n\n${error.message}\n`)
+        Deno.exit(2)
+      }
+      if (error instanceof FolderInUseError) {
+        console.error(`Error: folder in use\n\n${error.message}\n`)
+        Deno.exit(2)
+      }
       if (error instanceof CoreConflictError) {
-        // The generator needs a different core from the project's other
-        // generators: a recipe-shaped failure with a specific fix, so it
-        // exits like a missing argument. Pass --force to clone anyway.
-        console.error(`Error: @skmtc/core conflict\n\n${error.message}\n`)
+        console.error(
+          `Error: @skmtc/core conflict\n\n${toCloneConflictText({ error, projectName, generators })}\n`
+        )
         Deno.exit(2)
       }
       throw error
@@ -84,7 +93,7 @@ export const renderClone = async ({
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
   const initialState: SkmtcState = {
-    view: { page: 'clone-generator', projectName },
+    view: { page: 'clone-generator', projectName, force },
     skmtcRoot,
     message: null,
     interactive: false,
