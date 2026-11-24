@@ -174,7 +174,8 @@ const toRerunCommand = ({ projectName, env }: DeployInvocation): string =>
 /** The recipe when the `--version` version is already on the hub. */
 export const toVersionExistsMessage = (version: string, invocation: DeployInvocation): string =>
   `Version ${version} already exists. Pass another \`--version\`, run ` +
-  `\`${toRerunCommand(invocation)}\` to deploy the next patch, or run ` +
+  `\`${toRerunCommand(invocation)}\` to deploy the deno.json version (or the next patch when ` +
+  'it is stored), or run ' +
   `\`${toRetryCommand(invocation)}\` to deploy the stored version.`
 
 /** What a stored version that did not deploy needs: a fix and a new version. */
@@ -642,10 +643,13 @@ export const deployHeadless = async ({
   pinServer = pinServerForPublish
 }: DeployHeadlessArgs): Promise<DeployHeadlessResult> => {
   const project = skmtcRoot.findProject(projectName)
-  // The flags a suggested command keeps: `--version` only when this run had it.
+  // Set when the deno.json version is stored and the CLI picks the next patch.
+  let versionPicked = false
+  // The flags a suggested command keeps: `--version` when this run had it or
+  // picked the version, since a plain rerun resolves to the deno.json version.
   const toInvocation = (version: string): DeployInvocation => ({
     projectName,
-    version: versionFlag ? version : undefined,
+    version: versionFlag || versionPicked ? version : undefined,
     env: envFlag
   })
   // Set once the pin is written, so a later failure still reports it.
@@ -711,7 +715,6 @@ export const deployHeadless = async ({
     return next
   }
 
-  let versionPicked = false
   let upload: StackUpload | null = null
   if (!existing) {
     if (await isVersionStored({ origin, token, account, slug, version })) {

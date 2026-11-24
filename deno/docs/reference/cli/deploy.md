@@ -237,7 +237,7 @@ and exits 1.
 {
   "type": "failed",
   "projectName": "my-api",
-  "reason": "Version 3.0.1 already exists. Pass another `--version`, run `skmtc deploy my-api` to deploy the next patch, or run `skmtc deploy my-api --version 3.0.1 --existing` to deploy the stored version.",
+  "reason": "Version 3.0.1 already exists. Pass another `--version`, run `skmtc deploy my-api` to deploy the deno.json version (or the next patch when it is stored), or run `skmtc deploy my-api --version 3.0.1 --existing` to deploy the stored version.",
   "stage": "exists",
   // true: the version is stored on the hub and cannot change.
   "stored": true
@@ -281,7 +281,7 @@ follows the summary.
 
 ```
 Deploy failed for "my-api" at exists:
-  Version 3.0.1 already exists. Pass another `--version`, run `skmtc deploy my-api` to deploy the next patch, or run `skmtc deploy my-api --version 3.0.1 --existing` to deploy the stored version.
+  Version 3.0.1 already exists. Pass another `--version`, run `skmtc deploy my-api` to deploy the deno.json version (or the next patch when it is stored), or run `skmtc deploy my-api --version 3.0.1 --existing` to deploy the stored version.
 ```
 
 ## What gets uploaded

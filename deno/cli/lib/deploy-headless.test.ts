@@ -473,7 +473,7 @@ Deno.test('deployHeadless - a stored --version exits 2 and uploads nothing', asy
   assertEquals(
     failed.reason,
     'Version 3.0.1 already exists. Pass another `--version`, run ' +
-      '`skmtc deploy my-api` to deploy the next patch, or run ' +
+      '`skmtc deploy my-api` to deploy the deno.json version (or the next patch when it is stored), or run ' +
       '`skmtc deploy my-api --version 3.0.1 --existing` to deploy the stored version.'
   )
   assertEquals(toDeployExitCode(result), 2)
@@ -850,18 +850,40 @@ Deno.test(
   }
 )
 
+Deno.test('deployHeadless - a picked version keeps --version in the suggested commands', async () => {
+  let outcome: Awaited<ReturnType<typeof runDeploy>> | undefined
+  await recordStderr(async () => {
+    outcome = await runDeploy({
+      exists: () => toJsonResponse(stackVersionPayload, 200),
+      versions: () => toVersionsPage(['3.0.1']),
+      deploy: () => toJsonResponse({ message: 'boom' }, 503)
+    })
+  })
+  if (!outcome) throw new Error('runDeploy returned nothing')
+  // Without --version the command would deploy the deno.json version, 3.0.1.
+  assertStringIncludes(
+    toFailed(outcome.result).reason,
+    '`skmtc deploy my-api --version 3.0.2 --existing`'
+  )
+})
+
 Deno.test('deployHeadless - the CLI does not write the picked version into deno.json', async () => {
   await using project = await makeStackProject()
   const before = await Deno.readTextFile(join(project.projectPath, 'deno.json'))
-  await withStackHub({ exists: () => toJsonResponse(stackVersionPayload, 200) }, () =>
-    deployHeadless({
-      skmtcRoot: project.skmtcRoot,
-      projectName: 'my-api',
-      token: 'pat-123',
-      origin: 'https://hub.test',
-      refreshLock: noRefresh
+  let result: DeployHeadlessResult | undefined
+  await recordStderr(() =>
+    withStackHub({ exists: () => toJsonResponse(stackVersionPayload, 200) }, async () => {
+      result = await deployHeadless({
+        skmtcRoot: project.skmtcRoot,
+        projectName: 'my-api',
+        token: 'pat-123',
+        origin: 'https://hub.test',
+        refreshLock: noRefresh
+      })
     })
   )
+  if (!result) throw new Error('deployHeadless returned nothing')
+  assertEquals(toDeployed(result).versionPicked, true)
   assertEquals(await Deno.readTextFile(join(project.projectPath, 'deno.json')), before)
 })
 

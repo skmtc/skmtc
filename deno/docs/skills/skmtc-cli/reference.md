@@ -361,7 +361,7 @@ both → exit 2 with a recipe error.
 {
   "type": "failed",
   "projectName": "my-api",
-  "reason": "Version 3.0.1 already exists. Pass another `--version`, run `skmtc deploy my-api` to deploy the next patch, or run `skmtc deploy my-api --version 3.0.1 --existing` to deploy the stored version.",
+  "reason": "Version 3.0.1 already exists. Pass another `--version`, run `skmtc deploy my-api` to deploy the deno.json version (or the next patch when it is stored), or run `skmtc deploy my-api --version 3.0.1 --existing` to deploy the stored version.",
   "stage": "exists",
   "stored": true
 }

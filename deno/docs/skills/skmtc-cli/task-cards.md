@@ -331,9 +331,13 @@ Key facts:
   recipe error (stage `identity`) if missing or not a scoped `@account/slug`.
 - **The hub auto-creates the stack on the first deploy** ("git push
   creates the repo").
-- **Versions are immutable.** A version already on the hub stops
-  before any upload: `stage: "exists"`, exit 2, with the recipe "bump
-  `version`, or run `skmtc deploy <project> --existing`".
+- **Versions are immutable.** A `--version` already on the hub stops
+  before any upload: `stage: "exists"`, exit 2, with the recipe "pass
+  another `--version`, run `skmtc deploy <project>`, or run
+  `skmtc deploy <project> --version <v> --existing`". A stored
+  `deno.json` version does not stop: `deploy` deploys the next patch
+  and sets `versionPicked: true` (see the Version rule in
+  [reference.md](reference.md#deploy)).
 - **Missing version fails fast** (`stage: "version"`, exit 1, before
   any network call) with the recipe: set `deno.json#version` or pass
   `--version`.
