@@ -472,7 +472,8 @@ Deno.test('deployHeadless - a stored --version exits 2 and uploads nothing', asy
   assertEquals(failed.stored, true)
   assertEquals(
     failed.reason,
-    'Version 3.0.1 already exists. Bump `version` in deno.json, or run ' +
+    'Version 3.0.1 already exists. Pass another `--version`, run ' +
+      '`skmtc deploy my-api` to deploy the next patch, or run ' +
       '`skmtc deploy my-api --version 3.0.1 --existing` to deploy the stored version.'
   )
   assertEquals(toDeployExitCode(result), 2)
@@ -898,6 +899,22 @@ Deno.test('deployHeadless - a versions list that cannot be read stops before the
   )
 })
 
+Deno.test('deployHeadless - a versions page with more pages but no cursor stops before the upload', async () => {
+  const { result, calls } = await runDeploy({
+    exists: () => toJsonResponse(stackVersionPayload, 200),
+    versions: () =>
+      toJsonResponse({ items: [{ version: '3.0.1' }], pagination: { hasMore: true } }, 200)
+  })
+
+  const failed = toFailed(result)
+  assertEquals(failed.stage, 'version')
+  assertStringIncludes(failed.reason, 'more pages but no cursor')
+  assertEquals(
+    calls.some(call => call.method === 'POST'),
+    false
+  )
+})
+
 Deno.test('deployHeadless - a 409 on the upload of a picked version picks again once', async () => {
   let uploads = 0
   const { result, calls } = await runDeploy({
@@ -928,6 +945,8 @@ Deno.test('deployHeadless - a 409 on the upload picks again once, then fails, ex
   assertEquals(UPLOADED_VERSIONS(calls), ['3.0.2', '3.0.3'])
   const failed = toFailed(result)
   assertEquals(failed.stage, 'upload')
+  // Another deploy stored 3.0.3.
+  assertEquals(failed.stored, true)
   assertStringIncludes(failed.reason, 'Version 3.0.3 was also stored by another deploy')
   assertStringIncludes(failed.reason, '`skmtc deploy my-api`')
   assertEquals(toDeployExitCode(result), 1)

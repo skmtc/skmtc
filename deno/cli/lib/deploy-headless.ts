@@ -171,9 +171,10 @@ const toRetryCommand = (invocation: DeployInvocation): string =>
 const toRerunCommand = ({ projectName, env }: DeployInvocation): string =>
   `skmtc deploy ${projectName}${env ? ` --env ${env}` : ''}`
 
-/** The recipe when the version is already on the hub. */
+/** The recipe when the `--version` version is already on the hub. */
 export const toVersionExistsMessage = (version: string, invocation: DeployInvocation): string =>
-  `Version ${version} already exists. Bump \`version\` in deno.json, or run ` +
+  `Version ${version} already exists. Pass another \`--version\`, run ` +
+  `\`${toRerunCommand(invocation)}\` to deploy the next patch, or run ` +
   `\`${toRetryCommand(invocation)}\` to deploy the stored version.`
 
 /** What a stored version that did not deploy needs: a fix and a new version. */
@@ -374,12 +375,13 @@ export const listStoredVersions = async ({
     const versions = items.flatMap(item =>
       isObject(item) && typeof item['version'] === 'string' ? [item['version']] : []
     )
+    if (pagination['hasMore'] !== true) return { versions, nextCursor: undefined }
     const nextCursor = pagination['nextCursor']
-    return {
-      versions,
-      nextCursor:
-        pagination['hasMore'] === true && typeof nextCursor === 'string' ? nextCursor : undefined
+    // Picking from part of the list can pick a stored version.
+    if (typeof nextCursor !== 'string') {
+      throw new Error('the hub answered the versions list with more pages but no cursor')
     }
+    return { versions, nextCursor }
   }
 
   const readFrom = async (cursor: string | undefined): Promise<string[]> => {
@@ -784,7 +786,8 @@ export const deployHeadless = async ({
           return fail(
             'upload',
             `Version ${version} was also stored by another deploy while this one ran. ` +
-              `Run \`${toRerunCommand(toInvocation(version))}\` again.`
+              `Run \`${toRerunCommand(toInvocation(version))}\` again.`,
+            true
           )
         }
       }
