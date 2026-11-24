@@ -371,7 +371,7 @@ class OasParameter {
   isRef(): false
   resolve(): this
   resolveOnce(): this
-  toSchema(): OasSchema | OasRef<'schema'> | undefined
+  toSchema(mediaType?): OasSchema | OasRef<'schema'>   // throws when no schema is found
   toJsonSchema(options?): OpenAPIV3.ParameterObject
 }
 ```
