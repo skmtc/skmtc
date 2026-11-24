@@ -852,7 +852,7 @@ The whole generator is skipped while enrichments for it exist.
 |---|---|
 | `0` | Success (including documented no-ops, e.g. `clean` on a project with no manifest) |
 | `1` | Fatal failure — parseIssue at level `error`, typecheck failed, or other unrecoverable error |
-| `2` | Required input missing or invalid — recipe error printed to stderr |
+| `2` | Required input missing or invalid — recipe error printed to stderr. Also a named project that did not load (see below) |
 
 Recipe errors at exit code 2 always include:
 
@@ -864,6 +864,18 @@ Recipe errors at exit code 2 always include:
 
 The recipe pattern is the "fix it without reading the docs"
 contract for agents.
+
+One exit-2 error is not a recipe. If a command names a project whose
+folder did not load, stderr shows one line and no `Usage:` line:
+
+```
+Project "<name>" did not load: <reason>
+```
+
+The reason gives the cause, for example a schema file that is not in
+the folder. Repair the folder `.skmtc/<name>/`, then run the command
+again. A command for a different project still runs, and
+prints the same line as a warning.
 
 ## Issue location strings
 
