@@ -118,6 +118,8 @@ const isAtLeast = ({ version, minimum }: IsAtLeastArgs): boolean => {
 export type CoreRequirement = {
   generatorId: string
   range: string
+  /** The folder of a local copy (cloned or created), as the root `deno.json` names it. */
+  localPath?: string
 }
 
 type DenoJsonDeps = {
@@ -223,11 +225,13 @@ export const readInstalledRequirements = async ({
         return null
       }
 
-      const range = value.startsWith('jsr:')
-        ? await readPublishedCoreRange(value)
-        : await readLocalCoreRange(toLocalDenoJsonPath({ denoJson, modulePath: value }))
+      if (value.startsWith('jsr:')) {
+        const range = await readPublishedCoreRange(value)
+        return range === null ? null : { generatorId, range }
+      }
 
-      return range === null ? null : { generatorId, range }
+      const range = await readLocalCoreRange(toLocalDenoJsonPath({ denoJson, modulePath: value }))
+      return range === null ? null : { generatorId, range, localPath: dirname(value) }
     })
   )
 
@@ -334,7 +338,11 @@ export class CoreConflictError extends Error {
   readonly requirements: CoreRequirement[]
 
   constructor(requirements: CoreRequirement[]) {
-    const lines = requirements.map(({ generatorId, range }) => `  ${generatorId} needs @skmtc/core ${range}`)
+    const lines = requirements.map(({ generatorId, range, localPath }) =>
+      localPath === undefined
+        ? `  ${generatorId} needs @skmtc/core ${range}`
+        : `  ${generatorId} needs @skmtc/core ${range} (local copy in ${localPath})`
+    )
     super(
       [
         'No one @skmtc/core version satisfies every generator in this project, and one project runs one core:',

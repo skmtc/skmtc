@@ -5,7 +5,7 @@ import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
-import { cloneHeadless, type CloneHeadlessResult } from '@/lib/clone-headless.ts'
+import { cloneHeadless, type CloneHeadlessResult, toCloneConflictText } from '@/lib/clone-headless.ts'
 import { CoreConflictError } from '@/lib/stack-core.ts'
 
 export const description = 'Clone generator'
@@ -73,7 +73,7 @@ export const renderClone = async ({
         // The generator needs a different core from the project's other
         // generators: a recipe-shaped failure with a specific fix, so it
         // exits like a missing argument. Pass --force to clone anyway.
-        console.error(`Error: @skmtc/core conflict\n\n${error.message}\n`)
+        console.error(`Error: @skmtc/core conflict\n\n${toCloneConflictText(error)}\n`)
         Deno.exit(2)
       }
       throw error

@@ -34,9 +34,9 @@ Required in strict mode — at least one `-g` must be provided.
 
 ### `--force`
 
-Bypass the pre-flight `@skmtc/core` peer-pin check. Use only for
-intentional cross-version testing; the resulting clone is unlikely
-to bundle cleanly.
+Skip the `@skmtc/core` check (see "Core check" below). The project
+keeps its core pin, so the next bundle can load two cores. Use only
+for intentional cross-version testing.
 
 ### `--no-input`
 
@@ -56,29 +56,35 @@ constraint). The same registry `install` reads from.
 
 Source of truth is JSR. No GitHub mirror is consulted.
 
-### Pre-flight peer-pin check
+### Core check
 
-Before downloading anything, the CLI compares:
+One bundle holds one `@skmtc/core`. The CLI downloads every
+generator the command names and reads the core range of each one.
+Then it plans one exact `@skmtc/core` pin that satisfies those ranges
+and the ranges of the generators that stay, and writes it into
+`<project>/deno.json`.
 
-- The project's `@skmtc/core` pin in `<project>/deno.json`
-- The CLI's own `@skmtc/core` version (which the published
-  generator was built against)
+The old local copies of the generators the command names do not
+count. So one command moves two or more clones to a new core together:
 
-If they don't match by major.minor, the CLI refuses with exit code
-2 and a recipe error:
-
-```
-Error: @skmtc/core peer-pin mismatch
-
-Project pins:  ^0.0.974
-CLI requires:  ^0.3.7
-
-Update the project's "@skmtc/core" pin to "jsr:@skmtc/core@^0.3.7"
-before cloning, or re-run with --force to skip this check.
+```bash
+skmtc clone my-api -g @skmtc/gen-zod@0.4.6 -g @skmtc/gen-typescript@0.2.21
 ```
 
-The gate runs **before** any state mutation — a refused clone
-leaves the project untouched.
+If no version satisfies every range, the CLI refuses with exit code
+2 before it writes any file:
+
+```
+Error: @skmtc/core conflict
+
+No one @skmtc/core version satisfies every generator in this project, and one project runs one core:
+  @skmtc/gen-typescript needs @skmtc/core 0.28.0 (local copy in ./gen-typescript)
+  @skmtc/gen-zod needs @skmtc/core 0.44.2
+Install versions of these generators built on the same core minor, or remove one of them.
+
+A local copy keeps the core it was cloned on: @skmtc/gen-typescript.
+Name each local copy in the same clone command to move them to a new core together, or pass --force to skip this check.
+```
 
 ### Local copy written
 
@@ -224,15 +230,15 @@ skmtc clone my-api
 The CLI launches an Ink MultiSelect picker showing available
 installed generators. Use space to toggle, enter to confirm.
 
-### Force-clone with peer mismatch
+### Force-clone over a core conflict
 
 ```bash
 skmtc clone my-api -g @skmtc/gen-zod --force
 ```
 
-Bypasses the pre-flight check. The clone lands on disk but the next
-bundle will likely fail with cryptic peer-version errors. Useful for
-intentional cross-version testing.
+Skips the core check. The clone lands on disk, but the next bundle
+can load two cores, and `skmtc bundle` refuses a lock that resolves
+two. Useful for intentional cross-version testing.
 
 ## When to clone vs install
 
@@ -264,7 +270,7 @@ for what you are editing.
 |---|---|
 | `0` | Success — at least one generator cloned and bundled |
 | `1` | Registry unreachable, version not found, bundle failure |
-| `2` | Required argument missing OR peer-pin mismatch (without `--force`) |
+| `2` | Required argument missing OR `@skmtc/core` conflict (without `--force`) |
 
 ## See also
 

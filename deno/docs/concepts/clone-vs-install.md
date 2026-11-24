@@ -216,12 +216,17 @@ single core version satisfies the cloned generator and the project's
 generators. Then the bundle loads two copies of core, and generation
 writes empty files.
 
-`skmtc clone` reads the core range of the version it downloads and
+`skmtc clone` reads the core range of each version it downloads and
 the ranges of the generators that stay. Then it pins one core
-version that satisfies all of them. If none does, it stops with exit
-code 2 before it writes any file, and it names each generator and
-the core it needs. Use `--force` to skip the check, but only for
-intentional cross-version testing.
+version that satisfies all of them. The old local copies of the
+generators it clones do not count. To move two or more clones to a
+new core, name them all in one command.
+
+If no version fits, it stops
+with exit code 2 before it writes a file. It names each generator,
+the core it needs, and which ones are local copies. Use
+`--force` to skip the check, but only for intentional cross-version
+testing.
 
 ### What does "customization seam" actually mean in source?
 

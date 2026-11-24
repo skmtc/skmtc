@@ -17,18 +17,37 @@
 
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { bundleHeadless, type BundleHeadlessResult } from '@/lib/bundle-headless.ts'
+import type { CoreConflictError } from '@/lib/stack-core.ts'
+
+/**
+ * The text `clone` prints for a core conflict. A local copy keeps the core
+ * it was cloned on, so when one is in the way the text says how to move it.
+ */
+export const toCloneConflictText = (error: CoreConflictError): string => {
+  const localCopies = error.requirements.flatMap(({ generatorId, localPath }) =>
+    localPath === undefined ? [] : [generatorId]
+  )
+
+  if (localCopies.length === 0) {
+    return error.message
+  }
+
+  return [
+    error.message,
+    '',
+    `A local copy keeps the core it was cloned on: ${localCopies.join(', ')}.`,
+    'Name each local copy in the same clone command to move them to a new core together, or pass --force to skip this check.'
+  ].join('\n')
+}
 
 type CloneHeadlessArgs = {
   skmtcRoot: SkmtcRoot
   projectName: string
   generators: string[]
   /**
-   * Bypass the pre-flight `@skmtc/core` peer-pin check. Default
-   * behavior refuses to clone into a project whose pin doesn't
-   * share a major.minor with the CLI's — cloning over a mismatch
-   * produces a generator that won't bundle. `--force` is the escape
-   * hatch when the operator has already accepted the risk (e.g.
-   * intentionally testing an old CLI against new generator source).
+   * Skip the `@skmtc/core` check (`cloneGenerators`), which refuses a
+   * clone when no one core fits every generator in the project. The
+   * project then keeps its core pin, and the bundle can load two cores.
    */
   force?: boolean
 }
@@ -65,11 +84,7 @@ export const cloneHeadless = async ({
 }: CloneHeadlessArgs): Promise<CloneHeadlessResult> => {
   const project = skmtcRoot.findProject(projectName)
 
-  const cloned: ClonedGenerator[] = []
-  for (const moduleName of generators) {
-    const result = await project.cloneGenerator({ moduleName, projectName, force })
-    cloned.push(result)
-  }
+  const cloned: ClonedGenerator[] = await project.cloneGenerators({ moduleNames: generators, force })
 
   // Confirm the cloned generator bundles, and refuse a clone that puts
   // two copies of `@skmtc/core` in the graph.

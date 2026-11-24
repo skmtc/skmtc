@@ -58,19 +58,8 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
 
     setCloning(true)
 
-    const runClones = async () => {
-      const results: { moduleName: string; version: string }[] = []
-      for (const moduleName of selectedValues) {
-        const result = await project.cloneGenerator({
-          moduleName,
-          projectName: project.name
-        })
-        results.push(result)
-      }
-      return results
-    }
-
-    runClones()
+    project
+      .cloneGenerators({ moduleNames: selectedValues })
       .then(results => {
         const summary =
           results.length > 0 ? results.map(r => `${r.moduleName}@${r.version}`).join(', ') : ''

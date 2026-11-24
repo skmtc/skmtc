@@ -39,9 +39,29 @@ type CloneArgs = {
   force?: boolean
 }
 
+type CloneGeneratorsArgs = CloneArgs & {
+  generators: Generator[]
+}
+
 type CloneResult = {
+  /** Module name with scope, e.g. `@skmtc/gen-zod`. */
+  moduleName: string
   /** The concrete JSR version that was downloaded. */
   version: string
+}
+
+/** A published version's files, in memory until the core check passes. */
+type CloneDownload = {
+  files: Record<string, string>
+  version: string
+  /** The `@skmtc/core` range the version's `deno.json` names, `null` when none. */
+  range: string | null
+}
+
+type WriteCloneArgs = {
+  denoJson: RootDenoJson
+  manager: Manager
+  download: CloneDownload
 }
 
 type InstallArgs = {
@@ -156,23 +176,17 @@ export class Generator {
    * to the user (e.g. `skmtc clone … → @scope/pkg@0.0.55`).
    */
   async clone({ denoJson, manager, force }: CloneArgs): Promise<CloneResult> {
-    const { files, version } = await Jsr.download(this)
+    const [result] = await cloneGenerators({ generators: [this], denoJson, manager, force })
+    return result
+  }
 
-    // The generator stack decides the project's core (#333). The download
-    // is only in memory so far: plan the core pin for this version and the
-    // generators that stay, and stop before any file is written when no
-    // core fits them all.
-    if (!force) {
-      await reconcileCorePin({
-        denoJson,
-        adding: [
-          {
-            generatorId: this.toModuleName(),
-            range: await readCoreRange(JSON.parse(files['/deno.json'] ?? '{}'))
-          }
-        ]
-      })
-    }
+  async download(): Promise<CloneDownload> {
+    const { files, version } = await Jsr.download(this)
+    return { files, version, range: await readCoreRange(JSON.parse(files['/deno.json'] ?? '{}')) }
+  }
+
+  async writeClone({ denoJson, manager, download }: WriteCloneArgs): Promise<CloneResult> {
+    const { files, version } = download
 
     // Pin the local generator to the actual version we just pulled, so
     // subsequent `skmtc list` / `doctor` calls can report it accurately.
@@ -213,7 +227,7 @@ export class Generator {
     denoJson.addImport(this.toModuleName(), this.toModPath({ relative: true }))
     denoJson.addWorkspace(this.toPath({ relative: true }))
 
-    return { version }
+    return { moduleName: this.toModuleName(), version }
   }
 
   static fromName({ projectName, scopeName, packageName, version }: FromNameArgs): Generator {
@@ -252,6 +266,44 @@ export class Generator {
 }
 
 const isSourceFile = (path: string): boolean => /\.[cm]?[jt]sx?$/.test(path)
+
+/**
+ * Clones several published generators with one core check. The generator
+ * stack decides the project's core (#333): every version is downloaded
+ * first, and the core pin is planned once for all of them plus the
+ * generators that stay. The old copies of the generators being cloned do
+ * not count, so one command moves a set of clones to a new core together
+ * (#375). No file is written until the check passes.
+ */
+export const cloneGenerators = async ({
+  generators,
+  denoJson,
+  manager,
+  force
+}: CloneGeneratorsArgs): Promise<CloneResult[]> => {
+  const downloads = await Promise.all(
+    generators.map(async generator => ({ generator, download: await generator.download() }))
+  )
+
+  if (!force) {
+    await reconcileCorePin({
+      denoJson,
+      adding: downloads.map(({ generator, download }) => ({
+        generatorId: generator.toModuleName(),
+        range: download.range
+      }))
+    })
+  }
+
+  // One at a time: each clone reads the root imports the previous one wrote,
+  // so a peer cloned earlier in the command resolves to its local copy.
+  const results: CloneResult[] = []
+  for (const { generator, download } of downloads) {
+    results.push(await generator.writeClone({ denoJson, manager, download }))
+  }
+
+  return results
+}
 
 type FromNameArgs = {
   projectName: string

@@ -265,10 +265,12 @@ hybrid alike — so `bundle.type` is always `"bundled"`.
 }
 ```
 
-`clone` includes a **pre-flight `@skmtc/core` peer-pin check** — if
-the project's pin doesn't match the CLI's major.minor, the command
-refuses with exit 2 before any state mutation. `--force` overrides
-(at the user's risk).
+`clone` includes a **`@skmtc/core` check**: it plans one core pin for
+the generators it clones and the ones that stay, and refuses with
+exit 2 before it writes any file when no version fits. The old local
+copies of the generators it clones do not count, so name every clone
+you move to a new core in one command. `--force` skips the check (at
+the user's risk).
 
 ### `bundle`
 

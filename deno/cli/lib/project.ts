@@ -1,6 +1,6 @@
 import { RootDenoJson } from '@/lib/root-deno-json.ts'
 import type { Manager } from '@/lib/manager.ts'
-import { Generator } from '@/lib/generator.ts'
+import { cloneGenerators, Generator } from '@/lib/generator.ts'
 import invariant from 'tiny-invariant'
 import { Jsr } from '@/lib/jsr.ts'
 import { ClientJson } from '@/lib/client-json.ts'
@@ -24,10 +24,9 @@ type AddGeneratorArgs = {
   username?: string
 }
 
-type CloneGeneratorArgs = {
-  projectName: string
-  moduleName: string
-  /** Bypass the pre-flight @skmtc/core peer-pin check. See `Generator.clone`. */
+type CloneGeneratorsArgs = {
+  moduleNames: string[]
+  /** Skip the `@skmtc/core` check. See `cloneGenerators` in `generator.ts`. */
   force?: boolean
 }
 
@@ -141,33 +140,41 @@ export class Project {
     return project
   }
 
-  //Rename import
-  async cloneGenerator({
-    projectName,
-    moduleName,
+  /**
+   * Clones published generators into the project with one core check for
+   * all of them (`cloneGenerators`), so a command that moves several clones
+   * to a new core works in one step and a failed one writes nothing.
+   */
+  async cloneGenerators({
+    moduleNames,
     force
-  }: CloneGeneratorArgs): Promise<CloneGeneratorResult> {
+  }: CloneGeneratorsArgs): Promise<CloneGeneratorResult[]> {
     try {
-      const { scopeName, packageName, version } = parseModuleName(moduleName)
+      const generators = await Promise.all(
+        moduleNames.map(async moduleName => {
+          const { scopeName, packageName, version } = parseModuleName(moduleName)
 
       invariant(scopeName, 'Scope name is required')
 
-      const generator = Generator.fromName({
-        projectName,
-        scopeName,
-        packageName,
-        version: version ?? (await Jsr.getLatestMeta({ scopeName, packageName })).latest
-      })
+          return Generator.fromName({
+            projectName: this.name,
+            scopeName,
+            packageName,
+            version: version ?? (await Jsr.getLatestMeta({ scopeName, packageName })).latest
+          })
+        })
+      )
 
-      const result = await generator.clone({
+      const results = await cloneGenerators({
+        generators,
         denoJson: this.rootDenoJson,
         manager: this.manager,
         force
       })
 
-      this.rootDenoJson.write()
+      await this.rootDenoJson.write()
 
-      return { moduleName: generator.toModuleName(), version: result.version }
+      return results
     } finally {
       await this.manager.cleanup()
     }

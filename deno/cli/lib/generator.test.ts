@@ -4,7 +4,7 @@ import { CoreConflictError } from '@/lib/stack-core.ts'
 import { join } from '@std/path/join'
 import { ensureDir } from '@std/fs/ensure-dir'
 import { homedir } from 'node:os'
-import { Generator } from '@/lib/generator.ts'
+import { cloneGenerators, Generator } from '@/lib/generator.ts'
 import { RootDenoJson } from '@/lib/root-deno-json.ts'
 import { Manager } from '@/lib/manager.ts'
 
@@ -237,29 +237,60 @@ const publishedFiles: Record<string, string> = {
   '/README.md': `import { capitalize } from 'jsr:@skmtc/core@0.29.0'\n`
 }
 
+/** A second published package on the same core as gen-fixture 0.2.8. */
+const peerFiles: Record<string, string> = {
+  '/deno.json': JSON.stringify({
+    name: '@skmtc/gen-peer',
+    version: '0.3.0',
+    exports: './mod.ts',
+    imports: { '@skmtc/core': 'jsr:@skmtc/core@0.29.0' }
+  }),
+  '/mod.ts': `export const peer = 'peer'\n`
+}
+
+const fixturePackages: Record<string, { version: string; files: Record<string, string> }> = {
+  'gen-fixture': { version: '0.2.8', files: publishedFiles },
+  'gen-peer': { version: '0.3.0', files: peerFiles }
+}
+
+const notFound = () => new Response('not found', { status: 404 })
+
 const toFixtureResponse = (url: string): Response => {
   const path = new URL(url).pathname.replace(/\/+/g, '/')
+  const found = path.match(/\/@skmtc\/([^/]+)\/(.+)$/)
 
-  if (path.endsWith('/@skmtc/gen-fixture/meta.json')) {
+  if (found === null) {
+    return notFound()
+  }
+
+  const [, name, rest] = found
+  const fixture = fixturePackages[name]
+
+  if (fixture === undefined) {
+    return notFound()
+  }
+
+  if (rest === 'meta.json') {
     return Response.json({
       scope: 'skmtc',
-      name: 'gen-fixture',
-      latest: '0.2.8',
-      versions: { '0.2.8': {} }
+      name,
+      latest: fixture.version,
+      versions: { [fixture.version]: {} }
     })
   }
 
-  if (path.endsWith('/@skmtc/gen-fixture/0.2.8_meta.json')) {
+  if (rest === `${fixture.version}_meta.json`) {
     const manifest = Object.fromEntries(
-      Object.keys(publishedFiles).map(key => [key, { size: 0, checksum: '' }])
+      Object.keys(fixture.files).map(key => [key, { size: 0, checksum: '' }])
     )
     return Response.json({ manifest })
   }
 
-  const filePrefix = '/@skmtc/gen-fixture/0.2.8'
-  const file = publishedFiles[path.slice(path.indexOf(filePrefix) + filePrefix.length)]
+  const file = rest.startsWith(`${fixture.version}/`)
+    ? fixture.files[rest.slice(fixture.version.length)]
+    : undefined
 
-  return file === undefined ? new Response('not found', { status: 404 }) : new Response(file)
+  return file === undefined ? notFound() : new Response(file)
 }
 
 Deno.test('Generator.clone - rewrites versioned imports to bare specifiers', async () => {
@@ -463,3 +494,98 @@ Deno.test('Generator.clone - --force skips the core check and keeps the pin', as
     }
   )
 })
+
+const onCore = (version: string) =>
+  JSON.stringify({ imports: { '@skmtc/core': `jsr:@skmtc/core@${version}` } })
+
+const toPeer = () =>
+  Generator.create({
+    projectName: 'clone-test',
+    scopeName: '@skmtc',
+    packageName: 'gen-peer',
+    version: '0.3.0'
+  })
+
+Deno.test('cloneGenerators - moves two local copies to a new core in one command', async () => {
+  // Both local copies are on core 0.28.0; the published versions need 0.29.0.
+  await withCloneProject(
+    {
+      imports: {
+        '@skmtc/core': 'jsr:@skmtc/core@0.28.0',
+        '@skmtc/gen-fixture': './gen-fixture/mod.ts',
+        '@skmtc/gen-peer': './gen-peer/mod.ts'
+      },
+      files: {
+        'gen-fixture/deno.json': onCore('0.28.0'),
+        'gen-peer/deno.json': onCore('0.28.0')
+      }
+    },
+    async ({ projectPath, denoJson, manager, generator }) => {
+      // The trap #375 fixed: one at a time, each check counts the other's old copy.
+      await assertRejects(() => generator.clone({ denoJson, manager }), CoreConflictError)
+
+      const results = await cloneGenerators({
+        generators: [generator, toPeer()],
+        denoJson,
+        manager
+      })
+
+      assertEquals(results, [
+        { moduleName: '@skmtc/gen-fixture', version: '0.2.8' },
+        { moduleName: '@skmtc/gen-peer', version: '0.3.0' }
+      ])
+      assertEquals(denoJson.contents.imports?.['@skmtc/core'], 'jsr:@skmtc/core@0.29.0')
+      assertEquals(await exists(join(projectPath, 'gen-fixture', 'src', 'QueryFn.ts')), true)
+      assertEquals(await exists(join(projectPath, 'gen-peer', 'mod.ts')), true)
+      await manager.cleanup()
+    }
+  )
+})
+
+Deno.test(
+  'cloneGenerators - a generator that stays on another core stops the command before any file is written',
+  async () => {
+    await withCloneProject(
+      {
+        imports: {
+          '@skmtc/core': 'jsr:@skmtc/core@0.28.0',
+          '@skmtc/gen-fixture': './gen-fixture/mod.ts',
+          '@skmtc/gen-peer': './gen-peer/mod.ts',
+          '@skmtc/gen-typescript': './gen-typescript/mod.ts'
+        },
+        files: {
+          'gen-fixture/deno.json': onCore('0.28.0'),
+          'gen-peer/deno.json': onCore('0.28.0'),
+          'gen-typescript/deno.json': onCore('0.28.0')
+        }
+      },
+      async ({ projectPath, denoJson, manager, generator }) => {
+        const error = await assertRejects(
+          () =>
+            cloneGenerators({
+              generators: [generator, toPeer()],
+              denoJson,
+              manager
+            }),
+          CoreConflictError
+        )
+
+        // The clones' own old copies are not in the list; the one that stays is.
+        assertEquals(error.requirements, [
+          {
+            generatorId: '@skmtc/gen-typescript',
+            range: '0.28.0',
+            localPath: './gen-typescript'
+          },
+          { generatorId: '@skmtc/gen-fixture', range: '0.29.0' },
+          { generatorId: '@skmtc/gen-peer', range: '0.29.0' }
+        ])
+        assertEquals(denoJson.contents.imports?.['@skmtc/core'], 'jsr:@skmtc/core@0.28.0')
+        // Neither clone was written, including the first one in the command.
+        assertEquals(await exists(join(projectPath, 'gen-fixture', 'mod.ts')), false)
+        assertEquals(await exists(join(projectPath, 'gen-peer', 'mod.ts')), false)
+        await manager.cleanup()
+      }
+    )
+  }
+)
