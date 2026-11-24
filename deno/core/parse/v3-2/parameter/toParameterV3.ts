@@ -256,7 +256,7 @@ const toParameterV3 = ({
     extensionFields
   }
 
-  if (fields.schema === undefined && fields.content === undefined) {
+  if (schema === undefined && content === undefined) {
     fields.schema = toMissingParameterSchema({
       parameter,
       name,

@@ -1,6 +1,6 @@
 import { assert, assertEquals } from '@std/assert'
 import type { OpenAPIV3 } from 'openapi-types'
-import * as log from 'jsr:@std/log@^0.224.0'
+import * as log from '@std/log'
 import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { OasHeader } from '@/oas/header/Header.ts'
@@ -100,6 +100,26 @@ for (const { dialect, toParameterListV3, toHeadersV3 } of trees) {
       parameters.map(parameter => parameter.resolve().toSchema() instanceof OasString),
       [true, true]
     )
+    assertEquals(toLogged(), [])
+  })
+
+  Deno.test(`${dialect} a schema written as false is not read as a missing schema`, () => {
+    const { context, toLogged } = toRecordingContext()
+
+    // `schema: false` is a 3.1 boolean schema; the parser's input type does not allow it.
+    const withFalseSchema = JSON.parse('{ "name": "x", "in": "query", "schema": false }')
+
+    toParameterListV3({
+      parameters: [withFalseSchema],
+      stackTrail: new StackTrail(['paths', '/firms', 'get', 'parameters']),
+      context
+    })
+    toHeadersV3({
+      headers: { 'X-False': JSON.parse('{ "schema": false }') },
+      stackTrail: new StackTrail(['paths', '/firms', 'get', 'responses', '200', 'headers']),
+      context
+    })
+
     assertEquals(toLogged(), [])
   })
 

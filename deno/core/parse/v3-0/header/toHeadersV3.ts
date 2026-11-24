@@ -120,7 +120,7 @@ const toHeaderV3 = ({
     extensionFields
   }
 
-  if (fields.schema === undefined && fields.content === undefined) {
+  if (schema === undefined && content === undefined) {
     fields.schema = toMissingHeaderSchema({ header, name, stackTrail, context })
   }
 
