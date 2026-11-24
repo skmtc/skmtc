@@ -1,12 +1,14 @@
 import { join } from '@std/path/join'
 import { compare } from '@std/semver/compare'
+import { greaterThanRange } from '@std/semver/greater-than-range'
 import { satisfies } from '@std/semver/satisfies'
 import { tryParse } from '@std/semver/try-parse'
 import { tryParseRange } from '@std/semver/try-parse-range'
+import type { SemVer } from '@std/semver/types'
 import { readCliServerPin } from '@/lib/doctor-headless.ts'
 import { toDependencyAgeArgs } from '@/lib/dependency-age.ts'
 import { Jsr } from '@/lib/jsr.ts'
-import { readPublishedCoreRange, toCorePin } from '@/lib/stack-core.ts'
+import { readCoreRange, toCorePin } from '@/lib/stack-core.ts'
 
 const SERVER_PACKAGE = '@skmtc/server'
 const SERVER_PREFIX = `jsr:${SERVER_PACKAGE}@`
@@ -22,12 +24,13 @@ export type ServerPinChange = {
 /** No published `@skmtc/server` up to the CLI's own accepts the project's core. */
 export class NoServerForCoreError extends Error {
   constructor({ core, tried }: { core: string; tried: string[] }) {
-    const newest = tried[0]
-    const oldest = tried.at(-1)
+    const triedText =
+      tried.length === 1
+        ? tried[0]
+        : `${tried.length} versions, ${tried[0]} down to ${tried.at(-1)}`
     super(
       [
-        `No published ${SERVER_PACKAGE} accepts the project's @skmtc/core ${core}`,
-        `(tried ${tried.length} versions, ${newest} down to ${oldest}).`,
+        `No published ${SERVER_PACKAGE} accepts the project's @skmtc/core ${core} (tried ${triedText}).`,
         "Move the project's generators to a core that a server accepts, or update the CLI."
       ].join(' ')
     )
@@ -96,19 +99,66 @@ type FindServerForCoreArgs = {
 
 /**
  * The newest published server, no newer than `cliVersion`, whose core range
- * accepts `core`. The CLI's own version is tried first and needs no listing.
+ * accepts `core`. When the registry cannot be read, the CLI's own version,
+ * as before #373, with a warning.
  */
 const findServerForCore = async ({ core, cliVersion }: FindServerForCoreArgs): Promise<string> => {
   const coreVersion = tryParse(core)
   if (coreVersion === undefined) return cliVersion
 
-  const accepts = async (version: string): Promise<boolean> => {
-    const range = await readPublishedCoreRange(`${SERVER_PREFIX}${version}`)
-    const parsed = range === null ? undefined : tryParseRange(range)
-    return parsed !== undefined && satisfies(coreVersion, parsed)
-  }
+  try {
+    return await searchServerForCore({ core, coreVersion, cliVersion })
+  } catch (error) {
+    if (error instanceof NoServerForCoreError) throw error
 
-  if (await accepts(cliVersion)) return cliVersion
+    const reason = error instanceof Error ? error.message : String(error)
+    console.error(
+      `Warning: could not read ${SERVER_PACKAGE} versions from the registry (${reason}). ` +
+        `Pinning the CLI's version, ${cliVersion}.`
+    )
+    return cliVersion
+  }
+}
+
+/** How a server version's core range relates to the project's core. */
+type ServerFit = 'accepts' | 'older' | 'other'
+
+/** How many versions are read at once while searching. */
+const SEARCH_BATCH = 16
+
+const toServerFit = async ({
+  version,
+  coreVersion
+}: {
+  version: string
+  coreVersion: SemVer
+}): Promise<ServerFit> => {
+  const text = await Jsr.tryGetVersionFile({
+    scopeName: '@skmtc',
+    packageName: 'server',
+    version,
+    path: 'deno.json'
+  })
+  const range = text === null ? null : await readCoreRange(JSON.parse(text))
+  const parsed = range === null ? undefined : tryParseRange(range)
+
+  if (parsed === undefined) return 'other'
+  if (satisfies(coreVersion, parsed)) return 'accepts'
+  // The core is newer than any this server takes, and an older server takes older cores still.
+  return greaterThanRange(coreVersion, parsed) ? 'older' : 'other'
+}
+
+type SearchServerForCoreArgs = FindServerForCoreArgs & { coreVersion: SemVer }
+
+const searchServerForCore = async ({
+  core,
+  coreVersion,
+  cliVersion
+}: SearchServerForCoreArgs): Promise<string> => {
+  // The common case: the CLI's own server fits, read with one request.
+  const cliFit = await toServerFit({ version: cliVersion, coreVersion })
+  if (cliFit === 'accepts') return cliVersion
+  if (cliFit === 'older') throw new NoServerForCoreError({ core, tried: [cliVersion] })
 
   const ceiling = tryParse(cliVersion)
   const { versions } = await Jsr.getLatestMeta({ scopeName: '@skmtc', packageName: 'server' })
@@ -123,11 +173,22 @@ const findServerForCore = async ({ core, cliVersion }: FindServerForCoreArgs): P
     .sort((a, b) => compare(b.parsed, a.parsed))
     .map(({ version }) => version)
 
-  for (const version of older) {
-    if (await accepts(version)) return version
+  const tried = [cliVersion]
+  const batches = Array.from({ length: Math.ceil(older.length / SEARCH_BATCH) }, (_, index) =>
+    older.slice(index * SEARCH_BATCH, (index + 1) * SEARCH_BATCH)
+  )
+
+  for (const batch of batches) {
+    const fits = await Promise.all(batch.map(version => toServerFit({ version, coreVersion })))
+
+    for (const [index, fit] of fits.entries()) {
+      tried.push(batch[index])
+      if (fit === 'accepts') return batch[index]
+      if (fit === 'older') throw new NoServerForCoreError({ core, tried })
+    }
   }
 
-  throw new NoServerForCoreError({ core, tried: [cliVersion, ...older] })
+  throw new NoServerForCoreError({ core, tried })
 }
 
 /** Run `deno install` in the project so `deno.lock` resolves a changed import map. */

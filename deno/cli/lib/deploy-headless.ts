@@ -126,6 +126,8 @@ export type DeployHeadlessResult =
       stage: DeployFailureStage
       /** The version is stored on the hub: a later run cannot change it. */
       stored: boolean
+      /** The `@skmtc/server` pin this run changed in `deno.json`, when it changed one. */
+      serverPin?: ServerPinChange
     }
 
 /** 0 when the version is deployed; 2 when it already exists; 1 otherwise. */
@@ -556,12 +558,17 @@ export const deployHeadless = async ({
     version: versionFlag ? version : undefined,
     env: envFlag
   })
+  // Set once the pin is written, so a later failure still reports it.
+  let serverPin: ServerPinChange | null = null
+  const toPinField = () => (serverPin === null ? {} : { serverPin })
+
   const fail = (stage: DeployFailureStage, err: unknown, stored = false): DeployHeadlessResult => ({
     type: 'failed',
     projectName,
     reason: errorMessage(err),
     stage,
-    stored
+    stored,
+    ...toPinField()
   })
 
   // Resolve the version first — before any network call — so a missing
@@ -586,7 +593,6 @@ export const deployHeadless = async ({
   }
 
   let upload: StackUpload | null = null
-  let serverPin: ServerPinChange | null = null
   if (!existing) {
     if (await isVersionStored({ origin, token, account, slug, version })) {
       return fail('exists', toVersionExistsMessage(version, toInvocation(version)), true)
@@ -607,11 +613,12 @@ export const deployHeadless = async ({
       // Without this pin the hub cannot build the version's server.
       serverPin = await pinServer(project.toPath())
       if (serverPin !== null) {
-        await refreshLock(project.toPath())
+        // Printed before the lock refresh: deno.json has changed even if that fails.
         console.error(
           `Pinned ${serverPin.package} ${serverPin.from ?? '(none)'} -> ${serverPin.to} in deno.json ` +
             'so the hub can deploy this version. Commit deno.json and deno.lock.'
         )
+        await refreshLock(project.toPath())
         files = await collectSourceFiles(project.toPath())
       }
     } catch (err) {
@@ -652,7 +659,8 @@ export const deployHeadless = async ({
       projectName,
       reason: deployed.reason,
       stage: 'deploy',
-      stored: deployed.stored
+      stored: deployed.stored,
+      ...toPinField()
     }
   }
 

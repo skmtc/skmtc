@@ -1,5 +1,7 @@
 import { assertEquals } from '@std/assert/equals'
 import { assertRejects } from '@std/assert/rejects'
+import { assertStringIncludes } from '@std/assert/string-includes'
+import { stub } from '@std/testing/mock'
 import { join } from '@std/path/join'
 import { withEnv } from '@/tests/mocks/env.mock.ts'
 import { NoServerForCoreError, pinServerForPublish } from '@/lib/publish-server-pin.ts'
@@ -18,12 +20,23 @@ const servers: Record<string, ServerRelease> = {
 /** The CLI's own server pin in these tests. */
 const cliVersion = '0.3.34'
 
-/** Serves `releases` as JSR's `meta.json` and `<version>/deno.json`, with `JSR_URL` pointed at it. */
-const withRegistry = async (releases: Record<string, ServerRelease>, fn: () => Promise<void>) => {
+/**
+ * Serves `releases` as JSR's `meta.json` and `<version>/deno.json`, with
+ * `JSR_URL` pointed at it. `down` answers every request with a 500.
+ */
+const withRegistry = async (
+  releases: Record<string, ServerRelease>,
+  fn: () => Promise<void>,
+  { down = false }: { down?: boolean } = {}
+) => {
   const requests: string[] = []
   const server = Deno.serve({ hostname: '127.0.0.1', port: 0, onListen: () => {} }, request => {
     const { pathname } = new URL(request.url)
     requests.push(pathname)
+
+    if (down) {
+      return new Response('unavailable', { status: 500 })
+    }
 
     if (pathname === '/@skmtc/server/meta.json') {
       const names = Object.keys(releases)
@@ -80,7 +93,7 @@ const readImports = async (projectPath: string): Promise<unknown> =>
 Deno.test(
   'pinServerForPublish - adds the CLI version when its core range accepts the project core',
   async () => {
-    await withRegistry(servers, async () => {
+    const requests = await withRegistry(servers, async () => {
       await withProject({ '@skmtc/core': 'jsr:@skmtc/core@0.44.2' }, async projectPath => {
         assertEquals(await pinServerForPublish(projectPath, { cliVersion }), {
           package: '@skmtc/server',
@@ -93,6 +106,8 @@ Deno.test(
         })
       })
     })
+    // The common case reads one file and no listing.
+    assertEquals(requests, ['/@skmtc/server/0.3.34/deno.json'])
   }
 )
 
@@ -188,3 +203,68 @@ Deno.test('pinServerForPublish - keeps a local override of @skmtc/server', async
     )
   })
 })
+
+Deno.test(
+  'pinServerForPublish - a core newer than the CLI server takes: stops after one read',
+  async () => {
+    const requests = await withRegistry(servers, async () => {
+      await withProject({ '@skmtc/core': 'jsr:@skmtc/core@0.45.0' }, async projectPath => {
+        const error = await assertRejects(
+          () => pinServerForPublish(projectPath, { cliVersion }),
+          NoServerForCoreError
+        )
+        assertStringIncludes(error.message, '@skmtc/core 0.45.0 (tried 0.3.34)')
+        assertStringIncludes(error.message, 'or update the CLI')
+      })
+    })
+    assertEquals(requests, ['/@skmtc/server/0.3.34/deno.json'])
+  }
+)
+
+Deno.test(
+  'pinServerForPublish - stops at the first server whose core is older than the project core',
+  async () => {
+    // 0.3.32 takes 0.43.x only and 0.44.0 is newer, so 0.3.10 is not tried.
+    const releases = {
+      '0.3.10': { core: '^0.40.0' },
+      '0.3.32': { core: '^0.43.0' },
+      '0.3.33': { core: '^0.44.1' },
+      '0.3.34': { core: '^0.44.2' }
+    }
+    await withRegistry(releases, async () => {
+      await withProject({ '@skmtc/core': 'jsr:@skmtc/core@0.44.0' }, async projectPath => {
+        const error = await assertRejects(
+          () => pinServerForPublish(projectPath, { cliVersion }),
+          NoServerForCoreError
+        )
+        assertStringIncludes(error.message, '(tried 3 versions, 0.3.34 down to 0.3.32)')
+      })
+    })
+  }
+)
+
+Deno.test(
+  'pinServerForPublish - an unreadable registry pins the CLI version, with a warning',
+  async () => {
+    const warnings: string[] = []
+    const errorStub = stub(console, 'error', (...args: unknown[]) => {
+      warnings.push(args.map(String).join(' '))
+    })
+    try {
+      await withRegistry(
+        servers,
+        async () => {
+          await withProject({ '@skmtc/core': 'jsr:@skmtc/core@0.44.1' }, async projectPath => {
+            const change = await pinServerForPublish(projectPath, { cliVersion })
+            assertEquals(change?.to, 'jsr:@skmtc/server@0.3.34')
+          })
+        },
+        { down: true }
+      )
+    } finally {
+      errorStub.restore()
+    }
+    assertEquals(warnings.length, 1)
+    assertStringIncludes(warnings[0], "Pinning the CLI's version, 0.3.34.")
+  }
+)

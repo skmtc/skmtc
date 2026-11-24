@@ -734,3 +734,29 @@ Deno.test('deployHeadless - no server for the project core stops before the uplo
     false
   )
 })
+
+Deno.test('deployHeadless - a failure after the server pin changed still reports the pin', async () => {
+  const change: ServerPinChange = {
+    package: '@skmtc/server',
+    from: null,
+    to: 'jsr:@skmtc/server@0.3.33'
+  }
+  await using project = await makeStackProject()
+  let result: DeployHeadlessResult | undefined
+  await withStackHub({}, async () => {
+    result = await deployHeadless({
+      skmtcRoot: project.skmtcRoot,
+      projectName: 'my-api',
+      token: 'pat-123',
+      origin: 'https://hub.test',
+      refreshLock: () => Promise.reject(new Error('deno install failed')),
+      pinServer: () => Promise.resolve(change)
+    })
+  })
+  if (!result) throw new Error('deployHeadless returned nothing')
+
+  const failed = toFailed(result)
+  assertEquals(failed.stage, 'source')
+  // deno.json has already changed, so --json says so.
+  assertEquals(failed.serverPin, change)
+})
