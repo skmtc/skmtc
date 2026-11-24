@@ -76,21 +76,37 @@ const withRegistry = async (
   return requests
 }
 
+/** The `@skmtc/core` part of the project's `deno.lock`, in the shape Deno 2.9 writes. */
+type LockedCores = {
+  /** The project's own core import as the lock lists it (`^0.44.1` is written `~0.44.1`). */
+  own?: string
+  /** Each core specifier in the lock and the version it resolves to. */
+  specifiers?: Record<string, string>
+}
+
+/** Options for {@link withProject}. */
+type WithProjectOptions = { lockedCores?: LockedCores }
+
 const withProject = async (
   imports: Record<string, string>,
   run: (projectPath: string) => Promise<void>,
-  { lockedCores = [] }: { lockedCores?: string[] } = {}
+  { lockedCores = {} }: WithProjectOptions = {}
 ): Promise<void> => {
   const projectPath = await Deno.makeTempDir()
   await Deno.writeTextFile(
     join(projectPath, 'deno.json'),
     JSON.stringify({ name: '@acme/my-api', version: '1.0.0', imports })
   )
+  const specifiers = lockedCores.specifiers ?? {}
   await Deno.writeTextFile(
     join(projectPath, 'deno.lock'),
     JSON.stringify({
       version: '5',
-      jsr: Object.fromEntries(lockedCores.map(version => [`@skmtc/core@${version}`, { integrity: 'x' }]))
+      specifiers,
+      jsr: Object.fromEntries(
+        Object.values(specifiers).map(version => [`@skmtc/core@${version}`, { integrity: 'x' }])
+      ),
+      workspace: { dependencies: lockedCores.own === undefined ? [] : [lockedCores.own] }
     })
   )
   try {
@@ -306,14 +322,14 @@ Deno.test(
   }
 )
 
-Deno.test("pinServerForPublish - never picks a server below 0.1.0, which cannot read the hub's request", async () => {
-  // 0.0.900 takes core 0.43 but predates `protocol` in `/artifacts`.
+Deno.test('pinServerForPublish - never reads a server below 0.2.39, which lacks routes the hub forwards', async () => {
+  // 0.2.38 takes core 0.43 but has no `/validate`, so a stack on it would 404 there.
   const releases = {
-    '0.0.900': { core: '^0.43.0' },
+    '0.2.38': { core: '^0.43.0' },
     '0.3.33': { core: '^0.44.1' },
     '0.3.34': { core: '^0.44.2' }
   }
-  await withRegistry(releases, async () => {
+  const requests = await withRegistry(releases, async () => {
     await withProject({ '@skmtc/core': 'jsr:@skmtc/core@0.43.0' }, async projectPath => {
       const error = await assertRejects(
         () => pinServerForPublish(projectPath, { cliVersion }),
@@ -322,6 +338,8 @@ Deno.test("pinServerForPublish - never picks a server below 0.1.0, which cannot 
       assertStringIncludes(error.message, '(tried 2 versions, 0.3.34 down to 0.3.33)')
     })
   })
+  // Left out before the search, not read and refused.
+  assertEquals(requests.includes('/@skmtc/server/0.2.38/deno.json'), false)
 })
 
 Deno.test('pinServerForPublish - a failed read after a fitting newer version does not stop the search', async () => {
@@ -375,6 +393,27 @@ Deno.test('pinServerForPublish - a yanked CLI version is not pinned', async () =
   })
 })
 
+Deno.test(
+  'pinServerForPublish - a yanked CLI version with no older fit says the yank is why, and to update the CLI',
+  async () => {
+    // The trap: the search ends like any other, but here a newer CLI can help.
+    const releases = {
+      '0.3.33': { core: '^0.44.1' },
+      '0.3.34': { core: '^0.45.0', yanked: true }
+    }
+    await withRegistry(releases, async () => {
+      await withProject({ '@skmtc/core': 'jsr:@skmtc/core@0.45.0' }, async projectPath => {
+        const error = await assertRejects(
+          () => pinServerForPublish(projectPath, { cliVersion }),
+          NoServerForCoreError
+        )
+        assertEquals(error.reason, 'cli-yanked')
+        assertStringIncludes(error.message, 'it is yanked: update the CLI')
+      })
+    })
+  }
+)
+
 Deno.test('pinServerForPublish - a ranged core pin uses the version deno.lock resolves', async () => {
   // #3652 again with a range: the lock holds 0.44.1, so 0.3.34 (^0.44.2) would add a second core.
   await withRegistry(servers, async () => {
@@ -384,21 +423,52 @@ Deno.test('pinServerForPublish - a ranged core pin uses the version deno.lock re
         const change = await pinServerForPublish(projectPath, { cliVersion })
         assertEquals(change?.to, 'jsr:@skmtc/server@0.3.33')
       },
-      { lockedCores: ['0.44.1'] }
+      {
+        lockedCores: {
+          own: 'jsr:@skmtc/core@~0.44.1',
+          specifiers: { 'jsr:@skmtc/core@~0.44.1': '0.44.1' }
+        }
+      }
     )
   })
 })
 
-Deno.test('pinServerForPublish - a ranged core pin with no single locked core stops', async () => {
-  await withRegistry(servers, async () => {
-    await withProject(
-      { '@skmtc/core': 'jsr:@skmtc/core@^0.44.1' },
-      async projectPath => {
+Deno.test(
+  'pinServerForPublish - a ranged core pin in a lock that already holds two cores picks the server for its own',
+  async () => {
+    // The #3652 lock: the project resolves 0.44.1, and the pinned server 0.3.34
+    // added 0.44.2. Chosen for 0.44.1, the pin is 0.3.33, and `deno install`
+    // then drops 0.44.2 (Deno 2.9.8). Chosen for 0.44.2, it would stay 0.3.34.
+    await withRegistry(servers, async () => {
+      await withProject(
+        { '@skmtc/core': 'jsr:@skmtc/core@^0.44.1', '@skmtc/server': 'jsr:@skmtc/server@0.3.34' },
+        async projectPath => {
+          const change = await pinServerForPublish(projectPath, { cliVersion })
+          assertEquals(change?.to, 'jsr:@skmtc/server@0.3.33')
+        },
+        {
+          lockedCores: {
+            own: 'jsr:@skmtc/core@~0.44.1',
+            specifiers: { 'jsr:@skmtc/core@~0.44.1': '0.44.1', 'jsr:@skmtc/core@~0.44.2': '0.44.2' }
+          }
+        }
+      )
+    })
+  }
+)
+
+Deno.test(
+  'pinServerForPublish - a ranged core pin that deno.lock does not resolve stops before any registry read',
+  async () => {
+    const requests = await withRegistry(servers, async () => {
+      await withProject({ '@skmtc/core': 'jsr:@skmtc/core@^0.44.1' }, async projectPath => {
+        const before = await Deno.readTextFile(join(projectPath, 'deno.json'))
         const error = await assertRejects(() => pinServerForPublish(projectPath, { cliVersion }))
-        assertStringIncludes(String(error), 'more than one @skmtc/core (0.44.1, 0.44.2)')
-        assertStringIncludes(String(error), 'Pin @skmtc/core exactly in deno.json')
-      },
-      { lockedCores: ['0.44.1', '0.44.2'] }
-    )
-  })
-})
+        assertStringIncludes(String(error), "deno.lock does not resolve the project's @skmtc/core ^0.44.1")
+        assertStringIncludes(String(error), 'deno install')
+        assertEquals(await Deno.readTextFile(join(projectPath, 'deno.json')), before)
+      })
+    })
+    assertEquals(requests, [])
+  }
+)

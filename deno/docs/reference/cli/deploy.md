@@ -101,14 +101,18 @@ See the [overview](overview.md#shared-flags).
      deno.lock missing → fail at stage `source`. Then choose the
      @skmtc/server pin: the newest published server whose @skmtc/core
      range accepts the project's core. The pin is no newer than the
-     CLI's own pin, and no older than 0.1.0, the first server that
-     reads the hub's request. A yanked version is never chosen.
+     CLI's own pin, and no older than 0.2.39, the first server that
+     serves every route the hub sends to it. When the registry's
+     version list can be read, a yanked version is not chosen.
      The project's core is its exact @skmtc/core pin. For a range, it
-     is the one version deno.lock resolves; with none, or more than
-     one, fail at stage `source`. With a local core, the pin is the
-     CLI's version.
+     is the version that deno.lock resolves the project's own pin to.
+     If deno.lock does not resolve that pin, fail at stage `source`.
+     With a local core, the pin is the CLI's version.
      No server accepts the core → fail at stage `source`, before the
-     upload. If the CLI's own server cannot be read from the registry
+     upload. The message says to update the CLI only when a newer CLI
+     can help: the core is newer than the CLI's server takes, or the
+     CLI's server takes it but is yanked.
+     If the CLI's own server cannot be read from the registry
      (an error, or no such version), the pin is the CLI's version, with
      a warning. If that version does not fit and the registry then
      fails, fail at stage `source`.
