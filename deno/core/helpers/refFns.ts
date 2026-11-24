@@ -188,7 +188,7 @@ type Ref = {
  * if (isRef(schemaOrRef)) {
  *   // TypeScript now knows schemaOrRef has a $ref property
  *   console.log(schemaOrRef.$ref); // Safe to access
- *   const refName = toRefName(schemaOrRef.$ref);
+ *   const { refName, refPath } = toRefParts({ $ref: schemaOrRef.$ref, refType: 'schema' });
  * } else {
  *   // Handle as actual schema object
  *   console.log('Direct schema object');

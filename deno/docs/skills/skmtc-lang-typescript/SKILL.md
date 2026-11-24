@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-typescript
-version: 0.3.1
+version: 0.3.2
 description: >
   The TypeScript target-language layer for Skmtc generators
   (@skmtc/lang-typescript): projection base factories, TsSnippet, the
@@ -12,7 +12,7 @@ description: >
 metadata:
   describes:
     '@skmtc/lang-typescript': '0.14'
-    '@skmtc/core': '0.45'
+    '@skmtc/core': '0.46'
 ---
 
 # The TypeScript layer (@skmtc/lang-typescript)
@@ -43,6 +43,11 @@ export const MyBase = toTsModelProjectionBase<EnrichmentSchema>({
   toEnrichmentSchema
 })
 ```
+
+The model statics also receive `refPath`: absent for a component, the
+pointer before `refName` for a ref into a `$defs` entry, a property or
+`#/paths/…`. The example names by `refName` alone; read `refPath` too
+when your documents have two deep targets with one `refName`.
 
 Factories: `toTsModelProjectionBase`, `toTsOasOperationProjectionBase`
 (+ webhook/GQL variants). Snippets extend `TsSnippet` directly. Casing

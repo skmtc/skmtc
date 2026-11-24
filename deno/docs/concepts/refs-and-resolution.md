@@ -72,6 +72,44 @@ Every variant — `OasObject`, `OasArray`, `OasString`, … and `OasRef`
 So `.isRef()` is the type-discriminating guard. The type system
 threads through the narrowing automatically.
 
+## Where a ref points: `refName` and `refPath`
+
+A `$ref` is a JSON pointer, and it can point anywhere in the document,
+not only at a component. `OasRef` splits it in two: `refName`, the last
+segment unescaped, and `refPath`, the pointer before it, as written.
+
+| `$ref` | `refPath` | `refName` |
+| --- | --- | --- |
+| `#/components/schemas/Pet` | `#/components/schemas` | `Pet` |
+| `#/components/schemas/__sharedInput/$defs/schema0` | `#/components/schemas/__sharedInput/$defs` | `schema0` |
+| `#/components/schemas/ChatResponse/properties/result` | `#/components/schemas/ChatResponse/properties` | `result` |
+| `#/paths/~1accounts/get/responses/200/content/application~1json/schema` | `#/paths/~1accounts/get/responses/200/content/application~1json` | `schema` |
+| `#/components/parameters/Limit` | `#/components/parameters` | `Limit` |
+
+A ref whose `refPath` is a bucket (`#/components/schemas`,
+`#/components/parameters`, …) names a component, and resolves in
+`components`. Any other ref points into the document's content. The
+parser parses its target once, at the target's own position. It uses
+the parser that components of that kind use, and keeps the target on the
+document under the whole pointer. A target that refers back to itself
+stays a lazy ref, as a recursive component does. A target that fails to
+parse removes what refers to it, and the `INVALID_DEPENDENCY_REF` names
+the target's error.
+
+The engine keys a component's model by `refName` alone, as it always
+has. Generator keys, enrichments and manifests from earlier runs stay
+the same. The engine keys any other target by its whole pointer. In
+`client.json`, the enrichments of such a target go under that pointer
+(`"#/components/schemas/ChatResponse/properties/result": { "main": … }`).
+
+The model generator's identity statics receive both `refName` and
+`refPath` (`refPath` is absent for a component). The name is the
+generator's: `refName` alone repeats across positions, as two refs to
+`…/properties/disk` under different schemas do. Pass a ref's `refPath`
+everywhere you pass its `refName`: to `insertModel` (`{ refPath }`), to
+`toModelRef`, and to `resolveSchemaRefOnce(refName, refPath)` in the
+projection. A lookup by `refName` alone finds the component of that name.
+
 ## The forward-ref problem
 
 OAS documents can have refs that point at schemas defined later in
@@ -202,7 +240,10 @@ the resolved value is of the *expected* `refType`:
 
 ```ts
 resolveOnce(): OasRef<T> | ResolvedRef<T> {
-  const refName = toRefName(this.$ref)
+  if (this.refName === '') {
+    throw new DanglingRefError(this.$ref)
+  }
+
   const resolved = this.#resolveOasOnce(...) ?? this.#resolveGqlOnce(...)
 
   if (!resolved) {
@@ -410,11 +451,13 @@ function declaring `OasRef<'schema'>` can't be passed an
 
 ### Can `OasRef` point to refs in external documents?
 
-Not currently. The `$ref` is resolved within `context.parsedDocument`,
-which is single-document. External `$ref`s (e.g.,
-`$ref: 'other.yaml#/User'`) aren't supported. If your OAS uses
-multi-file refs, bundle them into a single document before passing
-to Skmtc (tools like `@redocly/cli bundle` do this).
+Not currently. Core resolves a `$ref` within `context.parsedDocument`,
+which holds one document. Core reads only the fragment of a `$ref`. For
+`other.yaml#/components/schemas/User` it looks up this document's
+`#/components/schemas/User`, which names nothing when this document has
+no `User`. If your OAS uses multi-file refs, bundle them
+into a single document before passing to Skmtc (tools like
+`@redocly/cli bundle` do this).
 
 ### Does Render phase resolve refs?
 

@@ -22,13 +22,14 @@ class OasRef<T extends OasRefData['refType']> {
   resolve(): ResolvedRef<T>
   resolveOnce(): OasRef<T> | ResolvedRef<T>
   toLoop(): OasRef<T>[] | undefined
-  toRefName(): RefName
   toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ReferenceObject | ResolvedRefJsonType<T>
   toJSON(): object
 
-  // Getters
-  get $ref(): string
-  get refType(): OasRefData['refType']
+  // Fields and getters
+  $ref: string
+  refName: RefName
+  refPath: string
+  refType: OasRefData['refType']
   get document(): SkmtcParsedDocument
 }
 ```
@@ -160,32 +161,23 @@ For `A` a `$ref` to `B`, and `B` a `$ref` to `A`, `A.toLoop()` is
 
 **Throws:** what `resolveOnce()` throws at a step of the chain.
 
-### `toRefName(): RefName`
-
-Extracts the bare name from the `$ref` string. For
-`#/components/schemas/User`, returns `User`. For
-`#/components/parameters/UserId`, returns `UserId`.
-
-The `RefName` brand type narrows the return for type-safe lookup
-into component buckets.
-
-**Throws:** `DanglingRefError` if the `$ref` has no name, such as
-`#/components/schemas/`. That `$ref` names nothing. Test for it with
-`DanglingRefError.is(error)`.
-
 ### `toJsonSchema(options: ToJsonSchemaOptions): OpenAPIV3.ReferenceObject | ResolvedRefJsonType<T>`
 
 Converts the ref back to OpenAPI JSON representation.
 
-- If `options.resolve === false` (default): returns
-  `{ $ref: '#/components/<bucket>/<refName>' }` — the original
-  reference shape.
+- If `options.resolve === false` (default): returns `{ $ref }`. For a
+  component it is `#/components/<bucket>/<refName>`. For any other
+  target it is the whole pointer, written one way. Core unescapes each
+  segment, then writes it as RFC 6901 does, with no percent escapes:
+  `#/paths/~1disks~1{diskId}/parameters/0`.
 - If `options.resolve === true`: returns the resolved target's
   JSON schema, inlining the ref. Cycle protection from `resolve()`
   applies.
 
-**Throws:** the errors of `toRefName()` when `options.resolve` is
-false, and the errors of `resolve()` when it is true.
+**Throws:** `DanglingRefError` for a `$ref` with no name
+(`#/components/schemas/`) when `options.resolve` is false. Written out,
+that `$ref` would name nothing, so the caller decides what to write in
+its place. When `options.resolve` is true, the errors of `resolve()`.
 
 ### `toJSON(): object`
 
@@ -197,6 +189,28 @@ Serialization for `JSON.stringify`. Returns the same shape as
 ### `$ref`
 
 The raw `$ref` string, e.g., `'#/components/schemas/User'`.
+
+### `refName` and `refPath`
+
+The two parts of the `$ref`'s pointer. `refName` is the last segment,
+unescaped (`%20` is a space, `~1` is `/`, `~0` is `~`). `refPath` is the
+pointer before it, as written.
+
+| `$ref` | `refPath` | `refName` |
+| --- | --- | --- |
+| `#/components/schemas/User` | `#/components/schemas` | `User` |
+| `#/components/parameters/UserId` | `#/components/parameters` | `UserId` |
+| `#/components/schemas/__sharedInput/$defs/schema0` | `#/components/schemas/__sharedInput/$defs` | `schema0` |
+| `#/paths/~1disks~1%7BdiskId%7D/parameters/0` | `#/paths/~1disks~1%7BdiskId%7D/parameters` | `0` |
+| `#/components/schemas/` | `#/components/schemas` | empty: the `$ref` names nothing |
+
+A `refPath` that is a bucket names a component, which resolves in
+`components`. Any other `refPath` points into the document's content;
+see [Where a ref points](../../concepts/refs-and-resolution.md#where-a-ref-points-refname-and-refpath).
+Core reads only the fragment of a `$ref`, so `other.yml#/components/schemas/A`
+has `refPath` `#/components/schemas` and `refName` `A`. A `$ref` with no
+`#`, such as a bare id, has the default `refPath` of its kind and its
+last `/`-separated segment as `refName`.
 
 ### `refType`
 
@@ -307,8 +321,8 @@ console.log(userSchema.type)  // 'object'
 ```ts
 function processSchemaOrRef(s: OasSchema | OasRef<'schema'>) {
   if (s.isRef()) {
-    const refName = s.toRefName()
-    console.log(`Found ref to ${refName}`)
+    const { refName, refPath } = s
+    console.log(`Found ref to ${refName} in ${refPath}`)
     const resolved = s.resolve()
     return process(resolved)
   }

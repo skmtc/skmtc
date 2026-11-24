@@ -280,10 +280,17 @@ generators rarely call directly. `args` carries `options` on the same
 terms as the insert calls: required when the projection declares
 options, absent otherwise.
 
-### `resolveSchemaRefOnce(refName): OasSchema | OasRef<'schema'>`
+### `resolveSchemaRefOnce(refName, refPath?): OasSchema | OasRef<'schema'>`
 
-One-step ref resolution from the component bucket. Throws
-`DanglingRefError` if the refName isn't present. A model's recursion goes
+One-step ref resolution. Without `refPath`, or with
+`#/components/schemas`, it reads the component named `refName`. With any
+other `refPath`, it reads the target that the parser kept under the whole
+pointer, such as a `$defs` entry. Throws `DanglingRefError` when no schema
+is there.
+
+A model projection receives `refPath` next to `refName`. Pass it on:
+without it, a ref into a deep path resolves to the component of the same
+name. A model's recursion goes
 through `toModelRef`, not through this call (see
 [recursive types in the type system](../../concepts/the-type-system.md#handling-recursive-types--pending-entries)).
 

@@ -1,6 +1,6 @@
 ---
 name: skmtc-operation
-version: 0.1.2
+version: 0.1.3
 description: >
   The operation-generator shape for Skmtc: one definition per (path,
   method), for any output family — client hooks, SDK methods, forms,
@@ -15,7 +15,7 @@ description: >
   Load ALONGSIDE skmtc-generator and the emitted language's skill.
 metadata:
   describes:
-    '@skmtc/core': '0.45'
+    '@skmtc/core': '0.46'
 ---
 
 # Operation generators: decompose the operation, reference the models
@@ -120,8 +120,12 @@ const response = this.insertNormalizedModel(PeerProjection, {
 this.responseName = response.identifier.name   // the NAME is yours; the definition is theirs
 ```
 
-Named `$ref` schemas go through `insertModel(Peer, refName)` (name via
-`.toName()`). Either way: the peer renders the schema ONCE at its own
+Named `$ref` schemas go through
+`insertModel(Peer, ref.refName, { refPath: ref.refPath })` (name via
+`.toName()`); `refPath` tells a ref into a `$defs` entry, a property or
+`#/paths/…` apart from the component of the same name, and
+`insertNormalizedModel` reads it off the schema itself. Either way: the
+peer renders the schema ONCE at its own
 path, your file's import is stitched by the engine, and only the
 identifier lands in your tree. Import peer projections through their
 package alias (`@skmtc/gen-zod`), never by relative path.

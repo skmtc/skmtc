@@ -126,11 +126,11 @@ type ConstructorArgs = {
 export class SchemaMetaProjection extends SchemaMetaBase {
   propNames: string[]
 
-  constructor({ context, refName, settings }: ConstructorArgs) {
-    super({ context, refName, settings })
+  constructor({ context, refName, refPath, settings }: ConstructorArgs) {
+    super({ context, refName, refPath, settings })
 
-    // The schema is resolved here, from refName.
-    const schema = context.resolveSchemaRefOnce(refName)
+    // The schema is resolved here, from refName and refPath.
+    const schema = context.resolveSchemaRefOnce(refName, refPath)
 
     if (schema.isRef() || schema.type !== 'object') {
       this.propNames = []
@@ -150,8 +150,11 @@ export class SchemaMetaProjection extends SchemaMetaBase {
 
 Two things to note:
 
-- The constructor receives `refName`, not a schema. The schema is
-  resolved inside via `context.resolveSchemaRefOnce(refName)`.
+- The constructor receives `refName` and `refPath`, not a schema. The
+  constructor resolves the schema with
+  `context.resolveSchemaRefOnce(refName, refPath)`. A component has no
+  `refPath`. A ref to a `$defs` entry or a property has a `refPath`
+  inside the document.
 - `super(args)` only passes the three canonical fields
   (`context`, `refName`, `settings`). `destinationPath` and
   `rootRef` are scaffold-added fields available on the args but
@@ -205,8 +208,8 @@ Two things to internalize:
    handle); for user opt-in/out, prefer client.json `include`/`skip`:
 
 ```ts
-isSupported({ context, refName }) {
-  const schema = context.resolveSchemaRefOnce(refName)
+isSupported({ context, refName, refPath }) {
+  const schema = context.resolveSchemaRefOnce(refName, refPath)
   return !schema.isRef() && schema.type === 'object'
 }
 ```

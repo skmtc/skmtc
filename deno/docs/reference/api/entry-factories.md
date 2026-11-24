@@ -200,11 +200,15 @@ refName is dispatched. The projection-base static
 capability), exactly as the operation static is by `insertOperation`.
 
 ```ts
-isSupported({ context, refName }) {
-  const schema = context.resolveSchemaRefOnce(refName)
+isSupported({ context, refName, refPath }) {
+  const schema = context.resolveSchemaRefOnce(refName, refPath)
   return !schema.isRef() && schema.type === 'object'
 }
 ```
+
+`refPath` is absent for a component. For a ref into a `$defs` entry or a
+property, `insertModel` calls the predicate with that ref's `refPath`.
+Pass it on when you resolve the schema.
 
 ## The GQL `acc`-return contract (removed)
 
@@ -339,8 +343,8 @@ const metaEntry = toModelEntry<EnrichmentSchema>({
   // Optional capability gate (symmetric with operations). The predicate
   // gets `refName`, not a schema — resolve it yourself. Omit to support
   // every refName.
-  isSupported({ context, refName }) {
-    const schema = context.resolveSchemaRefOnce(refName)
+  isSupported({ context, refName, refPath }) {
+    const schema = context.resolveSchemaRefOnce(refName, refPath)
     return !schema.isRef() && schema.type === 'object'
   },
 

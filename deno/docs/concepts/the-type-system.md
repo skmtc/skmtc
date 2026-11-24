@@ -154,7 +154,7 @@ export const toTsValue: SchemaToValueFn = ({
 
   return match(schema satisfies SchemaType)
     .with({ type: 'custom' }, custom => custom)
-    .with({ type: 'ref' }, ref => new TsRef({ context, destinationPath, refName: toRefName(ref.$ref), modifiers, rootRef }))
+    .with({ type: 'ref' }, ref => new TsRef({ context, destinationPath, refName: ref.refName, refPath: ref.refPath, modifiers, rootRef }))
     .with({ type: 'array' }, ({ items }) => new TsArray({ context, destinationPath, modifiers, items, generatorKey, rootRef }))
     .with({ type: 'object' }, matched => new TsObject({ context, destinationPath, value: matched, modifiers, generatorKey, rootRef }))
     .with({ type: 'union' }, ({ members, discriminator }) => new TsUnion({ context, destinationPath, members, discriminator, modifiers, generatorKey, rootRef }))
@@ -273,9 +273,9 @@ on the schema being rendered:
 
 ```ts
 // skmtc-generators/gen-typescript/src/TsProjection.ts
-constructor({ context, refName, settings, rootRef }: ConstructorArgs) {
-  super({ context, refName, settings })
-  const schema = context.resolveSchemaRefOnce(refName)
+constructor({ context, refName, refPath, settings, rootRef }: ConstructorArgs) {
+  super({ context, refName, refPath, settings })
+  const schema = context.resolveSchemaRefOnce(refName, refPath)
   this.value = toTsValue({
     schema, required: true, destinationPath: settings.exportPath,
     context, rootRef
@@ -383,7 +383,8 @@ the ref's destination file:
 // gen-typescript schemaToValueFn
 .with({ type: 'ref' }, ref => new TsRef({
   context, destinationPath,
-  refName: toRefName(ref.$ref),
+  refName: ref.refName,
+  refPath: ref.refPath,
   modifiers, rootRef
 }))
 ```

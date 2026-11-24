@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.15.0
+version: 0.16.0
 description: >
   Author and edit Skmtc generators — packages that project an OpenAPI
   domain model into application code. Method: clone the nearest stock
@@ -12,7 +12,7 @@ description: >
   (skmtc-lang-typescript).
 metadata:
   describes:
-    '@skmtc/core': '0.45'
+    '@skmtc/core': '0.46'
 ---
 
 # Authoring Skmtc generators
@@ -123,10 +123,11 @@ functions that return strings — helpers drift.
 - **Peers have exactly two doors**: the insert machinery, or an API the
   peer package explicitly exports. Never call another generator's
   identity statics (`toIdentifierName`/`toExportPath`/`toEnrichments`)
-  yourself, and never fabricate a refName — `toRefName` on a string you
-  built points at a schema that does not exist, and attribution,
-  enrichment routing, and recursion tracking are all keyed by REAL
-  refNames; the fabrication survives only until something resolves it.
+  yourself, and never fabricate a ref — a `refName` or `refPath` you
+  built from a string of your own points at a schema that does not
+  exist, and attribution, enrichment routing, and recursion tracking are
+  all keyed by REAL refs; the fabrication survives only until something
+  resolves it.
   If the sanctioned call cannot express what you need, do NOT settle
   for a degraded render — a widened type (`Map<String, Any?>` for a
   known shape) is capitulation, not a solution. Treat the situation as
@@ -215,6 +216,18 @@ functions that return strings — helpers drift.
   `capitalize`, `decapitalize`); operations from **method + path** via
   core's `toEndpointName` (post→Create, put→Update). **Never**
   `operationId` — spec-author-controlled; no stock generator reads it.
+- **A ref carries `refName` and `refPath`.** `refName` is the last
+  segment of its pointer, `refPath` the pointer before it:
+  `#/components/schemas` for a component, something deeper for a ref
+  into a `$defs` entry, a property or `#/paths/…`. Core passes both to the
+  identity statics and keys a deep ref's model by its whole pointer; the
+  name is yours, and `refName` alone repeats across positions (two
+  `…/properties/disk`). Pass the ref's `refPath` on wherever you pass its
+  `refName` — `this.insertModel(Peer, ref.refName, { refPath: ref.refPath })`,
+  `toModelRef({ …, refPath })`, and `context.resolveSchemaRefOnce(refName,
+  refPath)` in the projection, which receives `refPath` next to `refName`.
+  A lookup by `refName` alone finds the component of that name, not the
+  deep target.
 - **Registration at construction; `toString()` is a prototype method**
   reading precomputed fields (an arrow-function `toString` field breaks
   provenance wrapping). A throw fails the run: the engine records
@@ -262,7 +275,8 @@ the text into a template.
 | Router misroutes custom values | `schema.type === 'custom'` is a real dispatch case — presence-test with `'readOnly' in schema`-style guards, not type equality |
 | `null` slips through an optional guard | `!== undefined` lets `null` pass on Nullable generics — check both |
 | `insertResult.identifier` is a type error | You have an `Inserted` handle (from `insertModel`) — use `.toName()`/`.definition`; only `insertNormalizedModel` returns the definition |
-| `` toRefName(`...${name}`) `` anywhere | Fabricated ref — go through a peer's two doors, never its statics |
+| A `refName` built from a string of your own | Fabricated ref — go through a peer's two doors, never its statics |
+| A ref into `$defs`, a property or `#/paths/…` builds the wrong schema, or throws `DanglingRefError` | Its `refPath` was dropped: pass it with `refName` to `insertModel`, `toModelRef` and `resolveSchemaRefOnce` |
 | `DanglingRefError` from `insertModel`, `resolve()` or an accessor such as `toParams()` | A `$ref` names nothing (no component has its name, or its `$ref`s loop), and `client.json` `settings.system.danglingRefs` lists its kind (`schema`, `parameter`, `requestBody`, `response`, `header`, `securityScheme`, `example`, `link`). Catch it where you insert or resolve that kind (for parameters, resolve each entry of `operation.toEffectiveParameters()`), test it with `DanglingRefError.is(error)` (not `instanceof`: your bundle can have another copy of core), throw any other error again, and decide: render a fallback (`unknown` for a schema) or fail the item. A kind the list leaves out never reaches you: by default (`[]`) the parser removes what holds it |
 | Reading fields off a peer's value beyond the definition/name | Coupled to the peer's PRIVATE snippet shape — it will change silently |
 
