@@ -4,7 +4,7 @@ import { CoreConflictError } from '@/lib/stack-core.ts'
 import { join } from '@std/path/join'
 import { ensureDir } from '@std/fs/ensure-dir'
 import { homedir } from 'node:os'
-import { AlreadyClonedError, cloneGenerators, Generator } from '@/lib/generator.ts'
+import { AlreadyClonedError, cloneGenerators, FolderInUseError, Generator } from '@/lib/generator.ts'
 import { RootDenoJson } from '@/lib/root-deno-json.ts'
 import { Manager } from '@/lib/manager.ts'
 
@@ -494,7 +494,7 @@ Deno.test('Generator.clone - refuses a version on another core and writes no fil
   )
 })
 
-Deno.test('Generator.clone - --force skips the core check and keeps the pin', async () => {
+Deno.test('Generator.clone - --force still refuses a core conflict, and writes nothing', async () => {
   await withCloneProject(
     {
       imports: { '@skmtc/core': 'jsr:@skmtc/core@0.28.0', '@skmtc/gen-typescript': './gen-typescript/mod.ts' },
@@ -503,17 +503,19 @@ Deno.test('Generator.clone - --force skips the core check and keeps the pin', as
       }
     },
     async ({ projectPath, denoJson, manager, generator }) => {
-      await generator.clone({ denoJson, manager, force: true })
+      // --force replaces clones; it does not skip the check (owner, 2026-11-24).
+      await assertRejects(() => generator.clone({ denoJson, manager, force: true }), CoreConflictError)
 
       assertEquals(denoJson.contents.imports?.['@skmtc/core'], 'jsr:@skmtc/core@0.28.0')
-      assertEquals(await exists(join(projectPath, 'gen-fixture')), true)
+      assertEquals(await exists(join(projectPath, 'gen-fixture')), false)
       await manager.cleanup()
     }
   )
 })
 
-const onCore = (version: string) =>
-  JSON.stringify({ imports: { '@skmtc/core': `jsr:@skmtc/core@${version}` } })
+/** A generator folder's deno.json on `version`; a clone also carries the package `name`. */
+const onCore = (version: string, name?: string) =>
+  JSON.stringify({ ...(name === undefined ? {} : { name }), imports: { '@skmtc/core': `jsr:@skmtc/core@${version}` } })
 
 const toPeer = () =>
   Generator.create({
@@ -534,9 +536,9 @@ Deno.test('cloneGenerators - --force replaces two clones and moves them to a new
       },
       workspace: ['./gen-fixture', './gen-peer'],
       files: {
-        'gen-fixture/deno.json': onCore('0.28.0'),
+        'gen-fixture/deno.json': onCore('0.28.0', '@skmtc/gen-fixture'),
         'gen-fixture/src/Dropped.ts': 'export const dropped = true\n',
-        'gen-peer/deno.json': onCore('0.28.0')
+        'gen-peer/deno.json': onCore('0.28.0', '@skmtc/gen-peer')
       }
     },
     async ({ projectPath, denoJson, manager, generator }) => {
@@ -568,7 +570,10 @@ Deno.test('cloneGenerators - without --force, an existing clone refuses and noth
   await withCloneProject(
     {
       imports: { '@skmtc/core': 'jsr:@skmtc/core@0.28.0', '@skmtc/gen-fixture': './gen-fixture/mod.ts' },
-      files: { 'gen-fixture/deno.json': onCore('0.28.0'), 'gen-fixture/src/Edited.ts': 'export const mine = 1\n' }
+      files: {
+        'gen-fixture/deno.json': onCore('0.28.0', '@skmtc/gen-fixture'),
+        'gen-fixture/src/Edited.ts': 'export const mine = 1\n'
+      }
     },
     async ({ projectPath, denoJson, manager, generator }) => {
       const error = await assertRejects(
@@ -673,6 +678,81 @@ Deno.test('cloneGenerators - a failed write keeps the clones before it, recorded
       assertEquals(root.imports['@skmtc/gen-fixture'], './gen-fixture/mod.ts')
       assertEquals('@skmtc/gen-peer' in root.imports, false)
       assertEquals(await exists(join(projectPath, 'gen-fixture', 'src', 'QueryFn.ts')), true)
+    }
+  )
+})
+
+Deno.test('cloneGenerators - a folder that holds another generator is never replaced, even with --force', async () => {
+  // The folder is ./<package> with no scope, so @acme/gen-fixture (made with
+  // `skmtc create`) sits where @skmtc/gen-fixture would go.
+  await withCloneProject(
+    {
+      imports: { '@skmtc/core': 'jsr:@skmtc/core@0.29.0', '@acme/gen-fixture': './gen-fixture/mod.ts' },
+      files: {
+        'gen-fixture/deno.json': onCore('0.29.0', '@acme/gen-fixture'),
+        'gen-fixture/mod.ts': 'export const acme = true\n'
+      }
+    },
+    async ({ projectPath, denoJson, manager, generator }) => {
+      const error = await assertRejects(
+        () => cloneGenerators({ generators: [generator], denoJson, manager, force: true }),
+        FolderInUseError
+      )
+
+      assertStringIncludes(error.message, './gen-fixture holds @acme/gen-fixture, not @skmtc/gen-fixture.')
+      assertEquals(
+        await Deno.readTextFile(join(projectPath, 'gen-fixture', 'mod.ts')),
+        'export const acme = true\n'
+      )
+      await manager.cleanup()
+    }
+  )
+})
+
+Deno.test('cloneGenerators - a folder whose deno.json names no package is never replaced', async () => {
+  await withCloneProject(
+    {
+      imports: { '@skmtc/core': 'jsr:@skmtc/core@0.29.0' },
+      files: { 'gen-fixture/notes.txt': 'mine\n' }
+    },
+    async ({ projectPath, denoJson, manager, generator }) => {
+      const error = await assertRejects(
+        () => cloneGenerators({ generators: [generator], denoJson, manager, force: true }),
+        FolderInUseError
+      )
+
+      assertStringIncludes(error.message, 'is not a clone of @skmtc/gen-fixture')
+      assertEquals(await exists(join(projectPath, 'gen-fixture', 'notes.txt')), true)
+      await manager.cleanup()
+    }
+  )
+})
+
+Deno.test('cloneGenerators - --force over a conflict that stays deletes no clone', async () => {
+  // Review of #377: the suggested replace command, when another generator
+  // stays on the old core. The check refuses before any folder is deleted.
+  await withCloneProject(
+    {
+      imports: {
+        '@skmtc/core': 'jsr:@skmtc/core@0.28.0',
+        '@skmtc/gen-peer': './gen-peer/mod.ts',
+        '@skmtc/gen-typescript': './gen-typescript/mod.ts'
+      },
+      files: {
+        'gen-peer/deno.json': onCore('0.28.0', '@skmtc/gen-peer'),
+        'gen-peer/src/Edited.ts': 'export const mine = 1\n',
+        'gen-typescript/deno.json': onCore('0.28.0')
+      }
+    },
+    async ({ projectPath, denoJson, manager, generator }) => {
+      await assertRejects(
+        () => cloneGenerators({ generators: [generator, toPeer()], denoJson, manager, force: true }),
+        CoreConflictError
+      )
+
+      assertEquals(await exists(join(projectPath, 'gen-peer', 'src', 'Edited.ts')), true)
+      assertEquals(await exists(join(projectPath, 'gen-fixture')), false)
+      await manager.cleanup()
     }
   )
 })

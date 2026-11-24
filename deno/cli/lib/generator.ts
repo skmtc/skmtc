@@ -17,7 +17,7 @@ import type { Project } from '@/lib/project.ts'
 import invariant from 'tiny-invariant'
 import { toBareSpecifiers, type SourceFile } from '@/lib/to-bare-specifiers.ts'
 import { Jsr } from '@/lib/jsr.ts'
-import { CoreConflictError, readCoreRange, reconcileCorePin } from '@/lib/stack-core.ts'
+import { readCoreRange, reconcileCorePin } from '@/lib/stack-core.ts'
 
 type GeneratorArgs = {
   projectName: string
@@ -37,10 +37,8 @@ type CloneArgs = {
   denoJson: RootDenoJson
   manager: Manager
   /**
-   * When `true`, skip the `@skmtc/core` check that refuses a clone
-   * whose generator needs a different core from the project's other
-   * generators. Use this only when the operator has explicitly
-   * acknowledged the skew (e.g. a `--force` flag at the CLI level).
+   * When `true`, replace a generator that is already cloned: delete its
+   * folder and clone the published version again (`--force`).
    */
   force?: boolean
 }
@@ -87,6 +85,37 @@ type WriteCloneArgs = {
 
 /** A JSR package name, so the folder a replace deletes is always one folder in the project. */
 const PACKAGE_NAME = /^[a-z0-9][a-z0-9-]*$/
+
+/**
+ * The folder a clone would go in holds another generator, or no generator
+ * at all. `--force` never deletes it: only a clone of the same generator is
+ * replaced.
+ */
+export class FolderInUseError extends Error {
+  constructor({ generatorId, folder, owner }: { generatorId: string; folder: string; owner: string | null }) {
+    super(
+      [
+        owner === null
+          ? `${folder} is not a clone of ${generatorId}: its deno.json names no package.`
+          : `${folder} holds ${owner}, not ${generatorId}.`,
+        `skmtc clone does not write ${generatorId} there, with or without --force. Move or remove that folder first.`
+      ].join('\n')
+    )
+    this.name = 'FolderInUseError'
+  }
+}
+
+/** The `name` in a folder's `deno.json`, `null` when it has none or the file cannot be read. */
+const readPackageName = async (folder: string): Promise<string | null> => {
+  try {
+    const parsed: unknown = JSON.parse(await Deno.readTextFile(join(folder, 'deno.json')))
+    return typeof parsed === 'object' && parsed !== null && 'name' in parsed && typeof parsed.name === 'string'
+      ? parsed.name
+      : null
+  } catch {
+    return null
+  }
+}
 
 /**
  * A generator the command names is already cloned into the project. A clone
@@ -357,11 +386,25 @@ export const cloneGenerators = async ({
   manager,
   force
 }: CloneGeneratorsArgs): Promise<CloneResult[]> => {
+  // A folder counts as this generator's clone only when its deno.json names
+  // it: the folder is `./<package>`, with no scope, so another generator
+  // with the same package name can hold it.
   const existing = (
     await Promise.all(
-      generators.map(async generator =>
-        (await exists(generator.toPath({ relative: false }), { isDirectory: true })) ? [generator] : []
-      )
+      generators.map(async generator => {
+        const folder = generator.toPath({ relative: false })
+        if (!(await exists(folder, { isDirectory: true }))) return []
+
+        const owner = await readPackageName(folder)
+        if (owner !== generator.toModuleName()) {
+          throw new FolderInUseError({
+            generatorId: generator.toModuleName(),
+            folder: generator.toPath({ relative: true }),
+            owner
+          })
+        }
+        return [generator]
+      })
     )
   ).flat()
 
@@ -378,23 +421,15 @@ export const cloneGenerators = async ({
     generators.map(async generator => ({ generator, download: await generator.download() }))
   )
 
-  // The pin is planned with --force too, so replaced clones move to the core
-  // they need. --force only stops a conflict from refusing the command.
-  try {
-    await reconcileCorePin({
-      denoJson,
-      adding: downloads.map(({ generator, download }) => ({
-        generatorId: generator.toModuleName(),
-        range: download.range
-      }))
-    })
-  } catch (error) {
-    if (!(force && error instanceof CoreConflictError)) throw error
-
-    console.error(
-      `Warning: --force clones over a @skmtc/core conflict. The project keeps its core pin, and the next bundle can fail.\n${error.message}`
-    )
-  }
+  // --force replaces clones; it never skips this check, so a refused
+  // command deletes no clone and writes no file.
+  await reconcileCorePin({
+    denoJson,
+    adding: downloads.map(({ generator, download }) => ({
+      generatorId: generator.toModuleName(),
+      range: download.range
+    }))
+  })
 
   // One at a time, so a failed write leaves the clones before it complete.
   const cloning = generators.map(generator => generator.toModuleName())

@@ -40,9 +40,9 @@ version again. Without `--force`, `clone` refuses a generator that the
 project already has a clone of (see "One clone for each generator"
 below).
 
-With `--force`, a `@skmtc/core` conflict (see "Core check" below) gives
-a warning instead of exit code 2. The project then keeps its core pin,
-and the next bundle can fail.
+`--force` does not skip the core check (see "Core check" below). A
+conflict refuses with exit code 2, and the CLI deletes no folder. To test
+across core versions, change the core pin in `deno.json` yourself.
 
 ### `--no-input`
 
@@ -75,6 +75,19 @@ Already cloned: @skmtc/gen-zod (./gen-zod).
 Pass --force to replace it with the published version. This deletes the folder and its edits.
 ```
 
+The folder is `./<package>`, with no scope. So `clone` counts a folder
+as a clone only when its `deno.json` names the same generator. If the
+folder holds another generator, or a `deno.json` with no name, `clone`
+refuses with exit code 2, with or without `--force`, and deletes
+nothing:
+
+```
+Error: folder in use
+
+./gen-zod holds @acme/gen-zod, not @skmtc/gen-zod.
+skmtc clone does not write @skmtc/gen-zod there, with or without --force. Move or remove that folder first.
+```
+
 ### Core check
 
 One bundle holds one `@skmtc/core`. The CLI downloads every
@@ -104,8 +117,10 @@ Install versions of these generators built on the same core minor, or remove one
 A local generator keeps the @skmtc/core its own deno.json names: @skmtc/gen-typescript.
 Change that pin. Or, if it is a clone of a published generator, replace it with the published version (this deletes its folder and its edits):
   skmtc clone my-api -g @skmtc/gen-zod -g @skmtc/gen-typescript --force --no-input
-Pass --force to clone anyway: the project keeps its core pin, and the next bundle can fail.
 ```
+
+If a generator that stays still conflicts, that command refuses too,
+before it deletes any folder.
 
 The suggested command passes `--no-input`, because the interactive
 picker lists only published generators and cannot name a local

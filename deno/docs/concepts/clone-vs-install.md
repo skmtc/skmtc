@@ -222,8 +222,8 @@ count. To move two or more clones to a new core, name them all in one
 
 If no version fits, it stops with exit code 2 before it writes a
 file. It names each generator, the core it needs, and which ones are
-local generators. With `--force` it warns instead, and the project
-keeps its core pin.
+local generators. `--force` does not change this: it replaces clones,
+and it never skips the check.
 
 ### What does "customization seam" actually mean in source?
 

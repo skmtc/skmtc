@@ -7,7 +7,7 @@ import type { InkRenderFn } from '@/commands/types.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { cloneHeadless, type CloneHeadlessResult, toCloneConflictText } from '@/lib/clone-headless.ts'
 import { CoreConflictError } from '@/lib/stack-core.ts'
-import { AlreadyClonedError } from '@/lib/generator.ts'
+import { AlreadyClonedError, FolderInUseError } from '@/lib/generator.ts'
 
 export const description = 'Clone generator'
 
@@ -19,8 +19,8 @@ type RenderCloneArgs = {
   noInputFlag?: boolean
   /**
    * Replace each named generator that is already cloned: delete its folder
-   * and clone the published version again. A `@skmtc/core` conflict then
-   * warns instead of refusing, and the project keeps its core pin.
+   * and clone the published version again. The `@skmtc/core` check still
+   * runs, and a conflict still refuses.
    */
   force?: boolean
   // Optional dependencies for testing
@@ -73,6 +73,10 @@ export const renderClone = async ({
       // like a missing argument.
       if (error instanceof AlreadyClonedError) {
         console.error(`Error: already cloned\n\n${error.message}\n`)
+        Deno.exit(2)
+      }
+      if (error instanceof FolderInUseError) {
+        console.error(`Error: folder in use\n\n${error.message}\n`)
         Deno.exit(2)
       }
       if (error instanceof CoreConflictError) {

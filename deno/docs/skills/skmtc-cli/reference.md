@@ -273,8 +273,9 @@ replaces it: it deletes the folder and its edits.
 clones and the ones that stay. When no version fits, it refuses with
 exit 2 before it writes any file. The clones it replaces do not
 count, so name every clone you move to a new core in one
-`clone --force` command. With `--force`, a conflict warns instead and
-the project keeps its core pin.
+`clone --force` command. `--force` never skips this check. `clone`
+also refuses, even with `--force`, a folder that holds another
+generator.
 
 ### `bundle`
 

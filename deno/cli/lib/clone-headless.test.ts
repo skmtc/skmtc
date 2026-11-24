@@ -33,13 +33,11 @@ Deno.test('toCloneConflictText - names a local generator in the way, and a comma
     text,
     '  skmtc clone my-api -g @skmtc/gen-zod@0.4.6 -g @skmtc/gen-typescript --force --no-input'
   )
-  assertStringIncludes(
-    text,
-    'Pass --force to clone anyway: the project keeps its core pin, and the next bundle can fail.'
-  )
+  // --force replaces a clone; it never skips this check.
+  assertEquals(text.includes('clone anyway'), false)
 })
 
-Deno.test('toCloneConflictText - only published generators: names --force and no local generator', () => {
+Deno.test('toCloneConflictText - only published generators: the conflict alone', () => {
   const error = new CoreConflictError([
     { generatorId: '@skmtc/gen-typescript', range: '^0.28.0' },
     { generatorId: '@skmtc/gen-zod', range: '^0.44.2' }
@@ -47,6 +45,6 @@ Deno.test('toCloneConflictText - only published generators: names --force and no
 
   assertEquals(
     toCloneConflictText({ error, projectName: 'my-api', generators: ['@skmtc/gen-zod'] }),
-    `${error.message}\n\nPass --force to clone anyway: the project keeps its core pin, and the next bundle can fail.`
+    error.message
   )
 })

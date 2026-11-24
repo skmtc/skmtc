@@ -54,12 +54,7 @@ export const toCloneConflictText = ({
           `  ${toCommand([...generators, ...local.filter(id => !generators.includes(id))])}`
         ]
 
-  return [
-    error.message,
-    '',
-    ...localLines,
-    'Pass --force to clone anyway: the project keeps its core pin, and the next bundle can fail.'
-  ].join('\n')
+  return localLines.length === 0 ? error.message : [error.message, '', ...localLines].join('\n')
 }
 
 type CloneHeadlessArgs = {
@@ -68,8 +63,8 @@ type CloneHeadlessArgs = {
   generators: string[]
   /**
    * Replace each named generator that is already cloned: delete its folder
-   * and clone the published version again. A `@skmtc/core` conflict then
-   * warns instead of refusing, and the project keeps its core pin.
+   * and clone the published version again. The `@skmtc/core` check still
+   * runs, and a conflict still refuses.
    */
   force?: boolean
 }
