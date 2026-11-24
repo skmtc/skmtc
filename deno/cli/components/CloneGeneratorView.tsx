@@ -8,6 +8,7 @@ import { parseModuleName } from '@skmtc/core/parseModuleName'
 import { useShortcut } from './useShortcut.tsx'
 import { toCloneConflictText } from '@/lib/clone-headless.ts'
 import { CoreConflictError } from '@/lib/stack-core.ts'
+import { AlreadyClonedError } from '@/lib/generator.ts'
 
 type CloneGeneratorViewProps = {
   project: Project
@@ -73,6 +74,11 @@ export const CloneGeneratorView = ({ project, view }: CloneGeneratorViewProps) =
         })
       })
       .catch(error => {
+        if (error instanceof AlreadyClonedError) {
+          dispatchMessage({ error: error.message })
+          return
+        }
+
         if (error instanceof CoreConflictError) {
           dispatchMessage({
             error: toCloneConflictText({

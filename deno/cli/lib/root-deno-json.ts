@@ -113,10 +113,12 @@ export class RootDenoJson {
   }
 
   addWorkspace(path: string) {
-    this.contents = {
-      ...this.contents,
-      workspace: [...(this.contents.workspace ?? []), path]
-    }
+    const workspace = this.contents.workspace ?? []
+
+    // A replaced clone keeps its folder: listing it twice breaks the workspace.
+    if (workspace.includes(path)) return
+
+    this.contents = { ...this.contents, workspace: [...workspace, path] }
   }
 
   async write() {

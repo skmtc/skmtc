@@ -25,7 +25,7 @@ const NO_INPUT_DESC = NO_INPUT_DESCRIPTION
 const JSON_DESC = JSON_DESCRIPTION
 const ENV_DESC = ENV_DESCRIPTION
 const FORCE_DESC =
-  'Skip the @skmtc/core check. Without it, clone refuses when no one core fits every generator in the project, because the bundle would load two cores.'
+  'Replace a generator that is already cloned: delete its folder and its edits, and clone the published version again. A @skmtc/core conflict then warns instead of refusing.'
 
 const run = async () => {
   if (!shouldSkipRegistryCheck(Deno.args)) {

@@ -1,6 +1,7 @@
 import type { RootDenoJson } from '@/lib/root-deno-json.ts'
 import { join } from '@std/path/join'
 import { ensureFile } from '@std/fs/ensure-file'
+import { exists } from '@std/fs/exists'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { OperationGenerator } from '@/lib/operation-generator.ts'
 import { ModelGenerator } from '@/lib/model-generator.ts'
@@ -16,7 +17,7 @@ import type { Project } from '@/lib/project.ts'
 import invariant from 'tiny-invariant'
 import { toBareSpecifiers, type SourceFile } from '@/lib/to-bare-specifiers.ts'
 import { Jsr } from '@/lib/jsr.ts'
-import { readCoreRange, reconcileCorePin } from '@/lib/stack-core.ts'
+import { CoreConflictError, readCoreRange, reconcileCorePin } from '@/lib/stack-core.ts'
 
 type GeneratorArgs = {
   projectName: string
@@ -80,6 +81,30 @@ type WriteCloneArgs = {
   download: CloneDownload
   /** Every generator the command clones: a clone resolves each one through the root. */
   cloning: string[]
+  /** Delete the generator's folder first: `--force` over an existing clone. */
+  replace: boolean
+}
+
+/** A JSR package name, so the folder a replace deletes is always one folder in the project. */
+const PACKAGE_NAME = /^[a-z0-9][a-z0-9-]*$/
+
+/**
+ * A generator the command names is already cloned into the project. A clone
+ * is a one-time copy for local edits, so replacing it takes `--force`.
+ */
+export class AlreadyClonedError extends Error {
+  readonly generatorIds: string[]
+
+  constructor(clones: { generatorId: string; folder: string }[]) {
+    super(
+      [
+        `Already cloned: ${clones.map(({ generatorId, folder }) => `${generatorId} (${folder})`).join(', ')}.`,
+        'Pass --force to replace it with the published version. This deletes the folder and its edits.'
+      ].join('\n')
+    )
+    this.name = 'AlreadyClonedError'
+    this.generatorIds = clones.map(({ generatorId }) => generatorId)
+  }
 }
 
 type InstallArgs = {
@@ -224,8 +249,20 @@ export class Generator {
     }
   }
 
-  async writeClone({ denoJson, manager, download, cloning }: WriteCloneArgs): Promise<CloneResult> {
+  async writeClone({
+    denoJson,
+    manager,
+    download,
+    cloning,
+    replace
+  }: WriteCloneArgs): Promise<CloneResult> {
     const { version } = download
+
+    if (replace) {
+      invariant(PACKAGE_NAME.test(this.packageName), `Not a package name: ${this.packageName}`)
+      // Files the new version dropped must not survive the replace.
+      await Deno.remove(this.toPath({ relative: false }), { recursive: true })
+    }
 
     // Pin the local generator to the actual version we just pulled, so
     // subsequent `skmtc list` / `doctor` calls can report it accurately.
@@ -320,11 +357,30 @@ export const cloneGenerators = async ({
   manager,
   force
 }: CloneGeneratorsArgs): Promise<CloneResult[]> => {
+  const existing = (
+    await Promise.all(
+      generators.map(async generator =>
+        (await exists(generator.toPath({ relative: false }), { isDirectory: true })) ? [generator] : []
+      )
+    )
+  ).flat()
+
+  if (existing.length > 0 && !force) {
+    throw new AlreadyClonedError(
+      existing.map(generator => ({
+        generatorId: generator.toModuleName(),
+        folder: generator.toPath({ relative: true })
+      }))
+    )
+  }
+
   const downloads = await Promise.all(
     generators.map(async generator => ({ generator, download: await generator.download() }))
   )
 
-  if (!force) {
+  // The pin is planned with --force too, so replaced clones move to the core
+  // they need. --force only stops a conflict from refusing the command.
+  try {
     await reconcileCorePin({
       denoJson,
       adding: downloads.map(({ generator, download }) => ({
@@ -332,13 +388,20 @@ export const cloneGenerators = async ({
         range: download.range
       }))
     })
+  } catch (error) {
+    if (!(force && error instanceof CoreConflictError)) throw error
+
+    console.error(
+      `Warning: --force clones over a @skmtc/core conflict. The project keeps its core pin, and the next bundle can fail.\n${error.message}`
+    )
   }
 
   // One at a time, so a failed write leaves the clones before it complete.
   const cloning = generators.map(generator => generator.toModuleName())
   const results: CloneResult[] = []
   for (const { generator, download } of downloads) {
-    results.push(await generator.writeClone({ denoJson, manager, download, cloning }))
+    const replace = existing.includes(generator)
+    results.push(await generator.writeClone({ denoJson, manager, download, cloning, replace }))
   }
 
   return results

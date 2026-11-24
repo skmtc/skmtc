@@ -7,6 +7,7 @@ import type { InkRenderFn } from '@/commands/types.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { cloneHeadless, type CloneHeadlessResult, toCloneConflictText } from '@/lib/clone-headless.ts'
 import { CoreConflictError } from '@/lib/stack-core.ts'
+import { AlreadyClonedError } from '@/lib/generator.ts'
 
 export const description = 'Clone generator'
 
@@ -17,8 +18,9 @@ type RenderCloneArgs = {
   jsonFlag?: boolean
   noInputFlag?: boolean
   /**
-   * Skip the `@skmtc/core` check, which refuses a clone when no one core
-   * fits every generator in the project (`cloneGenerators`).
+   * Replace each named generator that is already cloned: delete its folder
+   * and clone the published version again. A `@skmtc/core` conflict then
+   * warns instead of refusing, and the project keeps its core pin.
    */
   force?: boolean
   // Optional dependencies for testing
@@ -67,10 +69,13 @@ export const renderClone = async ({
       printCloneResult(result, { format: resolveOutputFormat({ jsonFlag }) })
       Deno.exit(0)
     } catch (error) {
+      // Both are recipe-shaped failures with a specific fix, so they exit
+      // like a missing argument.
+      if (error instanceof AlreadyClonedError) {
+        console.error(`Error: already cloned\n\n${error.message}\n`)
+        Deno.exit(2)
+      }
       if (error instanceof CoreConflictError) {
-        // The generator needs a different core from the project's other
-        // generators: a recipe-shaped failure with a specific fix, so it
-        // exits like a missing argument. Pass --force to clone anyway.
         console.error(
           `Error: @skmtc/core conflict\n\n${toCloneConflictText({ error, projectName, generators })}\n`
         )

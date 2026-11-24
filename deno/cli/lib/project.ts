@@ -26,7 +26,7 @@ type AddGeneratorArgs = {
 
 type CloneGeneratorsArgs = {
   moduleNames: string[]
-  /** Skip the `@skmtc/core` check. See `cloneGenerators` in `generator.ts`. */
+  /** Replace generators that are already cloned. See `cloneGenerators` in `generator.ts`. */
   force?: boolean
 }
 

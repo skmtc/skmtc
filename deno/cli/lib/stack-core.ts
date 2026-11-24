@@ -341,7 +341,7 @@ export class CoreConflictError extends Error {
     const lines = requirements.map(({ generatorId, range, localPath }) =>
       localPath === undefined
         ? `  ${generatorId} needs @skmtc/core ${range}`
-        : `  ${generatorId} needs @skmtc/core ${range} (local copy in ${localPath})`
+        : `  ${generatorId} needs @skmtc/core ${range} (local generator in ${localPath})`
     )
     super(
       [

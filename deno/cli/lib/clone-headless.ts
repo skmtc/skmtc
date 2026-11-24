@@ -28,33 +28,38 @@ type ToCloneConflictTextArgs = {
 
 /**
  * The text `clone` prints for a core conflict, in strict mode and in the
- * picker. A local copy (cloned or created) keeps the core its own
+ * picker. A local generator (cloned or created) keeps the core its own
  * `deno.json` names, so when one is in the way the text says how to move
  * it. The command it suggests passes `--no-input`, because the picker lists
- * only published generators and cannot name a local copy.
+ * only published generators and cannot name a local one.
  */
 export const toCloneConflictText = ({
   error,
   projectName,
   generators
 }: ToCloneConflictTextArgs): string => {
-  const localCopies = error.requirements.flatMap(({ generatorId, localPath }) =>
+  const local = error.requirements.flatMap(({ generatorId, localPath }) =>
     localPath === undefined ? [] : [generatorId]
   )
 
   const toCommand = (ids: string[]) =>
-    `skmtc clone ${projectName} ${ids.map(id => `-g ${id}`).join(' ')} --no-input`
+    `skmtc clone ${projectName} ${ids.map(id => `-g ${id}`).join(' ')} --force --no-input`
 
   const localLines =
-    localCopies.length === 0
+    local.length === 0
       ? []
       : [
-          `A local copy keeps the @skmtc/core its own deno.json names: ${localCopies.join(', ')}.`,
-          'Change that pin. Or, if the copy is a clone of a published generator, replace it with the published version (this overwrites its edits):',
-          `  ${toCommand([...generators, ...localCopies.filter(id => !generators.includes(id))])}`
+          `A local generator keeps the @skmtc/core its own deno.json names: ${local.join(', ')}.`,
+          'Change that pin. Or, if it is a clone of a published generator, replace it with the published version (this deletes its folder and its edits):',
+          `  ${toCommand([...generators, ...local.filter(id => !generators.includes(id))])}`
         ]
 
-  return [error.message, '', ...localLines, 'Pass --force to clone without this check.'].join('\n')
+  return [
+    error.message,
+    '',
+    ...localLines,
+    'Pass --force to clone anyway: the project keeps its core pin, and the next bundle can fail.'
+  ].join('\n')
 }
 
 type CloneHeadlessArgs = {
@@ -62,9 +67,9 @@ type CloneHeadlessArgs = {
   projectName: string
   generators: string[]
   /**
-   * Skip the `@skmtc/core` check (`cloneGenerators`), which refuses a
-   * clone when no one core fits every generator in the project. The
-   * project then keeps its core pin, and the bundle can load two cores.
+   * Replace each named generator that is already cloned: delete its folder
+   * and clone the published version again. A `@skmtc/core` conflict then
+   * warns instead of refusing, and the project keeps its core pin.
    */
   force?: boolean
 }
