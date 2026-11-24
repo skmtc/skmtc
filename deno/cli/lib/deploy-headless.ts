@@ -31,7 +31,11 @@ import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { collectSourceFiles, type SourceFile } from '@/lib/source-upload.ts'
 import { parseScopedName, toScopedPath } from '@/lib/scoped-name.ts'
 import { toProjectInstallCommand } from '@/lib/dependency-age.ts'
-import { pinServerForPublish, refreshProjectLock } from '@/lib/publish-server-pin.ts'
+import {
+  pinServerForPublish,
+  refreshProjectLock,
+  type ServerPinChange
+} from '@/lib/publish-server-pin.ts'
 import {
   errorMessage,
   isTimeoutError,
@@ -73,6 +77,8 @@ type DeployHeadlessArgs = {
   existing?: boolean
   /** Refresh `deno.lock` after the server pin changes `deno.json`; a seam for tests. */
   refreshLock?: (projectPath: string) => Promise<void>
+  /** Choose and write the `@skmtc/server` pin; a seam for tests. */
+  pinServer?: (projectPath: string) => Promise<ServerPinChange | null>
 }
 
 export const STACK_SERVER_STATUSES = ['deploying', 'active', 'idle', 'paused', 'error'] as const
@@ -109,6 +115,8 @@ export type DeployHeadlessResult =
       version: string
       /** `null` with `--existing`: the version was already stored. */
       upload: StackUpload | null
+      /** The `@skmtc/server` pin this run changed in `deno.json`, or `null`. */
+      serverPin: ServerPinChange | null
       deploy: StackDeploy
     }
   | {
@@ -538,7 +546,8 @@ export const deployHeadless = async ({
   version: versionFlag,
   envFlag,
   existing = false,
-  refreshLock = refreshProjectLock
+  refreshLock = refreshProjectLock,
+  pinServer = pinServerForPublish
 }: DeployHeadlessArgs): Promise<DeployHeadlessResult> => {
   const project = skmtcRoot.findProject(projectName)
   // The flags a suggested command keeps: `--version` only when this run had it.
@@ -577,6 +586,7 @@ export const deployHeadless = async ({
   }
 
   let upload: StackUpload | null = null
+  let serverPin: ServerPinChange | null = null
   if (!existing) {
     if (await isVersionStored({ origin, token, account, slug, version })) {
       return fail('exists', toVersionExistsMessage(version, toInvocation(version)), true)
@@ -595,11 +605,12 @@ export const deployHeadless = async ({
         )
       }
       // Without this pin the hub cannot build the version's server.
-      if (await pinServerForPublish(project.toPath())) {
+      serverPin = await pinServer(project.toPath())
+      if (serverPin !== null) {
         await refreshLock(project.toPath())
         console.error(
-          'Pinned @skmtc/server in deno.json so the hub can deploy this version. ' +
-            'Commit deno.json and deno.lock.'
+          `Pinned ${serverPin.package} ${serverPin.from ?? '(none)'} -> ${serverPin.to} in deno.json ` +
+            'so the hub can deploy this version. Commit deno.json and deno.lock.'
         )
         files = await collectSourceFiles(project.toPath())
       }
@@ -651,6 +662,7 @@ export const deployHeadless = async ({
     stack: { account, slug },
     version,
     upload,
+    serverPin,
     deploy: deployed.deploy
   }
 }

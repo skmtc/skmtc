@@ -326,6 +326,8 @@ both → exit 2 with a recipe error.
     "sourceFileCount": 28,
     "sourceTotalBytes": 96512
   },
+  // the @skmtc/server pin this run changed in deno.json, or null
+  "serverPin": { "package": "@skmtc/server", "from": "jsr:@skmtc/server@0.3.34", "to": "jsr:@skmtc/server@0.3.33" },
   "deploy": {
     "status": "active",          // deploying | active | idle | paused | error
     "statusReason": null,        // set when status is "error"
