@@ -371,7 +371,7 @@ class OasParameter {
   isRef(): false
   resolve(): this
   resolveOnce(): this
-  toSchema(): OasSchema | OasRef<'schema'> | undefined
+  toSchema(mediaType?): OasSchema | OasRef<'schema'>   // throws when no schema is found
   toJsonSchema(options?): OpenAPIV3.ParameterObject
 }
 ```
@@ -381,7 +381,10 @@ field name — the parser renames it to avoid the reserved-word
 collision in some TypeScript contexts).
 
 `toSchema()` returns the parameter's schema (which is most of what
-generators care about).
+generators care about). When a parameter or header has neither
+`schema` nor `content`, the parser gives it the empty schema `{}`.
+It also logs a `MISSING_PARAMETER_SCHEMA` or `MISSING_HEADER_SCHEMA`
+warning.
 
 ## OasHeader
 

@@ -1,6 +1,6 @@
 {
   "@skmtc/core": {
-    "minor": "0.44",
+    "minor": "0.45",
     "deno": "2.9.8",
     "exports": {
       "AddPropertyArgs": "6922b41f66aabe95",
@@ -200,7 +200,7 @@
       "OasInfoData": "c219af7b9e6f0353",
       "OasInteger": "b36bd0d8909fa20c",
       "OasIntegerData": "fe715ae76ee14321",
-      "OasIssueType": "63ad1da53304b658",
+      "OasIssueType": "5faa6dee5a244457",
       "OasLicense": "a2c7b47f701f3f83",
       "OasLicenseData": "10fce47c16c703e0",
       "OasLink": "1cbb066fc23229f0",

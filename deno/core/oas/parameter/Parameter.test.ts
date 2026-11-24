@@ -285,7 +285,11 @@ Deno.test('OasParameter - toSchema() throws error when schema not found', () => 
     location: 'query'
   })
 
-  assertThrows(() => param.toSchema(), Error, 'Schema not found for a JSON media type')
+  assertThrows(
+    () => param.toSchema(),
+    Error,
+    "Parameter 'noSchema' in query has neither schema nor content"
+  )
 })
 
 Deno.test('OasParameter - toSchema() prioritizes direct schema over content', () => {

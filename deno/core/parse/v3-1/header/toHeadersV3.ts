@@ -11,6 +11,7 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import { toComponentEntries } from '@/parse/toComponentEntries.ts'
+import { toMissingHeaderSchema } from '@/parse/missingSchema.ts'
 export type ToHeadersV3Args = {
   headers: Record<string, OpenAPIV3.ReferenceObject | OpenAPIV3.HeaderObject> | undefined
   stackTrail: StackTrail
@@ -117,6 +118,11 @@ const toHeaderV3 = ({
       toOptionalMediaTypeItemsV3({ content, stackTrail: st, context })
     ),
     extensionFields
+  }
+
+  // A `null` schema or content reads as absent; a boolean schema does not.
+  if (typeof schema !== 'boolean' && fields.schema === undefined && fields.content === undefined) {
+    fields.schema = toMissingHeaderSchema({ header, name, stackTrail, context })
   }
 
   return new OasHeader(fields)

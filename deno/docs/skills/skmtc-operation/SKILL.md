@@ -15,7 +15,7 @@ description: >
   Load ALONGSIDE skmtc-generator and the emitted language's skill.
 metadata:
   describes:
-    '@skmtc/core': '0.44'
+    '@skmtc/core': '0.45'
 ---
 
 # Operation generators: decompose the operation, reference the models
@@ -74,7 +74,9 @@ a response shape) breaks the moment the schema evolves.
   parameter by itself, for example to render a `$ref` that names nothing
   when `danglingRefs` lists `parameter`. Do not read
   `operation.parameters` for this: it holds the operation's own
-  parameters only.
+  parameters only. A parameter with neither `schema` nor `content`
+  reads as the empty schema `{}` (unknown), with a
+  `MISSING_PARAMETER_SCHEMA` warning.
 - **Request body**: `operation.toRequestBody(({ schema }) => schema)`.
 - **Response**: `operation.toSuccessResponse()?.resolve().toSchema()
   ?? OasVoid.empty()` — selection and void-fallback in one idiom.

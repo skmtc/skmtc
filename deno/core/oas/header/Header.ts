@@ -120,7 +120,11 @@ export class OasHeader {
       return this.schema
     }
 
-    const contentEntries = Object.values(this.content ?? {})
+    if (this.content === undefined) {
+      throw new Error('Header has neither schema nor content')
+    }
+
+    const contentEntries = Object.values(this.content)
     const onlyEntry = contentEntries.length === 1 ? contentEntries[0] : undefined
 
     const schema = toContentSchema(this.content, mediaType) ?? onlyEntry?.schema

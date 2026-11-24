@@ -1485,6 +1485,12 @@
                               "const": "EMPTY_PARAMETER"
                             },
                             {
+                              "const": "MISSING_PARAMETER_SCHEMA"
+                            },
+                            {
+                              "const": "MISSING_HEADER_SCHEMA"
+                            },
+                            {
                               "const": "INVALID_EXAMPLE"
                             },
                             {
@@ -1652,6 +1658,12 @@
                               "const": "EMPTY_PARAMETER"
                             },
                             {
+                              "const": "MISSING_PARAMETER_SCHEMA"
+                            },
+                            {
+                              "const": "MISSING_HEADER_SCHEMA"
+                            },
+                            {
                               "const": "INVALID_EXAMPLE"
                             },
                             {
@@ -1780,6 +1792,12 @@
                             },
                             {
                               "const": "EMPTY_PARAMETER"
+                            },
+                            {
+                              "const": "MISSING_PARAMETER_SCHEMA"
+                            },
+                            {
+                              "const": "MISSING_HEADER_SCHEMA"
                             },
                             {
                               "const": "INVALID_EXAMPLE"

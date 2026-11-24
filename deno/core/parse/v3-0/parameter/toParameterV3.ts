@@ -14,6 +14,7 @@ import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecif
 import * as v from 'valibot'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import { isEmptyParameter, logEmptyParameter } from '@/parse/emptyParameter.ts'
+import { toMissingParameterSchema } from '@/parse/missingSchema.ts'
 import {
   toParameterEntries,
   toPathParameterList,
@@ -230,6 +231,17 @@ const toParameterV3 = ({
       toOptionalMediaTypeItemsV3({ content, stackTrail: st, context })
     ),
     extensionFields
+  }
+
+  // A `null` schema or content reads as absent; a boolean schema does not.
+  if (typeof schema !== 'boolean' && fields.schema === undefined && fields.content === undefined) {
+    fields.schema = toMissingParameterSchema({
+      parameter,
+      name,
+      location: parsedLocation,
+      stackTrail,
+      context
+    })
   }
 
   return context.withStackTrail(stackTrail, () => new OasParameter(fields, context))
