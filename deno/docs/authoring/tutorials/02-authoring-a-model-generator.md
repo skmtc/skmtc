@@ -118,6 +118,7 @@ import { SchemaMetaBase } from './base.ts'
 type ConstructorArgs = {
   context: GenerateContext
   refName: RefName
+  refPath?: string
   settings: ContentSettings
   destinationPath: string
   rootRef?: RefName
@@ -155,8 +156,8 @@ Two things to note:
   `context.resolveSchemaRefOnce(refName, refPath)`. A component has no
   `refPath`. A ref to a `$defs` entry or a property has a `refPath`
   inside the document.
-- `super(args)` only passes the three canonical fields
-  (`context`, `refName`, `settings`). `destinationPath` and
+- `super(args)` only passes the four canonical fields
+  (`context`, `refName`, `refPath`, `settings`). `destinationPath` and
   `rootRef` are scaffold-added fields available on the args but
   not passed up.
 
@@ -236,8 +237,8 @@ another generator's registered name (e.g., the TypeScript type from
 
 ```ts
 constructor(args: ConstructorArgs) {
-  super({ context: args.context, refName: args.refName, settings: args.settings })
-  const ts = args.context.insertModel(TsProjection, args.refName)
+  super({ context: args.context, refName: args.refName, refPath: args.refPath, settings: args.settings })
+  const ts = args.context.insertModel(TsProjection, args.refName, { refPath: args.refPath })
   this.tsName = ts.toName()
 }
 ```

@@ -9,6 +9,8 @@ import { toOptionalResponsesV3 } from '../response/toResponseV3.ts'
 import { toRequestBodiesV3 } from '../requestBody/toRequestBodiesV3.ts'
 import { toComponentHeadersV3 } from '../header/toHeadersV3.ts'
 import { toLinksV3 } from '../link/toLinksV3.ts'
+import { toExampleV3 } from '../example/toExamplesV3.ts'
+import { tryParseAt } from '@/context/tryParseAt.ts'
 
 /** What {@link toRefTargetV3} parses. */
 export type ToRefTargetArgs = {
@@ -32,6 +34,7 @@ type ResponseEntry = EntryOf<NonNullable<Parameters<typeof toOptionalResponsesV3
 type RequestBodyEntry = EntryOf<NonNullable<Parameters<typeof toRequestBodiesV3>[0]['requestBodies']>>
 type HeaderEntry = EntryOf<NonNullable<Parameters<typeof toComponentHeadersV3>[0]['headers']>>
 type LinkEntry = EntryOf<NonNullable<Parameters<typeof toLinksV3>[0]['links']>>
+type ExampleEntry = Parameters<typeof toExampleV3>[0]['example']
 
 /**
  * The raw value read as the OpenAPI type its parser takes, as the components
@@ -44,8 +47,7 @@ const isRawEntry = <T>(value: Record<string, unknown>): value is Record<string, 
  * (`#/components/schemas/Pet/properties/tag`, `#/paths/~1pets/get/parameters/0`)
  * at its own position, with the parser that components of its kind use. Gives
  * `undefined` when the target does not parse (the parser has logged why), and
- * for a kind whose targets core reads only as components (`example`,
- * `securityScheme`).
+ * for a security scheme, which only `components.securitySchemes` holds.
  */
 export const toRefTargetV3 = ({ refType, name, value, stackTrail, context }: ToRefTargetArgs): ComponentsEntry | undefined => {
   switch (refType) {
@@ -74,6 +76,18 @@ export const toRefTargetV3 = ({ refType, name, value, stackTrail, context }: ToR
         ? toLinksV3({ links: { [name]: value }, stackTrail, context })?.[name]
         : undefined
     case 'example':
+      // No components parser reads a single example by key, so the target
+      // is parsed as `toExamplesV3` parses each entry, under `tryParseAt`.
+      return isRawEntry<ExampleEntry>(value)
+        ? tryParseAt({
+            stackTrail,
+            key: name,
+            context,
+            type: 'INVALID_EXAMPLE',
+            parent: value,
+            fn: st => toExampleV3({ example: value, stackTrail: st, context })
+          })
+        : undefined
     case 'securityScheme':
       return undefined
     default: {

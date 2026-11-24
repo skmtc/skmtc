@@ -26,7 +26,12 @@ const toDocument = (openapi: string) => ({
         responses: {
           '201': {
             description: 'created',
-            content: { 'application/json': { schema: { type: 'object', properties: { id: text } } } }
+            content: {
+              'application/json': {
+                schema: { type: 'object', properties: { id: text } },
+                examples: { created: { summary: 'A new account', value: { id: 'a1' } } }
+              }
+            }
           }
         }
       }
@@ -36,7 +41,20 @@ const toDocument = (openapi: string) => ({
     },
     '/disks/{diskId}': {
       parameters: [{ name: 'diskId', in: 'path', required: true, schema: text }],
-      get: { responses: ok(text) }
+      get: {
+        responses: {
+          '200': {
+            description: 'ok',
+            content: {
+              'application/json': {
+                schema: text,
+                // Reuses another operation's example, as API docs exports write it.
+                examples: { reused: { $ref: '#/paths/~1card-accounts/post/responses/201/content/application~1json/examples/created' } }
+              }
+            }
+          }
+        }
+      }
     },
     '/backups/{diskId}': {
       get: {
@@ -159,6 +177,15 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     const target = schema.resolve()
     assert(target.type === 'object')
     assertEquals(Object.keys(target.properties ?? {}), ['id'])
+  })
+
+  Deno.test(`${openapi} an example ref into another operation's examples resolves to that example`, () => {
+    const { toOperation, issues } = parse(openapi)
+    const example = toOperation('/disks/{diskId}')?.toSuccessResponse()?.resolve().content?.['application/json']?.examples?.reused
+    assert(example?.isRef())
+    assertEquals(example.refName, 'created')
+    assertEquals(example.resolve().summary, 'A new account')
+    assertEquals(issues.filter(issue => issue.message.includes('examples/created')), [])
   })
 
   Deno.test(`${openapi} two deep targets that share a refName are two targets`, () => {
