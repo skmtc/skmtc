@@ -74,7 +74,7 @@ export const renderInstall = async ({
 
     const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
-    if (!skmtcRoot.projects.some(({ name }) => name === projectName)) {
+    if (skmtcRoot.lookupProject(projectName) === undefined) {
       return failWithInvalidArg({
         message: `project "${projectName}" not found`,
         usage: INSTALL_STRICT_USAGE,

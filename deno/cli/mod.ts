@@ -6,6 +6,7 @@ import { FEEDBACK_KINDS } from '@/lib/feedback-headless.ts'
 import { assertJsrReachable, JsrRegistryUnreachableError } from '@/lib/jsr-registry.ts'
 import { shouldSkipRegistryCheck } from '@/lib/registry-check.ts'
 import { DeviceLoginError } from '@/lib/device-login.ts'
+import { ProjectLoadError } from '@/lib/project-load-error.ts'
 import {
   ENV_DESCRIPTION,
   getCommandDescriptor,
@@ -777,7 +778,11 @@ const run = async () => {
 // refreshed, surfaces in whichever command needs it; report it once here, as
 // one line, for every entry point.
 run().catch(error => {
-  if (error instanceof EnvVariableError || error instanceof DeviceLoginError) {
+  if (
+    error instanceof EnvVariableError ||
+    error instanceof DeviceLoginError ||
+    error instanceof ProjectLoadError
+  ) {
     console.error(error.message)
     Deno.exit(1)
   }

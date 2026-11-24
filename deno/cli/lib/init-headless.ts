@@ -67,8 +67,8 @@ export const initHeadless = async ({
 }: InitHeadlessArgs): Promise<InitHeadlessResult> => {
   validateBasePath(basePath)
 
-  const existing = skmtcRoot.projects.find(p => p.name === projectName)
-  if (existing) {
+  // A folder that did not load exists too: creating over it would rewrite its files.
+  if (skmtcRoot.toProjectNames().includes(projectName)) {
     return { type: 'existed', projectName }
   }
 

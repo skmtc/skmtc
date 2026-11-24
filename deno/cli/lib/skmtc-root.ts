@@ -8,30 +8,13 @@ import { compare } from '@std/semver/compare'
 import { parse } from '@std/semver/parse'
 import invariant from 'tiny-invariant'
 import type { Generator } from '@/types/generator.ts'
+import { ProjectLoadError, type UnloadedProject } from '@/lib/project-load-error.ts'
 
 type CreateProjectArgs = {
   name: string
   basePath: string
   generators: string[]
   availableGenerators: Generator[]
-}
-
-/** A project folder whose files did not load, with the error that stopped it. */
-export type UnloadedProject = {
-  name: string
-  error: unknown
-}
-
-/** A command named a project whose files did not load. */
-export class ProjectLoadError extends Error {
-  readonly projectName: string
-
-  constructor({ name, error }: UnloadedProject) {
-    const reason = error instanceof Error ? error.message : String(error)
-    super(`Project "${name}" did not load: ${reason}`, { cause: error })
-    this.name = 'ProjectLoadError'
-    this.projectName = name
-  }
 }
 
 export class SkmtcRoot {
@@ -81,14 +64,23 @@ export class SkmtcRoot {
     console.log(`Skmtc CLI v${latestVersion} is available. You are running v${thisVersion}.`)
   }
 
-  findProject(projectName: string): Project {
+  /**
+   * The project with this name, `undefined` when no folder has it. Throws
+   * {@link ProjectLoadError} when the folder exists but did not load, so a
+   * command reports the load error rather than "not found".
+   */
+  lookupProject(projectName: string): Project | undefined {
     const unloaded = this.unloadedProjects.find(({ name }) => name === projectName)
 
     if (unloaded !== undefined) {
       throw new ProjectLoadError(unloaded)
     }
 
-    const project = this.projects.find(({ name }) => name === projectName)
+    return this.projects.find(({ name }) => name === projectName)
+  }
+
+  findProject(projectName: string): Project {
+    const project = this.lookupProject(projectName)
 
     invariant(project, `Project "${projectName}" not found`)
 

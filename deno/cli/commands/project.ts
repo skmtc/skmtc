@@ -15,11 +15,16 @@ import { collectProjectBaseFiles } from '@/commands/push.ts'
 export const description =
   'Manage a hub project built from the local setup: `create` a new project, `rm` it.'
 
-/** Resolve the local source project: `--from`, else the single project in .skmtc/. */
+/**
+ * Resolve the local source project: `--from`, else the single project in
+ * .skmtc/. A folder that did not load still counts, so two folders always
+ * need `--from`.
+ */
 function resolveFrom(skmtcRoot: SkmtcRoot, fromFlag: string | undefined): string | undefined {
   const explicit = fromFlag?.trim()
   if (explicit) return explicit
-  return skmtcRoot.projects.length === 1 ? skmtcRoot.projects[0].name : undefined
+  const names = skmtcRoot.toProjectNames()
+  return names.length === 1 ? names[0] : undefined
 }
 
 // --- create -----------------------------------------------------------------
@@ -231,7 +236,7 @@ export const renderProjectRm = async ({
   }
 
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
-  const projectName = resolveFrom(skmtcRoot, from) ?? skmtcRoot.projects[0]?.name ?? ''
+  const projectName = resolveFrom(skmtcRoot, from) ?? skmtcRoot.toProjectNames()[0] ?? ''
 
   const result = await rmHeadless({
     skmtcRoot,
