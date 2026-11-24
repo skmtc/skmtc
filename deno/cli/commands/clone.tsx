@@ -8,6 +8,7 @@ import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/str
 import { cloneHeadless, type CloneHeadlessResult, toCloneConflictText } from '@/lib/clone-headless.ts'
 import { CoreConflictError } from '@/lib/stack-core.ts'
 import { AlreadyClonedError, FolderInUseError } from '@/lib/generator.ts'
+import { renderApp } from '@/commands/render-app.tsx'
 
 export const description = 'Clone generator'
 
@@ -101,7 +102,7 @@ export const renderClone = async ({
     generators: []
   }
 
-  renderFn(<AppComponent initialState={initialState} />)
+  renderApp({ renderFn, AppComponent, initialState })
 }
 
 type PrintCloneResultOptions = {

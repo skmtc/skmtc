@@ -2,7 +2,8 @@ import { render } from 'ink-testing-library'
 import { assertEquals } from '@std/assert'
 import { CreateProjectView } from './CreateProjectView.tsx'
 import { SkmtcProvider, type SkmtcState } from '@/components/SkmtcContext.tsx'
-import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import { SkmtcRoot } from '@/lib/skmtc-root.ts'
+import { createMockManager } from '@/tests/mocks/manager.mock.ts'
 import { assertSpyCall, stub } from '@std/testing/mock'
 import { stubRegistryGenerators } from '@/tests/mocks/registry.mock.ts'
 import type { Generator } from '@/types/generator.ts'
@@ -24,11 +25,7 @@ const mockGenerators: Generator[] = [
 ]
 
 // Mock setup helpers
-const createMockSkmtcRoot = (): SkmtcRoot =>
-  ({
-    projects: [],
-    manager: {}
-  }) as unknown as SkmtcRoot
+const createMockSkmtcRoot = (): SkmtcRoot => new SkmtcRoot([], createMockManager())
 
 const createInitialState = (overrides: Partial<SkmtcState> = {}): SkmtcState => ({
   view: { page: 'create-project' },

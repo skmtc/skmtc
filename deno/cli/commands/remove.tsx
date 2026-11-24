@@ -6,6 +6,7 @@ import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { removeHeadless, type RemoveHeadlessResult } from '@/lib/remove-headless.ts'
+import { renderApp } from '@/commands/render-app.tsx'
 
 type RenderRemoveArgs = {
   skmtcRoot?: SkmtcRoot
@@ -68,7 +69,7 @@ export const renderRemove = async ({
     generators: []
   }
 
-  renderFn(<AppComponent initialState={initialState} />)
+  renderApp({ renderFn, AppComponent, initialState })
 }
 
 type PrintRemoveResultOptions = {

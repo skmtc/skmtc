@@ -424,6 +424,7 @@ The CLI exits non-zero when:
 - Any `parseIssue.level === 'error'` is present → exit 1
 - `--typecheck` was passed and the typecheck failed → exit 1
 - Required arguments were missing in strict mode → exit 2
+- The named project's folder did not load → exit 2
 
 Exit 0 means: no fatal parse issues, no typecheck failures, and (if
 typecheck was requested) the consumer's `tsc --noEmit` passed for

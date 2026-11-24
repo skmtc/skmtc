@@ -5,6 +5,7 @@ import { App } from '@/components/App.tsx'
 import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { initHeadless, InvalidBasePathError, type InitHeadlessResult } from '@/lib/init-headless.ts'
+import { renderApp } from '@/commands/render-app.tsx'
 
 type RenderInitArgs = {
   skmtcRoot?: SkmtcRoot
@@ -74,6 +75,13 @@ export const renderInit = async ({
   // Instantiate Manager and SkmtcRoot if not provided (for testing)
   const skmtcRoot = providedSkmtcRoot ?? (await SkmtcRoot.open(new Manager()))
 
+  // A named folder that exists, loaded or not, is never created over: the
+  // name argument skips the prompt that checks it (#374).
+  if (projectName !== undefined && skmtcRoot.toProjectNames().includes(projectName)) {
+    printInitResult({ type: 'existed', projectName }, { format: 'text' })
+    Deno.exit(0)
+  }
+
   const initialState: SkmtcState = {
     view: { page: 'create-project', projectName, basePath },
     skmtcRoot,
@@ -83,7 +91,7 @@ export const renderInit = async ({
     generators: []
   }
 
-  renderFn(<AppComponent initialState={initialState} />)
+  renderApp({ renderFn, AppComponent, initialState })
 }
 
 type PrintInitResultOptions = {

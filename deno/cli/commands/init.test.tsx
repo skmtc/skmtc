@@ -68,6 +68,26 @@ Deno.test('renderInit - interactive mode mounts the Ink App with the expected st
   })
 })
 
+Deno.test('renderInit - interactive mode with the name of an existing folder renders nothing', async () => {
+  await withFakeTty(async () => {
+    const skmtcRoot = createMockSkmtcRoot(createMockManager())
+    const renderSpy = spy((_element: React.ReactNode) => ({}) as Instance)
+
+    const { exitCode } = await withCapturedExit(async () => {
+      await renderInit({
+        skmtcRoot,
+        projectName: 'project-1',
+        basePath: './src',
+        renderFn: renderSpy as InkRenderFn
+      })
+    })
+
+    assertEquals(exitCode, 0)
+    // The Ink flow would create the project over the folder's files.
+    assertSpyCalls(renderSpy, 0)
+  })
+})
+
 Deno.test('printInitResult - text format for created project', () => {
   const logs: string[] = []
   const original = console.log
