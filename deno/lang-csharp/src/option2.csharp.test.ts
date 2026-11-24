@@ -17,7 +17,7 @@
  *    static read — and, C#-specifically, that using is SUPPRESSED when
  *    the destination shares the peer's namespace.
  */
-import { GenerateContext, OasDocument, SnippetBase, emptyEnrichmentSchema } from '@skmtc/core'
+import { GenerateContext, OasDocument, SnippetBase, emptyEnrichmentSchema, toSchemaComponentRef } from '@skmtc/core'
 import type {
   GenerateContextType,
   ModelProjectionConstructorArgs,
@@ -77,7 +77,7 @@ class SpikeField extends CsSnippet {
 
 const SpikeModelBase = toCsModelProjectionBase({
   id: '@spike/gen-csharp-option2',
-  toIdentifierName: ({ refName }) => `${refName}Spike`,
+  toIdentifierName: ({ ref }) => `${ref.refName}Spike`,
   toIdentifierType: () => ({ type: 'record' }),
   toExportPath: () => '@/Spike/Models/Models.generated.cs',
   toEnrichmentSchema: () => emptyEnrichmentSchema
@@ -95,7 +95,7 @@ class SpikeModel extends SpikeModelBase {
 
     this.field = new SpikeField({
       context: args.context,
-      name: args.refName,
+      name: args.ref.refName,
       destinationPath: this.settings.exportPath
     })
 
@@ -115,7 +115,7 @@ Deno.test('csharp option2 port - static lang is inherited through the factory ch
 Deno.test('csharp option2 port - insertModel end-to-end with an EMPTY config map; keyless snippet registers', () => {
   const context = toGenerateContext()
 
-  const inserted = context.insertModel(SpikeModel, 'User' as RefName)
+  const inserted = context.insertModel(SpikeModel, toSchemaComponentRef('User' as RefName))
 
   assertEquals(inserted.toName(), 'UserSpike')
 
@@ -154,7 +154,7 @@ Deno.test('csharp option2 port - cross-file insertion registers the peer using v
   // Insert the model from a destination in a DIFFERENT namespace: the
   // Driver builds the cross-file import through projection.lang (static),
   // and the CsFile renders it as a namespace-level using.
-  const inserted = context.insertModel(SpikeModel, 'Order' as RefName, {
+  const inserted = context.insertModel(SpikeModel, toSchemaComponentRef('Order' as RefName), {
     destinationPath: '@/Consumers/Page.generated.cs'
   })
 
@@ -172,7 +172,7 @@ Deno.test('csharp option2 port - the peer using is suppressed when the destinati
   // Same namespace as the peer's export file (Spike.Models) — C# needs
   // no using for same-namespace symbols, so the Driver-registered import
   // must vanish at render.
-  context.insertModel(SpikeModel, 'Invoice' as RefName, {
+  context.insertModel(SpikeModel, toSchemaComponentRef('Invoice' as RefName), {
     destinationPath: '@/Spike/Models/Sibling.generated.cs'
   })
 

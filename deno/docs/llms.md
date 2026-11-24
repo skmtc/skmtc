@@ -63,7 +63,7 @@ The one story every rule in this document falls out of. Hold this model and the 
 
 1. **Parse.** The engine parses the schema (OpenAPI v3 or GraphQL SDL) into typesafe intermediate-representation objects — `OasOperation`, the `OasSchema` union, `GqlOperation`. `allOf` is pre-merged; `$ref`s are lazy (`OasRef`, resolved with `.resolve()`).
 
-2. **Loop.** The Generate phase walks `(generator × item × variant)` and calls each generator entry's `transform({ context, operation | refName, variant })` per item. `transform` returns `void` — everything a generator produces, it produces by side effect on `context`.
+2. **Loop.** The Generate phase walks `(generator × item × variant)` and calls each generator entry's `transform({ context, operation | ref, variant })` per item (a model's `ref` is `{ refName, refPath }`). `transform` returns `void` — everything a generator produces, it produces by side effect on `context`.
 
 3. **Produce.** A generator converts each incoming IR object into a **producer** — a *Projection* or a *Snippet* — normally by calling `context.insertOperation` / `insertModel` from `transform`. Producers, not string manipulation, are the unit of work: output is built by constructing and composing producers.
 
@@ -133,7 +133,7 @@ These overrides exist because well-intentioned TS conventions frequently break S
 | Add a `BaseSchema` class to share schema behavior | Schema variants are sibling classes, not subclasses | Duck-typed `.isRef()` + discriminator narrowing is intentional |
 | Use `Deno.writeFileSync` from a generator constructor | Use `register({ definitions, ... })` | Direct writes bypass `context.#files`; invisible to coordination and persistence |
 | Mock a database in tests | Use real Supabase / real DB | Project convention — mocked tests previously masked production bugs |
-| Hardcode generator-internal identifier names | Derive from operation/refName via `toIdentifierName` | Hardcodes break the `(name, exportPath)` cache-key uniqueness |
+| Hardcode generator-internal identifier names | Derive from the operation or the model's `ref` via `toIdentifierName` | Hardcodes break the `(name, exportPath)` cache-key uniqueness |
 | Suggest "make generation order deterministic" | It already is; coordinate via `insertOperation` | Order is structurally irrelevant; deterministic by construction |
 | Add `@override` decorators or runtime type checks | Use TypeScript's structural typing + discriminated unions | Runtime overhead unnecessary; types catch this at compile time |
 | Reach into `OasOperation` properties directly without `.resolve()` | Call `.resolve()` unconditionally — it is identity (`return this`) on every concrete schema variant | The common parameter type is `OasSchema \| OasRef<'schema'>`; resolution is lazy. Guarding it (`schema.isRef() ? schema.resolve() : schema`) is redundant; reserve `.isRef()` for genuine branching (`refName`) |

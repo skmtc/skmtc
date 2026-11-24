@@ -34,6 +34,7 @@ import type { Enrichments } from '@/types/Enrichments.ts'
 import type { Lang } from '@/dsl/Lang.ts'
 import type { ModelProjectionConstructorArgs } from '@/dsl/model/types.ts'
 import type { RefName } from '@/types/RefName.ts'
+import { toSchemaComponentRef } from '@/helpers/refFns.ts'
 
 // An unconfigured named logger has no handlers, so it is silent — a
 // real Logger, no structural double, no cast.
@@ -58,7 +59,7 @@ class NeutralSnippet extends SnippetBase {
 
 const ModelBase = toModelProjectionBase<Enrichments>(NeutralSnippet, {
   id: '@test/placement',
-  toIdentifierName: ({ refName }) => refName,
+  toIdentifierName: ({ ref }) => ref.refName,
   toIdentifierType: () => ({ type: 'entity' }),
   toExportPath: () => '@/models.txt',
   toEnrichmentSchema: () => emptyEnrichmentSchema
@@ -72,13 +73,13 @@ class DependentModel extends ModelBase {
   constructor(args: ModelProjectionConstructorArgs<Enrichments>) {
     super(args)
 
-    if (args.refName === 'Owner') {
-      args.context.insertModel(DependentModel, 'Dep' as RefName)
+    if (args.ref.refName === 'Owner') {
+      args.context.insertModel(DependentModel, toSchemaComponentRef('Dep' as RefName))
     }
   }
 
   override toString(): string {
-    return this.refName
+    return this.ref.refName
   }
 }
 
@@ -95,8 +96,8 @@ const renderModelsFile = (schemaNames: string[]): string => {
   const entry = toModelEntry({
     id: '@test/placement',
     toEnrichmentSchema: () => emptyEnrichmentSchema,
-    transform: ({ context, refName }) => {
-      context.insertModel(DependentModel, refName)
+    transform: ({ context, ref }) => {
+      context.insertModel(DependentModel, ref)
     }
   })
 

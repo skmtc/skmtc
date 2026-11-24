@@ -54,7 +54,7 @@ engine machinery — modifying it is almost always a mistake.
 | Slot | File | Decision |
 |---|---|---|
 | `library` | `src/lib.ts` | emitted module + symbol, single point |
-| `naming`, `identifier-kind`, `export-path` | `src/base.ts` | identity policy (from `refName`, and `refPath` when you name refs into deep paths apart) |
+| `naming`, `identifier-kind`, `export-path` | `src/base.ts` | identity policy (from `ref.refName`, and `ref.refPath` when you name refs into deep paths apart) |
 | `string`, `string-constraints` | `src/MyLibString.ts` | string / enum / literal syntax; formats, min/maxLength |
 | `number`, `integer`, `boolean`, `unknown`, `void` | `src/MyLibScalars.ts` | scalar syntax; numeric constraints |
 | `array` | `src/MyLibArray.ts` | list syntax |
@@ -75,15 +75,14 @@ engine machinery — modifying it is almost always a mistake.
   import, is how shared models duplicate.
 - **A ref can point inside a schema.** A `$ref` into a `$defs` entry,
   a property or `#/paths/…` resolves like a component ref, and its
-  target becomes a model of its own. The router passes the ref's
-  `refName` and `refPath` to `MyLibRef`, which passes both to
-  `toModelRef`, and the projection resolves its schema with
-  `resolveSchemaRefOnce({ refName, refPath })`. Drop `refPath` on the way
-  to `toModelRef` and the lookup finds the component named `refName`
-  instead.
-  The skeleton's `base.ts` names by `refName` alone, so two deep targets
-  that share it (`…/properties/disk` twice) collide with
-  `Registered definition mismatch`; read `refPath` there if your
+  target becomes a model of its own. The router passes the `OasRef` to
+  `MyLibRef` as `ref`, `MyLibRef` passes it to `toModelRef`, and the
+  projection resolves its schema with `resolveSchemaRefOnce(ref)`. The
+  model API takes the whole `ref` (`{ refName, refPath }`), so no call
+  can drop the path.
+  The skeleton's `base.ts` names by `ref.refName` alone, so two deep
+  targets that share it (`…/properties/disk` twice) collide with
+  `Registered definition mismatch`; read `ref.refPath` there if your
   documents have them.
 - **A ref can name nothing.** By default (`settings.system.danglingRefs:
   []`) the parser removes what holds such a `$ref`, so your generator

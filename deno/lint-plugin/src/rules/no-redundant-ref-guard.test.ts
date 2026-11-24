@@ -26,7 +26,7 @@ Deno.test('no-redundant-ref-guard: silent on genuine isRef branching', () => {
 })
 
 Deno.test('no-redundant-ref-guard: silent on an unconditional resolve', () => {
-  const source = `const resolved = context.resolveSchemaRefOnce({ refName, refPath }).resolve()`
+  const source = `const resolved = context.resolveSchemaRefOnce(ref).resolve()`
   assertEquals(lint(RULE, source), [])
 })
 

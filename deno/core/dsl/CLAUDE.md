@@ -38,8 +38,10 @@ The code-generation DSL. The vocabulary:
   **keyless** — `generatorKey` is optional attribution input only.
 - **`GeneratorKey`** — branded pipe-delimited string. 4 segments for
   operations (`id|path|method|variant` OAS, `id|rootKind|fieldName|variant` GQL),
-  3 for models (`id|refName|variant`), 1 for generator-only.
-  Round-trip: `toOasOperationGeneratorKey` → `fromGeneratorKey`.
+  3 for models (`id|modelKey|variant`: the `refName` for a component, the
+  whole pointer, `|`-escaped, for a deep target), 1 for generator-only.
+  Round-trip: `toOasOperationGeneratorKey` → `fromGeneratorKey`; a model
+  key parses back to `ref`.
 - **`Inserted<V, E>`** — Driver's return type from
   `context.insertOperation` / `insertModel`. Exposes `.settings`,
   `.definition`, `.toName()`.

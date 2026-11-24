@@ -47,7 +47,7 @@ const generators = <E = undefined>(): GeneratorsMapContainer<E> => ({
   'pet-only-models': toModelEntry({
     id: 'pet-only-models',
     toEnrichmentSchema: () => emptyEnrichmentSchema,
-    isSupported: ({ refName }) => refName === 'Pet',
+    isSupported: ({ ref }) => ref.refName === 'Pet',
     transform: () => {}
   })
 })

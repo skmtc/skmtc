@@ -116,7 +116,7 @@ export type TypeSystemArgs<Schema extends SchemaType> = {
   context: GenerateContextType
   destinationPath: string
   schema: Schema
-  rootRef?: RefName
+  rootRef?: RefParts
   required: boolean | undefined
 }
 
@@ -154,7 +154,7 @@ export const toTsValue: SchemaToValueFn = ({
 
   return match(schema satisfies SchemaType)
     .with({ type: 'custom' }, custom => custom)
-    .with({ type: 'ref' }, ref => new TsRef({ context, destinationPath, refName: ref.refName, refPath: ref.refPath, modifiers, rootRef }))
+    .with({ type: 'ref' }, ref => new TsRef({ context, destinationPath, ref, modifiers, rootRef }))
     .with({ type: 'array' }, ({ items }) => new TsArray({ context, destinationPath, modifiers, items, generatorKey, rootRef }))
     .with({ type: 'object' }, matched => new TsObject({ context, destinationPath, value: matched, modifiers, generatorKey, rootRef }))
     .with({ type: 'union' }, ({ members, discriminator }) => new TsUnion({ context, destinationPath, members, discriminator, modifiers, generatorKey, rootRef }))
@@ -273,9 +273,9 @@ on the schema being rendered:
 
 ```ts
 // skmtc-generators/gen-typescript/src/TsProjection.ts
-constructor({ context, refName, refPath, settings, rootRef }: ConstructorArgs) {
-  super({ context, refName, refPath, settings })
-  const schema = context.resolveSchemaRefOnce({ refName, refPath })
+constructor({ context, ref, settings, rootRef }: ConstructorArgs) {
+  super({ context, ref, settings })
+  const schema = context.resolveSchemaRefOnce(ref)
   this.value = toTsValue({
     schema, required: true, destinationPath: settings.exportPath,
     context, rootRef
@@ -383,8 +383,7 @@ the ref's destination file:
 // gen-typescript schemaToValueFn
 .with({ type: 'ref' }, ref => new TsRef({
   context, destinationPath,
-  refName: ref.refName,
-  refPath: ref.refPath,
+  ref,  // the OasRef: its refName and refPath travel together
   modifiers, rootRef
 }))
 ```
@@ -420,19 +419,19 @@ projection for it.
 A ref snippet asks for its model through `toModelRef`:
 
 ```
-1.  context.insertModel(ZodProjection, 'User')
+1.  context.insertModel(ZodProjection, toSchemaComponentRef('User'))
        │
        ▼
 2.  ModelDriver: cache miss  →  pending entry for User
        │
        ▼
-3.  new ZodProjection({ context, refName: 'User', ... })
-       │   context.resolveSchemaRefOnce({ refName: 'User', refPath })
+3.  new ZodProjection({ context, ref: User's ref, ... })
+       │   context.resolveSchemaRefOnce(ref)
        │   toZodValue({ schema, ... })   ← walks the User schema
        │
        │   for each ref in the schema, the ref snippet calls:
        ▼
-4.  toModelRef({ context, refName, destinationPath, projection: ZodProjection, ... })
+4.  toModelRef({ context, ref, destinationPath, projection: ZodProjection, ... })
        │
        ├─ refName === 'User'     → User is pending: a reference back
        │                           ├─ { suspended: true }  (no new projection)
@@ -495,7 +494,7 @@ example `z.ZodType<User>`.
 When you write a model generator that has a `'ref'` branch in
 `schemaToValueFn`, the `Ref` Snippet must:
 
-1. **Call** `toModelRef({ context, refName, destinationPath,
+1. **Call** `toModelRef({ context, ref, destinationPath,
    rootRef, projection: YourProjection, variant })`. It constructs
    the model, reuses it, or returns it `suspended`. It also stitches
    the import into `destinationPath`.
@@ -539,8 +538,8 @@ nested calls instead of coercing it.
 
 ### What's `rootRef` for?
 
-`rootRef` is the top-level `RefName` that started the current
-render — used to detect recursive type references. A nested
+`rootRef` is the ref (`RefParts`) of the top-level model that started
+the current render — used to detect recursive type references. A nested
 schema whose `schemaToValueFn` call encounters a `$ref` back to
 `rootRef` can render a self-reference rather than recursing into
 infinite expansion. Most generator branches just thread it through

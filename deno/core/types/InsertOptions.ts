@@ -17,14 +17,6 @@ export type PeerInsertSettings = {
    * when the peer declares this variant — the Driver throws on mismatch.
    */
   variant?: string
-  /**
-   * For a model: where the ref to it points, its `OasRef.refPath`. Omit for
-   * a component (`#/components/schemas`); pass it for a ref that points
-   * anywhere else, such as `#/components/schemas/Pet/properties`. An
-   * operation insert, and `insertNormalizedModel` (which reads it off the
-   * schema), ignore it.
-   */
-  refPath?: string
 }
 
 /** {@link PeerInsertSettings} plus the file to import the peer into. */
@@ -56,7 +48,6 @@ export const toPeerInsertOptions = <ProjectionOptions>(
   return {
     noExport: args?.noExport,
     variant: args?.variant,
-    refPath: args?.refPath,
     options: readProjectionOptions<ProjectionOptions>(args)
   }
 }
@@ -71,7 +62,6 @@ export const toInsertOptions = <ProjectionOptions>(
     noExport: args?.noExport,
     destinationPath: args?.destinationPath,
     variant: args?.variant,
-    refPath: args?.refPath,
     options: readProjectionOptions<ProjectionOptions>(args)
   }
 }

@@ -94,9 +94,9 @@ class FakeProjection extends ModelBase {
 
 const fakeGen = toModelEntry({
   id: '@fake/gen-minimal',
-  transform: ({ context, refName }) => {
+  transform: ({ context, ref }) => {
     // deno-lint-ignore no-explicit-any
-    context.insertModel(FakeProjection as any, refName)
+    context.insertModel(FakeProjection as any, ref)
   }
 })
 

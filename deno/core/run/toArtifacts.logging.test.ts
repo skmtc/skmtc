@@ -16,6 +16,7 @@ import { emptyEnrichmentSchema, type Enrichments } from '@/types/Enrichments.ts'
 import type { Lang } from '@/dsl/Lang.ts'
 import type { ModelProjectionConstructorArgs } from '@/dsl/model/types.ts'
 import type { RefName } from '@/types/RefName.ts'
+import { toSchemaComponentRef } from '@/helpers/refFns.ts'
 import type { ResultsItem } from '@/types/Results.ts'
 import type { LogLine } from '@/types/LogLine.ts'
 
@@ -169,7 +170,7 @@ class NeutralSnippet extends SnippetBase {
 
 const ModelBase = toModelProjectionBase<Enrichments>(NeutralSnippet, {
   id: 'models',
-  toIdentifierName: ({ refName }) => refName,
+  toIdentifierName: ({ ref }) => ref.refName,
   toIdentifierType: () => ({ type: 'entity' }),
   toExportPath: () => '@/models.txt',
   toEnrichmentSchema: () => emptyEnrichmentSchema
@@ -180,13 +181,13 @@ class BreakableModel extends ModelBase {
   constructor(args: ModelProjectionConstructorArgs<Enrichments>) {
     super(args)
 
-    if (args.refName === 'Broken') {
+    if (args.ref.refName === 'Broken') {
       throw new Error('Broken cannot be modeled')
     }
   }
 
   override toString(): string {
-    return this.refName
+    return this.ref.refName
   }
 }
 
@@ -216,15 +217,15 @@ const throwingGenerators = <E = undefined>(): GeneratorsMapContainer<E> => ({
         throw new Error('pets transform failed')
       }
 
-      context.insertModel(BreakableModel, 'Broken' as RefName)
+      context.insertModel(BreakableModel, toSchemaComponentRef('Broken' as RefName))
     }
   }),
   // @ts-expect-error see above
   models: toModelEntry({
     id: 'models',
     toEnrichmentSchema: () => emptyEnrichmentSchema,
-    transform: ({ context, refName }) => {
-      context.insertModel(BreakableModel, refName)
+    transform: ({ context, ref }) => {
+      context.insertModel(BreakableModel, ref)
     }
   })
 })

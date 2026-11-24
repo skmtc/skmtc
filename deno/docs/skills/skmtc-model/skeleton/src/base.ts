@@ -6,12 +6,12 @@ import { type EnrichmentSchema, toEnrichmentSchema } from './enrichments.ts'
 export const MyLibBase = toTsModelProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
 
-  // SLOT(naming): the emitted binding name, derived from refName ONLY
+  // SLOT(naming): the emitted binding name, derived from the ref ONLY
   // (deterministic; never operationId, never construction-dependent).
   // The engine stores the name as returned, so return a valid binding:
   // a schema named `Default` would otherwise give `export const default`.
-  toIdentifierName({ refName }): string {
-    return sanitizeIdentifier(decapitalize(camelCase(refName)))
+  toIdentifierName({ ref }): string {
+    return sanitizeIdentifier(decapitalize(camelCase(ref.refName)))
   },
 
   // SLOT(identifier-kind): 'variable' for schema values; 'type' or
@@ -21,8 +21,8 @@ export const MyLibBase = toTsModelProjectionBase<EnrichmentSchema>({
   // SLOT(export-path): where each model's file lives. '@/' is basePath,
   // and the path after it is always spelled with forward slashes; keep
   // the .generated.ts suffix convention.
-  toExportPath({ refName, enrichments, variant }): string {
-    const name = this.toIdentifierName({ refName, enrichments, variant })
+  toExportPath({ ref, enrichments, variant }): string {
+    const name = this.toIdentifierName({ ref, enrichments, variant })
 
     return `@/models/${name}.generated.ts`
   },

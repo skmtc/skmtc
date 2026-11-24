@@ -159,7 +159,7 @@ differs from the hook's `exportPath`.
 ### Wiring a model's type into a TanStack Query argument
 
 ```ts
-const userType = context.insertModel(TsProjection, refName, { destinationPath })
+const userType = context.insertModel(TsProjection, ref, { destinationPath })
 
 const body = `
   export const useUpdateUser = (input: ${userType.toName()}) => {

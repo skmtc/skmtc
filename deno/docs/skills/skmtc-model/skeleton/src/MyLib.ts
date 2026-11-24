@@ -44,11 +44,9 @@ export const toMyLibValue: SchemaToValueFn = (
       return new MyLibRef({
         context,
         destinationPath,
-        refName: ref.refName,
-        refPath: ref.refPath,
+        ref,
         modifiers,
         rootRef,
-        schema: ref,
       })
     })
     .with({ type: 'array' }, (arraySchema) => {

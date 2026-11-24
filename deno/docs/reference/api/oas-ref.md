@@ -212,6 +212,10 @@ has `refPath` `#/components/schemas` and `refName` `A`. A `$ref` with no
 `#`, such as a bare id, has the default `refPath` of its kind and its
 last `/`-separated segment as `refName`.
 
+The two fields make an `OasRef<'schema'>` a `RefParts`, the shape the
+model API takes. Pass the ref as it is: `insertModel(Peer, ref)`,
+`resolveSchemaRefOnce(ref)`, `toModelRef({ …, ref })`.
+
 ### `refType`
 
 The expected category of the target. The type-parameter value `T`.

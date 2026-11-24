@@ -120,11 +120,11 @@ const response = this.insertNormalizedModel(PeerProjection, {
 this.responseName = response.identifier.name   // the NAME is yours; the definition is theirs
 ```
 
-Named `$ref` schemas go through
-`insertModel(Peer, ref.refName, { refPath: ref.refPath })` (name via
-`.toName()`); `refPath` tells a ref into a `$defs` entry, a property or
-`#/paths/…` apart from the component of the same name, and
-`insertNormalizedModel` reads it off the schema itself. Either way: the
+Named `$ref` schemas go through `insertModel(Peer, ref)` with the
+`OasRef` itself (name via `.toName()`): its `refPath` tells a ref into a
+`$defs` entry, a property or `#/paths/…` apart from the component of the
+same name. `insertNormalizedModel` passes a `$ref` schema on the same
+way. Either way: the
 peer renders the schema ONCE at its own
 path, your file's import is stitched by the engine, and only the
 identifier lands in your tree. Import peer projections through their
@@ -132,7 +132,7 @@ package alias (`@skmtc/gen-zod`), never by relative path.
 
 When the peer declares caller options, the trailing argument is
 required and typed by the peer:
-`this.insertModel(Peer, refName, { options: { suffix: 'Input' } })` —
+`this.insertModel(Peer, ref, { options: { suffix: 'Input' } })` —
 a fresh object per insertion; a peer that declares none refuses the
 key. On `insertNormalizedModel` the options reach the `$ref` branch
 only: the inline branch constructs no projection, so put whatever
@@ -142,7 +142,7 @@ What the insert gives you — the name, the placement (normalized models
 co-locate at YOUR export path via the base wrapper), the declaration
 form — **is the convention**. If it does not match what you want, do
 not fight it by driving the peer's machinery yourself: fabricating a
-refName to key the peer's identity statics, calling its
+ref to key the peer's identity statics, calling its
 `toExportPath`/`toIdentifierName` directly, or reading fields off its
 returned value beyond the definition and its name are all the same
 mistake — a reimplementation of the engine that passes every automated

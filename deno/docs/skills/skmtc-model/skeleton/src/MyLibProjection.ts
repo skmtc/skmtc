@@ -2,7 +2,7 @@ import { camelCase, capitalize, isReferencedBack } from '@skmtc/core'
 import type {
   ContentSettings,
   GenerateContextType,
-  RefName,
+  RefParts,
   TypeSystemValue,
 } from '@skmtc/core'
 import { createVariable } from '@skmtc/lang-typescript'
@@ -13,22 +13,20 @@ import type { EnrichmentSchema } from './enrichments.ts'
 type ConstructorArgs = {
   context: GenerateContextType
   destinationPath: string
-  refName: RefName
-  /** Where the ref to this model points; absent for a component. */
-  refPath?: string
+  ref: RefParts
   settings: ContentSettings<EnrichmentSchema>
-  rootRef?: RefName
+  rootRef?: RefParts
 }
 
 export class MyLibProjection extends MyLibBase {
   value: TypeSystemValue
 
   constructor(
-    { context, refName, refPath, settings, destinationPath, rootRef }: ConstructorArgs,
+    { context, ref, settings, destinationPath, rootRef }: ConstructorArgs,
   ) {
-    super({ context, refName, refPath, settings })
+    super({ context, ref, settings })
 
-    const schema = context.resolveSchemaRefOnce({ refName, refPath })
+    const schema = context.resolveSchemaRefOnce(ref)
 
     this.value = toMyLibValue({
       schema,
@@ -50,7 +48,7 @@ export class MyLibProjection extends MyLibBase {
       // cycle, valid in the emitted file (zod: `z.ZodType<Order>`, with
       // the type supplied by a peer type generator).
       this.settings.identifier.typeName = `MyLibSchema<${
-        capitalize(camelCase(refName))
+        capitalize(camelCase(ref.refName))
       }>`
     }
   }

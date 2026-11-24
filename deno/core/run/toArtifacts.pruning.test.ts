@@ -79,8 +79,8 @@ const run = (doc: OpenAPIV3.Document, frames: string[]): RunResult => {
     'model-seen': toModelEntry({
       id: 'model-seen',
       toEnrichmentSchema: () => emptyEnrichmentSchema,
-      transform: ({ refName }) => {
-        models.push(refName)
+      transform: ({ ref }) => {
+        models.push(ref.refName)
       }
     })
   })

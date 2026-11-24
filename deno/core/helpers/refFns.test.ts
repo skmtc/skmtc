@@ -1,12 +1,14 @@
 import { assertEquals, assertThrows } from '@std/assert'
 import {
+  fromModelKey,
   isDefaultRefPath,
   isRef,
   toGetRef,
   toModelKey,
   toRawRefTarget,
   toRefParts,
-  toRefPointer
+  toRefPointer,
+  toSchemaComponentRef
 } from './refFns.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import { DanglingRefError } from '../oas/ref/DanglingRefError.ts'
@@ -81,8 +83,21 @@ Deno.test('toRefPointer - two spellings of one place give one pointer', () => {
 })
 
 Deno.test('toModelKey - a component keeps its bare name, so existing keys do not change', () => {
-  assertEquals(toModelKey({ refName: 'Pet' as RefName }), 'Pet')
   assertEquals(toModelKey({ refName: 'Pet' as RefName, refPath: '#/components/schemas' }), 'Pet')
+})
+
+Deno.test('toSchemaComponentRef - a component ref has refPath #/components/schemas', () => {
+  assertEquals(toSchemaComponentRef('Pet' as RefName), { refName: 'Pet', refPath: '#/components/schemas' })
+})
+
+Deno.test('fromModelKey - reverses toModelKey for a component and for a deep target', () => {
+  const component = toSchemaComponentRef('Pet' as RefName)
+  // A property name with `/` and `~`: the pointer escapes both, and the key round-trips.
+  const deep = { refName: 'a/b~c' as RefName, refPath: '#/components/schemas/Pet/properties' }
+
+  assertEquals(fromModelKey(toModelKey(component)), component)
+  assertEquals(toModelKey(deep), '#/components/schemas/Pet/properties/a~1b~0c')
+  assertEquals(fromModelKey(toModelKey(deep)), deep)
 })
 
 Deno.test('toModelKey - two deep targets that share a refName get two keys', () => {

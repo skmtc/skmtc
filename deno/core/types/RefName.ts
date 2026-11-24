@@ -100,14 +100,14 @@ import type { Brand } from './Brand.ts'
  * @example In generator contexts
  * ```typescript
  * class ModelGenerator extends ModelProjectionBase {
- *   constructor(args: { refName: RefName; ... }) {
+ *   constructor(args: { ref: RefParts; ... }) {
  *     super(args);
- *     // this.refName is guaranteed to be a valid schema reference
+ *     // this.ref.refName is the name of the model's ref
  *   }
  *
  *   toDefinition(): Definition {
  *     // RefName ensures we're working with valid schema identifiers
- *     const schemaName = this.refName; // Type: RefName
+ *     const schemaName = this.ref.refName; // Type: RefName
  *     return new Definition({
  *       identifier: createType(schemaName),
  *       // ...

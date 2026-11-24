@@ -6,7 +6,7 @@ import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
-import { isDefaultRefPath, toModelKey, toRefPointer } from '@/helpers/refFns.ts'
+import { isDefaultRefPath, toModelKey, toRefPointer, toSchemaComponentRef, type RefParts } from '@/helpers/refFns.ts'
 import type { ComponentsEntry } from '@/oas/components/Components.ts'
 import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
@@ -33,7 +33,6 @@ import type {
   ContextRegisterArgs,
   RegisterJsonArgs,
   RegisterMarkdownArgs,
-  ResolveSchemaRefArgs,
   ToGqlOperationSettingsFields,
   ToOasOperationSettingsFields,
   ToOperationSettingsArgs,
@@ -143,8 +142,8 @@ export type CreateAndRegisterDefinition<Schema extends SchemaType> = {
   destinationPath: string
   /** Function to transform the schema into a generated value */
   schemaToValueFn: SchemaToValueFn
-  /** Optional root reference name for the schema */
-  rootRef?: RefName
+  /** The ref of the model whose value tree holds the schema */
+  rootRef?: RefParts
   /** Whether to exclude this definition from exports */
   noExport?: boolean
 }
@@ -188,8 +187,8 @@ export type AddRenderDependencyArgs = {
 export type ToModelSettingsArgs = {
   /** The ID of the generator requesting model settings */
   generatorId: string
-  /** The reference name of the model */
-  refName: RefName
+  /** The model's ref */
+  ref: RefParts
 }
 
 /**
@@ -232,11 +231,11 @@ export type InsertReturn<V extends GeneratedValue, EnrichmentType> = Inserted<V,
  *
  * class TypeScriptInterface extends ModelProjectionBase {
  *   generate(): Definition {
- *     const schema = this.context.getSchema(this.refName);
+ *     const schema = this.context.resolveSchemaRefOnce(this.ref);
  *
  *     return new Definition({
  *       context: this.context,
- *       identifier: createType(this.refName),
+ *       identifier: createType(this.ref.refName),
  *       description: schema.description,
  *       value: {
  *         generatorKey: this.generatorKey,
@@ -607,7 +606,7 @@ export class GenerateContext implements GenerateContextType {
         }
         case 'model': {
           const models = this.#schemaRefNames().filter(refName =>
-            generatorConfig.isSupported({ refName, context: this, variant: DEFAULT_VARIANT })
+            generatorConfig.isSupported({ ref: toSchemaComponentRef(refName), context: this, variant: DEFAULT_VARIANT })
           )
           out[generatorConfig.id] = { type: 'model', models }
           break
@@ -723,13 +722,13 @@ export class GenerateContext implements GenerateContextType {
           const models: ModelEnrichmentDefaults = {}
           for (const refName of this.#schemaRefNames()) {
             if (
-              !generatorConfig.isSupported({ refName, context: this, variant: DEFAULT_VARIANT })
+              !generatorConfig.isSupported({ ref: toSchemaComponentRef(refName), context: this, variant: DEFAULT_VARIANT })
             ) {
               continue
             }
 
             const leaf = this.#subjectDefaults(() =>
-              toDefaults({ refName, context: this, variant: DEFAULT_VARIANT })
+              toDefaults({ ref: toSchemaComponentRef(refName), context: this, variant: DEFAULT_VARIANT })
             )
             if (leaf === undefined) continue
 
@@ -1072,6 +1071,8 @@ export class GenerateContext implements GenerateContextType {
         : document.value.registry.toSchemasRefNames()
 
     refNames.forEach(refName => {
+      const ref = toSchemaComponentRef(refName)
+
       stackTrail.trace(refName, refTrail => {
         // Resolve the variant list to fan out over. The consumer's
         // enrichments are keyed `[generatorId][refName][variant]`; the
@@ -1098,7 +1099,7 @@ export class GenerateContext implements GenerateContextType {
               try {
                 if (
                   typeof generatorConfig.isSupported === 'function' &&
-                  !generatorConfig.isSupported({ refName, context: this, variant })
+                  !generatorConfig.isSupported({ ref, context: this, variant })
                 ) {
                   this.captureCurrentResult('notSupported', st)
                   return
@@ -1133,7 +1134,7 @@ export class GenerateContext implements GenerateContextType {
 
                 generatorConfig.transform({
                   context: this,
-                  refName,
+                  ref,
                   variant
                 })
 
@@ -1145,7 +1146,7 @@ export class GenerateContext implements GenerateContextType {
 
                 this.#addPreview(
                   source,
-                  generatorConfig.toPreviewModule?.({ context: this, refName, variant })
+                  generatorConfig.toPreviewModule?.({ context: this, ref, variant })
                 )
 
                 this.captureCurrentResult('success', st)
@@ -1481,9 +1482,8 @@ export class GenerateContext implements GenerateContextType {
     const insertOptions = toPeerInsertOptions(rest)
 
     if (schema.isRef()) {
-      const { definition } = this.insertModel(projection, schema.refName, {
+      const { definition } = this.insertModel(projection, schema, {
         ...insertOptions,
-        refPath: schema.refPath,
         destinationPath
       })
 
@@ -1541,7 +1541,7 @@ export class GenerateContext implements GenerateContextType {
    */
   insertModel<V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
     projection: ModelProjection<V, EnrichmentType, ProjectionOptions>,
-    refName: RefName,
+    ref: RefParts,
     ...rest: ProjectionOptionsRest<InsertModelOptions<ProjectionOptions>, ProjectionOptions>
   ): Inserted<V, EnrichmentType> {
     // The Driver defaults `variant` and `noExport` and reads the caller's
@@ -1549,8 +1549,8 @@ export class GenerateContext implements GenerateContextType {
     const { settings, definition } = new ModelDriver({
       context: this,
       projection,
-      refName,
-      rootRef: refName,
+      ref,
+      rootRef: ref,
       ...toInsertOptions(rest)
     })
 
@@ -1678,23 +1678,23 @@ export class GenerateContext implements GenerateContextType {
    * Build content settings for a model projection by calling its statics
    * `toIdentifierName` (pure, for the name) + `toIdentifierType`
    * (context-aware, for type/typeName/exported), `toExportPath`, and
-   * `toEnrichments` against the given `refName` and `variant`. The full
+   * `toEnrichments` against the given `ref` and `variant`. The full
    * identifier is assembled through the projection's language
    * (`lang.toIdentifier`).
    */
   toModelContentSettings<V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
     args: BuildModelSettingsArgs<V, EnrichmentType, ProjectionOptions>
   ): ContentSettings<EnrichmentType> {
-    const { refName, refPath, projection, variant = DEFAULT_VARIANT } = args
+    const { ref, projection, variant = DEFAULT_VARIANT } = args
     const options = readProjectionOptions<ProjectionOptions>(args)
-    const enrichments = projection.toEnrichments({ refName, refPath, context: this, variant })
+    const enrichments = projection.toEnrichments({ ref, context: this, variant })
     return new ContentSettings<EnrichmentType>({
       identifier: projection.lang.toIdentifier({
-        name: projection.toIdentifierName({ refName, refPath, enrichments, variant, options }),
-        ...projection.toIdentifierType(refName, this, refPath)
+        name: projection.toIdentifierName({ ref, enrichments, variant, options }),
+        ...projection.toIdentifierType(ref, this)
       }),
       exportPath: this.#toContentSettingsExportPath(
-        projection.toExportPath({ refName, refPath, enrichments, variant, options }),
+        projection.toExportPath({ ref, enrichments, variant, options }),
         projection.id
       ),
       enrichments,
@@ -1706,22 +1706,24 @@ export class GenerateContext implements GenerateContextType {
    * Perform one lookup of a model's schema: a component by `refName`, or,
    * with a `refPath` other than `#/components/schemas`, the ref target the
    * parser kept under its whole pointer.
-   * @param args - The ref's `refName` and `refPath`; an `OasRef<'schema'>` fits as it is
+   * @param ref - The model's ref; an `OasRef<'schema'>` fits as it is
    * @returns Matching schema or ref
    * @throws {DanglingRefError} when no schema is found there
    */
-  resolveSchemaRefOnce({ refName, refPath }: ResolveSchemaRefArgs): OasSchema | OasRef<'schema'> {
+  resolveSchemaRefOnce(ref: RefParts): OasSchema | OasRef<'schema'> {
+    const { refName, refPath } = ref
+
     switch (this.document.type) {
       case 'oas': {
         const document = this.document.value
         const component =
-          refPath === undefined || isDefaultRefPath({ refPath, refType: 'schema' })
+          isDefaultRefPath({ refPath, refType: 'schema' })
             ? document.components?.schemas?.[refName]
             : document.toRefTarget(toRefPointer({ refName, refPath }))
 
         // The parser keeps ref targets of every kind; a model is built only from a schema.
         if (component === undefined || !isSchemaEntry(component)) {
-          throw new DanglingRefError(toModelKey({ refName, refPath }))
+          throw new DanglingRefError(toModelKey(ref))
         }
 
         const target = component.resolveOnce()

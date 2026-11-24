@@ -326,7 +326,9 @@ for the key shapes). `schemaPointer` is resolved in priority order:
    pointer:
    - OAS operation → `#/paths/<escaped-path>/<method>`
    - GraphQL operation → `<rootKind>.<fieldName>`
-   - Model → `#/components/schemas/<refName>`
+   - Model → its ref's pointer: `#/components/schemas/<refName>` for a
+     component, the whole pointer for a ref into a `$defs` entry, a
+     property or `#/paths/…`
    - Generator-only / no key → `''` (empty — no schema location)
 
 Path segments are RFC 6901 JSON-Pointer escaped (`~`→`~0`,

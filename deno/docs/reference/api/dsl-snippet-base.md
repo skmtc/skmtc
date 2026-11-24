@@ -58,8 +58,8 @@ new TsSnippet({
 
 Subclasses pass `context` through `super({ context })`. The
 projection-base factories pass `generatorKey` as well, derived from
-the generator's `id`, the operation/refName, and the variant.
-Snippets built from a schema node pass
+the generator's `id`, the operation or the model's ref, and the
+variant. Snippets built from a schema node pass
 `stackTrail: schema.stackTrail.clone()` so attribution (gen-maps)
 can point output back at the source fragment.
 
@@ -84,7 +84,7 @@ read or write it directly.
 ### `generatorKey: GeneratorKey | undefined`
 
 The generator key — a branded, pipe-delimited composite of
-`generatorId`, the operation/refName, and the variant. On
+`generatorId`, the operation or the model's ref, and the variant. On
 `SnippetBase` it is an **optional attribution input only** (gen-maps
 provenance) — snippet `register` is keyless. The Driver-side
 `affirmDefinition` integrity check builds its own key from the
@@ -272,10 +272,11 @@ to was pragmatic.
 
 A branded, pipe-delimited string type — 4 segments for operations
 (`id|path|method|variant` OAS, `id|rootKind|fieldName|variant` GQL),
-3 for models (`id|refName|variant`), 1 for generator-only. Used by
-the Driver's `affirmDefinition` to verify that a cached Definition
-came from the same generator, and by attribution (gen-maps) as a
-provenance label. The branding prevents misuse (you can't pass a
+3 for models (`id|modelKey|variant`), 1 for generator-only. A model
+key is a component's `refName`, or the `|`-escaped pointer of a deep
+target. The Driver's `affirmDefinition` uses the key to verify that a
+cached Definition came from the same generator. Attribution (gen-maps)
+uses it as a provenance label. The branding prevents misuse (you can't pass a
 plain string where a `GeneratorKey` is expected).
 
 Anonymous Snippets don't need a `generatorKey` — they're not

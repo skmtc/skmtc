@@ -2,6 +2,7 @@ import { toModelEntry } from './toModelEntry.ts'
 import { assertEquals } from '@std/assert/equals'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { RefName } from '@/types/RefName.ts'
+import { toSchemaComponentRef } from '@/helpers/refFns.ts'
 import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 
 Deno.test('toModelEntry - returns object with id and type model', () => {
@@ -30,7 +31,7 @@ Deno.test('toModelEntry - includes provided transform function', () => {
   // Verify transform actually works
   entry.transform({
     context: {} as GenerateContextType,
-    refName: 'Test' as RefName,
+    ref: toSchemaComponentRef('Test' as RefName),
     variant: 'main'
   })
   assertEquals(callCount, 1)
@@ -45,7 +46,7 @@ Deno.test('toModelEntry - isSupported defaults to true when not provided', () =>
 
   const result = entry.isSupported({
     context: { settings: {} } as GenerateContextType,
-    refName: 'Test' as RefName,
+    ref: toSchemaComponentRef('Test' as RefName),
     variant: 'main'
   })
 
@@ -57,12 +58,12 @@ Deno.test('toModelEntry - includes provided isSupported and gates on refName', (
     id: 'test-model',
     transform: () => {},
     toEnrichmentSchema: () => emptyEnrichmentSchema,
-    isSupported: ({ refName }) => refName === 'User'
+    isSupported: ({ ref }) => ref.refName === 'User'
   })
 
   const context = { settings: {} } as GenerateContextType
-  assertEquals(entry.isSupported({ context, refName: 'User' as RefName, variant: 'main' }), true)
-  assertEquals(entry.isSupported({ context, refName: 'Order' as RefName, variant: 'main' }), false)
+  assertEquals(entry.isSupported({ context, ref: toSchemaComponentRef('User' as RefName), variant: 'main' }), true)
+  assertEquals(entry.isSupported({ context, ref: toSchemaComponentRef('Order' as RefName), variant: 'main' }), false)
 })
 
 Deno.test('toModelEntry - toPreviewModule is undefined when not provided', () => {

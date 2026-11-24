@@ -193,7 +193,7 @@ every generator). Misaddressed entries are reported on
 
 A generator-initiated request (`{ prompt, enrichmentSchema, content }`)
 for an LLM-fillable enrichment, returned by the optional
-`toEnrichmentRequest(refName)`. See
+`toEnrichmentRequest(ref)`. See
 [enrichments §AI-driven enrichments](../authoring/how-to/add-enrichment-options.md#ai-driven-enrichments--enrichmentrequest).
 
 ### Entity type (`TsIdentifier.type`)

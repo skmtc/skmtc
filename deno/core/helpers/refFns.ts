@@ -15,6 +15,10 @@ type RefType = OasRefData['refType']
  * `#/components/schemas/Pet` is `refPath` `#/components/schemas` and `refName`
  * `Pet`. `#/components/schemas/__sharedInput/$defs/schema0` is `refPath`
  * `#/components/schemas/__sharedInput/$defs` and `refName` `schema0`.
+ *
+ * The model API takes a model's ref in this shape (`insertModel(Peer, ref)`,
+ * `toIdentifierName({ ref, … })`), so the two parts travel together. An
+ * `OasRef` has both fields and fits it as it is.
  */
 export type RefParts = {
   /** The last segment of the pointer, unescaped. Empty for a `$ref` that ends in `/`. */
@@ -116,23 +120,37 @@ export const isDefaultRefPath = ({ refPath, refType }: IsDefaultRefPathArgs): bo
 export const toRefPointer = ({ refName, refPath }: RefParts): JsonPointer =>
   toJsonPointer([...toRefPathSegments(refPath), refName])
 
-type ToModelKeyArgs = {
-  refName: RefName
-  /** Absent for a component, as `#/components/schemas` is. */
-  refPath?: string
-}
+/**
+ * The ref of the schema component named `refName`: `refPath`
+ * `#/components/schemas`. For code that holds a component's name but no
+ * `OasRef`, such as the engine's sweep over `components.schemas`.
+ */
+export const toSchemaComponentRef = (refName: RefName): RefParts => ({
+  refName,
+  refPath: `#/components/${toComponentsBucket('schema')}`
+})
 
 /**
  * The key a model is known by in the engine: its generator key, its
  * enrichments (`[id][key][variant]`) and its manifest entry. A component
- * (`refPath` `#/components/schemas`, or none) is keyed by its `refName`, as
- * it always was. Any other target is keyed by its whole pointer
- * ({@link toRefPointer}), so two targets that share a `refName` stay apart.
+ * (`refPath` `#/components/schemas`) is keyed by its `refName`, as it always
+ * was. Any other target is keyed by its whole pointer ({@link toRefPointer}),
+ * so two targets that share a `refName` stay apart.
  */
-export const toModelKey = ({ refName, refPath }: ToModelKeyArgs): string =>
-  refPath === undefined || isDefaultRefPath({ refPath, refType: 'schema' })
-    ? refName
-    : toRefPointer({ refName, refPath })
+export const toModelKey = ({ refName, refPath }: RefParts): string =>
+  isDefaultRefPath({ refPath, refType: 'schema' }) ? refName : toRefPointer({ refName, refPath })
+
+/**
+ * Reverses {@link toModelKey}, for a key read back out of a generator key.
+ * A pointer starts with `#`, which no component name can (OpenAPI limits
+ * component names to `[a-zA-Z0-9.\-_]`); any other key is a component's
+ * `refName`.
+ */
+export const fromModelKey = (key: string): RefParts =>
+  toRefParts({
+    $ref: key.startsWith('#') ? key : toJsonPointer(['components', toComponentsBucket('schema'), key]),
+    refType: 'schema'
+  })
 
 /**
  * The value at a ref's pointer in a raw document, or `undefined` when the

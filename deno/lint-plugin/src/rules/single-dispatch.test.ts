@@ -29,8 +29,8 @@ Deno.test('single-dispatch: silent on a router recognised by its SchemaToValueFn
 Deno.test('single-dispatch: silent inside the metadata policies', () => {
   const source = `export const KtModelBase = toKtModelProjectionBase({
       id: denoJson.name,
-      toIdentifierType: (refName, context, refPath): KtIdentifierType => {
-        const schema = context.resolveSchemaRefOnce({ refName, refPath }).resolve()
+      toIdentifierType: (ref, context): KtIdentifierType => {
+        const schema = context.resolveSchemaRefOnce(ref).resolve()
         return { type: schema.type === 'object' ? 'data-class' : 'typealias' }
       },
       isSupported: ({ schema }) => schema.type !== 'unknown'

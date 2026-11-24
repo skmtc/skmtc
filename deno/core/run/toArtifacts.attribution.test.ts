@@ -19,9 +19,9 @@ import type { OpenAPIV3 } from 'openapi-types'
 
 const ModelBase = toTsModelProjectionBase({
   id: '@test/gen-model',
-  toIdentifierName: ({ refName }) => refName,
+  toIdentifierName: ({ ref }) => ref.refName,
   toIdentifierType: () => ({ type: 'type' }),
-  toExportPath: ({ refName }) => `@/types/${refName}.generated.ts`,
+  toExportPath: ({ ref }) => `@/types/${ref.refName}.generated.ts`,
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 
@@ -39,9 +39,9 @@ class ModelProjection extends ModelBase {
 const modelEntry = toModelEntry({
   id: '@test/gen-model',
   toEnrichmentSchema: () => emptyEnrichmentSchema,
-  transform: ({ context, refName }) => {
+  transform: ({ context, ref }) => {
     // deno-lint-ignore no-explicit-any
-    context.insertModel(ModelProjection as any, refName)
+    context.insertModel(ModelProjection as any, ref)
   }
 })
 

@@ -9,6 +9,7 @@ import { TsDefinition, TsIdentifier, createType } from '@skmtc/lang-typescript'
 import invariant from 'tiny-invariant'
 import type { GeneratedValue } from '../GeneratedValue.ts'
 import type { RefName } from '@/types/RefName.ts'
+import { toSchemaComponentRef, type RefParts } from '@/helpers/refFns.ts'
 import { toModelGeneratorKey } from '../GeneratorKeys.ts'
 import type { GeneratorKey } from '../GeneratorKeys.ts'
 import type { Lang, LangToDefinitionArgs } from '@/dsl/Lang.ts'
@@ -44,21 +45,21 @@ class MockProjection extends MockGeneratedValue {
   // The static the Driver reads (`this.projection.lang`) — stands in for
   // the static a real projection inherits from its lang snippet base.
   static lang: Lang = coreDefLang
-  refName: RefName
+  ref: RefParts
   context: GenerateContextType
   settings: ContentSettings<any>
   destinationPath: string
-  rootRef?: RefName
+  rootRef?: RefParts
 
   constructor(args: {
-    refName: RefName
+    ref: RefParts
     context: GenerateContextType
     settings: ContentSettings<any>
     destinationPath: string
-    rootRef?: RefName
+    rootRef?: RefParts
   }) {
     super()
-    this.refName = args.refName
+    this.ref = args.ref
     this.context = args.context
     this.settings = args.settings
     this.destinationPath = args.destinationPath
@@ -67,7 +68,7 @@ class MockProjection extends MockGeneratedValue {
     // with their own `id` stamp a matching `generatorKey` (the integrity
     // check compares against `this.projection.id`).
     const generatorId = (this.constructor as typeof MockProjection).id
-    this.generatorKey = toModelGeneratorKey({ generatorId, refName: args.refName, variant: 'main' })
+    this.generatorKey = toModelGeneratorKey({ generatorId, ref: args.ref, variant: 'main' })
   }
 }
 
@@ -115,8 +116,8 @@ const createMockContext = (): GenerateContextType => {
   const files = new Map<string, FileBase>()
   const mockContext = {
     pendingStack: [],
-    toModelContentSettings: spy(({ refName, variant }: { refName: RefName; variant: string }) => ({
-      identifier: createType(refName),
+    toModelContentSettings: spy(({ ref, variant }: { ref: RefParts; variant: string }) => ({
+      identifier: createType(ref.refName),
       exportPath: '@/path/to/export.ts',
       enrichments: undefined,
       variant
@@ -150,13 +151,13 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
       assertEquals(driver.context, context)
       assertEquals(driver.projection, projection)
-      assertEquals(driver.refName, refName)
+      assertEquals(driver.ref.refName, refName)
       assertEquals(driver.destinationPath, undefined)
       assertEquals(driver.rootRef, undefined)
       assertEquals(driver.noExport, false)
@@ -167,12 +168,12 @@ Deno.test('ModelDriver', async t => {
       const projection = createMockProjection()
       const refName = 'Product' as RefName
       const destinationPath = '@/path/to/destination.ts'
-      const rootRef = 'Root' as RefName
+      const rootRef = toSchemaComponentRef('Root' as RefName)
 
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         destinationPath,
         rootRef,
         noExport: true,
@@ -192,7 +193,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -208,13 +209,13 @@ Deno.test('ModelDriver', async t => {
       new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
       assertSpyCalls(context.toModelContentSettings as any, 1)
       assertSpyCall(context.toModelContentSettings as any, 0, {
-        args: [{ refName, refPath: undefined, projection, variant: 'main', options: undefined }]
+        args: [{ ref: toSchemaComponentRef(refName), projection, variant: 'main', options: undefined }]
       })
     })
 
@@ -226,7 +227,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -242,7 +243,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -260,7 +261,7 @@ Deno.test('ModelDriver', async t => {
         >
         const refName = 'User' as RefName
 
-        const driver = new ModelDriver({ context, projection, refName, variant: 'main' })
+        const driver = new ModelDriver({ context, projection, ref: toSchemaComponentRef(refName), variant: 'main' })
 
         // The Driver used the projection's overridden `toDefinition`, so the
         // registered definition is the custom subclass, NOT the core Definition.
@@ -278,11 +279,11 @@ Deno.test('ModelDriver', async t => {
         const driver = new ModelDriver({
           context,
           projection,
-          refName,
+          ref: toSchemaComponentRef(refName),
           variant: 'main'
         })
 
-        assertEquals(driver.refName, refName)
+        assertEquals(driver.ref.refName, refName)
       })
     })
   })
@@ -296,7 +297,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -311,7 +312,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -328,7 +329,7 @@ Deno.test('ModelDriver', async t => {
       new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         destinationPath,
         variant: 'main'
       })
@@ -362,7 +363,7 @@ Deno.test('ModelDriver', async t => {
       new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         destinationPath,
         variant: 'main'
       })
@@ -382,7 +383,7 @@ Deno.test('ModelDriver', async t => {
       new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         destinationPath,
         variant: 'main'
       })
@@ -401,7 +402,7 @@ Deno.test('ModelDriver', async t => {
       new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -419,7 +420,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -437,7 +438,7 @@ Deno.test('ModelDriver', async t => {
       new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -461,7 +462,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -472,12 +473,12 @@ Deno.test('ModelDriver', async t => {
       const context = createMockContext()
       const projection = createMockProjection()
       const refName = 'User' as RefName
-      const rootRef = 'Root' as RefName
+      const rootRef = toSchemaComponentRef('Root' as RefName)
 
       new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         rootRef,
         variant: 'main'
       })
@@ -493,7 +494,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -509,7 +510,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -529,7 +530,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         noExport: true,
         variant: 'main'
       })
@@ -541,12 +542,12 @@ Deno.test('ModelDriver', async t => {
       const context = createMockContext()
       const projection = createMockProjection()
       const refName = 'User' as RefName
-      const rootRef = 'Root' as RefName
+      const rootRef = toSchemaComponentRef('Root' as RefName)
 
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         rootRef,
         variant: 'main'
       })
@@ -562,7 +563,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -578,7 +579,7 @@ Deno.test('ModelDriver', async t => {
       const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
-          refName,
+          ref: toSchemaComponentRef(refName),
           context,
           settings: {
             identifier: createType(refName),
@@ -592,7 +593,7 @@ Deno.test('ModelDriver', async t => {
       })
       mockDefinition.generatorKey = toModelGeneratorKey({
         generatorId: projection.id,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       }) as GeneratorKey
 
@@ -601,7 +602,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -616,7 +617,7 @@ Deno.test('ModelDriver', async t => {
       const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
-          refName,
+          ref: toSchemaComponentRef(refName),
           context,
           settings: {
             identifier: createType(refName),
@@ -630,7 +631,7 @@ Deno.test('ModelDriver', async t => {
       })
       mockDefinition.generatorKey = toModelGeneratorKey({
         generatorId: projection.id,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       }) as GeneratorKey
 
@@ -639,7 +640,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -659,7 +660,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -674,7 +675,7 @@ Deno.test('ModelDriver', async t => {
       const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
-          refName,
+          ref: toSchemaComponentRef(refName),
           context,
           settings: {
             identifier: createType(refName),
@@ -688,7 +689,7 @@ Deno.test('ModelDriver', async t => {
       })
       mockDefinition.generatorKey = toModelGeneratorKey({
         generatorId: projection.id,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       }) as GeneratorKey
 
@@ -697,7 +698,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -712,7 +713,7 @@ Deno.test('ModelDriver', async t => {
       const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
-          refName,
+          ref: toSchemaComponentRef(refName),
           context,
           settings: {
             identifier: createType(refName),
@@ -733,7 +734,7 @@ Deno.test('ModelDriver', async t => {
           new ModelDriver({
             context,
             projection,
-            refName,
+            ref: toSchemaComponentRef(refName),
             variant: 'main'
           })
         },
@@ -756,14 +757,14 @@ Deno.test('ModelDriver', async t => {
       })
       mockDefinition.generatorKey = toModelGeneratorKey({
         generatorId: projection.id,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       }) as GeneratorKey
 
       context.findDefinition = (() => mockDefinition) as any
 
       assertThrows(
-        () => new ModelDriver({ context, projection, refName, variant: 'main' }),
+        () => new ModelDriver({ context, projection, ref: toSchemaComponentRef(refName), variant: 'main' }),
         Error,
         "Registered definition mismatch: 'User' in file '@/path/to/export.ts' was built by another projection class with the same generator key"
       )
@@ -777,7 +778,7 @@ Deno.test('ModelDriver', async t => {
       const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
-          refName,
+          ref: toSchemaComponentRef(refName),
           context,
           settings: {
             identifier: createType(refName),
@@ -798,7 +799,7 @@ Deno.test('ModelDriver', async t => {
           new ModelDriver({
             context,
             projection,
-            refName,
+            ref: toSchemaComponentRef(refName),
             variant: 'main'
           })
         },
@@ -815,7 +816,7 @@ Deno.test('ModelDriver', async t => {
       const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
-          refName,
+          ref: toSchemaComponentRef(refName),
           context,
           settings: {
             identifier: createType(refName),
@@ -836,7 +837,7 @@ Deno.test('ModelDriver', async t => {
           new ModelDriver({
             context,
             projection,
-            refName,
+            ref: toSchemaComponentRef(refName),
             variant: 'main'
           })
         },
@@ -853,7 +854,7 @@ Deno.test('ModelDriver', async t => {
       const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
-          refName,
+          ref: toSchemaComponentRef(refName),
           context,
           settings: {
             identifier: createType(refName),
@@ -867,7 +868,7 @@ Deno.test('ModelDriver', async t => {
       })
       mockDefinition.generatorKey = toModelGeneratorKey({
         generatorId: projection.id,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       }) as GeneratorKey
 
@@ -876,7 +877,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -891,7 +892,7 @@ Deno.test('ModelDriver', async t => {
       const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
-          refName,
+          ref: toSchemaComponentRef(refName),
           context,
           settings: {
             identifier: createType(refName),
@@ -905,7 +906,7 @@ Deno.test('ModelDriver', async t => {
       })
       mockDefinition.generatorKey = toModelGeneratorKey({
         generatorId: projection.id,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       }) as GeneratorKey
 
@@ -914,7 +915,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -931,12 +932,12 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
       assertEquals(driver.context, context)
-      assertEquals(driver.refName, refName)
+      assertEquals(driver.ref.refName, refName)
       assertEquals(driver.settings !== undefined, true)
       assertEquals(driver.definition instanceof TsDefinition, true)
       assertEquals(context.pendingStack, [])
@@ -950,7 +951,7 @@ Deno.test('ModelDriver', async t => {
       const driver1 = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -960,7 +961,7 @@ Deno.test('ModelDriver', async t => {
       const driver2 = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -974,18 +975,18 @@ Deno.test('ModelDriver', async t => {
       const driver1 = new ModelDriver({
         context,
         projection,
-        refName: 'User' as RefName,
+        ref: toSchemaComponentRef('User' as RefName),
         variant: 'main'
       })
 
       const driver2 = new ModelDriver({
         context,
         projection,
-        refName: 'Product' as RefName,
+        ref: toSchemaComponentRef('Product' as RefName),
         variant: 'main'
       })
 
-      assertEquals(driver1.refName !== driver2.refName, true)
+      assertEquals(driver1.ref.refName !== driver2.ref.refName, true)
       assertEquals(driver1.definition !== driver2.definition, true)
     })
 
@@ -998,7 +999,7 @@ Deno.test('ModelDriver', async t => {
       new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         destinationPath,
         variant: 'main'
       })
@@ -1019,7 +1020,7 @@ Deno.test('ModelDriver', async t => {
       new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         destinationPath,
         variant: 'main'
       })
@@ -1038,7 +1039,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         noExport: true,
         variant: 'main'
       })
@@ -1050,12 +1051,12 @@ Deno.test('ModelDriver', async t => {
       const context = createMockContext()
       const projection = createMockProjection()
       const refName = 'User' as RefName
-      const rootRef = 'Root' as RefName
+      const rootRef = toSchemaComponentRef('Root' as RefName)
 
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         rootRef,
         variant: 'main'
       })
@@ -1073,11 +1074,11 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
-      assertEquals(driver.refName, refName)
+      assertEquals(driver.ref.refName, refName)
       assertEquals(driver.definition.identifier.name, refName)
     })
 
@@ -1090,7 +1091,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         destinationPath: longPath,
         variant: 'main'
       })
@@ -1106,7 +1107,7 @@ Deno.test('ModelDriver', async t => {
       const mockDefinition = new TsDefinition({
         context,
         value: new MockProjection({
-          refName,
+          ref: toSchemaComponentRef(refName),
           context,
           settings: {
             identifier: createType(refName),
@@ -1127,7 +1128,7 @@ Deno.test('ModelDriver', async t => {
         new ModelDriver({
           context,
           projection,
-          refName,
+          ref: toSchemaComponentRef(refName),
           variant: 'main'
         })
       } catch (error) {
@@ -1149,7 +1150,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         destinationPath,
         variant: 'main'
       })
@@ -1165,7 +1166,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver<MockGeneratedValue, any>({
         context,
         projection,
-        refName,
+        ref: toSchemaComponentRef(refName),
         variant: 'main'
       })
 
@@ -1184,7 +1185,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName: 'User' as RefName,
+        ref: toSchemaComponentRef('User' as RefName),
         variant: 'main'
       })
 
@@ -1209,7 +1210,7 @@ Deno.test('ModelDriver', async t => {
           new ModelDriver({
             context,
             projection,
-            refName: 'User' as RefName,
+            ref: toSchemaComponentRef('User' as RefName),
             variant: 'main'
           }),
         Error,
@@ -1227,7 +1228,7 @@ Deno.test('ModelDriver', async t => {
       const driver = new ModelDriver({
         context,
         projection,
-        refName: 'User' as RefName,
+        ref: toSchemaComponentRef('User' as RefName),
         variant: 'main'
       })
 

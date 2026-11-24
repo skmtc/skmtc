@@ -25,8 +25,8 @@ The entry is identical to `gen-zod`:
 ```ts
 export const valibotEntry = toModelEntry({
   id: denoJson.name,
-  transform({ context, refName }) {
-    context.insertModel(ValibotProjection, refName)
+  transform({ context, ref }) {
+    context.insertModel(ValibotProjection, ref)
   }
 })
 ```

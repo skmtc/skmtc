@@ -53,14 +53,14 @@ import denoJson from '../deno.json' with { type: 'json' }
 export const ZodBase = toTsModelProjectionBase({
   id: denoJson.name,
 
-  toIdentifierName({ refName }): string {
-    return decapitalize(camelCase(refName))
+  toIdentifierName({ ref }): string {
+    return decapitalize(camelCase(ref.refName))
   },
 
   toIdentifierType: () => ({ type: 'variable' }),
 
-  toExportPath({ refName, enrichments, variant }): string {
-    const name = this.toIdentifierName({ refName, enrichments, variant })
+  toExportPath({ ref, enrichments, variant }): string {
+    const name = this.toIdentifierName({ ref, enrichments, variant })
     return `@/types/${decapitalize(name)}.generated.ts`
   },
 })
@@ -73,7 +73,7 @@ as statics so the cache key can be computed without
 instantiating.
 
 `toIdentifierName` and `toExportPath` are **pure functions** of
-their inputs. Given the same `refName`, they return identical
+their inputs. Given the same `ref`, they return identical
 identifier names and paths. No mutation, no random suffixes, no
 timestamps.
 
@@ -140,8 +140,8 @@ Inside its `toString()`, it calls
 ### Order A: gen-zod first
 
 1. The engine iterates generators. `gen-zod` runs first.
-2. `gen-zod`'s `transform({ refName: 'User' })` calls
-   `context.insertModel(ZodProjection, 'User')`.
+2. `gen-zod`'s `transform({ ref })` for `User` calls
+   `context.insertModel(ZodProjection, ref)`.
 3. Driver calls `findDefinition({ name: 'user', exportPath:
    '@/types/user.generated.ts' })`. Not found.
 4. Driver creates a `ZodProjection` instance, wraps it in a
@@ -174,8 +174,8 @@ Final state: one `userBody` definition, imported by the form.
    `Definition`, registers it. File map now contains
    `user.generated.ts → { user: Definition }`.
 6. Form Projection records the import.
-7. `gen-zod` runs. Its `transform({ refName: 'User' })` calls
-   `context.insertModel(ZodProjection, 'User')`.
+7. `gen-zod` runs. Its `transform({ ref })` for `User` calls
+   `context.insertModel(ZodProjection, ref)`.
 8. Driver derives key `('user', '@/types/user.generated.ts')`.
 9. `findDefinition` returns the existing entry from step 5. No
    new Projection is constructed.

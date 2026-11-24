@@ -5,7 +5,7 @@
  * check — a veneer that dropped the parameter would fail `deno check` here.
  */
 import { assertEquals } from '@std/assert'
-import { emptyEnrichmentSchema, type RefName } from '@skmtc/core'
+import { emptyEnrichmentSchema, toSchemaComponentRef, type RefName } from '@skmtc/core'
 import type { Enrichments } from '@skmtc/core'
 import { toTsModelProjectionBase } from './toTsModelProjectionBase.ts'
 
@@ -13,9 +13,9 @@ type PetOptions = { suffix: string }
 
 const PetBase = toTsModelProjectionBase<Enrichments, PetOptions>({
   id: '@test/pet',
-  toIdentifierName: ({ refName, options }) => `${refName}${options.suffix}`,
+  toIdentifierName: ({ ref, options }) => `${ref.refName}${options.suffix}`,
   toIdentifierType: () => ({ type: 'variable' }),
-  toExportPath: ({ refName, options }) => `@/models/${refName}${options.suffix}.ts`,
+  toExportPath: ({ ref, options }) => `@/models/${ref.refName}${options.suffix}.ts`,
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 
@@ -26,7 +26,7 @@ class PetModel extends PetBase {
 }
 
 Deno.test('toTsModelProjectionBase forwards the options type to the identity statics', () => {
-  const refName = ('Pet' as RefName)
+  const ref = toSchemaComponentRef('Pet' as RefName)
   const enrichments = {
     subject: undefined,
     generator: undefined,
@@ -35,7 +35,7 @@ Deno.test('toTsModelProjectionBase forwards the options type to the identity sta
 
   assertEquals(
     PetModel.toIdentifierName({
-      refName,
+      ref,
       enrichments,
       variant: 'main',
       options: { suffix: 'Input' }
@@ -44,7 +44,7 @@ Deno.test('toTsModelProjectionBase forwards the options type to the identity sta
   )
   assertEquals(
     PetModel.toExportPath({
-      refName,
+      ref,
       enrichments,
       variant: 'main',
       options: { suffix: 'Input' }

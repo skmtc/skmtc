@@ -4,8 +4,7 @@ import type {
   GenerateContextType,
   Modifiers,
   OasRef,
-  OasSchema,
-  RefName,
+  RefParts,
 } from '@skmtc/core'
 import { applyModifiers } from './modifiers.ts'
 import { MyLibProjection } from './MyLibProjection.ts'
@@ -16,12 +15,9 @@ type MyLibRefArgs = {
   context: GenerateContextType
   destinationPath: string
   modifiers: Modifiers
-  refName: RefName
-  /** Where the ref points (`OasRef.refPath`): a component, or a place inside one, such as a `$defs` entry. */
-  refPath: string
-  rootRef?: RefName
-  /** The originating ref schema node — for fine-grained attribution. */
-  schema?: OasSchema | OasRef<'schema'>
+  /** The ref: a component, or a place inside one, such as a `$defs` entry. Its trail gives fine-grained attribution. */
+  ref: OasRef<'schema'>
+  rootRef?: RefParts
 }
 
 /**
@@ -39,18 +35,16 @@ export class MyLibRef extends TsSnippet {
   deferred: boolean
 
   constructor(
-    { context, refName, refPath, destinationPath, modifiers, rootRef, schema }:
-      MyLibRefArgs,
+    { context, ref, destinationPath, modifiers, rootRef }: MyLibRefArgs,
   ) {
     super({
       context,
       generatorKey: toModelGeneratorKey({
         generatorId: myLibEntry.id,
-        refName,
-        refPath,
+        ref,
         variant: 'main',
       }),
-      stackTrail: schema?.stackTrail.clone(),
+      stackTrail: ref.stackTrail.clone(),
     })
 
     // A model that is not built yet goes through the ModelDriver: a cache
@@ -59,20 +53,19 @@ export class MyLibRef extends TsSnippet {
     // its projection then sees `isReferencedBack` (see MyLibProjection).
     // `inCycle` marks the other references inside a cycle: any model of
     // the cycle can be the first one loaded.
-    const ref = toModelRef({
+    const modelRef = toModelRef({
       context,
-      refName,
-      refPath,
+      ref,
       destinationPath,
       rootRef,
       projection: MyLibProjection,
       variant: 'main',
     })
 
-    this.name = ref.settings.identifier.name
+    this.name = modelRef.settings.identifier.name
     this.modifiers = modifiers
-    this.terminal = ref.suspended
-    this.deferred = ref.suspended || ref.inCycle
+    this.terminal = modelRef.suspended
+    this.deferred = modelRef.suspended || modelRef.inCycle
 
     this.register({ imports: { [LIB_MODULE]: [LIB] }, destinationPath })
   }

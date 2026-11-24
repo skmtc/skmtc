@@ -55,7 +55,7 @@ type ConstructorArgs<V extends GeneratedValue, EnrichmentType> = {
  *     const identifier = userModel.toName(); // 'User'
  *
  *     return new Definition({
- *       identifier: createType(this.refName),
+ *       identifier: createType(this.ref.refName),
  *       value: {
  *         generatorKey: this.generatorKey,
  *         content: `export interface Order { user: ${userTypeName}; }`

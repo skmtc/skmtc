@@ -71,8 +71,8 @@ Open `src/base.ts`. Find `toExportPath` — it'll look something
 like:
 
 ```ts
-toExportPath({ refName, enrichments, variant }): string {
-  const name = this.toIdentifierName({ refName, enrichments, variant })
+toExportPath({ ref, enrichments, variant }): string {
+  const name = this.toIdentifierName({ ref, enrichments, variant })
   return `@/types/${decapitalize(name)}.generated.ts`
 }
 ```
@@ -80,8 +80,8 @@ toExportPath({ refName, enrichments, variant }): string {
 Change the path:
 
 ```ts
-toExportPath({ refName }): string {
-  return `/schemas/${refName}.ts`
+toExportPath({ ref }): string {
+  return `/schemas/${ref.refName}.ts`
 }
 ```
 

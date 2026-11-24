@@ -24,7 +24,7 @@ Deno.test('ModelGenerator - toModelMod generates correct mod.ts content', () => 
   assertStringIncludes(result, 'export const userModelEntry = toModelEntry({')
   assertStringIncludes(result, "id: '@test/user-model'")
   assertStringIncludes(result, 'toEnrichmentSchema: () => emptyEnrichmentSchema')
-  assertStringIncludes(result, 'context.insertModel(UserModelProjection, refName)')
+  assertStringIncludes(result, 'context.insertModel(UserModelProjection, ref)')
 })
 
 Deno.test('ModelGenerator - toModelProjectionBase generates correct base.ts content', () => {
@@ -40,9 +40,9 @@ Deno.test('ModelGenerator - toModelProjectionBase generates correct base.ts cont
 
   assertStringIncludes(result, 'export const ProductModelBase = toTsModelProjectionBase({')
   assertStringIncludes(result, "id: '@skmtc/product-model'")
-  assertStringIncludes(result, 'toIdentifierName({ refName }): string')
+  assertStringIncludes(result, 'toIdentifierName({ ref }): string')
   assertStringIncludes(result, 'toIdentifierType(): TsIdentifierType')
-  assertStringIncludes(result, 'toExportPath({ refName, enrichments, variant }): string')
+  assertStringIncludes(result, 'toExportPath({ ref, enrichments, variant }): string')
   assertStringIncludes(
     result,
     "import { decapitalize, camelCase, emptyEnrichmentSchema } from '@skmtc/core'"
@@ -115,7 +115,7 @@ Deno.test('ModelGenerator - toModelProjection generates correct projection conte
 
   assertStringIncludes(
     result,
-    "import type { TypeSystemValue, GenerateContext, RefName, ContentSettings, EmptyEnrichments } from '@skmtc/core'"
+    "import type { TypeSystemValue, GenerateContext, RefParts, ContentSettings, EmptyEnrichments } from '@skmtc/core'"
   )
   assertStringIncludes(result, "import { toOrderModelValue } from './OrderModel.ts'")
   assertStringIncludes(result, "import { OrderModelBase } from './base.ts'")

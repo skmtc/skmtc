@@ -197,9 +197,9 @@ under `gen-shadcn-form`:
 
 The model arm is structurally identical with two substitutions:
 `#runModelGenerator` reads `enrichments[id][refName][variant]`,
-`context.toModelContentSettings({refName, projection, variant})`
+`context.toModelContentSettings({ref, projection, variant})`
 builds the settings, and the registered `generatorKey` is
-`toModelGeneratorKey({generatorId, refName, variant})` — a 3-segment
+`toModelGeneratorKey({generatorId, ref, variant})` — a 3-segment
 string ending in the variant.
 
 ## When NOT to use variants
@@ -317,11 +317,11 @@ zod schema for the same component model.
 **Generator `toIdentifierName` / `toExportPath` (variants-aware):**
 
 ```ts
-toIdentifierName: ({ refName, variant }) =>
-  withVariant(`${refName}Schema`, variant),
+toIdentifierName: ({ ref, variant }) =>
+  withVariant(`${ref.refName}Schema`, variant),
 toIdentifierType: () => ({ type: 'variable' }),
-toExportPath: ({ refName, variant }) =>
-  `@/schemas/${withVariant(refName, variant)}.generated.ts`
+toExportPath: ({ ref, variant }) =>
+  `@/schemas/${withVariant(ref.refName, variant)}.generated.ts`
 ```
 
 **Generated files** (after `skmtc generate`):
@@ -337,9 +337,9 @@ Inside the Projection, branch on `this.settings.variant === 'coercive'`
 (or read `this.settings.enrichments.subject?.coerce`) to pick `z.coerce.number()`
 vs `z.number()`. An operation generator that needs the coercive flavour
 for query-param parsing calls
-`context.insertModel(ZodVariants, refName, { variant: 'coercive' })`;
+`context.insertModel(ZodVariants, ref, { variant: 'coercive' })`;
 `assertPeerVariantExists` throws loudly if the consumer didn't declare
-that variant for the requested refName.
+that variant for the requested model.
 
 ## Authoring a variants-aware generator
 

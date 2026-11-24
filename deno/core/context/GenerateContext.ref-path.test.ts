@@ -25,6 +25,8 @@ import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { Lang } from '@/dsl/Lang.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { ModelProjectionConstructorArgs } from '@/dsl/model/types.ts'
+import type { RefParts } from '@/helpers/refFns.ts'
+import type { RefName } from '@/types/RefName.ts'
 
 const neutralLang: Lang = {
   createFile: ({ path }) => new MockFile({ path }),
@@ -50,20 +52,20 @@ const labelSchema: v.GenericSchema<Label> = v.object({
 })
 
 /** What each identity static was called with, in order. */
-const seen: { refName: string; refPath: string | undefined }[] = []
+const seen: RefParts[] = []
 
 /** Names a deep ref from its whole pointer, so two targets that share a `refName` get two names. */
-const toName = (refName: string, refPath: string | undefined): string =>
-  refPath === undefined || refPath === '#/components/schemas' ? refName : `${refPath}/${refName}`.replace(/\W+/g, '_')
+const toName = ({ refName, refPath }: RefParts): string =>
+  refPath === '#/components/schemas' ? refName : `${refPath}/${refName}`.replace(/\W+/g, '_')
 
 const ModelBase = toModelProjectionBase<Label, IdentifierType>(NeutralSnippet, {
   id: '@test/ref-path',
-  toIdentifierName: ({ refName, refPath }) => {
-    seen.push({ refName, refPath })
-    return toName(refName, refPath)
+  toIdentifierName: ({ ref }) => {
+    seen.push(ref)
+    return toName(ref)
   },
   toIdentifierType: () => ({ type: 'entity' }),
-  toExportPath: ({ refName, refPath }) => `@/models/${toName(refName, refPath)}.ts`,
+  toExportPath: ({ ref }) => `@/models/${toName(ref)}.ts`,
   toEnrichmentSchema: () => labelSchema
 })
 
@@ -77,12 +79,12 @@ class RefModel extends ModelBase {
 
     this.label = this.settings.enrichments.subject?.label
 
-    const schema = args.context.resolveSchemaRefOnce({ refName: args.refName, refPath: args.refPath })
+    const schema = args.context.resolveSchemaRefOnce(args.ref)
 
     this.properties = schema.isRef() || schema.type !== 'object'
       ? []
       : Object.values(schema.properties ?? {}).flatMap(property =>
-          property.isRef() ? [this.insertModel(RefModel, property.refName, { refPath: property.refPath }).toName()] : []
+          property.isRef() ? [this.insertModel(RefModel, property).toName()] : []
         )
   }
 
@@ -94,8 +96,8 @@ class RefModel extends ModelBase {
 const entry = toModelEntry<Label>({
   id: '@test/ref-path',
   toEnrichmentSchema: () => labelSchema,
-  transform: ({ context, refName }) => {
-    context.insertModel(RefModel, refName)
+  transform: ({ context, ref }) => {
+    context.insertModel(RefModel, ref)
   }
 })
 
@@ -155,12 +157,12 @@ const generate = (settings: ClientSettings | undefined) => {
   return { toDefinition }
 }
 
-const deepName = toName('result', '#/components/schemas/ChatResponse/properties')
+const deepName = toName({ refName: 'result' as RefName, refPath: '#/components/schemas/ChatResponse/properties' })
 
-Deno.test('ref path - toIdentifierName receives refName and refPath, with no refPath for a component', () => {
+Deno.test('ref path - toIdentifierName receives the ref, with refPath #/components/schemas for a component', () => {
   generate(undefined)
 
-  assert(seen.some(call => call.refName === 'UsesResult' && call.refPath === undefined))
+  assert(seen.some(call => call.refName === 'UsesResult' && call.refPath === '#/components/schemas'))
   assert(seen.some(call => call.refName === 'result' && call.refPath === '#/components/schemas/ChatResponse/properties'))
 })
 
@@ -189,8 +191,8 @@ Deno.test("ref path - a component's enrichments are read by its name, a deep tar
 Deno.test('ref path - two deep targets that share a refName build two models, when the generator names them apart', () => {
   // The trap: render.com refers to two different schemas called `disk`.
   const { toDefinition } = generate(undefined)
-  const first = toName('disk', '#/components/schemas/diskWithCursor/properties')
-  const second = toName('disk', '#/components/schemas/webServiceDetails/properties')
+  const first = toName({ refName: 'disk' as RefName, refPath: '#/components/schemas/diskWithCursor/properties' })
+  const second = toName({ refName: 'disk' as RefName, refPath: '#/components/schemas/webServiceDetails/properties' })
 
   assertEquals(String(toDefinition('Disks').value), `${first}, ${second}`)
   assertEquals(toDefinition(first).generatorKey, '@test/ref-path|#/components/schemas/diskWithCursor/properties/disk|main')

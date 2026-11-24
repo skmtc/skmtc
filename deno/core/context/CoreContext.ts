@@ -408,7 +408,7 @@ export class CoreContext {
    *   toGeneratorConfigMap: () => ({
    *     'typescript-models': toModelEntry({
    *       id: 'typescript-models',
-   *       transform: ({ context, refName }) => {}
+   *       transform: ({ context, ref }) => {}
    *     }),
    *     'api-client': toOasOperationEntry({
    *       id: 'api-client',

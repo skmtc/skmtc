@@ -16,7 +16,7 @@
  *    static read — and, Kotlin-specifically, that import is SUPPRESSED
  *    when the destination shares the peer's package.
  */
-import { GenerateContext, OasDocument, SnippetBase, emptyEnrichmentSchema } from '@skmtc/core'
+import { GenerateContext, OasDocument, SnippetBase, emptyEnrichmentSchema, toSchemaComponentRef } from '@skmtc/core'
 import type {
   GenerateContextType,
   ModelProjectionConstructorArgs,
@@ -75,7 +75,7 @@ class SpikeField extends KtSnippet {
 
 const SpikeModelBase = toKtModelProjectionBase({
   id: '@spike/gen-kotlin-option2',
-  toIdentifierName: ({ refName }) => `${refName}Spike`,
+  toIdentifierName: ({ ref }) => `${ref.refName}Spike`,
   toIdentifierType: () => ({ type: 'val' }),
   toExportPath: () => '@/spike/models/Models.generated.kt',
   toEnrichmentSchema: () => emptyEnrichmentSchema
@@ -93,7 +93,7 @@ class SpikeModel extends SpikeModelBase {
 
     this.field = new SpikeField({
       context: args.context,
-      name: args.refName,
+      name: args.ref.refName,
       destinationPath: this.settings.exportPath
     })
 
@@ -113,7 +113,7 @@ Deno.test('kotlin option2 port - static lang is inherited through the factory ch
 Deno.test('kotlin option2 port - insertModel end-to-end with an EMPTY config map; keyless snippet registers', () => {
   const context = toGenerateContext()
 
-  const inserted = context.insertModel(SpikeModel, 'User' as RefName)
+  const inserted = context.insertModel(SpikeModel, toSchemaComponentRef('User' as RefName))
 
   assertEquals(inserted.toName(), 'UserSpike')
 
@@ -143,7 +143,7 @@ Deno.test('kotlin option2 port - cross-file insertion registers the peer import 
   // Insert the model from a destination in a DIFFERENT package: the Driver
   // builds the cross-file import through projection.lang (static), and the
   // KtFile renders it as a package-resolved Kotlin import.
-  const inserted = context.insertModel(SpikeModel, 'Order' as RefName, {
+  const inserted = context.insertModel(SpikeModel, toSchemaComponentRef('Order' as RefName), {
     destinationPath: '@/consumers/Page.generated.kt'
   })
 
@@ -161,7 +161,7 @@ Deno.test('kotlin option2 port - the peer import is suppressed when the destinat
   // Same package as the peer's export file (spike.models) — Kotlin needs
   // no import for same-package symbols, so the Driver-registered import
   // must vanish at render.
-  context.insertModel(SpikeModel, 'Invoice' as RefName, {
+  context.insertModel(SpikeModel, toSchemaComponentRef('Invoice' as RefName), {
     destinationPath: '@/spike/models/Sibling.generated.kt'
   })
 

@@ -102,14 +102,20 @@ the same. The engine keys any other target by its whole pointer. In
 `client.json`, the enrichments of such a target go under that pointer
 (`"#/components/schemas/ChatResponse/properties/result": { "main": … }`).
 
-The model generator's identity statics receive both `refName` and
-`refPath` (`refPath` is absent for a component). The name is the
-generator's: `refName` alone repeats across positions, as two refs to
-`…/properties/disk` under different schemas do. Pass a ref's `refPath`
-everywhere you pass its `refName`: to `insertModel` (`{ refPath }`), to
-`toModelRef`, and to `resolveSchemaRefOnce({ refName, refPath })` in the
-projection. `resolveSchemaRefOnce` requires the `refPath` key, so the
-compiler finds a call that drops it.
+The model API takes a model's ref as one value, `ref: RefParts`
+(`{ refName, refPath }`), never a bare `refName`. An `OasRef` has both
+fields and fits it as it is. A component's `refPath` is
+`#/components/schemas`. Code that holds only a component's name builds
+its ref with `toSchemaComponentRef(refName)`.
+
+Pass the `ref` as it is: to `insertModel(Peer, ref)`, to
+`toModelRef({ …, ref })`, and to `resolveSchemaRefOnce(ref)` in the
+projection. The two parts travel together, so no call can drop one.
+
+The model generator's identity statics receive the `ref` too. The name
+is the generator's: `ref.refName` alone repeats across positions, as two
+refs to `…/properties/disk` under different schemas do. A generator
+that must tell such targets apart reads `ref.refPath`.
 
 ## The forward-ref problem
 

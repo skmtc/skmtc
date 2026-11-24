@@ -39,12 +39,12 @@ class GenerateContext implements GenerateContextType {
   addFile(file: FileBase): void
   get inspectedFiles(): ReadonlyMap<string, FileBase>
   insertOperation<V, E, P>(args: InsertOperationArgs<V, E, P>): Inserted<V, E>
-  insertModel<V, E, P>(projection: ModelProjection<V, E, P>, refName: RefName, ...rest: ProjectionOptionsRest<InsertModelOptions<P>, P>): Inserted<V, E>
+  insertModel<V, E, P>(projection: ModelProjection<V, E, P>, ref: RefParts, ...rest: ProjectionOptionsRest<InsertModelOptions<P>, P>): Inserted<V, E>
   insertNormalizedModel<V, S, E, P>(projection: NormalizedModelProjection<V, E, P>, args: InsertNormalizedModelArgs<S>, ...rest: ProjectionOptionsRest<InsertNormalizedModelOptions<P>, P>): InsertNormalizedModelReturn<V, S>
   findDefinition(args: PickArgs): DefinitionBase | undefined
   toOperationContentSettings<V, E, P>(args: ToOperationSettingsArgs<V, E, P>): ContentSettings<E>
   toModelContentSettings<V, E, P>(args: BuildModelSettingsArgs<V, E, P>): ContentSettings<E>
-  resolveSchemaRefOnce(args: ResolveSchemaRefArgs): OasSchema | OasRef<'schema'>
+  resolveSchemaRefOnce(ref: RefParts): OasSchema | OasRef<'schema'>
 }
 ```
 
@@ -206,7 +206,7 @@ Generators typically call this through the projection-base wrapper
 (`this.insertOperation(Peer, op)`) which auto-fills `destinationPath`
 from `this.settings.exportPath`.
 
-### `insertModel<V, E, P>(projection, refName, ...rest): Inserted<V, E>`
+### `insertModel<V, E, P>(projection, ref, ...rest): Inserted<V, E>`
 
 The model equivalent of `insertOperation`. Routes through
 `ModelDriver`.
@@ -214,10 +214,15 @@ The model equivalent of `insertOperation`. Routes through
 ```ts
 insertModel(
   projection: ModelProjection<V, E, P>,
-  refName: RefName,
+  ref: RefParts,
   ...rest: ProjectionOptionsRest<InsertModelOptions<P>, P>
 ): Inserted<V, E>
 ```
+
+`ref` is the model's `{ refName, refPath }`. An `OasRef<'schema'>` fits
+it as it is: `insertModel(Peer, ref)`. For a component known only by
+name, build the ref with `toSchemaComponentRef(refName)`, which gives
+`refPath` `#/components/schemas`.
 
 The trailing argument is `{ destinationPath?, noExport?, variant?, options }`.
 It is optional unless the peer declares options, in which case
@@ -227,7 +232,7 @@ depends on its options must fold them into `toIdentifierName`.
 
 Used by model Projections to reference each other (e.g., a Zod
 Projection referencing a TypeScript-type Projection for the same
-refName).
+ref).
 
 ### `insertNormalizedModel<V, S, E, P>(projection, args, ...rest): InsertNormalizedModelReturn<V, S>`
 
@@ -249,8 +254,8 @@ what distinguishes it into `fallbackName`.
 
 Branches:
 
-- **`schema.isRef()` is true**: routes through `insertModel` using
-  the resolved refName. Strict integrity check.
+- **`schema.isRef()` is true**: routes through `insertModel` with the
+  `OasRef` as its `ref`. Strict integrity check.
 - **`schema.isRef()` is false** (inline schema): caches by
   `(fallbackName, destinationPath)`. **Name-only check** — does not
   verify generator identity (a known integrity gap).
@@ -275,23 +280,21 @@ call directly when implementing custom coordination.
 ### `toOperationContentSettings<V, E, P>(args)`, `toModelContentSettings<V, E, P>(args)`
 
 Compute `ContentSettings` (identifier + exportPath + enrichments)
-for a projection on a given operation/refName. Used by Drivers;
+for a projection on a given operation or ref. Used by Drivers;
 generators rarely call directly. `args` carries `options` on the same
 terms as the insert calls: required when the projection declares
 options, absent otherwise.
 
-### `resolveSchemaRefOnce({ refName, refPath }): OasSchema | OasRef<'schema'>`
+### `resolveSchemaRefOnce(ref): OasSchema | OasRef<'schema'>`
 
-One-step ref resolution. With `refPath` `undefined` or
-`#/components/schemas`, it reads the component named `refName`. With any
-other `refPath`, it reads the target that the parser kept under the whole
-pointer, such as a `$defs` entry. Throws `DanglingRefError` when no schema
-is there.
+One-step ref resolution. With `refPath` `#/components/schemas`, it
+reads the component named `refName`. With any other `refPath`, it reads
+the target that the parser kept under the whole pointer, such as a
+`$defs` entry. Throws `DanglingRefError` when no schema is there.
 
-`refPath` is a required key (`string | undefined`). A model projection
-receives `refPath` next to `refName`; pass both:
-`resolveSchemaRefOnce({ refName, refPath })`. An `OasRef<'schema'>` has
-both fields, so `resolveSchemaRefOnce(ref)` also works. A model's recursion goes
+A model projection receives its `ref` in the constructor; pass it as it
+is: `resolveSchemaRefOnce(ref)`. An `OasRef<'schema'>` fits too. A
+model's recursion goes
 through `toModelRef`, not through this call (see
 [recursive types in the type system](../../concepts/the-type-system.md#handling-recursive-types--pending-entries)).
 

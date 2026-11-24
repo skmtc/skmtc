@@ -74,14 +74,14 @@ import type { TsIdentifierType } from '@skmtc/lang-typescript'
 export const SchemaMetaBase = toTsModelProjectionBase({
   id: '@local/schema-meta',
 
-  toIdentifierName({ refName }): string {
-    return `${decapitalize(camelCase(refName))}Meta`
+  toIdentifierName({ ref }): string {
+    return `${decapitalize(camelCase(ref.refName))}Meta`
   },
 
   toIdentifierType: (): TsIdentifierType => ({ type: 'variable' }),
 
-  toExportPath({ refName }): string {
-    return `@/meta/${refName}.meta.ts`
+  toExportPath({ ref }): string {
+    return `@/meta/${ref.refName}.meta.ts`
   },
 
   toEnrichmentSchema: () => emptyEnrichmentSchema
@@ -112,26 +112,25 @@ returned by `toTsModelProjectionBase` (not the abstract
 `ModelProjectionBase` directly):
 
 ```ts
-import type { GenerateContext, RefName, ContentSettings } from '@skmtc/core'
+import type { GenerateContext, RefParts, ContentSettings, EmptyEnrichments } from '@skmtc/core'
 import { SchemaMetaBase } from './base.ts'
 
 type ConstructorArgs = {
   context: GenerateContext
-  refName: RefName
-  refPath?: string
-  settings: ContentSettings
+  ref: RefParts
+  settings: ContentSettings<EmptyEnrichments>
   destinationPath: string
-  rootRef?: RefName
+  rootRef?: RefParts
 }
 
 export class SchemaMetaProjection extends SchemaMetaBase {
   propNames: string[]
 
-  constructor({ context, refName, refPath, settings }: ConstructorArgs) {
-    super({ context, refName, refPath, settings })
+  constructor({ context, ref, settings }: ConstructorArgs) {
+    super({ context, ref, settings })
 
-    // The schema is resolved here, from refName and refPath.
-    const schema = context.resolveSchemaRefOnce({ refName, refPath })
+    // The schema is resolved here, from the model's ref.
+    const schema = context.resolveSchemaRefOnce(ref)
 
     if (schema.isRef() || schema.type !== 'object') {
       this.propNames = []
@@ -151,14 +150,13 @@ export class SchemaMetaProjection extends SchemaMetaBase {
 
 Two things to note:
 
-- The constructor receives `refName` and `refPath`, not a schema. The
-  constructor resolves the schema with
-  `context.resolveSchemaRefOnce({ refName, refPath })`. A component has no
-  `refPath`. A ref to a `$defs` entry or a property has a `refPath`
-  inside the document. `refPath` is a required key, so the compiler
-  tells you when you drop it.
-- `super(args)` only passes the four canonical fields
-  (`context`, `refName`, `refPath`, `settings`). `destinationPath` and
+- The constructor receives the model's `ref`, not a schema. A `ref` is
+  `{ refName, refPath }` in one value. The constructor resolves the
+  schema with `context.resolveSchemaRefOnce(ref)`. A component's
+  `refPath` is `#/components/schemas`. A ref to a `$defs` entry or a
+  property has a `refPath` inside the document.
+- `super(args)` only passes the three canonical fields
+  (`context`, `ref`, `settings`). `destinationPath` and
   `rootRef` are scaffold-added fields available on the args but
   not passed up.
 
@@ -170,8 +168,8 @@ The `toString()` returns the **value side** of the
 
 `src/mod.ts` is the **Entry**: a `toModelEntry({...})` call whose
 result becomes the package's default export. The pipeline iterates
-over every refName in the document and invokes the Entry's
-`transform` callback for each one.
+over every schema component in the document and invokes the Entry's
+`transform` callback for each one, with the component's `ref`.
 
 The scaffold writes a minimal Entry — opening the file should show
 something close to:
@@ -185,8 +183,8 @@ import denoJson from '../deno.json' with { type: 'json' }
 const schemaMetaEntry = toModelEntry({
   id: denoJson.name,
   toEnrichmentSchema: () => emptyEnrichmentSchema,
-  transform({ context, refName }) {
-    context.insertModel(SchemaMetaProjection, refName)
+  transform({ context, ref }) {
+    context.insertModel(SchemaMetaProjection, ref)
   }
 })
 
@@ -202,16 +200,16 @@ Two things to internalize:
    not already cached), wrap the result in a `Definition`, and
    register it in the file map.
 2. **Model entries have an optional `isSupported`** — declare it to
-   gate which refNames the engine dispatches (a `false` result records
-   `notSupported` and skips `transform`); omit it and every refName is
-   dispatched. The predicate receives `{ context, refName, enrichments,
-   variant }` — no schema, so resolve it yourself. Use `isSupported`
+   gate which models the engine dispatches (a `false` result records
+   `notSupported` and skips `transform`); omit it and every model is
+   dispatched. The predicate receives `{ context, ref, variant }` — no
+   schema, so resolve it yourself. Use `isSupported`
    for a *capability* claim (the schema shapes this generator can
    handle); for user opt-in/out, prefer client.json `include`/`skip`:
 
 ```ts
-isSupported({ context, refName, refPath }) {
-  const schema = context.resolveSchemaRefOnce({ refName, refPath })
+isSupported({ context, ref }) {
+  const schema = context.resolveSchemaRefOnce(ref)
   return !schema.isRef() && schema.type === 'object'
 }
 ```
@@ -219,7 +217,7 @@ isSupported({ context, refName, refPath }) {
 This is now symmetric with operation entries (tutorial 03's Step 2
 implements `isSupported` on the Entry config too). You can equally
 filter inside `transform` — but `isSupported` makes the capability
-explicit, surfaces the refName as `notSupported` rather than a silent
+explicit, surfaces the model as `notSupported` rather than a silent
 no-op, and lets peers probe it via `insertModel`.
 
 `toEnrichmentSchema` is **required** — the scaffold wires it to core's
@@ -238,8 +236,8 @@ another generator's registered name (e.g., the TypeScript type from
 
 ```ts
 constructor(args: ConstructorArgs) {
-  super({ context: args.context, refName: args.refName, refPath: args.refPath, settings: args.settings })
-  const ts = args.context.insertModel(TsProjection, args.refName, { refPath: args.refPath })
+  super({ context: args.context, ref: args.ref, settings: args.settings })
+  const ts = args.context.insertModel(TsProjection, args.ref)
   this.tsName = ts.toName()
 }
 ```
@@ -271,7 +269,7 @@ cat src/generated/Pet.meta.ts
 You created a model generator from scratch. The structure:
 
 - **`src/mod.ts`** exports the `Entry` — `toModelEntry({ id,
-  transform({ context, refName }) { context.insertModel(SchemaMetaProjection, refName) } })`
+  transform({ context, ref }) { context.insertModel(SchemaMetaProjection, ref) } })`
 - **`src/base.ts`** holds the `toTsModelProjectionBase({...})`
   factory call. The pure `toIdentifierName` / `toIdentifierType` /
   `toExportPath` are config fields on that call.

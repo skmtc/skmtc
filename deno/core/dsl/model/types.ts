@@ -1,23 +1,12 @@
 import type { GenerateContextType } from '../../context/generateTypes.ts'
 import type { Lang } from '@/dsl/Lang.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import type { RefName } from '@/types/RefName.ts'
+import type { RefParts } from '@/helpers/refFns.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { SchemaToValueFn } from '@/types/TypeSystem.ts'
 import type { ProjectionOptionsArg } from '@/types/ProjectionOptions.ts'
-
-/**
- * Where the ref to a model points, next to its `refName`: the model's
- * `OasRef.refPath`. Absent, or `#/components/schemas`, for a component, which
- * is every model the engine sweeps. Any other path is a ref into a schema,
- * such as `#/components/schemas/Pet/properties` for `refName` `tag`. A
- * generator that names models by `refName` alone may ignore it.
- */
-export type RefPathArg = {
-  refPath?: string
-}
 
 /**
  * External constructor signature for a model projection class.
@@ -31,84 +20,90 @@ export type ModelProjectionConstructorArgs<
   ProjectionOptions = undefined
 > = {
   context: GenerateContextType
-  refName: RefName
+  /** The model's ref (see {@link RefParts}); an `OasRef` fits it. */
+  ref: RefParts
   settings: ContentSettings<EnrichmentType>
   destinationPath: string
-  rootRef?: RefName
-} & RefPathArg &
-  ProjectionOptionsArg<ProjectionOptions>
+  rootRef?: RefParts
+} & ProjectionOptionsArg<ProjectionOptions>
 
 export type WithTransformModel = {
-  transformModel: (refName: RefName) => void
+  transformModel: (ref: RefParts) => void
 }
 
 export type ToModelEnrichmentsArgs = {
-  refName: RefName
+  /** The model's ref (see {@link RefParts}); an `OasRef` fits it. */
+  ref: RefParts
   context: GenerateContextType
   /** Model variant whose enrichment should be resolved (see {@link Variant}) */
   variant: string
-} & RefPathArg
+}
 
 export type TransformModelArgs = {
   context: GenerateContextType
-  refName: RefName
+  /** The model's ref (see {@link RefParts}); an `OasRef` fits it. */
+  ref: RefParts
   /**
    * The model variant the engine is dispatching for this call. The
    * engine fans out one `transform` call per variant declared in the
-   * consumer's `enrichments[id][refName]` block (or just `'main'`
+   * consumer's `enrichments[id][refName]` block (the whole pointer for a
+   * model that is not a component) (or just `'main'`
    * when no enrichments are configured). See {@link Variant}.
    */
   variant: string
-} & RefPathArg
+}
 
 /**
  * Arguments a model generator's `isSupported` predicate receives at the
  * entry/dispatch boundary. The capability counterpart of
  * {@link TransformModelArgs}: it carries the resolved enrichment umbrella so
  * the predicate can gate on user config, but no schema — the predicate
- * resolves the schema itself (`context.resolveSchemaRefOnce({ refName, refPath })`)
+ * resolves the schema itself (`context.resolveSchemaRefOnce(ref)`)
  * when it needs it, mirroring how `transform` works.
  */
 export type IsSupportedModelArgs = {
   context: GenerateContextType
-  refName: RefName
+  /** The model's ref (see {@link RefParts}); an `OasRef` fits it. */
+  ref: RefParts
   /** Model variant being probed (see {@link Variant}) */
   variant: string
-} & RefPathArg
+}
 
 export type ToModelPreviewModuleArgs = {
   context: GenerateContextType
-  refName: RefName
+  /** The model's ref (see {@link RefParts}); an `OasRef` fits it. */
+  ref: RefParts
   /** Model variant the preview module describes (see {@link Variant}) */
   variant: string
-} & RefPathArg
+}
 
 export type ToModelMappingArgs = {
   context: GenerateContextType
-  refName: RefName
+  /** The model's ref (see {@link RefParts}); an `OasRef` fits it. */
+  ref: RefParts
   /** Model variant the mapping module describes (see {@link Variant}) */
   variant: string
-} & RefPathArg
+}
 
 /**
  * Arguments for a model projection's `toIdentifierName`. Fold `options` into the name when the output
  * depends on them: definitions are cached by name and export path.
  */
 export type ToModelIdentifierNameArgs<EnrichmentType = undefined, ProjectionOptions = undefined> = {
-  refName: RefName
+  /** The model's ref (see {@link RefParts}); an `OasRef` fits it. */
+  ref: RefParts
   enrichments: EnrichmentType
   /** Model variant the identifier should disambiguate (see {@link Variant}) */
   variant: string
-} & RefPathArg &
-  ProjectionOptionsArg<ProjectionOptions>
+} & ProjectionOptionsArg<ProjectionOptions>
 
 export type ToModelExportPathArgs<EnrichmentType = undefined, ProjectionOptions = undefined> = {
-  refName: RefName
+  /** The model's ref (see {@link RefParts}); an `OasRef` fits it. */
+  ref: RefParts
   enrichments: EnrichmentType
   /** Model variant the export path should disambiguate (see {@link Variant}) */
   variant: string
-} & RefPathArg &
-  ProjectionOptionsArg<ProjectionOptions>
+} & ProjectionOptionsArg<ProjectionOptions>
 
 /**
  * Static structural type of a model projection class.
@@ -128,8 +123,7 @@ export type ModelProjection<
 } & {
   new ({
     context,
-    refName,
-    refPath,
+    ref,
     settings,
     destinationPath,
     rootRef,
@@ -150,11 +144,11 @@ export type ModelProjection<
    * Context-aware, overridable: the non-`name` parts of the identifier
    * (`type` / `typeName` / `exported`), derived from the schema. The engine
    * assembles `lang.toIdentifier({ name: toIdentifierName(args),
-   * ...toIdentifierType(refName, context) })`.
+   * ...toIdentifierType(ref, context) })`.
    */
-  toIdentifierType: (refName: RefName, context: GenerateContextType, refPath?: string) => IdentifierType
+  toIdentifierType: (ref: RefParts, context: GenerateContextType) => IdentifierType
   toExportPath: (args: ToModelExportPathArgs<EnrichmentType, ProjectionOptions>) => string
-  toEnrichments: ({ refName, refPath, context, variant }: ToModelEnrichmentsArgs) => EnrichmentType
+  toEnrichments: ({ ref, context, variant }: ToModelEnrichmentsArgs) => EnrichmentType
   /**
    * Family-level capability predicate, surfaced as a static by
    * `toModelProjectionBase` (default `() => true`). The Driver probes it on

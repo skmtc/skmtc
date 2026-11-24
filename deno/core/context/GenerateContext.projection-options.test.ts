@@ -40,6 +40,7 @@ import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { Lang } from '@/dsl/Lang.ts'
 import type { GenerateContextType, InsertModelOptions } from '@/context/generateTypes.ts'
 import type { RefName } from '@/types/RefName.ts'
+import { toSchemaComponentRef, type RefParts } from '@/helpers/refFns.ts'
 
 // An unconfigured named logger has no handlers, so it is silent.
 const mockLogger: log.Logger = log.getLogger('projection-options-test-silent')
@@ -60,15 +61,15 @@ class NeutralSnippet extends SnippetBase {
   }
 }
 
-const pet = ('Pet' as RefName)
+const pet = toSchemaComponentRef('Pet' as RefName)
 
 type PetOptions = { suffix: string }
 
 const PetBase = toModelProjectionBase<Enrichments, IdentifierType, PetOptions>(NeutralSnippet, {
   id: '@test/pet',
-  toIdentifierName: ({ refName, options }) => `${refName}${options.suffix}`,
+  toIdentifierName: ({ ref, options }) => `${ref.refName}${options.suffix}`,
   toIdentifierType: () => ({ type: 'entity' }),
-  toExportPath: ({ refName, options }) => `@/models/${refName}${options.suffix}.ts`,
+  toExportPath: ({ ref, options }) => `@/models/${ref.refName}${options.suffix}.ts`,
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 
@@ -83,9 +84,9 @@ const ForgetfulBase = toModelProjectionBase<Enrichments, IdentifierType, PetOpti
   NeutralSnippet,
   {
     id: '@test/forgetful',
-    toIdentifierName: ({ refName }) => refName,
+    toIdentifierName: ({ ref }) => ref.refName,
     toIdentifierType: () => ({ type: 'entity' }),
-    toExportPath: ({ refName }) => `@/models/${refName}.ts`,
+    toExportPath: ({ ref }) => `@/models/${ref.refName}.ts`,
     toEnrichmentSchema: () => emptyEnrichmentSchema
   }
 )
@@ -98,9 +99,9 @@ class ForgetfulModel extends ForgetfulBase {
 
 const PlainBase = toModelProjectionBase(NeutralSnippet, {
   id: '@test/plain',
-  toIdentifierName: ({ refName }) => refName,
+  toIdentifierName: ({ ref }) => ref.refName,
   toIdentifierType: () => ({ type: 'entity' }),
-  toExportPath: ({ refName }) => `@/models/${refName}.ts`,
+  toExportPath: ({ ref }) => `@/models/${ref.refName}.ts`,
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 
@@ -114,9 +115,9 @@ const MaybeBase = toModelProjectionBase<Enrichments, IdentifierType, PetOptions 
   NeutralSnippet,
   {
     id: '@test/maybe',
-    toIdentifierName: ({ refName, options }) => `${refName}${options?.suffix ?? ''}`,
+    toIdentifierName: ({ ref, options }) => `${ref.refName}${options?.suffix ?? ''}`,
     toIdentifierType: () => ({ type: 'entity' }),
-    toExportPath: ({ refName }) => `@/models/${refName}.ts`,
+    toExportPath: ({ ref }) => `@/models/${ref.refName}.ts`,
     toEnrichmentSchema: () => emptyEnrichmentSchema
   }
 )
@@ -242,9 +243,9 @@ Deno.test('projection options - only noExport, variant and options reach the eng
   assertEquals(handlerFile.imports.has('@/models/Pet.generated.ts'), true)
 
   // Same guarantee on the context: engine-owned keys cannot be overridden.
-  const wide: InsertModelOptions & { refName: RefName } = {
+  const wide: InsertModelOptions & { ref: RefParts } = {
     noExport: true,
-    refName: ('Other' as RefName)
+    ref: toSchemaComponentRef('Other' as RefName)
   }
   const inserted = context.insertModel(PlainModel, pet, wide)
   assertEquals(inserted.toName(), 'Pet')
@@ -254,26 +255,26 @@ Deno.test('projection options - only noExport, variant and options reach the eng
 // Type-level: the call surface follows what the peer declares. Never run.
 export const _typeChecks = (
   context: GenerateContextType,
-  refName: RefName,
+  ref: RefParts,
   operation: OasOperation,
   handler: HandlerProjection
 ) => {
-  context.insertModel(PetModel, refName, { options: { suffix: 'Input' } })
-  context.insertModel(PetModel, refName, { options: { suffix: 'Input' }, noExport: true })
+  context.insertModel(PetModel, ref, { options: { suffix: 'Input' } })
+  context.insertModel(PetModel, ref, { options: { suffix: 'Input' }, noExport: true })
   // @ts-expect-error options are required when the peer declares them
-  context.insertModel(PetModel, refName)
+  context.insertModel(PetModel, ref)
   // @ts-expect-error options are required when the peer declares them
-  context.insertModel(PetModel, refName, { noExport: true })
+  context.insertModel(PetModel, ref, { noExport: true })
   // @ts-expect-error options must match the declared shape
-  context.insertModel(PetModel, refName, { options: { suffix: 1 } })
+  context.insertModel(PetModel, ref, { options: { suffix: 1 } })
 
-  context.insertModel(PlainModel, refName)
-  context.insertModel(PlainModel, refName, { noExport: true })
+  context.insertModel(PlainModel, ref)
+  context.insertModel(PlainModel, ref, { noExport: true })
   // @ts-expect-error a peer without options refuses stray ones
-  context.insertModel(PlainModel, refName, { options: { suffix: 'Input' } })
+  context.insertModel(PlainModel, ref, { options: { suffix: 'Input' } })
 
-  context.insertModel(MaybeModel, refName)
-  context.insertModel(MaybeModel, refName, { options: { suffix: 'Input' } })
+  context.insertModel(MaybeModel, ref)
+  context.insertModel(MaybeModel, ref, { options: { suffix: 'Input' } })
 
   context.insertOperation({ projection: HandlerProjection, operation })
   context.insertOperation({
@@ -283,18 +284,18 @@ export const _typeChecks = (
     options: { suffix: 'Input' }
   })
 
-  handler.insertModel(PetModel, refName, { options: { suffix: 'Input' } })
+  handler.insertModel(PetModel, ref, { options: { suffix: 'Input' } })
   // @ts-expect-error options are required when the peer declares them
-  handler.insertModel(PetModel, refName)
-  handler.insertModel(PlainModel, refName)
+  handler.insertModel(PetModel, ref)
+  handler.insertModel(PlainModel, ref)
 
-  context.toModelContentSettings({ refName, projection: PlainModel, variant: 'main' })
+  context.toModelContentSettings({ ref, projection: PlainModel, variant: 'main' })
   context.toModelContentSettings({
-    refName,
+    ref,
     projection: PetModel,
     variant: 'main',
     options: { suffix: 'Input' }
   })
   // @ts-expect-error options are required when the peer declares them
-  context.toModelContentSettings({ refName, projection: PetModel, variant: 'main' })
+  context.toModelContentSettings({ ref, projection: PetModel, variant: 'main' })
 }

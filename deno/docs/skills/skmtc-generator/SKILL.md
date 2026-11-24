@@ -104,7 +104,7 @@ functions that return strings — helpers drift.
   projection is still being constructed (a cycle) goes through
   `toModelRef` (see skmtc-model). So: never hardcode a peer's name
   or path — insert and read the result, minding the two return shapes:
-  `insertModel(Peer, refName)` returns an **Inserted handle** (name via
+  `insertModel(Peer, ref)` returns an **Inserted handle** (name via
   `.toName()`, definition via `.definition`), while
   `insertNormalizedModel(Peer, { schema, fallbackName })` returns the
   **definition itself** (name via `.identifier.name`). Never hand-write
@@ -200,7 +200,7 @@ functions that return strings — helpers drift.
   `client.json`; keys the schema drops and
   routing paths nothing read land on `manifest.enrichmentWarnings`.
   Options come from the CALLING generator, on the insert:
-  `this.insertModel(Peer, refName, { options: { suffix: 'Input' } })`.
+  `this.insertModel(Peer, ref, { options: { suffix: 'Input' } })`.
   A projection declares its options type on its base factory (the
   veneer's second type parameter: `toTsModelProjectionBase<E, Options>`);
   the Driver hands them to `toIdentifierName` / `toExportPath` and the
@@ -212,22 +212,24 @@ functions that return strings — helpers drift.
   options and a type error when it does not; declare `T | undefined`
   to make it optional. Pass a fresh object per insertion. Module state
   is never a channel: it breaks determinism.
-- **Naming**: models from `refName` casing (core's `camelCase`,
+- **Naming**: models from `ref.refName` casing (core's `camelCase`,
   `capitalize`, `decapitalize`); operations from **method + path** via
   core's `toEndpointName` (post→Create, put→Update). **Never**
   `operationId` — spec-author-controlled; no stock generator reads it.
-- **A ref carries `refName` and `refPath`.** `refName` is the last
-  segment of its pointer, `refPath` the pointer before it:
-  `#/components/schemas` for a component, something deeper for a ref
-  into a `$defs` entry, a property or `#/paths/…`. Core passes both to the
-  identity statics and keys a deep ref's model by its whole pointer; the
-  name is yours, and `refName` alone repeats across positions (two
-  `…/properties/disk`). Pass the ref's `refPath` on wherever you pass its
-  `refName` — `this.insertModel(Peer, ref.refName, { refPath: ref.refPath })`,
-  `toModelRef({ …, refPath })`, and `context.resolveSchemaRefOnce({ refName,
-  refPath })` in the projection, which receives `refPath` next to `refName`.
-  `resolveSchemaRefOnce` requires the `refPath` key; an insert without
-  `{ refPath }` finds the component of that name, not the deep target.
+- **A model is a `ref`, never a bare name.** `ref` is `{ refName,
+  refPath }` (`RefParts`): `refName` is the last segment of the pointer,
+  `refPath` the pointer before it — `#/components/schemas` for a
+  component, something deeper for a ref into a `$defs` entry, a property
+  or `#/paths/…`. An `OasRef` fits it as it is. Every model API takes the
+  `ref`: `insertModel(Peer, ref)`, `toModelRef({ …, ref })`,
+  `context.resolveSchemaRefOnce(ref)`, `toIdentifierType(ref, context)`,
+  and the `ref` key of `toIdentifierName` / `toExportPath` /
+  `isSupported` / `transform` / the projection constructor (stored as
+  `this.ref`). Pass the `ref` on whole; there is no `refName`-only
+  call to get wrong. Core keys a deep ref's model by its whole pointer;
+  the name is yours, and `ref.refName` alone repeats across positions
+  (two `…/properties/disk`). Holding only a component's name (from
+  `toSchemasRefNames()`)? `toSchemaComponentRef(refName)` gives its `ref`.
 - **Registration at construction; `toString()` is a prototype method**
   reading precomputed fields (an arrow-function `toString` field breaks
   provenance wrapping). A throw fails the run: the engine records
@@ -275,8 +277,7 @@ the text into a template.
 | Router misroutes custom values | `schema.type === 'custom'` is a real dispatch case — presence-test with `'readOnly' in schema`-style guards, not type equality |
 | `null` slips through an optional guard | `!== undefined` lets `null` pass on Nullable generics — check both |
 | `insertResult.identifier` is a type error | You have an `Inserted` handle (from `insertModel`) — use `.toName()`/`.definition`; only `insertNormalizedModel` returns the definition |
-| A `refName` built from a string of your own | Fabricated ref — go through a peer's two doors, never its statics |
-| A ref into `$defs`, a property or `#/paths/…` builds the wrong schema, or throws `DanglingRefError` | Its `refPath` was dropped: pass it with `refName` to `insertModel`, `toModelRef` and `resolveSchemaRefOnce` |
+| A `ref` built from a string of your own | Fabricated ref — go through a peer's two doors, never its statics |
 | `DanglingRefError` from `insertModel`, `resolve()` or an accessor such as `toParams()` | A `$ref` names nothing (no component has its name, or its `$ref`s loop), and `client.json` `settings.system.danglingRefs` lists its kind (`schema`, `parameter`, `requestBody`, `response`, `header`, `securityScheme`, `example`, `link`). Catch it where you insert or resolve that kind (for parameters, resolve each entry of `operation.toEffectiveParameters()`), test it with `DanglingRefError.is(error)` (not `instanceof`: your bundle can have another copy of core), throw any other error again, and decide: render a fallback (`unknown` for a schema) or fail the item. A kind the list leaves out never reaches you: by default (`[]`) the parser removes what holds it |
 | Reading fields off a peer's value beyond the definition/name | Coupled to the peer's PRIVATE snippet shape — it will change silently |
 
