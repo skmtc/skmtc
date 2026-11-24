@@ -31,7 +31,11 @@ import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { collectSourceFiles, type SourceFile } from '@/lib/source-upload.ts'
 import { parseScopedName, toScopedPath } from '@/lib/scoped-name.ts'
 import { toProjectInstallCommand } from '@/lib/dependency-age.ts'
-import { pinServerForPublish, refreshProjectLock } from '@/lib/publish-server-pin.ts'
+import {
+  pinServerForPublish,
+  refreshProjectLock,
+  type ServerPinChange
+} from '@/lib/publish-server-pin.ts'
 import {
   errorMessage,
   isTimeoutError,
@@ -73,6 +77,8 @@ type DeployHeadlessArgs = {
   existing?: boolean
   /** Refresh `deno.lock` after the server pin changes `deno.json`; a seam for tests. */
   refreshLock?: (projectPath: string) => Promise<void>
+  /** Choose and write the `@skmtc/server` pin; a seam for tests. */
+  pinServer?: (projectPath: string) => Promise<ServerPinChange | null>
 }
 
 export const STACK_SERVER_STATUSES = ['deploying', 'active', 'idle', 'paused', 'error'] as const
@@ -109,6 +115,8 @@ export type DeployHeadlessResult =
       version: string
       /** `null` with `--existing`: the version was already stored. */
       upload: StackUpload | null
+      /** The `@skmtc/server` pin this run changed in `deno.json`, or `null`. */
+      serverPin: ServerPinChange | null
       deploy: StackDeploy
     }
   | {
@@ -118,6 +126,8 @@ export type DeployHeadlessResult =
       stage: DeployFailureStage
       /** The version is stored on the hub: a later run cannot change it. */
       stored: boolean
+      /** The `@skmtc/server` pin this run changed in `deno.json`, when it changed one. */
+      serverPin?: ServerPinChange
     }
 
 /** 0 when the version is deployed; 2 when it already exists; 1 otherwise. */
@@ -538,7 +548,8 @@ export const deployHeadless = async ({
   version: versionFlag,
   envFlag,
   existing = false,
-  refreshLock = refreshProjectLock
+  refreshLock = refreshProjectLock,
+  pinServer = pinServerForPublish
 }: DeployHeadlessArgs): Promise<DeployHeadlessResult> => {
   const project = skmtcRoot.findProject(projectName)
   // The flags a suggested command keeps: `--version` only when this run had it.
@@ -547,12 +558,17 @@ export const deployHeadless = async ({
     version: versionFlag ? version : undefined,
     env: envFlag
   })
+  // Set once the pin is written, so a later failure still reports it.
+  let serverPin: ServerPinChange | null = null
+  const toPinField = () => (serverPin === null ? {} : { serverPin })
+
   const fail = (stage: DeployFailureStage, err: unknown, stored = false): DeployHeadlessResult => ({
     type: 'failed',
     projectName,
     reason: errorMessage(err),
     stage,
-    stored
+    stored,
+    ...toPinField()
   })
 
   // Resolve the version first — before any network call — so a missing
@@ -595,12 +611,15 @@ export const deployHeadless = async ({
         )
       }
       // Without this pin the hub cannot build the version's server.
-      if (await pinServerForPublish(project.toPath())) {
-        await refreshLock(project.toPath())
+      serverPin = await pinServer(project.toPath())
+      if (serverPin !== null) {
+        // Printed before the lock refresh: deno.json has changed even if that fails.
         console.error(
-          'Pinned @skmtc/server in deno.json so the hub can deploy this version. ' +
-            'Commit deno.json and deno.lock.'
+          `Pinned ${serverPin.package} ${serverPin.from ?? '(none)'} -> ${serverPin.to} in deno.json ` +
+            'so the hub can deploy this version.'
         )
+        await refreshLock(project.toPath())
+        console.error('Refreshed deno.lock. Commit deno.json and deno.lock.')
         files = await collectSourceFiles(project.toPath())
       }
     } catch (err) {
@@ -641,7 +660,8 @@ export const deployHeadless = async ({
       projectName,
       reason: deployed.reason,
       stage: 'deploy',
-      stored: deployed.stored
+      stored: deployed.stored,
+      ...toPinField()
     }
   }
 
@@ -651,6 +671,7 @@ export const deployHeadless = async ({
     stack: { account, slug },
     version,
     upload,
+    serverPin,
     deploy: deployed.deploy
   }
 }

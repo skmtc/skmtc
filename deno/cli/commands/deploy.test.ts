@@ -32,6 +32,7 @@ const deployedResult: DeployHeadlessResult = {
     sourceFileCount: 2,
     sourceTotalBytes: 11
   },
+  serverPin: null,
   deploy: {
     status: 'active',
     statusReason: null,

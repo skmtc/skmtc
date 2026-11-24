@@ -98,9 +98,29 @@ See the [overview](overview.md#shared-flags).
      nothing uploaded. Any other answer goes on to step 3.
 
 3. Collect the source tree and check it
-     deno.lock missing → fail at stage `source`. If deno.json does not
-     pin @skmtc/server at the CLI's version, add the pin, run
+     deno.lock missing → fail at stage `source`. Then choose the
+     @skmtc/server pin: the newest published server whose @skmtc/core
+     range accepts the project's core. The pin is no newer than the
+     CLI's own pin, and no older than 0.2.39, the first server that
+     serves every route the hub sends to it. When the registry's
+     version list can be read, a yanked version is not chosen.
+     The project's core is its exact @skmtc/core pin. For a range, it
+     is the version that deno.lock resolves the project's own pin to.
+     If deno.lock does not resolve that pin, fail at stage `source`.
+     With a local core, the pin is the CLI's version.
+     No server accepts the core → fail at stage `source`, before the
+     upload. The message says to update the CLI only when a newer CLI
+     can help: the core is newer than the CLI's server takes, or the
+     CLI's server takes it but is yanked.
+     If the CLI's own server cannot be read from the registry
+     (an error, or no such version), the pin is the CLI's version, with
+     a warning. If that version does not fit and the registry then
+     fails, fail at stage `source`.
+     If the pin changes, write it to deno.json and print it. Then run
      `deno install` to refresh deno.lock, and collect the tree again.
+     A local override (a path, not a jsr: pin) is not changed. A failed
+     result carries `serverPin` when the pin changed before the
+     failure.
 
 4. POST /v1/stacks/{account}/{slug}/versions   (multipart, atomic)
      One `version` part + one `files` part per source file. The hub
@@ -169,6 +189,12 @@ When `--no-input` or `--json` is set:
     "sourceFileCount": 28,
     "sourceTotalBytes": 96512
   },
+  // The @skmtc/server pin this run changed in deno.json, or null.
+  "serverPin": {
+    "package": "@skmtc/server",
+    "from": "jsr:@skmtc/server@0.3.34",
+    "to": "jsr:@skmtc/server@0.3.33"
+  },
   "deploy": {
     "status": "active",
     "statusReason": null,
@@ -201,7 +227,7 @@ Possible `stage` values:
 | `version` | No version: no `deno.json#version` and no `--version`. Before any network call. |
 | `identity` | No stack name: `deno.json#name` is missing or not a scoped `@account/slug`. Before any network call. |
 | `exists` | The version is already on the hub (the check's `200`, or the upload's `409`). Exit 2. |
-| `source` | Reading the source tree failed, `deno.lock` is missing, or `deno install` failed after `deploy` added the `@skmtc/server` pin. |
+| `source` | Reading the source tree failed, `deno.lock` is missing, no published `@skmtc/server` accepts the project's `@skmtc/core`, or `deno install` failed after `deploy` changed the `@skmtc/server` pin. |
 | `upload` | `POST /v1/stacks/.../versions` failed with another status. |
 | `deploy` | `POST /v1/stacks/.../servers` failed, was refused, or was not confirmed. |
 

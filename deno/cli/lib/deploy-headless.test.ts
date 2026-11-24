@@ -12,6 +12,7 @@ import {
   uploadVersion
 } from '@/lib/deploy-headless.ts'
 import type { SourceFile } from '@/lib/source-upload.ts'
+import { NoServerForCoreError, type ServerPinChange } from '@/lib/publish-server-pin.ts'
 import { join } from '@std/path/join'
 import {
   makeStackProject,
@@ -677,4 +678,85 @@ Deno.test('deployHeadless - deploys and reports the version as the hub stored it
   if (typeof deployBody !== 'string') throw new Error('expected a deploy body')
   assertEquals(JSON.parse(deployBody), { version: '3.0.1' })
   assertEquals(toDeployed(result).version, '3.0.1')
+})
+
+/** A deploy of the fixture project with `pinServer` in place of the registry lookup. */
+const runDeployWithPin = async (
+  pinServer: (projectPath: string) => Promise<ServerPinChange | null>
+) => {
+  await using project = await makeStackProject()
+  let result: DeployHeadlessResult | undefined
+  let refreshed = 0
+  const calls = await withStackHub({}, async () => {
+    result = await deployHeadless({
+      skmtcRoot: project.skmtcRoot,
+      projectName: 'my-api',
+      token: 'pat-123',
+      origin: 'https://hub.test',
+      refreshLock: () => {
+        refreshed += 1
+        return Promise.resolve()
+      },
+      pinServer
+    })
+  })
+  if (!result) throw new Error('deployHeadless returned nothing')
+  return { result, calls, refreshed }
+}
+
+Deno.test(
+  'deployHeadless - a changed server pin refreshes the lock and is in the result',
+  async () => {
+    const change: ServerPinChange = {
+      package: '@skmtc/server',
+      from: 'jsr:@skmtc/server@0.3.34',
+      to: 'jsr:@skmtc/server@0.3.33'
+    }
+    const { result, refreshed } = await runDeployWithPin(() => Promise.resolve(change))
+
+    assertEquals(refreshed, 1)
+    // `--json` prints the result, so the change is reported there too.
+    assertEquals(toDeployed(result).serverPin, change)
+  }
+)
+
+Deno.test('deployHeadless - no server for the project core stops before the upload', async () => {
+  const { result, calls } = await runDeployWithPin(() =>
+    Promise.reject(new NoServerForCoreError({ core: '0.43.0', tried: ['0.3.34', '0.3.32'], reason: 'no-server' }))
+  )
+
+  const failed = toFailed(result)
+  assertEquals(failed.stage, 'source')
+  assertEquals(failed.stored, false)
+  assertStringIncludes(failed.reason, "accepts the project's @skmtc/core 0.43.0")
+  assertEquals(
+    calls.some(call => call.method === 'POST'),
+    false
+  )
+})
+
+Deno.test('deployHeadless - a failure after the server pin changed still reports the pin', async () => {
+  const change: ServerPinChange = {
+    package: '@skmtc/server',
+    from: null,
+    to: 'jsr:@skmtc/server@0.3.33'
+  }
+  await using project = await makeStackProject()
+  let result: DeployHeadlessResult | undefined
+  await withStackHub({}, async () => {
+    result = await deployHeadless({
+      skmtcRoot: project.skmtcRoot,
+      projectName: 'my-api',
+      token: 'pat-123',
+      origin: 'https://hub.test',
+      refreshLock: () => Promise.reject(new Error('deno install failed')),
+      pinServer: () => Promise.resolve(change)
+    })
+  })
+  if (!result) throw new Error('deployHeadless returned nothing')
+
+  const failed = toFailed(result)
+  assertEquals(failed.stage, 'source')
+  // deno.json has already changed, so --json says so.
+  assertEquals(failed.serverPin, change)
 })
