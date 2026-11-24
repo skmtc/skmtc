@@ -2,7 +2,7 @@ import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasUnion } from '@/oas/union/Union.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
-import { toRefName } from '@/helpers/refFns.ts'
+import { toRefParts } from '@/helpers/refFns.ts'
 
 /**
  * Walk an {@link SchemaPath} into a schema, resolving `$ref`s as it descends.
@@ -131,7 +131,7 @@ const selectUnionMember = (union: OasUnion, segment: string): OasSchema | OasRef
     }
 
     const mapped = union.discriminator.mapping?.[value]
-    const targetRefName = mapped ? toRefName(mapped) : value
+    const targetRefName = mapped ? toRefParts({ $ref: mapped, refType: 'schema' }).refName : value
     const member = findMemberByRefName(union, targetRefName)
 
     if (!member) {
@@ -149,7 +149,7 @@ const selectUnionMember = (union: OasUnion, segment: string): OasSchema | OasRef
     if (!member) {
       const refNames = union.members
         .filter(member => member.isRef())
-        .map(member => member.toRefName())
+        .map(member => member.refName)
       throw new Error(
         `Schema path segment "${segment}" does not match a union member refName (available: ${
           refNames.map(name => `$${name}`).join(', ') || 'none — use "[index]" for inline members'
@@ -169,4 +169,4 @@ const findMemberByRefName = (
   union: OasUnion,
   refName: string
 ): OasSchema | OasRef<'schema'> | undefined =>
-  union.members.find(member => member.isRef() && member.toRefName() === refName)
+  union.members.find(member => member.isRef() && member.refName === refName)

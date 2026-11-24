@@ -4,7 +4,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import type { SystemSettings } from '@/types/Settings.ts'
-import { toRefName } from '@/helpers/refFns.ts'
+import type { RefName } from '@/types/RefName.ts'
 
 // Cloudflare's envelopes: the common response says `success` is true, an error response that it is false.
 const document = {
@@ -34,7 +34,7 @@ const parse = (system: SystemSettings | undefined) => {
   const parsed = context.parse(new StackTrail(['TEST']))
   const schemas = parsed.type === 'oas' ? parsed.value.components?.schemas : undefined
 
-  return { failure: schemas?.[toRefName('#/components/schemas/Failure')], issues: context.issues.map(({ level, type, message }) => ({ level, type, message })) }
+  return { failure: schemas?.[('Failure' as RefName)], issues: context.issues.map(({ level, type, message }) => ({ level, type, message })) }
 }
 
 Deno.test('system.allOf latestWins: a schema whose members contradict parses, with one warning naming the keywords', () => {

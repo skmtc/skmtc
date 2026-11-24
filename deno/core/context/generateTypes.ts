@@ -467,6 +467,8 @@ export type BuildModelSettingsArgs<
   ProjectionOptions = undefined
 > = {
   refName: RefName
+  /** Where the ref to the model points; absent for a component (see `InsertSettings.refPath`). */
+  refPath?: string
   projection: ModelProjection<V, EnrichmentType, ProjectionOptions>
   /**
    * Model variant whose enrichment / identifier / export path
@@ -681,7 +683,7 @@ export type GenerateContextType = {
   toModelContentSettings: <V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
     args: BuildModelSettingsArgs<V, EnrichmentType, ProjectionOptions>
   ) => ContentSettings<EnrichmentType>
-  resolveSchemaRefOnce: (refName: RefName) => OasSchema | OasRef<'schema'>
+  resolveSchemaRefOnce: (refName: RefName, refPath?: string) => OasSchema | OasRef<'schema'>
   /** The Definition named `name` in `exportPath` (or inside the declaration `into`), or `undefined`. */
   findDefinition: ({ name, exportPath, into }: FindDefinitionArgs) => DefinitionBase | undefined
   /**

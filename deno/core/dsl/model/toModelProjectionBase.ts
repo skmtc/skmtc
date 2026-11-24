@@ -11,6 +11,7 @@ import {
 } from '@/types/ProjectionOptions.ts'
 import { toPeerInsertOptions, type PeerInsertOptions } from '@/types/InsertOptions.ts'
 import { toModelGeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import { toModelKey } from '@/helpers/refFns.ts'
 import type { RefName } from '@/types/RefName.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
@@ -23,6 +24,7 @@ import type { OasVoid } from '@/oas/void/Void.ts'
 import type {
   ModelProjection,
   NormalizedModelProjection,
+  RefPathArg,
   ToModelIdentifierNameArgs,
   ToModelExportPathArgs
 } from '@/dsl/model/types.ts'
@@ -40,14 +42,15 @@ export type ModelProjectionArgs<EnrichmentType = undefined, ProjectionOptions = 
   context: GenerateContextType
   settings: ContentSettings<EnrichmentType>
   refName: RefName
-} & ProjectionOptionsArg<ProjectionOptions>
+} & RefPathArg &
+  ProjectionOptionsArg<ProjectionOptions>
 
 type ToEnrichmentsArgs = {
   refName: RefName
   context: GenerateContextType
   /** Model variant whose enrichment should be resolved (see {@link Variant}) */
   variant: string
-}
+} & RefPathArg
 
 /**
  * Configuration for {@link toModelProjectionBase}.
@@ -76,7 +79,7 @@ export type ModelProjectionBaseConfig<
    * `type` is bound to that language's `EntityType` vocabulary (the loose
    * `string` by default). The tightening rides the type argument.
    */
-  toIdentifierType: (refName: RefName, context: GenerateContextType) => IdType
+  toIdentifierType: (refName: RefName, context: GenerateContextType, refPath?: string) => IdType
   toExportPath: (args: ToModelExportPathArgs<EnrichmentType, ProjectionOptions>) => string
   /**
    * Required composite schema for the `{ subject, generator, stack }`
@@ -100,8 +103,14 @@ export type ModelProjectionBaseConfig<
    * `insertModel` (the model counterpart of the operation-reference
    * protocol). When omitted, advertises support for every model.
    */
-  isSupported?: (args: { refName: RefName; context: GenerateContextType }) => boolean
+  isSupported?: (args: IsSupportedArgs) => boolean
 }
+
+/** What a model projection's `isSupported` receives. */
+type IsSupportedArgs = {
+  refName: RefName
+  context: GenerateContextType
+} & RefPathArg
 
 /**
  * Build a model projection base class from a per-generator config.
@@ -137,10 +146,12 @@ export const toModelProjectionBase = <
     static toIdentifierName = config.toIdentifierName.bind(config)
     static toIdentifierType = config.toIdentifierType.bind(config)
     static toExportPath = config.toExportPath.bind(config)
-    static toEnrichments = ({ refName, context, variant }: ToEnrichmentsArgs): EnrichmentType => {
+    static toEnrichments = ({ refName, refPath, context, variant }: ToEnrichmentsArgs): EnrichmentType => {
       // The three enrichment scopes assembled into the umbrella a generator
       // reads off `this.settings.enrichments`. Subject is per-item
-      // (`[id][refName][variant]`) — the variant axis is core-owned, and the
+      // (`[id][refName][variant]`, or the whole pointer in place of
+      // `refName` for a ref that does not point at a component, `toModelKey`)
+      // — the variant axis is core-owned, and the
       // engine has already asserted `'main'` exists; generator and stack are
       // run-constants (`[id][_generator]`, `[_stack]`). The required composite
       // schema parses the raw umbrella once — typed, cast-free.
@@ -149,7 +160,7 @@ export const toModelProjectionBase = <
       return parseEnrichmentUmbrella({
         context,
         generatorId: config.id,
-        subjectSegments: [refName, variant],
+        subjectSegments: [toModelKey({ refName, refPath }), variant],
         schema: config.toEnrichmentSchema()
       })
     }
@@ -166,6 +177,8 @@ export const toModelProjectionBase = <
 
     settings: ContentSettings<EnrichmentType>
     refName: RefName
+    /** Where the ref to this model points (see {@link RefPathArg}). */
+    refPath: string | undefined
     /** The caller's options. */
     options: ProjectionOptions
 
@@ -175,11 +188,13 @@ export const toModelProjectionBase = <
         generatorKey: toModelGeneratorKey({
           generatorId: config.id,
           refName: args.refName,
+          refPath: args.refPath,
           variant: args.settings.variant ?? DEFAULT_VARIANT
         })
       })
 
       this.refName = args.refName
+      this.refPath = args.refPath
       this.settings = args.settings
       this.options = readProjectionOptions<ProjectionOptions>(args)
     }

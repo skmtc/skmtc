@@ -71,6 +71,7 @@ import type { Brand } from '@/types/Brand.ts'
 import type { RefName } from '@/types/RefName.ts'
 import { type Method, isMethod } from '@/types/Method.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
+import { toModelKey } from '@/helpers/refFns.ts'
 
 const GQL_ROOT_KINDS: readonly GqlRootKind[] = ['query', 'mutation', 'subscription']
 
@@ -486,6 +487,12 @@ type ToModelGeneratorKeyArgs = {
   generatorId: string
   /** Reference name of the schema model */
   refName: RefName
+  /**
+   * Where the ref to the model points. Absent for a component; for any other
+   * target the key holds the whole pointer in place of `refName`
+   * (`toModelKey`), so two targets that share a `refName` get two keys.
+   */
+  refPath?: string
   /** Model variant name — omitted means `'main'` */
   variant?: string
 }
@@ -521,9 +528,10 @@ type ToModelGeneratorKeyArgs = {
 export const toModelGeneratorKey = ({
   generatorId,
   refName,
+  refPath,
   variant = DEFAULT_VARIANT
 }: ToModelGeneratorKeyArgs): ModelGeneratorKey => {
-  const nakedKey: NakedModelGeneratorKey = `${generatorId}|${refName}|${variant}`
+  const nakedKey: NakedModelGeneratorKey = `${generatorId}|${toModelKey({ refName, refPath })}|${variant}`
 
   return nakedKey as ModelGeneratorKey
 }

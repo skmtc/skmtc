@@ -9,6 +9,17 @@ import type { SchemaToValueFn } from '@/types/TypeSystem.ts'
 import type { ProjectionOptionsArg } from '@/types/ProjectionOptions.ts'
 
 /**
+ * Where the ref to a model points, next to its `refName`: the model's
+ * `OasRef.refPath`. Absent, or `#/components/schemas`, for a component, which
+ * is every model the engine sweeps. Any other path is a ref into a schema,
+ * such as `#/components/schemas/Pet/properties` for `refName` `tag`. A
+ * generator that names models by `refName` alone may ignore it.
+ */
+export type RefPathArg = {
+  refPath?: string
+}
+
+/**
  * External constructor signature for a model projection class.
  *
  * The pipeline calls `new SomeProjection(args)` with this shape; the
@@ -24,7 +35,8 @@ export type ModelProjectionConstructorArgs<
   settings: ContentSettings<EnrichmentType>
   destinationPath: string
   rootRef?: RefName
-} & ProjectionOptionsArg<ProjectionOptions>
+} & RefPathArg &
+  ProjectionOptionsArg<ProjectionOptions>
 
 export type WithTransformModel = {
   transformModel: (refName: RefName) => void
@@ -35,7 +47,7 @@ export type ToModelEnrichmentsArgs = {
   context: GenerateContextType
   /** Model variant whose enrichment should be resolved (see {@link Variant}) */
   variant: string
-}
+} & RefPathArg
 
 export type TransformModelArgs = {
   context: GenerateContextType
@@ -47,7 +59,7 @@ export type TransformModelArgs = {
    * when no enrichments are configured). See {@link Variant}.
    */
   variant: string
-}
+} & RefPathArg
 
 /**
  * Arguments a model generator's `isSupported` predicate receives at the
@@ -62,21 +74,21 @@ export type IsSupportedModelArgs = {
   refName: RefName
   /** Model variant being probed (see {@link Variant}) */
   variant: string
-}
+} & RefPathArg
 
 export type ToModelPreviewModuleArgs = {
   context: GenerateContextType
   refName: RefName
   /** Model variant the preview module describes (see {@link Variant}) */
   variant: string
-}
+} & RefPathArg
 
 export type ToModelMappingArgs = {
   context: GenerateContextType
   refName: RefName
   /** Model variant the mapping module describes (see {@link Variant}) */
   variant: string
-}
+} & RefPathArg
 
 /**
  * Arguments for a model projection's `toIdentifierName`. Fold `options` into the name when the output
@@ -87,14 +99,16 @@ export type ToModelIdentifierNameArgs<EnrichmentType = undefined, ProjectionOpti
   enrichments: EnrichmentType
   /** Model variant the identifier should disambiguate (see {@link Variant}) */
   variant: string
-} & ProjectionOptionsArg<ProjectionOptions>
+} & RefPathArg &
+  ProjectionOptionsArg<ProjectionOptions>
 
 export type ToModelExportPathArgs<EnrichmentType = undefined, ProjectionOptions = undefined> = {
   refName: RefName
   enrichments: EnrichmentType
   /** Model variant the export path should disambiguate (see {@link Variant}) */
   variant: string
-} & ProjectionOptionsArg<ProjectionOptions>
+} & RefPathArg &
+  ProjectionOptionsArg<ProjectionOptions>
 
 /**
  * Static structural type of a model projection class.
@@ -115,6 +129,7 @@ export type ModelProjection<
   new ({
     context,
     refName,
+    refPath,
     settings,
     destinationPath,
     rootRef,
@@ -137,9 +152,9 @@ export type ModelProjection<
    * assembles `lang.toIdentifier({ name: toIdentifierName(args),
    * ...toIdentifierType(refName, context) })`.
    */
-  toIdentifierType: (refName: RefName, context: GenerateContextType) => IdentifierType
+  toIdentifierType: (refName: RefName, context: GenerateContextType, refPath?: string) => IdentifierType
   toExportPath: (args: ToModelExportPathArgs<EnrichmentType, ProjectionOptions>) => string
-  toEnrichments: ({ refName, context, variant }: ToModelEnrichmentsArgs) => EnrichmentType
+  toEnrichments: ({ refName, refPath, context, variant }: ToModelEnrichmentsArgs) => EnrichmentType
   /**
    * Family-level capability predicate, surfaced as a static by
    * `toModelProjectionBase` (default `() => true`). The Driver probes it on

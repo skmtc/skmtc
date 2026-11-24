@@ -214,7 +214,7 @@ Deno.test('ModelDriver', async t => {
 
       assertSpyCalls(context.toModelContentSettings as any, 1)
       assertSpyCall(context.toModelContentSettings as any, 0, {
-        args: [{ refName, projection, variant: 'main', options: undefined }]
+        args: [{ refName, refPath: undefined, projection, variant: 'main', options: undefined }]
       })
     })
 

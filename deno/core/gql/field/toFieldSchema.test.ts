@@ -28,7 +28,7 @@ Deno.test('toFieldSchema - nullable ref return wraps in nullable OasUnion', () =
   assertEquals(ret.members.length, 1)
   const inner = ret.members[0] as OasRef<'schema'>
   assertInstanceOf(inner, OasRef)
-  assertEquals(inner.toRefName(), refName('User'))
+  assertEquals(inner.refName, refName('User'))
 })
 
 Deno.test('toFieldSchema - non-null ref return stays a bare OasRef', () => {
@@ -44,7 +44,7 @@ Deno.test('toFieldSchema - non-null ref return stays a bare OasRef', () => {
   const op = doc.operations.find((o: GqlOperation) => o.fieldName === 'getUser')!
   const ret = op.returnType as OasRef<'schema'>
   assertInstanceOf(ret, OasRef)
-  assertEquals(ret.toRefName(), refName('User'))
+  assertEquals(ret.refName, refName('User'))
 })
 
 Deno.test('toFieldSchema - nullable ref field on an object wraps the same way', () => {
@@ -67,7 +67,7 @@ Deno.test('toFieldSchema - nullable ref field on an object wraps the same way', 
   assertEquals(profile.nullable, true)
   const inner = profile.members[0] as OasRef<'schema'>
   assertInstanceOf(inner, OasRef)
-  assertEquals(inner.toRefName(), refName('Profile'))
+  assertEquals(inner.refName, refName('Profile'))
 })
 
 Deno.test('toFieldSchema - list of nullable refs ([User]!) wraps the inner only', () => {
@@ -89,7 +89,7 @@ Deno.test('toFieldSchema - list of nullable refs ([User]!) wraps the inner only'
   assertEquals(item.nullable, true)
   const ref = item.members[0] as OasRef<'schema'>
   assertInstanceOf(ref, OasRef)
-  assertEquals(ref.toRefName(), refName('User'))
+  assertEquals(ref.refName, refName('User'))
 })
 
 Deno.test('toFieldSchema - list of non-null refs ([User!]) leaves items as bare refs', () => {
@@ -108,5 +108,5 @@ Deno.test('toFieldSchema - list of non-null refs ([User!]) leaves items as bare 
   assertEquals(arr.nullable, true)
   const item = arr.items as OasRef<'schema'>
   assertInstanceOf(item, OasRef)
-  assertEquals(item.toRefName(), refName('User'))
+  assertEquals(item.refName, refName('User'))
 })

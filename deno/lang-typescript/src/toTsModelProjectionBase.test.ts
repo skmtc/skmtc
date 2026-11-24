@@ -5,7 +5,7 @@
  * check — a veneer that dropped the parameter would fail `deno check` here.
  */
 import { assertEquals } from '@std/assert'
-import { emptyEnrichmentSchema, toRefName } from '@skmtc/core'
+import { emptyEnrichmentSchema, type RefName } from '@skmtc/core'
 import type { Enrichments } from '@skmtc/core'
 import { toTsModelProjectionBase } from './toTsModelProjectionBase.ts'
 
@@ -26,7 +26,7 @@ class PetModel extends PetBase {
 }
 
 Deno.test('toTsModelProjectionBase forwards the options type to the identity statics', () => {
-  const refName = toRefName('#/components/schemas/Pet')
+  const refName = ('Pet' as RefName)
   const enrichments = {
     subject: undefined,
     generator: undefined,

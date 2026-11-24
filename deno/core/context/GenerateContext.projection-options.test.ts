@@ -33,7 +33,6 @@ import { toModelProjectionBase } from '@/dsl/model/toModelProjectionBase.ts'
 import { toOasOperationProjectionBase } from '@/dsl/operation/oas/toOasOperationProjectionBase.ts'
 import { toOasOperationEntry } from '@/dsl/operation/oas/toOasOperationEntry.ts'
 import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
-import { toRefName } from '@/helpers/refFns.ts'
 import type { Enrichments } from '@/types/Enrichments.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { OasOperationProjection } from '@/dsl/operation/oas/types.ts'
@@ -61,7 +60,7 @@ class NeutralSnippet extends SnippetBase {
   }
 }
 
-const pet = toRefName('#/components/schemas/Pet')
+const pet = ('Pet' as RefName)
 
 type PetOptions = { suffix: string }
 
@@ -245,7 +244,7 @@ Deno.test('projection options - only noExport, variant and options reach the eng
   // Same guarantee on the context: engine-owned keys cannot be overridden.
   const wide: InsertModelOptions & { refName: RefName } = {
     noExport: true,
-    refName: toRefName('#/components/schemas/Other')
+    refName: ('Other' as RefName)
   }
   const inserted = context.insertModel(PlainModel, pet, wide)
   assertEquals(inserted.toName(), 'Pet')

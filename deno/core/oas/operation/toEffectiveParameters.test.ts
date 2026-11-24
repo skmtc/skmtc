@@ -171,7 +171,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(written, ['path:id', '#/components/parameters/Trace', 'query:limit', 'header:id'])
   })
 
-  Deno.test(`${openapi} a parameter ref with no name names nothing: it is kept, and its name and toJsonSchema throw DanglingRefError`, () => {
+  Deno.test(`${openapi} a parameter ref with no name names nothing: it is kept with an empty name, and toJsonSchema throws DanglingRefError`, () => {
     const { operation } = parse({
       openapi,
       system: listed,
@@ -181,7 +181,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
 
     const [noName] = operation.toEffectiveParameters()
     assert(noName.isRef() && noName.$ref === '#/components/parameters/')
-    assertThrows(() => noName.toRefName(), DanglingRefError)
+    assertEquals(noName.refName, '')
     assertThrows(() => noName.toJSON(), DanglingRefError)
     assertThrows(() => operation.toJsonSchema({ resolve: false }), DanglingRefError)
   })

@@ -6,6 +6,8 @@ import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
+import { isDefaultRefPath, toModelKey, toRefPointer } from '@/helpers/refFns.ts'
+import type { ComponentsEntry } from '@/oas/components/Components.ts'
 import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type { SupportedSubjects } from '@/types/SupportedSubjects.ts'
@@ -1478,8 +1480,9 @@ export class GenerateContext implements GenerateContextType {
     const insertOptions = toPeerInsertOptions(rest)
 
     if (schema.isRef()) {
-      const { definition } = this.insertModel(projection, schema.toRefName(), {
+      const { definition } = this.insertModel(projection, schema.refName, {
         ...insertOptions,
+        refPath: schema.refPath,
         destinationPath
       })
 
@@ -1681,16 +1684,16 @@ export class GenerateContext implements GenerateContextType {
   toModelContentSettings<V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
     args: BuildModelSettingsArgs<V, EnrichmentType, ProjectionOptions>
   ): ContentSettings<EnrichmentType> {
-    const { refName, projection, variant = DEFAULT_VARIANT } = args
+    const { refName, refPath, projection, variant = DEFAULT_VARIANT } = args
     const options = readProjectionOptions<ProjectionOptions>(args)
-    const enrichments = projection.toEnrichments({ refName, context: this, variant })
+    const enrichments = projection.toEnrichments({ refName, refPath, context: this, variant })
     return new ContentSettings<EnrichmentType>({
       identifier: projection.lang.toIdentifier({
-        name: projection.toIdentifierName({ refName, enrichments, variant, options }),
-        ...projection.toIdentifierType(refName, this)
+        name: projection.toIdentifierName({ refName, refPath, enrichments, variant, options }),
+        ...projection.toIdentifierType(refName, this, refPath)
       }),
       exportPath: this.#toContentSettingsExportPath(
-        projection.toExportPath({ refName, enrichments, variant, options }),
+        projection.toExportPath({ refName, refPath, enrichments, variant, options }),
         projection.id
       ),
       enrichments,
@@ -1699,18 +1702,26 @@ export class GenerateContext implements GenerateContextType {
   }
 
   /**
-   * Perform one lookup of schema by `refName`.
-   * @param refName
+   * Perform one lookup of a model's schema: a component by `refName`, or,
+   * with a `refPath` other than `#/components/schemas`, the ref target the
+   * parser kept under its whole pointer.
+   * @param refName - The model's `refName`
+   * @param refPath - Where the ref to it points; absent for a component
    * @returns Matching schema or ref
-   * @throws {DanglingRefError} when no schema has that name
+   * @throws {DanglingRefError} when no schema is found there
    */
-  resolveSchemaRefOnce(refName: RefName): OasSchema | OasRef<'schema'> {
+  resolveSchemaRefOnce(refName: RefName, refPath?: string): OasSchema | OasRef<'schema'> {
     switch (this.document.type) {
       case 'oas': {
-        const component = this.document.value.components?.schemas?.[refName]
+        const document = this.document.value
+        const component =
+          refPath === undefined || isDefaultRefPath({ refPath, refType: 'schema' })
+            ? document.components?.schemas?.[refName]
+            : document.toRefTarget(toRefPointer({ refName, refPath }))
 
-        if (!component) {
-          throw new DanglingRefError(refName)
+        // The parser keeps ref targets of every kind; a model is built only from a schema.
+        if (component === undefined || !isSchemaEntry(component)) {
+          throw new DanglingRefError(toModelKey({ refName, refPath }))
         }
 
         const target = component.resolveOnce()
@@ -2169,3 +2180,7 @@ const toIncludeModels = (
 
   return undefined
 }
+
+/** Whether a ref target is a schema, or a ref to one: what a model is built from. */
+const isSchemaEntry = (entry: ComponentsEntry): entry is OasSchema | OasRef<'schema'> =>
+  entry.isRef() ? entry.isSchemaRef() : entry.oasType === 'schema'

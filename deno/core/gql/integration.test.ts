@@ -242,7 +242,7 @@ Deno.test('GraphQL pipeline - return type ref resolves through the registry', ()
   // see parsers/graphql/toFieldSchema.test.ts for that path.)
   const ret = op.returnType as OasRef<'schema'>
   assertEquals(ret.isRef(), true)
-  assertEquals(ret.toRefName(), 'User')
+  assertEquals(ret.refName, 'User')
 
   const resolved = ret.resolveOnce() as OasObject
   assertEquals(resolved.title, 'User')
