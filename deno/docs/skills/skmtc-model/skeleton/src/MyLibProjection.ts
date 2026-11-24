@@ -28,7 +28,7 @@ export class MyLibProjection extends MyLibBase {
   ) {
     super({ context, refName, refPath, settings })
 
-    const schema = context.resolveSchemaRefOnce(refName, refPath)
+    const schema = context.resolveSchemaRefOnce({ refName, refPath })
 
     this.value = toMyLibValue({
       schema,

@@ -44,7 +44,7 @@ class GenerateContext implements GenerateContextType {
   findDefinition(args: PickArgs): DefinitionBase | undefined
   toOperationContentSettings<V, E, P>(args: ToOperationSettingsArgs<V, E, P>): ContentSettings<E>
   toModelContentSettings<V, E, P>(args: BuildModelSettingsArgs<V, E, P>): ContentSettings<E>
-  resolveSchemaRefOnce(refName: RefName): OasSchema | OasRef<'schema'>
+  resolveSchemaRefOnce(args: ResolveSchemaRefArgs): OasSchema | OasRef<'schema'>
 }
 ```
 
@@ -280,17 +280,18 @@ generators rarely call directly. `args` carries `options` on the same
 terms as the insert calls: required when the projection declares
 options, absent otherwise.
 
-### `resolveSchemaRefOnce(refName, refPath?): OasSchema | OasRef<'schema'>`
+### `resolveSchemaRefOnce({ refName, refPath }): OasSchema | OasRef<'schema'>`
 
-One-step ref resolution. Without `refPath`, or with
+One-step ref resolution. With `refPath` `undefined` or
 `#/components/schemas`, it reads the component named `refName`. With any
 other `refPath`, it reads the target that the parser kept under the whole
 pointer, such as a `$defs` entry. Throws `DanglingRefError` when no schema
 is there.
 
-A model projection receives `refPath` next to `refName`. Pass it on:
-without it, a ref into a deep path resolves to the component of the same
-name. A model's recursion goes
+`refPath` is a required key (`string | undefined`). A model projection
+receives `refPath` next to `refName`; pass both:
+`resolveSchemaRefOnce({ refName, refPath })`. An `OasRef<'schema'>` has
+both fields, so `resolveSchemaRefOnce(ref)` also works. A model's recursion goes
 through `toModelRef`, not through this call (see
 [recursive types in the type system](../../concepts/the-type-system.md#handling-recursive-types--pending-entries)).
 

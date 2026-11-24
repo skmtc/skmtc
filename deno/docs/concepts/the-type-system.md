@@ -275,7 +275,7 @@ on the schema being rendered:
 // skmtc-generators/gen-typescript/src/TsProjection.ts
 constructor({ context, refName, refPath, settings, rootRef }: ConstructorArgs) {
   super({ context, refName, refPath, settings })
-  const schema = context.resolveSchemaRefOnce(refName, refPath)
+  const schema = context.resolveSchemaRefOnce({ refName, refPath })
   this.value = toTsValue({
     schema, required: true, destinationPath: settings.exportPath,
     context, rootRef
@@ -427,7 +427,7 @@ A ref snippet asks for its model through `toModelRef`:
        │
        ▼
 3.  new ZodProjection({ context, refName: 'User', ... })
-       │   context.resolveSchemaRefOnce('User')
+       │   context.resolveSchemaRefOnce({ refName: 'User', refPath })
        │   toZodValue({ schema, ... })   ← walks the User schema
        │
        │   for each ref in the schema, the ref snippet calls:

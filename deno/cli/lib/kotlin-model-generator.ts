@@ -107,10 +107,10 @@ export const KtModelBase = toKtModelProjectionBase({
   // The refName IS the Kotlin class name for DTO generators.
   toIdentifierName: ({ refName }) => refName,
 
-  toIdentifierType: (refName, context): KtIdentifierType => {
+  toIdentifierType: (refName, context, refPath): KtIdentifierType => {
     // \`.resolve()\` is identity on concrete schemas — call it
     // unconditionally; never \`schema.isRef() ? schema.resolve() : schema\`.
-    const schema = context.resolveSchemaRefOnce(refName).resolve()
+    const schema = context.resolveSchemaRefOnce({ refName, refPath }).resolve()
 
     // Skeleton policy: objects are data classes, everything else a
     // typealias. Extend alongside the toKtValue router when a schema
@@ -647,9 +647,9 @@ export class ${mainModule}Projection extends KtModelBase {
   constructor(args: ModelProjectionArgs<EmptyEnrichments>) {
     super(args)
 
-    const { context, refName } = args
+    const { context, refName, refPath } = args
     const destinationPath = this.settings.exportPath
-    const schema = context.resolveSchemaRefOnce(refName).resolve()
+    const schema = context.resolveSchemaRefOnce({ refName, refPath }).resolve()
 
     // Everything flows through the router — 'object' is a case like any
     // other, not a special case here.

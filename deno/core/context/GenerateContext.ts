@@ -33,6 +33,7 @@ import type {
   ContextRegisterArgs,
   RegisterJsonArgs,
   RegisterMarkdownArgs,
+  ResolveSchemaRefArgs,
   ToGqlOperationSettingsFields,
   ToOasOperationSettingsFields,
   ToOperationSettingsArgs,
@@ -1705,12 +1706,11 @@ export class GenerateContext implements GenerateContextType {
    * Perform one lookup of a model's schema: a component by `refName`, or,
    * with a `refPath` other than `#/components/schemas`, the ref target the
    * parser kept under its whole pointer.
-   * @param refName - The model's `refName`
-   * @param refPath - Where the ref to it points; absent for a component
+   * @param args - The ref's `refName` and `refPath`; an `OasRef<'schema'>` fits as it is
    * @returns Matching schema or ref
    * @throws {DanglingRefError} when no schema is found there
    */
-  resolveSchemaRefOnce(refName: RefName, refPath?: string): OasSchema | OasRef<'schema'> {
+  resolveSchemaRefOnce({ refName, refPath }: ResolveSchemaRefArgs): OasSchema | OasRef<'schema'> {
     switch (this.document.type) {
       case 'oas': {
         const document = this.document.value

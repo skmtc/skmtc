@@ -107,8 +107,9 @@ The model generator's identity statics receive both `refName` and
 generator's: `refName` alone repeats across positions, as two refs to
 `…/properties/disk` under different schemas do. Pass a ref's `refPath`
 everywhere you pass its `refName`: to `insertModel` (`{ refPath }`), to
-`toModelRef`, and to `resolveSchemaRefOnce(refName, refPath)` in the
-projection. A lookup by `refName` alone finds the component of that name.
+`toModelRef`, and to `resolveSchemaRefOnce({ refName, refPath })` in the
+projection. `resolveSchemaRefOnce` requires the `refPath` key, so the
+compiler finds a call that drops it.
 
 ## The forward-ref problem
 

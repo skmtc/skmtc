@@ -224,10 +224,10 @@ functions that return strings — helpers drift.
   name is yours, and `refName` alone repeats across positions (two
   `…/properties/disk`). Pass the ref's `refPath` on wherever you pass its
   `refName` — `this.insertModel(Peer, ref.refName, { refPath: ref.refPath })`,
-  `toModelRef({ …, refPath })`, and `context.resolveSchemaRefOnce(refName,
-  refPath)` in the projection, which receives `refPath` next to `refName`.
-  A lookup by `refName` alone finds the component of that name, not the
-  deep target.
+  `toModelRef({ …, refPath })`, and `context.resolveSchemaRefOnce({ refName,
+  refPath })` in the projection, which receives `refPath` next to `refName`.
+  `resolveSchemaRefOnce` requires the `refPath` key; an insert without
+  `{ refPath }` finds the component of that name, not the deep target.
 - **Registration at construction; `toString()` is a prototype method**
   reading precomputed fields (an arrow-function `toString` field breaks
   provenance wrapping). A throw fails the run: the engine records

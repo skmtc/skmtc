@@ -20,6 +20,8 @@ const text = { type: 'string' }
 const toDocument = (openapi: string) => ({
   openapi,
   info: { title: 'Ref paths', version: '1' },
+  // A security scheme kept outside `components`, for entries to refer to.
+  'x-shared-auth': { apiKey: { type: 'apiKey', name: 'X-Api-Key', in: 'header' } },
   paths: {
     '/card-accounts': {
       post: {
@@ -65,6 +67,7 @@ const toDocument = (openapi: string) => ({
     }
   },
   components: {
+    securitySchemes: { SharedKey: { $ref: '#/x-shared-auth/apiKey' } },
     schemas: {
       Pet: { type: 'object', properties: { id: text } },
       __sharedInput: {
@@ -131,8 +134,9 @@ const parse = (openapi: string) => {
   }
   const toOperation = (path: string, method = 'get') =>
     document?.operations.find(operation => operation.path === path && operation.method === method)
+  const toSecurityScheme = (name: string) => document?.components?.securitySchemes?.[name]
 
-  return { toSchema, toProperty, toOperation, issues: context.issues }
+  return { toSchema, toProperty, toOperation, toSecurityScheme, issues: context.issues }
 }
 
 for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
@@ -186,6 +190,18 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(example.refName, 'created')
     assertEquals(example.resolve().summary, 'A new account')
     assertEquals(issues.filter(issue => issue.message.includes('examples/created')), [])
+  })
+
+  Deno.test(`${openapi} a security scheme ref into an extension resolves to that scheme`, () => {
+    const { toSecurityScheme, issues } = parse(openapi)
+    const scheme = toSecurityScheme('SharedKey')
+    assert(scheme?.isRef())
+    assertEquals(scheme.refPath, '#/x-shared-auth')
+
+    const target = scheme.resolve()
+    assert(target.type === 'apiKey')
+    assertEquals([target.name, target.location], ['X-Api-Key', 'header'])
+    assertEquals(issues.filter(issue => issue.message.includes('x-shared-auth')), [])
   })
 
   Deno.test(`${openapi} two deep targets that share a refName are two targets`, () => {

@@ -71,7 +71,7 @@ export const ${mainModule}Base = toTsModelProjectionBase({
   }
 
   toModelProjection(mainModule: string) {
-    return `import type { TypeSystemValue, GenerateContext, RefName, ContentSettings } from '@skmtc/core'
+    return `import type { TypeSystemValue, GenerateContext, RefName, ContentSettings, EmptyEnrichments } from '@skmtc/core'
 import { to${mainModule}Value } from './${mainModule}.ts'
 import { ${mainModule}Base } from './base.ts'
 
@@ -79,16 +79,18 @@ type ConstructorArgs = {
   context: GenerateContext
   destinationPath: string
   refName: RefName
-  settings: ContentSettings
+  refPath?: string
+  // Matches the base's \`toEnrichmentSchema: () => emptyEnrichmentSchema\`.
+  settings: ContentSettings<EmptyEnrichments>
   rootRef?: RefName
 }
 
 export class ${mainModule}Projection extends ${mainModule}Base {
   value: TypeSystemValue
-  constructor({ context, refName, settings, destinationPath, rootRef }: ConstructorArgs) {
-    super({ context, refName, settings })
+  constructor({ context, refName, refPath, settings, destinationPath, rootRef }: ConstructorArgs) {
+    super({ context, refName, refPath, settings })
 
-    const schema = context.resolveSchemaRefOnce(refName)
+    const schema = context.resolveSchemaRefOnce({ refName, refPath })
 
     this.value = to${mainModule}Value({
       schema,

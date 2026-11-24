@@ -456,6 +456,19 @@ export type FindDefinitionArgs = PickArgs & {
 }
 
 /**
+ * The ref whose schema {@link GenerateContextType.resolveSchemaRefOnce} reads.
+ * An `OasRef<'schema'>` fits it as it is. `refPath` is a required key, so a
+ * caller cannot drop it by mistake: without it, a ref into a deep path would
+ * resolve to the component of the same name. It is `undefined` for a component.
+ */
+export type ResolveSchemaRefArgs = {
+  /** The last segment of the ref's pointer, unescaped. */
+  refName: RefName
+  /** The pointer before `refName`; `undefined` for a component. */
+  refPath: string | undefined
+}
+
+/**
  * Arguments for building model content settings.
  *
  * @template V - The value type for the model
@@ -683,7 +696,7 @@ export type GenerateContextType = {
   toModelContentSettings: <V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
     args: BuildModelSettingsArgs<V, EnrichmentType, ProjectionOptions>
   ) => ContentSettings<EnrichmentType>
-  resolveSchemaRefOnce: (refName: RefName, refPath?: string) => OasSchema | OasRef<'schema'>
+  resolveSchemaRefOnce: (args: ResolveSchemaRefArgs) => OasSchema | OasRef<'schema'>
   /** The Definition named `name` in `exportPath` (or inside the declaration `into`), or `undefined`. */
   findDefinition: ({ name, exportPath, into }: FindDefinitionArgs) => DefinitionBase | undefined
   /**

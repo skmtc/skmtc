@@ -10,6 +10,7 @@ import { toRequestBodiesV3 } from '../requestBody/toRequestBodiesV3.ts'
 import { toComponentHeadersV3 } from '../header/toHeadersV3.ts'
 import { toLinksV3 } from '../link/toLinksV3.ts'
 import { toExampleV3 } from '../example/toExamplesV3.ts'
+import { toSecuritySchemesV3 } from '../securitySchemes/toSecuritySchemes.ts'
 import { tryParseAt } from '@/context/tryParseAt.ts'
 
 /** What {@link toRefTargetV3} parses. */
@@ -35,6 +36,7 @@ type RequestBodyEntry = EntryOf<NonNullable<Parameters<typeof toRequestBodiesV3>
 type HeaderEntry = EntryOf<NonNullable<Parameters<typeof toComponentHeadersV3>[0]['headers']>>
 type LinkEntry = EntryOf<NonNullable<Parameters<typeof toLinksV3>[0]['links']>>
 type ExampleEntry = Parameters<typeof toExampleV3>[0]['example']
+type SecuritySchemeEntry = EntryOf<NonNullable<Parameters<typeof toSecuritySchemesV3>[0]['securitySchemes']>>
 
 /**
  * The raw value read as the OpenAPI type its parser takes, as the components
@@ -46,8 +48,7 @@ const isRawEntry = <T>(value: Record<string, unknown>): value is Record<string, 
  * Parses the target of a ref that does not point at a component
  * (`#/components/schemas/Pet/properties/tag`, `#/paths/~1pets/get/parameters/0`)
  * at its own position, with the parser that components of its kind use. Gives
- * `undefined` when the target does not parse (the parser has logged why), and
- * for a security scheme, which only `components.securitySchemes` holds.
+ * `undefined` when the target does not parse (the parser has logged why).
  */
 export const toRefTargetV3 = ({ refType, name, value, stackTrail, context }: ToRefTargetArgs): ComponentsEntry | undefined => {
   switch (refType) {
@@ -89,7 +90,9 @@ export const toRefTargetV3 = ({ refType, name, value, stackTrail, context }: ToR
           })
         : undefined
     case 'securityScheme':
-      return undefined
+      return isRawEntry<SecuritySchemeEntry>(value)
+        ? toSecuritySchemesV3({ securitySchemes: { [name]: value }, stackTrail, context })?.[name]
+        : undefined
     default: {
       const _exhaustive: never = refType
       throw new Error(`Unhandled ref type: ${_exhaustive}`)

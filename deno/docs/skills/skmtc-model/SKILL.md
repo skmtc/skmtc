@@ -78,8 +78,9 @@ engine machinery — modifying it is almost always a mistake.
   target becomes a model of its own. The router passes the ref's
   `refName` and `refPath` to `MyLibRef`, which passes both to
   `toModelRef`, and the projection resolves its schema with
-  `resolveSchemaRefOnce(refName, refPath)`. Drop `refPath` anywhere on
-  that path and the lookup finds the component named `refName` instead.
+  `resolveSchemaRefOnce({ refName, refPath })`. Drop `refPath` on the way
+  to `toModelRef` and the lookup finds the component named `refName`
+  instead.
   The skeleton's `base.ts` names by `refName` alone, so two deep targets
   that share it (`…/properties/disk` twice) collide with
   `Registered definition mismatch`; read `refPath` there if your

@@ -77,7 +77,7 @@ class RefModel extends ModelBase {
 
     this.label = this.settings.enrichments.subject?.label
 
-    const schema = args.context.resolveSchemaRefOnce(args.refName, args.refPath)
+    const schema = args.context.resolveSchemaRefOnce({ refName: args.refName, refPath: args.refPath })
 
     this.properties = schema.isRef() || schema.type !== 'object'
       ? []
