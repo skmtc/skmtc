@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-typescript
-version: 0.3.2
+version: 0.3.3
 description: >
   The TypeScript target-language layer for Skmtc generators
   (@skmtc/lang-typescript): projection base factories, TsSnippet, the
@@ -11,7 +11,7 @@ description: >
   skills.
 metadata:
   describes:
-    '@skmtc/lang-typescript': '0.14'
+    '@skmtc/lang-typescript': '0.15'
     '@skmtc/core': '0.47'
 ---
 

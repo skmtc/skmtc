@@ -650,7 +650,7 @@
     ]
   },
   "@skmtc/lang-typescript": {
-    "minor": "0.14",
+    "minor": "0.15",
     "deno": "2.9.8",
     "exports": {
       "BookendsType": "0f89585728b82193",
@@ -727,6 +727,7 @@
       "sanitizeIdentifier": "f9969fb62c83d3de",
       "sanitizePropertyName": "9e9683efbd44b96b",
       "toAnyStringExceptPattern": "4610e7634112873a",
+      "toParameterVariable": "f9969fb62c83d3de",
       "toPathParams": "a90ef74a89ee858d",
       "toPathTemplate": "91c04c188640b6df",
       "toRegExpLiteral": "e52a690b06f723c4",
