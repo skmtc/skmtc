@@ -3,7 +3,7 @@ import { isRef, toGetRef } from '@/helpers/refFns.ts'
 import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 import { isPlainObject } from '@/parse/isPlainObject.ts'
 import { toCyclicRefs } from '@/parse/toCyclicRefs.ts'
-import { haveNoCommonType, toDeclaredTypes } from '@/parse/toDeclaredTypes.ts'
+import { haveNoCommonType, isWithin, toDeclaredTypes } from '@/parse/toDeclaredTypes.ts'
 
 type SchemaObject = OpenAPIV3.SchemaObject
 type ReferenceObject = OpenAPIV3.ReferenceObject
@@ -19,6 +19,8 @@ export type KeptRefs = {
   holds: (schema: SchemaOrReference) => boolean
   /** Whether a pair that holds a kept ref allows no value: the two types, read through refs, have none in common. */
   contradict: (first: SchemaOrReference, second: SchemaOrReference) => boolean
+  /** Whether a ref's target, read through refs, allows no type but those of `schema`. */
+  declaresTypeOf: (ref: ReferenceObject, schema: SchemaObject) => boolean
 }
 
 type ToKeptRefsArgs = {
@@ -92,6 +94,8 @@ export const toKeptRefs = ({ documentObject, setting = 'cycles' }: ToKeptRefsArg
     },
     contradict: (first, second) =>
       (holds(first) || holds(second)) &&
-      haveNoCommonType(toDeclaredTypes({ schema: first, peek }), toDeclaredTypes({ schema: second, peek }))
+      haveNoCommonType(toDeclaredTypes({ schema: first, peek }), toDeclaredTypes({ schema: second, peek })),
+    declaresTypeOf: (ref, schema) =>
+      isWithin(toDeclaredTypes({ schema: ref, peek }), toDeclaredTypes({ schema, peek }))
   }
 }

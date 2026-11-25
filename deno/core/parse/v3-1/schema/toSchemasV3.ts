@@ -344,13 +344,14 @@ export const toSchemaV3 = ({
       logAllOfContradictions({ system, stackTrail, parent: schema, context })
       logMergedUnknownAnyOf({ system, stackTrail, parent: schema, context })
 
-      const parts = system.keptRefs && toIntersectionParts(merged, system.keptRefs)
+      const { keptRefs } = system
+      const parts = keptRefs && toIntersectionParts(merged, keptRefs)
 
-      if (parts === undefined) {
+      if (keptRefs === undefined || parts === undefined) {
         return toSchemaV3({ schema: merged, stackTrail: st, context })
       }
 
-      const { own, members: kept } = toSiteIntersection(parts)
+      const { own, members: kept } = toSiteIntersection(parts, keptRefs)
       const [only] = kept
 
       if (kept.length > 1 || only === undefined) {

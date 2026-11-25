@@ -85,13 +85,59 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     })
 
     for (const name of ['Parent', 'Owner', 'Root']) {
-      const property = at(schemas.Account, 'properties', name)
-      const [object, account] = toAllOf(property)
-
-      assertEquals(at(object, 'type'), 'object')
-      assertEquals(account, '#/components/schemas/Account')
-      assertEquals(at(property, 'nullable'), true)
+      // The target is an object already, so `type: object` adds no member.
+      assertEquals(at(schemas.Account, 'properties', name), { ...ref('Account'), nullable: true })
     }
+  })
+
+  Deno.test(`${openapi} a type beside a kept ref is a member only when the target does not declare it`, async () => {
+    const { schemas, issues } = await parseBounded({
+      openapi,
+      schemas: {
+        Obj: toObject({ a: text }),
+        Alias: { allOf: [ref('Obj')] },
+        Int: { type: 'integer' },
+        Num: { type: 'number' },
+        Either: { oneOf: [ref('Obj'), toObject({ c: text })] },
+        Mixed: { oneOf: [ref('Obj'), text] },
+        Untyped: { description: 'any' },
+        same: { allOf: [ref('Obj'), { type: 'object' }] },
+        reversed: { allOf: [{ type: 'object' }, ref('Obj')] },
+        alias: { allOf: [ref('Alias'), { type: 'object' }] },
+        wider: { allOf: [ref('Int'), { type: 'number' }] },
+        union: { allOf: [ref('Either'), { type: 'object' }] },
+        narrower: { allOf: [ref('Num'), { type: 'integer' }] },
+        mixed: { allOf: [ref('Mixed'), { type: 'object' }] },
+        untyped: { allOf: [ref('Untyped'), { type: 'object' }] },
+        required: { allOf: [ref('Obj'), { type: 'object', required: ['a'] }] },
+        two: { allOf: [ref('Obj'), ref('Either'), { type: 'object' }] }
+      },
+      system: { intersections: 'all' }
+    })
+
+    const target = { same: 'Obj', reversed: 'Obj', alias: 'Alias', wider: 'Int', union: 'Either' }
+
+    for (const [name, expected] of Object.entries(target)) {
+      assertEquals(schemas[name], ref(expected), name)
+    }
+
+    for (const name of ['narrower', 'mixed', 'untyped', 'required']) {
+      assertEquals(toAllOf(schemas[name]).length, 2, name)
+    }
+
+    assertEquals(toAllOf(schemas.two).length, 3)
+    assertEquals(issues, [])
+  })
+
+  Deno.test(`${openapi} a schema with a type that lists itself in its own union keeps the ref`, async () => {
+    const { schemas } = await parseBounded({
+      openapi,
+      schemas: { Plan: { type: 'object', oneOf: [ref('Plan'), toObject({ p: text })] } }
+    })
+
+    // The trap: the type that `Plan` declares is the one beside its own union.
+    assertEquals(at(schemas.Plan, 'oneOf', 0), ref('Plan'))
+    assertEquals(at(schemas.Plan, 'oneOf', 1, 'type'), 'object')
   })
 
   Deno.test(`${openapi} a keyword beside a large union with a member that leads back (port)`, async () => {
@@ -109,10 +155,8 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     })
 
     const members = at(schemas.DashboardWidget, 'properties', 'widgets', 'items', 'oneOf')
-    const [object, dashboard] = toAllOf(at(members, 30))
 
-    assertEquals(at(object, 'type'), 'object')
-    assertEquals(dashboard, '#/components/schemas/DashboardWidget')
+    assertEquals(at(members, 30), ref('DashboardWidget'))
     // The members that do not lead back merge, as they always did.
     assertEquals(at(members, 0, 'properties', 'Widget0', 'type'), 'string')
     assertEquals(issues.filter(({ level }) => level === 'error'), [])
@@ -206,7 +250,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
 
     const member = at(schemas[pointer], 'properties', 'children', 'items', 'oneOf', 0)
 
-    assertEquals(toAllOf(member)[1], pointer)
+    assertEquals(member, { $ref: pointer })
     assertEquals(at(schemas.Other, 'properties', 'p', 'properties', 'x', 'type'), 'string')
   })
 

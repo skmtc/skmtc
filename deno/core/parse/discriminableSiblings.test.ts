@@ -49,4 +49,46 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     // The trap: `Base` alone has no `kind`; the members' own keywords make them discriminable.
     assertEquals(pet?.type === 'union' ? pet.isDiscriminable() : 'not a union', true)
   })
+
+  Deno.test(`${openapi} isDiscriminable is true with a type that says nothing beside a union in a cycle`, () => {
+    const toMember = (kind: string, properties = {}) => ({
+      type: 'object',
+      properties: { kind: { type: 'string', enum: [kind] }, ...properties },
+      required: ['kind']
+    })
+    const node = { $ref: '#/components/schemas/Node' }
+    const context = new ParseContext({
+      input: {
+        type: 'oas',
+        value: {
+          openapi,
+          info: { title: 'Discriminable', version: '1' },
+          paths: {},
+          components: {
+            schemas: {
+              Node: {
+                type: 'object',
+                oneOf: [{ $ref: '#/components/schemas/Leaf' }, { $ref: '#/components/schemas/Branch' }],
+                discriminator: { propertyName: 'kind' }
+              },
+              Leaf: toMember('leaf'),
+              // The trap: `Branch` stays a ref, so `type: object` has nothing to merge into.
+              Branch: toMember('branch', { children: { type: 'array', items: node } })
+            }
+          }
+        } as OpenAPIV3.Document
+      },
+      logger: new log.Logger('test', 'ERROR'),
+      silent: true
+    })
+    const parsed = context.parse(new StackTrail(['TEST']))
+    const union = parsed.type === 'oas' ? parsed.value.components?.schemas?.['Node' as RefName] : undefined
+
+    assertEquals(union?.type === 'union' ? union.isDiscriminable() : 'not a union', true)
+
+    // The `type` stays next to the ref, and it agrees with the target.
+    const branch = union?.type === 'union' ? union.members.find(member => member.isRef()) : undefined
+
+    assertEquals(branch?.isRef() && [branch._type, branch.toSkippedSiblings()], ['object', []])
+  })
 }
