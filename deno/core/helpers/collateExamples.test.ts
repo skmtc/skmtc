@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from '@std/assert'
+import { assertEquals } from '@std/assert'
 import { collateExamples } from './collateExamples.ts'
 import { OasComponents } from '../oas/components/Components.ts'
 import { OasDocument } from '../oas/document/Document.ts'
@@ -21,14 +21,81 @@ Deno.test('collateExamples - returns undefined for undefined schema', () => {
   assertEquals(result, undefined)
 })
 
-Deno.test('collateExamples - throws error when depth exceeds limit', () => {
+Deno.test('collateExamples - the depth limit is 15, and a schema past it has no example', () => {
   const schema = new OasString({ example: 'test' })
 
-  assertThrows(
-    () => collateExamples({ objectSchema: schema, depth: 16 }),
-    Error,
-    'Depth limit reached'
-  )
+  assertEquals(collateExamples({ objectSchema: schema, depth: 15 }), 'test')
+  assertEquals(collateExamples({ objectSchema: schema, depth: 16 }), undefined)
+})
+
+Deno.test('collateExamples - an object past the limit is left out, and its siblings stay', () => {
+  const schema = new OasObject({
+    properties: {
+      before: new OasInteger({ example: 1 }),
+      deep: new OasObject({ properties: { leaf: new OasString({ example: 'leaf' }) } }),
+      after: new OasInteger({ example: 2 })
+    }
+  })
+
+  assertEquals(collateExamples({ objectSchema: schema, depth: 14 }), { before: 1, after: 2 })
+  assertEquals(collateExamples({ objectSchema: schema, depth: 15 }), undefined)
+})
+
+Deno.test('collateExamples - array items and union members past the limit give no example', () => {
+  const leaf = new OasString({ example: 'leaf' })
+
+  assertEquals(collateExamples({ objectSchema: new OasArray({ items: leaf }), depth: 15 }), undefined)
+  assertEquals(collateExamples({ objectSchema: new OasUnion({ members: [leaf] }), depth: 15 }), undefined)
+})
+
+Deno.test('collateExamples - a ref whose target is past the limit gives no example', () => {
+  const schemas: Record<string, OasSchema> = { Leaf: new OasString({ example: 'leaf' }) }
+
+  assertEquals(collateExamples({ objectSchema: toCyclicRef(schemas, 'Leaf'), depth: 14 }), 'leaf')
+  assertEquals(collateExamples({ objectSchema: toCyclicRef(schemas, 'Leaf'), depth: 15 }), undefined)
+})
+
+/** Models `M1` to `M<length>`, each with an `id` and a ref to the next model in `next`. */
+const toModelChain = (length: number, toNext: (ref: OasRef<'schema'>) => OasSchema | OasRef<'schema'>) => {
+  const schemas: Record<string, OasSchema> = {}
+
+  Array.from({ length }, (_, index) => index + 1).forEach(position => {
+    const id = new OasString({ example: `${position}` })
+
+    schemas[`M${position}`] = new OasObject({
+      properties:
+        position === length
+          ? { id }
+          : { id, next: toNext(toCyclicRef(schemas, `M${position + 1}`)) }
+    })
+  })
+
+  return toCyclicRef(schemas, 'M1')
+}
+
+Deno.test('collateExamples - of 8 models nested directly, the last is left out', () => {
+  const toExample = (position: number): unknown =>
+    position === 7
+      ? { id: '7' }
+      : { id: `${position}`, next: toExample(position + 1) }
+
+  const result = collateExamples({ objectSchema: toModelChain(8, ref => ref), depth: 0 })
+
+  assertEquals(result, toExample(1))
+})
+
+Deno.test('collateExamples - of 6 models nested through arrays, the last is left out', () => {
+  const toExample = (position: number): unknown =>
+    position === 5
+      ? { id: '5' }
+      : { id: `${position}`, next: [toExample(position + 1)] }
+
+  const result = collateExamples({
+    objectSchema: toModelChain(6, ref => new OasArray({ items: ref })),
+    depth: 0
+  })
+
+  assertEquals(result, toExample(1))
 })
 
 Deno.test('collateExamples - returns string example', () => {
@@ -234,11 +301,9 @@ Deno.test('collateExamples - increments depth for nested structures', () => {
 /**
  * Reference cycles.
  *
- * A schema that reaches itself pads the recursion path until the depth limit
- * throws, roughly sixteen steps in — so before the cycle guard a
- * self-referential schema and a legitimately deep one failed identically, and a
- * caller that only wanted a sample body got an exception. Cutting the cycle
- * omits the recursive key and lets collation finish.
+ * Without the cycle guard, the example of a schema that reaches itself would
+ * repeat the cycle until the depth limit. Cutting the cycle omits the recursive
+ * key.
  *
  * Found via skmtc-hub's docs viewer, where buddy-api's
  * `workspaces/:workspace_domain/variables/get` slice carries 52 component

@@ -168,14 +168,15 @@ trail, and the manifest carries no messages or stacks:
 ```jsonc
 // manifest.results
 { "trace-1": { "span-1": { "generate": { "@skmtc/gen-zod": {
-  "User": { "variant": { "main": "error" } }
+  "User": { "variant": { "main": "success" } },
+  "user": { "variant": { "main": "error" } }
 } } } } }
 
 // one line of logs
 { "seq": 0, "level": "ERROR",
-  "trail": "trace-1:span-1:generate:@skmtc/gen-zod:User:variant:main",
-  "message": "Depth limit reached",
-  "error": { "name": "Error", "message": "Depth limit reached", "stack": "Error: Depth limit reached\n    at …" },
+  "trail": "trace-1:span-1:generate:@skmtc/gen-zod:user:variant:main",
+  "message": "Registered definition mismatch: 'user' in file '@/types/user.generated.ts'. Cached key '@skmtc/gen-zod|User|main' does not match new key '@skmtc/gen-zod|user|main'",
+  "error": { "name": "Error", "message": "Registered definition mismatch: 'user' in file …", "stack": "Error: Registered definition mismatch: 'user' in file …\n    at …" },
   "time": 1793465088787 }
 ```
 

@@ -10,7 +10,7 @@ import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 type CollatedExampleArgs = {
   /** The OpenAPI schema or reference to extract examples from */
   objectSchema: OasSchema | OasRef<'schema'> | undefined
-  /** Current recursion depth (used to prevent infinite loops) */
+  /** Current recursion depth. A schema deeper than 15 has no example. */
   depth: number
   /**
    * The `$ref` pointers already entered on THIS path, used to cut reference
@@ -30,7 +30,8 @@ type CollatedExampleArgs = {
  * This function traverses OpenAPI schema structures and generates comprehensive
  * example values based on the schema definitions and any explicit examples provided.
  * It handles complex nested structures including objects, arrays, unions, and
- * references while preventing infinite recursion through depth limiting.
+ * references. The part of a schema past the depth limit of 15 is left out, and the
+ * rest of the example is kept.
  *
  * The function prioritizes explicit examples when available and falls back to
  * generating examples from nested schemas. It's particularly useful for creating
@@ -38,10 +39,8 @@ type CollatedExampleArgs = {
  *
  * @param args - Configuration for example collation
  * @param args.objectSchema - The schema to extract examples from
- * @param args.depth - Current recursion depth (prevents infinite loops)
+ * @param args.depth - Current recursion depth, 0 for the first call
  * @returns Collated example value matching the schema structure, or undefined if no examples
- *
- * @throws {Error} When recursion depth exceeds 15 levels (prevents stack overflow)
  *
  * @example Basic schema examples
  * ```typescript
@@ -137,16 +136,20 @@ type CollatedExampleArgs = {
  * // }
  * ```
  *
- * @example Depth limiting and error handling
+ * @example Depth limit and missing schemas
  * ```typescript
- * // Deep nesting detection
- * try {
- *   const deepExample = collateExamples({ objectSchema: someSchema, depth: 16 });
- * } catch (error) {
- *   console.error('Depth limit exceeded:', error.message); // 'Depth limit reached'
- * }
+ * // `id` is at depth 15 and `name` is at depth 16, past the limit
+ * const deepSchema = new OasObject({
+ *   properties: {
+ *     id: new OasInteger({ example: 123 }),
+ *     owner: new OasObject({ properties: { name: new OasString({ example: 'Jane' }) } })
+ *   }
+ * });
  *
- * // Handling missing schemas
+ * const deepExample = collateExamples({ objectSchema: deepSchema, depth: 14 });
+ * console.log(deepExample); // { id: 123 }
+ *
+ * // A missing schema has no example
  * const emptyExample = collateExamples({ objectSchema: undefined, depth: 0 });
  * console.log(emptyExample); // undefined
  * ```
@@ -175,7 +178,7 @@ export const collateExamples = ({ objectSchema, depth, seen }: CollatedExampleAr
   }
 
   if (depth > 15) {
-    throw new Error('Depth limit reached')
+    return undefined
   }
 
   switch (objectSchema.type) {
@@ -183,11 +186,7 @@ export const collateExamples = ({ objectSchema, depth, seen }: CollatedExampleAr
       // A schema that reaches itself has no finite example, so the recursive
       // key is omitted and collation continues around it.
       //
-      // Without this the cycle simply pads the path until the depth limit
-      // throws, roughly sixteen steps in — so a self-referential schema and a
-      // legitimately deep one fail identically, and a caller that only wanted a
-      // sample body gets an exception instead. Cutting the cycle here is what
-      // makes the depth limit mean what it says.
+      // Without this the example would repeat the cycle until the depth limit.
       return collateRef({ ref: objectSchema, depth: depth + 1, seen })
     }
 
