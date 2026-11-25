@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.16.0
+version: 0.16.1
 description: >
   Author and edit Skmtc generators — packages that project an OpenAPI
   domain model into application code. Method: clone the nearest stock
@@ -12,7 +12,7 @@ description: >
   (skmtc-lang-typescript).
 metadata:
   describes:
-    '@skmtc/core': '0.46'
+    '@skmtc/core': '0.47'
 ---
 
 # Authoring Skmtc generators
@@ -248,7 +248,9 @@ contracts (`Oas*` classes, `Inserted`, `ContentSettings`,
 instead of guessing, and instead of casting around a type error. In
 particular `OasSchema` is a union type, not a class hierarchy: every
 variant implements `.isRef()` returning `false`, and `OasRef` is a
-sibling with `.isRef()` returning `true`.
+sibling with `.isRef()` returning `true`. An `allOf` is merged at parse,
+except a `$ref` that closes a cycle: that schema is an `OasIntersection`
+(`type: 'intersection'`), and the kept refs are in its `members`.
 
 Render does not run Prettier or Biome — no formatter runs inside the
 engine, so read the raw output as the generator produced it and format

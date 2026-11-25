@@ -289,7 +289,10 @@ discriminator omission. Everything else renders the honest wire type
   on a base, members compose via `allOf`) qualify WITHOUT special
   handling — core resolves `allOf` at parse time (`mergeIntersection`),
   so the member peeks as a flat object and the base's fields flatten
-  into each data class (verified through the pipeline 2026-08-04).
+  into each data class (verified through the pipeline 2026-08-04). From
+  core 0.47, a base `$ref` that closes a cycle (a union base that lists
+  the member) is kept: the member is an `OasIntersection`
+  (`system.intersections`).
   Flattening is the right Kotlin target: the sealed interface is the
   polymorphism seam, not class inheritance.
 - **Inline unions (stage 2, shipped)**: a qualifying union ANYWHERE —

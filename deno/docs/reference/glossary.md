@@ -379,8 +379,15 @@ a live reference to the in-progress document, resolves lazily. See
 ### `OasSchema`
 
 The discriminated union of schema variant classes (`OasObject`,
-`OasArray`, `OasUnion`, the scalar variants, `OasUnknown`) — sibling
-classes with a `.type` discriminator, not a class hierarchy.
+`OasArray`, `OasUnion`, `OasIntersection`, the scalar variants,
+`OasUnknown`) — sibling classes with a `.type` discriminator, not a class
+hierarchy.
+
+### `OasIntersection`
+
+The schema variant for an `allOf` that keeps a reference, usually one
+that closes a cycle. A value matches every member. See
+[OAS schema variants](api/oas-schema-variants.md#oasintersection--type-intersection).
 
 ### `oasType`
 
@@ -606,7 +613,7 @@ The per-item parse-isolation helper: runs a parser callback inside a
 ### `TypeSystemValue`
 
 The discriminated-union intermediate representation a model generator
-produces from an `OasSchema` — twelve structural variants, each
+produces from an `OasSchema` — structural variants, most
 carrying [`Modifiers`](#modifiers). See
 [the-type-system](../concepts/the-type-system.md).
 

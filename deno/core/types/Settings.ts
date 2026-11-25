@@ -270,7 +270,8 @@ export const systemSettings: v.GenericSchema<SystemSettings> = v.object({
   responseContradictions: v.optional(v.picklist(['strict', 'unknown'])),
   not: v.optional(v.picklist(['strict', 'unknown'])),
   anyOf: v.optional(v.picklist(['union', 'unknown'])),
-  danglingRefs: v.optional(v.array(v.picklist(danglingRefKinds)))
+  danglingRefs: v.optional(v.array(v.picklist(danglingRefKinds))),
+  intersections: v.optional(v.picklist(['merge', 'cycles', 'all']))
 })
 
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
@@ -620,6 +621,15 @@ export type SystemSettings = {
    * default, `[]`, lists none.
    */
   danglingRefs?: DanglingRefKind[]
+  /**
+   * The `$ref`s that stay refs where core would merge their target in: the
+   * members of an `allOf`, and the members of a `oneOf` or `anyOf` with a
+   * keyword beside it that merges into each member. The schema is then an
+   * `OasIntersection` of the refs and one schema that the other members merge
+   * into. `cycles` (the default): a `$ref` whose target leads back to the
+   * schema that holds it. `all`: each one. `merge`: none.
+   */
+  intersections?: 'merge' | 'cycles' | 'all'
 }
 
 export type ClientSettings = {

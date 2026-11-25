@@ -9,7 +9,8 @@
  * Fixture coverage: enum, array-of-ref, shared ref (Address ×2 →
  * ONE definition), optional, nullable, additionalProperties record,
  * self-recursion (Category → Category), a cycle of two models
- * (Employee → Team → Employee).
+ * (Employee → Team → Employee), an allOf that keeps a reference
+ * (Version.previous).
  */
 import { StackTrail, toArtifacts } from '@skmtc/core'
 import { assertEquals, assertStringIncludes } from '@std/assert'
@@ -87,6 +88,17 @@ const fixture = {
           },
         },
       },
+      Version: {
+        type: 'object',
+        properties: {
+          previous: {
+            allOf: [
+              { $ref: '#/components/schemas/Version' },
+              { type: 'object', properties: { note: { type: 'string' } } },
+            ],
+          },
+        },
+      },
     },
   },
 }
@@ -126,6 +138,7 @@ Deno.test('every model renders to its own file', () => {
     'models/orderItem.generated.ts',
     'models/orderStatus.generated.ts',
     'models/team.generated.ts',
+    'models/version.generated.ts',
   ])
 })
 
@@ -198,6 +211,15 @@ Deno.test('a cycle of two models renders every reference in it lazy', () => {
   assertStringIncludes(
     employee,
     'export const employee: MyLibSchema<Employee> =',
+  )
+})
+
+Deno.test('an allOf that keeps a reference renders as an intersection', () => {
+  const { artifacts } = generate()
+
+  assertStringIncludes(
+    artifacts['models/version.generated.ts'],
+    'previous: m.intersection([m.lazy(() => version), m.object({note: m.string().optional()})]).optional()',
   )
 })
 

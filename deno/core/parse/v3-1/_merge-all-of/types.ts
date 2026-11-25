@@ -1,5 +1,6 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import * as v from 'valibot'
+import type { KeptRefs } from '@/parse/keptRefs.ts'
 export type GetRefFn = (ref: OpenAPIV3.ReferenceObject) => OpenAPIV3.SchemaObject
 
 /**
@@ -30,6 +31,8 @@ export type MergeSystem = {
   anyOf?: 'union' | 'unknown'
   /** The keywords the merge read as any value: `anyOf` under `system.anyOf: unknown`. */
   unknown?: Set<string>
+  /** The refs that stay refs (`system.intersections`). Left out: every ref is followed. */
+  keptRefs?: KeptRefs
 }
 
 export type OneOfObject = {

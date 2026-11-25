@@ -14,6 +14,8 @@ import { toBoolean } from '../boolean/toBoolean.ts'
 import { toString } from '../string/toString.ts'
 import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
+import { toIntersection } from '@/parse/v3-1/intersection/toIntersection.ts'
+import { toIntersectionParts, toSiteIntersection } from '@/parse/keptIntersection.ts'
 import { toGetRef } from '@/helpers/refFns.ts'
 import { toSiblingKeywords } from '@/parse/toSiblingKeywords.ts'
 import { logAllOfContradictions, toAllOfSystem } from '@/parse/allOfSystem.ts'
@@ -213,9 +215,10 @@ export const toSchemaV3 = ({
     }
 
     const members = Array.isArray(allOf) ? allOf : []
+    const bareRef = context.keptRefs?.copy(schema, { $ref }) ?? { $ref }
 
     return Object.keys(keywords).length > 0
-      ? toSchemaV3({ schema: { ...keywords, allOf: [{ $ref }, ...members] }, stackTrail, context })
+      ? toSchemaV3({ schema: { ...keywords, allOf: [bareRef, ...members] }, stackTrail, context })
       : toRefV31({ ref: schema, refType: 'schema', stackTrail, context })
   }
 
@@ -341,7 +344,21 @@ export const toSchemaV3 = ({
       logAllOfContradictions({ system, stackTrail, parent: schema, context })
       logMergedUnknownAnyOf({ system, stackTrail, parent: schema, context })
 
-      return toSchemaV3({ schema: merged, stackTrail: st, context })
+      const parts = system.keptRefs && toIntersectionParts(merged, system.keptRefs)
+
+      if (parts === undefined) {
+        return toSchemaV3({ schema: merged, stackTrail: st, context })
+      }
+
+      const { own, members: kept } = toSiteIntersection(parts)
+      const [only] = kept
+
+      if (kept.length > 1 || only === undefined) {
+        return toIntersection({ value: own, members: kept, stackTrail: st, context })
+      }
+
+      // An intersection of one ref is that ref with the keywords beside it.
+      return toSchemaV3({ schema: isEmpty(own) ? only : { ...own, allOf: [only] }, stackTrail: st, context })
     })
   }
 

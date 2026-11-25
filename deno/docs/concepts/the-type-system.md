@@ -14,7 +14,7 @@ visitor with overridable per-type hooks (openapi-generator's
 "I extend the base, override `visitStringSchema`, get TypeScript
 output for free." Skmtc does not work this way. Every model
 generator implements the whole `schemaToValueFn` — string, integer,
-number, boolean, object, array, union, unknown, void, ref, custom —
+number, boolean, object, array, union, intersection, unknown, void, ref, custom —
 itself.
 
 This page covers what the type system is, how `schemaToValueFn`
@@ -71,7 +71,7 @@ keyed by the discriminator.
 
 ## The structural shapes
 
-`TypeSystemValue` is a union of twelve variants
+`TypeSystemValue` is a union of these variants
 (`core/types/TypeSystem.ts`):
 
 | Variant | Discriminator | Carries |
@@ -84,6 +84,7 @@ keyed by the discriminator.
 | `TypeSystemArray` | `'array'` | `items: TypeSystemValue`, `modifiers` |
 | `TypeSystemObject` | `'object'` | `objectProperties?`, `recordProperties?`, `modifiers` |
 | `TypeSystemUnion` | `'union'` | `members: TypeSystemValue[]`, `discriminator?`, `modifiers` |
+| `TypeSystemIntersection` | `'intersection'` | `members: TypeSystemValue[]`, `modifiers` |
 | `TypeSystemRef` | `'ref'` | `name`, `modifiers` |
 | `TypeSystemCustom` | `'custom'` | `value: Stringable` |
 | `TypeSystemVoid` | `'void'` | (no payload) |
@@ -121,7 +122,7 @@ export type TypeSystemArgs<Schema extends SchemaType> = {
 }
 
 export type SchemaType =
-  | OasSchema             // the eight schema variants
+  | OasSchema             // the nine schema variants
   | OasRef<'schema'>      // a ref to one of them
   | OasVoid               // explicit void
   | CustomValue           // generator-injected fragment
@@ -140,7 +141,8 @@ generator that doesn't handle it.
 ## A complete `schemaToValueFn` example
 
 `gen-typescript`'s implementation
-(`skmtc-generators/gen-typescript/src/Ts.ts`):
+(`skmtc-generators/gen-typescript/src/Ts.ts`) for core 0.46. Core 0.47
+adds the `'intersection'` variant, so the match then needs an arm for it:
 
 ```ts
 export const toTsValue: SchemaToValueFn = ({
@@ -329,7 +331,7 @@ differs. Skmtc requires each model generator to implement the full
    `z.string().email()`); `ValibotString.toString()` returns
    `v.string()`. There is no "string handling" code path the three
    could share — the rendered fragment is entirely
-   target-specific. A base visitor would just be eleven hooks
+   target-specific. A base visitor would just be twelve hooks
    waiting for full overrides.
 2. **`schemaToValueFn` is the customization seam.** Cloning
    `gen-typescript` to swap a format mapping means editing
@@ -345,7 +347,7 @@ differs. Skmtc requires each model generator to implement the full
    doesn't update its `schemaToValueFn` — the right place for the
    change to surface.
 
-The cost is duplication: eleven match arms in every model
+The cost is duplication: twelve match arms in every model
 generator. The benefit is independence — each generator's
 `schemaToValueFn` fits the target language without negotiation
 with a shared base.

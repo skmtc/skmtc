@@ -24,6 +24,7 @@ import { mergeIntersection } from './merge-intersection.ts'
 import { collapseNullOnlyUnion, mergeCrossProduct, toOwnSystem } from './merge-union.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
 import { isNullOnly, mergeNullOnly } from './nullable-merge.ts'
+import { mergeKept, toIntersectionParts } from '@/parse/keptIntersection.ts'
 import { withoutUnknownAnyOf } from '@/parse/anyOfSystem.ts'
 
 export const mergeSchemasOrRefs = ({
@@ -39,6 +40,20 @@ export const mergeSchemasOrRefs = ({
   const second = isRef(inputSecond)
     ? inputSecond
     : collapseNullOnlyUnion(normalize(inputSecond), normalize)
+
+  const { keptRefs } = system
+
+  if (keptRefs && (toIntersectionParts(first, keptRefs) || toIntersectionParts(second, keptRefs))) {
+    return mergeKept({
+      first,
+      second,
+      keptRefs,
+      merge: (a, b) => mergeSchemasOrRefs({ first: a, second: b, getRef, normalize, system }),
+      mergeAllOf: schema => mergeIntersection({ schema, getRef, normalize, system: toOwnSystem(system) }),
+      readRef: ref => normalize(getRef(ref)),
+      normalize
+    })
+  }
 
   if (containsRef(first, second)) {
     return mergeWithRef({ first, second, getRef, normalize, system })

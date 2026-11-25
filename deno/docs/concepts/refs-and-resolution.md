@@ -37,6 +37,7 @@ type OasSchema =
   | OasNumber
   | OasBoolean
   | OasUnion
+  | OasIntersection
   | OasUnknown
 ```
 
@@ -374,8 +375,16 @@ A `$ref` to a component that failed to parse already has an error in
 `#refErrors`. That `$ref` gets no `DANGLING_REF`.
 
 Some `$ref`s are not `OasRef`s. Core resolves them during the parse to
-merge the members of an `allOf`, so a generator does not see them. A
-member that leads into a loop of `$ref`s also names nothing.
+merge the members of an `allOf`, so a generator does not see them.
+
+[`settings.system.intersections`](../reference/settings/client-json-schema.md#settingssystem-optional)
+sets which of them core keeps as `OasRef`s, as members of an
+[`OasIntersection`](../reference/api/oas-schema-variants.md#oasintersection--type-intersection).
+By default core keeps each one that closes a cycle, because to merge it
+would copy the schema into itself. A kept `$ref` that names nothing is a
+`schema` ref. `allOfMember` does not apply to it.
+
+A member that leads into a loop of `$ref`s also names nothing.
 
 When a member names nothing and the list has `allOfMember`, core leaves the
 member out of the merge (`A & unknown` is `A`). The model then has no

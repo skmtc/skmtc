@@ -6,6 +6,7 @@ import type { OasObject } from '../object/Object.ts'
 import type { OasString } from '../string/String.ts'
 import type { OasUnknown } from '../unknown/Unknown.ts'
 import type { OasUnion } from '../union/Union.ts'
+import type { OasIntersection } from '@/oas/intersection/Intersection.ts'
 
 /**
  * Union type representing all possible OpenAPI Schema objects in the SKMTC system.
@@ -28,7 +29,8 @@ import type { OasUnion } from '../union/Union.ts'
  * - **{@link OasObject}**: Object schemas with properties, required fields, and constraints
  * - **{@link OasString}**: String schemas with length constraints, patterns, and formats
  * - **{@link OasUnknown}**: Schemas with unknown or mixed types
- * - **{@link OasUnion}**: Union schemas representing oneOf/anyOf/allOf constructs
+ * - **{@link OasUnion}**: Union schemas representing oneOf/anyOf constructs
+ * - **{@link OasIntersection}**: An allOf that keeps a reference
  *
  * @example Type checking and processing
  * ```typescript
@@ -117,6 +119,7 @@ export type OasSchema =
   | OasString
   | OasUnknown
   | OasUnion
+  | OasIntersection
 
 /**
  * Configuration options for JSON Schema conversion operations.

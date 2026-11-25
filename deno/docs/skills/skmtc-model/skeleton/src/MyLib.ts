@@ -9,6 +9,7 @@ import type { Modifiers, SchemaToValueFn, SchemaType } from '@skmtc/core'
 import { match } from 'ts-pattern'
 import { myLibEntry } from './mod.ts'
 import { MyLibArray } from './MyLibArray.ts'
+import { MyLibIntersection } from './MyLibIntersection.ts'
 import { MyLibObject } from './MyLibObject.ts'
 import { MyLibRef } from './MyLibRef.ts'
 import { MyLibString } from './MyLibString.ts'
@@ -80,6 +81,16 @@ export const toMyLibValue: SchemaToValueFn = (
         generatorKey,
         rootRef,
         schema: unionSchema,
+      })
+    })
+    .with({ type: 'intersection' }, (intersectionSchema) => {
+      return new MyLibIntersection({
+        context,
+        destinationPath,
+        intersectionSchema,
+        modifiers,
+        generatorKey,
+        rootRef,
       })
     })
     .with({ type: 'string' }, (stringSchema) => {

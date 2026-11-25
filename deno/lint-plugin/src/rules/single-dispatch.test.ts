@@ -38,6 +38,19 @@ Deno.test('single-dispatch: silent inside the metadata policies', () => {
   assertEquals(lint(RULE, source), [])
 })
 
+Deno.test('single-dispatch: an intersection is a schema type', () => {
+  const messages = messagesFrom(
+    RULE,
+    `class KtType extends KtSnippet {
+       constructor({ schema }: Args) {
+         super({})
+         this.rendered = schema.type === 'intersection' ? 'A' : 'B'
+       }
+     }`
+  )
+  assertEquals(messages.length, 1)
+})
+
 Deno.test('single-dispatch: flags a switch in a producer constructor', () => {
   const messages = messagesFrom(
     RULE,

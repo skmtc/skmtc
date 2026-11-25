@@ -1,9 +1,9 @@
 # OAS schema variants
 
-> The union type `OasSchema` and its eight constituent classes:
-> `OasObject`, `OasArray`, `OasUnion`, `OasString`, `OasInteger`,
-> `OasNumber`, `OasBoolean`, `OasUnknown`. Sibling classes with a
-> shared duck-typed interface — **not a class hierarchy**.
+> The union type `OasSchema` and its nine constituent classes:
+> `OasObject`, `OasArray`, `OasUnion`, `OasIntersection`, `OasString`,
+> `OasInteger`, `OasNumber`, `OasBoolean`, `OasUnknown`. Sibling classes
+> with a shared duck-typed interface — **not a class hierarchy**.
 
 `OasSchema` is one of the most common parameter types in Skmtc
 generator code. Its shape — a discriminated union of sibling
@@ -13,7 +13,7 @@ load-bearing for the type-narrowing behavior generators depend on.
 ## Source
 
 `skmtc/deno/core/oas/schema/Schema.ts` (the union type)
-`skmtc/deno/core/oas/{object,array,union,string,integer,number,boolean,unknown}/<Name>.ts` (variants)
+`skmtc/deno/core/oas/{object,array,union,intersection,string,integer,number,boolean,unknown}/<Name>.ts` (variants)
 
 ## The union type
 
@@ -27,9 +27,10 @@ type OasSchema =
   | OasString
   | OasUnknown
   | OasUnion
+  | OasIntersection
 ```
 
-Eight independent classes. Each is a top-level class (no shared
+Nine independent classes. Each is a top-level class (no shared
 parent). They share a structural interface via duck typing, not via
 inheritance.
 
@@ -168,6 +169,51 @@ class OasUnion {
 `oneOf` vs `anyOf` distinction is preserved via the underlying parse
 metadata; the union representation is similar for both.
 
+### `OasIntersection` — `type: 'intersection'`
+
+An `allOf` that keeps a reference. A value matches every member.
+
+```ts
+class OasIntersection {
+  oasType: 'schema'
+  type: 'intersection'
+  members: (OasSchema | OasRef<'schema'>)[]
+  title?: string
+  description?: string
+  nullable?: boolean
+  readOnly?: boolean
+  writeOnly?: boolean
+  deprecated?: boolean
+  // ... example, default, externalDocs, extensionFields
+
+  isReadOnly(): boolean
+  isWriteOnly(): boolean
+  toParts(): OasSchema[]   // without intersections, refs resolved
+}
+```
+
+The parser usually merges the members of an `allOf` into one schema.
+[`settings.system.intersections`](../settings/client-json-schema.md#settingssystem-optional)
+sets which `$ref`s the parser keeps. By default it keeps a `$ref` that
+closes a cycle: its target leads back to the schema that has the `$ref`.
+
+The `members` are the kept references and, at most, one other schema.
+All other members of the `allOf` merge into that schema. It has the
+place of the first of them. The keywords next to the `allOf` that
+describe the schema (`title`, `description`, `x-*`) are on the
+intersection. A `nullable`, `readOnly`, `writeOnly`, `deprecated` or
+`default` in a member that is not a reference moves to the
+intersection. A member with the keywords of one type only, such as
+`required` or `minItems`, has that type.
+
+A member can lead back to its own intersection with no property between
+(`Plan: { properties, oneOf: [{ $ref: Plan }] }`). `resolve()` does not
+go into the members, so it ends. A generator that goes into them must
+stop at a schema it has read. `toParts()` gives each schema one time, so
+it ends.
+
+`toJsonSchema` writes an intersection as an `allOf` of its members.
+
 ### `OasString` — `type: 'string'`
 
 ```ts
@@ -259,6 +305,7 @@ function generate(schema: OasSchema | OasRef<'schema'>): string {
     case 'number':  return generateNumber(schema)
     case 'boolean': return generateBoolean(schema)
     case 'union':   return generateUnion(schema)
+    case 'intersection': return generateIntersection(schema)
     case 'unknown': return generateUnknown(schema)
     default: {
       const _exhaustive: never = schema
@@ -351,9 +398,9 @@ the `OasSchema` union. The parser would also need a branch in
 `toSchemaV3` to dispatch to it.
 
 This is a substantive change — touching every generator's
-`switch (schema.type)` to add the new case. In practice, the eight
+`switch (schema.type)` to add the new case. In practice, the nine
 variants cover JSON Schema's primitives plus the Skmtc-specific
-unions/unknown. New variants would be rare.
+unions, intersections and unknown. New variants would be rare.
 
 ### How does `OasUnion` represent `oneOf` vs `anyOf`?
 
@@ -392,6 +439,7 @@ them to handle the resolve step on every access. See
 type OasSchema =
   | OasArray | OasBoolean | OasInteger | OasNumber
   | OasObject | OasString | OasUnknown | OasUnion
+  | OasIntersection
 
 // Used in generator-facing signatures
 type OasSchemaOrRef = OasSchema | OasRef<'schema'>

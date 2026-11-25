@@ -134,8 +134,14 @@ export const mergeCrossProduct = ({
 
   const mergedGroup = mergePairs({
     pairs: crossProduct(firstGroup, secondGroup),
-    merge: ([firstItem, secondItem], pairSystem) =>
-      mergeSchemasOrRefs({ first: firstItem, second: secondItem, getRef, system: pairSystem }),
+    merge: ([firstItem, secondItem], pairSystem) => {
+      // A kept ref is not read into the merge, so its type is compared here.
+      if (pairSystem.allOf === 'strict' && system.keptRefs?.contradict(firstItem, secondItem)) {
+        throw new Error('Cannot merge schemas: a member has another type than the reference')
+      }
+
+      return mergeSchemasOrRefs({ first: firstItem, second: secondItem, getRef, system: pairSystem })
+    },
     system
   })
 

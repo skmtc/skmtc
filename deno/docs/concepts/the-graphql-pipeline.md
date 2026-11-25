@@ -16,8 +16,8 @@ to write generators against it.
 
 ## The one-line definition
 
-GraphQL types are mapped onto the existing `OasSchema` family —
-the same eight sibling classes that represent OAS schemas
+GraphQL types are mapped onto the existing `OasSchema` family.
+They use all its classes except `OasIntersection`
 (`OasObject`, `OasArray`, `OasUnion`, `OasString`, `OasInteger`,
 `OasNumber`, `OasBoolean`, `OasUnknown`) plus `OasRef<'schema'>`.
 Containers and operations are GraphQL-specific (`GqlDocument`,

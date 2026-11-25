@@ -2,6 +2,7 @@ import * as v from 'valibot'
 import isEqual from 'lodash-es/isEqual'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
+import type { OasIntersection } from '@/oas/intersection/Intersection.ts'
 import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 import { numberFormat } from '@/oas/number/number-types.ts'
 import { integerFormat } from '@/oas/integer/integer-types.ts'
@@ -96,7 +97,16 @@ const NUMERIC: SiblingKeyword[] = [
   'exclusiveMaximum'
 ]
 
-/** The keywords each schema class's `clone` takes: the fields its type has. */
+/** The keywords of an object. An intersection's `clone` takes them as one more member. */
+const OBJECT_KEYWORDS: SiblingKeyword[] = [
+  'properties',
+  'required',
+  'additionalProperties',
+  'minProperties',
+  'maxProperties'
+]
+
+/** The keywords each schema class's `clone` takes: the fields its type has, and {@link OBJECT_KEYWORDS} for an intersection. */
 export const SIBLINGS_BY_TYPE: Record<OasSchema['type'], SiblingKeyword[]> = {
   string: [...DESCRIBING, 'deprecated', 'default', 'enums', 'format', 'minLength', 'maxLength', 'pattern'],
   number: [...DESCRIBING, ...NUMERIC],
@@ -108,13 +118,10 @@ export const SIBLINGS_BY_TYPE: Record<OasSchema['type'], SiblingKeyword[]> = {
     'deprecated',
     'default',
     'enums',
-    'properties',
-    'required',
-    'additionalProperties',
-    'minProperties',
-    'maxProperties'
+    ...OBJECT_KEYWORDS
   ],
   union: [...DESCRIBING, 'default'],
+  intersection: [...DESCRIBING, 'deprecated', 'default', ...OBJECT_KEYWORDS],
   unknown: DESCRIBING
 }
 
@@ -204,10 +211,17 @@ const BOOLEAN_KEYWORDS: SiblingKeyword[] = [
  * a flag the target already has, and a value equal to the target's change
  * nothing.
  */
-const toChangedKeywords = (copy: OasSchema, target: OasSchema, siblings: SiblingKeywords): SiblingKeyword[] =>
-  SIBLINGS_BY_TYPE[target.type].filter(keyword => {
+const toChangedKeywords = (copy: OasSchema, target: OasSchema, siblings: SiblingKeywords): SiblingKeyword[] => {
+  // An intersection takes these as a member, so it has no field to compare.
+  const objectKeywords = target.type === 'intersection' ? toChangedObjectKeywords(target, siblings) : []
+
+  return SIBLINGS_BY_TYPE[target.type].filter(keyword => {
     if (siblings[keyword] === undefined) {
       return false
+    }
+
+    if (target.type === 'intersection' && OBJECT_KEYWORDS.includes(keyword)) {
+      return objectKeywords.includes(keyword)
     }
 
     const applied: unknown = Reflect.get(copy, keyword)
@@ -215,6 +229,7 @@ const toChangedKeywords = (copy: OasSchema, target: OasSchema, siblings: Sibling
 
     return BOOLEAN_KEYWORDS.includes(keyword) ? (applied === true) !== (original === true) : !isEqual(applied, original)
   })
+}
 
 /** Whether the keywords next to a reference change `target` at that site. The engine behind `OasRef.resolve`. */
 export const changesTarget = (copy: OasSchema, target: OasSchema, siblings: SiblingKeywords): boolean =>
@@ -267,26 +282,99 @@ export const toSkippedSiblings = (
     }
   }
 
-  const type = siblings._type !== undefined && !agrees(siblings._type, target, 0) ? ['type'] : []
+  const type = siblings._type !== undefined && !agrees(siblings._type, target) ? ['type'] : []
   const others = SIBLING_KEYWORDS.filter(keyword => isSkipped(keyword, siblings[keyword])).map(toDocumentKeyword)
 
   return [...type, ...others]
 }
 
-/** How deep {@link agrees} follows union members, so a union that contains itself ends. */
-const MAX_DEPTH = 10
+/**
+ * The {@link OBJECT_KEYWORDS} next to a reference that say something the
+ * members of an intersection do not: a name none of them requires, a property
+ * none of them has the same. References in the members count by their target,
+ * without the keywords next to them.
+ */
+export const toChangedObjectKeywords = (target: OasIntersection, siblings: SiblingKeywords): SiblingKeyword[] => {
+  const objects = target.toTargetParts().filter(part => part.type === 'object')
+  const isSame = (keyword: 'additionalProperties' | 'minProperties' | 'maxProperties'): boolean =>
+    objects.some(object => isEqual(object[keyword], siblings[keyword]))
+
+  const isUnchanged = (keyword: SiblingKeyword): boolean => {
+    switch (keyword) {
+      case 'required':
+        return (siblings.required ?? []).every(name => objects.some(object => object.required?.includes(name)))
+      case 'properties':
+        return Object.keys(siblings.properties ?? {}).every(name =>
+          objects.some(object => isEqual(object.properties?.[name], siblings.properties?.[name]))
+        )
+      case 'additionalProperties':
+      case 'minProperties':
+      case 'maxProperties':
+        return isSame(keyword)
+      default:
+        return true
+    }
+  }
+
+  return OBJECT_KEYWORDS.filter(keyword => siblings[keyword] !== undefined && !isUnchanged(keyword))
+}
 
 /**
  * A `type` next to a reference agrees with the target's when it names it, or
  * `number` for an integer. Next to a union, it agrees when every member,
  * followed through references, has that type (`type: object` next to a
- * `oneOf` of objects): leaving it out then loses nothing.
+ * `oneOf` of objects): leaving it out then loses nothing. Next to an
+ * intersection, it agrees when one member has that type.
  */
-const agrees = (type: unknown, target: OasSchema, depth: number): boolean => {
+const agrees = (type: unknown, target: OasSchema): boolean => {
+  const agreed = new Set<OasSchema>()
+
+  // A schema that leads back to itself does not agree by that, so a pass reads
+  // it as `false` there. It can agree by another member, so a new pass reads
+  // the schemas that agreed, until a pass finds no more of them.
+  const runPass = (): boolean => {
+    const before = agreed.size
+
+    return agreesInPass({ type, target, agreed, visited: new Set() }) || (agreed.size > before && runPass())
+  }
+
+  return runPass()
+}
+
+type AgreesInPassArgs = {
+  type: unknown
+  target: OasSchema
+  /** The schemas that agree, from this pass and the ones before. */
+  agreed: Set<OasSchema>
+  /** The schemas that this pass has come to. */
+  visited: Set<OasSchema>
+}
+
+const agreesInPass = ({ type, target, agreed, visited }: AgreesInPassArgs): boolean => {
+  if (agreed.has(target)) {
+    return true
+  }
+
+  if (visited.has(target)) {
+    return false
+  }
+
+  visited.add(target)
+
+  const result = toAgreement(type, target, member => agreesInPass({ type, target: member, agreed, visited }))
+
+  if (result) {
+    agreed.add(target)
+  }
+
+  return result
+}
+
+/** {@link agrees} for one schema, with `agreesInside` for its members. */
+const toAgreement = (type: unknown, target: OasSchema, agreesInside: (member: OasSchema) => boolean): boolean => {
   if (target.type === 'union') {
     try {
-      return depth < MAX_DEPTH &&
-        target.members.every(member => agrees(type, member.isRef() ? member.resolve() : member, depth + 1))
+      return target.members.every(member => agreesInside(member.isRef() ? member.resolve() : member))
     } catch (error) {
       // A member that is a dangling reference has no known type, so it does not agree.
       if (DanglingRefError.is(error)) {
@@ -295,6 +383,10 @@ const agrees = (type: unknown, target: OasSchema, depth: number): boolean => {
 
       throw error
     }
+  }
+
+  if (target.type === 'intersection') {
+    return target.toParts().some(agreesInside)
   }
 
   return type === target.type || (type === 'number' && target.type === 'integer')
@@ -334,7 +426,7 @@ export const isObjectValue = (value: unknown): value is Record<string, unknown> 
   typeof value === 'object' && value !== null && !Array.isArray(value)
 const isAnyValue = (_value: unknown): _value is unknown => true
 
-/** {@link isStringValue} and the others, keyed by the type they check for. A union or unknown takes any value. */
+/** {@link isStringValue} and the others, keyed by the type they check for. A union, intersection or unknown takes any value. */
 export const VALUE_CHECKS: Record<OasSchema['type'], (value: unknown) => boolean> = {
   string: isStringValue,
   number: isNumberValue,
@@ -343,6 +435,7 @@ export const VALUE_CHECKS: Record<OasSchema['type'], (value: unknown) => boolean
   array: isArrayValue,
   object: isObjectValue,
   union: isAnyValue,
+  intersection: isAnyValue,
   unknown: isAnyValue
 }
 

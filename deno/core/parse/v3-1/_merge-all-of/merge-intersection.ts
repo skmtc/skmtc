@@ -1,6 +1,8 @@
 import { decomposeIntersection } from './decompose-intersection.ts'
 import type { GetRefFn, NormalizeFn, SchemaOrReference, SchemaObject, MergeSystem } from './types.ts'
 import { mergeSchemasOrRefs } from './merge.ts'
+import { isEmpty } from '@/helpers/isEmpty.ts'
+import { splitOwnKeywords, withOwnKeywords } from '@/parse/keptIntersection.ts'
 
 type MergeIntersectionArgs = {
   schema: SchemaObject
@@ -16,14 +18,16 @@ export const mergeIntersection = ({
   normalize,
   system
 }: MergeIntersectionArgs): SchemaOrReference => {
-  const decomposed = decomposeIntersection({ schema })
+  // Where a ref stays a ref, the wrapper's own keywords stay beside the `allOf`.
+  const { own, rest } = system.keptRefs?.holds(schema) ? splitOwnKeywords(schema) : { own: {}, rest: schema }
+  const decomposed = decomposeIntersection({ schema: rest })
 
-  if (decomposed.length === 1) {
+  if (decomposed.length === 1 && isEmpty(own)) {
     return decomposed[0]
   }
 
   const dereffed = decomposed.map(decomposed => {
-    return '$ref' in decomposed ? getRef(decomposed) : decomposed
+    return '$ref' in decomposed && !system.keptRefs?.has(decomposed) ? getRef(decomposed) : decomposed
   })
 
   const result = dereffed.reduce<SchemaOrReference>((acc, decomposed) => {
@@ -32,5 +36,5 @@ export const mergeIntersection = ({
     return merged
   }, {} as SchemaObject)
 
-  return result
+  return withOwnKeywords(result, own)
 }
