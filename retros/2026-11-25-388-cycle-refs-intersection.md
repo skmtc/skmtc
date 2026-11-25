@@ -1,0 +1,43 @@
+# Retro: #388 a ref that closes a cycle stays a ref, as a member of an OasIntersection
+
+## 1. Summary
+
+#388 asked for an intersection node, a static cycle check and `system.intersections`, in the 3.0, 3.1 and 3.2 parsers. Delivered in PR #394 (squash 6b16278b, core 0.47.0 on JSR); Publish and Test Coverage are green. Over the 1,981 harvest documents, 7 failed under `merge` and none under `cycles` on the last pass; of the ticket's 23 public documents, 21 were parsed with the published core and all finished, where 10 did not on 0.46.0.
+The run took 2h 19m so far: 20,922 input, 59.4M cached and 428k output tokens, an estimated $33.35 before forked sub-agents.
+The most costly step was implement (34m 48s, $13.43), then review (34m 57s, $11.36). Both were worth it: the review and the check step found regressions in documents that parsed before, which the author's own corpus pass had not reported.
+
+## 2. Findings
+
+| What happened | Cost | Kind | The change that prevents it | Issue |
+| --- | --- | --- | --- | --- |
+| My corpus pass compared only issues, not output: `lolzteam` (a property became a ref plus an inline copy) showed as two more warnings, which I looked at and passed. Two clinia schemas began to throw in `collateExamples`, which the pass never called. The reviewer found both. | Both blocking; part of the $2.90 address and $2.88 check steps | check | Add a corpus script to `deno/.scripts` that parses each document under two settings or two cores, in bounded processes, and diffs the parsed shape and `collateExamples`, not only the issues. I wrote mine, and later steps wrote theirs, from nothing. | triage |
+| The reviewer removed ten rules together and the core suite still passed; my mutation batches covered one tree at a time, and one mutation (`toJsonSchema`) broke most tests, so it hid the others. | 1 blocking thread, about 12 new test cases in the address step | workflow | `implement-ticket-dg` author prompt, the "which test fails" question: list each rule of the diff first and remove one at a time; do not count a batch that also changes what the tests print. | triage |
+| Tests asserted refs through `toJsonSchema`, which drops a ref's keywords (#338), so `nullable` on a ref was never checked though three ticket cases name it. | part of the same thread | check | #338: write a ref's keywords in `OasRef.toJsonSchema`; until then use the ref view in `deno/core/test/parseBoundedMain.ts`. | triage |
+| Two sets of findings reached PR #394 from one GitHub account: 14 unlabelled ("Important:") about 90 seconds before the reviewer's 12, overlapping, some of them the reviewer's deferred findings. Their source is not known from this session. | 25 threads to answer for about 15 distinct points | workflow | `implement-ticket-dg` review step: if a forked review posted them, tell it not to post; else name which threads `address` must answer, so a point the reviewer defers is not also a should-fix. | triage |
+| Review forms that lose type context were found one by one over three rounds: `required`, then `minItems` and `oneOf` of `required`, then nested null; each is a keyword that had its type only from the ref that now stays a ref. | 1 should-fix thread after a self-review fix of the same family | ticket | orbital-ticket-prep: when a change stops a merge, list in "Known edge cases" each keyword family the merge carried (object, array, string, number, nullable, annotations) with the expected result. | triage |
+| A memo I added to `agrees` in the address step kept answers taken while a schema was still being read; the check step found it and fixed it (a901ed45). The same mistake was in `toDeclaredTypes`, found by my self-review. | part of the 19m 19s check step | review-rule | Reviewer prompt: for each cache over a cyclic graph, ask whether an answer that depended on an unfinished entry is kept, and test the same schema from two entry points. | triage |
+| `deno task bump-plugin` ran before a new skeleton file was staged; its digest reads `git ls-files --cached`, so it recorded a digest without the file, and the full check later failed. | one failed `deno task check`, an extra plugin version and commit | check | `deno/.scripts/bump-plugin.ts`: fail when `git ls-files --others` lists a file under a published skill, with "git add it first". | triage |
+| I made the first code edits with a Python script and copied `toIntersection.ts` with `cp` and `sed`, against the step's rule; nearly every change to one tree is made three times. | no rework; reported in the handoff | steering | The prompt's "never a script" and the ticket's `git diff \| sed \| git apply` contradict each other for the parser copies: state the exception in `implement-ticket-dg`, as the user's CLAUDE.md does for repetitive code edits. | triage |
+
+## 3. Keep
+
+- Marking raw `$ref` objects by identity made every entry order and the twice-parsed deep target agree; the reviewer's fuzz found no order dependence. Recorded in `deno/core/parse/README.md`.
+- `parseBounded` (`deno/core/test/`): a child process with a heap and time limit, so an out-of-memory parse fails one test. Name it in `deno/core/CLAUDE.md` under Testing.
+- Reading the new behaviour beyond the ticket first ("Read first" in the PR) told the reviewer where to look. Record it in the `implement-ticket-dg` open_pr prompt.
+
+## 4. Deferred
+
+- `deno/core/parse/keptIntersection.ts` `mergeKept`, `oas/union/Union.ts` `isDiscriminable`: a discriminated union with a keyword beside it stops being discriminable under the default; met when the stock generators upgrade, in two harvest documents (blynk, mesh-complyadvantage). It conflicts with the churnzero row of #388. [Deferred findings, 1](https://github.com/skmtc/skmtc/pull/394#issuecomment-7166782250)
+- `deno/core/oas/object/Object.ts` `toJsonSchema` writes `additionalProperties: false` by default, so the members of an intersection's `allOf` forbid each other's properties; met by the first generator that emits JSON Schema. [Same comment, 2](https://github.com/skmtc/skmtc/pull/394#issuecomment-7166782250)
+- `mergeKept` and `keptRefs.contradict`: a member that contradicts a kept ref's target (by type, or by the `enum` of a shared property) is not reported; met by the owner of a wrong `allOf` in a cycle. [Same comment, 3](https://github.com/skmtc/skmtc/pull/394#issuecomment-7166782250)
+- `deno/core/helpers/collateExamples.ts`: a recursive subtype's nested example lacks the inherited properties, and schemas that all `allOf` each other multiply its time (9 take 0.7 s); met in gen-msw and gen-md-docs. [Same comment, 4](https://github.com/skmtc/skmtc/pull/394#issuecomment-7166782250)
+- `deno/core/parse/v3-*/intersection/toIntersection.ts`: issue locations use the index in the merged list, not in the document; met when reading an issue inside an intersection. [Thread](https://github.com/skmtc/skmtc/pull/394#discussion_r4697076994)
+- `keptIntersection.ts` `withKeywordType`: a member with only `format` gets no type, so the keyword is dropped with a warning; met with `{ allOf: [ref, { format }] }` beside a kept ref. [Thread](https://github.com/skmtc/skmtc/pull/394#discussion_r4697075463)
+- `keptIntersection.ts` takes `isNullOnly` from the 3.0 tree for all three; met if that copy drifts. [Nits](https://github.com/skmtc/skmtc/pull/394#issuecomment-7166781707)
+- `_merge-all-of/merge-union.ts` `withGroupSiblings` (3.1 and 3.2) still returns a `$ref` member without the siblings merged, as before; met by a nested group with sibling keywords. Found while implementing.
+- `_merge-all-of/merge-intersection.ts`: in 3.1 and 3.2, keywords beside a ref that is a member twice are lost (also under `merge`). [Thread](https://github.com/skmtc/skmtc/pull/394#discussion_r4697076751)
+- `docs-flocksafety-com.json` in the harvest corpus exited 139 once under load and parsed alone and on later passes; cause not known. Met by a corpus run.
+- Parsing `{ type: array, items: "string" }` reports INVALID_SCHEMA with the raw "Cannot use 'in' operator" text, on 0.46.0 and 0.47.0; met by the owner of such a document. Follow-on step, defect 1.
+- dataforseo: 12 `"oneOf" array is empty` errors on `rating` under the default, not under `all`; also on 0.46.0, where the error count varied from run to run. The cause (float against double `format`) is an untested inference. Follow-on step, defects 2 and 3.
+- `jsr:@skmtc/swagger2openapi@0.1.5` does not load in a clean project (`ajv/dist/core`); met by any new user of it. Open as #350 and #352. Follow-on step, defect 4.
+- Not parsed anywhere in the run: Adaptive Cards and the unnamed GeoJSON API of the ticket's 23 documents. The ticket's GeoJSON failure was not reproduced on main with 3 subtypes, and 7 were not tried there.
