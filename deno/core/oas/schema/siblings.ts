@@ -326,26 +326,55 @@ export const toChangedObjectKeywords = (target: OasIntersection, siblings: Sibli
  * `oneOf` of objects): leaving it out then loses nothing. Next to an
  * intersection, it agrees when one member has that type.
  */
-const agrees = (type: unknown, target: OasSchema, known: Map<OasSchema, boolean> = new Map()): boolean => {
-  const found = known.get(target)
+const agrees = (type: unknown, target: OasSchema): boolean => {
+  const agreed = new Set<OasSchema>()
 
-  if (found !== undefined) {
-    return found
+  // A schema that leads back to itself does not agree by that, so a pass reads
+  // it as `false` there. It can agree by another member, so a new pass reads
+  // the schemas that agreed, until a pass finds no more of them.
+  const runPass = (): boolean => {
+    const before = agreed.size
+
+    return agreesInPass({ type, target, agreed, visited: new Set() }) || (agreed.size > before && runPass())
   }
 
-  // A schema that leads back to itself does not agree by that.
-  known.set(target, false)
-  const result = toAgreement(type, target, known)
-  known.set(target, result)
+  return runPass()
+}
+
+type AgreesInPassArgs = {
+  type: unknown
+  target: OasSchema
+  /** The schemas that agree, from this pass and the ones before. */
+  agreed: Set<OasSchema>
+  /** The schemas that this pass has come to. */
+  visited: Set<OasSchema>
+}
+
+const agreesInPass = ({ type, target, agreed, visited }: AgreesInPassArgs): boolean => {
+  if (agreed.has(target)) {
+    return true
+  }
+
+  if (visited.has(target)) {
+    return false
+  }
+
+  visited.add(target)
+
+  const result = toAgreement(type, target, member => agreesInPass({ type, target: member, agreed, visited }))
+
+  if (result) {
+    agreed.add(target)
+  }
 
   return result
 }
 
-/** {@link agrees} for a schema that `known` does not answer. */
-const toAgreement = (type: unknown, target: OasSchema, known: Map<OasSchema, boolean>): boolean => {
+/** {@link agrees} for one schema, with `agreesInside` for its members. */
+const toAgreement = (type: unknown, target: OasSchema, agreesInside: (member: OasSchema) => boolean): boolean => {
   if (target.type === 'union') {
     try {
-      return target.members.every(member => agrees(type, member.isRef() ? member.resolve() : member, known))
+      return target.members.every(member => agreesInside(member.isRef() ? member.resolve() : member))
     } catch (error) {
       // A member that is a dangling reference has no known type, so it does not agree.
       if (DanglingRefError.is(error)) {
@@ -357,7 +386,7 @@ const toAgreement = (type: unknown, target: OasSchema, known: Map<OasSchema, boo
   }
 
   if (target.type === 'intersection') {
-    return target.toParts().some(part => agrees(type, part, known))
+    return target.toParts().some(agreesInside)
   }
 
   return type === target.type || (type === 'number' && target.type === 'integer')

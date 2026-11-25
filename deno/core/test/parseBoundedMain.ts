@@ -34,7 +34,7 @@ Object.defineProperty(OasIntersection.prototype, 'toJsonSchema', {
   }
 })
 
-const { document, system, targets }= JSON.parse(Deno.args[0] ?? '{}')
+const { document, system, targets } = JSON.parse(Deno.args[0] ?? '{}')
 
 const start = performance.now()
 const context = new ParseContext({

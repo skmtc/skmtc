@@ -156,6 +156,21 @@ Deno.test('OasIntersection - a type next to a ref to a union of many subtypes th
   assert(performance.now() - start < 1000)
 })
 
+Deno.test('OasIntersection - a type next to a ref to a union that lists a subtype and then its base agrees', () => {
+  const { ref } = setup(ref => ({
+    Details: new OasUnion({ members: [ref('S0'), ref('S1')] }),
+    S0: new OasIntersection({ members: [ref('Details'), toObject('a')] }),
+    S1: new OasIntersection({ members: [ref('Details'), toObject('b')] }),
+    // `Details` is first read inside `S0`, where `S0` is not known to agree.
+    Both: new OasUnion({ members: [ref('S0'), ref('Details')] }),
+    Loop: new OasUnion({ members: [ref('Loop'), ref('S0')] })
+  }))
+
+  assertEquals(ref('Both', { _type: 'object' }).toSkippedSiblings(), [])
+  assertEquals(ref('Both', { _type: 'string' }).toSkippedSiblings(), ['type'])
+  assertEquals(ref('Loop', { _type: 'object' }).toSkippedSiblings(), ['type'])
+})
+
 Deno.test('OasIntersection - traverse tries each member that has the segment', () => {
   const { schemas } = setup(ref => ({
     Base: new OasObject({ properties: { meta: toObject('x') } }),
