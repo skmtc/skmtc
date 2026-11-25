@@ -311,6 +311,9 @@ export class FunctionParameter {
    * parameter it has the variable of each property, as {@link toParameterVariable}
    * names it. For a void parameter it is empty.
    *
+   * Read the variables from `values`. `toString()` of a destructured list keeps
+   * its braces and has no renames; for the object use {@link toInbound}.
+   *
    * @returns List containing the parameter's variables
    *
    * @example
@@ -532,8 +535,10 @@ const toDestructured = (
 const stringLiteral = /^(['"])(?:(?!\1|\\).|\\.)*\1$/
 
 /**
- * Renders a property key. Model generators give the key as it renders
- * (`'user-id'`), so one that is already a string literal stays as it is.
+ * Renders a property key. Some model generators (gen-typescript) give the key
+ * as it renders (`'user-id'`), and others give the document's (`user-id`). A
+ * key with the shape of a string literal is taken as rendered and stays as it
+ * is, also when it is the document's.
  */
 const toPropertyKey = (key: string): string => {
   return stringLiteral.test(key) ? key : handleKey(key)
@@ -544,8 +549,9 @@ const escapedLineTerminators = new Map(
 )
 
 /**
- * Names the variable of a property. A key that is a string literal is decoded
- * first, so that the variable is the one its parameter's name gives.
+ * Names the variable of a property. A key with the shape of a string literal
+ * is decoded first, so that a key {@link handleKey} rendered gives the variable
+ * of its parameter's name. Only the escapes `handleKey` writes are undone.
  */
 const toVariable = (key: string): string => {
   const name = stringLiteral.test(key)
