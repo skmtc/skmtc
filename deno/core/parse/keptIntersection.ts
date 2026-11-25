@@ -151,29 +151,46 @@ const toRawIntersection = ({ own, members }: Intersection): SchemaOrReference =>
   return isEmpty(own) && members.length === 1 && only !== undefined && isRef(only) ? only : { ...own, allOf: members }
 }
 
+type ToSiteIntersectionArgs = Intersection & {
+  keptRefs: KeptRefs
+  /** The site has a `not`, which a ref cannot hold. */
+  hasNot: boolean
+}
+
+/**
+ * The keywords that a ref to any schema holds as an intersection does. A ref
+ * has no `externalDocs`, and checks a `default`, an `example` and `deprecated`
+ * against the type of its target.
+ */
+const isRefKeyword = (key: string): boolean =>
+  ['title', 'description', 'nullable', 'readOnly', 'writeOnly'].includes(key) || key.startsWith('x-')
+
 /**
  * The parts of a finished merge, to parse: the keywords that say how the whole
  * value is used move from the one member that is not a ref to the intersection.
  * That member is left out when it then holds only a `type` that the target of
  * a ref beside it declares: it says nothing more than the ref. It stays when it
- * is what rules out the `null` that a target allows and this site does not.
+ * is what rules out the `null` that a target allows and this site does not, or
+ * when the one ref that would be left cannot hold what is beside it.
  */
-export const toSiteIntersection = ({ own, members }: Intersection, keptRefs: KeptRefs): Intersection => {
+export const toSiteIntersection = ({ own, members, keptRefs, hasNot }: ToSiteIntersectionArgs): Intersection => {
   const moved = members.map(member => (isRef(member) ? { own: {}, rest: member } : toSiteSplit(member)))
 
   const site = moved.reduce<SchemaObject>((acc, each) => ({ ...acc, ...each.own }), own)
   const refs = members.filter(isRef)
   const saysNothing = (member: SchemaOrReference): boolean =>
-    isEmpty(member) ||
-    (!isRef(member) &&
-      Object.keys(member).every(key => key === 'type') &&
-      refs.some(ref => keptRefs.declaresTypeOf(ref, member)) &&
-      (site.nullable === true || !refs.some(keptRefs.allowsNull)))
+    !isRef(member) &&
+    Object.keys(member).every(key => key === 'type') &&
+    refs.some(ref => keptRefs.declaresType(ref, member.type)) &&
+    (site.nullable === true || !refs.some(keptRefs.allowsNull))
 
-  return {
-    own: site,
-    members: moved.map(({ rest }) => rest).filter(member => !saysNothing(member))
-  }
+  const present = moved.map(({ rest }) => rest).filter(member => !isEmpty(member))
+  const telling = present.filter(member => !saysNothing(member))
+  const [only] = telling
+  const isLoneRef = telling.length === 1 && only !== undefined && isRef(only)
+  const fits = !isLoneRef || (!hasNot && Object.keys(only).length === 1 && Object.keys(site).every(isRefKeyword))
+
+  return { own: site, members: fits ? telling : present }
 }
 
 const OBJECT_KEYWORDS = ['required', 'minProperties', 'maxProperties', 'additionalProperties']

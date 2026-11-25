@@ -1,10 +1,11 @@
 import type { OpenAPIV3 } from 'openapi-types'
-import { isRef, toGetRef } from '@/helpers/refFns.ts'
+import { isRef, toGetRef, toRawRefTarget, toRefParts, toRefPointer } from '@/helpers/refFns.ts'
 import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 import { isPlainObject } from '@/parse/isPlainObject.ts'
 import { allowsNull } from '@/parse/allowsNull.ts'
 import { toCyclicRefs } from '@/parse/toCyclicRefs.ts'
-import { haveNoCommonType, isWithin, toDeclaredTypes } from '@/parse/toDeclaredTypes.ts'
+import { declaresType } from '@/parse/declaresType.ts'
+import { haveNoCommonType, toDeclaredTypes, toOwnTypes } from '@/parse/toDeclaredTypes.ts'
 
 type SchemaObject = OpenAPIV3.SchemaObject
 type ReferenceObject = OpenAPIV3.ReferenceObject
@@ -20,8 +21,8 @@ export type KeptRefs = {
   holds: (schema: SchemaOrReference) => boolean
   /** Whether a pair that holds a kept ref allows no value: the two types, read through refs, have none in common. */
   contradict: (first: SchemaOrReference, second: SchemaOrReference) => boolean
-  /** Whether a ref's target, read through refs, allows no type but those of `schema`. */
-  declaresTypeOf: (ref: ReferenceObject, schema: SchemaObject) => boolean
+  /** Whether a ref's target, read through refs, allows no type but those of `type`, and still does when parsed. */
+  declaresType: (ref: ReferenceObject, type: unknown) => boolean
   /** Whether a ref's target, read through refs, allows `null`. */
   allowsNull: (ref: ReferenceObject) => boolean
 }
@@ -30,10 +31,12 @@ type ToKeptRefsArgs = {
   documentObject: OpenAPIV3.Document
   /** `client.json` `system.intersections`. */
   setting: 'merge' | 'cycles' | 'all' | undefined
+  /** `client.json` `system.anyOf`. */
+  anyOf?: 'union' | 'unknown'
 }
 
 /** The refs a merge of this document keeps, or `undefined` under `merge`. */
-export const toKeptRefs = ({ documentObject, setting = 'cycles' }: ToKeptRefsArgs): KeptRefs | undefined => {
+export const toKeptRefs = ({ documentObject, setting = 'cycles', anyOf }: ToKeptRefsArgs): KeptRefs | undefined => {
   if (setting === 'merge') {
     return undefined
   }
@@ -55,7 +58,26 @@ export const toKeptRefs = ({ documentObject, setting = 'cycles' }: ToKeptRefsArg
     }
   }
 
+  // One step: the keywords beside each `$ref` of a chain count.
+  const peekOnce = (ref: ReferenceObject): SchemaOrReference | undefined => {
+    const target = toRawRefTarget(documentObject, toRefParts({ $ref: ref.$ref }))
+
+    return isPlainObject(target) ? target : undefined
+  }
+
   const held = new WeakMap<object, boolean>()
+  // Many sites can point at one large target.
+  const declared = new Map<string, boolean>()
+  const nullable = new Map<string, boolean>()
+
+  const remember = (answers: Map<string, boolean>, key: string, toAnswer: () => boolean): boolean => {
+    const answer = answers.get(key) ?? toAnswer()
+    answers.set(key, answer)
+
+    return answer
+  }
+
+  const toPointer = (ref: ReferenceObject): string => toRefPointer(toRefParts({ $ref: ref.$ref }))
 
   const isHolder = (schema: SchemaOrReference): boolean => {
     if (isRef(schema)) {
@@ -98,8 +120,17 @@ export const toKeptRefs = ({ documentObject, setting = 'cycles' }: ToKeptRefsArg
     contradict: (first, second) =>
       (holds(first) || holds(second)) &&
       haveNoCommonType(toDeclaredTypes({ schema: first, peek }), toDeclaredTypes({ schema: second, peek })),
-    declaresTypeOf: (ref, schema) =>
-      isWithin(toDeclaredTypes({ schema: ref, peek }), toDeclaredTypes({ schema, peek })),
-    allowsNull: ref => allowsNull({ schema: ref, peek })
+    declaresType: (ref, type) => {
+      const types = toOwnTypes(type)
+
+      return types !== 'any' &&
+        remember(declared, `${types} ${toPointer(ref)}`, () => {
+          const all = toDeclaredTypes({ schema: ref, peek })
+
+          // A target whose types contradict has none.
+          return all !== 'any' && all.length > 0 && declaresType({ schema: ref, types, peek, getRef, anyOf })
+        })
+    },
+    allowsNull: ref => remember(nullable, toPointer(ref), () => allowsNull({ schema: ref, peek: peekOnce }))
   }
 }

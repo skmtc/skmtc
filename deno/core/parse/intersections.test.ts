@@ -159,14 +159,85 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(schemas.bothNull, { ...ref('Nullable'), nullable: true })
   })
 
+  Deno.test(`${openapi} two types that lean on each other stay, so no ref loops to itself`, async () => {
+    const schemas = {
+      Self: { type: 'object', anyOf: [ref('Self')] },
+      First: { allOf: [ref('Second'), { type: 'object' }] },
+      Second: { allOf: [ref('First')] },
+      Left: { type: 'object', oneOf: [ref('Right')] },
+      Right: { type: 'object', oneOf: [ref('Left')] },
+      User: toObject({ a: ref('Self'), b: ref('First'), c: ref('Left') })
+    }
+    const result = await parseBounded({ openapi, schemas })
+
+    // The trap: a target that declares its type only by the member that is left out is a `DANGLING_REF` loop.
+    assertEquals(result.issues, [])
+    assertEquals(Object.keys(result.schemas), Object.keys(schemas))
+
+    for (const name of ['Self', 'First', 'Left', 'Right']) {
+      assertEquals(toAllOf(result.schemas[name]).length, 2, name)
+    }
+  })
+
+  Deno.test(`${openapi} a type stays beside a ref that cannot hold what is at the site`, async () => {
+    const site = (keywords: Record<string, unknown>) => ({ type: 'object', nullable: true, anyOf: [ref('A')], ...keywords })
+    const { schemas, issues } = await parseBounded({
+      openapi,
+      schemas: {
+        A: toObject({
+          byDefault: site({ default: null }),
+          byExample: site({ example: null }),
+          byDeprecated: site({ deprecated: true }),
+          byDocs: { allOf: [ref('A'), { type: 'object' }], externalDocs: { url: 'https://example.com' } },
+          byNot: site({ not: text }),
+          held: site({ title: 't', description: 'd', readOnly: true, 'x-own': 1 })
+        })
+      },
+      system: { not: 'unknown' }
+    })
+    const property = (name: string) => at(schemas.A, 'properties', name)
+
+    for (const name of ['byDefault', 'byExample', 'byDeprecated', 'byDocs', 'byNot']) {
+      assertEquals(toAllOf(property(name)).length, 2, name)
+    }
+
+    assertEquals(at(property('byDefault'), 'default'), null)
+    assertEquals(at(property('byDeprecated'), 'deprecated'), true)
+    assertEquals(at(property('byDocs'), 'externalDocs'), 'https://example.com')
+    assertEquals(property('held'), { ...ref('A'), nullable: true, readOnly: true, description: 'd' })
+    assertEquals(issues, [])
+  })
+
+  Deno.test(`${openapi} a type stays when the target does not declare it as it is parsed`, async () => {
+    const unknownAnyOf = await parseBounded({
+      openapi,
+      schemas: {
+        Any: { anyOf: [toObject({ n: ref('N') }), toObject({ b: text })] },
+        N: { allOf: [ref('Any'), { type: 'object' }] }
+      },
+      system: { anyOf: 'unknown' }
+    })
+    const contradiction = await parseBounded({
+      openapi,
+      schemas: {
+        T: { allOf: [text, { type: 'integer' }] },
+        N: { allOf: [ref('T'), { type: 'object' }] }
+      },
+      system: { allOf: 'latestWins', intersections: 'all' }
+    })
+
+    assertEquals(toAllOf(unknownAnyOf.schemas.N).length, 2)
+    assertEquals(toAllOf(contradiction.schemas.N).length, 2)
+  })
+
   Deno.test(`${openapi} a schema with a type that lists itself in its own union keeps the ref`, async () => {
     const { schemas } = await parseBounded({
       openapi,
       schemas: { Plan: { type: 'object', oneOf: [ref('Plan'), toObject({ p: text })] } }
     })
 
-    // The trap: the type that `Plan` declares is the one beside its own union.
-    assertEquals(at(schemas.Plan, 'oneOf', 0), ref('Plan'))
+    // The trap: the type that `Plan` declares is the one beside its own union, so it stays.
+    assertEquals(toAllOf(at(schemas.Plan, 'oneOf', 0)).includes('#/components/schemas/Plan'), true)
     assertEquals(at(schemas.Plan, 'oneOf', 1, 'type'), 'object')
   })
 
@@ -725,6 +796,23 @@ for (const openapi of ['3.1.0', '3.2.0']) {
       assertEquals(self, '#/components/schemas/A')
       assertEquals(at(object, 'properties', 'x', 'type'), 'string')
     }
+  })
+
+  Deno.test(`${openapi} a type stays beside a ref with keywords, and excludes the null of an alias`, async () => {
+    const { schemas, issues } = await parseBounded({
+      openapi,
+      schemas: {
+        A: toObject({ a: text, p: { description: 'site', allOf: [{ ...ref('A'), required: ['a'] }, { type: 'object' }] } }),
+        Obj: toObject({ n: ref('N') }),
+        Alias: { ...ref('Obj'), type: ['object', 'null'] },
+        N: { type: 'object', oneOf: [ref('Alias'), toObject({ z: text })] }
+      }
+    })
+
+    assertEquals(at(schemas.A, 'properties', 'p', 'allOf', 0, 'required'), ['a'])
+    assertEquals(at(schemas.A, 'properties', 'p', 'description'), 'site')
+    assertEquals(toAllOf(at(schemas.N, 'oneOf', 0)).length, 2)
+    assertEquals(issues, [])
   })
 
   Deno.test(`${openapi} the null of a member of a nested allOf is the whole intersection's`, async () => {

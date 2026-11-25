@@ -4,8 +4,8 @@ import { isPlainObject } from '@/parse/isPlainObject.ts'
 
 type AllowsNullArgs = {
   schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject
-  /** The schema a ref names, or `undefined` when it names nothing. */
-  peek: (ref: OpenAPIV3.ReferenceObject) => OpenAPIV3.SchemaObject | undefined
+  /** What a ref names, one step on, or `undefined` when it names nothing. */
+  peek: (ref: OpenAPIV3.ReferenceObject) => OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject | undefined
   /** The ref targets that are being read. */
   visited?: Set<string>
 }

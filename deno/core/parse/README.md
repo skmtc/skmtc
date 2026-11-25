@@ -120,7 +120,11 @@ of the document (`toCyclicRefs.ts`), found by identity, so a schema that is
 merged into another keeps the marks of its own refs. Code that makes a new
 `$ref` object from one in the document must pass it through `keptRefs.copy`.
 Inside a merge, an intersection is an `allOf` of the kept refs and one other
-schema (`keptIntersection.ts`); `toIntersection` parses it.
+schema (`keptIntersection.ts`); `toIntersection` parses it. `toSiteIntersection`
+leaves that schema out when it holds only a `type` that a kept ref declares. The
+target must declare it by something that stays when the target is parsed
+(`declaresType.ts`): two schemas that each leave out their `type` because of the
+other would be a loop of refs.
 
 Multi-type arrays (`type: ['string','number']`) are modelled as a `oneOf` of
 the bare types, so the existing union machinery builds the `OasUnion`. A

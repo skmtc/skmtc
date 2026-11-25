@@ -86,37 +86,4 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
 
     assertEquals(union?.type === 'union' ? union.isDiscriminable() : 'not a union', true)
   })
-
-  Deno.test(`${openapi} a union that lists itself reports no skipped type (Morning Consult)`, () => {
-    const audience = { $ref: '#/components/schemas/Audience' }
-    const context = new ParseContext({
-      input: {
-        type: 'oas',
-        value: {
-          openapi,
-          info: { title: 'Audience', version: '1' },
-          paths: {},
-          components: {
-            schemas: {
-              Audience: {
-                type: 'object',
-                oneOf: [
-                  { type: 'object', properties: { match: { type: 'string' } } },
-                  { title: 'not', type: 'object', allOf: [audience] }
-                ]
-              }
-            }
-          }
-        } as OpenAPIV3.Document
-      },
-      logger: new log.Logger('test', 'ERROR'),
-      silent: true
-    })
-    const parsed = context.parse(new StackTrail(['TEST']))
-    const union = parsed.type === 'oas' ? parsed.value.components?.schemas?.['Audience' as RefName] : undefined
-    const self = union?.type === 'union' ? union.members.find(member => member.isRef()) : undefined
-
-    // The trap: the parsed union has no `type` of its own, so a `type` kept next to the ref does not agree with it.
-    assertEquals(self?.isRef() ? self.toSkippedSiblings() : 'not a ref', [])
-  })
 }

@@ -101,6 +101,8 @@ export type ToSchemaV3Args = {
   schema: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
   stackTrail: StackTrail
   context: ParseContextType
+  /** The schema has a `not`, which is parsed on its own: the result must be able to hold it. */
+  hasNot?: boolean
 }
 
 /**
@@ -146,7 +148,8 @@ const collapseSingleMember = (
 export const toSchemaV3 = ({
   schema,
   stackTrail,
-  context
+  context,
+  hasNot = false
 }: ToSchemaV3Args): OasSchema | OasRef<'schema'> => {
   if (isRef(schema)) {
     return toRefV31({ ref: schema, refType: 'schema', stackTrail, context })
@@ -169,7 +172,7 @@ export const toSchemaV3 = ({
     }
 
     const { not: _not, ...keywords } = schema
-    const parsed = toSchemaV3({ schema: keywords, stackTrail, context })
+    const parsed = toSchemaV3({ schema: keywords, stackTrail, context, hasNot: true })
 
     // Only a one-member `allOf` of a `$ref` parses to a reference, and a
     // reference has no field for a `not`. Fail rather than lose it.
@@ -244,7 +247,8 @@ export const toSchemaV3 = ({
         return toSchemaV3({
           schema: collapseSingleMember(value, member),
           stackTrail: st,
-          context
+          context,
+          hasNot
         })
       }
 
@@ -264,10 +268,10 @@ export const toSchemaV3 = ({
       const parts = keptRefs && toIntersectionParts(merged, keptRefs)
 
       if (keptRefs === undefined || parts === undefined) {
-        return toSchemaV3({ schema: merged, stackTrail: st, context })
+        return toSchemaV3({ schema: merged, stackTrail: st, context, hasNot })
       }
 
-      const { own, members: kept } = toSiteIntersection(parts, keptRefs)
+      const { own, members: kept } = toSiteIntersection({ ...parts, keptRefs, hasNot })
       const [only] = kept
 
       if (kept.length > 1 || only === undefined) {
@@ -331,7 +335,8 @@ export const toSchemaV3 = ({
         return toSchemaV3({
           schema: collapseSingleMember(value, soleMember),
           stackTrail: st,
-          context
+          context,
+          hasNot
         })
       }
 
@@ -354,7 +359,7 @@ export const toSchemaV3 = ({
 
       // A `default` alone is no type: the parser would guess one from it.
       return hasShapeKeyword(keywords)
-        ? toSchemaV3({ schema: keywords, stackTrail, context })
+        ? toSchemaV3({ schema: keywords, stackTrail, context, hasNot })
         : toUnknown({ value: keywords, stackTrail, context })
     }
 
@@ -407,7 +412,8 @@ export const toSchemaV3 = ({
         return toSchemaV3({
           schema: collapseSingleMember(value, soleMember),
           stackTrail: st,
-          context
+          context,
+          hasNot
         })
       }
 

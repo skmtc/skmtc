@@ -379,7 +379,8 @@ merge the members of an `allOf`, so a generator does not see them.
 
 [`settings.system.intersections`](../reference/settings/client-json-schema.md#settingssystem-optional)
 sets which of them core keeps as `OasRef`s, as members of an
-[`OasIntersection`](../reference/api/oas-schema-variants.md#oasintersection--type-intersection).
+[`OasIntersection`](../reference/api/oas-schema-variants.md#oasintersection--type-intersection),
+or alone when the other members say nothing more.
 By default core keeps each one that closes a cycle, because to merge it
 would copy the schema into itself. A kept `$ref` that names nothing is a
 `schema` ref. `allOfMember` does not apply to it.

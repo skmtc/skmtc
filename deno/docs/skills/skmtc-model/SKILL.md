@@ -108,7 +108,8 @@ engine machinery — modifying it is almost always a mistake.
 - **An `allOf` can keep a reference.** The parser merges an `allOf` into
   one schema, so it usually comes to the router as an object. A `$ref`
   that closes a cycle stays a ref: the schema is an `OasIntersection` of
-  the kept refs and at most one other schema (`system.intersections`).
+  the kept refs and at most one other schema (`system.intersections`),
+  or the ref alone when the other schema says nothing more.
   `MyLibIntersection` routes each member, so the refs render lazily as
   any other. When a kept ref leads back to the intersection with no
   property between (`A: { allOf: [B, …] }`, `B: { oneOf: [A, …] }`), most

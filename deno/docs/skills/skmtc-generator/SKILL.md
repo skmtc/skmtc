@@ -250,7 +250,8 @@ particular `OasSchema` is a union type, not a class hierarchy: every
 variant implements `.isRef()` returning `false`, and `OasRef` is a
 sibling with `.isRef()` returning `true`. An `allOf` is merged at parse,
 except a `$ref` that closes a cycle: that schema is an `OasIntersection`
-(`type: 'intersection'`), and the kept refs are in its `members`.
+(`type: 'intersection'`), and the kept refs are in its `members`. When
+the other members say nothing more than the ref, it is the `OasRef` alone.
 
 Render does not run Prettier or Biome — no formatter runs inside the
 engine, so read the raw output as the generator produced it and format

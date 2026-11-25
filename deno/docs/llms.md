@@ -61,7 +61,7 @@ If unsure which role applies: read **The generation model** + **Read this first*
 
 The one story every rule in this document falls out of. Hold this model and the principle tables below read as consequences, not as arbitrary conventions. (The `skmtc-generator` skill carries the authoring-weighted version.)
 
-1. **Parse.** The engine parses the schema (OpenAPI v3 or GraphQL SDL) into typesafe intermediate-representation objects — `OasOperation`, the `OasSchema` union, `GqlOperation`. `allOf` is pre-merged. A `$ref` that closes a cycle is not: it stays a member of an `OasIntersection` (`system.intersections`). `$ref`s are lazy (`OasRef`, resolved with `.resolve()`).
+1. **Parse.** The engine parses the schema (OpenAPI v3 or GraphQL SDL) into typesafe intermediate-representation objects — `OasOperation`, the `OasSchema` union, `GqlOperation`. `allOf` is pre-merged. A `$ref` that closes a cycle is not: it stays a member of an `OasIntersection`, or an `OasRef` alone when the other members say nothing more (`system.intersections`). `$ref`s are lazy (`OasRef`, resolved with `.resolve()`).
 
 2. **Loop.** The Generate phase walks `(generator × item × variant)` and calls each generator entry's `transform({ context, operation | ref, variant })` per item (a model's `ref` is `{ refName, refPath }`). `transform` returns `void` — everything a generator produces, it produces by side effect on `context`.
 

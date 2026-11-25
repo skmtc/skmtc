@@ -57,12 +57,8 @@ export const toDeclaredTypes = ({ schema, peek, known = new Map() }: ToDeclaredT
 export const haveNoCommonType = (first: DeclaredTypes, second: DeclaredTypes): boolean =>
   isTypeList(first) && isTypeList(second) && toCommonTypes(first, second).length === 0
 
-/** Whether the first types are known, and each is one of the second. */
-export const isWithin = (first: DeclaredTypes, second: DeclaredTypes): boolean =>
-  isTypeList(first) && isTypeList(second) && toCommonTypes(first, second).length === first.length
-
 /** A `type` as a list without `null`, which 3.1 writes in one. Every integer is a number. */
-const toOwnTypes = (type: unknown): DeclaredTypes => {
+export const toOwnTypes = (type: unknown): DeclaredTypes => {
   const types = (Array.isArray(type) ? type : [type])
     .filter(item => typeof item === 'string' && item !== 'null')
     .flatMap(item => (item === 'number' ? ['number', 'integer'] : [item]))

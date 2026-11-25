@@ -332,7 +332,11 @@ export class ParseContext {
   /** The refs of the document that a merge keeps as refs (`system.intersections`); `undefined` under `merge`. */
   get keptRefs(): KeptRefs | undefined {
     this.#keptRefs ??= {
-      value: toKeptRefs({ documentObject: this.documentObject, setting: this.system.intersections })
+      value: toKeptRefs({
+        documentObject: this.documentObject,
+        setting: this.system.intersections,
+        anyOf: this.system.anyOf
+      })
     }
 
     return this.#keptRefs.value
