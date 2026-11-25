@@ -206,6 +206,11 @@ intersection. A `nullable`, `readOnly`, `writeOnly`, `deprecated` or
 intersection. A member with the keywords of one type only, such as
 `required` or `minItems`, has that type.
 
+A member with a `type` and no other keyword is left out when a kept
+reference declares that type. The `type: object` next to a union does
+not make its members intersections when their targets are objects.
+When one reference is left, the schema is that reference.
+
 A member can lead back to its own intersection with no property between
 (`Plan: { properties, oneOf: [{ $ref: Plan }] }`). `resolve()` does not
 go into the members, so it ends. A generator that goes into them must

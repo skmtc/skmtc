@@ -125,7 +125,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
       assertEquals(toAllOf(schemas[name]).length, 2, name)
     }
 
-    assertEquals(toAllOf(schemas.two).length, 3)
+    assertEquals(toAllOf(schemas.two), ['#/components/schemas/Obj', '#/components/schemas/Either'])
     assertEquals(issues, [])
   })
 

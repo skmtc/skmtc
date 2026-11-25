@@ -154,29 +154,23 @@ const toRawIntersection = ({ own, members }: Intersection): SchemaOrReference =>
 /**
  * The parts of a finished merge, to parse: the keywords that say how the whole
  * value is used move from the one member that is not a ref to the intersection.
- * So does its `type`, when that is all it holds beside one ref whose target
- * declares it: the two are then that ref with a `type` next to it.
+ * That member is left out when it then holds only a `type` that the target of
+ * a ref beside it declares: it says nothing more than the ref.
  */
 export const toSiteIntersection = ({ own, members }: Intersection, keptRefs: KeptRefs): Intersection => {
   const moved = members.map(member => (isRef(member) ? { own: {}, rest: member } : toSiteSplit(member)))
 
-  const site = {
-    own: moved.reduce<SchemaObject>((acc, each) => ({ ...acc, ...each.own }), own),
-    members: moved.map(({ rest }) => rest).filter(member => !isEmpty(member))
+  const refs = members.filter(isRef)
+  const saysNothing = (member: SchemaOrReference): boolean =>
+    isEmpty(member) ||
+    (!isRef(member) &&
+      Object.keys(member).every(key => key === 'type') &&
+      refs.some(ref => keptRefs.declaresTypeOf(ref, member)))
+
+  return {
+    own: moved.reduce<SchemaObject>((acc, { own: site }) => ({ ...acc, ...site }), own),
+    members: moved.map(({ rest }) => rest).filter(member => !saysNothing(member))
   }
-
-  const refs = site.members.filter(isRef)
-  const [ref] = refs
-  const other = site.members.find(member => !isRef(member))
-
-  return ref !== undefined &&
-    refs.length === 1 &&
-    other !== undefined &&
-    !isRef(other) &&
-    Object.keys(other).every(key => key === 'type') &&
-    keptRefs.declaresTypeOf(ref, other)
-    ? { own: { ...site.own, ...other }, members: refs }
-    : site
 }
 
 const OBJECT_KEYWORDS = ['required', 'minProperties', 'maxProperties', 'additionalProperties']

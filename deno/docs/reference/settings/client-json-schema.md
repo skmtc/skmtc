@@ -380,7 +380,8 @@ the usual parse. Default: `{}`.
     target of such a `$ref` leads back, through any `$ref`s, to the
     schema that has it.
   - With `all`, the parser keeps each such `$ref`. Each subtype that
-    has an `allOf` of two or more members is then an intersection.
+    has an `allOf` of two or more members is then an intersection. A
+    member with only a `type` that a kept `$ref` declares does not count.
   - With `merge`, the parser keeps none. A `$ref` that closes a cycle can
     then make the parse run out of memory.
 
@@ -390,7 +391,8 @@ the usual parse. Default: `{}`.
 
   An `allOf` of one `$ref` is a reference with the keywords next to it.
   One exception is a union member with a keyword that merges into it: it
-  is an intersection.
+  is an intersection. But a `type` that the target of the `$ref` declares
+  adds nothing, so the member stays a reference.
 
   `additionalProperties: false` next to an `allOf` with a kept `$ref`
   closes only the member that is not a reference.

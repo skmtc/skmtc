@@ -85,10 +85,5 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     const union = parsed.type === 'oas' ? parsed.value.components?.schemas?.['Node' as RefName] : undefined
 
     assertEquals(union?.type === 'union' ? union.isDiscriminable() : 'not a union', true)
-
-    // The `type` stays next to the ref, and it agrees with the target.
-    const branch = union?.type === 'union' ? union.members.find(member => member.isRef()) : undefined
-
-    assertEquals(branch?.isRef() && [branch._type, branch.toSkippedSiblings()], ['object', []])
   })
 }
