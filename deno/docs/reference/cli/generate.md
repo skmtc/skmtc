@@ -51,6 +51,11 @@ A `failed` typecheck causes exit code 1, even when the run otherwise
 succeeded. Generated files stay on disk; the operator can fix the
 generator and re-run.
 
+On Windows, `--typecheck` does not work yet, and can report a pass
+when it checked nothing
+([#353](https://github.com/skmtc/skmtc/issues/353)). Run `tsc`
+yourself instead.
+
 ### `--tsconfig <path>`
 
 Override the tsconfig used by `--typecheck`. Default: walk up from
