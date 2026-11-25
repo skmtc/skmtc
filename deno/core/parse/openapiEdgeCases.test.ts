@@ -4,11 +4,18 @@
  * that fails here means that a decision changed. Change the case in the same
  * pull request, and say why.
  *
+ * To choose a reading for a new case:
+ * 1. When both readings accept the same values, parse to the simplest schema.
+ * 2. When they differ, follow the rules.
+ * 3. Follow practice instead only when the meaning is clear and the case is
+ *    common.
+ *
  * `reading`:
  * - `rules`: core does what the specification of the version says.
  * - `practice`: core does what authors mean.
- * - `undecided`: core does neither. The test states what it does today, so the
- *   case is not forgotten. It is no reason to keep the result.
+ * - `undecided`: no reading is chosen, and core may do neither. The test states
+ *   what it does today, so the case is not forgotten. It is no reason to keep
+ *   the result. `ticket` is where it is to be decided, when there is one.
  *
  * `documents`: how many of the 1,981 harvest documents have the case
  * (2026-11-25), from the raw documents. A case without a type counts only
@@ -26,6 +33,7 @@ type EdgeCase = {
   rules: string
   practice: string
   reading: 'rules' | 'practice' | 'undecided'
+  ticket?: string
   documents: number | 'not counted'
   versions: Version[]
   /** The schema `X`, and the schemas it refers to beside `Obj` and `OrNull`. */
@@ -100,6 +108,7 @@ const cases: EdgeCase[] = [
     practice: '"a" or null',
     // The whole enum is removed, so any string is valid.
     reading: 'undecided',
+    ticket: 'skmtc#399',
     documents: 33,
     versions: ALL,
     x: () => ({ type: 'string', enum: ['a', null] }),
@@ -155,6 +164,7 @@ const cases: EdgeCase[] = [
     practice: 'the target or null',
     // The member is left out with no issue, so null is lost.
     reading: 'undecided',
+    ticket: 'skmtc#398',
     documents: 24,
     versions: V30,
     x: () => ({ oneOf: [ref('Obj'), { type: 'null' }] }),
@@ -166,6 +176,7 @@ const cases: EdgeCase[] = [
     practice: 'one of the types, as in 3.1',
     // Any value is valid, with no issue.
     reading: 'undecided',
+    ticket: 'skmtc#397',
     documents: 20,
     versions: V30,
     x: () => ({ type: ['string', 'integer'] }),
@@ -287,16 +298,65 @@ const cases: EdgeCase[] = [
     practice: 'an object with the properties of all members and no others',
     // Neither: it closes the member that the others merge into, with their properties.
     reading: 'undecided',
+    ticket: 'skmtc-generators#117',
     documents: 'not counted',
     versions: ALL,
     x: () => ({ allOf: [ref('Base'), { type: 'object', properties: { b: text } }], additionalProperties: false }),
     expected: { allOf: [ref('Base'), closed({ b: text })] }
+  },
+  {
+    name: 'a type beside an allOf of one ref to a schema with that type',
+    rules: 'the target: the type says nothing more',
+    practice: 'the target',
+    reading: 'practice',
+    documents: 'not counted',
+    versions: ALL,
+    x: () => ({ type: 'object', properties: { self: { type: 'object', nullable: true, allOf: [ref('X')] } } }),
+    expected: closed({ self: { ...ref('X'), nullable: true } })
+  },
+  {
+    name: 'a type beside an anyOf of one ref to a schema with that type',
+    rules: 'the target: the type says nothing more',
+    practice: 'the target',
+    // The same schema as the case above in another spelling, with another result.
+    reading: 'undecided',
+    ticket: 'skmtc#402',
+    documents: 'not counted',
+    versions: ALL,
+    x: () => ({ type: 'object', properties: { self: { type: 'object', nullable: true, anyOf: [ref('X')] } } }),
+    expected: closed({
+      self: { nullable: true, allOf: [{ type: 'object', additionalProperties: false }, ref('X')] }
+    })
+  },
+  {
+    name: 'a type beside an allOf of one ref to a schema that allows null',
+    rules: 'null is not valid: the type excludes it',
+    practice: 'not clear',
+    // A ref, so null is valid. The two-member spelling excludes it: see the type beside a kept ref.
+    reading: 'undecided',
+    ticket: 'skmtc#402',
+    documents: 'not counted',
+    versions: ALL,
+    x: () => ({ type: 'object', allOf: [ref('OrNull')] }),
+    expected: ref('OrNull')
+  },
+  {
+    name: 'a type that narrows, beside an allOf of one ref',
+    rules: 'an integer',
+    practice: 'an integer',
+    // The type is left out when the ref resolves, and reported as skipped.
+    reading: 'undecided',
+    ticket: 'skmtc#402',
+    documents: 'not counted',
+    versions: ALL,
+    x: () => ({ type: 'integer', allOf: [ref('Num')] }),
+    expected: ref('Num')
   }
 ]
 
-for (const { name, rules, practice, reading, versions, x, expected, issues = [] } of cases) {
+for (const { name, rules, practice, reading, ticket, versions, x, expected, issues = [] } of cases) {
   for (const version of versions) {
-    Deno.test(`${version} ${name}: ${reading}`, async () => {
+    Deno.test(`${version} ${name}: ${reading}${ticket === undefined ? '' : ` (${ticket})`}`, async () => {
       const result = await parseBounded({
         openapi: version,
         schemas: {
@@ -304,7 +364,8 @@ for (const { name, rules, practice, reading, versions, x, expected, issues = [] 
           Obj: { type: 'object', properties: { a: text } },
           OrNull: { ...orNull(version, 'object'), properties: { a: text } },
           Loop: { ...orNull(version, 'object'), properties: { x: ref('X') } },
-          Base: { type: 'object', properties: { x: ref('X') } }
+          Base: { type: 'object', properties: { x: ref('X') } },
+          Num: { type: 'number' }
         }
       })
 
