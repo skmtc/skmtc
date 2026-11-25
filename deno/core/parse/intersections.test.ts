@@ -189,7 +189,6 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
           byExample: site({ example: null }),
           byDeprecated: site({ deprecated: true }),
           byDocs: { allOf: [ref('A'), { type: 'object' }], externalDocs: { url: 'https://example.com' } },
-          byNot: site({ not: text }),
           held: site({ title: 't', description: 'd', readOnly: true, 'x-own': 1 })
         })
       },
@@ -197,7 +196,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     })
     const property = (name: string) => at(schemas.A, 'properties', name)
 
-    for (const name of ['byDefault', 'byExample', 'byDeprecated', 'byDocs', 'byNot']) {
+    for (const name of ['byDefault', 'byExample', 'byDeprecated', 'byDocs']) {
       assertEquals(toAllOf(property(name)).length, 2, name)
     }
 

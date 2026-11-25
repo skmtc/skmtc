@@ -16,6 +16,7 @@ import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
 import { toIntersection } from '@/parse/v3-2/intersection/toIntersection.ts'
 import { toIntersectionParts, toSiteIntersection } from '@/parse/keptIntersection.ts'
+import { toRefIntersection } from '@/parse/toRefIntersection.ts'
 import { toGetRef } from '@/helpers/refFns.ts'
 import { toSiblingKeywords } from '@/parse/toSiblingKeywords.ts'
 import { logAllOfContradictions, toAllOfSystem } from '@/parse/allOfSystem.ts'
@@ -197,20 +198,7 @@ export const toSchemaV3 = ({
   schema,
   stackTrail,
   context
-}: ToSchemaV3Args): OasSchema | OasRef<'schema'> => toSchemaWithin({ schema, stackTrail, context, hasNot: false })
-
-type ToSchemaWithinArgs = ToSchemaV3Args & {
-  /** The schema has a `not`, which is parsed on its own: the result must be able to hold it. */
-  hasNot: boolean
-}
-
-/** {@link toSchemaV3}, for the steps inside one schema. */
-const toSchemaWithin = ({
-  schema,
-  stackTrail,
-  context,
-  hasNot
-}: ToSchemaWithinArgs): OasSchema | OasRef<'schema'> => {
+}: ToSchemaV3Args): OasSchema | OasRef<'schema'> => {
   if (isRef(schema)) {
     // In 3.2, as in JSON Schema 2020-12, keywords beside `$ref` apply with
     // the target: the same as an `allOf` that starts with the reference.
@@ -231,7 +219,7 @@ const toSchemaWithin = ({
     const bareRef = context.keptRefs?.copy(schema, { $ref }) ?? { $ref }
 
     return Object.keys(keywords).length > 0
-      ? toSchemaWithin({ schema: { ...keywords, allOf: [bareRef, ...members] }, stackTrail, context, hasNot })
+      ? toSchemaV3({ schema: { ...keywords, allOf: [bareRef, ...members] }, stackTrail, context })
       : toRefV31({ ref: schema, refType: 'schema', stackTrail, context })
   }
 
@@ -252,25 +240,22 @@ const toSchemaWithin = ({
     }
 
     const { not: _not, ...keywords } = schema
-    const parsed = toSchemaWithin({ schema: keywords, stackTrail, context, hasNot: true })
+    const parsed = toSchemaV3({ schema: keywords, stackTrail, context })
 
-    // Only a one-member `allOf` of a `$ref` parses to a reference, and a
-    // reference has no field for a `not`. Fail rather than lose it.
-    if (parsed.isRef()) {
-      throw new Error('Schema uses "not" next to a one-member allOf reference, which cannot keep it')
-    }
+    // A reference has no field for a `not`, so it becomes a member.
+    const holder = parsed.isRef() ? toRefIntersection({ ref: parsed, stackTrail, context }) : parsed
 
-    parsed.not = stackTrail.trace('not', notTrail =>
+    holder.not = stackTrail.trace('not', notTrail =>
       context.withStackTrail(notTrail, () => new OasUnknown({}, context))
     )
 
-    return parsed
+    return holder
   }
 
   const normalized = normalizeSchemaShape(schema)
 
   if (normalized !== schema) {
-    return toSchemaWithin({ schema: normalized, stackTrail, context, hasNot })
+    return toSchemaV3({ schema: normalized, stackTrail, context })
   }
 
   if ('allOf' in schema && Array.isArray(schema.allOf)) {
@@ -337,11 +322,10 @@ const toSchemaWithin = ({
           }
         }
 
-        return toSchemaWithin({
+        return toSchemaV3({
           schema: collapseSingleMember(value, member),
           stackTrail: st,
-          context,
-          hasNot
+          context
         })
       }
 
@@ -362,10 +346,10 @@ const toSchemaWithin = ({
       const parts = keptRefs && toIntersectionParts(merged, keptRefs)
 
       if (keptRefs === undefined || parts === undefined) {
-        return toSchemaWithin({ schema: merged, stackTrail: st, context, hasNot })
+        return toSchemaV3({ schema: merged, stackTrail: st, context })
       }
 
-      const { own, members: kept } = toSiteIntersection({ ...parts, keptRefs, hasNot })
+      const { own, members: kept } = toSiteIntersection({ ...parts, keptRefs })
       const [only] = kept
 
       if (kept.length > 1 || only === undefined) {
@@ -382,7 +366,7 @@ const toSchemaWithin = ({
   const collapsed = collapseNullOnlyUnion(schema, normalizeMergeMember)
 
   if (collapsed !== schema) {
-    return toSchemaWithin({ schema: collapsed, stackTrail, context, hasNot })
+    return toSchemaV3({ schema: collapsed, stackTrail, context })
   }
 
   if ('oneOf' in schema && Array.isArray(schema.oneOf)) {
@@ -450,11 +434,10 @@ const toSchemaWithin = ({
           })
         }
 
-        return toSchemaWithin({
+        return toSchemaV3({
           schema: collapseSingleMember(value, soleMember),
           stackTrail: st,
-          context,
-          hasNot
+          context
         })
       }
 
@@ -484,7 +467,7 @@ const toSchemaWithin = ({
 
       // A `default` alone is no type: the parser would guess one from it.
       return hasShapeKeyword(keywords)
-        ? toSchemaWithin({ schema: keywords, stackTrail, context, hasNot })
+        ? toSchemaV3({ schema: keywords, stackTrail, context })
         : toUnknown({ value: keywords, stackTrail, context })
     }
 
@@ -544,11 +527,10 @@ const toSchemaWithin = ({
           })
         }
 
-        return toSchemaWithin({
+        return toSchemaV3({
           schema: collapseSingleMember(value, soleMember),
           stackTrail: st,
-          context,
-          hasNot
+          context
         })
       }
 

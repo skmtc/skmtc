@@ -37,7 +37,15 @@ const toDocument = (openapi: string) =>
         },
         AnythingButAString: { not: { type: 'string' } },
         Named: { type: 'object', properties: { id: { type: 'string' } } },
-        NamedButNotEmpty: { allOf: [{ $ref: '#/components/schemas/Named' }], not: { maxProperties: 0 } }
+        NamedButNotEmpty: { description: 'd', allOf: [{ $ref: '#/components/schemas/Named' }], not: { maxProperties: 0 } },
+        NamedAnyOf: { nullable: true, anyOf: [{ $ref: '#/components/schemas/Named' }], not: { maxProperties: 0 } },
+        // Its `type` says nothing more than the kept reference.
+        Tree: {
+          type: 'object',
+          properties: {
+            parent: { type: 'object', nullable: true, anyOf: [{ $ref: '#/components/schemas/Tree' }], not: { required: ['x'] } }
+          }
+        }
       }
     }
   }) as OpenAPIV3.Document
@@ -70,6 +78,12 @@ const toNot = (schema: OasSchema | OasRef<'schema'> | undefined) =>
   schema === undefined || schema.isRef() || schema.not === undefined
     ? undefined
     : { type: schema.not.type, pointer: schema.not.stackTrail.toJsonPointer() }
+
+const toProperty = (schema: OasSchema | OasRef<'schema'> | undefined, name: string) => {
+  const property = schema?.isRef() === false && schema.type === 'object' ? schema.properties?.[name] : undefined
+
+  return property === undefined || property.type === 'custom' ? undefined : property
+}
 
 for (const openapi of ['3.0.3', '3.1.0']) {
   Deno.test(`${openapi} system.not unknown: a schema with not parses with its other keywords, and keeps the not`, () => {
@@ -111,13 +125,26 @@ for (const openapi of ['3.0.3', '3.1.0']) {
     assertEquals(toNot(anything)?.type, 'unknown')
   })
 
-  Deno.test(`${openapi} system.not unknown: a not next to a one-member allOf reference fails, and is not lost`, () => {
+  Deno.test(`${openapi} system.not unknown: a not next to a reference is kept, on an intersection of it`, () => {
     const { toSchema, errorsAt } = parse({ openapi, system: { not: 'unknown' } })
 
-    // The trap: the one-member allOf parses to a reference, which has no field for the not.
-    assertEquals(toSchema('NamedButNotEmpty'), undefined)
-    assertEquals(errorsAt('NamedButNotEmpty'), 1)
-    assertEquals(toSchema('Named')?.type, 'object')
+    for (const name of ['NamedButNotEmpty', 'NamedAnyOf', 'Tree']) {
+      const schema = name === 'Tree' ? toProperty(toSchema('Tree'), 'parent') : toSchema(name)
+
+      // The trap: each parses to a reference, which has no field for the not.
+      assertEquals(schema?.isRef(), false, name)
+      assertEquals(toNot(schema)?.type, 'unknown', name)
+      assertEquals(errorsAt(name), 0)
+
+      const intersection = schema?.isRef() === false && schema.type === 'intersection' ? schema : undefined
+      const [member] = intersection?.members ?? []
+
+      assertEquals(intersection?.members.length, 1, name)
+      assertEquals(member?.isRef() && member.$ref, `#/components/schemas/${name === 'Tree' ? 'Tree' : 'Named'}`)
+      // The trap: null is valid only when the intersection says so.
+      assertEquals(intersection?.nullable, name === 'NamedButNotEmpty' ? undefined : true, name)
+      assertEquals(intersection?.description, name === 'NamedButNotEmpty' ? 'd' : undefined, name)
+    }
   })
 
   Deno.test(`${openapi} with no system settings, a schema with not fails and is removed, as before`, () => {

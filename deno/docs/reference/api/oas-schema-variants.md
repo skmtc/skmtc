@@ -217,7 +217,7 @@ That member stays in these cases:
   `type` then excludes `null`.
 - The target declares the type only through this schema (a loop).
 - One reference would be left, and it cannot hold what is next to it: a
-  `default`, an `example`, `deprecated`, `externalDocs`, a `not`, or
+  `default`, an `example`, `deprecated`, `externalDocs`, or
   keywords next to that `$ref`.
 
 A member can lead back to its own intersection with no property between
@@ -225,6 +225,9 @@ A member can lead back to its own intersection with no property between
 go into the members, so it ends. A generator that goes into them must
 stop at a schema it has read. `toParts()` gives each schema one time, so
 it ends.
+
+With `system.not: unknown`, a `not` next to one reference gives an
+intersection of that reference, because a reference has no `not`.
 
 `toJsonSchema` writes an intersection as an `allOf` of its members.
 

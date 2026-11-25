@@ -153,8 +153,6 @@ const toRawIntersection = ({ own, members }: Intersection): SchemaOrReference =>
 
 type ToSiteIntersectionArgs = Intersection & {
   keptRefs: KeptRefs
-  /** The site has a `not`, which a ref cannot hold. */
-  hasNot: boolean
 }
 
 /**
@@ -173,7 +171,7 @@ const isRefKeyword = (key: string): boolean =>
  * is what rules out the `null` that a target allows and this site does not, or
  * when the one ref that would be left cannot hold what is beside it.
  */
-export const toSiteIntersection = ({ own, members, keptRefs, hasNot }: ToSiteIntersectionArgs): Intersection => {
+export const toSiteIntersection = ({ own, members, keptRefs }: ToSiteIntersectionArgs): Intersection => {
   const moved = members.map(member => (isRef(member) ? { own: {}, rest: member } : toSiteSplit(member)))
 
   const site = moved.reduce<SchemaObject>((acc, each) => ({ ...acc, ...each.own }), own)
@@ -188,7 +186,7 @@ export const toSiteIntersection = ({ own, members, keptRefs, hasNot }: ToSiteInt
   const telling = present.filter(member => !saysNothing(member))
   const [only] = telling
   const isLoneRef = telling.length === 1 && only !== undefined && isRef(only)
-  const fits = !isLoneRef || (!hasNot && Object.keys(only).length === 1 && Object.keys(site).every(isRefKeyword))
+  const fits = !isLoneRef || (Object.keys(only).length === 1 && Object.keys(site).every(isRefKeyword))
 
   return { own: site, members: fits ? telling : present }
 }
