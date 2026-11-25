@@ -154,7 +154,7 @@ export const collectExports = (document: unknown): Map<string, Record<string, un
 
 const decoder = new TextDecoder()
 
-const runDeno = async (args: string[]): Promise<string> => {
+export const runDeno = async (args: string[]): Promise<string> => {
   const output = await new Deno.Command('deno', { args, stdout: 'piped', stderr: 'piped' }).output()
   if (!output.success) {
     throw new Error(`deno ${args.join(' ')} failed: ${decoder.decode(output.stderr).slice(0, 300)}`)
@@ -163,11 +163,11 @@ const runDeno = async (args: string[]): Promise<string> => {
 }
 
 /**
- * The version of the `deno` the digests come from — asked of the spawned
- * binary itself, not `Deno.version` of this process, so the record
+ * The version of the `deno` that {@link runDeno} starts — asked of the
+ * spawned binary itself, not `Deno.version` of this process, so a record
  * describes the tool that produced it even under a version-manager shim.
  */
-const spawnedDenoVersion = async (): Promise<string> => {
+export const spawnedDenoVersion = async (): Promise<string> => {
   const firstLine = (await runDeno(['--version'])).split('\n')[0]
   const match = firstLine.match(/^deno (\S+)/)
   if (!match) throw new Error(`could not read a version from \`deno --version\`: ${firstLine}`)

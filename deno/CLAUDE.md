@@ -219,7 +219,7 @@ The CLI uses Cliffy framework with these patterns:
 ## Instructions
 
 - Always run a type check using `deno check ./**/*.ts ./**/*.tsx` at the end of session to verify results
-- `deno task check` runs the full CI suite locally (doc-sync + workspace type-check & tests). A version-controlled `pre-push` hook (`<repo>/.githooks/pre-push`) runs it before every push so failures surface locally, not in GitHub Actions. Enable it per-clone with `git config core.hooksPath .githooks`; bypass a single push with `git push --no-verify`.
+- `deno task check` runs the full CI suite locally (doc-sync + the function call counts of `deno task check-work` + workspace type-check & tests). A version-controlled `pre-push` hook (`<repo>/.githooks/pre-push`) runs it before every push so failures surface locally, not in GitHub Actions. Enable it per-clone with `git config core.hooksPath .githooks`; bypass a single push with `git push --no-verify`.
 - Use absolute import paths prefixed with `@/`, not of relative path imports
 - **Update the docs in the same PR as the code.** A change to behaviour that `docs/` describes (the reference and concept pages, and the skills under `docs/skills/`) updates those pages in the PR that makes the change. Before you open the PR, grep `docs/` for each identifier, setting, issue type and message you added, changed or removed, and edit each passage that no longer holds. A reviewer treats a stale passage as a finding, the same as a bug.
 
