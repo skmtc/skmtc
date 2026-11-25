@@ -111,12 +111,18 @@ Deno.test('collectCalls counts the named functions of core and lang-typescript',
 })
 
 Deno.test('collectCalls refuses a coverage format it does not know', () => {
-  assertThrows(() => collectCalls([{ url: 'file:///deno/core/a.ts' }], 'file:///deno/'))
-  assertThrows(() =>
-    collectCalls(
-      [{ url: 'file:///deno/core/a.ts', functions: [{ functionName: 'a', ranges: [] }] }],
-      'file:///deno/'
-    )
+  const url = 'file:///deno/core/a.ts'
+
+  assertThrows(
+    () => collectCalls([{ url }], 'file:///deno/'),
+    Error,
+    'its format changed'
+  )
+  assertThrows(
+    () =>
+      collectCalls([{ url, functions: [{ functionName: 'a', ranges: [] }] }], 'file:///deno/'),
+    Error,
+    'has no name or no count'
   )
 })
 
