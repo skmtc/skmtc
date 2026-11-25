@@ -1,3 +1,6 @@
+import { handlePropertyName } from '@/src/identifiers.ts'
+import { toParameterVariable } from '@/src/toParameterVariable.ts'
+
 /**
  * Converts OpenAPI path parameters into JavaScript template literal syntax.
  *
@@ -7,7 +10,9 @@
  * code where OpenAPI path parameters need to be interpolated at runtime.
  *
  * The function supports both simple parameter substitution and qualified parameter
- * access (when parameters come from an object property).
+ * access (when parameters come from an object property). A simple parameter is the
+ * variable {@link toParameterVariable} names, the one `FunctionParameter`
+ * destructures. The static text is escaped for a template literal.
  *
  * @param path - OpenAPI path string with {parameter} syntax
  * @param queryArg - Optional object name to qualify parameter access
@@ -33,6 +38,12 @@
  * // function buildUrl(params: {id: string, postId: string}) {
  * //   return `/users/${params.id}/posts/${params.postId}`;
  * // }
+ * ```
+ *
+ * @example A parameter that is not an identifier
+ * ```typescript
+ * toPathTemplate('/teams/{enterprise-team}'); // '/teams/${enterpriseTeam}'
+ * toPathTemplate('/teams/{enterprise-team}', 'params'); // "/teams/${params['enterprise-team']}"
  * ```
  *
  * @example API client method generation
@@ -113,5 +124,11 @@
  * ```
  */
 export const toPathTemplate = (path: string, queryArg?: string): string => {
-  return `${path.replaceAll(/{([^}]*)}/g, queryArg ? '${' + queryArg + '.$1}' : '${$1}')}`
+  return path.replaceAll(/{([^}]*)}|[`\\]|\$(?={)/g, (match, name?: string) => {
+    if (name === undefined) {
+      return `\\${match}`
+    }
+
+    return `\${${queryArg ? handlePropertyName(name, queryArg) : toParameterVariable(name)}}`
+  })
 }

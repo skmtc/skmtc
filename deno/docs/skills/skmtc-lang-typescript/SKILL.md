@@ -162,8 +162,11 @@ provenance):
   (call site), `toPropertyList()` (the variables), `hasProperty(name)`.
   Destructured, a property whose name cannot be a variable is renamed with
   `toParameterVariable`: `{'user-id': userId, export: exportValue}`.
-- `toPathTemplate('/users/{id}')` → `` /users/${id} ``; `toPathParams` →
-  `/users/:id`; `PathParams` bundles type + parameter + template.
+- `toPathTemplate('/users/{id}')` → `` /users/${id} ``, the body of a template
+  literal: static text is escaped, and `{user-id}` gives `${userId}`, or
+  `${params['user-id']}` with `'params'` as the second argument.
+  `toPathParams` → `/users/:id`; `PathParams` bundles type + parameter +
+  template.
 - `keyValues`, `withDescription`, `handleKey`, `handlePropertyName`;
   `TsClass`/`TsHeritage` for class syntax (`TsHeritage` registers its own
   heritage imports).
