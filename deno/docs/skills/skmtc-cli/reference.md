@@ -339,7 +339,7 @@ both → exit 2 with a recipe error.
   "deploy": {
     "status": "active",          // deploying | active | idle | paused | error
     "statusReason": null,        // set when status is "error"
-    "endpointUrl": "https://ada-my-api.deno.dev/api",
+    "endpointUrl": "",           // always empty: a stack server has no direct URL
     "url": "https://api.skmtc.dev/v1/stacks/ada/my-api/servers/3.0.1"
   }
 }
@@ -366,6 +366,12 @@ both → exit 2 with a recipe error.
   "stored": true
 }
 ```
+
+**Call a deployed stack** through the hub, at the `url` of the output:
+`https://api.skmtc.dev/v1/stacks/{account}/{stack}/servers/{version}` (or
+`production` as the version). To generate, `POST` to that URL plus
+`/artifacts`. A private stack needs a hub token
+(`Authorization: Bearer <token>`).
 
 **Version rule.** `--version <v>` is exact: stored → exit 2. Without it,
 the `deno.json` version deploys as it is when the hub does not store it.
