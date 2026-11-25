@@ -56,7 +56,9 @@ OpenAPI document. The cause is typically:
 
 - Conflicting `allOf` members (incompatible types or constraints)
 - Empty `oneOf` / `anyOf` arrays
-- Cycle in `allOf` references
+- A cycle in the references that `allOf` merges, when
+  `settings.system.intersections` is `merge`. With the default, the
+  parser keeps such a reference (`OasIntersection`).
 - A `not` keyword
 
 [`settings.system`](settings/client-json-schema.md#settingssystem-optional)
@@ -571,8 +573,8 @@ remove the object.
 ### `WILDCARD_MEDIA_TYPE` — warning
 
 **When:** A response or request body has a `content` map with a
-`*/*` key, no JSON media type, and an object, array, union or `$ref`
-schema under `*/*`. The lookups without a media type
+`*/*` key and no JSON media type. The schema under `*/*` is an object,
+array, union, intersection or `$ref`. The lookups without a media type
 (`OasResponse.toSchema()`, `OasOperation.traverse`) then read that
 schema as JSON, but the document does not say the format of the body.
 There is one issue for each response or body, at its `content` key.

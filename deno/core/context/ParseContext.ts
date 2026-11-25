@@ -31,6 +31,7 @@ import type { Logger } from '@/types/Logger.ts'
 export type { AttributionState } from '@/types/AttributionState.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { isPlainObject } from '@/parse/isPlainObject.ts'
+import { toKeptRefs, type KeptRefs } from '@/parse/keptRefs.ts'
 import { toApplyingBrokenParameter, toNameAndIn } from '@/parse/pathParameters.ts'
 import type { SkmtcDocumentInput, SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type {
@@ -261,6 +262,8 @@ export class ParseContext {
   #refTargets: Set<string> = new Set()
   /** The key of the ref target `#inRefTarget` runs for; `undefined` in the document's own walk. */
   #refTarget: string | undefined
+  /** {@link keptRefs}, once a merge has asked for it. */
+  #keptRefs: { value: KeptRefs | undefined } | undefined
   /** What identifies each issue logged so far (`toIssueIdentity`). */
   #issueIdentities: Set<string> = new Set()
   /**
@@ -324,6 +327,15 @@ export class ParseContext {
       throw new Error('documentObject accessed on non-OAS ParseContext')
     }
     return this.protocol.documentObject
+  }
+
+  /** The refs of the document that a merge keeps as refs (`system.intersections`); `undefined` under `merge`. */
+  get keptRefs(): KeptRefs | undefined {
+    this.#keptRefs ??= {
+      value: toKeptRefs({ documentObject: this.documentObject, setting: this.system.intersections })
+    }
+
+    return this.#keptRefs.value
   }
 
   /** GQL-only accessor; throws if called on an OAS context. */

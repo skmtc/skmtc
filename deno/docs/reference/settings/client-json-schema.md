@@ -367,6 +367,24 @@ the usual parse. Default: `{}`.
 
   A `$ref` to an item of the wrong kind (`REF_TYPE_MISMATCH`) is always
   an error, and this field does not change it.
+- **`intersections`** — `"cycles"` (default), `"all"` or `"merge"`. Sets
+  which `$ref`s the parser keeps as references where it would merge their
+  target into a schema. The members of an `allOf` are such `$ref`s. So
+  are the members of a `oneOf` or an `anyOf`, when a keyword next to it
+  merges into each member. A property that two merged members both have
+  is one `allOf` of the two, so the same rule applies. The schema is then
+  an [`OasIntersection`](../api/oas-schema-variants.md#oasintersection--type-intersection)
+  of the references and one schema that the other members merge into.
+  - With `cycles`, the parser keeps a `$ref` that closes a cycle. The
+    target of such a `$ref` leads back, through any `$ref`s, to the
+    schema that has it.
+  - With `all`, the parser keeps each such `$ref`. Each subtype that
+    has an `allOf` of two or more members is then an intersection. Some
+    libraries do not take one as a member of a discriminated union.
+  - With `merge`, the parser keeps none. A `$ref` that closes a cycle can
+    then make the parse run out of memory.
+
+  An `allOf` of one `$ref` is always a reference.
 - **`responseContradictions`** — `"strict"` (default) or `"unknown"`.
   Reserved. The validator accepts it, but the parser does not read it.
 

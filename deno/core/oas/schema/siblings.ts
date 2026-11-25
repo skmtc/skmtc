@@ -115,6 +115,7 @@ export const SIBLINGS_BY_TYPE: Record<OasSchema['type'], SiblingKeyword[]> = {
     'maxProperties'
   ],
   union: [...DESCRIBING, 'default'],
+  intersection: [...DESCRIBING, 'deprecated', 'default'],
   unknown: DESCRIBING
 }
 
@@ -280,7 +281,8 @@ const MAX_DEPTH = 10
  * A `type` next to a reference agrees with the target's when it names it, or
  * `number` for an integer. Next to a union, it agrees when every member,
  * followed through references, has that type (`type: object` next to a
- * `oneOf` of objects): leaving it out then loses nothing.
+ * `oneOf` of objects): leaving it out then loses nothing. Next to an
+ * intersection, it agrees when one member has that type.
  */
 const agrees = (type: unknown, target: OasSchema, depth: number): boolean => {
   if (target.type === 'union') {
@@ -295,6 +297,10 @@ const agrees = (type: unknown, target: OasSchema, depth: number): boolean => {
 
       throw error
     }
+  }
+
+  if (target.type === 'intersection') {
+    return depth < MAX_DEPTH && target.toParts().some(part => agrees(type, part, depth + 1))
   }
 
   return type === target.type || (type === 'number' && target.type === 'integer')
@@ -334,7 +340,7 @@ export const isObjectValue = (value: unknown): value is Record<string, unknown> 
   typeof value === 'object' && value !== null && !Array.isArray(value)
 const isAnyValue = (_value: unknown): _value is unknown => true
 
-/** {@link isStringValue} and the others, keyed by the type they check for. A union or unknown takes any value. */
+/** {@link isStringValue} and the others, keyed by the type they check for. A union, intersection or unknown takes any value. */
 export const VALUE_CHECKS: Record<OasSchema['type'], (value: unknown) => boolean> = {
   string: isStringValue,
   number: isNumberValue,
@@ -343,6 +349,7 @@ export const VALUE_CHECKS: Record<OasSchema['type'], (value: unknown) => boolean
   array: isArrayValue,
   object: isObjectValue,
   union: isAnyValue,
+  intersection: isAnyValue,
   unknown: isAnyValue
 }
 

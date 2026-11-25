@@ -1,6 +1,6 @@
 ---
 name: skmtc-operation
-version: 0.1.3
+version: 0.1.4
 description: >
   The operation-generator shape for Skmtc: one definition per (path,
   method), for any output family — client hooks, SDK methods, forms,
@@ -15,7 +15,7 @@ description: >
   Load ALONGSIDE skmtc-generator and the emitted language's skill.
 metadata:
   describes:
-    '@skmtc/core': '0.46'
+    '@skmtc/core': '0.47'
 ---
 
 # Operation generators: decompose the operation, reference the models
@@ -83,8 +83,8 @@ a response shape) breaks the moment the schema evolves.
 - **Media type**: with no argument, both lookups read the JSON media
   type: `application/json`, else the first `application/…+json` or
   `application/json;…` key, else `*/*` when its schema is an object,
-  array, union or `$ref` (the parser logs a `WILDCARD_MEDIA_TYPE` warning
-  for that body). A body with only `text/plain`, `application/*` or a
+  array, union, intersection or `$ref` (the parser logs a
+  `WILDCARD_MEDIA_TYPE` warning for that body). A body with only `text/plain`, `application/*` or a
   scalar under `*/*` gives `undefined`; to read it, pass the media type,
   for example `toSchema('text/plain')`. `toJsonContent()` names the key it
   chose (`mediaType`) and the type to send it as (`contentType`:

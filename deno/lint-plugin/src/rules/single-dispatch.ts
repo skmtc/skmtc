@@ -78,6 +78,7 @@ const SCHEMA_TYPE_LITERALS = new Set([
   'array',
   'object',
   'union',
+  'intersection',
   'unknown',
   'ref',
   'custom',

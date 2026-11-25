@@ -825,6 +825,14 @@
                       ],
                       "type": "string"
                     }
+                  },
+                  "intersections": {
+                    "enum": [
+                      "merge",
+                      "cycles",
+                      "all"
+                    ],
+                    "type": "string"
                   }
                 },
                 "required": []
@@ -1161,6 +1169,14 @@
                       ],
                       "type": "string"
                     }
+                  },
+                  "intersections": {
+                    "enum": [
+                      "merge",
+                      "cycles",
+                      "all"
+                    ],
+                    "type": "string"
                   }
                 },
                 "required": []

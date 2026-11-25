@@ -61,7 +61,7 @@ If unsure which role applies: read **The generation model** + **Read this first*
 
 The one story every rule in this document falls out of. Hold this model and the principle tables below read as consequences, not as arbitrary conventions. (The `skmtc-generator` skill carries the authoring-weighted version.)
 
-1. **Parse.** The engine parses the schema (OpenAPI v3 or GraphQL SDL) into typesafe intermediate-representation objects — `OasOperation`, the `OasSchema` union, `GqlOperation`. `allOf` is pre-merged; `$ref`s are lazy (`OasRef`, resolved with `.resolve()`).
+1. **Parse.** The engine parses the schema (OpenAPI v3 or GraphQL SDL) into typesafe intermediate-representation objects — `OasOperation`, the `OasSchema` union, `GqlOperation`. `allOf` is pre-merged. A `$ref` that closes a cycle is not: it stays a member of an `OasIntersection` (`system.intersections`). `$ref`s are lazy (`OasRef`, resolved with `.resolve()`).
 
 2. **Loop.** The Generate phase walks `(generator × item × variant)` and calls each generator entry's `transform({ context, operation | ref, variant })` per item (a model's `ref` is `{ refName, refPath }`). `transform` returns `void` — everything a generator produces, it produces by side effect on `context`.
 
@@ -93,7 +93,7 @@ The facts below pin the highest-drift corollaries of the model — the assertion
 
 3. **Generator source code is the customization surface.** Stock generators have hardcoded export paths and peer imports (`gen-shadcn-form/src/ShadcnForm.ts:1` hardcodes `import { TanstackQuery } from '@skmtc/gen-tanstack-query-supabase-zod'`). To customize beyond enrichments: `skmtc clone` and edit.
 
-4. **`OasSchema` is a union type, not a class hierarchy.** `OasSchema = OasArray | OasBoolean | OasInteger | OasNumber | OasObject | OasString | OasUnknown | OasUnion`. Every variant independently implements `.isRef()` returning `false`. `OasRef` is a *sibling*, not a parent, with `.isRef()` returning `true`.
+4. **`OasSchema` is a union type, not a class hierarchy.** `OasSchema = OasArray | OasBoolean | OasInteger | OasNumber | OasObject | OasString | OasUnknown | OasUnion | OasIntersection`. Every variant independently implements `.isRef()` returning `false`. `OasRef` is a *sibling*, not a parent, with `.isRef()` returning `true`.
 
 5. **The variant axis fans out at the engine, not the generator.** A single source item can produce N Definitions via named variants under `enrichments[id][path][method]` (OAS), `[id][rootKind][fieldName]` (GQL), or `[id][refName]` (model). `'main'` is always present — the engine throws at start if a consumer wrote variants without it. Variants flow through `ContentSettings.variant`, the `GeneratorKey`'s trailing segment, and the per-call `variant` arg in every projection static method and entry callback. Cross-generator `insertOperation` / `insertModel` defaults to `'main'`; passing a non-`'main'` variant the peer doesn't declare throws at the Driver (`assertPeerVariantExists`). See [concepts/variants.md](concepts/variants.md).
 
@@ -408,7 +408,7 @@ Order: `isSupported` (capability) → `include` (allow) → `skip` (deny).
 | Settings types | `types/Settings.ts` |
 | Manifest types | `types/Manifest.ts` |
 | OAS schema routing | `parse/v3-0/schema/toSchemasV3.ts` + `parse/v3-1/schema/toSchemasV3.ts` |
-| OAS schema variants | `oas/{object,array,union,string,integer,number,boolean,unknown}/<Name>.ts` |
+| OAS schema variants | `oas/{object,array,union,intersection,string,integer,number,boolean,unknown}/<Name>.ts` |
 | OAS ref class | `oas/ref/Ref.ts` |
 | OAS document model | `oas/document/Document.ts` |
 | OAS operation model | `oas/operation/Operation.ts` |

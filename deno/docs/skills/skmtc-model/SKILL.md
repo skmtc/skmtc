@@ -1,6 +1,6 @@
 ---
 name: skmtc-model
-version: 0.2.0
+version: 0.3.0
 description: >
   The model-generator shape for Skmtc: one definition per component
   schema, built by copying the shipped SKELETON package and filling its
@@ -13,7 +13,7 @@ description: >
   and skmtc-lang-typescript (TS layer).
 metadata:
   describes:
-    '@skmtc/core': '0.46'
+    '@skmtc/core': '0.47'
     '@skmtc/lang-typescript': '0.14'
 ---
 
@@ -32,7 +32,7 @@ engine-tested model generator that renders a placeholder syntax
 (`m.object({...})`). Author by transplant, not from scratch:
 
 1. **Copy** `skeleton/` to your package location; run
-   `deno test --allow-env --allow-sys --allow-read` — 7 green tests
+   `deno test --allow-env --allow-sys --allow-read` — 8 green tests
    prove the machinery before you touch anything.
 2. **Rename**: `name` in `deno.json`; `MyLib` → `YourLib` in class
    names and filenames; `myLibEntry` → `yourLibEntry`; then
@@ -61,6 +61,7 @@ engine machinery — modifying it is almost always a mistake.
 | `object-properties`, `object-intersection`, `object-empty`, `visibility` | `src/MyLibObject.ts` | object syntax; properties+record composition; readOnly/writeOnly policy |
 | `record` | `src/MyLibObject.ts` | additionalProperties map syntax |
 | `union` | `src/MyLibUnion.ts` | oneOf/anyOf; discriminated form |
+| `intersection` | `src/MyLibIntersection.ts` | an `allOf` that keeps a reference |
 | `lazy` | `src/MyLibRef.ts` | deferred-reference form for cycles |
 | `recursion-annotation` | `src/MyLibProjection.ts` | type annotation breaking circular inference |
 | `modifiers` | `src/modifiers.ts` | optional/nullable syntax and wrap order |
@@ -104,6 +105,14 @@ engine machinery — modifying it is almost always a mistake.
   circular inference (TS7022/7024). This covers self-recursion and a
   cycle of several models; in a cycle, the model the cycle started from
   carries the annotation.
+- **An `allOf` can keep a reference.** The parser merges an `allOf` into
+  one schema, so it usually comes to the router as an object. A `$ref`
+  that closes a cycle stays a ref: the schema is an `OasIntersection` of
+  the kept refs and at most one other schema (`system.intersections`).
+  `MyLibIntersection` routes each member, so the refs render lazily as
+  any other. When a kept ref leads back to the intersection with no
+  property between (`A: { allOf: [B, …] }`, `B: { oneOf: [A, …] }`), most
+  libraries cannot render the loop. What to write there is your decision.
 - **Optional and nullable are different axes.** `required` comes from
   the PARENT object's `required` list and flows into each property
   leaf's `modifiers`; `nullable` sits on the node itself. Both render
@@ -174,8 +183,8 @@ engine machinery — modifying it is almost always a mistake.
 
 The shipped `mod.test.ts` runs the REAL pipeline (`toArtifacts`) over a
 fixture with an enum, an array-of-ref, a shared ref (×2 → one
-definition), optional + nullable, a record, a self-recursive model, and
-a cycle of two models.
+definition), optional + nullable, a record, a self-recursive model, a
+cycle of two models, and an `allOf` that keeps a reference.
 It is your regression gate: green before you start, green after every
 slot. Read failures in this order: import header first (a missing
 import means a string swallowed a snippet), then the body, then

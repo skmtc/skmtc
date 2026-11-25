@@ -321,7 +321,7 @@ export class OasRequestBody extends OasBase {
    * `mediaType`, the schema of the JSON media type that {@link toJsonContent}
    * picks: `application/json`, else the first JSON-like type such as
    * `application/json;v=1.0` or `application/vnd.api+json`, else `*\/*`
-   * when its schema is an object, array, union or `$ref`.
+   * when its schema is an object, array, union, intersection or `$ref`.
    * `undefined` when there is no such media type or it has no schema.
    */
   toSchema(mediaType?: string): OasSchema | OasRef<'schema'> | undefined {

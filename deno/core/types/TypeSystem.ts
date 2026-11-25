@@ -19,7 +19,7 @@ import type { RefParts } from '@/helpers/refFns.ts'
  * ## Type Categories
  *
  * - **Primitive Types**: `string`, `number`, `integer`, `boolean`, `null`
- * - **Complex Types**: `array`, `object`, `union`
+ * - **Complex Types**: `array`, `object`, `union`, `intersection`
  * - **Special Types**: `void`, `never`, `unknown`, `custom`
  * - **Reference Types**: `ref` for schema references
  *
@@ -67,6 +67,7 @@ export type TypeSystemValue =
   | TypeSystemArray
   | TypeSystemObject
   | TypeSystemUnion
+  | TypeSystemIntersection
   | TypeSystemString
   | TypeSystemNumber
   | TypeSystemInteger
@@ -388,6 +389,18 @@ export type TypeSystemUnion = {
   generatorKey?: GeneratorKey
 }
 
+/** Type system representation of an intersection: a value that is of every member's type. */
+export type TypeSystemIntersection = {
+  /** Discriminator for the intersection type */
+  type: 'intersection'
+  /** The types a value has all of */
+  members: TypeSystemValue[]
+  /** Type modifiers (optional, nullable, etc.) */
+  modifiers: Modifiers
+  /** Optional generator-specific key for tracking */
+  generatorKey?: GeneratorKey
+}
+
 /**
  * Type system representation of object types.
  *
@@ -492,6 +505,10 @@ export type SchemaToTypeSystemMap = {
   union: {
     source: OasSchema
     output: TypeSystemUnion
+  }
+  intersection: {
+    source: OasSchema
+    output: TypeSystemIntersection
   }
   custom: {
     source: CustomValue

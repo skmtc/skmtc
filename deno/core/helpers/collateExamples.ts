@@ -1,6 +1,7 @@
 import type { OasRef } from '../oas/ref/Ref.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
 import { isEmpty } from './isEmpty.ts'
+import { isObjectValue } from '@/oas/schema/siblings.ts'
 import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 
 /**
@@ -277,9 +278,25 @@ export const collateExamples = ({ objectSchema, depth, seen }: CollatedExampleAr
       return undefined
     }
 
+    case 'intersection': {
+      if (objectSchema.example) {
+        return objectSchema.example
+      }
+
+      // A value matches every member, so the examples of objects are one object.
+      const examples = objectSchema.members
+        .map(member => collateExamples({ objectSchema: member, depth: depth + 1, seen }))
+        .filter(example => Boolean(example))
+
+      return examples.every(isObjectValue) ? toMergedExample(examples) : examples[0]
+    }
+
     default: {
       const _exhaustive: never = objectSchema
       throw new Error(`Unhandled schema type: ${(_exhaustive as any).type}`)
     }
   }
 }
+
+const toMergedExample = (examples: Record<string, unknown>[]): Record<string, unknown> | undefined =>
+  examples.length === 0 ? undefined : Object.assign({}, ...examples)
