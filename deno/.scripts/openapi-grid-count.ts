@@ -28,9 +28,21 @@ const DATA = ['default', 'example', 'examples', 'enum', 'const']
 
 /** Keywords whose value is a map, so a name in it is not a keyword. */
 const MAPS = [
-  'properties', 'patternProperties', '$defs', 'definitions', 'dependentSchemas',
+  'properties',
+  'patternProperties',
+  '$defs',
+  'definitions',
+  'dependentSchemas',
   // Maps of the document, where `default` or `x-rate-limit` is a name too.
-  'responses', 'schemas', 'headers', 'parameters', 'requestBodies', 'content', 'paths', 'callbacks', 'webhooks'
+  'responses',
+  'schemas',
+  'headers',
+  'parameters',
+  'requestBodies',
+  'content',
+  'paths',
+  'callbacks',
+  'webhooks'
 ]
 
 export type Visit = { pointer: string; value: Record<string, unknown> }
@@ -48,7 +60,11 @@ export const toObjects = (value: unknown, pointer = '#', isMap = false): Visit[]
   const nested = Object.entries(value).flatMap(([key, inner]) =>
     !isMap && (DATA.includes(key) || key.startsWith('x-'))
       ? []
-      : toObjects(inner, `${pointer}/${key.replaceAll('~', '~0').replaceAll('/', '~1')}`, !isMap && MAPS.includes(key))
+      : toObjects(
+          inner,
+          `${pointer}/${key.replaceAll('~', '~0').replaceAll('/', '~1')}`,
+          !isMap && MAPS.includes(key)
+        )
   )
 
   return isMap ? nested : [{ pointer, value }, ...nested]
@@ -69,7 +85,8 @@ type Ref = { $ref: string }
 const isRef = (value: unknown): value is Ref => isRecord(value) && typeof value.$ref === 'string'
 
 const isNullMember = (value: unknown): boolean =>
-  isRecord(value) && (value.type === 'null' || (Array.isArray(value.enum) && value.enum.every(item => item === null)))
+  isRecord(value) &&
+  (value.type === 'null' || (Array.isArray(value.enum) && value.enum.every(item => item === null)))
 
 const decode = (part: string): string => {
   try {
@@ -88,14 +105,20 @@ const toRefTarget = (document: unknown, { $ref }: Ref): unknown =>
         .map(part => decode(part).replaceAll('~1', '/').replaceAll('~0', '~'))
         .reduce(
           (parent: unknown, part) =>
-            isRecord(parent) ? parent[part] : Array.isArray(parent) ? parent[Number(part)] : undefined,
+            isRecord(parent)
+              ? parent[part]
+              : Array.isArray(parent)
+                ? parent[Number(part)]
+                : undefined,
           document
         )
     : undefined
 
 /** A `$ref` into a kind of component other than schemas names no schema. */
 const canNameSchema = ({ $ref }: Ref): boolean =>
-  !$ref.startsWith('#/components/') || $ref.startsWith('#/components/schemas/') || $ref.includes('/schema')
+  !$ref.startsWith('#/components/') ||
+  $ref.startsWith('#/components/schemas/') ||
+  $ref.includes('/schema')
 
 type RawTarget = {
   kind: Kind | 'other'
@@ -111,7 +134,9 @@ type RawTarget = {
 const DEPTH = 12
 
 const toDeclaredType = (schema: Record<string, unknown>): string | undefined => {
-  const types = (Array.isArray(schema.type) ? schema.type : [schema.type]).filter(type => type !== 'null')
+  const types = (Array.isArray(schema.type) ? schema.type : [schema.type]).filter(
+    type => type !== 'null'
+  )
 
   if (types.length === 1 && typeof types[0] === 'string') {
     return types[0]
@@ -125,7 +150,9 @@ const toDeclaredType = (schema: Record<string, unknown>): string | undefined => 
     return 'object'
   }
 
-  return Array.isArray(schema.enum) && schema.enum.some(item => typeof item === 'string') ? 'string' : undefined
+  return Array.isArray(schema.enum) && schema.enum.some(item => typeof item === 'string')
+    ? 'string'
+    : undefined
 }
 
 const toScalarKind = (type: string | undefined): Kind | 'other' => {
@@ -142,8 +169,14 @@ const toScalarKind = (type: string | undefined): Kind | 'other' => {
 }
 
 /** Whether the schema itself says that null is valid, and nothing in it but its members says otherwise. */
-const declaresNull = (version: Version, { type, nullable, enum: enums }: Record<string, unknown>): boolean => {
-  const inType = version === '3.0.3' ? typeof type === 'string' && nullable === true : Array.isArray(type) && type.includes('null')
+const declaresNull = (
+  version: Version,
+  { type, nullable, enum: enums }: Record<string, unknown>
+): boolean => {
+  const inType =
+    version === '3.0.3'
+      ? typeof type === 'string' && nullable === true
+      : Array.isArray(type) && type.includes('null')
 
   return inType && (!Array.isArray(enums) || enums.includes(null))
 }
@@ -151,14 +184,26 @@ const declaresNull = (version: Version, { type, nullable, enum: enums }: Record<
 type ToRawTargetArgs = { version: Version; document: unknown; schema: unknown; depth?: number }
 
 /** What a target is, read through its refs. */
-export const toRawTarget = ({ version, document, schema, depth = 0 }: ToRawTargetArgs): RawTarget => {
-  const none: RawTarget = { kind: 'other', type: undefined, nullable: false, nullableInCore: false, alias: false }
+export const toRawTarget = ({
+  version,
+  document,
+  schema,
+  depth = 0
+}: ToRawTargetArgs): RawTarget => {
+  const none: RawTarget = {
+    kind: 'other',
+    type: undefined,
+    nullable: false,
+    nullableInCore: false,
+    alias: false
+  }
 
   if (!isRecord(schema) || depth > DEPTH) {
     return none
   }
 
-  const toInner = (inner: unknown) => toRawTarget({ version, document, schema: inner, depth: depth + 1 })
+  const toInner = (inner: unknown) =>
+    toRawTarget({ version, document, schema: inner, depth: depth + 1 })
 
   if (isRef(schema)) {
     return { ...toInner(toRefTarget(document, schema)), alias: true }
@@ -175,7 +220,8 @@ export const toRawTarget = ({ version, document, schema, depth = 0 }: ToRawTarge
     const inner = members.filter(member => !isNullMember(member)).map(toInner)
     const hasNullMember = members.some(isNullMember)
     const [only] = inner
-    const isOf = (allowed: (Kind | 'other')[]) => inner.length > 0 && inner.every(({ kind }) => allowed.includes(kind))
+    const isOf = (allowed: (Kind | 'other')[]) =>
+      inner.length > 0 && inner.every(({ kind }) => allowed.includes(kind))
 
     const union: RawTarget = {
       ...none,
@@ -214,14 +260,24 @@ export const toRawTarget = ({ version, document, schema, depth = 0 }: ToRawTarge
 }
 
 /** The grid's target nearest to a raw one. */
-const toGridTarget = ({ kind, nullable, alias }: RawTarget, cyclic: boolean): Target | undefined => {
+const toGridTarget = (
+  { kind, nullable, alias }: RawTarget,
+  cyclic: boolean
+): Target | undefined => {
   const score = (target: Target) =>
-    (target.cyclic === cyclic ? 4 : 0) + (target.nullable === nullable ? 2 : 0) + (target.alias === alias ? 1 : 0)
+    (target.cyclic === cyclic ? 4 : 0) +
+    (target.nullable === nullable ? 2 : 0) +
+    (target.alias === alias ? 1 : 0)
 
   return TARGETS.filter(target => target.kind === kind).sort((a, b) => score(b) - score(a))[0]
 }
 
-type Site = { spelling: string; refs: Ref[]; keywords: Record<string, unknown>; hasNullMember: boolean }
+type Site = {
+  spelling: string
+  refs: Ref[]
+  keywords: Record<string, unknown>
+  hasNullMember: boolean
+}
 
 const withoutKeys = (schema: Record<string, unknown>, ...keys: string[]): Record<string, unknown> =>
   Object.fromEntries(Object.entries(schema).filter(([key]) => !keys.includes(key)))
@@ -260,7 +316,11 @@ export const toSite = (schema: Record<string, unknown>): Site | string | undefin
 
     const keywords = Object.assign({}, ...inline, beside)
     const spelling =
-      refs.length > 1 ? 'allOf [ref, ref]' : inline.length > 0 ? 'allOf [ref, {keyword}]' : 'allOf [ref]'
+      refs.length > 1
+        ? 'allOf [ref, ref]'
+        : inline.length > 0
+          ? 'allOf [ref, {keyword}]'
+          : 'allOf [ref]'
 
     return { spelling, refs, keywords, hasNullMember: false }
   }
@@ -288,7 +348,9 @@ export const toGridKeywords = (keywords: Record<string, unknown>, target: RawTar
     }
 
     if (isList(type)) {
-      return type.length === 2 && type.includes('null') ? ['type: [type, null]'] : ['a list of types']
+      return type.length === 2 && type.includes('null')
+        ? ['type: [type, null]']
+        : ['a list of types']
     }
 
     const expected = target.type ?? (target.kind === 'other' ? undefined : TYPES[target.kind])
@@ -296,7 +358,8 @@ export const toGridKeywords = (keywords: Record<string, unknown>, target: RawTar
     if (type !== expected) {
       const isNarrower =
         (type === 'integer' && expected === 'number') ||
-        (target.kind === 'scalars' && (type === 'string' || type === 'number' || type === 'integer'))
+        (target.kind === 'scalars' &&
+          (type === 'string' || type === 'number' || type === 'integer'))
 
       return [isNarrower ? 'type, narrower' : 'another type']
     }
@@ -315,7 +378,9 @@ export const toGridKeywords = (keywords: Record<string, unknown>, target: RawTar
     ...('const' in keywords ? ['const'] : []),
     ...('default' in keywords ? [keywords.default === null ? 'default: null' : 'default'] : []),
     ...(isList(keywords.required) && keywords.required.length > 0 ? ['required'] : []),
-    ...(isRecord(keywords.properties) && Object.keys(keywords.properties).length > 0 ? ['properties'] : []),
+    ...(isRecord(keywords.properties) && Object.keys(keywords.properties).length > 0
+      ? ['properties']
+      : []),
     ...(keywords.additionalProperties === false ? ['additionalProperties: false'] : []),
     ...['minLength', 'minimum', 'not', 'externalDocs'].filter(key => key in keywords),
     ...['readOnly', 'deprecated'].filter(key => keywords[key] === true),
@@ -355,6 +420,14 @@ export const toDocumentSites = (document: unknown): DocumentSites => {
       return { sites: [], outside: [site] }
     }
 
+    if (
+      version === '3.0.3' &&
+      site.hasNullMember &&
+      !JSON.stringify(value).includes('"enum":[null]')
+    ) {
+      return { sites: [], outside: ['a member of type null in 3.0 (#398)'] }
+    }
+
     const targets = site.refs.map(ref => ({
       ref,
       ...toRawTarget({ version, document, schema: toRefTarget(document, ref) })
@@ -364,7 +437,10 @@ export const toDocumentSites = (document: unknown): DocumentSites => {
     if (first === undefined) {
       const isMissing = site.refs.every(ref => toRefTarget(document, ref) === undefined)
 
-      return { sites: [], outside: [isMissing ? 'a target that is not in the document' : 'a target of another kind'] }
+      return {
+        sites: [],
+        outside: [isMissing ? 'a target that is not in the document' : 'a target of another kind']
+      }
     }
 
     // In an allOf of two, the grid's target allows null and the other member does not.
@@ -380,7 +456,9 @@ export const toDocumentSites = (document: unknown): DocumentSites => {
     }
 
     const keywords = toGridKeywords(site.keywords, { ...first, nullable })
-    const ofValues = keywords.filter(keyword => keyword !== 'none' && toAnnotation(keyword) === undefined)
+    const ofValues = keywords.filter(
+      keyword => keyword !== 'none' && toAnnotation(keyword) === undefined
+    )
 
     return {
       sites: keywords.map(keyword => ({
@@ -422,7 +500,9 @@ export type Count = {
 const EXAMPLES = 3
 
 /** The counts of raw documents, given one at a time with their names. */
-export const toCount = async (documents: AsyncIterable<{ name: string; document: unknown }>): Promise<Count> => {
+export const toCount = async (
+  documents: AsyncIterable<{ name: string; document: unknown }>
+): Promise<Count> => {
   const cells = new Map<string, CellCount>()
   const outside = new Map<string, number>()
   const totals = { documents: 0, sites: 0 }
@@ -436,7 +516,14 @@ export const toCount = async (documents: AsyncIterable<{ name: string; document:
 
     for (const { cell, pointer, alone, nullableInCore } of found.sites) {
       const key = JSON.stringify(cell)
-      const count = cells.get(key) ?? { cell, sites: 0, alone: 0, documents: [], nullableInCore: 0, examples: [] }
+      const count = cells.get(key) ?? {
+        cell,
+        sites: 0,
+        alone: 0,
+        documents: [],
+        nullableInCore: 0,
+        examples: []
+      }
 
       count.sites += 1
       count.alone += alone ? 1 : 0
@@ -458,7 +545,9 @@ export const toCount = async (documents: AsyncIterable<{ name: string; document:
 }
 
 /** The OpenAPI documents in a directory and those inside it, in the order of their names. */
-export async function* readDocuments(directory: string): AsyncGenerator<{ name: string; document: unknown }> {
+export async function* readDocuments(
+  directory: string
+): AsyncGenerator<{ name: string; document: unknown }> {
   const entries = await Array.fromAsync(walk(directory, { exts: ['.json'], includeDirs: false }))
   const names = entries.map(({ path }) => relative(directory, path)).sort()
 

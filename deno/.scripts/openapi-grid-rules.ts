@@ -20,7 +20,9 @@ export type Translation = {
 }
 
 /** The values accepted, in the order they were given. */
-export type Answer = { type: 'values'; accepted: boolean[] } | { type: 'invalid'; reasons: string[] }
+export type Answer =
+  | { type: 'values'; accepted: boolean[] }
+  | { type: 'invalid'; reasons: string[] }
 
 const SCHEMA_MAPS = ['properties', 'patternProperties', '$defs', 'definitions', 'dependentSchemas']
 const SCHEMA_LISTS = ['allOf', 'anyOf', 'oneOf', 'prefixItems']
@@ -45,7 +47,10 @@ export const mapSchemas = (
   Object.fromEntries(
     Object.entries(schema).map(([key, value]) => {
       if (SCHEMA_MAPS.includes(key) && isRecord(value)) {
-        return [key, Object.fromEntries(Object.entries(value).map(([name, inner]) => [name, visit(inner)]))]
+        return [
+          key,
+          Object.fromEntries(Object.entries(value).map(([name, inner]) => [name, visit(inner)]))
+        ]
       }
 
       if (SCHEMA_LISTS.includes(key) && Array.isArray(value)) {
@@ -58,10 +63,41 @@ export const mapSchemas = (
 
 /** The keywords of the 3.0.3 Schema Object. */
 const KEYWORDS_30 = [
-  'title', 'multipleOf', 'maximum', 'exclusiveMaximum', 'minimum', 'exclusiveMinimum', 'maxLength', 'minLength',
-  'pattern', 'maxItems', 'minItems', 'uniqueItems', 'maxProperties', 'minProperties', 'required', 'enum', 'type',
-  'allOf', 'oneOf', 'anyOf', 'not', 'items', 'properties', 'additionalProperties', 'description', 'format', 'default',
-  'nullable', 'discriminator', 'readOnly', 'writeOnly', 'xml', 'externalDocs', 'example', 'deprecated'
+  'title',
+  'multipleOf',
+  'maximum',
+  'exclusiveMaximum',
+  'minimum',
+  'exclusiveMinimum',
+  'maxLength',
+  'minLength',
+  'pattern',
+  'maxItems',
+  'minItems',
+  'uniqueItems',
+  'maxProperties',
+  'minProperties',
+  'required',
+  'enum',
+  'type',
+  'allOf',
+  'oneOf',
+  'anyOf',
+  'not',
+  'items',
+  'properties',
+  'additionalProperties',
+  'description',
+  'format',
+  'default',
+  'nullable',
+  'discriminator',
+  'readOnly',
+  'writeOnly',
+  'xml',
+  'externalDocs',
+  'example',
+  'deprecated'
 ]
 
 const TYPES_30 = ['array', 'boolean', 'integer', 'number', 'object', 'string']
@@ -105,9 +141,19 @@ export const translate30 = (schema: unknown): Translation => {
     return { schema: { $ref: toDefsRef(schema.$ref) }, invalid: [], ignored }
   }
 
-  const { type, nullable, minimum: _minimum, maximum: _maximum, exclusiveMinimum, exclusiveMaximum, ...rest } = schema
+  const {
+    type,
+    nullable,
+    minimum: _minimum,
+    maximum: _maximum,
+    exclusiveMinimum,
+    exclusiveMaximum,
+    ...rest
+  } = schema
   const inner: Translation[] = []
-  const known = Object.fromEntries(Object.entries(rest).filter(([key]) => KEYWORDS_30.includes(key)))
+  const known = Object.fromEntries(
+    Object.entries(rest).filter(([key]) => KEYWORDS_30.includes(key))
+  )
 
   const translated = mapSchemas(known, value => {
     const translation = translate30(value)
@@ -120,7 +166,9 @@ export const translate30 = (schema: unknown): Translation => {
     ...(type === undefined || (typeof type === 'string' && TYPES_30.includes(type))
       ? []
       : [`type: ${JSON.stringify(type)}`]),
-    ...(schema.required === undefined || Array.isArray(schema.required) ? [] : ['required is not a list']),
+    ...(schema.required === undefined || Array.isArray(schema.required)
+      ? []
+      : ['required is not a list']),
     ...(exclusiveMinimum === undefined || typeof exclusiveMinimum === 'boolean'
       ? []
       : ['exclusiveMinimum is not a boolean']),
@@ -166,7 +214,10 @@ export const translate31 = (schema: unknown): Translation => {
   return {
     schema: { ...(typeof $ref === 'string' ? { $ref: toDefsRef($ref) } : {}), ...translated },
     invalid: inner.flatMap(translation => translation.invalid),
-    ignored: [...(nullable === undefined ? [] : ['nullable']), ...inner.flatMap(translation => translation.ignored)]
+    ignored: [
+      ...(nullable === undefined ? [] : ['nullable']),
+      ...inner.flatMap(translation => translation.ignored)
+    ]
   }
 }
 
@@ -198,8 +249,16 @@ export const validate = ({ name, schemas, values }: ValidateArgs): Answer => {
 }
 
 /** Which of the values the raw schema `name` of a document accepts, by the rules of the version. */
-export const toRulesAnswer = ({ version, name, schemas, values }: ValidateArgs & { version: Version }): Answer => {
-  const translations = Object.entries(schemas).map(([key, schema]) => ({ key, ...translate(version, schema) }))
+export const toRulesAnswer = ({
+  version,
+  name,
+  schemas,
+  values
+}: ValidateArgs & { version: Version }): Answer => {
+  const translations = Object.entries(schemas).map(([key, schema]) => ({
+    key,
+    ...translate(version, schema)
+  }))
   const invalid = translations.flatMap(translation => translation.invalid)
 
   return invalid.length > 0

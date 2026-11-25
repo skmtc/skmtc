@@ -13,8 +13,21 @@
  * inside the target.
  */
 
-import { ANNOTATIONS, type Annotation, type CoreDocument, parseInProcess, translateCore } from './openapi-grid-core.ts'
-import { type Answer, toRulesAnswer, translate, validate, type Version, VERSIONS } from './openapi-grid-rules.ts'
+import {
+  ANNOTATIONS,
+  type Annotation,
+  type CoreDocument,
+  parseInProcess,
+  translateCore
+} from './openapi-grid-core.ts'
+import {
+  type Answer,
+  toRulesAnswer,
+  translate,
+  validate,
+  type Version,
+  VERSIONS
+} from './openapi-grid-rules.ts'
 import { isRecord } from './api-surface.ts'
 
 export type Kind = 'object' | 'union' | 'scalars' | 'string' | 'number'
@@ -75,7 +88,13 @@ const NARROWER: Record<Kind, string | undefined> = {
 }
 
 /** A value that each kind of target accepts. */
-const VALID: Record<Kind, unknown> = { object: { b: 'b' }, union: { b: 'b' }, scalars: 'a', string: 'a', number: 5 }
+const VALID: Record<Kind, unknown> = {
+  object: { b: 'b' },
+  union: { b: 'b' },
+  scalars: 'a',
+  string: 'a',
+  number: 5
+}
 
 const withNull = (version: Version, type: string) =>
   version === '3.0.3' ? { type, nullable: true } : { type: [type, 'null'] }
@@ -92,7 +111,10 @@ type Keyword = {
   toSchema: (version: Version, target: Target) => Record<string, unknown> | undefined
 }
 
-const same = (name: string, schema: Record<string, unknown>): Keyword => ({ name, toSchema: () => schema })
+const same = (name: string, schema: Record<string, unknown>): Keyword => ({
+  name,
+  toSchema: () => schema
+})
 
 const typed = (
   name: string,
@@ -112,13 +134,16 @@ export const NO_KEYWORD = 'none'
 export const KEYWORDS: Keyword[] = [
   same(NO_KEYWORD, {}),
   typed('type, the same', (type, _version, { nullable }) => (nullable ? undefined : { type })),
-  typed("type, without the target's null", (type, _version, { nullable }) => (nullable ? { type } : undefined)),
+  typed("type, without the target's null", (type, _version, { nullable }) =>
+    nullable ? { type } : undefined
+  ),
   typed('type with nullable: false', type => ({ type, nullable: false })),
   typed('type with nullable: true', type => ({ type, nullable: true })),
   typed('type: [type, null]', type => ({ type: [type, 'null'] })),
   {
     name: 'type, narrower',
-    toSchema: (_version, { kind }) => (NARROWER[kind] === undefined ? undefined : { type: NARROWER[kind] })
+    toSchema: (_version, { kind }) =>
+      NARROWER[kind] === undefined ? undefined : { type: NARROWER[kind] }
   },
   same('nullable: true', { nullable: true }),
   same('nullable: false', { nullable: false }),
@@ -143,14 +168,27 @@ type Spelling = {
   name: string
   /** Spellings of one family have the same members, so the same meaning. */
   family: 'one ref' | 'allOf of two' | 'union of two' | 'ref or null'
-  toSchema: (keyword: Record<string, unknown>) => Record<string, unknown>
+  toSchema: (keyword: Record<string, unknown>, version: Version) => Record<string, unknown>
 }
 
 const TARGET = ref('Target')
 const OTHER = ref('Other')
-const NULL = { type: 'null' }
 
-const beside = (name: string, family: Spelling['family'], schema: Record<string, unknown>): Spelling => ({
+/** A member that is null only, as the version writes it: 3.0 has no type `null` (#398). */
+const toNullMember = (version: Version) =>
+  version === '3.0.3' ? { nullable: true, enum: [null] } : { type: 'null' }
+
+const orNull = (group: 'anyOf' | 'oneOf'): Spelling => ({
+  name: `${group} [ref, null]`,
+  family: 'ref or null',
+  toSchema: (keyword, version) => ({ [group]: [TARGET, toNullMember(version)], ...keyword })
+})
+
+const beside = (
+  name: string,
+  family: Spelling['family'],
+  schema: Record<string, unknown>
+): Spelling => ({
   name,
   family,
   toSchema: keyword => ({ ...schema, ...keyword })
@@ -159,14 +197,18 @@ const beside = (name: string, family: Spelling['family'], schema: Record<string,
 export const SPELLINGS: Spelling[] = [
   beside('$ref', 'one ref', TARGET),
   beside('allOf [ref]', 'one ref', { allOf: [TARGET] }),
-  { name: 'allOf [ref, {keyword}]', family: 'one ref', toSchema: keyword => ({ allOf: [TARGET, keyword] }) },
+  {
+    name: 'allOf [ref, {keyword}]',
+    family: 'one ref',
+    toSchema: keyword => ({ allOf: [TARGET, keyword] })
+  },
   beside('anyOf [ref]', 'one ref', { anyOf: [TARGET] }),
   beside('oneOf [ref]', 'one ref', { oneOf: [TARGET] }),
   beside('allOf [ref, ref]', 'allOf of two', { allOf: [TARGET, ref('Rest')] }),
   beside('anyOf [ref, ref]', 'union of two', { anyOf: [TARGET, OTHER] }),
   beside('oneOf [ref, ref]', 'union of two', { oneOf: [TARGET, OTHER] }),
-  beside('anyOf [ref, null]', 'ref or null', { anyOf: [TARGET, NULL] }),
-  beside('oneOf [ref, null]', 'ref or null', { oneOf: [TARGET, NULL] })
+  orNull('anyOf'),
+  orNull('oneOf')
 ]
 
 /** A schema of the target's kind that accepts none of {@link VALUES}, so a `oneOf` with it has no overlap. */
@@ -188,7 +230,10 @@ const RESTS: Record<Kind, unknown> = {
 }
 
 /** The target's components. A target in a cycle has a property that is the cell, named `Cell`. */
-const toTargetSchemas = (version: Version, { kind, nullable, alias, cyclic }: Target): Record<string, unknown> => {
+const toTargetSchemas = (
+  version: Version,
+  { kind, nullable, alias, cyclic }: Target
+): Record<string, unknown> => {
   const typeOf = (type: string) => (nullable ? withNull(version, type) : { type })
   const properties = { a: text, ...(cyclic ? { x: ref('Cell') } : {}) }
 
@@ -237,8 +282,16 @@ export const toCells = (): CellSchemas[] =>
         return beside === undefined
           ? []
           : SPELLINGS.map(spelling => ({
-              cell: { version, keyword: keyword.name, spelling: spelling.name, target: target.name },
-              schemas: { Cell: spelling.toSchema(beside), ...toTargetSchemas(version, target) }
+              cell: {
+                version,
+                keyword: keyword.name,
+                spelling: spelling.name,
+                target: target.name
+              },
+              schemas: {
+                Cell: spelling.toSchema(beside, version),
+                ...toTargetSchemas(version, target)
+              }
             }))
       })
     )
@@ -253,7 +306,7 @@ export type CellResult = {
   rules: Answer
   core: CoreAnswer
   /** The annotation that the cell's keyword is, and whether the rules and core have it at the site. */
-  annotation: { name: Annotation; rules: boolean; core: boolean } | undefined
+  annotation: { name: Annotation; rules: boolean; core: boolean; valid: boolean } | undefined
   /** What the cell parsed to: `ref`, `object`, `intersection`, … */
   form: string
   issues: string[]
@@ -267,16 +320,23 @@ export const toAnnotation = (keyword: string): Annotation | undefined =>
 const hasRulesAnnotation = (schema: unknown, annotation: Annotation): boolean =>
   isRecord(schema) &&
   (annotation in schema ||
-    (Array.isArray(schema.allOf) && schema.allOf.some(member => hasRulesAnnotation(member, annotation))))
+    (Array.isArray(schema.allOf) &&
+      schema.allOf.some(member => hasRulesAnnotation(member, annotation))))
 
 /** The names of the components that a schema of core's refers to, through any others. */
-const toReached = (name: string, schemas: CoreDocument['schemas'], reached: Set<string> = new Set()): Set<string> => {
+const toReached = (
+  name: string,
+  schemas: CoreDocument['schemas'],
+  reached: Set<string> = new Set()
+): Set<string> => {
   if (reached.has(name)) {
     return reached
   }
 
   reached.add(name)
-  const names = JSON.stringify(schemas[name]?.json ?? {}).matchAll(/"\$ref":"#\/components\/schemas\/([^"/]+)"/g)
+  const names = JSON.stringify(schemas[name]?.json ?? {}).matchAll(
+    /"\$ref":"#\/components\/schemas\/([^"/]+)"/g
+  )
 
   for (const [, inner = ''] of names) {
     toReached(inner, schemas, reached)
@@ -304,7 +364,9 @@ export const toCoreAnswer = ({ name, document, values = VALUES }: ToCoreAnswerAr
 
   return validate({
     name,
-    schemas: Object.fromEntries(names.map(reached => [reached, translateCore(document.schemas[reached]?.json)])),
+    schemas: Object.fromEntries(
+      names.map(reached => [reached, translateCore(document.schemas[reached]?.json)])
+    ),
     values
   })
 }
@@ -318,23 +380,41 @@ const toDocument = (version: Version, schemas: Record<string, unknown>) => ({
 
 type ToResultArgs = { cellSchemas: CellSchemas; document: CoreDocument | undefined; name?: string }
 
-const toResult = ({ cellSchemas: { cell, schemas }, document, name = 'Cell' }: ToResultArgs): CellResult => {
+/** Whether the rules accept the `default` of a cell. Each default of the grid is one of {@link VALUES}. */
+const isDefaultValid = ({ cell }: CellSchemas, rules: Answer): boolean => {
+  const kind = TARGETS.find(({ name }) => name === cell.target)?.kind
+  const value = JSON.stringify(
+    cell.keyword === 'default: null' || kind === undefined ? null : VALID[kind]
+  )
+
+  return (
+    rules.type === 'values' &&
+    rules.accepted[VALUES.findIndex(item => JSON.stringify(item) === value)] === true
+  )
+}
+
+const toResult = ({ cellSchemas, document, name = 'Cell' }: ToResultArgs): CellResult => {
+  const { cell, schemas } = cellSchemas
   const annotation = toAnnotation(cell.keyword)
   const parsed = document?.schemas[name]
   const { schema } = translate(cell.version, schemas.Cell)
+  const rules = toRulesAnswer({ version: cell.version, name: 'Cell', schemas, values: VALUES })
 
   return {
     cell,
     schema: schemas.Cell,
-    rules: toRulesAnswer({ version: cell.version, name: 'Cell', schemas, values: VALUES }),
+    rules,
     core: toCoreAnswer({ name, document }),
     annotation: annotation && {
       name: annotation,
       rules: hasRulesAnnotation(schema, annotation),
-      core: parsed?.annotations.includes(annotation) ?? false
+      core: parsed?.annotations.includes(annotation) ?? false,
+      valid: annotation !== 'default' || isDefaultValid(cellSchemas, rules)
     },
     form: parsed?.form ?? 'none',
-    issues: (document?.issues ?? []).filter(({ location }) => location.split(':').includes(name)).map(({ type }) => type)
+    issues: (document?.issues ?? [])
+      .filter(({ location }) => location.split(':').includes(name))
+      .map(({ type }) => type)
   }
 }
 
@@ -386,10 +466,16 @@ const renameRefs = (value: unknown, names: Map<string, string>): unknown => {
 export const toSharedDocument = (version: Version, cells: CellSchemas[]) => {
   const components = cells.flatMap(({ schemas }, index) => {
     const names = new Map(
-      Object.keys(schemas).map(name => [`#/components/schemas/${name}`, `#/components/schemas/${name}${index}`])
+      Object.keys(schemas).map(name => [
+        `#/components/schemas/${name}`,
+        `#/components/schemas/${name}${index}`
+      ])
     )
 
-    return Object.entries(schemas).map(([name, schema]) => [`${name}${index}`, renameRefs(schema, names)])
+    return Object.entries(schemas).map(([name, schema]) => [
+      `${name}${index}`,
+      renameRefs(schema, names)
+    ])
   })
 
   return toDocument(version, Object.fromEntries(components))
@@ -414,18 +500,25 @@ export const toResults = async (cells: CellSchemas[]): Promise<CellResult[]> => 
     const shared = cells.filter(item => item.cell.version === version && !isCyclic(item))
     const count = Math.ceil(shared.length / BATCH)
 
-    return Array.from({ length: count }, (_, index) => shared.slice(index * BATCH, (index + 1) * BATCH))
+    return Array.from({ length: count }, (_, index) =>
+      shared.slice(index * BATCH, (index + 1) * BATCH)
+    )
   })
 
   const sharedResults = await mapLimited(batches, PROCESSES, async batch => {
     const [first] = batch
-    const document = first && (await parseInProcess({ document: toSharedDocument(first.cell.version, batch) }))
+    const document =
+      first && (await parseInProcess({ document: toSharedDocument(first.cell.version, batch) }))
 
-    return batch.map((cellSchemas, index) => toResult({ cellSchemas, document, name: `Cell${index}` }))
+    return batch.map((cellSchemas, index) =>
+      toResult({ cellSchemas, document, name: `Cell${index}` })
+    )
   })
 
   const ownResults = await mapLimited(cells.filter(isCyclic), PROCESSES, async cellSchemas => {
-    const document = await parseInProcess({ document: toDocument(cellSchemas.cell.version, cellSchemas.schemas) })
+    const document = await parseInProcess({
+      document: toDocument(cellSchemas.cell.version, cellSchemas.schemas)
+    })
 
     return toResult({ cellSchemas, document })
   })
@@ -433,71 +526,121 @@ export const toResults = async (cells: CellSchemas[]): Promise<CellResult[]> => 
   return [...sharedResults.flat(), ...ownResults]
 }
 
-/** The values on which two answers differ, as the names of those core accepts (`+`) and refuses (`-`) against the rules. */
-export const toDifference = ({ rules, core, annotation }: CellResult): string | undefined => {
+/** How core's answer for a cell differs from that of the rules. */
+export type Difference =
+  | 'null accepted'
+  | 'null refused'
+  | 'values accepted'
+  | 'values refused'
+  | 'removed'
+  | 'no return'
+  | 'annotation lost'
+  | 'default that is not valid lost'
+  | 'annotation kept'
+
+/** The differences that a validator cannot show. */
+const OF_ANNOTATIONS: Difference[] = [
+  'annotation lost',
+  'default that is not valid lost',
+  'annotation kept'
+]
+
+export const isOfValues = (difference: Difference): boolean => !OF_ANNOTATIONS.includes(difference)
+
+const toAnnotationDifference = ({ annotation }: CellResult): Difference[] => {
+  if (annotation === undefined || annotation.rules === annotation.core) {
+    return []
+  }
+
+  if (annotation.core) {
+    return ['annotation kept']
+  }
+
+  return [annotation.valid ? 'annotation lost' : 'default that is not valid lost']
+}
+
+/** How a cell differs; empty when it agrees, or when the rules give no answer. */
+export const toDifferences = (result: CellResult): Difference[] => {
+  const { rules, core } = result
+
   if (rules.type === 'invalid') {
-    return undefined
+    return []
+  }
+
+  if (core.type === 'invalid') {
+    throw new Error(`what core wrote is not a schema: ${core.reasons.join(', ')}`)
   }
 
   if (core.type !== 'values') {
-    return core.type
+    return [core.type]
   }
 
-  const differences = VALUE_NAMES.flatMap((name, index) => {
+  const ofValues = VALUES.flatMap((value, index): Difference[] => {
     const [expected, actual] = [rules.accepted[index], core.accepted[index]]
 
-    return expected === actual ? [] : [`${actual ? '+' : '-'}${name}`]
+    if (expected === actual) {
+      return []
+    }
+
+    if (value === null) {
+      return [actual ? 'null accepted' : 'null refused']
+    }
+
+    return [actual ? 'values accepted' : 'values refused']
   })
 
-  const annotations =
-    annotation === undefined || annotation.rules === annotation.core
-      ? []
-      : [annotation.core ? `has ${annotation.name}` : `no ${annotation.name}`]
-
-  const all = [...differences, ...annotations]
-
-  return all.length === 0 ? undefined : all.join(' ')
+  return [...new Set([...ofValues, ...toAnnotationDifference(result)])]
 }
 
-/** What a cell's two sides say, as one string each, to compare cells with. */
-export const toSides = ({ rules, core, annotation }: CellResult) => ({
-  rules: rules.type === 'invalid' ? undefined : JSON.stringify([rules.accepted, annotation?.rules]),
-  core: JSON.stringify([core.type === 'values' ? core.accepted : core.type, annotation?.core])
-})
+type Side = (result: CellResult) => string
 
-/** The cells of one keyword, target, version and family that the rules give one answer, where core gives more than one. */
-export const toSpellingDifferences = (results: CellResult[], of: (result: CellResult) => string): CellResult[][] => {
+/** The values core accepts at a cell. */
+const toCoreValues: Side = ({ core }) =>
+  JSON.stringify(core.type === 'values' ? core.accepted : core.type)
+
+/** The values core accepts at a cell, and whether it has the cell's annotation. */
+const toCoreSide: Side = result => JSON.stringify([toCoreValues(result), result.annotation?.core])
+
+/**
+ * The cells of one keyword, target, version and family that the rules give one
+ * answer, so that their spellings are the same schema.
+ */
+export const toSameSchemas = (results: CellResult[]): CellResult[][] => {
   const groups = Map.groupBy(
     results.filter(({ rules }) => rules.type === 'values'),
-    result => {
-      const { version, keyword, target, spelling } = result.cell
+    ({ cell: { version, keyword, target, spelling }, rules, annotation }) => {
       const family = SPELLINGS.find(({ name }) => name === spelling)?.family
 
-      return JSON.stringify([version, keyword, target, family, toSides(result).rules])
+      return JSON.stringify([version, keyword, target, family, rules, annotation?.rules])
     }
   )
 
-  return [...groups.values()].filter(group => new Set(group.map(of)).size > 1)
+  return [...groups.values()].filter(group => group.length > 1)
 }
 
+const isSame = (group: CellResult[], of: Side): boolean => new Set(group.map(of)).size === 1
+
 export const toSummary = (results: CellResult[]) => {
-  const differences = results.map(toDifference)
-  const isOnlyAnnotation = (difference: string) => /^(has|no) (?!return)/.test(difference)
-  const disagreeing = differences.filter(difference => difference !== undefined)
+  const answered = results.filter(({ rules }) => rules.type === 'values')
+  const differing = answered.map(toDifferences).filter(differences => differences.length > 0)
+  const ofValues = differing.filter(differences => differences.some(isOfValues))
+  const sameSchemas = toSameSchemas(results)
+  const bySide = sameSchemas.filter(group => !isSame(group, toCoreSide))
 
   return {
     cells: results.length,
-    noRulesAnswer: results.filter(({ rules }) => rules.type === 'invalid').length,
-    agreeing: results.length - disagreeing.length - results.filter(({ rules }) => rules.type === 'invalid').length,
-    disagreeing: disagreeing.length,
-    removed: disagreeing.filter(difference => difference === 'removed').length,
-    noReturn: disagreeing.filter(difference => difference === 'no return').length,
-    onlyAnnotation: disagreeing.filter(isOnlyAnnotation).length,
-    sameBySpelling: {
-      groups: toSpellingDifferences(results, result => toSides(result).core).length,
-      cells: toSpellingDifferences(results, result => toSides(result).core).flat().length,
-      groupsOfFormOnly: toSpellingDifferences(results, ({ form }) => form).filter(
-        group => new Set(group.map(result => toSides(result).core)).size === 1
+    noRulesAnswer: results.length - answered.length,
+    agree: answered.length - differing.length,
+    disagreeInValues: ofValues.length,
+    removed: ofValues.filter(differences => differences.includes('removed')).length,
+    noReturn: ofValues.filter(differences => differences.includes('no return')).length,
+    disagreeInAnnotationOnly: differing.length - ofValues.length,
+    spellings: {
+      sameSchemas: sameSchemas.length,
+      differInValues: bySide.filter(group => !isSame(group, toCoreValues)).length,
+      differInAnnotationOnly: bySide.filter(group => isSame(group, toCoreValues)).length,
+      differInFormOnly: sameSchemas.filter(
+        group => isSame(group, toCoreSide) && !isSame(group, ({ form }) => form)
       ).length
     }
   }

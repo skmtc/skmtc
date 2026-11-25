@@ -13,7 +13,13 @@ import { isRecord } from './api-surface.ts'
 import { mapSchemas } from './openapi-grid-rules.ts'
 
 /** The keywords that describe a value and do not change which values are valid. */
-export const ANNOTATIONS = ['default', 'readOnly', 'deprecated', 'description', 'externalDocs'] as const
+export const ANNOTATIONS = [
+  'default',
+  'readOnly',
+  'deprecated',
+  'description',
+  'externalDocs'
+] as const
 
 export type Annotation = (typeof ANNOTATIONS)[number]
 
@@ -35,9 +41,13 @@ export type CoreDocument = {
 type Schema = OasSchema | OasRef<'schema'>
 
 const toProperties = (properties: Record<string, Schema>): Record<string, unknown> =>
-  Object.fromEntries(Object.entries(properties).map(([name, property]) => [name, toCoreJson(property)]))
+  Object.fromEntries(
+    Object.entries(properties).map(([name, property]) => [name, toCoreJson(property)])
+  )
 
-const toAdditionalProperties = (additionalProperties: boolean | Schema | null | undefined): unknown =>
+const toAdditionalProperties = (
+  additionalProperties: boolean | Schema | null | undefined
+): unknown =>
   typeof additionalProperties === 'object' && additionalProperties !== null
     ? toCoreJson(additionalProperties)
     : (additionalProperties ?? undefined)
@@ -61,8 +71,9 @@ export const toCoreJson = (schema: Schema): Record<string, unknown> => {
   switch (schema.type) {
     case 'object': {
       const { nullable, properties, required, enums, minProperties, maxProperties } = schema
-      const schemas = Object.entries(properties ?? {}).flatMap(([name, property]): [string, Schema][] =>
-        property.type === 'custom' ? [] : [[name, property]]
+      const schemas = Object.entries(properties ?? {}).flatMap(
+        ([name, property]): [string, Schema][] =>
+          property.type === 'custom' ? [] : [[name, property]]
       )
 
       return {
@@ -125,7 +136,11 @@ export const toCoreSchema = (schema: Schema): CoreSchema => ({
 type ParseArgs = ConstructorParameters<typeof ParseContext>[0]['input']
 
 const parse = (input: ParseArgs): CoreDocument => {
-  const context = new ParseContext({ input, logger: new log.Logger('openapi-grid', 'ERROR'), silent: true })
+  const context = new ParseContext({
+    input,
+    logger: new log.Logger('openapi-grid', 'ERROR'),
+    silent: true
+  })
   const parsed = context.parse(new StackTrail(['TEST']))
 
   if (parsed.type !== 'oas') {
@@ -153,7 +168,8 @@ export const translateCore = (schema: unknown): unknown => {
   const keywords = Object.fromEntries(
     Object.entries({
       ...mapSchemas(rest, translateCore),
-      $ref: typeof $ref === 'string' ? $ref.replace('#/components/schemas/', '#/$defs/') : undefined,
+      $ref:
+        typeof $ref === 'string' ? $ref.replace('#/components/schemas/', '#/$defs/') : undefined,
       [exclusiveMinimum === true ? 'exclusiveMinimum' : 'minimum']: minimum,
       [exclusiveMaximum === true ? 'exclusiveMaximum' : 'maximum']: maximum
     }).filter(([_key, value]) => value !== undefined)
@@ -191,7 +207,9 @@ export const parseInProcess = async ({
   }).spawn()
 
   // A process that is stopped before it has read the document breaks the pipe.
-  const written = new Response(JSON.stringify(document)).body?.pipeTo(process.stdin).catch(() => undefined)
+  const written = new Response(JSON.stringify(document)).body
+    ?.pipeTo(process.stdin)
+    .catch(() => undefined)
   const [{ success, stdout }] = await Promise.all([process.output(), written])
 
   if (!success) {
