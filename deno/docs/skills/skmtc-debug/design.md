@@ -54,7 +54,7 @@ Intent phrases that should load this skill:
 - "this doesn't compile" (in the context of generated output)
 - "Registered definition mismatch"
 - "Module not found" (in generated code)
-- "Max lookups reached" (ref cycle)
+- "DANGLING_REF" whose message says "leads into a loop of $refs" (ref cycle)
 
 Should NOT auto-load on:
 
@@ -150,7 +150,7 @@ A table that the LLM consults *before* proposing causes:
 | `INVALID_DEPENDENCY_REF` | Find the upstream `INVALID_SCHEMA` | Fix the upstream schema; the dependent should heal |
 | `Registered definition mismatch` | Find the two `generatorKey`s | One generator's `toIdentifier` is colliding; clone and disambiguate |
 | `generate` exits 1 with `Failed to create bundle` | Read the `deno bundle` error | Fix the named import or pin; re-run `generate` |
-| `Max lookups reached` | The ref chain exceeds 10 hops | Inspect the schema for circular refs |
+| `DANGLING_REF` whose message says `leads into a loop of $refs (…)` | A chain of `$ref`s comes back to one it has passed | Point one `$ref` of the loop at a real component |
 
 ### 4. Reading the manifest
 

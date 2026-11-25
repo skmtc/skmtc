@@ -206,7 +206,7 @@ private affirmDefinition<V extends GeneratedValue>(
 
   const currentKey = toModelGeneratorKey({
     generatorId: this.projection.id,
-    refName: this.refName,
+    ref: this.ref,
     variant: this.settings.variant
   })
 
@@ -249,7 +249,7 @@ generator, same input, same output — passes; accidental collision
 |---|---|---|
 | `OasOperationGeneratorKey` | `<generatorId>\|<path>\|<method>\|<variant>` | `toOasOperationGeneratorKey` |
 | `GqlOperationGeneratorKey` | `<generatorId>\|<rootKind>\|<fieldName>\|<variant>` | `toGqlOperationGeneratorKey` |
-| `ModelGeneratorKey` | `<generatorId>\|<refName>\|<variant>` | `toModelGeneratorKey` |
+| `ModelGeneratorKey` | `<generatorId>\|<modelKey>\|<variant>` (a component's `refName`, or a deep target's pointer) | `toModelGeneratorKey` |
 | `WebhookGeneratorKey` | `<generatorId>\|webhook\|<name>\|<method>\|<variant>` | `toWebhookGeneratorKey` |
 | `GeneratorOnlyKey` | `<generatorId>` | `toGeneratorOnlyKey` |
 
@@ -312,7 +312,7 @@ Two different keys, two different jobs:
 | Composed of | `(identifier.name, exportPath)` | `(generatorId, item, variant)` |
 | Decides | *whether* to reuse a cached `Definition` | *that* reuse is safe |
 | Lives in | the file's `definitions` map (looked up by name via `findDefinitions`; file is the outer map) | `Definition.generatorKey` field |
-| Pure function of | `(operation/refName, enrichments, variant)` via `toIdentifierName` / `toExportPath` | `(generatorId, operation/refName, variant)` |
+| Pure function of | `(operation/ref, enrichments, variant)` via `toIdentifierName` / `toExportPath` | `(generatorId, operation/ref, variant)` |
 | Mismatch means | cache miss → construct fresh | name collision between different generators OR a variants-aware Projection that forgot to fold variant into `toIdentifierName` → throw |
 
 The two keys can agree (both "the same generator-and-input pair

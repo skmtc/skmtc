@@ -51,6 +51,7 @@
 
 import { type GeneratorEnrichments, generatorEnrichments } from './Enrichments.ts'
 import * as v from 'valibot'
+import type { OasRefData } from '@/oas/ref/ref-types.ts'
 import { type Method, method } from './Method.ts'
 import {
   hasParentSegment,
@@ -242,12 +243,35 @@ export const anchorsSettings: v.GenericSchema<AnchorsSettings> = v.object({
   out: v.optional(v.string())
 })
 
+/**
+ * What `client.json#settings.system.danglingRefs` can list: each kind of
+ * `$ref`, and `allOfMember`, a `$ref` that core merges at parse: a member of
+ * an `allOf`, also one inside a `oneOf` or `anyOf` member, or a `oneOf` or
+ * `anyOf` member merged with the keywords beside the union.
+ */
+export const danglingRefKinds = [
+  'schema',
+  'parameter',
+  'requestBody',
+  'response',
+  'header',
+  'securityScheme',
+  'example',
+  'link',
+  'allOfMember'
+] as const satisfies readonly (OasRefData['refType'] | 'allOfMember')[]
+
+/** A kind of `$ref` that `system.danglingRefs` can let name nothing. */
+export type DanglingRefKind = (typeof danglingRefKinds)[number]
+
 /** Valibot schema for {@link SystemSettings}: `client.json#settings.system`. */
 export const systemSettings: v.GenericSchema<SystemSettings> = v.object({
   allOf: v.optional(v.picklist(['strict', 'latestWins'])),
   responseContradictions: v.optional(v.picklist(['strict', 'unknown'])),
   not: v.optional(v.picklist(['strict', 'unknown'])),
-  anyOf: v.optional(v.picklist(['union', 'unknown']))
+  anyOf: v.optional(v.picklist(['union', 'unknown'])),
+  danglingRefs: v.optional(v.array(v.picklist(danglingRefKinds))),
+  intersections: v.optional(v.picklist(['merge', 'cycles', 'all']))
 })
 
 export const clientSettings: v.GenericSchema<ClientSettings> = v.object({
@@ -585,6 +609,27 @@ export type SystemSettings = {
    * keywords and without the `anyOf`, with one warning for each schema.
    */
   anyOf?: 'union' | 'unknown'
+  /**
+   * The kinds of `$ref` that may name nothing in the document. A dangling
+   * `$ref` of a listed kind stays, with a warning, and resolving it throws
+   * `DanglingRefError` for the generator to handle. A dangling `$ref` of any
+   * other kind is a parse error, and what holds it is removed, with what uses
+   * that. `allOfMember` is core's own choice, made at parse: a `$ref` that
+   * core merges (a member of an `allOf`, also inside a `oneOf` or `anyOf`
+   * member, or a union member merged with the keywords beside the union) is
+   * left out of the merge, so its properties are not in the model. The
+   * default, `[]`, lists none.
+   */
+  danglingRefs?: DanglingRefKind[]
+  /**
+   * The `$ref`s that stay refs where core would merge their target in: the
+   * members of an `allOf`, and the members of a `oneOf` or `anyOf` with a
+   * keyword beside it that merges into each member. The schema is then an
+   * `OasIntersection` of the refs and one schema that the other members merge
+   * into. `cycles` (the default): a `$ref` whose target leads back to the
+   * schema that holds it. `all`: each one. `merge`: none.
+   */
+  intersections?: 'merge' | 'cycles' | 'all'
 }
 
 export type ClientSettings = {

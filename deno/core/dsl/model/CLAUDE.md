@@ -7,7 +7,7 @@ The model half of the projection machinery, symmetric with
   `base: LangSnippetConstructor` (a language package's snippet base,
   pre-bound by the lang veneer — e.g. `toModelProjectionBase` from
   `@skmtc/lang-typescript`) and builds a class on it carrying the
-  projection machinery (`settings`, `refName`, `generatorKey`
+  projection machinery (`settings`, `ref`, `generatorKey`
   injection, `insertModel` / `insertNormalizedModel` with optional
   `variant`) plus the statics `toIdentifier` / `toExportPath` /
   `toEnrichments` / `isSupported` / `id` / `type` / the inherited
@@ -15,16 +15,18 @@ The model half of the projection machinery, symmetric with
   reads `args.settings.variant` and threads it into the
   `toModelGeneratorKey` call so the resulting Definition's
   `generatorKey` carries the variant. Enrichment lookup walks
-  `enrichments.${id}.${refName}.${variant}`.
+  `enrichments.${id}.${toModelKey(ref)}.${variant}` (the `refName` for a
+  component, the whole pointer for a deep target). Every model API takes
+  the model's `ref` (`RefParts`, `{ refName, refPath }`), never a bare
+  `refName`.
 - `toModelEntry.ts` — pipeline-side factory; pure pipeline config (no
   `lang` — the import graph declares the language). `transform`
-  (`({ context, refName, variant }) => void` — no accumulator),
+  (`({ context, ref, variant }) => void` — no accumulator),
   `toPreviewModule`, and `toMappingModule` all receive `variant`.
-  Optional `isSupported` (symmetric with the operation entries):
-  wrapped to pre-parse the `{ subject, generator, stack }` enrichment
-  umbrella, then exposed on the built config (defaulted to
-  `() => true`). The predicate gets `{ context, refName, enrichments,
-  variant }` — no schema; resolve it via `context.resolveSchemaRefOnce`
+  Optional `isSupported` (symmetric with the operation entries),
+  exposed on the built config as given (defaulted to `() => true`).
+  The predicate gets `{ context, ref, variant }` — no schema and no
+  enrichments; resolve the schema via `context.resolveSchemaRefOnce(ref)`
   when the gate needs it. The engine evaluates it per (refName, variant)
   before `include`/`skip` and records `notSupported` on a `false`.
 - `ModelDriver.ts` — the insertion lifecycle (compose
@@ -37,7 +39,7 @@ The model half of the projection machinery, symmetric with
     — throws if the caller asked for a non-`'main'` variant the peer
     doesn't declare.
   - `assertPeerSupported` runs next — probes the peer projection's
-    static `isSupported({ refName, context })` and throws if it
+    static `isSupported({ ref, context })` and throws if it
     returns `false` (the model counterpart of the OAS-operation
     peer-capability guard; a peer with no static is treated as
     supporting everything).
@@ -65,7 +67,7 @@ The model half of the projection machinery, symmetric with
   `this.toIdentifier({…, variant})` call.
 
 **Cross-generator insertion**: callers compose with the peer's
-`'main'` Definition by default — `context.insertModel(Peer, refName)`
+`'main'` Definition by default — `context.insertModel(Peer, ref)`
 defaults `variant` to `'main'`. Pass `{ variant }` explicitly only
 when the peer is known to be variants-aware AND declares that
 variant in its enrichment block.

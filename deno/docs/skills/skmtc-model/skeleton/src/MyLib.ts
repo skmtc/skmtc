@@ -4,11 +4,12 @@
  * only inside toString() bodies. Fine-grained attribution is captured
  * via each snippet's super call (`stackTrail: schema.stackTrail.clone()`).
  */
-import { toGeneratorOnlyKey, toRefName } from '@skmtc/core'
+import { toGeneratorOnlyKey } from '@skmtc/core'
 import type { Modifiers, SchemaToValueFn, SchemaType } from '@skmtc/core'
 import { match } from 'ts-pattern'
 import { myLibEntry } from './mod.ts'
 import { MyLibArray } from './MyLibArray.ts'
+import { MyLibIntersection } from './MyLibIntersection.ts'
 import { MyLibObject } from './MyLibObject.ts'
 import { MyLibRef } from './MyLibRef.ts'
 import { MyLibString } from './MyLibString.ts'
@@ -44,10 +45,9 @@ export const toMyLibValue: SchemaToValueFn = (
       return new MyLibRef({
         context,
         destinationPath,
-        refName: toRefName(ref.$ref),
+        ref,
         modifiers,
         rootRef,
-        schema: ref,
       })
     })
     .with({ type: 'array' }, (arraySchema) => {
@@ -81,6 +81,16 @@ export const toMyLibValue: SchemaToValueFn = (
         generatorKey,
         rootRef,
         schema: unionSchema,
+      })
+    })
+    .with({ type: 'intersection' }, (intersectionSchema) => {
+      return new MyLibIntersection({
+        context,
+        destinationPath,
+        intersectionSchema,
+        modifiers,
+        generatorKey,
+        rootRef,
       })
     })
     .with({ type: 'string' }, (stringSchema) => {

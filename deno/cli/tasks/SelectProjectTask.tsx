@@ -91,10 +91,16 @@ export const SelectProjectTask = () => {
     )
   }
 
+  const unloadedNames = state.skmtcRoot.unloadedProjects.map(({ name }) => name)
+
   if (state.skmtcRoot.projects.length === 0) {
     return (
       <TaskBox active>
-        <Text>No projects found</Text>
+        <Text>
+          {unloadedNames.length === 0
+            ? 'No projects found'
+            : `No project loaded. Did not load: ${unloadedNames.join(', ')} (see the warnings above).`}
+        </Text>
       </TaskBox>
     )
   }
@@ -177,6 +183,7 @@ export const SelectProjectTask = () => {
           }
         }}
       />
+      {unloadedNames.length > 0 && <Text dimColor>Did not load: {unloadedNames.join(', ')}</Text>}
     </TaskContainer>
   )
 }

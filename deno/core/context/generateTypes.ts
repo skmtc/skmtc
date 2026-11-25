@@ -17,7 +17,7 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
 import type { ModelProjection, NormalizedModelProjection } from '@/dsl/model/types.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import type { RefName } from '@/types/RefName.ts'
+import type { RefParts } from '@/helpers/refFns.ts'
 import type { SchemaToNonRef, TypeSystemOutput } from '@/types/TypeSystem.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
 import type { ImportBase } from '@/dsl/ImportBase.ts'
@@ -200,8 +200,8 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  *
  * - `WILDCARD_MEDIA_TYPE` (`warning`) — the body has no JSON media type
  *   (see `isJsonMediaType`) and is read from `*\/*` as JSON, since its schema
- *   there is an object, array, union or `$ref`. The document does not say the
- *   format; springdoc writes `*\/*` for every response.
+ *   there is an object, array, union, intersection or `$ref`. The document
+ *   does not say the format; springdoc writes `*\/*` for every response.
  * - `NO_JSON_MEDIA_TYPE` (`debug`) — no lookup without a media type reads the
  *   body, and its keys include a range: `application/*`, or `*\/*` with a
  *   scalar schema (a text body or a file). A body with only specific
@@ -214,6 +214,21 @@ export type AnyOasDocument = OpenAPIV2.Document | OpenAPIV3.Document | OpenAPIV3
  * `ANYOF_AS_UNKNOWN` (`warning`) — `system.anyOf: unknown` read an `anyOf`
  * of two or more members as any value. The schema keeps its other keywords.
  * One for each schema.
+ *
+ * `DANGLING_REF` — a `$ref` names nothing in the document: no component has
+ * its name, or it is part of a loop of `$ref`s (`A` is a `$ref` to `B`, and
+ * `B` to `A`). One for each place the `$ref` is written. A `warning` when `system.danglingRefs` lists
+ * the `$ref`'s kind: the ref stays, and resolving it throws
+ * `DanglingRefError`; with `allOfMember` listed, a `$ref` that core merges
+ * (in an `allOf`, or in a `oneOf` or `anyOf` member) is left out of the
+ * merge. Otherwise (the default lists none)
+ * an `error`: what holds the ref is removed, and each item that uses it gets
+ * an `INVALID_DEPENDENCY_REF`.
+ *
+ * `REF_TYPE_MISMATCH` (`error`) — a `$ref` names a component of the wrong
+ * kind, such as a request body that is a `$ref` to
+ * `#/components/schemas/Pet`. One for each place the `$ref` is written. What
+ * holds the ref is removed; `system.danglingRefs` does not apply.
  *
  * `RUN_FAILED` (`error`) — the run itself failed outside the per-item
  * catches. Its `location` names the entry and phase, for example
@@ -228,6 +243,8 @@ export type OasIssueType =
   | 'MISSING_RESPONSES'
   | 'MISSING_INFO'
   | 'EMPTY_PARAMETER'
+  | 'MISSING_PARAMETER_SCHEMA'
+  | 'MISSING_HEADER_SCHEMA'
   | 'INVALID_EXAMPLE'
   | 'INVALID_ENUM'
   | 'INVALID_DEFAULT'
@@ -251,6 +268,8 @@ export type OasIssueType =
   | 'NO_JSON_MEDIA_TYPE'
   | 'ALLOF_CONTRADICTION'
   | 'ANYOF_AS_UNKNOWN'
+  | 'DANGLING_REF'
+  | 'REF_TYPE_MISMATCH'
   | 'RUN_FAILED'
 
 /**
@@ -269,6 +288,8 @@ export const oasIssueType = v.union([
   v.literal('MISSING_RESPONSES'),
   v.literal('MISSING_INFO'),
   v.literal('EMPTY_PARAMETER'),
+  v.literal('MISSING_PARAMETER_SCHEMA'),
+  v.literal('MISSING_HEADER_SCHEMA'),
   v.literal('INVALID_EXAMPLE'),
   v.literal('INVALID_ENUM'),
   v.literal('INVALID_DEFAULT'),
@@ -292,6 +313,8 @@ export const oasIssueType = v.union([
   v.literal('NO_JSON_MEDIA_TYPE'),
   v.literal('ALLOF_CONTRADICTION'),
   v.literal('ANYOF_AS_UNKNOWN'),
+  v.literal('DANGLING_REF'),
+  v.literal('REF_TYPE_MISMATCH'),
   v.literal('RUN_FAILED')
 ])
 
@@ -443,7 +466,8 @@ export type BuildModelSettingsArgs<
   EnrichmentType = undefined,
   ProjectionOptions = undefined
 > = {
-  refName: RefName
+  /** The model's ref; an `OasRef` fits it. */
+  ref: RefParts
   projection: ModelProjection<V, EnrichmentType, ProjectionOptions>
   /**
    * Model variant whose enrichment / identifier / export path
@@ -639,7 +663,7 @@ export type GenerateContextType = {
   ) => InsertNormalizedModelReturn<V, Schema>
   insertModel: <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
     projection: ModelProjection<V, EnrichmentType, ProjectionOptions>,
-    refName: RefName,
+    ref: RefParts,
     ...rest: ProjectionOptionsRest<InsertModelOptions<ProjectionOptions>, ProjectionOptions>
   ) => Inserted<V, EnrichmentType>
   toOperationContentSettings: <V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
@@ -658,7 +682,7 @@ export type GenerateContextType = {
   toModelContentSettings: <V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
     args: BuildModelSettingsArgs<V, EnrichmentType, ProjectionOptions>
   ) => ContentSettings<EnrichmentType>
-  resolveSchemaRefOnce: (refName: RefName) => OasSchema | OasRef<'schema'>
+  resolveSchemaRefOnce: (ref: RefParts) => OasSchema | OasRef<'schema'>
   /** The Definition named `name` in `exportPath` (or inside the declaration `into`), or `undefined`. */
   findDefinition: ({ name, exportPath, into }: FindDefinitionArgs) => DefinitionBase | undefined
   /**

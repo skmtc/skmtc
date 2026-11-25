@@ -56,7 +56,7 @@
  *
  * const modelKey = toModelGeneratorKey({
  *   generatorId: 'typescript-models',
- *   refName: 'User' as RefName,
+ *   ref: { refName: 'User' as RefName, refPath: '#/components/schemas' },
  *   variant: 'main'
  * });
  * ```
@@ -68,9 +68,9 @@ import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { OasWebhook } from '@/oas/webhook/Webhook.ts'
 import type { GqlOperation, GqlRootKind } from '@/gql/operation/GqlOperation.ts'
 import type { Brand } from '@/types/Brand.ts'
-import type { RefName } from '@/types/RefName.ts'
 import { type Method, isMethod } from '@/types/Method.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
+import { fromModelKey, isPointerKey, toModelKey, type RefParts } from '@/helpers/refFns.ts'
 
 const GQL_ROOT_KINDS: readonly GqlRootKind[] = ['query', 'mutation', 'subscription']
 
@@ -102,7 +102,8 @@ export type NakedGqlOperationGeneratorKey = `${string}|${GqlRootKind}|${string}|
 
 /**
  * Template literal type for model generator keys before branding.
- * Format: `generatorId|refName|variant`
+ * Format: `generatorId|modelKey|variant`, where the model key is a component's
+ * `refName`, or the whole pointer of a ref into the document's content
  * (e.g., 'typescript-models|User|main',
  * 'zod-schemas|Customer|coercive').
  *
@@ -231,7 +232,7 @@ export type GeneratorOnlyKey = Brand<string, 'GeneratorOnlyKey'>
  * // Model generator key
  * const modelKey: GeneratorKey = toModelGeneratorKey({
  *   generatorId: 'typescript-types',
- *   refName: 'User',
+ *   ref: { refName: 'User', refPath: '#/components/schemas' },
  *   variant: 'main'
  * });
  *
@@ -484,8 +485,12 @@ export const toGqlOperationGeneratorKey = ({
 type ToModelGeneratorKeyArgs = {
   /** Unique identifier for the generator */
   generatorId: string
-  /** Reference name of the schema model */
-  refName: RefName
+  /**
+   * The model's ref. A component's key holds its `refName`; any other
+   * target's key holds its whole pointer (`toModelKey`), so two targets that
+   * share a `refName` get two keys.
+   */
+  ref: RefParts
   /** Model variant name — omitted means `'main'` */
   variant?: string
 }
@@ -496,7 +501,8 @@ type ToModelGeneratorKeyArgs = {
  *
  * Model generator keys uniquely identify generators processing specific
  * OpenAPI schema models for a given variant. The key format is:
- * `generatorId|refName|variant`.
+ * `generatorId|modelKey|variant`: a component's `refName`, or the whole
+ * pointer of any other target, with `%` and `|` escaped.
  *
  * @param args - Model generator key arguments
  * @returns A branded ModelGeneratorKey
@@ -505,14 +511,14 @@ type ToModelGeneratorKeyArgs = {
  * ```typescript
  * const key = toModelGeneratorKey({
  *   generatorId: 'typescript-interfaces',
- *   refName: 'User',
+ *   ref: { refName: 'User', refPath: '#/components/schemas' },
  *   variant: 'main'
  * });
  * // Result: 'typescript-interfaces|User|main' (branded)
  *
  * const coercive = toModelGeneratorKey({
  *   generatorId: 'zod-schemas',
- *   refName: 'CreateUserRequest',
+ *   ref: { refName: 'CreateUserRequest', refPath: '#/components/schemas' },
  *   variant: 'coercive'
  * });
  * // Result: 'zod-schemas|CreateUserRequest|coercive' (branded)
@@ -520,10 +526,13 @@ type ToModelGeneratorKeyArgs = {
  */
 export const toModelGeneratorKey = ({
   generatorId,
-  refName,
+  ref,
   variant = DEFAULT_VARIANT
 }: ToModelGeneratorKeyArgs): ModelGeneratorKey => {
-  const nakedKey: NakedModelGeneratorKey = `${generatorId}|${refName}|${variant}`
+  const modelKey = toModelKey(ref)
+  // A pointer can hold `|` (a property named `a|b`). A component's key stays its bare name.
+  const segment = isPointerKey(modelKey) ? escapeKeySegment(modelKey) : modelKey
+  const nakedKey: NakedModelGeneratorKey = `${generatorId}|${segment}|${variant}`
 
   return nakedKey as ModelGeneratorKey
 }
@@ -786,7 +795,7 @@ export const isGqlOperationGeneratorKey = (arg: unknown): arg is GqlOperationGen
  *   const obj = fromGeneratorKey(key);
  *   console.log(obj.type);        // 'model'
  *   console.log(obj.generatorId); // 'zod-schemas'
- *   console.log(obj.refName);     // 'User'
+ *   console.log(obj.ref.refName); // 'User'
  *   console.log(obj.variant);     // 'main'
  * }
  * ```
@@ -870,7 +879,7 @@ export const isGeneratorOnlyKey = (arg: unknown): arg is GeneratorOnlyKey => {
  *
  * const modelKey = toModelGeneratorKey({
  *   generatorId: 'typescript-types',
- *   refName: 'User',
+ *   ref: { refName: 'User', refPath: '#/components/schemas' },
  *   variant: 'main'
  * });
  * console.log(toGeneratorId(modelKey)); // 'typescript-types'
@@ -966,8 +975,8 @@ export type GeneratorKeyObject =
       type: 'model'
       /** Generator identifier */
       generatorId: string
-      /** Schema reference name */
-      refName: string
+      /** The model's ref: a component's, or a ref into the document's content */
+      ref: RefParts
       /** Model variant name */
       variant: string
     }
@@ -1007,7 +1016,7 @@ export type GeneratorKeyObject =
  *
  * if (parsed.type === 'model') {
  *   console.log(parsed.generatorId); // 'zod-schemas'
- *   console.log(parsed.refName);     // 'User'
+ *   console.log(parsed.ref.refName); // 'User'
  *   console.log(parsed.variant);     // 'main'
  * }
  * ```
@@ -1056,8 +1065,8 @@ export const fromGeneratorKey = (generatorKey: GeneratorKey): GeneratorKeyObject
   }
 
   if (isModelGeneratorKey(generatorKey)) {
-    const [generatorId, refName, variant] = generatorKey.split('|')
-    return { type: 'model', generatorId, refName, variant }
+    const [generatorId, modelKey, variant] = generatorKey.split('|')
+    return { type: 'model', generatorId, ref: fromModelKey(isPointerKey(modelKey) ? unescapeKeySegment(modelKey) : modelKey), variant }
   }
 
   return { type: 'generator-only', generatorId: generatorKey }

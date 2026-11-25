@@ -70,14 +70,14 @@ export const ZodBase = toTsModelProjectionBase({
   id: denoJson.name,
 
   // House style: PascalCase with "Schema" suffix
-  toIdentifierName: ({ refName }) => `${capitalize(refName)}Schema`,
+  toIdentifierName: ({ ref }) => `${capitalize(ref.refName)}Schema`,
 
   toIdentifierType: (): TsIdentifierType => ({ type: 'variable' }),
 
   // House style: per-domain subdirectories
-  toExportPath: ({ refName }) => {
-    const domain = inferDomain(refName)
-    return `/${domain}/${refName}.schema.ts`
+  toExportPath: ({ ref }) => {
+    const domain = inferDomain(ref.refName)
+    return `/${domain}/${ref.refName}.schema.ts`
   }
 })
 

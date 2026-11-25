@@ -16,8 +16,8 @@ to write generators against it.
 
 ## The one-line definition
 
-GraphQL types are mapped onto the existing `OasSchema` family —
-the same eight sibling classes that represent OAS schemas
+GraphQL types are mapped onto the existing `OasSchema` family.
+They use all its classes except `OasIntersection`
 (`OasObject`, `OasArray`, `OasUnion`, `OasString`, `OasInteger`,
 `OasNumber`, `OasBoolean`, `OasUnknown`) plus `OasRef<'schema'>`.
 Containers and operations are GraphQL-specific (`GqlDocument`,
@@ -406,7 +406,7 @@ GraphQL. The downstream code path doesn't know the difference.
 The only protocol-aware piece is the *container layer*.
 `toArtifacts` reads `document.type` to pick `OasComponents` vs
 `GqlRegistry` for the refName iteration. Beyond that branch, the
-generator's transform receives `refName: RefName` and walks the
+generator's transform receives `ref: RefParts` and walks the
 schema via the protocol-neutral classes.
 
 ### When would I author a GraphQL-only generator?
@@ -456,10 +456,10 @@ for what happens at the worker boundary.
 `GqlRegistry` owns a private `OasDocument` whose
 `components.schemas` is **the same `Record` instance** as
 `registry.schemas`. Refs created via `registry.createRef(refName)`
-point at this internal mirror — which lets GraphQL types reuse
-the existing `OasRef` machinery (lazy resolution, the
-`MAX_LOOKUPS` cycle guard, the type-integrity check at resolve
-time) without subclassing or modifying `OasRef`.
+point at this internal mirror. GraphQL types then use the existing
+`OasRef` machinery without subclassing or modifying `OasRef`. That
+machinery includes lazy resolution, the check for a loop of `$ref`s,
+and the type-integrity check at resolve time.
 
 Consumers see only `registry.schemas`; the mirror is an
 implementation detail. **Don't construct `OasRef` directly when

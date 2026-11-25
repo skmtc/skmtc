@@ -21,7 +21,7 @@ Deno.test('toRefV31 - basic schema reference', () => {
     ...mockParseContext,
     oasDocument: mockDocument,
     parsedDocument,
-    registerRef: () => {},
+    registerOasRef: () => {},
     stackTrail: { clone: () => ({ clone: () => ({}) }) }
   }
 

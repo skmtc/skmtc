@@ -665,7 +665,7 @@ Deno.test('toSecuritySchemesV3', async t => {
     })
   })
 
-  // Note: Reference handling tests require a full ParseContext with registerRef method
+  // Note: Reference handling tests require a full ParseContext with registerOasRef method
   // mockParseContext doesn't support references, so these tests are skipped
 
   await t.step('field extraction and logging', async t => {

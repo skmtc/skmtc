@@ -85,8 +85,8 @@ Deno.test('GraphQL pipeline - parses SDL, runs model + operation generators', ()
     toEnrichmentSchema: () => emptyEnrichmentSchema,
     supportsVariant: () => false,
     isSupported: () => true,
-    transform({ refName }: TransformModelArgs): void {
-      modelRefNames.push(refName)
+    transform({ ref }: TransformModelArgs): void {
+      modelRefNames.push(ref.refName)
     }
   }
 
@@ -242,7 +242,7 @@ Deno.test('GraphQL pipeline - return type ref resolves through the registry', ()
   // see parsers/graphql/toFieldSchema.test.ts for that path.)
   const ret = op.returnType as OasRef<'schema'>
   assertEquals(ret.isRef(), true)
-  assertEquals(ret.toRefName(), 'User')
+  assertEquals(ret.refName, 'User')
 
   const resolved = ret.resolveOnce() as OasObject
   assertEquals(resolved.title, 'User')

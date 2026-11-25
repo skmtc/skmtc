@@ -74,6 +74,8 @@ export type SecurityCheck = {
   declaredSchemes: string[]
   /** Declared scheme names that failed to parse. */
   failedSchemes: string[]
+  /** Declared scheme names of a valid type core does not parse yet (`mutualTLS`). */
+  unmodeledSchemes: string[]
   context: ParseContextType
 }
 
@@ -139,8 +141,9 @@ export const toSecurityCheck = ({
   context
 }: ToSecurityCheckArgs): SecurityCheck => {
   const declaredSchemes = Object.keys(declared ?? {})
+  const unmodeledSchemes = declaredSchemes.filter(name => isUnmodeledScheme(declared?.[name]))
   const failedSchemes = declaredSchemes.filter(
-    name => !Object.hasOwn(parsed ?? {}, name) && !isUnmodeledScheme(declared?.[name])
+    name => !Object.hasOwn(parsed ?? {}, name) && !unmodeledSchemes.includes(name)
   )
 
   const logRootProblem = (problem: string) =>
@@ -157,7 +160,7 @@ export const toSecurityCheck = ({
     const problems = toSchemeProblems(rootSecurity, { declaredSchemes, failedSchemes })
 
     if (problems.length === 0) {
-      return { rootSecurity, rootProblem: undefined, declaredSchemes, failedSchemes, context }
+      return { rootSecurity, rootProblem: undefined, declaredSchemes, failedSchemes, unmodeledSchemes, context }
     }
 
     logRootProblem(`Root security ${problems.join(' and ')}`)
@@ -167,6 +170,7 @@ export const toSecurityCheck = ({
       rootProblem: `Inherits root security, which ${problems.join(' and ')}`,
       declaredSchemes,
       failedSchemes,
+      unmodeledSchemes,
       context
     }
   } catch (error) {
@@ -177,6 +181,7 @@ export const toSecurityCheck = ({
       rootProblem: 'Inherits root security, which is not a list of security requirement objects',
       declaredSchemes,
       failedSchemes,
+      unmodeledSchemes,
       context
     }
   }
@@ -197,6 +202,16 @@ export type ToOperationsWithValidSecurityArgs<Item extends SecuredItem> = {
  * failed to parse or is not defined, or that has no `security` and
  * inherits an unusable root. Each dropped item logs one `INVALID_OPERATION`
  * error on its own trail. `security: []` inherits nothing and is kept.
+ *
+ * A kept item depends on each scheme its security names (its own, else the
+ * root's), as it would on a `$ref` to it, so it is registered as a consumer
+ * of the scheme. When the parser removes the scheme later (one that is a
+ * `$ref` that names nothing), the item goes with it, and so is never kept
+ * without its auth.
+ *
+ * A scheme of a type core does not parse yet (`mutualTLS`) is not a
+ * dependency: it is never in the parsed document, and its
+ * `INVALID_SECURITY_SCHEME` error would remove every item that names it.
  */
 export const toOperationsWithValidSecurity = <Item extends SecuredItem>({
   items,
@@ -208,6 +223,14 @@ export const toOperationsWithValidSecurity = <Item extends SecuredItem>({
       : check.rootProblem
 
     if (message === undefined) {
+      const names = (item.security ?? check.rootSecurity ?? []).flatMap(({ requirement }) =>
+        Object.keys(requirement)
+      )
+
+      new Set(names.filter(name => !check.unmodeledSchemes.includes(name))).forEach(name =>
+        check.context.registerRef(item.stackTrail.clone(), `#/components/securitySchemes/${name}`)
+      )
+
       return true
     }
 

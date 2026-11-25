@@ -48,7 +48,7 @@ exports the resulting base class.
 
 The Projection class extends your base, takes
 `{ context, operation, settings }` (or
-`{ context, refName, settings, destinationPath, rootRef }` for
+`{ context, ref, settings, destinationPath, rootRef }` for
 models), and in the constructor:
 
 - Pulls peer artifacts via
@@ -113,7 +113,7 @@ they produced output — verify the `files` map).
 ### How do I tell which generator a peer artifact came from?
 
 Read the generator key on the cached `Definition`. The Driver
-sets it via `toXxxGeneratorKey({ generatorId, operation/refName })`
+sets it via `toXxxGeneratorKey({ generatorId, operation/ref })`
 on construction. Errors print it: a "Registered definition
 mismatch" tells you both the cached and the proposed generators.
 

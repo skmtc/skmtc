@@ -1,6 +1,6 @@
 ---
 name: skmtc-operation
-version: 0.1.2
+version: 0.1.4
 description: >
   The operation-generator shape for Skmtc: one definition per (path,
   method), for any output family — client hooks, SDK methods, forms,
@@ -15,7 +15,7 @@ description: >
   Load ALONGSIDE skmtc-generator and the emitted language's skill.
 metadata:
   describes:
-    '@skmtc/core': '0.40'
+    '@skmtc/core': '0.47'
 ---
 
 # Operation generators: decompose the operation, reference the models
@@ -69,15 +69,22 @@ a response shape) breaks the moment the schema evolves.
   taken from its single `content` entry. `['query']` does not include
   it; ask for `['querystring']`. Both include the path item's
   `parameters`; an operation's own parameter with the same name and
-  location replaces the path item's.
+  location replaces the path item's. `operation.toEffectiveParameters()`
+  is the same merged list with refs unresolved: use it to resolve each
+  parameter by itself, for example to render a `$ref` that names nothing
+  when `danglingRefs` lists `parameter`. Do not read
+  `operation.parameters` for this: it holds the operation's own
+  parameters only. A parameter with neither `schema` nor `content`
+  reads as the empty schema `{}` (unknown), with a
+  `MISSING_PARAMETER_SCHEMA` warning.
 - **Request body**: `operation.toRequestBody(({ schema }) => schema)`.
 - **Response**: `operation.toSuccessResponse()?.resolve().toSchema()
   ?? OasVoid.empty()` — selection and void-fallback in one idiom.
 - **Media type**: with no argument, both lookups read the JSON media
   type: `application/json`, else the first `application/…+json` or
   `application/json;…` key, else `*/*` when its schema is an object,
-  array, union or `$ref` (the parser logs a `WILDCARD_MEDIA_TYPE` warning
-  for that body). A body with only `text/plain`, `application/*` or a
+  array, union, intersection or `$ref` (the parser logs a
+  `WILDCARD_MEDIA_TYPE` warning for that body). A body with only `text/plain`, `application/*` or a
   scalar under `*/*` gives `undefined`; to read it, pass the media type,
   for example `toSchema('text/plain')`. `toJsonContent()` names the key it
   chose (`mediaType`) and the type to send it as (`contentType`:
@@ -113,15 +120,19 @@ const response = this.insertNormalizedModel(PeerProjection, {
 this.responseName = response.identifier.name   // the NAME is yours; the definition is theirs
 ```
 
-Named `$ref` schemas go through `insertModel(Peer, refName)` (name via
-`.toName()`). Either way: the peer renders the schema ONCE at its own
+Named `$ref` schemas go through `insertModel(Peer, ref)` with the
+`OasRef` itself (name via `.toName()`): its `refPath` tells a ref into a
+`$defs` entry, a property or `#/paths/…` apart from the component of the
+same name. `insertNormalizedModel` passes a `$ref` schema on the same
+way. Either way: the
+peer renders the schema ONCE at its own
 path, your file's import is stitched by the engine, and only the
 identifier lands in your tree. Import peer projections through their
 package alias (`@skmtc/gen-zod`), never by relative path.
 
 When the peer declares caller options, the trailing argument is
 required and typed by the peer:
-`this.insertModel(Peer, refName, { options: { suffix: 'Input' } })` —
+`this.insertModel(Peer, ref, { options: { suffix: 'Input' } })` —
 a fresh object per insertion; a peer that declares none refuses the
 key. On `insertNormalizedModel` the options reach the `$ref` branch
 only: the inline branch constructs no projection, so put whatever
@@ -131,7 +142,7 @@ What the insert gives you — the name, the placement (normalized models
 co-locate at YOUR export path via the base wrapper), the declaration
 form — **is the convention**. If it does not match what you want, do
 not fight it by driving the peer's machinery yourself: fabricating a
-refName to key the peer's identity statics, calling its
+ref to key the peer's identity statics, calling its
 `toExportPath`/`toIdentifierName` directly, or reading fields off its
 returned value beyond the definition and its name are all the same
 mistake — a reimplementation of the engine that passes every automated

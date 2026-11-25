@@ -24,6 +24,7 @@ import type { ParseContextType } from '@/context/parseTypes.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 import type { OasIssueType } from '@/context/generateTypes.ts'
 import type { GqlIssueType } from '@/context/ParseIssue.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 
 export type TryParseAtArgs<T> = {
   /** Stack trail of the parent — child trace is pushed via `key`. */
@@ -63,7 +64,10 @@ export type TryParseAtArgs<T> = {
  * Run `fn(childStack)` inside `stackTrail.trace(key, ...)`. On throw:
  *
  *   - logs a `level: 'error'` issue at the child location with the
- *     given `type` and the thrown value as `cause`
+ *     given `type` and the thrown value as `cause`. A `DanglingRefError`
+ *     is logged as `DANGLING_REF`: core resolved a ref while it parsed (one
+ *     it merges, in an `allOf` or a `oneOf` or `anyOf` member, when
+ *     `system.danglingRefs` does not list `allOfMember`)
  *   - registers a ref error if `refKey` is provided
  *   - returns `undefined`
  *
@@ -82,6 +86,7 @@ export const tryParseAt = <T>({
     return stackTrail.trace(key, childStack => fn(childStack))
   } catch (error) {
     const normalized = error instanceof Error ? error : new Error(String(error))
+    const dangling = DanglingRefError.is(error)
     stackTrail.trace(key, childStack => {
       if (refKey !== undefined) {
         context.registerRefError(error, refKey, childStack.toString())
@@ -90,9 +95,11 @@ export const tryParseAt = <T>({
         level: 'error',
         stackTrail: childStack,
         parent,
-        message: normalized.message,
+        message: dangling
+          ? `${normalized.message}. Core resolves it while it parses, so what holds it is removed.`
+          : normalized.message,
         cause: normalized,
-        type
+        type: dangling ? 'DANGLING_REF' : type
       })
     })
     return undefined

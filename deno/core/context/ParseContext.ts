@@ -31,6 +31,7 @@ import type { Logger } from '@/types/Logger.ts'
 export type { AttributionState } from '@/types/AttributionState.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { isPlainObject } from '@/parse/isPlainObject.ts'
+import { toKeptRefs, type KeptRefs } from '@/parse/keptRefs.ts'
 import { toApplyingBrokenParameter, toNameAndIn } from '@/parse/pathParameters.ts'
 import type { SkmtcDocumentInput, SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
 import type {
@@ -43,6 +44,24 @@ import type {
 } from '@/context/parseTypes.ts'
 import type { ParseIssue } from '@/context/ParseIssue.ts'
 import { toSerializedError } from '@/types/SerializedError.ts'
+import type { OasRef } from '@/oas/ref/Ref.ts'
+import type { OasRefData } from '@/oas/ref/ref-types.ts'
+import type { OasIssueType } from '@/context/generateTypes.ts'
+import { tryParseAt } from '@/context/tryParseAt.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
+import {
+  toRawRefTarget,
+  toRefParts,
+  toRefPathBucket,
+  toRefPathSegments,
+  toRefPointer,
+  type RefParts
+} from '@/helpers/refFns.ts'
+import { toRefTargetV3 } from '@/parse/v3-0/ref/toRefTargetV3.ts'
+import { toRefTargetV3 as toRefTargetV31 } from '@/parse/v3-1/ref/toRefTargetV3.ts'
+import { toRefTargetV3 as toRefTargetV32 } from '@/parse/v3-2/ref/toRefTargetV3.ts'
+import type { ToRefTargetArgs } from '@/parse/v3-1/ref/toRefTargetV3.ts'
+import type { ComponentsEntry } from '@/oas/components/Components.ts'
 
 // Re-exports kept here for backwards-compat with the previous flat
 // surface. New parser helpers should `import type` from
@@ -99,6 +118,84 @@ type LogDependencyIssueArgs = {
   /** The error that started the removal. */
   rootCause: RefError
 }
+
+/** A place that refers to a ref key. */
+type RefConsumer = {
+  consumer: StackTrail
+  /** The key of the ref target whose parse registered it; `undefined` for the document's own walk. */
+  refTarget: string | undefined
+}
+
+/** An OAS ref and the place it is written, which `#checkRefs` resolves. */
+type WrittenRef = RefConsumer & {
+  ref: RefParts & {
+    $ref: string
+    refType: OasRefData['refType']
+    resolveOnce(): unknown
+    toLoop(): { $ref: string }[] | undefined
+  }
+}
+
+/** The dialect's parser for the target of a ref that does not point at a component. */
+type ToRefTarget = (args: ToRefTargetArgs) => ComponentsEntry | undefined
+
+/**
+ * The key a `$ref`'s consumers and errors are kept under. A component ref
+ * (`#/components/<bucket>/<name>`) is keyed by the name it resolves,
+ * unescaped, which is the key `StackTrail.toStackRef()` gives that
+ * component's own errors: `#/components/schemas/Foo%20Bar` is kept under
+ * `#/components/schemas/Foo Bar`. Any other ref is keyed by its whole
+ * pointer in one spelling (`toRefPointer`), which is also the key its
+ * parsed target is kept under.
+ */
+const toRefKey = ({ refName, refPath }: RefParts): string => {
+  const bucket = toRefPathBucket(refPath)
+
+  return bucket === undefined ? toRefPointer({ refName, refPath }) : `#/components/${bucket}/${refName}`
+}
+
+type RemoveHolderArgs = WrittenRef & {
+  error: unknown
+  type: 'DANGLING_REF' | 'REF_TYPE_MISMATCH'
+  message: string
+}
+
+type ToDanglingAllOfMemberArgs = {
+  /** Why the member names nothing: no schema has its name, or its `$ref`s loop. */
+  error: DanglingRefError
+  /** The schema that holds the `allOf`. */
+  stackTrail: StackTrail
+}
+
+/** The issue logged when a ref target's parser throws. */
+const toInvalidType = (refType: OasRefData['refType']): OasIssueType => {
+  switch (refType) {
+    case 'schema':
+      return 'INVALID_SCHEMA'
+    case 'requestBody':
+      return 'INVALID_REQUEST_BODY'
+    case 'parameter':
+      return 'INVALID_PARAMETER'
+    case 'response':
+    case 'link':
+      // A link has no type of its own: in the document's walk its response reports it.
+      return 'INVALID_RESPONSE'
+    case 'example':
+      return 'INVALID_EXAMPLE'
+    case 'header':
+      return 'INVALID_HEADER'
+    case 'securityScheme':
+      return 'INVALID_SECURITY_SCHEME'
+    default: {
+      const _exhaustive: never = refType
+      throw new Error(`Unhandled ref type: ${_exhaustive}`)
+    }
+  }
+}
+
+/** Two issues with the same level, type, location and message are the same issue. */
+const toIssueIdentity = (issue: ParseIssue): string =>
+  [issue.level, issue.type, issue.location, issue.message].join('\u0000')
 
 /** The stored form of an issue: an error's `cause` as a `SerializedError`. */
 const toParseIssue = (issue: LogIssueAtArgs): ParseIssue => {
@@ -157,8 +254,18 @@ export class ParseContext {
   // Universal dependency-ref tracking. Populated by parsers as they
   // encounter references. OAS uses `$ref` strings as keys; GQL would
   // use type names. The maps don't care about the encoding.
-  #refConsumers: Map<string, StackTrail[]> = new Map()
+  #refConsumers: Map<string, RefConsumer[]> = new Map()
   #refErrors: Map<string, RefError[]> = new Map()
+  /** Each OAS ref and the place it is written, which `#checkRefs` resolves once the document is parsed. */
+  #oasRefs: WrittenRef[] = []
+  /** The key (`toRefKey`) of each ref target `#parseRefTargets` parsed. */
+  #refTargets: Set<string> = new Set()
+  /** The key of the ref target `#inRefTarget` runs for; `undefined` in the document's own walk. */
+  #refTarget: string | undefined
+  /** {@link keptRefs}, once a merge has asked for it. */
+  #keptRefs: { value: KeptRefs | undefined } | undefined
+  /** What identifies each issue logged so far (`toIssueIdentity`). */
+  #issueIdentities: Set<string> = new Set()
   /**
    * Frames of the trail `parse()` was called with (`[traceId, spanId,
    * 'parse']` through `toArtifacts`). Every trail built during the walk
@@ -220,6 +327,15 @@ export class ParseContext {
       throw new Error('documentObject accessed on non-OAS ParseContext')
     }
     return this.protocol.documentObject
+  }
+
+  /** The refs of the document that a merge keeps as refs (`system.intersections`); `undefined` under `merge`. */
+  get keptRefs(): KeptRefs | undefined {
+    this.#keptRefs ??= {
+      value: toKeptRefs({ documentObject: this.documentObject, setting: this.system.intersections })
+    }
+
+    return this.#keptRefs.value
   }
 
   /** GQL-only accessor; throws if called on an OAS context. */
@@ -293,6 +409,7 @@ export class ParseContext {
               stackTrail,
               context: this
             })
+            this.#parseRefTargets(toRefTargetV3)
             break
           case '3.1':
             oasState.oasDocument.fields = toDocumentFieldsV31({
@@ -300,6 +417,7 @@ export class ParseContext {
               stackTrail,
               context: this
             })
+            this.#parseRefTargets(toRefTargetV31)
             break
           case '3.2':
             oasState.oasDocument.fields = toDocumentFieldsV32({
@@ -307,12 +425,14 @@ export class ParseContext {
               stackTrail,
               context: this
             })
+            this.#parseRefTargets(toRefTargetV32)
             break
           default: {
             const _exhaustive: never = dialect
             throw new Error(`Unhandled OAS dialect: ${JSON.stringify(_exhaustive)}`)
           }
         }
+        this.#checkRefs()
         this.removeErroredItems()
         return { type: 'oas', value: oasState.oasDocument }
       }
@@ -363,7 +483,18 @@ export class ParseContext {
 
     // `pending` grows while it is walked: each removed component queues its own consumers.
     for (const { refKey, rootCause } of pending) {
-      for (const consumer of this.#refConsumers.get(refKey) ?? []) {
+      for (const { consumer, refTarget } of this.#refConsumers.get(refKey) ?? []) {
+        // The ref is inside a ref target: the target is removed, and what refers to it next.
+        if (refTarget !== undefined) {
+          if (this.oasDocument.removeRefTarget(refTarget) !== undefined) {
+            this.#inRefTarget(refTarget, () =>
+              this.#logDependencyIssue({ location: consumer.toString(), refKey, rootCause })
+            )
+            pending.push({ refKey: refTarget, rootCause })
+          }
+          continue
+        }
+
         const documentTrail = this.#toDocumentTrail(consumer)
         const removedLocations = this.#removeConsumer(consumer, documentTrail)
 
@@ -385,9 +516,17 @@ export class ParseContext {
     }
   }
 
-  /** Removes the OAS component a `#/components/<bucket>/<name>` ref key names. */
+  /**
+   * Removes the OAS component a `#/components/<bucket>/<name>` ref key names,
+   * or the ref target `#parseRefTargets` kept under the key.
+   */
   #removeComponent(refKey: string): void {
     if (this.protocol.type !== 'oas') {
+      return
+    }
+
+    if (this.#refTargets.has(refKey)) {
+      this.protocol.oasDocument.removeRefTarget(refKey)
       return
     }
 
@@ -396,6 +535,92 @@ export class ParseContext {
     if (match) {
       this.protocol.oasDocument.removeItem(new StackTrail(['components', match[1], match[2]]))
     }
+  }
+
+  /**
+   * Parses the target of each ref that does not point at a component
+   * (`#/components/schemas/Pet/properties/tag`, `#/paths/~1pets/get/parameters/0`),
+   * once, at its own position, and keeps it on the document under its key,
+   * so the ref resolves. A target holds refs of its own, which may point at
+   * more targets: the list of written refs grows while it is walked, so those
+   * are parsed too.
+   *
+   * A pointer that leads nowhere is left to `#checkRefs`, which reports it as
+   * naming nothing. A target that fails to parse removes what holds a ref to
+   * it, as a component that fails does.
+   */
+  #parseRefTargets(toRefTarget: ToRefTarget): void {
+    if (this.protocol.type !== 'oas') {
+      return
+    }
+
+    const { oasDocument, documentObject } = this.protocol
+
+    for (const { ref } of this.#oasRefs) {
+      const key = toRefKey(ref)
+
+      // A ref to a component, of its own kind or not, is resolved in
+      // `components`; `#checkRefs` reports one of the wrong kind.
+      if (ref.refName === '' || toRefPathBucket(ref.refPath) !== undefined || this.#refTargets.has(key)) {
+        continue
+      }
+
+      const value = toRawRefTarget(documentObject, ref)
+
+      if (!isPlainObject(value)) {
+        continue
+      }
+
+      this.#refTargets.add(key)
+
+      const parent = new StackTrail([...this.#rootFrames, ...toRefPathSegments(ref.refPath)])
+
+      const target = this.#inRefTarget(key, () =>
+        tryParseAt({
+          stackTrail: parent,
+          key: ref.refName,
+          context: this,
+          type: toInvalidType(ref.refType),
+          parent: value,
+          fn: () => toRefTarget({ refType: ref.refType, name: ref.refName, value, stackTrail: parent, context: this })
+        })
+      )
+
+      if (target !== undefined) {
+        oasDocument.setRefTarget(key, target)
+      }
+    }
+  }
+
+  /**
+   * Runs `fn` for the ref target kept under `key`, or for the document's own
+   * walk when `key` is `undefined`. While it runs, errors and refs are
+   * registered for that target, and not for the component or operation its
+   * position is in, and an issue that repeats one already logged is dropped:
+   * the document's walk reads most targets too.
+   */
+  #inRefTarget<T>(key: string | undefined, fn: () => T): T {
+    const previous = this.#refTarget
+    this.#refTarget = key
+    try {
+      return fn()
+    } finally {
+      this.#refTarget = previous
+    }
+  }
+
+  /** Keeps an issue, and says whether it was new (see {@link #inRefTarget}). */
+  #addIssue(issue: ParseIssue): boolean {
+    const identity = toIssueIdentity(issue)
+
+    if (this.#refTarget !== undefined && this.#issueIdentities.has(identity)) {
+      return false
+    }
+
+    this.#issueIdentities.add(identity)
+    this.issues.push(issue)
+
+    return true
   }
 
   /**
@@ -462,7 +687,9 @@ export class ParseContext {
     const entryRef =
       isPlainObject(rawEntry) && typeof rawEntry.$ref === 'string' ? rawEntry.$ref : undefined
     const nameAndIn = toNameAndIn(
-      entryRef === undefined ? rawEntry : this.#toRawComponentParameter(entryRef)
+      entryRef === undefined
+        ? rawEntry
+        : toRawRefTarget(documentObject, toRefParts({ $ref: entryRef }))
     )
     const broken = [{ location: documentTrail.toString(), message: '', ...nameAndIn }]
 
@@ -495,18 +722,6 @@ export class ParseContext {
     return removedLocations
   }
 
-  /** The raw `components.parameters` entry a local `$ref` names. */
-  #toRawComponentParameter($ref: string): unknown {
-    if (this.protocol.type !== 'oas') {
-      return undefined
-    }
-
-    const match = /^#\/components\/parameters\/(.+)$/.exec($ref)
-    const parameters: unknown = this.protocol.documentObject.components?.parameters
-
-    return match && isPlainObject(parameters) ? parameters[match[1]] : undefined
-  }
-
   #logDependencyIssue({ location, refKey, rootCause }: LogDependencyIssueArgs): void {
     const { error } = rootCause
     const errorMessage = error instanceof Error ? error.message : String(error)
@@ -515,7 +730,7 @@ export class ParseContext {
 
     switch (this.protocol.type) {
       case 'oas':
-        this.issues.push({
+        this.#addIssue({
           protocol: 'oas',
           level: 'error',
           type: 'INVALID_DEPENDENCY_REF',
@@ -525,7 +740,7 @@ export class ParseContext {
         })
         break
       case 'gql':
-        this.issues.push({
+        this.#addIssue({
           protocol: 'gql',
           level: 'error',
           type: 'INVALID_DEPENDENCY_REF',
@@ -588,12 +803,178 @@ export class ParseContext {
    * would use type names or qualified field paths.
    */
   registerRef(consumer: StackTrail, refKey: string): void {
+    const refConsumer = { consumer, refTarget: this.#refTarget }
     const existing = this.#refConsumers.get(refKey)
     if (existing) {
-      existing.push(consumer)
+      existing.push(refConsumer)
     } else {
-      this.#refConsumers.set(refKey, [consumer])
+      this.#refConsumers.set(refKey, [refConsumer])
     }
+  }
+
+  /**
+   * Register an OAS `$ref` at its consumer site, as {@link registerRef}
+   * does, under the key {@link toRefKey} gives its `$ref`, and keep the ref
+   * with that site, so that once the document is parsed `#checkRefs` can
+   * resolve it there.
+   */
+  registerOasRef<T extends OasRefData['refType']>(consumer: StackTrail, ref: OasRef<T>): void {
+    this.registerRef(consumer, toRefKey(ref))
+    this.#oasRefs.push({ consumer, ref, refTarget: this.#refTarget })
+  }
+
+  /**
+   * Resolves each OAS ref once the document is parsed, at each place it is
+   * written, and logs an issue there when it does not resolve:
+   *
+   * - A ref that names nothing logs `DANGLING_REF`: no component has its
+   *   name, or it is part of a loop of `$ref`s (`A` is a `$ref` to `B`, and
+   *   `B` to `A`), which never reaches a component. When `client.json`
+   *   `system.danglingRefs` lists its kind, it is a warning: the ref stays,
+   *   and resolving it throws `DanglingRefError` for the generator to handle.
+   *   Otherwise (the default, `[]`, lists none) it is an error, and what holds
+   *   the ref is removed, with what uses that.
+   * - A ref to a component of the wrong kind, such as a request body that is
+   *   a `$ref` to `#/components/schemas/Pet`, logs a `REF_TYPE_MISMATCH`
+   *   error, and what holds it is removed: the parser hands a generator what
+   *   the place promises, or nothing. Resolving a ref throws no other error.
+   *
+   * A ref whose target failed to parse is left out: the target's error
+   * removes what holds it.
+   */
+  #checkRefs(): void {
+    this.#oasRefs.forEach(({ consumer, ref, refTarget }) => this.#inRefTarget(refTarget, () => {
+      if (this.#refErrors.has(toRefKey(ref))) {
+        return
+      }
+
+      const error = this.#toRefError(ref)
+
+      if (error !== undefined) {
+        if (!DanglingRefError.is(error)) {
+          const message = error instanceof Error ? error.message : String(error)
+
+          this.#removeHolder({
+            consumer,
+            ref,
+            refTarget,
+            error,
+            type: 'REF_TYPE_MISMATCH',
+            message: `${message}, so what holds it is removed.`
+          })
+        } else if (this.system.danglingRefs?.includes(ref.refType)) {
+          this.logIssueNoKey({
+            level: 'warning',
+            message: `${error.message}. It is kept (system.danglingRefs lists '${ref.refType}'), and resolving it throws DanglingRefError.`,
+            parent: { $ref: ref.$ref },
+            stackTrail: consumer,
+            type: 'DANGLING_REF'
+          })
+        } else {
+          this.#removeHolder({
+            consumer,
+            ref,
+            refTarget,
+            error,
+            type: 'DANGLING_REF',
+            message: `${error.message}, so what holds it is removed. To keep it, list '${ref.refType}' in system.danglingRefs.`
+          })
+        }
+      }
+    }))
+  }
+
+  /**
+   * Why `ref` does not resolve where it is written, or `undefined` when it
+   * does: what `resolveOnce()` throws, or a `DanglingRefError` when `ref` is
+   * part of a loop of `$ref`s (`OasRef.toLoop`).
+   *
+   * A ref that leads into a loop, or to a ref that names nothing or the
+   * wrong kind, resolves here: the refs further on report it where they are
+   * written, and what holds them goes with what uses it.
+   */
+  #toRefError(ref: WrittenRef['ref']): unknown {
+    try {
+      ref.resolveOnce()
+    } catch (error) {
+      return error
+    }
+
+    const loop = this.#toLoopOf(ref)
+
+    return loop === undefined ? undefined : new DanglingRefError(ref.$ref, { loop: loop.map(({ $ref }) => $ref) })
+  }
+
+  /** The loop of `$ref`s that `ref` is part of, or `undefined`. */
+  #toLoopOf(ref: WrittenRef['ref']): { $ref: string }[] | undefined {
+    try {
+      const loop = ref.toLoop()
+
+      return loop?.includes(ref) ? loop : undefined
+    } catch {
+      // A ref further on names nothing or the wrong kind: it reports that itself.
+      return undefined
+    }
+  }
+
+  /**
+   * Logs an error at the place a ref is written and removes what holds it.
+   * An error inside a component or a ref target removes it, and what uses it
+   * (`removeErroredItems`). What holds the ref outside the components (an
+   * operation, a webhook, a path-level parameter) is removed here. Its own
+   * location has the error already; an operation that a path-level parameter
+   * applies to gets an `INVALID_DEPENDENCY_REF`.
+   */
+  #removeHolder({ consumer, ref, refTarget, error, type, message }: RemoveHolderArgs): void {
+    this.logIssueNoKey({
+      level: 'error',
+      message,
+      cause: error,
+      parent: { $ref: ref.$ref },
+      stackTrail: consumer,
+      type
+    })
+
+    const documentTrail = this.#toDocumentTrail(consumer)
+
+    if (refTarget !== undefined || documentTrail.toStackRef() !== undefined) {
+      return
+    }
+
+    const location = consumer.toString()
+
+    this.#removeConsumer(consumer, documentTrail)
+      .filter(removed => removed !== location)
+      .forEach(removed =>
+        this.#logDependencyIssue({ location: removed, refKey: ref.$ref, rootCause: { error, location } })
+      )
+  }
+
+  /**
+   * What a merge reads in place of a `$ref` that names nothing: an `allOf`
+   * member, or in a `oneOf` or `anyOf`, a member's own `allOf` member or a
+   * member merged with the keywords beside the union. When
+   * `system.danglingRefs` lists `allOfMember`, it is `{}`, which
+   * adds nothing to the merge (`A & unknown` is `A`), and a `DANGLING_REF`
+   * warning at `stackTrail`: the model has no properties from that member.
+   * Otherwise it throws `DanglingRefError`, and what holds the `allOf` is
+   * removed. It is separate from `schema`: here core decides, at parse, and
+   * the generator never sees the member.
+   */
+  toDanglingAllOfMember({ error, stackTrail }: ToDanglingAllOfMemberArgs): OpenAPIV3.SchemaObject {
+    if (!this.system.danglingRefs?.includes('allOfMember')) {
+      throw error
+    }
+
+    this.logIssueNoKey({
+      level: 'warning',
+      message: `${error.message}. It is left out of the allOf merge (system.danglingRefs lists 'allOfMember').`,
+      parent: { $ref: error.ref },
+      stackTrail,
+      type: 'DANGLING_REF'
+    })
+
+    return {}
   }
 
   /**
@@ -629,9 +1010,9 @@ export class ParseContext {
    * manifest).
    */
   logIssueAt(issue: LogIssueAtArgs, parent?: unknown): void {
-    this.issues.push(toParseIssue(issue))
+    const added = this.#addIssue(toParseIssue(issue))
 
-    if (!this.silent) {
+    if (added && !this.silent) {
       this.logger.warn({
         protocol: issue.protocol,
         level: issue.level,
@@ -670,7 +1051,7 @@ export class ParseContext {
         // `registerRefError` ignores undefined refs.
         this.registerRefError(
           issue.cause ?? issue.message,
-          this.#toDocumentTrail(stackTrail).toStackRef(),
+          this.#refTarget ?? this.#toDocumentTrail(stackTrail).toStackRef(),
           location
         )
         this.logIssueAt(

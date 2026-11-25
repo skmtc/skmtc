@@ -167,14 +167,11 @@ in the design philosophy.
 
 ### Can I clone and then continue receiving updates?
 
-Not automatically. The clone is a snapshot. To get upstream
-changes, you re-clone with `--force` (which overwrites your local
-edits) or merge manually. There's no built-in "rebase my clone on
-upstream" command.
-
-In practice: re-clone periodically to check what upstream changed,
-then redo your edits on top. This is the same workflow as
-shadcn/ui-style vendored components.
+No. A clone is a one-time copy that you own, so that you can make
+edits that upstream does not have. There is no upgrade command. To take
+a newer published version, clone again with `--force`, which deletes
+the folder and your edits, then redo the edits you still want. This is
+the same workflow as shadcn/ui-style vendored components.
 
 ### Can a project have both installed and cloned generators?
 
@@ -192,9 +189,10 @@ schema in `gen-x/src/enrichments.ts`.
 
 ### Is `--force` clone destructive?
 
-Yes. `skmtc clone --force` overwrites the local source with the JSR
-version. Use it only when you want to discard local changes and
-re-pull upstream.
+Yes. For each named generator that the project already has a clone
+of, `skmtc clone --force` deletes its folder, with your edits, and
+clones the published version again. Without `--force`, `clone` refuses
+such a generator.
 
 ### Can two projects share a cloned generator?
 
@@ -216,12 +214,16 @@ single core version satisfies the cloned generator and the project's
 generators. Then the bundle loads two copies of core, and generation
 writes empty files.
 
-`skmtc clone` reads the core range of the version it downloads and
+`skmtc clone` reads the core range of each version it downloads and
 the ranges of the generators that stay. Then it pins one core
-version that satisfies all of them. If none does, it stops with exit
-code 2 before it writes any file, and it names each generator and
-the core it needs. Use `--force` to skip the check, but only for
-intentional cross-version testing.
+version that satisfies all of them. The clones it replaces do not
+count. To move two or more clones to a new core, name them all in one
+`clone --force` command.
+
+If no version fits, it stops with exit code 2 before it writes a
+file. It names each generator, the core it needs, and which ones are
+local generators. `--force` does not change this: it replaces clones,
+and it never skips the check.
 
 ### What does "customization seam" actually mean in source?
 

@@ -23,11 +23,13 @@ const createMockProject = (generators: string[] = []): Project => {
         )
       }
     },
-    cloneGenerator: ({ moduleName }: { moduleName: string; projectName: string }) =>
-      Promise.resolve({ moduleName, version: '0.0.55' })
+    cloneGenerators: ({ moduleNames }: CloneGeneratorsCall) =>
+      Promise.resolve(moduleNames.map(moduleName => ({ moduleName, version: '0.0.55' })))
   })
   return mockProject
 }
+
+type CloneGeneratorsCall = { moduleNames: string[]; force?: boolean }
 
 // Mock SkmtcRoot
 const createMockSkmtcRoot = (project: Project): SkmtcRoot =>
@@ -59,10 +61,15 @@ const createInitialState = (project: Project): SkmtcState => {
 type RenderCloneGeneratorViewProps = {
   initialState: SkmtcState
   project: Project
+  force?: boolean
 }
 
 // Test helper to render component with context
-const renderCloneGeneratorView = ({ initialState, project }: RenderCloneGeneratorViewProps) => {
+const renderCloneGeneratorView = ({
+  initialState,
+  project,
+  force
+}: RenderCloneGeneratorViewProps) => {
   const mockExit = () => {}
 
   return render(
@@ -71,7 +78,8 @@ const renderCloneGeneratorView = ({ initialState, project }: RenderCloneGenerato
         project={project}
         view={{
           page: 'clone-generator',
-          projectName: project.name
+          projectName: project.name,
+          force
         }}
       />
     </SkmtcProvider>
@@ -139,9 +147,14 @@ Deno.test(
     const cloneCalls: unknown[] = []
 
     const mockProject = createMockProject(['@skmtc/gen-typescript', '@skmtc/gen-zod'])
-    mockProject.cloneGenerator = (args: { moduleName: string; projectName: string }) => {
+    mockProject.cloneGenerators = (args: CloneGeneratorsCall) => {
       cloneCalls.push(args)
-      return Promise.resolve({ moduleName: args.moduleName, version: '0.0.55' })
+      return Promise.resolve(
+        args.moduleNames.map(moduleName => ({
+          moduleName,
+          version: '0.0.55'
+        }))
+      )
     }
 
     const initialState = createInitialState(mockProject)
@@ -172,13 +185,7 @@ ${pointer} @skmtc/gen-typescript ${tick}
 
     await new Promise(resolve => setTimeout(resolve, 250))
 
-    // Verify cloneGenerator was called with the JSR-only arg shape
-    // (no `generatorsDenoJson` — that GitHub workspace lookup is gone)
-    assertEquals(cloneCalls.length, 1)
-    assertEquals(cloneCalls[0], {
-      moduleName: '@skmtc/gen-typescript',
-      projectName: 'test-project'
-    })
+    assertEquals(cloneCalls, [{ moduleNames: ['@skmtc/gen-typescript'], force: undefined }])
 
     unmount()
   }
@@ -190,8 +197,6 @@ Deno.test(
   { sanitizeResources: false, sanitizeOps: false },
   async () => {
     const mockProject = createMockProject(['@skmtc/gen-typescript'])
-    mockProject.cloneGenerator = ({ moduleName }: { moduleName: string; projectName: string }) =>
-      Promise.resolve({ moduleName, version: '0.0.55' })
 
     const initialState = createInitialState(mockProject)
 
@@ -229,7 +234,7 @@ Deno.test(
     const cloneCalls: unknown[] = []
 
     const mockProject = createMockProject(['@skmtc/gen-typescript'])
-    mockProject.cloneGenerator = (args: { moduleName: string; projectName: string }) => {
+    mockProject.cloneGenerators = (args: CloneGeneratorsCall) => {
       cloneCalls.push(args)
       return Promise.reject(new Error('Clone failed'))
     }
@@ -253,7 +258,6 @@ Deno.test(
 
     await new Promise(resolve => setTimeout(resolve, 150))
 
-    // Verify cloneGenerator was called
     assertEquals(cloneCalls.length, 1)
 
     unmount()
@@ -310,8 +314,8 @@ Deno.test(
           }
         }
       },
-      cloneGenerator: ({ moduleName }: { moduleName: string }) =>
-        Promise.resolve({ moduleName, version: '0.0.55' })
+      cloneGenerators: ({ moduleNames }: CloneGeneratorsCall) =>
+        Promise.resolve(moduleNames.map(moduleName => ({ moduleName, version: '0.0.55' })))
     })
 
     const initialState = createInitialState(mockProject)
@@ -349,9 +353,14 @@ Deno.test(
       '@skmtc/gen-zod',
       '@skmtc/gen-tanstack-query'
     ])
-    mockProject.cloneGenerator = (args: { moduleName: string; projectName: string }) => {
+    mockProject.cloneGenerators = (args: CloneGeneratorsCall) => {
       cloneCalls.push(args)
-      return Promise.resolve({ moduleName: args.moduleName, version: '0.0.55' })
+      return Promise.resolve(
+        args.moduleNames.map(moduleName => ({
+          moduleName,
+          version: '0.0.55'
+        }))
+      )
     }
 
     const initialState = createInitialState(mockProject)
@@ -395,20 +404,48 @@ ${pointer} @skmtc/gen-zod ${tick}
 
       await new Promise(resolve => setTimeout(resolve, 150))
 
-      // Verify both generators were cloned with the JSR-only arg shape
-      assertEquals(cloneCalls.length, 2)
-
-      assertEquals(cloneCalls[0], {
-        moduleName: '@skmtc/gen-typescript',
-        projectName: 'test-project'
-      })
-
-      assertEquals(cloneCalls[1], {
-        moduleName: '@skmtc/gen-zod',
-        projectName: 'test-project'
-      })
+      // One call for both, so the core check sees them together (#375).
+      assertEquals(cloneCalls, [
+        {
+          moduleNames: ['@skmtc/gen-typescript', '@skmtc/gen-zod'],
+          force: undefined
+        }
+      ])
 
       unmount()
     }
+  }
+)
+
+Deno.test(
+  'CloneGeneratorView - `skmtc clone <project> --force` passes force to the clone',
+  { sanitizeResources: false, sanitizeOps: false },
+  async () => {
+    const cloneCalls: unknown[] = []
+
+    const mockProject = createMockProject(['@skmtc/gen-typescript'])
+    mockProject.cloneGenerators = (args: CloneGeneratorsCall) => {
+      cloneCalls.push(args)
+      return Promise.resolve(
+        args.moduleNames.map(moduleName => ({ moduleName, version: '0.0.55' }))
+      )
+    }
+
+    const { unmount, stdin } = renderCloneGeneratorView({
+      initialState: createInitialState(mockProject),
+      project: mockProject,
+      force: true
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 100))
+    stdin.write(' ')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    stdin.write('\r')
+    await new Promise(resolve => setTimeout(resolve, 250))
+
+    // The conflict text says to pass --force, so the picker must honor it.
+    assertEquals(cloneCalls, [{ moduleNames: ['@skmtc/gen-typescript'], force: true }])
+
+    unmount()
   }
 )

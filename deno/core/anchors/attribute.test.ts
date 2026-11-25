@@ -13,6 +13,7 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { RefName } from '@/types/RefName.ts'
+import { toSchemaComponentRef } from '@/helpers/refFns.ts'
 
 const stubContext = (): GenerateContextType => ({}) as unknown as GenerateContextType
 
@@ -69,7 +70,7 @@ Deno.test('attribute - GQL operation key produces <rootKind>.<fieldName>', () =>
 Deno.test('attribute - Model key produces #/components/schemas/<refName>', () => {
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'User' as RefName,
+    ref: toSchemaComponentRef('User' as RefName),
     variant: 'main'
   })
   const attr = attribute(new TestProducer(key))
@@ -79,10 +80,23 @@ Deno.test('attribute - Model key produces #/components/schemas/<refName>', () =>
   assertEquals(attr.variant, 'main')
 })
 
+Deno.test('attribute - a deep model key produces its whole pointer', () => {
+  // The trap: the key holds the whole pointer, so prefixing it with
+  // `#/components/schemas/` gives `#/components/schemas/#/components/...`.
+  const key = toModelGeneratorKey({
+    generatorId: '@scope/gen-zod',
+    ref: { refName: 'disk' as RefName, refPath: '#/components/schemas/diskWithCursor/properties' },
+    variant: 'main'
+  })
+  const attr = attribute(new TestProducer(key))
+
+  assertEquals(attr.schemaPointer, '#/components/schemas/diskWithCursor/properties/disk')
+})
+
 Deno.test('attribute - Model key threads non-default variant', () => {
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod-variants',
-    refName: 'Customer' as RefName,
+    ref: toSchemaComponentRef('Customer' as RefName),
     variant: 'coercive'
   })
   const attr = attribute(new TestProducer(key))
@@ -112,7 +126,7 @@ Deno.test('attribute - producer with no generatorKey returns <unknown>', () => {
 Deno.test('attribute - explicit srcPtr field overrides key-derived pointer', () => {
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'User' as RefName,
+    ref: toSchemaComponentRef('User' as RefName),
     variant: 'main'
   })
   const attr = attribute(

@@ -1,11 +1,17 @@
 import type { RootDenoJson } from '@/lib/root-deno-json.ts'
 import { join } from '@std/path/join'
 import { ensureFile } from '@std/fs/ensure-file'
+import { exists } from '@std/fs/exists'
 import { toProjectPath } from '@/lib/to-project-path.ts'
 import { OperationGenerator } from '@/lib/operation-generator.ts'
 import { ModelGenerator } from '@/lib/model-generator.ts'
 import { KotlinModelGenerator } from '@/lib/kotlin-model-generator.ts'
 import { PackageDenoJson } from '@/lib/package-deno-json.ts'
+import { parseOrExplain } from '@/lib/parse-or-explain.ts'
+import {
+  packageDenoJson as packageDenoJsonSchema,
+  type PackageDenoJson as PackageDenoJsonContents
+} from '@skmtc/core/DenoJson'
 import type { Manager } from '@/lib/manager.ts'
 import type { Project } from '@/lib/project.ts'
 import invariant from 'tiny-invariant'
@@ -31,17 +37,103 @@ type CloneArgs = {
   denoJson: RootDenoJson
   manager: Manager
   /**
-   * When `true`, skip the `@skmtc/core` check that refuses a clone
-   * whose generator needs a different core from the project's other
-   * generators. Use this only when the operator has explicitly
-   * acknowledged the skew (e.g. a `--force` flag at the CLI level).
+   * When `true`, replace a generator that is already cloned: delete its
+   * folder and clone the published version again (`--force`).
    */
   force?: boolean
 }
 
+type CloneGeneratorsArgs = CloneArgs & {
+  generators: Generator[]
+}
+
 type CloneResult = {
+  /** Module name with scope, e.g. `@skmtc/gen-zod`. */
+  moduleName: string
   /** The concrete JSR version that was downloaded. */
   version: string
+}
+
+/**
+ * A published version, downloaded and rewritten in memory. Nothing is
+ * written until every generator in the command has one and the core check
+ * passes.
+ */
+type CloneDownload = {
+  version: string
+  /** The `@skmtc/core` range the version's `deno.json` names, `null` when none. */
+  range: string | null
+  /** Every file that is not a source file, as published. */
+  otherFiles: SourceFile[]
+  /** Source files with each versioned specifier rewritten to a bare one. */
+  sourceFiles: SourceFile[]
+  /** The published `deno.json`. */
+  packageDenoJson: PackageDenoJsonContents
+  /** The published imports, plus a pin for each bare name they did not name. */
+  imports: Record<string, string>
+}
+
+type WriteCloneArgs = {
+  denoJson: RootDenoJson
+  manager: Manager
+  download: CloneDownload
+  /** Every generator the command clones: a clone resolves each one through the root. */
+  cloning: string[]
+  /** Delete the generator's folder first: `--force` over an existing clone. */
+  replace: boolean
+}
+
+/** A JSR package name, so the folder a replace deletes is always one folder in the project. */
+const PACKAGE_NAME = /^[a-z0-9][a-z0-9-]*$/
+
+/**
+ * The folder a clone would go in holds another generator, or no generator
+ * at all. `--force` never deletes it: only a clone of the same generator is
+ * replaced.
+ */
+export class FolderInUseError extends Error {
+  constructor({ generatorId, folder, owner }: { generatorId: string; folder: string; owner: string | null }) {
+    super(
+      [
+        owner === null
+          ? `${folder} is not a clone of ${generatorId}: its deno.json names no package.`
+          : `${folder} holds ${owner}, not ${generatorId}.`,
+        `skmtc clone does not write ${generatorId} there, with or without --force. Move or remove that folder first.`
+      ].join('\n')
+    )
+    this.name = 'FolderInUseError'
+  }
+}
+
+/** The `name` in a folder's `deno.json`, `null` when it has none or the file cannot be read. */
+const readPackageName = async (folder: string): Promise<string | null> => {
+  try {
+    const parsed: unknown = JSON.parse(await Deno.readTextFile(join(folder, 'deno.json')))
+    return typeof parsed === 'object' && parsed !== null && 'name' in parsed && typeof parsed.name === 'string'
+      ? parsed.name
+      : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * A generator the command names is already cloned into the project. A clone
+ * is a one-time copy for local edits, so replacing it takes `--force`.
+ */
+export class AlreadyClonedError extends Error {
+  readonly generatorIds: string[]
+
+  constructor(clones: { generatorId: string; folder: string }[]) {
+    super(
+      [
+        `Already cloned: ${clones.map(({ generatorId, folder }) => `${generatorId} (${folder})`).join(', ')}.`,
+        'Pass --force to replace it with the published version. This deletes the folder and its edits.'
+      ].join('\n')
+    )
+    this.name = 'AlreadyClonedError'
+    this.generatorIds = clones.map(({ generatorId }) => generatorId)
+  }
 }
 
 type InstallArgs = {
@@ -156,22 +248,49 @@ export class Generator {
    * to the user (e.g. `skmtc clone … → @scope/pkg@0.0.55`).
    */
   async clone({ denoJson, manager, force }: CloneArgs): Promise<CloneResult> {
+    const [result] = await cloneGenerators({ generators: [this], denoJson, manager, force })
+    return result
+  }
+
+  async download(): Promise<CloneDownload> {
     const { files, version } = await Jsr.download(this)
 
-    // The generator stack decides the project's core (#333). The download
-    // is only in memory so far: plan the core pin for this version and the
-    // generators that stay, and stop before any file is written when no
-    // core fits them all.
-    if (!force) {
-      await reconcileCorePin({
-        denoJson,
-        adding: [
-          {
-            generatorId: this.toModuleName(),
-            range: await readCoreRange(JSON.parse(files['/deno.json'] ?? '{}'))
-          }
-        ]
-      })
+    const packageDenoJson = parseOrExplain(
+      packageDenoJsonSchema,
+      JSON.parse(files['/deno.json'] ?? '{}'),
+      `deno.json of ${this.toModuleName()}@${version}`
+    )
+    const publishedImports = packageDenoJson.imports ?? {}
+
+    const downloaded = Object.entries(files).map(([path, content]) => ({ path, content }))
+    const bare = await toBareSpecifiers({
+      files: downloaded.filter(({ path }) => isSourceFile(path)),
+      imports: publishedImports
+    })
+
+    return {
+      version,
+      range: await readCoreRange(packageDenoJson),
+      otherFiles: downloaded.filter(({ path }) => !isSourceFile(path)),
+      sourceFiles: bare.files,
+      packageDenoJson,
+      imports: { ...publishedImports, ...bare.pins }
+    }
+  }
+
+  async writeClone({
+    denoJson,
+    manager,
+    download,
+    cloning,
+    replace
+  }: WriteCloneArgs): Promise<CloneResult> {
+    const { version } = download
+
+    if (replace) {
+      invariant(PACKAGE_NAME.test(this.packageName), `Not a package name: ${this.packageName}`)
+      // Files the new version dropped must not survive the replace.
+      await Deno.remove(this.toPath({ relative: false }), { recursive: true })
     }
 
     // Pin the local generator to the actual version we just pulled, so
@@ -187,33 +306,31 @@ export class Generator {
       await Deno.writeTextFile(toClonePath(path), content)
     }
 
-    const downloaded = Object.entries(files).map(([path, content]) => ({ path, content }))
-    const sourceFiles = downloaded.filter(({ path }) => isSourceFile(path))
+    await Promise.all([...download.otherFiles, ...download.sourceFiles].map(writeFile))
 
-    await Promise.all(downloaded.filter(({ path }) => !isSourceFile(path)).map(writeFile))
-
-    const packageDenoJson = await PackageDenoJson.open(toClonePath('deno.json'), manager)
-    const publishedImports = packageDenoJson.contents.imports ?? {}
-
-    const bare = await toBareSpecifiers({ files: sourceFiles, imports: publishedImports })
-
-    await Promise.all(bare.files.map(writeFile))
-
+    // The root decides every name it pins, and every generator this command
+    // clones resolves to its local copy through the root, whatever the order.
     const rootImports = denoJson.contents.imports ?? {}
 
-    packageDenoJson.contents = {
-      ...packageDenoJson.contents,
-      imports: Object.fromEntries(
-        Object.entries({ ...publishedImports, ...bare.pins }).filter(
-          ([key]) => !(key in rootImports)
-        )
-      )
-    }
+    PackageDenoJson.create(
+      {
+        path: toClonePath('deno.json'),
+        contents: {
+          ...download.packageDenoJson,
+          imports: Object.fromEntries(
+            Object.entries(download.imports).filter(
+              ([key]) => !(key in rootImports) && !cloning.includes(key)
+            )
+          )
+        }
+      },
+      manager
+    )
 
     denoJson.addImport(this.toModuleName(), this.toModPath({ relative: true }))
     denoJson.addWorkspace(this.toPath({ relative: true }))
 
-    return { version }
+    return { moduleName: this.toModuleName(), version }
   }
 
   static fromName({ projectName, scopeName, packageName, version }: FromNameArgs): Generator {
@@ -252,6 +369,78 @@ export class Generator {
 }
 
 const isSourceFile = (path: string): boolean => /\.[cm]?[jt]sx?$/.test(path)
+
+/**
+ * Clones several published generators with one core check. The generator
+ * stack decides the project's core (#333): every version is downloaded and
+ * its sources rewritten first, and the core pin is planned once for all of
+ * them plus the generators that stay. The old copies of the generators
+ * being cloned do not count, so one command moves a set of clones to a new
+ * core together (#375). No file is written until all of that passes; then
+ * the clones are written one at a time, and a failed write leaves the ones
+ * before it complete.
+ */
+export const cloneGenerators = async ({
+  generators,
+  denoJson,
+  manager,
+  force
+}: CloneGeneratorsArgs): Promise<CloneResult[]> => {
+  // A folder counts as this generator's clone only when its deno.json names
+  // it: the folder is `./<package>`, with no scope, so another generator
+  // with the same package name can hold it.
+  const existing = (
+    await Promise.all(
+      generators.map(async generator => {
+        const folder = generator.toPath({ relative: false })
+        if (!(await exists(folder, { isDirectory: true }))) return []
+
+        const owner = await readPackageName(folder)
+        if (owner !== generator.toModuleName()) {
+          throw new FolderInUseError({
+            generatorId: generator.toModuleName(),
+            folder: generator.toPath({ relative: true }),
+            owner
+          })
+        }
+        return [generator]
+      })
+    )
+  ).flat()
+
+  if (existing.length > 0 && !force) {
+    throw new AlreadyClonedError(
+      existing.map(generator => ({
+        generatorId: generator.toModuleName(),
+        folder: generator.toPath({ relative: true })
+      }))
+    )
+  }
+
+  const downloads = await Promise.all(
+    generators.map(async generator => ({ generator, download: await generator.download() }))
+  )
+
+  // --force replaces clones; it never skips this check, so a refused
+  // command deletes no clone and writes no file.
+  await reconcileCorePin({
+    denoJson,
+    adding: downloads.map(({ generator, download }) => ({
+      generatorId: generator.toModuleName(),
+      range: download.range
+    }))
+  })
+
+  // One at a time, so a failed write leaves the clones before it complete.
+  const cloning = generators.map(generator => generator.toModuleName())
+  const results: CloneResult[] = []
+  for (const { generator, download } of downloads) {
+    const replace = existing.includes(generator)
+    results.push(await generator.writeClone({ denoJson, manager, download, cloning, replace }))
+  }
+
+  return results
+}
 
 type FromNameArgs = {
   projectName: string

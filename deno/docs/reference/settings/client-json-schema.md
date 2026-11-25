@@ -343,6 +343,57 @@ the usual parse. Default: `{}`.
   nullable. Each such schema logs one `ANYOF_AS_UNKNOWN` warning. An
   `anyOf` with one member, or an `anyOf` of single values such as
   `string | number`, parses as it does with `union`.
+- **`danglingRefs`** — the kinds of `$ref` that can name nothing in the
+  document. The kinds are `"schema"`, `"parameter"`, `"requestBody"`,
+  `"response"`, `"header"`, `"securityScheme"`, `"example"`, `"link"`
+  and `"allOfMember"`. The default is `[]`. Each place that has such a
+  `$ref` logs one `DANGLING_REF` issue. A `$ref` in a loop of `$ref`s
+  (`A` is a `$ref` to `B`, and `B` to `A`) also names nothing.
+  - A kind that is not in the list gives an error. The parser removes
+    the item that has the `$ref`, and each item that refers to that item
+    (`INVALID_DEPENDENCY_REF`).
+  - A kind in the list gives a warning, and the `$ref` stays. When a
+    generator resolves the `$ref`, core throws a `DanglingRefError`. The
+    generator can catch the error and write a different value, for
+    example `unknown`.
+  - Core merges the members of an `allOf` during the parse, so a
+    generator does not see them. With `"allOfMember"` in the list, core
+    leaves out a member that names nothing. The model then has no
+    properties from that member. Without it, the parser removes the item
+    that has the `allOf`. `"schema"` does not cover this case, but it
+    covers a `$ref` that `intersections` keeps. Core also merges in a
+    `oneOf` or an `anyOf`. It merges the `allOf` of a member,
+    and each member with the keywords next to the union. The same rule
+    applies there.
+
+  A `$ref` to an item of the wrong kind (`REF_TYPE_MISMATCH`) is always
+  an error, and this field does not change it.
+- **`intersections`** — `"cycles"` (default), `"all"` or `"merge"`. Sets
+  which `$ref`s the parser keeps as references where it would merge their
+  target into a schema. The members of an `allOf` are such `$ref`s. So
+  are the members of a `oneOf` or an `anyOf`, when a keyword next to it
+  merges into each member. A property that two merged members both have
+  is one `allOf` of the two, so the same rule applies. The schema is then
+  an [`OasIntersection`](../api/oas-schema-variants.md#oasintersection--type-intersection)
+  of the references and one schema that the other members merge into.
+  - With `cycles`, the parser keeps a `$ref` that closes a cycle. The
+    target of such a `$ref` leads back, through any `$ref`s, to the
+    schema that has it.
+  - With `all`, the parser keeps each such `$ref`. Each subtype that
+    has an `allOf` of two or more members is then an intersection.
+  - With `merge`, the parser keeps none. A `$ref` that closes a cycle can
+    then make the parse run out of memory.
+
+  A union with an intersection as a member is not discriminable
+  (`OasUnion.isDiscriminable`). Some libraries do not take an
+  intersection as a member of a discriminated union.
+
+  An `allOf` of one `$ref` is a reference with the keywords next to it.
+  One exception is a union member with a keyword that merges into it: it
+  is an intersection.
+
+  `additionalProperties: false` next to an `allOf` with a kept `$ref`
+  closes only the member that is not a reference.
 - **`responseContradictions`** — `"strict"` (default) or `"unknown"`.
   Reserved. The validator accepts it, but the parser does not read it.
 

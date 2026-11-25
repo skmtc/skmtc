@@ -6,7 +6,7 @@ import type { GenerateContextType } from '../context/generateTypes.ts'
 import type { CustomValue } from '../dsl/CustomValue.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
-import type { RefName } from '@/types/RefName.ts'
+import type { RefParts } from '@/helpers/refFns.ts'
 
 /**
  * Union type representing all possible type system values in the SKMTC code generation system.
@@ -19,7 +19,7 @@ import type { RefName } from '@/types/RefName.ts'
  * ## Type Categories
  *
  * - **Primitive Types**: `string`, `number`, `integer`, `boolean`, `null`
- * - **Complex Types**: `array`, `object`, `union`
+ * - **Complex Types**: `array`, `object`, `union`, `intersection`
  * - **Special Types**: `void`, `never`, `unknown`, `custom`
  * - **Reference Types**: `ref` for schema references
  *
@@ -67,6 +67,7 @@ export type TypeSystemValue =
   | TypeSystemArray
   | TypeSystemObject
   | TypeSystemUnion
+  | TypeSystemIntersection
   | TypeSystemString
   | TypeSystemNumber
   | TypeSystemInteger
@@ -388,6 +389,18 @@ export type TypeSystemUnion = {
   generatorKey?: GeneratorKey
 }
 
+/** Type system representation of an intersection: a value that is of every member's type. */
+export type TypeSystemIntersection = {
+  /** Discriminator for the intersection type */
+  type: 'intersection'
+  /** The types a value has all of */
+  members: TypeSystemValue[]
+  /** Type modifiers (optional, nullable, etc.) */
+  modifiers: Modifiers
+  /** Optional generator-specific key for tracking */
+  generatorKey?: GeneratorKey
+}
+
 /**
  * Type system representation of object types.
  *
@@ -493,6 +506,10 @@ export type SchemaToTypeSystemMap = {
     source: OasSchema
     output: TypeSystemUnion
   }
+  intersection: {
+    source: OasSchema
+    output: TypeSystemIntersection
+  }
   custom: {
     source: CustomValue
     output: TypeSystemCustom
@@ -576,8 +593,8 @@ export type TypeSystemArgs<Schema extends SchemaType> = {
   destinationPath: string
   /** The schema to transform */
   schema: Schema
-  /** Optional root reference name for schema references */
-  rootRef?: RefName
+  /** The ref of the model whose value tree holds the schema */
+  rootRef?: RefParts
   /** Whether the schema field is required */
   required: boolean | undefined
 }

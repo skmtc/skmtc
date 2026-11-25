@@ -122,22 +122,23 @@ hook. Output happens through side effects on `context` —
 is ignored. See
 [how-generators-produce-output](how-generators-produce-output.md).
 
-**Model entry** — same skeleton with two differences (no
-`isSupported`, takes `refName` instead of `operation`):
+**Model entry** — same skeleton, but it takes the model's `ref`
+(`{ refName, refPath }`) instead of `operation`:
 
 ```ts
 const ZodEntry = toModelEntry<EnrichmentSchema>({
   id: denoJson.name,
   toEnrichmentSchema,
-  transform({ context, refName }) {
-    context.insertModel(ZodProjection, refName)
+  transform({ context, ref }) {
+    context.insertModel(ZodProjection, ref)
   }
 })
 ```
 
-Model entries are called once for every refName in the document —
-there's no capability gate at the Entry level. Filter inside
-`transform` if needed.
+Model entries are called once for every schema component in the
+document. An optional `isSupported({ context, ref, variant })` gates
+which models the engine dispatches; see
+[entry factories](../reference/api/entry-factories.md).
 
 **GraphQL operation entry** — same skeleton, keyed on `rootKind` /
 `fieldName` instead of `path` / `method`:

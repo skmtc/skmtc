@@ -27,6 +27,7 @@ import type { ModelProjectionArgs } from '@/dsl/model/toModelProjectionBase.ts'
 import { SnippetBase } from '@/dsl/SnippetBase.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { RefName } from '@/types/RefName.ts'
+import { toSchemaComponentRef } from '@/helpers/refFns.ts'
 import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 import type { Enrichments } from '@/types/Enrichments.ts'
 import { assertEquals } from '@std/assert/equals'
@@ -65,7 +66,7 @@ class SpikeField extends TsSnippet {
 
 const SpikeModelBase = toTsModelProjectionBase({
   id: '@spike/gen-option2',
-  toIdentifierName: ({ refName }) => `${refName}Spike`,
+  toIdentifierName: ({ ref }) => `${ref.refName}Spike`,
   toIdentifierType: () => ({ type: 'variable' }),
   toExportPath: () => '@/spike/models.generated.ts',
   toEnrichmentSchema: () => emptyEnrichmentSchema
@@ -83,7 +84,7 @@ class SpikeModel extends SpikeModelBase {
 
     this.field = new SpikeField({
       context: args.context,
-      name: args.refName,
+      name: args.ref.refName,
       destinationPath: this.settings.exportPath
     })
 
@@ -103,7 +104,7 @@ Deno.test('option2 spike - static lang is inherited through the factory chain', 
 Deno.test('option2 spike - insertModel end-to-end with an EMPTY config map; keyless snippet registers', () => {
   const context = toGenerateContext()
 
-  const inserted = context.insertModel(SpikeModel, 'User' as RefName)
+  const inserted = context.insertModel(SpikeModel, toSchemaComponentRef('User' as RefName))
 
   assertEquals(inserted.toName(), 'UserSpike')
 
@@ -132,7 +133,7 @@ Deno.test('option2 spike - cross-file insertion registers the peer import via th
   // Insert the same model from a DIFFERENT destination file: the Driver
   // must build the cross-file import through projection.lang (static) and
   // create the destination file caller-side — all with an empty config map.
-  const inserted = context.insertModel(SpikeModel, 'Order' as RefName, {
+  const inserted = context.insertModel(SpikeModel, toSchemaComponentRef('Order' as RefName), {
     destinationPath: '@/consumers/page.generated.ts'
   })
 

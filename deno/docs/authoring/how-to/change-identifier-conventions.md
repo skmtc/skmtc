@@ -28,11 +28,11 @@ call: `toIdentifierName` returns the name string, and
 
 ```ts
 // gen-zod default
-toIdentifierName: ({ refName }) => decapitalize(refName)
+toIdentifierName: ({ ref }) => decapitalize(ref.refName)
 // → "user", "order", "pet"
 
 // Your house style: PascalCase with suffix
-toIdentifierName: ({ refName }) => `${refName}Schema`
+toIdentifierName: ({ ref }) => `${ref.refName}Schema`
 // → "UserSchema", "OrderSchema", "PetSchema"
 ```
 
@@ -65,7 +65,7 @@ mismatch (different `generatorKey` per operation) and throws
 is idempotent (same key → cache hit).
 
 Make sure your naming function produces unique names per
-operation/refName so the throw never fires. Helpers like
+operation or ref so the throw never fires. Helpers like
 `toEndpointName(operation)` handle the OAS-spec quirks (missing
 `operationId`, identical paths with different methods).
 

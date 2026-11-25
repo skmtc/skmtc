@@ -14,7 +14,7 @@ visitor with overridable per-type hooks (openapi-generator's
 "I extend the base, override `visitStringSchema`, get TypeScript
 output for free." Skmtc does not work this way. Every model
 generator implements the whole `schemaToValueFn` — string, integer,
-number, boolean, object, array, union, unknown, void, ref, custom —
+number, boolean, object, array, union, intersection, unknown, void, ref, custom —
 itself.
 
 This page covers what the type system is, how `schemaToValueFn`
@@ -71,7 +71,7 @@ keyed by the discriminator.
 
 ## The structural shapes
 
-`TypeSystemValue` is a union of twelve variants
+`TypeSystemValue` is a union of these variants
 (`core/types/TypeSystem.ts`):
 
 | Variant | Discriminator | Carries |
@@ -84,6 +84,7 @@ keyed by the discriminator.
 | `TypeSystemArray` | `'array'` | `items: TypeSystemValue`, `modifiers` |
 | `TypeSystemObject` | `'object'` | `objectProperties?`, `recordProperties?`, `modifiers` |
 | `TypeSystemUnion` | `'union'` | `members: TypeSystemValue[]`, `discriminator?`, `modifiers` |
+| `TypeSystemIntersection` | `'intersection'` | `members: TypeSystemValue[]`, `modifiers` |
 | `TypeSystemRef` | `'ref'` | `name`, `modifiers` |
 | `TypeSystemCustom` | `'custom'` | `value: Stringable` |
 | `TypeSystemVoid` | `'void'` | (no payload) |
@@ -116,12 +117,12 @@ export type TypeSystemArgs<Schema extends SchemaType> = {
   context: GenerateContextType
   destinationPath: string
   schema: Schema
-  rootRef?: RefName
+  rootRef?: RefParts
   required: boolean | undefined
 }
 
 export type SchemaType =
-  | OasSchema             // the eight schema variants
+  | OasSchema             // the nine schema variants
   | OasRef<'schema'>      // a ref to one of them
   | OasVoid               // explicit void
   | CustomValue           // generator-injected fragment
@@ -140,7 +141,8 @@ generator that doesn't handle it.
 ## A complete `schemaToValueFn` example
 
 `gen-typescript`'s implementation
-(`skmtc-generators/gen-typescript/src/Ts.ts`):
+(`skmtc-generators/gen-typescript/src/Ts.ts`) for core 0.46. Core 0.47
+adds the `'intersection'` variant, so the match then needs an arm for it:
 
 ```ts
 export const toTsValue: SchemaToValueFn = ({
@@ -154,7 +156,7 @@ export const toTsValue: SchemaToValueFn = ({
 
   return match(schema satisfies SchemaType)
     .with({ type: 'custom' }, custom => custom)
-    .with({ type: 'ref' }, ref => new TsRef({ context, destinationPath, refName: toRefName(ref.$ref), modifiers, rootRef }))
+    .with({ type: 'ref' }, ref => new TsRef({ context, destinationPath, ref, modifiers, rootRef }))
     .with({ type: 'array' }, ({ items }) => new TsArray({ context, destinationPath, modifiers, items, generatorKey, rootRef }))
     .with({ type: 'object' }, matched => new TsObject({ context, destinationPath, value: matched, modifiers, generatorKey, rootRef }))
     .with({ type: 'union' }, ({ members, discriminator }) => new TsUnion({ context, destinationPath, members, discriminator, modifiers, generatorKey, rootRef }))
@@ -273,9 +275,9 @@ on the schema being rendered:
 
 ```ts
 // skmtc-generators/gen-typescript/src/TsProjection.ts
-constructor({ context, refName, settings, rootRef }: ConstructorArgs) {
-  super({ context, refName, settings })
-  const schema = context.resolveSchemaRefOnce(refName)
+constructor({ context, ref, settings, rootRef }: ConstructorArgs) {
+  super({ context, ref, settings })
+  const schema = context.resolveSchemaRefOnce(ref)
   this.value = toTsValue({
     schema, required: true, destinationPath: settings.exportPath,
     context, rootRef
@@ -329,7 +331,7 @@ differs. Skmtc requires each model generator to implement the full
    `z.string().email()`); `ValibotString.toString()` returns
    `v.string()`. There is no "string handling" code path the three
    could share — the rendered fragment is entirely
-   target-specific. A base visitor would just be eleven hooks
+   target-specific. A base visitor would just be twelve hooks
    waiting for full overrides.
 2. **`schemaToValueFn` is the customization seam.** Cloning
    `gen-typescript` to swap a format mapping means editing
@@ -345,7 +347,7 @@ differs. Skmtc requires each model generator to implement the full
    doesn't update its `schemaToValueFn` — the right place for the
    change to surface.
 
-The cost is duplication: eleven match arms in every model
+The cost is duplication: twelve match arms in every model
 generator. The benefit is independence — each generator's
 `schemaToValueFn` fits the target language without negotiation
 with a shared base.
@@ -383,7 +385,7 @@ the ref's destination file:
 // gen-typescript schemaToValueFn
 .with({ type: 'ref' }, ref => new TsRef({
   context, destinationPath,
-  refName: toRefName(ref.$ref),
+  ref,  // the OasRef: its refName and refPath travel together
   modifiers, rootRef
 }))
 ```
@@ -419,19 +421,19 @@ projection for it.
 A ref snippet asks for its model through `toModelRef`:
 
 ```
-1.  context.insertModel(ZodProjection, 'User')
+1.  context.insertModel(ZodProjection, toSchemaComponentRef('User'))
        │
        ▼
 2.  ModelDriver: cache miss  →  pending entry for User
        │
        ▼
-3.  new ZodProjection({ context, refName: 'User', ... })
-       │   context.resolveSchemaRefOnce('User')
+3.  new ZodProjection({ context, ref: User's ref, ... })
+       │   context.resolveSchemaRefOnce(ref)
        │   toZodValue({ schema, ... })   ← walks the User schema
        │
        │   for each ref in the schema, the ref snippet calls:
        ▼
-4.  toModelRef({ context, refName, destinationPath, projection: ZodProjection, ... })
+4.  toModelRef({ context, ref, destinationPath, projection: ZodProjection, ... })
        │
        ├─ refName === 'User'     → User is pending: a reference back
        │                           ├─ { suspended: true }  (no new projection)
@@ -494,7 +496,7 @@ example `z.ZodType<User>`.
 When you write a model generator that has a `'ref'` branch in
 `schemaToValueFn`, the `Ref` Snippet must:
 
-1. **Call** `toModelRef({ context, refName, destinationPath,
+1. **Call** `toModelRef({ context, ref, destinationPath,
    rootRef, projection: YourProjection, variant })`. It constructs
    the model, reuses it, or returns it `suspended`. It also stitches
    the import into `destinationPath`.
@@ -538,8 +540,8 @@ nested calls instead of coercing it.
 
 ### What's `rootRef` for?
 
-`rootRef` is the top-level `RefName` that started the current
-render — used to detect recursive type references. A nested
+`rootRef` is the ref (`RefParts`) of the top-level model that started
+the current render — used to detect recursive type references. A nested
 schema whose `schemaToValueFn` call encounters a `$ref` back to
 `rootRef` can render a self-reference rather than recursing into
 infinite expansion. Most generator branches just thread it through

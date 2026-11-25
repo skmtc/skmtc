@@ -1,6 +1,8 @@
 import type { OasRef } from '../oas/ref/Ref.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
 import { isEmpty } from './isEmpty.ts'
+import { isObjectValue } from '@/oas/schema/siblings.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 
 /**
  * Arguments for collating examples from OpenAPI schemas.
@@ -186,15 +188,7 @@ export const collateExamples = ({ objectSchema, depth, seen }: CollatedExampleAr
       // legitimately deep one fail identically, and a caller that only wanted a
       // sample body gets an exception instead. Cutting the cycle here is what
       // makes the depth limit mean what it says.
-      if (seen?.has(objectSchema.$ref)) {
-        return undefined
-      }
-
-      return collateExamples({
-        objectSchema: objectSchema.resolve(),
-        depth: depth + 1,
-        seen: new Set(seen ?? []).add(objectSchema.$ref)
-      })
+      return collateRef({ ref: objectSchema, depth: depth + 1, seen })
     }
 
     case 'object': {
@@ -267,9 +261,58 @@ export const collateExamples = ({ objectSchema, depth, seen }: CollatedExampleAr
       return undefined
     }
 
+    case 'intersection': {
+      if (objectSchema.example) {
+        return objectSchema.example
+      }
+
+      // A value matches every member, so the examples of objects are one object.
+      // Its members are as deep as the intersection: they are one value.
+      const examples = objectSchema.members
+        .map(member =>
+          member.isRef()
+            ? collateRef({ ref: member, depth, seen })
+            : collateExamples({ objectSchema: member, depth, seen })
+        )
+        .filter(example => Boolean(example))
+
+      return examples.every(isObjectValue) ? toMergedExample(examples) : examples[0]
+    }
+
     default: {
       const _exhaustive: never = objectSchema
       throw new Error(`Unhandled schema type: ${(_exhaustive as any).type}`)
     }
   }
 }
+
+type CollateRefArgs = {
+  ref: OasRef<'schema'>
+  /** The depth of the schema that the reference resolves to. */
+  depth: number
+  seen: ReadonlySet<string> | undefined
+}
+
+/** The example of what a reference resolves to. A reference on the path to itself, or one that names nothing, has none. */
+const collateRef = ({ ref, depth, seen }: CollateRefArgs): unknown => {
+  if (seen?.has(ref.$ref)) {
+    return undefined
+  }
+
+  try {
+    return collateExamples({
+      objectSchema: ref.resolve(),
+      depth,
+      seen: new Set(seen ?? []).add(ref.$ref)
+    })
+  } catch (error) {
+    if (DanglingRefError.is(error)) {
+      return undefined
+    }
+
+    throw error
+  }
+}
+
+const toMergedExample = (examples: Record<string, unknown>[]): Record<string, unknown> | undefined =>
+  examples.length === 0 ? undefined : Object.assign({}, ...examples)

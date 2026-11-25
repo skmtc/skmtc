@@ -9,12 +9,6 @@ Deno.test('CloneGeneratorView - space key should toggle selection', async () => 
     generators: ['@skmtc/gen-typescript', '@skmtc/gen-zod']
   })
 
-  const clonedGenerators: string[] = []
-  mockProject.cloneGenerator = async ({ moduleName }) => {
-    clonedGenerators.push(moduleName)
-    return { moduleName, version: '0.0.0' }
-  }
-
   // Simulate the space toggle behavior
   const selectedGenerators = new Set<string>()
   const generator = '@skmtc/gen-typescript'
@@ -44,9 +38,9 @@ Deno.test('CloneGeneratorView - escape key should cancel without cloning', async
   })
 
   let cloneCalled = false
-  mockProject.cloneGenerator = async ({ moduleName }) => {
+  mockProject.cloneGenerators = async ({ moduleNames }) => {
     cloneCalled = true
-    return { moduleName, version: '0.0.0' }
+    return await Promise.resolve(moduleNames.map(moduleName => ({ moduleName, version: '0.0.0' })))
   }
 
   // Simulate escape press behavior - should not trigger cloning
@@ -55,9 +49,8 @@ Deno.test('CloneGeneratorView - escape key should cancel without cloning', async
 
   if (!escapePressedBeforeConfirm) {
     // Cloning would happen here
-    await mockProject.cloneGenerator({
-      moduleName: '@skmtc/gen-typescript',
-      projectName: mockProject.name
+    await mockProject.cloneGenerators({
+      moduleNames: ['@skmtc/gen-typescript']
     })
   }
 
@@ -73,9 +66,9 @@ Deno.test('CloneGeneratorView - multiple generators can be selected and cloned',
   })
 
   const clonedGenerators: string[] = []
-  mockProject.cloneGenerator = async ({ moduleName }) => {
-    clonedGenerators.push(moduleName)
-    return { moduleName, version: '0.0.0' }
+  mockProject.cloneGenerators = async ({ moduleNames }) => {
+    clonedGenerators.push(...moduleNames)
+    return await Promise.resolve(moduleNames.map(moduleName => ({ moduleName, version: '0.0.0' })))
   }
 
   // Simulate selecting multiple generators
@@ -86,14 +79,9 @@ Deno.test('CloneGeneratorView - multiple generators can be selected and cloned',
   assertEquals(selectedGenerators.size, 2)
 
   // Simulate cloning of all selected
-  await Promise.all(
-    Array.from(selectedGenerators).map(gen =>
-      mockProject.cloneGenerator({
-        moduleName: gen,
-        projectName: mockProject.name
-      })
-    )
-  )
+  await mockProject.cloneGenerators({
+    moduleNames: Array.from(selectedGenerators)
+  })
 
   assertEquals(clonedGenerators.length, 2)
   assertEquals(clonedGenerators.includes('@skmtc/gen-typescript'), true)

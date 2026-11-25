@@ -88,15 +88,16 @@ import { ${mainModule}Projection } from './${mainModule}Projection.ts'
 export default toModelEntry({
   id: denoJson.name,
   toEnrichmentSchema,
-  transform({ context, refName }) {
-    context.insertModel(${mainModule}Projection, refName)
+  transform({ context, ref }) {
+    context.insertModel(${mainModule}Projection, ref)
   }
 })
 `
   }
 
   toModelProjectionBase() {
-    return `import { toKtModelProjectionBase } from '@skmtc/lang-kotlin'
+    return `import { toModelName } from '@skmtc/core'
+import { toKtModelProjectionBase } from '@skmtc/lang-kotlin'
 import type { KtIdentifierType } from '@skmtc/lang-kotlin'
 import denoJson from '../deno.json' with { type: 'json' }
 import { toEnrichmentSchema } from './enrichments.ts'
@@ -104,13 +105,15 @@ import { toEnrichmentSchema } from './enrichments.ts'
 export const KtModelBase = toKtModelProjectionBase({
   id: denoJson.name,
 
-  // The refName IS the Kotlin class name for DTO generators.
-  toIdentifierName: ({ refName }) => refName,
+  // A component's refName IS the Kotlin class name for DTO generators.
+  // \`toModelName\` names any other target by its whole pointer, because
+  // refName repeats there (\`…/properties/disk\` under two schemas).
+  toIdentifierName: ({ ref }) => toModelName(ref),
 
-  toIdentifierType: (refName, context): KtIdentifierType => {
+  toIdentifierType: (ref, context): KtIdentifierType => {
     // \`.resolve()\` is identity on concrete schemas — call it
     // unconditionally; never \`schema.isRef() ? schema.resolve() : schema\`.
-    const schema = context.resolveSchemaRefOnce(refName).resolve()
+    const schema = context.resolveSchemaRefOnce(ref).resolve()
 
     // Skeleton policy: objects are data classes, everything else a
     // typealias. Extend alongside the toKtValue router when a schema
@@ -124,7 +127,7 @@ export const KtModelBase = toKtModelProjectionBase({
   // keep it: Kotlin resolves by package, not filename, so a suffixed
   // file replaces a hand-written one as-is. Set it to "" only when
   // something outside Kotlin keys on the exact filename.
-  toExportPath: ({ refName }) => \`@/models/\${refName}.kt\`,
+  toExportPath: ({ ref }) => \`@/models/\${toModelName(ref)}.kt\`,
 
   toEnrichmentSchema
 })
@@ -227,8 +230,14 @@ export const toKtValue = (args: TypeSystemArgs<SchemaType>): TypeSystemValue & K
       // \`return new UnionValue({ ... })\` — like every other case: the
       // UnionValue CONSTRUCTOR owns member routing, parent
       // annotations, membership assignment, and the tag removal (the
-      // parent refName arrives as \`args.rootRef\`).
+      // parent's ref arrives as \`args.rootRef\`).
       throw new Error(\`toKtValue: 'union' is not mapped — decide the Kotlin shape for oneOf\`)
+    case 'intersection':
+      // An allOf that keeps a reference (one that closes a cycle). Kotlin has
+      // no intersection types: decide whether the members flatten into one
+      // data class, or the kept reference becomes a supertype, then replace
+      // this throw with a one-line \`return new IntersectionValue({ ... })\`.
+      throw new Error(\`toKtValue: 'intersection' is not mapped — decide the Kotlin shape for an allOf that keeps a reference\`)
     case 'unknown':
       // An untyped schema has no honest Kotlin type. \`Any\`/\`Any?\` is
       // not an answer, it is the absence of one, and it compiles — so
@@ -517,7 +526,7 @@ export class RefValue extends KtSnippet {
     // imports Kt.ts, which imports this. That cycle is expected and
     // safe for the same reason as ArrayValue's — constructor-body
     // references, never module top level.
-    this.name = context.insertModel(${mainModule}Projection, ref.toRefName()).toName()
+    this.name = context.insertModel(${mainModule}Projection, ref).toName()
     this.modifiers = modifiers
   }
 
@@ -647,9 +656,9 @@ export class ${mainModule}Projection extends KtModelBase {
   constructor(args: ModelProjectionArgs<EmptyEnrichments>) {
     super(args)
 
-    const { context, refName } = args
+    const { context, ref } = args
     const destinationPath = this.settings.exportPath
-    const schema = context.resolveSchemaRefOnce(refName).resolve()
+    const schema = context.resolveSchemaRefOnce(ref).resolve()
 
     // Everything flows through the router — 'object' is a case like any
     // other, not a special case here.

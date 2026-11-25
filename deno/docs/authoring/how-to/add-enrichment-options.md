@@ -285,7 +285,7 @@ its `enrichments.ts`.**
 For each Projection the engine builds:
 
 1. The factory's static
-   `toEnrichments({ operation | refName, context, variant })` runs.
+   `toEnrichments({ operation | ref, context, variant })` runs.
 2. It reads the **raw umbrella** from the three storage spots, through
    `context.readEnrichment`, which records every read for the post-run audit:
    - `subject` — `readEnrichment([id, <subject…>, variant])` at the path shown
@@ -488,7 +488,7 @@ type EnrichmentRequest<EnrichmentType> = {
 };
 ```
 
-A generator can implement `toEnrichmentRequest(refName)` on its entry config.
+A generator can implement `toEnrichmentRequest(ref)` on its entry config.
 The function returns either a request descriptor (prompt + schema + content to
 feed an LLM) or `undefined` to skip. Tooling that integrates with an LLM fulfils
 the request, validates the response against the schema, and persists the result
@@ -497,7 +497,7 @@ into `client.json` as if the user had authored it.
 The flow:
 
 ```
-generator.toEnrichmentRequest(refName)         → { prompt, schema, content }
+generator.toEnrichmentRequest(ref)             → { prompt, schema, content }
                 ↓
 host AI tooling calls LLM with prompt + content
                 ↓

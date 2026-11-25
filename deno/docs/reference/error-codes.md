@@ -56,7 +56,9 @@ OpenAPI document. The cause is typically:
 
 - Conflicting `allOf` members (incompatible types or constraints)
 - Empty `oneOf` / `anyOf` arrays
-- Cycle in `allOf` references
+- A cycle in the references that `allOf` merges, when
+  `settings.system.intersections` is `merge`. With the default, the
+  parser keeps such a reference (`OasIntersection`).
 - A `not` keyword
 
 [`settings.system`](settings/client-json-schema.md#settingssystem-optional)
@@ -97,7 +99,9 @@ that started the removal. The location is the same string as the
 
 **Remediation:** Find the *upstream* `INVALID_SCHEMA` issue that
 broke the ref target. Fix the upstream schema; the dependent
-`INVALID_DEPENDENCY_REF` issues typically resolve on their own.
+`INVALID_DEPENDENCY_REF` issues typically resolve on their own. If
+the upstream issue is a `DANGLING_REF`, the target does not exist
+(see [`DANGLING_REF`](#dangling_ref--error-or-warning)).
 
 **Also when:** In an OpenAPI 3.2 document, a `content` entry has a
 `$ref` that does not resolve to an entry in `components.mediaTypes`.
@@ -201,6 +205,44 @@ operation or a webhook. Skmtc reads the field as no parameters.
 
 **Remediation:** Remove the empty entry or the empty field from the
 OpenAPI document.
+
+### `MISSING_PARAMETER_SCHEMA` — warning
+
+**When:** A parameter has neither `schema` nor `content`. OpenAPI
+requires one of the two. Skmtc keeps the parameter and gives it the
+empty schema `{}`, which allows any value. Generators read it as an
+unknown schema, and the operation still generates. A parameter with
+`schema` or `content` does not get this warning. All three versions
+(3.0, 3.1 and 3.2) log it.
+
+An OpenAPI 3.2 `in: querystring` parameter
+without `content` is an
+[`INVALID_PARAMETER`](#invalid_parameter--error-or-warning) error
+instead.
+
+**Typical message:** `Parameter 'home_street' in path has neither
+schema nor content; read as an empty schema {}`.
+
+**Example location:** `paths:/home_streets/{home_street}/firms:get:parameters:0`
+or `components:parameters:<name>`
+
+**Remediation:** Add a `schema` to the parameter in the OpenAPI
+document, for example `schema: { type: string }`.
+
+### `MISSING_HEADER_SCHEMA` — warning
+
+**When:** A header object has neither `schema` nor `content`. The
+header follows the parameter rules, so Skmtc does the same as for
+[`MISSING_PARAMETER_SCHEMA`](#missing_parameter_schema--warning): it
+keeps the header and gives it the empty schema `{}`.
+
+**Typical message:** `Header 'X-Rate-Limit' has neither schema nor
+content; read as an empty schema {}`.
+
+**Example location:** `paths:/pets:get:responses:200:headers:X-Rate-Limit`
+or `components:headers:<name>`
+
+**Remediation:** Add a `schema` to the header in the OpenAPI document.
 
 ### `MISSING_RESPONSES` — warning
 
@@ -531,8 +573,8 @@ remove the object.
 ### `WILDCARD_MEDIA_TYPE` — warning
 
 **When:** A response or request body has a `content` map with a
-`*/*` key, no JSON media type, and an object, array, union or `$ref`
-schema under `*/*`. The lookups without a media type
+`*/*` key and no JSON media type. The schema under `*/*` is an object,
+array, union, intersection or `$ref`. The lookups without a media type
 (`OasResponse.toSchema()`, `OasOperation.traverse`) then read that
 schema as JSON, but the document does not say the format of the body.
 There is one issue for each response or body, at its `content` key.
@@ -584,6 +626,85 @@ each schema.
 necessary. To get a union, set `settings.system.anyOf` to `union`
 (the default), or remove it. See
 [`settings.system`](settings/client-json-schema.md#settingssystem-optional).
+
+### `DANGLING_REF` — error or warning
+
+**When:** A `$ref` names nothing in the document. There is one issue
+for each place that has the `$ref`. The location is that place.
+
+A remote `$ref`, one that does not start with `#`, also names nothing.
+Core does not fetch other files. Bundle the files into one document
+before you run Skmtc.
+
+A `$ref` in a loop of `$ref`s also names nothing. In a loop, `A` is a
+`$ref` to `B`, and `B` to `A`. The chain never gets to a component that
+is not a `$ref`. The issue is at the `$ref`s of the loop. A `$ref` that leads
+into the loop does not get one. When the parser removes a `$ref` of the
+loop, the rest of the loop and the items that refer to it get an
+`INVALID_DEPENDENCY_REF`.
+
+- **error:** `settings.system.danglingRefs` does not list the kind of
+  the `$ref`. The default list is empty. The parser removes the item
+  that has the `$ref`. Each item that refers to that item gets an
+  `INVALID_DEPENDENCY_REF`.
+- **warning:** `settings.system.danglingRefs` lists the kind of the
+  `$ref`. The `$ref` stays. When a generator resolves it, core throws a
+  `DanglingRefError`.
+
+The kinds are `schema`, `parameter`, `requestBody`, `response`,
+`header`, `securityScheme`, `example`, `link` and `allOfMember`.
+
+Core merges the members of an `allOf` during the parse, so a generator
+does not see them. A member names nothing when no schema has its name,
+or when it leads into a loop of `$ref`s. When a member names nothing and the list has
+`allOfMember`, core leaves the member out of the merge and gives a
+warning. The model then has no properties from that member. When the
+list does not have `allOfMember`, core gives an error, and the parser
+removes the item that has the `allOf`. The location is that item.
+
+`settings.system.intersections` can keep a `$ref` out of the merge. Such
+a `$ref` is of the kind `schema`, and a generator sees it.
+
+Core also merges in a `oneOf` or an `anyOf`: the `allOf` of a member,
+and each member with the keywords next to the union. The same rule
+applies to these `$ref`s. The location is the item that has the union.
+
+**Typical messages:**
+
+- `Ref "#/components/schemas/X" names nothing in the document, so what holds it is removed. To keep it, list 'schema' in system.danglingRefs.`
+- `Ref "#/components/schemas/X" names nothing in the document. It is kept (system.danglingRefs lists 'schema'), and resolving it throws DanglingRefError.`
+- `Ref "#/components/schemas/X" names nothing in the document. It is left out of the allOf merge (system.danglingRefs lists 'allOfMember').`
+- `Ref "#/components/schemas/X" names nothing in the document. Core resolves it while it parses, so what holds it is removed.`
+- `Ref "./common.yaml#/components/schemas/X" points outside the document; bundle the files into one document first, so what holds it is removed. To keep it, list 'schema' in system.danglingRefs.`
+- `Ref "#/components/parameters/P2" leads into a loop of $refs (#/components/parameters/P2 → #/components/parameters/P1 → #/components/parameters/P2) and never reaches a component, so what holds it is removed. To keep it, list 'parameter' in system.danglingRefs.`
+
+**Remediation:** Add the target to `components` in the source
+document, or correct the `$ref`. To keep the items that have the
+`$ref`, list its kind in `settings.system.danglingRefs`, and use
+generators that catch `DanglingRefError`. To find the error, use
+`DanglingRefError.is(error)`, not `instanceof`: a generator bundle can
+have a different copy of `@skmtc/core`. See
+[`settings.system`](settings/client-json-schema.md#settingssystem-optional).
+
+### `REF_TYPE_MISMATCH` — error
+
+**When:** A `$ref` names an item in `components` of a different kind
+than its place needs, for example a request body with
+`$ref: '#/components/schemas/Pet'`. There is one issue for each place
+that has the `$ref`. The location is that place. The parser removes the
+item that has the `$ref`, because it gives a generator only what the
+place promises. The item that the `$ref` names stays.
+`settings.system.danglingRefs` does not apply.
+
+A place outside `components` has one kind: the kind of the first `$ref`
+that points to it. A `$ref` of a different kind to the same place gets
+this issue.
+
+**Typical message:**
+`Ref type mismatch for "#/components/schemas/Pet". Expected a ref into "components/requestBodies" but it names one in "components/schemas", so what holds it is removed.`
+
+**Remediation:** Correct the `$ref` so that it names an item of the
+correct kind, for example `#/components/requestBodies/Pet`.
 
 ## GraphQL parse-issue types
 
@@ -687,17 +808,14 @@ mismatch. Check `client.json` variant keys first.
 
 **Full message:** `Max lookups reached`
 
-**When:** `OasRef.resolve()` chased a ref chain deeper than 10 hops.
-Indicates either a cycle in the OAS document's `$ref`s or a
-pathologically deep chain.
+**When:** `@skmtc/core` before 0.44.0 threw it from `OasRef.resolve()`
+for a loop of `$ref`s, or for a chain of more than 10 `$ref`s. From
+0.44.0, a loop of `$ref`s is a
+[`DANGLING_REF`](#dangling_ref--error-or-warning), and a long chain
+resolves.
 
-**Remediation:**
-
-- Inspect the OpenAPI document at the location indicated in the
-  surrounding error context.
-- Look for circular `$ref`s (`A → B → A`) or deeply nested ref
-  chains.
-- Refactor the schema to break the cycle or flatten the chain.
+**Remediation:** Upgrade `@skmtc/core`. Or find the loop (`A → B → A`)
+in the document and point one `$ref` of it at a real component.
 
 ### `Ref "<$ref>" not found`
 
@@ -786,7 +904,7 @@ The whole generator is skipped while enrichments for it exist.
 |---|---|
 | `0` | Success (including documented no-ops, e.g. `clean` on a project with no manifest) |
 | `1` | Fatal failure — parseIssue at level `error`, typecheck failed, or other unrecoverable error |
-| `2` | Required input missing or invalid — recipe error printed to stderr |
+| `2` | Required input missing or invalid — recipe error printed to stderr. Also a named project that did not load (see below) |
 
 Recipe errors at exit code 2 always include:
 
@@ -798,6 +916,18 @@ Recipe errors at exit code 2 always include:
 
 The recipe pattern is the "fix it without reading the docs"
 contract for agents.
+
+One exit-2 error is not a recipe. If a command names a project whose
+folder did not load, stderr shows one line and no `Usage:` line:
+
+```
+Project "<name>" did not load: <reason>
+```
+
+The reason gives the cause, for example a schema file that is not in
+the folder. Repair the folder `.skmtc/<name>/`, then run the command
+again. A command for a different project still runs, and
+prints the same line as a warning.
 
 ## Issue location strings
 

@@ -17,7 +17,7 @@
  *   projection wrapper (the Driver wraps the PROJECTION as the value)
  * - head+value: `data-class` identifier head + parameter-list value
  */
-import { GenerateContext, OasDocument, camelCase, capitalize, emptyEnrichmentSchema } from '@skmtc/core'
+import { GenerateContext, OasDocument, camelCase, capitalize, emptyEnrichmentSchema, toSchemaComponentRef } from '@skmtc/core'
 import type {
   Enrichments,
   GenerateContextType,
@@ -108,10 +108,10 @@ class ExampleDataClassValue extends KtSnippet {
 
 const ExampleBase = toKtModelProjectionBase({
   id: '@skill/lang-kotlin-example',
-  toIdentifierName: ({ refName }) => capitalize(camelCase(refName)),
+  toIdentifierName: ({ ref }) => capitalize(camelCase(ref.refName)),
   toIdentifierType: () => ({ type: 'data-class' }),
-  toExportPath: ({ refName }) =>
-    `@/com/example/api/${capitalize(camelCase(refName))}.generated.kt`,
+  toExportPath: ({ ref }) =>
+    `@/com/example/api/${capitalize(camelCase(ref.refName))}.generated.kt`,
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 
@@ -148,7 +148,7 @@ class ExampleProjection extends ExampleBase {
 Deno.test('skill-v3 worked example renders byte-for-byte as the skill promises', () => {
   const context = toGenerateContext()
 
-  context.insertModel(ExampleProjection, 'User' as RefName)
+  context.insertModel(ExampleProjection, toSchemaComponentRef('User' as RefName))
 
   const file = context.getFile('@/com/example/api/User.generated.kt')
 

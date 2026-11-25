@@ -9,16 +9,20 @@ import {
   resolveStackVersion,
   toDeployedLines,
   toDeployExitCode,
+  toNextPatchVersion,
   uploadVersion
 } from '@/lib/deploy-headless.ts'
 import type { SourceFile } from '@/lib/source-upload.ts'
+import { NoServerForCoreError, type ServerPinChange } from '@/lib/publish-server-pin.ts'
 import { join } from '@std/path/join'
 import {
+  type HubCall,
   makeStackProject,
   stackVersionPayload,
   toJsonResponse,
   toPinnedImports,
   toStackServer,
+  toVersionsPage,
   withStackHub
 } from '@/tests/mocks/stack-hub.mock.ts'
 import {
@@ -168,7 +172,10 @@ Deno.test('resolveStackVersion - the --version flag wins over deno.json', async 
   const projectPath = await Deno.makeTempDir()
   try {
     await Deno.writeTextFile(join(projectPath, 'deno.json'), JSON.stringify({ version: '1.0.0' }))
-    assertEquals(await resolveStackVersion({ projectPath, versionFlag: ' 2.0.0 ' }), '2.0.0')
+    assertEquals(await resolveStackVersion({ projectPath, versionFlag: ' 2.0.0 ' }), {
+      version: '2.0.0',
+      fromFlag: true
+    })
   } finally {
     await Deno.remove(projectPath, { recursive: true })
   }
@@ -178,7 +185,7 @@ Deno.test('resolveStackVersion - falls back to the project deno.json version', a
   const projectPath = await Deno.makeTempDir()
   try {
     await Deno.writeTextFile(join(projectPath, 'deno.json'), JSON.stringify({ version: ' 1.2.3 ' }))
-    assertEquals(await resolveStackVersion({ projectPath }), '1.2.3')
+    assertEquals(await resolveStackVersion({ projectPath }), { version: '1.2.3', fromFlag: false })
   } finally {
     await Deno.remove(projectPath, { recursive: true })
   }
@@ -315,6 +322,7 @@ Deno.test('deployHeadless - a new version: check, upload, then deploy { version 
 
   const deployed = toDeployed(result)
   assertEquals(deployed.version, '3.0.1')
+  assertEquals(deployed.versionPicked, false)
   assertEquals(deployed.upload?.sourceHash, 'cafef00d')
   assertEquals(deployed.deploy, {
     status: 'active',
@@ -453,18 +461,20 @@ Deno.test('deployVersion - a stalled body counts as "deploy not confirmed"', asy
   assertStringIncludes(outcome.reason, 'did not answer within')
 })
 
-Deno.test('deployHeadless - a 200 from the version check exits 2 and uploads nothing', async () => {
-  const { result, calls } = await runDeploy({
-    exists: () => toJsonResponse(stackVersionPayload, 200)
-  })
+Deno.test('deployHeadless - a stored --version exits 2 and uploads nothing', async () => {
+  const { result, calls } = await runDeploy(
+    { exists: () => toJsonResponse(stackVersionPayload, 200) },
+    { version: '3.0.1' }
+  )
 
   const failed = toFailed(result)
   assertEquals(failed.stage, 'exists')
   assertEquals(failed.stored, true)
   assertEquals(
     failed.reason,
-    'Version 3.0.1 already exists. Bump `version` in deno.json, or run ' +
-      '`skmtc deploy my-api --existing` to deploy the stored version.'
+    'Version 3.0.1 already exists. Pass another `--version`, run ' +
+      '`skmtc deploy my-api` to deploy the deno.json version (or the next patch when it is stored), or run ' +
+      '`skmtc deploy my-api --version 3.0.1 --existing` to deploy the stored version.'
   )
   assertEquals(toDeployExitCode(result), 2)
   assertEquals(
@@ -481,11 +491,14 @@ Deno.test('deployHeadless - a 403 from the version check goes on to the upload',
   assertEquals(calls.length, 3)
 })
 
-Deno.test('deployHeadless - a 403 check then a 409 upload is the same recipe, exit 2', async () => {
-  const { result, calls } = await runDeploy({
-    exists: () => toJsonResponse({ code: 'forbidden' }, 403),
-    upload: () => toJsonResponse({ code: 'conflict', message: 'version exists' }, 409)
-  })
+Deno.test('deployHeadless - a 403 check then a 409 upload of a --version is the same recipe, exit 2', async () => {
+  const { result, calls } = await runDeploy(
+    {
+      exists: () => toJsonResponse({ code: 'forbidden' }, 403),
+      upload: () => toJsonResponse({ code: 'conflict', message: 'version exists' }, 409)
+    },
+    { version: '3.0.1' }
+  )
 
   const failed = toFailed(result)
   assertEquals(failed.stage, 'exists')
@@ -671,10 +684,310 @@ Deno.test('deployHeadless - a 2xx upload with an unreadable body is stored and n
 })
 
 Deno.test('deployHeadless - deploys and reports the version as the hub stored it', async () => {
-  const { result, calls } = await runDeploy({}, { version: 'v3.0.1' })
+  const { result, calls } = await runDeploy(
+    { upload: () => toJsonResponse(stackVersionPayload, 201) },
+    { version: 'v3.0.1' }
+  )
 
   const deployBody = calls.find(call => call.path === DEPLOY_PATH)?.body
   if (typeof deployBody !== 'string') throw new Error('expected a deploy body')
   assertEquals(JSON.parse(deployBody), { version: '3.0.1' })
   assertEquals(toDeployed(result).version, '3.0.1')
+})
+
+/** A deploy of the fixture project with `pinServer` in place of the registry lookup. */
+const runDeployWithPin = async (
+  pinServer: (projectPath: string) => Promise<ServerPinChange | null>
+) => {
+  await using project = await makeStackProject()
+  let result: DeployHeadlessResult | undefined
+  let refreshed = 0
+  const calls = await withStackHub({}, async () => {
+    result = await deployHeadless({
+      skmtcRoot: project.skmtcRoot,
+      projectName: 'my-api',
+      token: 'pat-123',
+      origin: 'https://hub.test',
+      refreshLock: () => {
+        refreshed += 1
+        return Promise.resolve()
+      },
+      pinServer
+    })
+  })
+  if (!result) throw new Error('deployHeadless returned nothing')
+  return { result, calls, refreshed }
+}
+
+Deno.test(
+  'deployHeadless - a changed server pin refreshes the lock and is in the result',
+  async () => {
+    const change: ServerPinChange = {
+      package: '@skmtc/server',
+      from: 'jsr:@skmtc/server@0.3.34',
+      to: 'jsr:@skmtc/server@0.3.33'
+    }
+    const { result, refreshed } = await runDeployWithPin(() => Promise.resolve(change))
+
+    assertEquals(refreshed, 1)
+    // `--json` prints the result, so the change is reported there too.
+    assertEquals(toDeployed(result).serverPin, change)
+  }
+)
+
+Deno.test('deployHeadless - no server for the project core stops before the upload', async () => {
+  const { result, calls } = await runDeployWithPin(() =>
+    Promise.reject(new NoServerForCoreError({ core: '0.43.0', tried: ['0.3.34', '0.3.32'], reason: 'no-server' }))
+  )
+
+  const failed = toFailed(result)
+  assertEquals(failed.stage, 'source')
+  assertEquals(failed.stored, false)
+  assertStringIncludes(failed.reason, "accepts the project's @skmtc/core 0.43.0")
+  assertEquals(
+    calls.some(call => call.method === 'POST'),
+    false
+  )
+})
+
+Deno.test('deployHeadless - a failure after the server pin changed still reports the pin', async () => {
+  const change: ServerPinChange = {
+    package: '@skmtc/server',
+    from: null,
+    to: 'jsr:@skmtc/server@0.3.33'
+  }
+  await using project = await makeStackProject()
+  let result: DeployHeadlessResult | undefined
+  await withStackHub({}, async () => {
+    result = await deployHeadless({
+      skmtcRoot: project.skmtcRoot,
+      projectName: 'my-api',
+      token: 'pat-123',
+      origin: 'https://hub.test',
+      refreshLock: () => Promise.reject(new Error('deno install failed')),
+      pinServer: () => Promise.resolve(change)
+    })
+  })
+  if (!result) throw new Error('deployHeadless returned nothing')
+
+  const failed = toFailed(result)
+  assertEquals(failed.stage, 'source')
+  // deno.json has already changed, so --json says so.
+  assertEquals(failed.serverPin, change)
+})
+
+Deno.test('toNextPatchVersion - the next patch after the newest release, by semver', () => {
+  assertEquals(toNextPatchVersion(['0.1.5', '0.2.0']), '0.2.1')
+  // Not by string order, not by list order.
+  assertEquals(toNextPatchVersion(['0.10.0', '0.9.0', '0.2.0']), '0.10.1')
+  // A prerelease is never the newest one.
+  assertEquals(toNextPatchVersion(['1.0.0', '2.0.0-beta.1']), '1.0.1')
+  assertEquals(toNextPatchVersion(['2.0.0-beta.1', 'not-semver']), null)
+  assertEquals(toNextPatchVersion([]), null)
+})
+
+const UPLOADED_VERSIONS = (calls: HubCall[]) =>
+  calls.flatMap(call =>
+    call.method === 'POST' && call.body instanceof FormData ? [call.body.get('version')] : []
+  )
+
+/** Run `fn` with `console.error` recorded, and return what it printed. */
+const recordStderr = async (fn: () => Promise<unknown>): Promise<string[]> => {
+  const originalError = console.error
+  const lines: string[] = []
+  console.error = (...args: unknown[]) => lines.push(args.map(String).join(' '))
+  try {
+    await fn()
+    return lines
+  } finally {
+    console.error = originalError
+  }
+}
+
+Deno.test(
+  'deployHeadless - a stored deno.json version deploys the next patch after the newest stored version',
+  async () => {
+    const cursors: (string | null)[] = []
+    let outcome: Awaited<ReturnType<typeof runDeploy>> | undefined
+    const stderr = await recordStderr(async () => {
+      outcome = await runDeploy({
+        exists: () => toJsonResponse(stackVersionPayload, 200),
+        // Two pages; the newest release is on the second page.
+        versions: cursor => {
+          cursors.push(cursor)
+          return cursor === null
+            ? toVersionsPage(['3.0.1', '3.2.9'], 'page-2')
+            : toVersionsPage(['3.10.0', '3.11.0-beta.1'])
+        }
+      })
+    })
+    if (!outcome) throw new Error('runDeploy returned nothing')
+    const { result, calls } = outcome
+
+    assertEquals(cursors, [null, 'page-2'])
+    assertEquals(
+      calls.map(call => `${call.method} ${call.path}`),
+      [
+        `GET ${VERSION_PATH}`,
+        `GET ${UPLOAD_PATH}`,
+        `GET ${UPLOAD_PATH}`,
+        `POST ${UPLOAD_PATH}`,
+        `POST ${DEPLOY_PATH}`
+      ]
+    )
+    // Not 3.0.2, the next patch after the deno.json version.
+    assertEquals(UPLOADED_VERSIONS(calls), ['3.10.1'])
+    const deployBody = calls.find(call => call.path === DEPLOY_PATH)?.body
+    if (typeof deployBody !== 'string') throw new Error('expected a deploy body')
+    assertEquals(JSON.parse(deployBody), { version: '3.10.1' })
+
+    const deployed = toDeployed(result)
+    assertEquals(deployed.version, '3.10.1')
+    assertEquals(deployed.versionPicked, true)
+    assertEquals(toDeployExitCode(result), 0)
+    assertEquals(stderr.includes('Version 3.0.1 is stored: deploying 3.10.1.'), true)
+    assertStringIncludes(toDeployedLines(deployed).join('\n'), 'picked:')
+  }
+)
+
+Deno.test('deployHeadless - a picked version keeps --version in the suggested commands', async () => {
+  let outcome: Awaited<ReturnType<typeof runDeploy>> | undefined
+  await recordStderr(async () => {
+    outcome = await runDeploy({
+      exists: () => toJsonResponse(stackVersionPayload, 200),
+      versions: () => toVersionsPage(['3.0.1']),
+      deploy: () => toJsonResponse({ message: 'boom' }, 503)
+    })
+  })
+  if (!outcome) throw new Error('runDeploy returned nothing')
+  // Without --version the command would deploy the deno.json version, 3.0.1.
+  assertStringIncludes(
+    toFailed(outcome.result).reason,
+    '`skmtc deploy my-api --version 3.0.2 --existing`'
+  )
+})
+
+Deno.test('deployHeadless - the CLI does not write the picked version into deno.json', async () => {
+  await using project = await makeStackProject()
+  const before = await Deno.readTextFile(join(project.projectPath, 'deno.json'))
+  let result: DeployHeadlessResult | undefined
+  await recordStderr(() =>
+    withStackHub({ exists: () => toJsonResponse(stackVersionPayload, 200) }, async () => {
+      result = await deployHeadless({
+        skmtcRoot: project.skmtcRoot,
+        projectName: 'my-api',
+        token: 'pat-123',
+        origin: 'https://hub.test',
+        refreshLock: noRefresh
+      })
+    })
+  )
+  if (!result) throw new Error('deployHeadless returned nothing')
+  assertEquals(toDeployed(result).versionPicked, true)
+  assertEquals(await Deno.readTextFile(join(project.projectPath, 'deno.json')), before)
+})
+
+Deno.test('deployHeadless - a deno.json version that is not stored deploys as it is', async () => {
+  const { result, calls } = await runDeploy({
+    versions: () => toVersionsPage(['9.9.9'])
+  })
+
+  // The versions list is not read.
+  assertEquals(
+    calls.some(call => call.method === 'GET' && call.path === UPLOAD_PATH),
+    false
+  )
+  assertEquals(UPLOADED_VERSIONS(calls), ['3.0.1'])
+  const deployed = toDeployed(result)
+  assertEquals(deployed.version, '3.0.1')
+  assertEquals(deployed.versionPicked, false)
+})
+
+Deno.test('deployHeadless - a versions list that cannot be read stops before the upload, exit 1', async () => {
+  const { result, calls } = await runDeploy({
+    exists: () => toJsonResponse(stackVersionPayload, 200),
+    versions: () => toJsonResponse({ message: 'missing scope' }, 403)
+  })
+
+  const failed = toFailed(result)
+  assertEquals(failed.stage, 'version')
+  assertStringIncludes(failed.reason, 'Version 3.0.1 is stored')
+  assertStringIncludes(failed.reason, 'missing scope')
+  assertStringIncludes(failed.reason, '--version <semver>')
+  assertEquals(toDeployExitCode(result), 1)
+  assertEquals(
+    calls.some(call => call.method === 'POST'),
+    false
+  )
+})
+
+Deno.test('deployHeadless - a versions page with more pages but no cursor stops before the upload', async () => {
+  const { result, calls } = await runDeploy({
+    exists: () => toJsonResponse(stackVersionPayload, 200),
+    versions: () =>
+      toJsonResponse({ items: [{ version: '3.0.1' }], pagination: { hasMore: true } }, 200)
+  })
+
+  const failed = toFailed(result)
+  assertEquals(failed.stage, 'version')
+  assertStringIncludes(failed.reason, 'more pages but no cursor')
+  assertEquals(
+    calls.some(call => call.method === 'POST'),
+    false
+  )
+})
+
+Deno.test('deployHeadless - a 409 on the upload of a picked version picks again once', async () => {
+  let uploads = 0
+  const { result, calls } = await runDeploy({
+    exists: () => toJsonResponse(stackVersionPayload, 200),
+    versions: () => toVersionsPage(['3.0.1']),
+    upload: () => {
+      uploads += 1
+      return uploads === 1
+        ? toJsonResponse({ code: 'conflict', message: 'version exists' }, 409)
+        : toJsonResponse({ ...stackVersionPayload, version: '3.0.3' }, 201)
+    }
+  })
+
+  // 3.0.2 was stored by another deploy; the list does not show it yet.
+  assertEquals(UPLOADED_VERSIONS(calls), ['3.0.2', '3.0.3'])
+  const deployed = toDeployed(result)
+  assertEquals(deployed.version, '3.0.3')
+  assertEquals(deployed.versionPicked, true)
+})
+
+Deno.test('deployHeadless - a 409 on the upload picks again once, then fails, exit 1', async () => {
+  const { result, calls } = await runDeploy({
+    exists: () => toJsonResponse(stackVersionPayload, 200),
+    versions: () => toVersionsPage(['3.0.1']),
+    upload: () => toJsonResponse({ code: 'conflict', message: 'version exists' }, 409)
+  })
+
+  assertEquals(UPLOADED_VERSIONS(calls), ['3.0.2', '3.0.3'])
+  const failed = toFailed(result)
+  assertEquals(failed.stage, 'upload')
+  // Another deploy stored 3.0.3.
+  assertEquals(failed.stored, true)
+  assertStringIncludes(failed.reason, 'Version 3.0.3 was also stored by another deploy')
+  assertStringIncludes(failed.reason, '`skmtc deploy my-api`')
+  assertEquals(toDeployExitCode(result), 1)
+  assertEquals(calls.map(call => call.path).includes(DEPLOY_PATH), false)
+})
+
+Deno.test('deployHeadless - a 409 on the upload of a deno.json version that was not stored picks too', async () => {
+  let uploads = 0
+  const { result, calls } = await runDeploy({
+    upload: () => {
+      uploads += 1
+      return uploads === 1
+        ? toJsonResponse({ code: 'conflict', message: 'version exists' }, 409)
+        : toJsonResponse({ ...stackVersionPayload, version: '3.0.2' }, 201)
+    }
+  })
+
+  assertEquals(UPLOADED_VERSIONS(calls), ['3.0.1', '3.0.2'])
+  const deployed = toDeployed(result)
+  assertEquals(deployed.version, '3.0.2')
+  assertEquals(deployed.versionPicked, true)
 })

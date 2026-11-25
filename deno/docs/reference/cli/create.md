@@ -56,11 +56,11 @@ scaffold:
 | `<type>` | Factory used | Constructor args |
 |---|---|---|
 | `operation` | `toOasOperationProjectionBase` | `{ context, operation, settings }` |
-| `model` | `toModelProjectionBase` | `{ context, refName, settings }` |
+| `model` | `toModelProjectionBase` | `{ context, ref, settings }` |
 
-For models the constructor receives `refName`, not a schema —
-the schema is resolved internally inside the Projection
-constructor via `context.resolveSchemaRefOnce(refName)`.
+For models the constructor receives the model's `ref`
+(`{ refName, refPath }`), not a schema. The Projection constructor
+resolves the schema with `context.resolveSchemaRefOnce(ref)`.
 (The scaffold itself wraps these canonical args with optional
 `destinationPath` and `rootRef?` fields exposed to user code.)
 

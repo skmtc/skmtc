@@ -1,7 +1,7 @@
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasRefData } from './ref-types.ts'
-import { toRefName } from '../../helpers/refFns.ts'
+import { isDefaultRefPath, isRemoteRefPath, toComponentsBucket, toRefParts, toRefPathBucket, toRefPointer } from '@/helpers/refFns.ts'
 import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OasResponse } from '../response/Response.ts'
 import type { OasParameter } from '../parameter/Parameter.ts'
@@ -16,6 +16,7 @@ import type { RefName } from '../../types/RefName.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { OasSecurityScheme } from '../securitySchemes/SecurityScheme.ts'
 import { OasBase } from '@/types/OasBase.ts'
+import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 import {
   changesTarget,
   changesValues,
@@ -25,36 +26,6 @@ import {
   toSkippedSiblings
 } from '@/oas/schema/siblings.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
-
-const MAX_LOOKUPS = 10
-
-/**
- * Converts a ref type to its plural components path.
- */
-function refTypeToPluralPath(refType: OasRefData['refType']): string {
-  switch (refType) {
-    case 'schema':
-      return 'schemas'
-    case 'requestBody':
-      return 'requestBodies'
-    case 'parameter':
-      return 'parameters'
-    case 'response':
-      return 'responses'
-    case 'example':
-      return 'examples'
-    case 'header':
-      return 'headers'
-    case 'securityScheme':
-      return 'securitySchemes'
-    case 'link':
-      return 'links'
-    default: {
-      const _exhaustive: never = refType
-      throw new Error(`Unhandled ref type: ${_exhaustive}`)
-    }
-  }
-}
 
 /**
  * What a reference reads from the parse context when it is made: the document
@@ -89,7 +60,7 @@ export type RefFields<T extends OasRefData['refType']> = SiblingKeywords & {
  * - **Type Safety**: Generic parameter ensures resolved types match the reference type
  * - **Lazy Resolution**: References are resolved on-demand, not during construction
  * - **Chain Resolution**: Handles references that point to other references
- * - **Circular Detection**: Prevents infinite loops with maximum lookup limits
+ * - **Loop Detection**: A chain of references that loops names nothing ({@link OasRef.toLoop})
  * - **Type Validation**: Ensures resolved objects match expected reference types
  *
  * @template T - The type of component this reference points to
@@ -135,8 +106,8 @@ export type RefFields<T extends OasRefData['refType']> = SiblingKeywords & {
  * function processSchemaOrRef(schema: OasSchema | OasRef<'schema'>) {
  *   if (schema.isRef()) {
  *     // Handle reference
- *     const refName = schema.toRefName();
- *     console.log(`Processing reference: ${refName}`);
+ *     const { refName, refPath } = schema;
+ *     console.log(`Processing reference: ${refName} in ${refPath}`);
  *
  *     // Resolve only when needed
  *     const resolved = schema.resolve();
@@ -170,8 +141,25 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
   type: 'ref' = 'ref'
   /** The kind of component the reference points to. */
   refType: T
-  /** The JSON Reference: `#/components/<bucket>/<name>`. */
+  /**
+   * The JSON Reference, as written: a component (`#/components/<bucket>/<name>`)
+   * or any other place in the document (`#/components/schemas/Pet/properties/tag`).
+   */
   $ref: string
+  /**
+   * The last segment of the `$ref`'s pointer, unescaped: `Pet` for
+   * `#/components/schemas/Pet`, `schema0` for
+   * `#/components/schemas/__sharedInput/$defs/schema0`. Empty for a `$ref`
+   * that ends in `/`, which names nothing.
+   */
+  refName: RefName
+  /**
+   * The pointer before {@link refName}, with no percent escapes: `#/components/schemas`
+   * for a schema component, `#/components/schemas/__sharedInput/$defs` for
+   * the `$defs` entry above. A generator that names by {@link refName} alone
+   * may ignore it.
+   */
+  refPath: string
   /**
    * Use-site nullability (see {@link SiblingKeywords.nullable}). Assigned
    * even when `undefined`, so `'nullable' in ref` is always true and the
@@ -254,6 +242,9 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     super(context)
     this.refType = fields.refType
     this.$ref = fields.$ref
+    const { refName, refPath } = toRefParts({ $ref: fields.$ref })
+    this.refName = refName
+    this.refPath = refPath
     this.nullable = fields.nullable
     this.readOnly = fields.readOnly
     this.writeOnly = fields.writeOnly
@@ -297,8 +288,8 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
   /**
    * Recursively resolves this reference to its final target component.
    *
-   * Follows reference chains until reaching a non-reference component,
-   * with protection against infinite loops. A schema reference returns the
+   * Follows the chain of references until it reaches a component that is
+   * not a reference. A schema reference returns the
    * schema at this site: when the keywords next to it, or next to a
    * reference on the chain ({@link SiblingKeywords}), change the target, a
    * copy of the target with them applied. When they change nothing, the
@@ -308,25 +299,43 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    * model every reference to it sees, and a copy is built once, kept on
    * this reference, and returned on every call.
    *
-   * @param lookupsPerformed - Internal counter to prevent infinite recursion
    * @returns The resolved component
-   * @throws Error if maximum lookup depth is exceeded
+   * @throws {DanglingRefError} when a reference on the chain names nothing,
+   * or the chain loops ({@link toLoop}), so it never reaches a component.
+   * The parser keeps either one only when `system.danglingRefs` lists its kind.
+   * @throws Error when a reference on the chain names a component of another
+   * kind (see {@link resolveOnce})
    */
-  resolve(lookupsPerformed: number = 0): ResolvedRef<T> {
-    return this.#toResolution(lookupsPerformed).resolved
+  resolve(): ResolvedRef<T> {
+    return this.#toResolution().resolved
   }
 
-  #toResolution(lookupsPerformed: number): Resolution<T> {
+  /** The resolution, once the chain from here is known not to loop. */
+  #toResolution(): Resolution<T> {
     if (this.#resolution !== undefined) {
       return this.#resolution
     }
 
-    if (lookupsPerformed >= MAX_LOOKUPS) {
-      throw new Error('Max lookups reached')
+    const loop = this.toLoop()
+
+    if (loop !== undefined) {
+      throw new DanglingRefError(this.$ref, { loop: loop.map(({ $ref }) => $ref) })
+    }
+
+    return this.#toChainResolution()
+  }
+
+  /**
+   * The resolution, following the chain. {@link #toResolution} has looked for
+   * a loop once, so each later step of the chain does not look again.
+   */
+  #toChainResolution(): Resolution<T> {
+    if (this.#resolution !== undefined) {
+      return this.#resolution
     }
 
     const resolved = this.resolveOnce()
-    const target = resolved.isRef() ? resolved.resolve(lookupsPerformed + 1) : resolved
+    const target = resolved.isRef() ? resolved.#toChainResolution().resolved : resolved
     const resolution: Resolution<T> = { target, resolved: this.#toSiteSchema(target) }
 
     this.#resolution = resolution
@@ -353,22 +362,56 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
   }
 
   /**
+   * The references that form the loop this reference's chain comes back to,
+   * starting with the first one it comes back to, or `undefined` when the
+   * chain reaches a component. `A` a `$ref` to `B`, and `B` to `A`, form a
+   * loop: from `A` the chain goes to `B`, then to `A` again, and never
+   * reaches a component. A reference that leads into a loop is not part of it.
+   *
+   * @throws what {@link resolveOnce} throws, at any step of the chain
+   */
+  toLoop(): OasRef<T>[] | undefined {
+    return this.#toLoop([this])
+  }
+
+  /** {@link toLoop} from this reference, which `followed` ends with. */
+  #toLoop(followed: OasRef<T>[]): OasRef<T>[] | undefined {
+    const next = this.resolveOnce()
+
+    if (!next.isRef()) {
+      return undefined
+    }
+
+    const index = followed.indexOf(next)
+
+    return index === -1 ? next.#toLoop([...followed, next]) : followed.slice(index)
+  }
+
+  /**
    * Resolves this reference one level. Dispatches on the document's
-   * protocol — OAS reads from `document.components.<bucket>`; GQL
-   * reads from `document.registry.schemas`.
+   * protocol — OAS reads a component from `document.components.<bucket>`,
+   * and any other target from the targets the parser kept by pointer
+   * (`OasDocument.toRefTarget`); GQL reads from `document.registry.schemas`.
    *
    * @returns Either the resolved component or another reference in the chain
+   * @throws {DanglingRefError} when the reference names nothing in the
+   * document (kept when `client.json` `system.danglingRefs` lists its kind),
+   * including a `$ref` with no name, such as `#/components/schemas/`
+   * @throws Error when it names a component of another kind, such as a
+   * `requestBody` ref to `#/components/schemas/…`
    */
   resolveOnce(): OasRef<T> | ResolvedRef<T> {
-    const refName = toRefName(this.$ref)
+    if (this.refName === '') {
+      throw new DanglingRefError(this.$ref)
+    }
 
     const resolved =
       this.#document.type === 'oas'
-        ? this.#resolveOasOnce(this.#document.value, refName)
-        : this.#resolveGqlOnce(this.#document.value, refName)
+        ? this.#resolveOasOnce(this.#document.value)
+        : this.#resolveGqlOnce(this.#document.value)
 
     if (!resolved) {
-      throw new Error(`Ref "${this.$ref}" not found`)
+      throw new DanglingRefError(this.$ref, { remote: isRemoteRefPath(this.refPath) })
     }
 
     if (resolved.isRef()) {
@@ -388,7 +431,26 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     return resolved as OasRef<T> | ResolvedRef<T>
   }
 
-  #resolveOasOnce(document: OasDocument, refName: RefName): ResolvedRef<T> | OasRef<T> | undefined {
+  #resolveOasOnce(document: OasDocument): ResolvedRef<T> | OasRef<T> | undefined {
+    // A `#/components/<bucket>/<name>` ref names its bucket. A request body
+    // that is a `$ref` to `#/components/schemas/Pet` names a schema, so it is
+    // never looked up in the request bodies. A ref to any other place
+    // (`#/components/parameters/limit/schema`) names no bucket: the kind of
+    // what it finds is checked in `resolveOnce`.
+    const bucket = toRefPathBucket(this.refPath)
+    const expected = toComponentsBucket(this.refType)
+
+    if (bucket === undefined) {
+      return document.toRefTarget(toRefPointer(this)) as ResolvedRef<T> | OasRef<T> | undefined
+    }
+
+    if (bucket !== expected) {
+      throw new Error(
+        `Ref type mismatch for "${this.$ref}". Expected a ref into "components/${expected}" but it names one in "components/${bucket}"`
+      )
+    }
+
+    const refName = this.refName
     const c = document.components
     const refType: OasRefData['refType'] = this.refType
     switch (refType) {
@@ -415,18 +477,14 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     }
   }
 
-  #resolveGqlOnce(document: GqlDocument, refName: RefName): ResolvedRef<T> | OasRef<T> | undefined {
+  #resolveGqlOnce(document: GqlDocument): ResolvedRef<T> | OasRef<T> | undefined {
     // GraphQL only ever creates schema refs — there's no GQL concept
     // of a response/parameter/header/etc. ref. The refType field is
     // still typed by `T` for the OAS variants; on the GQL branch we
     // always do a schema lookup and let the post-lookup refType-vs-
     // oasType check catch any caller that constructed a non-schema
     // ref pointing at a GQL document.
-    return document.registry.schemas[refName] as ResolvedRef<T> | OasRef<T> | undefined
-  }
-
-  toRefName(): RefName {
-    return toRefName(this.$ref)
+    return document.registry.schemas[this.refName] as ResolvedRef<T> | OasRef<T> | undefined
   }
 
   /**
@@ -502,7 +560,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
       return false
     }
 
-    const { target, resolved } = this.#toResolution(0)
+    const { target, resolved } = this.#toResolution()
     // Widened from the generic ResolvedRef<T>, so `oasType` narrows them.
     const original: OasComponentType = target
     const applied: OasComponentType = resolved
@@ -536,42 +594,39 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    * Whether the value is `readOnly` at this site, as Forge reads it: on this
    * reference (`{ allOf: [{ $ref }], readOnly: true }`), or on what it points
    * to, through any chain of references. A `readOnly: false` does not undo
-   * another's `true`. `false` for a reference to anything but a schema.
-   *
-   * @param lookupsPerformed - Internal counter that stops a chain of references with no schema
+   * another's `true`. `false` for a reference to anything but a schema. In a
+   * loop ({@link toLoop}), which reaches no schema, only the references count.
    */
-  isReadOnly(lookupsPerformed: number = 0): boolean {
-    if (this.readOnly === true) {
-      return true
-    }
-
-    if (lookupsPerformed >= MAX_LOOKUPS) {
-      return false
-    }
-
-    const resolved = this.resolveOnce()
-
-    return resolved.isRef() ? resolved.isReadOnly(lookupsPerformed + 1) : resolved.isReadOnly()
+  isReadOnly(): boolean {
+    return this.#someOnChain({ onRef: ref => ref.readOnly === true, onTarget: target => target.isReadOnly() })
   }
 
   /**
    * Whether the value is `writeOnly` at this site: on this reference, or on
    * what it points to, as {@link isReadOnly} reads `readOnly`.
-   *
-   * @param lookupsPerformed - Internal counter that stops a chain of references with no schema
    */
-  isWriteOnly(lookupsPerformed: number = 0): boolean {
-    if (this.writeOnly === true) {
+  isWriteOnly(): boolean {
+    return this.#someOnChain({ onRef: ref => ref.writeOnly === true, onTarget: target => target.isWriteOnly() })
+  }
+
+  /**
+   * Whether `onRef` holds for a reference on the chain from this one, or
+   * `onTarget` for the component the chain reaches. A loop reaches no
+   * component, so the walk ends when it comes back to a reference it has
+   * passed.
+   */
+  #someOnChain(check: ChainCheck<T>, passed: ReadonlySet<OasRef<T>> = new Set()): boolean {
+    if (check.onRef(this)) {
       return true
     }
 
-    if (lookupsPerformed >= MAX_LOOKUPS) {
+    if (passed.has(this)) {
       return false
     }
 
-    const resolved = this.resolveOnce()
+    const next = this.resolveOnce()
 
-    return resolved.isRef() ? resolved.isWriteOnly(lookupsPerformed + 1) : resolved.isWriteOnly()
+    return next.isRef() ? next.#someOnChain(check, new Set([...passed, this])) : check.onTarget(next)
   }
 
   /**
@@ -599,18 +654,36 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
       return resolved as ResolvedRefJsonType<T>
     }
 
-    const ref: OpenAPIV3.ReferenceObject = {
-      $ref: `#/components/${refTypeToPluralPath(this.refType)}/${this.toRefName()}`
-    }
+    const ref: OpenAPIV3.ReferenceObject = { $ref: this.#toWrittenRef() }
 
     return ref
   }
 
   /** `{ $ref }` only, as {@link toJsonSchema} without `resolve` (skmtc/skmtc#338). */
   toJSON(): object {
-    return {
-      $ref: `#/components/${refTypeToPluralPath(this.refType)}/${this.toRefName()}`
+    return { $ref: this.#toWrittenRef() }
+  }
+
+  /**
+   * The `$ref` this reference writes out: `#/components/<bucket>/<name>` for
+   * a component, with the name unescaped as before, and the whole pointer
+   * (`toRefPointer`) for any other target, with `%` escaped: a `$ref` is a
+   * URI fragment, so a reader decodes it.
+   *
+   * @throws {DanglingRefError} for a `$ref` with no name, such as
+   * `#/components/parameters/`: written out, it would name nothing, so the
+   * caller decides what to write in its place
+   */
+  #toWrittenRef(): string {
+    if (this.refName === '') {
+      throw new DanglingRefError(this.$ref)
     }
+
+    return isDefaultRefPath({ refPath: this.refPath, refType: this.refType })
+      ? `#/components/${toComponentsBucket(this.refType)}/${this.refName}`
+      : isRemoteRefPath(this.refPath)
+        ? this.$ref
+        : toRefPointer(this).replaceAll('%', '%25')
   }
 }
 
@@ -649,4 +722,12 @@ export type ResolvedRef<T extends OasRefData['refType']> = Extract<OasComponentT
 type Resolution<T extends OasRefData['refType']> = {
   target: ResolvedRef<T>
   resolved: ResolvedRef<T>
+}
+
+/** What `OasRef.isReadOnly` and `isWriteOnly` look for on a chain of references. */
+type ChainCheck<T extends OasRefData['refType']> = {
+  /** True for a reference on the chain that has the keyword. */
+  onRef: (ref: OasRef<T>) => boolean
+  /** True for the component the chain reaches. */
+  onTarget: (target: ResolvedRef<T>) => boolean
 }

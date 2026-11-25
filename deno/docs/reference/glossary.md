@@ -193,7 +193,7 @@ every generator). Misaddressed entries are reported on
 
 A generator-initiated request (`{ prompt, enrichmentSchema, content }`)
 for an LLM-fillable enrichment, returned by the optional
-`toEnrichmentRequest(refName)`. See
+`toEnrichmentRequest(ref)`. See
 [enrichments §AI-driven enrichments](../authoring/how-to/add-enrichment-options.md#ai-driven-enrichments--enrichmentrequest).
 
 ### Entity type (`TsIdentifier.type`)
@@ -353,11 +353,14 @@ to `.skmtc/<project>/.settings/manifest.json` and overwritten per run.
 See [the-manifest](../concepts/the-manifest.md) and the
 [manifest-format reference](manifest-format.md).
 
-### `MAX_LOOKUPS`
+### Loop of `$ref`s
 
-The constant `10` in `OasRef` limiting `$ref` chain resolution depth;
-exceedance throws "Max lookups reached", catching cycles and
-pathologically deep chains.
+A chain of `$ref`s that comes back to a `$ref` it has passed: `A` is a
+`$ref` to `B`, and `B` to `A`. The chain never gets to a component that
+is not a `$ref`, so it names nothing, the same as a `$ref` to no
+component. The parser logs `DANGLING_REF`, and `OasRef.resolve()`
+throws `DanglingRefError`. `OasRef.toLoop()` gives the references of
+the loop.
 
 ### `Modifiers`
 
@@ -376,8 +379,15 @@ a live reference to the in-progress document, resolves lazily. See
 ### `OasSchema`
 
 The discriminated union of schema variant classes (`OasObject`,
-`OasArray`, `OasUnion`, the scalar variants, `OasUnknown`) — sibling
-classes with a `.type` discriminator, not a class hierarchy.
+`OasArray`, `OasUnion`, `OasIntersection`, the scalar variants,
+`OasUnknown`) — sibling classes with a `.type` discriminator, not a class
+hierarchy.
+
+### `OasIntersection`
+
+The schema variant for an `allOf` that keeps a reference, usually one
+that closes a cycle. A value matches every member. See
+[OAS schema variants](api/oas-schema-variants.md#oasintersection--type-intersection).
 
 ### `oasType`
 
@@ -603,7 +613,7 @@ The per-item parse-isolation helper: runs a parser callback inside a
 ### `TypeSystemValue`
 
 The discriminated-union intermediate representation a model generator
-produces from an `OasSchema` — twelve structural variants, each
+produces from an `OasSchema` — structural variants, most
 carrying [`Modifiers`](#modifiers). See
 [the-type-system](../concepts/the-type-system.md).
 

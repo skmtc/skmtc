@@ -23,7 +23,7 @@ const createTestContext = (): ParseContextType =>
     logSkippedFields(): void {},
     logIssue(): void {},
     logIssueNoKey(): void {},
-    registerRef(): void {},
+    registerOasRef(): void {},
     documentObject: {} as unknown,
     withStackTrail<T>(_stackTrail: unknown, fn: () => T): T {
       return fn()
@@ -46,8 +46,8 @@ Deno.test('toSchemaV3 - anyOf of named $refs preserves ref identity', () => {
   assertEquals(result.members.length, 2)
   assert(result.members[0] instanceof OasRef, 'member 0 stays a $ref')
   assert(result.members[1] instanceof OasRef, 'member 1 stays a $ref')
-  assertEquals(result.members[0].toRefName(), 'ModerationImageURLInput')
-  assertEquals(result.members[1].toRefName(), 'ModerationTextInput')
+  assertEquals(result.members[0].refName, 'ModerationImageURLInput')
+  assertEquals(result.members[1].refName, 'ModerationTextInput')
 })
 
 Deno.test('toSchemaV3 - oneOf of named $refs preserves ref identity', () => {
@@ -61,7 +61,7 @@ Deno.test('toSchemaV3 - oneOf of named $refs preserves ref identity', () => {
 
   assert(result instanceof OasUnion)
   assertEquals(
-    result.members.map(member => (member instanceof OasRef ? `${member.toRefName()}` : null)),
+    result.members.map(member => (member instanceof OasRef ? `${member.refName}` : null)),
     ['Dog', 'Cat']
   )
 })

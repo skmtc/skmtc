@@ -36,12 +36,12 @@ export const isAnyMediaType = (mediaType: string): boolean =>
 
 /**
  * True when a schema under `*\/*` can be read as one JSON value: an object,
- * array, union or `$ref`. A scalar is not: under `*\/*` a `string` is usually
+ * array, union, intersection or `$ref`. A scalar is not: under `*\/*` a `string` is usually
  * a text body, and `string` with `format: binary` a file.
  */
 const isJsonShaped = (schema: OasSchema | OasRef<'schema'> | undefined): boolean =>
   schema !== undefined &&
-  (schema.isRef() || schema.type === 'object' || schema.type === 'array' || schema.type === 'union')
+  (schema.isRef() || ['object', 'array', 'union', 'intersection'].includes(schema.type))
 
 /** The media type a body is read from, and its schema. */
 export type JsonContent = {
@@ -59,7 +59,7 @@ export type JsonContent = {
  * Choose the media type a body is read from: `application/json` exactly when
  * it is a key, else the first JSON-like key in document order (see
  * {@link isJsonMediaType}), else the `*\/*` key when its schema is an object,
- * array, union or `$ref`. `*\/*` admits JSON, and documents use it for JSON
+ * array, union, intersection or `$ref`. `*\/*` admits JSON, and documents use it for JSON
  * bodies (springdoc writes it for every response); the parser logs
  * `WILDCARD_MEDIA_TYPE` for every body read this way. `undefined` otherwise:
  * there is no fall back to a specific non-JSON type, to a narrower range such

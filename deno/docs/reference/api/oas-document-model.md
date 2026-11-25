@@ -127,6 +127,7 @@ class OasOperation {
   toSuccessResponseCode(): string | undefined
 
   // Parameter helpers
+  toEffectiveParameters(): (OasParameter | OasRef<'parameter'>)[]
   toParams(filter?: OasParameterLocation[]): OasParameter[]
   toParametersObject(filter?: OasParameterLocation[]): OasObject
 
@@ -159,9 +160,10 @@ When absent, generators fall back to deriving a name from `path` +
 
 #### `parameters: (OasParameter | OasRef<'parameter'>)[] | undefined`
 
-The operation's parameters — path, query, `querystring`, header, cookie. May be
-inline or refs. Use `toParams()` or `toParametersObject()` to access
-them after resolving refs.
+The operation's own parameters — path, query, `querystring`, header, cookie.
+May be inline or refs. The path item's parameters are not in this field. Use
+`toEffectiveParameters()` to get both lists merged, or `toParams()` or
+`toParametersObject()` to get them merged with each ref resolved.
 
 #### `requestBody: OasRequestBody | OasRef<'requestBody'> | undefined`
 
@@ -220,9 +222,35 @@ The status code (`'200'`, `'201'`, etc.) matching the response that
 include the expected response code (e.g., a fetch wrapper that
 asserts `response.status === 200`).
 
+#### `toEffectiveParameters(): (OasParameter | OasRef<'parameter'>)[]`
+
+Returns the parameters that apply to the operation, as OpenAPI defines
+them. The path item's parameters come first, then the operation's own.
+An own parameter replaces a path item parameter with the same name and
+location. Refs stay refs, so you can resolve each one by itself.
+
+A `$ref` that names nothing stays in its position. The parser keeps it
+only when `settings.system.danglingRefs` lists `parameter`. Its
+`resolve()` throws `DanglingRefError`:
+
+```ts
+for (const parameter of operation.toEffectiveParameters()) {
+  try {
+    const resolved = parameter.resolve()
+    // render `resolved`
+  } catch (error) {
+    if (!DanglingRefError.is(error)) throw error
+    // render `parameter.$ref` as unresolved
+  }
+}
+```
+
+`OasWebhook` has the same method.
+
 #### `toParams(filter?): OasParameter[]`
 
-Returns the resolved parameters (refs resolved). The optional
+Returns `toEffectiveParameters()` with each ref resolved. A `$ref` that
+names nothing makes it throw `DanglingRefError`. The optional
 `filter` parameter restricts by location:
 
 ```ts
@@ -254,6 +282,11 @@ Serializes back to an OpenAPI-spec-shaped operation object. Useful
 for diagnostics and pass-through (e.g., re-rendering the original spec
 into a generated artifact). Not used by stock generators in their
 hot paths.
+
+It writes the parameters of `toEffectiveParameters()`. When one of them
+is a `$ref` that names nothing, it throws `DanglingRefError`, as
+`toParams()` does. It does not write a `$ref` to nothing, and it does not
+leave the parameter out.
 
 ### Examples
 
@@ -338,7 +371,7 @@ class OasParameter {
   isRef(): false
   resolve(): this
   resolveOnce(): this
-  toSchema(): OasSchema | OasRef<'schema'> | undefined
+  toSchema(mediaType?): OasSchema | OasRef<'schema'>   // throws when no schema is found
   toJsonSchema(options?): OpenAPIV3.ParameterObject
 }
 ```
@@ -348,7 +381,10 @@ field name — the parser renames it to avoid the reserved-word
 collision in some TypeScript contexts).
 
 `toSchema()` returns the parameter's schema (which is most of what
-generators care about).
+generators care about). When a parameter or header has neither
+`schema` nor `content`, the parser gives it the empty schema `{}`.
+It also logs a `MISSING_PARAMETER_SCHEMA` or `MISSING_HEADER_SCHEMA`
+warning.
 
 ## OasHeader
 

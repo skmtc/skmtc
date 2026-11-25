@@ -1,10 +1,10 @@
-import { assertEquals } from '@std/assert'
+import { assert, assertEquals } from '@std/assert'
 import * as log from '@std/log'
 import type { OpenAPIV3 } from 'openapi-types'
 import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import { OasObject } from '@/oas/object/Object.ts'
-import { toRefName } from '@/helpers/refFns.ts'
+import type { RefName } from '@/types/RefName.ts'
 
 const document = {
   openapi: '3.0.3',
@@ -40,7 +40,7 @@ const policy = () => {
     logger: new log.Logger('test', 'ERROR'),
     silent: true
   }).parse(new StackTrail(['TEST']))
-  const schema = parsed.type === 'oas' ? parsed.value.components?.schemas?.[toRefName('#/components/schemas/Policy')] : undefined
+  const schema = parsed.type === 'oas' ? parsed.value.components?.schemas?.[('Policy' as RefName)] : undefined
 
   if (!(schema instanceof OasObject) || !schema.properties) {
     throw new Error('Policy did not parse to an object')
@@ -69,4 +69,44 @@ Deno.test('isWriteOnly() reads writeOnly on the reference, or on the schema, an 
   assertEquals(properties.secret.isReadOnly(), false)
   assertEquals(properties.created_at.isWriteOnly(), false)
   assertEquals(properties.updated_at.isWriteOnly(), false)
+})
+
+/** The schemas parsed from `components.schemas`, with a loop of `$ref`s kept (`system.danglingRefs`). */
+const toSchemas = (schemas: Record<string, unknown>) => {
+  const parsed = new ParseContext({
+    input: {
+      type: 'oas',
+      // Documents in the wild hold what the parser's input type does not allow.
+      value: JSON.parse(JSON.stringify({ openapi: '3.0.3', info: { title: 'Chains', version: '1' }, paths: {}, components: { schemas } }))
+    },
+    logger: new log.Logger('test', 'ERROR'),
+    silent: true,
+    system: { danglingRefs: ['schema'] }
+  }).parse(new StackTrail(['TEST']))
+
+  return (name: string) =>
+    parsed.type === 'oas' ? parsed.value.components?.schemas?.[(name as RefName)] : undefined
+}
+
+Deno.test('isReadOnly() and isWriteOnly() follow a chain of any length to its schema, as resolve() does', () => {
+  // `S0` → `S1` → … → `S12`, a read-only string. Both stopped after 10 steps and said `false`.
+  const chain = Object.fromEntries(
+    Array.from({ length: 12 }, (_, index) => [`S${index}`, { $ref: `#/components/schemas/S${index + 1}` }])
+  )
+  const toSchema = toSchemas({ ...chain, S12: { type: 'string', readOnly: true } })
+  const head = toSchema('S0')
+
+  assert(head !== undefined && head.isRef())
+  assertEquals(head.resolve().isReadOnly(), true)
+  assertEquals(head.isReadOnly(), true)
+  assertEquals(head.isWriteOnly(), false)
+})
+
+Deno.test('isReadOnly() and isWriteOnly() end at a loop of $refs, which reaches no schema', () => {
+  const toSchema = toSchemas({ A: { $ref: '#/components/schemas/B' }, B: { $ref: '#/components/schemas/A' } })
+  const a = toSchema('A')
+
+  assert(a !== undefined && a.isRef())
+  assertEquals(a.isReadOnly(), false)
+  assertEquals(a.isWriteOnly(), false)
 })

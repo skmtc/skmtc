@@ -22,7 +22,7 @@ no-output bugs no error message will ever explain.
 ## The one-line definition
 
 `GenerateContext.toArtifacts` walks `(generator × item × variant)`
-and calls `generatorConfig.transform({ context, operation | refName,
+and calls `generatorConfig.transform({ context, operation | ref,
 variant })` on each. **`transform` returns `void` — the engine does
 nothing with a return value.** All artifact production happens through
 side effects on `context` — `register`, `insertOperation`,
@@ -117,10 +117,11 @@ for primary artifacts — they go through the projection-base
 wrappers — but they often register raw `imports` for peer
 dependencies.
 
-### `context.insertOperation({ projection, operation })` and `context.insertModel(MyProjection, refName)`
+### `context.insertOperation({ projection, operation })` and `context.insertModel(MyProjection, ref)`
 
 (`insertOperation` takes a single object argument; `insertModel` is
-positional — `insertModel(projection, refName, args?)`, where the
+positional — `insertModel(projection, ref, args?)`, where `ref` is the
+model's `{ refName, refPath }` (an `OasRef` fits) and the
 trailing `args` carries `{ destinationPath?, noExport?, variant?, options }`.
 `options` is the peer's caller options: required when the peer declares
 an options type, refused when it does not.)
@@ -136,7 +137,7 @@ that:
 2. Looks up `(identifier.name, exportPath)` in the
    `currentFile.definitions` cache.
 3. **On cache miss:** constructs `new MyProjection({ context,
-   operation/refName, settings, destinationPath, options })` — this is
+   operation/ref, settings, destinationPath, options })` — this is
    where the Projection class is actually instantiated — wraps the
    value in a `Definition`, and registers it.
 4. **On cache hit:** runs `affirmDefinition` integrity check

@@ -263,9 +263,14 @@ key isn't a `gen-*` entry in `deno.json#imports`.
 ```bash
 # Setup (once per CI run) — the installer bootstraps Deno if needed;
 # SKMTC_VERSION pins the CLI so runs are reproducible:
-SKMTC_VERSION=<version> curl -fsSL https://skmtc.dev/install | sh
-# On a Windows runner, in PowerShell:
+curl -fsSL https://skmtc.dev/install | SKMTC_VERSION=<version> sh
+# On a Windows runner, in PowerShell (GitHub Actions: a pwsh step). With CI set,
+# the installer does not change PATH:
 #   $env:SKMTC_VERSION = '<version>'; irm https://skmtc.dev/install.ps1 | iex
+#   $env:Path = "$HOME\.deno\bin;$env:Path"   # this step
+#   "$HOME\.deno\bin" >> $env:GITHUB_PATH     # later steps
+# On Windows, leave out --typecheck and run tsc yourself: it can report a pass
+# without checking anything (skmtc/skmtc#353).
 # Run (builds the project's bundle.js first):
 skmtc generate <project> --json --no-input --typecheck
 # Exit 0 on success, 1 on fatal parseIssue or typecheck failure.
@@ -306,7 +311,9 @@ and deploying never moves it.
 
 ```bash
 # 1. Set the version — `version` in .skmtc/<project>/deno.json,
-#    or pass --version. The CLI never invents or auto-bumps one.
+#    or pass --version. When the hub already stores the deno.json version,
+#    the CLI deploys the next patch after the newest stored one (it does
+#    not write it to deno.json). A stored --version is refused (exit 2).
 # 2a. One-off: log in once (approve the printed code in the browser),
 #     then deploy with no token flags:
 skmtc login            # or store a PAT: echo $PAT | skmtc login --with-token
@@ -331,9 +338,13 @@ Key facts:
   recipe error (stage `identity`) if missing or not a scoped `@account/slug`.
 - **The hub auto-creates the stack on the first deploy** ("git push
   creates the repo").
-- **Versions are immutable.** A version already on the hub stops
-  before any upload: `stage: "exists"`, exit 2, with the recipe "bump
-  `version`, or run `skmtc deploy <project> --existing`".
+- **Versions are immutable.** A `--version` already on the hub stops
+  before any upload: `stage: "exists"`, exit 2, with the recipe "pass
+  another `--version`, run `skmtc deploy <project>`, or run
+  `skmtc deploy <project> --version <v> --existing`". A stored
+  `deno.json` version does not stop: `deploy` deploys the next patch
+  and sets `versionPicked: true` (see the Version rule in
+  [reference.md](reference.md#deploy)).
 - **Missing version fails fast** (`stage: "version"`, exit 1, before
   any network call) with the recipe: set `deno.json#version` or pass
   `--version`.

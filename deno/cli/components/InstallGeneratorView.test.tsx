@@ -40,10 +40,15 @@ const createMockProject = () =>
   }) as unknown as Project
 
 // Mock setup helpers
-const createMockSkmtcRoot = (includeProjects = true, project?: Project): SkmtcRoot => {
+const createMockSkmtcRoot = (
+  includeProjects = true,
+  project?: Project,
+  unloadedNames: string[] = []
+): SkmtcRoot => {
   const actualProject = project || createMockProject()
   return {
     projects: includeProjects ? [actualProject] : [],
+    unloadedProjects: unloadedNames.map(name => ({ name, error: new Error('missing schema') })),
     findProject: (name: string) => {
       if (name === 'test-project') {
         return actualProject
@@ -325,6 +330,34 @@ Deno.test(
     assertEquals(noProjectsFrame, `│  No projects found`)
 
     // Wait for any pending timers to complete
+    await new Promise(resolve => setTimeout(resolve, 800))
+
+    unmount()
+  }
+)
+
+Deno.test(
+  'InstallGenerator - no project loaded names the ones that did not load',
+  { sanitizeResources: false, sanitizeOps: false },
+  async () => {
+    const initialState = createInitialState({
+      skmtcRoot: createMockSkmtcRoot(false, undefined, ['broken'])
+    })
+
+    const { lastFrame, unmount } = renderInstallGenerator({
+      initialState,
+      projectName: undefined,
+      generators: undefined
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 200))
+
+    // Not "No projects found": the folder is there, and its warning is above.
+    assertEquals(
+      lastFrame(),
+      `│  No project loaded. Did not load: broken (see the warnings above).`
+    )
+
     await new Promise(resolve => setTimeout(resolve, 800))
 
     unmount()

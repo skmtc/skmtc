@@ -1,4 +1,5 @@
 import type { ParseContextType } from '@/context/parseTypes.ts'
+import type { KeptRefs } from '@/parse/keptRefs.ts'
 import type { StackTrail } from '@/context/StackTrail.ts'
 
 /** What the `allOf` merge reads of `client.json#settings.system`, and what it reports back. */
@@ -10,6 +11,8 @@ type AllOfSystem = {
   replaced: Set<string>
   /** The keywords the merge read as any value: `anyOf` under `system.anyOf: unknown`. */
   unknown: Set<string>
+  /** The refs that stay refs (`system.intersections`). */
+  keptRefs: KeptRefs | undefined
 }
 
 /**
@@ -23,7 +26,8 @@ export const toAllOfSystem = (context: ParseContextType): AllOfSystem => ({
   not: context.system?.not ?? 'strict',
   anyOf: context.system?.anyOf ?? 'union',
   replaced: new Set(),
-  unknown: new Set()
+  unknown: new Set(),
+  keptRefs: context.keptRefs
 })
 
 type LogAllOfContradictionsArgs = {

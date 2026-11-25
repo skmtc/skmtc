@@ -5,6 +5,7 @@ import { TsFile } from '@skmtc/lang-typescript'
 import { toModelGeneratorKey, type GeneratorKey } from '@/dsl/GeneratorKeys.ts'
 import type { GenerateContextType } from '@/context/generateTypes.ts'
 import type { RefName } from '@/types/RefName.ts'
+import { toSchemaComponentRef } from '@/helpers/refFns.ts'
 import { postPass } from './postPass.ts'
 import { CaptureSink, type CaptureChannel } from './CaptureSink.ts'
 import type { Span } from './types.ts'
@@ -53,7 +54,7 @@ Deno.test('postPass - single Definition produces one anchor with landmark', () =
   const c = ctx()
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'User' as RefName,
+    ref: toSchemaComponentRef('User' as RefName),
     variant: 'main'
   })
   const value = new FakeSnippet(c, () => 'z.object({ id: z.string() })', key)
@@ -85,7 +86,7 @@ Deno.test('postPass - anchor srcPtr matches the model key shape', () => {
   const c = ctx()
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'Customer' as RefName,
+    ref: toSchemaComponentRef('Customer' as RefName),
     variant: 'main'
   })
   const value = new FakeSnippet(c, () => "'inner'", key)
@@ -110,12 +111,12 @@ Deno.test('postPass - multiple Definitions land under their own landmarks', () =
   const c = ctx()
   const keyA = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'A' as RefName,
+    ref: toSchemaComponentRef('A' as RefName),
     variant: 'main'
   })
   const keyB = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'B' as RefName,
+    ref: toSchemaComponentRef('B' as RefName),
     variant: 'main'
   })
   const defA = new TsDefinition({
@@ -150,7 +151,7 @@ Deno.test('postPass - generatorMeta lookup populates generator entries', () => {
   const c = ctx()
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'User' as RefName,
+    ref: toSchemaComponentRef('User' as RefName),
     variant: 'main'
   })
   const def = new TsDefinition({
@@ -179,7 +180,7 @@ Deno.test('postPass - anchor bytes survive a slice through the rendered source',
   const c = ctx()
   const key = toModelGeneratorKey({
     generatorId: '@scope/gen-zod',
-    refName: 'Whole' as RefName,
+    ref: toSchemaComponentRef('Whole' as RefName),
     variant: 'main'
   })
   const value = new FakeSnippet(c, () => '"payload"', key)

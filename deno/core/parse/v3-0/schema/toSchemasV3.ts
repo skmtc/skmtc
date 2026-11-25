@@ -14,6 +14,8 @@ import { toBoolean } from '../boolean/toBoolean.ts'
 import { toString } from '../string/toString.ts'
 import { toUnknown } from '../unknown/toUnknown.ts'
 import { toUnion } from '../union/toUnion.ts'
+import { toIntersection } from '@/parse/v3-0/intersection/toIntersection.ts'
+import { toIntersectionParts, toSiteIntersection } from '@/parse/keptIntersection.ts'
 import { toGetRef } from '@/helpers/refFns.ts'
 import { toSiblingKeywords } from '@/parse/toSiblingKeywords.ts'
 import { logAllOfContradictions, toAllOfSystem } from '@/parse/allOfSystem.ts'
@@ -249,14 +251,30 @@ export const toSchemaV3 = ({
       const system = toAllOfSystem(context)
       const merged = mergeIntersection({
         schema,
-        getRef: toGetRef(context.documentObject),
+        getRef: toGetRef(context.documentObject, error =>
+          context.toDanglingAllOfMember({ error, stackTrail })
+        ),
         system
       })
 
       logAllOfContradictions({ system, stackTrail, parent: schema, context })
       logMergedUnknownAnyOf({ system, stackTrail, parent: schema, context })
 
-      return toSchemaV3({ schema: merged, stackTrail: st, context })
+      const parts = system.keptRefs && toIntersectionParts(merged, system.keptRefs)
+
+      if (parts === undefined) {
+        return toSchemaV3({ schema: merged, stackTrail: st, context })
+      }
+
+      const { own, members: kept } = toSiteIntersection(parts)
+      const [only] = kept
+
+      if (kept.length > 1 || only === undefined) {
+        return toIntersection({ value: own, members: kept, stackTrail: st, context })
+      }
+
+      // An intersection of one ref is that ref with the keywords beside it.
+      return toSchemaV3({ schema: isEmpty(own) ? only : { ...own, allOf: [only] }, stackTrail: st, context })
     })
   }
 
@@ -266,7 +284,11 @@ export const toSchemaV3 = ({
       const merged = mergeUnion({
         // A null member makes the union nullable: `oneOf: [$ref, null]` is a nullable reference.
         schema: withoutNullMembers(schema, 'oneOf'),
-        getRef: toGetRef(context.documentObject),
+        // A member's own `allOf`, or a member merged with the keywords beside
+        // the `oneOf`, is merged here, so it follows `allOfMember` too.
+        getRef: toGetRef(context.documentObject, error =>
+          context.toDanglingAllOfMember({ error, stackTrail })
+        ),
         system,
         groupType: 'oneOf'
       })
@@ -346,7 +368,10 @@ export const toSchemaV3 = ({
       const system = toAllOfSystem(context)
       const merged = mergeUnion({
         schema: withoutNullMembers(schema, 'anyOf'),
-        getRef: toGetRef(context.documentObject),
+        // As for `oneOf`: what is merged here follows `allOfMember`.
+        getRef: toGetRef(context.documentObject, error =>
+          context.toDanglingAllOfMember({ error, stackTrail })
+        ),
         system,
         groupType: 'anyOf'
       })

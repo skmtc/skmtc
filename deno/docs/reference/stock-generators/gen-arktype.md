@@ -25,8 +25,8 @@ The entry is identical to `gen-zod` and `gen-valibot`:
 ```ts
 export const arktypeEntry = toModelEntry({
   id: denoJson.name,
-  transform({ context, refName }) {
-    context.insertModel(ArktypeProjection, refName)
+  transform({ context, ref }) {
+    context.insertModel(ArktypeProjection, ref)
   }
 })
 ```

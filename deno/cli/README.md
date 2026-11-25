@@ -28,9 +28,12 @@ irm https://skmtc.dev/install.ps1 | iex
 ```
 
 This bootstraps [Deno](https://deno.com) (the runtime) automatically if needed.
-On Windows, a project formatter, `--typecheck` and linked-repository detection
-still run through `sh`, which [Git for Windows](https://git-scm.com/download/win)
-provides.
+On Windows, a project formatter and linked-repository detection still run
+through `sh`, which [Git for Windows](https://git-scm.com/download/win)
+provides. Run `skmtc` from Git Bash, or add Git's `usr\bin` folder to `PATH`.
+`--typecheck` does not work on Windows yet, and can report a pass without
+checking anything ([#353](https://github.com/skmtc/skmtc/issues/353)). Run `tsc`
+yourself instead.
 
 ### Running code generators
 
@@ -140,13 +143,14 @@ For day-to-day work the published install is the right choice — pin a version
 with `SKMTC_VERSION`:
 
 ```bash
-SKMTC_VERSION=<version> curl -fsSL https://skmtc.dev/install | sh
+curl -fsSL https://skmtc.dev/install | SKMTC_VERSION=<version> sh
 ```
 
 On Windows, in PowerShell:
 
 ```powershell
 $env:SKMTC_VERSION = '<version>'; irm https://skmtc.dev/install.ps1 | iex
+Remove-Item Env:SKMTC_VERSION   # otherwise the pin stays set in this window
 ```
 
 To install a binary that tracks your **local checkout** instead, use `deno compile` rather than `deno install`:

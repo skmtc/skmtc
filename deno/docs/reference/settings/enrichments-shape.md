@@ -233,7 +233,7 @@ declares the umbrella and reads it inside a Projection is in
 
 For each Projection the engine builds:
 
-1. The factory's static `toEnrichments({ operation | refName, context, variant })`
+1. The factory's static `toEnrichments({ operation | ref, context, variant })`
    reads the three scopes through `context.readEnrichment`: the
    subject leaf at the path shown above, `[generatorId]._generator`,
    and `._stack`. Every read is recorded for the post-run audit.

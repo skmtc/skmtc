@@ -6,13 +6,16 @@ import { MultiSelect } from '@inkjs/ui'
 import { Spinner } from '@/components/Spinner.tsx'
 import { parseModuleName } from '@skmtc/core/parseModuleName'
 import { useShortcut } from './useShortcut.tsx'
+import { toCloneConflictText } from '@/lib/clone-headless.ts'
+import { CoreConflictError } from '@/lib/stack-core.ts'
+import { AlreadyClonedError, FolderInUseError } from '@/lib/generator.ts'
 
 type CloneGeneratorViewProps = {
   project: Project
   view: ViewStateCloneGenerator
 }
 
-export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
+export const CloneGeneratorView = ({ project, view }: CloneGeneratorViewProps) => {
   const { dispatch, dispatchMessage } = useSkmtc()
   const [cloning, setCloning] = useState(false)
 
@@ -58,19 +61,8 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
 
     setCloning(true)
 
-    const runClones = async () => {
-      const results: { moduleName: string; version: string }[] = []
-      for (const moduleName of selectedValues) {
-        const result = await project.cloneGenerator({
-          moduleName,
-          projectName: project.name
-        })
-        results.push(result)
-      }
-      return results
-    }
-
-    runClones()
+    project
+      .cloneGenerators({ moduleNames: selectedValues, force: view.force })
       .then(results => {
         const summary =
           results.length > 0 ? results.map(r => `${r.moduleName}@${r.version}`).join(', ') : ''
@@ -82,6 +74,22 @@ export const CloneGeneratorView = ({ project }: CloneGeneratorViewProps) => {
         })
       })
       .catch(error => {
+        if (error instanceof AlreadyClonedError || error instanceof FolderInUseError) {
+          dispatchMessage({ error: error.message })
+          return
+        }
+
+        if (error instanceof CoreConflictError) {
+          dispatchMessage({
+            error: toCloneConflictText({
+              error,
+              projectName: project.name,
+              generators: selectedValues
+            })
+          })
+          return
+        }
+
         console.error(error)
 
         dispatchMessage({ error: `Failed to clone generator(s)` })

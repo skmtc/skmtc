@@ -1,6 +1,6 @@
 {
   "name": "@skmtc/lint-plugin",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "license": "Apache-2.0",
   "exports": {
     ".": "./mod.ts"
@@ -13,6 +13,9 @@
     "@std/assert": "jsr:@std/assert@^1.0.10"
   },
   "publish": {
-    "exclude": ["**/*.test.ts", "src/test/"]
+    "exclude": [
+      "**/*.test.ts",
+      "src/test/"
+    ]
   }
 }

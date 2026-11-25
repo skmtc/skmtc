@@ -17,7 +17,9 @@ const deployed = (
   projectName: 'my-api',
   stack: { account: 'acme', slug: 'my-api' },
   version: '3.0.1',
+  versionPicked: false,
   upload: null,
+  serverPin: null,
   deploy: { status, statusReason, endpointUrl: null, url: null }
 })
 

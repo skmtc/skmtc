@@ -44,7 +44,7 @@ import type { ModelEntry } from '@/dsl/model/toModelEntry.ts'
  *
  * const modelEntry = toModelEntry({
  *   id: 'typescript-models',
- *   transform: ({ context, refName }) => {}
+ *   transform: ({ context, ref }) => {}
  * });
  * // modelEntry.type === 'model'
  * ```

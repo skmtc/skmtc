@@ -4,7 +4,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
-import { toRefName } from '@/helpers/refFns.ts'
+import type { RefName } from '@/types/RefName.ts'
 
 const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` })
 
@@ -46,7 +46,7 @@ const parse = () => {
     silent: true
   }).parse(new StackTrail(['TEST']))
   const schemas = parsed.type === 'oas' ? parsed.value.components?.schemas : undefined
-  const toSchema = (name: string) => schemas?.[toRefName(`#/components/schemas/${name}`)]
+  const toSchema = (name: string) => schemas?.[(name as RefName)]
   const site = toSchema('Site')
   const properties = site?.type === 'object' ? (site.properties ?? {}) : {}
 

@@ -3,7 +3,7 @@ import * as log from '@std/log'
 import type { OpenAPIV3 } from 'openapi-types'
 import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
-import { toRefName } from '@/helpers/refFns.ts'
+import type { RefName } from '@/types/RefName.ts'
 
 const base = { $ref: '#/components/schemas/Base' }
 
@@ -43,7 +43,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     const parsed = context.parse(new StackTrail(['TEST']))
     const pet =
       parsed.type === 'oas'
-        ? parsed.value.components?.schemas?.[toRefName('#/components/schemas/Pet')]
+        ? parsed.value.components?.schemas?.[('Pet' as RefName)]
         : undefined
 
     // The trap: `Base` alone has no `kind`; the members' own keywords make them discriminable.

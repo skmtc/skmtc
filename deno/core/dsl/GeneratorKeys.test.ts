@@ -13,6 +13,7 @@ import {
 } from './GeneratorKeys.ts'
 import { assertEquals } from '@std/assert/equals'
 import type { RefName } from '@/types/RefName.ts'
+import { toSchemaComponentRef } from '@/helpers/refFns.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import { OasWebhook } from '@/oas/webhook/Webhook.ts'
 
@@ -141,7 +142,7 @@ Deno.test('toOasOperationGeneratorKey - creates key from operation object', () =
 Deno.test('toModelGeneratorKey - creates key with generator ID, ref name, and variant', () => {
   const key = toModelGeneratorKey({
     generatorId: 'typescript-types',
-    refName: 'User' as RefName,
+    ref: toSchemaComponentRef('User' as RefName),
     variant: 'main'
   })
 
@@ -151,7 +152,7 @@ Deno.test('toModelGeneratorKey - creates key with generator ID, ref name, and va
 Deno.test('toModelGeneratorKey - encodes a non-default variant', () => {
   const key = toModelGeneratorKey({
     generatorId: 'zod-schemas',
-    refName: 'Customer' as RefName,
+    ref: toSchemaComponentRef('Customer' as RefName),
     variant: 'coercive'
   })
 
@@ -242,7 +243,7 @@ Deno.test('toGeneratorId - extracts ID from different key types', () => {
   // Model key
   const modelKey = toModelGeneratorKey({
     generatorId: 'typescript-types',
-    refName: 'User' as RefName,
+    ref: toSchemaComponentRef('User' as RefName),
     variant: 'main'
   })
   assertEquals(toGeneratorId(modelKey), 'typescript-types')
@@ -276,7 +277,7 @@ Deno.test('fromGeneratorKey - parses operation key into object', () => {
 Deno.test('fromGeneratorKey - parses model key into object', () => {
   const key = toModelGeneratorKey({
     generatorId: 'zod-schemas',
-    refName: 'User' as RefName,
+    ref: toSchemaComponentRef('User' as RefName),
     variant: 'main'
   })
 
@@ -285,7 +286,7 @@ Deno.test('fromGeneratorKey - parses model key into object', () => {
   assertEquals(parsed.type, 'model')
   if (parsed.type === 'model') {
     assertEquals(parsed.generatorId, 'zod-schemas')
-    assertEquals(parsed.refName, 'User')
+    assertEquals(parsed.ref, toSchemaComponentRef('User' as RefName))
     assertEquals(parsed.variant, 'main')
   }
 })
@@ -293,7 +294,7 @@ Deno.test('fromGeneratorKey - parses model key into object', () => {
 Deno.test('GeneratorKey round-trip - model variant survives serialize → parse', () => {
   const key = toModelGeneratorKey({
     generatorId: '@skmtc/gen-zod-variants',
-    refName: 'Customer' as RefName,
+    ref: toSchemaComponentRef('Customer' as RefName),
     variant: 'coercive'
   })
 
@@ -302,7 +303,7 @@ Deno.test('GeneratorKey round-trip - model variant survives serialize → parse'
   assertEquals(parsed.type, 'model')
   if (parsed.type === 'model') {
     assertEquals(parsed.generatorId, '@skmtc/gen-zod-variants')
-    assertEquals(parsed.refName, 'Customer')
+    assertEquals(parsed.ref, toSchemaComponentRef('Customer' as RefName))
     assertEquals(parsed.variant, 'coercive')
   }
 })
@@ -441,4 +442,34 @@ Deno.test('fromGeneratorKey - a GQL key whose field is named query stays a GQL k
     fieldName: 'query',
     variant: 'main'
   })
+})
+
+Deno.test('model key - a deep ref whose pointer holds | round-trips to the same ref', () => {
+  // The trap: a pointer can hold `|` (a property named `a|b`), and an
+  // unescaped `|` adds a segment, so the key stops parsing as a model key.
+  const ref = { refName: 'a|b' as RefName, refPath: '#/components/schemas/A/properties' }
+  const key = toModelGeneratorKey({ generatorId: 'gen', ref, variant: 'main' })
+
+  assertEquals(isModelGeneratorKey(key), true)
+  assertEquals(fromGeneratorKey(key), { type: 'model', generatorId: 'gen', ref, variant: 'main' })
+})
+
+Deno.test('model key - a component key keeps its bare name', () => {
+  const key = toModelGeneratorKey({ generatorId: 'gen', ref: toSchemaComponentRef('User' as RefName), variant: 'main' })
+
+  assertEquals(key, 'gen|User|main')
+  assertEquals(fromGeneratorKey(key), {
+    type: 'model',
+    generatorId: 'gen',
+    ref: { refName: 'User' as RefName, refPath: '#/components/schemas' },
+    variant: 'main'
+  })
+})
+
+Deno.test('model key - a component with % in its name keeps that name, and round-trips', () => {
+  const ref = toSchemaComponentRef('Foo%20Bar' as RefName)
+  const key = toModelGeneratorKey({ generatorId: 'gen', ref, variant: 'main' })
+
+  assertEquals(key, 'gen|Foo%20Bar|main')
+  assertEquals(fromGeneratorKey(key), { type: 'model', generatorId: 'gen', ref, variant: 'main' })
 })

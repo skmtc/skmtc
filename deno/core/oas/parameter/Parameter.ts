@@ -285,14 +285,18 @@ export class OasParameter extends OasBase {
    *
    * @param mediaType - Media type to extract schema from when using content definitions, an exact lookup. Omitted: the JSON media type (`application/json`, else the first JSON-like type, else `*\/*`).
    * @returns The parameter's schema object
-   * @throws Error if no schema is found for the specified media type
+   * @throws Error if the parameter has neither schema nor content, or no schema is found for the specified media type
    */
   toSchema(mediaType?: string): OasSchema | OasRef<'schema'> {
     if (this.schema) {
       return this.schema
     }
 
-    const contentEntries = Object.values(this.content ?? {})
+    if (this.content === undefined) {
+      throw new Error(`Parameter '${this.name}' in ${this.location} has neither schema nor content`)
+    }
+
+    const contentEntries = Object.values(this.content)
     const onlyEntry = contentEntries.length === 1 ? contentEntries[0] : undefined
 
     const schema = toContentSchema(this.content, mediaType) ?? onlyEntry?.schema

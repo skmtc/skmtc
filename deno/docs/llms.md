@@ -61,9 +61,9 @@ If unsure which role applies: read **The generation model** + **Read this first*
 
 The one story every rule in this document falls out of. Hold this model and the principle tables below read as consequences, not as arbitrary conventions. (The `skmtc-generator` skill carries the authoring-weighted version.)
 
-1. **Parse.** The engine parses the schema (OpenAPI v3 or GraphQL SDL) into typesafe intermediate-representation objects — `OasOperation`, the `OasSchema` union, `GqlOperation`. `allOf` is pre-merged; `$ref`s are lazy (`OasRef`, resolved with `.resolve()`).
+1. **Parse.** The engine parses the schema (OpenAPI v3 or GraphQL SDL) into typesafe intermediate-representation objects — `OasOperation`, the `OasSchema` union, `GqlOperation`. `allOf` is pre-merged. A `$ref` that closes a cycle is not: it stays a member of an `OasIntersection` (`system.intersections`). `$ref`s are lazy (`OasRef`, resolved with `.resolve()`).
 
-2. **Loop.** The Generate phase walks `(generator × item × variant)` and calls each generator entry's `transform({ context, operation | refName, variant })` per item. `transform` returns `void` — everything a generator produces, it produces by side effect on `context`.
+2. **Loop.** The Generate phase walks `(generator × item × variant)` and calls each generator entry's `transform({ context, operation | ref, variant })` per item (a model's `ref` is `{ refName, refPath }`). `transform` returns `void` — everything a generator produces, it produces by side effect on `context`.
 
 3. **Produce.** A generator converts each incoming IR object into a **producer** — a *Projection* or a *Snippet* — normally by calling `context.insertOperation` / `insertModel` from `transform`. Producers, not string manipulation, are the unit of work: output is built by constructing and composing producers.
 
@@ -93,7 +93,7 @@ The facts below pin the highest-drift corollaries of the model — the assertion
 
 3. **Generator source code is the customization surface.** Stock generators have hardcoded export paths and peer imports (`gen-shadcn-form/src/ShadcnForm.ts:1` hardcodes `import { TanstackQuery } from '@skmtc/gen-tanstack-query-supabase-zod'`). To customize beyond enrichments: `skmtc clone` and edit.
 
-4. **`OasSchema` is a union type, not a class hierarchy.** `OasSchema = OasArray | OasBoolean | OasInteger | OasNumber | OasObject | OasString | OasUnknown | OasUnion`. Every variant independently implements `.isRef()` returning `false`. `OasRef` is a *sibling*, not a parent, with `.isRef()` returning `true`.
+4. **`OasSchema` is a union type, not a class hierarchy.** `OasSchema = OasArray | OasBoolean | OasInteger | OasNumber | OasObject | OasString | OasUnknown | OasUnion | OasIntersection`. Every variant independently implements `.isRef()` returning `false`. `OasRef` is a *sibling*, not a parent, with `.isRef()` returning `true`.
 
 5. **The variant axis fans out at the engine, not the generator.** A single source item can produce N Definitions via named variants under `enrichments[id][path][method]` (OAS), `[id][rootKind][fieldName]` (GQL), or `[id][refName]` (model). `'main'` is always present — the engine throws at start if a consumer wrote variants without it. Variants flow through `ContentSettings.variant`, the `GeneratorKey`'s trailing segment, and the per-call `variant` arg in every projection static method and entry callback. Cross-generator `insertOperation` / `insertModel` defaults to `'main'`; passing a non-`'main'` variant the peer doesn't declare throws at the Driver (`assertPeerVariantExists`). See [concepts/variants.md](concepts/variants.md).
 
@@ -133,10 +133,10 @@ These overrides exist because well-intentioned TS conventions frequently break S
 | Add a `BaseSchema` class to share schema behavior | Schema variants are sibling classes, not subclasses | Duck-typed `.isRef()` + discriminator narrowing is intentional |
 | Use `Deno.writeFileSync` from a generator constructor | Use `register({ definitions, ... })` | Direct writes bypass `context.#files`; invisible to coordination and persistence |
 | Mock a database in tests | Use real Supabase / real DB | Project convention — mocked tests previously masked production bugs |
-| Hardcode generator-internal identifier names | Derive from operation/refName via `toIdentifierName` | Hardcodes break the `(name, exportPath)` cache-key uniqueness |
+| Hardcode generator-internal identifier names | Derive from the operation or the model's `ref` via `toIdentifierName` | Hardcodes break the `(name, exportPath)` cache-key uniqueness |
 | Suggest "make generation order deterministic" | It already is; coordinate via `insertOperation` | Order is structurally irrelevant; deterministic by construction |
 | Add `@override` decorators or runtime type checks | Use TypeScript's structural typing + discriminated unions | Runtime overhead unnecessary; types catch this at compile time |
-| Reach into `OasOperation` properties directly without `.resolve()` | Call `.resolve()` unconditionally — it is identity (`return this`) on every concrete schema variant | The common parameter type is `OasSchema \| OasRef<'schema'>`; resolution is lazy. Guarding it (`schema.isRef() ? schema.resolve() : schema`) is redundant; reserve `.isRef()` for genuine branching (`toRefName()`) |
+| Reach into `OasOperation` properties directly without `.resolve()` | Call `.resolve()` unconditionally — it is identity (`return this`) on every concrete schema variant | The common parameter type is `OasSchema \| OasRef<'schema'>`; resolution is lazy. Guarding it (`schema.isRef() ? schema.resolve() : schema`) is redundant; reserve `.isRef()` for genuine branching (`refName`) |
 | Look up a peer's emitted name with `Producer.toIdentifierName(...)` | Call `insertOperation(Producer, op).toName()` instead | Static lookup returns the name but skips four framework side effects: Definition registration, cross-File import registration, insertion order, and refactor re-resolution. The static call's emitted reference can fail to resolve at consumer compile time, fail to import at consumer compile time, hit TDZ at consumer runtime, or stop following a producer rename — none of those failures appear at the generator's typecheck. See [cross-generator-coordination § Why call `insertOperation`](concepts/cross-generator-coordination.md#why-call-insertoperation-instead-of-producertoidentifiernameop) |
 | Emit a file-scope export by calling `defineAndRegister` with a Snippet value | Make it a Projection, dispatch via `insertOperation` | A `defineAndRegister`'d Snippet is keyed by the caller-chosen name string, not by `(Producer.toIdentifierName(...), Producer.toExportPath(...))`. Other generators cannot reach it via `insertOperation` (no class to pass); the identifier name lives at the caller, so a rename changes two sites instead of one |
 | Return a duck-typed `{ toString: () => '...' }` from a helper function in a render path | Make it a `SnippetBase` descendant class | The duck-typed object has no `context` (so `register({ imports, destinationPath })` is unavailable), no `generatorKey` (invisible to `affirmDefinition`), and isn't `instanceof SnippetBase` (rejected by generic code over the family) |
@@ -408,7 +408,7 @@ Order: `isSupported` (capability) → `include` (allow) → `skip` (deny).
 | Settings types | `types/Settings.ts` |
 | Manifest types | `types/Manifest.ts` |
 | OAS schema routing | `parse/v3-0/schema/toSchemasV3.ts` + `parse/v3-1/schema/toSchemasV3.ts` |
-| OAS schema variants | `oas/{object,array,union,string,integer,number,boolean,unknown}/<Name>.ts` |
+| OAS schema variants | `oas/{object,array,union,intersection,string,integer,number,boolean,unknown}/<Name>.ts` |
 | OAS ref class | `oas/ref/Ref.ts` |
 | OAS document model | `oas/document/Document.ts` |
 | OAS operation model | `oas/operation/Operation.ts` |
@@ -503,7 +503,7 @@ Reference example: `skmtc-generators/gen-shadcn-form/src/`.
 | Direct mutation of `context.#files` | Private for a reason; go through `register` |
 | Reading `OasSchema` params without `.resolve()` | The common parameter type is `OasSchema \| OasRef<'schema'>` |
 | Guarding resolution — `schema.isRef() ? schema.resolve() : schema` | `.resolve()` is identity on concrete schemas; call it unconditionally. `.isRef()` is for branches that genuinely differ |
-| Calling `resolve()` without expecting cycle throw | `MAX_LOOKUPS = 10` will throw on cycles |
+| Calling `resolve()` without expecting `DanglingRefError` | It throws for a `$ref` that names nothing or a loop of `$ref`s, when `system.danglingRefs` keeps one; test with `DanglingRefError.is` |
 
 ---
 
@@ -515,7 +515,7 @@ Self-contained playbooks. Read only the one you need.
 
 #### Setting up Skmtc in a project
 
-1. Install the CLI. On macOS and Linux, run `curl -fsSL https://skmtc.dev/install | sh`. On Windows, run `irm https://skmtc.dev/install.ps1 | iex` in PowerShell. The installer bootstraps Deno if needed. To pin a version, set `SKMTC_VERSION=<version>` (`$env:SKMTC_VERSION = '<version>'` in PowerShell). The script bakes in the required `--unstable-worker-options` flag (`@skmtc/worker` uses Deno's `Worker.deno.permissions` API, which sits behind it); a hand-rolled `deno install` without that flag makes the first `skmtc generate` exit with `Unstable API 'Worker.deno.permissions'`.
+1. Install the CLI. On macOS and Linux, run `curl -fsSL https://skmtc.dev/install | sh`. On Windows, run `irm https://skmtc.dev/install.ps1 | iex` in PowerShell. The installer bootstraps Deno if needed. To pin a version, set `SKMTC_VERSION=<version>` for `sh` (`| SKMTC_VERSION=<version> sh`). In PowerShell, run `$env:SKMTC_VERSION = '<version>'` before the install and `Remove-Item Env:SKMTC_VERSION` after it, because the variable stays set in that window. The script bakes in the required `--unstable-worker-options` flag (`@skmtc/worker` uses Deno's `Worker.deno.permissions` API, which sits behind it); a hand-rolled `deno install` without that flag makes the first `skmtc generate` exit with `Unstable API 'Worker.deno.permissions'`.
 2. `skmtc init <project-name> ./` creates `.skmtc/<project>/`.
 3. `skmtc install @skmtc/gen-typescript @skmtc/gen-zod <project>` to add generators.
 4. Edit `.skmtc/<project>/.settings/client.json` to set `source` and `settings.basePath`.
@@ -565,8 +565,8 @@ Self-contained playbooks. Read only the one you need.
 #### Using Skmtc in CI
 
 1. Pin Deno version.
-2. Install CLI in CI: `SKMTC_VERSION=<version> curl -fsSL https://skmtc.dev/install | sh` (on a Windows runner: `$env:SKMTC_VERSION = '<version>'; irm https://skmtc.dev/install.ps1 | iex`) — the pin keeps runs reproducible.
-3. `skmtc generate <project> --no-input --json --typecheck` (builds the bundle first).
+2. Install CLI in CI: `curl -fsSL https://skmtc.dev/install | SKMTC_VERSION=<version> sh` — the pin keeps runs reproducible. On a Windows runner, run `$env:SKMTC_VERSION = '<version>'; irm https://skmtc.dev/install.ps1 | iex` in PowerShell. With `CI` set, the installer does not change `PATH`, so then run `$env:Path = "$HOME\.deno\bin;$env:Path"` for the same step and, on GitHub Actions, `"$HOME\.deno\bin" >> $env:GITHUB_PATH` (in a `pwsh` step) for later steps.
+3. `skmtc generate <project> --no-input --json --typecheck` (builds the bundle first). On Windows, leave out `--typecheck` and run `tsc` yourself: it can report a pass without checking anything (skmtc/skmtc#353).
 4. Archive `manifest.json` as a CI artifact.
 
 ### Author task cards

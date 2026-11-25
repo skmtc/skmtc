@@ -6,6 +6,7 @@ import { FEEDBACK_KINDS } from '@/lib/feedback-headless.ts'
 import { assertJsrReachable, JsrRegistryUnreachableError } from '@/lib/jsr-registry.ts'
 import { shouldSkipRegistryCheck } from '@/lib/registry-check.ts'
 import { DeviceLoginError } from '@/lib/device-login.ts'
+import { ProjectLoadError } from '@/lib/project-load-error.ts'
 import {
   ENV_DESCRIPTION,
   getCommandDescriptor,
@@ -25,7 +26,7 @@ const NO_INPUT_DESC = NO_INPUT_DESCRIPTION
 const JSON_DESC = JSON_DESCRIPTION
 const ENV_DESC = ENV_DESCRIPTION
 const FORCE_DESC =
-  "Bypass the pre-flight @skmtc/core peer-pin check. Cloning over a mismatched pin produces a generator that won't bundle — only use this when you know the skew is safe."
+  'Replace a generator that is already cloned: delete its folder and its edits, and clone the published version again.'
 
 const run = async () => {
   if (!shouldSkipRegistryCheck(Deno.args)) {
@@ -329,7 +330,7 @@ const run = async () => {
       .option('--env <env:hubEnv>', ENV_DESC)
       .option(
         '--version <version:string>',
-        "Version to store and deploy. Defaults to the project root deno.json's `version`."
+        "Version to store and deploy, exactly; refused when already stored. Defaults to the project root deno.json's `version`, or the next patch when that is stored."
       )
       .option('--existing', 'Deploy the version already stored on the hub, without uploading.')
       .action(async ({ json, input, token, env, version, existing }, projectName) => {
@@ -780,6 +781,12 @@ run().catch(error => {
   if (error instanceof EnvVariableError || error instanceof DeviceLoginError) {
     console.error(error.message)
     Deno.exit(1)
+  }
+  // Exit 2, as a recipe error: exit 1 already means something else for
+  // some commands, such as "dirty" for `status --check`.
+  if (error instanceof ProjectLoadError) {
+    console.error(error.message)
+    Deno.exit(2)
   }
   throw error
 })

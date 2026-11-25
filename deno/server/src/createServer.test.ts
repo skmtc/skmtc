@@ -350,8 +350,8 @@ Deno.test("POST /enrichment-defaults - returns seeded defaults per supported sub
         stack: v.undefined(),
       }),
     transform(_args: TransformModelArgs): void {},
-    toEnrichmentDefaults: ({ refName }) => ({
-      subject: { note: `model ${refName}` },
+    toEnrichmentDefaults: ({ ref }) => ({
+      subject: { note: `model ${ref.refName}` },
       generator: undefined,
       stack: undefined,
     }),

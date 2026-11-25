@@ -19,7 +19,17 @@ is **required**: `deploy` fails with a recipe when `deno.json#name` is
 missing or is not a scoped `@account/slug`.
 
 The version comes from the project root `deno.json#version`, or from
-`--version`. The CLI never invents or bumps a version.
+`--version`. When the hub already has the `deno.json` version, `deploy`
+stores and deploys the next patch after the stack's newest stored version.
+For example, when the hub has `0.1.5` and `0.2.0`, `deploy` deploys
+`0.2.1`. It compares the versions by semver, and a prerelease does not
+count as the newest version.
+
+`deploy` prints `Version 0.1.5 is stored: deploying 0.2.1.` on stderr. It
+does not write that version into `deno.json`, because the hub holds the
+stack's versions. The next deploy picks the next patch again. `deploy`
+never replaces a version that you give with `--version`: when the hub
+already has it, `deploy` fails with exit 2.
 
 New to the hub? [What is skmtc-hub](../../explanation/what-is-skmtc-hub.md)
 introduces the nouns this page assumes (account, stack, project, PAT).
@@ -53,9 +63,11 @@ deploying it both use that scope.
 
 ### `--version <semver>`
 
-The version to store and deploy. Defaults to the project root
-`deno.json#version`. If neither is present, `deploy` fails before any
-network call with a recipe-style error.
+The version to store and deploy, exactly as you give it. When the hub
+already stores it, `deploy` fails at stage `exists` with exit 2. Defaults
+to the project root `deno.json#version`, which `deploy` replaces with the
+next patch when the hub already has it. If neither is present, `deploy` fails before
+any network call with a recipe-style error.
 
 ### `--existing`
 
@@ -94,18 +106,47 @@ See the [overview](overview.md#shared-flags).
      from deno.json#name; missing or unscoped → fail at stage `identity`.
 
 2. GET /v1/stacks/{account}/{slug}/versions/{version}   (20 s timeout)
-     200 → the version is already stored: fail at stage `exists`, exit 2,
-     nothing uploaded. Any other answer goes on to step 3.
+     200 for a `--version` version → fail at stage `exists`, exit 2,
+     nothing uploaded.
+     200 for the deno.json version → read every page of
+     GET /v1/stacks/{account}/{slug}/versions (20 s timeout each) and
+     pick the next patch after the newest stored release. If the list
+     cannot be read, or no stored version is a release, fail at stage
+     `version`, exit 1, nothing uploaded.
+     Any other answer goes on to step 3 with the version as it is.
 
 3. Collect the source tree and check it
-     deno.lock missing → fail at stage `source`. If deno.json does not
-     pin @skmtc/server at the CLI's version, add the pin, run
+     deno.lock missing → fail at stage `source`. Then choose the
+     @skmtc/server pin: the newest published server whose @skmtc/core
+     range accepts the project's core. The pin is no newer than the
+     CLI's own pin, and no older than 0.2.39, the first server that
+     serves every route the hub sends to it. When the registry's
+     version list can be read, a yanked version is not chosen.
+     The project's core is its exact @skmtc/core pin. For a range, it
+     is the version that deno.lock resolves the project's own pin to.
+     If deno.lock does not resolve that pin, fail at stage `source`.
+     With a local core, the pin is the CLI's version.
+     No server accepts the core → fail at stage `source`, before the
+     upload. The message says to update the CLI only when a newer CLI
+     can help: the core is newer than the CLI's server takes, or the
+     CLI's server takes it but is yanked.
+     If the CLI's own server cannot be read from the registry
+     (an error, or no such version), the pin is the CLI's version, with
+     a warning. If that version does not fit and the registry then
+     fails, fail at stage `source`.
+     If the pin changes, write it to deno.json and print it. Then run
      `deno install` to refresh deno.lock, and collect the tree again.
+     A local override (a path, not a jsr: pin) is not changed. A failed
+     result carries `serverPin` when the pin changed before the
+     failure.
 
 4. POST /v1/stacks/{account}/{slug}/versions   (multipart, atomic)
      One `version` part + one `files` part per source file. The hub
-     stores the source and returns the StackVersion. A 409 is the same
-     `exists` failure as step 2.
+     stores the source and returns the StackVersion. A 409 for a
+     `--version` version is the same `exists` failure as step 2. A 409
+     for any other version means another deploy stored it first: `deploy`
+     picks the next patch again, as in step 2, and uploads once more. A
+     second 409 fails at stage `upload`, exit 1.
 
 5. POST /v1/stacks/{account}/{slug}/servers   { "version": "<v>" }
      (120 s timeout) The hub deploys the stored version and returns the
@@ -161,7 +202,10 @@ When `--no-input` or `--json` is set:
   "type": "deployed",
   "projectName": "my-api",
   "stack": { "account": "ada", "slug": "my-api" },
+  // The version that was stored and deployed.
   "version": "3.0.1",
+  // true when the deno.json version was stored, so the CLI picked `version`.
+  "versionPicked": false,
   // null with --existing: this run uploaded nothing.
   "upload": {
     "sourceHash": "e3b0c44298fc1c14...",
@@ -169,17 +213,25 @@ When `--no-input` or `--json` is set:
     "sourceFileCount": 28,
     "sourceTotalBytes": 96512
   },
+  // The @skmtc/server pin this run changed in deno.json, or null.
+  "serverPin": {
+    "package": "@skmtc/server",
+    "from": "jsr:@skmtc/server@0.3.34",
+    "to": "jsr:@skmtc/server@0.3.33"
+  },
   "deploy": {
     "status": "active",
     "statusReason": null,
-    "endpointUrl": "https://ada-my-api.deno.dev/api",
+    // Always empty: a stack server has no direct URL.
+    "endpointUrl": "",
     "url": "https://api.skmtc.dev/v1/stacks/ada/my-api/servers/3.0.1"
   }
 }
 ```
 
 A `deploy.status` of `error` carries the reason in `deploy.statusReason`
-and exits 1.
+and exits 1. To call the deployed stack, see
+[Call a deployed stack](#call-a-deployed-stack).
 
 ### Failure
 
@@ -187,22 +239,25 @@ and exits 1.
 {
   "type": "failed",
   "projectName": "my-api",
-  "reason": "Version 3.0.1 already exists. Bump `version` in deno.json, or run `skmtc deploy my-api --existing` to deploy the stored version.",
+  "reason": "Version 3.0.1 already exists. Pass another `--version`, run `skmtc deploy my-api` to deploy the deno.json version (or the next patch when it is stored), or run `skmtc deploy my-api --version 3.0.1 --existing` to deploy the stored version.",
   "stage": "exists",
   // true: the version is stored on the hub and cannot change.
   "stored": true
 }
 ```
 
+This is the failure of `skmtc deploy my-api --version 3.0.1` when the hub
+already stores `3.0.1`.
+
 Possible `stage` values:
 
 | Stage | Where the failure happened |
 |---|---|
-| `version` | No version: no `deno.json#version` and no `--version`. Before any network call. |
+| `version` | No version: no `deno.json#version` and no `--version`, before any network call. Or the `deno.json` version is stored and the next patch cannot be picked: the versions list cannot be read, or no stored version is a release. |
 | `identity` | No stack name: `deno.json#name` is missing or not a scoped `@account/slug`. Before any network call. |
-| `exists` | The version is already on the hub (the check's `200`, or the upload's `409`). Exit 2. |
-| `source` | Reading the source tree failed, `deno.lock` is missing, or `deno install` failed after `deploy` added the `@skmtc/server` pin. |
-| `upload` | `POST /v1/stacks/.../versions` failed with another status. |
+| `exists` | The `--version` version is already on the hub (the check's `200`, or the upload's `409`). Exit 2. |
+| `source` | Reading the source tree failed, `deno.lock` is missing, no published `@skmtc/server` accepts the project's `@skmtc/core`, or `deno install` failed after `deploy` changed the `@skmtc/server` pin. |
+| `upload` | `POST /v1/stacks/.../versions` failed with another status, or answered `409` again for the version picked after a `409`. |
 | `deploy` | `POST /v1/stacks/.../servers` failed, was refused, or was not confirmed. |
 
 ## Text-mode output
@@ -216,17 +271,37 @@ Stored ada/my-api@3.0.1
   version: https://skmtc.dev/ada/stacks/my-api/versions/3.0.1
 deploy: active
   url: https://api.skmtc.dev/v1/stacks/ada/my-api/servers/3.0.1
-  endpoint: https://ada-my-api.deno.dev/api
 ```
 
 With `--existing`, the first line is `Already stored ada/my-api@3.0.1`.
+When the CLI picked the version, a line
+`  picked: the deno.json version is stored, so the CLI deployed the next patch`
+follows the summary.
 
 ### Failure
 
 ```
 Deploy failed for "my-api" at exists:
-  Version 3.0.1 already exists. Bump `version` in deno.json, or run `skmtc deploy my-api --existing` to deploy the stored version.
+  Version 3.0.1 already exists. Pass another `--version`, run `skmtc deploy my-api` to deploy the deno.json version (or the next patch when it is stored), or run `skmtc deploy my-api --version 3.0.1 --existing` to deploy the stored version.
 ```
+
+## Call a deployed stack
+
+You call a deployed stack through the hub. The `url` in the output is the
+address of the version:
+
+```
+https://api.skmtc.dev/v1/stacks/{account}/{stack}/servers/{version}
+```
+
+Use `production` as the version to call the version that the `production`
+alias selects. For a generation, send a `POST` request to that URL plus
+`/artifacts`. A private stack needs a hub token in the
+`Authorization: Bearer <token>` header.
+
+To let `skmtc generate` make this request, set
+[`serverUrl`](../settings/client-json-schema.md#serverurl-top-level-optional)
+in `client.json` to the URL without `/artifacts`.
 
 ## What gets uploaded
 
@@ -256,8 +331,8 @@ only**. A public name with a private DNS record still resolves and is
 fetched, and the fetched body comes back to the caller as the schema.
 
 The control that actually holds is the runtime's network isolation. On the
-hub, stack servers run under Deno subhosting, which has no route to an
-internal network. **Running a stack server anywhere else requires an egress
+hub, each call to a stack server runs in a new Cloudflare Container, which
+has no internet access. **Running a stack server anywhere else requires an egress
 policy in front of it** — the hostname check is defense in depth, not a
 substitute.
 
@@ -277,7 +352,7 @@ CLI flags always win over env vars; env vars win over the stored
 |---|---|
 | `0` | The version is stored and deployed, with a status other than `error` |
 | `1` | A failure at any stage, a deploy status of `error`, a refused deploy, or a deploy that was not confirmed |
-| `2` | Missing required argument, or the version already exists (recipe error on stderr) |
+| `2` | Missing required argument, or the `--version` version already exists (recipe error on stderr). A stored `deno.json` version is not exit 2: `deploy` picks the next patch. |
 
 ## Examples
 

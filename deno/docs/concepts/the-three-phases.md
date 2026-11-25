@@ -169,12 +169,14 @@ this without a two-pass scheme by giving each `OasRef` a live reference to the
 in-progress document:
 
 ```ts
-// core/parse/v3-{0,1}/ref/toRefV31.ts
-context.registerRef(stackTrail.clone(), $ref)
-
-return context.withStackTrail(stackTrail, () =>
+// core/parse/v3-{0,1,2}/ref/toRefV31.ts
+const oasRef = context.withStackTrail(stackTrail, () =>
   new OasRef({ refType, $ref, nullable }, context)
 )
+
+context.registerOasRef(stackTrail.clone(), oasRef)
+
+return oasRef
 ```
 
 The `OasRef` constructor stores `context.parsedDocument` — a

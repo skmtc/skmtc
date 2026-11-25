@@ -62,6 +62,8 @@ const FIXTURE_SDL = /* GraphQL */ `
 const toFixtureDenoJson = (projectPath: string): string =>
   JSON.stringify(
     {
+      imports: { '@fake/gen-minimal': './gen-minimal/mod.ts' },
+      workspace: ['./gen-minimal'],
       links: LINKED_MEMBERS.map(directory =>
         relative(projectPath, join(WORKSPACE_DIR, directory)).replaceAll('\\', '/')
       )
@@ -74,16 +76,16 @@ const toFixtureDenoJson = (projectPath: string): string =>
 // registered schema (so the CLI summary reports "Generated N files
 // in …"). Lives in the fixture so the smoke test has no dependency
 // on the sibling `skmtc-generators` repo.
-const FIXTURE_WORKER = `
-import toWorker from '@skmtc/worker'
-import { toModelEntry } from '@skmtc/core'
+const FIXTURE_GENERATOR = `
+import { emptyEnrichmentSchema, toModelEntry } from '@skmtc/core'
 import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 
 const ModelBase = toTsModelProjectionBase({
   id: '@fake/gen-minimal',
-  toIdentifierName: ({ refName }) => refName,
+  toIdentifierName: ({ ref }) => ref.refName,
   toIdentifierType: () => ({ type: 'type' }),
-  toExportPath: ({ refName }) => '@/types/' + refName + '.generated.ts'
+  toExportPath: ({ ref }) => '@/types/' + ref.refName + '.ts',
+  toEnrichmentSchema: () => emptyEnrichmentSchema
 })
 
 class FakeProjection extends ModelBase {
@@ -92,15 +94,14 @@ class FakeProjection extends ModelBase {
   }
 }
 
-const fakeGen = toModelEntry({
+export default toModelEntry({
   id: '@fake/gen-minimal',
-  transform: ({ context, refName }) => {
+  transform: ({ context, ref }) => {
     // deno-lint-ignore no-explicit-any
-    context.insertModel(FakeProjection as any, refName)
-  }
+    context.insertModel(FakeProjection as any, ref)
+  },
+  toEnrichmentSchema: () => emptyEnrichmentSchema
 })
-
-export default toWorker(() => ({ [fakeGen.id]: fakeGen }))
 `
 
 const FIXTURE_CLIENT_JSON = JSON.stringify(
@@ -131,24 +132,14 @@ const setup = async (uniqueSuffix: string): Promise<SetupResult> => {
   const settingsPath = join(projectPath, '.settings')
   await Deno.mkdir(settingsPath, { recursive: true })
 
-  await Deno.writeTextFile(join(projectPath, 'worker.ts'), FIXTURE_WORKER)
+  const generatorPath = join(projectPath, 'gen-minimal')
+  await Deno.mkdir(generatorPath)
+  await Deno.writeTextFile(join(generatorPath, 'mod.ts'), FIXTURE_GENERATOR)
+  await Deno.writeTextFile(
+    join(generatorPath, 'deno.json'),
+    JSON.stringify({ name: '@fake/gen-minimal', version: '0.0.1', exports: './mod.ts' })
+  )
   await Deno.writeTextFile(join(settingsPath, 'client.json'), FIXTURE_CLIENT_JSON)
-
-  // Built before the project has a `deno.json`, so `deno bundle` walks
-  // up to `skmtc/deno/deno.json` and resolves `@skmtc/*` through the
-  // workspace members.
-  const bundleCmd = new Deno.Command('deno', {
-    args: ['bundle', '-o', 'bundle.js', 'worker.ts'],
-    cwd: projectPath,
-    stdout: 'piped',
-    stderr: 'piped'
-  })
-  const bundleOut = await bundleCmd.output()
-  if (!bundleOut.success) {
-    const err = new TextDecoder().decode(bundleOut.stderr)
-    throw new Error(`bundle build failed: ${err}`)
-  }
-
   await Deno.writeTextFile(join(projectPath, 'deno.json'), toFixtureDenoJson(projectPath))
 
   const schemaPath = join(fixtureRoot, 'schema.graphql')
@@ -198,6 +189,10 @@ Deno.test({
       // assert on the stable anchors of that sentence.
       assertStringIncludes(out, 'Generated')
       assertStringIncludes(out, 'files under')
+
+      // The file is named by the model's `ref.refName`.
+      const generated = join(fixtureRoot, 'generated', 'types', 'User.generated.ts')
+      await Deno.stat(generated)
 
       // The fixture schema has 3 distinct issue categories — one of each
       // exercises a different code path in GqlParseContext.

@@ -29,13 +29,26 @@ Deno.test('single-dispatch: silent on a router recognised by its SchemaToValueFn
 Deno.test('single-dispatch: silent inside the metadata policies', () => {
   const source = `export const KtModelBase = toKtModelProjectionBase({
       id: denoJson.name,
-      toIdentifierType: (refName, context): KtIdentifierType => {
-        const schema = context.resolveSchemaRefOnce(refName).resolve()
+      toIdentifierType: (ref, context): KtIdentifierType => {
+        const schema = context.resolveSchemaRefOnce(ref).resolve()
         return { type: schema.type === 'object' ? 'data-class' : 'typealias' }
       },
       isSupported: ({ schema }) => schema.type !== 'unknown'
     })`
   assertEquals(lint(RULE, source), [])
+})
+
+Deno.test('single-dispatch: an intersection is a schema type', () => {
+  const messages = messagesFrom(
+    RULE,
+    `class KtType extends KtSnippet {
+       constructor({ schema }: Args) {
+         super({})
+         this.rendered = schema.type === 'intersection' ? 'A' : 'B'
+       }
+     }`
+  )
+  assertEquals(messages.length, 1)
 })
 
 Deno.test('single-dispatch: flags a switch in a producer constructor', () => {

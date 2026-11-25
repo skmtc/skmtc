@@ -37,6 +37,7 @@ type OasSchema =
   | OasNumber
   | OasBoolean
   | OasUnion
+  | OasIntersection
   | OasUnknown
 ```
 
@@ -71,6 +72,57 @@ Every variant — `OasObject`, `OasArray`, `OasString`, … and `OasRef`
 
 So `.isRef()` is the type-discriminating guard. The type system
 threads through the narrowing automatically.
+
+## Where a ref points: `refName` and `refPath`
+
+A `$ref` is a JSON pointer, and it can point anywhere in the document,
+not only at a component. `OasRef` splits it in two: `refName`, the last
+segment unescaped, and `refPath`, the pointer before it. `refPath` has no
+percent escapes, so two spellings of one place give the same `refPath`.
+
+| `$ref` | `refPath` | `refName` |
+| --- | --- | --- |
+| `#/components/schemas/Pet` | `#/components/schemas` | `Pet` |
+| `#/components/schemas/__sharedInput/$defs/schema0` | `#/components/schemas/__sharedInput/$defs` | `schema0` |
+| `#/components/schemas/ChatResponse/properties/result` | `#/components/schemas/ChatResponse/properties` | `result` |
+| `#/paths/~1accounts/get/responses/200/content/application~1json/schema` | `#/paths/~1accounts/get/responses/200/content/application~1json` | `schema` |
+| `#/components/parameters/Limit` | `#/components/parameters` | `Limit` |
+
+A ref whose `refPath` is a bucket (`#/components/schemas`,
+`#/components/parameters`, …) names a component, and resolves in
+`components`. Any other ref points into the document's content, and
+resolves only at its whole pointer: `#/definitions/Pet` does not find the
+component `Pet`. The
+parser parses its target once, at the target's own position. It uses
+the parser that components of that kind use, and keeps the target on the
+document under the whole pointer. A target that refers back to itself
+stays a lazy ref, as a recursive component does. A target that fails to
+parse removes what refers to it, and the `INVALID_DEPENDENCY_REF` names
+the target's error.
+
+The engine keys a component's model by `refName` alone, as it always
+has. Generator keys, enrichments and manifests from earlier runs stay
+the same. The engine keys any other target by its whole pointer. In
+`client.json`, the enrichments of such a target go under that pointer
+(`"#/components/schemas/ChatResponse/properties/result": { "main": … }`).
+
+The model API takes a model's ref as one value, `ref: RefParts`
+(`{ refName, refPath }`), never a bare `refName`. An `OasRef` has both
+fields and fits it as it is. A component's `refPath` is
+`#/components/schemas`. Code that holds only a component's name builds
+its ref with `toSchemaComponentRef(refName)`.
+
+Pass the `ref` as it is: to `insertModel(Peer, ref)`, to
+`toModelRef({ …, ref })`, and to `resolveSchemaRefOnce(ref)` in the
+projection. The two parts travel together, so no call can drop one.
+
+The model generator's identity statics receive the `ref` too. The name
+is the generator's: `ref.refName` alone repeats across positions, as two
+refs to `…/properties/disk` under different schemas do. A generator
+that must tell such targets apart reads `ref.refPath`, or calls
+`toModelName(ref)`, as the `skmtc create` scaffolds do. It names a
+component by its `refName`, and any other target by its whole pointer
+(`Order_items`, `Pet_properties_tag`).
 
 ## The forward-ref problem
 
@@ -109,12 +161,14 @@ progresses** — when `User` finishes parsing, it's added to
 calls `someRef.resolve()`, the document is fully populated.
 
 ```ts
-// core/parse/v3-{0,1}/ref/toRefV31.ts
-context.registerRef(stackTrail.clone(), $ref)
-
-return context.withStackTrail(stackTrail, () =>
+// core/parse/v3-{0,1,2}/ref/toRefV31.ts
+const oasRef = context.withStackTrail(stackTrail, () =>
   new OasRef({ refType, $ref, nullable }, context)
 )
+
+context.registerOasRef(stackTrail.clone(), oasRef)
+
+return oasRef
 ```
 
 The `OasRef` constructor stores `context.parsedDocument`, so the
@@ -145,8 +199,8 @@ implementation choices.
 
 - **`resolve()`** — recursively chases until reaching a non-ref. If
   there are 5 layers of `$ref → $ref → $ref → $ref → schema`, returns
-  the schema at depth 5. Throws if the chain exceeds `MAX_LOOKUPS`
-  (10).
+  the schema at depth 5. Throws `DanglingRefError` if the chain loops
+  (see [Loops of `$ref`s](#loops-of-refs)).
 
 Most consumers want `resolve()` — they don't care whether the path
 is direct or indirect, they want the underlying schema.
@@ -200,11 +254,14 @@ the resolved value is of the *expected* `refType`:
 
 ```ts
 resolveOnce(): OasRef<T> | ResolvedRef<T> {
-  const refName = toRefName(this.$ref)
+  if (this.refName === '') {
+    throw new DanglingRefError(this.$ref)
+  }
+
   const resolved = this.#resolveOasOnce(...) ?? this.#resolveGqlOnce(...)
 
   if (!resolved) {
-    throw new Error(`Ref "${this.#fields.$ref}" not found`)
+    throw new DanglingRefError(this.$ref)
   }
 
   if (resolved.isRef()) {
@@ -226,35 +283,45 @@ resolveOnce(): OasRef<T> | ResolvedRef<T> {
 ```
 
 So a `OasRef<'schema'>` that resolves to a parameter (different
-`refType`) throws at resolution time. This catches authoring mistakes
-in the OAS document — e.g., a path that says `$ref:
-'#/components/parameters/userId'` in a request-body schema position
-(wrong component bucket) would throw on `.resolve()` with a clear
-error.
+`refType`) throws at resolution time. This catches mistakes in the
+OAS document. A `$ref` also names the part of `components` that
+it reads, and `#resolveOasOnce` compares that part with `refType`
+before the lookup. A request-body schema with `$ref:
+'#/components/parameters/userId'` throws `Ref type mismatch` on
+`.resolve()`. The parser logs a `REF_TYPE_MISMATCH` error at each
+such place and removes what holds the `$ref`. A generator never gets
+one (see [Refs that name nothing](#refs-that-name-nothing)).
 
-## Cycle protection: MAX_LOOKUPS
+## Loops of `$ref`s
 
-What about `A → B → A → B → ...` cycles?
+In a loop of `$ref`s, `A` is a `$ref` to `B`, and `B` is a `$ref` to
+`A`. Each `resolveOnce()` names a component, but the chain never
+reaches a component that is not a `$ref`. Such a chain names nothing,
+the same as a `$ref` to no component:
 
-```ts
-// core/oas/ref/Ref.ts
-const MAX_LOOKUPS = 10
-```
+- `toLoop()` gives the references that make the loop, or `undefined`
+  when the chain reaches a component. A reference that leads into a
+  loop is not part of the loop.
+- `resolve()` throws `DanglingRefError` for a chain that loops. The
+  error's `loop` lists the `$ref`s of the loop.
+- The parser logs `DANGLING_REF` at the `$ref`s of the loop, as in
+  [Refs that name nothing](#refs-that-name-nothing).
 
-`resolve()` tracks recursion depth. If it exceeds 10 hops, it throws
-`Max lookups reached`. This catches cycles before they crash with
-stack overflow.
+A schema that holds itself through a property, such as a tree whose
+`children` are `$ref`s to the tree, is not a loop of `$ref`s. Each
+step reaches an object schema.
 
-The number 10 is deliberately small. Real OAS schemas almost never
-need a ref chain longer than 2-3 hops. A 10-hop chain is essentially
-always a cycle or a pathological schema worth flagging.
+A long chain that reaches a component resolves. There is no limit on
+the number of steps.
 
 ## Ref tracking during parse
 
 Two maps live on `ParseContext`:
 
 - **`#refConsumers: Map<refKey, StackTrail[]>`** — every `$ref`
-  encounter calls `context.registerRef(stackTrail.clone(), $ref)`.
+  encounter calls `context.registerOasRef(stackTrail.clone(), oasRef)`,
+  which records the consumer under the `$ref` string. (The GraphQL
+  parser calls `context.registerRef(stackTrail.clone(), typeName)`.)
   This builds the "who pointed at this ref?" inverse index. The
   `.clone()` is essential: trails are mutable, and an
   un-cloned trail would mutate as the walk returned through parent
@@ -274,6 +341,68 @@ document; error registration populates `#refErrors` from the
 *current trail* converted via `StackTrail.toStackRef()`. See
 [the StackTrail reference](../reference/api/stack-trail.md)
 for that address-bridging step.
+
+## Refs that name nothing
+
+`registerOasRef` also keeps each `OasRef` with the place that has it.
+At end-of-parse, before the cascade, `ParseContext` resolves each one
+once, at that place. When a `$ref` names nothing in the document,
+`resolveOnce()` throws `DanglingRefError`, and the place logs a
+`DANGLING_REF` issue. A `$ref` in a [loop](#loops-of-refs) also names
+nothing, and its place logs a `DANGLING_REF` issue too. The
+`client.json` setting
+`settings.system.danglingRefs` lists the kinds of `$ref` that can name
+nothing. The default list is empty.
+
+- A kind that is not in the list: an error. In a component, the error
+  goes into `#refErrors`, so the cascade removes the component and what
+  uses it. Outside the components, `ParseContext` removes what holds
+  the `$ref` at once. That is the operation that has the `$ref`. For a
+  path-level parameter, it is each operation on the path.
+- A kind in the list: a warning. The `$ref` stays, and `resolveOnce()`
+  throws `DanglingRefError` for it. In a loop, `resolveOnce()` still
+  names the next component, and `resolve()` throws `DanglingRefError`.
+  The generator decides what to do.
+  For example, it writes `unknown` for a schema, or fails the operation
+  for a parameter. Test for the error with `DanglingRefError.is(error)`.
+
+When `resolveOnce()` throws another error, the `$ref` names an item of
+the wrong kind. The place logs a `REF_TYPE_MISMATCH` error, and the
+parser removes what holds the `$ref` in the same way. The list does not
+apply: the parser gives a generator only what the place promises.
+
+A `$ref` to a component that failed to parse already has an error in
+`#refErrors`. That `$ref` gets no `DANGLING_REF`.
+
+Some `$ref`s are not `OasRef`s. Core resolves them during the parse to
+merge the members of an `allOf`, so a generator does not see them.
+
+[`settings.system.intersections`](../reference/settings/client-json-schema.md#settingssystem-optional)
+sets which of them core keeps as `OasRef`s, as members of an
+[`OasIntersection`](../reference/api/oas-schema-variants.md#oasintersection--type-intersection).
+By default core keeps each one that closes a cycle, because to merge it
+would copy the schema into itself. A kept `$ref` that names nothing is a
+`schema` ref. `allOfMember` does not apply to it.
+
+A member that leads into a loop of `$ref`s also names nothing.
+
+When a member names nothing and the list has `allOfMember`, core leaves the
+member out of the merge (`A & unknown` is `A`). The model then has no
+properties from that member. Otherwise the item that has the `allOf`
+gets a `DANGLING_REF` error, and the parser removes it. The list has
+`allOfMember` apart from `schema` because here core, not the generator,
+makes the decision.
+
+Core also merges in a `oneOf` or an `anyOf`: the `allOf` of a member,
+and each member with the keywords next to the union. The same rule
+applies to these `$ref`s. The union merge removes a pair of members that
+contradict. A `$ref` that names nothing is not a contradiction, so the
+merge does not remove a member for it.
+
+An operation depends on each security scheme in its `security`, also
+when it gets them from the root `security`. The parser registers the
+operation as a consumer of each scheme, so the cascade removes the
+operation together with the scheme.
 
 ## Cascade pruning
 
@@ -312,15 +441,18 @@ Yes. `$ref: '#/components/schemas/AliasToUser'` where `AliasToUser`
 is itself `{ $ref: '#/components/schemas/User' }` resolves correctly
 via `resolve()`. The intermediate `OasRef` is followed transparently.
 
-`MAX_LOOKUPS` caps the chain length at 10.
+A chain of any length resolves when it reaches a component. A chain
+that loops names nothing (see [Loops of `$ref`s](#loops-of-refs)).
 
 ### What if I resolve a ref that was pruned?
 
-`resolveOnce()` throws `Ref "..." not found`. A parse error does not
+`resolveOnce()` throws `DanglingRefError`. A parse error does not
 cause this: the cascade removes every item that reaches a removed
-component, at all depths. The throw can still come from a `$ref` to a
-component that the document does not define. The generator's
-try/catch catches it; the operation is marked `'error'` in the
+component, at all depths. By default, the cascade also removes a
+`$ref` to a component that the document does not define. When
+`settings.system.danglingRefs` lists the kind of the `$ref`, it stays,
+and `resolveOnce()` throws for it. If the generator
+does not catch the error, the engine marks the item `'error'` in the
 manifest.
 
 ### When should I use `resolve()` vs `resolveOnce()`?
@@ -341,11 +473,12 @@ function declaring `OasRef<'schema'>` can't be passed an
 
 ### Can `OasRef` point to refs in external documents?
 
-Not currently. The `$ref` is resolved within `context.parsedDocument`,
-which is single-document. External `$ref`s (e.g.,
-`$ref: 'other.yaml#/User'`) aren't supported. If your OAS uses
-multi-file refs, bundle them into a single document before passing
-to Skmtc (tools like `@redocly/cli bundle` do this).
+Not currently. Core resolves a `$ref` within `context.parsedDocument`,
+which holds one document. A `$ref` that does not start with `#`, such as
+`other.yaml#/components/schemas/User`, names nothing, even when this
+document has a `User`. If your OAS uses multi-file refs, bundle them
+into a single document before passing to Skmtc (tools like
+`@redocly/cli bundle` do this).
 
 ### Does Render phase resolve refs?
 

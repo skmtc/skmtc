@@ -78,7 +78,7 @@ Deno.test('method-discipline: silent on the static contract slots', () => {
   const source = `class ZodProjection extends ZodBase {
       static schemaToValueFn = (...args: Parameters<typeof toZodValue>) => toZodValue(...args)
       static createIdentifier = createVariable
-      static toRefName(refName: string): string { return refName }
+      static toIdentifierName(refName: string): string { return refName }
       override toString() { return \`\${this.value}\` }
     }`
   assertEquals(lint(RULE, source), [])

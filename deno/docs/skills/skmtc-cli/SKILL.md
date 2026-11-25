@@ -1,6 +1,6 @@
 ---
 name: skmtc-cli
-version: 0.5.2
+version: 0.5.3
 description: |
   Use the Skmtc CLI to scaffold projects, install or clone generators
   from JSR, configure schema sources and enrichments, and produce code
@@ -101,7 +101,9 @@ has no `--json`; `create` has no `--json` yet.)
 
 Exit codes are consistent across all commands: `0` success (including
 documented no-ops), `2` required input missing or invalid (recipe
-error on stderr), `1` anything else (registry unreachable, schema
+error on stderr) or the named project did not load (one line,
+`Project "<name>" did not load: <reason>`, no recipe: repair that
+folder in `.skmtc/`), `1` anything else (registry unreachable, schema
 parse failure, fatal parseIssue, typecheck failure). For `generate
 --json`, an empty `errors` array is the success condition — not the
 exit code alone.

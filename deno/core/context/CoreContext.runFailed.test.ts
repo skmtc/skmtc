@@ -50,7 +50,7 @@ class NeutralSnippet extends SnippetBase {
 
 const ModelBase = toModelProjectionBase<Enrichments>(NeutralSnippet, {
   id: 'models',
-  toIdentifierName: ({ refName }) => refName,
+  toIdentifierName: ({ ref }) => ref.refName,
   toIdentifierType: () => ({ type: 'entity' }),
   toExportPath: () => '@/models.txt',
   toEnrichmentSchema: () => emptyEnrichmentSchema
@@ -68,8 +68,8 @@ const renderFailingGenerators = <E = undefined>(): GeneratorsMapContainer<E> => 
   models: toModelEntry({
     id: 'models',
     toEnrichmentSchema: () => emptyEnrichmentSchema,
-    transform: ({ context, refName }) => {
-      context.insertModel(UnrenderableModel, refName)
+    transform: ({ context, ref }) => {
+      context.insertModel(UnrenderableModel, ref)
     }
   })
 })

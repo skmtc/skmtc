@@ -1,25 +1,104 @@
 import { join } from '@std/path/join'
+import { compare } from '@std/semver/compare'
+import { greaterThanRange } from '@std/semver/greater-than-range'
+import { satisfies } from '@std/semver/satisfies'
+import { tryParse } from '@std/semver/try-parse'
+import { tryParseRange } from '@std/semver/try-parse-range'
+import type { SemVer } from '@std/semver/types'
 import { readCliServerPin } from '@/lib/doctor-headless.ts'
-import { toDependencyAgeArgs } from '@/lib/dependency-age.ts'
+import { toDependencyAgeArgs, toProjectInstallCommand } from '@/lib/dependency-age.ts'
+import { Jsr, type JsrPkgMetaVersions } from '@/lib/jsr.ts'
+import { readCoreRange, toCorePin } from '@/lib/stack-core.ts'
 
 const SERVER_PACKAGE = '@skmtc/server'
+const SERVER_PREFIX = `jsr:${SERVER_PACKAGE}@`
+const SERVER = { scopeName: '@skmtc', packageName: 'server' } as const
+
+/**
+ * The oldest server the hub can deploy. The hub's stack wrapper forwards
+ * seven routes to the server (skmtc-hub `STACK_APP_PUBLIC_ROUTES`):
+ * `/artifacts`, `/subjects`, `/validate`, `/descriptors`,
+ * `/enrichment-defaults`, `/generators` and `/to-v3-json`. It always sends
+ * `protocol` to `/artifacts`, which servers read from 0.1.0 on. 0.2.39 is the
+ * first version that serves all seven routes (`/validate` came last). On
+ * jsr.io the first version at or above it is 0.2.52.
+ */
+const MIN_SERVER_VERSION = '0.2.39'
+
+/** How long the version listing may take: it is one larger file. */
+const LISTING_TIMEOUT_MS = 15_000
+
+/** A pin `pinServerForPublish` changed in the project `deno.json`. */
+export type ServerPinChange = {
+  package: typeof SERVER_PACKAGE
+  /** The pin before, `null` when there was none. */
+  from: string | null
+  to: string
+}
+
+/**
+ * Why no server fits. `core-too-new`: the project's core is newer than the
+ * CLI's own server takes. `cli-yanked`: the CLI's own server takes the core,
+ * but it is yanked. A newer CLI can help with both. `no-server`: no
+ * published server takes the core.
+ */
+type NoServerReason = 'core-too-new' | 'cli-yanked' | 'no-server'
+
+/** What the user can do, for each {@link NoServerReason}. */
+const NO_SERVER_ADVICE: Record<NoServerReason, string> = {
+  'core-too-new': "The project's core is newer than this CLI's server: update the CLI.",
+  'cli-yanked': "This CLI's server takes that core, but it is yanked: update the CLI.",
+  'no-server': "Move the project's generators to a core that a published server accepts."
+}
+
+/** No published `@skmtc/server` up to the CLI's own accepts the project's core. */
+export class NoServerForCoreError extends Error {
+  readonly reason: NoServerReason
+
+  constructor({ core, tried, reason }: { core: string; tried: string[]; reason: NoServerReason }) {
+    const triedText =
+      tried.length === 1
+        ? tried[0]
+        : `${tried.length} versions, ${tried[0]} down to ${tried.at(-1)}`
+    super(
+      [
+        `No published ${SERVER_PACKAGE} accepts the project's @skmtc/core ${core} (tried ${triedText}).`,
+        NO_SERVER_ADVICE[reason]
+      ].join(' ')
+    )
+    this.name = 'NoServerForCoreError'
+    this.reason = reason
+  }
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
+
+type PinServerForPublishOptions = {
+  /** The CLI's own `@skmtc/server` pin; a seam for tests. */
+  cliVersion?: string | null
+}
 
 /**
  * Pin `@skmtc/server` in the project `deno.json` before a deploy uploads the
  * version. The hub deploys a version by synthesizing a `server.ts` that
  * imports `@skmtc/server` through the uploaded import map, so a version
- * stored without the pin can never deploy. The rule is `ensureServerDeps`'s: add the
- * pin when absent, repin a different JSR version to the CLI's, and leave a
- * non-JSR override (a local checkout) alone.
+ * stored without the pin can never deploy.
  *
- * Returns whether the file changed.
+ * The pin is the newest published server, from {@link MIN_SERVER_VERSION} up
+ * to the CLI's own pin, whose `@skmtc/core` range accepts the project's core:
+ * a server on another core puts two cores in `deno.lock`, and the hub refuses
+ * the upload (#373). The project's core is its exact pin, or for a range the
+ * version its `deno.lock` resolves. With a local core it is the CLI's
+ * version. A non-JSR server override (a local checkout) is left alone.
+ *
+ * Returns the change, or `null` when the file is unchanged.
  */
-export const pinServerForPublish = async (projectPath: string): Promise<boolean> => {
-  const version = readCliServerPin()
-  if (version === null) return false
+export const pinServerForPublish = async (
+  projectPath: string,
+  { cliVersion = readCliServerPin() }: PinServerForPublishOptions = {}
+): Promise<ServerPinChange | null> => {
+  if (cliVersion === null) return null
 
   const denoJsonPath = join(projectPath, 'deno.json')
   const parsed: unknown = JSON.parse(await Deno.readTextFile(denoJsonPath))
@@ -28,16 +107,214 @@ export const pinServerForPublish = async (projectPath: string): Promise<boolean>
   }
 
   const imports = isRecord(parsed.imports) ? parsed.imports : {}
-  const current = imports[SERVER_PACKAGE]
-  const wanted = `jsr:${SERVER_PACKAGE}@${version}`
+  const current = typeof imports[SERVER_PACKAGE] === 'string' ? imports[SERVER_PACKAGE] : null
+  if (current !== null && !current.startsWith(SERVER_PREFIX)) return null
 
-  if (current === wanted) return false
-  if (typeof current === 'string' && !current.startsWith(`jsr:${SERVER_PACKAGE}@`)) return false
+  const core = await readProjectCore({ projectPath, imports })
+  const version = core === null ? cliVersion : await findServerForCore({ core, cliVersion })
+  const wanted = `${SERVER_PREFIX}${version}`
+
+  if (current === wanted) return null
 
   const updated = { ...parsed, imports: { ...imports, [SERVER_PACKAGE]: wanted } }
   await Deno.writeTextFile(denoJsonPath, `${JSON.stringify(updated, null, 2)}\n`)
 
-  return true
+  return { package: SERVER_PACKAGE, from: current, to: wanted }
+}
+
+type ReadProjectCoreArgs = {
+  projectPath: string
+  imports: Record<string, unknown>
+}
+
+/**
+ * The `@skmtc/core` version the project runs on: its exact pin, or for a
+ * range the version `deno.lock` resolves that pin to. `null` for a local or
+ * other core, and for no pin. Throws when `deno.lock` does not resolve the
+ * range, because the server cannot be chosen then.
+ */
+const readProjectCore = async ({ projectPath, imports }: ReadProjectCoreArgs): Promise<string | null> => {
+  const value = imports['@skmtc/core']
+  if (typeof value !== 'string') return null
+
+  const pin = toCorePin(value)
+  if (pin.type === 'exact') return pin.version
+  if (pin.type !== 'range') return null
+
+  const locked = await readLockedProjectCore(projectPath)
+  if (locked !== null) return locked
+
+  throw new Error(
+    `deno.lock does not resolve the project's @skmtc/core ${pin.range}. ` +
+      `Run \`${toProjectInstallCommand()}\` in the project, or pin @skmtc/core exactly in deno.json, then deploy again.`
+  )
+}
+
+/**
+ * The version `deno.lock` resolves the project's own `@skmtc/core` import
+ * to, or `null` when it has none. The lock lists the project's imports under
+ * `workspace.dependencies`, as Deno writes them (`^0.44.1` becomes
+ * `~0.44.1`), and maps each one to a version under `specifiers`. The `jsr`
+ * entries are not used: a server on another core adds a second core there
+ * (#3652), and the server must be chosen for the project's own core. Once
+ * that server is pinned, `deno install` drops the second core.
+ */
+const readLockedProjectCore = async (projectPath: string): Promise<string | null> => {
+  const parsed: unknown = JSON.parse(await Deno.readTextFile(join(projectPath, 'deno.lock')))
+  if (!isRecord(parsed) || !isRecord(parsed.workspace) || !isRecord(parsed.specifiers)) return null
+
+  const dependencies: unknown[] = Array.isArray(parsed.workspace.dependencies)
+    ? parsed.workspace.dependencies
+    : []
+  const specifier = dependencies.find(
+    (dependency): dependency is string =>
+      typeof dependency === 'string' && dependency.startsWith('jsr:@skmtc/core@')
+  )
+  const version = specifier === undefined ? undefined : parsed.specifiers[specifier]
+
+  return typeof version === 'string' ? version : null
+}
+
+type FindServerForCoreArgs = {
+  core: string
+  cliVersion: string
+}
+
+/**
+ * The newest published server, no newer than `cliVersion`, whose core range
+ * accepts `core`. The CLI's version and the listing are read together.
+ */
+const findServerForCore = async ({ core, cliVersion }: FindServerForCoreArgs): Promise<string> => {
+  const coreVersion = tryParse(core)
+  if (coreVersion === undefined) return cliVersion
+
+  const [cliFit, listing] = await Promise.all([
+    readServerFit({ version: cliVersion, coreVersion }),
+    Jsr.tryGetLatestMeta({ ...SERVER, timeoutMs: LISTING_TIMEOUT_MS })
+  ])
+
+  // The CLI's version unknown: pin it, as before #373.
+  if (cliFit.type === 'unreadable') {
+    console.error(
+      `Warning: could not read ${SERVER_PACKAGE} ${cliVersion} from the registry (${cliFit.reason}). ` +
+        `Pinning the CLI's version.`
+    )
+    return cliVersion
+  }
+
+  if (cliFit.fit === 'older') {
+    throw new NoServerForCoreError({ core, tried: [cliVersion], reason: 'core-too-new' })
+  }
+
+  const yanked = listing?.versions[cliVersion]?.yanked === true
+  if (cliFit.fit === 'accepts' && !yanked) return cliVersion
+
+  // The CLI's version is known not to fit (or is yanked), so pinning it would
+  // bring the two-core 422 back: search, or stop.
+  const why = yanked ? 'is yanked' : `does not accept the project's @skmtc/core ${core}`
+  if (listing === undefined) {
+    throw new Error(
+      `${SERVER_PACKAGE} ${cliVersion} ${why}, and the registry's list of ${SERVER_PACKAGE} versions could not be read.`
+    )
+  }
+
+  // Here the CLI's version accepts the core only when it is yanked.
+  const reason: NoServerReason = cliFit.fit === 'accepts' ? 'cli-yanked' : 'no-server'
+
+  try {
+    return await searchOlderServers({ core, coreVersion, cliVersion, listing, reason })
+  } catch (error) {
+    if (error instanceof NoServerForCoreError) throw error
+
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(
+      `${SERVER_PACKAGE} ${cliVersion} ${why}, and the registry could not be read to find a version that does: ${message}`
+    )
+  }
+}
+
+/** How a server version's core range relates to the project's core. */
+type ServerFit = 'accepts' | 'older' | 'other'
+
+type ServerRead = { type: 'read'; fit: ServerFit } | { type: 'unreadable'; reason: string }
+
+type ReadServerFitArgs = { version: string; coreVersion: SemVer }
+
+/** The fit of one server version. A failed read or a missing `deno.json` is `unreadable`. */
+const readServerFit = async ({ version, coreVersion }: ReadServerFitArgs): Promise<ServerRead> => {
+  try {
+    const text = await Jsr.tryGetVersionFile({ ...SERVER, version, path: 'deno.json' })
+    if (text === null) return { type: 'unreadable', reason: `no deno.json for ${version}` }
+
+    const range = await readCoreRange(JSON.parse(text))
+    const parsed = range === null ? undefined : tryParseRange(range)
+
+    if (parsed === undefined) return { type: 'read', fit: 'other' }
+    if (satisfies(coreVersion, parsed)) return { type: 'read', fit: 'accepts' }
+    // The core is newer than any this server takes, and an older server takes older cores still.
+    return { type: 'read', fit: greaterThanRange(coreVersion, parsed) ? 'older' : 'other' }
+  } catch (error) {
+    return { type: 'unreadable', reason: error instanceof Error ? error.message : String(error) }
+  }
+}
+
+/** How many versions are read at once while searching. */
+const SEARCH_BATCH = 16
+
+type SearchOlderServersArgs = FindServerForCoreArgs & {
+  coreVersion: SemVer
+  listing: JsrPkgMetaVersions
+  /** The reason a {@link NoServerForCoreError} gives when no version fits. */
+  reason: NoServerReason
+}
+
+/**
+ * The versions below the CLI's and at or above {@link MIN_SERVER_VERSION},
+ * newest first, read in batches and walked in order. A failed read stops the
+ * walk only when no newer version in the batch has decided it.
+ */
+const searchOlderServers = async ({
+  core,
+  coreVersion,
+  cliVersion,
+  listing,
+  reason
+}: SearchOlderServersArgs): Promise<string> => {
+  const ceiling = tryParse(cliVersion)
+  const floor = tryParse(MIN_SERVER_VERSION)
+  const older = Object.entries(listing.versions)
+    .flatMap(([version, { yanked }]) => {
+      const parsed = tryParse(version)
+      return yanked === true || parsed === undefined || parsed.prerelease?.length
+        ? []
+        : [{ version, parsed }]
+    })
+    .filter(({ parsed }) => ceiling === undefined || compare(parsed, ceiling) < 0)
+    .filter(({ parsed }) => floor === undefined || compare(parsed, floor) >= 0)
+    .sort((a, b) => compare(b.parsed, a.parsed))
+    .map(({ version }) => version)
+
+  const tried = [cliVersion]
+  const batches = Array.from({ length: Math.ceil(older.length / SEARCH_BATCH) }, (_, index) =>
+    older.slice(index * SEARCH_BATCH, (index + 1) * SEARCH_BATCH)
+  )
+
+  for (const batch of batches) {
+    const reads = await Promise.all(batch.map(version => readServerFit({ version, coreVersion })))
+
+    for (const [index, read] of reads.entries()) {
+      const version = batch[index]
+      tried.push(version)
+
+      if (read.type === 'unreadable') {
+        throw new Error(`could not read ${SERVER_PACKAGE} ${version}: ${read.reason}`)
+      }
+      if (read.fit === 'accepts') return version
+      if (read.fit === 'older') throw new NoServerForCoreError({ core, tried, reason })
+    }
+  }
+
+  throw new NoServerForCoreError({ core, tried, reason })
 }
 
 /** Run `deno install` in the project so `deno.lock` resolves a changed import map. */

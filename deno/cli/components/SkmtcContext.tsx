@@ -118,6 +118,8 @@ export type ViewStateInstallGenerator = {
 export type ViewStateCloneGenerator = {
   page: 'clone-generator'
   projectName: string
+  /** `--force`: replace a generator that is already cloned. */
+  force?: boolean
 }
 
 export type ViewStateRemoveGenerator = {

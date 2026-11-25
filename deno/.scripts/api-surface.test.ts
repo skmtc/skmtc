@@ -29,6 +29,25 @@ Deno.test('normalizeDeclaration drops positions and doc comments and sorts keys'
   assertEquals(JSON.stringify(normalizeDeclaration(declaration)), JSON.stringify(expected))
 })
 
+Deno.test('normalizeDeclaration drops the color codes deno doc writes into a template literal type unless NO_COLOR is set', () => {
+  // `NakedModelGeneratorKey` as `deno doc --json` gives it with and without `NO_COLOR=1`.
+  const colored = {
+    kind: 'typeAlias',
+    def: {
+      tsType: {
+        repr: '${\u001b[0m\u001b[36mstring\u001b[0m}|${\u001b[0m\u001b[36mstring\u001b[0m}|${\u001b[0m\u001b[36mstring\u001b[0m}',
+        kind: 'typeLiteral'
+      }
+    }
+  }
+  const plain = {
+    kind: 'typeAlias',
+    def: { tsType: { repr: '${string}|${string}|${string}', kind: 'typeLiteral' } }
+  }
+
+  assertEquals(JSON.stringify(normalizeDeclaration(colored)), JSON.stringify(normalizeDeclaration(plain)))
+})
+
 Deno.test('normalizeDeclaration is stable under key order and comment edits', () => {
   const first = { kind: 'class', def: { name: 'A' }, jsDoc: { doc: 'one' } }
   const second = { jsDoc: { doc: 'two' }, def: { name: 'A' }, kind: 'class' }

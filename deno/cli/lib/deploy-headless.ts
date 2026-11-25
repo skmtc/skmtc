@@ -9,15 +9,18 @@
  *      root `deno.json#version`. No version → fail before any network call.
  *   2. Resolve the stack identity from the project `deno.json#name`
  *      (`@account/slug`).
- *   3. `GET /v1/stacks/{account}/{stack}/versions/{version}` — a 200 stops
- *      before any upload: versions are immutable.
+ *   3. `GET /v1/stacks/{account}/{stack}/versions/{version}` — versions are
+ *      immutable. A 200 for a `--version` version stops before any upload.
+ *      A 200 for the `deno.json` version picks the next patch after the
+ *      newest stored version (`GET …/versions`, every page) and deploys that.
  *   4. `collectSourceFiles(project)` — the user-authored source tree, filtered
  *      by built-in defaults + the project's optional `.skmtcignore`. The hub
  *      REQUIRES `deno.lock` in the upload. When the project `deno.json` lacks
  *      the `@skmtc/server` pin the hub's synthesized `server.ts` needs, it is
  *      added, `deno.lock` is refreshed, and the tree is collected again.
  *   5. `POST /v1/stacks/{account}/{stack}/versions` (multipart) with the
- *      `version` part + one `files` part per source file. Atomic.
+ *      `version` part + one `files` part per source file. Atomic. Without
+ *      `--version`, a 409 picks the next patch again, once.
  *   6. `POST /v1/stacks/{account}/{stack}/servers` `{ version }` deploys the
  *      stored version and answers with the StackServer. It never moves the
  *      `production` alias.
@@ -27,11 +30,19 @@
  */
 
 import { join } from '@std/path/join'
+import { compare } from '@std/semver/compare'
+import { format } from '@std/semver/format'
+import { increment } from '@std/semver/increment'
+import { tryParse } from '@std/semver/try-parse'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { collectSourceFiles, type SourceFile } from '@/lib/source-upload.ts'
 import { parseScopedName, toScopedPath } from '@/lib/scoped-name.ts'
 import { toProjectInstallCommand } from '@/lib/dependency-age.ts'
-import { pinServerForPublish, refreshProjectLock } from '@/lib/publish-server-pin.ts'
+import {
+  pinServerForPublish,
+  refreshProjectLock,
+  type ServerPinChange
+} from '@/lib/publish-server-pin.ts'
 import {
   errorMessage,
   isTimeoutError,
@@ -73,6 +84,8 @@ type DeployHeadlessArgs = {
   existing?: boolean
   /** Refresh `deno.lock` after the server pin changes `deno.json`; a seam for tests. */
   refreshLock?: (projectPath: string) => Promise<void>
+  /** Choose and write the `@skmtc/server` pin; a seam for tests. */
+  pinServer?: (projectPath: string) => Promise<ServerPinChange | null>
 }
 
 export const STACK_SERVER_STATUSES = ['deploying', 'active', 'idle', 'paused', 'error'] as const
@@ -107,8 +120,12 @@ export type DeployHeadlessResult =
       stack: { account: string; slug: string }
       /** The stored semver. */
       version: string
+      /** The `deno.json` version was stored, so the CLI picked `version`. */
+      versionPicked: boolean
       /** `null` with `--existing`: the version was already stored. */
       upload: StackUpload | null
+      /** The `@skmtc/server` pin this run changed in `deno.json`, or `null`. */
+      serverPin: ServerPinChange | null
       deploy: StackDeploy
     }
   | {
@@ -118,6 +135,8 @@ export type DeployHeadlessResult =
       stage: DeployFailureStage
       /** The version is stored on the hub: a later run cannot change it. */
       stored: boolean
+      /** The `@skmtc/server` pin this run changed in `deno.json`, when it changed one. */
+      serverPin?: ServerPinChange
     }
 
 /** 0 when the version is deployed; 2 when it already exists; 1 otherwise. */
@@ -152,9 +171,11 @@ const toRetryCommand = (invocation: DeployInvocation): string =>
 const toRerunCommand = ({ projectName, env }: DeployInvocation): string =>
   `skmtc deploy ${projectName}${env ? ` --env ${env}` : ''}`
 
-/** The recipe when the version is already on the hub. */
+/** The recipe when the `--version` version is already on the hub. */
 export const toVersionExistsMessage = (version: string, invocation: DeployInvocation): string =>
-  `Version ${version} already exists. Bump \`version\` in deno.json, or run ` +
+  `Version ${version} already exists. Pass another \`--version\`, run ` +
+  `\`${toRerunCommand(invocation)}\` to deploy the deno.json version (or the next patch when ` +
+  'it is stored), or run ' +
   `\`${toRetryCommand(invocation)}\` to deploy the stored version.`
 
 /** What a stored version that did not deploy needs: a fix and a new version. */
@@ -178,6 +199,9 @@ export const toDeployedLines = (
         `  version: ${result.upload.versionUrl}`
       ]
     : [`Already stored ${ref}`]
+  if (result.versionPicked) {
+    lines.push('  picked: the deno.json version is stored, so the CLI deployed the next patch')
+  }
   lines.push(`deploy: ${result.deploy.status}`)
   if (result.deploy.status === 'error') {
     lines.push(`  reason: ${result.deploy.statusReason ?? '(the hub gave no reason)'}`)
@@ -214,8 +238,8 @@ const readProjectField = async (
 /**
  * Resolve the version to deploy: the `--version` flag wins, then the
  * project root `deno.json#version`. Both are trimmed; empty values count
- * as missing. Throws when neither source yields a version — the CLI never
- * invents or auto-bumps a semver.
+ * as missing. Throws when neither source yields a version. `fromFlag` says
+ * the user named the version, so it is never replaced by a picked one.
  *
  * Exported for tests.
  */
@@ -225,12 +249,12 @@ export const resolveStackVersion = async ({
 }: {
   projectPath: string
   versionFlag?: string
-}): Promise<string> => {
+}): Promise<{ version: string; fromFlag: boolean }> => {
   const fromFlag = versionFlag?.trim()
-  if (fromFlag) return fromFlag
+  if (fromFlag) return { version: fromFlag, fromFlag: true }
 
   const fromDenoJson = (await readProjectField(projectPath, 'version'))?.trim()
-  if (fromDenoJson) return fromDenoJson
+  if (fromDenoJson) return { version: fromDenoJson, fromFlag: false }
 
   throw new Error(
     "no version to deploy — set a `version` in the project's deno.json or pass --version <semver>"
@@ -307,6 +331,83 @@ export const isVersionStored = async ({
   } catch {
     return false
   }
+}
+
+/**
+ * Every version the hub stores for the stack, from every page of
+ * `GET /v1/stacks/{account}/{slug}/versions`. Throws when a page is refused,
+ * does not answer in time, or cannot be read.
+ *
+ * Exported for tests.
+ */
+export const listStoredVersions = async ({
+  origin,
+  token,
+  account,
+  slug
+}: {
+  origin: string
+  token: string
+  account: string
+  slug: string
+}): Promise<string[]> => {
+  const readPage = async (
+    cursor: string | undefined
+  ): Promise<{ versions: string[]; nextCursor: string | undefined }> => {
+    const url = new URL(`${origin}/v1/stacks/${toScopedPath({ account, slug })}/versions`)
+    if (cursor !== undefined) url.searchParams.set('cursor', cursor)
+    const response = await fetch(url, {
+      headers: { authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(EXISTS_TIMEOUT_MS)
+    })
+    if (!response.ok) {
+      const { message } = await readApiError(response)
+      throw new Error(
+        `the hub refused the versions list (${response.status}): ` +
+          toSentence(message || 'the hub gave no reason')
+      )
+    }
+    const payload: unknown = await response.json().catch(rethrowTimeout)
+    const items = isObject(payload) ? payload['items'] : undefined
+    const pagination = isObject(payload) ? payload['pagination'] : undefined
+    if (!Array.isArray(items) || !isObject(pagination)) {
+      throw new Error('the hub answered the versions list with an unexpected payload')
+    }
+    const versions = items.flatMap(item =>
+      isObject(item) && typeof item['version'] === 'string' ? [item['version']] : []
+    )
+    if (pagination['hasMore'] !== true) return { versions, nextCursor: undefined }
+    const nextCursor = pagination['nextCursor']
+    // Picking from part of the list can pick a stored version.
+    if (typeof nextCursor !== 'string') {
+      throw new Error('the hub answered the versions list with more pages but no cursor')
+    }
+    return { versions, nextCursor }
+  }
+
+  const readFrom = async (cursor: string | undefined): Promise<string[]> => {
+    const page = await readPage(cursor)
+    if (page.nextCursor === undefined) return page.versions
+    return [...page.versions, ...(await readFrom(page.nextCursor))]
+  }
+
+  return await readFrom(undefined)
+}
+
+/**
+ * The next patch after the newest of `versions`, compared by semver.
+ * Prerelease and unparseable versions do not count. `null` when none counts.
+ *
+ * Exported for tests.
+ */
+export const toNextPatchVersion = (versions: string[]): string | null => {
+  const releases = versions.flatMap(version => {
+    const parsed = tryParse(version)
+    return parsed && parsed.prerelease?.length === 0 ? [parsed] : []
+  })
+  if (releases.length === 0) return null
+  const newest = releases.reduce((max, version) => (compare(version, max) > 0 ? version : max))
+  return format(increment(newest, 'patch'))
 }
 
 /**
@@ -538,28 +639,40 @@ export const deployHeadless = async ({
   version: versionFlag,
   envFlag,
   existing = false,
-  refreshLock = refreshProjectLock
+  refreshLock = refreshProjectLock,
+  pinServer = pinServerForPublish
 }: DeployHeadlessArgs): Promise<DeployHeadlessResult> => {
   const project = skmtcRoot.findProject(projectName)
-  // The flags a suggested command keeps: `--version` only when this run had it.
+  // Set when the deno.json version is stored and the CLI picks the next patch.
+  let versionPicked = false
+  // The flags a suggested command keeps: `--version` when this run had it or
+  // picked the version, since a plain rerun resolves to the deno.json version.
   const toInvocation = (version: string): DeployInvocation => ({
     projectName,
-    version: versionFlag ? version : undefined,
+    version: versionFlag || versionPicked ? version : undefined,
     env: envFlag
   })
+  // Set once the pin is written, so a later failure still reports it.
+  let serverPin: ServerPinChange | null = null
+  const toPinField = () => (serverPin === null ? {} : { serverPin })
+
   const fail = (stage: DeployFailureStage, err: unknown, stored = false): DeployHeadlessResult => ({
     type: 'failed',
     projectName,
     reason: errorMessage(err),
     stage,
-    stored
+    stored,
+    ...toPinField()
   })
 
   // Resolve the version first — before any network call — so a missing
   // version fails fast with the recipe.
   let version: string
+  let fromFlag: boolean
   try {
-    version = await resolveStackVersion({ projectPath: project.toPath(), versionFlag })
+    const resolved = await resolveStackVersion({ projectPath: project.toPath(), versionFlag })
+    version = resolved.version
+    fromFlag = resolved.fromFlag
   } catch (err) {
     return fail('version', err)
   }
@@ -576,10 +689,44 @@ export const deployHeadless = async ({
     return fail('identity', err)
   }
 
+  /**
+   * The next patch after the newest stored version. `stored` is known to be
+   * stored, so it counts even when the list does not show it yet.
+   */
+  const pickNextVersion = async (stored: string): Promise<string> => {
+    let listed: string[]
+    try {
+      listed = await listStoredVersions({ origin, token, account, slug })
+    } catch (err) {
+      throw new Error(
+        `Version ${stored} is stored, and the stored versions cannot be read to pick the next ` +
+          `one: ${toSentence(errorMessage(err))} Run \`${toRerunCommand(toInvocation(stored))}\` ` +
+          'again, or pass --version <semver>.'
+      )
+    }
+    const next = toNextPatchVersion([...listed, stored])
+    if (next === null) {
+      throw new Error(
+        `Version ${stored} is stored, and no stored version is a release to pick the next ` +
+          'patch from. Pass --version <semver>.'
+      )
+    }
+    console.error(`Version ${stored} is stored: deploying ${next}.`)
+    return next
+  }
+
   let upload: StackUpload | null = null
   if (!existing) {
     if (await isVersionStored({ origin, token, account, slug, version })) {
-      return fail('exists', toVersionExistsMessage(version, toInvocation(version)), true)
+      if (fromFlag) {
+        return fail('exists', toVersionExistsMessage(version, toInvocation(version)), true)
+      }
+      try {
+        version = await pickNextVersion(version)
+        versionPicked = true
+      } catch (err) {
+        return fail('version', err, true)
+      }
     }
 
     let files: SourceFile[]
@@ -595,28 +742,58 @@ export const deployHeadless = async ({
         )
       }
       // Without this pin the hub cannot build the version's server.
-      if (await pinServerForPublish(project.toPath())) {
-        await refreshLock(project.toPath())
+      serverPin = await pinServer(project.toPath())
+      if (serverPin !== null) {
+        // Printed before the lock refresh: deno.json has changed even if that fails.
         console.error(
-          'Pinned @skmtc/server in deno.json so the hub can deploy this version. ' +
-            'Commit deno.json and deno.lock.'
+          `Pinned ${serverPin.package} ${serverPin.from ?? '(none)'} -> ${serverPin.to} in deno.json ` +
+            'so the hub can deploy this version.'
         )
+        await refreshLock(project.toPath())
+        console.error('Refreshed deno.lock. Commit deno.json and deno.lock.')
         files = await collectSourceFiles(project.toPath())
       }
     } catch (err) {
       return fail('source', err)
     }
 
-    try {
-      const stored = await uploadVersion({
+    const uploadAs = (candidate: string) =>
+      uploadVersion({
         origin,
         token,
         account,
         slug,
-        version,
-        invocation: toInvocation(version),
+        version: candidate,
+        invocation: toInvocation(candidate),
         files
       })
+
+    try {
+      let stored: Awaited<ReturnType<typeof uploadVersion>>
+      try {
+        stored = await uploadAs(version)
+      } catch (err) {
+        // Another deploy stored this version first. Only a version the user
+        // named is refused; any other is picked again, once.
+        if (!(err instanceof VersionExistsError) || fromFlag) throw err
+        try {
+          version = await pickNextVersion(version)
+          versionPicked = true
+        } catch (pickErr) {
+          return fail('version', pickErr, true)
+        }
+        try {
+          stored = await uploadAs(version)
+        } catch (retryErr) {
+          if (!(retryErr instanceof VersionExistsError)) throw retryErr
+          return fail(
+            'upload',
+            `Version ${version} was also stored by another deploy while this one ran. ` +
+              `Run \`${toRerunCommand(toInvocation(version))}\` again.`,
+            true
+          )
+        }
+      }
       // Deploy and report the version as the hub stored it.
       version = stored.version
       upload = stored.upload
@@ -641,7 +818,8 @@ export const deployHeadless = async ({
       projectName,
       reason: deployed.reason,
       stage: 'deploy',
-      stored: deployed.stored
+      stored: deployed.stored,
+      ...toPinField()
     }
   }
 
@@ -650,7 +828,9 @@ export const deployHeadless = async ({
     projectName,
     stack: { account, slug },
     version,
+    versionPicked,
     upload,
+    serverPin,
     deploy: deployed.deploy
   }
 }

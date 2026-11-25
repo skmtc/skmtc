@@ -124,8 +124,7 @@ PowerShell installer on Windows (`irm https://skmtc.dev/install.ps1 | iex`).
 If you installed with a bare `deno install`, overwrite the binary:
 
 ```bash
-deno install -gAf --minimum-dependency-age=0 --unstable-worker-options \
-  --name skmtc jsr:@skmtc/cli
+deno install -gAf --minimum-dependency-age=0 --unstable-worker-options --name skmtc jsr:@skmtc/cli
 ```
 
 Deno holds back any version published in the last 24 hours, and

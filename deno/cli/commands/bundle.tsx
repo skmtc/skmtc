@@ -6,6 +6,7 @@ import type { SkmtcState } from '@/components/SkmtcContext.tsx'
 import type { InkRenderFn } from '@/commands/types.ts'
 import { failWithRecipe, resolveInputMode, resolveOutputFormat } from '@/lib/strict-mode.ts'
 import { bundleHeadless, type BundleHeadlessResult } from '@/lib/bundle-headless.ts'
+import { renderApp } from '@/commands/render-app.tsx'
 
 export const description = 'Create bundle from project'
 
@@ -58,7 +59,7 @@ export const renderBundle = async ({
     generators: []
   }
 
-  renderFn(<AppComponent initialState={initialState} />)
+  renderApp({ renderFn, AppComponent, initialState })
 }
 
 type PrintBundleResultOptions = {

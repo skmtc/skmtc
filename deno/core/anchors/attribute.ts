@@ -15,6 +15,7 @@
 
 import { fromGeneratorKey, toGeneratorId, type GeneratorKeyObject } from '@/dsl/GeneratorKeys.ts'
 import { DefinitionBase } from '@/dsl/Definition.ts'
+import { toRefPointer } from '@/helpers/refFns.ts'
 import type { SnippetBase } from '@/dsl/SnippetBase.ts'
 import type { Attribution } from './types.ts'
 
@@ -59,7 +60,7 @@ export const attribute = (producer: SnippetBase): Attribution => {
  *
  * - OAS operation → `#/paths/<escaped-path>/<method>`
  * - GQL operation → `<rootKind>.<fieldName>`
- * - Model → `#/components/schemas/<refName>`
+ * - Model → its ref's pointer: `#/components/schemas/<refName>` for a component
  * - Container / generator-only / no key → `''` (no schema location to point
  *   at — a container is a place many subjects insert into, so it has no
  *   position of its own; its MEMBERS carry their subjects' keys)
@@ -74,7 +75,7 @@ const schemaPointerFromKey = (parsed: GeneratorKeyObject | undefined): string =>
     case 'gqlOperation':
       return `${parsed.rootKind}.${parsed.fieldName}`
     case 'model':
-      return `#/components/schemas/${parsed.refName}`
+      return toRefPointer(parsed.ref)
     case 'container':
     case 'generator-only':
       return ''

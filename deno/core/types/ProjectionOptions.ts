@@ -2,7 +2,7 @@
  * @fileoverview Caller options for projections.
  *
  * Options are typed data the CALLING generator passes when it inserts a
- * peer: `context.insertModel(Peer, refName, { options })`. Enrichments are
+ * peer: `context.insertModel(Peer, ref, { options })`. Enrichments are
  * the user's per-subject configuration and a variant selects one of them;
  * options belong to the caller.
  *

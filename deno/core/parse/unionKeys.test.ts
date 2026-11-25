@@ -3,7 +3,7 @@ import * as log from '@std/log'
 import type { OpenAPIV3 } from 'openapi-types'
 import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
-import { toRefName } from '@/helpers/refFns.ts'
+import type { RefName } from '@/types/RefName.ts'
 
 const toDocument = (openapi: string) =>
   ({
@@ -37,7 +37,7 @@ const parseSink = (openapi: string) => {
     system: undefined
   })
   const parsed = context.parse(new StackTrail(['TEST']))
-  const sink = parsed.type === 'oas' ? parsed.value.components?.schemas?.[toRefName('#/components/schemas/Sink')] : undefined
+  const sink = parsed.type === 'oas' ? parsed.value.components?.schemas?.[('Sink' as RefName)] : undefined
   const properties = sink?.type === 'object' ? sink.properties : undefined
 
   return { config: properties?.config }
@@ -51,7 +51,7 @@ for (const openapi of ['3.0.3', '3.1.0']) {
     // and the union had no extension fields.
     assertEquals(config?.type === 'union' ? config.extensionFields : undefined, { 'x-fern-property-name': 'sink-config' })
     assertEquals(
-      config?.type === 'union' ? config.members.map(member => (member.isRef() ? member.toRefName() : member.type)) : [],
+      config?.type === 'union' ? config.members.map(member => (member.isRef() ? member.refName : member.type)) : [],
       ['R2', 'Catalog']
     )
   })
