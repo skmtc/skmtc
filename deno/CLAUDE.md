@@ -207,7 +207,6 @@ The CLI uses Cliffy framework with these patterns:
 - `@skmtc/core` - Core functionality
 - `@std/*` - Deno standard library (from JSR)
 - `valibot` - Schema validation
-- `ts-pattern` - Pattern matching in generator dispatch
 
 ## Entry Points
 

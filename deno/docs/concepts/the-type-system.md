@@ -133,40 +133,98 @@ The function's job: receive a schema-plus-context, switch on
 constrained by the input — `Schema['type'] === 'array'` mandates a
 `TypeSystemArray` return.
 
-The convention is to use exhaustive pattern matching, typically
-through `ts-pattern`'s `.exhaustive()`, so that adding a new
-schema variant to `OasSchema` produces a compile error in every
-generator that doesn't handle it.
+The convention is a `switch` whose `default` assigns the schema to
+`never`. Adding a new schema variant to `OasSchema` is then a compile
+error in every generator that has no case for it. At run time the
+`default` throws an error that names the type.
 
 ## A complete `schemaToValueFn` example
 
 `gen-typescript`'s implementation
 (`skmtc-generators/gen-typescript/src/Ts.ts`) for core 0.46. Core 0.47
-adds the `'intersection'` variant, so the match then needs an arm for it:
+adds the `'intersection'` variant, so the switch then needs a case for it:
 
 ```ts
 export const toTsValue: SchemaToValueFn = ({
-  schema, destinationPath, required, context, rootRef
+  schema: schemaNode,
+  destinationPath,
+  required,
+  context,
+  rootRef
 }) => {
+  // `schemaNode` arrives typed as the generic `Schema` parameter, and TypeScript
+  // does not narrow a type parameter by discriminant. Widening it to the
+  // `SchemaType` union lets the switch below narrow each case on its own —
+  // generator code narrows, it does not assert.
+  const schema: SchemaType = schemaNode
+
   const modifiers: Modifiers = {
     required,
+    // description: 'description' in schema ? schema.description : undefined,
     nullable: 'nullable' in schema ? schema.nullable : undefined
   }
+
   const generatorKey = toGeneratorOnlyKey({ generatorId: typescriptEntry.id })
 
-  return match(schema satisfies SchemaType)
-    .with({ type: 'custom' }, custom => custom)
-    .with({ type: 'ref' }, ref => new TsRef({ context, destinationPath, ref, modifiers, rootRef }))
-    .with({ type: 'array' }, ({ items }) => new TsArray({ context, destinationPath, modifiers, items, generatorKey, rootRef }))
-    .with({ type: 'object' }, matched => new TsObject({ context, destinationPath, value: matched, modifiers, generatorKey, rootRef }))
-    .with({ type: 'union' }, ({ members, discriminator }) => new TsUnion({ context, destinationPath, members, discriminator, modifiers, generatorKey, rootRef }))
-    .with({ type: 'number' }, () => new TsNumber({ context, modifiers, generatorKey }))
-    .with({ type: 'integer' }, integerSchema => new TsInteger({ context, integerSchema, modifiers, generatorKey }))
-    .with({ type: 'boolean' }, booleanSchema => new TsBoolean({ context, booleanSchema, modifiers, generatorKey }))
-    .with({ type: 'void' }, () => new TsVoid({ context, generatorKey }))
-    .with({ type: 'string' }, stringSchema => new TsString({ context, stringSchema, modifiers, generatorKey }))
-    .with({ type: 'unknown' }, () => new TsUnknown({ context, generatorKey }))
-    .exhaustive()
+  switch (schema.type) {
+    case 'custom':
+      return schema
+    case 'ref':
+      return new TsRef({
+        context,
+        destinationPath,
+        ref: schema,
+        modifiers,
+        rootRef,
+        schema
+      })
+    case 'array':
+      return new TsArray({
+        context,
+        destinationPath,
+        modifiers,
+        items: schema.items,
+        generatorKey,
+        rootRef,
+        schema
+      })
+    case 'object':
+      return new TsObject({
+        context,
+        destinationPath,
+        value: schema,
+        modifiers,
+        generatorKey,
+        rootRef
+      })
+    case 'union':
+      return new TsUnion({
+        context,
+        destinationPath,
+        members: schema.members,
+        discriminator: schema.discriminator,
+        modifiers,
+        generatorKey,
+        rootRef,
+        schema
+      })
+    case 'number':
+      return new TsNumber({ context, modifiers, generatorKey, schema })
+    case 'integer':
+      return new TsInteger({ context, integerSchema: schema, modifiers, generatorKey })
+    case 'boolean':
+      return new TsBoolean({ context, booleanSchema: schema, modifiers, generatorKey })
+    case 'void':
+      return new TsVoid({ context, generatorKey })
+    case 'string':
+      return new TsString({ context, stringSchema: schema, modifiers, generatorKey })
+    case 'unknown':
+      return new TsUnknown({ context, generatorKey, schema })
+    default: {
+      const _exhaustive: never = schema
+      throw new Error(`Unhandled schema type: ${Reflect.get(_exhaustive, 'type')}`)
+    }
+  }
 }
 ```
 
@@ -180,8 +238,8 @@ static schemaToValueFn = (...args: Parameters<typeof toTsValue>) => {
 ```
 
 Every other model generator (`gen-zod`, `gen-valibot`,
-`gen-arktype`) has the same shape: a `toXxxValue` function that
-matches `schema.type` exhaustively and returns a generator-specific
+`gen-arktype`) has the same shape. A `toXxxValue` function
+switches on `schema.type` exhaustively and returns a generator-specific
 Snippet per branch. They share the *protocol* (`SchemaToValueFn`)
 but agree on no implementation.
 
@@ -335,19 +393,19 @@ differs. Skmtc requires each model generator to implement the full
    waiting for full overrides.
 2. **`schemaToValueFn` is the customization seam.** Cloning
    `gen-typescript` to swap a format mapping means editing
-   `toTsValue`'s `with({ type: 'string' }, ...)` branch directly.
+   `toTsValue`'s `case 'string'` directly.
    A base class would force the customizer to either subclass
    (more indirection) or wire in a config flag (the configuration
    approach Skmtc consciously rejected). See
    [clone-vs-install.md](clone-vs-install.md).
-3. **Exhaustiveness is type-safe.** A `ts-pattern`
-   `.exhaustive()` call on the union forces every generator to
+3. **Exhaustiveness is type-safe.** A `switch` on the union with a
+   `never` default forces every generator to
    handle every schema variant. Adding a new variant to
    `OasSchema` produces a compile error in every generator that
    doesn't update its `schemaToValueFn` — the right place for the
    change to surface.
 
-The cost is duplication: twelve match arms in every model
+The cost is duplication: twelve cases in every model
 generator. The benefit is independence — each generator's
 `schemaToValueFn` fits the target language without negotiation
 with a shared base.
@@ -361,7 +419,8 @@ encounters `{ type: 'custom' }`, the conventional behavior is to
 return it unchanged:
 
 ```ts
-.with({ type: 'custom' }, custom => custom)
+case 'custom':
+  return schema
 ```
 
 This makes `schemaToValueFn` a no-op for custom values — they pass
@@ -383,11 +442,15 @@ the ref's destination file:
 
 ```ts
 // gen-typescript schemaToValueFn
-.with({ type: 'ref' }, ref => new TsRef({
-  context, destinationPath,
-  ref,  // the OasRef: its refName and refPath travel together
-  modifiers, rootRef
-}))
+case 'ref':
+  return new TsRef({
+    context,
+    destinationPath,
+    ref: schema, // the OasRef: its refName and refPath travel together
+    modifiers,
+    rootRef,
+    schema
+  })
 ```
 
 The Ref Snippet is what enables cross-file linking. When a
@@ -563,9 +626,9 @@ Adding a variant to `OasSchema` means:
 1. Extending the `OasSchema` union with the new variant class.
 2. Extending `TypeSystemValue`, `SchemaToTypeSystemMap`, and
    `TypeSystemOutput` with the matching variant shape.
-3. Every existing model generator's `schemaToValueFn` fails to
-   compile until its match arm covers the new variant (the
-   `.exhaustive()` call enforces this).
+3. Adding a case to every existing model generator's
+   `schemaToValueFn`, which does not compile without it. The `never`
+   default enforces this.
 
 The compile-error cascade is intentional. New variants don't
 silently appear in some generators and not others; they appear

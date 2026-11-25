@@ -12,9 +12,11 @@
  * (Employee → Team → Employee), an allOf that keeps a reference
  * (Version.previous).
  */
-import { StackTrail, toArtifacts } from '@skmtc/core'
-import { assertEquals, assertStringIncludes } from '@std/assert'
+import { OasString, StackTrail, toArtifacts } from '@skmtc/core'
+import type { GenerateContextType } from '@skmtc/core'
+import { assertEquals, assertStringIncludes, assertThrows } from '@std/assert'
 import myLibEntry from './mod.ts'
+import { toMyLibValue } from './src/MyLib.ts'
 
 const fixture = {
   openapi: '3.0.3',
@@ -103,7 +105,7 @@ const fixture = {
   },
 }
 
-const generate = () => {
+const generate = (entry = myLibEntry) => {
   return toArtifacts({
     traceId: 'skeleton-test',
     spanId: 'skeleton-test',
@@ -115,7 +117,7 @@ const generate = () => {
     // The same shape the CLI's generated server uses. The cast bridges
     // the config map's caller-chosen EnrichmentType generic — test-only.
     toGeneratorConfigMap: (() => ({
-      [myLibEntry.id]: myLibEntry,
+      [entry.id]: entry,
     })) as Parameters<typeof toArtifacts>[0]['toGeneratorConfigMap'],
     startAt: Date.now(),
     silent: true,
@@ -242,5 +244,33 @@ Deno.test('enum and modifiers render at the leaf', () => {
   assertStringIncludes(
     artifacts['models/orderItem.generated.ts'],
     'unitPrice: m.number().optional()',
+  )
+})
+
+Deno.test('a schema type with no case fails and names the type', () => {
+  const contexts: GenerateContextType[] = []
+
+  generate({
+    ...myLibEntry,
+    transform: ({ context }) => {
+      contexts.push(context)
+    },
+  })
+
+  const [context] = contexts
+
+  // As if core had added a type after this router was written.
+  const schema = Object.assign(new OasString({}), { type: 'tuple' })
+
+  assertThrows(
+    () =>
+      toMyLibValue({
+        context,
+        destinationPath: '@/models/tuple.generated.ts',
+        schema,
+        required: true,
+      }),
+    Error,
+    'Unhandled schema type: tuple',
   )
 })
