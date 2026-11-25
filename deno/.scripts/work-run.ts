@@ -293,7 +293,7 @@ class WorkProperties extends TsSnippet {
   }
 }
 
-type WorkRecordArgs = {
+type WorkRecordPropertiesArgs = {
   context: GenerateContextType
   destinationPath: string
   generatorKey: GeneratorKey
@@ -301,10 +301,12 @@ type WorkRecordArgs = {
   schema: true | OasSchema | OasRef<'schema'>
 }
 
-class WorkRecord extends TsSnippet {
+class WorkRecordProperties extends TsSnippet {
   value: TypeSystemValue
 
-  constructor({ context, destinationPath, generatorKey, rootRef, schema }: WorkRecordArgs) {
+  constructor(args: WorkRecordPropertiesArgs) {
+    const { context, destinationPath, generatorKey, rootRef, schema } = args
+
     super({ context, generatorKey })
 
     this.value =
@@ -321,7 +323,7 @@ class WorkRecord extends TsSnippet {
 class WorkObject extends TsSnippet {
   type = 'object' as const
   objectProperties: WorkProperties | null
-  recordProperties: WorkRecord | null
+  recordProperties: WorkRecordProperties | null
   modifiers: Modifiers
 
   constructor(args: ValueArgs<OasObject>) {
@@ -343,7 +345,7 @@ class WorkObject extends TsSnippet {
           })
         : null
     this.recordProperties = additionalProperties
-      ? new WorkRecord({
+      ? new WorkRecordProperties({
           context,
           destinationPath,
           generatorKey,
