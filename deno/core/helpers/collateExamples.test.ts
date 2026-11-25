@@ -12,7 +12,7 @@ import { OasInteger } from '../oas/integer/Integer.ts'
 import { OasBoolean } from '../oas/boolean/Boolean.ts'
 import { OasObject } from '../oas/object/Object.ts'
 import { OasArray } from '../oas/array/Array.ts'
-import { OasIntersection } from '../oas/intersection/Intersection.ts'
+import { OasIntersection } from '@/oas/intersection/Intersection.ts'
 import { OasUnion } from '../oas/union/Union.ts'
 import { OasUnknown } from '../oas/unknown/Unknown.ts'
 import type { OasSchema } from '../oas/schema/Schema.ts'
@@ -53,6 +53,13 @@ Deno.test('collateExamples - array items and union members past the limit give n
     collateExamples({ objectSchema: new OasUnion({ members: [leaf] }), depth: 15 }),
     undefined
   )
+})
+
+Deno.test('collateExamples - a union skips a member past the limit', () => {
+  const leaf = new OasString({ example: 'leaf' })
+  const schema = new OasUnion({ members: [new OasObject({ properties: { leaf } }), leaf] })
+
+  assertEquals(collateExamples({ objectSchema: schema, depth: 14 }), 'leaf')
 })
 
 Deno.test('collateExamples - a ref whose target is past the limit gives no example', () => {
