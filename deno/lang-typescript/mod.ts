@@ -30,7 +30,8 @@
  * `FunctionParameter`, `PathParams`, `toPathParams`, `toPathTemplate`,
  * `identifiers`, `keyValues`, `withDescription`) and the naming layer
  * (`sanitizePropertyName` for property keys, `sanitizeIdentifier` for
- * binding names) live HERE (moved from core under F5/F6 —
+ * binding names, `toParameterVariable` for the variable of a parameter) live
+ * HERE (moved from core under F5/F6 —
  * see ../../notes/lang/17-naming-layer-and-helpers-move.md).
  */
 
@@ -89,6 +90,7 @@ export * from './src/keyValues.ts'
 export * from './src/withDescription.ts'
 export * from './src/sanitizePropertyName.ts'
 export * from './src/sanitizeIdentifier.ts'
+export * from './src/toParameterVariable.ts'
 export * from './src/patterns.ts'
 export {
   createVariable,

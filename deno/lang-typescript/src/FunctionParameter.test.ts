@@ -615,11 +615,7 @@ Deno.test('FunctionParameter - toInbound handles invalid identifiers in destruct
     required: true
   })
 
-  // Properties with invalid identifiers should be converted
-  const result = param.toInbound()
-  // Based on the code, invalid identifiers get converted to key: camelCase(key)
-  // Note: The quotes are not included in the actual output
-  assertEquals(result, '{user-id: userId, api-key: apiKey}')
+  assertEquals(param.toInbound(), "{'user-id': userId, 'api-key': apiKey}")
 })
 
 // Test: toString with invalid identifiers in destructured params
@@ -644,7 +640,55 @@ Deno.test('FunctionParameter - toString handles invalid identifiers in destructu
     required: true
   })
 
-  const result = param.toString()
-  // Note: The quotes are not included in the actual output
-  assertEquals(result, '{user-id: userId}: ParamsType')
+  assertEquals(param.toString(), "{'user-id': userId}: ParamsType")
+})
+
+const toDestructuredParameter = (keys: string[]): FunctionParameter => {
+  return new FunctionParameter({
+    typeDefinition: createMockDefinition(
+      {
+        type: 'object',
+        recordProperties: null,
+        objectProperties: {
+          properties: Object.fromEntries(keys.map(key => [key, mockStringType()]))
+        },
+        modifiers: { required: true, nullable: false }
+      },
+      'Args'
+    ),
+    destructure: true,
+    required: true
+  })
+}
+
+Deno.test('FunctionParameter - an ordinary name destructures without a rename', () => {
+  const param = toDestructuredParameter(['id', 'user_id', '$top', 'toString'])
+
+  assertEquals(param.toString(), '{id, user_id, $top, toString}: Args')
+  assertEquals(param.toPropertyList().toString(), '{id, user_id, $top, toString}')
+})
+
+Deno.test('FunctionParameter - a reserved name destructures under its own name', () => {
+  const param = toDestructuredParameter(['export', 'class', 'await', 'arguments'])
+
+  assertEquals(
+    param.toInbound(),
+    '{export: exportValue, class: classValue, await: awaitValue, arguments: argumentsValue}'
+  )
+})
+
+Deno.test('FunctionParameter - toPropertyList gives the variables', () => {
+  const param = toDestructuredParameter(["'enterprise-team'", 'actor.ip', 'export', '2fa'])
+
+  assertEquals(param.toPropertyList().values, ['enterpriseTeam', 'actorIp', 'exportValue', '_2fa'])
+})
+
+Deno.test('FunctionParameter - a key that is a string literal is not quoted again', () => {
+  const param = toDestructuredParameter(["'user-id'", "'it\\'s'", '"api-key"'])
+
+  assertEquals(param.toInbound(), `{'user-id': userId, 'it\\'s': itS, "api-key": apiKey}`)
+})
+
+Deno.test('FunctionParameter - quotes at both ends do not make a key a string literal', () => {
+  assertEquals(toDestructuredParameter(["'a'b'"]).toInbound(), "{'\\'a\\'b\\'': aB}")
 })

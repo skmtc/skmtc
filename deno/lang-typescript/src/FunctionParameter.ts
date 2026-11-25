@@ -1,6 +1,5 @@
-// @deno-types="npm:@types/babel__helper-validator-identifier@7.15.2"
-import { isIdentifierName } from 'npm:@babel/helper-validator-identifier@7.27.1'
-import { camelCase } from '@skmtc/core'
+import { handleKey } from '@/src/identifiers.ts'
+import { toParameterVariable } from '@/src/toParameterVariable.ts'
 import type { TypeSystemObject, TypeSystemValue, TypeSystemVoid } from '@skmtc/core'
 import type { DefinitionBase } from '@skmtc/core'
 import { List, type SkipEmptyOption } from './List.ts'
@@ -305,14 +304,13 @@ export class FunctionParameter {
   }
 
   /**
-   * Generates a List of property names from the parameter.
+   * Generates a List of the variables that the parameter declares.
    *
-   * This method extracts property names from object-based parameters and returns
-   * them as a List instance. For regular parameters, it returns the parameter name,
-   * for destructured parameters it returns all object properties, and for void
-   * parameters it returns an empty list.
+   * For a regular parameter the list has the parameter name. For a destructured
+   * parameter it has the variable of each property, as {@link toParameterVariable}
+   * names it. For a void parameter it is empty.
    *
-   * @returns List containing the relevant property or parameter names
+   * @returns List containing the parameter's variables
    *
    * @example
    * ```typescript
@@ -347,7 +345,9 @@ export class FunctionParameter {
 
       case 'destructured': {
         const { typeDefinition } = this.properties
-        return List.fromKeys(typeDefinition.value.objectProperties?.properties).toObjectPlain()
+        return List.fromKeys(typeDefinition.value.objectProperties?.properties).toObject(
+          toParameterVariable
+        )
       }
 
       default: {
@@ -479,9 +479,9 @@ export class FunctionParameter {
 /**
  * Generates destructured object parameter syntax from a type definition.
  *
- * This helper function creates the destructured parameter syntax for object types,
- * handling property name validation and optional camelCase conversion for invalid
- * JavaScript identifiers. It integrates with the List system to produce properly
+ * This helper function creates the destructured parameter syntax for object types.
+ * A property that cannot be a variable under its own name is renamed to the one
+ * {@link toParameterVariable} gives. It integrates with the List system to produce properly
  * formatted destructured parameter lists.
  *
  * @param typeDefinition - The object type definition to destructure
@@ -508,7 +508,7 @@ export class FunctionParameter {
  *
  * const result = toDestructured(objectDef);
  * console.log(result.toString());
- * // "{ 'user-id': userId, valid_name, 'api-key': apiKey }"
+ * // "{'user-id': userId, valid_name, 'api-key': apiKey}"
  * ```
  */
 const toDestructured = (
@@ -517,10 +517,25 @@ const toDestructured = (
 ): List<Stringable[], ', ', '{}'> => {
   return List.fromKeys(typeDefinition.value.objectProperties?.properties).toObject(
     key => {
-      return isIdentifierName(key) ? key : List.toKeyValue(key, camelCase(key))
+      const variable = toParameterVariable(key)
+
+      return variable === key ? key : List.toKeyValue(toPropertyKey(key), variable)
     },
     {
       skipEmpty
     }
   )
+}
+
+/**
+ * Matches a complete string literal.
+ */
+const stringLiteral = /^(['"])(?:(?!\1|\\).|\\.)*\1$/
+
+/**
+ * Renders a property key. Model generators give the key as it renders
+ * (`'user-id'`), so one that is already a string literal stays as it is.
+ */
+const toPropertyKey = (key: string): string => {
+  return stringLiteral.test(key) ? key : handleKey(key)
 }
