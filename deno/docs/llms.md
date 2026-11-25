@@ -515,7 +515,7 @@ Self-contained playbooks. Read only the one you need.
 
 #### Setting up Skmtc in a project
 
-1. Install the CLI: `curl -fsSL https://skmtc.dev/install | sh` — bootstraps Deno if needed and pins a version with `SKMTC_VERSION=<version>` set for `sh` (`| SKMTC_VERSION=<version> sh`). The script bakes in the required `--unstable-worker-options` flag (`@skmtc/worker` uses Deno's `Worker.deno.permissions` API, which sits behind it); a hand-rolled `deno install` without that flag makes the first `skmtc generate` exit with `Unstable API 'Worker.deno.permissions'`.
+1. Install the CLI. On macOS and Linux, run `curl -fsSL https://skmtc.dev/install | sh`. On Windows, run `irm https://skmtc.dev/install.ps1 | iex` in PowerShell. The installer bootstraps Deno if needed. To pin a version, set `SKMTC_VERSION=<version>` for `sh` (`| SKMTC_VERSION=<version> sh`). In PowerShell, run `$env:SKMTC_VERSION = '<version>'` before the install and `Remove-Item Env:SKMTC_VERSION` after it, because the variable stays set in that window. The script bakes in the required `--unstable-worker-options` flag (`@skmtc/worker` uses Deno's `Worker.deno.permissions` API, which sits behind it); a hand-rolled `deno install` without that flag makes the first `skmtc generate` exit with `Unstable API 'Worker.deno.permissions'`.
 2. `skmtc init <project-name> ./` creates `.skmtc/<project>/`.
 3. `skmtc install @skmtc/gen-typescript @skmtc/gen-zod <project>` to add generators.
 4. Edit `.skmtc/<project>/.settings/client.json` to set `source` and `settings.basePath`.
@@ -565,8 +565,8 @@ Self-contained playbooks. Read only the one you need.
 #### Using Skmtc in CI
 
 1. Pin Deno version.
-2. Install CLI in CI: `curl -fsSL https://skmtc.dev/install | SKMTC_VERSION=<version> sh` — the pin keeps runs reproducible.
-3. `skmtc generate <project> --no-input --json --typecheck` (builds the bundle first).
+2. Install CLI in CI: `curl -fsSL https://skmtc.dev/install | SKMTC_VERSION=<version> sh` — the pin keeps runs reproducible. On a Windows runner, run `$env:SKMTC_VERSION = '<version>'; irm https://skmtc.dev/install.ps1 | iex` in PowerShell. With `CI` set, the installer does not change `PATH`. For the same step, run `$env:Path = "$HOME\.deno\bin;$env:Path"`. For later steps on GitHub Actions, run `"$HOME\.deno\bin" >> $env:GITHUB_PATH` in a `pwsh` step.
+3. `skmtc generate <project> --no-input --json --typecheck` (builds the bundle first). On Windows, leave out `--typecheck` and run `tsc` yourself: it can report a pass when it checked nothing (skmtc/skmtc#353).
 4. Archive `manifest.json` as a CI artifact.
 
 ### Author task cards

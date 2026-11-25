@@ -20,17 +20,39 @@
 
 ### Install Skmtc
 
+macOS and Linux:
+
 ```bash
 curl -fsSL https://skmtc.dev/install | sh
 ```
 
+Windows (PowerShell):
+
+```powershell
+irm https://skmtc.dev/install.ps1 | iex
+```
+
 This installs the latest `skmtc` CLI, bootstrapping [Deno](https://deno.com)
 (its runtime) automatically if it isn't already installed. To pin a specific
-version, set `SKMTC_VERSION` for `sh`:
+version on macOS and Linux, set `SKMTC_VERSION` for `sh`:
 
 ```bash
 curl -fsSL https://skmtc.dev/install | SKMTC_VERSION=0.9.26 sh
 ```
+
+On Windows, set it in PowerShell:
+
+```powershell
+$env:SKMTC_VERSION = '0.9.26'; irm https://skmtc.dev/install.ps1 | iex
+Remove-Item Env:SKMTC_VERSION   # otherwise the pin stays set in this window
+```
+
+On Windows, a project formatter and linked-repository detection still run
+through `sh`, which [Git for Windows](https://git-scm.com/download/win)
+provides. Run `skmtc` from Git Bash, or add Git's `usr\bin` folder to `PATH`.
+`--typecheck` does not work on Windows yet, and can report a pass without
+checking anything ([#353](https://github.com/skmtc/skmtc/issues/353)). Run `tsc`
+yourself instead.
 
 ### Create project and generate artifacts using TUI
 

@@ -16,7 +16,8 @@ skmtc -v | --version
 ```
 
 Install the CLI with `curl -fsSL https://skmtc.dev/install | sh` (bootstraps Deno
-if needed), then invoke it as `skmtc` from any shell. The entry point is
+if needed), or on Windows with `irm https://skmtc.dev/install.ps1 | iex` in
+PowerShell. Then invoke it as `skmtc` from any shell. The entry point is
 `skmtc/deno/cli/mod.ts`. The top-level `-v` / `--version` flag prints the CLI
 version and exits.
 

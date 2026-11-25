@@ -33,6 +33,20 @@ deterministic. For GitHub Actions:
 curl -fsSL https://skmtc.dev/install | SKMTC_VERSION=<version> sh
 ```
 
+On a Windows runner, use PowerShell. With `CI` set, the installer does not
+change the user `PATH`, so add the folder yourself. On GitHub Actions, in a
+`pwsh` step:
+
+```powershell
+$env:SKMTC_VERSION = '<version>'; irm https://skmtc.dev/install.ps1 | iex
+$env:Path = "$HOME\.deno\bin;$env:Path"      # for the rest of this step
+"$HOME\.deno\bin" >> $env:GITHUB_PATH        # for the later steps of the job
+```
+
+`SKMTC_VERSION` stays set only until this step ends. `--typecheck` does not work
+on Windows yet, and can report a pass when it checked nothing
+([#353](https://github.com/skmtc/skmtc/issues/353)). Run `tsc` in its own step.
+
 Pin to a specific CLI version with `SKMTC_VERSION`. The CLI itself
 doesn't appear in your project's `deno.json` (it's a global
 install) — the pin keeps CI runs reproducible.

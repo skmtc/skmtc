@@ -13,10 +13,16 @@
 
 ## 🚀 Quick Start
 
-Skmtc is a Deno CLI. Install the latest version with:
+Skmtc is a Deno CLI. Install the latest version on macOS and Linux with:
 
 ```bash
 curl -fsSL https://skmtc.dev/install | sh
+```
+
+On Windows, in PowerShell:
+
+```powershell
+irm https://skmtc.dev/install.ps1 | iex
 ```
 
 This bootstraps [Deno](https://deno.com) (the runtime) automatically if needed.

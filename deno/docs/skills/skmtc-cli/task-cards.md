@@ -264,6 +264,13 @@ key isn't a `gen-*` entry in `deno.json#imports`.
 # Setup (once per CI run) — the installer bootstraps Deno if needed;
 # SKMTC_VERSION pins the CLI so runs are reproducible:
 curl -fsSL https://skmtc.dev/install | SKMTC_VERSION=<version> sh
+# On a Windows runner, in PowerShell (GitHub Actions: a pwsh step). With CI set,
+# the installer does not change PATH:
+#   $env:SKMTC_VERSION = '<version>'; irm https://skmtc.dev/install.ps1 | iex
+#   $env:Path = "$HOME\.deno\bin;$env:Path"   # this step
+#   "$HOME\.deno\bin" >> $env:GITHUB_PATH     # later steps
+# On Windows, leave out --typecheck and run tsc yourself: it can report a pass
+# when it checked nothing (skmtc/skmtc#353).
 # Run (builds the project's bundle.js first):
 skmtc generate <project> --json --no-input --typecheck
 # Exit 0 on success, 1 on fatal parseIssue or typecheck failure.
