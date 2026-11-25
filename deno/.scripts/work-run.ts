@@ -554,7 +554,7 @@ const operationEntry = toOasOperationEntry<EmptyEnrichments>({
   }
 })
 
-/** Generates the document with both projections, as the CLI's server does. */
+/** Generates the document with both projections, and the attribution a server always emits. */
 export const generateWork = async () => {
   const documentUrl = new URL('../core/_schemas/remote-com.json', import.meta.url)
   const document = JSON.parse(await Deno.readTextFile(documentUrl))
@@ -572,7 +572,8 @@ export const generateWork = async () => {
       [operationEntry.id]: operationEntry
     })) as Parameters<typeof toArtifacts>[0]['toGeneratorConfigMap'],
     startAt: Date.now(),
-    silent: true
+    silent: true,
+    attribution: { postPass: { schemaSrc: 'oas' } }
   })
 }
 

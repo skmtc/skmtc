@@ -1,5 +1,6 @@
 import { assertEquals, assertRejects, assertStringIncludes, assertThrows } from '@std/assert'
-import { fromFileUrl, join } from '@std/path'
+import { dirname, fromFileUrl, join } from '@std/path'
+import { isRecord } from './api-surface.ts'
 import {
   checkWork,
   collectCalls,
@@ -29,26 +30,43 @@ const toWork = (functions: Record<string, number>, calls = functions): Work => (
   calls: new Map(Object.entries(calls))
 })
 
-/** A run that calls one function of `core` `calls` times, for one generated file. */
-const computeFixtureWork = async (calls: number): Promise<Work> => {
-  const fixtureDir = await Deno.makeTempDir({ prefix: 'skmtc-work-fixture-' })
+const toRecord = (value: unknown): Record<string, unknown> => {
+  if (!isRecord(value)) throw new Error(`not a record: ${JSON.stringify(value)}`)
 
-  try {
-    await Deno.mkdir(join(fixtureDir, 'core'))
-    await Deno.writeTextFile(
-      join(fixtureDir, 'core', 'visit.ts'),
-      'export function visit() {}\nexport function visitOnce() {}\n'
-    )
-    await Deno.writeTextFile(
-      join(fixtureDir, 'run.ts'),
-      `import { visit, visitOnce } from './core/visit.ts'
+  return value
+}
+
+const toLeaves = (value: unknown): unknown[] =>
+  Array.isArray(value) || isRecord(value) ? Object.values(value).flatMap(toLeaves) : [value]
+
+type WriteFixtureArgs = { directory: string; runPath: string; calls: number }
+
+/** A run that calls one function of `core` `calls` times, for one generated file. */
+const writeFixture = async ({ directory, runPath, calls }: WriteFixtureArgs): Promise<void> => {
+  await Deno.mkdir(join(directory, 'core'), { recursive: true })
+  await Deno.mkdir(dirname(runPath), { recursive: true })
+  await Deno.writeTextFile(
+    join(directory, 'core', 'visit.ts'),
+    'export function visit() {}\nexport function visitOnce() {}\n'
+  )
+  await Deno.writeTextFile(
+    runPath,
+    `import { visit, visitOnce } from '../core/visit.ts'
 visitOnce()
 Array.from({ length: ${calls} }).forEach(() => visit())
 console.log(JSON.stringify({ files: 1 }))
 `
-    )
+  )
+}
 
-    return await computeWork({ denoDir: fixtureDir, runPath: join(fixtureDir, 'run.ts') })
+const computeFixtureWork = async (calls: number): Promise<Work> => {
+  const fixtureDir = await Deno.makeTempDir({ prefix: 'skmtc-work-fixture-' })
+  const runPath = join(fixtureDir, '.scripts', 'work-run.ts')
+
+  try {
+    await writeFixture({ directory: fixtureDir, runPath, calls })
+
+    return await computeWork({ denoDir: fixtureDir, runPath })
   } finally {
     await Deno.remove(fixtureDir, { recursive: true })
   }
@@ -79,13 +97,67 @@ Deno.test('two runs of the document give the same record', async () => {
 })
 
 Deno.test('the run generates models and operations', async () => {
-  const { artifacts } = await generateWork()
-  const paths = Object.keys(artifacts)
-  const countIn = (directory: string) => paths.filter(path => path.startsWith(directory)).length
+  const { manifest } = await generateWork()
+  const work = toRecord(toRecord(manifest.results).work)
+  const generated = toRecord(work.generate)
 
-  assertEquals(countIn('models/') > 100, true)
-  assertEquals(countIn('operations/') > 100, true)
-  assertEquals(countIn('models/') + countIn('operations/'), paths.length)
+  assertEquals(Object.keys(generated).sort(), ['@work/models', '@work/operations'])
+
+  for (const results of Object.values(generated)) {
+    assertEquals(Object.keys(toRecord(results)).length > 100, true)
+  }
+
+  assertEquals(new Set(toLeaves(manifest.results)), new Set(['success']))
+})
+
+Deno.test('the run emits attribution, as a server does', async () => {
+  const { artifacts, sidecars } = await generateWork()
+
+  assertEquals(Object.keys(sidecars ?? {}).length, Object.keys(artifacts).length)
+})
+
+type RunTaskArgs = { name: 'check-work' | 'record-work'; cwd: string }
+
+const runTask = async ({ name, cwd }: RunTaskArgs) => {
+  const { code, stderr } = await new Deno.Command('deno', { args: ['task', name], cwd }).output()
+
+  return { code, stderr: new TextDecoder().decode(stderr) }
+}
+
+Deno.test('the check-work task fails when a count moved or the record is missing', async () => {
+  const cwd = await Deno.makeTempDir({ prefix: 'skmtc-work-task-' })
+  const scriptsDir = join(cwd, '.scripts')
+  const workPath = join(scriptsDir, 'work.json')
+
+  try {
+    const { imports, tasks } = JSON.parse(await Deno.readTextFile(join(denoDir, 'deno.json')))
+
+    await writeFixture({ directory: cwd, runPath: join(scriptsDir, 'work-run.ts'), calls: 10 })
+    await Deno.writeTextFile(join(cwd, 'deno.json'), JSON.stringify({ imports, tasks }))
+    for (const name of ['work.ts', 'api-surface.ts']) {
+      await Deno.copyFile(join(denoDir, '.scripts', name), join(scriptsDir, name))
+    }
+
+    const recording = await runTask({ name: 'record-work', cwd })
+    assertEquals(recording.code, 0, recording.stderr)
+    const recorded = await Deno.readTextFile(workPath)
+    const holds = await runTask({ name: 'check-work', cwd })
+    assertEquals(holds.code, 0, holds.stderr)
+
+    await writeFixture({ directory: cwd, runPath: join(scriptsDir, 'work-run.ts'), calls: 20 })
+    const moved = await runTask({ name: 'check-work', cwd })
+    assertEquals(moved.code, 1, moved.stderr)
+    assertStringIncludes(moved.stderr, 'core/visit.ts visit: 10 -> 20')
+    assertEquals(await Deno.readTextFile(workPath), recorded)
+
+    await Deno.remove(workPath)
+    const missing = await runTask({ name: 'check-work', cwd })
+    assertEquals(missing.code, 1, missing.stderr)
+    assertStringIncludes(missing.stderr, 'missing, malformed or empty')
+    await assertRejects(() => Deno.stat(workPath), Deno.errors.NotFound)
+  } finally {
+    await Deno.remove(cwd, { recursive: true })
+  }
 })
 
 Deno.test('collectCalls counts the named functions of core and lang-typescript', () => {
