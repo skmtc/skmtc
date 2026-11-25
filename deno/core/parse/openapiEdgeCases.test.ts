@@ -13,6 +13,8 @@
  * `reading`:
  * - `rules`: core does what the specification of the version says.
  * - `practice`: core does what authors mean.
+ * - `neither`: decided to stay as it is. The case is rare, core reports it, and
+ *   either reading takes more code than it is worth.
  * - `undecided`: no reading is chosen, and core may do neither. The test states
  *   what it does today, so the case is not forgotten. It is no reason to keep
  *   the result. `ticket` is where it is to be decided, when there is one.
@@ -32,7 +34,7 @@ type EdgeCase = {
   name: string
   rules: string
   practice: string
-  reading: 'rules' | 'practice' | 'undecided'
+  reading: 'rules' | 'practice' | 'neither' | 'undecided'
   ticket?: string
   documents: number | 'not counted'
   versions: Version[]
@@ -120,7 +122,7 @@ const cases: EdgeCase[] = [
     rules: 'no value is valid',
     practice: 'the integers that the strings write',
     // The whole enum is removed, so any integer is valid.
-    reading: 'undecided',
+    reading: 'neither',
     documents: 26,
     versions: ALL,
     x: () => ({ type: 'integer', enum: ['1', '2'] }),
@@ -219,7 +221,7 @@ const cases: EdgeCase[] = [
     rules: 'a string must match, and any other value is valid',
     practice: 'a string that matches',
     // The keyword is lost, with an issue.
-    reading: 'undecided',
+    reading: 'neither',
     documents: 27,
     versions: ALL,
     x: () => ({ pattern: 'a' }),
@@ -231,7 +233,7 @@ const cases: EdgeCase[] = [
     rules: 'an object must have the property, and any other value is valid',
     practice: 'an object with the property',
     // The keyword is lost, with an issue.
-    reading: 'undecided',
+    reading: 'neither',
     documents: 20,
     versions: ALL,
     x: () => ({ required: ['a'] }),
