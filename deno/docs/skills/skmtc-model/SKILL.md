@@ -1,6 +1,6 @@
 ---
 name: skmtc-model
-version: 0.3.1
+version: 0.3.2
 description: >
   The model-generator shape for Skmtc: one definition per component
   schema, built by copying the shipped SKELETON package and filling its
@@ -32,7 +32,7 @@ engine-tested model generator that renders a placeholder syntax
 (`m.object({...})`). Author by transplant, not from scratch:
 
 1. **Copy** `skeleton/` to your package location; run
-   `deno test --allow-env --allow-sys --allow-read` — 8 green tests
+   `deno test --allow-env --allow-sys --allow-read` — 9 green tests
    prove the machinery before you touch anything.
 2. **Rename**: `name` in `deno.json`; `MyLib` → `YourLib` in class
    names and filenames; `myLibEntry` → `yourLibEntry`; then

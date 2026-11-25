@@ -230,7 +230,7 @@ Then, **by hand**, write under `.skmtc/lab/`:
        "@skmtc/lang-typescript": "jsr:@skmtc/lang-typescript@<pin>", // the lang package the base file imports
        "@std/path":     "jsr:@std/path@^1",           // imports by bare
        "tiny-invariant":"npm:tiny-invariant@^1.3.3"   // specifier
-       // ...valibot, ts-pattern, etc. as the source needs
+       // ...valibot, etc. as the source needs
      },
      "workspace": ["./<gen-dir>"]
    }

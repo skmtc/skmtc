@@ -6,7 +6,6 @@
  */
 import { toGeneratorOnlyKey } from '@skmtc/core'
 import type { Modifiers, SchemaToValueFn, SchemaType } from '@skmtc/core'
-import { match } from 'ts-pattern'
 import { myLibEntry } from './mod.ts'
 import { MyLibArray } from './MyLibArray.ts'
 import { MyLibIntersection } from './MyLibIntersection.ts'
@@ -27,7 +26,7 @@ export const toMyLibValue: SchemaToValueFn = (
 ) => {
   // `schemaNode` arrives typed as the generic `Schema` parameter, and
   // TypeScript does not narrow a type parameter by discriminant.
-  // Widening it to the `SchemaType` union lets the match below narrow
+  // Widening it to the `SchemaType` union lets the switch below narrow
   // each case on its own — generator code narrows, it does not assert.
   const schema: SchemaType = schemaNode
 
@@ -38,71 +37,66 @@ export const toMyLibValue: SchemaToValueFn = (
 
   const generatorKey = toGeneratorOnlyKey({ generatorId: myLibEntry.id })
 
-  return match(schema)
+  switch (schema.type) {
     // Custom values pass through untouched — they are already Stringable.
-    .with({ type: 'custom' }, (custom) => custom)
-    .with({ type: 'ref' }, (ref) => {
+    case 'custom':
+      return schema
+    case 'ref':
       return new MyLibRef({
         context,
         destinationPath,
-        ref,
+        ref: schema,
         modifiers,
         rootRef,
       })
-    })
-    .with({ type: 'array' }, (arraySchema) => {
+    case 'array':
       return new MyLibArray({
         context,
         destinationPath,
         modifiers,
-        items: arraySchema.items,
+        items: schema.items,
         generatorKey,
         rootRef,
-        schema: arraySchema,
+        schema,
       })
-    })
-    .with({ type: 'object' }, (objectSchema) => {
+    case 'object':
       return new MyLibObject({
         context,
         destinationPath,
-        objectSchema,
+        objectSchema: schema,
         modifiers,
         generatorKey,
         rootRef,
       })
-    })
-    .with({ type: 'union' }, (unionSchema) => {
+    case 'union':
       return new MyLibUnion({
         context,
         destinationPath,
-        members: unionSchema.members,
-        discriminator: unionSchema.discriminator,
+        members: schema.members,
+        discriminator: schema.discriminator,
         modifiers,
         generatorKey,
         rootRef,
-        schema: unionSchema,
+        schema,
       })
-    })
-    .with({ type: 'intersection' }, (intersectionSchema) => {
+    case 'intersection':
       return new MyLibIntersection({
         context,
         destinationPath,
-        intersectionSchema,
+        intersectionSchema: schema,
         modifiers,
         generatorKey,
         rootRef,
       })
-    })
-    .with({ type: 'string' }, (stringSchema) => {
+    case 'string':
       return new MyLibString({
         context,
-        stringSchema,
+        stringSchema: schema,
         modifiers,
         destinationPath,
         generatorKey,
       })
-    })
-    .with({ type: 'number' }, (schema) => {
+    case 'number':
       return new MyLibNumber({
         context,
         schema,
@@ -110,8 +104,7 @@ export const toMyLibValue: SchemaToValueFn = (
         destinationPath,
         generatorKey,
       })
-    })
-    .with({ type: 'integer' }, (schema) => {
+    case 'integer':
       return new MyLibInteger({
         context,
         schema,
@@ -119,8 +112,7 @@ export const toMyLibValue: SchemaToValueFn = (
         destinationPath,
         generatorKey,
       })
-    })
-    .with({ type: 'boolean' }, (schema) => {
+    case 'boolean':
       return new MyLibBoolean({
         context,
         schema,
@@ -128,18 +120,21 @@ export const toMyLibValue: SchemaToValueFn = (
         destinationPath,
         generatorKey,
       })
-    })
-    .with(
-      { type: 'void' },
-      () => new MyLibVoid({ context, destinationPath, generatorKey }),
-    )
-    .with({ type: 'unknown' }, (schema) => {
+    case 'void':
+      return new MyLibVoid({ context, destinationPath, generatorKey })
+    case 'unknown':
       return new MyLibUnknown({
         context,
         destinationPath,
         generatorKey,
         schema,
       })
-    })
-    .exhaustive()
+    // A variant that core adds fails to compile here until it has a case.
+    default: {
+      const _exhaustive: never = schema
+      throw new Error(
+        `Unhandled schema type: ${Reflect.get(_exhaustive, 'type')}`,
+      )
+    }
+  }
 }
