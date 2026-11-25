@@ -184,7 +184,7 @@ hand-roll keyword lists yourself:
 | the variable of an operation parameter | `toParameterVariable(name)` (`user-id` → `userId`, `export` → `exportValue`): the name `FunctionParameter` and `toPathTemplate` use. |
 | an object key | `handleKey(key)`: quotes it only when needed |
 | a property access | `handlePropertyName(name, parent)` |
-| a destructured property | `sanitizePropertyName(name)`: a rename pair when needed |
+| a destructured property that is not a parameter | `sanitizePropertyName(name)`: a rename pair when needed |
 | a string literal | `toStringLiteral(value)`, never `'${value}'` or `"${value}"` |
 | a JSDoc comment | `withDescription(value, { description })`: escapes `*/` |
 | a regex that matches exact text | `escapeRegExpText(text)` |

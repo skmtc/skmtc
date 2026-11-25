@@ -1,4 +1,5 @@
 import { handleKey } from '@/src/identifiers.ts'
+import { lineTerminatorEscapes } from '@/src/lineTerminators.ts'
 import { toParameterVariable } from '@/src/toParameterVariable.ts'
 import type { TypeSystemObject, TypeSystemValue, TypeSystemVoid } from '@skmtc/core'
 import type { DefinitionBase } from '@skmtc/core'
@@ -158,7 +159,7 @@ export type RegularParameter = {
  * }
  *
  * const propertyList = objectParam.toPropertyList();
- * console.log(propertyList.toString()); // 'name, email, age'
+ * console.log(propertyList.toString()); // '{name, email, age}'
  * ```
  *
  * @example API method generation with parameters
@@ -321,7 +322,7 @@ export class FunctionParameter {
    * });
    *
    * const propertyList = destructuredParam.toPropertyList();
-   * console.log(propertyList.toString()); // 'name, email, age'
+   * console.log(propertyList.toString()); // '{name, email, age}'
    *
    * const regularParam = new FunctionParameter({
    *   name: 'userData',
@@ -345,9 +346,7 @@ export class FunctionParameter {
 
       case 'destructured': {
         const { typeDefinition } = this.properties
-        return List.fromKeys(typeDefinition.value.objectProperties?.properties).toObject(
-          toParameterVariable
-        )
+        return List.fromKeys(typeDefinition.value.objectProperties?.properties).toObject(toVariable)
       }
 
       default: {
@@ -517,7 +516,7 @@ const toDestructured = (
 ): List<Stringable[], ', ', '{}'> => {
   return List.fromKeys(typeDefinition.value.objectProperties?.properties).toObject(
     key => {
-      const variable = toParameterVariable(key)
+      const variable = toVariable(key)
 
       return variable === key ? key : List.toKeyValue(toPropertyKey(key), variable)
     },
@@ -538,4 +537,25 @@ const stringLiteral = /^(['"])(?:(?!\1|\\).|\\.)*\1$/
  */
 const toPropertyKey = (key: string): string => {
   return stringLiteral.test(key) ? key : handleKey(key)
+}
+
+const escapedLineTerminators = new Map(
+  Array.from(lineTerminatorEscapes, ([character, escape]) => [escape, character])
+)
+
+/**
+ * Names the variable of a property. A key that is a string literal is decoded
+ * first, so that the variable is the one its parameter's name gives.
+ */
+const toVariable = (key: string): string => {
+  const name = stringLiteral.test(key)
+    ? key
+        .slice(1, -1)
+        .replaceAll(
+          /\\(?:u202[89]|.)/g,
+          escape => escapedLineTerminators.get(escape) ?? escape.slice(1)
+        )
+    : key
+
+  return toParameterVariable(name)
 }

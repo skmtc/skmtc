@@ -1,26 +1,33 @@
 import { assertEquals } from '@std/assert'
-import type { DefinitionBase, TypeSystemObject } from '@skmtc/core'
+import type { GenerateContextType, TypeSystemObject, TypeSystemString } from '@skmtc/core'
 import { createType } from '@/src/createIdentifier.ts'
 import { FunctionParameter } from '@/src/FunctionParameter.ts'
 import { handleKey, toStringLiteral } from '@/src/identifiers.ts'
 import { toPathTemplate } from '@/src/toPathTemplate.ts'
+import { TsDefinition } from '@/src/TsDefinition.ts'
+
+// The definition stores the context and does not read it.
+const mockContext = {} as GenerateContextType
 
 /** The keys as gen-typescript's `TsObject` gives them, or as the document has them. */
 const toParameter = (keys: string[]): FunctionParameter => {
-  // A test-only structural mock: FunctionParameter reads only `identifier` and `value`.
-  const typeDefinition = {
+  const property: TypeSystemString = {
+    type: 'string',
+    format: undefined,
+    enums: undefined,
+    modifiers: { required: true, nullable: false }
+  }
+
+  const typeDefinition = new TsDefinition<TypeSystemObject>({
+    context: mockContext,
     identifier: createType('Args'),
     value: {
       type: 'object',
       recordProperties: null,
-      objectProperties: {
-        properties: Object.fromEntries(
-          keys.map(key => [key, { type: 'string', modifiers: { required: true, nullable: false } }])
-        )
-      },
+      objectProperties: { properties: Object.fromEntries(keys.map(key => [key, property])) },
       modifiers: { required: true, nullable: false }
     }
-  } as unknown as DefinitionBase<TypeSystemObject>
+  })
 
   return new FunctionParameter({ typeDefinition, destructure: true, required: true })
 }

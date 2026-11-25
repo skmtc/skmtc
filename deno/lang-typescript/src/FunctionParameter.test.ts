@@ -1,6 +1,8 @@
 import { assertEquals, assertThrows } from '@std/assert'
 import { createType } from './createIdentifier.ts'
 import { FunctionParameter } from './FunctionParameter.ts'
+import { handleKey } from '@/src/identifiers.ts'
+import { toParameterVariable } from '@/src/toParameterVariable.ts'
 import type {
   DefinitionBase,
   TypeSystemObject,
@@ -687,6 +689,14 @@ Deno.test('FunctionParameter - a key that is a string literal is not quoted agai
   const param = toDestructuredParameter(["'user-id'", "'it\\'s'", '"api-key"'])
 
   assertEquals(param.toInbound(), `{'user-id': userId, 'it\\'s': itS, "api-key": apiKey}`)
+})
+
+Deno.test('FunctionParameter - a rendered key gives the variable of its name', () => {
+  const names = ['a\nb', 'a b', 'a\\nb', "it's"]
+  const variables = toDestructuredParameter(names.map(handleKey)).toPropertyList().values
+
+  assertEquals(variables, names.map(toParameterVariable))
+  assertEquals(variables, ['aB', 'aB', 'aNb', 'itS'])
 })
 
 Deno.test('FunctionParameter - quotes at both ends do not make a key a string literal', () => {
