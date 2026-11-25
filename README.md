@@ -26,10 +26,10 @@ curl -fsSL https://skmtc.dev/install | sh
 
 This installs the latest `skmtc` CLI, bootstrapping [Deno](https://deno.com)
 (its runtime) automatically if it isn't already installed. To pin a specific
-version, set `SKMTC_VERSION`:
+version, set `SKMTC_VERSION` for `sh`:
 
 ```bash
-SKMTC_VERSION=0.9.26 curl -fsSL https://skmtc.dev/install | sh
+curl -fsSL https://skmtc.dev/install | SKMTC_VERSION=0.9.26 sh
 ```
 
 ### Create project and generate artifacts using TUI

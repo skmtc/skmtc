@@ -41,7 +41,7 @@ of `skmtc` depends on nothing. Both plugins share one version, which
 | [`skmtc-lang-typescript/`](skmtc-lang-typescript/) | The TypeScript target-language layer — the shape of emitted TS | 0.3.2 |
 | [`skmtc-model/`](skmtc-model/) | Model-generator SHAPE layer: engine-tested fill-in skeleton + model edge cases (refs, recursion, visibility) | 0.2.0 |
 | [`skmtc-operation/`](skmtc-operation/) | Operation-generator SHAPE layer: decomposition of (path, method) subjects + peer-consumption rules | 0.1.3 |
-| [`skmtc-cli/`](skmtc-cli/) | CLI usage — workspace model, agent contract, configuration; the command surface is pulled from the binary | 0.5.2 |
+| [`skmtc-cli/`](skmtc-cli/) | CLI usage — workspace model, agent contract, configuration; the command surface is pulled from the binary | 0.5.3 |
 
 Pairing rule: `skmtc-generator` carries the engine rules and is always loaded
 first; a lang skill carries the emitted language; a shape skill
