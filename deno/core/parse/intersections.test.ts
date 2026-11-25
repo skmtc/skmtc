@@ -129,6 +129,36 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(issues, [])
   })
 
+  Deno.test(`${openapi} a type beside a kept ref stays when it rules out the null of the target`, async () => {
+    const orNull = openapi === '3.0.3' ? { type: 'object', nullable: true } : { type: ['object', 'null'] }
+    const { schemas } = await parseBounded({
+      openapi,
+      schemas: {
+        Obj: toObject({ a: text }),
+        Nullable: { ...toObject({ a: text }), ...orNull },
+        Alias: { allOf: [ref('Nullable')] },
+        Either: { oneOf: [ref('Obj'), ref('Nullable')] },
+        nullable: { allOf: [ref('Nullable'), { type: 'object' }] },
+        alias: { allOf: [ref('Alias'), { type: 'object' }] },
+        either: { allOf: [ref('Either'), { type: 'object' }] },
+        two: { allOf: [ref('Obj'), ref('Nullable'), { type: 'object' }] },
+        union: { type: 'object', oneOf: [ref('Nullable'), toObject({ b: text })] },
+        siteNull: { allOf: [ref('Obj'), orNull] },
+        bothNull: { allOf: [ref('Nullable'), orNull] }
+      },
+      system: { intersections: 'all' }
+    })
+
+    for (const name of ['nullable', 'alias', 'either']) {
+      assertEquals(at(toAllOf(schemas[name])[1], 'type'), 'object', name)
+    }
+
+    assertEquals(toAllOf(schemas.two).length, 3)
+    assertEquals(toAllOf(at(schemas.union, 'oneOf', 0)).includes('#/components/schemas/Nullable'), true)
+    assertEquals(schemas.siteNull, { ...ref('Obj'), nullable: true })
+    assertEquals(schemas.bothNull, { ...ref('Nullable'), nullable: true })
+  })
+
   Deno.test(`${openapi} a schema with a type that lists itself in its own union keeps the ref`, async () => {
     const { schemas } = await parseBounded({
       openapi,

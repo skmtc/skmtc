@@ -392,7 +392,8 @@ the usual parse. Default: `{}`.
   An `allOf` of one `$ref` is a reference with the keywords next to it.
   One exception is a union member with a keyword that merges into it: it
   is an intersection. But a `type` that the target of the `$ref` declares
-  adds nothing, so the member stays a reference.
+  adds nothing, so the member stays a reference. It adds something when
+  the target allows `null`: without `nullable`, it excludes `null`.
 
   `additionalProperties: false` next to an `allOf` with a kept `$ref`
   closes only the member that is not a reference.

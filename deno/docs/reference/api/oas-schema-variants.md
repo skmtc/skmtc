@@ -209,7 +209,9 @@ intersection. A member with the keywords of one type only, such as
 A member with a `type` and no other keyword is left out when a kept
 reference declares that type. The `type: object` next to a union does
 not make its members intersections when their targets are objects.
-When one reference is left, the schema is that reference.
+When one reference is left, the schema is that reference. The member
+stays when a target allows `null` and the intersection is not
+`nullable`, because its `type` then excludes `null`.
 
 A member can lead back to its own intersection with no property between
 (`Plan: { properties, oneOf: [{ $ref: Plan }] }`). `resolve()` does not

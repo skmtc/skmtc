@@ -155,20 +155,23 @@ const toRawIntersection = ({ own, members }: Intersection): SchemaOrReference =>
  * The parts of a finished merge, to parse: the keywords that say how the whole
  * value is used move from the one member that is not a ref to the intersection.
  * That member is left out when it then holds only a `type` that the target of
- * a ref beside it declares: it says nothing more than the ref.
+ * a ref beside it declares: it says nothing more than the ref. It stays when it
+ * is what rules out the `null` that a target allows and this site does not.
  */
 export const toSiteIntersection = ({ own, members }: Intersection, keptRefs: KeptRefs): Intersection => {
   const moved = members.map(member => (isRef(member) ? { own: {}, rest: member } : toSiteSplit(member)))
 
+  const site = moved.reduce<SchemaObject>((acc, each) => ({ ...acc, ...each.own }), own)
   const refs = members.filter(isRef)
   const saysNothing = (member: SchemaOrReference): boolean =>
     isEmpty(member) ||
     (!isRef(member) &&
       Object.keys(member).every(key => key === 'type') &&
-      refs.some(ref => keptRefs.declaresTypeOf(ref, member)))
+      refs.some(ref => keptRefs.declaresTypeOf(ref, member)) &&
+      (site.nullable === true || !refs.some(keptRefs.allowsNull)))
 
   return {
-    own: moved.reduce<SchemaObject>((acc, { own: site }) => ({ ...acc, ...site }), own),
+    own: site,
     members: moved.map(({ rest }) => rest).filter(member => !saysNothing(member))
   }
 }
