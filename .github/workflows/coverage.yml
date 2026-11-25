@@ -51,6 +51,11 @@ jobs:
         working-directory: deno
         run: deno task verify-docs
 
+      # The calls of each function in a fixed run, against .scripts/work.json.
+      - name: Check the number of function calls
+        working-directory: deno
+        run: deno task check-work
+
       - name: Run tests with coverage
         working-directory: deno
         run: deno task test:coverage
