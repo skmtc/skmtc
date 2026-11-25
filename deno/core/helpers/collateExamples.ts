@@ -186,7 +186,8 @@ export const collateExamples = ({ objectSchema, depth, seen }: CollatedExampleAr
       // A schema that reaches itself has no finite example, so the recursive
       // key is omitted and collation continues around it.
       //
-      // Without this the example would repeat the cycle until the depth limit.
+      // Without this the example would repeat the cycle until the depth limit,
+      // and a cycle of intersection members, which add no depth, would not end.
       return collateRef({ ref: objectSchema, depth: depth + 1, seen })
     }
 
