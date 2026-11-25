@@ -76,7 +76,8 @@ threads through the narrowing automatically.
 
 A `$ref` is a JSON pointer, and it can point anywhere in the document,
 not only at a component. `OasRef` splits it in two: `refName`, the last
-segment unescaped, and `refPath`, the pointer before it, as written.
+segment unescaped, and `refPath`, the pointer before it. `refPath` has no
+percent escapes, so two spellings of one place give the same `refPath`.
 
 | `$ref` | `refPath` | `refName` |
 | --- | --- | --- |
@@ -88,7 +89,9 @@ segment unescaped, and `refPath`, the pointer before it, as written.
 
 A ref whose `refPath` is a bucket (`#/components/schemas`,
 `#/components/parameters`, …) names a component, and resolves in
-`components`. Any other ref points into the document's content. The
+`components`. Any other ref points into the document's content, and
+resolves only at its whole pointer: `#/definitions/Pet` does not find the
+component `Pet`. The
 parser parses its target once, at the target's own position. It uses
 the parser that components of that kind use, and keeps the target on the
 document under the whole pointer. A target that refers back to itself
@@ -115,7 +118,10 @@ projection. The two parts travel together, so no call can drop one.
 The model generator's identity statics receive the `ref` too. The name
 is the generator's: `ref.refName` alone repeats across positions, as two
 refs to `…/properties/disk` under different schemas do. A generator
-that must tell such targets apart reads `ref.refPath`.
+that must tell such targets apart reads `ref.refPath`, or calls
+`toModelName(ref)`, as the `skmtc create` scaffolds do. It names a
+component by its `refName`, and any other target by its whole pointer
+(`Order_items`, `Pet_properties_tag`).
 
 ## The forward-ref problem
 
@@ -459,10 +465,9 @@ function declaring `OasRef<'schema'>` can't be passed an
 ### Can `OasRef` point to refs in external documents?
 
 Not currently. Core resolves a `$ref` within `context.parsedDocument`,
-which holds one document. Core reads only the fragment of a `$ref`. For
-`other.yaml#/components/schemas/User` it looks up this document's
-`#/components/schemas/User`, which names nothing when this document has
-no `User`. If your OAS uses multi-file refs, bundle them
+which holds one document. A `$ref` that does not start with `#`, such as
+`other.yaml#/components/schemas/User`, names nothing, even when this
+document has a `User`. If your OAS uses multi-file refs, bundle them
 into a single document before passing to Skmtc (tools like
 `@redocly/cli bundle` do this).
 

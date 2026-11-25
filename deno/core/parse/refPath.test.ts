@@ -233,7 +233,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     const { toOperation } = parse(openapi)
     const [parameter] = toOperation('/backups/{diskId}')?.toEffectiveParameters() ?? []
     assert(parameter?.isRef())
-    assertEquals(parameter.refPath, '#/paths/~1disks~1%7BdiskId%7D/parameters')
+    assertEquals(parameter.refPath, '#/paths/~1disks~1{diskId}/parameters')
     assertEquals(parameter.resolve().name, 'diskId')
     assertEquals(parameter.toJSON(), { $ref: '#/paths/~1disks~1{diskId}/parameters/0' })
   })

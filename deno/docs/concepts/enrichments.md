@@ -179,7 +179,7 @@ through `context.readEnrichment` at its own key path. There are four shapes:
 | Factory                        | Subject path read                                                                    |
 | ------------------------------ | ------------------------------------------------------------------------------------ |
 | `toOasOperationProjectionBase` | `enrichments.${generatorId}.${operation.path}.${operation.method}.${variant}`        |
-| `toModelProjectionBase`        | `enrichments.${generatorId}.${refName}.${variant}`                                   |
+| `toModelProjectionBase`        | `enrichments.${generatorId}.${modelKey}.${variant}`                                  |
 | `toGqlOperationProjectionBase` | `enrichments.${generatorId}.${operation.rootKind}.${operation.fieldName}.${variant}` |
 | `toWebhookProjectionBase`      | `enrichments.${generatorId}.${webhook.name}.${webhook.method}.${variant}`            |
 
@@ -194,8 +194,10 @@ Specifically:
 - **OAS operation generators** route by
   `(operation.path, operation.method, variant)` — the literal OpenAPI path,
   lowercase HTTP verb, and variant name.
-- **Model generators** route by `(refName, variant)` — the component name as it
-  appears under `components.schemas`, plus variant name.
+- **Model generators** route by `(modelKey, variant)`. The model key is the
+  component name as it appears under `components.schemas`. For a model at any
+  other place it is the whole pointer, such as
+  `#/components/schemas/Pet/properties/tag`.
 - **GraphQL operation generators** route by `(rootKind, fieldName, variant)` —
   `"query" | "mutation" | "subscription"` (lowercase), the operation field, and
   variant name.

@@ -279,9 +279,10 @@ A spec may reference external files:
 ```
 
 The CLI does **not** automatically resolve cross-file `$ref`s.
-External refs are preserved in the document and surface as parse
-errors when the engine's `OasRef.resolve()` can't find them in the
-loaded document's `components`.
+The engine runs synchronously and does not fetch, so a `$ref` that does
+not start with `#` is a [`DANGLING_REF`](../error-codes.md#dangling_ref--error-or-warning):
+an error by default, or a kept ref when `settings.system.danglingRefs`
+lists its kind. The engine never reads its fragment in the loaded document.
 
 The fix: pre-bundle the spec into a single file before pointing
 `source` at it. Tools like `swagger-cli bundle` or `@apidevtools/swagger-parser`

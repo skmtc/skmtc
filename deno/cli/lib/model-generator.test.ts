@@ -45,7 +45,7 @@ Deno.test('ModelGenerator - toModelProjectionBase generates correct base.ts cont
   assertStringIncludes(result, 'toExportPath({ ref, enrichments, variant }): string')
   assertStringIncludes(
     result,
-    "import { decapitalize, camelCase, emptyEnrichmentSchema } from '@skmtc/core'"
+    "import { decapitalize, camelCase, emptyEnrichmentSchema, toModelName } from '@skmtc/core'"
   )
   assertStringIncludes(result, "import { toTsModelProjectionBase } from '@skmtc/lang-typescript'")
   assertStringIncludes(result, 'toEnrichmentSchema: () => emptyEnrichmentSchema')

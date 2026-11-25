@@ -2,7 +2,7 @@ import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasUnion } from '@/oas/union/Union.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
-import { toRefParts } from '@/helpers/refFns.ts'
+import { toRefParts, toRefPointer } from '@/helpers/refFns.ts'
 
 /**
  * Walk an {@link SchemaPath} into a schema, resolving `$ref`s as it descends.
@@ -131,8 +131,10 @@ const selectUnionMember = (union: OasUnion, segment: string): OasSchema | OasRef
     }
 
     const mapped = union.discriminator.mapping?.[value]
-    const targetRefName = mapped ? toRefParts({ $ref: mapped, refType: 'schema' }).refName : value
-    const member = findMemberByRefName(union, targetRefName)
+    // A mapping holds a whole `$ref` or a bare schema name.
+    const member = mapped?.includes('#')
+      ? findMemberByPointer(union, mapped)
+      : findMemberByRefName(union, mapped ? toRefParts({ $ref: mapped }).refName : value)
 
     if (!member) {
       throw new Error(
@@ -163,6 +165,12 @@ const selectUnionMember = (union: OasUnion, segment: string): OasSchema | OasRef
   throw new Error(
     `Schema path segment "${segment}" is not a valid union selector; use "$RefName", "{discriminator:value}", or "[index]"`
   )
+}
+
+const findMemberByPointer = (union: OasUnion, $ref: string): OasSchema | OasRef<'schema'> | undefined => {
+  const pointer = toRefPointer(toRefParts({ $ref }))
+
+  return union.members.find(member => member.isRef() && toRefPointer(member) === pointer)
 }
 
 const findMemberByRefName = (

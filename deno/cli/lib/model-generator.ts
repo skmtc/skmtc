@@ -42,15 +42,18 @@ export const ${camelCase(this.generator.packageName)}Entry = toModelEntry({
   }
 
   toModelProjectionBase(mainModule: string) {
-    return `import { decapitalize, camelCase, emptyEnrichmentSchema } from '@skmtc/core'
+    return `import { decapitalize, camelCase, emptyEnrichmentSchema, toModelName } from '@skmtc/core'
 import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 import type { TsIdentifierType } from '@skmtc/lang-typescript'
 
 export const ${mainModule}Base = toTsModelProjectionBase({
   id: '${this.generator.toModuleName()}',
 
+  // \`ref.refName\` repeats across positions (\`…/properties/disk\` under two
+  // schemas), so a ref into the document's content is named by its whole
+  // pointer. A component is named by its \`refName\`.
   toIdentifierName({ ref }): string {
-    return decapitalize(camelCase(ref.refName))
+    return decapitalize(toModelName(ref, name => camelCase(name)))
   },
 
   toIdentifierType(): TsIdentifierType {

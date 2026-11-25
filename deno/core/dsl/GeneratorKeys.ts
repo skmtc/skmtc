@@ -70,7 +70,7 @@ import type { GqlOperation, GqlRootKind } from '@/gql/operation/GqlOperation.ts'
 import type { Brand } from '@/types/Brand.ts'
 import { type Method, isMethod } from '@/types/Method.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
-import { fromModelKey, toModelKey, type RefParts } from '@/helpers/refFns.ts'
+import { fromModelKey, isPointerKey, toModelKey, type RefParts } from '@/helpers/refFns.ts'
 
 const GQL_ROOT_KINDS: readonly GqlRootKind[] = ['query', 'mutation', 'subscription']
 
@@ -502,7 +502,7 @@ type ToModelGeneratorKeyArgs = {
  * Model generator keys uniquely identify generators processing specific
  * OpenAPI schema models for a given variant. The key format is:
  * `generatorId|modelKey|variant`: a component's `refName`, or the whole
- * pointer of any other target, with `|` escaped.
+ * pointer of any other target, with `%` and `|` escaped.
  *
  * @param args - Model generator key arguments
  * @returns A branded ModelGeneratorKey
@@ -529,8 +529,10 @@ export const toModelGeneratorKey = ({
   ref,
   variant = DEFAULT_VARIANT
 }: ToModelGeneratorKeyArgs): ModelGeneratorKey => {
-  // A pointer can hold `|` (a property named `a|b`); a component name cannot.
-  const nakedKey: NakedModelGeneratorKey = `${generatorId}|${escapeKeySegment(toModelKey(ref))}|${variant}`
+  const modelKey = toModelKey(ref)
+  // A pointer can hold `|` (a property named `a|b`). A component's key stays its bare name.
+  const segment = isPointerKey(modelKey) ? escapeKeySegment(modelKey) : modelKey
+  const nakedKey: NakedModelGeneratorKey = `${generatorId}|${segment}|${variant}`
 
   return nakedKey as ModelGeneratorKey
 }
@@ -1064,7 +1066,7 @@ export const fromGeneratorKey = (generatorKey: GeneratorKey): GeneratorKeyObject
 
   if (isModelGeneratorKey(generatorKey)) {
     const [generatorId, modelKey, variant] = generatorKey.split('|')
-    return { type: 'model', generatorId, ref: fromModelKey(unescapeKeySegment(modelKey)), variant }
+    return { type: 'model', generatorId, ref: fromModelKey(isPointerKey(modelKey) ? unescapeKeySegment(modelKey) : modelKey), variant }
   }
 
   return { type: 'generator-only', generatorId: generatorKey }

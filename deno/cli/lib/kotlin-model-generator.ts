@@ -96,7 +96,8 @@ export default toModelEntry({
   }
 
   toModelProjectionBase() {
-    return `import { toKtModelProjectionBase } from '@skmtc/lang-kotlin'
+    return `import { toModelName } from '@skmtc/core'
+import { toKtModelProjectionBase } from '@skmtc/lang-kotlin'
 import type { KtIdentifierType } from '@skmtc/lang-kotlin'
 import denoJson from '../deno.json' with { type: 'json' }
 import { toEnrichmentSchema } from './enrichments.ts'
@@ -104,8 +105,10 @@ import { toEnrichmentSchema } from './enrichments.ts'
 export const KtModelBase = toKtModelProjectionBase({
   id: denoJson.name,
 
-  // The refName IS the Kotlin class name for DTO generators.
-  toIdentifierName: ({ ref }) => ref.refName,
+  // A component's refName IS the Kotlin class name for DTO generators.
+  // \`toModelName\` names any other target by its whole pointer, because
+  // refName repeats there (\`…/properties/disk\` under two schemas).
+  toIdentifierName: ({ ref }) => toModelName(ref),
 
   toIdentifierType: (ref, context): KtIdentifierType => {
     // \`.resolve()\` is identity on concrete schemas — call it
@@ -124,7 +127,7 @@ export const KtModelBase = toKtModelProjectionBase({
   // keep it: Kotlin resolves by package, not filename, so a suffixed
   // file replaces a hand-written one as-is. Set it to "" only when
   // something outside Kotlin keys on the exact filename.
-  toExportPath: ({ ref }) => \`@/models/\${ref.refName}.kt\`,
+  toExportPath: ({ ref }) => \`@/models/\${toModelName(ref)}.kt\`,
 
   toEnrichmentSchema
 })

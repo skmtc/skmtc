@@ -465,3 +465,11 @@ Deno.test('model key - a component key keeps its bare name', () => {
     variant: 'main'
   })
 })
+
+Deno.test('model key - a component with % in its name keeps that name, and round-trips', () => {
+  const ref = toSchemaComponentRef('Foo%20Bar' as RefName)
+  const key = toModelGeneratorKey({ generatorId: 'gen', ref, variant: 'main' })
+
+  assertEquals(key, 'gen|Foo%20Bar|main')
+  assertEquals(fromGeneratorKey(key), { type: 'model', generatorId: 'gen', ref, variant: 'main' })
+})

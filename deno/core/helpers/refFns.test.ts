@@ -1,10 +1,12 @@
-import { assertEquals, assertThrows } from '@std/assert'
+import { assert, assertEquals, assertThrows } from '@std/assert'
 import {
   fromModelKey,
   isDefaultRefPath,
+  isRemoteRefPath,
   isRef,
   toGetRef,
   toModelKey,
+  toModelName,
   toRawRefTarget,
   toRefParts,
   toRefPointer,
@@ -15,57 +17,58 @@ import { DanglingRefError } from '../oas/ref/DanglingRefError.ts'
 import type { RefName } from '@/types/RefName.ts'
 
 Deno.test('toRefParts - a component ref is its bucket path and its name', () => {
-  assertEquals(toRefParts({ $ref: '#/components/schemas/User', refType: 'schema' }), {
+  assertEquals(toRefParts({ $ref: '#/components/schemas/User' }), {
     refName: 'User',
     refPath: '#/components/schemas'
   })
-  assertEquals(toRefParts({ $ref: '#/components/responses/ErrorResponse', refType: 'response' }), {
+  assertEquals(toRefParts({ $ref: '#/components/responses/ErrorResponse' }), {
     refName: 'ErrorResponse',
     refPath: '#/components/responses'
   })
 })
 
 Deno.test('toRefParts - a ref into a deeper path keeps the whole path before its last segment', () => {
-  assertEquals(toRefParts({ $ref: '#/components/schemas/__sharedInput/$defs/schema0', refType: 'schema' }), {
+  assertEquals(toRefParts({ $ref: '#/components/schemas/__sharedInput/$defs/schema0' }), {
     refName: 'schema0',
     refPath: '#/components/schemas/__sharedInput/$defs'
   })
   assertEquals(
     toRefParts({
-      $ref: '#/paths/~1card-accounts/post/responses/201/content/application~1json/schema',
-      refType: 'schema'
-    }),
+      $ref: '#/paths/~1card-accounts/post/responses/201/content/application~1json/schema' }),
     { refName: 'schema', refPath: '#/paths/~1card-accounts/post/responses/201/content/application~1json' }
   )
 })
 
-Deno.test('toRefParts - unescapes the name as a JSON pointer in a URI fragment, and keeps the path as written', () => {
-  assertEquals(toRefParts({ $ref: '#/components/schemas/Foo%20Bar', refType: 'schema' }).refName, 'Foo Bar')
+Deno.test('toRefParts - unescapes the name as a JSON pointer in a URI fragment, and spells the path without percent escapes', () => {
+  assertEquals(toRefParts({ $ref: '#/components/schemas/Foo%20Bar' }).refName, 'Foo Bar')
   // `~01` is `~1` escaped once: unescaping `~1` before `~0` keeps it `~1`.
-  assertEquals(toRefParts({ $ref: '#/components/schemas/a~1b~01', refType: 'schema' }).refName, 'a/b~1')
+  assertEquals(toRefParts({ $ref: '#/components/schemas/a~1b~01' }).refName, 'a/b~1')
   // A `%` that starts no valid escape stays as written.
-  assertEquals(toRefParts({ $ref: '#/components/schemas/100%', refType: 'schema' }).refName, '100%')
+  assertEquals(toRefParts({ $ref: '#/components/schemas/100%' }).refName, '100%')
   assertEquals(
-    toRefParts({ $ref: '#/paths/~1disks~1%7BdiskId%7D/parameters/0/schema', refType: 'schema' }).refPath,
-    '#/paths/~1disks~1%7BdiskId%7D/parameters/0'
+    toRefParts({ $ref: '#/paths/~1disks~1%7BdiskId%7D/parameters/0/schema' }).refPath,
+    '#/paths/~1disks~1{diskId}/parameters/0'
   )
 })
 
-Deno.test('toRefParts - reads an external ref by its fragment, and a ref with no # at the default path', () => {
-  assertEquals(toRefParts({ $ref: 'other.yml#/components/schemas/A', refType: 'schema' }), {
-    refName: 'A',
-    refPath: '#/components/schemas'
-  })
-  // A bare id, as some docs-platform exports write: looked up as a component name, which names nothing.
-  assertEquals(toRefParts({ $ref: 'b29a71d3-4f97-40ed-a676-731aa1fbe742', refType: 'parameter' }), {
-    refName: 'b29a71d3-4f97-40ed-a676-731aa1fbe742',
-    refPath: '#/components/parameters'
-  })
+Deno.test('toRefParts - a remote ref keeps its file in refPath, so it is no place in the document', () => {
+  const toParts = ($ref: string) => toRefParts({ $ref })
+
+  assertEquals(toParts('other.yml#/components/schemas/A'), { refName: 'A', refPath: 'other.yml#/components/schemas' })
+  assertEquals(toParts('./schemas/pet.yaml'), { refName: 'pet.yaml', refPath: './schemas' })
+  // A bare id, as some docs-platform exports write.
+  assertEquals(toParts('b29a71d3-4f97-40ed-a676-731aa1fbe742').refPath, '.')
+
+  const remote = toParts('other.yml#/components/schemas/A')
+  assertEquals(isRemoteRefPath(remote.refPath), true)
+  assertEquals(isDefaultRefPath({ refPath: remote.refPath, refType: 'schema' }), false)
+  assertEquals(toModelKey(remote), 'other.yml#/components/schemas/A')
+  assertEquals(toRawRefTarget({ components: { schemas: { A: {} } } }, remote), undefined)
 })
 
 Deno.test('toRefParts - does not throw for a ref that names nothing: its name is empty', () => {
-  assertEquals(toRefParts({ $ref: '#/components/schemas/', refType: 'schema' }).refName, '')
-  assertEquals(toRefParts({ $ref: '#', refType: 'schema' }), { refName: '', refPath: '#' })
+  assertEquals(toRefParts({ $ref: '#/components/schemas/' }).refName, '')
+  assertEquals(toRefParts({ $ref: '#' }), { refName: '', refPath: '#' })
 })
 
 Deno.test('isDefaultRefPath - only the bucket of the ref kind is a component path', () => {
@@ -75,7 +78,7 @@ Deno.test('isDefaultRefPath - only the bucket of the ref kind is a component pat
 })
 
 Deno.test('toRefPointer - two spellings of one place give one pointer', () => {
-  const written = toRefPointer({ refName: 'schema' as RefName, refPath: '#/paths/~1disks~1%7BdiskId%7D/parameters/0' })
+  const written = toRefPointer(toRefParts({ $ref: '#/paths/~1disks~1%7BdiskId%7D/parameters/0/schema' }))
   const plain = toRefPointer({ refName: 'schema' as RefName, refPath: '#/paths/~1disks~1{diskId}/parameters/0' })
 
   assertEquals(written, '#/paths/~1disks~1{diskId}/parameters/0/schema')
@@ -116,15 +119,15 @@ Deno.test('toRawRefTarget - walks objects by key and arrays by index', () => {
   }
 
   assertEquals(
-    toRawRefTarget(document, toRefParts({ $ref: '#/components/schemas/Pet/properties/tag', refType: 'schema' })),
+    toRawRefTarget(document, toRefParts({ $ref: '#/components/schemas/Pet/properties/tag' })),
     { type: 'string' }
   )
   assertEquals(
-    toRawRefTarget(document, toRefParts({ $ref: '#/paths/~1x/get/parameters/1/schema', refType: 'schema' })),
+    toRawRefTarget(document, toRefParts({ $ref: '#/paths/~1x/get/parameters/1/schema' })),
     { type: 'integer' }
   )
   assertEquals(
-    toRawRefTarget(document, toRefParts({ $ref: '#/paths/~1x/get/parameters/7', refType: 'parameter' })),
+    toRawRefTarget(document, toRefParts({ $ref: '#/paths/~1x/get/parameters/7' })),
     undefined
   )
 })
@@ -243,4 +246,54 @@ Deno.test('toGetRef - throws error when components is missing', () => {
     DanglingRefError,
     'Ref "#/components/schemas/User" names nothing in the document'
   )
+})
+
+Deno.test('toRefParts - one place has equal parts, however its $ref is spelled', () => {
+  const toParts = ($ref: string) => toRefParts({ $ref })
+
+  assertEquals(toParts('#/paths/~1x~1%7Bid%7D/get/schema'), toParts('#/paths/~1x~1{id}/get/schema'))
+  assertEquals(toParts('#components/schemas/Foo'), toParts('#/components/schemas/Foo'))
+})
+
+Deno.test('fromModelKey - reads a % or a leading # in a name as written', () => {
+  const names = ['Foo%20Bar', '#Foo', 'a%20b']
+  const refs = [
+    ...names.map(name => toSchemaComponentRef(name as RefName)),
+    ...names.map(name => ({ refName: name as RefName, refPath: '#/components/schemas/Pet/properties' }))
+  ]
+
+  assertEquals(refs.map(ref => fromModelKey(toModelKey(ref))), refs)
+})
+
+Deno.test('toGetRef - a $ref to a component that is not a schema names no schema', () => {
+  const getRef = toGetRef({
+    openapi: '3.0.0',
+    info: { title: 't', version: '1' },
+    paths: {},
+    components: { responses: { Err: { description: 'failed' } } }
+  })
+
+  assertThrows(() => getRef({ $ref: '#/components/responses/Err' }), DanglingRefError)
+})
+
+Deno.test('toModelName - a component keeps its name, and other targets get names of their own', () => {
+  const toName = ($ref: string) => toModelName(toRefParts({ $ref }))
+
+  assertEquals(toName('#/components/schemas/order_item'), 'order_item')
+  assertEquals(toModelName(toSchemaComponentRef('Order' as RefName), name => `${name}Dto`), 'OrderDto')
+  assertEquals(toName('#/components/schemas/Order/items'), 'Order_items')
+
+  const names = [
+    '#/components/schemas/OrderItems',
+    '#/components/schemas/Order/items',
+    '#/components/schemas/A/properties/disk',
+    '#/components/schemas/B/properties/disk',
+    '#/components/schemas/Pet/properties/type',
+    '#/components/schemas/Pet/properties/@type',
+    '#/paths/~1x~1{id}/get/responses/200/content/application~1json/schema',
+    '#/paths/~1x~1id/get/responses/200/content/application~1json/schema'
+  ].map(toName)
+
+  assertEquals(new Set(names.map(name => name.toLowerCase())).size, names.length)
+  assert(names.every(name => /^[a-zA-Z0-9_]+$/.test(name)))
 })

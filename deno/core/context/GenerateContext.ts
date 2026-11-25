@@ -6,7 +6,7 @@ import type { OasDocument } from '@/oas/document/Document.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
-import { isDefaultRefPath, toModelKey, toRefPointer, toSchemaComponentRef, type RefParts } from '@/helpers/refFns.ts'
+import { isDefaultRefPath, isRemoteRefPath, toModelKey, toRefPointer, toSchemaComponentRef, type RefParts } from '@/helpers/refFns.ts'
 import type { ComponentsEntry } from '@/oas/components/Components.ts'
 import type { GqlDocument } from '@/gql/document/GqlDocument.ts'
 import type { SkmtcParsedDocument } from '@/types/SkmtcDocument.ts'
@@ -1723,7 +1723,7 @@ export class GenerateContext implements GenerateContextType {
 
         // The parser keeps ref targets of every kind; a model is built only from a schema.
         if (component === undefined || !isSchemaEntry(component)) {
-          throw new DanglingRefError(toModelKey(ref))
+          throw new DanglingRefError(toModelKey(ref), { remote: isRemoteRefPath(refPath) })
         }
 
         const target = component.resolveOnce()

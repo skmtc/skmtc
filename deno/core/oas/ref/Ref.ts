@@ -1,7 +1,7 @@
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasRefData } from './ref-types.ts'
-import { isDefaultRefPath, toComponentsBucket, toRefParts, toRefPathBucket, toRefPointer } from '@/helpers/refFns.ts'
+import { isDefaultRefPath, isRemoteRefPath, toComponentsBucket, toRefParts, toRefPathBucket, toRefPointer } from '@/helpers/refFns.ts'
 import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OasResponse } from '../response/Response.ts'
 import type { OasParameter } from '../parameter/Parameter.ts'
@@ -154,7 +154,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    */
   refName: RefName
   /**
-   * The pointer before {@link refName}, as written: `#/components/schemas`
+   * The pointer before {@link refName}, with no percent escapes: `#/components/schemas`
    * for a schema component, `#/components/schemas/__sharedInput/$defs` for
    * the `$defs` entry above. A generator that names by {@link refName} alone
    * may ignore it.
@@ -242,7 +242,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     super(context)
     this.refType = fields.refType
     this.$ref = fields.$ref
-    const { refName, refPath } = toRefParts({ $ref: fields.$ref, refType: fields.refType })
+    const { refName, refPath } = toRefParts({ $ref: fields.$ref })
     this.refName = refName
     this.refPath = refPath
     this.nullable = fields.nullable
@@ -411,7 +411,7 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
         : this.#resolveGqlOnce(this.#document.value)
 
     if (!resolved) {
-      throw new DanglingRefError(this.$ref)
+      throw new DanglingRefError(this.$ref, { remote: isRemoteRefPath(this.refPath) })
     }
 
     if (resolved.isRef()) {
@@ -666,8 +666,9 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
 
   /**
    * The `$ref` this reference writes out: `#/components/<bucket>/<name>` for
-   * a component, with the name unescaped as before, and the whole pointer in
-   * one spelling for any other target (`toRefPointer`).
+   * a component, with the name unescaped as before, and the whole pointer
+   * (`toRefPointer`) for any other target, with `%` escaped: a `$ref` is a
+   * URI fragment, so a reader decodes it.
    *
    * @throws {DanglingRefError} for a `$ref` with no name, such as
    * `#/components/parameters/`: written out, it would name nothing, so the
@@ -680,7 +681,9 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
 
     return isDefaultRefPath({ refPath: this.refPath, refType: this.refType })
       ? `#/components/${toComponentsBucket(this.refType)}/${this.refName}`
-      : toRefPointer(this)
+      : isRemoteRefPath(this.refPath)
+        ? this.$ref
+        : toRefPointer(this).replaceAll('%', '%25')
   }
 }
 

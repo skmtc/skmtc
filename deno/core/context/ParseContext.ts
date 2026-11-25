@@ -45,9 +45,12 @@ import type { ParseIssue } from '@/context/ParseIssue.ts'
 import { toSerializedError } from '@/types/SerializedError.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasRefData } from '@/oas/ref/ref-types.ts'
+import type { OasIssueType } from '@/context/generateTypes.ts'
+import { tryParseAt } from '@/context/tryParseAt.ts'
 import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 import {
   toRawRefTarget,
+  toRefParts,
   toRefPathBucket,
   toRefPathSegments,
   toRefPointer,
@@ -115,9 +118,15 @@ type LogDependencyIssueArgs = {
   rootCause: RefError
 }
 
-/** An OAS ref and the place it is written, which `#checkRefs` resolves. */
-type WrittenRef = {
+/** A place that refers to a ref key. */
+type RefConsumer = {
   consumer: StackTrail
+  /** The key of the ref target whose parse registered it; `undefined` for the document's own walk. */
+  refTarget: string | undefined
+}
+
+/** An OAS ref and the place it is written, which `#checkRefs` resolves. */
+type WrittenRef = RefConsumer & {
   ref: RefParts & {
     $ref: string
     refType: OasRefData['refType']
@@ -156,6 +165,36 @@ type ToDanglingAllOfMemberArgs = {
   /** The schema that holds the `allOf`. */
   stackTrail: StackTrail
 }
+
+/** The issue logged when a ref target's parser throws. */
+const toInvalidType = (refType: OasRefData['refType']): OasIssueType => {
+  switch (refType) {
+    case 'schema':
+      return 'INVALID_SCHEMA'
+    case 'requestBody':
+      return 'INVALID_REQUEST_BODY'
+    case 'parameter':
+      return 'INVALID_PARAMETER'
+    case 'response':
+    case 'link':
+      // A link has no type of its own: in the document's walk its response reports it.
+      return 'INVALID_RESPONSE'
+    case 'example':
+      return 'INVALID_EXAMPLE'
+    case 'header':
+      return 'INVALID_HEADER'
+    case 'securityScheme':
+      return 'INVALID_SECURITY_SCHEME'
+    default: {
+      const _exhaustive: never = refType
+      throw new Error(`Unhandled ref type: ${_exhaustive}`)
+    }
+  }
+}
+
+/** Two issues with the same level, type, location and message are the same issue. */
+const toIssueIdentity = (issue: ParseIssue): string =>
+  [issue.level, issue.type, issue.location, issue.message].join('\u0000')
 
 /** The stored form of an issue: an error's `cause` as a `SerializedError`. */
 const toParseIssue = (issue: LogIssueAtArgs): ParseIssue => {
@@ -214,12 +253,16 @@ export class ParseContext {
   // Universal dependency-ref tracking. Populated by parsers as they
   // encounter references. OAS uses `$ref` strings as keys; GQL would
   // use type names. The maps don't care about the encoding.
-  #refConsumers: Map<string, StackTrail[]> = new Map()
+  #refConsumers: Map<string, RefConsumer[]> = new Map()
   #refErrors: Map<string, RefError[]> = new Map()
   /** Each OAS ref and the place it is written, which `#checkRefs` resolves once the document is parsed. */
   #oasRefs: WrittenRef[] = []
-  /** The location of each ref target `#parseRefTargets` parsed, by the target's key (`toRefKey`). */
-  #refTargetLocations: Map<string, string> = new Map()
+  /** The key (`toRefKey`) of each ref target `#parseRefTargets` parsed. */
+  #refTargets: Set<string> = new Set()
+  /** The key of the ref target `#inRefTarget` runs for; `undefined` in the document's own walk. */
+  #refTarget: string | undefined
+  /** What identifies each issue logged so far (`toIssueIdentity`). */
+  #issueIdentities: Set<string> = new Set()
   /**
    * Frames of the trail `parse()` was called with (`[traceId, spanId,
    * 'parse']` through `toArtifacts`). Every trail built during the walk
@@ -378,7 +421,6 @@ export class ParseContext {
           }
         }
         this.#checkRefs()
-        this.#registerRefTargetErrors()
         this.removeErroredItems()
         return { type: 'oas', value: oasState.oasDocument }
       }
@@ -429,7 +471,18 @@ export class ParseContext {
 
     // `pending` grows while it is walked: each removed component queues its own consumers.
     for (const { refKey, rootCause } of pending) {
-      for (const consumer of this.#refConsumers.get(refKey) ?? []) {
+      for (const { consumer, refTarget } of this.#refConsumers.get(refKey) ?? []) {
+        // The ref is inside a ref target: the target is removed, and what refers to it next.
+        if (refTarget !== undefined) {
+          if (this.oasDocument.removeRefTarget(refTarget) !== undefined) {
+            this.#inRefTarget(refTarget, () =>
+              this.#logDependencyIssue({ location: consumer.toString(), refKey, rootCause })
+            )
+            pending.push({ refKey: refTarget, rootCause })
+          }
+          continue
+        }
+
         const documentTrail = this.#toDocumentTrail(consumer)
         const removedLocations = this.#removeConsumer(consumer, documentTrail)
 
@@ -460,7 +513,7 @@ export class ParseContext {
       return
     }
 
-    if (this.#refTargetLocations.has(refKey)) {
+    if (this.#refTargets.has(refKey)) {
       this.protocol.oasDocument.removeRefTarget(refKey)
       return
     }
@@ -482,8 +535,7 @@ export class ParseContext {
    *
    * A pointer that leads nowhere is left to `#checkRefs`, which reports it as
    * naming nothing. A target that fails to parse removes what holds a ref to
-   * it, as a component that fails does. Issues the parse logs again, at a
-   * place the document's own walk already reported, are dropped.
+   * it, as a component that fails does.
    */
   #parseRefTargets(toRefTarget: ToRefTarget): void {
     if (this.protocol.type !== 'oas') {
@@ -497,7 +549,7 @@ export class ParseContext {
 
       // A ref to a component, of its own kind or not, is resolved in
       // `components`; `#checkRefs` reports one of the wrong kind.
-      if (ref.refName === '' || toRefPathBucket(ref.refPath) !== undefined || this.#refTargetLocations.has(key)) {
+      if (ref.refName === '' || toRefPathBucket(ref.refPath) !== undefined || this.#refTargets.has(key)) {
         continue
       }
 
@@ -507,73 +559,56 @@ export class ParseContext {
         continue
       }
 
-      const segments = [...toRefPathSegments(ref.refPath), ref.refName]
-      const location = new StackTrail([...this.#rootFrames, ...segments]).toString()
-      const before = this.issues.length
+      this.#refTargets.add(key)
 
-      this.#refTargetLocations.set(key, location)
+      const parent = new StackTrail([...this.#rootFrames, ...toRefPathSegments(ref.refPath)])
 
-      const target = toRefTarget({
-        refType: ref.refType,
-        name: ref.refName,
-        value,
-        stackTrail: new StackTrail([...this.#rootFrames, ...segments.slice(0, -1)]),
-        context: this
-      })
-
-      this.#dropRepeatedIssues(before)
+      const target = this.#inRefTarget(key, () =>
+        tryParseAt({
+          stackTrail: parent,
+          key: ref.refName,
+          context: this,
+          type: toInvalidType(ref.refType),
+          parent: value,
+          fn: () => toRefTarget({ refType: ref.refType, name: ref.refName, value, stackTrail: parent, context: this })
+        })
+      )
 
       if (target !== undefined) {
         oasDocument.setRefTarget(key, target)
-        continue
-      }
-
-      // The target did not parse. Its error is registered now, so
-      // `#checkRefs` leaves the refs to it to `removeErroredItems`, which
-      // names the error, and does not report them as naming nothing.
-      const failure = this.issues.find(issue => issue.level === 'error' && issue.location === location)
-
-      if (failure !== undefined) {
-        this.registerRefError(new Error(failure.message), key, location)
       }
     }
   }
 
   /**
-   * Drops the issues logged since `before` that repeat one logged earlier,
-   * with the same level, type, location and message. A ref target inside a
-   * component or an operation is read again from the content the document's
-   * walk already reported.
+   * Runs `fn` for the ref target kept under `key`, or for the document's own
+   * walk when `key` is `undefined`. While it runs, errors and refs are
+   * registered for that target, and not for the component or operation its
+   * position is in, and an issue that repeats one already logged is dropped:
+   * the document's walk reads most targets too.
    */
-  #dropRepeatedIssues(before: number): void {
-    const identity = (issue: ParseIssue): string =>
-      [issue.level, 'type' in issue ? issue.type : '', issue.location, issue.message].join('\u0000')
-    const earlier = new Set(this.issues.slice(0, before).map(identity))
-    const added = this.issues.splice(before)
-
-    this.issues.push(...added.filter(issue => !earlier.has(identity(issue))))
+  #inRefTarget<T>(key: string | undefined, fn: () => T): T {
+    const previous = this.#refTarget
+    this.#refTarget = key
+    try {
+      return fn()
+    } finally {
+      this.#refTarget = previous
+    }
   }
 
-  /**
-   * Registers an error against each ref target that has one inside it, at
-   * its location or below: a target that did not parse, or one that holds a
-   * ref that names nothing. What holds a ref to the target is then removed,
-   * as for a component with an error.
-   */
-  #registerRefTargetErrors(): void {
-    for (const [key, location] of this.#refTargetLocations) {
-      if (this.#refErrors.has(key)) {
-        continue
-      }
+  /** Keeps an issue, and says whether it was new (see {@link #inRefTarget}). */
+  #addIssue(issue: ParseIssue): boolean {
+    const identity = toIssueIdentity(issue)
 
-      const inside = this.issues.find(
-        issue => issue.level === 'error' && (issue.location === location || issue.location.startsWith(`${location}:`))
-      )
-
-      if (inside !== undefined) {
-        this.registerRefError(new Error(inside.message), key, inside.location)
-      }
+    if (this.#refTarget !== undefined && this.#issueIdentities.has(identity)) {
+      return false
     }
+
+    this.#issueIdentities.add(identity)
+    this.issues.push(issue)
+
+    return true
   }
 
   /**
@@ -640,7 +675,9 @@ export class ParseContext {
     const entryRef =
       isPlainObject(rawEntry) && typeof rawEntry.$ref === 'string' ? rawEntry.$ref : undefined
     const nameAndIn = toNameAndIn(
-      entryRef === undefined ? rawEntry : this.#toRawComponentParameter(entryRef)
+      entryRef === undefined
+        ? rawEntry
+        : toRawRefTarget(documentObject, toRefParts({ $ref: entryRef }))
     )
     const broken = [{ location: documentTrail.toString(), message: '', ...nameAndIn }]
 
@@ -673,18 +710,6 @@ export class ParseContext {
     return removedLocations
   }
 
-  /** The raw `components.parameters` entry a local `$ref` names. */
-  #toRawComponentParameter($ref: string): unknown {
-    if (this.protocol.type !== 'oas') {
-      return undefined
-    }
-
-    const match = /^#\/components\/parameters\/(.+)$/.exec($ref)
-    const parameters: unknown = this.protocol.documentObject.components?.parameters
-
-    return match && isPlainObject(parameters) ? parameters[match[1]] : undefined
-  }
-
   #logDependencyIssue({ location, refKey, rootCause }: LogDependencyIssueArgs): void {
     const { error } = rootCause
     const errorMessage = error instanceof Error ? error.message : String(error)
@@ -693,7 +718,7 @@ export class ParseContext {
 
     switch (this.protocol.type) {
       case 'oas':
-        this.issues.push({
+        this.#addIssue({
           protocol: 'oas',
           level: 'error',
           type: 'INVALID_DEPENDENCY_REF',
@@ -703,7 +728,7 @@ export class ParseContext {
         })
         break
       case 'gql':
-        this.issues.push({
+        this.#addIssue({
           protocol: 'gql',
           level: 'error',
           type: 'INVALID_DEPENDENCY_REF',
@@ -766,11 +791,12 @@ export class ParseContext {
    * would use type names or qualified field paths.
    */
   registerRef(consumer: StackTrail, refKey: string): void {
+    const refConsumer = { consumer, refTarget: this.#refTarget }
     const existing = this.#refConsumers.get(refKey)
     if (existing) {
-      existing.push(consumer)
+      existing.push(refConsumer)
     } else {
-      this.#refConsumers.set(refKey, [consumer])
+      this.#refConsumers.set(refKey, [refConsumer])
     }
   }
 
@@ -782,7 +808,7 @@ export class ParseContext {
    */
   registerOasRef<T extends OasRefData['refType']>(consumer: StackTrail, ref: OasRef<T>): void {
     this.registerRef(consumer, toRefKey(ref))
-    this.#oasRefs.push({ consumer, ref })
+    this.#oasRefs.push({ consumer, ref, refTarget: this.#refTarget })
   }
 
   /**
@@ -805,7 +831,7 @@ export class ParseContext {
    * removes what holds it.
    */
   #checkRefs(): void {
-    this.#oasRefs.forEach(({ consumer, ref }) => {
+    this.#oasRefs.forEach(({ consumer, ref, refTarget }) => this.#inRefTarget(refTarget, () => {
       if (this.#refErrors.has(toRefKey(ref))) {
         return
       }
@@ -819,6 +845,7 @@ export class ParseContext {
           this.#removeHolder({
             consumer,
             ref,
+            refTarget,
             error,
             type: 'REF_TYPE_MISMATCH',
             message: `${message}, so what holds it is removed.`
@@ -835,13 +862,14 @@ export class ParseContext {
           this.#removeHolder({
             consumer,
             ref,
+            refTarget,
             error,
             type: 'DANGLING_REF',
             message: `${error.message}, so what holds it is removed. To keep it, list '${ref.refType}' in system.danglingRefs.`
           })
         }
       }
-    })
+    }))
   }
 
   /**
@@ -879,13 +907,13 @@ export class ParseContext {
 
   /**
    * Logs an error at the place a ref is written and removes what holds it.
-   * An error inside a component removes that component, and what uses it
+   * An error inside a component or a ref target removes it, and what uses it
    * (`removeErroredItems`). What holds the ref outside the components (an
    * operation, a webhook, a path-level parameter) is removed here. Its own
    * location has the error already; an operation that a path-level parameter
    * applies to gets an `INVALID_DEPENDENCY_REF`.
    */
-  #removeHolder({ consumer, ref, error, type, message }: RemoveHolderArgs): void {
+  #removeHolder({ consumer, ref, refTarget, error, type, message }: RemoveHolderArgs): void {
     this.logIssueNoKey({
       level: 'error',
       message,
@@ -897,7 +925,7 @@ export class ParseContext {
 
     const documentTrail = this.#toDocumentTrail(consumer)
 
-    if (documentTrail.toStackRef() !== undefined) {
+    if (refTarget !== undefined || documentTrail.toStackRef() !== undefined) {
       return
     }
 
@@ -970,9 +998,9 @@ export class ParseContext {
    * manifest).
    */
   logIssueAt(issue: LogIssueAtArgs, parent?: unknown): void {
-    this.issues.push(toParseIssue(issue))
+    const added = this.#addIssue(toParseIssue(issue))
 
-    if (!this.silent) {
+    if (added && !this.silent) {
       this.logger.warn({
         protocol: issue.protocol,
         level: issue.level,
@@ -1011,7 +1039,7 @@ export class ParseContext {
         // `registerRefError` ignores undefined refs.
         this.registerRefError(
           issue.cause ?? issue.message,
-          this.#toDocumentTrail(stackTrail).toStackRef(),
+          this.#refTarget ?? this.#toDocumentTrail(stackTrail).toStackRef(),
           location
         )
         this.logIssueAt(

@@ -80,10 +80,11 @@ engine machinery — modifying it is almost always a mistake.
   projection resolves its schema with `resolveSchemaRefOnce(ref)`. The
   model API takes the whole `ref` (`{ refName, refPath }`), so no call
   can drop the path.
-  The skeleton's `base.ts` names by `ref.refName` alone, so two deep
-  targets that share it (`…/properties/disk` twice) collide with
-  `Registered definition mismatch`; read `ref.refPath` there if your
-  documents have them.
+  The skeleton's `base.ts` names by `toModelName(ref)`: a component's
+  `refName`, and a name from the whole pointer of any other target. With
+  `ref.refName` alone, two deep targets that share it
+  (`…/properties/disk` twice) collide with
+  `Registered definition mismatch`.
 - **A ref can name nothing.** By default (`settings.system.danglingRefs:
   []`) the parser removes what holds such a `$ref`, so your generator
   never sees it. When the list has `schema`, a schema `$ref` stays, and

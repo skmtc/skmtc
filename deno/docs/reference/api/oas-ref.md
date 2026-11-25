@@ -194,23 +194,25 @@ The raw `$ref` string, e.g., `'#/components/schemas/User'`.
 
 The two parts of the `$ref`'s pointer. `refName` is the last segment,
 unescaped (`%20` is a space, `~1` is `/`, `~0` is `~`). `refPath` is the
-pointer before it, as written.
+pointer before it, with no percent escapes.
 
 | `$ref` | `refPath` | `refName` |
 | --- | --- | --- |
 | `#/components/schemas/User` | `#/components/schemas` | `User` |
 | `#/components/parameters/UserId` | `#/components/parameters` | `UserId` |
 | `#/components/schemas/__sharedInput/$defs/schema0` | `#/components/schemas/__sharedInput/$defs` | `schema0` |
-| `#/paths/~1disks~1%7BdiskId%7D/parameters/0` | `#/paths/~1disks~1%7BdiskId%7D/parameters` | `0` |
+| `#/paths/~1disks~1%7BdiskId%7D/parameters/0` | `#/paths/~1disks~1{diskId}/parameters` | `0` |
 | `#/components/schemas/` | `#/components/schemas` | empty: the `$ref` names nothing |
 
 A `refPath` that is a bucket names a component, which resolves in
 `components`. Any other `refPath` points into the document's content;
 see [Where a ref points](../../concepts/refs-and-resolution.md#where-a-ref-points-refname-and-refpath).
-Core reads only the fragment of a `$ref`, so `other.yml#/components/schemas/A`
-has `refPath` `#/components/schemas` and `refName` `A`. A `$ref` with no
-`#`, such as a bare id, has the default `refPath` of its kind and its
-last `/`-separated segment as `refName`.
+A `$ref` that does not start with `#` is remote: it points outside the
+document. Its `refPath` keeps the file, so `other.yml#/components/schemas/A`
+has `refPath` `other.yml#/components/schemas` and `refName` `A`, and it
+names nothing here. Core does not fetch. Bundle the files into one
+document first; see
+[External `$ref`s](../settings/source-resolution.md#external-refs-in-oas-specs).
 
 The two fields make an `OasRef<'schema'>` a `RefParts`, the shape the
 model API takes. Pass the ref as it is: `insertModel(Peer, ref)`,

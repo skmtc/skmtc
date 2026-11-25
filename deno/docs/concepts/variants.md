@@ -81,7 +81,8 @@ The variant flows through:
 - **`GeneratorKey`** — operations went from 3 to 4 segments and
   models went from 2 to 3 segments, with `variant` appended in both
   cases (`id|path|method|variant`, `id|rootKind|fieldName|variant`,
-  `id|refName|variant`).
+  `id|modelKey|variant`). The `modelKey` is a component's `refName`, or
+  the whole pointer of any other model.
 - **`StackTrail`** — each variant adds the frames `variant` and
   `<name>` after the item frames (`[<root>, <gen-id>, <path>, <method>,
   'variant', <name>]` for operations; `[<root>, <gen-id>, <refName>,
