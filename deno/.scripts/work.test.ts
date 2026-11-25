@@ -124,9 +124,10 @@ Deno.test('the record has the functions called more than 5 times a file, rounded
   const calls = new Map([
     ['core/b.ts often', 1249],
     ['core/a.ts often', 1251],
-    ['core/a.ts limit', 500]
+    // 955 is the limit of 191 files: not recorded, though it rounds to 960.
+    ['core/a.ts limit', 955]
   ])
-  const functions = toRecordedFunctions(calls, 100)
+  const functions = toRecordedFunctions(calls, 191)
 
   assertEquals(Object.entries(functions), [
     ['core/a.ts often', 1300],

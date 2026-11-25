@@ -1,8 +1,8 @@
 #!/bin/sh
 #
 # Pre-push hook — run the same checks GitHub Actions runs (doc-sync +
-# full workspace type-check & tests) so failures surface locally instead
-# of in CI.
+# function call counts + full workspace type-check & tests) so failures
+# surface locally instead of in CI.
 #
 # Enabled per-clone with:  git config core.hooksPath .githooks
 # Skip a single push with:  git push --no-verify
@@ -12,6 +12,6 @@ set -e
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root/deno"
 
-echo "pre-push: running 'deno task check' (verify-docs + tests)…"
+echo "pre-push: running 'deno task check' (verify-docs + check-work + tests)…"
 deno task check
 echo "pre-push: checks passed."

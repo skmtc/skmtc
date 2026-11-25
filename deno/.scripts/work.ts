@@ -10,13 +10,14 @@
  *
  * The record has the functions called more than {@link CALLS_PER_FILE} times
  * for each generated file, with the count rounded to two significant digits,
- * so a small change does not move it. A function with no name is left out, and
- * functions of one name in one file are added up.
+ * so a small change moves it only where a count is next to a rounding step. A
+ * function with no name is left out, and functions of one name in one file are
+ * added up.
  *
  * Not covered, so a green check is not read as more than it is: a function
- * that gets slower with the same number of calls, work inside built-ins such
- * as a regular expression, and the generators, which are in their own
- * repository.
+ * that gets slower with the same number of calls, one that stays below the
+ * limit however much it grew, work inside built-ins such as a regular
+ * expression, and the generators, which are in their own repository.
  *
  * Run from `deno/`: `deno task record-work` and `deno task check-work`.
  */
@@ -111,19 +112,17 @@ export const toRecordedFunctions = (
 ): Record<string, number> =>
   Object.fromEntries(
     [...calls]
-      .map(([name, count]): [string, number] => [name, roundCount(count)])
       .filter(([, count]) => count > CALLS_PER_FILE * files)
+      .map(([name, count]): [string, number] => [name, roundCount(count)])
       .sort(([a], [b]) => (a < b ? -1 : 1))
   )
 
 const readFileCount = (output: string): number => {
-  const parsed: unknown = JSON.parse(output)
+  const files = Number(output.match(/^\{"files":(\d+)\}\s*$/)?.[1] ?? 0)
 
-  if (!isRecord(parsed) || typeof parsed.files !== 'number' || parsed.files === 0) {
-    throw new Error(`the run printed no number of generated files: ${output}`)
-  }
+  if (files === 0) throw new Error(`the run printed no number of generated files: ${output}`)
 
-  return parsed.files
+  return files
 }
 
 const readCoverage = async (directory: string): Promise<unknown[]> => {
