@@ -3,6 +3,8 @@
  * version as JSON Schema 2020-12, and the values that Ajv accepts for it.
  */
 
+// A dependency of the scripts only, so it is in no package's imports.
+// deno-lint-ignore no-import-prefix
 import { Ajv2020 } from 'npm:ajv@8.20.0/dist/2020.js'
 import { isRecord } from './api-surface.ts'
 
