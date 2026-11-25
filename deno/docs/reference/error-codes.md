@@ -630,6 +630,10 @@ necessary. To get a union, set `settings.system.anyOf` to `union`
 **When:** A `$ref` names nothing in the document. There is one issue
 for each place that has the `$ref`. The location is that place.
 
+A remote `$ref`, one that does not start with `#`, also names nothing.
+Core does not fetch other files. Bundle the files into one document
+before you run Skmtc.
+
 A `$ref` in a loop of `$ref`s also names nothing. In a loop, `A` is a
 `$ref` to `B`, and `B` to `A`. The chain never gets to a component that
 is not a `$ref`. The issue is at the `$ref`s of the loop. A `$ref` that leads
@@ -666,6 +670,7 @@ applies to these `$ref`s. The location is the item that has the union.
 - `Ref "#/components/schemas/X" names nothing in the document. It is kept (system.danglingRefs lists 'schema'), and resolving it throws DanglingRefError.`
 - `Ref "#/components/schemas/X" names nothing in the document. It is left out of the allOf merge (system.danglingRefs lists 'allOfMember').`
 - `Ref "#/components/schemas/X" names nothing in the document. Core resolves it while it parses, so what holds it is removed.`
+- `Ref "./common.yaml#/components/schemas/X" points outside the document; bundle the files into one document first, so what holds it is removed. To keep it, list 'schema' in system.danglingRefs.`
 - `Ref "#/components/parameters/P2" leads into a loop of $refs (#/components/parameters/P2 → #/components/parameters/P1 → #/components/parameters/P2) and never reaches a component, so what holds it is removed. To keep it, list 'parameter' in system.danglingRefs.`
 
 **Remediation:** Add the target to `components` in the source
@@ -685,6 +690,10 @@ that has the `$ref`. The location is that place. The parser removes the
 item that has the `$ref`, because it gives a generator only what the
 place promises. The item that the `$ref` names stays.
 `settings.system.danglingRefs` does not apply.
+
+A place outside `components` has one kind: the kind of the first `$ref`
+that points to it. A `$ref` of a different kind to the same place gets
+this issue.
 
 **Typical message:**
 `Ref type mismatch for "#/components/schemas/Pet". Expected a ref into "components/requestBodies" but it names one in "components/schemas", so what holds it is removed.`

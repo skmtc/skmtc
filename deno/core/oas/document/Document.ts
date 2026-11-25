@@ -160,6 +160,16 @@ export class OasDocument {
   #fields: DocumentFields | undefined
 
   /**
+   * The targets of refs that do not point at a component, such as
+   * `#/components/schemas/Pet/properties/tag` or
+   * `#/paths/~1pets/get/responses/200/content/application~1json/schema`.
+   * Each is parsed once, at its own position, and kept under its whole
+   * pointer (`toRefPointer`). The model sweep does not visit them: a
+   * generator reaches one through a ref.
+   */
+  #refTargets: Map<string, ComponentsEntry> = new Map()
+
+  /**
    * Creates a new OasDocument instance.
    *
    * The document is typically created with undefined fields and populated
@@ -179,6 +189,25 @@ export class OasDocument {
    */
   constructor(fields?: DocumentFields) {
     this.#fields = fields
+  }
+
+  /** The parsed target of a ref that does not point at a component, by its whole pointer. */
+  toRefTarget(pointer: string): ComponentsEntry | undefined {
+    return this.#refTargets.get(pointer)
+  }
+
+  /** Keeps the parsed target of a ref that does not point at a component, under its whole pointer. */
+  setRefTarget(pointer: string, target: ComponentsEntry): void {
+    this.#refTargets.set(pointer, target)
+  }
+
+  /** Removes a ref target, as {@link removeItem} removes a component, and returns it. */
+  removeRefTarget(pointer: string): ComponentsEntry | undefined {
+    const target = this.#refTargets.get(pointer)
+
+    this.#refTargets.delete(pointer)
+
+    return target
   }
 
   /**

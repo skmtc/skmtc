@@ -38,16 +38,16 @@ snippets extend `KtSnippet`.
 export const KtModelBase = toKtModelProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
   toEnrichmentSchema,
-  toIdentifierName({ refName, enrichments }) {
-    return enrichments?.subject?.name ?? capitalize(camelCase(refName))
+  toIdentifierName({ ref, enrichments }) {
+    return enrichments?.subject?.name ?? capitalize(camelCase(ref.refName))
   },
   // Kotlin's identifier KIND depends on schema shape → may read context
   // (runs only on cache-miss; the NAME stays pure):
-  toIdentifierType(refName, context) {
-    return { type: toShape(context, peekSchema(context, refName)) }
+  toIdentifierType(ref, context) {
+    return { type: toShape(context, peekSchema(context, ref)) }
   },
-  toExportPath({ refName, enrichments }) {
-    const name = enrichments?.subject?.name ?? capitalize(camelCase(refName))
+  toExportPath({ ref, enrichments }) {
+    const name = enrichments?.subject?.name ?? capitalize(camelCase(ref.refName))
     return `@/${enrichments.generator.basePackage.replaceAll('.', '/')}/${name}.generated.kt`
   }
 })
@@ -238,7 +238,7 @@ every mature Kotlin generator solves inline objects the same way:
   Widening a known shape to `Map<String, Any?>` is capitulation, not
   a solution — it discards the type the schema gave you. Inline
   string enums synthesize the same way (`enum class` sibling).
-- Never fabricate a refName or drive the peer's identity statics to
+- Never fabricate a ref or drive the peer's identity statics to
   force a declaration into existence — that is the two-doors rule
   (skmtc-generator §4), and the result couples you to the peer's
   private snippet shape.
@@ -259,9 +259,9 @@ discriminator omission. Everything else renders the honest wire type
   makes build order arbitrary, so membership must be known BEFORE any
   construction: one document-wide scan over `components.schemas`,
   memoized per document via `WeakMap`, mapping member refName → claims.
-  Claims store the parent's real `RefName`; the consumer derives the
-  display name via `context.toModelContentSettings` — never a copy of
-  the naming policy, never a fabricated refName.
+  Claims store the parent's real `ref`; the consumer derives the
+  display name via `context.toModelContentSettings({ ref, … })` — never
+  a copy of the naming policy, never a fabricated ref.
 - **Parent side**: an empty-body value (`toString()` returns `''` →
   the bodyless idiom) carrying `@JsonTypeInfo(use = NAME, include =
   PROPERTY, property = "<discriminator>")` + `@JsonSubTypes(Type(value

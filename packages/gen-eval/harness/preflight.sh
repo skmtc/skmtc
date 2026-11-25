@@ -92,7 +92,7 @@ import { toKtModelProjectionBase } from '@skmtc/lang-kotlin'
 
 const PreflightBase = toKtModelProjectionBase({
   id: '@eval/gen-preflight',
-  toIdentifierName: ({ refName }) => refName,
+  toIdentifierName: ({ ref }) => ref.refName,
   toIdentifierType: () => ({ type: 'typealias' }),
   toExportPath: () => '@/com/example/preflight/Preflight.kt',
   toEnrichmentSchema: () => emptyEnrichmentSchema
@@ -114,8 +114,8 @@ class PreflightModel extends PreflightBase {
 
 export default toModelEntry({
   id: '@eval/gen-preflight',
-  transform({ context, refName }) {
-    context.insertModel(PreflightModel, refName)
+  transform({ context, ref }) {
+    context.insertModel(PreflightModel, ref)
   },
   toEnrichmentSchema: () => emptyEnrichmentSchema
 })

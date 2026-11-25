@@ -25,6 +25,7 @@ import { OasString } from '@/oas/string/String.ts'
 import { MockDefinition, MockFile, MockImport } from '@/test/MockFile.ts'
 import { emptyEnrichmentSchema, type EmptyEnrichments } from '@/types/Enrichments.ts'
 import type { RefName } from '@/types/RefName.ts'
+import { toSchemaComponentRef } from '@/helpers/refFns.ts'
 
 // A named logger with no handlers is silent.
 const logger: log.Logger = log.getLogger('toModelRef-test-silent')
@@ -54,9 +55,9 @@ const toModels = (graph: Graph, shared: string[] = []) => {
 
   class Model extends toModelProjectionBase<EmptyEnrichments>(NeutralSnippet, {
     id: '@test/models',
-    toIdentifierName: ({ refName }) => refName,
+    toIdentifierName: ({ ref }) => ref.refName,
     toIdentifierType: () => ({ type: 'entity' }),
-    toExportPath: ({ refName }) => toPath(refName),
+    toExportPath: ({ ref }) => toPath(ref.refName),
     toEnrichmentSchema: () => emptyEnrichmentSchema
   }) {
     /** Each reference this model made: the name, whether it came back suspended, and whether it is inside a cycle. */
@@ -66,15 +67,15 @@ const toModels = (graph: Graph, shared: string[] = []) => {
     constructor(args: ModelProjectionConstructorArgs<EmptyEnrichments>) {
       super(args)
 
-      if (args.refName === 'Broken') {
+      if (args.ref.refName === 'Broken') {
         throw new Error('Broken cannot be constructed')
       }
 
-      this.refs = (graph[args.refName] ?? []).map(refName => {
+      this.refs = (graph[args.ref.refName] ?? []).map(refName => {
         const ref = toModelRef({
           context: args.context,
           projection: Model,
-          refName: refName as RefName,
+          ref: toSchemaComponentRef(refName as RefName),
           destinationPath: args.settings.exportPath
         })
 
@@ -150,7 +151,7 @@ const toPending = (name: string, projection: unknown) =>
     exportPath: normalizeWorkspacePath(`@/types/${name}.generated.ts`),
     generatorKey: toModelGeneratorKey({
       generatorId: '@test/models',
-      refName: name as RefName,
+      ref: toSchemaComponentRef(name as RefName),
       variant: 'main'
     }),
     options: undefined,
@@ -165,7 +166,7 @@ Deno.test('a cycle across two files: the reference back is suspended, imported, 
     Scalar: []
   })
 
-  context.insertModel(Model, 'Group' as RefName)
+  context.insertModel(Model, toSchemaComponentRef('Group' as RefName))
 
   // Group → Condition is inside the cycle too: Condition reached Group while
   // Group was pending. Either model can be the first one loaded, so both
@@ -195,7 +196,7 @@ Deno.test('a second reference into the cycle, found in the cache, is inside the 
   // C's Definition carries what its construction reached (A, still pending).
   const { Model, context, valueOf } = toModels({ A: ['B', 'C'], B: ['C'], C: ['A'] })
 
-  context.insertModel(Model, 'A' as RefName)
+  context.insertModel(Model, toSchemaComponentRef('A' as RefName))
 
   assertEquals(valueOf('A').refs, [
     { name: 'B', suspended: false, inCycle: true },
@@ -214,8 +215,8 @@ Deno.test('a reference into a cycle from outside it is not inside the cycle', ()
     Outside: ['Condition']
   })
 
-  context.insertModel(Model, 'Group' as RefName)
-  context.insertModel(Model, 'Outside' as RefName)
+  context.insertModel(Model, toSchemaComponentRef('Group' as RefName))
+  context.insertModel(Model, toSchemaComponentRef('Outside' as RefName))
 
   assertEquals(valueOf('Outside').refs, [{ name: 'Condition', suspended: false, inCycle: false }])
 })
@@ -223,7 +224,7 @@ Deno.test('a reference into a cycle from outside it is not inside the cycle', ()
 Deno.test('a model that refers to itself is suspended in its own file, with no import', () => {
   const { Model, context, valueOf } = toModels({ Node: ['Node'] })
 
-  context.insertModel(Model, 'Node' as RefName)
+  context.insertModel(Model, toSchemaComponentRef('Node' as RefName))
 
   assertEquals(valueOf('Node').refs, [{ name: 'Node', suspended: true, inCycle: false }])
   assertEquals(valueOf('Node').recursive, true)
@@ -233,7 +234,7 @@ Deno.test('a model that refers to itself is suspended in its own file, with no i
 Deno.test("a model's Definition is added when its constructor returns, after what it refers to", () => {
   const { Model, context, toPath } = toModels({ A: ['B'], B: [] }, ['A', 'B'])
 
-  context.insertModel(Model, 'A' as RefName)
+  context.insertModel(Model, toSchemaComponentRef('A' as RefName))
 
   const file = toMockFile(context, toPath('A'))
 
@@ -251,7 +252,7 @@ Deno.test('a constructor that throws leaves no pending entry and no file', () =>
   const { Model, context, toPath } = toModels({})
 
   assertThrows(
-    () => context.insertModel(Model, 'Broken' as RefName),
+    () => context.insertModel(Model, toSchemaComponentRef('Broken' as RefName)),
     Error,
     'Broken cannot be constructed'
   )
@@ -269,7 +270,7 @@ Deno.test('the Driver refuses to construct a second projection for a pending mod
   context.pendingStack.push(toPending('Loop', Model))
 
   assertThrows(
-    () => context.insertModel(Model, 'Loop' as RefName),
+    () => context.insertModel(Model, toSchemaComponentRef('Loop' as RefName)),
     Error,
     'is being constructed further up the stack'
   )
@@ -283,7 +284,7 @@ Deno.test('another projection class under the name of a pending model is a clash
   context.pendingStack.push(toPending('Loop', OtherModel))
 
   assertThrows(
-    () => context.insertModel(Model, 'Loop' as RefName),
+    () => context.insertModel(Model, toSchemaComponentRef('Loop' as RefName)),
     Error,
     "Registered definition mismatch: 'Loop' in file '@/types/Loop.generated.ts' is being built by another projection class"
   )
@@ -296,7 +297,7 @@ Deno.test("toModelRef builds a model's content settings once", () => {
   const toModelContentSettings = spy(context, 'toModelContentSettings')
 
   try {
-    context.insertModel(Model, 'A' as RefName)
+    context.insertModel(Model, toSchemaComponentRef('A' as RefName))
 
     assertSpyCalls(toModelContentSettings, 2)
   } finally {

@@ -6,7 +6,7 @@ import { MyLibProjection } from './MyLibProjection.ts'
 export const myLibEntry = toModelEntry<EnrichmentSchema>({
   id: denoJson.name,
   toEnrichmentSchema,
-  transform({ context, refName }) {
-    context.insertModel(MyLibProjection, refName)
+  transform({ context, ref }) {
+    context.insertModel(MyLibProjection, ref)
   },
 })

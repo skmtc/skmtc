@@ -1,6 +1,6 @@
 ---
 name: skmtc-model
-version: 0.1.5
+version: 0.2.0
 description: >
   The model-generator shape for Skmtc: one definition per component
   schema, built by copying the shipped SKELETON package and filling its
@@ -13,7 +13,7 @@ description: >
   and skmtc-lang-typescript (TS layer).
 metadata:
   describes:
-    '@skmtc/core': '0.45'
+    '@skmtc/core': '0.46'
     '@skmtc/lang-typescript': '0.14'
 ---
 
@@ -54,7 +54,7 @@ engine machinery — modifying it is almost always a mistake.
 | Slot | File | Decision |
 |---|---|---|
 | `library` | `src/lib.ts` | emitted module + symbol, single point |
-| `naming`, `identifier-kind`, `export-path` | `src/base.ts` | identity policy (from `refName` ONLY) |
+| `naming`, `identifier-kind`, `export-path` | `src/base.ts` | identity policy (from `ref.refName`, and `ref.refPath` when you name refs into deep paths apart) |
 | `string`, `string-constraints` | `src/MyLibString.ts` | string / enum / literal syntax; formats, min/maxLength |
 | `number`, `integer`, `boolean`, `unknown`, `void` | `src/MyLibScalars.ts` | scalar syntax; numeric constraints |
 | `array` | `src/MyLibArray.ts` | list syntax |
@@ -73,6 +73,18 @@ engine machinery — modifying it is almost always a mistake.
   the `ModelDriver` (cache hit → reuse, miss → construct) and stitches
   the cross-file import. Inline-expanding a ref, or hand-writing its
   import, is how shared models duplicate.
+- **A ref can point inside a schema.** A `$ref` into a `$defs` entry,
+  a property or `#/paths/…` resolves like a component ref, and its
+  target becomes a model of its own. The router passes the `OasRef` to
+  `MyLibRef` as `ref`, `MyLibRef` passes it to `toModelRef`, and the
+  projection resolves its schema with `resolveSchemaRefOnce(ref)`. The
+  model API takes the whole `ref` (`{ refName, refPath }`), so no call
+  can drop the path.
+  The skeleton's `base.ts` names by `toModelName(ref)`: a component's
+  `refName`, and a name from the whole pointer of any other target. With
+  `ref.refName` alone, two deep targets that share it
+  (`…/properties/disk` twice) collide with
+  `Registered definition mismatch`.
 - **A ref can name nothing.** By default (`settings.system.danglingRefs:
   []`) the parser removes what holds such a `$ref`, so your generator
   never sees it. When the list has `schema`, a schema `$ref` stays, and

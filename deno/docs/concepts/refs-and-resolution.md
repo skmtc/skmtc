@@ -72,6 +72,57 @@ Every variant — `OasObject`, `OasArray`, `OasString`, … and `OasRef`
 So `.isRef()` is the type-discriminating guard. The type system
 threads through the narrowing automatically.
 
+## Where a ref points: `refName` and `refPath`
+
+A `$ref` is a JSON pointer, and it can point anywhere in the document,
+not only at a component. `OasRef` splits it in two: `refName`, the last
+segment unescaped, and `refPath`, the pointer before it. `refPath` has no
+percent escapes, so two spellings of one place give the same `refPath`.
+
+| `$ref` | `refPath` | `refName` |
+| --- | --- | --- |
+| `#/components/schemas/Pet` | `#/components/schemas` | `Pet` |
+| `#/components/schemas/__sharedInput/$defs/schema0` | `#/components/schemas/__sharedInput/$defs` | `schema0` |
+| `#/components/schemas/ChatResponse/properties/result` | `#/components/schemas/ChatResponse/properties` | `result` |
+| `#/paths/~1accounts/get/responses/200/content/application~1json/schema` | `#/paths/~1accounts/get/responses/200/content/application~1json` | `schema` |
+| `#/components/parameters/Limit` | `#/components/parameters` | `Limit` |
+
+A ref whose `refPath` is a bucket (`#/components/schemas`,
+`#/components/parameters`, …) names a component, and resolves in
+`components`. Any other ref points into the document's content, and
+resolves only at its whole pointer: `#/definitions/Pet` does not find the
+component `Pet`. The
+parser parses its target once, at the target's own position. It uses
+the parser that components of that kind use, and keeps the target on the
+document under the whole pointer. A target that refers back to itself
+stays a lazy ref, as a recursive component does. A target that fails to
+parse removes what refers to it, and the `INVALID_DEPENDENCY_REF` names
+the target's error.
+
+The engine keys a component's model by `refName` alone, as it always
+has. Generator keys, enrichments and manifests from earlier runs stay
+the same. The engine keys any other target by its whole pointer. In
+`client.json`, the enrichments of such a target go under that pointer
+(`"#/components/schemas/ChatResponse/properties/result": { "main": … }`).
+
+The model API takes a model's ref as one value, `ref: RefParts`
+(`{ refName, refPath }`), never a bare `refName`. An `OasRef` has both
+fields and fits it as it is. A component's `refPath` is
+`#/components/schemas`. Code that holds only a component's name builds
+its ref with `toSchemaComponentRef(refName)`.
+
+Pass the `ref` as it is: to `insertModel(Peer, ref)`, to
+`toModelRef({ …, ref })`, and to `resolveSchemaRefOnce(ref)` in the
+projection. The two parts travel together, so no call can drop one.
+
+The model generator's identity statics receive the `ref` too. The name
+is the generator's: `ref.refName` alone repeats across positions, as two
+refs to `…/properties/disk` under different schemas do. A generator
+that must tell such targets apart reads `ref.refPath`, or calls
+`toModelName(ref)`, as the `skmtc create` scaffolds do. It names a
+component by its `refName`, and any other target by its whole pointer
+(`Order_items`, `Pet_properties_tag`).
+
 ## The forward-ref problem
 
 OAS documents can have refs that point at schemas defined later in
@@ -202,7 +253,10 @@ the resolved value is of the *expected* `refType`:
 
 ```ts
 resolveOnce(): OasRef<T> | ResolvedRef<T> {
-  const refName = toRefName(this.$ref)
+  if (this.refName === '') {
+    throw new DanglingRefError(this.$ref)
+  }
+
   const resolved = this.#resolveOasOnce(...) ?? this.#resolveGqlOnce(...)
 
   if (!resolved) {
@@ -410,11 +464,12 @@ function declaring `OasRef<'schema'>` can't be passed an
 
 ### Can `OasRef` point to refs in external documents?
 
-Not currently. The `$ref` is resolved within `context.parsedDocument`,
-which is single-document. External `$ref`s (e.g.,
-`$ref: 'other.yaml#/User'`) aren't supported. If your OAS uses
-multi-file refs, bundle them into a single document before passing
-to Skmtc (tools like `@redocly/cli bundle` do this).
+Not currently. Core resolves a `$ref` within `context.parsedDocument`,
+which holds one document. A `$ref` that does not start with `#`, such as
+`other.yaml#/components/schemas/User`, names nothing, even when this
+document has a `User`. If your OAS uses multi-file refs, bundle them
+into a single document before passing to Skmtc (tools like
+`@redocly/cli bundle` do this).
 
 ### Does Render phase resolve refs?
 

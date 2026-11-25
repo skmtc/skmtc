@@ -73,8 +73,8 @@ const generators = <E = undefined>(): GeneratorsMapContainer<E> => ({
     id: 'models',
     toEnrichmentSchema: () => modelSchema,
     transform: () => {},
-    toEnrichmentDefaults: ({ refName }) => ({
-      subject: { note: `model ${refName}` },
+    toEnrichmentDefaults: ({ ref }) => ({
+      subject: { note: `model ${ref.refName}` },
       generator: undefined,
       stack: undefined
     })
@@ -85,10 +85,10 @@ const generators = <E = undefined>(): GeneratorsMapContainer<E> => ({
   'pet-only-models': toModelEntry<ModelEnrichment>({
     id: 'pet-only-models',
     toEnrichmentSchema: () => modelSchema,
-    isSupported: ({ refName }) => refName === 'Pet',
+    isSupported: ({ ref }) => ref.refName === 'Pet',
     transform: () => {},
-    toEnrichmentDefaults: ({ refName }) => ({
-      subject: { note: `model ${refName}` },
+    toEnrichmentDefaults: ({ ref }) => ({
+      subject: { note: `model ${ref.refName}` },
       generator: undefined,
       stack: undefined
     })

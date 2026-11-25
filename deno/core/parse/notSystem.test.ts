@@ -4,7 +4,7 @@ import type { OpenAPIV3 } from 'openapi-types'
 import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 import type { SystemSettings } from '@/types/Settings.ts'
-import { toRefName } from '@/helpers/refFns.ts'
+import type { RefName } from '@/types/RefName.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 
@@ -57,7 +57,7 @@ const parse = ({ openapi, system }: ParseArgs) => {
   const parsed = context.parse(new StackTrail(['TEST']))
   const schemas = parsed.type === 'oas' ? parsed.value.components?.schemas : undefined
   const toSchema = (name: string): OasSchema | OasRef<'schema'> | undefined =>
-    schemas?.[toRefName(`#/components/schemas/${name}`)]
+    schemas?.[(name as RefName)]
   const errorsAt = (name: string): number =>
     context.issues.filter(({ level, location }) => level === 'error' && location.endsWith(`components:schemas:${name}`))
       .length

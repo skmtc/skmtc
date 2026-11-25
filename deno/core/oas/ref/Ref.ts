@@ -1,7 +1,7 @@
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasRefData } from './ref-types.ts'
-import { toRefName } from '../../helpers/refFns.ts'
+import { isDefaultRefPath, isRemoteRefPath, toComponentsBucket, toRefParts, toRefPathBucket, toRefPointer } from '@/helpers/refFns.ts'
 import type { OasSchema, ToJsonSchemaOptions } from '../schema/Schema.ts'
 import type { OasResponse } from '../response/Response.ts'
 import type { OasParameter } from '../parameter/Parameter.ts'
@@ -26,46 +26,6 @@ import {
   toSkippedSiblings
 } from '@/oas/schema/siblings.ts'
 import type { ParseContextType } from '@/context/parseTypes.ts'
-
-/**
- * Converts a ref type to its plural components path.
- */
-function refTypeToPluralPath(refType: OasRefData['refType']): string {
-  switch (refType) {
-    case 'schema':
-      return 'schemas'
-    case 'requestBody':
-      return 'requestBodies'
-    case 'parameter':
-      return 'parameters'
-    case 'response':
-      return 'responses'
-    case 'example':
-      return 'examples'
-    case 'header':
-      return 'headers'
-    case 'securityScheme':
-      return 'securitySchemes'
-    case 'link':
-      return 'links'
-    default: {
-      const _exhaustive: never = refType
-      throw new Error(`Unhandled ref type: ${_exhaustive}`)
-    }
-  }
-}
-
-/**
- * The name `resolveOnce` looks up. `toRefName` throws for a `$ref` whose last
- * segment is empty (`#/components/schemas/`): that `$ref` names nothing.
- */
-const toLookupName = ($ref: string): RefName => {
-  try {
-    return toRefName($ref)
-  } catch {
-    throw new DanglingRefError($ref)
-  }
-}
 
 /**
  * What a reference reads from the parse context when it is made: the document
@@ -146,8 +106,8 @@ export type RefFields<T extends OasRefData['refType']> = SiblingKeywords & {
  * function processSchemaOrRef(schema: OasSchema | OasRef<'schema'>) {
  *   if (schema.isRef()) {
  *     // Handle reference
- *     const refName = schema.toRefName();
- *     console.log(`Processing reference: ${refName}`);
+ *     const { refName, refPath } = schema;
+ *     console.log(`Processing reference: ${refName} in ${refPath}`);
  *
  *     // Resolve only when needed
  *     const resolved = schema.resolve();
@@ -181,8 +141,25 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
   type: 'ref' = 'ref'
   /** The kind of component the reference points to. */
   refType: T
-  /** The JSON Reference: `#/components/<bucket>/<name>`. */
+  /**
+   * The JSON Reference, as written: a component (`#/components/<bucket>/<name>`)
+   * or any other place in the document (`#/components/schemas/Pet/properties/tag`).
+   */
   $ref: string
+  /**
+   * The last segment of the `$ref`'s pointer, unescaped: `Pet` for
+   * `#/components/schemas/Pet`, `schema0` for
+   * `#/components/schemas/__sharedInput/$defs/schema0`. Empty for a `$ref`
+   * that ends in `/`, which names nothing.
+   */
+  refName: RefName
+  /**
+   * The pointer before {@link refName}, with no percent escapes: `#/components/schemas`
+   * for a schema component, `#/components/schemas/__sharedInput/$defs` for
+   * the `$defs` entry above. A generator that names by {@link refName} alone
+   * may ignore it.
+   */
+  refPath: string
   /**
    * Use-site nullability (see {@link SiblingKeywords.nullable}). Assigned
    * even when `undefined`, so `'nullable' in ref` is always true and the
@@ -265,6 +242,9 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     super(context)
     this.refType = fields.refType
     this.$ref = fields.$ref
+    const { refName, refPath } = toRefParts({ $ref: fields.$ref })
+    this.refName = refName
+    this.refPath = refPath
     this.nullable = fields.nullable
     this.readOnly = fields.readOnly
     this.writeOnly = fields.writeOnly
@@ -409,8 +389,9 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
 
   /**
    * Resolves this reference one level. Dispatches on the document's
-   * protocol — OAS reads from `document.components.<bucket>`; GQL
-   * reads from `document.registry.schemas`.
+   * protocol — OAS reads a component from `document.components.<bucket>`,
+   * and any other target from the targets the parser kept by pointer
+   * (`OasDocument.toRefTarget`); GQL reads from `document.registry.schemas`.
    *
    * @returns Either the resolved component or another reference in the chain
    * @throws {DanglingRefError} when the reference names nothing in the
@@ -420,15 +401,17 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
    * `requestBody` ref to `#/components/schemas/…`
    */
   resolveOnce(): OasRef<T> | ResolvedRef<T> {
-    const refName = toLookupName(this.$ref)
+    if (this.refName === '') {
+      throw new DanglingRefError(this.$ref)
+    }
 
     const resolved =
       this.#document.type === 'oas'
-        ? this.#resolveOasOnce(this.#document.value, refName)
-        : this.#resolveGqlOnce(this.#document.value, refName)
+        ? this.#resolveOasOnce(this.#document.value)
+        : this.#resolveGqlOnce(this.#document.value)
 
     if (!resolved) {
-      throw new DanglingRefError(this.$ref)
+      throw new DanglingRefError(this.$ref, { remote: isRemoteRefPath(this.refPath) })
     }
 
     if (resolved.isRef()) {
@@ -448,19 +431,26 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     return resolved as OasRef<T> | ResolvedRef<T>
   }
 
-  #resolveOasOnce(document: OasDocument, refName: RefName): ResolvedRef<T> | OasRef<T> | undefined {
+  #resolveOasOnce(document: OasDocument): ResolvedRef<T> | OasRef<T> | undefined {
     // A `#/components/<bucket>/<name>` ref names its bucket. A request body
     // that is a `$ref` to `#/components/schemas/Pet` names a schema, so it is
-    // never looked up in the request bodies.
-    const bucket = /^#\/components\/([^/]+)\//.exec(this.$ref)?.[1]
-    const expected = refTypeToPluralPath(this.refType)
+    // never looked up in the request bodies. A ref to any other place
+    // (`#/components/parameters/limit/schema`) names no bucket: the kind of
+    // what it finds is checked in `resolveOnce`.
+    const bucket = toRefPathBucket(this.refPath)
+    const expected = toComponentsBucket(this.refType)
 
-    if (bucket !== undefined && bucket !== expected) {
+    if (bucket === undefined) {
+      return document.toRefTarget(toRefPointer(this)) as ResolvedRef<T> | OasRef<T> | undefined
+    }
+
+    if (bucket !== expected) {
       throw new Error(
         `Ref type mismatch for "${this.$ref}". Expected a ref into "components/${expected}" but it names one in "components/${bucket}"`
       )
     }
 
+    const refName = this.refName
     const c = document.components
     const refType: OasRefData['refType'] = this.refType
     switch (refType) {
@@ -487,24 +477,14 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
     }
   }
 
-  #resolveGqlOnce(document: GqlDocument, refName: RefName): ResolvedRef<T> | OasRef<T> | undefined {
+  #resolveGqlOnce(document: GqlDocument): ResolvedRef<T> | OasRef<T> | undefined {
     // GraphQL only ever creates schema refs — there's no GQL concept
     // of a response/parameter/header/etc. ref. The refType field is
     // still typed by `T` for the OAS variants; on the GQL branch we
     // always do a schema lookup and let the post-lookup refType-vs-
     // oasType check catch any caller that constructed a non-schema
     // ref pointing at a GQL document.
-    return document.registry.schemas[refName] as ResolvedRef<T> | OasRef<T> | undefined
-  }
-
-  /**
-   * The component name the reference looks up.
-   *
-   * @throws {DanglingRefError} when the `$ref` has no name, such as
-   * `#/components/schemas/`: it names nothing
-   */
-  toRefName(): RefName {
-    return toLookupName(this.$ref)
+    return document.registry.schemas[this.refName] as ResolvedRef<T> | OasRef<T> | undefined
   }
 
   /**
@@ -674,18 +654,36 @@ export class OasRef<T extends OasRefData['refType']> extends OasBase {
       return resolved as ResolvedRefJsonType<T>
     }
 
-    const ref: OpenAPIV3.ReferenceObject = {
-      $ref: `#/components/${refTypeToPluralPath(this.refType)}/${this.toRefName()}`
-    }
+    const ref: OpenAPIV3.ReferenceObject = { $ref: this.#toWrittenRef() }
 
     return ref
   }
 
   /** `{ $ref }` only, as {@link toJsonSchema} without `resolve` (skmtc/skmtc#338). */
   toJSON(): object {
-    return {
-      $ref: `#/components/${refTypeToPluralPath(this.refType)}/${this.toRefName()}`
+    return { $ref: this.#toWrittenRef() }
+  }
+
+  /**
+   * The `$ref` this reference writes out: `#/components/<bucket>/<name>` for
+   * a component, with the name unescaped as before, and the whole pointer
+   * (`toRefPointer`) for any other target, with `%` escaped: a `$ref` is a
+   * URI fragment, so a reader decodes it.
+   *
+   * @throws {DanglingRefError} for a `$ref` with no name, such as
+   * `#/components/parameters/`: written out, it would name nothing, so the
+   * caller decides what to write in its place
+   */
+  #toWrittenRef(): string {
+    if (this.refName === '') {
+      throw new DanglingRefError(this.$ref)
     }
+
+    return isDefaultRefPath({ refPath: this.refPath, refType: this.refType })
+      ? `#/components/${toComponentsBucket(this.refType)}/${this.refName}`
+      : isRemoteRefPath(this.refPath)
+        ? this.$ref
+        : toRefPointer(this).replaceAll('%', '%25')
   }
 }
 

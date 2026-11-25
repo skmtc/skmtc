@@ -7,7 +7,7 @@ import { OasObject } from '@/oas/object/Object.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { CustomValue } from '@/dsl/CustomValue.ts'
-import { toRefName } from '@/helpers/refFns.ts'
+import type { RefName } from '@/types/RefName.ts'
 
 const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` })
 
@@ -77,7 +77,7 @@ const parse = () => {
 
   const schemas = parsed.type === 'oas' ? parsed.value.components?.schemas : undefined
   const toObject = (name: string): OasObject => {
-    const schema = schemas?.[toRefName(`#/components/schemas/${name}`)]
+    const schema = schemas?.[(name as RefName)]
 
     if (!(schema instanceof OasObject) || !schema.properties) {
       throw new Error(`${name} did not parse to an object`)
@@ -177,7 +177,7 @@ Deno.test('a use-site flag alone is a sibling: the reference resolves to a copy 
 Deno.test("OasRef.clone(ref) merges another site's keywords over its own, and points at the same target", () => {
   const { site, schemas } = parse()
   // Short is `{ allOf: [Name], maxLength: 10 }`; the site adds minLength 2.
-  const short = schemas?.[toRefName('#/components/schemas/Short')]
+  const short = schemas?.[('Short' as RefName)]
   const at = site.short
 
   if (!short?.isRef() || !at?.isRef() || !at.isSchemaRef()) {
@@ -186,7 +186,7 @@ Deno.test("OasRef.clone(ref) merges another site's keywords over its own, and po
 
   const copy = short.clone(at)
 
-  assertEquals([copy.toRefName(), copy.minLength, copy.maxLength], ['Name', 2, 10])
+  assertEquals([copy.refName, copy.minLength, copy.maxLength], ['Name', 2, 10])
   const resolved = copy.resolve()
   assertEquals(resolved.type === 'string' ? [resolved.minLength, resolved.maxLength] : [], [2, 10])
   // The trap: Short keeps only its own keyword.
@@ -298,7 +298,7 @@ Deno.test('a keyword next to a reference with a value of the wrong type is left 
   })
   const parsed = context.parse(new StackTrail(['TEST']))
   const schemas = parsed.type === 'oas' ? parsed.value.components?.schemas : undefined
-  const siteSchema = schemas?.[toRefName('#/components/schemas/Site')]
+  const siteSchema = schemas?.[('Site' as RefName)]
   const site = siteSchema?.type === 'object' ? (siteSchema.properties ?? {}) : {}
   const issues = context.issues
   const badLength = atSite(site.badLength)
@@ -353,7 +353,7 @@ Deno.test('keywords apply next to a 3.1 type list', () => {
     silent: true
   }).parse(new StackTrail(['TEST']))
   const schemas = parsed.type === 'oas' ? parsed.value.components?.schemas : undefined
-  const site = schemas?.[toRefName('#/components/schemas/Site')]
+  const site = schemas?.[('Site' as RefName)]
   const maybe = atSite(site?.type === 'object' ? site.properties?.maybe : undefined)
 
   assertEquals(maybe.type === 'string' ? [maybe.minLength, maybe.nullable] : [], [3, true])

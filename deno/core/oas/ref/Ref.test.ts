@@ -17,7 +17,6 @@ import { OasApiKeySecurityScheme } from '../securitySchemes/SecurityScheme.ts'
 import { OasComponents } from '../components/Components.ts'
 import { OasMediaType } from '../mediaType/MediaType.ts'
 import type { RefName } from '@/types/RefName.ts'
-import { toRefName } from '@/helpers/refFns.ts'
 import type { OasSchema } from '../schema/Schema.ts'
 
 Deno.test('OasRef', async t => {
@@ -176,7 +175,7 @@ Deno.test('OasRef', async t => {
     })
   })
 
-  await t.step('toRefName() method', async t => {
+  await t.step('refName and refPath', async t => {
     await t.step('should extract name from schema reference', () => {
       const document = new OasDocument({
         openapi: '3.0.0',
@@ -192,7 +191,7 @@ Deno.test('OasRef', async t => {
         toRefParseContextStub({ type: 'oas', value: document })
       )
 
-      assertEquals(ref.toRefName(), 'User')
+      assertEquals(ref.refName, 'User')
     })
 
     await t.step('should extract name from different reference types', () => {
@@ -225,7 +224,7 @@ Deno.test('OasRef', async t => {
           { refType, $ref },
           toRefParseContextStub({ type: 'oas', value: document })
         )
-        assertEquals(ref.toRefName(), expected)
+        assertEquals(ref.refName, expected)
       })
     })
 
@@ -244,7 +243,7 @@ Deno.test('OasRef', async t => {
         toRefParseContextStub({ type: 'oas', value: document })
       )
 
-      assertEquals(ref.toRefName(), 'ComplexName_v2.1-FINAL')
+      assertEquals(ref.refName, 'ComplexName_v2.1-FINAL')
     })
   })
 
@@ -821,7 +820,7 @@ Deno.test('OasRef', async t => {
       document.fields = {
         ...document.fields!,
         components: new OasComponents({
-          schemas: { [toRefName('#/components/schemas/A')]: refA, [toRefName('#/components/schemas/B')]: refB }
+          schemas: { [('A' as RefName)]: refA, [('B' as RefName)]: refB }
         })
       }
 
@@ -846,7 +845,7 @@ Deno.test('OasRef', async t => {
 
       document.fields = {
         ...document.fields!,
-        components: new OasComponents({ schemas: { [toRefName('#/components/schemas/A')]: refA } })
+        components: new OasComponents({ schemas: { [('A' as RefName)]: refA } })
       }
 
       assertEquals(refA.toLoop(), [refA])
@@ -1316,7 +1315,7 @@ Deno.test('OasRef', async t => {
         toRefParseContextStub({ type: 'oas', value: document })
       )
 
-      assertEquals(ref.toRefName(), 'Schema.With-Special_Chars')
+      assertEquals(ref.refName, 'Schema.With-Special_Chars')
       assertEquals(ref.resolve(), schema)
     })
 

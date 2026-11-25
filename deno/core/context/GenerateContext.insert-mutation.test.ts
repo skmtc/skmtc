@@ -35,6 +35,7 @@ import type { Enrichments } from '@/types/Enrichments.ts'
 import type { Lang } from '@/dsl/Lang.ts'
 import type { ModelProjectionConstructorArgs } from '@/dsl/model/types.ts'
 import type { RefName } from '@/types/RefName.ts'
+import { toSchemaComponentRef } from '@/helpers/refFns.ts'
 
 const mockLogger: log.Logger = {
   debug: () => {},
@@ -63,7 +64,7 @@ class NeutralSnippet extends SnippetBase {
 
 const ModelBase = toModelProjectionBase<Enrichments>(NeutralSnippet, {
   id: '@test/union-mutation',
-  toIdentifierName: ({ refName }) => refName,
+  toIdentifierName: ({ ref }) => ref.refName,
   toIdentifierType: () => ({ type: 'entity' }),
   toExportPath: () => '@/models.txt',
   toEnrichmentSchema: () => emptyEnrichmentSchema
@@ -81,15 +82,15 @@ class UnionAwareModel extends ModelBase {
   constructor(args: ModelProjectionConstructorArgs<Enrichments>) {
     super(args)
 
-    if (args.refName === 'Parent') {
-      const member = args.context.insertModel(UnionAwareModel, 'Child' as RefName)
+    if (args.ref.refName === 'Parent') {
+      const member = args.context.insertModel(UnionAwareModel, toSchemaComponentRef('Child' as RefName))
       member.definition.value.supertypes.push('Parent')
     }
   }
 
   override toString(): string {
     const clause = this.supertypes.length ? ` : ${this.supertypes.join(', ')}` : ''
-    return `${this.refName}${clause}`
+    return `${this.ref.refName}${clause}`
   }
 }
 
@@ -106,8 +107,8 @@ const buildContext = (schemaNames: string[]) => {
   const entry = toModelEntry({
     id: '@test/union-mutation',
     toEnrichmentSchema: () => emptyEnrichmentSchema,
-    transform: ({ context, refName }) => {
-      context.insertModel(UnionAwareModel, refName)
+    transform: ({ context, ref }) => {
+      context.insertModel(UnionAwareModel, ref)
     }
   })
 

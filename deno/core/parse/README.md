@@ -146,9 +146,10 @@ and `OasRef` has no `mediaType` bucket: a resolved entry carries the same IR
 as an inline one, so generators read media types the same way in both
 cases and never need to resolve a media type reference themselves.
 
-`$self` is stored, but reference resolution does not use it: `toRefName`
-keeps only the last segment of a `$ref` and ignores the rest of the URI, so
-the 3.2 base-URI rules (Appendix F of the spec) are not implemented.
+`$self` is stored, but reference resolution does not use it: it reads only
+the fragment of a `$ref` (the JSON pointer after `#`) and ignores the rest of
+the URI, so the 3.2 base-URI rules (Appendix F of the spec) are not
+implemented.
 
 | 3.2 field | v3.2 (`v3-2`) | Status |
 |---|---|---|

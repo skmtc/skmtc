@@ -19,7 +19,8 @@ one directory.
 ### Open `gen-x/src/base.ts`
 
 `toExportPath` lives there for stock generators. For
-model generators it takes `{ refName, enrichments, variant }`;
+model generators it takes `{ ref, enrichments, variant }`, where
+`ref` is the model's `{ refName, refPath }`;
 for operation generators it takes `{ operation, enrichments,
 variant }` (and similar for GraphQL).
 
@@ -36,8 +37,8 @@ spelling of the anchor, not a filesystem root: `/api/x.ts` lands at
 
 ```ts
 // Stock gen-zod / gen-typescript default (decapitalized name under @/types)
-toExportPath: ({ refName }) => {
-  const name = decapitalize(camelCase(refName))
+toExportPath: ({ ref }) => {
+  const name = decapitalize(camelCase(ref.refName))
   return `@/types/${decapitalize(name)}.generated.ts`
 }
 
@@ -48,7 +49,7 @@ toExportPath: ({ operation }) => {
 }
 
 // Flat
-toExportPath: ({ refName }) => `@/${refName}.ts`
+toExportPath: ({ ref }) => `@/${ref.refName}.ts`
 ```
 
 **The function must be pure** — same input → same path. If it

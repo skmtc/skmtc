@@ -6,8 +6,8 @@ import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '../GeneratedValue.ts'
 import type { GeneratedValue } from '../GeneratedValue.ts'
-import type { RefName } from '@/types/RefName.ts'
 import { toModelGeneratorKey } from '../GeneratorKeys.ts'
+import { toModelKey, type RefParts } from '@/helpers/refFns.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
 import { readProjectionOptions, toValueOptions } from '@/types/ProjectionOptions.ts'
 import isEqual from 'lodash-es/isEqual'
@@ -23,8 +23,9 @@ import { PendingDefinition } from '@/dsl/PendingDefinition.ts'
 type CreateModelArgs<V extends GeneratedValue, EnrichmentType, ProjectionOptions> = {
   context: GenerateContextType
   projection: ModelProjection<V, EnrichmentType, ProjectionOptions>
-  refName: RefName
-  rootRef?: RefName
+  /** The model's ref; an `OasRef` fits it. */
+  ref: RefParts
+  rootRef?: RefParts
 } & InsertModelOptions<ProjectionOptions>
 type ApplyArgs = {
   destinationPath?: string
@@ -48,11 +49,11 @@ type GetDefinitionArgs = {
 export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined> {
   context: GenerateContextType
   projection: ModelProjection<V, EnrichmentType, ProjectionOptions>
-  refName: RefName
+  ref: RefParts
   settings: ContentSettings<EnrichmentType>
   destinationPath?: string
   definition: GeneratedDefinition<V>
-  rootRef?: RefName
+  rootRef?: RefParts
   noExport: boolean
   variant: string
   /** The caller's options, as passed to `insertModel`. */
@@ -69,7 +70,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
     const {
       context,
       projection,
-      refName,
+      ref,
       destinationPath,
       rootRef,
       noExport = false,
@@ -78,7 +79,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
 
     this.context = context
     this.projection = projection
-    this.refName = refName
+    this.ref = ref
     this.destinationPath = destinationPath
     this.rootRef = rootRef
     this.noExport = noExport
@@ -128,7 +129,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): DefinitionBase<V> {
     const generatorKey = toModelGeneratorKey({
       generatorId: this.projection.id,
-      refName: this.refName,
+      ref: this.ref,
       variant: this.settings.variant
     })
 
@@ -176,7 +177,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
       { context: this.context, marker },
       () =>
         new this.projection({
-          refName: this.refName,
+          ref: this.ref,
           context: this.context,
           settings: this.settings,
           destinationPath: this.settings.exportPath,
@@ -221,7 +222,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
 
     const currentKey = toModelGeneratorKey({
       generatorId: this.projection.id,
-      refName: this.refName,
+      ref: this.ref,
       variant: this.settings.variant
     })
 
@@ -436,13 +437,13 @@ type IsReferencedBackArgs = {
 const toModelSettings = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
   args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
 ): ContentSettings<EnrichmentType> => {
-  const { context, projection, refName, variant = DEFAULT_VARIANT } = args
+  const { context, projection, ref, variant = DEFAULT_VARIANT } = args
 
-  assertPeerVariantExists({ context, generatorId: projection.id, refName, variant })
-  assertPeerSupported({ context, projection, refName, variant })
+  assertPeerVariantExists({ context, generatorId: projection.id, ref, variant })
+  assertPeerSupported({ context, projection, ref, variant })
 
   return context.toModelContentSettings({
-    refName,
+    ref,
     projection,
     variant,
     options: readProjectionOptions<ProjectionOptions>(args)
@@ -483,7 +484,7 @@ export type ModelRef<V extends GeneratedValue, EnrichmentType> =
 export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
   args: CreateModelArgs<V, EnrichmentType, ProjectionOptions>
 ): ModelRef<V, EnrichmentType> => {
-  const { context, projection, refName, destinationPath, variant = DEFAULT_VARIANT } = args
+  const { context, projection, ref, destinationPath, variant = DEFAULT_VARIANT } = args
   const settings = toModelSettings(args)
   const pending = findPending({
     context,
@@ -496,7 +497,7 @@ export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionO
       pending,
       name: settings.identifier.name,
       exportPath: settings.exportPath,
-      generatorKey: toModelGeneratorKey({ generatorId: projection.id, refName, variant }),
+      generatorKey: toModelGeneratorKey({ generatorId: projection.id, ref, variant }),
       options: readProjectionOptions<ProjectionOptions>(args),
       projection
     })
@@ -536,7 +537,7 @@ export const toModelRef = <V extends GeneratedValue, EnrichmentType, ProjectionO
 type AssertPeerVariantExistsArgs = {
   context: GenerateContextType
   generatorId: string
-  refName: RefName
+  ref: RefParts
   variant: string
 }
 
@@ -557,25 +558,26 @@ type AssertPeerVariantExistsArgs = {
 const assertPeerVariantExists = ({
   context,
   generatorId,
-  refName,
+  ref,
   variant
 }: AssertPeerVariantExistsArgs): void => {
   if (variant === DEFAULT_VARIANT) {
     return
   }
 
-  const modelEnrichments: unknown = context.readEnrichment([generatorId, refName])
+  const key = toModelKey(ref)
+  const modelEnrichments: unknown = context.readEnrichment([generatorId, key])
 
   if (modelEnrichments === null || modelEnrichments === undefined) {
     throw new Error(
-      `[${generatorId}] Cannot insert variant '${variant}' for '${refName}' — ` +
+      `[${generatorId}] Cannot insert variant '${variant}' for '${key}' — ` +
         `peer has no enrichments configured. Only '${DEFAULT_VARIANT}' is permitted.`
     )
   }
 
   if (typeof modelEnrichments !== 'object' || Array.isArray(modelEnrichments)) {
     throw new Error(
-      `[${generatorId}] Cannot insert variant '${variant}' for '${refName}' — ` +
+      `[${generatorId}] Cannot insert variant '${variant}' for '${key}' — ` +
         `peer enrichment is not a variant record.`
     )
   }
@@ -583,7 +585,7 @@ const assertPeerVariantExists = ({
   if (!(variant in modelEnrichments)) {
     const available = Object.keys(modelEnrichments).join(', ')
     throw new Error(
-      `[${generatorId}] Cannot insert variant '${variant}' for '${refName}'. ` +
+      `[${generatorId}] Cannot insert variant '${variant}' for '${key}'. ` +
         `Available variants: ${available}.`
     )
   }
@@ -592,7 +594,7 @@ const assertPeerVariantExists = ({
 type AssertPeerSupportedArgs<V extends GeneratedValue, EnrichmentType, ProjectionOptions> = {
   context: GenerateContextType
   projection: ModelProjection<V, EnrichmentType, ProjectionOptions>
-  refName: RefName
+  ref: RefParts
   variant: string
 }
 
@@ -618,14 +620,14 @@ type AssertPeerSupportedArgs<V extends GeneratedValue, EnrichmentType, Projectio
 const assertPeerSupported = <V extends GeneratedValue, EnrichmentType, ProjectionOptions>({
   context,
   projection,
-  refName,
+  ref,
   variant
 }: AssertPeerSupportedArgs<V, EnrichmentType, ProjectionOptions>): void => {
   const isSupported = projection.isSupported ?? (() => true)
 
-  if (!isSupported({ refName, context, variant })) {
+  if (!isSupported({ ref, context, variant })) {
     throw new Error(
-      `[${projection.id}] Cannot insert '${refName}' — peer generator ` +
+      `[${projection.id}] Cannot insert '${toModelKey(ref)}' — peer generator ` +
         `does not support this model (isSupported returned false).`
     )
   }

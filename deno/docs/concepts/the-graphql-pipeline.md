@@ -406,7 +406,7 @@ GraphQL. The downstream code path doesn't know the difference.
 The only protocol-aware piece is the *container layer*.
 `toArtifacts` reads `document.type` to pick `OasComponents` vs
 `GqlRegistry` for the refName iteration. Beyond that branch, the
-generator's transform receives `refName: RefName` and walks the
+generator's transform receives `ref: RefParts` and walks the
 schema via the protocol-neutral classes.
 
 ### When would I author a GraphQL-only generator?

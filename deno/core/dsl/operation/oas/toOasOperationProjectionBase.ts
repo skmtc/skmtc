@@ -15,7 +15,7 @@ import type { IdentifierType } from '@/dsl/IdentifierType.ts'
 import type { GeneratedValue } from '@/dsl/GeneratedValue.ts'
 import type { Inserted } from '@/dsl/Inserted.ts'
 import type { ModelProjection, NormalizedModelProjection } from '@/dsl/model/types.ts'
-import type { RefName } from '@/types/RefName.ts'
+import type { RefParts } from '@/helpers/refFns.ts'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
@@ -256,13 +256,13 @@ export const toOasOperationProjectionBase = <
       PeerProjectionOptions = undefined
     >(
       projection: ModelProjection<V, PeerEnrichmentType, PeerProjectionOptions>,
-      refName: RefName,
+      ref: RefParts,
       ...rest: ProjectionOptionsRest<
         PeerInsertOptions<PeerProjectionOptions>,
         PeerProjectionOptions
       >
     ): Inserted<V, PeerEnrichmentType> {
-      return this.context.insertModel(projection, refName, {
+      return this.context.insertModel(projection, ref, {
         ...toPeerInsertOptions(rest),
         destinationPath: this.settings.exportPath
       })

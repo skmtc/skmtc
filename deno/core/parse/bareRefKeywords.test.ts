@@ -3,7 +3,7 @@ import * as log from '@std/log'
 import type { OpenAPIV3 } from 'openapi-types'
 import { ParseContext } from '@/context/ParseContext.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
-import { toRefName } from '@/helpers/refFns.ts'
+import type { RefName } from '@/types/RefName.ts'
 
 const toDocument = (openapi: string) =>
   ({
@@ -42,7 +42,7 @@ const parseBare = (openapi: string) => {
   const parsed = context.parse(new StackTrail(['TEST']))
   const site =
     parsed.type === 'oas'
-      ? parsed.value.components?.schemas?.[toRefName('#/components/schemas/Site')]
+      ? parsed.value.components?.schemas?.[('Site' as RefName)]
       : undefined
   const bare = site?.type === 'object' ? site.properties?.bare : undefined
 
@@ -79,7 +79,7 @@ for (const openapi of ['3.1.0', '3.2.0']) {
     const parsed = context.parse(new StackTrail(['TEST']))
     const site =
       parsed.type === 'oas'
-        ? parsed.value.components?.schemas?.[toRefName('#/components/schemas/Site')]
+        ? parsed.value.components?.schemas?.[('Site' as RefName)]
         : undefined
     const both = site?.type === 'object' ? site.properties?.both : undefined
     const resolved = both?.isRef() ? both.resolve() : both
@@ -100,11 +100,11 @@ for (const openapi of ['3.1.0', '3.2.0']) {
     const parsed = context.parse(new StackTrail(['TEST']))
     const site =
       parsed.type === 'oas'
-        ? parsed.value.components?.schemas?.[toRefName('#/components/schemas/Site')]
+        ? parsed.value.components?.schemas?.[('Site' as RefName)]
         : undefined
     const notArray = site?.type === 'object' ? site.properties?.notArray : undefined
 
-    assertEquals(notArray?.isRef() ? notArray.toRefName() : notArray?.type, 'Name')
+    assertEquals(notArray?.isRef() ? notArray.refName : notArray?.type, 'Name')
     // The trap: the allOf was replaced by `[{ $ref }]` with no warning.
     assertEquals(
       context.issues

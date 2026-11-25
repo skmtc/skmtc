@@ -450,7 +450,7 @@ for '<METHOD> <path>' — peer has no enrichments configured. Only
 this.context.insertNormalizedModel is not a function` (any context
 method) during `skmtc generate`, while `bundle.js` visibly contains a
 similar-but-differently-spelled method (`insertNormalisedModel` vs
-`insertNormalizedModel`, `toRefName` vs `getRefName`).
+`insertNormalizedModel`).
 
 **Cause:** two `@skmtc/core` versions in one bundle. Published
 `@skmtc/*` packages declare core as a caret range (`^0.29.0`), and the

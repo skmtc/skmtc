@@ -1,4 +1,4 @@
-import type { RefName } from '@/types/RefName.ts'
+import type { RefParts } from '@/helpers/refFns.ts'
 import type { EnrichmentRequest } from '@/types/EnrichmentRequest.ts'
 import type {
   TransformModelArgs,
@@ -12,7 +12,7 @@ import type * as v from 'valibot'
 
 type ToModelEntryArgs<EnrichmentType = undefined> = {
   id: string
-  transform: ({ context, refName, variant }: TransformModelArgs) => void
+  transform: ({ context, ref, variant }: TransformModelArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   isSupported?: (args: IsSupportedModelArgs) => boolean
   /**
@@ -20,12 +20,12 @@ type ToModelEntryArgs<EnrichmentType = undefined> = {
    * function returning `false` when omitted.
    */
   supportsVariant?: () => boolean
-  toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
+  toPreviewModule?: ({ context, ref, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
-    refName: RefName
+    ref: RefParts
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
   toEnrichmentDefaults?: ({
-    refName,
+    ref,
     context,
     variant
   }: ToModelEnrichmentsArgs) => EnrichmentType | undefined
@@ -34,16 +34,16 @@ type ToModelEntryArgs<EnrichmentType = undefined> = {
 export type ModelEntry<EnrichmentType = undefined> = {
   id: string
   type: 'model'
-  transform: ({ context, refName, variant }: TransformModelArgs) => void
+  transform: ({ context, ref, variant }: TransformModelArgs) => void
   isSupported: (args: IsSupportedModelArgs) => boolean
   supportsVariant: () => boolean
-  toPreviewModule?: ({ context, refName, variant }: ToModelPreviewModuleArgs) => PreviewModule
+  toPreviewModule?: ({ context, ref, variant }: ToModelPreviewModuleArgs) => PreviewModule
   toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>
   toEnrichmentRequest?: <RequestedEnrichment extends EnrichmentType>(
-    refName: RefName
+    ref: RefParts
   ) => EnrichmentRequest<RequestedEnrichment> | undefined
   toEnrichmentDefaults?: ({
-    refName,
+    ref,
     context,
     variant
   }: ToModelEnrichmentsArgs) => EnrichmentType | undefined
@@ -66,7 +66,7 @@ export type ModelEntry<EnrichmentType = undefined> = {
  * @param args.isSupported - Optional capability gate; a model whose predicate
  *   returns `false` is recorded `notSupported` and its `transform` is skipped.
  *   Resolve the schema inside the predicate when needed
- *   (`context.resolveSchemaRefOnce(refName)`). Defaults to supporting every model.
+ *   (`context.resolveSchemaRefOnce(ref)`). Defaults to supporting every model.
  * @param args.toPreviewModule - Optional function to generate preview modules
  * @param args.toEnrichmentSchema - Optional function to provide enrichment validation
  * @param args.toEnrichmentRequest - Optional function to request enrichments
@@ -78,12 +78,12 @@ export type ModelEntry<EnrichmentType = undefined> = {
  *
  * const typeScriptModelEntry = toModelEntry({
  *   id: 'typescript-models',
- *   transform: ({ context, refName }) => {
- *     context.insertModel(TsModel, refName);
+ *   transform: ({ context, ref }) => {
+ *     context.insertModel(TsModel, ref);
  *   },
- *   toPreviewModule: ({ context, refName }) => ({
+ *   toPreviewModule: ({ context, ref }) => ({
  *     group: 'forms',
- *     title: `${refName} Model`,
+ *     title: `${ref.refName} Model`,
  *     description: 'Generated TypeScript interface'
  *   })
  * });
@@ -93,15 +93,15 @@ export type ModelEntry<EnrichmentType = undefined> = {
  * ```typescript
  * const validationModelEntry = toModelEntry({
  *   id: 'validation-schemas',
- *   transform: ({ context, refName }) => {
- *     context.insertModel(ValidationModel, refName);
+ *   transform: ({ context, ref }) => {
+ *     context.insertModel(ValidationModel, ref);
  *   },
  *   toEnrichmentSchema: () => v.object({
  *     strict: v.optional(v.boolean()),
  *     nullable: v.optional(v.boolean())
  *   }),
- *   toEnrichmentRequest: (refName) => ({
- *     path: `models.${refName}`,
+ *   toEnrichmentRequest: (ref) => ({
+ *     path: `models.${ref.refName}`,
  *     schema: enrichmentSchema
  *   })
  * });

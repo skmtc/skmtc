@@ -8,7 +8,7 @@ import type {
   OasObject,
   OasRef,
   OasSchema,
-  RefName,
+  RefParts,
   TypeSystemValue,
 } from '@skmtc/core'
 import { toMyLibValue } from './MyLib.ts'
@@ -22,7 +22,7 @@ type MyLibObjectArgs = {
   objectSchema: OasObject
   modifiers: Modifiers
   generatorKey: GeneratorKey
-  rootRef?: RefName
+  rootRef?: RefParts
 }
 
 export class MyLibObject extends TsSnippet {
@@ -112,7 +112,7 @@ type MyLibObjectPropertiesArgs = {
   properties: Record<string, OasSchema | OasRef<'schema'> | CustomValue>
   required: OasObject['required']
   generatorKey: GeneratorKey
-  rootRef?: RefName
+  rootRef?: RefParts
 }
 
 class MyLibObjectProperties extends TsSnippet {
@@ -184,7 +184,7 @@ type MyLibRecordArgs = {
   destinationPath: string
   schema: true | OasSchema | OasRef<'schema'>
   generatorKey: GeneratorKey
-  rootRef?: RefName
+  rootRef?: RefParts
 }
 
 class MyLibRecord extends TsSnippet {

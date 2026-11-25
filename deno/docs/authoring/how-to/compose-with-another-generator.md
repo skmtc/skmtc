@@ -65,11 +65,16 @@ Projection). It returns the peer's `Definition` — read its name off
 `.identifier.name`. (`insertModel` and `insertOperation` instead
 return an `Inserted`, whose `.toName()` gives the same string.)
 
-For model-by-refName composition, use `insertModel`:
+For model-by-ref composition, use `insertModel`. Pass the model's
+`ref`: an `OasRef`, or a model projection's own `this.ref`:
 
 ```ts
-const userTs = this.insertModel(TsProjection, 'User')
+// In a model projection: the TypeScript type of the same model
+const ts = this.insertModel(TsProjection, this.ref)
 ```
+
+For a component known only by name (from `toSchemasRefNames()`),
+build its ref with `toSchemaComponentRef(refName)`.
 
 ### Pass options when the peer declares them
 
@@ -78,7 +83,7 @@ produce. The trailing argument is then required, and the type checker
 tells you its shape:
 
 ```ts
-const input = this.insertModel(PeerProjection, refName, { options: { suffix: 'Input' } })
+const input = this.insertModel(PeerProjection, ref, { options: { suffix: 'Input' } })
 ```
 
 Pass a fresh object per insertion. A peer that declares no options

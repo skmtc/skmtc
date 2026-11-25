@@ -35,30 +35,33 @@ export const ${camelCase(this.generator.packageName)}Entry = toModelEntry({
 
   toEnrichmentSchema: () => emptyEnrichmentSchema,
 
-  transform({ context, refName }) {
-    context.insertModel(${mainModule}Projection, refName)
+  transform({ context, ref }) {
+    context.insertModel(${mainModule}Projection, ref)
   }
 })`
   }
 
   toModelProjectionBase(mainModule: string) {
-    return `import { decapitalize, camelCase, emptyEnrichmentSchema } from '@skmtc/core'
+    return `import { decapitalize, camelCase, emptyEnrichmentSchema, toModelName } from '@skmtc/core'
 import { toTsModelProjectionBase } from '@skmtc/lang-typescript'
 import type { TsIdentifierType } from '@skmtc/lang-typescript'
 
 export const ${mainModule}Base = toTsModelProjectionBase({
   id: '${this.generator.toModuleName()}',
 
-  toIdentifierName({ refName }): string {
-    return decapitalize(camelCase(refName))
+  // \`ref.refName\` repeats across positions (\`…/properties/disk\` under two
+  // schemas), so a ref into the document's content is named by its whole
+  // pointer. A component is named by its \`refName\`.
+  toIdentifierName({ ref }): string {
+    return decapitalize(toModelName(ref, name => camelCase(name)))
   },
 
   toIdentifierType(): TsIdentifierType {
     return { type: 'variable' }
   },
 
-  toExportPath({ refName, enrichments, variant }): string {
-    const name = this.toIdentifierName({ refName, enrichments, variant })
+  toExportPath({ ref, enrichments, variant }): string {
+    const name = this.toIdentifierName({ ref, enrichments, variant })
 
     // The engine injects the generated-file suffix (settings.generatedSuffix,
     // default '.generated') when this result is stored into ContentSettings.
@@ -71,24 +74,25 @@ export const ${mainModule}Base = toTsModelProjectionBase({
   }
 
   toModelProjection(mainModule: string) {
-    return `import type { TypeSystemValue, GenerateContext, RefName, ContentSettings } from '@skmtc/core'
+    return `import type { TypeSystemValue, GenerateContext, RefParts, ContentSettings, EmptyEnrichments } from '@skmtc/core'
 import { to${mainModule}Value } from './${mainModule}.ts'
 import { ${mainModule}Base } from './base.ts'
 
 type ConstructorArgs = {
   context: GenerateContext
   destinationPath: string
-  refName: RefName
-  settings: ContentSettings
-  rootRef?: RefName
+  ref: RefParts
+  // Matches the base's \`toEnrichmentSchema: () => emptyEnrichmentSchema\`.
+  settings: ContentSettings<EmptyEnrichments>
+  rootRef?: RefParts
 }
 
 export class ${mainModule}Projection extends ${mainModule}Base {
   value: TypeSystemValue
-  constructor({ context, refName, settings, destinationPath, rootRef }: ConstructorArgs) {
-    super({ context, refName, settings })
+  constructor({ context, ref, settings, destinationPath, rootRef }: ConstructorArgs) {
+    super({ context, ref, settings })
 
-    const schema = context.resolveSchemaRefOnce(refName)
+    const schema = context.resolveSchemaRefOnce(ref)
 
     this.value = to${mainModule}Value({
       schema,

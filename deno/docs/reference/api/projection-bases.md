@@ -92,7 +92,9 @@ matches the source type (`OasOperationProjectionBaseConfig`,
 - **`toIdentifierName`** and **`toExportPath`** are *load-bearing
   pure functions*. They produce the cache key for cross-generator
   coordination. Same inputs → same key. Both receive
-  `{ refName | operation, enrichments, variant }`.
+  `{ ref | operation, enrichments, variant }`. A model's `ref` is
+  `{ refName, refPath }` (`RefParts`). Read `ref.refName` for the name.
+  Read `ref.refPath` only to tell deep targets apart.
 - **`toIdentifierType`** returns the *non-name* parts of the
   identifier — `{ type, typeName?, exported? }`
   (`core/dsl/IdentifierType.ts`). It is context-aware and runs only
@@ -121,7 +123,7 @@ matches the source type (`OasOperationProjectionBaseConfig`,
   typed data a calling generator passes on an insert (`{ options }`).
   When declared, `toIdentifierName`
   and `toExportPath` receive `options` next to
-  `{ refName | operation, enrichments, variant }`, the constructor
+  `{ ref | operation, enrichments, variant }`, the constructor
   receives it, and the instance stores it as `this.options`. Options
   are part of identity: fold them into `toIdentifierName` whenever the
   output depends on them, or a cache hit built with different options
@@ -155,7 +157,8 @@ The factory returns a class with the following statics
 `enrichments[id][path][method][variant]` (OAS),
 `enrichments[id][rootKind][fieldName][variant]` (GQL) — plus the
 run-constant `enrichments[id]._generator` and `enrichments._stack`
-scopes.
+scopes. For a model that is not a component, the whole pointer takes
+the place of `refName`.
 
 The `type` static is the discriminator the engine's dispatcher reads
 to route entries against the right protocol — operation generators
@@ -169,13 +172,14 @@ only on GraphQL documents.
   Driver. Has `identifier`, `exportPath`, `enrichments`, `variant`.
 - `operation: OasOperation | GqlOperation` (operation bases only) —
   the source operation.
-- `refName: RefName` (model base only) — the source schema's refName.
+- `ref: RefParts` (model base only) — the source schema's ref,
+  `{ refName, refPath }`.
 - `options: ProjectionOptions` — the caller's options as passed on the
   insert; `undefined` when the projection declares none.
 
-The factory constructor injects `generatorKey` (composed from the
-generator id, the operation/refName, and the variant) into the
-snippet-base super call, so subclasses don't construct it.
+The factory constructor injects `generatorKey` into the snippet-base
+super call, so subclasses don't construct it. The key holds the
+generator id, the operation or ref, and the variant.
 
 ### Instance methods
 
@@ -193,7 +197,7 @@ insertOperation<V, E, P>(
 // All bases
 insertModel<V, E, P>(
   projection: ModelProjection<V, E, P>,
-  refName: RefName,
+  ref: RefParts,  // an OasRef fits; toSchemaComponentRef(name) for a component name
   ...rest: [args?: { noExport?: boolean; variant?: string; options?: P }]
 ): Inserted<V, E>
 
@@ -339,9 +343,15 @@ GQL config has no `toEnrichmentDefaults` field.
 
 ### `toTsModelProjectionBase<E>(config)`
 
-Same shape but the parameter is `{ refName, enrichments, variant }`
+Same shape but the parameter is `{ ref, enrichments, variant }`
 instead of `{ operation, enrichments, variant }`. Used for
 generators that produce one file per schema component.
+
+`ref` is the model's `RefParts`: `{ refName, refPath }`. A component's
+`refPath` is `#/components/schemas`. A ref into a `$defs` entry or a
+property has a deeper `refPath`, and its own model. Code that holds only
+a component's name builds its ref with `toSchemaComponentRef(refName)`
+from `@skmtc/core`.
 
 ```ts
 // gen-zod/src/base.ts (real source)
@@ -353,14 +363,14 @@ import denoJson from '../deno.json' with { type: 'json' }
 export const ZodBase = toTsModelProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
 
-  toIdentifierName({ refName }): string {
-    return decapitalize(camelCase(refName))
+  toIdentifierName({ ref }): string {
+    return decapitalize(camelCase(ref.refName))
   },
 
   toIdentifierType: () => ({ type: 'variable' }),
 
-  toExportPath({ refName, enrichments, variant }): string {
-    const name = this.toIdentifierName({ refName, enrichments, variant })
+  toExportPath({ ref, enrichments, variant }): string {
+    const name = this.toIdentifierName({ ref, enrichments, variant })
 
     return `@/types/${decapitalize(name)}.generated.ts`
   },
@@ -412,7 +422,7 @@ type OasOperationProjectionConstructorArgs<E = undefined> = {
 type ModelProjectionArgs<E = undefined> = {
   context: GenerateContextType
   settings: ContentSettings<E>
-  refName: RefName
+  ref: RefParts
 }
 ```
 
@@ -509,10 +519,10 @@ type GqlOperationProjectionConstructorArgs<E = undefined> = {
 type ModelProjectionArgs<E = undefined> = {
   context: GenerateContextType
   settings: ContentSettings<E>
-  refName: RefName
+  ref: RefParts
 }
 
-// Static-method argument shapes (OAS shown; model swaps operation → refName)
+// Static-method argument shapes (OAS shown; model swaps operation → ref)
 type ToOasOperationIdentifierNameArgs<E = undefined> = {
   operation: OasOperation
   enrichments: E

@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-typescript
-version: 0.3.1
+version: 0.3.2
 description: >
   The TypeScript target-language layer for Skmtc generators
   (@skmtc/lang-typescript): projection base factories, TsSnippet, the
@@ -12,7 +12,7 @@ description: >
 metadata:
   describes:
     '@skmtc/lang-typescript': '0.14'
-    '@skmtc/core': '0.45'
+    '@skmtc/core': '0.46'
 ---
 
 # The TypeScript layer (@skmtc/lang-typescript)
@@ -34,15 +34,22 @@ import { sanitizeIdentifier, toTsModelProjectionBase } from '@skmtc/lang-typescr
 
 export const MyBase = toTsModelProjectionBase<EnrichmentSchema>({
   id: denoJson.name,
-  toIdentifierName({ refName }) { return sanitizeIdentifier(decapitalize(camelCase(refName))) },
+  toIdentifierName({ ref }) { return sanitizeIdentifier(decapitalize(camelCase(ref.refName))) },
   toIdentifierType: () => ({ type: 'variable' }),
-  toExportPath({ refName, enrichments, variant }) {
-    const name = this.toIdentifierName({ refName, enrichments, variant })
+  toExportPath({ ref, enrichments, variant }) {
+    const name = this.toIdentifierName({ ref, enrichments, variant })
     return `@/types/${name}.generated.ts`   // '@/' is basePath; always forward slashes
   },
   toEnrichmentSchema
 })
 ```
+
+The model statics receive the model's `ref` (`{ refName, refPath }`).
+`refPath` is `#/components/schemas` for a component, and the pointer
+before `refName` for a ref into a `$defs` entry, a property or
+`#/paths/…`. The example names by `ref.refName` alone; read
+`ref.refPath` too when your documents have two deep targets with one
+`refName`.
 
 Factories: `toTsModelProjectionBase`, `toTsOasOperationProjectionBase`
 (+ webhook/GQL variants). Snippets extend `TsSnippet` directly. Casing
@@ -65,10 +72,10 @@ type ShapeOptions = { suffix: 'Input' | 'Output' }
 
 export const MyBase = toTsModelProjectionBase<EnrichmentSchema, ShapeOptions>({
   id: denoJson.name,
-  toIdentifierName({ refName, options }) { return `${camelCase(refName)}${options.suffix}` },
+  toIdentifierName({ ref, options }) { return `${camelCase(ref.refName)}${options.suffix}` },
   toIdentifierType: () => ({ type: 'variable' }),
-  toExportPath({ refName, enrichments, variant, options }) {
-    const name = this.toIdentifierName({ refName, enrichments, variant, options })
+  toExportPath({ ref, enrichments, variant, options }) {
+    const name = this.toIdentifierName({ ref, enrichments, variant, options })
     return `@/types/${name}.generated.ts`
   },
   toEnrichmentSchema
@@ -76,7 +83,7 @@ export const MyBase = toTsModelProjectionBase<EnrichmentSchema, ShapeOptions>({
 ```
 
 Consuming a peer that declares options needs nothing from this layer:
-`this.insertModel(Peer, refName, { options })`.
+`this.insertModel(Peer, ref, { options })`.
 
 A projection consumable by peers via `insertNormalizedModel` also needs
 two statics: `schemaToValueFn` (your router) and `createIdentifier`.

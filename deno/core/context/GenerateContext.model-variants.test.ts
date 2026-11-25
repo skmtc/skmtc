@@ -29,7 +29,7 @@ import { OasInfo } from '@/oas/info/Info.ts'
 import { OasComponents } from '@/oas/components/Components.ts'
 import { OasString } from '@/oas/string/String.ts'
 import type { ResultType } from '@/types/Results.ts'
-import type { RefName } from '@/types/RefName.ts'
+import type { RefParts } from '@/helpers/refFns.ts'
 
 const mockLogger: log.Logger = {
   debug: () => {},
@@ -41,7 +41,7 @@ const mockLogger: log.Logger = {
 
 type TransformArgs = {
   context: unknown
-  refName: RefName
+  ref: RefParts
   acc: unknown
   variant: string
 }
@@ -197,7 +197,7 @@ Deno.test('model variants - per-variant transforms see the same refName threaded
 
   assertEquals(transform.calls.length, 2)
   for (const call of transform.calls) {
-    assertEquals(call.args[0].refName, 'Order')
+    assertEquals(call.args[0].ref.refName, 'Order')
   }
 })
 
@@ -356,7 +356,7 @@ Deno.test('model variants - isSupported gates which refNames dispatch', () => {
         id: 'zod-gen',
         type: 'model' as const,
         transform,
-        isSupported: ({ refName }: { refName: RefName }) => refName === 'Customer'
+        isSupported: ({ ref }: { ref: RefParts }) => ref.refName === 'Customer'
       }
     }
   })
@@ -368,7 +368,7 @@ Deno.test('model variants - isSupported gates which refNames dispatch', () => {
 
   // transform ran for Customer only.
   assertEquals(transform.calls.length, 1)
-  assertEquals(transform.calls[0].args[0].refName, 'Customer')
+  assertEquals(transform.calls[0].args[0].ref.refName, 'Customer')
 })
 
 Deno.test('model variants - isSupported runs before include; unsupported emits notSupported even if included', () => {

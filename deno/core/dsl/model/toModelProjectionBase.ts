@@ -11,7 +11,7 @@ import {
 } from '@/types/ProjectionOptions.ts'
 import { toPeerInsertOptions, type PeerInsertOptions } from '@/types/InsertOptions.ts'
 import { toModelGeneratorKey } from '@/dsl/GeneratorKeys.ts'
-import type { RefName } from '@/types/RefName.ts'
+import { toModelKey, type RefParts } from '@/helpers/refFns.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { LangSnippetConstructor } from '@/dsl/Lang.ts'
 import type { IdentifierType } from '@/dsl/IdentifierType.ts'
@@ -39,11 +39,12 @@ import { parseEnrichmentUmbrella } from '@/enrichments/parseEnrichmentUmbrella.t
 export type ModelProjectionArgs<EnrichmentType = undefined, ProjectionOptions = undefined> = {
   context: GenerateContextType
   settings: ContentSettings<EnrichmentType>
-  refName: RefName
+  /** The model's ref (see {@link RefParts}); an `OasRef` fits it. */
+  ref: RefParts
 } & ProjectionOptionsArg<ProjectionOptions>
 
 type ToEnrichmentsArgs = {
-  refName: RefName
+  ref: RefParts
   context: GenerateContextType
   /** Model variant whose enrichment should be resolved (see {@link Variant}) */
   variant: string
@@ -76,7 +77,7 @@ export type ModelProjectionBaseConfig<
    * `type` is bound to that language's `EntityType` vocabulary (the loose
    * `string` by default). The tightening rides the type argument.
    */
-  toIdentifierType: (refName: RefName, context: GenerateContextType) => IdType
+  toIdentifierType: (ref: RefParts, context: GenerateContextType) => IdType
   toExportPath: (args: ToModelExportPathArgs<EnrichmentType, ProjectionOptions>) => string
   /**
    * Required composite schema for the `{ subject, generator, stack }`
@@ -100,7 +101,13 @@ export type ModelProjectionBaseConfig<
    * `insertModel` (the model counterpart of the operation-reference
    * protocol). When omitted, advertises support for every model.
    */
-  isSupported?: (args: { refName: RefName; context: GenerateContextType }) => boolean
+  isSupported?: (args: IsSupportedArgs) => boolean
+}
+
+/** What a model projection's `isSupported` receives. */
+type IsSupportedArgs = {
+  ref: RefParts
+  context: GenerateContextType
 }
 
 /**
@@ -137,10 +144,12 @@ export const toModelProjectionBase = <
     static toIdentifierName = config.toIdentifierName.bind(config)
     static toIdentifierType = config.toIdentifierType.bind(config)
     static toExportPath = config.toExportPath.bind(config)
-    static toEnrichments = ({ refName, context, variant }: ToEnrichmentsArgs): EnrichmentType => {
+    static toEnrichments = ({ ref, context, variant }: ToEnrichmentsArgs): EnrichmentType => {
       // The three enrichment scopes assembled into the umbrella a generator
       // reads off `this.settings.enrichments`. Subject is per-item
-      // (`[id][refName][variant]`) — the variant axis is core-owned, and the
+      // (`[id][refName][variant]`, or the whole pointer in place of
+      // `refName` for a ref that does not point at a component, `toModelKey`)
+      // — the variant axis is core-owned, and the
       // engine has already asserted `'main'` exists; generator and stack are
       // run-constants (`[id][_generator]`, `[_stack]`). The required composite
       // schema parses the raw umbrella once — typed, cast-free.
@@ -149,7 +158,7 @@ export const toModelProjectionBase = <
       return parseEnrichmentUmbrella({
         context,
         generatorId: config.id,
-        subjectSegments: [refName, variant],
+        subjectSegments: [toModelKey(ref), variant],
         schema: config.toEnrichmentSchema()
       })
     }
@@ -165,7 +174,8 @@ export const toModelProjectionBase = <
     static isSupported = config.isSupported ?? (() => true)
 
     settings: ContentSettings<EnrichmentType>
-    refName: RefName
+    /** The ref this model is built for (see {@link RefParts}). */
+    ref: RefParts
     /** The caller's options. */
     options: ProjectionOptions
 
@@ -174,12 +184,12 @@ export const toModelProjectionBase = <
         context: args.context,
         generatorKey: toModelGeneratorKey({
           generatorId: config.id,
-          refName: args.refName,
+          ref: args.ref,
           variant: args.settings.variant ?? DEFAULT_VARIANT
         })
       })
 
-      this.refName = args.refName
+      this.ref = args.ref
       this.settings = args.settings
       this.options = readProjectionOptions<ProjectionOptions>(args)
     }
@@ -196,13 +206,13 @@ export const toModelProjectionBase = <
       PeerProjectionOptions = undefined
     >(
       projection: ModelProjection<V, PeerEnrichmentType, PeerProjectionOptions>,
-      refName: RefName,
+      ref: RefParts,
       ...rest: ProjectionOptionsRest<
         PeerInsertOptions<PeerProjectionOptions>,
         PeerProjectionOptions
       >
     ): Inserted<V, PeerEnrichmentType> {
-      return this.context.insertModel(projection, refName, {
+      return this.context.insertModel(projection, ref, {
         ...toPeerInsertOptions(rest),
         destinationPath: this.settings.exportPath
       })

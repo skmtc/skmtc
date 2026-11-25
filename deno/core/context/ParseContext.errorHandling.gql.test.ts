@@ -225,7 +225,7 @@ Deno.test('ParseContext (gql) - two errored members of one union each remove the
   const content = ctx.registry.schemas['Content' as RefName]
   if (!(content instanceof OasUnion)) throw new Error('expected Content to be an OasUnion')
   assertEquals(
-    content.members.map(member => (member.isRef() ? member.toRefName() : member.type)),
+    content.members.map(member => (member.isRef() ? member.refName : member.type)),
     ['C']
   )
   assertEquals(ctx.issues.filter(i => i.type === 'INVALID_DEPENDENCY_REF').length, 2)
@@ -264,7 +264,7 @@ Deno.test('ParseContext (gql) - an errored implementer is removed from the synth
   const nodeUnion = ctx.registry.schemas['NodeUnion' as RefName]
   if (!(nodeUnion instanceof OasUnion)) throw new Error('expected NodeUnion to be an OasUnion')
   assertEquals(
-    nodeUnion.members.map(member => (member.isRef() ? member.toRefName() : member.type)),
+    nodeUnion.members.map(member => (member.isRef() ? member.refName : member.type)),
     ['B']
   )
   assertEquals(

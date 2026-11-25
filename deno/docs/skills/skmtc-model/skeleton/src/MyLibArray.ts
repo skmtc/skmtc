@@ -5,7 +5,7 @@ import type {
   Modifiers,
   OasRef,
   OasSchema,
-  RefName,
+  RefParts,
   TypeSystemValue,
 } from '@skmtc/core'
 import { toMyLibValue } from './MyLib.ts'
@@ -20,7 +20,7 @@ type MyLibArrayArgs = {
   schema?: OasSchema | OasRef<'schema'>
   modifiers: Modifiers
   generatorKey: GeneratorKey
-  rootRef?: RefName
+  rootRef?: RefParts
 }
 
 export class MyLibArray extends TsSnippet {

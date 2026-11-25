@@ -88,7 +88,7 @@ Deno.test('toGqlDocument - cross-type reference becomes an OasRef', () => {
   const posts = user.properties!.posts as OasArray
   const item = posts.items as OasRef<'schema'>
   assertInstanceOf(item, OasRef)
-  assertEquals(item.toRefName(), refName('Post'))
+  assertEquals(item.refName, refName('Post'))
 
   // The ref should resolve through the registry's mirror to the Post object.
   const resolved = item.resolveOnce() as OasObject

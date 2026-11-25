@@ -17,7 +17,7 @@ import type { OasRef } from '@/oas/ref/Ref.ts'
 import type { OasVoid } from '@/oas/void/Void.ts'
 import type { ModelProjection, NormalizedModelProjection } from '@/dsl/model/types.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import type { RefName } from '@/types/RefName.ts'
+import type { RefParts } from '@/helpers/refFns.ts'
 import type { SchemaToNonRef, TypeSystemOutput } from '@/types/TypeSystem.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
 import type { ImportBase } from '@/dsl/ImportBase.ts'
@@ -466,7 +466,8 @@ export type BuildModelSettingsArgs<
   EnrichmentType = undefined,
   ProjectionOptions = undefined
 > = {
-  refName: RefName
+  /** The model's ref; an `OasRef` fits it. */
+  ref: RefParts
   projection: ModelProjection<V, EnrichmentType, ProjectionOptions>
   /**
    * Model variant whose enrichment / identifier / export path
@@ -662,7 +663,7 @@ export type GenerateContextType = {
   ) => InsertNormalizedModelReturn<V, Schema>
   insertModel: <V extends GeneratedValue, EnrichmentType, ProjectionOptions = undefined>(
     projection: ModelProjection<V, EnrichmentType, ProjectionOptions>,
-    refName: RefName,
+    ref: RefParts,
     ...rest: ProjectionOptionsRest<InsertModelOptions<ProjectionOptions>, ProjectionOptions>
   ) => Inserted<V, EnrichmentType>
   toOperationContentSettings: <V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
@@ -681,7 +682,7 @@ export type GenerateContextType = {
   toModelContentSettings: <V extends GeneratedValue, EnrichmentType, ProjectionOptions>(
     args: BuildModelSettingsArgs<V, EnrichmentType, ProjectionOptions>
   ) => ContentSettings<EnrichmentType>
-  resolveSchemaRefOnce: (refName: RefName) => OasSchema | OasRef<'schema'>
+  resolveSchemaRefOnce: (ref: RefParts) => OasSchema | OasRef<'schema'>
   /** The Definition named `name` in `exportPath` (or inside the declaration `into`), or `undefined`. */
   findDefinition: ({ name, exportPath, into }: FindDefinitionArgs) => DefinitionBase | undefined
   /**

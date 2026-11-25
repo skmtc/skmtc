@@ -30,6 +30,7 @@ import type { Enrichments } from '@/types/Enrichments.ts'
 import type { Lang } from '@/dsl/Lang.ts'
 import type { ModelProjectionConstructorArgs } from '@/dsl/model/types.ts'
 import type { RefName } from '@/types/RefName.ts'
+import { toSchemaComponentRef } from '@/helpers/refFns.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
 import type { ResultType } from '@/types/Results.ts'
 import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
@@ -69,9 +70,9 @@ const buildContext = ({
 }) => {
   const ModelBase = toModelProjectionBase<Enrichments>(NeutralSnippet, {
     id: GENERATOR_ID,
-    toIdentifierName: ({ refName }) => refName,
+    toIdentifierName: ({ ref }) => ref.refName,
     toIdentifierType: () => ({ type: 'entity' }),
-    toExportPath: ({ refName }) => toExportPath(refName),
+    toExportPath: ({ ref }) => toExportPath(ref.refName),
     toEnrichmentSchema: () => emptyEnrichmentSchema
   })
 
@@ -79,13 +80,13 @@ const buildContext = ({
     constructor(args: ModelProjectionConstructorArgs<Enrichments>) {
       super(args)
 
-      if (args.refName === 'Widget') {
-        this.insertModel(Model, 'WidgetOwner' as RefName)
+      if (args.ref.refName === 'Widget') {
+        this.insertModel(Model, toSchemaComponentRef('WidgetOwner' as RefName))
       }
     }
 
     override toString(): string {
-      return this.refName
+      return this.ref.refName
     }
   }
 
@@ -101,8 +102,8 @@ const buildContext = ({
   const entry = toModelEntry({
     id: GENERATOR_ID,
     toEnrichmentSchema: () => emptyEnrichmentSchema,
-    transform: ({ context, refName }) => {
-      context.insertModel(Model, refName)
+    transform: ({ context, ref }) => {
+      context.insertModel(Model, ref)
     }
   })
 

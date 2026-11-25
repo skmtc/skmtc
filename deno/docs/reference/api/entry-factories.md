@@ -38,9 +38,9 @@ Argument-shape type files:
 |---|---|---|---|
 | **Iterates** | OAS operations (`oasDocument.operations`) | GQL operations (`gqlDocument.operations`) | Schema components (refNames) |
 | **`type` discriminator** | `'oasOperation'` | `'gqlOperation'` | `'model'` |
-| **`transform` subject arg** | `operation: OasOperation` | `operation: GqlOperation` | `refName: RefName` |
+| **`transform` subject arg** | `operation: OasOperation` | `operation: GqlOperation` | `ref: RefParts` |
 | **`transform` return** | `void` | `void` | `void` |
-| **`isSupported`** | Optional; default `() => true` | Optional; default `() => true` | Optional; default `() => true` (predicate gets `refName`, no `operation`) |
+| **`isSupported`** | Optional; default `() => true` | Optional; default `() => true` | Optional; default `() => true` (predicate gets `ref`, no `operation`) |
 | **Enrichment routing path (projection-base `toEnrichments`)** | `enrichments.<id>.<operation.path>.<operation.method>.<variant>` | `enrichments.<id>.<operation.rootKind>.<operation.fieldName>.<variant>` | `enrichments.<id>.<refName>.<variant>` |
 | **Companion projection-base factory (veneer)** | `toTsOasOperationProjectionBase` | `toTsGqlOperationProjectionBase` | `toTsModelProjectionBase` |
 
@@ -70,7 +70,7 @@ This `id` is what consumers reference under
 `client.json#settings.enrichments[id]` and what appears in the
 manifest. It's the lookup key for enrichment routing.
 
-### `transform: ({ context, <operation|refName>, variant }) => void` (required)
+### `transform: ({ context, <operation|ref>, variant }) => void` (required)
 
 The per-item callback. The dispatcher calls it once for every
 operation (OAS, GQL) or every schema component (model) — and, for
@@ -88,6 +88,11 @@ transform({ context, operation, variant }) {
 
 Thread `variant` into the insert call when the generator is
 variants-aware; omitting it constructs everything as `'main'`.
+
+A model entry's subject is `ref: RefParts`, the model's `refName` and
+`refPath` in one value. The engine sweeps the schema components, so the
+`ref` it passes has `refPath` `#/components/schemas`. Pass the `ref` to
+the insert as it is: `context.insertModel(MyProjection, ref)`.
 
 ### `toEnrichmentSchema: () => v.GenericSchema<EnrichmentType>` (required)
 
@@ -112,7 +117,7 @@ toModelEntry<EnrichmentSchema>({
 Whether this generator entry supports variants. Defaults to
 `() => false` when omitted.
 
-### `toEnrichmentDefaults?: ({ context, <operation|refName>, variant }) => EnrichmentType | undefined` (optional)
+### `toEnrichmentDefaults?: ({ context, <operation|ref>, variant }) => EnrichmentType | undefined` (optional)
 
 Compute the DEFAULT enrichment values for an item from its schema —
 the seed the CMS persists and the user then edits. Typically a thin
@@ -120,7 +125,7 @@ forward to the projection base's static of the same name
 (`toEnrichmentDefaults: MyProjection.toEnrichmentDefaults`) so the
 logic has a single home in `base.ts`.
 
-### `toPreviewModule?: ({ context, <operation|refName> }) => PreviewModule` (optional)
+### `toPreviewModule?: ({ context, <operation|ref> }) => PreviewModule` (optional)
 
 Generates an entry for the manifest's `previews` section, which the
 Editor UI uses to render previewable artifacts. Omit for generators
@@ -142,7 +147,7 @@ toPreviewModule: ({ context, operation, variant }) => {
 `toIdentifierName` returns the name string directly; `PreviewModule`
 is `{ name: string; exportPath: string }`.
 
-### `toEnrichmentRequest?: <R extends EnrichmentType>(operation|refName) => EnrichmentRequest<R> | undefined` (optional)
+### `toEnrichmentRequest?: <R extends EnrichmentType>(operation|ref) => EnrichmentRequest<R> | undefined` (optional)
 
 For the AI-driven enrichment request system. The generator declares
 "I'd like enrichment values of *this* shape for *this* operation/
@@ -180,7 +185,7 @@ Three rules:
    generator.
 2. **The predicate receives no enrichments.** The args are
    `{ context, operation, variant }` (models:
-   `{ context, refName, variant }`) — a gate that needs
+   `{ context, ref, variant }`) — a gate that needs
    already-authored enrichment values reads them via the projection
    base's `toEnrichments({ operation, context, variant })`.
 3. **Other generators can probe it.** The generator's `isSupported`
@@ -192,26 +197,30 @@ Three rules:
 
 **Model entries have an optional `isSupported`, symmetric with
 operations.** The three rules above all apply, with one shape
-difference: the model predicate receives `{ context, refName,
+difference: the model predicate receives `{ context, ref,
 variant }` (no `operation`) — resolve the schema yourself when the
 gate needs it. When omitted it defaults to `() => true`, so every
-refName is dispatched. The projection-base static
+model is dispatched. The projection-base static
 `MyProjection.isSupported` is probed by `insertModel` (peer
 capability), exactly as the operation static is by `insertOperation`.
 
 ```ts
-isSupported({ context, refName }) {
-  const schema = context.resolveSchemaRefOnce(refName)
+isSupported({ context, ref }) {
+  const schema = context.resolveSchemaRefOnce(ref)
   return !schema.isRef() && schema.type === 'object'
 }
 ```
+
+For a ref into a `$defs` entry or a property, `insertModel` calls the
+predicate with that ref. Pass the whole `ref` to `resolveSchemaRefOnce`,
+so the lookup finds the deep target, not a component of the same name.
 
 ## The GQL `acc`-return contract (removed)
 
 Older cores threaded an accumulator (`acc`) through GQL `transform`
 calls and required every branch to `return acc`. That asymmetry is
 gone: all three factories now type `transform` as
-`({ context, <operation|refName>, variant }) => void` — there is no
+`({ context, <operation|ref>, variant }) => void` — there is no
 accumulator to thread and nothing to return. Historical background:
 [the-graphql-asymmetry](../../explanation/the-graphql-asymmetry.md).
 
@@ -252,10 +261,10 @@ type ModelEntry<E = undefined> = {
   type: 'model'
   transform: (args: TransformModelArgs) => void
   toEnrichmentSchema: () => v.GenericSchema<E>
-  isSupported: (args: IsSupportedModelArgs) => boolean   // subject is refName, not operation
+  isSupported: (args: IsSupportedModelArgs) => boolean   // subject is ref, not operation
   supportsVariant: () => boolean
   toPreviewModule?: (args: ToModelPreviewModuleArgs) => PreviewModule
-  toEnrichmentRequest?: <R extends E>(refName: RefName) => EnrichmentRequest<R> | undefined
+  toEnrichmentRequest?: <R extends E>(ref: RefParts) => EnrichmentRequest<R> | undefined
   toEnrichmentDefaults?: (args: ToModelEnrichmentsArgs) => E | undefined
 }
 ```
@@ -337,18 +346,18 @@ const metaEntry = toModelEntry<EnrichmentSchema>({
   toEnrichmentSchema,
 
   // Optional capability gate (symmetric with operations). The predicate
-  // gets `refName`, not a schema — resolve it yourself. Omit to support
-  // every refName.
-  isSupported({ context, refName }) {
-    const schema = context.resolveSchemaRefOnce(refName)
+  // gets the model's `ref`, not a schema — resolve it yourself. Omit to
+  // support every model.
+  isSupported({ context, ref }) {
+    const schema = context.resolveSchemaRefOnce(ref)
     return !schema.isRef() && schema.type === 'object'
   },
 
-  transform({ context, refName }) {
-    const schema = context.resolveSchemaRefOnce(refName)
+  transform({ context, ref }) {
+    const schema = context.resolveSchemaRefOnce(ref)
     if (schema.isRef() || schema.type !== 'object') return
 
-    context.insertModel(MetaProjection, refName)
+    context.insertModel(MetaProjection, ref)
   }
 })
 
@@ -371,8 +380,8 @@ export const toTypescriptEntry = (options: TypescriptEntryOptions = {}) => {
   return toModelEntry<EnrichmentSchema>({
     id: denoJson.name,
     toEnrichmentSchema,
-    transform({ context, refName }) {
-      context.insertModel(TsProjection, refName)
+    transform({ context, ref }) {
+      context.insertModel(TsProjection, ref)
     }
   })
 }
@@ -426,7 +435,7 @@ Entries — one for each — and list both in the project's
 
 Yes. The Entry's `transform` can call `context.insertOperation` /
 `context.insertModel` with as many different Projections as you
-like — for the same operation/refName or across multiple. The
+like — for the same operation/ref or across multiple. The
 typical case is one primary Projection plus auxiliary Snippets
 embedded inside it (Snippets don't need their own Entry).
 
@@ -447,7 +456,7 @@ enrichment routing to work end-to-end. Most generators import
 ### How do `isSupported` and `transform` read enrichments?
 
 Neither receives an enrichment argument — both get
-`{ context, <operation|refName>, variant }`. Code that needs the
+`{ context, <operation|ref>, variant }`. Code that needs the
 parsed `{ subject, generator, stack }` umbrella calls the projection
 base's static
 `MyProjection.toEnrichments({ operation, context, variant })`
