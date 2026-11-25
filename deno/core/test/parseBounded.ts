@@ -22,7 +22,8 @@ const parsedSchema = v.object({
  * Parses a document in its own process under a time and heap bound, and checks
  * that the parse takes less than a second: running out of memory cannot be
  * caught, and it would take the test run with it. Each schema is given as
- * `toJsonSchema` writes it, where only an intersection has an `allOf`.
+ * `toJsonSchema` writes it, where only an intersection has an `allOf`, with the
+ * keywords of refs and intersections that it leaves out.
  */
 export const parseBounded = async ({ openapi, schemas, paths = {}, system, targets = [] }: ParseBoundedArgs) => {
   const document = { openapi, info: { title: 't', version: '1' }, paths, components: { schemas } }

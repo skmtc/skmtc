@@ -4,7 +4,7 @@ import type { StackTrail } from '@/context/StackTrail.ts'
 import { OasIntersection } from '@/oas/intersection/Intersection.ts'
 import { isRef } from '@/helpers/refFns.ts'
 import { hasShapeKeyword } from '@/parse/anyOfSystem.ts'
-import { withObjectType } from '@/parse/keptIntersection.ts'
+import { withKeywordType } from '@/parse/keptIntersection.ts'
 import { toSchemaV3 } from '@/parse/v3-2/schema/toSchemasV3.ts'
 import { toUnknown } from '@/parse/v3-2/unknown/toUnknown.ts'
 import { toSpecificationExtensionsV3 } from '@/parse/v3-2/specificationExtensions/toSpecificationExtensionsV3.ts'
@@ -66,7 +66,7 @@ export const toIntersection = ({ value, members, stackTrail, context }: ToInters
 
   // A member with no shape of its own (`{ description }`) is any value: the
   // parser must not guess a type from its `example`.
-  const membersParsed = members.map(withObjectType).map((member, index) =>
+  const membersParsed = members.map(withKeywordType).map((member, index) =>
     stackTrail.trace(`${index}`, st =>
       isRef(member) || hasShapeKeyword(member) || 'anyOf' in member || 'not' in member
         ? toSchemaV3({ schema: member, stackTrail: st, context })

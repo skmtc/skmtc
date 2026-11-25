@@ -2,6 +2,7 @@ import * as v from 'valibot'
 import isEqual from 'lodash-es/isEqual'
 import type { OasSchema } from '@/oas/schema/Schema.ts'
 import type { OasRef } from '@/oas/ref/Ref.ts'
+import type { OasIntersection } from '@/oas/intersection/Intersection.ts'
 import { DanglingRefError } from '@/oas/ref/DanglingRefError.ts'
 import { numberFormat } from '@/oas/number/number-types.ts'
 import { integerFormat } from '@/oas/integer/integer-types.ts'
@@ -104,10 +105,6 @@ const OBJECT_KEYWORDS: SiblingKeyword[] = [
   'minProperties',
   'maxProperties'
 ]
-
-/** Whether `siblings` holds a keyword of an object. */
-export const hasObjectKeyword = (siblings: SiblingKeywords | undefined): boolean =>
-  OBJECT_KEYWORDS.some(keyword => siblings?.[keyword] !== undefined)
 
 /** The keywords each schema class's `clone` takes: the fields its type has, and {@link OBJECT_KEYWORDS} for an intersection. */
 export const SIBLINGS_BY_TYPE: Record<OasSchema['type'], SiblingKeyword[]> = {
@@ -214,15 +211,17 @@ const BOOLEAN_KEYWORDS: SiblingKeyword[] = [
  * a flag the target already has, and a value equal to the target's change
  * nothing.
  */
-const toChangedKeywords = (copy: OasSchema, target: OasSchema, siblings: SiblingKeywords): SiblingKeyword[] =>
-  SIBLINGS_BY_TYPE[target.type].filter(keyword => {
+const toChangedKeywords = (copy: OasSchema, target: OasSchema, siblings: SiblingKeywords): SiblingKeyword[] => {
+  // An intersection takes these as a member, so it has no field to compare.
+  const objectKeywords = target.type === 'intersection' ? toChangedObjectKeywords(target, siblings) : []
+
+  return SIBLINGS_BY_TYPE[target.type].filter(keyword => {
     if (siblings[keyword] === undefined) {
       return false
     }
 
-    // An intersection takes these as a member, so they are no field to compare.
     if (target.type === 'intersection' && OBJECT_KEYWORDS.includes(keyword)) {
-      return true
+      return objectKeywords.includes(keyword)
     }
 
     const applied: unknown = Reflect.get(copy, keyword)
@@ -230,6 +229,7 @@ const toChangedKeywords = (copy: OasSchema, target: OasSchema, siblings: Sibling
 
     return BOOLEAN_KEYWORDS.includes(keyword) ? (applied === true) !== (original === true) : !isEqual(applied, original)
   })
+}
 
 /** Whether the keywords next to a reference change `target` at that site. The engine behind `OasRef.resolve`. */
 export const changesTarget = (copy: OasSchema, target: OasSchema, siblings: SiblingKeywords): boolean =>
@@ -282,14 +282,42 @@ export const toSkippedSiblings = (
     }
   }
 
-  const type = siblings._type !== undefined && !agrees(siblings._type, target, 0) ? ['type'] : []
+  const type = siblings._type !== undefined && !agrees(siblings._type, target) ? ['type'] : []
   const others = SIBLING_KEYWORDS.filter(keyword => isSkipped(keyword, siblings[keyword])).map(toDocumentKeyword)
 
   return [...type, ...others]
 }
 
-/** How deep {@link agrees} follows union members, so a union that contains itself ends. */
-const MAX_DEPTH = 10
+/**
+ * The {@link OBJECT_KEYWORDS} next to a reference that say something the
+ * members of an intersection do not: a name none of them requires, a property
+ * none of them has the same. References in the members count by their target,
+ * without the keywords next to them.
+ */
+export const toChangedObjectKeywords = (target: OasIntersection, siblings: SiblingKeywords): SiblingKeyword[] => {
+  const objects = target.toTargetParts().filter(part => part.type === 'object')
+  const isSame = (keyword: 'additionalProperties' | 'minProperties' | 'maxProperties'): boolean =>
+    objects.some(object => isEqual(object[keyword], siblings[keyword]))
+
+  const isUnchanged = (keyword: SiblingKeyword): boolean => {
+    switch (keyword) {
+      case 'required':
+        return (siblings.required ?? []).every(name => objects.some(object => object.required?.includes(name)))
+      case 'properties':
+        return Object.keys(siblings.properties ?? {}).every(name =>
+          objects.some(object => isEqual(object.properties?.[name], siblings.properties?.[name]))
+        )
+      case 'additionalProperties':
+      case 'minProperties':
+      case 'maxProperties':
+        return isSame(keyword)
+      default:
+        return true
+    }
+  }
+
+  return OBJECT_KEYWORDS.filter(keyword => siblings[keyword] !== undefined && !isUnchanged(keyword))
+}
 
 /**
  * A `type` next to a reference agrees with the target's when it names it, or
@@ -298,11 +326,26 @@ const MAX_DEPTH = 10
  * `oneOf` of objects): leaving it out then loses nothing. Next to an
  * intersection, it agrees when one member has that type.
  */
-const agrees = (type: unknown, target: OasSchema, depth: number): boolean => {
+const agrees = (type: unknown, target: OasSchema, known: Map<OasSchema, boolean> = new Map()): boolean => {
+  const found = known.get(target)
+
+  if (found !== undefined) {
+    return found
+  }
+
+  // A schema that leads back to itself does not agree by that.
+  known.set(target, false)
+  const result = toAgreement(type, target, known)
+  known.set(target, result)
+
+  return result
+}
+
+/** {@link agrees} for a schema that `known` does not answer. */
+const toAgreement = (type: unknown, target: OasSchema, known: Map<OasSchema, boolean>): boolean => {
   if (target.type === 'union') {
     try {
-      return depth < MAX_DEPTH &&
-        target.members.every(member => agrees(type, member.isRef() ? member.resolve() : member, depth + 1))
+      return target.members.every(member => agrees(type, member.isRef() ? member.resolve() : member, known))
     } catch (error) {
       // A member that is a dangling reference has no known type, so it does not agree.
       if (DanglingRefError.is(error)) {
@@ -314,7 +357,7 @@ const agrees = (type: unknown, target: OasSchema, depth: number): boolean => {
   }
 
   if (target.type === 'intersection') {
-    return depth < MAX_DEPTH && target.toParts().some(part => agrees(type, part, depth + 1))
+    return target.toParts().some(part => agrees(type, part, known))
   }
 
   return type === target.type || (type === 'number' && target.type === 'integer')

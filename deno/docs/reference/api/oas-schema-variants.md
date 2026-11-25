@@ -201,10 +201,10 @@ The `members` are the kept references and, at most, one other schema.
 All other members of the `allOf` merge into that schema. It has the
 place of the first of them. The keywords next to the `allOf` that
 describe the schema (`title`, `description`, `x-*`) are on the
-intersection. A member of object keywords only (`required`) is an
-object. A `nullable`, `readOnly`, `writeOnly`, `deprecated` or
-`default` in a member that is not a reference is also on the
-intersection.
+intersection. A `nullable`, `readOnly`, `writeOnly`, `deprecated` or
+`default` in a member that is not a reference moves to the
+intersection. A member with the keywords of one type only, such as
+`required` or `minItems`, has that type.
 
 A member can lead back to its own intersection with no property between
 (`Plan: { properties, oneOf: [{ $ref: Plan }] }`). `resolve()` does not

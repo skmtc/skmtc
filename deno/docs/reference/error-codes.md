@@ -662,6 +662,9 @@ warning. The model then has no properties from that member. When the
 list does not have `allOfMember`, core gives an error, and the parser
 removes the item that has the `allOf`. The location is that item.
 
+`settings.system.intersections` can keep a `$ref` out of the merge. Such
+a `$ref` is of the kind `schema`, and a generator sees it.
+
 Core also merges in a `oneOf` or an `anyOf`: the `allOf` of a member,
 and each member with the keywords next to the union. The same rule
 applies to these `$ref`s. The location is the item that has the union.

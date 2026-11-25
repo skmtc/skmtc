@@ -114,6 +114,82 @@ Deno.test('OasIntersection - the object keywords next to a ref are one more memb
   assertEquals(schemas.A?.type === 'intersection' && schemas.A.members.length, 2)
 })
 
+Deno.test('OasIntersection - object keywords next to a ref that its members already say change nothing', () => {
+  const { schemas, ref } = setup(ref => ({
+    A: new OasIntersection({ members: [ref('A', { required: ['a'] }), ref('Base'), toObject('a', { required: ['a'] })] }),
+    Base: toObject('b', { minProperties: 1 })
+  }))
+
+  const unchanged: Partial<RefFields<'schema'>>[] = [
+    { required: ['a'] },
+    { required: [] },
+    { properties: {} },
+    { properties: { b: new OasString() } },
+    { minProperties: 1 }
+  ]
+
+  unchanged.forEach(siblings => {
+    assertEquals(ref('A', siblings).hasValueSiblings(), false, JSON.stringify(siblings))
+    assert(ref('A', siblings).resolve() === schemas.A)
+  })
+
+  const described = ref('A', { required: ['a'], description: 'd' }).resolve()
+
+  assert(described.type === 'intersection')
+  assertEquals(described.members.length, 3)
+  assertEquals(ref('A', { required: ['b'] }).hasValueSiblings(), true)
+  assertEquals(ref('A', { properties: { b: new OasObject({}) } }).hasValueSiblings(), true)
+  assertEquals(ref('A', { minProperties: 2 }).hasValueSiblings(), true)
+  assertEquals(ref('A', { additionalProperties: false }).hasValueSiblings(), true)
+})
+
+Deno.test('OasIntersection - a type next to a ref to a union of many subtypes that allOf it is checked at once', () => {
+  const names = Array.from({ length: 40 }, (_, index) => `S${index}`)
+  const { ref } = setup(ref => ({
+    Details: new OasUnion({ members: names.map(name => ref(name)) }),
+    ...Object.fromEntries(names.map(name => [name, new OasIntersection({ members: [ref('Details'), toObject(name)] })]))
+  }))
+  const start = performance.now()
+
+  assertEquals(ref('Details', { _type: 'object' }).toSkippedSiblings(), [])
+  assertEquals(ref('Details', { _type: 'string' }).toSkippedSiblings(), ['type'])
+  assert(performance.now() - start < 1000)
+})
+
+Deno.test('OasIntersection - traverse tries each member that has the segment', () => {
+  const { schemas } = setup(ref => ({
+    Base: new OasObject({ properties: { meta: toObject('x') } }),
+    Sub: new OasIntersection({ members: [ref('Base'), new OasObject({ properties: { meta: toObject('y') } })] })
+  }))
+
+  assertEquals(schemas.Sub?.traverse(['meta', 'x']).type, 'string')
+  assertEquals(schemas.Sub?.traverse(['meta', 'y']).type, 'string')
+  assertThrows(() => schemas.Sub?.traverse(['meta', 'z']), Error, '(available: y)')
+})
+
+Deno.test('OasIntersection - an example counts an intersection and its base as one level', () => {
+  const length = 5
+  const { schemas } = setup(ref =>
+    Object.fromEntries(
+      Array.from({ length }, (_, index) => [
+        [`B${index}`, new OasObject({ properties: { next: ref(`S${(index + 1) % length}`) } })],
+        [
+          `S${index}`,
+          new OasIntersection({
+            members: [ref(`B${index}`), new OasObject({ properties: { v: new OasString({ example: `${index}` }) } })]
+          })
+        ]
+      ]).flatMap(([base, sub]) => [base, sub])
+    )
+  )
+
+  // Five refs of two levels each, and the leaf: 15 from 4.
+  assertEquals(collateExamples({ objectSchema: schemas.S0, depth: 4 }), {
+    v: '0',
+    next: { v: '1', next: { v: '2', next: { v: '3', next: { v: '4', next: { v: '0' } } } } }
+  })
+})
+
 Deno.test('OasIntersection - a clone keeps its not, its externalDocs and its trail', () => {
   const schema = new OasIntersection({ members: [] })
   schema.not = new OasUnknown({})

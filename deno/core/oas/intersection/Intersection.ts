@@ -1,7 +1,7 @@
 import type { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
 import { OasObject } from '@/oas/object/Object.ts'
-import { hasObjectKeyword, toSiblingAnnotations } from '@/oas/schema/siblings.ts'
+import { toChangedObjectKeywords, toSiblingAnnotations } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasExternalDocs } from '@/oas/externalDocs/ExternalDocs.ts'
 import type { OasSchema, ToJsonSchemaOptions } from '@/oas/schema/Schema.ts'
@@ -134,13 +134,22 @@ export class OasIntersection extends OasBase {
    * nothing is left out.
    */
   toParts(): Exclude<OasSchema, OasIntersection>[] {
-    return this.#toMembersInside().filter(
-      (member): member is Exclude<OasSchema, OasIntersection> => !member.isRef() && member.type !== 'intersection'
-    )
+    return this.#toMembersInside().filter(isPart)
+  }
+
+  /**
+   * {@link toParts} without the keywords next to the references. `clone` reads
+   * these while a reference to this intersection resolves, so no reference may
+   * be resolved with its keywords here.
+   */
+  toTargetParts(): Exclude<OasSchema, OasIntersection>[] {
+    return this.#toMembersInside(ref => ref.resolveOnce()).filter(isPart)
   }
 
   /** This intersection, each member, what each reference resolves to, and the same of each intersection inside, in order. */
-  #toMembersInside(): (OasSchema | OasRef<'schema'>)[] {
+  #toMembersInside(
+    follow: (ref: OasRef<'schema'>) => OasSchema | OasRef<'schema'> = ref => ref.resolve()
+  ): (OasSchema | OasRef<'schema'>)[] {
     const found = new Set<OasSchema | OasRef<'schema'>>()
 
     const visit = (item: OasSchema | OasRef<'schema'> | undefined): void => {
@@ -151,7 +160,7 @@ export class OasIntersection extends OasBase {
       found.add(item)
 
       if (item.isRef()) {
-        visit(toTarget(item))
+        visit(toTarget(() => follow(item)))
       } else if (item.type === 'intersection') {
         item.members.forEach(visit)
       }
@@ -166,7 +175,8 @@ export class OasIntersection extends OasBase {
    * A copy of this schema with what `ref` adds at its site applied, as
    * {@link OasUnion.clone} does: the keywords that this type takes, a
    * sibling's value winning. The keywords of an object next to `ref`
-   * (`properties`, `required`) are one more member. This schema does not
+   * (`properties`, `required`) are one more member, unless the members say
+   * the same. This schema does not
    * change, and the copy shares its members.
    */
   clone(ref?: OasRef<'schema'>): OasIntersection {
@@ -178,7 +188,7 @@ export class OasIntersection extends OasBase {
       readOnly: this.readOnly || ref?.readOnly || undefined,
       writeOnly: this.writeOnly || ref?.writeOnly || undefined,
       deprecated: ref?.deprecated ?? this.deprecated,
-      members: ref !== undefined && hasObjectKeyword(ref) ? [...this.members, toSiblingMember(ref)] : this.members,
+      members: ref !== undefined && toChangedObjectKeywords(this, ref).length > 0 ? [...this.members, toSiblingMember(ref)] : this.members,
       default: ref?.default ?? this.default
     })
     copy.stackTrail = this.stackTrail
@@ -228,10 +238,13 @@ const toSiblingMember = (ref: OasRef<'schema'>): OasObject => {
   return member
 }
 
-/** What a reference resolves to, or `undefined` when it names nothing. */
-const toTarget = (ref: OasRef<'schema'>): OasSchema | undefined => {
+const isPart = (member: OasSchema | OasRef<'schema'>): member is Exclude<OasSchema, OasIntersection> =>
+  !member.isRef() && member.type !== 'intersection'
+
+/** What following a reference gives, or `undefined` when it names nothing. */
+const toTarget = (follow: () => OasSchema | OasRef<'schema'>): OasSchema | OasRef<'schema'> | undefined => {
   try {
-    return ref.resolve()
+    return follow()
   } catch (error) {
     if (DanglingRefError.is(error)) {
       return undefined

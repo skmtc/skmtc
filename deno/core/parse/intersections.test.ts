@@ -74,7 +74,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
       }
     })
 
-    assertEquals(at(schemas.B, 'properties', 'm', 'oneOf', 0), ref('A'))
+    assertEquals(at(schemas.B, 'properties', 'm', 'oneOf', 0), { ...ref('A'), description: 'm' })
     assertEquals(toAllOf(at(schemas.C, 'properties', 'n')), ['#/components/schemas/A', { description: 'n' }])
   })
 
@@ -164,7 +164,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
       schemas: { A: toObject({ p: { allOf: [ref('A')], nullable: true } }) }
     })
 
-    assertEquals(at(schemas.A, 'properties', 'p'), ref('A'))
+    assertEquals(at(schemas.A, 'properties', 'p'), { ...ref('A'), nullable: true })
   })
 
   Deno.test(`${openapi} a union member that contradicts the keyword beside the union is left out (Cube Cloud)`, async () => {
@@ -308,7 +308,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(toAllOf(p), ['#/components/schemas/A', { description: 'p' }])
     assertEquals([at(p, 'nullable'), at(p, 'readOnly'), at(p, 'default')], [true, true, {}])
     // With nothing else beside the ref, it is a nullable ref.
-    assertEquals(at(schemas.A, 'properties', 'q'), ref('A'))
+    assertEquals(at(schemas.A, 'properties', 'q'), { ...ref('A'), nullable: true, readOnly: true })
   })
 
   Deno.test(`${openapi} a member that is readOnly and one that is writeOnly contradict beside a kept ref`, async () => {
@@ -349,6 +349,171 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
 
     assertEquals([at(own, 'type'), at(own, 'required'), at(own, 'minProperties')], ['object', ['id'], 2])
     assertEquals(issues, [])
+  })
+
+  Deno.test(`${openapi} the same ref in two merged members stays one ref, when one is outside the cycle`, async () => {
+    const own = { parent: ref('Base'), kids: { type: 'array', items: ref('Base') }, map: { type: 'object', additionalProperties: ref('Base') } }
+    const { schemas } = await parseBounded({
+      openapi,
+      schemas: { Base: toObject(own), Outside: { allOf: [ref('Base'), toObject(own)] }, Reversed: { allOf: [toObject(own), ref('Base')] } }
+    })
+
+    for (const name of ['Outside', 'Reversed']) {
+      assertEquals(at(schemas[name], 'properties', 'parent'), ref('Base'))
+      assertEquals(at(schemas[name], 'properties', 'kids', 'items'), ref('Base'))
+      assertEquals(at(schemas[name], 'properties', 'map', 'additionalProperties'), ref('Base'))
+    }
+  })
+
+  Deno.test(`${openapi} one kept ref twice stays kept`, async () => {
+    const { schemas } = await parseBounded({
+      openapi,
+      schemas: { A: toObject({ p: { allOf: [ref('A'), ref('A'), { description: 'p' }] } }) }
+    })
+
+    assertEquals(toAllOf(at(schemas.A, 'properties', 'p')), ['#/components/schemas/A', { description: 'p' }])
+  })
+
+  Deno.test(`${openapi} a member's not and anyOf are read, and the wrapper's own keywords stay`, async () => {
+    const { schemas } = await parseBounded({
+      openapi,
+      schemas: {
+        A: toObject({
+          negated: { allOf: [ref('A'), { not: text }] },
+          either: { allOf: [ref('A'), { anyOf: [ref('B'), text] }] },
+          own: {
+            deprecated: true,
+            example: { e: 1 },
+            'x-own': 1,
+            externalDocs: { url: 'https://example.com' },
+            allOf: [ref('A'), toObject({ x: text })]
+          }
+        }),
+        B: toObject({ b: text })
+      },
+      system: { not: 'unknown' }
+    })
+    const property = (name: string) => at(schemas.A, 'properties', name)
+
+    assertEquals(toAllOf(property('negated')), ['#/components/schemas/A', { not: {} }])
+    assertEquals(at(toAllOf(property('either'))[1], 'oneOf', 0), ref('B'))
+    assertEquals(
+      ['deprecated', 'example', 'x-own', 'externalDocs'].map(key => at(property('own'), key)),
+      [true, { e: 1 }, 1, 'https://example.com']
+    )
+  })
+
+  Deno.test(`${openapi} a null-only member makes the ref nullable and leaves no member`, async () => {
+    const { schemas } = await parseBounded({
+      openapi,
+      schemas: {
+        A: toObject({
+          p: { allOf: [ref('A'), { nullable: true, enum: [null] }] },
+          q: { allOf: [ref('A'), { oneOf: [toObject({ x: text }), { nullable: true, enum: [null] }] }] }
+        })
+      }
+    })
+
+    assertEquals(at(schemas.A, 'properties', 'p'), { ...ref('A'), nullable: true })
+    assertEquals(at(schemas.A, 'properties', 'q', 'nullable'), true)
+    assertEquals(at(toAllOf(at(schemas.A, 'properties', 'q'))[1], 'properties', 'x', 'type'), 'string')
+  })
+
+  Deno.test(`${openapi} keywords beside an allOf of a ref outside the cycle stay on the intersection`, async () => {
+    const { schemas } = await parseBounded({
+      openapi,
+      schemas: {
+        Outside: { description: 'outside', allOf: [ref('A'), toObject({ own: text })] },
+        A: { allOf: [ref('B'), toObject({ a: text })] },
+        B: toObject({ back: ref('A') })
+      }
+    })
+
+    assertEquals(at(schemas.Outside, 'description'), 'outside')
+    assertEquals(at(toAllOf(schemas.Outside)[1], 'description'), undefined)
+  })
+
+  Deno.test(`${openapi} a contradicting union member stays under latestWins when it is the only one`, async () => {
+    const { schemas, issues } = await parseBounded({
+      openapi,
+      schemas: { F: toObject({ p: { type: 'string', oneOf: [ref('F')] } }) },
+      system: { allOf: 'latestWins' }
+    })
+
+    assertEquals(toAllOf(at(schemas.F, 'properties', 'p'))[1], '#/components/schemas/F')
+    assertEquals(issues.filter(({ level }) => level === 'error'), [])
+  })
+
+  Deno.test(`${openapi} a member with the keywords of one type only is that type`, async () => {
+    const { schemas, issues } = await parseBounded({
+      openapi,
+      schemas: {
+        List: { type: 'array', items: ref('Item') },
+        Item: toObject({ subs: { allOf: [ref('List'), { minItems: 1 }] } }),
+        Node: toObject({ x: text, y: text, sub: ref('Sub') }),
+        Sub: { allOf: [ref('Node'), { oneOf: [{ required: ['x'] }, { required: ['y'] }] }] }
+      }
+    })
+    const all = await parseBounded({
+      openapi,
+      schemas: {
+        Name: text,
+        Count: { type: 'number' },
+        Short: { allOf: [ref('Name'), { minLength: 3, pattern: 'x' }] },
+        Small: { allOf: [ref('Count'), { maximum: 5 }] }
+      },
+      system: { intersections: 'all' }
+    })
+    const list = toAllOf(at(schemas.Item, 'properties', 'subs'))[1]
+
+    assertEquals([at(list, 'type'), at(list, 'minItems')], ['array', 1])
+    assertEquals(at(toAllOf(schemas.Sub)[1], 'oneOf', 0, 'required'), ['x'])
+    assertEquals(at(toAllOf(schemas.Sub)[1], 'oneOf', 1, 'required'), ['y'])
+    assertEquals([at(toAllOf(all.schemas.Short)[1], 'minLength'), at(toAllOf(all.schemas.Short)[1], 'pattern')], [3, 'x'])
+    assertEquals(at(toAllOf(all.schemas.Small)[1], 'maximum'), 5)
+    assertEquals([...issues, ...all.issues], [])
+  })
+
+  Deno.test(`${openapi} a null allOf in a member beside a kept ref is no allOf`, async () => {
+    const { schemas, issues } = await parseBounded({
+      openapi,
+      schemas: {
+        A: { allOf: [ref('B'), { ...toObject({ x: text }), allOf: null }] },
+        B: toObject({ a: ref('A') })
+      }
+    })
+
+    assertEquals(at(toAllOf(schemas.A)[1], 'properties', 'x', 'type'), 'string')
+    assertEquals(issues.map(({ type }) => type), ['UNEXPECTED_PROPERTY'])
+  })
+
+  Deno.test(`${openapi} nested unions that share their members parse within the heap`, async () => {
+    const levels = 25
+    const unions = Object.fromEntries(
+      Array.from({ length: levels }, (_, index) => [
+        `U${index}`,
+        { oneOf: [ref(`U${index + 1}`), { oneOf: [ref(`U${index + 1}`), ref('V')] }] }
+      ])
+    )
+
+    await parseBounded({
+      openapi,
+      schemas: {
+        K: { oneOf: [ref('U0'), toObject({ k: { type: 'object', oneOf: [ref('K'), toObject({ z: text })] } })] },
+        ...unions,
+        [`U${levels}`]: toObject({ u: text }),
+        V: toObject({ v: text })
+      }
+    })
+  })
+
+  Deno.test(`${openapi} an allOf of one ref is an intersection as a union member with keywords of its own`, async () => {
+    const { schemas } = await parseBounded({
+      openapi,
+      schemas: { A: toObject({ p: { oneOf: [{ allOf: [ref('A')], properties: { q: text } }, text] } }) }
+    })
+
+    assert(toAllOf(at(schemas.A, 'properties', 'p', 'oneOf', 0)).includes('#/components/schemas/A'))
   })
 
   Deno.test(`${openapi} an empty allOf in a member beside a kept ref is reported as one`, async () => {
@@ -443,7 +608,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals(toAllOf(cycles.schemas.A)[0], '#/components/schemas/B')
     assertEquals(toAllOf(cycles.schemas.A).length, 2)
     assertEquals(toAllOf(all.schemas.A).slice(0, 2), ['#/components/schemas/B', '#/components/schemas/C'])
-    assertEquals(all.schemas.One, ref('C'))
+    assertEquals(all.schemas.One, { ...ref('C'), description: 'one' })
   })
 
   Deno.test(`${openapi} all makes each subtype of a discriminated oneOf an intersection`, async () => {
@@ -478,7 +643,7 @@ for (const openapi of ['3.1.0', '3.2.0']) {
       }
     })
 
-    assertEquals(at(schemas.A, 'properties', 'p'), ref('A'))
+    assertEquals(at(schemas.A, 'properties', 'p'), { ...ref('A'), description: 'p' })
 
     for (const name of ['q', 'r']) {
       const [self, object] = toAllOf(at(schemas.A, 'properties', name))
@@ -486,6 +651,25 @@ for (const openapi of ['3.1.0', '3.2.0']) {
       assertEquals(self, '#/components/schemas/A')
       assertEquals(at(object, 'properties', 'x', 'type'), 'string')
     }
+  })
+
+  Deno.test(`${openapi} the null of a member of a nested allOf is the whole intersection's`, async () => {
+    const { schemas } = await parseBounded({
+      openapi,
+      schemas: {
+        Base: toObject({ sub: ref('Sub') }),
+        K: toObject({ sub: ref('Sub'), out: ref('Out') }),
+        Sub: { allOf: [ref('Base'), { type: ['object', 'null'], properties: { s: text } }] },
+        Out: { allOf: [ref('Sub'), ref('K')] },
+        A: toObject({ p: { allOf: [{ allOf: [ref('A'), { type: 'null' }] }, ref('B')] } }),
+        B: toObject({ a: ref('A') })
+      }
+    })
+
+    assertEquals(at(schemas.Out, 'nullable'), true)
+    assertEquals(toAllOf(schemas.Out).map(member => at(member, 'nullable')), toAllOf(schemas.Out).map(() => undefined))
+    assertEquals(at(schemas.A, 'properties', 'p', 'nullable'), true)
+    assertEquals(toAllOf(at(schemas.A, 'properties', 'p')), ['#/components/schemas/A', '#/components/schemas/B'])
   })
 
   Deno.test(`${openapi} a null type beside a kept ref makes it nullable`, async () => {

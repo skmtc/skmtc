@@ -22,7 +22,7 @@ import { toRefParts, toRefPointer } from '@/helpers/refFns.ts'
  * - **union** → the segment selects a member ({@link selectUnionMember}):
  *   `'$Circle'` by refName, `'{type:circle}'` by discriminator, `'[0]'` by index.
  * - **intersection** → the segment is read as for a member, references followed:
- *   the last member that takes it.
+ *   the last member that has the whole path.
  *
  * A ref is resolved only when the path needs to descend *through* it. Anything
  * the path cannot navigate throws a descriptive, segment-named error: a missing
@@ -81,21 +81,37 @@ export const traverseSchema = (
     }
 
     case 'intersection': {
-      const member = schema
-        .toParts()
-        .filter(part => takesSegment(part, segment))
-        .at(-1)
+      const members = schema.toParts().filter(part => takesSegment(part, segment))
 
-      if (!member) {
+      if (members.length === 0) {
         throw new Error(`Schema path segment "${segment}" does not match a member of the intersection`)
       }
 
-      return traverseSchema(member, path)
+      return traverseLast(members, path)
     }
 
     default: {
       throw new Error(`Schema path segment "${segment}" cannot traverse a "${schema.type}" schema`)
     }
+  }
+}
+
+/** The schema at `path` in the last of `members` that has the whole path. When none has, the last one's error. */
+const traverseLast = (members: OasSchema[], path: SchemaPath): OasSchema | OasRef<'schema'> => {
+  const [last, ...others] = members.toReversed()
+
+  try {
+    return traverseSchema(last, path)
+  } catch (error) {
+    for (const member of others) {
+      try {
+        return traverseSchema(member, path)
+      } catch {
+        // The next member may have the path.
+      }
+    }
+
+    throw error
   }
 }
 

@@ -232,6 +232,12 @@ export const toKtValue = (args: TypeSystemArgs<SchemaType>): TypeSystemValue & K
       // annotations, membership assignment, and the tag removal (the
       // parent's ref arrives as \`args.rootRef\`).
       throw new Error(\`toKtValue: 'union' is not mapped — decide the Kotlin shape for oneOf\`)
+    case 'intersection':
+      // An allOf that keeps a reference (one that closes a cycle). Kotlin has
+      // no intersection types: decide whether the members flatten into one
+      // data class, or the kept reference becomes a supertype, then replace
+      // this throw with a one-line \`return new IntersectionValue({ ... })\`.
+      throw new Error(\`toKtValue: 'intersection' is not mapped — decide the Kotlin shape for an allOf that keeps a reference\`)
     case 'unknown':
       // An untyped schema has no honest Kotlin type. \`Any\`/\`Any?\` is
       // not an answer, it is the absence of one, and it compiles — so

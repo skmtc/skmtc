@@ -5,9 +5,36 @@
 
 import * as log from '@std/log'
 import { ParseContext } from '@/context/ParseContext.ts'
+import { OasIntersection } from '@/oas/intersection/Intersection.ts'
+import { OasRef } from '@/oas/ref/Ref.ts'
 import { StackTrail } from '@/context/StackTrail.ts'
 
-const { document, system, targets } = JSON.parse(Deno.args[0] ?? '{}')
+// `toJsonSchema` writes neither a ref's keywords (#338) nor all of an intersection's.
+const toIntersectionJson = OasIntersection.prototype.toJsonSchema
+
+Object.defineProperty(OasRef.prototype, 'toJsonSchema', {
+  value(this: OasRef<'schema'>) {
+    const { $ref, nullable, readOnly, writeOnly, description, default: defaultValue, required } = this
+
+    return { $ref, nullable, readOnly, writeOnly, description, default: defaultValue, required }
+  }
+})
+
+Object.defineProperty(OasIntersection.prototype, 'toJsonSchema', {
+  value(this: OasIntersection, options: { resolve: boolean }) {
+    return {
+      ...toIntersectionJson.call(this, options),
+      allOf: this.members.map(member => ({
+        ...member.toJsonSchema(options),
+        ...(member.isRef() || member.not === undefined ? {} : { not: {} })
+      })),
+      externalDocs: this.externalDocs?.url,
+      ...this.extensionFields
+    }
+  }
+})
+
+const { document, system, targets }= JSON.parse(Deno.args[0] ?? '{}')
 
 const start = performance.now()
 const context = new ParseContext({

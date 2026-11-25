@@ -167,7 +167,7 @@ Deno.test('toDeclaredTypes - through refs, allOf and unions, and around a cycle'
   assertEquals(toTypes('Loop'), 'any')
   // `Inner` is read inside `Outer`, so its types are not known there.
   assertEquals(toDeclaredTypes({ schema: { allOf: [{ $ref: 'Outer' }, { $ref: 'Inner' }] }, peek }), 'any')
-  assertEquals(toTypes('Twice'), ['string', 'string'])
+  assertEquals(toTypes('Twice'), ['string'])
   assertEquals(toTypes('Nothing'), 'any')
   assertEquals(toTypes('Nowhere'), 'any')
   assertEquals(toDeclaredTypes({ schema: { type: 'number' }, peek }), ['number', 'integer'])

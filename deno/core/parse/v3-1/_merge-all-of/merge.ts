@@ -50,7 +50,8 @@ export const mergeSchemasOrRefs = ({
       keptRefs,
       merge: (a, b) => mergeSchemasOrRefs({ first: a, second: b, getRef, normalize, system }),
       mergeAllOf: schema => mergeIntersection({ schema, getRef, normalize, system: toOwnSystem(system) }),
-      readRef: ref => normalize(getRef(ref))
+      readRef: ref => normalize(getRef(ref)),
+      normalize
     })
   }
 

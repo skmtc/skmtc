@@ -360,8 +360,9 @@ the usual parse. Default: `{}`.
     generator does not see them. With `"allOfMember"` in the list, core
     leaves out a member that names nothing. The model then has no
     properties from that member. Without it, the parser removes the item
-    that has the `allOf`. `"schema"` does not cover this case. Core also
-    merges in a `oneOf` or an `anyOf`. It merges the `allOf` of a member,
+    that has the `allOf`. `"schema"` does not cover this case, but it
+    covers a `$ref` that `intersections` keeps. Core also merges in a
+    `oneOf` or an `anyOf`. It merges the `allOf` of a member,
     and each member with the keywords next to the union. The same rule
     applies there.
 
@@ -385,8 +386,14 @@ the usual parse. Default: `{}`.
 
   A union with an intersection as a member is not discriminable
   (`OasUnion.isDiscriminable`). Some libraries do not take an
-  intersection as a member of a discriminated union. An `allOf` of one
-  `$ref` is always a reference.
+  intersection as a member of a discriminated union.
+
+  An `allOf` of one `$ref` is a reference with the keywords next to it.
+  One exception is a union member with a keyword that merges into it: it
+  is an intersection.
+
+  `additionalProperties: false` next to an `allOf` with a kept `$ref`
+  closes only the member that is not a reference.
 - **`responseContradictions`** — `"strict"` (default) or `"unknown"`.
   Reserved. The validator accepts it, but the parser does not read it.
 

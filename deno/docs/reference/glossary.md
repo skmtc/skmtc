@@ -613,7 +613,7 @@ The per-item parse-isolation helper: runs a parser callback inside a
 ### `TypeSystemValue`
 
 The discriminated-union intermediate representation a model generator
-produces from an `OasSchema` — twelve structural variants, each
+produces from an `OasSchema` — structural variants, most
 carrying [`Modifiers`](#modifiers). See
 [the-type-system](../concepts/the-type-system.md).
 

@@ -67,7 +67,7 @@ const toOwnTypes = (type: unknown): DeclaredTypes => {
 }
 
 const toUnionTypes = (members: DeclaredTypes[]): DeclaredTypes =>
-  members.length > 0 && members.every(isTypeList) ? members.flat() : 'any'
+  members.length > 0 && members.every(isTypeList) ? [...new Set(members.flat())] : 'any'
 
 const isTypeList = (types: DeclaredTypes): types is string[] => Array.isArray(types)
 

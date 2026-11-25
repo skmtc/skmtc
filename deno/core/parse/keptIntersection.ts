@@ -8,6 +8,8 @@ import type { OpenAPIV3 } from 'openapi-types'
 import type { KeptRefs } from '@/parse/keptRefs.ts'
 import { isRef, toRefParts, toRefPointer } from '@/helpers/refFns.ts'
 import { isEmpty } from '@/helpers/isEmpty.ts'
+import { hasNullMember } from '@/parse/anyOfSystem.ts'
+import { isPlainObject } from '@/parse/isPlainObject.ts'
 import { isNullOnly } from '@/parse/v3-0/_merge-all-of/nullable-merge.ts'
 
 type SchemaObject = OpenAPIV3.SchemaObject
@@ -64,7 +66,7 @@ export const toIntersectionParts = (schema: SchemaOrReference, keptRefs: KeptRef
   return Object.keys(keywords).every(isOwnKeyword) &&
     allOf.some(isKept) &&
     others.length <= 1 &&
-    others.every(member => !isRef(member) && !('allOf' in member))
+    others.every(member => !isRef(member) && !Array.isArray(member.allOf))
     ? { own: keywords, members: allOf }
     : undefined
 }
@@ -78,6 +80,7 @@ type MergeKeptArgs = {
   /** Merges a schema's own `allOf`. */
   mergeAllOf: (schema: SchemaObject) => SchemaOrReference
   readRef: (ref: ReferenceObject) => SchemaObject
+  normalize: (schema: SchemaObject) => SchemaObject
 }
 
 /**
@@ -85,27 +88,40 @@ type MergeKeptArgs = {
  * kept refs stay, and the others merge into one member, at the place of the
  * first of them.
  */
-export const mergeKept = ({ first, second, keptRefs, merge, mergeAllOf, readRef }: MergeKeptArgs): SchemaOrReference => {
-  const toParts = (schema: SchemaOrReference): Intersection => {
+export const mergeKept = ({
+  first,
+  second,
+  keptRefs,
+  merge,
+  mergeAllOf,
+  readRef,
+  normalize
+}: MergeKeptArgs): SchemaOrReference => {
+  const toParts = (schema: SchemaOrReference, other: SchemaOrReference): Intersection => {
     const parts = toIntersectionParts(schema, keptRefs)
 
     if (parts !== undefined) {
-      return parts
+      return { ...parts, members: parts.members.map(member => (isRef(member) ? member : normalize(member))) }
     }
 
     if (isRef(schema)) {
-      return toParts(readRef(schema))
+      // The other side keeps a ref to the same target: the two are one ref.
+      const isKept = toIntersectionParts(other, keptRefs)?.members.some(
+        member => isRef(member) && isSameTarget(member, schema)
+      )
+
+      return isKept ? { own: {}, members: [schema] } : toParts(readRef(schema), other)
     }
 
     if (schema.allOf?.length === 0) {
       throw new Error('Empty allOf')
     }
 
-    return schema.allOf ? toParts(mergeAllOf(schema)) : { own: {}, members: [schema] }
+    return schema.allOf ? toParts(mergeAllOf(schema), other) : { own: {}, members: [schema] }
   }
 
-  const firstParts = toParts(first)
-  const secondParts = toParts(second)
+  const firstParts = toParts(first, second)
+  const secondParts = toParts(second, first)
 
   const members = secondParts.members.reduce<SchemaOrReference[]>((acc, member) => {
     const index = acc.findIndex(other => (isRef(member) ? isRef(other) && isSameTarget(other, member) : !isRef(other)))
@@ -117,7 +133,7 @@ export const mergeKept = ({ first, second, keptRefs, merge, mergeAllOf, readRef 
 
     const joined =
       isRef(other) && isRef(member)
-        ? keptRefs.copy(other, { ...other, ...member })
+        ? keptRefs.copy(member, keptRefs.copy(other, { ...other, ...member }))
         : merge(other, member)
 
     return acc.map((each, at) => (at === index ? joined : each))
@@ -149,19 +165,63 @@ export const toSiteIntersection = ({ own, members }: Intersection): Intersection
 }
 
 const OBJECT_KEYWORDS = ['required', 'minProperties', 'maxProperties', 'additionalProperties']
+const ARRAY_KEYWORDS = ['minItems', 'maxItems', 'uniqueItems']
+const STRING_KEYWORDS = ['minLength', 'maxLength', 'pattern']
+const NUMBER_KEYWORDS = ['minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf']
 
 /**
- * A member with object keywords and no shape (`{ required: ['id'] }`), as an
- * object: its type was in the kept ref, and a schema with no type loses them.
+ * A member with the keywords of one type and no shape (`{ required: ['id'] }`),
+ * as that type, and the same for the members of its `oneOf` or `anyOf`: the
+ * type was in the kept ref, and a schema with no type loses them.
  */
-export const withObjectType = (member: SchemaOrReference): SchemaOrReference =>
-  !isRef(member) &&
-  OBJECT_KEYWORDS.some(keyword => keyword in member) &&
-  !['type', 'properties', 'items', 'enum', 'oneOf', 'anyOf'].some(keyword => keyword in member)
-    ? { ...member, type: 'object' }
-    : member
+export const withKeywordType = (member: SchemaOrReference): SchemaOrReference => {
+  if (isRef(member) || !isPlainObject(member) || ['type', 'properties', 'items', 'enum'].some(key => key in member)) {
+    return member
+  }
 
-const toSiteSplit =(member: SchemaObject): Split => {
+  if (Array.isArray(member.oneOf) || Array.isArray(member.anyOf)) {
+    return {
+      ...member,
+      ...(Array.isArray(member.oneOf) ? { oneOf: member.oneOf.map(withKeywordType) } : {}),
+      ...(Array.isArray(member.anyOf) ? { anyOf: member.anyOf.map(withKeywordType) } : {})
+    }
+  }
+
+  const hasKeyword = (keywords: string[]): boolean => keywords.some(keyword => keyword in member)
+
+  if (hasKeyword(OBJECT_KEYWORDS)) {
+    return { ...member, type: 'object' }
+  }
+
+  if (hasKeyword(ARRAY_KEYWORDS)) {
+    return { ...member, type: 'array', items: {} }
+  }
+
+  if (hasKeyword(STRING_KEYWORDS)) {
+    return { ...member, type: 'string' }
+  }
+
+  return hasKeyword(NUMBER_KEYWORDS) ? { ...member, type: 'number' } : member
+}
+
+/** `schema` with a `null` member of its `oneOf` or `anyOf` written as `nullable`. */
+const withoutNullMember = (schema: SchemaObject): SchemaObject =>
+  (['oneOf', 'anyOf'] as const).reduce<SchemaObject>((acc, group) => {
+    const members = acc[group]
+
+    if (!Array.isArray(members) || !members.every(isPlainObject) || !hasNullMember(members)) {
+      return acc
+    }
+
+    const { [group]: _group, ...rest } = acc
+    const others = members.filter(member => !hasNullMember([member]))
+
+    return { ...rest, ...(others.length > 0 ? { [group]: others } : {}), nullable: true }
+  }, schema)
+
+const toSiteSplit = (written: SchemaObject): Split => {
+  const member = withoutNullMember(written)
+
   if (isNullOnly(member)) {
     return { own: { nullable: true }, rest: {} }
   }
