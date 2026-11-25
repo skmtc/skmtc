@@ -1,6 +1,6 @@
 ---
 name: skmtc-model
-version: 0.3.1
+version: 0.3.2
 description: >
   The model-generator shape for Skmtc: one definition per component
   schema, built by copying the shipped SKELETON package and filling its
@@ -14,7 +14,7 @@ description: >
 metadata:
   describes:
     '@skmtc/core': '0.47'
-    '@skmtc/lang-typescript': '0.14'
+    '@skmtc/lang-typescript': '0.15'
 ---
 
 # Model generators: fill the skeleton

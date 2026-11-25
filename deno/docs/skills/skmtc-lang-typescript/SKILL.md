@@ -1,6 +1,6 @@
 ---
 name: skmtc-lang-typescript
-version: 0.3.2
+version: 0.3.3
 description: >
   The TypeScript target-language layer for Skmtc generators
   (@skmtc/lang-typescript): projection base factories, TsSnippet, the
@@ -11,7 +11,7 @@ description: >
   skills.
 metadata:
   describes:
-    '@skmtc/lang-typescript': '0.14'
+    '@skmtc/lang-typescript': '0.15'
     '@skmtc/core': '0.47'
 ---
 
@@ -159,9 +159,14 @@ provenance):
   bookends, skipEmpty })`.
 - `FunctionParameter({ typeDefinition, destructure, required, skipEmpty })`
   — one object, four readings: `toString()` (declaration), `toInbound()`
-  (call site), `toPropertyList()`, `hasProperty(name)`.
-- `toPathTemplate('/users/{id}')` → `` /users/${id} ``; `toPathParams` →
-  `/users/:id`; `PathParams` bundles type + parameter + template.
+  (call site), `toPropertyList()` (the variables), `hasProperty(name)`.
+  Destructured, a property whose name cannot be a variable is renamed with
+  `toParameterVariable`: `{'user-id': userId, export: exportValue}`.
+- `toPathTemplate('/users/{id}')` → `` /users/${id} ``, the body of a template
+  literal: static text is escaped, and `{user-id}` gives `${userId}`, or
+  `${params['user-id']}` with `'params'` as the second argument.
+  `toPathParams` → `/users/:id`; `PathParams` bundles type + parameter +
+  template.
 - `keyValues`, `withDescription`, `handleKey`, `handlePropertyName`;
   `TsClass`/`TsHeritage` for class syntax (`TsHeritage` registers its own
   heritage imports).
@@ -176,9 +181,10 @@ hand-roll keyword lists yourself:
 | Where the string lands | Helper |
 |---|---|
 | a binding name (`export const <name>`, a type, a class) | `sanitizeIdentifier(name)` inside `toIdentifierName`, and on a `fallbackName` built from schema text (`default` → `defaultValue`, `2fa` → `_2fa`). A `TsIdentifier` stores the name as given, so the name you return is the name peers insert and `findDefinition` finds. |
+| the variable of an operation parameter | `toParameterVariable(name)` (`user-id` → `userId`, `export` → `exportValue`): the name `FunctionParameter` and `toPathTemplate` use. |
 | an object key | `handleKey(key)`: quotes it only when needed |
 | a property access | `handlePropertyName(name, parent)` |
-| a destructured property | `sanitizePropertyName(name)`: a rename pair when needed |
+| a destructured property that is not a parameter | `sanitizePropertyName(name)`: a rename pair when needed |
 | a string literal | `toStringLiteral(value)`, never `'${value}'` or `"${value}"` |
 | a JSDoc comment | `withDescription(value, { description })`: escapes `*/` |
 | a regex that matches exact text | `escapeRegExpText(text)` |
