@@ -120,7 +120,9 @@ export const toRecordedFunctions = (
 const readFileCount = (output: string): number => {
   const files = Number(output.match(/^\{"files":(\d+)\}\s*$/)?.[1] ?? 0)
 
-  if (files === 0) throw new Error(`the run did not print a positive number of generated files:${output}`)
+  if (files === 0) {
+    throw new Error(`the run did not print a positive number of generated files: ${output}`)
+  }
 
   return files
 }
