@@ -270,7 +270,7 @@ curl -fsSL https://skmtc.dev/install | SKMTC_VERSION=<version> sh
 #   $env:Path = "$HOME\.deno\bin;$env:Path"   # this step
 #   "$HOME\.deno\bin" >> $env:GITHUB_PATH     # later steps
 # On Windows, leave out --typecheck and run tsc yourself: it can report a pass
-# without checking anything (skmtc/skmtc#353).
+# when it checked nothing (skmtc/skmtc#353).
 # Run (builds the project's bundle.js first):
 skmtc generate <project> --json --no-input --typecheck
 # Exit 0 on success, 1 on fatal parseIssue or typecheck failure.

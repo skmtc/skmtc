@@ -565,8 +565,8 @@ Self-contained playbooks. Read only the one you need.
 #### Using Skmtc in CI
 
 1. Pin Deno version.
-2. Install CLI in CI: `curl -fsSL https://skmtc.dev/install | SKMTC_VERSION=<version> sh` — the pin keeps runs reproducible. On a Windows runner, run `$env:SKMTC_VERSION = '<version>'; irm https://skmtc.dev/install.ps1 | iex` in PowerShell. With `CI` set, the installer does not change `PATH`, so then run `$env:Path = "$HOME\.deno\bin;$env:Path"` for the same step and, on GitHub Actions, `"$HOME\.deno\bin" >> $env:GITHUB_PATH` (in a `pwsh` step) for later steps.
-3. `skmtc generate <project> --no-input --json --typecheck` (builds the bundle first). On Windows, leave out `--typecheck` and run `tsc` yourself: it can report a pass without checking anything (skmtc/skmtc#353).
+2. Install CLI in CI: `curl -fsSL https://skmtc.dev/install | SKMTC_VERSION=<version> sh` — the pin keeps runs reproducible. On a Windows runner, run `$env:SKMTC_VERSION = '<version>'; irm https://skmtc.dev/install.ps1 | iex` in PowerShell. With `CI` set, the installer does not change `PATH`. For the same step, run `$env:Path = "$HOME\.deno\bin;$env:Path"`. For later steps on GitHub Actions, run `"$HOME\.deno\bin" >> $env:GITHUB_PATH` in a `pwsh` step.
+3. `skmtc generate <project> --no-input --json --typecheck` (builds the bundle first). On Windows, leave out `--typecheck` and run `tsc` yourself: it can report a pass when it checked nothing (skmtc/skmtc#353).
 4. Archive `manifest.json` as a CI artifact.
 
 ### Author task cards

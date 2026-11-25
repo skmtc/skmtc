@@ -44,7 +44,7 @@ $env:Path = "$HOME\.deno\bin;$env:Path"      # for the rest of this step
 ```
 
 `SKMTC_VERSION` stays set only until this step ends. `--typecheck` does not work
-on Windows yet, and can report a pass without checking anything
+on Windows yet, and can report a pass when it checked nothing
 ([#353](https://github.com/skmtc/skmtc/issues/353)). Run `tsc` in its own step.
 
 Pin to a specific CLI version with `SKMTC_VERSION`. The CLI itself
