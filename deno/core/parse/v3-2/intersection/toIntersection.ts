@@ -4,13 +4,14 @@ import type { StackTrail } from '@/context/StackTrail.ts'
 import { OasIntersection } from '@/oas/intersection/Intersection.ts'
 import { isRef } from '@/helpers/refFns.ts'
 import { hasShapeKeyword } from '@/parse/anyOfSystem.ts'
-import { toSchemaV3 } from '../schema/toSchemasV3.ts'
-import { toUnknown } from '../unknown/toUnknown.ts'
-import { toSpecificationExtensionsV3 } from '../specificationExtensions/toSpecificationExtensionsV3.ts'
-import { parseNullable } from '../_helpers/parseNullable.ts'
-import { parseExample } from '../_helpers/parseExample.ts'
-import { parseDefault } from '../_helpers/parseDefault.ts'
-import { toExternalDocs } from '../externalDocs/toExternalDocs.ts'
+import { withObjectType } from '@/parse/keptIntersection.ts'
+import { toSchemaV3 } from '@/parse/v3-2/schema/toSchemasV3.ts'
+import { toUnknown } from '@/parse/v3-2/unknown/toUnknown.ts'
+import { toSpecificationExtensionsV3 } from '@/parse/v3-2/specificationExtensions/toSpecificationExtensionsV3.ts'
+import { parseNullable } from '@/parse/v3-2/_helpers/parseNullable.ts'
+import { parseExample } from '@/parse/v3-2/_helpers/parseExample.ts'
+import { parseDefault } from '@/parse/v3-2/_helpers/parseDefault.ts'
+import { toExternalDocs } from '@/parse/v3-2/externalDocs/toExternalDocs.ts'
 
 export type ToIntersectionArgs = {
   /** The intersection's own keywords, without `allOf`. */
@@ -65,7 +66,7 @@ export const toIntersection = ({ value, members, stackTrail, context }: ToInters
 
   // A member with no shape of its own (`{ description }`) is any value: the
   // parser must not guess a type from its `example`.
-  const membersParsed = members.map((member, index) =>
+  const membersParsed = members.map(withObjectType).map((member, index) =>
     stackTrail.trace(`${index}`, st =>
       isRef(member) || hasShapeKeyword(member) || 'anyOf' in member || 'not' in member
         ? toSchemaV3({ schema: member, stackTrail: st, context })

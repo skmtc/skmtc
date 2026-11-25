@@ -96,7 +96,20 @@ const NUMERIC: SiblingKeyword[] = [
   'exclusiveMaximum'
 ]
 
-/** The keywords each schema class's `clone` takes: the fields its type has. */
+/** The keywords of an object. An intersection's `clone` takes them as one more member. */
+const OBJECT_KEYWORDS: SiblingKeyword[] = [
+  'properties',
+  'required',
+  'additionalProperties',
+  'minProperties',
+  'maxProperties'
+]
+
+/** Whether `siblings` holds a keyword of an object. */
+export const hasObjectKeyword = (siblings: SiblingKeywords | undefined): boolean =>
+  OBJECT_KEYWORDS.some(keyword => siblings?.[keyword] !== undefined)
+
+/** The keywords each schema class's `clone` takes: the fields its type has, and {@link OBJECT_KEYWORDS} for an intersection. */
 export const SIBLINGS_BY_TYPE: Record<OasSchema['type'], SiblingKeyword[]> = {
   string: [...DESCRIBING, 'deprecated', 'default', 'enums', 'format', 'minLength', 'maxLength', 'pattern'],
   number: [...DESCRIBING, ...NUMERIC],
@@ -108,14 +121,10 @@ export const SIBLINGS_BY_TYPE: Record<OasSchema['type'], SiblingKeyword[]> = {
     'deprecated',
     'default',
     'enums',
-    'properties',
-    'required',
-    'additionalProperties',
-    'minProperties',
-    'maxProperties'
+    ...OBJECT_KEYWORDS
   ],
   union: [...DESCRIBING, 'default'],
-  intersection: [...DESCRIBING, 'deprecated', 'default'],
+  intersection: [...DESCRIBING, 'deprecated', 'default', ...OBJECT_KEYWORDS],
   unknown: DESCRIBING
 }
 
@@ -209,6 +218,11 @@ const toChangedKeywords = (copy: OasSchema, target: OasSchema, siblings: Sibling
   SIBLINGS_BY_TYPE[target.type].filter(keyword => {
     if (siblings[keyword] === undefined) {
       return false
+    }
+
+    // An intersection takes these as a member, so they are no field to compare.
+    if (target.type === 'intersection' && OBJECT_KEYWORDS.includes(keyword)) {
+      return true
     }
 
     const applied: unknown = Reflect.get(copy, keyword)

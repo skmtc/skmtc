@@ -1,6 +1,7 @@
 import type { OasUnknown } from '@/oas/unknown/Unknown.ts'
 import { traverseSchema } from '@/oas/schemaPath/traverseSchema.ts'
-import { toSiblingAnnotations } from '@/oas/schema/siblings.ts'
+import { OasObject } from '@/oas/object/Object.ts'
+import { hasObjectKeyword, toSiblingAnnotations } from '@/oas/schema/siblings.ts'
 import type { SchemaPath } from '@/types/SchemaPath.ts'
 import type { OasExternalDocs } from '@/oas/externalDocs/ExternalDocs.ts'
 import type { OasSchema, ToJsonSchemaOptions } from '@/oas/schema/Schema.ts'
@@ -164,8 +165,9 @@ export class OasIntersection extends OasBase {
   /**
    * A copy of this schema with what `ref` adds at its site applied, as
    * {@link OasUnion.clone} does: the keywords that this type takes, a
-   * sibling's value winning. This schema does not change, and the copy shares
-   * its members.
+   * sibling's value winning. The keywords of an object next to `ref`
+   * (`properties`, `required`) are one more member. This schema does not
+   * change, and the copy shares its members.
    */
   clone(ref?: OasRef<'schema'>): OasIntersection {
     const copy = new OasIntersection({
@@ -176,7 +178,7 @@ export class OasIntersection extends OasBase {
       readOnly: this.readOnly || ref?.readOnly || undefined,
       writeOnly: this.writeOnly || ref?.writeOnly || undefined,
       deprecated: ref?.deprecated ?? this.deprecated,
-      members: this.members,
+      members: ref !== undefined && hasObjectKeyword(ref) ? [...this.members, toSiblingMember(ref)] : this.members,
       default: ref?.default ?? this.default
     })
     copy.stackTrail = this.stackTrail
@@ -210,6 +212,20 @@ export class OasIntersection extends OasBase {
       allOf: this.members.map(member => member.toJsonSchema(options))
     }
   }
+}
+
+/** The keywords of an object next to a reference, as an object. */
+const toSiblingMember = (ref: OasRef<'schema'>): OasObject => {
+  const member = new OasObject({
+    properties: ref.properties,
+    required: ref.required,
+    additionalProperties: ref.additionalProperties,
+    minProperties: ref.minProperties,
+    maxProperties: ref.maxProperties
+  })
+  member.stackTrail = ref.stackTrail
+
+  return member
 }
 
 /** What a reference resolves to, or `undefined` when it names nothing. */

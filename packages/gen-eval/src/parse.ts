@@ -34,7 +34,7 @@ const ROUTER_LABEL = /^to[A-Z]\w*Value$|^schemaToValueFn$/
 const DISPATCH_METADATA_LABELS = new Set(['toIdentifierType', 'isSupported'])
 const SCHEMA_TYPE_LITERALS = new Set([
   'string', 'integer', 'number', 'boolean', 'array', 'object',
-  'union', 'unknown', 'ref', 'custom', 'void', 'null'
+  'union', 'intersection', 'unknown', 'ref', 'custom', 'void', 'null'
 ])
 const CONTAINER_CONSTRUCTORS = /^(Map|Set|WeakMap|WeakSet|Array)$/
 const MUTATOR_VERBS = new Set(['push', 'add', 'set', 'unshift', 'splice', 'delete'])

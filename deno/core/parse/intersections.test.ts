@@ -174,7 +174,7 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
       schemas: {
         Folder: toObject({ direct: member('Folder'), alias: member('Alias'), union: member('Node'), allOf: member('Sub') }),
         Alias: ref('Folder'),
-        Node: { oneOf: [ref('Folder'), ref('File'), ref('Node')] },
+        Node: { oneOf: [ref('Folder'), ref('File')] },
         File: toObject({ folder: ref('Folder') }),
         Sub: { allOf: [ref('Folder'), { description: 'sub' }] }
       }
@@ -309,6 +309,55 @@ for (const openapi of ['3.0.3', '3.1.0', '3.2.0']) {
     assertEquals([at(p, 'nullable'), at(p, 'readOnly'), at(p, 'default')], [true, true, {}])
     // With nothing else beside the ref, it is a nullable ref.
     assertEquals(at(schemas.A, 'properties', 'q'), ref('A'))
+  })
+
+  Deno.test(`${openapi} a member that is readOnly and one that is writeOnly contradict beside a kept ref`, async () => {
+    const schemas = {
+      A: toObject({ p: { allOf: [ref('A'), { readOnly: true }, { writeOnly: true }] } }),
+      B: toObject({ p: { readOnly: true, allOf: [ref('B'), { writeOnly: true, description: 'p' }] } })
+    }
+    const { schemas: parsed, issues } = await parseBounded({ openapi, schemas })
+
+    assertEquals(Object.keys(parsed), [])
+    assertEquals(issues.filter(({ type }) => type === 'INVALID_SCHEMA').length, 2)
+  })
+
+  Deno.test(`${openapi} the null of a nullable member's enum and example goes with its nullable`, async () => {
+    const { schemas, issues } = await parseBounded({
+      openapi,
+      schemas: {
+        A: { oneOf: [text, ref('W')] },
+        W: toObject({ p: { allOf: [ref('A'), { type: 'string', nullable: true, enum: ['a', null], example: null }] } })
+      }
+    })
+    const property = at(schemas.W, 'properties', 'p')
+
+    assertEquals(toAllOf(property), ['#/components/schemas/A', { type: 'string', enum: ['a'] }])
+    assertEquals(at(property, 'nullable'), true)
+    assertEquals(issues, [])
+  })
+
+  Deno.test(`${openapi} a member of object keywords only keeps them`, async () => {
+    const { schemas, issues } = await parseBounded({
+      openapi,
+      schemas: {
+        Node: toObject({ id: text, children: { type: 'array', items: ref('Child') } }),
+        Child: { allOf: [ref('Node'), { required: ['id'], minProperties: 2 }] }
+      }
+    })
+    const [, own] = toAllOf(schemas.Child)
+
+    assertEquals([at(own, 'type'), at(own, 'required'), at(own, 'minProperties')], ['object', ['id'], 2])
+    assertEquals(issues, [])
+  })
+
+  Deno.test(`${openapi} an empty allOf in a member beside a kept ref is reported as one`, async () => {
+    const { issues } = await parseBounded({
+      openapi,
+      schemas: { A: toObject({ p: { allOf: [ref('A'), { type: 'object', allOf: [] }] } }) }
+    })
+
+    assertEquals(issues.map(({ message }) => message), ['Empty allOf'])
   })
 
   Deno.test(`${openapi} a property that narrows its base's ref to its own schema ends`, async () => {

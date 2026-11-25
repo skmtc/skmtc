@@ -6,7 +6,7 @@ import type { OasObject } from '../object/Object.ts'
 import type { OasString } from '../string/String.ts'
 import type { OasUnknown } from '../unknown/Unknown.ts'
 import type { OasUnion } from '../union/Union.ts'
-import type { OasIntersection } from '../intersection/Intersection.ts'
+import type { OasIntersection } from '@/oas/intersection/Intersection.ts'
 
 /**
  * Union type representing all possible OpenAPI Schema objects in the SKMTC system.

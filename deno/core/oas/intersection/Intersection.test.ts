@@ -99,6 +99,21 @@ Deno.test('OasIntersection - resolving a ref with keywords beside it copies the 
   assertEquals([target.nullable, target.description], [undefined, 'a'])
 })
 
+Deno.test('OasIntersection - the object keywords next to a ref are one more member', () => {
+  const { schemas, ref } = setup(ref => ({ A: new OasIntersection({ members: [ref('A'), toObject('a')] }) }))
+  const site = ref('A', { properties: { z: new OasString() }, required: ['a'] })
+  const resolved = site.resolve()
+
+  assert(resolved.type === 'intersection')
+  assertEquals(resolved.members.length, 3)
+  const member = resolved.members[2]
+  assert(member !== undefined && !member.isRef() && member.type === 'object')
+  assertEquals([Object.keys(member.properties ?? {}), member.required], [['z'], ['a']])
+  assertEquals(site.toSkippedSiblings(), [])
+  assertEquals(site.hasValueSiblings(), true)
+  assertEquals(schemas.A?.type === 'intersection' && schemas.A.members.length, 2)
+})
+
 Deno.test('OasIntersection - a clone keeps its not, its externalDocs and its trail', () => {
   const schema = new OasIntersection({ members: [] })
   schema.not = new OasUnknown({})

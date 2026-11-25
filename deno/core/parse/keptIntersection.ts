@@ -1,7 +1,7 @@
 /**
  * The raw form of an intersection inside a merge: an `allOf` of kept refs
  * (`KeptRefs`) and at most one other schema, which the other members merged
- * into, with only the intersection's own keywords beside it.
+ * into, with only `OWN_KEYWORDS` beside it.
  */
 
 import type { OpenAPIV3 } from 'openapi-types'
@@ -14,20 +14,10 @@ type SchemaObject = OpenAPIV3.SchemaObject
 type ReferenceObject = OpenAPIV3.ReferenceObject
 type SchemaOrReference = SchemaObject | ReferenceObject
 
-/** The keywords an `OasIntersection` has itself. `x-*` is one too. */
-const OWN_KEYWORDS = [
-  'title',
-  'description',
-  'externalDocs',
-  'example',
-  'nullable',
-  'readOnly',
-  'writeOnly',
-  'deprecated',
-  'default'
-]
+/** The keywords of a wrapper that stay beside its `allOf`, out of the merge. `x-*` is one too. */
+const OWN_KEYWORDS = ['title', 'description', 'externalDocs', 'example']
 
-/** The own keywords that say how the whole value is used, so they move from a member to the intersection. */
+/** The keywords that say how the whole value is used. They merge as any keyword, and then are the intersection's own. */
 const SITE_KEYWORDS = ['nullable', 'readOnly', 'writeOnly', 'deprecated', 'default']
 
 const isOwnKeyword = (key: string): boolean => OWN_KEYWORDS.includes(key) || key.startsWith('x-')
@@ -43,7 +33,7 @@ const split = (schema: SchemaObject, isOwn: (key: string) => boolean): Split => 
   }
 }
 
-/** A schema's keywords that an intersection has itself, and the others. */
+/** A schema's keywords that stay beside its `allOf`, and the others. */
 export const splitOwnKeywords = (schema: SchemaObject): Split => split(schema, isOwnKeyword)
 
 /** A merge result with the wrapper's own keywords, which win, put back on it. */
@@ -107,7 +97,11 @@ export const mergeKept = ({ first, second, keptRefs, merge, mergeAllOf, readRef 
       return toParts(readRef(schema))
     }
 
-    return schema.allOf?.length ? toParts(mergeAllOf(schema)) : { own: {}, members: [schema] }
+    if (schema.allOf?.length === 0) {
+      throw new Error('Empty allOf')
+    }
+
+    return schema.allOf ? toParts(mergeAllOf(schema)) : { own: {}, members: [schema] }
   }
 
   const firstParts = toParts(first)
@@ -136,25 +130,48 @@ const isSameTarget = (first: ReferenceObject, second: ReferenceObject): boolean 
   toRefPointer(toRefParts({ $ref: first.$ref })) === toRefPointer(toRefParts({ $ref: second.$ref }))
 
 const toRawIntersection = ({ own, members }: Intersection): SchemaOrReference => {
-  const moved = members.map(member => {
-    if (isRef(member)) {
-      return { own: {}, member }
-    }
+  const [only] = members
 
-    if (isNullOnly(member)) {
-      return { own: { nullable: true }, member: {} }
-    }
+  return isEmpty(own) && members.length === 1 && only !== undefined && isRef(only) ? only : { ...own, allOf: members }
+}
 
-    const { own: site, rest } = split(member, key => SITE_KEYWORDS.includes(key))
+/**
+ * The parts of a finished merge, to parse: the keywords that say how the whole
+ * value is used move from the one member that is not a ref to the intersection.
+ */
+export const toSiteIntersection = ({ own, members }: Intersection): Intersection => {
+  const moved = members.map(member => (isRef(member) ? { own: {}, rest: member } : toSiteSplit(member)))
 
-    return { own: site, member: rest }
-  })
+  return {
+    own: moved.reduce<SchemaObject>((acc, { own: site }) => ({ ...acc, ...site }), own),
+    members: moved.map(({ rest }) => rest).filter(member => !isEmpty(member))
+  }
+}
 
-  const keywords = moved.reduce<SchemaObject>((acc, { own: site }) => ({ ...acc, ...site }), own)
-  const kept = moved.map(({ member }) => member).filter(member => !isEmpty(member))
-  const [only] = kept
+const OBJECT_KEYWORDS = ['required', 'minProperties', 'maxProperties', 'additionalProperties']
 
-  return isEmpty(keywords) && kept.length === 1 && only !== undefined && isRef(only)
-    ? only
-    : { ...keywords, allOf: kept }
+/**
+ * A member with object keywords and no shape (`{ required: ['id'] }`), as an
+ * object: its type was in the kept ref, and a schema with no type loses them.
+ */
+export const withObjectType = (member: SchemaOrReference): SchemaOrReference =>
+  !isRef(member) &&
+  OBJECT_KEYWORDS.some(keyword => keyword in member) &&
+  !['type', 'properties', 'items', 'enum', 'oneOf', 'anyOf'].some(keyword => keyword in member)
+    ? { ...member, type: 'object' }
+    : member
+
+const toSiteSplit =(member: SchemaObject): Split => {
+  if (isNullOnly(member)) {
+    return { own: { nullable: true }, rest: {} }
+  }
+
+  // `null` goes with the `nullable` that moves: the member is not nullable without it.
+  const isSite = (key: string): boolean =>
+    SITE_KEYWORDS.includes(key) || (key === 'example' && member.example === null && member.nullable === true)
+  const { own, rest } = split(member, isSite)
+
+  return member.nullable === true && Array.isArray(rest.enum)
+    ? { own, rest: { ...rest, enum: rest.enum.filter((value: unknown) => value !== null) } }
+    : { own, rest }
 }

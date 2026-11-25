@@ -379,12 +379,14 @@ the usual parse. Default: `{}`.
     target of such a `$ref` leads back, through any `$ref`s, to the
     schema that has it.
   - With `all`, the parser keeps each such `$ref`. Each subtype that
-    has an `allOf` of two or more members is then an intersection. Some
-    libraries do not take one as a member of a discriminated union.
+    has an `allOf` of two or more members is then an intersection.
   - With `merge`, the parser keeps none. A `$ref` that closes a cycle can
     then make the parse run out of memory.
 
-  An `allOf` of one `$ref` is always a reference.
+  A union with an intersection as a member is not discriminable
+  (`OasUnion.isDiscriminable`). Some libraries do not take an
+  intersection as a member of a discriminated union. An `allOf` of one
+  `$ref` is always a reference.
 - **`responseContradictions`** — `"strict"` (default) or `"unknown"`.
   Reserved. The validator accepts it, but the parser does not read it.
 

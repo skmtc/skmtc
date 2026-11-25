@@ -149,6 +149,8 @@ Deno.test('toDeclaredTypes - through refs, allOf and unions, and around a cycle'
     Open: { oneOf: [{ $ref: 'Text' }, {}] },
     Loop: { oneOf: [{ $ref: 'Loop' }, { $ref: 'Text' }] },
     Twice: { oneOf: [{ $ref: 'Sub' }, { $ref: 'Sub' }] },
+    Outer: { oneOf: [{ $ref: 'Inner' }, { type: 'object' }] },
+    Inner: { oneOf: [{ $ref: 'Outer' }, text] },
     Nothing: {}
   }
   const peek = ({ $ref }: OpenAPIV3.ReferenceObject): OpenAPIV3.SchemaObject | undefined => {
@@ -162,7 +164,9 @@ Deno.test('toDeclaredTypes - through refs, allOf and unions, and around a cycle'
   assertEquals(toTypes('Sub'), ['string'])
   assertEquals(toTypes('Mixed'), ['string', 'integer'])
   assertEquals(toTypes('Open'), 'any')
-  assertEquals(toTypes('Loop'), ['string'])
+  assertEquals(toTypes('Loop'), 'any')
+  // `Inner` is read inside `Outer`, so its types are not known there.
+  assertEquals(toDeclaredTypes({ schema: { allOf: [{ $ref: 'Outer' }, { $ref: 'Inner' }] }, peek }), 'any')
   assertEquals(toTypes('Twice'), ['string', 'string'])
   assertEquals(toTypes('Nothing'), 'any')
   assertEquals(toTypes('Nowhere'), 'any')
