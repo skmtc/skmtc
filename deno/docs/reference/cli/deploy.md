@@ -222,14 +222,16 @@ When `--no-input` or `--json` is set:
   "deploy": {
     "status": "active",
     "statusReason": null,
-    "endpointUrl": "https://ada-my-api.deno.dev/api",
+    // Always empty: a stack server has no direct URL.
+    "endpointUrl": "",
     "url": "https://api.skmtc.dev/v1/stacks/ada/my-api/servers/3.0.1"
   }
 }
 ```
 
 A `deploy.status` of `error` carries the reason in `deploy.statusReason`
-and exits 1.
+and exits 1. To call the deployed stack, see
+[Call a deployed stack](#call-a-deployed-stack).
 
 ### Failure
 
@@ -269,7 +271,6 @@ Stored ada/my-api@3.0.1
   version: https://skmtc.dev/ada/stacks/my-api/versions/3.0.1
 deploy: active
   url: https://api.skmtc.dev/v1/stacks/ada/my-api/servers/3.0.1
-  endpoint: https://ada-my-api.deno.dev/api
 ```
 
 With `--existing`, the first line is `Already stored ada/my-api@3.0.1`.
@@ -283,6 +284,24 @@ follows the summary.
 Deploy failed for "my-api" at exists:
   Version 3.0.1 already exists. Pass another `--version`, run `skmtc deploy my-api` to deploy the deno.json version (or the next patch when it is stored), or run `skmtc deploy my-api --version 3.0.1 --existing` to deploy the stored version.
 ```
+
+## Call a deployed stack
+
+You call a deployed stack through the hub. The `url` in the output is the
+address of the version:
+
+```
+https://api.skmtc.dev/v1/stacks/{account}/{stack}/servers/{version}
+```
+
+Use `production` as the version to call the version that the `production`
+alias selects. For a generation, send a `POST` request to that URL plus
+`/artifacts`. A private stack needs a hub token in the
+`Authorization: Bearer <token>` header.
+
+To let `skmtc generate` make this request, set
+[`serverUrl`](../settings/client-json-schema.md#serverurl-top-level-optional)
+in `client.json` to the URL without `/artifacts`.
 
 ## What gets uploaded
 
@@ -312,8 +331,8 @@ only**. A public name with a private DNS record still resolves and is
 fetched, and the fetched body comes back to the caller as the schema.
 
 The control that actually holds is the runtime's network isolation. On the
-hub, stack servers run under Deno subhosting, which has no route to an
-internal network. **Running a stack server anywhere else requires an egress
+hub, each call to a stack server runs in a new Cloudflare Container, which
+has no internet access. **Running a stack server anywhere else requires an egress
 policy in front of it** — the hostname check is defense in depth, not a
 substitute.
 

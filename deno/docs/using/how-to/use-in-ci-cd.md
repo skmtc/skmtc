@@ -30,7 +30,7 @@ deterministic. For GitHub Actions:
 ### Install the CLI in CI
 
 ```bash
-SKMTC_VERSION=<version> curl -fsSL https://skmtc.dev/install | sh
+curl -fsSL https://skmtc.dev/install | SKMTC_VERSION=<version> sh
 ```
 
 Pin to a specific CLI version with `SKMTC_VERSION`. The CLI itself
