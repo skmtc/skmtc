@@ -132,7 +132,13 @@ const toDefinition = (context: GenerateContext, name: string) =>
     value: { generatorKey: undefined, toString: () => name }
   })
 
-for (const spelling of ['./types/a.ts', '/types/a.ts', 'types\\a.ts', '.\\types\\a.ts', 'types/a.ts']) {
+for (const spelling of [
+  './types/a.ts',
+  '/types/a.ts',
+  'types\\a.ts',
+  '.\\types\\a.ts',
+  'types/a.ts'
+]) {
   Deno.test(`a file added as @/types/a.ts is found as '${spelling}'`, () => {
     const context = createContext()
     const file = context.addFile(new MockFile({ path: '@/types/a.ts' }))

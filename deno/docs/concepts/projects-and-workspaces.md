@@ -362,7 +362,7 @@ and refuses a `..` segment, a Windows drive or UNC path, or `@/` alone, so
 every artifact lands below `basePath` on every host.
 
 `normalizeWorkspacePath` returns a `WorkspacePath`, a string type that only
-it makes. The engine normalizes a path one time and keeps the
+its module makes. The engine normalizes a path one time and keeps the
 `WorkspacePath` (`ContentSettings.exportPath` is one). TypeScript refuses a
 plain string where the engine needs a `WorkspacePath`. It also refuses a
 `WorkspacePath` as the argument of `normalizeWorkspacePath`, because that

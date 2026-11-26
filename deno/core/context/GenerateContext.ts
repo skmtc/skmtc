@@ -1208,7 +1208,8 @@ export class GenerateContext implements GenerateContextType {
   #toContentSettingsExportPath(exportPath: string, generatorId?: string): WorkspacePath {
     const suffixed = applyGeneratedSuffixToWorkspacePath(
       normalizeWorkspacePath(exportPath, { generatorId }),
-      this.settings?.generatedSuffix ?? DEFAULT_GENERATED_SUFFIX
+      this.settings?.generatedSuffix ?? DEFAULT_GENERATED_SUFFIX,
+      { generatorId }
     )
 
     return this.#ejectedBySuffixedPath.get(suffixed) ?? suffixed

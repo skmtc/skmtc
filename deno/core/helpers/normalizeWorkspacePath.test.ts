@@ -25,8 +25,11 @@ Deno.test('normalizeWorkspacePath: a WorkspacePath is not normalized again, and 
   // @ts-expect-error a plain string has not been normalized
   const unchecked: WorkspacePath = '@/types/x.ts'
 
-  // @ts-expect-error ContentSettings holds a normalized export path
-  ContentSettings.empty({ exportPath: './types/x.ts', identifier: new IdentifierBase({ name: 'X' }) })
+  ContentSettings.empty({
+    // @ts-expect-error ContentSettings holds a normalized export path
+    exportPath: './types/x.ts',
+    identifier: new IdentifierBase({ name: 'X' })
+  })
 
   assertEquals(unchecked, normalized)
 })
@@ -38,6 +41,12 @@ Deno.test('applyGeneratedSuffixToWorkspacePath: inserts the suffix and keeps the
   assertEquals(applyGeneratedSuffixToWorkspacePath(path, ''), '@/types/x.ts')
   // A suffix with a separator is normalized with the path.
   assertEquals(applyGeneratedSuffixToWorkspacePath(path, './/gen'), '@/types/x./gen.ts')
+  // A suffix that escapes basePath is refused, naming the generator.
+  assertThrows(
+    () => applyGeneratedSuffixToWorkspacePath(path, '/../gen', { generatorId: 'gen-x' }),
+    Error,
+    "returned by generator 'gen-x'"
+  )
 })
 
 Deno.test('normalizeWorkspacePath: every accepted spelling canonicalizes to @/ plus a POSIX path', () => {

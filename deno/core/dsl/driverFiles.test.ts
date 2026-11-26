@@ -64,7 +64,11 @@ Deno.test('toImportDestination: another file is its file when it exists, its nor
 Deno.test('toImportFile and ensureFile create the file once, at the normalized path', () => {
   const context = createContext()
 
-  const created = toImportFile({ context, lang, destination: normalizeWorkspacePath('./types/b.ts') })
+  const created = toImportFile({
+    context,
+    lang,
+    destination: normalizeWorkspacePath('./types/b.ts')
+  })
 
   assertEquals(created.path, '@/types/b.ts')
   assertEquals(ensureFile({ context, lang, path: normalizeWorkspacePath('@/types/b.ts') }), created)

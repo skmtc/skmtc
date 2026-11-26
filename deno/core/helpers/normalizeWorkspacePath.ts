@@ -6,9 +6,11 @@ import type { Brand } from '@/types/Brand.ts'
 import { applyGeneratedSuffix } from '@/helpers/applyGeneratedSuffix.ts'
 
 /**
- * A workspace path in its one spelling: what {@link normalizeWorkspacePath}
- * returns, and nothing else makes. The engine keys files by it, so a value
- * of this type finds its file without being normalized again.
+ * A workspace path in its one spelling. Only this module makes one:
+ * {@link normalizeWorkspacePath}, and
+ * {@link applyGeneratedSuffixToWorkspacePath} for one with the suffix
+ * inserted. The engine keys files by it, so a value of this type finds its
+ * file without being normalized again.
  */
 export type WorkspacePath = Brand<string, 'WorkspacePath'>
 
@@ -138,11 +140,14 @@ export const normalizeWorkspacePath = <Path extends string>(
  */
 export const applyGeneratedSuffixToWorkspacePath = (
   path: WorkspacePath,
-  suffix: string
+  suffix: string,
+  options: NormalizeWorkspacePathOptions = {}
 ): WorkspacePath => {
   const suffixed = applyGeneratedSuffix(path, suffix)
 
-  return /[/\\]/.test(suffix) ? normalizeWorkspacePath(suffixed) : (suffixed as WorkspacePath)
+  return /[/\\]/.test(suffix)
+    ? normalizeWorkspacePath(suffixed, options)
+    : (suffixed as WorkspacePath)
 }
 
 /**
