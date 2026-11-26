@@ -1243,8 +1243,8 @@ export class GenerateContext implements GenerateContextType {
    * exists. Neutral primitive: returns the abstract `FileBase` and never
    * constructs anything, so a (future) language-owned `register` can ask
    * "does this file exist yet?" without the engine knowing the language.
-   * To create-on-miss, use the internal `#getFile`; to add a
-   * language-constructed file, use {@link addFile}.
+   * To create on a miss, add a file your language constructs with
+   * {@link addFile} (`getFile(path) ?? addFile(lang.createFile(…))`).
    *
    * `filePath` may be in any spelling. It is normalized only when it is no
    * key: a key is a normalized path. The file's own `path` is the key.
@@ -1630,17 +1630,19 @@ export class GenerateContext implements GenerateContextType {
         }),
         ...args.projection.toIdentifierType(args.operation, this)
       }),
-      exportPath: this.#toContentSettingsExportPath(
-        // A member has no file of its own: the Driver passes its container's.
+      // A member has no file of its own: the Driver passes its container's,
+      // which is a finished export path (normalized, suffixed, ejected).
+      exportPath:
         args.exportPath ??
+        this.#toContentSettingsExportPath(
           args.projection.toExportPath({
             operation: args.operation,
             enrichments,
             variant,
             options
           }),
-        args.projection.id
-      ),
+          args.projection.id
+        ),
       enrichments,
       variant
     })

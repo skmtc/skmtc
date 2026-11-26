@@ -85,13 +85,20 @@ static toExportPath({ operation }): string {
 }
 ```
 
-`toExportPath` can return a path in any form. The engine normalizes it
-one time, when it makes the settings. Thus `exportPath` is a
-`WorkspacePath`: the one form of the path (`@/forms/CreateUser.tsx`).
-The engine finds the file of a `WorkspacePath` and does not normalize
-it again. A plain string is not a `WorkspacePath`. To make settings
-yourself, give the path to `normalizeWorkspacePath` first (see
+`toExportPath` can return a path in any form. When the engine makes the
+settings, it does three things to that path. It normalizes the path. It
+inserts the generated suffix (`.generated`, or
+`settings.generatedSuffix`). If the result is in `settings.ejected`, it
+uses the ejected path. Thus for `@/forms/CreateUser.tsx`, `exportPath`
+is `@/forms/CreateUser.generated.tsx`.
+
+`exportPath` is a `WorkspacePath`, so the Drivers find its file by that
+key and do not normalize it again. A plain string is not a
+`WorkspacePath`. To make settings yourself, give the path to
+`normalizeWorkspacePath` first (see
 [Projects and workspaces](../../concepts/projects-and-workspaces.md)).
+That gives no suffix: use `context.to*ContentSettings` to get the path
+the engine uses.
 
 The path is the second half of the cache key — two Projections with
 the same `identifier.name` but different `exportPath` are *distinct*
@@ -158,7 +165,11 @@ const settings = new ContentSettings({
     name: projection.toIdentifierName({ operation, enrichments, variant }),
     ...projection.toIdentifierType(operation, context)
   }),
-  exportPath: normalizeWorkspacePath(projection.toExportPath({ operation, enrichments, variant })),
+  // normalized, then suffixed; an ejected path replaces the result
+  exportPath: applyGeneratedSuffixToWorkspacePath(
+    normalizeWorkspacePath(projection.toExportPath({ operation, enrichments, variant })),
+    generatedSuffix
+  ),
   enrichments,
   variant
 })
@@ -207,8 +218,10 @@ const identifier = lang.toIdentifier({
   name,
   ...projection.toIdentifierType(operation, context)
 })
-const exportPath = normalizeWorkspacePath(
-  projection.toExportPath({ operation, enrichments, variant })
+// normalized, then suffixed; an ejected path replaces the result
+const exportPath = applyGeneratedSuffixToWorkspacePath(
+  normalizeWorkspacePath(projection.toExportPath({ operation, enrichments, variant })),
+  generatedSuffix
 )
 
 const settings = new ContentSettings({ identifier, exportPath, enrichments, variant })

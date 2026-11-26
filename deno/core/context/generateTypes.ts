@@ -505,9 +505,10 @@ export type ToOasOperationSettingsFields<
    * The Driver passes the container's path when the projection declared a
    * `toContainer`: a member is declared inside its container, so it has no
    * file of its own to compute, and restating one is a way for the two to
-   * disagree.
+   * disagree. It is the container's `ContentSettings.exportPath`, used as it
+   * is: the suffix and `ejected` were applied when that was made.
    */
-  exportPath?: string
+  exportPath?: WorkspacePath
 }
 
 /** {@link ToOasOperationSettingsFields} plus the caller's options. */
