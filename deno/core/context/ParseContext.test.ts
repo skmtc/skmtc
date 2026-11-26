@@ -3,6 +3,7 @@ import { StackTrail } from '@/context/StackTrail.ts'
 import type { Logger } from '@std/log'
 import type { OpenAPIV3 } from 'openapi-types'
 import { assertEquals } from '@std/assert/equals'
+import { assertExists } from '@std/assert/exists'
 import { assertSpyCalls, spy } from '@std/testing/mock'
 import { OasDocument } from '@/oas/document/Document.ts'
 
@@ -192,6 +193,43 @@ Deno.test('ParseContext - logIssueNoKey logs each issue at its own level', () =>
     message: 'Test debug',
     type: 'UNEXPECTED_PROPERTY',
     parent: '{}'
+  })
+})
+
+Deno.test('ParseContext - a ref to a removed component logs INVALID_DEPENDENCY_REF as an error', () => {
+  const mockLogger = { error: () => {}, warn: () => {}, debug: () => {} } as unknown as Logger
+  const errorSpy = spy(mockLogger, 'error')
+
+  const parseContext = new ParseContext({
+    input: oasInput({
+      openapi: '3.0.3',
+      info: { title: 'Test', version: '1.0.0' },
+      paths: {},
+      components: {
+        schemas: {
+          // `minLength` is not a number, so `Name` is removed, and then `User`, which refs it.
+          Name: JSON.parse('{ "type": "string", "minLength": "oops" }'),
+          User: { type: 'object', properties: { name: { $ref: '#/components/schemas/Name' } } }
+        }
+      }
+    }),
+    logger: mockLogger,
+    silent: false
+  })
+
+  parseContext.parse(new StackTrail([]))
+
+  const dependencyIssue = parseContext.issues.find(({ type }) => type === 'INVALID_DEPENDENCY_REF')
+
+  assertExists(dependencyIssue)
+  assertSpyCalls(errorSpy, 2)
+  // The payload has no `cause`, which carries a stack.
+  assertEquals(errorSpy.calls[1].args[0], {
+    protocol: 'oas',
+    level: 'error',
+    location: 'components:schemas:User:properties:name',
+    message: dependencyIssue.message,
+    type: 'INVALID_DEPENDENCY_REF'
   })
 })
 

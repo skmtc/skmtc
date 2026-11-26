@@ -728,25 +728,26 @@ export class ParseContext {
     const at = rootCause.location === undefined ? '' : ` at '${rootCause.location}'`
     const message = `Depends on '${refKey}', removed because of the error${at}: ${errorMessage}`
 
+    // `logIssueAt` serializes the cause and picks the issue's protocol shape.
     switch (this.protocol.type) {
       case 'oas':
-        this.#addIssue({
+        this.logIssueAt({
           protocol: 'oas',
           level: 'error',
           type: 'INVALID_DEPENDENCY_REF',
           location,
           message,
-          cause: toSerializedError(error)
+          cause: error
         })
         break
       case 'gql':
-        this.#addIssue({
+        this.logIssueAt({
           protocol: 'gql',
           level: 'error',
           type: 'INVALID_DEPENDENCY_REF',
           location,
           message,
-          cause: toSerializedError(error)
+          cause: error
         })
         break
       default: {
