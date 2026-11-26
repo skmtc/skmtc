@@ -50,11 +50,16 @@ export const register = (
   context: GenerateContextType,
   args: TsRegisterArgs & { destinationPath: string }
 ): void => {
-  const destinationPath = normalizeWorkspacePath(args.destinationPath)
-
-  if (!context.getFile(destinationPath)) {
-    context.addFile(new TsFile({ path: destinationPath, settings: context.settings }))
-  }
+  // The file is looked up once, by the path as given; its own `path` is the
+  // normalized one, which every step below uses.
+  const { path: destinationPath } =
+    context.getFile(args.destinationPath) ??
+    context.addFile(
+      new TsFile({
+        path: normalizeWorkspacePath(args.destinationPath),
+        settings: context.settings
+      })
+    )
 
   // In the imports map a string is either a module specifier (`zod`,
   // `@tanstack/query`, and any bare string) or an export path, which must

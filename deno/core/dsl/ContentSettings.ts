@@ -1,12 +1,13 @@
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import { DEFAULT_VARIANT } from '@/types/Variant.ts'
+import type { WorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 
 /**
  * Arguments for creating empty ContentSettings without enrichments.
  */
 type EmptyArgs = {
   /** The path where generated content will be exported */
-  exportPath: string
+  exportPath: WorkspacePath
   /** The identifier for the content being generated */
   identifier: IdentifierBase
   /**
@@ -27,7 +28,7 @@ type CreateArgs<EnrichmentType = undefined> = {
   /** The identifier for the content being generated */
   identifier: IdentifierBase
   /** The path where generated content will be exported */
-  exportPath: string
+  exportPath: WorkspacePath
   /** Custom enrichment data for extending generation */
   enrichments: EnrichmentType
   /**
@@ -62,15 +63,15 @@ type CreateArgs<EnrichmentType = undefined> = {
  *
  * @example Basic settings without enrichments
  * ```typescript
- * import { ContentSettings } from '@skmtc/core';
+ * import { ContentSettings, normalizeWorkspacePath } from '@skmtc/core';
  * import { createType } from '@skmtc/lang-typescript';
  *
  * const settings = ContentSettings.empty({
- *   exportPath: './src/generated/models.ts',
+ *   exportPath: normalizeWorkspacePath('./src/generated/models.ts'),
  *   identifier: createType('UserModels')
  * });
  *
- * console.log(settings.exportPath); // './src/generated/models.ts'
+ * console.log(settings.exportPath); // '@/src/generated/models.ts'
  * console.log(settings.enrichments); // undefined
  * ```
  *
@@ -84,7 +85,7 @@ type CreateArgs<EnrichmentType = undefined> = {
  *
  * const enrichedSettings = new ContentSettings({
  *   identifier: createType('ValidatedModels'),
- *   exportPath: './src/models/validated.ts',
+ *   exportPath: normalizeWorkspacePath('./src/models/validated.ts'),
  *   enrichments: {
  *     validateRequired: true,
  *     generateComments: true,
@@ -106,7 +107,7 @@ type CreateArgs<EnrichmentType = undefined> = {
  *       ...args,
  *       settings: new ContentSettings({
  *         identifier: createType(args.refName),
- *         exportPath: './src/validated-models.ts',
+ *         exportPath: normalizeWorkspacePath('./src/validated-models.ts'),
  *         enrichments: {
  *           validateRequired: true,
  *           generateComments: false,
@@ -137,8 +138,12 @@ export class ContentSettings<EnrichmentType = undefined> {
   /** The identifier for the content being generated */
   identifier: IdentifierBase
 
-  /** The path where generated content will be exported */
-  exportPath: string
+  /**
+   * The path where generated content will be exported, normalized
+   * ({@link normalizeWorkspacePath}): it finds its file without being
+   * normalized again.
+   */
+  exportPath: WorkspacePath
 
   /** Custom enrichment data for extending generation */
   enrichments: EnrichmentType
@@ -164,7 +169,7 @@ export class ContentSettings<EnrichmentType = undefined> {
    * ```typescript
    * const settings = new ContentSettings({
    *   identifier: createType('ApiModels'),
-   *   exportPath: './src/api/models.ts',
+   *   exportPath: normalizeWorkspacePath('./src/api/models.ts'),
    *   enrichments: {
    *     includeValidation: true,
    *     format: 'detailed'
@@ -196,7 +201,7 @@ export class ContentSettings<EnrichmentType = undefined> {
    * ```typescript
    * const basicSettings = ContentSettings.empty({
    *   identifier: createType('SimpleModels'),
-   *   exportPath: './src/models.ts'
+   *   exportPath: normalizeWorkspacePath('./src/models.ts')
    * });
    *
    * console.log(basicSettings.enrichments); // undefined
@@ -208,7 +213,7 @@ export class ContentSettings<EnrichmentType = undefined> {
    *       ...args,
    *       settings: ContentSettings.empty({
    *         identifier: createType(args.refName),
-   *         exportPath: './src/simple-models.ts'
+   *         exportPath: normalizeWorkspacePath('./src/simple-models.ts')
    *       })
    *     });
    *   }

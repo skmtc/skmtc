@@ -360,6 +360,20 @@ generator hands it (`normalizeWorkspacePath` in `@skmtc/core`) — `./`, the
 bare form, a leading `/` and Windows separators all become that spelling —
 and refuses a `..` segment, a Windows drive or UNC path, or `@/` alone, so
 every artifact lands below `basePath` on every host.
+
+`normalizeWorkspacePath` returns a `WorkspacePath`, a string type that only
+its module makes. The engine normalizes an export path when it makes the
+content settings, and keeps the `WorkspacePath` in
+`ContentSettings.exportPath`. The Drivers find the file of that path by its
+key and do not normalize it again.
+
+TypeScript refuses a
+plain string where the engine needs a `WorkspacePath`. It also refuses a
+`WorkspacePath` as the argument of `normalizeWorkspacePath`, because that
+path has its one form already. A generator still uses plain strings for
+`toExportPath` and for `destinationPath`. The engine finds the file of each
+string and uses the path of that file.
+
 `toNormalizedWorkspacePath` is the same path with no anchor, what
 `toResolvedArtifactPath` joins onto `basePath`; `isValidWorkspacePath` is
 the non-throwing form of the checks, used by the settings schema; and

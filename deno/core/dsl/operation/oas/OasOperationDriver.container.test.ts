@@ -15,6 +15,7 @@ import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 import { OasOperation } from '@/oas/operation/Operation.ts'
 import type { Method } from '@/types/Method.ts'
+import type { ClientSettings } from '@/types/Settings.ts'
 import { emptyEnrichmentSchema } from '@/types/Enrichments.ts'
 import type { OasOperationProjectionConstructorArgs } from '@/dsl/operation/oas/types.ts'
 import type { OasOperationContainerConstructorArgs } from '@/dsl/operation/oas/toOasOperationContainerBase.ts'
@@ -31,7 +32,7 @@ const mockLogger: log.Logger = {
 const toOperation = (method: Method, path: string, tag: string) =>
   new OasOperation({ path, method, pathItem: undefined, tags: [tag], responses: {} })
 
-const createContext = (operations: OasOperation[]) =>
+const createContext = (operations: OasOperation[], settings?: ClientSettings) =>
   new GenerateContext({
     document: {
       type: 'oas',
@@ -41,7 +42,7 @@ const createContext = (operations: OasOperation[]) =>
         operations
       })
     },
-    settings: undefined,
+    settings,
     logger: mockLogger,
     captureCurrentResult: () => {},
     toGeneratorConfigMap: () => ({})
@@ -126,6 +127,24 @@ Deno.test('every member makes the same call; the first one creates the container
   )
   // The member's `toExportPath` was never consulted.
   assertEquals(context.getFile('@/unused.ts'), undefined)
+})
+
+Deno.test('a member is in its container with a generated suffix that has a separator', () => {
+  const getUsers = toOperation('get', '/users', 'Users')
+  const context = createContext([getUsers], { generatedSuffix: './/gen' })
+
+  const inserted = context.insertOperation({ projection: ServiceMethod, operation: getUsers })
+
+  // The container's export path, used as it is: the suffix goes in once.
+  assertEquals(inserted.settings.exportPath, '@/api/UsersApi./gen.ts')
+  assertEquals(
+    context.findDefinition({
+      name: 'getusers',
+      exportPath: '@/api/UsersApi./gen.ts',
+      into: 'UsersService'
+    })?.identifier.name,
+    'getusers'
+  )
 })
 
 Deno.test('the container carries an identity key, so every member computes the same one', () => {

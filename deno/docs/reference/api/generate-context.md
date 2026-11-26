@@ -36,7 +36,8 @@ class GenerateContext implements GenerateContextType {
   registerJson(args: RegisterJsonArgs): void
   registerMarkdown(args: RegisterMarkdownArgs): void
   getFile(filePath: string): FileBase | undefined
-  addFile(file: FileBase): void
+  getFileByWorkspacePath(path: WorkspacePath): FileBase | undefined
+  addFile<File extends FileBase>(file: File): File
   get inspectedFiles(): ReadonlyMap<string, FileBase>
   insertOperation<V, E, P>(args: InsertOperationArgs<V, E, P>): Inserted<V, E>
   insertModel<V, E, P>(projection: ModelProjection<V, E, P>, ref: RefParts, ...rest: ProjectionOptionsRest<InsertModelOptions<P>, P>): Inserted<V, E>
@@ -100,9 +101,27 @@ A function returning the configured generator map. Called by
 
 The accumulated file map (`Map<path, FileBase>`) and preview
 objects. Mutated by `register` and the Drivers. Read through
-`getFile`, `inspectedFiles`, and `findDefinition`.
+`getFile`, `getFileByWorkspacePath`, `inspectedFiles`, and
+`findDefinition`.
+
+The key of a file is its normalized path. `addFile` normalizes the
+path of the file it adds, and writes that path to `file.path`.
 
 ## Methods
+
+### `getFile(filePath: string): FileBase | undefined`
+
+The file at `filePath`, or `undefined`. `filePath` can have any form
+(`./`, `/`, `\`, or no anchor). The engine looks it up as it is first,
+because a key is a normalized path. It normalizes `filePath` only when
+it is not a key.
+
+### `getFileByWorkspacePath(path: WorkspacePath): FileBase | undefined`
+
+The file at a normalized path, or `undefined`. The engine looks the
+path up as it is and does not normalize it again. When there is no
+file at a `WorkspacePath`, there is no file at that path in any form.
+The Drivers use it for `ContentSettings.exportPath`.
 
 ### `toArtifacts(stackTrail: StackTrail): GenerateResult`
 

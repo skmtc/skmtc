@@ -1,7 +1,13 @@
 import type { ModelProjection } from './types.ts'
 import type { GenerateContextType, InsertModelOptions } from '@/context/generateTypes.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
+import type { WorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
+import {
+  ensureFile,
+  findDefinitionAt,
+  toImportDestination,
+  toImportFile
+} from '@/dsl/driverFiles.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '../GeneratedValue.ts'
@@ -33,7 +39,7 @@ type ApplyArgs = {
 
 type GetDefinitionArgs = {
   identifier: IdentifierBase
-  exportPath: string
+  exportPath: WorkspacePath
   noExport?: boolean
 }
 
@@ -106,18 +112,12 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
   }
 
   /**
-   * Ensure the file at `path` exists, creating it on first write through
-   * the projection's language — the static read off the projection class
-   * at the use site, never persisted (works pre-construction on the
-   * cache-hit path). Returns the normalized path.
+   * The code File at `path`, created on first use through the projection's
+   * language — the static read off the projection class at the use site,
+   * never persisted (works pre-construction on the cache-hit path).
    */
-  private ensureFile(path: string): string {
-    return ensureFile({ context: this.context, lang: this.projection.lang, path })
-  }
-
-  /** The code File at `path`, created through the projection's language on first use. */
-  private ensureCodeFile(path: string): CodeFileBase {
-    const file = this.context.getFile(this.ensureFile(path))
+  private ensureCodeFile(path: WorkspacePath): CodeFileBase {
+    const file = ensureFile({ context: this.context, lang: this.projection.lang, path })
 
     if (!(file instanceof CodeFileBase)) {
       throw new Error(`File at '${path}' is not a code file: a model Definition cannot go there.`)
@@ -150,7 +150,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
       )
     }
 
-    const found = this.context.findDefinition({ name: identifier.name, exportPath })
+    const found = findDefinitionAt({ context: this.context, name: identifier.name, exportPath })
 
     if (found !== undefined) {
       if (this.affirmDefinition<V>(found, exportPath)) {
@@ -167,7 +167,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
     // there, not a cache miss.
     const marker = new PendingDefinition({
       identifier,
-      exportPath: normalizeWorkspacePath(exportPath),
+      exportPath,
       generatorKey,
       options: this.options,
       projection: this.projection
@@ -196,7 +196,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
 
     // Added once the constructor returned, so the Definition renders after
     // the models it refers to, and a constructor that throws adds no file.
-    const taken = this.context.findDefinition({ name: identifier.name, exportPath })
+    const taken = findDefinitionAt({ context: this.context, name: identifier.name, exportPath })
 
     if (taken !== undefined) {
       assertSameKey({
@@ -214,7 +214,7 @@ export class ModelDriver<V extends GeneratedValue, EnrichmentType, ProjectionOpt
 
   private affirmDefinition<V extends GeneratedValue>(
     definition: DefinitionBase | undefined,
-    exportPath: string
+    exportPath: WorkspacePath
   ): definition is DefinitionBase<V> {
     if (!definition) {
       return false
@@ -307,7 +307,8 @@ const whilePending = <T>({ context, marker }: WhilePendingArgs, construct: () =>
 type FindPendingArgs = {
   context: GenerateContextType
   name: string
-  exportPath: string
+  /** Normalized, as each entry's is: equal paths name one file. */
+  exportPath: WorkspacePath
 }
 
 /**
@@ -319,13 +320,10 @@ const findPending = ({
   context,
   name,
   exportPath
-}: FindPendingArgs): PendingDefinition | undefined => {
-  const path = normalizeWorkspacePath(exportPath)
-
-  return context.pendingStack.find(
-    pending => pending.identifier.name === name && pending.exportPath === path
+}: FindPendingArgs): PendingDefinition | undefined =>
+  context.pendingStack.find(
+    pending => pending.identifier.name === name && pending.exportPath === exportPath
   )
-}
 
 type AssertSamePendingArgs = {
   pending: PendingDefinition
@@ -356,28 +354,11 @@ const assertSamePending = ({
   assertSameOptions({ name, exportPath, cachedOptions: pending.options, options })
 }
 
-type EnsureFileArgs = {
-  context: GenerateContextType
-  lang: Lang
-  path: string
-}
-
-/** Ensure the file at `path` exists, creating it through `lang` on first write. Returns the normalized path. */
-const ensureFile = ({ context, lang, path }: EnsureFileArgs): string => {
-  const normalizedPath = normalizeWorkspacePath(path)
-
-  if (!context.getFile(normalizedPath)) {
-    context.addFile(lang.createFile({ path: normalizedPath, settings: context.settings }))
-  }
-
-  return normalizedPath
-}
-
 type StitchModelImportArgs = {
   context: GenerateContextType
   lang: Lang
   identifier: IdentifierBase
-  exportPath: string
+  exportPath: WorkspacePath
   destinationPath?: string
 }
 
@@ -394,17 +375,15 @@ const stitchModelImport = ({
   exportPath,
   destinationPath
 }: StitchModelImportArgs): void => {
-  if (
-    !destinationPath ||
-    normalizeWorkspacePath(exportPath) === normalizeWorkspacePath(destinationPath)
-  ) {
+  const importInto = toImportDestination({ context, exportPath, destinationPath })
+
+  if (importInto === undefined) {
     return
   }
 
-  ensureFile({ context, lang, path: destinationPath })
   context.register({
     imports: [lang.toImport({ identifier, module: exportPath })],
-    destinationPath
+    destinationPath: toImportFile({ context, lang, destination: importInto }).path
   })
 }
 
@@ -430,7 +409,7 @@ export const isReferencedBack = ({ context, settings }: IsReferencedBackArgs): b
 
 type IsReferencedBackArgs = {
   context: GenerateContextType
-  settings: { identifier: { name: string }; exportPath: string }
+  settings: { identifier: { name: string }; exportPath: WorkspacePath }
 }
 
 /** A model's content settings, once the peer is known to have the variant and to support the model. */

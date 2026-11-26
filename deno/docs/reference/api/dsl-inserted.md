@@ -30,7 +30,7 @@ class Inserted<V extends GeneratedValue, EnrichmentType = undefined> {
 
   toName(): string
   toIdentifier(): IdentifierBase
-  toExportPath(): string
+  toExportPath(): WorkspacePath
   toValue(): V
 }
 ```
@@ -112,9 +112,10 @@ this.register({
 when `destinationPath !== exportPath` — most consumers don't need
 to do this manually.)
 
-### `toExportPath(): string`
+### `toExportPath(): WorkspacePath`
 
-Returns `this.settings.exportPath`. The peer's file path. Useful
+Returns `this.settings.exportPath`. The peer's file path, normalized
+(`@/src/models/User.ts`). Useful
 when constructing import statements for cases the Driver hasn't
 handled automatically (rare — see note on `toIdentifier`).
 

@@ -1,5 +1,10 @@
-import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
-import { applyGeneratedSuffix, DEFAULT_GENERATED_SUFFIX } from '@/helpers/applyGeneratedSuffix.ts'
+import {
+  applyGeneratedSuffixToWorkspacePath,
+  normalizeWorkspacePath,
+  type WorkspacePath
+} from '@/helpers/normalizeWorkspacePath.ts'
+import { getByWorkspacePath } from '@/helpers/getByWorkspacePath.ts'
+import { DEFAULT_GENERATED_SUFFIX } from '@/helpers/applyGeneratedSuffix.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { PendingDefinition } from '@/dsl/PendingDefinition.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
@@ -1200,10 +1205,11 @@ export class GenerateContext implements GenerateContextType {
    * name real files verbatim (a JSON config or a hand-named barrel
    * must not be renamed).
    */
-  #toContentSettingsExportPath(exportPath: string, generatorId?: string): string {
-    const suffixed = applyGeneratedSuffix(
+  #toContentSettingsExportPath(exportPath: string, generatorId?: string): WorkspacePath {
+    const suffixed = applyGeneratedSuffixToWorkspacePath(
       normalizeWorkspacePath(exportPath, { generatorId }),
-      this.settings?.generatedSuffix ?? DEFAULT_GENERATED_SUFFIX
+      this.settings?.generatedSuffix ?? DEFAULT_GENERATED_SUFFIX,
+      { generatorId }
     )
 
     return this.#ejectedBySuffixedPath.get(suffixed) ?? suffixed
@@ -1215,14 +1221,14 @@ export class GenerateContext implements GenerateContextType {
    * what suffix injection produces for the generator's declared path;
    * the values are the suffix-less paths the user owns.
    */
-  get #ejectedBySuffixedPath(): Map<string, string> {
+  get #ejectedBySuffixedPath(): Map<WorkspacePath, WorkspacePath> {
     if (this.#ejectedBySuffixedPathCache === undefined) {
       const suffix = this.settings?.generatedSuffix ?? DEFAULT_GENERATED_SUFFIX
 
       this.#ejectedBySuffixedPathCache = new Map(
         (this.settings?.ejected ?? []).map(ejectedPath => {
           const normalized = normalizeWorkspacePath(ejectedPath)
-          return [applyGeneratedSuffix(normalized, suffix), normalized]
+          return [applyGeneratedSuffixToWorkspacePath(normalized, suffix), normalized]
         })
       )
     }
@@ -1230,18 +1236,30 @@ export class GenerateContext implements GenerateContextType {
     return this.#ejectedBySuffixedPathCache
   }
 
-  #ejectedBySuffixedPathCache: Map<string, string> | undefined
+  #ejectedBySuffixedPathCache: Map<WorkspacePath, WorkspacePath> | undefined
 
   /**
    * Look up an already-registered file by path, or `undefined` if none
    * exists. Neutral primitive: returns the abstract `FileBase` and never
    * constructs anything, so a (future) language-owned `register` can ask
    * "does this file exist yet?" without the engine knowing the language.
-   * To create-on-miss, use the internal `#getFile`; to add a
-   * language-constructed file, use {@link addFile}.
+   * To create on a miss, add a file your language constructs with
+   * {@link addFile} (`getFile(path) ?? addFile(lang.createFile(…))`).
+   *
+   * `filePath` may be in any spelling. It is normalized only when it is no
+   * key: a key is a normalized path. The file's own `path` is the key.
    */
   getFile(filePath: string): FileBase | undefined {
-    return this.#files.get(normalizeWorkspacePath(filePath))
+    return getByWorkspacePath(this.#files, filePath)
+  }
+
+  /**
+   * The file whose normalized path is `path`, or `undefined`. A normalized
+   * path is a key as it is, so a miss is not normalized again, as it is in
+   * {@link getFile}: there is no file there in any spelling.
+   */
+  getFileByWorkspacePath(path: WorkspacePath): FileBase | undefined {
+    return this.#files.get(path)
   }
 
   /**
@@ -1262,7 +1280,8 @@ export class GenerateContext implements GenerateContextType {
    * Store a language-constructed file. The engine never constructs a
    * concrete (language) `File`; the language's `register` builds its own
    * `FileBase` subclass and hands it in here. Throws if a file already
-   * exists at the (normalized) path. Returns the stored file, so
+   * exists at the (normalized) path. Sets `file.path` to that normalized
+   * path, the file's key. Returns the stored file, so
    * get-or-create is a single expression at the call site
    * (`context.getFile(path) ?? context.addFile(new KtFile({ … }))`).
    */
@@ -1285,6 +1304,7 @@ export class GenerateContext implements GenerateContextType {
       )
     }
 
+    file.path = normalizedPath
     this.#files.set(normalizedPath, file)
     this.#foldedPaths.set(foldedPath, normalizedPath)
 
@@ -1298,14 +1318,9 @@ export class GenerateContext implements GenerateContextType {
    * @param args - Registration arguments with destination path and JSON content
    */
   registerJson({ destinationPath, json }: RegisterJsonArgs) {
-    const normalizedPath = normalizeWorkspacePath(destinationPath)
-
-    let currentFile = this.getFile(normalizedPath)
-
-    if (!currentFile) {
-      currentFile = new JsonFile({ path: normalizedPath, content: {} })
-      this.addFile(currentFile)
-    }
+    const currentFile =
+      this.getFile(destinationPath) ??
+      this.addFile(new JsonFile({ path: normalizeWorkspacePath(destinationPath), content: {} }))
 
     invariant(
       currentFile instanceof JsonFile,
@@ -1325,14 +1340,9 @@ export class GenerateContext implements GenerateContextType {
    * @experimental This method is experimental and may change in future versions
    */
   registerMarkdown({ destinationPath, markdown }: RegisterMarkdownArgs) {
-    const normalizedPath = normalizeWorkspacePath(destinationPath)
-
-    let currentFile = this.getFile(normalizedPath)
-
-    if (!currentFile) {
-      currentFile = new MarkdownFile({ path: normalizedPath, content: '' })
-      this.addFile(currentFile)
-    }
+    const currentFile =
+      this.getFile(destinationPath) ??
+      this.addFile(new MarkdownFile({ path: normalizeWorkspacePath(destinationPath), content: '' }))
 
     invariant(
       currentFile instanceof MarkdownFile,
@@ -1361,9 +1371,7 @@ export class GenerateContext implements GenerateContextType {
     destinationPath,
     into
   }: ContextRegisterArgs) {
-    const normalizedPath = normalizeWorkspacePath(destinationPath)
-
-    const currentFile = this.getFile(normalizedPath)
+    const currentFile = this.getFile(destinationPath)
 
     // `register` never creates files — it speaks pure data and the engine
     // never names a file class. Callers pre-create the destination file
@@ -1372,7 +1380,8 @@ export class GenerateContext implements GenerateContextType {
     // caller.
     invariant(
       currentFile,
-      `Cannot register into '${normalizedPath}' — the file does not exist. ` +
+      () =>
+        `Cannot register into '${normalizeWorkspacePath(destinationPath)}' — the file does not exist. ` +
         `Pre-create it through your lang (its register function does this).`
     )
 
@@ -1399,7 +1408,7 @@ export class GenerateContext implements GenerateContextType {
       const place =
         into === undefined || !placesADefinition
           ? currentFile
-          : this.#toContainer(currentFile, into, normalizedPath)
+          : this.#toContainer(currentFile, into, currentFile.path)
 
       definitions?.forEach(definition => {
         if (definition) {
@@ -1511,11 +1520,14 @@ export class GenerateContext implements GenerateContextType {
     // the use site (same ephemeral read the Drivers make) — pre-creates
     // the destination file caller-side, and stores via the pure-data
     // `register`.
-    const normalizedPath = normalizeWorkspacePath(destinationPath)
-
-    if (!this.getFile(normalizedPath)) {
-      this.addFile(projection.lang.createFile({ path: normalizedPath, settings: this.settings }))
-    }
+    const file =
+      this.getFile(destinationPath) ??
+      this.addFile(
+        projection.lang.createFile({
+          path: normalizeWorkspacePath(destinationPath),
+          settings: this.settings
+        })
+      )
 
     const definition = projection.lang.toDefinition({
       context: this,
@@ -1524,7 +1536,7 @@ export class GenerateContext implements GenerateContextType {
       noExport: insertOptions.noExport
     })
 
-    this.register({ definitions: [definition], destinationPath: normalizedPath })
+    this.register({ definitions: [definition], destinationPath: file.path })
 
     // @TODO Using mapped types would help avoid generics casting
     return definition as InsertNormalizedModelReturn<V, Schema>
@@ -1618,17 +1630,19 @@ export class GenerateContext implements GenerateContextType {
         }),
         ...args.projection.toIdentifierType(args.operation, this)
       }),
-      exportPath: this.#toContentSettingsExportPath(
-        // A member has no file of its own: the Driver passes its container's.
+      // A member has no file of its own: the Driver passes its container's,
+      // which is a finished export path (normalized, suffixed, ejected).
+      exportPath:
         args.exportPath ??
+        this.#toContentSettingsExportPath(
           args.projection.toExportPath({
             operation: args.operation,
             enrichments,
             variant,
             options
           }),
-        args.projection.id
-      ),
+          args.projection.id
+        ),
       enrichments,
       variant
     })

@@ -1,9 +1,10 @@
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratorKey } from '@/dsl/GeneratorKeys.ts'
+import type { WorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 
 type PendingDefinitionArgs = {
   identifier: IdentifierBase
-  exportPath: string
+  exportPath: WorkspacePath
   generatorKey: GeneratorKey
   options: unknown
   projection: unknown
@@ -26,7 +27,7 @@ type PendingDefinitionArgs = {
 export class PendingDefinition {
   identifier: IdentifierBase
   /** The file the Definition will go to, normalized. */
-  exportPath: string
+  exportPath: WorkspacePath
   /** The key the Definition will carry: the identity check runs on the entry too. */
   generatorKey: GeneratorKey
   /** The caller's options the projection is constructed with: identity, like the key. */

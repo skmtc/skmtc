@@ -20,6 +20,7 @@ import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { RefParts } from '@/helpers/refFns.ts'
 import type { SchemaToNonRef, TypeSystemOutput } from '@/types/TypeSystem.ts'
 import type { FileBase } from '@/dsl/FileBase.ts'
+import type { WorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 import type { ImportBase } from '@/dsl/ImportBase.ts'
 import type { ReExportBase } from '@/dsl/ReExportBase.ts'
 import type { Stringable } from '@/dsl/Stringable.ts'
@@ -504,9 +505,10 @@ export type ToOasOperationSettingsFields<
    * The Driver passes the container's path when the projection declared a
    * `toContainer`: a member is declared inside its container, so it has no
    * file of its own to compute, and restating one is a way for the two to
-   * disagree.
+   * disagree. It is the container's `ContentSettings.exportPath`, used as it
+   * is: the suffix and `ejected` were applied when that was made.
    */
-  exportPath?: string
+  exportPath?: WorkspacePath
 }
 
 /** {@link ToOasOperationSettingsFields} plus the caller's options. */
@@ -637,6 +639,8 @@ export type GenerateContextType = {
   register: (args: ContextRegisterArgs) => void
   /** Look up an existing file by path (no creation); the neutral read primitive. */
   getFile: (filePath: string) => FileBase | undefined
+  /** Look up an existing file by its normalized path, which is its key: a miss is not normalized again. */
+  getFileByWorkspacePath: (path: WorkspacePath) => FileBase | undefined
   /** Read-only view of every file generated so far — an inspection/tooling seam (not coordination). */
   inspectedFiles: ReadonlyMap<string, FileBase>
   /** Store a language-constructed file; the neutral write primitive. Returns the stored file. */

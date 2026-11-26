@@ -1,7 +1,14 @@
 import type { GqlOperationProjection } from './types.ts'
 import type { GqlOperation } from '@/gql/operation/GqlOperation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
+import type { WorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
+import type { FileBase } from '@/dsl/FileBase.ts'
+import {
+  ensureFile,
+  findDefinitionAt,
+  toImportDestination,
+  toImportFile
+} from '@/dsl/driverFiles.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
@@ -31,7 +38,7 @@ type ApplyArgs = {
 
 type GetDefinitionArgs = {
   identifier: IdentifierBase
-  exportPath: string
+  exportPath: WorkspacePath
 }
 
 /**
@@ -101,20 +108,22 @@ export class GqlOperationDriver<
 
     const definition = this.getDefinition({ identifier, exportPath })
 
-    if (
-      destinationPath &&
-      normalizeWorkspacePath(exportPath) !== normalizeWorkspacePath(destinationPath)
-    ) {
+    const importInto = toImportDestination({ context: this.context, exportPath, destinationPath })
+
+    if (importInto !== undefined) {
       // Cross-file import of the peer's identifier from its export path.
       // The language builds the import object (`toImport`) and creates the
       // destination file on first write (caller-side); the engine stores
       // via the pure-data `context.register`. The import lands in the
       // caller's file (`destinationPath`); `insertOperation` only composes
       // same-language generators, so the peer's `lang` is the caller's.
-      this.ensureFile(destinationPath)
       this.context.register({
         imports: [this.projection.lang.toImport({ identifier, module: exportPath })],
-        destinationPath
+        destinationPath: toImportFile({
+          context: this.context,
+          lang: this.projection.lang,
+          destination: importInto
+        }).path
       })
     }
 
@@ -125,22 +134,18 @@ export class GqlOperationDriver<
    * Ensure the file at `path` exists, creating it on first write through
    * the projection's language — the static read off the projection class
    * at the use site, never persisted (works pre-construction on the
-   * cache-hit path). Returns the normalized path.
+   * cache-hit path). Returns the file.
    */
-  private ensureFile(path: string): string {
-    const normalizedPath = normalizeWorkspacePath(path)
-
-    if (!this.context.getFile(normalizedPath)) {
-      this.context.addFile(
-        this.projection.lang.createFile({ path: normalizedPath, settings: this.context.settings })
-      )
-    }
-
-    return normalizedPath
+  private ensureFile(path: WorkspacePath): FileBase {
+    return ensureFile({ context: this.context, lang: this.projection.lang, path })
   }
 
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): DefinitionBase<V> {
-    const cachedDefinition = this.context.findDefinition({ name: identifier.name, exportPath })
+    const cachedDefinition = findDefinitionAt({
+      context: this.context,
+      name: identifier.name,
+      exportPath
+    })
 
     if (this.affirmDefinition<V>(cachedDefinition, exportPath)) {
       return cachedDefinition
@@ -171,7 +176,7 @@ export class GqlOperationDriver<
 
   private affirmDefinition<V extends GeneratedValue>(
     definition: DefinitionBase | undefined,
-    exportPath: string
+    exportPath: WorkspacePath
   ): definition is DefinitionBase<V> {
     if (!definition) {
       return false

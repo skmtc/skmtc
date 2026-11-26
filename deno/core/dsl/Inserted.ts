@@ -1,6 +1,7 @@
 import type { GeneratedDefinition, GeneratedValue } from './GeneratedValue.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
+import type { WorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 
 /**
  * Constructor arguments for {@link Inserted}.
@@ -51,7 +52,7 @@ type ConstructorArgs<V extends GeneratedValue, EnrichmentType> = {
  *
  *     // Access the generated value (guaranteed to be present)
  *     const userTypeName = userModel.toValue(); // UserModelValue (not undefined)
- *     const exportPath = userModel.toExportPath(); // './src/models.ts'
+ *     const exportPath = userModel.toExportPath(); // '@/src/models.ts'
  *     const identifier = userModel.toName(); // 'User'
  *
  *     return new Definition({
@@ -140,13 +141,13 @@ export class Inserted<V extends GeneratedValue, EnrichmentType> {
    * @example
    * ```typescript
    * const userModel = this.insertModel(generator, 'User');
-   * const exportPath = userModel.toExportPath(); // './src/models/User.ts'
+   * const exportPath = userModel.toExportPath(); // '@/src/models/User.ts'
    *
    * // Create import statement
    * const importStmt = `import { User } from '${exportPath}';`;
    * ```
    */
-  toExportPath(): string {
+  toExportPath(): WorkspacePath {
     return this.settings.exportPath
   }
 

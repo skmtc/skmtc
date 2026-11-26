@@ -22,20 +22,20 @@ Drivers compute it before construction; Projections consume it during
 ```ts
 class ContentSettings<E = undefined> {
   identifier: IdentifierBase
-  exportPath: string
+  exportPath: WorkspacePath
   enrichments: E
   variant: string
 
   constructor(args: {
     identifier: IdentifierBase
-    exportPath: string
+    exportPath: WorkspacePath
     enrichments: E
     variant: string
   })
 
   static empty(args: {
     identifier: IdentifierBase
-    exportPath: string
+    exportPath: WorkspacePath
     variant?: string            // defaults to 'main'
   }): ContentSettings<undefined>
 }
@@ -44,7 +44,7 @@ class ContentSettings<E = undefined> {
 ```ts
 new ContentSettings({
   identifier: IdentifierBase,    // the assembled identifier (name + lang-typed parts)
-  exportPath: string,            // the file path this Projection lands in
+  exportPath: WorkspacePath,     // the file path this Projection lands in, normalized
   enrichments: E,                // the validated enrichment payload (or undefined)
   variant: string                // 'main' for variants-unaware Projections
 })
@@ -84,6 +84,21 @@ static toExportPath({ operation }): string {
   return `${basePath}/forms/${toEndpointName(operation)}.tsx`
 }
 ```
+
+`toExportPath` can return a path in any form. When the engine makes the
+settings, it does three things to that path. It normalizes the path. It
+inserts the generated suffix (`.generated`, or
+`settings.generatedSuffix`). If the result is in `settings.ejected`, it
+uses the ejected path. Thus for `@/forms/CreateUser.tsx`, `exportPath`
+is `@/forms/CreateUser.generated.tsx`.
+
+`exportPath` is a `WorkspacePath`, so the Drivers find its file by that
+key and do not normalize it again. A plain string is not a
+`WorkspacePath`. To make settings yourself, give the path to
+`normalizeWorkspacePath` first (see
+[Projects and workspaces](../../concepts/projects-and-workspaces.md)).
+That gives no suffix: use `context.to*ContentSettings` to get the path
+the engine uses.
 
 The path is the second half of the cache key — two Projections with
 the same `identifier.name` but different `exportPath` are *distinct*
@@ -132,7 +147,7 @@ explicit: "no enrichments here, just the identifier and path."
 ```ts
 const settings = ContentSettings.empty({
   identifier: createVariable('userBody'),
-  exportPath: '@/types/userBody.generated.ts'
+  exportPath: normalizeWorkspacePath('@/types/userBody.generated.ts')
 })
 // → ContentSettings<undefined>
 ```
@@ -150,7 +165,11 @@ const settings = new ContentSettings({
     name: projection.toIdentifierName({ operation, enrichments, variant }),
     ...projection.toIdentifierType(operation, context)
   }),
-  exportPath: projection.toExportPath({ operation, enrichments, variant }),
+  // normalized, then suffixed; an ejected path replaces the result
+  exportPath: applyGeneratedSuffixToWorkspacePath(
+    normalizeWorkspacePath(projection.toExportPath({ operation, enrichments, variant })),
+    generatedSuffix
+  ),
   enrichments,
   variant
 })
@@ -199,7 +218,11 @@ const identifier = lang.toIdentifier({
   name,
   ...projection.toIdentifierType(operation, context)
 })
-const exportPath = projection.toExportPath({ operation, enrichments, variant })
+// normalized, then suffixed; an ejected path replaces the result
+const exportPath = applyGeneratedSuffixToWorkspacePath(
+  normalizeWorkspacePath(projection.toExportPath({ operation, enrichments, variant })),
+  generatedSuffix
+)
 
 const settings = new ContentSettings({ identifier, exportPath, enrichments, variant })
 
@@ -233,7 +256,7 @@ of comparing object references.
 ```ts
 const settings = ContentSettings.empty({
   identifier: createVariable('userBody'),
-  exportPath: '@/types/userBody.generated.ts'
+  exportPath: normalizeWorkspacePath('@/types/userBody.generated.ts')
 })
 
 // In the Projection
@@ -257,7 +280,7 @@ type EnrichmentSchema = {
 
 const settings = new ContentSettings<EnrichmentSchema>({
   identifier: createVariable('createUserForm'),
-  exportPath: '/forms/CreateUser.generated.tsx',
+  exportPath: normalizeWorkspacePath('/forms/CreateUser.generated.tsx'),
   enrichments: { title: 'Create User', submitLabel: 'Create' }
 })
 
@@ -347,7 +370,7 @@ constructor.
 ```ts
 class ContentSettings<E = undefined> {
   identifier: IdentifierBase
-  exportPath: string
+  exportPath: WorkspacePath
   enrichments: E
   variant: string
 }

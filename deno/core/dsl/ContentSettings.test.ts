@@ -1,3 +1,4 @@
+import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 import { assertEquals } from '@std/assert/equals'
 import { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
@@ -8,13 +9,13 @@ Deno.test('ContentSettings - creates settings with enrichments', () => {
 
   const settings = new ContentSettings({
     identifier,
-    exportPath: './src/models/User.ts',
+    exportPath: normalizeWorkspacePath('./src/models/User.ts'),
     enrichments,
     variant: 'main'
   })
 
   assertEquals(settings.identifier, identifier)
-  assertEquals(settings.exportPath, './src/models/User.ts')
+  assertEquals(settings.exportPath, '@/src/models/User.ts')
   assertEquals(settings.enrichments, enrichments)
 })
 
@@ -23,11 +24,11 @@ Deno.test('ContentSettings.empty - creates settings without enrichments', () => 
 
   const settings = ContentSettings.empty({
     identifier,
-    exportPath: './src/models/Product.ts'
+    exportPath: normalizeWorkspacePath('./src/models/Product.ts')
   })
 
   assertEquals(settings.identifier, identifier)
-  assertEquals(settings.exportPath, './src/models/Product.ts')
+  assertEquals(settings.exportPath, '@/src/models/Product.ts')
   assertEquals(settings.enrichments, undefined)
 })
 
@@ -36,7 +37,7 @@ Deno.test('ContentSettings - stores identifier properties', () => {
 
   const settings = new ContentSettings({
     identifier,
-    exportPath: './src/api.ts',
+    exportPath: normalizeWorkspacePath('./src/api.ts'),
     enrichments: { includeAuth: true },
     variant: 'main'
   })
