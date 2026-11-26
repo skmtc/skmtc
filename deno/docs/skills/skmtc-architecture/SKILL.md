@@ -1,6 +1,6 @@
 ---
 name: skmtc-architecture
-version: 0.1.1
+version: 0.1.2
 description: |
   Understand what Skmtc is, how its engine works, and the
   architectural invariants — for agents building or extending
@@ -264,8 +264,9 @@ dependency graph and no topological sort.** Coordination is
 
 Because the key is a pure function of inputs, whichever generator
 asks first triggers construction and everyone after gets a cache
-hit — so the output `Map<path, File>` is **identical regardless of
-generator order**. A `generatorKey` integrity check throws
+hit — so the output `Map<path, File>` holds the **same files,
+definitions and names regardless of generator order** (two effects on
+the bytes are listed below). A `generatorKey` integrity check throws
 `"Registered definition mismatch"` if two different
 generator-and-input pairs collide on one cache key.
 
@@ -276,6 +277,39 @@ caching layer is outside the engine* — cache the whole
 `(schema, settings, bundle)`. Never try to cache *inside* a run.
 Detail:
 [`concepts/cross-generator-coordination.md`](../../concepts/cross-generator-coordination.md).
+
+### What the cache is not
+
+Read this before you store, split or reorder a run.
+
+- **It lasts one engine context.** Nothing built is kept for the next
+  run, and two contexts share nothing: a run split across processes
+  builds each shared model again in every part. The CLI keeps a
+  SHA-256 of each file it wrote (`.settings/generated.lock.json`) only
+  to skip a write whose text did not change. It still generates every
+  file.
+- **A hit is by name and path, not by input.** It returns what the
+  first caller built. An inline schema from `insertNormalizedModel`
+  gets no integrity check: reuse is by `fallbackName` and path alone.
+- **Order changes the bytes in two places.** A file that several
+  generators write keeps its definitions in the order they were
+  inserted. A model in a `$ref` cycle takes its form from the member
+  the run enters first (in gen-zod, `z.discriminatedUnion` or
+  `z.union`, and which model gets the type annotation). A run has one
+  fixed order, so the same inputs still give the same bytes.
+- **Some checks need the whole run.** Two subjects that claim one
+  name, and two paths that differ only in case, are found only when
+  both are in one context.
+
+So the unit that is safe to store is the whole result. Reuse of one
+subject or one file across runs, and a run split by subject, are safe
+only for a generator whose output for a subject depends on that
+subject's `$ref` closure alone. The engine does not check this, so
+prove it for each generator with a comparison against the whole run.
+
+As of 2026-11, skmtc-hub stores schema documents and some derived
+results under the document's content hash, and does not reuse a whole
+stack run. Read its `docs/generation.md` before you assume a run cache.
 
 ## 7. The DSL in one screen
 
