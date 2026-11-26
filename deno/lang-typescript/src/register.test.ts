@@ -56,6 +56,19 @@ Deno.test('register with a Windows-spelled destinationPath writes into the exist
   )
 })
 
+Deno.test('register into an existing file by another spelling drops a self-import of it', () => {
+  const context = toGenerateContext()
+
+  register(context, { destinationPath: '@/types/x.ts' })
+  register(context, {
+    destinationPath: './types/x.ts',
+    imports: { '@/types/x.ts': ['X'], '@/types/y.ts': ['Y'] }
+  })
+
+  assertEquals(context.inspectedFiles.size, 1)
+  assertEquals(renderedFile(context, '@/types/x.ts'), "import {Y} from '@/types/y.ts'")
+})
+
 Deno.test('register writes a workspace-spelled module in its one spelling and merges the spellings', () => {
   const context = toGenerateContext()
 

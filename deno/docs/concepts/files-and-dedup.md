@@ -200,7 +200,7 @@ and constructing fresh), it runs `affirmDefinition`:
 // core/dsl/model/ModelDriver.ts
 private affirmDefinition<V extends GeneratedValue>(
   definition: DefinitionBase | undefined,
-  exportPath: string
+  exportPath: WorkspacePath
 ): definition is DefinitionBase<V> {
   if (!definition) return false
 

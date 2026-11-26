@@ -2,6 +2,21 @@ import { normalize } from '@std/path/posix/normalize'
 import { isAbsolute as isPosixAbsolute } from '@std/path/posix/is-absolute'
 import { isAbsolute as isWindowsAbsolute } from '@std/path/windows/is-absolute'
 import { toWorkspacePath } from '@/helpers/toWorkspacePath.ts'
+import type { Brand } from '@/types/Brand.ts'
+import { applyGeneratedSuffix } from '@/helpers/applyGeneratedSuffix.ts'
+
+/**
+ * A workspace path in its one spelling: what {@link normalizeWorkspacePath}
+ * returns, and nothing else makes. The engine keys files by it, so a value
+ * of this type finds its file without being normalized again.
+ */
+export type WorkspacePath = Brand<string, 'WorkspacePath'>
+
+/**
+ * `Path`, unless it is already a {@link WorkspacePath}: normalizing one
+ * again is a compile error.
+ */
+export type UncheckedPath<Path extends string> = Path extends WorkspacePath ? never : Path
 
 /**
  * Options for {@link normalizeWorkspacePath} and {@link toNormalizedWorkspacePath}.
@@ -97,7 +112,9 @@ export const toNormalizedWorkspacePath = (
  * return one as `@/types/User.ts`, `./types/User.ts`, `/types/User.ts`,
  * `types/User.ts`, or with Windows separators; the engine stores this form
  * and nothing else, so file-map keys, import modules and the ejected lookup
- * always agree. The result is a fixed point.
+ * always agree. The result is a fixed point, and is typed
+ * {@link WorkspacePath} so that passing it in again does not compile: a
+ * value of that type is already in this form.
  *
  * Throws in the cases {@link toNormalizedWorkspacePath} throws.
  *
@@ -108,10 +125,25 @@ export const toNormalizedWorkspacePath = (
  * normalizeWorkspacePath('../User.ts')        // throws
  * ```
  */
-export const normalizeWorkspacePath = (
-  path: string,
+export const normalizeWorkspacePath = <Path extends string>(
+  path: UncheckedPath<Path>,
   options: NormalizeWorkspacePathOptions = {}
-): string => `@/${toNormalizedWorkspacePath(path, options)}`
+): WorkspacePath => `@/${toNormalizedWorkspacePath(path, options)}` as WorkspacePath
+
+/**
+ * `path` with the generated-file suffix inserted ({@link applyGeneratedSuffix}),
+ * still a {@link WorkspacePath}. A suffix with no separator only lengthens the
+ * last segment of a path in its one spelling, so the result is in that
+ * spelling too; a suffix with one is normalized with the path.
+ */
+export const applyGeneratedSuffixToWorkspacePath = (
+  path: WorkspacePath,
+  suffix: string
+): WorkspacePath => {
+  const suffixed = applyGeneratedSuffix(path, suffix)
+
+  return /[/\\]/.test(suffix) ? normalizeWorkspacePath(suffixed) : (suffixed as WorkspacePath)
+}
 
 /**
  * Separator swap, then every anchor spelling goes (`@/`, `./`, a leading

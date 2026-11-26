@@ -3,6 +3,8 @@ import type * as log from '@std/log'
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { FileBase } from '@/dsl/FileBase.ts'
 import { JsonFile } from '@/dsl/JsonFile.ts'
+import { IdentifierBase } from '@/dsl/IdentifierBase.ts'
+import { MockDefinition, MockFile } from '@/test/MockFile.ts'
 import { OasDocument } from '@/oas/document/Document.ts'
 import { OasInfo } from '@/oas/info/Info.ts'
 
@@ -111,4 +113,46 @@ Deno.test('JsonFile is a FileBase that round-trips through the neutral primitive
   const context = createContext()
   context.addFile(json)
   assertEquals(context.getFile('config.json'), json)
+})
+
+Deno.test('addFile sets the file path to the normalized one', () => {
+  const context = createContext()
+  const file = context.addFile(new LangFile({ path: './types/a.ts' }))
+
+  assertEquals(file.path, '@/types/a.ts')
+  assertEquals(context.getFile('@/types/a.ts'), file)
+  assertEquals([...context.inspectedFiles.keys()], ['@/types/a.ts'])
+})
+
+/** A value that renders as its name: enough for a definition to be found. */
+const toDefinition = (context: GenerateContext, name: string) =>
+  new MockDefinition({
+    context,
+    identifier: new IdentifierBase({ name }),
+    value: { generatorKey: undefined, toString: () => name }
+  })
+
+for (const spelling of ['./types/a.ts', '/types/a.ts', 'types\\a.ts', '.\\types\\a.ts', 'types/a.ts']) {
+  Deno.test(`a file added as @/types/a.ts is found as '${spelling}'`, () => {
+    const context = createContext()
+    const file = context.addFile(new MockFile({ path: '@/types/a.ts' }))
+
+    assertEquals(context.getFile(spelling), file)
+
+    context.register({ definitions: [toDefinition(context, 'A')], destinationPath: spelling })
+
+    assertEquals([...file.definitions.keys()], ['A'])
+    assertEquals(context.findDefinition({ name: 'A', exportPath: spelling })?.identifier.name, 'A')
+    assertEquals([...context.inspectedFiles.keys()], ['@/types/a.ts'])
+  })
+}
+
+Deno.test('register into a path with no file names the normalized path', () => {
+  const context = createContext()
+
+  assertThrows(
+    () => context.register({ definitions: [], destinationPath: './types/missing.ts' }),
+    Error,
+    "Cannot register into '@/types/missing.ts' — the file does not exist."
+  )
 })

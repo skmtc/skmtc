@@ -41,11 +41,13 @@ export const register = (
   context: GenerateContextType,
   args: CsRegisterArgs & { destinationPath: string }
 ): void => {
-  const destinationPath = normalizeWorkspacePath(args.destinationPath)
-
-  if (!context.getFile(destinationPath)) {
-    context.addFile(new CsFile({ path: destinationPath, settings: context.settings }))
-  }
+  // The file is looked up once, by the path as given; its own `path` is the
+  // normalized one.
+  const { path: destinationPath } =
+    context.getFile(args.destinationPath) ??
+    context.addFile(
+      new CsFile({ path: normalizeWorkspacePath(args.destinationPath), settings: context.settings })
+    )
 
   context.register({
     imports: Object.entries(args.imports ?? {}).map(([module, names]) =>

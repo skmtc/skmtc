@@ -1,5 +1,6 @@
 import invariant from 'npm:tiny-invariant@1.3.3'
 import type { FilesRenderResult, RenderResult } from './generateTypes.ts'
+import { getByWorkspacePath } from '@/helpers/getByWorkspacePath.ts'
 import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { PickArgs } from './generateTypes.ts'
@@ -342,8 +343,9 @@ export class RenderContext {
   /**
    * Retrieves a file from the context by its export path.
    *
-   * The path is canonicalized first ({@link normalizeWorkspacePath}), so any
-   * spelling of the same export path finds the same file. Throws when no
+   * A path that is no key is canonicalized ({@link normalizeWorkspacePath})
+   * and looked up again, so any spelling of the same export path finds the
+   * same file. Throws when no
    * file exists at that path.
    *
    * @param filePath - The export path to retrieve, in any spelling
@@ -361,11 +363,12 @@ export class RenderContext {
    * ```
    */
   getFile(filePath: string): FileBase {
-    const normalizedPath = normalizeWorkspacePath(filePath)
+    const currentFile = getByWorkspacePath(this.files, filePath)
 
-    const currentFile = this.files.get(normalizedPath)
-
-    invariant(currentFile, `File not found during render phase: ${normalizedPath}`)
+    invariant(
+      currentFile,
+      () => `File not found during render phase: ${normalizeWorkspacePath(filePath)}`
+    )
 
     return currentFile
   }

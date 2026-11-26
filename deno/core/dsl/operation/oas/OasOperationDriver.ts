@@ -1,7 +1,14 @@
 import type { OasOperationProjection } from './types.ts'
 import type { OasOperation } from '@/oas/operation/Operation.ts'
 import type { ContentSettings } from '@/dsl/ContentSettings.ts'
-import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
+import type { WorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
+import type { FileBase } from '@/dsl/FileBase.ts'
+import {
+  ensureFile,
+  findDefinitionAt,
+  toImportDestination,
+  toImportFile
+} from '@/dsl/driverFiles.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { IdentifierBase } from '@/dsl/IdentifierBase.ts'
 import type { GeneratedDefinition } from '@/dsl/GeneratedValue.ts'
@@ -32,7 +39,7 @@ type ApplyArgs = {
 
 type GetDefinitionArgs = {
   identifier: IdentifierBase
-  exportPath: string
+  exportPath: WorkspacePath
 }
 
 /**
@@ -130,11 +137,7 @@ export class OasOperationDriver<
 
     // The file an import has to be stitched into, or `undefined` when there
     // is none to stitch — no destination, or the projection's own file.
-    const importInto =
-      destinationPath &&
-      normalizeWorkspacePath(exportPath) !== normalizeWorkspacePath(destinationPath)
-        ? destinationPath
-        : undefined
+    const importInto = toImportDestination({ context: this.context, exportPath, destinationPath })
 
     // A member is declared inside its container, so it has no module-level
     // name — an import of it would name a symbol its file never exports, and
@@ -157,10 +160,13 @@ export class OasOperationDriver<
       // via the pure-data `context.register`. The import lands in the
       // caller's file (`destinationPath`); `insertOperation` only composes
       // same-language generators, so the peer's `lang` is the caller's.
-      this.ensureFile(importInto)
       this.context.register({
         imports: [this.projection.lang.toImport({ identifier, module: exportPath })],
-        destinationPath: importInto
+        destinationPath: toImportFile({
+          context: this.context,
+          lang: this.projection.lang,
+          destination: importInto
+        }).path
       })
     }
 
@@ -171,18 +177,10 @@ export class OasOperationDriver<
    * Ensure the file at `path` exists, creating it on first write through
    * the projection's language — the static read off the projection class
    * at the use site, never persisted (works pre-construction on the
-   * cache-hit path). Returns the normalized path.
+   * cache-hit path). Returns the file.
    */
-  private ensureFile(path: string): string {
-    const normalizedPath = normalizeWorkspacePath(path)
-
-    if (!this.context.getFile(normalizedPath)) {
-      this.context.addFile(
-        this.projection.lang.createFile({ path: normalizedPath, settings: this.context.settings })
-      )
-    }
-
-    return normalizedPath
+  private ensureFile(path: WorkspacePath): FileBase {
+    return ensureFile({ context: this.context, lang: this.projection.lang, path })
   }
 
   private getDefinition({ identifier, exportPath }: GetDefinitionArgs): DefinitionBase<V> {
@@ -196,7 +194,8 @@ export class OasOperationDriver<
 
     // Spread rather than always-pass: a non-member's call shape is exactly
     // what it was, so nothing downstream sees a key it never had.
-    const cachedDefinition = this.context.findDefinition({
+    const cachedDefinition = findDefinitionAt({
+      context: this.context,
       name: identifier.name,
       exportPath,
       ...(into !== undefined ? { into } : {})
@@ -232,7 +231,7 @@ export class OasOperationDriver<
 
   private affirmDefinition<V extends GeneratedValue>(
     definition: DefinitionBase | undefined,
-    exportPath: string
+    exportPath: WorkspacePath
   ): definition is DefinitionBase<V> {
     if (!definition) {
       return false

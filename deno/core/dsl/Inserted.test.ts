@@ -1,3 +1,4 @@
+import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 import { assertEquals } from '@std/assert/equals'
 import { Inserted } from '@/dsl/Inserted.ts'
 import { ContentSettings } from '@/dsl/ContentSettings.ts'
@@ -14,7 +15,7 @@ Deno.test('Inserted - toName returns identifier name', () => {
   const identifier = new IdentifierBase({ name: 'User' })
   const settings = ContentSettings.empty({
     identifier,
-    exportPath: './src/models/User.ts'
+    exportPath: normalizeWorkspacePath('./src/models/User.ts')
   })
 
   const definition = new MockDefinition({
@@ -35,7 +36,7 @@ Deno.test('Inserted - toIdentifier returns full identifier', () => {
   const identifier = new IdentifierBase({ name: 'apiClient', typeName: 'ApiClient' })
   const settings = ContentSettings.empty({
     identifier,
-    exportPath: './src/api.ts'
+    exportPath: normalizeWorkspacePath('./src/api.ts')
   })
 
   const definition = new MockDefinition({
@@ -59,7 +60,7 @@ Deno.test('Inserted - toExportPath returns export path', () => {
   const identifier = new IdentifierBase({ name: 'Product' })
   const settings = ContentSettings.empty({
     identifier,
-    exportPath: './src/models/Product.ts'
+    exportPath: normalizeWorkspacePath('./src/models/Product.ts')
   })
 
   const definition = new MockDefinition({
@@ -73,14 +74,14 @@ Deno.test('Inserted - toExportPath returns export path', () => {
     definition
   })
 
-  assertEquals(inserted.toExportPath(), './src/models/Product.ts')
+  assertEquals(inserted.toExportPath(), '@/src/models/Product.ts')
 })
 
 Deno.test('Inserted - toValue returns generated value', () => {
   const identifier = new IdentifierBase({ name: 'Status' })
   const settings = ContentSettings.empty({
     identifier,
-    exportPath: './src/types.ts'
+    exportPath: normalizeWorkspacePath('./src/types.ts')
   })
 
   const value = { generatorKey: testGeneratorKey, toString: () => "'active' | 'inactive'" }
@@ -103,7 +104,7 @@ Deno.test('Inserted - works with enrichments', () => {
   const enrichments = { validateRequired: true, generateComments: false }
   const settings = new ContentSettings({
     identifier,
-    exportPath: './src/validated.ts',
+    exportPath: normalizeWorkspacePath('./src/validated.ts'),
     enrichments,
     variant: 'main'
   })

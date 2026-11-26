@@ -51,11 +51,18 @@ export const register = (
   context: GenerateContextType,
   args: KtRegisterArgs & { destinationPath: string }
 ): void => {
-  const destinationPath = normalizeWorkspacePath(args.destinationPath)
-
+  // The file is looked up once, by the path as given; its own `path` is the
+  // normalized one.
   const file =
-    context.getFile(destinationPath) ??
-    context.addFile(new KtFile({ path: destinationPath, settings: context.settings }))
+    context.getFile(args.destinationPath) ??
+    context.addFile(
+      new KtFile({
+        path: normalizeWorkspacePath(args.destinationPath),
+        settings: context.settings
+      })
+    )
+
+  const destinationPath = file.path
 
   invariant(
     file instanceof KtFile,

@@ -1,3 +1,4 @@
+import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 import { assertEquals, assertExists, assertThrows } from '@std/assert'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
 import { ModelDriver } from './ModelDriver.ts'
@@ -16,6 +17,7 @@ import type { Lang, LangToDefinitionArgs } from '@/dsl/Lang.ts'
 import { typescript } from '@skmtc/lang-typescript'
 import type { FileBase } from '@/dsl/FileBase.ts'
 import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
+import { MockFile } from '@/test/MockFile.ts'
 
 // The Driver reads the projection's language off the projection CLASS — the
 // static `lang` inherited from the language snippet base (declared directly
@@ -113,12 +115,16 @@ class MockProjectionUnsupported extends MockProjection {
 const createMockContext = (): GenerateContextType => {
   // Files are kept: the Driver puts a model's pending marker in its File
   // while the constructor runs, and looks markers up there.
-  const files = new Map<string, FileBase>()
+  // The export path's file exists, as it does in the engine once a
+  // definition is in it: the Driver asks findDefinition only when it does.
+  const files = new Map<string, FileBase>([
+    ['@/path/to/export.ts', new MockFile({ path: '@/path/to/export.ts' })]
+  ])
   const mockContext = {
     pendingStack: [],
     toModelContentSettings: spy(({ ref, variant }: { ref: RefParts; variant: string }) => ({
       identifier: createType(ref.refName),
-      exportPath: '@/path/to/export.ts',
+      exportPath: normalizeWorkspacePath('@/path/to/export.ts'),
       enrichments: undefined,
       variant
     })),
@@ -127,6 +133,7 @@ const createMockContext = (): GenerateContextType => {
     // The Driver pre-ensures destination files caller-side through the
     // projection's static lang: file-miss → `addFile(lang.createFile(...))`.
     getFile: spy((path: string) => files.get(path)),
+    getFileByWorkspacePath: spy((path: string) => files.get(path)),
     addFile: spy((file: FileBase) => {
       files.set(file.path, file)
       return file
@@ -583,7 +590,7 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '@/path/to/export.ts',
+            exportPath: normalizeWorkspacePath('@/path/to/export.ts'),
             enrichments: undefined,
             variant: 'main'
           },
@@ -621,7 +628,7 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '@/path/to/export.ts',
+            exportPath: normalizeWorkspacePath('@/path/to/export.ts'),
             enrichments: undefined,
             variant: 'main'
           },
@@ -679,7 +686,7 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '@/path/to/export.ts',
+            exportPath: normalizeWorkspacePath('@/path/to/export.ts'),
             enrichments: undefined,
             variant: 'main'
           },
@@ -717,7 +724,7 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '@/path/to/export.ts',
+            exportPath: normalizeWorkspacePath('@/path/to/export.ts'),
             enrichments: undefined,
             variant: 'main'
           },
@@ -782,7 +789,7 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '@/path/to/export.ts',
+            exportPath: normalizeWorkspacePath('@/path/to/export.ts'),
             enrichments: undefined,
             variant: 'main'
           },
@@ -820,7 +827,7 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '@/path/to/export.ts',
+            exportPath: normalizeWorkspacePath('@/path/to/export.ts'),
             enrichments: undefined,
             variant: 'main'
           },
@@ -858,7 +865,7 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '@/path/to/export.ts',
+            exportPath: normalizeWorkspacePath('@/path/to/export.ts'),
             enrichments: undefined,
             variant: 'main'
           },
@@ -896,7 +903,7 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '@/path/to/export.ts',
+            exportPath: normalizeWorkspacePath('@/path/to/export.ts'),
             enrichments: undefined,
             variant: 'main'
           },
@@ -1111,7 +1118,7 @@ Deno.test('ModelDriver', async t => {
           context,
           settings: {
             identifier: createType(refName),
-            exportPath: '@/path/to/export.ts',
+            exportPath: normalizeWorkspacePath('@/path/to/export.ts'),
             enrichments: undefined,
             variant: 'main'
           },

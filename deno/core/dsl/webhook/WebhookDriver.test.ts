@@ -1,3 +1,5 @@
+import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
+import { MockFile } from '@/test/MockFile.ts'
 /**
  * Driver-level coverage for the webhook insertion lifecycle — the webhook
  * analogue of `OasOperationDriver.test.ts`. Exercises the three invariants
@@ -55,7 +57,9 @@ const createMockContext = (options?: {
         name: args.projection.toIdentifierName({ webhook: args.webhook, enrichments, variant }),
         ...args.projection.toIdentifierType(args.webhook, mockContext)
       }),
-      exportPath: args.projection.toExportPath({ webhook: args.webhook, enrichments, variant }),
+      exportPath: normalizeWorkspacePath(
+        args.projection.toExportPath({ webhook: args.webhook, enrichments, variant })
+      ),
       enrichments,
       variant
     })
@@ -72,7 +76,10 @@ const createMockContext = (options?: {
     findDefinition: findDefinitionSpy,
     register: registerSpy,
     getFile: spy(() => undefined),
-    addFile: spy(() => {}),
+    // Every file the Driver asks for by its normalized path exists, so
+    // findDefinition is asked: what it answers is the test's.
+    getFileByWorkspacePath: spy((path: string) => new MockFile({ path })),
+    addFile: spy(<File>(file: File) => file),
     // Lazy read off the mock's own `settings` so tests that assign it
     // after construction still hit the fresh value.
     ...toEnrichmentReaders(() => (mockContext as { settings?: unknown }).settings)
@@ -269,15 +276,15 @@ Deno.test('WebhookDriver', async t => {
 
       const importCall = registerSpy.calls.find(call => call.args[0].imports !== undefined)
       assertExists(importCall)
-      assertEquals(importCall.args[0].imports[0].mergeKey(), './webhooks/newPet.ts')
+      assertEquals(importCall.args[0].imports[0].mergeKey(), '@/webhooks/newPet.ts')
       // The handler identifier is `type: 'type'`, so the import collapses to
       // a statement-level `import type { … }` (the representative form for a
       // generator emitting `export type`).
       assertEquals(
         importCall.args[0].imports[0].toString(),
-        `import type {newPet} from './webhooks/newPet.ts'`
+        `import type {newPet} from '@/webhooks/newPet.ts'`
       )
-      assertEquals(importCall.args[0].destinationPath, './handlers/index.ts')
+      assertEquals(importCall.args[0].destinationPath, '@/handlers/index.ts')
     })
 
     await t.step('should not register import when paths match', () => {
@@ -337,7 +344,7 @@ Deno.test('WebhookDriver', async t => {
 
       assertSpyCalls(findDefinitionSpy, 1)
       assertSpyCall(findDefinitionSpy, 0, {
-        args: [{ name: 'testHook', exportPath: './webhooks/test.ts' }]
+        args: [{ name: 'testHook', exportPath: '@/webhooks/test.ts' }]
       })
     })
 
@@ -410,7 +417,7 @@ Deno.test('WebhookDriver', async t => {
         context: mockContext,
         settings: new ContentSettings({
           identifier: createVariable('newPet'),
-          exportPath: './webhooks/newPet.ts',
+          exportPath: normalizeWorkspacePath('./webhooks/newPet.ts'),
           enrichments: undefined,
           variant: 'main'
         }),
@@ -471,7 +478,7 @@ Deno.test('WebhookDriver', async t => {
         context: {} as any,
         settings: new ContentSettings({
           identifier: createVariable('newPet'),
-          exportPath: './test.ts',
+          exportPath: normalizeWorkspacePath('./test.ts'),
           enrichments: undefined,
           variant: 'main'
         }),
@@ -514,7 +521,7 @@ Deno.test('WebhookDriver', async t => {
         context: {} as any,
         settings: new ContentSettings({
           identifier: createVariable('newPet'),
-          exportPath: './webhooks/newPet.ts',
+          exportPath: normalizeWorkspacePath('./webhooks/newPet.ts'),
           enrichments: undefined,
           variant: 'main'
         }),

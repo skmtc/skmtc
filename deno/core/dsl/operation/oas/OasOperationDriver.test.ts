@@ -1,3 +1,5 @@
+import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
+import { MockFile } from '@/test/MockFile.ts'
 import { createVariable, typescript } from '@skmtc/lang-typescript'
 import { assertEquals, assertExists, assert, assertThrows } from '@std/assert'
 import { spy, assertSpyCalls, assertSpyCall } from '@std/testing/mock'
@@ -40,7 +42,9 @@ const createMockContext = (options?: {
         name: args.projection.toIdentifierName({ operation: args.operation, enrichments, variant }),
         ...args.projection.toIdentifierType(args.operation, mockContext)
       }),
-      exportPath: args.projection.toExportPath({ operation: args.operation, enrichments, variant }),
+      exportPath: normalizeWorkspacePath(
+        args.projection.toExportPath({ operation: args.operation, enrichments, variant })
+      ),
       enrichments,
       variant
     })
@@ -56,7 +60,10 @@ const createMockContext = (options?: {
     // The Driver pre-ensures destination files caller-side through the
     // projection's static lang: file-miss → `addFile(lang.createFile(...))`.
     getFile: spy(() => undefined),
-    addFile: spy(() => {}),
+    // Every file the Driver asks for by its normalized path exists, so
+    // findDefinition is asked: what it answers is the test's.
+    getFileByWorkspacePath: spy((path: string) => new MockFile({ path })),
+    addFile: spy(<File>(file: File) => file),
     // Lazy read off the mock's own `settings` so tests that assign it
     // after construction still hit the fresh value.
     ...toEnrichmentReaders(() => (mockContext as { settings?: unknown }).settings)
@@ -328,12 +335,12 @@ Deno.test('OasOperationDriver', async t => {
       const importCall = registerSpy.calls.find(call => call.args[0].imports !== undefined)
 
       assertExists(importCall)
-      assertEquals(importCall.args[0].imports[0].mergeKey(), './operations/getUsers.ts')
+      assertEquals(importCall.args[0].imports[0].mergeKey(), '@/operations/getUsers.ts')
       assertEquals(
         importCall.args[0].imports[0].toString(),
-        `import {getUsers} from './operations/getUsers.ts'`
+        `import {getUsers} from '@/operations/getUsers.ts'`
       )
-      assertEquals(importCall.args[0].destinationPath, './api/users.ts')
+      assertEquals(importCall.args[0].destinationPath, '@/api/users.ts')
     })
 
     await t.step('should not register import when paths match', () => {
@@ -428,12 +435,12 @@ Deno.test('OasOperationDriver', async t => {
       // `imports` is a standardised `ImportBase[]` built by `lang.toImport`;
       // the engine no longer sees the concise record form.
       assertEquals(importCall.args[0].imports.length, 1)
-      assertEquals(importCall.args[0].imports[0].mergeKey(), './ops/create.ts')
+      assertEquals(importCall.args[0].imports[0].mergeKey(), '@/ops/create.ts')
       assertEquals(
         importCall.args[0].imports[0].toString(),
-        `import {createUser} from './ops/create.ts'`
+        `import {createUser} from '@/ops/create.ts'`
       )
-      assertEquals(importCall.args[0].destinationPath, './api/handlers.ts')
+      assertEquals(importCall.args[0].destinationPath, '@/api/handlers.ts')
     })
 
     await t.step('should normalize paths with redundant separators', () => {
@@ -500,7 +507,7 @@ Deno.test('OasOperationDriver', async t => {
         args: [
           {
             name: 'testOp',
-            exportPath: './ops/test.ts'
+            exportPath: '@/ops/test.ts'
           }
         ]
       })
@@ -651,7 +658,7 @@ Deno.test('OasOperationDriver', async t => {
       const mockContext = {} as any
       const mockSettings = new ContentSettings({
         identifier: createVariable('cached'),
-        exportPath: './test.ts',
+        exportPath: normalizeWorkspacePath('./test.ts'),
         enrichments: undefined,
         variant: 'main'
       })
@@ -724,7 +731,7 @@ Deno.test('OasOperationDriver', async t => {
         context: {} as any,
         settings: new ContentSettings({
           identifier: createVariable('cached'),
-          exportPath: './test.ts',
+          exportPath: normalizeWorkspacePath('./test.ts'),
           enrichments: undefined,
           variant: 'main'
         }),
@@ -816,7 +823,7 @@ Deno.test('OasOperationDriver', async t => {
         context: {} as any,
         settings: new ContentSettings({
           identifier: createVariable('test'),
-          exportPath: './test.ts',
+          exportPath: normalizeWorkspacePath('./test.ts'),
           enrichments: undefined,
           variant: 'main'
         }),
@@ -856,7 +863,7 @@ Deno.test('OasOperationDriver', async t => {
         context: {} as any,
         settings: new ContentSettings({
           identifier: createVariable('test'),
-          exportPath: './test.ts',
+          exportPath: normalizeWorkspacePath('./test.ts'),
           enrichments: undefined,
           variant: 'main'
         }),
@@ -1046,7 +1053,7 @@ Deno.test('OasOperationDriver', async t => {
         context: {} as any,
         settings: new ContentSettings({
           identifier: createVariable('test'),
-          exportPath: './test.ts',
+          exportPath: normalizeWorkspacePath('./test.ts'),
           enrichments: undefined,
           variant: 'main'
         }),
@@ -1183,7 +1190,7 @@ Deno.test('OasOperationDriver', async t => {
         context: {} as any,
         settings: new ContentSettings({
           identifier: createVariable('test'),
-          exportPath: './test.ts',
+          exportPath: normalizeWorkspacePath('./test.ts'),
           enrichments: undefined,
           variant: 'main'
         }),
@@ -1248,12 +1255,12 @@ Deno.test('OasOperationDriver', async t => {
       // Should have import registration
       const importCall = registerSpy.calls.find(call => call.args[0].imports)
       assertExists(importCall)
-      assertEquals(importCall.args[0].imports[0].mergeKey(), './operations/getUsers.ts')
+      assertEquals(importCall.args[0].imports[0].mergeKey(), '@/operations/getUsers.ts')
       assertEquals(
         importCall.args[0].imports[0].toString(),
-        `import {getUsers} from './operations/getUsers.ts'`
+        `import {getUsers} from '@/operations/getUsers.ts'`
       )
-      assertEquals(importCall.args[0].destinationPath, './api/index.ts')
+      assertEquals(importCall.args[0].destinationPath, '@/api/index.ts')
     })
 
     await t.step('should not register imports for same-file definitions', () => {
@@ -1634,7 +1641,7 @@ Deno.test('OasOperationDriver', async t => {
       // Driver registered an import into destinationPath because the
       // projection's own exportPath differs.
       const importRegistration = registerSpy.calls.find(
-        c => c.args[0].destinationPath === './consumer/file.ts'
+        c => c.args[0].destinationPath === '@/consumer/file.ts'
       )
       assertExists(importRegistration)
     })
