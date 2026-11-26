@@ -303,6 +303,7 @@ Deno.test("POST /artifacts - returns a generator's INFO lines but not its DEBUG 
   const infoLine = body.logs.find((line: { message: string }) =>
     line.message === "info User"
   );
+  assertExists(infoLine);
   assertEquals(infoLine.level, "INFO");
   assertEquals(
     infoLine.trail.endsWith(":generate:modelGen:User:variant:main"),
@@ -332,6 +333,7 @@ Deno.test("POST /artifacts - returns the parse phase's warnings", async () => {
   const parseLine = body.logs.find((line: { message: string }) =>
     line.message.includes("INVALID_SCHEMA")
   );
+  assertExists(parseLine);
   assertEquals(parseLine.level, "WARN");
   assertEquals("trail" in parseLine, false);
 });
