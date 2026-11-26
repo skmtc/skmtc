@@ -267,6 +267,75 @@ Deno.test("POST /artifacts - returns the run's log lines beside the manifest", a
   assertEquals("logs" in body.manifest, false);
 });
 
+Deno.test("POST /artifacts - returns a generator's INFO lines but not its DEBUG lines", async () => {
+  const modelGen: ModelEntry<Enrichments> = {
+    id: "modelGen",
+    type: "model",
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
+    isSupported: () => true,
+    supportsVariant: () => false,
+    transform({ context, ref }: TransformModelArgs): void {
+      context.logger.debug(`debug ${ref.refName}`);
+      context.logger.info(`info ${ref.refName}`);
+    },
+  };
+  const app = createServer({
+    toGeneratorConfigMap: (() => ({ modelGen })) as <
+      EnrichmentType = undefined,
+    >() => GeneratorsMapContainer<EnrichmentType>,
+  });
+
+  const res = await app.request("/artifacts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      schema: JSON.stringify({
+        ...minimalOas,
+        components: { schemas: { User: { type: "string" } } },
+      }),
+    }),
+  });
+
+  assertEquals(res.status, 200);
+  const body = await res.json();
+  const messages = body.logs.map((line: { message: string }) => line.message);
+  assertEquals(messages.includes("debug User"), false);
+  const infoLine = body.logs.find((line: { message: string }) =>
+    line.message === "info User"
+  );
+  assertEquals(infoLine.level, "INFO");
+  assertEquals(
+    infoLine.trail.endsWith(":generate:modelGen:User:variant:main"),
+    true,
+  );
+});
+
+Deno.test("POST /artifacts - returns the parse phase's warnings", async () => {
+  const app = mkApp();
+  const res = await app.request("/artifacts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      schema: JSON.stringify({
+        ...minimalOas,
+        // `minLength` must be a number: parse records an issue.
+        components: {
+          schemas: { A: { type: "string", minLength: "oops" } },
+        },
+      }),
+    }),
+  });
+
+  assertEquals(res.status, 200);
+  const body = await res.json();
+  assertEquals(body.manifest.parseIssues.length > 0, true);
+  const parseLine = body.logs.find((line: { message: string }) =>
+    line.message.includes("INVALID_SCHEMA")
+  );
+  assertEquals(parseLine.level, "WARN");
+  assertEquals("trail" in parseLine, false);
+});
+
 Deno.test("GET /generators - lists configured generator IDs", async () => {
   const modelGen: ModelEntry<Enrichments> = {
     id: "modelGen",

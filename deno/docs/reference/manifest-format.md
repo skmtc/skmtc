@@ -337,8 +337,11 @@ Each run replaces the file. A bundle that pins a core without `logs`
 gives no lines, and the CLI then removes the old file. `skmtc deploy`
 does not upload this file or `manifest.json`, because the stacks in
 them hold local paths.
+
 `@skmtc/server` returns the lines in the `logs` array of its
-`POST /artifacts` response.
+`POST /artifacts` response. The server keeps the lines at `'INFO'`
+and above. Like the file that the CLI writes, the array holds the
+warnings of the parse phase.
 
 The `trail` of a line is its key in `results`. Read it back with
 `StackTrail.fromString`, and use the frames in sequence as keys into

@@ -360,7 +360,8 @@ const artifactsResponse = (): Schema => ({
       type: "array",
       items: ref("LogLine"),
       description:
-        "The run's structured log lines at WARN and above. A line logged " +
+        "The run's structured log lines at INFO and above, the parse " +
+        "phase's warnings included. A line logged " +
         "while a subject was generated carries the subject's trail, which " +
         "is its key in `manifest.results`.",
     },
