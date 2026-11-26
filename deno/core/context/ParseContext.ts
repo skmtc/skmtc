@@ -1013,14 +1013,32 @@ export class ParseContext {
     const added = this.#addIssue(toParseIssue(issue))
 
     if (added && !this.silent) {
-      this.logger.warn({
+      const payload = {
         protocol: issue.protocol,
         level: issue.level,
         location: issue.location,
         message: issue.message,
         type: issue.type,
         ...(parent === undefined ? {} : { parent: JSON.stringify(parent) })
-      })
+      }
+
+      // Each issue is logged at its own level, so a log threshold above
+      // DEBUG leaves `debug` issues out.
+      switch (issue.level) {
+        case 'error':
+          this.logger.error(payload)
+          break
+        case 'warning':
+          this.logger.warn(payload)
+          break
+        case 'debug':
+          this.logger.debug(payload)
+          break
+        default: {
+          const _exhaustive: never = issue
+          throw new Error(`Unhandled issue level: ${JSON.stringify(_exhaustive)}`)
+        }
+      }
     }
   }
 

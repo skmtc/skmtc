@@ -311,7 +311,7 @@ Deno.test("POST /artifacts - returns a generator's INFO lines but not its DEBUG 
   );
 });
 
-Deno.test("POST /artifacts - returns the parse phase's warnings", async () => {
+Deno.test("POST /artifacts - returns parse issues at their own level, without debug issues", async () => {
   const app = mkApp();
   const res = await app.request("/artifacts", {
     method: "POST",
@@ -319,9 +319,16 @@ Deno.test("POST /artifacts - returns the parse phase's warnings", async () => {
     body: JSON.stringify({
       schema: JSON.stringify({
         ...minimalOas,
-        // `minLength` must be a number: parse records an issue.
+        openapi: "3.1.0",
         components: {
-          schemas: { A: { type: "string", minLength: "oops" } },
+          schemas: {
+            // `minLength` must be a number: an `error` issue.
+            A: { type: "string", minLength: "oops" },
+            // An unknown keyword: a `warning` issue.
+            B: { type: "string", bogus: true },
+            // A number format outside core's vocabulary: a `debug` issue.
+            Price: { type: "number", format: "decimal" },
+          },
         },
       }),
     }),
@@ -329,13 +336,27 @@ Deno.test("POST /artifacts - returns the parse phase's warnings", async () => {
 
   assertEquals(res.status, 200);
   const body = await res.json();
-  assertEquals(body.manifest.parseIssues.length > 0, true);
-  const parseLine = body.logs.find((line: { message: string }) =>
-    line.message.includes("INVALID_SCHEMA")
-  );
-  assertExists(parseLine);
-  assertEquals(parseLine.level, "WARN");
-  assertEquals("trail" in parseLine, false);
+  const issueTypes = body.manifest.parseIssues.map((
+    issue: { level: string; type: string },
+  ) => [issue.level, issue.type]);
+  assertEquals(issueTypes, [
+    ["error", "INVALID_SCHEMA"],
+    ["warning", "UNEXPECTED_PROPERTY"],
+    ["debug", "INVALID_FORMAT"],
+  ]);
+
+  const toLineFor = (issueType: string) =>
+    body.logs.find((line: { message: string }) =>
+      line.message.includes(issueType)
+    );
+  const errorLine = toLineFor("INVALID_SCHEMA");
+  assertExists(errorLine);
+  assertEquals(errorLine.level, "ERROR");
+  assertEquals("trail" in errorLine, false);
+  const warningLine = toLineFor("UNEXPECTED_PROPERTY");
+  assertExists(warningLine);
+  assertEquals(warningLine.level, "WARN");
+  assertEquals(toLineFor("INVALID_FORMAT"), undefined);
 });
 
 Deno.test("GET /generators - lists configured generator IDs", async () => {

@@ -331,6 +331,11 @@ type LogLine = {
 The default is `'WARN'`. When a transform throws, the engine logs one
 `ERROR` line with the message of the error and the error itself.
 
+When `silent` is `false`, the parse phase logs one line for each parse
+issue, at the level of the issue. An `error` issue gives an `ERROR`
+line, a `warning` issue gives a `WARN` line, and a `debug` issue gives
+a `DEBUG` line. These lines have no `trail`, and they record no result.
+
 The CLI writes the lines to
 `.skmtc/<project>/.settings/logs.ndjson`, one JSON object on each line.
 Each run replaces the file. A bundle that pins a core without `logs`
@@ -340,8 +345,8 @@ them hold local paths.
 
 `@skmtc/server` returns the lines in the `logs` array of its
 `POST /artifacts` response. The server keeps the lines at `'INFO'`
-and above. Like the file that the CLI writes, the array holds the
-warnings of the parse phase.
+and above. Thus the array holds the `error` and `warning` issues of
+the parse phase, but not the `debug` issues.
 
 The `trail` of a line is its key in `results`. Read it back with
 `StackTrail.fromString`, and use the frames in sequence as keys into
