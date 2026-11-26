@@ -267,6 +267,98 @@ Deno.test("POST /artifacts - returns the run's log lines beside the manifest", a
   assertEquals("logs" in body.manifest, false);
 });
 
+Deno.test("POST /artifacts - returns a generator's INFO lines but not its DEBUG lines", async () => {
+  const modelGen: ModelEntry<Enrichments> = {
+    id: "modelGen",
+    type: "model",
+    toEnrichmentSchema: () => emptyEnrichmentSchema,
+    isSupported: () => true,
+    supportsVariant: () => false,
+    transform({ context, ref }: TransformModelArgs): void {
+      context.logger.debug(`debug ${ref.refName}`);
+      context.logger.info(`info ${ref.refName}`);
+    },
+  };
+  const app = createServer({
+    toGeneratorConfigMap: (() => ({ modelGen })) as <
+      EnrichmentType = undefined,
+    >() => GeneratorsMapContainer<EnrichmentType>,
+  });
+
+  const res = await app.request("/artifacts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      schema: JSON.stringify({
+        ...minimalOas,
+        components: { schemas: { User: { type: "string" } } },
+      }),
+    }),
+  });
+
+  assertEquals(res.status, 200);
+  const body = await res.json();
+  const messages = body.logs.map((line: { message: string }) => line.message);
+  assertEquals(messages.includes("debug User"), false);
+  const infoLine = body.logs.find((line: { message: string }) =>
+    line.message === "info User"
+  );
+  assertExists(infoLine);
+  assertEquals(infoLine.level, "INFO");
+  assertEquals(
+    infoLine.trail.endsWith(":generate:modelGen:User:variant:main"),
+    true,
+  );
+});
+
+Deno.test("POST /artifacts - returns parse issues at their own level, without debug issues", async () => {
+  const app = mkApp();
+  const res = await app.request("/artifacts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      schema: JSON.stringify({
+        ...minimalOas,
+        openapi: "3.1.0",
+        components: {
+          schemas: {
+            // `minLength` must be a number: an `error` issue.
+            A: { type: "string", minLength: "oops" },
+            // An unknown keyword: a `warning` issue.
+            B: { type: "string", bogus: true },
+            // A number format outside core's vocabulary: a `debug` issue.
+            Price: { type: "number", format: "decimal" },
+          },
+        },
+      }),
+    }),
+  });
+
+  assertEquals(res.status, 200);
+  const body = await res.json();
+  const issueTypes = body.manifest.parseIssues.map((
+    issue: { level: string; type: string },
+  ) => [issue.level, issue.type]);
+  assertEquals(issueTypes, [
+    ["error", "INVALID_SCHEMA"],
+    ["warning", "UNEXPECTED_PROPERTY"],
+    ["debug", "INVALID_FORMAT"],
+  ]);
+
+  const toLineFor = (issueType: string) =>
+    body.logs.find((line: { message: string }) =>
+      line.message.includes(issueType)
+    );
+  const errorLine = toLineFor("INVALID_SCHEMA");
+  assertExists(errorLine);
+  assertEquals(errorLine.level, "ERROR");
+  assertEquals("trail" in errorLine, false);
+  const warningLine = toLineFor("UNEXPECTED_PROPERTY");
+  assertExists(warningLine);
+  assertEquals(warningLine.level, "WARN");
+  assertEquals(toLineFor("INVALID_FORMAT"), undefined);
+});
+
 Deno.test("GET /generators - lists configured generator IDs", async () => {
   const modelGen: ModelEntry<Enrichments> = {
     id: "modelGen",

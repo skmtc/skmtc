@@ -47,8 +47,10 @@ const readJsonBody = async (c: Context): Promise<unknown> => {
 type GenerateResult = {
   artifacts: Record<string, string>;
   manifest: ManifestContent;
-  /** The run's structured log lines at `WARN` and above. Each line logged
-   *  while a subject was generated carries the subject's `results` key. */
+  /** The run's structured log lines at `INFO` and above. They include the
+   *  parse phase's `error` and `warning` issues, each at its own level, but
+   *  not its `debug` issues. Each line logged while a subject was generated
+   *  carries the subject's `results` key. */
   logs: LogLine[];
   /** Per-file attribution sidecars (byte-range → producer). Present
    *  because attribution is always enabled with a post-pass below. */
@@ -130,7 +132,9 @@ const dispatchArtifacts = async ({
     toGeneratorConfigMap,
     stackTrail,
     logsPath,
-    silent: true,
+    // Parse logs its issues only when not silent, as the CLI's worker runs.
+    silent: false,
+    logLevel: "INFO",
     attribution: {
       postPass: {
         schemaSrc: schemaSrc ?? resolved.source?.resolvedUrl ??

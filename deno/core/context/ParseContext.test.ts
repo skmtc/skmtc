@@ -143,6 +143,58 @@ Deno.test('ParseContext - logIssueNoKey calls logger.warn when not silent', () =
   warnSpy.restore()
 })
 
+Deno.test('ParseContext - logIssueNoKey logs each issue at its own level', () => {
+  const mockLogger = { error: () => {}, warn: () => {}, debug: () => {} } as unknown as Logger
+  const errorSpy = spy(mockLogger, 'error')
+  const warnSpy = spy(mockLogger, 'warn')
+  const debugSpy = spy(mockLogger, 'debug')
+
+  const parseContext = new ParseContext({
+    input: oasInput(),
+    logger: mockLogger,
+    silent: false
+  })
+
+  const levels = ['error', 'warning', 'debug'] as const
+  levels.forEach(level =>
+    parseContext.logIssueNoKey({
+      level,
+      message: `Test ${level}`,
+      stackTrail: new StackTrail(['test', level]),
+      parent: {},
+      type: 'UNEXPECTED_PROPERTY'
+    })
+  )
+
+  assertSpyCalls(errorSpy, 1)
+  assertSpyCalls(warnSpy, 1)
+  assertSpyCalls(debugSpy, 1)
+  assertEquals(errorSpy.calls[0].args[0], {
+    protocol: 'oas',
+    level: 'error',
+    location: 'test:error',
+    message: 'Test error',
+    type: 'UNEXPECTED_PROPERTY',
+    parent: '{}'
+  })
+  assertEquals(warnSpy.calls[0].args[0], {
+    protocol: 'oas',
+    level: 'warning',
+    location: 'test:warning',
+    message: 'Test warning',
+    type: 'UNEXPECTED_PROPERTY',
+    parent: '{}'
+  })
+  assertEquals(debugSpy.calls[0].args[0], {
+    protocol: 'oas',
+    level: 'debug',
+    location: 'test:debug',
+    message: 'Test debug',
+    type: 'UNEXPECTED_PROPERTY',
+    parent: '{}'
+  })
+})
+
 Deno.test('ParseContext - logIssueNoKey does not call logger when silent', () => {
   const mockLogger = { warn: () => {} } as unknown as Logger
   const warnSpy = spy(mockLogger, 'warn')
