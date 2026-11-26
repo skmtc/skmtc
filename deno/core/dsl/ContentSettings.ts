@@ -63,7 +63,7 @@ type CreateArgs<EnrichmentType = undefined> = {
  *
  * @example Basic settings without enrichments
  * ```typescript
- * import { ContentSettings } from '@skmtc/core';
+ * import { ContentSettings, normalizeWorkspacePath } from '@skmtc/core';
  * import { createType } from '@skmtc/lang-typescript';
  *
  * const settings = ContentSettings.empty({
