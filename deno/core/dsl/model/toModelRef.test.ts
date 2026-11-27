@@ -193,7 +193,7 @@ Deno.test('a cycle across two files: the reference back is suspended, imported, 
 Deno.test('a second reference into the cycle, found in the cache, is inside the cycle too', () => {
   // A → B → C → A, and A → C again. C is constructed through B, so A's own
   // reference to C is a cache hit: no construction runs to show the cycle.
-  // C's Definition carries what its construction reached (A, still pending).
+  // C's Definition carries the model its construction led back to (A, still pending).
   const { Model, context, valueOf } = toModels({ A: ['B', 'C'], B: ['C'], C: ['A'] })
 
   context.insertModel(Model, toSchemaComponentRef('A' as RefName))
@@ -204,6 +204,78 @@ Deno.test('a second reference into the cycle, found in the cache, is inside the 
   ])
   assertEquals(valueOf('B').refs, [{ name: 'C', suspended: false, inCycle: true }])
   assertEquals(valueOf('C').refs, [{ name: 'A', suspended: true, inCycle: false }])
+})
+
+Deno.test('a reference to a model whose own way back has completed is inside the cycle too', () => {
+  // Microsoft Graph: user → driveItem → itemAnalytics → driveItem, and
+  // user → site → itemAnalytics. All four are in one cycle.
+  const { Model, context, valueOf } = toModels({
+    User: ['DriveItem', 'Site'],
+    DriveItem: ['Analytics', 'User'],
+    Analytics: ['DriveItem'],
+    Site: ['Analytics', 'User']
+  })
+
+  context.insertModel(Model, toSchemaComponentRef('User' as RefName))
+
+  // The trap: Analytics led back to DriveItem alone, and DriveItem has
+  // completed by the time Site refers to Analytics. DriveItem leads back to
+  // User, which is still pending, so the cycle is not complete. An answer
+  // from Analytics' own record alone wrote the reference directly, and the
+  // module of Analytics threw when it was the first of the cycle to load.
+  assertEquals(valueOf('Site').refs, [
+    { name: 'Analytics', suspended: false, inCycle: true },
+    { name: 'User', suspended: true, inCycle: false }
+  ])
+
+  // The way back can be longer: Item leads back to Inner, Inner to Middle and
+  // Middle to Root. Only Root is still pending when Side refers to Item.
+  const chain = toModels({
+    Root: ['Middle', 'Side'],
+    Middle: ['Inner', 'Root'],
+    Inner: ['Item', 'Middle'],
+    Item: ['Inner'],
+    Side: ['Item', 'Root']
+  })
+
+  chain.context.insertModel(chain.Model, toSchemaComponentRef('Root' as RefName))
+
+  assertEquals(chain.valueOf('Side').refs, [
+    { name: 'Item', suspended: false, inCycle: true },
+    { name: 'Root', suspended: true, inCycle: false }
+  ])
+})
+
+Deno.test('the references inside a cycle are the same ones wherever the run enters it', () => {
+  // A, B, C and D are one cycle. Leaf is below it and Outside is above it.
+  const graph: Graph = {
+    A: ['B', 'D'],
+    B: ['C', 'Leaf'],
+    C: ['A', 'D'],
+    D: ['B'],
+    Leaf: [],
+    Outside: ['A']
+  }
+  const inside = ['A→B', 'A→D', 'B→C', 'C→A', 'C→D', 'D→B']
+
+  // A reference is deferred when it comes back suspended or inside a cycle:
+  // which of the two it is depends on the entry, and that it is one of them
+  // must not.
+  const toDeferred = (entry: string): string[] => {
+    const { Model, context, valueOf } = toModels(graph)
+
+    ;[entry, ...Object.keys(graph)].forEach(name =>
+      context.insertModel(Model, toSchemaComponentRef(name as RefName))
+    )
+
+    return Object.keys(graph)
+      .flatMap(name =>
+        valueOf(name).refs.flatMap(ref => (ref.suspended || ref.inCycle ? [`${name}→${ref.name}`] : []))
+      )
+      .sort()
+  }
+
+  Object.keys(graph).forEach(entry => assertEquals(toDeferred(entry), inside, `entered at ${entry}`))
 })
 
 Deno.test('a reference into a cycle from outside it is not inside the cycle', () => {

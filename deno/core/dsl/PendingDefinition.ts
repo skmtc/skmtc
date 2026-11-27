@@ -38,13 +38,17 @@ export class PendingDefinition {
   backReferences = 0
   /** True while the projection's constructor runs; false once it returned, however it returned. */
   pending = true
+  /** The model's place on the pending stack, counted from the bottom. The Driver sets it when it pushes the model. */
+  depth = 0
   /**
-   * The models this model's construction reached while they were under
-   * construction: the targets of its references back, and what the models it
-   * refers to reached. When the constructor returns, the Driver hands the set
-   * to the Definition (`DefinitionBase.reaches`).
+   * The model lowest on the pending stack that this model's construction led
+   * back to, directly or through the models it refers to: itself when it led
+   * back to none. The models are constructed depth first, so this is the
+   * lowlink of Tarjan's algorithm, and a model that leads back to itself
+   * alone is the root of its cycle. When the constructor returns, the Driver
+   * hands it to the Definition (`DefinitionBase.leadsTo`).
    */
-  reaches: Set<PendingDefinition> = new Set()
+  leadsTo: PendingDefinition = this
 
   constructor({
     identifier,
@@ -58,5 +62,29 @@ export class PendingDefinition {
     this.generatorKey = generatorKey
     this.options = options
     this.projection = projection
+  }
+
+  /**
+   * Record that this model's construction led back to `other`, a model on
+   * the pending stack. The lowest one is kept.
+   */
+  leadBackTo(other: PendingDefinition): void {
+    if (other.depth < this.leadsTo.depth) {
+      this.leadsTo = other
+    }
+  }
+
+  /**
+   * The model under construction this model still leads back to: itself
+   * while its own constructor runs, and after that the one its cycle goes
+   * back to, for as long as that cycle is not complete. `undefined` once the
+   * root of its cycle has returned: the model is in no cycle that is open.
+   */
+  toOpenEnd(): PendingDefinition | undefined {
+    if (this.pending) {
+      return this
+    }
+
+    return this.leadsTo === this ? undefined : this.leadsTo.toOpenEnd()
   }
 }

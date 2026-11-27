@@ -514,9 +514,14 @@ A ref snippet asks for its model through `toModelRef`:
 The same protocol covers a cycle of two or more models. When `Employee`
 refers to `Team` and `Team` refers back to `Employee`, the reference
 from `Team` comes back `suspended`. The reference from `Employee` to
-`Team` comes back with `inCycle: true`, because `Team` reached a
-model whose constructor was still in progress. `isReferencedBack` is true for
-`Employee`, the model that the cycle started from.
+`Team` comes back with `inCycle: true`, because `Team` leads back to a
+model whose constructor is still in progress. `isReferencedBack` is
+true for `Employee`, the model that the cycle started from.
+
+A model is inside a cycle until the whole cycle is complete. So
+`inCycle` is also true when the model leads back there through models
+whose constructors have returned. The references inside a cycle are thus
+the same ones wherever the run enters the cycle.
 
 The Definition takes its place in the file when the constructor
 returns, after the models that the constructor added. So a `const`
