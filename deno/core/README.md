@@ -43,7 +43,8 @@ skmtc generate petstore https://petstore3.swagger.io/api/v3/openapi.json
 ### Example generator code
 
 A whole generator, in one file. It writes one `fetch` function for each
-operation of the document.
+operation of the document. It is short on purpose: the function sends the
+path as the document writes it, with no path parameters and no body.
 
 ```ts
 import {

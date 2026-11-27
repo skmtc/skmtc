@@ -98,13 +98,19 @@ for await (const entry of Deno.readDir(join(docsDir, 'skills'))) {
   }
 }
 
+const rootConfig = JSON.parse(await Deno.readTextFile(join(denoDir, 'deno.json'))) as {
+  workspace?: string[]
+  imports?: Record<string, string>
+}
+
 // The README of a package is its page on JSR, and the root README is the
 // page on GitHub: the first code a reader copies. A block there is a claim
-// like any other, and no check read these files before.
+// like any other, and no check read these files before. Only a workspace
+// member is a package: another folder under `deno/` can hold code written
+// for another version of core.
 const readmeFiles: string[] = [join(denoDir, '..', 'README.md'), join(docsDir, 'README.md')]
-for await (const entry of Deno.readDir(denoDir)) {
-  if (!entry.isDirectory || entry.name.startsWith('.') || entry.name === 'docs') continue
-  const readme = join(denoDir, entry.name, 'README.md')
+for (const member of rootConfig.workspace ?? []) {
+  const readme = join(denoDir, member, 'README.md')
   const hasReadme = await Deno.stat(readme).then(
     stat => stat.isFile,
     () => false
@@ -185,11 +191,6 @@ for (const file of markdownFiles) {
 // qualified jsr:/npm: specifier.
 // ---------------------------------------------------------------------
 
-const rootConfig = JSON.parse(await Deno.readTextFile(join(denoDir, 'deno.json'))) as {
-  workspace?: string[]
-  imports?: Record<string, string>
-}
-
 const memberNames = new Set<string>()
 for (const member of rootConfig.workspace ?? []) {
   try {
@@ -212,8 +213,11 @@ const isResolvable = (specifier: string): boolean => {
   return rootImports.some(key => specifier === key || specifier.startsWith(`${key}/`))
 }
 
+// The names of an import can go over several lines, so the part before
+// `from` can hold line breaks. It cannot hold a quote, which keeps one
+// statement from reaching into the next.
 const importPattern =
-  /(?:^|\n)\s*(?:import|export)[^'"\n]*?from\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g
+  /(?:^|\n)\s*(?:import|export)[^'"]*?from\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g
 
 type Skip = { block: Block; reason: string }
 
