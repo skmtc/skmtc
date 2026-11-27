@@ -30,8 +30,14 @@ deno add jsr:@skmtc/openapi-down-convert
 The `Converter` class takes a parsed OpenAPI 3.1 document (a plain object) and
 returns a converted OpenAPI 3.0 document. The input is not modified.
 
-```typescript
+```ts
 import { Converter, type ConverterOptions } from '@skmtc/openapi-down-convert';
+
+const oas31Document = {
+  openapi: '3.1.0',
+  info: { title: 'Pets', version: '1.0.0' },
+  paths: {},
+};
 
 const options: ConverterOptions = {
   verbose: false,

@@ -50,59 +50,80 @@ skmtc generate petstore https://petstore3.swagger.io/api/v3/openapi.json
 
 ### Example generator code
 
-```typescript
-import {
-  toOasOperationEntry,
-  toOasOperationProjectionBase,
-  Identifier
-} from '@skmtc/core'
-import { ZodProjection } from '@skmtc/gen-zod'
-import denoJson from '../deno.json' with { type: 'json' }
+A whole generator, in one file. It writes one `fetch` function for each
+operation of the document.
 
-// Build a per-generator projection base via the factory.
-const ZodFetchBase = toOasOperationProjectionBase({
-  id: denoJson.name,
-  toIdentifier: ({ operation }) =>
-    Identifier.createVariable(`fetch${operation.operationId}`),
-  toExportPath: ({ operation }) =>
-    `@/services/${operation.operationId}.generated.ts`
+```ts
+import {
+  decapitalize,
+  type EmptyEnrichments,
+  emptyEnrichmentSchema,
+  type OasOperationProjectionConstructorArgs,
+  toEndpointName,
+  toOasOperationEntry
+} from '@skmtc/core'
+import { toStringLiteral, toTsOasOperationProjectionBase } from '@skmtc/lang-typescript'
+
+const ID = '@acme/gen-fetch'
+
+// This generator takes no settings from its consumer.
+const toEnrichmentSchema = () => emptyEnrichmentSchema
+
+// The name and the export path of each definition are decided here, once.
+const FetchBase = toTsOasOperationProjectionBase<EmptyEnrichments>({
+  id: ID,
+
+  // Method and path, never operationId: `POST /search` is `createApiSearch`.
+  toIdentifierName: ({ operation }) => decapitalize(toEndpointName(operation)),
+
+  toIdentifierType: () => ({ type: 'variable' }),
+
+  toExportPath({ operation, enrichments, variant }) {
+    return `@/api/${this.toIdentifierName({ operation, enrichments, variant })}.generated.ts`
+  },
+
+  toEnrichmentSchema
 })
 
-class ZodFetch extends ZodFetchBase {
-  zodName: string
+// A producer: the constructor stores the parts, and toString() arranges them.
+class FetchEndpoint extends FetchBase {
+  method: string
+  path: string
 
-  constructor(args: ConstructorParameters<typeof ZodFetchBase>[0]) {
+  constructor(args: OasOperationProjectionConstructorArgs<EmptyEnrichments>) {
     super(args)
 
-    // Insert a Zod schema for the success response into the same file.
-    const response = this.operation.toSuccessResponse()?.resolve().toSchema()
-    const zodResponse = this.insertNormalizedModel(ZodProjection, {
-      schema: response,
-      fallbackName: `${this.operation.operationId}Response`
-    })
-
-    // Grab the Zod identifier so toString() can reference it.
-    this.zodName = zodResponse.identifier.name
+    this.method = toStringLiteral(this.operation.method.toUpperCase())
+    this.path = toStringLiteral(this.operation.path)
   }
 
   override toString(): string {
-    return `async () => {
-      const res = await fetch('${this.operation.path}')
-      const data = await res.json()
-      return ${this.zodName}.parse(data)
-    }`
+    return `() => fetch(${this.path}, { method: ${this.method} })`
   }
 }
 
-// Wire it up so the engine dispatches against OAS operations.
-export const zodFetchEntry = toOasOperationEntry({
-  id: denoJson.name,
-  isSupported: () => true,
-  transform: ({ context, operation }) => {
-    context.insertOperation(ZodFetch, operation)
+// The engine runs the entry once for each operation of the document.
+export default toOasOperationEntry<EmptyEnrichments>({
+  id: ID,
+  toEnrichmentSchema,
+  transform({ context, operation, variant }) {
+    context.insertOperation({ projection: FetchEndpoint, operation, variant })
   }
 })
 ```
+
+For a document with `GET /pets` and `POST /search`, it writes two files:
+
+```ts
+// api/getApiPets.generated.ts
+export const getApiPets = () => fetch('/pets', { method: 'GET' });
+
+// api/createApiSearch.generated.ts
+export const createApiSearch = () => fetch('/search', { method: 'POST' });
+```
+
+`deno task verify-docs` type-checks this example against the packages in
+this repository, so it compiles with the version you read it beside.
 
 ## 📦 Available Generators
 

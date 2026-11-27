@@ -5,7 +5,8 @@
  *
  * docs-writing §7: "a fenced code block is a claim; untested claims
  * rot." This harness makes the claim checkable: every ```ts block in
- * the reader-facing tree (+ skills + llms.md) whose imports resolve
+ * the reader-facing tree (+ skills + llms.md + the root README and the
+ * README of each package; ```typescript is read as ```ts) whose imports resolve
  * inside this workspace is extracted to `docs/.doc-test/` and run
  * through `deno check`. Workspace member resolution means
  * `@skmtc/core` / `@skmtc/lang-typescript` imports typecheck against
@@ -97,6 +98,21 @@ for await (const entry of Deno.readDir(join(docsDir, 'skills'))) {
   }
 }
 
+// The README of a package is its page on JSR, and the root README is the
+// page on GitHub: the first code a reader copies. A block there is a claim
+// like any other, and no check read these files before.
+const readmeFiles: string[] = [join(denoDir, '..', 'README.md'), join(docsDir, 'README.md')]
+for await (const entry of Deno.readDir(denoDir)) {
+  if (!entry.isDirectory || entry.name.startsWith('.') || entry.name === 'docs') continue
+  const readme = join(denoDir, entry.name, 'README.md')
+  const hasReadme = await Deno.stat(readme).then(
+    stat => stat.isFile,
+    () => false
+  )
+  if (hasReadme) readmeFiles.push(readme)
+}
+markdownFiles.push(...readmeFiles.sort())
+
 // ---------------------------------------------------------------------
 // Extract fenced ts/tsx blocks.
 // ---------------------------------------------------------------------
@@ -143,10 +159,12 @@ for (const file of markdownFiles) {
       }
       continue
     }
-    const fence = line.match(/^\s*```(tsx?)\b(.*)$/)
+    // ```typescript is ```ts: a README written for GitHub uses the long
+    // name, and a block that is not read is not checked.
+    const fence = line.match(/^\s*```(tsx?|typescript)\b(.*)$/)
     if (fence) {
       open = {
-        lang: fence[1],
+        lang: fence[1] === 'typescript' ? 'ts' : fence[1],
         flags: fence[2].trim().split(/\s+/).filter(Boolean),
         line: index + 1
       }
