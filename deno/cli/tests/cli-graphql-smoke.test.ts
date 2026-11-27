@@ -123,7 +123,13 @@ type SetupResult = {
  * `<unique>` segment lets the two smoke tests run without colliding on
  * the same directory.
  */
-const setup = async (uniqueSuffix: string): Promise<SetupResult> => {
+const setup = async (
+  uniqueSuffix: string,
+  schema: { fileName: string; contents: string } = {
+    fileName: 'schema.graphql',
+    contents: FIXTURE_SDL
+  }
+): Promise<SetupResult> => {
   const fixtureRoot = join(FIXTURES_DIR, `${PROJECT_NAME}-${uniqueSuffix}`)
   // Wipe any leftover state from a previous interrupted run.
   await Deno.remove(fixtureRoot, { recursive: true }).catch(() => {})
@@ -142,8 +148,8 @@ const setup = async (uniqueSuffix: string): Promise<SetupResult> => {
   await Deno.writeTextFile(join(settingsPath, 'client.json'), FIXTURE_CLIENT_JSON)
   await Deno.writeTextFile(join(projectPath, 'deno.json'), toFixtureDenoJson(projectPath))
 
-  const schemaPath = join(fixtureRoot, 'schema.graphql')
-  await Deno.writeTextFile(schemaPath, FIXTURE_SDL)
+  const schemaPath = join(fixtureRoot, schema.fileName)
+  await Deno.writeTextFile(schemaPath, schema.contents)
 
   return { fixtureRoot, schemaPath }
 }
@@ -263,6 +269,99 @@ Deno.test({
       assertStringIncludes(out, 'Generated')
       // The "Parse issues" section should NOT appear for a clean schema.
       assertEquals(out.includes('Parse issues'), false)
+    } finally {
+      await teardown(fixtureRoot)
+    }
+  }
+})
+
+/**
+ * An OpenAPI document with one parse warning: a property OpenAPI does not
+ * define on a schema (`UNEXPECTED_PROPERTY`).
+ */
+const WARNING_SCHEMA = {
+  fileName: 'schema.json',
+  contents: JSON.stringify({
+    openapi: '3.0.3',
+    info: { title: 'Parse warning', version: '1.0.0' },
+    paths: {},
+    components: {
+      schemas: {
+        User: {
+          type: 'object',
+          notAKeyword: true,
+          properties: { name: { type: 'string' } }
+        }
+      }
+    }
+  })
+}
+
+const runGenerate = async (
+  fixtureRoot: string,
+  schemaPath: string,
+  extraArgs: string[]
+): Promise<{ out: string; err: string }> => {
+  const { success, stdout, stderr } = await new Deno.Command(Deno.execPath(), {
+    args: [
+      'run',
+      '--allow-all',
+      '--config',
+      CLI_DENO_JSON,
+      CLI_MOD,
+      'generate',
+      PROJECT_NAME,
+      schemaPath,
+      ...extraArgs
+    ],
+    cwd: fixtureRoot,
+    stdout: 'piped',
+    stderr: 'piped'
+  }).output()
+
+  const out = new TextDecoder().decode(stdout)
+  const err = new TextDecoder().decode(stderr)
+
+  if (!success) {
+    throw new Error(`CLI failed.\nstdout:\n${out}\nstderr:\n${err}`)
+  }
+
+  return { out, err }
+}
+
+Deno.test({
+  name: 'CLI smoke - generate --json with a parse warning writes only JSON to stdout',
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const { fixtureRoot, schemaPath } = await setup('json-warning', WARNING_SCHEMA)
+    try {
+      const { out, err } = await runGenerate(fixtureRoot, schemaPath, ['--json'])
+
+      // All of stdout is one JSON object.
+      const result: unknown = JSON.parse(out)
+      assertStringIncludes(JSON.stringify(result), '"level":"warning"')
+
+      // The run's log lines go to stderr.
+      assertStringIncludes(err, '[WARN]')
+    } finally {
+      await teardown(fixtureRoot)
+    }
+  }
+})
+
+Deno.test({
+  name: 'CLI smoke - generate in text mode writes parse warnings to stderr',
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const { fixtureRoot, schemaPath } = await setup('text-warning', WARNING_SCHEMA)
+    try {
+      const { out, err } = await runGenerate(fixtureRoot, schemaPath, [])
+
+      assertStringIncludes(out, 'Generated')
+      assertStringIncludes(err, '[WARN]')
+      assertEquals(out.includes('[WARN]'), false)
     } finally {
       await teardown(fixtureRoot)
     }

@@ -94,6 +94,10 @@ debugger to attach.
 Write a single structured JSON object to stdout. Implies `--no-input`.
 Mutually exclusive with `--watch`.
 
+Stdout holds only that object, so you can pipe it to `jq`. The run's
+log lines, such as a `[WARN]` line for a parse warning, go to stderr.
+The parse issues are also in the object's `parseIssues`.
+
 ### `--no-input`
 
 Disable interactive prompts. Required arguments must be provided up
@@ -205,6 +209,15 @@ After the worker returns, the CLI writes:
 
 The manifest is overwritten on every run. See
 [manifest-format](../manifest-format.md).
+
+### Where warnings go
+
+The engine writes its log lines to stderr in every mode. A parse
+warning is one `[WARN]` line, and a parse error is one `[ERROR]` line.
+Stdout holds only the result: the summary and the `Parse issues` list
+in text mode, or the JSON object with `--json`. To keep the warnings
+apart from the result, redirect stderr, for example
+`skmtc generate my-api 2> generate.log`.
 
 ## JSON output
 
