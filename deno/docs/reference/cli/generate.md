@@ -390,7 +390,7 @@ No schema argument needed.
 | Code | Meaning |
 |---|---|
 | `0` | Success — no fatal parse issues, typecheck (if requested) passed |
-| `1` | Fatal parseIssue at level `error`, OR `--typecheck` returned `type: "failed"`, OR worker error, OR the bundle build failed, OR the module graph holds more than one copy of `@skmtc/core` or a `@skmtc/lang-*` package |
+| `1` | Fatal parseIssue at level `error`, OR `--typecheck` returned `type: "failed"`, OR worker error, OR the bundle build failed, OR the module graph holds more than one copy of `@skmtc/core` or a `@skmtc/lang-*` package, OR the schema could not be read (for a URL: a status that is not 2xx, or a body that is not a schema) |
 | `2` | Required argument missing (recipe error on stderr), OR `--json` and `--watch` both passed |
 
 ## Worker-side failures

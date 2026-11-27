@@ -183,3 +183,121 @@ Deno.test('SchemaFile.openFromSource - returns consistent schemaSource', async (
     await Deno.remove(tempDir, { recursive: true })
   }
 })
+
+/** Serves `respond` on a free local port for the duration of `body`. */
+const withSchemaServer = async (
+  respond: (request: Request) => Response,
+  body: (origin: string) => Promise<void>
+) => {
+  const server = Deno.serve({ port: 0, hostname: '127.0.0.1', onListen: () => {} }, respond)
+  try {
+    await body(`http://127.0.0.1:${server.addr.port}`)
+  } finally {
+    await server.shutdown()
+  }
+}
+
+Deno.test('SchemaFile.getFromSource - a remote 404 fails with the URL and the status', async () => {
+  // The body is a valid schema, so only the status check can refuse it.
+  await withSchemaServer(
+    () => new Response(JSON.stringify({ openapi: '3.0.0' }), { status: 404 }),
+    async origin => {
+      const url = `${origin}/openapi.json`
+
+      await assertRejects(
+        () => SchemaFile.getFromSource({ type: 'remote', url }),
+        Error,
+        `could not fetch the schema from ${url}: 404 Not Found`
+      )
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - a remote 200 with an HTML body fails with the URL', async () => {
+  await withSchemaServer(
+    () =>
+      new Response('<html><body><h1>Sign in</h1></body></html>', {
+        headers: { 'content-type': 'text/html' }
+      }),
+    async origin => {
+      const url = `${origin}/openapi.json`
+
+      await assertRejects(
+        () => SchemaFile.getFromSource({ type: 'remote', url }),
+        Error,
+        `the answer from ${url} is not a schema`
+      )
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - a remote 200 HTML page at a URL with no extension fails with the URL', async () => {
+  await withSchemaServer(
+    () =>
+      new Response('<html><body><h1>Sign in</h1></body></html>', {
+        headers: { 'content-type': 'text/html' }
+      }),
+    async origin => {
+      const url = `${origin}/api/schema`
+
+      await assertRejects(
+        () => SchemaFile.getFromSource({ type: 'remote', url }),
+        Error,
+        `for remote source ${url}:`
+      )
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - a remote 200 whose object has no openapi or swagger field fails', async () => {
+  await withSchemaServer(
+    () => new Response('status: ok\n'),
+    async origin => {
+      const url = `${origin}/openapi.yaml`
+
+      await assertRejects(
+        () => SchemaFile.getFromSource({ type: 'remote', url }),
+        Error,
+        `the answer from ${url} is not a schema`
+      )
+    }
+  )
+})
+
+Deno.test('SchemaFile.getFromSource - a remote 200 schema is read as before', async () => {
+  const json = JSON.stringify({ openapi: '3.0.0', info: { title: 'A', version: '1' }, paths: {} })
+  const yaml = 'swagger: "2.0"\ninfo:\n  title: A\n  version: "1"\npaths: {}\n'
+  const sdl = 'type Query { me: String }'
+
+  await withSchemaServer(
+    request => {
+      const { pathname } = new URL(request.url)
+      if (pathname === '/openapi.json') return new Response(json)
+      if (pathname === '/swagger.yaml') return new Response(yaml)
+      return new Response(sdl)
+    },
+    async origin => {
+      const jsonResult = await SchemaFile.getFromSource({
+        type: 'remote',
+        url: `${origin}/openapi.json`
+      })
+      assertEquals(jsonResult.contents, json)
+      assertEquals(jsonResult.fileType, 'json')
+
+      const yamlResult = await SchemaFile.getFromSource({
+        type: 'remote',
+        url: `${origin}/swagger.yaml`
+      })
+      assertEquals(yamlResult.contents, yaml)
+      assertEquals(yamlResult.fileType, 'yaml')
+
+      // GraphQL SDL is not an OpenAPI document and is read unchecked.
+      const sdlResult = await SchemaFile.getFromSource({
+        type: 'remote',
+        url: `${origin}/schema.graphql`
+      })
+      assertEquals(sdlResult.contents, sdl)
+      assertEquals(sdlResult.fileType, 'graphql')
+    }
+  )
+})
