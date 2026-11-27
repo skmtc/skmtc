@@ -23,6 +23,7 @@ import { join } from '@std/path/join'
 import type { SkmtcRoot } from '@/lib/skmtc-root.ts'
 import { parseScopedName, toScopedPath } from '@/lib/scoped-name.ts'
 import { toAbsoluteRootPath } from '@/lib/to-root-path.ts'
+import { toClientConfigBody } from '@/lib/push-headless.ts'
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -337,18 +338,7 @@ export const createHeadless = async ({
   // 4. Seed config (+ base files).
   let enrichmentCount = 0
   try {
-    const settings = contents.settings
-    const body = {
-      source: contents.source,
-      settings: {
-        basePath: settings.basePath ?? '.',
-        packages: settings.packages,
-        include: settings.include,
-        skip: settings.skip,
-        enrichments: settings.enrichments,
-        inputDirs: settings.inputDirs
-      }
-    }
+    const body = toClientConfigBody(contents)
     const res = await fetch(`${origin}/v1/projects/${toScopedPath(dest)}/client-config`, {
       method: 'PUT',
       headers: { ...headers, 'content-type': 'application/json' },
