@@ -253,7 +253,10 @@ When a project uses a deprecated config name, a command's JSON result
 also has a `deprecations` array. `doctor --json` and
 `agent-context --json` always have it at the top level. Each entry is
 `{ kind, old, new, fix }`, where `kind` is `configFile` or
-`settingsKey`, and `fix` is `skmtc migrate config <project>`.
+`settingsKey`, and `fix` is `skmtc migrate config <project>`. A
+project with both `skmtc.config.json` and `client.json` gets a
+`kind: 'ignoredConfigFile'` entry: skmtc ignores `client.json`, and `fix`
+is `rm .skmtc/<project>/.settings/client.json`.
 
 ### `migrate config`
 

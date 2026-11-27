@@ -494,7 +494,9 @@ export const checkProjectConfigNames = (projectName: string, projectPath: string
   const id = `config-names/${projectName}`
   const location = toConfigLocation(projectPath)
   const deprecations = readConfigDeprecations(projectPath)
-  const names = deprecations.map(deprecation => `${deprecation.old} (now ${deprecation.new})`).join(', ')
+  const names = deprecations
+    .filter(deprecation => deprecation.kind !== 'ignoredConfigFile')
+    .map(deprecation => `${deprecation.old} (now ${deprecation.new})`).join(', ')
 
   if (location.ignoredLegacyPath) {
     return {

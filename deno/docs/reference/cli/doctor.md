@@ -150,7 +150,10 @@ do not change the exit code.
 The top-level `deprecations` array lists each deprecated config name
 that a project uses. Each entry has `kind` (`configFile` or
 `settingsKey`), `old`, `new`, and `fix` (the command that migrates
-the project). The array is empty when no project uses an old name.
+the project). A project that has both files gets an entry of kind
+`ignoredConfigFile`, with the command that deletes the ignored
+`client.json` as its `fix`. The array is empty when no project uses
+an old name.
 
 Each `Check` has the shape `{ id, status, message, hint?, data? }`.
 There is no separate `level` or `remediation` field — remediation

@@ -59,12 +59,18 @@ export const toConfigLocation = (projectPath: string): ConfigLocation => {
 /** The path of the config file of the project at `projectPath`. */
 export const toConfigPath = (projectPath: string): string => toConfigLocation(projectPath).path
 
-/** One deprecated name a project's config still uses. */
+/**
+ * One deprecated name a project's config still uses, or, for
+ * `ignoredConfigFile`, a `client.json` that `skmtc.config.json` hides.
+ */
 export type ConfigDeprecation = {
-  kind: 'configFile' | 'settingsKey'
+  kind: 'configFile' | 'settingsKey' | 'ignoredConfigFile'
   old: string
   new: string
-  /** The command that moves the project to the new name. */
+  /**
+   * The command that moves the project to the new name. For
+   * `ignoredConfigFile`, the command that deletes the ignored file.
+   */
   fix: string
 }
 
@@ -96,6 +102,16 @@ export const toConfigDeprecations = ({
   const settings = toSettingsRecord(config)
 
   return [
+    ...(location.ignoredLegacyPath
+      ? [
+          {
+            kind: 'ignoredConfigFile' as const,
+            old: LEGACY_CONFIG_FILE_NAME,
+            new: CONFIG_FILE_NAME,
+            fix: `rm .skmtc/${projectName}/.settings/${LEGACY_CONFIG_FILE_NAME}`
+          }
+        ]
+      : []),
     ...(location.legacy
       ? [{ kind: 'configFile' as const, old: LEGACY_CONFIG_FILE_NAME, new: CONFIG_FILE_NAME, fix }]
       : []),
@@ -163,11 +179,6 @@ export const reportConfigDeprecations = ({
 }: ReportConfigDeprecationsArgs): void => {
   const projectName = basename(projectPath)
 
-  if (location.ignoredLegacyPath && !reported.keys.has(location.ignoredLegacyPath)) {
-    reported.keys.add(location.ignoredLegacyPath)
-    console.error(toIgnoredLegacyWarning(projectName, location))
-  }
-
   toConfigDeprecations({ projectName, location, config }).forEach(deprecation => {
     const key = `${deprecation.kind}:${deprecation.fix}`
 
@@ -177,7 +188,11 @@ export const reportConfigDeprecations = ({
 
     reported.keys.add(key)
     reported.deprecations.push(deprecation)
-    console.error(toDeprecationWarning(projectName, deprecation))
+    console.error(
+      deprecation.kind === 'ignoredConfigFile'
+        ? toIgnoredLegacyWarning(projectName, location)
+        : toDeprecationWarning(projectName, deprecation)
+    )
   })
 
   // The CLI hands the engine one key (`toEngineSettings`), so core's own

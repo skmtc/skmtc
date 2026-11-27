@@ -130,6 +130,28 @@ Deno.test('Project.open - a project on the new names prints no warning, and its 
   })
 })
 
+Deno.test('Project.open - a client.json that skmtc.config.json hides is an ignoredConfigFile entry, in --json and agent-context', async () => {
+  const files = { 'skmtc.config.json': currentConfig, 'client.json': legacyConfig }
+  const ignored = {
+    kind: 'ignoredConfigFile',
+    old: 'client.json',
+    new: 'skmtc.config.json',
+    fix: 'rm .skmtc/pets/.settings/client.json'
+  }
+
+  await withConfigRoot({ pets: files }, async () => {
+    const { stderr } = await captureConsole(() => Project.open('pets', createMockManager()))
+    assertEquals(stderr.length, 1)
+    assertStringIncludes(stderr[0], 'has both skmtc.config.json and client.json')
+
+    const { stdout: json } = await captureConsole(() => printJsonResult({ ok: true }))
+    assertEquals(JSON.parse(json[0]), { ok: true, deprecations: [ignored] })
+
+    const context = runAgentContext({ cliVersion: '0.0.0' })
+    assertEquals(context.deprecations, [ignored])
+  })
+})
+
 Deno.test('a command that writes config writes the file it read: skmtc migrate variants on each name', async () => {
   for (const fileName of ['client.json', 'skmtc.config.json'] as const) {
     const config = { settings: { system: { not: 'unknown' }, skip: [{ 'gen-a': { '/pets': ['get'] } }] } }

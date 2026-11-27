@@ -149,7 +149,9 @@ The complete shape:
 (`client.json` or `settings.system`). Each entry has `kind`
 (`configFile` or `settingsKey`), `old`, `new`, and `fix`. The `fix`
 is the command that migrates the project, for example
-`skmtc migrate config my-api`. The text output lists the same entries
+`skmtc migrate config my-api`. A project that has both files gets an
+entry of kind `ignoredConfigFile`: skmtc ignores `client.json`, and
+the `fix` deletes it. The text output lists the same entries
 under "Deprecated config names".
 
 The full document is intended to be embedded in an agent's context
