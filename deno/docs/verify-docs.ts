@@ -30,10 +30,9 @@
  *      reader-facing tree (using/authoring/reference/concepts/
  *      explanation).
  *   6. CLI COMMAND-SURFACE SYNC — every top-level command registered
- *      in cli/mod.ts is mentioned in the skmtc-cli skill and has a
- *      reference/cli/<command>.md page; every reference/cli page and
- *      every row of the skill's command table names a command that is
- *      still registered.
+ *      in cli/mod.ts has a reference/cli/<command>.md page, every
+ *      reference/cli page names a command that is still registered,
+ *      and the skmtc-cli skill points at `skmtc --help`.
  *   7. PARSE-ISSUE SYNC — every member of the OasIssueType,
  *      GqlIssueType, and EnrichmentWarningType unions has a `### \`CODE\`` entry in
  *      reference/error-codes.md, every documented code is still in a
@@ -88,6 +87,11 @@
  *      export added, removed or re-shaped on an unchanged minor fails:
  *      bump the minor (which makes check 16 demand the reread), then
  *      `deno task record-api-surface`.
+ *  20. CLI GUIDE SYNC — cli/guide/topics.json is what cli/guide/*.md
+ *      gives (`deno task build-guide`), each `skmtc <command>` in a
+ *      topic is a registered command, each `skmtc guide <topic>` in
+ *      the docs and skills is a topic, and the skmtc-cli skill points
+ *      at `skmtc guide`.
  *
  *   exit 0 — all checks hold.
  *   exit 1 — one or more failed; each failure names file + expectation.
@@ -109,6 +113,12 @@ import {
   readPublishedNames,
   readSingleSkillPlugins
 } from '../.scripts/plugin-digest.ts'
+import {
+  buildGuideTopics,
+  findUnknownCommands,
+  readGuideSources,
+  renderGuideTopics
+} from '../.scripts/guide-topics.ts'
 import {
   computeApiSurface,
   diffApiSurface,
@@ -306,6 +316,8 @@ const collect = async (dir: string, suffixes: string[]): Promise<void> => {
 
 await collect(join(docsDir, 'concepts'), ['.md'])
 await collect(join(docsDir, 'reference'), ['.md'])
+// The text of the CLI's guide was in the skmtc-cli skill, which this guard reads.
+await collect(join(denoDir, 'cli', 'guide'), ['.md'])
 for await (const entry of Deno.readDir(join(docsDir, 'skills'))) {
   if (!entry.isDirectory) continue
   const skillFile = join(docsDir, 'skills', entry.name, 'SKILL.md')
@@ -1720,6 +1732,84 @@ for (const entry of currentSurfaces) {
     console.log(`      ${name}: ${pages.length > 0 ? pages.join(', ') : 'not documented anywhere'}`)
   }
   if (moved.length > 12) console.log(`      … and ${moved.length - 12} more`)
+}
+
+// ---------------------------------------------------------------------
+// 20. CLI guide sync — `skmtc guide` prints cli/guide/topics.json, which
+//     `deno task build-guide` writes from cli/guide/*.md. The CLI carries
+//     the guide so that it matches the installed version, and that holds
+//     only while three things do: the JSON is what the Markdown gives,
+//     each `skmtc <command>` in a topic is a command this CLI registers,
+//     and each `skmtc guide <topic>` a page or a skill names is a topic.
+//     The skmtc-cli skill holds none of the guide; it must send an agent
+//     to it.
+// ---------------------------------------------------------------------
+
+const guideDir = join(denoDir, 'cli', 'guide')
+const guideTopics = await readGuideSources(guideDir)
+  .then(buildGuideTopics)
+  .catch((error: unknown) => {
+    fail(`cli guide: ${error instanceof Error ? error.message : String(error)}`)
+    return undefined
+  })
+
+if (guideTopics !== undefined) {
+  let guideFailures = 0
+
+  const builtTopics = await Deno.readTextFile(join(guideDir, 'topics.json')).catch(() => '')
+  if (builtTopics !== renderGuideTopics(guideTopics)) {
+    guideFailures++
+    fail(
+      'cli guide: cli/guide/topics.json is not what cli/guide/*.md gives. Run ' +
+        '`deno task build-guide` and commit the file — the CLI prints the JSON, not the Markdown.'
+    )
+  }
+
+  for (const { topicId, command } of findUnknownCommands({
+    topics: guideTopics,
+    commands: topLevelCommands
+  })) {
+    guideFailures++
+    fail(
+      `cli guide: topic \`${topicId}\` names \`skmtc ${command}\`, which is not a ` +
+        'registered top-level command in cli/mod.ts'
+    )
+  }
+
+  const topicIds = guideTopics.map(topic => topic.id)
+  const topicReferences: [string, string][] = [
+    ...guideTopics.map((topic): [string, string] => [`cli/guide (topic ${topic.id})`, topic.body]),
+    ...[...readerFileTexts].map(([path, text]): [string, string] => [`docs/${path}`, text]),
+    ...[...skillTexts].map(([path, text]): [string, string] => [`docs/${path}`, text]),
+    ['README.md', await Deno.readTextFile(join(denoDir, '..', 'README.md'))]
+  ]
+
+  for (const [place, text] of topicReferences) {
+    for (const [, topicId] of text.matchAll(/`skmtc guide ([a-z][a-z0-9-]*)/g)) {
+      if (!topicIds.includes(topicId)) {
+        guideFailures++
+        fail(`cli guide: ${place} names \`skmtc guide ${topicId}\`, which is not a topic`)
+      }
+    }
+  }
+
+  const cliSkill = skillTexts.get('skills/skmtc-cli/SKILL.md') ?? ''
+  for (const pointer of ['skmtc guide', 'skmtc agent-context']) {
+    if (!cliSkill.includes(pointer)) {
+      guideFailures++
+      fail(
+        `skmtc-cli SKILL.md: the skill holds none of the guide, so it must tell the agent ` +
+          `to run \`${pointer}\` — that line is missing`
+      )
+    }
+  }
+
+  if (guideFailures === 0) {
+    pass(
+      `cli guide: ${guideTopics.length} topics match topics.json, name only registered ` +
+        'commands, and every `skmtc guide <topic>` in the docs and skills is a topic'
+    )
+  }
 }
 
 // ---------------------------------------------------------------------

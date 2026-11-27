@@ -41,7 +41,7 @@ of `skmtc` depends on nothing. Both plugins share one version, which
 | Skill | Purpose | Version |
 | --- | --- | --- |
 | [`skmtc-generator/`](skmtc-generator/) | Writing and editing generators: producers, what Skmtc already does, the steps, and the finish pass, with references and a skeleton | 0.17.0 |
-| [`skmtc-cli/`](skmtc-cli/) | CLI usage — workspace model, agent contract, configuration; the command surface is pulled from the binary | 0.5.5 |
+| [`skmtc-cli/`](skmtc-cli/) | When to use the CLI and how to reach its guide. The guide itself is in the CLI: `skmtc guide` | 0.6.0 |
 
 `skmtc-generator` is one skill, so an author loads one thing. Its
 `SKILL.md` holds what every path needs: what a producer is, the table of what
@@ -62,6 +62,14 @@ and the done list. It routes to the rest by path:
 The split rule: what every path needs, and what an agent gets wrong when it
 does not read it, is in `SKILL.md`. A page that only some paths reach, or that
 is looked up, is a reference.
+
+`skmtc-cli` is a pointer. It says when to use the CLI and sends the agent to
+`skmtc agent-context` and `skmtc guide`. The guide (the workspace model, the
+agent contract, the config reference and the task recipes) is in the CLI, at
+`deno/cli/guide/*.md`. A skill installs from this repository's main branch,
+and the CLI's own text matches the version that runs, so text about commands
+belongs in the CLI. Until 0.6.0 that text was this skill's `reference.md` and
+`task-cards.md`.
 
 ### Internal
 
@@ -101,6 +109,7 @@ authority and acted on without checking. Every guard below runs in
 | Fact-anchor sync | An `llms.md` fact clause missing from `skmtc-generator` (its `SKILL.md` and its references) | `verify-docs` |
 | Lang source↔skill sync | An identifier factory or value-protocol guard the lang page never mentions, or an entity-kind count that moved (the Kotlin skill, and `skmtc-generator/references/typescript.md`) | `verify-docs` |
 | CLI reference sync | A `cli/mod.ts` command missing from the reference pages, in both directions | `verify-docs` |
+| CLI guide sync | `cli/guide/topics.json` out of step with `cli/guide/*.md`, a topic that names a command the CLI does not have, a `skmtc guide <topic>` in a page or a skill that is not a topic, or `skmtc-cli` no longer pointing at `skmtc guide` | `verify-docs` (fix the first with `deno task build-guide`) |
 | Skills catalogue sync | A README row, frontmatter version, `metadata.internal` flag or plugin manifest membership disagreeing with the others | `verify-docs` |
 | Generated-appendix coverage | An export missing from the appendix, because it was not regenerated after the API moved | `verify-docs` (names, not formatting — `deno doc`'s layout shifts between patch releases; `generate-skill-api-appendix.ts --check` does the exact comparison locally) |
 | Declared-version sync | A skill still declaring a package minor the workspace has moved past | `verify-docs` |

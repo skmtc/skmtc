@@ -13,7 +13,7 @@
  * verify-docs fails when that file is not what the Markdown gives.
  */
 
-import { join } from 'jsr:@std/path@^1'
+import { join } from '@std/path'
 import type { GuideTopic } from '../cli/guide/topic.ts'
 
 export type GuideSource = {

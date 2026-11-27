@@ -36,7 +36,8 @@ This is the SKMTC CLI - a Deno-based command-line tool for generating code from 
 ### Command Structure
 
 Commands are organized into categories:
-- `commands/*` - One module per CLI command (init, create, clone, install, list, remove, generate, bundle, clean, dev, doctor, agent-context, deploy)
+- `commands/*` - One module per CLI command (init, create, clone, install, list, remove, generate, bundle, clean, dev, doctor, agent-context, guide, deploy)
+- `guide/*.md` - The text that `skmtc guide` prints. A topic starts at a `<!-- topic <id>: <summary> -->` line. After you edit a file, run `deno task build-guide` (from `deno/`) to write `guide/topics.json`, which the CLI imports. Never edit the JSON. Text about how to use the CLI goes here, not in the `skmtc-cli` skill: the guide ships with the binary, so it matches the installed version.
 - `workspaces/*` - Workspace management (serve)
 - `lib/*` - Core business logic and utilities
 

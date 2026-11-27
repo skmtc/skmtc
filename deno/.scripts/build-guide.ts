@@ -7,7 +7,7 @@
  *
  * `--check` reports whether the file is current, and writes nothing.
  */
-import { dirname, fromFileUrl, join } from 'jsr:@std/path@^1'
+import { dirname, fromFileUrl, join } from '@std/path'
 import { buildGuideTopics, readGuideSources, renderGuideTopics } from './guide-topics.ts'
 
 const guideDir = join(dirname(fromFileUrl(import.meta.url)), '..', 'cli', 'guide')
