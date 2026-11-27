@@ -409,7 +409,7 @@ A throw-based error model is wrong for Skmtc's use case:
 
 ### What if my generator wants to fail loudly?
 
-Generators _can_ throw. The catch in `#runOasOperationGenerator` records
+Generators _can_ throw. The catch in `#runSubjects` records
 `result: 'error'` for that operation, and the run fails when every generator has
 run. A generator that cannot make correct output for an operation should
 throw: the run then writes nothing, rather than code that is wrong.
@@ -446,7 +446,7 @@ a document that Parse has already made safe. An error there is a bug or a wrong
 value to fix, so the run fails and writes no files.
 
 Each `(generator, operation)` pair still runs inside a try/catch in
-`#runOasOperationGenerator`, so one throw does not hide the others. The manifest
+`#runSubjects`, so one throw does not hide the others. The manifest
 records the result of each operation, and the `RUN_FAILED` message lists each
 distinct error once, with the items it failed. A wrong enrichment value names
 its place in `skmtc.config.json`.

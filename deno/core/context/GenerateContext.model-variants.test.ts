@@ -90,7 +90,7 @@ type VariantResult = { refName: string; variant: string; result: ResultType }
 
 /**
  * Parse the variant capture from the `StackTrail`. The frames produced
- * by `#runModelGenerator` are `[<root>, <gen-id>, <refName>, 'variant', <name>]`.
+ * for a model are `[<root>, <gen-id>, <refName>, 'variant', <name>]`.
  */
 const toVariantResults = (captures: CaptureEntry[], generatorId: string): VariantResult[] => {
   const out: VariantResult[] = []
