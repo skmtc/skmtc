@@ -115,7 +115,9 @@ project gets it under `settings.parse`. Only
 [`skmtc migrate config`](migrate.md) renames `system` to `parse`.
 
 An **empty** hub value for `enrichments` / `include` / `skip` / `parse`
-clears the local key rather than writing an empty `[]` / `{}`. The merged result is
+clears the local key rather than writing an empty `[]` / `{}`. An empty
+`parse` clears both `settings.parse` and `settings.system` from a file
+that has both, so no old parse settings stay in effect. The merged result is
 re-validated through `@skmtc/core`'s `skmtcClientConfig`, whose enrichment
 schema is opaque — generator-owned enrichment payloads pass through
 untouched.

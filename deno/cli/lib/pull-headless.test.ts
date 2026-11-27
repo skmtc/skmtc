@@ -82,6 +82,24 @@ Deno.test('pullHeadless - an empty hub parse drops the local parse', async () =>
   assertEquals(written, { basePath: 'src' })
 })
 
+Deno.test('pullHeadless - an empty hub parse drops both keys from a file with parse and system', async () => {
+  const written = await pullInto({
+    local: { basePath: 'src', parse: { not: 'unknown' }, system: { not: 'strict' } },
+    hub: { parse: {} }
+  })
+
+  assertEquals(written, { basePath: 'src' })
+})
+
+Deno.test('pullHeadless - a hub parse into a file with parse and system is written as parse', async () => {
+  const written = await pullInto({
+    local: { basePath: 'src', parse: { not: 'strict' }, system: { not: 'strict' } },
+    hub: { parse: { not: 'unknown' } }
+  })
+
+  assertEquals(written, { basePath: 'src', parse: { not: 'unknown' }, system: { not: 'strict' } })
+})
+
 Deno.test('pullHeadless - a missing hub parse drops the local system', async () => {
   const written = await pullInto({
     local: { basePath: 'src', system: { not: 'unknown' } },

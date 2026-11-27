@@ -213,7 +213,10 @@ export const pullHeadless = async ({
   applyHubKey(mergedSettings, 'enrichments', hubSettings.enrichments)
   applyHubKey(mergedSettings, 'include', hubSettings.include)
   applyHubKey(mergedSettings, 'skip', hubSettings.skip)
-  applyHubKey(mergedSettings, toParseKey(contents.settings), hubSettings.parse)
+  const parseKey = toParseKey(contents.settings)
+  applyHubKey(mergedSettings, parseKey, hubSettings.parse)
+  // Core reads `parse ?? system`: with `parse` dropped, a `system` left beside it would take effect.
+  if (parseKey === 'parse' && !isNonEmpty(hubSettings.parse)) delete mergedSettings.system
 
   // `-u`: an explicit --project is recorded so later pulls are bare `skmtc pull`.
   const withProject = projectFlag?.trim() ? { ...contents, project: destSpec } : contents
