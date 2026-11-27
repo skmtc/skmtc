@@ -778,6 +778,65 @@
                   "enabled"
                 ]
               },
+              "parse": {
+                "type": "object",
+                "properties": {
+                  "allOf": {
+                    "enum": [
+                      "strict",
+                      "latestWins"
+                    ],
+                    "type": "string"
+                  },
+                  "responseContradictions": {
+                    "enum": [
+                      "strict",
+                      "unknown"
+                    ],
+                    "type": "string"
+                  },
+                  "not": {
+                    "enum": [
+                      "strict",
+                      "unknown"
+                    ],
+                    "type": "string"
+                  },
+                  "anyOf": {
+                    "enum": [
+                      "union",
+                      "unknown"
+                    ],
+                    "type": "string"
+                  },
+                  "danglingRefs": {
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "schema",
+                        "parameter",
+                        "requestBody",
+                        "response",
+                        "header",
+                        "securityScheme",
+                        "example",
+                        "link",
+                        "allOfMember"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "intersections": {
+                    "enum": [
+                      "merge",
+                      "cycles",
+                      "all"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": []
+              },
               "system": {
                 "type": "object",
                 "properties": {
@@ -1121,6 +1180,65 @@
                 "required": [
                   "enabled"
                 ]
+              },
+              "parse": {
+                "type": "object",
+                "properties": {
+                  "allOf": {
+                    "enum": [
+                      "strict",
+                      "latestWins"
+                    ],
+                    "type": "string"
+                  },
+                  "responseContradictions": {
+                    "enum": [
+                      "strict",
+                      "unknown"
+                    ],
+                    "type": "string"
+                  },
+                  "not": {
+                    "enum": [
+                      "strict",
+                      "unknown"
+                    ],
+                    "type": "string"
+                  },
+                  "anyOf": {
+                    "enum": [
+                      "union",
+                      "unknown"
+                    ],
+                    "type": "string"
+                  },
+                  "danglingRefs": {
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "schema",
+                        "parameter",
+                        "requestBody",
+                        "response",
+                        "header",
+                        "securityScheme",
+                        "example",
+                        "link",
+                        "allOfMember"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "intersections": {
+                    "enum": [
+                      "merge",
+                      "cycles",
+                      "all"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": []
               },
               "system": {
                 "type": "object",
