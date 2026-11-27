@@ -159,12 +159,14 @@ const teardown = async (fixtureRoot: string): Promise<void> => {
   await Deno.remove(fixtureRoot, { recursive: true }).catch(() => {})
 }
 
-/** Runs `generate` on the fixture project and returns its stdout and stderr. */
-const runGenerate = async (
+type CliOutput = { code: number; stdout: string; stderr: string }
+
+/** Runs `generate` on the fixture project and returns its exit code, stdout and stderr. */
+const runGenerateCommand = async (
   fixtureRoot: string,
   schemaPath: string,
   extraArgs: string[] = []
-): Promise<{ stdout: string; stderr: string }> => {
+): Promise<CliOutput> => {
   const output = await new Deno.Command(Deno.execPath(), {
     args: [
       'run',
@@ -182,10 +184,22 @@ const runGenerate = async (
     stderr: 'piped'
   }).output()
 
-  const stdout = new TextDecoder().decode(output.stdout)
-  const stderr = new TextDecoder().decode(output.stderr)
+  return {
+    code: output.code,
+    stdout: new TextDecoder().decode(output.stdout),
+    stderr: new TextDecoder().decode(output.stderr)
+  }
+}
 
-  if (!output.success) {
+/** Runs `generate` on the fixture project; throws when it fails. */
+const runGenerate = async (
+  fixtureRoot: string,
+  schemaPath: string,
+  extraArgs: string[] = []
+): Promise<{ stdout: string; stderr: string }> => {
+  const { code, stdout, stderr } = await runGenerateCommand(fixtureRoot, schemaPath, extraArgs)
+
+  if (code !== 0) {
     throw new Error(`CLI failed.\nstdout:\n${stdout}\nstderr:\n${stderr}`)
   }
 
@@ -335,5 +349,78 @@ Deno.test({
     } finally {
       await teardown(fixtureRoot)
     }
+  }
+})
+
+const ERROR_PAGE = '<html><body><h1>404 Not Found</h1></body></html>'
+
+/** Runs `generate` on the fixture project against a URL that `respond` answers. */
+const runGenerateAgainstServer = async (
+  uniqueSuffix: string,
+  respond: () => Response,
+  extraArgs: string[] = ['--json']
+): Promise<CliOutput & { url: string }> => {
+  const { fixtureRoot } = await setup(uniqueSuffix)
+  const server = Deno.serve({ port: 0, hostname: '127.0.0.1', onListen: () => {} }, respond)
+  try {
+    const url = `http://127.0.0.1:${server.addr.port}/openapi.json`
+    return { url, ...(await runGenerateCommand(fixtureRoot, url, extraArgs)) }
+  } finally {
+    await server.shutdown()
+    await teardown(fixtureRoot)
+  }
+}
+
+/** A line of a printed stack trace, such as `    at toV3Document (…)`. */
+const STACK_LINE = /^\s+at /m
+
+Deno.test({
+  name: 'CLI smoke - generate --json with a schema URL that answers 404 fails with the URL and the status',
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const { url, code, stdout, stderr } = await runGenerateAgainstServer(
+      'url-404',
+      () => new Response(ERROR_PAGE, { status: 404, headers: { 'content-type': 'text/html' } })
+    )
+
+    assertEquals(code, 1)
+    assertStringIncludes(stderr, `could not fetch the schema from ${url}: 404 Not Found`)
+    assertEquals(STACK_LINE.test(stderr), false, stderr)
+    assertEquals(stdout, '')
+  }
+})
+
+Deno.test({
+  name: 'CLI smoke - generate --json with a schema URL that answers 200 with HTML fails with the URL',
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const { url, code, stdout, stderr } = await runGenerateAgainstServer(
+      'url-html',
+      () => new Response(ERROR_PAGE, { headers: { 'content-type': 'text/html' } })
+    )
+
+    assertEquals(code, 1)
+    assertStringIncludes(stderr, `the answer from ${url} is not a schema`)
+    assertEquals(STACK_LINE.test(stderr), false, stderr)
+    assertEquals(stdout, '')
+  }
+})
+
+Deno.test({
+  name: 'CLI smoke - generate --debug with a schema URL that answers 404 fails with the URL and the status',
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const { url, code, stderr } = await runGenerateAgainstServer(
+      'url-404-debug',
+      () => new Response(ERROR_PAGE, { status: 404, headers: { 'content-type': 'text/html' } }),
+      ['--debug', '--auto']
+    )
+
+    assertEquals(code, 1)
+    assertStringIncludes(stderr, `could not fetch the schema from ${url}: 404 Not Found`)
+    assertEquals(STACK_LINE.test(stderr), false, stderr)
   }
 })

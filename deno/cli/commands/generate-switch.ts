@@ -78,6 +78,11 @@ export const generateSwitch = async ({
     projectName,
     schemaSourceString,
     watch
+  }).catch(error => {
+    // A schema that cannot be read (an unreachable URL, an error page) is a
+    // failed generate, not a crash.
+    console.error(`Error: ${error instanceof Error ? error.message : String(error)}\n`)
+    return Deno.exit(1)
   })
 
   // Strict mode and `toGenerateLocalArgs` couldn't resolve everything
