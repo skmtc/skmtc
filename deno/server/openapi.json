@@ -111,7 +111,7 @@
                       "items": {
                         "$ref": "#/components/schemas/LogLine"
                       },
-                      "description": "The run's structured log lines at INFO and above. They include the parse phase's error and warning issues, each at its own level, but not its debug issues. A line logged while a subject was generated carries the subject's trail, which is its key in `manifest.results`."
+                      "description": "The run's structured log lines at INFO and above. They include the parse phase's error and warning issues, each at its own level, but not its debug issues, and the run's phase lines (parse, each generator, render, totals). A line logged while a subject was generated carries the subject's trail, which is its key in `manifest.results`."
                     },
                     "sidecars": {
                       "type": "object",
@@ -2382,148 +2382,7 @@
             "type": "object",
             "properties": {
               "type": {
-                "anyOf": [
-                  {
-                    "anyOf": [
-                      {
-                        "const": "UNEXPECTED_PROPERTY"
-                      },
-                      {
-                        "const": "MISSING_OBJECT_TYPE"
-                      },
-                      {
-                        "const": "MISSING_STRING_TYPE"
-                      },
-                      {
-                        "const": "MISSING_ARRAY_TYPE"
-                      },
-                      {
-                        "const": "MISSING_BOOLEAN_TYPE"
-                      },
-                      {
-                        "const": "MISSING_RESPONSES"
-                      },
-                      {
-                        "const": "MISSING_INFO"
-                      },
-                      {
-                        "const": "EMPTY_PARAMETER"
-                      },
-                      {
-                        "const": "MISSING_PARAMETER_SCHEMA"
-                      },
-                      {
-                        "const": "MISSING_HEADER_SCHEMA"
-                      },
-                      {
-                        "const": "INVALID_EXAMPLE"
-                      },
-                      {
-                        "const": "INVALID_ENUM"
-                      },
-                      {
-                        "const": "INVALID_DEFAULT"
-                      },
-                      {
-                        "const": "INVALID_NULLABLE"
-                      },
-                      {
-                        "const": "UNEXPECTED_FORMAT"
-                      },
-                      {
-                        "const": "INVALID_RESPONSE"
-                      },
-                      {
-                        "const": "INVALID_REQUEST_BODY"
-                      },
-                      {
-                        "const": "INVALID_HEADER"
-                      },
-                      {
-                        "const": "INVALID_FORMAT"
-                      },
-                      {
-                        "const": "INVALID_OPERATION"
-                      },
-                      {
-                        "const": "INVALID_SCHEMA"
-                      },
-                      {
-                        "const": "INVALID_PARAMETER"
-                      },
-                      {
-                        "const": "INVALID_SECURITY_SCHEME"
-                      },
-                      {
-                        "const": "INVALID_DEPENDENCY_REF"
-                      },
-                      {
-                        "const": "EXAMPLE_AND_EXAMPLES_DEFINED"
-                      },
-                      {
-                        "const": "INVALID_TAG_PARENT"
-                      },
-                      {
-                        "const": "INVALID_TAG"
-                      },
-                      {
-                        "const": "INVALID_EXTERNAL_DOCS"
-                      },
-                      {
-                        "const": "UNSUPPORTED_OPERATION_METHOD"
-                      },
-                      {
-                        "const": "WILDCARD_MEDIA_TYPE"
-                      },
-                      {
-                        "const": "NO_JSON_MEDIA_TYPE"
-                      },
-                      {
-                        "const": "ALLOF_CONTRADICTION"
-                      },
-                      {
-                        "const": "ANYOF_AS_UNKNOWN"
-                      },
-                      {
-                        "const": "DANGLING_REF"
-                      },
-                      {
-                        "const": "REF_TYPE_MISMATCH"
-                      },
-                      {
-                        "const": "RUN_FAILED"
-                      }
-                    ]
-                  },
-                  {
-                    "anyOf": [
-                      {
-                        "const": "NESTED_LIST_LOSSY"
-                      },
-                      {
-                        "const": "UNKNOWN_TYPE_KIND"
-                      },
-                      {
-                        "const": "DROPPED_DIRECTIVE"
-                      },
-                      {
-                        "const": "SKIPPED_FIELD_ARGUMENTS"
-                      },
-                      {
-                        "const": "SKIPPED_FEATURE"
-                      },
-                      {
-                        "const": "INVALID_TYPE_DEFINITION"
-                      },
-                      {
-                        "const": "INVALID_DEPENDENCY_REF"
-                      },
-                      {
-                        "const": "RUN_FAILED"
-                      }
-                    ]
-                  }
-                ]
+                "type": "string"
               },
               "level": {
                 "enum": [

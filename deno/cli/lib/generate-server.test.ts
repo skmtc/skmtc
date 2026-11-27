@@ -81,6 +81,35 @@ Deno.test('generateWithServer returns the server logs only when they are log lin
   }
 })
 
+Deno.test('generateWithServer keeps a line whose issue type this core does not know', async () => {
+  // A server on a newer core can send an issue type added since this core.
+  const logs: LogLine[] = [
+    {
+      seq: 0,
+      level: 'ERROR',
+      message: 'NEW_ISSUE at #/paths: new',
+      issue: { type: 'NEW_ISSUE', level: 'error', location: 't:s:parse:paths' },
+      time: 1
+    },
+    { seq: 1, level: 'ERROR', trail: 't:s', message: 'boom', time: 2 }
+  ]
+
+  try {
+    globalThis.fetch = (): Promise<Response> =>
+      Promise.resolve(okJson({ artifacts: {}, manifest: { files: {} }, logs }))
+    const result = await generateWithServer({
+      stackUrl: 'https://api.test/s',
+      schemaContents: '{}',
+      fileType: 'json',
+      clientSettings: undefined
+    })
+
+    assertEquals(result.logs, logs)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
 Deno.test('generateWithServer maps graphql fileType to the gql protocol', async () => {
   let protocol = ''
   globalThis.fetch = (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {

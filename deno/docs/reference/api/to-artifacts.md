@@ -143,8 +143,10 @@ runs; bench scripts and tests typically set `silent: true`.
 #### `logLevel`
 
 The lowest level that the returned `logs` keep. The default is `'WARN'`,
-so `logs` has no `DEBUG` or `INFO` lines unless you ask for them. The
-console output does not change.
+so `logs` has no `DEBUG` or `INFO` lines unless you ask for them. At
+`'INFO'` or `'DEBUG'`, a run that is not `silent` also prints its phase
+lines on the console. At `'WARN'`, the console shows the same lines as
+before.
 
 #### `startAt`
 

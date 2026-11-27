@@ -10,8 +10,6 @@
 
 import * as v from 'valibot'
 import { serializedError, type SerializedError } from '@/types/SerializedError.ts'
-import { oasIssueType, type OasIssueType } from '@/context/generateTypes.ts'
-import { gqlIssueType, type GqlIssueType } from '@/context/ParseIssue.ts'
 
 /** The level of a {@link LogLine}. A `CRITICAL` record is recorded as `'ERROR'`. */
 export type LogLineLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'
@@ -24,7 +22,11 @@ void _logLineLevelDriftCheck
 
 /** The fields of the parse issue a {@link LogLine} reports. */
 export type LogLineIssue = {
-  type: OasIssueType | GqlIssueType
+  /**
+   * The issue's type. A string, not the closed list of types: a reader on
+   * an older core must still read a line with a type added since.
+   */
+  type: string
   level: 'error' | 'warning' | 'debug'
   /** The issue's `location`, as `manifest.parseIssues` has it. */
   location: string
@@ -34,7 +36,7 @@ export type LogLineIssue = {
 
 /** Valibot schema for {@link LogLineIssue}. */
 export const logLineIssue = v.object({
-  type: v.union([oasIssueType, gqlIssueType]),
+  type: v.string(),
   level: v.picklist(['error', 'warning', 'debug']),
   location: v.string(),
   parent: v.optional(v.string())
