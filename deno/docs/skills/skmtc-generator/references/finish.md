@@ -15,6 +15,12 @@ The script scores each function and method: 1, plus one for each `if`,
 loop, `case`, `catch`, `?:`, `&&`, `||`, `??`, `&&=`, `||=` and `??=`.
 It lists what is over the limit and exits 1 when anything is.
 
+`deno lint` holds the same limit with the rule `skmtc/complexity`, when
+the generator's `@skmtc/lint-plugin` is 0.1.3 or newer, and shows it at
+the function in your editor. Run the script too: it gives the numbers
+for your report, it lists the functions outside a class, and it works
+with an older plugin.
+
 - **The limit is 10.** A function is a router when more than half of its
   branches are the cases of a `switch`. The cases of a router do not
   count toward the limit. Its other branches do, so a router that also
@@ -73,8 +79,10 @@ Run each command and read its exit code, not its output.
    `deno.json`. The rules `skmtc/no-template-imports`,
    `skmtc/no-adhoc-tostring`, `skmtc/tostring-purity`,
    `skmtc/single-dispatch` and `skmtc/method-discipline` report the
-   forms that a script can see. A clean lint does not show that the
-   producers are the right ones: that is what sections 1 and 2 are for.
+   forms that a script can see. From plugin 0.1.3, `skmtc/complexity`
+   reports each function over the limit of section 1. A clean lint does
+   not show that the producers are the right ones: that is what
+   sections 1 and 2 are for.
 2. The generator's tests.
 3. A run on a real document. Read the manifest, then one output file,
    import header first.

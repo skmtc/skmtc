@@ -16,6 +16,10 @@
 // toward the limit, and its other branches do. A router whose score is over
 // the limit for its cases alone is listed as `switch (exempt)`.
 //
+// The rule `skmtc/complexity` of `@skmtc/lint-plugin` holds the same count in
+// `deno lint`. Its test runs both over the same sources, so change the two
+// together.
+//
 // The import names its version here because the script runs from the skill's
 // folder, outside any project's `deno.json`.
 // deno-lint-ignore no-import-prefix

@@ -1,6 +1,6 @@
 ---
 name: skmtc-generator
-version: 0.17.0
+version: 0.17.1
 description: >
   Write and edit Skmtc generators: packages that turn an OpenAPI
   document into application code as a tree of producer classes. Use
@@ -255,7 +255,8 @@ places; a second function written to correct the first.
    manifest: the definitions you expect, at the paths you expect, with
    no errors.
 2. **Lint.** `deno lint`, with `jsr:@skmtc/lint-plugin` in the
-   generator's `deno.json`. No findings.
+   generator's `deno.json`. No findings. From plugin 0.1.3 the rule
+   `skmtc/complexity` reports a function over the limit.
 3. **Measure.**
    `deno run --allow-read --allow-env <this skill>/scripts/complexity.ts <generator>/src`
    exits 0.

@@ -23,13 +23,14 @@ export const stub = \`// TODO: fill this in\`
 type Diagnostic = { code: string }
 
 const lintProject = async (
-  denoJson: Record<string, unknown>
+  denoJson: Record<string, unknown>,
+  source: string = SOURCE
 ): Promise<{ codes: string[]; exitCode: number }> => {
   const root = await Deno.makeTempDir({ prefix: 'skmtc-lint-driver-' })
   try {
     await Deno.writeTextFile(join(root, 'deno.json'), JSON.stringify(denoJson))
     await Deno.mkdir(join(root, 'src'))
-    await Deno.writeTextFile(join(root, 'src', 'Value.ts'), SOURCE)
+    await Deno.writeTextFile(join(root, 'src', 'Value.ts'), source)
 
     const command = new Deno.Command(Deno.execPath(), {
       args: ['lint', '--json'],
@@ -70,4 +71,31 @@ Deno.test('deno lint: an informational rule can be excluded wholesale', async ()
     lint: { plugins: [PLUGIN_PATH], rules: { exclude: ['skmtc/no-emitted-todos'] } }
   })
   assertEquals(codes, ['skmtc/no-as-casts'])
+})
+
+const toBranches = (count: number): string =>
+  Array.from({ length: count }, (_value, index) => `  if (n === ${index}) return ${index}`).join(
+    '\n'
+  )
+
+// The trap: `skmtc/complexity` reports when the file ends, at the function.
+// Only the real driver shows that an ignore directive above that function
+// still signs it off.
+Deno.test('deno lint: skmtc/complexity reports one function, and the directive signs off the other', async () => {
+  const source = `export function decide(n: number): number {
+${toBranches(11)}
+  return -1
+}
+
+// deno-lint-ignore skmtc/complexity -- a table of fixed codes, read top to bottom
+export function approved(n: number): number {
+${toBranches(11)}
+  return -1
+}
+`
+
+  const { codes, exitCode } = await lintProject({ lint: { plugins: [PLUGIN_PATH] } }, source)
+
+  assertEquals(codes, ['skmtc/complexity'])
+  assertEquals(exitCode, 1)
 })
