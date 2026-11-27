@@ -8,20 +8,28 @@ import { SkmtcRoot } from '@/lib/skmtc-root.ts'
 const originalFetch = globalThis.fetch
 const originalCwd = Deno.cwd()
 
-type Call = { url: string; method?: string }
+type Call = { url: string; method?: string; body?: string }
 
 /**
  * A workspace root outside any `.skmtc` ancestor, so `toAbsoluteRootPath`
  * resolves to the cwd: the test runs with the root as its cwd.
  */
-const makeFixture = async ({ api, source }: { api?: string; source?: string }): Promise<string> => {
+const makeFixture = async ({
+  api,
+  source,
+  settings = { basePath: '.' }
+}: {
+  api?: string
+  source?: string
+  settings?: Record<string, unknown>
+}): Promise<string> => {
   const root = await Deno.makeTempDir()
   const projectPath = join(root, '.skmtc', 'pets')
   await Deno.mkdir(join(projectPath, '.settings'), { recursive: true })
   await Deno.writeTextFile(join(projectPath, 'deno.json'), JSON.stringify({ name: '@acme/stack' }))
   await Deno.writeTextFile(
     join(projectPath, '.settings', 'skmtc.config.json'),
-    JSON.stringify({ api, source, settings: { basePath: '.' } })
+    JSON.stringify({ api, source, settings })
   )
   // Only a file source has a file to write.
   if (source && !/^https?:\/\//i.test(source)) {
@@ -50,7 +58,13 @@ const withFixture = async (
   try {
     // Stubbed before the open: opening a project reads a URL source.
     globalThis.fetch = (input: string | URL | Request, init?: RequestInit) =>
-      Promise.resolve(fetchStub({ url: input.toString(), method: init?.method }))
+      Promise.resolve(
+        fetchStub(
+          typeof init?.body === 'string'
+            ? { url: input.toString(), method: init?.method, body: init.body }
+            : { url: input.toString(), method: init?.method }
+        )
+      )
     const skmtcRoot = await SkmtcRoot.open(new Manager())
     await run(skmtcRoot)
   } finally {
@@ -214,7 +228,7 @@ Deno.test('createHeadless - a network error while registering the schema is a fa
 
 /** Run `createHeadless` against the fixture; returns the result and the calls. */
 const runCreate = async (
-  fixture: { api?: string; source?: string },
+  fixture: { api?: string; source?: string; settings?: Record<string, unknown> },
   fetchStub: (call: Call) => Response
 ): Promise<{ result: CreateResult; calls: Call[] }> => {
   const root = await makeFixture(fixture)
@@ -239,6 +253,34 @@ const runCreate = async (
   if (!result) throw new Error('createHeadless did not run')
   return { result, calls }
 }
+
+/** The settings of the seed PUT to client-config. */
+const seededSettings = (calls: Call[]): Record<string, unknown> => {
+  const seed = calls.find(call => call.method === 'PUT' && call.url.endsWith('/client-config'))
+  return JSON.parse(seed?.body ?? '{}').settings
+}
+
+Deno.test('createHeadless - the seed sends settings.parse as parse', async () => {
+  const { calls } = await runCreate(
+    { api: '@acme/pets', settings: { basePath: '.', parse: { not: 'unknown' } } },
+    call => hubResponse(call.url)
+  )
+  const sent = seededSettings(calls)
+
+  assertEquals(sent.parse, { not: 'unknown' })
+  assertEquals('system' in sent, false)
+})
+
+Deno.test('createHeadless - the seed sends settings.system as parse, never as system', async () => {
+  const { calls } = await runCreate(
+    { api: '@acme/pets', settings: { basePath: '.', system: { not: 'unknown' } } },
+    call => hubResponse(call.url)
+  )
+  const sent = seededSettings(calls)
+
+  assertEquals(sent.parse, { not: 'unknown' })
+  assertEquals('system' in sent, false)
+})
 
 const schemaStepOf = (result: CreateResult): string => {
   if (result.type !== 'created') throw new Error(`expected a created result: ${result.reason}`)

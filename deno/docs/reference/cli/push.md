@@ -105,7 +105,9 @@ See the [overview](overview.md#shared-flags).
      push prompts to confirm the overwrite.
 
 3. PUT /v1/projects/{account}/{slug}/client-config
-     Sends { source?, settings } from the local skmtc.config.json. The hub
+     Sends { source?, settings } from the local skmtc.config.json. The
+     parse settings go as `parse`: `settings.parse`, or `settings.system`
+     in a project not yet migrated. `system` is never sent. The hub
      folds the nested settings into its flat ProjectConfig and
      overwrites it, returning the result.
 

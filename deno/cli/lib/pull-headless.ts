@@ -8,9 +8,12 @@
  *
  * Field-merge policy (single-user, last-write-wins — the Phase-4 plan layers
  * fast-forward + structured 3-way merge on top later):
- *   - `enrichments`, `include`, `skip` are REPLACED from the hub (the shared,
- *     hub-edited config). An empty hub value drops the local key, so a cleared
- *     filter doesn't leave `[]` / `{}` noise behind.
+ *   - `enrichments`, `include`, `skip` and `parse` are REPLACED from the hub
+ *     (the shared, hub-edited config). An empty hub value drops the local key,
+ *     so a cleared filter doesn't leave `[]` / `{}` noise behind.
+ *   - The hub's `parse` is written under the key the local file already uses:
+ *     `system` for a project not yet migrated, otherwise `parse`. Only
+ *     `skmtc migrate config` renames `system`.
  *   - `basePath`, `packages`, `inputDirs`, `source`, `project` are PRESERVED from
  *     the local file — local wiring that differs per checkout and must never be
  *     clobbered by the hub's copy.
@@ -92,6 +95,14 @@ const applyHubKey = (target: Record<string, unknown>, key: string, value: unknow
   if (isNonEmpty(value)) target[key] = value
   else delete target[key]
 }
+
+/**
+ * The key the local file keeps its parse settings under: `system` for a
+ * project not yet migrated, otherwise `parse`. Only `skmtc migrate config`
+ * renames `system` to `parse`.
+ */
+const toParseKey = (settings: Record<string, unknown>): 'parse' | 'system' =>
+  'system' in settings && !('parse' in settings) ? 'system' : 'parse'
 
 /** Recursively key-sorted JSON, for an order-insensitive change check. */
 const stableStringify = (value: unknown): string => {
@@ -202,6 +213,10 @@ export const pullHeadless = async ({
   applyHubKey(mergedSettings, 'enrichments', hubSettings.enrichments)
   applyHubKey(mergedSettings, 'include', hubSettings.include)
   applyHubKey(mergedSettings, 'skip', hubSettings.skip)
+  const parseKey = toParseKey(contents.settings)
+  applyHubKey(mergedSettings, parseKey, hubSettings.parse)
+  // Core reads `parse ?? system`: with `parse` dropped, a `system` left beside it would take effect.
+  if (parseKey === 'parse' && !isNonEmpty(hubSettings.parse)) delete mergedSettings.system
 
   // `-u`: an explicit --project is recorded so later pulls are bare `skmtc pull`.
   const withProject = projectFlag?.trim() ? { ...contents, project: destSpec } : contents

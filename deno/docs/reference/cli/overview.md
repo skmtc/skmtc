@@ -66,7 +66,7 @@ version and exits.
 | `deploy`  | Store a new immutable stack version on skmtc-hub and deploy it; reports the server status         | [deploy](deploy.md)   |
 | `publish` | The old name of `deploy`, kept for one release; prints a notice on stderr, then runs `deploy`     | [publish](publish.md) |
 | `push`    | Push a project's `skmtc.config.json` (config + enrichments) to its hub project                          | [push](push.md)       |
-| `pull`    | Pull a project's config (enrichments + filters) from its hub project into the local `skmtc.config.json` | [pull](pull.md)       |
+| `pull`    | Pull a project's config (enrichments, filters and parse settings) from its hub project into the local `skmtc.config.json` | [pull](pull.md)       |
 | `project` | Manage a hub project built from the local setup: `create` a new project, `rm` it                  | [project](project.md) |
 | `api`     | `api publish`: add an OpenAPI document to a hub API as a revision (no workspace needed); `api link`: make a link request for a GitHub repository | [api](api.md)         |
 | `login`   | Validate + store a hub PAT (paste-a-PAT; becomes deploy's default credential)                     | [login](login.md)     |
