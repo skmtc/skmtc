@@ -91,7 +91,7 @@ export class SchemaFile {
         // future enhancement could detect a 405/missing-query response
         // and POST an introspection query automatically.
         const contentType = response.headers.get('content-type') ?? ''
-        const fileType = toFileTypeFromPathOrContentType(url.pathname, contentType)
+        const fileType = toFileTypeFromPathOrContentType(url, contentType)
 
         if (fileType !== 'graphql' && !isOpenApiDocument(contents)) {
           throw new Error(
@@ -169,13 +169,12 @@ const toFileType = (path: string): FileType => {
  *
  * The header may include a `; charset=...` suffix; we strip it before
  * matching. If neither path nor content-type yields a recognized type,
- * we re-throw `toFileType`'s descriptive error so the user sees the
- * full list of supported formats.
+ * the error names the URL and lists the supported formats.
  */
-const toFileTypeFromPathOrContentType = (path: string, contentType: string): FileType => {
+const toFileTypeFromPathOrContentType = (url: URL, contentType: string): FileType => {
   try {
-    return toFileType(path)
-  } catch (pathError) {
+    return toFileType(url.pathname)
+  } catch (_pathError) {
     const mime = contentType.split(';', 1)[0]?.trim().toLowerCase() ?? ''
     switch (mime) {
       case 'application/graphql':
@@ -190,7 +189,7 @@ const toFileTypeFromPathOrContentType = (path: string, contentType: string): Fil
         return 'yaml'
       default:
         throw new Error(
-          `Could not determine schema format for remote source: URL pathname '${path}' has no recognized extension (.json, .yaml, .yml, .graphql, .gql, or .graphqls), and Content-Type '${contentType}' is not application/graphql, application/json, or application/yaml. ` +
+          `Could not determine schema format for remote source ${url.href}: URL pathname '${url.pathname}' has no recognized extension (.json, .yaml, .yml, .graphql, .gql, or .graphqls), and Content-Type '${contentType}' is not application/graphql, application/json, or application/yaml. ` +
             `For live GraphQL HTTP endpoints, run an introspection query yourself and save the SDL to a local file.`
         )
     }

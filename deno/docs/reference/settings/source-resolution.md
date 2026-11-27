@@ -214,15 +214,6 @@ parsing happens inside the worker — is covered in full in
 When the source is an HTTP or HTTPS URL, the CLI uses standard
 `fetch()` to retrieve it.
 
-The command stops with an error that names the URL when:
-
-- the status is not 2xx. The error also names the status, for
-  example `could not fetch the schema from <url>: 404 Not Found`.
-  The CLI does not parse the body.
-- the status is 2xx, but the body is not a schema. For a JSON or
-  YAML source, the body must parse to an object with an `openapi`
-  or `swagger` field. A login page does not.
-
 ### Authentication
 
 The CLI does not currently expose a built-in authentication
@@ -256,11 +247,14 @@ case: an `/openapi` endpoint that 302-redirects to `/openapi.json`.
 
 | Status | CLI behavior |
 |--------|--------------|
-| `200` | Proceed with format detection |
+| `2xx` | Proceed with format detection, then check the body |
 | `301` / `302` | Follow redirect |
-| `401` / `403` | Exit with auth-required error |
-| `404` | Exit with "schema not found" error |
-| `5xx` | Exit with server-error message (no retry) |
+| Any other status | Stop with `could not fetch the schema from <url>: <status> <status text>`, for example `… 404 Not Found`. The CLI does not parse the body. |
+
+After a `2xx` status, the body of a JSON or YAML source must parse to
+an object with an `openapi` or `swagger` field. When it does not, the
+command stops with `the answer from <url> is not a schema`. A login
+page or an HTML index causes this error.
 
 The CLI does not currently retry transient failures. A flaky spec
 endpoint should be wrapped by a local proxy or bundled to a file.

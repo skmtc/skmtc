@@ -164,33 +164,33 @@ const RunGenerateTask = ({ project, bundlePath, schemaSourceString }: RunGenerat
   })
 
   useEffect(() => {
-    toSchemaContents(schemaSourceString)
-      .then(schemaContents => {
-        try {
-          return generate({
-            project,
-            bundlePath,
-            skmtcRoot: state.skmtcRoot,
-            schemaContents: schemaContents.contents,
-            fileType: schemaContents.fileType,
-            clientSettings: project.clientJson?.contents?.settings
+    toSchemaContents(schemaSourceString).then(
+      schemaContents =>
+        generate({
+          project,
+          bundlePath,
+          skmtcRoot: state.skmtcRoot,
+          schemaContents: schemaContents.contents,
+          fileType: schemaContents.fileType,
+          clientSettings: project.clientJson?.contents?.settings
+        })
+          .then(stats => {
+            dispatchMessage(toGenerateMessage(stats))
+
+            leave({ state: tasksToState(taskState.tasks) })
           })
-        } catch (error) {
-          console.error(error)
+          .catch(error => {
+            console.error(error)
 
-          throw error
-        }
-      })
-      .then(stats => {
-        dispatchMessage(toGenerateMessage(stats))
-
-        leave({ state: tasksToState(taskState.tasks) })
-      })
-      .catch(error => {
+            leave({ state: tasksToState(taskState.tasks) })
+          }),
+      error => {
+        // A schema that cannot be read is reported by its message, without a stack.
         console.error(`Error: ${error instanceof Error ? error.message : String(error)}`)
 
         leave({ state: tasksToState(taskState.tasks) })
-      })
+      }
+    )
   }, [])
 
   return (
@@ -239,9 +239,15 @@ const WatchGenerateTask = ({ project, bundlePath, schemaSourceString }: WatchGen
       return
     }
 
-    SchemaFile.getFromSource(toSchemaSource(schemaSourceString))
-      .then(({ contents, fileType }) => {
-        return generate({
+    const fail = () => {
+      dispatchMessage({ error: 'Failed to generate' })
+
+      leave({ state: tasksToState(taskState.tasks) })
+    }
+
+    SchemaFile.getFromSource(toSchemaSource(schemaSourceString)).then(
+      ({ contents, fileType }) =>
+        generate({
           project,
           bundlePath,
           skmtcRoot: state.skmtcRoot,
@@ -249,19 +255,23 @@ const WatchGenerateTask = ({ project, bundlePath, schemaSourceString }: WatchGen
           fileType,
           clientSettings: project.clientJson?.contents?.settings
         })
-      })
-      .then(stats => {
-        dispatchMessage(toGenerateMessage(stats))
+          .then(stats => {
+            dispatchMessage(toGenerateMessage(stats))
 
-        setActivity('watching')
-      })
-      .catch(error => {
+            setActivity('watching')
+          })
+          .catch(error => {
+            console.error(error)
+
+            fail()
+          }),
+      error => {
+        // A schema that cannot be read is reported by its message, without a stack.
         console.error(`Error: ${error instanceof Error ? error.message : String(error)}`)
 
-        dispatchMessage({ error: 'Failed to generate' })
-
-        leave({ state: tasksToState(taskState.tasks) })
-      })
+        fail()
+      }
+    )
   }, [watcher, activity])
 
   useEffect(() => {

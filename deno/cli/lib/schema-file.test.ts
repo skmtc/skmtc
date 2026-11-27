@@ -231,6 +231,24 @@ Deno.test('SchemaFile.getFromSource - a remote 200 with an HTML body fails with 
   )
 })
 
+Deno.test('SchemaFile.getFromSource - a remote 200 HTML page at a URL with no extension fails with the URL', async () => {
+  await withSchemaServer(
+    () =>
+      new Response('<html><body><h1>Sign in</h1></body></html>', {
+        headers: { 'content-type': 'text/html' }
+      }),
+    async origin => {
+      const url = `${origin}/api/schema`
+
+      await assertRejects(
+        () => SchemaFile.getFromSource({ type: 'remote', url }),
+        Error,
+        `for remote source ${url}:`
+      )
+    }
+  )
+})
+
 Deno.test('SchemaFile.getFromSource - a remote 200 whose object has no openapi or swagger field fails', async () => {
   await withSchemaServer(
     () => new Response('status: ok\n'),
