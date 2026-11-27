@@ -75,7 +75,7 @@ const toDocumentRefs = (value: unknown, found: RawRef[] = []): RawRef[] => {
 }
 
 /** Whether a ref can point at a schema: not a remote one, and not one to another kind of component. */
-const canNameSchema = ({ refName, refPath }: RefParts): boolean => {
+export const canNameSchema = ({ refName, refPath }: RefParts): boolean => {
   const bucket = toRefPathBucket(refPath)
 
   return refName !== '' && !isRemoteRefPath(refPath) && (bucket === undefined || bucket === 'schemas')
