@@ -36,6 +36,7 @@ export type TransformArgs<E> = {
   startAt: number;
   silent: boolean;
   logLevel?: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
+  onArtifact?: (path: string, content: string) => void;
 };
 ```
 
@@ -156,6 +157,44 @@ called. Used for the duration calculation in the returned `ManifestContent`. The
 engine subtracts `startAt` from `Date.now()` at the end of the run to compute
 total elapsed time.
 
+### `onArtifact`
+
+Optional. The run calls it with each file when the file is complete: the
+path, which is a key of `artifacts`, and the text. Use it when the host
+writes or sends files while the run goes on, and when memory is the limit.
+
+With `onArtifact`:
+
+- `artifacts` of the result is empty. The host has every file from the
+  calls. `manifest.files` has every file.
+- For an OpenAPI document, the run gives a file when no later subject can
+  write to it or read it. The run then lets the file go. The files are the
+  same as without `onArtifact`.
+- The run goes subject by subject: for one model or operation, every
+  generator. Without `onArtifact`, one generator runs all its subjects, then
+  the next generator runs. Thus, if two generators insert into one file, the
+  definitions in it can be in a different order.
+- This includes a model generator's file, when an operation generator
+  inserts its projection and comes first in the config. With `onArtifact`,
+  the models run first, in document order.
+- A run with `attribution.postPass` or `inspect`, and a run of a GraphQL
+  document, gives every file at the end.
+- A run that fails has no files. Drop the files that it gave before it
+  failed. After the first subject that fails, the run gives no more files.
+
+The run knows when a file is complete from the `projections` that each
+generator's entry lists. See [entry factories](entry-factories.md). The run
+gives a file of a generator with no list at the end.
+
+A generator can write to a file that the run gave earlier. This occurs if
+it inserts a projection that its entry does not list, or a model that the
+subject does not reach through `$ref`s. The run then fails, and the error
+names the file.
+
+The plan that tells the run when a file is complete costs time: about 0.4 s
+for a document of 18,000 operations in a run of 2.5 s. A run without
+`onArtifact` does not build it.
+
 ## Returns
 
 ```ts
@@ -174,6 +213,9 @@ artifact root.
 
 The CLI writes each `[path, contents]` pair to disk as the post-engine step. The
 engine itself doesn't touch the filesystem — `toArtifacts` returns a pure value.
+
+With [`onArtifact`](#onartifact), `artifacts` is empty: the run gave each
+file to that function.
 
 ### `manifest`
 

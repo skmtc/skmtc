@@ -243,6 +243,26 @@ returns `void`). Instead, the transform calls
 `context.insertOperation({ projection: MyProjection, operation })` or
 `context.insertNormalizedModel(MyProjection, args)`, which delegate to Drivers.
 
+### The other order: subject by subject
+
+A host can pass `onArtifact` to `toArtifacts`. The run then gives each file
+to the host when the file is complete, and lets it go. For that, the outer
+loop goes subject by subject: for one model or one operation, it runs every
+generator of that kind.
+
+- The models run in document order.
+- The operations run in document order. An operation runs after the last
+  model that it can reach.
+- After each subject, the run gives the files that no later subject holds.
+
+A file plan tells the run which subjects hold a file. The plan comes from
+the `projections` that each entry lists, and from the `$ref`s that the
+parser read. The two orders write the same files. If two generators insert
+into one file, the definitions in it can be in a different order. This
+includes the file of a model generator, when an operation generator that
+comes before it in the config inserts its projection. See
+[`onArtifact`](../reference/api/to-artifacts.md#onartifact).
+
 ### The Driver lifecycle
 
 When `transform` calls `context.insertOperation({ projection: TanstackQuery, operation })`:
@@ -282,8 +302,9 @@ combine to make it work:
 So whichever generator's `transform` runs first for a given
 `(projection, operation)` pair triggers the construction. Later generators that
 depend on the same projection (e.g., a form depending on a mutation hook) get a
-cache hit. The output `#files` map is identical regardless of which order the
-outer loop happens to visit generators in.
+cache hit. The output `#files` map has the same files and the same
+definitions in each order of the outer loop. Only the order of the
+definitions in a file that more than one generator inserts into can change.
 
 This is what underlies "generators run in any order" — it's a structural
 property, not a feature you have to maintain.

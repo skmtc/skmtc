@@ -5,7 +5,7 @@ import { normalizeWorkspacePath } from '@/helpers/normalizeWorkspacePath.ts'
 import type { DefinitionBase } from '@/dsl/Definition.ts'
 import type { PickArgs } from './generateTypes.ts'
 import type { ResultType } from '@/types/Results.ts'
-import { toResolvedArtifactPath } from '@/helpers/toResolvedArtifactPath.ts'
+import { renderFile, type FileObject } from '@/context/renderFile.ts'
 import type * as log from '@std/log'
 import type { Logger } from '@/types/Logger.ts'
 import { CodeFileBase } from '@/dsl/CodeFileBase.ts'
@@ -84,22 +84,6 @@ type ConstructorArgs = {
    * publishes during the capturing render. Wired by `CoreContext`.
    */
   captureChannel?: CaptureChannel
-}
-
-/**
- * Represents a rendered file with metadata.
- */
-type FileObject = {
-  /** The rendered file content */
-  content: string
-  /** The original file path */
-  path: string
-  /** The resolved destination path */
-  destinationPath: string
-  /** Number of lines in the rendered content */
-  lines: number
-  /** Number of characters in the rendered content */
-  characters: number
 }
 
 /**
@@ -413,18 +397,6 @@ export class RenderContext {
 }
 
 /**
- * Arguments for rendering a single file.
- */
-type RenderFileArgs = {
-  /** The raw file content to render */
-  content: string
-  /** The destination path for the file */
-  destinationPath: string
-  /** Optional base path for path resolution */
-  basePath?: string
-}
-
-/**
  * Builds the sidecar of one captured File from the spans the sink
  * resolved (no re-render, no `toString`) and adds it to the capturing
  * render. Keyed by the resolved artifact path, matching `artifacts` and
@@ -439,41 +411,5 @@ const addSidecar = (capture: CaptureState, { artifactPath, filePath, source, spa
 
   for (const entry of entriesForSidecar(sidecar)) {
     capture.generationMap.push(entry)
-  }
-}
-
-/**
- * Renders a single file with metadata calculation.
- *
- * This function processes a single file through the rendering pipeline,
- * calculating file metadata such as line count and character count. It
- * resolves the final path using the base path configuration.
- *
- * @param args - File rendering arguments
- * @returns A FileObject with content and metadata
- *
- * @example
- * ```typescript
- * const fileObject = renderFile({
- *   content: 'const x = 1;',
- *   destinationPath: 'utils.ts',
- *   basePath: './src'
- * });
- *
- * console.log(fileObject.path); // './src/utils.ts'
- * console.log(fileObject.content); // 'const x = 1;'
- * console.log(fileObject.lines); // 1
- * console.log(fileObject.characters); // 12
- * ```
- */
-const renderFile = ({ content, destinationPath, basePath }: RenderFileArgs): FileObject => {
-  const path = toResolvedArtifactPath({ basePath, destinationPath })
-
-  return {
-    content: content,
-    path,
-    destinationPath,
-    lines: content.split('\n').length,
-    characters: content.length
   }
 }

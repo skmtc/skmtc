@@ -1,6 +1,7 @@
 import { GenerateContext } from '@/context/GenerateContext.ts'
 import { toInspection } from '@/run/toInspection.ts'
 import { RenderContext } from '@/context/RenderContext.ts'
+import { renderFile } from '@/context/renderFile.ts'
 import { ParseContext } from '@/context/ParseContext.ts'
 import type { OasDocument } from '@/oas/document/Document.ts'
 import type { ClientSettings } from '@/types/Settings.ts'
@@ -21,7 +22,7 @@ import type { GeneratorsMapContainer } from '@/types/GeneratorType.ts'
 import type { Preview } from '@/types/Preview.ts'
 import type { OpenAPIV3 } from 'openapi-types'
 import type { JsonFile } from '@/dsl/JsonFile.ts'
-import type { ToArtifactsResult } from './generateTypes.ts'
+import type { FilesRenderResult, ToArtifactsResult } from '@/context/generateTypes.ts'
 import { bold, gray, red, yellow, blue } from '@std/fmt/colors'
 import type { SkmtcParsedDocument, SkmtcDocumentInput } from '@/types/SkmtcDocument.ts'
 import type { AttributionState } from '@/types/AttributionState.ts'
@@ -148,6 +149,25 @@ export type ToArtifactsArgs = {
    * is otherwise untouched.
    */
   inspect?: boolean
+  /**
+   * Called with each file of the run when the file is complete: its path, as
+   * a key of `artifacts`, and its text. The run then keeps no file's text,
+   * and `artifacts` of the result is empty; `manifest.files` has every file.
+   *
+   * For an OpenAPI document the run gives a file as soon as no subject left
+   * to run can write to it or read from it, so that a host can write it and
+   * the run can let it go. That run goes subject by subject, and writes the
+   * same files. A file can have its definitions in another order when more
+   * than one generator inserts into it, as when an operation generator that
+   * the config lists before a model generator inserts that generator's
+   * projection: each subject runs every generator before the next subject
+   * runs, and the models run first. A run with `attribution.postPass` or
+   * `inspect`, or of a GraphQL document, gives every file at the end.
+   *
+   * A run that fails has no files. What it gave before it failed, the host
+   * must drop. After the first subject that fails it gives no more.
+   */
+  onArtifact?: (path: string, content: string) => void
 }
 
 type RunPhaseName = 'parse' | 'generate' | 'render'
@@ -453,7 +473,8 @@ export class CoreContext {
     toGeneratorConfigMap,
     stackTrail,
     attribution,
-    inspect
+    inspect,
+    onArtifact
   }: ToArtifactsArgs): ToArtifactsResult {
     const runStartedAt = performance.now()
 
@@ -483,6 +504,10 @@ export class CoreContext {
         ? { sink: undefined }
         : undefined
 
+      // The files a run with `onArtifact` gave before the render phase, as `files` of the result has them.
+      const givenFiles: FilesRenderResult['files'] = {}
+      let givenBytes = 0
+
       const { files, previews, inspection, enrichmentWarnings } = stackTrail.trace(
         'generate',
         st => {
@@ -495,7 +520,44 @@ export class CoreContext {
           })
           this.#phase = generatePhase
 
-          const generated = generatePhase.context.toArtifacts(st)
+          // A capturing render and an inspection read every file at the end
+          // of the run, so such a run gives no file before then.
+          const givesFilesEarly = onArtifact !== undefined && !attribution?.postPass && !inspect
+
+          const generated = generatePhase.context.toArtifacts(
+            st,
+            givesFilesEarly
+              ? {
+                  reach: phase.context.toReach(),
+                  onFile: (path, file) => {
+                    // A file that is complete is rendered now, as the render
+                    // phase renders the others, with its result at the same place.
+                    this.#phaseName = 'render'
+
+                    const rendered = renderFile({
+                      content: file.toString(),
+                      destinationPath: path,
+                      basePath: settings?.basePath
+                    })
+
+                    onArtifact(rendered.path, rendered.content)
+
+                    if (this.#logsPhaseLines) {
+                      givenBytes += toByteCount({ [rendered.path]: rendered.content })
+                    }
+
+                    givenFiles[rendered.path] = {
+                      destinationPath: rendered.destinationPath,
+                      lines: rendered.lines,
+                      characters: rendered.characters
+                    }
+
+                    this.captureCurrentResult('success', stackTrail.clone().append(['render', path]))
+                    this.#phaseName = 'generate'
+                  }
+                }
+              : undefined
+          )
           this.#enrichmentWarnings = generated.enrichmentWarnings
 
           // Opt-in snapshot of the live files graph, taken after generate populates
@@ -528,10 +590,17 @@ export class CoreContext {
       })
 
       if (this.#logsPhaseLines) {
-        const fileCount = toCountPhrase(Object.keys(renderOutput.artifacts).length, 'file')
-        const byteCount = toCountPhrase(toByteCount(renderOutput.artifacts), 'byte')
+        // The render line counts what the render phase rendered. The run's
+        // line counts every file, also those given before that phase.
+        const renderedFiles = Object.keys(renderOutput.artifacts).length
+        const renderedBytes = toByteCount(renderOutput.artifacts)
+        const fileCount = toCountPhrase(renderedFiles + Object.keys(givenFiles).length, 'file')
+        const byteCount = toCountPhrase(renderedBytes + givenBytes, 'byte')
 
-        this.logger.info(`render: ${fileCount}, ${byteCount}, ${toElapsedMs(renderStartedAt)} ms`)
+        this.logger.info(
+          `render: ${toCountPhrase(renderedFiles, 'file')}, ${toCountPhrase(renderedBytes, 'byte')}, ` +
+            `${toElapsedMs(renderStartedAt)} ms`
+        )
         this.logger.info(
           `toArtifacts: ${toCountPhrase(Object.keys(toGeneratorConfigMap()).length, 'generator')}, ` +
             `${fileCount}, ${byteCount}, ${toIssueCounts(phase.context.issues)}, ` +
@@ -539,8 +608,15 @@ export class CoreContext {
         )
       }
 
+      if (onArtifact !== undefined) {
+        Object.entries(renderOutput.artifacts).forEach(([path, content]) => onArtifact(path, content))
+      }
+
       return {
         ...renderOutput,
+        ...(onArtifact !== undefined
+          ? { artifacts: {}, files: { ...givenFiles, ...renderOutput.files } }
+          : {}),
         results: this.#results.toTree(),
         parseIssues: phase.context.issues,
         enrichmentWarnings,

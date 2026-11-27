@@ -138,7 +138,8 @@ toOasOperationEntry<EnrichmentSchema>({
 Core reads only statics from the list (`id`, `type`, `toEnrichments`,
 `toExportPath`), and constructs nothing. With the list, core can know
 before a run which files the generator can write. The list is
-optional.
+optional. In a run with [`onArtifact`](to-artifacts.md#onartifact), a list
+that does not have a projection the generator inserts can make the run fail.
 
 ### `toEnrichmentDefaults?: ({ context, <operation|ref>, variant }) => EnrichmentType | undefined` (optional)
 
