@@ -12,8 +12,8 @@ want to produce the same thing?** In Skmtc, two generators producing
 file ends up with one `export const foo = ...`, not two.
 
 Even more strongly: **the order in which the generators run
-doesn't matter**. Running `gen-zod` before `gen-shadcn-form`
-produces the same output as running them in the reverse order.
+doesn't matter**. Whichever of `gen-zod` and `gen-shadcn-form`
+gets to a model first, the output is the same.
 
 How does this work? And what invariants does it rest on?
 
@@ -137,6 +137,12 @@ Inside its `toString()`, it calls
 `userBody` Zod schema. We want the file to end up with one
 `userBody` definition either way.
 
+A run takes the model generators first, whatever the order of the
+config. Thus, in this stack, `gen-zod` always runs first, as in
+Order A. Order B shows what the cache does when the form gets to
+the model first. That can happen between two generators of one kind,
+which run in the order of the config.
+
 ### Order A: gen-zod first
 
 1. The engine iterates generators. `gen-zod` runs first.
@@ -185,8 +191,9 @@ Final state: one `userBody` definition, imported by the form.
 ### Result: identical `#files` map
 
 Both orderings produce the same `#files` map. The Render phase
-walks the map and produces the same strings. The only observable
-difference between the runs is in log line ordering, not output.
+walks the map and produces the same strings. Each file in this
+scenario has one generator that adds definitions to it, so the two
+orderings give the same bytes.
 
 The cache makes order irrelevant *by construction*. Generators
 don't need to know about each other's existence. They can be

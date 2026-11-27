@@ -174,14 +174,10 @@ With `onArtifact`:
   generator. Without `onArtifact`, one generator runs all its subjects, then
   the next generator runs. Thus, if two generators insert into one file, the
   definitions in it can be in a different order.
-- This includes a model generator's file, when an operation generator
-  inserts its projection and comes first in the config. With `onArtifact`,
-  the models run first, in document order.
-- If an operation generator is before the model generators in the config,
-  these can differ from a run without `onArtifact`:
-  - the order of the definitions in a shared file
-  - the order of the names in the import lines of that file
-  - in a `$ref` cycle, the model that gets the type annotation
+- Without `onArtifact`, the run takes the model generators first, then the
+  operation generators, then the webhook generators. With `onArtifact`,
+  each subject runs only the generators of its kind. Thus, the order of
+  these kinds in the config changes no file in either run.
 - A run with `attribution.postPass` or `inspect`, and a run of a GraphQL
   document, gives every file at the end.
 - A run that fails has no files. Drop the files that it gave before it

@@ -215,8 +215,10 @@ an in-memory map of files-to-render.
 ### The outer loop
 
 `GenerateContext.toArtifacts` (`core/context/GenerateContext.ts`) iterates
-the configured generators. For each generator, it applies the whole-generator
-`skip` check, then dispatches by generator type:
+the configured generators. The model generators run first, then the
+operation generators, then the webhook generators. Generators of one kind
+run in the order of the config. For each generator, it applies the
+whole-generator `skip` check, then dispatches by generator type:
 
 ```ts
 generators.forEach(generatorConfig => {
@@ -260,11 +262,9 @@ the `projections` that each entry lists, and from the `$ref`s that the
 parser read.
 
 The two orders write the same files. If two generators insert into one
-file, the definitions in it can be in a different order. With an operation
-generator before the model generators in the config, the definitions in a
-shared file can differ in order. The names in its import lines can also
-differ in order. In a `$ref` cycle, a different model can get the type
-annotation. See
+file, the definitions in it can be in a different order. The order
+generator by generator takes the model generators first. Thus, the order
+of the kinds in the config changes no file, in either order. See
 [`onArtifact`](../reference/api/to-artifacts.md#onartifact).
 
 ### The Driver lifecycle

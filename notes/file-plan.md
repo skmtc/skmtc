@@ -81,10 +81,10 @@ Five ideas, each with one home. The tickets are listed further down.
    today: the models in document order, the operations
    in document order, and an operation when each model up to the last one
    it can get to has run. A file that more than one generator inserts into
-   can still change its order. With an operation generator listed before the
-   model generators, the definitions in a shared file, the names in its
-   import lines, and in a `$ref` cycle the model that gets the type
-   annotation can all differ. When
+   can still change its order. A run generator by generator takes the kinds
+   in the same order: the model generators, then the operation generators,
+   then the webhook generators. An operation generator that the config lists
+   first thus changes no file. When
    a file's last holder is done, core renders it, gives the text to the host
    and lets the file go. A write to such a file, or a lookup in one, is an
    error that names the subject and the file: it means a generator inserted
