@@ -1,4 +1,4 @@
-import { assertEquals, assertStringIncludes } from '@std/assert'
+import { assertEquals, assertMatch, assertStringIncludes } from '@std/assert'
 import { dirname, fromFileUrl, join, relative, resolve } from '@std/path'
 
 /**
@@ -216,11 +216,18 @@ Deno.test({
     try {
       const { stdout } = await runGenerate(fixtureRoot, schemaPath)
 
-      // Top-line generation summary present. The CLI emits
-      // "Generated N tokens, M files under <basePath> in <ms>." —
+      // Top-line generation summary present. Without --count-tokens the
+      // CLI emits "Generated M files under <basePath> in <ms>ms." —
       // assert on the stable anchors of that sentence.
       assertStringIncludes(stdout, 'Generated')
       assertStringIncludes(stdout, 'files under')
+      assertEquals(stdout.includes(' tokens, '), false)
+
+      // With --count-tokens, mod.ts passes the flag through and the line
+      // names the count.
+      const counted = await runGenerate(fixtureRoot, schemaPath, ['--count-tokens'])
+
+      assertMatch(counted.stdout, /Generated \d[\d,]* tokens, /)
 
       // The file is named by the model's `ref.refName`.
       const generated = join(fixtureRoot, 'generated', 'types', 'User.generated.ts')

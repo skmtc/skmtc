@@ -26,9 +26,15 @@ type GenerateProps = {
   project: Project
   schemaSourceString: string | undefined
   watchMode: boolean | undefined
+  countTokens?: boolean
 }
 
-export const GenerateView = ({ project, schemaSourceString, watchMode }: GenerateProps) => {
+export const GenerateView = ({
+  project,
+  schemaSourceString,
+  watchMode,
+  countTokens
+}: GenerateProps) => {
   const { dispatch, state } = useSkmtc()
 
   const basePath = useMemo(() => {
@@ -93,7 +99,7 @@ export const GenerateView = ({ project, schemaSourceString, watchMode }: Generat
           taskKey: 'generate-view-content-task',
           include: true,
           state: undefined,
-          render: () => <GenerateTask project={project} />
+          render: () => <GenerateTask project={project} countTokens={countTokens} />
         }
       ]}
       leave={() => {
@@ -111,9 +117,10 @@ export const GenerateView = ({ project, schemaSourceString, watchMode }: Generat
 
 type GenerateTaskProps = {
   project: Project
+  countTokens?: boolean
 }
 
-const GenerateTask = ({ project }: GenerateTaskProps) => {
+const GenerateTask = ({ project, countTokens }: GenerateTaskProps) => {
   const { state: taskState } = useTask()
 
   const {
@@ -133,12 +140,14 @@ const GenerateTask = ({ project }: GenerateTaskProps) => {
       project={project}
       bundlePath={bundlePath}
       schemaSourceString={schemaLocation}
+      countTokens={countTokens}
     />
   ) : (
     <RunGenerateTask
       project={project}
       bundlePath={bundlePath}
       schemaSourceString={schemaLocation}
+      countTokens={countTokens}
     />
   )
 }
@@ -147,9 +156,15 @@ type RunGenerateProps = {
   project: Project
   bundlePath: string
   schemaSourceString: string
+  countTokens?: boolean
 }
 
-const RunGenerateTask = ({ project, bundlePath, schemaSourceString }: RunGenerateProps) => {
+const RunGenerateTask = ({
+  project,
+  bundlePath,
+  schemaSourceString,
+  countTokens
+}: RunGenerateProps) => {
   const { state, dispatchMessage } = useSkmtc()
   const { state: taskState, leave } = useTask()
 
@@ -172,7 +187,8 @@ const RunGenerateTask = ({ project, bundlePath, schemaSourceString }: RunGenerat
           skmtcRoot: state.skmtcRoot,
           schemaContents: schemaContents.contents,
           fileType: schemaContents.fileType,
-          clientSettings: project.clientJson?.contents?.settings
+          clientSettings: project.clientJson?.contents?.settings,
+          countTokens
         })
           .then(stats => {
             dispatchMessage(toGenerateMessage(stats))
@@ -206,9 +222,15 @@ type WatchGenerateProps = {
   project: Project
   bundlePath: string
   schemaSourceString: string
+  countTokens?: boolean
 }
 
-const WatchGenerateTask = ({ project, bundlePath, schemaSourceString }: WatchGenerateProps) => {
+const WatchGenerateTask = ({
+  project,
+  bundlePath,
+  schemaSourceString,
+  countTokens
+}: WatchGenerateProps) => {
   const { state, dispatchMessage } = useSkmtc()
   const { state: taskState, leave } = useTask()
   const [watcher, setWatcher] = useState<FSWatcher>()
@@ -253,7 +275,8 @@ const WatchGenerateTask = ({ project, bundlePath, schemaSourceString }: WatchGen
           skmtcRoot: state.skmtcRoot,
           schemaContents: contents,
           fileType,
-          clientSettings: project.clientJson?.contents?.settings
+          clientSettings: project.clientJson?.contents?.settings,
+          countTokens
         })
           .then(stats => {
             dispatchMessage(toGenerateMessage(stats))
