@@ -431,7 +431,8 @@ Deno.test('checkModuleGraph - resolves one core from a real `deno info` run', as
               }
             ]
           }
-        ]
+        ],
+        localFiles: [Deno.realPathSync(join(projectPath, 'worker.ts'))]
       })
     })
   })

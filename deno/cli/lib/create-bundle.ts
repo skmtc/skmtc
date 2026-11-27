@@ -4,11 +4,21 @@ import { rootDenoJson } from '@skmtc/core/DenoJson'
 import type { BundleProject } from '@/lib/bundle-project.ts'
 import { toBundleFsPath, toBundlePath } from '@/lib/to-bundle-path.ts'
 import { toDependencyAgeArgs } from '@/lib/dependency-age.ts'
-import { toGraphRefusal } from '@/lib/duplicate-packages.ts'
+import { toGraphCheck, toGraphRefusal } from '@/lib/duplicate-packages.ts'
 import { parseOrExplain } from '@/lib/parse-or-explain.ts'
 import { toGeneratorIds } from '@/lib/root-deno-json.ts'
 import { toWorker } from '@/lib/to-worker.ts'
 import { toWorkerModule } from '@/lib/stack-core.ts'
+import {
+  type BundleVersions,
+  isBundleCurrent,
+  removeBundleRecord,
+  toBundleInputs,
+  toCurrentVersions,
+  toFileDigest,
+  toGraphFiles,
+  writeBundleRecord
+} from '@/lib/bundle-inputs.ts'
 
 /**
  * Build a project's bundle from its generated `worker.ts`.
@@ -26,6 +36,13 @@ import { toWorkerModule } from '@/lib/stack-core.ts'
 
 type CreateBundleArgs = {
   project: BundleProject
+  /**
+   * Skip the build when `bundle.js` was built from the inputs the project
+   * has now (see `@/lib/bundle-inputs.ts`). For `generate` and the first
+   * run of `dev`; `skmtc bundle` always builds.
+   */
+  reuse?: boolean
+  versions?: BundleVersions
 }
 
 /**
@@ -33,18 +50,30 @@ type CreateBundleArgs = {
  * it next. `deno bundle` writes to a temporary file under `.settings/`,
  * which is renamed over `bundle.js` only when the build succeeds, so a
  * command running at the same time never loads a missing or half-written
- * bundle. Returns the URL of the bundle to run.
+ * bundle. A build that succeeds and passes the graph check writes
+ * `.settings/bundle-inputs.json`, the record `reuse` compares with.
+ * Returns the URL of the bundle to run.
  */
-export const createBundle = async ({ project }: CreateBundleArgs): Promise<string> => {
+export const createBundle = async ({
+  project,
+  reuse = false,
+  versions = toCurrentVersions()
+}: CreateBundleArgs): Promise<string> => {
   const projectPath = project.toPath()
   const settingsPath = join(projectPath, '.settings')
 
   await project.createWorker()
 
-  const refusal = await toGraphRefusal({ projectName: project.name, projectPath })
-  if (refusal !== undefined) {
-    throw new Error(refusal)
+  if (reuse && (await isBundleCurrent({ projectPath, versions }))) {
+    return toBundlePath(projectPath)
   }
+
+  const graphCheck = await toGraphCheck({ projectName: project.name, projectPath })
+  if (graphCheck.type === 'refused') {
+    throw new Error(graphCheck.message)
+  }
+  const graphFiles = toGraphFiles(projectPath, graphCheck.localFiles)
+  const inputs = await toBundleInputs({ projectPath, versions, graphFiles })
 
   const temporaryBundleName = join('.settings', `bundle-${crypto.randomUUID()}.js`)
   const temporaryBundlePath = join(projectPath, temporaryBundleName)
@@ -72,7 +101,33 @@ export const createBundle = async ({ project }: CreateBundleArgs): Promise<strin
     throw new Error(toBundleFailureMessage({ projectPath, errorLogsPath, stderr }))
   }
 
+  // The record holds the digest of the bundle it describes, so a record
+  // that ends up beside another bundle.js (a git checkout, a concurrent
+  // build) never lets that bundle run. The inputs are read again after
+  // the build and kept only when nothing changed while it ran — except a
+  // deno.lock the build itself wrote, which happens only when the inputs
+  // before it had no lock or a pin the lock did not hold.
+  // A bundle that can't be read for its digest gets no record.
+  const bundleDigest = await toFileDigest(temporaryBundlePath).catch(() => undefined)
+  await removeBundleRecord(projectPath)
   await Deno.rename(temporaryBundlePath, toBundleFsPath(projectPath))
+  const builtInputs = await toBundleInputs({ projectPath, versions, graphFiles })
+  const unchangedWhileBuilding =
+    inputs.type === 'fingerprinted'
+      ? builtInputs.type === 'fingerprinted' && builtInputs.fingerprint === inputs.fingerprint
+      : builtInputs.sourceDigest !== undefined && builtInputs.sourceDigest === inputs.sourceDigest
+  if (
+    builtInputs.type === 'fingerprinted' &&
+    unchangedWhileBuilding &&
+    bundleDigest !== undefined
+  ) {
+    await writeBundleRecord(projectPath, {
+      fingerprint: builtInputs.fingerprint,
+      ...versions,
+      bundleDigest,
+      graphFiles
+    })
+  }
 
   return toBundlePath(projectPath)
 }
@@ -124,7 +179,8 @@ export const createReadOnlyBundle = async ({
     `deno.json at ${denoJsonPath}`
   )
   const workerModule = toWorkerModule(imports)
-  const neededPins = workerModule === '@skmtc/worker' ? ['@skmtc/worker', '@skmtc/core'] : ['@skmtc/core']
+  const neededPins =
+    workerModule === '@skmtc/worker' ? ['@skmtc/worker', '@skmtc/core'] : ['@skmtc/core']
   const missingPins = neededPins.filter(name => imports?.[name] === undefined)
   if (missingPins.length > 0) {
     throw new Error(

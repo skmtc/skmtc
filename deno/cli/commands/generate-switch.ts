@@ -96,10 +96,12 @@ export const generateSwitch = async ({
   }
 
   if (generateLocalArgs) {
-    // A local project rebuilds bundle.js on every run, from the pins and
-    // generator source it has now, and runs the bundle that build returns.
-    // The build refuses a module graph with two copies of `@skmtc/core` or
-    // a `@skmtc/lang-*`. A REMOTE generate (`skmtc.config.json#serverUrl` set)
+    // A local project builds bundle.js from the pins and generator source it
+    // has now, and runs the bundle that build returns. It skips the build
+    // when `.settings/bundle-inputs.json` records that bundle.js was built
+    // from those same inputs (see `@/lib/bundle-inputs.ts`). The build
+    // refuses a module graph with two copies of `@skmtc/core` or a
+    // `@skmtc/lang-*`. A REMOTE generate (`skmtc.config.json#serverUrl` set)
     // runs on the stack server and builds nothing locally.
     const bundlePath = generateLocalArgs.stackUrl ? undefined : await buildForRun(projectName)
 
@@ -181,7 +183,10 @@ const buildForRun = async (projectName: string): Promise<string> => {
   }
 
   try {
-    return await createBundle({ project: await openBundleProject(projectName, new Manager()) })
+    return await createBundle({
+      project: await openBundleProject(projectName, new Manager()),
+      reuse: true
+    })
   } catch (error) {
     console.error(`Error: ${error instanceof Error ? error.message : String(error)}\n`)
     return Deno.exit(1)
