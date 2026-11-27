@@ -184,11 +184,11 @@ instrumentation is transparent.
 
 ### Stage 3 — the post-pass (folded into Render)
 
-There is no separate pass between Generate and Render. Render is a
-single capture pass: `RenderContext` renders each file once with the
-capture interval open, and — *when the run supplies
-`attribution.postPass`* — immediately runs the post-pass over that
-file's resolved spans. `postPass` (`core/anchors/postPass.ts`) is a
+There is no separate pass between Generate and Render. A run with no
+`attribution.postPass` renders without capture. In a run that supplies
+it, Render is a single capture pass: `RenderContext` renders each file
+once with the capture interval open, and immediately runs the
+post-pass over that file's resolved spans. `postPass` (`core/anchors/postPass.ts`) is a
 pure function over a file's text + spans; per code `File` (JSON
 artifacts have no producer tree and are skipped) it:
 

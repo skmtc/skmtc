@@ -617,11 +617,8 @@ export type GenerateContextType = {
   pendingStack: PendingDefinition[]
   document: SkmtcParsedDocument
   /**
-   * Attribution (gen-maps) state. When set, every `SnippetBase`
-   * instance wraps its `toString` to record parent/child edges in a
-   * module-level render stack, so the post-render span resolver can
-   * attribute byte ranges to producers. When omitted, the wrap is
-   * skipped entirely — zero cost.
+   * Attribution (gen-maps) state. It does not decide whether a
+   * `SnippetBase` wraps its `toString`: {@link capturesRender} does.
    */
   attribution?: AttributionState
   /**
@@ -637,7 +634,7 @@ export type GenerateContextType = {
    * Whether the run has a capturing render (attribution emission is
    * configured). Read once by every `SnippetBase` instance, at
    * construction: it installs its `toString` wrapper only when this is
-   * true. Bare test mocks read `undefined` and install none.
+   * true.
    */
   capturesRender: boolean
   toArtifacts: (stackTrail: StackTrail) => GenerateResult
