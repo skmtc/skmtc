@@ -1,6 +1,6 @@
 {
   "@skmtc/core": {
-    "minor": "0.53",
+    "minor": "0.54",
     "deno": "2.9.8",
     "exports": {
       "AddPropertyArgs": "6922b41f66aabe95",
@@ -269,7 +269,7 @@
       "PackageDenoJson": "89b58e8b93789782",
       "PackageMatch": "d633ac2162980c8d",
       "ParameterFields": "7bb64fd240f70952",
-      "ParseContext": "eca20bfcb5b3ce44",
+      "ParseContext": "edabf4bcb388f103",
       "ParseContextType": "5cb968c87d696959",
       "ParseErrorInput": "5eda50158bf0054f",
       "ParseIssue": "a6ca841b96276332",
